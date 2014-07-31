@@ -1,0 +1,4 @@
+ADD_LIBRARY(osquery_devtools shell.cpp)
+TARGET_LINK_LIBRARIES(osquery_devtools glog)
+TARGET_LINK_LIBRARIES(osquery_devtools osquery_core)
+TARGET_LINK_LIBRARIES(osquery_devtools osquery_sqlite)

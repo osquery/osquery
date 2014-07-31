@@ -1,0 +1,7 @@
+table_name("generated_example")
+schema([
+    Column(name="name", type="std::string"),
+    Column(name="age", type="int"),
+    Column(name="gender", type="std::string"),
+])
+implementation("osquery/tables/implementations/example@genExample")

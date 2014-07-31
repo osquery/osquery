@@ -1,0 +1,28 @@
+ADD_LIBRARY(osquery_database
+  db_handle.cpp
+  query.cpp
+  results.cpp
+)
+TARGET_LINK_LIBRARIES(osquery_database boost_system)
+TARGET_LINK_LIBRARIES(osquery_database boost_thread-mt)
+TARGET_LINK_LIBRARIES(osquery_database bz2)
+TARGET_LINK_LIBRARIES(osquery_database glog)
+TARGET_LINK_LIBRARIES(osquery_database gtest)
+TARGET_LINK_LIBRARIES(osquery_database rocksdb)
+TARGET_LINK_LIBRARIES(osquery_database snappy)
+TARGET_LINK_LIBRARIES(osquery_database z)
+TARGET_LINK_LIBRARIES(osquery_database osquery_config)
+
+ADD_EXECUTABLE(query_tests query_tests.cpp)
+TARGET_LINK_LIBRARIES(query_tests gtest)
+TARGET_LINK_LIBRARIES(query_tests osquery_core)
+TARGET_LINK_LIBRARIES(query_tests osquery_database)
+
+ADD_EXECUTABLE(db_handle_tests db_handle_tests.cpp)
+TARGET_LINK_LIBRARIES(db_handle_tests gtest)
+TARGET_LINK_LIBRARIES(db_handle_tests osquery_database)
+
+ADD_EXECUTABLE(results_tests results_tests)
+TARGET_LINK_LIBRARIES(results_tests gtest)
+TARGET_LINK_LIBRARIES(results_tests osquery_core)
+TARGET_LINK_LIBRARIES(results_tests osquery_database)

@@ -1,0 +1,24 @@
+ADD_LIBRARY(osquery_core
+  sqlite_util.cpp
+  test_util.cpp
+)
+TARGET_LINK_LIBRARIES(osquery_core glog)
+TARGET_LINK_LIBRARIES(osquery_core gtest)
+TARGET_LINK_LIBRARIES(osquery_core osquery_database)
+TARGET_LINK_LIBRARIES(osquery_core osquery_sqlite)
+TARGET_LINK_LIBRARIES(osquery_core osquery_tables)
+
+ADD_EXECUTABLE(status_tests status_tests.cpp)
+TARGET_LINK_LIBRARIES(status_tests gtest)
+
+ADD_EXECUTABLE(sqlite_util_tests sqlite_util_tests.cpp)
+TARGET_LINK_LIBRARIES(sqlite_util_tests gtest)
+TARGET_LINK_LIBRARIES(sqlite_util_tests osquery_core)
+TARGET_LINK_LIBRARIES(sqlite_util_tests osquery_database)
+TARGET_LINK_LIBRARIES(sqlite_util_tests osquery_sqlite)
+
+ADD_EXECUTABLE(test_util_tests test_util_tests.cpp)
+TARGET_LINK_LIBRARIES(test_util_tests gtest)
+TARGET_LINK_LIBRARIES(test_util_tests glog)
+TARGET_LINK_LIBRARIES(test_util_tests osquery_core)
+TARGET_LINK_LIBRARIES(test_util_tests osquery_sqlite)
