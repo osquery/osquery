@@ -271,11 +271,11 @@ class TableState(Singleton):
         base = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         self.header_path = os.path.join(
             base,
-            "tables/%s.h" % self.table_name
+            "osquery/tables/%s.h" % self.table_name
         )
         self.impl_path = os.path.join(
             base,
-            "tables/generated/%s.cpp" % self.table_name
+            "osquery/tables/generated/%s.cpp" % self.table_name
         )
 
         logging.info("generating %s" % self.header_path)
