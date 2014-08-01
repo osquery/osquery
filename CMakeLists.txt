@@ -1,10 +1,11 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 PROJECT(OSQUERY)
 
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}")
 
-SET(CMAKE_C_FLAGS "-std=c99")
-SET(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++")
+SET(CMAKE_C_FLAGS "-std=c99 -static -static-libgcc")
+SET(CMAKE_CXX_FLAGS "-std=c++11 -static -static-libgcc -static-libstdc++")
+SET(CMAKE_LIBRARY_PATH "/usr/local/lib:/usr/lib:/usr/lib64")
 
 ADD_SUBDIRECTORY(osquery/config)
 ADD_SUBDIRECTORY(osquery/core)
@@ -43,5 +44,8 @@ INSTALL(TARGETS shell DESTINATION bin)
 
 ADD_EXECUTABLE(daemon osquery/main/daemon.cpp)
 TARGET_LINK_LIBRARIES(daemon osquery_static)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  #TARGET_LINK_LIBRARIES(daemon rt)
+endif()
 SET_TARGET_PROPERTIES(daemon PROPERTIES OUTPUT_NAME osqueryd)
 INSTALL(TARGETS daemon DESTINATION bin)

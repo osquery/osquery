@@ -3,8 +3,16 @@ ADD_LIBRARY(osquery_logger
   plugins/filesystem.cpp
 )
 TARGET_LINK_LIBRARIES(osquery_logger osquery_database)
-TARGET_LINK_LIBRARIES(osquery_logger "-Wl,-all_load")
+if(APPLE)
+  TARGET_LINK_LIBRARIES(osquery_logger "-Wl,-all_load")
+else()
+  set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--whole-archive")
+endif()
 
 ADD_EXECUTABLE(logger_tests logger_tests.cpp)
 TARGET_LINK_LIBRARIES(logger_tests gtest)
 TARGET_LINK_LIBRARIES(logger_tests osquery_logger)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  TARGET_LINK_LIBRARIES(logger_tests rt)
+  TARGET_LINK_LIBRARIES(logger_tests pthread)
+endif()

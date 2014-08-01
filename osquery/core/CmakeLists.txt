@@ -10,6 +10,9 @@ TARGET_LINK_LIBRARIES(osquery_core osquery_tables)
 
 ADD_EXECUTABLE(status_tests status_tests.cpp)
 TARGET_LINK_LIBRARIES(status_tests gtest)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  TARGET_LINK_LIBRARIES(status_tests pthread)
+endif()
 
 ADD_EXECUTABLE(sqlite_util_tests sqlite_util_tests.cpp)
 TARGET_LINK_LIBRARIES(sqlite_util_tests gtest)
