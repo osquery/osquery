@@ -22,3 +22,6 @@
 
 # Build Artifacts
 build
+
+# Vagrant Artifacts
+.vagrant

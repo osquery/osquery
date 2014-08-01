@@ -2,6 +2,7 @@
 
 #include "osquery/database/db_handle.h"
 
+#include <algorithm>
 #include <stdexcept>
 
 #include <gtest/gtest.h>
