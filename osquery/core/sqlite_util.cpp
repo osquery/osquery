@@ -6,6 +6,7 @@
 #include "osquery/tables/base.h"
 #include "osquery/tables/filesystem.h"
 #include "osquery/tables/generated_example.h"
+#include "osquery/tables/etc_hosts.h"
 #include "osquery/tables/hash.h"
 
 #include <iostream>
@@ -25,6 +26,8 @@ sqlite3_hash *hash_table;
 void sqlite3_attach_vtables(sqlite3 *db) {
   sqlite3_attach_vtable<sqlite3_generated_example>(db, "generated_example",
     &generated_exampleModule);
+  sqlite3_attach_vtable<sqlite3_etc_hosts>(db, "etc_hosts",
+    &etc_hostsModule);
   sqlite3_filesystem_create(db, "fs", &fs_table);
   sqlite3_hash_create(db, "hash", &hash_table);
 }
