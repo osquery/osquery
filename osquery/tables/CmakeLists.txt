@@ -7,7 +7,14 @@ ADD_LIBRARY(osquery_tables
   registry.cpp
   ${table_sources}
   implementations/example.cpp
+  implementations/etc_hosts.cpp
 )
 TARGET_LINK_LIBRARIES(osquery_tables boost_filesystem)
 TARGET_LINK_LIBRARIES(osquery_tables osquery_sqlite)
 TARGET_LINK_LIBRARIES(osquery_tables "-Wl,-all_load")
+
+ADD_EXECUTABLE(etc_hosts_tests implementations/etc_hosts_tests.cpp)
+TARGET_LINK_LIBRARIES(etc_hosts_tests gtest)
+TARGET_LINK_LIBRARIES(etc_hosts_tests glog)
+TARGET_LINK_LIBRARIES(etc_hosts_tests osquery_core)
+TARGET_LINK_LIBRARIES(etc_hosts_tests osquery_tables)

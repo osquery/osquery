@@ -77,6 +77,12 @@ getSerializedScheduledQueryLogItem();
 std::pair<std::string, osquery::db::ScheduledQueryLogItem>
 getSerializedScheduledQueryLogItemJSON();
 
+// generate the content that would be found in an /etc/hosts file
+std::string getEtcHostsContent();
+
+// generate the expected data that getEtcHostsContent() should parse into
+osquery::db::QueryData getEtcHostsExpectedResults();
+
 }}
 
 #endif /* OSQUERY_CORE_TEST_UTIL_H */

@@ -220,4 +220,32 @@ getSerializedScheduledQueryLogItemJSON() {
   return std::make_pair(ss.str(), results.second);
 }
 
+std::string getEtcHostsContent() {
+  std::string content =
+    "##\n"
+    "# Host Database\n"
+    "#\n"
+    "# localhost is used to configure the loopback interface\n"
+    "# when the system is booting.  Do not change this entry.\n"
+    "##\n"
+    "127.0.0.1       localhost\n"
+    "255.255.255.255 broadcasthost\n"
+    "::1             localhost\n"
+    "fe80::1%lo0     localhost\n";
+  return content;
+}
+
+osquery::db::QueryData getEtcHostsExpectedResults() {
+  Row row1;
+  Row row2;
+  Row row3;
+  Row row4;
+
+  row1["127.0.0.1"] = "localhost";
+  row2["255.255.255.255"] = "broadcasthost";
+  row3["::1"] = "localhost";
+  row4["fe80::1%lo0"] = "localhost";
+  return {row1, row2, row3, row4};
+}
+
 }}
