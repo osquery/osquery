@@ -1,0 +1,12 @@
+ADD_LIBRARY(osquery_filesystem
+  filesystem.cpp
+)
+TARGET_LINK_LIBRARIES(osquery_filesystem boost_filesystem)
+TARGET_LINK_LIBRARIES(osquery_filesystem boost_system)
+TARGET_LINK_LIBRARIES(osquery_filesystem boost_thread-mt)
+TARGET_LINK_LIBRARIES(osquery_filesystem gflags)
+TARGET_LINK_LIBRARIES(osquery_filesystem glog)
+
+ADD_EXECUTABLE(filesystem_tests filesystem_tests.cpp)
+TARGET_LINK_LIBRARIES(filesystem_tests gtest)
+TARGET_LINK_LIBRARIES(filesystem_tests osquery_filesystem)
