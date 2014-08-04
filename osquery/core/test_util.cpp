@@ -254,18 +254,15 @@ osquery::db::QueryData getEtcHostsExpectedResults() {
 
 std::vector<SplitStringTestData> generateSplitStringTestData() {
   SplitStringTestData s1;
-  s1.test_string = "a:b:c";
-  s1.delim = ':';
+  s1.test_string = "a b\tc";
   s1.test_vector = {"a", "b", "c"};
 
   SplitStringTestData s2;
-  s2.test_string = "a::b:c";
-  s2.delim = ':';
+  s2.test_string = " a b   c";
   s2.test_vector = {"a", "b", "c"};
 
   SplitStringTestData s3;
   s3.test_string = "  a     b   c";
-  s3.delim = ' ';
   s3.test_vector = {"a", "b", "c"};
 
   return {s1, s2, s3};
@@ -274,17 +271,17 @@ std::vector<SplitStringTestData> generateSplitStringTestData() {
 std::vector<SplitStringTestData> generateJoinStringTestData() {
   SplitStringTestData s1;
   s1.test_string = "a:b:c";
-  s1.delim = ':';
+  s1.delim = ":";
   s1.test_vector = {"a", "b", "c"};
 
   SplitStringTestData s2;
   s2.test_string = "a\nb\nc";
-  s2.delim = '\n';
+  s2.delim = "\n";
   s2.test_vector = {"a", "b", "c"};
 
   SplitStringTestData s3;
   s3.test_string = "a b c";
-  s3.delim = ' ';
+  s3.delim = " ";
   s3.test_vector = {"a", "b", "c"};
 
   return {s1, s2, s3};
