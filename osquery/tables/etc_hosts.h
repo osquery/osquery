@@ -18,7 +18,7 @@ namespace osquery { namespace tables {
 struct sqlite3_etc_hosts {
   int n;
   std::vector<std::string> address;
-  std::vector<std::string> host_names;
+  std::vector<std::string> hostnames;
 };
 
 extern const std::string

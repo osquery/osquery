@@ -83,6 +83,19 @@ std::string getEtcHostsContent();
 // generate the expected data that getEtcHostsContent() should parse into
 osquery::db::QueryData getEtcHostsExpectedResults();
 
+// the three items that you need to test osquery::core::splitString
+struct SplitStringTestData {
+  std::string test_string;
+  char delim;
+  std::vector<std::string> test_vector;
+};
+
+// generate a set of test data to test osquery::core::splitString
+std::vector<SplitStringTestData> generateSplitStringTestData();
+
+// generate a set of test data to test osquery::core::joinString
+std::vector<SplitStringTestData> generateJoinStringTestData();
+
 }}
 
 #endif /* OSQUERY_CORE_TEST_UTIL_H */

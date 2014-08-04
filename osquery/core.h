@@ -22,6 +22,12 @@ aggregateQuery(const std::string& q, int& error_return, sqlite3* db);
 // be called in an executable's main() function
 void initOsquery(int argc, char *argv[]);
 
+// Split a given string based on a given deliminator.
+std::vector<std::string> splitString(const std::string& s, const char delim);
+
+// Join a given string based on a given deliminator.
+std::string joinString(const std::vector<std::string>& v, const char delim);
+
 }}
 
 #endif /* OSQUERY_CORE_H */
