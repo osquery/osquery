@@ -21,7 +21,7 @@ const std::string
   sqlite3_etc_hosts_create_table_statement =
   "CREATE TABLE etc_hosts("
     "address VARCHAR , "
-    "host_names VARCHAR "
+    "hostnames VARCHAR "
     ")";
 
 int etc_hostsCreate(
@@ -61,11 +61,11 @@ int etc_hostsColumn(
           nullptr
         );
         break;
-      // host_names
+      // hostnames
       case 1:
         sqlite3_result_text(
           ctx,
-          (pVtab->pContent->host_names[pCur->row]).c_str(),
+          (pVtab->pContent->hostnames[pCur->row]).c_str(),
           -1,
           nullptr
         );
@@ -90,7 +90,7 @@ int etc_hostsFilter(
 
   for (auto& row : osquery::tables::genEtcHosts()) {
     pVtab->pContent->address.push_back(row["address"]);
-    pVtab->pContent->host_names.push_back(row["host_names"]);
+    pVtab->pContent->hostnames.push_back(row["hostnames"]);
   }
 
   pVtab->pContent->n = pVtab->pContent->address.size();

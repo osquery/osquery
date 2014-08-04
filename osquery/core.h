@@ -28,6 +28,12 @@ void sqlite3_attach_vtables(sqlite3 *db);
 // Return a fully configured sqlite3 database object
 sqlite3* createDB();
 
+// Split a given string based on a given deliminator.
+std::vector<std::string> splitString(const std::string& s, const char delim);
+
+// Join a given string based on a given deliminator.
+std::string joinString(const std::vector<std::string>& v, const char delim);
+
 }}
 
 #endif /* OSQUERY_CORE_H */
