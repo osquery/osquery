@@ -86,7 +86,7 @@ osquery::db::QueryData getEtcHostsExpectedResults();
 // the three items that you need to test osquery::core::splitString
 struct SplitStringTestData {
   std::string test_string;
-  char delim;
+  std::string delim;
   std::vector<std::string> test_vector;
 };
 

@@ -5,6 +5,8 @@
 #include <vector>
 #include <string>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <glog/logging.h>
@@ -32,15 +34,20 @@ QueryData genEtcHosts() {
 QueryData parseEtcHostsContent(const std::string& content) {
   QueryData results;
 
-  for (const auto& i : splitString(content, '\n')) {
-    auto line = splitString(i, ' ');
+  for (const auto& i : split(content, "\n")) {
+    auto line = split(i);
     if (line.size() == 0 || boost::starts_with(line[0], "#")) {
       continue;
     }
     Row r;
     r["address"] = line[0];
-    line.erase(line.begin());
-    r["hostnames"] = joinString(line, ' ');
+    if (line.size() > 1) {
+      std::vector<std::string> hostnames;
+      for (int i = 1; i < line.size(); ++i) {
+        hostnames.push_back(line[i]);
+      }
+      r["hostnames"] = join(hostnames, " ");
+    }
     results.push_back(r);
   }
 

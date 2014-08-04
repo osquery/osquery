@@ -87,6 +87,8 @@ int etc_hostsFilter(
     (x_vtab<sqlite3_etc_hosts>*)pVtabCursor->pVtab;
 
   pCur->row = 0;
+  pVtab->pContent->address = {};
+  pVtab->pContent->hostnames = {};
 
   for (auto& row : osquery::tables::genEtcHosts()) {
     pVtab->pContent->address.push_back(row["address"]);
