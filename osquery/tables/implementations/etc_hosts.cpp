@@ -5,8 +5,6 @@
 #include <vector>
 #include <string>
 
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <glog/logging.h>
