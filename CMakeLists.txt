@@ -5,6 +5,7 @@ INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}")
 
 SET(CMAKE_C_FLAGS "-std=c99")
 SET(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++")
+SET(GEN_TABLE_PATH "${CMAKE_SOURCE_DIR}/tools/gentable.py")
 
 ADD_SUBDIRECTORY(osquery/config)
 ADD_SUBDIRECTORY(osquery/core)

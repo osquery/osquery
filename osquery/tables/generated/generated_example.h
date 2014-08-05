@@ -4,8 +4,8 @@
 ** This file is generated. Do not modify it manually!
 */
 
-#ifndef OSQUERY_TABLES_GENERATED_EXAMPLE_H
-#define OSQUERY_TABLES_GENERATED_EXAMPLE_H
+#ifndef OSQUERY_TABLES_GENERATED_GENERATED_EXAMPLE_H
+#define OSQUERY_TABLES_GENERATED_GENERATED_EXAMPLE_H
 
 #include <string>
 #include <vector>

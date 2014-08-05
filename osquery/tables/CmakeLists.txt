@@ -1,6 +1,10 @@
+FILE(GLOB table_sources
+  "generated/*.cpp"
+)
+
 ADD_LIBRARY(osquery_tables
   registry.cpp
-  generated/generated_example.cpp
+  ${table_sources}
   implementations/example.cpp
   manual/filesystem.cpp
   manual/hash.cpp

@@ -4,7 +4,7 @@
 ** This file is generated. Do not modify it manually!
 */
 
-#include "osquery/tables/generated_example.h"
+#include "osquery/tables/generated/generated_example.h"
 #include "osquery/tables/implementations/example.h"
 
 #include <string>

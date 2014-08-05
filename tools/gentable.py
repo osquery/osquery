@@ -25,8 +25,8 @@ HEADER_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 ** This file is generated. Do not modify it manually!
 */
 
-#ifndef OSQUERY_TABLES_{{table_name.upper()}}_H
-#define OSQUERY_TABLES_{{table_name.upper()}}_H
+#ifndef OSQUERY_TABLES_GENERATED_{{table_name.upper()}}_H
+#define OSQUERY_TABLES_GENERATED_{{table_name.upper()}}_H
 
 #include <string>
 #include <vector>
@@ -112,7 +112,7 @@ IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 ** This file is generated. Do not modify it manually!
 */
 
-#include "osquery/tables/{{table_name}}.h"
+#include "osquery/tables/generated/{{table_name}}.h"
 #include "{{header}}"
 
 #include <string>
@@ -289,7 +289,7 @@ class TableState(Singleton):
         base = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         self.header_path = os.path.join(
             base,
-            "osquery/tables/%s.h" % self.table_name
+            "osquery/tables/generated/%s.h" % self.table_name
         )
         self.impl_path = os.path.join(
             base,
