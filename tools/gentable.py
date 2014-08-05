@@ -25,8 +25,8 @@ HEADER_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 ** This file is generated. Do not modify it manually!
 */
 
-#ifndef OSQUERY_TABLES_{{table_name.upper()}}_H
-#define OSQUERY_TABLES_{{table_name.upper()}}_H
+#ifndef OSQUERY_TABLES_GENERATED_{{table_name.upper()}}_H
+#define OSQUERY_TABLES_GENERATED_{{table_name.upper()}}_H
 
 #include <string>
 #include <vector>
@@ -112,7 +112,7 @@ IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 ** This file is generated. Do not modify it manually!
 */
 
-#include "osquery/tables/{{table_name}}.h"
+#include "osquery/tables/generated/{{table_name}}.h"
 #include "{{header}}"
 
 #include <string>
@@ -122,6 +122,7 @@ IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 #include <boost/lexical_cast.hpp>
 
 #include "osquery/tables/base.h"
+#include "osquery/tables/registry.h"
 
 namespace osquery { namespace tables {
 
@@ -218,6 +219,23 @@ int {{table_name}}Filter(
   return SQLITE_OK;
 }
 
+class {{table_name}}TablePlugin : public TablePlugin {
+public:
+  {{table_name}}TablePlugin() {}
+
+  int attachVtable(sqlite3 *db) {
+    return sqlite3_attach_vtable<sqlite3_{{table_name}}>(
+      db, "{{table_name}}", &{{table_name}}Module);
+  }
+
+  virtual ~{{table_name}}TablePlugin() {}
+};
+
+REGISTER_TABLE(
+  "{{table_name}}",
+  std::make_shared<{{table_name}}TablePlugin>()
+);
+
 }}
 
 """
@@ -271,7 +289,7 @@ class TableState(Singleton):
         base = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         self.header_path = os.path.join(
             base,
-            "osquery/tables/%s.h" % self.table_name
+            "osquery/tables/generated/%s.h" % self.table_name
         )
         self.impl_path = os.path.join(
             base,

@@ -74,7 +74,7 @@
 #define pclose _pclose
 #else
 
-#include "osquery/core.h"
+#include "osquery/tables/registry.h"
 
 /* Make sure isatty() has a prototype.
 */
@@ -1647,7 +1647,7 @@ static void open_db(struct callback_data *p, int keepAlive){
     if( db && sqlite3_errcode(db)==SQLITE_OK ){
       sqlite3_create_function(db, "shellstatic", 0, SQLITE_UTF8, 0,
           shellstaticFunc, 0, 0);
-      osquery::core::sqlite3_attach_vtables(db);
+      osquery::tables::attachVirtualTables(db);
     }
     if( db==0 || SQLITE_OK!=sqlite3_errcode(db) ){
       fprintf(stderr,"Error: unable to open database \"%s\": %s\n",

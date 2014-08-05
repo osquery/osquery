@@ -4,9 +4,7 @@
 #include "osquery/database.h"
 #include "osquery/sqlite3.h"
 #include "osquery/tables/base.h"
-#include "osquery/tables/filesystem.h"
-#include "osquery/tables/generated_example.h"
-#include "osquery/tables/hash.h"
+#include "osquery/tables/registry.h"
 
 #include <iostream>
 #include <map>
@@ -19,20 +17,10 @@ using namespace osquery::tables;
 
 namespace osquery { namespace core {
 
-sqlite3_filesystem *fs_table;
-sqlite3_hash *hash_table;
-
-void sqlite3_attach_vtables(sqlite3 *db) {
-  sqlite3_attach_vtable<sqlite3_generated_example>(db, "generated_example",
-    &generated_exampleModule);
-  sqlite3_filesystem_create(db, "fs", &fs_table);
-  sqlite3_hash_create(db, "hash", &hash_table);
-}
-
 sqlite3* createDB() {
   sqlite3* db = nullptr;
   sqlite3_open(":memory:", &db);
-  sqlite3_attach_vtables(db);
+  osquery::tables::attachVirtualTables(db);
   return db;
 }
 

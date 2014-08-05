@@ -22,9 +22,6 @@ aggregateQuery(const std::string& q, int& error_return);
 osquery::db::QueryData
 aggregateQuery(const std::string& q, int& error_return, sqlite3* db);
 
-// Attach all active virtual tables to an active SQLite database connection
-void sqlite3_attach_vtables(sqlite3 *db);
-
 // Return a fully configured sqlite3 database object
 sqlite3* createDB();
 
