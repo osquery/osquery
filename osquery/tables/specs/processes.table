@@ -1,0 +1,8 @@
+table_name("processes")
+schema([
+    Column(name="name", type="std::string"),
+    Column(name="path", type="std::string"),
+    Column(name="pid", type="int"),
+    Column(name="on_disk", type="int"),
+])
+implementation("osquery/tables/implementations/processes@genProcesses")

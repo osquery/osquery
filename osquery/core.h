@@ -28,6 +28,19 @@ void sqlite3_attach_vtables(sqlite3 *db);
 // Return a fully configured sqlite3 database object
 sqlite3* createDB();
 
+// Split a given string based on whitespace
+std::vector<std::string> split(const std::string& s);
+std::vector<std::string> split(const std::string& s,
+  const std::string& regexp);
+
+// Join a given string based on a given deliminator.
+std::string join(const std::vector<std::string>& v, const std::string& delim);
+
+// trim the surrounding whitespace from a string
+std::string &ltrim(std::string &s);
+std::string &rtrim(std::string &s);
+std::string &trim(std::string &s);
+
 }}
 
 #endif /* OSQUERY_CORE_H */

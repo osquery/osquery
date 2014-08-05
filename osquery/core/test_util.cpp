@@ -218,4 +218,72 @@ getSerializedScheduledQueryLogItemJSON() {
   return std::make_pair(ss.str(), results.second);
 }
 
+std::string getEtcHostsContent() {
+  std::string content =
+    "##\n"
+    "# Host Database\n"
+    "#\n"
+    "# localhost is used to configure the loopback interface\n"
+    "# when the system is booting.  Do not change this entry.\n"
+    "##\n"
+    "127.0.0.1       localhost\n"
+    "255.255.255.255 broadcasthost\n"
+    "::1             localhost\n"
+    "fe80::1%lo0     localhost\n";
+  return content;
+}
+
+osquery::db::QueryData getEtcHostsExpectedResults() {
+  Row row1;
+  Row row2;
+  Row row3;
+  Row row4;
+
+  row1["address"] = "127.0.0.1";
+  row1["hostnames"] = "localhost";
+  row2["address"] = "255.255.255.255";
+  row2["hostnames"] = "broadcasthost";
+  row3["address"] = "::1";
+  row3["hostnames"] = "localhost";
+  row4["address"] = "fe80::1%lo0";
+  row4["hostnames"] = "localhost";
+  return {row1, row2, row3, row4};
+}
+
+std::vector<SplitStringTestData> generateSplitStringTestData() {
+  SplitStringTestData s1;
+  s1.test_string = "a b\tc";
+  s1.test_vector = {"a", "b", "c"};
+
+  SplitStringTestData s2;
+  s2.test_string = " a b   c";
+  s2.test_vector = {"a", "b", "c"};
+
+  SplitStringTestData s3;
+  s3.test_string = "  a     b   c";
+  s3.test_vector = {"a", "b", "c"};
+
+  return {s1, s2, s3};
+}
+
+std::vector<SplitStringTestData> generateJoinStringTestData() {
+  SplitStringTestData s1;
+  s1.test_string = "a:b:c";
+  s1.delim = ":";
+  s1.test_vector = {"a", "b", "c"};
+
+  SplitStringTestData s2;
+  s2.test_string = "a\nb\nc";
+  s2.delim = "\n";
+  s2.test_vector = {"a", "b", "c"};
+
+  SplitStringTestData s3;
+  s3.test_string = "a b c";
+  s3.delim = " ";
+  s3.test_vector = {"a", "b", "c"};
+
+  return {s1, s2, s3};
+}
+
+
 }}
