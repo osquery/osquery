@@ -1,4 +1,5 @@
 ADD_LIBRARY(osquery_tables
+  registry.cpp
   generated/generated_example.cpp
   implementations/example.cpp
   manual/filesystem.cpp
@@ -6,3 +7,4 @@ ADD_LIBRARY(osquery_tables
 )
 TARGET_LINK_LIBRARIES(osquery_tables boost_filesystem)
 TARGET_LINK_LIBRARIES(osquery_tables osquery_sqlite)
+TARGET_LINK_LIBRARIES(osquery_tables "-Wl,-all_load")

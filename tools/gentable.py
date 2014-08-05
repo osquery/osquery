@@ -122,6 +122,7 @@ IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 #include <boost/lexical_cast.hpp>
 
 #include "osquery/tables/base.h"
+#include "osquery/tables/registry.h"
 
 namespace osquery { namespace tables {
 
@@ -217,6 +218,23 @@ int {{table_name}}Filter(
 
   return SQLITE_OK;
 }
+
+class {{table_name}}TablePlugin : public TablePlugin {
+public:
+  {{table_name}}TablePlugin() {}
+
+  int attachVtable(sqlite3 *db) {
+    return sqlite3_attach_vtable<sqlite3_{{table_name}}>(
+      db, "{{table_name}}", &{{table_name}}Module);
+  }
+
+  virtual ~{{table_name}}TablePlugin() {}
+};
+
+REGISTER_TABLE(
+  "{{table_name}}",
+  std::make_shared<{{table_name}}TablePlugin>()
+);
 
 }}
 

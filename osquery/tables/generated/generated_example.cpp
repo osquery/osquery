@@ -14,6 +14,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "osquery/tables/base.h"
+#include "osquery/tables/registry.h"
 
 namespace osquery { namespace tables {
 
@@ -106,5 +107,22 @@ int generated_exampleFilter(
 
   return SQLITE_OK;
 }
+
+class generated_exampleTablePlugin : public TablePlugin {
+public:
+  generated_exampleTablePlugin() {}
+
+  int attachVtable(sqlite3 *db) {
+    return sqlite3_attach_vtable<sqlite3_generated_example>(
+      db, "generated_example", &generated_exampleModule);
+  }
+
+  virtual ~generated_exampleTablePlugin() {}
+};
+
+REGISTER_TABLE(
+  "generated_example",
+  std::make_shared<generated_exampleTablePlugin>()
+);
 
 }}
