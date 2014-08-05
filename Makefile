@@ -2,6 +2,8 @@ all: build
 
 .PHONY: build
 build:
+	mkdir -p osquery/tables/generated
+	python tools/gentable.py osquery/tables/specs/generated_example.table
 	mkdir -p build
 	cd build && cmake .. && make -j5
 
@@ -13,6 +15,7 @@ deps:
 
 distclean:
 	rm -rf build
+	rm -rf osquery/tables/generated
 
 runtests: build
 	find build -name "*_tests" -type f -exec '{}' \;
