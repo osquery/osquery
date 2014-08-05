@@ -7,12 +7,12 @@
 #include <memory>
 #include <string>
 
-#include "gtest/gtest_prod.h"
+#include <gtest/gtest_prod.h>
 
 #include "osquery/config.h"
 #include "osquery/database/db_handle.h"
 #include "osquery/database/results.h"
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 
 namespace osquery { namespace db {
 
@@ -50,9 +50,9 @@ public:
   // getHistoricalQueryResults() returns the entire historical query result
   // set for a given scheduled query
 public:
-  osquery::core::Status getHistoricalQueryResults(HistoricalQueryResults& hQR);
+  osquery::Status getHistoricalQueryResults(HistoricalQueryResults& hQR);
 private:
-  osquery::core::Status
+  osquery::Status
   getHistoricalQueryResults(
     HistoricalQueryResults& hQR, std::shared_ptr<DBHandle> db);
 
@@ -76,41 +76,41 @@ private:
   // executions. These timestamp values are used as the RocksDB sub-keys which
   // represent the data stored as a result of those executions.
 public:
-  osquery::core::Status getExecutions(std::deque<int>& results);
+  osquery::Status getExecutions(std::deque<int>& results);
 private:
-  osquery::core::Status
+  osquery::Status
   getExecutions(std::deque<int>& results, std::shared_ptr<DBHandle> db);
 
   // addNewResults adds a new result set to the local data store. If you
   // want the diff of the results you've just added, pass a reference to a
   // diffResults struct
 public:
-  osquery::core::Status addNewResults(
+  osquery::Status addNewResults(
     const osquery::db::QueryData& qd, int unix_time
   );
 private:
-  osquery::core::Status
+  osquery::Status
   addNewResults(
     const osquery::db::QueryData& qd, int unix_time,
     std::shared_ptr<DBHandle> db
   );
 
 public:
-  osquery::core::Status addNewResults(
+  osquery::Status addNewResults(
     const osquery::db::QueryData& qd, osquery::db::DiffResults& dr,
     int unix_time
   );
 private:
-  osquery::core::Status addNewResults(
+  osquery::Status addNewResults(
     const osquery::db::QueryData& qd, osquery::db::DiffResults& dr,
     bool calculate_diff, int unix_time, std::shared_ptr<DBHandle> db
   );
 
   // getCurrentResults returns the most recent result set from the database
 public:
-  osquery::core::Status getCurrentResults(osquery::db::QueryData& qd);
+  osquery::Status getCurrentResults(osquery::db::QueryData& qd);
 private:
-  osquery::core::Status
+  osquery::Status
   getCurrentResults(osquery::db::QueryData& qd, std::shared_ptr<DBHandle> db);
 
 private:
@@ -138,4 +138,4 @@ private:
 
 }}
 
-#endif
+#endif /* OSQUERY_DATABASE_QUERY_H */

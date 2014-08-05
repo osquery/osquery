@@ -11,10 +11,6 @@
 
 namespace osquery { namespace core {
 
-// the callback for populating a std::vector<row> set of results. "argument"
-// should be a non-const reference to a std::vector<row>
-int callback(void *argument, int argc, char *argv[], char *column[]);
-
 // aggregateQuery accepts a const reference to an std::string and returns a
 // resultset of type QueryData.
 osquery::db::QueryData
@@ -22,8 +18,9 @@ aggregateQuery(const std::string& q, int& error_return);
 osquery::db::QueryData
 aggregateQuery(const std::string& q, int& error_return, sqlite3* db);
 
-// Return a fully configured sqlite3 database object
-sqlite3* createDB();
+// initOsquery sets up various aspects of osquery execution state. it should
+// be called in an executable's main() function
+void initOsquery(int argc, char *argv[]);
 
 }}
 

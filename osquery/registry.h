@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_REGISTRY_REGISTRY_H
-#define OSQUERY_REGISTRY_REGISTRY_H
+#ifndef OSQUERY_REGISTRY_H
+#define OSQUERY_REGISTRY_H
 
 #include <functional>
 #include <string>
@@ -78,4 +78,4 @@ class Registry : public std::unordered_map<Key, Value> {
       });                                                                    \
   }
 
-#endif
+#endif /* OSQUERY_REGISTRY_H */

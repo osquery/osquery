@@ -1,7 +1,9 @@
 ADD_LIBRARY(osquery_core
+  init_osquery.cpp
   sqlite_util.cpp
   test_util.cpp
 )
+TARGET_LINK_LIBRARIES(osquery_core gflags)
 TARGET_LINK_LIBRARIES(osquery_core glog)
 TARGET_LINK_LIBRARIES(osquery_core gtest)
 TARGET_LINK_LIBRARIES(osquery_core osquery_database)

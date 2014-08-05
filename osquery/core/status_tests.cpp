@@ -1,10 +1,10 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 
 #include <gtest/gtest.h>
 
-namespace osquery { namespace core {
+namespace osquery {
 
 class StatusTests : public testing::Test {};
 
@@ -26,7 +26,7 @@ TEST_F(StatusTests, test_to_string) {
   EXPECT_EQ(s.toString(), "foobar");
 }
 
-}}
+}
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);

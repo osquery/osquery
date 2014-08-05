@@ -1,7 +1,8 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef _TABLES_FILESYSTEM_H_
-#define _TABLES_FILESYSTEM_H_
+#ifndef OSQUERY_TABLES_FILESYSTEM_H
+#define OSQUERY_TABLES_FILESYSTEM_H
+
 #include "osquery/sqlite3.h"
 
 // Make sure we can call this stuff from C++.
@@ -32,4 +33,5 @@ int sqlite3_filesystem_create(
 #ifdef __cplusplus
 }  // End of the 'extern "C"' block
 #endif
-#endif /* _TABLES_FILESYSTEM_H_ */
+
+#endif /* OSQUERY_TABLES_FILESYSTEM_H */

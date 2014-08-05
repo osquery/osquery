@@ -17,7 +17,7 @@
 #include <glog/logging.h>
 
 namespace pt = boost::property_tree;
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace db {
 

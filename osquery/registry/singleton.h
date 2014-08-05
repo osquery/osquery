@@ -25,4 +25,4 @@ class Singleton : private T {
 
 }  // namespace osquery
 
-#endif
+#endif /* OSQUERY_REGISTRY_SINGLETON_H */

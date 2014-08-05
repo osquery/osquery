@@ -7,10 +7,10 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest_prod.h"
+#include <gtest/gtest_prod.h>
 #include <rocksdb/db.h>
 
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 
 namespace osquery { namespace db {
 
@@ -49,7 +49,7 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   // getStatus() returns the status_ property
-  osquery::core::Status getStatus();
+  osquery::Status getStatus();
 
   // getDB() is a helper that's used to get access to db_
   rocksdb::DB* getDB();
@@ -68,27 +68,27 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   // Get a "key" from "domain" and store it's content in "value"
-  osquery::core::Status Get(
+  osquery::Status Get(
     const std::string& domain,
     const std::string& key,
     std::string& value
   );
 
   // Set "key" to "value" in "domain"
-  osquery::core::Status Put(
+  osquery::Status Put(
     const std::string& domain,
     const std::string& key,
     const std::string& value
   );
 
   // Delete "key" and it's corresponding value from "domain"
-  osquery::core::Status Delete(
+  osquery::Status Delete(
     const std::string& domain,
     const std::string& key
   );
 
   // List all keys in "domain" and store the results in "results"
-  osquery::core::Status Scan(
+  osquery::Status Scan(
     const std::string& domain,
     std::vector<std::string>& results
   );
@@ -171,4 +171,4 @@ private:
 
 }}
 
-#endif
+#endif /* OSQUERY_DATABASE_DB_HANDLE_H */

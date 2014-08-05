@@ -10,7 +10,7 @@
 
 #include "scribe/client/ScribeClient.h"
 
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace logger {
 

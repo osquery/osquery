@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 #include "osquery/database.h"
 
 namespace osquery { namespace logger {
@@ -20,15 +20,15 @@ extern const std::string kDefaultLogReceiverName;
 // upstream receiver. If no receiver is specified, it will fail back to what
 // was defined via the command-line flags. If none was defined, it will fail
 // back to using the default log receiver.
-osquery::core::Status logString(const std::string& s);
-osquery::core::Status logString(
+osquery::Status logString(const std::string& s);
+osquery::Status logString(
   const std::string& s, const std::string& receiver);
 
 // logScheduledQueryLogItem accepts a const reference to a
 // ScheduledQueryLogItem struct and logs it to a specified upstream receiver.
-osquery::core::Status logScheduledQueryLogItem(
+osquery::Status logScheduledQueryLogItem(
   const osquery::db::ScheduledQueryLogItem& item);
-osquery::core::Status logScheduledQueryLogItem(
+osquery::Status logScheduledQueryLogItem(
   const osquery::db::ScheduledQueryLogItem& item, const std::string& receiver);
 
 }}

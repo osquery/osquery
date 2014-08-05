@@ -7,6 +7,7 @@
 #include <map>
 #include <mutex>
 #include <vector>
+
 #include <boost/noncopyable.hpp>
 
 namespace osquery {
@@ -68,4 +69,4 @@ class RegistryTemplate : private boost::noncopyable {
 
 }  // namespace osquery
 
-#endif
+#endif /* OSQUERY_REGISTRY_REGISTRY_TEMPLATE_H */
