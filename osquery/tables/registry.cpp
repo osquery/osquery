@@ -4,8 +4,8 @@
 
 #include <glog/logging.h>
 
-#include "osquery/tables/filesystem.h"
-#include "osquery/tables/hash.h"
+#include "osquery/tables/manual/filesystem.h"
+#include "osquery/tables/manual/hash.h"
 
 namespace osquery { namespace tables {
 

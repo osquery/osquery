@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/tables/hash.h"
+#include "osquery/tables/manual/hash.h"
 #include "osquery/core/md5.h"
 
 #include <string>

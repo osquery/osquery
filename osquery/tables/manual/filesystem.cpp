@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/tables/filesystem.h"
+#include "osquery/tables/manual/filesystem.h"
 
 #include <string>
 #include <vector>
