@@ -21,6 +21,13 @@ struct sqlite3_processes {
   std::vector<std::string> path;
   std::vector<int> pid;
   std::vector<int> on_disk;
+  std::vector<std::string> wired_size;
+  std::vector<std::string> resident_size;
+  std::vector<std::string> phys_footprint;
+  std::vector<std::string> user_time;
+  std::vector<std::string> system_time;
+  std::vector<std::string> start_time;
+  std::vector<int> parent;
 };
 
 extern const std::string

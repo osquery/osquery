@@ -4,5 +4,12 @@ schema([
     Column(name="path", type="std::string"),
     Column(name="pid", type="int"),
     Column(name="on_disk", type="int"),
+    Column(name="wired_size", type="std::string"),
+    Column(name="resident_size", type="std::string"),
+    Column(name="phys_footprint", type="std::string"),
+    Column(name="user_time", type="std::string"),
+    Column(name="system_time", type="std::string"),
+    Column(name="start_time", type="std::string"),
+    Column(name="parent", type="int"),
 ])
 implementation("osquery/tables/implementations/processes@genProcesses")

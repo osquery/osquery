@@ -23,7 +23,14 @@ const std::string
     "name VARCHAR , "
     "path VARCHAR , "
     "pid  INTEGER, "
-    "on_disk  INTEGER"
+    "on_disk  INTEGER, "
+    "wired_size VARCHAR , "
+    "resident_size VARCHAR , "
+    "phys_footprint VARCHAR , "
+    "user_time VARCHAR , "
+    "system_time VARCHAR , "
+    "start_time VARCHAR , "
+    "parent  INTEGER"
     ")";
 
 int processesCreate(
@@ -86,6 +93,67 @@ int processesColumn(
           (int)pVtab->pContent->on_disk[pCur->row]
         );
         break;
+      // wired_size
+      case 4:
+        sqlite3_result_text(
+          ctx,
+          (pVtab->pContent->wired_size[pCur->row]).c_str(),
+          -1,
+          nullptr
+        );
+        break;
+      // resident_size
+      case 5:
+        sqlite3_result_text(
+          ctx,
+          (pVtab->pContent->resident_size[pCur->row]).c_str(),
+          -1,
+          nullptr
+        );
+        break;
+      // phys_footprint
+      case 6:
+        sqlite3_result_text(
+          ctx,
+          (pVtab->pContent->phys_footprint[pCur->row]).c_str(),
+          -1,
+          nullptr
+        );
+        break;
+      // user_time
+      case 7:
+        sqlite3_result_text(
+          ctx,
+          (pVtab->pContent->user_time[pCur->row]).c_str(),
+          -1,
+          nullptr
+        );
+        break;
+      // system_time
+      case 8:
+        sqlite3_result_text(
+          ctx,
+          (pVtab->pContent->system_time[pCur->row]).c_str(),
+          -1,
+          nullptr
+        );
+        break;
+      // start_time
+      case 9:
+        sqlite3_result_text(
+          ctx,
+          (pVtab->pContent->start_time[pCur->row]).c_str(),
+          -1,
+          nullptr
+        );
+        break;
+      // parent
+      case 10:
+        sqlite3_result_int(
+          ctx,
+          (int)pVtab->pContent->parent[pCur->row]
+        );
+        break;
     }
   }
   return SQLITE_OK;
@@ -109,6 +177,13 @@ int processesFilter(
     pVtab->pContent->path.push_back(row["path"]);
     pVtab->pContent->pid.push_back(boost::lexical_cast<int>(row["pid"]));
     pVtab->pContent->on_disk.push_back(boost::lexical_cast<int>(row["on_disk"]));
+    pVtab->pContent->wired_size.push_back(row["wired_size"]);
+    pVtab->pContent->resident_size.push_back(row["resident_size"]);
+    pVtab->pContent->phys_footprint.push_back(row["phys_footprint"]);
+    pVtab->pContent->user_time.push_back(row["user_time"]);
+    pVtab->pContent->system_time.push_back(row["system_time"]);
+    pVtab->pContent->start_time.push_back(row["start_time"]);
+    pVtab->pContent->parent.push_back(boost::lexical_cast<int>(row["parent"]));
   }
 
   pVtab->pContent->n = pVtab->pContent->name.size();
