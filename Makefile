@@ -4,6 +4,7 @@ all: build
 build:
 	mkdir -p osquery/tables/generated
 	python tools/gentable.py osquery/tables/specs/generated_example.table
+	python tools/gentable.py osquery/tables/specs/etc_hosts.table
 	mkdir -p build
 	cd build && cmake .. && make -j5
 
