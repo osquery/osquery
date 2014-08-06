@@ -4,8 +4,8 @@
 
 #include <algorithm>
 #include <map>
-#include <vector>
 #include <string>
+#include <unordered_set>
 
 #include <libproc.h>
 #include <stdlib.h>
@@ -25,7 +25,7 @@ namespace osquery { namespace tables {
 
 QueryData genProcesses() {
   QueryData results;
-  std::vector<int> processed;
+  std::unordered_set<int> processed;
   std::unordered_map<int, int> parent_pid;
 
   // find how how many pids there are so that we can create an appropriately
@@ -66,7 +66,7 @@ QueryData genProcesses() {
     if (std::find(processed.begin(), processed.end(), pid) != processed.end()) {
       continue;
     }
-    processed.push_back(pid);
+    processed.insert(pid);
 
     // gather column data
     Row r;
