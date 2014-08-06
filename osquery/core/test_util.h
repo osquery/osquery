@@ -93,9 +93,6 @@ struct SplitStringTestData {
 // generate a set of test data to test osquery::core::splitString
 std::vector<SplitStringTestData> generateSplitStringTestData();
 
-// generate a set of test data to test osquery::core::joinString
-std::vector<SplitStringTestData> generateJoinStringTestData();
-
 }}
 
 #endif /* OSQUERY_CORE_TEST_UTIL_H */

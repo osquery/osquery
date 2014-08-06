@@ -221,17 +221,18 @@ getSerializedScheduledQueryLogItemJSON() {
 }
 
 std::string getEtcHostsContent() {
-  std::string content =
-    "##\n"
-    "# Host Database\n"
-    "#\n"
-    "# localhost is used to configure the loopback interface\n"
-    "# when the system is booting.  Do not change this entry.\n"
-    "##\n"
-    "127.0.0.1       localhost\n"
-    "255.255.255.255 broadcasthost\n"
-    "::1             localhost\n"
-    "fe80::1%lo0     localhost\n";
+  std::string content = R"(
+    ##
+    # Host Database
+    #
+    # localhost is used to configure the loopback interface
+    # when the system is booting.  Do not change this entry.
+    ##
+    127.0.0.1       localhost
+    255.255.255.255 broadcasthost
+    ::1             localhost
+    fe80::1%lo0     localhost
+    )";
   return content;
 }
 
@@ -267,25 +268,5 @@ std::vector<SplitStringTestData> generateSplitStringTestData() {
 
   return {s1, s2, s3};
 }
-
-std::vector<SplitStringTestData> generateJoinStringTestData() {
-  SplitStringTestData s1;
-  s1.test_string = "a:b:c";
-  s1.delim = ":";
-  s1.test_vector = {"a", "b", "c"};
-
-  SplitStringTestData s2;
-  s2.test_string = "a\nb\nc";
-  s2.delim = "\n";
-  s2.test_vector = {"a", "b", "c"};
-
-  SplitStringTestData s3;
-  s3.test_string = "a b c";
-  s3.delim = " ";
-  s3.test_vector = {"a", "b", "c"};
-
-  return {s1, s2, s3};
-}
-
 
 }}
