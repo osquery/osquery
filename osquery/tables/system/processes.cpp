@@ -30,15 +30,15 @@ QueryData genProcesses() {
 
   // find how how many pids there are so that we can create an appropriately
   // sized data structure to store them
-  int NUM_PIDS = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
-  if (NUM_PIDS <= 0) {
+  int num_pids = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
+  if (num_pids <= 0) {
     LOG(ERROR) << "An error occured retrieving the process list";
     return {};
   }
 
   // arbitrarily create a list with 2x capacity in case more processes have
   // been loaded since the last proc_listpids was executed
-  pid_t pids[NUM_PIDS * 2];
+  pid_t pids[num_pids * 2];
   memset(pids, 0, sizeof(pids));
   int s = proc_listpids(PROC_ALL_PIDS, 0, pids, sizeof(pids));
   if (s <= 0) {
@@ -47,7 +47,7 @@ QueryData genProcesses() {
   }
 
   for (const auto& pid : pids) {
-    pid_t children[NUM_PIDS * 2];
+    pid_t children[num_pids * 2];
     memset(children, 0, sizeof(children));
     proc_listchildpids(pid, children, sizeof(children));
     for (const auto& child : children) {
@@ -56,7 +56,8 @@ QueryData genProcesses() {
   }
 
   for (const auto& pid : pids) {
-    // if the pid is negative or 0
+    // if the pid is negative or 0, it doesn't represent a real process so
+    // continue the iterations so that we don't add it to the results set
     if (pid <= 0) {
       continue;
     }
