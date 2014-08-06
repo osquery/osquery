@@ -77,6 +77,22 @@ getSerializedScheduledQueryLogItem();
 std::pair<std::string, osquery::db::ScheduledQueryLogItem>
 getSerializedScheduledQueryLogItemJSON();
 
+// generate the content that would be found in an /etc/hosts file
+std::string getEtcHostsContent();
+
+// generate the expected data that getEtcHostsContent() should parse into
+osquery::db::QueryData getEtcHostsExpectedResults();
+
+// the three items that you need to test osquery::core::splitString
+struct SplitStringTestData {
+  std::string test_string;
+  std::string delim;
+  std::vector<std::string> test_vector;
+};
+
+// generate a set of test data to test osquery::core::splitString
+std::vector<SplitStringTestData> generateSplitStringTestData();
+
 }}
 
 #endif /* OSQUERY_CORE_TEST_UTIL_H */

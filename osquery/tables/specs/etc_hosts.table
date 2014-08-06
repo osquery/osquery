@@ -1,0 +1,6 @@
+table_name("etc_hosts")
+schema([
+    Column(name="address", type="std::string"),
+    Column(name="hostnames", type="std::string"),
+])
+implementation("osquery/tables/networking/etc_hosts@genEtcHosts")

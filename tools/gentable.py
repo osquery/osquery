@@ -201,6 +201,9 @@ int {{table_name}}Filter(
     (x_vtab<sqlite3_{{table_name}}>*)pVtabCursor->pVtab;
 
   pCur->row = 0;
+{% for col in schema %}\
+  pVtab->pContent->{{col.name}} = {};
+{% endfor %}\
 
   for (auto& row : osquery::tables::{{function}}()) {
 {% for col in schema %}\
