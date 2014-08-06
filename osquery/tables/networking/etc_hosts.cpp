@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <glog/logging.h>
@@ -44,7 +45,7 @@ QueryData parseEtcHostsContent(const std::string& content) {
       for (int i = 1; i < line.size(); ++i) {
         hostnames.push_back(line[i]);
       }
-      r["hostnames"] = join(hostnames, " ");
+      r["hostnames"] = boost::algorithm::join(hostnames, " ");
     }
     results.push_back(r);
   }

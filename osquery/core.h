@@ -22,18 +22,11 @@ aggregateQuery(const std::string& q, int& error_return, sqlite3* db);
 // be called in an executable's main() function
 void initOsquery(int argc, char *argv[]);
 
-// Split a given string based on whitespace
+// Split a given string based on an optional deliminator. If not deliminator is
+// supplied, the string will be split based on whitespace.
 std::vector<std::string> split(const std::string& s);
 std::vector<std::string> split(const std::string& s,
-  const std::string& regexp);
-
-// Join a given string based on a given deliminator.
-std::string join(const std::vector<std::string>& v, const std::string& delim);
-
-// trim the surrounding whitespace from a string
-std::string &ltrim(std::string &s);
-std::string &rtrim(std::string &s);
-std::string &trim(std::string &s);
+  const std::string& delim);
 
 }}
 
