@@ -46,32 +46,32 @@ QueryData genProcesses() {
     return {};
   }
 
-  for (const auto& pid : pids) {
+  for (int i = 0; i < num_pids; ++i) {
     pid_t children[num_pids * 2];
     memset(children, 0, sizeof(children));
-    proc_listchildpids(pid, children, sizeof(children));
+    proc_listchildpids(pids[i], children, sizeof(children));
     for (const auto& child : children) {
-      parent_pid[child] = pid;
+      parent_pid[child] = pids[i];
     }
   }
 
-  for (const auto& pid : pids) {
+  for (int i = 0; i < num_pids; ++i) {
     // if the pid is negative or 0, it doesn't represent a real process so
     // continue the iterations so that we don't add it to the results set
-    if (pid <= 0) {
+    if (pids[i] <= 0) {
       continue;
     }
 
     // ensure that we process a pid once and only once
-    if (std::find(processed.begin(), processed.end(), pid) != processed.end()) {
+    if (std::find(processed.begin(), processed.end(), pids[i]) != processed.end()) {
       continue;
     }
-    processed.insert(pid);
+    processed.insert(pids[i]);
 
     // gather column data
     Row r;
 
-    const auto parent_it = parent_pid.find(pid);
+    const auto parent_it = parent_pid.find(pids[i]);
     if (parent_it != parent_pid.end()) {
       r["parent"] = boost::lexical_cast<std::string>(parent_it->second);
     } else {
@@ -79,12 +79,11 @@ QueryData genProcesses() {
     }
 
     // process id
-    r["pid"] = boost::lexical_cast<std::string>(pid);
+    r["pid"] = boost::lexical_cast<std::string>(pids[i]);
 
     // process name
     char name[1024];
-    memset(name, 0, sizeof(name));
-    proc_name(pid, name, sizeof(name));
+    proc_name(pids[i], name, sizeof(name));
     r["name"] = std::string(name);
 
     // if the path of the executable that started the process is available and
@@ -93,8 +92,7 @@ QueryData genProcesses() {
     // executable is available and the file does not exist on disk, set on_disk
     // to 0.
     char path[PROC_PIDPATHINFO_MAXSIZE];
-    memset(path, 0, sizeof(path));
-    proc_pidpath(pid, path, sizeof(path));
+    proc_pidpath(pids[i], path, sizeof(path));
     r["path"] = std::string(path);
     if ((r["path"]).length() > 0) {
       if (!boost::filesystem::exists(r["path"])) {
@@ -109,7 +107,7 @@ QueryData genProcesses() {
     // systems usage and time information
     struct rusage_info_v2 rusage_info_data;
     int rusage_status = proc_pid_rusage(
-      pid, RUSAGE_INFO_V2, (rusage_info_t*)&rusage_info_data);
+      pids[i], RUSAGE_INFO_V2, (rusage_info_t*)&rusage_info_data);
     // proc_pid_rusage returns -1 if it was unable to gather information
     if (rusage_status == 0) {
       // size information
