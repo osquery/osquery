@@ -83,7 +83,7 @@ QueryData genProcesses() {
 
     // process name
     char name[1024];
-    memset(name, 0, 1024);
+    memset(name, 0, sizeof(name));
     proc_name(pid, name, sizeof(name));
     r["name"] = std::string(name);
 
@@ -96,7 +96,7 @@ QueryData genProcesses() {
     memset(path, 0, sizeof(path));
     proc_pidpath(pid, path, sizeof(path));
     r["path"] = std::string(path);
-    if (strlen(path) > 0) {
+    if ((r["path"]).length() > 0) {
       if (!boost::filesystem::exists(r["path"])) {
         r["on_disk"] = "0";
       } else {
