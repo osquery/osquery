@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/tables/implementations/example.h"
+#include "osquery/tables/examples/example.h"
 
 using namespace osquery::db;
 

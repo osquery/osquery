@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_TABLES_IMPLEMENTATIONS_EXAMPLE_H
-#define OSQUERY_TABLES_IMPLEMENTATIONS_EXAMPLE_H
+#ifndef OSQUERY_TABLES_EXAMPLES_EXAMPLE_H
+#define OSQUERY_TABLES_EXAMPLES_EXAMPLE_H
 
 #include "osquery/database.h"
 
@@ -11,4 +11,4 @@ osquery::db::QueryData genExample();
 
 }}
 
-#endif /* OSQUERY_TABLES_IMPLEMENTATIONS_EXAMPLE_H */
+#endif /* OSQUERY_TABLES_EXAMPLES_EXAMPLE_H */

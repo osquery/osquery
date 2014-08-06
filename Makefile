@@ -11,6 +11,7 @@ build:
 
 clean:
 	cd build && make clean
+	rm -rf osquery/tables/generated
 
 deps:
 	pip install -r requirements.txt

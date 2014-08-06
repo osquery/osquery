@@ -4,4 +4,4 @@ schema([
     Column(name="age", type="int"),
     Column(name="gender", type="std::string"),
 ])
-implementation("osquery/tables/implementations/example@genExample")
+implementation("osquery/tables/examples/example@genExample")
