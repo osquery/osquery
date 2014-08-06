@@ -7,14 +7,14 @@
 #include <vector>
 #include <string>
 
+#include <libproc.h>
+#include <stdlib.h>
+
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <glog/logging.h>
-
-#include <libproc.h>
-#include <stdlib.h>
 
 #include "osquery/core.h"
 
