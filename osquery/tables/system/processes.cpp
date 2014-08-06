@@ -26,7 +26,7 @@ namespace osquery { namespace tables {
 QueryData genProcesses() {
   QueryData results;
   std::vector<int> processed;
-  std::map<int, int> parent_pid;
+  std::unordered_map<int, int> parent_pid;
 
   // find how how many pids there are so that we can create an appropriately
   // sized data structure to store them
@@ -87,11 +87,11 @@ QueryData genProcesses() {
     proc_name(pid, name, sizeof(name));
     r["name"] = std::string(name);
 
-    // if the path of the executable that started the process is available
-    // and the path exists on disk, set on_disk to true. if the path is not
-    // available, set on_disk to true. if, and only if, the path of the
+    // if the path of the executable that started the process is available and
+    // the path exists on disk, set on_disk to 1.  if the path is not
+    // available, set on_disk to -1.  if, and only if, the path of the
     // executable is available and the file does not exist on disk, set on_disk
-    // to false.
+    // to 0.
     char path[PROC_PIDPATHINFO_MAXSIZE];
     memset(path, 0, sizeof(path));
     proc_pidpath(pid, path, sizeof(path));
@@ -103,7 +103,7 @@ QueryData genProcesses() {
         r["on_disk"] = "1";
       }
     } else {
-      r["on_disk"] = "1";
+      r["on_disk"] = "-1";
     }
 
     // systems usage and time information
