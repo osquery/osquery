@@ -66,7 +66,7 @@ QueryData genProcesses() {
     }
 
     // ensure that we process a pid once and only once
-    if (std::find(processed.begin(), processed.end(), pids[i]) != processed.end()) {
+    if (processed.find(pids[i]) != processed.end()) {
       continue;
     }
     processed.insert(pids[i]);
