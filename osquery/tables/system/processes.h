@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef TABLES_IMPLEMENTATIONS_PROCESSES_H
-#define TABLES_IMPLEMENTATIONS_PROCESSES_H
+#ifndef OSQUERY_TABLES_SYSTEM_PROCESSES_H
+#define OSQUERY_TABLES_SYSTEM_PROCESSES_H
 
 #include <string>
 
@@ -14,4 +14,4 @@ osquery::db::QueryData genProcesses();
 
 }}
 
-#endif
+#endif /* OSQUERY_TABLES_SYSTEM_PROCESSES_H */

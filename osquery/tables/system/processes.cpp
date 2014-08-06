@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/tables/implementations/processes.h"
+#include "osquery/tables/system/processes.h"
 
 #include <algorithm>
 #include <map>
