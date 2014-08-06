@@ -39,19 +39,22 @@ QueryData genProcesses() {
   // arbitrarily create a list with 2x capacity in case more processes have
   // been loaded since the last proc_listpids was executed
   pid_t pids[num_pids * 2];
-  memset(pids, 0, sizeof(pids));
-  int s = proc_listpids(PROC_ALL_PIDS, 0, pids, sizeof(pids));
-  if (s <= 0) {
+
+  // now that we've allocated "pids", let's overwrite num_pids with the actual
+  // amount of data that was returned for proc_listpids when we populate the
+  // pids data structure
+  num_pids = proc_listpids(PROC_ALL_PIDS, 0, pids, sizeof(pids));
+  if (num_pids <= 0) {
     LOG(ERROR) << "An error occured retrieving the process list";
     return {};
   }
 
+  // calculate the parent process of each process and store it in parent_pid
   for (int i = 0; i < num_pids; ++i) {
-    pid_t children[num_pids * 2];
-    memset(children, 0, sizeof(children));
-    proc_listchildpids(pids[i], children, sizeof(children));
-    for (const auto& child : children) {
-      parent_pid[child] = pids[i];
+    pid_t children[num_pids];
+    int num_children = proc_listchildpids(pids[i], children, sizeof(children));
+    for (int j = 0; j < num_children; j++) {
+      parent_pid[children[j]] = pids[i];
     }
   }
 
