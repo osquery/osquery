@@ -8,9 +8,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include "scribe/client/ScribeClient.h"
+#include <scribe/client/ScribeClient.h>
 
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace logger {
 

@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace db {
 
@@ -112,14 +112,14 @@ Query::addNewResults(
   return addNewResults(qd, dr, false, unix_time, db);
 }
 
-osquery::core::Status Query::addNewResults(
+osquery::Status Query::addNewResults(
   const osquery::db::QueryData& qd,
   osquery::db::DiffResults& dr,
   int unix_time) {
   return addNewResults(qd, dr, true, unix_time, DBHandle::getInstance());
 }
 
-osquery::core::Status Query::addNewResults(
+osquery::Status Query::addNewResults(
   const osquery::db::QueryData& qd,
   osquery::db::DiffResults& dr,
   bool calculate_diff,
@@ -153,7 +153,7 @@ osquery::core::Status Query::addNewResults(
   return Status(0, "OK");
 }
 
-osquery::core::Status Query::getCurrentResults(osquery::db::QueryData& qd) {
+osquery::Status Query::getCurrentResults(osquery::db::QueryData& qd) {
   return getCurrentResults(qd, DBHandle::getInstance());
 }
 

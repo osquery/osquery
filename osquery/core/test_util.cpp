@@ -9,6 +9,8 @@
 
 #include <glog/logging.h>
 
+#include "osquery/core/sqlite_util.h"
+
 using namespace osquery::db;
 namespace pt = boost::property_tree;
 

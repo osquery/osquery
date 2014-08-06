@@ -12,7 +12,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace fs {
 

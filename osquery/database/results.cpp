@@ -2,8 +2,6 @@
 
 #include "osquery/database/results.h"
 
-#include <iostream>
-
 #include <algorithm>
 #include <iostream>
 #include <sstream>
@@ -17,7 +15,7 @@
 #include <glog/logging.h>
 
 namespace pt = boost::property_tree;
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace db {
 

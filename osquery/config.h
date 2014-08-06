@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 
 namespace osquery { namespace config {
 
@@ -73,7 +73,7 @@ private:
 
   // genConfig() is a symbol that is satisfied by the config plugin that gets
   // compiled with osquery
-  static osquery::core::Status genConfig(OsqueryConfig& conf);
+  static osquery::Status genConfig(OsqueryConfig& conf);
 private:
   // cfg_ is the private member that stores the raw osquery config data in a
   // native format

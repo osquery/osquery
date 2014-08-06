@@ -1,5 +1,5 @@
-#ifndef MD5_H
-#define MD5_H
+#ifndef OSQUERY_CORE_MD5_H
+#define OSQUERY_CORE_MD5_H
 
 // Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All
 // rights reserved.
@@ -365,4 +365,4 @@ public:
 
 }}
 
-#endif
+#endif /* OSQUERY_CORE_MD5_H */

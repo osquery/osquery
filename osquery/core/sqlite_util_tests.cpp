@@ -1,6 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include "osquery/core.h"
+#include "osquery/core/sqlite_util.h"
 
 #include <iostream>
 
@@ -23,7 +24,7 @@ TEST_F(SQLiteUtilTests, test_simple_query_execution) {
 
 TEST_F(SQLiteUtilTests, test_passing_callback_no_data_param) {
   char *err = nullptr;
-  sqlite3_exec(createTestDB(), kTestQuery.c_str(), callback, nullptr, &err);
+  sqlite3_exec(createTestDB(), kTestQuery.c_str(), query_data_callback, nullptr, &err);
   EXPECT_TRUE(err != nullptr);
   if (err != nullptr) {
     sqlite3_free(err);

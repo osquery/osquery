@@ -44,4 +44,4 @@ struct RegisterInitFunc : private boost::noncopyable {
 
 }  // namespace osquery
 
-#endif
+#endif /* OSQUERY_REGISTRY_INIT_REGISTRY_H */

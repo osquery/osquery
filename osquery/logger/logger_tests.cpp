@@ -8,7 +8,7 @@
 
 using namespace osquery::db;
 using namespace osquery::logger;
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace logger {
 

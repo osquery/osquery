@@ -14,7 +14,7 @@
 #include <glog/logging.h>
 
 namespace fs = boost::filesystem;
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace config {
 
@@ -28,7 +28,7 @@ class FilesystemConfigPlugin : public ConfigPlugin {
 public:
   FilesystemConfigPlugin() {};
 
-  std::pair<osquery::core::Status, std::string> genConfig() {
+  std::pair<osquery::Status, std::string> genConfig() {
     std::string config;
     if (!fs::exists(FLAGS_config_path)) {
       return std::make_pair(

@@ -9,10 +9,10 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include "configerator/distribution/api/api.h"
-#include "configerator/structs/osquery/gen-cpp/osquery_types.h"
+#include <configerator/distribution/api/api.h>
+#include <configerator/structs/osquery/gen-cpp/osquery_types.h>
 
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace config {
 
@@ -20,7 +20,7 @@ class ConfigeratorConfigPlugin : public ConfigPlugin {
 public:
   ConfigeratorConfigPlugin() {};
 
-  std::pair<osquery::core::Status, std::string> genConfig() {
+  std::pair<osquery::Status, std::string> genConfig() {
     facebook::configerator::ConfigeratorApi api;
     std::string content;
     api.getConfig("osquery/osquery", &content);

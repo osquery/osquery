@@ -10,7 +10,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 
 namespace osquery { namespace db {
 
@@ -25,9 +25,9 @@ typedef std::map<std::string, std::string> Row;
 
 // serializeRow accepts a const reference to a row and a non-const reference to
 // a ptree. The contents of const Row r will be serialized into ptree tree and
-// an osquery::core::Status will be returned indicating the success or failure
+// an osquery::Status will be returned indicating the success or failure
 // of the operation.
-osquery::core::Status
+osquery::Status
 serializeRow(const Row& r, boost::property_tree::ptree& tree);
 
 /////////////////////////////////////////////////////////////////////////////
@@ -40,9 +40,9 @@ typedef std::vector<Row> QueryData;
 
 // serializeQueryData accepts a const reference to a QueryData and a non-const
 // reference to a ptree. The contents of const QueryData q will be serialized
-// into ptree tree and an osquery::core::Status will be returned indicating the
+// into ptree tree and an osquery::Status will be returned indicating the
 // success or failure of the operation.
-osquery::core::Status
+osquery::Status
 serializeQueryData(const QueryData& q, boost::property_tree::ptree& tree);
 
 /////////////////////////////////////////////////////////////////////////////
@@ -75,17 +75,17 @@ typedef struct DiffResults DiffResults;
 
 // serializeDiffResults accepts a const reference to a DiffResults and a
 // non-const reference to a ptree. The contents of const DiffResults d will be
-// serialized into ptree tree and an osquery::core::Status will be returned
+// serialized into ptree tree and an osquery::Status will be returned
 // indicating the success or failure of the operation.
-osquery::core::Status
+osquery::Status
 serializeDiffResults(const DiffResults& d, boost::property_tree::ptree& tree);
 
 // serializeDiffResultsJSON accepts a const reference to a DiffResults struct
 // and a non-const reference to a std::string.  The contents of const
 // DiffResults d will be serialized into std::string json and an
-// osquery::core::Status will be returned indicating the success or failure of
+// osquery::Status will be returned indicating the success or failure of
 // the operation.
-osquery::core::Status
+osquery::Status
 serializeDiffResultsJSON(
   const DiffResults& d,
   std::string& json);
@@ -137,9 +137,9 @@ typedef struct HistoricalQueryResults HistoricalQueryResults;
 // serializeHistoricalQueryResults accepts a const reference to a
 // HistoricalQueryResults struct and a non-const reference to a ptree. The
 // contents of const HistoricalQueryResults r will be serialized into ptree
-// tree and an osquery::core::Status will be returned indicating the success or
+// tree and an osquery::Status will be returned indicating the success or
 // failure of the operation.
-osquery::core::Status
+osquery::Status
 serializeHistoricalQueryResults(
   const HistoricalQueryResults& r,
   boost::property_tree::ptree& tree);
@@ -147,9 +147,9 @@ serializeHistoricalQueryResults(
 // serializeHistoricalQueryResultsJSON accepts a const reference to a
 // HistoricalQueryResults struct and a non-const reference to a std::string.
 // The contents of const HistoricalQueryResults r will be serialized into
-// std::string json and an osquery::core::Status will be returned indicating the
+// std::string json and an osquery::Status will be returned indicating the
 // success or failure of the operation.
-osquery::core::Status
+osquery::Status
 serializeHistoricalQueryResultsJSON(
   const HistoricalQueryResults& r,
   std::string& json);
@@ -157,9 +157,9 @@ serializeHistoricalQueryResultsJSON(
 // deserializeHistoricalQueryResults accepts a const reference to a ptree of a
 // serialized HistoricalQueryResults struct and a non-const reference to a
 // historicalQueryResults struct.  The contents of const ptree tree will be
-// serialized into HistoricalQueryResults r and an osquery::core::Status will be
+// serialized into HistoricalQueryResults r and an osquery::Status will be
 // returned indicating the success or failure of the operation.
-osquery::core::Status
+osquery::Status
 deserializeHistoricalQueryResults(
   const boost::property_tree::ptree& tree,
   HistoricalQueryResults& r);
@@ -168,9 +168,9 @@ deserializeHistoricalQueryResults(
 // std::string of a serialized HistoricalQueryResults struct and a non-const
 // reference to a HistoricalQueryResults struct.  The contents of const
 // std::string json will be serialized into HistoricalQueryResults r and an
-// osquery::core::Status will be returned indicating the success or failure of
+// osquery::Status will be returned indicating the success or failure of
 // the operation.
-osquery::core::Status
+osquery::Status
 deserializeHistoricalQueryResultsJSON(
   const std::string& json,
   HistoricalQueryResults& r);
@@ -205,12 +205,12 @@ struct ScheduledQueryLogItem {
 // serializeScheduledQueryLogItem accepts a const reference to a
 // ScheduledQueryLogItem and a non-const reference to a ptree. The contents of
 // const ScheduledQueryLogItem i will be serialized into ptree tree and an
-// osquery::core::Status will be returned indicating the success or failure of
+// osquery::Status will be returned indicating the success or failure of
 // the operation.
-osquery::core::Status serializeScheduledQueryLogItem(
+osquery::Status serializeScheduledQueryLogItem(
   const ScheduledQueryLogItem& i, boost::property_tree::ptree& tree);
 
-osquery::core::Status serializeScheduledQueryLogItemJSON(
+osquery::Status serializeScheduledQueryLogItemJSON(
   const ScheduledQueryLogItem& i, std::string& json);
 
 }}

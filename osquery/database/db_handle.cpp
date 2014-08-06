@@ -10,9 +10,9 @@
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
 
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace db {
 
@@ -119,7 +119,7 @@ std::shared_ptr<DBHandle> DBHandle::getInstance(
 // getters and setters
 /////////////////////////////////////////////////////////////////////////////
 
-osquery::core::Status DBHandle::getStatus() {
+osquery::Status DBHandle::getStatus() {
   return Status(status_.code(), status_.ToString());
 }
 
@@ -154,7 +154,7 @@ void DBHandle::endTransaction() {
 // Data manipulation methods
 /////////////////////////////////////////////////////////////////////////////
 
-osquery::core::Status DBHandle::Get(
+osquery::Status DBHandle::Get(
   const std::string& domain,
   const std::string& key,
   std::string& value){
@@ -167,7 +167,7 @@ osquery::core::Status DBHandle::Get(
   return Status(s.code(), s.ToString());
 }
 
-osquery::core::Status DBHandle::Put(
+osquery::Status DBHandle::Put(
   const std::string& domain,
   const std::string& key,
   const std::string& value) {
@@ -180,7 +180,7 @@ osquery::core::Status DBHandle::Put(
   return Status(s.code(), s.ToString());
 }
 
-osquery::core::Status DBHandle::Delete(
+osquery::Status DBHandle::Delete(
   const std::string& domain,
   const std::string& key) {
   auto s = getDB()->Delete(
@@ -191,7 +191,7 @@ osquery::core::Status DBHandle::Delete(
   return Status(s.code(), s.ToString());
 }
 
-osquery::core::Status DBHandle::Scan(
+osquery::Status DBHandle::Scan(
   const std::string& domain,
   std::vector<std::string>& results) {
   auto it = getDB()->NewIterator(

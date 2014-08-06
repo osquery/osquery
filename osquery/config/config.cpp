@@ -16,9 +16,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 
-using osquery::core::Status;
+using osquery::Status;
 
 namespace pt = boost::property_tree;
 

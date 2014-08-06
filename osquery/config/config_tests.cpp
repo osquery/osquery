@@ -6,11 +6,11 @@
 #include <gtest/gtest.h>
 
 #include "osquery/core.h"
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 #include "osquery/registry.h"
 
 namespace core = osquery::core;
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace config {
 

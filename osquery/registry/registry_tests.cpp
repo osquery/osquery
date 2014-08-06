@@ -5,8 +5,8 @@
 #include <memory>
 #include <string>
 
-#include <gtest/gtest.h>
 #include <glog/logging.h>
+#include <gtest/gtest.h>
 
 class TestPlugin {
 public:

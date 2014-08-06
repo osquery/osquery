@@ -4,13 +4,13 @@
 
 #include <stdexcept>
 
-#include <gtest/gtest.h>
 #include <glog/logging.h>
+#include <gtest/gtest.h>
 #include <rocksdb/version.h>
 
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 
-using osquery::core::Status;
+using osquery::Status;
 
 namespace osquery { namespace db {
 

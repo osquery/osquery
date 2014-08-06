@@ -1,7 +1,8 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef TABLES_HASH_H
-#define TABLES_HASH_H
+#ifndef OSQUERY_TABLES_HASH_H
+#define OSQUERY_TABLES_HASH_H
+
 #include "osquery/sqlite3.h"
 
 // Make sure we can call this stuff from C++.
@@ -32,4 +33,5 @@ int sqlite3_hash_create(
 #ifdef __cplusplus
 }  // End of the 'extern "C"' block
 #endif
-#endif /* TABLES_HASH_H */
+
+#endif /* OSQUERY_TABLES_HASH_H */

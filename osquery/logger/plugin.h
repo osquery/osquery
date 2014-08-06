@@ -6,14 +6,14 @@
 #include <memory>
 
 #include "osquery/registry.h"
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 
 namespace osquery { namespace logger {
 
 class LoggerPlugin {
 public:
-  virtual osquery::core::Status logString(const std::string& s) {
-    return osquery::core::Status(1, "Not implemented");
+  virtual osquery::Status logString(const std::string& s) {
+    return osquery::Status(1, "Not implemented");
   }
   virtual ~LoggerPlugin() {}
 protected:
@@ -32,4 +32,4 @@ DECLARE_REGISTRY(
 #define REGISTER_LOGGER_PLUGIN(name, decorator) \
   REGISTER(LoggerPlugins, name, decorator)
 
-#endif
+#endif /* OSQUERY_LOGGER_PLUGIN_H */

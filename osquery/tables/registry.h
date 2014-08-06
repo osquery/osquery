@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include "osquery/core/status.h"
+#include "osquery/status.h"
 #include "osquery/registry.h"
 #include "osquery/sqlite3.h"
 
@@ -33,4 +33,4 @@ DECLARE_REGISTRY(
 #define REGISTER_TABLE(name, decorator) \
   REGISTER(TablePlugins, name, decorator)
 
-#endif
+#endif /* OSQUERY_TABLES_REGISTRY_H */

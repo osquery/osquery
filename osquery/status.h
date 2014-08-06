@@ -1,11 +1,11 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_CORE_STATUS_H
-#define OSQUERY_CORE_STATUS_H
+#ifndef OSQUERY_STATUS_H
+#define OSQUERY_STATUS_H
 
 #include <string>
 
-namespace osquery { namespace core {
+namespace osquery {
 
 class Status {
 public:
@@ -20,6 +20,6 @@ private:
     std::string message_;
 };
 
-}}
+}
 
-#endif /* OSQUERY_CORE_STATUS_H */
+#endif /* OSQUERY_STATUS_H */
