@@ -4,8 +4,8 @@
 
 #include <stdexcept>
 
-#include <gtest/gtest.h>
 #include <glog/logging.h>
+#include <gtest/gtest.h>
 #include <rocksdb/version.h>
 
 #include "osquery/status.h"

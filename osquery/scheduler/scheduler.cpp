@@ -3,7 +3,6 @@
 #include "osquery/scheduler.h"
 
 #include <ctime>
-
 #include <iostream>
 
 #include <boost/asio.hpp>

@@ -2,8 +2,6 @@
 
 #include "osquery/database/results.h"
 
-#include <iostream>
-
 #include <algorithm>
 #include <iostream>
 #include <sstream>

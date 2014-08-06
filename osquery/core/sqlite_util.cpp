@@ -2,16 +2,17 @@
 
 #include "osquery/core.h"
 #include "osquery/core/sqlite_util.h"
-#include "osquery/database.h"
-#include "osquery/sqlite3.h"
-#include "osquery/tables/base.h"
-#include "osquery/tables/registry.h"
 
 #include <iostream>
 #include <map>
 #include <string>
 
 #include <glog/logging.h>
+
+#include "osquery/database.h"
+#include "osquery/sqlite3.h"
+#include "osquery/tables/base.h"
+#include "osquery/tables/registry.h"
 
 using namespace osquery::db;
 using namespace osquery::tables;

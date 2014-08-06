@@ -9,8 +9,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include "configerator/distribution/api/api.h"
-#include "configerator/structs/osquery/gen-cpp/osquery_types.h"
+#include <configerator/distribution/api/api.h>
+#include <configerator/structs/osquery/gen-cpp/osquery_types.h>
 
 using osquery::Status;
 

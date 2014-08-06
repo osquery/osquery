@@ -1,13 +1,13 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include "osquery/core.h"
+#include "osquery/core/sqlite_util.h"
 
 #include <iostream>
 
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
-#include "osquery/core/sqlite_util.h"
 #include "osquery/core/test_util.h"
 
 using namespace osquery::core;
