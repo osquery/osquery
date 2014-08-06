@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/tables/implementations/etc_hosts.h"
+#include "osquery/tables/networking/etc_hosts.h"
 
 #include <vector>
 #include <string>

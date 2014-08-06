@@ -3,4 +3,4 @@ schema([
     Column(name="address", type="std::string"),
     Column(name="hostnames", type="std::string"),
 ])
-implementation("osquery/tables/implementations/etc_hosts@genEtcHosts")
+implementation("osquery/tables/networking/etc_hosts@genEtcHosts")

@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef TABLES_IMPLEMENTATIONS_ETC_HOSTS_H
-#define TABLES_IMPLEMENTATIONS_ETC_HOSTS_H
+#ifndef TABLES_NETWORKING_ETC_HOSTS_H
+#define TABLES_NETWORKING_ETC_HOSTS_H
 
 #include <string>
 
@@ -19,4 +19,4 @@ osquery::db::QueryData parseEtcHostsContent(const std::string& content);
 
 }}
 
-#endif
+#endif /* TABLES_NETWORKING_ETC_HOSTS_H */
