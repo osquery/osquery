@@ -50,14 +50,14 @@ const std::string
   sqlite3_{{table_name}}_create_table_statement =
   "CREATE TABLE {{table_name}}("
   {% for col in schema %}\
-  "{{col.name}}\
- {% if col.type == "std::string" %}VARCHAR{% endif %}\
- {% if col.type == "int" %}INTEGER{% endif %}\
+  "{{col.name}} \
+{% if col.type == "std::string" %}VARCHAR{% endif %}\
+{% if col.type == "int" %}INTEGER{% endif %}\
 {% if not loop.last %}, {% endif %}"
   {% endfor %}\
-  ")";
+")";
 
-int {{table_name}}Create(
+int {{table_name_cc}}Create(
   sqlite3 *db,
   void *pAux,
   int argc,
@@ -74,7 +74,7 @@ int {{table_name}}Create(
   );
 }
 
-int {{table_name}}Column(
+int {{table_name_cc}}Column(
   sqlite3_vtab_cursor *cur,
   sqlite3_context *ctx,
   int col
@@ -109,7 +109,7 @@ int {{table_name}}Column(
   return SQLITE_OK;
 }
 
-int {{table_name}}Filter(
+int {{table_name_cc}}Filter(
   sqlite3_vtab_cursor *pVtabCursor,
   int idxNum,
   const char *idxStr,
@@ -142,19 +142,19 @@ int {{table_name}}Filter(
   return SQLITE_OK;
 }
 
-static sqlite3_module {{table_name}}Module = {
+static sqlite3_module {{table_name_cc}}Module = {
   0,
-  {{table_name}}Create,
-  {{table_name}}Create,
+  {{table_name_cc}}Create,
+  {{table_name_cc}}Create,
   xBestIndex,
   xDestroy<x_vtab<sqlite3_{{table_name}}>>,
   xDestroy<x_vtab<sqlite3_{{table_name}}>>,
   xOpen<base_cursor>,
   xClose<base_cursor>,
-  {{table_name}}Filter,
+  {{table_name_cc}}Filter,
   xNext<base_cursor>,
   xEof<base_cursor, x_vtab<sqlite3_{{table_name}}>>,
-  {{table_name}}Column,
+  {{table_name_cc}}Column,
   xRowid<base_cursor>,
   0,
   0,
@@ -165,21 +165,21 @@ static sqlite3_module {{table_name}}Module = {
   0,
 };
 
-class {{table_name}}TablePlugin : public TablePlugin {
+class {{table_name_cc}}TablePlugin : public TablePlugin {
 public:
-  {{table_name}}TablePlugin() {}
+  {{table_name_cc}}TablePlugin() {}
 
   int attachVtable(sqlite3 *db) {
     return sqlite3_attach_vtable<sqlite3_{{table_name}}>(
-      db, "{{table_name}}", &{{table_name}}Module);
+      db, "{{table_name}}", &{{table_name_cc}}Module);
   }
 
-  virtual ~{{table_name}}TablePlugin() {}
+  virtual ~{{table_name_cc}}TablePlugin() {}
 };
 
 REGISTER_TABLE(
   "{{table_name}}",
-  std::make_shared<{{table_name}}TablePlugin>()
+  std::make_shared<{{table_name_cc}}TablePlugin>()
 );
 
 }}
@@ -187,8 +187,13 @@ REGISTER_TABLE(
 """
 
 def usage():
-    """print program usage"""
+    """ print program usage """
     print("Usage: %s <filename>" % sys.argv[0])
+
+def to_camel_case(snake_case):
+    """ convert a snake_case string to camelCase """
+    components = snake_case.split('_')
+    return components[0] + "".join(x.title() for x in components[1:])
 
 class Singleton(object):
     """
@@ -222,6 +227,7 @@ class TableState(Singleton):
         logging.debug("TableState.generate")
         self.impl_content = jinja2.Template(IMPL_TEMPLATE).render(
             table_name=self.table_name,
+            table_name_cc=to_camel_case(self.table_name),
             schema=self.schema,
             header=self.header,
             impl=self.impl,
