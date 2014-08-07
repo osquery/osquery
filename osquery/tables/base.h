@@ -28,7 +28,6 @@ struct x_vtab {
   T_STRUCT *pContent;
 };
 
-
 // This method releases a connection to a virtual table, just like the
 // xDisconnect method, and it also destroys the underlying table
 // implementation. This method undoes the work of xCreate.
