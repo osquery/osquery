@@ -1,7 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/tables/system/processes.h"
-
 #include <algorithm>
 #include <map>
 #include <string>
@@ -17,6 +15,7 @@
 #include <glog/logging.h>
 
 #include "osquery/core.h"
+#include "osquery/database.h"
 
 using namespace osquery::core;
 using namespace osquery::db;

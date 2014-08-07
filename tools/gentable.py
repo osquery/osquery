@@ -17,93 +17,6 @@ DEVELOPING = False
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
 
-# HEADER_TEMPLATE is the jinja template used to generate the virtual table
-# header file
-HEADER_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
-
-/*
-** This file is generated. Do not modify it manually!
-*/
-
-#ifndef OSQUERY_TABLES_GENERATED_{{table_name.upper()}}_H
-#define OSQUERY_TABLES_GENERATED_{{table_name.upper()}}_H
-
-#include <string>
-#include <vector>
-
-#include "osquery/sqlite3.h"
-#include "osquery/tables/base.h"
-
-namespace osquery { namespace tables {
-
-struct sqlite3_{{table_name}} {
-  int n;
-{% for col in schema %}\
-  std::vector<{{col.type}}> {{col.name}};
-{% endfor %}\
-};
-
-extern const std::string
-  sqlite3_{{table_name}}_create_table_statement;
-
-int sqlite3_{{table_name}}_create(
-  sqlite3 *db,
-  const char *zName,
-  sqlite3_{{table_name}} **ppReturn
-);
-
-int {{table_name}}Create(
-  sqlite3 *db,
-  void *pAux,
-  int argc,
-  const char *const *argv,
-  sqlite3_vtab **ppVtab,
-  char **pzErr
-);
-
-int {{table_name}}Column(
-  sqlite3_vtab_cursor *cur,
-  sqlite3_context *ctx,
-  int col
-);
-
-int {{table_name}}Filter(
-  sqlite3_vtab_cursor *pVtabCursor,
-  int idxNum,
-  const char *idxStr,
-  int argc,
-  sqlite3_value **argv
-);
-
-static sqlite3_module {{table_name}}Module = {
-  0,
-  {{table_name}}Create,
-  {{table_name}}Create,
-  xBestIndex,
-  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
-  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
-  xOpen<base_cursor>,
-  xClose<base_cursor>,
-  {{table_name}}Filter,
-  xNext<base_cursor>,
-  xEof<base_cursor, x_vtab<sqlite3_{{table_name}}>>,
-  {{table_name}}Column,
-  xRowid<base_cursor>,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-};
-
-}}
-
-#endif /* OSQUERY_TABLES_{{table_name.upper()}}_H */
-
-"""
-
 # IMPL_TEMPLATE is the jinja template used to generate the virtual table
 # implementation file
 IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
@@ -112,19 +25,26 @@ IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 ** This file is generated. Do not modify it manually!
 */
 
-#include "osquery/tables/generated/{{table_name}}.h"
-#include "{{header}}"
-
 #include <string>
 #include <vector>
 #include <cstring>
 
 #include <boost/lexical_cast.hpp>
 
+#include "osquery/database.h"
 #include "osquery/tables/base.h"
 #include "osquery/tables/registry.h"
 
 namespace osquery { namespace tables {
+
+osquery::db::QueryData {{function}}();
+
+struct sqlite3_{{table_name}} {
+  int n;
+{% for col in schema %}\
+  std::vector<{{col.type}}> {{col.name}};
+{% endfor %}\
+};
 
 const std::string
   sqlite3_{{table_name}}_create_table_statement =
@@ -222,6 +142,29 @@ int {{table_name}}Filter(
   return SQLITE_OK;
 }
 
+static sqlite3_module {{table_name}}Module = {
+  0,
+  {{table_name}}Create,
+  {{table_name}}Create,
+  xBestIndex,
+  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
+  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
+  xOpen<base_cursor>,
+  xClose<base_cursor>,
+  {{table_name}}Filter,
+  xNext<base_cursor>,
+  xEof<base_cursor, x_vtab<sqlite3_{{table_name}}>>,
+  {{table_name}}Column,
+  xRowid<base_cursor>,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+};
+
 class {{table_name}}TablePlugin : public TablePlugin {
 public:
   {{table_name}}TablePlugin() {}
@@ -277,10 +220,6 @@ class TableState(Singleton):
     def generate(self):
         """Generate the virtual table files"""
         logging.debug("TableState.generate")
-        self.header_content = jinja2.Template(HEADER_TEMPLATE).render(
-            table_name=self.table_name,
-            schema=self.schema,
-        )
         self.impl_content = jinja2.Template(IMPL_TEMPLATE).render(
             table_name=self.table_name,
             schema=self.schema,
@@ -290,18 +229,11 @@ class TableState(Singleton):
         )
 
         base = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        self.header_path = os.path.join(
-            base,
-            "osquery/tables/generated/%s.h" % self.table_name
-        )
         self.impl_path = os.path.join(
             base,
             "osquery/tables/generated/%s.cpp" % self.table_name
         )
 
-        logging.info("generating %s" % self.header_path)
-        with open(self.header_path, "w") as file_h:
-            file_h.write(self.header_content)
         logging.info("generating %s" % self.impl_path)
         with open(self.impl_path, "w") as file_h:
             file_h.write(self.impl_content)
@@ -344,12 +276,9 @@ def implementation(impl_string):
     """
     logging.debug("- implementation")
     path, function = impl_string.split("@")
-    header = "%s.h" % path
     impl = "%s.cpp" % path
-    logging.debug("  - header => %s" % header)
     logging.debug("  - impl => %s" % impl)
     logging.debug("  - function => %s" % function)
-    table.header = header
     table.impl = impl
     table.function = function
 

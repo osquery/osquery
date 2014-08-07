@@ -1,7 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/tables/networking/etc_hosts.h"
-
 #include <vector>
 #include <string>
 
@@ -11,6 +9,7 @@
 #include <glog/logging.h>
 
 #include "osquery/core.h"
+#include "osquery/database.h"
 #include "osquery/filesystem.h"
 
 using namespace osquery::core;
@@ -18,17 +17,6 @@ using namespace osquery::db;
 using namespace osquery::fs;
 
 namespace osquery { namespace tables {
-
-QueryData genEtcHosts() {
-  std::string content;
-  auto s = readFile("/etc/hosts", content);
-  if (s.ok()) {
-    return parseEtcHostsContent(content);
-  } else {
-    LOG(ERROR) << "Error reading /etc/hosts: " << s.toString();
-    return {};
-  }
-}
 
 QueryData parseEtcHostsContent(const std::string& content) {
   QueryData results;
@@ -51,6 +39,17 @@ QueryData parseEtcHostsContent(const std::string& content) {
   }
 
   return results;
+}
+
+QueryData genEtcHosts() {
+  std::string content;
+  auto s = readFile("/etc/hosts", content);
+  if (s.ok()) {
+    return parseEtcHostsContent(content);
+  } else {
+    LOG(ERROR) << "Error reading /etc/hosts: " << s.toString();
+    return {};
+  }
 }
 
 }}
