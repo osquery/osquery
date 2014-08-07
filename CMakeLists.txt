@@ -24,6 +24,7 @@ SET(OSQUERY_LIBS
   osquery_core
   osquery_database
   osquery_devtools
+  osquery_filesystem
   osquery_logger
   osquery_scheduler
   osquery_sqlite
