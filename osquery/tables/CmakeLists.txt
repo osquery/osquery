@@ -15,6 +15,7 @@ TARGET_LINK_LIBRARIES(osquery_tables glog)
 TARGET_LINK_LIBRARIES(osquery_tables osquery_filesystem)
 TARGET_LINK_LIBRARIES(osquery_tables osquery_sqlite)
 TARGET_LINK_LIBRARIES(osquery_tables "-Wl,-all_load")
+TARGET_LINK_LIBRARIES(osquery_tables "-fobjc-arc -fobjc-link-runtime -framework Foundation")
 
 ADD_EXECUTABLE(etc_hosts_tests networking/etc_hosts_tests.cpp)
 TARGET_LINK_LIBRARIES(etc_hosts_tests gtest)
