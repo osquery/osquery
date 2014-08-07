@@ -113,7 +113,6 @@ IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 */
 
 #include "osquery/tables/generated/{{table_name}}.h"
-#include "{{header}}"
 
 #include <string>
 #include <vector>
@@ -121,10 +120,13 @@ IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 
 #include <boost/lexical_cast.hpp>
 
+#include "osquery/database.h"
 #include "osquery/tables/base.h"
 #include "osquery/tables/registry.h"
 
 namespace osquery { namespace tables {
+
+osquery::db::QueryData {{function}}();
 
 const std::string
   sqlite3_{{table_name}}_create_table_statement =

@@ -1,15 +1,16 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/tables/networking/etc_hosts.h"
-
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
 #include "osquery/core/test_util.h"
+#include "osquery/database.h"
 
 using namespace osquery::core;
 
 namespace osquery { namespace tables {
+
+osquery::db::QueryData parseEtcHostsContent(const std::string& s);
 
 class EtcHostsTests : public testing::Test {};
 
