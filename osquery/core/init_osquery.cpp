@@ -22,6 +22,7 @@ void initOsquery(int argc, char *argv[]) {
   );
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
+  FLAGS_logtostderr = 1;
   osquery::InitRegistry::get().run();
 }
 

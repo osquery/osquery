@@ -8,6 +8,7 @@ ADD_LIBRARY(osquery_tables
   ${table_sources}
   examples/example.cpp
   networking/etc_hosts.cpp
+  system/kextstat.cpp
   system/processes.cpp
 )
 TARGET_LINK_LIBRARIES(osquery_tables boost_filesystem)
@@ -15,7 +16,7 @@ TARGET_LINK_LIBRARIES(osquery_tables glog)
 TARGET_LINK_LIBRARIES(osquery_tables osquery_filesystem)
 TARGET_LINK_LIBRARIES(osquery_tables osquery_sqlite)
 TARGET_LINK_LIBRARIES(osquery_tables "-Wl,-all_load")
-TARGET_LINK_LIBRARIES(osquery_tables "-fobjc-arc -fobjc-link-runtime -framework Foundation")
+TARGET_LINK_LIBRARIES(osquery_tables "-fobjc-arc -fobjc-link-runtime -framework Foundation -framework IOKit -framework CoreFoundation")
 
 ADD_EXECUTABLE(etc_hosts_tests networking/etc_hosts_tests.cpp)
 TARGET_LINK_LIBRARIES(etc_hosts_tests gtest)

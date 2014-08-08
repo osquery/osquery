@@ -43,11 +43,11 @@ class Registry : public std::unordered_map<Key, Value> {
   void registerValue(const Key& key, const Value& value,
                      const char* displayName = "registry") {
     if (this->insert(std::make_pair(key, value)).second) {
-      LOG(INFO)
+      VLOG(1)
         << displayName << "[" << key << "]"
         << " registered";
     } else {
-      LOG(DFATAL)
+      LOG(ERROR)
         << displayName << "[" << key << "]"
         << " already registered";
     }
