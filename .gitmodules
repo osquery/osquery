@@ -1,0 +1,3 @@
+[submodule "third-party"]
+	path = third-party
+	url = https://github.com/osquery/third-party.git
