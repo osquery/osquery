@@ -3,6 +3,12 @@ PROJECT(OSQUERY)
 
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}")
 
+INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0/include")
+ADD_SUBDIRECTORY("${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0")
+
+INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/rocksdb/include")
+LINK_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/rocksdb")
+
 SET(CMAKE_C_FLAGS "-std=c99")
 SET(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++")
 SET(GEN_TABLE_PATH "${CMAKE_SOURCE_DIR}/tools/gentable.py")
