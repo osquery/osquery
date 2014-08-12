@@ -3,6 +3,7 @@ ADD_LIBRARY(osquery_database
   query.cpp
   results.cpp
 )
+ADD_DEPENDENCIES(osquery_database librocksdb)
 TARGET_LINK_LIBRARIES(osquery_database boost_system)
 TARGET_LINK_LIBRARIES(osquery_database boost_thread-mt)
 TARGET_LINK_LIBRARIES(osquery_database bz2)
@@ -14,15 +15,18 @@ TARGET_LINK_LIBRARIES(osquery_database z)
 TARGET_LINK_LIBRARIES(osquery_database osquery_config)
 
 ADD_EXECUTABLE(query_tests query_tests.cpp)
+ADD_DEPENDENCIES(query_tests librocksdb)
 TARGET_LINK_LIBRARIES(query_tests gtest)
 TARGET_LINK_LIBRARIES(query_tests osquery_core)
 TARGET_LINK_LIBRARIES(query_tests osquery_database)
 
 ADD_EXECUTABLE(db_handle_tests db_handle_tests.cpp)
+ADD_DEPENDENCIES(db_handle_tests librocksdb)
 TARGET_LINK_LIBRARIES(db_handle_tests gtest)
 TARGET_LINK_LIBRARIES(db_handle_tests osquery_database)
 
 ADD_EXECUTABLE(results_tests results_tests)
+ADD_DEPENDENCIES(results_tests librocksdb)
 TARGET_LINK_LIBRARIES(results_tests gtest)
 TARGET_LINK_LIBRARIES(results_tests osquery_core)
 TARGET_LINK_LIBRARIES(results_tests osquery_database)
