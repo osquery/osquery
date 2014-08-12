@@ -20,6 +20,7 @@ deps:
 	brew install gflags
 	brew install glog
 	brew install snappy
+	brew install readline
 	git submodule init
 	git submodule update
 

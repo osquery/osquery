@@ -45,6 +45,8 @@
 # include <sys/types.h>
 #endif
 
+#define HAVE_READLINE (1)
+
 #if defined(HAVE_READLINE) && HAVE_READLINE!=0
 # include <readline/readline.h>
 # include <readline/history.h>
