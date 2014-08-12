@@ -5,9 +5,10 @@
 
 #include <memory>
 
+#include <sqlite3.h>
+
 #include "osquery/status.h"
 #include "osquery/registry.h"
-#include "osquery/sqlite3.h"
 
 namespace osquery { namespace tables {
 

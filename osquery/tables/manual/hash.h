@@ -3,7 +3,7 @@
 #ifndef OSQUERY_TABLES_HASH_H
 #define OSQUERY_TABLES_HASH_H
 
-#include "osquery/sqlite3.h"
+#include <sqlite3.h>
 
 // Make sure we can call this stuff from C++.
 #ifdef __cplusplus

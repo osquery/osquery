@@ -3,7 +3,7 @@
 #ifndef OSQUERY_TABLES_BASE_H
 #define OSQUERY_TABLES_BASE_H
 
-#include "osquery/sqlite3.h"
+#include <sqlite3.h>
 
 namespace osquery { namespace tables {
 

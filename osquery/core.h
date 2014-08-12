@@ -6,8 +6,9 @@
 #include <string>
 #include <vector>
 
+#include <sqlite3.h>
+
 #include "osquery/database.h"
-#include "osquery/sqlite3.h"
 
 namespace osquery { namespace core {
 

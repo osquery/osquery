@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
-#include "osquery/sqlite3.h"
+#include <sqlite3.h>
 
 using namespace osquery::core;
 

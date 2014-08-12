@@ -7,7 +7,19 @@ INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0/include")
 ADD_SUBDIRECTORY("${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0")
 
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/rocksdb/include")
+include(ExternalProject)
+ExternalProject_Add(librocksdb
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party/rocksdb"
+  CONFIGURE_COMMAND ""
+  BUILD_IN_SOURCE 1
+  BUILD_COMMAND make static_lib
+  INSTALL_COMMAND ""
+)
+
 LINK_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/rocksdb")
+
+INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
+ADD_SUBDIRECTORY("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 
 SET(CMAKE_C_FLAGS "-std=c99")
 SET(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++")
@@ -20,7 +32,6 @@ ADD_SUBDIRECTORY(osquery/devtools)
 ADD_SUBDIRECTORY(osquery/filesystem)
 ADD_SUBDIRECTORY(osquery/logger)
 ADD_SUBDIRECTORY(osquery/scheduler)
-ADD_SUBDIRECTORY(osquery/sqlite)
 ADD_SUBDIRECTORY(osquery/tables)
 
 SET(OSQUERY_LIBS

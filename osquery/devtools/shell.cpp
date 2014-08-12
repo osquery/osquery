@@ -32,7 +32,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
-#include "osquery/sqlite3.h"
+#include <sqlite3.h>
 #include <ctype.h>
 #include <stdarg.h>
 

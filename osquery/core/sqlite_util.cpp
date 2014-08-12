@@ -8,9 +8,9 @@
 #include <string>
 
 #include <glog/logging.h>
+#include <sqlite3.h>
 
 #include "osquery/database.h"
-#include "osquery/sqlite3.h"
 #include "osquery/tables/base.h"
 #include "osquery/tables/registry.h"
 
