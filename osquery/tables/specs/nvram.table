@@ -1,0 +1,7 @@
+table_name("nvram")
+schema([
+    Column(name="name", type="std::string"),
+    Column(name="type", type="std::string"),
+    Column(name="value", type="std::string"),
+])
+implementation("osquery/tables/system/nvram@genNVRAM")
