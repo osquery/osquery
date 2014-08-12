@@ -1,15 +1,9 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-//#include <algorithm>
-//#include <map>
 #include <string>
-//#include <unordered_set>
-
 #include <stdio.h>
 #include <stdlib.h>
 
-//#include <boost/filesystem/operations.hpp>
-//#include <boost/filesystem/path.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <IOKit/IOKitLib.h>
@@ -36,7 +30,7 @@ void genVariable(const void *key, const void *value, void *results) {
   nameLen = CFStringGetLength((CFStringRef) key) + 1;
   nameBuffer = (char*) malloc(nameLen);
   if(nameBuffer && CFStringGetCString((CFStringRef) key, nameBuffer, nameLen, 
-      kCFStringEncodingUTF8) ) {
+      kCFStringEncodingUTF8)) {
     nvram_row["name"] = boost::lexical_cast<std::string>(nameBuffer);
   } else {
     LOG(WARNING) << "Unable to convert NVRAM property name to C string";
@@ -51,8 +45,8 @@ void genVariable(const void *key, const void *value, void *results) {
   typeID = CFGetTypeID(value);
   typeLen = CFStringGetLength(CFCopyTypeIDDescription(typeID)) + 1;
   typeBuffer = (char*) malloc(typeLen);
-  if ( typeBuffer && CFStringGetCString(CFCopyTypeIDDescription(typeID), 
-      typeBuffer, typeLen, kCFStringEncodingUTF8) ) {
+  if (typeBuffer && CFStringGetCString(CFCopyTypeIDDescription(typeID), 
+      typeBuffer, typeLen, kCFStringEncodingUTF8)) {
     nvram_row["type"] = boost::lexical_cast<std::string>(typeBuffer);
     free(typeBuffer);
   }
@@ -83,9 +77,9 @@ void genVariable(const void *key, const void *value, void *results) {
     valueString = numberBuffer;
   } else if (typeID == CFStringGetTypeID()) {
     valueLen = CFStringGetLength((CFStringRef) value) + 1;
-    valueBuffer = (char*) malloc(valueLen + 1);
-    if ( valueBuffer && CFStringGetCString((CFStringRef) value, valueBuffer, 
-        valueLen, kCFStringEncodingUTF8) ) {
+    valueBuffer = (char*) malloc(valueLen);
+    if (valueBuffer && CFStringGetCString((CFStringRef) value, valueBuffer, 
+        valueLen, kCFStringEncodingUTF8)) {
       valueString = valueBuffer;
     } else {
       LOG(WARNING) << "Unable to convert NVRAM value to C string";
