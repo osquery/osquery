@@ -30,4 +30,5 @@ distclean:
 runtests: build
 	find build -name "*_tests" -type f -exec '{}' \;
 
-
+update:
+	git submodule foreach git pull origin master
