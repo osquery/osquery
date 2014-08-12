@@ -15,6 +15,13 @@ clean:
 
 deps:
 	pip install -r requirements.txt
+	brew install cmake
+	brew install boost --c++11 --with-python
+	brew install gflags
+	brew install glog
+	brew install snappy
+	git submodule init
+	git submodule update
 
 distclean:
 	rm -rf build
