@@ -94,6 +94,9 @@ struct SplitStringTestData {
 // generate a set of test data to test osquery::core::splitString
 std::vector<SplitStringTestData> generateSplitStringTestData();
 
+// generate test content of a property list
+std::string getPlistContent();
+
 }}
 
 #endif /* OSQUERY_CORE_TEST_UTIL_H */

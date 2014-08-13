@@ -236,6 +236,48 @@ std::string getEtcHostsContent() {
   return content;
 }
 
+std::string getPlistContent() {
+  std::string content = R"(
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Disabled</key>
+  <true/>
+  <key>Label</key>
+  <string>com.apple.FileSyncAgent.sshd</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/System/Library/CoreServices/FileSyncAgent.app/Contents/Resources/FileSyncAgent_sshd-keygen-wrapper</string>
+    <string>-i</string>
+    <string>-f</string>
+    <string>/System/Library/CoreServices/FileSyncAgent.app/Contents/Resources/FileSyncAgent_sshd_config</string>
+  </array>
+  <key>SessionCreate</key>
+  <true/>
+  <key>Sockets</key>
+  <dict>
+    <key>Listeners</key>
+    <dict>
+      <key>SockServiceName</key>
+      <string>appleugcontrol</string>
+      <key>Bonjour</key>
+      <true/>
+    </dict>
+  </dict>
+  <key>StandardErrorPath</key>
+  <string>/dev/null</string>
+  <key>inetdCompatibility</key>
+  <dict>
+    <key>Wait</key>
+    <false/>
+  </dict>
+</dict>
+</plist>
+)";
+  return content;
+}
+
 osquery::db::QueryData getEtcHostsExpectedResults() {
   Row row1;
   Row row2;

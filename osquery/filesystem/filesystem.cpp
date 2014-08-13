@@ -29,9 +29,9 @@ Status readFile(const std::string& path, std::string& content) {
      char *buffer = new char [len];
      file_h.read(buffer, len);
      if (!file_h) {
-      return Status(1, "Could not entire file");
+      return Status(1, "Could not read file");
      }
-     content = std::string(buffer);
+     content.assign(buffer, len);
   } else {
     return Status(1, "Could not open file for reading");
   }
