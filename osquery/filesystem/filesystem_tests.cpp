@@ -15,14 +15,14 @@ class FilesystemTests : public testing::Test {};
 
 TEST_F(FilesystemTests, test_plugin) {
   std::ofstream test_file("/tmp/osquery-test-file");
-  test_file.write("test123", sizeof("test123"));
+  test_file.write("test123\n", sizeof("test123"));
   test_file.close();
 
   std::string content;
   auto s = readFile("/tmp/osquery-test-file", content);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(content, "test123");
+  EXPECT_EQ(content, "test123\n");
 
   remove("/tmp/osquery-test-file");
 }
