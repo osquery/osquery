@@ -8,6 +8,7 @@ TARGET_LINK_LIBRARIES(osquery_core gflags)
 TARGET_LINK_LIBRARIES(osquery_core glog)
 TARGET_LINK_LIBRARIES(osquery_core gtest)
 TARGET_LINK_LIBRARIES(osquery_core osquery_database)
+TARGET_LINK_LIBRARIES(osquery_core osquery_filesystem)
 TARGET_LINK_LIBRARIES(osquery_core osquery_sqlite)
 TARGET_LINK_LIBRARIES(osquery_core osquery_tables)
 
