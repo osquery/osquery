@@ -29,13 +29,11 @@ make runtests
 
 ## Table Development
 
-### Top 5 easy virtual tables
+### Top easy virtual tables
 
-- [Systems updates vtable](https://github.com/facebook/osquery/issues/29)
 - [Crontab virtual table](https://github.com/facebook/osquery/issues/19)
 - [Networking settings virtual table](https://github.com/facebook/osquery/issues/10)
 - [Full Disk Encryption Virtual Tables](https://github.com/facebook/osquery/issues/15)
-- [Apple Firewall virtual table](https://github.com/facebook/osquery/issues/5)
 
 ### High impact virtual tables
 - [LaunchAgent/Daemon virtual table](https://github.com/facebook/osquery/issues/3)
