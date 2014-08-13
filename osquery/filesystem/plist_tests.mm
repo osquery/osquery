@@ -31,6 +31,7 @@ TEST_F(PlistTests, test_parse_plist_content) {
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(tree.get<bool>("Disabled"), true);
+  EXPECT_THROW(tree.get<bool>("foobar"), pt::ptree_bad_path);
   EXPECT_EQ(tree.get<std::string>("Label"), "com.apple.FileSyncAgent.sshd");
   std::vector<std::string> program_arguments = {
     "/System/Library/CoreServices/FileSyncAgent.app/Contents/Resources/FileSyncAgent_sshd-keygen-wrapper",
