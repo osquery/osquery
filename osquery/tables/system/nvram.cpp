@@ -22,10 +22,24 @@ namespace osquery { namespace tables {
 
 void genVariable(const void *key, const void *value, void *results) {  
   Row nvram_row;
-  
+
+  // Variable type casting members.
+  long          cnt, cnt2;
+  const uint8_t *dataPtr;
+  uint8_t       dataChar;
+  char          numberBuffer[10];
+  char          *dataBuffer = 0;
+  CFIndex       valueLen;
+  char          *valueBuffer = 0;
+  const char    *valueString = 0;
+  uint32_t      number, length;
+  // OF variable canonical type casting.
+  CFTypeID      typeID;
+  CFIndex       typeLen;
+  char          *typeBuffer;
   // Get the OF variable's name.
-  CFIndex nameLen;
-  char *nameBuffer = 0;
+  CFIndex       nameLen;
+  char          *nameBuffer = 0;
 
   nameLen = CFStringGetLength((CFStringRef) key) + 1;
   nameBuffer = (char*) malloc(nameLen);
@@ -38,29 +52,15 @@ void genVariable(const void *key, const void *value, void *results) {
   }
 
   // Get the OF variable's type.
-  CFTypeID typeID;
-  CFIndex typeLen;
-  char *typeBuffer;
-
   typeID = CFGetTypeID(value);
   typeLen = CFStringGetLength(CFCopyTypeIDDescription(typeID)) + 1;
   typeBuffer = (char*) malloc(typeLen);
   if (typeBuffer && CFStringGetCString(CFCopyTypeIDDescription(typeID), 
       typeBuffer, typeLen, kCFStringEncodingUTF8)) {
     nvram_row["type"] = boost::lexical_cast<std::string>(typeBuffer);
-    free(typeBuffer);
+  } else {
+    goto cleanup;
   }
-
-  // Variable type casting members.
-  long          cnt, cnt2;
-  const uint8_t *dataPtr;
-  uint8_t       dataChar;
-  char          numberBuffer[10];
-  char          *dataBuffer = 0;
-  CFIndex       valueLen;
-  char          *valueBuffer = 0;
-  const char    *valueString = 0;
-  uint32_t      number, length;
 
   // Based on the type, get a texual representation of the variable.
   if (typeID == CFBooleanGetTypeID()) {
@@ -119,6 +119,9 @@ void genVariable(const void *key, const void *value, void *results) {
 cleanup:
   if (nameBuffer != 0) {
     free(nameBuffer);
+  }
+  if (typeBuffer != 0) {
+    free(typeBuffer);
   }
   if (dataBuffer != 0) { 
     free(dataBuffer);
