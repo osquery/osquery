@@ -7,6 +7,7 @@ build:
 	python tools/gentable.py osquery/tables/specs/etc_hosts.table
 	python tools/gentable.py osquery/tables/specs/processes.table
 	python tools/gentable.py osquery/tables/specs/nvram.table
+	python tools/gentable.py osquery/tables/specs/osx_version.table
 	mkdir -p build
 	cd build && cmake .. && make -j5
 
