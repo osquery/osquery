@@ -5,6 +5,7 @@ build:
 	mkdir -p osquery/tables/generated
 	python tools/gentable.py osquery/tables/specs/generated_example.table
 	python tools/gentable.py osquery/tables/specs/etc_hosts.table
+	python tools/gentable.py osquery/tables/specs/kextstat.table
 	python tools/gentable.py osquery/tables/specs/processes.table
 	python tools/gentable.py osquery/tables/specs/nvram.table
 	python tools/gentable.py osquery/tables/specs/osx_version.table
