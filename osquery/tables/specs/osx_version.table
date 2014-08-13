@@ -1,0 +1,7 @@
+table_name("osx_version")
+schema([
+  Column(name="major", type="int"),
+  Column(name="minor", type="int"),
+  Column(name="patch", type="int"),
+])
+implementation("osquery/tables/system/osx_version@genOSXVersion")

@@ -10,6 +10,8 @@ ADD_LIBRARY(osquery_tables
   networking/etc_hosts.cpp
   system/processes.cpp
   system/nvram.cpp
+  system/NSProcessInfo+PECocoaBackports.mm
+  system/osx_version.mm
 )
 TARGET_LINK_LIBRARIES(osquery_tables boost_filesystem)
 TARGET_LINK_LIBRARIES(osquery_tables glog)
