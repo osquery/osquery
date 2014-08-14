@@ -37,7 +37,6 @@ make runtests
 
 ### High impact virtual tables
 - [LaunchAgent/Daemon virtual table](https://github.com/facebook/osquery/issues/3)
-- [Installed applications virtual table](https://github.com/facebook/osquery/issues/23)
 - [Installed browser plugins virtual table](https://github.com/facebook/osquery/issues/24)
 - [System-trusted root certificated virtual table](https://github.com/facebook/osquery/issues/8)
 - [Startup items virtual table](https://github.com/facebook/osquery/issues/6)
