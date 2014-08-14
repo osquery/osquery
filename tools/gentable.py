@@ -131,8 +131,13 @@ int {{table_name_cc}}Filter(
     pVtab->pContent->{{col.name}}.push_back(row["{{col.name}}"]);
 {% endif %}\
 {% if col.type == "int" %}\
-    pVtab->pContent->{{col.name}}\
+    try {
+      pVtab->pContent->{{col.name}}\
 .push_back(boost::lexical_cast<int>(row["{{col.name}}"]));
+    } catch (const boost::bad_lexical_cast& e) {
+      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << "to int";
+      pVtab->pContent->{{col.name}}.push_back(-1);
+    }
 {% endif %}\
 {% endfor %}\
   }

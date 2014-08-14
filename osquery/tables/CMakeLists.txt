@@ -15,6 +15,7 @@ ADD_LIBRARY(osquery_tables
   system/osx_version.mm
   system/firewall.cpp
   system/apps.cpp
+  system/launchd.cpp
 )
 TARGET_LINK_LIBRARIES(osquery_tables boost_filesystem)
 TARGET_LINK_LIBRARIES(osquery_tables glog)
@@ -46,3 +47,11 @@ TARGET_LINK_LIBRARIES(apps_tests osquery_core)
 TARGET_LINK_LIBRARIES(apps_tests osquery_database)
 TARGET_LINK_LIBRARIES(apps_tests osquery_filesystem)
 TARGET_LINK_LIBRARIES(apps_tests osquery_tables)
+
+ADD_EXECUTABLE(launchd_tests system/launchd_tests.cpp)
+TARGET_LINK_LIBRARIES(launchd_tests gtest)
+TARGET_LINK_LIBRARIES(launchd_tests glog)
+TARGET_LINK_LIBRARIES(launchd_tests osquery_core)
+TARGET_LINK_LIBRARIES(launchd_tests osquery_database)
+TARGET_LINK_LIBRARIES(launchd_tests osquery_filesystem)
+TARGET_LINK_LIBRARIES(launchd_tests osquery_tables)
