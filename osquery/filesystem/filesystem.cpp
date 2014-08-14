@@ -39,4 +39,27 @@ Status readFile(const std::string& path, std::string& content) {
   return Status(0, "OK");
 }
 
+Status listFilesInDirectory(const std::string& path,
+  std::vector<std::string>& results) {
+  try {
+    if (!boost::filesystem::exists(path)) {
+      return Status(1, "Directory not found");
+    }
+
+    if (!boost::filesystem::is_directory(path)) {
+      return Status(1, "Supplied path is not a directory");
+    }
+
+    boost::filesystem::directory_iterator begin_iter(path);
+    boost::filesystem::directory_iterator end_iter;
+    for (; begin_iter != end_iter; begin_iter++) {
+      results.push_back(begin_iter->path().string());
+    }
+
+    return Status(0, "OK");
+  } catch (const boost::filesystem::filesystem_error& e) {
+    return Status(1, e.what());
+  }
+}
+
 }}
