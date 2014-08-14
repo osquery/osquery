@@ -13,6 +13,7 @@ build:
 	python tools/gentable.py osquery/tables/specs/alf_exceptions.table
 	python tools/gentable.py osquery/tables/specs/alf_explicit_auths.table
 	python tools/gentable.py osquery/tables/specs/alf_services.table
+	python tools/gentable.py osquery/tables/specs/apps.table
 	mkdir -p build
 	cd build && cmake .. && make -j5
 
