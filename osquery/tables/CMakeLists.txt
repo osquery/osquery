@@ -11,7 +11,7 @@ ADD_LIBRARY(osquery_tables
   system/kextstat.cpp
   system/processes.cpp
   system/nvram.cpp
-  system/NSProcessInfo+PECocoaBackports.mm
+  ../core/osx/NSProcessInfo+PECocoaBackports.mm
   system/osx_version.mm
 )
 TARGET_LINK_LIBRARIES(osquery_tables boost_filesystem)
