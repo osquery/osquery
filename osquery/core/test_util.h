@@ -97,6 +97,12 @@ std::vector<SplitStringTestData> generateSplitStringTestData();
 // generate test content of a property list
 std::string getPlistContent();
 
+// generate test content of com.apple.alf
+std::string getALFcontent();
+
+// generate a test ptree of the content returned by getALFContent
+boost::property_tree::ptree getALFTree();
+
 }}
 
 #endif /* OSQUERY_CORE_TEST_UTIL_H */

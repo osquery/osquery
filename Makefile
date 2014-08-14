@@ -9,6 +9,10 @@ build:
 	python tools/gentable.py osquery/tables/specs/processes.table
 	python tools/gentable.py osquery/tables/specs/nvram.table
 	python tools/gentable.py osquery/tables/specs/osx_version.table
+	python tools/gentable.py osquery/tables/specs/alf.table
+	python tools/gentable.py osquery/tables/specs/alf_exceptions.table
+	python tools/gentable.py osquery/tables/specs/alf_explicit_auths.table
+	python tools/gentable.py osquery/tables/specs/alf_services.table
 	mkdir -p build
 	cd build && cmake .. && make -j5
 

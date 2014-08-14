@@ -1,0 +1,11 @@
+table_name("alf")
+schema([
+    Column(name="allow_signed_enabled", type="int"),
+    Column(name="firewall_unload", type="int"),
+    Column(name="global_state", type="int"),
+    Column(name="logging_enabled", type="int"),
+    Column(name="logging_option", type="int"),
+    Column(name="stealth_enabled", type="int"),
+    Column(name="version", type="std::string"),
+])
+implementation("osquery/tables/system/firewall@genALF")
