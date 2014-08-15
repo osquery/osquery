@@ -5,7 +5,8 @@
 
 #include <sqlite3.h>
 
-namespace osquery { namespace tables {
+namespace osquery {
+namespace tables {
 
 // Our cursor object
 struct base_cursor {
@@ -18,8 +19,7 @@ struct base_cursor {
 };
 
 // Our virtual table object
-template <class T_STRUCT>
-struct x_vtab {
+template <class T_STRUCT> struct x_vtab {
   // virtual table implementations will normally subclass this structure to add
   // additional private and implementation-specific fields
   sqlite3_vtab base;
@@ -31,9 +31,8 @@ struct x_vtab {
 // This method releases a connection to a virtual table, just like the
 // xDisconnect method, and it also destroys the underlying table
 // implementation. This method undoes the work of xCreate.
-template <class T_VTAB>
-int xDestroy(sqlite3_vtab *p) {
-  T_VTAB *pVtab = (T_VTAB*)p;
+template <class T_VTAB> int xDestroy(sqlite3_vtab *p) {
+  T_VTAB *pVtab = (T_VTAB *)p;
   sqlite3_free(pVtab);
   return SQLITE_OK;
 }
@@ -52,7 +51,7 @@ int xOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
   pCur = new T_CURSOR;
 
   // if the cursor was successfully allocated
-  if(pCur) {
+  if (pCur) {
     // overwrite the entire memory that was allocated with zeros
     memset(pCur, 0, sizeof(T_CURSOR));
 
@@ -71,8 +70,7 @@ int xOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
 }
 
 // Close a base table cursor.
-template <class T_CURSOR>
-int xClose(sqlite3_vtab_cursor *cur) {
+template <class T_CURSOR> int xClose(sqlite3_vtab_cursor *cur) {
   // the xClose interface accepts a sqlite3_vtab_cursor. if we need to do
   // something specific to our virtual table to free it, cast it back to
   // your own cursor type
@@ -88,14 +86,12 @@ int xClose(sqlite3_vtab_cursor *cur) {
 }
 
 // This is executed when you query a virtual table with a WHERE claue.
-static int xBestIndex(
-  sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
+static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   return SQLITE_OK;
 }
 
 // Advance the cursor to the next row.
-template <class T_CURSOR>
-int xNext(sqlite3_vtab_cursor *cur) {
+template <class T_CURSOR> int xNext(sqlite3_vtab_cursor *cur) {
   T_CURSOR *pCur = (T_CURSOR *)cur;
   // increment the value of i, so that xColumn knowns what value to return
   pCur->row++;
@@ -103,8 +99,7 @@ int xNext(sqlite3_vtab_cursor *cur) {
 }
 
 // Determine if the end of the table has been reached
-template <class T_CURSOR, class T_VTAB>
-int xEof(sqlite3_vtab_cursor *cur) {
+template <class T_CURSOR, class T_VTAB> int xEof(sqlite3_vtab_cursor *cur) {
   T_CURSOR *pCur = (T_CURSOR *)cur;
   T_VTAB *pVtab = (T_VTAB *)cur->pVtab;
   return pCur->row >= pVtab->pContent->n;
@@ -122,15 +117,15 @@ int xRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid) {
 
 // Table constructor for the base module.
 template <class T_VTAB, class T_STRUCT>
-int xCreate(
-  sqlite3 *db,                     /* Database where module is created */
-  void *pAux,                      /* clientdata for the module */
-  int argc,                        /* Number of arguments */
-  const char *const *argv,         /* Value for all arguments */
-  sqlite3_vtab **ppVtab,           /* Write the new virtual table obj here */
-  char **pzErr,                    /* Put error message text here */
-  const char *createTableStatement /* the vtables create table statement */
-) {
+int xCreate(sqlite3 *db,             /* Database where module is created */
+            void *pAux,              /* clientdata for the module */
+            int argc,                /* Number of arguments */
+            const char *const *argv, /* Value for all arguments */
+            sqlite3_vtab **ppVtab,   /* Write the new virtual table obj here */
+            char **pzErr,            /* Put error message text here */
+            const char *createTableStatement /* the vtables create table
+                                                statement */
+            ) {
   // this will get overwritten if pVtab was successfully allocated. if pVtab
   // wasn't allocated, it means we have no memory
   int rc = SQLITE_NOMEM;
@@ -139,7 +134,7 @@ int xCreate(
   T_VTAB *pVtab = new T_VTAB;
 
   // if the virtual table structure was successfully allocated
-  if(pVtab) {
+  if (pVtab) {
     // overwrite the entire memory that was allocated with zeros
     memset(pVtab, 0, sizeof(T_VTAB));
 
@@ -148,14 +143,11 @@ int xCreate(
     // sqlite3_create_module_v2() call that registered the virtual table
     // module. This sets the pContent value of the virtual table struct to
     // whatever that value was
-    pVtab->pContent = (T_STRUCT*)pAux;
+    pVtab->pContent = (T_STRUCT *)pAux;
 
     // this interface is called to declare the format (the names and datatypes
     // of the columns) of the virtual tables they implement
-    rc = sqlite3_declare_vtab(
-      db,
-      createTableStatement
-    );
+    rc = sqlite3_declare_vtab(db, createTableStatement);
   }
   // cast your virtual table objet back to type sqlite3_vtab and assign it to
   // the address supplied by the function call
@@ -176,8 +168,8 @@ int xCreate(
 // explicitly by the application, the virtual table will be dropped implicitly
 // by the system when the database connection is closed.
 template <class T_STRUCT>
-int sqlite3_attach_vtable(
-  sqlite3 *db, const char *zName, const sqlite3_module *module) {
+int sqlite3_attach_vtable(sqlite3 *db, const char *zName,
+                          const sqlite3_module *module) {
   int rc = SQLITE_OK;
   T_STRUCT *p = new T_STRUCT;
 
@@ -189,15 +181,15 @@ int sqlite3_attach_vtable(
   rc = sqlite3_create_module(db, zName, module, p);
   if (rc == SQLITE_OK) {
     char *zSql;
-    zSql = sqlite3_mprintf("CREATE VIRTUAL TABLE temp.%Q USING %Q",
-            zName, zName);
+    zSql =
+        sqlite3_mprintf("CREATE VIRTUAL TABLE temp.%Q USING %Q", zName, zName);
     rc = sqlite3_exec(db, zSql, 0, 0, 0);
     sqlite3_free(zSql);
   }
 
   return rc;
 }
-
-}}
+}
+}
 
 #endif /* OSQUERY_TABLES_BASE_H */

@@ -21,11 +21,11 @@ namespace fs = boost::filesystem;
 ** to users.
 */
 struct sqlite3_filesystem {
-  int n;                          /* number of elements */
-  std::vector<std::string> path;  /* the full path of a filesystem object */
-  std::vector<bool> is_file;      /* if the filesystem object is a file */
-  std::vector<bool> is_dir;       /* if the filesystem object is a directory */
-  std::vector<bool> is_link;      /* if the filesystem object is a symlink */
+  int n;                         /* number of elements */
+  std::vector<std::string> path; /* the full path of a filesystem object */
+  std::vector<bool> is_file;     /* if the filesystem object is a file */
+  std::vector<bool> is_dir;      /* if the filesystem object is a directory */
+  std::vector<bool> is_link;     /* if the filesystem object is a symlink */
 };
 
 /*
@@ -66,9 +66,7 @@ struct filesystem_cursor {
 /*
 ** Free an sqlite3_filesystem object.
 */
-static void filesystemFree(sqlite3_filesystem *p) {
-  sqlite3_free(p);
-}
+static void filesystemFree(sqlite3_filesystem *p) { sqlite3_free(p); }
 
 /*
  * This method releases a connection to a virtual table, just like the
@@ -76,7 +74,7 @@ static void filesystemFree(sqlite3_filesystem *p) {
  * implementation. This method undoes the work of xCreate.
 */
 static int filesystemDestroy(sqlite3_vtab *p) {
-  filesystem_vtab *pVtab = (filesystem_vtab*)p;
+  filesystem_vtab *pVtab = (filesystem_vtab *)p;
   sqlite3_free(pVtab);
   return SQLITE_OK;
 }
@@ -85,13 +83,13 @@ static int filesystemDestroy(sqlite3_vtab *p) {
 ** Table constructor for the filesystem module.
 */
 static int filesystemCreate(
-  sqlite3 *db,              /* Database where module is created */
-  void *pAux,               /* clientdata for the module */
-  int argc,                 /* Number of arguments */
-  const char *const *argv,   /* Value for all arguments */
-  sqlite3_vtab **ppVtab,    /* Write the new virtual table object here */
-  char **pzErr              /* Put error message text here */
-) {
+    sqlite3 *db,             /* Database where module is created */
+    void *pAux,              /* clientdata for the module */
+    int argc,                /* Number of arguments */
+    const char *const *argv, /* Value for all arguments */
+    sqlite3_vtab **ppVtab,   /* Write the new virtual table object here */
+    char **pzErr             /* Put error message text here */
+    ) {
   // this will get overwritten if pVtab was successfully allocated. if pVtab
   // wasn't allocated, it means we have no memory
   int rc = SQLITE_NOMEM;
@@ -101,7 +99,7 @@ static int filesystemCreate(
   filesystem_vtab *pVtab = new filesystem_vtab;
 
   // if the virtual table structure was successfully allocated
-  if(pVtab) {
+  if (pVtab) {
     // overwrite the entire memory that was allocated with zeros
     memset(pVtab, 0, sizeof(filesystem_vtab));
 
@@ -110,18 +108,17 @@ static int filesystemCreate(
     // sqlite3_create_module_v2() call that registered the virtual table
     // module. This sets the pContent value of the virtual table struct to
     // whatever that value was
-    pVtab->pContent = (sqlite3_filesystem*)pAux;
+    pVtab->pContent = (sqlite3_filesystem *)pAux;
 
     // this interface is called to declare the format (the names and datatypes
     // of the columns) of the virtual tables they implement
-    const char *create_table_statement =
-      "CREATE TABLE fs("
-        "path VARCHAR, "
-        "filename VARCHAR, "
-        "is_file INTEGER, "
-        "is_dir INTEGER, "
-        "is_link INTEGER"
-      ")";
+    const char *create_table_statement = "CREATE TABLE fs("
+                                         "path VARCHAR, "
+                                         "filename VARCHAR, "
+                                         "is_file INTEGER, "
+                                         "is_dir INTEGER, "
+                                         "is_link INTEGER"
+                                         ")";
     rc = sqlite3_declare_vtab(db, create_table_statement);
   }
   // cast your virtual table objet back to type sqlite3_vtab and assign it to
@@ -145,11 +142,11 @@ static int filesystemOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
   filesystem_cursor *pCur;
 
   // allocate the correct amount of memory for your virtual table cursor
-  //pCur = sqlite3_malloc(sizeof(filesystem_cursor));
+  // pCur = sqlite3_malloc(sizeof(filesystem_cursor));
   pCur = new filesystem_cursor;
 
   // if the cursor was successfully allocated
-  if(pCur) {
+  if (pCur) {
     // overwrite the entire memory that was allocated with zeros
     memset(pCur, 0, sizeof(filesystem_cursor));
 
@@ -188,40 +185,36 @@ static int filesystemClose(sqlite3_vtab_cursor *cur) {
 /*
 ** Retrieve a column of data.
 */
-static int filesystemColumn(
-  sqlite3_vtab_cursor *cur,
-  sqlite3_context *ctx,
-  int col
-) {
-  filesystem_cursor *pCur = (filesystem_cursor*)cur;
-  filesystem_vtab *pVtab = (filesystem_vtab*)cur->pVtab;
+static int filesystemColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx,
+                            int col) {
+  filesystem_cursor *pCur = (filesystem_cursor *)cur;
+  filesystem_vtab *pVtab = (filesystem_vtab *)cur->pVtab;
 
   // return a specific column from a specific row, depending on the state of
   // the cursor
-  if(pCur->row >= 0 && pCur->row < pVtab->pContent->n) {
+  if (pCur->row >= 0 && pCur->row < pVtab->pContent->n) {
     switch (col) {
-      // path
-      case 0:
-        sqlite3_result_text(ctx, (pCur->path).c_str(), -1, nullptr);
-        break;
-      // filename
-      case 1:
-        sqlite3_result_text(
-          ctx, (pVtab->pContent->path[pCur->row]).c_str(), -1, nullptr
-        );
-        break;
-      // is_file
-      case 2:
-        sqlite3_result_int(ctx, (int)pVtab->pContent->is_file[pCur->row]);
-        break;
-      // is_dir
-      case 3:
-        sqlite3_result_int(ctx, (int)pVtab->pContent->is_dir[pCur->row]);
-        break;
-      // is_link
-      case 4:
-        sqlite3_result_int(ctx, (int)pVtab->pContent->is_link[pCur->row]);
-        break;
+    // path
+    case 0:
+      sqlite3_result_text(ctx, (pCur->path).c_str(), -1, nullptr);
+      break;
+    // filename
+    case 1:
+      sqlite3_result_text(ctx, (pVtab->pContent->path[pCur->row]).c_str(), -1,
+                          nullptr);
+      break;
+    // is_file
+    case 2:
+      sqlite3_result_int(ctx, (int)pVtab->pContent->is_file[pCur->row]);
+      break;
+    // is_dir
+    case 3:
+      sqlite3_result_int(ctx, (int)pVtab->pContent->is_dir[pCur->row]);
+      break;
+    // is_link
+    case 4:
+      sqlite3_result_int(ctx, (int)pVtab->pContent->is_link[pCur->row]);
+      break;
     }
   }
   return SQLITE_OK;
@@ -241,7 +234,7 @@ static int filesystemRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid) {
 static int filesystemEof(sqlite3_vtab_cursor *cur) {
   filesystem_cursor *pCur = (filesystem_cursor *)cur;
   filesystem_vtab *pVtab = (filesystem_vtab *)cur->pVtab;
-  return pCur->row>=pVtab->pContent->n;
+  return pCur->row >= pVtab->pContent->n;
 }
 
 /*
@@ -266,17 +259,13 @@ static int filesystemNext(sqlite3_vtab_cursor *cur) {
  * This method must return SQLITE_OK if successful, or an sqlite error code if
  * an error occurs.
 **/
-static int filesystemFilter(
-  sqlite3_vtab_cursor *pVtabCursor,
-  int idxNum,
-  const char *idxStr,
-  int argc,
-  sqlite3_value **argv
-) {
+static int filesystemFilter(sqlite3_vtab_cursor *pVtabCursor, int idxNum,
+                            const char *idxStr, int argc,
+                            sqlite3_value **argv) {
   // you need to operate on the sqlite3_vtab_cursor object as your own
   // virtual table's cursor type, so cast it back to x_cursor
   filesystem_cursor *pCur = (filesystem_cursor *)pVtabCursor;
-  filesystem_vtab *pVtab = (filesystem_vtab*)pVtabCursor->pVtab;
+  filesystem_vtab *pVtab = (filesystem_vtab *)pVtabCursor->pVtab;
 
   // reset the count value of your cursor's structure
   pCur->row = 0;
@@ -291,7 +280,7 @@ static int filesystemFilter(
   }
 
   // extract the RHS value for the path constraint into the cursor's path field
-  pCur->path = std::string((const char*)sqlite3_value_text(argv[0]));
+  pCur->path = std::string((const char *)sqlite3_value_text(argv[0]));
 
   // if the path doesn't exist, return early
   if (!fs::exists(pCur->path)) {
@@ -302,8 +291,7 @@ static int filesystemFilter(
   // iterate through the directory that is being queried upon and gether the
   // information needed to complete a table scan
   fs::directory_iterator end_iter;
-  for (fs::directory_iterator dir_itr(pCur->path);
-       dir_itr != end_iter;
+  for (fs::directory_iterator dir_itr(pCur->path); dir_itr != end_iter;
        ++dir_itr) {
     pVtab->pContent->path.push_back(dir_itr->path().string());
     pVtab->pContent->is_file.push_back(fs::is_regular_file(dir_itr->status()));
@@ -329,8 +317,9 @@ static int filesystemFilter(
  * method replies with information that the SQLite core can then use to conduct
  * an efficient search of the virtual table.
 **/
-static int filesystemBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
-  filesystem_vtab *pVtab = (filesystem_vtab*)tab;
+static int filesystemBestIndex(sqlite3_vtab *tab,
+                               sqlite3_index_info *pIdxInfo) {
+  filesystem_vtab *pVtab = (filesystem_vtab *)tab;
 
   if (pIdxInfo->nConstraint == 0) {
     // the filesystem table requires you to have a where clause to specify the
@@ -344,7 +333,7 @@ static int filesystemBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) 
     if (pIdxInfo->aConstraint[i].iColumn == 0 &&
         pIdxInfo->aConstraint[i].usable) {
       pIdxInfo->aConstraintUsage[i].argvIndex =
-        pIdxInfo->aConstraint[i].iColumn + 1;
+          pIdxInfo->aConstraint[i].iColumn + 1;
       goto finish;
     }
   }
@@ -365,26 +354,26 @@ fail:
 ** variables.
 */
 static sqlite3_module filesystemModule = {
-  0,                           /* iVersion */
-  filesystemCreate,            /* xCreate - create a new virtual table */
-  filesystemCreate,            /* xConnect - connect to an existing vtab */
-  filesystemBestIndex,         /* xBestIndex - find the best query index */
-  filesystemDestroy,           /* xDisconnect - disconnect a vtab */
-  filesystemDestroy,           /* xDestroy - destroy a vtab */
-  filesystemOpen,              /* xOpen - open a cursor */
-  filesystemClose,             /* xClose - close a cursor */
-  filesystemFilter,            /* xFilter - configure scan constraints */
-  filesystemNext,              /* xNext - advance a cursor */
-  filesystemEof,               /* xEof */
-  filesystemColumn,            /* xColumn - read data */
-  filesystemRowid,             /* xRowid - read data */
-  0,                           /* xUpdate */
-  0,                           /* xBegin */
-  0,                           /* xSync */
-  0,                           /* xCommit */
-  0,                           /* xRollback */
-  0,                           /* xFindMethod */
-  0,                           /* xRename */
+  0,                   /* iVersion */
+  filesystemCreate,    /* xCreate - create a new virtual table */
+  filesystemCreate,    /* xConnect - connect to an existing vtab */
+  filesystemBestIndex, /* xBestIndex - find the best query index */
+  filesystemDestroy,   /* xDisconnect - disconnect a vtab */
+  filesystemDestroy,   /* xDestroy - destroy a vtab */
+  filesystemOpen,      /* xOpen - open a cursor */
+  filesystemClose,     /* xClose - close a cursor */
+  filesystemFilter,    /* xFilter - configure scan constraints */
+  filesystemNext,      /* xNext - advance a cursor */
+  filesystemEof,       /* xEof */
+  filesystemColumn,    /* xColumn - read data */
+  filesystemRowid,     /* xRowid - read data */
+  0,                   /* xUpdate */
+  0,                   /* xBegin */
+  0,                   /* xSync */
+  0,                   /* xCommit */
+  0,                   /* xRollback */
+  0,                   /* xFindMethod */
+  0,                   /* xRename */
 };
 
 /*
@@ -398,27 +387,24 @@ static sqlite3_module filesystemModule = {
 ** explicitly by the application, the virtual table will be dropped implicitly
 ** by the system when the database connection is closed.
 */
-int sqlite3_filesystem_create(
-  sqlite3 *db,
-  const char *zName,
-  sqlite3_filesystem **ppReturn
-) {
+int sqlite3_filesystem_create(sqlite3 *db, const char *zName,
+                              sqlite3_filesystem **ppReturn) {
   int rc = SQLITE_OK;
   sqlite3_filesystem *p;
 
   *ppReturn = p = new sqlite3_filesystem;
 
-  if(p==0) {
+  if (p == 0) {
     return SQLITE_NOMEM;
   }
   memset(p, 0, sizeof(*p));
 
   rc = sqlite3_create_module_v2(db, zName, &filesystemModule, p,
-                                (void(*)(void*))filesystemFree);
-  if(rc==SQLITE_OK) {
+                                (void (*)(void *))filesystemFree);
+  if (rc == SQLITE_OK) {
     char *zSql;
-    zSql = sqlite3_mprintf("CREATE VIRTUAL TABLE temp.%Q USING %Q",
-            zName, zName);
+    zSql =
+        sqlite3_mprintf("CREATE VIRTUAL TABLE temp.%Q USING %Q", zName, zName);
     rc = sqlite3_exec(db, zSql, 0, 0, 0);
     sqlite3_free(zSql);
   }

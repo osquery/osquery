@@ -22,15 +22,13 @@ using osquery::Status;
 
 namespace pt = boost::property_tree;
 
-namespace osquery { namespace config {
+namespace osquery {
+namespace config {
 
 const std::string kDefaultConfigRetriever = "filesystem";
 
-DEFINE_string(
-  config_retriever,
-  kDefaultConfigRetriever,
-  "The config mechanism to retrieve config content via."
-);
+DEFINE_string(config_retriever, kDefaultConfigRetriever,
+              "The config mechanism to retrieve config content via.");
 
 boost::shared_mutex rw_lock;
 
@@ -49,7 +47,7 @@ Config::Config() {
   cfg_ = conf;
 }
 
-Status Config::genConfig(OsqueryConfig& conf) {
+Status Config::genConfig(OsqueryConfig &conf) {
   std::stringstream json;
   pt::ptree tree;
 
@@ -59,7 +57,7 @@ Status Config::genConfig(OsqueryConfig& conf) {
     return Status(1, "Config retriever not found");
   }
   auto config_data =
-    REGISTERED_CONFIG_PLUGINS.at(FLAGS_config_retriever)->genConfig();
+      REGISTERED_CONFIG_PLUGINS.at(FLAGS_config_retriever)->genConfig();
   if (!config_data.first.ok()) {
     return config_data.first;
   }
@@ -75,7 +73,7 @@ Status Config::genConfig(OsqueryConfig& conf) {
       conf.scheduledQueries.push_back(q);
     }
   }
-  catch(const std::exception& e) {
+  catch (const std::exception &e) {
     LOG(ERROR) << "Error parsing config JSON: " << e.what();
     return Status(1, e.what());
   }
@@ -87,5 +85,5 @@ scheduledQueries_t Config::getScheduledQueries() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return cfg_.scheduledQueries;
 }
-
-}}
+}
+}

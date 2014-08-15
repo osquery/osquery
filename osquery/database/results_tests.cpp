@@ -73,9 +73,7 @@ TEST_F(ResultsTests, test_serialize_historical_query_results) {
   auto s = serializeHistoricalQueryResults(results.second, tree);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(
-    results.first, tree
-  );
+  EXPECT_EQ(results.first, tree);
 }
 
 TEST_F(ResultsTests, test_serialize_historical_query_results_json) {
@@ -117,9 +115,7 @@ TEST_F(ResultsTests, test_serialize_scheduled_query_log_item) {
   auto s = serializeScheduledQueryLogItem(results.second, tree);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(
-    results.first, tree
-  );
+  EXPECT_EQ(results.first, tree);
 }
 
 TEST_F(ResultsTests, test_serialize_scheduled_query_log_item_json) {
@@ -131,7 +127,7 @@ TEST_F(ResultsTests, test_serialize_scheduled_query_log_item_json) {
   EXPECT_EQ(results.first, json);
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   testing::InitGoogleTest(&argc, argv);
   google::InitGoogleLogging(argv[0]);
   return RUN_ALL_TESTS();

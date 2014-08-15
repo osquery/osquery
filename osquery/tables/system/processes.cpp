@@ -20,7 +20,8 @@
 using namespace osquery::core;
 using namespace osquery::db;
 
-namespace osquery { namespace tables {
+namespace osquery {
+namespace tables {
 
 QueryData genProcesses() {
   QueryData results;
@@ -108,25 +109,25 @@ QueryData genProcesses() {
 
     // systems usage and time information
     struct rusage_info_v2 rusage_info_data;
-    int rusage_status = proc_pid_rusage(
-      pids[i], RUSAGE_INFO_V2, (rusage_info_t*)&rusage_info_data);
+    int rusage_status = proc_pid_rusage(pids[i], RUSAGE_INFO_V2,
+                                        (rusage_info_t *)&rusage_info_data);
     // proc_pid_rusage returns -1 if it was unable to gather information
     if (rusage_status == 0) {
       // size information
-      r["wired_size"] = boost::lexical_cast<std::string>(
-        rusage_info_data.ri_wired_size);
-      r["resident_size"] = boost::lexical_cast<std::string>(
-        rusage_info_data.ri_resident_size);
-      r["phys_footprint"] = boost::lexical_cast<std::string>(
-        rusage_info_data.ri_phys_footprint);
+      r["wired_size"] =
+          boost::lexical_cast<std::string>(rusage_info_data.ri_wired_size);
+      r["resident_size"] =
+          boost::lexical_cast<std::string>(rusage_info_data.ri_resident_size);
+      r["phys_footprint"] =
+          boost::lexical_cast<std::string>(rusage_info_data.ri_phys_footprint);
 
       // time information
-      r["user_time"] = boost::lexical_cast<std::string>(
-        rusage_info_data.ri_user_time);
-      r["system_time"] = boost::lexical_cast<std::string>(
-        rusage_info_data.ri_system_time);
+      r["user_time"] =
+          boost::lexical_cast<std::string>(rusage_info_data.ri_user_time);
+      r["system_time"] =
+          boost::lexical_cast<std::string>(rusage_info_data.ri_system_time);
       r["start_time"] = boost::lexical_cast<std::string>(
-        rusage_info_data.ri_proc_start_abstime);
+          rusage_info_data.ri_proc_start_abstime);
     }
 
     // save the results
@@ -135,5 +136,5 @@ QueryData genProcesses() {
 
   return results;
 }
-
-}}
+}
+}

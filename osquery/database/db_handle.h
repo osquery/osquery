@@ -12,7 +12,8 @@
 
 #include "osquery/status.h"
 
-namespace osquery { namespace db {
+namespace osquery {
+namespace db {
 
 /////////////////////////////////////////////////////////////////////////////
 // Constants
@@ -52,7 +53,7 @@ public:
   osquery::Status getStatus();
 
   // getDB() is a helper that's used to get access to db_
-  rocksdb::DB* getDB();
+  rocksdb::DB *getDB();
 
   /////////////////////////////////////////////////////////////////////////////
   // Locking methods
@@ -68,30 +69,19 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   // Get a "key" from "domain" and store it's content in "value"
-  osquery::Status Get(
-    const std::string& domain,
-    const std::string& key,
-    std::string& value
-  );
+  osquery::Status Get(const std::string &domain, const std::string &key,
+                      std::string &value);
 
   // Set "key" to "value" in "domain"
-  osquery::Status Put(
-    const std::string& domain,
-    const std::string& key,
-    const std::string& value
-  );
+  osquery::Status Put(const std::string &domain, const std::string &key,
+                      const std::string &value);
 
   // Delete "key" and it's corresponding value from "domain"
-  osquery::Status Delete(
-    const std::string& domain,
-    const std::string& key
-  );
+  osquery::Status Delete(const std::string &domain, const std::string &key);
 
   // List all keys in "domain" and store the results in "results"
-  osquery::Status Scan(
-    const std::string& domain,
-    std::vector<std::string>& results
-  );
+  osquery::Status Scan(const std::string &domain,
+                       std::vector<std::string> &results);
 
 private:
   /////////////////////////////////////////////////////////////////////////////
@@ -108,10 +98,10 @@ private:
 
   // the private getInstance methods exist to expose a bit more of RocksDB's
   // functionality to DBHandle for use during unit tests
-  static std::shared_ptr<DBHandle> getInstanceAtPath(const std::string& path);
+  static std::shared_ptr<DBHandle> getInstanceAtPath(const std::string &path);
   static std::shared_ptr<DBHandle> getInstanceInMemory();
-  static std::shared_ptr<DBHandle> getInstance(
-      const std::string& path, bool in_memory);
+  static std::shared_ptr<DBHandle> getInstance(const std::string &path,
+                                               bool in_memory);
 
   /////////////////////////////////////////////////////////////////////////////
   // private getters and setters
@@ -119,7 +109,7 @@ private:
 
   // getHandleForColumnFamily is a private helper around accessing the column
   // family handle for a specific column family, based on it's name
-  rocksdb::ColumnFamilyHandle* getHandleForColumnFamily(const std::string& cf);
+  rocksdb::ColumnFamilyHandle *getHandleForColumnFamily(const std::string &cf);
 
 private:
   /////////////////////////////////////////////////////////////////////////////
@@ -127,7 +117,7 @@ private:
   /////////////////////////////////////////////////////////////////////////////
 
   // db_ is the database handle
-  rocksdb::DB* db_;
+  rocksdb::DB *db_;
 
   // status_ is the status code that is generated during the attempt to connect
   // to RocksDB
@@ -138,11 +128,12 @@ private:
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families_;
 
   // handles is a vector of pointers to column family handles
-  std::vector<rocksdb::ColumnFamilyHandle*> handles_;
+  std::vector<rocksdb::ColumnFamilyHandle *> handles_;
 
   // options_ contains the RocksDB database connection options that are used to
   // connect to RocksDB
   rocksdb::Options options_;
+
 private:
   /////////////////////////////////////////////////////////////////////////////
   // Unit tests which can access private members
@@ -168,7 +159,7 @@ private:
   FRIEND_TEST(QueryTests, test_get_historical_query_results);
   FRIEND_TEST(QueryTests, test_query_name_not_found_in_db);
 };
-
-}}
+}
+}
 
 #endif /* OSQUERY_DATABASE_DB_HANDLE_H */

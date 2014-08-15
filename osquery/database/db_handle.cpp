@@ -14,7 +14,8 @@
 
 using osquery::Status;
 
-namespace osquery { namespace db {
+namespace osquery {
+namespace db {
 
 /////////////////////////////////////////////////////////////////////////////
 // Constants
@@ -25,10 +26,7 @@ const std::string kDBPath = "/tmp/rocksdb-osquery";
 const std::string kConfigurations = "configurations";
 const std::string kQueries = "queries";
 
-const std::vector<std::string> kDomains = {
-  kConfigurations,
-  kQueries,
-};
+const std::vector<std::string> kDomains = { kConfigurations, kQueries, };
 
 /////////////////////////////////////////////////////////////////////////////
 // Locks
@@ -51,29 +49,16 @@ DBHandle::DBHandle(std::string path, bool in_memory) {
     throw std::domain_error("Requires RocksDB 3.3 https://fburl.com/27350299");
   }
 
-  column_families_.push_back(
-    rocksdb::ColumnFamilyDescriptor(
-      rocksdb::kDefaultColumnFamilyName,
-      rocksdb::ColumnFamilyOptions()
-    )
-  );
+  column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
+      rocksdb::kDefaultColumnFamilyName, rocksdb::ColumnFamilyOptions()));
 
   for (auto cf_name : kDomains) {
-    column_families_.push_back(
-      rocksdb::ColumnFamilyDescriptor(
-        cf_name,
-        rocksdb::ColumnFamilyOptions()
-      )
-    );
+    column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
+        cf_name, rocksdb::ColumnFamilyOptions()));
   }
 
-  status_ = rocksdb::DB::Open(
-    options_,
-    path,
-    column_families_,
-    &handles_,
-    &db_
-  );
+  status_ =
+      rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
 }
 
 DBHandle::~DBHandle() {
@@ -103,15 +88,14 @@ std::shared_ptr<DBHandle> DBHandle::getInstanceInMemory() {
   return getInstance("", true);
 }
 
-std::shared_ptr<DBHandle> DBHandle::getInstanceAtPath(
-  const std::string& path) {
+std::shared_ptr<DBHandle> DBHandle::getInstanceAtPath(const std::string &path) {
   return getInstance(path, false);
 }
 
-std::shared_ptr<DBHandle> DBHandle::getInstance(
-  const std::string& path, bool in_memory) {
+std::shared_ptr<DBHandle> DBHandle::getInstance(const std::string &path,
+                                                bool in_memory) {
   static std::shared_ptr<DBHandle> db_handle =
-    std::shared_ptr<DBHandle>(new DBHandle(path, in_memory));
+      std::shared_ptr<DBHandle>(new DBHandle(path, in_memory));
   return db_handle;
 }
 
@@ -123,12 +107,10 @@ osquery::Status DBHandle::getStatus() {
   return Status(status_.code(), status_.ToString());
 }
 
-rocksdb::DB* DBHandle::getDB() {
-  return db_;
-}
+rocksdb::DB *DBHandle::getDB() { return db_; }
 
-rocksdb::ColumnFamilyHandle* DBHandle::getHandleForColumnFamily(
-  const std::string& cf) {
+rocksdb::ColumnFamilyHandle *
+DBHandle::getHandleForColumnFamily(const std::string &cf) {
   for (int i = 0; i < kDomains.size(); i++) {
     if (kDomains[i] == cf) {
       return handles_[i];
@@ -141,68 +123,44 @@ rocksdb::ColumnFamilyHandle* DBHandle::getHandleForColumnFamily(
 // Locking methods
 /////////////////////////////////////////////////////////////////////////////
 
+void DBHandle::startTransaction() { transaction_lock_.lock(); }
 
-void DBHandle::startTransaction() {
-  transaction_lock_.lock();
-}
-
-void DBHandle::endTransaction() {
-  transaction_lock_.unlock();
-}
+void DBHandle::endTransaction() { transaction_lock_.unlock(); }
 
 /////////////////////////////////////////////////////////////////////////////
 // Data manipulation methods
 /////////////////////////////////////////////////////////////////////////////
 
-osquery::Status DBHandle::Get(
-  const std::string& domain,
-  const std::string& key,
-  std::string& value){
-  auto s = getDB()->Get(
-    rocksdb::ReadOptions(),
-    getHandleForColumnFamily(domain),
-    key,
-    &value
-  );
+osquery::Status DBHandle::Get(const std::string &domain, const std::string &key,
+                              std::string &value) {
+  auto s = getDB()->Get(rocksdb::ReadOptions(),
+                        getHandleForColumnFamily(domain), key, &value);
   return Status(s.code(), s.ToString());
 }
 
-osquery::Status DBHandle::Put(
-  const std::string& domain,
-  const std::string& key,
-  const std::string& value) {
-  auto s = getDB()->Put(
-    rocksdb::WriteOptions(),
-    getHandleForColumnFamily(domain),
-    key,
-    value
-  );
+osquery::Status DBHandle::Put(const std::string &domain, const std::string &key,
+                              const std::string &value) {
+  auto s = getDB()->Put(rocksdb::WriteOptions(),
+                        getHandleForColumnFamily(domain), key, value);
   return Status(s.code(), s.ToString());
 }
 
-osquery::Status DBHandle::Delete(
-  const std::string& domain,
-  const std::string& key) {
-  auto s = getDB()->Delete(
-    rocksdb::WriteOptions(),
-    getHandleForColumnFamily(domain),
-    key
-  );
+osquery::Status DBHandle::Delete(const std::string &domain,
+                                 const std::string &key) {
+  auto s = getDB()->Delete(rocksdb::WriteOptions(),
+                           getHandleForColumnFamily(domain), key);
   return Status(s.code(), s.ToString());
 }
 
-osquery::Status DBHandle::Scan(
-  const std::string& domain,
-  std::vector<std::string>& results) {
-  auto it = getDB()->NewIterator(
-    rocksdb::ReadOptions(),
-    getHandleForColumnFamily(domain)
-  );
+osquery::Status DBHandle::Scan(const std::string &domain,
+                               std::vector<std::string> &results) {
+  auto it = getDB()->NewIterator(rocksdb::ReadOptions(),
+                                 getHandleForColumnFamily(domain));
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     results.push_back(it->key().ToString());
   }
   delete it;
   return Status(0, "OK");
 }
-
-}}
+}
+}

@@ -14,11 +14,11 @@ namespace osquery {
 
 template <class... FuncArgs>
 class RegistryTemplate : private boost::noncopyable {
- public:
+public:
   typedef std::function<void(FuncArgs...)> Func;
   static const int kDefaultPriority = 100000;
 
-  RegistryTemplate() : alreadyRan_(false) { }
+  RegistryTemplate() : alreadyRan_(false) {}
 
   /**
    * Registers a function to be invoked when 'run()' is called; fails
@@ -48,8 +48,8 @@ class RegistryTemplate : private boost::noncopyable {
       return false;
     }
 
-    for (const auto& kv : funcMap_) {
-      for (const auto& func : kv.second) {
+    for (const auto &kv : funcMap_) {
+      for (const auto &func : kv.second) {
         if (func) {
           func(args...);
         }
@@ -60,13 +60,13 @@ class RegistryTemplate : private boost::noncopyable {
     return true;
   }
 
- private:
+private:
   std::mutex mutex_;
   bool alreadyRan_;
 
-  std::map<int, std::vector<Func>> funcMap_;
+  std::map<int, std::vector<Func> > funcMap_;
 };
 
-}  // namespace osquery
+} // namespace osquery
 
 #endif /* OSQUERY_REGISTRY_REGISTRY_TEMPLATE_H */

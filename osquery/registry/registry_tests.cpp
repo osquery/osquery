@@ -10,31 +10,25 @@
 
 class TestPlugin {
 public:
-  virtual std::string getName() {
-    return "test_base";
-  }
+  virtual std::string getName() { return "test_base"; }
   virtual ~TestPlugin() {}
+
 protected:
   TestPlugin() {};
 };
 
-DECLARE_REGISTRY(
-  TestPlugins,
-  std::string,
-  std::shared_ptr<TestPlugin>)
+DECLARE_REGISTRY(TestPlugins, std::string, std::shared_ptr<TestPlugin>)
 
 #define REGISTERED_TEST_PLUGINS REGISTRY(TestPlugins)
 
-#define REGISTER_TEST_PLUGIN(name, decorator) \
+#define REGISTER_TEST_PLUGIN(name, decorator)                                  \
   REGISTER(TestPlugins, name, decorator)
 
 class TestPluginInstance : public TestPlugin {
 public:
   TestPluginInstance() {};
 
-  std::string getName() {
-    return std::string("test_1");
-  }
+  std::string getName() { return std::string("test_1"); }
 
   virtual ~TestPluginInstance() {}
 };
@@ -43,9 +37,7 @@ REGISTER_TEST_PLUGIN("test_1", std::make_shared<TestPluginInstance>());
 
 class RegistryTests : public testing::Test {
 public:
-  RegistryTests() {
-    osquery::InitRegistry::get().run();
-  }
+  RegistryTests() { osquery::InitRegistry::get().run(); }
 };
 
 TEST_F(RegistryTests, test_plugin_method) {
@@ -57,7 +49,7 @@ TEST_F(RegistryTests, test_plugin_map) {
   EXPECT_EQ(REGISTERED_TEST_PLUGINS.size(), 1);
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
