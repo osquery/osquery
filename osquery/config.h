@@ -12,7 +12,8 @@
 
 #include "osquery/status.h"
 
-namespace osquery { namespace config {
+namespace osquery {
+namespace config {
 
 // OsqueryScheduledQuery represents the relevant parameters of a scheduled query
 struct OsqueryScheduledQuery {
@@ -27,8 +28,7 @@ struct OsqueryScheduledQuery {
 
   // equals operator
   bool operator==(const OsqueryScheduledQuery& comp) const {
-    return (comp.name == name) &&
-           (comp.query == query) &&
+    return (comp.name == name) && (comp.query == query) &&
            (comp.interval == interval);
   }
 
@@ -59,14 +59,15 @@ extern const std::string kDefaultConfigRetriever;
 
 // Config is a singleton that exposes accessors to osquery's configuration data
 class Config {
-public:
+ public:
   // getInstance returns a singleton instance of Config.
   static std::shared_ptr<Config> getInstance();
 
   // getScheduledQueries returns a vector of OsqueryScheduledQuery's which
   // represent the queries that are to be executed
   scheduledQueries_t getScheduledQueries();
-private:
+
+ private:
   // since instances of Config should only be created via getInstance(),
   // Config's constructor is private
   Config();
@@ -74,12 +75,13 @@ private:
   // genConfig() is a symbol that is satisfied by the config plugin that gets
   // compiled with osquery
   static osquery::Status genConfig(OsqueryConfig& conf);
-private:
+
+ private:
   // cfg_ is the private member that stores the raw osquery config data in a
   // native format
   OsqueryConfig cfg_;
 };
-
-}}
+}
+}
 
 #endif /* OSQUERY_CONFIG_H */

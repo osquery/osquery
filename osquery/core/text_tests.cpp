@@ -7,7 +7,8 @@
 
 #include "osquery/core/test_util.h"
 
-namespace osquery { namespace core {
+namespace osquery {
+namespace core {
 
 class TextTests : public testing::Test {};
 
@@ -16,8 +17,8 @@ TEST_F(TextTests, test_split) {
     EXPECT_EQ(split(i.test_string), i.test_vector);
   }
 }
-
-}}
+}
+}
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);

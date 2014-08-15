@@ -9,7 +9,8 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
-namespace osquery { namespace fs {
+namespace osquery {
+namespace fs {
 
 class FilesystemTests : public testing::Test {};
 
@@ -46,13 +47,11 @@ TEST_F(FilesystemTests, test_list_files_in_directorty) {
   auto s = listFilesInDirectory("/etc", results);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_NE(
-    std::find(results.begin(), results.end(), "/etc/hosts"),
-    results.end()
-  );
+  EXPECT_NE(std::find(results.begin(), results.end(), "/etc/hosts"),
+            results.end());
 }
-
-}}
+}
+}
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);

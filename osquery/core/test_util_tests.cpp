@@ -22,7 +22,7 @@ TEST_F(TestUtilTests, test_get_test_db_result_stream) {
   auto db = createTestDB();
   auto results = getTestDBResultStream();
   for (auto r : results) {
-    char *err_char = nullptr;
+    char* err_char = nullptr;
     sqlite3_exec(db, (r.first).c_str(), nullptr, nullptr, &err_char);
     EXPECT_TRUE(err_char == nullptr);
     if (err_char != nullptr) {

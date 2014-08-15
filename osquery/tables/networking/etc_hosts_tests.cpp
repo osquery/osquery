@@ -8,20 +8,19 @@
 
 using namespace osquery::core;
 
-namespace osquery { namespace tables {
+namespace osquery {
+namespace tables {
 
 osquery::db::QueryData parseEtcHostsContent(const std::string& content);
 
 class EtcHostsTests : public testing::Test {};
 
 TEST_F(EtcHostsTests, test_parse_etc_hosts_content) {
-  EXPECT_EQ(
-    parseEtcHostsContent(getEtcHostsContent()),
-    getEtcHostsExpectedResults()
-  );
+  EXPECT_EQ(parseEtcHostsContent(getEtcHostsContent()),
+            getEtcHostsExpectedResults());
 }
-
-}}
+}
+}
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);

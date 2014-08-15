@@ -5,5 +5,4 @@
 namespace osquery {
 
 const std::string kVersion = "0.1.0";
-
 }

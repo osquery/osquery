@@ -35,6 +35,10 @@ distclean:
 	rm -rf build
 	rm -rf osquery/tables/generated
 
+format:
+	clang-format -i osquery/**/*.h
+	clang-format -i osquery/**/*.cpp
+
 runtests: build
 	find build -name "*_tests" -type f -exec '{}' \;
 

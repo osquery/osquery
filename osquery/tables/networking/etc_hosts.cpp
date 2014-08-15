@@ -16,7 +16,8 @@ using namespace osquery::core;
 using namespace osquery::db;
 using namespace osquery::fs;
 
-namespace osquery { namespace tables {
+namespace osquery {
+namespace tables {
 
 QueryData parseEtcHostsContent(const std::string& content) {
   QueryData results;
@@ -51,5 +52,5 @@ QueryData genEtcHosts() {
     return {};
   }
 }
-
-}}
+}
+}

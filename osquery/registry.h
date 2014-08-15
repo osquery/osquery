@@ -37,29 +37,29 @@ namespace osquery {
  * REGISTERED_MATH_FUNCS as a map, which will be populated after
  * osquery::InitRegistry::get().run() has been called.
  */
-template<class Key, class Value>
+template <class Key, class Value>
 class Registry : public std::unordered_map<Key, Value> {
  public:
-  void registerValue(const Key& key, const Value& value,
+  void registerValue(const Key& key,
+                     const Value& value,
                      const char* displayName = "registry") {
     if (this->insert(std::make_pair(key, value)).second) {
-      VLOG(1)
-        << displayName << "[" << key << "]"
-        << " registered";
+      VLOG(1) << displayName << "[" << key << "]"
+              << " registered";
     } else {
-      LOG(ERROR)
-        << displayName << "[" << key << "]"
-        << " already registered";
+      LOG(ERROR) << displayName << "[" << key << "]"
+                 << " already registered";
     }
   }
 };
-
 }
 
-#define DECLARE_REGISTRY(registryName, KeyType, ObjectType)       \
-  namespace osquery { namespace registries {                      \
-    class registryName : public Registry<KeyType, ObjectType> {}; \
-  }} //osquery::registries
+#define DECLARE_REGISTRY(registryName, KeyType, ObjectType)     \
+  namespace osquery {                                           \
+  namespace registries {                                        \
+  class registryName : public Registry<KeyType, ObjectType> {}; \
+  }                                                             \
+  } // osquery::registries
 
 #define REGISTRY(registryName) \
   (osquery::Singleton<osquery::registries::registryName>::get())
@@ -70,12 +70,11 @@ class Registry : public std::unordered_map<Key, Value> {
 #define UNIQUE_VAR(_name_) UNIQUE_VAR_LINENAME(_name_, __LINE__)
 #endif
 
-#define REGISTER(registryName, key, value)                                   \
-  namespace {  /* require global scope, don't pollute static namespace */    \
-  static osquery::RegisterInitFunc                                         \
-    UNIQUE_VAR(registryName) ([]{                                            \
-        REGISTRY(registryName).registerValue((key), (value), #registryName); \
-      });                                                                    \
+#define REGISTER(registryName, key, value)                               \
+  namespace {/* require global scope, don't pollute static namespace */  \
+  static osquery::RegisterInitFunc UNIQUE_VAR(registryName)([] {         \
+    REGISTRY(registryName).registerValue((key), (value), #registryName); \
+  });                                                                    \
   }
 
 #endif /* OSQUERY_REGISTRY_H */

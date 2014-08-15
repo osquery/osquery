@@ -4,7 +4,8 @@
 
 using namespace osquery::db;
 
-namespace osquery { namespace tables {
+namespace osquery {
+namespace tables {
 
 QueryData genExample() {
 
@@ -20,5 +21,5 @@ QueryData genExample() {
 
   return {row1, row2};
 }
-
-}}
+}
+}

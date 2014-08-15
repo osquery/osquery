@@ -9,19 +9,15 @@
 #include <gtest/gtest.h>
 
 class TestPlugin {
-public:
-  virtual std::string getName() {
-    return "test_base";
-  }
+ public:
+  virtual std::string getName() { return "test_base"; }
   virtual ~TestPlugin() {}
-protected:
+
+ protected:
   TestPlugin() {};
 };
 
-DECLARE_REGISTRY(
-  TestPlugins,
-  std::string,
-  std::shared_ptr<TestPlugin>)
+DECLARE_REGISTRY(TestPlugins, std::string, std::shared_ptr<TestPlugin>)
 
 #define REGISTERED_TEST_PLUGINS REGISTRY(TestPlugins)
 
@@ -29,12 +25,10 @@ DECLARE_REGISTRY(
   REGISTER(TestPlugins, name, decorator)
 
 class TestPluginInstance : public TestPlugin {
-public:
+ public:
   TestPluginInstance() {};
 
-  std::string getName() {
-    return std::string("test_1");
-  }
+  std::string getName() { return std::string("test_1"); }
 
   virtual ~TestPluginInstance() {}
 };
@@ -42,10 +36,8 @@ public:
 REGISTER_TEST_PLUGIN("test_1", std::make_shared<TestPluginInstance>());
 
 class RegistryTests : public testing::Test {
-public:
-  RegistryTests() {
-    osquery::InitRegistry::get().run();
-  }
+ public:
+  RegistryTests() { osquery::InitRegistry::get().run(); }
 };
 
 TEST_F(RegistryTests, test_plugin_method) {

@@ -8,9 +8,7 @@ using namespace osquery::scheduler;
 
 class SchedulerTests : public testing::Test {};
 
-TEST_F(SchedulerTests, test) {
-  EXPECT_EQ(true, true);
-}
+TEST_F(SchedulerTests, test) { EXPECT_EQ(true, true); }
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);

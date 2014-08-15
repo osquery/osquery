@@ -15,21 +15,21 @@
 using namespace osquery::db;
 namespace pt = boost::property_tree;
 
-namespace osquery { namespace core {
+namespace osquery {
+namespace core {
 
 const std::string kTestQuery = "SELECT * FROM test_table";
 
 sqlite3* createTestDB() {
   sqlite3* db = createDB();
-  char *err = nullptr;
+  char* err = nullptr;
   std::vector<std::string> queries = {
-    "CREATE TABLE test_table ("
+      "CREATE TABLE test_table ("
       "username varchar(30) primary key, "
       "age int"
-     ")",
-    "INSERT INTO test_table VALUES (\"mike\", 23)",
-    "INSERT INTO test_table VALUES (\"matt\", 24)"
-  };
+      ")",
+      "INSERT INTO test_table VALUES (\"mike\", 23)",
+      "INSERT INTO test_table VALUES (\"matt\", 24)"};
   for (auto q : queries) {
     sqlite3_exec(db, q.c_str(), nullptr, nullptr, &err);
     if (err != nullptr) {
@@ -58,7 +58,7 @@ std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
   std::vector<std::pair<std::string, QueryData>> results;
 
   std::string q2 =
-    "INSERT INTO test_table (username, age) VALUES (\"joe\", 25)";
+      "INSERT INTO test_table (username, age) VALUES (\"joe\", 25)";
   QueryData d2;
   Row row2_1;
   row2_1["username"] = "mike";
@@ -91,7 +91,7 @@ std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
   results.push_back(std::make_pair(q3, d3));
 
   std::string q4 =
-    "DELETE FROM test_table WHERE username = \"matt\" AND age = 27";
+      "DELETE FROM test_table WHERE username = \"matt\" AND age = 27";
   QueryData d4;
   Row row4_1;
   row4_1["username"] = "mike";
@@ -133,8 +133,7 @@ std::pair<boost::property_tree::ptree, QueryData> getSerializedQueryData() {
   return std::make_pair(arr, q);
 }
 
-std::pair<boost::property_tree::ptree, DiffResults>
-getSerializedDiffResults() {
+std::pair<boost::property_tree::ptree, DiffResults> getSerializedDiffResults() {
   auto qd = getSerializedQueryData();
   DiffResults diff_results;
   diff_results.added = qd.second;
@@ -162,7 +161,7 @@ getSerializedHistoricalQueryResults() {
   auto qd = getSerializedQueryData();
   auto dr = getSerializedDiffResults();
   HistoricalQueryResults r;
-  r.executions = std::deque<int>{2,1};
+  r.executions = std::deque<int>{2, 1};
   r.mostRecentResults.first = 2;
   r.mostRecentResults.second = qd.second;
   r.pastResults[1] = dr.second;
@@ -478,6 +477,5 @@ pt::ptree getALFTree() {
   fs::parsePlistContent(content, tree);
   return tree;
 }
-
-
-}}
+}
+}

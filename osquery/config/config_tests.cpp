@@ -12,13 +12,12 @@
 namespace core = osquery::core;
 using osquery::Status;
 
-namespace osquery { namespace config {
+namespace osquery {
+namespace config {
 
 class ConfigTests : public testing::Test {
-public:
-  ConfigTests() {
-    osquery::InitRegistry::get().run();
-  }
+ public:
+  ConfigTests() { osquery::InitRegistry::get().run(); }
 };
 
 TEST_F(ConfigTests, test_queries_execute) {
@@ -31,7 +30,7 @@ TEST_F(ConfigTests, test_queries_execute) {
 }
 
 class TestConfigPlugin : public ConfigPlugin {
-public:
+ public:
   TestConfigPlugin() {}
 
   std::pair<Status, std::string> genConfig() {
@@ -41,10 +40,8 @@ public:
   virtual ~TestConfigPlugin() {}
 };
 
-REGISTER_CONFIG_PLUGIN(
-  "test",
-  std::make_shared<osquery::config::TestConfigPlugin>()
-);
+REGISTER_CONFIG_PLUGIN("test",
+                       std::make_shared<osquery::config::TestConfigPlugin>());
 
 TEST_F(ConfigTests, test_plugin) {
   auto p = REGISTERED_CONFIG_PLUGINS.at("test")->genConfig();
@@ -52,8 +49,8 @@ TEST_F(ConfigTests, test_plugin) {
   EXPECT_EQ(p.first.toString(), "OK");
   EXPECT_EQ(p.second, "foobar");
 }
-
-}}
+}
+}
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);

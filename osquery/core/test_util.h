@@ -15,7 +15,8 @@
 #include "osquery/core.h"
 #include "osquery/database.h"
 
-namespace osquery { namespace core {
+namespace osquery {
+namespace core {
 
 // kTestQuery is a test query that can be executed against the database
 // returned from createTestDB() to result in the dataset returned from
@@ -57,8 +58,7 @@ getSerializedQueryData();
 std::pair<boost::property_tree::ptree, osquery::db::DiffResults>
 getSerializedDiffResults();
 
-std::pair<std::string, osquery::db::DiffResults>
-getSerializedDiffResultsJSON();
+std::pair<std::string, osquery::db::DiffResults> getSerializedDiffResultsJSON();
 
 // getSerializedHistoricalQueryResults() return an std::pair where pair->first
 // is a string which should serialize to pair->second. Obviously, pair->second
@@ -102,7 +102,7 @@ std::string getALFcontent();
 
 // generate a test ptree of the content returned by getALFContent
 boost::property_tree::ptree getALFTree();
-
-}}
+}
+}
 
 #endif /* OSQUERY_CORE_TEST_UTIL_H */

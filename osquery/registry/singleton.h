@@ -19,10 +19,10 @@ class Singleton : private T {
   }
 
  private:
-  Singleton() { }
-  ~Singleton() { }
+  Singleton() {}
+  ~Singleton() {}
 };
 
-}  // namespace osquery
+} // namespace osquery
 
 #endif /* OSQUERY_REGISTRY_SINGLETON_H */
