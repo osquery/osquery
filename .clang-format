@@ -11,7 +11,7 @@ AlwaysBreakBeforeMultilineStrings: true
 BreakBeforeBinaryOperators: false
 BreakConstructorInitializersBeforeComma: false
 BinPackParameters: false
-ColumnLimit:     80
+ColumnLimit: 80
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 DerivePointerBinding: true
 ExperimentalAutoDetectBinPacking: true
@@ -28,10 +28,10 @@ PenaltyReturnTypeOnItsOwnLine: 200
 PointerBindsToType: true
 SpacesBeforeTrailingComments: 1
 Cpp11BracedListStyle: true
-Standard:        Cpp11
-IndentWidth:     2
-TabWidth:        8
-UseTab:          Never
+Standard: Cpp11
+IndentWidth: 2
+TabWidth: 8
+UseTab: Never
 BreakBeforeBraces: Attach
 IndentFunctionDeclarationAfterType: false
 SpacesInParentheses: false
