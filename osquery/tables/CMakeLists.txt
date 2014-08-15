@@ -14,6 +14,7 @@ ADD_LIBRARY(osquery_tables
   ../core/osx/NSProcessInfo+PECocoaBackports.mm
   system/osx_version.mm
   system/firewall.cpp
+  system/apps.cpp
 )
 TARGET_LINK_LIBRARIES(osquery_tables boost_filesystem)
 TARGET_LINK_LIBRARIES(osquery_tables glog)
@@ -37,3 +38,11 @@ TARGET_LINK_LIBRARIES(firewall_tests osquery_core)
 TARGET_LINK_LIBRARIES(firewall_tests osquery_database)
 TARGET_LINK_LIBRARIES(firewall_tests osquery_filesystem)
 TARGET_LINK_LIBRARIES(firewall_tests osquery_tables)
+
+ADD_EXECUTABLE(apps_tests system/apps_tests.cpp)
+TARGET_LINK_LIBRARIES(apps_tests gtest)
+TARGET_LINK_LIBRARIES(apps_tests glog)
+TARGET_LINK_LIBRARIES(apps_tests osquery_core)
+TARGET_LINK_LIBRARIES(apps_tests osquery_database)
+TARGET_LINK_LIBRARIES(apps_tests osquery_filesystem)
+TARGET_LINK_LIBRARIES(apps_tests osquery_tables)

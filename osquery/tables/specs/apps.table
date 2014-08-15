@@ -1,0 +1,20 @@
+table_name("apps")
+schema([
+    Column(name="name", type="std::string"),
+    Column(name="path", type="std::string"),
+    Column(name="bundle_executable", type="std::string"),
+    Column(name="bundle_identifier", type="std::string"),
+    Column(name="bundle_name", type="std::string"),
+    Column(name="bundle_short_version", type="std::string"),
+    Column(name="bundle_version", type="std::string"),
+    Column(name="bundle_package_type", type="std::string"),
+    Column(name="compiler", type="std::string"),
+    Column(name="development_region", type="std::string"),
+    Column(name="display_name", type="std::string"),
+    Column(name="info_string", type="std::string"),
+    Column(name="minimum_system_version", type="std::string"),
+    Column(name="category", type="std::string"),
+    Column(name="applescript_enabled", type="std::string"),
+    Column(name="copyright", type="std::string"),
+])
+implementation("osquery/tables/system/apps@genApps")

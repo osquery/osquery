@@ -102,6 +102,12 @@ std::string getALFcontent();
 
 // generate a test ptree of the content returned by getALFContent
 boost::property_tree::ptree getALFTree();
+
+// generate test content of an Info.plist file
+std::string getInfoPlistContent();
+
+// generate a test ptree of the content returned by getInfoPlistContent
+boost::property_tree::ptree getInfoPlistTree();
 }
 }
 
