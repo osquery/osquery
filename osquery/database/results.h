@@ -12,7 +12,8 @@
 
 #include "osquery/status.h"
 
-namespace osquery { namespace db {
+namespace osquery {
+namespace db {
 
 /////////////////////////////////////////////////////////////////////////////
 // Row - the representation of a row in a set of database results. Row is a
@@ -27,8 +28,7 @@ typedef std::map<std::string, std::string> Row;
 // a ptree. The contents of const Row r will be serialized into ptree tree and
 // an osquery::Status will be returned indicating the success or failure
 // of the operation.
-osquery::Status
-serializeRow(const Row& r, boost::property_tree::ptree& tree);
+osquery::Status serializeRow(const Row &r, boost::property_tree::ptree &tree);
 
 /////////////////////////////////////////////////////////////////////////////
 // QueryData - the representation of a database query result set. It's a
@@ -42,8 +42,8 @@ typedef std::vector<Row> QueryData;
 // reference to a ptree. The contents of const QueryData q will be serialized
 // into ptree tree and an osquery::Status will be returned indicating the
 // success or failure of the operation.
-osquery::Status
-serializeQueryData(const QueryData& q, boost::property_tree::ptree& tree);
+osquery::Status serializeQueryData(const QueryData &q,
+                                   boost::property_tree::ptree &tree);
 
 /////////////////////////////////////////////////////////////////////////////
 // DiffResults - the representation of two diffed QueryData result sets.
@@ -60,14 +60,12 @@ struct DiffResults {
   QueryData removed;
 
   // equals operator
-  bool operator==(const DiffResults& comp) const {
+  bool operator==(const DiffResults &comp) const {
     return (comp.added == added) && (comp.removed == removed);
   }
 
   // not equals operator
-  bool operator!=(const DiffResults& comp) const {
-    return !(*this == comp);
-  }
+  bool operator!=(const DiffResults &comp) const { return !(*this == comp); }
 };
 
 // typedef so we can say "DiffResults" instead of "struct DiffResults"
@@ -77,22 +75,20 @@ typedef struct DiffResults DiffResults;
 // non-const reference to a ptree. The contents of const DiffResults d will be
 // serialized into ptree tree and an osquery::Status will be returned
 // indicating the success or failure of the operation.
-osquery::Status
-serializeDiffResults(const DiffResults& d, boost::property_tree::ptree& tree);
+osquery::Status serializeDiffResults(const DiffResults &d,
+                                     boost::property_tree::ptree &tree);
 
 // serializeDiffResultsJSON accepts a const reference to a DiffResults struct
 // and a non-const reference to a std::string.  The contents of const
 // DiffResults d will be serialized into std::string json and an
 // osquery::Status will be returned indicating the success or failure of
 // the operation.
-osquery::Status
-serializeDiffResultsJSON(
-  const DiffResults& d,
-  std::string& json);
+osquery::Status serializeDiffResultsJSON(const DiffResults &d,
+                                         std::string &json);
 
 // given a const reference to the queryData results of two queries, compute
 // their difference
-DiffResults diff(const QueryData& old_, const QueryData& new_);
+DiffResults diff(const QueryData &old_, const QueryData &new_);
 
 /////////////////////////////////////////////////////////////////////////////
 // HistoricalQueryResults - the representation of the historical results of
@@ -117,17 +113,16 @@ struct HistoricalQueryResults {
   std::map<int, DiffResults> pastResults;
 
   // equals operator
-  bool operator==(const HistoricalQueryResults& comp) const {
+  bool operator==(const HistoricalQueryResults &comp) const {
     return (comp.executions == executions) &&
            (comp.mostRecentResults == mostRecentResults) &&
            (comp.pastResults == pastResults);
   }
 
   // not equals operator
-  bool operator!=(const HistoricalQueryResults& comp) const {
+  bool operator!=(const HistoricalQueryResults &comp) const {
     return !(*this == comp);
   }
-
 };
 
 // typedef so we can say "HistoricalQueryResults" instead of
@@ -140,9 +135,8 @@ typedef struct HistoricalQueryResults HistoricalQueryResults;
 // tree and an osquery::Status will be returned indicating the success or
 // failure of the operation.
 osquery::Status
-serializeHistoricalQueryResults(
-  const HistoricalQueryResults& r,
-  boost::property_tree::ptree& tree);
+serializeHistoricalQueryResults(const HistoricalQueryResults &r,
+                                boost::property_tree::ptree &tree);
 
 // serializeHistoricalQueryResultsJSON accepts a const reference to a
 // HistoricalQueryResults struct and a non-const reference to a std::string.
@@ -150,9 +144,8 @@ serializeHistoricalQueryResults(
 // std::string json and an osquery::Status will be returned indicating the
 // success or failure of the operation.
 osquery::Status
-serializeHistoricalQueryResultsJSON(
-  const HistoricalQueryResults& r,
-  std::string& json);
+serializeHistoricalQueryResultsJSON(const HistoricalQueryResults &r,
+                                    std::string &json);
 
 // deserializeHistoricalQueryResults accepts a const reference to a ptree of a
 // serialized HistoricalQueryResults struct and a non-const reference to a
@@ -160,9 +153,8 @@ serializeHistoricalQueryResultsJSON(
 // serialized into HistoricalQueryResults r and an osquery::Status will be
 // returned indicating the success or failure of the operation.
 osquery::Status
-deserializeHistoricalQueryResults(
-  const boost::property_tree::ptree& tree,
-  HistoricalQueryResults& r);
+deserializeHistoricalQueryResults(const boost::property_tree::ptree &tree,
+                                  HistoricalQueryResults &r);
 
 // deserializeHistoricalQueryResultsJSON accepts a const reference to an
 // std::string of a serialized HistoricalQueryResults struct and a non-const
@@ -171,9 +163,8 @@ deserializeHistoricalQueryResults(
 // osquery::Status will be returned indicating the success or failure of
 // the operation.
 osquery::Status
-deserializeHistoricalQueryResultsJSON(
-  const std::string& json,
-  HistoricalQueryResults& r);
+deserializeHistoricalQueryResultsJSON(const std::string &json,
+                                      HistoricalQueryResults &r);
 
 /////////////////////////////////////////////////////////////////////////////
 // ScheduledQueryLogItem - the representation of a log result occuring when a
@@ -191,13 +182,12 @@ struct ScheduledQueryLogItem {
   std::string name;
 
   // equals operator
-  bool operator==(const ScheduledQueryLogItem& comp) const {
-    return (comp.diffResults == diffResults) &&
-           (comp.name == name);
+  bool operator==(const ScheduledQueryLogItem &comp) const {
+    return (comp.diffResults == diffResults) && (comp.name == name);
   }
 
   // not equals operator
-  bool operator!=(const ScheduledQueryLogItem& comp) const {
+  bool operator!=(const ScheduledQueryLogItem &comp) const {
     return !(*this == comp);
   }
 };
@@ -207,12 +197,14 @@ struct ScheduledQueryLogItem {
 // const ScheduledQueryLogItem i will be serialized into ptree tree and an
 // osquery::Status will be returned indicating the success or failure of
 // the operation.
-osquery::Status serializeScheduledQueryLogItem(
-  const ScheduledQueryLogItem& i, boost::property_tree::ptree& tree);
+osquery::Status
+serializeScheduledQueryLogItem(const ScheduledQueryLogItem &i,
+                               boost::property_tree::ptree &tree);
 
-osquery::Status serializeScheduledQueryLogItemJSON(
-  const ScheduledQueryLogItem& i, std::string& json);
-
-}}
+osquery::Status
+serializeScheduledQueryLogItemJSON(const ScheduledQueryLogItem &i,
+                                   std::string &json);
+}
+}
 
 #endif /* OSQUERY_DATABASE_RESULTS_H */

@@ -15,18 +15,19 @@
 using namespace osquery::db;
 namespace pt = boost::property_tree;
 
-namespace osquery { namespace core {
+namespace osquery {
+namespace core {
 
 const std::string kTestQuery = "SELECT * FROM test_table";
 
-sqlite3* createTestDB() {
-  sqlite3* db = createDB();
+sqlite3 *createTestDB() {
+  sqlite3 *db = createDB();
   char *err = nullptr;
   std::vector<std::string> queries = {
     "CREATE TABLE test_table ("
-      "username varchar(30) primary key, "
-      "age int"
-     ")",
+    "username varchar(30) primary key, "
+    "age int"
+    ")",
     "INSERT INTO test_table VALUES (\"mike\", 23)",
     "INSERT INTO test_table VALUES (\"matt\", 24)"
   };
@@ -54,11 +55,11 @@ QueryData getTestDBExpectedResults() {
   return d;
 }
 
-std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
-  std::vector<std::pair<std::string, QueryData>> results;
+std::vector<std::pair<std::string, QueryData> > getTestDBResultStream() {
+  std::vector<std::pair<std::string, QueryData> > results;
 
   std::string q2 =
-    "INSERT INTO test_table (username, age) VALUES (\"joe\", 25)";
+      "INSERT INTO test_table (username, age) VALUES (\"joe\", 25)";
   QueryData d2;
   Row row2_1;
   row2_1["username"] = "mike";
@@ -91,7 +92,7 @@ std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
   results.push_back(std::make_pair(q3, d3));
 
   std::string q4 =
-    "DELETE FROM test_table WHERE username = \"matt\" AND age = 27";
+      "DELETE FROM test_table WHERE username = \"matt\" AND age = 27";
   QueryData d4;
   Row row4_1;
   row4_1["username"] = "mike";
@@ -126,15 +127,14 @@ std::pair<boost::property_tree::ptree, Row> getSerializedRow() {
 
 std::pair<boost::property_tree::ptree, QueryData> getSerializedQueryData() {
   auto r = getSerializedRow();
-  QueryData q = {r.second, r.second};
+  QueryData q = { r.second, r.second };
   pt::ptree arr;
   arr.push_back(std::make_pair("", r.first));
   arr.push_back(std::make_pair("", r.first));
   return std::make_pair(arr, q);
 }
 
-std::pair<boost::property_tree::ptree, DiffResults>
-getSerializedDiffResults() {
+std::pair<boost::property_tree::ptree, DiffResults> getSerializedDiffResults() {
   auto qd = getSerializedQueryData();
   DiffResults diff_results;
   diff_results.added = qd.second;
@@ -162,7 +162,7 @@ getSerializedHistoricalQueryResults() {
   auto qd = getSerializedQueryData();
   auto dr = getSerializedDiffResults();
   HistoricalQueryResults r;
-  r.executions = std::deque<int>{2,1};
+  r.executions = std::deque<int>{ 2, 1 };
   r.mostRecentResults.first = 2;
   r.mostRecentResults.second = qd.second;
   r.pastResults[1] = dr.second;
@@ -223,17 +223,17 @@ getSerializedScheduledQueryLogItemJSON() {
 
 std::string getEtcHostsContent() {
   std::string content = R"(
-    ##
-    # Host Database
-    #
-    # localhost is used to configure the loopback interface
-    # when the system is booting.  Do not change this entry.
-    ##
-    127.0.0.1       localhost
-    255.255.255.255 broadcasthost
-    ::1             localhost
-    fe80::1%lo0     localhost
-    )";
+##
+#Host Database
+#
+#localhost is used to configure the loopback interface
+#when the system is booting.Do not change this entry.
+##
+127.0.0.1       localhost
+255.255.255.255 broadcasthost
+::1             localhost
+fe80::1%lo0     localhost
+)";
   return content;
 }
 
@@ -276,7 +276,7 @@ std::string getPlistContent() {
 </dict>
 </plist>
 )";
-  return content;
+      return content;
 }
 
 osquery::db::QueryData getEtcHostsExpectedResults() {
@@ -293,23 +293,23 @@ osquery::db::QueryData getEtcHostsExpectedResults() {
   row3["hostnames"] = "localhost";
   row4["address"] = "fe80::1%lo0";
   row4["hostnames"] = "localhost";
-  return {row1, row2, row3, row4};
+  return { row1, row2, row3, row4 };
 }
 
 std::vector<SplitStringTestData> generateSplitStringTestData() {
   SplitStringTestData s1;
   s1.test_string = "a b\tc";
-  s1.test_vector = {"a", "b", "c"};
+  s1.test_vector = { "a", "b", "c" };
 
   SplitStringTestData s2;
   s2.test_string = " a b   c";
-  s2.test_vector = {"a", "b", "c"};
+  s2.test_vector = { "a", "b", "c" };
 
   SplitStringTestData s3;
   s3.test_string = "  a     b   c";
-  s3.test_vector = {"a", "b", "c"};
+  s3.test_vector = { "a", "b", "c" };
 
-  return {s1, s2, s3};
+  return { s1, s2, s3 };
 }
 
 std::string getALFContent() {
@@ -469,7 +469,7 @@ std::string getALFContent() {
 </dict>
 </plist>
 )";
-  return content;
+      return content;
 }
 
 pt::ptree getALFTree() {
@@ -478,6 +478,5 @@ pt::ptree getALFTree() {
   fs::parsePlistContent(content, tree);
   return tree;
 }
-
-
-}}
+}
+}

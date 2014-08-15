@@ -23,9 +23,9 @@ namespace fs = boost::filesystem;
 ** to users.
 */
 struct sqlite3_hash {
-  int n;                          /* number of elements */
-  std::vector<std::string> filename;  /* the full path of a hash object */
-  std::vector<std::string> md5;  /* the hash of the file at the path */
+  int n;                             /* number of elements */
+  std::vector<std::string> filename; /* the full path of a hash object */
+  std::vector<std::string> md5;      /* the hash of the file at the path */
 };
 
 /*
@@ -66,9 +66,7 @@ struct hash_cursor {
 /*
 ** Free an sqlite3_hash object.
 */
-static void hashFree(sqlite3_hash *p) {
-  sqlite3_free(p);
-}
+static void hashFree(sqlite3_hash *p) { sqlite3_free(p); }
 
 /*
  * This method releases a connection to a virtual table, just like the
@@ -76,7 +74,7 @@ static void hashFree(sqlite3_hash *p) {
  * implementation. This method undoes the work of xCreate.
 */
 static int hashDestroy(sqlite3_vtab *p) {
-  hash_vtab *pVtab = (hash_vtab*)p;
+  hash_vtab *pVtab = (hash_vtab *)p;
   sqlite3_free(pVtab);
   return SQLITE_OK;
 }
@@ -84,14 +82,14 @@ static int hashDestroy(sqlite3_vtab *p) {
 /*
 ** Table constructor for the hash module.
 */
-static int hashCreate(
-  sqlite3 *db,              /* Database where module is created */
-  void *pAux,               /* clientdata for the module */
-  int argc,                 /* Number of arguments */
-  const char *const *argv,   /* Value for all arguments */
-  sqlite3_vtab **ppVtab,    /* Write the new virtual table object here */
-  char **pzErr              /* Put error message text here */
-) {
+static int
+hashCreate(sqlite3 *db,             /* Database where module is created */
+           void *pAux,              /* clientdata for the module */
+           int argc,                /* Number of arguments */
+           const char *const *argv, /* Value for all arguments */
+           sqlite3_vtab **ppVtab, /* Write the new virtual table object here */
+           char **pzErr           /* Put error message text here */
+           ) {
   // this will get overwritten if pVtab was successfully allocated. if pVtab
   // wasn't allocated, it means we have no memory
   int rc = SQLITE_NOMEM;
@@ -101,7 +99,7 @@ static int hashCreate(
   hash_vtab *pVtab = new hash_vtab;
 
   // if the virtual table structure was successfully allocated
-  if(pVtab) {
+  if (pVtab) {
     // overwrite the entire memory that was allocated with zeros
     memset(pVtab, 0, sizeof(hash_vtab));
 
@@ -110,16 +108,15 @@ static int hashCreate(
     // sqlite3_create_module_v2() call that registered the virtual table
     // module. This sets the pContent value of the virtual table struct to
     // whatever that value was
-    pVtab->pContent = (sqlite3_hash*)pAux;
+    pVtab->pContent = (sqlite3_hash *)pAux;
 
     // this interface is called to declare the format (the names and datatypes
     // of the columns) of the virtual tables they implement
-    const char *create_table_statement =
-      "CREATE TABLE hash("
-        "path VARCHAR, "
-        "filename VARCHAR, "
-        "md5 VARCHAR"
-      ")";
+    const char *create_table_statement = "CREATE TABLE hash("
+                                         "path VARCHAR, "
+                                         "filename VARCHAR, "
+                                         "md5 VARCHAR"
+                                         ")";
     rc = sqlite3_declare_vtab(db, create_table_statement);
   }
   // cast your virtual table objet back to type sqlite3_vtab and assign it to
@@ -143,11 +140,11 @@ static int hashOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
   hash_cursor *pCur;
 
   // allocate the correct amount of memory for your virtual table cursor
-  //pCur = sqlite3_malloc(sizeof(hash_cursor));
+  // pCur = sqlite3_malloc(sizeof(hash_cursor));
   pCur = new hash_cursor;
 
   // if the cursor was successfully allocated
-  if(pCur) {
+  if (pCur) {
     // overwrite the entire memory that was allocated with zeros
     memset(pCur, 0, sizeof(hash_cursor));
 
@@ -186,40 +183,28 @@ static int hashClose(sqlite3_vtab_cursor *cur) {
 /*
 ** Retrieve a column of data.
 */
-static int hashColumn(
-  sqlite3_vtab_cursor *cur,
-  sqlite3_context *ctx,
-  int col
-) {
-  hash_cursor *pCur = (hash_cursor*)cur;
-  hash_vtab *pVtab = (hash_vtab*)cur->pVtab;
+static int hashColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
+  hash_cursor *pCur = (hash_cursor *)cur;
+  hash_vtab *pVtab = (hash_vtab *)cur->pVtab;
 
   // return a specific column from a specific row, depending on the state of
   // the cursor
-  if(pCur->row >= 0 && pCur->row < pVtab->pContent->n) {
+  if (pCur->row >= 0 && pCur->row < pVtab->pContent->n) {
     switch (col) {
-      // path
-      case 0:
-        sqlite3_result_text(ctx, (pCur->path).c_str(), -1, nullptr);
-        break;
-      // filename
-      case 1:
-        sqlite3_result_text(
-          ctx,
-          (pVtab->pContent->filename[pCur->row]).c_str(),
-          -1,
-          nullptr
-        );
-        break;
-      // md5
-      case 2:
-        sqlite3_result_text(
-          ctx,
-          (pVtab->pContent->md5[pCur->row]).c_str(),
-          -1,
-          nullptr
-        );
-        break;
+    // path
+    case 0:
+      sqlite3_result_text(ctx, (pCur->path).c_str(), -1, nullptr);
+      break;
+    // filename
+    case 1:
+      sqlite3_result_text(ctx, (pVtab->pContent->filename[pCur->row]).c_str(),
+                          -1, nullptr);
+      break;
+    // md5
+    case 2:
+      sqlite3_result_text(ctx, (pVtab->pContent->md5[pCur->row]).c_str(), -1,
+                          nullptr);
+      break;
     }
   }
   return SQLITE_OK;
@@ -264,17 +249,12 @@ static int hashNext(sqlite3_vtab_cursor *cur) {
  * This method must return SQLITE_OK if successful, or an sqlite error code if
  * an error occurs.
 **/
-static int hashFilter(
-  sqlite3_vtab_cursor *pVtabCursor,
-  int idxNum,
-  const char *idxStr,
-  int argc,
-  sqlite3_value **argv
-) {
+static int hashFilter(sqlite3_vtab_cursor *pVtabCursor, int idxNum,
+                      const char *idxStr, int argc, sqlite3_value **argv) {
   // you need to operate on the sqlite3_vtab_cursor object as your own
   // virtual table's cursor type, so cast it back to x_cursor
   hash_cursor *pCur = (hash_cursor *)pVtabCursor;
-  hash_vtab *pVtab = (hash_vtab*)pVtabCursor->pVtab;
+  hash_vtab *pVtab = (hash_vtab *)pVtabCursor->pVtab;
 
   // reset the count value of your cursor's structure
   pCur->row = 0;
@@ -289,7 +269,7 @@ static int hashFilter(
   }
 
   // extract the RHS value for the path constraint into the cursor's path field
-  pCur->path = std::string((const char*)sqlite3_value_text(argv[0]));
+  pCur->path = std::string((const char *)sqlite3_value_text(argv[0]));
 
   // if the path doesn't exist, return early
   if (!fs::exists(pCur->path)) {
@@ -302,18 +282,17 @@ static int hashFilter(
   osquery::md5::MD5 md5;
   if (fs::is_regular_file(pCur->path)) {
     pVtab->pContent->filename.push_back(pCur->path);
-    const char* filename = pCur->path.c_str();
-    const char* md5_value = md5.digestFile(filename);
+    const char *filename = pCur->path.c_str();
+    const char *md5_value = md5.digestFile(filename);
     pVtab->pContent->md5.push_back(std::string(md5_value));
   } else if (fs::is_directory(pCur->path)) {
     fs::directory_iterator end_iter;
-    for (fs::directory_iterator dir_itr(pCur->path);
-         dir_itr != end_iter;
+    for (fs::directory_iterator dir_itr(pCur->path); dir_itr != end_iter;
          ++dir_itr) {
       pVtab->pContent->filename.push_back(dir_itr->path().string());
       if (fs::is_regular_file(dir_itr->status())) {
-        const char* filename = dir_itr->path().string().c_str();
-        const char* md5_value = md5.digestFile(filename);
+        const char *filename = dir_itr->path().string().c_str();
+        const char *md5_value = md5.digestFile(filename);
         pVtab->pContent->md5.push_back(std::string(md5_value));
       } else {
         pVtab->pContent->md5.push_back("");
@@ -340,7 +319,7 @@ static int hashFilter(
  * an efficient search of the virtual table.
 **/
 static int hashBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
-  hash_vtab *pVtab = (hash_vtab*)tab;
+  hash_vtab *pVtab = (hash_vtab *)tab;
 
   if (pIdxInfo->nConstraint == 0) {
     // the hash table requires you to have a where clause to specify the
@@ -357,7 +336,7 @@ static int hashBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
       // set the argvIndex of the "path" constraint so that it's usable to
       // xBestIndex
       pIdxInfo->aConstraintUsage[i].argvIndex =
-        pIdxInfo->aConstraint[i].iColumn + 1;
+          pIdxInfo->aConstraint[i].iColumn + 1;
       goto finish;
     }
   }
@@ -378,26 +357,26 @@ fail:
 ** variables.
 */
 static sqlite3_module hashModule = {
-  0,                           /* iVersion */
-  hashCreate,            /* xCreate - create a new virtual table */
-  hashCreate,            /* xConnect - connect to an existing vtab */
-  hashBestIndex,         /* xBestIndex - find the best query index */
-  hashDestroy,           /* xDisconnect - disconnect a vtab */
-  hashDestroy,           /* xDestroy - destroy a vtab */
-  hashOpen,              /* xOpen - open a cursor */
-  hashClose,             /* xClose - close a cursor */
-  hashFilter,            /* xFilter - configure scan constraints */
-  hashNext,              /* xNext - advance a cursor */
-  hashEof,               /* xEof */
-  hashColumn,            /* xColumn - read data */
-  hashRowid,             /* xRowid - read data */
-  0,                           /* xUpdate */
-  0,                           /* xBegin */
-  0,                           /* xSync */
-  0,                           /* xCommit */
-  0,                           /* xRollback */
-  0,                           /* xFindMethod */
-  0,                           /* xRename */
+  0,             /* iVersion */
+  hashCreate,    /* xCreate - create a new virtual table */
+  hashCreate,    /* xConnect - connect to an existing vtab */
+  hashBestIndex, /* xBestIndex - find the best query index */
+  hashDestroy,   /* xDisconnect - disconnect a vtab */
+  hashDestroy,   /* xDestroy - destroy a vtab */
+  hashOpen,      /* xOpen - open a cursor */
+  hashClose,     /* xClose - close a cursor */
+  hashFilter,    /* xFilter - configure scan constraints */
+  hashNext,      /* xNext - advance a cursor */
+  hashEof,       /* xEof */
+  hashColumn,    /* xColumn - read data */
+  hashRowid,     /* xRowid - read data */
+  0,             /* xUpdate */
+  0,             /* xBegin */
+  0,             /* xSync */
+  0,             /* xCommit */
+  0,             /* xRollback */
+  0,             /* xFindMethod */
+  0,             /* xRename */
 };
 
 /*
@@ -411,27 +390,24 @@ static sqlite3_module hashModule = {
 ** explicitly by the application, the virtual table will be dropped implicitly
 ** by the system when the database connection is closed.
 */
-int sqlite3_hash_create(
-  sqlite3 *db,
-  const char *zName,
-  sqlite3_hash **ppReturn
-) {
+int sqlite3_hash_create(sqlite3 *db, const char *zName,
+                        sqlite3_hash **ppReturn) {
   int rc = SQLITE_OK;
   sqlite3_hash *p;
 
   *ppReturn = p = new sqlite3_hash;
 
-  if(p==0) {
+  if (p == 0) {
     return SQLITE_NOMEM;
   }
   memset(p, 0, sizeof(*p));
 
   rc = sqlite3_create_module_v2(db, zName, &hashModule, p,
-                                (void(*)(void*))hashFree);
-  if(rc==SQLITE_OK) {
+                                (void (*)(void *))hashFree);
+  if (rc == SQLITE_OK) {
     char *zSql;
-    zSql = sqlite3_mprintf("CREATE VIRTUAL TABLE temp.%Q USING %Q",
-            zName, zName);
+    zSql =
+        sqlite3_mprintf("CREATE VIRTUAL TABLE temp.%Q USING %Q", zName, zName);
     rc = sqlite3_exec(db, zSql, 0, 0, 0);
     sqlite3_free(zSql);
   }

@@ -15,7 +15,8 @@
 #include "osquery/core.h"
 #include "osquery/database.h"
 
-namespace osquery { namespace core {
+namespace osquery {
+namespace core {
 
 // kTestQuery is a test query that can be executed against the database
 // returned from createTestDB() to result in the dataset returned from
@@ -24,7 +25,7 @@ extern const std::string kTestQuery;
 
 // createTestDB instantiates a sqlite3 struct and populates it with some test
 // data
-sqlite3* createTestDB();
+sqlite3 *createTestDB();
 
 // getTestDBExpectedResults returns the results of kTestQuery of the table that
 // initially gets returned from createTestDB()
@@ -33,7 +34,7 @@ osquery::db::QueryData getTestDBExpectedResults();
 // Starting with the dataset returned by createTestDB(), getTestDBResultStream
 // returns a vector of std::pair's where pair.first is the query that would
 // need to be performed on the dataset to make the results be pair.second
-std::vector<std::pair<std::string, osquery::db::QueryData>>
+std::vector<std::pair<std::string, osquery::db::QueryData> >
 getTestDBResultStream();
 
 // getOsqueryScheduledQuery returns a test scheduled query which would normally
@@ -57,8 +58,7 @@ getSerializedQueryData();
 std::pair<boost::property_tree::ptree, osquery::db::DiffResults>
 getSerializedDiffResults();
 
-std::pair<std::string, osquery::db::DiffResults>
-getSerializedDiffResultsJSON();
+std::pair<std::string, osquery::db::DiffResults> getSerializedDiffResultsJSON();
 
 // getSerializedHistoricalQueryResults() return an std::pair where pair->first
 // is a string which should serialize to pair->second. Obviously, pair->second
@@ -102,7 +102,7 @@ std::string getALFcontent();
 
 // generate a test ptree of the content returned by getALFContent
 boost::property_tree::ptree getALFTree();
-
-}}
+}
+}
 
 #endif /* OSQUERY_CORE_TEST_UTIL_H */

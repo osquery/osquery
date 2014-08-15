@@ -25,10 +25,9 @@ TEST_F(StatusTests, test_to_string) {
   auto s = Status(0, "foobar");
   EXPECT_EQ(s.toString(), "foobar");
 }
-
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

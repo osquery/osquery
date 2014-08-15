@@ -35,7 +35,7 @@ TEST_F(TestUtilTests, test_get_test_db_result_stream) {
   }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

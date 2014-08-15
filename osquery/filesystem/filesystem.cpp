@@ -14,24 +14,25 @@
 
 using osquery::Status;
 
-namespace osquery { namespace fs {
+namespace osquery {
+namespace fs {
 
-Status readFile(const std::string& path, std::string& content) {
+Status readFile(const std::string &path, std::string &content) {
   if (!boost::filesystem::exists(path)) {
     return Status(1, "File not found");
   }
 
   std::ifstream file_h(path);
   if (file_h) {
-     file_h.seekg (0, file_h.end);
-     int len = file_h.tellg();
-     file_h.seekg (0, file_h.beg);
-     char *buffer = new char [len];
-     file_h.read(buffer, len);
-     if (!file_h) {
+    file_h.seekg(0, file_h.end);
+    int len = file_h.tellg();
+    file_h.seekg(0, file_h.beg);
+    char *buffer = new char[len];
+    file_h.read(buffer, len);
+    if (!file_h) {
       return Status(1, "Could not read file");
-     }
-     content.assign(buffer, len);
+    }
+    content.assign(buffer, len);
   } else {
     return Status(1, "Could not open file for reading");
   }
@@ -39,8 +40,8 @@ Status readFile(const std::string& path, std::string& content) {
   return Status(0, "OK");
 }
 
-Status listFilesInDirectory(const std::string& path,
-  std::vector<std::string>& results) {
+Status listFilesInDirectory(const std::string &path,
+                            std::vector<std::string> &results) {
   try {
     if (!boost::filesystem::exists(path)) {
       return Status(1, "Directory not found");
@@ -57,9 +58,10 @@ Status listFilesInDirectory(const std::string& path,
     }
 
     return Status(0, "OK");
-  } catch (const boost::filesystem::filesystem_error& e) {
+  }
+  catch (const boost::filesystem::filesystem_error &e) {
     return Status(1, e.what());
   }
 }
-
-}}
+}
+}

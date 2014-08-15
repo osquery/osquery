@@ -10,17 +10,17 @@
 namespace osquery {
 
 class InitRegistry : public RegistryTemplate<> {
- public:
+public:
   /**
    * Singleton.
    */
-  static InitRegistry& get() {
-    static InitRegistry instance;  // Thread-safe.
+  static InitRegistry &get() {
+    static InitRegistry instance; // Thread-safe.
     return instance;
   }
 
- private:
-  InitRegistry() { }
+private:
+  InitRegistry() {}
 };
 
 /**
@@ -42,6 +42,6 @@ struct RegisterInitFunc : private boost::noncopyable {
   }
 };
 
-}  // namespace osquery
+} // namespace osquery
 
 #endif /* OSQUERY_REGISTRY_INIT_REGISTRY_H */

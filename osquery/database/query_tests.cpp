@@ -12,7 +12,8 @@
 
 using namespace osquery::core;
 
-namespace osquery { namespace db {
+namespace osquery {
+namespace db {
 
 class QueryTests : public testing::Test {};
 
@@ -67,11 +68,7 @@ TEST_F(QueryTests, test_get_historical_query_results) {
   auto hQR = getSerializedHistoricalQueryResultsJSON();
   auto query = getOsqueryScheduledQuery();
   auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test10");
-  auto put_status = db->Put(
-    kQueries,
-    query.name,
-    hQR.first
-  );
+  auto put_status = db->Put(kQueries, query.name, hQR.first);
   EXPECT_TRUE(put_status.ok());
   EXPECT_EQ(put_status.toString(), "OK");
   auto cf = Query(query);
@@ -98,11 +95,7 @@ TEST_F(QueryTests, test_is_query_name_in_database) {
   auto cf = Query(query);
   auto hQR = getSerializedHistoricalQueryResultsJSON();
   auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test12");
-  auto put_status = db->Put(
-    kQueries,
-    query.name,
-    hQR.first
-  );
+  auto put_status = db->Put(kQueries, query.name, hQR.first);
   EXPECT_TRUE(put_status.ok());
   EXPECT_EQ(put_status.toString(), "OK");
   EXPECT_TRUE(cf.isQueryNameInDatabase(db));
@@ -113,11 +106,7 @@ TEST_F(QueryTests, test_get_stored_query_names) {
   auto cf = Query(query);
   auto hQR = getSerializedHistoricalQueryResultsJSON();
   auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test13");
-  auto put_status = db->Put(
-    kQueries,
-    query.name,
-    hQR.first
-  );
+  auto put_status = db->Put(kQueries, query.name, hQR.first);
   EXPECT_TRUE(put_status.ok());
   EXPECT_EQ(put_status.toString(), "OK");
   auto names = cf.getStoredQueryNames(db);
@@ -129,16 +118,12 @@ TEST_F(QueryTests, test_get_executions) {
   auto hQR = getSerializedHistoricalQueryResultsJSON();
   auto query = getOsqueryScheduledQuery();
   auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test14");
-  auto put_status = db->Put(
-    kQueries,
-    query.name,
-    hQR.first
-  );
+  auto put_status = db->Put(kQueries, query.name, hQR.first);
   EXPECT_TRUE(put_status.ok());
   EXPECT_EQ(put_status.toString(), "OK");
   auto cf = Query(query);
   std::deque<int> results;
-  std::deque<int> expected = {2, 1};
+  std::deque<int> expected = { 2, 1 };
   auto s = cf.getExecutions(results, db);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
@@ -149,11 +134,7 @@ TEST_F(QueryTests, test_get_current_results) {
   auto hQR = getSerializedHistoricalQueryResultsJSON();
   auto query = getOsqueryScheduledQuery();
   auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test15");
-  auto put_status = db->Put(
-    kQueries,
-    query.name,
-    hQR.first
-  );
+  auto put_status = db->Put(kQueries, query.name, hQR.first);
   EXPECT_TRUE(put_status.ok());
   EXPECT_EQ(put_status.toString(), "OK");
   auto cf = Query(query);
@@ -163,10 +144,10 @@ TEST_F(QueryTests, test_get_current_results) {
   EXPECT_EQ(query_status.toString(), "OK");
   EXPECT_EQ(qd, hQR.second.mostRecentResults.second);
 }
+}
+}
 
-}}
-
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

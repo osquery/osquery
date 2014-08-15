@@ -6,10 +6,9 @@
 namespace osquery {
 
 // NOTE: T should have public or protected default ctor.
-template <class T>
-class Singleton : private T {
- public:
-  static T& get() {
+template <class T> class Singleton : private T {
+public:
+  static T &get() {
     // C++11 guarantees that initialization of static local
     // variables is thread-safe;  Moreover, GCC started to
     // provide the same guarantee long time ago.
@@ -18,11 +17,11 @@ class Singleton : private T {
     return instance;
   }
 
- private:
-  Singleton() { }
-  ~Singleton() { }
+private:
+  Singleton() {}
+  ~Singleton() {}
 };
 
-}  // namespace osquery
+} // namespace osquery
 
 #endif /* OSQUERY_REGISTRY_SINGLETON_H */

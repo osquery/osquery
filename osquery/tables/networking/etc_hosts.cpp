@@ -16,12 +16,13 @@ using namespace osquery::core;
 using namespace osquery::db;
 using namespace osquery::fs;
 
-namespace osquery { namespace tables {
+namespace osquery {
+namespace tables {
 
-QueryData parseEtcHostsContent(const std::string& content) {
+QueryData parseEtcHostsContent(const std::string &content) {
   QueryData results;
 
-  for (const auto& i : split(content, "\n")) {
+  for (const auto &i : split(content, "\n")) {
     auto line = split(i);
     if (line.size() == 0 || boost::starts_with(line[0], "#")) {
       continue;
@@ -51,5 +52,5 @@ QueryData genEtcHosts() {
     return {};
   }
 }
-
-}}
+}
+}

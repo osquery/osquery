@@ -8,28 +8,28 @@
 #include "osquery/registry.h"
 #include "osquery/status.h"
 
-namespace osquery { namespace logger {
+namespace osquery {
+namespace logger {
 
 class LoggerPlugin {
 public:
-  virtual osquery::Status logString(const std::string& s) {
+  virtual osquery::Status logString(const std::string &s) {
     return osquery::Status(1, "Not implemented");
   }
   virtual ~LoggerPlugin() {}
+
 protected:
   LoggerPlugin() {};
 };
+}
+}
 
-}}
-
-DECLARE_REGISTRY(
-  LoggerPlugins,
-  std::string,
-  std::shared_ptr<osquery::logger::LoggerPlugin>)
+DECLARE_REGISTRY(LoggerPlugins, std::string,
+                 std::shared_ptr<osquery::logger::LoggerPlugin>)
 
 #define REGISTERED_LOGGER_PLUGINS REGISTRY(LoggerPlugins)
 
-#define REGISTER_LOGGER_PLUGIN(name, decorator) \
+#define REGISTER_LOGGER_PLUGIN(name, decorator)                                \
   REGISTER(LoggerPlugins, name, decorator)
 
 #endif /* OSQUERY_LOGGER_PLUGIN_H */

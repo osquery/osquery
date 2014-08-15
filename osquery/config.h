@@ -12,7 +12,8 @@
 
 #include "osquery/status.h"
 
-namespace osquery { namespace config {
+namespace osquery {
+namespace config {
 
 // OsqueryScheduledQuery represents the relevant parameters of a scheduled query
 struct OsqueryScheduledQuery {
@@ -26,14 +27,13 @@ struct OsqueryScheduledQuery {
   int interval;
 
   // equals operator
-  bool operator==(const OsqueryScheduledQuery& comp) const {
-    return (comp.name == name) &&
-           (comp.query == query) &&
+  bool operator==(const OsqueryScheduledQuery &comp) const {
+    return (comp.name == name) && (comp.query == query) &&
            (comp.interval == interval);
   }
 
   // not equals operator
-  bool operator!=(const OsqueryScheduledQuery& comp) const {
+  bool operator!=(const OsqueryScheduledQuery &comp) const {
     return !(*this == comp);
   }
 };
@@ -66,6 +66,7 @@ public:
   // getScheduledQueries returns a vector of OsqueryScheduledQuery's which
   // represent the queries that are to be executed
   scheduledQueries_t getScheduledQueries();
+
 private:
   // since instances of Config should only be created via getInstance(),
   // Config's constructor is private
@@ -73,13 +74,14 @@ private:
 
   // genConfig() is a symbol that is satisfied by the config plugin that gets
   // compiled with osquery
-  static osquery::Status genConfig(OsqueryConfig& conf);
+  static osquery::Status genConfig(OsqueryConfig &conf);
+
 private:
   // cfg_ is the private member that stores the raw osquery config data in a
   // native format
   OsqueryConfig cfg_;
 };
-
-}}
+}
+}
 
 #endif /* OSQUERY_CONFIG_H */

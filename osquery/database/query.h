@@ -14,7 +14,8 @@
 #include "osquery/database/results.h"
 #include "osquery/status.h"
 
-namespace osquery { namespace db {
+namespace osquery {
+namespace db {
 
 // Error message used when a query name isn't found in the database
 extern const std::string kQueryNameNotFoundError;
@@ -50,16 +51,17 @@ public:
   // getHistoricalQueryResults() returns the entire historical query result
   // set for a given scheduled query
 public:
-  osquery::Status getHistoricalQueryResults(HistoricalQueryResults& hQR);
+  osquery::Status getHistoricalQueryResults(HistoricalQueryResults &hQR);
+
 private:
-  osquery::Status
-  getHistoricalQueryResults(
-    HistoricalQueryResults& hQR, std::shared_ptr<DBHandle> db);
+  osquery::Status getHistoricalQueryResults(HistoricalQueryResults &hQR,
+                                            std::shared_ptr<DBHandle> db);
 
   // getStoredQueryNames() returns a vector of strings which represents the
   // names of queries that are stored in the local store
 public:
   static std::vector<std::string> getStoredQueryNames();
+
 private:
   static std::vector<std::string>
   getStoredQueryNames(std::shared_ptr<DBHandle> db);
@@ -69,6 +71,7 @@ private:
   // be in the local store if the query is new / has never been ran yet)
 public:
   bool isQueryNameInDatabase();
+
 private:
   bool isQueryNameInDatabase(std::shared_ptr<DBHandle> db);
 
@@ -76,42 +79,40 @@ private:
   // executions. These timestamp values are used as the RocksDB sub-keys which
   // represent the data stored as a result of those executions.
 public:
-  osquery::Status getExecutions(std::deque<int>& results);
+  osquery::Status getExecutions(std::deque<int> &results);
+
 private:
-  osquery::Status
-  getExecutions(std::deque<int>& results, std::shared_ptr<DBHandle> db);
+  osquery::Status getExecutions(std::deque<int> &results,
+                                std::shared_ptr<DBHandle> db);
 
   // addNewResults adds a new result set to the local data store. If you
   // want the diff of the results you've just added, pass a reference to a
   // diffResults struct
 public:
-  osquery::Status addNewResults(
-    const osquery::db::QueryData& qd, int unix_time
-  );
+  osquery::Status addNewResults(const osquery::db::QueryData &qd,
+                                int unix_time);
+
 private:
-  osquery::Status
-  addNewResults(
-    const osquery::db::QueryData& qd, int unix_time,
-    std::shared_ptr<DBHandle> db
-  );
+  osquery::Status addNewResults(const osquery::db::QueryData &qd, int unix_time,
+                                std::shared_ptr<DBHandle> db);
 
 public:
-  osquery::Status addNewResults(
-    const osquery::db::QueryData& qd, osquery::db::DiffResults& dr,
-    int unix_time
-  );
+  osquery::Status addNewResults(const osquery::db::QueryData &qd,
+                                osquery::db::DiffResults &dr, int unix_time);
+
 private:
-  osquery::Status addNewResults(
-    const osquery::db::QueryData& qd, osquery::db::DiffResults& dr,
-    bool calculate_diff, int unix_time, std::shared_ptr<DBHandle> db
-  );
+  osquery::Status addNewResults(const osquery::db::QueryData &qd,
+                                osquery::db::DiffResults &dr,
+                                bool calculate_diff, int unix_time,
+                                std::shared_ptr<DBHandle> db);
 
   // getCurrentResults returns the most recent result set from the database
 public:
-  osquery::Status getCurrentResults(osquery::db::QueryData& qd);
+  osquery::Status getCurrentResults(osquery::db::QueryData &qd);
+
 private:
-  osquery::Status
-  getCurrentResults(osquery::db::QueryData& qd, std::shared_ptr<DBHandle> db);
+  osquery::Status getCurrentResults(osquery::db::QueryData &qd,
+                                    std::shared_ptr<DBHandle> db);
 
 private:
   /////////////////////////////////////////////////////////////////////////////
@@ -135,7 +136,7 @@ private:
   FRIEND_TEST(QueryTests, test_get_historical_query_results);
   FRIEND_TEST(QueryTests, test_query_name_not_found_in_db);
 };
-
-}}
+}
+}
 
 #endif /* OSQUERY_DATABASE_QUERY_H */

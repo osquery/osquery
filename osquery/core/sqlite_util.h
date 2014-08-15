@@ -10,15 +10,16 @@
 
 #include "osquery/database.h"
 
-namespace osquery { namespace core {
+namespace osquery {
+namespace core {
 
 // the callback for populating a std::vector<row> set of results. "argument"
 // should be a non-const reference to a std::vector<row>
 int query_data_callback(void *argument, int argc, char *argv[], char *column[]);
 
 // Return a fully configured sqlite3 database object
-sqlite3* createDB();
-
-}}
+sqlite3 *createDB();
+}
+}
 
 #endif /* OSQUERY_CORE_SQLITE_UTIL_H */
