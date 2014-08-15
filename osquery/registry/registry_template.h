@@ -18,7 +18,7 @@ class RegistryTemplate : private boost::noncopyable {
   typedef std::function<void(FuncArgs...)> Func;
   static const int kDefaultPriority = 100000;
 
-  RegistryTemplate() : alreadyRan_(false) { }
+  RegistryTemplate() : alreadyRan_(false) {}
 
   /**
    * Registers a function to be invoked when 'run()' is called; fails
@@ -67,6 +67,6 @@ class RegistryTemplate : private boost::noncopyable {
   std::map<int, std::vector<Func>> funcMap_;
 };
 
-}  // namespace osquery
+} // namespace osquery
 
 #endif /* OSQUERY_REGISTRY_REGISTRY_TEMPLATE_H */

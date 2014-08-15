@@ -10,28 +10,28 @@
 #include "osquery/status.h"
 #include "osquery/registry.h"
 
-namespace osquery { namespace tables {
+namespace osquery {
+namespace tables {
 
 class TablePlugin {
-public:
+ public:
   virtual int attachVtable(sqlite3 *db) { return -1; }
   virtual ~TablePlugin() {};
-protected:
+
+ protected:
   TablePlugin() {};
 };
 
 void attachVirtualTables(sqlite3 *db);
+}
+}
 
-}}
-
-DECLARE_REGISTRY(
-  TablePlugins,
-  std::string,
-  std::shared_ptr<osquery::tables::TablePlugin>)
+DECLARE_REGISTRY(TablePlugins,
+                 std::string,
+                 std::shared_ptr<osquery::tables::TablePlugin>)
 
 #define REGISTERED_TABLES REGISTRY(TablePlugins)
 
-#define REGISTER_TABLE(name, decorator) \
-  REGISTER(TablePlugins, name, decorator)
+#define REGISTER_TABLE(name, decorator) REGISTER(TablePlugins, name, decorator)
 
 #endif /* OSQUERY_TABLES_REGISTRY_H */

@@ -9,24 +9,25 @@
 #include "osquery/registry.h"
 #include "osquery/status.h"
 
-namespace osquery { namespace config {
+namespace osquery {
+namespace config {
 
 class ConfigPlugin {
-public:
+ public:
   virtual std::pair<osquery::Status, std::string> genConfig() {
     return std::make_pair(osquery::Status(1, "Not implemented"), "");
   }
   virtual ~ConfigPlugin() {}
-protected:
+
+ protected:
   ConfigPlugin() {};
 };
+}
+}
 
-}}
-
-DECLARE_REGISTRY(
-  ConfigPlugins,
-  std::string,
-  std::shared_ptr<osquery::config::ConfigPlugin>)
+DECLARE_REGISTRY(ConfigPlugins,
+                 std::string,
+                 std::shared_ptr<osquery::config::ConfigPlugin>)
 
 #define REGISTERED_CONFIG_PLUGINS REGISTRY(ConfigPlugins)
 

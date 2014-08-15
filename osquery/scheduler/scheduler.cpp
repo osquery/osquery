@@ -23,7 +23,8 @@ namespace core = osquery::core;
 namespace db = osquery::db;
 namespace logger = osquery::logger;
 
-namespace osquery { namespace scheduler {
+namespace osquery {
+namespace scheduler {
 
 void launchQueries(boost::asio::deadline_timer& t, int mins) {
   DLOG(INFO) << "launchQueries: " << mins;
@@ -31,39 +32,34 @@ void launchQueries(boost::asio::deadline_timer& t, int mins) {
   auto cfg = Config::getInstance();
   for (auto query : cfg->getScheduledQueries()) {
     if ((mins % query.interval) == 0) {
-        VLOG(1) << "executing query: " << query.query;
-        int unix_time = std::time(0);
-        int err;
-        auto query_results = core::aggregateQuery(query.query, err);
-        if (err != 0) {
-          LOG(ERROR) << "error executing query: " << query.query;
-          continue;
-        }
-        auto dbQuery = db::Query(query);
-        db::DiffResults diff_results;
-        auto status = dbQuery.addNewResults(
-          query_results,
-          diff_results,
-          unix_time
-        );
-        if (!status.ok()) {
-          LOG(ERROR) << "error adding new results to database: "
-            << status.toString();
-          continue;
-        }
+      VLOG(1) << "executing query: " << query.query;
+      int unix_time = std::time(0);
+      int err;
+      auto query_results = core::aggregateQuery(query.query, err);
+      if (err != 0) {
+        LOG(ERROR) << "error executing query: " << query.query;
+        continue;
+      }
+      auto dbQuery = db::Query(query);
+      db::DiffResults diff_results;
+      auto status =
+          dbQuery.addNewResults(query_results, diff_results, unix_time);
+      if (!status.ok()) {
+        LOG(ERROR)
+            << "error adding new results to database: " << status.toString();
+        continue;
+      }
 
-        db::ScheduledQueryLogItem item;
-        item.diffResults = diff_results;
-        item.name = query.name;
-        logger::logScheduledQueryLogItem(item);
+      db::ScheduledQueryLogItem item;
+      item.diffResults = diff_results;
+      item.name = query.name;
+      logger::logScheduledQueryLogItem(item);
     }
   }
 
   ++mins;
 
-  t.expires_at(
-    t.expires_at() + boost::posix_time::seconds(SCHEDULER_INTERVAL)
-  );
+  t.expires_at(t.expires_at() + boost::posix_time::seconds(SCHEDULER_INTERVAL));
   t.async_wait(boost::bind(launchQueries, boost::ref(t), mins));
 }
 
@@ -72,17 +68,15 @@ void initialize() {
   boost::asio::io_service io;
 
   time_t _time = time(0);
-  struct tm *now = localtime(&_time);
+  struct tm* now = localtime(&_time);
   int mins = now->tm_min;
 
-  boost::asio::deadline_timer t(
-    io,
-    boost::posix_time::seconds(SCHEDULER_INTERVAL)
-  );
+  boost::asio::deadline_timer t(io,
+                                boost::posix_time::seconds(SCHEDULER_INTERVAL));
 
   t.async_wait(boost::bind(launchQueries, boost::ref(t), mins));
 
   io.run();
 }
-
-}}
+}
+}

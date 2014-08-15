@@ -25,7 +25,6 @@ TEST_F(StatusTests, test_to_string) {
   auto s = Status(0, "foobar");
   EXPECT_EQ(s.toString(), "foobar");
 }
-
 }
 
 int main(int argc, char* argv[]) {

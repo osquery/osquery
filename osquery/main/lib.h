@@ -8,7 +8,6 @@
 namespace osquery {
 
 extern const std::string kVersion;
-
 }
 
 #endif /* OSQUERY_MAIN_LIB_H */

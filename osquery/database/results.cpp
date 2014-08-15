@@ -17,7 +17,8 @@
 namespace pt = boost::property_tree;
 using osquery::Status;
 
-namespace osquery { namespace db {
+namespace osquery {
+namespace db {
 
 /////////////////////////////////////////////////////////////////////////////
 // Row - the representation of a row in a set of database results. Row is a
@@ -30,7 +31,8 @@ Status serializeRow(const Row& r, pt::ptree& tree) {
     for (auto& i : r) {
       tree.put<std::string>(i.first, i.second);
     }
-  } catch(const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -51,7 +53,8 @@ Status serializeQueryData(const QueryData& q, pt::ptree& tree) {
       }
       tree.push_back(std::make_pair("", serialized));
     }
-  } catch(const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -78,7 +81,8 @@ Status serializeDiffResults(const DiffResults& d, pt::ptree& tree) {
       return removed_status;
     }
     tree.add_child("removed", removed);
-  } catch(const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -94,7 +98,8 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
     std::ostringstream ss;
     pt::write_json(ss, tree, false);
     json = ss.str();
-  } catch(const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -113,21 +118,15 @@ DiffResults diff(const QueryData& old_, const QueryData& new_) {
     }
   }
 
-  std::multiset<Row> overlap_set(
-    overlap.begin(),
-    overlap.end()
-  );
+  std::multiset<Row> overlap_set(overlap.begin(), overlap.end());
 
-  std::multiset<Row> old_set(
-    old_.begin(),
-    old_.end()
-  );
+  std::multiset<Row> old_set(old_.begin(), old_.end());
 
-  std::set_difference(
-    old_set.begin(), old_set.end(),
-    overlap_set.begin(), overlap_set.end(),
-    std::back_inserter(r.removed)
-  );
+  std::set_difference(old_set.begin(),
+                      old_set.end(),
+                      overlap_set.begin(),
+                      overlap_set.end(),
+                      std::back_inserter(r.removed));
 
   return r;
 }
@@ -137,8 +136,8 @@ DiffResults diff(const QueryData& old_, const QueryData& new_) {
 // a particlar scheduled database query.
 /////////////////////////////////////////////////////////////////////////////
 
-Status serializeHistoricalQueryResultsJSON(
-  const HistoricalQueryResults& r, std::string& json) {
+Status serializeHistoricalQueryResultsJSON(const HistoricalQueryResults& r,
+                                           std::string& json) {
   try {
     pt::ptree tree;
     auto s = serializeHistoricalQueryResults(r, tree);
@@ -148,14 +147,15 @@ Status serializeHistoricalQueryResultsJSON(
     std::ostringstream ss;
     pt::write_json(ss, tree, false);
     json = ss.str();
-  } catch(const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
 }
 
-Status serializeHistoricalQueryResults(
-  const HistoricalQueryResults& r, pt::ptree& tree) {
+Status serializeHistoricalQueryResults(const HistoricalQueryResults& r,
+                                       pt::ptree& tree) {
   try {
     pt::ptree executions;
     pt::ptree mostRecentResults;
@@ -170,14 +170,13 @@ Status serializeHistoricalQueryResults(
 
     pt::ptree most_recent_serialized;
     auto mrr_status =
-      serializeQueryData(r.mostRecentResults.second, most_recent_serialized);
+        serializeQueryData(r.mostRecentResults.second, most_recent_serialized);
     if (!mrr_status.ok()) {
       return mrr_status;
     }
     mostRecentResults.add_child(
-      boost::lexical_cast<std::string>(r.mostRecentResults.first),
-      most_recent_serialized
-    );
+        boost::lexical_cast<std::string>(r.mostRecentResults.first),
+        most_recent_serialized);
     tree.add_child("mostRecentResults", mostRecentResults);
 
     for (const auto& i : r.pastResults) {
@@ -186,27 +185,27 @@ Status serializeHistoricalQueryResults(
       if (!dr_status.ok()) {
         return dr_status;
       }
-      pastResults.add_child(
-        boost::lexical_cast<std::string>(i.first),
-        serialized_diff_results
-      );
+      pastResults.add_child(boost::lexical_cast<std::string>(i.first),
+                            serialized_diff_results);
     }
     tree.add_child("pastResults", pastResults);
-  } catch(const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
 }
 
-Status deserializeHistoricalQueryResults(
-  const pt::ptree& tree, HistoricalQueryResults& r) {
+Status deserializeHistoricalQueryResults(const pt::ptree& tree,
+                                         HistoricalQueryResults& r) {
   try {
     for (const auto& v : tree.get_child("executions")) {
       try {
-          int execution =
+        int execution =
             boost::lexical_cast<int>(v.second.get_value<std::string>());
-          r.executions.push_back(execution);
-      } catch(const boost::bad_lexical_cast& e) {
+        r.executions.push_back(execution);
+      }
+      catch (const boost::bad_lexical_cast& e) {
         return Status(1, e.what());
       }
     }
@@ -215,7 +214,8 @@ Status deserializeHistoricalQueryResults(
       try {
         int execution = boost::lexical_cast<int>(v.first);
         r.mostRecentResults.first = execution;
-      } catch(const boost::bad_lexical_cast& e) {
+      }
+      catch (const boost::bad_lexical_cast& e) {
         return Status(1, e.what());
       }
       QueryData q;
@@ -233,7 +233,8 @@ Status deserializeHistoricalQueryResults(
       int execution;
       try {
         execution = boost::lexical_cast<int>(v.first);
-      } catch(const boost::bad_lexical_cast& e) {
+      }
+      catch (const boost::bad_lexical_cast& e) {
         return Status(1, e.what());
       }
       DiffResults dr;
@@ -255,20 +256,22 @@ Status deserializeHistoricalQueryResults(
     }
 
     return Status(0, "OK");
-  } catch(const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     LOG(ERROR) << e.what();
     return Status(1, e.what());
   }
 }
 
-Status deserializeHistoricalQueryResultsJSON(
-  const std::string& json, HistoricalQueryResults& r) {
+Status deserializeHistoricalQueryResultsJSON(const std::string& json,
+                                             HistoricalQueryResults& r) {
   pt::ptree tree;
   try {
     std::stringstream j;
     j << json;
     pt::read_json(j, tree);
-  } catch(const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return deserializeHistoricalQueryResults(tree, r);
@@ -279,8 +282,8 @@ Status deserializeHistoricalQueryResultsJSON(
 // s schedueld query yields operating system state change.
 /////////////////////////////////////////////////////////////////////////////
 
-Status serializeScheduledQueryLogItem(
-  const ScheduledQueryLogItem& i, boost::property_tree::ptree& tree) {
+Status serializeScheduledQueryLogItem(const ScheduledQueryLogItem& i,
+                                      boost::property_tree::ptree& tree) {
   try {
     pt::ptree diffResults;
     auto diff_results_status = serializeDiffResults(i.diffResults, diffResults);
@@ -289,14 +292,15 @@ Status serializeScheduledQueryLogItem(
     }
     tree.add_child("diffResults", diffResults);
     tree.put<std::string>("name", i.name);
-  } catch(const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
 }
 
-Status serializeScheduledQueryLogItemJSON(
-  const ScheduledQueryLogItem& i, std::string& json) {
+Status serializeScheduledQueryLogItemJSON(const ScheduledQueryLogItem& i,
+                                          std::string& json) {
   try {
     pt::ptree tree;
     auto s = serializeScheduledQueryLogItem(i, tree);
@@ -306,9 +310,11 @@ Status serializeScheduledQueryLogItemJSON(
     std::ostringstream ss;
     pt::write_json(ss, tree, false);
     json = ss.str();
-  } catch(const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
 }
-}}
+}
+}
