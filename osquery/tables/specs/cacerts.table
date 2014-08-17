@@ -1,0 +1,13 @@
+table_name("cacerts")
+schema([
+    Column(name="common_name", type="std::string"),
+    Column(name="not_valid_before", type="int"),
+    Column(name="not_valid_after", type="int"),
+    Column(name="key_algorithm", type="std::string"),
+    Column(name="key_usage", type="std::string"),
+    Column(name="subject_key_id", type="std::string"),
+    Column(name="authority_key_id", type="std::string"),
+    Column(name="sha1", type="std::string"),
+
+])
+implementation("osquery/tables/system/cacerts@genCerts")
