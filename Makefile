@@ -15,6 +15,7 @@ build:
 	python tools/gentable.py osquery/tables/specs/alf_services.table
 	python tools/gentable.py osquery/tables/specs/apps.table
 	python tools/gentable.py osquery/tables/specs/launchd.table
+	python tools/gentable.py osquery/tables/specs/cacerts.table
 	mkdir -p build
 	cd build && cmake .. && make -j5
 

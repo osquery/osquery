@@ -78,6 +78,9 @@ getSerializedScheduledQueryLogItem();
 std::pair<std::string, osquery::db::ScheduledQueryLogItem>
 getSerializedScheduledQueryLogItemJSON();
 
+// generate content for a PEM-encoded certificate
+std::string getCACertificateContent();
+
 // generate the content that would be found in an /etc/hosts file
 std::string getEtcHostsContent();
 
