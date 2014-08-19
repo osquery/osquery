@@ -16,6 +16,7 @@ build:
 	python tools/gentable.py osquery/tables/specs/apps.table
 	python tools/gentable.py osquery/tables/specs/launchd.table
 	python tools/gentable.py osquery/tables/specs/cacerts.table
+	python tools/gentable.py osquery/tables/specs/listening_ports.table
 	mkdir -p build
 	cd build && cmake .. && make -j5
 

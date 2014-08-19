@@ -1,0 +1,9 @@
+table_name("listening_ports")
+schema([
+    Column(name="pid", type="int"),
+    Column(name="port", type="int"),
+    Column(name="protocol", type="int"),
+    Column(name="family", type="int"),
+    Column(name="address", type="std::string"),
+])
+implementation("osquery/tables/networking/listening_ports@genListeningPorts")
