@@ -15,13 +15,57 @@ namespace pt = boost::property_tree;
 
 namespace osquery { namespace fs {
 
+NSMutableArray* filterArray(id dataStructure);
+
+NSMutableDictionary* filterDictionary(id dataStructure) {
+  NSMutableDictionary *result = [NSMutableDictionary new];
+  for (id key in [dataStructure allKeys]) {
+    NSString *className = NSStringFromClass([[dataStructure objectForKey:key] class]);
+    if ([className isEqualToString:@"__NSArrayI"] ||
+        [className isEqualToString:@"__NSArrayM"] ||
+        [className isEqualToString:@"__NSCFArray"]) {
+      [result setObject:filterArray([dataStructure objectForKey:key]) forKey:key];
+    } else if ([className isEqualToString:@"__NSCFDictionary"]) {
+      [result setObject:filterDictionary([dataStructure objectForKey:key]) forKey:key];
+    } else if ([className isEqualToString:@"__NSCFData"]) {
+      [result setObject:@"NSData" forKey:key];
+    } else {
+      [result setObject:[dataStructure objectForKey:key] forKey:key];
+    }
+  }
+  return result;
+}
+
+NSMutableArray* filterArray(id dataStructure) {
+  NSMutableArray *result = [NSMutableArray new];
+  for (id value in dataStructure) {
+    NSString *className = NSStringFromClass([value class]);
+    if ([className isEqualToString:@"__NSCFDictionary"]) {
+      [result addObject:filterDictionary(value)];
+    } else if ([className isEqualToString:@"__NSArrayI"] ||
+        [className isEqualToString:@"__NSArrayM"] ||
+        [className isEqualToString:@"__NSCFArray"]) {
+      [result addObject:filterArray(value)];
+    } else if ([className isEqualToString:@"__NSCFData"]) {
+      [result addObject:@"NSData"];
+    } else {
+      [result addObject:value];
+    }
+  }
+  return result;
+}
+
+NSMutableDictionary* filterPlist(NSMutableDictionary *plist) {
+  return filterDictionary(plist);
+}
+
 Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
   NSData *plistContent = [NSData dataWithBytes:fileContent.c_str()
                                         length:fileContent.size()];
 
   NSError *error;
   NSPropertyListFormat plistFormat;
-  NSDictionary *plist = (NSDictionary*)
+  NSMutableDictionary *plist = (NSMutableDictionary*)
     [NSPropertyListSerialization propertyListWithData:plistContent
                                               options:NSPropertyListImmutable
                                                format:&plistFormat
@@ -46,6 +90,14 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
       VLOG(1) << "plist was in unknown format";
       break;
     }
+  }
+
+  try {
+    plist = filterPlist(plist);
+  } catch (const std::exception& e) {
+    LOG(ERROR) << "An exception occured while filtering the plist: " <<
+      e.what();
+    return Status(1, e.what());
   }
 
   NSData *jsonDataObjc;
