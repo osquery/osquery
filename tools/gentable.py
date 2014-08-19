@@ -293,7 +293,7 @@ def implementation(impl_string):
     table.impl = impl
     table.function = function
 
-def main(argv, argc):
+def main(argc, argv):
     if DEVELOPING:
         logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG)
     else:
@@ -310,4 +310,4 @@ def main(argv, argc):
         table.generate()
 
 if __name__ == "__main__":
-    main(sys.argv, len(sys.argv))
+    main(len(sys.argv), sys.argv)
