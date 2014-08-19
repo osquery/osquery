@@ -1,0 +1,4 @@
+--config_path="/var/osquery/osquery.conf"
+--config_retriever="filesystem"
+--log_path="/var/log/osquery.log"
+--log_receiver="filesystem"

@@ -12,11 +12,9 @@ ExternalProject_Add(librocksdb
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party/rocksdb"
   CONFIGURE_COMMAND ""
   BUILD_IN_SOURCE 1
-  BUILD_COMMAND make static_lib
-  INSTALL_COMMAND ""
+  BUILD_COMMAND make shared_lib && make static_lib
+  INSTALL_COMMAND cp librocksdb.dylib /usr/local/lib/librocksdb.dylib && cp librocksdb.a /usr/local/lib/librocksdb.a
 )
-
-LINK_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/rocksdb")
 
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 ADD_SUBDIRECTORY("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
@@ -52,10 +50,6 @@ ADD_LIBRARY(osquery_static osquery/main/lib.cpp)
 TARGET_LINK_LIBRARIES(osquery_static ${OSQUERY_LIBS})
 SET_TARGET_PROPERTIES(osquery_static PROPERTIES OUTPUT_NAME osquery)
 
-ADD_LIBRARY(osquery_dynamic SHARED osquery/main/lib.cpp)
-TARGET_LINK_LIBRARIES(osquery_dynamic ${OSQUERY_LIBS})
-SET_TARGET_PROPERTIES(osquery_dynamic PROPERTIES OUTPUT_NAME osquery)
-
 ADD_EXECUTABLE(shell osquery/main/shell.cpp)
 TARGET_LINK_LIBRARIES(shell osquery_static)
 SET_TARGET_PROPERTIES(shell PROPERTIES OUTPUT_NAME osqueryi)
@@ -65,3 +59,5 @@ ADD_EXECUTABLE(daemon osquery/main/daemon.cpp)
 TARGET_LINK_LIBRARIES(daemon osquery_static)
 SET_TARGET_PROPERTIES(daemon PROPERTIES OUTPUT_NAME osqueryd)
 INSTALL(TARGETS daemon DESTINATION bin)
+
+ADD_SUBDIRECTORY(tools)
