@@ -42,6 +42,7 @@ distclean:
 format:
 	clang-format -i osquery/**/*.h
 	clang-format -i osquery/**/*.cpp
+	clang-format -i osquery/**/*.mm
 
 runtests: build
 	find build -name "*_tests" -type f -exec '{}' \;
