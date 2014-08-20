@@ -46,7 +46,7 @@ def main(argc, argv):
     tables_specs += [os.path.join(X_SPEC_DIR, i) for i in os.listdir(X_SPEC_DIR)]
     tables_specs += [os.path.join(OS_SPEC_DIR, i) for i in os.listdir(OS_SPEC_DIR)]
     for filename in tables_specs:
-        args = ["python", GENTABLE_PATH, os.path.join(SPEC_DIR, filename)]
+        args = ["python", GENTABLE_PATH, filename]
         logging.info(" ".join(args))
         p = subprocess.Popen(args, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
