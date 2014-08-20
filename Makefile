@@ -41,6 +41,7 @@ format:
 	clang-format -i osquery/**/*.h
 	clang-format -i osquery/**/*.cpp
 	clang-format -i osquery/**/*.mm
+	clang-format -i tools/*.cpp
 
 .PHONY: package
 package: all
