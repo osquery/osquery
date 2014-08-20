@@ -12,7 +12,8 @@
 using namespace osquery::core;
 namespace pt = boost::property_tree;
 
-namespace osquery { namespace fs {
+namespace osquery {
+namespace fs {
 
 class PlistTests : public testing::Test {};
 
@@ -34,20 +35,20 @@ TEST_F(PlistTests, test_parse_plist_content) {
   EXPECT_THROW(tree.get<bool>("foobar"), pt::ptree_bad_path);
   EXPECT_EQ(tree.get<std::string>("Label"), "com.apple.FileSyncAgent.sshd");
   std::vector<std::string> program_arguments = {
-    "/System/Library/CoreServices/FileSyncAgent.app/Contents/Resources/FileSyncAgent_sshd-keygen-wrapper",
-    "-i",
-    "-f",
-    "/System/Library/CoreServices/FileSyncAgent.app/Contents/Resources/FileSyncAgent_sshd_config",
-  };
+      "/System/Library/CoreServices/FileSyncAgent.app/Contents/Resources/"
+      "FileSyncAgent_sshd-keygen-wrapper",
+      "-i", "-f",
+      "/System/Library/CoreServices/FileSyncAgent.app/Contents/Resources/"
+      "FileSyncAgent_sshd_config", };
   pt::ptree program_arguments_tree = tree.get_child("ProgramArguments");
   std::vector<std::string> program_arguments_parsed;
   for (const auto& argument : program_arguments_tree) {
-      program_arguments_parsed.push_back(argument.second.get<std::string>(""));
+    program_arguments_parsed.push_back(argument.second.get<std::string>(""));
   }
   EXPECT_EQ(program_arguments_parsed, program_arguments);
 }
-
-}}
+}
+}
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);

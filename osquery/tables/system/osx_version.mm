@@ -10,11 +10,13 @@
 
 using namespace osquery::db;
 
-namespace osquery { namespace tables {
+namespace osquery {
+namespace tables {
 
 QueryData genOSXVersion() {
 
-  NSOperatingSystemVersion v = [[NSProcessInfo processInfo] operatingSystemVersion];
+  NSOperatingSystemVersion v =
+      [[NSProcessInfo processInfo] operatingSystemVersion];
 
   Row r;
   r["major"] = boost::lexical_cast<std::string>(v.majorVersion);
@@ -23,5 +25,5 @@ QueryData genOSXVersion() {
 
   return {r};
 }
-
-}}
+}
+}

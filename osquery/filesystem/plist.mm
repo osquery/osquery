@@ -13,20 +13,24 @@
 using osquery::Status;
 namespace pt = boost::property_tree;
 
-namespace osquery { namespace fs {
+namespace osquery {
+namespace fs {
 
 NSMutableArray* filterArray(id dataStructure);
 
 NSMutableDictionary* filterDictionary(id dataStructure) {
-  NSMutableDictionary *result = [NSMutableDictionary new];
+  NSMutableDictionary* result = [NSMutableDictionary new];
   for (id key in [dataStructure allKeys]) {
-    NSString *className = NSStringFromClass([[dataStructure objectForKey:key] class]);
+    NSString* className =
+        NSStringFromClass([[dataStructure objectForKey:key] class]);
     if ([className isEqualToString:@"__NSArrayI"] ||
         [className isEqualToString:@"__NSArrayM"] ||
         [className isEqualToString:@"__NSCFArray"]) {
-      [result setObject:filterArray([dataStructure objectForKey:key]) forKey:key];
+      [result setObject:filterArray([dataStructure objectForKey:key])
+                 forKey:key];
     } else if ([className isEqualToString:@"__NSCFDictionary"]) {
-      [result setObject:filterDictionary([dataStructure objectForKey:key]) forKey:key];
+      [result setObject:filterDictionary([dataStructure objectForKey:key])
+                 forKey:key];
     } else if ([className isEqualToString:@"__NSCFData"]) {
       [result setObject:@"NSData" forKey:key];
     } else {
@@ -37,14 +41,14 @@ NSMutableDictionary* filterDictionary(id dataStructure) {
 }
 
 NSMutableArray* filterArray(id dataStructure) {
-  NSMutableArray *result = [NSMutableArray new];
+  NSMutableArray* result = [NSMutableArray new];
   for (id value in dataStructure) {
-    NSString *className = NSStringFromClass([value class]);
+    NSString* className = NSStringFromClass([value class]);
     if ([className isEqualToString:@"__NSCFDictionary"]) {
       [result addObject:filterDictionary(value)];
     } else if ([className isEqualToString:@"__NSArrayI"] ||
-        [className isEqualToString:@"__NSArrayM"] ||
-        [className isEqualToString:@"__NSCFArray"]) {
+               [className isEqualToString:@"__NSArrayM"] ||
+               [className isEqualToString:@"__NSCFArray"]) {
       [result addObject:filterArray(value)];
     } else if ([className isEqualToString:@"__NSCFData"]) {
       [result addObject:@"NSData"];
@@ -55,21 +59,21 @@ NSMutableArray* filterArray(id dataStructure) {
   return result;
 }
 
-NSMutableDictionary* filterPlist(NSMutableDictionary *plist) {
+NSMutableDictionary* filterPlist(NSMutableDictionary* plist) {
   return filterDictionary(plist);
 }
 
 Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
-  NSData *plistContent = [NSData dataWithBytes:fileContent.c_str()
-                                        length:fileContent.size()];
+  NSData* plistContent =
+      [NSData dataWithBytes:fileContent.c_str() length:fileContent.size()];
 
-  NSError *error;
+  NSError* error;
   NSPropertyListFormat plistFormat;
-  NSMutableDictionary *plist = (NSMutableDictionary*)
-    [NSPropertyListSerialization propertyListWithData:plistContent
-                                              options:NSPropertyListImmutable
-                                               format:&plistFormat
-                                                error:&error];
+  NSMutableDictionary* plist = (NSMutableDictionary*)
+      [NSPropertyListSerialization propertyListWithData:plistContent
+                                                options:NSPropertyListImmutable
+                                                 format:&plistFormat
+                                                  error:&error];
 
   if (plist == nil) {
     std::string errorMessage([[error localizedFailureReason] UTF8String]);
@@ -94,17 +98,17 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
 
   try {
     plist = filterPlist(plist);
-  } catch (const std::exception& e) {
-    LOG(ERROR) << "An exception occured while filtering the plist: " <<
-      e.what();
+  }
+  catch (const std::exception& e) {
+    LOG(ERROR)
+        << "An exception occured while filtering the plist: " << e.what();
     return Status(1, e.what());
   }
 
-  NSData *jsonDataObjc;
+  NSData* jsonDataObjc;
   if ([NSJSONSerialization isValidJSONObject:plist]) {
-    jsonDataObjc = [NSJSONSerialization dataWithJSONObject:plist
-                                                   options:0
-                                                     error:&error];
+    jsonDataObjc =
+        [NSJSONSerialization dataWithJSONObject:plist options:0 error:&error];
   } else {
     return Status(1, "Valid JSON was not deserialized");
   }
@@ -114,16 +118,18 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
     return Status(1, errorMessage);
   }
 
-  NSString* jsonStringObjc = [[NSString alloc] initWithBytes:[jsonDataObjc bytes]
-                                                      length:[jsonDataObjc length]
-                                                    encoding:NSUTF8StringEncoding];
+  NSString* jsonStringObjc =
+      [[NSString alloc] initWithBytes:[jsonDataObjc bytes]
+                               length:[jsonDataObjc length]
+                             encoding:NSUTF8StringEncoding];
   std::string jsonStringCxx = std::string([jsonStringObjc UTF8String]);
   VLOG(2) << "Deserialized JSON content from plist: " << jsonStringCxx;
   std::stringstream ss;
   ss << jsonStringCxx;
   try {
     pt::read_json(ss, tree);
-  } catch(pt::json_parser::json_parser_error &e) {
+  }
+  catch (pt::json_parser::json_parser_error& e) {
     LOG(ERROR) << "Error reading JSON: " << e.what();
     return Status(1, e.what());
   }
@@ -139,5 +145,5 @@ Status parsePlist(const std::string& path, pt::ptree& tree) {
   }
   return parsePlistContent(fileContent, tree);
 }
-
-}}
+}
+}
