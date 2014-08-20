@@ -22,6 +22,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 # the directory where the table specs are stored
 SPEC_DIR = os.path.join(BASE_DIR, "osquery/tables/specs")
 
+# the directory where the cross-platform specs are stored
+X_SPEC_DIR = os.path.join(SPEC_DIR, "x")
+
+# the directory where the OS specific specs are stored
+OS_SPEC_DIR = os.path.join(SPEC_DIR, sys.platform)
+
 # the directory where generated tables are stored
 GENERATED_TABLE_DIR = os.path.join(BASE_DIR, "osquery/tables/generated")
 
@@ -36,7 +42,10 @@ def main(argc, argv):
 
     if not os.path.isdir(GENERATED_TABLE_DIR):
         os.mkdir(GENERATED_TABLE_DIR)
-    for filename in os.listdir(SPEC_DIR):
+    tables_specs = []
+    tables_specs += [os.path.join(X_SPEC_DIR, i) for i in os.listdir(X_SPEC_DIR)]
+    tables_specs += [os.path.join(OS_SPEC_DIR, i) for i in os.listdir(OS_SPEC_DIR)]
+    for filename in tables_specs:
         args = ["python", GENTABLE_PATH, os.path.join(SPEC_DIR, filename)]
         logging.info(" ".join(args))
         p = subprocess.Popen(args, stdout=subprocess.PIPE,
