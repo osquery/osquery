@@ -9,6 +9,7 @@ ADD_LIBRARY(osquery_tables
   examples/example.cpp
   networking/etc_hosts.cpp
   networking/listening_ports.cpp
+  networking/routes.cpp
   system/kextstat.cpp
   system/processes.cpp
   system/nvram.cpp
