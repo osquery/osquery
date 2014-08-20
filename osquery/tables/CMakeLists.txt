@@ -6,7 +6,6 @@ FILE(GLOB table_sources
 ADD_LIBRARY(osquery_tables
   registry.cpp
   ${table_sources}
-  examples/example.cpp
   networking/etc_hosts.cpp
   networking/listening_ports.cpp
   networking/routes.cpp
