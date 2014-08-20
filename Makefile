@@ -1,22 +1,7 @@
-all: build
+all: tables build
 
 .PHONY: build
 build:
-	mkdir -p osquery/tables/generated
-	python tools/gentable.py osquery/tables/specs/etc_hosts.table
-	python tools/gentable.py osquery/tables/specs/kextstat.table
-	python tools/gentable.py osquery/tables/specs/processes.table
-	python tools/gentable.py osquery/tables/specs/nvram.table
-	python tools/gentable.py osquery/tables/specs/osx_version.table
-	python tools/gentable.py osquery/tables/specs/alf.table
-	python tools/gentable.py osquery/tables/specs/alf_exceptions.table
-	python tools/gentable.py osquery/tables/specs/alf_explicit_auths.table
-	python tools/gentable.py osquery/tables/specs/alf_services.table
-	python tools/gentable.py osquery/tables/specs/apps.table
-	python tools/gentable.py osquery/tables/specs/launchd.table
-	python tools/gentable.py osquery/tables/specs/cacerts.table
-	python tools/gentable.py osquery/tables/specs/listening_ports.table
-	python tools/gentable.py osquery/tables/specs/routes.table
 	mkdir -p build
 	cd build && cmake .. && make -j5
 
@@ -46,6 +31,23 @@ format:
 
 runtests: build
 	find build -name "*_tests" -type f -exec '{}' \;
+
+tables:
+	mkdir -p osquery/tables/generated
+	python tools/gentable.py osquery/tables/specs/etc_hosts.table
+	python tools/gentable.py osquery/tables/specs/kextstat.table
+	python tools/gentable.py osquery/tables/specs/processes.table
+	python tools/gentable.py osquery/tables/specs/nvram.table
+	python tools/gentable.py osquery/tables/specs/osx_version.table
+	python tools/gentable.py osquery/tables/specs/alf.table
+	python tools/gentable.py osquery/tables/specs/alf_exceptions.table
+	python tools/gentable.py osquery/tables/specs/alf_explicit_auths.table
+	python tools/gentable.py osquery/tables/specs/alf_services.table
+	python tools/gentable.py osquery/tables/specs/apps.table
+	python tools/gentable.py osquery/tables/specs/launchd.table
+	python tools/gentable.py osquery/tables/specs/cacerts.table
+	python tools/gentable.py osquery/tables/specs/listening_ports.table
+	python tools/gentable.py osquery/tables/specs/routes.table
 
 update:
 	git submodule foreach git pull origin master
