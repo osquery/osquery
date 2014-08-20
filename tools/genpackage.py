@@ -20,7 +20,7 @@ LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
 # the path to the pkgproj file
 PKG_CONFIG_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-    "package/osx/osquery.pkgproj",
+    "package/darwin/osquery.pkgproj",
 )
 
 def usage():
@@ -37,7 +37,7 @@ def main(argc, argv):
 
     plist = plistlib.readPlist(PKG_CONFIG_PATH)
 
-    logging.debug("Project version: %s" % (
+    logging.info("Project version: %s" % (
         plist["PROJECT"]["PACKAGE_SETTINGS"]["VERSION"]
     ))
 

@@ -33,7 +33,7 @@ endif
 
 distclean: clean_tables
 ifeq ($(OS),Darwin)
-	rm -rf package/osx/build
+	rm -rf package/darwin/build
 endif
 	rm -rf build
 
@@ -48,10 +48,10 @@ package: all
 	git submodule init
 	git submodule update
 ifeq ($(OS),Darwin)
-	packagesbuild -v package/osx/osquery.pkgproj
-	mkdir -p build/osx
-	mv package/osx/build/osquery.pkg build/osx/osquery.pkg
-	rm -rf package/osx/build
+	packagesbuild -v package/darwin/osquery.pkgproj
+	mkdir -p build/darwin
+	mv package/darwin/build/osquery.pkg build/darwin/osquery.pkg
+	rm -rf package/darwin/build
 endif
 
 pull:
