@@ -64,10 +64,18 @@ NSMutableDictionary* filterPlist(NSMutableDictionary* plist) {
 }
 
 Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
+  int statusCode = 0;
+  std::string statusString = "OK";
+
+  std::stringstream ss;
+  std::string jsonStringCxx;
+  NSString* jsonStringObjc = [NSString new];
+  NSData* jsonDataObjc = [NSData new];
+
   NSData* plistContent =
       [NSData dataWithBytes:fileContent.c_str() length:fileContent.size()];
 
-  NSError* error;
+  NSError* error = nil;
   NSPropertyListFormat plistFormat;
   NSMutableDictionary* plist = (NSMutableDictionary*)
       [NSPropertyListSerialization propertyListWithData:plistContent
@@ -78,7 +86,9 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
   if (plist == nil) {
     std::string errorMessage([[error localizedFailureReason] UTF8String]);
     LOG(ERROR) << errorMessage;
-    return Status(1, errorMessage);
+    statusCode = 1;
+    statusString = errorMessage;
+    goto cleanup;
   } else {
     switch (plistFormat) {
     case NSPropertyListOpenStepFormat:
@@ -102,39 +112,61 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
   catch (const std::exception& e) {
     LOG(ERROR)
         << "An exception occured while filtering the plist: " << e.what();
-    return Status(1, e.what());
+    statusCode = 1;
+    statusString = e.what();
+    goto cleanup;
   }
 
-  NSData* jsonDataObjc;
   if ([NSJSONSerialization isValidJSONObject:plist]) {
     jsonDataObjc =
         [NSJSONSerialization dataWithJSONObject:plist options:0 error:&error];
   } else {
-    return Status(1, "Valid JSON was not deserialized");
+    statusCode = 1;
+    statusString = "Valid JSON was not deserialized";
+    goto cleanup;
   }
   if (jsonDataObjc == nil) {
     std::string errorMessage([[error localizedFailureReason] UTF8String]);
     LOG(ERROR) << errorMessage;
-    return Status(1, errorMessage);
+    statusCode = 1;
+    statusString = errorMessage;
+    goto cleanup;
   }
 
-  NSString* jsonStringObjc =
+  jsonStringObjc =
       [[NSString alloc] initWithBytes:[jsonDataObjc bytes]
                                length:[jsonDataObjc length]
                              encoding:NSUTF8StringEncoding];
-  std::string jsonStringCxx = std::string([jsonStringObjc UTF8String]);
+  jsonStringCxx = std::string([jsonStringObjc UTF8String]);
   VLOG(2) << "Deserialized JSON content from plist: " << jsonStringCxx;
-  std::stringstream ss;
   ss << jsonStringCxx;
   try {
     pt::read_json(ss, tree);
   }
   catch (pt::json_parser::json_parser_error& e) {
     LOG(ERROR) << "Error reading JSON: " << e.what();
-    return Status(1, e.what());
+    statusCode = 1;
+    statusString = e.what();
+    goto cleanup;
   }
 
-  return Status(0, "OK");
+cleanup:
+  if (jsonStringObjc != nil) {
+    [jsonStringObjc release];
+  }
+  if (jsonDataObjc != nil) {
+    [jsonDataObjc release];
+  }
+  if (plistContent != nil) {
+    [plistContent release];
+  }
+  if (error != nil) {
+    [error release];
+  }
+  if (plist != nil) {
+    [plist release];
+  }
+  return Status(statusCode, statusString);
 }
 
 Status parsePlist(const std::string& path, pt::ptree& tree) {

@@ -7,7 +7,7 @@
 		<key>PACKAGE_FILES</key>
 		<dict>
 			<key>DEFAULT_INSTALL_LOCATION</key>
-			<string>/usr/local/bin</string>
+			<string>/</string>
 			<key>HIERARCHY</key>
 			<dict>
 				<key>CHILDREN</key>
@@ -162,7 +162,24 @@
 							</dict>
 							<dict>
 								<key>CHILDREN</key>
-								<array/>
+								<array>
+									<dict>
+										<key>CHILDREN</key>
+										<array/>
+										<key>GID</key>
+										<integer>0</integer>
+										<key>PATH</key>
+										<string>com.facebook.osqueryd.plist</string>
+										<key>PATH_TYPE</key>
+										<integer>1</integer>
+										<key>PERMISSIONS</key>
+										<integer>420</integer>
+										<key>TYPE</key>
+										<integer>3</integer>
+										<key>UID</key>
+										<integer>0</integer>
+									</dict>
+								</array>
 								<key>GID</key>
 								<integer>0</integer>
 								<key>PATH</key>
@@ -933,6 +950,56 @@
 						<key>UID</key>
 						<integer>0</integer>
 					</dict>
+					<dict>
+						<key>CHILDREN</key>
+						<array>
+							<dict>
+								<key>CHILDREN</key>
+								<array>
+									<dict>
+										<key>CHILDREN</key>
+										<array/>
+										<key>GID</key>
+										<integer>0</integer>
+										<key>PATH</key>
+										<string>osquery.conf</string>
+										<key>PATH_TYPE</key>
+										<integer>1</integer>
+										<key>PERMISSIONS</key>
+										<integer>420</integer>
+										<key>TYPE</key>
+										<integer>3</integer>
+										<key>UID</key>
+										<integer>0</integer>
+									</dict>
+								</array>
+								<key>GID</key>
+								<integer>0</integer>
+								<key>PATH</key>
+								<string>osquery</string>
+								<key>PATH_TYPE</key>
+								<integer>0</integer>
+								<key>PERMISSIONS</key>
+								<integer>493</integer>
+								<key>TYPE</key>
+								<integer>2</integer>
+								<key>UID</key>
+								<integer>0</integer>
+							</dict>
+						</array>
+						<key>GID</key>
+						<integer>0</integer>
+						<key>PATH</key>
+						<string>var</string>
+						<key>PATH_TYPE</key>
+						<integer>0</integer>
+						<key>PERMISSIONS</key>
+						<integer>493</integer>
+						<key>TYPE</key>
+						<integer>2</integer>
+						<key>UID</key>
+						<integer>0</integer>
+					</dict>
 				</array>
 				<key>GID</key>
 				<integer>0</integer>
@@ -961,8 +1028,6 @@
 				<key>PATH_TYPE</key>
 				<integer>1</integer>
 			</dict>
-			<key>PREINSTALL_PATH</key>
-			<dict/>
 			<key>RESOURCES</key>
 			<array/>
 		</dict>
@@ -972,6 +1037,8 @@
 			<integer>1</integer>
 			<key>CONCLUSION_ACTION</key>
 			<integer>0</integer>
+			<key>FOLLOW_SYMBOLIC_LINKS</key>
+			<false/>
 			<key>IDENTIFIER</key>
 			<string>com.facebook.pkg.osquery</string>
 			<key>OVERWRITE_PERMISSIONS</key>

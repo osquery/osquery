@@ -1,6 +1,7 @@
 ADD_LIBRARY(osquery_core
   init_osquery.cpp
   sqlite_util.cpp
+  system.cpp
   test_util.cpp
   text.cpp
 )

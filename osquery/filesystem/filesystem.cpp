@@ -2,7 +2,6 @@
 
 #include "osquery/filesystem.h"
 
-#include <iostream>
 #include <fstream>
 #include <sstream>
 
@@ -22,22 +21,36 @@ Status readFile(const std::string& path, std::string& content) {
     return Status(1, "File not found");
   }
 
+  int statusCode = 0;
+  std::string statusMessage = "OK";
+  char* buffer;
+
   std::ifstream file_h(path);
   if (file_h) {
     file_h.seekg(0, file_h.end);
     int len = file_h.tellg();
     file_h.seekg(0, file_h.beg);
-    char* buffer = new char[len];
+    buffer = new char[len];
     file_h.read(buffer, len);
     if (!file_h) {
-      return Status(1, "Could not read file");
+      statusCode = 1;
+      statusMessage = "Could not read file";
+      goto cleanup_buffer;
     }
     content.assign(buffer, len);
   } else {
-    return Status(1, "Could not open file for reading");
+    statusCode = 1;
+    statusMessage = "Could not open file for reading";
+    goto cleanup;
   }
 
-  return Status(0, "OK");
+cleanup_buffer:
+  free(buffer);
+cleanup:
+  if (file_h) {
+    file_h.close();
+  }
+  return Status(statusCode, statusMessage);
 }
 
 Status listFilesInDirectory(const std::string& path,

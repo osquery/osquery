@@ -16,7 +16,7 @@
 #include "osquery/database.h"
 #include "osquery/logger.h"
 
-#define SCHEDULER_INTERVAL 60
+#define SCHEDULER_INTERVAL 1
 
 using namespace osquery::config;
 namespace core = osquery::core;
@@ -50,10 +50,15 @@ void launchQueries(boost::asio::deadline_timer& t, int mins) {
         continue;
       }
 
-      db::ScheduledQueryLogItem item;
-      item.diffResults = diff_results;
-      item.name = query.name;
-      logger::logScheduledQueryLogItem(item);
+      if (diff_results.added.size() > 0 || diff_results.removed.size() > 0) {
+        db::ScheduledQueryLogItem item;
+        item.diffResults = diff_results;
+        item.name = query.name;
+        item.hostname = osquery::core::getHostname();
+        item.unixTime = osquery::core::getUnixTime();
+        item.calendarTime = osquery::core::getAsciiTime();
+        logger::logScheduledQueryLogItem(item);
+      }
     }
   }
 

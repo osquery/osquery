@@ -205,8 +205,14 @@ getSerializedScheduledQueryLogItem() {
   auto dr = getSerializedDiffResults();
   i.diffResults = dr.second;
   i.name = "foobar";
+  i.calendarTime = "Mon Aug 25 12:10:57 2014";
+  i.unixTime = 1408993857;
+  i.hostname = "foobaz";
   root.add_child("diffResults", dr.first);
   root.put<std::string>("name", "foobar");
+  root.put<std::string>("hostname", "foobaz");
+  root.put<std::string>("calendarTime", "Mon Aug 25 12:10:57 2014");
+  root.put<int>("unixTime", 1408993857);
   return std::make_pair(root, i);
 }
 

@@ -19,7 +19,7 @@ using osquery::Status;
 namespace osquery {
 namespace config {
 
-DEFINE_string(config_path, "/var/osquery/config.json", "Path to config file");
+DEFINE_string(config_path, "/var/osquery/osquery.conf", "Path to config file");
 
 class FilesystemConfigPlugin : public ConfigPlugin {
  public:
