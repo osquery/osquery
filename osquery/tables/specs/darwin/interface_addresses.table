@@ -1,0 +1,9 @@
+table_name("interface_addresses")
+schema([
+    Column(name="interface", type="std::string"),
+    Column(name="address", type="std::string"),
+    Column(name="mask", type="std::string"),
+    Column(name="broadcast", type="std::string"),
+    Column(name="point_to_point", type="std::string"),
+])
+implementation("osquery/tables/networking/interfaces@genInterfaceAddresses")
