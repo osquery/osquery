@@ -19,7 +19,7 @@ namespace fs {
 NSMutableArray* filterArray(id dataStructure);
 
 NSMutableDictionary* filterDictionary(id dataStructure) {
-  NSMutableDictionary* result = [NSMutableDictionary new];
+  NSMutableDictionary* result = [[NSMutableDictionary new] autorelease];
   for (id key in [dataStructure allKeys]) {
     NSString* className =
         NSStringFromClass([[dataStructure objectForKey:key] class]);
@@ -41,7 +41,7 @@ NSMutableDictionary* filterDictionary(id dataStructure) {
 }
 
 NSMutableArray* filterArray(id dataStructure) {
-  NSMutableArray* result = [NSMutableArray new];
+  NSMutableArray* result = [[NSMutableArray new] autorelease];
   for (id value in dataStructure) {
     NSString* className = NSStringFromClass([value class]);
     if ([className isEqualToString:@"__NSCFDictionary"]) {
