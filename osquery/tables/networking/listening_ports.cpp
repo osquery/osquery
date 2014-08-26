@@ -130,6 +130,7 @@ QueryData genListeningPorts() {
     free(fd_list);
   }
 
+  free(pids);
   return results;
 }
 }
