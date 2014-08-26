@@ -35,12 +35,13 @@ void genVariable(const void *key, const void *value, void *results) {
   const char *valueString = 0;
   uint32_t number, length;
   // OF variable canonical type casting.
-  CFTypeID typeID;
+  CFTypeID typeID = CFGetTypeID(value);
   CFIndex typeLen;
   char *typeBuffer;
   // Get the OF variable's name.
   CFIndex nameLen;
   char *nameBuffer = 0;
+  CFStringRef typeIDDescription = CFCopyTypeIDDescription(typeID);
 
   nameLen = CFStringGetLength((CFStringRef)key) + 1;
   nameBuffer = (char *)malloc(nameLen);
@@ -55,13 +56,14 @@ void genVariable(const void *key, const void *value, void *results) {
 
   // Get the OF variable's type.
   typeID = CFGetTypeID(value);
-  typeLen = CFStringGetLength(CFCopyTypeIDDescription(typeID)) + 1;
+  typeIDDescription = CFCopyTypeIDDescription(CFGetTypeID(value));
+  typeLen = CFStringGetLength(typeIDDescription) + 1;
   typeBuffer = (char *)malloc(typeLen);
-  if (typeBuffer && CFStringGetCString(CFCopyTypeIDDescription(typeID),
+  if (typeBuffer && CFStringGetCString(typeIDDescription,
                                        typeBuffer,
                                        typeLen,
                                        kCFStringEncodingUTF8)) {
-    nvram_row["type"] = boost::lexical_cast<std::string>(typeBuffer);
+    nvram_row["type"] = std::string(typeBuffer);
   } else {
     goto cleanup;
   }
@@ -134,6 +136,7 @@ cleanup:
   if (valueBuffer != 0) {
     free(valueBuffer);
   }
+  CFRelease(typeIDDescription);
 }
 
 QueryData genNVRAM() {

@@ -45,7 +45,7 @@ Status readFile(const std::string& path, std::string& content) {
   }
 
 cleanup_buffer:
-  free(buffer);
+  delete[] buffer;
 cleanup:
   if (file_h) {
     file_h.close();

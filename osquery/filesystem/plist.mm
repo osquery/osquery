@@ -157,9 +157,6 @@ cleanup:
   if (jsonDataObjc != nil) {
     [jsonDataObjc release];
   }
-  if (plistContent != nil) {
-    [plistContent release];
-  }
   if (error != nil) {
     [error release];
   }
