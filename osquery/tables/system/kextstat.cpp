@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include <CoreFoundation/CoreFoundation.h>
-#include <iostream>
 
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
@@ -19,11 +18,6 @@ extern CFDictionaryRef OSKextCopyLoadedKextInfo(CFArrayRef, CFArrayRef);
 
 namespace osquery {
 namespace tables {
-
-// Convert a CFString to a standard C string
-inline char *cfstring_to_cstring(CFStringRef s) {
-  return ((char *)CFStringGetCStringPtr(s, kCFStringEncodingMacRoman));
-}
 
 QueryData genKextstat() {
   QueryData results;
@@ -49,9 +43,18 @@ QueryData genKextstat() {
       unsigned long long wired_size;
 
       // name
-      std::string name =
-          std::string(cfstring_to_cstring((CFStringRef)CFDictionaryGetValue(
-              (CFDictionaryRef)(values)[j], CFSTR("CFBundleIdentifier"))));
+      std::string name;
+      CFStringRef nameRef = (CFStringRef)CFDictionaryGetValue(
+          (CFDictionaryRef)(values)[j], CFSTR("CFBundleIdentifier"));
+      CFIndex nameLen = CFStringGetLength(nameRef) + 1;
+      char* nameBuffer = (char*)malloc(nameLen);
+      if (nameBuffer && CFStringGetCString(nameRef, nameBuffer, nameLen, kCFStringEncodingUTF8)) {
+        name = std::string(nameBuffer);
+        boost::algorithm::trim(name);
+      }
+      if (nameBuffer != 0) {
+        free(nameBuffer);
+      }
 
       // index
       CFNumberGetValue(
@@ -93,9 +96,18 @@ QueryData genKextstat() {
       boost::algorithm::trim(wired);
 
       // version
-      std::string version =
-          std::string(cfstring_to_cstring((CFStringRef)CFDictionaryGetValue(
-              (CFDictionaryRef)values[j], CFSTR("CFBundleVersion"))));
+      std::string version;
+      CFStringRef versionRef = (CFStringRef)CFDictionaryGetValue(
+          (CFDictionaryRef)values[j], CFSTR("CFBundleVersion"));
+      CFIndex versionLen = CFStringGetLength(versionRef) + 1;
+      char* versionBuffer = (char*)malloc(versionLen);
+      if (versionBuffer && CFStringGetCString(versionRef, versionBuffer, versionLen, kCFStringEncodingUTF8)) {
+        version = std::string(versionBuffer);
+        boost::algorithm::trim(version);
+      }
+      if (versionBuffer != 0) {
+        free(versionBuffer);
+      }
 
       // linked_against
       CFArrayRef dependencies = (CFArrayRef)CFDictionaryGetValue(
