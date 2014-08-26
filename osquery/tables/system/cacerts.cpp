@@ -256,6 +256,7 @@ CFDataRef CreatePropertyFromCertificate(const SecCertificateRef &cert,
     property = (CFDataRef)CFNumberCreateCopy((CFNumberRef)property);
   } else {
     LOG(ERROR) << "This property type is unknown...";
+    property = NULL;
   }
 
   // Release and give the caller control of the property.
