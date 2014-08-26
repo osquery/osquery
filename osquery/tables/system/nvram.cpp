@@ -169,6 +169,7 @@ QueryData genNVRAM() {
 cleanup:
   // Cleanup (registry entry context).
   IOObjectRelease(options_ref);
+  CFRelease(options_dict);
   return results;
 }
 }
