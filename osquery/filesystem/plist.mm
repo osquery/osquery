@@ -36,6 +36,7 @@ NSMutableDictionary* filterDictionary(id dataStructure) {
     } else {
       [result setObject:[dataStructure objectForKey:key] forKey:key];
     }
+    [className release];
   }
   return result;
 }
@@ -55,6 +56,7 @@ NSMutableArray* filterArray(id dataStructure) {
     } else {
       [result addObject:value];
     }
+    [className release];
   }
   return result;
 }
@@ -77,11 +79,11 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
 
   NSError* error = nil;
   NSPropertyListFormat plistFormat;
-  NSMutableDictionary* plist = (NSMutableDictionary*)
-      [NSPropertyListSerialization propertyListWithData:plistContent
+  id plistData = [[NSPropertyListSerialization propertyListWithData:plistContent
                                                 options:NSPropertyListImmutable
                                                  format:&plistFormat
-                                                  error:&error];
+                                                  error:&error] autorelease];
+  NSMutableDictionary* plist = (NSMutableDictionary*)plistData;
 
   if (plist == nil) {
     std::string errorMessage([[error localizedFailureReason] UTF8String]);
@@ -162,6 +164,9 @@ cleanup:
   }
   if (plist != nil) {
     [plist release];
+  }
+  if (plistData != nil) {
+    [plistData release];
   }
   return Status(statusCode, statusString);
 }
