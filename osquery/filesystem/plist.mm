@@ -140,7 +140,6 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
                                length:[jsonDataObjc length]
                              encoding:NSUTF8StringEncoding];
   jsonStringCxx = std::string([jsonStringObjc UTF8String]);
-  VLOG(2) << "Deserialized JSON content from plist: " << jsonStringCxx;
   ss << jsonStringCxx;
   try {
     pt::read_json(ss, tree);
