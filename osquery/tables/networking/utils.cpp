@@ -7,7 +7,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include "utils.h"
+#include "osquery/tables/networking/utils.h"
 
 std::string canonical_ip_address(const struct sockaddr *in) {
   char dst[INET6_ADDRSTRLEN];
