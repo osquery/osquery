@@ -1,0 +1,20 @@
+{
+   <dyld>
+   Memcheck:Cond
+   ...
+   fun:*dyld*
+   fun:*ImageLoader*
+}
+{
+   <glog>
+   Memcheck:Leak
+   ...
+   fun:*google*LogMessage*Init*
+}
+{
+   <rocksdb_histogram_bucket_mapper>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   ...
+   fun:*rocksdb*HistogramBucketMapper*
+}
