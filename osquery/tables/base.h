@@ -35,7 +35,8 @@ struct x_vtab {
 template <class T_VTAB>
 int xDestroy(sqlite3_vtab *p) {
   T_VTAB *pVtab = (T_VTAB *)p;
-  sqlite3_free(pVtab);
+  delete pVtab->pContent;
+  delete pVtab;
   return SQLITE_OK;
 }
 
@@ -148,7 +149,7 @@ int xCreate(sqlite3 *db, /* Database where module is created */
     // sqlite3_create_module_v2() call that registered the virtual table
     // module. This sets the pContent value of the virtual table struct to
     // whatever that value was
-    pVtab->pContent = (T_STRUCT *)pAux;
+    pVtab->pContent = new T_STRUCT;
 
     // this interface is called to declare the format (the names and datatypes
     // of the columns) of the virtual tables they implement
@@ -177,14 +178,7 @@ int sqlite3_attach_vtable(sqlite3 *db,
                           const char *zName,
                           const sqlite3_module *module) {
   int rc = SQLITE_OK;
-  T_STRUCT *p = new T_STRUCT;
-
-  if (p == 0) {
-    return SQLITE_NOMEM;
-  }
-  memset(p, 0, sizeof(*p));
-
-  rc = sqlite3_create_module(db, zName, module, p);
+  rc = sqlite3_create_module(db, zName, module, 0);
   if (rc == SQLITE_OK) {
     char *zSql;
     zSql =
