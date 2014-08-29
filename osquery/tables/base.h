@@ -3,6 +3,7 @@
 #ifndef OSQUERY_TABLES_BASE_H
 #define OSQUERY_TABLES_BASE_H
 
+#include <stdio.h>
 #include <sqlite3.h>
 
 namespace osquery {
@@ -180,11 +181,12 @@ int sqlite3_attach_vtable(sqlite3 *db,
   int rc = SQLITE_OK;
   rc = sqlite3_create_module(db, zName, module, 0);
   if (rc == SQLITE_OK) {
-    char *zSql;
-    zSql =
-        sqlite3_mprintf("CREATE VIRTUAL TABLE temp.%Q USING %Q", zName, zName);
+    const char zFormat[] = "CREATE VIRTUAL TABLE temp.%s USING %s";
+    size_t zSize = (((((sizeof(zFormat) + (sizeof(zName)) + 2) * 2)) + 1) * sizeof(char));
+    char *zSql = (char*)malloc(1024 * sizeof(char));
+    snprintf(zSql, zSize, zFormat, zName, zName);
     rc = sqlite3_exec(db, zSql, 0, 0, 0);
-    sqlite3_free(zSql);
+    free(zSql);
   }
 
   return rc;
