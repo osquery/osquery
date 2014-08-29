@@ -18,3 +18,9 @@
    ...
    fun:*rocksdb*HistogramBucketMapper*
 }
+{
+   <localtime_statically_allocated>
+   Memcheck:Leak
+   ...
+   fun:localtime
+}
