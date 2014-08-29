@@ -1,0 +1,7 @@
+table_name("time")
+schema([
+    Column(name="hour", type="std::string"),
+    Column(name="minutes", type="std::string"),
+    Column(name="seconds", type="std::string"),
+])
+implementation("osquery/tables/utility/time@genTime")
