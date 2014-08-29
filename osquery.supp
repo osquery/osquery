@@ -1,9 +1,26 @@
 {
-   <dyld>
+   <dyld_cond>
    Memcheck:Cond
    ...
    fun:*dyld*
+}
+{
+   <imageloader_cond>
+   Memcheck:Cond
+   ...
    fun:*ImageLoader*
+}
+{
+   <imageloader_leak>
+   Memcheck:Leak
+   ...
+   fun:*ImageLoader*
+}
+{
+   <dyld_initialize>
+   Memcheck:Leak
+   ...
+   fun:*dyld*
 }
 {
    <glog>
@@ -12,15 +29,38 @@
    fun:*google*LogMessage*Init*
 }
 {
-   <rocksdb_histogram_bucket_mapper>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   ...
-   fun:*rocksdb*HistogramBucketMapper*
-}
-{
    <localtime_statically_allocated>
    Memcheck:Leak
    ...
    fun:localtime
+}
+{
+   <rocksdb_init_module>
+   Memcheck:Leak
+   ...
+   fun:*rocksdb*InitModule*
+}
+{
+   <rocksdb_posixenv>
+   Memcheck:Leak
+   ...
+   fun:*rocksdb*PosixEnv*
+}
+{
+   <rocksdb_sanitize_options>
+   Memcheck:Leak
+   ...
+   fun:*rocksdb*SanitizeOptions*
+}
+{
+   <core_foundation>
+   Memcheck:Leak
+   ...
+   fun:_CFRuntimeBridgeClasses
+}
+{
+   <core_foundation_preferences>
+   Memcheck:Leak
+   ...
+   fun:____CFXPreferencesInitialize_block_invoke
 }
