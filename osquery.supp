@@ -53,6 +53,12 @@
    fun:*rocksdb*SanitizeOptions*
 }
 {
+   <rocksdb_internalstats>
+   Memcheck:Leak
+   ...
+   fun:*rocksdb*InternalStats*
+}
+{
    <core_foundation>
    Memcheck:Leak
    ...
