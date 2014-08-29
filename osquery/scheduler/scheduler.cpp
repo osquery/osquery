@@ -2,6 +2,7 @@
 
 #include "osquery/scheduler.h"
 
+#include <climits>
 #include <ctime>
 
 #include <glog/logging.h>
@@ -11,7 +12,14 @@
 #include "osquery/database.h"
 #include "osquery/logger.h"
 
-#define SCHEDULER_INTERVAL 1
+#ifdef OSQUERY_TEST_DAEMON
+// if we're testing the daemon, set the time between each "minute" to be one
+// second so that we see results faster
+#define SECONDS_IN_A_MINUTE 1
+#else
+// in production, a minute is 60 seconds long
+#define SECONDS_IN_A_MINUTE 60
+#endif
 
 using namespace osquery::config;
 namespace core = osquery::core;
@@ -44,13 +52,18 @@ void launchQueries(const osquery::config::scheduledQueries_t& queries, const int
       }
 
       if (diff_results.added.size() > 0 || diff_results.removed.size() > 0) {
+        VLOG(1) << "Results found for query: \"" << query.query << "\"";
         db::ScheduledQueryLogItem item;
         item.diffResults = diff_results;
         item.name = query.name;
         item.hostname = osquery::core::getHostname();
         item.unixTime = osquery::core::getUnixTime();
         item.calendarTime = osquery::core::getAsciiTime();
-        logger::logScheduledQueryLogItem(item);
+        auto s = logger::logScheduledQueryLogItem(item);
+        if (!s.ok()) {
+          LOG(ERROR) << "Error logging the results of query \"" << query.query
+            << "\"" << ": " << s.toString();
+        }
       }
     }
   }
@@ -60,11 +73,18 @@ void initialize() {
   DLOG(INFO) << "osquery::scheduler::initialize";
   time_t t = time(0);
   struct tm *local = localtime(&t);
-  static int64_t minute = local->tm_min;
+  unsigned long int minute = local->tm_min;
   auto cfg = Config::getInstance();
-  for (;; ++minute) {
+#ifdef OSQUERY_TEST_DAEMON
+  // if we're testing the daemon, only iterate through 15 "minutes"
+  static unsigned long int stop_at = minute + 15;
+#else
+  // if this is production, count forever
+  static unsigned long int stop_at = LONG_MAX;
+#endif
+  for (; minute <= stop_at; ++minute) {
     launchQueries(cfg->getScheduledQueries(), minute);
-    sleep(SCHEDULER_INTERVAL);
+    sleep(SECONDS_IN_A_MINUTE);
   }
 }
 }
