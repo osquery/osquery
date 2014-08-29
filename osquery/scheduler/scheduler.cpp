@@ -3,11 +3,6 @@
 #include "osquery/scheduler.h"
 
 #include <ctime>
-#include <iostream>
-
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <glog/logging.h>
 
@@ -26,12 +21,10 @@ namespace logger = osquery::logger;
 namespace osquery {
 namespace scheduler {
 
-void launchQueries(boost::asio::deadline_timer& t, int mins) {
-  DLOG(INFO) << "launchQueries: " << mins;
-
-  auto cfg = Config::getInstance();
-  for (auto query : cfg->getScheduledQueries()) {
-    if ((mins % query.interval) == 0) {
+void launchQueries(const osquery::config::scheduledQueries_t& queries, const int64_t& minute) {
+  LOG(INFO) << "launchQueries: " << minute;
+  for (const auto& query : queries) {
+    if (minute % query.interval == 0) {
       VLOG(1) << "executing query: " << query.query;
       int unix_time = std::time(0);
       int err;
@@ -61,27 +54,18 @@ void launchQueries(boost::asio::deadline_timer& t, int mins) {
       }
     }
   }
-
-  ++mins;
-
-  t.expires_at(t.expires_at() + boost::posix_time::seconds(SCHEDULER_INTERVAL));
-  t.async_wait(boost::bind(launchQueries, boost::ref(t), mins));
 }
 
 void initialize() {
   DLOG(INFO) << "osquery::scheduler::initialize";
-  boost::asio::io_service io;
-
-  time_t _time = time(0);
-  struct tm* now = localtime(&_time);
-  int mins = now->tm_min;
-
-  boost::asio::deadline_timer t(io,
-                                boost::posix_time::seconds(SCHEDULER_INTERVAL));
-
-  t.async_wait(boost::bind(launchQueries, boost::ref(t), mins));
-
-  io.run();
+  time_t t = time(0);
+  struct tm *local = localtime(&t);
+  static int64_t minute = local->tm_min;
+  auto cfg = Config::getInstance();
+  for (;; ++minute) {
+    launchQueries(cfg->getScheduledQueries(), minute);
+    sleep(SCHEDULER_INTERVAL);
+  }
 }
 }
 }

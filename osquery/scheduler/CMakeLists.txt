@@ -1,8 +1,6 @@
 ADD_LIBRARY(osquery_scheduler
   scheduler.cpp
 )
-TARGET_LINK_LIBRARIES(osquery_scheduler boost_system)
-TARGET_LINK_LIBRARIES(osquery_scheduler boost_thread-mt)
 TARGET_LINK_LIBRARIES(osquery_scheduler glog)
 TARGET_LINK_LIBRARIES(osquery_scheduler osquery_config)
 TARGET_LINK_LIBRARIES(osquery_scheduler osquery_core)
