@@ -52,7 +52,7 @@ DBHandle::DBHandle(std::string path, bool in_memory) {
   column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
       rocksdb::kDefaultColumnFamilyName, rocksdb::ColumnFamilyOptions()));
 
-  for (auto cf_name : kDomains) {
+  for (const auto& cf_name : kDomains) {
     column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
         cf_name, rocksdb::ColumnFamilyOptions()));
   }
