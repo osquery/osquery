@@ -3,6 +3,15 @@ FILE(GLOB table_sources
   "manual/*.cpp"
 )
 
+if(APPLE)
+  ADD_LIBRARY(osquery_tables_objc
+    ../core/osx/NSProcessInfo+PECocoaBackports.mm
+    system/osx_version.mm
+  )
+  TARGET_LINK_LIBRARIES(osquery_tables_objc "-framework Foundation")
+  SET_TARGET_PROPERTIES(osquery_tables_objc PROPERTIES COMPILE_FLAGS "-x objective-c++ -fobjc-arc")
+endif()
+
 ADD_LIBRARY(osquery_tables
   registry.cpp
   ${table_sources}
@@ -14,8 +23,6 @@ ADD_LIBRARY(osquery_tables
   system/kextstat.cpp
   system/processes.cpp
   system/nvram.cpp
-  ../core/osx/NSProcessInfo+PECocoaBackports.mm
-  system/osx_version.mm
   system/firewall.cpp
   system/apps.cpp
   system/launchd.cpp
@@ -28,6 +35,9 @@ TARGET_LINK_LIBRARIES(osquery_tables glog)
 TARGET_LINK_LIBRARIES(osquery_tables osquery_filesystem)
 TARGET_LINK_LIBRARIES(osquery_tables osquery_sqlite)
 TARGET_LINK_LIBRARIES(osquery_tables "-Wl,-all_load")
+if(APPLE)
+  TARGET_LINK_LIBRARIES(osquery_tables osquery_tables_objc)
+endif()
 SET_TARGET_PROPERTIES(osquery_tables PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
 TARGET_LINK_LIBRARIES(osquery_tables "-framework IOKit -framework CoreFoundation -framework Security")
 
