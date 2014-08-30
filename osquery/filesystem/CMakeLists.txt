@@ -1,15 +1,15 @@
-if(APPLE)
-ADD_LIBRARY(osquery_filesystem_osx
-  plist.mm
-)
-TARGET_LINK_LIBRARIES(osquery_filesystem_osx boost_program_options)
-TARGET_LINK_LIBRARIES(osquery_filesystem_osx glog)
-TARGET_LINK_LIBRARIES(osquery_filesystem_osx "-fobjc-arc -fobjc-link-runtime -framework Foundation")
-endif()
-
 ADD_LIBRARY(osquery_filesystem
   filesystem.cpp
 )
+
+if(APPLE)
+  ADD_LIBRARY(osquery_filesystem_objc
+    plist.mm
+  )
+  TARGET_LINK_LIBRARIES(osquery_filesystem_objc "-framework Foundation")
+  SET_TARGET_PROPERTIES(osquery_filesystem_objc PROPERTIES COMPILE_FLAGS "-x objective-c++ -fobjc-arc")
+endif()
+
 TARGET_LINK_LIBRARIES(osquery_filesystem boost_filesystem)
 TARGET_LINK_LIBRARIES(osquery_filesystem boost_system)
 TARGET_LINK_LIBRARIES(osquery_filesystem boost_program_options)
@@ -17,17 +17,29 @@ TARGET_LINK_LIBRARIES(osquery_filesystem boost_thread-mt)
 TARGET_LINK_LIBRARIES(osquery_filesystem gflags)
 TARGET_LINK_LIBRARIES(osquery_filesystem glog)
 if(APPLE)
-TARGET_LINK_LIBRARIES(osquery_filesystem osquery_filesystem_osx)
+  TARGET_LINK_LIBRARIES(osquery_filesystem osquery_filesystem_objc)
 endif()
+SET_TARGET_PROPERTIES(osquery_filesystem PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
 
 ADD_EXECUTABLE(filesystem_tests filesystem_tests.cpp)
 TARGET_LINK_LIBRARIES(filesystem_tests gtest)
 TARGET_LINK_LIBRARIES(filesystem_tests osquery_filesystem)
+SET_TARGET_PROPERTIES(filesystem_tests PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
 
 if(APPLE)
-ADD_EXECUTABLE(plist_tests plist_tests.mm)
-TARGET_LINK_LIBRARIES(plist_tests glog)
-TARGET_LINK_LIBRARIES(plist_tests gtest)
-TARGET_LINK_LIBRARIES(plist_tests osquery_core)
-TARGET_LINK_LIBRARIES(plist_tests osquery_filesystem)
+  ADD_EXECUTABLE(plist_tests plist_tests.cpp)
+  TARGET_LINK_LIBRARIES(plist_tests glog)
+  TARGET_LINK_LIBRARIES(plist_tests gtest)
+  TARGET_LINK_LIBRARIES(plist_tests osquery_core)
+  TARGET_LINK_LIBRARIES(plist_tests osquery_filesystem)
+  TARGET_LINK_LIBRARIES(plist_tests osquery_filesystem_objc)
+  SET_TARGET_PROPERTIES(plist_tests PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
+
+  ADD_EXECUTABLE(plist_benchmark plist_benchmark.cpp)
+  TARGET_LINK_LIBRARIES(plist_benchmark glog)
+  TARGET_LINK_LIBRARIES(plist_benchmark gtest)
+  TARGET_LINK_LIBRARIES(plist_benchmark osquery_core)
+  TARGET_LINK_LIBRARIES(plist_benchmark osquery_filesystem)
+  TARGET_LINK_LIBRARIES(plist_benchmark osquery_filesystem_objc)
+  SET_TARGET_PROPERTIES(plist_benchmark PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
 endif()

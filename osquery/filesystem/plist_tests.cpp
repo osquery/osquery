@@ -5,8 +5,6 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#import <Foundation/Foundation.h>
-
 #include "osquery/core/test_util.h"
 
 using namespace osquery::core;

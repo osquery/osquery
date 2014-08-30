@@ -22,8 +22,6 @@ ExternalProject_Add(librocksdb
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 ADD_SUBDIRECTORY("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 
-SET(CMAKE_C_FLAGS "-std=c99")
-SET(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++")
 SET(GEN_TABLE_PATH "${CMAKE_SOURCE_DIR}/tools/gentable.py")
 
 ADD_SUBDIRECTORY(osquery/config)
@@ -56,11 +54,14 @@ SET_TARGET_PROPERTIES(osquery_static PROPERTIES OUTPUT_NAME osquery)
 ADD_EXECUTABLE(shell osquery/main/shell.cpp)
 TARGET_LINK_LIBRARIES(shell osquery_static)
 SET_TARGET_PROPERTIES(shell PROPERTIES OUTPUT_NAME osqueryi)
+SET_TARGET_PROPERTIES(shell PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
 INSTALL(TARGETS shell DESTINATION bin)
 
 ADD_EXECUTABLE(daemon osquery/main/daemon.cpp)
 TARGET_LINK_LIBRARIES(daemon osquery_static)
+TARGET_LINK_LIBRARIES(daemon "-framework CoreFoundation")
 SET_TARGET_PROPERTIES(daemon PROPERTIES OUTPUT_NAME osqueryd)
+SET_TARGET_PROPERTIES(daemon PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
 INSTALL(TARGETS daemon DESTINATION bin)
 
 ADD_SUBDIRECTORY(tools)

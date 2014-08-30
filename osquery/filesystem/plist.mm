@@ -19,10 +19,11 @@ namespace fs {
 NSMutableArray* filterArray(id dataStructure);
 
 NSMutableDictionary* filterDictionary(id dataStructure) {
-  NSMutableDictionary* result = [[NSMutableDictionary new] autorelease];
+  @autoreleasepool {
+  NSMutableDictionary* result = [NSMutableDictionary new];
   for (id key in [dataStructure allKeys]) {
-    NSString* className =
-        NSStringFromClass([[dataStructure objectForKey:key] class]);
+    id klass = [[dataStructure objectForKey:key] class];
+    NSString* className = NSStringFromClass(klass);
     if ([className isEqualToString:@"__NSArrayI"] ||
         [className isEqualToString:@"__NSArrayM"] ||
         [className isEqualToString:@"__NSCFArray"]) {
@@ -36,13 +37,14 @@ NSMutableDictionary* filterDictionary(id dataStructure) {
     } else {
       [result setObject:[dataStructure objectForKey:key] forKey:key];
     }
-    [className release];
   }
   return result;
+  }
 }
 
 NSMutableArray* filterArray(id dataStructure) {
-  NSMutableArray* result = [[NSMutableArray new] autorelease];
+  @autoreleasepool {
+  NSMutableArray* result = [NSMutableArray new];
   for (id value in dataStructure) {
     NSString* className = NSStringFromClass([value class]);
     if ([className isEqualToString:@"__NSCFDictionary"]) {
@@ -56,9 +58,9 @@ NSMutableArray* filterArray(id dataStructure) {
     } else {
       [result addObject:value];
     }
-    [className release];
   }
   return result;
+  }
 }
 
 NSMutableDictionary* filterPlist(NSMutableDictionary* plist) {
@@ -66,23 +68,24 @@ NSMutableDictionary* filterPlist(NSMutableDictionary* plist) {
 }
 
 Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
+  @autoreleasepool {
   int statusCode = 0;
   std::string statusString = "OK";
 
   std::stringstream ss;
   std::string jsonStringCxx;
-  NSString* jsonStringObjc = [NSString new];
-  NSData* jsonDataObjc = [NSData new];
+  NSString* jsonStringObjc;
+  NSData* jsonDataObjc;
 
   NSData* plistContent =
       [NSData dataWithBytes:fileContent.c_str() length:fileContent.size()];
 
   NSError* error = nil;
   NSPropertyListFormat plistFormat;
-  id plistData = [[NSPropertyListSerialization propertyListWithData:plistContent
-                                                options:NSPropertyListImmutable
-                                                 format:&plistFormat
-                                                  error:&error] autorelease];
+  id plistData = [NSPropertyListSerialization propertyListWithData:plistContent
+                                                           options:NSPropertyListImmutable
+                                                            format:&plistFormat
+                                                             error:&error];
   NSMutableDictionary* plist = (NSMutableDictionary*)plistData;
 
   if (plist == nil) {
@@ -152,22 +155,8 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
   }
 
 cleanup:
-  if (jsonStringObjc != nil) {
-    [jsonStringObjc release];
-  }
-  if (jsonDataObjc != nil) {
-    [jsonDataObjc release];
-  }
-  if (error != nil) {
-    [error release];
-  }
-  if (plist != nil) {
-    [plist release];
-  }
-  if (plistData != nil) {
-    [plistData release];
-  }
   return Status(statusCode, statusString);
+  }
 }
 
 Status parsePlist(const std::string& path, pt::ptree& tree) {
