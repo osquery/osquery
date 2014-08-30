@@ -7,18 +7,17 @@ if(APPLE)
   SET_TARGET_PROPERTIES(osquery_tables_objc PROPERTIES COMPILE_FLAGS "-x objective-c++ -fobjc-arc")
 
   ADD_LIBRARY(osquery_tables_osx
-    networking/utils.cpp
-    networking/etc_hosts.cpp
+    networking/interfaces.cpp
     networking/listening_ports.cpp
     networking/routes.cpp
-    networking/interfaces.cpp
-    system/kextstat.cpp
-    system/processes.cpp
-    system/nvram.cpp
-    system/firewall.cpp
+    networking/utils.cpp
     system/apps.cpp
-    system/launchd.cpp
     system/cacerts.cpp
+    system/firewall.cpp
+    system/kextstat.cpp
+    system/launchd.cpp
+    system/nvram.cpp
+    system/processes.cpp
   )
   TARGET_LINK_LIBRARIES(osquery_tables_osx boost_filesystem)
   TARGET_LINK_LIBRARIES(osquery_tables_osx osquery_database)
@@ -35,6 +34,7 @@ FILE(GLOB table_sources
 ADD_LIBRARY(osquery_tables
   registry.cpp
   ${table_sources}
+  networking/etc_hosts.cpp
   utility/time.cpp
 )
 
