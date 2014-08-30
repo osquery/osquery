@@ -2,12 +2,8 @@
 
 #include "osquery/scheduler.h"
 
+#include <climits>
 #include <ctime>
-#include <iostream>
-
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <glog/logging.h>
 
@@ -16,7 +12,14 @@
 #include "osquery/database.h"
 #include "osquery/logger.h"
 
-#define SCHEDULER_INTERVAL 60
+#ifdef OSQUERY_TEST_DAEMON
+// if we're testing the daemon, set the time between each "minute" to be one
+// second so that we see results faster
+#define SECONDS_IN_A_MINUTE 1
+#else
+// in production, a minute is 60 seconds long
+#define SECONDS_IN_A_MINUTE 60
+#endif
 
 using namespace osquery::config;
 namespace core = osquery::core;
@@ -26,13 +29,11 @@ namespace logger = osquery::logger;
 namespace osquery {
 namespace scheduler {
 
-void launchQueries(boost::asio::deadline_timer& t, int mins) {
-  DLOG(INFO) << "launchQueries: " << mins;
-
-  auto cfg = Config::getInstance();
-  for (auto query : cfg->getScheduledQueries()) {
-    if ((mins % query.interval) == 0) {
-      VLOG(1) << "executing query: " << query.query;
+void launchQueries(const osquery::config::scheduledQueries_t& queries, const int64_t& minute) {
+  LOG(INFO) << "launchQueries: " << minute;
+  for (const auto& query : queries) {
+    if (minute % query.interval == 0) {
+      LOG(INFO) << "executing query: " << query.query;
       int unix_time = std::time(0);
       int err;
       auto query_results = core::aggregateQuery(query.query, err);
@@ -50,33 +51,41 @@ void launchQueries(boost::asio::deadline_timer& t, int mins) {
         continue;
       }
 
-      db::ScheduledQueryLogItem item;
-      item.diffResults = diff_results;
-      item.name = query.name;
-      logger::logScheduledQueryLogItem(item);
+      if (diff_results.added.size() > 0 || diff_results.removed.size() > 0) {
+        VLOG(1) << "Results found for query: \"" << query.query << "\"";
+        db::ScheduledQueryLogItem item;
+        item.diffResults = diff_results;
+        item.name = query.name;
+        item.hostname = osquery::core::getHostname();
+        item.unixTime = osquery::core::getUnixTime();
+        item.calendarTime = osquery::core::getAsciiTime();
+        auto s = logger::logScheduledQueryLogItem(item);
+        if (!s.ok()) {
+          LOG(ERROR) << "Error logging the results of query \"" << query.query
+            << "\"" << ": " << s.toString();
+        }
+      }
     }
   }
-
-  ++mins;
-
-  t.expires_at(t.expires_at() + boost::posix_time::seconds(SCHEDULER_INTERVAL));
-  t.async_wait(boost::bind(launchQueries, boost::ref(t), mins));
 }
 
 void initialize() {
   DLOG(INFO) << "osquery::scheduler::initialize";
-  boost::asio::io_service io;
-
-  time_t _time = time(0);
-  struct tm* now = localtime(&_time);
-  int mins = now->tm_min;
-
-  boost::asio::deadline_timer t(io,
-                                boost::posix_time::seconds(SCHEDULER_INTERVAL));
-
-  t.async_wait(boost::bind(launchQueries, boost::ref(t), mins));
-
-  io.run();
+  time_t t = time(0);
+  struct tm *local = localtime(&t);
+  unsigned long int minute = local->tm_min;
+  auto cfg = Config::getInstance();
+#ifdef OSQUERY_TEST_DAEMON
+  // if we're testing the daemon, only iterate through 15 "minutes"
+  static unsigned long int stop_at = minute + 15;
+#else
+  // if this is production, count forever
+  static unsigned long int stop_at = LONG_MAX;
+#endif
+  for (; minute <= stop_at; ++minute) {
+    launchQueries(cfg->getScheduledQueries(), minute);
+    sleep(SECONDS_IN_A_MINUTE);
+  }
 }
 }
 }

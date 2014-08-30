@@ -6,6 +6,8 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
+#include "osquery/core.h"
+
 using namespace osquery::db;
 using namespace osquery::logger;
 using osquery::Status;
@@ -40,6 +42,6 @@ TEST_F(LoggerTests, test_plugin) {
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  google::InitGoogleLogging(argv[0]);
+  osquery::core::initOsquery(argc, argv);
   return RUN_ALL_TESTS();
 }

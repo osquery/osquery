@@ -292,6 +292,9 @@ Status serializeScheduledQueryLogItem(const ScheduledQueryLogItem& i,
     }
     tree.add_child("diffResults", diffResults);
     tree.put<std::string>("name", i.name);
+    tree.put<std::string>("hostname", i.hostname);
+    tree.put<std::string>("calendarTime", i.calendarTime);
+    tree.put<int>("unixTime", i.unixTime);
   }
   catch (const std::exception& e) {
     return Status(1, e.what());

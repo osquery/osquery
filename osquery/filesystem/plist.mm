@@ -19,10 +19,11 @@ namespace fs {
 NSMutableArray* filterArray(id dataStructure);
 
 NSMutableDictionary* filterDictionary(id dataStructure) {
+  @autoreleasepool {
   NSMutableDictionary* result = [NSMutableDictionary new];
   for (id key in [dataStructure allKeys]) {
-    NSString* className =
-        NSStringFromClass([[dataStructure objectForKey:key] class]);
+    id klass = [[dataStructure objectForKey:key] class];
+    NSString* className = NSStringFromClass(klass);
     if ([className isEqualToString:@"__NSArrayI"] ||
         [className isEqualToString:@"__NSArrayM"] ||
         [className isEqualToString:@"__NSCFArray"]) {
@@ -38,9 +39,11 @@ NSMutableDictionary* filterDictionary(id dataStructure) {
     }
   }
   return result;
+  }
 }
 
 NSMutableArray* filterArray(id dataStructure) {
+  @autoreleasepool {
   NSMutableArray* result = [NSMutableArray new];
   for (id value in dataStructure) {
     NSString* className = NSStringFromClass([value class]);
@@ -57,6 +60,7 @@ NSMutableArray* filterArray(id dataStructure) {
     }
   }
   return result;
+  }
 }
 
 NSMutableDictionary* filterPlist(NSMutableDictionary* plist) {
@@ -64,21 +68,32 @@ NSMutableDictionary* filterPlist(NSMutableDictionary* plist) {
 }
 
 Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
+  @autoreleasepool {
+  int statusCode = 0;
+  std::string statusString = "OK";
+
+  std::stringstream ss;
+  std::string jsonStringCxx;
+  NSString* jsonStringObjc;
+  NSData* jsonDataObjc;
+
   NSData* plistContent =
       [NSData dataWithBytes:fileContent.c_str() length:fileContent.size()];
 
-  NSError* error;
+  NSError* error = nil;
   NSPropertyListFormat plistFormat;
-  NSMutableDictionary* plist = (NSMutableDictionary*)
-      [NSPropertyListSerialization propertyListWithData:plistContent
-                                                options:NSPropertyListImmutable
-                                                 format:&plistFormat
-                                                  error:&error];
+  id plistData = [NSPropertyListSerialization propertyListWithData:plistContent
+                                                           options:NSPropertyListImmutable
+                                                            format:&plistFormat
+                                                             error:&error];
+  NSMutableDictionary* plist = (NSMutableDictionary*)plistData;
 
   if (plist == nil) {
     std::string errorMessage([[error localizedFailureReason] UTF8String]);
     LOG(ERROR) << errorMessage;
-    return Status(1, errorMessage);
+    statusCode = 1;
+    statusString = errorMessage;
+    goto cleanup;
   } else {
     switch (plistFormat) {
     case NSPropertyListOpenStepFormat:
@@ -102,39 +117,46 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
   catch (const std::exception& e) {
     LOG(ERROR)
         << "An exception occured while filtering the plist: " << e.what();
-    return Status(1, e.what());
+    statusCode = 1;
+    statusString = e.what();
+    goto cleanup;
   }
 
-  NSData* jsonDataObjc;
   if ([NSJSONSerialization isValidJSONObject:plist]) {
     jsonDataObjc =
         [NSJSONSerialization dataWithJSONObject:plist options:0 error:&error];
   } else {
-    return Status(1, "Valid JSON was not deserialized");
+    statusCode = 1;
+    statusString = "Valid JSON was not deserialized";
+    goto cleanup;
   }
   if (jsonDataObjc == nil) {
     std::string errorMessage([[error localizedFailureReason] UTF8String]);
     LOG(ERROR) << errorMessage;
-    return Status(1, errorMessage);
+    statusCode = 1;
+    statusString = errorMessage;
+    goto cleanup;
   }
 
-  NSString* jsonStringObjc =
+  jsonStringObjc =
       [[NSString alloc] initWithBytes:[jsonDataObjc bytes]
                                length:[jsonDataObjc length]
                              encoding:NSUTF8StringEncoding];
-  std::string jsonStringCxx = std::string([jsonStringObjc UTF8String]);
-  VLOG(2) << "Deserialized JSON content from plist: " << jsonStringCxx;
-  std::stringstream ss;
+  jsonStringCxx = std::string([jsonStringObjc UTF8String]);
   ss << jsonStringCxx;
   try {
     pt::read_json(ss, tree);
   }
   catch (pt::json_parser::json_parser_error& e) {
     LOG(ERROR) << "Error reading JSON: " << e.what();
-    return Status(1, e.what());
+    statusCode = 1;
+    statusString = e.what();
+    goto cleanup;
   }
 
-  return Status(0, "OK");
+cleanup:
+  return Status(statusCode, statusString);
+  }
 }
 
 Status parsePlist(const std::string& path, pt::ptree& tree) {

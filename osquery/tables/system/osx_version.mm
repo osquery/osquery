@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/database.h"
+#include "osquery/database/results.h"
 
 #include <string>
 
@@ -14,6 +14,8 @@ namespace osquery {
 namespace tables {
 
 QueryData genOSXVersion() {
+  QueryData results;
+  @autoreleasepool {
 
   NSOperatingSystemVersion v =
       [[NSProcessInfo processInfo] operatingSystemVersion];
@@ -23,7 +25,9 @@ QueryData genOSXVersion() {
   r["minor"] = boost::lexical_cast<std::string>(v.minorVersion);
   r["patch"] = boost::lexical_cast<std::string>(v.patchVersion);
 
-  return {r};
+  results.push_back(r);
+  }
+  return results;
 }
 }
 }

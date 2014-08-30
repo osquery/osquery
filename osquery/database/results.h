@@ -177,6 +177,15 @@ struct ScheduledQueryLogItem {
   // the name of the scheduled query
   std::string name;
 
+  // the hostname of the host which the scheduled query was executed on
+  std::string hostname;
+
+  // the time that the query was executed, in unix time
+  int unixTime;
+
+  // the time that the query was executed, in ASCII
+  std::string calendarTime;
+
   // equals operator
   bool operator==(const ScheduledQueryLogItem& comp) const {
     return (comp.diffResults == diffResults) && (comp.name == name);

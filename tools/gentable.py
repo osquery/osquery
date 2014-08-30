@@ -25,9 +25,9 @@ IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 ** This file is generated. Do not modify it manually!
 */
 
+#include <cstring>
 #include <string>
 #include <vector>
-#include <cstring>
 
 #include <boost/lexical_cast.hpp>
 
@@ -122,7 +122,7 @@ int {{table_name_cc}}Filter(
 
   pCur->row = 0;
 {% for col in schema %}\
-  pVtab->pContent->{{col.name}} = {};
+  pVtab->pContent->{{col.name}}.clear();
 {% endfor %}\
 
   for (auto& row : osquery::tables::{{function}}()) {

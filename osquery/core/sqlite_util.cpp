@@ -28,7 +28,10 @@ sqlite3* createDB() {
 }
 
 QueryData aggregateQuery(const std::string& q, int& error_return) {
-  return aggregateQuery(q, error_return, createDB());
+  sqlite3* db = createDB();
+  QueryData results = aggregateQuery(q, error_return, db);
+  sqlite3_close(db);
+  return results;
 }
 
 QueryData aggregateQuery(const std::string& q, int& error_return, sqlite3* db) {

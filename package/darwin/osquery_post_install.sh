@@ -3,7 +3,7 @@
 # Copyright 2004-present Facebook. All Rights Reserved.
 
 OSQUERY_LAUNCD_STRING="osquery"
-OSQUERY_LAUNCD_LABEL="com.facebook.osquery.plist"
+OSQUERY_LAUNCD_LABEL="com.facebook.osqueryd.plist"
 OSQUERY_LAUNCD_PATH="/Library/LaunchDaemons/$OSQUERY_LAUNCD_LABEL"
 OSQUERY_PROCESS_STRING="osqueryd"
 
