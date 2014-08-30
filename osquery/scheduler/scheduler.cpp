@@ -33,7 +33,7 @@ void launchQueries(const osquery::config::scheduledQueries_t& queries, const int
   LOG(INFO) << "launchQueries: " << minute;
   for (const auto& query : queries) {
     if (minute % query.interval == 0) {
-      VLOG(1) << "executing query: " << query.query;
+      LOG(INFO) << "executing query: " << query.query;
       int unix_time = std::time(0);
       int err;
       auto query_results = core::aggregateQuery(query.query, err);
