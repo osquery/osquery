@@ -27,8 +27,7 @@ TEST_F(SQLiteUtilTests, test_simple_query_execution) {
 TEST_F(SQLiteUtilTests, test_passing_callback_no_data_param) {
   char* err = nullptr;
   auto db = createTestDB();
-  sqlite3_exec(
-      db, kTestQuery.c_str(), query_data_callback, nullptr, &err);
+  sqlite3_exec(db, kTestQuery.c_str(), query_data_callback, nullptr, &err);
   sqlite3_close(db);
   EXPECT_TRUE(err != nullptr);
   if (err != nullptr) {

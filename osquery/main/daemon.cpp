@@ -12,7 +12,7 @@
 #include "osquery/registry.h"
 #include "osquery/scheduler.h"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   osquery::core::initOsquery(argc, argv);
 
   LOG(INFO) << "Listing all plugins";

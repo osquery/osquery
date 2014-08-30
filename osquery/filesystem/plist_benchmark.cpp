@@ -49,7 +49,8 @@ TEST_F(PlistBenchmark, bench_parse_plist_content) {
     EXPECT_EQ(program_arguments_parsed, program_arguments);
   }
   LOG(ERROR) << "Ending:   " << getAsciiTime();
-  LOG(ERROR) << "Benchmark executed in " << (getUnixTime() - time) << " seconds";
+  LOG(ERROR) << "Benchmark executed in " << (getUnixTime() - time)
+             << " seconds";
 }
 }
 }

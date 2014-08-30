@@ -182,8 +182,9 @@ int sqlite3_attach_vtable(sqlite3 *db,
   rc = sqlite3_create_module(db, zName, module, 0);
   if (rc == SQLITE_OK) {
     const char zFormat[] = "CREATE VIRTUAL TABLE temp.%s USING %s";
-    size_t zSize = (((((sizeof(zFormat) + (sizeof(zName)) + 2) * 2)) + 1) * sizeof(char));
-    char *zSql = (char*)malloc(1024 * sizeof(char));
+    size_t zSize =
+        (((((sizeof(zFormat) + (sizeof(zName)) + 2) * 2)) + 1) * sizeof(char));
+    char *zSql = (char *)malloc(1024 * sizeof(char));
     snprintf(zSql, zSize, zFormat, zName, zName);
     rc = sqlite3_exec(db, zSql, 0, 0, 0);
     free(zSql);

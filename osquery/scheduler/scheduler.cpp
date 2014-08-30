@@ -29,7 +29,8 @@ namespace logger = osquery::logger;
 namespace osquery {
 namespace scheduler {
 
-void launchQueries(const osquery::config::scheduledQueries_t& queries, const int64_t& minute) {
+void launchQueries(const osquery::config::scheduledQueries_t& queries,
+                   const int64_t& minute) {
   LOG(INFO) << "launchQueries: " << minute;
   for (const auto& query : queries) {
     if (minute % query.interval == 0) {
@@ -62,7 +63,8 @@ void launchQueries(const osquery::config::scheduledQueries_t& queries, const int
         auto s = logger::logScheduledQueryLogItem(item);
         if (!s.ok()) {
           LOG(ERROR) << "Error logging the results of query \"" << query.query
-            << "\"" << ": " << s.toString();
+                     << "\""
+                     << ": " << s.toString();
         }
       }
     }
@@ -72,7 +74,7 @@ void launchQueries(const osquery::config::scheduledQueries_t& queries, const int
 void initialize() {
   DLOG(INFO) << "osquery::scheduler::initialize";
   time_t t = time(0);
-  struct tm *local = localtime(&t);
+  struct tm* local = localtime(&t);
   unsigned long int minute = local->tm_min;
   auto cfg = Config::getInstance();
 #ifdef OSQUERY_TEST_DAEMON

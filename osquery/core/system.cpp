@@ -31,6 +31,5 @@ int getUnixTime() {
   std::time_t result = std::time(NULL);
   return result;
 }
-
 }
 }
