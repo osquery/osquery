@@ -12,7 +12,7 @@ namespace osquery {
 namespace core {
 
 std::string getHostname() {
-  char hostname[255];
+  char hostname[256];
   memset(hostname, 0, 255);
   gethostname(hostname, 255);
   std::string hostname_string = std::string(hostname);
