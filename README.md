@@ -40,3 +40,11 @@ make runtests
 - [System-trusted root certificated virtual table](https://github.com/facebook/osquery/issues/8)
 - [Startup items virtual table](https://github.com/facebook/osquery/issues/6)
 
+
+### Testing your table for memory leaks
+
+Use valgrind to test your table for memory leaks before you commit it. The osqueryd daemon is a very long running processes, so avoiding memory leaks is critical. The "run" tool is useful for testing a specific query. From the root of the osquery repository, run:
+
+```
+valgrind --tool=memcheck --leak-check=yes --suppressions=osquery.supp ./build/tools/run --query="select * from osx_version;"
+```
