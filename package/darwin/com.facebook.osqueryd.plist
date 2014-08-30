@@ -11,7 +11,7 @@
 	<key>Label</key>
 	<string>com.facebook.osqueryd</string>
 	<key>Program</key>
-  <string>/usr/local/bin/osqueryd</string>
+        <string>/usr/local/bin/osqueryd</string>
 	<key>RunAtLoad</key>
 	<true/>
 </dict>
