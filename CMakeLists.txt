@@ -1,28 +1,15 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT(OSQUERY)
 
-INCLUDE_DIRECTORIES("/usr/local/include")
-LINK_DIRECTORIES("/usr/local/lib")
+SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" ${CMAKE_MODULE_PATH})
+FIND_PACKAGE(Gtest REQUIRED)
+FIND_PACKAGE(RocksDB REQUIRED)
+FIND_PACKAGE(Sqlite3 REQUIRED)
 
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}")
+INCLUDE_DIRECTORIES("/usr/local/include")
 
-INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0/include")
-ADD_SUBDIRECTORY("${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0")
-
-INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/rocksdb/include")
-include(ExternalProject)
-ExternalProject_Add(librocksdb
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party/rocksdb"
-  CONFIGURE_COMMAND ""
-  BUILD_IN_SOURCE 1
-  BUILD_COMMAND make shared_lib && make static_lib
-  INSTALL_COMMAND cp librocksdb.dylib /usr/local/lib/librocksdb.dylib && cp librocksdb.a /usr/local/lib/librocksdb.a
-)
-
-INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
-ADD_SUBDIRECTORY("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
-
-SET(GEN_TABLE_PATH "${CMAKE_SOURCE_DIR}/tools/gentable.py")
+LINK_DIRECTORIES("/usr/local/lib")
 
 ADD_SUBDIRECTORY(osquery/config)
 ADD_SUBDIRECTORY(osquery/core)
@@ -59,7 +46,6 @@ INSTALL(TARGETS shell DESTINATION bin)
 
 ADD_EXECUTABLE(daemon osquery/main/daemon.cpp)
 TARGET_LINK_LIBRARIES(daemon osquery_static)
-TARGET_LINK_LIBRARIES(daemon "-framework CoreFoundation")
 SET_TARGET_PROPERTIES(daemon PROPERTIES OUTPUT_NAME osqueryd)
 SET_TARGET_PROPERTIES(daemon PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
 INSTALL(TARGETS daemon DESTINATION bin)
