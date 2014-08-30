@@ -1,8 +1,3 @@
-FILE(GLOB table_sources
-  "generated/*.cpp"
-  "manual/*.cpp"
-)
-
 if(APPLE)
   ADD_LIBRARY(osquery_tables_objc
     ../core/osx/NSProcessInfo+PECocoaBackports.mm
@@ -31,6 +26,11 @@ if(APPLE)
   SET_TARGET_PROPERTIES(osquery_tables_osx PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
   TARGET_LINK_LIBRARIES(osquery_tables_osx "-framework IOKit -framework CoreFoundation -framework Security")
 endif()
+
+FILE(GLOB table_sources
+  "generated/*.cpp"
+  "manual/*.cpp"
+)
 
 ADD_LIBRARY(osquery_tables
   registry.cpp
