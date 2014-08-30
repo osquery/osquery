@@ -1,6 +1,8 @@
 OS=$(shell uname)
 BUILD_THREADS=5
+ifeq ($(OS),Darwin)
 OSQUERYD_PLIST_PATH="/Library/LaunchDaemons/com.facebook.osqueryd.plist"
+endif
 ROCKSDB_PATH="/tmp/rocksdb-osquery"
 
 all: tables build
@@ -17,6 +19,7 @@ build:
 clean: clean_tables
 	cd build && make clean
 
+ifeq ($(OS),Darwin)
 clean_install:
 	rm -rf /var/osquery
 	rm -rf  $(ROCKSDB_PATH)
@@ -25,6 +28,7 @@ clean_install:
 	rm -f /var/log/osquery.log
 	if [ -f $(OSQUERYD_PLIST_PATH) ]; then launchctl unload $(OSQUERYD_PLIST_PATH); fi;
 	rm -f $(OSQUERYD_PLIST_PATH)
+endif
 
 clean_tables:
 	rm -rf osquery/tables/generated
