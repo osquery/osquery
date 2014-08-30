@@ -82,7 +82,7 @@ void initialize() {
   static unsigned long int stop_at = minute + 15;
 #else
   // if this is production, count forever
-  static unsigned long int stop_at = LONG_MAX;
+  static unsigned long int stop_at = ULONG_MAX;
 #endif
   for (; minute <= stop_at; ++minute) {
     launchQueries(cfg->getScheduledQueries(), minute);
