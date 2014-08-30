@@ -15,7 +15,6 @@
 
 namespace osquery {
 
-
  // A simple registry system for making values available by key across
  // components.
  //
