@@ -33,9 +33,9 @@ TEST_F(TestUtilTests, test_get_test_db_result_stream) {
     }
     int err_int;
     auto expected = aggregateQuery(kTestQuery, err_int, db);
-    sqlite3_close(db);
     EXPECT_EQ(expected, r.second);
   }
+  sqlite3_close(db);
 }
 
 int main(int argc, char* argv[]) {
