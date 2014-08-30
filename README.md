@@ -43,8 +43,8 @@ make runtests
 
 ### Testing your table for memory leaks
 
-Use valgrind to test your table for memory leaks before you commit it. The osqueryd daemon is a very long running processes, so avoiding memory leaks is critical. The "run" tool is useful for testing a specific query. From the root of the osquery repository, run:
+Use valgrind to test your table for memory leaks before you commit it. The osqueryd daemon is a very long running processes, so avoiding memory leaks is critical. The "run" tool is useful for testing a specific query. From the root of the osquery repository, run the following (substitute your table name in the query):
 
 ```
-valgrind --tool=memcheck --leak-check=yes --suppressions=osquery.supp ./build/tools/run --query="select * from osx_version;"
+valgrind --tool=memcheck --leak-check=yes --suppressions=osquery.supp ./build/tools/run --query="select * from time;"
 ```
