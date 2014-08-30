@@ -22,8 +22,8 @@ if(APPLE)
   TARGET_LINK_LIBRARIES(osquery_tables_osx boost_filesystem)
   TARGET_LINK_LIBRARIES(osquery_tables_osx osquery_database)
   TARGET_LINK_LIBRARIES(osquery_tables_osx osquery_filesystem)
-  SET_TARGET_PROPERTIES(osquery_tables_osx PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
   TARGET_LINK_LIBRARIES(osquery_tables_osx "-framework IOKit -framework CoreFoundation -framework Security")
+  SET_TARGET_PROPERTIES(osquery_tables_osx PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
 endif()
 
 FILE(GLOB table_sources
@@ -40,11 +40,11 @@ ADD_LIBRARY(osquery_tables
 
 TARGET_LINK_LIBRARIES(osquery_tables glog)
 TARGET_LINK_LIBRARIES(osquery_tables osquery_sqlite)
-TARGET_LINK_LIBRARIES(osquery_tables "-Wl,-all_load")
 if(APPLE)
   TARGET_LINK_LIBRARIES(osquery_tables osquery_tables_objc)
   TARGET_LINK_LIBRARIES(osquery_tables osquery_tables_osx)
 endif()
+TARGET_LINK_LIBRARIES(osquery_tables "-Wl,-all_load")
 SET_TARGET_PROPERTIES(osquery_tables PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
 
 ADD_EXECUTABLE(etc_hosts_tests networking/etc_hosts_tests.cpp)
