@@ -11,15 +11,15 @@ ADD_LIBRARY(osquery_tables
   networking/listening_ports.cpp
   networking/routes.cpp
   networking/interfaces.cpp
-  #system/kextstat.cpp
-  #system/processes.cpp
-  #system/nvram.cpp
-  #../core/osx/NSProcessInfo+PECocoaBackports.mm
-  #system/osx_version.mm
-  #system/firewall.cpp
-  #system/apps.cpp
-  #system/launchd.cpp
-  #system/cacerts.cpp
+  system/kextstat.cpp
+  system/processes.cpp
+  system/nvram.cpp
+  ../core/osx/NSProcessInfo+PECocoaBackports.mm
+  system/osx_version.mm
+  system/firewall.cpp
+  system/apps.cpp
+  system/launchd.cpp
+  system/cacerts.cpp
   utility/time.cpp
 )
 
@@ -29,7 +29,7 @@ TARGET_LINK_LIBRARIES(osquery_tables osquery_filesystem)
 TARGET_LINK_LIBRARIES(osquery_tables osquery_sqlite)
 TARGET_LINK_LIBRARIES(osquery_tables "-Wl,-all_load")
 SET_TARGET_PROPERTIES(osquery_tables PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
-#TARGET_LINK_LIBRARIES(osquery_tables "-fobjc-arc -fobjc-link-runtime -framework Foundation -framework IOKit -framework CoreFoundation -framework Security")
+TARGET_LINK_LIBRARIES(osquery_tables "-framework IOKit -framework CoreFoundation -framework Security")
 
 ADD_EXECUTABLE(etc_hosts_tests networking/etc_hosts_tests.cpp)
 TARGET_LINK_LIBRARIES(etc_hosts_tests gtest)
