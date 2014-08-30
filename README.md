@@ -27,6 +27,16 @@ Once the project is built, try running the project's unit tests:
 make runtests
 ```
 
+## Developing on OS X
+
+`make deps` will take care of installing everything you need to compile osquery
+but to properly develop and contribute code, you'll need to install two additional
+programs:
+
+- clang-format: we use clang-format to format all code in osquery
+- valgrind: performance is a top priority for osquery, so all code should be
+	thouroughly tested with valgrind
+
 ## Table Development
 
 ### Top easy virtual tables
@@ -43,7 +53,11 @@ make runtests
 
 ### Testing your table for memory leaks
 
-Use valgrind to test your table for memory leaks before you commit it. The osqueryd daemon is a very long running processes, so avoiding memory leaks is critical. The "run" tool is useful for testing a specific query. From the root of the osquery repository, run the following (substitute your table name in the query):
+Use valgrind to test your table for memory leaks before you commit it. The
+osqueryd daemon is a very long running processes, so avoiding memory leaks is
+critical. The "run" tool is useful for testing a specific query. From the root
+of the osquery repository, run the following (substitute your table name in the
+query):
 
 ```
 valgrind --tool=memcheck --leak-check=yes --suppressions=osquery.supp ./build/tools/run --query="select * from time;"
