@@ -10,11 +10,8 @@
 	<false/>
 	<key>Label</key>
 	<string>com.facebook.osqueryd</string>
-	<key>ProgramArguments</key>
-	<array>
-    <string>/usr/local/bin/osqueryd</string>
-    <string>--flagfile=/var/osquery/osquery.flagfile</string>
-	</array>
+	<key>Program</key>
+  <string>/usr/local/bin/osqueryd</string>
 	<key>RunAtLoad</key>
 	<true/>
 </dict>
