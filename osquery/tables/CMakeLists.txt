@@ -12,7 +12,7 @@ if(APPLE)
     networking/routes.cpp
     networking/utils.cpp
     system/apps.cpp
-    system/cacerts.cpp
+    system/ca_certs.cpp
     system/firewall.cpp
     system/kextstat.cpp
     system/launchd.cpp
@@ -61,10 +61,10 @@ if(APPLE)
   TARGET_LINK_LIBRARIES(apps_tests osquery_tables)
   SET_TARGET_PROPERTIES(apps_tests PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
 
-  ADD_EXECUTABLE(cacerts_tests system/cacerts_tests.cpp)
-  TARGET_LINK_LIBRARIES(cacerts_tests gtest)
-  TARGET_LINK_LIBRARIES(cacerts_tests osquery_tables)
-  SET_TARGET_PROPERTIES(cacerts_tests PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
+  ADD_EXECUTABLE(ca_certs_tests system/ca_certs_tests.cpp)
+  TARGET_LINK_LIBRARIES(ca_certs_tests gtest)
+  TARGET_LINK_LIBRARIES(ca_certs_tests osquery_tables)
+  SET_TARGET_PROPERTIES(ca_certs_tests PROPERTIES COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
 
   ADD_EXECUTABLE(firewall_tests system/firewall_tests.cpp)
   TARGET_LINK_LIBRARIES(firewall_tests gtest)
