@@ -25,7 +25,7 @@ clean_install:
 	rm -rf  $(ROCKSDB_PATH)
 	rm -f /usr/local/bin/osqueryi
 	rm -f /usr/local/bin/osqueryd
-	rm -f /var/log/osquery.log
+	rm -rf /var/log/osquery
 	if [ -f $(OSQUERYD_PLIST_PATH) ]; then launchctl unload $(OSQUERYD_PLIST_PATH); fi;
 	rm -f $(OSQUERYD_PLIST_PATH)
 endif
