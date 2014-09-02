@@ -87,17 +87,18 @@ Row parseLaunchdItem(const std::string& path, const pt::ptree& tree) {
   r["name"] = bits[bits.size() - 1];
 
   for (const auto& it : kLaunchdTopLevelStringKeys) {
+    std::string item;
     try {
-      std::string item = tree.get<std::string>(it.first);
+      item = tree.get<std::string>(it.first);
       if (it.first == "Program") {
         boost::replace_all(item, " ", "\\ ");
       }
-      r[it.second] = item;
     }
     catch (const pt::ptree_error& e) {
-      VLOG(1) << "Error parsing " << it.first << " from " << path << ": "
+      VLOG(3) << "Error parsing " << it.first << " from " << path << ": "
               << e.what();
     }
+    r[it.second] = item;
   }
 
   for (const auto& it : kLaunchdTopLevelArrayKeys) {

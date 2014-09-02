@@ -68,20 +68,6 @@ bool Query::isQueryNameInDatabase(std::shared_ptr<DBHandle> db) {
   return std::find(names.begin(), names.end(), query_.name) != names.end();
 }
 
-Status Query::getExecutions(std::deque<int>& results) {
-  return getExecutions(results, DBHandle::getInstance());
-}
-
-Status Query::getExecutions(std::deque<int>& results,
-                            std::shared_ptr<DBHandle> db) {
-  HistoricalQueryResults hQR;
-  auto s = getHistoricalQueryResults(hQR, db);
-  if (s.ok()) {
-    results = hQR.executions;
-  }
-  return s;
-}
-
 Status Query::addNewResults(const osquery::db::QueryData& qd, int unix_time) {
   return addNewResults(qd, unix_time, DBHandle::getInstance());
 }
@@ -112,10 +98,8 @@ osquery::Status Query::addNewResults(const osquery::db::QueryData& qd,
   if (calculate_diff) {
     dr = diff(hQR.mostRecentResults.second, qd);
   }
-  hQR.pastResults[hQR.mostRecentResults.first] = dr;
   hQR.mostRecentResults.first = unix_time;
   hQR.mostRecentResults.second = qd;
-  hQR.executions.push_front(unix_time);
   std::string json;
   auto serialize_status = serializeHistoricalQueryResultsJSON(hQR, json);
   if (!serialize_status.ok()) {

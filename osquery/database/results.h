@@ -98,25 +98,14 @@ DiffResults diff(const QueryData& old_, const QueryData& new_);
 // HistoricalQueryResults is a struct which represents a scheduled query's
 // historical results on disk
 struct HistoricalQueryResults {
-  // a vector of timestamps, sorted by time, starting with the most recent
-  std::deque<int> executions;
-
   // mostRecentResults->first is the timestamp of the most recent results and
   // mostRecentResults->second is the query result data of the most recent
   // query
   std::pair<int, QueryData> mostRecentResults;
 
-  // pastResults is a map of timestamps to data diffs. All timestamps can be
-  // found pre-sorted in executions. By taking mostRecentResults->second and
-  // applying the diffs from pastResults (in time order), you can reconstruct
-  // the entire history of a query's results
-  std::map<int, DiffResults> pastResults;
-
   // equals operator
   bool operator==(const HistoricalQueryResults& comp) const {
-    return (comp.executions == executions) &&
-           (comp.mostRecentResults == mostRecentResults) &&
-           (comp.pastResults == pastResults);
+    return (comp.mostRecentResults == mostRecentResults);
   }
 
   // not equals operator

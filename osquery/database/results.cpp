@@ -157,16 +157,7 @@ Status serializeHistoricalQueryResultsJSON(const HistoricalQueryResults& r,
 Status serializeHistoricalQueryResults(const HistoricalQueryResults& r,
                                        pt::ptree& tree) {
   try {
-    pt::ptree executions;
     pt::ptree mostRecentResults;
-    pt::ptree pastResults;
-
-    for (const auto& e : r.executions) {
-      pt::ptree item;
-      item.put("", e);
-      executions.push_back(std::make_pair("", item));
-    }
-    tree.add_child("executions", executions);
 
     pt::ptree most_recent_serialized;
     auto mrr_status =
@@ -178,17 +169,6 @@ Status serializeHistoricalQueryResults(const HistoricalQueryResults& r,
         boost::lexical_cast<std::string>(r.mostRecentResults.first),
         most_recent_serialized);
     tree.add_child("mostRecentResults", mostRecentResults);
-
-    for (const auto& i : r.pastResults) {
-      pt::ptree serialized_diff_results;
-      auto dr_status = serializeDiffResults(i.second, serialized_diff_results);
-      if (!dr_status.ok()) {
-        return dr_status;
-      }
-      pastResults.add_child(boost::lexical_cast<std::string>(i.first),
-                            serialized_diff_results);
-    }
-    tree.add_child("pastResults", pastResults);
   }
   catch (const std::exception& e) {
     return Status(1, e.what());
@@ -199,17 +179,6 @@ Status serializeHistoricalQueryResults(const HistoricalQueryResults& r,
 Status deserializeHistoricalQueryResults(const pt::ptree& tree,
                                          HistoricalQueryResults& r) {
   try {
-    for (const auto& v : tree.get_child("executions")) {
-      try {
-        int execution =
-            boost::lexical_cast<int>(v.second.get_value<std::string>());
-        r.executions.push_back(execution);
-      }
-      catch (const boost::bad_lexical_cast& e) {
-        return Status(1, e.what());
-      }
-    }
-
     for (const auto& v : tree.get_child("mostRecentResults")) {
       try {
         int execution = boost::lexical_cast<int>(v.first);
@@ -218,6 +187,7 @@ Status deserializeHistoricalQueryResults(const pt::ptree& tree,
       catch (const boost::bad_lexical_cast& e) {
         return Status(1, e.what());
       }
+
       QueryData q;
       for (const auto& each : v.second) {
         Row row_;
@@ -227,32 +197,6 @@ Status deserializeHistoricalQueryResults(const pt::ptree& tree,
         q.push_back(row_);
       }
       r.mostRecentResults.second = q;
-    }
-
-    for (const auto& v : tree.get_child("pastResults")) {
-      int execution;
-      try {
-        execution = boost::lexical_cast<int>(v.first);
-      }
-      catch (const boost::bad_lexical_cast& e) {
-        return Status(1, e.what());
-      }
-      DiffResults dr;
-      for (const auto& a : v.second.get_child("added")) {
-        Row row_;
-        for (const auto& each : a.second) {
-          row_[each.first] = each.second.get_value<std::string>();
-        }
-        dr.added.push_back(row_);
-      }
-      for (const auto& r : v.second.get_child("removed")) {
-        Row row_;
-        for (const auto& each : r.second) {
-          row_[each.first] = each.second.get_value<std::string>();
-        }
-        dr.removed.push_back(row_);
-      }
-      r.pastResults[execution] = dr;
     }
 
     return Status(0, "OK");

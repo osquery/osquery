@@ -114,22 +114,6 @@ TEST_F(QueryTests, test_get_stored_query_names) {
   EXPECT_NE(in_vector, names.end());
 }
 
-TEST_F(QueryTests, test_get_executions) {
-  auto hQR = getSerializedHistoricalQueryResultsJSON();
-  auto query = getOsqueryScheduledQuery();
-  auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test14");
-  auto put_status = db->Put(kQueries, query.name, hQR.first);
-  EXPECT_TRUE(put_status.ok());
-  EXPECT_EQ(put_status.toString(), "OK");
-  auto cf = Query(query);
-  std::deque<int> results;
-  std::deque<int> expected = {2, 1};
-  auto s = cf.getExecutions(results, db);
-  EXPECT_TRUE(s.ok());
-  EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(results, expected);
-}
-
 TEST_F(QueryTests, test_get_current_results) {
   auto hQR = getSerializedHistoricalQueryResultsJSON();
   auto query = getOsqueryScheduledQuery();
