@@ -1,5 +1,5 @@
 table_name("alf_explicit_auths")
 schema([
-    Column(name="processes", type="std::string"),
+    Column(name="process", type="std::string"),
 ])
 implementation("osquery/tables/system/firewall@genALFExplicitAuths")
