@@ -24,7 +24,7 @@ make
 Once the project is built, try running the project's unit tests:
 
 ```
-make runtests
+make test
 ```
 
 ## Developing on OS X
