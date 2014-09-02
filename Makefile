@@ -38,12 +38,13 @@ deps:
 	git submodule update
 	pip install -r requirements.txt
 ifeq ($(OS),Darwin)
-	brew install cmake
-	brew install boost --c++11 --with-python
-	brew install gflags
-	brew install glog
-	brew install snappy
-	brew install readline
+	brew install cmake || brew upgrade cmake
+	brew install boost --c++11 --with-python \
+		|| brew upgrade boost --c++11 --with-python
+	brew install gflags || brew upgrade gflags
+	brew install glog || brew ugprade glog
+	brew install snappy || brew upgrade snappy
+	brew install readline || brew upgrade readline
 endif
 
 distclean: clean_tables
