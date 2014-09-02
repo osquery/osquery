@@ -210,3 +210,18 @@
    ...
    fun:lookUpImpOrForward
 }
+{
+   <oskextcopyloadedkextinfo_invalid_read>
+   Memcheck:Addr1
+   ...
+   fun:OSKextCopyLoadedKextInfo
+}
+{
+   <localtime_static>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   ...
+   fun:dispatch_once_f
+   ...
+   fun:localtime_r
+}
