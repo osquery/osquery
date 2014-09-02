@@ -77,13 +77,10 @@ pull:
 	git fetch origin
 	git rebase master --stat
 
-runtests: all test
-	./build/tools/flag_test --flagfile=tools/osquery.flagfile
-
 tables:
 	python tools/gentables.py
 
-t: build test
-
 test:
-	find build -name "*_tests" -type f -exec '{}' \;
+	cd build && cmake .. && make test
+
+runtests: build test
