@@ -225,3 +225,13 @@
    ...
    fun:localtime_r
 }
+{
+   <plist_parsing_false_positive>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   ...
+   fun:_CFPropertyListCreateFromUTF8Data
+   fun:_CFPropertyListCreateWithData
+   fun:CFPropertyListCreateWithData
+   fun:+[NSPropertyListSerialization propertyListWithData:options:format:error:]
+}
