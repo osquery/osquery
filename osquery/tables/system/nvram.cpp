@@ -21,122 +21,101 @@ using namespace osquery::db;
 namespace osquery {
 namespace tables {
 
+extern std::string safeSecString(const CFStringRef cf_string);
+
+std::string variableFromNumber(const void *value) {
+  uint32_t number;
+  char number_buffer[10];
+
+  memset(number_buffer, 0, 10);
+  CFNumberGetValue((CFNumberRef)value, kCFNumberSInt32Type, &number);
+  if (number == 0xFFFFFFFF) {
+    sprintf(number_buffer, "-1");
+  } else if (number < 1000) {
+    sprintf(number_buffer, "%d", number);
+  } else {
+    sprintf(number_buffer, "0x%x", number);
+  }
+
+  return std::string(number_buffer);
+}
+
+std::string variableFromData(const void *value) {
+  std::string variable;
+
+  uint32_t length;
+  const uint8_t *data_ptr;
+  char *buffer = 0;
+  uint32_t count, count2;
+  uint8_t byte;
+
+  length = CFDataGetLength((CFDataRef)value);
+  if (length == 0) {
+    return "";
+  }
+
+  buffer = (char *)malloc(length * 3 + 1);
+  if (buffer == NULL) {
+    return "";
+  }
+
+  memset(buffer, 0, length * 3 + 1);
+  data_ptr = CFDataGetBytePtr((CFDataRef)value);
+  for (count = count2 = 0; count < length; count++) {
+    byte = data_ptr[count];
+    if (isprint(byte)) {
+      buffer[count2++] = byte;
+    } else {
+      sprintf(buffer + count2, "%%%02x", byte);
+      count2 += 3;
+    }
+  }
+
+  // Cleanup
+  variable = std::string(buffer);
+  free(buffer);
+
+  return variable;
+}
+
 void genVariable(const void *key, const void *value, void *results) {
   Row nvram_row;
+  std::string value_string;
 
-  // Variable type casting members.
-  long cnt, cnt2;
-  const uint8_t *dataPtr;
-  uint8_t dataChar;
-  char numberBuffer[10];
-  char *dataBuffer = 0;
-  CFIndex valueLen;
-  char *valueBuffer = 0;
-  const char *valueString = 0;
-  uint32_t number, length;
   // OF variable canonical type casting.
-  CFTypeID typeID = CFGetTypeID(value);
-  CFIndex typeLen;
-  char *typeBuffer;
-  // Get the OF variable's name.
-  CFIndex nameLen;
-  char *nameBuffer = 0;
-  CFStringRef typeIDDescription = CFCopyTypeIDDescription(typeID);
+  CFTypeID type_id;
+  CFStringRef type_description;
 
-  nameLen = CFStringGetLength((CFStringRef)key) + 1;
-  nameBuffer = (char *)malloc(nameLen);
-  if (nameBuffer &&
-      CFStringGetCString(
-          (CFStringRef)key, nameBuffer, nameLen, kCFStringEncodingUTF8)) {
-    nvram_row["name"] = boost::lexical_cast<std::string>(nameBuffer);
-  } else {
-    LOG(WARNING) << "Unable to convert NVRAM property name to C string";
-    goto cleanup;
-  }
+  // Variable name is the dictionary key.
+  nvram_row["name"] = safeSecString((CFStringRef) key);
 
-  // Get the OF variable's type.
-  typeID = CFGetTypeID(value);
-  typeIDDescription = CFCopyTypeIDDescription(CFGetTypeID(value));
-  typeLen = CFStringGetLength(typeIDDescription) + 1;
-  typeBuffer = (char *)malloc(typeLen);
-  if (typeBuffer && CFStringGetCString(typeIDDescription,
-                                       typeBuffer,
-                                       typeLen,
-                                       kCFStringEncodingUTF8)) {
-    nvram_row["type"] = std::string(typeBuffer);
-  } else {
-    goto cleanup;
-  }
+  // Variable type will be defined by the CF type.
+  type_id = CFGetTypeID(value);
+  type_description = CFCopyTypeIDDescription(type_id);
+  nvram_row["type"] = safeSecString(type_description);
+  CFRelease(type_description);
 
   // Based on the type, get a texual representation of the variable.
-  if (typeID == CFBooleanGetTypeID()) {
-    valueString = (CFBooleanGetValue((CFBooleanRef)value)) ? "true" : "false";
-  } else if (typeID == CFNumberGetTypeID()) {
-    CFNumberGetValue((CFNumberRef)value, kCFNumberSInt32Type, &number);
-    if (number == 0xFFFFFFFF) {
-      sprintf(numberBuffer, "-1");
-    } else if (number < 1000) {
-      sprintf(numberBuffer, "%d", number);
-    } else {
-      sprintf(numberBuffer, "0x%x", number);
-    }
-    valueString = numberBuffer;
-  } else if (typeID == CFStringGetTypeID()) {
-    valueLen = CFStringGetLength((CFStringRef)value) + 1;
-    valueBuffer = (char *)malloc(valueLen);
-    if (valueBuffer &&
-        CFStringGetCString(
-            (CFStringRef)value, valueBuffer, valueLen, kCFStringEncodingUTF8)) {
-      valueString = valueBuffer;
-    } else {
-      LOG(WARNING) << "Unable to convert NVRAM value to C string";
-      goto cleanup;
-    }
-  } else if (typeID == CFDataGetTypeID()) {
-    length = CFDataGetLength((CFDataRef)value);
-    if (length == 0) {
-      valueString = "";
-    } else {
-      dataBuffer = (char *)malloc(length * 3 + 1);
-      if (dataBuffer != 0) {
-        dataPtr = CFDataGetBytePtr((CFDataRef)value);
-        for (cnt = cnt2 = 0; cnt < length; cnt++) {
-          dataChar = dataPtr[cnt];
-          if (isprint(dataChar)) {
-            dataBuffer[cnt2++] = dataChar;
-          } else {
-            sprintf(dataBuffer + cnt2, "%%%02x", dataChar);
-            cnt2 += 3;
-          }
-        }
-        dataBuffer[cnt2] = '\0';
-        valueString = dataBuffer;
-      }
-    }
+  if (type_id == CFBooleanGetTypeID()) {
+    // Boolean!
+    value_string = (CFBooleanGetValue((CFBooleanRef)value)) ? "true" : "false";
+  } else if (type_id == CFNumberGetTypeID()) {
+    // Number!
+    value_string = variableFromNumber(value);
+  } else if (type_id == CFStringGetTypeID()) {
+    // CFString!
+    value_string = safeSecString((CFStringRef)value);
+  } else if (type_id == CFDataGetTypeID()) {
+    // Binary Data
+    value_string = variableFromData(value);
   } else {
-    valueString = "<INVALID>";
+    // Who knows?
+    value_string = "<INVALID>";
   }
 
   // Finally, add the variable's value to the row.
-  if (valueString != 0) {
-    nvram_row["value"] = boost::lexical_cast<std::string>(valueString);
-  }
+  nvram_row["value"] = value_string;
   ((QueryData *)results)->push_back(nvram_row);
-
-cleanup:
-  if (nameBuffer != 0) {
-    free(nameBuffer);
-  }
-  if (typeBuffer != 0) {
-    free(typeBuffer);
-  }
-  if (dataBuffer != 0) {
-    free(dataBuffer);
-  }
-  if (valueBuffer != 0) {
-    free(valueBuffer);
-  }
-  CFRelease(typeIDDescription);
 }
 
 QueryData genNVRAM() {
