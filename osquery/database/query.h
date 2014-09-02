@@ -75,16 +75,6 @@ class Query {
  private:
   bool isQueryNameInDatabase(std::shared_ptr<DBHandle> db);
 
-  // getExecutions() returns a deque of timestamps of previous query
-  // executions. These timestamp values are used as the RocksDB sub-keys which
-  // represent the data stored as a result of those executions.
- public:
-  osquery::Status getExecutions(std::deque<int>& results);
-
- private:
-  osquery::Status getExecutions(std::deque<int>& results,
-                                std::shared_ptr<DBHandle> db);
-
   // addNewResults adds a new result set to the local data store. If you
   // want the diff of the results you've just added, pass a reference to a
   // diffResults struct

@@ -90,9 +90,7 @@ TEST_F(ResultsTests, test_deserialize_historical_query_results) {
   HistoricalQueryResults r;
   auto s = deserializeHistoricalQueryResults(results.first, r);
   EXPECT_EQ(results.second, r);
-  EXPECT_EQ(results.second.executions, r.executions);
   EXPECT_EQ(results.second.mostRecentResults, r.mostRecentResults);
-  EXPECT_EQ(results.second.pastResults, r.pastResults);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 }
@@ -102,9 +100,7 @@ TEST_F(ResultsTests, test_deserialize_historical_query_results_json) {
   HistoricalQueryResults r;
   auto s = deserializeHistoricalQueryResultsJSON(results.first, r);
   EXPECT_EQ(results.second, r);
-  EXPECT_EQ(results.second.executions, r.executions);
   EXPECT_EQ(results.second.mostRecentResults, r.mostRecentResults);
-  EXPECT_EQ(results.second.pastResults, r.pastResults);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 }

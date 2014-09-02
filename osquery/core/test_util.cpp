@@ -161,29 +161,14 @@ getSerializedHistoricalQueryResults() {
   auto qd = getSerializedQueryData();
   auto dr = getSerializedDiffResults();
   HistoricalQueryResults r;
-  r.executions = std::deque<int>{2, 1};
   r.mostRecentResults.first = 2;
   r.mostRecentResults.second = qd.second;
-  r.pastResults[1] = dr.second;
 
   pt::ptree root;
-
-  pt::ptree executions;
-  pt::ptree item1;
-  item1.put("", 2);
-  executions.push_back(std::make_pair("", item1));
-  pt::ptree item2;
-  item2.put("", 1);
-  executions.push_back(std::make_pair("", item2));
-  root.add_child("executions", executions);
 
   pt::ptree mostRecentResults;
   mostRecentResults.add_child("2", qd.first);
   root.add_child("mostRecentResults", mostRecentResults);
-
-  pt::ptree pastResults;
-  pastResults.add_child("1", dr.first);
-  root.add_child("pastResults", pastResults);
 
   return std::make_pair(root, r);
 }
