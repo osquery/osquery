@@ -465,7 +465,7 @@
 												<key>GID</key>
 												<integer>0</integer>
 												<key>PATH</key>
-												<string>../../build/osqueryd</string>
+												<string>../../build/osquery/osqueryd</string>
 												<key>PATH_TYPE</key>
 												<integer>1</integer>
 												<key>PERMISSIONS</key>
@@ -481,7 +481,7 @@
 												<key>GID</key>
 												<integer>0</integer>
 												<key>PATH</key>
-												<string>../../build/osqueryi</string>
+												<string>../../build/osquery/osqueryi</string>
 												<key>PATH_TYPE</key>
 												<integer>1</integer>
 												<key>PERMISSIONS</key>
@@ -953,6 +953,39 @@
 					<dict>
 						<key>CHILDREN</key>
 						<array>
+							<dict>
+								<key>CHILDREN</key>
+								<array>
+									<dict>
+										<key>CHILDREN</key>
+										<array/>
+										<key>GID</key>
+										<integer>0</integer>
+										<key>PATH</key>
+										<string>osquery</string>
+										<key>PATH_TYPE</key>
+										<integer>0</integer>
+										<key>PERMISSIONS</key>
+										<integer>493</integer>
+										<key>TYPE</key>
+										<integer>2</integer>
+										<key>UID</key>
+										<integer>0</integer>
+									</dict>
+								</array>
+								<key>GID</key>
+								<integer>0</integer>
+								<key>PATH</key>
+								<string>log</string>
+								<key>PATH_TYPE</key>
+								<integer>0</integer>
+								<key>PERMISSIONS</key>
+								<integer>493</integer>
+								<key>TYPE</key>
+								<integer>2</integer>
+								<key>UID</key>
+								<integer>0</integer>
+							</dict>
 							<dict>
 								<key>CHILDREN</key>
 								<array>
