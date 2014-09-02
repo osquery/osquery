@@ -1,4 +1,4 @@
-table_name("cacerts")
+table_name("ca_certs")
 schema([
     Column(name="common_name", type="std::string"),
     Column(name="not_valid_before", type="std::string"),
@@ -10,4 +10,4 @@ schema([
     Column(name="sha1", type="std::string"),
 
 ])
-implementation("osquery/tables/system/cacerts@genCerts")
+implementation("osquery/tables/system/ca_certs@genCerts")
