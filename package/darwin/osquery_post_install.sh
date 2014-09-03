@@ -23,7 +23,6 @@ function run() {
 function main() {
   if launchctl list | grep -qcm1 $OSQUERY_LAUNCD_STRING; then
     log "$OSQUERY_LAUNCD_PATH already loaded. Unloading."
-    run launchctl stop $OSQUERY_LAUNCD_LABEL
     run launchctl unload $OSQUERY_LAUNCD_PATH
   fi
 
