@@ -1079,7 +1079,7 @@
 			<key>RELOCATABLE</key>
 			<false/>
 			<key>VERSION</key>
-			<string>0.0.0</string>
+			<string>0.0.1</string>
 		</dict>
 		<key>PROJECT_COMMENTS</key>
 		<dict>
