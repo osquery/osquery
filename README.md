@@ -51,7 +51,7 @@ These queries can be:
 
 ## Building the code
 
-Check out the [Building the code](https://github.com/facebook/osquery/wiki/building-the-code) page on the wiki.
+Check out the ["building the code"](https://github.com/facebook/osquery/wiki/building-the-code) page on the wiki.
 
 ## Table Development
 
