@@ -49,41 +49,9 @@ These queries can be:
 - executed via a scheduler to monitor operating system state across a distributed set of hosts over time
 - launched from custom applications using osquery APIs
 
-## Building on OS X
+## Building the code
 
-To build osquery on OS X, all you need installed is `pip` and `brew`.
-`make deps` will take care of installing the appropriate library
-dependencies, but I recommend taking a look at the Makefile, just in case
-you see something that might conflict with your personal setup.
-
-Anything that doesn't have a homebrew package is built from source from
-https://github.com/osquery/third-party, which is a git submodule of this
-repository which is set up by `make deps`.
-
-The complete installation/build steps are as follows:
-
-```
-git clone git@github.com:facebook/osquery.git
-cd osquery
-make deps
-make
-```
-
-Once the project is built, try running the project's unit tests:
-
-```
-make test
-```
-
-## Developing on OS X
-
-`make deps` will take care of installing everything you need to compile osquery
-but to properly develop and contribute code, you'll need to install two additional
-programs:
-
-- clang-format: we use clang-format to format all code in osquery
-- valgrind: performance is a top priority for osquery, so all code should be
-	thouroughly tested with valgrind
+Check out the [Building the code](https://github.com/facebook/osquery/wiki/building-the-code) page on the wiki.
 
 ## Table Development
 
