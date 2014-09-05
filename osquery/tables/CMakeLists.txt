@@ -18,6 +18,7 @@ if(APPLE)
     system/launchd.cpp
     system/nvram.cpp
     system/processes.cpp
+    system/last.cpp
   )
   TARGET_LINK_LIBRARIES(osquery_tables_osx boost_filesystem)
   TARGET_LINK_LIBRARIES(osquery_tables_osx osquery_database)
