@@ -1,23 +1,25 @@
 OS=$(shell uname)
-BUILD_THREADS=5
 ifeq ($(OS),Darwin)
 OSQUERYD_PLIST_PATH="/Library/LaunchDaemons/com.facebook.osqueryd.plist"
 endif
 ROCKSDB_PATH="/tmp/rocksdb-osquery"
 
-all: tables build
+all: build
 
 ammend:
 	git add .
 	git commit --amend --no-edit
 
 .PHONY: build
-build:
+build: tables
 	mkdir -p build
-	cd build && cmake .. && make -j$(BUILD_THREADS)
+	cd build && cmake .. && make $(MAKEFLAGS)
 
 clean: clean_tables
 	cd build && make clean
+
+distclean: clean
+	rm -rf build
 
 ifeq ($(OS),Darwin)
 clean_install:

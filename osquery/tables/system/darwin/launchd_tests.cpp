@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/core/darwin/test_util.h"
 #include "osquery/database.h"
 #include "osquery/filesystem.h"
 

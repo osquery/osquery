@@ -26,7 +26,11 @@ SPEC_DIR = os.path.join(BASE_DIR, "osquery/tables/specs")
 X_SPEC_DIR = os.path.join(SPEC_DIR, "x")
 
 # the directory where the OS specific specs are stored
-OS_SPEC_DIR = os.path.join(SPEC_DIR, sys.platform)
+platform = sys.platform
+if platform.startswith("linux"):
+    # remove kernel major version http://bugs.python.org/issue12326
+    platform = "linux"
+OS_SPEC_DIR = os.path.join(SPEC_DIR, platform)
 
 # the directory where generated tables are stored
 GENERATED_TABLE_DIR = os.path.join(BASE_DIR, "osquery/tables/generated")
