@@ -7,9 +7,7 @@ namespace example {
 
 class ExampleTests : public testing::Test {};
 
-TEST_F(ExampleTests, test_plugin) {
-  EXPECT_TRUE(1 == 1);
-}
+TEST_F(ExampleTests, test_plugin) { EXPECT_TRUE(1 == 1); }
 }
 }
 
