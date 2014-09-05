@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "osquery/core.h"
-#include "osquery/core/test_util.h"
+#include "osquery/core/darwin/test_util.h"
 
 using namespace osquery::core;
 namespace pt = boost::property_tree;

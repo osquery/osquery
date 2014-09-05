@@ -6,6 +6,12 @@ FIND_PACKAGE(Gtest REQUIRED)
 FIND_PACKAGE(RocksDB REQUIRED)
 FIND_PACKAGE(Sqlite3 REQUIRED)
 
+if(APPLE)
+  set(OS_COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
+else()
+  set(OS_COMPILE_FLAGS "-std=c++11")
+endif()
+
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}")
 INCLUDE_DIRECTORIES("/usr/local/include")
 LINK_DIRECTORIES("/usr/local/lib")

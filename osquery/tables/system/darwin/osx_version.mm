@@ -6,7 +6,7 @@
 
 #include <boost/lexical_cast.hpp>
 
-#import "osquery/core/osx/NSProcessInfo+PECocoaBackports.h"
+#import "osquery/core/darwin/NSProcessInfo+PECocoaBackports.h"
 
 using namespace osquery::db;
 

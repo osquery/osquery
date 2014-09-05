@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/tables/system/firewall.h"
+#include "osquery/tables/system/darwin/firewall.h"
 
 #include <glog/logging.h>
 

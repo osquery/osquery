@@ -3,10 +3,10 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/core/darwin/test_util.h"
 #include "osquery/database.h"
 #include "osquery/filesystem.h"
-#include "osquery/tables/system/firewall.h"
+#include "osquery/tables/system/darwin/firewall.h"
 
 using namespace osquery::core;
 namespace pt = boost::property_tree;

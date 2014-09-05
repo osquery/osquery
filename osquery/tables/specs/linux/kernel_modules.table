@@ -1,0 +1,12 @@
+table_name("kernel_modules")
+schema([
+    Column(name="name", type="std::string"),
+    Column(name="size", type="std::string"),
+    Column(name="used_by", type="std::string"),
+    Column(name="filename", type="std::string"),
+    Column(name="description", type="std::string"),
+    Column(name="sig_key", type="std::string"),
+    Column(name="version", type="std::string"),
+    Column(name="signer", type="std::string"),
+])
+implementation("osquery/tables/system/kernel_modules@genKernelModules")
