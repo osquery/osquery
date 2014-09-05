@@ -49,32 +49,6 @@ These queries can be:
 - executed via a scheduler to monitor operating system state across a distributed set of hosts over time
 - launched from custom applications using osquery APIs
 
-## Building the code
+## Learn more
 
-Check out the ["building the code"](https://github.com/facebook/osquery/wiki/building-the-code) page on the wiki.
-
-## Table Development
-
-### Top easy virtual tables
-
-- [Crontab virtual table](https://github.com/facebook/osquery/issues/19)
-- [Networking settings virtual table](https://github.com/facebook/osquery/issues/10)
-- [Full Disk Encryption Virtual Tables](https://github.com/facebook/osquery/issues/15)
-
-### High impact virtual tables
-- [Installed browser plugins virtual table](https://github.com/facebook/osquery/issues/24)
-- [System-trusted root certificated virtual table](https://github.com/facebook/osquery/issues/8)
-- [Startup items virtual table](https://github.com/facebook/osquery/issues/6)
-
-
-### Testing your table for memory leaks
-
-Use valgrind to test your table for memory leaks before you commit it. The
-osqueryd daemon is a very long running processes, so avoiding memory leaks is
-critical. The "run" tool is useful for testing a specific query. From the root
-of the osquery repository, run the following (substitute your table name in the
-query):
-
-```
-valgrind --tool=memcheck --leak-check=yes --suppressions=osquery.supp ./build/tools/run --query="select * from time;"
-```
+If you're interested in learning more about osquery then visit the [wiki](https://github.com/facebook/osquery/wiki).
