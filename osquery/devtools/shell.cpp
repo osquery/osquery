@@ -76,7 +76,7 @@
 #define pclose _pclose
 #else
 
-#include "osquery/tables/registry.h"
+#include "osquery/registry/registry.h"
 
 /* Make sure isatty() has a prototype.
 */

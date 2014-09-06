@@ -1,16 +1,15 @@
-ADD_LIBRARY(osquery_logger
+ADD_LIBRARY(osquery_logger OBJECT
   logger.cpp
   plugins/filesystem.cpp
 )
-TARGET_LINK_LIBRARIES(osquery_logger osquery_database)
-if(APPLE)
-  TARGET_LINK_LIBRARIES(osquery_logger "-Wl,-all_load")
-endif()
-SET_TARGET_PROPERTIES(osquery_logger PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
 
-ADD_EXECUTABLE(logger_tests logger_tests.cpp)
-TARGET_LINK_LIBRARIES(logger_tests gtest)
-TARGET_LINK_LIBRARIES(logger_tests osquery_core)
-TARGET_LINK_LIBRARIES(logger_tests osquery_logger)
-SET_TARGET_PROPERTIES(logger_tests PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-ADD_TEST(logger_tests logger_tests)
+SET_OSQUERY_COMPILE(osquery_logger)
+
+ADD_LIBRARY(osquery_testing_logger
+  $<TARGET_OBJECTS:osquery_core>
+  $<TARGET_OBJECTS:osquery_database>
+  $<TARGET_OBJECTS:osquery_logger>
+)
+
+ADD_OSQUERY_TEST(logger_tests logger_tests.cpp 
+  osquery_testing_logger)

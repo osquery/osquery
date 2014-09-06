@@ -4,7 +4,7 @@ else()
   set (OS_CORE_SOURCE "")
 endif()
 
-ADD_LIBRARY(osquery_core
+ADD_LIBRARY(osquery_core OBJECT
   init_osquery.cpp
   sqlite_util.cpp
   system.cpp
@@ -13,39 +13,22 @@ ADD_LIBRARY(osquery_core
   text.cpp
 )
 
-TARGET_LINK_LIBRARIES(osquery_core gflags)
-TARGET_LINK_LIBRARIES(osquery_core glog)
-TARGET_LINK_LIBRARIES(osquery_core gtest)
-TARGET_LINK_LIBRARIES(osquery_core osquery_database)
-TARGET_LINK_LIBRARIES(osquery_core osquery_filesystem)
-TARGET_LINK_LIBRARIES(osquery_core osquery_sqlite)
-TARGET_LINK_LIBRARIES(osquery_core osquery_tables)
-SET_TARGET_PROPERTIES(osquery_core PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
+SET_OSQUERY_COMPILE(osquery_core)
 
-ADD_EXECUTABLE(status_tests status_tests.cpp)
-TARGET_LINK_LIBRARIES(status_tests gtest)
-SET_TARGET_PROPERTIES(status_tests PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-ADD_TEST(status_tests status_tests)
+ADD_OSQUERY_TEST(status_test status_tests.cpp "")
 
-ADD_EXECUTABLE(sqlite_util_tests sqlite_util_tests.cpp)
-TARGET_LINK_LIBRARIES(sqlite_util_tests gtest)
-TARGET_LINK_LIBRARIES(sqlite_util_tests osquery_core)
-TARGET_LINK_LIBRARIES(sqlite_util_tests osquery_database)
-TARGET_LINK_LIBRARIES(sqlite_util_tests osquery_sqlite)
-SET_TARGET_PROPERTIES(sqlite_util_tests PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-ADD_TEST(sqlite_util_tests sqlite_util_tests)
+ADD_LIBRARY(osquery_testing_core 
+  $<TARGET_OBJECTS:osquery_core>
+  $<TARGET_OBJECTS:osquery_database>
+  $<TARGET_OBJECTS:osquery_sqlite>
+  $<TARGET_OBJECTS:osquery_registry>
+)
 
-ADD_EXECUTABLE(test_util_tests test_util_tests.cpp)
-TARGET_LINK_LIBRARIES(test_util_tests gtest)
-TARGET_LINK_LIBRARIES(test_util_tests glog)
-TARGET_LINK_LIBRARIES(test_util_tests osquery_core)
-TARGET_LINK_LIBRARIES(test_util_tests osquery_sqlite)
-SET_TARGET_PROPERTIES(test_util_tests PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-ADD_TEST(test_util_tests test_util_tests)
+ADD_OSQUERY_TEST(sqlite_util_tests sqlite_util_tests.cpp 
+  osquery_testing_core)
 
-ADD_EXECUTABLE(text_tests text_tests.cpp)
-TARGET_LINK_LIBRARIES(text_tests gtest)
-TARGET_LINK_LIBRARIES(text_tests glog)
-TARGET_LINK_LIBRARIES(text_tests osquery_core)
-SET_TARGET_PROPERTIES(text_tests PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-ADD_TEST(text_tests text_tests)
+ADD_OSQUERY_TEST(test_util_tests test_util_tests.cpp 
+  osquery_testing_core)
+
+ADD_OSQUERY_TEST(text_tests text_tests.cpp 
+  osquery_testing_core)

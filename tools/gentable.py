@@ -33,7 +33,7 @@ IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 
 #include "osquery/database.h"
 #include "osquery/tables/base.h"
-#include "osquery/tables/registry.h"
+#include "osquery/registry/registry.h"
 
 namespace osquery { namespace tables {
 
