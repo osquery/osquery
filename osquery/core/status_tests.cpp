@@ -14,6 +14,12 @@ TEST_F(StatusTests, test_constructor) {
   EXPECT_EQ(s.getMessage(), "message");
 }
 
+TEST_F(StatusTests, test_constructor_2) {
+  Status s;
+  EXPECT_EQ(s.getCode(), 0);
+  EXPECT_EQ(s.getMessage(), "OK");
+}
+
 TEST_F(StatusTests, test_ok) {
   auto s1 = Status(5, "message");
   EXPECT_FALSE(s1.ok());
