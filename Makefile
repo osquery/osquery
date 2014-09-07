@@ -15,34 +15,34 @@ build:
 	mkdir -p build
 	cd build && cmake .. && make $(MAKEFLAGS)
 
-.PHONY: build_shared
-build_shared: 
+build_shared:
 	mkdir -p build/shared
 	cd build/shared && cmake -D BUILD_SHARED:Boolean=True ../.. && make $(MAKEFLAGS)
+
+fast:
+	cd build && cmake .. && make $(MAKEFLAGS)
 
 clean: clean_tables
 	cd build && make clean
 
-ifeq ($(OS),Darwin)
 clean_install:
 	rm -rf /var/osquery
 	rm -rf  $(ROCKSDB_PATH)
 	rm -f /usr/local/bin/osqueryi
 	rm -f /usr/local/bin/osqueryd
 	rm -rf /var/log/osquery
-	if [ -f $(OSQUERYD_PLIST_PATH) ]; 
-	  then launchctl unload $(OSQUERYD_PLIST_PATH); 
-	fi;
 	rm -f $(OSQUERYD_PLIST_PATH)
+ifeq ($(OS),Darwin)
+	if [ -f $(OSQUERYD_PLIST_PATH) ];
+	  then launchctl unload $(OSQUERYD_PLIST_PATH);
+		rm -f $(OSQUERYD_PLIST_PATH)
+	fi;
 endif
 
 clean_tables:
 	rm -rf osquery/tables/generated
 
-deps:
-	git submodule init
-	git submodule update
-	pip install -r requirements.txt
+os_deps:
 ifeq ($(OS),Darwin)
 	brew install cmake || brew upgrade cmake
 	brew install boost --c++11 --with-python \
@@ -51,7 +51,28 @@ ifeq ($(OS),Darwin)
 	brew install glog || brew ugprade glog
 	brew install snappy || brew upgrade snappy
 	brew install readline || brew upgrade readline
+else
+	apt-get update
+	apt-get upgrade -y
+	apt-get install git -y
+	apt-get install build-essential -y
+	apt-get install cmake -y
+	apt-get install python-pip -y
+	apt-get install python-dev -y
+	apt-get install clang-3.4 -y
+	apt-get install clang-format-3.4 -y
+	apt-get install libboost1.55-all-dev -y
+	apt-get install libgflags-dev -y
+	apt-get install libgoogle-glog-dev -y
+	apt-get install libsnappy-dev -y
+	apt-get install libbz2-dev -y
+	apt-get install libreadline-dev -y
 endif
+
+deps: os_deps
+	git submodule init
+	git submodule update
+	pip install -r requirements.txt
 
 distclean: clean_tables
 ifeq ($(OS),Darwin)

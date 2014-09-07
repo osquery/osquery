@@ -58,7 +58,7 @@ ADD_LIBRARY(osquery_tables OBJECT
 
 SET_OSQUERY_COMPILE(osquery_tables)
 
-ADD_LIBRARY(osquery_tables_testing 
+ADD_LIBRARY(osquery_tables_testing
   $<TARGET_OBJECTS:osquery_core>
   $<TARGET_OBJECTS:osquery_sqlite>
   $<TARGET_OBJECTS:osquery_registry>
@@ -68,7 +68,7 @@ ADD_LIBRARY(osquery_tables_testing
   ${OSQUERY_LIB_ADDITIONAL_OBJECTS}
 )
 
-ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp 
+ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp
   osquery_tables_testing)
 
 if(APPLE)
