@@ -23,10 +23,6 @@ build_shared:
 clean: clean_tables
 	cd build && make clean
 
-distclean:
-	rm -rf build
-	make clean
-
 ifeq ($(OS),Darwin)
 clean_install:
 	rm -rf /var/osquery

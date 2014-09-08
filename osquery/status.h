@@ -9,6 +9,7 @@ namespace osquery {
 
 class Status {
  public:
+  Status() : code_(0), message_("OK") {}
   Status(int c, std::string m) : code_(c), message_(m) {}
 
  public:
