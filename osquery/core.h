@@ -39,7 +39,6 @@ std::string getAsciiTime();
 // getUnixTime() returns an int which represents the current time since the
 // unix epoch
 int getUnixTime();
-
 }
 }
 

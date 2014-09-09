@@ -31,7 +31,7 @@ std::string canonical_ip_address(const struct sockaddr *in) {
 
 std::string canonical_mac_address(const struct ifaddrs *addr) {
   std::stringstream mac;
-  struct sockaddr_dl* sdl;
+  struct sockaddr_dl *sdl;
 
   if (addr->ifa_addr == NULL) {
     // No link or MAC exists.

@@ -156,7 +156,7 @@ QueryData genRoutes() {
   // Need a map from index->name for each route entry.
   ifmap = genInterfaceMap();
 
-  for (const auto& route_type : kRouteTypes) {
+  for (const auto &route_type : kRouteTypes) {
     genRouteTableType(route_type, ifmap, results);
   }
 

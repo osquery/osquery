@@ -87,7 +87,7 @@ void genVariable(const void *key, const void *value, void *results) {
   CFStringRef type_description;
 
   // Variable name is the dictionary key.
-  nvram_row["name"] = safeSecString((CFStringRef) key);
+  nvram_row["name"] = safeSecString((CFStringRef)key);
 
   // Variable type will be defined by the CF type.
   type_id = CFGetTypeID(value);

@@ -17,15 +17,15 @@ QueryData genOSXVersion() {
   QueryData results;
   @autoreleasepool {
 
-  NSOperatingSystemVersion v =
-      [[NSProcessInfo processInfo] operatingSystemVersion];
+    NSOperatingSystemVersion v =
+        [[NSProcessInfo processInfo] operatingSystemVersion];
 
-  Row r;
-  r["major"] = boost::lexical_cast<std::string>(v.majorVersion);
-  r["minor"] = boost::lexical_cast<std::string>(v.minorVersion);
-  r["patch"] = boost::lexical_cast<std::string>(v.patchVersion);
+    Row r;
+    r["major"] = boost::lexical_cast<std::string>(v.majorVersion);
+    r["minor"] = boost::lexical_cast<std::string>(v.minorVersion);
+    r["patch"] = boost::lexical_cast<std::string>(v.patchVersion);
 
-  results.push_back(r);
+    results.push_back(r);
   }
   return results;
 }

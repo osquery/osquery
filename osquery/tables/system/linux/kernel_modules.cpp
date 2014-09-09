@@ -14,10 +14,9 @@ namespace osquery {
 namespace tables {
 
 QueryData genKernelModules() {
-	QueryData results;
+  QueryData results;
 
-	return results;
+  return results;
 }
-
 }
 }

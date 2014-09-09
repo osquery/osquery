@@ -47,8 +47,10 @@ QueryData genKextstat() {
       CFStringRef nameRef = (CFStringRef)CFDictionaryGetValue(
           (CFDictionaryRef)(values)[j], CFSTR("CFBundleIdentifier"));
       CFIndex nameLen = CFStringGetLength(nameRef) + 1;
-      char* nameBuffer = (char*)malloc(nameLen);
-      if (nameBuffer && CFStringGetCString(nameRef, nameBuffer, nameLen, kCFStringEncodingUTF8)) {
+      char *nameBuffer = (char *)malloc(nameLen);
+      if (nameBuffer &&
+          CFStringGetCString(
+              nameRef, nameBuffer, nameLen, kCFStringEncodingUTF8)) {
         name = std::string(nameBuffer);
         boost::algorithm::trim(name);
       }
@@ -100,8 +102,10 @@ QueryData genKextstat() {
       CFStringRef versionRef = (CFStringRef)CFDictionaryGetValue(
           (CFDictionaryRef)values[j], CFSTR("CFBundleVersion"));
       CFIndex versionLen = CFStringGetLength(versionRef) + 1;
-      char* versionBuffer = (char*)malloc(versionLen);
-      if (versionBuffer && CFStringGetCString(versionRef, versionBuffer, versionLen, kCFStringEncodingUTF8)) {
+      char *versionBuffer = (char *)malloc(versionLen);
+      if (versionBuffer &&
+          CFStringGetCString(
+              versionRef, versionBuffer, versionLen, kCFStringEncodingUTF8)) {
         version = std::string(versionBuffer);
         boost::algorithm::trim(version);
       }

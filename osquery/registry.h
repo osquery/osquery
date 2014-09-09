@@ -15,25 +15,25 @@
 
 namespace osquery {
 
- // A simple registry system for making values available by key across
- // components.
- //
- // To use this registry, make a header like so:
- //
- //   #include "osquery/registry.h"
- //
- //    DECLARE_REGISTRY(MathFuncs, int, std::function<double(double)>)
- //    #define REGISTERED_MATH_FUNCS REGISTRY(MathFuncs)
- //    #define REGISTER_MATH_FUNC(id, func) \
+// A simple registry system for making values available by key across
+// components.
+//
+// To use this registry, make a header like so:
+//
+//   #include "osquery/registry.h"
+//
+//    DECLARE_REGISTRY(MathFuncs, int, std::function<double(double)>)
+//    #define REGISTERED_MATH_FUNCS REGISTRY(MathFuncs)
+//    #define REGISTER_MATH_FUNC(id, func) \
  //            REGISTER(MathFuncs, id, func)
- //
- // Client code may then advertise an entry from a .cpp like so:
- //    #include "my/registry/header.h"
- //    REGISTER_MATH_FUNC(1, sqrt);
- //
- // Server code may then access the set of registered values by using
- // REGISTERED_MATH_FUNCS as a map, which will be populated after
- // osquery::InitRegistry::get().run() has been called.
+//
+// Client code may then advertise an entry from a .cpp like so:
+//    #include "my/registry/header.h"
+//    REGISTER_MATH_FUNC(1, sqrt);
+//
+// Server code may then access the set of registered values by using
+// REGISTERED_MATH_FUNCS as a map, which will be populated after
+// osquery::InitRegistry::get().run() has been called.
 template <class Key, class Value>
 class Registry : public std::unordered_map<Key, Value> {
  public:
