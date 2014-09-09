@@ -53,6 +53,18 @@ cleanup:
   return Status(statusCode, statusMessage);
 }
 
+Status pathExists(const std::string& path) {
+  if (path.length() == 0) {
+    return Status(0, "-1");
+  }
+
+  // A tri-state determination of presence
+  if (!boost::filesystem::exists(path)) {
+    return Status(0, "0");
+  }
+  return Status(0, "1");
+}
+
 Status listFilesInDirectory(const std::string& path,
                             std::vector<std::string>& results) {
   try {

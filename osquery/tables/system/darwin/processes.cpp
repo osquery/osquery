@@ -16,6 +16,7 @@
 
 #include "osquery/core.h"
 #include "osquery/database.h"
+#include "osquery/filesystem.h"
 
 using namespace osquery::core;
 using namespace osquery::db;
@@ -97,15 +98,7 @@ QueryData genProcesses() {
     char path[PROC_PIDPATHINFO_MAXSIZE];
     proc_pidpath(pids[i], path, sizeof(path));
     r["path"] = std::string(path);
-    if ((r["path"]).length() > 0) {
-      if (!boost::filesystem::exists(r["path"])) {
-        r["on_disk"] = "0";
-      } else {
-        r["on_disk"] = "1";
-      }
-    } else {
-      r["on_disk"] = "-1";
-    }
+    r["on_disk"] = osquery::fs::pathExists(r["path"]).toString();
 
     // systems usage and time information
     struct rusage_info_v2 rusage_info_data;
