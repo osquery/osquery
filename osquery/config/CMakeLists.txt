@@ -1,4 +1,6 @@
 ADD_LIBRARY(osquery_config OBJECT
+  ../config.h
+  plugin.h
   config.cpp
   plugins/filesystem.cpp
 )
@@ -12,5 +14,5 @@ ADD_LIBRARY(osquery_testing_config
   $<TARGET_OBJECTS:osquery_config>
 )
 
-ADD_OSQUERY_TEST(config_tests config_tests.cpp 
+ADD_OSQUERY_TEST(config_tests config_tests.cpp
   osquery_testing_config)

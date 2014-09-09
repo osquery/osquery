@@ -4,10 +4,10 @@ if(APPLE)
   ADD_LIBRARY(osquery_filesystem_objc OBJECT
     darwin/plist.mm
   )
-  
+
   ADD_OSQUERY_LINK("-framework Foundation")
   SET_OSQUERY_COMPILE(osquery_filesystem_objc "-x objective-c++ -fobjc-arc")
-  
+
   list(APPEND OSQUERY_FILESYSTEM_TARGETS $<TARGET_OBJECTS:osquery_filesystem_objc>)
 endif()
 
@@ -15,6 +15,7 @@ endif()
 ADD_OSQUERY_LIB("${OSQUERY_FILESYSTEM_TARGETS}")
 
 ADD_LIBRARY(osquery_filesystem OBJECT
+  ../filesystem.h
   filesystem.cpp
 )
 

@@ -3,6 +3,8 @@ SET(OSQUERY_CORE_TABLE_TARGETS "")
 if(APPLE)
   ADD_LIBRARY(osquery_tables_objc OBJECT
     ../core/darwin/NSProcessInfo+PECocoaBackports.mm
+    ../core/darwin/NSProcessInfo+PECocoaBackports.h
+    ../core/darwin/PECocoaBackportsGlobal.h
     system/darwin/osx_version.mm
   )
 
@@ -15,9 +17,11 @@ if(APPLE)
     networking/interfaces.cpp
     networking/listening_ports.cpp
     networking/routes.cpp
+    networking/utils.h
     networking/utils.cpp
     system/darwin/apps.cpp
     system/darwin/ca_certs.cpp
+    system/darwin/firewall.h
     system/darwin/firewall.cpp
     system/darwin/kextstat.cpp
     system/darwin/launchd.cpp
@@ -54,6 +58,7 @@ ADD_LIBRARY(osquery_tables OBJECT
   ${table_sources}
   networking/etc_hosts.cpp
   utility/time.cpp
+  base.h
 )
 
 SET_OSQUERY_COMPILE(osquery_tables)

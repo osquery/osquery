@@ -105,12 +105,12 @@ SET(OSQUERY_LIB_OBJECTS
 )
 
 if(BUILD_SHARED)
-  ADD_LIBRARY(osquery_shared SHARED main/lib.cpp ${OSQUERY_LIB_OBJECTS})
+  ADD_LIBRARY(osquery_shared SHARED main/lib.cpp status.h ${OSQUERY_LIB_OBJECTS})
 else()
   ADD_LIBRARY(osquery_static STATIC ${OSQUERY_LIB_OBJECTS})
   SET_TARGET_PROPERTIES(osquery_static PROPERTIES OUTPUT_NAME osquery_static)
 
-  ADD_LIBRARY(osquery_shared STATIC main/lib.cpp)
+  ADD_LIBRARY(osquery_shared STATIC main/lib.cpp status.h)
   TARGET_OSQUERY_LINK_WHOLE(osquery_shared osquery_static)
 endif()
 ADD_DEPENDENCIES(osquery_shared librocksdb)
