@@ -71,11 +71,9 @@ void printHelpAndExit(char *argv0, int code) {
   exit(code);
 }
 
-void initOsquery(int argc, char *argv[]) {
-  google::InitGoogleLogging(argv[0]);
-
-  // gflags help is pretty ugly, so let's intercept calls to "--help" and the
-  // like so that we can proactively print prettier help messages
+// gflags help is pretty ugly, so let's intercept calls to "--help" and the
+// like so that we can proactively print prettier help messages
+std::pair<int, char**> parseCommandLineFlags(int argc, char** argv) {
   std::vector<std::string> new_args;
   for (int i = 0; i < argc; ++i) {
     std::string arg(argv[i]);
@@ -95,33 +93,29 @@ void initOsquery(int argc, char *argv[]) {
     }
   }
 
-  int new_argc = (int)new_args.size();
+  int new_argc = (int) new_args.size();
   std::vector<char *> char_vector;
   std::transform(new_args.begin(),
-                 new_args.end(),
-                 std::back_inserter(char_vector),
-                 stringToChar);
-  char **new_argv = (char **)new char(new_argc + 1);
+      new_args.end(),
+      std::back_inserter(char_vector),
+      stringToChar);
+  char **new_argv = (char **) new char(new_argc + 1);
   for (int i = 0; i < char_vector.size(); ++i) {
     new_argv[i] = char_vector[i];
   }
+  return std::make_pair(new_argc, new_argv);
+}
 
-  // you can access this message later via google::ProgramUsage()
-  google::SetUsageMessage(
-      "\n"
-      "  OSQuery - operating system instrumentation framework\n"
-      "\n"
-      "  Arguments\n"
-      "\n"
-      "    -help         Show complete help text\n"
-      "\n");
+void initOsquery(int argc, char *argv[]) {
   FLAGS_alsologtostderr = true;
   FLAGS_logbufsecs = 0; // flush the log buffer immediately
   FLAGS_stop_logging_if_full_disk = true;
   FLAGS_max_log_size = 1024; // max size for individual log file is 1GB
   FLAGS_log_dir = kDefaultLogDir;
-  google::ParseCommandLineFlags(&new_argc, &new_argv, true);
+  google::InitGoogleLogging(argv[0]);
   osquery::InitRegistry::get().run();
+  auto new_args = osquery::core::parseCommandLineFlags(argc, argv);
+  google::ParseCommandLineFlags(&new_args.first, &new_args.second, true);
 }
 }
 }
