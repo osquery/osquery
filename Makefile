@@ -33,9 +33,9 @@ clean_install:
 	rm -rf /var/log/osquery
 	rm -f $(OSQUERYD_PLIST_PATH)
 ifeq ($(OS),Darwin)
-	if [ -f $(OSQUERYD_PLIST_PATH) ];
-	  then launchctl unload $(OSQUERYD_PLIST_PATH);
-		rm -f $(OSQUERYD_PLIST_PATH)
+	if [ -f $(OSQUERYD_PLIST_PATH) ]; then     \
+		launchctl unload $(OSQUERYD_PLIST_PATH); \
+		rm -f $(OSQUERYD_PLIST_PATH);            \
 	fi;
 endif
 
@@ -52,21 +52,25 @@ ifeq ($(OS),Darwin)
 	brew install snappy || brew upgrade snappy
 	brew install readline || brew upgrade readline
 else
-	apt-get update
-	apt-get upgrade -y
-	apt-get install git -y
-	apt-get install build-essential -y
-	apt-get install cmake -y
-	apt-get install python-pip -y
-	apt-get install python-dev -y
-	apt-get install clang-3.4 -y
-	apt-get install clang-format-3.4 -y
-	apt-get install libboost1.55-all-dev -y
-	apt-get install libgflags-dev -y
-	apt-get install libgoogle-glog-dev -y
-	apt-get install libsnappy-dev -y
-	apt-get install libbz2-dev -y
-	apt-get install libreadline-dev -y
+	if [ -f /etc/lsb-release ]; then 						  \
+		apt-get update;                             \
+		apt-get upgrade -y; 												\
+		apt-get install git -y; 										\
+		apt-get install build-essential -y; 				\
+		apt-get install cmake -y; 									\
+		apt-get install python-pip -y; 							\
+		apt-get install python-dev -y;           		\
+		apt-get install clang-3.4 -y; 							\
+		apt-get install clang-format-3.4 -y; 				\
+		apt-get install libboost1.55-all-dev -y; 		\
+		apt-get install libgflags-dev -y; 					\
+		apt-get install libgoogle-glog-dev -y;  		\
+		apt-get install libsnappy-dev -y; 					\
+		apt-get install libbz2-dev -y; 							\
+		apt-get install libreadline-dev -y;         \
+	elif [ -f /etc/centos-release ]; then         \
+	  echo "centos"; 														  \
+  fi;
 endif
 
 deps: os_deps
