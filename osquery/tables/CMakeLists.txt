@@ -14,11 +14,9 @@ if(APPLE)
   list(APPEND OSQUERY_CORE_TABLE_TARGETS $<TARGET_OBJECTS:osquery_tables_objc>)
 
   ADD_LIBRARY(osquery_tables_darwin OBJECT
-    networking/interfaces.cpp
-    networking/listening_ports.cpp
-    networking/routes.cpp
-    networking/utils.h
-    networking/utils.cpp
+    networking/darwin/interfaces.cpp
+    networking/darwin/listening_ports.cpp
+    networking/darwin/routes.cpp
     system/darwin/apps.cpp
     system/darwin/ca_certs.cpp
     system/darwin/firewall.h
@@ -38,6 +36,7 @@ if(APPLE)
   LIST(APPEND OSQUERY_CORE_TABLE_TARGETS $<TARGET_OBJECTS:osquery_tables_darwin>)
 else()
   ADD_LIBRARY(osquery_tables_linux OBJECT
+    networking/linux/routes.cpp
     system/linux/kernel_modules.cpp
     system/linux/processes.cpp
   )
@@ -58,6 +57,7 @@ FILE(GLOB table_sources
 
 ADD_LIBRARY(osquery_tables OBJECT
   ${table_sources}
+  networking/utils.cpp
   networking/etc_hosts.cpp
   utility/time.cpp
   base.h
