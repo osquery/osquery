@@ -14,7 +14,7 @@ class Status {
   // default constructor
   Status() : code_(0), message_("OK") {}
 
-  // constructor which allows your to do something like:
+  // constructor which allows you to do something like:
   //   auto s = Status(0, "OK);
   Status(int c, std::string m) : code_(c), message_(m) {}
 
