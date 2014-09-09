@@ -3,14 +3,17 @@
 #include <string>
 #include <fstream>
 #include <streambuf>
+#include <sstream>
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <proc/readproc.h>
 
 #include <boost/lexical_cast.hpp>
 
 #include "osquery/core.h"
 #include "osquery/database.h"
+#include "osquery/filesystem.h"
 
 using namespace osquery::core;
 using namespace osquery::db;
@@ -23,29 +26,54 @@ namespace tables {
       PROC_FILLSTAT
 
 std::string proc_name(const proc_t* proc_info) {
-  char cmd[16];
+  char cmd[17];  // cmd is a 16 char buffer
 
-  memset(cmd, 0, 16);
-  memcpy(cmd, proc_info->cmd, 15);
+  memset(cmd, 0, 17);
+  memcpy(cmd, proc_info->cmd, 16);
   return std::string(cmd);
 }
 
-std::string proc_path(const proc_t* proc_info) {
-  std::string path;
+std::string proc_attr(const std::string& attr, const proc_t* proc_info) {
+  std::stringstream filename;
 
-  char* filename;
+  filename << "/proc/" << proc_info->tid << "/" << attr;
+  return filename.str();
+}
 
-  filename = (char*)malloc(sizeof("/proc//cmdline") + sizeof(int) * 3);
-  sprintf(filename, "/proc/%u/cmdline", proc_info->tid);
+std::string proc_cmdline(const proc_t* proc_info) {
+  std::string attr;
+  std::string result;
 
-  std::ifstream fd(filename, std::ios::in | std::ios::binary);
+  attr = proc_attr("cmdline", proc_info);
+  std::ifstream fd(attr, std::ios::in | std::ios::binary);
   if (fd) {
-    path = std::string(std::istreambuf_iterator<char>(fd),
-                       std::istreambuf_iterator<char>());
+    result = std::string(std::istreambuf_iterator<char>(fd),
+                         std::istreambuf_iterator<char>());
   }
 
-  free(filename);
-  return path;
+  return result;
+}
+
+std::string proc_link(const proc_t* proc_info) {
+  std::string attr;
+  std::string result;
+  char* link_path;
+  long path_max;
+  int bytes;
+
+  // The exe is a symlink to the binary on-disk.
+  attr = proc_attr("exe", proc_info);
+  path_max = pathconf(attr.c_str(), _PC_PATH_MAX);
+  link_path = (char*)malloc(path_max);
+
+  memset(link_path, 0, path_max);
+  bytes = readlink(attr.c_str(), link_path, path_max);
+  if (bytes >= 0) {
+    result = std::string(link_path);
+  }
+
+  free(link_path);
+  return result;
 }
 
 QueryData genProcesses() {
@@ -60,7 +88,10 @@ QueryData genProcesses() {
 
     r["pid"] = boost::lexical_cast<std::string>(proc_info->tid);
     r["name"] = proc_name(proc_info);
-    r["path"] = proc_path(proc_info);
+    r["cmdline"] = proc_cmdline(proc_info);
+    r["path"] = proc_link(proc_info);
+    r["on_disk"] = osquery::fs::pathExists(r["path"]).toString();
+
     r["resident_size"] = boost::lexical_cast<std::string>(proc_info->vm_rss);
     r["phys_footprint"] = boost::lexical_cast<std::string>(proc_info->vm_size);
     r["user_time"] = boost::lexical_cast<std::string>(proc_info->utime);
