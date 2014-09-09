@@ -22,7 +22,7 @@ if(APPLE)
     system/darwin/kextstat.cpp
     system/darwin/launchd.cpp
     system/darwin/nvram.cpp
-    system/processes.cpp
+    system/darwin/processes.cpp
     system/last.cpp
   )
 
@@ -35,8 +35,10 @@ if(APPLE)
 else()
   ADD_LIBRARY(osquery_tables_linux OBJECT
     system/linux/kernel_modules.cpp
+    system/linux/processes.cpp
   )
 
+  ADD_OSQUERY_LINK("procps")
   SET_OSQUERY_COMPILE(osquery_tables_linux)
 
   LIST(APPEND OSQUERY_CORE_TABLE_TARGETS $<TARGET_OBJECTS:osquery_tables_linux>)

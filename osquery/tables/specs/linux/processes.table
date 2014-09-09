@@ -3,8 +3,6 @@ schema([
     Column(name="name", type="std::string"),
     Column(name="path", type="std::string"),
     Column(name="pid", type="int"),
-    Column(name="on_disk", type="int"),
-    Column(name="wired_size", type="std::string"),
     Column(name="resident_size", type="std::string"),
     Column(name="phys_footprint", type="std::string"),
     Column(name="user_time", type="std::string"),
@@ -12,4 +10,4 @@ schema([
     Column(name="start_time", type="std::string"),
     Column(name="parent", type="int"),
 ])
-implementation("osquery/tables/system/darwin/processes@genProcesses")
+implementation("osquery/tables/system/linux/processes@genProcesses")
