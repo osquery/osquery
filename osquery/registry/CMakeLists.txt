@@ -8,3 +8,5 @@ ADD_LIBRARY(osquery_registry OBJECT
 )
 
 SET_OSQUERY_COMPILE(osquery_registry)
+
+ADD_OSQUERY_TEST(registry_tests registry_tests.cpp "")
