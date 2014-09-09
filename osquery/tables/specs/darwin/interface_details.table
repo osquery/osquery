@@ -13,4 +13,4 @@ schema([
     Column(name="oerrors", type="std::string"),
     Column(name="last_change", type="std::string"),
 ])
-implementation("osquery/tables/networking/interfaces@genInterfaceDetails")
+implementation("osquery/tables/networking/darwin/interfaces@genInterfaceDetails")

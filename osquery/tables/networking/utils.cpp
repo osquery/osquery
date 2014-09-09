@@ -3,7 +3,15 @@
 #include <iomanip>
 #include <sstream>
 
-#include <net/if_dl.h>
+#if defined(__linux__)
+#  include <net/if.h>  
+#  include <netinet/in.h>
+#  include <sys/ioctl.h>
+#  include <unistd.h>
+#  define AF_LINK AF_PACKET
+#else
+#  include <net/if_dl.h>
+#endif
 
 #include <boost/algorithm/string/trim.hpp>
 
@@ -31,12 +39,28 @@ std::string canonical_ip_address(const struct sockaddr *in) {
 
 std::string canonical_mac_address(const struct ifaddrs *addr) {
   std::stringstream mac;
-  struct sockaddr_dl *sdl;
 
   if (addr->ifa_addr == NULL) {
     // No link or MAC exists.
     return "";
   }
+
+#if defined(__linux__)
+  struct ifreq ifr;
+
+  int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+  ifr.ifr_addr.sa_family = AF_INET;
+  strcpy(ifr.ifr_name, addr->ifa_name);
+  ioctl(socket_fd, SIOCGIFHWADDR, &ifr);
+  close(socket_fd);
+
+  for (size_t i = 0; i < 6; i++) {
+    mac << std::hex << std::setfill('0') << std::setw(2);
+    mac << (int)((uint8_t)ifr.ifr_hwaddr.sa_data[i]) << ":";
+  }
+#else
+  struct sockaddr_dl* sdl;
 
   sdl = (struct sockaddr_dl *)addr->ifa_addr;
   if (sdl->sdl_alen != 6) {
@@ -49,5 +73,7 @@ std::string canonical_mac_address(const struct ifaddrs *addr) {
     // Prevent char sign extension.
     mac << (int)((uint8_t)sdl->sdl_data[i + sdl->sdl_nlen]) << ":";
   }
+#endif
+
   return mac.str();
 }

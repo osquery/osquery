@@ -6,4 +6,4 @@ schema([
     Column(name="family", type="int"),
     Column(name="address", type="std::string"),
 ])
-implementation("osquery/tables/networking/listening_ports@genListeningPorts")
+implementation("osquery/tables/networking/darwin/listening_ports@genListeningPorts")

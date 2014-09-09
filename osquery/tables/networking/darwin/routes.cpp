@@ -18,6 +18,7 @@
 
 #include "osquery/core.h"
 #include "osquery/database.h"
+#include "osquery/tables/networking/utils.h"
 
 using namespace osquery::core;
 using namespace osquery::db;
@@ -66,23 +67,6 @@ InterfaceMap genInterfaceMap() {
   return ifmap;
 }
 
-std::string canonicalAddress(const struct sockaddr *in) {
-  char dst[INET6_ADDRSTRLEN];
-  memset(dst, 0, sizeof(dst));
-  void *in_addr;
-
-  if (in->sa_family == AF_INET) {
-    in_addr = (void *)&(((struct sockaddr_in *)in)->sin_addr);
-  } else if (in->sa_family == AF_INET6) {
-    in_addr = (void *)&(((struct sockaddr_in6 *)in)->sin6_addr);
-  } else {
-    return "";
-  }
-
-  inet_ntop(in->sa_family, in_addr, dst, sizeof(dst));
-  return std::string(dst);
-}
-
 void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
   int mib[] = {CTL_NET, PF_ROUTE, 0, AF_UNSPEC, NET_RT_FLAGS, type.first};
   size_t table_size;
@@ -127,20 +111,20 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
     r["mtu"] = boost::lexical_cast<std::string>(route->rtm_rmx.rmx_mtu);
 
     if ((route->rtm_addrs & RTA_DST) == RTA_DST) {
-      r["destination"] = canonicalAddress(sa_table[RTAX_DST]);
+      r["destination"] = canonical_ip_address(sa_table[RTAX_DST]);
     }
 
     if ((route->rtm_addrs & RTA_GATEWAY) == RTA_GATEWAY) {
       sdl = (struct sockaddr_dl *)sa_table[RTAX_GATEWAY];
       r["interface"] = ifmap[(int)sdl->sdl_index];
-      r["gateway"] = canonicalAddress(sa_table[RTAX_GATEWAY]);
+      r["gateway"] = canonical_ip_address(sa_table[RTAX_GATEWAY]);
     }
 
     if (kDefaultRoute.compare(r["destination"]) == 0) {
       r["netmask"] = kDefaultRoute;
     } else if ((route->rtm_addrs & RTA_NETMASK) == RTA_NETMASK) {
       sa_table[RTAX_NETMASK]->sa_family = sa_table[RTAX_DST]->sa_family;
-      r["netmask"] = canonicalAddress(sa_table[RTAX_NETMASK]);
+      r["netmask"] = canonical_ip_address(sa_table[RTAX_NETMASK]);
     }
 
     results.push_back(r);

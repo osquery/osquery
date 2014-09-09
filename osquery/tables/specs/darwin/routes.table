@@ -1,6 +1,7 @@
 table_name("routes")
 schema([
     Column(name="destination", type="std::string"),
+    Column(name="netmask", type="std::string"),
     Column(name="gateway", type="std::string"),
     Column(name="flags", type="int"),
     Column(name="use", type="int"),
@@ -8,4 +9,4 @@ schema([
     Column(name="mtu", type="int"),
     Column(name="type", type="std::string"),
 ])
-implementation("osquery/tables/networking/routes@genRoutes")
+implementation("osquery/tables/networking/darwin/routes@genRoutes")
