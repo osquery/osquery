@@ -37,3 +37,4 @@ osquery/tables/generated
 .idea/dataSources.xml
 .idea/sqlDataSources.xml
 .idea/dynamic.xml
+.idea/dictionaries
