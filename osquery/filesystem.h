@@ -21,7 +21,7 @@ namespace fs {
 // failure of the operation.
 osquery::Status readFile(const std::string& path, std::string& content);
 
-// pathExists returns an OSquery-standard tri-state for reporting disk 
+// pathExists returns an OSquery-standard tri-state for reporting disk
 // presense. (-1) no input was supplied, assuming the caller is not aware
 // of how to check path-getter results; (0) path does not exist on disk;
 // (1) path does exist on disk.

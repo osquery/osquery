@@ -4,13 +4,13 @@
 #include <sstream>
 
 #if defined(__linux__)
-#  include <net/if.h>  
-#  include <netinet/in.h>
-#  include <sys/ioctl.h>
-#  include <unistd.h>
-#  define AF_LINK AF_PACKET
+#include <net/if.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#define AF_LINK AF_PACKET
 #else
-#  include <net/if_dl.h>
+#include <net/if_dl.h>
 #endif
 
 #include <boost/algorithm/string/trim.hpp>
@@ -60,7 +60,7 @@ std::string canonical_mac_address(const struct ifaddrs *addr) {
     mac << (int)((uint8_t)ifr.ifr_hwaddr.sa_data[i]) << ":";
   }
 #else
-  struct sockaddr_dl* sdl;
+  struct sockaddr_dl *sdl;
 
   sdl = (struct sockaddr_dl *)addr->ifa_addr;
   if (sdl->sdl_alen != 6) {

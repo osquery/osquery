@@ -26,7 +26,7 @@ namespace tables {
       PROC_FILLSTAT
 
 std::string proc_name(const proc_t* proc_info) {
-  char cmd[17];  // cmd is a 16 char buffer
+  char cmd[17]; // cmd is a 16 char buffer
 
   memset(cmd, 0, 17);
   memcpy(cmd, proc_info->cmd, 16);
