@@ -29,3 +29,11 @@ osquery/tables/generated
 
 # OS artifacts
 .DS_Store
+
+# CLion IDE
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dataSources.ids
+.idea/dataSources.xml
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
