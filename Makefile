@@ -68,9 +68,12 @@ else
 		apt-get install libsnappy-dev -y;           \
 		apt-get install libbz2-dev -y;              \
 		apt-get install libreadline-dev -y;         \
-	elif [ -f /etc/centos-release ]; then               \
-		echo "centos"; 														  \
-        fi;
+	elif [ -f /etc/centos-release ]; then         \
+		yum update -y;                              \
+		yum install git -y;                         \
+		# http://pkgs.org/centos-6/atrpms-testing-x86_64/cmake-2.8.8-4.el6.x86_64.rpm.html
+		yum install http://dl.atrpms.net/el6-x86_64/atrpms/testing/cmake-2.8.8-4.el6.x86_64.rpm -y; \
+	fi;
 endif
 
 deps: os_deps
