@@ -20,7 +20,7 @@ build_shared:
 	cd build/shared && cmake -D BUILD_SHARED:Boolean=True ../.. && make $(MAKEFLAGS)
 
 fast:
-	cd build && cmake .. && make $(MAKEFLAGS)
+	cd build && cmake -D SKIP_TESTS:Boolean=True .. && make $(MAKEFLAGS)
 
 clean: clean_tables
 	cd build && make clean
