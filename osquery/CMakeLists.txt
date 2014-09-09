@@ -1,3 +1,77 @@
+SET(OSQUERY_LIBS
+  gflags
+  glog
+  gtest
+
+  bz2
+  readline
+  rocksdb
+  snappy
+  z
+
+  boost_system
+  boost_filesystem
+  boost_program_options
+
+  # For SQLite pthread, dl
+  pthread
+  dl
+)
+
+# Handle naming differences in MT threading
+if(APPLE)
+  list(APPEND OSQUERY_LIBS "boost_thread-mt")
+else()
+  list(APPEND OSQUERY_LIBS "boost_thread")
+endif()
+
+# Fill this in with objects for libosquery
+set(OSQUERY_LIB_ADDITIONAL_OBJECTS "")
+set(OSQUERY_ADDITIONAL_LINKS "")
+
+MACRO(ADD_OSQUERY_LIB TARGET)
+  list(APPEND OSQUERY_LIB_ADDITIONAL_OBJECTS ${TARGET})
+  set(OSQUERY_LIB_ADDITIONAL_OBJECTS ${OSQUERY_LIB_ADDITIONAL_OBJECTS} 
+    PARENT_SCOPE)
+ENDMACRO(ADD_OSQUERY_LIB)
+
+MACRO(ADD_OSQUERY_LINK LINK)
+  list(APPEND OSQUERY_ADDITIONAL_LINKS ${LINK})
+  set(OSQUERY_ADDITIONAL_LINKS ${OSQUERY_ADDITIONAL_LINKS} 
+    PARENT_SCOPE)
+ENDMACRO(ADD_OSQUERY_LINK)
+
+MACRO(SET_OSQUERY_COMPILE TARGET)
+  SET_TARGET_PROPERTIES(${TARGET} PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
+  SET(OPTIONAL_FLAGS ${ARGN})
+  LIST(LENGTH OPTIONAL_FLAGS NUM_OPTIONAL_FLAGS)
+  if(${NUM_OPTIONAL_FLAGS} GREATER 0)
+    MESSAGE("Notice: Adding compile flags ${OPTIONAL_FLAGS} to ${TARGET}")
+    SET_TARGET_PROPERTIES(${TARGET} PROPERTIES COMPILE_FLAGS ${OPTIONAL_FLAGS})
+  ENDIF()
+ENDMACRO(SET_OSQUERY_COMPILE)
+
+MACRO(ADD_OSQUERY_TEST TEST_NAME SOURCE LINK)
+  ADD_EXECUTABLE(${TEST_NAME} ${SOURCE})
+  TARGET_LINK_LIBRARIES(${TEST_NAME} ${LINK})
+  TARGET_LINK_LIBRARIES(${TEST_NAME} ${OSQUERY_ADDITIONAL_LINKS})
+  TARGET_LINK_LIBRARIES(${TEST_NAME} ${OSQUERY_LIBS})
+  SET(OPTIONAL_FLAGS ${ARGN})
+  SET_OSQUERY_COMPILE(${TEST_NAME} ${OPTIONAL_FLAGS})
+  ADD_TEST(${TEST_NAME} ${TEST_NAME})
+ENDMACRO(ADD_OSQUERY_TEST)
+
+MACRO(ADD_OSQUERY_EXECUTABLE NAME SOURCE)
+  ADD_OSQUERY_TEST(${NAME} ${SOURCE})
+  TARGET_LINK_LIBRARIES(${NAME} osquery_shared)
+ENDMACRO(ADD_OSQUERY_EXECUTABLE)
+
+MACRO(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
+  TARGET_LINK_LIBRARIES(${TARGET} "${OS_WHOLELINK_PRE}")
+  TARGET_LINK_LIBRARIES(${TARGET} ${OSQUERY_LIB})
+  TARGET_LINK_LIBRARIES(${TARGET} "${OS_WHOLELINK_POST}")  
+ENDMACRO(TARGET_OSQUERY_LINK_WHOLE)
+
 ADD_SUBDIRECTORY(config)
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(database)
@@ -5,35 +79,53 @@ ADD_SUBDIRECTORY(devtools)
 ADD_SUBDIRECTORY(examples)
 ADD_SUBDIRECTORY(filesystem)
 ADD_SUBDIRECTORY(logger)
+ADD_SUBDIRECTORY(registry)
 ADD_SUBDIRECTORY(scheduler)
 ADD_SUBDIRECTORY(tables)
 
-SET(OSQUERY_LIBS
-  gflags
-  glog
-  osquery_config
-  osquery_core
-  osquery_database
-  osquery_devtools
-  osquery_filesystem
-  osquery_logger
-  osquery_scheduler
-  osquery_sqlite
-  osquery_tables
+SET(OSQUERY_LIB_OBJECTS
+  $<TARGET_OBJECTS:osquery_config>
+  $<TARGET_OBJECTS:osquery_core>
+  $<TARGET_OBJECTS:osquery_database>
+  $<TARGET_OBJECTS:osquery_devtools>
+
+  $<TARGET_OBJECTS:osquery_filesystem>
+  $<TARGET_OBJECTS:osquery_logger>
+  $<TARGET_OBJECTS:osquery_registry>
+  $<TARGET_OBJECTS:osquery_scheduler>
+
+  # Optional "core" tables objects
+  $<TARGET_OBJECTS:osquery_tables>
+
+  # Third-party objects
+  $<TARGET_OBJECTS:osquery_sqlite>
+
+  # Build additional os-dependent libraries (may include tables)
+  ${OSQUERY_LIB_ADDITIONAL_OBJECTS}
 )
 
-ADD_LIBRARY(osquery_static main/lib.cpp)
-TARGET_LINK_LIBRARIES(osquery_static ${OSQUERY_LIBS})
-SET_TARGET_PROPERTIES(osquery_static PROPERTIES OUTPUT_NAME osquery)
+if(BUILD_SHARED)
+  ADD_LIBRARY(osquery_shared SHARED main/lib.cpp ${OSQUERY_LIB_OBJECTS})
+else()
+  ADD_LIBRARY(osquery_static STATIC ${OSQUERY_LIB_OBJECTS})
+  SET_TARGET_PROPERTIES(osquery_static PROPERTIES OUTPUT_NAME osquery_static)
+
+  ADD_LIBRARY(osquery_shared STATIC main/lib.cpp)
+  TARGET_OSQUERY_LINK_WHOLE(osquery_shared osquery_static)
+endif()
+ADD_DEPENDENCIES(osquery_shared librocksdb)
+TARGET_LINK_LIBRARIES(osquery_shared ${OSQUERY_ADDITIONAL_LINKS})
+TARGET_LINK_LIBRARIES(osquery_shared ${OSQUERY_LIBS})
+SET_TARGET_PROPERTIES(osquery_shared PROPERTIES OUTPUT_NAME osquery)
 
 ADD_EXECUTABLE(shell main/shell.cpp)
-TARGET_LINK_LIBRARIES(shell osquery_static)
+TARGET_LINK_LIBRARIES(shell osquery_shared)
 SET_TARGET_PROPERTIES(shell PROPERTIES OUTPUT_NAME osqueryi)
 SET_TARGET_PROPERTIES(shell PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
 INSTALL(TARGETS shell DESTINATION bin)
 
 ADD_EXECUTABLE(daemon main/daemon.cpp)
-TARGET_LINK_LIBRARIES(daemon osquery_static)
+TARGET_LINK_LIBRARIES(daemon osquery_shared)
 SET_TARGET_PROPERTIES(daemon PROPERTIES OUTPUT_NAME osqueryd)
 SET_TARGET_PROPERTIES(daemon PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
 INSTALL(TARGETS daemon DESTINATION bin)

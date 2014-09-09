@@ -1,6 +1,5 @@
-ADD_LIBRARY(osquery_devtools shell.cpp)
-TARGET_LINK_LIBRARIES(osquery_devtools glog)
-TARGET_LINK_LIBRARIES(osquery_devtools readline)
-TARGET_LINK_LIBRARIES(osquery_devtools osquery_sqlite)
-TARGET_LINK_LIBRARIES(osquery_devtools osquery_tables)
-SET_TARGET_PROPERTIES(osquery_devtools PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
+ADD_LIBRARY(osquery_devtools OBJECT
+  shell.cpp
+)
+
+SET_OSQUERY_COMPILE(osquery_devtools)

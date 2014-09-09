@@ -4,16 +4,21 @@ OSQUERYD_PLIST_PATH="/Library/LaunchDaemons/com.facebook.osqueryd.plist"
 endif
 ROCKSDB_PATH="/tmp/rocksdb-osquery"
 
-all: build
+all: tables build
 
 ammend:
 	git add .
 	git commit --amend --no-edit
 
 .PHONY: build
-build: tables
+build:
 	mkdir -p build
 	cd build && cmake .. && make $(MAKEFLAGS)
+
+.PHONY: build_shared
+build_shared: 
+	mkdir -p build/shared
+	cd build/shared && cmake -D BUILD_SHARED:Boolean=True ../.. && make $(MAKEFLAGS)
 
 clean: clean_tables
 	cd build && make clean
@@ -25,7 +30,9 @@ clean_install:
 	rm -f /usr/local/bin/osqueryi
 	rm -f /usr/local/bin/osqueryd
 	rm -rf /var/log/osquery
-	if [ -f $(OSQUERYD_PLIST_PATH) ]; then launchctl unload $(OSQUERYD_PLIST_PATH); fi;
+	if [ -f $(OSQUERYD_PLIST_PATH) ]; 
+	  then launchctl unload $(OSQUERYD_PLIST_PATH); 
+	fi;
 	rm -f $(OSQUERYD_PLIST_PATH)
 endif
 

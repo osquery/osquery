@@ -12,7 +12,7 @@
 
 #include "osquery/database.h"
 #include "osquery/tables/base.h"
-#include "osquery/tables/registry.h"
+#include "osquery/registry/registry.h"
 
 using namespace osquery::db;
 using namespace osquery::tables;
