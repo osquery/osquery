@@ -65,7 +65,7 @@ ADD_LIBRARY(osquery_tables OBJECT
 
 SET_OSQUERY_COMPILE(osquery_tables)
 
-ADD_LIBRARY(osquery_tables_testing
+ADD_OSQUERY_TEST_LIB(osquery_tables_testing
   $<TARGET_OBJECTS:osquery_core>
   $<TARGET_OBJECTS:osquery_sqlite>
   $<TARGET_OBJECTS:osquery_registry>

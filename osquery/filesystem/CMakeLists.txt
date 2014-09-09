@@ -21,7 +21,7 @@ ADD_LIBRARY(osquery_filesystem OBJECT
 
 SET_OSQUERY_COMPILE(osquery_filesystem)
 
-ADD_LIBRARY(osquery_testing_filesystem
+ADD_OSQUERY_TEST_LIB(osquery_testing_filesystem
   $<TARGET_OBJECTS:osquery_core>
   $<TARGET_OBJECTS:osquery_filesystem>
   ${OSQUERY_FILESYSTEM_TARGETS}
