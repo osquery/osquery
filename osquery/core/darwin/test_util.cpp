@@ -2,8 +2,6 @@
 
 #include "osquery/core/darwin/test_util.h"
 
-#include <sstream>
-
 #include <boost/property_tree/json_parser.hpp>
 
 using namespace osquery::db;

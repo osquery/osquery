@@ -2,16 +2,9 @@
 
 #include "osquery/config/plugin.h"
 
-#include <algorithm>
 #include <fstream>
-#include <streambuf>
-#include <string>
 
 #include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-
-#include <gflags/gflags.h>
-#include <glog/logging.h>
 
 namespace fs = boost::filesystem;
 using osquery::Status;

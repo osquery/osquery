@@ -7,9 +7,7 @@
 #include "osquery/config.h"
 #include "osquery/config/plugin.h"
 #include "osquery/core.h"
-#include "osquery/logger.h"
 #include "osquery/logger/plugin.h"
-#include "osquery/registry.h"
 #include "osquery/scheduler.h"
 
 int main(int argc, char* argv[]) {

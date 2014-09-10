@@ -2,14 +2,8 @@
 
 #include "osquery/database/db_handle.h"
 
-#include <algorithm>
-#include <stdexcept>
-
 #include <glog/logging.h>
 #include <gtest/gtest.h>
-#include <rocksdb/version.h>
-
-#include "osquery/status.h"
 
 using osquery::Status;
 

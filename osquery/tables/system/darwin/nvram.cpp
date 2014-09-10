@@ -1,19 +1,16 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include <string>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include <boost/lexical_cast.hpp>
 
 #include <IOKit/IOKitLib.h>
-#include <IOKit/IOKitKeys.h>
 #include <CoreFoundation/CoreFoundation.h>
 
 #include <glog/logging.h>
 
 #include "osquery/core.h"
-#include "osquery/database.h"
 
 using namespace osquery::core;
 using namespace osquery::db;
