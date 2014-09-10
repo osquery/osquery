@@ -12,15 +12,6 @@
 #include "osquery/database.h"
 #include "osquery/logger.h"
 
-#ifdef OSQUERY_TEST_DAEMON
-// if we're testing the daemon, set the time between each "minute" to be one
-// second so that we see results faster
-#define SECONDS_IN_A_MINUTE 1
-#else
-// in production, a minute is 60 seconds long
-#define SECONDS_IN_A_MINUTE 60
-#endif
-
 using namespace osquery::config;
 namespace core = osquery::core;
 namespace db = osquery::db;
@@ -30,10 +21,10 @@ namespace osquery {
 namespace scheduler {
 
 void launchQueries(const osquery::config::scheduledQueries_t& queries,
-                   const int64_t& minute) {
-  LOG(INFO) << "launchQueries: " << minute;
+                   const int64_t& second) {
+  LOG(INFO) << "launchQueries: " << second;
   for (const auto& query : queries) {
-    if (minute % query.interval == 0) {
+    if (second % query.interval == 0) {
       LOG(INFO) << "executing query: " << query.query;
       int unix_time = std::time(0);
       int err;
@@ -75,18 +66,18 @@ void initialize() {
   DLOG(INFO) << "osquery::scheduler::initialize";
   time_t t = time(0);
   struct tm* local = localtime(&t);
-  unsigned long int minute = local->tm_min;
+  unsigned long int second = local->tm_sec;
   auto cfg = Config::getInstance();
 #ifdef OSQUERY_TEST_DAEMON
-  // if we're testing the daemon, only iterate through 15 "minutes"
-  static unsigned long int stop_at = minute + 15;
+  // if we're testing the daemon, only iterate through 15 "seconds"
+  static unsigned long int stop_at = second + 15;
 #else
   // if this is production, count forever
   static unsigned long int stop_at = ULONG_MAX;
 #endif
-  for (; minute <= stop_at; ++minute) {
-    launchQueries(cfg->getScheduledQueries(), minute);
-    sleep(SECONDS_IN_A_MINUTE);
+  for (; second <= stop_at; ++second) {
+    launchQueries(cfg->getScheduledQueries(), second);
+    sleep(1);
   }
 }
 }
