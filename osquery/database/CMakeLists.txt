@@ -10,7 +10,7 @@ ADD_LIBRARY(osquery_database OBJECT
 
 SET_OSQUERY_COMPILE(osquery_database)
 
-ADD_OSQUERY_TEST_LIB(osquery_testing_database
+ADD_LIBRARY(osquery_testing_database
   $<TARGET_OBJECTS:osquery_core>
   $<TARGET_OBJECTS:osquery_database>
   $<TARGET_OBJECTS:osquery_sqlite>

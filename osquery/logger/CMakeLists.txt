@@ -7,7 +7,7 @@ ADD_LIBRARY(osquery_logger OBJECT
 
 SET_OSQUERY_COMPILE(osquery_logger)
 
-ADD_OSQUERY_TEST_LIB(osquery_testing_logger
+ADD_LIBRARY(osquery_testing_logger
   $<TARGET_OBJECTS:osquery_core>
   $<TARGET_OBJECTS:osquery_database>
   $<TARGET_OBJECTS:osquery_logger>
