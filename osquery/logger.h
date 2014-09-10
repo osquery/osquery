@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_LOGGER_H
-#define OSQUERY_LOGGER_H
+#pragma once
 
 #include <future>
 #include <string>
@@ -33,5 +32,3 @@ osquery::Status logScheduledQueryLogItem(
     const std::string& receiver);
 }
 }
-
-#endif /* OSQUERY_LOGGER_H */

@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_REGISTRY_REGISTRY_TEMPLATE_H
-#define OSQUERY_REGISTRY_REGISTRY_TEMPLATE_H
+#pragma once
 
 #include <functional>
 #include <map>
@@ -68,5 +67,3 @@ class RegistryTemplate : private boost::noncopyable {
 };
 
 } // namespace osquery
-
-#endif /* OSQUERY_REGISTRY_REGISTRY_TEMPLATE_H */

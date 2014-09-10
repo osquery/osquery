@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_CORE_TEST_UTIL_H
-#define OSQUERY_CORE_TEST_UTIL_H
+#pragma once
 
 #include <string>
 #include <utility>
@@ -99,5 +98,3 @@ struct SplitStringTestData {
 std::vector<SplitStringTestData> generateSplitStringTestData();
 }
 }
-
-#endif /* OSQUERY_CORE_TEST_UTIL_H */

@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_DATABASE_DB_HANDLE_H
-#define OSQUERY_DATABASE_DB_HANDLE_H
+#pragma once
 
 #include <memory>
 #include <string>
@@ -163,5 +162,3 @@ class DBHandle {
 };
 }
 }
-
-#endif /* OSQUERY_DATABASE_DB_HANDLE_H */

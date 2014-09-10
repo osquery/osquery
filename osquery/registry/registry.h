@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_TABLES_REGISTRY_H
-#define OSQUERY_TABLES_REGISTRY_H
+#pragma once
 
 #include <memory>
 
@@ -33,5 +32,3 @@ DECLARE_REGISTRY(TablePlugins,
 #define REGISTERED_TABLES REGISTRY(TablePlugins)
 
 #define REGISTER_TABLE(name, decorator) REGISTER(TablePlugins, name, decorator)
-
-#endif /* OSQUERY_TABLES_REGISTRY_H */

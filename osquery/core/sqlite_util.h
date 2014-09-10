@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_CORE_SQLITE_UTIL_H
-#define OSQUERY_CORE_SQLITE_UTIL_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -21,5 +20,3 @@ int query_data_callback(void *argument, int argc, char *argv[], char *column[]);
 sqlite3 *createDB();
 }
 }
-
-#endif /* OSQUERY_CORE_SQLITE_UTIL_H */

@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_REGISTRY_H
-#define OSQUERY_REGISTRY_H
+#pragma once
 
 #include <functional>
 #include <string>
@@ -73,5 +72,3 @@ class Registry : public std::unordered_map<Key, Value> {
     REGISTRY(registryName).registerValue((key), (value), #registryName); \
   });                                                                    \
   }
-
-#endif /* OSQUERY_REGISTRY_H */

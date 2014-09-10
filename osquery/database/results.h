@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_DATABASE_RESULTS_H
-#define OSQUERY_DATABASE_RESULTS_H
+#pragma once
 
 #include <deque>
 #include <map>
@@ -198,5 +197,3 @@ osquery::Status serializeScheduledQueryLogItemJSON(
     const ScheduledQueryLogItem& i, std::string& json);
 }
 }
-
-#endif /* OSQUERY_DATABASE_RESULTS_H */

@@ -26,8 +26,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PECocoaBackportsGlobal__
-#define __PECocoaBackportsGlobal__
+#pragma once
 
 #import <objc/runtime.h>
 
@@ -67,5 +66,3 @@ CF_INLINE void class_addInstanceMethodIfNecessary(Class clazz,
 #endif
   }
 }
-
-#endif // __PECocoaBackportsGlobal__

@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_CORE_TEST_UTIL_OSX_H
-#define OSQUERY_CORE_TEST_UTIL_OSX_H
+#pragma once
 
 #include "osquery/core/test_util.h"
 
@@ -30,5 +29,3 @@ std::string getLaunchdContent();
 boost::property_tree::ptree getLaunchdTree();
 }
 }
-
-#endif

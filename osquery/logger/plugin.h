@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_LOGGER_PLUGIN_H
-#define OSQUERY_LOGGER_PLUGIN_H
+#pragma once
 
 #include <memory>
 
@@ -32,5 +31,3 @@ DECLARE_REGISTRY(LoggerPlugins,
 
 #define REGISTER_LOGGER_PLUGIN(name, decorator) \
   REGISTER(LoggerPlugins, name, decorator)
-
-#endif /* OSQUERY_LOGGER_PLUGIN_H */

@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_TABLES_BASE_H
-#define OSQUERY_TABLES_BASE_H
+#pragma once
 
 #include <stdio.h>
 #include <sqlite3.h>
@@ -194,5 +193,3 @@ int sqlite3_attach_vtable(sqlite3 *db,
 }
 }
 }
-
-#endif /* OSQUERY_TABLES_BASE_H */

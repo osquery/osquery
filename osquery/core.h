@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_CORE_H
-#define OSQUERY_CORE_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -41,5 +40,3 @@ std::string getAsciiTime();
 int getUnixTime();
 }
 }
-
-#endif /* OSQUERY_CORE_H */

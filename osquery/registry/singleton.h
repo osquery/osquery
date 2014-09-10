@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_REGISTRY_SINGLETON_H
-#define OSQUERY_REGISTRY_SINGLETON_H
+#pragma once
 
 namespace osquery {
 
@@ -24,5 +23,3 @@ class Singleton : private T {
 };
 
 } // namespace osquery
-
-#endif /* OSQUERY_REGISTRY_SINGLETON_H */

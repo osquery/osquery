@@ -1,6 +1,3 @@
-#ifndef OSQUERY_CORE_MD5_H
-#define OSQUERY_CORE_MD5_H
-
 // Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All
 // rights reserved.
 
@@ -25,6 +22,9 @@
 // The original md5 implementation avoids external libraries.
 // This version has dependency on stdio.h for file input and
 // string.h for memcpy.
+
+#pragma once
+
 #include <stdio.h>
 #include <string.h>
 
@@ -360,5 +360,3 @@ class MD5 {
 };
 }
 }
-
-#endif /* OSQUERY_CORE_MD5_H */

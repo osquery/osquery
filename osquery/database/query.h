@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_DATABASE_QUERY_H
-#define OSQUERY_DATABASE_QUERY_H
+#pragma once
 
 #include <deque>
 #include <memory>
@@ -131,5 +130,3 @@ class Query {
 };
 }
 }
-
-#endif /* OSQUERY_DATABASE_QUERY_H */

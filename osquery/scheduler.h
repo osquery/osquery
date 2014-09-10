@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_SCHEDULER_H
-#define OSQUERY_SCHEDULER_H
+#pragma once
 
 namespace osquery {
 namespace scheduler {
@@ -12,5 +11,3 @@ namespace scheduler {
 void initialize();
 }
 }
-
-#endif /* OSQUERY_SCHEDULER_H */

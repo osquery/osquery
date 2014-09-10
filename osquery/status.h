@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_STATUS_H
-#define OSQUERY_STATUS_H
+#pragma once
 
 #include <string>
 
@@ -36,5 +35,3 @@ class Status {
   std::string message_;
 };
 }
-
-#endif /* OSQUERY_STATUS_H */

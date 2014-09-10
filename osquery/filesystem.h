@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_FILESYSTEM_H
-#define OSQUERY_FILESYSTEM_H
+#pragma once
 
 #include <map>
 #include <string>
@@ -44,5 +43,3 @@ osquery::Status parsePlistContent(const std::string& fileContent,
 #endif
 }
 }
-
-#endif /* OSQUERY_FILESYSTEM_H */

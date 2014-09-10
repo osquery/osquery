@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_DEVTOOLS_H
-#define OSQUERY_DEVTOOLS_H
+#pragma once
 
 namespace osquery {
 namespace devtools {
@@ -10,5 +9,3 @@ namespace devtools {
 int launchIntoShell(int argc, char **argv);
 }
 }
-
-#endif /* OSQUERY_DEVTOOLS_H */

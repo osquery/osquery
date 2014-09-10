@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_CONFIG_PLUGIN_H
-#define OSQUERY_CONFIG_PLUGIN_H
+#pragma once
 
 #include <future>
 #include <utility>
@@ -33,5 +32,3 @@ DECLARE_REGISTRY(ConfigPlugins,
 
 #define REGISTER_CONFIG_PLUGIN(name, decorator) \
   REGISTER(ConfigPlugins, name, decorator)
-
-#endif /* OSQUERY_CONFIG_PLUGIN_H */

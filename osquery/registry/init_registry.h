@@ -1,7 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#ifndef OSQUERY_REGISTRY_INIT_REGISTRY_H
-#define OSQUERY_REGISTRY_INIT_REGISTRY_H
+#pragma once
 
 #include <boost/noncopyable.hpp>
 
@@ -43,5 +42,3 @@ struct RegisterInitFunc : private boost::noncopyable {
 };
 
 } // namespace osquery
-
-#endif /* OSQUERY_REGISTRY_INIT_REGISTRY_H */
