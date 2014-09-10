@@ -7,7 +7,7 @@ ADD_LIBRARY(osquery_config OBJECT
 
 SET_OSQUERY_COMPILE(osquery_config)
 
-ADD_OSQUERY_TEST_LIB(osquery_testing_config
+ADD_LIBRARY(osquery_testing_config
   $<TARGET_OBJECTS:osquery_core>
   $<TARGET_OBJECTS:osquery_sqlite>
   $<TARGET_OBJECTS:osquery_registry>

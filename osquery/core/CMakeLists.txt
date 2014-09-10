@@ -21,7 +21,7 @@ SET_OSQUERY_COMPILE(osquery_core)
 
 ADD_OSQUERY_TEST(status_test status_tests.cpp "")
 
-ADD_OSQUERY_TEST_LIB(osquery_testing_core 
+ADD_LIBRARY(osquery_testing_core
   $<TARGET_OBJECTS:osquery_core>
   $<TARGET_OBJECTS:osquery_database>
   $<TARGET_OBJECTS:osquery_sqlite>

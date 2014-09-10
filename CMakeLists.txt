@@ -12,9 +12,7 @@ else()
   set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
 endif()
 
-SET(BUILD_SHARED False BOOL "Build and link libosquery statically.")
-SET(SKIP_TESTS False BOOL "Skip building tests.")
-
+SET(BUILD_SHARED "" CACHE STRING "Build and link libosquery statically.")
 if(BUILD_SHARED)
   set(USER_COMPILE_FLAGS "-fPIC")
 else()
