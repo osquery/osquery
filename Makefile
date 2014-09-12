@@ -51,6 +51,7 @@ ifeq ($(OS),Darwin)
 	brew install glog || brew ugprade glog
 	brew install snappy || brew upgrade snappy
 	brew install readline || brew upgrade readline
+	brew install thrift || brew upgrade thrift
 else
 	if [ -f /etc/lsb-release ]; then 		    \
 		apt-get update;                             \
