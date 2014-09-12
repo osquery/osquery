@@ -1,5 +1,4 @@
 ADD_LIBRARY(osquery_scheduler OBJECT
-  ../scheduler.h
   scheduler.cpp
 )
 
