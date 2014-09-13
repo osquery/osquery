@@ -7,6 +7,7 @@ SET(OSQUERY_LIBS
   readline
   rocksdb
   snappy
+  thrift
   z
 
   boost_system
@@ -79,6 +80,7 @@ ADD_SUBDIRECTORY(devtools)
 ADD_SUBDIRECTORY(examples)
 ADD_SUBDIRECTORY(filesystem)
 ADD_SUBDIRECTORY(logger)
+ADD_SUBDIRECTORY(dispatcher)
 ADD_SUBDIRECTORY(registry)
 ADD_SUBDIRECTORY(scheduler)
 ADD_SUBDIRECTORY(tables)
@@ -93,6 +95,7 @@ SET(OSQUERY_LIB_OBJECTS
   $<TARGET_OBJECTS:osquery_logger>
   $<TARGET_OBJECTS:osquery_registry>
   $<TARGET_OBJECTS:osquery_scheduler>
+  $<TARGET_OBJECTS:osquery_dispatcher>
 
   # Optional "core" tables objects
   $<TARGET_OBJECTS:osquery_tables>
