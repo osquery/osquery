@@ -24,16 +24,16 @@ class TestRunnable : public apache::thrift::concurrency::Runnable {
 TEST_F(DispatcherTests, test_add_work) {
   auto d = Dispatcher::getInstance();
   int base = 5;
-  int repitions = 1;
+  int repetitions = 1;
 
   int i = base;
-  for (int c = 0; c < repitions; ++c) {
+  for (int c = 0; c < repetitions; ++c) {
     d->add(std::make_shared<TestRunnable>(&i));
   }
   while (d->totalTaskCount() > 0) {
   }
 
-  EXPECT_EQ(i, base + repitions);
+  EXPECT_EQ(i, base + repetitions);
 }
 }
 
