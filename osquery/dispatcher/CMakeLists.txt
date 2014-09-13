@@ -1,5 +1,4 @@
 ADD_LIBRARY(osquery_dispatcher OBJECT
-  ../dispatcher.h
   dispatcher.cpp
 )
 SET_OSQUERY_COMPILE(osquery_dispatcher)

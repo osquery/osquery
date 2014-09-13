@@ -1,5 +1,4 @@
 ADD_LIBRARY(osquery_devtools OBJECT
-  ../devtools.h
   shell.cpp
 )
 

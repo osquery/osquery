@@ -15,7 +15,6 @@ endif()
 ADD_OSQUERY_LIB("${OSQUERY_FILESYSTEM_TARGETS}")
 
 ADD_LIBRARY(osquery_filesystem OBJECT
-  ../filesystem.h
   filesystem.cpp
 )
 

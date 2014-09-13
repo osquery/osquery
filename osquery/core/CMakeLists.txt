@@ -5,13 +5,9 @@ else()
 endif()
 
 ADD_LIBRARY(osquery_core OBJECT
-  ../core.h
-  md5.h
   init_osquery.cpp
-  sqlite_util.h
   sqlite_util.cpp
   system.cpp
-  test_util.h
   test_util.cpp
   ${OS_CORE_SOURCE}
   text.cpp

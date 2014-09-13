@@ -1,7 +1,5 @@
 ADD_LIBRARY(osquery_logger OBJECT
-  ../logger.h
   logger.cpp
-  plugin.h
   plugins/filesystem.cpp
 )
 

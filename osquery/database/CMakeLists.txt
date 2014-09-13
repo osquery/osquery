@@ -1,10 +1,6 @@
 ADD_LIBRARY(osquery_database OBJECT
-  ../database.h
-  db_handle.h
   db_handle.cpp
-  query.h
   query.cpp
-  results.h
   results.cpp
 )
 

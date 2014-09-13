@@ -1,6 +1,4 @@
 ADD_LIBRARY(osquery_config OBJECT
-  ../config.h
-  plugin.h
   config.cpp
   plugins/filesystem.cpp
 )
