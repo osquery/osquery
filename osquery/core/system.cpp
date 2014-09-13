@@ -9,7 +9,6 @@
 #include <boost/algorithm/string/trim.hpp>
 
 namespace osquery {
-namespace core {
 
 std::string getHostname() {
   char hostname[256];
@@ -30,6 +29,5 @@ std::string getAsciiTime() {
 int getUnixTime() {
   std::time_t result = std::time(NULL);
   return result;
-}
 }
 }

@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/main/lib.h"
+#include <string>
 
 namespace osquery {
 

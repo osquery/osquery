@@ -83,7 +83,7 @@ std::vector<std::string> getLaunchdFiles() {
 Row parseLaunchdItem(const std::string& path, const pt::ptree& tree) {
   Row r;
   r["path"] = path;
-  auto bits = osquery::core::split(path, "/");
+  auto bits = osquery::split(path, "/");
   r["name"] = bits[bits.size() - 1];
 
   for (const auto& it : kLaunchdTopLevelStringKeys) {

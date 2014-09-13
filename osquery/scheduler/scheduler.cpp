@@ -13,7 +13,6 @@
 #include "osquery/logger.h"
 
 using namespace osquery::config;
-namespace core = osquery::core;
 namespace db = osquery::db;
 namespace logger = osquery::logger;
 
@@ -28,7 +27,7 @@ void launchQueries(const osquery::config::scheduledQueries_t& queries,
       LOG(INFO) << "executing query: " << query.query;
       int unix_time = std::time(0);
       int err;
-      auto query_results = core::aggregateQuery(query.query, err);
+      auto query_results = aggregateQuery(query.query, err);
       if (err != 0) {
         LOG(ERROR) << "error executing query: " << query.query;
         continue;
@@ -48,9 +47,9 @@ void launchQueries(const osquery::config::scheduledQueries_t& queries,
         db::ScheduledQueryLogItem item;
         item.diffResults = diff_results;
         item.name = query.name;
-        item.hostname = osquery::core::getHostname();
-        item.unixTime = osquery::core::getUnixTime();
-        item.calendarTime = osquery::core::getAsciiTime();
+        item.hostname = osquery::getHostname();
+        item.unixTime = osquery::getUnixTime();
+        item.calendarTime = osquery::getAsciiTime();
         auto s = logger::logScheduledQueryLogItem(item);
         if (!s.ok()) {
           LOG(ERROR) << "Error logging the results of query \"" << query.query

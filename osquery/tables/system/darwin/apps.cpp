@@ -86,7 +86,7 @@ std::vector<std::string> getAppInfoPlistPaths() {
 }
 
 std::string getNameFromInfoPlistPath(const std::string& path) {
-  auto bits = osquery::core::split(path, "/");
+  auto bits = osquery::split(path, "/");
   if (bits.size() >= 4) {
     return bits[bits.size() - 3];
   } else {
@@ -95,7 +95,7 @@ std::string getNameFromInfoPlistPath(const std::string& path) {
 }
 
 std::string getPathFromInfoPlistPath(const std::string& path) {
-  auto bits = osquery::core::split(path, "/");
+  auto bits = osquery::split(path, "/");
   if (bits.size() >= 4) {
     bits.pop_back();
     bits.pop_back();

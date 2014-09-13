@@ -10,7 +10,6 @@
 #include "osquery/database.h"
 
 namespace osquery {
-namespace core {
 
 // aggregateQuery accepts a const reference to an std::string and returns a
 // resultset of type QueryData.
@@ -18,6 +17,9 @@ osquery::db::QueryData aggregateQuery(const std::string& q, int& error_return);
 osquery::db::QueryData aggregateQuery(const std::string& q,
                                       int& error_return,
                                       sqlite3* db);
+
+// Return a fully configured sqlite3 database object
+sqlite3 *createDB();
 
 // initOsquery sets up various aspects of osquery execution state. it should
 // be called in an executable's main() function
@@ -38,5 +40,7 @@ std::string getAsciiTime();
 // getUnixTime() returns an int which represents the current time since the
 // unix epoch
 int getUnixTime();
-}
+
+// the current version of osquery
+extern const std::string kVersion;
 }

@@ -6,7 +6,6 @@
 #include <boost/algorithm/string/trim.hpp>
 
 namespace osquery {
-namespace core {
 
 std::vector<std::string> split(const std::string& s) { return split(s, "\t "); }
 
@@ -20,6 +19,5 @@ std::vector<std::string> split(const std::string& s, const std::string& delim) {
     boost::algorithm::trim(each);
   }
   return elems;
-}
 }
 }

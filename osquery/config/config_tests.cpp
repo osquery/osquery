@@ -9,7 +9,6 @@
 #include "osquery/status.h"
 #include "osquery/registry.h"
 
-namespace core = osquery::core;
 using osquery::Status;
 
 namespace osquery {
@@ -24,7 +23,7 @@ TEST_F(ConfigTests, test_queries_execute) {
   auto c = Config::getInstance();
   for (const auto& i : c->getScheduledQueries()) {
     int err;
-    auto r = core::aggregateQuery(i.query, err);
+    auto r = aggregateQuery(i.query, err);
     EXPECT_EQ(err, 0);
   }
 }

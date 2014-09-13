@@ -42,6 +42,6 @@ TEST_F(LoggerTests, test_plugin) {
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  osquery::core::initOsquery(argc, argv);
+  osquery::initOsquery(argc, argv);
   return RUN_ALL_TESTS();
 }

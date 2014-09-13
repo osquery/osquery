@@ -1,13 +1,15 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/core/test_util.h"
-
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
 #include <sqlite3.h>
 
-using namespace osquery::core;
+#include "osquery/core.h"
+#include "osquery/core/test_util.h"
+
+namespace osquery {
+namespace core {
 
 class TestUtilTests : public testing::Test {};
 
@@ -36,6 +38,8 @@ TEST_F(TestUtilTests, test_get_test_db_result_stream) {
     EXPECT_EQ(expected, r.second);
   }
   sqlite3_close(db);
+}
+}
 }
 
 int main(int argc, char* argv[]) {
