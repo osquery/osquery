@@ -25,7 +25,7 @@ std::shared_ptr<Dispatcher> Dispatcher::getInstance() {
 
 Dispatcher::Dispatcher() {
   threadManager = boost_to_std_shared_ptr(
-      ThreadManager::newSimpleThreadManager(FLAGS_worker_threads, 0));
+      ThreadManager::newSimpleThreadManager((size_t)FLAGS_worker_threads, 0));
   auto threadFactory =
       boost::shared_ptr<PosixThreadFactory>(new PosixThreadFactory());
   threadManager->threadFactory(threadFactory);
