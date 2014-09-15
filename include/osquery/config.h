@@ -40,9 +40,6 @@ struct OsqueryScheduledQuery {
   }
 };
 
-/// a typedef for a vector of OsqueryScheduledQuery's.
-typedef std::vector<OsqueryScheduledQuery> scheduledQueries_t;
-
 /** @brief A native representation of osquery configuration data.
  *
  *  When you use osquery::Config::getInstance(), you are getting a singleton
@@ -98,7 +95,7 @@ class Config {
    *  @return a vector of OsqueryScheduledQuery's which represent the queries
    *  that are to be executed
    */
-  scheduledQueries_t getScheduledQueries();
+  std::vector<OsqueryScheduledQuery> getScheduledQueries();
 
  private:
   /** @brief Default constructor.

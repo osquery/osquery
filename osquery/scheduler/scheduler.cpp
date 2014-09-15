@@ -17,7 +17,7 @@ namespace db = osquery::db;
 namespace osquery {
 namespace scheduler {
 
-void launchQueries(const osquery::scheduledQueries_t& queries,
+void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
                    const int64_t& second) {
   LOG(INFO) << "launchQueries: " << second;
   for (const auto& query : queries) {
