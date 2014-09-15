@@ -15,7 +15,6 @@
 namespace db = osquery::db;
 
 namespace osquery {
-namespace scheduler {
 
 void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
                    const int64_t& second) {
@@ -59,8 +58,8 @@ void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
   }
 }
 
-void initialize() {
-  DLOG(INFO) << "osquery::scheduler::initialize";
+void initializeScheduler() {
+  DLOG(INFO) << "osquery::initializeScheduler";
   time_t t = time(0);
   struct tm* local = localtime(&t);
   unsigned long int second = local->tm_sec;
@@ -76,6 +75,5 @@ void initialize() {
     launchQueries(cfg->getScheduledQueries(), second);
     sleep(1);
   }
-}
 }
 }

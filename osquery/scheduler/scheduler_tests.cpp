@@ -4,8 +4,6 @@
 
 #include <gtest/gtest.h>
 
-using namespace osquery::scheduler;
-
 class SchedulerTests : public testing::Test {};
 
 TEST_F(SchedulerTests, test) { EXPECT_EQ(true, true); }
