@@ -106,8 +106,8 @@ std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
   return results;
 }
 
-osquery::config::OsqueryScheduledQuery getOsqueryScheduledQuery() {
-  osquery::config::OsqueryScheduledQuery q;
+osquery::OsqueryScheduledQuery getOsqueryScheduledQuery() {
+  osquery::OsqueryScheduledQuery q;
   q.name = "foobartest";
   q.query = "SELECT filename FROM fs WHERE path = '/bin' ORDER BY filename";
   q.interval = 5;

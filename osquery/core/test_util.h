@@ -39,7 +39,7 @@ getTestDBResultStream();
 
 // getOsqueryScheduledQuery returns a test scheduled query which would normally
 // be returned via the config
-osquery::config::OsqueryScheduledQuery getOsqueryScheduledQuery();
+osquery::OsqueryScheduledQuery getOsqueryScheduledQuery();
 
 // getSerializedRow() return an std::pair where pair->first is a string which
 // should serialize to pair->second. Obviously, pair->second should deserialize

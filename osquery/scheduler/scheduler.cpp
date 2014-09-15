@@ -12,14 +12,13 @@
 #include "osquery/database.h"
 #include "osquery/logger.h"
 
-using namespace osquery::config;
 namespace db = osquery::db;
 namespace logger = osquery::logger;
 
 namespace osquery {
 namespace scheduler {
 
-void launchQueries(const osquery::config::scheduledQueries_t& queries,
+void launchQueries(const osquery::scheduledQueries_t& queries,
                    const int64_t& second) {
   LOG(INFO) << "launchQueries: " << second;
   for (const auto& query : queries) {

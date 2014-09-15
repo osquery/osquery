@@ -23,7 +23,6 @@ using osquery::Status;
 namespace pt = boost::property_tree;
 
 namespace osquery {
-namespace config {
 
 const std::string kDefaultConfigRetriever = "filesystem";
 
@@ -85,6 +84,5 @@ Status Config::genConfig(OsqueryConfig& conf) {
 scheduledQueries_t Config::getScheduledQueries() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return cfg_.scheduledQueries;
-}
 }
 }

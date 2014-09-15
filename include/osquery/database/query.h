@@ -28,7 +28,7 @@ class Query {
   //
   // Given the query, the constructor calculates the value of columnFamily_,
   // which can be accessed via the getColumnFamilyName() getter method.
-  explicit Query(osquery::config::OsqueryScheduledQuery q) : query_(q) {}
+  explicit Query(osquery::OsqueryScheduledQuery q) : query_(q) {}
 
   /////////////////////////////////////////////////////////////////////////////
   // Getters and setters
@@ -112,7 +112,7 @@ class Query {
   /////////////////////////////////////////////////////////////////////////////
 
   // query_ represents the scheduled query that Query is operating on
-  osquery::config::OsqueryScheduledQuery query_;
+  osquery::OsqueryScheduledQuery query_;
 
  private:
   /////////////////////////////////////////////////////////////////////////////
