@@ -50,7 +50,7 @@ struct OsqueryConfig {
   std::vector<OsqueryScheduledQuery> scheduledQueries;
 };
 
-/** @brief A string which represents the default retriever.
+/** @brief A string which represents the default consfig retriever.
  *
  *  The config plugin that you use to define your config retriever can be
  *  defined via a command-line flag, however, if you don't define a config
