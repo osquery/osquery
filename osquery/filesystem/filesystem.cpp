@@ -14,7 +14,6 @@
 using osquery::Status;
 
 namespace osquery {
-namespace fs {
 
 Status readFile(const std::string& path, std::string& content) {
   if (!boost::filesystem::exists(path)) {
@@ -87,6 +86,5 @@ Status listFilesInDirectory(const std::string& path,
   catch (const boost::filesystem::filesystem_error& e) {
     return Status(1, e.what());
   }
-}
 }
 }

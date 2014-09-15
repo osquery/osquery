@@ -13,7 +13,6 @@ using namespace osquery::core;
 namespace pt = boost::property_tree;
 
 namespace osquery {
-namespace fs {
 
 // run this benchmark with --iterations=9001 to parse over 9000 property lists
 DEFINE_int32(iterations, 100, "Iterations to execute");
@@ -51,7 +50,6 @@ TEST_F(PlistBenchmark, bench_parse_plist_content) {
   LOG(ERROR) << "Ending:   " << getAsciiTime();
   LOG(ERROR) << "Benchmark executed in " << (getUnixTime() - time)
              << " seconds";
-}
 }
 }
 

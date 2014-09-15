@@ -11,7 +11,6 @@
 #include "osquery/status.h"
 
 namespace osquery {
-namespace fs {
 
 // readFile accepts a const reference to an std::string indicating the path of
 // the file that you'd like to read and a non-const reference to an std::string
@@ -41,5 +40,4 @@ osquery::Status parsePlist(const std::string& path,
 osquery::Status parsePlistContent(const std::string& fileContent,
                                   boost::property_tree::ptree& tree);
 #endif
-}
 }

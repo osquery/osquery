@@ -11,7 +11,6 @@ using namespace osquery::core;
 namespace pt = boost::property_tree;
 
 namespace osquery {
-namespace fs {
 
 class PlistTests : public testing::Test {};
 
@@ -44,7 +43,6 @@ TEST_F(PlistTests, test_parse_plist_content) {
     program_arguments_parsed.push_back(argument.second.get<std::string>(""));
   }
   EXPECT_EQ(program_arguments_parsed, program_arguments);
-}
 }
 }
 

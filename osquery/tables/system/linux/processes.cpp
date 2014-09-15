@@ -90,7 +90,7 @@ QueryData genProcesses() {
     r["name"] = proc_name(proc_info);
     r["cmdline"] = proc_cmdline(proc_info);
     r["path"] = proc_link(proc_info);
-    r["on_disk"] = osquery::fs::pathExists(r["path"]).toString();
+    r["on_disk"] = osquery::pathExists(r["path"]).toString();
 
     r["resident_size"] = boost::lexical_cast<std::string>(proc_info->vm_rss);
     r["phys_footprint"] = boost::lexical_cast<std::string>(proc_info->vm_size);

@@ -97,7 +97,7 @@ QueryData genProcesses() {
     char path[PROC_PIDPATHINFO_MAXSIZE];
     proc_pidpath(pids[i], path, sizeof(path));
     r["path"] = std::string(path);
-    r["on_disk"] = osquery::fs::pathExists(r["path"]).toString();
+    r["on_disk"] = osquery::pathExists(r["path"]).toString();
 
     // systems usage and time information
     struct rusage_info_v2 rusage_info_data;
