@@ -13,7 +13,6 @@
 using osquery::Status;
 
 namespace osquery {
-namespace logger {
 
 DEFINE_string(
     active_scribe_category,
@@ -39,6 +38,5 @@ class ScribeLoggerPlugin : public LoggerPlugin {
 };
 
 REGISTER_LOGGER_PLUGIN("scribe",
-                       std::make_shared<osquery::logger::ScribeLoggerPlugin>());
-}
+                       std::make_shared<osquery::ScribeLoggerPlugin>());
 }

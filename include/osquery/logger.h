@@ -10,7 +10,6 @@
 #include "osquery/database.h"
 
 namespace osquery {
-namespace logger {
 
 // kDefaultLogReceiverName is a const std::string which represents the "name"
 // of the default log receiver
@@ -30,5 +29,4 @@ osquery::Status logScheduledQueryLogItem(
 osquery::Status logScheduledQueryLogItem(
     const osquery::db::ScheduledQueryLogItem& item,
     const std::string& receiver);
-}
 }

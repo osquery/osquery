@@ -13,7 +13,6 @@
 #include "osquery/logger.h"
 
 namespace db = osquery::db;
-namespace logger = osquery::logger;
 
 namespace osquery {
 namespace scheduler {
@@ -49,7 +48,7 @@ void launchQueries(const osquery::scheduledQueries_t& queries,
         item.hostname = osquery::getHostname();
         item.unixTime = osquery::getUnixTime();
         item.calendarTime = osquery::getAsciiTime();
-        auto s = logger::logScheduledQueryLogItem(item);
+        auto s = logScheduledQueryLogItem(item);
         if (!s.ok()) {
           LOG(ERROR) << "Error logging the results of query \"" << query.query
                      << "\""

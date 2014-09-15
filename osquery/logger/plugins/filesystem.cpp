@@ -15,7 +15,6 @@
 using osquery::Status;
 
 namespace osquery {
-namespace logger {
 
 std::mutex filesystemLoggerPluginMutex;
 
@@ -47,6 +46,5 @@ class FilesystemLoggerPlugin : public LoggerPlugin {
 };
 
 REGISTER_LOGGER_PLUGIN(
-    "filesystem", std::make_shared<osquery::logger::FilesystemLoggerPlugin>());
-}
+    "filesystem", std::make_shared<osquery::FilesystemLoggerPlugin>());
 }
