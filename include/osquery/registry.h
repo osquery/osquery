@@ -1,4 +1,4 @@
- * Copyright 2004-present Facebook. All Rights Reserved.
+// Copyright 2004-present Facebook. All Rights Reserved.
 
 #pragma once
 
@@ -67,7 +67,7 @@ class Registry : public std::unordered_map<Key, Value> {
   namespace registries {                                        \
   class registryName : public Registry<KeyType, ObjectType> {}; \
   }                                                             \
-  }  * osquery::registries
+  }
 
 #define REGISTRY(registryName) \
   (osquery::Singleton<osquery::registries::registryName>::get())
