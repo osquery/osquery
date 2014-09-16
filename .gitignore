@@ -38,6 +38,3 @@ osquery/tables/generated
 .idea/sqlDataSources.xml
 .idea/dynamic.xml
 .idea/dictionaries
-
-# Doxygen Artifacts
-docs*
