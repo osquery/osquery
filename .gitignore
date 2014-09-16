@@ -41,3 +41,4 @@ osquery/tables/generated
 
 # Doxygen Documentation
 doxygen/html
+doxygen/latex
