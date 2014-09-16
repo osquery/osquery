@@ -37,6 +37,6 @@ class FilesystemConfigPlugin : public ConfigPlugin {
   virtual ~FilesystemConfigPlugin() {}
 };
 
-REGISTER_CONFIG_PLUGIN(
-    "filesystem", std::make_shared<osquery::FilesystemConfigPlugin>());
+REGISTER_CONFIG_PLUGIN("filesystem",
+                       std::make_shared<osquery::FilesystemConfigPlugin>());
 }

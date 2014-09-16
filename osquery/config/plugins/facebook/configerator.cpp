@@ -30,7 +30,6 @@ class ConfigeratorConfigPlugin : public ConfigPlugin {
   virtual ~ConfigeratorConfigPlugin() {}
 };
 
-REGISTER_CONFIG_PLUGIN(
-    "configerator",
-    std::make_shared<osquery::ConfigeratorConfigPlugin>());
+REGISTER_CONFIG_PLUGIN("configerator",
+                       std::make_shared<osquery::ConfigeratorConfigPlugin>());
 }

@@ -38,8 +38,7 @@ class TestConfigPlugin : public ConfigPlugin {
   virtual ~TestConfigPlugin() {}
 };
 
-REGISTER_CONFIG_PLUGIN("test",
-                       std::make_shared<osquery::TestConfigPlugin>());
+REGISTER_CONFIG_PLUGIN("test", std::make_shared<osquery::TestConfigPlugin>());
 
 TEST_F(ConfigTests, test_plugin) {
   auto p = REGISTERED_CONFIG_PLUGINS.at("test")->genConfig();

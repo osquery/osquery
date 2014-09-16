@@ -27,8 +27,7 @@ class TestLoggerPlugin : public LoggerPlugin {
   virtual ~TestLoggerPlugin() {}
 };
 
-REGISTER_LOGGER_PLUGIN("test",
-                       std::make_shared<osquery::TestLoggerPlugin>());
+REGISTER_LOGGER_PLUGIN("test", std::make_shared<osquery::TestLoggerPlugin>());
 
 TEST_F(LoggerTests, test_plugin) {
   auto s = REGISTERED_LOGGER_PLUGINS.at("test")->logString("foobar");

@@ -114,8 +114,8 @@ osquery::Status serializeDiffResults(const DiffResults& d,
  * @return an instance of osquery::Status, indicating the success or failure
  * of the operation
  */
-osquery::Status serializeDiffResultsJSON(const DiffResults& d, std::string&
-    json);
+osquery::Status serializeDiffResultsJSON(const DiffResults& d,
+                                         std::string& json);
 
 /**
  * @brief Diff two QueryData objects and create a DiffResults object
@@ -184,8 +184,8 @@ osquery::Status serializeHistoricalQueryResults(
  * @return an instance of osquery::Status, indicating the success or failure
  * of the operation
  */
-osquery::Status serializeHistoricalQueryResultsJSON( const
-    HistoricalQueryResults& r, std::string& json);
+osquery::Status serializeHistoricalQueryResultsJSON(
+    const HistoricalQueryResults& r, std::string& json);
 
 /**
  * @brief Deserialize a property tree into a HistoricalQueryResults object
@@ -279,5 +279,7 @@ osquery::Status serializeScheduledQueryLogItem(
  * @return an instance of osquery::Status, indicating the success or failure
  * of the operation
  */
-osquery::Status serializeScheduledQueryLogItemJSON( const
-    ScheduledQueryLogItem& i, std::string& json); } }
+osquery::Status serializeScheduledQueryLogItemJSON(
+    const ScheduledQueryLogItem& i, std::string& json);
+}
+}

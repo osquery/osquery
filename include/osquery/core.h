@@ -55,8 +55,8 @@ osquery::db::QueryData query(const std::string& q, int& error_return);
  * @return the results of the query
  */
 osquery::db::QueryData query(const std::string& q,
-                                      int& error_return,
-                                      sqlite3* db);
+                             int& error_return,
+                             sqlite3* db);
 
 /**
  * @brief Return a fully configured sqlite3 database object
@@ -67,7 +67,7 @@ osquery::db::QueryData query(const std::string& q,
  *
  * @return a SQLite3 database with all virtual tables attached
  */
-sqlite3 *createDB();
+sqlite3* createDB();
 
 /**
  * @brief Sets up various aspects of osquery execution state.
@@ -92,7 +92,8 @@ void initOsquery(int argc, char* argv[]);
  * @return a vector of strings which represent the split string that you
  * passed as the s parameter.
  */
-std::vector<std::string> split(const std::string& s, const std::string& delim = "\t ");
+std::vector<std::string> split(const std::string& s,
+                               const std::string& delim = "\t ");
 
 /**
  * @brief Getter for a host's current hostname

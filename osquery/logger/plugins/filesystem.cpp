@@ -45,6 +45,6 @@ class FilesystemLoggerPlugin : public LoggerPlugin {
   virtual ~FilesystemLoggerPlugin() {}
 };
 
-REGISTER_LOGGER_PLUGIN(
-    "filesystem", std::make_shared<osquery::FilesystemLoggerPlugin>());
+REGISTER_LOGGER_PLUGIN("filesystem",
+                       std::make_shared<osquery::FilesystemLoggerPlugin>());
 }

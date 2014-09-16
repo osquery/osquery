@@ -104,7 +104,7 @@ class Query {
    * @see getHistoricalQueryResults
    */
   osquery::Status getHistoricalQueryResults(HistoricalQueryResults& hQR,
-      std::shared_ptr<DBHandle> db);
+                                            std::shared_ptr<DBHandle> db);
 
  public:
   /**
@@ -276,7 +276,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
- osquery::Status getCurrentResults(osquery::db::QueryData& qd,
+  osquery::Status getCurrentResults(osquery::db::QueryData& qd,
                                     std::shared_ptr<DBHandle> db);
 
  private:
