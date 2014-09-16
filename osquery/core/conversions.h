@@ -12,7 +12,8 @@ namespace osquery {
 template <typename T>
 void do_release_boost(typename boost::shared_ptr<T> const&, T*) {}
 
-// convert a boost::shared_ptr to a std::shared_ptr
+/** @brief Convert a boost::shared_ptr to a std::shared_ptr
+ */
 template <typename T>
 typename std::shared_ptr<T> boost_to_std_shared_ptr(
     typename boost::shared_ptr<T> const& p) {
@@ -22,7 +23,8 @@ typename std::shared_ptr<T> boost_to_std_shared_ptr(
 template <typename T>
 void do_release_std(typename std::shared_ptr<T> const&, T*) {}
 
-// convert a std::shared_ptr to a boost::shared_ptr
+/** @brief Convert a std::shared_ptr to a boost::shared_ptr
+ */
 template <typename T>
 typename boost::shared_ptr<T> std_to_boost_shared_ptr(
     typename std::shared_ptr<T> const& p) {
