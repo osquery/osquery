@@ -22,7 +22,7 @@ TEST_F(ConfigTests, test_queries_execute) {
   auto c = Config::getInstance();
   for (const auto& i : c->getScheduledQueries()) {
     int err;
-    auto r = aggregateQuery(i.query, err);
+    auto r = query(i.query, err);
     EXPECT_EQ(err, 0);
   }
 }

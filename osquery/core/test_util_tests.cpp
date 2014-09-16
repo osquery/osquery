@@ -16,7 +16,7 @@ class TestUtilTests : public testing::Test {};
 TEST_F(TestUtilTests, test_expected_results) {
   int err;
   auto db = createTestDB();
-  auto results = aggregateQuery(kTestQuery, err, db);
+  auto results = query(kTestQuery, err, db);
   sqlite3_close(db);
   EXPECT_EQ(err, 0);
   EXPECT_EQ(results, getTestDBExpectedResults());
@@ -34,7 +34,7 @@ TEST_F(TestUtilTests, test_get_test_db_result_stream) {
       ASSERT_TRUE(false);
     }
     int err_int;
-    auto expected = aggregateQuery(kTestQuery, err_int, db);
+    auto expected = query(kTestQuery, err_int, db);
     EXPECT_EQ(expected, r.second);
   }
   sqlite3_close(db);

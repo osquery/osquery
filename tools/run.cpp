@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < FLAGS_iterations; ++i) {
       int err;
       LOG(INFO) << "Executing: " << FLAGS_query;
-      osquery::aggregateQuery(FLAGS_query, err);
+      osquery::query(FLAGS_query, err);
       if (err != 0) {
         LOG(ERROR) << "Query failed: " << err;
         return 1;

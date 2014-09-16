@@ -20,7 +20,7 @@ extern const std::string kVersion;
  *  @code{.cpp}
  *    std::string q = "SELECT * FROM time;";
  *    int i = 0;
- *    auto qd = aggregateQuery(q, i);
+ *    auto qd = query(q, i);
  *    if (i == 0) {
  *      for (const auto& each : qd) {
  *        LOG(INFO) << "hour:    " << qd["hour"];
@@ -35,7 +35,7 @@ extern const std::string kVersion;
  *
  *  @return the results of the query
  */
-osquery::db::QueryData aggregateQuery(const std::string& q, int& error_return);
+osquery::db::QueryData query(const std::string& q, int& error_return);
 
 /** @brief Execute a query on a specific database
  *
@@ -49,7 +49,7 @@ osquery::db::QueryData aggregateQuery(const std::string& q, int& error_return);
  *
  *  @return the results of the query
  */
-osquery::db::QueryData aggregateQuery(const std::string& q,
+osquery::db::QueryData query(const std::string& q,
                                       int& error_return,
                                       sqlite3* db);
 

@@ -20,7 +20,7 @@ class SQLiteUtilTests : public testing::Test {};
 TEST_F(SQLiteUtilTests, test_simple_query_execution) {
   int err;
   auto db = createTestDB();
-  auto results = aggregateQuery(kTestQuery, err, db);
+  auto results = query(kTestQuery, err, db);
   sqlite3_close(db);
   EXPECT_EQ(err, 0);
   EXPECT_EQ(results, getTestDBExpectedResults());
@@ -40,7 +40,7 @@ TEST_F(SQLiteUtilTests, test_passing_callback_no_data_param) {
 TEST_F(SQLiteUtilTests, test_aggregate_query) {
   int err;
   auto db = createTestDB();
-  QueryData d = aggregateQuery(kTestQuery, err, db);
+  QueryData d = query(kTestQuery, err, db);
   sqlite3_close(db);
   EXPECT_EQ(err, 0);
 }

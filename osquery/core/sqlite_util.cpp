@@ -26,14 +26,14 @@ sqlite3* createDB() {
   return db;
 }
 
-QueryData aggregateQuery(const std::string& q, int& error_return) {
+QueryData query(const std::string& q, int& error_return) {
   sqlite3* db = createDB();
-  QueryData results = aggregateQuery(q, error_return, db);
+  QueryData results = query(q, error_return, db);
   sqlite3_close(db);
   return results;
 }
 
-QueryData aggregateQuery(const std::string& q, int& error_return, sqlite3* db) {
+QueryData query(const std::string& q, int& error_return, sqlite3* db) {
   QueryData d;
   char* err = nullptr;
   sqlite3_exec(db, q.c_str(), core::query_data_callback, &d, &err);

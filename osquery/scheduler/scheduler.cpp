@@ -19,17 +19,17 @@ namespace osquery {
 void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
                    const int64_t& second) {
   LOG(INFO) << "launchQueries: " << second;
-  for (const auto& query : queries) {
-    if (second % query.interval == 0) {
-      LOG(INFO) << "executing query: " << query.query;
+  for (const auto& q : queries) {
+    if (second % q.interval == 0) {
+      LOG(INFO) << "executing query: " << q.query;
       int unix_time = std::time(0);
       int err;
-      auto query_results = aggregateQuery(query.query, err);
+      auto query_results = query(q.query, err);
       if (err != 0) {
-        LOG(ERROR) << "error executing query: " << query.query;
+        LOG(ERROR) << "error executing query: " << q.query;
         continue;
       }
-      auto dbQuery = db::Query(query);
+      auto dbQuery = db::Query(q);
       db::DiffResults diff_results;
       auto status =
           dbQuery.addNewResults(query_results, diff_results, unix_time);
@@ -40,16 +40,16 @@ void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
       }
 
       if (diff_results.added.size() > 0 || diff_results.removed.size() > 0) {
-        VLOG(1) << "Results found for query: \"" << query.query << "\"";
+        VLOG(1) << "Results found for query: \"" << q.query << "\"";
         db::ScheduledQueryLogItem item;
         item.diffResults = diff_results;
-        item.name = query.name;
+        item.name = q.name;
         item.hostname = osquery::getHostname();
         item.unixTime = osquery::getUnixTime();
         item.calendarTime = osquery::getAsciiTime();
         auto s = logScheduledQueryLogItem(item);
         if (!s.ok()) {
-          LOG(ERROR) << "Error logging the results of query \"" << query.query
+          LOG(ERROR) << "Error logging the results of query \"" << q.query
                      << "\""
                      << ": " << s.toString();
         }
