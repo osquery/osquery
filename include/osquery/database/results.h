@@ -15,185 +15,252 @@ namespace osquery {
 namespace db {
 
 /////////////////////////////////////////////////////////////////////////////
-// Row - the representation of a row in a set of database results. Row is a
-// simple map where individual column names are keys, which map to the Row's
-// respective value
+// Row
 /////////////////////////////////////////////////////////////////////////////
 
-// Row represents a single row from a database query
+/** @brief A single row from a database query
+ *
+ *  Row is a simple map where individual column names are keys, which map to
+ *  the Row's respective value
+ */
 typedef std::map<std::string, std::string> Row;
 
-// serializeRow accepts a const reference to a row and a non-const reference to
-// a ptree. The contents of const Row r will be serialized into ptree tree and
-// an osquery::Status will be returned indicating the success or failure
-// of the operation.
+/** @brief Serialize a Row into a property tree
+ *
+ *  @param r the Row to serialize
+ *  @param tree a reference to a property tree which, if all operations are
+ *  completed successfully, the contents of Row will be serialized into
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation
+ */
 osquery::Status serializeRow(const Row& r, boost::property_tree::ptree& tree);
 
 /////////////////////////////////////////////////////////////////////////////
-// QueryData - the representation of a database query result set. It's a
-// vector of rows
+// QueryData
 /////////////////////////////////////////////////////////////////////////////
 
-// QueryData represents an entire result set from a database query
+/** @brief The result set returned from a osquery SQL query
+ *
+ *  QueryData is the canonical way to represent the results of SQL queries in
+ *  osquery. It's just a vector of Row's.
+ */
 typedef std::vector<Row> QueryData;
 
-// serializeQueryData accepts a const reference to a QueryData and a non-const
-// reference to a ptree. The contents of const QueryData q will be serialized
-// into ptree tree and an osquery::Status will be returned indicating the
-// success or failure of the operation.
+/** @brief Serialize a QueryData object into a property tree
+ *
+ *  @param q the QueryData to serialize
+ *  @param tree a reference to a property tree which, if all operations are
+ *  completed successfully, the contents of QueryData will be serialized into
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation
+ */
 osquery::Status serializeQueryData(const QueryData& q,
                                    boost::property_tree::ptree& tree);
 
 /////////////////////////////////////////////////////////////////////////////
-// DiffResults - the representation of two diffed QueryData result sets.
-// Given and old and new QueryData, DiffResults indicates the "added" subset
-// of rows and the "removed" subset of rows
+// DiffResults
 /////////////////////////////////////////////////////////////////////////////
 
-// struct with two fields, added and removed (both of which are vector<string>)
+/** @brief Data structure representing the difference between the results of
+ * two queries
+ *
+ *  The representation of two diffed QueryData result sets. Given and old and
+ *  new QueryData, DiffResults indicates the "added" subset of rows and the
+ *  "removed" subset of rows.
+ */
 struct DiffResults {
-  // vector of added rows
+  /// vector of added rows
   QueryData added;
 
-  // vector of removed rows
+  /// vector of removed rows
   QueryData removed;
 
-  // equals operator
+  /// equals operator
   bool operator==(const DiffResults& comp) const {
     return (comp.added == added) && (comp.removed == removed);
   }
 
-  // not equals operator
+  /// not equals operator
   bool operator!=(const DiffResults& comp) const { return !(*this == comp); }
 };
 
-// typedef so we can say "DiffResults" instead of "struct DiffResults"
-typedef struct DiffResults DiffResults;
-
-// serializeDiffResults accepts a const reference to a DiffResults and a
-// non-const reference to a ptree. The contents of const DiffResults d will be
-// serialized into ptree tree and an osquery::Status will be returned
-// indicating the success or failure of the operation.
+/** @brief Serialize a DiffResults object into a property tree
+ *
+ *  @param d the DiffResults to serialize
+ *  @param tree a reference to a property tree which, if all operations are
+ *  completed successfully, the contents of DiffResults will be serialized into
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation
+ */
 osquery::Status serializeDiffResults(const DiffResults& d,
                                      boost::property_tree::ptree& tree);
 
-// serializeDiffResultsJSON accepts a const reference to a DiffResults struct
-// and a non-const reference to a std::string.  The contents of const
-// DiffResults d will be serialized into std::string json and an
-// osquery::Status will be returned indicating the success or failure of
-// the operation.
-osquery::Status serializeDiffResultsJSON(const DiffResults& d,
-                                         std::string& json);
+/** @brief Serialize a DiffResults object into a JSON string
+ *
+ *  @param d the DiffResults to serialize
+ *  @param tree a reference to a string which, if all operations are completed
+ *  successfully, the contents of DiffResults will be serialized into
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation
+ */
+osquery::Status serializeDiffResultsJSON(const DiffResults& d, std::string&
+    json);
 
-// given a const reference to the queryData results of two queries, compute
-// their difference
+/** @brief Diff two QueryData objects and create a DiffResults object
+ *
+ *  @param old_ the "old" set of results
+ *  @param new_ the "new" set of results
+ *
+ *  @return a DiffResults object which indicates the change from old_ to new_
+ *
+ *  @see DiffResults
+ */
 DiffResults diff(const QueryData& old_, const QueryData& new_);
 
 /////////////////////////////////////////////////////////////////////////////
-// HistoricalQueryResults - the representation of the historical results of
-// a particular scheduled database query.
+// HistoricalQueryResults
 /////////////////////////////////////////////////////////////////////////////
 
-// HistoricalQueryResults is a struct which represents a scheduled query's
-// historical results on disk
+/** @brief A representation of scheduled query's historical results on disk
+ *
+ *  In practice, a HistoricalQueryResults object is generated after inspecting
+ *  the persistent data storage.
+ */
 struct HistoricalQueryResults {
-  // mostRecentResults->first is the timestamp of the most recent results and
-  // mostRecentResults->second is the query result data of the most recent
-  // query
+  /** @brief the most recent results in the database
+   *
+   *  mostRecentResults->first is the timestamp of the most recent results and
+   *  mostRecentResults->second is the query result data of the most recent
+   */
   std::pair<int, QueryData> mostRecentResults;
 
-  // equals operator
+  /// equals operator
   bool operator==(const HistoricalQueryResults& comp) const {
     return (comp.mostRecentResults == mostRecentResults);
   }
 
-  // not equals operator
+  /// not equals operator
   bool operator!=(const HistoricalQueryResults& comp) const {
     return !(*this == comp);
   }
 };
 
-// typedef so we can say "HistoricalQueryResults" instead of
-// "struct HistoricalQueryResults"
-typedef struct HistoricalQueryResults HistoricalQueryResults;
-
-// serializeHistoricalQueryResults accepts a const reference to a
-// HistoricalQueryResults struct and a non-const reference to a ptree. The
-// contents of const HistoricalQueryResults r will be serialized into ptree
-// tree and an osquery::Status will be returned indicating the success or
-// failure of the operation.
+/** @brief Serialize a HistoricalQueryResults object into a property tree
+ *
+ *  @param r the HistoricalQueryResults to serialize
+ *  @param tree a reference to a property tree which, if all operations are
+ *  completed successfully, the contents of HistoricalQueryResults will be
+ *  serialized into
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation
+ */
 osquery::Status serializeHistoricalQueryResults(
     const HistoricalQueryResults& r, boost::property_tree::ptree& tree);
 
-// serializeHistoricalQueryResultsJSON accepts a const reference to a
-// HistoricalQueryResults struct and a non-const reference to a std::string.
-// The contents of const HistoricalQueryResults r will be serialized into
-// std::string json and an osquery::Status will be returned indicating the
-// success or failure of the operation.
-osquery::Status serializeHistoricalQueryResultsJSON(
-    const HistoricalQueryResults& r, std::string& json);
+/** @brief Serialize a HistoricalQueryResults object into a JSON string
+ *
+ *  @param r the HistoricalQueryResults to serialize
+ *  @param json a reference to a string which, if all operations are completed
+ *  successfully, the contents of HistoricalQueryResults will be serialized
+ *  into
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation
+ */
+osquery::Status serializeHistoricalQueryResultsJSON( const
+    HistoricalQueryResults& r, std::string& json);
 
-// deserializeHistoricalQueryResults accepts a const reference to a ptree of a
-// serialized HistoricalQueryResults struct and a non-const reference to a
-// historicalQueryResults struct.  The contents of const ptree tree will be
-// serialized into HistoricalQueryResults r and an osquery::Status will be
-// returned indicating the success or failure of the operation.
+/** @brief Deserialize a property tree into a HistoricalQueryResults object
+ *
+ *  @param tree a property tree which contains a serialized
+ *  HistoricalQueryResults
+ *  @param r a reference to a HistoricalQueryResults object which, if all
+ *  operations are completed successfully, the contents of tree will be
+ *  serialized into
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation
+ */
 osquery::Status deserializeHistoricalQueryResults(
     const boost::property_tree::ptree& tree, HistoricalQueryResults& r);
 
-// deserializeHistoricalQueryResultsJSON accepts a const reference to an
-// std::string of a serialized HistoricalQueryResults struct and a non-const
-// reference to a HistoricalQueryResults struct.  The contents of const
-// std::string json will be serialized into HistoricalQueryResults r and an
-// osquery::Status will be returned indicating the success or failure of
-// the operation.
+/** @brief Deserialize JSON into a HistoricalQueryResults object
+ *
+ *  @param json a string which contains a serialized HistoricalQueryResults
+ *  @param r a reference to a HistoricalQueryResults object which, if all
+ *  operations are completed successfully, the contents of json will be
+ *  serialized into
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation
+ */
 osquery::Status deserializeHistoricalQueryResultsJSON(
     const std::string& json, HistoricalQueryResults& r);
 
 /////////////////////////////////////////////////////////////////////////////
-// ScheduledQueryLogItem - the representation of a log result occuring when a
-// s schedueld query yields operating system state change.
+// ScheduledQueryLogItem
 /////////////////////////////////////////////////////////////////////////////
 
-// struct which represents a logged DiffResults type as well as necessary
-// metadata about the DiffResults being logged
+/** @brief A data structure which represents data to log in the event of an
+ *  operating system state change
+ *
+ *  When a scheduled query yields new results, we need to log that information
+ *  to our upstream logging receiver. The data that needs to be logged is the
+ *  entire DiffResults set as well as some additional metadata.
+ */
 struct ScheduledQueryLogItem {
-  // the content of the data which was changed as a result of the schedueld
-  // query
+  /// The data which was changed as a result of the schedueld query
   DiffResults diffResults;
 
-  // the name of the scheduled query
+  /// The name of the scheduled query
   std::string name;
 
-  // the hostname of the host which the scheduled query was executed on
+  /// The hostname of the host which the scheduled query was executed on
   std::string hostname;
 
-  // the time that the query was executed, in unix time
+  /// The time that the query was executed, in unix time
   int unixTime;
 
-  // the time that the query was executed, in ASCII
+  /// The time that the query was executed, in ASCII
   std::string calendarTime;
 
-  // equals operator
+  /// equals operator
   bool operator==(const ScheduledQueryLogItem& comp) const {
     return (comp.diffResults == diffResults) && (comp.name == name);
   }
 
-  // not equals operator
+  /// not equals operator
   bool operator!=(const ScheduledQueryLogItem& comp) const {
     return !(*this == comp);
   }
 };
 
-// serializeScheduledQueryLogItem accepts a const reference to a
-// ScheduledQueryLogItem and a non-const reference to a ptree. The contents of
-// const ScheduledQueryLogItem i will be serialized into ptree tree and an
-// osquery::Status will be returned indicating the success or failure of
-// the operation.
+/** @brief Serialize a ScheduledQueryLogItem object into a property tree
+ *
+ *  @param i the ScheduledQueryLogItem to serialize
+ *  @param tree a reference to a property tree which, if all operations are
+ *  completed successfully, the contents of ScheduledQueryLogItem will be
+ *  serialized into
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation
+ */
 osquery::Status serializeScheduledQueryLogItem(
     const ScheduledQueryLogItem& i, boost::property_tree::ptree& tree);
 
-osquery::Status serializeScheduledQueryLogItemJSON(
-    const ScheduledQueryLogItem& i, std::string& json);
-}
-}
+/** @brief Serialize a ScheduledQueryLogItem object into a JSON string
+ *
+ *  @param i the ScheduledQueryLogItem to serialize
+ *  @param tree a reference to a string which, if all operations are completed
+ *  successfully, the contents of ScheduledQueryLogItem will be serialized into
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation
+ */
+osquery::Status serializeScheduledQueryLogItemJSON( const
+    ScheduledQueryLogItem& i, std::string& json); } }

@@ -17,7 +17,7 @@ const std::string kQueryNameNotFoundError = "query name not found in database";
 
 std::string Query::getQuery() { return query_.query; }
 
-std::string Query::getColumnFamilyName() { return query_.name; }
+std::string Query::getQueryName() { return query_.name; }
 
 int Query::getInterval() { return query_.interval; }
 

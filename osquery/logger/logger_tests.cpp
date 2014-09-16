@@ -9,11 +9,9 @@
 #include "osquery/core.h"
 
 using namespace osquery::db;
-using namespace osquery::logger;
 using osquery::Status;
 
 namespace osquery {
-namespace logger {
 
 class LoggerTests : public testing::Test {
  public:
@@ -30,7 +28,7 @@ class TestLoggerPlugin : public LoggerPlugin {
 };
 
 REGISTER_LOGGER_PLUGIN("test",
-                       std::make_shared<osquery::logger::TestLoggerPlugin>());
+                       std::make_shared<osquery::TestLoggerPlugin>());
 
 TEST_F(LoggerTests, test_plugin) {
   auto s = REGISTERED_LOGGER_PLUGINS.at("test")->logString("foobar");
@@ -38,10 +36,9 @@ TEST_F(LoggerTests, test_plugin) {
   EXPECT_EQ(s.toString(), "foobar");
 }
 }
-}
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  osquery::core::initOsquery(argc, argv);
+  osquery::initOsquery(argc, argv);
   return RUN_ALL_TESTS();
 }

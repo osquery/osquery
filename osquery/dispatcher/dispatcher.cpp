@@ -24,17 +24,17 @@ std::shared_ptr<Dispatcher> Dispatcher::getInstance() {
 }
 
 Dispatcher::Dispatcher() {
-  threadManager = boost_to_std_shared_ptr(
+  thread_manager_ = boost_to_std_shared_ptr(
       ThreadManager::newSimpleThreadManager((size_t)FLAGS_worker_threads, 0));
   auto threadFactory =
       boost::shared_ptr<PosixThreadFactory>(new PosixThreadFactory());
-  threadManager->threadFactory(threadFactory);
-  threadManager->start();
+  thread_manager_->threadFactory(threadFactory);
+  thread_manager_->start();
 }
 
 Status Dispatcher::add(std::shared_ptr<Runnable> task) {
   try {
-    threadManager->add(std_to_boost_shared_ptr(task), 0, 0);
+    thread_manager_->add(std_to_boost_shared_ptr(task), 0, 0);
   }
   catch (std::exception& e) {
     return Status(1, e.what());
@@ -43,40 +43,42 @@ Status Dispatcher::add(std::shared_ptr<Runnable> task) {
 }
 
 std::shared_ptr<ThreadManager> Dispatcher::getThreadManager() {
-  return threadManager;
+  return thread_manager_;
 }
 
-void Dispatcher::join() { threadManager->join(); }
+void Dispatcher::join() { thread_manager_->join(); }
 
 ThreadManager::STATE Dispatcher::state() const {
-  return threadManager->state();
+  return thread_manager_->state();
 }
 
-void Dispatcher::addWorker(size_t value) { threadManager->addWorker(value); }
+void Dispatcher::addWorker(size_t value) { thread_manager_->addWorker(value); }
 
 void Dispatcher::removeWorker(size_t value) {
-  threadManager->removeWorker(value);
+  thread_manager_->removeWorker(value);
 }
 
 size_t Dispatcher::idleWorkerCount() const {
-  return threadManager->idleWorkerCount();
+  return thread_manager_->idleWorkerCount();
 }
 
-size_t Dispatcher::workerCount() const { return threadManager->workerCount(); }
+size_t Dispatcher::workerCount() const {
+  return thread_manager_->workerCount();
+}
 
 size_t Dispatcher::pendingTaskCount() const {
-  return threadManager->pendingTaskCount();
+  return thread_manager_->pendingTaskCount();
 }
 
 size_t Dispatcher::totalTaskCount() const {
-  return threadManager->totalTaskCount();
+  return thread_manager_->totalTaskCount();
 }
 
 size_t Dispatcher::pendingTaskCountMax() const {
-  return threadManager->pendingTaskCountMax();
+  return thread_manager_->pendingTaskCountMax();
 }
 
 size_t Dispatcher::expiredTaskCount() const {
-  return threadManager->expiredTaskCount();
+  return thread_manager_->expiredTaskCount();
 }
 }

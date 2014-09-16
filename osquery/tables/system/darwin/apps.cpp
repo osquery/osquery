@@ -42,7 +42,7 @@ std::vector<std::string> getAppInfoPlistPaths() {
 
   std::vector<std::string> slash_applications;
   auto slash_apps_s =
-      osquery::fs::listFilesInDirectory("/Applications", slash_applications);
+      osquery::listFilesInDirectory("/Applications", slash_applications);
   if (slash_apps_s.ok()) {
     for (const auto& app_path : slash_applications) {
       std::string path = app_path + "/Contents/Info.plist";
@@ -55,7 +55,7 @@ std::vector<std::string> getAppInfoPlistPaths() {
   }
 
   std::vector<std::string> home_dirs;
-  auto home_dirs_s = osquery::fs::listFilesInDirectory("/Users", home_dirs);
+  auto home_dirs_s = osquery::listFilesInDirectory("/Users", home_dirs);
   if (home_dirs_s.ok()) {
     for (const auto& home_dir : home_dirs) {
       for (const auto& dir_to_check : kHomeDirSearchPaths) {
@@ -63,7 +63,7 @@ std::vector<std::string> getAppInfoPlistPaths() {
         if (boost::filesystem::is_directory(apps_path)) {
           std::vector<std::string> user_apps;
           auto user_apps_s =
-              osquery::fs::listFilesInDirectory(apps_path, user_apps);
+              osquery::listFilesInDirectory(apps_path, user_apps);
           if (!user_apps_s.ok()) {
             VLOG(1) << "Error listing " << apps_path << ": "
                     << user_apps_s.toString();
@@ -86,7 +86,7 @@ std::vector<std::string> getAppInfoPlistPaths() {
 }
 
 std::string getNameFromInfoPlistPath(const std::string& path) {
-  auto bits = osquery::core::split(path, "/");
+  auto bits = osquery::split(path, "/");
   if (bits.size() >= 4) {
     return bits[bits.size() - 3];
   } else {
@@ -95,7 +95,7 @@ std::string getNameFromInfoPlistPath(const std::string& path) {
 }
 
 std::string getPathFromInfoPlistPath(const std::string& path) {
-  auto bits = osquery::core::split(path, "/");
+  auto bits = osquery::split(path, "/");
   if (bits.size() >= 4) {
     bits.pop_back();
     bits.pop_back();
@@ -127,7 +127,7 @@ QueryData genApps() {
 
   for (const auto& path : getAppInfoPlistPaths()) {
     pt::ptree tree;
-    auto s = osquery::fs::parsePlist(path, tree);
+    auto s = osquery::parsePlist(path, tree);
     if (s.ok()) {
       results.push_back(parseInfoPlist(path, tree));
     } else {

@@ -11,35 +11,65 @@
 #include "osquery/status.h"
 
 namespace osquery {
-namespace fs {
 
-// readFile accepts a const reference to an std::string indicating the path of
-// the file that you'd like to read and a non-const reference to an std::string
-// which will be populated with the contents of the file (if all operations are
-// successful). An osquery::Status is returned indicating the success or
-// failure of the operation.
+/** @brief Read a file from disk.
+ *
+ *  @param path the path of the file that you would like to read
+ *  @param content a reference to a string which will be populated with the
+ *  contents of the path indicated by the path parameter
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation.
+ */
 osquery::Status readFile(const std::string& path, std::string& content);
 
-// pathExists returns an OSquery-standard tri-state for reporting disk
-// presense. (-1) no input was supplied, assuming the caller is not aware
-// of how to check path-getter results; (0) path does not exist on disk;
-// (1) path does exist on disk.
+/** @brief A helper to check if a path exists on disk or not.
+ *
+ *  @param path the path on disk which you would like to check the existance of
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation. Specifically, the code of the osquery::Status instance
+ *  will be -1 if no input was supplied, assuming the caller is not aware of how
+ *  to check path-getter results. The code will be 0 if the path does not exist
+ *  on disk and 1 if the path does exist on disk.
+ */
 osquery::Status pathExists(const std::string& path);
 
-// listFilesInDirectory accepts a const reference to an std::string indicating
-// the path of the directory that you'd like to list and a non-const reference
-// to an std::vector<std::string> which will be populated with the contents of
-// the directory (if all operations are successful). An osquery::Status is
-// returned indicating the success or failure of the operation. Note that the
-// directory listing is not recursive.
+/** @brief List all of the files in a specific directory, non-recursively.
+ *
+ *  @param path the path which you would like to list.
+ *  @param results a non-const reference to a vector which will be populated
+ *  with the directory listing of the path param, assuming that all operations
+ *  completed successfully.
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation.
+ */
 osquery::Status listFilesInDirectory(const std::string& path,
                                      std::vector<std::string>& results);
 
 #ifdef __APPLE__
+/** @brief Parse a property list on disk into a property tree.
+ *
+ *  @param path the path of the propery list which you'd like to read
+ *  @param tree a non-const reference to a Boost property tree, which will be
+ *  populated with the results of the property list
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation.
+ */
 osquery::Status parsePlist(const std::string& path,
                            boost::property_tree::ptree& tree);
+/** @brief Parse property list content into a property tree.
+ *
+ *  @param fileContent a string reference to the content of a plist
+ *  @param tree a non-const reference to a Boost property tree, which will be
+ *  populated with the results of the property list
+ *
+ *  @return an instance of osquery::Status, indicating the success or failure
+ *  of the operation.
+ */
 osquery::Status parsePlistContent(const std::string& fileContent,
                                   boost::property_tree::ptree& tree);
 #endif
-}
 }

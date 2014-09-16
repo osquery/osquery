@@ -12,7 +12,6 @@
 using osquery::Status;
 
 namespace osquery {
-namespace logger {
 
 const std::string kDefaultLogReceiverName = "filesystem";
 
@@ -51,6 +50,5 @@ Status logScheduledQueryLogItem(
     return s;
   }
   return logString(json, receiver);
-}
 }
 }

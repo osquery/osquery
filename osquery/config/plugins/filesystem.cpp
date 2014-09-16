@@ -10,7 +10,6 @@ namespace fs = boost::filesystem;
 using osquery::Status;
 
 namespace osquery {
-namespace config {
 
 DEFINE_string(config_path, "/var/osquery/osquery.conf", "Path to config file");
 
@@ -39,6 +38,5 @@ class FilesystemConfigPlugin : public ConfigPlugin {
 };
 
 REGISTER_CONFIG_PLUGIN(
-    "filesystem", std::make_shared<osquery::config::FilesystemConfigPlugin>());
-}
+    "filesystem", std::make_shared<osquery::FilesystemConfigPlugin>());
 }

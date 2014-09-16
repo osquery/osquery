@@ -14,7 +14,6 @@
 #include "osquery/core.h"
 #include "osquery/database.h"
 
-using namespace osquery::core;
 using namespace osquery::db;
 
 namespace osquery {

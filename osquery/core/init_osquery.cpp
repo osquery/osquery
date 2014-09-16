@@ -12,7 +12,6 @@
 using namespace boost::algorithm;
 
 namespace osquery {
-namespace core {
 
 const std::string kDefaultHelp = R"(
   osquery
@@ -114,8 +113,7 @@ void initOsquery(int argc, char *argv[]) {
   FLAGS_log_dir = kDefaultLogDir;
   google::InitGoogleLogging(argv[0]);
   osquery::InitRegistry::get().run();
-  auto new_args = osquery::core::parseCommandLineFlags(argc, argv);
+  auto new_args = osquery::parseCommandLineFlags(argc, argv);
   google::ParseCommandLineFlags(&new_args.first, &new_args.second, true);
-}
 }
 }

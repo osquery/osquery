@@ -9,11 +9,9 @@
 #include "osquery/status.h"
 #include "osquery/registry.h"
 
-namespace core = osquery::core;
 using osquery::Status;
 
 namespace osquery {
-namespace config {
 
 class ConfigTests : public testing::Test {
  public:
@@ -24,7 +22,7 @@ TEST_F(ConfigTests, test_queries_execute) {
   auto c = Config::getInstance();
   for (const auto& i : c->getScheduledQueries()) {
     int err;
-    auto r = core::aggregateQuery(i.query, err);
+    auto r = aggregateQuery(i.query, err);
     EXPECT_EQ(err, 0);
   }
 }
@@ -41,14 +39,13 @@ class TestConfigPlugin : public ConfigPlugin {
 };
 
 REGISTER_CONFIG_PLUGIN("test",
-                       std::make_shared<osquery::config::TestConfigPlugin>());
+                       std::make_shared<osquery::TestConfigPlugin>());
 
 TEST_F(ConfigTests, test_plugin) {
   auto p = REGISTERED_CONFIG_PLUGINS.at("test")->genConfig();
   EXPECT_EQ(p.first.ok(), true);
   EXPECT_EQ(p.first.toString(), "OK");
   EXPECT_EQ(p.second, "foobar");
-}
 }
 }
 

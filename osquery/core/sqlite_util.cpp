@@ -18,7 +18,6 @@ using namespace osquery::db;
 using namespace osquery::tables;
 
 namespace osquery {
-namespace core {
 
 sqlite3* createDB() {
   sqlite3* db = nullptr;
@@ -37,7 +36,7 @@ QueryData aggregateQuery(const std::string& q, int& error_return) {
 QueryData aggregateQuery(const std::string& q, int& error_return, sqlite3* db) {
   QueryData d;
   char* err = nullptr;
-  sqlite3_exec(db, q.c_str(), query_data_callback, &d, &err);
+  sqlite3_exec(db, q.c_str(), core::query_data_callback, &d, &err);
   if (err != nullptr) {
     LOG(ERROR) << "Error launching query: " << err;
     error_return = 1;
@@ -48,6 +47,8 @@ QueryData aggregateQuery(const std::string& q, int& error_return, sqlite3* db) {
 
   return d;
 }
+
+namespace core {
 
 int query_data_callback(void* argument,
                         int argc,

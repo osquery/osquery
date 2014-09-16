@@ -10,7 +10,6 @@
 #include <glog/logging.h>
 
 namespace osquery {
-namespace fs {
 
 class FilesystemTests : public testing::Test {};
 
@@ -49,7 +48,6 @@ TEST_F(FilesystemTests, test_list_files_in_directorty) {
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_NE(std::find(results.begin(), results.end(), "/etc/hosts"),
             results.end());
-}
 }
 }
 

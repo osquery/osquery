@@ -3770,7 +3770,6 @@ static char *cmdline_option_value(int argc, char **argv, int i) {
 }
 
 namespace osquery {
-namespace devtools {
 
 int launchIntoShell(int argc, char **argv) {
   char *zErrMsg = 0;
@@ -4073,6 +4072,5 @@ int launchIntoShell(int argc, char **argv) {
   }
   sqlite3_free(data.zFreeOnClose);
   return rc;
-}
 }
 }

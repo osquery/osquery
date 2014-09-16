@@ -14,7 +14,6 @@ using osquery::Status;
 namespace pt = boost::property_tree;
 
 namespace osquery {
-namespace fs {
 
 NSMutableArray* filterArray(id dataStructure);
 
@@ -166,6 +165,5 @@ Status parsePlist(const std::string& path, pt::ptree& tree) {
     return s;
   }
   return parsePlistContent(fileContent, tree);
-}
 }
 }

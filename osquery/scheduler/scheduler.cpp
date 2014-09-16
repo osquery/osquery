@@ -12,15 +12,11 @@
 #include "osquery/database.h"
 #include "osquery/logger.h"
 
-using namespace osquery::config;
-namespace core = osquery::core;
 namespace db = osquery::db;
-namespace logger = osquery::logger;
 
 namespace osquery {
-namespace scheduler {
 
-void launchQueries(const osquery::config::scheduledQueries_t& queries,
+void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
                    const int64_t& second) {
   LOG(INFO) << "launchQueries: " << second;
   for (const auto& query : queries) {
@@ -28,7 +24,7 @@ void launchQueries(const osquery::config::scheduledQueries_t& queries,
       LOG(INFO) << "executing query: " << query.query;
       int unix_time = std::time(0);
       int err;
-      auto query_results = core::aggregateQuery(query.query, err);
+      auto query_results = aggregateQuery(query.query, err);
       if (err != 0) {
         LOG(ERROR) << "error executing query: " << query.query;
         continue;
@@ -48,10 +44,10 @@ void launchQueries(const osquery::config::scheduledQueries_t& queries,
         db::ScheduledQueryLogItem item;
         item.diffResults = diff_results;
         item.name = query.name;
-        item.hostname = osquery::core::getHostname();
-        item.unixTime = osquery::core::getUnixTime();
-        item.calendarTime = osquery::core::getAsciiTime();
-        auto s = logger::logScheduledQueryLogItem(item);
+        item.hostname = osquery::getHostname();
+        item.unixTime = osquery::getUnixTime();
+        item.calendarTime = osquery::getAsciiTime();
+        auto s = logScheduledQueryLogItem(item);
         if (!s.ok()) {
           LOG(ERROR) << "Error logging the results of query \"" << query.query
                      << "\""
@@ -62,8 +58,8 @@ void launchQueries(const osquery::config::scheduledQueries_t& queries,
   }
 }
 
-void initialize() {
-  DLOG(INFO) << "osquery::scheduler::initialize";
+void initializeScheduler() {
+  DLOG(INFO) << "osquery::initializeScheduler";
   time_t t = time(0);
   struct tm* local = localtime(&t);
   unsigned long int second = local->tm_sec;
@@ -79,6 +75,5 @@ void initialize() {
     launchQueries(cfg->getScheduledQueries(), second);
     sleep(1);
   }
-}
 }
 }

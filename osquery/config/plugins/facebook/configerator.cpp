@@ -15,7 +15,6 @@
 using osquery::Status;
 
 namespace osquery {
-namespace config {
 
 class ConfigeratorConfigPlugin : public ConfigPlugin {
  public:
@@ -33,6 +32,5 @@ class ConfigeratorConfigPlugin : public ConfigPlugin {
 
 REGISTER_CONFIG_PLUGIN(
     "configerator",
-    std::make_shared<osquery::config::ConfigeratorConfigPlugin>());
-}
+    std::make_shared<osquery::ConfigeratorConfigPlugin>());
 }

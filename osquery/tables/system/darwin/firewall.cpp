@@ -52,7 +52,7 @@ const std::map<std::string, std::string> kTopLevelStringKeys = {
 
 Status genALFTreeFromFilesystem(pt::ptree& tree) {
   try {
-    Status s = osquery::fs::parsePlist(kALFPlistPath, tree);
+    Status s = osquery::parsePlist(kALFPlistPath, tree);
     if (!s.ok()) {
       LOG(ERROR) << "Error parsing " << kALFPlistPath << ": " << s.toString();
       return s;

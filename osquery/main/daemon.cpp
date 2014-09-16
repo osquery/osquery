@@ -11,7 +11,7 @@
 #include "osquery/scheduler.h"
 
 int main(int argc, char* argv[]) {
-  osquery::core::initOsquery(argc, argv);
+  osquery::initOsquery(argc, argv);
 
   LOG(INFO) << "Listing all plugins";
 
@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "  - " << it.first;
   }
 
-  boost::thread scheduler_thread(osquery::scheduler::initialize);
+  boost::thread scheduler_thread(osquery::initializeScheduler);
 
   scheduler_thread.join();
 

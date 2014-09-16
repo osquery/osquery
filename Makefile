@@ -42,6 +42,10 @@ endif
 clean_tables:
 	rm -rf osquery/tables/generated
 
+.PHONY: docs
+docs:
+	doxygen Doxyfile
+
 os_deps:
 ifeq ($(OS),Darwin)
 	brew install cmake || brew upgrade cmake

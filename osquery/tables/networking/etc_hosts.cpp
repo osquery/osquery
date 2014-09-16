@@ -12,9 +12,7 @@
 #include "osquery/database.h"
 #include "osquery/filesystem.h"
 
-using namespace osquery::core;
 using namespace osquery::db;
-using namespace osquery::fs;
 
 namespace osquery {
 namespace tables {
@@ -44,7 +42,7 @@ QueryData parseEtcHostsContent(const std::string& content) {
 
 QueryData genEtcHosts() {
   std::string content;
-  auto s = readFile("/etc/hosts", content);
+  auto s = osquery::readFile("/etc/hosts", content);
   if (s.ok()) {
     return parseEtcHostsContent(content);
   } else {

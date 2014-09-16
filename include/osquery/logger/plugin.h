@@ -8,24 +8,71 @@
 #include "osquery/status.h"
 
 namespace osquery {
-namespace logger {
 
+/** @brief Superclass for the pluggable config component.
+ *
+ *  In order to make the logging of osquery results easy to integrate into your
+ *  environment, we take advantage of a plugin interface which allows you to
+ *  integrate osquery with your internal large-scale logging infrastructure.
+ *  You may use flume, splunk, syslog, scribe, etc. In order to use your
+ *  specific upstream logging systems, one simply needs to create a custom
+ *  subclass of LoggerPlugin. That subclass should implement the
+ *  LoggerPlugin::logString method.
+ *
+ *  Consider the following example:
+ *
+ *  @code{.cpp}
+ *    class TestLoggerPlugin : public ConfigPlugin {
+ *     public:
+ *      TestLoggerPlugin() {};
+ *
+ *      osquery::Status logString(const std::string& s) {
+ *        int i = 0;
+ *        internal::logStringToFlume(s, i);
+ *        std::string message;
+ *        if (i == 0) {
+ *          message = "OK";
+ *        } else {
+ *          message = "Failed";
+ *        }
+ *        return osquery::Status(i, message);
+ *      }
+ *
+ *      virtual ~TestLoggerPlugin() {}
+ *   };
+ *
+ *   REGISTER_LOGGER_PLUGIN(
+ *       "test", std::make_shared<osquery::TestLoggerPlugin>());
+ *  @endcode
+ */
 class LoggerPlugin {
  public:
-  virtual osquery::Status logString(const std::string& s) {
-    return osquery::Status(1, "Not implemented");
-  }
+  /** @brief Virtual method which should implement custom logging.
+   *
+   *  LoggerPlugin::logString should be implemented by a subclass of
+   *  LoggerPlugin which needs to log a string in a custom way.
+   *
+   *  @return an instance of osquery::Status which indicates the success or
+   *  failure of the operation.
+   */
+  virtual osquery::Status logString(const std::string& s) = 0;
+
+  /// Virtual destructor
   virtual ~LoggerPlugin() {}
 
  protected:
+  /** @brief Default constructor
+   *
+   *  LoggerPlugin should never be instantiated on it's own, so it's
+   *  constructor is private.
+   */
   LoggerPlugin() {};
 };
-}
 }
 
 DECLARE_REGISTRY(LoggerPlugins,
                  std::string,
-                 std::shared_ptr<osquery::logger::LoggerPlugin>)
+                 std::shared_ptr<osquery::LoggerPlugin>)
 
 #define REGISTERED_LOGGER_PLUGINS REGISTRY(LoggerPlugins)
 

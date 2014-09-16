@@ -52,7 +52,7 @@ std::vector<std::string> getLaunchdFiles() {
 
   for (const auto& path : kLaunchdSearchPaths) {
     std::vector<std::string> files;
-    auto s = osquery::fs::listFilesInDirectory(path, files);
+    auto s = osquery::listFilesInDirectory(path, files);
     if (s.ok()) {
       std::copy(files.begin(), files.end(), std::back_inserter(results));
     } else {
@@ -61,12 +61,12 @@ std::vector<std::string> getLaunchdFiles() {
   }
 
   std::vector<std::string> home_dirs;
-  auto s = osquery::fs::listFilesInDirectory("/Users", home_dirs);
+  auto s = osquery::listFilesInDirectory("/Users", home_dirs);
   if (s.ok()) {
     for (const auto& home_dir : home_dirs) {
       std::string path = home_dir + "/Library/LaunchAgents";
       std::vector<std::string> files;
-      auto user_list_s = osquery::fs::listFilesInDirectory(path, files);
+      auto user_list_s = osquery::listFilesInDirectory(path, files);
       if (user_list_s.ok()) {
         std::copy(files.begin(), files.end(), std::back_inserter(results));
       } else {
@@ -83,7 +83,7 @@ std::vector<std::string> getLaunchdFiles() {
 Row parseLaunchdItem(const std::string& path, const pt::ptree& tree) {
   Row r;
   r["path"] = path;
-  auto bits = osquery::core::split(path, "/");
+  auto bits = osquery::split(path, "/");
   r["name"] = bits[bits.size() - 1];
 
   for (const auto& it : kLaunchdTopLevelStringKeys) {
@@ -126,7 +126,7 @@ QueryData genLaunchd() {
   auto launchd_files = getLaunchdFiles();
   for (const auto& path : launchd_files) {
     pt::ptree tree;
-    auto s = osquery::fs::parsePlist(path, tree);
+    auto s = osquery::parsePlist(path, tree);
     if (s.ok()) {
       results.push_back(parseLaunchdItem(path, tree));
     } else {

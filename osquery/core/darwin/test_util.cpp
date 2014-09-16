@@ -215,7 +215,7 @@ std::string getALFContent() {
 pt::ptree getALFTree() {
   auto content = getALFContent();
   pt::ptree tree;
-  fs::parsePlistContent(content, tree);
+  parsePlistContent(content, tree);
   return tree;
 }
 
@@ -358,14 +358,14 @@ std::string getLaunchdContent() {
 pt::ptree getInfoPlistTree() {
   auto content = getInfoPlistContent();
   pt::ptree tree;
-  fs::parsePlistContent(content, tree);
+  parsePlistContent(content, tree);
   return tree;
 }
 
 pt::ptree getLaunchdTree() {
   auto content = getLaunchdContent();
   pt::ptree tree;
-  fs::parsePlistContent(content, tree);
+  parsePlistContent(content, tree);
   return tree;
 }
 }
