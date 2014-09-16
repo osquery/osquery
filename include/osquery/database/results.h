@@ -101,7 +101,7 @@ osquery::Status serializeDiffResults(const DiffResults& d,
 /** @brief Serialize a DiffResults object into a JSON string
  *
  *  @param d the DiffResults to serialize
- *  @param tree a reference to a string which, if all operations are completed
+ *  @param json a reference to a string which, if all operations are completed
  *  successfully, the contents of DiffResults will be serialized into
  *
  *  @return an instance of osquery::Status, indicating the success or failure
@@ -256,7 +256,7 @@ osquery::Status serializeScheduledQueryLogItem(
 /** @brief Serialize a ScheduledQueryLogItem object into a JSON string
  *
  *  @param i the ScheduledQueryLogItem to serialize
- *  @param tree a reference to a string which, if all operations are completed
+ *  @param json a reference to a string which, if all operations are completed
  *  successfully, the contents of ScheduledQueryLogItem will be serialized into
  *
  *  @return an instance of osquery::Status, indicating the success or failure
