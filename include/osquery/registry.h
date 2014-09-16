@@ -14,19 +14,20 @@
 
 namespace osquery {
 
-/** @brief A simple registry system for making values available by key across
- *  components.
+/**
+ * @brief A simple registry system for making values available by key across
+ * components.
  *
- *  To use this registry, make a header like so:
+ * To use this registry, make a header like so:
  *
- *  @code{.cpp}
- *    #include "osquery/registry.h"
+ * @code{.cpp}
+ *   #include "osquery/registry.h"
  *
- *    DECLARE_REGISTRY(MathFuncs, int, std::function<double(double)>)
- *    #define REGISTERED_MATH_FUNCS REGISTRY(MathFuncs)
- *    #define REGISTER_MATH_FUNC(id, func) \
- *            REGISTER(MathFuncs, id, func)
- *  @endcode
+ *   DECLARE_REGISTRY(MathFuncs, int, std::function<double(double)>)
+ *   #define REGISTERED_MATH_FUNCS REGISTRY(MathFuncs)
+ *   #define REGISTER_MATH_FUNC(id, func) \
+ *           REGISTER(MathFuncs, id, func)
+ * @endcode
  *
  * Client code may then advertise an entry from a .cpp like so:
  *
@@ -42,11 +43,12 @@ namespace osquery {
 template <class Key, class Value>
 class Registry : public std::unordered_map<Key, Value> {
  public:
-  /** @brief Register a value in the global registry
+  /**
+   * @brief Register a value in the global registry
    *
-   *  This is used internally by the `DECLARE_REGISTRY` registration workflow.
-   *  If you're calling this method directly, you're probably doing something
-   *  incorrectly.
+   * This is used internally by the `DECLARE_REGISTRY` registration workflow.
+   * If you're calling this method directly, you're probably doing something
+   * incorrectly.
    */
   void registerValue(const Key& key,
                      const Value& value,

@@ -9,41 +9,42 @@
 
 namespace osquery {
 
-/** @brief Superclass for the pluggable config component.
+/**
+ * @brief Superclass for the pluggable config component.
  *
- *  In order to make the logging of osquery results easy to integrate into your
- *  environment, we take advantage of a plugin interface which allows you to
- *  integrate osquery with your internal large-scale logging infrastructure.
- *  You may use flume, splunk, syslog, scribe, etc. In order to use your
- *  specific upstream logging systems, one simply needs to create a custom
- *  subclass of LoggerPlugin. That subclass should implement the
- *  LoggerPlugin::logString method.
+ * In order to make the logging of osquery results easy to integrate into your
+ * environment, we take advantage of a plugin interface which allows you to
+ * integrate osquery with your internal large-scale logging infrastructure.
+ * You may use flume, splunk, syslog, scribe, etc. In order to use your
+ * specific upstream logging systems, one simply needs to create a custom
+ * subclass of LoggerPlugin. That subclass should implement the
+ * LoggerPlugin::logString method.
  *
- *  Consider the following example:
+ * Consider the following example:
  *
- *  @code{.cpp}
- *    class TestLoggerPlugin : public ConfigPlugin {
- *     public:
- *      TestLoggerPlugin() {};
+ * @code{.cpp}
+ *   class TestLoggerPlugin : public ConfigPlugin {
+ *    public:
+ *     TestLoggerPlugin() {};
  *
- *      osquery::Status logString(const std::string& s) {
- *        int i = 0;
- *        internal::logStringToFlume(s, i);
- *        std::string message;
- *        if (i == 0) {
- *          message = "OK";
- *        } else {
- *          message = "Failed";
- *        }
- *        return osquery::Status(i, message);
- *      }
+ *     osquery::Status logString(const std::string& s) {
+ *       int i = 0;
+ *       internal::logStringToFlume(s, i);
+ *       std::string message;
+ *       if (i == 0) {
+ *         message = "OK";
+ *       } else {
+ *         message = "Failed";
+ *       }
+ *       return osquery::Status(i, message);
+ *     }
  *
- *      virtual ~TestLoggerPlugin() {}
- *   };
+ *     virtual ~TestLoggerPlugin() {}
+ *  };
  *
- *   REGISTER_LOGGER_PLUGIN(
- *       "test", std::make_shared<osquery::TestLoggerPlugin>());
- *  @endcode
+ *  REGISTER_LOGGER_PLUGIN(
+ *      "test", std::make_shared<osquery::TestLoggerPlugin>());
+ * @endcode
  */
 class LoggerPlugin {
  public:
@@ -61,10 +62,11 @@ class LoggerPlugin {
   virtual ~LoggerPlugin() {}
 
  protected:
-  /** @brief Default constructor
+  /**
+   * @brief Default constructor
    *
-   *  LoggerPlugin should never be instantiated on it's own, so it's
-   *  constructor is private.
+   * LoggerPlugin should never be instantiated on it's own, so it's
+   * constructor is private.
    */
   LoggerPlugin() {};
 };
