@@ -23,10 +23,12 @@ extern const std::string kVersion;
  *    auto qd = query(q, i);
  *    if (i == 0) {
  *      for (const auto& each : qd) {
- *        LOG(INFO) << "hour:    " << qd["hour"];
- *        LOG(INFO) << "minute:  " << qd["minute"];
- *        LOG(INFO) << "second:  " << qd["second"];
+ *        for (const auto& it : each) {
+ *          LOG(INFO) << it.first << ": " << it.second;
+ *        }
  *      }
+ *    } else {
+ *      LOG(ERROR) << "Error: " << i;
  *    }
  *  @endcode
  *
