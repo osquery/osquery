@@ -18,89 +18,190 @@ namespace db {
 // Constants
 /////////////////////////////////////////////////////////////////////////////
 
-// kDBPath represents the path of the RocksDB database on disk
+/// The default path of the RocksDB database on disk
 extern const std::string kDBPath;
 
-// kDomains is a const vector of required "domains", or "groups of keys"
+/** @brief A const vector of column families in RocksDB
+ *
+ *  RocksDB has a concept of "column families" which are kind of like tables
+ *  in other databases. kDomainds is populated with a list of all column
+ *  families. If a string exists in kDomains, it's a column family in the
+ *  database.
+ */
 extern const std::vector<std::string> kDomains;
 
-// kQueries is the "domain" where query data, the results of queries, etc is
-// stored.
+/// The "domain" where the results of scheduled queries are stored
 extern const std::string kQueries;
 
-// kConfigurations is the "domain" where  certain global configurations are
-// stored
+/// The "domain" where certain global configurations are stored
 extern const std::string kConfigurations;
 
 /////////////////////////////////////////////////////////////////////////////
-// DBHandle is a RAII singleton around RocksDB database handles.
+// DBHandle RAII singleton
 /////////////////////////////////////////////////////////////////////////////
+
+/** @brief RAII singleton around RocksDB database access.
+ *
+ *  Accessing RocksDB necessitates creating several pointers which must be
+ *  carefully memory managed. DBHandle offers you a singleton which takes
+ *  care of acquiring and releasing the relevant pointers and data structures
+ *  for you.
+ */
 class DBHandle {
  public:
-  // DBHandle's destructor takes care of deallocating all previously allocated
-  // resources
+  /** @brief Destructor which takes care of deallocating all previously
+   *  allocated resources
+   */
   ~DBHandle();
 
-  // getInstance returns a singleton instance of DBHandle.
+  /** @brief The primary way to access the DBHandle singleton
+   *
+   *  DBHandle::getInstance() provides access to the DBHandle singleton.
+   *
+   *  @code{.cpp}
+   *    auto db = DBHandle::getInstance();
+   *    std::string value;
+   *    auto status = db->Get("default", "foo", value);
+   *    if (status.ok()) {
+   *      assert(value == "bar");
+   *    }
+   *  @endcode
+   *
+   *  @return a shared pointer to an instance of DBHandle
+   */
   static std::shared_ptr<DBHandle> getInstance();
 
-  /////////////////////////////////////////////////////////////////////////////
-  // getters and setters
-  /////////////////////////////////////////////////////////////////////////////
-
-  // getStatus() returns the status_ property
+  /** @brief Getter for the status of the operations required to open the
+   *  database
+   *
+   *  @return an instance of osquery::Status which indicates the success or
+   *  failure of connecting to RocksDB
+   */
   osquery::Status getStatus();
 
-  // getDB() is a helper that's used to get access to db_
+  /** @brief Helper method which can be used to get a raw pointer to the
+   *  underlying RocksDB database handle
+   *
+   *  You probably shouldn't use this. DBHandle::getDB() should only be used
+   *  when you're positive that it's the right thing to use.
+   *
+   *  @return a pointer to the underlying RocksDB database handle
+   */
   rocksdb::DB* getDB();
 
   /////////////////////////////////////////////////////////////////////////////
-  // Data manipulation methods
+  // Data access methods
   /////////////////////////////////////////////////////////////////////////////
 
-  // Get a "key" from "domain" and store it's content in "value"
+  /** @brief Get data from the database
+   *
+   *  @param domain the "domain" or "column family" that you'd like to retrieve
+   *  the data from
+   *  @param key the string key that you'd like to get
+   *  @param value a non-const string reference where the result of the
+   *  operation will be stored
+   *
+   *  @return an instance of osquery::Status indicating the success or failure
+   *  of the operation.
+   */
   osquery::Status Get(const std::string& domain,
                       const std::string& key,
                       std::string& value);
 
-  // Set "key" to "value" in "domain"
+  /** @brief Put data into the database
+   *
+   *  @param domain the "domain" or "column family" that you'd like to insert
+   *  data into
+   *  @param key the string key that you'd like to put
+   *  @param value the data that you'd like to put into RocksDB
+   *
+   *  @return an instance of osquery::Status indicating the success or failure
+   *  of the operation.
+   */
   osquery::Status Put(const std::string& domain,
                       const std::string& key,
                       const std::string& value);
 
-  // Delete "key" and it's corresponding value from "domain"
+  /** @brief Delete data from the database
+   *
+   *  @param domain the "domain" or "column family" that you'd like to delete
+   *  data from
+   *  @param key the string key that you'd like to delete
+   *
+   *  @return an instance of osquery::Status indicating the success or failure
+   *  of the operation.
+   */
   osquery::Status Delete(const std::string& domain, const std::string& key);
 
-  // List all keys in "domain" and store the results in "results"
+  /** @brief List the data in a "domain"
+   *
+   *  @param domain the "domain" or "column family" that you'd like to list
+   *  data from
+   *  @param results a non-const reference to a vector which will be populated
+   *  with all of the keys from the supplied domain.
+   *
+   *  @return an instance of osquery::Status indicating the success or failure
+   *  of the operation.
+   */
   osquery::Status Scan(const std::string& domain,
                        std::vector<std::string>& results);
 
  private:
-  /////////////////////////////////////////////////////////////////////////////
-  // Private methods
-  /////////////////////////////////////////////////////////////////////////////
-
-  // DBHandle's constructor takes care of properly connecting to RocksDB and
-  // ensuring that all necessary column families are created. The resulting
-  // database handle can then be accessed via getDB() and the success of the
-  // connection can be determined by inspecting the resulting status code via
-  // getStatus()
+  /** @brief Default constructor
+   *
+   *  DBHandle's constructor takes care of properly connecting to RocksDB and
+   *  ensuring that all necessary column families are created. The resulting
+   *  database handle can then be accessed via DBHandle::getDB() and the
+   *  success of the connection can be determined by inspecting the resulting
+   *  status code via DBHandle::getStatus()
+   */
   DBHandle();
+
+  /** @brief Internal only constructor used to create instances of DBHandle.
+   *
+   *  This constructor allows you to specify a few more details about how you'd
+   *  like DBHandle to be used. This is only used internally, so you should
+   *  never actually use it.
+   *
+   *  @param path the path to create/access the database
+   *  @param in_memory a boolean indicating wether or not the database should
+   *  be creating in memory or not.
+   */
   DBHandle(std::string path, bool in_memory);
 
-  // the private getInstance methods exist to expose a bit more of RocksDB's
-  // functionality to DBHandle for use during unit tests
+  /** @brief A method which allows you to override the database path
+   *
+   *  This should only be used by unit tests. Never use it in production code.
+   *
+   *  @return a shared pointer to an instance of DBHandle
+   */
   static std::shared_ptr<DBHandle> getInstanceAtPath(const std::string& path);
+
+  /** @brief A method which gets you an in-memory RocksDB instance.
+   *
+   *  This should only be used by unit tests. Never use it in production code.
+   *
+   *  @return a shared pointer to an instance of DBHandle
+   */
   static std::shared_ptr<DBHandle> getInstanceInMemory();
+
+  /** @brief A method which allows you to configure various aspects of RocksDB
+   *  database options.
+   *
+   *  This should only be used by unit tests. Never use it in production code.
+   *
+   *  @param path the path to create/access the database
+   *  @param in_memory a boolean indicating wether or not the database should
+   *  be creating in memory or not.
+   *
+   *  @return a shared pointer to an instance of DBHandle
+   */
   static std::shared_ptr<DBHandle> getInstance(const std::string& path,
                                                bool in_memory);
 
-  /////////////////////////////////////////////////////////////////////////////
-  // private getters and setters
-  /////////////////////////////////////////////////////////////////////////////
-
-  // getHandleForColumnFamily is a private helper around accessing the column
-  // family handle for a specific column family, based on it's name
+  /** @brief Private helper around accessing the column family handle for a
+   *  specific column family, based on it's name
+   */
   rocksdb::ColumnFamilyHandle* getHandleForColumnFamily(const std::string& cf);
 
  private:
@@ -108,22 +209,19 @@ class DBHandle {
   // Private members
   /////////////////////////////////////////////////////////////////////////////
 
-  // db_ is the database handle
+  /// The database handle
   rocksdb::DB* db_;
 
-  // status_ is the status code that is generated during the attempt to connect
-  // to RocksDB
+  /// The status code that is generated while attempting to connect to RocksDB
   rocksdb::Status status_;
 
-  // column_families_ is a vector of column family descriptors which are used
-  // to connect to RocksDB
+  /// Column family descriptors which are used to connect to RocksDB
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families_;
 
-  // handles is a vector of pointers to column family handles
+  /// A vector of pointers to column family handles
   std::vector<rocksdb::ColumnFamilyHandle*> handles_;
 
-  // options_ contains the RocksDB database connection options that are used to
-  // connect to RocksDB
+  /// The RocksDB connection options that are used to connect to RocksDB
   rocksdb::Options options_;
 
  private:

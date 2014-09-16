@@ -20,7 +20,7 @@ class QueryTests : public testing::Test {};
 TEST_F(QueryTests, test_get_column_family_name) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query(query);
-  EXPECT_EQ(cf.getColumnFamilyName(), query.name);
+  EXPECT_EQ(cf.getQueryName(), query.name);
 }
 
 TEST_F(QueryTests, test_get_query) {
