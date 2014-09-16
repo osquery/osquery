@@ -15,9 +15,7 @@ DEFINE_string(config_path, "/var/osquery/osquery.conf", "Path to config file");
 
 class FilesystemConfigPlugin : public ConfigPlugin {
  public:
-  FilesystemConfigPlugin() {};
-
-  std::pair<osquery::Status, std::string> genConfig() {
+  virtual std::pair<osquery::Status, std::string> genConfig() {
     std::string config;
     if (!fs::exists(FLAGS_config_path)) {
       return std::make_pair(Status(1, "config file does not exist"), config);
@@ -33,8 +31,6 @@ class FilesystemConfigPlugin : public ConfigPlugin {
                   std::istreambuf_iterator<char>());
     return std::make_pair(Status(0, "OK"), config);
   }
-
-  virtual ~FilesystemConfigPlugin() {}
 };
 
 REGISTER_CONFIG_PLUGIN("filesystem",

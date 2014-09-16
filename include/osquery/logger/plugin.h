@@ -25,9 +25,7 @@ namespace osquery {
  * @code{.cpp}
  *   class TestLoggerPlugin : public ConfigPlugin {
  *    public:
- *     TestLoggerPlugin() {};
- *
- *     osquery::Status logString(const std::string& s) {
+ *     virtual osquery::Status logString(const std::string& s) {
  *       int i = 0;
  *       internal::logStringToFlume(s, i);
  *       std::string message;
@@ -38,8 +36,6 @@ namespace osquery {
  *       }
  *       return osquery::Status(i, message);
  *     }
- *
- *     virtual ~TestLoggerPlugin() {}
  *  };
  *
  *  REGISTER_LOGGER_PLUGIN(
@@ -60,15 +56,6 @@ class LoggerPlugin {
 
   /// Virtual destructor
   virtual ~LoggerPlugin() {}
-
- protected:
-  /**
-   * @brief Default constructor
-   *
-   * LoggerPlugin should never be instantiated on it's own, so it's
-   * constructor is private.
-   */
-  LoggerPlugin() {};
 };
 }
 

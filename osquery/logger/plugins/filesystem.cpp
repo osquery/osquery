@@ -25,7 +25,7 @@ class FilesystemLoggerPlugin : public LoggerPlugin {
     log_path = FLAGS_log_dir + "osqueryd.results.log";
   }
 
-  Status logString(const std::string& s) {
+  virtual Status logString(const std::string& s) {
     std::lock_guard<std::mutex> lock(filesystemLoggerPluginMutex);
     try {
       VLOG(3) << "filesystem logger plugin: logging to " << log_path;
@@ -41,8 +41,6 @@ class FilesystemLoggerPlugin : public LoggerPlugin {
     }
     return Status(0, "OK");
   }
-
-  virtual ~FilesystemLoggerPlugin() {}
 };
 
 REGISTER_LOGGER_PLUGIN("filesystem",

@@ -26,15 +26,11 @@ namespace osquery {
  * @code{.cpp}
  *   class TestConfigPlugin : public ConfigPlugin {
  *    public:
- *     TestConfigPlugin() {};
- *
- *     std::pair<osquery::Status, std::string> genConfig() {
+ *     virtual std::pair<osquery::Status, std::string> genConfig() {
  *       std::string config;
  *       auto status = getMyConfig(config);
  *       return std::make_pair(status, config);
  *     }
- *
- *     virtual ~TestConfigPlugin() {}
  *   };
  *
  *   REGISTER_CONFIG_PLUGIN(
@@ -58,15 +54,6 @@ class ConfigPlugin {
 
   /// Virtual destructor
   virtual ~ConfigPlugin() {}
-
- protected:
-  /**
-   * @brief Default constructor
-   *
-   * ConfigPlugin should never be instantiated on it's own, so it's
-   * constructor is private.
-   */
-  ConfigPlugin() {};
 };
 }
 
