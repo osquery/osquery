@@ -58,33 +58,29 @@ ifeq ($(OS),Darwin)
 	brew install thrift || brew upgrade thrift
 else
 	if [ -f /etc/lsb-release ]; then 		    \
-		apt-get update;                             \
-		apt-get upgrade -y;                         \
-		apt-get install git -y;                     \
-		apt-get install build-essential -y;         \
-		apt-get install cmake -y;                   \
-		apt-get install python-pip -y;              \
-		apt-get install python-dev -y;              \
-		apt-get install clang-3.4 -y;               \
-		apt-get install clang-format-3.4 -y;        \
-		apt-get install libboost1.55-all-dev -y;    \
-		apt-get install libgflags-dev -y;           \
-		apt-get install libgoogle-glog-dev -y;      \
-		apt-get install libsnappy-dev -y;           \
-		apt-get install libbz2-dev -y;              \
-		apt-get install libreadline-dev -y;         \
+		sudo apt-get install git -y;                     \
+		sudo apt-get install build-essential -y;         \
+		sudo apt-get install cmake -y;                   \
+		sudo apt-get install python-pip -y;              \
+		sudo apt-get install python-dev -y;              \
+		sudo apt-get install clang-3.4 -y;               \
+		sudo apt-get install clang-format-3.4 -y;        \
+		sudo apt-get install libboost1.55-all-dev -y;    \
+		sudo apt-get install libgflags-dev -y;           \
+		sudo apt-get install libgoogle-glog-dev -y;      \
+		sudo apt-get install libsnappy-dev -y;           \
+		sudo apt-get install libbz2-dev -y;              \
+		sudo apt-get install libreadline-dev -y;         \
 	elif [ -f /etc/centos-release ]; then         \
-		yum update -y;                              \
-		yum install git -y;                         \
-		# http://pkgs.org/centos-6/atrpms-testing-x86_64/cmake-2.8.8-4.el6.x86_64.rpm.html
-		yum install http://dl.atrpms.net/el6-x86_64/atrpms/testing/cmake-2.8.8-4.el6.x86_64.rpm -y; \
+		sudo yum install git -y;                         \
+		sudo yum install http://dl.atrpms.net/el6-x86_64/atrpms/testing/cmake-2.8.8-4.el6.x86_64.rpm -y; \
 	fi;
 endif
 
 deps: os_deps
 	git submodule init
 	git submodule update
-	pip install -r requirements.txt
+	sudo pip install -r requirements.txt
 
 distclean: clean_tables
 ifeq ($(OS),Darwin)

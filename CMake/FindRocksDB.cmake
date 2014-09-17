@@ -12,5 +12,5 @@ ExternalProject_Add(librocksdb
   CONFIGURE_COMMAND ""
   BUILD_IN_SOURCE 1
   BUILD_COMMAND make shared_lib && make static_lib
-  INSTALL_COMMAND cp "${OS_ROCKSDB_INSTALL_LIB}" /usr/local/lib/ && cp librocksdb.a /usr/local/lib/
+  INSTALL_COMMAND sudo cp "${OS_ROCKSDB_INSTALL_LIB}" /usr/local/lib/ && sudo cp librocksdb.a /usr/local/lib/
 )
