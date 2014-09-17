@@ -8,5 +8,7 @@ ADD_LIBRARY(osquery_dispatcher_testing
   $<TARGET_OBJECTS:osquery_dispatcher>
 )
 
-ADD_OSQUERY_TEST(dispatcher_tests dispatcher_tests.cpp osquery_dispatcher_testing)
-ADD_OSQUERY_TEST(events_tests events_tests.cpp osquery_dispatcher_testing)
+if(APPLE)
+  ADD_OSQUERY_TEST(dispatcher_tests dispatcher_tests.cpp osquery_dispatcher_testing)
+  ADD_OSQUERY_TEST(events_tests events_tests.cpp osquery_dispatcher_testing)
+endif()
