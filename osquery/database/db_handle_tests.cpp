@@ -2,6 +2,8 @@
 
 #include "osquery/database/db_handle.h"
 
+#include <algorithm>
+
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 

@@ -71,6 +71,7 @@ else
 		sudo apt-get install libsnappy-dev -y;           \
 		sudo apt-get install libbz2-dev -y;              \
 		sudo apt-get install libreadline-dev -y;         \
+		sudo apt-get install libprocps3-dev -y;          \
 	elif [ -f /etc/centos-release ]; then         \
 		sudo yum install git -y;                         \
 		sudo yum install http://dl.atrpms.net/el6-x86_64/atrpms/testing/cmake-2.8.8-4.el6.x86_64.rpm -y; \
