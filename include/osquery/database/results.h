@@ -36,6 +36,7 @@ typedef std::map<std::string, std::string> Row;
  * of the operation
  */
 osquery::Status serializeRow(const Row& r, boost::property_tree::ptree& tree);
+osquery::Status serializeRowJSON(const Row& r, std::string json);
 
 /////////////////////////////////////////////////////////////////////////////
 // QueryData

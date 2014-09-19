@@ -24,9 +24,10 @@ const std::string kDBPath = "/tmp/rocksdb-osquery";
 
 const std::string kConfigurations = "configurations";
 const std::string kQueries = "queries";
+const std::string kEvents = "events";
 
 const std::vector<std::string> kDomains = {
-    kConfigurations, kQueries,
+  kConfigurations, kQueries, kEvents
 };
 
 /////////////////////////////////////////////////////////////////////////////

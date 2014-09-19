@@ -77,6 +77,7 @@ ADD_SUBDIRECTORY(config)
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(database)
 ADD_SUBDIRECTORY(devtools)
+ADD_SUBDIRECTORY(events)
 ADD_SUBDIRECTORY(examples)
 ADD_SUBDIRECTORY(filesystem)
 ADD_SUBDIRECTORY(logger)
@@ -90,6 +91,7 @@ SET(OSQUERY_LIB_OBJECTS
   $<TARGET_OBJECTS:osquery_core>
   $<TARGET_OBJECTS:osquery_database>
   $<TARGET_OBJECTS:osquery_devtools>
+  $<TARGET_OBJECTS:osquery_events>
 
   $<TARGET_OBJECTS:osquery_filesystem>
   $<TARGET_OBJECTS:osquery_logger>
