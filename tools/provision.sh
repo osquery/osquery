@@ -2,8 +2,8 @@
 
 set -e
 
-WORKING_DIR="/var/osquery/sources/"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+WORKING_DIR="$SCRIPT_DIR/../.deps"
 export PATH="$PATH:/usr/local/bin"
 
 function platform() {

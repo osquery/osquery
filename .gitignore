@@ -26,6 +26,7 @@ osquery/tables/generated
 
 # Vagrant Artifacts
 .vagrant
+.deps
 
 # OS artifacts
 .DS_Store
