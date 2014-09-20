@@ -101,9 +101,14 @@ function install_rocksdb() {
     fi
     if [[ ! -f /usr/local/lib/librocksdb.so ]]; then
       cp rocksdb-rocksdb-3.5/librocksdb.so /usr/local/lib
+    else
+      log "librocksdb already installed. skipping."
+    fi
+    if [[ ! -d /usr/local/include/rocksdb ]]; then
+      mkdir -p /usr/local/include
       cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
     else
-      log "rocksdb already installed. skipping."
+      log "rocksdb header already installed. skipping."
     fi
   elif [[ $OS = "darwin" ]]; then
     if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.dylib ]]; then
