@@ -163,16 +163,6 @@ function main() {
     log "detected ubuntu"
   elif [[ $OS = "darwin" ]]; then
     log "detected mac os x"
-
-    if [[ ! -f "/usr/local/bin/brew" ]]; then
-      fatal "could not find homebrew. please install it from http://brew.sh/"
-    fi
-
-    if brew list | grep --quiet wget; then
-      log "wget is already installed. skipping"
-    else
-      brew install wget
-    fi
   else
     fatal "could not detect the current operating system. exiting."
   fi
@@ -226,6 +216,16 @@ function main() {
     package xz
 
   elif [[ $OS = "darwin" ]]; then
+    if [[ ! -f "/usr/local/bin/brew" ]]; then
+      fatal "could not find homebrew. please install it from http://brew.sh/"
+    fi
+
+    if brew list | grep --quiet wget; then
+      log "wget is already installed. skipping"
+    else
+      brew install wget
+    fi
+
     package cmake
     package boost --c++11
     package gflags
