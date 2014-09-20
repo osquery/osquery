@@ -46,42 +46,10 @@ clean_tables:
 docs:
 	doxygen Doxyfile
 
-os_deps:
-ifeq ($(OS),Darwin)
-	brew install cmake || brew upgrade cmake
-	brew install boost --c++11 --with-python \
-		|| brew upgrade boost --c++11 --with-python
-	brew install gflags || brew upgrade gflags
-	brew install glog || brew ugprade glog
-	brew install snappy || brew upgrade snappy
-	brew install readline || brew upgrade readline
-	brew install thrift || brew upgrade thrift
-else
-	if [ -f /etc/lsb-release ]; then 		    \
-		sudo apt-get install git -y;                     \
-		sudo apt-get install build-essential -y;         \
-		sudo apt-get install cmake -y;                   \
-		sudo apt-get install python-pip -y;              \
-		sudo apt-get install python-dev -y;              \
-		sudo apt-get install clang-3.4 -y;               \
-		sudo apt-get install clang-format-3.4 -y;        \
-		sudo apt-get install libboost1.55-all-dev -y;    \
-		sudo apt-get install libgflags-dev -y;           \
-		sudo apt-get install libgoogle-glog-dev -y;      \
-		sudo apt-get install libsnappy-dev -y;           \
-		sudo apt-get install libbz2-dev -y;              \
-		sudo apt-get install libreadline-dev -y;         \
-		sudo apt-get install libprocps3-dev -y;          \
-	elif [ -f /etc/centos-release ]; then         \
-		sudo yum install git -y;                         \
-		sudo yum install http://dl.atrpms.net/el6-x86_64/atrpms/testing/cmake-2.8.8-4.el6.x86_64.rpm -y; \
-	fi;
-endif
-
-deps: os_deps
+deps:
+	/bin/bash ./tools/provision.sh
 	git submodule init
 	git submodule update
-	sudo pip install -r requirements.txt
 
 distclean: clean_tables
 ifeq ($(OS),Darwin)
