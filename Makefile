@@ -63,6 +63,9 @@ format:
 	clang-format -i osquery/**/*.mm
 	clang-format -i tools/*.cpp
 
+install:
+	cd build && make install
+
 .PHONY: package
 package: all
 	git submodule init
