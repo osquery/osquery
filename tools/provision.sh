@@ -93,12 +93,12 @@ function install_rocksdb() {
   if [[ ! -d rocksdb-rocksdb-3.5 ]]; then
     tar -xf rocksdb-3.5.tar.gz
   fi
-  if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.so ]]; then
-    pushd rocksdb-rocksdb-3.5
-    make shared_lib
-    popd
-  fi
   if [ $OS = "ubuntu" ] || [ $OS = "centos" ]; then
+    if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.so ]]; then
+      pushd rocksdb-rocksdb-3.5
+      make shared_lib
+      popd
+    fi
     if [[ ! -f /usr/local/lib/librocksdb.so ]]; then
       cp rocksdb-rocksdb-3.5/librocksdb.so /usr/local/lib
       cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
@@ -106,6 +106,11 @@ function install_rocksdb() {
       log "rocksdb already installed. skipping."
     fi
   elif [[ $OS = "darwin" ]]; then
+    if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.dylib ]]; then
+      pushd rocksdb-rocksdb-3.5
+      make shared_lib
+      popd
+    fi
     if [[ ! -f /usr/local/lib/librocksdb.dylib ]]; then
       cp rocksdb-rocksdb-3.5/librocksdb.dylib /usr/local/lib
       cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
