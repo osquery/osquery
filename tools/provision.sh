@@ -226,11 +226,7 @@ function main() {
     install_rocksdb
   fi
 
-  if [ $OS = "ubuntu" ] || [ $OS = "centos" ]; then
-    pip install -r /vagrant/requirements.txt
-  elif [[ $OS = "darwin" ]]; then
-    pip install -r $SCRIPT_DIR/../requirements.txt
-  fi
+  pip install -r $SCRIPT_DIR/../requirements.txt
 }
 
 main
