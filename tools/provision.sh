@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-WORKING_DIR="$SCRIPT_DIR/../.deps"
+WORKING_DIR="$SCRIPT_DIR/../.sources"
 export PATH="$PATH:/usr/local/bin"
 
 function platform() {
@@ -98,55 +98,21 @@ function install_rocksdb() {
     make shared_lib
     popd
   fi
-  if [[ ! -f /usr/local/lib/librocksdb.so ]]; then
-    cp rocksdb-rocksdb-3.5/librocksdb.so /usr/local/lib
-    cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
-  else
-    log "rocksdb already installed. skipping."
+  if [ $OS = "ubuntu" ] || [ $OS = "centos" ]; then
+    if [[ ! -f /usr/local/lib/librocksdb.so ]]; then
+      cp rocksdb-rocksdb-3.5/librocksdb.so /usr/local/lib
+      cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
+    else
+      log "rocksdb already installed. skipping."
+    fi
+  elif [[ $OS = "darwin" ]]; then
+    if [[ ! -f /usr/local/lib/librocksdb.dylib ]]; then
+      cp rocksdb-rocksdb-3.5/librocksdb.dylib /usr/local/lib
+      cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
+    else
+      log "rocksdb already installed. skipping."
+    fi
   fi
-}
-
-function install_gtest() {
-  if [[ ! -f gtest-1.7.0.zip ]]; then
-    wget https://googletest.googlecode.com/files/gtest-1.7.0.zip
-  fi
-  if [[ ! -d gtest-1.7.0 ]]; then
-    unzip gtest-1.7.0.zip
-  fi
-  if [[ ! -f gtest-1.7.0/lib/libgtest.la ]]; then
-    pushd gtest-1.7.0
-    ./configure
-    make
-    make install
-    popd
-  fi
-  if [[ ! -f /usr/local/lib/libgtest.la ]]; then
-    cp -R gtest-1.7.0/include/gtest /usr/local/include
-  else
-    log "gtest is already installed. skipping"
-  fi
-}
-
-function install_sqlite3() {
-  if [[ ! -f sqlite3-3.8.4.3.tar.gz ]]; then
-    wget https://github.com/osquery/sqlite3/archive/sqlite3-3.8.4.3.tar.gz
-  fi
-  if [[ ! -d sqlite3-sqlite3-3.8.4.3 ]]; then
-    tar -xf sqlite3-sqlite3-3.8.4.3.tar.gz
-  fi
-  if [[ ! -f sqlite3-sqlite3-3.8.4.3/build/libosquery_sqlite3.a ]]; then
-    pushd sqlite3-sqlite3-3.8.4.3
-    mkdir -p build
-    pushd build
-    cmake ..
-    make
-    make install
-    popd
-    popd
-  else
-    log "sqlite3 is already built. skipping."
-  fi
-
 }
 
 function package() {
@@ -242,10 +208,6 @@ function main() {
     install_thrift
 
     install_rocksdb
-
-    install_gtest
-
-    install_sqlite3
   elif [[ $OS = "centos" ]]; then
     yum update -y
 
@@ -261,6 +223,7 @@ function main() {
     package snappy
     package readline
     package thrift
+    install_rocksdb
   fi
 
   if [ $OS = "ubuntu" ] || [ $OS = "centos" ]; then
