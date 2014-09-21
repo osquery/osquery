@@ -8,8 +8,6 @@
 
 #import "osquery/core/darwin/NSProcessInfo+PECocoaBackports.h"
 
-using namespace osquery::db;
-
 namespace osquery {
 namespace tables {
 

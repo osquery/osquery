@@ -19,7 +19,7 @@ class FirewallTests : public testing::Test {};
 TEST_F(FirewallTests, test_parse_alf_tree) {
   pt::ptree tree = getALFTree();
   auto results = parseALFTree(tree);
-  osquery::db::QueryData expected = {{{"allow_signed_enabled", "1"},
+  osquery::QueryData expected = {{{"allow_signed_enabled", "1"},
                                       {"firewall_unload", "0"},
                                       {"global_state", "0"},
                                       {"logging_enabled", "0"},
@@ -32,7 +32,7 @@ TEST_F(FirewallTests, test_parse_alf_tree) {
 TEST_F(FirewallTests, test_parse_alf_exceptions_tree) {
   pt::ptree tree = getALFTree();
   auto results = parseALFExceptionsTree(tree);
-  osquery::db::QueryData expected = {
+  osquery::QueryData expected = {
       {{"path", "/usr/libexec/configd"}, {"state", "3"}},
       {{"path", "/usr/sbin/mDNSResponder"}, {"state", "3"}},
       {{"path", "/usr/sbin/racoon"}, {"state", "3"}},
@@ -47,7 +47,7 @@ TEST_F(FirewallTests, test_parse_alf_exceptions_tree) {
 TEST_F(FirewallTests, test_parse_alf_explicit_auths_tree) {
   pt::ptree tree = getALFTree();
   auto results = parseALFExplicitAuthsTree(tree);
-  osquery::db::QueryData expected = {{{"process", "org.python.python.app"}},
+  osquery::QueryData expected = {{{"process", "org.python.python.app"}},
                                      {{"process", "com.apple.ruby"}},
                                      {{"process", "com.apple.a2p"}},
                                      {{"process", "com.apple.javajdk16.cmd"}},
@@ -60,7 +60,7 @@ TEST_F(FirewallTests, test_parse_alf_explicit_auths_tree) {
 TEST_F(FirewallTests, test_parse_alf_services_tree) {
   pt::ptree tree = getALFTree();
   auto results = parseALFServicesTree(tree);
-  osquery::db::QueryData expected = {{{"service", "Apple Remote Desktop"},
+  osquery::QueryData expected = {{{"service", "Apple Remote Desktop"},
                                       {"process", "AppleVNCServer"},
                                       {"state", "0"}, },
                                      {{"service", "FTP"},

@@ -14,7 +14,6 @@
 #include "osquery/tables/base.h"
 #include "osquery/registry/registry.h"
 
-using namespace osquery::db;
 using namespace osquery::tables;
 
 namespace osquery {

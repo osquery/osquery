@@ -12,8 +12,6 @@
 #include "osquery/database.h"
 #include "osquery/filesystem.h"
 
-using namespace osquery::db;
-
 namespace osquery {
 namespace tables {
 

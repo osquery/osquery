@@ -10,8 +10,6 @@
 #include "osquery/core.h"
 #include "osquery/database.h"
 
-using namespace osquery::db;
-
 extern "C" {
 extern CFDictionaryRef OSKextCopyLoadedKextInfo(CFArrayRef, CFArrayRef);
 }

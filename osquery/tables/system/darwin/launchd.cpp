@@ -13,7 +13,6 @@
 #include "osquery/filesystem.h"
 #include "osquery/status.h"
 
-using namespace osquery::db;
 using osquery::Status;
 namespace pt = boost::property_tree;
 

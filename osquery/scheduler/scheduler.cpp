@@ -12,8 +12,6 @@
 #include "osquery/database.h"
 #include "osquery/logger.h"
 
-namespace db = osquery::db;
-
 namespace osquery {
 
 void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
@@ -29,8 +27,8 @@ void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
         LOG(ERROR) << "error executing query: " << q.query;
         continue;
       }
-      auto dbQuery = db::Query(q);
-      db::DiffResults diff_results;
+      auto dbQuery = Query(q);
+      DiffResults diff_results;
       auto status =
           dbQuery.addNewResults(query_results, diff_results, unix_time);
       if (!status.ok()) {
@@ -41,7 +39,7 @@ void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
 
       if (diff_results.added.size() > 0 || diff_results.removed.size() > 0) {
         VLOG(1) << "Results found for query: \"" << q.query << "\"";
-        db::ScheduledQueryLogItem item;
+        ScheduledQueryLogItem item;
         item.diffResults = diff_results;
         item.name = q.name;
         item.hostname = osquery::getHostname();

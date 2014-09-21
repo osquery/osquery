@@ -18,7 +18,6 @@ namespace pt = boost::property_tree;
 using osquery::Status;
 
 namespace osquery {
-namespace db {
 
 /////////////////////////////////////////////////////////////////////////////
 // Row - the representation of a row in a set of database results. Row is a
@@ -262,6 +261,5 @@ Status serializeScheduledQueryLogItemJSON(const ScheduledQueryLogItem& i,
     return Status(1, e.what());
   }
   return Status(0, "OK");
-}
 }
 }

@@ -14,7 +14,6 @@
 #include "osquery/status.h"
 
 namespace osquery {
-namespace db {
 
 /// Error message used when a query name isn't found in the database
 extern const std::string kQueryNameNotFoundError;
@@ -176,7 +175,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status addNewResults(const osquery::db::QueryData& qd,
+  osquery::Status addNewResults(const osquery::QueryData& qd,
                                 int unix_time);
 
  private:
@@ -195,7 +194,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status addNewResults(const osquery::db::QueryData& qd,
+  osquery::Status addNewResults(const osquery::QueryData& qd,
                                 int unix_time,
                                 std::shared_ptr<DBHandle> db);
 
@@ -218,8 +217,8 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status addNewResults(const osquery::db::QueryData& qd,
-                                osquery::db::DiffResults& dr,
+  osquery::Status addNewResults(const osquery::QueryData& qd,
+                                osquery::DiffResults& dr,
                                 int unix_time);
 
  private:
@@ -242,8 +241,8 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status addNewResults(const osquery::db::QueryData& qd,
-                                osquery::db::DiffResults& dr,
+  osquery::Status addNewResults(const osquery::QueryData& qd,
+                                osquery::DiffResults& dr,
                                 bool calculate_diff,
                                 int unix_time,
                                 std::shared_ptr<DBHandle> db);
@@ -258,7 +257,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status getCurrentResults(osquery::db::QueryData& qd);
+  osquery::Status getCurrentResults(osquery::QueryData& qd);
 
  private:
   /**
@@ -276,7 +275,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status getCurrentResults(osquery::db::QueryData& qd,
+  osquery::Status getCurrentResults(osquery::QueryData& qd,
                                     std::shared_ptr<DBHandle> db);
 
  private:
@@ -301,5 +300,4 @@ class Query {
   FRIEND_TEST(QueryTests, test_get_historical_query_results);
   FRIEND_TEST(QueryTests, test_query_name_not_found_in_db);
 };
-}
 }

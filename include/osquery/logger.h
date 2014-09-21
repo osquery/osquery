@@ -57,7 +57,7 @@ osquery::Status logString(const std::string& s, const std::string& receiver);
  * of the operation.
  */
 osquery::Status logScheduledQueryLogItem(
-    const osquery::db::ScheduledQueryLogItem& item);
+    const osquery::ScheduledQueryLogItem& item);
 
 /**
  * @brief Directly log results of scheduled queries to a specified receiver
@@ -69,6 +69,6 @@ osquery::Status logScheduledQueryLogItem(
  * of the operation.
  */
 osquery::Status logScheduledQueryLogItem(
-    const osquery::db::ScheduledQueryLogItem& item,
+    const osquery::ScheduledQueryLogItem& item,
     const std::string& receiver);
 }

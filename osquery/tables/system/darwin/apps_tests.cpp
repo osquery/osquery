@@ -8,7 +8,6 @@
 #include "osquery/filesystem.h"
 
 using namespace osquery::core;
-using namespace osquery::db;
 namespace pt = boost::property_tree;
 
 namespace osquery {

@@ -11,8 +11,6 @@
 #include "osquery/database.h"
 #include "osquery/filesystem.h"
 
-using namespace osquery::db;
-
 namespace pt = boost::property_tree;
 
 namespace osquery {

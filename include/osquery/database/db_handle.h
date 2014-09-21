@@ -12,7 +12,6 @@
 #include "osquery/status.h"
 
 namespace osquery {
-namespace db {
 
 /////////////////////////////////////////////////////////////////////////////
 // Constants
@@ -265,5 +264,4 @@ class DBHandle {
   FRIEND_TEST(QueryTests, test_get_historical_query_results);
   FRIEND_TEST(QueryTests, test_query_name_not_found_in_db);
 };
-}
 }

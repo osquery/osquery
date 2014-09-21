@@ -10,8 +10,6 @@
 
 #include "osquery/core/test_util.h"
 
-using namespace osquery::db;
-
 namespace osquery {
 namespace core {
 

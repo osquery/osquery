@@ -14,8 +14,6 @@
 #include "osquery/database.h"
 #include "osquery/tables/networking/utils.h"
 
-using namespace osquery::db;
-
 namespace osquery {
 namespace tables {
 

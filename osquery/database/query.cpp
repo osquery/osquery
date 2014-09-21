@@ -7,7 +7,6 @@
 using osquery::Status;
 
 namespace osquery {
-namespace db {
 
 const std::string kQueryNameNotFoundError = "query name not found in database";
 
@@ -68,7 +67,7 @@ bool Query::isQueryNameInDatabase(std::shared_ptr<DBHandle> db) {
   return std::find(names.begin(), names.end(), query_.name) != names.end();
 }
 
-Status Query::addNewResults(const osquery::db::QueryData& qd, int unix_time) {
+Status Query::addNewResults(const osquery::QueryData& qd, int unix_time) {
   return addNewResults(qd, unix_time, DBHandle::getInstance());
 }
 
@@ -79,14 +78,14 @@ Status Query::addNewResults(const QueryData& qd,
   return addNewResults(qd, dr, false, unix_time, db);
 }
 
-osquery::Status Query::addNewResults(const osquery::db::QueryData& qd,
-                                     osquery::db::DiffResults& dr,
+osquery::Status Query::addNewResults(const osquery::QueryData& qd,
+                                     osquery::DiffResults& dr,
                                      int unix_time) {
   return addNewResults(qd, dr, true, unix_time, DBHandle::getInstance());
 }
 
-osquery::Status Query::addNewResults(const osquery::db::QueryData& qd,
-                                     osquery::db::DiffResults& dr,
+osquery::Status Query::addNewResults(const osquery::QueryData& qd,
+                                     osquery::DiffResults& dr,
                                      bool calculate_diff,
                                      int unix_time,
                                      std::shared_ptr<DBHandle> db) {
@@ -112,7 +111,7 @@ osquery::Status Query::addNewResults(const osquery::db::QueryData& qd,
   return Status(0, "OK");
 }
 
-osquery::Status Query::getCurrentResults(osquery::db::QueryData& qd) {
+osquery::Status Query::getCurrentResults(osquery::QueryData& qd) {
   return getCurrentResults(qd, DBHandle::getInstance());
 }
 
@@ -123,6 +122,5 @@ Status Query::getCurrentResults(QueryData& qd, std::shared_ptr<DBHandle> db) {
     qd = hQR.mostRecentResults.second;
   }
   return s;
-}
 }
 }

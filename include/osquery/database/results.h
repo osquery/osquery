@@ -12,7 +12,6 @@
 #include "osquery/status.h"
 
 namespace osquery {
-namespace db {
 
 /////////////////////////////////////////////////////////////////////////////
 // Row
@@ -281,5 +280,4 @@ osquery::Status serializeScheduledQueryLogItem(
  */
 osquery::Status serializeScheduledQueryLogItemJSON(
     const ScheduledQueryLogItem& i, std::string& json);
-}
 }

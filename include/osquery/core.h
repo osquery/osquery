@@ -39,7 +39,7 @@ extern const std::string kVersion;
  *
  * @return the results of the query
  */
-osquery::db::QueryData query(const std::string& q, int& error_return);
+osquery::QueryData query(const std::string& q, int& error_return);
 
 /**
  * @brief Execute a query on a specific database
@@ -54,7 +54,7 @@ osquery::db::QueryData query(const std::string& q, int& error_return);
  *
  * @return the results of the query
  */
-osquery::db::QueryData query(const std::string& q,
+osquery::QueryData query(const std::string& q,
                              int& error_return,
                              sqlite3* db);
 

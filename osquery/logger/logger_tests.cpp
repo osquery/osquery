@@ -8,7 +8,6 @@
 
 #include "osquery/core.h"
 
-using namespace osquery::db;
 using osquery::Status;
 
 namespace osquery {

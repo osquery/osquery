@@ -13,7 +13,6 @@
 using namespace osquery::core;
 
 namespace osquery {
-namespace db {
 
 class QueryTests : public testing::Test {};
 
@@ -127,7 +126,6 @@ TEST_F(QueryTests, test_get_current_results) {
   EXPECT_TRUE(query_status.ok());
   EXPECT_EQ(query_status.toString(), "OK");
   EXPECT_EQ(qd, hQR.second.mostRecentResults.second);
-}
 }
 }
 

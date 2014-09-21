@@ -11,7 +11,7 @@ using namespace osquery::core;
 namespace osquery {
 namespace tables {
 
-osquery::db::QueryData parseEtcHostsContent(const std::string& content);
+osquery::QueryData parseEtcHostsContent(const std::string& content);
 
 class EtcHostsTests : public testing::Test {};
 

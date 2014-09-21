@@ -10,7 +10,6 @@
 using osquery::Status;
 
 namespace osquery {
-namespace db {
 
 class DBHandleTests : public testing::Test {};
 
@@ -81,7 +80,6 @@ TEST_F(DBHandleTests, test_scan) {
   for (const auto& i : expected) {
     EXPECT_NE(std::find(keys.begin(), keys.end(), i), keys.end());
   }
-}
 }
 }
 

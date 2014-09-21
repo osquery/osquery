@@ -37,7 +37,7 @@ IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 
 namespace osquery { namespace tables {
 
-osquery::db::QueryData {{function}}();
+osquery::QueryData {{function}}();
 
 struct sqlite3_{{table_name}} {
   int n;

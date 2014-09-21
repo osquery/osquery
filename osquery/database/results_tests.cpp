@@ -14,7 +14,8 @@
 namespace pt = boost::property_tree;
 
 using namespace osquery::core;
-using namespace osquery::db;
+
+namespace osquery {
 
 class ResultsTests : public testing::Test {};
 
@@ -121,6 +122,7 @@ TEST_F(ResultsTests, test_serialize_scheduled_query_log_item_json) {
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(results.first, json);
+}
 }
 
 int main(int argc, char* argv[]) {

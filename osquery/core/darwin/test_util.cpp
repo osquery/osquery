@@ -4,7 +4,6 @@
 
 #include <boost/property_tree/json_parser.hpp>
 
-using namespace osquery::db;
 namespace pt = boost::property_tree;
 
 namespace osquery {

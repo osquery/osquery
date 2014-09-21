@@ -15,7 +15,6 @@
 using osquery::Status;
 
 namespace osquery {
-namespace db {
 
 /////////////////////////////////////////////////////////////////////////////
 // Constants
@@ -149,6 +148,5 @@ osquery::Status DBHandle::Scan(const std::string& domain,
   }
   delete it;
   return Status(0, "OK");
-}
 }
 }

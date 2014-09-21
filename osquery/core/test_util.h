@@ -29,12 +29,12 @@ sqlite3* createTestDB();
 
 // getTestDBExpectedResults returns the results of kTestQuery of the table that
 // initially gets returned from createTestDB()
-osquery::db::QueryData getTestDBExpectedResults();
+osquery::QueryData getTestDBExpectedResults();
 
 // Starting with the dataset returned by createTestDB(), getTestDBResultStream
 // returns a vector of std::pair's where pair.first is the query that would
 // need to be performed on the dataset to make the results be pair.second
-std::vector<std::pair<std::string, osquery::db::QueryData>>
+std::vector<std::pair<std::string, osquery::QueryData>>
 getTestDBResultStream();
 
 // getOsqueryScheduledQuery returns a test scheduled query which would normally
@@ -44,38 +44,38 @@ osquery::OsqueryScheduledQuery getOsqueryScheduledQuery();
 // getSerializedRow() return an std::pair where pair->first is a string which
 // should serialize to pair->second. Obviously, pair->second should deserialize
 // to pair->first
-std::pair<boost::property_tree::ptree, osquery::db::Row> getSerializedRow();
+std::pair<boost::property_tree::ptree, osquery::Row> getSerializedRow();
 
 // getSerializedQueryData() return an std::pair where pair->first is a string
 // which should serialize to pair->second. Obviously, pair->second should
 // deserialize to pair->first
-std::pair<boost::property_tree::ptree, osquery::db::QueryData>
+std::pair<boost::property_tree::ptree, osquery::QueryData>
 getSerializedQueryData();
 
 // getSerializedDiffResults() return an std::pair where pair->first is a string
 // which should serialize to pair->second. Obviously, pair->second should
 // deserialize to pair->first
-std::pair<boost::property_tree::ptree, osquery::db::DiffResults>
+std::pair<boost::property_tree::ptree, osquery::DiffResults>
 getSerializedDiffResults();
 
-std::pair<std::string, osquery::db::DiffResults> getSerializedDiffResultsJSON();
+std::pair<std::string, osquery::DiffResults> getSerializedDiffResultsJSON();
 
 // getSerializedHistoricalQueryResults() return an std::pair where pair->first
 // is a string which should serialize to pair->second. Obviously, pair->second
 // should deserialize to pair->first
-std::pair<boost::property_tree::ptree, osquery::db::HistoricalQueryResults>
+std::pair<boost::property_tree::ptree, osquery::HistoricalQueryResults>
 getSerializedHistoricalQueryResults();
 
-std::pair<std::string, osquery::db::HistoricalQueryResults>
+std::pair<std::string, osquery::HistoricalQueryResults>
 getSerializedHistoricalQueryResultsJSON();
 
 // getSerializedScheduledQueryLogItem() return an std::pair where pair->first
 // is a string which should serialize to pair->second. Obviously, pair->second
 // should deserialize to pair->first
-std::pair<boost::property_tree::ptree, osquery::db::ScheduledQueryLogItem>
+std::pair<boost::property_tree::ptree, osquery::ScheduledQueryLogItem>
 getSerializedScheduledQueryLogItem();
 
-std::pair<std::string, osquery::db::ScheduledQueryLogItem>
+std::pair<std::string, osquery::ScheduledQueryLogItem>
 getSerializedScheduledQueryLogItemJSON();
 
 // generate content for a PEM-encoded certificate
@@ -85,7 +85,7 @@ std::string getCACertificateContent();
 std::string getEtcHostsContent();
 
 // generate the expected data that getEtcHostsContent() should parse into
-osquery::db::QueryData getEtcHostsExpectedResults();
+osquery::QueryData getEtcHostsExpectedResults();
 
 // the three items that you need to test osquery::core::splitString
 struct SplitStringTestData {

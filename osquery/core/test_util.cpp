@@ -12,7 +12,6 @@
 #include "osquery/core/sqlite_util.h"
 #include "osquery/filesystem.h"
 
-using namespace osquery::db;
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -146,7 +145,7 @@ std::pair<boost::property_tree::ptree, DiffResults> getSerializedDiffResults() {
   return std::make_pair(root, diff_results);
 }
 
-std::pair<std::string, osquery::db::DiffResults>
+std::pair<std::string, osquery::DiffResults>
 getSerializedDiffResultsJSON() {
   auto results = getSerializedDiffResults();
 
@@ -156,7 +155,7 @@ getSerializedDiffResultsJSON() {
   return std::make_pair(ss.str(), results.second);
 }
 
-std::pair<pt::ptree, osquery::db::HistoricalQueryResults>
+std::pair<pt::ptree, osquery::HistoricalQueryResults>
 getSerializedHistoricalQueryResults() {
   auto qd = getSerializedQueryData();
   auto dr = getSerializedDiffResults();
@@ -173,7 +172,7 @@ getSerializedHistoricalQueryResults() {
   return std::make_pair(root, r);
 }
 
-std::pair<std::string, osquery::db::HistoricalQueryResults>
+std::pair<std::string, osquery::HistoricalQueryResults>
 getSerializedHistoricalQueryResultsJSON() {
   auto results = getSerializedHistoricalQueryResults();
 
@@ -183,7 +182,7 @@ getSerializedHistoricalQueryResultsJSON() {
   return std::make_pair(ss.str(), results.second);
 }
 
-std::pair<boost::property_tree::ptree, osquery::db::ScheduledQueryLogItem>
+std::pair<boost::property_tree::ptree, osquery::ScheduledQueryLogItem>
 getSerializedScheduledQueryLogItem() {
   ScheduledQueryLogItem i;
   pt::ptree root;
@@ -201,7 +200,7 @@ getSerializedScheduledQueryLogItem() {
   return std::make_pair(root, i);
 }
 
-std::pair<std::string, osquery::db::ScheduledQueryLogItem>
+std::pair<std::string, osquery::ScheduledQueryLogItem>
 getSerializedScheduledQueryLogItemJSON() {
   auto results = getSerializedScheduledQueryLogItem();
 
@@ -272,7 +271,7 @@ std::string getEtcHostsContent() {
   return content;
 }
 
-osquery::db::QueryData getEtcHostsExpectedResults() {
+osquery::QueryData getEtcHostsExpectedResults() {
   Row row1;
   Row row2;
   Row row3;
