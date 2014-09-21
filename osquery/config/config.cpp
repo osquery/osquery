@@ -72,8 +72,7 @@ Status Config::genConfig(OsqueryConfig& conf) {
       q.interval = (v.second).get<int>("interval");
       conf.scheduledQueries.push_back(q);
     }
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     LOG(ERROR) << "Error parsing config JSON: " << e.what();
     return Status(1, e.what());
   }

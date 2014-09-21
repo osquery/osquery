@@ -54,9 +54,7 @@ osquery::QueryData query(const std::string& q, int& error_return);
  *
  * @return the results of the query
  */
-osquery::QueryData query(const std::string& q,
-                             int& error_return,
-                             sqlite3* db);
+osquery::QueryData query(const std::string& q, int& error_return, sqlite3* db);
 
 /**
  * @brief Return a fully configured sqlite3 database object

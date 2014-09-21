@@ -20,8 +20,11 @@ namespace osquery {
 namespace tables {
 
 const std::vector<std::string> kLaunchdSearchPaths = {
-    "/System/Library/LaunchDaemons", "/Library/LaunchDaemons",
-    "/System/Library/LaunchAgents",  "/Library/LaunchAgents", };
+    "/System/Library/LaunchDaemons",
+    "/Library/LaunchDaemons",
+    "/System/Library/LaunchAgents",
+    "/Library/LaunchAgents",
+};
 
 const std::map<std::string, std::string> kLaunchdTopLevelStringKeys = {
     {"Label", "label"},
@@ -39,12 +42,14 @@ const std::map<std::string, std::string> kLaunchdTopLevelStringKeys = {
     {"GroupName", "group_name"},
     {"RootDirectory", "root_directory"},
     {"WorkingDirectory", "working_directory"},
-    {"ProcessType", "process_type"}, };
+    {"ProcessType", "process_type"},
+};
 
 const std::map<std::string, std::string> kLaunchdTopLevelArrayKeys = {
     {"ProgramArguments", "program_arguments"},
     {"WatchPaths", "watch_paths"},
-    {"QueueDirectories", "queue_directories"}, };
+    {"QueueDirectories", "queue_directories"},
+};
 
 std::vector<std::string> getLaunchdFiles() {
   std::vector<std::string> results;
@@ -92,8 +97,7 @@ Row parseLaunchdItem(const std::string& path, const pt::ptree& tree) {
       if (it.first == "Program") {
         boost::replace_all(item, " ", "\\ ");
       }
-    }
-    catch (const pt::ptree_error& e) {
+    } catch (const pt::ptree_error& e) {
       VLOG(3) << "Error parsing " << it.first << " from " << path << ": "
               << e.what();
     }
@@ -110,8 +114,7 @@ Row parseLaunchdItem(const std::string& path, const pt::ptree& tree) {
         array_results.push_back(item);
       }
       r[it.second] = boost::algorithm::join(array_results, " ");
-    }
-    catch (pt::ptree_error& e) {
+    } catch (pt::ptree_error& e) {
       VLOG(1) << "Error parsing " << it.first << " from " << path << ": "
               << e.what();
       r[it.second] = "";

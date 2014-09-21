@@ -41,7 +41,8 @@ const std::string kOsquerydHelp = R"(
 )";
 
 const std::map<std::string, std::string> kHelpMessages = {
-    {"osqueryd", kOsquerydHelp}, };
+    {"osqueryd", kOsquerydHelp},
+};
 
 const std::string kDefaultLogDir = "/var/log/osquery/";
 

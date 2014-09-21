@@ -14,7 +14,7 @@ class TestPlugin {
   virtual ~TestPlugin() {}
 
  protected:
-  TestPlugin() {};
+  TestPlugin(){};
 };
 
 DECLARE_REGISTRY(TestPlugins, std::string, std::shared_ptr<TestPlugin>)
@@ -26,7 +26,7 @@ DECLARE_REGISTRY(TestPlugins, std::string, std::shared_ptr<TestPlugin>)
 
 class TestPluginInstance : public TestPlugin {
  public:
-  TestPluginInstance() {};
+  TestPluginInstance(){};
 
   std::string getName() { return std::string("test_1"); }
 

@@ -52,22 +52,24 @@ TEST_F(AppsTests, get_path_from_info_plist_path) {
 
 TEST_F(AppsTests, test_parse_info_plist) {
   auto tree = getInfoPlistTree();
-  Row expected = {{"name", "Foobar.app"},
-                  {"path", "/Applications/Foobar.app"},
-                  {"bundle_executable", "Photo Booth"},
-                  {"bundle_identifier", "com.apple.PhotoBooth"},
-                  {"bundle_name", ""},
-                  {"bundle_short_version", "6.0"},
-                  {"bundle_version", "517"},
-                  {"bundle_package_type", "APPL"},
-                  {"compiler", "com.apple.compilers.llvm.clang.1_0"},
-                  {"development_region", "English"},
-                  {"display_name", ""},
-                  {"info_string", ""},
-                  {"minimum_system_version", "10.7.0"},
-                  {"category", "public.app-category.entertainment"},
-                  {"applescript_enabled", ""},
-                  {"copyright", ""}, };
+  Row expected = {
+      {"name", "Foobar.app"},
+      {"path", "/Applications/Foobar.app"},
+      {"bundle_executable", "Photo Booth"},
+      {"bundle_identifier", "com.apple.PhotoBooth"},
+      {"bundle_name", ""},
+      {"bundle_short_version", "6.0"},
+      {"bundle_version", "517"},
+      {"bundle_package_type", "APPL"},
+      {"compiler", "com.apple.compilers.llvm.clang.1_0"},
+      {"development_region", "English"},
+      {"display_name", ""},
+      {"info_string", ""},
+      {"minimum_system_version", "10.7.0"},
+      {"category", "public.app-category.entertainment"},
+      {"applescript_enabled", ""},
+      {"copyright", ""},
+  };
   EXPECT_EQ(
       parseInfoPlist("/Applications/Foobar.app/Contents/Info.plist", tree),
       expected);

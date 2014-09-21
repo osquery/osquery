@@ -36,14 +36,12 @@ Status logString(const std::string& s, const std::string& receiver) {
   return Status(0, "OK");
 }
 
-Status logScheduledQueryLogItem(
-    const osquery::ScheduledQueryLogItem& results) {
+Status logScheduledQueryLogItem(const osquery::ScheduledQueryLogItem& results) {
   return logScheduledQueryLogItem(results, FLAGS_log_receiver);
 }
 
-Status logScheduledQueryLogItem(
-    const osquery::ScheduledQueryLogItem& results,
-    const std::string& receiver) {
+Status logScheduledQueryLogItem(const osquery::ScheduledQueryLogItem& results,
+                                const std::string& receiver) {
   std::string json;
   auto s = osquery::serializeScheduledQueryLogItemJSON(results, json);
   if (!s.ok()) {

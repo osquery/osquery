@@ -82,8 +82,7 @@ Status listFilesInDirectory(const std::string& path,
     }
 
     return Status(0, "OK");
-  }
-  catch (const boost::filesystem::filesystem_error& e) {
+  } catch (const boost::filesystem::filesystem_error& e) {
     return Status(1, e.what());
   }
 }

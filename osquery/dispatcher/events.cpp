@@ -62,8 +62,8 @@ Status EventFactory::addMonitor(EventTypeID type_id, const MonitorRef monitor) {
 }
 
 Status EventFactory::addMonitor(EventTypeID type_id,
-    const MonitorContextRef mc,
-    EventCallback callback) {
+                                const MonitorContextRef mc,
+                                EventCallback callback) {
   auto monitor = Monitor::create(mc, callback);
   return EventFactory::addMonitor(type_id, monitor);
 }
@@ -111,5 +111,4 @@ Status EventFactory::deregisterEventTypes() {
   ef->event_types_.erase(ef->event_types_.begin(), ef->event_types_.end());
   return Status(0, "OK");
 }
-
 }

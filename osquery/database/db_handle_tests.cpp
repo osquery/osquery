@@ -72,8 +72,8 @@ TEST_F(DBHandleTests, test_scan) {
   db->Put(kQueries, "test_scan_foo2", "baz");
   db->Put(kQueries, "test_scan_foo3", "baz");
   std::vector<std::string> keys;
-  std::vector<std::string> expected = {"test_scan_foo1", "test_scan_foo2",
-                                       "test_scan_foo3"};
+  std::vector<std::string> expected = {
+      "test_scan_foo1", "test_scan_foo2", "test_scan_foo3"};
   auto s = db->Scan(kQueries, keys);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");

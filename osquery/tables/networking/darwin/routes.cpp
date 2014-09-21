@@ -38,7 +38,8 @@ const std::vector<RouteType> kRouteTypes = {
     std::make_pair(RTF_STATIC, "static"),
     std::make_pair(RTF_BLACKHOLE, "blackhole"),
     std::make_pair(RTF_ROUTER, "router"),
-    std::make_pair(RTF_PROXY, "proxy"), };
+    std::make_pair(RTF_PROXY, "proxy"),
+};
 
 InterfaceMap genInterfaceMap() {
   InterfaceMap ifmap;

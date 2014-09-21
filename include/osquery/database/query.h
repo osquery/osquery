@@ -175,8 +175,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status addNewResults(const osquery::QueryData& qd,
-                                int unix_time);
+  osquery::Status addNewResults(const osquery::QueryData& qd, int unix_time);
 
  private:
   /**

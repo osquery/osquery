@@ -29,24 +29,23 @@ typedef boost::shared_ptr<EventType> EventTypeRef;
 typedef boost::shared_ptr<MonitorContext> MonitorContextRef;
 typedef boost::shared_ptr<EventContext> EventContextRef;
 
-typedef std::function<Status(EventID, EventTime, \
-    EventContextRef)> EventCallback;
+typedef std::function<Status(EventID, EventTime, EventContextRef)>
+    EventCallback;
 
 // Instead of attempting fancy RTTI limitations, each derived EventType may
 // choose to macro-define a getter for a custom EventContext/MonitorContext.
 // This assumes each event will implement custom fields for monitoring
 // and custom fields holding event-related data.
-#define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT) \
-public: \
-  EventTypeID type() { return TYPE; } \
-  static boost::shared_ptr<EVENT> \
-    getEventContext(EventContextRef context) { \
-      return boost::static_pointer_cast<EVENT>(context); \
-    } \
-  static boost::shared_ptr<MONITOR> \
-    getMonitorContext(MonitorContextRef context) { \
-      return boost::static_pointer_cast<MONITOR>(context); \
-    }
+#define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                              \
+ public:                                                                     \
+  EventTypeID type() { return TYPE; }                                        \
+  static boost::shared_ptr<EVENT> getEventContext(EventContextRef context) { \
+    return boost::static_pointer_cast<EVENT>(context);                       \
+  }                                                                          \
+  static boost::shared_ptr<MONITOR> getMonitorContext(                       \
+      MonitorContextRef context) {                                           \
+    return boost::static_pointer_cast<MONITOR>(context);                     \
+  }
 
 /**
  * @brief An implementation monitor context used to configure/create a monitor.
@@ -55,13 +54,11 @@ public: \
  * the caller's callback.
  */
 struct Monitor {
-public:
+ public:
   MonitorContextRef context;
   EventCallback callback;
 
-  static MonitorRef create() {
-    return boost::make_shared<Monitor>();
-  }
+  static MonitorRef create() { return boost::make_shared<Monitor>(); }
 
   static MonitorRef create(const MonitorContextRef mc, EventCallback ec = 0) {
     auto monitor = boost::make_shared<Monitor>();
@@ -73,19 +70,19 @@ public:
 
 typedef std::vector<MonitorRef> MonitorVector;
 
-/** 
+/**
  * @brief Generate OS events of a type (FS, Network, Syscall, ioctl).
  *
- * A class of OS Events is abstracted into a type-class responsible for 
- * remaining as agile as possible given a known-set of monitors using the 
- * events. 
+ * A class of OS Events is abstracted into a type-class responsible for
+ * remaining as agile as possible given a known-set of monitors using the
+ * events.
  *
  * There are four actions an event generator will take, start, configure, stop,
  * and generate event. THe configure is a pseudo-start that may occur during
- * runtime. 
+ * runtime.
  */
 class EventType {
-public:
+ public:
   virtual void configure() {}
   virtual void setUp() {}
   virtual void tearDown() {}
@@ -97,15 +94,13 @@ public:
     return Status(0, "OK");
   }
 
-  size_t numMonitors() {
-    return monitors.size();
-  }
+  size_t numMonitors() { return monitors.size(); }
 
-  EventType() {};
+  EventType(){};
 
   virtual EventTypeID type() = 0;
 
-protected:
+ protected:
   MonitorVector monitors;
   EventID next_id;
 };
@@ -123,7 +118,7 @@ typedef std::map<EventTypeID, EventTypeRef> EventTypeMap;
  * Since monitors may be configured/disabled they are also factory-managed.
  */
 class EventFactory {
-public:
+ public:
   static boost::shared_ptr<EventFactory> get();
 
   template <typename T>
@@ -134,8 +129,9 @@ public:
   static Status registerEventType(const EventTypeRef event_type);
 
   static Status addMonitor(EventTypeID type_id, const MonitorRef monitor);
-  static Status addMonitor(EventTypeID type_id, const MonitorContextRef mc,
-      EventCallback callback = 0);
+  static Status addMonitor(EventTypeID type_id,
+                           const MonitorContextRef mc,
+                           EventCallback callback = 0);
 
   static size_t numMonitors(EventTypeID);
   static size_t numEventTypes() {
@@ -150,11 +146,10 @@ public:
 
   static EventTypeRef getEventType(EventTypeID);
 
-private:
+ private:
   EventFactory() {}
 
-private:
+ private:
   EventTypeMap event_types_;
 };
-
 }

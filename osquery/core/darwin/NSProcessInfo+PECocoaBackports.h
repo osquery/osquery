@@ -82,8 +82,8 @@ typedef struct {
 
 #if DECLARE_OPERATING_SYSTEM_VERSION
 - (NSOperatingSystemVersion)operatingSystemVersion NS_AVAILABLE(10_5, 2_0);
-- (BOOL)isOperatingSystemAtLeastVersion:
-        (NSOperatingSystemVersion)version NS_AVAILABLE(10_5, 2_0);
+- (BOOL)isOperatingSystemAtLeastVersion:(NSOperatingSystemVersion)version
+    NS_AVAILABLE(10_5, 2_0);
 #endif
 
 @end

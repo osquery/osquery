@@ -145,8 +145,7 @@ std::pair<boost::property_tree::ptree, DiffResults> getSerializedDiffResults() {
   return std::make_pair(root, diff_results);
 }
 
-std::pair<std::string, osquery::DiffResults>
-getSerializedDiffResultsJSON() {
+std::pair<std::string, osquery::DiffResults> getSerializedDiffResultsJSON() {
   auto results = getSerializedDiffResults();
 
   std::ostringstream ss;

@@ -49,10 +49,70 @@ namespace md5 {
 #define S43 15
 #define S44 21
 
-static unsigned char PADDING[64] = {
-    0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static unsigned char PADDING[64] = {0x80,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0};
 
 // F, G, H and I are basic MD5 functions.
 #define F(x, y, z) (((x) & (y)) | ((~x) & (z)))
@@ -257,7 +317,7 @@ class MD5 {
 
     // Transform as many times as possible.
     if (inputLen >= partLen) {
-      memcpy((POINTER) & context.buffer[index], (POINTER)input, partLen);
+      memcpy((POINTER)&context.buffer[index], (POINTER)input, partLen);
       MD5Transform(context.state, context.buffer);
 
       for (i = partLen; i + 63 < inputLen; i += 64) {
@@ -269,8 +329,7 @@ class MD5 {
     }
 
     /* Buffer remaining input */
-    memcpy(
-        (POINTER) & context.buffer[index], (POINTER) & input[i], inputLen - i);
+    memcpy((POINTER)&context.buffer[index], (POINTER)&input[i], inputLen - i);
   }
 
   // MD5 finalization. Ends an MD5 message-digest operation, writing the
@@ -295,7 +354,7 @@ class MD5 {
     Encode(digestRaw, context.state, 16);
 
     // Zeroize sensitive information.
-    memset((POINTER) & context, 0, sizeof(context));
+    memset((POINTER)&context, 0, sizeof(context));
 
     writeToString();
   }

@@ -15,10 +15,10 @@ namespace tables {
 class TablePlugin {
  public:
   virtual int attachVtable(sqlite3 *db) { return -1; }
-  virtual ~TablePlugin() {};
+  virtual ~TablePlugin(){};
 
  protected:
-  TablePlugin() {};
+  TablePlugin(){};
 };
 
 void attachVirtualTables(sqlite3 *db);

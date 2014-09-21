@@ -35,8 +35,7 @@ Dispatcher::Dispatcher() {
 Status Dispatcher::add(std::shared_ptr<Runnable> task) {
   try {
     thread_manager_->add(std_to_boost_shared_ptr(task), 0, 0);
-  }
-  catch (std::exception& e) {
+  } catch (std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");

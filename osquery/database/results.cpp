@@ -30,8 +30,7 @@ Status serializeRow(const Row& r, pt::ptree& tree) {
     for (auto& i : r) {
       tree.put<std::string>(i.first, i.second);
     }
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -52,8 +51,7 @@ Status serializeQueryData(const QueryData& q, pt::ptree& tree) {
       }
       tree.push_back(std::make_pair("", serialized));
     }
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -80,8 +78,7 @@ Status serializeDiffResults(const DiffResults& d, pt::ptree& tree) {
       return removed_status;
     }
     tree.add_child("removed", removed);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -97,8 +94,7 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
     std::ostringstream ss;
     pt::write_json(ss, tree, false);
     json = ss.str();
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -146,8 +142,7 @@ Status serializeHistoricalQueryResultsJSON(const HistoricalQueryResults& r,
     std::ostringstream ss;
     pt::write_json(ss, tree, false);
     json = ss.str();
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -168,8 +163,7 @@ Status serializeHistoricalQueryResults(const HistoricalQueryResults& r,
         boost::lexical_cast<std::string>(r.mostRecentResults.first),
         most_recent_serialized);
     tree.add_child("mostRecentResults", mostRecentResults);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -182,8 +176,7 @@ Status deserializeHistoricalQueryResults(const pt::ptree& tree,
       try {
         int execution = boost::lexical_cast<int>(v.first);
         r.mostRecentResults.first = execution;
-      }
-      catch (const boost::bad_lexical_cast& e) {
+      } catch (const boost::bad_lexical_cast& e) {
         return Status(1, e.what());
       }
 
@@ -199,8 +192,7 @@ Status deserializeHistoricalQueryResults(const pt::ptree& tree,
     }
 
     return Status(0, "OK");
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     LOG(ERROR) << e.what();
     return Status(1, e.what());
   }
@@ -213,8 +205,7 @@ Status deserializeHistoricalQueryResultsJSON(const std::string& json,
     std::stringstream j;
     j << json;
     pt::read_json(j, tree);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return deserializeHistoricalQueryResults(tree, r);
@@ -238,8 +229,7 @@ Status serializeScheduledQueryLogItem(const ScheduledQueryLogItem& i,
     tree.put<std::string>("hostname", i.hostname);
     tree.put<std::string>("calendarTime", i.calendarTime);
     tree.put<int>("unixTime", i.unixTime);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -256,8 +246,7 @@ Status serializeScheduledQueryLogItemJSON(const ScheduledQueryLogItem& i,
     std::ostringstream ss;
     pt::write_json(ss, tree, false);
     json = ss.str();
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");

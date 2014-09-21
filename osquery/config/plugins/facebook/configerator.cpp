@@ -18,7 +18,7 @@ namespace osquery {
 
 class ConfigeratorConfigPlugin : public ConfigPlugin {
  public:
-  ConfigeratorConfigPlugin() {};
+  ConfigeratorConfigPlugin(){};
 
   std::pair<osquery::Status, std::string> genConfig() {
     facebook::configerator::ConfigeratorApi api;

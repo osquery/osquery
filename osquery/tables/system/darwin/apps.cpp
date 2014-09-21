@@ -30,10 +30,12 @@ const std::map<std::string, std::string> kAppsInfoPlistTopLevelStringKeys = {
     {"LSMinimumSystemVersion", "minimum_system_version"},
     {"LSApplicationCategoryType", "category"},
     {"NSAppleScriptEnabled", "applescript_enabled"},
-    {"NSHumanReadableCopyright", "copyright"}, };
+    {"NSHumanReadableCopyright", "copyright"},
+};
 
 const std::vector<std::string> kHomeDirSearchPaths = {
-    "/Applications", "/Desktops", "/Downloads", };
+    "/Applications", "/Desktops", "/Downloads",
+};
 
 std::vector<std::string> getAppInfoPlistPaths() {
   std::vector<std::string> results;
@@ -110,8 +112,7 @@ Row parseInfoPlist(const std::string& path, const pt::ptree& tree) {
   for (const auto& it : kAppsInfoPlistTopLevelStringKeys) {
     try {
       r[it.second] = tree.get<std::string>(it.first);
-    }
-    catch (const pt::ptree_error& e) {
+    } catch (const pt::ptree_error& e) {
       VLOG(1) << "Error retrieving " << it.first << " from " << path << ": "
               << e.what();
       r[it.second] = "";

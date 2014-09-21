@@ -29,9 +29,12 @@ typedef std::string (*PropGenerator)(const CFDataRef);
 typedef std::pair<CFTypeRef, PropGenerator> Property;
 
 const std::vector<std::string> kSystemKeychainPaths = {
-    "/System/Library/Keychains", "/Library/Keychains", };
+    "/System/Library/Keychains", "/Library/Keychains",
+};
 
-const std::vector<std::string> kUserKeychainPaths = {"/Library/Keychains", };
+const std::vector<std::string> kUserKeychainPaths = {
+    "/Library/Keychains",
+};
 
 const std::map<std::string, Property> kCertificateProperties = {
     {"common_name", std::make_pair(kSecOIDCommonName, genCommonNameProperty)},
@@ -39,13 +42,15 @@ const std::map<std::string, Property> kCertificateProperties = {
      std::make_pair(kSecOIDX509V1ValidityNotBefore, genNumberProperty)},
     {"not_valid_after",
      std::make_pair(kSecOIDX509V1ValidityNotAfter, genNumberProperty)},
-    {"key_algorithm", std::make_pair(kSecOIDX509V1SubjectPublicKeyAlgorithm,
-                                     genAlgorithmProperty)},
+    {"key_algorithm",
+     std::make_pair(kSecOIDX509V1SubjectPublicKeyAlgorithm,
+                    genAlgorithmProperty)},
     {"key_usage", std::make_pair(kSecOIDKeyUsage, genNumberProperty)},
     {"subject_key_id",
      std::make_pair(kSecOIDSubjectKeyIdentifier, genKIDProperty)},
     {"authority_key_id",
-     std::make_pair(kSecOIDAuthorityKeyIdentifier, genKIDProperty)}, };
+     std::make_pair(kSecOIDAuthorityKeyIdentifier, genKIDProperty)},
+};
 
 // From SecCertificatePriv.h
 typedef uint32_t SecKeyUsage;
@@ -73,7 +78,7 @@ std::string safeSecString(const CFStringRef cf_string) {
   length = CFStringGetLength(cf_string);
   buffer = (char *)malloc(length + 1);
   if (!CFStringGetCString(
-           cf_string, buffer, length + 1, kCFStringEncodingASCII)) {
+          cf_string, buffer, length + 1, kCFStringEncodingASCII)) {
     free(buffer);
     return "";
   }
