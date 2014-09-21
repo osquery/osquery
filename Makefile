@@ -56,6 +56,7 @@ ifeq ($(OS),Darwin)
 	rm -rf package/darwin/build
 endif
 	rm -rf build
+	rm -rf .sources
 
 format:
 	clang-format -i osquery/**/*.h
