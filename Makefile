@@ -10,16 +10,18 @@ ammend:
 	git add .
 	git commit --amend --no-edit
 
-.PHONY: build
-build:
+build_prefix:
 	mkdir -p build
+	export CC=clang
+	export CMAKE_C_COMPILER=clang
+	export CXX=clang++
+	export CMAKE_CXX_COMPILER=clang++
+
+.PHONY: build
+build: build_prefix
 	cd build && cmake .. && make $(MAKEFLAGS)
 
-build_shared:
-	mkdir -p build/shared
-	cd build/shared && cmake -D BUILD_SHARED:Boolean=True ../.. && make $(MAKEFLAGS)
-
-fast:
+fast: build_prefix
 	cd build && cmake .. && make $(MAKEFLAGS)
 
 clean: clean_tables
@@ -88,7 +90,7 @@ pull:
 tables:
 	python tools/gentables.py
 
-test:
+test: build_prefix
 	cd build && cmake .. && make test
 
 runtests: build test
