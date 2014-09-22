@@ -4,6 +4,8 @@
 
 #include <algorithm>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
@@ -11,36 +13,45 @@ using osquery::Status;
 
 namespace osquery {
 
-class DBHandleTests : public testing::Test {};
+class DBHandleTests : public testing::Test {
+  void SetUp() {
+    // Setup a testing DB instance
+    db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-dbhandletests");
+    cfh_queries = DBHandle::getInstance()->getHandleForColumnFamily(kQueries);
+    cfh_foobar = DBHandle::getInstance()->getHandleForColumnFamily("foobartest");
+  }
+  void TearDown() {
+    boost::filesystem::remove_all("/tmp/rocksdb-osquery-dbhandletests");
+  }
+public:
+  rocksdb::ColumnFamilyHandle* cfh_queries;
+  rocksdb::ColumnFamilyHandle* cfh_foobar;
+  std::shared_ptr<DBHandle> db;
+};
 
 TEST_F(DBHandleTests, test_create_new_database_on_disk) {
-  auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test1");
   EXPECT_TRUE(db->getStatus().ok());
   EXPECT_EQ(db->getStatus().toString(), "OK");
 }
 
 TEST_F(DBHandleTests, test_singleton_on_disk) {
-  auto db1 = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test2");
+  auto db1 = DBHandle::getInstance();
   EXPECT_TRUE(db1->getStatus().ok());
   EXPECT_EQ(db1->getStatus().toString(), "OK");
-  auto db2 = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test3");
+  auto db2 = DBHandle::getInstance();
   EXPECT_TRUE(db2->getStatus().ok());
   EXPECT_EQ(db2->getStatus().toString(), "OK");
   EXPECT_EQ(db1, db2);
 }
 
 TEST_F(DBHandleTests, test_get_handle_for_column_family) {
-  auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test4");
-  auto cfh1 = db->getHandleForColumnFamily(kQueries);
-  ASSERT_TRUE(cfh1 != nullptr);
-  auto cfh2 = db->getHandleForColumnFamily("foobartest");
-  ASSERT_TRUE(cfh2 == nullptr);
+  ASSERT_TRUE(cfh_queries != nullptr);
+  ASSERT_TRUE(cfh_foobar == nullptr);
 }
 
 TEST_F(DBHandleTests, test_get) {
-  auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test5");
   db->getDB()->Put(rocksdb::WriteOptions(),
-                   db->getHandleForColumnFamily(kQueries),
+                   cfh_queries,
                    "test_query_123",
                    "{}");
   std::string r;
@@ -52,14 +63,12 @@ TEST_F(DBHandleTests, test_get) {
 }
 
 TEST_F(DBHandleTests, test_put) {
-  auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test6");
   auto s = db->Put(kQueries, "test_put", "bar");
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 }
 
 TEST_F(DBHandleTests, test_delete) {
-  auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test7");
   db->Put(kQueries, "test_delete", "baz");
   auto s = db->Delete(kQueries, "test_delete");
   EXPECT_TRUE(s.ok());
@@ -67,7 +76,6 @@ TEST_F(DBHandleTests, test_delete) {
 }
 
 TEST_F(DBHandleTests, test_scan) {
-  auto db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-test8");
   db->Put(kQueries, "test_scan_foo1", "baz");
   db->Put(kQueries, "test_scan_foo2", "baz");
   db->Put(kQueries, "test_scan_foo3", "baz");

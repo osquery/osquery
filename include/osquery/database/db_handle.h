@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-#include <gtest/gtest_prod.h>
 #include <rocksdb/db.h>
 
 #include "osquery/status.h"
@@ -247,26 +246,8 @@ class DBHandle {
   // Unit tests which can access private members
   /////////////////////////////////////////////////////////////////////////////
 
-  FRIEND_TEST(DBHandleTests, test_create_new_database_on_disk);
-  FRIEND_TEST(DBHandleTests, test_singleton_on_disk);
-  FRIEND_TEST(DBHandleTests, test_get_instance_in_memory);
-  FRIEND_TEST(DBHandleTests, test_is_query_name_in_database);
-  FRIEND_TEST(DBHandleTests, test_get_handle_for_column_family);
-  FRIEND_TEST(DBHandleTests, test_get_stored_query_names);
-  FRIEND_TEST(DBHandleTests, test_get_executions);
-  FRIEND_TEST(DBHandleTests, test_get);
-  FRIEND_TEST(DBHandleTests, test_put);
-  FRIEND_TEST(DBHandleTests, test_delete);
-  FRIEND_TEST(DBHandleTests, test_scan);
-
-  FRIEND_TEST(QueryTests, test_add_and_get_current_results);
-  FRIEND_TEST(QueryTests, test_is_query_name_in_database);
-  FRIEND_TEST(QueryTests, test_get_stored_query_names);
-  FRIEND_TEST(QueryTests, test_get_executions);
-  FRIEND_TEST(QueryTests, test_get_current_results);
-  FRIEND_TEST(QueryTests, test_get_historical_query_results);
-  FRIEND_TEST(QueryTests, test_query_name_not_found_in_db);
-
+  friend class DBHandleTests;
+  friend class QueryTests;
   friend class EventsDatabaseTests;
 };
 }
