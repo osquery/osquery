@@ -153,8 +153,10 @@ function main() {
   mkdir -p $WORKING_DIR
   cd $WORKING_DIR
 
-  if [[ $EUID -ne 0 ]]; then
-    fatal "this script must be run as root. exiting."
+  if [ $OS = "ubuntu" ] || [ $OS = "centos" ]; then
+    if [[ $EUID -ne 0 ]]; then
+      fatal "this script must be run as root. exiting."
+    fi
   fi
 
   if [[ $OS = "centos" ]]; then
