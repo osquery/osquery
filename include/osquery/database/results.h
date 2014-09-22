@@ -36,6 +36,17 @@ typedef std::map<std::string, std::string> Row;
  * of the operation
  */
 osquery::Status serializeRow(const Row& r, boost::property_tree::ptree& tree);
+
+/**
+ * @brief Serialize a Row object into a JSON string
+ *
+ * @param r the Row to serialize
+ * @param json a reference to a string which, if all operations are completed
+ * successfully, the contents of Row will be serialized into
+ *
+ * @return an instance of osquery::Status, indicating the success or failure
+ * of the operation
+ */
 osquery::Status serializeRowJSON(const Row& r, std::string json);
 
 /////////////////////////////////////////////////////////////////////////////

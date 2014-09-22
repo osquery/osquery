@@ -8,14 +8,10 @@
 namespace osquery {
 
 class INotifyTests : public testing::Test {
-protected:
-  virtual void SetUp() {
-    ef = EventFactory::get();
-  }
+ protected:
+  virtual void SetUp() { ef = EventFactory::get(); }
 
-  virtual void TearDown() {
-    EventFactory::deregisterEventTypes();
-  }
+  virtual void TearDown() { EventFactory::deregisterEventTypes(); }
 
   boost::shared_ptr<EventFactory> ef;
 };
@@ -69,8 +65,8 @@ TEST_F(INotifyTests, test_inotify_run) {
   EventFactory::addMonitor("INotifyEventType", Monitor::create(mc));
 
   // Need a thread that touches the file path above
-  //status = EventFactory::run("INotifyEventType");
-  //EXPECT_TRUE(status.ok());
+  // status = EventFactory::run("INotifyEventType");
+  // EXPECT_TRUE(status.ok());
   EXPECT_TRUE(true);
 }
 }

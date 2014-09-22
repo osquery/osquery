@@ -23,7 +23,8 @@ class QueryTests : public testing::Test {
   void TearDown() {
     boost::filesystem::remove_all("/tmp/rocksdb-osquery-querytests");
   }
-public:
+
+ public:
   std::shared_ptr<DBHandle> db;
 };
 

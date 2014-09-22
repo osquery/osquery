@@ -18,12 +18,14 @@ class DBHandleTests : public testing::Test {
     // Setup a testing DB instance
     db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-dbhandletests");
     cfh_queries = DBHandle::getInstance()->getHandleForColumnFamily(kQueries);
-    cfh_foobar = DBHandle::getInstance()->getHandleForColumnFamily("foobartest");
+    cfh_foobar =
+        DBHandle::getInstance()->getHandleForColumnFamily("foobartest");
   }
   void TearDown() {
     boost::filesystem::remove_all("/tmp/rocksdb-osquery-dbhandletests");
   }
-public:
+
+ public:
   rocksdb::ColumnFamilyHandle* cfh_queries;
   rocksdb::ColumnFamilyHandle* cfh_foobar;
   std::shared_ptr<DBHandle> db;
@@ -50,10 +52,8 @@ TEST_F(DBHandleTests, test_get_handle_for_column_family) {
 }
 
 TEST_F(DBHandleTests, test_get) {
-  db->getDB()->Put(rocksdb::WriteOptions(),
-                   cfh_queries,
-                   "test_query_123",
-                   "{}");
+  db->getDB()->Put(
+      rocksdb::WriteOptions(), cfh_queries, "test_query_123", "{}");
   std::string r;
   std::string key = "test_query_123";
   auto s = db->Get(kQueries, key, r);

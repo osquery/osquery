@@ -46,9 +46,8 @@ Status serializeRowJSON(const Row& r, std::string json) {
     std::ostringstream ss;
     pt::write_json(ss, tree, false);
     json = ss.str();
-  }
-  catch (const std::exception& ex) {
-    return Status(1, ex.what());
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
   }
   return Status(0, "OK");
 }

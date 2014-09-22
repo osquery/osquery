@@ -38,8 +38,10 @@ typedef std::function<Status(EventContextID, EventTime, EventContextRef)>
 
 /// An EventType must track every monitor added.
 typedef std::vector<MonitorRef> MonitorVector;
+
 /// The EventFactory tracks every EventType and the name it specifies.
 typedef std::map<EventTypeID, EventTypeRef> EventTypeMap;
+
 /// The set of search-time binned lookup tables.
 extern const std::vector<size_t> kEventTimeLists;
 
@@ -47,26 +49,24 @@ extern const std::vector<size_t> kEventTimeLists;
 // choose to macro-define a getter for a custom EventContext/MonitorContext.
 // This assumes each event will implement custom fields for monitoring
 // and custom fields holding event-related data.
-#define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT) \
-public: \
-  EventTypeID type() const { return TYPE; } \
-  static boost::shared_ptr<EVENT> \
-    getEventContext(EventContextRef context) { \
-      return boost::static_pointer_cast<EVENT>(context); \
-    } \
-  static boost::shared_ptr<MONITOR> \
-    getMonitorContext(MonitorContextRef context) { \
-      return boost::static_pointer_cast<MONITOR>(context); \
-    } \
-  static boost::shared_ptr<EVENT> \
-    createEventContext() { \
-      auto ec = boost::make_shared<EVENT>(); \
-      return ec; \
-    }
+#define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                              \
+ public:                                                                     \
+  EventTypeID type() const { return TYPE; }                                  \
+  static boost::shared_ptr<EVENT> getEventContext(EventContextRef context) { \
+    return boost::static_pointer_cast<EVENT>(context);                       \
+  }                                                                          \
+  static boost::shared_ptr<MONITOR> getMonitorContext(                       \
+      MonitorContextRef context) {                                           \
+    return boost::static_pointer_cast<MONITOR>(context);                     \
+  }                                                                          \
+  static boost::shared_ptr<EVENT> createEventContext() {                     \
+    auto ec = boost::make_shared<EVENT>();                                   \
+    return ec;                                                               \
+  }
 
 /// Helper define for binding EventModule to an EventType.
-#define DECLARE_EVENTMODULE(NAME, TYPE) \
-private: \
+#define DECLARE_EVENTMODULE(NAME, TYPE)     \
+ private:                                   \
   EventTypeID name() const { return NAME; } \
   EventTypeID type() const { return TYPE; }
 
@@ -91,7 +91,7 @@ struct Monitor {
   }
 };
 
-/** 
+/**
  * @brief Generate OS events of a type (FS, Network, Syscall, ioctl).
  *
  * A class of OS Events is abstracted into a type-class responsible for
@@ -115,28 +115,27 @@ class EventType {
     return Status(0, "OK");
   }
 
-  size_t numMonitors() {
-    return monitors_.size();
-  }  
+  size_t numMonitors() { return monitors_.size(); }
 
   EventType(){};
 
   virtual EventTypeID type() const = 0;
 
-protected:
+ protected:
   void fire(EventContextRef ec, EventTime event_time = 0);
 
-protected:
+ protected:
   /// The EventType will keep track of Monitors that contain associated callins.
   MonitorVector monitors_;
+
   /// An Event ID is assigned by the EventType within the EventContext.
   /// This is not used to store EventData in the backing store.
   EventContextID next_ec_id_;
 
-private:
+ private:
   boost::mutex ec_id_lock_;
 
-private:
+ private:
   FRIEND_TEST(EventsTests, test_fire_event);
 };
 
@@ -144,34 +143,34 @@ private:
  * @brief An interface binding monitors, event response, and table generation.
  *
  * Use the EventModule interface when adding event monitors and defining callin
- * functions. The EventCallback typedef is usually a member function for an 
+ * functions. The EventCallback typedef is usually a member function for an
  * EventModule. The EventModule interface includes a very important 'Add' method
- * that abstracts the needed event to backing store interaction. 
+ * that abstracts the needed event to backing store interaction.
  *
  * Storing event data in the backing store must match a table spec for queries.
  * Small overheads exist that help query-time indexing and lookups.
  */
 class EventModule {
-protected:
+ protected:
   /// Store an event for Table-access into the underlying backing store.
   Status Add(const osquery::Row& r, int event_time);
 
-private:
+ private:
   /// Returns a new Event ID for this module, increments to the current EID.
   EventID getEventID();
 
   /// Records an added EventID/Event data.
   Status recordEvent(EventID eid, int event_time);
 
-private:
+ private:
   virtual EventTypeID type() const = 0;
   virtual EventTypeID name() const = 0;
 
-private:
+ private:
   boost::mutex event_id_lock_;
   boost::mutex event_record_lock_;
 
-private:
+ private:
   FRIEND_TEST(EventsDatabaseTests, test_event_module_id);
   FRIEND_TEST(EventsDatabaseTests, test_unique_event_module_id);
 };

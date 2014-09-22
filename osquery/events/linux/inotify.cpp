@@ -10,8 +10,8 @@
 namespace osquery {
 
 int kINotifyLatency = 1;
-static const uint32_t BUFFER_SIZE = (10 * \
-  ((sizeof (struct inotify_event)) + NAME_MAX + 1));
+static const uint32_t BUFFER_SIZE =
+    (10 * ((sizeof(struct inotify_event)) + NAME_MAX + 1));
 
 void INotifyEventType::setUp() {
   inotify_handle_ = ::inotify_init();
@@ -39,7 +39,7 @@ Status INotifyEventType::run() {
 
   FD_ZERO(&set);
   FD_SET(getHandle(), &set);
-  
+
   double sec;
   double frac = ::modf(kINotifyLatency, &sec);
   timeout.tv_sec = sec;
@@ -62,7 +62,7 @@ Status INotifyEventType::run() {
     return Status(1, "INotify read failed");
   }
 
-  for (char *p = buffer; p < buffer + record_num;) {
+  for (char* p = buffer; p < buffer + record_num;) {
     // Cast the inotify struct, make shared pointer, and append to contexts.
     auto event = reinterpret_cast<struct inotify_event*>(p);
     auto ec = createEventContext(event);
@@ -72,7 +72,7 @@ Status INotifyEventType::run() {
   }
 
   // Fire all inotify event contexts.
-  //fire(event_contexts, 0);
+  // fire(event_contexts, 0);
 
   ::sleep(kINotifyLatency);
   return Status(0, "Continue");
@@ -109,16 +109,9 @@ bool INotifyEventType::isMonitored(const std::string& path) {
   return (path_descriptors_.find(path) != path_descriptors_.end());
 }
 
-void INotifyEventType::processDirEvent(struct inotify_event* event) {
+void INotifyEventType::processDirEvent(struct inotify_event* event) {}
 
-}
+void INotifyEventType::processNodeEvent(struct inotify_event* event) {}
 
-void INotifyEventType::processNodeEvent(struct inotify_event* event) {
-
-}
-
-void INotifyEventType::processEvent(struct inotify_event* event) {
-
-}
-
+void INotifyEventType::processEvent(struct inotify_event* event) {}
 }

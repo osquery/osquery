@@ -10,7 +10,7 @@
 namespace osquery {
 
 class EventsDatabaseTests : public ::testing::Test {
-public:
+ public:
   void SetUp() {
     // Setup a testing DB instance
     DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-testevents");
@@ -20,10 +20,10 @@ public:
   }
 };
 
-class FakeEventModule: public EventModule {
+class FakeEventModule : public EventModule {
   DECLARE_EVENTMODULE("FakeEventModule", "FakeEventType");
 
-public:
+ public:
   Status TestAdd(int i) {
     Row r;
     r["testing"] = "hello from space";
@@ -31,11 +31,11 @@ public:
   }
 };
 
-class FakeEventType: public EventType {
+class FakeEventType : public EventType {
   DECLARE_EVENTTYPE("FakeEventType", MonitorContext, EventContext);
 };
 
-class AnotherFakeEventModule: public EventModule {
+class AnotherFakeEventModule : public EventModule {
   DECLARE_EVENTMODULE("AnotherFakeEventModule", "FakeEventType");
 };
 

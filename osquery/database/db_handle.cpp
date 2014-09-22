@@ -26,9 +26,7 @@ const std::string kConfigurations = "configurations";
 const std::string kQueries = "queries";
 const std::string kEvents = "events";
 
-const std::vector<std::string> kDomains = {
-  kConfigurations, kQueries, kEvents
-};
+const std::vector<std::string> kDomains = {kConfigurations, kQueries, kEvents};
 
 /////////////////////////////////////////////////////////////////////////////
 // constructors and destructors

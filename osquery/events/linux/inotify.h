@@ -19,11 +19,11 @@ namespace osquery {
 
 const EventTypeID kINotifyEventTypeID = "INotifyEventType";
 
-struct INotifyMonitorContext: public MonitorContext {
+struct INotifyMonitorContext : public MonitorContext {
   std::string path;
 };
 
-struct INotifyEventContext: public EventContext {
+struct INotifyEventContext : public EventContext {
   boost::shared_ptr<struct inotify_event> event;
 };
 
@@ -34,13 +34,15 @@ typedef boost::shared_ptr<INotifyMonitorContext> INotifyMonitorContextRef;
 typedef std::vector<int> DescriptorVector;
 typedef std::map<std::string, int> PathDescriptorMap;
 typedef std::map<int, std::string> DescriptorPathMap;
-//typedef std::vector<int> RemovedDescriptorsVector;
-//typedef std::vector<int> RemovedWatchesVector;
+// typedef std::vector<int> RemovedDescriptorsVector;
+// typedef std::vector<int> RemovedWatchesVector;
 
-class INotifyEventType: public EventType {
-  DECLARE_EVENTTYPE(kINotifyEventTypeID, 
-    INotifyMonitorContext, INotifyEventContext);
-public:
+class INotifyEventType : public EventType {
+  DECLARE_EVENTTYPE(kINotifyEventTypeID,
+                    INotifyMonitorContext,
+                    INotifyEventContext);
+
+ public:
   void setUp();
   void configure();
   void tearDown();
@@ -48,22 +50,16 @@ public:
   Status run();
   Status addMonitor(const MonitorRef monitor);
 
-  INotifyEventType() : EventType() {
-    inotify_handle_ = -1;
-  }
+  INotifyEventType() : EventType() { inotify_handle_ = -1; }
 
-  bool isHandleOpen() {
-    return inotify_handle_ > 0;
-  }
+  bool isHandleOpen() { return inotify_handle_ > 0; }
 
-private:
+ private:
   INotifyEventContextRef createEventContext(struct inotify_event* event);
 
-private:
+ private:
   bool isMonitored(const std::string& path);
-  int getHandle() {
-    return inotify_handle_;
-  }
+  int getHandle() { return inotify_handle_; }
 
   void processDirEvent(struct inotify_event* event);
   void processNodeEvent(struct inotify_event* event);
@@ -75,5 +71,4 @@ private:
   DescriptorPathMap descriptor_paths_;
   int inotify_handle_;
 };
-
 }

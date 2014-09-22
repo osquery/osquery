@@ -11,9 +11,9 @@
 namespace osquery {
 
 const std::vector<size_t> kEventTimeLists = {
-  1 * 60,  // 1 minute
-  1 * 60 * 60,  // 1 hour
-  12 * 60 * 60,  // half-day
+    1 * 60, // 1 minute
+    1 * 60 * 60, // 1 hour
+    12 * 60 * 60, // half-day
 };
 
 void EventType::fire(EventContextRef ec, EventTime event_time) {
@@ -100,7 +100,7 @@ EventID EventModule::getEventID() {
   return eid_value;
 }
 
-Status EventModule::Add(const osquery::Row &r, int event_time) {
+Status EventModule::Add(const osquery::Row& r, int event_time) {
   Status status;
   auto db = DBHandle::getInstance();
 
@@ -125,7 +125,7 @@ Status EventModule::Add(const osquery::Row &r, int event_time) {
 
 Status EventFactory::run(EventTypeID type_id) {
   // An interesting take on an event dispatched entrypoint.
-  // There is little introspection into the event type. 
+  // There is little introspection into the event type.
   // Assume it can either make use of an entrypoint poller/selector or
   // take care of async callback registrations in setUp/configure/run
   // only once and handle event queueing/firing in callbacks.
@@ -180,8 +180,8 @@ Status EventFactory::addMonitor(EventTypeID type_id, const MonitorRef monitor) {
 }
 
 Status EventFactory::addMonitor(EventTypeID type_id,
-    const MonitorContextRef mc,
-    EventCallback callback) {
+                                const MonitorContextRef mc,
+                                EventCallback callback) {
   auto monitor = Monitor::create(mc, callback);
   return EventFactory::addMonitor(type_id, monitor);
 }
@@ -229,5 +229,4 @@ Status EventFactory::deregisterEventTypes() {
   ef->event_types_.erase(ef->event_types_.begin(), ef->event_types_.end());
   return Status(0, "OK");
 }
-
 }

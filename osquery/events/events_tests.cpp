@@ -7,14 +7,10 @@
 namespace osquery {
 
 class EventsTests : public testing::Test {
-protected:
-  virtual void SetUp() {
-    ef = EventFactory::get();
-  }
+ protected:
+  virtual void SetUp() { ef = EventFactory::get(); }
 
-  virtual void TearDown() {
-    ef->deregisterEventTypes();
-  }
+  virtual void TearDown() { ef->deregisterEventTypes(); }
 
   boost::shared_ptr<EventFactory> ef;
 };
@@ -25,11 +21,11 @@ TEST_F(EventsTests, test_singleton) {
   EXPECT_EQ(one, two);
 }
 
-class BasicEventType: public EventType {
+class BasicEventType : public EventType {
   DECLARE_EVENTTYPE("BasicEventType", MonitorContext, EventContext);
 };
 
-class FakeBasicEventType: public EventType {
+class FakeBasicEventType : public EventType {
   DECLARE_EVENTTYPE("FakeBasicEventType", MonitorContext, EventContext);
 };
 
@@ -93,17 +89,15 @@ TEST_F(EventsTests, test_multiple_monitors) {
   EXPECT_EQ(EventFactory::numMonitors("BasicEventType"), 2);
 }
 
-struct TestMonitorContext: public MonitorContext {
+struct TestMonitorContext : public MonitorContext {
   int smallest;
 };
 
-class TestEventType: public EventType {
+class TestEventType : public EventType {
   DECLARE_EVENTTYPE("TestEventType", TestMonitorContext, EventContext);
 
-public:
-  void setUp() {
-    smallest_ever_ += 1;
-  }
+ public:
+  void setUp() { smallest_ever_ += 1; }
 
   void configure() {
     int smallest_monitor = smallest_ever_;
@@ -119,9 +113,7 @@ public:
     smallest_ever_ = smallest_monitor;
   }
 
-  void tearDown() {
-    smallest_ever_ += 1;
-  }
+  void tearDown() { smallest_ever_ += 1; }
 
   TestEventType() : EventType() {
     smallest_ever_ = 0;
@@ -129,14 +121,12 @@ public:
   }
 
   // Custom methods do not make sense, but for testing it exists.
-  int getTestValue() {
-    return smallest_ever_;
-  }
+  int getTestValue() { return smallest_ever_; }
 
-public:
+ public:
   bool configure_run;
 
-private:
+ private:
   int smallest_ever_;
 };
 
@@ -161,7 +151,7 @@ TEST_F(EventsTests, test_custom_monitor) {
   // Step 1, register event type
   auto event_type = boost::make_shared<TestEventType>();
   status = EventFactory::registerEventType(event_type);
-  
+
   // Step 2, create and configure a monitor context
   auto monitor_context = boost::make_shared<TestMonitorContext>();
   monitor_context->smallest = -1;
@@ -206,8 +196,9 @@ TEST_F(EventsTests, test_tear_down) {
 
 static int kBellHathTolled = 0;
 
-Status TestTheeCallback(EventContextID ec_id, EventTime time, 
-    EventContextRef context) {
+Status TestTheeCallback(EventContextID ec_id,
+                        EventTime time,
+                        EventContextRef context) {
   kBellHathTolled += 1;
   return Status(0, "OK");
 }
