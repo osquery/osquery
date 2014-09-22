@@ -36,6 +36,23 @@ Status serializeRow(const Row& r, pt::ptree& tree) {
   return Status(0, "OK");
 }
 
+Status serializeRowJSON(const Row& r, std::string json) {
+  pt::ptree tree;
+  try {
+    auto status = serializeRow(r, tree);
+    if (!status.ok()) {
+      return status;
+    }
+    std::ostringstream ss;
+    pt::write_json(ss, tree, false);
+    json = ss.str();
+  }
+  catch (const std::exception& ex) {
+    return Status(1, ex.what());
+  }
+  return Status(0, "OK");
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // QueryData - the representation of a database query result set. It's a
 // vector of rows

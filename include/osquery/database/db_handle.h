@@ -36,6 +36,9 @@ extern const std::string kQueries;
 /// The "domain" where certain global configurations are stored
 extern const std::string kConfigurations;
 
+/// The "domain" where event results are stored, queued for querytime
+extern const std::string kEvents;
+
 /////////////////////////////////////////////////////////////////////////////
 // DBHandle RAII singleton
 /////////////////////////////////////////////////////////////////////////////
@@ -263,5 +266,7 @@ class DBHandle {
   FRIEND_TEST(QueryTests, test_get_current_results);
   FRIEND_TEST(QueryTests, test_get_historical_query_results);
   FRIEND_TEST(QueryTests, test_query_name_not_found_in_db);
+
+  friend class EventsDatabaseTests;
 };
 }
