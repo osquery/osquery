@@ -74,7 +74,7 @@ function install_thrift() {
   if [[ ! -d thrift-0.9.1 ]]; then
     tar -xf 0.9.1.tar.gz
   fi
-  if [[ ! -f /usr/local/lib/libthrift.so ]]; then
+  if [[ ! -f /usr/local/lib/libthrift.a ]]; then
     pushd thrift-0.9.1
     ./bootstrap.sh
     ./configure
@@ -94,13 +94,13 @@ function install_rocksdb() {
     tar -xf rocksdb-3.5.tar.gz
   fi
   if [ $OS = "ubuntu" ] || [ $OS = "centos" ]; then
-    if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.so ]]; then
+    if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
       pushd rocksdb-rocksdb-3.5
-      make shared_lib
+      make all
       popd
     fi
-    if [[ ! -f /usr/local/lib/librocksdb.so ]]; then
-      cp rocksdb-rocksdb-3.5/librocksdb.so /usr/local/lib
+    if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
+      cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
     else
       log "librocksdb already installed. skipping."
     fi
@@ -111,13 +111,13 @@ function install_rocksdb() {
       log "rocksdb header already installed. skipping."
     fi
   elif [[ $OS = "darwin" ]]; then
-    if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.dylib ]]; then
+    if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
       pushd rocksdb-rocksdb-3.5
-      make shared_lib
+      make all
       popd
     fi
-    if [[ ! -f /usr/local/lib/librocksdb.dylib ]]; then
-      cp rocksdb-rocksdb-3.5/librocksdb.dylib /usr/local/lib
+    if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
+      cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
       cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
     else
       log "rocksdb already installed. skipping."
@@ -210,6 +210,9 @@ function main() {
     install_thrift
 
     install_rocksdb
+
+    package libunwind8-dev
+    package liblzma-dev
   elif [[ $OS = "centos" ]]; then
     yum update -y
 

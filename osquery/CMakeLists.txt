@@ -1,29 +1,44 @@
 SET(OSQUERY_LIBS
-  gflags
-  glog
-  gtest
-
-  bz2
+  # general
   readline
-  rocksdb
-  snappy
-  thrift
-  z
 
-  boost_system
-  boost_filesystem
-  boost_program_options
-
-  # For SQLite pthread, dl
+  # sqlite
   pthread
   dl
+
+  # gflags
+  libgflags.a
+
+  # glog
+  libglog.a
+
+  # gtest
+  gtest
+
+  # rocksdb
+  librocksdb.a
+  libsnappy.a
+  bz2
+  z
+
+  # thrift
+  libthrift.a
+  crypto
+  ssl
+
+  # boost
+  libboost_system.a
+  libboost_filesystem.a
+  libboost_program_options.a
 )
 
 # Handle naming differences in MT threading
 if(APPLE)
-  list(APPEND OSQUERY_LIBS "boost_thread-mt")
+  list(APPEND OSQUERY_LIBS "libboost_thread-mt.a")
 else()
-  list(APPEND OSQUERY_LIBS "boost_thread")
+  list(APPEND OSQUERY_LIBS "libboost_thread.a")
+  list(APPEND OSQUERY_LIBS "libunwind.a")
+  list(APPEND OSQUERY_LIBS "liblzma.a")
 endif()
 
 # Fill this in with objects for libosquery
@@ -54,9 +69,10 @@ ENDMACRO(SET_OSQUERY_COMPILE)
 
 MACRO(ADD_OSQUERY_TEST TEST_NAME SOURCE LINK)
   ADD_EXECUTABLE(${TEST_NAME} ${SOURCE})
-  TARGET_LINK_LIBRARIES(${TEST_NAME} ${LINK})
+  #TARGET_LINK_LIBRARIES(${TEST_NAME} ${LINK})
   TARGET_LINK_LIBRARIES(${TEST_NAME} ${OSQUERY_ADDITIONAL_LINKS})
-  TARGET_LINK_LIBRARIES(${TEST_NAME} ${OSQUERY_LIBS})
+  #TARGET_LINK_LIBRARIES(${TEST_NAME} ${OSQUERY_LIBS})
+  TARGET_LINK_LIBRARIES(${TEST_NAME} osquery_shared)
   SET(OPTIONAL_FLAGS ${ARGN})
   SET_OSQUERY_COMPILE(${TEST_NAME} ${OPTIONAL_FLAGS})
   ADD_TEST(${TEST_NAME} ${TEST_NAME})

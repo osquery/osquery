@@ -4,7 +4,6 @@
 #include <boost/shared_ptr.hpp>
 
 #include <gtest/gtest.h>
-#include <glog/logging.h>
 
 #include "osquery/core/conversions.h"
 
@@ -26,7 +25,6 @@ TEST_F(ConversionsTests, test_conversion) {
 }
 
 int main(int argc, char* argv[]) {
-  google::InitGoogleLogging(argv[0]);
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
