@@ -10,20 +10,30 @@
 
 namespace osquery {
 
-const std::vector<size_t> kEventTimeLists = {
-    1 * 60, // 1 minute
-    1 * 60 * 60, // 1 hour
-    12 * 60 * 60, // half-day
+const std::vector<size_t> kEventTimeLists = {1 * 60, // 1 minute
+                                             1 * 60 * 60, // 1 hour
+                                             12 * 60 * 60, // half-day
 };
 
-void EventType::fire(EventContextRef ec, EventTime event_time) {
-  EventContextID ec_id = next_ec_id_++;
+void EventType::fire(const EventContextRef ec, EventTime event_time) {
+  EventContextID ec_id;
+
+  {
+    boost::lock_guard<boost::mutex> lock(ec_id_lock_);
+    ec_id = next_ec_id_++;
+  }
+
   for (const auto& monitor : monitors_) {
     auto callback = monitor->callback;
-    if (callback != nullptr) {
+    if (shouldFire(monitor->context, ec) && callback != nullptr) {
       callback(ec_id, event_time, ec);
     }
   }
+}
+
+bool EventType::shouldFire(const MonitorContextRef mc,
+                           const EventContextRef ec) {
+  return true;
 }
 
 Status EventType::run() {
@@ -123,6 +133,14 @@ Status EventModule::Add(const osquery::Row& r, int event_time) {
   return status;
 }
 
+void EventFactory::delay() {
+  auto ef = EventFactory::get();
+  for (const auto& eventtype : EventFactory::get()->event_types_) {
+    auto type_id = eventtype.first;
+    ef->threads_.push_back(new boost::thread(EventFactory::run, type_id));
+  }
+}
+
 Status EventFactory::run(EventTypeID type_id) {
   // An interesting take on an event dispatched entrypoint.
   // There is little introspection into the event type.
@@ -135,13 +153,18 @@ Status EventFactory::run(EventTypeID type_id) {
   }
 
   Status status = Status(0, "OK");
-  while (status.ok()) {
-    // Can implement a global cooloff latency here.
+  while (!EventFactory::get()->ending_ && status.ok()) {
+    // Can optionally implement a global cooloff latency here.
     status = event_type->run();
   }
 
   // The runloop status is not reflective of the event type's.
   return Status(0, "OK");
+}
+
+void EventFactory::end() {
+  EventFactory::get()->ending_ = true;
+  // Join on the thread group.
 }
 
 // There's no reason for the event factory to keep multiple instances.

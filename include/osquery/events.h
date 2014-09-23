@@ -7,8 +7,9 @@
 #include <map>
 #include <vector>
 
-#include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/thread.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 
@@ -34,7 +35,7 @@ typedef boost::shared_ptr<MonitorContext> MonitorContextRef;
 typedef boost::shared_ptr<EventContext> EventContextRef;
 
 typedef std::function<Status(EventContextID, EventTime, EventContextRef)>
-    EventCallback;
+EventCallback;
 
 /// An EventType must track every monitor added.
 typedef std::vector<MonitorRef> MonitorVector;
@@ -117,12 +118,15 @@ class EventType {
 
   size_t numMonitors() { return monitors_.size(); }
 
-  EventType(){};
+  EventType() {};
 
   virtual EventTypeID type() const = 0;
 
  protected:
-  void fire(EventContextRef ec, EventTime event_time = 0);
+  /// The generic check loop to call monitor context callback methods.
+  void fire(const EventContextRef ec, EventTime event_time = 0);
+  /// Fire will check each monitor context againsts the event context.
+  virtual bool shouldFire(const MonitorContextRef mc, const EventContextRef ec);
 
  protected:
   /// The EventType will keep track of Monitors that contain associated callins.
@@ -196,9 +200,6 @@ class EventFactory {
   }
   static Status registerEventType(const EventTypeRef event_type);
 
-  // The dispatched event thread's entrypoint (if needed).
-  static Status run(EventTypeID type_id);
-
   static Status addMonitor(EventTypeID type_id, const MonitorRef monitor);
   static Status addMonitor(EventTypeID type_id,
                            const MonitorContextRef mc,
@@ -217,10 +218,20 @@ class EventFactory {
 
   static EventTypeRef getEventType(EventTypeID);
 
- private:
-  EventFactory() {}
+ public:
+  /// The dispatched event thread's entrypoint (if needed).
+  static Status run(EventTypeID type_id);
+  /// An initializer's entrypoint for spawning all event type run loops.
+  static void delay();
+  static void end();
 
  private:
+  EventFactory() { ending_ = false; }
+
+ private:
+  /// Set ending to true to cause event type run loops to finish.
+  bool ending_;
   EventTypeMap event_types_;
+  std::vector<boost::thread*> threads_;
 };
 }
