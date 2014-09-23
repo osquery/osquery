@@ -10,7 +10,7 @@ if(APPLE)
   ADD_OSQUERY_LINK("-framework Security")
   SET_OSQUERY_COMPILE(osquery_eventtypes_darwin)
 
-  LIST(APPEND OSQUERY_EVENTTYPES_TARGETS 
+  LIST(APPEND OSQUERY_EVENTTYPES_TARGETS
     $<TARGET_OBJECTS:osquery_eventtypes_darwin>)
 else()
   ADD_LIBRARY(osquery_eventtypes_linux OBJECT
@@ -31,19 +31,11 @@ ADD_LIBRARY(osquery_events OBJECT
 
 SET_OSQUERY_COMPILE(osquery_events)
 
-ADD_LIBRARY(osquery_testing_events
-  $<TARGET_OBJECTS:osquery_database>
-  $<TARGET_OBJECTS:osquery_events>
-  ${OSQUERY_EVENTTYPES_TARGETS}
-)
-
-ADD_OSQUERY_TEST(events_tests events_tests.cpp osquery_testing_events)
-ADD_OSQUERY_TEST(events_database_tests events_database_tests.cpp 
-  osquery_testing_events)
+ADD_OSQUERY_TEST(events_tests events_tests.cpp)
+ADD_OSQUERY_TEST(events_database_tests events_database_tests.cpp)
 
 if(APPLE)
 
 else()
-  ADD_OSQUERY_TEST(inotify_tests linux/inotify_tests.cpp
-    osquery_testing_events)
+  ADD_OSQUERY_TEST(inotify_tests linux/inotify_tests.cpp)
 endif()

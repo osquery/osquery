@@ -20,19 +20,9 @@ ADD_LIBRARY(osquery_filesystem OBJECT
 
 SET_OSQUERY_COMPILE(osquery_filesystem)
 
-ADD_LIBRARY(osquery_testing_filesystem
-  $<TARGET_OBJECTS:osquery_core>
-  $<TARGET_OBJECTS:osquery_filesystem>
-  ${OSQUERY_FILESYSTEM_TARGETS}
-)
-
-ADD_OSQUERY_TEST(filesystem_tests filesystem_tests.cpp
-  osquery_testing_filesystem)
+ADD_OSQUERY_TEST(filesystem_tests filesystem_tests.cpp)
 
 if(APPLE)
-  ADD_OSQUERY_TEST(plist_tests darwin/plist_tests.cpp
-    osquery_testing_filesystem)
-
-  ADD_OSQUERY_TEST(plist_benchmark darwin/plist_benchmark.cpp
-    osquery_testing_filesystem)
+  ADD_OSQUERY_TEST(plist_tests darwin/plist_tests.cpp)
+  ADD_OSQUERY_TEST(plist_benchmark darwin/plist_benchmark.cpp)
 endif()
