@@ -136,8 +136,9 @@ Status EventModule::Add(const osquery::Row& r, int event_time) {
 void EventFactory::delay() {
   auto ef = EventFactory::get();
   for (const auto& eventtype : EventFactory::get()->event_types_) {
-    auto type_id = eventtype.first;
-    ef->threads_.push_back(new boost::thread(EventFactory::run, type_id));
+    auto thread = boost::make_shared<boost::thread>(
+      boost::bind(&EventFactory::run, eventtype.first));
+    ef->threads_.push_back(thread);
   }
 }
 
@@ -162,8 +163,8 @@ Status EventFactory::run(EventTypeID type_id) {
   return Status(0, "OK");
 }
 
-void EventFactory::end() {
-  EventFactory::get()->ending_ = true;
+void EventFactory::end(bool should_end) {
+  EventFactory::get()->ending_ = should_end;
   // Join on the thread group.
 }
 
@@ -194,10 +195,8 @@ Status EventFactory::addMonitor(EventTypeID type_id, const MonitorRef monitor) {
     return Status(1, "No Event Type");
   }
 
-  Status status;
-
   // The event factory is responsible for configuring the event types.
-  status = event_type->addMonitor(monitor);
+  auto status = event_type->addMonitor(monitor);
   event_type->configure();
   return status;
 }

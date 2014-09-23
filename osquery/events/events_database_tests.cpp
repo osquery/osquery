@@ -21,7 +21,7 @@ class EventsDatabaseTests : public ::testing::Test {
 };
 
 class FakeEventModule : public EventModule {
-  DECLARE_EVENTMODULE("FakeEventModule", "FakeEventType");
+  DECLARE_EVENTMODULE(FakeEventModule, FakeEventType);
 
  public:
   Status TestAdd(int i) {
@@ -32,15 +32,15 @@ class FakeEventModule : public EventModule {
 };
 
 class FakeEventType : public EventType {
-  DECLARE_EVENTTYPE("FakeEventType", MonitorContext, EventContext);
+  DECLARE_EVENTTYPE(FakeEventType, MonitorContext, EventContext);
 };
 
 class AnotherFakeEventModule : public EventModule {
-  DECLARE_EVENTMODULE("AnotherFakeEventModule", "FakeEventType");
+  DECLARE_EVENTMODULE(AnotherFakeEventModule, FakeEventType);
 };
 
 TEST_F(EventsDatabaseTests, test_event_module_id) {
-  auto fake_event_module = new FakeEventModule();
+  auto fake_event_module = FakeEventModule::get();
   // Not normally available outside of EventModule->Add().
   auto event_id1 = fake_event_module->getEventID();
   EXPECT_EQ(event_id1, "1");
@@ -49,8 +49,8 @@ TEST_F(EventsDatabaseTests, test_event_module_id) {
 }
 
 TEST_F(EventsDatabaseTests, test_unique_event_module_id) {
-  auto fake_event_module = new FakeEventModule();
-  auto another_fake_event_module = new AnotherFakeEventModule();
+  auto fake_event_module = FakeEventModule::get();
+  auto another_fake_event_module = AnotherFakeEventModule::get();
   // Not normally available outside of EventModule->Add().
   auto event_id1 = fake_event_module->getEventID();
   EXPECT_EQ(event_id1, "3");
@@ -63,7 +63,7 @@ TEST_F(EventsDatabaseTests, test_event_add) {
   r["testing"] = std::string("hello from space");
   size_t event_time = 10;
 
-  auto fake_event_module = new FakeEventModule();
+  auto fake_event_module = FakeEventModule::get();
   auto status = fake_event_module->TestAdd(1);
   EXPECT_TRUE(status.ok());
 }

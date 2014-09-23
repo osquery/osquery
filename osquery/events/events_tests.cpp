@@ -22,11 +22,11 @@ TEST_F(EventsTests, test_singleton) {
 }
 
 class BasicEventType : public EventType {
-  DECLARE_EVENTTYPE("BasicEventType", MonitorContext, EventContext);
+  DECLARE_EVENTTYPE(BasicEventType, MonitorContext, EventContext);
 };
 
 class FakeBasicEventType : public EventType {
-  DECLARE_EVENTTYPE("FakeBasicEventType", MonitorContext, EventContext);
+  DECLARE_EVENTTYPE(FakeBasicEventType, MonitorContext, EventContext);
 };
 
 TEST_F(EventsTests, test_register_event_type) {
@@ -94,7 +94,7 @@ struct TestMonitorContext : public MonitorContext {
 };
 
 class TestEventType : public EventType {
-  DECLARE_EVENTTYPE("TestEventType", TestMonitorContext, EventContext);
+  DECLARE_EVENTTYPE(TestEventType, TestMonitorContext, EventContext);
 
  public:
   void setUp() { smallest_ever_ += 1; }

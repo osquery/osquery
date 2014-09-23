@@ -52,7 +52,7 @@ extern const std::vector<size_t> kEventTimeLists;
 // and custom fields holding event-related data.
 #define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                              \
  public:                                                                     \
-  EventTypeID type() const { return TYPE; }                                  \
+  EventTypeID type() const { return #TYPE; }                                 \
   static boost::shared_ptr<EVENT> getEventContext(EventContextRef context) { \
     return boost::static_pointer_cast<EVENT>(context);                       \
   }                                                                          \
@@ -61,15 +61,29 @@ extern const std::vector<size_t> kEventTimeLists;
     return boost::static_pointer_cast<MONITOR>(context);                     \
   }                                                                          \
   static boost::shared_ptr<EVENT> createEventContext() {                     \
-    auto ec = boost::make_shared<EVENT>();                                   \
-    return ec;                                                               \
+    return boost::make_shared<EVENT>();                                      \
   }
 
 /// Helper define for binding EventModule to an EventType.
-#define DECLARE_EVENTMODULE(NAME, TYPE)     \
- private:                                   \
-  EventTypeID name() const { return NAME; } \
-  EventTypeID type() const { return TYPE; }
+#define DECLARE_EVENTMODULE(NAME, TYPE)                  \
+ public:                                                 \
+  static boost::shared_ptr<NAME> get() {                 \
+    static auto q = boost::shared_ptr<NAME>(new NAME()); \
+    return q;                                            \
+  }                                                      \
+                                                         \
+ private:                                                \
+  EventTypeID name() const { return #NAME; }             \
+  EventTypeID type() const { return #TYPE; }
+
+/// Helper to define a static callback into an EventModule.
+#define DECLARE_CALLBACK(__NAME__, EVENT)                               \
+ public:                                                                \
+  static Status Event##__NAME__(                                        \
+      EventContextID ec_id, EventTime time, const EventContextRef ec) { \
+    auto ec_ = boost::static_pointer_cast<EVENT>(ec);                   \
+    return get()->Module##__NAME__(ec_id, time, ec_);                   \
+  }
 
 /**
  * @brief An implementation monitor context used to configure/create a monitor.
@@ -111,14 +125,15 @@ class EventType {
 
   virtual Status run();
 
-  Status addMonitor(const MonitorRef monitor) {
+  virtual Status addMonitor(const MonitorRef monitor) {
     monitors_.push_back(monitor);
     return Status(0, "OK");
   }
 
   size_t numMonitors() { return monitors_.size(); }
+  size_t numEvents() { return next_ec_id_; }
 
-  EventType() {};
+  EventType() : next_ec_id_(0) {};
 
   virtual EventTypeID type() const = 0;
 
@@ -166,7 +181,11 @@ class EventModule {
   /// Records an added EventID/Event data.
   Status recordEvent(EventID eid, int event_time);
 
- private:
+ protected:
+  /// Single instance requirement for static callback facilities.
+  EventModule() {}
+
+  /// Database namespace definition methods.
   virtual EventTypeID type() const = 0;
   virtual EventTypeID name() const = 0;
 
@@ -223,7 +242,7 @@ class EventFactory {
   static Status run(EventTypeID type_id);
   /// An initializer's entrypoint for spawning all event type run loops.
   static void delay();
-  static void end();
+  static void end(bool should_end = true);
 
  private:
   EventFactory() { ending_ = false; }
@@ -232,6 +251,6 @@ class EventFactory {
   /// Set ending to true to cause event type run loops to finish.
   bool ending_;
   EventTypeMap event_types_;
-  std::vector<boost::thread*> threads_;
+  std::vector<boost::shared_ptr<boost::thread> > threads_;
 };
 }
