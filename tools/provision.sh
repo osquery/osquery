@@ -99,16 +99,11 @@ function install_rocksdb() {
       make shared_lib
       popd
     fi
-    if [[ ! -f /usr/local/lib/librocksdb.so ]]; then
-      cp rocksdb-rocksdb-3.5/librocksdb.so /usr/local/lib
-    else
-      log "librocksdb already installed. skipping."
-    fi
+    cp rocksdb-rocksdb-3.5/librocksdb.so /usr/local/lib
     if [[ ! -d /usr/local/include/rocksdb ]]; then
       mkdir -p /usr/local/include
-      cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
     else
-      log "rocksdb header already installed. skipping."
+      cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
     fi
   elif [[ $OS = "darwin" ]]; then
     if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.dylib ]]; then
