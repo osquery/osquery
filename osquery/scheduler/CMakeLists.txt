@@ -1,7 +1,5 @@
-ADD_LIBRARY(osquery_scheduler OBJECT
+ADD_OSQUERY_LIBRARY(osquery_scheduler
   scheduler.cpp
 )
 
-SET_OSQUERY_COMPILE(osquery_scheduler)
-
-ADD_OSQUERY_TEST(scheduler_tests scheduler_tests.cpp "")
+ADD_OSQUERY_TEST(scheduler_tests scheduler_tests.cpp)

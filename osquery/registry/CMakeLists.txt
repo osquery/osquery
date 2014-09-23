@@ -1,7 +1,5 @@
-ADD_LIBRARY(osquery_registry OBJECT
+ADD_OSQUERY_LIBRARY(osquery_registry
   registry.cpp
 )
 
-SET_OSQUERY_COMPILE(osquery_registry)
-
-ADD_OSQUERY_TEST(registry_tests registry_tests.cpp "")
+ADD_OSQUERY_TEST(registry_tests registry_tests.cpp)

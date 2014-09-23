@@ -1,5 +1,3 @@
-ADD_LIBRARY(osquery_devtools OBJECT
+ADD_OSQUERY_LIBRARY(osquery_devtools
   shell.cpp
 )
-
-SET_OSQUERY_COMPILE(osquery_devtools)

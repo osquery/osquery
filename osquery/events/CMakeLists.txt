@@ -1,49 +1,27 @@
-SET(OSQUERY_EVENTTYPES_TARGETS "")
+SET(OSQUERY_EVENTS_SOURCES "")
 
 if(APPLE)
-  ADD_LIBRARY(osquery_eventtypes_darwin OBJECT
-    darwin/fsevents.cpp
-  )
-
   ADD_OSQUERY_LINK("-framework IOKit")
   ADD_OSQUERY_LINK("-framework CoreFoundation")
   ADD_OSQUERY_LINK("-framework Security")
-  SET_OSQUERY_COMPILE(osquery_eventtypes_darwin)
 
-  LIST(APPEND OSQUERY_EVENTTYPES_TARGETS 
-    $<TARGET_OBJECTS:osquery_eventtypes_darwin>)
+  ADD_OSQUERY_LIBRARY(osquery_events_darwin
+    darwin/fsevents.cpp
+  )
 else()
-  ADD_LIBRARY(osquery_eventtypes_linux OBJECT
+  ADD_OSQUERY_LIBRARY(osquery_events_linux
     linux/inotify.cpp
   )
-
-  SET_OSQUERY_COMPILE(osquery_eventtypes_linux)
-
-  LIST(APPEND OSQUERY_EVENTTYPES_TARGETS $<TARGET_OBJECTS:osquery_eventtypes_linux>)
 endif()
 
-# Add the targets from above to libosquery (may change with plugins)
-ADD_OSQUERY_LIB("${OSQUERY_EVENTTYPES_TARGETS}")
-
-ADD_LIBRARY(osquery_events OBJECT
+ADD_OSQUERY_LIBRARY(osquery_events
   events.cpp
 )
 
-SET_OSQUERY_COMPILE(osquery_events)
-
-ADD_LIBRARY(osquery_testing_events
-  $<TARGET_OBJECTS:osquery_database>
-  $<TARGET_OBJECTS:osquery_events>
-  ${OSQUERY_EVENTTYPES_TARGETS}
-)
-
-ADD_OSQUERY_TEST(events_tests events_tests.cpp osquery_testing_events)
-ADD_OSQUERY_TEST(events_database_tests events_database_tests.cpp 
-  osquery_testing_events)
+ADD_OSQUERY_TEST(events_tests events_tests.cpp)
+ADD_OSQUERY_TEST(events_database_tests events_database_tests.cpp)
 
 if(APPLE)
-
 else()
-  ADD_OSQUERY_TEST(inotify_tests linux/inotify_tests.cpp
-    osquery_testing_events)
+  ADD_OSQUERY_TEST(inotify_tests linux/inotify_tests.cpp)
 endif()

@@ -1,45 +1,54 @@
 SET(OSQUERY_LIBS
-  gflags
-  glog
-  gtest
-
-  bz2
+  # general
   readline
-  rocksdb
-  snappy
-  thrift
-  z
 
-  boost_system
-  boost_filesystem
-  boost_program_options
-
-  # For SQLite pthread, dl
+  # sqlite
   pthread
   dl
+
+  # gflags
+  libgflags.a
+
+  # glog
+  libglog.a
+
+  # gtest
+  gtest
+
+  # rocksdb
+  librocksdb.a
+  libsnappy.a
+  bz2
+  z
+
+  # thrift
+  libthrift.a
+  crypto
+  ssl
+
+  # boost
+  libboost_system.a
+  libboost_filesystem.a
+  libboost_program_options.a
 )
 
 # Handle naming differences in MT threading
 if(APPLE)
-  list(APPEND OSQUERY_LIBS "boost_thread-mt")
+  list(APPEND OSQUERY_LIBS "libboost_thread-mt.a")
 else()
-  list(APPEND OSQUERY_LIBS "boost_thread")
+  list(APPEND OSQUERY_LIBS "libboost_thread.a")
+  list(APPEND OSQUERY_LIBS "libunwind.a")
+  list(APPEND OSQUERY_LIBS "liblzma.a")
+  list(APPEND OSQUERY_LIBS "libprocps.a")
 endif()
 
 # Fill this in with objects for libosquery
-set(OSQUERY_LIB_ADDITIONAL_OBJECTS "")
+set(OSQUERY_SOURCES "")
 set(OSQUERY_ADDITIONAL_LINKS "")
-
-MACRO(ADD_OSQUERY_LIB TARGET)
-  list(APPEND OSQUERY_LIB_ADDITIONAL_OBJECTS ${TARGET})
-  set(OSQUERY_LIB_ADDITIONAL_OBJECTS ${OSQUERY_LIB_ADDITIONAL_OBJECTS}
-    PARENT_SCOPE)
-ENDMACRO(ADD_OSQUERY_LIB)
 
 MACRO(ADD_OSQUERY_LINK LINK)
   list(APPEND OSQUERY_ADDITIONAL_LINKS ${LINK})
-  set(OSQUERY_ADDITIONAL_LINKS ${OSQUERY_ADDITIONAL_LINKS}
-    PARENT_SCOPE)
+  set(OSQUERY_ADDITIONAL_LINKS ${OSQUERY_ADDITIONAL_LINKS} PARENT_SCOPE)
 ENDMACRO(ADD_OSQUERY_LINK)
 
 MACRO(SET_OSQUERY_COMPILE TARGET)
@@ -52,11 +61,24 @@ MACRO(SET_OSQUERY_COMPILE TARGET)
   ENDIF()
 ENDMACRO(SET_OSQUERY_COMPILE)
 
-MACRO(ADD_OSQUERY_TEST TEST_NAME SOURCE LINK)
+MACRO(ADD_OSQUERY_LIBRARY TARGET)
+  ADD_LIBRARY(${TARGET} OBJECT ${ARGN})
+  SET_OSQUERY_COMPILE(${TARGET})
+  list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
+  set(OSQUERY_SOURCES ${OSQUERY_SOURCES} PARENT_SCOPE)
+ENDMACRO(ADD_OSQUERY_LIBRARY TARGET)
+
+MACRO(ADD_OSQUERY_OBJCXX_LIBRARY TARGET)
+  ADD_LIBRARY(${TARGET} OBJECT ${ARGN})
+  SET_OSQUERY_COMPILE(${TARGET} "-x objective-c++ -fobjc-arc")
+  list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
+  set(OSQUERY_SOURCES ${OSQUERY_SOURCES} PARENT_SCOPE)
+ENDMACRO(ADD_OSQUERY_OBJCXX_LIBRARY TARGET)
+
+MACRO(ADD_OSQUERY_TEST TEST_NAME SOURCE)
   ADD_EXECUTABLE(${TEST_NAME} ${SOURCE})
-  TARGET_LINK_LIBRARIES(${TEST_NAME} ${LINK})
   TARGET_LINK_LIBRARIES(${TEST_NAME} ${OSQUERY_ADDITIONAL_LINKS})
-  TARGET_LINK_LIBRARIES(${TEST_NAME} ${OSQUERY_LIBS})
+  TARGET_LINK_LIBRARIES(${TEST_NAME} osquery_shared)
   SET(OPTIONAL_FLAGS ${ARGN})
   SET_OSQUERY_COMPILE(${TEST_NAME} ${OPTIONAL_FLAGS})
   ADD_TEST(${TEST_NAME} ${TEST_NAME})
@@ -87,37 +109,21 @@ ADD_SUBDIRECTORY(scheduler)
 ADD_SUBDIRECTORY(tables)
 
 SET(OSQUERY_LIB_OBJECTS
-  $<TARGET_OBJECTS:osquery_config>
-  $<TARGET_OBJECTS:osquery_core>
-  $<TARGET_OBJECTS:osquery_database>
-  $<TARGET_OBJECTS:osquery_devtools>
-  $<TARGET_OBJECTS:osquery_events>
-
-  $<TARGET_OBJECTS:osquery_filesystem>
-  $<TARGET_OBJECTS:osquery_logger>
-  $<TARGET_OBJECTS:osquery_registry>
-  $<TARGET_OBJECTS:osquery_scheduler>
-  $<TARGET_OBJECTS:osquery_dispatcher>
-
-  # Optional "core" tables objects
-  $<TARGET_OBJECTS:osquery_tables>
-
   # Third-party objects
   $<TARGET_OBJECTS:osquery_sqlite>
 
   # Build additional os-dependent libraries (may include tables)
-  ${OSQUERY_LIB_ADDITIONAL_OBJECTS}
+  ${OSQUERY_SOURCES}
 )
 
-if(DONT_BUILD_SHARED)
+if(BUILD_SHARED)
+  ADD_LIBRARY(osquery_shared SHARED main/lib.cpp ${OSQUERY_LIB_OBJECTS})
+else()
   ADD_LIBRARY(osquery_static STATIC ${OSQUERY_LIB_OBJECTS})
   SET_TARGET_PROPERTIES(osquery_static PROPERTIES OUTPUT_NAME osquery_static)
 
   ADD_LIBRARY(osquery_shared STATIC main/lib.cpp)
   TARGET_OSQUERY_LINK_WHOLE(osquery_shared osquery_static)
-else()
-  ADD_LIBRARY(osquery_shared SHARED main/lib.cpp ${OSQUERY_LIB_OBJECTS})
-  INSTALL(TARGETS osquery_shared DESTINATION lib)
 endif()
 ADD_DEPENDENCIES(osquery_shared librocksdb)
 TARGET_LINK_LIBRARIES(osquery_shared ${OSQUERY_ADDITIONAL_LINKS})

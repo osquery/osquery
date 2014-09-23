@@ -74,7 +74,7 @@ function install_thrift() {
   if [[ ! -d thrift-0.9.1 ]]; then
     tar -xf 0.9.1.tar.gz
   fi
-  if [[ ! -f /usr/local/lib/libthrift.so ]]; then
+  if [[ ! -f /usr/local/lib/libthrift.a ]]; then
     pushd thrift-0.9.1
     ./bootstrap.sh
     ./configure
@@ -94,13 +94,13 @@ function install_rocksdb() {
     tar -xf rocksdb-3.5.tar.gz
   fi
   if [ $OS = "ubuntu" ] || [ $OS = "centos" ]; then
-    if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.so ]]; then
+    if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
       pushd rocksdb-rocksdb-3.5
-      make shared_lib
+      make static_lib
       popd
     fi
-    if [[ ! -f /usr/local/lib/librocksdb.so ]]; then
-      cp rocksdb-rocksdb-3.5/librocksdb.so /usr/local/lib
+    if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
+      cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
     else
       log "librocksdb already installed. skipping."
     fi
@@ -111,13 +111,13 @@ function install_rocksdb() {
       log "rocksdb header already installed. skipping."
     fi
   elif [[ $OS = "darwin" ]]; then
-    if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.dylib ]]; then
+    if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
       pushd rocksdb-rocksdb-3.5
-      make shared_lib
+      make static_lib
       popd
     fi
-    if [[ ! -f /usr/local/lib/librocksdb.dylib ]]; then
-      cp rocksdb-rocksdb-3.5/librocksdb.dylib /usr/local/lib
+    if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
+      cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
       cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
     else
       log "rocksdb already installed. skipping."
@@ -163,6 +163,7 @@ function main() {
     log "detected centos"
   elif [[ $OS = "ubuntu" ]]; then
     log "detected ubuntu"
+    DISTRO=`cat /etc/*-release | grep DISTRIB_CODENAME | awk '{split($0,bits,"="); print bits[2]}'`
   elif [[ $OS = "darwin" ]]; then
     log "detected mac os x"
   else
@@ -176,12 +177,24 @@ function main() {
   fi
 
   if [[ $OS = "ubuntu" ]]; then
+
+    if [[ $DISTRO = "precise" ]]; then
+      add-apt-repository http://ppa.launchpad.net/boost-latest/ppa/ubuntu
+    fi
     apt-get update
 
     package git
     package unzip
     package build-essential
     package cmake
+    package devscripts
+    package debhelper
+    if [[ $DISTRO = "precise" ]]; then
+      package libunwind7-dev
+    fi
+    if [[ $DISTRO = "trusty" ]]; then
+      package libunwind8-dev
+    fi
 
     package python-pip
     package python-dev
@@ -193,8 +206,41 @@ function main() {
     set_cxx clang++
 
     package libboost1.55-all-dev
-    package libgflags-dev
-    package libgoogle-glog-dev
+
+    if [[ $DISTRO = "precise" ]]; then
+      if [[ ! -f libgflags-dev_2.1.0-1_amd64.deb ]]; then
+        wget https://github.com/schuhschuh/gflags/releases/download/v2.1.0/libgflags-dev_2.1.0-1_amd64.deb
+      else
+        log "gflags deb is already downloaded. skipping."
+      fi
+      if [[ ! -f /usr/lib/libgflags.a ]]; then
+        dpkg -i libgflags-dev_2.1.0-1_amd64.deb
+      else
+        log "gflags is already installed. skipping."
+      fi
+    else
+      package libgoogle-glog-dev
+    fi
+
+    if [[ $DISTRO = "precise" ]]; then
+      if [[ ! -f glog-0.3.3.tar.gz ]]; then
+        wget https://google-glog.googlecode.com/files/glog-0.3.3.tar.gz
+      fi
+      if [[ ! -d glog-0.3.3 ]]; then
+        tar -xf glog-0.3.3.tar.gz
+      fi
+      if [[ ! -f "glog-0.3.3-gflags-namespace.patch" ]]; then
+        wget https://gist.githubusercontent.com/marpaia/02312b7bd25502f5319a/raw/7d3e50c5079a085fe08822fd6952d5fb19c2fe1e/glog-0.3.3-gflags-namespace.patch
+        pushd glog-0.3.3
+        patch -p1 < ../glog-0.3.3-gflags-namespace.patch
+        popd
+      fi
+      pushd glog-0.3.3
+      ./configure
+      popd
+    else
+      package libgoogle-glog-dev
+    fi
     package libsnappy-dev
     package libbz2-dev
     package libreadline-dev
@@ -210,6 +256,9 @@ function main() {
     install_thrift
 
     install_rocksdb
+
+    package liblzma-dev
+    package libprocps3-dev
   elif [[ $OS = "centos" ]]; then
     yum update -y
 

@@ -1,7 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
 PROJECT(OSQUERY)
 
-set(USER_COMPILE_FLAGS " ")
 if(APPLE)
   set(OS_COMPILE_FLAGS "-std=c++11 -stdlib=libc++")
   set(OS_WHOLELINK_PRE "-Wl,-all_load")
@@ -12,11 +11,11 @@ else()
   set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
 endif()
 
-SET(DONT_BUILD_SHARED "" CACHE STRING "Build and link libosquery statically.")
-if(DONT_BUILD_SHARED)
-  # Building/linking statically (no libosquery)
-else()
+if(BUILD_SHARED_LIBS)
   set(USER_COMPILE_FLAGS "-fPIC")
+else()
+  # Building/linking statically (no libosquery)
+  set(USER_COMPILE_FLAGS "-static")
 endif()
 
 set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} ${USER_COMPILE_FLAGS}")
@@ -29,7 +28,6 @@ INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/include")
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}")
 INCLUDE_DIRECTORIES("/usr/local/include")
 LINK_DIRECTORIES("/usr/local/lib")
-
 
 ENABLE_TESTING()
 

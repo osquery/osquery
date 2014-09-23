@@ -6,7 +6,6 @@
 #include <iostream>
 
 #include <gtest/gtest.h>
-#include <glog/logging.h>
 
 #include "osquery/core/test_util.h"
 
