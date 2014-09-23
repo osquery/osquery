@@ -17,7 +17,7 @@ build:
 
 build_shared:
 	mkdir -p build/shared
-	cd build/shared && cmake -D BUILD_SHARED:Boolean=True ../.. && make $(MAKEFLAGS)
+	cd build/shared && cmake -D BUILD_SHARED_LIBS:Boolean=True ../.. && make $(MAKEFLAGS)
 
 fast:
 	cd build && cmake .. && make $(MAKEFLAGS)
