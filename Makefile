@@ -68,14 +68,14 @@ install:
 	cd build && make install
 
 .PHONY: package
-package: all
-	git submodule init
-	git submodule update
+package:
+	mkdir -p build
 ifeq ($(OS),Darwin)
 	packagesbuild -v package/darwin/osquery.pkgproj
-	mkdir -p build/darwin
-	mv package/darwin/build/osquery.pkg build/darwin/osquery.pkg
+	mv package/darwin/build/osquery.pkg build/osquery.pkg
 	rm -rf package/darwin/build
+else
+	cd build && cmake .. && make package $(MAKEFLAGS)
 endif
 
 pull:
