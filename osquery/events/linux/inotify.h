@@ -17,14 +17,21 @@
 
 namespace osquery {
 
-const EventTypeID kINotifyEventTypeID = "INotifyEventType";
-
 struct INotifyMonitorContext : public MonitorContext {
+  /// Monitor the following filesystem path.
   std::string path;
+  /// Limit the actions to the monitored mask.
+  uint32_t mask;
+  /// Treat this path as a directory and monitor recursively.
+  bool recursive;
+
+  INotifyMonitorContext() : mask(0), recursive(false) {}
 };
 
 struct INotifyEventContext : public EventContext {
   boost::shared_ptr<struct inotify_event> event;
+  std::string path;
+  std::string action;
 };
 
 typedef boost::shared_ptr<INotifyEventContext> INotifyEventContextRef;
@@ -34,11 +41,9 @@ typedef boost::shared_ptr<INotifyMonitorContext> INotifyMonitorContextRef;
 typedef std::vector<int> DescriptorVector;
 typedef std::map<std::string, int> PathDescriptorMap;
 typedef std::map<int, std::string> DescriptorPathMap;
-// typedef std::vector<int> RemovedDescriptorsVector;
-// typedef std::vector<int> RemovedWatchesVector;
 
 class INotifyEventType : public EventType {
-  DECLARE_EVENTTYPE(kINotifyEventTypeID,
+  DECLARE_EVENTTYPE(INotifyEventType,
                     INotifyMonitorContext,
                     INotifyEventContext);
 
@@ -59,6 +64,8 @@ class INotifyEventType : public EventType {
 
  private:
   bool isMonitored(const std::string& path);
+  bool shouldFire(const INotifyMonitorContextRef mc,
+                  const INotifyEventContextRef ec);
   int getHandle() { return inotify_handle_; }
 
   void processDirEvent(struct inotify_event* event);

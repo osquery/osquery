@@ -7,6 +7,7 @@
 #include "osquery/config.h"
 #include "osquery/config/plugin.h"
 #include "osquery/core.h"
+#include "osquery/events.h"
 #include "osquery/logger/plugin.h"
 #include "osquery/scheduler.h"
 
@@ -25,9 +26,14 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "  - " << it.first;
   }
 
-  boost::thread scheduler_thread(osquery::initializeScheduler);
+  // Start a thread for each appropriate event type
+  osquery::EventFactory::delay();
 
+  boost::thread scheduler_thread(osquery::initializeScheduler);
   scheduler_thread.join();
+
+  // End any event type run loops.
+  osquery::EventFactory::end();
 
   return 0;
 }
