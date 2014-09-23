@@ -1,8 +1,6 @@
-ADD_LIBRARY(osquery_config OBJECT
+ADD_OSQUERY_LIBRARY(osquery_config
   config.cpp
   plugins/filesystem.cpp
 )
-
-SET_OSQUERY_COMPILE(osquery_config)
 
 ADD_OSQUERY_TEST(config_tests config_tests.cpp)

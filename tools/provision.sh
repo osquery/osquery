@@ -213,6 +213,7 @@ function main() {
 
     package libunwind8-dev
     package liblzma-dev
+    package libprocps3-dev
   elif [[ $OS = "centos" ]]; then
     yum update -y
 
