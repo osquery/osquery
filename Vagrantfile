@@ -1,12 +1,16 @@
 Vagrant.configure("2") do |config|
 
   config.vm.provider "virtualbox" do |v|
-    v.memory = 8192
-    v.cpus = 4
+    v.memory = 1024
+    v.cpus = 2
   end
 
-  config.vm.define "ubuntu" do |box|
+  config.vm.define "ubuntu14" do |box|
     box.vm.box = "ubuntu/trusty64"
+  end
+
+  config.vm.define "ubuntu12" do |box|
+    box.vm.box = "ubuntu/precise64"
   end
 
   config.vm.define "centos" do |box|

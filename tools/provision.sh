@@ -96,7 +96,7 @@ function install_rocksdb() {
   if [ $OS = "ubuntu" ] || [ $OS = "centos" ]; then
     if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
       pushd rocksdb-rocksdb-3.5
-      make all
+      make static_lib
       popd
     fi
     if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
@@ -113,7 +113,7 @@ function install_rocksdb() {
   elif [[ $OS = "darwin" ]]; then
     if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
       pushd rocksdb-rocksdb-3.5
-      make all
+      make static_lib
       popd
     fi
     if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
@@ -163,6 +163,7 @@ function main() {
     log "detected centos"
   elif [[ $OS = "ubuntu" ]]; then
     log "detected ubuntu"
+    DISTRO=`cat /etc/*-release | grep DISTRIB_CODENAME | awk '{split($0,bits,"="); print bits[2]}'`
   elif [[ $OS = "darwin" ]]; then
     log "detected mac os x"
   else
@@ -176,12 +177,24 @@ function main() {
   fi
 
   if [[ $OS = "ubuntu" ]]; then
+
+    if [[ $DISTRO = "precise" ]]; then
+      add-apt-repository http://ppa.launchpad.net/boost-latest/ppa/ubuntu
+    fi
     apt-get update
 
     package git
     package unzip
     package build-essential
     package cmake
+    package devscripts
+    package debhelper
+    if [[ $DISTRO = "precise" ]]; then
+      package libunwind7-dev
+    fi
+    if [[ $DISTRO = "trusty" ]]; then
+      package libunwind8-dev
+    fi
 
     package python-pip
     package python-dev
@@ -193,8 +206,41 @@ function main() {
     set_cxx clang++
 
     package libboost1.55-all-dev
-    package libgflags-dev
-    package libgoogle-glog-dev
+
+    if [[ $DISTRO = "precise" ]]; then
+      if [[ ! -f libgflags-dev_2.1.0-1_amd64.deb ]]; then
+        wget https://github.com/schuhschuh/gflags/releases/download/v2.1.0/libgflags-dev_2.1.0-1_amd64.deb
+      else
+        log "gflags deb is already downloaded. skipping."
+      fi
+      if [[ ! -f /usr/lib/libgflags.a ]]; then
+        dpkg -i libgflags-dev_2.1.0-1_amd64.deb
+      else
+        log "gflags is already installed. skipping."
+      fi
+    else
+      package libgoogle-glog-dev
+    fi
+
+    if [[ $DISTRO = "precise" ]]; then
+      if [[ ! -f glog-0.3.3.tar.gz ]]; then
+        wget https://google-glog.googlecode.com/files/glog-0.3.3.tar.gz
+      fi
+      if [[ ! -d glog-0.3.3 ]]; then
+        tar -xf glog-0.3.3.tar.gz
+      fi
+      if [[ ! -f "glog-0.3.3-gflags-namespace.patch" ]]; then
+        wget https://gist.githubusercontent.com/marpaia/02312b7bd25502f5319a/raw/7d3e50c5079a085fe08822fd6952d5fb19c2fe1e/glog-0.3.3-gflags-namespace.patch
+        pushd glog-0.3.3
+        patch -p1 < ../glog-0.3.3-gflags-namespace.patch
+        popd
+      fi
+      pushd glog-0.3.3
+      ./configure
+      popd
+    else
+      package libgoogle-glog-dev
+    fi
     package libsnappy-dev
     package libbz2-dev
     package libreadline-dev
@@ -211,7 +257,6 @@ function main() {
 
     install_rocksdb
 
-    package libunwind8-dev
     package liblzma-dev
     package libprocps3-dev
   elif [[ $OS = "centos" ]]; then
