@@ -1,13 +1,6 @@
-all: build
-
-.PHONY: build
-build: cmake
-	cd build && make $(MAKEFLAGS)
-
-.PHONY: cmake
-cmake:
+all:
 	mkdir -p build
-	cd build && cmake ..
+	cd build && cmake .. && make $(MAKEFLAGS)
 
 deps:
 	/bin/bash ./tools/provision.sh
@@ -19,10 +12,6 @@ distclean:
 	rm -rf doxygen/latex
 	rm -rf packages/darwin/build
 
-.PHONY: docs
-docs: cmake
-	cd build && make docs $(MAKEFLAGS)
-
 format:
 	clang-format -i osquery/**/*.h
 	clang-format -i osquery/**/*.cpp
@@ -31,12 +20,6 @@ format:
 	clang-format -i osquery/**/**/*.mm
 	clang-format -i tools/*.cpp
 
-install: cmake
-	cd build && make install $(MAKEFLAGS)
-
-.PHONY: package
-package: cmake
-	cd build && make package $(MAKEFLAGS)
-
-test: build
-	cd build && make test $(MAKEFLAGS)
+%::
+	mkdir -p build
+	cd build && cmake .. && make $@
