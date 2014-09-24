@@ -12,7 +12,7 @@ class EventsTests : public testing::Test {
 
   virtual void TearDown() { ef->deregisterEventTypes(); }
 
-  boost::shared_ptr<EventFactory> ef;
+  std::shared_ptr<EventFactory> ef;
 };
 
 TEST_F(EventsTests, test_singleton) {
@@ -37,7 +37,7 @@ TEST_F(EventsTests, test_register_event_type) {
   EXPECT_TRUE(status.ok());
 
   // May also register the event_type instance
-  auto event_type_instance = boost::make_shared<FakeBasicEventType>();
+  auto event_type_instance = std::make_shared<FakeBasicEventType>();
   status = EventFactory::registerEventType(event_type_instance);
   EXPECT_TRUE(status.ok());
 
@@ -134,7 +134,7 @@ TEST_F(EventsTests, test_create_custom_event_type) {
   Status status;
 
   status = EventFactory::registerEventType<BasicEventType>();
-  auto test_event_type = boost::make_shared<TestEventType>();
+  auto test_event_type = std::make_shared<TestEventType>();
   status = EventFactory::registerEventType(test_event_type);
 
   // These event types have unique event type IDs
@@ -149,11 +149,11 @@ TEST_F(EventsTests, test_custom_monitor) {
   Status status;
 
   // Step 1, register event type
-  auto event_type = boost::make_shared<TestEventType>();
+  auto event_type = std::make_shared<TestEventType>();
   status = EventFactory::registerEventType(event_type);
 
   // Step 2, create and configure a monitor context
-  auto monitor_context = boost::make_shared<TestMonitorContext>();
+  auto monitor_context = std::make_shared<TestMonitorContext>();
   monitor_context->smallest = -1;
 
   // Step 3, add the monitor to the event type
@@ -169,7 +169,7 @@ TEST_F(EventsTests, test_custom_monitor) {
 TEST_F(EventsTests, test_tear_down) {
   Status status;
 
-  auto event_type = boost::make_shared<TestEventType>();
+  auto event_type = std::make_shared<TestEventType>();
   status = EventFactory::registerEventType(event_type);
 
   // Make sure set up incremented the test value.
@@ -206,7 +206,7 @@ Status TestTheeCallback(EventContextID ec_id,
 TEST_F(EventsTests, test_fire_event) {
   Status status;
 
-  auto event_type = boost::make_shared<BasicEventType>();
+  auto event_type = std::make_shared<BasicEventType>();
   status = EventFactory::registerEventType(event_type);
 
   auto monitor = Monitor::create();

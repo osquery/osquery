@@ -29,10 +29,10 @@ typedef uint32_t EventTime;
 struct MonitorContext {};
 struct EventContext {};
 
-typedef boost::shared_ptr<Monitor> MonitorRef;
-typedef boost::shared_ptr<EventType> EventTypeRef;
-typedef boost::shared_ptr<MonitorContext> MonitorContextRef;
-typedef boost::shared_ptr<EventContext> EventContextRef;
+typedef std::shared_ptr<Monitor> MonitorRef;
+typedef std::shared_ptr<EventType> EventTypeRef;
+typedef std::shared_ptr<MonitorContext> MonitorContextRef;
+typedef std::shared_ptr<EventContext> EventContextRef;
 
 typedef std::function<Status(EventContextID, EventTime, EventContextRef)>
     EventCallback;
@@ -50,30 +50,30 @@ extern const std::vector<size_t> kEventTimeLists;
 // choose to macro-define a getter for a custom EventContext/MonitorContext.
 // This assumes each event will implement custom fields for monitoring
 // and custom fields holding event-related data.
-#define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                              \
- public:                                                                     \
-  EventTypeID type() const { return #TYPE; }                                 \
-  static boost::shared_ptr<EVENT> getEventContext(EventContextRef context) { \
-    return boost::static_pointer_cast<EVENT>(context);                       \
-  }                                                                          \
-  static boost::shared_ptr<MONITOR> getMonitorContext(                       \
-      MonitorContextRef context) {                                           \
-    return boost::static_pointer_cast<MONITOR>(context);                     \
-  }                                                                          \
-  static boost::shared_ptr<EVENT> createEventContext() {                     \
-    return boost::make_shared<EVENT>();                                      \
+#define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                            \
+ public:                                                                   \
+  EventTypeID type() const { return #TYPE; }                               \
+  static std::shared_ptr<EVENT> getEventContext(EventContextRef context) { \
+    return std::static_pointer_cast<EVENT>(context);                       \
+  }                                                                        \
+  static std::shared_ptr<MONITOR> getMonitorContext(                       \
+      MonitorContextRef context) {                                         \
+    return std::static_pointer_cast<MONITOR>(context);                     \
+  }                                                                        \
+  static std::shared_ptr<EVENT> createEventContext() {                     \
+    return std::make_shared<EVENT>();                                      \
   }
 
 /// Helper define for binding EventModule to an EventType.
-#define DECLARE_EVENTMODULE(NAME, TYPE)                  \
- public:                                                 \
-  static boost::shared_ptr<NAME> get() {                 \
-    static auto q = boost::shared_ptr<NAME>(new NAME()); \
-    return q;                                            \
-  }                                                      \
-                                                         \
- private:                                                \
-  EventTypeID name() const { return #NAME; }             \
+#define DECLARE_EVENTMODULE(NAME, TYPE)                \
+ public:                                               \
+  static std::shared_ptr<NAME> get() {                 \
+    static auto q = std::shared_ptr<NAME>(new NAME()); \
+    return q;                                          \
+  }                                                    \
+                                                       \
+ private:                                              \
+  EventTypeID name() const { return #NAME; }           \
   EventTypeID type() const { return #TYPE; }
 
 /// Helper to define a static callback into an EventModule.
@@ -96,10 +96,10 @@ struct Monitor {
   MonitorContextRef context;
   EventCallback callback;
 
-  static MonitorRef create() { return boost::make_shared<Monitor>(); }
+  static MonitorRef create() { return std::make_shared<Monitor>(); }
 
   static MonitorRef create(const MonitorContextRef mc, EventCallback ec = 0) {
-    auto monitor = boost::make_shared<Monitor>();
+    auto monitor = std::make_shared<Monitor>();
     monitor->context = mc;
     monitor->callback = ec;
     return monitor;
@@ -210,11 +210,11 @@ class EventModule {
  */
 class EventFactory {
  public:
-  static boost::shared_ptr<EventFactory> get();
+  static std::shared_ptr<EventFactory> get();
 
   template <typename T>
   static Status registerEventType() {
-    auto event_type = boost::make_shared<T>();
+    auto event_type = std::make_shared<T>();
     return EventFactory::registerEventType(event_type);
   }
   static Status registerEventType(const EventTypeRef event_type);
@@ -251,6 +251,6 @@ class EventFactory {
   /// Set ending to true to cause event type run loops to finish.
   bool ending_;
   EventTypeMap event_types_;
-  std::vector<boost::shared_ptr<boost::thread>> threads_;
+  std::vector<std::shared_ptr<boost::thread>> threads_;
 };
 }
