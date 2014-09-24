@@ -13,7 +13,11 @@ distclean:
 	rm -rf doxygen/latex
 
 format:
+	clang-format -i include/osquery/*.h
+	clang-format -i include/osquery/**/*.h
 	clang-format -i osquery/**/*.h
+	clang-format -i osquery/**/**/*.h
+	clang-format -i osquery/**/**/**/*.h
 	clang-format -i osquery/**/*.cpp
 	clang-format -i osquery/**/**/*.cpp
 	clang-format -i osquery/**/**/**/*.cpp

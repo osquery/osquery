@@ -35,7 +35,7 @@ typedef boost::shared_ptr<MonitorContext> MonitorContextRef;
 typedef boost::shared_ptr<EventContext> EventContextRef;
 
 typedef std::function<Status(EventContextID, EventTime, EventContextRef)>
-EventCallback;
+    EventCallback;
 
 /// An EventType must track every monitor added.
 typedef std::vector<MonitorRef> MonitorVector;
@@ -133,7 +133,7 @@ class EventType {
   size_t numMonitors() { return monitors_.size(); }
   size_t numEvents() { return next_ec_id_; }
 
-  EventType() : next_ec_id_(0) {};
+  EventType() : next_ec_id_(0){};
 
   virtual EventTypeID type() const = 0;
 
@@ -251,6 +251,6 @@ class EventFactory {
   /// Set ending to true to cause event type run loops to finish.
   bool ending_;
   EventTypeMap event_types_;
-  std::vector<boost::shared_ptr<boost::thread> > threads_;
+  std::vector<boost::shared_ptr<boost::thread>> threads_;
 };
 }
