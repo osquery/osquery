@@ -241,7 +241,7 @@ class TableState(Singleton):
         )
 
         base = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        table_dir = os.path.join(base, "osquery/tables/generated/")
+        table_dir = os.path.join(base, "build/generated_tables/")
         if not os.path.exists(table_dir):
             os.mkdir(table_dir)
         self.impl_path = os.path.join(table_dir, "%s.cpp" % self.table_name)
