@@ -21,8 +21,7 @@
 *.app
 
 # Build Artifacts
-build*
-osquery/tables/generated
+build
 
 # Vagrant Artifacts
 .vagrant
@@ -43,3 +42,10 @@ osquery/tables/generated
 # Doxygen Documentation
 doxygen/html
 doxygen/latex
+
+# CMake
+Makefile
+cmake_install.cmake
+CMakeFiles
+CTestTestfile.cmake
+CMakeCache.txt

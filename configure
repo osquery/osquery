@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+if [ "$1" = '--help' ] || [ "$1" = '-h' ]; then
+  echo "usage: $0 -Dvariable=argument ...\n"
+  exit 2
+fi
+
+cmake "$@" .
