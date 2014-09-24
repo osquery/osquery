@@ -1,6 +1,6 @@
 all:
 	mkdir -p build
-	cd build && cmake .. && make $(MAKEFLAGS)
+	cd build && cmake .. && make --no-print-directory $(MAKEFLAGS)
 
 deps:
 	./tools/provision.sh
@@ -10,4 +10,4 @@ distclean:
 
 %::
 	mkdir -p build
-	cd build && cmake .. && make $@
+	cd build && cmake .. && make --no-print-directory $@

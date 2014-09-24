@@ -245,7 +245,7 @@ class TableState(Singleton):
         if not os.path.exists(table_dir):
             os.mkdir(table_dir)
         self.impl_path = os.path.join(table_dir, "%s.cpp" % self.table_name)
-        logging.info("generating %s" % self.impl_path)
+        logging.debug("generating %s" % self.impl_path)
         with open(self.impl_path, "w+") as file_h:
             file_h.write(self.impl_content)
 
