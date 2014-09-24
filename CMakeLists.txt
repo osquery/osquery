@@ -60,3 +60,11 @@ if(DOXYGEN_FOUND)
     COMMENT "Generating API documentation with Doxygen" VERBATIM
   )
 endif(DOXYGEN_FOUND)
+
+# make format
+ADD_CUSTOM_TARGET(
+  format
+  find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \) -exec clang-format -i {} +
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMENT "Formatting code with clang-format" VERBATIM
+)

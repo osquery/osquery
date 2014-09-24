@@ -6,14 +6,7 @@ deps:
 	./tools/provision.sh
 
 distclean:
-	rm -rf .sources
-	rm -rf build
-	rm -rf deploy/darwin/build
-	rm -rf doxygen/html
-	rm -rf doxygen/latex
-
-format:
-	find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \) -exec clang-format -i {} +
+	rm -rf .sources build deploy/darwin/build doxygen/html doxygen/latex
 
 %::
 	mkdir -p build
