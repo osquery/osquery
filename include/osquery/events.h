@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <boost/make_shared.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
@@ -31,11 +30,11 @@ typedef uint32_t EventTime;
 struct MonitorContext {};
 struct EventContext {};
 
-typedef boost::shared_ptr<Monitor> MonitorRef;
-typedef boost::shared_ptr<EventType> EventTypeRef;
-typedef boost::shared_ptr<MonitorContext> MonitorContextRef;
-typedef boost::shared_ptr<EventContext> EventContextRef;
-typedef boost::shared_ptr<EventModule> EventModuleRef;
+typedef std::shared_ptr<Monitor> MonitorRef;
+typedef std::shared_ptr<EventType> EventTypeRef;
+typedef std::shared_ptr<MonitorContext> MonitorContextRef;
+typedef std::shared_ptr<EventContext> EventContextRef;
+typedef std::shared_ptr<EventModule> EventModuleRef;
 
 typedef std::function<Status(EventContextID, EventTime, EventContextRef, bool)>
 EventCallback;
@@ -70,15 +69,15 @@ extern const std::vector<size_t> kEventTimeLists;
 #define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                              \
  public:                                                                     \
   EventTypeID type() const { return #TYPE; }                                 \
-  static boost::shared_ptr<EVENT> getEventContext(EventContextRef context) { \
-    return boost::static_pointer_cast<EVENT>(context);                       \
+  static std::shared_ptr<EVENT> getEventContext(EventContextRef context) { \
+    return std::static_pointer_cast<EVENT>(context);                       \
   }                                                                          \
-  static boost::shared_ptr<MONITOR> getMonitorContext(                       \
+  static std::shared_ptr<MONITOR> getMonitorContext(                       \
       MonitorContextRef context) {                                           \
-    return boost::static_pointer_cast<MONITOR>(context);                     \
+    return std::static_pointer_cast<MONITOR>(context);                     \
   }                                                                          \
-  static boost::shared_ptr<EVENT> createEventContext() {                     \
-    return boost::make_shared<EVENT>();                                      \
+  static std::shared_ptr<EVENT> createEventContext() {                     \
+    return std::make_shared<EVENT>();                                      \
   }
 
 /**
@@ -98,8 +97,8 @@ extern const std::vector<size_t> kEventTimeLists;
  */
 #define DECLARE_EVENTMODULE(NAME, TYPE)                  \
  public:                                                 \
-  static boost::shared_ptr<NAME> get() {                 \
-    static auto q = boost::shared_ptr<NAME>(new NAME()); \
+  static std::shared_ptr<NAME> get() {                 \
+    static auto q = std::shared_ptr<NAME>(new NAME()); \
     return q;                                            \
   }                                                      \
                                                          \
@@ -176,10 +175,10 @@ struct Monitor {
   MonitorContextRef context;
   EventCallback callback;
 
-  static MonitorRef create() { return boost::make_shared<Monitor>(); }
+  static MonitorRef create() { return std::make_shared<Monitor>(); }
 
   static MonitorRef create(const MonitorContextRef mc, EventCallback ec = 0) {
-    auto monitor = boost::make_shared<Monitor>();
+    auto monitor = std::make_shared<Monitor>();
     monitor->context = mc;
     monitor->callback = ec;
     return monitor;
@@ -365,7 +364,7 @@ class EventModule {
 class EventFactory {
  public:
   /// Access to the EventFactory instance.
-  static boost::shared_ptr<EventFactory> get();
+  static std::shared_ptr<EventFactory> get();
 
   /**
    * @brief Add an EventType to the factory.
@@ -374,7 +373,7 @@ class EventFactory {
    */
   template <typename T>
   static Status registerEventType() {
-    auto event_type = boost::make_shared<T>();
+    auto event_type = std::make_shared<T>();
     return EventFactory::registerEventType(event_type);
   }
 
@@ -475,7 +474,7 @@ class EventFactory {
   EventTypeMap event_types_;
 
   /// Set of running EventType run loop threads.
-  std::vector<boost::shared_ptr<boost::thread>> threads_;
+  std::vector<std::shared_ptr<boost::thread>> threads_;
 
   /// Set of instanciated EventModule Monitor sets (with callbacks and state).
   std::vector<EventModuleRef> event_modules_;

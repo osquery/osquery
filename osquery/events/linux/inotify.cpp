@@ -98,7 +98,7 @@ Status INotifyEventType::run() {
 
 INotifyEventContextRef INotifyEventType::createEventContext(
     struct inotify_event* event) {
-  auto shared_event = boost::make_shared<struct inotify_event>(*event);
+  auto shared_event = std::make_shared<struct inotify_event>(*event);
   auto ec = createEventContext();
   ec->event = shared_event;
 

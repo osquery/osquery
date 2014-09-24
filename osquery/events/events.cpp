@@ -136,9 +136,9 @@ Status EventModule::add(const osquery::Row& r, int event_time) {
 void EventFactory::delay() {
   auto ef = EventFactory::get();
   for (const auto& eventtype : EventFactory::get()->event_types_) {
-    auto thread = boost::make_shared<boost::thread>(
-      boost::bind(&EventFactory::run, eventtype.first));
-    ef->threads_.push_back(thread);
+    auto thread_ = std::make_shared<boost::thread>(
+        boost::bind(&EventFactory::run, eventtype.first));
+    ef->threads_.push_back(thread_);
   }
 }
 
@@ -169,8 +169,8 @@ void EventFactory::end(bool should_end) {
 }
 
 // There's no reason for the event factory to keep multiple instances.
-boost::shared_ptr<EventFactory> EventFactory::get() {
-  static auto q = boost::shared_ptr<EventFactory>(new EventFactory());
+std::shared_ptr<EventFactory> EventFactory::get() {
+  static auto q = std::shared_ptr<EventFactory>(new EventFactory());
   return q;
 }
 
@@ -224,7 +224,7 @@ size_t EventFactory::numMonitors(EventTypeID type_id) {
   return 0;
 }
 
-boost::shared_ptr<EventType> EventFactory::getEventType(EventTypeID type_id) {
+std::shared_ptr<EventType> EventFactory::getEventType(EventTypeID type_id) {
   const auto& ef = EventFactory::get();
   const auto& it = ef->event_types_.find(type_id);
   if (it != ef->event_types_.end()) {
