@@ -26,7 +26,7 @@ void EventType::fire(const EventContextRef ec, EventTime event_time) {
   for (const auto& monitor : monitors_) {
     auto callback = monitor->callback;
     if (shouldFire(monitor->context, ec) && callback != nullptr) {
-      callback(ec_id, event_time, ec);
+      callback(ec_id, event_time, ec, false);
     }
   }
 }
@@ -110,7 +110,7 @@ EventID EventModule::getEventID() {
   return eid_value;
 }
 
-Status EventModule::Add(const osquery::Row& r, int event_time) {
+Status EventModule::add(const osquery::Row& r, int event_time) {
   Status status;
   auto db = DBHandle::getInstance();
 
@@ -185,6 +185,14 @@ Status EventFactory::registerEventType(const EventTypeRef event_type) {
 
   ef->event_types_[type_id] = event_type;
   event_type->setUp();
+  return Status(0, "OK");
+}
+
+Status EventFactory::registerEventModule(const EventModuleRef event_module) {
+  auto ef = EventFactory::get();
+  // Let the module initialize any Monitors.
+  event_module->init();
+  ef->event_modules_.push_back(event_module);
   return Status(0, "OK");
 }
 

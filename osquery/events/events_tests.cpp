@@ -198,7 +198,8 @@ static int kBellHathTolled = 0;
 
 Status TestTheeCallback(EventContextID ec_id,
                         EventTime time,
-                        EventContextRef context) {
+                        EventContextRef context, 
+                        bool reserved) {
   kBellHathTolled += 1;
   return Status(0, "OK");
 }
