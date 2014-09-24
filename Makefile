@@ -6,11 +6,11 @@ deps:
 	/bin/bash ./tools/provision.sh
 
 distclean:
-	rm -rf build
 	rm -rf .sources
+	rm -rf build
+	rm -rf deploy/darwin/build
 	rm -rf doxygen/html
 	rm -rf doxygen/latex
-	rm -rf packages/darwin/build
 
 format:
 	clang-format -i osquery/**/*.h

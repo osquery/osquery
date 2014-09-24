@@ -217,9 +217,9 @@ else()
   CMAKE_POLICY(SET CMP0037 OLD)
   ADD_CUSTOM_TARGET(
     package
-    packagesbuild -v ${CMAKE_SOURCE_DIR}/package/darwin/osquery.pkgproj
-    mv ${CMAKE_SOURCE_DIR}/package/darwin/build/osquery.pkg ${CMAKE_SOURCE_DIR}/build/osquery.pkg
-    rm -rf ${CMAKE_SOURCE_DIR}/package/darwin/build
+    packagesbuild -v ${CMAKE_SOURCE_DIR}/deploy/darwin/osquery.pkgproj &&
+    mv ${CMAKE_SOURCE_DIR}/deploy/darwin/build/osquery.pkg ${CMAKE_SOURCE_DIR}/build/osquery.pkg &&
+    rm -rf ${CMAKE_SOURCE_DIR}/deploy/darwin/build
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Generate OS X Package"
   )
