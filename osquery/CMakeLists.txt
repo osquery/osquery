@@ -56,7 +56,6 @@ MACRO(SET_OSQUERY_COMPILE TARGET)
   SET(OPTIONAL_FLAGS ${ARGN})
   LIST(LENGTH OPTIONAL_FLAGS NUM_OPTIONAL_FLAGS)
   if(${NUM_OPTIONAL_FLAGS} GREATER 0)
-    MESSAGE("Notice: Adding compile flags ${OPTIONAL_FLAGS} to ${TARGET}")
     SET_TARGET_PROPERTIES(${TARGET} PROPERTIES COMPILE_FLAGS ${OPTIONAL_FLAGS})
   ENDIF()
 ENDMACRO(SET_OSQUERY_COMPILE)
@@ -95,6 +94,51 @@ MACRO(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
   TARGET_LINK_LIBRARIES(${TARGET} "${OS_WHOLELINK_POST}")
 ENDMACRO(TARGET_OSQUERY_LINK_WHOLE)
 
+# Table generation
+
+file(GLOB TABLE_FILES "tables/specs/x/*.table")
+if(APPLE)
+  file(GLOB TABLE_FILES_DARWIN "tables/specs/darwin/*.table")
+  list(APPEND TABLE_FILES ${TABLE_FILES_DARWIN})
+else()
+  file(GLOB TABLE_FILES_LINUX "tables/specs/linux/*.table")
+  list(APPEND TABLE_FILES ${TABLE_FILES_LINUX})
+endif()
+
+SET(GENERATED_TABLE "")
+
+foreach(TABLE_FILE ${TABLE_FILES})
+  SET(TABLE_FILE_GEN ${TABLE_FILE})
+  STRING(
+    REPLACE
+    "${CMAKE_SOURCE_DIR}/osquery/tables/specs"
+    "${CMAKE_BINARY_DIR}/generated/tables"
+    TABLE_FILE_GEN
+    ${TABLE_FILE_GEN}
+  )
+  STRING(REPLACE "linux/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  STRING(REPLACE "darwin/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  STRING(REPLACE "x/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  STRING(REPLACE ".table" ".cpp" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  ADD_CUSTOM_COMMAND(
+    OUTPUT ${TABLE_FILE_GEN}
+    COMMAND python ${CMAKE_SOURCE_DIR}/tools/gentable.py ${TABLE_FILE} ${TABLE_FILE_GEN}
+    DEPENDS ${TABLE_FILE}
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  )
+  list(APPEND GENERATED_TABLES ${TABLE_FILE_GEN})
+endforeach()
+ADD_CUSTOM_TARGET(osquery_generated_tables_depends
+  DEPENDS ${GENERATED_TABLES}
+)
+ADD_LIBRARY(osquery_generated_tables OBJECT
+  ${GENERATED_TABLES}
+)
+ADD_DEPENDENCIES(osquery_generated_tables osquery_generated_tables_depends)
+SET_OSQUERY_COMPILE(osquery_generated_tables)
+
+# Add subdirectories
+
 ADD_SUBDIRECTORY(config)
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(database)
@@ -112,6 +156,9 @@ SET(OSQUERY_LIB_OBJECTS
   # Third-party objects
   $<TARGET_OBJECTS:osquery_sqlite>
 
+  # Generated code
+  $<TARGET_OBJECTS:osquery_generated_tables>
+
   # Build additional os-dependent libraries (may include tables)
   ${OSQUERY_SOURCES}
 )
@@ -125,7 +172,6 @@ else()
   ADD_LIBRARY(osquery_shared STATIC main/lib.cpp)
   TARGET_OSQUERY_LINK_WHOLE(osquery_shared osquery_static)
 endif()
-ADD_DEPENDENCIES(osquery_shared librocksdb)
 TARGET_LINK_LIBRARIES(osquery_shared ${OSQUERY_ADDITIONAL_LINKS})
 TARGET_LINK_LIBRARIES(osquery_shared ${OSQUERY_LIBS})
 SET_TARGET_PROPERTIES(osquery_shared PROPERTIES OUTPUT_NAME osquery)
@@ -141,6 +187,8 @@ TARGET_LINK_LIBRARIES(daemon osquery_shared)
 SET_TARGET_PROPERTIES(daemon PROPERTIES OUTPUT_NAME osqueryd)
 SET_TARGET_PROPERTIES(daemon PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
 INSTALL(TARGETS daemon DESTINATION bin)
+
+# packages
 
 if(NOT APPLE)
   SET(CPACK_PACKAGE_NAME "osquery")
@@ -173,4 +221,14 @@ if(NOT APPLE)
   endif()
 
   INCLUDE(CPack)
+else()
+  CMAKE_POLICY(SET CMP0037 OLD)
+  ADD_CUSTOM_TARGET(
+    package
+    packagesbuild -v ${CMAKE_SOURCE_DIR}/deploy/darwin/osquery.pkgproj &&
+    mv ${CMAKE_SOURCE_DIR}/deploy/darwin/build/osquery.pkg ${CMAKE_SOURCE_DIR}/build/osquery.pkg &&
+    rm -rf ${CMAKE_SOURCE_DIR}/deploy/darwin/build
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Generate OS X Package"
+  )
 endif()

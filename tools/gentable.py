@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright 2004-present Facebook. All Rights Reserved.
 
 from __future__ import absolute_import
@@ -193,7 +194,7 @@ REGISTER_TABLE(
 
 def usage():
     """ print program usage """
-    print("Usage: %s <filename>" % sys.argv[0])
+    print("Usage: %s <spec.table> <file.cpp>" % sys.argv[0])
 
 def to_camel_case(snake_case):
     """ convert a snake_case string to camelCase """
@@ -227,7 +228,7 @@ class TableState(Singleton):
         self.impl = ""
         self.function = ""
 
-    def generate(self):
+    def generate(self, path):
         """Generate the virtual table files"""
         logging.debug("TableState.generate")
         self.impl_content = jinja2.Template(IMPL_TEMPLATE).render(
@@ -239,14 +240,15 @@ class TableState(Singleton):
             function=self.function,
         )
 
-        base = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        self.impl_path = os.path.join(
-            base,
-            "osquery/tables/generated/%s.cpp" % self.table_name
-        )
-
-        logging.info("generating %s" % self.impl_path)
-        with open(self.impl_path, "w") as file_h:
+        path_bits = path.split("/")
+        for i in range(1, len(path_bits)):
+            dir_path = ""
+            for j in range(i):
+                dir_path += "%s/" % path_bits[j]
+            if not os.path.exists(dir_path):
+                os.mkdir(dir_path)
+        logging.debug("generating %s" % path)
+        with open(path, "w+") as file_h:
             file_h.write(self.impl_content)
 
 table = TableState()
@@ -299,15 +301,16 @@ def main(argc, argv):
     else:
         logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
 
-    if argc < 2:
+    if argc < 3:
         usage()
         sys.exit(1)
 
     filename = argv[1]
+    output = argv[2]
     with open(filename, "rU") as file_handle:
         tree = ast.parse(file_handle.read())
         exec compile(tree, "<string>", "exec")
-        table.generate()
+        table.generate(output)
 
 if __name__ == "__main__":
     main(len(sys.argv), sys.argv)

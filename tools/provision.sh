@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
@@ -68,6 +68,10 @@ function install_cmake() {
 }
 
 function install_thrift() {
+  if [[ -f /usr/local/lib/libthrift.a ]]; then
+    log "thrift is installed. skipping."
+    return
+  fi
   if [[ ! -f 0.9.1.tar.gz ]]; then
     wget https://github.com/apache/thrift/archive/0.9.1.tar.gz
   fi
@@ -87,6 +91,10 @@ function install_thrift() {
 }
 
 function install_rocksdb() {
+  if [[ -f /usr/local/lib/librocksdb.a ]]; then
+    log "rocksdb is installed. skipping."
+    return
+  fi
   if [[ ! -f rocksdb-3.5.tar.gz ]]; then
     wget https://github.com/facebook/rocksdb/archive/rocksdb-3.5.tar.gz
   fi
@@ -287,7 +295,10 @@ function main() {
     install_rocksdb
   fi
 
-  pip install -r $SCRIPT_DIR/../requirements.txt
+  cd $SCRIPT_DIR/../
+  pip install -r requirements.txt
+  git submodule init
+  git submodule update
 }
 
 main

@@ -39,7 +39,6 @@ FILE(GLOB table_sources
 )
 
 ADD_OSQUERY_LIBRARY(osquery_tables
-  ${table_sources}
   networking/utils.cpp
   networking/etc_hosts.cpp
   utility/time.cpp
