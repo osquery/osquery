@@ -40,5 +40,5 @@ install: cmake
 package: cmake
 	cd build && make package $(MAKEFLAGS)
 
-test: cmake
+test: build
 	cd build && make test $(MAKEFLAGS)
