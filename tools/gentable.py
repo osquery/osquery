@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright 2004-present Facebook. All Rights Reserved.
 
 from __future__ import absolute_import
@@ -240,13 +241,12 @@ class TableState(Singleton):
         )
 
         base = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        self.impl_path = os.path.join(
-            base,
-            "osquery/tables/generated/%s.cpp" % self.table_name
-        )
-
+        table_dir = os.path.join(base, "build/generated_tables/")
+        if not os.path.exists(table_dir):
+            os.mkdir(table_dir)
+        self.impl_path = os.path.join(table_dir, "%s.cpp" % self.table_name)
         logging.info("generating %s" % self.impl_path)
-        with open(self.impl_path, "w") as file_h:
+        with open(self.impl_path, "w+") as file_h:
             file_h.write(self.impl_content)
 
 table = TableState()

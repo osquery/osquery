@@ -4,7 +4,7 @@ OSQUERYD_PLIST_PATH="/Library/LaunchDaemons/com.facebook.osqueryd.plist"
 endif
 ROCKSDB_PATH="/tmp/rocksdb-osquery"
 
-all: tables build
+all: build
 
 ammend:
 	git add .
@@ -22,25 +22,8 @@ build_shared:
 fast:
 	cd build && cmake .. && make $(MAKEFLAGS)
 
-clean: clean_tables
+clean:
 	cd build && make clean
-
-clean_install:
-	rm -rf /var/osquery
-	rm -rf  $(ROCKSDB_PATH)
-	rm -f /usr/local/bin/osqueryi
-	rm -f /usr/local/bin/osqueryd
-	rm -rf /var/log/osquery
-	rm -f $(OSQUERYD_PLIST_PATH)
-ifeq ($(OS),Darwin)
-	if [ -f $(OSQUERYD_PLIST_PATH) ]; then           \
-		launchctl unload $(OSQUERYD_PLIST_PATH); \
-		rm -f $(OSQUERYD_PLIST_PATH);            \
-	fi;
-endif
-
-clean_tables:
-	rm -rf osquery/tables/generated
 
 .PHONY: docs
 docs:
@@ -51,10 +34,7 @@ deps:
 	git submodule init
 	git submodule update
 
-distclean: clean_tables
-ifeq ($(OS),Darwin)
-	rm -rf package/darwin/build
-endif
+distclean:
 	rm -rf build
 	rm -rf .sources
 
@@ -69,7 +49,6 @@ install:
 
 .PHONY: package
 package:
-	mkdir -p build
 ifeq ($(OS),Darwin)
 	packagesbuild -v package/darwin/osquery.pkgproj
 	mv package/darwin/build/osquery.pkg build/osquery.pkg
@@ -85,10 +64,5 @@ pull:
 	git fetch origin
 	git rebase master --stat
 
-tables:
-	python tools/gentables.py
-
 test:
 	cd build && cmake .. && make test
-
-runtests: build test
