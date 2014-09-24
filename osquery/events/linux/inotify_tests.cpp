@@ -20,7 +20,7 @@ class INotifyTests : public testing::Test {
   virtual void TearDown() { EventFactory::deregisterEventTypes(); }
 
   void StartEventLoop() {
-    auto event_type = boost::make_shared<INotifyEventType>();
+    auto event_type = std::make_shared<INotifyEventType>();
     EventFactory::registerEventType(event_type);
     FILE* fd = fopen(kRealTestPath.c_str(), "w");
     fclose(fd);
@@ -29,7 +29,7 @@ class INotifyTests : public testing::Test {
   }
 
   void MonitorAction(uint32_t mask = 0, EventCallback ec = 0) {
-    auto mc = boost::make_shared<INotifyMonitorContext>();
+    auto mc = std::make_shared<INotifyMonitorContext>();
     mc->path = kRealTestPath;
     mc->mask = mask;
 
@@ -43,7 +43,7 @@ class INotifyTests : public testing::Test {
   }
 
   boost::thread temp_thread_;
-  boost::shared_ptr<EventFactory> ef;
+  std::shared_ptr<EventFactory> ef;
 };
 
 // Helper eager wait function.
@@ -73,7 +73,7 @@ TEST_F(INotifyTests, test_register_event_type) {
 
 TEST_F(INotifyTests, test_inotify_init) {
   // Handle should not be initialized during ctor.
-  auto event_type = boost::make_shared<INotifyEventType>();
+  auto event_type = std::make_shared<INotifyEventType>();
   EXPECT_FALSE(event_type->isHandleOpen());
 
   // Registering the event type initializes inotify.
@@ -89,7 +89,7 @@ TEST_F(INotifyTests, test_inotify_add_monitor_fail) {
   EventFactory::registerEventType<INotifyEventType>();
 
   // This monitor path is fake, and will fail
-  auto mc = boost::make_shared<INotifyMonitorContext>();
+  auto mc = std::make_shared<INotifyMonitorContext>();
   mc->path = "/this/path/is/fake";
 
   auto monitor = Monitor::create(mc);
@@ -101,7 +101,7 @@ TEST_F(INotifyTests, test_inotify_add_monitor_success) {
   EventFactory::registerEventType<INotifyEventType>();
 
   // This monitor path *should* be real.
-  auto mc = boost::make_shared<INotifyMonitorContext>();
+  auto mc = std::make_shared<INotifyMonitorContext>();
   mc->path = "/";
 
   auto monitor = Monitor::create(mc);
@@ -111,14 +111,14 @@ TEST_F(INotifyTests, test_inotify_add_monitor_success) {
 
 TEST_F(INotifyTests, test_inotify_run) {
   // Assume event type is registered.
-  auto event_type = boost::make_shared<INotifyEventType>();
+  auto event_type = std::make_shared<INotifyEventType>();
   EventFactory::registerEventType(event_type);
 
   // Create a temporary file to watch, open writeable
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
 
   // Create a monitoring context
-  auto mc = boost::make_shared<INotifyMonitorContext>();
+  auto mc = std::make_shared<INotifyMonitorContext>();
   mc->path = kRealTestPath;
   EventFactory::addMonitor("INotifyEventType", Monitor::create(mc));
 
@@ -179,7 +179,7 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
   StartEventLoop();
 
   // Create a monitoring context (with callback)
-  MonitorAction(0, TestINotifyEventModule::EventSimpleCallback);
+  MonitorAction(0, TestINotifyEventModule::SimpleCallback);
 
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
   fputs("inotify", fd);
@@ -196,7 +196,7 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
 TEST_F(INotifyTests, test_inotify_event_action) {
   // Assume event type is registered.
   StartEventLoop();
-  MonitorAction(0, TestINotifyEventModule::EventCallback);
+  MonitorAction(0, TestINotifyEventModule::Callback);
 
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
   fputs("inotify", fd);

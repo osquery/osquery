@@ -10,10 +10,9 @@
 
 namespace osquery {
 
-const std::vector<size_t> kEventTimeLists = {
-    1 * 60, // 1 minute
-    1 * 60 * 60, // 1 hour
-    12 * 60 * 60, // half-day
+const std::vector<size_t> kEventTimeLists = {1 * 60, // 1 minute
+                                             1 * 60 * 60, // 1 hour
+                                             12 * 60 * 60, // half-day
 };
 
 void EventType::fire(const EventContextRef ec, EventTime event_time) {
@@ -27,7 +26,7 @@ void EventType::fire(const EventContextRef ec, EventTime event_time) {
   for (const auto& monitor : monitors_) {
     auto callback = monitor->callback;
     if (shouldFire(monitor->context, ec) && callback != nullptr) {
-      callback(ec_id, event_time, ec);
+      callback(ec_id, event_time, ec, false);
     }
   }
 }
@@ -111,7 +110,7 @@ EventID EventModule::getEventID() {
   return eid_value;
 }
 
-Status EventModule::Add(const osquery::Row& r, int event_time) {
+Status EventModule::add(const Row& r, int event_time) {
   Status status;
   auto db = DBHandle::getInstance();
 
@@ -121,7 +120,7 @@ Status EventModule::Add(const osquery::Row& r, int event_time) {
   std::string event_key = "data." + type() + "." + name() + "." + eid;
   std::string data;
 
-  status = osquery::serializeRowJSON(r, data);
+  status = serializeRowJSON(r, data);
   if (!status.ok()) {
     printf("could not serialize json\n");
     return status;
@@ -137,9 +136,9 @@ Status EventModule::Add(const osquery::Row& r, int event_time) {
 void EventFactory::delay() {
   auto ef = EventFactory::get();
   for (const auto& eventtype : EventFactory::get()->event_types_) {
-    auto thread = boost::make_shared<boost::thread>(
+    auto thread_ = std::make_shared<boost::thread>(
         boost::bind(&EventFactory::run, eventtype.first));
-    ef->threads_.push_back(thread);
+    ef->threads_.push_back(thread_);
   }
 }
 
@@ -170,8 +169,8 @@ void EventFactory::end(bool should_end) {
 }
 
 // There's no reason for the event factory to keep multiple instances.
-boost::shared_ptr<EventFactory> EventFactory::get() {
-  static auto q = boost::shared_ptr<EventFactory>(new EventFactory());
+std::shared_ptr<EventFactory> EventFactory::get() {
+  static auto q = std::shared_ptr<EventFactory>(new EventFactory());
   return q;
 }
 
@@ -186,6 +185,14 @@ Status EventFactory::registerEventType(const EventTypeRef event_type) {
 
   ef->event_types_[type_id] = event_type;
   event_type->setUp();
+  return Status(0, "OK");
+}
+
+Status EventFactory::registerEventModule(const EventModuleRef event_module) {
+  auto ef = EventFactory::get();
+  // Let the module initialize any Monitors.
+  event_module->init();
+  ef->event_modules_.push_back(event_module);
   return Status(0, "OK");
 }
 
@@ -217,7 +224,7 @@ size_t EventFactory::numMonitors(EventTypeID type_id) {
   return 0;
 }
 
-boost::shared_ptr<EventType> EventFactory::getEventType(EventTypeID type_id) {
+std::shared_ptr<EventType> EventFactory::getEventType(EventTypeID type_id) {
   const auto& ef = EventFactory::get();
   const auto& it = ef->event_types_.find(type_id);
   if (it != ef->event_types_.end()) {
@@ -251,5 +258,20 @@ Status EventFactory::deregisterEventTypes() {
 
   ef->event_types_.erase(ef->event_types_.begin(), ef->event_types_.end());
   return Status(0, "OK");
+}
+}
+
+namespace osquery {
+namespace registries {
+void faucet(EventTypes ets, EventModules ems) {
+  auto ef = osquery::EventFactory::get();
+  for (const auto& event_type : ets) {
+    ef->registerEventType(event_type.second);
+  }
+
+  for (const auto& event_module : ems) {
+    ef->registerEventModule(event_module.second);
+  }
+}
 }
 }

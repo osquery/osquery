@@ -11,21 +11,21 @@
 
 namespace osquery {
 
+REGISTER_EVENTTYPE("INotifyEventType", INotifyEventType);
+
 int kINotifyULatency = 200;
 static const uint32_t BUFFER_SIZE =
     (10 * ((sizeof(struct inotify_event)) + NAME_MAX + 1));
 
-std::map<int, std::string> kMaskActions = {
-    {IN_ACCESS, "ACCESSED"},
-    {IN_ATTRIB, "ATTRIBUTES_MODIFIED"},
-    {IN_CLOSE_WRITE, "UPDATED"},
-    {IN_CREATE, "CREATED"},
-    {IN_DELETE, "DELETED"},
-    {IN_MODIFY, "UPDATED"},
-    {IN_MOVED_FROM, "MOVED_FROM"},
-    {IN_MOVED_TO, "MOVED_TO"},
-    {IN_OPEN, "OPENED"},
-};
+std::map<int, std::string> kMaskActions = {{IN_ACCESS, "ACCESSED"},
+                                           {IN_ATTRIB, "ATTRIBUTES_MODIFIED"},
+                                           {IN_CLOSE_WRITE, "UPDATED"},
+                                           {IN_CREATE, "CREATED"},
+                                           {IN_DELETE, "DELETED"},
+                                           {IN_MODIFY, "UPDATED"},
+                                           {IN_MOVED_FROM, "MOVED_FROM"},
+                                           {IN_MOVED_TO, "MOVED_TO"},
+                                           {IN_OPEN, "OPENED"}, };
 
 void INotifyEventType::setUp() {
   inotify_handle_ = ::inotify_init();
@@ -98,7 +98,7 @@ Status INotifyEventType::run() {
 
 INotifyEventContextRef INotifyEventType::createEventContext(
     struct inotify_event* event) {
-  auto shared_event = boost::make_shared<struct inotify_event>(*event);
+  auto shared_event = std::make_shared<struct inotify_event>(*event);
   auto ec = createEventContext();
   ec->event = shared_event;
 

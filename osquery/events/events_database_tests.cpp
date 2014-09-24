@@ -24,10 +24,10 @@ class FakeEventModule : public EventModule {
   DECLARE_EVENTMODULE(FakeEventModule, FakeEventType);
 
  public:
-  Status TestAdd(int i) {
+  Status testAdd(int i) {
     Row r;
     r["testing"] = "hello from space";
-    return Add(r, i);
+    return add(r, i);
   }
 };
 
@@ -64,7 +64,7 @@ TEST_F(EventsDatabaseTests, test_event_add) {
   size_t event_time = 10;
 
   auto fake_event_module = FakeEventModule::get();
-  auto status = fake_event_module->TestAdd(1);
+  auto status = fake_event_module->testAdd(1);
   EXPECT_TRUE(status.ok());
 }
 }
