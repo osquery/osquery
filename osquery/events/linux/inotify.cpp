@@ -11,6 +11,8 @@
 
 namespace osquery {
 
+REGISTER_EVENTTYPE("INotifyEventType", INotifyEventType);
+
 int kINotifyULatency = 200;
 static const uint32_t BUFFER_SIZE =
     (10 * ((sizeof(struct inotify_event)) + NAME_MAX + 1));

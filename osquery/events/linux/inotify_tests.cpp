@@ -179,7 +179,7 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
   StartEventLoop();
 
   // Create a monitoring context (with callback)
-  MonitorAction(0, TestINotifyEventModule::EventSimpleCallback);
+  MonitorAction(0, TestINotifyEventModule::SimpleCallback);
 
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
   fputs("inotify", fd);
@@ -196,7 +196,7 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
 TEST_F(INotifyTests, test_inotify_event_action) {
   // Assume event type is registered.
   StartEventLoop();
-  MonitorAction(0, TestINotifyEventModule::EventCallback);
+  MonitorAction(0, TestINotifyEventModule::Callback);
 
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
   fputs("inotify", fd);
