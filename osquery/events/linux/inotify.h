@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
 #include <sys/inotify.h>
@@ -29,13 +28,13 @@ struct INotifyMonitorContext : public MonitorContext {
 };
 
 struct INotifyEventContext : public EventContext {
-  boost::shared_ptr<struct inotify_event> event;
+  std::shared_ptr<struct inotify_event> event;
   std::string path;
   std::string action;
 };
 
-typedef boost::shared_ptr<INotifyEventContext> INotifyEventContextRef;
-typedef boost::shared_ptr<INotifyMonitorContext> INotifyMonitorContextRef;
+typedef std::shared_ptr<INotifyEventContext> INotifyEventContextRef;
+typedef std::shared_ptr<INotifyMonitorContext> INotifyMonitorContextRef;
 
 // Thread-safe containers
 typedef std::vector<int> DescriptorVector;

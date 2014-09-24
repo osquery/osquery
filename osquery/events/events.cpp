@@ -110,7 +110,7 @@ EventID EventModule::getEventID() {
   return eid_value;
 }
 
-Status EventModule::add(const osquery::Row& r, int event_time) {
+Status EventModule::add(const Row& r, int event_time) {
   Status status;
   auto db = DBHandle::getInstance();
 
@@ -120,7 +120,7 @@ Status EventModule::add(const osquery::Row& r, int event_time) {
   std::string event_key = "data." + type() + "." + name() + "." + eid;
   std::string data;
 
-  status = osquery::serializeRowJSON(r, data);
+  status = serializeRowJSON(r, data);
   if (!status.ok()) {
     printf("could not serialize json\n");
     return status;
@@ -258,5 +258,20 @@ Status EventFactory::deregisterEventTypes() {
 
   ef->event_types_.erase(ef->event_types_.begin(), ef->event_types_.end());
   return Status(0, "OK");
+}
+}
+
+namespace osquery {
+namespace registries {
+void faucet(EventTypes ets, EventModules ems) {
+  auto ef = osquery::EventFactory::get();
+  for (const auto& event_type : ets) {
+    ef->registerEventType(event_type.second);
+  }
+
+  for (const auto& event_module : ems) {
+    ef->registerEventModule(event_module.second);
+  }
+}
 }
 }

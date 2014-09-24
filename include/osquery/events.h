@@ -66,16 +66,16 @@ extern const std::vector<size_t> kEventTimeLists;
  * to downselect or customize what events to handle. And MyEventContext includes
  * fields specific to the new EventType.
  */
-#define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                              \
- public:                                                                     \
-  EventTypeID type() const { return #TYPE; }                                 \
+#define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                            \
+ public:                                                                   \
+  EventTypeID type() const { return #TYPE; }                               \
   static std::shared_ptr<EVENT> getEventContext(EventContextRef context) { \
     return std::static_pointer_cast<EVENT>(context);                       \
-  }                                                                          \
+  }                                                                        \
   static std::shared_ptr<MONITOR> getMonitorContext(                       \
-      MonitorContextRef context) {                                           \
+      MonitorContextRef context) {                                         \
     return std::static_pointer_cast<MONITOR>(context);                     \
-  }                                                                          \
+  }                                                                        \
   static std::shared_ptr<EVENT> createEventContext() {                     \
     return std::make_shared<EVENT>();                                      \
   }
@@ -95,15 +95,15 @@ extern const std::vector<size_t> kEventTimeLists;
  *
  * EventModule%s should be specific to an EventType.
  */
-#define DECLARE_EVENTMODULE(NAME, TYPE)                  \
- public:                                                 \
+#define DECLARE_EVENTMODULE(NAME, TYPE)                \
+ public:                                               \
   static std::shared_ptr<NAME> get() {                 \
     static auto q = std::shared_ptr<NAME>(new NAME()); \
-    return q;                                            \
-  }                                                      \
-                                                         \
- private:                                                \
-  EventTypeID name() const { return #NAME; }             \
+    return q;                                          \
+  }                                                    \
+                                                       \
+ private:                                              \
+  EventTypeID name() const { return #NAME; }           \
   EventTypeID type() const { return #TYPE; }
 
 /**
@@ -145,7 +145,7 @@ extern const std::vector<size_t> kEventTimeLists;
                          EventTime time,              \
                          const EventContextRef ec,    \
                          bool reserved) {             \
-    auto ec_ = boost::static_pointer_cast<EVENT>(ec); \
+    auto ec_ = std::static_pointer_cast<EVENT>(ec);   \
     return get()->Module##__NAME__(ec_id, time, ec_); \
   }
 
@@ -390,12 +390,28 @@ class EventFactory {
    */
   static Status registerEventType(const EventTypeRef event_type);
 
+  /**
+   * @brief Add an EventModule to the factory.
+   *
+   * The registration is mostly abstracted using osquery's registery.
+   */
   template <typename T>
   static Status registerEventModule() {
     auto event_module = T::get();
     return EventFactory::registerEventModule(event_module);
   }
 
+  /**
+   * @brief Add an EventModule to the factory.
+   *
+   * The registration is mostly abstracted using osquery's registery.
+   *
+   * @param event_module If the caller must access the EventModule instance
+   * control may be passed to the registry.
+   *
+   * Access to the EventModule instance outside of the within-instance
+   * table generation method and set of EventCallback%s is discouraged.
+   */
   static Status registerEventModule(const EventModuleRef event_module);
 
   /**
@@ -485,7 +501,7 @@ class EventFactory {
 DECLARE_REGISTRY(EventTypes, std::string, EventTypeRef);
 #define REGISTERED_EVENTTYPES REGISTRY(EventTypes)
 #define REGISTER_EVENTTYPE(name, decorator) \
-  REGISTER(EventTypes, name, boost::make_shared<decorator>());
+  REGISTER(EventTypes, name, std::make_shared<decorator>());
 
 /**
  * @brief Expose a Plugin-link Registry for EventModule instances.
@@ -494,6 +510,12 @@ DECLARE_REGISTRY(EventTypes, std::string, EventTypeRef);
  * an generator entry point for query-time table generation too.
  */
 DECLARE_REGISTRY(EventModules, std::string, EventModuleRef);
-#define REGISTERED_EVENTMODULES REGISTER(EventModules)
+#define REGISTERED_EVENTMODULES REGISTRY(EventModules)
 #define REGISTER_EVENTMODULE(name, decorator) \
-  REGISTER(EventModules, name, boost::make_shared<decorator>());
+  REGISTER(EventModules, name, std::make_shared<decorator>());
+
+namespace osquery {
+namespace registries {
+void faucet(EventTypes ets, EventModules ems);
+}
+}
