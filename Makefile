@@ -11,8 +11,6 @@ cmake:
 
 deps:
 	/bin/bash ./tools/provision.sh
-	git submodule init
-	git submodule update
 
 distclean:
 	rm -rf build
