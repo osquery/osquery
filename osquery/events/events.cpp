@@ -10,9 +10,10 @@
 
 namespace osquery {
 
-const std::vector<size_t> kEventTimeLists = {1 * 60, // 1 minute
-                                             1 * 60 * 60, // 1 hour
-                                             12 * 60 * 60, // half-day
+const std::vector<size_t> kEventTimeLists = {
+    1 * 60, // 1 minute
+    1 * 60 * 60, // 1 hour
+    12 * 60 * 60, // half-day
 };
 
 void EventType::fire(const EventContextRef ec, EventTime event_time) {
@@ -137,7 +138,7 @@ void EventFactory::delay() {
   auto ef = EventFactory::get();
   for (const auto& eventtype : EventFactory::get()->event_types_) {
     auto thread = boost::make_shared<boost::thread>(
-      boost::bind(&EventFactory::run, eventtype.first));
+        boost::bind(&EventFactory::run, eventtype.first));
     ef->threads_.push_back(thread);
   }
 }

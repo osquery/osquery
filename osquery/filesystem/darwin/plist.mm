@@ -113,8 +113,7 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
 
     try {
       plist = filterPlist(plist);
-    }
-    catch (const std::exception& e) {
+    } catch (const std::exception& e) {
       LOG(ERROR)
           << "An exception occured while filtering the plist: " << e.what();
       statusCode = 1;
@@ -145,8 +144,7 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
     ss << jsonStringCxx;
     try {
       pt::read_json(ss, tree);
-    }
-    catch (pt::json_parser::json_parser_error& e) {
+    } catch (pt::json_parser::json_parser_error& e) {
       LOG(ERROR) << "Error reading JSON: " << e.what();
       statusCode = 1;
       statusString = e.what();

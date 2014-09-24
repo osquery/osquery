@@ -14,6 +14,6 @@ int main(int argc, char *argv[]) {
 
   // End any event type threads.
   osquery::EventFactory::end();
-  
+
   return retcode;
 }
