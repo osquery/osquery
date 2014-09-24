@@ -13,16 +13,7 @@ distclean:
 	rm -rf doxygen/latex
 
 format:
-	clang-format -i include/osquery/*.h
-	clang-format -i include/osquery/**/*.h
-	clang-format -i osquery/**/*.h
-	clang-format -i osquery/**/**/*.h
-	clang-format -i osquery/**/**/**/*.h
-	clang-format -i osquery/**/*.cpp
-	clang-format -i osquery/**/**/*.cpp
-	clang-format -i osquery/**/**/**/*.cpp
-	clang-format -i osquery/**/**/*.mm
-	clang-format -i tools/*.cpp
+	find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \) -exec clang-format -i {} +
 
 %::
 	mkdir -p build
