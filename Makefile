@@ -3,7 +3,7 @@ all:
 	cd build && cmake .. && make $(MAKEFLAGS)
 
 deps:
-	/bin/bash ./tools/provision.sh
+	./tools/provision.sh
 
 distclean:
 	rm -rf .sources
