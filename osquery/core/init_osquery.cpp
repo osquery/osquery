@@ -2,6 +2,8 @@
 
 #include "osquery/core.h"
 
+#include <unistd.h>
+
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <gflags/gflags.h>
@@ -111,7 +113,9 @@ void initOsquery(int argc, char *argv[]) {
   FLAGS_logbufsecs = 0; // flush the log buffer immediately
   FLAGS_stop_logging_if_full_disk = true;
   FLAGS_max_log_size = 1024; // max size for individual log file is 1GB
-  FLAGS_log_dir = kDefaultLogDir;
+  if (access(kDefaultLogDir.c_str(), W_OK) == 0) {
+    FLAGS_log_dir = kDefaultLogDir;
+  }
   google::InitGoogleLogging(argv[0]);
   osquery::InitRegistry::get().run();
   auto new_args = osquery::parseCommandLineFlags(argc, argv);
