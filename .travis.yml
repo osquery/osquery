@@ -1,0 +1,14 @@
+language: cpp
+
+os:
+  - osx
+
+compiler:
+  - clang
+
+before_install:
+  - make deps
+
+script:
+  - make
+  - make test

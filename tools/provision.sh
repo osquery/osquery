@@ -296,7 +296,7 @@ function main() {
   fi
 
   cd $SCRIPT_DIR/../
-  pip install -r requirements.txt
+  sudo pip install -r requirements.txt
   git submodule init
   git submodule update
 }

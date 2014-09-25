@@ -222,7 +222,6 @@ if(NOT APPLE)
 
   INCLUDE(CPack)
 else()
-  CMAKE_POLICY(SET CMP0037 OLD)
   ADD_CUSTOM_TARGET(
     package
     packagesbuild -v ${CMAKE_SOURCE_DIR}/deploy/darwin/osquery.pkgproj &&
