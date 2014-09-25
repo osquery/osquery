@@ -30,6 +30,7 @@ SET(OSQUERY_LIBS
   libboost_system.a
   libboost_filesystem.a
   libboost_program_options.a
+  libboost_regex.a
 )
 
 # Handle naming differences in MT threading
