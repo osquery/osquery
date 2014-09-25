@@ -85,7 +85,8 @@ QueryData genProcesses() {
     // process name
     char name[1024];
     proc_name(pids[i], name, sizeof(name));
-    r["name"] = std::string(name);
+    std::string namer;
+    r["name"] = boost::lexical_cast<std::string>(namer);
 
     // if the path of the executable that started the process is available and
     // the path exists on disk, set on_disk to 1.  if the path is not
