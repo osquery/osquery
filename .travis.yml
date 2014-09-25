@@ -1,4 +1,5 @@
-language: cpp
+language:
+  - cpp
 
 os:
   - osx
@@ -12,3 +13,9 @@ before_install:
 script:
   - make
   - make test
+
+cache:
+  directories:
+    - .sources
+    - /Library/Caches/Homebrew
+    - /usr/local/Cellar
