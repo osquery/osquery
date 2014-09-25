@@ -83,7 +83,7 @@ function install_thrift() {
     ./bootstrap.sh
     ./configure
     make
-    make install
+    sudo make install
     popd
   else
     log "thrift is installed. skipping."
@@ -108,13 +108,13 @@ function install_rocksdb() {
       popd
     fi
     if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
-      cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
+      sudo cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
     else
       log "librocksdb already installed. skipping."
     fi
     if [[ ! -d /usr/local/include/rocksdb ]]; then
       mkdir -p /usr/local/include
-      cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
+      sudo cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
     else
       log "rocksdb header already installed. skipping."
     fi
@@ -125,8 +125,8 @@ function install_rocksdb() {
       popd
     fi
     if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
-      cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
-      cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
+      sudo cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
+      sudo cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
     else
       log "rocksdb already installed. skipping."
     fi
@@ -138,13 +138,13 @@ function package() {
     if dpkg --get-selections | grep --quiet $1; then
       log "$1 is already installed. skipping."
     else
-      apt-get install $@ -y
+      sudo apt-get install $@ -y
     fi
   elif [[ $OS = "centos" ]]; then
     if rpm -qa | grep --quiet $1; then
       log "$1 is already installed. skipping."
     else
-      yum install $@ -y
+      sudo yum install $@ -y
     fi
   elif [[ $OS = "darwin" ]]; then
     if brew list | grep --quiet $1; then
@@ -245,6 +245,8 @@ function main() {
       fi
       pushd glog-0.3.3
       ./configure
+      make
+      sudo make install
       popd
     else
       package libgoogle-glog-dev
@@ -268,7 +270,7 @@ function main() {
     package liblzma-dev
     package libprocps3-dev
   elif [[ $OS = "centos" ]]; then
-    yum update -y
+    sudo yum update -y
 
     package git-all
     package unzip
