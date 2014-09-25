@@ -1,7 +1,7 @@
 osquery
 =======
 
-<a href="https://magnum.travis-ci.com/facebook/osquery"><img src="https://magnum.travis-ci.com/facebook/osquery.svg?token=MvaZkzWisgsA98PZfNC7&branch=master"></a>
+<a target="_blank" href="https://magnum.travis-ci.com/facebook/osquery"><img src="https://magnum.travis-ci.com/facebook/osquery.svg?token=MvaZkzWisgsA98PZfNC7&branch=master"></a>
 
 osquery is an operating system instrumentation toolchain for *nix based hosts. osquery makes low-level operating system analytics and monitoring both performant and intuitive.
 
