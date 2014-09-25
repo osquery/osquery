@@ -1,14 +1,4 @@
 language: cpp
-
-os:
-  - osx
-
-compiler:
-  - clang
-
-before_install:
-  - make deps
-
-script:
-  - make
-  - make test
+os: osx
+compiler: clang
+script: ./tools/build.sh
