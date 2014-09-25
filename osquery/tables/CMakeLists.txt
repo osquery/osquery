@@ -27,6 +27,7 @@ if(APPLE)
   ADD_OSQUERY_LINK("-framework Security")
 else()
   ADD_OSQUERY_LIBRARY(osquery_tables_linux
+    events/linux/passwd_changes.cpp
     networking/linux/routes.cpp
     system/linux/kernel_modules.cpp
     system/linux/processes.cpp

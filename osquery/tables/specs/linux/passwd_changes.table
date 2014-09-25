@@ -1,0 +1,8 @@
+table_name("passwd_changes")
+schema([
+    Column(name="target_path", type="std::string"),
+    Column(name="time", type="std::string"),
+    Column(name="action", type="std::string"),
+    Column(name="transaction_id", type="std::string"),
+])
+implementation("events/linux/passwd_changes@PasswdChangesEventModule::genTable")

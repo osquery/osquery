@@ -38,7 +38,14 @@ IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
 
 namespace osquery { namespace tables {
 
+{% if class_name == "" %}
 osquery::QueryData {{function}}();
+{% else %}
+class {{class_name}} {
+ public:
+  static osquery::QueryData {{function}}();
+};
+{% endif %}
 
 struct sqlite3_{{table_name}} {
   int n;
@@ -126,7 +133,11 @@ int {{table_name_cc}}Filter(
   pVtab->pContent->{{col.name}}.clear();
 {% endfor %}\
 
+{% if class_name != "" %}
+  for (auto& row : osquery::tables::{{class_name}}::{{function}}()) {
+{% else %}
   for (auto& row : osquery::tables::{{function}}()) {
+{% endif %}
 {% for col in schema %}\
 {% if col.type == "std::string" %}\
     pVtab->pContent->{{col.name}}.push_back(row["{{col.name}}"]);
@@ -227,6 +238,7 @@ class TableState(Singleton):
         self.header = ""
         self.impl = ""
         self.function = ""
+        self.class_name = ""
 
     def generate(self, path):
         """Generate the virtual table files"""
@@ -238,6 +250,7 @@ class TableState(Singleton):
             header=self.header,
             impl=self.impl,
             function=self.function,
+            class_name=self.class_name
         )
 
         path_bits = path.split("/")
@@ -289,11 +302,16 @@ def implementation(impl_string):
     """
     logging.debug("- implementation")
     path, function = impl_string.split("@")
+    class_parts = function.split("::")[::-1]
+    function = class_parts[0]
+    class_name = class_parts[1] if len(class_parts) > 1 else ""
     impl = "%s.cpp" % path
     logging.debug("  - impl => %s" % impl)
     logging.debug("  - function => %s" % function)
+    logging.debug("  - class_name => %s" % class_name)
     table.impl = impl
     table.function = function
+    table.class_name = class_name
 
 def main(argc, argv):
     if DEVELOPING:

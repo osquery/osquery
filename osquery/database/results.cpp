@@ -36,7 +36,7 @@ Status serializeRow(const Row& r, pt::ptree& tree) {
   return Status(0, "OK");
 }
 
-Status serializeRowJSON(const Row& r, std::string json) {
+Status serializeRowJSON(const Row& r, std::string& json) {
   pt::ptree tree;
   try {
     auto status = serializeRow(r, tree);
@@ -50,6 +50,32 @@ Status serializeRowJSON(const Row& r, std::string json) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
+}
+
+Status deserializeRow(const pt::ptree& tree, Row& r) {
+  try {
+    for (auto& i : tree) {
+      if (i.first.length() > 0) {
+        r[i.first] = i.second.data();
+      }
+    }
+    return Status(0, "OK");
+  } catch (const std::exception& e) {
+    LOG(ERROR) << e.what();
+    return Status(1, e.what());
+  }
+}
+
+Status deserializeRowJSON(const std::string& json, Row& r) {
+  pt::ptree tree;
+  try {
+    std::stringstream j;
+    j << json;
+    pt::read_json(j, tree);
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+  return deserializeRow(tree, r);
 }
 
 /////////////////////////////////////////////////////////////////////////////

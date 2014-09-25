@@ -16,6 +16,8 @@
 
 namespace osquery {
 
+extern std::map<int, std::string> kMaskActions;
+
 struct INotifyMonitorContext : public MonitorContext {
   /// Monitor the following filesystem path.
   std::string path;
@@ -25,6 +27,13 @@ struct INotifyMonitorContext : public MonitorContext {
   bool recursive;
 
   INotifyMonitorContext() : mask(0), recursive(false) {}
+  void requireAction(std::string action) {
+    for (const auto& bit : kMaskActions) {
+      if (action == bit.second) {
+        mask = mask | bit.first;
+      }
+    }
+  }
 };
 
 struct INotifyEventContext : public EventContext {

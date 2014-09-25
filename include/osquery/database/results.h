@@ -47,7 +47,10 @@ osquery::Status serializeRow(const Row& r, boost::property_tree::ptree& tree);
  * @return an instance of osquery::Status, indicating the success or failure
  * of the operation
  */
-osquery::Status serializeRowJSON(const Row& r, std::string json);
+osquery::Status serializeRowJSON(const Row& r, std::string& json);
+
+osquery::Status deserializeRow(const boost::property_tree::ptree& tree, Row& r);
+osquery::Status deserializeRowJSON(const std::string& json, Row& r);
 
 /////////////////////////////////////////////////////////////////////////////
 // QueryData

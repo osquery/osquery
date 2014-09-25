@@ -1,9 +1,12 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/classification.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <glog/logging.h>
 
+#include "osquery/core.h"
 #include "osquery/core/conversions.h"
 #include "osquery/events.h"
 #include "osquery/dispatcher.h"
@@ -15,7 +18,7 @@ const std::vector<size_t> kEventTimeLists = {1 * 60, // 1 minute
                                              12 * 60 * 60, // half-day
 };
 
-void EventType::fire(const EventContextRef ec, EventTime event_time) {
+void EventType::fire(const EventContextRef ec, EventTime time) {
   EventContextID ec_id;
 
   {
@@ -23,10 +26,25 @@ void EventType::fire(const EventContextRef ec, EventTime event_time) {
     ec_id = next_ec_id_++;
   }
 
+  // Fill in EventContext ID and time if needed.
+  if (ec != nullptr) {
+    ec->id = ec_id;
+    if (ec->time == 0) {
+      if (time == 0) {
+        time = getUnixTime();
+      }
+      ec->time = time;
+    }
+
+    // Set the optional string-verion of the time for DB columns.
+    ec->time_string = boost::lexical_cast<std::string>(ec->time);
+  }
+
   for (const auto& monitor : monitors_) {
     auto callback = monitor->callback;
     if (shouldFire(monitor->context, ec) && callback != nullptr) {
-      callback(ec_id, event_time, ec, false);
+      callback(ec, false);
+    } else {
     }
   }
 }
@@ -41,41 +59,101 @@ Status EventType::run() {
   return Status(1, "No runloop required");
 }
 
-Status EventModule::recordEvent(EventID eid, int event_time) {
+std::vector<EventRecord> EventModule::getRecords(EventTime start,
+                                                 EventTime stop) {
+  Status status;
+  std::vector<EventRecord> records;
+  auto db = DBHandle::getInstance();
+
+  std::string index_key = "indexes." + dbNamespace();
+  std::string record_key = "records." + dbNamespace();
+
+  // For now, cheat and use the first list type.
+  std::string list_key = boost::lexical_cast<std::string>(kEventTimeLists[0]);
+  std::string index_value;
+
+  // Get all bins for this list type.
+  status = db->Get(kEvents, index_key + "." + list_key, index_value);
+  if (index_value.length() == 0) {
+    // There are no events in this time range.
+    return records;
+  }
+  // Tokenize the value into our bins of the list type.
+  std::vector<std::string> lists;
+  boost::split(lists, index_value, boost::is_any_of(","));
+  std::string record_value;
+  for (const auto& list_id : lists) {
+    status = db->Get(
+        kEvents, record_key + "." + list_key + "." + list_id, record_value);
+    if (record_value.length() == 0) {
+      // There are actually no events in this bin, interesting error case.
+      continue;
+    }
+    std::vector<std::string> bin_records;
+    boost::split(bin_records, record_value, boost::is_any_of(",:"));
+    auto bin_it = bin_records.begin();
+    for (; bin_it != bin_records.end(); bin_it++) {
+      std::string eid = *bin_it;
+      EventTime time = boost::lexical_cast<EventTime>(*(++bin_it));
+      records.push_back(std::make_pair(eid, time));
+    }
+  }
+
+  // Now all the event_ids/event_times within the binned range exist.
+  // Select further on the EXACT time range.
+
+  return records;
+}
+
+Status EventModule::recordEvent(EventID eid, EventTime time) {
   Status status;
   auto db = DBHandle::getInstance();
-  std::string time_value = boost::lexical_cast<std::string>(event_time);
+  std::string time_value = boost::lexical_cast<std::string>(time);
 
   // The record is identified by the event type then module name.
-  std::string record_key = "records." + type() + "." + name();
+  std::string index_key = "indexes." + dbNamespace();
+  std::string record_key = "records." + dbNamespace();
   // The list key includes the list type (bin size) and the list ID (bin).
   std::string list_key;
   std::string list_id;
-  // This is an append operation, the record value is tokenized with this event.
-  std::string record_value;
 
   for (auto time_list : kEventTimeLists) {
     // The list_id is the MOST-Specific key ID, the bin for this list.
     // If the event time was 13 and the time_list is 5 seconds, lid = 2.
-    list_id = boost::lexical_cast<std::string>(event_time % time_list);
+    list_id = boost::lexical_cast<std::string>(time / time_list);
     // The list name identifies the 'type' of list.
     list_key = boost::lexical_cast<std::string>(time_list);
-    list_key = record_key + "." + list_key + "." + list_id;
+    // list_key = list_key + "." + list_id;
 
     {
       boost::lock_guard<boost::mutex> lock(event_record_lock_);
       // Append the record (eid, unix_time) to the list bin.
-      status = db->Get(kEvents, list_key, record_value);
+      std::string record_value;
+      status = db->Get(
+          kEvents, record_key + "." + list_key + "." + list_id, record_value);
 
       if (record_value.length() == 0) {
+        // This is a new list_id for list_key, append the ID to the indirect
+        // lookup for this list_key.
+        std::string index_value;
+        status = db->Get(kEvents, index_key + "." + list_key, index_value);
+        if (index_value.length() == 0) {
+          // A new index.
+          index_value = list_id;
+        } else {
+          index_value += "," + list_id;
+        }
+        status = db->Put(kEvents, index_key + "." + list_key, index_value);
         record_value = eid + ":" + time_value;
       } else {
         // Tokenize a record using ',' and the EID/time using ':'.
         record_value += "," + eid + ":" + time_value;
       }
-      status = db->Put(kEvents, list_key, record_value);
+      status = db->Put(
+          kEvents, record_key + "." + list_key + "." + list_id, record_value);
       if (!status.ok()) {
-        LOG(ERROR) << "Could not put Event Record key: " << list_key;
+        LOG(ERROR) << "Could not put Event Record key: " << record_key << "."
+                   << list_key << "." << list_id;
       }
     }
   }
@@ -87,7 +165,7 @@ EventID EventModule::getEventID() {
   Status status;
   auto db = DBHandle::getInstance();
   // First get an event ID from the meta key.
-  std::string eid_key = "eid." + type() + "." + name();
+  std::string eid_key = "eid." + dbNamespace();
   std::string last_eid_value;
   std::string eid_value;
 
@@ -110,32 +188,58 @@ EventID EventModule::getEventID() {
   return eid_value;
 }
 
-Status EventModule::add(const Row& r, int event_time) {
+QueryData EventModule::get(EventTime start, EventTime stop) {
+  QueryData results;
+  Status status;
+  auto db = DBHandle::getInstance();
+
+  // Get the records for this time range.
+  auto records = getRecords(start, stop);
+
+  std::string events_key = "data." + dbNamespace();
+
+  // Select records using event_ids as keys.
+  std::string data_value;
+  for (const auto& record : records) {
+    Row r;
+    status = db->Get(kEvents, events_key + "." + record.first, data_value);
+    if (data_value.length() == 0) {
+      // THere is no record here, interesting error case.
+      continue;
+    }
+    status = deserializeRowJSON(data_value, r);
+    if (status.ok()) {
+      results.push_back(r);
+    }
+  }
+  return results;
+}
+
+Status EventModule::add(const Row& r, EventTime time) {
   Status status;
   auto db = DBHandle::getInstance();
 
   // Get and increment the EID for this module.
   EventID eid = getEventID();
 
-  std::string event_key = "data." + type() + "." + name() + "." + eid;
+  std::string event_key = "data." + dbNamespace() + "." + eid;
   std::string data;
 
   status = serializeRowJSON(r, data);
   if (!status.ok()) {
-    printf("could not serialize json\n");
     return status;
   }
 
   // Store the event data.
   status = db->Put(kEvents, event_key, data);
   // Record the event in the indexing bins.
-  recordEvent(eid, event_time);
+  recordEvent(eid, time);
   return status;
 }
 
 void EventFactory::delay() {
-  auto ef = EventFactory::get();
-  for (const auto& eventtype : EventFactory::get()->event_types_) {
+  auto ef = EventFactory::getInstance();
+  for (const auto& eventtype : EventFactory::getInstance()->event_types_) {
     auto thread_ = std::make_shared<boost::thread>(
         boost::bind(&EventFactory::run, eventtype.first));
     ef->threads_.push_back(thread_);
@@ -148,13 +252,13 @@ Status EventFactory::run(EventTypeID type_id) {
   // Assume it can either make use of an entrypoint poller/selector or
   // take care of async callback registrations in setUp/configure/run
   // only once and handle event queueing/firing in callbacks.
-  auto event_type = EventFactory::get()->getEventType(type_id);
+  auto event_type = EventFactory::getInstance()->getEventType(type_id);
   if (event_type == nullptr) {
     return Status(1, "No Event Type");
   }
 
   Status status = Status(0, "OK");
-  while (!EventFactory::get()->ending_ && status.ok()) {
+  while (!EventFactory::getInstance()->ending_ && status.ok()) {
     // Can optionally implement a global cooloff latency here.
     status = event_type->run();
   }
@@ -164,19 +268,20 @@ Status EventFactory::run(EventTypeID type_id) {
 }
 
 void EventFactory::end(bool should_end) {
-  EventFactory::get()->ending_ = should_end;
+  EventFactory::getInstance()->ending_ = should_end;
   // Join on the thread group.
+  ::usleep(400);
 }
 
 // There's no reason for the event factory to keep multiple instances.
-std::shared_ptr<EventFactory> EventFactory::get() {
+std::shared_ptr<EventFactory> EventFactory::getInstance() {
   static auto q = std::shared_ptr<EventFactory>(new EventFactory());
   return q;
 }
 
 Status EventFactory::registerEventType(const EventTypeRef event_type) {
   EventTypeID type_id = event_type->type();
-  auto ef = EventFactory::get();
+  auto ef = EventFactory::getInstance();
 
   if (ef->getEventType(type_id) != nullptr) {
     // This is a duplicate type id?
@@ -189,7 +294,7 @@ Status EventFactory::registerEventType(const EventTypeRef event_type) {
 }
 
 Status EventFactory::registerEventModule(const EventModuleRef event_module) {
-  auto ef = EventFactory::get();
+  auto ef = EventFactory::getInstance();
   // Let the module initialize any Monitors.
   event_module->init();
   ef->event_modules_.push_back(event_module);
@@ -197,7 +302,7 @@ Status EventFactory::registerEventModule(const EventModuleRef event_module) {
 }
 
 Status EventFactory::addMonitor(EventTypeID type_id, const MonitorRef monitor) {
-  auto event_type = EventFactory::get()->getEventType(type_id);
+  auto event_type = EventFactory::getInstance()->getEventType(type_id);
   if (event_type == nullptr) {
     // Cannot create a Monitor for a missing type_id.
     return Status(1, "No Event Type");
@@ -211,13 +316,13 @@ Status EventFactory::addMonitor(EventTypeID type_id, const MonitorRef monitor) {
 
 Status EventFactory::addMonitor(EventTypeID type_id,
                                 const MonitorContextRef mc,
-                                EventCallback callback) {
-  auto monitor = Monitor::create(mc, callback);
+                                EventCallback cb) {
+  auto monitor = Monitor::create(mc, cb);
   return EventFactory::addMonitor(type_id, monitor);
 }
 
 size_t EventFactory::numMonitors(EventTypeID type_id) {
-  const auto& event_type = EventFactory::get()->getEventType(type_id);
+  const auto& event_type = EventFactory::getInstance()->getEventType(type_id);
   if (event_type != nullptr) {
     return event_type->numMonitors();
   }
@@ -225,7 +330,7 @@ size_t EventFactory::numMonitors(EventTypeID type_id) {
 }
 
 std::shared_ptr<EventType> EventFactory::getEventType(EventTypeID type_id) {
-  const auto& ef = EventFactory::get();
+  const auto& ef = EventFactory::getInstance();
   const auto& it = ef->event_types_.find(type_id);
   if (it != ef->event_types_.end()) {
     return ef->event_types_[type_id];
@@ -238,7 +343,7 @@ Status EventFactory::deregisterEventType(const EventTypeRef event_type) {
 }
 
 Status EventFactory::deregisterEventType(EventTypeID type_id) {
-  auto ef = EventFactory::get();
+  auto ef = EventFactory::getInstance();
   const auto& it = ef->event_types_.find(type_id);
   if (it == ef->event_types_.end()) {
     return Status(1, "No Event Type registered");
@@ -250,7 +355,7 @@ Status EventFactory::deregisterEventType(EventTypeID type_id) {
 }
 
 Status EventFactory::deregisterEventTypes() {
-  auto ef = EventFactory::get();
+  auto ef = EventFactory::getInstance();
   auto it = ef->event_types_.begin();
   for (; it != ef->event_types_.end(); it++) {
     it->second->tearDown();
@@ -264,7 +369,7 @@ Status EventFactory::deregisterEventTypes() {
 namespace osquery {
 namespace registries {
 void faucet(EventTypes ets, EventModules ems) {
-  auto ef = osquery::EventFactory::get();
+  auto ef = osquery::EventFactory::getInstance();
   for (const auto& event_type : ets) {
     ef->registerEventType(event_type.second);
   }

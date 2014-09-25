@@ -8,7 +8,7 @@ namespace osquery {
 
 class EventsTests : public testing::Test {
  protected:
-  virtual void SetUp() { ef = EventFactory::get(); }
+  virtual void SetUp() { ef = EventFactory::getInstance(); }
 
   virtual void TearDown() { ef->deregisterEventTypes(); }
 
@@ -16,8 +16,8 @@ class EventsTests : public testing::Test {
 };
 
 TEST_F(EventsTests, test_singleton) {
-  auto one = EventFactory::get();
-  auto two = EventFactory::get();
+  auto one = EventFactory::getInstance();
+  auto two = EventFactory::getInstance();
   EXPECT_EQ(one, two);
 }
 
@@ -196,10 +196,7 @@ TEST_F(EventsTests, test_tear_down) {
 
 static int kBellHathTolled = 0;
 
-Status TestTheeCallback(EventContextID ec_id,
-                        EventTime time,
-                        EventContextRef context,
-                        bool reserved) {
+Status TestTheeCallback(EventContextRef context, bool reserved) {
   kBellHathTolled += 1;
   return Status(0, "OK");
 }
