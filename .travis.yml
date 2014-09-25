@@ -14,4 +14,7 @@ script:
   - make test
 
 cache:
-  - .sources
+  directories:
+    - .sources
+    - /Library/Caches/Homebrew
+    - /usr/local/Cellar
