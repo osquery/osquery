@@ -12,6 +12,7 @@
 ** This file contains code to implement the "sqlite" command line
 ** utility for accessing SQLite databases.
 */
+
 #if (defined(_WIN32) || defined(WIN32)) && !defined(_CRT_SECURE_NO_WARNINGS)
 /* This needs to come before any includes for MSVC compiler */
 #define _CRT_SECURE_NO_WARNINGS
@@ -35,6 +36,8 @@
 #include <sqlite3.h>
 #include <ctype.h>
 #include <stdarg.h>
+
+#include <boost/algorithm/string/predicate.hpp>
 
 #if !defined(_WIN32) && !defined(WIN32)
 #include <signal.h>
@@ -76,6 +79,8 @@
 #define pclose _pclose
 #else
 
+#include "osquery/database/results.h"
+#include "osquery/devtools.h"
 #include "osquery/registry/registry.h"
 
 /* Make sure isatty() has a prototype.
@@ -497,6 +502,10 @@ struct callback_data {
   int *aiIndent; /* Array of indents used in MODE_Explain */
   int nIndent; /* Size of array aiIndent[] */
   int iIndent; /* Index of current op in aiIndent[] */
+
+  /* Additional attributes to be used in pretty mode */
+  osquery::QueryData queryData;
+  std::vector<std::string> resultsOrder;
 };
 
 /*
@@ -511,9 +520,19 @@ struct callback_data {
 #define MODE_Tcl 6 /* Generate ANSI-C or TCL quoted elements */
 #define MODE_Csv 7 /* Quote strings, numbers are plain */
 #define MODE_Explain 8 /* Like MODE_Column, but do not truncate data */
+#define MODE_Pretty 9 /* Pretty print the SQL results */
 
 static const char *modeDescr[] = {
-    "line", "column", "list", "semi", "html", "insert", "tcl", "csv", "explain",
+    "line",
+    "column",
+    "list",
+    "semi",
+    "html",
+    "insert",
+    "tcl",
+    "csv",
+    "explain",
+    "pretty",
 };
 
 /*
@@ -975,6 +994,23 @@ static int shell_callback(
   struct callback_data *p = (struct callback_data *)pArg;
 
   switch (p->mode) {
+  case MODE_Pretty: {
+
+    if (p->resultsOrder.size() == 0) {
+      for (i = 0; i < nArg; i++) {
+        p->resultsOrder.push_back(std::string(azCol[i]));
+      }
+    }
+
+    osquery::Row r;
+    for (i = 0; i < nArg; i++) {
+      std::string header = std::string(azCol[i]);
+      std::string result = std::string(azArg[i]);
+      r[header] = result;
+    }
+    p->queryData.push_back(r);
+    break;
+  }
   case MODE_Line: {
     int w = 5;
     if (azArg == 0)
@@ -1782,6 +1818,12 @@ static int shell_exec(
     }
   } /* end while */
 
+  if (pArg->mode == MODE_Pretty) {
+    osquery::prettyPrint(pArg->queryData, pArg->resultsOrder);
+    pArg->queryData.clear();
+    pArg->resultsOrder.clear();
+  }
+
   return rc;
 }
 
@@ -1961,6 +2003,7 @@ static char zHelp[] =
     "                         insert   SQL insert statements for TABLE\n"
     "                         line     One value per line\n"
     "                         list     Values delimited by .separator string\n"
+    "                         pretty   Pretty printed SQL results\n"
     "                         tabs     Tab-separated values\n"
     "                         tcl      TCL list elements\n"
     ".nullvalue STRING      Use STRING in place of NULL values\n"
@@ -3044,8 +3087,13 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     } else if ((n2 == 6 && strncmp(azArg[1], "column", n2) == 0) ||
                (n2 == 7 && strncmp(azArg[1], "columns", n2) == 0)) {
       p->mode = MODE_Column;
+    } else if ((n2 == 6 && strncmp(azArg[1], "column", n2) == 0) ||
+               (n2 == 7 && strncmp(azArg[1], "columns", n2) == 0)) {
+      p->mode = MODE_Column;
     } else if (n2 == 4 && strncmp(azArg[1], "list", n2) == 0) {
       p->mode = MODE_List;
+    } else if (n2 == 6 && strncmp(azArg[1], "pretty", n2) == 0) {
+      p->mode = MODE_Pretty;
     } else if (n2 == 4 && strncmp(azArg[1], "html", n2) == 0) {
       p->mode = MODE_Html;
     } else if (n2 == 3 && strncmp(azArg[1], "tcl", n2) == 0) {
@@ -3063,7 +3111,7 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     } else {
       fprintf(stderr,
               "Error: mode should be one of: "
-              "column csv html insert line list tabs tcl\n");
+              "column csv html insert line list tabs tcl pretty\n");
       rc = 1;
     }
   } else if (c == 'm' && strncmp(azArg[0], "mode", n) == 0 && nArg == 3) {
@@ -3426,13 +3474,19 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
       if (nPrintCol < 1)
         nPrintCol = 1;
       nPrintRow = (nRow + nPrintCol - 1) / nPrintCol;
+      std::vector<std::string> tables;
       for (i = 0; i < nPrintRow; i++) {
         for (j = i; j < nRow; j += nPrintRow) {
-          const char *zSp = j < nPrintRow ? "" : "  ";
-          fprintf(
-              p->out, "%s%-*s", zSp, maxlen, azResult[j] ? azResult[j] : "");
+          std::string tablename = std::string(azResult[j] ? azResult[j] : "");
+          if (boost::starts_with(tablename, "temp.")) {
+            tablename.erase(0, 5);
+          }
+          tables.push_back(tablename);
         }
-        fprintf(p->out, "\n");
+      }
+      std::sort(tables.begin(), tables.end());
+      for (const auto& table : tables) {
+        std::cout << "  => " << table << "\n";
       }
     }
     for (ii = 0; ii < nRow; ii++)
@@ -3981,7 +4035,7 @@ static void usage(int showDetail) {
 */
 static void main_init(struct callback_data *data) {
   memset(data, 0, sizeof(*data));
-  data->mode = MODE_Column;
+  data->mode = MODE_Pretty;
   memcpy(data->separator, "|", 2);
   data->showHeader = 1;
   sqlite3_config(SQLITE_CONFIG_URI, 1);
@@ -4179,6 +4233,8 @@ int launchIntoShell(int argc, char **argv) {
       data.mode = MODE_Html;
     } else if (strcmp(z, "-list") == 0) {
       data.mode = MODE_List;
+    } else if (strcmp(z, "-pretty") == 0) {
+      data.mode = MODE_Pretty;
     } else if (strcmp(z, "-line") == 0) {
       data.mode = MODE_Line;
     } else if (strcmp(z, "-column") == 0) {
