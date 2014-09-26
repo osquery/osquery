@@ -19,6 +19,8 @@ extern const std::string kVersion;
 /**
  * @brief Execute a query
  *
+ * This is a lower-level version of osquery::SQL. Prefer to use osquery::SQL.
+ *
  * @code{.cpp}
  *   std::string q = "SELECT * FROM time;";
  *   int i = 0;

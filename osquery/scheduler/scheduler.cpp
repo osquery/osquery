@@ -11,6 +11,7 @@
 #include "osquery/core.h"
 #include "osquery/database.h"
 #include "osquery/logger.h"
+#include "osquery/sql.h"
 
 namespace osquery {
 
@@ -22,15 +23,15 @@ void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
       LOG(INFO) << "executing query: " << q.query;
       int unix_time = std::time(0);
       int err;
-      auto query_results = query(q.query, err);
-      if (err != 0) {
-        LOG(ERROR) << "error executing query: " << q.query;
+      auto sql = SQL(q.query);
+      if (!sql.ok()) {
+        LOG(ERROR) << "error executing query (" << q.query
+                   << "): " << sql.getMessageString();
         continue;
       }
       auto dbQuery = Query(q);
       DiffResults diff_results;
-      auto status =
-          dbQuery.addNewResults(query_results, diff_results, unix_time);
+      auto status = dbQuery.addNewResults(sql.rows(), diff_results, unix_time);
       if (!status.ok()) {
         LOG(ERROR)
             << "error adding new results to database: " << status.toString();
