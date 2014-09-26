@@ -3485,7 +3485,7 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
         }
       }
       std::sort(tables.begin(), tables.end());
-      for (const auto& table : tables) {
+      for (const auto &table : tables) {
         std::cout << "  => " << table << "\n";
       }
     }

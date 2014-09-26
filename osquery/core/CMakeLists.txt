@@ -6,6 +6,7 @@ endif()
 
 ADD_OSQUERY_LIBRARY(osquery_core
   init_osquery.cpp
+  sql.cpp
   sqlite_util.cpp
   system.cpp
   test_util.cpp
@@ -14,6 +15,7 @@ ADD_OSQUERY_LIBRARY(osquery_core
 )
 
 ADD_OSQUERY_TEST(status_test status_tests.cpp)
+ADD_OSQUERY_TEST(sql_test sql_tests.cpp)
 ADD_OSQUERY_TEST(sqlite_util_tests sqlite_util_tests.cpp)
 ADD_OSQUERY_TEST(test_util_tests test_util_tests.cpp)
 ADD_OSQUERY_TEST(text_tests text_tests.cpp)
