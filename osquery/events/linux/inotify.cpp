@@ -11,7 +11,7 @@
 
 namespace osquery {
 
-REGISTER_EVENTTYPE("INotifyEventType", INotifyEventType);
+REGISTER_EVENTTYPE(INotifyEventType);
 
 int kINotifyULatency = 200;
 static const uint32_t BUFFER_SIZE =
@@ -63,9 +63,7 @@ Status INotifyEventType::run() {
     // Read timeout.
     return Status(0, "Continue");
   }
-
   ssize_t record_num = ::read(getHandle(), buffer, BUFFER_SIZE);
-  LOG(INFO) << "INotify read " << record_num << " event records";
   if (record_num == 0 || record_num == -1) {
     return Status(1, "INotify read failed");
   }
@@ -144,7 +142,6 @@ Status INotifyEventType::addMonitor(const MonitorRef monitor) {
     LOG(ERROR) << "Could not add inotify watch on: " << mc->path;
     return Status(1, "Add Watch Failed");
   }
-
   descriptors_.push_back(watch);
   path_descriptors_[mc->path] = watch;
   descriptor_paths_[watch] = mc->path;

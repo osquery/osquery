@@ -40,7 +40,7 @@ class AnotherFakeEventModule : public EventModule {
 };
 
 TEST_F(EventsDatabaseTests, test_event_module_id) {
-  auto fake_event_module = FakeEventModule::get();
+  auto fake_event_module = FakeEventModule::getInstance();
   // Not normally available outside of EventModule->Add().
   auto event_id1 = fake_event_module->getEventID();
   EXPECT_EQ(event_id1, "1");
@@ -49,8 +49,8 @@ TEST_F(EventsDatabaseTests, test_event_module_id) {
 }
 
 TEST_F(EventsDatabaseTests, test_unique_event_module_id) {
-  auto fake_event_module = FakeEventModule::get();
-  auto another_fake_event_module = AnotherFakeEventModule::get();
+  auto fake_event_module = FakeEventModule::getInstance();
+  auto another_fake_event_module = AnotherFakeEventModule::getInstance();
   // Not normally available outside of EventModule->Add().
   auto event_id1 = fake_event_module->getEventID();
   EXPECT_EQ(event_id1, "3");
@@ -63,7 +63,7 @@ TEST_F(EventsDatabaseTests, test_event_add) {
   r["testing"] = std::string("hello from space");
   size_t event_time = 10;
 
-  auto fake_event_module = FakeEventModule::get();
+  auto fake_event_module = FakeEventModule::getInstance();
   auto status = fake_event_module->testAdd(1);
   EXPECT_TRUE(status.ok());
 }

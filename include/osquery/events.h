@@ -26,9 +26,14 @@ typedef const std::string EventTypeID;
 typedef const std::string EventID;
 typedef uint32_t EventContextID;
 typedef uint32_t EventTime;
+typedef std::pair<EventID, EventTime> EventRecord;
 
 struct MonitorContext {};
-struct EventContext {};
+struct EventContext {
+  EventContextID id;
+  EventTime time;
+  std::string time_string;
+};
 
 typedef std::shared_ptr<Monitor> MonitorRef;
 typedef std::shared_ptr<EventType> EventTypeRef;
@@ -36,8 +41,7 @@ typedef std::shared_ptr<MonitorContext> MonitorContextRef;
 typedef std::shared_ptr<EventContext> EventContextRef;
 typedef std::shared_ptr<EventModule> EventModuleRef;
 
-typedef std::function<Status(EventContextID, EventTime, EventContextRef, bool)>
-EventCallback;
+typedef std::function<Status(EventContextRef, bool)> EventCallback;
 
 /// An EventType must track every monitor added.
 typedef std::vector<MonitorRef> MonitorVector;
@@ -69,6 +73,11 @@ extern const std::vector<size_t> kEventTimeLists;
 #define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                            \
  public:                                                                   \
   EventTypeID type() const { return #TYPE; }                               \
+  bool shouldFire(const MonitorContextRef mc, const EventContextRef ec) {  \
+    if (#MONITOR == "MonitorContext" && #EVENT == "EventContext")          \
+      return true;                                                         \
+    return shouldFire(getMonitorContext(mc), getEventContext(ec));         \
+  }                                                                        \
   static std::shared_ptr<EVENT> getEventContext(EventContextRef context) { \
     return std::static_pointer_cast<EVENT>(context);                       \
   }                                                                        \
@@ -78,6 +87,9 @@ extern const std::vector<size_t> kEventTimeLists;
   }                                                                        \
   static std::shared_ptr<EVENT> createEventContext() {                     \
     return std::make_shared<EVENT>();                                      \
+  }                                                                        \
+  static std::shared_ptr<MONITOR> createMonitorContext() {                 \
+    return std::make_shared<MONITOR>();                                    \
   }
 
 /**
@@ -97,14 +109,18 @@ extern const std::vector<size_t> kEventTimeLists;
  */
 #define DECLARE_EVENTMODULE(NAME, TYPE)                \
  public:                                               \
-  static std::shared_ptr<NAME> get() {                 \
+  static std::shared_ptr<NAME> getInstance() {         \
     static auto q = std::shared_ptr<NAME>(new NAME()); \
     return q;                                          \
+  }                                                    \
+  static QueryData genTable() __attribute__((used)) {  \
+    return getInstance()->get(0, 0);                   \
   }                                                    \
                                                        \
  private:                                              \
   EventTypeID name() const { return #NAME; }           \
-  EventTypeID type() const { return #TYPE; }
+  EventTypeID type() const { return #TYPE; }           \
+  NAME() {}
 
 /**
  * @brief Required callin EventModule method declaration helper.
@@ -138,16 +154,52 @@ extern const std::vector<size_t> kEventTimeLists;
  * instance boilerplate code is added automatically.
  * Note: The macro will append `Module` to `MyCallback`.
  */
-#define FUNC_NAME(__NAME__) __NAME__
-#define DECLARE_CALLBACK(__NAME__, EVENT)             \
- public:                                              \
-  static Status __NAME__(EventContextID ec_id,        \
-                         EventTime time,              \
-                         const EventContextRef ec,    \
-                         bool reserved) {             \
-    auto ec_ = std::static_pointer_cast<EVENT>(ec);   \
-    return get()->Module##__NAME__(ec_id, time, ec_); \
+#define DECLARE_CALLBACK(NAME, EVENT)                                  \
+ public:                                                               \
+  static Status Event##NAME(const EventContextRef ec, bool reserved) { \
+    auto ec_ = std::static_pointer_cast<EVENT>(ec);                    \
+    return getInstance()->NAME(ec_);                                   \
+  }                                                                    \
+                                                                       \
+ private:                                                              \
+  void BindTo##NAME(const MonitorContextRef mc) {                      \
+    EventFactory::addMonitor(type(), mc, Event##NAME);                 \
   }
+
+/**
+ * @brief Bind a monitor context to a declared EventCallback for this module.
+ *
+ * Binding refers to the association of a callback for this EventModule to
+ * a configured MonitorContext. Under the hood "binding" creates a factory
+ * Monitor for the EventType used by the EventModule. Such that when an event
+ * of the EventType is fired, if the event details match the specifics of the
+ * MonitorContext the EventMonitor%'s EventCallback will be called.
+ *
+ * @code{.cpp}
+ *   #include "osquery/events.h"
+ *
+ *   class MyEventModule: public EventModule {
+ *     DECLARE_EVENTMODULE(MyEventModule, MyEventType);
+ *     DECLARE_CALLBACK(MyCallback, MyEventContext);
+ *
+ *    public:
+ *     void init() {
+ *       auto mc = MyEventType::createMonitorContext();
+ *       mc->requirement = "SOME_SPECIFIC_DETAIL";
+ *       BIND_CALLBACK(MyCallback, mc);
+ *     }
+ *     Status MyCallback(const MyEventContextRef ec) {}
+ *   }
+ * @endcode
+ *
+ * The symbol `MyCallback` must match in `DECLARE_CALLBACK`, `BIND_CALLBACK` and
+ * as a member of this EventModule.
+ *
+ * @param NAME The symbol for the EventCallback method used in DECLARE_CALLBACK.
+ * @param MC The MonitorContext to bind.
+ */
+#define BIND_CALLBACK(NAME, MC) \
+  EventFactory::addMonitor(type(), MC, Event##NAME);
 
 /**
  * @brief A Monitor is used to configure an EventType and bind a callback.
@@ -260,6 +312,14 @@ class EventType {
   /// Return a string identifier associated with this EventType.
   virtual EventTypeID type() const = 0;
 
+  template <typename T>
+  static EventTypeID type() {
+    const auto& event_type = new T();
+    auto type_id = event_type->type();
+    delete event_type;
+    return type_id;
+  }
+
  protected:
   /**
    * @brief The generic check loop to call MonitorContext callback methods.
@@ -268,10 +328,11 @@ class EventType {
    * the Monitor%s and using `shouldFire` is more appropraite.
    *
    * @param ec The EventContext created and fired by the EventType.
-   * @param event_time The most accurate time associated with the event.
+   * @param time The most accurate time associated with the event.
    */
-  void fire(const EventContextRef ec, EventTime event_time = 0);
+  void fire(const EventContextRef ec, EventTime time = 0);
 
+ protected:
   /**
    * @brief The generic `fire` will call `shouldFire` for each Monitor.
    *
@@ -314,16 +375,50 @@ class EventModule {
   /// Called after EventType `setUp`. Add all Monitor%s here.
   virtual void init() {}
 
+  /// Suggested entrypoint for table generation.
+  static QueryData genTable();
+
  protected:
   /// Store an event for table-access into the underlying backing store.
-  virtual Status add(const osquery::Row& r, int event_time) final;
+  virtual Status add(const osquery::Row& r, EventTime time) final;
+
+  /**
+   * @brief Return all events added by this EventModule within start, stop.
+   *
+   * This is used internally (for the most part) by EventModule::genTable.
+   *
+   * @param start Inclusive lower bound time limit.
+   * @param stop Inclusive upper bound time limit.
+   * @return Set of event rows matching time limits.
+   */
+  virtual QueryData get(EventTime start, EventTime stop);
+
+  /*
+   * @brief When `get`ting event results, return EventID%s from time indexes.
+   *
+   * Used by EventModule::get to retrieve EventID, EventTime indexes. This
+   * applies the lookup-efficiency checks for time list appropriate bins.
+   * If the time range in 24 hours and there is a 24-hour list bin it will
+   * be queried using a single backing store `Get` followed by two `Get`s of
+   * the most-specific boundary lists.
+   *
+   * @return List of EventID, EventTime%s
+   */
+  std::vector<EventRecord> getRecords(EventTime start, EventTime stop);
 
  private:
   /// Returns a new EventID for this module, increments to the current EID.
   EventID getEventID();
 
-  /// Records an added EventID, which contains row data, and a time for lookups.
-  Status recordEvent(EventID eid, int event_time);
+  /*
+   * @brief Add an EventID, EventTime pair to all matching list types.
+   *
+   * The list types are defined by time size. Based on the EventTime this pair
+   * is added to the list bin for each list type. If there are two list types:
+   * 60 seconds and 3600 seconds and `time` is 92, this pair will be added to
+   * list type 1 bin 4 and list type 2 bin 1.
+   */
+  Status recordEvent(EventID eid, EventTime time);
 
  protected:
   /**
@@ -336,6 +431,7 @@ class EventModule {
   EventModule() {}
 
   /// Database namespace definition methods.
+  EventTypeID dbNamespace() { return type() + "." + name(); }
   virtual EventTypeID type() const = 0;
   virtual EventTypeID name() const = 0;
 
@@ -364,7 +460,7 @@ class EventModule {
 class EventFactory {
  public:
   /// Access to the EventFactory instance.
-  static std::shared_ptr<EventFactory> get();
+  static std::shared_ptr<EventFactory> getInstance();
 
   /**
    * @brief Add an EventType to the factory.
@@ -397,7 +493,7 @@ class EventFactory {
    */
   template <typename T>
   static Status registerEventModule() {
-    auto event_module = T::get();
+    auto event_module = T::getInstance();
     return EventFactory::registerEventModule(event_module);
   }
 
@@ -430,17 +526,29 @@ class EventFactory {
    */
   static Status addMonitor(EventTypeID type_id,
                            const MonitorContextRef mc,
-                           EventCallback callback = 0);
+                           EventCallback cb = 0);
 
   /// Add a Monitor using a caller Monitor instance.
   static Status addMonitor(EventTypeID type_id, const MonitorRef monitor);
+
+  /// Add a Monitor by templating the EventType, using a MonitorContext.
+  template <typename T>
+  static Status addMonitor(const MonitorContextRef mc, EventCallback cb = 0) {
+    return addMonitor(EventType::type<T>(), mc, cb);
+  }
+
+  /// Add a Monitor by templating the EventType, using a Monitor instance.
+  template <typename T>
+  static Status addMonitor(const MonitorRef monitor) {
+    return addMonitor(EventType::type<T>(), monitor);
+  }
 
   /// Get the total number of Monitor%s across ALL EventType%s.
   static size_t numMonitors(EventTypeID type_id);
 
   /// Get the number of EventTypes.
   static size_t numEventTypes() {
-    return EventFactory::get()->event_types_.size();
+    return EventFactory::getInstance()->event_types_.size();
   }
 
   /**
@@ -456,8 +564,10 @@ class EventFactory {
    */
   static Status deregisterEventType(const EventTypeRef event_type);
 
+  /// Deregister an EventType by EventTypeID.
   static Status deregisterEventType(EventTypeID type_id);
 
+  /// Deregister all EventType%s.
   static Status deregisterEventTypes();
 
   /// Return an instance to a registered EventType.
@@ -500,8 +610,8 @@ class EventFactory {
 /// Expose a Plugin-like Registry for EventType instances.
 DECLARE_REGISTRY(EventTypes, std::string, EventTypeRef);
 #define REGISTERED_EVENTTYPES REGISTRY(EventTypes)
-#define REGISTER_EVENTTYPE(name, decorator) \
-  REGISTER(EventTypes, name, std::make_shared<decorator>());
+#define REGISTER_EVENTTYPE(decorator) \
+  REGISTER(EventTypes, #decorator, std::make_shared<decorator>());
 
 /**
  * @brief Expose a Plugin-link Registry for EventModule instances.
@@ -511,8 +621,8 @@ DECLARE_REGISTRY(EventTypes, std::string, EventTypeRef);
  */
 DECLARE_REGISTRY(EventModules, std::string, EventModuleRef);
 #define REGISTERED_EVENTMODULES REGISTRY(EventModules)
-#define REGISTER_EVENTMODULE(name, decorator) \
-  REGISTER(EventModules, name, std::make_shared<decorator>());
+#define REGISTER_EVENTMODULE(decorator) \
+  REGISTER(EventModules, #decorator, decorator::getInstance());
 
 namespace osquery {
 namespace registries {
