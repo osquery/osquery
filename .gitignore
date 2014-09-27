@@ -22,7 +22,6 @@
 
 # Build Artifacts
 build/
-osquery/tables/generated
 
 # Vagrant Artifacts
 .vagrant
