@@ -15,8 +15,6 @@ const std::string kRealTestPath = "/tmp/osquery-inotify-trigger";
 
 class INotifyTests : public testing::Test {
  protected:
-  virtual void SetUp() { ef = EventFactory::getInstance(); }
-
   virtual void TearDown() { EventFactory::deregisterEventTypes(); }
 
   void StartEventLoop() {
@@ -43,7 +41,6 @@ class INotifyTests : public testing::Test {
   }
 
   boost::thread temp_thread_;
-  std::shared_ptr<EventFactory> ef;
 };
 
 // Helper eager wait function.

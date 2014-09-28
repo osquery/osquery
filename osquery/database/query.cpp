@@ -29,10 +29,10 @@ Status Query::getHistoricalQueryResults(HistoricalQueryResults& hQR) {
 }
 
 Status Query::getHistoricalQueryResults(HistoricalQueryResults& hQR,
-                                        std::shared_ptr<DBHandle> db) {
+                                        DBHandle& db) {
   if (isQueryNameInDatabase()) {
     std::string raw;
-    auto get_status = db->Get(kQueries, query_.name, raw);
+    auto get_status = db.Get(kQueries, query_.name, raw);
     if (get_status.ok()) {
       auto deserialize_status = deserializeHistoricalQueryResultsJSON(raw, hQR);
       if (!deserialize_status.ok()) {
@@ -51,10 +51,9 @@ std::vector<std::string> Query::getStoredQueryNames() {
   return getStoredQueryNames(DBHandle::getInstance());
 }
 
-std::vector<std::string> Query::getStoredQueryNames(
-    std::shared_ptr<DBHandle> db) {
+std::vector<std::string> Query::getStoredQueryNames(DBHandle& db) {
   std::vector<std::string> results;
-  db->Scan(kQueries, results);
+  db.Scan(kQueries, results);
   return results;
 }
 
@@ -62,7 +61,7 @@ bool Query::isQueryNameInDatabase() {
   return isQueryNameInDatabase(DBHandle::getInstance());
 }
 
-bool Query::isQueryNameInDatabase(std::shared_ptr<DBHandle> db) {
+bool Query::isQueryNameInDatabase(DBHandle& db) {
   auto names = Query::getStoredQueryNames(db);
   return std::find(names.begin(), names.end(), query_.name) != names.end();
 }
@@ -71,9 +70,7 @@ Status Query::addNewResults(const osquery::QueryData& qd, int unix_time) {
   return addNewResults(qd, unix_time, DBHandle::getInstance());
 }
 
-Status Query::addNewResults(const QueryData& qd,
-                            int unix_time,
-                            std::shared_ptr<DBHandle> db) {
+Status Query::addNewResults(const QueryData& qd, int unix_time, DBHandle& db) {
   DiffResults dr;
   return addNewResults(qd, dr, false, unix_time, db);
 }
@@ -88,7 +85,7 @@ osquery::Status Query::addNewResults(const osquery::QueryData& qd,
                                      osquery::DiffResults& dr,
                                      bool calculate_diff,
                                      int unix_time,
-                                     std::shared_ptr<DBHandle> db) {
+                                     DBHandle& db) {
   HistoricalQueryResults hQR;
   auto hqr_status = getHistoricalQueryResults(hQR, db);
   if (!hqr_status.ok() && hqr_status.toString() != kQueryNameNotFoundError) {
@@ -104,7 +101,7 @@ osquery::Status Query::addNewResults(const osquery::QueryData& qd,
   if (!serialize_status.ok()) {
     return serialize_status;
   }
-  auto put_status = db->Put(kQueries, query_.name, json);
+  auto put_status = db.Put(kQueries, query_.name, json);
   if (!put_status.ok()) {
     return put_status;
   }
@@ -115,7 +112,7 @@ osquery::Status Query::getCurrentResults(osquery::QueryData& qd) {
   return getCurrentResults(qd, DBHandle::getInstance());
 }
 
-Status Query::getCurrentResults(QueryData& qd, std::shared_ptr<DBHandle> db) {
+Status Query::getCurrentResults(QueryData& qd, DBHandle& db) {
   HistoricalQueryResults hQR;
   auto s = getHistoricalQueryResults(hQR, db);
   if (s.ok()) {

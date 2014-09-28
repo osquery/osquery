@@ -53,12 +53,6 @@ extern const std::string kEvents;
 class DBHandle {
  public:
   /**
-   * @brief Destructor which takes care of deallocating all previously
-   * allocated resources
-   */
-  ~DBHandle();
-
-  /**
    * @brief The primary way to access the DBHandle singleton
    *
    * DBHandle::getInstance() provides access to the DBHandle singleton.
@@ -74,7 +68,7 @@ class DBHandle {
    *
    * @return a shared pointer to an instance of DBHandle
    */
-  static std::shared_ptr<DBHandle> getInstance();
+  static DBHandle& getInstance();
 
   /**
    * @brief Getter for the status of the operations required to open the
@@ -83,7 +77,7 @@ class DBHandle {
    * @return an instance of osquery::Status which indicates the success or
    * failure of connecting to RocksDB
    */
-  osquery::Status getStatus();
+  Status getStatus();
 
   /**
    * @brief Helper method which can be used to get a raw pointer to the
@@ -112,9 +106,9 @@ class DBHandle {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation.
    */
-  osquery::Status Get(const std::string& domain,
-                      const std::string& key,
-                      std::string& value);
+  Status Get(const std::string& domain,
+             const std::string& key,
+             std::string& value);
 
   /**
    * @brief Put data into the database
@@ -127,9 +121,9 @@ class DBHandle {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation.
    */
-  osquery::Status Put(const std::string& domain,
-                      const std::string& key,
-                      const std::string& value);
+  Status Put(const std::string& domain,
+             const std::string& key,
+             const std::string& value);
 
   /**
    * @brief Delete data from the database
@@ -141,7 +135,7 @@ class DBHandle {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation.
    */
-  osquery::Status Delete(const std::string& domain, const std::string& key);
+  Status Delete(const std::string& domain, const std::string& key);
 
   /**
    * @brief List the data in a "domain"
@@ -154,8 +148,7 @@ class DBHandle {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation.
    */
-  osquery::Status Scan(const std::string& domain,
-                       std::vector<std::string>& results);
+  Status Scan(const std::string& domain, std::vector<std::string>& results);
 
  private:
   /**
@@ -167,7 +160,12 @@ class DBHandle {
    * success of the connection can be determined by inspecting the resulting
    * status code via DBHandle::getStatus()
    */
-  DBHandle();
+  DBHandle() {};
+
+  /**
+   * @brief Remove all DBHandle%s.
+   */
+  void destroy();
 
   /**
    * @brief Internal only constructor used to create instances of DBHandle.
@@ -180,7 +178,7 @@ class DBHandle {
    * @param in_memory a boolean indicating wether or not the database should
    * be creating in memory or not.
    */
-  DBHandle(std::string path, bool in_memory);
+  DBHandle(const std::string& path, bool in_memory);
 
   /**
    * @brief A method which allows you to override the database path
@@ -189,7 +187,7 @@ class DBHandle {
    *
    * @return a shared pointer to an instance of DBHandle
    */
-  static std::shared_ptr<DBHandle> getInstanceAtPath(const std::string& path);
+  static DBHandle& getInstanceAtPath(const std::string& path);
 
   /**
    * @brief A method which gets you an in-memory RocksDB instance.
@@ -198,7 +196,7 @@ class DBHandle {
    *
    * @return a shared pointer to an instance of DBHandle
    */
-  static std::shared_ptr<DBHandle> getInstanceInMemory();
+  static DBHandle& getInstanceInMemory();
 
   /**
    * @brief A method which allows you to configure various aspects of RocksDB
@@ -212,14 +210,23 @@ class DBHandle {
    *
    * @return a shared pointer to an instance of DBHandle
    */
-  static std::shared_ptr<DBHandle> getInstance(const std::string& path,
-                                               bool in_memory);
+  static DBHandle& getInstance(const std::string& path, bool in_memory);
 
   /**
    * @brief Private helper around accessing the column family handle for a
    * specific column family, based on it's name
    */
   rocksdb::ColumnFamilyHandle* getHandleForColumnFamily(const std::string& cf);
+
+ public:
+  /**
+   * @brief Destructor does not act, since DBHandles live as singletons.
+   */
+  ~DBHandle() {};
+
+ private:
+  DBHandle(DBHandle const&);
+  void operator=(DBHandle const&);
 
  private:
   /////////////////////////////////////////////////////////////////////////////

@@ -9,9 +9,9 @@ namespace osquery {
 class DispatcherTests : public testing::Test {};
 
 TEST_F(DispatcherTests, test_singleton) {
-  auto one = Dispatcher::getInstance();
-  auto two = Dispatcher::getInstance();
-  EXPECT_EQ(one->getThreadManager().get(), two->getThreadManager().get());
+  auto& one = Dispatcher::getInstance();
+  auto& two = Dispatcher::getInstance();
+  EXPECT_EQ(one.getThreadManager().get(), two.getThreadManager().get());
 }
 
 class TestRunnable : public apache::thrift::concurrency::Runnable {
@@ -22,15 +22,15 @@ class TestRunnable : public apache::thrift::concurrency::Runnable {
 };
 
 TEST_F(DispatcherTests, test_add_work) {
-  auto d = Dispatcher::getInstance();
+  auto& dispatcher = Dispatcher::getInstance();
   int base = 5;
   int repetitions = 1;
 
   int i = base;
   for (int c = 0; c < repetitions; ++c) {
-    d->add(std::make_shared<TestRunnable>(&i));
+    dispatcher.add(std::make_shared<TestRunnable>(&i));
   }
-  while (d->totalTaskCount() > 0) {
+  while (dispatcher.totalTaskCount() > 0) {
   }
 
   EXPECT_EQ(i, base + repetitions);
