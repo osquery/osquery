@@ -8,24 +8,20 @@
 
 #include <boost/filesystem/operations.hpp>
 
+#include <glog/logging.h>
 #include <gtest/gtest.h>
 
 #include "osquery/core/test_util.h"
+
+const std::string kQueryTestPath = "/tmp/rocksdb-osquery-querytests";
 
 using namespace osquery::core;
 
 namespace osquery {
 
 class QueryTests : public testing::Test {
-  void SetUp() {
-    db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-querytests");
-  }
-  void TearDown() {
-    boost::filesystem::remove_all("/tmp/rocksdb-osquery-querytests");
-  }
-
  public:
-  std::shared_ptr<DBHandle> db;
+  void SetUp() { DBHandle::getInstanceAtPath(kQueryTestPath); }
 };
 
 TEST_F(QueryTests, test_get_column_family_name) {
@@ -53,6 +49,7 @@ TEST_F(QueryTests, test_private_members) {
 }
 
 TEST_F(QueryTests, test_add_and_get_current_results) {
+  auto& db = DBHandle::getInstance();
   auto query = getOsqueryScheduledQuery();
   auto cf = Query(query);
   auto s = cf.addNewResults(getTestDBExpectedResults(), std::time(0), db);
@@ -75,9 +72,10 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
 }
 
 TEST_F(QueryTests, test_get_historical_query_results) {
+  auto& db = DBHandle::getInstance();
   auto hQR = getSerializedHistoricalQueryResultsJSON();
   auto query = getOsqueryScheduledQuery();
-  auto put_status = db->Put(kQueries, query.name, hQR.first);
+  auto put_status = db.Put(kQueries, query.name, hQR.first);
   EXPECT_TRUE(put_status.ok());
   EXPECT_EQ(put_status.toString(), "OK");
   auto cf = Query(query);
@@ -89,6 +87,7 @@ TEST_F(QueryTests, test_get_historical_query_results) {
 }
 
 TEST_F(QueryTests, test_query_name_not_found_in_db) {
+  auto& db = DBHandle::getInstance();
   HistoricalQueryResults from_db;
   auto query = getOsqueryScheduledQuery();
   query.name = "not_a_real_query";
@@ -99,20 +98,22 @@ TEST_F(QueryTests, test_query_name_not_found_in_db) {
 }
 
 TEST_F(QueryTests, test_is_query_name_in_database) {
+  auto& db = DBHandle::getInstance();
   auto query = getOsqueryScheduledQuery();
   auto cf = Query(query);
   auto hQR = getSerializedHistoricalQueryResultsJSON();
-  auto put_status = db->Put(kQueries, query.name, hQR.first);
+  auto put_status = db.Put(kQueries, query.name, hQR.first);
   EXPECT_TRUE(put_status.ok());
   EXPECT_EQ(put_status.toString(), "OK");
   EXPECT_TRUE(cf.isQueryNameInDatabase(db));
 }
 
 TEST_F(QueryTests, test_get_stored_query_names) {
+  auto& db = DBHandle::getInstance();
   auto query = getOsqueryScheduledQuery();
   auto cf = Query(query);
   auto hQR = getSerializedHistoricalQueryResultsJSON();
-  auto put_status = db->Put(kQueries, query.name, hQR.first);
+  auto put_status = db.Put(kQueries, query.name, hQR.first);
   EXPECT_TRUE(put_status.ok());
   EXPECT_EQ(put_status.toString(), "OK");
   auto names = cf.getStoredQueryNames(db);
@@ -121,9 +122,10 @@ TEST_F(QueryTests, test_get_stored_query_names) {
 }
 
 TEST_F(QueryTests, test_get_current_results) {
+  auto& db = DBHandle::getInstance();
   auto hQR = getSerializedHistoricalQueryResultsJSON();
   auto query = getOsqueryScheduledQuery();
-  auto put_status = db->Put(kQueries, query.name, hQR.first);
+  auto put_status = db.Put(kQueries, query.name, hQR.first);
   EXPECT_TRUE(put_status.ok());
   EXPECT_EQ(put_status.toString(), "OK");
   auto cf = Query(query);
@@ -137,5 +139,9 @@ TEST_F(QueryTests, test_get_current_results) {
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  google::InitGoogleLogging(argv[0]);
+  int status = RUN_ALL_TESTS();
+  boost::filesystem::remove_all(kQueryTestPath);
+
+  return status;
 }

@@ -103,7 +103,7 @@ class Query {
    * @see getHistoricalQueryResults
    */
   osquery::Status getHistoricalQueryResults(HistoricalQueryResults& hQR,
-                                            std::shared_ptr<DBHandle> db);
+                                            DBHandle& db);
 
  public:
   /**
@@ -133,8 +133,7 @@ class Query {
    *
    * @see getStoredQueryNames()
    */
-  static std::vector<std::string> getStoredQueryNames(
-      std::shared_ptr<DBHandle> db);
+  static std::vector<std::string> getStoredQueryNames(DBHandle& db);
 
  public:
   /**
@@ -159,7 +158,7 @@ class Query {
    * @return a boolean indicating wether or not the scheduled query which is
    * being operated on already exists in the database
    */
-  bool isQueryNameInDatabase(std::shared_ptr<DBHandle> db);
+  bool isQueryNameInDatabase(DBHandle& db);
 
  public:
   /**
@@ -195,7 +194,7 @@ class Query {
    */
   osquery::Status addNewResults(const osquery::QueryData& qd,
                                 int unix_time,
-                                std::shared_ptr<DBHandle> db);
+                                DBHandle& db);
 
  public:
   /**
@@ -244,7 +243,7 @@ class Query {
                                 osquery::DiffResults& dr,
                                 bool calculate_diff,
                                 int unix_time,
-                                std::shared_ptr<DBHandle> db);
+                                DBHandle& db);
 
  public:
   /**
@@ -274,8 +273,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status getCurrentResults(osquery::QueryData& qd,
-                                    std::shared_ptr<DBHandle> db);
+  osquery::Status getCurrentResults(osquery::QueryData& qd, DBHandle& db);
 
  private:
   /////////////////////////////////////////////////////////////////////////////

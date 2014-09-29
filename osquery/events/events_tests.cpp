@@ -1,25 +1,15 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <gtest/gtest.h>
-
 #include "osquery/events.h"
+
+#include <gtest/gtest.h>
 
 namespace osquery {
 
 class EventsTests : public testing::Test {
- protected:
-  virtual void SetUp() { ef = EventFactory::getInstance(); }
-
-  virtual void TearDown() { ef->deregisterEventTypes(); }
-
-  std::shared_ptr<EventFactory> ef;
+ public:
+  void TearDown() { EventFactory::deregisterEventTypes(); }
 };
-
-TEST_F(EventsTests, test_singleton) {
-  auto one = EventFactory::getInstance();
-  auto two = EventFactory::getInstance();
-  EXPECT_EQ(one, two);
-}
 
 class BasicEventType : public EventType {
   DECLARE_EVENTTYPE(BasicEventType, MonitorContext, EventContext);

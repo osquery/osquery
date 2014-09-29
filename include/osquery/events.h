@@ -460,7 +460,7 @@ class EventModule {
 class EventFactory {
  public:
   /// Access to the EventFactory instance.
-  static std::shared_ptr<EventFactory> getInstance();
+  static EventFactory& getInstance();
 
   /**
    * @brief Add an EventType to the factory.
@@ -548,7 +548,7 @@ class EventFactory {
 
   /// Get the number of EventTypes.
   static size_t numEventTypes() {
-    return EventFactory::getInstance()->event_types_.size();
+    return EventFactory::getInstance().event_types_.size();
   }
 
   /**
@@ -591,6 +591,8 @@ class EventFactory {
 
  private:
   EventFactory() { ending_ = false; }
+  EventFactory(EventFactory const&);
+  void operator=(EventFactory const&);
 
  private:
   /// Set ending to True to cause event type run loops to finish.

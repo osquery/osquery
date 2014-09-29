@@ -32,7 +32,7 @@ const std::vector<std::string> kDomains = {kConfigurations, kQueries, kEvents};
 // constructors and destructors
 /////////////////////////////////////////////////////////////////////////////
 
-DBHandle::DBHandle(std::string path, bool in_memory) {
+DBHandle::DBHandle(const std::string& path, bool in_memory) {
   options_.create_if_missing = true;
   options_.create_missing_column_families = true;
 
@@ -55,8 +55,7 @@ DBHandle::DBHandle(std::string path, bool in_memory) {
       rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
 }
 
-DBHandle::~DBHandle() {
-  DLOG(INFO) << "DBHandle::~DBHandle()";
+void DBHandle::destroy() {
   for (auto handle : handles_) {
     if (handle != nullptr) {
       delete handle;
@@ -72,24 +71,20 @@ DBHandle::~DBHandle() {
 /////////////////////////////////////////////////////////////////////////////
 // getInstance methods
 /////////////////////////////////////////////////////////////////////////////
-std::shared_ptr<DBHandle> DBHandle::getInstance() {
-  return getInstance(kDBPath, false);
-}
+DBHandle& DBHandle::getInstance() { return getInstance(kDBPath, false); }
 
-std::shared_ptr<DBHandle> DBHandle::getInstanceInMemory() {
+DBHandle& DBHandle::getInstanceInMemory() {
   // Remove when upgrading to RocksDB 3.3
   throw std::domain_error("Requires RocksDB 3.3 https://fburl.com/27350299");
   return getInstance("", true);
 }
 
-std::shared_ptr<DBHandle> DBHandle::getInstanceAtPath(const std::string& path) {
+DBHandle& DBHandle::getInstanceAtPath(const std::string& path) {
   return getInstance(path, false);
 }
 
-std::shared_ptr<DBHandle> DBHandle::getInstance(const std::string& path,
-                                                bool in_memory) {
-  static std::shared_ptr<DBHandle> db_handle =
-      std::shared_ptr<DBHandle>(new DBHandle(path, in_memory));
+DBHandle& DBHandle::getInstance(const std::string& path, bool in_memory) {
+  static DBHandle db_handle = DBHandle(path, in_memory);
   return db_handle;
 }
 
