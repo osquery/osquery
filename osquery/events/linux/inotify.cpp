@@ -152,10 +152,4 @@ Status INotifyEventType::addMonitor(const MonitorRef monitor) {
 bool INotifyEventType::isMonitored(const std::string& path) {
   return (path_descriptors_.find(path) != path_descriptors_.end());
 }
-
-void INotifyEventType::processDirEvent(struct inotify_event* event) {}
-
-void INotifyEventType::processNodeEvent(struct inotify_event* event) {}
-
-void INotifyEventType::processEvent(struct inotify_event* event) {}
 }

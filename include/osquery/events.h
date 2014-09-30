@@ -28,10 +28,33 @@ typedef uint32_t EventContextID;
 typedef uint32_t EventTime;
 typedef std::pair<EventID, EventTime> EventRecord;
 
+/**
+ * @brief An EventType will define a MonitorContext for EventModule%s to use.
+ *
+ * Most EventType%s will reqire specific information for interacting with an OS
+ * to receive events. The MonitorContext contains information the EventType will
+ * use to register OS API callbacks, create monitoring/listening handles, etc.
+ *
+ * Linux `inotify` should implement a MonitorContext that monitors filesystem
+ * events based on a filesystem path. `libpcap` will monitor on networking
+ * protocols at various stacks. Process creation may monitor on process name,
+ * parent pid, etc.
+ */
 struct MonitorContext {};
+
+/**
+ * @brief An EventModule EventCallback method will receive an EventContext.
+ *
+ * The EventContext contains the event-related data supplied by an EventType
+ * when the event occures. If a monitoring EventModule is should be called
+ * for the event the EventModule%'s EventCallback is passed an EventContext.
+ */
 struct EventContext {
+  /// An unique counting ID specific to the EventType%'s fired events.
   EventContextID id;
+  /// The time the event occured.
   EventTime time;
+  /// The string representation of the time, often used for indexing.
   std::string time_string;
 };
 
@@ -224,7 +247,9 @@ extern const std::vector<size_t> kEventTimeLists;
  */
 struct Monitor {
  public:
+  /// An EventType%-specific MonitorContext.
   MonitorContextRef context;
+  /// An EventMonitor member EventCallback method.
   EventCallback callback;
 
   static MonitorRef create() { return std::make_shared<Monitor>(); }
@@ -271,13 +296,32 @@ struct Monitor {
  */
 class EventType {
  public:
-  /// A new Monitor was added, potentially change state based on all monitors.
+  /**
+   * @brief A new Monitor was added, potentially change state based on all
+   * monitors for this EventType.
+   *
+   * `configure` allows the EventType to optimize on the state of all monitors.
+   * An example is Linux `inotify` where multiple EventMonitor%s will monitor
+   * identical paths, e.g., /etc for config changes. Since Linux `inotify` has
+   * a monitor limit, `configure` can depup paths.
+   */
   virtual void configure() {}
 
-  /// osquery is about to start, create file descriptors or register OS APIs.
+  /**
+   * @brief Perform handle opening, OS API callback registration.
+   *
+   * `setUp` is the event framework's EventType constructor equivilent. When
+   * `setUp` is called the EventType is running in a dedicated thread and may
+   * manage/allocate/wait for resources.
+   */
   virtual void setUp() {}
 
-  /// osquery is about to exit, release process-shared context and cleanup.
+  /**
+   * @brief Perform handle closing, resource cleanup.
+   *
+   * osquery is about to end, the EventType should close handle descriptors
+   * unblock resources, and prepare to exit.
+   */
   virtual void tearDown() {}
 
   /**
@@ -303,7 +347,11 @@ class EventType {
   /// Number of Monitor%s watching this EventType.
   size_t numMonitors() { return monitors_.size(); }
 
-  /// Number of events this EventType has fired.
+  /**
+   * @brief The number of events fired by this EventType.
+   *
+   * @return The number of events.
+   */
   size_t numEvents() { return next_ec_id_; }
 
   /// Overriding the EventType constructor is not recommended.
@@ -312,6 +360,7 @@ class EventType {
   /// Return a string identifier associated with this EventType.
   virtual EventTypeID type() const = 0;
 
+  /// Return a string identifier for the given EventType symbol.
   template <typename T>
   static EventTypeID type() {
     const auto& event_type = new T();
@@ -373,13 +422,41 @@ class EventType {
 class EventModule {
  public:
   /// Called after EventType `setUp`. Add all Monitor%s here.
+  /**
+   * @brief Add Monitor%s to the EventType this module will act on.
+   *
+   * When the EventModule%'s `init` method is called you are assured the
+   * EventType has `setUp` and is ready to monitor for events.
+   */
   virtual void init() {}
 
-  /// Suggested entrypoint for table generation.
+  /**
+   * @brief Suggested entrypoint for table generation.
+   *
+   * The EventModule is a convention that removes a lot of boilerplate event
+   * monitoring and acting. The `genTable` static entrypoint is the suggested
+   * method for table specs.
+   *
+   * @return The query-time table data, retrieved from a backing store.
+   */
   static QueryData genTable();
 
  protected:
-  /// Store an event for table-access into the underlying backing store.
+  /**
+   * @brief Store parsed event data from an EventCallback in a backing store.
+   *
+   * Within a EventCallback the EventModule has an opprotunity to create
+   * an osquery Row element, add the relevant table data for the EventModule
+   * and store that element in the osquery backing store. At query-time
+   * the added data will apply selection criteria and return these elements.
+   * The backing store data retrieval is optimized by time-based indexes. It 
+   * is important to added EventTime as it relates to "when the event occured".
+   *
+   * @param r An osquery Row element.
+   * @param time The time the added event occured.
+   *
+   * @return Was the element added to the backing store.
+   */
   virtual Status add(const osquery::Row& r, EventTime time) final;
 
   /**
@@ -407,7 +484,19 @@ class EventModule {
   std::vector<EventRecord> getRecords(EventTime start, EventTime stop);
 
  private:
-  /// Returns a new EventID for this module, increments to the current EID.
+  /**
+   * @brief Get a unique storage-related EventID.
+   *
+   * An EventID is an index/element-identifier for the backing store.
+   * Each EventType maintains a fired EventContextID to identify the many
+   * events that may or may not be fired to monitoring criteria for this
+   * EventModule. This EventContextID is NOT the same as an EventID.
+   * EventModule development should not require use of EventID%s, if this
+   * indexing is required within-EventCallback consider an EventModule%-unique
+   * indexing, counting mechanic.
+   *
+   * @return A unique ID for backing storage.
+   */
   EventID getEventID();
 
   /*
@@ -417,6 +506,11 @@ class EventModule {
    * is added to the list bin for each list type. If there are two list types:
    * 60 seconds and 3600 seconds and `time` is 92, this pair will be added to
    * list type 1 bin 4 and list type 2 bin 1.
+   *
+   * @param eid A unique EventID.
+   * @param time The time when this EventID%'s event occured.
+   *
+   * @return Were the indexes recorded.
    */
   Status recordEvent(EventID eid, EventTime time);
 
@@ -430,9 +524,11 @@ class EventModule {
    */
   EventModule() {}
 
-  /// Database namespace definition methods.
+  /// Backing storage indexing namespace definition methods.
   EventTypeID dbNamespace() { return type() + "." + name(); }
+  /// The string EventType identifying this EventModule.
   virtual EventTypeID type() const = 0;
+  /// The string name identifying this EventModule.
   virtual EventTypeID name() const = 0;
 
  private:
@@ -518,7 +614,7 @@ class EventFactory {
    *
    * @param type_id The string for an EventType receiving the Monitor.
    * @param mc A MonitorContext related to the EventType.
-   * @param callback When the EventType fires an event the MonitorContext will
+   * @param cb When the EventType fires an event the MonitorContext will
    * be evaluated, if the event matches optional specifics in the context this
    * callback function will be called. It should belong to an EventMonitor.
    *
@@ -590,6 +686,7 @@ class EventFactory {
   static void end(bool should_end = true);
 
  private:
+  /// An EventFactory will exist for the lifetime of the application.
   EventFactory() { ending_ = false; }
   EventFactory(EventFactory const&);
   void operator=(EventFactory const&);
@@ -628,6 +725,16 @@ DECLARE_REGISTRY(EventModules, std::string, EventModuleRef);
 
 namespace osquery {
 namespace registries {
+/**
+ * @brief A utility method for moving EventType%s and EventModule%s (plugins)
+ * into the EventFactory.
+ *
+ * To handle run-time and compile-time EventType and EventModule additions
+ * as plugins or extensions, the osquery Registry workflow is used. During
+ * application launch (or within plugin load) the EventFactory faucet moves
+ * managed instances of these types to the EventFactory. The EventType and
+ * EventModule lifecycle/developer workflow is unknown to the Registry.
+ */
 void faucet(EventTypes ets, EventModules ems);
 }
 }
