@@ -7,16 +7,15 @@
 #include "osquery/events.h"
 #include "osquery/core/test_util.h"
 
+const std::string kTestingEventsDBPath = "/tmp/rocksdb-osquery-testevents";
+
 namespace osquery {
 
 class EventsDatabaseTests : public ::testing::Test {
  public:
   void SetUp() {
     // Setup a testing DB instance
-    DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-testevents");
-  }
-  void TearDown() {
-    boost::filesystem::remove_all("/tmp/rocksdb-osquery-testevents");
+    DBHandle::getInstanceAtPath(kTestingEventsDBPath);
   }
 };
 
@@ -71,5 +70,7 @@ TEST_F(EventsDatabaseTests, test_event_add) {
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  int status = RUN_ALL_TESTS();
+  boost::filesystem::remove_all(kTestingEventsDBPath);
+  return status;
 }

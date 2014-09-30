@@ -42,7 +42,7 @@ class Dispatcher {
    *
    * @return a shared pointer to an instance of osquery::Dispatch.
    */
-  static std::shared_ptr<Dispatcher> getInstance();
+  static Dispatcher& getInstance();
 
   /**
    * @brief add a task to the dispatcher.

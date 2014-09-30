@@ -83,7 +83,7 @@ class DBHandle {
    * @return an instance of osquery::Status which indicates the success or
    * failure of connecting to RocksDB
    */
-  osquery::Status getStatus();
+  Status getStatus();
 
   /**
    * @brief Helper method which can be used to get a raw pointer to the
@@ -112,9 +112,9 @@ class DBHandle {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation.
    */
-  osquery::Status Get(const std::string& domain,
-                      const std::string& key,
-                      std::string& value);
+  Status Get(const std::string& domain,
+             const std::string& key,
+             std::string& value);
 
   /**
    * @brief Put data into the database
@@ -127,9 +127,9 @@ class DBHandle {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation.
    */
-  osquery::Status Put(const std::string& domain,
-                      const std::string& key,
-                      const std::string& value);
+  Status Put(const std::string& domain,
+             const std::string& key,
+             const std::string& value);
 
   /**
    * @brief Delete data from the database
@@ -141,7 +141,7 @@ class DBHandle {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation.
    */
-  osquery::Status Delete(const std::string& domain, const std::string& key);
+  Status Delete(const std::string& domain, const std::string& key);
 
   /**
    * @brief List the data in a "domain"
@@ -154,8 +154,7 @@ class DBHandle {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation.
    */
-  osquery::Status Scan(const std::string& domain,
-                       std::vector<std::string>& results);
+  Status Scan(const std::string& domain, std::vector<std::string>& results);
 
  private:
   /**

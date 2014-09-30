@@ -14,14 +14,14 @@
 
 using namespace osquery::core;
 
+const std::string kTestingQueryDBPath = "/tmp/rocksdb-osquery-querytests";
+
 namespace osquery {
 
 class QueryTests : public testing::Test {
+ public:
   void SetUp() {
-    db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-querytests");
-  }
-  void TearDown() {
-    boost::filesystem::remove_all("/tmp/rocksdb-osquery-querytests");
+    db = DBHandle::getInstanceAtPath(kTestingQueryDBPath);
   }
 
  public:
@@ -137,5 +137,7 @@ TEST_F(QueryTests, test_get_current_results) {
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  int status = RUN_ALL_TESTS();
+  boost::filesystem::remove_all(kTestingQueryDBPath);
+  return status;
 }
