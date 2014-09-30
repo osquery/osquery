@@ -17,10 +17,9 @@ DEFINE_int32(worker_threads,
              kDefaultThreadPoolSize,
              "The number of threads to use for the work dispatcher");
 
-std::shared_ptr<Dispatcher> Dispatcher::getInstance() {
-  static std::shared_ptr<Dispatcher> q =
-      std::shared_ptr<Dispatcher>(new Dispatcher());
-  return q;
+Dispatcher& Dispatcher::getInstance() {
+  static Dispatcher d;
+  return d;
 }
 
 Dispatcher::Dispatcher() {

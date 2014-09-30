@@ -11,20 +11,19 @@
 
 using osquery::Status;
 
+const std::string kTestingDBHandlePath = "/tmp/rocksdb-osquery-dbhandletests";
+
 namespace osquery {
 
 class DBHandleTests : public testing::Test {
+ public:
   void SetUp() {
     // Setup a testing DB instance
-    db = DBHandle::getInstanceAtPath("/tmp/rocksdb-osquery-dbhandletests");
+    db = DBHandle::getInstanceAtPath(kTestingDBHandlePath);
     cfh_queries = DBHandle::getInstance()->getHandleForColumnFamily(kQueries);
     cfh_foobar =
         DBHandle::getInstance()->getHandleForColumnFamily("foobartest");
   }
-  void TearDown() {
-    boost::filesystem::remove_all("/tmp/rocksdb-osquery-dbhandletests");
-  }
-
  public:
   rocksdb::ColumnFamilyHandle* cfh_queries;
   rocksdb::ColumnFamilyHandle* cfh_foobar;
@@ -94,5 +93,7 @@ TEST_F(DBHandleTests, test_scan) {
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
   google::InitGoogleLogging(argv[0]);
-  return RUN_ALL_TESTS();
+  int status = RUN_ALL_TESTS();
+  boost::filesystem::remove_all(kTestingDBHandlePath);
+  return status;
 }
