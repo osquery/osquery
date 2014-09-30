@@ -48,7 +48,7 @@ bool waitForEvent(int max, int num_events = 0) {
   int step = 50;
   int delay = 0;
   const auto& et = EventFactory::getEventType("INotifyEventType");
-  while (delay <= max) {
+  while (delay <= max * 1000) {
     if (num_events > 0 && et->numEvents() >= num_events) {
       return true;
     } else if (num_events == 0 && et->numEvents() > 0) {

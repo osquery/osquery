@@ -7,6 +7,7 @@ if(APPLE)
   )
 
   ADD_OSQUERY_LIBRARY(osquery_tables_darwin
+    events/darwin/passwd_changes.cpp
     networking/darwin/interfaces.cpp
     networking/darwin/listening_ports.cpp
     networking/darwin/routes.cpp

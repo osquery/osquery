@@ -120,7 +120,7 @@ INotifyEventContextRef INotifyEventType::createEventContext(
 
 bool INotifyEventType::shouldFire(const INotifyMonitorContextRef mc,
                                   const INotifyEventContextRef ec) {
-  size_t found = ec->path.find(mc->path);
+  ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
     return false;
   }
