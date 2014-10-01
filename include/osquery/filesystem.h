@@ -52,11 +52,12 @@ osquery::Status listFilesInDirectory(const std::string& path,
                                      std::vector<std::string>& results);
 
 /**
- * @brief Parse the content of a tomcat users config file into a ptree
+ * @brief Parse the users out of a tomcat user config
  *
  * @param content A string which represents the content of the file to parse
- * @param tree A non-const reference to a ptree which will be populated with
- * the parsed content
+ * @param a vector of pairs which represent all of the users which were found
+ * in the supplied file. pair.first is the username and pair.second is the
+ * password.
  *
  * @return an instance of osquery::Status, indicating the success or failure
  * of the operation
