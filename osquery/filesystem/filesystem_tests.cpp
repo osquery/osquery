@@ -6,8 +6,12 @@
 
 #include <stdio.h>
 
+#include <boost/property_tree/ptree.hpp>
+
 #include <gtest/gtest.h>
 #include <glog/logging.h>
+
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -48,6 +52,47 @@ TEST_F(FilesystemTests, test_list_files_in_directorty) {
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_NE(std::find(results.begin(), results.end(), "/etc/hosts"),
             results.end());
+}
+
+TEST_F(FilesystemTests, test_parse_tomcat_user_config) {
+  std::string config_content = R"(
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<tomcat-users>
+<!--
+  NOTE:  By default, no user is included in the "manager-gui" role required
+  to operate the "/manager/html" web application.  If you wish to use this app,
+  you must define such a user - the username and password are arbitrary.
+-->
+<!--
+  NOTE:  The sample user and role entries below are wrapped in a comment
+  and thus are ignored when reading this file. Do not forget to remove
+  <!.. ..> that surrounds them.
+-->
+  <role rolename="tomcat"/>
+  <user username="tomcat" password="tomcat" roles="tomcat"/>
+</tomcat-users>
+)";
+  std::vector<std::pair<std::string, std::string>> credentials;
+  auto s = parseTomcatUserConfig(config_content, credentials);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.toString(), "OK");
+  EXPECT_EQ(credentials.size(), (size_t)1);
+  EXPECT_EQ(credentials[0].first, "tomcat");
+  EXPECT_EQ(credentials[0].second, "tomcat");
 }
 }
 
