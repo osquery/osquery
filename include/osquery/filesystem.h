@@ -52,6 +52,21 @@ osquery::Status listFilesInDirectory(const std::string& path,
                                      std::vector<std::string>& results);
 
 /**
+ * @brief Parse the users out of a tomcat user config from disk
+ *
+ * @param path A string which represents the path of the tomcat user config
+ * @param a vector of pairs which represent all of the users which were found
+ * in the supplied file. pair.first is the username and pair.second is the
+ * password.
+ *
+ * @return an instance of osquery::Status, indicating the success or failure
+ * of the operation
+ */
+osquery::Status parseTomcatUserConfigFromDisk(
+    const std::string& path,
+    std::vector<std::pair<std::string, std::string> >& credentials);
+
+/**
  * @brief Parse the users out of a tomcat user config
  *
  * @param content A string which represents the content of the file to parse
@@ -64,7 +79,7 @@ osquery::Status listFilesInDirectory(const std::string& path,
  */
 osquery::Status parseTomcatUserConfig(
     const std::string& content,
-    std::vector<std::pair<std::string, std::string>>& credentials);
+    std::vector<std::pair<std::string, std::string> >& credentials);
 
 #ifdef __APPLE__
 /**
