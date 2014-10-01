@@ -8,10 +8,15 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
 using osquery::Status;
+
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -85,5 +90,39 @@ Status listFilesInDirectory(const std::string& path,
   } catch (const boost::filesystem::filesystem_error& e) {
     return Status(1, e.what());
   }
+}
+
+Status parseTomcatUserConfig(
+    const std::string& content,
+    std::vector<std::pair<std::string, std::string>>& credentials) {
+  std::stringstream ss;
+  ss << content;
+  pt::ptree tree;
+  try {
+    pt::xml_parser::read_xml(ss, tree);
+  } catch (const pt::xml_parser_error& e) {
+    return Status(1, e.what());
+  }
+  try {
+    for (const auto& i : tree.get_child("tomcat-users")) {
+      if (i.first == "user") {
+        try {
+          std::pair<std::string, std::string> user;
+          user.first = i.second.get<std::string>("<xmlattr>.username");
+          user.second = i.second.get<std::string>("<xmlattr>.password");
+          credentials.push_back(user);
+        } catch (const std::exception& e) {
+          LOG(ERROR)
+              << "An error occured parsing the tomcat users xml: " << e.what();
+          return Status(1, e.what());
+        }
+      }
+    }
+  } catch (const std::exception& e) {
+    LOG(ERROR) << "An error occured while trying to access the tomcat-users"
+               << " key in the XML content: " << e.what();
+    return Status(1, e.what());
+  }
+  return Status(0, "OK");
 }
 }

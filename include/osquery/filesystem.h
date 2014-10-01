@@ -51,6 +51,20 @@ osquery::Status pathExists(const std::string& path);
 osquery::Status listFilesInDirectory(const std::string& path,
                                      std::vector<std::string>& results);
 
+/**
+ * @brief Parse the content of a tomcat users config file into a ptree
+ *
+ * @param content A string which represents the content of the file to parse
+ * @param tree A non-const reference to a ptree which will be populated with
+ * the parsed content
+ *
+ * @return an instance of osquery::Status, indicating the success or failure
+ * of the operation
+ */
+osquery::Status parseTomcatUserConfig(
+    const std::string& content,
+    std::vector<std::pair<std::string, std::string>>& credentials);
+
 #ifdef __APPLE__
 /**
  * @brief Parse a property list on disk into a property tree.
