@@ -36,6 +36,7 @@ SET(OSQUERY_LIBS
 # Handle naming differences in MT threading
 if(APPLE)
   list(APPEND OSQUERY_LIBS "libboost_thread-mt.a")
+  list(APPEND OSQUERY_LIBS "liblz4.a")
 else()
   list(APPEND OSQUERY_LIBS "libboost_thread.a")
   list(APPEND OSQUERY_LIBS "libunwind.a")
