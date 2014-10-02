@@ -6,14 +6,14 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 WORKING_DIR="$SCRIPT_DIR/../.sources"
 export PATH="$PATH:/usr/local/bin"
 
-. $SCRIPT_DIR/lib.sh
+source $SCRIPT_DIR/lib.sh
 
 
 # cmake
 # downloads: http://www.cmake.org/download/
 
 function install_cmake() {
-  if [ $OS = "centos" ] || [ $OS = "ubuntu" ] || [ $OS = "darwin" ]; then
+  if [ "$OS" = "centos" ] || [ "$OS" = "ubuntu" ] || [ "$OS" = "darwin" ]; then
     if [[ ! -f cmake-2.8.12.2.tar.gz ]]; then
       log "downloading the cmake source"
       wget http://www.cmake.org/files/v2.8/cmake-2.8.12.2.tar.gz
@@ -27,7 +27,7 @@ function install_cmake() {
     else
       log "building cmake"
       pushd cmake-2.8.12.2 > /dev/null
-      CC=clang CXX=clang++ ./configure
+      CC=gcc CXX=g++ ./configure
       make
       make install
       popd
@@ -72,7 +72,7 @@ function install_rocksdb() {
   if [ $OS = "ubuntu" ] || [ $OS = "centos" ]; then
     if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
       pushd rocksdb-rocksdb-3.5
-      make static_lib
+      make static_lib CFLAGS="-I /usr/include/clang/3.4/include"
       popd
     fi
     if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
@@ -129,7 +129,7 @@ function main() {
   mkdir -p $WORKING_DIR
   cd $WORKING_DIR
 
-  if [ $OS = "ubuntu" ] || [ $OS = "centos" ]; then
+  if [ "$OS" = "ubuntu" ] || [ "$OS" = "centos" ]; then
     if [[ $EUID -ne 0 ]]; then
       fatal "this script must be run as root. exiting."
     fi
@@ -151,14 +151,52 @@ function main() {
   if [[ $OS = "ubuntu" ]]; then
 
     if [[ $DISTRO = "precise" ]]; then
-      add-apt-repository http://ppa.launchpad.net/boost-latest/ppa/ubuntu
+      add-apt-repository -y ppa:ubuntu-toolchain-r/test
     fi
     apt-get update
 
     package git
     package unzip
     package build-essential
-    package cmake
+    package libtool
+    package autoconf
+    package automake
+    package pkg-config
+    package libssl-dev
+    package liblzma-dev
+    package bison
+    package flex
+    package python-pip
+    package python-dev
+    package libbz2-dev
+
+    if [[ $DISTRO = "precise" ]]; then
+      package gcc-4.7
+      package g++-4.7
+      update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 100 --slave /usr/bin/g++ g++ /usr/bin/g++-4.7
+      install_cmake
+      if [[ ! -f boost_1_55_0.tar.gz ]]; then
+        wget -O boost_1_55_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.gz/download
+      else
+        log "boost source is already downloaded. skipping."
+      fi
+      if [[ ! -d boost_1_55_0 ]]; then
+        tar -xf boost_1_55_0.tar.gz
+      fi
+      if [[ ! -f /usr/local/lib/libboost_thread.a ]]; then
+        pushd boost_1_55_0
+        ./bootstrap.sh
+        n=`cat /proc/cpuinfo | grep "cpu cores" | uniq | awk '{print $NF}'`
+        sudo ./b2 --with=all -j $n install
+        sudo ldconfig
+        popd
+      else
+	log "boost library is already installed. skipping."
+      fi
+    else
+      package cmake
+      package libboost1.55-all-dev
+    fi
     package devscripts
     package debhelper
     if [[ $DISTRO = "precise" ]]; then
@@ -168,27 +206,27 @@ function main() {
       package libunwind8-dev
     fi
 
-    package python-pip
-    package python-dev
-
     package clang-3.4
     package clang-format-3.4
 
     set_cc clang
     set_cxx clang++
 
-    package libboost1.55-all-dev
-
     if [[ $DISTRO = "precise" ]]; then
-      if [[ ! -f libgflags-dev_2.1.0-1_amd64.deb ]]; then
-        wget https://github.com/schuhschuh/gflags/releases/download/v2.1.0/libgflags-dev_2.1.0-1_amd64.deb
+      if [[ ! -f v2.1.1.tar.gz ]]; then
+        wget https://github.com/schuhschuh/gflags/archive/v2.1.1.tar.gz
       else
-        log "gflags deb is already downloaded. skipping."
+        log "gflags source is already downloaded. skipping."
       fi
       if [[ ! -f /usr/lib/libgflags.a ]]; then
-        dpkg -i libgflags-dev_2.1.0-1_amd64.deb
-      else
-        log "gflags is already installed. skipping."
+        if [[ ! -d gflags-2.1.1 ]]; then
+          tar -xf v2.1.1.tar.gz
+	fi
+        pushd gflags-2.1.1
+        cmake -DCMAKE_CXX_FLAGS=-fPIC -DGFLAGS_NAMESPACE:STRING=google .
+        make
+        sudo make install
+        popd
       fi
     else
       package libgoogle-glog-dev
@@ -201,38 +239,32 @@ function main() {
       if [[ ! -d glog-0.3.3 ]]; then
         tar -xf glog-0.3.3.tar.gz
       fi
-      if [[ ! -f "glog-0.3.3-gflags-namespace.patch" ]]; then
-        wget https://gist.githubusercontent.com/marpaia/02312b7bd25502f5319a/raw/7d3e50c5079a085fe08822fd6952d5fb19c2fe1e/glog-0.3.3-gflags-namespace.patch
+      if [[ ! -d /usr/local/include/glog ]]; then
         pushd glog-0.3.3
-        patch -p1 < ../glog-0.3.3-gflags-namespace.patch
+        ./configure CXXFLAGS="-DGFLAGS_NAMESPACE=google"
+        make
+        sudo make install
         popd
+      else
+      	log "glog is already installed. skipping."
       fi
-      pushd glog-0.3.3
-      ./configure
-      make
-      sudo make install
-      popd
     else
       package libgoogle-glog-dev
     fi
     package libsnappy-dev
     package libbz2-dev
     package libreadline-dev
-    package libprocps3-dev
 
-    package libtool
-    package autoconf
-    package automake
-    package pkg-config
-    package libssl-dev
-    package bison
-    package flex
+    if [[ $DISTRO = "precise" ]]; then
+      package libproc-dev
+    else
+      package libprocps3-dev
+    fi
+
     install_thrift
 
     install_rocksdb
 
-    package liblzma-dev
-    package libprocps3-dev
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
 
