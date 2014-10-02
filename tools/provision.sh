@@ -258,8 +258,8 @@ function main() {
     package snappy
     package readline
     package thrift
-    package rocksdb
     package lz4
+    install_rocksdb
   fi
 
   cd $SCRIPT_DIR/../
