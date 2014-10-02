@@ -173,12 +173,6 @@ function main() {
   mkdir -p $WORKING_DIR
   cd $WORKING_DIR
 
-  if [ "$OS" = "ubuntu" ] || [ "$OS" = "centos" ]; then
-    if [[ $EUID -ne 0 ]]; then
-      fatal "this script must be run as root. exiting."
-    fi
-  fi
-
   if [[ $OS = "centos" ]]; then
     log "detected centos"
   elif [[ $OS = "ubuntu" ]]; then
@@ -195,9 +189,9 @@ function main() {
   if [[ $OS = "ubuntu" ]]; then
 
     if [[ $DISTRO = "precise" ]]; then
-      add-apt-repository -y ppa:ubuntu-toolchain-r/test
+      sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     fi
-    apt-get update
+    sudo apt-get update
 
     package git
     package unzip
@@ -222,7 +216,7 @@ function main() {
     if [[ $DISTRO = "precise" ]]; then
       package gcc-4.7
       package g++-4.7
-      update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 100 --slave /usr/bin/g++ g++ /usr/bin/g++-4.7
+      sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 100 --slave /usr/bin/g++ g++ /usr/bin/g++-4.7
       install_boost
       install_cmake
     else
