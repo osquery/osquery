@@ -20,7 +20,6 @@ SET(OSQUERY_LIBS
   libsnappy.a
   bz2
   z
-  rt
 
   # thrift
   libthrift.a
@@ -38,6 +37,7 @@ SET(OSQUERY_LIBS
 if(APPLE)
   list(APPEND OSQUERY_LIBS "libboost_thread-mt.a")
 else()
+  list(APPEND OSQUERY_LIBS "rt")
   list(APPEND OSQUERY_LIBS "libboost_thread.a")
   list(APPEND OSQUERY_LIBS "libunwind.a")
   list(APPEND OSQUERY_LIBS "liblzma.a")
