@@ -14,7 +14,7 @@ function platform() {
 function threads() {
   local __resultvar=$1
   platform OS
-  if [ $OS = "centos" ] || [ $OS = "ubuntu" ]; then
+  if [ "$OS" = "centos" ] || [ "$OS" = "ubuntu" ]; then
     eval $__resultvar=`cat /proc/cpuinfo | grep processor | wc -l`
   elif [[ $OS = "darwin" ]]; then
     eval $__resultvar=`sysctl hw.ncpu | awk '{print $2}'`
