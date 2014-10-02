@@ -20,7 +20,6 @@ SET(OSQUERY_LIBS
   libsnappy.a
   bz2
   z
-  rt
 
   # thrift
   libthrift.a
@@ -41,11 +40,7 @@ else()
   list(APPEND OSQUERY_LIBS "libboost_thread.a")
   list(APPEND OSQUERY_LIBS "libunwind.a")
   list(APPEND OSQUERY_LIBS "liblzma.a")
-  if(EXISTS "/usr/lib/libproc.a")
-    list(APPEND OSQUERY_LIBS "libproc.a")
-  else()
-    list(APPEND OSQUERY_LIBS "libprocps.a")
-  endif()
+  list(APPEND OSQUERY_LIBS "libprocps.a")
 endif()
 
 # Fill this in with objects for libosquery

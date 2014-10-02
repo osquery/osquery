@@ -18,16 +18,9 @@
 namespace osquery {
 namespace tables {
 
-#ifdef PROC_EDITCMDLCVT
-/// EDITCMDLCVT is available in libprocps3-dev
-# define PROC_SELECTS \
+#define PROC_SELECTS                                                 \
   PROC_FILLCOM | PROC_EDITCMDLCVT | PROC_FILLMEM | PROC_FILLSTATUS | \
-    PROC_FILLSTAT
-#else
-# define PROC_SELECTS \
-  PROC_FILLCOM | PROC_FILLMEM | PROC_FILLSTATUS | \
-    PROC_FILLSTAT
-#endif
+      PROC_FILLSTAT
 
 std::string proc_name(const proc_t* proc_info) {
   char cmd[17]; // cmd is a 16 char buffer
