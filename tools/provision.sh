@@ -75,10 +75,9 @@ function install_rocksdb() {
         pushd rocksdb-rocksdb-3.5
         make static_lib
         popd
-      else
-        sudo cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
-        sudo cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
       fi
+      sudo cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
+      sudo cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
     fi
   else
     log "rocksdb already installed. skipping."
