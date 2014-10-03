@@ -261,6 +261,8 @@ function main() {
     if [[ ! -f "/usr/local/bin/brew" ]]; then
       fatal "could not find homebrew. please install it from http://brew.sh/"
     fi
+    brew update
+
     if brew list | grep --quiet wget; then
       log "wget is already installed. skipping"
     else
