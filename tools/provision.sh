@@ -29,7 +29,7 @@ function install_cmake() {
       pushd cmake-2.8.12.2 > /dev/null
       CC=clang CXX=clang++ ./configure
       make
-      make install
+      sudo make install
       popd
     fi
   fi
