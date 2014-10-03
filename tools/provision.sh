@@ -263,12 +263,6 @@ function main() {
     fi
     brew update
 
-    if brew list | grep --quiet wget; then
-      log "wget is already installed. skipping"
-    else
-      brew install wget
-    fi
-
     package rocksdb
     package cmake
     package boost
