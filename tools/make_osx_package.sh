@@ -17,7 +17,6 @@ function main() {
     fatal "This script must be ran on OS X"
   fi
 
-  log "Calculating dependencies"
   dependency_list=("${BREW_PACKAGES[@]}")
   for package in ${BREW_PACKAGES[*]}; do
     for dep in `brew deps $package`; do
@@ -27,7 +26,6 @@ function main() {
     done
   done
 
-  log "Done calculating dependencies:"
   for dep in ${dependency_list[*]}; do
     dep_dir=`brew info $dep | grep Cellar | awk '{print $1}'`
     brew unlink $dep 2>&1  1>/dev/null
