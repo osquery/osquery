@@ -2,6 +2,7 @@
 
 #include "osquery/core.h"
 
+#include <iostream>
 #include <unistd.h>
 
 #include <boost/algorithm/string/predicate.hpp>
