@@ -18,7 +18,7 @@ const std::vector<size_t> kEventTimeLists = {1 * 60, // 1 minute
                                              12 * 60 * 60, // half-day
 };
 
-void EventType::fire(const EventContextRef ec, EventTime time) {
+void EventPublisher::fire(const EventContextRef ec, EventTime time) {
   EventContextID ec_id;
 
   {
@@ -49,12 +49,12 @@ void EventType::fire(const EventContextRef ec, EventTime time) {
   }
 }
 
-bool EventType::shouldFire(const MonitorContextRef mc,
+bool EventPublisher::shouldFire(const MonitorContextRef mc,
                            const EventContextRef ec) {
   return true;
 }
 
-Status EventType::run() {
+Status EventPublisher::run() {
   // Runloops/entrypoints are ONLY implemented if needed.
   return Status(1, "No runloop required");
 }
@@ -239,28 +239,28 @@ Status EventSubscriber::add(const Row& r, EventTime time) {
 
 void EventFactory::delay() {
   auto& ef = EventFactory::getInstance();
-  for (const auto& eventtype : EventFactory::getInstance().event_types_) {
+  for (const auto& eventtype : EventFactory::getInstance().event_pubs_) {
     auto thread_ = std::make_shared<boost::thread>(
         boost::bind(&EventFactory::run, eventtype.first));
     ef.threads_.push_back(thread_);
   }
 }
 
-Status EventFactory::run(EventTypeID type_id) {
+Status EventFactory::run(EventPublisherID type_id) {
   // An interesting take on an event dispatched entrypoint.
   // There is little introspection into the event type.
   // Assume it can either make use of an entrypoint poller/selector or
   // take care of async callback registrations in setUp/configure/run
   // only once and handle event queueing/firing in callbacks.
-  auto event_type = EventFactory::getInstance().getEventType(type_id);
-  if (event_type == nullptr) {
+  auto event_pub = EventFactory::getInstance().getEventPublisher(type_id);
+  if (event_pub == nullptr) {
     return Status(1, "No Event Type");
   }
 
   Status status = Status(0, "OK");
   while (!EventFactory::getInstance().ending_ && status.ok()) {
     // Can optionally implement a global cooloff latency here.
-    status = event_type->run();
+    status = event_pub->run();
   }
 
   // The runloop status is not reflective of the event type's.
@@ -279,17 +279,17 @@ EventFactory& EventFactory::getInstance() {
   return ef;
 }
 
-Status EventFactory::registerEventType(const EventTypeRef event_type) {
+Status EventFactory::registerEventPublisher(const EventPublisherRef event_pub) {
   auto& ef = EventFactory::getInstance();
-  auto type_id = event_type->type();
+  auto type_id = event_pub->type();
 
-  if (ef.getEventType(type_id) != nullptr) {
+  if (ef.getEventPublisher(type_id) != nullptr) {
     // This is a duplicate type id?
     return Status(1, "Duplicate Event Type");
   }
 
-  ef.event_types_[type_id] = event_type;
-  event_type->setUp();
+  ef.event_pubs_[type_id] = event_pub;
+  event_pub->setUp();
   return Status(0, "OK");
 }
 
@@ -301,77 +301,77 @@ Status EventFactory::registerEventSubscriber(const EventSubscriberRef event_modu
   return Status(0, "OK");
 }
 
-Status EventFactory::addMonitor(EventTypeID type_id, const MonitorRef monitor) {
-  auto event_type = EventFactory::getInstance().getEventType(type_id);
-  if (event_type == nullptr) {
+Status EventFactory::addMonitor(EventPublisherID type_id, const MonitorRef monitor) {
+  auto event_pub = EventFactory::getInstance().getEventPublisher(type_id);
+  if (event_pub == nullptr) {
     // Cannot create a Monitor for a missing type_id.
     return Status(1, "No Event Type");
   }
 
   // The event factory is responsible for configuring the event types.
-  auto status = event_type->addMonitor(monitor);
-  event_type->configure();
+  auto status = event_pub->addMonitor(monitor);
+  event_pub->configure();
   return status;
 }
 
-Status EventFactory::addMonitor(EventTypeID type_id,
+Status EventFactory::addMonitor(EventPublisherID type_id,
                                 const MonitorContextRef mc,
                                 EventCallback cb) {
   auto monitor = Monitor::create(mc, cb);
   return EventFactory::addMonitor(type_id, monitor);
 }
 
-size_t EventFactory::numMonitors(EventTypeID type_id) {
-  const auto& event_type = EventFactory::getInstance().getEventType(type_id);
-  if (event_type != nullptr) {
-    return event_type->numMonitors();
+size_t EventFactory::numMonitors(EventPublisherID type_id) {
+  const auto& event_pub = EventFactory::getInstance().getEventPublisher(type_id);
+  if (event_pub != nullptr) {
+    return event_pub->numMonitors();
   }
   return 0;
 }
 
-std::shared_ptr<EventType> EventFactory::getEventType(EventTypeID type_id) {
+std::shared_ptr<EventPublisher> EventFactory::getEventPublisher(EventPublisherID type_id) {
   auto& ef = EventFactory::getInstance();
-  const auto& it = ef.event_types_.find(type_id);
-  if (it != ef.event_types_.end()) {
-    return ef.event_types_[type_id];
+  const auto& it = ef.event_pubs_.find(type_id);
+  if (it != ef.event_pubs_.end()) {
+    return ef.event_pubs_[type_id];
   }
   return nullptr;
 }
 
-Status EventFactory::deregisterEventType(const EventTypeRef event_type) {
-  return EventFactory::deregisterEventType(event_type->type());
+Status EventFactory::deregisterEventPublisher(const EventPublisherRef event_pub) {
+  return EventFactory::deregisterEventPublisher(event_pub->type());
 }
 
-Status EventFactory::deregisterEventType(EventTypeID type_id) {
+Status EventFactory::deregisterEventPublisher(EventPublisherID type_id) {
   auto& ef = EventFactory::getInstance();
-  const auto& it = ef.event_types_.find(type_id);
-  if (it == ef.event_types_.end()) {
+  const auto& it = ef.event_pubs_.find(type_id);
+  if (it == ef.event_pubs_.end()) {
     return Status(1, "No Event Type registered");
   }
 
-  ef.event_types_[type_id]->tearDown();
-  ef.event_types_.erase(it);
+  ef.event_pubs_[type_id]->tearDown();
+  ef.event_pubs_.erase(it);
   return Status(0, "OK");
 }
 
-Status EventFactory::deregisterEventTypes() {
+Status EventFactory::deregisterEventPublishers() {
   auto& ef = EventFactory::getInstance();
-  auto it = ef.event_types_.begin();
-  for (; it != ef.event_types_.end(); it++) {
+  auto it = ef.event_pubs_.begin();
+  for (; it != ef.event_pubs_.end(); it++) {
     it->second->tearDown();
   }
 
-  ef.event_types_.erase(ef.event_types_.begin(), ef.event_types_.end());
+  ef.event_pubs_.erase(ef.event_pubs_.begin(), ef.event_pubs_.end());
   return Status(0, "OK");
 }
 }
 
 namespace osquery {
 namespace registries {
-void faucet(EventTypes ets, EventSubscribers ems) {
+void faucet(EventPublishers ets, EventSubscribers ems) {
   auto& ef = osquery::EventFactory::getInstance();
-  for (const auto& event_type : ets) {
-    ef.registerEventType(event_type.second);
+  for (const auto& event_pub : ets) {
+    ef.registerEventPublisher(event_pub.second);
   }
 
   for (const auto& event_module : ems) {

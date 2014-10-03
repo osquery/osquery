@@ -15,15 +15,15 @@ const std::string kRealTestPath = "/tmp/osquery-inotify-trigger";
 
 class INotifyTests : public testing::Test {
  protected:
-  virtual void TearDown() { EventFactory::deregisterEventTypes(); }
+  virtual void TearDown() { EventFactory::deregisterEventPublishers(); }
 
   void StartEventLoop() {
-    auto event_type = std::make_shared<INotifyEventType>();
-    EventFactory::registerEventType(event_type);
+    auto event_pub = std::make_shared<INotifyEventPublisher>();
+    EventFactory::registerEventPublisher(event_pub);
     FILE* fd = fopen(kRealTestPath.c_str(), "w");
     fclose(fd);
 
-    temp_thread_ = boost::thread(EventFactory::run, "INotifyEventType");
+    temp_thread_ = boost::thread(EventFactory::run, "INotifyEventPublisher");
   }
 
   void MonitorAction(uint32_t mask = 0, EventCallback ec = 0) {
@@ -31,7 +31,7 @@ class INotifyTests : public testing::Test {
     mc->path = kRealTestPath;
     mc->mask = mask;
 
-    EventFactory::addMonitor("INotifyEventType", mc, ec);
+    EventFactory::addMonitor("INotifyEventPublisher", mc, ec);
   }
 
   void EndEventLoop() {
@@ -47,7 +47,7 @@ class INotifyTests : public testing::Test {
 bool waitForEvent(int max, int num_events = 0) {
   int step = 50;
   int delay = 0;
-  const auto& et = EventFactory::getEventType("INotifyEventType");
+  const auto& et = EventFactory::getEventPublisher("INotifyEventPublisher");
   while (delay <= max * 1000) {
     if (num_events > 0 && et->numEvents() >= num_events) {
       return true;
@@ -60,56 +60,56 @@ bool waitForEvent(int max, int num_events = 0) {
   return false;
 }
 
-TEST_F(INotifyTests, test_register_event_type) {
-  auto status = EventFactory::registerEventType<INotifyEventType>();
+TEST_F(INotifyTests, test_register_event_pub) {
+  auto status = EventFactory::registerEventPublisher<INotifyEventPublisher>();
   EXPECT_TRUE(status.ok());
 
   // Make sure only one event type exists
-  EXPECT_EQ(EventFactory::numEventTypes(), 1);
+  EXPECT_EQ(EventFactory::numEventPublishers(), 1);
 }
 
 TEST_F(INotifyTests, test_inotify_init) {
   // Handle should not be initialized during ctor.
-  auto event_type = std::make_shared<INotifyEventType>();
-  EXPECT_FALSE(event_type->isHandleOpen());
+  auto event_pub = std::make_shared<INotifyEventPublisher>();
+  EXPECT_FALSE(event_pub->isHandleOpen());
 
   // Registering the event type initializes inotify.
-  EventFactory::registerEventType(event_type);
-  EXPECT_TRUE(event_type->isHandleOpen());
+  EventFactory::registerEventPublisher(event_pub);
+  EXPECT_TRUE(event_pub->isHandleOpen());
 
   // Similarly deregistering closes the handle.
-  EventFactory::deregisterEventTypes();
-  EXPECT_FALSE(event_type->isHandleOpen());
+  EventFactory::deregisterEventPublishers();
+  EXPECT_FALSE(event_pub->isHandleOpen());
 }
 
 TEST_F(INotifyTests, test_inotify_add_monitor_fail) {
-  EventFactory::registerEventType<INotifyEventType>();
+  EventFactory::registerEventPublisher<INotifyEventPublisher>();
 
   // This monitor path is fake, and will fail
   auto mc = std::make_shared<INotifyMonitorContext>();
   mc->path = "/this/path/is/fake";
 
   auto monitor = Monitor::create(mc);
-  auto status = EventFactory::addMonitor("INotifyEventType", monitor);
+  auto status = EventFactory::addMonitor("INotifyEventPublisher", monitor);
   EXPECT_FALSE(status.ok());
 }
 
 TEST_F(INotifyTests, test_inotify_add_monitor_success) {
-  EventFactory::registerEventType<INotifyEventType>();
+  EventFactory::registerEventPublisher<INotifyEventPublisher>();
 
   // This monitor path *should* be real.
   auto mc = std::make_shared<INotifyMonitorContext>();
   mc->path = "/";
 
   auto monitor = Monitor::create(mc);
-  auto status = EventFactory::addMonitor("INotifyEventType", monitor);
+  auto status = EventFactory::addMonitor("INotifyEventPublisher", monitor);
   EXPECT_TRUE(status.ok());
 }
 
 TEST_F(INotifyTests, test_inotify_run) {
   // Assume event type is registered.
-  auto event_type = std::make_shared<INotifyEventType>();
-  EventFactory::registerEventType(event_type);
+  auto event_pub = std::make_shared<INotifyEventPublisher>();
+  EventFactory::registerEventPublisher(event_pub);
 
   // Create a temporary file to watch, open writeable
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
@@ -117,11 +117,11 @@ TEST_F(INotifyTests, test_inotify_run) {
   // Create a monitoring context
   auto mc = std::make_shared<INotifyMonitorContext>();
   mc->path = kRealTestPath;
-  EventFactory::addMonitor("INotifyEventType", Monitor::create(mc));
+  EventFactory::addMonitor("INotifyEventPublisher", Monitor::create(mc));
 
   // Create an event loop thread (similar to main)
-  boost::thread temp_thread(EventFactory::run, "INotifyEventType");
-  EXPECT_TRUE(event_type->numEvents() == 0);
+  boost::thread temp_thread(EventFactory::run, "INotifyEventPublisher");
+  EXPECT_TRUE(event_pub->numEvents() == 0);
 
   // Cause an inotify event by writing to the watched path.
   fputs("inotify", fd);
@@ -129,7 +129,7 @@ TEST_F(INotifyTests, test_inotify_run) {
 
   // Wait for the thread's run loop to select.
   waitForEvent(2000);
-  EXPECT_TRUE(event_type->numEvents() > 0);
+  EXPECT_TRUE(event_pub->numEvents() > 0);
 
   // Cause the thread to tear down.
   EventFactory::end();
@@ -139,7 +139,7 @@ TEST_F(INotifyTests, test_inotify_run) {
 }
 
 class TestINotifyEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTMODULE(TestINotifyEventSubscriber, INotifyEventType);
+  DECLARE_EVENTMODULE(TestINotifyEventSubscriber, INotifyEventPublisher);
   DECLARE_CALLBACK(SimpleCallback, INotifyEventContext);
   DECLARE_CALLBACK(Callback, INotifyEventContext);
 

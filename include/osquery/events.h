@@ -19,20 +19,20 @@
 namespace osquery {
 
 struct Monitor;
-class EventType;
+class EventPublisher;
 class EventSubscriber;
 
-typedef const std::string EventTypeID;
+typedef const std::string EventPublisherID;
 typedef const std::string EventID;
 typedef uint32_t EventContextID;
 typedef uint32_t EventTime;
 typedef std::pair<EventID, EventTime> EventRecord;
 
 /**
- * @brief An EventType will define a MonitorContext for EventSubscriber%s to use.
+ * @brief An EventPublisher will define a MonitorContext for EventSubscriber%s to use.
  *
- * Most EventType%s will reqire specific information for interacting with an OS
- * to receive events. The MonitorContext contains information the EventType will
+ * Most EventPublisher%s will reqire specific information for interacting with an OS
+ * to receive events. The MonitorContext contains information the EventPublisher will
  * use to register OS API callbacks, create monitoring/listening handles, etc.
  *
  * Linux `inotify` should implement a MonitorContext that monitors filesystem
@@ -45,12 +45,12 @@ struct MonitorContext {};
 /**
  * @brief An EventSubscriber EventCallback method will receive an EventContext.
  *
- * The EventContext contains the event-related data supplied by an EventType
+ * The EventContext contains the event-related data supplied by an EventPublisher
  * when the event occures. If a monitoring EventSubscriber is should be called
  * for the event the EventSubscriber%'s EventCallback is passed an EventContext.
  */
 struct EventContext {
-  /// An unique counting ID specific to the EventType%'s fired events.
+  /// An unique counting ID specific to the EventPublisher%'s fired events.
   EventContextID id;
   /// The time the event occured.
   EventTime time;
@@ -59,43 +59,43 @@ struct EventContext {
 };
 
 typedef std::shared_ptr<Monitor> MonitorRef;
-typedef std::shared_ptr<EventType> EventTypeRef;
+typedef std::shared_ptr<EventPublisher> EventPublisherRef;
 typedef std::shared_ptr<MonitorContext> MonitorContextRef;
 typedef std::shared_ptr<EventContext> EventContextRef;
 typedef std::shared_ptr<EventSubscriber> EventSubscriberRef;
 
 typedef std::function<Status(EventContextRef, bool)> EventCallback;
 
-/// An EventType must track every monitor added.
+/// An EventPublisher must track every monitor added.
 typedef std::vector<MonitorRef> MonitorVector;
 
-/// The EventFactory tracks every EventType and the name it specifies.
-typedef std::map<EventTypeID, EventTypeRef> EventTypeMap;
+/// The EventFactory tracks every EventPublisher and the name it specifies.
+typedef std::map<EventPublisherID, EventPublisherRef> EventPublisherMap;
 
 /// The set of search-time binned lookup tables.
 extern const std::vector<size_t> kEventTimeLists;
 
 /**
- * @brief Helper type casting methods for EventType classes.
+ * @brief Helper type casting methods for EventPublisher classes.
  *
- * A new osquery EventType should subclass EventType and use the following:
+ * A new osquery EventPublisher should subclass EventPublisher and use the following:
  *
  * @code{.cpp}
  *   #include "osquery/events.h"
  *
- *   class MyEventType: public EventType {
- *     DECLARE_EVENTTYPE(MyEventType, MyMonitorContext, MyEventContext);
+ *   class MyEventPublisher: public EventPublisher {
+ *     DECLARE_EVENTTYPE(MyEventPublisher, MyMonitorContext, MyEventContext);
  *   }
  * @endcode
  *
- * This assumes new EventType%s will always include a custom MonitorContext
+ * This assumes new EventPublisher%s will always include a custom MonitorContext
  * and EventContext. In the above example MyMonitorContext allows EventSubscriber%s
  * to downselect or customize what events to handle. And MyEventContext includes
- * fields specific to the new EventType.
+ * fields specific to the new EventPublisher.
  */
 #define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                            \
  public:                                                                   \
-  EventTypeID type() const { return #TYPE; }                               \
+  EventPublisherID type() const { return #TYPE; }                               \
   bool shouldFire(const MonitorContextRef mc, const EventContextRef ec) {  \
     if (#MONITOR == "MonitorContext" && #EVENT == "EventContext")          \
       return true;                                                         \
@@ -124,11 +124,11 @@ extern const std::vector<size_t> kEventTimeLists;
  *   #include "osquery/events.h"
  *
  *   class MyEventSubscriber: public EventSubscriber {
- *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventType);
+ *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventPublisher);
  *   }
  * @endcode
  *
- * EventSubscriber%s should be specific to an EventType.
+ * EventSubscriber%s should be specific to an EventPublisher.
  */
 #define DECLARE_EVENTMODULE(NAME, TYPE)                \
  public:                                               \
@@ -141,8 +141,8 @@ extern const std::vector<size_t> kEventTimeLists;
   }                                                    \
                                                        \
  private:                                              \
-  EventTypeID name() const { return #NAME; }           \
-  EventTypeID type() const { return #TYPE; }           \
+  EventPublisherID name() const { return #NAME; }           \
+  EventPublisherID type() const { return #TYPE; }           \
   NAME() {}
 
 /**
@@ -159,7 +159,7 @@ extern const std::vector<size_t> kEventTimeLists;
  *   #include "osquery/events.h"
  *
  *   class MyEventSubscriber: public EventSubscriber {
- *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventType);
+ *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventPublisher);
  *     DECLARE_CALLBACK(MyCallback, MyEventContext)
  *
  *     Status ModuleMyCallback(EventContextID, EventTime, MyEventContext);
@@ -169,7 +169,7 @@ extern const std::vector<size_t> kEventTimeLists;
  * And then somewhere else in code the callback can be registered:
  *
  * @code{.cpp}
- *   EventFactory::addMonitor("MyEventType", my_monitor_context,
+ *   EventFactory::addMonitor("MyEventPublisher", my_monitor_context,
  *                            MyEventSubscriber::MyCallback);
  * @endcode
  *
@@ -194,20 +194,20 @@ extern const std::vector<size_t> kEventTimeLists;
  *
  * Binding refers to the association of a callback for this EventSubscriber to
  * a configured MonitorContext. Under the hood "binding" creates a factory
- * Monitor for the EventType used by the EventSubscriber. Such that when an event
- * of the EventType is fired, if the event details match the specifics of the
+ * Monitor for the EventPublisher used by the EventSubscriber. Such that when an event
+ * of the EventPublisher is fired, if the event details match the specifics of the
  * MonitorContext the EventMonitor%'s EventCallback will be called.
  *
  * @code{.cpp}
  *   #include "osquery/events.h"
  *
  *   class MyEventSubscriber: public EventSubscriber {
- *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventType);
+ *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventPublisher);
  *     DECLARE_CALLBACK(MyCallback, MyEventContext);
  *
  *    public:
  *     void init() {
- *       auto mc = MyEventType::createMonitorContext();
+ *       auto mc = MyEventPublisher::createMonitorContext();
  *       mc->requirement = "SOME_SPECIFIC_DETAIL";
  *       BIND_CALLBACK(MyCallback, mc);
  *     }
@@ -225,15 +225,15 @@ extern const std::vector<size_t> kEventTimeLists;
   EventFactory::addMonitor(type(), MC, Event##NAME);
 
 /**
- * @brief A Monitor is used to configure an EventType and bind a callback.
+ * @brief A Monitor is used to configure an EventPublisher and bind a callback.
  *
- * A Monitor is the input to an EventType when the EventType decides on
+ * A Monitor is the input to an EventPublisher when the EventPublisher decides on
  * the scope and details of the events it watches and generates. An example
  * includes a filesystem change event. A monitor would include a path with
  * optional recursion and attribute selectors as well as a callback function
  * to fire when an event for that path and selector occurs.
  *
- * A Monitor also functions to greatly scope an EventType%'s work.
+ * A Monitor also functions to greatly scope an EventPublisher%'s work.
  * Using the same filesystem example and the Linux inotify subsystem a Monitor
  * limits the number of inode watches to only those requested by appropriate
  * EventSubscriber%s.
@@ -242,12 +242,12 @@ extern const std::vector<size_t> kEventTimeLists;
  * Monitors are usually created with EventFactory members:
  *
  * @code{.cpp}
- *   EventFactory::addMonitor("MyEventType", my_monitor_context);
+ *   EventFactory::addMonitor("MyEventPublisher", my_monitor_context);
  * @endcode
  */
 struct Monitor {
  public:
-  /// An EventType%-specific MonitorContext.
+  /// An EventPublisher%-specific MonitorContext.
   MonitorContextRef context;
   /// An EventMonitor member EventCallback method.
   EventCallback callback;
@@ -265,20 +265,20 @@ struct Monitor {
 /**
  * @brief Generate OS events of a type (FS, Network, Syscall, ioctl).
  *
- * A 'class' of OS events is abstracted into an EventType responsible for
+ * A 'class' of OS events is abstracted into an EventPublisher responsible for
  * remaining as agile as possible given a known-set of monitors.
  *
- * The lifecycle of an EventType may include, `setUp`, `configure`, `run`,
+ * The lifecycle of an EventPublisher may include, `setUp`, `configure`, `run`,
  * `tearDown`, and `fire`. `setUp` and `tearDown` happen when osquery starts and
  * stops either as a daemon or interactive shell. `configure` is a pseudo-start
- * called every time a Monitor is added. EventType%s can adjust their
+ * called every time a Monitor is added. EventPublisher%s can adjust their
  * scope/agility specific to each added monitor by overriding `addMonitor`,
  * and or globally in `configure`.
  *
- * Not all EventType%s leverage pure async OS APIs, and most will require a run
+ * Not all EventPublisher%s leverage pure async OS APIs, and most will require a run
  * loop either polling with a timeout on a descriptor or for a change. When
  * osquery initializes the EventFactory will optionally create a thread for each
- * EventType using `run` as the thread's entrypoint. This is called in a
+ * EventPublisher using `run` as the thread's entrypoint. This is called in a
  * within-thread loop where returning a FAILED status ends the run loop and
  * shuts down the thread.
  *
@@ -288,19 +288,19 @@ struct Monitor {
  *   Status run() { return Status(1, "Not Implemented") }
  * @endcode
  *
- * The final lifecycle component, `fire` will iterate over the EventType
+ * The final lifecycle component, `fire` will iterate over the EventPublisher
  * Monitor%s and call `shouldFire` for each, using the EventContext fired.
  * The `shouldFire` method should check the monitor-specific selectors and only
  * call the Monitor%'s callback function is the EventContext (thus event)
  * matches.
  */
-class EventType {
+class EventPublisher {
  public:
   /**
    * @brief A new Monitor was added, potentially change state based on all
-   * monitors for this EventType.
+   * monitors for this EventPublisher.
    *
-   * `configure` allows the EventType to optimize on the state of all monitors.
+   * `configure` allows the EventPublisher to optimize on the state of all monitors.
    * An example is Linux `inotify` where multiple EventMonitor%s will monitor
    * identical paths, e.g., /etc for config changes. Since Linux `inotify` has
    * a monitor limit, `configure` can depup paths.
@@ -310,8 +310,8 @@ class EventType {
   /**
    * @brief Perform handle opening, OS API callback registration.
    *
-   * `setUp` is the event framework's EventType constructor equivilent. When
-   * `setUp` is called the EventType is running in a dedicated thread and may
+   * `setUp` is the event framework's EventPublisher constructor equivilent. When
+   * `setUp` is called the EventPublisher is running in a dedicated thread and may
    * manage/allocate/wait for resources.
    */
   virtual void setUp() {}
@@ -319,7 +319,7 @@ class EventType {
   /**
    * @brief Perform handle closing, resource cleanup.
    *
-   * osquery is about to end, the EventType should close handle descriptors
+   * osquery is about to end, the EventPublisher should close handle descriptors
    * unblock resources, and prepare to exit.
    */
   virtual void tearDown() {}
@@ -333,7 +333,7 @@ class EventType {
   virtual Status run();
 
   /**
-   * @brief A new EventSubscriber is monitoring events of this EventType.
+   * @brief A new EventSubscriber is monitoring events of this EventPublisher.
    *
    * @param monitor The Monitor context information and optional EventCallback.
    *
@@ -344,28 +344,28 @@ class EventType {
     return Status(0, "OK");
   }
 
-  /// Number of Monitor%s watching this EventType.
+  /// Number of Monitor%s watching this EventPublisher.
   size_t numMonitors() { return monitors_.size(); }
 
   /**
-   * @brief The number of events fired by this EventType.
+   * @brief The number of events fired by this EventPublisher.
    *
    * @return The number of events.
    */
   size_t numEvents() { return next_ec_id_; }
 
-  /// Overriding the EventType constructor is not recommended.
-  EventType() : next_ec_id_(0) {};
+  /// Overriding the EventPublisher constructor is not recommended.
+  EventPublisher() : next_ec_id_(0) {};
 
-  /// Return a string identifier associated with this EventType.
-  virtual EventTypeID type() const = 0;
+  /// Return a string identifier associated with this EventPublisher.
+  virtual EventPublisherID type() const = 0;
 
-  /// Return a string identifier for the given EventType symbol.
+  /// Return a string identifier for the given EventPublisher symbol.
   template <typename T>
-  static EventTypeID type() {
-    const auto& event_type = new T();
-    auto type_id = event_type->type();
-    delete event_type;
+  static EventPublisherID type() {
+    const auto& event_pub = new T();
+    auto type_id = event_pub->type();
+    delete event_pub;
     return type_id;
   }
 
@@ -376,7 +376,7 @@ class EventType {
    * It is NOT recommended to override `fire`. The simple logic of enumerating
    * the Monitor%s and using `shouldFire` is more appropraite.
    *
-   * @param ec The EventContext created and fired by the EventType.
+   * @param ec The EventContext created and fired by the EventPublisher.
    * @param time The most accurate time associated with the event.
    */
   void fire(const EventContextRef ec, EventTime time = 0);
@@ -393,10 +393,10 @@ class EventType {
   virtual bool shouldFire(const MonitorContextRef mc, const EventContextRef ec);
 
  protected:
-  /// The EventType will keep track of Monitor%s that contain callins.
+  /// The EventPublisher will keep track of Monitor%s that contain callins.
   MonitorVector monitors_;
 
-  /// An Event ID is assigned by the EventType within the EventContext.
+  /// An Event ID is assigned by the EventPublisher within the EventContext.
   /// This is not used to store event date in the backing store.
   EventContextID next_ec_id_;
 
@@ -421,12 +421,12 @@ class EventType {
  */
 class EventSubscriber {
  public:
-  /// Called after EventType `setUp`. Add all Monitor%s here.
+  /// Called after EventPublisher `setUp`. Add all Monitor%s here.
   /**
-   * @brief Add Monitor%s to the EventType this module will act on.
+   * @brief Add Monitor%s to the EventPublisher this module will act on.
    *
    * When the EventSubscriber%'s `init` method is called you are assured the
-   * EventType has `setUp` and is ready to monitor for events.
+   * EventPublisher has `setUp` and is ready to monitor for events.
    */
   virtual void init() {}
 
@@ -488,7 +488,7 @@ class EventSubscriber {
    * @brief Get a unique storage-related EventID.
    *
    * An EventID is an index/element-identifier for the backing store.
-   * Each EventType maintains a fired EventContextID to identify the many
+   * Each EventPublisher maintains a fired EventContextID to identify the many
    * events that may or may not be fired to monitoring criteria for this
    * EventSubscriber. This EventContextID is NOT the same as an EventID.
    * EventSubscriber development should not require use of EventID%s, if this
@@ -519,17 +519,17 @@ class EventSubscriber {
    * @brief A single instance requirement for static callback facilities.
    *
    * The EventSubscriber constructor is NOT responsible for adding Monitor%s.
-   * Please use `init` for adding Monitor%s as all EventType instances will
+   * Please use `init` for adding Monitor%s as all EventPublisher instances will
    * have run `setUp` and initialized their run loops.
    */
   EventSubscriber() {}
 
   /// Backing storage indexing namespace definition methods.
-  EventTypeID dbNamespace() { return type() + "." + name(); }
-  /// The string EventType identifying this EventSubscriber.
-  virtual EventTypeID type() const = 0;
+  EventPublisherID dbNamespace() { return type() + "." + name(); }
+  /// The string EventPublisher identifying this EventSubscriber.
+  virtual EventPublisherID type() const = 0;
   /// The string name identifying this EventSubscriber.
-  virtual EventTypeID name() const = 0;
+  virtual EventPublisherID name() const = 0;
 
  private:
   /// Lock used when incrementing the EventID database index.
@@ -544,11 +544,11 @@ class EventSubscriber {
 };
 
 /**
- * @brief A factory for associating event generators to EventTypeID%s.
+ * @brief A factory for associating event generators to EventPublisherID%s.
  *
  * This factory both registers new event types and the monitors that use them.
- * An EventType is also a factory, the single event factory arbitates Monitor
- * creatating and management for each associated EventType.
+ * An EventPublisher is also a factory, the single event factory arbitates Monitor
+ * creatating and management for each associated EventPublisher.
  *
  * Since event types may be plugins, they are created using the factory.
  * Since monitors may be configured/disabled they are also factory-managed.
@@ -559,28 +559,28 @@ class EventFactory {
   static EventFactory& getInstance();
 
   /**
-   * @brief Add an EventType to the factory.
+   * @brief Add an EventPublisher to the factory.
    *
    * The registration is mostly abstracted using osquery's registery.
    */
   template <typename T>
-  static Status registerEventType() {
-    auto event_type = std::make_shared<T>();
-    return EventFactory::registerEventType(event_type);
+  static Status registerEventPublisher() {
+    auto event_pub = std::make_shared<T>();
+    return EventFactory::registerEventPublisher(event_pub);
   }
 
   /**
-   * @brief Add an EventType to the factory.
+   * @brief Add an EventPublisher to the factory.
    *
    * The registration is mostly abstracted using osquery's registery.
    *
-   * @param event_type If for some reason the caller needs access to the
-   * EventType instance they can register-by-instance.
+   * @param event_pub If for some reason the caller needs access to the
+   * EventPublisher instance they can register-by-instance.
    *
-   * Access to the EventType instance is not discouraged, but using the
-   * EventFactory `getEventType` accessor is encouraged.
+   * Access to the EventPublisher instance is not discouraged, but using the
+   * EventFactory `getEventPublisher` accessor is encouraged.
    */
-  static Status registerEventType(const EventTypeRef event_type);
+  static Status registerEventPublisher(const EventPublisherRef event_pub);
 
   /**
    * @brief Add an EventSubscriber to the factory.
@@ -607,85 +607,85 @@ class EventFactory {
   static Status registerEventSubscriber(const EventSubscriberRef event_module);
 
   /**
-   * @brief Add a MonitorContext and EventCallback Monitor to an EventType.
+   * @brief Add a MonitorContext and EventCallback Monitor to an EventPublisher.
    *
    * Create a Monitor from a given MonitorContext and EventCallback and
-   * add that Monitor to the EventType assosicated identiter.
+   * add that Monitor to the EventPublisher assosicated identiter.
    *
-   * @param type_id The string for an EventType receiving the Monitor.
-   * @param mc A MonitorContext related to the EventType.
-   * @param cb When the EventType fires an event the MonitorContext will
+   * @param type_id The string for an EventPublisher receiving the Monitor.
+   * @param mc A MonitorContext related to the EventPublisher.
+   * @param cb When the EventPublisher fires an event the MonitorContext will
    * be evaluated, if the event matches optional specifics in the context this
    * callback function will be called. It should belong to an EventMonitor.
    *
-   * @return Was the MonitorContext appropriate for the EventType.
+   * @return Was the MonitorContext appropriate for the EventPublisher.
    */
-  static Status addMonitor(EventTypeID type_id,
+  static Status addMonitor(EventPublisherID type_id,
                            const MonitorContextRef mc,
                            EventCallback cb = 0);
 
   /// Add a Monitor using a caller Monitor instance.
-  static Status addMonitor(EventTypeID type_id, const MonitorRef monitor);
+  static Status addMonitor(EventPublisherID type_id, const MonitorRef monitor);
 
-  /// Add a Monitor by templating the EventType, using a MonitorContext.
+  /// Add a Monitor by templating the EventPublisher, using a MonitorContext.
   template <typename T>
   static Status addMonitor(const MonitorContextRef mc, EventCallback cb = 0) {
-    return addMonitor(EventType::type<T>(), mc, cb);
+    return addMonitor(EventPublisher::type<T>(), mc, cb);
   }
 
-  /// Add a Monitor by templating the EventType, using a Monitor instance.
+  /// Add a Monitor by templating the EventPublisher, using a Monitor instance.
   template <typename T>
   static Status addMonitor(const MonitorRef monitor) {
-    return addMonitor(EventType::type<T>(), monitor);
+    return addMonitor(EventPublisher::type<T>(), monitor);
   }
 
-  /// Get the total number of Monitor%s across ALL EventType%s.
-  static size_t numMonitors(EventTypeID type_id);
+  /// Get the total number of Monitor%s across ALL EventPublisher%s.
+  static size_t numMonitors(EventPublisherID type_id);
 
-  /// Get the number of EventTypes.
-  static size_t numEventTypes() {
-    return EventFactory::getInstance().event_types_.size();
+  /// Get the number of EventPublishers.
+  static size_t numEventPublishers() {
+    return EventFactory::getInstance().event_pubs_.size();
   }
 
   /**
-   * @brief Halt the EventType run loop and call its `tearDown`.
+   * @brief Halt the EventPublisher run loop and call its `tearDown`.
    *
-   * Any EventSubscriber%s with Monitor%s for this EventType will become useless.
+   * Any EventSubscriber%s with Monitor%s for this EventPublisher will become useless.
    * osquery instanciators MUST deregister events.
-   * EventType%s assume they can hook/trampoline, which requires cleanup.
+   * EventPublisher%s assume they can hook/trampoline, which requires cleanup.
    *
-   * @param event_type The string label for the EventType.
+   * @param event_pub The string label for the EventPublisher.
    *
-   * @return Did the EventType deregister cleanly.
+   * @return Did the EventPublisher deregister cleanly.
    */
-  static Status deregisterEventType(const EventTypeRef event_type);
+  static Status deregisterEventPublisher(const EventPublisherRef event_pub);
 
-  /// Deregister an EventType by EventTypeID.
-  static Status deregisterEventType(EventTypeID type_id);
+  /// Deregister an EventPublisher by EventPublisherID.
+  static Status deregisterEventPublisher(EventPublisherID type_id);
 
-  /// Deregister all EventType%s.
-  static Status deregisterEventTypes();
+  /// Deregister all EventPublisher%s.
+  static Status deregisterEventPublishers();
 
-  /// Return an instance to a registered EventType.
-  static EventTypeRef getEventType(EventTypeID);
+  /// Return an instance to a registered EventPublisher.
+  static EventPublisherRef getEventPublisher(EventPublisherID);
 
  public:
   /// The dispatched event thread's entrypoint (if needed).
-  static Status run(EventTypeID type_id);
+  static Status run(EventPublisherID type_id);
 
   /// An initializer's entrypoint for spawning all event type run loops.
   static void delay();
 
  public:
-  /// If a static EventType callback wants to fire
+  /// If a static EventPublisher callback wants to fire
   template <typename T>
   static void fire(const EventContextRef ec) {
-    auto event_type = getEventType(EventType::type<T>());
-    event_type->fire(ec);
+    auto event_pub = getEventPublisher(EventPublisher::type<T>());
+    event_pub->fire(ec);
   }
 
   /**
-   * @brief End all EventType run loops and call their `tearDown` methods.
+   * @brief End all EventPublisher run loops and call their `tearDown` methods.
    *
    * End is NOT the same as deregistration.
    *
@@ -703,10 +703,10 @@ class EventFactory {
   /// Set ending to True to cause event type run loops to finish.
   bool ending_;
 
-  /// Set of registered EventType instances.
-  EventTypeMap event_types_;
+  /// Set of registered EventPublisher instances.
+  EventPublisherMap event_pubs_;
 
-  /// Set of running EventType run loop threads.
+  /// Set of running EventPublisher run loop threads.
   std::vector<std::shared_ptr<boost::thread>> threads_;
 
   /// Set of instanciated EventSubscriber Monitor sets (with callbacks and state).
@@ -714,11 +714,11 @@ class EventFactory {
 };
 }
 
-/// Expose a Plugin-like Registry for EventType instances.
-DECLARE_REGISTRY(EventTypes, std::string, EventTypeRef);
-#define REGISTERED_EVENTTYPES REGISTRY(EventTypes)
+/// Expose a Plugin-like Registry for EventPublisher instances.
+DECLARE_REGISTRY(EventPublishers, std::string, EventPublisherRef);
+#define REGISTERED_EVENTTYPES REGISTRY(EventPublishers)
 #define REGISTER_EVENTTYPE(decorator) \
-  REGISTER(EventTypes, #decorator, std::make_shared<decorator>());
+  REGISTER(EventPublishers, #decorator, std::make_shared<decorator>());
 
 /**
  * @brief Expose a Plugin-link Registry for EventSubscriber instances.
@@ -734,15 +734,15 @@ DECLARE_REGISTRY(EventSubscribers, std::string, EventSubscriberRef);
 namespace osquery {
 namespace registries {
 /**
- * @brief A utility method for moving EventType%s and EventSubscriber%s (plugins)
+ * @brief A utility method for moving EventPublisher%s and EventSubscriber%s (plugins)
  * into the EventFactory.
  *
- * To handle run-time and compile-time EventType and EventSubscriber additions
+ * To handle run-time and compile-time EventPublisher and EventSubscriber additions
  * as plugins or extensions, the osquery Registry workflow is used. During
  * application launch (or within plugin load) the EventFactory faucet moves
- * managed instances of these types to the EventFactory. The EventType and
+ * managed instances of these types to the EventFactory. The EventPublisher and
  * EventSubscriber lifecycle/developer workflow is unknown to the Registry.
  */
-void faucet(EventTypes ets, EventSubscribers ems);
+void faucet(EventPublishers ets, EventSubscribers ems);
 }
 }

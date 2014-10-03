@@ -16,15 +16,15 @@ int kMaxEventLatency = 3000;
 
 class FSEventsTests : public testing::Test {
  protected:
-  virtual void TearDown() { EventFactory::deregisterEventTypes(); }
+  virtual void TearDown() { EventFactory::deregisterEventPublishers(); }
 
   void StartEventLoop() {
-    event_type_ = std::make_shared<FSEventsEventType>();
-    EventFactory::registerEventType(event_type_);
+    event_pub_ = std::make_shared<FSEventsEventPublisher>();
+    EventFactory::registerEventPublisher(event_pub_);
     FILE* fd = fopen(kRealTestPath.c_str(), "w");
     fclose(fd);
 
-    temp_thread_ = boost::thread(EventFactory::run, "FSEventsEventType");
+    temp_thread_ = boost::thread(EventFactory::run, "FSEventsEventPublisher");
   }
 
   void MonitorAction(uint32_t mask = 0, EventCallback ec = 0) {
@@ -32,13 +32,13 @@ class FSEventsTests : public testing::Test {
     mc->path = kRealTestPath;
     mc->mask = mask;
 
-    EventFactory::addMonitor("FSEventsEventType", mc, ec);
+    EventFactory::addMonitor("FSEventsEventPublisher", mc, ec);
   }
 
   void WaitForStream(int max) {
     int delay = 0;
     while (delay < max * 1000) {
-      if (event_type_->isStreamRunning()) {
+      if (event_pub_->isStreamRunning()) {
         return;
       }
       ::usleep(50);
@@ -49,9 +49,9 @@ class FSEventsTests : public testing::Test {
   bool WaitForEvents(int max, int num_events = 0) {
     int delay = 0;
     while (delay <= max * 1000) {
-      if (num_events > 0 && event_type_->numEvents() >= num_events) {
+      if (num_events > 0 && event_pub_->numEvents() >= num_events) {
         return true;
-      } else if (num_events == 0 && event_type_->numEvents() > 0) {
+      } else if (num_events == 0 && event_pub_->numEvents() > 0) {
         return true;
       }
       delay += 50;
@@ -71,76 +71,76 @@ class FSEventsTests : public testing::Test {
 
   void EndEventLoop() {
     EventFactory::end();
-    event_type_->tearDown();
+    event_pub_->tearDown();
     temp_thread_.join();
     EventFactory::end(false);
   }
 
-  std::shared_ptr<FSEventsEventType> event_type_;
+  std::shared_ptr<FSEventsEventPublisher> event_pub_;
   boost::thread temp_thread_;
 };
 
-TEST_F(FSEventsTests, test_register_event_type) {
-  auto status = EventFactory::registerEventType<FSEventsEventType>();
+TEST_F(FSEventsTests, test_register_event_pub) {
+  auto status = EventFactory::registerEventPublisher<FSEventsEventPublisher>();
   EXPECT_TRUE(status.ok());
 
   // Make sure only one event type exists
-  EXPECT_EQ(EventFactory::numEventTypes(), 1);
+  EXPECT_EQ(EventFactory::numEventPublishers(), 1);
 }
 
 TEST_F(FSEventsTests, test_fsevents_add_monitor_missing_path) {
-  EventFactory::registerEventType<FSEventsEventType>();
+  EventFactory::registerEventPublisher<FSEventsEventPublisher>();
 
   // This monitor path is fake, and will succeed!
   auto mc = std::make_shared<FSEventsMonitorContext>();
   mc->path = "/this/path/is/fake";
 
   auto monitor = Monitor::create(mc);
-  auto status = EventFactory::addMonitor("FSEventsEventType", monitor);
+  auto status = EventFactory::addMonitor("FSEventsEventPublisher", monitor);
   EXPECT_TRUE(status.ok());
 }
 
 TEST_F(FSEventsTests, test_fsevents_add_monitor_success) {
-  auto event_type = std::make_shared<FSEventsEventType>();
-  EventFactory::registerEventType(event_type);
+  auto event_pub = std::make_shared<FSEventsEventPublisher>();
+  EventFactory::registerEventPublisher(event_pub);
 
   // This monitor path *should* be real.
   auto mc = std::make_shared<FSEventsMonitorContext>();
   mc->path = "/";
 
   auto monitor = Monitor::create(mc);
-  auto status = EventFactory::addMonitor("FSEventsEventType", monitor);
+  auto status = EventFactory::addMonitor("FSEventsEventPublisher", monitor);
   EXPECT_TRUE(status.ok());
 
   // Make sure configure was called.
-  size_t num_paths = event_type->numMonitoredPaths();
+  size_t num_paths = event_pub->numMonitoredPaths();
   EXPECT_EQ(num_paths, 1);
 
   // A duplicate monitor will work.
   auto mc_dup = std::make_shared<FSEventsMonitorContext>();
   mc_dup->path = "/";
   auto monitor_dup = Monitor::create(mc_dup);
-  status = EventFactory::addMonitor("FSEventsEventType", monitor_dup);
+  status = EventFactory::addMonitor("FSEventsEventPublisher", monitor_dup);
   EXPECT_TRUE(status.ok());
 
   // But the paths with be deduped when the event type reconfigures.
-  num_paths = event_type->numMonitoredPaths();
+  num_paths = event_pub->numMonitoredPaths();
   EXPECT_EQ(num_paths, 1);
 }
 
 TEST_F(FSEventsTests, test_fsevents_run) {
   // Assume event type is registered.
-  event_type_ = std::make_shared<FSEventsEventType>();
-  EventFactory::registerEventType(event_type_);
+  event_pub_ = std::make_shared<FSEventsEventPublisher>();
+  EventFactory::registerEventPublisher(event_pub_);
 
   // Create a monitoring context
   auto mc = std::make_shared<FSEventsMonitorContext>();
   mc->path = kRealTestPath;
-  EventFactory::addMonitor("FSEventsEventType", Monitor::create(mc));
+  EventFactory::addMonitor("FSEventsEventPublisher", Monitor::create(mc));
 
   // Create an event loop thread (similar to main)
-  boost::thread temp_thread(EventFactory::run, "FSEventsEventType");
-  EXPECT_TRUE(event_type_->numEvents() == 0);
+  boost::thread temp_thread(EventFactory::run, "FSEventsEventPublisher");
+  EXPECT_TRUE(event_pub_->numEvents() == 0);
 
   // Cause an fsevents event(s) by writing to the watched path.
   CreateEvents();
@@ -148,19 +148,19 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   // Wait for the thread's run loop to select.
   WaitForEvents(kMaxEventLatency);
 
-  EXPECT_TRUE(event_type_->numEvents() > 0);
+  EXPECT_TRUE(event_pub_->numEvents() > 0);
 
   // Cause the thread to tear down.
   EventFactory::end();
   // Call tearDown ourselves before joining.
-  event_type_->tearDown();
+  event_pub_->tearDown();
   temp_thread.join();
   // Reset the event factory state.
   EventFactory::end(false);
 }
 
 class TestFSEventsEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTMODULE(TestFSEventsEventSubscriber, FSEventsEventType);
+  DECLARE_EVENTMODULE(TestFSEventsEventSubscriber, FSEventsEventPublisher);
   DECLARE_CALLBACK(SimpleCallback, FSEventsEventContext);
   DECLARE_CALLBACK(Callback, FSEventsEventContext);
 

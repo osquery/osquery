@@ -49,14 +49,14 @@ typedef std::shared_ptr<FSEventsEventContext> FSEventsEventContextRef;
 typedef std::shared_ptr<FSEventsMonitorContext> FSEventsMonitorContextRef;
 
 /**
- * @brief An osquery EventType for the Apple FSEvents notification API.
+ * @brief An osquery EventPublisher for the Apple FSEvents notification API.
  *
  * This exposes a lightweight filesystem eventing type by wrapping Apple's
  * preferred implementation of FSEvents handling.
  *
  */
-class FSEventsEventType : public EventType {
-  DECLARE_EVENTTYPE(FSEventsEventType,
+class FSEventsEventPublisher : public EventPublisher {
+  DECLARE_EVENTTYPE(FSEventsEventPublisher,
                     FSEventsMonitorContext,
                     FSEventsEventContext)
 
@@ -77,7 +77,7 @@ class FSEventsEventType : public EventType {
                        const FSEventStreamEventId fsevent_ids[]);
 
  public:
-  FSEventsEventType() : EventType(), stream_(nullptr), run_loop_(nullptr) {}
+  FSEventsEventPublisher() : EventPublisher(), stream_(nullptr), run_loop_(nullptr) {}
   bool shouldFire(const FSEventsMonitorContextRef mc,
                   const FSEventsEventContextRef ec);
 
@@ -105,7 +105,7 @@ class FSEventsEventType : public EventType {
 
  private:
   friend class FSEventsTests;
-  FRIEND_TEST(FSEventsTests, test_register_event_type);
+  FRIEND_TEST(FSEventsTests, test_register_event_pub);
   FRIEND_TEST(FSEventsTests, test_fsevents_add_monitor_missing_path);
   FRIEND_TEST(FSEventsTests, test_fsevents_add_monitor_success);
   FRIEND_TEST(FSEventsTests, test_fsevents_run);

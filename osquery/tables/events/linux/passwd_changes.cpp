@@ -20,17 +20,17 @@ namespace tables {
  * This is mostly an example EventSubscriber implementation.
  */
 class PasswdChangesEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTMODULE(PasswdChangesEventSubscriber, INotifyEventType);
+  DECLARE_EVENTMODULE(PasswdChangesEventSubscriber, INotifyEventPublisher);
   DECLARE_CALLBACK(Callback, INotifyEventContext);
 
  public:
   void init();
 
   /**
-   * @brief This exports a single Callback for INotifyEventType events.
+   * @brief This exports a single Callback for INotifyEventPublisher events.
    *
    * @param ec The EventCallback type receives an EventContextRef substruct
-   * for the INotifyEventType declared in this EventSubscriber subclass.
+   * for the INotifyEventPublisher declared in this EventSubscriber subclass.
    *
    * @return Was the callback successfull.
    */
@@ -46,7 +46,7 @@ class PasswdChangesEventSubscriber : public EventSubscriber {
 REGISTER_EVENTMODULE(PasswdChangesEventSubscriber);
 
 void PasswdChangesEventSubscriber::init() {
-  auto mc = INotifyEventType::createMonitorContext();
+  auto mc = INotifyEventPublisher::createMonitorContext();
   mc->path = "/etc/passwd";
   mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
   BIND_CALLBACK(Callback, mc);

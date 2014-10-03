@@ -25,17 +25,17 @@ const std::vector<std::string> kDarwinPasswdPaths = {"/etc/passwd",
  * This is mostly an example EventSubscriber implementation.
  */
 class PasswdChangesEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTMODULE(PasswdChangesEventSubscriber, FSEventsEventType);
+  DECLARE_EVENTMODULE(PasswdChangesEventSubscriber, FSEventsEventPublisher);
   DECLARE_CALLBACK(Callback, FSEventsEventContext);
 
  public:
   void init();
 
   /**
-   * @brief This exports a single Callback for INotifyEventType events.
+   * @brief This exports a single Callback for INotifyEventPublisher events.
    *
    * @param ec The EventCallback type receives an EventContextRef substruct
-   * for the INotifyEventType declared in this EventSubscriber subclass.
+   * for the INotifyEventPublisher declared in this EventSubscriber subclass.
    *
    * @return Was the callback successfull.
    */
@@ -52,7 +52,7 @@ REGISTER_EVENTMODULE(PasswdChangesEventSubscriber);
 
 void PasswdChangesEventSubscriber::init() {
   for (const auto& path : kDarwinPasswdPaths) {
-    auto mc = FSEventsEventType::createMonitorContext();
+    auto mc = FSEventsEventPublisher::createMonitorContext();
     mc->path = path;
     BIND_CALLBACK(Callback, mc);
   }

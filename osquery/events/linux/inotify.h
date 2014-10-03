@@ -19,9 +19,9 @@ namespace osquery {
 extern std::map<int, std::string> kMaskActions;
 
 /**
- * @brief Monitoring details for INotifyEventType events.
+ * @brief Monitoring details for INotifyEventPublisher events.
  *
- * This context is specific to INotifyEventType. It allows the monitoring
+ * This context is specific to INotifyEventPublisher. It allows the monitoring
  * EventSubscriber to set a path (file or directory) and a limited action mask.
  * Events are passed to the monitoring EventSubscriber if they match the context
  * path (or anything within a directory if the path is a directory) and if the
@@ -55,7 +55,7 @@ struct INotifyMonitorContext : public MonitorContext {
 };
 
 /**
- * @brief Event details for INotifyEventType events.
+ * @brief Event details for INotifyEventPublisher events.
  */
 struct INotifyEventContext : public EventContext {
   /// The inotify_event structure if the EventSubscriber want to interact.
@@ -75,17 +75,17 @@ typedef std::map<std::string, int> PathDescriptorMap;
 typedef std::map<int, std::string> DescriptorPathMap;
 
 /**
- * @brief A Linux `inotify` EventType.
+ * @brief A Linux `inotify` EventPublisher.
  *
- * This EventType allows EventSubscriber%s to monitor for Linux `inotify` events.
- * Since these events are limited this EventType will optimize the watch
+ * This EventPublisher allows EventSubscriber%s to monitor for Linux `inotify` events.
+ * Since these events are limited this EventPublisher will optimize the watch
  * descriptors, keep track of the usage, implement optimizations/priority
  * where possible, and abstract file system events to a path/action context.
  *
  * Uses INotifyMonitorContext and INotifyEventContext for monitoring, eventing.
  */
-class INotifyEventType : public EventType {
-  DECLARE_EVENTTYPE(INotifyEventType,
+class INotifyEventPublisher : public EventPublisher {
+  DECLARE_EVENTTYPE(INotifyEventPublisher,
                     INotifyMonitorContext,
                     INotifyEventContext);
 
@@ -97,10 +97,10 @@ class INotifyEventType : public EventType {
   void tearDown();
 
   Status run();
-  /// Overload EventType::addMonitor to perform optimizations at add time.
+  /// Overload EventPublisher::addMonitor to perform optimizations at add time.
   Status addMonitor(const MonitorRef monitor);
 
-  INotifyEventType() : EventType() { inotify_handle_ = -1; }
+  INotifyEventPublisher() : EventPublisher() { inotify_handle_ = -1; }
   /// Check if the application-global `inotify` handle is alive.
   bool isHandleOpen() { return inotify_handle_ > 0; }
 

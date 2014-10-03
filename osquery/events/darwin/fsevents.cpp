@@ -6,7 +6,7 @@
 
 namespace osquery {
 
-REGISTER_EVENTTYPE(FSEventsEventType);
+REGISTER_EVENTTYPE(FSEventsEventPublisher);
 
 std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemChangeOwner, "ATTRIBUTES_MODIFIED"},
@@ -16,7 +16,7 @@ std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemModified, "UPDATED"},
     {kFSEventStreamEventFlagItemRenamed, "MOVED_TO"}, };
 
-void FSEventsEventType::restart() {
+void FSEventsEventPublisher::restart() {
   if (paths_.empty()) {
     // There are no paths to watch.
     return;
@@ -46,7 +46,7 @@ void FSEventsEventType::restart() {
 
   // Create the FSEvent stream
   stream_ = FSEventStreamCreate(NULL,
-                                &FSEventsEventType::Callback,
+                                &FSEventsEventPublisher::Callback,
                                 NULL,
                                 watch_list,
                                 kFSEventStreamEventIdSinceNow,
@@ -69,7 +69,7 @@ void FSEventsEventType::restart() {
   }
 }
 
-void FSEventsEventType::stop() {
+void FSEventsEventPublisher::stop() {
   // Stop the stream.
   if (stream_ != nullptr) {
     FSEventStreamStop(stream_);
@@ -88,14 +88,14 @@ void FSEventsEventType::stop() {
   }
 }
 
-void FSEventsEventType::tearDown() {
+void FSEventsEventPublisher::tearDown() {
   stop();
 
   // Do not keep a reference to the run loop.
   run_loop_ = nullptr;
 }
 
-void FSEventsEventType::configure() {
+void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
   paths_.clear();
   for (auto& monitor : monitors_) {
@@ -111,7 +111,7 @@ void FSEventsEventType::configure() {
   restart();
 }
 
-Status FSEventsEventType::run() {
+Status FSEventsEventPublisher::run() {
   // The run entrypoint executes in a dedicated thread.
   if (run_loop_ == nullptr) {
     run_loop_ = CFRunLoopGetCurrent();
@@ -124,7 +124,7 @@ Status FSEventsEventType::run() {
   return Status(0, "OK");
 }
 
-void FSEventsEventType::Callback(ConstFSEventStreamRef stream,
+void FSEventsEventPublisher::Callback(ConstFSEventStreamRef stream,
                                  void* callback_info,
                                  size_t num_events,
                                  void* event_paths,
@@ -145,11 +145,11 @@ void FSEventsEventType::Callback(ConstFSEventStreamRef stream,
     }
 
     ec->path = std::string(((char**)event_paths)[i]);
-    EventFactory::fire<FSEventsEventType>(ec);
+    EventFactory::fire<FSEventsEventPublisher>(ec);
   }
 }
 
-bool FSEventsEventType::shouldFire(const FSEventsMonitorContextRef mc,
+bool FSEventsEventPublisher::shouldFire(const FSEventsMonitorContextRef mc,
                                    const FSEventsEventContextRef ec) {
   ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
@@ -163,7 +163,7 @@ bool FSEventsEventType::shouldFire(const FSEventsMonitorContextRef mc,
   return true;
 }
 
-void FSEventsEventType::flush(bool async) {
+void FSEventsEventPublisher::flush(bool async) {
   if (stream_ != nullptr && stream_started_) {
     if (async) {
       FSEventStreamFlushAsync(stream_);
@@ -173,9 +173,9 @@ void FSEventsEventType::flush(bool async) {
   }
 }
 
-size_t FSEventsEventType::numMonitoredPaths() { return paths_.size(); }
+size_t FSEventsEventPublisher::numMonitoredPaths() { return paths_.size(); }
 
-bool FSEventsEventType::isStreamRunning() {
+bool FSEventsEventPublisher::isStreamRunning() {
   if (stream_ == nullptr || !stream_started_) {
     return false;
   }
