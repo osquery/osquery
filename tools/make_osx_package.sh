@@ -11,11 +11,14 @@ BREW_PACKAGES=(rocksdb boost gflags glog thrift)
 BREW_PREFIX=`brew --prefix`
 BREW_CELLAR=`brew --cellar`
 
+INSTALL_ROOT=/tmp/osquery_install_root
+
 function main() {
   platform OS
   if [[ ! "$OS" = "darwin" ]]; then
     fatal "This script must be ran on OS X"
   fi
+  mkdir -p $INSTALL_ROOT
 
   dependency_list=("${BREW_PACKAGES[@]}")
   for package in ${BREW_PACKAGES[*]}; do
@@ -32,6 +35,8 @@ function main() {
     links=`brew link --dry-run $dep`
     brew link --overwrite $dep 2>&1  1>/dev/null
     echo "    - $dep ($dep_dir)"
+    mkdir -p $INSTALL_ROOT$dep_dir
+    cp -r $dep_dir $INSTALL_ROOT$dep_dir
     for link in $links; do
       if [[ $link = $BREW_PREFIX* ]]; then
         target="`dirname $link`/`ls -l $link | awk '{print $11}'`"
