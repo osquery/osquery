@@ -44,3 +44,9 @@ function set_cc() {
   export CC=$1
   export CMAKE_C_COMPILER=$1
 }
+
+function contains_element() {
+  local e
+  for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
+  return 1
+}
