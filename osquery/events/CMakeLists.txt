@@ -22,5 +22,6 @@ ADD_OSQUERY_TEST(events_database_tests events_database_tests.cpp)
 if(APPLE)
   ADD_OSQUERY_TEST(fsevents_tests darwin/fsevents_tests.cpp)
 else()
-  ADD_OSQUERY_TEST(inotify_tests linux/inotify_tests.cpp)
+  # TODO https://github.com/facebook/osquery/issues/197
+  # ADD_OSQUERY_TEST(inotify_tests linux/inotify_tests.cpp)
 endif()
