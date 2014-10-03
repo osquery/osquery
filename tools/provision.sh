@@ -244,7 +244,9 @@ function main() {
     if [[ ! -f "/usr/local/bin/brew" ]]; then
       fatal "could not find homebrew. please install it from http://brew.sh/"
     fi
+    brew update
 
+    package rocksdb
     package wget
     package cmake
     package boost --c++11
@@ -254,7 +256,6 @@ function main() {
     package readline
     package thrift
     package lz4
-    install_rocksdb
   fi
 
   cd $SCRIPT_DIR/../
