@@ -369,7 +369,7 @@ class EventType {
     return type_id;
   }
 
- protected:
+ public:
   /**
    * @brief The generic check loop to call MonitorContext callback methods.
    *
@@ -449,7 +449,7 @@ class EventModule {
    * an osquery Row element, add the relevant table data for the EventModule
    * and store that element in the osquery backing store. At query-time
    * the added data will apply selection criteria and return these elements.
-   * The backing store data retrieval is optimized by time-based indexes. It 
+   * The backing store data retrieval is optimized by time-based indexes. It
    * is important to added EventTime as it relates to "when the event occured".
    *
    * @param r An osquery Row element.
@@ -675,6 +675,14 @@ class EventFactory {
 
   /// An initializer's entrypoint for spawning all event type run loops.
   static void delay();
+
+ public:
+  /// If a static EventType callback wants to fire
+  template <typename T>
+  static void fire(const EventContextRef ec) {
+    auto event_type = getEventType(EventType::type<T>());
+    event_type->fire(ec);
+  }
 
   /**
    * @brief End all EventType run loops and call their `tearDown` methods.
