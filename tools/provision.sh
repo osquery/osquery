@@ -249,7 +249,7 @@ function main() {
     package rocksdb
     package wget
     package cmake
-    package boost
+    package boost --c++11
     package gflags
     package glog
     package snappy
