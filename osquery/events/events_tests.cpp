@@ -12,11 +12,11 @@ class EventsTests : public testing::Test {
 };
 
 class BasicEventPublisher : public EventPublisher {
-  DECLARE_EVENTTYPE(BasicEventPublisher, SubscriptionContext, EventContext);
+  DECLARE_EVENTPUBLISHER(BasicEventPublisher, SubscriptionContext, EventContext);
 };
 
 class FakeBasicEventPublisher : public EventPublisher {
-  DECLARE_EVENTTYPE(FakeBasicEventPublisher, SubscriptionContext, EventContext);
+  DECLARE_EVENTPUBLISHER(FakeBasicEventPublisher, SubscriptionContext, EventContext);
 };
 
 TEST_F(EventsTests, test_register_event_pub) {
@@ -84,7 +84,7 @@ struct TestSubscriptionContext : public SubscriptionContext {
 };
 
 class TestEventPublisher : public EventPublisher {
-  DECLARE_EVENTTYPE(TestEventPublisher, TestSubscriptionContext, EventContext);
+  DECLARE_EVENTPUBLISHER(TestEventPublisher, TestSubscriptionContext, EventContext);
 
  public:
   void setUp() { smallest_ever_ += 1; }

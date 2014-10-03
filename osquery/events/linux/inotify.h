@@ -85,7 +85,7 @@ typedef std::map<int, std::string> DescriptorPathMap;
  * Uses INotifySubscriptionContext and INotifyEventContext for subscriptioning, eventing.
  */
 class INotifyEventPublisher : public EventPublisher {
-  DECLARE_EVENTTYPE(INotifyEventPublisher,
+  DECLARE_EVENTPUBLISHER(INotifyEventPublisher,
                     INotifySubscriptionContext,
                     INotifyEventContext);
 

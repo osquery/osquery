@@ -139,7 +139,7 @@ TEST_F(INotifyTests, test_inotify_run) {
 }
 
 class TestINotifyEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTMODULE(TestINotifyEventSubscriber, INotifyEventPublisher);
+  DECLARE_EVENTSUBSCRIBER(TestINotifyEventSubscriber, INotifyEventPublisher);
   DECLARE_CALLBACK(SimpleCallback, INotifyEventContext);
   DECLARE_CALLBACK(Callback, INotifyEventContext);
 

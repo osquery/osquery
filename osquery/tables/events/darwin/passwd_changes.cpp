@@ -25,7 +25,7 @@ const std::vector<std::string> kDarwinPasswdPaths = {"/etc/passwd",
  * This is mostly an example EventSubscriber implementation.
  */
 class PasswdChangesEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTMODULE(PasswdChangesEventSubscriber, FSEventsEventPublisher);
+  DECLARE_EVENTSUBSCRIBER(PasswdChangesEventSubscriber, FSEventsEventPublisher);
   DECLARE_CALLBACK(Callback, FSEventsEventContext);
 
  public:
@@ -48,7 +48,7 @@ class PasswdChangesEventSubscriber : public EventSubscriber {
  * This registers PasswdChangesEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
  */
-REGISTER_EVENTMODULE(PasswdChangesEventSubscriber);
+REGISTER_EVENTSUBSCRIBER(PasswdChangesEventSubscriber);
 
 void PasswdChangesEventSubscriber::init() {
   for (const auto& path : kDarwinPasswdPaths) {

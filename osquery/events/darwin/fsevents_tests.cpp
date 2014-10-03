@@ -160,7 +160,7 @@ TEST_F(FSEventsTests, test_fsevents_run) {
 }
 
 class TestFSEventsEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTMODULE(TestFSEventsEventSubscriber, FSEventsEventPublisher);
+  DECLARE_EVENTSUBSCRIBER(TestFSEventsEventSubscriber, FSEventsEventPublisher);
   DECLARE_CALLBACK(SimpleCallback, FSEventsEventContext);
   DECLARE_CALLBACK(Callback, FSEventsEventContext);
 

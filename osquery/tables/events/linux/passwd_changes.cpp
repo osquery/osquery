@@ -20,7 +20,7 @@ namespace tables {
  * This is mostly an example EventSubscriber implementation.
  */
 class PasswdChangesEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTMODULE(PasswdChangesEventSubscriber, INotifyEventPublisher);
+  DECLARE_EVENTSUBSCRIBER(PasswdChangesEventSubscriber, INotifyEventPublisher);
   DECLARE_CALLBACK(Callback, INotifyEventContext);
 
  public:
@@ -43,7 +43,7 @@ class PasswdChangesEventSubscriber : public EventSubscriber {
  * This registers PasswdChangesEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
  */
-REGISTER_EVENTMODULE(PasswdChangesEventSubscriber);
+REGISTER_EVENTSUBSCRIBER(PasswdChangesEventSubscriber);
 
 void PasswdChangesEventSubscriber::init() {
   auto mc = INotifyEventPublisher::createSubscriptionContext();

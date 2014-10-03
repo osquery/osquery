@@ -20,7 +20,7 @@ class EventsDatabaseTests : public ::testing::Test {
 };
 
 class FakeEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTMODULE(FakeEventSubscriber, FakeEventPublisher);
+  DECLARE_EVENTSUBSCRIBER(FakeEventSubscriber, FakeEventPublisher);
 
  public:
   Status testAdd(int i) {
@@ -31,11 +31,11 @@ class FakeEventSubscriber : public EventSubscriber {
 };
 
 class FakeEventPublisher : public EventPublisher {
-  DECLARE_EVENTTYPE(FakeEventPublisher, SubscriptionContext, EventContext);
+  DECLARE_EVENTPUBLISHER(FakeEventPublisher, SubscriptionContext, EventContext);
 };
 
 class AnotherFakeEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTMODULE(AnotherFakeEventSubscriber, FakeEventPublisher);
+  DECLARE_EVENTSUBSCRIBER(AnotherFakeEventSubscriber, FakeEventPublisher);
 };
 
 TEST_F(EventsDatabaseTests, test_event_module_id) {

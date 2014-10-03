@@ -29,25 +29,28 @@ typedef uint32_t EventTime;
 typedef std::pair<EventID, EventTime> EventRecord;
 
 /**
- * @brief An EventPublisher will define a SubscriptionContext for EventSubscriber%s to use.
+ * @brief An EventPublisher will define a SubscriptionContext for
+ * EventSubscriber%s to use.
  *
- * Most EventPublisher%s will reqire specific information for interacting with an OS
- * to receive events. The SubscriptionContext contains information the EventPublisher will
- * use to register OS API callbacks, create subscriptioning/listening handles, etc.
+ * Most EventPublisher%s will reqire specific information for interacting with
+ * an OS to receive events. The SubscriptionContext contains information the
+ * EventPublisher will use to register OS API callbacks, create
+ * subscriptioning/listening handles, etc.
  *
- * Linux `inotify` should implement a SubscriptionContext that subscriptions filesystem
- * events based on a filesystem path. `libpcap` will subscription on networking
- * protocols at various stacks. Process creation may subscription on process name,
- * parent pid, etc.
+ * Linux `inotify` should implement a SubscriptionContext that subscriptions
+ * filesystem events based on a filesystem path. `libpcap` will subscription on
+ * networking protocols at various stacks. Process creation may subscription on
+ * process name, parent pid, etc.
  */
 struct SubscriptionContext {};
 
 /**
  * @brief An EventSubscriber EventCallback method will receive an EventContext.
  *
- * The EventContext contains the event-related data supplied by an EventPublisher
- * when the event occures. If a subscriptioning EventSubscriber is should be called
- * for the event the EventSubscriber%'s EventCallback is passed an EventContext.
+ * The EventContext contains the event-related data supplied by an
+ * EventPublisher when the event occures. If a subscriptioning EventSubscriber
+ * is should be called for the event the EventSubscriber%'s EventCallback is
+ * passed an EventContext.
  */
 struct EventContext {
   /// An unique counting ID specific to the EventPublisher%'s fired events.
@@ -78,59 +81,63 @@ extern const std::vector<size_t> kEventTimeLists;
 /**
  * @brief Helper type casting methods for EventPublisher classes.
  *
- * A new osquery EventPublisher should subclass EventPublisher and use the following:
+ * A new osquery EventPublisher should subclass EventPublisher and use the
+ * following:
  *
  * @code{.cpp}
  *   #include "osquery/events.h"
  *
  *   class MyEventPublisher: public EventPublisher {
- *     DECLARE_EVENTTYPE(MyEventPublisher, MySubscriptionContext, MyEventContext);
+ *     DECLARE_EVENTPUBLISHER(MyEventPublisher, MySubscriptionContext,
+ *       MyEventContext);
  *   }
  * @endcode
  *
- * This assumes new EventPublisher%s will always include a custom SubscriptionContext
- * and EventContext. In the above example MySubscriptionContext allows EventSubscriber%s
- * to downselect or customize what events to handle. And MyEventContext includes
- * fields specific to the new EventPublisher.
+ * This assumes new EventPublisher%s will always include a custom
+ * SubscriptionContext and EventContext. In the above example
+ * MySubscriptionContext allows EventSubscriber%s to downselect or customize
+ * what events to handle. And MyEventContext includes fields specific to the
+ * new EventPublisher.
  */
-#define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                            \
- public:                                                                   \
-  EventPublisherID type() const { return #TYPE; }                               \
-  bool shouldFire(const SubscriptionContextRef mc, const EventContextRef ec) {  \
-    if (#MONITOR == "SubscriptionContext" && #EVENT == "EventContext")          \
-      return true;                                                         \
-    return shouldFire(getSubscriptionContext(mc), getEventContext(ec));         \
-  }                                                                        \
-  static std::shared_ptr<EVENT> getEventContext(EventContextRef context) { \
-    return std::static_pointer_cast<EVENT>(context);                       \
-  }                                                                        \
-  static std::shared_ptr<MONITOR> getSubscriptionContext(                       \
-      SubscriptionContextRef context) {                                         \
-    return std::static_pointer_cast<MONITOR>(context);                     \
-  }                                                                        \
-  static std::shared_ptr<EVENT> createEventContext() {                     \
-    return std::make_shared<EVENT>();                                      \
-  }                                                                        \
-  static std::shared_ptr<MONITOR> createSubscriptionContext() {                 \
-    return std::make_shared<MONITOR>();                                    \
+#define DECLARE_EVENTPUBLISHER(TYPE, MONITOR, EVENT)                           \
+ public:                                                                       \
+  EventPublisherID type() const { return #TYPE; }                              \
+  bool shouldFire(const SubscriptionContextRef mc, const EventContextRef ec) { \
+    if (#MONITOR == "SubscriptionContext" && #EVENT == "EventContext")         \
+      return true;                                                             \
+    return shouldFire(getSubscriptionContext(mc), getEventContext(ec));        \
+  }                                                                            \
+  static std::shared_ptr<EVENT> getEventContext(EventContextRef context) {     \
+    return std::static_pointer_cast<EVENT>(context);                           \
+  }                                                                            \
+  static std::shared_ptr<MONITOR> getSubscriptionContext(                      \
+      SubscriptionContextRef context) {                                        \
+    return std::static_pointer_cast<MONITOR>(context);                         \
+  }                                                                            \
+  static std::shared_ptr<EVENT> createEventContext() {                         \
+    return std::make_shared<EVENT>();                                          \
+  }                                                                            \
+  static std::shared_ptr<MONITOR> createSubscriptionContext() {                \
+    return std::make_shared<MONITOR>();                                        \
   }
 
 /**
  * @brief Required getter and namespace helper methods for EventSubscriber%s.
  *
- * A new osquery `EventSubscriber` should subclass EventSubscriber with the following:
+ * A new osquery `EventSubscriber` should subclass EventSubscriber with the
+ * following:
  *
  * @code{.cpp}
  *   #include "osquery/events.h"
  *
  *   class MyEventSubscriber: public EventSubscriber {
- *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventPublisher);
+ *     DECLARE_EVENTSUBSCRIBER(MyEventSubscriber, MyEventPublisher);
  *   }
  * @endcode
  *
  * EventSubscriber%s should be specific to an EventPublisher.
  */
-#define DECLARE_EVENTMODULE(NAME, TYPE)                \
+#define DECLARE_EVENTSUBSCRIBER(NAME, TYPE)            \
  public:                                               \
   static std::shared_ptr<NAME> getInstance() {         \
     static auto q = std::shared_ptr<NAME>(new NAME()); \
@@ -141,8 +148,8 @@ extern const std::vector<size_t> kEventTimeLists;
   }                                                    \
                                                        \
  private:                                              \
-  EventPublisherID name() const { return #NAME; }           \
-  EventPublisherID type() const { return #TYPE; }           \
+  EventPublisherID name() const { return #NAME; }      \
+  EventPublisherID type() const { return #TYPE; }      \
   NAME() {}
 
 /**
@@ -159,7 +166,7 @@ extern const std::vector<size_t> kEventTimeLists;
  *   #include "osquery/events.h"
  *
  *   class MyEventSubscriber: public EventSubscriber {
- *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventPublisher);
+ *     DECLARE_EVENTSUBSCRIBER(MyEventSubscriber, MyEventPublisher);
  *     DECLARE_CALLBACK(MyCallback, MyEventContext)
  *
  *     Status ModuleMyCallback(EventContextID, EventTime, MyEventContext);
@@ -185,24 +192,26 @@ extern const std::vector<size_t> kEventTimeLists;
   }                                                                    \
                                                                        \
  private:                                                              \
-  void BindTo##NAME(const SubscriptionContextRef mc) {                      \
-    EventFactory::addSubscription(type(), mc, Event##NAME);                 \
+  void BindTo##NAME(const SubscriptionContextRef mc) {                 \
+    EventFactory::addSubscription(type(), mc, Event##NAME);            \
   }
 
 /**
- * @brief Bind a subscription context to a declared EventCallback for this module.
+ * @brief Bind a subscription context to a declared EventCallback for this
+ *module.
  *
  * Binding refers to the association of a callback for this EventSubscriber to
  * a configured SubscriptionContext. Under the hood "binding" creates a factory
- * Subscription for the EventPublisher used by the EventSubscriber. Such that when an event
- * of the EventPublisher is fired, if the event details match the specifics of the
- * SubscriptionContext the EventSubscription%'s EventCallback will be called.
+ * Subscription for the EventPublisher used by the EventSubscriber. Such that
+ * when an event of the EventPublisher is fired, if the event details match the
+ * specifics of the SubscriptionContext the EventSubscription%'s EventCallback
+ * will be called.
  *
  * @code{.cpp}
  *   #include "osquery/events.h"
  *
  *   class MyEventSubscriber: public EventSubscriber {
- *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventPublisher);
+ *     DECLARE_EVENTSUBSCRIBER(MyEventSubscriber, MyEventPublisher);
  *     DECLARE_CALLBACK(MyCallback, MyEventContext);
  *
  *    public:
@@ -225,19 +234,21 @@ extern const std::vector<size_t> kEventTimeLists;
   EventFactory::addSubscription(type(), MC, Event##NAME);
 
 /**
- * @brief A Subscription is used to configure an EventPublisher and bind a callback.
+ * @brief A Subscription is used to configure an EventPublisher and bind a
+ * callback.
  *
- * A Subscription is the input to an EventPublisher when the EventPublisher decides on
- * the scope and details of the events it watches and generates. An example
- * includes a filesystem change event. A subscription would include a path with
- * optional recursion and attribute selectors as well as a callback function
- * to fire when an event for that path and selector occurs.
+ * A Subscription is the input to an EventPublisher when the EventPublisher
+ * decides on the scope and details of the events it watches and generates.
+ * An example includes a filesystem change event. A subscription would include
+ * a path with optional recursion and attribute selectors as well as a callback
+ * function to fire when an event for that path and selector occurs.
  *
  * A Subscription also functions to greatly scope an EventPublisher%'s work.
- * Using the same filesystem example and the Linux inotify subsystem a Subscription
- * limits the number of inode watches to only those requested by appropriate
- * EventSubscriber%s.
- * Note: EventSubscriber%s and Subscriptions can be configured by the osquery user.
+ * Using the same filesystem example and the Linux inotify subsystem a
+ * Subscription limits the number of inode watches to only those requested by
+ * appropriate EventSubscriber%s.
+ * Note: EventSubscriber%s and Subscriptions can be configured by the osquery
+ * user.
  *
  * Subscriptions are usually created with EventFactory members:
  *
@@ -254,7 +265,8 @@ struct Subscription {
 
   static SubscriptionRef create() { return std::make_shared<Subscription>(); }
 
-  static SubscriptionRef create(const SubscriptionContextRef mc, EventCallback ec = 0) {
+  static SubscriptionRef create(const SubscriptionContextRef mc,
+                                EventCallback ec = 0) {
     auto subscription = std::make_shared<Subscription>();
     subscription->context = mc;
     subscription->callback = ec;
@@ -272,11 +284,12 @@ struct Subscription {
  * `tearDown`, and `fire`. `setUp` and `tearDown` happen when osquery starts and
  * stops either as a daemon or interactive shell. `configure` is a pseudo-start
  * called every time a Subscription is added. EventPublisher%s can adjust their
- * scope/agility specific to each added subscription by overriding `addSubscription`,
+ * scope/agility specific to each added subscription by overriding
+ *`addSubscription`,
  * and or globally in `configure`.
  *
- * Not all EventPublisher%s leverage pure async OS APIs, and most will require a run
- * loop either polling with a timeout on a descriptor or for a change. When
+ * Not all EventPublisher%s leverage pure async OS APIs, and most will require a
+ * run loop either polling with a timeout on a descriptor or for a change. When
  * osquery initializes the EventFactory will optionally create a thread for each
  * EventPublisher using `run` as the thread's entrypoint. This is called in a
  * within-thread loop where returning a FAILED status ends the run loop and
@@ -290,9 +303,9 @@ struct Subscription {
  *
  * The final lifecycle component, `fire` will iterate over the EventPublisher
  * Subscription%s and call `shouldFire` for each, using the EventContext fired.
- * The `shouldFire` method should check the subscription-specific selectors and only
- * call the Subscription%'s callback function is the EventContext (thus event)
- * matches.
+ * The `shouldFire` method should check the subscription-specific selectors and
+ * only call the Subscription%'s callback function is the EventContext
+ * (thus event) matches.
  */
 class EventPublisher {
  public:
@@ -300,19 +313,20 @@ class EventPublisher {
    * @brief A new Subscription was added, potentially change state based on all
    * subscriptions for this EventPublisher.
    *
-   * `configure` allows the EventPublisher to optimize on the state of all subscriptions.
-   * An example is Linux `inotify` where multiple EventSubscription%s will subscription
-   * identical paths, e.g., /etc for config changes. Since Linux `inotify` has
-   * a subscription limit, `configure` can depup paths.
+   * `configure` allows the EventPublisher to optimize on the state of all
+   * subscriptions. An example is Linux `inotify` where multiple
+   * EventSubscription%s will subscription identical paths, e.g., /etc for
+   * config changes. Since Linux `inotify` has a subscription limit, `configure`
+   * can depup paths.
    */
   virtual void configure() {}
 
   /**
    * @brief Perform handle opening, OS API callback registration.
    *
-   * `setUp` is the event framework's EventPublisher constructor equivilent. When
-   * `setUp` is called the EventPublisher is running in a dedicated thread and may
-   * manage/allocate/wait for resources.
+   * `setUp` is the event framework's EventPublisher constructor equivilent.
+   * When `setUp` is called the EventPublisher is running in a dedicated thread
+   * and may manage/allocate/wait for resources.
    */
   virtual void setUp() {}
 
@@ -333,9 +347,11 @@ class EventPublisher {
   virtual Status run();
 
   /**
-   * @brief A new EventSubscriber is subscriptioning events of this EventPublisher.
+   * @brief A new EventSubscriber is subscriptioning events of this
+   * EventPublisher.
    *
-   * @param subscription The Subscription context information and optional EventCallback.
+   * @param subscription The Subscription context information and optional
+   * EventCallback.
    *
    * @return If the Subscription is not appropriate (mismatched type) fail.
    */
@@ -385,12 +401,14 @@ class EventPublisher {
   /**
    * @brief The generic `fire` will call `shouldFire` for each Subscription.
    *
-   * @param mc A SubscriptionContext with optional specifications for events details.
+   * @param mc A SubscriptionContext with optional specifications for events
+   * details.
    * @param ec The event fired with event details.
    *
    * @return should the Subscription%'s EventCallback be called for this event.
    */
-  virtual bool shouldFire(const SubscriptionContextRef mc, const EventContextRef ec);
+  virtual bool shouldFire(const SubscriptionContextRef mc,
+                          const EventContextRef ec);
 
  protected:
   /// The EventPublisher will keep track of Subscription%s that contain callins.
@@ -409,12 +427,14 @@ class EventPublisher {
 };
 
 /**
- * @brief An interface binding Subscriptions, event response, and table generation.
+ * @brief An interface binding Subscriptions, event response, and table
+ *generation.
  *
- * Use the EventSubscriber interface when adding event subscriptions and defining callin
- * functions. The EventCallback is usually a member function for an EventSubscriber.
- * The EventSubscriber interface includes a very important `add` method
- * that abstracts the needed event to backing store interaction.
+ * Use the EventSubscriber interface when adding event subscriptions and
+ * defining callin functions. The EventCallback is usually a member function
+ * for an EventSubscriber. The EventSubscriber interface includes a very
+ * important `add` method that abstracts the needed event to backing store
+ * interaction.
  *
  * Storing event data in the backing store must match a table spec for queries.
  * Small overheads exist that help query-time indexing and lookups.
@@ -434,8 +454,8 @@ class EventSubscriber {
    * @brief Suggested entrypoint for table generation.
    *
    * The EventSubscriber is a convention that removes a lot of boilerplate event
-   * subscriptioning and acting. The `genTable` static entrypoint is the suggested
-   * method for table specs.
+   * subscriptioning and acting. The `genTable` static entrypoint is the
+   * suggested method for table specs.
    *
    * @return The query-time table data, retrieved from a backing store.
    */
@@ -492,8 +512,8 @@ class EventSubscriber {
    * events that may or may not be fired to subscriptioning criteria for this
    * EventSubscriber. This EventContextID is NOT the same as an EventID.
    * EventSubscriber development should not require use of EventID%s, if this
-   * indexing is required within-EventCallback consider an EventSubscriber%-unique
-   * indexing, counting mechanic.
+   * indexing is required within-EventCallback consider an
+   * EventSubscriber%-unique indexing, counting mechanic.
    *
    * @return A unique ID for backing storage.
    */
@@ -518,9 +538,10 @@ class EventSubscriber {
   /**
    * @brief A single instance requirement for static callback facilities.
    *
-   * The EventSubscriber constructor is NOT responsible for adding Subscription%s.
-   * Please use `init` for adding Subscription%s as all EventPublisher instances will
-   * have run `setUp` and initialized their run loops.
+   * The EventSubscriber constructor is NOT responsible for adding
+   * Subscription%s. Please use `init` for adding Subscription%s as all
+   * EventPublisher instances will have run `setUp` and initialized their run
+   * loops.
    */
   EventSubscriber() {}
 
@@ -546,9 +567,9 @@ class EventSubscriber {
 /**
  * @brief A factory for associating event generators to EventPublisherID%s.
  *
- * This factory both registers new event types and the subscriptions that use them.
- * An EventPublisher is also a factory, the single event factory arbitates Subscription
- * creatating and management for each associated EventPublisher.
+ * This factory both registers new event types and the subscriptions that use
+ * them. An EventPublisher is also a factory, the single event factory arbitates
+ * Subscription creatating and management for each associated EventPublisher.
  *
  * Since event types may be plugins, they are created using the factory.
  * Since subscriptions may be configured/disabled they are also factory-managed.
@@ -607,33 +628,39 @@ class EventFactory {
   static Status registerEventSubscriber(const EventSubscriberRef event_module);
 
   /**
-   * @brief Add a SubscriptionContext and EventCallback Subscription to an EventPublisher.
+   * @brief Add a SubscriptionContext and EventCallback Subscription to an
+   *EventPublisher.
    *
-   * Create a Subscription from a given SubscriptionContext and EventCallback and
-   * add that Subscription to the EventPublisher assosicated identiter.
+   * Create a Subscription from a given SubscriptionContext and EventCallback
+   * and add that Subscription to the EventPublisher assosicated identiter.
    *
    * @param type_id The string for an EventPublisher receiving the Subscription.
    * @param mc A SubscriptionContext related to the EventPublisher.
-   * @param cb When the EventPublisher fires an event the SubscriptionContext will
-   * be evaluated, if the event matches optional specifics in the context this
-   * callback function will be called. It should belong to an EventSubscription.
+   * @param cb When the EventPublisher fires an event the SubscriptionContext
+   * will be evaluated, if the event matches optional specifics in the context
+   * this callback function will be called. It should belong to an
+   * EventSubscription.
    *
    * @return Was the SubscriptionContext appropriate for the EventPublisher.
    */
   static Status addSubscription(EventPublisherID type_id,
-                           const SubscriptionContextRef mc,
-                           EventCallback cb = 0);
+                                const SubscriptionContextRef mc,
+                                EventCallback cb = 0);
 
   /// Add a Subscription using a caller Subscription instance.
-  static Status addSubscription(EventPublisherID type_id, const SubscriptionRef subscription);
+  static Status addSubscription(EventPublisherID type_id,
+                                const SubscriptionRef subscription);
 
-  /// Add a Subscription by templating the EventPublisher, using a SubscriptionContext.
+  /// Add a Subscription by templating the EventPublisher, using a
+  /// SubscriptionContext.
   template <typename T>
-  static Status addSubscription(const SubscriptionContextRef mc, EventCallback cb = 0) {
+  static Status addSubscription(const SubscriptionContextRef mc,
+                                EventCallback cb = 0) {
     return addSubscription(EventPublisher::type<T>(), mc, cb);
   }
 
-  /// Add a Subscription by templating the EventPublisher, using a Subscription instance.
+  /// Add a Subscription by templating the EventPublisher, using a Subscription
+  /// instance.
   template <typename T>
   static Status addSubscription(const SubscriptionRef subscription) {
     return addSubscription(EventPublisher::type<T>(), subscription);
@@ -650,8 +677,8 @@ class EventFactory {
   /**
    * @brief Halt the EventPublisher run loop and call its `tearDown`.
    *
-   * Any EventSubscriber%s with Subscription%s for this EventPublisher will become useless.
-   * osquery instanciators MUST deregister events.
+   * Any EventSubscriber%s with Subscription%s for this EventPublisher will
+   * become useless. osquery instanciators MUST deregister events.
    * EventPublisher%s assume they can hook/trampoline, which requires cleanup.
    *
    * @param event_pub The string label for the EventPublisher.
@@ -709,15 +736,16 @@ class EventFactory {
   /// Set of running EventPublisher run loop threads.
   std::vector<std::shared_ptr<boost::thread>> threads_;
 
-  /// Set of instanciated EventSubscriber Subscription sets (with callbacks and state).
+  /// Set of instanciated EventSubscriber Subscription sets (with callbacks and
+  /// state).
   std::vector<EventSubscriberRef> event_modules_;
 };
 }
 
 /// Expose a Plugin-like Registry for EventPublisher instances.
 DECLARE_REGISTRY(EventPublishers, std::string, EventPublisherRef);
-#define REGISTERED_EVENTTYPES REGISTRY(EventPublishers)
-#define REGISTER_EVENTTYPE(decorator) \
+#define REGISTERED_EVENTPUBLISHERS REGISTRY(EventPublishers)
+#define REGISTER_EVENTPUBLISHER(decorator) \
   REGISTER(EventPublishers, #decorator, std::make_shared<decorator>());
 
 /**
@@ -727,21 +755,22 @@ DECLARE_REGISTRY(EventPublishers, std::string, EventPublisherRef);
  * an generator entry point for query-time table generation too.
  */
 DECLARE_REGISTRY(EventSubscribers, std::string, EventSubscriberRef);
-#define REGISTERED_EVENTMODULES REGISTRY(EventSubscribers)
-#define REGISTER_EVENTMODULE(decorator) \
+#define REGISTERED_EVENTSUBSCRIBERS REGISTRY(EventSubscribers)
+#define REGISTER_EVENTSUBSCRIBER(decorator) \
   REGISTER(EventSubscribers, #decorator, decorator::getInstance());
 
 namespace osquery {
 namespace registries {
 /**
- * @brief A utility method for moving EventPublisher%s and EventSubscriber%s (plugins)
- * into the EventFactory.
+ * @brief A utility method for moving EventPublisher%s and EventSubscriber%s
+ * (plugins) into the EventFactory.
  *
- * To handle run-time and compile-time EventPublisher and EventSubscriber additions
- * as plugins or extensions, the osquery Registry workflow is used. During
- * application launch (or within plugin load) the EventFactory faucet moves
- * managed instances of these types to the EventFactory. The EventPublisher and
- * EventSubscriber lifecycle/developer workflow is unknown to the Registry.
+ * To handle run-time and compile-time EventPublisher and EventSubscriber
+ * additions as plugins or extensions, the osquery Registry workflow is used.
+ * During application launch (or within plugin load) the EventFactory faucet
+ * moves managed instances of these types to the EventFactory. The
+ * EventPublisher and EventSubscriber lifecycle/developer workflow is unknown
+ * to the Registry.
  */
 void faucet(EventPublishers ets, EventSubscribers ems);
 }

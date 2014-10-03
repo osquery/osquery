@@ -6,7 +6,7 @@
 
 namespace osquery {
 
-REGISTER_EVENTTYPE(FSEventsEventPublisher);
+REGISTER_EVENTPUBLISHER(FSEventsEventPublisher);
 
 std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemChangeOwner, "ATTRIBUTES_MODIFIED"},
