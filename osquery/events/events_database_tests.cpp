@@ -31,7 +31,7 @@ class FakeEventSubscriber : public EventSubscriber {
 };
 
 class FakeEventPublisher : public EventPublisher {
-  DECLARE_EVENTTYPE(FakeEventPublisher, MonitorContext, EventContext);
+  DECLARE_EVENTTYPE(FakeEventPublisher, SubscriptionContext, EventContext);
 };
 
 class AnotherFakeEventSubscriber : public EventSubscriber {

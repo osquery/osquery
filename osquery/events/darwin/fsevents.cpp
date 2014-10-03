@@ -98,12 +98,12 @@ void FSEventsEventPublisher::tearDown() {
 void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
   paths_.clear();
-  for (auto& monitor : monitors_) {
-    auto fs_monitor = getMonitorContext(monitor->context);
-    paths_.insert(fs_monitor->path);
+  for (auto& subscription : subscriptions_) {
+    auto fs_subscription = getSubscriptionContext(subscription->context);
+    paths_.insert(fs_subscription->path);
   }
 
-  // There were no paths in the monitors?
+  // There were no paths in the subscriptions?
   if (paths_.size() == 0) {
     return;
   }
@@ -149,7 +149,7 @@ void FSEventsEventPublisher::Callback(ConstFSEventStreamRef stream,
   }
 }
 
-bool FSEventsEventPublisher::shouldFire(const FSEventsMonitorContextRef mc,
+bool FSEventsEventPublisher::shouldFire(const FSEventsSubscriptionContextRef mc,
                                    const FSEventsEventContextRef ec) {
   ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
@@ -157,7 +157,7 @@ bool FSEventsEventPublisher::shouldFire(const FSEventsMonitorContextRef mc,
   }
 
   if (mc->mask != 0 && !(ec->fsevent_flags & mc->mask)) {
-    // Compare the event context mask to the monitor context.
+    // Compare the event context mask to the subscription context.
     return false;
   }
   return true;
@@ -173,7 +173,7 @@ void FSEventsEventPublisher::flush(bool async) {
   }
 }
 
-size_t FSEventsEventPublisher::numMonitoredPaths() { return paths_.size(); }
+size_t FSEventsEventPublisher::numSubscriptionedPaths() { return paths_.size(); }
 
 bool FSEventsEventPublisher::isStreamRunning() {
   if (stream_ == nullptr || !stream_started_) {

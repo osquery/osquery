@@ -46,7 +46,7 @@ class PasswdChangesEventSubscriber : public EventSubscriber {
 REGISTER_EVENTMODULE(PasswdChangesEventSubscriber);
 
 void PasswdChangesEventSubscriber::init() {
-  auto mc = INotifyEventPublisher::createMonitorContext();
+  auto mc = INotifyEventPublisher::createSubscriptionContext();
   mc->path = "/etc/passwd";
   mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
   BIND_CALLBACK(Callback, mc);

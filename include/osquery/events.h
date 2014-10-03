@@ -18,7 +18,7 @@
 
 namespace osquery {
 
-struct Monitor;
+struct Subscription;
 class EventPublisher;
 class EventSubscriber;
 
@@ -29,24 +29,24 @@ typedef uint32_t EventTime;
 typedef std::pair<EventID, EventTime> EventRecord;
 
 /**
- * @brief An EventPublisher will define a MonitorContext for EventSubscriber%s to use.
+ * @brief An EventPublisher will define a SubscriptionContext for EventSubscriber%s to use.
  *
  * Most EventPublisher%s will reqire specific information for interacting with an OS
- * to receive events. The MonitorContext contains information the EventPublisher will
- * use to register OS API callbacks, create monitoring/listening handles, etc.
+ * to receive events. The SubscriptionContext contains information the EventPublisher will
+ * use to register OS API callbacks, create subscriptioning/listening handles, etc.
  *
- * Linux `inotify` should implement a MonitorContext that monitors filesystem
- * events based on a filesystem path. `libpcap` will monitor on networking
- * protocols at various stacks. Process creation may monitor on process name,
+ * Linux `inotify` should implement a SubscriptionContext that subscriptions filesystem
+ * events based on a filesystem path. `libpcap` will subscription on networking
+ * protocols at various stacks. Process creation may subscription on process name,
  * parent pid, etc.
  */
-struct MonitorContext {};
+struct SubscriptionContext {};
 
 /**
  * @brief An EventSubscriber EventCallback method will receive an EventContext.
  *
  * The EventContext contains the event-related data supplied by an EventPublisher
- * when the event occures. If a monitoring EventSubscriber is should be called
+ * when the event occures. If a subscriptioning EventSubscriber is should be called
  * for the event the EventSubscriber%'s EventCallback is passed an EventContext.
  */
 struct EventContext {
@@ -58,16 +58,16 @@ struct EventContext {
   std::string time_string;
 };
 
-typedef std::shared_ptr<Monitor> MonitorRef;
+typedef std::shared_ptr<Subscription> SubscriptionRef;
 typedef std::shared_ptr<EventPublisher> EventPublisherRef;
-typedef std::shared_ptr<MonitorContext> MonitorContextRef;
+typedef std::shared_ptr<SubscriptionContext> SubscriptionContextRef;
 typedef std::shared_ptr<EventContext> EventContextRef;
 typedef std::shared_ptr<EventSubscriber> EventSubscriberRef;
 
 typedef std::function<Status(EventContextRef, bool)> EventCallback;
 
-/// An EventPublisher must track every monitor added.
-typedef std::vector<MonitorRef> MonitorVector;
+/// An EventPublisher must track every subscription added.
+typedef std::vector<SubscriptionRef> SubscriptionVector;
 
 /// The EventFactory tracks every EventPublisher and the name it specifies.
 typedef std::map<EventPublisherID, EventPublisherRef> EventPublisherMap;
@@ -84,34 +84,34 @@ extern const std::vector<size_t> kEventTimeLists;
  *   #include "osquery/events.h"
  *
  *   class MyEventPublisher: public EventPublisher {
- *     DECLARE_EVENTTYPE(MyEventPublisher, MyMonitorContext, MyEventContext);
+ *     DECLARE_EVENTTYPE(MyEventPublisher, MySubscriptionContext, MyEventContext);
  *   }
  * @endcode
  *
- * This assumes new EventPublisher%s will always include a custom MonitorContext
- * and EventContext. In the above example MyMonitorContext allows EventSubscriber%s
+ * This assumes new EventPublisher%s will always include a custom SubscriptionContext
+ * and EventContext. In the above example MySubscriptionContext allows EventSubscriber%s
  * to downselect or customize what events to handle. And MyEventContext includes
  * fields specific to the new EventPublisher.
  */
 #define DECLARE_EVENTTYPE(TYPE, MONITOR, EVENT)                            \
  public:                                                                   \
   EventPublisherID type() const { return #TYPE; }                               \
-  bool shouldFire(const MonitorContextRef mc, const EventContextRef ec) {  \
-    if (#MONITOR == "MonitorContext" && #EVENT == "EventContext")          \
+  bool shouldFire(const SubscriptionContextRef mc, const EventContextRef ec) {  \
+    if (#MONITOR == "SubscriptionContext" && #EVENT == "EventContext")          \
       return true;                                                         \
-    return shouldFire(getMonitorContext(mc), getEventContext(ec));         \
+    return shouldFire(getSubscriptionContext(mc), getEventContext(ec));         \
   }                                                                        \
   static std::shared_ptr<EVENT> getEventContext(EventContextRef context) { \
     return std::static_pointer_cast<EVENT>(context);                       \
   }                                                                        \
-  static std::shared_ptr<MONITOR> getMonitorContext(                       \
-      MonitorContextRef context) {                                         \
+  static std::shared_ptr<MONITOR> getSubscriptionContext(                       \
+      SubscriptionContextRef context) {                                         \
     return std::static_pointer_cast<MONITOR>(context);                     \
   }                                                                        \
   static std::shared_ptr<EVENT> createEventContext() {                     \
     return std::make_shared<EVENT>();                                      \
   }                                                                        \
-  static std::shared_ptr<MONITOR> createMonitorContext() {                 \
+  static std::shared_ptr<MONITOR> createSubscriptionContext() {                 \
     return std::make_shared<MONITOR>();                                    \
   }
 
@@ -169,7 +169,7 @@ extern const std::vector<size_t> kEventTimeLists;
  * And then somewhere else in code the callback can be registered:
  *
  * @code{.cpp}
- *   EventFactory::addMonitor("MyEventPublisher", my_monitor_context,
+ *   EventFactory::addSubscription("MyEventPublisher", my_subscription_context,
  *                            MyEventSubscriber::MyCallback);
  * @endcode
  *
@@ -185,18 +185,18 @@ extern const std::vector<size_t> kEventTimeLists;
   }                                                                    \
                                                                        \
  private:                                                              \
-  void BindTo##NAME(const MonitorContextRef mc) {                      \
-    EventFactory::addMonitor(type(), mc, Event##NAME);                 \
+  void BindTo##NAME(const SubscriptionContextRef mc) {                      \
+    EventFactory::addSubscription(type(), mc, Event##NAME);                 \
   }
 
 /**
- * @brief Bind a monitor context to a declared EventCallback for this module.
+ * @brief Bind a subscription context to a declared EventCallback for this module.
  *
  * Binding refers to the association of a callback for this EventSubscriber to
- * a configured MonitorContext. Under the hood "binding" creates a factory
- * Monitor for the EventPublisher used by the EventSubscriber. Such that when an event
+ * a configured SubscriptionContext. Under the hood "binding" creates a factory
+ * Subscription for the EventPublisher used by the EventSubscriber. Such that when an event
  * of the EventPublisher is fired, if the event details match the specifics of the
- * MonitorContext the EventMonitor%'s EventCallback will be called.
+ * SubscriptionContext the EventSubscription%'s EventCallback will be called.
  *
  * @code{.cpp}
  *   #include "osquery/events.h"
@@ -207,7 +207,7 @@ extern const std::vector<size_t> kEventTimeLists;
  *
  *    public:
  *     void init() {
- *       auto mc = MyEventPublisher::createMonitorContext();
+ *       auto mc = MyEventPublisher::createSubscriptionContext();
  *       mc->requirement = "SOME_SPECIFIC_DETAIL";
  *       BIND_CALLBACK(MyCallback, mc);
  *     }
@@ -219,46 +219,46 @@ extern const std::vector<size_t> kEventTimeLists;
  * as a member of this EventSubscriber.
  *
  * @param NAME The symbol for the EventCallback method used in DECLARE_CALLBACK.
- * @param MC The MonitorContext to bind.
+ * @param MC The SubscriptionContext to bind.
  */
 #define BIND_CALLBACK(NAME, MC) \
-  EventFactory::addMonitor(type(), MC, Event##NAME);
+  EventFactory::addSubscription(type(), MC, Event##NAME);
 
 /**
- * @brief A Monitor is used to configure an EventPublisher and bind a callback.
+ * @brief A Subscription is used to configure an EventPublisher and bind a callback.
  *
- * A Monitor is the input to an EventPublisher when the EventPublisher decides on
+ * A Subscription is the input to an EventPublisher when the EventPublisher decides on
  * the scope and details of the events it watches and generates. An example
- * includes a filesystem change event. A monitor would include a path with
+ * includes a filesystem change event. A subscription would include a path with
  * optional recursion and attribute selectors as well as a callback function
  * to fire when an event for that path and selector occurs.
  *
- * A Monitor also functions to greatly scope an EventPublisher%'s work.
- * Using the same filesystem example and the Linux inotify subsystem a Monitor
+ * A Subscription also functions to greatly scope an EventPublisher%'s work.
+ * Using the same filesystem example and the Linux inotify subsystem a Subscription
  * limits the number of inode watches to only those requested by appropriate
  * EventSubscriber%s.
- * Note: EventSubscriber%s and Monitors can be configured by the osquery user.
+ * Note: EventSubscriber%s and Subscriptions can be configured by the osquery user.
  *
- * Monitors are usually created with EventFactory members:
+ * Subscriptions are usually created with EventFactory members:
  *
  * @code{.cpp}
- *   EventFactory::addMonitor("MyEventPublisher", my_monitor_context);
+ *   EventFactory::addSubscription("MyEventPublisher", my_subscription_context);
  * @endcode
  */
-struct Monitor {
+struct Subscription {
  public:
-  /// An EventPublisher%-specific MonitorContext.
-  MonitorContextRef context;
-  /// An EventMonitor member EventCallback method.
+  /// An EventPublisher%-specific SubscriptionContext.
+  SubscriptionContextRef context;
+  /// An EventSubscription member EventCallback method.
   EventCallback callback;
 
-  static MonitorRef create() { return std::make_shared<Monitor>(); }
+  static SubscriptionRef create() { return std::make_shared<Subscription>(); }
 
-  static MonitorRef create(const MonitorContextRef mc, EventCallback ec = 0) {
-    auto monitor = std::make_shared<Monitor>();
-    monitor->context = mc;
-    monitor->callback = ec;
-    return monitor;
+  static SubscriptionRef create(const SubscriptionContextRef mc, EventCallback ec = 0) {
+    auto subscription = std::make_shared<Subscription>();
+    subscription->context = mc;
+    subscription->callback = ec;
+    return subscription;
   }
 };
 
@@ -266,13 +266,13 @@ struct Monitor {
  * @brief Generate OS events of a type (FS, Network, Syscall, ioctl).
  *
  * A 'class' of OS events is abstracted into an EventPublisher responsible for
- * remaining as agile as possible given a known-set of monitors.
+ * remaining as agile as possible given a known-set of subscriptions.
  *
  * The lifecycle of an EventPublisher may include, `setUp`, `configure`, `run`,
  * `tearDown`, and `fire`. `setUp` and `tearDown` happen when osquery starts and
  * stops either as a daemon or interactive shell. `configure` is a pseudo-start
- * called every time a Monitor is added. EventPublisher%s can adjust their
- * scope/agility specific to each added monitor by overriding `addMonitor`,
+ * called every time a Subscription is added. EventPublisher%s can adjust their
+ * scope/agility specific to each added subscription by overriding `addSubscription`,
  * and or globally in `configure`.
  *
  * Not all EventPublisher%s leverage pure async OS APIs, and most will require a run
@@ -289,21 +289,21 @@ struct Monitor {
  * @endcode
  *
  * The final lifecycle component, `fire` will iterate over the EventPublisher
- * Monitor%s and call `shouldFire` for each, using the EventContext fired.
- * The `shouldFire` method should check the monitor-specific selectors and only
- * call the Monitor%'s callback function is the EventContext (thus event)
+ * Subscription%s and call `shouldFire` for each, using the EventContext fired.
+ * The `shouldFire` method should check the subscription-specific selectors and only
+ * call the Subscription%'s callback function is the EventContext (thus event)
  * matches.
  */
 class EventPublisher {
  public:
   /**
-   * @brief A new Monitor was added, potentially change state based on all
-   * monitors for this EventPublisher.
+   * @brief A new Subscription was added, potentially change state based on all
+   * subscriptions for this EventPublisher.
    *
-   * `configure` allows the EventPublisher to optimize on the state of all monitors.
-   * An example is Linux `inotify` where multiple EventMonitor%s will monitor
+   * `configure` allows the EventPublisher to optimize on the state of all subscriptions.
+   * An example is Linux `inotify` where multiple EventSubscription%s will subscription
    * identical paths, e.g., /etc for config changes. Since Linux `inotify` has
-   * a monitor limit, `configure` can depup paths.
+   * a subscription limit, `configure` can depup paths.
    */
   virtual void configure() {}
 
@@ -333,19 +333,19 @@ class EventPublisher {
   virtual Status run();
 
   /**
-   * @brief A new EventSubscriber is monitoring events of this EventPublisher.
+   * @brief A new EventSubscriber is subscriptioning events of this EventPublisher.
    *
-   * @param monitor The Monitor context information and optional EventCallback.
+   * @param subscription The Subscription context information and optional EventCallback.
    *
-   * @return If the Monitor is not appropriate (mismatched type) fail.
+   * @return If the Subscription is not appropriate (mismatched type) fail.
    */
-  virtual Status addMonitor(const MonitorRef monitor) {
-    monitors_.push_back(monitor);
+  virtual Status addSubscription(const SubscriptionRef subscription) {
+    subscriptions_.push_back(subscription);
     return Status(0, "OK");
   }
 
-  /// Number of Monitor%s watching this EventPublisher.
-  size_t numMonitors() { return monitors_.size(); }
+  /// Number of Subscription%s watching this EventPublisher.
+  size_t numSubscriptions() { return subscriptions_.size(); }
 
   /**
    * @brief The number of events fired by this EventPublisher.
@@ -371,10 +371,10 @@ class EventPublisher {
 
  public:
   /**
-   * @brief The generic check loop to call MonitorContext callback methods.
+   * @brief The generic check loop to call SubscriptionContext callback methods.
    *
    * It is NOT recommended to override `fire`. The simple logic of enumerating
-   * the Monitor%s and using `shouldFire` is more appropraite.
+   * the Subscription%s and using `shouldFire` is more appropraite.
    *
    * @param ec The EventContext created and fired by the EventPublisher.
    * @param time The most accurate time associated with the event.
@@ -383,18 +383,18 @@ class EventPublisher {
 
  protected:
   /**
-   * @brief The generic `fire` will call `shouldFire` for each Monitor.
+   * @brief The generic `fire` will call `shouldFire` for each Subscription.
    *
-   * @param mc A MonitorContext with optional specifications for events details.
+   * @param mc A SubscriptionContext with optional specifications for events details.
    * @param ec The event fired with event details.
    *
-   * @return should the Monitor%'s EventCallback be called for this event.
+   * @return should the Subscription%'s EventCallback be called for this event.
    */
-  virtual bool shouldFire(const MonitorContextRef mc, const EventContextRef ec);
+  virtual bool shouldFire(const SubscriptionContextRef mc, const EventContextRef ec);
 
  protected:
-  /// The EventPublisher will keep track of Monitor%s that contain callins.
-  MonitorVector monitors_;
+  /// The EventPublisher will keep track of Subscription%s that contain callins.
+  SubscriptionVector subscriptions_;
 
   /// An Event ID is assigned by the EventPublisher within the EventContext.
   /// This is not used to store event date in the backing store.
@@ -409,9 +409,9 @@ class EventPublisher {
 };
 
 /**
- * @brief An interface binding Monitors, event response, and table generation.
+ * @brief An interface binding Subscriptions, event response, and table generation.
  *
- * Use the EventSubscriber interface when adding event monitors and defining callin
+ * Use the EventSubscriber interface when adding event subscriptions and defining callin
  * functions. The EventCallback is usually a member function for an EventSubscriber.
  * The EventSubscriber interface includes a very important `add` method
  * that abstracts the needed event to backing store interaction.
@@ -421,12 +421,12 @@ class EventPublisher {
  */
 class EventSubscriber {
  public:
-  /// Called after EventPublisher `setUp`. Add all Monitor%s here.
+  /// Called after EventPublisher `setUp`. Add all Subscription%s here.
   /**
-   * @brief Add Monitor%s to the EventPublisher this module will act on.
+   * @brief Add Subscription%s to the EventPublisher this module will act on.
    *
    * When the EventSubscriber%'s `init` method is called you are assured the
-   * EventPublisher has `setUp` and is ready to monitor for events.
+   * EventPublisher has `setUp` and is ready to subscription for events.
    */
   virtual void init() {}
 
@@ -434,7 +434,7 @@ class EventSubscriber {
    * @brief Suggested entrypoint for table generation.
    *
    * The EventSubscriber is a convention that removes a lot of boilerplate event
-   * monitoring and acting. The `genTable` static entrypoint is the suggested
+   * subscriptioning and acting. The `genTable` static entrypoint is the suggested
    * method for table specs.
    *
    * @return The query-time table data, retrieved from a backing store.
@@ -489,7 +489,7 @@ class EventSubscriber {
    *
    * An EventID is an index/element-identifier for the backing store.
    * Each EventPublisher maintains a fired EventContextID to identify the many
-   * events that may or may not be fired to monitoring criteria for this
+   * events that may or may not be fired to subscriptioning criteria for this
    * EventSubscriber. This EventContextID is NOT the same as an EventID.
    * EventSubscriber development should not require use of EventID%s, if this
    * indexing is required within-EventCallback consider an EventSubscriber%-unique
@@ -518,8 +518,8 @@ class EventSubscriber {
   /**
    * @brief A single instance requirement for static callback facilities.
    *
-   * The EventSubscriber constructor is NOT responsible for adding Monitor%s.
-   * Please use `init` for adding Monitor%s as all EventPublisher instances will
+   * The EventSubscriber constructor is NOT responsible for adding Subscription%s.
+   * Please use `init` for adding Subscription%s as all EventPublisher instances will
    * have run `setUp` and initialized their run loops.
    */
   EventSubscriber() {}
@@ -546,12 +546,12 @@ class EventSubscriber {
 /**
  * @brief A factory for associating event generators to EventPublisherID%s.
  *
- * This factory both registers new event types and the monitors that use them.
- * An EventPublisher is also a factory, the single event factory arbitates Monitor
+ * This factory both registers new event types and the subscriptions that use them.
+ * An EventPublisher is also a factory, the single event factory arbitates Subscription
  * creatating and management for each associated EventPublisher.
  *
  * Since event types may be plugins, they are created using the factory.
- * Since monitors may be configured/disabled they are also factory-managed.
+ * Since subscriptions may be configured/disabled they are also factory-managed.
  */
 class EventFactory {
  public:
@@ -607,40 +607,40 @@ class EventFactory {
   static Status registerEventSubscriber(const EventSubscriberRef event_module);
 
   /**
-   * @brief Add a MonitorContext and EventCallback Monitor to an EventPublisher.
+   * @brief Add a SubscriptionContext and EventCallback Subscription to an EventPublisher.
    *
-   * Create a Monitor from a given MonitorContext and EventCallback and
-   * add that Monitor to the EventPublisher assosicated identiter.
+   * Create a Subscription from a given SubscriptionContext and EventCallback and
+   * add that Subscription to the EventPublisher assosicated identiter.
    *
-   * @param type_id The string for an EventPublisher receiving the Monitor.
-   * @param mc A MonitorContext related to the EventPublisher.
-   * @param cb When the EventPublisher fires an event the MonitorContext will
+   * @param type_id The string for an EventPublisher receiving the Subscription.
+   * @param mc A SubscriptionContext related to the EventPublisher.
+   * @param cb When the EventPublisher fires an event the SubscriptionContext will
    * be evaluated, if the event matches optional specifics in the context this
-   * callback function will be called. It should belong to an EventMonitor.
+   * callback function will be called. It should belong to an EventSubscription.
    *
-   * @return Was the MonitorContext appropriate for the EventPublisher.
+   * @return Was the SubscriptionContext appropriate for the EventPublisher.
    */
-  static Status addMonitor(EventPublisherID type_id,
-                           const MonitorContextRef mc,
+  static Status addSubscription(EventPublisherID type_id,
+                           const SubscriptionContextRef mc,
                            EventCallback cb = 0);
 
-  /// Add a Monitor using a caller Monitor instance.
-  static Status addMonitor(EventPublisherID type_id, const MonitorRef monitor);
+  /// Add a Subscription using a caller Subscription instance.
+  static Status addSubscription(EventPublisherID type_id, const SubscriptionRef subscription);
 
-  /// Add a Monitor by templating the EventPublisher, using a MonitorContext.
+  /// Add a Subscription by templating the EventPublisher, using a SubscriptionContext.
   template <typename T>
-  static Status addMonitor(const MonitorContextRef mc, EventCallback cb = 0) {
-    return addMonitor(EventPublisher::type<T>(), mc, cb);
+  static Status addSubscription(const SubscriptionContextRef mc, EventCallback cb = 0) {
+    return addSubscription(EventPublisher::type<T>(), mc, cb);
   }
 
-  /// Add a Monitor by templating the EventPublisher, using a Monitor instance.
+  /// Add a Subscription by templating the EventPublisher, using a Subscription instance.
   template <typename T>
-  static Status addMonitor(const MonitorRef monitor) {
-    return addMonitor(EventPublisher::type<T>(), monitor);
+  static Status addSubscription(const SubscriptionRef subscription) {
+    return addSubscription(EventPublisher::type<T>(), subscription);
   }
 
-  /// Get the total number of Monitor%s across ALL EventPublisher%s.
-  static size_t numMonitors(EventPublisherID type_id);
+  /// Get the total number of Subscription%s across ALL EventPublisher%s.
+  static size_t numSubscriptions(EventPublisherID type_id);
 
   /// Get the number of EventPublishers.
   static size_t numEventPublishers() {
@@ -650,7 +650,7 @@ class EventFactory {
   /**
    * @brief Halt the EventPublisher run loop and call its `tearDown`.
    *
-   * Any EventSubscriber%s with Monitor%s for this EventPublisher will become useless.
+   * Any EventSubscriber%s with Subscription%s for this EventPublisher will become useless.
    * osquery instanciators MUST deregister events.
    * EventPublisher%s assume they can hook/trampoline, which requires cleanup.
    *
@@ -709,7 +709,7 @@ class EventFactory {
   /// Set of running EventPublisher run loop threads.
   std::vector<std::shared_ptr<boost::thread>> threads_;
 
-  /// Set of instanciated EventSubscriber Monitor sets (with callbacks and state).
+  /// Set of instanciated EventSubscriber Subscription sets (with callbacks and state).
   std::vector<EventSubscriberRef> event_modules_;
 };
 }

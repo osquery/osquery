@@ -12,11 +12,11 @@ class EventsTests : public testing::Test {
 };
 
 class BasicEventPublisher : public EventPublisher {
-  DECLARE_EVENTTYPE(BasicEventPublisher, MonitorContext, EventContext);
+  DECLARE_EVENTTYPE(BasicEventPublisher, SubscriptionContext, EventContext);
 };
 
 class FakeBasicEventPublisher : public EventPublisher {
-  DECLARE_EVENTTYPE(FakeBasicEventPublisher, MonitorContext, EventContext);
+  DECLARE_EVENTTYPE(FakeBasicEventPublisher, SubscriptionContext, EventContext);
 };
 
 TEST_F(EventsTests, test_register_event_pub) {
@@ -48,59 +48,59 @@ TEST_F(EventsTests, test_create_event_pub) {
   EXPECT_EQ(EventFactory::numEventPublishers(), 1);
 }
 
-TEST_F(EventsTests, test_create_monitor) {
+TEST_F(EventsTests, test_create_subscription) {
   Status status;
 
   EventFactory::registerEventPublisher<BasicEventPublisher>();
 
-  // Make sure a monitor cannot be added for a non-existent event type.
-  // Note: It normally would not make sense to create a blank monitor.
-  auto monitor = Monitor::create();
-  status = EventFactory::addMonitor("FakeBasicEventPublisher", monitor);
+  // Make sure a subscription cannot be added for a non-existent event type.
+  // Note: It normally would not make sense to create a blank subscription.
+  auto subscription = Subscription::create();
+  status = EventFactory::addSubscription("FakeBasicEventPublisher", subscription);
   EXPECT_FALSE(status.ok());
 
-  // In this case we can still add a blank monitor to an existing event type.
-  status = EventFactory::addMonitor("BasicEventPublisher", monitor);
+  // In this case we can still add a blank subscription to an existing event type.
+  status = EventFactory::addSubscription("BasicEventPublisher", subscription);
   EXPECT_TRUE(status.ok());
 
-  // Make sure the monitor is added.
-  EXPECT_EQ(EventFactory::numMonitors("BasicEventPublisher"), 1);
+  // Make sure the subscription is added.
+  EXPECT_EQ(EventFactory::numSubscriptions("BasicEventPublisher"), 1);
 }
 
-TEST_F(EventsTests, test_multiple_monitors) {
+TEST_F(EventsTests, test_multiple_subscriptions) {
   Status status;
 
   EventFactory::registerEventPublisher<BasicEventPublisher>();
 
-  auto monitor = Monitor::create();
-  status = EventFactory::addMonitor("BasicEventPublisher", monitor);
-  status = EventFactory::addMonitor("BasicEventPublisher", monitor);
+  auto subscription = Subscription::create();
+  status = EventFactory::addSubscription("BasicEventPublisher", subscription);
+  status = EventFactory::addSubscription("BasicEventPublisher", subscription);
 
-  EXPECT_EQ(EventFactory::numMonitors("BasicEventPublisher"), 2);
+  EXPECT_EQ(EventFactory::numSubscriptions("BasicEventPublisher"), 2);
 }
 
-struct TestMonitorContext : public MonitorContext {
+struct TestSubscriptionContext : public SubscriptionContext {
   int smallest;
 };
 
 class TestEventPublisher : public EventPublisher {
-  DECLARE_EVENTTYPE(TestEventPublisher, TestMonitorContext, EventContext);
+  DECLARE_EVENTTYPE(TestEventPublisher, TestSubscriptionContext, EventContext);
 
  public:
   void setUp() { smallest_ever_ += 1; }
 
   void configure() {
-    int smallest_monitor = smallest_ever_;
+    int smallest_subscription = smallest_ever_;
 
     configure_run = true;
-    for (const auto& monitor : monitors_) {
-      auto monitor_context = getMonitorContext(monitor->context);
-      if (smallest_monitor > monitor_context->smallest) {
-        smallest_monitor = monitor_context->smallest;
+    for (const auto& subscription : subscriptions_) {
+      auto subscription_context = getSubscriptionContext(subscription->context);
+      if (smallest_subscription > subscription_context->smallest) {
+        smallest_subscription = subscription_context->smallest;
       }
     }
 
-    smallest_ever_ = smallest_monitor;
+    smallest_ever_ = smallest_subscription;
   }
 
   void tearDown() { smallest_ever_ += 1; }
@@ -135,23 +135,23 @@ TEST_F(EventsTests, test_create_custom_event_pub) {
   EXPECT_EQ(test_event_pub->getTestValue(), 1);
 }
 
-TEST_F(EventsTests, test_custom_monitor) {
+TEST_F(EventsTests, test_custom_subscription) {
   Status status;
 
   // Step 1, register event type
   auto event_pub = std::make_shared<TestEventPublisher>();
   status = EventFactory::registerEventPublisher(event_pub);
 
-  // Step 2, create and configure a monitor context
-  auto monitor_context = std::make_shared<TestMonitorContext>();
-  monitor_context->smallest = -1;
+  // Step 2, create and configure a subscription context
+  auto subscription_context = std::make_shared<TestSubscriptionContext>();
+  subscription_context->smallest = -1;
 
-  // Step 3, add the monitor to the event type
-  status = EventFactory::addMonitor("TestEventPublisher", monitor_context);
+  // Step 3, add the subscription to the event type
+  status = EventFactory::addSubscription("TestEventPublisher", subscription_context);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(event_pub->numMonitors(), 1);
+  EXPECT_EQ(event_pub->numSubscriptions(), 1);
 
-  // The event type must run configure for each added monitor.
+  // The event type must run configure for each added subscription.
   EXPECT_TRUE(event_pub->configure_run);
   EXPECT_EQ(event_pub->getTestValue(), -1);
 }
@@ -197,24 +197,24 @@ TEST_F(EventsTests, test_fire_event) {
   auto event_pub = std::make_shared<BasicEventPublisher>();
   status = EventFactory::registerEventPublisher(event_pub);
 
-  auto monitor = Monitor::create();
-  monitor->callback = TestTheeCallback;
-  status = EventFactory::addMonitor("BasicEventPublisher", monitor);
+  auto subscription = Subscription::create();
+  subscription->callback = TestTheeCallback;
+  status = EventFactory::addSubscription("BasicEventPublisher", subscription);
 
   // The event context creation would normally happen in the event type.
   auto ec = event_pub->createEventContext();
   event_pub->fire(ec, 0);
   EXPECT_EQ(kBellHathTolled, 1);
 
-  auto second_monitor = Monitor::create();
-  status = EventFactory::addMonitor("BasicEventPublisher", second_monitor);
+  auto second_subscription = Subscription::create();
+  status = EventFactory::addSubscription("BasicEventPublisher", second_subscription);
 
-  // Now there are two monitors (one sans callback).
+  // Now there are two subscriptions (one sans callback).
   event_pub->fire(ec, 0);
   EXPECT_EQ(kBellHathTolled, 2);
 
-  // Now both monitors have callbacks.
-  second_monitor->callback = TestTheeCallback;
+  // Now both subscriptions have callbacks.
+  second_subscription->callback = TestTheeCallback;
   event_pub->fire(ec, 0);
   EXPECT_EQ(kBellHathTolled, 4);
 }

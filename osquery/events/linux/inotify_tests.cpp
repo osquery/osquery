@@ -26,12 +26,12 @@ class INotifyTests : public testing::Test {
     temp_thread_ = boost::thread(EventFactory::run, "INotifyEventPublisher");
   }
 
-  void MonitorAction(uint32_t mask = 0, EventCallback ec = 0) {
-    auto mc = std::make_shared<INotifyMonitorContext>();
+  void SubscriptionAction(uint32_t mask = 0, EventCallback ec = 0) {
+    auto mc = std::make_shared<INotifySubscriptionContext>();
     mc->path = kRealTestPath;
     mc->mask = mask;
 
-    EventFactory::addMonitor("INotifyEventPublisher", mc, ec);
+    EventFactory::addSubscription("INotifyEventPublisher", mc, ec);
   }
 
   void EndEventLoop() {
@@ -82,27 +82,27 @@ TEST_F(INotifyTests, test_inotify_init) {
   EXPECT_FALSE(event_pub->isHandleOpen());
 }
 
-TEST_F(INotifyTests, test_inotify_add_monitor_fail) {
+TEST_F(INotifyTests, test_inotify_add_subscription_fail) {
   EventFactory::registerEventPublisher<INotifyEventPublisher>();
 
-  // This monitor path is fake, and will fail
-  auto mc = std::make_shared<INotifyMonitorContext>();
+  // This subscription path is fake, and will fail
+  auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = "/this/path/is/fake";
 
-  auto monitor = Monitor::create(mc);
-  auto status = EventFactory::addMonitor("INotifyEventPublisher", monitor);
+  auto subscription = Subscription::create(mc);
+  auto status = EventFactory::addSubscription("INotifyEventPublisher", subscription);
   EXPECT_FALSE(status.ok());
 }
 
-TEST_F(INotifyTests, test_inotify_add_monitor_success) {
+TEST_F(INotifyTests, test_inotify_add_subscription_success) {
   EventFactory::registerEventPublisher<INotifyEventPublisher>();
 
-  // This monitor path *should* be real.
-  auto mc = std::make_shared<INotifyMonitorContext>();
+  // This subscription path *should* be real.
+  auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = "/";
 
-  auto monitor = Monitor::create(mc);
-  auto status = EventFactory::addMonitor("INotifyEventPublisher", monitor);
+  auto subscription = Subscription::create(mc);
+  auto status = EventFactory::addSubscription("INotifyEventPublisher", subscription);
   EXPECT_TRUE(status.ok());
 }
 
@@ -114,10 +114,10 @@ TEST_F(INotifyTests, test_inotify_run) {
   // Create a temporary file to watch, open writeable
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
 
-  // Create a monitoring context
-  auto mc = std::make_shared<INotifyMonitorContext>();
+  // Create a subscriptioning context
+  auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = kRealTestPath;
-  EventFactory::addMonitor("INotifyEventPublisher", Monitor::create(mc));
+  EventFactory::addSubscription("INotifyEventPublisher", Subscription::create(mc));
 
   // Create an event loop thread (similar to main)
   boost::thread temp_thread(EventFactory::run, "INotifyEventPublisher");
@@ -169,15 +169,15 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
   // Assume event type is registered.
   StartEventLoop();
 
-  // Create a monitoring context, note the added Event to the symbol
-  MonitorAction(0, TestINotifyEventSubscriber::EventSimpleCallback);
+  // Create a subscriptioning context, note the added Event to the symbol
+  SubscriptionAction(0, TestINotifyEventSubscriber::EventSimpleCallback);
 
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
   fputs("inotify", fd);
   fclose(fd);
   waitForEvent(2000);
 
-  // Make sure our expected event fired (aka monitor callback was called).
+  // Make sure our expected event fired (aka subscription callback was called).
   EXPECT_TRUE(TestINotifyEventSubscriber::getInstance()->callback_count_ > 0);
 
   // Cause the thread to tear down.
@@ -187,7 +187,7 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
 TEST_F(INotifyTests, test_inotify_event_action) {
   // Assume event type is registered.
   StartEventLoop();
-  MonitorAction(0, TestINotifyEventSubscriber::EventCallback);
+  SubscriptionAction(0, TestINotifyEventSubscriber::EventCallback);
 
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
   fputs("inotify", fd);

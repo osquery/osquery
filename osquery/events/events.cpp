@@ -40,16 +40,16 @@ void EventPublisher::fire(const EventContextRef ec, EventTime time) {
     ec->time_string = boost::lexical_cast<std::string>(ec->time);
   }
 
-  for (const auto& monitor : monitors_) {
-    auto callback = monitor->callback;
-    if (shouldFire(monitor->context, ec) && callback != nullptr) {
+  for (const auto& subscription : subscriptions_) {
+    auto callback = subscription->callback;
+    if (shouldFire(subscription->context, ec) && callback != nullptr) {
       callback(ec, false);
     } else {
     }
   }
 }
 
-bool EventPublisher::shouldFire(const MonitorContextRef mc,
+bool EventPublisher::shouldFire(const SubscriptionContextRef mc,
                            const EventContextRef ec) {
   return true;
 }
@@ -295,36 +295,36 @@ Status EventFactory::registerEventPublisher(const EventPublisherRef event_pub) {
 
 Status EventFactory::registerEventSubscriber(const EventSubscriberRef event_module) {
   auto& ef = EventFactory::getInstance();
-  // Let the module initialize any Monitors.
+  // Let the module initialize any Subscriptions.
   event_module->init();
   ef.event_modules_.push_back(event_module);
   return Status(0, "OK");
 }
 
-Status EventFactory::addMonitor(EventPublisherID type_id, const MonitorRef monitor) {
+Status EventFactory::addSubscription(EventPublisherID type_id, const SubscriptionRef subscription) {
   auto event_pub = EventFactory::getInstance().getEventPublisher(type_id);
   if (event_pub == nullptr) {
-    // Cannot create a Monitor for a missing type_id.
+    // Cannot create a Subscription for a missing type_id.
     return Status(1, "No Event Type");
   }
 
   // The event factory is responsible for configuring the event types.
-  auto status = event_pub->addMonitor(monitor);
+  auto status = event_pub->addSubscription(subscription);
   event_pub->configure();
   return status;
 }
 
-Status EventFactory::addMonitor(EventPublisherID type_id,
-                                const MonitorContextRef mc,
+Status EventFactory::addSubscription(EventPublisherID type_id,
+                                const SubscriptionContextRef mc,
                                 EventCallback cb) {
-  auto monitor = Monitor::create(mc, cb);
-  return EventFactory::addMonitor(type_id, monitor);
+  auto subscription = Subscription::create(mc, cb);
+  return EventFactory::addSubscription(type_id, subscription);
 }
 
-size_t EventFactory::numMonitors(EventPublisherID type_id) {
+size_t EventFactory::numSubscriptions(EventPublisherID type_id) {
   const auto& event_pub = EventFactory::getInstance().getEventPublisher(type_id);
   if (event_pub != nullptr) {
-    return event_pub->numMonitors();
+    return event_pub->numSubscriptions();
   }
   return 0;
 }

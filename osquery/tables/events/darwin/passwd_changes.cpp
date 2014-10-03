@@ -52,7 +52,7 @@ REGISTER_EVENTMODULE(PasswdChangesEventSubscriber);
 
 void PasswdChangesEventSubscriber::init() {
   for (const auto& path : kDarwinPasswdPaths) {
-    auto mc = FSEventsEventPublisher::createMonitorContext();
+    auto mc = FSEventsEventPublisher::createSubscriptionContext();
     mc->path = path;
     BIND_CALLBACK(Callback, mc);
   }

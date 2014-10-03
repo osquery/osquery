@@ -118,24 +118,24 @@ INotifyEventContextRef INotifyEventPublisher::createEventContext(
   return ec;
 }
 
-bool INotifyEventPublisher::shouldFire(const INotifyMonitorContextRef mc,
+bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef mc,
                                   const INotifyEventContextRef ec) {
   ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
     return false;
   }
 
-  // The monitor may supply a required event mask.
+  // The subscription may supply a required event mask.
   if (mc->mask != 0 && !(ec->event->mask & mc->mask)) {
     return false;
   }
   return true;
 }
 
-Status INotifyEventPublisher::addMonitor(const MonitorRef monitor) {
-  EventPublisher::addMonitor(monitor);
+Status INotifyEventPublisher::addSubscription(const SubscriptionRef subscription) {
+  EventPublisher::addSubscription(subscription);
   // Instead of keeping track of every path, act greedy.
-  const auto& mc = getMonitorContext(monitor->context);
+  const auto& mc = getSubscriptionContext(subscription->context);
   // Add the inotify watch.
   int watch = ::inotify_add_watch(getHandle(), mc->path.c_str(), IN_ALL_EVENTS);
   if (watch == -1) {
@@ -149,7 +149,7 @@ Status INotifyEventPublisher::addMonitor(const MonitorRef monitor) {
   return Status(0, "OK");
 }
 
-bool INotifyEventPublisher::isMonitored(const std::string& path) {
+bool INotifyEventPublisher::isSubscriptioned(const std::string& path) {
   return (path_descriptors_.find(path) != path_descriptors_.end());
 }
 }

@@ -27,12 +27,12 @@ class FSEventsTests : public testing::Test {
     temp_thread_ = boost::thread(EventFactory::run, "FSEventsEventPublisher");
   }
 
-  void MonitorAction(uint32_t mask = 0, EventCallback ec = 0) {
-    auto mc = std::make_shared<FSEventsMonitorContext>();
+  void SubscriptionAction(uint32_t mask = 0, EventCallback ec = 0) {
+    auto mc = std::make_shared<FSEventsSubscriptionContext>();
     mc->path = kRealTestPath;
     mc->mask = mask;
 
-    EventFactory::addMonitor("FSEventsEventPublisher", mc, ec);
+    EventFactory::addSubscription("FSEventsEventPublisher", mc, ec);
   }
 
   void WaitForStream(int max) {
@@ -88,43 +88,43 @@ TEST_F(FSEventsTests, test_register_event_pub) {
   EXPECT_EQ(EventFactory::numEventPublishers(), 1);
 }
 
-TEST_F(FSEventsTests, test_fsevents_add_monitor_missing_path) {
+TEST_F(FSEventsTests, test_fsevents_add_subscription_missing_path) {
   EventFactory::registerEventPublisher<FSEventsEventPublisher>();
 
-  // This monitor path is fake, and will succeed!
-  auto mc = std::make_shared<FSEventsMonitorContext>();
+  // This subscription path is fake, and will succeed!
+  auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = "/this/path/is/fake";
 
-  auto monitor = Monitor::create(mc);
-  auto status = EventFactory::addMonitor("FSEventsEventPublisher", monitor);
+  auto subscription = Subscription::create(mc);
+  auto status = EventFactory::addSubscription("FSEventsEventPublisher", subscription);
   EXPECT_TRUE(status.ok());
 }
 
-TEST_F(FSEventsTests, test_fsevents_add_monitor_success) {
+TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   auto event_pub = std::make_shared<FSEventsEventPublisher>();
   EventFactory::registerEventPublisher(event_pub);
 
-  // This monitor path *should* be real.
-  auto mc = std::make_shared<FSEventsMonitorContext>();
+  // This subscription path *should* be real.
+  auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = "/";
 
-  auto monitor = Monitor::create(mc);
-  auto status = EventFactory::addMonitor("FSEventsEventPublisher", monitor);
+  auto subscription = Subscription::create(mc);
+  auto status = EventFactory::addSubscription("FSEventsEventPublisher", subscription);
   EXPECT_TRUE(status.ok());
 
   // Make sure configure was called.
-  size_t num_paths = event_pub->numMonitoredPaths();
+  size_t num_paths = event_pub->numSubscriptionedPaths();
   EXPECT_EQ(num_paths, 1);
 
-  // A duplicate monitor will work.
-  auto mc_dup = std::make_shared<FSEventsMonitorContext>();
+  // A duplicate subscription will work.
+  auto mc_dup = std::make_shared<FSEventsSubscriptionContext>();
   mc_dup->path = "/";
-  auto monitor_dup = Monitor::create(mc_dup);
-  status = EventFactory::addMonitor("FSEventsEventPublisher", monitor_dup);
+  auto subscription_dup = Subscription::create(mc_dup);
+  status = EventFactory::addSubscription("FSEventsEventPublisher", subscription_dup);
   EXPECT_TRUE(status.ok());
 
   // But the paths with be deduped when the event type reconfigures.
-  num_paths = event_pub->numMonitoredPaths();
+  num_paths = event_pub->numSubscriptionedPaths();
   EXPECT_EQ(num_paths, 1);
 }
 
@@ -133,10 +133,10 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   event_pub_ = std::make_shared<FSEventsEventPublisher>();
   EventFactory::registerEventPublisher(event_pub_);
 
-  // Create a monitoring context
-  auto mc = std::make_shared<FSEventsMonitorContext>();
+  // Create a subscriptioning context
+  auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = kRealTestPath;
-  EventFactory::addMonitor("FSEventsEventPublisher", Monitor::create(mc));
+  EventFactory::addSubscription("FSEventsEventPublisher", Subscription::create(mc));
 
   // Create an event loop thread (similar to main)
   boost::thread temp_thread(EventFactory::run, "FSEventsEventPublisher");
@@ -203,15 +203,15 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
   StartEventLoop();
   TestFSEventsEventSubscriber::getInstance()->init();
 
-  // Create a monitoring context, note the added Event to the symbol
-  MonitorAction(0, TestFSEventsEventSubscriber::EventSimpleCallback);
+  // Create a subscriptioning context, note the added Event to the symbol
+  SubscriptionAction(0, TestFSEventsEventSubscriber::EventSimpleCallback);
 
   CreateEvents();
 
   // This time wait for the callback.
   TestFSEventsEventSubscriber::WaitForEvents(kMaxEventLatency);
 
-  // Make sure our expected event fired (aka monitor callback was called).
+  // Make sure our expected event fired (aka subscription callback was called).
   EXPECT_TRUE(TestFSEventsEventSubscriber::getInstance()->callback_count_ > 0);
 
   // Cause the thread to tear down.
@@ -224,7 +224,7 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   TestFSEventsEventSubscriber::getInstance()->init();
 
   TestFSEventsEventSubscriber::getInstance()->callback_count_ = 0;
-  MonitorAction(0, TestFSEventsEventSubscriber::EventCallback);
+  SubscriptionAction(0, TestFSEventsEventSubscriber::EventCallback);
 
   CreateEvents();
   TestFSEventsEventSubscriber::WaitForEvents(kMaxEventLatency);
