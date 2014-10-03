@@ -268,15 +268,13 @@ function main() {
     else
       brew install wget
     fi
+
+    package rocksdb
     package cmake
-    package boost --c++11
+    package boost
     package gflags
     package glog
-    package snappy
-    package readline
     package thrift
-    package lz4
-    install_rocksdb
   fi
 
   cd $SCRIPT_DIR/../
