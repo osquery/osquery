@@ -27,17 +27,17 @@ int main(int argc, char* argv[]) {
   }
 
   LOG(INFO) << "Event Types:";
-  for (const auto& it : REGISTERED_EVENTTYPES) {
+  for (const auto& it : REGISTERED_EVENTPUBLISHERS) {
     LOG(INFO) << "  - " << it.first;
   }
 
   LOG(INFO) << "Event Modules:";
-  for (const auto& it : REGISTERED_EVENTMODULES) {
+  for (const auto& it : REGISTERED_EVENTSUBSCRIBERS) {
     LOG(INFO) << "  - " << it.first;
   }
 
   // Start a thread for each appropriate event type
-  osquery::registries::faucet(REGISTERED_EVENTTYPES, REGISTERED_EVENTMODULES);
+  osquery::registries::faucet(REGISTERED_EVENTPUBLISHERS, REGISTERED_EVENTSUBSCRIBERS);
   osquery::EventFactory::delay();
 
   boost::thread scheduler_thread(osquery::initializeScheduler);

@@ -11,7 +11,7 @@
 
 namespace osquery {
 
-REGISTER_EVENTTYPE(INotifyEventType);
+REGISTER_EVENTPUBLISHER(INotifyEventPublisher);
 
 int kINotifyULatency = 200;
 static const uint32_t BUFFER_SIZE =
@@ -27,7 +27,7 @@ std::map<int, std::string> kMaskActions = {{IN_ACCESS, "ACCESSED"},
                                            {IN_MOVED_TO, "MOVED_TO"},
                                            {IN_OPEN, "OPENED"}, };
 
-void INotifyEventType::setUp() {
+void INotifyEventPublisher::setUp() {
   inotify_handle_ = ::inotify_init();
   // If this does not work throw an exception.
   if (inotify_handle_ == -1) {
@@ -35,16 +35,16 @@ void INotifyEventType::setUp() {
   }
 }
 
-void INotifyEventType::configure() {
+void INotifyEventPublisher::configure() {
   // Not optimizing on watches for now.
 }
 
-void INotifyEventType::tearDown() {
+void INotifyEventPublisher::tearDown() {
   ::close(inotify_handle_);
   inotify_handle_ = -1;
 }
 
-Status INotifyEventType::run() {
+Status INotifyEventPublisher::run() {
   // Get a while wraper for free.
   char buffer[BUFFER_SIZE];
   fd_set set;
@@ -94,7 +94,7 @@ Status INotifyEventType::run() {
   return Status(0, "Continue");
 }
 
-INotifyEventContextRef INotifyEventType::createEventContext(
+INotifyEventContextRef INotifyEventPublisher::createEventContext(
     struct inotify_event* event) {
   auto shared_event = std::make_shared<struct inotify_event>(*event);
   auto ec = createEventContext();
@@ -118,24 +118,24 @@ INotifyEventContextRef INotifyEventType::createEventContext(
   return ec;
 }
 
-bool INotifyEventType::shouldFire(const INotifyMonitorContextRef mc,
+bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef mc,
                                   const INotifyEventContextRef ec) {
   ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
     return false;
   }
 
-  // The monitor may supply a required event mask.
+  // The subscription may supply a required event mask.
   if (mc->mask != 0 && !(ec->event->mask & mc->mask)) {
     return false;
   }
   return true;
 }
 
-Status INotifyEventType::addMonitor(const MonitorRef monitor) {
-  EventType::addMonitor(monitor);
+Status INotifyEventPublisher::addSubscription(const SubscriptionRef subscription) {
+  EventPublisher::addSubscription(subscription);
   // Instead of keeping track of every path, act greedy.
-  const auto& mc = getMonitorContext(monitor->context);
+  const auto& mc = getSubscriptionContext(subscription->context);
   // Add the inotify watch.
   int watch = ::inotify_add_watch(getHandle(), mc->path.c_str(), IN_ALL_EVENTS);
   if (watch == -1) {
@@ -149,7 +149,7 @@ Status INotifyEventType::addMonitor(const MonitorRef monitor) {
   return Status(0, "OK");
 }
 
-bool INotifyEventType::isMonitored(const std::string& path) {
+bool INotifyEventPublisher::isSubscriptioned(const std::string& path) {
   return (path_descriptors_.find(path) != path_descriptors_.end());
 }
 }

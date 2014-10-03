@@ -17,10 +17,10 @@ namespace osquery {
 
 extern std::map<FSEventStreamEventFlags, std::string> kMaskActions;
 
-struct FSEventsMonitorContext : public MonitorContext {
-  /// Monitor the following filesystem path.
+struct FSEventsSubscriptionContext : public SubscriptionContext {
+  /// Subscription the following filesystem path.
   std::string path;
-  /// Limit the FSEvents actions to the monitored mask (if not 0).
+  /// Limit the FSEvents actions to the subscriptioned mask (if not 0).
   FSEventStreamEventFlags mask;
 
   void requireAction(std::string action) {
@@ -31,7 +31,7 @@ struct FSEventsMonitorContext : public MonitorContext {
     }
   }
 
-  FSEventsMonitorContext() : mask(0) {}
+  FSEventsSubscriptionContext() : mask(0) {}
 };
 
 struct FSEventsEventContext : public EventContext {
@@ -46,18 +46,18 @@ struct FSEventsEventContext : public EventContext {
 };
 
 typedef std::shared_ptr<FSEventsEventContext> FSEventsEventContextRef;
-typedef std::shared_ptr<FSEventsMonitorContext> FSEventsMonitorContextRef;
+typedef std::shared_ptr<FSEventsSubscriptionContext> FSEventsSubscriptionContextRef;
 
 /**
- * @brief An osquery EventType for the Apple FSEvents notification API.
+ * @brief An osquery EventPublisher for the Apple FSEvents notification API.
  *
  * This exposes a lightweight filesystem eventing type by wrapping Apple's
  * preferred implementation of FSEvents handling.
  *
  */
-class FSEventsEventType : public EventType {
-  DECLARE_EVENTTYPE(FSEventsEventType,
-                    FSEventsMonitorContext,
+class FSEventsEventPublisher : public EventPublisher {
+  DECLARE_EVENTPUBLISHER(FSEventsEventPublisher,
+                    FSEventsSubscriptionContext,
                     FSEventsEventContext)
 
  public:
@@ -77,8 +77,8 @@ class FSEventsEventType : public EventType {
                        const FSEventStreamEventId fsevent_ids[]);
 
  public:
-  FSEventsEventType() : EventType(), stream_(nullptr), run_loop_(nullptr) {}
-  bool shouldFire(const FSEventsMonitorContextRef mc,
+  FSEventsEventPublisher() : EventPublisher(), stream_(nullptr), run_loop_(nullptr) {}
+  bool shouldFire(const FSEventsSubscriptionContextRef mc,
                   const FSEventsEventContextRef ec);
 
  private:
@@ -92,8 +92,8 @@ class FSEventsEventType : public EventType {
  private:
   // Check if the stream (and run loop) are running.
   bool isStreamRunning();
-  // Count the number of monitored paths.
-  size_t numMonitoredPaths();
+  // Count the number of subscriptioned paths.
+  size_t numSubscriptionedPaths();
 
  private:
   FSEventStreamRef stream_;
@@ -105,9 +105,9 @@ class FSEventsEventType : public EventType {
 
  private:
   friend class FSEventsTests;
-  FRIEND_TEST(FSEventsTests, test_register_event_type);
-  FRIEND_TEST(FSEventsTests, test_fsevents_add_monitor_missing_path);
-  FRIEND_TEST(FSEventsTests, test_fsevents_add_monitor_success);
+  FRIEND_TEST(FSEventsTests, test_register_event_pub);
+  FRIEND_TEST(FSEventsTests, test_fsevents_add_subscription_missing_path);
+  FRIEND_TEST(FSEventsTests, test_fsevents_add_subscription_success);
   FRIEND_TEST(FSEventsTests, test_fsevents_run);
   FRIEND_TEST(FSEventsTests, test_fsevents_fire_event);
   FRIEND_TEST(FSEventsTests, test_fsevents_event_action);

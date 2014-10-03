@@ -19,29 +19,29 @@ namespace osquery {
 extern std::map<int, std::string> kMaskActions;
 
 /**
- * @brief Monitoring details for INotifyEventType events.
+ * @brief Subscriptioning details for INotifyEventPublisher events.
  *
- * This context is specific to INotifyEventType. It allows the monitoring
- * EventModule to set a path (file or directory) and a limited action mask.
- * Events are passed to the monitoring EventModule if they match the context
+ * This context is specific to INotifyEventPublisher. It allows the subscriptioning
+ * EventSubscriber to set a path (file or directory) and a limited action mask.
+ * Events are passed to the subscriptioning EventSubscriber if they match the context
  * path (or anything within a directory if the path is a directory) and if the
  * event action is part of the mask. If the mask is 0 then all actions are 
- * passed to the EventModule.
+ * passed to the EventSubscriber.
  */
-struct INotifyMonitorContext : public MonitorContext {
-  /// Monitor the following filesystem path.
+struct INotifySubscriptionContext : public SubscriptionContext {
+  /// Subscription the following filesystem path.
   std::string path;
-  /// Limit the `inotify` actions to the monitored mask (if not 0).
+  /// Limit the `inotify` actions to the subscriptioned mask (if not 0).
   uint32_t mask;
-  /// Treat this path as a directory and monitor recursively.
+  /// Treat this path as a directory and subscription recursively.
   bool recursive;
 
-  INotifyMonitorContext() : mask(0), recursive(false) {}
+  INotifySubscriptionContext() : mask(0), recursive(false) {}
 
   /**
    * @brief Helper method to map a string action to `inotify` action mask bit.
    *
-   * This helper method will set the `mask` value for this MonitorContext. 
+   * This helper method will set the `mask` value for this SubscriptionContext. 
    *
    * @param action The string action, a value in kMaskAction%s.
    */
@@ -55,10 +55,10 @@ struct INotifyMonitorContext : public MonitorContext {
 };
 
 /**
- * @brief Event details for INotifyEventType events.
+ * @brief Event details for INotifyEventPublisher events.
  */
 struct INotifyEventContext : public EventContext {
-  /// The inotify_event structure if the EventModule want to interact.
+  /// The inotify_event structure if the EventSubscriber want to interact.
   std::shared_ptr<struct inotify_event> event;
   /// A string path parsed from the inotify_event.
   std::string path;
@@ -67,7 +67,7 @@ struct INotifyEventContext : public EventContext {
 };
 
 typedef std::shared_ptr<INotifyEventContext> INotifyEventContextRef;
-typedef std::shared_ptr<INotifyMonitorContext> INotifyMonitorContextRef;
+typedef std::shared_ptr<INotifySubscriptionContext> INotifySubscriptionContextRef;
 
 // Thread-safe containers
 typedef std::vector<int> DescriptorVector;
@@ -75,18 +75,18 @@ typedef std::map<std::string, int> PathDescriptorMap;
 typedef std::map<int, std::string> DescriptorPathMap;
 
 /**
- * @brief A Linux `inotify` EventType.
+ * @brief A Linux `inotify` EventPublisher.
  *
- * This EventType allows EventModule%s to monitor for Linux `inotify` events.
- * Since these events are limited this EventType will optimize the watch
+ * This EventPublisher allows EventSubscriber%s to subscription for Linux `inotify` events.
+ * Since these events are limited this EventPublisher will optimize the watch
  * descriptors, keep track of the usage, implement optimizations/priority
  * where possible, and abstract file system events to a path/action context.
  *
- * Uses INotifyMonitorContext and INotifyEventContext for monitoring, eventing.
+ * Uses INotifySubscriptionContext and INotifyEventContext for subscriptioning, eventing.
  */
-class INotifyEventType : public EventType {
-  DECLARE_EVENTTYPE(INotifyEventType,
-                    INotifyMonitorContext,
+class INotifyEventPublisher : public EventPublisher {
+  DECLARE_EVENTPUBLISHER(INotifyEventPublisher,
+                    INotifySubscriptionContext,
                     INotifyEventContext);
 
  public:
@@ -97,19 +97,19 @@ class INotifyEventType : public EventType {
   void tearDown();
 
   Status run();
-  /// Overload EventType::addMonitor to perform optimizations at add time.
-  Status addMonitor(const MonitorRef monitor);
+  /// Overload EventPublisher::addSubscription to perform optimizations at add time.
+  Status addSubscription(const SubscriptionRef subscription);
 
-  INotifyEventType() : EventType() { inotify_handle_ = -1; }
+  INotifyEventPublisher() : EventPublisher() { inotify_handle_ = -1; }
   /// Check if the application-global `inotify` handle is alive.
   bool isHandleOpen() { return inotify_handle_ > 0; }
 
  private:
   INotifyEventContextRef createEventContext(struct inotify_event* event);
-  /// Check all added Monitor%s for a path.
-  bool isMonitored(const std::string& path);
-  /// Given a MonitorContext and INotifyEventContext match path and action.
-  bool shouldFire(const INotifyMonitorContextRef mc,
+  /// Check all added Subscription%s for a path.
+  bool isSubscriptioned(const std::string& path);
+  /// Given a SubscriptionContext and INotifyEventContext match path and action.
+  bool shouldFire(const INotifySubscriptionContextRef mc,
                   const INotifyEventContextRef ec);
   /// Get the INotify file descriptor.
   int getHandle() { return inotify_handle_; }
