@@ -244,13 +244,10 @@ function main() {
     if [[ ! -f "/usr/local/bin/brew" ]]; then
       fatal "could not find homebrew. please install it from http://brew.sh/"
     fi
+    brew update
 
-    if brew list | grep --quiet wget; then
-      log "wget is already installed. skipping"
-    else
-      brew install wget
-    fi
-
+    package rocksdb
+    package wget
     package cmake
     package boost --c++11
     package gflags
@@ -259,7 +256,6 @@ function main() {
     package readline
     package thrift
     package lz4
-    install_rocksdb
   fi
 
   cd $SCRIPT_DIR/../
