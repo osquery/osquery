@@ -138,8 +138,8 @@ TEST_F(INotifyTests, test_inotify_run) {
   EventFactory::end(false);
 }
 
-class TestINotifyEventModule : public EventModule {
-  DECLARE_EVENTMODULE(TestINotifyEventModule, INotifyEventType);
+class TestINotifyEventSubscriber : public EventSubscriber {
+  DECLARE_EVENTMODULE(TestINotifyEventSubscriber, INotifyEventType);
   DECLARE_CALLBACK(SimpleCallback, INotifyEventContext);
   DECLARE_CALLBACK(Callback, INotifyEventContext);
 
@@ -170,7 +170,7 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
   StartEventLoop();
 
   // Create a monitoring context, note the added Event to the symbol
-  MonitorAction(0, TestINotifyEventModule::EventSimpleCallback);
+  MonitorAction(0, TestINotifyEventSubscriber::EventSimpleCallback);
 
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
   fputs("inotify", fd);
@@ -178,7 +178,7 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
   waitForEvent(2000);
 
   // Make sure our expected event fired (aka monitor callback was called).
-  EXPECT_TRUE(TestINotifyEventModule::getInstance()->callback_count_ > 0);
+  EXPECT_TRUE(TestINotifyEventSubscriber::getInstance()->callback_count_ > 0);
 
   // Cause the thread to tear down.
   EndEventLoop();
@@ -187,7 +187,7 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
 TEST_F(INotifyTests, test_inotify_event_action) {
   // Assume event type is registered.
   StartEventLoop();
-  MonitorAction(0, TestINotifyEventModule::EventCallback);
+  MonitorAction(0, TestINotifyEventSubscriber::EventCallback);
 
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
   fputs("inotify", fd);
@@ -195,11 +195,11 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   waitForEvent(2000, 4);
 
   // Make sure the inotify action was expected.
-  EXPECT_EQ(TestINotifyEventModule::getInstance()->actions_.size(), 4);
-  EXPECT_EQ(TestINotifyEventModule::getInstance()->actions_[0], "UPDATED");
-  EXPECT_EQ(TestINotifyEventModule::getInstance()->actions_[1], "OPENED");
-  EXPECT_EQ(TestINotifyEventModule::getInstance()->actions_[2], "UPDATED");
-  EXPECT_EQ(TestINotifyEventModule::getInstance()->actions_[3], "UPDATED");
+  EXPECT_EQ(TestINotifyEventSubscriber::getInstance()->actions_.size(), 4);
+  EXPECT_EQ(TestINotifyEventSubscriber::getInstance()->actions_[0], "UPDATED");
+  EXPECT_EQ(TestINotifyEventSubscriber::getInstance()->actions_[1], "OPENED");
+  EXPECT_EQ(TestINotifyEventSubscriber::getInstance()->actions_[2], "UPDATED");
+  EXPECT_EQ(TestINotifyEventSubscriber::getInstance()->actions_[3], "UPDATED");
 
   // Cause the thread to tear down.
   EndEventLoop();

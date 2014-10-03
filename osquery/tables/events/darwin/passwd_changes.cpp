@@ -22,10 +22,10 @@ const std::vector<std::string> kDarwinPasswdPaths = {"/etc/passwd",
 /**
  * @brief Track time, action changes to /etc/passwd
  *
- * This is mostly an example EventModule implementation.
+ * This is mostly an example EventSubscriber implementation.
  */
-class PasswdChangesEventModule : public EventModule {
-  DECLARE_EVENTMODULE(PasswdChangesEventModule, FSEventsEventType);
+class PasswdChangesEventSubscriber : public EventSubscriber {
+  DECLARE_EVENTMODULE(PasswdChangesEventSubscriber, FSEventsEventType);
   DECLARE_CALLBACK(Callback, FSEventsEventContext);
 
  public:
@@ -35,7 +35,7 @@ class PasswdChangesEventModule : public EventModule {
    * @brief This exports a single Callback for INotifyEventType events.
    *
    * @param ec The EventCallback type receives an EventContextRef substruct
-   * for the INotifyEventType declared in this EventModule subclass.
+   * for the INotifyEventType declared in this EventSubscriber subclass.
    *
    * @return Was the callback successfull.
    */
@@ -43,14 +43,14 @@ class PasswdChangesEventModule : public EventModule {
 };
 
 /**
- * @brief Each EventModule must register itself so the init method is called.
+ * @brief Each EventSubscriber must register itself so the init method is called.
  *
- * This registers PasswdChangesEventModule into the osquery EventModule
+ * This registers PasswdChangesEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
  */
-REGISTER_EVENTMODULE(PasswdChangesEventModule);
+REGISTER_EVENTMODULE(PasswdChangesEventSubscriber);
 
-void PasswdChangesEventModule::init() {
+void PasswdChangesEventSubscriber::init() {
   for (const auto& path : kDarwinPasswdPaths) {
     auto mc = FSEventsEventType::createMonitorContext();
     mc->path = path;
@@ -58,7 +58,7 @@ void PasswdChangesEventModule::init() {
   }
 }
 
-Status PasswdChangesEventModule::Callback(const FSEventsEventContextRef ec) {
+Status PasswdChangesEventSubscriber::Callback(const FSEventsEventContextRef ec) {
   Row r;
   r["action"] = ec->action;
   r["time"] = ec->time_string;

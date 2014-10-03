@@ -159,8 +159,8 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   EventFactory::end(false);
 }
 
-class TestFSEventsEventModule : public EventModule {
-  DECLARE_EVENTMODULE(TestFSEventsEventModule, FSEventsEventType);
+class TestFSEventsEventSubscriber : public EventSubscriber {
+  DECLARE_EVENTMODULE(TestFSEventsEventSubscriber, FSEventsEventType);
   DECLARE_CALLBACK(SimpleCallback, FSEventsEventContext);
   DECLARE_CALLBACK(Callback, FSEventsEventContext);
 
@@ -201,18 +201,18 @@ class TestFSEventsEventModule : public EventModule {
 TEST_F(FSEventsTests, test_fsevents_fire_event) {
   // Assume event type is registered.
   StartEventLoop();
-  TestFSEventsEventModule::getInstance()->init();
+  TestFSEventsEventSubscriber::getInstance()->init();
 
   // Create a monitoring context, note the added Event to the symbol
-  MonitorAction(0, TestFSEventsEventModule::EventSimpleCallback);
+  MonitorAction(0, TestFSEventsEventSubscriber::EventSimpleCallback);
 
   CreateEvents();
 
   // This time wait for the callback.
-  TestFSEventsEventModule::WaitForEvents(kMaxEventLatency);
+  TestFSEventsEventSubscriber::WaitForEvents(kMaxEventLatency);
 
   // Make sure our expected event fired (aka monitor callback was called).
-  EXPECT_TRUE(TestFSEventsEventModule::getInstance()->callback_count_ > 0);
+  EXPECT_TRUE(TestFSEventsEventSubscriber::getInstance()->callback_count_ > 0);
 
   // Cause the thread to tear down.
   EndEventLoop();
@@ -221,16 +221,16 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
 TEST_F(FSEventsTests, test_fsevents_event_action) {
   // Assume event type is registered.
   StartEventLoop();
-  TestFSEventsEventModule::getInstance()->init();
+  TestFSEventsEventSubscriber::getInstance()->init();
 
-  TestFSEventsEventModule::getInstance()->callback_count_ = 0;
-  MonitorAction(0, TestFSEventsEventModule::EventCallback);
+  TestFSEventsEventSubscriber::getInstance()->callback_count_ = 0;
+  MonitorAction(0, TestFSEventsEventSubscriber::EventCallback);
 
   CreateEvents();
-  TestFSEventsEventModule::WaitForEvents(kMaxEventLatency);
+  TestFSEventsEventSubscriber::WaitForEvents(kMaxEventLatency);
 
   // Make sure the fsevents action was expected.
-  const auto& event_module = TestFSEventsEventModule::getInstance();
+  const auto& event_module = TestFSEventsEventSubscriber::getInstance();
   EXPECT_TRUE(event_module->actions_.size() > 0);
   if (event_module->actions_.size() > 1) {
     EXPECT_EQ(event_module->actions_[0], "UPDATED");

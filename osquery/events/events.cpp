@@ -59,7 +59,7 @@ Status EventType::run() {
   return Status(1, "No runloop required");
 }
 
-std::vector<EventRecord> EventModule::getRecords(EventTime start,
+std::vector<EventRecord> EventSubscriber::getRecords(EventTime start,
                                                  EventTime stop) {
   Status status;
   std::vector<EventRecord> records;
@@ -105,7 +105,7 @@ std::vector<EventRecord> EventModule::getRecords(EventTime start,
   return records;
 }
 
-Status EventModule::recordEvent(EventID eid, EventTime time) {
+Status EventSubscriber::recordEvent(EventID eid, EventTime time) {
   Status status;
   auto db = DBHandle::getInstance();
   std::string time_value = boost::lexical_cast<std::string>(time);
@@ -161,7 +161,7 @@ Status EventModule::recordEvent(EventID eid, EventTime time) {
   return Status(0, "OK");
 }
 
-EventID EventModule::getEventID() {
+EventID EventSubscriber::getEventID() {
   Status status;
   auto db = DBHandle::getInstance();
   // First get an event ID from the meta key.
@@ -188,7 +188,7 @@ EventID EventModule::getEventID() {
   return eid_value;
 }
 
-QueryData EventModule::get(EventTime start, EventTime stop) {
+QueryData EventSubscriber::get(EventTime start, EventTime stop) {
   QueryData results;
   Status status;
   auto db = DBHandle::getInstance();
@@ -215,7 +215,7 @@ QueryData EventModule::get(EventTime start, EventTime stop) {
   return results;
 }
 
-Status EventModule::add(const Row& r, EventTime time) {
+Status EventSubscriber::add(const Row& r, EventTime time) {
   Status status;
   auto db = DBHandle::getInstance();
 
@@ -293,7 +293,7 @@ Status EventFactory::registerEventType(const EventTypeRef event_type) {
   return Status(0, "OK");
 }
 
-Status EventFactory::registerEventModule(const EventModuleRef event_module) {
+Status EventFactory::registerEventSubscriber(const EventSubscriberRef event_module) {
   auto& ef = EventFactory::getInstance();
   // Let the module initialize any Monitors.
   event_module->init();
@@ -368,14 +368,14 @@ Status EventFactory::deregisterEventTypes() {
 
 namespace osquery {
 namespace registries {
-void faucet(EventTypes ets, EventModules ems) {
+void faucet(EventTypes ets, EventSubscribers ems) {
   auto& ef = osquery::EventFactory::getInstance();
   for (const auto& event_type : ets) {
     ef.registerEventType(event_type.second);
   }
 
   for (const auto& event_module : ems) {
-    ef.registerEventModule(event_module.second);
+    ef.registerEventSubscriber(event_module.second);
   }
 }
 }

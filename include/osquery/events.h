@@ -20,7 +20,7 @@ namespace osquery {
 
 struct Monitor;
 class EventType;
-class EventModule;
+class EventSubscriber;
 
 typedef const std::string EventTypeID;
 typedef const std::string EventID;
@@ -29,7 +29,7 @@ typedef uint32_t EventTime;
 typedef std::pair<EventID, EventTime> EventRecord;
 
 /**
- * @brief An EventType will define a MonitorContext for EventModule%s to use.
+ * @brief An EventType will define a MonitorContext for EventSubscriber%s to use.
  *
  * Most EventType%s will reqire specific information for interacting with an OS
  * to receive events. The MonitorContext contains information the EventType will
@@ -43,11 +43,11 @@ typedef std::pair<EventID, EventTime> EventRecord;
 struct MonitorContext {};
 
 /**
- * @brief An EventModule EventCallback method will receive an EventContext.
+ * @brief An EventSubscriber EventCallback method will receive an EventContext.
  *
  * The EventContext contains the event-related data supplied by an EventType
- * when the event occures. If a monitoring EventModule is should be called
- * for the event the EventModule%'s EventCallback is passed an EventContext.
+ * when the event occures. If a monitoring EventSubscriber is should be called
+ * for the event the EventSubscriber%'s EventCallback is passed an EventContext.
  */
 struct EventContext {
   /// An unique counting ID specific to the EventType%'s fired events.
@@ -62,7 +62,7 @@ typedef std::shared_ptr<Monitor> MonitorRef;
 typedef std::shared_ptr<EventType> EventTypeRef;
 typedef std::shared_ptr<MonitorContext> MonitorContextRef;
 typedef std::shared_ptr<EventContext> EventContextRef;
-typedef std::shared_ptr<EventModule> EventModuleRef;
+typedef std::shared_ptr<EventSubscriber> EventSubscriberRef;
 
 typedef std::function<Status(EventContextRef, bool)> EventCallback;
 
@@ -89,7 +89,7 @@ extern const std::vector<size_t> kEventTimeLists;
  * @endcode
  *
  * This assumes new EventType%s will always include a custom MonitorContext
- * and EventContext. In the above example MyMonitorContext allows EventModule%s
+ * and EventContext. In the above example MyMonitorContext allows EventSubscriber%s
  * to downselect or customize what events to handle. And MyEventContext includes
  * fields specific to the new EventType.
  */
@@ -116,19 +116,19 @@ extern const std::vector<size_t> kEventTimeLists;
   }
 
 /**
- * @brief Required getter and namespace helper methods for EventModule%s.
+ * @brief Required getter and namespace helper methods for EventSubscriber%s.
  *
- * A new osquery `EventModule` should subclass EventModule with the following:
+ * A new osquery `EventSubscriber` should subclass EventSubscriber with the following:
  *
  * @code{.cpp}
  *   #include "osquery/events.h"
  *
- *   class MyEventModule: public EventModule {
- *     DECLARE_EVENTMODULE(MyEventModule, MyEventType);
+ *   class MyEventSubscriber: public EventSubscriber {
+ *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventType);
  *   }
  * @endcode
  *
- * EventModule%s should be specific to an EventType.
+ * EventSubscriber%s should be specific to an EventType.
  */
 #define DECLARE_EVENTMODULE(NAME, TYPE)                \
  public:                                               \
@@ -146,9 +146,9 @@ extern const std::vector<size_t> kEventTimeLists;
   NAME() {}
 
 /**
- * @brief Required callin EventModule method declaration helper.
+ * @brief Required callin EventSubscriber method declaration helper.
  *
- * An EventModule will include 1 or more EventCallback methods. Consider the
+ * An EventSubscriber will include 1 or more EventCallback methods. Consider the
  * following flow: (1) Event occurs, (2) EventCallback is called with the
  * event details, (3) details logged, (4) details are queried.
  *
@@ -158,8 +158,8 @@ extern const std::vector<size_t> kEventTimeLists;
  * @code{.cpp}
  *   #include "osquery/events.h"
  *
- *   class MyEventModule: public EventModule {
- *     DECLARE_EVENTMODULE(MyEventModule, MyEventType);
+ *   class MyEventSubscriber: public EventSubscriber {
+ *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventType);
  *     DECLARE_CALLBACK(MyCallback, MyEventContext)
  *
  *     Status ModuleMyCallback(EventContextID, EventTime, MyEventContext);
@@ -170,10 +170,10 @@ extern const std::vector<size_t> kEventTimeLists;
  *
  * @code{.cpp}
  *   EventFactory::addMonitor("MyEventType", my_monitor_context,
- *                            MyEventModule::MyCallback);
+ *                            MyEventSubscriber::MyCallback);
  * @endcode
  *
- * The binding from static method, function pointer, and EventModule
+ * The binding from static method, function pointer, and EventSubscriber
  * instance boilerplate code is added automatically.
  * Note: The macro will append `Module` to `MyCallback`.
  */
@@ -192,17 +192,17 @@ extern const std::vector<size_t> kEventTimeLists;
 /**
  * @brief Bind a monitor context to a declared EventCallback for this module.
  *
- * Binding refers to the association of a callback for this EventModule to
+ * Binding refers to the association of a callback for this EventSubscriber to
  * a configured MonitorContext. Under the hood "binding" creates a factory
- * Monitor for the EventType used by the EventModule. Such that when an event
+ * Monitor for the EventType used by the EventSubscriber. Such that when an event
  * of the EventType is fired, if the event details match the specifics of the
  * MonitorContext the EventMonitor%'s EventCallback will be called.
  *
  * @code{.cpp}
  *   #include "osquery/events.h"
  *
- *   class MyEventModule: public EventModule {
- *     DECLARE_EVENTMODULE(MyEventModule, MyEventType);
+ *   class MyEventSubscriber: public EventSubscriber {
+ *     DECLARE_EVENTMODULE(MyEventSubscriber, MyEventType);
  *     DECLARE_CALLBACK(MyCallback, MyEventContext);
  *
  *    public:
@@ -216,7 +216,7 @@ extern const std::vector<size_t> kEventTimeLists;
  * @endcode
  *
  * The symbol `MyCallback` must match in `DECLARE_CALLBACK`, `BIND_CALLBACK` and
- * as a member of this EventModule.
+ * as a member of this EventSubscriber.
  *
  * @param NAME The symbol for the EventCallback method used in DECLARE_CALLBACK.
  * @param MC The MonitorContext to bind.
@@ -236,8 +236,8 @@ extern const std::vector<size_t> kEventTimeLists;
  * A Monitor also functions to greatly scope an EventType%'s work.
  * Using the same filesystem example and the Linux inotify subsystem a Monitor
  * limits the number of inode watches to only those requested by appropriate
- * EventModule%s.
- * Note: EventModule%s and Monitors can be configured by the osquery user.
+ * EventSubscriber%s.
+ * Note: EventSubscriber%s and Monitors can be configured by the osquery user.
  *
  * Monitors are usually created with EventFactory members:
  *
@@ -333,7 +333,7 @@ class EventType {
   virtual Status run();
 
   /**
-   * @brief A new EventModule is monitoring events of this EventType.
+   * @brief A new EventSubscriber is monitoring events of this EventType.
    *
    * @param monitor The Monitor context information and optional EventCallback.
    *
@@ -411,21 +411,21 @@ class EventType {
 /**
  * @brief An interface binding Monitors, event response, and table generation.
  *
- * Use the EventModule interface when adding event monitors and defining callin
- * functions. The EventCallback is usually a member function for an EventModule.
- * The EventModule interface includes a very important `add` method
+ * Use the EventSubscriber interface when adding event monitors and defining callin
+ * functions. The EventCallback is usually a member function for an EventSubscriber.
+ * The EventSubscriber interface includes a very important `add` method
  * that abstracts the needed event to backing store interaction.
  *
  * Storing event data in the backing store must match a table spec for queries.
  * Small overheads exist that help query-time indexing and lookups.
  */
-class EventModule {
+class EventSubscriber {
  public:
   /// Called after EventType `setUp`. Add all Monitor%s here.
   /**
    * @brief Add Monitor%s to the EventType this module will act on.
    *
-   * When the EventModule%'s `init` method is called you are assured the
+   * When the EventSubscriber%'s `init` method is called you are assured the
    * EventType has `setUp` and is ready to monitor for events.
    */
   virtual void init() {}
@@ -433,7 +433,7 @@ class EventModule {
   /**
    * @brief Suggested entrypoint for table generation.
    *
-   * The EventModule is a convention that removes a lot of boilerplate event
+   * The EventSubscriber is a convention that removes a lot of boilerplate event
    * monitoring and acting. The `genTable` static entrypoint is the suggested
    * method for table specs.
    *
@@ -445,8 +445,8 @@ class EventModule {
   /**
    * @brief Store parsed event data from an EventCallback in a backing store.
    *
-   * Within a EventCallback the EventModule has an opprotunity to create
-   * an osquery Row element, add the relevant table data for the EventModule
+   * Within a EventCallback the EventSubscriber has an opprotunity to create
+   * an osquery Row element, add the relevant table data for the EventSubscriber
    * and store that element in the osquery backing store. At query-time
    * the added data will apply selection criteria and return these elements.
    * The backing store data retrieval is optimized by time-based indexes. It
@@ -460,9 +460,9 @@ class EventModule {
   virtual Status add(const osquery::Row& r, EventTime time) final;
 
   /**
-   * @brief Return all events added by this EventModule within start, stop.
+   * @brief Return all events added by this EventSubscriber within start, stop.
    *
-   * This is used internally (for the most part) by EventModule::genTable.
+   * This is used internally (for the most part) by EventSubscriber::genTable.
    *
    * @param start Inclusive lower bound time limit.
    * @param stop Inclusive upper bound time limit.
@@ -473,7 +473,7 @@ class EventModule {
   /*
    * @brief When `get`ting event results, return EventID%s from time indexes.
    *
-   * Used by EventModule::get to retrieve EventID, EventTime indexes. This
+   * Used by EventSubscriber::get to retrieve EventID, EventTime indexes. This
    * applies the lookup-efficiency checks for time list appropriate bins.
    * If the time range in 24 hours and there is a 24-hour list bin it will
    * be queried using a single backing store `Get` followed by two `Get`s of
@@ -490,9 +490,9 @@ class EventModule {
    * An EventID is an index/element-identifier for the backing store.
    * Each EventType maintains a fired EventContextID to identify the many
    * events that may or may not be fired to monitoring criteria for this
-   * EventModule. This EventContextID is NOT the same as an EventID.
-   * EventModule development should not require use of EventID%s, if this
-   * indexing is required within-EventCallback consider an EventModule%-unique
+   * EventSubscriber. This EventContextID is NOT the same as an EventID.
+   * EventSubscriber development should not require use of EventID%s, if this
+   * indexing is required within-EventCallback consider an EventSubscriber%-unique
    * indexing, counting mechanic.
    *
    * @return A unique ID for backing storage.
@@ -518,17 +518,17 @@ class EventModule {
   /**
    * @brief A single instance requirement for static callback facilities.
    *
-   * The EventModule constructor is NOT responsible for adding Monitor%s.
+   * The EventSubscriber constructor is NOT responsible for adding Monitor%s.
    * Please use `init` for adding Monitor%s as all EventType instances will
    * have run `setUp` and initialized their run loops.
    */
-  EventModule() {}
+  EventSubscriber() {}
 
   /// Backing storage indexing namespace definition methods.
   EventTypeID dbNamespace() { return type() + "." + name(); }
-  /// The string EventType identifying this EventModule.
+  /// The string EventType identifying this EventSubscriber.
   virtual EventTypeID type() const = 0;
-  /// The string name identifying this EventModule.
+  /// The string name identifying this EventSubscriber.
   virtual EventTypeID name() const = 0;
 
  private:
@@ -583,28 +583,28 @@ class EventFactory {
   static Status registerEventType(const EventTypeRef event_type);
 
   /**
-   * @brief Add an EventModule to the factory.
+   * @brief Add an EventSubscriber to the factory.
    *
    * The registration is mostly abstracted using osquery's registery.
    */
   template <typename T>
-  static Status registerEventModule() {
+  static Status registerEventSubscriber() {
     auto event_module = T::getInstance();
-    return EventFactory::registerEventModule(event_module);
+    return EventFactory::registerEventSubscriber(event_module);
   }
 
   /**
-   * @brief Add an EventModule to the factory.
+   * @brief Add an EventSubscriber to the factory.
    *
    * The registration is mostly abstracted using osquery's registery.
    *
-   * @param event_module If the caller must access the EventModule instance
+   * @param event_module If the caller must access the EventSubscriber instance
    * control may be passed to the registry.
    *
-   * Access to the EventModule instance outside of the within-instance
+   * Access to the EventSubscriber instance outside of the within-instance
    * table generation method and set of EventCallback%s is discouraged.
    */
-  static Status registerEventModule(const EventModuleRef event_module);
+  static Status registerEventSubscriber(const EventSubscriberRef event_module);
 
   /**
    * @brief Add a MonitorContext and EventCallback Monitor to an EventType.
@@ -650,7 +650,7 @@ class EventFactory {
   /**
    * @brief Halt the EventType run loop and call its `tearDown`.
    *
-   * Any EventModule%s with Monitor%s for this EventType will become useless.
+   * Any EventSubscriber%s with Monitor%s for this EventType will become useless.
    * osquery instanciators MUST deregister events.
    * EventType%s assume they can hook/trampoline, which requires cleanup.
    *
@@ -709,8 +709,8 @@ class EventFactory {
   /// Set of running EventType run loop threads.
   std::vector<std::shared_ptr<boost::thread>> threads_;
 
-  /// Set of instanciated EventModule Monitor sets (with callbacks and state).
-  std::vector<EventModuleRef> event_modules_;
+  /// Set of instanciated EventSubscriber Monitor sets (with callbacks and state).
+  std::vector<EventSubscriberRef> event_modules_;
 };
 }
 
@@ -721,28 +721,28 @@ DECLARE_REGISTRY(EventTypes, std::string, EventTypeRef);
   REGISTER(EventTypes, #decorator, std::make_shared<decorator>());
 
 /**
- * @brief Expose a Plugin-link Registry for EventModule instances.
+ * @brief Expose a Plugin-link Registry for EventSubscriber instances.
  *
- * In most cases the EventModule class will organize itself to include
+ * In most cases the EventSubscriber class will organize itself to include
  * an generator entry point for query-time table generation too.
  */
-DECLARE_REGISTRY(EventModules, std::string, EventModuleRef);
-#define REGISTERED_EVENTMODULES REGISTRY(EventModules)
+DECLARE_REGISTRY(EventSubscribers, std::string, EventSubscriberRef);
+#define REGISTERED_EVENTMODULES REGISTRY(EventSubscribers)
 #define REGISTER_EVENTMODULE(decorator) \
-  REGISTER(EventModules, #decorator, decorator::getInstance());
+  REGISTER(EventSubscribers, #decorator, decorator::getInstance());
 
 namespace osquery {
 namespace registries {
 /**
- * @brief A utility method for moving EventType%s and EventModule%s (plugins)
+ * @brief A utility method for moving EventType%s and EventSubscriber%s (plugins)
  * into the EventFactory.
  *
- * To handle run-time and compile-time EventType and EventModule additions
+ * To handle run-time and compile-time EventType and EventSubscriber additions
  * as plugins or extensions, the osquery Registry workflow is used. During
  * application launch (or within plugin load) the EventFactory faucet moves
  * managed instances of these types to the EventFactory. The EventType and
- * EventModule lifecycle/developer workflow is unknown to the Registry.
+ * EventSubscriber lifecycle/developer workflow is unknown to the Registry.
  */
-void faucet(EventTypes ets, EventModules ems);
+void faucet(EventTypes ets, EventSubscribers ems);
 }
 }

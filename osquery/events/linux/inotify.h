@@ -22,11 +22,11 @@ extern std::map<int, std::string> kMaskActions;
  * @brief Monitoring details for INotifyEventType events.
  *
  * This context is specific to INotifyEventType. It allows the monitoring
- * EventModule to set a path (file or directory) and a limited action mask.
- * Events are passed to the monitoring EventModule if they match the context
+ * EventSubscriber to set a path (file or directory) and a limited action mask.
+ * Events are passed to the monitoring EventSubscriber if they match the context
  * path (or anything within a directory if the path is a directory) and if the
  * event action is part of the mask. If the mask is 0 then all actions are 
- * passed to the EventModule.
+ * passed to the EventSubscriber.
  */
 struct INotifyMonitorContext : public MonitorContext {
   /// Monitor the following filesystem path.
@@ -58,7 +58,7 @@ struct INotifyMonitorContext : public MonitorContext {
  * @brief Event details for INotifyEventType events.
  */
 struct INotifyEventContext : public EventContext {
-  /// The inotify_event structure if the EventModule want to interact.
+  /// The inotify_event structure if the EventSubscriber want to interact.
   std::shared_ptr<struct inotify_event> event;
   /// A string path parsed from the inotify_event.
   std::string path;
@@ -77,7 +77,7 @@ typedef std::map<int, std::string> DescriptorPathMap;
 /**
  * @brief A Linux `inotify` EventType.
  *
- * This EventType allows EventModule%s to monitor for Linux `inotify` events.
+ * This EventType allows EventSubscriber%s to monitor for Linux `inotify` events.
  * Since these events are limited this EventType will optimize the watch
  * descriptors, keep track of the usage, implement optimizations/priority
  * where possible, and abstract file system events to a path/action context.
