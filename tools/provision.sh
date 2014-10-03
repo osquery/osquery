@@ -45,7 +45,7 @@ function install_thrift() {
     fi
     pushd thrift-0.9.1
     ./bootstrap.sh
-    ./configure --with-ruby=no --with-go=no
+    ./configure --with-ruby=no --with-go=no --with-erlang=no --with-java=no --with-python=no
     make
     sudo make install
     popd
