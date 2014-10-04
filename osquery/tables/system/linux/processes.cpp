@@ -87,7 +87,7 @@ QueryData genProcesses() {
   PROCTAB* proc = openproc(PROC_SELECTS);
 
   // Populate proc struc for each process.
-  while (proc_info = readproc(proc, NULL)) {
+  while ((proc_info = readproc(proc, NULL))) {
     Row r;
 
     r["pid"] = boost::lexical_cast<std::string>(proc_info->tid);
