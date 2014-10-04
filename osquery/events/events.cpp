@@ -50,7 +50,7 @@ void EventPublisher::fire(const EventContextRef ec, EventTime time) {
 }
 
 bool EventPublisher::shouldFire(const SubscriptionContextRef mc,
-                           const EventContextRef ec) {
+                                const EventContextRef ec) {
   return true;
 }
 
@@ -60,7 +60,7 @@ Status EventPublisher::run() {
 }
 
 std::vector<EventRecord> EventSubscriber::getRecords(EventTime start,
-                                                 EventTime stop) {
+                                                     EventTime stop) {
   Status status;
   std::vector<EventRecord> records;
   auto db = DBHandle::getInstance();
@@ -293,7 +293,8 @@ Status EventFactory::registerEventPublisher(const EventPublisherRef event_pub) {
   return Status(0, "OK");
 }
 
-Status EventFactory::registerEventSubscriber(const EventSubscriberRef event_module) {
+Status EventFactory::registerEventSubscriber(
+    const EventSubscriberRef event_module) {
   auto& ef = EventFactory::getInstance();
   // Let the module initialize any Subscriptions.
   event_module->init();
@@ -301,7 +302,8 @@ Status EventFactory::registerEventSubscriber(const EventSubscriberRef event_modu
   return Status(0, "OK");
 }
 
-Status EventFactory::addSubscription(EventPublisherID type_id, const SubscriptionRef subscription) {
+Status EventFactory::addSubscription(EventPublisherID type_id,
+                                     const SubscriptionRef subscription) {
   auto event_pub = EventFactory::getInstance().getEventPublisher(type_id);
   if (event_pub == nullptr) {
     // Cannot create a Subscription for a missing type_id.
@@ -315,21 +317,23 @@ Status EventFactory::addSubscription(EventPublisherID type_id, const Subscriptio
 }
 
 Status EventFactory::addSubscription(EventPublisherID type_id,
-                                const SubscriptionContextRef mc,
-                                EventCallback cb) {
+                                     const SubscriptionContextRef mc,
+                                     EventCallback cb) {
   auto subscription = Subscription::create(mc, cb);
   return EventFactory::addSubscription(type_id, subscription);
 }
 
 size_t EventFactory::numSubscriptions(EventPublisherID type_id) {
-  const auto& event_pub = EventFactory::getInstance().getEventPublisher(type_id);
+  const auto& event_pub =
+      EventFactory::getInstance().getEventPublisher(type_id);
   if (event_pub != nullptr) {
     return event_pub->numSubscriptions();
   }
   return 0;
 }
 
-std::shared_ptr<EventPublisher> EventFactory::getEventPublisher(EventPublisherID type_id) {
+std::shared_ptr<EventPublisher> EventFactory::getEventPublisher(
+    EventPublisherID type_id) {
   auto& ef = EventFactory::getInstance();
   const auto& it = ef.event_pubs_.find(type_id);
   if (it != ef.event_pubs_.end()) {
@@ -338,7 +342,8 @@ std::shared_ptr<EventPublisher> EventFactory::getEventPublisher(EventPublisherID
   return nullptr;
 }
 
-Status EventFactory::deregisterEventPublisher(const EventPublisherRef event_pub) {
+Status EventFactory::deregisterEventPublisher(
+    const EventPublisherRef event_pub) {
   return EventFactory::deregisterEventPublisher(event_pub->type());
 }
 

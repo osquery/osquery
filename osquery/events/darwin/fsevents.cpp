@@ -40,7 +40,7 @@ void FSEventsEventPublisher::restart() {
                                   reinterpret_cast<const void**>(&cf_paths[0]),
                                   cf_paths.size(),
                                   &kCFTypeArrayCallBacks);
-  
+
   // Remove any existing stream.
   stop();
 
@@ -124,12 +124,13 @@ Status FSEventsEventPublisher::run() {
   return Status(0, "OK");
 }
 
-void FSEventsEventPublisher::Callback(ConstFSEventStreamRef stream,
-                                 void* callback_info,
-                                 size_t num_events,
-                                 void* event_paths,
-                                 const FSEventStreamEventFlags fsevent_flags[],
-                                 const FSEventStreamEventId fsevent_ids[]) {
+void FSEventsEventPublisher::Callback(
+    ConstFSEventStreamRef stream,
+    void* callback_info,
+    size_t num_events,
+    void* event_paths,
+    const FSEventStreamEventFlags fsevent_flags[],
+    const FSEventStreamEventId fsevent_ids[]) {
   for (size_t i = 0; i < num_events; ++i) {
     auto ec = createEventContext();
     ec->fsevent_stream = stream;
@@ -150,7 +151,7 @@ void FSEventsEventPublisher::Callback(ConstFSEventStreamRef stream,
 }
 
 bool FSEventsEventPublisher::shouldFire(const FSEventsSubscriptionContextRef mc,
-                                   const FSEventsEventContextRef ec) {
+                                        const FSEventsEventContextRef ec) {
   ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
     return false;
@@ -173,7 +174,9 @@ void FSEventsEventPublisher::flush(bool async) {
   }
 }
 
-size_t FSEventsEventPublisher::numSubscriptionedPaths() { return paths_.size(); }
+size_t FSEventsEventPublisher::numSubscriptionedPaths() {
+  return paths_.size();
+}
 
 bool FSEventsEventPublisher::isStreamRunning() {
   if (stream_ == nullptr || !stream_started_) {

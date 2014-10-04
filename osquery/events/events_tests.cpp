@@ -12,11 +12,15 @@ class EventsTests : public testing::Test {
 };
 
 class BasicEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(BasicEventPublisher, SubscriptionContext, EventContext);
+  DECLARE_EVENTPUBLISHER(BasicEventPublisher,
+                         SubscriptionContext,
+                         EventContext);
 };
 
 class FakeBasicEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(FakeBasicEventPublisher, SubscriptionContext, EventContext);
+  DECLARE_EVENTPUBLISHER(FakeBasicEventPublisher,
+                         SubscriptionContext,
+                         EventContext);
 };
 
 TEST_F(EventsTests, test_register_event_pub) {
@@ -56,10 +60,12 @@ TEST_F(EventsTests, test_create_subscription) {
   // Make sure a subscription cannot be added for a non-existent event type.
   // Note: It normally would not make sense to create a blank subscription.
   auto subscription = Subscription::create();
-  status = EventFactory::addSubscription("FakeBasicEventPublisher", subscription);
+  status =
+      EventFactory::addSubscription("FakeBasicEventPublisher", subscription);
   EXPECT_FALSE(status.ok());
 
-  // In this case we can still add a blank subscription to an existing event type.
+  // In this case we can still add a blank subscription to an existing event
+  // type.
   status = EventFactory::addSubscription("BasicEventPublisher", subscription);
   EXPECT_TRUE(status.ok());
 
@@ -84,7 +90,9 @@ struct TestSubscriptionContext : public SubscriptionContext {
 };
 
 class TestEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(TestEventPublisher, TestSubscriptionContext, EventContext);
+  DECLARE_EVENTPUBLISHER(TestEventPublisher,
+                         TestSubscriptionContext,
+                         EventContext);
 
  public:
   void setUp() { smallest_ever_ += 1; }
@@ -147,7 +155,8 @@ TEST_F(EventsTests, test_custom_subscription) {
   subscription_context->smallest = -1;
 
   // Step 3, add the subscription to the event type
-  status = EventFactory::addSubscription("TestEventPublisher", subscription_context);
+  status =
+      EventFactory::addSubscription("TestEventPublisher", subscription_context);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(event_pub->numSubscriptions(), 1);
 
@@ -207,7 +216,8 @@ TEST_F(EventsTests, test_fire_event) {
   EXPECT_EQ(kBellHathTolled, 1);
 
   auto second_subscription = Subscription::create();
-  status = EventFactory::addSubscription("BasicEventPublisher", second_subscription);
+  status =
+      EventFactory::addSubscription("BasicEventPublisher", second_subscription);
 
   // Now there are two subscriptions (one sans callback).
   event_pub->fire(ec, 0);
