@@ -1,45 +1,35 @@
 SET(OSQUERY_LIBS
-  # general
   readline
-
-  # sqlite
   pthread
   dl
-
-  # gflags
-  libgflags.a
-
-  # glog
-  libglog.a
-
-  # gtest
-  gtest
-
-  # rocksdb
-  librocksdb.a
-  libsnappy.a
   bz2
   z
-
-  # thrift
-  libthrift.a
   crypto
   ssl
-
-  # boost
-  libboost_system.a
-  libboost_filesystem.a
-  libboost_program_options.a
-  libboost_regex.a
 )
 
-# Handle naming differences in MT threading
 if(APPLE)
-  list(APPEND OSQUERY_LIBS "libboost_thread-mt.a")
-  list(APPEND OSQUERY_LIBS "liblz4.a")
+  list(APPEND OSQUERY_LIBS "boost_thread-mt")
+  list(APPEND OSQUERY_LIBS "boost_system")
+  list(APPEND OSQUERY_LIBS "boost_filesystem")
+  list(APPEND OSQUERY_LIBS "boost_program_options")
+  list(APPEND OSQUERY_LIBS "boost_regex")
+  list(APPEND OSQUERY_LIBS "thrift")
+  list(APPEND OSQUERY_LIBS "rocksdb")
+  list(APPEND OSQUERY_LIBS "gflags")
+  list(APPEND OSQUERY_LIBS "glog")
 else()
   list(APPEND OSQUERY_LIBS "rt")
+  list(APPEND OSQUERY_LIBS "libgflags.a")
+  list(APPEND OSQUERY_LIBS "libglog.a")
+  list(APPEND OSQUERY_LIBS "librocksdb.a")
+  list(APPEND OSQUERY_LIBS "libsnappy.a")
+  list(APPEND OSQUERY_LIBS "libthrift.a")
   list(APPEND OSQUERY_LIBS "libboost_thread.a")
+  list(APPEND OSQUERY_LIBS "libboost_system.a")
+  list(APPEND OSQUERY_LIBS "libboost_filesystem.a")
+  list(APPEND OSQUERY_LIBS "libboost_program_options.a")
+  list(APPEND OSQUERY_LIBS "libboost_regex.a")
   list(APPEND OSQUERY_LIBS "libunwind.a")
   list(APPEND OSQUERY_LIBS "liblzma.a")
   if(EXISTS "/usr/lib/libproc.a")
@@ -85,6 +75,7 @@ MACRO(ADD_OSQUERY_TEST TEST_NAME SOURCE)
   ADD_EXECUTABLE(${TEST_NAME} ${SOURCE})
   TARGET_LINK_LIBRARIES(${TEST_NAME} ${OSQUERY_ADDITIONAL_LINKS})
   TARGET_LINK_LIBRARIES(${TEST_NAME} osquery_shared)
+  TARGET_LINK_LIBRARIES(${TEST_NAME} gtest)
   SET(OPTIONAL_FLAGS ${ARGN})
   SET_OSQUERY_COMPILE(${TEST_NAME} ${OPTIONAL_FLAGS})
   ADD_TEST(${TEST_NAME} ${TEST_NAME})
@@ -228,13 +219,4 @@ if(NOT APPLE)
   endif()
 
   INCLUDE(CPack)
-else()
-  ADD_CUSTOM_TARGET(
-    package
-    packagesbuild -v ${CMAKE_SOURCE_DIR}/deploy/darwin/osquery.pkgproj &&
-    mv ${CMAKE_SOURCE_DIR}/deploy/darwin/build/osquery.pkg ${CMAKE_SOURCE_DIR}/build/osquery.pkg &&
-    rm -rf ${CMAKE_SOURCE_DIR}/deploy/darwin/build
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Generate OS X Package"
-  )
 endif()
