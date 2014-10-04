@@ -223,7 +223,6 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   StartEventLoop();
   TestFSEventsEventSubscriber::getInstance()->init();
 
-  TestFSEventsEventSubscriber::getInstance()->callback_count_ = 0;
   SubscriptionAction(0, TestFSEventsEventSubscriber::EventCallback);
 
   CreateEvents();
