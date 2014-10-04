@@ -37,6 +37,36 @@ std::string canonical_ip_address(const struct sockaddr *in) {
   return address;
 }
 
+inline short addBits(unsigned char byte) {
+  short bits = 0;
+  for (int i = 7; i >= 0; --i) {
+    if ((byte & (1 << i)) == 0) {
+      break;
+    }
+    bits++;
+  }
+  return bits;
+}
+
+int netmaskFromIP(const struct sockaddr *in) {
+  int mask = 0;
+
+  if (in->sa_family == AF_INET6) {
+    struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)in;
+    for (size_t i = 0; i < 16; i++) {
+      mask += addBits(in6->sin6_addr.s6_addr[i]);
+    }
+  } else {
+    struct sockaddr_in *in4 = (struct sockaddr_in *)in;
+    char *address = reinterpret_cast<char *>(&in4->sin_addr.s_addr);
+    for (size_t i = 0; i < 4; i++) {
+      mask += addBits(address[i]);
+    }
+  }
+
+  return mask;
+}
+
 std::string canonical_mac_address(const struct ifaddrs *addr) {
   std::stringstream mac;
 

@@ -12,6 +12,7 @@
 #include <net/route.h>
 #include <sys/sysctl.h>
 
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <glog/logging.h>
@@ -38,8 +39,7 @@ const std::vector<RouteType> kRouteTypes = {
     std::make_pair(RTF_STATIC, "static"),
     std::make_pair(RTF_BLACKHOLE, "blackhole"),
     std::make_pair(RTF_ROUTER, "router"),
-    std::make_pair(RTF_PROXY, "proxy"),
-};
+    std::make_pair(RTF_PROXY, "proxy"), };
 
 InterfaceMap genInterfaceMap() {
   InterfaceMap ifmap;
@@ -55,9 +55,9 @@ InterfaceMap genInterfaceMap() {
   InterfaceMap::iterator it = ifmap.begin();
   for (if_addr = if_addrs; if_addr != NULL; if_addr = if_addr->ifa_next) {
     if (if_addr->ifa_addr != NULL && if_addr->ifa_addr->sa_family == AF_LINK) {
+      std::string route_type = std::string(if_addr->ifa_name);
       sdl = (struct sockaddr_dl *)if_addr->ifa_addr;
-      ifmap.insert(
-          it, std::make_pair(sdl->sdl_index, std::string(if_addr->ifa_name)));
+      ifmap.insert(it, std::make_pair(sdl->sdl_index, route_type));
     }
   }
 
@@ -104,8 +104,8 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
 
     Row r;
     r["type"] = type.second;
+
     r["flags"] = boost::lexical_cast<std::string>(route->rtm_flags);
-    r["use"] = boost::lexical_cast<std::string>(route->rtm_use);
     r["mtu"] = boost::lexical_cast<std::string>(route->rtm_rmx.rmx_mtu);
 
     if ((route->rtm_addrs & RTA_DST) == RTA_DST) {
@@ -119,12 +119,22 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
     }
 
     if (kDefaultRoute.compare(r["destination"]) == 0) {
-      r["netmask"] = kDefaultRoute;
+      r["netmask"] = "0";
     } else if ((route->rtm_addrs & RTA_NETMASK) == RTA_NETMASK) {
       sa_table[RTAX_NETMASK]->sa_family = sa_table[RTAX_DST]->sa_family;
-      r["netmask"] = canonical_ip_address(sa_table[RTAX_NETMASK]);
+      r["netmask"] = boost::lexical_cast<std::string>(
+          netmaskFromIP(sa_table[RTAX_NETMASK]));
+    } else {
+      if (sa_table[RTA_DST]->sa_family == AF_INET6) {
+        r["netmask"] = "128";
+      } else {
+        r["netmask"] = "32";
+      }
     }
 
+    // Fields not supported by OSX routes:
+    r["source"] = "";
+    r["metric"] = "0";
     results.push_back(r);
   }
 

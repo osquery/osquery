@@ -3,10 +3,11 @@ schema([
     Column(name="destination", type="std::string"),
     Column(name="netmask", type="std::string"),
     Column(name="gateway", type="std::string"),
+    Column(name="source", type="std::string"),
     Column(name="flags", type="int"),
-    Column(name="use", type="int"),
     Column(name="interface", type="std::string"),
-    Column(name="mtu", type="int"),
+   	Column(name="mtu", type="int"),
+    Column(name="metric", type="int"),
     Column(name="type", type="std::string"),
 ])
-implementation("routes@genRoutes")
+implementation("networking/routes@genRoutes")
