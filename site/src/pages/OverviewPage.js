@@ -9,7 +9,7 @@ var PageHeader = require('../components/PageHeader');
 var PageFooter = require('../components/PageFooter');
 var WideContainer = require('../components/WideContainer')
 
-var OverviewPage = React.createClass({
+var Page = React.createClass({
   render: function () {
     return (
       <BasePage pageName="overview">
@@ -41,4 +41,4 @@ var OverviewPage = React.createClass({
   }
 });
 
-module.exports = OverviewPage;
+module.exports = Page;

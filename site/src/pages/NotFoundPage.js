@@ -7,7 +7,7 @@ var React = require('react');
 var BasePage = require('./BasePage');
 var PageHeader = require('../components/PageHeader');
 
-var NotFoundPage = React.createClass({
+var Page = React.createClass({
   render: function () {
     return (
       <BasePage>
@@ -19,4 +19,4 @@ var NotFoundPage = React.createClass({
   }
 });
 
-module.exports = NotFoundPage;
+module.exports = Page;
