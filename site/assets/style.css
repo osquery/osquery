@@ -81,7 +81,7 @@ body {
 }
 
 @media (min-width: 768px) {
-  .logo-icon {
+  .logo-icon-md {
     background: url('./logo.png') 0 0 no-repeat;
     background-size: 90% 90%;
     background-position: center;

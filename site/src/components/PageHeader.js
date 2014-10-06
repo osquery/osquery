@@ -15,7 +15,7 @@ var PageHeader = React.createClass({
               <p>{this.props.subTitle}</p>
             </div>
             <div className="col-md-3">
-              <div className="logo-icon"></div>
+              <div className="logo-icon-md"></div>
             </div>
           </div>
         </div>

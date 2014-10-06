@@ -62,20 +62,20 @@ var NavMain = React.createClass({
     var link = EXTERNAL_NAV_LINKS[linkName];
 
     return (
-        <li key={linkName}>
-          <a href={link.link} target="_blank">{link.title}</a>
-        </li>
-      );
+      <li key={linkName}>
+        <a href={link.link} target="_blank">{link.title}</a>
+      </li>
+    );
   },
 
   renderNavItem: function (linkName) {
     var link = NAV_LINKS[linkName];
 
     return (
-        <li className={this.props.activePage === linkName ? 'active' : null} key={linkName}>
-          <InternalLink href={link.link}>{link.title}</InternalLink>
-        </li>
-      );
+      <li className={this.props.activePage === linkName ? 'active' : null} key={linkName}>
+        <InternalLink href={link.link}>{link.title}</InternalLink>
+      </li>
+    );
   }
 });
 

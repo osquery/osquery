@@ -12,7 +12,7 @@ var Page = React.createClass({
     return (
       <BasePage pageName="home">
         <Hero>
-          <span className="bs-docs-booticon bs-docs-booticon-lg bs-docs-booticon-outline"></span>
+          <div className="bs-docs-booticon bs-docs-booticon-lg bs-docs-booticon-outline"></div>
           <p className="lead">SQL powered operating system instrumentation and analytics.</p>
         </Hero>
       </BasePage>
