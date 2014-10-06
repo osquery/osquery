@@ -92,6 +92,22 @@ Status listFilesInDirectory(const std::string& path,
   }
 }
 
+Status getDirectory(const std::string& path, std::string& dirpath) {
+  if (isDirectory(path).ok()) {
+    dirpath = boost::filesystem::path(path).parent_path().string();
+    return Status(0, "OK");
+  }
+  dirpath = path;
+  return Status(1, "Path is a directory");
+}
+
+Status isDirectory(const std::string& path) {
+  if (boost::filesystem::is_directory(path)) {
+    return Status(0, "OK");
+  }
+  return Status(1, "Path is not a directory");
+}
+
 Status parseTomcatUserConfigFromDisk(
     const std::string& path,
     std::vector<std::pair<std::string, std::string>>& credentials) {

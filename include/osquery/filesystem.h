@@ -19,23 +19,23 @@ namespace osquery {
  * @param content a reference to a string which will be populated with the
  * contents of the path indicated by the path parameter
  *
- * @return an instance of osquery::Status, indicating the success or failure
+ * @return an instance of Status, indicating the success or failure
  * of the operation.
  */
-osquery::Status readFile(const std::string& path, std::string& content);
+Status readFile(const std::string& path, std::string& content);
 
 /**
  * @brief A helper to check if a path exists on disk or not.
  *
  * @param path the path on disk which you would like to check the existance of
  *
- * @return an instance of osquery::Status, indicating the success or failure
- * of the operation. Specifically, the code of the osquery::Status instance
+ * @return an instance of Status, indicating the success or failure
+ * of the operation. Specifically, the code of the Status instance
  * will be -1 if no input was supplied, assuming the caller is not aware of how
  * to check path-getter results. The code will be 0 if the path does not exist
  * on disk and 1 if the path does exist on disk.
  */
-osquery::Status pathExists(const std::string& path);
+Status pathExists(const std::string& path);
 
 /**
  * @brief List all of the files in a specific directory, non-recursively.
@@ -45,11 +45,31 @@ osquery::Status pathExists(const std::string& path);
  * with the directory listing of the path param, assuming that all operations
  * completed successfully.
  *
- * @return an instance of osquery::Status, indicating the success or failure
+ * @return an instance of Status, indicating the success or failure
  * of the operation.
  */
-osquery::Status listFilesInDirectory(const std::string& path,
+Status listFilesInDirectory(const std::string& path,
                                      std::vector<std::string>& results);
+
+/**
+ * @brief Get directory portion of a path.
+ *
+ * @param path The input path, either a filename or directory.
+ * @param dirpath a non-const reference to a resultant directory portion.
+ *
+ * @return If the input path was a directory this will indicate failure. One
+ * should use `isDirectory` before.
+ */
+ Status getDirectory(const std::string& path, std::string& dirpath);
+
+/**
+ * @brief Check if an input path is a directory.
+ *
+ * @param path The input path, either a filename or directory.
+ *
+ * @return If the input path was a directory.
+ */
+ Status isDirectory(const std::string& path);
 
 /**
  * @brief Parse the users out of a tomcat user config from disk
@@ -59,10 +79,10 @@ osquery::Status listFilesInDirectory(const std::string& path,
  * in the supplied file. pair.first is the username and pair.second is the
  * password.
  *
- * @return an instance of osquery::Status, indicating the success or failure
+ * @return an instance of Status, indicating the success or failure
  * of the operation
  */
-osquery::Status parseTomcatUserConfigFromDisk(
+Status parseTomcatUserConfigFromDisk(
     const std::string& path,
     std::vector<std::pair<std::string, std::string> >& credentials);
 
@@ -74,10 +94,10 @@ osquery::Status parseTomcatUserConfigFromDisk(
  * in the supplied file. pair.first is the username and pair.second is the
  * password.
  *
- * @return an instance of osquery::Status, indicating the success or failure
+ * @return an instance of Status, indicating the success or failure
  * of the operation
  */
-osquery::Status parseTomcatUserConfig(
+Status parseTomcatUserConfig(
     const std::string& content,
     std::vector<std::pair<std::string, std::string> >& credentials);
 
@@ -89,10 +109,10 @@ osquery::Status parseTomcatUserConfig(
  * @param tree a non-const reference to a Boost property tree, which will be
  * populated with the results of the property list
  *
- * @return an instance of osquery::Status, indicating the success or failure
+ * @return an instance of Status, indicating the success or failure
  * of the operation.
  */
-osquery::Status parsePlist(const std::string& path,
+Status parsePlist(const std::string& path,
                            boost::property_tree::ptree& tree);
 /**
  * @brief Parse property list content into a property tree.
@@ -101,10 +121,10 @@ osquery::Status parsePlist(const std::string& path,
  * @param tree a non-const reference to a Boost property tree, which will be
  * populated with the results of the property list
  *
- * @return an instance of osquery::Status, indicating the success or failure
+ * @return an instance of Status, indicating the success or failure
  * of the operation.
  */
-osquery::Status parsePlistContent(const std::string& fileContent,
+Status parsePlistContent(const std::string& fileContent,
                                   boost::property_tree::ptree& tree);
 #endif
 }

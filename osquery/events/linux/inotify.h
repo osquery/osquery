@@ -21,11 +21,13 @@ extern std::map<int, std::string> kMaskActions;
 /**
  * @brief Subscriptioning details for INotifyEventPublisher events.
  *
- * This context is specific to INotifyEventPublisher. It allows the subscriptioning
+ * This context is specific to INotifyEventPublisher. It allows the
+ *subscriptioning
  * EventSubscriber to set a path (file or directory) and a limited action mask.
- * Events are passed to the subscriptioning EventSubscriber if they match the context
+ * Events are passed to the subscriptioning EventSubscriber if they match the
+ *context
  * path (or anything within a directory if the path is a directory) and if the
- * event action is part of the mask. If the mask is 0 then all actions are 
+ * event action is part of the mask. If the mask is 0 then all actions are
  * passed to the EventSubscriber.
  */
 struct INotifySubscriptionContext : public SubscriptionContext {
@@ -41,7 +43,7 @@ struct INotifySubscriptionContext : public SubscriptionContext {
   /**
    * @brief Helper method to map a string action to `inotify` action mask bit.
    *
-   * This helper method will set the `mask` value for this SubscriptionContext. 
+   * This helper method will set the `mask` value for this SubscriptionContext.
    *
    * @param action The string action, a value in kMaskAction%s.
    */
@@ -67,7 +69,8 @@ struct INotifyEventContext : public EventContext {
 };
 
 typedef std::shared_ptr<INotifyEventContext> INotifyEventContextRef;
-typedef std::shared_ptr<INotifySubscriptionContext> INotifySubscriptionContextRef;
+typedef std::shared_ptr<INotifySubscriptionContext>
+INotifySubscriptionContextRef;
 
 // Thread-safe containers
 typedef std::vector<int> DescriptorVector;
@@ -77,17 +80,19 @@ typedef std::map<int, std::string> DescriptorPathMap;
 /**
  * @brief A Linux `inotify` EventPublisher.
  *
- * This EventPublisher allows EventSubscriber%s to subscription for Linux `inotify` events.
+ * This EventPublisher allows EventSubscriber%s to subscription for Linux
+ *`inotify` events.
  * Since these events are limited this EventPublisher will optimize the watch
  * descriptors, keep track of the usage, implement optimizations/priority
  * where possible, and abstract file system events to a path/action context.
  *
- * Uses INotifySubscriptionContext and INotifyEventContext for subscriptioning, eventing.
+ * Uses INotifySubscriptionContext and INotifyEventContext for subscriptioning,
+ *eventing.
  */
 class INotifyEventPublisher : public EventPublisher {
   DECLARE_EVENTPUBLISHER(INotifyEventPublisher,
-                    INotifySubscriptionContext,
-                    INotifyEventContext);
+                         INotifySubscriptionContext,
+                         INotifyEventContext);
 
  public:
   /// Create an `inotify` handle descriptor.
@@ -97,8 +102,6 @@ class INotifyEventPublisher : public EventPublisher {
   void tearDown();
 
   Status run();
-  /// Overload EventPublisher::addSubscription to perform optimizations at add time.
-  Status addSubscription(const SubscriptionRef subscription);
 
   INotifyEventPublisher() : EventPublisher() { inotify_handle_ = -1; }
   /// Check if the application-global `inotify` handle is alive.
@@ -107,7 +110,12 @@ class INotifyEventPublisher : public EventPublisher {
  private:
   INotifyEventContextRef createEventContext(struct inotify_event* event);
   /// Check all added Subscription%s for a path.
-  bool isSubscriptioned(const std::string& path);
+  bool isPathMonitored(const std::string& path);
+  /// Add an INotify watch (monitor) on this path.
+  bool addMonitor(const std::string& path, bool recursive);
+  /// Remove an INotify watch (monitor) from our tracking.
+  bool removeMonitor(const std::string& path, bool force = false);
+  bool removeMonitor(int watch, bool force = false);
   /// Given a SubscriptionContext and INotifyEventContext match path and action.
   bool shouldFire(const INotifySubscriptionContextRef mc,
                   const INotifyEventContextRef ec);
