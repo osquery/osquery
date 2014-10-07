@@ -46,7 +46,8 @@ struct FSEventsEventContext : public EventContext {
 };
 
 typedef std::shared_ptr<FSEventsEventContext> FSEventsEventContextRef;
-typedef std::shared_ptr<FSEventsSubscriptionContext> FSEventsSubscriptionContextRef;
+typedef std::shared_ptr<FSEventsSubscriptionContext>
+FSEventsSubscriptionContextRef;
 
 /**
  * @brief An osquery EventPublisher for the Apple FSEvents notification API.
@@ -57,8 +58,8 @@ typedef std::shared_ptr<FSEventsSubscriptionContext> FSEventsSubscriptionContext
  */
 class FSEventsEventPublisher : public EventPublisher {
   DECLARE_EVENTPUBLISHER(FSEventsEventPublisher,
-                    FSEventsSubscriptionContext,
-                    FSEventsEventContext)
+                         FSEventsSubscriptionContext,
+                         FSEventsEventContext)
 
  public:
   void configure();
@@ -77,7 +78,8 @@ class FSEventsEventPublisher : public EventPublisher {
                        const FSEventStreamEventId fsevent_ids[]);
 
  public:
-  FSEventsEventPublisher() : EventPublisher(), stream_(nullptr), run_loop_(nullptr) {}
+  FSEventsEventPublisher()
+      : EventPublisher(), stream_(nullptr), run_loop_(nullptr) {}
   bool shouldFire(const FSEventsSubscriptionContextRef mc,
                   const FSEventsEventContextRef ec);
 
