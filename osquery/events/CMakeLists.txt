@@ -2,9 +2,11 @@ SET(OSQUERY_EVENTS_SOURCES "")
 
 if(APPLE)
   ADD_OSQUERY_LINK("-framework CoreServices")
+  ADD_OSQUERY_LINK("-framework SystemConfiguration")
 
   ADD_OSQUERY_LIBRARY(osquery_events_darwin
     darwin/fsevents.cpp
+    darwin/scnetwork.cpp
   )
 else()
   ADD_OSQUERY_LIBRARY(osquery_events_linux
