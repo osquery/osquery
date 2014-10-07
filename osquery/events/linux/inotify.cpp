@@ -119,7 +119,7 @@ INotifyEventContextRef INotifyEventPublisher::createEventContext(
 }
 
 bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef mc,
-                                  const INotifyEventContextRef ec) {
+                                       const INotifyEventContextRef ec) {
   ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
     return false;
@@ -132,7 +132,8 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef mc,
   return true;
 }
 
-Status INotifyEventPublisher::addSubscription(const SubscriptionRef subscription) {
+Status INotifyEventPublisher::addSubscription(
+    const SubscriptionRef subscription) {
   EventPublisher::addSubscription(subscription);
   // Instead of keeping track of every path, act greedy.
   const auto& mc = getSubscriptionContext(subscription->context);
