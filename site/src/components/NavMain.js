@@ -14,10 +14,6 @@ var NAV_LINKS = {
   'overview': {
     link: '/overview/',
     title: 'Overview'
-  },
-  'faq': {
-    link: '/faq/',
-    title: 'FAQ'
   }
 }
 

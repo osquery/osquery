@@ -6,7 +6,6 @@ var React = require('react');
 var Router = require('react-router-component');
 
 var HomePage = require('./pages/HomePage');
-var FAQPage = require('./pages/FAQPage');
 var OverviewPage = require('./pages/OverviewPage');
 var NotFoundPage = require('./pages/NotFoundPage');
 
@@ -22,8 +21,6 @@ var PagesHolder = React.createClass({
         <Location path="/index.html" handler={HomePage} />
         <Location path="/overview/" handler={OverviewPage} />
         <Location path="/overview/index.html" handler={OverviewPage} />
-        <Location path="/faq/" handler={FAQPage} />
-        <Location path="/faq/index.html" handler={FAQPage} />
         <NotFound handler={NotFoundPage} />
       </Locations>
     );
@@ -59,7 +56,6 @@ var Root = React.createClass({
     getPages: function () {
       return [
         '/index.html',
-        '/faq/index.html',
         '/overview/index.html'
       ];
     }

@@ -147,3 +147,20 @@ body {
 .code-toggle.open {
   background: #f8f5ec;
 }
+
+.showterm {
+  text-align:center;
+  width:100%;
+}
+
+.homepage-text {
+  padding-top: 40px;
+}
+
+a:hover {
+  color: #222222;
+}
+
+a {
+  color: #757575;
+}
