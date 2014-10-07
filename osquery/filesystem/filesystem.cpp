@@ -87,9 +87,26 @@ Status listFilesInDirectory(const std::string& path,
     }
 
     return Status(0, "OK");
-  } catch (const boost::filesystem::filesystem_error& e) {
+  }
+  catch (const boost::filesystem::filesystem_error& e) {
     return Status(1, e.what());
   }
+}
+
+Status getDirectory(const std::string& path, std::string& dirpath) {
+  if (!isDirectory(path).ok()) {
+    dirpath = boost::filesystem::path(path).parent_path().string();
+    return Status(0, "OK");
+  }
+  dirpath = path;
+  return Status(1, "Path is a directory");
+}
+
+Status isDirectory(const std::string& path) {
+  if (boost::filesystem::is_directory(path)) {
+    return Status(0, "OK");
+  }
+  return Status(1, "Path is not a directory");
 }
 
 Status parseTomcatUserConfigFromDisk(
@@ -112,7 +129,8 @@ Status parseTomcatUserConfig(
   pt::ptree tree;
   try {
     pt::xml_parser::read_xml(ss, tree);
-  } catch (const pt::xml_parser_error& e) {
+  }
+  catch (const pt::xml_parser_error& e) {
     return Status(1, e.what());
   }
   try {
@@ -123,14 +141,16 @@ Status parseTomcatUserConfig(
           user.first = i.second.get<std::string>("<xmlattr>.username");
           user.second = i.second.get<std::string>("<xmlattr>.password");
           credentials.push_back(user);
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception& e) {
           LOG(ERROR)
               << "An error occured parsing the tomcat users xml: " << e.what();
           return Status(1, e.what());
         }
       }
     }
-  } catch (const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     LOG(ERROR) << "An error occured while trying to access the tomcat-users"
                << " key in the XML content: " << e.what();
     return Status(1, e.what());

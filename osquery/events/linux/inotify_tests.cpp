@@ -2,21 +2,33 @@
 
 #include <stdio.h>
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
 
 #include <gtest/gtest.h>
 
 #include "osquery/events.h"
 #include "osquery/events/linux/inotify.h"
+#include "osquery/filesystem.h"
 
 namespace osquery {
 
 const std::string kRealTestPath = "/tmp/osquery-inotify-trigger";
+const std::string kRealTestDir = "/tmp/osquery-inotify-triggers";
+const std::string kRealTestDirPath = "/tmp/osquery-inotify-triggers/1";
+const std::string kRealTestSubDir = "/tmp/osquery-inotify-triggers/2";
+const std::string kRealTestSubDirPath = "/tmp/osquery-inotify-triggers/2/1";
+
 int kMaxEventLatency = 3000;
 
 class INotifyTests : public testing::Test {
  protected:
-  virtual void TearDown() { EventFactory::deregisterEventPublishers(); }
+  void TearDown() {
+    EventFactory::deregisterEventPublishers();
+    boost::filesystem::remove_all(kRealTestPath);
+    boost::filesystem::remove_all(kRealTestDir);
+  }
 
   void StartEventLoop() {
     event_pub_ = std::make_shared<INotifyEventPublisher>();
@@ -27,9 +39,11 @@ class INotifyTests : public testing::Test {
     temp_thread_ = boost::thread(EventFactory::run, "INotifyEventPublisher");
   }
 
-  void SubscriptionAction(uint32_t mask = 0, EventCallback ec = 0) {
+  void SubscriptionAction(const std::string& path,
+                          uint32_t mask = 0,
+                          EventCallback ec = 0) {
     auto mc = std::make_shared<INotifySubscriptionContext>();
-    mc->path = kRealTestPath;
+    mc->path = path;
     mc->mask = mask;
 
     EventFactory::addSubscription("INotifyEventPublisher", mc, ec);
@@ -47,6 +61,12 @@ class INotifyTests : public testing::Test {
       ::usleep(50);
     }
     return false;
+  }
+
+  void TriggerEvent(const std::string& path) {
+    FILE* fd = fopen(path.c_str(), "w");
+    fputs("inotify", fd);
+    fclose(fd);
   }
 
   void EndEventLoop() {
@@ -82,17 +102,17 @@ TEST_F(INotifyTests, test_inotify_init) {
   EXPECT_FALSE(event_pub->isHandleOpen());
 }
 
-TEST_F(INotifyTests, test_inotify_add_subscription_fail) {
+TEST_F(INotifyTests, test_inotify_add_subscription_missing_path) {
   EventFactory::registerEventPublisher<INotifyEventPublisher>();
 
-  // This subscription path is fake, and will fail
+  // This subscription path is fake, and will succeed.
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = "/this/path/is/fake";
 
   auto subscription = Subscription::create(mc);
-  auto status = EventFactory::addSubscription("INotifyEventPublisher",
-    subscription);
-  EXPECT_FALSE(status.ok());
+  auto status =
+      EventFactory::addSubscription("INotifyEventPublisher", subscription);
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(INotifyTests, test_inotify_add_subscription_success) {
@@ -103,8 +123,8 @@ TEST_F(INotifyTests, test_inotify_add_subscription_success) {
   mc->path = "/";
 
   auto subscription = Subscription::create(mc);
-  auto status = EventFactory::addSubscription("INotifyEventPublisher",
-    subscription);
+  auto status =
+      EventFactory::addSubscription("INotifyEventPublisher", subscription);
   EXPECT_TRUE(status.ok());
 }
 
@@ -120,7 +140,7 @@ TEST_F(INotifyTests, test_inotify_run) {
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = kRealTestPath;
   EventFactory::addSubscription("INotifyEventPublisher",
-    Subscription::create(mc));
+                                Subscription::create(mc));
 
   // Create an event loop thread (similar to main)
   boost::thread temp_thread(EventFactory::run, "INotifyEventPublisher");
@@ -175,6 +195,10 @@ class TestINotifyEventSubscriber : public EventSubscriber {
     }
   }
 
+  static std::vector<std::string> actions() { return getInstance()->actions_; }
+
+  static int count() { return getInstance()->callback_count_; }
+
  public:
   int callback_count_;
   std::vector<std::string> actions_;
@@ -186,16 +210,14 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
   TestINotifyEventSubscriber::getInstance()->init();
 
   // Create a subscriptioning context, note the added Event to the symbol
-  SubscriptionAction(0, TestINotifyEventSubscriber::EventSimpleCallback);
-
-  FILE* fd = fopen(kRealTestPath.c_str(), "w");
-  fputs("inotify", fd);
-  fclose(fd);
+  SubscriptionAction(
+      kRealTestPath, 0, TestINotifyEventSubscriber::EventSimpleCallback);
+  TriggerEvent(kRealTestPath);
 
   TestINotifyEventSubscriber::WaitForEvents(kMaxEventLatency);
 
   // Make sure our expected event fired (aka subscription callback was called).
-  EXPECT_TRUE(TestINotifyEventSubscriber::getInstance()->callback_count_ > 0);
+  EXPECT_TRUE(TestINotifyEventSubscriber::count() > 0);
 
   // Cause the thread to tear down.
   EndEventLoop();
@@ -206,22 +228,62 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   StartEventLoop();
   TestINotifyEventSubscriber::getInstance()->init();
 
-  SubscriptionAction(0, TestINotifyEventSubscriber::EventCallback);
-
-  FILE* fd = fopen(kRealTestPath.c_str(), "w");
-  fputs("inotify", fd);
-  fclose(fd);
+  SubscriptionAction(
+      kRealTestPath, 0, TestINotifyEventSubscriber::EventCallback);
+  TriggerEvent(kRealTestPath);
 
   TestINotifyEventSubscriber::WaitForEvents(kMaxEventLatency, 4);
 
   // Make sure the inotify action was expected.
-  EXPECT_EQ(TestINotifyEventSubscriber::getInstance()->actions_.size(), 4);
-  EXPECT_EQ(TestINotifyEventSubscriber::getInstance()->actions_[0], "UPDATED");
-  EXPECT_EQ(TestINotifyEventSubscriber::getInstance()->actions_[1], "OPENED");
-  EXPECT_EQ(TestINotifyEventSubscriber::getInstance()->actions_[2], "UPDATED");
-  EXPECT_EQ(TestINotifyEventSubscriber::getInstance()->actions_[3], "UPDATED");
+  EXPECT_EQ(TestINotifyEventSubscriber::actions().size(), 4);
+  EXPECT_EQ(TestINotifyEventSubscriber::actions()[0], "UPDATED");
+  EXPECT_EQ(TestINotifyEventSubscriber::actions()[1], "OPENED");
+  EXPECT_EQ(TestINotifyEventSubscriber::actions()[2], "UPDATED");
+  EXPECT_EQ(TestINotifyEventSubscriber::actions()[3], "UPDATED");
 
   // Cause the thread to tear down.
+  EndEventLoop();
+}
+
+TEST_F(INotifyTests, test_inotify_optimization) {
+  // Assume event type is registered.
+  StartEventLoop();
+
+  boost::filesystem::create_directory(kRealTestDir);
+
+  // Adding a descriptor to a directory will monitor files within.
+  SubscriptionAction(kRealTestDir);
+  EXPECT_TRUE(event_pub_->isPathMonitored(kRealTestDirPath));
+
+  // Adding a subscription to a file within a monitored directory is fine
+  // but this will NOT cause an additional INotify watch.
+  SubscriptionAction(kRealTestDirPath);
+  EXPECT_EQ(event_pub_->numDescriptors(), 1);
+
+  // Cause the thread to tear down.
+  EndEventLoop();
+}
+
+TEST_F(INotifyTests, test_inotify_recursion) {
+  StartEventLoop();
+  TestINotifyEventSubscriber::getInstance()->init();
+
+  boost::filesystem::create_directory(kRealTestDir);
+  boost::filesystem::create_directory(kRealTestSubDir);
+
+  // Subscribe to the directory inode
+  auto mc = std::make_shared<INotifySubscriptionContext>();
+  mc->path = kRealTestDir;
+  mc->recursive = true;
+
+  EventFactory::addSubscription(
+      "INotifyEventPublisher", mc, TestINotifyEventSubscriber::EventCallback);
+  // Trigger on a subdirectory's file.
+  TriggerEvent(kRealTestSubDirPath);
+
+  TestINotifyEventSubscriber::WaitForEvents(kMaxEventLatency, 1);
+  EXPECT_TRUE(TestINotifyEventSubscriber::count() > 0);
+
   EndEventLoop();
 }
 }
