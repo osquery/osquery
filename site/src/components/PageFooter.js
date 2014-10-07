@@ -39,7 +39,7 @@ var PageHeader = React.createClass({
                 </li>
               </ul>
             </div>
-            <p>Code licensed under <a href={license} target="_blank">MIT</a>.</p>
+            <p>Code licensed under <a href={license} target="_blank">BSD</a>.</p>
             <ul className="bs-docs-footer-links muted">
               <li>·</li>
               <li><a href={github} target="_blank">GitHub</a></li>
