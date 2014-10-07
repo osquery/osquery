@@ -45,7 +45,7 @@ var Page = React.createClass({
           pipeline, regardless of your technology stack, via a robust plugin
           architecture. </p>
 
-          <h3 className="page-header">Performance is a feature</h3>
+          <h3 className="page-header">Performance is a Feature</h3>
 
           <p className="lead"> A top-level goal of osquery is for it to be
           performant enough to run on production infrastructure with the
