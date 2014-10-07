@@ -49,7 +49,7 @@ Status pathExists(const std::string& path);
  * of the operation.
  */
 Status listFilesInDirectory(const std::string& path,
-                                     std::vector<std::string>& results);
+                            std::vector<std::string>& results);
 
 /**
  * @brief Get directory portion of a path.
@@ -60,7 +60,7 @@ Status listFilesInDirectory(const std::string& path,
  * @return If the input path was a directory this will indicate failure. One
  * should use `isDirectory` before.
  */
- Status getDirectory(const std::string& path, std::string& dirpath);
+Status getDirectory(const std::string& path, std::string& dirpath);
 
 /**
  * @brief Check if an input path is a directory.
@@ -69,7 +69,7 @@ Status listFilesInDirectory(const std::string& path,
  *
  * @return If the input path was a directory.
  */
- Status isDirectory(const std::string& path);
+Status isDirectory(const std::string& path);
 
 /**
  * @brief Parse the users out of a tomcat user config from disk
@@ -112,8 +112,7 @@ Status parseTomcatUserConfig(
  * @return an instance of Status, indicating the success or failure
  * of the operation.
  */
-Status parsePlist(const std::string& path,
-                           boost::property_tree::ptree& tree);
+Status parsePlist(const std::string& path, boost::property_tree::ptree& tree);
 /**
  * @brief Parse property list content into a property tree.
  *
@@ -125,6 +124,6 @@ Status parsePlist(const std::string& path,
  * of the operation.
  */
 Status parsePlistContent(const std::string& fileContent,
-                                  boost::property_tree::ptree& tree);
+                         boost::property_tree::ptree& tree);
 #endif
 }

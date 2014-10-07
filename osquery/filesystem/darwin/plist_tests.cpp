@@ -34,11 +34,9 @@ TEST_F(PlistTests, test_parse_plist_content) {
   std::vector<std::string> program_arguments = {
       "/System/Library/CoreServices/FileSyncAgent.app/Contents/Resources/"
       "FileSyncAgent_sshd-keygen-wrapper",
-      "-i",
-      "-f",
+      "-i", "-f",
       "/System/Library/CoreServices/FileSyncAgent.app/Contents/Resources/"
-      "FileSyncAgent_sshd_config",
-  };
+      "FileSyncAgent_sshd_config", };
   pt::ptree program_arguments_tree = tree.get_child("ProgramArguments");
   std::vector<std::string> program_arguments_parsed;
   for (const auto& argument : program_arguments_tree) {

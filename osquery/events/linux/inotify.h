@@ -121,11 +121,16 @@ class INotifyEventPublisher : public EventPublisher {
                   const INotifyEventContextRef ec);
   /// Get the INotify file descriptor.
   int getHandle() { return inotify_handle_; }
+  /// Get the number of actual INotify active descriptors.
+  int numDescriptors() { return descriptors_.size(); }
 
   // Consider an event queue if separating buffering from firing/servicing.
   DescriptorVector descriptors_;
   PathDescriptorMap path_descriptors_;
   DescriptorPathMap descriptor_paths_;
   int inotify_handle_;
+
+ public:
+  FRIEND_TEST(INotifyTests, test_inotify_optimization);
 };
 }

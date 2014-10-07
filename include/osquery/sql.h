@@ -83,7 +83,7 @@ class SQL {
    *
    * The osquery::SQL class should only ever be instantiated with a query
    */
-  SQL(){};
+  SQL() {};
 
  private:
   /// the internal member which holds the results of the query

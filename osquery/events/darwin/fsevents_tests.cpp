@@ -2,12 +2,15 @@
 
 #include <stdio.h>
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
 
 #include <gtest/gtest.h>
 
 #include "osquery/events.h"
 #include "osquery/events/darwin/fsevents.h"
+#include "osquery/filesystem.h"
 
 namespace osquery {
 
@@ -16,7 +19,10 @@ int kMaxEventLatency = 3000;
 
 class FSEventsTests : public testing::Test {
  protected:
-  virtual void TearDown() { EventFactory::deregisterEventPublishers(); }
+  void TearDown() {
+    EventFactory::deregisterEventPublishers();
+    boost::filesystem::remove_all(kRealTestPath);
+  }
 
   void StartEventLoop() {
     event_pub_ = std::make_shared<FSEventsEventPublisher>();
