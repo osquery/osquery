@@ -80,17 +80,23 @@ std::string proc_link(const proc_t* proc_info) {
   return result;
 }
 
-/* deallocate the space allocated by readproc if the passed rbuf was NULL
+/**
+ * @brief deallocate the space allocated by readproc if the passed rbuf was NULL
+ *
+ * @param p The rbuf to free
  */
-void _freeproc(proc_t* p) {
-  if (!p)    /* in case p is NULL */
+void standard_freeproc(proc_t* p) {
+  if (!p) { // in case p is NULL
     return;
-    /* ptrs are after strings to avoid copying memory when building them. */
-    /* so free is called on the address of the address of strvec[0]. */
-  if (p->cmdline)
+  }
+    // ptrs are after strings to avoid copying memory when building them.
+    // so free is called on the address of the address of strvec[0].
+  if (p->cmdline) {
     free((void*)*p->cmdline);
-  if (p->environ)
+  }
+  if (p->environ) {
     free((void*)*p->environ);
+  }
   free(p);
 }
 
@@ -118,7 +124,7 @@ QueryData genProcesses() {
     r["parent"] = boost::lexical_cast<std::string>(proc_info->ppid);
 
     results.push_back(r);
-    _freeproc(proc_info);
+    standard_freeproc(proc_info);
   }
 
   closeproc(proc);

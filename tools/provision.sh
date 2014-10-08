@@ -64,12 +64,12 @@ function install_rocksdb() {
     fi
     if [ "$OS" = "ubuntu" ] || [ "$OS" = "centos" ]; then
       if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
-	      if [[ $OS = "ubuntu" ]]; then
+        if [[ $OS = "ubuntu" ]]; then
           CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
         elif [[ $OS = "centos" ]]; then
           CLANG_VERSION=`clang --version | grep version | cut -d" " -f3`
-	        CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
-  	    fi
+          CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
+        fi
         pushd rocksdb-rocksdb-3.5
         make static_lib CFLAGS="$CLANG_INCLUDE"
 	      popd
@@ -318,10 +318,10 @@ function main() {
     package git-all
     package unzip
     package xz
-    package xz-devel.x86_64
+    package xz-devel
     package epel-release.noarch
     package python-pip.noarch
-    package python-devel.x86_64
+    package python-devel
 
     pushd /etc/yum.repos.d
     if [[ ! -f /etc/yum.repos.d/devtools-2.repo ]]; then
@@ -340,7 +340,7 @@ function main() {
     fi
     popd
 
-    package cmake28.x86_64
+    package cmake28
     if [[ ! -f /usr/bin/cmake ]]; then
       ln -s /usr/bin/cmake28 /usr/bin/cmake
     fi
@@ -348,29 +348,29 @@ function main() {
       ln -s /usr/bin/ccmake28 /usr/bin/ccmake
     fi
 
-    package clang.x86_64
-    package clang-devel.x86_64
+    package clang
+    package clang-devel
 
     set_cc clang
     set_cxx clang++
 
-    package bzip2.x86_64
-    package bzip2-devel.x86_64
-    package openssl-devel.x86_64
-    package readline-devel.x86_64
-    package procps-devel.x86_64
+    package bzip2
+    package bzip2-devel
+    package openssl-devel
+    package readline-devel
+    package procps-devel
 
     install_boost
     install_gflags
     install_glog
-    package doxygen.x86_64
-    package snappy.x86_64
-    package snappy-devel.x86_64
-    package byacc.x86_64
-    package flex.x86_64
-    package bison.x86_64
-    package libunwind.x86_64
-    package libunwind-devel.x86_64
+    package doxygen
+    package snappy
+    package snappy-devel
+    package byacc
+    package flex
+    package bison
+    package libunwind
+    package libunwind-devel
 
     # One day, CentOS packages will be updated and installing from yum will not fuck things up
     # Until that day comes, leave these lines commented and keep installing from source
