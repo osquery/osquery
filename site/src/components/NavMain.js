@@ -14,14 +14,14 @@ var NAV_LINKS = {
   'overview': {
     link: '/overview/',
     title: 'Overview'
+  },
+  'documentation': {
+    link: '/docs/',
+    title: 'Documentation'
   }
 }
 
 var EXTERNAL_NAV_LINKS = {
-  'wiki': {
-    link: '//github.com/facebook/osquery/wiki',
-    title: 'Documentation'
-  },
   'github': {
     link: '//github.com/facebook/osquery/',
     title: 'GitHub'

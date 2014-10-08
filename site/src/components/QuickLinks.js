@@ -7,10 +7,8 @@ var React = require('react');
 var Router = require('react-router-component');
 var InternalLink = Router.Link;
 var QuickLinks = require('./QuickLinks');
-var ListGroup = require('react-bootstrap/ListGroup');
-var ListGroupItem = require('react-bootstrap/ListGroupItem');
 
-var PageContainer = React.createClass({
+var QuickLinks = React.createClass({
   render: function () {
     return (
       <div className="col-md-3">
@@ -48,4 +46,4 @@ var PageContainer = React.createClass({
   }
 });
 
-module.exports = PageContainer;
+module.exports = QuickLinks;

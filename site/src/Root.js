@@ -9,6 +9,10 @@ var HomePage = require('./pages/HomePage');
 var OverviewPage = require('./pages/OverviewPage');
 var NotFoundPage = require('./pages/NotFoundPage');
 
+var DocumentationPage = require('./pages/DocumentationPage');
+var InstallOSX = require('./pages/docs/InstallOSX');
+var InstallLinux = require('./pages/docs/InstallLinux');
+
 var Locations = Router.Locations;
 var Location = Router.Location;
 var NotFound = Router.NotFound;
@@ -21,6 +25,10 @@ var PagesHolder = React.createClass({
         <Location path="/index.html" handler={HomePage} />
         <Location path="/overview/" handler={OverviewPage} />
         <Location path="/overview/index.html" handler={OverviewPage} />
+        <Location path="/docs/" handler={DocumentationPage} />
+        <Location path="/docs/index.html" handler={DocumentationPage} />
+        <Location path="/docs/install-osx.html" handler={InstallOSX} />
+        <Location path="/docs/install-linux.html" handler={InstallLinux} />
         <NotFound handler={NotFoundPage} />
       </Locations>
     );
