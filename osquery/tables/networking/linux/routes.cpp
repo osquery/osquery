@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 
+#include <sys/socket.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <net/if.h>
