@@ -45,7 +45,7 @@ function install_thrift() {
     fi
     pushd thrift-0.9.1
     ./bootstrap.sh
-    ./configure --with-ruby=no --with-go=no --with-erlang=no --with-java=no --with-python=no
+    ./configure --with-cpp=yes --with-ruby=no --with-go=no --with-erlang=no --with-java=no --with-python=no
     make
     sudo make install
     popd
@@ -62,11 +62,17 @@ function install_rocksdb() {
     if [[ ! -d rocksdb-rocksdb-3.5 ]]; then
       tar -xf rocksdb-3.5.tar.gz
     fi
-    if [ $OS = "ubuntu" ] || [ $OS = "centos" ]; then
+    if [ "$OS" = "ubuntu" ] || [ "$OS" = "centos" ]; then
       if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
+        if [[ $OS = "ubuntu" ]]; then
+          CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
+        elif [[ $OS = "centos" ]]; then
+          CLANG_VERSION=`clang --version | grep version | cut -d" " -f3`
+          CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
+        fi
         pushd rocksdb-rocksdb-3.5
-        make static_lib CFLAGS="-I /usr/include/clang/3.4/include"
-        popd
+        make static_lib CFLAGS="$CLANG_INCLUDE"
+	      popd
       fi
       sudo cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
       sudo cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
@@ -142,6 +148,66 @@ function install_glog() {
     popd
   else
     log "glog is already installed. skipping."
+  fi
+}
+
+function install_autoconf() {
+  if [[ ! -f /usr/bin/autoconf ]]; then
+    if [[ ! -f autoconf-2.69.tar.gz ]]; then
+      wget http://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz
+    else
+      log "autoconf is already downloaded. skipping."
+    fi
+    if [[ ! -d autoconf-2.69 ]]; then
+      tar -xf autoconf-2.69.tar.gz
+    fi
+    pushd autoconf-2.69
+    ./configure --prefix=/usr
+    make
+    sudo make install
+    popd
+  else
+    log "autoconf is already installed. skipping."
+  fi
+}
+
+function install_automake() {
+  if [[ ! -f /usr/bin/automake ]]; then
+    if [[ ! -f automake-1.14.tar.gz ]]; then
+      wget http://ftp.gnu.org/gnu/automake/automake-1.14.tar.gz
+    else
+      log "automake is already downloaded. skipping."
+    fi
+    if [[ ! -d automake-1.14 ]]; then
+      tar -xf automake-1.14.tar.gz
+    fi
+    pushd automake-1.14
+    ./configure --prefix=/usr
+    make
+    sudo make install
+    popd
+  else
+    log "automake is already installed. skipping."
+  fi
+}
+
+function install_libtool() {
+  if [[ ! -f /usr/bin/libtool ]]; then
+    if [[ ! -f libtool-2.4.2.tar.gz ]]; then
+      wget http://mirror.anl.gov/pub/gnu/libtool/libtool-2.4.2.tar.gz
+    else
+      log "libtool is already downloaded. skipping."
+    fi
+    if [[ ! -d libtool-2.4.2 ]]; then
+      tar -xf libtool-2.4.2.tar.gz
+    fi
+    pushd libtool-2.4.2
+    ./configure --prefix=/usr
+    make
+    sudo make install
+    popd
+  else
+    log "libtool is already installed. skipping."
   fi
 }
 
@@ -231,11 +297,6 @@ function main() {
     fi
     if [[ $DISTRO = "precise" ]]; then
       install_gflags
-    else
-      package libgoogle-glog-dev
-    fi
-
-    if [[ $DISTRO = "precise" ]]; then
       install_glog
     else
       package libgoogle-glog-dev
@@ -253,9 +314,76 @@ function main() {
 
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
+
     package git-all
     package unzip
     package xz
+    package xz-devel
+    package epel-release.noarch
+    package python-pip.noarch
+    package python-devel
+
+    pushd /etc/yum.repos.d
+    if [[ ! -f /etc/yum.repos.d/devtools-2.repo ]]; then
+      wget http://people.centos.org/tru/devtools-2/devtools-2.repo
+    fi
+
+    package devtoolset-2-gcc
+    package devtoolset-2-binutils
+    package devtoolset-2-gcc-c++
+    export CC=/opt/rh/devtoolset-2/root/usr/bin/gcc
+    export CPP=/opt/rh/devtoolset-2/root/usr/bin/cpp
+    export CXX=/opt/rh/devtoolset-2/root/usr/bin/c++
+    source /opt/rh/devtoolset-2/enable
+    if [[ ! -d /usr/lib/gcc ]]; then
+      ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
+    fi
+    popd
+
+    package cmake28
+    if [[ ! -f /usr/bin/cmake ]]; then
+      ln -s /usr/bin/cmake28 /usr/bin/cmake
+    fi
+    if [[ ! -f /usr/bin/ccmake ]]; then
+      ln -s /usr/bin/ccmake28 /usr/bin/ccmake
+    fi
+
+    package clang
+    package clang-devel
+
+    set_cc clang
+    set_cxx clang++
+
+    package bzip2
+    package bzip2-devel
+    package openssl-devel
+    package readline-devel
+    package procps-devel
+
+    install_boost
+    install_gflags
+    install_glog
+    package doxygen
+    package snappy
+    package snappy-devel
+    package byacc
+    package flex
+    package bison
+    package libunwind
+    package libunwind-devel
+
+    # One day, CentOS packages will be updated and installing from yum will not fuck things up
+    # Until that day comes, leave these lines commented and keep installing from source
+    # package libtool.x86_64
+    # package boost.x86_64
+
+    install_autoconf
+    install_automake
+    install_libtool
+    install_thrift
+    set_cc gcc
+    set_cxx g++
+    install_rocksdb
 
   elif [[ $OS = "darwin" ]]; then
     if [[ ! -f "/usr/local/bin/brew" ]]; then
