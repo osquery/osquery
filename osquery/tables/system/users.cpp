@@ -13,7 +13,10 @@
 namespace osquery {
 namespace tables {
 
+std::mutex pwdEnumerationMutex;
+
 QueryData genUsers() {
+  std::lock_guard<std::mutex> lock(pwdEnumerationMutex);
   QueryData results;
   struct passwd *pwd = (passwd *)malloc(sizeof(struct passwd));
 
