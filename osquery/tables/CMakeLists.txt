@@ -20,6 +20,7 @@ if(APPLE)
     system/darwin/nvram.cpp
     system/darwin/processes.cpp
     system/last.cpp
+    system/users.cpp
   )
 
   ADD_OSQUERY_LINK("-framework Foundation")
