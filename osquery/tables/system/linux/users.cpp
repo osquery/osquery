@@ -1,6 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include <set>
+#include <mutex>
 #include <vector>
 #include <string>
 
@@ -14,7 +15,10 @@
 namespace osquery {
 namespace tables {
 
+std::mutex pwdEnumerationMutex;
+
 QueryData genUsers() {
+  std::lock_guard<std::mutex> lock(pwdEnumerationMutex);
   QueryData results;
   struct passwd *pwd = nullptr;
   std::set<long> users_in;
