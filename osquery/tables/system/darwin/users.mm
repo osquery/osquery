@@ -14,14 +14,13 @@
 #import <CoreServices/CoreServices.h>
 #import <Collaboration/Collaboration.h>
 
+#include "osquery/core.h"
 #include "osquery/database/results.h"
 #include "osquery/filesystem.h"
 
 namespace osquery {
-
-std::vector<std::string> split(const std::string& s,
-                               const std::string& delim = "\t ");
 namespace tables {
+
 
 QueryData genUsers() {
   QueryData results;
