@@ -22,10 +22,22 @@ QueryData genUsers() {
   QueryData results;
 
   ODSession *s = [ODSession defaultSession];
-  ODNode *root = [ODNode nodeWithSession:s name:@"/Local/Default" error:nil];
-  ODQuery *q = [ODQuery queryWithNode:root forRecordTypes:kODRecordTypeUsers attribute:nil matchType:0 queryValues:nil returnAttributes:nil maximumResults:0 error:nil];
-
-  NSArray *od_results = [q resultsAllowingPartial:NO error:nil];
+  NSError *err;
+  ODNode *root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
+  if (err) {
+    LOG(ERROR) << "Error with OD node: " << std::string([[err localizedDescription] UTF8String]);
+    return results;
+  }
+  ODQuery *q = [ODQuery queryWithNode:root forRecordTypes:kODRecordTypeUsers attribute:nil matchType:0 queryValues:nil returnAttributes:nil maximumResults:0 error:&err];
+  if (err) {
+    LOG(ERROR) << "Error with OD query: " << std::string([[err localizedDescription] UTF8String]);
+    return results;
+  }
+  NSArray *od_results = [q resultsAllowingPartial:NO error:&err];
+  if (err) {
+    LOG(ERROR) << "Error with OD results: " << std::string([[err localizedDescription] UTF8String]);
+    return results;
+  }
   for (ODRecord *re in od_results) {
     Row r;
     r["username"] = std::string([[re recordName] UTF8String]);
