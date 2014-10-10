@@ -7,7 +7,7 @@
 
 #include <glog/logging.h>
 
-#include <pwd.h>
+#include <grp.h>
 
 #import <OpenDirectory/OpenDirectory.h>
 
@@ -18,25 +18,21 @@
 namespace osquery {
 namespace tables {
 
-QueryData genUsers() {
+QueryData genGroups() {
   QueryData results;
 
   ODSession *s = [ODSession defaultSession];
   ODNode *root = [ODNode nodeWithSession:s name:@"/Local/Default" error:nil];
-  ODQuery *q = [ODQuery queryWithNode:root forRecordTypes:kODRecordTypeUsers attribute:nil matchType:0 queryValues:nil returnAttributes:nil maximumResults:0 error:nil];
+  ODQuery *q = [ODQuery queryWithNode:root forRecordTypes:kODRecordTypeGroups attribute:nil matchType:0 queryValues:nil returnAttributes:nil maximumResults:0 error:nil];
 
   NSArray *od_results = [q resultsAllowingPartial:NO error:nil];
   for (ODRecord *re in od_results) {
     Row r;
-    r["username"] = std::string([[re recordName] UTF8String]);
-    struct passwd *pwd = nullptr;
-    pwd = getpwnam(r["username"].c_str());
-    if (pwd != nullptr) {
-      r["uid"] = boost::lexical_cast<std::string>(pwd->pw_uid);
-      r["gid"] = boost::lexical_cast<std::string>(pwd->pw_gid);
-      r["description"] = std::string(pwd->pw_gecos);
-      r["directory"] = std::string(pwd->pw_dir);
-      r["shell"] = std::string(pwd->pw_shell);
+    r["name"] = std::string([[re recordName] UTF8String]);
+    struct group *grp = nullptr;
+    grp = getgrnam(r["name"].c_str());
+    if (grp != nullptr) {
+      r["gid"] = boost::lexical_cast<std::string>(grp->gr_gid);
       results.push_back(r);
     }
   }
