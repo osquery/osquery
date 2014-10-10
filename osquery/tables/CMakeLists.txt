@@ -4,6 +4,7 @@ if(APPLE)
     ../core/darwin/NSProcessInfo+PECocoaBackports.h
     ../core/darwin/PECocoaBackportsGlobal.h
     system/darwin/osx_version.mm
+    system/darwin/users.mm
   )
 
   ADD_OSQUERY_LIBRARY(osquery_tables_darwin
@@ -25,6 +26,8 @@ if(APPLE)
   ADD_OSQUERY_LINK("-framework Foundation")
   ADD_OSQUERY_LINK("-framework IOKit")
   ADD_OSQUERY_LINK("-framework CoreFoundation")
+  ADD_OSQUERY_LINK("-framework CoreServices")
+  ADD_OSQUERY_LINK("-framework Collaboration")
   ADD_OSQUERY_LINK("-framework Security")
 else()
   ADD_OSQUERY_LIBRARY(osquery_tables_linux
@@ -32,6 +35,7 @@ else()
     networking/linux/routes.cpp
     system/linux/kernel_modules.cpp
     system/linux/processes.cpp
+    system/linux/users.cpp
   )
 endif()
 

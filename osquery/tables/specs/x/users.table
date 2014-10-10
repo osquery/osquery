@@ -1,0 +1,10 @@
+table_name("users")
+schema([
+    Column(name="uid", type="std::string"),
+    Column(name="gid", type="std::string"),
+    Column(name="username", type="std::string"),
+    Column(name="description", type="std::string"),
+    Column(name="directory", type="std::string"),
+    Column(name="shell", type="std::string"),
+])
+implementation("osquery/tables/system/users@genUsers")

@@ -156,7 +156,6 @@
 {
    <foundation_initialize_11>
    Memcheck:Leak
-   match-leak-kinds: definite
    ...
    fun:malloc_zone_malloc
    fun:malloc_set_zone_name
@@ -219,7 +218,6 @@
 {
    <localtime_static>
    Memcheck:Leak
-   match-leak-kinds: definite
    ...
    fun:dispatch_once_f
    ...
@@ -228,10 +226,62 @@
 {
    <plist_parsing_false_positive>
    Memcheck:Leak
-   match-leak-kinds: definite
    ...
    fun:_CFPropertyListCreateFromUTF8Data
    fun:_CFPropertyListCreateWithData
    fun:CFPropertyListCreateWithData
    fun:+[NSPropertyListSerialization propertyListWithData:options:format:error:]
+}
+{
+   <image_loader_8>
+   Memcheck:Addr8
+   ...
+   fun:malloc_create_zone
+   ...
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+}
+{
+   <image_loader_4>
+   Memcheck:Addr4
+   ...
+   fun:malloc_create_zone
+   ...
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+}
+{
+   <command_line_flags_1>
+   Memcheck:Addr8
+   ...
+   fun:_ZN7osquery11initOsqueryEiPPc
+   fun:main
+}
+{
+   <command_line_flags_2>
+   Memcheck:Leak
+   ...
+   fun:_ZN7osquery11initOsqueryEiPPc
+   fun:main
+}
+{
+   <singleton_1>
+   Memcheck:Addr8
+   ...
+   fun:dispatch_once_f
+}
+{
+   <singleton_2>
+   Memcheck:Addr1
+   ...
+   fun:dispatch_once_f
+}
+{
+   <singleton_3>
+   Memcheck:Leak
+   ...
+   fun:dispatch_once_f
+}
+{
+   <singleton_4>
+   Memcheck:Leak
+   fun:_dispatch_client_callout
 }

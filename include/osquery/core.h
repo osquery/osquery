@@ -7,7 +7,7 @@
 
 #include <sqlite3.h>
 
-#include "osquery/database.h"
+#include "osquery/database/results.h"
 
 namespace osquery {
 
