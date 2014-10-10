@@ -156,7 +156,6 @@
 {
    <foundation_initialize_11>
    Memcheck:Leak
-   match-leak-kinds: definite
    ...
    fun:malloc_zone_malloc
    fun:malloc_set_zone_name
@@ -219,7 +218,6 @@
 {
    <localtime_static>
    Memcheck:Leak
-   match-leak-kinds: definite
    ...
    fun:dispatch_once_f
    ...
@@ -228,7 +226,6 @@
 {
    <plist_parsing_false_positive>
    Memcheck:Leak
-   match-leak-kinds: definite
    ...
    fun:_CFPropertyListCreateFromUTF8Data
    fun:_CFPropertyListCreateWithData
