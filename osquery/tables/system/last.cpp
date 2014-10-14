@@ -16,9 +16,18 @@ namespace tables {
 QueryData genLastAccess() {
   QueryData results;
   struct utmpx *ut;
-
+#ifdef __APPLE__
   setutxent_wtmp(0); // 0 = reverse chronological order
+
   while ((ut = getutxent_wtmp()) != NULL) {
+#else
+
+  utmpxname("/var/log/wtmpx");
+  setutxent();
+
+  while ((ut = getutxent()) != NULL) {
+#endif
+
     Row r;
     r["login"] = std::string(ut->ut_user);
     r["tty"] = std::string(ut->ut_line);
@@ -29,7 +38,12 @@ QueryData genLastAccess() {
 
     results.push_back(r);
   }
+
+#ifdef __APPLE__
   endutxent_wtmp();
+#else
+  endutxent();
+#endif
 
   return results;
 }
