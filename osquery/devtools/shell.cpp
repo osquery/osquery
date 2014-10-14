@@ -4342,7 +4342,7 @@ int launchIntoShell(int argc, char **argv) {
       char *zHistory = 0;
       int nHistory;
       printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-      printBold("OSQuery");
+      printBold("osquery");
       printf(
           " - being built, with love, at Facebook\n"
           "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
