@@ -21,7 +21,6 @@ if(APPLE)
     system/darwin/launchd.cpp
     system/darwin/nvram.cpp
     system/darwin/processes.cpp
-    system/last.cpp
   )
 
   ADD_OSQUERY_LINK("-framework Foundation")
@@ -49,6 +48,7 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   networking/utils.cpp
   networking/etc_hosts.cpp
   utility/time.cpp
+  system/last.cpp
   base.h
 )
 
