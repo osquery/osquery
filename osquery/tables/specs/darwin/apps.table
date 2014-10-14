@@ -17,4 +17,4 @@ schema([
     Column(name="applescript_enabled", type="std::string"),
     Column(name="copyright", type="std::string"),
 ])
-implementation("osquery/tables/system/apps@genApps")
+implementation("apps@genApps")

@@ -298,14 +298,14 @@ def implementation(impl_string):
 
       # the path is "osquery/table/implementations/foo.cpp"
       # the function is "QueryData genFoo();"
-      implementation("osquery/table/implementations/foo@genFoo")
+      implementation("foo@genFoo")
     """
     logging.debug("- implementation")
-    path, function = impl_string.split("@")
+    filename, function = impl_string.split("@")
     class_parts = function.split("::")[::-1]
     function = class_parts[0]
     class_name = class_parts[1] if len(class_parts) > 1 else ""
-    impl = "%s.cpp" % path
+    impl = "%s.cpp" % filename
     logging.debug("  - impl => %s" % impl)
     logging.debug("  - function => %s" % function)
     logging.debug("  - class_name => %s" % class_name)

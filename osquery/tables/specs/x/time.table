@@ -4,4 +4,4 @@ schema([
     Column(name="minutes", type="std::string"),
     Column(name="seconds", type="std::string"),
 ])
-implementation("osquery/tables/utility/time@genTime")
+implementation("time@genTime")

@@ -4,4 +4,4 @@ schema([
     Column(name="type", type="std::string"),
     Column(name="value", type="std::string"),
 ])
-implementation("osquery/tables/system/nvram@genNVRAM")
+implementation("nvram@genNVRAM")

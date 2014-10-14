@@ -10,4 +10,4 @@ schema([
     Column(name="sha1", type="std::string"),
 
 ])
-implementation("osquery/tables/system/ca_certs@genCerts")
+implementation("ca_certs@genCerts")

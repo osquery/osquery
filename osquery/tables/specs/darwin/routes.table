@@ -9,4 +9,4 @@ schema([
     Column(name="mtu", type="int"),
     Column(name="type", type="std::string"),
 ])
-implementation("osquery/tables/networking/darwin/routes@genRoutes")
+implementation("routes@genRoutes")

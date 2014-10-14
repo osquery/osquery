@@ -4,4 +4,4 @@ schema([
     Column(name="process", type="std::string"),
     Column(name="state", type="int"),
 ])
-implementation("osquery/tables/system/firewall@genALFServices")
+implementation("firewall@genALFServices")
