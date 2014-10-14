@@ -7,4 +7,4 @@ schema([
     Column(name="interface", type="std::string"),
     Column(name="metric", type="std::string"),
 ])
-implementation("osquery/tables/networking/linux/routes@genRoutes")
+implementation("routes@genRoutes")

@@ -3,4 +3,4 @@ schema([
     Column(name="gid", type="std::string"),
     Column(name="name", type="std::string"),
 ])
-implementation("osquery/tables/system/groups@genGroups")
+implementation("groups@genGroups")

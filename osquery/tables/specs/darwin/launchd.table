@@ -22,4 +22,4 @@ schema([
     Column(name="working_directory", type="std::string"),
     Column(name="process_type", type="std::string"),
 ])
-implementation("osquery/tables/system/launchd@genLaunchd")
+implementation("launchd@genLaunchd")

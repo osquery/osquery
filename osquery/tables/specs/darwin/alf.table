@@ -8,4 +8,4 @@ schema([
     Column(name="stealth_enabled", type="int"),
     Column(name="version", type="std::string"),
 ])
-implementation("osquery/tables/system/firewall@genALF")
+implementation("firewall@genALF")

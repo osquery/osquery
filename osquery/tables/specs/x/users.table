@@ -7,4 +7,4 @@ schema([
     Column(name="directory", type="std::string"),
     Column(name="shell", type="std::string"),
 ])
-implementation("osquery/tables/system/users@genUsers")
+implementation("users@genUsers")

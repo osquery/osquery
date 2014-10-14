@@ -6,4 +6,4 @@ schema([
     Column(name="broadcast", type="std::string"),
     Column(name="point_to_point", type="std::string"),
 ])
-implementation("osquery/tables/networking/darwin/interfaces@genInterfaceAddresses")
+implementation("interfaces@genInterfaceAddresses")

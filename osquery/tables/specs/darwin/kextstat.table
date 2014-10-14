@@ -8,4 +8,4 @@ schema([
     Column(name="version", type="std::string"),
     Column(name="linked_against", type="std::string"),
 ])
-implementation("osquery/tables/system/kextstat@genKextstat")
+implementation("kextstat@genKextstat")

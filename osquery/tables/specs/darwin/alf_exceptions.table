@@ -3,4 +3,4 @@ schema([
     Column(name="path", type="std::string"),
     Column(name="state", type="int"),
 ])
-implementation("osquery/tables/system/firewall@genALFExceptions")
+implementation("firewall@genALFExceptions")

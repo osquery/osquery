@@ -4,4 +4,4 @@ schema([
   Column(name="minor", type="int"),
   Column(name="patch", type="int"),
 ])
-implementation("osquery/tables/system/osx_version@genOSXVersion")
+implementation("osx_version@genOSXVersion")

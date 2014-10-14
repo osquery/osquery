@@ -9,4 +9,4 @@ schema([
     Column(name="version", type="std::string"),
     Column(name="signer", type="std::string"),
 ])
-implementation("osquery/tables/system/kernel_modules@genKernelModules")
+implementation("kernel_modules@genKernelModules")

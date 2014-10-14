@@ -5,4 +5,4 @@ schema([
     Column(name="action", type="std::string"),
     Column(name="transaction_id", type="std::string"),
 ])
-implementation("events/passwd_changes@PasswdChangesEventSubscriber::genTable")
+implementation("passwd_changes@PasswdChangesEventSubscriber::genTable")
