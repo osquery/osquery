@@ -1,5 +1,0 @@
-sudo su
-cd /vagrant
-./build/provision.sh
-make
-make package
