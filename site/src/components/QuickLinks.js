@@ -7,8 +7,10 @@ var React = require('react');
 var Router = require('react-router-component');
 var InternalLink = Router.Link;
 var QuickLinks = require('./QuickLinks');
+var ListGroup = require('react-bootstrap/ListGroup');
+var ListGroupItem = require('react-bootstrap/ListGroupItem');
 
-var QuickLinks = React.createClass({
+var PageContainer = React.createClass({
   render: function () {
     return (
       <div className="col-md-3">
@@ -38,7 +40,7 @@ var QuickLinks = React.createClass({
           <h3 className="page-header">Licence</h3>
           <ul>
             <li><h4><a href="//github.com/facebook/osquery/blob/master/LICENSE" target="_blank">BSD License</a></h4></li>
-            <li><h4><a href="//github.com/facebook/osquery/wiki/contributing-code" target="_blank">Contributing</a></h4></li>
+            <li><h4><a href="//github.com/facebook/osquery/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></h4></li>
           </ul>
         </div>
       </div>
@@ -46,4 +48,4 @@ var QuickLinks = React.createClass({
   }
 });
 
-module.exports = QuickLinks;
+module.exports = PageContainer;

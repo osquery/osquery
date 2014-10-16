@@ -1,2 +1,0 @@
-vagrant up ubuntu14
-vagrant ssh ubuntu14

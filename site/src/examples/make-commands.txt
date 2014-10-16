@@ -1,3 +1,0 @@
-make deps
-make
-sudo make install
