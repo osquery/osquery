@@ -1,0 +1,41 @@
+{
+  "name": "osquery-site",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/facebook/osquery.git"
+  },
+  "description": "osquery site",
+  "main": "./server.js",
+  "browser": "./client.js",
+  "browserify": {
+    "transform": [
+      "reactify",
+      "brfs",
+      "envify"
+    ]
+  },
+  "devDependencies": {
+    "react": "0.10.0",
+    "react-router-component": "~0.15.0",
+    "react-bootstrap-npm": "git://github.com/react-bootstrap/react-bootstrap-npm.git",
+    "express": "~3.4.8",
+    "node-jsx": "~0.9.0",
+    "reactify": "~0.8.1",
+    "brfs": "~1.0.0",
+    "envify": "~1.2.0",
+    "browserify": "~3.26.0",
+    "connect-browserify": "~1.0.0",
+    "uglify-js": "^2.3.6",
+    "supervisor": "~0.5.7",
+    "JSONStream": "0.9.0",
+    "through": "2.3.6"
+  },
+  "scripts": {
+    "start": "supervisor server.js",
+    "build": "node build.js && browserify client.js | uglifyjs -cm 2>/dev/null > ./assets/bundle.js",
+    "start-prod": "NODE_ENV=production node server.js"
+  },
+  "author": "Mike Arpaia",
+  "license": "MIT"
+}
