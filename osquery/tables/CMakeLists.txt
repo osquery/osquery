@@ -49,6 +49,7 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   networking/etc_hosts.cpp
   utility/time.cpp
   system/last.cpp
+  system/bash_history.cpp
   base.h
 )
 
