@@ -11,7 +11,7 @@ osquery exposes an operating system as a high-performance relational database. T
 - loaded kernel modules
 - open network connections
 
-SQL tables are implemented via an easily extendable API. A bunch of tables already exist and more are constantly being written. To best understand the expressiveness that is afforded to you by osquery, consider the following SQL queries:
+SQL tables are implemented via an easily extendable API. A variety of tables already exist and more are being written. To best understand the expressiveness that is afforded to you by osquery, consider the following SQL queries:
 
 ```sql
 --------------------------------------------------------
