@@ -21,6 +21,7 @@ namespace tables {
 QueryData genGroups() {
   QueryData results;
 
+  /*
   ODSession *s = [ODSession defaultSession];
   NSError *err;
   ODNode *root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
@@ -48,6 +49,27 @@ QueryData genGroups() {
       r["gid"] = boost::lexical_cast<std::string>(grp->gr_gid);
       results.push_back(r);
     }
+  }
+  */
+  std::string content;
+  Status s = readFile("/etc/group", content);
+
+  if (!s.ok()) {
+    LOG(ERROR) << "Error reading /etc/group: " << s.toString();
+  }
+
+  for (const auto& line : split(content, "\n")) {
+    auto user_bits = split(line, ":");
+    if (user_bits.size() != 3) {
+      continue;
+    }
+
+    Row r;
+
+    r["name"] = user_bits[0];
+    r["gid"] = user_bits[2];
+
+    results.push_back(r);
   }
 
   return results;
