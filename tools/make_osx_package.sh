@@ -120,8 +120,8 @@ function main() {
   log "copying osquery binaries"
   BINARY_INSTALL_DIR="$INSTALL_PREFIX/usr/local/bin/"
   mkdir -p $BINARY_INSTALL_DIR
-  cp $SCRIPT_DIR/../build/osquery/osqueryi $BINARY_INSTALL_DIR
-  cp $SCRIPT_DIR/../build/osquery/osqueryd $BINARY_INSTALL_DIR
+  cp $SCRIPT_DIR/../build/darwin/osquery/osqueryi $BINARY_INSTALL_DIR
+  cp $SCRIPT_DIR/../build/darwin/osquery/osqueryd $BINARY_INSTALL_DIR
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
   mkdir -p `dirname $INSTALL_PREFIX$OSQUERY_CONFIG_PATH_DEST`
   cp $OSQUERY_CONFIG_PATH_SRC $INSTALL_PREFIX$OSQUERY_CONFIG_PATH_DEST
