@@ -90,7 +90,6 @@ std::string safeSecString(const CFStringRef cf_string) {
 }
 
 std::string genNumberProperty(const CFDataRef number) {
-  CFNumberType type;
   unsigned int value;
 
   if (CFGetTypeID(number) != CFNumberGetTypeID() ||
@@ -143,8 +142,6 @@ std::string genKIDProperty(const CFDataRef kid) {
 std::string genCommonNameProperty(const CFDataRef ca) {
   CFDataRef ca_data = NULL;
   CFStringRef ca_string = NULL;
-  char *ca_buffer;
-  CFIndex ca_length;
 
   // Find the key identifier data within the property mess.
   for (CFIndex i = 0; i < CFArrayGetCount((CFArrayRef)ca); i++) {

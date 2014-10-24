@@ -22,7 +22,6 @@ void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
     if (second % q.interval == 0) {
       LOG(INFO) << "executing query: " << q.query;
       int unix_time = std::time(0);
-      int err;
       auto sql = SQL(q.query);
       if (!sql.ok()) {
         LOG(ERROR) << "error executing query (" << q.query

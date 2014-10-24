@@ -1,13 +1,13 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/logger.h"
-#include "osquery/logger/plugin.h"
-
 #include <algorithm>
 #include <thread>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+
+#include "osquery/logger.h"
+#include "osquery/logger/plugin.h"
 
 using osquery::Status;
 
@@ -18,6 +18,8 @@ const std::string kDefaultLogReceiverName = "filesystem";
 DEFINE_string(log_receiver,
               kDefaultLogReceiverName,
               "The upstream log receiver to log messages to.");
+
+DEFINE_bool(log_result_events, true, "Log scheduled results as events.");
 
 Status logString(const std::string& s) {
   return logString(s, FLAGS_log_receiver);
@@ -43,9 +45,14 @@ Status logScheduledQueryLogItem(const osquery::ScheduledQueryLogItem& results) {
 Status logScheduledQueryLogItem(const osquery::ScheduledQueryLogItem& results,
                                 const std::string& receiver) {
   std::string json;
-  auto s = osquery::serializeScheduledQueryLogItemJSON(results, json);
-  if (!s.ok()) {
-    return s;
+  Status status;
+  if (FLAGS_log_result_events) {
+    status = serializeScheduledQueryLogItemAsEventsJSON(results, json);
+  } else {
+    status = serializeScheduledQueryLogItemJSON(results, json);
+  }
+  if (!status.ok()) {
+    return status;
   }
   return logString(json, receiver);
 }
