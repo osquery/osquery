@@ -2,8 +2,6 @@ SET(OSQUERY_LIBS
   readline
   pthread
   dl
-  bz2
-  z
   crypto
   ssl
 )
@@ -24,16 +22,20 @@ else()
   list(APPEND OSQUERY_LIBS "libglog.a")
   list(APPEND OSQUERY_LIBS "librocksdb.a")
   if(EXISTS "/etc/debian_version")
+    list(APPEND OSQUERY_LIBS "libz.a")
+    list(APPEND OSQUERY_LIBS "libbz2.a")
     list(APPEND OSQUERY_LIBS "libsnappy.a")
     list(APPEND OSQUERY_LIBS "libunwind.a")
     list(APPEND OSQUERY_LIBS "liblzma.a")
-    if(EXISTS "/usr/lib/libprocps.a")
+    if(EXISTS "/usr/lib/libprocps.a" OR EXISTS "/usr/lib/x86_64-linux-gnu/libprocps.a")
       list(APPEND OSQUERY_LIBS "libprocps.a")
     else()
       list(APPEND OSQUERY_LIBS "libproc.a")
     endif()
   endif()
   if(EXISTS "/etc/redhat-release")
+    list(APPEND OSQUERY_LIBS "libz.so")
+    list(APPEND OSQUERY_LIBS "libbz2.so")
     list(APPEND OSQUERY_LIBS "libsnappy.so")
     list(APPEND OSQUERY_LIBS "libunwind.so")
     list(APPEND OSQUERY_LIBS "liblzma.so")
@@ -115,6 +117,9 @@ SET(GENERATED_TABLE "")
 
 foreach(TABLE_FILE ${TABLE_FILES})
   SET(TABLE_FILE_GEN ${TABLE_FILE})
+  STRING(REPLACE "linux/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  STRING(REPLACE "darwin/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  STRING(REPLACE "x/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   STRING(
     REPLACE
     "${CMAKE_SOURCE_DIR}/osquery/tables/specs"
@@ -122,9 +127,6 @@ foreach(TABLE_FILE ${TABLE_FILES})
     TABLE_FILE_GEN
     ${TABLE_FILE_GEN}
   )
-  STRING(REPLACE "linux/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  STRING(REPLACE "darwin/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  STRING(REPLACE "x/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   STRING(REPLACE ".table" ".cpp" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   ADD_CUSTOM_COMMAND(
     OUTPUT ${TABLE_FILE_GEN}
