@@ -288,6 +288,7 @@ Status serializeEvent(const ScheduledQueryLogItem& item,
 
   pt::ptree columns;
   for (auto& i : event) {
+    // Yield results as a "columns." map to avoid namespace collisions.
     columns.put<std::string>(i.first, i.second.get_value<std::string>());
   }
 
