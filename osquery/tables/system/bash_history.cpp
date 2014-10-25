@@ -1,27 +1,28 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <vector>
 #include <string>
-
-#include <glog/logging.h>
+#include <vector>
 
 #include <pwd.h>
 
 #include <boost/lexical_cast.hpp>
 
-#include "osquery/sql.h"
+#include <glog/logging.h>
+
 #include "osquery/core.h"
 #include "osquery/database.h"
 #include "osquery/filesystem.h"
+#include "osquery/sql.h"
 
 namespace osquery {
 namespace tables {
 
+const std::vector<std::string> kShellHistoryFiles = {
+  ".bash_history", ".zsh_history", ".zhistory", ".history",
+};
+
 QueryData genBashHistory() {
   QueryData results;
-  std::string history_content;
-  std::string history_file = ".bash_history";
-  std::string user_history;
   std::string sql_str;
 
   if (!getuid()) {
@@ -35,32 +36,50 @@ QueryData genBashHistory() {
 
   auto sql = SQL(sql_str);
 
-  if (sql.ok()) {
-    for (const auto& row : sql.rows()) {
-      try {
-        auto username = row.at("username");
-        auto directory = row.at("directory");
-        std::string::iterator last_c = directory.end() - 1;
-        if (*last_c == '/') {
-          user_history = directory + history_file;
-        } else {
-          user_history = directory + '/' + history_file;
+  if (!sql.ok()) {
+    LOG(ERROR) << "Error executing SQL: " << sql.getMessageString();
+    return results;
+  }
+
+  for (const auto& row : sql.rows()) {
+    std::string username;
+    std::string directory;
+    try {
+      username = row.at("username");
+      directory = row.at("directory");
+    } catch (const std::out_of_range& e) {
+      LOG(ERROR) << "Error retrieving query column";
+      continue;
+    }
+
+    std::vector<std::string> history_files;
+    Status d = listFilesInDirectory(directory, history_files);
+    if (!d.ok()) {
+      LOG(ERROR) << "Error listing history files in " << directory << ": " << d.toString();
+      continue;
+    }
+
+    for (const auto& hfile : kShellHistoryFiles) {
+      std::string history_content;
+      std::string::iterator last_c = directory.end() - 1;
+      if (*last_c != '/') {
+        directory += '/';
+      }
+      std::string user_history = directory + hfile;
+      Status s = readFile(user_history, history_content);
+      if (!s.ok()) {
+        LOG(ERROR) << "Error reading history file " << user_history << ": " << s.toString();
+        continue;
+      } else {
+        for (const auto& line : split(history_content, "\n")) {
+          Row r;
+          r["username"] = std::string(username);
+          r["command"] = std::string(line);
+          r["history_file"] = std::string(user_history);
+          results.push_back(r);
         }
-        Status s = readFile(user_history, history_content);
-        if (s.ok()) {
-          for (const auto& line : split(history_content, "\n")) {
-            Row r;
-            r["username"] = std::string(username);
-            r["command"] = std::string(line);
-            results.push_back(r);
-          }
-        }
-      } catch (const std::out_of_range& e) {
-        LOG(ERROR) << "Error retrieving query column";
       }
     }
-  } else {
-    LOG(ERROR) << sql.getMessageString();
   }
 
   return results;
