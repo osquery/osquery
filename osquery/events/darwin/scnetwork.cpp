@@ -140,6 +140,9 @@ Status SCNetworkEventPublisher::run() {
 
   // Start the run loop, it may be removed with a tearDown.
   CFRunLoopRun();
+
+  // Do not expect the run loop to exit often, if so, add artificial latency.
+  ::sleep(1);
   return Status(0, "OK");
 }
 };
