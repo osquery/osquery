@@ -85,6 +85,7 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
 
   // Iterate over each route in the netlink message
   has_destination = false;
+  r["metric"] = "0";
   while (RTA_OK(attr, attr_size)) {
     switch (attr->rta_type) {
     case RTA_OIF:
@@ -121,9 +122,26 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
     }
   }
 
-  // This is the cidr-formatted mask
-  r["genmask"] = boost::lexical_cast<std::string>(mask);
+  // Route type determination
+  if (message->rtm_type == RTN_UNICAST) {
+    r["type"] = "gateway";
+  } else if (message->rtm_type == RTN_LOCAL) {
+    r["type"] = "local";
+  } else if (message->rtm_type == RTN_BROADCAST) {
+    r["type"] = "broadcast";
+  } else if (message->rtm_type == RTN_ANYCAST) {
+    r["type"] = "anycast";
+  } else {
+    r["type"] = "other";
+  }
 
+  r["flags"] = boost::lexical_cast<std::string>(message->rtm_flags);
+
+  // This is the cidr-formatted mask
+  r["netmask"] = boost::lexical_cast<std::string>(mask);
+
+  // Fields not supported by Linux routes:
+  r["mtu"] = "0";
   results.push_back(r);
 }
 
