@@ -67,10 +67,7 @@ QueryData genBashHistory() {
       }
       std::string user_history = directory + hfile;
       Status s = readFile(user_history, history_content);
-      if (!s.ok()) {
-        LOG(ERROR) << "Error reading history file " << user_history << ": " << s.toString();
-        continue;
-      } else {
+      if (s.ok()) {
         for (const auto& line : split(history_content, "\n")) {
           Row r;
           r["username"] = std::string(username);
