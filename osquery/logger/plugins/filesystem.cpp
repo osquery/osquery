@@ -34,8 +34,9 @@ class FilesystemLoggerPlugin : public LoggerPlugin {
       if (log_stream.fail()) {
         return Status(1, "error opening file: " + log_path);
       }
-      log_stream << s << std::endl;
-    } catch (const std::exception& e) {
+      log_stream << s;
+    }
+    catch (const std::exception& e) {
       return Status(1, e.what());
     }
     return Status(0, "OK");

@@ -34,7 +34,6 @@ void genSocket(pid_t pid, struct socket_fdinfo socket, QueryData &results) {
   }
 
   struct in6_addr ipv6 = socket.psi.soi_proto.pri_in.insi_laddr.ina_6;
-  uint32_t ipv4 = ipv6.__u6_addr.__u6_addr32[3];
 
   Row r;
   r["pid"] = boost::lexical_cast<std::string>(pid);

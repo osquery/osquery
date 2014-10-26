@@ -266,11 +266,73 @@ Status serializeScheduledQueryLogItem(const ScheduledQueryLogItem& i,
     if (!diff_results_status.ok()) {
       return diff_results_status;
     }
+
     tree.add_child("diffResults", diffResults);
     tree.put<std::string>("name", i.name);
     tree.put<std::string>("hostname", i.hostname);
     tree.put<std::string>("calendarTime", i.calendarTime);
     tree.put<int>("unixTime", i.unixTime);
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+  return Status(0, "OK");
+}
+
+Status serializeEvent(const ScheduledQueryLogItem& item,
+                      const boost::property_tree::ptree& event,
+                      boost::property_tree::ptree& tree) {
+  tree.put<std::string>("name", item.name);
+  tree.put<std::string>("hostname", item.hostname);
+  tree.put<std::string>("calendarTime", item.calendarTime);
+  tree.put<int>("unixTime", item.unixTime);
+
+  pt::ptree columns;
+  for (auto& i : event) {
+    // Yield results as a "columns." map to avoid namespace collisions.
+    columns.put<std::string>(i.first, i.second.get_value<std::string>());
+  }
+
+  tree.add_child("columns", columns);
+  return Status(0, "OK");
+}
+
+Status serializeScheduledQueryLogItemAsEvents(
+    const ScheduledQueryLogItem& item, boost::property_tree::ptree& tree) {
+  try {
+    pt::ptree diff_results;
+    auto status = serializeDiffResults(item.diffResults, diff_results);
+    if (!status.ok()) {
+      return status;
+    }
+
+    for (auto& i : diff_results) {
+      for (auto& j : i.second) {
+        pt::ptree event;
+        serializeEvent(item, j.second, event);
+        event.put<std::string>("action", i.first);
+        tree.push_back(std::make_pair("", event));
+      }
+    }
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+
+  return Status(0, "OK");
+}
+
+Status serializeScheduledQueryLogItemAsEventsJSON(
+    const ScheduledQueryLogItem& i, std::string& json) {
+  try {
+    pt::ptree tree;
+    auto s = serializeScheduledQueryLogItemAsEvents(i, tree);
+    if (!s.ok()) {
+      return s;
+    }
+    std::ostringstream ss;
+    for (auto& event : tree) {
+      pt::write_json(ss, event.second, false);
+    }
+    json = ss.str();
   } catch (const std::exception& e) {
     return Status(1, e.what());
   }
