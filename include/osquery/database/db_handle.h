@@ -8,9 +8,12 @@
 
 #include <rocksdb/db.h>
 
+#include "osquery/flags.h"
 #include "osquery/status.h"
 
 namespace osquery {
+
+DECLARE_string(db_path);
 
 /////////////////////////////////////////////////////////////////////////////
 // Constants

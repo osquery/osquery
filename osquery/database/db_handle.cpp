@@ -20,21 +20,21 @@ namespace osquery {
 // Constants
 /////////////////////////////////////////////////////////////////////////////
 
-const std::string kDBDefaultPath = "/tmp/rocksdb-osquery";
-
 const std::string kConfigurations = "configurations";
 const std::string kQueries = "queries";
 const std::string kEvents = "events";
 
 const std::vector<std::string> kDomains = {kConfigurations, kQueries, kEvents};
 
-DEFINE_string(db_path,
-              kDBDefaultPath,
-              "If using a disk-based backing store, specificy a path.");
+DEFINE_osquery_flag(string,
+                    db_path,
+                    "/tmp/rocksdb-osquery",
+                    "If using a disk-based backing store, specificy a path.");
 
-DEFINE_bool(use_in_memory_database,
-            false,
-            "Keep osquery backing-store in memory.");
+DEFINE_osquery_flag(bool,
+                    use_in_memory_database,
+                    false,
+                    "Keep osquery backing-store in memory.");
 
 /////////////////////////////////////////////////////////////////////////////
 // constructors and destructors
