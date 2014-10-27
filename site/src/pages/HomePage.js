@@ -20,72 +20,40 @@ var Page = React.createClass({
         <PageContainer>
           <div className="homepage-text">
 
-            <p className="lead"> osquery exposes an operating system as a
-            high-performance relational database. This allows you to write
-            SQL-based queries to explore operating system data on a variety of
-            platforms. </p>
+            <h2> What is osquery? </h2>
 
-            <h3 className="page-header">Interactive SQL</h3>
+            <p className="lead">With osquery, you can use SQL to query
+            low-level operating system information. Under the hood, instead of
+            querying static tables, these queries dynamically execute
+            high-performance native code. The results of the SQL query are
+            transparently returned to you quickly and easily.</p>
 
-            <p className="lead"> The <strong>interactive query console</strong>,
-            osqueryi, gives you a SQL interface to try out new queries and
-            explore your operating system. With the power of a complete SQL
-            language and dozens of useful tables built-in, osqueryi is an
-            invaluable tool when performing incident response, diagnosing an
-            systems operations problem, troubleshooting a performance issue, etc.
-            </p>
+            <p className="lead">Consider the following example, which uses osqueryi,
+            the interactive query console, to execute a few SQL queries.</p>
 
-            <h3 className="page-header">Distributed Monitoring</h3>
+            <div className="showterm">
+              <iframe width="100%" height="480" src="http://showterm.io/65ec8d4eb3c9896815333"></iframe>
+            </div>
 
-            <p className="lead"> The <strong>high-performance, low-footprint
-            distributed host monitoring daemon</strong>, osqueryd, allows you to
-            schedule queries to be executed across your entire infrastructure.
-            The daemon takes care of aggregating the query results over time and
-            generates logs which indicate state changes in your infrastructure.
-            You can use this to maintain insight into the security, performance,
-            configuration and state of your entire infrastructure. osqueryd's
-            logging can integrate right into your internal log aggregation
-            pipeline, regardless of your technology stack, via a robust plugin
-            architecture. </p>
+            <h2>Install osquery</h2>
 
-            <h3 className="page-header">Performance is a Feature</h3>
+            <p className="lead">Installing osquery is easy. We maintain install
+            guides for OS X and Linux on the <a
+            href="https://github.com/facebook/osquery/wiki#getting-started">wiki</a>.</p>
 
-            <p className="lead"> A top-level goal of osquery is for it to be
-            performant enough to run on production infrastructure with the
-            smallest possible footprint. The core osquery team at Facebook puts a
-            lot of effort into ensuring that all code is rigorously benchmarked
-            and tested for memory leaks. All systems operations in osquery use
-            underlying systems APIs exclusively. For example, the kextstat table
-            in OS X uses the same underlying core APIs as the kextstat
-            command.</p>
+            <h2>Who uses it?</h2>
 
-            <h3 className="page-header">Deployment is Easy</h3>
+            <p className="lead">Facebook uses osquery to gain insight into OS X
+            and Linux hosts. Other notable companies also use osquery because
+            of how easy it is to deploy osquery and the advanced insight into
+            their infrastructure that osquery can offer them</p>
 
-            <p className="lead"> To assist with the rollout process, the osquery
-            wiki has <strong> detailed documentation on internal deployment
-            </strong>. osquery was built so that every environment specific
-            aspect of the toolchain can be hot-swapped at run-time with custom
-            plugins. Use these interfaces to deeply integrate osquery into your
-            infrastructure if one of the several existing plugins don't suit your
-            needs. </p>
-
-            <p className="lead"> Additionally, osquery comes with <strong> native
-            packages for all supported operating systems </strong>. There's great
-            tooling and documentation around creating packages, so packaging and
-            deploying your custom osquery tools can be just as easy too. </p>
-
-            <h3 className="page-header"> Monitor OS X clients as well as Linux servers </h3>
-
-            <p className="lead"> osquery is <strong>cross platform</strong>. Even
-            though osquery takes advantage of very low-level operating system
-            APIs, you can build and use osquery on Ubuntu, Cent OS and Mac OS X.
-            This has the distinct advantage of allowing you to be able to use one
-            platform for monitoring complex operating system state across you're
-            entire infrastructure. Monitor your corporate Mac OS X clients the
-            same way you monitor your production Linux servers. </p>
+            <p className="lead"><i>“osquery is simple, lightweight and was very
+            easy to integrate with the other tools we use. The deamon is easy
+            to configure and the deployment process has been really easy.” -
+            Bryan Eastes / Yelp</i></p>
 
           </div>
-
         </PageContainer>
       </BasePage>
     );

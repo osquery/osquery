@@ -37,7 +37,7 @@ var PageContainer = React.createClass({
             <li><h4><a href="//github.com/facebook/osquery/labels/RFC" target="_blank">Engineering discussions</a></h4></li>
           </ul>
 
-          <h3 className="page-header">Licence</h3>
+          <h3 className="page-header">License</h3>
           <ul>
             <li><h4><a href="//github.com/facebook/osquery/blob/master/LICENSE" target="_blank">BSD License</a></h4></li>
             <li><h4><a href="//github.com/facebook/osquery/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></h4></li>
