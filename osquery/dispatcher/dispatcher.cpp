@@ -1,21 +1,21 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/dispatcher.h"
-
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/dispatcher.h"
+#include "osquery/flags.h"
 
 using namespace apache::thrift::concurrency;
 
 namespace osquery {
 
-const int kDefaultThreadPoolSize = 4;
-
-DEFINE_int32(worker_threads,
-             kDefaultThreadPoolSize,
-             "The number of threads to use for the work dispatcher");
+/// The worker_threads define the default thread pool size.
+DEFINE_osquery_flag(int32,
+                    worker_threads,
+                    4,
+                    "The number of threads to use for the work dispatcher");
 
 Dispatcher& Dispatcher::getInstance() {
   static Dispatcher d;

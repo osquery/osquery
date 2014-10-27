@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <thread>
 
-#include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "osquery/flags.h"
 #include "osquery/logger.h"
 #include "osquery/logger/plugin.h"
 
@@ -13,13 +13,16 @@ using osquery::Status;
 
 namespace osquery {
 
-const std::string kDefaultLogReceiverName = "filesystem";
+/// `log_receiver` defines the default log receiver plugin name.
+DEFINE_osquery_flag(string,
+                    log_receiver,
+                    "filesystem",
+                    "The upstream log receiver to log messages to.");
 
-DEFINE_string(log_receiver,
-              kDefaultLogReceiverName,
-              "The upstream log receiver to log messages to.");
-
-DEFINE_bool(log_result_events, true, "Log scheduled results as events.");
+DEFINE_osquery_flag(bool,
+                    log_result_events,
+                    true,
+                    "Log scheduled results as events.");
 
 Status logString(const std::string& s) {
   return logString(s, FLAGS_log_receiver);

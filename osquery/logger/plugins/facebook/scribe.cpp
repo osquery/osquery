@@ -1,25 +1,29 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/logger/plugin.h"
-
 #include <algorithm>
 #include <thread>
 
-#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include <scribe/client/ScribeClient.h>
+
+#include "osquery/flags.h"
+#include "osquery/logger/plugin.h"
 
 using osquery::Status;
 
 namespace osquery {
 
-DEFINE_string(
-    active_scribe_category,
-    "osquery",
-    "The path of the scribe category to be used if scribe logging is enabled.");
+DEFINE_osquery_flag(string,
+                    active_scribe_category,
+                    "osquery",
+                    "The path of the scribe category to be used if scribe "
+                      "logging is enabled.");
 
-DEFINE_bool(dev_machine, false, "Set to true if the machine is a dev machine.");
+DEFINE_osquery_flag(bool,
+                    dev_machine,
+                    false,
+                    "Set to true if the machine is a dev machine.");
 
 class ScribeLoggerPlugin : public LoggerPlugin {
  public:

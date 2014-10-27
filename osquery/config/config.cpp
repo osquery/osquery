@@ -1,8 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/config.h"
-#include "osquery/config/plugin.h"
-
 #include <algorithm>
 #include <future>
 #include <sstream>
@@ -16,6 +13,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "osquery/config.h"
+#include "osquery/config/plugin.h"
+#include "osquery/flags.h"
 #include "osquery/status.h"
 
 using osquery::Status;
@@ -24,11 +24,10 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-const std::string kDefaultConfigRetriever = "filesystem";
-
-DEFINE_string(config_retriever,
-              kDefaultConfigRetriever,
-              "The config mechanism to retrieve config content via.");
+DEFINE_osquery_flag(string,
+                    config_retriever,
+                    "filesystem",
+                    "The config mechanism to retrieve config content via.");
 
 boost::shared_mutex rw_lock;
 
