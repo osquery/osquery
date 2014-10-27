@@ -2,12 +2,12 @@
 
 #include "osquery/filesystem.h"
 
-#include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
 #include "osquery/core.h"
 #include "osquery/core/darwin/test_util.h"
+#include "osquery/flags.h"
 
 using namespace osquery::core;
 namespace pt = boost::property_tree;
@@ -15,7 +15,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 // run this benchmark with --iterations=9001 to parse over 9000 property lists
-DEFINE_int32(iterations, 100, "Iterations to execute");
+DEFINE_osquery_flag(int32, iterations, 100, "Iterations to execute.");
 
 class PlistBenchmark : public testing::Test {};
 

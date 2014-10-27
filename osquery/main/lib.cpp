@@ -2,7 +2,9 @@
 
 #include <string>
 
+#include "osquery/core.h"
+
 namespace osquery {
 
-const std::string kVersion = "0.0.1";
+const std::string kVersion = VERSION;
 }

@@ -1,17 +1,21 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/config/plugin.h"
-
 #include <fstream>
 
 #include <boost/filesystem/operations.hpp>
+
+#include "osquery/config/plugin.h"
+#include "osquery/flags.h"
 
 namespace fs = boost::filesystem;
 using osquery::Status;
 
 namespace osquery {
 
-DEFINE_string(config_path, "/var/osquery/osquery.conf", "Path to config file");
+DEFINE_osquery_flag(string,
+                    config_path,
+                    "/var/osquery/osquery.conf",
+                    "Path to config file");
 
 class FilesystemConfigPlugin : public ConfigPlugin {
  public:

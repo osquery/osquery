@@ -15,6 +15,8 @@ namespace osquery {
  * @brief The version of osquery
  */
 extern const std::string kVersion;
+/// Use a macro for the version literal, set the kVersion symbol in the library.
+#define VERSION "0.0.2"
 
 /**
  * @brief Execute a query

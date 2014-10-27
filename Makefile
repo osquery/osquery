@@ -9,6 +9,10 @@ all:
 	mkdir -p $(BUILD_DIR)
 	cd $(BUILD_DIR) && cmake ../.. && make --no-print-directory $(MAKEFLAGS)
 
+debug:
+	mkdir -p $(BUILD_DIR)
+	cd $(BUILD_DIR) && cmake -DCMAKE_BUILD_TYPE=Debug ../../ && make --no-print-directory $(MAKEFLAGS)
+
 deps:
 	./tools/provision.sh
 

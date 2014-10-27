@@ -24,6 +24,9 @@ TEST_F(ConfigTests, test_queries_execute) {
     int err;
     auto r = query(i.query, err);
     EXPECT_EQ(err, 0);
+
+    // At most query one shceduled query from the config.
+    break;
   }
 }
 
