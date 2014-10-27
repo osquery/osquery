@@ -7,12 +7,20 @@
 #include "osquery/config.h"
 #include "osquery/config/plugin.h"
 #include "osquery/core.h"
+#include "osquery/database.h"
 #include "osquery/events.h"
 #include "osquery/logger/plugin.h"
 #include "osquery/scheduler.h"
 
 int main(int argc, char* argv[]) {
   osquery::initOsquery(argc, argv);
+
+  try {
+    osquery::DBHandle::getInstance();
+  } catch (std::exception& e) {
+    LOG(ERROR) << "osqueryd failed to start: " << e.what();
+    ::exit(1);
+  }
 
   LOG(INFO) << "Listing all plugins";
 
@@ -37,7 +45,8 @@ int main(int argc, char* argv[]) {
   }
 
   // Start a thread for each appropriate event type
-  osquery::registries::faucet(REGISTERED_EVENTPUBLISHERS, REGISTERED_EVENTSUBSCRIBERS);
+  osquery::registries::faucet(REGISTERED_EVENTPUBLISHERS,
+    REGISTERED_EVENTSUBSCRIBERS);
   osquery::EventFactory::delay();
 
   boost::thread scheduler_thread(osquery::initializeScheduler);

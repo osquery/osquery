@@ -23,6 +23,9 @@
 # Build Artifacts
 build/
 
+# Run Artifacts
+*.log
+
 # Vagrant Artifacts
 .vagrant
 .sources
