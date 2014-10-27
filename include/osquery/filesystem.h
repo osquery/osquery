@@ -24,6 +24,8 @@ namespace osquery {
  */
 Status readFile(const std::string& path, std::string& content);
 
+Status isWritable(const std::string& path);
+
 /**
  * @brief A helper to check if a path exists on disk or not.
  *

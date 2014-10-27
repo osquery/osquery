@@ -83,6 +83,7 @@ class Status {
    * @see getMessage()
    */
   std::string toString() const { return getMessage(); }
+  std::string what() const { return getMessage(); }
 
  private:
   /// the internal storage of the status code
