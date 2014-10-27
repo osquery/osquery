@@ -1,7 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/database/db_handle.h"
-
 #include <algorithm>
 #include <mutex>
 #include <stdexcept>
@@ -10,6 +8,8 @@
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
 
+#include "osquery/database/db_handle.h"
+#include "osquery/filesystem.h"
 #include "osquery/status.h"
 
 using osquery::Status;
@@ -20,7 +20,7 @@ namespace osquery {
 // Constants
 /////////////////////////////////////////////////////////////////////////////
 
-const std::string kDBPath = "/tmp/rocksdb-osquery";
+const std::string kDBDefaultPath = "/tmp/rocksdb-osquery";
 
 const std::string kConfigurations = "configurations";
 const std::string kQueries = "queries";
@@ -28,11 +28,19 @@ const std::string kEvents = "events";
 
 const std::vector<std::string> kDomains = {kConfigurations, kQueries, kEvents};
 
+DEFINE_string(db_path,
+              kDBDefaultPath,
+              "If using a disk-based backing store, specificy a path.");
+
+DEFINE_bool(use_in_memory_database,
+            false,
+            "Keep osquery backing-store in memory.");
+
 /////////////////////////////////////////////////////////////////////////////
 // constructors and destructors
 /////////////////////////////////////////////////////////////////////////////
 
-DBHandle::DBHandle(std::string path, bool in_memory) {
+DBHandle::DBHandle(const std::string& path, bool in_memory) {
   options_.create_if_missing = true;
   options_.create_missing_column_families = true;
 
@@ -51,8 +59,12 @@ DBHandle::DBHandle(std::string path, bool in_memory) {
         cf_name, rocksdb::ColumnFamilyOptions()));
   }
 
+  if (pathExists(path).what() == "1" && !isWritable(path).ok()) {
+    throw std::domain_error("Cannot write to RocksDB path: " + path);
+  }
+
   status_ =
-      rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
+    rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
 }
 
 DBHandle::~DBHandle() {
@@ -73,7 +85,7 @@ DBHandle::~DBHandle() {
 // getInstance methods
 /////////////////////////////////////////////////////////////////////////////
 std::shared_ptr<DBHandle> DBHandle::getInstance() {
-  return getInstance(kDBPath, false);
+  return getInstance(FLAGS_db_path, FLAGS_use_in_memory_database);
 }
 
 std::shared_ptr<DBHandle> DBHandle::getInstanceInMemory() {

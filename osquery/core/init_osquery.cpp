@@ -10,6 +10,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "osquery/database.h"
 #include "osquery/registry.h"
 
 using namespace boost::algorithm;
@@ -117,9 +118,17 @@ void initOsquery(int argc, char *argv[]) {
   if (access(kDefaultLogDir.c_str(), W_OK) == 0) {
     FLAGS_log_dir = kDefaultLogDir;
   }
+
   google::InitGoogleLogging(argv[0]);
   osquery::InitRegistry::get().run();
   auto new_args = osquery::parseCommandLineFlags(argc, argv);
   google::ParseCommandLineFlags(&new_args.first, &new_args.second, true);
+
+  try {
+    DBHandle::getInstance();
+  } catch (std::exception& e) {
+    LOG(ERROR) << "osquery failed to start: " << e.what();
+    ::exit(1);
+  }
 }
 }
