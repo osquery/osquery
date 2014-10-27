@@ -14,9 +14,6 @@ deps:
 
 distclean:
 	rm -rf .sources $(BUILD_DIR) doxygen/html doxygen/latex
-ifeq ($(PLATFORM),Darwin)
-	rm -rf deploy/darwin/build
-endif
 
 %::
 	mkdir -p $(BUILD_DIR)
