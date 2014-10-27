@@ -30,7 +30,7 @@ QueryData genBashHistory() {
   } else {
     struct passwd *pwd = nullptr;
     pwd = getpwuid(getuid());
-    // TODO: Come back here when osquery supports parametrized queries, until then SQLi!
+    // TODO: https://github.com/facebook/osquery/issues/244
     sql_str = "SELECT username,directory FROM users WHERE username = '" + std::string(pwd->pw_name) + "';";
   }
 
