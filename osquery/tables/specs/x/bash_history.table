@@ -1,0 +1,7 @@
+table_name("bash_history")
+schema([
+    Column(name="username", type="std::string"),
+    Column(name="command", type="std::string"),
+    Column(name="history_file", type="std::string"),
+])
+implementation("bash_history@genBashHistory")
