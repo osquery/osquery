@@ -1,0 +1,9 @@
+table_name("rpms")
+schema([
+    Column(name="name", type="std::string"),
+    Column(name="version", type="std::string"),
+    Column(name="release", type="std::string"),
+    Column(name="group", type="std::string"),
+    Column(name="arch", type="std::string"),
+])
+implementation("rpms@genRpms")
