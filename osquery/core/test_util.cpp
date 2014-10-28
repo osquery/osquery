@@ -53,8 +53,8 @@ QueryData getTestDBExpectedResults() {
   return d;
 }
 
-std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
-  std::vector<std::pair<std::string, QueryData>> results;
+std::vector<std::pair<std::string, QueryData> > getTestDBResultStream() {
+  std::vector<std::pair<std::string, QueryData> > results;
 
   std::string q2 =
       "INSERT INTO test_table (username, age) VALUES (\"joe\", 25)";

@@ -34,7 +34,8 @@ osquery::QueryData getTestDBExpectedResults();
 // Starting with the dataset returned by createTestDB(), getTestDBResultStream
 // returns a vector of std::pair's where pair.first is the query that would
 // need to be performed on the dataset to make the results be pair.second
-std::vector<std::pair<std::string, osquery::QueryData>> getTestDBResultStream();
+std::vector<std::pair<std::string, osquery::QueryData> >
+getTestDBResultStream();
 
 // getOsqueryScheduledQuery returns a test scheduled query which would normally
 // be returned via the config

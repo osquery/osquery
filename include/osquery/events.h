@@ -734,7 +734,7 @@ class EventFactory {
   EventPublisherMap event_pubs_;
 
   /// Set of running EventPublisher run loop threads.
-  std::vector<std::shared_ptr<boost::thread>> threads_;
+  std::vector<std::shared_ptr<boost::thread> > threads_;
 
   /// Set of instanciated EventSubscriber Subscription sets (with callbacks and
   /// state).

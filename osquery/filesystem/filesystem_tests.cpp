@@ -55,6 +55,7 @@ TEST_F(FilesystemTests, test_list_files_in_directorty) {
 }
 
 TEST_F(FilesystemTests, test_parse_tomcat_user_config) {
+  // clang-format off
   std::string config_content = R"(
 <?xml version='1.0' encoding='utf-8'?>
 <!--
@@ -86,6 +87,8 @@ TEST_F(FilesystemTests, test_parse_tomcat_user_config) {
   <user username="tomcat" password="tomcat" roles="tomcat"/>
 </tomcat-users>
 )";
+  // clang-format on
+
   std::vector<std::pair<std::string, std::string>> credentials;
   auto s = parseTomcatUserConfig(config_content, credentials);
   EXPECT_TRUE(s.ok());

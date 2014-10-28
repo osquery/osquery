@@ -28,7 +28,7 @@ PenaltyReturnTypeOnItsOwnLine: 200
 PointerBindsToType: true
 SpacesBeforeTrailingComments: 1
 Cpp11BracedListStyle: true
-Standard: Cpp11
+Standard: Cpp03
 IndentWidth: 2
 TabWidth: 8
 UseTab: Never

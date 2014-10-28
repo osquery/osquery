@@ -121,7 +121,7 @@ Status isDirectory(const std::string& path) {
 
 Status parseTomcatUserConfigFromDisk(
     const std::string& path,
-    std::vector<std::pair<std::string, std::string>>& credentials) {
+    std::vector<std::pair<std::string, std::string> >& credentials) {
   std::string content;
   auto s = readFile(path, content);
   if (s.ok()) {
@@ -133,7 +133,7 @@ Status parseTomcatUserConfigFromDisk(
 
 Status parseTomcatUserConfig(
     const std::string& content,
-    std::vector<std::pair<std::string, std::string>>& credentials) {
+    std::vector<std::pair<std::string, std::string> >& credentials) {
   std::stringstream ss;
   ss << content;
   pt::ptree tree;
