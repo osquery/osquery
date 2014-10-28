@@ -24,30 +24,30 @@ QueryData genGroups() {
 
     ODSession *s = [ODSession defaultSession];
     NSError *err;
-    ODNode *root = [ODNode nodeWithSession:s
-                           name:@"/Local/Default"
-                           error:&err];
+    ODNode *root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
     if (err) {
-      LOG(ERROR) << "Error with OD node: " << std::string([[err localizedDescription] UTF8String]);
+      LOG(ERROR) << "Error with OD node: "
+                 << std::string([[err localizedDescription] UTF8String]);
       return results;
     }
     ODQuery *q = [ODQuery queryWithNode:root
-                          forRecordTypes:kODRecordTypeGroups
-                          attribute:nil
-                          matchType:0
-                          queryValues:nil
-                          returnAttributes:nil
-                          maximumResults:0
-                          error:&err];
+                         forRecordTypes:kODRecordTypeGroups
+                              attribute:nil
+                              matchType:0
+                            queryValues:nil
+                       returnAttributes:nil
+                         maximumResults:0
+                                  error:&err];
     if (err) {
-      LOG(ERROR) << "Error with OD query: " << std::string([[err localizedDescription] UTF8String]);
+      LOG(ERROR) << "Error with OD query: "
+                 << std::string([[err localizedDescription] UTF8String]);
       return results;
     }
 
-    NSArray *od_results = [q resultsAllowingPartial:NO
-                             error:&err];
+    NSArray *od_results = [q resultsAllowingPartial:NO error:&err];
     if (err) {
-      LOG(ERROR) << "Error with OD results: " << std::string([[err localizedDescription] UTF8String]);
+      LOG(ERROR) << "Error with OD results: "
+                 << std::string([[err localizedDescription] UTF8String]);
       return results;
     }
     for (ODRecord *re in od_results) {

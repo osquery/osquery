@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
 
   // Start a thread for each appropriate event type
   osquery::registries::faucet(REGISTERED_EVENTPUBLISHERS,
-    REGISTERED_EVENTSUBSCRIBERS);
+                              REGISTERED_EVENTSUBSCRIBERS);
   osquery::EventFactory::delay();
 
   boost::thread scheduler_thread(osquery::initializeScheduler);

@@ -64,7 +64,7 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   }
 
   status_ =
-    rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
+      rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
 }
 
 DBHandle::~DBHandle() {

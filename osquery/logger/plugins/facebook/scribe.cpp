@@ -18,7 +18,7 @@ DEFINE_osquery_flag(string,
                     active_scribe_category,
                     "osquery",
                     "The path of the scribe category to be used if scribe "
-                      "logging is enabled.");
+                    "logging is enabled.");
 
 DEFINE_osquery_flag(bool,
                     dev_machine,

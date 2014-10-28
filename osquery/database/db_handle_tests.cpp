@@ -24,6 +24,7 @@ class DBHandleTests : public testing::Test {
     cfh_foobar =
         DBHandle::getInstance()->getHandleForColumnFamily("foobartest");
   }
+
  public:
   rocksdb::ColumnFamilyHandle* cfh_queries;
   rocksdb::ColumnFamilyHandle* cfh_foobar;

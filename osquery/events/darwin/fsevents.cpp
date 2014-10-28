@@ -14,7 +14,8 @@ std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemCreated, "CREATED"},
     {kFSEventStreamEventFlagItemRemoved, "DELETED"},
     {kFSEventStreamEventFlagItemModified, "UPDATED"},
-    {kFSEventStreamEventFlagItemRenamed, "MOVED_TO"}, };
+    {kFSEventStreamEventFlagItemRenamed, "MOVED_TO"},
+};
 
 void FSEventsEventPublisher::restart() {
   if (paths_.empty()) {

@@ -14,10 +14,9 @@
 namespace osquery {
 namespace tables {
 
-const std::vector<std::string> kDarwinPasswdPaths = {"/etc/passwd",
-                                                     "/private/etc/passwd",
-                                                     "/etc/shadow",
-                                                     "/private/etc/shadow", };
+const std::vector<std::string> kDarwinPasswdPaths = {
+    "/etc/passwd", "/private/etc/passwd", "/etc/shadow", "/private/etc/shadow",
+};
 
 /**
  * @brief Track time, action changes to /etc/passwd
@@ -43,7 +42,8 @@ class PasswdChangesEventSubscriber : public EventSubscriber {
 };
 
 /**
- * @brief Each EventSubscriber must register itself so the init method is called.
+ * @brief Each EventSubscriber must register itself so the init method is
+ *called.
  *
  * This registers PasswdChangesEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
@@ -58,7 +58,8 @@ void PasswdChangesEventSubscriber::init() {
   }
 }
 
-Status PasswdChangesEventSubscriber::Callback(const FSEventsEventContextRef ec) {
+Status PasswdChangesEventSubscriber::Callback(
+    const FSEventsEventContextRef ec) {
   Row r;
   r["action"] = ec->action;
   r["time"] = ec->time_string;

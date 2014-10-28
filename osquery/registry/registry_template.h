@@ -63,7 +63,7 @@ class RegistryTemplate : private boost::noncopyable {
   std::mutex mutex_;
   bool alreadyRan_;
 
-  std::map<int, std::vector<Func>> funcMap_;
+  std::map<int, std::vector<Func> > funcMap_;
 };
 
 } // namespace osquery

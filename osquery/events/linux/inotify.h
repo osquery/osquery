@@ -70,7 +70,7 @@ struct INotifyEventContext : public EventContext {
 
 typedef std::shared_ptr<INotifyEventContext> INotifyEventContextRef;
 typedef std::shared_ptr<INotifySubscriptionContext>
-INotifySubscriptionContextRef;
+    INotifySubscriptionContextRef;
 
 // Thread-safe containers
 typedef std::vector<int> DescriptorVector;

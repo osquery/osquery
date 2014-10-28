@@ -25,7 +25,8 @@ QueryData genGroups() {
 
   setgrent();
   while ((grp = getgrent()) != NULL) {
-    if (std::find(groups_in.begin(), groups_in.end(), grp->gr_gid) == groups_in.end()) {
+    if (std::find(groups_in.begin(), groups_in.end(), grp->gr_gid) ==
+        groups_in.end()) {
       Row r;
       r["gid"] = boost::lexical_cast<std::string>(grp->gr_gid);
       r["name"] = std::string(grp->gr_name);

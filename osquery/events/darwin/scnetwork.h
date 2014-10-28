@@ -27,7 +27,7 @@ struct SCNetworkSubscriptionContext : public SubscriptionContext {
 };
 
 typedef std::shared_ptr<SCNetworkSubscriptionContext>
-SCNetworkSubscriptionContextRef;
+    SCNetworkSubscriptionContextRef;
 
 struct SCNetworkEventContext : public EventContext {
   SCNetworkSubscriptionContextRef subscription;

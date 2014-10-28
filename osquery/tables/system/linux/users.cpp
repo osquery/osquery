@@ -24,7 +24,8 @@ QueryData genUsers() {
   std::set<long> users_in;
 
   while ((pwd = getpwent()) != NULL) {
-    if (std::find(users_in.begin(), users_in.end(), pwd->pw_uid) == users_in.end()) {
+    if (std::find(users_in.begin(), users_in.end(), pwd->pw_uid) ==
+        users_in.end()) {
       Row r;
       r["uid"] = boost::lexical_cast<std::string>(pwd->pw_uid);
       r["gid"] = boost::lexical_cast<std::string>(pwd->pw_gid);

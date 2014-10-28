@@ -53,8 +53,8 @@ QueryData getTestDBExpectedResults() {
   return d;
 }
 
-std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
-  std::vector<std::pair<std::string, QueryData>> results;
+std::vector<std::pair<std::string, QueryData> > getTestDBResultStream() {
+  std::vector<std::pair<std::string, QueryData> > results;
 
   std::string q2 =
       "INSERT INTO test_table (username, age) VALUES (\"joe\", 25)";
@@ -256,17 +256,17 @@ WxULUHBC6qH9gAlKEqZYS3CwpCEl/Blznwi30r4CwwQ6dLfeXoPQDxAt7LyPpV4=
 
 std::string getEtcHostsContent() {
   std::string content = R"(
-    ##
-    # Host Database
-    #
-    # localhost is used to configure the loopback interface
-    # when the system is booting.  Do not change this entry.
-    ##
-    127.0.0.1       localhost
-    255.255.255.255 broadcasthost
-    ::1             localhost
-    fe80::1%lo0     localhost
-    )";
+##
+#Host Database
+#
+#localhost is used to configure the loopback interface
+#when the system is booting.Do not change this entry.
+##
+127.0.0.1       localhost
+255.255.255.255 broadcasthost
+::1             localhost
+fe80::1%lo0     localhost
+)";
   return content;
 }
 

@@ -47,7 +47,7 @@ struct FSEventsEventContext : public EventContext {
 
 typedef std::shared_ptr<FSEventsEventContext> FSEventsEventContextRef;
 typedef std::shared_ptr<FSEventsSubscriptionContext>
-FSEventsSubscriptionContextRef;
+    FSEventsSubscriptionContextRef;
 
 /**
  * @brief An osquery EventPublisher for the Apple FSEvents notification API.
