@@ -1,7 +1,0 @@
-table_name("time")
-schema([
-    Column(name="hour", type="int"),
-    Column(name="minutes", type="int"),
-    Column(name="seconds", type="int"),
-])
-implementation("time@genTime")

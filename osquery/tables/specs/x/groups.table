@@ -1,6 +1,0 @@
-table_name("groups")
-schema([
-    Column(name="gid", type="std::string"),
-    Column(name="name", type="std::string"),
-])
-implementation("groups@genGroups")
