@@ -43,6 +43,7 @@ void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
         item.diffResults = diff_results;
         item.name = q.name;
         item.hostname = osquery::getHostname();
+        item.hostUuid = osquery::getHostUuid();
         item.unixTime = osquery::getUnixTime();
         item.calendarTime = osquery::getAsciiTime();
         auto s = logScheduledQueryLogItem(item);
