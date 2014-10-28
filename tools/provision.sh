@@ -398,7 +398,7 @@ function main() {
     package glog
     package thrift
   fi
-
+  sudo easy_install pip
   cd $SCRIPT_DIR/../
   sudo pip install -r requirements.txt
   git submodule init

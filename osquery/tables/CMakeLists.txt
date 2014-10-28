@@ -34,6 +34,7 @@ else()
     networking/linux/routes.cpp
     system/linux/kernel_modules.cpp
     system/linux/processes.cpp
+    system/linux/rpms.cpp
     system/linux/users.cpp
     system/linux/groups.cpp
   )
