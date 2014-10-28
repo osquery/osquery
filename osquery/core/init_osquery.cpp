@@ -10,22 +10,22 @@
 
 namespace osquery {
 
-
-const std::string kDescription = "your operating system as a high-performance "
-  "relational database";
+const std::string kDescription =
+    "your operating system as a high-performance "
+    "relational database";
 const std::string kEpilog = "osquery project page <http://osquery.io>.";
 
 DEFINE_osquery_flag(string,
                     osquery_log_dir,
                     "/var/log/osquery/",
-                    "Directory to store results logging.")
+                    "Directory to store results logging.");
 
 static const char* basename(const char* filename) {
   const char* sep = strrchr(filename, '/');
   return sep ? sep + 1 : filename;
 }
 
-void initOsquery(int argc, char *argv[]) {
+void initOsquery(int argc, char* argv[]) {
   std::string binary(basename(argv[0]));
   std::string first_arg = (argc > 1) ? std::string(argv[1]) : "";
 
@@ -33,14 +33,18 @@ void initOsquery(int argc, char *argv[]) {
     // Parse help options before gflags. Only display osquery-related options.
     fprintf(stdout, "osquery " VERSION ", %s\n", kDescription.c_str());
     fprintf(stdout, "%s: [OPTION]...\n\n", binary.c_str());
-    fprintf(stdout, "The following options control the osquery "
-      "daemon and shell.\n\n");
+    fprintf(stdout,
+            "The following options control the osquery "
+            "daemon and shell.\n\n");
 
     auto flags = Flag::get().flags();
     for (auto& flag : flags) {
-      fprintf(stdout, "  --%s, --%s=VALUE\n    %s (default: %s)\n",
-        flag.first.c_str(), flag.first.c_str(), flag.second.second.c_str(),
-        flag.second.first.c_str());
+      fprintf(stdout,
+              "  --%s, --%s=VALUE\n    %s (default: %s)\n",
+              flag.first.c_str(),
+              flag.first.c_str(),
+              flag.second.second.c_str(),
+              flag.second.first.c_str());
     }
     fprintf(stdout, "\n%s\n", kEpilog.c_str());
 

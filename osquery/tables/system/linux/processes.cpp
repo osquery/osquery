@@ -20,13 +20,12 @@ namespace tables {
 
 #ifdef PROC_EDITCMDLCVT
 /// EDITCMDLCVT is available in libprocps3-dev
-# define PROC_SELECTS \
+#define PROC_SELECTS                                                 \
   PROC_FILLCOM | PROC_EDITCMDLCVT | PROC_FILLMEM | PROC_FILLSTATUS | \
-    PROC_FILLSTAT
+      PROC_FILLSTAT
 #else
-# define PROC_SELECTS \
-  PROC_FILLCOM | PROC_FILLMEM | PROC_FILLSTATUS | \
-    PROC_FILLSTAT
+#define PROC_SELECTS \
+  PROC_FILLCOM | PROC_FILLMEM | PROC_FILLSTATUS | PROC_FILLSTAT
 #endif
 
 std::string proc_name(const proc_t* proc_info) {
@@ -89,8 +88,8 @@ void standard_freeproc(proc_t* p) {
   if (!p) { // in case p is NULL
     return;
   }
-    // ptrs are after strings to avoid copying memory when building them.
-    // so free is called on the address of the address of strvec[0].
+  // ptrs are after strings to avoid copying memory when building them.
+  // so free is called on the address of the address of strvec[0].
   if (p->cmdline) {
     free((void*)*p->cmdline);
   }

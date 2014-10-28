@@ -371,7 +371,7 @@ class EventPublisher {
   size_t numEvents() { return next_ec_id_; }
 
   /// Overriding the EventPublisher constructor is not recommended.
-  EventPublisher() : next_ec_id_(0) {};
+  EventPublisher() : next_ec_id_(0){};
 
   /// Return a string identifier associated with this EventPublisher.
   virtual EventPublisherID type() const = 0;

@@ -18,7 +18,7 @@ namespace osquery {
 namespace tables {
 
 const std::vector<std::string> kShellHistoryFiles = {
-  ".bash_history", ".zsh_history", ".zhistory", ".history",
+    ".bash_history", ".zsh_history", ".zhistory", ".history",
 };
 
 QueryData genBashHistory() {
@@ -28,10 +28,11 @@ QueryData genBashHistory() {
   if (!getuid()) {
     sql_str = "SELECT username,directory FROM users";
   } else {
-    struct passwd *pwd = nullptr;
+    struct passwd* pwd = nullptr;
     pwd = getpwuid(getuid());
     // TODO: https://github.com/facebook/osquery/issues/244
-    sql_str = "SELECT username,directory FROM users WHERE username = '" + std::string(pwd->pw_name) + "';";
+    sql_str = "SELECT username,directory FROM users WHERE username = '" +
+              std::string(pwd->pw_name) + "';";
   }
 
   auto sql = SQL(sql_str);
@@ -55,7 +56,8 @@ QueryData genBashHistory() {
     std::vector<std::string> history_files;
     Status d = listFilesInDirectory(directory, history_files);
     if (!d.ok()) {
-      LOG(ERROR) << "Error listing history files in " << directory << ": " << d.toString();
+      LOG(ERROR) << "Error listing history files in " << directory << ": "
+                 << d.toString();
       continue;
     }
 

@@ -20,9 +20,7 @@ namespace osquery {
 
 class QueryTests : public testing::Test {
  public:
-  void SetUp() {
-    db = DBHandle::getInstanceAtPath(kTestingQueryDBPath);
-  }
+  void SetUp() { db = DBHandle::getInstanceAtPath(kTestingQueryDBPath); }
 
  public:
   std::shared_ptr<DBHandle> db;

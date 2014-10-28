@@ -86,7 +86,7 @@ Status isDirectory(const std::string& path);
  */
 Status parseTomcatUserConfigFromDisk(
     const std::string& path,
-    std::vector<std::pair<std::string, std::string> >& credentials);
+    std::vector<std::pair<std::string, std::string>>& credentials);
 
 /**
  * @brief Parse the users out of a tomcat user config
@@ -101,7 +101,7 @@ Status parseTomcatUserConfigFromDisk(
  */
 Status parseTomcatUserConfig(
     const std::string& content,
-    std::vector<std::pair<std::string, std::string> >& credentials);
+    std::vector<std::pair<std::string, std::string>>& credentials);
 
 #ifdef __APPLE__
 /**
