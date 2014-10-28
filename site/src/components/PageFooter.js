@@ -6,8 +6,8 @@ var React = require('react');
 
 var PageHeader = React.createClass({
   render: function () {
-    var user = 'marpaia';
-    var repo = 'chef-golang';
+    var user = 'facebook';
+    var repo = 'osquery';
     var github = 'https://github.com/' + user + '/' + repo;
     var license = github + '/blob/master/LICENSE';
     var issues = github + '/issues?state=open';
