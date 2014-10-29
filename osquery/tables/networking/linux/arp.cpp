@@ -17,9 +17,9 @@ QueryData genArp() {
   int ret;
 
   char ip[32];
-  char arp[64];
+  char mac[64];
   char iface[32];
-  char foo[128];
+  char ignore_field[128];
 
   // We are already calling 'popen', let's give it some more work with sed to clean.
   proc_arp_fd = fopen("/proc/net/arp" , "r");
@@ -31,10 +31,10 @@ QueryData genArp() {
   ret = getline(&line, &length, proc_arp_fd);
   while (ret > 0) {
     // IP address       HW type     Flags       HW address            Mask     Device
-    sscanf(line, "%s %s %s %s %s %s", ip, foo, foo, arp, foo, iface);
+    sscanf(line, "%s %s %s %s %s %s", ip, ignore_field, ignore_field, mac, ignore_field, iface);
 
     r["ip"] = ip;
-    r["arp"] = arp;
+    r["mac"] = mac;
     r["iface"] = iface;
 
     results.push_back(r);
