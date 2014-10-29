@@ -51,6 +51,7 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   utility/time.cpp
   system/last.cpp
   system/bash_history.cpp
+  system/suid_bin.cpp
   base.h
 )
 
