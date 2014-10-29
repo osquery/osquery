@@ -12,8 +12,9 @@ QueryData genArp() {
   Row r;
   QueryData results;
   FILE *arp_cmd_output;
-  char *line;
+  char *line = NULL;
   size_t length;
+  int ret;
 
   char ip[32];
   char arp[64];
@@ -25,8 +26,8 @@ QueryData genArp() {
     return results;
   }
 
-  line = fgetln(arp_cmd_output, &length);
-  while (line) {
+  ret = getline(&line, &length, arp_cmd_output);
+  while (ret > 0) {
     sscanf(line, "%s %s %s", ip, arp, iface);
 
     r["ip"] = ip;
@@ -35,7 +36,8 @@ QueryData genArp() {
 
     results.push_back(r);
 
-    line = fgetln(arp_cmd_output, &length);
+    line = NULL;
+    ret = getline(&line, &length, arp_cmd_output);
   }
 
   return results;
