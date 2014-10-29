@@ -17,7 +17,7 @@ QueryData genArp() {
   int ret;
 
   char ip[32];
-  char arp[64];
+  char mac[64];
   char iface[32];
 
   // We are already calling 'popen', let's give it some more work with sed to clean.
@@ -28,10 +28,10 @@ QueryData genArp() {
 
   ret = getline(&line, &length, arp_cmd_output);
   while (ret > 0) {
-    sscanf(line, "%s %s %s", ip, arp, iface);
+    sscanf(line, "%s %s %s", ip, mac, iface);
 
     r["ip"] = ip;
-    r["arp"] = arp;
+    r["mac"] = mac;
     r["iface"] = iface;
 
     results.push_back(r);
