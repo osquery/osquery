@@ -13,6 +13,7 @@ if(APPLE)
     networking/darwin/interfaces.cpp
     networking/darwin/listening_ports.cpp
     networking/darwin/routes.cpp
+    networking/darwin/arp.cpp
     system/darwin/apps.cpp
     system/darwin/ca_certs.cpp
     system/darwin/firewall.h
@@ -37,6 +38,7 @@ else()
     networking/linux/routes.cpp
     networking/linux/socket_inode.cpp
     networking/linux/port_inode.cpp
+    networking/linux/arp.cpp
     system/linux/kernel_modules.cpp
     system/linux/processes.cpp
     system/linux/users.cpp
@@ -61,7 +63,6 @@ FILE(GLOB table_sources
 )
 
 ADD_OSQUERY_LIBRARY(osquery_tables
-  networking/arp.cpp
   networking/utils.cpp
   networking/etc_hosts.cpp
   utility/time.cpp
