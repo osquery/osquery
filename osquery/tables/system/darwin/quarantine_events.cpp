@@ -9,6 +9,7 @@
 
 #include "osquery/core.h"
 #include "osquery/database.h"
+#include "osquery/core/sqlite_util.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -24,9 +25,22 @@
 
 #include <iostream> // I/O
 #include <utility>
+#include <map>
 
 namespace osquery {
 namespace tables {
+const std::map<std::string, std::string> QUARANTINE_COLUMNS_MAPPING = {
+    {"LSQuarantineEventIdentifier", "quarantine_event_identifier"},
+    {"LSQuarantineTimeStamp", "quarantine_time_stamp"},
+    {"LSQuarantineAgentBundleIdentifier", "QuarantineAgentBundleIdentifier"},
+    {"LSQuarantineAgentName", "QuarantineAgentName"},
+    {"LSQuarantineDataURLString", "QuarantineDataURLString"},
+    {"LSQuarantineSenderName", "QuarantineSenderName"},
+    {"LSQuarantineSenderAddress", "QuarantineSenderAddress"},
+    {"LSQuarantineTypeNumber", "QuarantineTypeNumber"},
+    {"LSQuarantineOriginTitle", "QuarantineOriginTitle"},
+    {"LSQuarantineOriginURLString", "QuarantineOriginURLString"},
+};
 
 typedef std::pair<std::string, std::string> UserAndDatabase;
 
@@ -92,28 +106,90 @@ std::vector<UserAndDatabase> getQuarantineEventDatabasesPlistPaths() {
   return results;
 }
 
+sqlite3* createTestDB() {
+  sqlite3* db = createDB();
+  char* err = nullptr;
+  std::vector<std::string> queries = {
+      "CREATE TABLE LSQuarantineEvent ("
+      "LSQuarantineEventIdentifier varchar(30) primary key, "
+      "LSQuarantineTimeStamp REAL"
+      ")",
+      "INSERT INTO LSQuarantineEvent VALUES (\"mike\", 23.2)",
+      "INSERT INTO LSQuarantineEvent VALUES (\"matt\", 24.6)"};
+  for (auto q : queries) {
+    sqlite3_exec(db, q.c_str(), nullptr, nullptr, &err);
+    if (err != nullptr) {
+      LOG(ERROR) << "Error creating test database: " << err;
+      return nullptr;
+    }
+  }
+
+  return db;
+}
+
+QueryData getQueryEventsData(const std::string db_path) {
+  std::cerr << "AAAAA\n";
+
+  // HELP!!! HELP!!!
+  // If I use createTestDB - everything is working
+  sqlite3* db = createTestDB();
+
+  // but if I use this open function
+  // it crashes with error 139 => 128 + 11 => some bad access to memory
+  // and it never gets to print out CCCC
+  // sqlite3* db = openDB(db_path.c_str());
+  int error = 0;
+  std::cerr << "BBBB - DB: " << db << "\n";
+  QueryData data = query("SELECT * FROM LSQuarantineEvent", error, db);
+  std::cerr << "Error code: " << error << "; records: " << data.size() << "\n";
+  // TODO: add some error checking
+  std::cerr << "CCCC\n";
+  return data;
+}
+
 QueryData genQuarantineEvents() {
 
   QueryData results;
 
   std::vector<UserAndDatabase> databases =
       getQuarantineEventDatabasesPlistPaths();
-  std::cerr << "Databases: " << databases.size();
+  std::cerr << "Databases: " << databases.size() << "\n";
   for (const auto& database : databases) {
-    Row r;
-    r["user"] = database.first;
-    r["quarantine_event_identifier"] = database.second;
-    r["quarantine_time_stamp"] = 1.0,
-    r["quarantine_agent_bundle_identifier"] = "a";
-    r["quarantine_agent_name"] = "a";
-    r["quarantine_data_URL_string"] = "a";
-    r["quarantine_sender_name"] = "a";
-    r["quarantine_sender_address"] = "a";
-    r["quarantine_type_number"] = "a";
-    r["quarantine_origin_title"] = "a";
-    r["quarantine_origin_URL_string"] = "a";
 
-    results.push_back(r);
+    QueryData events = getQueryEventsData(database.second);
+    for (const auto& row : events) {
+      Row r;
+      r["user"] = database.first;
+      for (std::map<std::string, std::string>::const_iterator it = row.begin();
+           it != row.end();
+           ++it) {
+        std::map<std::string, std::string>::const_iterator k =
+            QUARANTINE_COLUMNS_MAPPING.find(it->first);
+        if (k != QUARANTINE_COLUMNS_MAPPING.end()) {
+          r[QUARANTINE_COLUMNS_MAPPING.at(it->first)] = it->second;
+        } else {
+          std::cerr << "Unknown key-value: " << it->first << " - " << it->second
+                    << std::endl;
+        }
+      }
+      results.push_back(r);
+    }
+    /*
+        r["user"] = database.first;
+        r["quarantine_event_identifier"] = database.second;
+        r["quarantine_time_stamp"] = 1.0,
+        r["quarantine_agent_bundle_identifier"] = "a";
+        r["quarantine_agent_name"] = "a";
+        r["quarantine_data_URL_string"] = "a";
+        r["quarantine_sender_name"] = "a";
+        r["quarantine_sender_address"] = "a";
+        r["quarantine_type_number"] = "a";
+        r["quarantine_origin_title"] = "a";
+        r["quarantine_origin_URL_string"] = "a";
+
+        results.push_back(r);
+        results.
+    */
   }
 
   std::cerr << "\nResult size: " << results.size();
