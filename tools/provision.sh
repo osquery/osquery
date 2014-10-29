@@ -386,9 +386,11 @@ function main() {
     install_rocksdb
 
   elif [[ $OS = "darwin" ]]; then
-    if [[ ! -f "/usr/local/bin/brew" ]]; then
-      fatal "could not find homebrew. please install it from http://brew.sh/"
-    fi
+    type brew >/dev/null 2>&1 || {
+      echo >&2 "could not find homebrew. please install it from http://brew.sh/";
+      exit 1;
+    }
+
     brew update
 
     package rocksdb
