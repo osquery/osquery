@@ -59,13 +59,24 @@ cleanup:
 
 Status isWritable(const std::string& path) {
   if (!pathExists(path).ok()) {
-    return Status(1, "Path does not exists.");
+    return Status(1, "Path does not exist.");
   }
 
   if (access(path.c_str(), W_OK) == 0) {
     return Status(0, "OK");
   }
   return Status(1, "Path is not writable.");
+}
+
+Status isReadable(const std::string& path) {
+  if (!pathExists(path).ok()) {
+    return Status(1, "Path does not exist.");
+  }
+
+  if (access(path.c_str(), R_OK) == 0) {
+    return Status(0, "OK");
+  }
+  return Status(1, "Path is not readable.");
 }
 
 Status pathExists(const std::string& path) {

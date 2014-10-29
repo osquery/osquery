@@ -49,6 +49,7 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   networking/utils.cpp
   networking/etc_hosts.cpp
   utility/time.cpp
+  utility/crontab.cpp
   system/last.cpp
   system/bash_history.cpp
   system/suid_bin.cpp
