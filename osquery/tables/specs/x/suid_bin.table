@@ -1,0 +1,8 @@
+table_name("suid_bin")
+schema([
+    Column(name="path", type="std::string"),
+    Column(name="unix_user", type="std::string"),
+    Column(name="unix_group", type="std::string"),
+    Column(name="permissions", type="std::string"),
+])
+implementation("suid_bin@genSuidBin")
