@@ -4,7 +4,10 @@
 #include <map>
 #include <string>
 #include <unordered_set>
+#include <map>
 
+#include <sys/types.h>
+#include <sys/sysctl.h>
 #include <libproc.h>
 #include <stdlib.h>
 
@@ -122,6 +125,110 @@ QueryData genProcesses() {
 
     // save the results
     results.push_back(r);
+  }
+
+  return results;
+}
+
+void genProcessList(std::vector<int>& pidlist) {
+  size_t buf_size;
+  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0};
+
+  if (sysctl(mib, 4, NULL, &buf_size, NULL, 0) < 0) {
+    perror("Failure calling sysctl");
+    return;
+  }
+
+  int num_pids = buf_size / sizeof(struct kinfo_proc);
+  struct kinfo_proc procs[num_pids];
+
+  pidlist.clear();
+  for (int i = 0; i < num_pids; ++i) {
+    int pid = procs[i].kp_proc.p_pid;
+    if (pid != 0) {
+      pidlist.push_back(pid);
+    }
+  }
+}
+
+// Get the max args space
+int genMaxArgs() {
+  int mib[2] = {CTL_KERN, KERN_ARGMAX};
+
+  int argmax = 0;
+  size_t size = sizeof(argmax);
+  if (sysctl(mib, 2, &argmax, &size, NULL, 0) == -1) {
+    return 0;
+  }
+
+  return argmax;
+}
+
+void genProcessEnv(int pid,
+                   size_t argmax,
+                   std::string& procname,
+                   std::map<std::string, std::string>& env) {
+  std::vector<std::string> args;
+  char procargs[argmax];
+  const char* cp = procargs;
+  int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
+
+  // We clear the env list, just in case its a recycled map
+  procname = std::string("");
+  env.clear();
+
+  if (sysctl(mib, 3, &procargs, &argmax, NULL, 0) == -1) {
+    return;
+  }
+
+  // Here we make the assertion that we are interested in all non-empty strings
+  // in the proc args+env
+  do {
+    std::string s = std::string(cp);
+    if (s.length() > 0) {
+      args.push_back(s);
+    }
+    cp += args.back().size() + 1;
+  } while (cp < procargs + argmax);
+
+  // Since we know that all envs will have an = sign and are at the end of the
+  // list,
+  // we iterate from the end forward until we stop seeing = signs. According to
+  // the
+  // ps source, there is no programmatic way to know where args stop and env
+  // begins,
+  // so args at the end of a command string which contain "=" may erroneously
+  // appear
+  // as env vars.
+  procname = args[1];
+  for (auto itr = args.rbegin(); itr < args.rend(); ++itr) {
+    size_t idx = itr->find_first_of("=");
+    if (idx == std::string::npos) {
+      break;
+    }
+    std::string key = itr->substr(0, idx);
+    std::string value = itr->substr(idx + 1);
+    env[key] = value;
+  }
+}
+
+QueryData genProcessEnvs() {
+  QueryData results;
+  std::vector<int> pidlist;
+  std::map<std::string, std::string> env;
+  std::string procname;
+  int argmax = genMaxArgs();
+
+  genProcessList(pidlist);
+  for (auto pid_itr = pidlist.begin(); pid_itr < pidlist.end(); ++pid_itr) {
+    genProcessEnv(*pid_itr, argmax, procname, env);
+    for (auto env_itr = env.begin(); env_itr != env.end(); ++env_itr) {
+      Row r;
+      r["pid"] = *pid_itr;
+      r["name"] = procname;
+      r["key"] = env_itr->first;
+      r["value"] = env_itr->second;
+    }
   }
 
   return results;
