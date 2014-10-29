@@ -39,6 +39,9 @@ else()
     system/linux/users.cpp
     system/linux/groups.cpp
   )
+
+  ADD_OSQUERY_LINK("rpmio")
+  ADD_OSQUERY_LINK("rpm")
 endif()
 
 FILE(GLOB table_sources
