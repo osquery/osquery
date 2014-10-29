@@ -1,4 +1,4 @@
-table_name("packages")
+table_name("rpm_packages")
 schema([
     Column(name="name", type="std::string"),
     Column(name="version", type="std::string"),
@@ -10,4 +10,4 @@ schema([
     Column(name="sha1header", type="std::string"),
     Column(name="arch", type="std::string"),
 ])
-implementation("rpms@genRpms")
+implementation("system/rpm_packages@genRpms")
