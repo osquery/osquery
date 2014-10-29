@@ -16,21 +16,19 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-const char* HOMEBREW_ROOT_DIR = "/usr/local/Cellar/";
+const std::string kHomebrewRoot = "/usr/local/Cellar/";
 
 std::vector<std::string> getHomebrewAppInfoPlistPaths() {
   std::vector<std::string> results;
 
-  std::vector<std::string> slash_applications;
-  auto slash_apps_s =
-      osquery::listFilesInDirectory(HOMEBREW_ROOT_DIR, slash_applications);
-  if (slash_apps_s.ok()) {
-    for (const auto& app_path : slash_applications) {
+  std::vector<std::string> homebrew_apps;
+  auto status = osquery::listFilesInDirectory(kHomebrewRoot, homebrew_apps);
+  if (status.ok()) {
+    for (const auto& app_path : homebrew_apps) {
       results.push_back(app_path);
     }
   } else {
-    LOG(ERROR) << "Error listing " << HOMEBREW_ROOT_DIR << ": "
-               << slash_apps_s.toString();
+    LOG(ERROR) << "Error listing " << kHomebrewRoot << ": " << status.toString();
   }
 
   return results;
@@ -45,30 +43,28 @@ std::vector<std::string> getHomebrewVersionsFromInfoPlistPath(
     const std::string& path) {
   std::vector<std::string> results;
 
-  std::vector<std::string> slash_versions;
-  auto slash_versions_s = osquery::listFilesInDirectory(path, slash_versions);
-  if (slash_versions_s.ok()) {
-    for (const auto& version_path : slash_versions) {
+  std::vector<std::string> app_versions;
+  auto status = osquery::listFilesInDirectory(path, app_versions);
+  if (status.ok()) {
+    for (const auto& version_path : app_versions) {
       auto bits = osquery::split(version_path, "/");
       results.push_back(bits[bits.size() - 1]);
     }
   } else {
-    LOG(ERROR) << "Error listing " << path << ": "
-               << slash_versions_s.toString();
+    LOG(ERROR) << "Error listing " << path << ": " << status.toString();
   }
 
   return results;
 }
 
-QueryData genHomebrew() {
+QueryData genHomebrewPackages() {
   QueryData results;
 
   for (const auto& path : getHomebrewAppInfoPlistPaths()) {
-
-    std::vector<std::string> versions =
-        getHomebrewVersionsFromInfoPlistPath(path);
-    std::string name = getHomebrewNameFromInfoPlistPath(path);
+    auto versions = getHomebrewVersionsFromInfoPlistPath(path);
+    auto name = getHomebrewNameFromInfoPlistPath(path);
     for (const auto& version : versions) {
+      // Support a many to one version to package name.
       Row r;
       r["name"] = name;
       r["path"] = path;
