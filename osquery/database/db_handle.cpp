@@ -29,7 +29,7 @@ const std::vector<std::string> kDomains = {kConfigurations, kQueries, kEvents};
 DEFINE_osquery_flag(string,
                     db_path,
                     "/tmp/rocksdb-osquery",
-                    "If using a disk-based backing store, specificy a path.");
+                    "If using a disk-based backing store, specify a path.");
 
 DEFINE_osquery_flag(bool,
                     use_in_memory_database,
