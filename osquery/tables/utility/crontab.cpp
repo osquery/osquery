@@ -22,6 +22,10 @@ const std::string kUserCronsPath = "/var/spool/cron/crontabs/";
 std::vector<std::string> cronFromFile(const std::string& path) {
   std::string content;
   std::vector<std::string> cron_lines;
+  if (!isReadable(path).ok()) {
+    return cron_lines;
+  }
+
   if (!readFile(path, content).ok()) {
     return cron_lines;
   }
@@ -74,6 +78,11 @@ void genCronLine(const std::string& path,
       r["command"] += " " + *iterator;
     }
     index++;
+  }
+
+  if (r["command"].size() == 0) {
+    // The line was not well-formed, perhaps it was a variable?
+    return;
   }
 
   results.push_back(r);
