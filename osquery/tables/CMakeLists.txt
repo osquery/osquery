@@ -17,6 +17,7 @@ if(APPLE)
     system/darwin/ca_certs.cpp
     system/darwin/firewall.h
     system/darwin/firewall.cpp
+    system/darwin/homebrew.cpp
     system/darwin/kextstat.cpp
     system/darwin/launchd.cpp
     system/darwin/nvram.cpp

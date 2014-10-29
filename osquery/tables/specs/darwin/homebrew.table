@@ -1,0 +1,7 @@
+table_name("homebrew")
+schema([
+    Column(name="name", type="std::string"),
+    Column(name="path", type="std::string"),
+    Column(name="version", type="std::string"),
+])
+implementation("homebrew@genHomebrew")
