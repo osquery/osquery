@@ -1,24 +1,33 @@
 PLATFORM := $(shell uname -s)
 ifeq ($(PLATFORM),Darwin)
-	BUILD_DIR=build/darwin
+	BUILD_DIR=darwin
 else
-	BUILD_DIR=build/linux
+	DISTRO := $(shell if [ -f "/etc/redhat-release" ]; then echo "Centos"; fi)
+	ifeq ($(DISTRO),Centos)
+		BUILD_DIR=centos
+	else
+		BUILD_DIR=ubuntu
+	endif
 endif
 
 all:
-	mkdir -p $(BUILD_DIR)
-	cd $(BUILD_DIR) && cmake ../.. && make --no-print-directory $(MAKEFLAGS)
+	mkdir -p build/$(BUILD_DIR)
+	$(if $(PLATFORM) == Linux, ln -snf $(BUILD_DIR) build/linux)
+	cd build/$(BUILD_DIR) && cmake ../.. && make --no-print-directory $(MAKEFLAGS)
 
 debug:
-	mkdir -p $(BUILD_DIR)
-	cd $(BUILD_DIR) && cmake -DCMAKE_BUILD_TYPE=Debug ../../ && make --no-print-directory $(MAKEFLAGS)
+	mkdir -p build/$(BUILD_DIR)
+	$(if $(PLATFORM) == Linux, ln -snf $(BUILD_DIR) build/linux)
+	cd build/$(BUILD_DIR) && cmake -DCMAKE_BUILD_TYPE=Debug ../../ && \
+		make --no-print-directory $(MAKEFLAGS)
 
 deps:
 	./tools/provision.sh
 
 distclean:
-	rm -rf .sources $(BUILD_DIR) doxygen/html doxygen/latex
+	rm -rf .sources build/$(BUILD_DIR) doxygen/html doxygen/latex
 
 %::
-	mkdir -p $(BUILD_DIR)
-	cd $(BUILD_DIR) && cmake ../.. && make --no-print-directory $@
+	mkdir -p build/$(BUILD_DIR)
+	$(if $(PLATFORM) == Linux, ln -snf $(BUILD_DIR) build/linux)
+	cd build/$(BUILD_DIR) && cmake ../.. && make --no-print-directory $@

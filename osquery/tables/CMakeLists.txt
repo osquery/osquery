@@ -40,8 +40,13 @@ else()
     system/linux/groups.cpp
   )
 
-  ADD_OSQUERY_LINK("rpmio")
+  # CentOS specific tables
+  ADD_OSQUERY_LIBRARY(osquery_tables_redhat
+    system/linux/rpm_packages.cpp
+  )
+
   ADD_OSQUERY_LINK("rpm")
+  ADD_OSQUERY_LINK("rpmio")
 endif()
 
 FILE(GLOB table_sources
