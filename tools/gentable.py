@@ -327,7 +327,7 @@ def main(argc, argv):
     output = argv[2]
     with open(filename, "rU") as file_handle:
         tree = ast.parse(file_handle.read())
-        exec compile(tree, "<string>", "exec")
+        exec(compile(tree, "<string>", "exec"))
         table.generate(output)
 
 if __name__ == "__main__":
