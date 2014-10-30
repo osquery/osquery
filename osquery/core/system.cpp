@@ -4,7 +4,9 @@
 
 #include <cstring>
 #include <ctime>
+#include <time.h>
 #include <unistd.h>
+#include <uuid/uuid.h>
 
 #include <boost/algorithm/string/trim.hpp>
 
@@ -17,6 +19,23 @@ std::string getHostname() {
   std::string hostname_string = std::string(hostname);
   boost::algorithm::trim(hostname_string);
   return hostname_string;
+}
+
+std::string getHostUuid(){
+  char uuid[128];
+  memset(uuid, 0, 128);
+  uuid_t id;
+  const timespec wait = {0,0};
+  int result = gethostuuid(id, &wait);
+  if (result == 0){
+    char out[128];
+    uuid_unparse(id, out);
+    std::string uuid_string = std::string(out);
+    boost::algorithm::trim(uuid_string);
+    return uuid_string;
+  }
+  else
+    return "";
 }
 
 std::string getAsciiTime() {

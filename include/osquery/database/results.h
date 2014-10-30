@@ -251,6 +251,9 @@ struct ScheduledQueryLogItem {
   /// The hostname of the host which the scheduled query was executed on
   std::string hostname;
 
+  // The hardware uuid of the host which the scheduled query was executed on
+  std::string hostUuid;
+
   /// The time that the query was executed, in unix time
   int unixTime;
 
