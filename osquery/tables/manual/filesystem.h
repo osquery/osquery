@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-// An sqlite3_filesystem is an abstract type to stores an instance of
+// An sqlite3_filesystem is an abstract type to store an instance of
 // an integer array.
 typedef struct sqlite3_filesystem sqlite3_filesystem;
 

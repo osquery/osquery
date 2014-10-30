@@ -54,7 +54,7 @@ void INotifyEventPublisher::tearDown() {
 }
 
 Status INotifyEventPublisher::run() {
-  // Get a while wraper for free.
+  // Get a while wrapper for free.
   char buffer[BUFFER_SIZE];
   fd_set set;
 

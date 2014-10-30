@@ -155,7 +155,7 @@ int xCreate(sqlite3 *db, /* Database where module is created */
     // of the columns) of the virtual tables they implement
     rc = sqlite3_declare_vtab(db, createTableStatement);
   }
-  // cast your virtual table objet back to type sqlite3_vtab and assign it to
+  // cast your virtual table object back to type sqlite3_vtab and assign it to
   // the address supplied by the function call
   *ppVtab = (sqlite3_vtab *)pVtab;
 

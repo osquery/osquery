@@ -32,7 +32,7 @@ class PasswdChangesEventSubscriber : public EventSubscriber {
    * @param ec The EventCallback type receives an EventContextRef substruct
    * for the INotifyEventPublisher declared in this EventSubscriber subclass.
    *
-   * @return Was the callback successfull.
+   * @return Was the callback successful.
    */
   Status Callback(const INotifyEventContextRef ec);
 };

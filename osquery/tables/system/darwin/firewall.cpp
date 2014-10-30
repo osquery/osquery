@@ -73,7 +73,7 @@ QueryData parseALFTree(const pt::ptree& tree) {
       int val = tree.get<int>(it.first);
       r[it.second] = boost::lexical_cast<std::string>(val);
     } catch (const pt::ptree_error& e) {
-      LOG(ERROR) << "Error retreiving " << it.second
+      LOG(ERROR) << "Error retrieving " << it.second
                  << " from com.apple.alf: " << e.what();
     }
   }
@@ -83,7 +83,7 @@ QueryData parseALFTree(const pt::ptree& tree) {
       std::string val = tree.get<std::string>(it.second);
       r[it.first] = val;
     } catch (const pt::ptree_error& e) {
-      LOG(ERROR) << "Error retreiving " << it.second
+      LOG(ERROR) << "Error retrieving " << it.second
                  << " from com.apple.alf: " << e.what();
     }
   }
