@@ -59,7 +59,7 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
         cf_name, rocksdb::ColumnFamilyOptions()));
   }
 
-  if (pathExists(path).what() == "1" && !isWritable(path).ok()) {
+  if (pathExists(path).ok() && !isWritable(path).ok()) {
     throw std::domain_error("Cannot write to RocksDB path: " + path);
   }
 

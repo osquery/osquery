@@ -1,16 +1,13 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/logger/plugin.h"
-
-#include <algorithm>
 #include <exception>
-#include <ios>
-#include <fstream>
 #include <mutex>
-#include <thread>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+
+#include "osquery/filesystem.h"
+#include "osquery/logger/plugin.h"
 
 using osquery::Status;
 
@@ -29,12 +26,12 @@ class FilesystemLoggerPlugin : public LoggerPlugin {
     std::lock_guard<std::mutex> lock(filesystemLoggerPluginMutex);
     try {
       VLOG(3) << "filesystem logger plugin: logging to " << log_path;
-      std::ofstream log_stream(log_path,
-                               std::ios_base::app | std::ios_base::out);
-      if (log_stream.fail()) {
-        return Status(1, "error opening file: " + log_path);
+
+      // The results log may contain sensitive information if run as root.
+      auto status = writeTextFile(log_path, s, 0640, true);
+      if (!status.ok()) {
+        return status;
       }
-      log_stream << s;
     } catch (const std::exception& e) {
       return Status(1, e.what());
     }
