@@ -1,11 +1,14 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
+#include <exception>
 #include <fstream>
 #include <sstream>
 
+#include <fcntl.h>
+#include <sys/stat.h>
+
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
@@ -20,9 +23,36 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+Status writeTextFile(const std::string& path, const std::string& content,
+                     int permissions, bool force_permissions) {
+  // Open the file with the request permissions.
+  int output_fd = open(path.c_str(), O_CREAT | O_APPEND | O_WRONLY,
+                       permissions);
+  if (output_fd <= 0) {
+    return Status(1, "Could not create file");
+  }
+
+  // If the file existed with different permissions before our open
+  // they must be restricted.
+  if (chmod(path.c_str(), permissions) != 0) {
+    // Could not change the file to the requested permissions.
+    return Status(1, "Failed to change permissions");
+  }
+
+  auto bytes = write(output_fd, content.c_str(), content.size());
+  if (bytes != content.size()) {
+    close(output_fd);
+    return Status(1, "Failed to write contents");
+  }
+
+  close(output_fd);
+  return Status(0, "OK");
+}
+
 Status readFile(const std::string& path, std::string& content) {
-  if (!boost::filesystem::exists(path)) {
-    return Status(1, "File not found");
+  auto path_exists = pathExists(path);
+  if (!path_exists.ok()) {
+    return path_exists;
   }
 
   int statusCode = 0;
@@ -58,8 +88,9 @@ cleanup:
 }
 
 Status isWritable(const std::string& path) {
-  if (!pathExists(path).ok()) {
-    return Status(1, "Path does not exist.");
+  auto path_exists = pathExists(path);
+  if (!path_exists.ok()) {
+    return path_exists;
   }
 
   if (access(path.c_str(), W_OK) == 0) {
@@ -69,8 +100,9 @@ Status isWritable(const std::string& path) {
 }
 
 Status isReadable(const std::string& path) {
-  if (!pathExists(path).ok()) {
-    return Status(1, "Path does not exist.");
+  auto path_exists = pathExists(path);
+  if (!path_exists.ok()) {
+    return path_exists;
   }
 
   if (access(path.c_str(), R_OK) == 0) {
@@ -81,12 +113,12 @@ Status isReadable(const std::string& path) {
 
 Status pathExists(const std::string& path) {
   if (path.length() == 0) {
-    return Status(0, "-1");
+    return Status(1, "-1");
   }
 
   // A tri-state determination of presence
   if (!boost::filesystem::exists(path)) {
-    return Status(0, "0");
+    return Status(1, "0");
   }
   return Status(0, "1");
 }
