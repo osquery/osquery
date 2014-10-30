@@ -6,8 +6,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 WORKING_DIR="$SCRIPT_DIR/../.sources"
 export PATH="$PATH:/usr/local/bin"
 
-source $SCRIPT_DIR/lib.sh
-
+source "$SCRIPT_DIR/lib.sh"
 
 # cmake
 # downloads: http://www.cmake.org/download/
@@ -236,8 +235,8 @@ function package() {
 function main() {
   platform OS
 
-  mkdir -p $WORKING_DIR
-  cd $WORKING_DIR
+  mkdir -p "$WORKING_DIR"
+  cd "$WORKING_DIR"
 
   if [[ $OS = "centos" ]]; then
     log "detected centos"
@@ -401,7 +400,7 @@ function main() {
     package thrift
   fi
 
-  cd $SCRIPT_DIR/../
+  cd "$SCRIPT_DIR/../"
   sudo pip install -r requirements.txt
   git submodule init
   git submodule update
