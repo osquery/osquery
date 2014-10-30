@@ -268,13 +268,13 @@ bool CertificateIsCA(const SecCertificateRef cert) {
   std::string expected_value = "Yes";
   CFDataRef constraints;
 
-  // Create copy of the basic constrains OID.
+  // Create copy of the basic constraints OID.
   constraints = CreatePropertyFromCertificate(cert, kSecOIDBasicConstraints);
   if (constraints == NULL) {
     return false;
   }
 
-  // Must return an array of constrains.
+  // Must return an array of constraints.
   if (CFGetTypeID(constraints) != CFArrayGetTypeID()) {
     CFRelease(constraints);
     return false;

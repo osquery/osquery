@@ -43,7 +43,7 @@ std::string generateSeparator(const std::map<std::string, int>& lengths,
         separator << "-";
       }
     } catch (const std::out_of_range& e) {
-      LOG(ERROR) << "Error retreiving the \"" << each
+      LOG(ERROR) << "Error retrieving the \"" << each
                  << "\" key in generateSeparator:  " << e.what();
     }
     separator << "+";
@@ -66,7 +66,7 @@ std::string generateHeader(const std::map<std::string, int>& lengths,
         header << " ";
       }
     } catch (const std::out_of_range& e) {
-      LOG(ERROR) << "Error retreiving the \"" << each
+      LOG(ERROR) << "Error retrieving the \"" << each
                  << "\" key in generateHeader:  " << e.what();
     }
     header << "|";
@@ -94,7 +94,7 @@ std::string generateRow(const Row& r,
       for (const auto& foo : r) {
         LOG(ERROR) << foo.first << " => " << foo.second;
       }
-      LOG(ERROR) << "Error retreiving the \"" << each
+      LOG(ERROR) << "Error retrieving the \"" << each
                  << "\" key in generateRow:  " << e.what();
     }
     row << "|";
@@ -126,7 +126,7 @@ std::map<std::string, int> computeQueryDataLengths(const QueryData& q) {
           results[it.first] = it.second.size();
         }
       } catch (const std::out_of_range& e) {
-        LOG(ERROR) << "Error retreiving the \"" << it.first
+        LOG(ERROR) << "Error retrieving the \"" << it.first
                    << "\" key in computeQueryDataLength:  " << e.what();
       }
     }
