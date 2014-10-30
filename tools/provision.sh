@@ -292,7 +292,7 @@ function main() {
     if [[ $DISTRO = "precise" ]]; then
       package libunwind7-dev
     fi
-    if [[ $DISTRO = "trusty" ]]; then
+    if [[ $DISTRO = "trusty" || $DISTRO = "utopic" ]]; then
       package libunwind8-dev
     fi
     if [[ $DISTRO = "precise" ]]; then
