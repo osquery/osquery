@@ -1,7 +1,7 @@
 table_name("users")
 schema([
-    Column(name="uid", type="std::string"),
-    Column(name="gid", type="std::string"),
+    Column(name="uid", type="long long int"),
+    Column(name="gid", type="long long int"),
     Column(name="username", type="std::string"),
     Column(name="description", type="std::string"),
     Column(name="directory", type="std::string"),
