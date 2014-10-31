@@ -15,13 +15,17 @@
 namespace osquery {
     namespace tables {
 
+        const char *kSlot = "PCI_SLOT_NAME";
+        const char *kClass = "ID_PCI_CLASS_FROM_DATABASE";
+        const char *kVendor = "ID_VENDOR_FROM_DATABASE";
+        const char *kModel = "ID_MODEL_FROM_DATABASE";
+
         struct udev *udev;
         struct udev_enumerate *enumerate;
         struct udev_list_entry *devices, *dev_list_entry;
         struct udev_device *dev;
 
         QueryData genLspci() {
-            Row r;
             QueryData results;
 
             /* Create the udev object */
@@ -50,14 +54,15 @@ namespace osquery {
                 path = udev_list_entry_get_name(dev_list_entry);
                 dev = udev_device_new_from_syspath(udev, path);
 
+                Row r;
                 r["slot"] = boost::lexical_cast<std::string>
-                        (udev_device_get_property_value(dev, "PCI_SLOT_NAME"));
+                        (udev_device_get_property_value(dev, kSlot));
                 r["device_class"] = boost::lexical_cast<std::string>
-                        (udev_device_get_property_value(dev, "ID_PCI_CLASS_FROM_DATABASE"));
+                        (udev_device_get_property_value(dev, kClass));
                 r["vendor"] = boost::lexical_cast<std::string>
-                        (udev_device_get_property_value(dev, "ID_VENDOR_FROM_DATABASE"));
+                        (udev_device_get_property_value(dev, kVendor));
                 r["model"] = boost::lexical_cast<std::string>
-                        (udev_device_get_property_value(dev, "ID_MODEL_FROM_DATABASE"));
+                        (udev_device_get_property_value(dev, kModel));
                 results.push_back(r);
             }
             return results;
