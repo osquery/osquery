@@ -5,9 +5,11 @@
 #include <grp.h>
 #include <sys/stat.h>
 #include <sys/xattr.h>
+
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
+
 #include "osquery/database.h"
 
 using std::string;
@@ -51,7 +53,7 @@ QueryData genQuarantine() {
     }
     try {
       ++it;
-    } catch (std::exception &ex) {
+    } catch (const std::exception &ex) {
       LOG(WARNING) << "Permissions error on " << boost::lexical_cast<std::string>(*it);
       it.no_push(); 
     }
