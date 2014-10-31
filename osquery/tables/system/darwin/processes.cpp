@@ -151,6 +151,7 @@ std::unordered_map<std::string, std::string> getProcEnv(int pid, size_t argmax) 
 
 struct OpenFile {
   std::string local_path;
+  std::string file_type;
   std::string remote_host;
   std::string remote_port;
   std::string local_host;
@@ -180,7 +181,7 @@ std::vector<OpenFile> getOpenFiles(int pid) {
     auto fd_info = fd_infos[i];
     switch (fd_info.proc_fdtype) {
       case PROX_FDTYPE_VNODE:
-        // Its a file
+        row.file_type = "file";
         sz = proc_pidfdinfo(pid, fd_info.proc_fd, PROC_PIDFDVNODEPATHINFO, &vnode_info, PROC_PIDFDVNODEPATHINFO_SIZE);
         if (sz > 0) {
           row.local_path = std::string(vnode_info.pvip.vip_path);
@@ -194,7 +195,7 @@ std::vector<OpenFile> getOpenFiles(int pid) {
           switch (socket_info.psi.soi_family) {
             case AF_INET:
               if (socket_info.psi.soi_kind == SOCKINFO_TCP) {
-                // TCP/IP v4
+                row.file_type = "TCP";
 
                 la = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_laddr.ina_46.i46a_addr4;
                 lp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_lport);
@@ -202,7 +203,7 @@ std::vector<OpenFile> getOpenFiles(int pid) {
                 fp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_fport);
 
               } else {
-                // UDP v4
+                row.file_type = "UDP";
                 la = &socket_info.psi.soi_proto.pri_in.insi_laddr.ina_46.i46a_addr4;
                 lp = ntohs(socket_info.psi.soi_proto.pri_in.insi_lport);
                 fa = &socket_info.psi.soi_proto.pri_in.insi_faddr.ina_46.i46a_addr4;
@@ -217,16 +218,19 @@ std::vector<OpenFile> getOpenFiles(int pid) {
               break;
             case AF_INET6:
               if (socket_info.psi.soi_kind == SOCKINFO_TCP) {
-                // TCP/IP v6
+                row.file_type = "TCP6";
+
                 la = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_laddr.ina_6;
                 lp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_lport);
                 fa = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_faddr.ina_6;
                 fp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_fport);
+
                 if ((socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_vflag & INI_IPV4) != 0) {
                   v4mapped = 1;
                 }
               } else {
-                // UDP v6
+                row.file_type = "UDP6";
+
                 la = &socket_info.psi.soi_proto.pri_in.insi_laddr.ina_6;
                 lp = ntohs(socket_info.psi.soi_proto.pri_in.insi_lport);
                 fa = &socket_info.psi.soi_proto.pri_in.insi_faddr.ina_6;
@@ -357,6 +361,7 @@ QueryData genProcessOpenFiles() {
       r["pid"] = boost::lexical_cast<std::string>(pid);
       r["name"] = getProcName(pid);
       r["path"] = getProcPath(pid);
+      r["file_type"] = open_file.file_type;
       r["local_path"] = open_file.local_path;
       r["local_host"] = open_file.local_host;
       r["local_port"] = open_file.local_port;

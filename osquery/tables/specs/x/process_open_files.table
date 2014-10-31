@@ -3,6 +3,7 @@ schema([
     Column(name="pid", type="int"),
     Column(name="name", type="std::string"),
     Column(name="path", type="std::string"),
+    Column(name="file_type", type="std::string"),
     Column(name="local_path", type="std::string"),
     Column(name="local_host", type="std::string"),
     Column(name="local_port", type="std::string"),
