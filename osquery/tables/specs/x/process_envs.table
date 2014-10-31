@@ -2,6 +2,7 @@ table_name("process_envs")
 schema([
     Column(name="pid", type="int"),
     Column(name="name", type="std::string"),
+    Column(name="path", type="std::string"),
     Column(name="key", type="std::string"),
     Column(name="value", type="std::string"),
 ])

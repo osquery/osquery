@@ -80,8 +80,8 @@ std::string proc_link(const proc_t* proc_info) {
   return result;
 }
 
-void proc_env(const proc_t* proc_info,
-              std::map<std::string, std::string>& env) {
+std::map<std::string, std::string> proc_env(const proc_t* proc_info) {
+  std::map<std::string, std::string> env;
   std::string attr = osquery::tables::proc_attr("environ", proc_info);
   std::string buf;
   std::ifstream fd(attr, std::ios::in | std::ios::binary);
@@ -95,6 +95,7 @@ void proc_env(const proc_t* proc_info,
 
     env[key] = value;
   }
+  return env;
 }
 
 /**
@@ -152,18 +153,18 @@ QueryData genProcesses() {
 QueryData genProcessEnvs() {
   QueryData results;
 
-  std::map<std::string, std::string> env;
   proc_t* proc_info;
   PROCTAB* proc = openproc(PROC_SELECTS);
 
   // Populate proc struc for each process.
 
   while ((proc_info = readproc(proc, NULL))) {
-    proc_env(proc_info, env);
+    auto env = proc_env(proc_info);
     for (auto itr = env.begin(); itr != env.end(); ++itr) {
       Row r;
       r["pid"] = boost::lexical_cast<std::string>(proc_info->tid);
       r["name"] = proc_name(proc_info);
+      r["path"] = proc_link(proc_info);
       r["key"] = itr->first;
       r["value"] = itr->second;
       results.push_back(r);
@@ -174,6 +175,11 @@ QueryData genProcessEnvs() {
 
   closeproc(proc);
 
+  return results;
+}
+
+QueryData genProcessOpenFiles() {
+  QueryData results;
   return results;
 }
 }
