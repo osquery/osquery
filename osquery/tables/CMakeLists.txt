@@ -52,6 +52,7 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   utility/crontab.cpp
   system/cpuid.cpp
   system/last.cpp
+  system/lspci.cpp
   system/bash_history.cpp
   system/suid_bin.cpp
   base.h
