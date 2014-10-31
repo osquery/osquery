@@ -25,7 +25,7 @@
 #include "osquery/database.h"
 #include "osquery/filesystem.h"
 
-#define	IPv6_2_IPv4(v6)	(((uint8_t *)((struct in6_addr *)v6)->s6_addr)+12)
+#define IPv6_2_IPv4(v6) (((uint8_t *)((struct in6_addr *)v6)->s6_addr)+12)
 
 namespace osquery {
 namespace tables {
