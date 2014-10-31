@@ -57,7 +57,7 @@ void initOsquery(int argc, char* argv[]) {
   FLAGS_max_log_size = 1024; // max size for individual log file is 1GB
 
   // Let gflags parse the non-help options/flags.
-  google::ParseCommandLineNonHelpFlags(&argc, &argv, false);
+  ::gflags::ParseCommandLineNonHelpFlags(&argc, &argv, false);
 
   if (isWritable(FLAGS_osquery_log_dir.c_str()).ok()) {
     FLAGS_log_dir = FLAGS_osquery_log_dir;
