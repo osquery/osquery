@@ -1,0 +1,6 @@
+table_name("quarantine")
+schema([
+    Column(name="path", type="std::string"),
+    Column(name="creator", type="std::string"),
+])
+implementation("system@genQuarantine")
