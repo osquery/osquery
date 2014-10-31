@@ -22,6 +22,7 @@ if(APPLE)
     system/darwin/launchd.cpp
     system/darwin/nvram.cpp
     system/darwin/processes.cpp
+    system/darwin/quarantine.cpp
   )
 
   ADD_OSQUERY_LINK("-framework Foundation")
