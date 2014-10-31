@@ -1012,8 +1012,15 @@ static int shell_callback(
 
     osquery::Row r;
     for (i = 0; i < nArg; i++) {
-      std::string header = std::string(azCol[i]);
-      std::string result = std::string(azArg[i]);
+      std::string header;
+      if (azCol[i] != nullptr) {
+        header = std::string(azCol[i]);
+      }
+
+      std::string result;
+      if (azArg[i] != nullptr) {
+      result = std::string(azArg[i]);
+      }
       r[header] = result;
     }
     p->prettyPrint->queryData.push_back(r);
