@@ -38,6 +38,7 @@ else()
     system/linux/processes.cpp
     system/linux/users.cpp
     system/linux/groups.cpp
+    system/linux/lspci.cpp
     system/linux/mounts.cpp
   )
 
@@ -62,7 +63,6 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   utility/crontab.cpp
   system/cpuid.cpp
   system/last.cpp
-  system/lspci.cpp
   system/bash_history.cpp
   system/suid_bin.cpp
   base.h
