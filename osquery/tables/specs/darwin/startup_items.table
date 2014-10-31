@@ -1,0 +1,6 @@
+table_name("startup_items")
+schema([
+    Column(name="name", type="std::string"),
+    Column(name="path", type="std::string"),
+])
+implementation("startup_items@genStartupItems")
