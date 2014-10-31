@@ -81,15 +81,21 @@ std::unordered_map<int, int> getParentMap(std::unordered_set<int> & pidlist) {
 }
 
 std::string getProcName(int pid) {
-  char name[1024];
-  proc_name(pid, name, sizeof(name));
+  char name[1024] = "\0";
+  int bufsize = proc_name(pid, name, sizeof(name));
+  if (bufsize <= 0) {
+    name[0] = '\0';
+  }
 
   return std::string(name);
 }
 
 std::string getProcPath(int pid) {
-  char path[PROC_PIDPATHINFO_MAXSIZE];
-  proc_pidpath(pid, path, sizeof(path));
+  char path[PROC_PIDPATHINFO_MAXSIZE] = "\0";
+  int bufsize = proc_pidpath(pid, path, sizeof(path));
+  if (bufsize <= 0) {
+    path[0] = '\0';
+  }
 
   return std::string(path);
 }
