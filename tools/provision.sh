@@ -101,7 +101,7 @@ function install_boost() {
     fi
     pushd boost_1_55_0
     ./bootstrap.sh
-    n=`getconf _NPROCESSORS_ONLN`
+    n=$([[ $(uname) = 'Darwin' ]] && sysctl -n hw.logicalcpu_max || lscpu -p | egrep -v '^#' | wc -l)
     sudo ./b2 --with=all -j $n toolset=clang install
     sudo ldconfig
     popd
