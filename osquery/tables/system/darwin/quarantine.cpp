@@ -16,28 +16,26 @@ using boost::lexical_cast;
 namespace osquery {
 namespace tables {
 
-const char *xattr_quarantine = "com.apple.quarantine";
+const std::string kXattrQuarantine = "com.apple.quarantine";
 
 QueryData genQuarantine() {
-  Row r;
   QueryData results;
 
-  boost::filesystem::recursive_directory_iterator it =
-      boost::filesystem::recursive_directory_iterator(
-          boost::filesystem::path("/"));
+  auto it = boost::filesystem::recursive_directory_iterator(boost::filesystem::path("/"));
   boost::filesystem::recursive_directory_iterator end;
 
   while (it != end) {
     boost::filesystem::path path = *it;
     try {
+      Row r;
       std::vector<std::string> values;
       std::string filePathQuotes = boost::lexical_cast<std::string>(path);
       std::string filePath = filePathQuotes.substr(1, filePathQuotes.length() - 2);
 
-      int bufferLength = getxattr(filePath.c_str(), xattr_quarantine, NULL, 0, 0, 0);
+      int bufferLength = getxattr(filePath.c_str(), kXattrQuarantine.c_str(), NULL, 0, 0, 0);
       if (bufferLength > 0) {
 	char *value = (char *) malloc(sizeof(char *) * bufferLength);
-	getxattr(filePath.c_str(), xattr_quarantine, value, bufferLength, 0, 0);
+	getxattr(filePath.c_str(), kXattrQuarantine.c_str(), value, bufferLength, 0, 0);
 
 	boost::split(values, value, boost::is_any_of(";"));
 	boost::trim(values[2]);
@@ -49,12 +47,13 @@ QueryData genQuarantine() {
 	free(value);
       }
     } catch (...) {
-      // handle invalid files like /dev/fd/3
+      LOG(ERROR) << "Couldn't handle file " << boost::lexical_cast<std::string>(*it);
     }
     try {
       ++it;
     } catch (std::exception &ex) {
-      it.no_push(); // handle permission error.
+      LOG(WARNING) << "Permissions error on " << boost::lexical_cast<std::string>(*it);
+      it.no_push(); 
     }
   }
 
