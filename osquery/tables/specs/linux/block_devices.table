@@ -1,0 +1,12 @@
+table_name("block_devices")
+schema([
+	Column(name="name", type="std::string"),
+	Column(name="parent", type="std::string"),
+	Column(name="vendor", type="std::string"),
+	Column(name="model", type="std::string"),
+	Column(name="size", type="long long int"),
+	Column(name="uuid", type="std::string"),
+	Column(name="type", type="std::string"),
+	Column(name="label", type="std::string"),
+])
+implementation("block_devices@genBlockDevs")
