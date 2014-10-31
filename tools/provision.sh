@@ -101,7 +101,7 @@ function install_boost() {
     fi
     pushd boost_1_55_0
     ./bootstrap.sh
-    n=`cat /proc/cpuinfo | grep "cpu cores" | uniq | awk '{print $NF}'`
+    n=`getconf _NPROCESSORS_ONLN`
     sudo ./b2 --with=all -j $n toolset=clang install
     sudo ldconfig
     popd
