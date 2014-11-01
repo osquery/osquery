@@ -24,7 +24,7 @@ QueryData genMounts() {
       r["fsname"] = std::string(ent->mnt_fsname);
       r["fsname_real"] = std::string(
           realpath(ent->mnt_fsname, real_path) ? real_path : ent->mnt_fsname);
-      r["dir"] = std::string(ent->mnt_dir);
+      r["path"] = std::string(ent->mnt_dir);
       r["type"] = std::string(ent->mnt_type);
       r["opts"] = std::string(ent->mnt_opts);
       r["freq"] = boost::lexical_cast<std::string>(ent->mnt_freq);
