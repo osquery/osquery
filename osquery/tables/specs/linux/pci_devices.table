@@ -1,0 +1,8 @@
+table_name("pci_devices")
+schema([
+    Column(name="slot", type="std::string"),
+    Column(name="device_class", type="std::string"),
+    Column(name="vendor", type="std::string"),
+    Column(name="model", type="std::string"),
+])
+implementation("pci_devices@genLspci")
