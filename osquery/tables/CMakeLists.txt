@@ -23,6 +23,7 @@ if(APPLE)
     system/darwin/nvram.cpp
     system/darwin/processes.cpp
     system/darwin/quarantine_events.cpp
+    system/darwin/quarantine.cpp
   )
 
   ADD_OSQUERY_LINK("-framework Foundation")
@@ -51,8 +52,10 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   networking/etc_hosts.cpp
   utility/time.cpp
   utility/crontab.cpp
+  system/cpuid.cpp
   system/last.cpp
   system/bash_history.cpp
+  system/suid_bin.cpp
   base.h
 )
 

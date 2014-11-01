@@ -469,6 +469,14 @@ struct previous_mode_data {
 };
 
 /*
+** Pretty print structure
+ */
+struct prettyprint_data {
+  osquery::QueryData queryData;
+  std::vector<std::string> resultsOrder;
+};
+
+/*
 ** An pointer to an instance of this structure is passed from
 ** the main program to the callback.  This is used to communicate
 ** state and mode information.
@@ -505,8 +513,7 @@ struct callback_data {
   int iIndent; /* Index of current op in aiIndent[] */
 
   /* Additional attributes to be used in pretty mode */
-  osquery::QueryData queryData;
-  std::vector<std::string> resultsOrder;
+  struct prettyprint_data *prettyPrint;
 };
 
 /*
@@ -997,19 +1004,26 @@ static int shell_callback(
   switch (p->mode) {
   case MODE_Pretty: {
 
-    if (p->resultsOrder.size() == 0) {
+    if (p->prettyPrint->resultsOrder.size() == 0) {
       for (i = 0; i < nArg; i++) {
-        p->resultsOrder.push_back(std::string(azCol[i]));
+        p->prettyPrint->resultsOrder.push_back(std::string(azCol[i]));
       }
     }
 
     osquery::Row r;
     for (i = 0; i < nArg; i++) {
-      std::string header = std::string(azCol[i]);
-      std::string result = std::string(azArg[i]);
+      std::string header;
+      if (azCol[i] != nullptr) {
+        header = std::string(azCol[i]);
+      }
+
+      std::string result;
+      if (azArg[i] != nullptr) {
+      result = std::string(azArg[i]);
+      }
       r[header] = result;
     }
-    p->queryData.push_back(r);
+    p->prettyPrint->queryData.push_back(r);
     break;
   }
   case MODE_Line: {
@@ -1820,9 +1834,10 @@ static int shell_exec(
   } /* end while */
 
   if (pArg->mode == MODE_Pretty) {
-    osquery::prettyPrint(pArg->queryData, pArg->resultsOrder);
-    pArg->queryData.clear();
-    pArg->resultsOrder.clear();
+    osquery::prettyPrint(pArg->prettyPrint->queryData,
+                         pArg->prettyPrint->resultsOrder);
+    pArg->prettyPrint->queryData.clear();
+    pArg->prettyPrint->resultsOrder.clear();
   }
 
   return rc;
@@ -4036,6 +4051,7 @@ static void usage(int showDetail) {
 */
 static void main_init(struct callback_data *data) {
   memset(data, 0, sizeof(*data));
+  data->prettyPrint = new struct prettyprint_data();
   data->mode = MODE_Pretty;
   memcpy(data->separator, "|", 2);
   data->showHeader = 1;
@@ -4379,6 +4395,7 @@ int launchIntoShell(int argc, char **argv) {
     sqlite3_close(data.db);
   }
   sqlite3_free(data.zFreeOnClose);
+  free(data.prettyPrint);
   return rc;
 }
 }

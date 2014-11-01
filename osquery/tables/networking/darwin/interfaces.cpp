@@ -5,6 +5,7 @@
 
 #include <ifaddrs.h>
 #include <net/if.h>
+#include <sys/socket.h>
 
 #include <boost/lexical_cast.hpp>
 

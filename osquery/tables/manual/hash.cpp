@@ -120,7 +120,7 @@ static int hashCreate(sqlite3 *db, /* Database where module is created */
         ")";
     rc = sqlite3_declare_vtab(db, create_table_statement);
   }
-  // cast your virtual table objet back to type sqlite3_vtab and assign it to
+  // cast your virtual table object back to type sqlite3_vtab and assign it to
   // the address supplied by the function call
   *ppVtab = (sqlite3_vtab *)pVtab;
 
@@ -281,7 +281,7 @@ static int hashFilter(sqlite3_vtab_cursor *pVtabCursor,
     return SQLITE_OK;
   }
 
-  // iterate through the directory that is being queried upon and gether the
+  // iterate through the directory that is being queried upon and gather the
   // information needed to complete a table scan
   osquery::md5::MD5 md5;
   if (fs::is_regular_file(pCur->path)) {
@@ -345,7 +345,7 @@ static int hashBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
     }
   }
 
-  // if the code has gotten this far, it means that there were constrains in
+  // if the code has gotten this far, it means that there were constraints in
   // the query, but none of them were for the path column, which is required
   goto fail;
 
@@ -357,7 +357,7 @@ fail:
 }
 
 /*
-** A virtual table module that merely echos method calls into TCL
+** A virtual table module that merely echoes method calls into TCL
 ** variables.
 */
 static sqlite3_module hashModule = {

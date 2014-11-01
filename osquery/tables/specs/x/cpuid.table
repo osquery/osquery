@@ -1,0 +1,9 @@
+table_name("cpuid")
+schema([
+    Column(name="feature", type="std::string"),
+    Column(name="value", type="std::string"),
+    Column(name="output_register", type="std::string"),
+    Column(name="output_bit", type="std::string"),
+    Column(name="input_eax", type="std::string"),
+])
+implementation("cpuid@genCPUID")

@@ -24,7 +24,22 @@ namespace osquery {
  */
 Status readFile(const std::string& path, std::string& content);
 
+/**
+ * @brief Write text to disk.
+ *
+ * @param path the path of the file that you would like to write
+ * @param content the text that should be written exactly to disk
+ * @param permissions the filesystem permissions to request when opening
+ * @param force_permissions always chmod the path after opening
+ *
+ * @return an instance of Status, indicating the success or failure
+ * of the operation.
+ */
+Status writeTextFile(const std::string& path, const std::string& content,
+                     int permissions = 0660, bool force_permissions = false);
+
 Status isWritable(const std::string& path);
+Status isReadable(const std::string& path);
 
 /**
  * @brief A helper to check if a path exists on disk or not.

@@ -255,7 +255,7 @@ Status deserializeHistoricalQueryResultsJSON(const std::string& json,
 
 /////////////////////////////////////////////////////////////////////////////
 // ScheduledQueryLogItem - the representation of a log result occuring when a
-// s schedueld query yields operating system state change.
+// scheduled query yields operating system state change.
 /////////////////////////////////////////////////////////////////////////////
 
 Status serializeScheduledQueryLogItem(const ScheduledQueryLogItem& i,

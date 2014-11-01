@@ -1,12 +1,14 @@
 table_name("crontab")
 
 schema([
+    Column(name="event", type="std::string"),
     Column(name="minute", type="std::string"),
     Column(name="hour", type="std::string"),
     Column(name="day_of_month", type="std::string"),
     Column(name="month", type="std::string"),    
     Column(name="day_of_week", type="std::string"),
     Column(name="command", type="std::string"),
+    Column(name="path", type="std::string"),
 ])
 
 implementation("crontab@genCronTab")

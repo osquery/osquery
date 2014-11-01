@@ -6,8 +6,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 WORKING_DIR="$SCRIPT_DIR/../.sources"
 export PATH="$PATH:/usr/local/bin"
 
-source $SCRIPT_DIR/lib.sh
-
+source "$SCRIPT_DIR/lib.sh"
 
 # cmake
 # downloads: http://www.cmake.org/download/
@@ -236,8 +235,8 @@ function package() {
 function main() {
   platform OS
 
-  mkdir -p $WORKING_DIR
-  cd $WORKING_DIR
+  mkdir -p "$WORKING_DIR"
+  cd "$WORKING_DIR"
 
   if [[ $OS = "centos" ]]; then
     log "detected centos"
@@ -292,7 +291,7 @@ function main() {
     if [[ $DISTRO = "precise" ]]; then
       package libunwind7-dev
     fi
-    if [[ $DISTRO = "trusty" ]]; then
+    if [[ $DISTRO = "trusty" || $DISTRO = "utopic" ]]; then
       package libunwind8-dev
     fi
     if [[ $DISTRO = "precise" ]]; then
@@ -386,9 +385,11 @@ function main() {
     install_rocksdb
 
   elif [[ $OS = "darwin" ]]; then
-    if [[ ! -f "/usr/local/bin/brew" ]]; then
-      fatal "could not find homebrew. please install it from http://brew.sh/"
-    fi
+    type brew >/dev/null 2>&1 || {
+      echo >&2 "could not find homebrew. please install it from http://brew.sh/";
+      exit 1;
+    }
+
     brew update
 
     package rocksdb
@@ -399,7 +400,7 @@ function main() {
     package thrift
   fi
 
-  cd $SCRIPT_DIR/../
+  cd "$SCRIPT_DIR/../"
   sudo pip install -r requirements.txt
   git submodule init
   git submodule update

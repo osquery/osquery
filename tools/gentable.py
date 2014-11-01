@@ -61,6 +61,7 @@ const std::string
   "{{col.name}} \
 {% if col.type == "std::string" %}VARCHAR{% endif %}\
 {% if col.type == "int" %}INTEGER{% endif %}\
+{% if col.type == "long long int" %}BIGINT{% endif %}\
 {% if not loop.last %}, {% endif %}"
   {% endfor %}\
 ")";
@@ -110,6 +111,12 @@ int {{table_name_cc}}Column(
           (int)pVtab->pContent->{{col.name}}[pCur->row]
         );
 {% endif %}\
+{% if col.type == "long long int" %}\
+        sqlite3_result_int64(
+          ctx,
+          (long long int)pVtab->pContent->{{col.name}}[pCur->row]
+        );
+{% endif %}\
         break;
 {% endfor %}\
     }
@@ -148,6 +155,15 @@ int {{table_name_cc}}Filter(
 .push_back(boost::lexical_cast<int>(row["{{col.name}}"]));
     } catch (const boost::bad_lexical_cast& e) {
       LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to int";
+      pVtab->pContent->{{col.name}}.push_back(-1);
+    }
+{% endif %}\
+{% if col.type == "long long int" %}\
+    try {
+      pVtab->pContent->{{col.name}}\
+.push_back(boost::lexical_cast<long long>(row["{{col.name}}"]));
+    } catch (const boost::bad_lexical_cast& e) {
+      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to long long int";
       pVtab->pContent->{{col.name}}.push_back(-1);
     }
 {% endif %}\
@@ -327,7 +343,7 @@ def main(argc, argv):
     output = argv[2]
     with open(filename, "rU") as file_handle:
         tree = ast.parse(file_handle.read())
-        exec compile(tree, "<string>", "exec")
+        exec(compile(tree, "<string>", "exec"))
         table.generate(output)
 
 if __name__ == "__main__":

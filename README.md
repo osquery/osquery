@@ -53,6 +53,12 @@ These queries can be:
 - executed via a scheduler to monitor operating system state across a distributed set of hosts over time
 - launched from custom applications using osquery APIs
 
+## Install
+
+Build and installation instructions are available in the [wiki](https://github.com/facebook/osquery/wiki/building-the-code).
+
 ## Learn more
+
+Read the [launch blog post](https://code.facebook.com/posts/844436395567983/introducing-osquery/) for background on the project.
 
 If you're interested in learning more about osquery, visit the [wiki](https://github.com/facebook/osquery/wiki).

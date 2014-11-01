@@ -1,98 +1,115 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <ctime>
-#include <string>
-#include <iostream>
-#include <boost/lexical_cast.hpp>
+#include <vector>
+
+#include <boost/algorithm/string/trim.hpp>
+
+#include "osquery/core.h"
 #include "osquery/database.h"
-#include <boost/algorithm/string.hpp>
-
-using namespace std;
-using namespace boost;
-
-using std::string;
-using boost::lexical_cast;
+#include "osquery/filesystem.h"
 
 namespace osquery {
 namespace tables {
 
-const char* COL_COMMAND = "command";
-const char* COL_DAY_OF_WEEK = "day_of_week";
-const char* COL_MONTH = "month";
-const char* COL_DAY_OF_MONTH = "day_of_month";
-const char* COL_HOUR = "hour";
-const char* COL_MINUTE = "minute";
+const std::string kSystemCron = "/etc/crontab";
 
-std::vector<std::string> getCmdOutput(const std::string& mStr) {
-  std::vector<std::string> lines;
-  std::string result, line, chunk;
-  FILE* pipe{popen(mStr.c_str(), "r")};
-  if (pipe == nullptr) {
-    return lines;
+#ifdef __APPLE__
+const std::string kUserCronsPath = "/var/at/tabs/";
+#else
+const std::string kUserCronsPath = "/var/spool/cron/crontabs/";
+#endif
+
+std::vector<std::string> cronFromFile(const std::string& path) {
+  std::string content;
+  std::vector<std::string> cron_lines;
+  if (!isReadable(path).ok()) {
+    return cron_lines;
   }
 
-  // currently works only for lines shorter than 1024 characters
-  char buffer[1024];
-  while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-    chunk = buffer;
-    lines.push_back(chunk.substr(0, chunk.size() - 1));
+  if (!readFile(path, content).ok()) {
+    return cron_lines;
   }
 
-  pclose(pipe);
-  return lines;
+  auto lines = split(content, "\n");
+
+  // Only populate the lines that are not comments or blank.
+  for (auto& line : lines) {
+    // Cheat and use a non-const iteration, to inline trim.
+    boost::trim(line);
+    if (line.size() > 0 && line.at(0) != '#') {
+      cron_lines.push_back(line);
+    }
+  }
+
+  return cron_lines;
+}
+
+void genCronLine(const std::string& path,
+                 const std::string& line,
+                 QueryData& results) {
+  Row r;
+
+  r["path"] = path;
+  auto columns = split(line, " \t");
+
+  size_t index = 0;
+  auto iterator = columns.begin();
+  for (; iterator != columns.end(); ++iterator) {
+    if (index == 0) {
+      if ((*iterator).at(0) == '@') {
+        // If the first value is an 'at' then skip to the command.
+        r["event"] = *iterator;
+        index = 5;
+        continue;
+      }
+      r["minute"] = *iterator;
+    } else if (index == 1) {
+      r["hour"] = *iterator;
+    } else if (index == 2) {
+      r["day_of_month"] = *iterator;
+    } else if (index == 3) {
+      r["month"] = *iterator;
+    } else if (index == 4) {
+      r["day_of_week"] = *iterator;
+    } else if (index == 5) {
+      r["command"] = *iterator;
+    } else {
+      // Long if switch to handle command breaks from space delim.
+      r["command"] += " " + *iterator;
+    }
+    index++;
+  }
+
+  if (r["command"].size() == 0) {
+    // The line was not well-formed, perhaps it was a variable?
+    return;
+  }
+
+  results.push_back(r);
 }
 
 QueryData genCronTab() {
   QueryData results;
 
-  std::vector<std::string> lines = getCmdOutput("crontab -l");
+  auto system_lines = cronFromFile(kSystemCron);
+  for (const auto& line : system_lines) {
+    genCronLine(kSystemCron, line, results);
+  }
 
-  for (std::vector<std::string>::iterator itL = lines.begin();
-       itL < lines.end();
-       ++itL) {
+  std::vector<std::string> user_crons;
+  auto status = listFilesInDirectory(kUserCronsPath, user_crons);
+  if (!status.ok()) {
+    LOG(ERROR) << "Could not list user crons from: " << kUserCronsPath << " ("
+               << status.what() << ")";
+    return results;
+  }
 
-    Row r;
-
-    std::vector<std::string> columns;
-    boost::split(columns, *itL, boost::is_any_of(" \t"));
-
-    r[COL_MINUTE] = "";
-    r[COL_HOUR] = "";
-    r[COL_DAY_OF_MONTH] = "";
-    r[COL_MONTH] = "";
-    r[COL_DAY_OF_WEEK] = "";
-    r[COL_COMMAND] = "";
-
-    int index = 0;
-    for (std::vector<std::string>::iterator itC = columns.begin();
-         itC < columns.end();
-         ++itC) {
-      switch (index) {
-      case 0:
-        r[COL_MINUTE] = *itC;
-        break;
-      case 1:
-        r[COL_HOUR] = *itC;
-        break;
-      case 2:
-        r[COL_DAY_OF_MONTH] = *itC;
-        break;
-      case 3:
-        r[COL_MONTH] = *itC;
-        break;
-      case 4:
-        r[COL_DAY_OF_WEEK] = *itC;
-        break;
-      case 5:
-        r[COL_COMMAND] = *itC;
-        break;
-      default:
-        r[COL_COMMAND] += (' ' + *itC);
-      }
-      index++;
+  // The user-based crons are identified by their path.
+  for (const auto& user_path : user_crons) {
+    auto user_lines = cronFromFile(user_path);
+    for (const auto& line : user_lines) {
+      genCronLine(user_path, line, results);
     }
-
-    results.push_back(r);
   }
 
   return results;

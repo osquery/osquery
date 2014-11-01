@@ -4,6 +4,7 @@
 #include <fstream>
 #include <streambuf>
 #include <sstream>
+#include <map>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -79,6 +80,24 @@ std::string proc_link(const proc_t* proc_info) {
   return result;
 }
 
+std::map<std::string, std::string> proc_env(const proc_t* proc_info) {
+  std::map<std::string, std::string> env;
+  std::string attr = osquery::tables::proc_attr("environ", proc_info);
+  std::string buf;
+  std::ifstream fd(attr, std::ios::in | std::ios::binary);
+
+  while (!fd.eof()) {
+    std::getline(fd, buf, '\0');
+    size_t idx = buf.find_first_of("=");
+
+    std::string key = buf.substr(0, idx);
+    std::string value = buf.substr(idx + 1);
+
+    env[key] = value;
+  }
+  return env;
+}
+
 /**
  * @brief deallocate the space allocated by readproc if the passed rbuf was NULL
  *
@@ -128,6 +147,39 @@ QueryData genProcesses() {
 
   closeproc(proc);
 
+  return results;
+}
+
+QueryData genProcessEnvs() {
+  QueryData results;
+
+  proc_t* proc_info;
+  PROCTAB* proc = openproc(PROC_SELECTS);
+
+  // Populate proc struc for each process.
+
+  while ((proc_info = readproc(proc, NULL))) {
+    auto env = proc_env(proc_info);
+    for (auto itr = env.begin(); itr != env.end(); ++itr) {
+      Row r;
+      r["pid"] = boost::lexical_cast<std::string>(proc_info->tid);
+      r["name"] = proc_name(proc_info);
+      r["path"] = proc_link(proc_info);
+      r["key"] = itr->first;
+      r["value"] = itr->second;
+      results.push_back(r);
+    }
+
+    standard_freeproc(proc_info);
+  }
+
+  closeproc(proc);
+
+  return results;
+}
+
+QueryData genProcessOpenFiles() {
+  QueryData results;
   return results;
 }
 }

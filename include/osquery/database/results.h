@@ -242,7 +242,7 @@ Status deserializeHistoricalQueryResultsJSON(const std::string& json,
  * entire DiffResults set as well as some additional metadata.
  */
 struct ScheduledQueryLogItem {
-  /// The data which was changed as a result of the schedueld query
+  /// The data which was changed as a result of the scheduled query
   DiffResults diffResults;
 
   /// The name of the scheduled query
