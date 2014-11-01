@@ -2,9 +2,9 @@
 
 function platform() {
   local  __resultvar=$1
-  if [[ -f "/etc/yum.conf" ]]; then
+  if [[ -f "/etc/redhat-release" ]]; then
     eval $__resultvar="centos"
-  elif [[ -f "/etc/dpkg/dpkg.cfg" ]]; then
+  elif [[ -f "/etc/debian_version" ]]; then
     eval $__resultvar="ubuntu"
   elif [[ -f "/etc/pf.conf" ]]; then
     eval $__resultvar="darwin"

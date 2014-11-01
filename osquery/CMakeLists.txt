@@ -6,6 +6,12 @@ SET(OSQUERY_LIBS
   ssl
 )
 
+# Check for the explicit path to determine the version of procps
+if(EXISTS "/usr/lib/libprocps.a"
+    OR EXISTS "/usr/lib/x86_64-linux-gnu/libprocps.a")
+  set(PROCPS TRUE)
+endif()
+
 if(APPLE)
   list(APPEND OSQUERY_LIBS "boost_thread-mt")
   list(APPEND OSQUERY_LIBS "boost_system")
@@ -27,7 +33,7 @@ else()
     list(APPEND OSQUERY_LIBS "libsnappy.a")
     list(APPEND OSQUERY_LIBS "libunwind.a")
     list(APPEND OSQUERY_LIBS "liblzma.a")
-    if(EXISTS "/usr/lib/libprocps.a" OR EXISTS "/usr/lib/x86_64-linux-gnu/libprocps.a")
+    if(PROCPS)
       list(APPEND OSQUERY_LIBS "libprocps.a")
     else()
       list(APPEND OSQUERY_LIBS "libproc.a")
@@ -52,6 +58,11 @@ endif()
 # Fill this in with objects for libosquery
 set(OSQUERY_SOURCES "")
 set(OSQUERY_ADDITIONAL_LINKS "")
+
+if(NOT BUILD_SHARED)
+  SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+  SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+endif()
 
 MACRO(ADD_OSQUERY_LINK LINK)
   list(APPEND OSQUERY_ADDITIONAL_LINKS ${LINK})
@@ -83,7 +94,6 @@ ENDMACRO(ADD_OSQUERY_OBJCXX_LIBRARY TARGET)
 
 MACRO(ADD_OSQUERY_TEST TEST_NAME SOURCE)
   ADD_EXECUTABLE(${TEST_NAME} ${SOURCE})
-  TARGET_LINK_LIBRARIES(${TEST_NAME} ${OSQUERY_ADDITIONAL_LINKS})
   TARGET_LINK_LIBRARIES(${TEST_NAME} osquery_shared)
   TARGET_LINK_LIBRARIES(${TEST_NAME} gtest)
   SET(OPTIONAL_FLAGS ${ARGN})
@@ -213,7 +223,7 @@ if(NOT APPLE)
   EXECUTE_PROCESS(COMMAND uname -m OUTPUT_VARIABLE OSQUERY_ARCH)
   STRING(REPLACE "\n" "" OSQUERY_ARCH ${OSQUERY_ARCH})
 
-  if(EXISTS /etc/apt/sources.list)
+  if(UBUNTU)
     SET(CPACK_GENERATOR "DEB")
 
     EXECUTE_PROCESS(COMMAND grep DISTRIB_CODENAME /etc/lsb-release OUTPUT_VARIABLE DISTRO)

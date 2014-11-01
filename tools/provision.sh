@@ -276,6 +276,7 @@ function main() {
     package debhelper
     package clang-3.4
     package clang-format-3.4
+    package librpm-dev
     set_cc clang
     set_cxx clang++
     if [[ $DISTRO = "precise" ]]; then
