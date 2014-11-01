@@ -1,35 +1,44 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
+#include <utility>
+#include <map>
+
 #include <CoreFoundation/CoreFoundation.h>
 
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
-
-#include <glog/logging.h>
-
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/core/sqlite_util.h"
-
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string/replace.hpp>
 
 #include <glog/logging.h>
 
 #include "osquery/core.h"
 #include "osquery/database.h"
 #include "osquery/filesystem.h"
+#include "osquery/core/sqlite_util.h"
 
-#include <iostream> // I/O
-#include <utility>
-#include <map>
+
+// http://www.forensicswiki.org/wiki/Mac_OS_X#Quarantine_event_database
+// sqlite3 /Users/$USER/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2 'SELECT * FROM sqlite_master WHERE type="table";'
+// table|LSQuarantineEvent|LSQuarantineEvent|2|CREATE TABLE LSQuarantineEvent (  LSQuarantineEventIdentifier TEXT PRIMARY KEY NOT NULL,  LSQuarantineTimeStamp REAL,  LSQuarantineAgentBundleIdentifier TEXT,  LSQuarantineAgentName TEXT,  LSQuarantineDataURLString TEXT,  LSQuarantineSenderName TEXT,  LSQuarantineSenderAddress TEXT,  LSQuarantineTypeNumber INTEGER,  LSQuarantineOriginTitle TEXT,  LSQuarantineOriginURLString TEXT,  LSQuarantineOriginAlias BLOB )
+
+// LSQuarantineEventIdentifier TEXT PRIMARY KEY NOT NULL,
+// LSQuarantineTimeStamp REAL,
+// LSQuarantineAgentBundleIdentifier TEXT,
+// LSQuarantineAgentName TEXT,
+// LSQuarantineDataURLString TEXT,
+// LSQuarantineSenderName TEXT,
+// LSQuarantineSenderAddress TEXT,
+// LSQuarantineTypeNumber INTEGER,
+// LSQuarantineOriginTitle TEXT,
+// LSQuarantineOriginURLString TEXT,
+// LSQuarantineOriginAlias BLOB )
 
 namespace osquery {
 namespace tables {
-const std::map<std::string, std::string> QUARANTINE_COLUMNS_MAPPING = {
+const std::map<std::string, std::string> kQuarantineColumnsMapping = {
     {"LSQuarantineEventIdentifier", "quarantine_event_identifier"},
     {"LSQuarantineTimeStamp", "quarantine_time_stamp"},
     {"LSQuarantineAgentBundleIdentifier", "QuarantineAgentBundleIdentifier"},
@@ -52,7 +61,6 @@ const std::vector<std::string> kDatabasePaths = {
     "com.apple.LaunchServices.QuarantineEventsV2"};
 
 std::vector<std::string> getUsers() {
-
   std::vector<std::string> users;
   std::vector<std::string> home_dirs;
   auto home_dirs_s = osquery::listFilesInDirectory("/Users", home_dirs);
@@ -128,7 +136,7 @@ sqlite3* createTestDB() {
 }
 
 QueryData getQueryEventsData(const std::string db_path) {
-  std::cerr << "AAAAA\n";
+  LOG(ERROR) << "AAAAA\n";
 
   // HELP!!! HELP!!!
   // If I use createTestDB - everything is working
@@ -139,37 +147,35 @@ QueryData getQueryEventsData(const std::string db_path) {
   // and it never gets to print out CCCC
   // sqlite3* db = openDB(db_path.c_str());
   int error = 0;
-  std::cerr << "BBBB - DB: " << db << "\n";
+  LOG(ERROR) << "BBBB - DB: " << db << "\n";
   QueryData data = query("SELECT * FROM LSQuarantineEvent", error, db);
-  std::cerr << "Error code: " << error << "; records: " << data.size() << "\n";
+  LOG(ERROR) << "Error code: " << error << "; records: " << data.size() << "\n";
   // TODO: add some error checking
-  std::cerr << "CCCC\n";
+  LOG(ERROR) << "CCCC\n";
   return data;
 }
 
 QueryData genQuarantineEvents() {
-
   QueryData results;
 
-  std::vector<UserAndDatabase> databases =
+  std::vector<UserAndDatabase> records =
       getQuarantineEventDatabasesPlistPaths();
-  std::cerr << "Databases: " << databases.size() << "\n";
-  for (const auto& database : databases) {
+  LOG(ERROR) << "Databases: " << records.size() << "\n";
+  for (const auto& record : records) {
 
-    QueryData events = getQueryEventsData(database.second);
+    QueryData events = getQueryEventsData(record.second);
     for (const auto& row : events) {
       Row r;
-      r["user"] = database.first;
+      r["user"] = record.first;
       for (std::map<std::string, std::string>::const_iterator it = row.begin();
            it != row.end();
            ++it) {
         std::map<std::string, std::string>::const_iterator k =
-            QUARANTINE_COLUMNS_MAPPING.find(it->first);
-        if (k != QUARANTINE_COLUMNS_MAPPING.end()) {
-          r[QUARANTINE_COLUMNS_MAPPING.at(it->first)] = it->second;
+            kQuarantineColumnsMapping.find(it->first);
+        if (k != kQuarantineColumnsMapping.end()) {
+          r[kQuarantineColumnsMapping.at(it->first)] = it->second;
         } else {
-          std::cerr << "Unknown key-value: " << it->first << " - " << it->second
-                    << std::endl;
+          LOG(ERROR) << "Unknown key-value: " << it->first << " - " << it->second;
         }
       }
       results.push_back(r);
@@ -192,7 +198,7 @@ QueryData genQuarantineEvents() {
     */
   }
 
-  std::cerr << "\nResult size: " << results.size();
+  LOG(ERROR) << "\nResult size: " << results.size();
 
   return results;
 }

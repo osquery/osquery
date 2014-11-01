@@ -24,9 +24,9 @@ sqlite3* createDB() {
   return db;
 }
 
-sqlite3* openDB(const char* file_name) {
+sqlite3* openDB(const std::string& file_name) {
   sqlite3* db = nullptr;
-  sqlite3_open(file_name, &db);
+  sqlite3_open(file_name.c_str(), &db);
   return db;
 }
 

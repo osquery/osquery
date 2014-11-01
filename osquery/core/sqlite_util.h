@@ -8,7 +8,7 @@ namespace osquery {
 QueryData query(const std::string& q, int& error_return, sqlite3* db);
 
 // opens SQLite database
-sqlite3* openDB(const char* file_name);
+sqlite3* openDB(const std::string& file_name);
 
 // closes SQLite database
 int closeDB(sqlite3* db);

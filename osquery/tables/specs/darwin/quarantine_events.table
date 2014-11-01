@@ -1,22 +1,6 @@
-# http://www.forensicswiki.org/wiki/Mac_OS_X#Quarantine_event_database
-# sqlite3 /Users/$USER/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2 'SELECT * FROM sqlite_master WHERE type="table";'
-## table|LSQuarantineEvent|LSQuarantineEvent|2|CREATE TABLE LSQuarantineEvent (  LSQuarantineEventIdentifier TEXT PRIMARY KEY NOT NULL,  LSQuarantineTimeStamp REAL,  LSQuarantineAgentBundleIdentifier TEXT,  LSQuarantineAgentName TEXT,  LSQuarantineDataURLString TEXT,  LSQuarantineSenderName TEXT,  LSQuarantineSenderAddress TEXT,  LSQuarantineTypeNumber INTEGER,  LSQuarantineOriginTitle TEXT,  LSQuarantineOriginURLString TEXT,  LSQuarantineOriginAlias BLOB )
-
-#LSQuarantineEventIdentifier TEXT PRIMARY KEY NOT NULL,
-#LSQuarantineTimeStamp REAL,  
-#LSQuarantineAgentBundleIdentifier TEXT,  
-#LSQuarantineAgentName TEXT,  
-#LSQuarantineDataURLString TEXT,  
-#LSQuarantineSenderName TEXT,  
-#LSQuarantineSenderAddress TEXT,  
-#LSQuarantineTypeNumber INTEGER,  
-#LSQuarantineOriginTitle TEXT,  
-#LSQuarantineOriginURLString TEXT,  
-#LSQuarantineOriginAlias BLOB )
-
 table_name("quarantine_events")
 schema([
-	Column(name="user", type="std::string"),
+    Column(name="user", type="std::string"),
     Column(name="quarantine_event_identifier", type="std::string"),
     Column(name="quarantine_time_stamp", type="std::string"),
     Column(name="quarantine_agent_bundle_identifier", type="std::string"),
