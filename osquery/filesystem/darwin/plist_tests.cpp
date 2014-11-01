@@ -46,6 +46,20 @@ TEST_F(PlistTests, test_parse_plist_content) {
   }
   EXPECT_EQ(program_arguments_parsed, program_arguments);
 }
+
+TEST_F(PlistTests, test_parse_plist_content_with_blobs) {
+  pt::ptree tree;
+  auto s = parsePlist("./osquery/filesystem/darwin/test_binary.plist", tree);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.toString(), "OK");
+  EXPECT_THROW(tree.get<bool>("foobar"), pt::ptree_bad_path);
+  EXPECT_EQ(tree.get<std::string>("SessionItems.Controller"), "CustomListItems");
+  auto first_element = tree.get_child("SessionItems.CustomListItems").begin()->second;
+  EXPECT_EQ(first_element.get<std::string>("Name"), "Flux");
+  std::string alias = first_element.get<std::string>("Alias");
+  // Verify we parsed the binary blob correctly
+  EXPECT_NE(alias.find("Applications/Flux.app"), std::string::npos);
+}
 }
 
 int main(int argc, char* argv[]) {
