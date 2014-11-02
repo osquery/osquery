@@ -8,6 +8,11 @@
 
 #include "osquery/registry.h"
 
+#ifndef GFLAGS_GFLAGS_H_
+// Hack to support Google changing google namespace to gflags in version 2.1
+namespace gflags = google;
+#endif  // GFLAGS_GFLAGS_H_
+
 namespace osquery {
 
 typedef std::pair<std::string, std::string> FlagDetail;
