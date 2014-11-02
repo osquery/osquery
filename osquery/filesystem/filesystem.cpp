@@ -12,7 +12,6 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include "osquery/filesystem.h"

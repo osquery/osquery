@@ -4,6 +4,7 @@
 
 #include <boost/make_shared.hpp>
 
+#define STRIP_FLAG_HELP 1
 #include <gflags/gflags.h>
 
 #include "osquery/registry.h"

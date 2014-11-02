@@ -1,6 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include "osquery/core/conversions.h"

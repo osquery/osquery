@@ -82,6 +82,7 @@
 
 #include "osquery/database/results.h"
 #include "osquery/devtools.h"
+#include "osquery/flags.h"
 #include "osquery/registry/registry.h"
 
 /* Make sure isatty() has a prototype.
@@ -4092,6 +4093,45 @@ static char *cmdline_option_value(int argc, char **argv, int i) {
 }
 
 namespace osquery {
+
+/// Define flags used by the shell. They are parsed by the drop-in shell.
+DEFINE_osquery_flag(bool, bail, false, "stop after hitting an error");
+DEFINE_osquery_flag(bool, batch, false, "force batch I/O");
+DEFINE_osquery_flag(bool, column, false, "set output mode to 'column'");
+DEFINE_osquery_flag(string, cmd, "", "run \"COMMAND\" before reading stdin");
+DEFINE_osquery_flag(bool, csv, false, "set output mode to 'csv'");
+DEFINE_osquery_flag(bool, echo, false, "print commands before execution");
+DEFINE_osquery_flag(string, init, "", "read/process named file");
+DEFINE_osquery_flag(bool, header, true, "turn headers on or off");
+DEFINE_osquery_flag(bool, html, false, "set output mode to HTML");
+DEFINE_osquery_flag(bool, interactive, false, "force interactive I/O");
+DEFINE_osquery_flag(bool, line, false, "set output mode to 'line'");
+DEFINE_osquery_flag(bool, list, false, "set output mode to 'list'");
+DEFINE_osquery_flag(int64, mmap, 0, "default mmap size set to N");
+DEFINE_osquery_flag(string,
+                    nullvalue,
+                    "",
+                    "set text string for NULL values. Default ''");
+DEFINE_osquery_flag(string,
+                    separator,
+                    "|",
+                    "set output field separator. Default: '|'");
+DEFINE_osquery_flag(bool,
+                    stats,
+                    false,
+                    "print memory stats before each finalize");
+DEFINE_osquery_flag(string, vfs, "", "use NAME as the default VFS");
+
+/// Optional flags enabled at compile time.
+#if defined(SQLITE_ENABLE_MEMSYS3) || defined(SQLITE_ENABLE_MEMSYS5)
+DEFINE_osquery_flag(int64, heap, 0, "Size of heap for memsys3 or memsys5");
+#endif
+#ifdef SQLITE_ENABLE_MULTIPLEX
+DEFINE_osquery_flag(bool, multiplex, false, "enable the multiplexor VFS");
+#endif
+#ifdef SQLITE_ENABLE_VFSTRACE
+DEFINE_osquery_flag(bool, vfstrace, false, "enable tracing of all VFS calls");
+#endif
 
 int launchIntoShell(int argc, char **argv) {
   char *zErrMsg = 0;
