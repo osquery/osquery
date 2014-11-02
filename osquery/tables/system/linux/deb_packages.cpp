@@ -45,17 +45,9 @@ enum pkgstatus {
 } status;
 
 #include <dpkg/dpkg.h>
-
 #include <dpkg/pkg-array.h>
-#include <dpkg/pkg-format.h>
-#include <dpkg/pkg-show.h>
-#include <dpkg/string.h>
-#include <dpkg/path.h>
 
 }
-
-
-#include <boost/lexical_cast.hpp>
 
 #include "osquery/database.h"
 
@@ -65,38 +57,36 @@ namespace tables {
 QueryData genDebs() {
   QueryData results;
 
+  struct pkg_array array;
+  struct pkginfo *pkg;
+  int i;
+  dpkg_program_init("dpkg");
+  modstatdb_open(msdbrw_readonly);
+  pkg_array_init_from_db(&array);
+  pkg_array_sort(&array, pkg_sorter_by_nonambig_name_arch);
 
-    struct pkg_array array;
-    struct pkginfo *pkg;
-    int i;
-    LOG(ERROR) <<  "AAAAA";
-    dpkg_program_init("dpkg");
-    LOG(ERROR) <<  "AAAAA";
-    modstatdb_open(msdbrw_readonly);
-    LOG(ERROR) <<  "AAAAA";
-    pkg_array_init_from_db(&array);
-    LOG(ERROR) <<  "AAAAA";
-    pkg_array_sort(&array, pkg_sorter_by_nonambig_name_arch);
-    LOG(ERROR) <<  "AAAAA";
+  for (i = 0; i < array.n_pkgs; i++) {
+    pkg = array.pkgs[i];
 
-    for (i = 0; i < array.n_pkgs; i++) {
-      pkg = array.pkgs[i];
-
-      if (pkg->status == pkg->stat_notinstalled) continue;
-      Row r;
-      r["name"] = pkg_name(pkg, pnaw_nonambig);
-      r["version"] = versiondescribe(&pkg->installed.version, vdew_nonambig);
-      r["arch"] =  dpkg_arch_describe(pkg->installed.arch);
-      /*
-      LOG(ERROR) << pkg_abbrev_want(pkg);
-      LOG(ERROR) << pkg_abbrev_status(pkg);
-    		  LOG(ERROR) << pkg_abbrev_eflag(pkg);
-    		  LOG(ERROR) << pkg_name(pkg, pnaw_nonambig);
-    		  LOG(ERROR) << versiondescribe(&pkg->installed.version, vdew_nonambig);
-    		  LOG(ERROR) << dpkg_arch_describe(pkg->installed.arch);
-    		  */
-      results.push_back(r);
+    if (pkg->status == pkg->stat_notinstalled) {
+    	continue;
     }
+    Row r;
+    r["name"] = pkg_name(pkg, pnaw_nonambig);
+    r["version"] = versiondescribe(&pkg->installed.version, vdew_nonambig);
+    r["arch"] =  dpkg_arch_describe(pkg->installed.arch);
+    /*
+    LOG(ERROR) << pkg_abbrev_want(pkg);
+    LOG(ERROR) << pkg_abbrev_status(pkg);
+    LOG(ERROR) << pkg_abbrev_eflag(pkg);
+    LOG(ERROR) << pkg_name(pkg, pnaw_nonambig);
+    LOG(ERROR) << versiondescribe(&pkg->installed.version, vdew_nonambig);
+    LOG(ERROR) << dpkg_arch_describe(pkg->installed.arch);
+    */
+    results.push_back(r);
+  }
+
+  pkg_array_destroy(&array);
 
   return results;
 }
