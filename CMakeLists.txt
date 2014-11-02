@@ -75,10 +75,18 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 
-# make format
+# make format-all
 ADD_CUSTOM_TARGET(
-  format
+  format-all
   find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \) -exec clang-format -i {} +
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMENT "Formatting code with clang-format" VERBATIM
+  COMMENT "Formatting all osquery code with clang-format" VERBATIM
 )
+
+ADD_CUSTOM_TARGET(
+  format
+  python tools/git-clang-format.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMENT "Formatting code staged code changes with clang-format" VERBATIM
+)
+
