@@ -1,0 +1,17 @@
+table_name("mounts")
+schema([
+	Column(name="fsname", type="std::string"),
+	Column(name="fsname_real", type="std::string"),
+	Column(name="path", type="std::string"),
+	Column(name="type", type="std::string"),
+	Column(name="opts", type="std::string"),
+	Column(name="freq", type="int"),
+	Column(name="passno", type="int"),
+	Column(name="block_size", type="long long int"),
+	Column(name="blocks", type="long long int"),
+	Column(name="blocks_free", type="long long int"),
+	Column(name="blocks_avail", type="long long int"),
+	Column(name="inodes", type="long long int"),
+	Column(name="inodes_free", type="long long int"),
+])
+implementation("mounts@genMounts")
