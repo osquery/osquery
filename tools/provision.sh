@@ -279,6 +279,7 @@ function main() {
     package librpm-dev
     set_cc clang
     set_cxx clang++
+
     if [[ $DISTRO = "precise" ]]; then
       package gcc-4.7
       package g++-4.7
@@ -359,6 +360,7 @@ function main() {
     package openssl-devel
     package readline-devel
     package procps-devel
+    package rpm-devel
 
     install_boost
     install_gflags
