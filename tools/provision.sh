@@ -359,6 +359,7 @@ function main() {
     package openssl-devel
     package readline-devel
     package procps-devel
+    package rpm-devel
 
     install_boost
     install_gflags
