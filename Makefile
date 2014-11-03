@@ -26,6 +26,7 @@ deps:
 
 distclean:
 	rm -rf .sources build/$(BUILD_DIR) doxygen/html doxygen/latex
+	$(if $(PLATFORM) == Linux, rm -rf build/linux)
 
 %::
 	mkdir -p build/$(BUILD_DIR)
