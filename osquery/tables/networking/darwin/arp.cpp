@@ -17,38 +17,33 @@
 
 #include "osquery/database.h"
 
+namespace osquery {
+namespace tables {
+
 typedef struct {
   struct rt_msghdr m_rtm;
   char m_space[512];
 } route_msg;
 
-namespace osquery {
-namespace tables {
-
 // Transform the ethernet address in a string
-char * ether_print(u_char *cp)
-{
-  char buf[128];
-  char *copy;
+std::string ether_print(u_char *cp) {
+  const char etherAddressSize = 18;
+  char buf[etherAddressSize];
 
-  sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x",
-	  cp[0], cp[1], cp[2], cp[3], cp[4], cp[5]);
+  snprintf(buf,
+	   etherAddressSize,
+	   "%02x:%02x:%02x:%02x:%02x:%02x",
+	   cp[0],
+	   cp[1],
+	   cp[2],
+	   cp[3],
+	   cp[4],
+	   cp[5]);
 
-  copy = (char *) malloc(sizeof(char) * (strlen(buf) + 1));
-
-  if (copy != NULL) {
-    strcpy(copy, buf);
-
-    return copy;
-
-  } else {
-    return NULL;
-  }
-
+  return std::string(buf);
 }
 
-void add_address(struct rt_msghdr *rtm, QueryData *results)
-{
+void add_address(struct rt_msghdr *rtm, QueryData *results) {
   Row r;
   char *ip_addr;
   std::string mac_addr;
@@ -70,7 +65,7 @@ void add_address(struct rt_msghdr *rtm, QueryData *results)
     mac_addr = "permanent";
   }
   if (rtm->rtm_addrs & RTA_NETMASK) {
-    sin = (struct sockaddr_inarp *) (sdl->sdl_len + (char *)sdl);
+    sin = (struct sockaddr_inarp *)(sdl->sdl_len + (char *)sdl);
 
     if (sin->sin_addr.s_addr == 0xffffffff)
       mac_addr = "published";
@@ -101,19 +96,22 @@ QueryData genArp() {
   mib[4] = NET_RT_FLAGS;
   mib[5] = RTF_LLINFO;
 
-  sysctl(mib, 6, NULL, &needed, NULL, 0) ;
-  buf = (char *) malloc(needed);
+  sysctl(mib, 6, nullptr, &needed, nullptr, 0);
+  buf = (char *)malloc(needed);
 
-  if (sysctl(mib, 6, buf, &needed, NULL, 0) < 0) {
+  if (sysctl(mib, 6, buf, &needed, nullptr, 0) < 0) {
     free(buf);
+
+    return results;
   }
 
   lim = buf + needed;
   for (next = buf; next < lim; next += rtm->rtm_msglen) {
-    rtm = (struct rt_msghdr *)(void *)next;
+    rtm = (struct rt_msghdr *)(void *) next;
     add_address(rtm, &results);
   }
-
+  free(buf);
+  
   return results;
 }
 }

@@ -12,34 +12,30 @@ QueryData genArp() {
   Row r;
   QueryData results;
   FILE *proc_arp_fd;
-  char *line = NULL;
+  char *line = nullptr;
   size_t length;
   int ret;
 
-  char ip[32];
-  char mac[64];
-  char iface[32];
-  char ignore_field[128];
-
   // We are already calling 'popen', let's give it some more work with sed to clean.
   proc_arp_fd = fopen("/proc/net/arp" , "r");
-  if (proc_arp_fd == NULL) {
+  if (proc_arp_fd == nullptr) {
     return results;
   }
 
   ret = getline(&line, &length, proc_arp_fd); // Discard first one. Just a header
   ret = getline(&line, &length, proc_arp_fd);
   while (ret > 0) {
+    std::vector<std::string> fields;
     // IP address       HW type     Flags       HW address            Mask     Device
-    sscanf(line, "%s %s %s %s %s %s", ip, ignore_field, ignore_field, mac, ignore_field, iface);
+    boost::split(fields, line, boost::is_any_of(" "));
 
-    r["ip"] = ip;
-    r["mac"] = mac;
-    r["iface"] = iface;
+    r["ip"] = fields[0];
+    r["mac"] = fields[3];
+    r["iface"] = fields[5];
 
     results.push_back(r);
 
-    line = NULL;
+    line = nullptr;
     ret = getline(&line, &length, proc_arp_fd);
   }
 
