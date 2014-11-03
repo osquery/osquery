@@ -6,7 +6,6 @@
 #include <functional>
 #include <thread>
 
-#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include <configerator/distribution/api/api.h>

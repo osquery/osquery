@@ -3,10 +3,10 @@
 #include <exception>
 #include <mutex>
 
-#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include "osquery/filesystem.h"
+#include "osquery/flags.h"
 #include "osquery/logger/plugin.h"
 
 using osquery::Status;

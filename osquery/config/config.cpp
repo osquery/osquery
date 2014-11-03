@@ -10,7 +10,6 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
-#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include "osquery/config.h"
