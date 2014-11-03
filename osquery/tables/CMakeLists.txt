@@ -39,6 +39,7 @@ else()
     system/linux/users.cpp
     system/linux/groups.cpp
     system/linux/mounts.cpp
+    system/linux/pci_devices.cpp
   )
 
   # CentOS specific tables

@@ -277,6 +277,8 @@ function main() {
     package clang-3.4
     package clang-format-3.4
     package librpm-dev
+    package libudev-dev
+
     set_cc clang
     set_cxx clang++
 
@@ -373,6 +375,7 @@ function main() {
     package bison
     package libunwind
     package libunwind-devel
+    package libudev-devel
 
     # One day, CentOS packages will be updated and installing from yum will not fuck things up
     # Until that day comes, leave these lines commented and keep installing from source

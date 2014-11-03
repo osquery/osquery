@@ -53,6 +53,7 @@ else()
   list(APPEND OSQUERY_LIBS "libboost_filesystem.a")
   list(APPEND OSQUERY_LIBS "libboost_program_options.a")
   list(APPEND OSQUERY_LIBS "libboost_regex.a")
+  list(APPEND OSQUERY_LIBS "udev")
 endif()
 
 # Fill this in with objects for libosquery
