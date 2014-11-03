@@ -47,7 +47,7 @@ QueryData genLspci() {
   // which contains the device's path in /sys.
 
   udev_list_entry_foreach(dev_list_entry, devices) {
-    const char *path;
+    const char *path, *tmp;
 
     // Get the filename of the /sys entry for the PCI device
     // and create a udev_device object (dev) representing it
@@ -55,14 +55,14 @@ QueryData genLspci() {
     dev = udev_device_new_from_syspath(udev, path);
 
     Row r;
-    r["slot"] = boost::lexical_cast<std::string>(
-        udev_device_get_property_value(dev, kSlot.c_str()));
-    r["device_class"] = boost::lexical_cast<std::string>(
-        udev_device_get_property_value(dev, kClass.c_str()));
-    r["vendor"] = boost::lexical_cast<std::string>(
-        udev_device_get_property_value(dev, kVendor.c_str()));
-    r["model"] = boost::lexical_cast<std::string>(
-        udev_device_get_property_value(dev, kModel.c_str()));
+    if ((tmp = udev_device_get_property_value(dev, kSlot.c_str())))
+      r["slot"] = boost::lexical_cast<std::string>(tmp);
+    if ((tmp = udev_device_get_property_value(dev, kClass.c_str())))
+      r["device_class"] = boost::lexical_cast<std::string>(tmp);
+    if ((tmp = udev_device_get_property_value(dev, kVendor.c_str())))
+      r["vendor"] = boost::lexical_cast<std::string>(tmp);
+    if ((tmp = udev_device_get_property_value(dev, kModel.c_str())))
+      r["model"] = boost::lexical_cast<std::string>(tmp);
     results.push_back(r);
   }
   return results;
