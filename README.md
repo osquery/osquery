@@ -53,7 +53,27 @@ These queries can be:
 
 ## Install
 
-Build and installation instructions are available in the [wiki](https://github.com/facebook/osquery/wiki/building-the-code).
+### OS X
+
+The easiest way to install osquery on OS X is via Homebrew. Check the [Homebrew](http://brew.sh/) homepage for installation instructions. 
+
+Run the following:
+
+```
+brew update
+brew install osquery
+```
+
+To update osquery:
+
+```
+brew update
+brew upgrade osquery
+```
+
+### Linux
+
+The Linux story is a little more nauanced than it is on OS X. Check out the wiki's [installation guide](https://github.com/facebook/osquery/wiki/install-linux) for Linux.
 
 ## Learn more
 
