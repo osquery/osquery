@@ -21,23 +21,24 @@ static void fillRow(struct udev_device *dev, Row &r) {
   blkid_probe pr;
   const char *name, *tmp;
 
-  if ((name = udev_device_get_devnode(dev)))
+  if ((name = udev_device_get_devnode(dev))) {
     r["name"] = std::string(name);
-
+  }
   if ((parent =
-           udev_device_get_parent_with_subsystem_devtype(dev, "block", NULL)))
+           udev_device_get_parent_with_subsystem_devtype(dev, "block", NULL))) {
     r["parent"] = std::string(udev_device_get_devnode(parent));
-
-  if ((tmp = udev_device_get_sysattr_value(dev, "size")))
+  }
+  if ((tmp = udev_device_get_sysattr_value(dev, "size"))) {
     r["size"] = std::string(tmp);
-
+  }
   if ((scsi_dev =
            udev_device_get_parent_with_subsystem_devtype(dev, "scsi", NULL))) {
-    if ((tmp = udev_device_get_sysattr_value(scsi_dev, "model")))
+    if ((tmp = udev_device_get_sysattr_value(scsi_dev, "model"))) {
       r["model"] = std::string(tmp);
-
-    if ((tmp = udev_device_get_sysattr_value(scsi_dev, "vendor")))
+    }
+    if ((tmp = udev_device_get_sysattr_value(scsi_dev, "vendor"))) {
       r["vendor"] = std::string(tmp);
+    }
   }
 
   if (name && ((pr = blkid_new_probe_from_filename(name)))) {
@@ -45,14 +46,15 @@ static void fillRow(struct udev_device *dev, Row &r) {
     blkid_probe_set_superblocks_flags(
         pr, BLKID_SUBLKS_LABEL | BLKID_SUBLKS_UUID | BLKID_SUBLKS_TYPE);
     if (!blkid_do_safeprobe(pr)) {
-      if (!blkid_probe_lookup_value(pr, "TYPE", &tmp, NULL))
+      if (!blkid_probe_lookup_value(pr, "TYPE", &tmp, NULL)) {
         r["type"] = std::string(tmp);
-
-      if (!blkid_probe_lookup_value(pr, "UUID", &tmp, NULL))
+      }
+      if (!blkid_probe_lookup_value(pr, "UUID", &tmp, NULL)) {
         r["uuid"] = std::string(tmp);
-
-      if (!blkid_probe_lookup_value(pr, "LABEL", &tmp, NULL))
+      }
+      if (!blkid_probe_lookup_value(pr, "LABEL", &tmp, NULL)) {
         r["label"] = std::string(tmp);
+      }
     }
     blkid_free_probe(pr);
   }
