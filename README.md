@@ -1,8 +1,6 @@
 osquery
 =======
 
-<a target="_blank" href="https://magnum.travis-ci.com/facebook/osquery"><img src="https://magnum.travis-ci.com/facebook/osquery.svg?token=MvaZkzWisgsA98PZfNC7&branch=master"></a>
-
 osquery is an operating system instrumentation framework for OSX and Linux. osquery makes low-level operating system analytics and monitoring both performant and intuitive.
 
 osquery exposes an operating system as a high-performance relational database. This allows you to write SQL-based queries to explore operating system data. With osquery, SQL tables represent abstract concepts such as
