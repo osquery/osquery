@@ -19,7 +19,6 @@ IndentCaseLabels: false
 MaxEmptyLinesToKeep: 1
 NamespaceIndentation: None
 ObjCSpaceBeforeProtocolList: false
-PenaltyBreakBeforeFirstCallParameter: 10
 PenaltyBreakComment: 60
 PenaltyBreakString: 1000
 PenaltyBreakFirstLessLess: 20
@@ -39,5 +38,4 @@ SpaceInEmptyParentheses: false
 SpacesInCStyleCastParentheses: false
 SpaceAfterControlStatementKeyword: true
 SpaceBeforeAssignmentOperators: true
-ContinuationIndentWidth: 4
 ...
