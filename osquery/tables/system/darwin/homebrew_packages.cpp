@@ -28,7 +28,8 @@ std::vector<std::string> getHomebrewAppInfoPlistPaths() {
       results.push_back(app_path);
     }
   } else {
-    LOG(ERROR) << "Error listing " << kHomebrewRoot << ": " << status.toString();
+    LOG(ERROR) << "Error listing " << kHomebrewRoot << ": "
+               << status.toString();
   }
 
   return results;
