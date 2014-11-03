@@ -65,7 +65,7 @@ void genSocket(pid_t pid, struct socket_fdinfo socket, QueryData &results) {
   }
 
   r["address"] = addr.str();
-  results.push_back(r);
+  addUniqueRowToQueryData(results, r);
 }
 
 QueryData genListeningPorts() {

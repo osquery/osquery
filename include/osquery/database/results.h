@@ -323,4 +323,15 @@ Status serializeScheduledQueryLogItemAsEvents(
  */
 Status serializeScheduledQueryLogItemAsEventsJSON(
     const ScheduledQueryLogItem& i, std::string& json);
+
+/**
+ * @brief Add a Row to a QueryData if the Row hasn't appeared in the QueryData
+ * already
+ *
+ * @param q the QueryData list to append to
+ * @param r the Row to add to q
+ *
+ * @return true if the Row was added to the QueryData, false if it wasn't
+ */
+bool addUniqueRowToQueryData(QueryData& q, const Row& r);
 }

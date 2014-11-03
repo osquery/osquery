@@ -355,4 +355,14 @@ Status serializeScheduledQueryLogItemJSON(const ScheduledQueryLogItem& i,
   }
   return Status(0, "OK");
 }
+
+bool addUniqueRowToQueryData(QueryData& q, const Row& r) {
+  for (const auto& each : q) {
+    if (each == r) {
+      return false;
+    }
+  }
+  q.push_back(r);
+  return true;
+}
 }
