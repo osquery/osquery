@@ -2,7 +2,6 @@ table_name("deb_packages")
 schema([
     Column(name="name", type="std::string"),
     Column(name="version", type="std::string"),
-    Column(name="release", type="std::string"),
     Column(name="source", type="std::string"),
     Column(name="size", type="std::string"),
     Column(name="arch", type="std::string"),
