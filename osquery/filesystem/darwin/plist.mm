@@ -4,6 +4,7 @@
 
 #include <sstream>
 
+#include <boost/filesystem/path.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 #include <glog/logging.h>
@@ -156,7 +157,7 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
   }
 }
 
-Status parsePlist(const std::string& path, pt::ptree& tree) {
+Status parsePlist(const boost::filesystem::path& path, pt::ptree& tree) {
   std::string fileContent;
   Status s = readFile(path, fileContent);
   if (!s.ok()) {

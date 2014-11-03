@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/filesystem/path.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include "osquery/status.h"
@@ -22,7 +23,7 @@ namespace osquery {
  * @return an instance of Status, indicating the success or failure
  * of the operation.
  */
-Status readFile(const std::string& path, std::string& content);
+Status readFile(const boost::filesystem::path& path, std::string& content);
 
 /**
  * @brief Write text to disk.
@@ -35,11 +36,13 @@ Status readFile(const std::string& path, std::string& content);
  * @return an instance of Status, indicating the success or failure
  * of the operation.
  */
-Status writeTextFile(const std::string& path, const std::string& content,
-                     int permissions = 0660, bool force_permissions = false);
+Status writeTextFile(const boost::filesystem::path& path,
+                     const std::string& content,
+                     int permissions = 0660,
+                     bool force_permissions = false);
 
-Status isWritable(const std::string& path);
-Status isReadable(const std::string& path);
+Status isWritable(const boost::filesystem::path& path);
+Status isReadable(const boost::filesystem::path& path);
 
 /**
  * @brief A helper to check if a path exists on disk or not.
@@ -52,7 +55,7 @@ Status isReadable(const std::string& path);
  * to check path-getter results. The code will be 0 if the path does not exist
  * on disk and 1 if the path does exist on disk.
  */
-Status pathExists(const std::string& path);
+Status pathExists(const boost::filesystem::path& path);
 
 /**
  * @brief List all of the files in a specific directory, non-recursively.
@@ -65,7 +68,7 @@ Status pathExists(const std::string& path);
  * @return an instance of Status, indicating the success or failure
  * of the operation.
  */
-Status listFilesInDirectory(const std::string& path,
+Status listFilesInDirectory(const boost::filesystem::path& path,
                             std::vector<std::string>& results);
 
 /**
@@ -77,7 +80,8 @@ Status listFilesInDirectory(const std::string& path,
  * @return If the input path was a directory this will indicate failure. One
  * should use `isDirectory` before.
  */
-Status getDirectory(const std::string& path, std::string& dirpath);
+Status getDirectory(const boost::filesystem::path& path,
+                    boost::filesystem::path& dirpath);
 
 /**
  * @brief Check if an input path is a directory.
@@ -86,7 +90,7 @@ Status getDirectory(const std::string& path, std::string& dirpath);
  *
  * @return If the input path was a directory.
  */
-Status isDirectory(const std::string& path);
+Status isDirectory(const boost::filesystem::path& path);
 
 /**
  * @brief Parse the users out of a tomcat user config from disk
@@ -100,7 +104,7 @@ Status isDirectory(const std::string& path);
  * of the operation
  */
 Status parseTomcatUserConfigFromDisk(
-    const std::string& path,
+    const boost::filesystem::path& path,
     std::vector<std::pair<std::string, std::string> >& credentials);
 
 /**
@@ -129,7 +133,9 @@ Status parseTomcatUserConfig(
  * @return an instance of Status, indicating the success or failure
  * of the operation.
  */
-Status parsePlist(const std::string& path, boost::property_tree::ptree& tree);
+Status parsePlist(const boost::filesystem::path& path,
+                  boost::property_tree::ptree& tree);
+
 /**
  * @brief Parse property list content into a property tree.
  *
