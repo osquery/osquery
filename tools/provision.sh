@@ -278,6 +278,7 @@ function main() {
     package clang-format-3.4
     package librpm-dev
     package libudev-dev
+    package libblkid-dev
 
     set_cc clang
     set_cxx clang++
