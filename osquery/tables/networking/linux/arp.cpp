@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/split.hpp>
+
 #include "osquery/database.h"
 
 namespace osquery {
@@ -27,15 +30,22 @@ QueryData genArp() {
   while (ret > 0) {
     std::vector<std::string> fields;
     // IP address       HW type     Flags       HW address            Mask     Device
-    boost::split(fields, line, boost::is_any_of(" "));
+    boost::split(fields, line, boost::is_any_of(" "), boost::token_compress_on);
 
-    r["ip"] = fields[0];
-    r["mac"] = fields[3];
-    r["iface"] = fields[5];
+    if (fields.size() == 6) {
+      boost::trim(fields[0]);
+      boost::trim(fields[3]);
+      boost::trim(fields[5]);
+      r["ip"] = fields[0];
+      r["mac"] = fields[3];
+      r["iface"] = fields[5];
 
-    results.push_back(r);
+      results.push_back(r);
+    }
 
+    free(line);
     line = nullptr;
+
     ret = getline(&line, &length, proc_arp_fd);
   }
 
