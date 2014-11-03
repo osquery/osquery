@@ -123,6 +123,33 @@ TEST_F(ResultsTests, test_serialize_scheduled_query_log_item_json) {
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(results.first, json);
 }
+
+TEST_F(ResultsTests, test_adding_duplicate_rows_to_query_data) {
+  Row r1, r2, r3;
+  r1["foo"] = "bar";
+  r1["baz"] = "boo";
+
+  r2["foo"] = "baz";
+  r2["baz"] = "bop";
+
+  r3["foo"] = "baz";
+  r3["baz"] = "bop";
+
+  QueryData q;
+  bool s;
+
+  s = addUniqueRowToQueryData(q, r1);
+  EXPECT_TRUE(s);
+  EXPECT_EQ(q.size(), 1);
+
+  s = addUniqueRowToQueryData(q, r2);
+  EXPECT_TRUE(s);
+  EXPECT_EQ(q.size(), 2);
+
+  s = addUniqueRowToQueryData(q, r3);
+  EXPECT_FALSE(s);
+  EXPECT_EQ(q.size(), 2);
+}
 }
 
 int main(int argc, char* argv[]) {
