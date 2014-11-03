@@ -2,17 +2,23 @@
 
 #include "osquery/filesystem.h"
 
+#include <boost/filesystem.hpp>
+
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
 #include "osquery/core/darwin/test_util.h"
 
 using namespace osquery::core;
+namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
+
+char* argv0;
 
 namespace osquery {
 
 class PlistTests : public testing::Test {};
+
 
 TEST_F(PlistTests, test_parse_plist) {
   std::string path = "/System/Library/LaunchDaemons/com.apple.kextd.plist";
@@ -49,7 +55,9 @@ TEST_F(PlistTests, test_parse_plist_content) {
 
 TEST_F(PlistTests, test_parse_plist_content_with_blobs) {
   pt::ptree tree;
-  auto s = parsePlist("./osquery/filesystem/darwin/test_binary.plist", tree);
+
+  fs::path bin_path(argv0);
+  auto s = parsePlist((bin_path.parent_path() / "../../../../tools/test_binary.plist").string()l, tree);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_THROW(tree.get<bool>("foobar"), pt::ptree_bad_path);
@@ -63,6 +71,7 @@ TEST_F(PlistTests, test_parse_plist_content_with_blobs) {
 }
 
 int main(int argc, char* argv[]) {
+  argv0 = argv[0];
   testing::InitGoogleTest(&argc, argv);
   google::InitGoogleLogging(argv[0]);
   return RUN_ALL_TESTS();
