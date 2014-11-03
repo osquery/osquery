@@ -45,3 +45,7 @@ build/
 # Doxygen Documentation
 doxygen/html
 doxygen/latex
+
+# Editors
+*~
+\#*\#
