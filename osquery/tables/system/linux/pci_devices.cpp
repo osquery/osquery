@@ -55,14 +55,18 @@ QueryData genLspci() {
     dev = udev_device_new_from_syspath(udev, path);
 
     Row r;
-    if ((tmp = udev_device_get_property_value(dev, kSlot.c_str())))
+    if ((tmp = udev_device_get_property_value(dev, kSlot.c_str()))) {
       r["slot"] = boost::lexical_cast<std::string>(tmp);
-    if ((tmp = udev_device_get_property_value(dev, kClass.c_str())))
+    }
+    if ((tmp = udev_device_get_property_value(dev, kClass.c_str()))) {
       r["device_class"] = boost::lexical_cast<std::string>(tmp);
-    if ((tmp = udev_device_get_property_value(dev, kVendor.c_str())))
+    }
+    if ((tmp = udev_device_get_property_value(dev, kVendor.c_str()))) {
       r["vendor"] = boost::lexical_cast<std::string>(tmp);
-    if ((tmp = udev_device_get_property_value(dev, kModel.c_str())))
+    }
+    if ((tmp = udev_device_get_property_value(dev, kModel.c_str()))) {
       r["model"] = boost::lexical_cast<std::string>(tmp);
+    }
     results.push_back(r);
   }
   return results;
