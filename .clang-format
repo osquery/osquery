@@ -35,7 +35,6 @@ UseTab: Never
 BreakBeforeBraces: Attach
 IndentFunctionDeclarationAfterType: false
 SpacesInParentheses: false
-SpacesInAngles: false
 SpaceInEmptyParentheses: false
 SpacesInCStyleCastParentheses: false
 SpaceAfterControlStatementKeyword: true
