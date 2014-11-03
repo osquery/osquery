@@ -68,7 +68,10 @@ QueryData genLspci() {
       r["model"] = boost::lexical_cast<std::string>(tmp);
     }
     results.push_back(r);
+    udev_device_unref(dev);
   }
+  udev_enumerate_unref(enumerate);
+  udev_unref(udev);
   return results;
 }
 }
