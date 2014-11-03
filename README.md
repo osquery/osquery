@@ -75,7 +75,7 @@ brew upgrade osquery
 
 We don't currently supply pre-built osquery packages for Linux. We do, however, provide Vagrant VMs which allow you to easily create packages for Ubuntu 12.04+ and CentOS 6.5. Check out the wiki's [installation guide](https://github.com/facebook/osquery/wiki/install-linux) for more information.
 
-If you're try to build osquery on a different, currently unsupported operating system, please refer to the [building the code guide](https://github.com/facebook/osquery/wiki/building-the-code) for help.
+If you're trying to build osquery on a different, currently unsupported operating system, please refer to the [building the code guide](https://github.com/facebook/osquery/wiki/building-the-code) for help.
 
 ## Learn more
 
