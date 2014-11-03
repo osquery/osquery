@@ -389,8 +389,11 @@ function main() {
 
   elif [[ $OS = "darwin" ]]; then
     type brew >/dev/null 2>&1 || {
-      echo >&2 "could not find homebrew. please install it from http://brew.sh/";
-      exit 1;
+      fatal "could not find homebrew. please install it from http://brew.sh/";
+    }
+
+    type pip >/dev/null 2>&1 || {
+      fatal "could not find pip. please install it using 'sudo easy_install pip'";
     }
 
     brew update
