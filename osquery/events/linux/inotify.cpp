@@ -4,11 +4,11 @@
 
 #include <linux/limits.h>
 
-#include "osquery/events.h"
-#include "osquery/filesystem.h"
-#include "osquery/events/linux/inotify.h"
-
 #include <glog/logging.h>
+
+#include "osquery/events.h"
+#include "osquery/events/linux/inotify.h"
+#include "osquery/filesystem.h"
 
 namespace osquery {
 
@@ -213,7 +213,7 @@ bool INotifyEventPublisher::removeMonitor(int watch, bool force) {
 }
 
 bool INotifyEventPublisher::isPathMonitored(const std::string& path) {
-  std::string parent_path;
+  boost::filesystem::path parent_path;
   if (!isDirectory(path).ok()) {
     if (path_descriptors_.find(path) != path_descriptors_.end()) {
       // Path is a file, and is directly monitored.
@@ -228,6 +228,7 @@ bool INotifyEventPublisher::isPathMonitored(const std::string& path) {
   }
 
   // Directory or parent of file monitoring
-  return (path_descriptors_.find(parent_path) != path_descriptors_.end());
+  auto path_iterator = path_descriptors_.find(parent_path.string());
+  return (path_iterator != path_descriptors_.end());
 }
 }
