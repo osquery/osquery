@@ -8,7 +8,6 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <proc/readproc.h>
 
 #include <boost/lexical_cast.hpp>
@@ -86,20 +85,9 @@ std::map<std::string, std::string> proc_env(const proc_t* proc_info) {
   std::string attr = osquery::tables::proc_attr("environ", proc_info);
   std::string buf;
 
-  uid_t euid = geteuid();
-  struct stat info;
-  if (stat(filename, &info) == -1) {
-    return env;
-  }
-
-  // Avoid a non-su block: https://github.com/facebook/osquery/issues/323
-  if (euid != 0 && info.st_uid != euid) {
-    return env;
-  }
-
   std::ifstream fd(attr, std::ios::in | std::ios::binary);
 
-  while (!fd.eof()) {
+  while (!(fd.fail() || fd.eof())) {
     std::getline(fd, buf, '\0');
     size_t idx = buf.find_first_of("=");
 
