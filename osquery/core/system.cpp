@@ -1,12 +1,14 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include "osquery/core.h"
+#include "osquery/database/db_handle.h"
 
-#include <cstring>
-#include <ctime>
-#include <unistd.h>
+#include <uuid/uuid.h>
 
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 namespace osquery {
 
@@ -17,6 +19,35 @@ std::string getHostname() {
   std::string hostname_string = std::string(hostname);
   boost::algorithm::trim(hostname_string);
   return hostname_string;
+}
+
+std::string generateNewUuid() {
+  boost::uuids::uuid uuid = boost::uuids::random_generator()();
+  return boost::uuids::to_string(uuid);
+}
+
+std::string generateHostUuid() {
+#ifdef __APPLE__
+  // Use the hardware uuid available on OSX to identify this machine
+  char uuid[128];
+  memset(uuid, 0, 128);
+  uuid_t id;
+  // wait at most 5 seconds for gethostuuid to return
+  const timespec wait = {5, 0};
+  int result = gethostuuid(id, &wait);
+  if (result == 0) {
+    char out[128];
+    uuid_unparse(id, out);
+    std::string uuid_string = std::string(out);
+    boost::algorithm::trim(uuid_string);
+    return uuid_string;
+  } else {
+    // unable to get the hardware uuid, just return a new uuid
+    return generateNewUuid();
+  }
+#else
+  return generateNewUuid();
+#endif
 }
 
 std::string getAsciiTime() {

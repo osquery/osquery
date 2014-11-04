@@ -105,6 +105,13 @@ std::vector<std::string> split(const std::string& s,
 std::string getHostname();
 
 /**
+ * @brief generate a uuid to uniquely identify this machine
+ *
+ * @return uuid string to identify this machine
+ */
+std::string generateHostUuid();
+
+/**
  * @brief Getter for the current time, in a human-readable format.
  *
  * @return the current date/time in the format: "Wed Sep 21 10:27:52 2011"
