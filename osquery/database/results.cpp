@@ -269,7 +269,7 @@ Status serializeScheduledQueryLogItem(const ScheduledQueryLogItem& i,
 
     tree.add_child("diffResults", diffResults);
     tree.put<std::string>("name", i.name);
-    tree.put<std::string>("hostname", i.hostname);
+    tree.put<std::string>("hostIdentifier", i.hostIdentifier);
     tree.put<std::string>("calendarTime", i.calendarTime);
     tree.put<int>("unixTime", i.unixTime);
   } catch (const std::exception& e) {
@@ -282,7 +282,7 @@ Status serializeEvent(const ScheduledQueryLogItem& item,
                       const boost::property_tree::ptree& event,
                       boost::property_tree::ptree& tree) {
   tree.put<std::string>("name", item.name);
-  tree.put<std::string>("hostname", item.hostname);
+  tree.put<std::string>("hostIdentifier", item.hostIdentifier);
   tree.put<std::string>("calendarTime", item.calendarTime);
   tree.put<int>("unixTime", item.unixTime);
 
