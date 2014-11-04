@@ -58,7 +58,7 @@ QueryData genSuidBin() {
       // handle invalid files like /dev/fd/3
     }
     try {
-      ++it; 
+      ++it;
     } catch (std::exception &ex) {
       it.no_push(); // handle permission error.
     }

@@ -28,8 +28,8 @@ Status writeTextFile(const boost::filesystem::path& path,
                      int permissions,
                      bool force_permissions) {
   // Open the file with the request permissions.
-  int output_fd = open(path.c_str(), O_CREAT | O_APPEND | O_WRONLY,
-                       permissions);
+  int output_fd =
+      open(path.c_str(), O_CREAT | O_APPEND | O_WRONLY, permissions);
   if (output_fd <= 0) {
     return Status(1, "Could not create file");
   }

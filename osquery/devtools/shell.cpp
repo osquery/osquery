@@ -1020,7 +1020,7 @@ static int shell_callback(
 
       std::string result;
       if (azArg[i] != nullptr) {
-      result = std::string(azArg[i]);
+        result = std::string(azArg[i]);
       }
       r[header] = result;
     }
