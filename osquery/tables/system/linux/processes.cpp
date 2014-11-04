@@ -92,6 +92,7 @@ std::map<std::string, std::string> proc_env(const proc_t* proc_info) {
     return env;
   }
 
+  // Avoid a non-su block: https://github.com/facebook/osquery/issues/323
   if (euid != 0 && info.st_uid != euid) {
     return env;
   }
