@@ -7,6 +7,13 @@
 #include <unistd.h>
 
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem.hpp>
+
+#include <glog/logging.h>
+
+#include "osquery/sql.h"
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 
@@ -29,5 +36,18 @@ std::string getAsciiTime() {
 int getUnixTime() {
   std::time_t result = std::time(NULL);
   return result;
+}
+
+std::vector<fs::path> getHomeDirectories() {
+  auto sql = SQL("SELECT DISTINCT directory FROM users WHERE directory != '/var/empty';");
+  std::vector<fs::path> results;
+  if (sql.ok()) {
+    for (const auto& row: sql.rows()) {
+      results.push_back(row.at("directory"));
+    }
+  } else {
+    LOG(ERROR) << "Error executing query to return users: " << sql.getMessageString();
+  }
+  return results;
 }
 }

@@ -7,6 +7,8 @@
 
 #include <sqlite3.h>
 
+#include <boost/filesystem.hpp>
+
 #include "osquery/database/results.h"
 
 namespace osquery {
@@ -117,4 +119,11 @@ std::string getAsciiTime();
  * @return an int representing the amount of seconds since the unix epoch
  */
 int getUnixTime();
+
+/**
+ * @brief Return a vector of all home directories on the system
+ *
+ * @return a vector of strings representing the path of all home directories
+ */
+std::vector<boost::filesystem::path> getHomeDirectories();
 }

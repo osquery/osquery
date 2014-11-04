@@ -7,6 +7,7 @@
 
 #include <glog/logging.h>
 
+#include "osquery/core.h"
 #include "osquery/database.h"
 #include "osquery/filesystem.h"
 
@@ -28,16 +29,16 @@ const std::vector<std::string> kLibraryStartupItemPaths = {
  * https://github.com/synack/knockknock/blob/master/plugins/startupItem.py
  */
 void getLibraryStartupItems(QueryData &results) {
-  for (std::string dir : kLibraryStartupItemPaths) {
+  for (const auto& dir : kLibraryStartupItemPaths) {
     try {
-      for (fs::path potential_dir : fs::directory_iterator(fs::path(dir))) {
-        if (fs::is_directory(potential_dir)) {
-          fs::path potential_item = potential_dir / potential_dir.filename();
-          if (fs::exists(potential_item)
-              && fs::is_regular_file(potential_item)) {
+      fs::directory_iterator end_iter;
+      for (auto it = fs::directory_iterator(fs::path(dir)); it != end_iter; it++) {
+        if (fs::is_directory(it->status())) {
+          if (fs::exists(it->status())
+              && fs::is_regular_file(it->status())) {
             Row r;
-            r["name"] = potential_dir.filename().string();
-            r["path"] = potential_item.string();
+            r["name"] = it->path().string();
+            r["path"] = it->path().string();
             results.push_back(r);
           }
         }
@@ -51,7 +52,7 @@ void getLibraryStartupItems(QueryData &results) {
 /**
  * Parse a Login Items Plist Alias data for bin path
  */
-std::string parseAliasData(std::string data) {
+osquery::Status parseAliasData(const std::string& data, std::string& filepath) {
   for (int i = 0; i < data.size(); i++) {
     int size = (int) data[i];
     if (size < 2 || size > data.length() - i) {
@@ -65,11 +66,11 @@ std::string parseAliasData(std::string data) {
       continue;
     }
     if (fs::exists(possible_file)) {
-      return possible_file;
+      filepath = possible_file;
+      return Status(0, "OK");
     }
-
   }
-  return "";
+  return Status(1, "No file paths found");
 }
 
 // Path (after /Users/foo) where the login items plist will be found
@@ -86,12 +87,13 @@ const std::string kLoginItemsKeyPath = "SessionItems.CustomListItems";
  */
 void getLoginItems(QueryData &results) {
   try {
-    for (fs::path home_dir : fs::directory_iterator(fs::path("/Users"))) {
-      if (!fs::is_directory(home_dir)) {
+    fs::directory_iterator end_iter;
+    for (const auto& dir : getHomeDirectories()) {
+      if (!fs::is_directory(dir)) {
         continue;
       }
       pt::ptree tree;
-      fs::path plist_path = home_dir / kLoginItemsPlistPath;
+      fs::path plist_path = dir / kLoginItemsPlistPath;
       try {
         if (!(fs::exists(plist_path) && fs::is_regular_file(plist_path))) {
           continue;
@@ -107,14 +109,15 @@ void getLoginItems(QueryData &results) {
         continue;
       }
       // Enumerate Login Items if we successfully opened the plist
-      for (auto& entry : tree.get_child(kLoginItemsKeyPath)) {
+      for (const auto& entry : tree.get_child(kLoginItemsKeyPath)) {
         std::string name = entry.second.get<std::string>("Name");
         Row r;
         r["name"] = name;
         auto alias_data = entry.second.get<std::string>("Alias");
         try {
-          std::string bin_path = parseAliasData(alias_data);
-          if (bin_path == "") {
+          std::string bin_path;
+          auto s = parseAliasData(alias_data, bin_path);
+          if (!s.ok()) {
             VLOG(1) << "No valid path found for " << name << " in "
                     << plist_path;
           }
