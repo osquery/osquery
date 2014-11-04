@@ -25,10 +25,6 @@ void crawl_proc(QueryData &results) {
   boost::filesystem::path dir_path = "/proc";
   for (boost::filesystem::directory_iterator itr(dir_path), end_itr; itr != end_itr; ++itr) {
 
-    if (itr->path().string().find("self") != std::string::npos) {
-      continue;
-    }
-
     if (boost::filesystem::is_directory(itr->status())) {
       std::string d_path = itr->path().string();
 
@@ -45,6 +41,7 @@ void crawl_proc(QueryData &results) {
         std::string path = i->path().string();
         auto r = readlink(path.c_str(), linkname, 32);
         std::string link_str(linkname, linkname + 32);
+        free(linkname);
 
         // matches socket:[13415]
         if (link_str.find("socket") != std::string::npos) {
@@ -58,11 +55,9 @@ void crawl_proc(QueryData &results) {
             r["pid"] = boost::lexical_cast<std::string>(pid[2].c_str());
             r["inode"] = boost::lexical_cast<std::string>(inode[0].str());
             results.push_back(r);
-            free(linkname);
             continue;
           }
         }
-        free(linkname);
       }
     }
   }
