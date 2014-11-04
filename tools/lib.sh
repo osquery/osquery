@@ -16,7 +16,7 @@ function threads() {
   platform OS
   if [[ $TRAVIS_ENV = true ]]; then
     log "running in travis"
-    eval $__resultvar=4
+    eval $__resultvar=2
   elif [ $OS = "centos" ] || [ $OS = "ubuntu" ]; then
     eval $__resultvar=`cat /proc/cpuinfo | grep processor | wc -l`
   elif [[ $OS = "darwin" ]]; then
