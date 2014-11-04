@@ -5,6 +5,7 @@
 #include <map>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <libudev.h>
 #include <blkid/blkid.h>
@@ -34,10 +35,14 @@ static void fillRow(struct udev_device *dev, Row &r) {
   if ((scsi_dev =
            udev_device_get_parent_with_subsystem_devtype(dev, "scsi", NULL))) {
     if ((tmp = udev_device_get_sysattr_value(scsi_dev, "model"))) {
-      r["model"] = std::string(tmp);
+      std::string model = tmp;
+      boost::algorithm::trim(model);
+      r["model"] = model;
     }
     if ((tmp = udev_device_get_sysattr_value(scsi_dev, "vendor"))) {
-      r["vendor"] = std::string(tmp);
+      std::string vendor = tmp;
+      boost::algorithm::trim(vendor);
+      r["vendor"] = vendor;
     }
   }
 
