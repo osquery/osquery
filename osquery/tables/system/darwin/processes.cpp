@@ -101,6 +101,27 @@ std::string getProcPath(int pid) {
   return std::string(path);
 }
 
+struct proc_cred {
+  struct {
+    uid_t uid;
+    gid_t gid;
+  } real, effective;
+};
+
+bool getProcCred(int pid, proc_cred &cred) {
+  struct proc_bsdshortinfo bsdinfo;
+
+  if (proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 0, &bsdinfo, sizeof bsdinfo) !=
+      -1) {
+    cred.real.uid = bsdinfo.pbsi_ruid;
+    cred.real.gid = bsdinfo.pbsi_ruid;
+    cred.effective.uid = bsdinfo.pbsi_uid;
+    cred.effective.gid = bsdinfo.pbsi_gid;
+    return true;
+  }
+  return false;
+}
+
 // Get the max args space
 int genMaxArgs() {
   int mib[2] = {CTL_KERN, KERN_ARGMAX};
@@ -321,6 +342,14 @@ QueryData genProcesses() {
     r["pid"] = boost::lexical_cast<std::string>(pid);
     r["name"] = getProcName(pid);
     r["path"] = getProcPath(pid);
+
+    proc_cred cred;
+    if (getProcCred(pid, cred)) {
+      r["uid"] = boost::lexical_cast<std::string>(cred.real.uid);
+      r["gid"] = boost::lexical_cast<std::string>(cred.real.gid);
+      r["euid"] = boost::lexical_cast<std::string>(cred.effective.uid);
+      r["egid"] = boost::lexical_cast<std::string>(cred.effective.gid);
+    }
 
     const auto parent_it = parent_pid.find(pid);
     if (parent_it != parent_pid.end()) {
