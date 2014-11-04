@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
@@ -118,13 +119,17 @@ std::unordered_map<std::string, std::string> getProcEnv(int pid,
                                                         size_t argmax) {
   std::unordered_map<std::string, std::string> env;
   std::vector<std::string> args;
+  uid_t euid = geteuid();
 
   char procargs[argmax];
   const char *cp = procargs;
   int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
 
   if (sysctl(mib, 3, &procargs, &argmax, NULL, 0) == -1) {
-    LOG(ERROR) << "An error occured retrieving the env for " << pid;
+    if (euid == 0) {
+      LOG(ERROR) << "An error occured retrieving the env for " << pid;
+    }
+
     return env;
   }
 
