@@ -15,34 +15,35 @@ To best understand the expressiveness that is afforded to you by osquery, consid
 
 ```sql
 --------------------------------------------------------
--- get the name, pid and attached port of all processes 
+-- get the name, pid and attached port of all processes
 -- which are listening on all interfaces
 --------------------------------------------------------
-SELECT DISTINCT 
-  process.name, 
-  listening.port, 
+SELECT DISTINCT
+  process.name,
+  listening.port,
   process.pid
 FROM processes AS process
 JOIN listening_ports AS listening
 ON process.pid = listening.pid
 WHERE listening.address = '0.0.0.0';
 ```
+
 ```sql
 --------------------------------------------------------
--- find every launchdaemon on an OS X host which 
---   * launches an executable when the operating 
+-- find every launchdaemon on an OS X host which
+--   * launches an executable when the operating
 --     system starts
---   * keeps the executable running 
--- return the name of the launchdaemon and the full 
+--   * keeps the executable running
+-- return the name of the launchdaemon and the full
 -- path (with arguments) of the executable to be ran.
 --------------------------------------------------------
-SELECT 
-  name, 
-  program || program_arguments AS executable 
-FROM launchd 
-WHERE 
-  (run_at_load = 'true' AND keep_alive = 'true') 
-AND 
+SELECT
+  name,
+  program || program_arguments AS executable
+FROM launchd
+WHERE
+  (run_at_load = 'true' AND keep_alive = 'true')
+AND
   (program != '' OR program_arguments != '');
 ```
 
@@ -55,7 +56,7 @@ These queries can be:
 
 ### OS X
 
-The easiest way to install osquery on OS X is via Homebrew. Check the [Homebrew](http://brew.sh/) homepage for installation instructions. 
+The easiest way to install osquery on OS X is via Homebrew. Check the [Homebrew](http://brew.sh/) homepage for installation instructions.
 
 Run the following:
 
