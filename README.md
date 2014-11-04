@@ -1,5 +1,6 @@
 osquery
 =======
+[![Build Status](https://travis-ci.org/facebook/osquery.svg?branch=master)](https://travis-ci.org/facebook/osquery)
 
 osquery is an operating system instrumentation framework for OSX and Linux. osquery makes low-level operating system analytics and monitoring both performant and intuitive.
 
