@@ -364,6 +364,7 @@ function main() {
     package readline-devel
     package procps-devel
     package rpm-devel
+    package libblkid-devel
 
     install_boost
     install_gflags
