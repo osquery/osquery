@@ -14,6 +14,10 @@ var NAV_LINKS = {
   'overview': {
     link: '/overview/',
     title: 'Overview'
+  },
+  'tables': {
+    link: '/tables/',
+    title: 'Tables'
   }
 }
 

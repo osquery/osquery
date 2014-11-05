@@ -19,6 +19,7 @@ var PageContainer = React.createClass({
           <h3 className="page-header">Quick Links</h3>
           <ul>
             <li><h4><InternalLink href="/overview/">Overview</InternalLink></h4></li>
+            <li><h4><InternalLink href="/tables/">Tables</InternalLink></h4></li>
             <li><h4><a href="//github.com/facebook/osquery/wiki" target="_blank">Wiki</a></h4></li>
             <li><h4><a href="//github.com/facebook/osquery/" target="_blank">GitHub</a></h4></li>
           </ul>
