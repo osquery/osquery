@@ -11,23 +11,16 @@ var BasePage = require('./BasePage');
 var PageHeader = require('../components/PageHeader');
 var PageFooter = require('../components/PageFooter');
 var PageContainer = require('../components/PageContainer');
-var NotFoundPage = require('./NotFoundPage');
 
-var ValidTags = {
-  'master': true,
-  'v1.0.3': true
-};
+var NotFoundPage = require('./NotFoundPage');
+var Tags = require('../api/Tags');
 
 var Column = React.createClass({
   render: function() {
     var column = this.props.data;
   	return (
       <tr>
-        <td>
-          <code>
-            <span className="text-info">{column.name}</span>
-          </code>
-        </td>
+        <td><code><span className="text-info">{column.name}</span></code></td>
         <td><code>{column.type}</code></td>
         <td>{column.description}</td>
       </tr>
@@ -74,7 +67,7 @@ var Category = React.createClass({
 
 var TagName = React.createClass({
   render: function() {
-    var link = "/tables/" + this.props.tag;
+    var link = "/tables/" + this.props.tag + ".html";
     return (
       <span className="tagLink">
         <span className={this.props.className}>
@@ -86,13 +79,20 @@ var TagName = React.createClass({
   }
 })
 
-
-
 var Page = React.createClass({
   render: function () {
-    var tag = this.props.tag || 'master';
-    
-    if (!ValidTags[tag]) {
+    var tag = this.props.tag || 'master.html';
+    var is_valid = false;
+
+    // Make sure requested tag is valid.
+    tag = tag.substring(0, tag.length - 5);
+    for (var i = 0; i < Tags.length; i++) {
+      if (tag == Tags[i]) {
+        is_valid = true;
+      }
+    }
+
+    if (!is_valid) {
       return (
         <NotFoundPage />
       );
@@ -109,35 +109,44 @@ var Page = React.createClass({
         <PageContainer>
           <p className="lead">
             <span><strong>Release Tags:</strong> </span>
-            {Object.keys(ValidTags).map(function (tag_name) {
+            {Tags.map(function (tag_name) {
               var className = "label label-default";
               if (tag == tag_name) {
                 className = "label label-primary";
               }
-              return <TagName key={tag_name} className={className} tag={tag_name}/>
+              return <TagName 
+                key={tag_name}
+                className={className}
+                tag={tag_name}/>
             })}
           </p>
-          <p className="lead"> osquery exports the following set of tables
-          organized by platform. The power to explore your system comes through
-          the visibility from tables. Treat them like SQLite tables:
+          <p className="lead">
+          osquery exports the following set of tables organized by platform. 
+          Treat them like SQLite tables:
           </p>
           <div className="highlight">
             <code>
-              SELECT&nbsp;
-              <span className="text-success">address</span>,&nbsp;
-              <span className="text-success">mac</span>,
-              id.<span className="text-success">interface</span>
+              <span>SELECT </span>
+              <span className="text-success">address</span>
+              <span>, </span>
+              <span className="text-success">mac</span>
+              <span>, id.</span>
+              <span className="text-success">interface</span>
               <br /> 
-              FROM&nbsp;
-              <span className="tableName">interface_details</span> AS id,&nbsp;
-              <span className="tableName">interface_addresses</span> AS ia 
-              WHERE 
-              id.<span className="text-success">interface</span> = 
-              ia.<span className="text-success">interface</span>;
+              <span>FROM </span>
+              <span className="tableName">interface_details</span>
+              <span> AS id, </span>
+              <span className="tableName">interface_addresses</span>
+              <span> AS ia WHERE id.</span>
+              <span className="text-success">interface</span>
+              <span> = ia.</span>
+              <span className="text-success">interface</span>
+              <span>;</span>
             </code>
           </div>
           
-          <p className="lead">There are some operating-specific tables that apply to OS X, Ubuntu, 
+          <p className="lead">
+          There are some operating-specific tables that apply to OS X, Ubuntu, 
           or CentOS only. osquery stresses feature parity, minimizing 
           tables that are not available to all platforms is a priority.
           </p>

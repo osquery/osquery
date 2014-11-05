@@ -10,6 +10,8 @@ var OverviewPage = require('./pages/OverviewPage');
 var TablesPage = require('./pages/TablesPage');
 var NotFoundPage = require('./pages/NotFoundPage');
 
+var Tags = require('./api/Tags');
+
 var Locations = Router.Locations;
 var Location = Router.Location;
 var NotFound = Router.NotFound;
@@ -58,11 +60,15 @@ var Root = React.createClass({
      * @returns {Array}
      */
     getPages: function () {
-      return [
+      var pages = [
         '/index.html',
         '/overview/index.html',
         '/tables/index.html',
       ];
+      for (var i = 0; i < Tags.length; i++) {
+        pages[pages.length] = "/tables/" + Tags[i] + ".html";
+      }
+      return pages;
     }
   },
 
