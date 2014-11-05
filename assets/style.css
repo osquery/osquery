@@ -20,6 +20,16 @@ body {
   color: #fafafa;
 }
 
+.tableName {
+  color: #A595FF;
+}
+
+.tagLink a {
+  color: #fff !important;
+  font-weight: normal !important;
+  text-decoration: none !important;
+}
+
 @media (min-width: 768px) {
 
   .bs-docs-nav .navbar-nav>li>a {
@@ -60,7 +70,6 @@ body {
 .back-to-top:hover {
   color: #cc7a6f;
 }
-
 
 .CodeMirror {
   height: auto;
