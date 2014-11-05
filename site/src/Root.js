@@ -22,6 +22,8 @@ var PagesHolder = React.createClass({
         <Location path="/index.html" handler={HomePage} />
         <Location path="/overview/" handler={OverviewPage} />
         <Location path="/overview/index.html" handler={OverviewPage} />
+        <Location path="/tables/" handler={TablesPage} />
+        <Location path="/tables/index.html" handler={TablesPage} />
         <Location path="/tables/:tag" handler={TablesPage} />
         <NotFound handler={NotFoundPage} />
       </Locations>
