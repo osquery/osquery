@@ -7,6 +7,7 @@ var Router = require('react-router-component');
 
 var HomePage = require('./pages/HomePage');
 var OverviewPage = require('./pages/OverviewPage');
+var TablesPage = require('./pages/TablesPage');
 var NotFoundPage = require('./pages/NotFoundPage');
 
 var Locations = Router.Locations;
@@ -21,6 +22,7 @@ var PagesHolder = React.createClass({
         <Location path="/index.html" handler={HomePage} />
         <Location path="/overview/" handler={OverviewPage} />
         <Location path="/overview/index.html" handler={OverviewPage} />
+        <Location path="/tables/:tag" handler={TablesPage} />
         <NotFound handler={NotFoundPage} />
       </Locations>
     );
@@ -56,7 +58,8 @@ var Root = React.createClass({
     getPages: function () {
       return [
         '/index.html',
-        '/overview/index.html'
+        '/overview/index.html',
+        '/tables/index.html',
       ];
     }
   },
@@ -104,6 +107,7 @@ var Root = React.createClass({
             <script dangerouslySetInnerHTML={browserInitScriptObj} />
             <script src="/vendor/codemirror/codemirror.js" />
             <script src="/vendor/codemirror/javascript.js" />
+            <script src="/vendor/bootstrap/bootstrap.js" />
             <script src="/vendor/JSXTransformer.js" />
             <script src="/assets/bundle.js" />
           </body>
