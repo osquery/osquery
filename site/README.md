@@ -30,15 +30,15 @@ This will start an express based node server which will generate static html con
 
 #### Production
 
-This site is statically published on github pages, to do this the static assets need to be generated.
+This site is statically published on github pages, to do this the static HTML needs to be generated.
 
 ```sh
-$ npm run build
-```
-
-To test the static files you can use the included express based static file server.
-
-```sh
-$ npm run start-prod
-$ open http://localhost:4000/
+$ npm start
+$ cd /tmp
+$ wget -r localhost:4000
+$ cd ~/git/osquery # or where ever you have osquery checked out
+$ git checkout gh-pages
+$ mv /tmp/localhost:4000/* ./
+$ git commit -am "site updates"
+$ git push origin gh-pages
 ```
