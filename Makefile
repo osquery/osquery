@@ -1,8 +1,10 @@
 PLATFORM := $(shell uname -s)
+MAKE = make
 ifeq ($(PLATFORM),Darwin)
 	BUILD_DIR=darwin
 else ifeq ($(PLATFORM),FreeBSD)
 	BUILD_DIR=freebsd
+	MAKE = gmake
 else
 	DISTRO := $(shell if [ -f "/etc/redhat-release" ]; then echo "Centos"; fi)
 	ifeq ($(DISTRO),Centos)
