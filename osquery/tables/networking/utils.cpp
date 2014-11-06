@@ -9,6 +9,12 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #define AF_LINK AF_PACKET
+#elif defined(__FreeBSD__)
+#include <net/if.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <net/if_dl.h>
 #else
 #include <net/if_dl.h>
 #endif
