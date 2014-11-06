@@ -130,6 +130,10 @@ QueryData genProcesses() {
     Row r;
 
     r["pid"] = boost::lexical_cast<std::string>(proc_info->tid);
+    r["uid"] = boost::lexical_cast<std::string>((unsigned int)proc_info->ruid);
+    r["gid"] = boost::lexical_cast<std::string>((unsigned int)proc_info->rgid);
+    r["euid"] = boost::lexical_cast<std::string>((unsigned int)proc_info->euid);
+    r["egid"] = boost::lexical_cast<std::string>((unsigned int)proc_info->egid);
     r["name"] = proc_name(proc_info);
     r["cmdline"] = proc_cmdline(proc_info);
     r["path"] = proc_link(proc_info);
