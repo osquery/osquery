@@ -47,7 +47,7 @@ Status isReadable(const boost::filesystem::path& path);
 /**
  * @brief A helper to check if a path exists on disk or not.
  *
- * @param path the path on disk which you would like to check the existance of
+ * @param path the path on disk which you would like to check the existence of
  *
  * @return an instance of Status, indicating the success or failure
  * of the operation. Specifically, the code of the Status instance

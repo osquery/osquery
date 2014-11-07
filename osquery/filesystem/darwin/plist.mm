@@ -120,7 +120,7 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
       plist = filterPlist(plist);
     } catch (const std::exception& e) {
       LOG(ERROR)
-          << "An exception occured while filtering the plist: " << e.what();
+          << "An exception occurred while filtering the plist: " << e.what();
       statusCode = 1;
       statusString = e.what();
       goto cleanup;

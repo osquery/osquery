@@ -203,13 +203,13 @@ Status parseTomcatUserConfig(
           credentials.push_back(user);
         } catch (const std::exception& e) {
           LOG(ERROR)
-              << "An error occured parsing the tomcat users xml: " << e.what();
+              << "An error occurred parsing the tomcat users xml: " << e.what();
           return Status(1, e.what());
         }
       }
     }
   } catch (const std::exception& e) {
-    LOG(ERROR) << "An error occured while trying to access the tomcat-users"
+    LOG(ERROR) << "An error occurred while trying to access the tomcat-users"
                << " key in the XML content: " << e.what();
     return Status(1, e.what());
   }
