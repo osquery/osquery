@@ -119,8 +119,13 @@ Status pathExists(const boost::filesystem::path& path) {
   }
 
   // A tri-state determination of presence
-  if (!boost::filesystem::exists(path)) {
-    return Status(1, "0");
+  try {
+    if (!boost::filesystem::exists(path)) {
+      return Status(1, "0");
+    }
+  }
+  catch (boost::filesystem::filesystem_error e) {
+    return Status(1, e.what());
   }
   return Status(0, "1");
 }

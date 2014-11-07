@@ -4,8 +4,10 @@
 #include <pwd.h>
 #include <grp.h>
 #include <sys/stat.h>
+#include <boost/system/system_error.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
+#include <glog/logging.h>
 #include "osquery/database.h"
 
 using std::string;
@@ -18,10 +20,16 @@ QueryData genSuidBin() {
   Row r;
   QueryData results;
   struct stat info;
+  boost::system::error_code error;
 
   boost::filesystem::recursive_directory_iterator it =
       boost::filesystem::recursive_directory_iterator(
-          boost::filesystem::path("/"));
+          boost::filesystem::path("/"), error);
+
+  if (error.value() != boost::system::errc::success) {
+    LOG(ERROR) << "Error opening \"/\": " << error.message();
+    return results;
+  }
   boost::filesystem::recursive_directory_iterator end;
 
   while (it != end) {
