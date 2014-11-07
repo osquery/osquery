@@ -35,7 +35,7 @@ std::unordered_set<int> getProcList() {
   std::unordered_set<int> pidlist;
   int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
   if (bufsize <= 0) {
-    LOG(ERROR) << "An error occured retrieving the process list";
+    LOG(ERROR) << "An error occurred retrieving the process list";
     return pidlist;
   }
 
@@ -48,7 +48,7 @@ std::unordered_set<int> getProcList() {
   // pids data structure
   bufsize = proc_listpids(PROC_ALL_PIDS, 0, pids, sizeof(pids));
   if (bufsize <= 0) {
-    LOG(ERROR) << "An error occured retrieving the process list";
+    LOG(ERROR) << "An error occurred retrieving the process list";
     return pidlist;
   }
 
@@ -129,7 +129,7 @@ int genMaxArgs() {
   int argmax = 0;
   size_t size = sizeof(argmax);
   if (sysctl(mib, 2, &argmax, &size, NULL, 0) == -1) {
-    LOG(ERROR) << "An error occured retrieving the max arg size";
+    LOG(ERROR) << "An error occurred retrieving the max arg size";
     return 0;
   }
 
@@ -148,7 +148,7 @@ std::unordered_map<std::string, std::string> getProcEnv(int pid,
 
   if (sysctl(mib, 3, &procargs, &argmax, NULL, 0) == -1) {
     if (euid == 0) {
-      LOG(ERROR) << "An error occured retrieving the env for " << pid;
+      LOG(ERROR) << "An error occurred retrieving the env for " << pid;
     }
 
     return env;
@@ -196,7 +196,7 @@ std::vector<OpenFile> getOpenFiles(int pid) {
   int sz;
   int bufsize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
   if (bufsize == -1) {
-    LOG(ERROR) << "An error occured retrieving the open files " << pid;
+    LOG(ERROR) << "An error occurred retrieving the open files " << pid;
     return open_files;
   }
 

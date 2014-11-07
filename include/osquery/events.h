@@ -55,7 +55,7 @@ struct SubscriptionContext {};
 struct EventContext {
   /// An unique counting ID specific to the EventPublisher%'s fired events.
   EventContextID id;
-  /// The time the event occured.
+  /// The time the event occurred.
   EventTime time;
   /// The string representation of the time, often used for indexing.
   std::string time_string;
@@ -470,10 +470,10 @@ class EventSubscriber {
    * and store that element in the osquery backing store. At query-time
    * the added data will apply selection criteria and return these elements.
    * The backing store data retrieval is optimized by time-based indexes. It
-   * is important to added EventTime as it relates to "when the event occured".
+   * is important to added EventTime as it relates to "when the event occurred".
    *
    * @param r An osquery Row element.
-   * @param time The time the added event occured.
+   * @param time The time the added event occurred.
    *
    * @return Was the element added to the backing store.
    */
@@ -528,7 +528,7 @@ class EventSubscriber {
    * list type 1 bin 4 and list type 2 bin 1.
    *
    * @param eid A unique EventID.
-   * @param time The time when this EventID%'s event occured.
+   * @param time The time when this EventID%'s event occurred.
    *
    * @return Were the indexes recorded.
    */

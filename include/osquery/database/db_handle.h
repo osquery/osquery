@@ -179,7 +179,7 @@ class DBHandle {
    * never actually use it.
    *
    * @param path the path to create/access the database
-   * @param in_memory a boolean indicating wether or not the database should
+   * @param in_memory a boolean indicating whether or not the database should
    * be creating in memory or not.
    */
   DBHandle(const std::string& path, bool in_memory);
@@ -209,7 +209,7 @@ class DBHandle {
    * This should only be used by unit tests. Never use it in production code.
    *
    * @param path the path to create/access the database
-   * @param in_memory a boolean indicating wether or not the database should
+   * @param in_memory a boolean indicating whether or not the database should
    * be creating in memory or not.
    *
    * @return a shared pointer to an instance of DBHandle

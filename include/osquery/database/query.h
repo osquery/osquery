@@ -141,7 +141,7 @@ class Query {
    * @brief Accessor method for checking if a given scheduled query exists in
    * the database
    *
-   * @return a boolean indicating wether or not the scheduled query which is
+   * @return a boolean indicating whether or not the scheduled query which is
    * being operated on already exists in the database
    */
   bool isQueryNameInDatabase();
@@ -156,7 +156,7 @@ class Query {
    *
    * @param db a custom RocksDB database handle
    *
-   * @return a boolean indicating wether or not the scheduled query which is
+   * @return a boolean indicating whether or not the scheduled query which is
    * being operated on already exists in the database
    */
   bool isQueryNameInDatabase(std::shared_ptr<DBHandle> db);
@@ -233,7 +233,7 @@ class Query {
    * @param dr a reference to a DiffResults object, which will be populated
    * with the difference of the execution which is currently in the database
    * and the execution you just put in the database
-   * @param calculate_diff a boolean indicating wether or not you'd like to
+   * @param calculate_diff a boolean indicating whether or not you'd like to
    * calculate the diff result to be stored in the dr parameter.
    * @param unix_time the time that the query was executed
    *
