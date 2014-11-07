@@ -255,6 +255,13 @@ class TableState(Singleton):
         self.impl = ""
         self.function = ""
         self.class_name = ""
+        self.description = ""
+
+    def columns(self):
+      return [i for i in self.schema if isinstance(i, Column)]
+
+    def foreign_keys(self):
+      return [i for i in self.schema if isinstance(i, ForeignKey)]
 
     def generate(self, path):
         """Generate the virtual table files"""
@@ -262,7 +269,7 @@ class TableState(Singleton):
         self.impl_content = jinja2.Template(IMPL_TEMPLATE).render(
             table_name=self.table_name,
             table_name_cc=to_camel_case(self.table_name),
-            schema=self.schema,
+            schema=self.columns(),
             header=self.header,
             impl=self.impl,
             function=self.function,
@@ -284,12 +291,23 @@ table = TableState()
 
 class Column(object):
     """
-    A Column object to get around that fact that list literals in Python are
-    ordered but dictionaries aren't
+    Part of an osquery table schema.
+    Define a column by name and type with an optional description to assist
+    documentation generation and reference.
     """
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", "")
         self.type = kwargs.get("type", "")
+        self.description = kwargs.get("description", "")
+
+class ForeignKey(object):
+  """
+  Part of an osquery table schema. 
+  Loosely define a column in a table spec as a Foreign key in another table.
+  """
+  def __init__(self, **kwargs):
+      self.column = kwargs.get("column", "")
+      self.table = kwargs.get("table", "")
 
 def table_name(name):
     """define the virtual table name"""
@@ -303,8 +321,11 @@ def schema(schema_list):
     table
     """
     logging.debug("- schema")
-    for col in schema_list:
-        logging.debug("  - %s (%s)" % (col.name, col.type))
+    for it in schema_list:
+        if isinstance(it, Column):
+          logging.debug("  - column: %s (%s)" % (it.name, it.type))
+        if isinstance(it, ForeignKey):
+          logging.debug("  - foreign_key: %s (%s)" % (it.column, it.table))
     table.schema = schema_list
 
 def implementation(impl_string):
@@ -328,6 +349,9 @@ def implementation(impl_string):
     table.impl = impl
     table.function = function
     table.class_name = class_name
+
+def description(text):
+    table.description = text
 
 def main(argc, argv):
     if DEVELOPING:
