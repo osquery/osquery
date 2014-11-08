@@ -1,7 +1,0 @@
-language: cpp
-os:
-  - osx
-  - linux
-compiler: clang
-script: ./tools/build.sh
-env: TRAVIS_ENV=true
