@@ -6,14 +6,14 @@
 #include "osquery/events.h"
 
 int main(int argc, char *argv[]) {
-  osquery::initOsquery(argc, argv);
+  osquery::FLAGS_db_path = "/tmp/rocksdb-osquery-shell";
+  osquery::initOsquery(argc, argv, osquery::OSQUERY_TOOL_SHELL);
 
   // Start a thread for each appropriate event type
   osquery::registries::faucet(REGISTERED_EVENTPUBLISHERS,
                               REGISTERED_EVENTSUBSCRIBERS);
   osquery::EventFactory::delay();
 
-  osquery::FLAGS_db_path = "/tmp/rocksdb-osquery-shell";
   int retcode = osquery::launchIntoShell(argc, argv);
 
   // End any event type threads.

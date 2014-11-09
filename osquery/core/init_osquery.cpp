@@ -26,11 +26,12 @@ static const char* basename(const char* filename) {
   return sep ? sep + 1 : filename;
 }
 
-void initOsquery(int argc, char* argv[]) {
+void initOsquery(int argc, char* argv[], int tool) {
   std::string binary(basename(argv[0]));
   std::string first_arg = (argc > 1) ? std::string(argv[1]) : "";
 
-  if (binary == "osqueryd" && (first_arg == "--help" || first_arg == "-h")) {
+  if ((first_arg == "--help" || first_arg == "-h" || first_arg == "-help") &&
+      tool != OSQUERY_TOOL_TEST) {
     // Parse help options before gflags. Only display osquery-related options.
     fprintf(stdout, "osquery " OSQUERY_VERSION ", %s\n", kDescription.c_str());
     fprintf(stdout, "%s: [OPTION]...\n\n", binary.c_str());
@@ -38,15 +39,15 @@ void initOsquery(int argc, char* argv[]) {
             "The following options control the osquery "
             "daemon and shell.\n\n");
 
-    auto flags = Flag::get().flags();
-    for (auto& flag : flags) {
+    Flag::print_flags(Flag::get().flags());
+
+    if (tool == OSQUERY_TOOL_SHELL) {
+      // Print shell flags.
       fprintf(stdout,
-              "  --%s, --%s=VALUE\n    %s (default: %s)\n",
-              flag.first.c_str(),
-              flag.first.c_str(),
-              flag.second.second.c_str(),
-              flag.second.first.c_str());
+              "\n\nThe following options control the osquery shell.\n\n");
+      Flag::print_flags(Flag::get().shell_flags());
     }
+
     fprintf(stdout, "\n%s\n", kEpilog.c_str());
 
     ::exit(0);
@@ -61,7 +62,7 @@ void initOsquery(int argc, char* argv[]) {
   __GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);
 
   // Let gflags parse the non-help options/flags.
-  __GFLAGS_NAMESPACE::ParseCommandLineNonHelpFlags(&argc, &argv, false);
+  __GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, false);
 
   if (isWritable(FLAGS_osquery_log_dir.c_str()).ok()) {
     FLAGS_log_dir = FLAGS_osquery_log_dir;
