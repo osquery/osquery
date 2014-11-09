@@ -101,8 +101,8 @@ class Flag {
   }
 
 /// Wrapper to bypass osquery help output
-#define DEFINE_shell_flag(type, name, value, desc) \
-  DEFINE_##type(name, value, desc); \
-  namespace flag_##name { \
+#define DEFINE_shell_flag(type, name, value, desc)     \
+  DEFINE_##type(name, value, desc);                    \
+  namespace flag_##name {                              \
     Flag flag = Flag::get(#name, #value, #desc, true); \
-  } \
+  }
