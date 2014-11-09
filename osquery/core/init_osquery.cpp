@@ -34,7 +34,13 @@ void initOsquery(int argc, char* argv[], int tool) {
       tool != OSQUERY_TOOL_TEST) {
     // Parse help options before gflags. Only display osquery-related options.
     fprintf(stdout, "osquery " OSQUERY_VERSION ", %s\n", kDescription.c_str());
-    fprintf(stdout, "%s: [OPTION]...\n\n", binary.c_str());
+    if (tool == OSQUERY_TOOL_SHELL) {
+      // The shell allows a caller to run a single SQL statement and exit.
+      fprintf(
+          stdout, "Usage: %s [OPTION]... [SQL STATEMENT]\n\n", binary.c_str());
+    } else {
+      fprintf(stdout, "Usage: %s [OPTION]...\n\n", binary.c_str());
+    }
     fprintf(stdout,
             "The following options control the osquery "
             "daemon and shell.\n\n");
@@ -43,8 +49,7 @@ void initOsquery(int argc, char* argv[], int tool) {
 
     if (tool == OSQUERY_TOOL_SHELL) {
       // Print shell flags.
-      fprintf(stdout,
-              "\n\nThe following options control the osquery shell.\n\n");
+      fprintf(stdout, "\nThe following options control the osquery shell.\n\n");
       Flag::print_flags(Flag::get().shellFlags());
     }
 

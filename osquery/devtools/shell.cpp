@@ -4171,10 +4171,6 @@ int launchIntoShell(int argc, char **argv) {
     char *z;
     z = argv[i];
     if (z[0] != '-') {
-      if (data.zDbFilename == 0) {
-        data.zDbFilename = z;
-        continue;
-      }
       if (zFirstCmd == 0) {
         zFirstCmd = z;
         continue;
