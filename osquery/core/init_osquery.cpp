@@ -45,7 +45,7 @@ void initOsquery(int argc, char* argv[], int tool) {
       // Print shell flags.
       fprintf(stdout,
               "\n\nThe following options control the osquery shell.\n\n");
-      Flag::print_flags(Flag::get().shell_flags());
+      Flag::print_flags(Flag::get().shellFlags());
     }
 
     fprintf(stdout, "\n%s\n", kEpilog.c_str());

@@ -66,7 +66,7 @@ class Flag {
   /// The public flags instance, usable when parsing `--help`.
   std::map<std::string, FlagDetail> flags() { return flags_; }
   /// The public flags instance, usable when parsing `--help` for the shell.
-  std::map<std::string, FlagDetail> shell_flags() { return shell_flags_; }
+  std::map<std::string, FlagDetail> shellFlags() { return shell_flags_; }
   static void print_flags(const std::map<std::string, FlagDetail> flags) {
     for (const auto& flag : flags) {
       fprintf(stdout,

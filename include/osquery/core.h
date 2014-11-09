@@ -27,10 +27,10 @@ extern const std::string kVersion;
 /**
  * @brief A helpful tool type to report when logging, print help, or debugging.
  */
-enum osquery_tool {
-	OSQUERY_TOOL_SHELL,
-	OSQUERY_TOOL_DAEMON,
-	OSQUERY_TOOL_TEST,
+enum osqueryTool {
+  OSQUERY_TOOL_SHELL,
+  OSQUERY_TOOL_DAEMON,
+  OSQUERY_TOOL_TEST,
 };
 
 /**
