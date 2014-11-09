@@ -18,7 +18,20 @@ namespace osquery {
  */
 extern const std::string kVersion;
 /// Use a macro for the version literal, set the kVersion symbol in the library.
-#define VERSION "1.0.3"
+#ifndef STR
+#define STR_OF(x) #x
+#define STR(x) STR_OF(x)
+#endif
+#define OSQUERY_VERSION STR(OSQUERY_BUILD_VERSION)
+
+/**
+ * @brief A helpful tool type to report when logging, print help, or debugging.
+ */
+enum osqueryTool {
+  OSQUERY_TOOL_SHELL,
+  OSQUERY_TOOL_DAEMON,
+  OSQUERY_TOOL_TEST,
+};
 
 /**
  * @brief Execute a query
@@ -83,7 +96,7 @@ sqlite3* createDB();
  * @param argc the number of elements in argv
  * @param argv the command-line arguments passed to `main()`
  */
-void initOsquery(int argc, char* argv[]);
+void initOsquery(int argc, char* argv[], int tool = OSQUERY_TOOL_TEST);
 
 /**
  * @brief Split a given string based on an optional deliminator.

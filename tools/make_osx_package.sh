@@ -8,7 +8,6 @@ export PATH="$PATH:/usr/local/bin"
 source $SCRIPT_DIR/lib.sh
 
 APP_IDENTIFIER="com.facebook.osqueryd"
-APP_VERSION="0.0.2"
 OUTPUT_PKG_PATH="$SCRIPT_DIR/../osqueryd.pkg"
 LAUNCHD_PATH="$SCRIPT_DIR/$APP_IDENTIFIER.plist"
 LAUNCHD_INSTALL_PATH="/Library/LaunchDaemons/$APP_IDENTIFIER.plist"
@@ -16,6 +15,7 @@ OSQUERY_LOG_DIR="/var/log/osquery/"
 OSQUERY_CONFIG_PATH_DEST="/var/osquery/osquery.conf"
 OSQUERY_CONFIG_PATH_SOURCE=""
 
+APP_VERSION=`git describe --tags HEAD`
 
 BREW_PACKAGES=(rocksdb boost gflags glog thrift)
 BREW_PREFIX=`brew --prefix`

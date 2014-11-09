@@ -6,5 +6,5 @@
 
 namespace osquery {
 
-const std::string kVersion = VERSION;
+const std::string kVersion = OSQUERY_VERSION;
 }

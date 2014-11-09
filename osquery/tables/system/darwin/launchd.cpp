@@ -132,7 +132,7 @@ QueryData genLaunchd() {
     if (s.ok()) {
       results.push_back(parseLaunchdItem(path, tree));
     } else {
-      LOG(WARNING) << "Error parsing " << path << ": " << s.toString();
+      VLOG(1) << "Error parsing " << path << ": " << s.toString();
     }
   }
   return results;

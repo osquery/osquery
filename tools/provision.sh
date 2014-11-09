@@ -232,6 +232,33 @@ function package() {
   fi
 }
 
+function check() {
+  platform OS
+
+  if [[ $OS = "darwin" ]]; then
+    HASH=`shasum $0 | awk '{print $1}'`
+  else
+    HASH=`sha1sum $0 | awk '{print $1}'`
+  fi
+
+  if [[ ! "$1" = "check" ]]; then
+    echo $HASH > "$2/.provision"
+    return
+  fi
+
+  if [[ "$#" < 2 ]]; then
+    echo "Usage: $0 check BUILD_PATH"
+    exit 1
+  fi
+
+  CHECKPOINT=`cat $2/.provision 2>&1 &`
+  if [[ ! $HASH = $CHECKPOINT ]]; then
+    echo "Requested dependencies have changed, run: sudo make deps"
+    exit 1
+  fi
+  exit 0
+}
+
 function main() {
   platform OS
 
@@ -379,8 +406,6 @@ function main() {
     package libunwind-devel
     package libudev-devel
 
-    # One day, CentOS packages will be updated and installing from yum will not fuck things up
-    # Until that day comes, leave these lines commented and keep installing from source
     # package libtool.x86_64
     # package boost.x86_64
 
@@ -417,4 +442,5 @@ function main() {
   git submodule update
 }
 
+check $1 $2
 main

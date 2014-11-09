@@ -13,7 +13,7 @@
 #include "osquery/scheduler.h"
 
 int main(int argc, char* argv[]) {
-  osquery::initOsquery(argc, argv);
+  osquery::initOsquery(argc, argv, osquery::OSQUERY_TOOL_DAEMON);
 
   try {
     osquery::DBHandle::getInstance();
@@ -34,12 +34,12 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "  - " << it.first;
   }
 
-  LOG(INFO) << "Event Types:";
+  LOG(INFO) << "Event Publishers:";
   for (const auto& it : REGISTERED_EVENTPUBLISHERS) {
     LOG(INFO) << "  - " << it.first;
   }
 
-  LOG(INFO) << "Event Modules:";
+  LOG(INFO) << "Event Subscribers:";
   for (const auto& it : REGISTERED_EVENTSUBSCRIBERS) {
     LOG(INFO) << "  - " << it.first;
   }
