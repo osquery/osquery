@@ -9,6 +9,8 @@
 
 namespace osquery {
 
+#define __GFLAGS_NAMESPACE google
+
 const std::string kDescription =
     "your operating system as a high-performance "
     "relational database";
@@ -30,7 +32,7 @@ void initOsquery(int argc, char* argv[]) {
 
   if (binary == "osqueryd" && (first_arg == "--help" || first_arg == "-h")) {
     // Parse help options before gflags. Only display osquery-related options.
-    fprintf(stdout, "osquery " VERSION ", %s\n", kDescription.c_str());
+    fprintf(stdout, "osquery " OSQUERY_VERSION ", %s\n", kDescription.c_str());
     fprintf(stdout, "%s: [OPTION]...\n\n", binary.c_str());
     fprintf(stdout,
             "The following options control the osquery "
@@ -55,8 +57,11 @@ void initOsquery(int argc, char* argv[]) {
   FLAGS_stop_logging_if_full_disk = true;
   FLAGS_max_log_size = 1024; // max size for individual log file is 1GB
 
+  // Set version string from CMake build
+  __GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);
+
   // Let gflags parse the non-help options/flags.
-  google::ParseCommandLineNonHelpFlags(&argc, &argv, false);
+  __GFLAGS_NAMESPACE::ParseCommandLineNonHelpFlags(&argc, &argv, false);
 
   if (isWritable(FLAGS_osquery_log_dir.c_str()).ok()) {
     FLAGS_log_dir = FLAGS_osquery_log_dir;

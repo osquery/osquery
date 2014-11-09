@@ -25,6 +25,20 @@ elseif(CENTOS)
   message("-- Building for CentOS")
 endif()
 
+# Make sure deps were built before compiling
+execute_process(
+  COMMAND ${CMAKE_SOURCE_DIR}/tools/provision.sh check ${CMAKE_BINARY_DIR}
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE OSQUERY_DEPS_MESSAGE
+  RESULT_VARIABLE OSQUERY_DEPS_CHECK
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+if(OSQUERY_DEPS_CHECK)
+  string(ASCII 27 Esc)
+  message(FATAL_ERROR "${Esc}[31m${OSQUERY_DEPS_MESSAGE}${Esc}[m")
+endif()
+
 if(BUILD_SHARED_LIBS)
   set(USER_COMPILE_FLAGS "-fPIC")
 else()

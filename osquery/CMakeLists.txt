@@ -6,55 +6,71 @@ SET(OSQUERY_LIBS
   ssl
 )
 
+SET(OSQUERY_APPLE_LIBS
+  boost_thread-mt
+  boost_system
+  boost_filesystem
+  boost_program_options
+  boost_regex
+  thrift
+  rocksdb
+  gflags
+  glog
+)
+
+SET(OSQUERY_LINUX_LIBS
+  libgflags.a
+  libglog.a
+  librocksdb.a
+  libthrift.a
+  libboost_thread.a
+  libboost_system.a
+  libboost_filesystem.a
+  libboost_program_options.a
+  libboost_regex.a
+  udev
+  blkid
+  rt
+)
+
+SET(OSQUERY_UBUNTU_LIBS
+  libz.a
+  libbz2.a
+  libsnappy.a
+  libunwind.a
+  liblzma.a
+)
+
+SET(OSQUERY_CENTOS_LIBS
+  libz.so
+  libbz2.so
+  libsnappy.so
+  libunwind.so
+  liblzma.so
+  libproc.so
+)
+
 # Check for the explicit path to determine the version of procps
 if(EXISTS "/usr/lib/libprocps.a"
     OR EXISTS "/usr/lib/x86_64-linux-gnu/libprocps.a")
   set(PROCPS TRUE)
 endif()
 
+# Fill in libraries for Apple, Uunbut, Centos
 if(APPLE)
-  list(APPEND OSQUERY_LIBS "boost_thread-mt")
-  list(APPEND OSQUERY_LIBS "boost_system")
-  list(APPEND OSQUERY_LIBS "boost_filesystem")
-  list(APPEND OSQUERY_LIBS "boost_program_options")
-  list(APPEND OSQUERY_LIBS "boost_regex")
-  list(APPEND OSQUERY_LIBS "thrift")
-  list(APPEND OSQUERY_LIBS "rocksdb")
-  list(APPEND OSQUERY_LIBS "gflags")
-  list(APPEND OSQUERY_LIBS "glog")
+  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_APPLE_LIBS})
 else()
-  list(APPEND OSQUERY_LIBS "libgflags.a")
-  list(APPEND OSQUERY_LIBS "libglog.a")
-  list(APPEND OSQUERY_LIBS "librocksdb.a")
-  if(EXISTS "/etc/debian_version")
-    list(APPEND OSQUERY_LIBS "libz.a")
-    list(APPEND OSQUERY_LIBS "libbz2.a")
-    list(APPEND OSQUERY_LIBS "libsnappy.a")
-    list(APPEND OSQUERY_LIBS "libunwind.a")
-    list(APPEND OSQUERY_LIBS "liblzma.a")
+  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_LINUX_LIBS})
+  if(UBUNTU)
     if(PROCPS)
-      list(APPEND OSQUERY_LIBS "libprocps.a")
+      list(APPEND OSQUERY_UBUNTU_LIBS "libprocps.a")
     else()
-      list(APPEND OSQUERY_LIBS "libproc.a")
+      list(APPEND OSQUERY_UBUNTU_LIBS "libproc.a")
     endif()
+    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_UBUNTU_LIBS})
+  elseif(CENTOS)
+    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_CENTOS_LIBS})
   endif()
-  if(EXISTS "/etc/redhat-release")
-    list(APPEND OSQUERY_LIBS "libz.so")
-    list(APPEND OSQUERY_LIBS "libbz2.so")
-    list(APPEND OSQUERY_LIBS "libsnappy.so")
-    list(APPEND OSQUERY_LIBS "libunwind.so")
-    list(APPEND OSQUERY_LIBS "liblzma.so")
-    list(APPEND OSQUERY_LIBS "libproc.so")
-  endif()
-  list(APPEND OSQUERY_LIBS "libthrift.a")
-  list(APPEND OSQUERY_LIBS "libboost_thread.a")
-  list(APPEND OSQUERY_LIBS "libboost_system.a")
-  list(APPEND OSQUERY_LIBS "libboost_filesystem.a")
-  list(APPEND OSQUERY_LIBS "libboost_program_options.a")
-  list(APPEND OSQUERY_LIBS "libboost_regex.a")
-  list(APPEND OSQUERY_LIBS "udev")
-  list(APPEND OSQUERY_LIBS "blkid")
-  list(APPEND OSQUERY_LIBS "rt")
 endif()
 
 # Fill this in with objects for libosquery
@@ -65,6 +81,16 @@ if(NOT BUILD_SHARED)
   SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
   SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 endif()
+
+# Generate version from git
+execute_process(
+  COMMAND git describe --tags HEAD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE OSQUERY_BUILD_VERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+ADD_DEFINITIONS("-DOSQUERY_BUILD_VERSION=${OSQUERY_BUILD_VERSION}")
 
 MACRO(ADD_OSQUERY_LINK LINK)
   list(APPEND OSQUERY_ADDITIONAL_LINKS ${LINK})
@@ -95,12 +121,14 @@ MACRO(ADD_OSQUERY_OBJCXX_LIBRARY TARGET)
 ENDMACRO(ADD_OSQUERY_OBJCXX_LIBRARY TARGET)
 
 MACRO(ADD_OSQUERY_TEST TEST_NAME SOURCE)
-  ADD_EXECUTABLE(${TEST_NAME} ${SOURCE})
-  TARGET_LINK_LIBRARIES(${TEST_NAME} osquery_shared)
-  TARGET_LINK_LIBRARIES(${TEST_NAME} gtest)
-  SET(OPTIONAL_FLAGS ${ARGN})
-  SET_OSQUERY_COMPILE(${TEST_NAME} ${OPTIONAL_FLAGS})
-  ADD_TEST(${TEST_NAME} ${TEST_NAME})
+  if(NOT DEFINED ENV{SKIP_TESTS})
+    ADD_EXECUTABLE(${TEST_NAME} ${SOURCE})
+    TARGET_LINK_LIBRARIES(${TEST_NAME} osquery_shared)
+    TARGET_LINK_LIBRARIES(${TEST_NAME} gtest)
+    SET(OPTIONAL_FLAGS ${ARGN})
+    SET_OSQUERY_COMPILE(${TEST_NAME} ${OPTIONAL_FLAGS})
+    ADD_TEST(${TEST_NAME} ${TEST_NAME})
+  endif()
 ENDMACRO(ADD_OSQUERY_TEST)
 
 MACRO(ADD_OSQUERY_EXECUTABLE NAME SOURCE)
@@ -113,6 +141,15 @@ MACRO(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
   TARGET_LINK_LIBRARIES(${TARGET} ${OSQUERY_LIB})
   TARGET_LINK_LIBRARIES(${TARGET} "${OS_WHOLELINK_POST}")
 ENDMACRO(TARGET_OSQUERY_LINK_WHOLE)
+
+# Make sure deps were built before compiling
+execute_process(
+  COMMAND ${CMAKE_SOURCE_DIR}/tools/provision.sh check ${CMAKE_BINARY_DIR}
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE OSQUERY_DEPS_MESSAGE
+  RESULT_VARIABLE OSQUERY_DEPS_CHECK
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 # Table generation
 
@@ -183,6 +220,7 @@ SET(OSQUERY_LIB_OBJECTS
   ${OSQUERY_SOURCES}
 )
 
+set(CMAKE_MACOSX_RPATH 0)
 if(BUILD_SHARED)
   ADD_LIBRARY(osquery_shared SHARED main/lib.cpp ${OSQUERY_LIB_OBJECTS})
 else()
@@ -191,12 +229,12 @@ else()
 
   ADD_LIBRARY(osquery_shared STATIC main/lib.cpp)
   TARGET_OSQUERY_LINK_WHOLE(osquery_shared osquery_static)
+  INSTALL(TARGETS osquery_static DESTINATION lib)
 endif()
 TARGET_LINK_LIBRARIES(osquery_shared ${OSQUERY_ADDITIONAL_LINKS})
 TARGET_LINK_LIBRARIES(osquery_shared ${OSQUERY_LIBS})
 SET_TARGET_PROPERTIES(osquery_shared PROPERTIES OUTPUT_NAME osquery)
 INSTALL(TARGETS osquery_shared DESTINATION lib)
-INSTALL(TARGETS osquery_static DESTINATION lib)
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include)
 
 ADD_EXECUTABLE(shell main/shell.cpp)
@@ -217,10 +255,7 @@ if(NOT APPLE)
   SET(CPACK_PACKAGE_NAME "osquery")
   SET(CPACK_PACKAGE_VENDOR "facebook")
 
-  SET(CPACK_PACKAGE_VERSION "0.0.1")
-  SET(CPACK_PACKAGE_VERSION_MAJOR 0)
-  SET(CPACK_PACKAGE_VERSION_MINOR 0)
-  SET(CPACK_PACKAGE_VERSION_PATCH 1)
+  SET(CPACK_PACKAGE_VERSION "${OSQUERY_BUILD_VERSION}")
 
   SET(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
   SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")

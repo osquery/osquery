@@ -18,7 +18,10 @@ namespace osquery {
  */
 extern const std::string kVersion;
 /// Use a macro for the version literal, set the kVersion symbol in the library.
-#define VERSION "1.0.3"
+#ifndef STR
+#define STR(x) # x
+#endif
+#define OSQUERY_VERSION STR(OSQUERY_BUILD_VERSION)
 
 /**
  * @brief Execute a query
