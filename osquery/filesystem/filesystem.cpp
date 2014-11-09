@@ -59,27 +59,21 @@ Status readFile(const boost::filesystem::path& path, std::string& content) {
 
   int statusCode = 0;
   std::string statusMessage = "OK";
-  std::unique_ptr<char> buffer;
+  std::stringstream buffer;
 
   fs::ifstream file_h(path);
-  if (file_h) {
-    file_h.seekg(0, file_h.end);
-    int len = file_h.tellg();
-    file_h.seekg(0, file_h.beg);
-    buffer = std::unique_ptr<char>(new char[len]);
-    file_h.read(buffer.get(), len);
-    if (!file_h) {
+  if (file_h.is_open()) {
+    buffer << file_h.rdbuf();
+
+    if (file_h.bad()) {
       statusCode = 1;
       statusMessage = "Could not read file";
-    }
-    content.assign(buffer.get(), len);
+    } else 
+      content.assign(std::move(buffer.str()));
+      
   } else {
     statusCode = 1;
     statusMessage = "Could not open file for reading";
-    
-    if (file_h) {
-      file_h.close();
-    }
   }
   return Status(statusCode, statusMessage);
 }
