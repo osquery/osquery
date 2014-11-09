@@ -5,8 +5,6 @@ schema([
     Column(name="release", type="std::string"),
     Column(name="source", type="std::string"),
     Column(name="size", type="std::string"),
-    Column(name="dsa", type="std::string"),
-    Column(name="rsa", type="std::string"),
     Column(name="sha1", type="std::string"),
     Column(name="arch", type="std::string"),
 ])

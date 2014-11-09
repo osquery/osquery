@@ -34,7 +34,6 @@ namespace tables {
  */
 std::string getRpmAttribute(const Header& header, rpmTag tag, const rpmtd& td) {
   std::string result;
-  const char* attr;
 
   if (headerGet(header, tag, td, HEADERGET_DEFAULT) == 0) {
     // Intentional check for a 0 = failure.
@@ -61,14 +60,15 @@ QueryData genRpms() {
   // The following implementation uses http://rpm.org/api/4.11.1/
   Header header;
   rpmdbMatchIterator match_iterator;
-  if (rpmReadConfigFiles(NULL, NULL) != 0) {
+
+  rpmInitCrypto();
+  if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
     LOG(ERROR) << "Cannot read RPM configuration files.";
     return results;
   }
 
   rpmts ts = rpmtsCreate();
   match_iterator = rpmtsInitIterator(ts, RPMTAG_NAME, NULL, 0);
-  const char* rpm_attr;
   while ((header = rpmdbNextIterator(match_iterator)) != NULL) {
     Row r;
     rpmtd td = rpmtdNew();
@@ -77,16 +77,19 @@ QueryData genRpms() {
     r["release"] = getRpmAttribute(header, RPMTAG_RELEASE, td);
     r["source"] = getRpmAttribute(header, RPMTAG_SOURCERPM, td);
     r["size"] = getRpmAttribute(header, RPMTAG_SIZE, td);
-    r["dsa"] = getRpmAttribute(header, RPMTAG_DSAHEADER, td);
-    r["rsa"] = getRpmAttribute(header, RPMTAG_RSAHEADER, td);
     r["sha1"] = getRpmAttribute(header, RPMTAG_SHA1HEADER, td);
     r["arch"] = getRpmAttribute(header, RPMTAG_ARCH, td);
 
+    rpmtdFree(td);
     results.push_back(r);
   }
 
   rpmdbFreeIterator(match_iterator);
   rpmtsFree(ts);
+
+  rpmFreeCrypto();
+  rpmFreeRpmrc();
+
   return results;
 }
 }
