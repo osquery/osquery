@@ -44,6 +44,22 @@ RANGES = {
     "duration": (0.8, 1, 3),
 }
 
+def queries_from_config(config_path):
+    config = {}
+    try:
+        with open(config_path, "r") as fh:
+            config = json.loads(fh.read())
+    except Exception as e:
+        print ("Cannot open/parse config: %s" % str(e))
+        exit(1)
+    if "scheduledQueries" not in config:
+        print ("Config does not contain any scheduledQueries.")
+        exit(0)
+    queries = {}
+    for query in config["scheduledQueries"]:
+        queries[query["name"]] = query["query"]
+    return queries
+
 def queries_from_tables(path, restrict):
     """Construct select all queries from all tables."""
     # Let the caller limit the tables
@@ -269,8 +285,7 @@ if __name__ == "__main__":
         if not os.path.exists(args.config):
             print ("Cannot find --config: %s" % (args.config))
             exit(1)
-        print ("--config is not yet supported.")
-        exit(2)
+        queries = queries_from_config(args.config)
     elif args.query is not None:
         queries["manual"] = args.query
     else:
