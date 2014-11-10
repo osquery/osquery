@@ -27,6 +27,7 @@ unsigned char *hash_data(const void *data, size_t len) {
 
   if (!hashtext_out) {
     printk(KERN_INFO "Could not allocate space for hash\n");
+    return NULL;
   }
 
   sg_init_one(&sg, data, len);
@@ -60,8 +61,13 @@ ssize_t text_segment_hash_show(struct kobject *obj,
                                char *buf) {
   ssize_t ret;
   char *hash = kernel_text_hash();
-  ret = scnprintf(buf, PAGE_SIZE, "%s\n", hash);
-  if (hash)
+
+  if (hash) {
+    ret = scnprintf(buf, PAGE_SIZE, "%s\n", hash);
     kfree(hash);
+  } else {
+    ret = -1;
+  }
+
   return ret;
 }
