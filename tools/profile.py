@@ -143,7 +143,10 @@ def run_query(shell, query, timeout=0, count=1):
     duration = time.time() - start_time - 2;
 
     utilization = [p for p in percents if p != 0]
-    avg_utilization = sum(utilization)/len(utilization)
+    if len(utilization) == 0:
+        avg_utilization = 0
+    else:
+        avg_utilization = sum(utilization)/len(utilization)
 
     return {
         "utilization": avg_utilization,
