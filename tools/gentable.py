@@ -233,7 +233,7 @@ REGISTER_TABLE(
 
 def usage():
     """ print program usage """
-    print("Usage: %s <spec.table> <file.cpp> [use_blacklist]" % sys.argv[0])
+    print("Usage: %s <spec.table> <file.cpp> [disable_blacklist]" % sys.argv[0])
 
 def to_camel_case(snake_case):
     """ convert a snake_case string to camelCase """
@@ -404,12 +404,12 @@ def main(argc, argv):
     output = argv[2]
 
     # Adding a 3rd parameter will enable the blacklist
-    use_blacklist = argc > 3
+    disable_blacklist = argc > 3
 
     with open(filename, "rU") as file_handle:
         tree = ast.parse(file_handle.read())
         exec(compile(tree, "<string>", "exec"))
-        if use_blacklist and is_blacklisted(filename, table.table_name):
+        if not disable_blacklist and is_blacklisted(filename, table.table_name):
             table.blacklist(output)
         else:
             table.generate(output)

@@ -174,7 +174,7 @@ def run_query(shell, query, timeout=0, count=1):
         try:
             stats = get_stats(p, step)
             percents.append(stats["utilization"])
-        except psutil.AccessDenied:
+        except psutil.AccessDenied as e:
             break
         delay += step
         if timeout > 0 and delay >= timeout + 2:
@@ -210,6 +210,8 @@ def summary(results, display=False):
         summary_result = {}
         for key in RANGES:
             if key == "colors":
+                continue
+            if key not in result:
                 continue
             summary_result[key] = rank(result[key], RANGES[key])
         if display:
