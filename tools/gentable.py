@@ -18,6 +18,18 @@ DEVELOPING = False
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
 
+# BL_IMPL_TEMPLATE is the jinja template used to generate the virtual table
+# implementation file when the table is blacklisted in ./osquery/tables/specs
+BL_IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
+
+/*
+** This file is generated. Do not modify it manually!
+*/
+
+void __blacklisted_{{table_name}}() {}
+
+"""
+
 # IMPL_TEMPLATE is the jinja template used to generate the virtual table
 # implementation file
 IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
@@ -221,12 +233,15 @@ REGISTER_TABLE(
 
 def usage():
     """ print program usage """
-    print("Usage: %s <spec.table> <file.cpp>" % sys.argv[0])
+    print("Usage: %s <spec.table> <file.cpp> [use_blacklist]" % sys.argv[0])
 
 def to_camel_case(snake_case):
     """ convert a snake_case string to camelCase """
     components = snake_case.split('_')
     return components[0] + "".join(x.title() for x in components[1:])
+
+def lightred(msg):
+    return "\033[1;31m %s \033[0m" % str(msg)
 
 class Singleton(object):
     """
@@ -258,15 +273,15 @@ class TableState(Singleton):
         self.description = ""
 
     def columns(self):
-      return [i for i in self.schema if isinstance(i, Column)]
+        return [i for i in self.schema if isinstance(i, Column)]
 
     def foreign_keys(self):
-      return [i for i in self.schema if isinstance(i, ForeignKey)]
+        return [i for i in self.schema if isinstance(i, ForeignKey)]
 
-    def generate(self, path):
+    def generate(self, path, template=IMPL_TEMPLATE):
         """Generate the virtual table files"""
         logging.debug("TableState.generate")
-        self.impl_content = jinja2.Template(IMPL_TEMPLATE).render(
+        self.impl_content = jinja2.Template(template).render(
             table_name=self.table_name,
             table_name_cc=to_camel_case(self.table_name),
             schema=self.columns(),
@@ -287,6 +302,11 @@ class TableState(Singleton):
         with open(path, "w+") as file_h:
             file_h.write(self.impl_content)
 
+    def blacklist(self, path):
+        print (lightred("Blacklisting generated %s" % path))
+        logging.debug("blacklisting %s" % path)
+        self.generate(path, template=BL_IMPL_TEMPLATE)
+
 table = TableState()
 
 class Column(object):
@@ -301,13 +321,13 @@ class Column(object):
         self.description = kwargs.get("description", "")
 
 class ForeignKey(object):
-  """
-  Part of an osquery table schema. 
-  Loosely define a column in a table spec as a Foreign key in another table.
-  """
-  def __init__(self, **kwargs):
-      self.column = kwargs.get("column", "")
-      self.table = kwargs.get("table", "")
+    """
+    Part of an osquery table schema.
+    Loosely define a column in a table spec as a Foreign key in another table.
+    """
+    def __init__(self, **kwargs):
+        self.column = kwargs.get("column", "")
+        self.table = kwargs.get("table", "")
 
 def table_name(name):
     """define the virtual table name"""
@@ -323,9 +343,9 @@ def schema(schema_list):
     logging.debug("- schema")
     for it in schema_list:
         if isinstance(it, Column):
-          logging.debug("  - column: %s (%s)" % (it.name, it.type))
+            logging.debug("  - column: %s (%s)" % (it.name, it.type))
         if isinstance(it, ForeignKey):
-          logging.debug("  - foreign_key: %s (%s)" % (it.column, it.table))
+            logging.debug("  - foreign_key: %s (%s)" % (it.column, it.table))
     table.schema = schema_list
 
 def implementation(impl_string):
@@ -353,6 +373,23 @@ def implementation(impl_string):
 def description(text):
     table.description = text
 
+def is_blacklisted(path, table_name):
+    """Allow blacklisting by tablename."""
+    specs_path = os.path.dirname(os.path.dirname(path))
+    blacklist_path = os.path.join(specs_path, "blacklist")
+    if not os.path.exists(blacklist_path):
+        return False
+    try:
+        with open(blacklist_path, "r") as fh:
+            blacklist = [line.strip() for line in fh.read().split("\n")
+                if len(line.strip()) > 0 and line.strip()[0] != "#"]
+            if table_name in blacklist:
+                return True
+    except:
+        # Blacklist is not readable.
+        pass
+    return False
+
 def main(argc, argv):
     if DEVELOPING:
         logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG)
@@ -365,10 +402,17 @@ def main(argc, argv):
 
     filename = argv[1]
     output = argv[2]
+
+    # Adding a 3rd parameter will enable the blacklist
+    use_blacklist = argc > 3
+
     with open(filename, "rU") as file_handle:
         tree = ast.parse(file_handle.read())
         exec(compile(tree, "<string>", "exec"))
-        table.generate(output)
+        if use_blacklist and is_blacklisted(filename, table.table_name):
+            table.blacklist(output)
+        else:
+            table.generate(output)
 
 if __name__ == "__main__":
     main(len(sys.argv), sys.argv)
