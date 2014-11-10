@@ -68,7 +68,6 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
 }
 
 DBHandle::~DBHandle() {
-  DLOG(INFO) << "DBHandle::~DBHandle()";
   for (auto handle : handles_) {
     if (handle != nullptr) {
       delete handle;
