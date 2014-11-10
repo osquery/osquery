@@ -10,11 +10,27 @@
 
 #include "hash.h"
 
+unsigned long *begin_text_addr = (void *) 0xffffffff81000000;
+unsigned long *end_text_addr = (void *) 0xffffffff82000000;
+
+/**
+ * @brief Perform a hash over the kernel's text segment
+ *
+ * @return allocated buffer containing the hash string.
+ */
 unsigned char *kernel_text_hash(void) {
-  return (unsigned char *) hash_data((void *) TEXT_SEGMENT_START,
-                                     TEXT_SEGMENT_END - TEXT_SEGMENT_START);
+  return (unsigned char *) hash_data((void *) begin_text_addr,
+                                     end_text_addr - begin_text_addr);
 }
 
+/**
+ * @brief Generic function for performing a SHA-1 hash of a memory range
+ *
+ * @param data - Beginning memory address to perform hash
+ * @param len - size in bytes of the address range to hash
+ *
+ * @return allocated buffer containing the hash string.
+ */
 unsigned char *hash_data(const void *data, size_t len) {
   struct scatterlist sg;
   struct hash_desc desc;
@@ -53,6 +69,17 @@ unsigned char *hash_data(const void *data, size_t len) {
   return hashtext_out;
 }
 
+/**
+ * @brief Callback for the sysfs object read. This happens when a file is
+ *        read(2) (or equivalent) from within sysfs. E.g. cat /sys/foo/bar will
+ *        call bar's *_show callback method.
+ *
+ * @param obj - reference to a kernel object within the sysfs filesystem
+ * @param attr - attribute of said kernel object
+ * @param buf - buffer that will be allocated and filled with the hash
+ *
+ * @return size in bytes of the hash string.
+ */
 ssize_t text_segment_hash_show(struct kobject *obj,
                                struct attribute *attr,
                                char *buf) {

@@ -19,15 +19,19 @@
 
 #include "sysfs.h"
 #include "hash.h"
-#ifdef _HIDE_ME
-  #include "hide.h"
-#endif
+
+/* Behavioral options */
+//#define CAMB_HIDE_SELF
+#define CAMB_CHECK_HASH
+#define CAMB_CHECK_SYSCALL
+#define CAMB_HOOK_INSMOD
 
 extern struct kobject *camb_kobj;
-char *module_str = "camb";
 
-static unsigned long **syscall_table = (unsigned long **) SYSCALL_BASE_ADDR;
+const char *module_str = "camb";
+static unsigned long **syscall_table = (unsigned long **) 0xffffffff81600200;
 static unsigned long *syscall_table_copy[NR_syscalls];
+unsigned char *initial_hash = NULL;
 int (*orig_init_module)(void *, unsigned long, const char *);
 
 /* Allow writes to executable memory pages */
@@ -35,6 +39,7 @@ void en_mem_wr(void) {
   write_cr0(read_cr0() & (~0x10000));
 }
 
+/* Disallow writes to executable memory pages */
 void dis_mem_wr(void) {
   write_cr0(read_cr0() | 0x10000);
 }
@@ -53,41 +58,10 @@ int syscall_addr_modified_show(struct kobject *obj,
 }
 
 /* Copy the system call pointer table  */
-void grab_syscall_table(void) {
+void grab_syscall_data(void) {
   unsigned int i;
   for (i = 0; i < NR_syscalls; i++)
     syscall_table_copy[i] = syscall_table[i];
-}
-
-int our_init_module(void *image, unsigned long len, const char *params) {
-  int ret;
-  unsigned char *h;
-  unsigned char *image_tmp = kmalloc(len, GFP_KERNEL);
-  ret = copy_from_user(image_tmp, image, len);
-  if (ret) {
-    printk(KERN_ERR "[%s] our_init_module: copy error\n", module_str);
-  } else {
-    h = hash_data(image_tmp, len);
-    if (h) {
-      printk(KERN_INFO "module loaded: %s\n", h);
-      kfree(h);
-    }
-  }
-  return orig_init_module(image, len, params);
-}
-
-void hook_init_module(void) {
-  orig_init_module = syscall_table[__NR_init_module];
-
-  en_mem_wr();
-  syscall_table[__NR_init_module] = our_init_module;
-  dis_mem_wr();
-}
-
-void unhook_init_module(void) {
-  en_mem_wr();
-  syscall_table[__NR_init_module] = orig_init_module;
-  dis_mem_wr();
 }
 
 static int __init camb_init(void) {
@@ -98,17 +72,15 @@ static int __init camb_init(void) {
     return -1;
   }
 
-  /* Hide the fact that we're monitoring the system for tampering */
-#ifdef _HIDE_ME
-  hide_me();
+#ifdef CAMB_CHECK_SYSCALL
+  grab_syscall_data();
 #endif
 
-/* Syscall hooks must be placed before grab_syscall_table() is called in order to
- * establish a known baseline
- */
-  hook_init_module();
-  grab_syscall_table();
-
+#ifdef CAMB_CHECK_HASH
+  initial_hash = kernel_text_hash();
+  printk(KERN_INFO "Initial text hash: %s\n", initial_hash);
+#endif
+  
   return 0;
 }
 
@@ -119,7 +91,11 @@ static void __exit camb_exit(void) {
     kobject_put(camb_kobj);
   }
 
-  unhook_init_module();
+#ifdef CAMB_CHECK_HASH
+  if (initial_hash) {
+    kfree(initial_hash);
+  }
+#endif
 }
 
 module_init(camb_init);
