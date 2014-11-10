@@ -19,11 +19,18 @@ using namespace osquery::tables;
 namespace osquery {
 
 sqlite3* createDB() {
-  sqlite3* db = nullptr;
-  sqlite3_open(":memory:", &db);
+  sqlite3* db = openDB(":memory:");
   osquery::tables::attachVirtualTables(db);
   return db;
 }
+
+sqlite3* openDB(const std::string& file_name) {
+  sqlite3* db = nullptr;
+  sqlite3_open(file_name.c_str(), &db);
+  return db;
+}
+
+int closeDB(sqlite3* db) { return sqlite3_close(db); }
 
 QueryData query(const std::string& q, int& error_return) {
   sqlite3* db = createDB();

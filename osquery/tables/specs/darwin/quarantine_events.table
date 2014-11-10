@@ -1,0 +1,16 @@
+table_name("quarantine_events")
+schema([
+    Column(name="user", type="std::string"),
+    Column(name="quarantine_event_identifier", type="std::string"),
+    Column(name="quarantine_time_stamp", type="std::string"),
+    Column(name="quarantine_agent_bundle_identifier", type="std::string"),
+    Column(name="quarantine_agent_name", type="std::string"),
+    Column(name="quarantine_data_URL_string", type="std::string"),
+    Column(name="quarantine_sender_name", type="std::string"),
+    Column(name="quarantine_sender_address", type="std::string"),
+    Column(name="quarantine_type_number", type="std::string"),
+    Column(name="quarantine_origin_title", type="std::string"),
+    Column(name="quarantine_origin_URL_string", type="std::string"),
+	# QuarantineOriginAlias is ommited because I don't know how the type of blob
+])
+implementation("quarantine_events@genQuarantineEvents")
