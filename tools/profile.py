@@ -59,7 +59,7 @@ def queries_from_tables(path, restrict):
             # Generate all tables to select from, with abandon.
             tables.append("%s.%s" % (spec_platform, table_name))
 
-    tables = [t for t in tables if t not in restrict_tables]
+    tables = [t for t in tables if t.split(".")[1] not in restrict_tables]
     queries = {}
     for table in tables:
         queries[table] = "SELECT * FROM %s;" % table.split(".", 1)[1]
@@ -96,11 +96,12 @@ def check_leaks(shell, query, supp_file=None):
                 summary[key] = line.split(":")[1].strip()
     return summary
 
-def profile_leaks(shell, queries, supp_file=None):
+def profile_leaks(shell, queries, count=1, rounds=1, supp_file=None):
     report = {}
     for name, query in queries.iteritems():
         print ("Analyzing leaks in query: %s" % query)
-        summary = check_leaks(shell, query, supp_file)
+        # Apply count
+        summary = check_leaks(shell, query * count, supp_file)
         display = []
         for key in summary:
             output = summary[key]
@@ -181,7 +182,7 @@ def summary(results, display=False):
         summary_results[name] = summary_result
     return summary_results
 
-def profile(shell, queries, timeout=0, count=10, rounds=1):
+def profile(shell, queries, timeout=0, count=1, rounds=1):
     report = {}
     for name, query in queries.iteritems():
         print ("Profiling query: %s" % query)
@@ -220,7 +221,7 @@ if __name__ == "__main__":
         help="Profile a single query.")
     parser.add_argument("--timeout", default=0, type=int,
         help="Max seconds a query may run --count times.")
-    parser.add_argument("--count", default=10, type=int,
+    parser.add_argument("--count", default=1, type=int,
         help="Number of times to run each query.")
     parser.add_argument("--rounds", default=1, type=int,
         help="Run the profile for multiple rounds and use the average.")
@@ -253,8 +254,8 @@ if __name__ == "__main__":
         queries = queries_from_tables(args.tables, args.restrict)
     
     if args.leaks:
-        results = profile_leaks(args.shell, queries,
-            supp_file=args.suppressions)
+        results = profile_leaks(args.shell, queries, count=args.count,
+            rounds=args.rounds, supp_file=args.suppressions)
         exit(0)
 
     # Start the profiling!

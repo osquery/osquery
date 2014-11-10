@@ -147,7 +147,11 @@ QueryData genProcesses() {
     r["parent"] = boost::lexical_cast<std::string>(proc_info->ppid);
 
     results.push_back(r);
+#ifdef PROC_EDITCMDLCVT
+    freeproc(proc_info);
+#else
     standard_freeproc(proc_info);
+#endif
   }
 
   closeproc(proc);
