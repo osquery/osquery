@@ -17,20 +17,6 @@
 #include <linux/kobject.h>
 #include <asm/syscall.h>
 
-/* Network */
-#include <net/sock.h>
-#include <net/ip.h>
-#include <linux/ip.h>
-#include <linux/net.h>
-#include <linux/udp.h>
-#include <linux/netfilter.h>
-#include <linux/netfilter_ipv4.h>
-#include <linux/socket.h>
-#include <linux/icmp.h>
-#include <linux/if_ether.h>
-#include <linux/inet.h>
-#include <linux/net.h>
-
 #include "sysfs.h"
 #include "hash.h"
 
