@@ -1,0 +1,10 @@
+table_name("port_inode")
+schema([
+    Column(name="local_port", type="std::string"),
+    Column(name="remote_port", type="std::string"),
+    Column(name="local_ip", type="std::string"),
+    Column(name="remote_ip", type="std::string"),
+    Column(name="inode", type="std::string"),
+])
+implementation("osquery/tables/networking/linux/port_inode@genPortInode")
+

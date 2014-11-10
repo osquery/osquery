@@ -306,6 +306,7 @@ function main() {
     package librpm-dev
     package libudev-dev
     package libblkid-dev
+    package linux-headers-generic
 
     set_cc clang
     set_cxx clang++
