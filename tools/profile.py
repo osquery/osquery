@@ -6,7 +6,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import argparse
+try:
+    import argparse
+except ImportError:
+    print ("Cannot import argparse.")
+    print ("Try: sudo yum install python-argparse")
+    exit(1)
+
 import json
 import os
 import psutil
@@ -54,7 +60,9 @@ def queries_from_tables(path, restrict):
             tables.append("%s.%s" % (spec_platform, table_name))
 
     tables = [t for t in tables if t not in restrict_tables]
-    queries = {t: "SELECT * FROM %s;" % t.split(".", 1)[1] for t in tables}
+    queries = {}
+    for table in tables:
+        queries[table] = "SELECT * FROM %s;" % table.split(".", 1)[1]
     return queries
 
 def get_stats(p, interval=1):
@@ -67,6 +75,45 @@ def get_stats(p, interval=1):
         "cpu_times": p.cpu_times(),
         "memory": p.memory_info_ex(),
     }
+
+def check_leaks(shell, query, supp_file=None):
+    """Run valgrind using the shell and a query, parse leak reports."""
+    start_time = time.time()
+    suppressions = "" if supp_file is None else "--suppressions=%s" % supp_file
+    cmd = "valgrind --tool=memcheck %s %s --query=\"%s\"" % (
+        suppressions, shell, query) 
+    proc = subprocess.Popen(cmd,
+        shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = proc.communicate()
+    summary = {
+        "definitely": None,
+        "indirectly": None,
+        "possibly": None,
+    }
+    for line in stderr.split("\n"):
+        for key in summary:
+            if line.find(key) >= 0:
+                summary[key] = line.split(":")[1].strip()
+    return summary
+
+def profile_leaks(shell, queries, supp_file=None):
+    report = {}
+    for name, query in queries.iteritems():
+        print ("Analyzing leaks in query: %s" % query)
+        summary = check_leaks(shell, query, supp_file)
+        display = []
+        for key in summary:
+            output = summary[key]
+            if output is not None and output[0] != "0":
+                # Add some fun colored output if leaking.
+                if key == "definitely":
+                    output = red(output)
+                if key == "indirectly":
+                    output = yellow(output)
+            display.append("%s: %s" % (key, output))
+        print ("  %s" % "; ".join(display))
+        report[name] = summary
+    return report
 
 def run_query(shell, query, timeout=0, count=1):
     """Execute the osquery run testing wrapper with a setup/teardown delay."""
@@ -174,6 +221,10 @@ if __name__ == "__main__":
         help="Number of times to run each query.")
     parser.add_argument("--rounds", default=1, type=int,
         help="Run the profile for multiple rounds and use the average.")
+    parser.add_argument("--leaks", default=False, action="store_true",
+        help="Check for memory leaks instead of performance.")
+    parser.add_argument("--suppressions", default=None,
+        help="Add a suppressions files to memory leak checking.")
     parser.add_argument("--shell",
         default="./build/%s/tools/run" % (platform),
         help="Path to osquery run wrapper.")
@@ -198,6 +249,11 @@ if __name__ == "__main__":
     else:
         queries = queries_from_tables(args.tables, args.restrict)
     
+    if args.leaks:
+        results = profile_leaks(args.shell, queries,
+            supp_file=args.suppressions)
+        exit(0)
+
     # Start the profiling!
     results = profile(args.shell, queries,
         timeout=args.timeout, count=args.count, rounds=args.rounds)

@@ -11,7 +11,8 @@ else
 endif
 
 all: .setup
-	cd build/$(BUILD_DIR) && cmake ../.. && make --no-print-directory $(MAKEFLAGS)
+	cd build/$(BUILD_DIR) && cmake -DCMAKE_BUILD_TYPE= ../.. && \
+		make --no-print-directory $(MAKEFLAGS)
 
 debug: .setup
 	cd build/$(BUILD_DIR) && cmake -DCMAKE_BUILD_TYPE=Debug ../../ && \

@@ -5,9 +5,7 @@ schema([
     Column(name="release", type="std::string"),
     Column(name="source", type="std::string"),
     Column(name="size", type="std::string"),
-    Column(name="dsaheader", type="std::string"),
-    Column(name="rsaheader", type="std::string"),
-    Column(name="sha1header", type="std::string"),
+    Column(name="sha1", type="std::string"),
     Column(name="arch", type="std::string"),
 ])
 implementation("system/rpm_packages@genRpms")

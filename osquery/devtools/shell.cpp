@@ -4361,10 +4361,6 @@ int launchIntoShell(int argc, char **argv) {
             return rc;
         }
       }
-    } else {
-      fprintf(stderr, "%s: Error: unknown option: %s\n", Argv0, z);
-      fprintf(stderr, "Use -help for a list of options.\n");
-      return 1;
     }
   }
 
@@ -4431,7 +4427,10 @@ int launchIntoShell(int argc, char **argv) {
     sqlite3_close(data.db);
   }
   sqlite3_free(data.zFreeOnClose);
-  free(data.prettyPrint);
+
+  if (data.prettyPrint != nullptr) {
+    delete data.prettyPrint;
+  }
   return rc;
 }
 }

@@ -9,9 +9,15 @@
 #include "osquery/core.h"
 #include "osquery/core/conversions.h"
 #include "osquery/events.h"
+#include "osquery/flags.h"
 #include "osquery/dispatcher.h"
 
 namespace osquery {
+
+DEFINE_osquery_flag(bool,
+                    event_pubsub,
+                    true,
+                    "Use (enable) the osquery eventing pub/sub.")
 
 const std::vector<size_t> kEventTimeLists = {
     1 * 60, // 1 minute
@@ -375,6 +381,10 @@ Status EventFactory::deregisterEventPublishers() {
 namespace osquery {
 namespace registries {
 void faucet(EventPublishers ets, EventSubscribers ems) {
+  if (!FLAGS_event_pubsub) {
+    // Invocation disabled eventing.
+    return;
+  }
   auto& ef = osquery::EventFactory::getInstance();
   for (const auto& event_pub : ets) {
     ef.registerEventPublisher(event_pub.second);
