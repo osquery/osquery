@@ -76,7 +76,7 @@ def get_stats(p, interval=1):
         "memory": p.memory_info_ex(),
     }
 
-def check_leaks(shell, query, supp_file=None):
+def check_leaks_linux(shell, query, supp_file=None):
     """Run valgrind using the shell and a query, parse leak reports."""
     start_time = time.time()
     suppressions = "" if supp_file is None else "--suppressions=%s" % supp_file
@@ -95,6 +95,29 @@ def check_leaks(shell, query, supp_file=None):
             if line.find(key) >= 0:
                 summary[key] = line.split(":")[1].strip()
     return summary
+
+def check_leaks_darwin(shell, query):
+    start_time = time.time()
+    proc = subprocess.Popen([shell, "--query", query, "--delay", "1"],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    leak_checks = None
+    while proc.poll() is None:
+        leaks = subprocess.Popen(["leaks", "%s" % proc.pid],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, _ = leaks.communicate()
+        try:
+            for line in stdout.split("\n"):
+                if line.find("total leaked bytes") >= 0:
+                    leak_checks = line.split(":")[1].strip()
+        except:
+            print (stdout)
+    return {"definitely": leak_checks}
+
+def check_leaks(shell, query, supp_file=None):
+    if sys.platform == "darwin":
+        return check_leaks_darwin(shell, query)
+    else:
+        return check_leaks_linux(shell, query, supp_file=supp_file)
 
 def profile_leaks(shell, queries, count=1, rounds=1, supp_file=None):
     report = {}

@@ -323,6 +323,7 @@ bool genOSXAuthorities(CFArrayRef &reference) {
 
   if (status != errSecSuccess) {
     reference = NULL;
+    return false;
   }
 
   // Limit certificates to authorities (kSecOIDBasicConstraints).
@@ -348,7 +349,6 @@ bool genOSXAuthorities(CFArrayRef &reference) {
 QueryData genCerts() {
   QueryData results;
   CFArrayRef authorities = NULL;
-
   // Keychains/certificate stores belonging to the OS.
   if (!genOSXAuthorities(authorities)) {
     LOG(ERROR) << "Could not find OSX Keychain Certificate Authorities.";

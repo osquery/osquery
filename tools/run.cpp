@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
         LOG(ERROR) << "Query failed: " << err;
         return 1;
       }
-      LOG(INFO) << "Query succedded";
+      LOG(INFO) << "Query succeeded";
     }
 
     if (FLAGS_delay != 0) {
