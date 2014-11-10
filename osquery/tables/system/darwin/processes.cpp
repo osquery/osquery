@@ -19,6 +19,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <glog/logging.h>
 
@@ -136,9 +137,7 @@ int genMaxArgs() {
   return argmax;
 }
 
-std::unordered_map<std::string, std::string> getProcEnv(int pid,
-                                                        size_t argmax) {
-  std::unordered_map<std::string, std::string> env;
+std::vector<std::string> getProcRawArgs(int pid, size_t argmax) {
   std::vector<std::string> args;
   uid_t euid = geteuid();
 
@@ -151,7 +150,7 @@ std::unordered_map<std::string, std::string> getProcEnv(int pid,
       LOG(ERROR) << "An error occurred retrieving the env for " << pid;
     }
 
-    return env;
+    return args;
   }
 
   // Here we make the assertion that we are interested in all non-empty strings
@@ -163,6 +162,13 @@ std::unordered_map<std::string, std::string> getProcEnv(int pid,
     }
     cp += args.back().size() + 1;
   } while (cp < procargs + argmax);
+  return args;
+}
+
+std::unordered_map<std::string, std::string> getProcEnv(int pid,
+                                                        size_t argmax) {
+  std::unordered_map<std::string, std::string> env;
+  auto args = getProcRawArgs(pid, argmax);
 
   // Since we know that all envs will have an = sign and are at the end of the
   // list, we iterate from the end forward until we stop seeing = signs.
@@ -180,6 +186,34 @@ std::unordered_map<std::string, std::string> getProcEnv(int pid,
   }
 
   return env;
+}
+
+std::vector<std::string> getProcArgs(int pid, size_t argmax) {
+  auto raw_args = getProcRawArgs(pid, argmax);
+  std::vector<std::string> args;
+  bool collect = false;
+
+  // Iterate from the back until we stop seing environment vars
+  // Then start pushing args (in reverse order) onto a vector.
+  // We trim the args of leading/trailing whitespace to make
+  // analysis easier.
+  for (auto itr=raw_args.rbegin(); itr < raw_args.rend(); ++itr) {
+    if (collect) {
+      std::string arg = *itr;
+      boost::algorithm::trim(arg);
+      args.push_back(arg);
+    } else {
+      size_t idx = itr->find_first_of("=");
+      if (idx == std::string::npos) {
+        collect = true;
+      }
+    }
+  }
+
+  // We pushed them on backwards, so we need to fix that.
+  std::reverse(args.begin(), args.end());
+
+  return args;
 }
 
 struct OpenFile {
@@ -336,12 +370,14 @@ QueryData genProcesses() {
   QueryData results;
   auto pidlist = getProcList();
   auto parent_pid = getParentMap(pidlist);
+  int argmax = genMaxArgs();
 
   for (auto &pid : pidlist) {
     Row r;
     r["pid"] = boost::lexical_cast<std::string>(pid);
     r["name"] = getProcName(pid);
     r["path"] = getProcPath(pid);
+    r["cmdline"] = boost::algorithm::join(getProcArgs(pid, argmax), " ");
 
     proc_cred cred;
     if (getProcCred(pid, cred)) {
