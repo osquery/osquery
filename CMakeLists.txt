@@ -39,7 +39,7 @@ execute_process(
 
 if(OSQUERY_DEPS_CHECK)
   string(ASCII 27 Esc)
-  message(FATAL_ERROR "${Esc}[31m${OSQUERY_DEPS_MESSAGE}${Esc}[m")
+  message(WARNING "${Esc}[31m${OSQUERY_DEPS_MESSAGE}${Esc}[m")
 endif()
 
 if(BUILD_SHARED_LIBS)
