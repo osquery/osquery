@@ -78,8 +78,11 @@ def gen_api(api):
 def gen_spec(tree):
     """Given a table tree, produce a literal of the table representation."""
     exec(compile(tree, "<string>", "exec"))
-    columns = [NoIndent({"name": column.name, "type": column.type})
-        for column in table.columns()]
+    columns = [NoIndent({
+            "name": column.name,
+            "type": column.type,
+            "description": column.description,
+        }) for column in table.columns()]
     foreign_keys = [NoIndent({"column": key.column, "table": key.table})
         for key in table.foreign_keys()]
     return {

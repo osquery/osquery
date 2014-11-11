@@ -45,12 +45,12 @@ void initOsquery(int argc, char* argv[], int tool) {
             "The following options control the osquery "
             "daemon and shell.\n\n");
 
-    Flag::print_flags(Flag::get().flags());
+    Flag::printFlags(Flag::get().flags());
 
     if (tool == OSQUERY_TOOL_SHELL) {
       // Print shell flags.
       fprintf(stdout, "\nThe following options control the osquery shell.\n\n");
-      Flag::print_flags(Flag::get().shellFlags());
+      Flag::printFlags(Flag::get().shellFlags());
     }
 
     fprintf(stdout, "\n%s\n", kEpilog.c_str());

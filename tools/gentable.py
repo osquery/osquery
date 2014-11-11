@@ -334,6 +334,7 @@ def table_name(name):
     logging.debug("- table_name")
     logging.debug("  - called with: %s" % name)
     table.table_name = name
+    table.description = ""
 
 def schema(schema_list):
     """

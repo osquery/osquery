@@ -114,10 +114,12 @@ def check_leaks_linux(shell, query, supp_file=None):
 
 def check_leaks_darwin(shell, query):
     start_time = time.time()
+    # Run the shell with a --delay flag such that leaks can attach before exit.
     proc = subprocess.Popen([shell, "--query", query, "--delay", "1"],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     leak_checks = None
     while proc.poll() is None:
+        # Continue to run leaks until the monitored shell exits.
         leaks = subprocess.Popen(["leaks", "%s" % proc.pid],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, _ = leaks.communicate()
@@ -126,6 +128,7 @@ def check_leaks_darwin(shell, query):
                 if line.find("total leaked bytes") >= 0:
                     leak_checks = line.split(":")[1].strip()
         except:
+            print ("Encountered exception while running leaks:")
             print (stdout)
     return {"definitely": leak_checks}
 
@@ -139,7 +142,7 @@ def profile_leaks(shell, queries, count=1, rounds=1, supp_file=None):
     report = {}
     for name, query in queries.iteritems():
         print ("Analyzing leaks in query: %s" % query)
-        # Apply count
+        # Apply count (optionally run the query several times).
         summary = check_leaks(shell, query * count, supp_file)
         display = []
         for key in summary:
