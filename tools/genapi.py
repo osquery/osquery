@@ -119,6 +119,9 @@ def main(argc, argv):
     categories = {}
     for base, folders, files in os.walk(args.tables):
         for spec_file in files:
+            # Exclude blacklist specific file
+            if spec_file == 'blacklist':
+                continue
             platform = os.path.basename(base)
             platform_name = CANONICAL_PLATFORMS[platform]
             name = spec_file.split(".table", 1)[0]
