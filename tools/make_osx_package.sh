@@ -60,10 +60,10 @@ function parse_args() {
 
 function check_parsed_args() {
   if [[ $OSQUERY_CONFIG_PATH_SRC = "" ]]; then
-    usage
+    log "no config specified. assuming that you know what you're doing."
   fi
 
-  if [[ ! -f $OSQUERY_CONFIG_PATH_SRC ]]; then
+  if [ "$OSQUERY_CONFIG_PATH_SRC" != "" ] && [ ! -f $OSQUERY_CONFIG_PATH_SRC ]; then
     log "$OSQUERY_CONFIG_PATH_SRC is not a file"
     usage
   fi
@@ -92,7 +92,9 @@ function main() {
   for package in ${BREW_PACKAGES[*]}; do
     for dep in `brew deps $package`; do
       if ! contains_element $dep "${dependency_list[@]}"; then
-        dependency_list+=($dep)
+        if [[ "$dep" != "openssl" ]]; then
+          dependency_list+=($dep)
+        fi
       fi
     done
   done
@@ -124,7 +126,9 @@ function main() {
   cp $SCRIPT_DIR/../build/darwin/osquery/osqueryd $BINARY_INSTALL_DIR
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
   mkdir -p `dirname $INSTALL_PREFIX$OSQUERY_CONFIG_PATH_DEST`
-  cp $OSQUERY_CONFIG_PATH_SRC $INSTALL_PREFIX$OSQUERY_CONFIG_PATH_DEST
+  if [[ "$OSQUERY_CONFIG_PATH_SRC" != "" ]]; then
+    cp $OSQUERY_CONFIG_PATH_SRC $INSTALL_PREFIX$OSQUERY_CONFIG_PATH_DEST
+  fi
 
   log "copying osquery configurations"
   mkdir -p `dirname $INSTALL_PREFIX$LAUNCHD_INSTALL_PATH`
