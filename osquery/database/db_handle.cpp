@@ -69,15 +69,9 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
 
 DBHandle::~DBHandle() {
   for (auto handle : handles_) {
-    if (handle != nullptr) {
-      delete handle;
-      handle = nullptr;
-    }
+    delete handle;
   }
-  if (db_ != nullptr) {
-    delete db_;
-    db_ = nullptr;
-  }
+  delete db_;
 }
 
 /////////////////////////////////////////////////////////////////////////////
