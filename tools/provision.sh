@@ -347,6 +347,7 @@ function main() {
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
 
+    rpm -i ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
     package git-all
     package unzip
     package xz
