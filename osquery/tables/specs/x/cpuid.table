@@ -1,9 +1,14 @@
 table_name("cpuid")
+description("Useful CPU features from the cpuid ASM call.")
 schema([
     Column(name="feature", type="std::string"),
-    Column(name="value", type="std::string"),
-    Column(name="output_register", type="std::string"),
-    Column(name="output_bit", type="std::string"),
-    Column(name="input_eax", type="std::string"),
+    Column(name="value", type="std::string",
+        description="Bit value or string"),
+    Column(name="output_register", type="std::string",
+        description="Register used to for feature value"),
+    Column(name="output_bit", type="std::string",
+        description="Bit in register value for feature value"),
+    Column(name="input_eax", type="std::string",
+        description="Value of EAX used"),
 ])
 implementation("cpuid@genCPUID")
