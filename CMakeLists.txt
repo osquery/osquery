@@ -6,12 +6,6 @@ if(APPLE)
   set(OS_WHOLELINK_PRE "-Wl,-all_load")
   set(OS_WHOLELINK_POST "")
 else()
-  if(EXISTS "/etc/redhat-release")
-    set(CENTOS TRUE)
-  else()
-    set(UBUNTU TRUE)
-  endif()
-
   set(OS_COMPILE_FLAGS "-std=c++11")
   if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} -g")
@@ -20,13 +14,17 @@ else()
   set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
 endif()
 
-if(APPLE)
-  message("-- Building for OS X")
-elseif(UBUNTU)
-  message("-- Building for Ubuntu")
-elseif(CENTOS)
-  message("-- Building for CentOS")
-endif()
+# Use osquery language to set platform/os
+execute_process(
+  COMMAND ${CMAKE_SOURCE_DIR}/tools/provision.sh get_platform
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE PLATFORM
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+string(REPLACE "." "_" PLATFORM "${PLATFORM}")
+string(TOUPPER "${PLATFORM}" PLATFORM)
+list(GET PLATFORM 0 OSQUERY_BUILD_OS)
+list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO)
 
 # Make sure deps were built before compiling
 execute_process(
@@ -40,6 +38,16 @@ execute_process(
 if(OSQUERY_DEPS_CHECK)
   string(ASCII 27 Esc)
   message(WARNING "${Esc}[31m${OSQUERY_DEPS_MESSAGE}${Esc}[m")
+endif()
+
+if(APPLE)
+  message("-- Building for OS X")
+elseif(OSQUERY_BUILD_OS STREQUAL "UBUNTU")
+  set(UBUNTU TRUE)
+  message("-- Building for Ubuntu")
+elseif(OSQUERY_BUILD_OS STREQUAL "CENTOS")
+  set(CENTOS TRUE)
+  message("-- Building for CentOS")
 endif()
 
 if(BUILD_SHARED_LIBS)

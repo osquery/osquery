@@ -4,10 +4,23 @@ function platform() {
   local  __resultvar=$1
   if [[ -f "/etc/redhat-release" ]]; then
     eval $__resultvar="centos"
-  elif [[ -f "/etc/debian_version" ]]; then
+  elif [[ -f "/etc/lsb-release" ]]; then
     eval $__resultvar="ubuntu"
   elif [[ -f "/etc/pf.conf" ]]; then
     eval $__resultvar="darwin"
+  fi
+}
+
+function distro() {
+  local __resultvar=$2
+  if [[ $1 = "centos" ]]; then
+    eval $__resultvar="centos"`cat /etc/redhat-release | awk '{print $3}'`
+  elif [[ $1 = "ubuntu" ]]; then
+    eval $__resultvar=`cat /etc/*-release | grep DISTRIB_CODENAME | awk -F '=' '{print $2}'`
+  elif [[ $1 = "darwin" ]]; then
+    eval $__resultvar=`sw_vers -productVersion | awk -F '.' '{print $1 "." $2}'`
+  else
+    eval $__resultvar="unknown_version"
   fi
 }
 
@@ -53,3 +66,4 @@ function contains_element() {
   for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
   return 1
 }
+
