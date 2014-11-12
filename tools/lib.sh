@@ -8,6 +8,8 @@ function platform() {
     eval $__resultvar="ubuntu"
   elif [[ -f "/etc/pf.conf" ]]; then
     eval $__resultvar="darwin"
+  elif [[ -f "/bin/freebsd-version" ]]; then
+    eval $__resultvar="freebsd"
   fi
 }
 
@@ -19,6 +21,8 @@ function distro() {
     eval $__resultvar=`cat /etc/*-release | grep DISTRIB_CODENAME | awk -F '=' '{print $2}'`
   elif [[ $1 = "darwin" ]]; then
     eval $__resultvar=`sw_vers -productVersion | awk -F '.' '{print $1 "." $2}'`
+  elif [[ $1 = "freebsd" ]]; then
+    eval $__resultvar=`freebsd-version`
   else
     eval $__resultvar="unknown_version"
   fi
@@ -34,6 +38,8 @@ function threads() {
     eval $__resultvar=`cat /proc/cpuinfo | grep processor | wc -l`
   elif [[ $OS = "darwin" ]]; then
     eval $__resultvar=`sysctl hw.ncpu | awk '{print $2}'`
+  elif [[ $OS = "freebsd" ]]; then
+    eval $__resultvar=`sysctl -n kern.smp.cpus`
   fi
 }
 

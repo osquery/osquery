@@ -287,6 +287,8 @@ function main() {
     log "detected ubuntu ($DISTRO)"
   elif [[ $OS = "darwin" ]]; then
     log "detected mac os x ($DISTRO)"
+  elif [[ $OS = "freebsd" ]]; then
+    log "detected freebsd ($DISTRO)"
   else
     fatal "could not detect the current operating system. exiting."
   fi
@@ -451,10 +453,18 @@ function main() {
     package gflags
     package glog
     package thrift
+  elif [[ $OS = "freebsd" ]]; then
+    # XXX: install packages by hand for now
+    true
   fi
 
-  cd "$SCRIPT_DIR/../"
-  sudo pip install -r requirements.txt
+  if [[ $OS = "freebsd" ]]; then
+    # XXX: install devel/py-Jinja2
+    true
+  else
+    cd "$SCRIPT_DIR/../"
+    sudo pip install -r requirements.txt
+  fi
   git submodule init
   git submodule update
 }
