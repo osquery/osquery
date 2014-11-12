@@ -241,13 +241,15 @@ function check() {
     HASH=`sha1sum $0 | awk '{print $1}'`
   fi
 
-  if [[ ! "$1" = "check" ]]; then
+  if [[ "$1" = "build" ]]; then
     echo $HASH > "$2/.provision"
+    return
+  elif [[ ! "$1" = "check" ]]; then
     return
   fi
 
   if [[ "$#" < 2 ]]; then
-    echo "Usage: $0 check BUILD_PATH"
+    echo "Usage: $0 (check|build) BUILD_PATH"
     exit 1
   fi
 
@@ -261,17 +263,22 @@ function check() {
 
 function main() {
   platform OS
+  distro $OS DISTRO
+
+  if [[ $1 = "get_platform" ]]; then
+    echo "$OS;$DISTRO"
+    return 0
+  fi
 
   mkdir -p "$WORKING_DIR"
   cd "$WORKING_DIR"
 
   if [[ $OS = "centos" ]]; then
-    log "detected centos"
+    log "detected centos ($DISTRO)"
   elif [[ $OS = "ubuntu" ]]; then
-    log "detected ubuntu"
-    DISTRO=`cat /etc/*-release | grep DISTRIB_CODENAME | awk '{split($0,bits,"="); print bits[2]}'`
+    log "detected ubuntu ($DISTRO)"
   elif [[ $OS = "darwin" ]]; then
-    log "detected mac os x"
+    log "detected mac os x ($DISTRO)"
   else
     fatal "could not detect the current operating system. exiting."
   fi
@@ -445,4 +452,4 @@ function main() {
 }
 
 check $1 $2
-main
+main $1

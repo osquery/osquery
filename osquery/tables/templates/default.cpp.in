@@ -1,0 +1,196 @@
+// Copyright 2004-present Facebook. All Rights Reserved.
+
+/*
+** This file is generated. Do not modify it manually!
+*/
+
+#include <cstring>
+#include <string>
+#include <vector>
+
+#include <boost/lexical_cast.hpp>
+
+#include "osquery/database.h"
+#include "osquery/tables/base.h"
+#include "osquery/registry/registry.h"
+
+namespace osquery { namespace tables {
+
+{% if class_name == "" %}\
+osquery::QueryData {{function}}();
+{% else %}
+class {{class_name}} {
+ public:
+  static osquery::QueryData {{function}}();
+};
+{% endif %}\
+
+struct sqlite3_{{table_name}} {
+  int n;
+{% for col in schema %}\
+  std::vector<{{col.type}}> {{col.name}};
+{% endfor %}\
+};
+
+const std::string
+  sqlite3_{{table_name}}_create_table_statement =
+  "CREATE TABLE {{table_name}}("
+  {% for col in schema %}\
+  "{{col.name}} \
+{% if col.type == "std::string" %}VARCHAR{% endif %}\
+{% if col.type == "int" %}INTEGER{% endif %}\
+{% if col.type == "long long int" %}BIGINT{% endif %}\
+{% if not loop.last %}, {% endif %}"
+  {% endfor %}\
+")";
+
+int {{table_name_cc}}Create(
+  sqlite3 *db,
+  void *pAux,
+  int argc,
+  const char *const *argv,
+  sqlite3_vtab **ppVtab,
+  char **pzErr
+) {
+  return xCreate<
+    x_vtab<sqlite3_{{table_name}}>,
+    sqlite3_{{table_name}}
+  >(
+    db, pAux, argc, argv, ppVtab, pzErr,
+    sqlite3_{{table_name}}_create_table_statement.c_str()
+  );
+}
+
+int {{table_name_cc}}Column(
+  sqlite3_vtab_cursor *cur,
+  sqlite3_context *ctx,
+  int col
+) {
+  base_cursor *pCur = (base_cursor*)cur;
+  x_vtab<sqlite3_{{table_name}}> *pVtab =
+    (x_vtab<sqlite3_{{table_name}}>*)cur->pVtab;
+
+  if(pCur->row >= 0 && pCur->row < pVtab->pContent->n) {
+    switch (col) {
+{% for col in schema %}\
+      // {{ col.name }}
+      case {{ loop.index0 }}:
+{% if col.type == "std::string" %}\
+        sqlite3_result_text(
+          ctx,
+          (pVtab->pContent->{{col.name}}[pCur->row]).c_str(),
+          -1,
+          nullptr
+        );
+{% endif %}\
+{% if col.type == "int" %}\
+        sqlite3_result_int(
+          ctx,
+          (int)pVtab->pContent->{{col.name}}[pCur->row]
+        );
+{% endif %}\
+{% if col.type == "long long int" %}\
+        sqlite3_result_int64(
+          ctx,
+          (long long int)pVtab->pContent->{{col.name}}[pCur->row]
+        );
+{% endif %}\
+        break;
+{% endfor %}\
+    }
+  }
+  return SQLITE_OK;
+}
+
+int {{table_name_cc}}Filter(
+  sqlite3_vtab_cursor *pVtabCursor,
+  int idxNum,
+  const char *idxStr,
+  int argc,
+  sqlite3_value **argv
+) {
+  base_cursor *pCur = (base_cursor *)pVtabCursor;
+  x_vtab<sqlite3_{{table_name}}> *pVtab =
+    (x_vtab<sqlite3_{{table_name}}>*)pVtabCursor->pVtab;
+
+  pCur->row = 0;
+{% for col in schema %}\
+  pVtab->pContent->{{col.name}}.clear();
+{% endfor %}\
+
+{% if class_name != "" %}
+  for (auto& row : osquery::tables::{{class_name}}::{{function}}()) {
+{% else %}
+  for (auto& row : osquery::tables::{{function}}()) {
+{% endif %}
+{% for col in schema %}\
+{% if col.type == "std::string" %}\
+    pVtab->pContent->{{col.name}}.push_back(row["{{col.name}}"]);
+{% endif %}\
+{% if col.type == "int" %}\
+    try {
+      pVtab->pContent->{{col.name}}\
+.push_back(boost::lexical_cast<int>(row["{{col.name}}"]));
+    } catch (const boost::bad_lexical_cast& e) {
+      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to int";
+      pVtab->pContent->{{col.name}}.push_back(-1);
+    }
+{% endif %}\
+{% if col.type == "long long int" %}\
+    try {
+      pVtab->pContent->{{col.name}}\
+.push_back(boost::lexical_cast<long long>(row["{{col.name}}"]));
+    } catch (const boost::bad_lexical_cast& e) {
+      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to long long int";
+      pVtab->pContent->{{col.name}}.push_back(-1);
+    }
+{% endif %}\
+{% endfor %}\
+  }
+
+  pVtab->pContent->n = pVtab->pContent->{{schema[0].name}}.size();
+
+  return SQLITE_OK;
+}
+
+static sqlite3_module {{table_name_cc}}Module = {
+  0,
+  {{table_name_cc}}Create,
+  {{table_name_cc}}Create,
+  xBestIndex,
+  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
+  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
+  xOpen<base_cursor>,
+  xClose<base_cursor>,
+  {{table_name_cc}}Filter,
+  xNext<base_cursor>,
+  xEof<base_cursor, x_vtab<sqlite3_{{table_name}}>>,
+  {{table_name_cc}}Column,
+  xRowid<base_cursor>,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+};
+
+class {{table_name_cc}}TablePlugin : public TablePlugin {
+public:
+  {{table_name_cc}}TablePlugin() {}
+
+  int attachVtable(sqlite3 *db) {
+    return sqlite3_attach_vtable<sqlite3_{{table_name}}>(
+      db, "{{table_name}}", &{{table_name_cc}}Module);
+  }
+
+  virtual ~{{table_name_cc}}TablePlugin() {}
+};
+
+REGISTER_TABLE(
+  "{{table_name}}",
+  std::make_shared<{{table_name_cc}}TablePlugin>()
+);
+
+}}
