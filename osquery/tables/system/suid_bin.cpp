@@ -1,26 +1,79 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include <ctime>
+
 #include <pwd.h>
 #include <grp.h>
 #include <sys/stat.h>
-#include <boost/system/system_error.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/filesystem.hpp>
-#include <glog/logging.h>
-#include "osquery/database.h"
 
-using std::string;
-using boost::lexical_cast;
+#include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/system/system_error.hpp>
+
+#include <glog/logging.h>
+
+#include "osquery/database.h"
 
 namespace osquery {
 namespace tables {
 
-QueryData genSuidBin() {
-  Row r;
-  QueryData results;
+Status genBin(const boost::filesystem::path& path,
+              int perms,
+              QueryData& results) {
   struct stat info;
+  // store user and group
+  if (stat(path.c_str(), &info) != 0) {
+    return Status(1, "stat failed");
+  }
+
+  // store path
+  Row r;
+  r["path"] = path.string();
+
+  struct passwd *pw = getpwuid(info.st_uid);
+  struct group *gr = getgrgid(info.st_gid);
+
+  // get user name + group
+  std::string user;
+  if (pw != nullptr) {
+    user = std::string(pw->pw_name);
+  } else {
+    user = boost::lexical_cast<std::string>(info.st_uid);
+  }
+
+  std::string group;
+  if (gr != nullptr) {
+    group = std::string(gr->gr_name);
+  } else {
+    group = boost::lexical_cast<std::string>(info.st_gid);
+  }
+
+  r["username"] = user;
+  r["groupname"] = group;
+
+  r["permissions"] = "";
+  if ((perms & 04000) == 04000) {
+    r["permissions"] += "S";
+  }
+
+  if ((perms & 02000) == 02000) {
+    r["permissions"] += "G";
+  }
+
+  results.push_back(r);
+  return Status(0, "OK");
+}
+
+QueryData genSuidBin() {
+  QueryData results;
   boost::system::error_code error;
+
+#if defined(UBUNTU)
+  // When building on supported Ubuntu systems, boost may ABRT.
+  if (geteuid() != 0) {
+    return results;
+  }
+#endif
 
   boost::filesystem::recursive_directory_iterator it =
       boost::filesystem::recursive_directory_iterator(
@@ -35,32 +88,10 @@ QueryData genSuidBin() {
   while (it != end) {
     boost::filesystem::path path = *it;
     try {
-      if (boost::filesystem::is_regular_file(path) &&
-          ((it.status().permissions() & 04000) == 04000 ||
-           (it.status().permissions() & 02000) == 02000)) {
-        // store path
-        r["path"] = boost::lexical_cast<std::string>(path);
-
-        // store user and group
-        if (stat(path.c_str(), &info) == 0) {
-          struct passwd *pw = getpwuid(info.st_uid);
-          struct group *gr = getgrgid(info.st_gid);
-          // get user name
-          r["unix_user"] = pw ? boost::lexical_cast<std::string>(pw->pw_name)
-                              : boost::lexical_cast<std::string>(info.st_uid);
-          // get group
-          r["unix_group"] = gr ? boost::lexical_cast<std::string>(gr->gr_name)
-                               : boost::lexical_cast<std::string>(info.st_gid);
-
-          // get permission
-          r["permissions"] = "";
-          r["permissions"] +=
-              (it.status().permissions() & 04000) == 04000 ? "S" : "";
-          r["permissions"] +=
-              (it.status().permissions() & 02000) == 02000 ? "G" : "";
-
-          results.push_back(r);
-        }
+      int perms = it.status().permissions();
+      if (boost::filesystem::is_regular_file(path) && 
+          ((perms & 04000) == 04000 || (perms & 02000) == 02000)) {
+        genBin(path, perms, results);
       }
     } catch (...) {
       // handle invalid files like /dev/fd/3

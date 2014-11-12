@@ -18,218 +18,11 @@ DEVELOPING = False
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
 
-# BL_IMPL_TEMPLATE is the jinja template used to generate the virtual table
-# implementation file when the table is blacklisted in ./osquery/tables/specs
-BL_IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
+# Read all implementation templates
+TEMPLATES = {}
 
-/*
-** This file is generated. Do not modify it manually!
-*/
-
-void __blacklisted_{{table_name}}() {}
-
-"""
-
-# IMPL_TEMPLATE is the jinja template used to generate the virtual table
-# implementation file
-IMPL_TEMPLATE = """// Copyright 2004-present Facebook. All Rights Reserved.
-
-/*
-** This file is generated. Do not modify it manually!
-*/
-
-#include <cstring>
-#include <string>
-#include <vector>
-
-#include <boost/lexical_cast.hpp>
-
-#include "osquery/database.h"
-#include "osquery/tables/base.h"
-#include "osquery/registry/registry.h"
-
-namespace osquery { namespace tables {
-
-{% if class_name == "" %}
-osquery::QueryData {{function}}();
-{% else %}
-class {{class_name}} {
- public:
-  static osquery::QueryData {{function}}();
-};
-{% endif %}
-
-struct sqlite3_{{table_name}} {
-  int n;
-{% for col in schema %}\
-  std::vector<{{col.type}}> {{col.name}};
-{% endfor %}\
-};
-
-const std::string
-  sqlite3_{{table_name}}_create_table_statement =
-  "CREATE TABLE {{table_name}}("
-  {% for col in schema %}\
-  "{{col.name}} \
-{% if col.type == "std::string" %}VARCHAR{% endif %}\
-{% if col.type == "int" %}INTEGER{% endif %}\
-{% if col.type == "long long int" %}BIGINT{% endif %}\
-{% if not loop.last %}, {% endif %}"
-  {% endfor %}\
-")";
-
-int {{table_name_cc}}Create(
-  sqlite3 *db,
-  void *pAux,
-  int argc,
-  const char *const *argv,
-  sqlite3_vtab **ppVtab,
-  char **pzErr
-) {
-  return xCreate<
-    x_vtab<sqlite3_{{table_name}}>,
-    sqlite3_{{table_name}}
-  >(
-    db, pAux, argc, argv, ppVtab, pzErr,
-    sqlite3_{{table_name}}_create_table_statement.c_str()
-  );
-}
-
-int {{table_name_cc}}Column(
-  sqlite3_vtab_cursor *cur,
-  sqlite3_context *ctx,
-  int col
-) {
-  base_cursor *pCur = (base_cursor*)cur;
-  x_vtab<sqlite3_{{table_name}}> *pVtab =
-    (x_vtab<sqlite3_{{table_name}}>*)cur->pVtab;
-
-  if(pCur->row >= 0 && pCur->row < pVtab->pContent->n) {
-    switch (col) {
-{% for col in schema %}\
-      // {{ col.name }}
-      case {{ loop.index0 }}:
-{% if col.type == "std::string" %}\
-        sqlite3_result_text(
-          ctx,
-          (pVtab->pContent->{{col.name}}[pCur->row]).c_str(),
-          -1,
-          nullptr
-        );
-{% endif %}\
-{% if col.type == "int" %}\
-        sqlite3_result_int(
-          ctx,
-          (int)pVtab->pContent->{{col.name}}[pCur->row]
-        );
-{% endif %}\
-{% if col.type == "long long int" %}\
-        sqlite3_result_int64(
-          ctx,
-          (long long int)pVtab->pContent->{{col.name}}[pCur->row]
-        );
-{% endif %}\
-        break;
-{% endfor %}\
-    }
-  }
-  return SQLITE_OK;
-}
-
-int {{table_name_cc}}Filter(
-  sqlite3_vtab_cursor *pVtabCursor,
-  int idxNum,
-  const char *idxStr,
-  int argc,
-  sqlite3_value **argv
-) {
-  base_cursor *pCur = (base_cursor *)pVtabCursor;
-  x_vtab<sqlite3_{{table_name}}> *pVtab =
-    (x_vtab<sqlite3_{{table_name}}>*)pVtabCursor->pVtab;
-
-  pCur->row = 0;
-{% for col in schema %}\
-  pVtab->pContent->{{col.name}}.clear();
-{% endfor %}\
-
-{% if class_name != "" %}
-  for (auto& row : osquery::tables::{{class_name}}::{{function}}()) {
-{% else %}
-  for (auto& row : osquery::tables::{{function}}()) {
-{% endif %}
-{% for col in schema %}\
-{% if col.type == "std::string" %}\
-    pVtab->pContent->{{col.name}}.push_back(row["{{col.name}}"]);
-{% endif %}\
-{% if col.type == "int" %}\
-    try {
-      pVtab->pContent->{{col.name}}\
-.push_back(boost::lexical_cast<int>(row["{{col.name}}"]));
-    } catch (const boost::bad_lexical_cast& e) {
-      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to int";
-      pVtab->pContent->{{col.name}}.push_back(-1);
-    }
-{% endif %}\
-{% if col.type == "long long int" %}\
-    try {
-      pVtab->pContent->{{col.name}}\
-.push_back(boost::lexical_cast<long long>(row["{{col.name}}"]));
-    } catch (const boost::bad_lexical_cast& e) {
-      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to long long int";
-      pVtab->pContent->{{col.name}}.push_back(-1);
-    }
-{% endif %}\
-{% endfor %}\
-  }
-
-  pVtab->pContent->n = pVtab->pContent->{{schema[0].name}}.size();
-
-  return SQLITE_OK;
-}
-
-static sqlite3_module {{table_name_cc}}Module = {
-  0,
-  {{table_name_cc}}Create,
-  {{table_name_cc}}Create,
-  xBestIndex,
-  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
-  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
-  xOpen<base_cursor>,
-  xClose<base_cursor>,
-  {{table_name_cc}}Filter,
-  xNext<base_cursor>,
-  xEof<base_cursor, x_vtab<sqlite3_{{table_name}}>>,
-  {{table_name_cc}}Column,
-  xRowid<base_cursor>,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-};
-
-class {{table_name_cc}}TablePlugin : public TablePlugin {
-public:
-  {{table_name_cc}}TablePlugin() {}
-
-  int attachVtable(sqlite3 *db) {
-    return sqlite3_attach_vtable<sqlite3_{{table_name}}>(
-      db, "{{table_name}}", &{{table_name_cc}}Module);
-  }
-
-  virtual ~{{table_name_cc}}TablePlugin() {}
-};
-
-REGISTER_TABLE(
-  "{{table_name}}",
-  std::make_shared<{{table_name_cc}}TablePlugin>()
-);
-
-}}
-
-"""
+# Temporary reserved column names
+RESERVED = ["group"]
 
 def usage():
     """ print program usage """
@@ -242,6 +35,35 @@ def to_camel_case(snake_case):
 
 def lightred(msg):
     return "\033[1;31m %s \033[0m" % str(msg)
+
+def is_blacklisted(path, table_name):
+    """Allow blacklisting by tablename."""
+    specs_path = os.path.dirname(os.path.dirname(path))
+    blacklist_path = os.path.join(specs_path, "blacklist")
+    if not os.path.exists(blacklist_path):
+        return False
+    try:
+        with open(blacklist_path, "r") as fh:
+            blacklist = [line.strip() for line in fh.read().split("\n")
+                if len(line.strip()) > 0 and line.strip()[0] != "#"]
+            if table_name in blacklist:
+                return True
+    except:
+        # Blacklist is not readable.
+        pass
+    return False
+
+def setup_templates(path):
+    tables_path = os.path.dirname(os.path.dirname(os.path.dirname(path)))
+    templates_path = os.path.join(tables_path, "templates")
+    if not os.path.exists(templates_path):
+        print ("Cannot read templates path: %s" % (templates_path))
+        exit(1)
+    for template in os.listdir(os.path.join(tables_path, "templates")):
+        template_name = template.split(".", 1)[0]
+        with open(os.path.join(templates_path, template), "rb") as fh:
+            TEMPLATES[template_name] = fh.read().replace("\\\n", "")
+    pass
 
 class Singleton(object):
     """
@@ -278,10 +100,10 @@ class TableState(Singleton):
     def foreign_keys(self):
         return [i for i in self.schema if isinstance(i, ForeignKey)]
 
-    def generate(self, path, template=IMPL_TEMPLATE):
+    def generate(self, path, template="default"):
         """Generate the virtual table files"""
         logging.debug("TableState.generate")
-        self.impl_content = jinja2.Template(template).render(
+        self.impl_content = jinja2.Template(TEMPLATES[template]).render(
             table_name=self.table_name,
             table_name_cc=to_camel_case(self.table_name),
             schema=self.columns(),
@@ -290,6 +112,14 @@ class TableState(Singleton):
             function=self.function,
             class_name=self.class_name
         )
+
+        # Check for reserved column names
+        for column in self.columns():
+            if column.name in RESERVED:
+                print (lightred(("Cannot use column name: %s in table: %s "
+                    "(the column name is reserved)" % (
+                        column.name, self.table_name))))
+                exit(1)
 
         path_bits = path.split("/")
         for i in range(1, len(path_bits)):
@@ -305,7 +135,7 @@ class TableState(Singleton):
     def blacklist(self, path):
         print (lightred("Blacklisting generated %s" % path))
         logging.debug("blacklisting %s" % path)
-        self.generate(path, template=BL_IMPL_TEMPLATE)
+        self.generate(path, template="blacklist")
 
 table = TableState()
 
@@ -374,23 +204,6 @@ def implementation(impl_string):
 def description(text):
     table.description = text
 
-def is_blacklisted(path, table_name):
-    """Allow blacklisting by tablename."""
-    specs_path = os.path.dirname(os.path.dirname(path))
-    blacklist_path = os.path.join(specs_path, "blacklist")
-    if not os.path.exists(blacklist_path):
-        return False
-    try:
-        with open(blacklist_path, "r") as fh:
-            blacklist = [line.strip() for line in fh.read().split("\n")
-                if len(line.strip()) > 0 and line.strip()[0] != "#"]
-            if table_name in blacklist:
-                return True
-    except:
-        # Blacklist is not readable.
-        pass
-    return False
-
 def main(argc, argv):
     if DEVELOPING:
         logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG)
@@ -407,6 +220,7 @@ def main(argc, argv):
     # Adding a 3rd parameter will enable the blacklist
     disable_blacklist = argc > 3
 
+    setup_templates(filename)
     with open(filename, "rU") as file_handle:
         tree = ast.parse(file_handle.read())
         exec(compile(tree, "<string>", "exec"))
