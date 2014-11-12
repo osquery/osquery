@@ -105,6 +105,40 @@ TEST_F(PrinterTests, test_beautify) {
 )";
   EXPECT_EQ(result, expected);
 }
+
+TEST_F(PrinterTests, test_unicode) {
+  QueryData augmented = {
+      {
+       {"name", "Mike Jones"},
+       {"age", "39"},
+       {"favorite_food", "mac and cheese"},
+       {"lucky_number", "1"},
+      },
+      {
+       {"name", "Àlex Smith"},
+       {"age", "44"},
+       {"favorite_food", "peanut butter and jelly"},
+       {"lucky_number", "2"},
+      },
+      {
+       {"name", "Doctor Who"},
+       {"age", "2000"},
+       {"favorite_food", "fish sticks and custard"},
+       {"lucky_number", "11"},
+      },
+  };
+  auto result = beautify(augmented, order);
+  std::string expected = R"(
++------------+------+-------------------------+--------------+
+| name       | age  | favorite_food           | lucky_number |
++------------+------+-------------------------+--------------+
+| Mike Jones | 39   | mac and cheese          | 1            |
+| Àlex Smith | 44   | peanut butter and jelly | 2            |
+| Doctor Who | 2000 | fish sticks and custard | 11           |
++------------+------+-------------------------+--------------+
+)";
+  EXPECT_EQ(result, expected);
+}
 }
 
 int main(int argc, char* argv[]) {
