@@ -22,7 +22,7 @@ function distro() {
   elif [[ $1 = "darwin" ]]; then
     eval $__resultvar=`sw_vers -productVersion | awk -F '.' '{print $1 "." $2}'`
   elif [[ $1 = "freebsd" ]]; then
-    eval $__resultvar=`freebsd-version`
+    eval $__resultvar=`freebsd-version | awk -F '-' '{print $1}'`
   else
     eval $__resultvar="unknown_version"
   fi
