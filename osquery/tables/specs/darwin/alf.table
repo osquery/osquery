@@ -1,11 +1,11 @@
 table_name("alf")
 schema([
-    Column(name="allow_signed_enabled", type="int"),
-    Column(name="firewall_unload", type="int"),
-    Column(name="global_state", type="int"),
-    Column(name="logging_enabled", type="int"),
-    Column(name="logging_option", type="int"),
-    Column(name="stealth_enabled", type="int"),
-    Column(name="version", type="std::string"),
+    Column("allow_signed_enabled", INTEGER),
+    Column("firewall_unload", INTEGER),
+    Column("global_state", INTEGER),
+    Column("logging_enabled", INTEGER),
+    Column("logging_option", INTEGER),
+    Column("stealth_enabled", INTEGER),
+    Column("version", TEXT),
 ])
 implementation("firewall@genALF")

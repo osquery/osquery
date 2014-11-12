@@ -1,9 +1,9 @@
 table_name("kernel_modules")
 schema([
-    Column(name="name", type="std::string"),
-    Column(name="size", type="std::string"),
-    Column(name="used_by", type="std::string"),
-    Column(name="status", type="std::string"),
-    Column(name="address", type="std::string"),
+    Column("name", TEXT),
+    Column("size", TEXT),
+    Column("used_by", TEXT),
+    Column("status", TEXT),
+    Column("address", TEXT),
 ])
 implementation("kernel_modules@genKernelModules")

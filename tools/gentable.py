@@ -24,6 +24,20 @@ TEMPLATES = {}
 # Temporary reserved column names
 RESERVED = ["group"]
 
+# Supported SQL types for spec
+class DataType(object):
+    def __init__(self, affinity, cpp_type="std::string"):
+        self.affinity = affinity
+        self.type = cpp_type
+    def __repr__(self):
+        return self.affinity
+
+TEXT = DataType("TEXT")
+DATE = DataType("TEXT")
+DATETIME = DataType("TEXT")
+INTEGER = DataType("INTEGER", "int")
+BIGINT = DataType("BIGINT", "long long int")
+
 def usage():
     """ print program usage """
     print("Usage: %s <spec.table> <file.cpp> [disable_blacklist]" % sys.argv[0])
@@ -63,7 +77,6 @@ def setup_templates(path):
         template_name = template.split(".", 1)[0]
         with open(os.path.join(templates_path, template), "rb") as fh:
             TEMPLATES[template_name] = fh.read().replace("\\\n", "")
-    pass
 
 class Singleton(object):
     """
@@ -145,10 +158,10 @@ class Column(object):
     Define a column by name and type with an optional description to assist
     documentation generation and reference.
     """
-    def __init__(self, **kwargs):
-        self.name = kwargs.get("name", "")
-        self.type = kwargs.get("type", "")
-        self.description = kwargs.get("description", "")
+    def __init__(self, name, col_type, description="", **kwargs):
+        self.name = name
+        self.type = col_type
+        self.description = description
 
 class ForeignKey(object):
     """

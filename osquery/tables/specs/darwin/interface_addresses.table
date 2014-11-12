@@ -1,9 +1,9 @@
 table_name("interface_addresses")
 schema([
-    Column(name="interface", type="std::string"),
-    Column(name="address", type="std::string"),
-    Column(name="mask", type="std::string"),
-    Column(name="broadcast", type="std::string"),
-    Column(name="point_to_point", type="std::string"),
+    Column("interface", TEXT),
+    Column("address", TEXT),
+    Column("mask", TEXT),
+    Column("broadcast", TEXT),
+    Column("point_to_point", TEXT),
 ])
 implementation("interfaces@genInterfaceAddresses")

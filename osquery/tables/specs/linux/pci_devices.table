@@ -1,8 +1,8 @@
 table_name("pci_devices")
 schema([
-    Column(name="slot", type="std::string"),
-    Column(name="device_class", type="std::string"),
-    Column(name="vendor", type="std::string"),
-    Column(name="model", type="std::string"),
+    Column("slot", TEXT),
+    Column("device_class", TEXT),
+    Column("vendor", TEXT),
+    Column("model", TEXT),
 ])
 implementation("pci_devices@genLspci")

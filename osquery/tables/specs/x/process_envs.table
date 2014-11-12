@@ -1,15 +1,11 @@
 table_name("process_envs")
 description("A key/value table of environment variables for each process.")
 schema([
-    Column(name="pid", type="int"),
-    Column(name="name", type="std::string",
-        description="Process name"),
-    Column(name="path", type="std::string",
-        description="Process path"),
-    Column(name="key", type="std::string",
-        description="Environment variable name"),
-    Column(name="value", type="std::string",
-        description="Environment variable value"),
+    Column("pid", INTEGER),
+    Column("name", TEXT, "Process name"),
+    Column("path", TEXT, "Process path"),
+    Column("key", TEXT, "Environment variable name"),
+    Column("value", TEXT, "Environment variable value"),
     ForeignKey(column="pid", table="processes"),
     ForeignKey(column="pid", table="process_open_files"),
 ])

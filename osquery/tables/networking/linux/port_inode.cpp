@@ -1,24 +1,28 @@
+// Copyright 2004-present Facebook. All Rights Reserved.
+
+#include <exception>
+
+#include <arpa/inet.h>
+#include <asm/types.h>
+#include <linux/inet_diag.h>
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
+#include <linux/sock_diag.h>
+#include <linux/tcp.h>
+#include <netinet/in.h>
+#include <pwd.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <asm/types.h>
 #include <sys/socket.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
-#include <netinet/in.h>
-#include <linux/tcp.h>
-#include <linux/sock_diag.h>
-#include <linux/inet_diag.h>
-#include <arpa/inet.h>
-#include <pwd.h>
-#include <exception>
+#include <unistd.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <glog/logging.h>
+
 #include "osquery/core.h"
 #include "osquery/database.h"
 #include "osquery/logger.h"

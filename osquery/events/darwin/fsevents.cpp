@@ -1,8 +1,10 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/events/darwin/fsevents.h"
+#include <boost/numeric/ublas/matrix.hpp>
 
 #include <glog/logging.h>
+
+#include "osquery/events/darwin/fsevents.h"
 
 namespace osquery {
 

@@ -1,11 +1,11 @@
 table_name("kextstat")
 schema([
-    Column(name="idx", type="int"),
-    Column(name="refs", type="int"),
-    Column(name="size", type="std::string"),
-    Column(name="wired", type="std::string"),
-    Column(name="name", type="std::string"),
-    Column(name="version", type="std::string"),
-    Column(name="linked_against", type="std::string"),
+    Column("idx", INTEGER),
+    Column("refs", INTEGER),
+    Column("size", TEXT),
+    Column("wired", TEXT),
+    Column("name", TEXT),
+    Column("version", TEXT),
+    Column("linked_against", TEXT),
 ])
 implementation("kextstat@genKextstat")

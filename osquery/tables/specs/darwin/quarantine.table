@@ -1,6 +1,6 @@
 table_name("quarantine")
 schema([
-    Column(name="path", type="std::string"),
-    Column(name="creator", type="std::string"),
+    Column("path", TEXT),
+    Column("creator", TEXT),
 ])
 implementation("system@genQuarantine")

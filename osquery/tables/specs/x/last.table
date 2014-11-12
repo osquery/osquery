@@ -1,10 +1,10 @@
 table_name("last")
 schema([
-    Column(name="login", type="std::string"),
-    Column(name="tty", type="std::string"),
-    Column(name="pid", type="int"),
-    Column(name="type", type="int"),
-    Column(name="time", type="int"),
-    Column(name="host", type="std::string"),
+    Column("username", TEXT),
+    Column("tty", TEXT),
+    Column("pid", INTEGER),
+    Column("type", INTEGER),
+    Column("time", INTEGER),
+    Column("host", TEXT),
 ])
 implementation("last@genLastAccess")

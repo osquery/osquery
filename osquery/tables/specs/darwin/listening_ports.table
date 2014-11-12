@@ -1,9 +1,9 @@
 table_name("listening_ports")
 schema([
-    Column(name="pid", type="int"),
-    Column(name="port", type="int"),
-    Column(name="protocol", type="int"),
-    Column(name="family", type="int"),
-    Column(name="address", type="std::string"),
+    Column("pid", INTEGER),
+    Column("port", INTEGER),
+    Column("protocol", INTEGER),
+    Column("family", INTEGER),
+    Column("address", TEXT),
 ])
 implementation("listening_ports@genListeningPorts")

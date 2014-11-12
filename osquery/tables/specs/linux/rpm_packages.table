@@ -1,11 +1,11 @@
 table_name("rpm_packages")
 schema([
-    Column(name="name", type="std::string"),
-    Column(name="version", type="std::string"),
-    Column(name="release", type="std::string"),
-    Column(name="source", type="std::string"),
-    Column(name="size", type="std::string"),
-    Column(name="sha1", type="std::string"),
-    Column(name="arch", type="std::string"),
+    Column("name", TEXT),
+    Column("version", TEXT),
+    Column("release", TEXT),
+    Column("source", TEXT),
+    Column("size", BIGINT),
+    Column("sha1", TEXT),
+    Column("arch", TEXT),
 ])
 implementation("system/rpm_packages@genRpms")

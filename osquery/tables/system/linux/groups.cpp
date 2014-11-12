@@ -5,8 +5,6 @@
 #include <vector>
 #include <string>
 
-#include <boost/lexical_cast.hpp>
-
 #include "osquery/core.h"
 #include "osquery/database.h"
 
@@ -28,8 +26,8 @@ QueryData genGroups() {
     if (std::find(groups_in.begin(), groups_in.end(), grp->gr_gid) ==
         groups_in.end()) {
       Row r;
-      r["gid"] = boost::lexical_cast<std::string>(grp->gr_gid);
-      r["name"] = std::string(grp->gr_name);
+      r["gid"] = INTEGER(grp->gr_gid);
+      r["groupname"] = TEXT(grp->gr_name);
       results.push_back(r);
       groups_in.insert(grp->gr_gid);
     }

@@ -1,6 +1,6 @@
 table_name("groups")
 schema([
-    Column(name="gid", type="long long int"),
-    Column(name="name", type="std::string"),
+    Column("gid", BIGINT),
+    Column("groupname", TEXT),
 ])
 implementation("groups@genGroups")
