@@ -7,6 +7,8 @@
 
 #include <glog/logging.h>
 
+#include "osquery/core.h"
+
 namespace osquery {
 
 std::string beautify(const QueryData& q,
@@ -62,7 +64,7 @@ std::string generateHeader(const std::map<std::string, int>& lengths,
     header << " ";
     header << each;
     try {
-      for (int i = 0; i < (lengths.at(each) - each.size() + 1); ++i) {
+      for (int i = 0; i < (lengths.at(each) - utf8StringSize(each) + 1); ++i) {
         header << " ";
       }
     } catch (const std::out_of_range& e) {
@@ -86,7 +88,7 @@ std::string generateRow(const Row& r,
     row << " ";
     try {
       row << r.at(each);
-      for (int i = 0; i < (lengths.at(each) - r.at(each).size() + 1); ++i) {
+      for (int i = 0; i < (lengths.at(each) - utf8StringSize(r.at(each)) + 1); ++i) {
         row << " ";
       }
     } catch (const std::out_of_range& e) {
@@ -116,14 +118,15 @@ std::map<std::string, int> computeQueryDataLengths(const QueryData& q) {
   }
 
   for (const auto& it : q.front()) {
-    results[it.first] = it.first.size();
+    results[it.first] = utf8StringSize(it.first);
   }
 
   for (const auto& row : q) {
     for (const auto& it : row) {
       try {
-        if (it.second.size() > results[it.first]) {
-          results[it.first] = it.second.size();
+        auto s = utf8StringSize(it.second);
+        if (s > results[it.first]) {
+          results[it.first] = s;
         }
       } catch (const std::out_of_range& e) {
         LOG(ERROR) << "Error retrieving the \"" << it.first
