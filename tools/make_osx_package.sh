@@ -108,6 +108,8 @@ function main() {
     echo "    - $dep ($dep_dir)"
     mkdir -p $INSTALL_PREFIX`dirname $dep_dir`
     cp -r $dep_dir $INSTALL_PREFIX`dirname $dep_dir`
+    mkdir -p "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula"
+    cp "$BREW_PREFIX/Library/Formula/$dep.rb" "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula/$dep.rb"
     for link in $links; do
       if [[ $link = $BREW_PREFIX* ]]; then
         target="`dirname $link`/`ls -l $link | awk '{print $11}'`"
