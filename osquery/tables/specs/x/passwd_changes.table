@@ -1,12 +1,9 @@
 table_name("passwd_changes")
 description("Mostly an example use of events.")
 schema([
-    Column(name="target_path", type="std::string",
-        description="The path changed"),
-    Column(name="time", type="std::string"),
-    Column(name="action", type="std::string",
-        description="Change action (UPDATE, REMOVE, etc)"),
-    Column(name="transaction_id", type="std::string",
-        description="ID used during bulk update"),
+    Column("target_path", TEXT, "The path changed"),
+    Column("time", TEXT),
+    Column("action", TEXT, "Change action (UPDATE, REMOVE, etc)"),
+    Column("transaction_id", BIGINT, "ID used during bulk update"),
 ])
 implementation("passwd_changes@PasswdChangesEventSubscriber::genTable")

@@ -1,16 +1,16 @@
 table_name("interface_details")
 schema([
-    Column(name="interface", type="std::string"),
-    Column(name="mac", type="std::string"),
-    Column(name="type", type="int"),
-    Column(name="mtu", type="std::string"),
-    Column(name="metric", type="std::string"),
-    Column(name="ipackets", type="std::string"),
-    Column(name="opackets", type="std::string"),
-    Column(name="ibytes", type="std::string"),
-    Column(name="obytes", type="std::string"),
-    Column(name="ierrors", type="std::string"),
-    Column(name="oerrors", type="std::string"),
-    Column(name="last_change", type="std::string"),
+    Column("interface", TEXT),
+    Column("mac", TEXT),
+    Column("type", INTEGER),
+    Column("mtu", TEXT),
+    Column("metric", TEXT),
+    Column("ipackets", TEXT),
+    Column("opackets", TEXT),
+    Column("ibytes", TEXT),
+    Column("obytes", TEXT),
+    Column("ierrors", TEXT),
+    Column("oerrors", TEXT),
+    Column("last_change", TEXT),
 ])
 implementation("interfaces@genInterfaceDetails")

@@ -1,7 +1,7 @@
 table_name("osx_version")
 schema([
-  Column(name="major", type="int"),
-  Column(name="minor", type="int"),
-  Column(name="patch", type="int"),
+  Column("major", INTEGER),
+  Column("minor", INTEGER),
+  Column("patch", INTEGER),
 ])
 implementation("osx_version@genOSXVersion")

@@ -52,9 +52,9 @@ QueryData genGroups() {
     }
     for (ODRecord *re in od_results) {
       Row r;
-      r["name"] = std::string([[re recordName] UTF8String]);
+      r["groupname"] = std::string([[re recordName] UTF8String]);
       struct group *grp = nullptr;
-      grp = getgrnam(r["name"].c_str());
+      grp = getgrnam(r["groupname"].c_str());
       if (grp != nullptr) {
         r["gid"] = boost::lexical_cast<std::string>(grp->gr_gid);
         results.push_back(r);

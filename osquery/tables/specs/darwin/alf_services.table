@@ -1,7 +1,7 @@
 table_name("alf_services")
 schema([
-    Column(name="service", type="std::string"),
-    Column(name="process", type="std::string"),
-    Column(name="state", type="int"),
+    Column("service", TEXT),
+    Column("process", TEXT),
+    Column("state", INTEGER),
 ])
 implementation("firewall@genALFServices")

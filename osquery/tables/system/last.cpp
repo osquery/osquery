@@ -29,7 +29,7 @@ QueryData genLastAccess() {
 #endif
 
     Row r;
-    r["login"] = std::string(ut->ut_user);
+    r["username"] = std::string(ut->ut_user);
     r["tty"] = std::string(ut->ut_line);
     r["pid"] = boost::lexical_cast<std::string>(ut->ut_pid);
     r["type"] = boost::lexical_cast<std::string>(ut->ut_type);

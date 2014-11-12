@@ -1,10 +1,9 @@
 table_name("bash_history")
 description("A line-delimited (command) table of per-user .bash_history data.")
 schema([
-    Column(name="username", type="std::string"),
-    Column(name="command", type="std::string"),
-    Column(name="history_file", type="std::string",
-        description="Path to the .bash_history for this user"),
+    Column("username", TEXT),
+    Column("command", TEXT),
+    Column("history_file", TEXT, "Path to the .bash_history for this user"),
     ForeignKey(column="username", table="users"),
 ])
 implementation("bash_history@genBashHistory")

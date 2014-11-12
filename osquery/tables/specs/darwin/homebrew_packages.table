@@ -1,7 +1,7 @@
 table_name("homebrew_packages")
 schema([
-    Column(name="name", type="std::string"),
-    Column(name="path", type="std::string"),
-    Column(name="version", type="std::string"),
+    Column("name", TEXT),
+    Column("path", TEXT),
+    Column("version", TEXT),
 ])
 implementation("system/homebrew_packages@genHomebrewPackages")

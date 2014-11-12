@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <boost/property_tree/ptree.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "osquery/status.h"
 
@@ -18,12 +19,31 @@ namespace osquery {
 /////////////////////////////////////////////////////////////////////////////
 
 /**
+ * @brief The SQLite type affinities are available as macros
+ *
+ * Type affinities: TEXT, INTEGER, BIGINT
+ *
+ * You can represent any data that can be lexically casted to a string.
+ * Using the type affinity names helps table developers understand the data
+ * types they are storing, and more importantly how they are treated at query
+ * time.
+ */
+ #define TEXT(x) std::string(x)
+ #define INTEGER(x) boost::lexical_cast<std::string>(x)
+ #define BIGINT(x) boost::lexical_cast<std::string>(x)
+
+/**
+ * @brief A variant type for the SQLite type affinities.
+ */
+ typedef std::string RowData;
+
+/**
  * @brief A single row from a database query
  *
  * Row is a simple map where individual column names are keys, which map to
  * the Row's respective value
  */
-typedef std::map<std::string, std::string> Row;
+typedef std::map<std::string, RowData> Row;
 
 /**
  * @brief Serialize a Row into a property tree

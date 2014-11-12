@@ -28,7 +28,7 @@ class {{class_name}} {
 struct sqlite3_{{table_name}} {
   int n;
 {% for col in schema %}\
-  std::vector<{{col.type}}> {{col.name}};
+  std::vector<{{col.type.type}}> {{col.name}};
 {% endfor %}\
 };
 
@@ -36,10 +36,7 @@ const std::string
   sqlite3_{{table_name}}_create_table_statement =
   "CREATE TABLE {{table_name}}("
   {% for col in schema %}\
-  "{{col.name}} \
-{% if col.type == "std::string" %}VARCHAR{% endif %}\
-{% if col.type == "int" %}INTEGER{% endif %}\
-{% if col.type == "long long int" %}BIGINT{% endif %}\
+    "{{col.name}} {{col.type.affinity}}\
 {% if not loop.last %}, {% endif %}"
   {% endfor %}\
 ")";
@@ -75,7 +72,7 @@ int {{table_name_cc}}Column(
 {% for col in schema %}\
       // {{ col.name }}
       case {{ loop.index0 }}:
-{% if col.type == "std::string" %}\
+{% if col.type.affinity == "TEXT" %}\
         sqlite3_result_text(
           ctx,
           (pVtab->pContent->{{col.name}}[pCur->row]).c_str(),
@@ -83,16 +80,16 @@ int {{table_name_cc}}Column(
           nullptr
         );
 {% endif %}\
-{% if col.type == "int" %}\
+{% if col.type.affinity == "INTEGER" %}\
         sqlite3_result_int(
           ctx,
-          (int)pVtab->pContent->{{col.name}}[pCur->row]
+          ({{col.type.type}})pVtab->pContent->{{col.name}}[pCur->row]
         );
 {% endif %}\
-{% if col.type == "long long int" %}\
+{% if col.type.affinity == "BIGINT" %}\
         sqlite3_result_int64(
           ctx,
-          (long long int)pVtab->pContent->{{col.name}}[pCur->row]
+          ({{col.type.type}})pVtab->pContent->{{col.name}}[pCur->row]
         );
 {% endif %}\
         break;
@@ -124,24 +121,24 @@ int {{table_name_cc}}Filter(
   for (auto& row : osquery::tables::{{function}}()) {
 {% endif %}
 {% for col in schema %}\
-{% if col.type == "std::string" %}\
+{% if col.type.affinity == "TEXT" %}\
     pVtab->pContent->{{col.name}}.push_back(row["{{col.name}}"]);
 {% endif %}\
-{% if col.type == "int" %}\
+{% if col.type.affinity == "INTEGER" %}\
     try {
       pVtab->pContent->{{col.name}}\
-.push_back(boost::lexical_cast<int>(row["{{col.name}}"]));
+.push_back(boost::lexical_cast<{{col.type.type}}>(row["{{col.name}}"]));
     } catch (const boost::bad_lexical_cast& e) {
-      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to int";
+      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to {{col.type.type}}";
       pVtab->pContent->{{col.name}}.push_back(-1);
     }
 {% endif %}\
-{% if col.type == "long long int" %}\
+{% if col.type == "BIGINT" %}\
     try {
       pVtab->pContent->{{col.name}}\
-.push_back(boost::lexical_cast<long long>(row["{{col.name}}"]));
+.push_back(boost::lexical_cast<{{col.type.type}}>(row["{{col.name}}"]));
     } catch (const boost::bad_lexical_cast& e) {
-      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to long long int";
+      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to {{col.type.type}}";
       pVtab->pContent->{{col.name}}.push_back(-1);
     }
 {% endif %}\

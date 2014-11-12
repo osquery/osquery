@@ -1,16 +1,13 @@
 table_name("crontab")
 description("Line parsed values from system and user cron/tab.")
 schema([
-    Column(name="event", type="std::string",
-        description="The job @event name (rare)"),
-    Column(name="minute", type="std::string"),
-    Column(name="hour", type="std::string"),
-    Column(name="day_of_month", type="std::string"),
-    Column(name="month", type="std::string"),    
-    Column(name="day_of_week", type="std::string"),
-    Column(name="command", type="std::string",
-        description="Raw command string"),
-    Column(name="path", type="std::string",
-        description="File parsed"),
+    Column("event", TEXT, "The job @event name (rare)"),
+    Column("minute", TEXT),
+    Column("hour", TEXT),
+    Column("day_of_month", TEXT),
+    Column("month", TEXT),
+    Column("day_of_week", TEXT),
+    Column("command", TEXT, "Raw command string"),
+    Column("path", TEXT, "File parsed"),
 ])
 implementation("crontab@genCronTab")

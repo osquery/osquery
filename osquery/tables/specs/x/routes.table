@@ -1,13 +1,13 @@
 table_name("routes")
 schema([
-    Column(name="destination", type="std::string"),
-    Column(name="netmask", type="std::string"),
-    Column(name="gateway", type="std::string"),
-    Column(name="source", type="std::string"),
-    Column(name="flags", type="int"),
-    Column(name="interface", type="std::string"),
-   	Column(name="mtu", type="int"),
-    Column(name="metric", type="int"),
-    Column(name="type", type="std::string"),
+    Column("destination", TEXT),
+    Column("netmask", TEXT),
+    Column("gateway", TEXT),
+    Column("source", TEXT),
+    Column("flags", INTEGER),
+    Column("interface", TEXT),
+    Column("mtu", INTEGER),
+    Column("metric", INTEGER),
+    Column("type", TEXT),
 ])
 implementation("networking/routes@genRoutes")

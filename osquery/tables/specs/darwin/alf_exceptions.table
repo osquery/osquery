@@ -1,6 +1,6 @@
 table_name("alf_exceptions")
 schema([
-    Column(name="path", type="std::string"),
-    Column(name="state", type="int"),
+    Column("path", TEXT),
+    Column("state", INTEGER),
 ])
 implementation("firewall@genALFExceptions")

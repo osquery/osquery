@@ -1,8 +1,7 @@
 table_name("etc_hosts")
 description("Line-parsed /etc/hosts.")
 schema([
-    Column(name="address", type="std::string"),
-    Column(name="hostnames", type="std::string",
-        description="Raw hosts mapping"),
+    Column("address", TEXT),
+    Column("hostnames", TEXT, "Raw hosts mapping"),
 ])
 implementation("etc_hosts@genEtcHosts")

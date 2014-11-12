@@ -1,13 +1,13 @@
 table_name("process_open_files")
 schema([
-    Column(name="pid", type="int"),
-    Column(name="name", type="std::string"),
-    Column(name="path", type="std::string"),
-    Column(name="file_type", type="std::string"),
-    Column(name="local_path", type="std::string"),
-    Column(name="local_host", type="std::string"),
-    Column(name="local_port", type="std::string"),
-    Column(name="remote_host", type="std::string"),
-    Column(name="remote_port", type="std::string"),
+    Column("pid", INTEGER),
+    Column("name", TEXT),
+    Column("path", TEXT),
+    Column("file_type", TEXT),
+    Column("local_path", TEXT),
+    Column("local_host", TEXT),
+    Column("local_port", TEXT),
+    Column("remote_host", TEXT),
+    Column("remote_port", TEXT),
 ])
 implementation("system/processes@genProcessOpenFiles")

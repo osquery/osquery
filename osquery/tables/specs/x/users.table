@@ -1,10 +1,10 @@
 table_name("users")
 schema([
-    Column(name="uid", type="long long int"),
-    Column(name="gid", type="long long int"),
-    Column(name="username", type="std::string"),
-    Column(name="description", type="std::string"),
-    Column(name="directory", type="std::string"),
-    Column(name="shell", type="std::string"),
+    Column("uid", BIGINT),
+    Column("gid", BIGINT),
+    Column("username", TEXT),
+    Column("description", TEXT),
+    Column("directory", TEXT),
+    Column("shell", TEXT),
 ])
 implementation("users@genUsers")
