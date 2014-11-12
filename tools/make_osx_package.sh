@@ -101,7 +101,7 @@ function main() {
 
   log "copying dependencies"
   for dep in ${dependency_list[*]}; do
-    dep_dir=`brew info $dep | grep Cellar | awk '{print $1}'`
+    dep_dir=`brew info $dep | grep Cellar | grep '*' | awk '{print $1}'`
     brew unlink $dep 2>&1  1>/dev/null
     links=`brew link --dry-run $dep`
     brew link --overwrite $dep 2>&1  1>/dev/null
