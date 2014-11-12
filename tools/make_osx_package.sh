@@ -111,6 +111,7 @@ function main() {
     for link in $links; do
       if [[ $link = $BREW_PREFIX* ]]; then
         target="`dirname $link`/`ls -l $link | awk '{print $11}'`"
+        echo "if [ ! -e `dirname $link` ]; then rm -f `dirname $link`; fi" >> $POSTINSTALL
         echo "mkdir -p `dirname $link`" >> $POSTINSTALL
         echo "rm -rf $link" >> $POSTINSTALL
         echo "ln -s $target $link" >> $POSTINSTALL
