@@ -44,13 +44,6 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   options_.create_if_missing = true;
   options_.create_missing_column_families = true;
 
-  if (in_memory) {
-    // Remove when upgrading to RocksDB 3.2
-    // Replace with:
-    // options_.env = rocksdb::NewMemEnv(rocksdb::Env::Default());
-    throw std::domain_error("Requires RocksDB 3.3 https://fburl.com/27350299");
-  }
-
   column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
       rocksdb::kDefaultColumnFamilyName, rocksdb::ColumnFamilyOptions()));
 
@@ -59,12 +52,20 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
         cf_name, rocksdb::ColumnFamilyOptions()));
   }
 
+  status_ =
+      rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
+}
+
+void DBHandle::requireInstance(const std::string& path, bool in_memory) {
+  if (in_memory) {
+    // Remove when upgrading to RocksDB 3.3
+    // options_.env = rocksdb::NewMemEnv(rocksdb::Env::Default());
+    throw std::domain_error("Required RocksDB 3.3 (and setMemEnv)");
+  }
+
   if (pathExists(path).ok() && !isWritable(path).ok()) {
     throw std::domain_error("Cannot write to RocksDB path: " + path);
   }
-
-  status_ =
-      rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
 }
 
 DBHandle::~DBHandle() {
@@ -82,8 +83,6 @@ std::shared_ptr<DBHandle> DBHandle::getInstance() {
 }
 
 std::shared_ptr<DBHandle> DBHandle::getInstanceInMemory() {
-  // Remove when upgrading to RocksDB 3.3
-  throw std::domain_error("Requires RocksDB 3.3 https://fburl.com/27350299");
   return getInstance("", true);
 }
 
@@ -93,6 +92,8 @@ std::shared_ptr<DBHandle> DBHandle::getInstanceAtPath(const std::string& path) {
 
 std::shared_ptr<DBHandle> DBHandle::getInstance(const std::string& path,
                                                 bool in_memory) {
+  // Throw any possible exceptions before the accessor.
+  requireInstance(path, in_memory);
   static std::shared_ptr<DBHandle> db_handle =
       std::shared_ptr<DBHandle>(new DBHandle(path, in_memory));
   return db_handle;

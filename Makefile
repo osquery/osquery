@@ -12,11 +12,11 @@ endif
 
 all: .setup
 	cd build/$(BUILD_DIR) && cmake -DCMAKE_BUILD_TYPE= ../.. && \
-		make --no-print-directory $(MAKEFLAGS)
+		$(MAKE) --no-print-directory $(MAKEFLAGS)
 
 debug: .setup
 	cd build/$(BUILD_DIR) && cmake -DCMAKE_BUILD_TYPE=Debug ../../ && \
-		make --no-print-directory $(MAKEFLAGS)
+		$(MAKE) --no-print-directory $(MAKEFLAGS)
 
 deps: .setup
 	./tools/provision.sh build build/$(BUILD_DIR)
@@ -34,4 +34,4 @@ ifeq ($(PLATFORM),Linux)
 endif
 
 %::
-	cd build/$(BUILD_DIR) && cmake ../.. && make --no-print-directory $@
+	cd build/$(BUILD_DIR) && cmake ../.. && $(MAKE) --no-print-directory $@
