@@ -22,16 +22,18 @@ LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
 TEMPLATES = {}
 
 # Temporary reserved column names
-RESERVED = ["group"]
+RESERVED = ["n"]
 
 # Supported SQL types for spec
 class DataType(object):
     def __init__(self, affinity, cpp_type="std::string"):
+        '''A column datatype is a pair of a SQL affinity to C++ type.'''
         self.affinity = affinity
         self.type = cpp_type
     def __repr__(self):
         return self.affinity
 
+# Define column-type MACROs for the table specs
 TEXT = DataType("TEXT")
 DATE = DataType("TEXT")
 DATETIME = DataType("TEXT")
@@ -50,22 +52,22 @@ def to_camel_case(snake_case):
 def lightred(msg):
     return "\033[1;31m %s \033[0m" % str(msg)
 
-def is_blacklisted(path, table_name):
+def is_blacklisted(table_name, path=None, blacklist=None):
     """Allow blacklisting by tablename."""
-    specs_path = os.path.dirname(os.path.dirname(path))
-    blacklist_path = os.path.join(specs_path, "blacklist")
-    if not os.path.exists(blacklist_path):
-        return False
-    try:
-        with open(blacklist_path, "r") as fh:
-            blacklist = [line.strip() for line in fh.read().split("\n")
-                if len(line.strip()) > 0 and line.strip()[0] != "#"]
-            if table_name in blacklist:
-                return True
-    except:
-        # Blacklist is not readable.
-        pass
-    return False
+    if blacklist is None:
+        specs_path = os.path.dirname(os.path.dirname(path))
+        blacklist_path = os.path.join(specs_path, "blacklist")
+        if not os.path.exists(blacklist_path):
+            return False
+        try:
+            with open(blacklist_path, "r") as fh:
+                blacklist = [line.strip() for line in fh.read().split("\n")
+                    if len(line.strip()) > 0 and line.strip()[0] != "#"]
+        except:
+            # Blacklist is not readable.
+            return False
+    # table_name based blacklisting!
+    return table_name in blacklist if blacklist else False
 
 def setup_templates(path):
     tables_path = os.path.dirname(os.path.dirname(os.path.dirname(path)))
@@ -237,7 +239,8 @@ def main(argc, argv):
     with open(filename, "rU") as file_handle:
         tree = ast.parse(file_handle.read())
         exec(compile(tree, "<string>", "exec"))
-        if not disable_blacklist and is_blacklisted(filename, table.table_name):
+        blacklisted = is_blacklisted(table.table_name, path=filename)
+        if not disable_blacklist and blacklisted:
             table.blacklist(output)
         else:
             table.generate(output)

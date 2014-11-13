@@ -223,13 +223,6 @@ class DBHandle {
    */
   rocksdb::ColumnFamilyHandle* getHandleForColumnFamily(const std::string& cf);
 
-  /**
-   * @brief Determine if a DBInstance can be created for the requested env.
-   *
-   * @return an estimate of a sane environment as an exception.
-   */
-  static void requireInstance(const std::string& path, bool in_memory);
-
  private:
   /////////////////////////////////////////////////////////////////////////////
   // Private members

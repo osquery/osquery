@@ -3,6 +3,7 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+BUILD_DIR="$SCRIPT_DIR/../build"
 WORKING_DIR="$SCRIPT_DIR/../.sources"
 export PATH="$PATH:/usr/local/bin"
 
@@ -243,6 +244,9 @@ function check() {
 
   if [[ "$1" = "build" ]]; then
     echo $HASH > "$2/.provision"
+    if [[ ! -z "$SUDO_USER" ]]; then
+      chown $SUDO_USER "$2/.provision"
+    fi
     return
   elif [[ ! "$1" = "check" ]]; then
     return
@@ -271,6 +275,10 @@ function main() {
   fi
 
   mkdir -p "$WORKING_DIR"
+  if [[ ! -z "$SUDO_USER" ]]; then
+    chown -R $SUDO_USER "$BUILD_DIR"
+    chown -R $SUDO_USER "$WORKING_DIR"
+  fi
   cd "$WORKING_DIR"
 
   if [[ $OS = "centos" ]]; then
