@@ -73,6 +73,7 @@ Status genVendorString(QueryData& results) {
   r["feature"] = "vendor";
   r["value"] = vendor_string.str();
   r["output_register"] = "ebx,edx,ecx";
+  r["output_bit"] = "0";
   r["input_eax"] = "0";
   results.push_back(r);
 
@@ -92,7 +93,7 @@ void genFamily(QueryData& results) {
   r["feature"] = "family";
   r["value"] = family_string.str();
   r["output_register"] = "eax";
-  r["output_bit"] = "";
+  r["output_bit"] = "0";
   r["input_eax"] = "1";
 
   results.push_back(r);
