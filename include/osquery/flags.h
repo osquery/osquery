@@ -80,11 +80,11 @@ class Flag {
   static void printFlags(const std::map<std::string, FlagDetail> flags) {
     for (const auto& flag : flags) {
       fprintf(stdout,
-              "  --%s, --%s=VALUE\n    %s (default: %s)\n",
+              "  --%s, --%s=%s\n    %s\n",
               flag.first.c_str(),
               flag.first.c_str(),
-              flag.second.second.c_str(),
-              flag.second.first.c_str());
+              flag.second.first.c_str(),
+              flag.second.second.c_str());
     }
   }
 
@@ -107,7 +107,7 @@ class Flag {
 #define DEFINE_osquery_flag(type, name, value, desc) \
   DEFINE_##type(name, value, desc);                  \
   namespace flag_##name {                            \
-    Flag flag = Flag::get(#name, #value, #desc);     \
+    Flag flag = Flag::get(#name, #value, desc);      \
   }
 
 /*
@@ -119,8 +119,8 @@ class Flag {
  * @param value The default value, use a C++ literal.
  * @param desc A string literal used for help display.
  */
-#define DEFINE_shell_flag(type, name, value, desc)     \
-  DEFINE_##type(name, value, desc);                    \
-  namespace flag_##name {                              \
-    Flag flag = Flag::get(#name, #value, #desc, true); \
+#define DEFINE_shell_flag(type, name, value, desc)    \
+  DEFINE_##type(name, value, desc);                   \
+  namespace flag_##name {                             \
+    Flag flag = Flag::get(#name, #value, desc, true); \
   }
