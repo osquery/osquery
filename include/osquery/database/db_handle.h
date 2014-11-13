@@ -228,7 +228,7 @@ class DBHandle {
    *
    * @return an estimate of a sane environment as an exception.
    */
-   static void requireInstance(const std::string& path, bool in_memory);
+  static void requireInstance(const std::string& path, bool in_memory);
 
  private:
   /////////////////////////////////////////////////////////////////////////////
