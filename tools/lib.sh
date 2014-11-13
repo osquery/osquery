@@ -6,10 +6,8 @@ function platform() {
     eval $__resultvar="centos"
   elif [[ -f "/etc/lsb-release" ]]; then
     eval $__resultvar="ubuntu"
-  elif [[ -f "/etc/pf.conf" ]]; then
-    eval $__resultvar="darwin"
-  elif [[ -f "/bin/freebsd-version" ]]; then
-    eval $__resultvar="freebsd"
+  else
+    eval $__resultvar=`uname -s | tr '[:upper:]' '[:lower:]'`
   fi
 }
 
