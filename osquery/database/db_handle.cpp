@@ -92,8 +92,14 @@ std::shared_ptr<DBHandle> DBHandle::getInstanceAtPath(const std::string& path) {
 
 std::shared_ptr<DBHandle> DBHandle::getInstance(const std::string& path,
                                                 bool in_memory) {
-  // Throw any possible exceptions before the accessor.
-  requireInstance(path, in_memory);
+  static bool valid_instance = false;
+  if (!valid_instance) {
+    // Throw any possible exceptions before the accessor.
+    // Workaround for issue #423
+    requireInstance(path, in_memory);
+    valid_instance = true;
+  }
+
   static std::shared_ptr<DBHandle> db_handle =
       std::shared_ptr<DBHandle>(new DBHandle(path, in_memory));
   return db_handle;
