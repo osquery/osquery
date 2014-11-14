@@ -15,7 +15,8 @@ import sys
 import uuid
 
 from gentable import Column, ForeignKey, \
-    table_name, schema, implementation, description, table
+    table_name, schema, implementation, description, table, \
+    DataType, BIGINT, DATE, DATETIME, INTEGER, TEXT
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -42,6 +43,8 @@ class NoIndent(object):
     """Special instance checked object for removing json newlines."""
     def __init__(self, value):
         self.value = value
+        if('type' in self.value and isinstance(self.value['type'], DataType)):
+            self.value['type'] = str(self.value['type'])
 
 class Encoder(json.JSONEncoder):
     """
