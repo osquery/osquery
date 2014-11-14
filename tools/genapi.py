@@ -16,7 +16,8 @@ import uuid
 
 from gentable import Column, ForeignKey, \
     table_name, schema, implementation, description, table, \
-    DataType, BIGINT, DATE, DATETIME, INTEGER, TEXT
+    DataType, BIGINT, DATE, DATETIME, INTEGER, TEXT \
+    is_blacklisted
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -122,6 +123,13 @@ def main(argc, argv):
                 logging.error("Cannot parse profile data: %s" % (str(e)))
                 exit(2)
 
+    # Read in the optional list of blacklisted tables
+    blacklist = None
+    blacklist_path = os.path.join(args.tables, "blacklist")
+    if os.path.exists(blacklist_path):
+        with open(blacklist_path, "r") as fh:
+            blacklist = fh.read()
+
     categories = {}
     for base, folders, files in os.walk(args.tables):
         for spec_file in files:
@@ -138,6 +146,8 @@ def main(argc, argv):
                 table_spec = gen_spec(tree)
                 table_profile = profile.get("%s.%s" % (platform, name), {})
                 table_spec["profile"] = NoIndent(table_profile)
+                table_spec["blacklisted"] = is_blacklisted(table_spec["name"],
+                    blacklist=blacklist)
                 categories[platform]["tables"].append(table_spec)
     categories = [{"key": k, "name": v["name"], "tables": v["tables"]}
         for k, v in categories.iteritems()]

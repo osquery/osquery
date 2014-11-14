@@ -11,17 +11,19 @@
 
 #include "osquery/database/results.h"
 
+#ifndef STR
+#define STR_OF(x) #x
+#define STR(x) STR_OF(x)
+#endif
+
 namespace osquery {
 
 /**
  * @brief The version of osquery
  */
 extern const std::string kVersion;
+
 /// Use a macro for the version literal, set the kVersion symbol in the library.
-#ifndef STR
-#define STR_OF(x) #x
-#define STR(x) STR_OF(x)
-#endif
 #define OSQUERY_VERSION STR(OSQUERY_BUILD_VERSION)
 
 /**
