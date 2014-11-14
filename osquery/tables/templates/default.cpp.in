@@ -72,26 +72,28 @@ int {{table_name_cc}}Column(
 {% for col in schema %}\
       // {{ col.name }}
       case {{ loop.index0 }}:
+        if (pVtab->pContent->xCol_{{col.name}}.size() > pCur->row) {
 {% if col.type.affinity == "TEXT" %}\
-        sqlite3_result_text(
-          ctx,
-          (pVtab->pContent->xCol_{{col.name}}[pCur->row]).c_str(),
-          -1,
-          nullptr
-        );
+          sqlite3_result_text(
+            ctx,
+            (pVtab->pContent->xCol_{{col.name}}[pCur->row]).c_str(),
+            -1,
+            nullptr
+          );
 {% endif %}\
 {% if col.type.affinity == "INTEGER" %}\
-        sqlite3_result_int(
-          ctx,
-          ({{col.type.type}})pVtab->pContent->xCol_{{col.name}}[pCur->row]
-        );
+          sqlite3_result_int(
+            ctx,
+            ({{col.type.type}})pVtab->pContent->xCol_{{col.name}}[pCur->row]
+          );
 {% endif %}\
 {% if col.type.affinity == "BIGINT" %}\
-        sqlite3_result_int64(
-          ctx,
-          ({{col.type.type}})pVtab->pContent->xCol_{{col.name}}[pCur->row]
-        );
+          sqlite3_result_int64(
+            ctx,
+            ({{col.type.type}})pVtab->pContent->xCol_{{col.name}}[pCur->row]
+          );
 {% endif %}\
+        }
         break;
 {% endfor %}\
     }
@@ -134,7 +136,7 @@ int {{table_name_cc}}Filter(
       pVtab->pContent->xCol_{{col.name}}.push_back(-1);
     }
 {% endif %}\
-{% if col.type == "BIGINT" %}\
+{% if col.type.affinity == "BIGINT" %}\
     try {
       pVtab->pContent->xCol_{{col.name}}\
 .push_back(boost::lexical_cast<{{col.type.type}}>(row["{{col.name}}"]));
