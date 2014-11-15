@@ -14,7 +14,10 @@ import os
 import sys
 import uuid
 
-from gentable import table, DataType, is_blacklisted
+from gentable import Column, ForeignKey, \
+    table_name, schema, implementation, description, table, \
+    DataType, BIGINT, DATE, DATETIME, INTEGER, TEXT, \
+    is_blacklisted
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
