@@ -82,7 +82,7 @@ std::string proc_link(const proc_t* proc_info) {
 
 std::map<std::string, std::string> proc_env(const proc_t* proc_info) {
   std::map<std::string, std::string> env;
-  std::string attr = osquery::tables::proc_attr("environ", proc_info);
+  std::string attr = proc_attr("environ", proc_info);
   std::string buf;
 
   std::ifstream fd(attr, std::ios::in | std::ios::binary);
@@ -108,6 +108,12 @@ void standard_freeproc(proc_t* p) {
   if (!p) { // in case p is NULL
     return;
   }
+
+#ifdef PROC_EDITCMDLCVT
+    freeproc(proc_info);
+    return;
+#endif
+
   // ptrs are after strings to avoid copying memory when building them.
   // so free is called on the address of the address of strvec[0].
   if (p->cmdline) {
@@ -129,29 +135,25 @@ QueryData genProcesses() {
   while ((proc_info = readproc(proc, NULL))) {
     Row r;
 
-    r["pid"] = boost::lexical_cast<std::string>(proc_info->tid);
-    r["uid"] = boost::lexical_cast<std::string>((unsigned int)proc_info->ruid);
-    r["gid"] = boost::lexical_cast<std::string>((unsigned int)proc_info->rgid);
-    r["euid"] = boost::lexical_cast<std::string>((unsigned int)proc_info->euid);
-    r["egid"] = boost::lexical_cast<std::string>((unsigned int)proc_info->egid);
+    r["pid"] = INTEGER(proc_info->tid);
+    r["uid"] = BIGINT((unsigned int)proc_info->ruid);
+    r["gid"] = BIGINT((unsigned int)proc_info->rgid);
+    r["euid"] = BIGINT((unsigned int)proc_info->euid);
+    r["egid"] = BIGINT((unsigned int)proc_info->egid);
     r["name"] = proc_name(proc_info);
     r["cmdline"] = proc_cmdline(proc_info);
     r["path"] = proc_link(proc_info);
     r["on_disk"] = osquery::pathExists(r["path"]).toString();
 
-    r["resident_size"] = boost::lexical_cast<std::string>(proc_info->vm_rss);
-    r["phys_footprint"] = boost::lexical_cast<std::string>(proc_info->vm_size);
-    r["user_time"] = boost::lexical_cast<std::string>(proc_info->utime);
-    r["system_time"] = boost::lexical_cast<std::string>(proc_info->stime);
-    r["start_time"] = boost::lexical_cast<std::string>(proc_info->start_time);
-    r["parent"] = boost::lexical_cast<std::string>(proc_info->ppid);
+    r["resident_size"] = INTEGER(proc_info->vm_rss);
+    r["phys_footprint"] = INTEGER(proc_info->vm_size);
+    r["user_time"] = INTEGER(proc_info->utime);
+    r["system_time"] = INTEGER(proc_info->stime);
+    r["start_time"] = INTEGER(proc_info->start_time);
+    r["parent"] = INTEGER(proc_info->ppid);
 
     results.push_back(r);
-#ifdef PROC_EDITCMDLCVT
-    freeproc(proc_info);
-#else
     standard_freeproc(proc_info);
-#endif
   }
 
   closeproc(proc);
@@ -171,7 +173,7 @@ QueryData genProcessEnvs() {
     auto env = proc_env(proc_info);
     for (auto itr = env.begin(); itr != env.end(); ++itr) {
       Row r;
-      r["pid"] = boost::lexical_cast<std::string>(proc_info->tid);
+      r["pid"] = INTEGER(proc_info->tid);
       r["name"] = proc_name(proc_info);
       r["path"] = proc_link(proc_info);
       r["key"] = itr->first;

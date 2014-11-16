@@ -1,7 +1,0 @@
-table_name("arp")
-schema([
-    Column(name="ip", type="std::string"),
-    Column(name="mac", type="std::string"),
-    Column(name="iface", type="std::string"),
-])
-implementation("arp@genArp")

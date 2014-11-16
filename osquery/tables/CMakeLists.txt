@@ -38,7 +38,7 @@ else()
     networking/linux/routes.cpp
     networking/linux/socket_inode.cpp
     networking/linux/port_inode.cpp
-    networking/linux/arp.cpp
+    networking/linux/arp_table.cpp
     system/linux/kernel_modules.cpp
     system/linux/processes.cpp
     system/linux/users.cpp
@@ -48,13 +48,16 @@ else()
     system/linux/block_devices.cpp
   )
 
-  # CentOS specific tables
-  ADD_OSQUERY_LIBRARY(osquery_tables_redhat
-    system/linux/rpm_packages.cpp
-  )
+  if(CENTOS)
+    # CentOS specific tables
+    ADD_OSQUERY_LIBRARY(osquery_tables_redhat
+      system/linux/rpm_packages.cpp
+    )
 
-  ADD_OSQUERY_LINK("rpm")
-  ADD_OSQUERY_LINK("rpmio")
+    ADD_OSQUERY_LINK("rpm")
+    ADD_OSQUERY_LINK("rpmio")
+  endif()
+
 endif()
 
 FILE(GLOB table_sources
