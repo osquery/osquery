@@ -13,7 +13,6 @@ if(APPLE)
     networking/darwin/interfaces.cpp
     networking/darwin/listening_ports.cpp
     networking/darwin/routes.cpp
-    networking/darwin/arp.cpp
     system/darwin/apps.cpp
     system/darwin/ca_certs.cpp
     system/darwin/firewall.h
@@ -38,7 +37,7 @@ else()
     networking/linux/routes.cpp
     networking/linux/socket_inode.cpp
     networking/linux/port_inode.cpp
-    networking/linux/arp_table.cpp
+    networking/linux/arp_cache.cpp
     system/linux/kernel_modules.cpp
     system/linux/processes.cpp
     system/linux/users.cpp
@@ -48,15 +47,13 @@ else()
     system/linux/block_devices.cpp
   )
 
-  if(CENTOS)
-    # CentOS specific tables
-    ADD_OSQUERY_LIBRARY(osquery_tables_redhat
-      system/linux/rpm_packages.cpp
-    )
+  # CentOS specific tables
+  ADD_OSQUERY_LIBRARY(osquery_tables_redhat
+    system/linux/rpm_packages.cpp
+  )
 
-    ADD_OSQUERY_LINK("rpm")
-    ADD_OSQUERY_LINK("rpmio")
-  endif()
+  ADD_OSQUERY_LINK("rpm")
+  ADD_OSQUERY_LINK("rpmio")
 
 endif()
 

@@ -276,8 +276,12 @@ function main() {
 
   mkdir -p "$WORKING_DIR"
   if [[ ! -z "$SUDO_USER" ]]; then
-    chown $SUDO_USER "$BUILD_DIR/*" > /dev/null 2>&1 || true
-    chown $SUDO_USER "$WORKING_DIR" > /dev/null 2>&1 || true
+    echo "chown -h $SUDO_USER $BUILD_DIR/*"
+    chown -h $SUDO_USER:$SUDO_GID "$BUILD_DIR" || true
+    if [[ $OS = "linux" ]]; then
+      chown -h $SUDO_USER:$SUDO_GID "$BUILD_DIR/linux" || true
+    fi
+    chown $SUDO_USER:$SUDO_GID "$WORKING_DIR" > /dev/null 2>&1 || true
   fi
   cd "$WORKING_DIR"
 
@@ -318,6 +322,7 @@ function main() {
     package debhelper
     package clang-3.4
     package clang-format-3.4
+    package librpm-dev
     package libudev-dev
     package libblkid-dev
     package linux-headers-generic

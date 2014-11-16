@@ -110,8 +110,8 @@ void standard_freeproc(proc_t* p) {
   }
 
 #ifdef PROC_EDITCMDLCVT
-    freeproc(proc_info);
-    return;
+  freeproc(proc_info);
+  return;
 #endif
 
   // ptrs are after strings to avoid copying memory when building them.
