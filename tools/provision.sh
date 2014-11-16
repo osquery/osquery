@@ -245,7 +245,7 @@ function check() {
   if [[ "$1" = "build" ]]; then
     echo $HASH > "$2/.provision"
     if [[ ! -z "$SUDO_USER" ]]; then
-      chown $SUDO_USER "$2/.provision"
+      chown $SUDO_USER "$2/.provision" > /dev/null 2>&1 || true
     fi
     return
   elif [[ ! "$1" = "check" ]]; then
@@ -259,7 +259,7 @@ function check() {
 
   CHECKPOINT=`cat $2/.provision 2>&1 &`
   if [[ ! $HASH = $CHECKPOINT ]]; then
-    echo "Requested dependencies have changed, run: sudo make deps"
+    echo "Requested dependencies may have changed, run: sudo make deps"
     exit 1
   fi
   exit 0
@@ -276,8 +276,8 @@ function main() {
 
   mkdir -p "$WORKING_DIR"
   if [[ ! -z "$SUDO_USER" ]]; then
-    chown -R $SUDO_USER "$BUILD_DIR"
-    chown -R $SUDO_USER "$WORKING_DIR"
+    chown $SUDO_USER "$BUILD_DIR/*" > /dev/null 2>&1 || true
+    chown $SUDO_USER "$WORKING_DIR" > /dev/null 2>&1 || true
   fi
   cd "$WORKING_DIR"
 
@@ -318,7 +318,6 @@ function main() {
     package debhelper
     package clang-3.4
     package clang-format-3.4
-    package librpm-dev
     package libudev-dev
     package libblkid-dev
     package linux-headers-generic
@@ -454,7 +453,12 @@ function main() {
   fi
 
   cd "$SCRIPT_DIR/../"
-  sudo pip install -r requirements.txt
+
+  if [ $OS = "darwin" ] && [ $DISTRO = "10.8" ]; then
+    export CPPFLAGS=-Qunused-arguments
+    export CFLAGS=-Qunused-arguments
+  fi
+  sudo -E pip install -r requirements.txt
   git submodule init
   git submodule update
 }
