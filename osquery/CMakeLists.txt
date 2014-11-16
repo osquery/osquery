@@ -75,7 +75,7 @@ if(EXISTS "/usr/lib/libprocps.a"
   set(PROCPS TRUE)
 endif()
 
-# Fill in libraries for Apple, Uunbut, Centos, FReeBSD
+# Fill in libraries for Apple, Uunbut, Centos, FreeBSD
 if(APPLE)
   set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_APPLE_LIBS})
 elseif(FREEBSD)
