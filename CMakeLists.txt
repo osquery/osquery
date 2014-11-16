@@ -12,6 +12,8 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
   set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
   set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
 else()
+  set(LINUX TRUE)
+
   set(OS_COMPILE_FLAGS "-std=c++11")
   if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} -g -DDEBUG")
