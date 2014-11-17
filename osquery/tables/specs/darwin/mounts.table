@@ -1,14 +1,14 @@
 table_name("mounts")
 schema([
-    Column("Name", TEXT),
-    Column("Device", TEXT),
-    Column("FSType", TEXT),
-    Column("Size", INTEGER),
-    Column("Blocks", INTEGER),
-    Column("Free", INTEGER),
-    Column("Available", INTEGER),
-    Column("Files", INTEGER),
-    Column("FFree", INTEGER),
-    Column("Owner", INTEGER),
+    Column("name", TEXT),
+    Column("device", TEXT),
+    Column("fstype", TEXT),
+    Column("size", INTEGER),
+    Column("blocks", INTEGER),
+    Column("free", INTEGER),
+    Column("available", INTEGER),
+    Column("files", INTEGER),
+    Column("ffree", INTEGER),
+    Column("owner", INTEGER),
 ])
 implementation("mounts@genMounts")

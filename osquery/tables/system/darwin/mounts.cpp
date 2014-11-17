@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <sys/mount.h>
 
-#include <boost/lexical_cast.hpp>
-
 #include "osquery/database.h"
 
 namespace osquery {
@@ -19,23 +17,21 @@ QueryData genMounts() {
   int i;
 
   mnts = getmntinfo(&mnt, MNT_WAIT);
-  if(mnts == 0)
-  {
+  if (mnts == 0) {
     return results;
   }
-  for(i = 0; i < mnts; i++)
-  {
-      r["Name"] = TEXT(mnt[i].f_mntonname);
-      r["Device"] = TEXT(mnt[i].f_mntfromname);
-      r["FSType"] = TEXT(mnt[i].f_fstypename);
-      r["Size"] = INTEGER(mnt[i].f_bsize);
-      r["Blocks"] = INTEGER(mnt[i].f_blocks);
-      r["Free"] = INTEGER(mnt[i].f_bfree);
-      r["Available"] = INTEGER(mnt[i].f_bavail);
-      r["Files"] = INTEGER(mnt[i].f_files);
-      r["FFree"] = INTEGER(mnt[i].f_ffree);
-      r["Owner"] = INTEGER(mnt[i].f_owner);
-      results.push_back(r);
+  for (i = 0; i < mnts; i++) {
+    r["name"] = TEXT(mnt[i].f_mntonname);
+    r["device"] = TEXT(mnt[i].f_mntfromname);
+    r["fstype"] = TEXT(mnt[i].f_fstypename);
+    r["size"] = INTEGER(mnt[i].f_bsize);
+    r["blocks"] = INTEGER(mnt[i].f_blocks);
+    r["free"] = INTEGER(mnt[i].f_bfree);
+    r["available"] = INTEGER(mnt[i].f_bavail);
+    r["files"] = INTEGER(mnt[i].f_files);
+    r["ffree"] = INTEGER(mnt[i].f_ffree);
+    r["owner"] = INTEGER(mnt[i].f_owner);
+    results.push_back(r);
   }
   return results;
 }
