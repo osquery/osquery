@@ -2,8 +2,6 @@
 
 #include <ctime>
 
-#include <boost/lexical_cast.hpp>
-
 #include "osquery/database.h"
 
 namespace osquery {
@@ -15,9 +13,9 @@ QueryData genTime() {
   Row r;
   time_t _time = time(0);
   struct tm* now = localtime(&_time);
-  r["hour"] = boost::lexical_cast<std::string>(now->tm_hour);
-  r["minutes"] = boost::lexical_cast<std::string>(now->tm_min);
-  r["seconds"] = boost::lexical_cast<std::string>(now->tm_sec);
+  r["hour"] = INTEGER(now->tm_hour);
+  r["minutes"] = INTEGER(now->tm_min);
+  r["seconds"] = INTEGER(now->tm_sec);
   QueryData results;
   for (int i = 0; i < kNumCols; ++i) {
     results.push_back(r);
