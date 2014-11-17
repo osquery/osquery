@@ -18,6 +18,7 @@ SET(OSQUERY_APPLE_LIBS
   glog
 )
 
+# Warning: Do not statically compile unwind
 SET(OSQUERY_LINUX_LIBS
   libgflags.a
   libglog.a
@@ -28,6 +29,7 @@ SET(OSQUERY_LINUX_LIBS
   libboost_filesystem.a
   libboost_program_options.a
   libboost_regex.a
+  unwind
   udev
   blkid
   rt
@@ -37,7 +39,6 @@ SET(OSQUERY_UBUNTU_LIBS
   libz.a
   libbz2.a
   libsnappy.a
-  libunwind.a
   liblzma.a
 )
 
@@ -45,7 +46,6 @@ SET(OSQUERY_CENTOS_LIBS
   libz.so
   libbz2.so
   libsnappy.so
-  libunwind.so
   liblzma.so
   libproc.so
 )

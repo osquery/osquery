@@ -15,7 +15,9 @@ import sys
 import uuid
 
 from gentable import Column, ForeignKey, \
-    table_name, schema, implementation, description, table
+    table_name, schema, implementation, description, table, \
+    DataType, BIGINT, DATE, DATETIME, INTEGER, TEXT, \
+    is_blacklisted
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -38,17 +40,25 @@ module.exports = API;
 
 """
 
+
 class NoIndent(object):
+
     """Special instance checked object for removing json newlines."""
+
     def __init__(self, value):
         self.value = value
+        if 'type' in self.value and isinstance(self.value['type'], DataType):
+            self.value['type'] = str(self.value['type'])
+
 
 class Encoder(json.JSONEncoder):
+
     """
     Newlines are such a pain in json-generated output.
     Use this custom encoder to produce pretty json multiplexed with a more
     raw json output within.
     """
+
     def __init__(self, *args, **kwargs):
         super(Encoder, self).__init__(*args, **kwargs)
         self.kwargs = dict(kwargs)
@@ -69,22 +79,25 @@ class Encoder(json.JSONEncoder):
             result = result.replace('"@@%s@@"' % (k,), v)
         return result
 
+
 def gen_api(api):
     """Apply the api literal object to the template."""
-    api = json.dumps(api,
-        cls=Encoder, sort_keys=True, indent=1, separators=(',', ': '))
+    api = json.dumps(
+        api, cls=Encoder, sort_keys=True, indent=1, separators=(',', ': ')
+    )
     return TEMPLATE_API_DEFINITION % (api)
+
 
 def gen_spec(tree):
     """Given a table tree, produce a literal of the table representation."""
     exec(compile(tree, "<string>", "exec"))
     columns = [NoIndent({
-            "name": column.name,
-            "type": column.type,
-            "description": column.description,
-        }) for column in table.columns()]
+        "name": column.name,
+        "type": column.type,
+        "description": column.description,
+    }) for column in table.columns()]
     foreign_keys = [NoIndent({"column": key.column, "table": key.table})
-        for key in table.foreign_keys()]
+                    for key in table.foreign_keys()]
     return {
         "name": table.table_name,
         "columns": columns,
@@ -93,12 +106,17 @@ def gen_spec(tree):
         "description": table.description,
     }
 
+
 def main(argc, argv):
     parser = argparse.ArgumentParser("Generate API documentation.")
-    parser.add_argument("--tables", default="osquery/tables/specs",
-        help="Path to osquery table specs")
-    parser.add_argument("--profile", default=None,
-        help="Add the results of a profile summary to the API.")
+    parser.add_argument(
+        "--tables", default="osquery/tables/specs",
+        help="Path to osquery table specs"
+    )
+    parser.add_argument(
+        "--profile", default=None,
+        help="Add the results of a profile summary to the API."
+    )
     args = parser.parse_args()
 
     logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
@@ -119,8 +137,15 @@ def main(argc, argv):
                 logging.error("Cannot parse profile data: %s" % (str(e)))
                 exit(2)
 
+    # Read in the optional list of blacklisted tables
+    blacklist = None
+    blacklist_path = os.path.join(args.tables, "blacklist")
+    if os.path.exists(blacklist_path):
+        with open(blacklist_path, "r") as fh:
+            blacklist = fh.read()
+
     categories = {}
-    for base, folders, files in os.walk(args.tables):
+    for base, _, files in os.walk(args.tables):
         for spec_file in files:
             # Exclude blacklist specific file
             if spec_file == 'blacklist':
@@ -135,12 +160,13 @@ def main(argc, argv):
                 table_spec = gen_spec(tree)
                 table_profile = profile.get("%s.%s" % (platform, name), {})
                 table_spec["profile"] = NoIndent(table_profile)
+                table_spec["blacklisted"] = is_blacklisted(table_spec["name"],
+                                                           blacklist=blacklist)
                 categories[platform]["tables"].append(table_spec)
     categories = [{"key": k, "name": v["name"], "tables": v["tables"]}
-        for k, v in categories.iteritems()]
+                  for k, v in categories.iteritems()]
     print(gen_api(categories))
 
 
 if __name__ == "__main__":
     main(len(sys.argv), sys.argv)
-

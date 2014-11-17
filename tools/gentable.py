@@ -22,50 +22,64 @@ LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
 TEMPLATES = {}
 
 # Temporary reserved column names
-RESERVED = ["group"]
+RESERVED = ["n"]
 
 # Supported SQL types for spec
+
+
 class DataType(object):
+
     def __init__(self, affinity, cpp_type="std::string"):
+        '''A column datatype is a pair of a SQL affinity to C++ type.'''
         self.affinity = affinity
         self.type = cpp_type
+
     def __repr__(self):
         return self.affinity
 
+# Define column-type MACROs for the table specs
 TEXT = DataType("TEXT")
 DATE = DataType("TEXT")
 DATETIME = DataType("TEXT")
 INTEGER = DataType("INTEGER", "int")
 BIGINT = DataType("BIGINT", "long long int")
 
+
 def usage():
     """ print program usage """
-    print("Usage: %s <spec.table> <file.cpp> [disable_blacklist]" % sys.argv[0])
+    print(
+        "Usage: %s <spec.table> <file.cpp> [disable_blacklist]" % sys.argv[0])
+
 
 def to_camel_case(snake_case):
     """ convert a snake_case string to camelCase """
     components = snake_case.split('_')
     return components[0] + "".join(x.title() for x in components[1:])
 
+
 def lightred(msg):
     return "\033[1;31m %s \033[0m" % str(msg)
 
-def is_blacklisted(path, table_name):
+
+def is_blacklisted(table_name, path=None, blacklist=None):
     """Allow blacklisting by tablename."""
-    specs_path = os.path.dirname(os.path.dirname(path))
-    blacklist_path = os.path.join(specs_path, "blacklist")
-    if not os.path.exists(blacklist_path):
-        return False
-    try:
-        with open(blacklist_path, "r") as fh:
-            blacklist = [line.strip() for line in fh.read().split("\n")
-                if len(line.strip()) > 0 and line.strip()[0] != "#"]
-            if table_name in blacklist:
-                return True
-    except:
-        # Blacklist is not readable.
-        pass
-    return False
+    if blacklist is None:
+        specs_path = os.path.dirname(os.path.dirname(path))
+        blacklist_path = os.path.join(specs_path, "blacklist")
+        if not os.path.exists(blacklist_path):
+            return False
+        try:
+            with open(blacklist_path, "r") as fh:
+                blacklist = [
+                    line.strip() for line in fh.read().split("\n")
+                    if len(line.strip()) > 0 and line.strip()[0] != "#"
+                ]
+        except:
+            # Blacklist is not readable.
+            return False
+    # table_name based blacklisting!
+    return table_name in blacklist if blacklist else False
+
 
 def setup_templates(path):
     tables_path = os.path.dirname(os.path.dirname(os.path.dirname(path)))
@@ -78,7 +92,9 @@ def setup_templates(path):
         with open(os.path.join(templates_path, template), "rb") as fh:
             TEMPLATES[template_name] = fh.read().replace("\\\n", "")
 
+
 class Singleton(object):
+
     """
     Make sure that anything that subclasses Singleton can only be instantiated
     once
@@ -92,7 +108,9 @@ class Singleton(object):
                 self, *args, **kwargs)
         return self._instance
 
+
 class TableState(Singleton):
+
     """
     Maintain the state of of the table commands during the execution of
     the config file
@@ -130,8 +148,8 @@ class TableState(Singleton):
         for column in self.columns():
             if column.name in RESERVED:
                 print (lightred(("Cannot use column name: %s in table: %s "
-                    "(the column name is reserved)" % (
-                        column.name, self.table_name))))
+                                 "(the column name is reserved)" % (
+                                     column.name, self.table_name))))
                 exit(1)
 
         path_bits = path.split("/")
@@ -152,25 +170,32 @@ class TableState(Singleton):
 
 table = TableState()
 
+
 class Column(object):
+
     """
     Part of an osquery table schema.
     Define a column by name and type with an optional description to assist
     documentation generation and reference.
     """
+
     def __init__(self, name, col_type, description="", **kwargs):
         self.name = name
         self.type = col_type
         self.description = description
 
+
 class ForeignKey(object):
+
     """
     Part of an osquery table schema.
     Loosely define a column in a table spec as a Foreign key in another table.
     """
+
     def __init__(self, **kwargs):
         self.column = kwargs.get("column", "")
         self.table = kwargs.get("table", "")
+
 
 def table_name(name):
     """define the virtual table name"""
@@ -178,6 +203,7 @@ def table_name(name):
     logging.debug("  - called with: %s" % name)
     table.table_name = name
     table.description = ""
+
 
 def schema(schema_list):
     """
@@ -191,6 +217,7 @@ def schema(schema_list):
         if isinstance(it, ForeignKey):
             logging.debug("  - foreign_key: %s (%s)" % (it.column, it.table))
     table.schema = schema_list
+
 
 def implementation(impl_string):
     """
@@ -214,8 +241,10 @@ def implementation(impl_string):
     table.function = function
     table.class_name = class_name
 
+
 def description(text):
     table.description = text
+
 
 def main(argc, argv):
     if DEVELOPING:
@@ -237,7 +266,8 @@ def main(argc, argv):
     with open(filename, "rU") as file_handle:
         tree = ast.parse(file_handle.read())
         exec(compile(tree, "<string>", "exec"))
-        if not disable_blacklist and is_blacklisted(filename, table.table_name):
+        blacklisted = is_blacklisted(table.table_name, path=filename)
+        if not disable_blacklist and blacklisted:
             table.blacklist(output)
         else:
             table.generate(output)

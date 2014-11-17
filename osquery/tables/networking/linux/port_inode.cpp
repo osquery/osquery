@@ -4,10 +4,8 @@
 
 #include <arpa/inet.h>
 #include <asm/types.h>
-#include <linux/inet_diag.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
-#include <linux/sock_diag.h>
 #include <linux/tcp.h>
 #include <netinet/in.h>
 #include <pwd.h>
@@ -26,6 +24,14 @@
 #include "osquery/core.h"
 #include "osquery/database.h"
 #include "osquery/logger.h"
+
+// From uapi/linux/sock_diag.h
+// From linux/sock_diag.h (<= 3.6)
+#ifndef SOCK_DIAG_BY_FAMILY
+#define SOCK_DIAG_BY_FAMILY 20
+#endif
+
+#include "inet_diag.h"
 
 namespace osquery {
 namespace tables {
