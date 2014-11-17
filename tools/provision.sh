@@ -361,8 +361,10 @@ function main() {
 
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
-
-    rpm -i ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
+    
+    if [[ -z $(rpm -qa | grep 'kernel-headers-3.10.0-123.9.3.el7.x86_64') ]]; then
+      sudo rpm -iv ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
+    fi
     package git-all
     package unzip
     package xz
@@ -373,7 +375,7 @@ function main() {
 
     pushd /etc/yum.repos.d
     if [[ ! -f /etc/yum.repos.d/devtools-2.repo ]]; then
-      wget http://people.centos.org/tru/devtools-2/devtools-2.repo
+      sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo
     fi
 
     package devtoolset-2-gcc
@@ -384,16 +386,16 @@ function main() {
     export CXX=/opt/rh/devtoolset-2/root/usr/bin/c++
     source /opt/rh/devtoolset-2/enable
     if [[ ! -d /usr/lib/gcc ]]; then
-      ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
+      sudo ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
     fi
     popd
 
     package cmake28
     if [[ ! -f /usr/bin/cmake ]]; then
-      ln -s /usr/bin/cmake28 /usr/bin/cmake
+      sudo ln -s /usr/bin/cmake28 /usr/bin/cmake
     fi
     if [[ ! -f /usr/bin/ccmake ]]; then
-      ln -s /usr/bin/ccmake28 /usr/bin/ccmake
+      sudo ln -s /usr/bin/ccmake28 /usr/bin/ccmake
     fi
 
     package clang
