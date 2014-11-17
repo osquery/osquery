@@ -28,12 +28,12 @@ void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
   r["interface"] = std::string(addr->ifa_name);
 
   // Address and mask will appear everytime.
-  r["address"] = canonical_ip_address((struct sockaddr *)addr->ifa_addr);
-  r["mask"] = canonical_ip_address((struct sockaddr *)addr->ifa_netmask);
+  r["address"] = ipAsString((struct sockaddr *)addr->ifa_addr);
+  r["mask"] = ipAsString((struct sockaddr *)addr->ifa_netmask);
 
   // The destination address is used for either a broadcast or PtP address.
   if (addr->ifa_dstaddr != NULL) {
-    dest_address = canonical_ip_address((struct sockaddr *)addr->ifa_dstaddr);
+    dest_address = ipAsString((struct sockaddr *)addr->ifa_dstaddr);
     if ((addr->ifa_flags & IFF_BROADCAST) == IFF_BROADCAST) {
       r["broadcast"] = dest_address;
     } else {
@@ -49,7 +49,7 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
 
   Row r;
   r["interface"] = std::string(addr->ifa_name);
-  r["mac"] = canonical_mac_address(addr);
+  r["mac"] = macAsString(addr);
 
   ifd = (struct if_data *)addr->ifa_data;
   r["type"] = STRING_FROM_UCHAR(ifd->ifi_type);

@@ -37,6 +37,7 @@ else()
     networking/linux/routes.cpp
     networking/linux/socket_inode.cpp
     networking/linux/port_inode.cpp
+    networking/linux/arp_cache.cpp
     system/linux/kernel_modules.cpp
     system/linux/processes.cpp
     system/linux/users.cpp
@@ -53,6 +54,7 @@ else()
 
   ADD_OSQUERY_LINK("rpm")
   ADD_OSQUERY_LINK("rpmio")
+
 endif()
 
 FILE(GLOB table_sources
