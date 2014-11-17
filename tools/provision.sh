@@ -365,7 +365,7 @@ function main() {
 
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
-    
+
     if [[ -z $(rpm -qa | grep 'kernel-headers-3.10.0-123.9.3.el7.x86_64') ]]; then
       sudo rpm -iv ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
     fi
@@ -464,8 +464,10 @@ function main() {
   if [ $OS = "darwin" ] && [ $DISTRO = "10.8" ]; then
     export CPPFLAGS=-Qunused-arguments
     export CFLAGS=-Qunused-arguments
+    sudo -E pip install -r requirements.txt
+  else
+    sudo pip install -r requirements.txt
   fi
-  sudo -E pip install -r requirements.txt
   git submodule init
   git submodule update
 }
