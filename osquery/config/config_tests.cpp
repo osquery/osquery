@@ -49,6 +49,21 @@ TEST_F(ConfigTests, test_plugin) {
   EXPECT_EQ(p.first.toString(), "OK");
   EXPECT_EQ(p.second, "foobar");
 }
+
+TEST_F(ConfigTests, test_splay) {
+  auto val1 = Config::splayValue(100, 10);
+  EXPECT_GE(val1, 90);
+  EXPECT_LE(val1, 110);
+
+  auto val2 = Config::splayValue(100, 10);
+  EXPECT_GE(val2, 90);
+  EXPECT_LE(val2, 110);
+
+  EXPECT_NE(val1, val2);
+
+  auto val3 = Config::splayValue(10, 0);
+  EXPECT_EQ(val3, 10);
+}
 }
 
 int main(int argc, char* argv[]) {

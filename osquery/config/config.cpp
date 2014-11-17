@@ -28,6 +28,12 @@ DEFINE_osquery_flag(string,
                     "filesystem",
                     "The config mechanism to retrieve config content via.");
 
+/// The percent to splay config times by
+DEFINE_osquery_flag(int32,
+                    config_splay_percent,
+                    10,
+                    "The percent to splay config times by");
+
 boost::shared_mutex rw_lock;
 
 std::shared_ptr<Config> Config::getInstance() {
@@ -41,6 +47,10 @@ Config::Config() {
   auto s = Config::genConfig(conf);
   if (!s.ok()) {
     LOG(ERROR) << "error retrieving config: " << s.toString();
+  } else {
+    for (auto& q : conf.scheduledQueries) {
+      q.interval = splayValue(q.interval, FLAGS_config_splay_percent);
+    }
   }
   cfg_ = conf;
 }
@@ -81,5 +91,17 @@ Status Config::genConfig(OsqueryConfig& conf) {
 std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return cfg_.scheduledQueries;
+}
+
+int Config::splayValue(int original, int splayPercent) {
+  if (splayPercent <= 0 || splayPercent > 100) {
+    return original;
+  }
+
+  float percent_to_modify_by = (float)splayPercent / 100;
+  int possible_difference = original * percent_to_modify_by;
+  int max_value = original + possible_difference;
+  int min_value = original - possible_difference;
+  return rand() % (max_value - min_value) + min_value;
 }
 }
