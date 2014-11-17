@@ -148,7 +148,6 @@ int getUnixTime();
  * @return a vector of strings representing the path of all home directories
  */
 std::vector<boost::filesystem::path> getHomeDirectories();
-}
 
 /**
  * @brief Inline helper function for use with utf8StringSize
@@ -182,4 +181,5 @@ inline size_t utf8StringSize(const std::string& str) {
     res++;
 
   return res;
+}
 }
