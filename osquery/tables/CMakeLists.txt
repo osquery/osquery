@@ -20,6 +20,7 @@ if(APPLE)
     system/darwin/homebrew_packages.cpp
     system/darwin/kextstat.cpp
     system/darwin/launchd.cpp
+    system/darwin/mounts.cpp
     system/darwin/nvram.cpp
     system/darwin/processes.cpp
     system/darwin/quarantine.cpp
