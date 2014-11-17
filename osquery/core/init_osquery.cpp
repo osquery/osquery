@@ -73,7 +73,7 @@ void initOsquery(int argc, char* argv[], int tool) {
   FLAGS_alsologtostderr = true;
   FLAGS_logbufsecs = 0; // flush the log buffer immediately
   FLAGS_stop_logging_if_full_disk = true;
-  FLAGS_max_log_size = 1024; // max size for individual log file is 1GB
+  FLAGS_max_log_size = 10; // max size for individual log file is 10MB
 
   // Set version string from CMake build
   __GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);

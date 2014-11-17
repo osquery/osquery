@@ -60,7 +60,6 @@ std::string getHostIdentifier(std::string hostIdFlag,
 
 void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
                    const int64_t& second) {
-  LOG(INFO) << "launchQueries: " << second;
   for (const auto& q : queries) {
     if (second % q.interval == 0) {
       LOG(INFO) << "executing query: " << q.query;

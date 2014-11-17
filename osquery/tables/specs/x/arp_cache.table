@@ -1,0 +1,8 @@
+table_name("arp_cache")
+schema([
+    Column("address", TEXT),
+    Column("mac", TEXT),
+    Column("interface", TEXT),
+    Column("permanent", TEXT, "1 for true, 0 for false"),
+])
+implementation("linux/arp_cache,darwin/routes@genArpCache")
