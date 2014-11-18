@@ -25,7 +25,7 @@ namespace osquery {
 
 /// The path to the pidfile for osqueryd
 DEFINE_osquery_flag(string,
-                    osqueryd_pidfile_path,
+                    pidfile,
                     "/var/osquery/osqueryd.pidfile",
                     "The path to the pidfile for osqueryd.");
 
@@ -94,11 +94,11 @@ std::vector<fs::path> getHomeDirectories() {
 
 Status createPidFile() {
   // check if pidfile exists
-  auto exists = pathExists(FLAGS_osqueryd_pidfile_path);
+  auto exists = pathExists(FLAGS_pidfile);
   if (exists.ok() == 1) {
     // if it exists, check if that pid is running
     std::string content;
-    auto read_status = readFile(FLAGS_osqueryd_pidfile_path, content);
+    auto read_status = readFile(FLAGS_pidfile, content);
     if (!read_status.ok()) {
       return Status(1, "Could not read pidfile: " + read_status.toString());
     }
@@ -117,8 +117,7 @@ Status createPidFile() {
       return Status(1, "osqueryd is already running");
     } else if (errno == ESRCH) {
       // if the pid isn't running, overwrite the pidfile
-      LOG(INFO) << "deleting existing pidfile";
-      boost::filesystem::remove(FLAGS_osqueryd_pidfile_path);
+      boost::filesystem::remove(FLAGS_pidfile);
       goto write_new_pidfile;
     } else {
       return Status(
@@ -131,10 +130,8 @@ Status createPidFile() {
   // if it doesn't exist, write a pid file and return a "success" status
   write_new_pidfile:
     auto current_pid = boost::lexical_cast<std::string>(getpid());
-    LOG(INFO) << "Writing pid (" << current_pid << ") to "
-              << FLAGS_osqueryd_pidfile_path;
-    auto write_status =
-        writeTextFile(FLAGS_osqueryd_pidfile_path, current_pid, 0755);
+    LOG(INFO) << "Writing pid (" << current_pid << ") to " << FLAGS_pidfile;
+    auto write_status = writeTextFile(FLAGS_pidfile, current_pid, 0755);
     return write_status;
   }
 }
