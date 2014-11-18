@@ -47,11 +47,11 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   if (in_memory) {
     // Remove when upgrading to RocksDB 3.3
     // options_.env = rocksdb::NewMemEnv(rocksdb::Env::Default());
-    throw std::domain_error("Required RocksDB 3.3 (and setMemEnv)");
+    throw std::runtime_error("Required RocksDB 3.3 (and setMemEnv)");
   }
 
   if (pathExists(path).ok() && !isWritable(path).ok()) {
-    throw std::domain_error("Cannot write to RocksDB path: " + path);
+    throw std::runtime_error("Cannot write to RocksDB path: " + path);
   }
 
   column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
@@ -62,8 +62,10 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
         cf_name, rocksdb::ColumnFamilyOptions()));
   }
 
-  status_ =
-      rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
+  auto s = rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
+  if (!s.ok()) {
+    throw std::runtime_error(s.ToString());
+  }
 }
 
 DBHandle::~DBHandle() {
@@ -98,10 +100,6 @@ std::shared_ptr<DBHandle> DBHandle::getInstance(const std::string& path,
 /////////////////////////////////////////////////////////////////////////////
 // getters and setters
 /////////////////////////////////////////////////////////////////////////////
-
-osquery::Status DBHandle::getStatus() {
-  return Status(status_.code(), status_.ToString());
-}
 
 rocksdb::DB* DBHandle::getDB() { return db_; }
 

@@ -80,15 +80,6 @@ class DBHandle {
   static std::shared_ptr<DBHandle> getInstance();
 
   /**
-   * @brief Getter for the status of the operations required to open the
-   * database
-   *
-   * @return an instance of osquery::Status which indicates the success or
-   * failure of connecting to RocksDB
-   */
-  Status getStatus();
-
-  /**
    * @brief Helper method which can be used to get a raw pointer to the
    * underlying RocksDB database handle
    *
@@ -230,9 +221,6 @@ class DBHandle {
 
   /// The database handle
   rocksdb::DB* db_;
-
-  /// The status code that is generated while attempting to connect to RocksDB
-  rocksdb::Status status_;
 
   /// Column family descriptors which are used to connect to RocksDB
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families_;
