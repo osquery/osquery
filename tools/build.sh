@@ -9,6 +9,8 @@ threads THREADS
 
 cd $SCRIPT_DIR/../
 
+# Builds dependencies
 make deps
+
 make -j$THREADS
 make test
