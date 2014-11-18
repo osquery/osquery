@@ -110,7 +110,7 @@ void standard_freeproc(proc_t* p) {
   }
 
 #ifdef PROC_EDITCMDLCVT
-  freeproc(proc_info);
+  freeproc(p);
   return;
 #endif
 
