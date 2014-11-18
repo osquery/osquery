@@ -95,7 +95,7 @@ std::vector<fs::path> getHomeDirectories() {
 Status createPidFile() {
   // check if pidfile exists
   auto exists = pathExists(FLAGS_pidfile);
-  if (exists.ok() == 1) {
+  if (exists.ok()) {
     // if it exists, check if that pid is running
     std::string content;
     auto read_status = readFile(FLAGS_pidfile, content);
