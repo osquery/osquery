@@ -245,7 +245,7 @@ function check() {
   if [[ "$1" = "build" ]]; then
     echo $HASH > "$2/.provision"
     if [[ ! -z "$SUDO_USER" ]]; then
-      chown $SUDO_USER "$2/.provision"
+      chown $SUDO_USER "$2/.provision" > /dev/null 2>&1 || true
     fi
     return
   elif [[ ! "$1" = "check" ]]; then
@@ -259,7 +259,7 @@ function check() {
 
   CHECKPOINT=`cat $2/.provision 2>&1 &`
   if [[ ! $HASH = $CHECKPOINT ]]; then
-    echo "Requested dependencies have changed, run: sudo make deps"
+    echo "Requested dependencies may have changed, run: sudo make deps"
     exit 1
   fi
   exit 0
@@ -276,8 +276,12 @@ function main() {
 
   mkdir -p "$WORKING_DIR"
   if [[ ! -z "$SUDO_USER" ]]; then
-    chown -R $SUDO_USER "$BUILD_DIR"
-    chown -R $SUDO_USER "$WORKING_DIR"
+    echo "chown -h $SUDO_USER $BUILD_DIR/*"
+    chown -h $SUDO_USER:$SUDO_GID "$BUILD_DIR" || true
+    if [[ $OS = "linux" ]]; then
+      chown -h $SUDO_USER:$SUDO_GID "$BUILD_DIR/linux" || true
+    fi
+    chown $SUDO_USER:$SUDO_GID "$WORKING_DIR" > /dev/null 2>&1 || true
   fi
   cd "$WORKING_DIR"
 
@@ -364,7 +368,9 @@ function main() {
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
 
-    rpm -i ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
+    if [[ -z $(rpm -qa | grep 'kernel-headers-3.10.0-123.9.3.el7.x86_64') ]]; then
+      sudo rpm -iv ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
+    fi
     package git-all
     package unzip
     package xz
@@ -375,7 +381,7 @@ function main() {
 
     pushd /etc/yum.repos.d
     if [[ ! -f /etc/yum.repos.d/devtools-2.repo ]]; then
-      wget http://people.centos.org/tru/devtools-2/devtools-2.repo
+      sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo
     fi
 
     package devtoolset-2-gcc
@@ -386,16 +392,16 @@ function main() {
     export CXX=/opt/rh/devtoolset-2/root/usr/bin/c++
     source /opt/rh/devtoolset-2/enable
     if [[ ! -d /usr/lib/gcc ]]; then
-      ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
+      sudo ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
     fi
     popd
 
     package cmake28
     if [[ ! -f /usr/bin/cmake ]]; then
-      ln -s /usr/bin/cmake28 /usr/bin/cmake
+      sudo ln -s /usr/bin/cmake28 /usr/bin/cmake
     fi
     if [[ ! -f /usr/bin/ccmake ]]; then
-      ln -s /usr/bin/ccmake28 /usr/bin/ccmake
+      sudo ln -s /usr/bin/ccmake28 /usr/bin/ccmake
     fi
 
     package clang
@@ -458,11 +464,13 @@ function main() {
     true
   fi
 
-  if [[ $OS = "freebsd" ]]; then
-    # XXX: install devel/py-Jinja2
-    true
+  cd "$SCRIPT_DIR/../"
+
+  if [ $OS = "darwin" ] && [ $DISTRO = "10.8" ]; then
+    export CPPFLAGS=-Qunused-arguments
+    export CFLAGS=-Qunused-arguments
+    sudo -E pip install -r requirements.txt
   else
-    cd "$SCRIPT_DIR/../"
     sudo pip install -r requirements.txt
   fi
   git submodule init

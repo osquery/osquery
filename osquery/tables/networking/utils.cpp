@@ -23,7 +23,10 @@
 
 #include "osquery/tables/networking/utils.h"
 
-std::string canonical_ip_address(const struct sockaddr *in) {
+namespace osquery {
+namespace tables {
+
+std::string ipAsString(const struct sockaddr *in) {
   char dst[INET6_ADDRSTRLEN];
   memset(dst, 0, sizeof(dst));
   void *in_addr;
@@ -73,7 +76,21 @@ int netmaskFromIP(const struct sockaddr *in) {
   return mask;
 }
 
-std::string canonical_mac_address(const struct ifaddrs *addr) {
+std::string macAsString(const char *addr) {
+  std::stringstream mac;
+
+  for (size_t i = 0; i < 6; i++) {
+    mac << std::hex << std::setfill('0') << std::setw(2);
+    mac << (int)((uint8_t)addr[i]);
+    if (i != 5) {
+      mac << ":";
+    }
+  }
+
+  return mac.str();
+}
+
+std::string macAsString(const struct ifaddrs *addr) {
   std::stringstream mac;
 
   if (addr->ifa_addr == NULL) {
@@ -93,7 +110,10 @@ std::string canonical_mac_address(const struct ifaddrs *addr) {
 
   for (size_t i = 0; i < 6; i++) {
     mac << std::hex << std::setfill('0') << std::setw(2);
-    mac << (int)((uint8_t)ifr.ifr_hwaddr.sa_data[i]) << ":";
+    mac << (int)((uint8_t)ifr.ifr_hwaddr.sa_data[i]);
+    if (i != 5) {
+      mac << ":";
+    }
   }
 #else
   struct sockaddr_dl *sdl;
@@ -107,9 +127,14 @@ std::string canonical_mac_address(const struct ifaddrs *addr) {
   for (size_t i = 0; i < sdl->sdl_alen; i++) {
     mac << std::hex << std::setfill('0') << std::setw(2);
     // Prevent char sign extension.
-    mac << (int)((uint8_t)sdl->sdl_data[i + sdl->sdl_nlen]) << ":";
+    mac << (int)((uint8_t)sdl->sdl_data[i + sdl->sdl_nlen]);
+    if (i != 5) {
+      mac << ":";
+    }
   }
 #endif
 
   return mac.str();
+}
+}
 }

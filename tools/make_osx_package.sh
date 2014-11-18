@@ -10,6 +10,7 @@ source $SCRIPT_DIR/lib.sh
 APP_IDENTIFIER="com.facebook.osqueryd"
 OUTPUT_PKG_PATH="$SCRIPT_DIR/../osqueryd.pkg"
 LAUNCHD_PATH="$SCRIPT_DIR/$APP_IDENTIFIER.plist"
+LAUNCHD_PATH_OVERRIDE=""
 LAUNCHD_INSTALL_PATH="/Library/LaunchDaemons/$APP_IDENTIFIER.plist"
 OSQUERY_LOG_DIR="/var/log/osquery/"
 OSQUERY_CONFIG_PATH_DEST="/var/osquery/osquery.conf"
@@ -50,6 +51,9 @@ function parse_args() {
       -c | --config )         shift
                               OSQUERY_CONFIG_PATH_SRC=$1
                               ;;
+      -l | --launchd )        shift
+                              LAUNCHD_PATH_OVERRIDE=$1
+                              ;;
       -h | --help )           usage
                               ;;
       * )                     usage
@@ -61,6 +65,13 @@ function parse_args() {
 function check_parsed_args() {
   if [[ $OSQUERY_CONFIG_PATH_SRC = "" ]]; then
     log "no config specified. assuming that you know what you're doing."
+  fi
+
+  if [[ $LAUNCHD_PATH_OVERRIDE = "" ]]; then
+    log "no custom launchd path was defined. using $LAUNCHD_PATH"
+  else
+    LAUNCHD_PATH=$LAUNCHD_PATH_OVERRIDE
+    log "using $LAUNCHD_PATH as the launchd path"
   fi
 
   if [ "$OSQUERY_CONFIG_PATH_SRC" != "" ] && [ ! -f $OSQUERY_CONFIG_PATH_SRC ]; then
