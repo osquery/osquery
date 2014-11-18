@@ -52,21 +52,21 @@ SET(OSQUERY_CENTOS_LIBS
 )
 
 SET(OSQUERY_FREEBSD_LIBS
-  libgflags.so
-  libglog.so
-  librocksdb.so
-  libthrift.so
-  libboost_thread.so
-  libboost_system.so
-  libboost_filesystem.so
-  libboost_program_options.so
-  libboost_regex.so
-  librt.so
-  libz.so
-  libbz2.so
-  libsnappy.so
-  libunwind.so
-  liblzma.so
+  gflags
+  glog
+  rocksdb
+  thrift
+  boost_thread
+  boost_system
+  boost_filesystem
+  boost_program_options
+  boost_regex
+  rt
+  z
+  bz2
+  snappy
+  unwind
+  lzma
 )
 
 # Check for the explicit path to determine the version of procps
