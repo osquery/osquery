@@ -15,6 +15,12 @@
 int main(int argc, char* argv[]) {
   osquery::initOsquery(argc, argv, osquery::OSQUERY_TOOL_DAEMON);
 
+  auto pid_status = osquery::createPidFile();
+  if (!pid_status.ok()) {
+    LOG(ERROR) << "Could not create osquery pidfile: " << pid_status.toString();
+    ::exit(-1);
+  }
+
   try {
     osquery::DBHandle::getInstance();
   } catch (std::exception& e) {
