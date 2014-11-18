@@ -107,6 +107,11 @@ int Config::splayValue(int original, int splayPercent) {
   int possible_difference = original * percent_to_modify_by;
   int max_value = original + possible_difference;
   int min_value = original - possible_difference;
-  return rand() % (max_value - min_value) + min_value;
+
+  if (max_value == min_value) {
+    return max_value;
+  }
+
+  return (rand() % (max_value - min_value)) + min_value;
 }
 }
