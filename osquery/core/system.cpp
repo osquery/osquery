@@ -3,6 +3,9 @@
 #include "osquery/core.h"
 #include "osquery/database/db_handle.h"
 
+#include <sys/types.h>
+#include <signal.h>
+
 #include <uuid/uuid.h>
 
 #include <boost/algorithm/string/trim.hpp>
@@ -13,11 +16,18 @@
 
 #include <glog/logging.h>
 
+#include "osquery/filesystem.h"
 #include "osquery/sql.h"
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
+/// The path to the pidfile for osqueryd
+DEFINE_osquery_flag(string,
+                    osqueryd_pidfile_path,
+                    "/var/osquery/osqueryd.pidfile",
+                    "The path to the pidfile for osqueryd.");
 
 std::string getHostname() {
   char hostname[256];
@@ -80,5 +90,52 @@ std::vector<fs::path> getHomeDirectories() {
     LOG(ERROR) << "Error executing query to return users: " << sql.getMessageString();
   }
   return results;
+}
+
+Status createPidFile() {
+  // check if pidfile exists
+  auto exists = pathExists(FLAGS_osqueryd_pidfile_path);
+  if (exists.ok() == 1) {
+    // if it exists, check if that pid is running
+    std::string content;
+    auto read_status = readFile(FLAGS_osqueryd_pidfile_path, content);
+    if (!read_status.ok()) {
+      return Status(1, "Could not read pidfile: " + read_status.toString());
+    }
+    int osqueryd_pid;
+    try {
+      osqueryd_pid = stoi(content);
+    } catch (const std::invalid_argument& e) {
+      return Status(
+          1,
+          std::string("Could not convert pidfile content to an int: ") +
+              std::string(e.what()));
+    }
+
+    if (kill(osqueryd_pid, 0) == 0) {
+      // if the pid is running, return an "error" status
+      return Status(1, "osqueryd is already running");
+    } else if (errno == ESRCH) {
+      // if the pid isn't running, overwrite the pidfile
+      LOG(INFO) << "deleting existing pidfile";
+      boost::filesystem::remove(FLAGS_osqueryd_pidfile_path);
+      goto write_new_pidfile;
+    } else {
+      return Status(
+          1,
+          std::string(
+              "An unknown error occured checking if the pid is running: ") +
+              std::string(strerror(errno)));
+    }
+  } else {
+  // if it doesn't exist, write a pid file and return a "success" status
+  write_new_pidfile:
+    auto current_pid = boost::lexical_cast<std::string>(getpid());
+    LOG(INFO) << "Writing pid (" << current_pid << ") to "
+              << FLAGS_osqueryd_pidfile_path;
+    auto write_status =
+        writeTextFile(FLAGS_osqueryd_pidfile_path, current_pid, 0755);
+    return write_status;
+  }
 }
 }

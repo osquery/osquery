@@ -182,4 +182,11 @@ inline size_t utf8StringSize(const std::string& str) {
 
   return res;
 }
+
+/**
+ * @brief Create a pid file
+ *
+ * @return A status object indicating the success or failure of the operation
+ */
+Status createPidFile();
 }
