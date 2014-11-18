@@ -63,6 +63,13 @@ TEST_F(ConfigTests, test_splay) {
 
   auto val3 = Config::splayValue(10, 0);
   EXPECT_EQ(val3, 10);
+
+  auto val4 = Config::splayValue(100, 1);
+  EXPECT_GE(val2, 99);
+  EXPECT_LE(val2, 101);
+
+  auto val5 = Config::splayValue(1, 10);
+  EXPECT_EQ(val5, 1);
 }
 }
 
