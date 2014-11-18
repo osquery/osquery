@@ -30,7 +30,7 @@ DEFINE_osquery_flag(string,
 
 /// The percent to splay config times by
 DEFINE_osquery_flag(int32,
-                    config_splay_percent,
+                    schedule_splay_percent,
                     10,
                     "The percent to splay config times by");
 
@@ -49,7 +49,12 @@ Config::Config() {
     LOG(ERROR) << "error retrieving config: " << s.toString();
   } else {
     for (auto& q : conf.scheduledQueries) {
-      q.interval = splayValue(q.interval, FLAGS_config_splay_percent);
+      auto old_interval = q.interval;
+      auto new_interval =
+          splayValue(old_interval, FLAGS_schedule_splay_percent);
+      LOG(INFO) << "Changing the interval for " << q.name << " from  "
+                << old_interval << " to " << new_interval;
+      q.interval = new_interval;
     }
   }
   cfg_ = conf;
