@@ -45,9 +45,9 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   options_.create_missing_column_families = true;
 
   if (in_memory) {
-    // Remove when upgrading to RocksDB 3.3
+    // Remove when MemEnv is included in librocksdb
     // options_.env = rocksdb::NewMemEnv(rocksdb::Env::Default());
-    throw std::runtime_error("Required RocksDB 3.3 (and setMemEnv)");
+    throw std::runtime_error("Requires MemEnv");
   }
 
   if (pathExists(path).ok() && !isWritable(path).ok()) {
