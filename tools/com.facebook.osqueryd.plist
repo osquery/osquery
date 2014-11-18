@@ -14,5 +14,7 @@
         <string>/usr/local/bin/osqueryd</string>
   <key>RunAtLoad</key>
   <true/>
+  <key>ThrottleInterval</key>
+  <integer>60</integer>
 </dict>
 </plist>
