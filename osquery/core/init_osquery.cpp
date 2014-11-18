@@ -87,17 +87,25 @@ void initOsquery(int argc, char* argv[], int tool) {
   }
 
   if (FLAGS_verbose_debug) {
+    // Turn verbosity up to 1.
+    // Do log DEBUG, INFO, WARNING, ERROR to their log files.
+    // Do log the above and verbose=1 to stderr.
     FLAGS_debug = true;
     FLAGS_v = 1;
   }
 
   if (!FLAGS_debug) {
-    FLAGS_minloglevel = 1; // WARNING
+    // Do NOT log INFO, WARNING, ERROR to stderr.
+    // Do log to their log files.
+    FLAGS_minloglevel = 0; // INFO
+    FLAGS_alsologtostderr = false;
   }
 
   if (FLAGS_disable_logging) {
+    // Do log ERROR to stderr.
+    // Do NOT log INFO, WARNING, ERROR to their log files.
     FLAGS_logtostderr = true;
-    FLAGS_minloglevel = 2;
+    FLAGS_minloglevel = 2; // ERROR
   }
 
   google::InitGoogleLogging(argv[0]);
