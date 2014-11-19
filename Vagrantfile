@@ -17,7 +17,7 @@ Vagrant.configure("2") do |config|
     box.vm.box = "chef/centos-6.5"
   end
 
-  config.vm.define "freebsd10.0" do |box|
+  config.vm.define "freebsd10" do |box|
     box.vm.box = "chef/freebsd-10.0"
 
     # Private network for NFS
@@ -30,6 +30,9 @@ Vagrant.configure("2") do |config|
     end
 
     box.vm.synced_folder ".", "/vagrant", type: "nfs"
+
+    box.vm.provision "shell",
+      inline: "pkg install -y gmake"
   end
 
 end
