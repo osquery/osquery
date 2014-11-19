@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <future>
+#include <random>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -112,6 +113,8 @@ int Config::splayValue(int original, int splayPercent) {
     return max_value;
   }
 
-  return (rand() % (max_value - min_value)) + min_value;
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int> distribution(min_value, max_value);
+  return distribution(generator);
 }
 }
