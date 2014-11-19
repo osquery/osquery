@@ -312,7 +312,9 @@ function main() {
     if [[ $DISTRO = "precise" ]]; then
       sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     fi
+    sudo rm -Rf /var/lib/apt/lists/*
     sudo apt-get update
+    sudo apt-get clean
 
     package git
     package unzip
