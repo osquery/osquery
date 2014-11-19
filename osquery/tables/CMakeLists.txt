@@ -32,6 +32,14 @@ if(APPLE)
   ADD_OSQUERY_LINK("-framework CoreFoundation")
   ADD_OSQUERY_LINK("-framework Security")
   ADD_OSQUERY_LINK("-framework OpenDirectory")
+elseif(FREEBSD)
+  ADD_OSQUERY_LIBRARY(osquery_tables_freebsd
+    events/freebsd/passwd_changes.cpp
+    networking/freebsd/routes.cpp
+    system/freebsd/processes.cpp
+    system/freebsd/users.cpp
+    system/freebsd/groups.cpp
+  )
 else()
   ADD_OSQUERY_LIBRARY(osquery_tables_linux
     events/linux/passwd_changes.cpp

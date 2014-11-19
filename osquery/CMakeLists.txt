@@ -1,7 +1,6 @@
 SET(OSQUERY_LIBS
   readline
   pthread
-  dl
   crypto
   ssl
 )
@@ -16,6 +15,7 @@ SET(OSQUERY_APPLE_LIBS
   rocksdb
   gflags
   glog
+  dl
 )
 
 # Warning: Do not statically compile unwind
@@ -33,6 +33,7 @@ SET(OSQUERY_LINUX_LIBS
   udev
   blkid
   rt
+  dl
 )
 
 SET(OSQUERY_UBUNTU_LIBS
@@ -50,15 +51,35 @@ SET(OSQUERY_CENTOS_LIBS
   libproc.so
 )
 
+SET(OSQUERY_FREEBSD_LIBS
+  gflags
+  glog
+  rocksdb
+  thrift
+  boost_thread
+  boost_system
+  boost_filesystem
+  boost_program_options
+  boost_regex
+  rt
+  z
+  bz2
+  snappy
+  unwind
+  lzma
+)
+
 # Check for the explicit path to determine the version of procps
 if(EXISTS "/usr/lib/libprocps.a"
     OR EXISTS "/usr/lib/x86_64-linux-gnu/libprocps.a")
   set(PROCPS TRUE)
 endif()
 
-# Fill in libraries for Apple, Uunbut, Centos
+# Fill in libraries for Apple, Uunbut, Centos, FreeBSD
 if(APPLE)
   set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_APPLE_LIBS})
+elseif(FREEBSD)
+  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_FREEBSD_LIBS})
 else()
   set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_LINUX_LIBS})
   if(UBUNTU)
@@ -161,6 +182,9 @@ file(GLOB TABLE_FILES "tables/specs/x/*.table")
 if(APPLE)
   file(GLOB TABLE_FILES_DARWIN "tables/specs/darwin/*.table")
   list(APPEND TABLE_FILES ${TABLE_FILES_DARWIN})
+elseif(FREEBSD)
+  file(GLOB TABLE_FILES_FREEBSD "tables/specs/freebsd/*.table")
+  list(APPEND TABLE_FILES ${TABLE_FILES_FREEBSD})
 else()
   file(GLOB TABLE_FILES_LINUX "tables/specs/linux/*.table")
   list(APPEND TABLE_FILES ${TABLE_FILES_LINUX})
@@ -172,6 +196,7 @@ foreach(TABLE_FILE ${TABLE_FILES})
   SET(TABLE_FILE_GEN ${TABLE_FILE})
   STRING(REPLACE "linux/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   STRING(REPLACE "darwin/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  STRING(REPLACE "freebsd/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   STRING(REPLACE "x/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   STRING(
     REPLACE
@@ -255,7 +280,7 @@ INSTALL(TARGETS daemon DESTINATION bin)
 
 # packages
 
-if(NOT APPLE)
+if(LINUX)
   SET(CPACK_PACKAGE_NAME "osquery")
   SET(CPACK_PACKAGE_VENDOR "facebook")
 

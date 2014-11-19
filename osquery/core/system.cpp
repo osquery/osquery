@@ -6,7 +6,9 @@
 #include <sys/types.h>
 #include <signal.h>
 
+#if !defined(__FreeBSD__)
 #include <uuid/uuid.h>
+#endif
 
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
