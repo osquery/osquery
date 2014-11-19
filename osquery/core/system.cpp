@@ -32,8 +32,8 @@ DEFINE_osquery_flag(string,
                     "The path to the pidfile for osqueryd.");
 
 std::string getHostname() {
-  char hostname[256];
-  memset(hostname, 0, 255);
+  char hostname[256];  // Linux max should be 64.
+  memset(hostname, 0, 256);
   gethostname(hostname, 255);
   std::string hostname_string = std::string(hostname);
   boost::algorithm::trim(hostname_string);
