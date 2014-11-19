@@ -5,8 +5,6 @@
 
 #include <utmpx.h>
 
-#include <boost/lexical_cast.hpp>
-
 #include "osquery/core.h"
 #include "osquery/database.h"
 
@@ -29,12 +27,12 @@ QueryData genLastAccess() {
 #endif
 
     Row r;
-    r["username"] = std::string(ut->ut_user);
-    r["tty"] = std::string(ut->ut_line);
-    r["pid"] = boost::lexical_cast<std::string>(ut->ut_pid);
-    r["type"] = boost::lexical_cast<std::string>(ut->ut_type);
-    r["time"] = boost::lexical_cast<std::string>(ut->ut_tv.tv_sec);
-    r["host"] = std::string(ut->ut_host);
+    r["username"] = TEXT(ut->ut_user);
+    r["tty"] = TEXT(ut->ut_line);
+    r["pid"] = INTEGER(ut->ut_pid);
+    r["type"] = INTEGER(ut->ut_type);
+    r["time"] = INTEGER(ut->ut_tv.tv_sec);
+    r["host"] = TEXT(ut->ut_host);
 
     results.push_back(r);
   }

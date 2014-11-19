@@ -5,8 +5,6 @@
 
 #include <pwd.h>
 
-#include <boost/lexical_cast.hpp>
-
 #include <glog/logging.h>
 
 #include "osquery/core.h"
