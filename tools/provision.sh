@@ -230,6 +230,12 @@ function package() {
     else
       brew install $@ || brew upgrade $@
     fi
+  elif [[ $OS = "freebsd" ]]; then
+    if pkg info -q $1; then
+      log "$1 is already installed. skipping."
+    else
+      sudo pkg install -y $@
+    fi
   fi
 }
 
@@ -238,6 +244,8 @@ function check() {
 
   if [[ $OS = "darwin" ]]; then
     HASH=`shasum $0 | awk '{print $1}'`
+  elif [[ $OS = "freebsd" ]]; then
+    HASH=`sha1 -q $0`
   else
     HASH=`sha1sum $0 | awk '{print $1}'`
   fi
@@ -459,9 +467,18 @@ function main() {
     package gflags
     package glog
     package thrift
+
   elif [[ $OS = "freebsd" ]]; then
-    # XXX: install packages by hand for now
-    true
+
+    package cmake
+    package git
+    package python
+    package py27-pip
+    package rocksdb
+    package libunwind
+    package thrift-cpp
+    package glog
+
   fi
 
   cd "$SCRIPT_DIR/../"
