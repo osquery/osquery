@@ -312,7 +312,7 @@ function main() {
     if [[ $DISTRO = "precise" ]]; then
       sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     fi
-    sudo apt-get update
+    #sudo apt-get update
 
     package git
     package unzip
@@ -374,7 +374,7 @@ function main() {
     install_rocksdb
 
   elif [[ $OS = "centos" ]]; then
-    sudo yum update -y
+    #sudo yum update -y
 
     if [[ -z $(rpm -qa | grep 'kernel-headers-3.10.0-123.9.3.el7.x86_64') ]]; then
       sudo rpm -iv ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
@@ -459,7 +459,7 @@ function main() {
       fatal "could not find pip. please install it using 'sudo easy_install pip'";
     }
 
-    brew update
+    #brew update
 
     package rocksdb
     package cmake
