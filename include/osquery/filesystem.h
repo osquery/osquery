@@ -149,4 +149,39 @@ Status parsePlist(const boost::filesystem::path& path,
 Status parsePlistContent(const std::string& fileContent,
                          boost::property_tree::ptree& tree);
 #endif
+
+#ifdef __linux__
+/**
+ * @brief Iterate over proc process, returns a list of pids.
+ *
+ * @param processes output list of process pids as strings (int paths in proc).
+ *
+ * @return status of iteration.
+ */
+Status procProcesses(std::vector<std::string>& processes);
+
+/**
+ * @brief Iterate over a proc process's descriptors, return a list of fds.
+ *
+ * @param process a string pid from proc.
+ * @param descriptors output list of descriptor numbers as strings.
+ *
+ * @return status of iteration, failure if the process path did not exist.
+ */
+Status procDescriptors(const std::string& process,
+                       std::vector<std::string>& descriptors);
+
+/**
+ * @brief Read a descriptor's virtual path.
+ *
+ * @param process a string pid from proc.
+ * @param descriptor a string descriptor number for a proc.
+ * @param result output variable with value of link.
+ *
+ * @return status of read, failure on permission error or filesystem error.
+ */
+Status procReadDescriptor(const std::string& process,
+                          const std::string& descriptor,
+                          std::string& result);
+#endif
 }

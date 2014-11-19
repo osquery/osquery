@@ -1,66 +1,56 @@
-#include <stdio.h>
-#include <stdlib.h>
+// Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <iostream>
-#include <string>
 #include <boost/regex.hpp>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <boost/algorithm/string.hpp>
-
-#include <boost/lexical_cast.hpp>
-#include <boost/filesystem.hpp>
 
 #include <glog/logging.h>
 
 #include "osquery/core.h"
 #include "osquery/database.h"
-
+#include "osquery/filesystem.h"
 
 namespace osquery {
 namespace tables {
 
 void crawl_proc(QueryData &results) {
-  boost::filesystem::path dir_path = "/proc";
-  for (boost::filesystem::directory_iterator itr(dir_path), end_itr; itr != end_itr; ++itr) {
+  std::vector<std::string> processes;
 
-    if (boost::filesystem::is_directory(itr->status())) {
-      std::string d_path = itr->path().string();
+  if (!osquery::procProcesses(processes).ok()) {
+    LOG(INFO) << "Cannot list Linux processes";
+    return;
+  }
 
-      // make sure /proc/*/fd is there
-      d_path.append("/fd");
-      struct stat s;
-      int err = stat(d_path.c_str(), &s);
-      if (err == -1) {
+  boost::regex socket_filter("[0-9]+");
+  for (const auto& process : processes) {
+    std::vector<std::string> descriptors;
+    if (!osquery::procDescriptors(process, descriptors).ok()) {
+      continue;
+    }
+
+    for (const auto& descriptor : descriptors) {
+      std::string linkname;
+      if (!procReadDescriptor(process, descriptor, linkname).ok()) {
+        // This is an odd error case, but the symlink could not be read.
         continue;
       }
 
-      for (boost::filesystem::directory_iterator i(d_path), e_i; i != e_i; ++i) {
-        char* linkname = (char *)malloc(32);
-        std::string path = i->path().string();
-        auto r = readlink(path.c_str(), linkname, 32);
-        std::string link_str(linkname, linkname + 32);
-        free(linkname);
+      if (linkname.find("socket") == std::string::npos) {
+        // This is not a socket descriptor.
+        continue;
+      }
 
-        // matches socket:[13415]
-        if (link_str.find("socket") != std::string::npos) {
-          boost::regex e("[0-9]+");
-          boost::smatch inode;
-          boost::regex_search(link_str, inode, e);
-          if (inode[0].str().length() > 0) {
-            std::vector<std::string> pid;
-            boost::split(pid, path, boost::is_any_of("/"));
-            Row r;
-            r["pid"] = boost::lexical_cast<std::string>(pid[2].c_str());
-            r["inode"] = boost::lexical_cast<std::string>(inode[0].str());
-            results.push_back(r);
-            continue;
-          }
-        }
+      // The linkname is in the form socket:[12345].
+      boost::smatch inode;
+      boost::regex_search(linkname, inode, socket_filter);
+      if (inode[0].str().length() > 0) {
+        Row r;
+        r["pid"] = process;
+        r["inode"] = inode[0].str();
+        results.push_back(r);
       }
     }
   }
+
   return;
 }
 

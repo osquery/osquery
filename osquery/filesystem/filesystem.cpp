@@ -16,8 +16,6 @@
 
 #include "osquery/filesystem.h"
 
-using osquery::Status;
-
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
 

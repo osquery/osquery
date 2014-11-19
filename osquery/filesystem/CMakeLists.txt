@@ -4,6 +4,10 @@ if(APPLE)
   )
 
   ADD_OSQUERY_LINK("-framework Foundation")
+elseif(UBUNTU OR CENTOS)
+  ADD_OSQUERY_LIBRARY(osquery_filesystem_linux
+    linux/proc.cpp
+  )
 endif()
 
 ADD_OSQUERY_LIBRARY(osquery_filesystem
