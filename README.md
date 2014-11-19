@@ -1,5 +1,6 @@
 osquery
 =======
+[![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildAll/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildAll/)
 
 osquery is an operating system instrumentation framework for OSX and Linux. osquery makes low-level operating system analytics and monitoring both performant and intuitive.
 
