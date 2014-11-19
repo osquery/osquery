@@ -71,7 +71,7 @@ QueryData parseALFTree(const pt::ptree& tree) {
   for (const auto& it : kTopLevelIntKeys) {
     try {
       int val = tree.get<int>(it.first);
-      r[it.second] = boost::lexical_cast<std::string>(val);
+      r[it.second] = INTEGER(val);
     } catch (const pt::ptree_error& e) {
       LOG(ERROR) << "Error retrieving " << it.second
                  << " from com.apple.alf: " << e.what();
@@ -119,7 +119,7 @@ QueryData parseALFExceptionsTree(const pt::ptree& tree) {
       state = it.second.get<int>("state");
       Row r;
       r["path"] = path;
-      r["state"] = boost::lexical_cast<std::string>(state);
+      r["state"] = INTEGER(state);
       results.push_back(r);
     } catch (const pt::ptree_error& e) {
       LOG(ERROR) << "Error retrieving firewall exception keys: " << e.what();
@@ -194,7 +194,7 @@ QueryData parseALFServicesTree(const pt::ptree& tree) {
       Row r;
       r["service"] = it.second;
       r["process"] = proc;
-      r["state"] = boost::lexical_cast<std::string>(state);
+      r["state"] = INTEGER(state);
       results.push_back(r);
     } catch (const pt::ptree_error& e) {
       LOG(ERROR) << "Error retrieving " << it.first << " keys: " << e.what();

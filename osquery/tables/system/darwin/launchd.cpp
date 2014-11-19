@@ -6,7 +6,6 @@
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include "osquery/core.h"
 #include "osquery/database.h"

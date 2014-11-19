@@ -4,8 +4,6 @@
 
 #include <string>
 
-#include <boost/lexical_cast.hpp>
-
 #import "osquery/core/darwin/NSProcessInfo+PECocoaBackports.h"
 
 namespace osquery {
@@ -19,9 +17,9 @@ QueryData genOSXVersion() {
         [[NSProcessInfo processInfo] operatingSystemVersion];
 
     Row r;
-    r["major"] = boost::lexical_cast<std::string>(v.majorVersion);
-    r["minor"] = boost::lexical_cast<std::string>(v.minorVersion);
-    r["patch"] = boost::lexical_cast<std::string>(v.patchVersion);
+    r["major"] = INTEGER(v.majorVersion);
+    r["minor"] = INTEGER(v.minorVersion);
+    r["patch"] = INTEGER(v.patchVersion);
 
     results.push_back(r);
   }

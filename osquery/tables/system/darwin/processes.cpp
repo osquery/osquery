@@ -374,22 +374,22 @@ QueryData genProcesses() {
 
   for (auto &pid : pidlist) {
     Row r;
-    r["pid"] = boost::lexical_cast<std::string>(pid);
+    r["pid"] = INTEGER(pid);
     r["name"] = getProcName(pid);
     r["path"] = getProcPath(pid);
     r["cmdline"] = boost::algorithm::join(getProcArgs(pid, argmax), " ");
 
     proc_cred cred;
     if (getProcCred(pid, cred)) {
-      r["uid"] = boost::lexical_cast<std::string>(cred.real.uid);
-      r["gid"] = boost::lexical_cast<std::string>(cred.real.gid);
-      r["euid"] = boost::lexical_cast<std::string>(cred.effective.uid);
-      r["egid"] = boost::lexical_cast<std::string>(cred.effective.gid);
+      r["uid"] = BIGINT(cred.real.uid);
+      r["gid"] = BIGINT(cred.real.gid);
+      r["euid"] = BIGINT(cred.effective.uid);
+      r["egid"] = BIGINT(cred.effective.gid);
     }
 
     const auto parent_it = parent_pid.find(pid);
     if (parent_it != parent_pid.end()) {
-      r["parent"] = boost::lexical_cast<std::string>(parent_it->second);
+      r["parent"] = INTEGER(parent_it->second);
     } else {
       r["parent"] = "-1";
     }
@@ -441,7 +441,7 @@ QueryData genProcessEnvs() {
     for (auto env_itr = env.begin(); env_itr != env.end(); ++env_itr) {
       Row r;
 
-      r["pid"] = boost::lexical_cast<std::string>(pid);
+      r["pid"] = INTEGER(pid);
       r["name"] = getProcName(pid);
       r["path"] = getProcPath(pid);
       r["key"] = env_itr->first;
@@ -463,7 +463,7 @@ QueryData genProcessOpenFiles() {
     for (auto &open_file : open_files) {
       Row r;
 
-      r["pid"] = boost::lexical_cast<std::string>(pid);
+      r["pid"] = INTEGER(pid);
       r["name"] = getProcName(pid);
       r["path"] = getProcPath(pid);
       r["file_type"] = open_file.file_type;
