@@ -5,6 +5,7 @@ schema([
     Column("local_ip", TEXT),
     Column("remote_ip", TEXT),
     Column("inode", TEXT),
+    Column("family", INTEGER),
 ])
 implementation("osquery/tables/networking/linux/port_inode@genPortInode")
 
