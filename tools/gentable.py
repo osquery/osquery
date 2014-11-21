@@ -43,6 +43,7 @@ DATE = DataType("TEXT")
 DATETIME = DataType("TEXT")
 INTEGER = DataType("INTEGER", "int")
 BIGINT = DataType("BIGINT", "long long int")
+UNSIGNED_BIGINT = DataType("UNSIGNED_BIGINT", "long long unsigned int")
 
 
 def usage():

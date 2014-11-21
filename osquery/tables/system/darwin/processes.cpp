@@ -243,14 +243,14 @@ QueryData genProcesses() {
     // proc_pid_rusage returns -1 if it was unable to gather information
     if (rusage_status == 0) {
       // size information
-      r["wired_size"] = INTEGER(rusage_info_data.ri_wired_size);
-      r["resident_size"] = INTEGER(rusage_info_data.ri_resident_size);
-      r["phys_footprint"] = INTEGER(rusage_info_data.ri_phys_footprint);
+      r["wired_size"] = TEXT(rusage_info_data.ri_wired_size);
+      r["resident_size"] = TEXT(rusage_info_data.ri_resident_size);
+      r["phys_footprint"] = TEXT(rusage_info_data.ri_phys_footprint);
 
       // time information
-      r["user_time"] = INTEGER(rusage_info_data.ri_user_time);
-      r["system_time"] = INTEGER(rusage_info_data.ri_system_time);
-      r["start_time"] = INTEGER(rusage_info_data.ri_proc_start_abstime);
+      r["user_time"] = TEXT(rusage_info_data.ri_user_time);
+      r["system_time"] = TEXT(rusage_info_data.ri_system_time);
+      r["start_time"] = TEXT(rusage_info_data.ri_proc_start_abstime);
     }
 
     // save the results
