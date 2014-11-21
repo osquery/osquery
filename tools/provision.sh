@@ -14,23 +14,27 @@ source "$SCRIPT_DIR/lib.sh"
 
 function install_cmake() {
   if [ "$OS" = "centos" ] || [ "$OS" = "ubuntu" ] || [ "$OS" = "darwin" ]; then
-    if [[ ! -f cmake-2.8.12.2.tar.gz ]]; then
-      log "downloading the cmake source"
-      wget http://www.cmake.org/files/v2.8/cmake-2.8.12.2.tar.gz
-    fi
-    if [[ ! -d cmake-2.8.12.2 ]]; then
-      log "unpacking the cmake source"
-      tar -xf cmake-2.8.12.2.tar.gz
-    fi
     if [[ -f /usr/local/bin/cmake ]]; then
       log "cmake is already installed. skipping."
     else
-      log "building cmake"
-      pushd cmake-2.8.12.2 > /dev/null
-      CC=clang CXX=clang++ ./configure
-      make
-      sudo make install
-      popd
+      if [[ ! -f cmake-2.8.12.2.tar.gz ]]; then
+        log "downloading the cmake source"
+        wget http://www.cmake.org/files/v2.8/cmake-2.8.12.2.tar.gz
+      fi
+      if [[ ! -d cmake-2.8.12.2 ]]; then
+        log "unpacking the cmake source"
+        tar -xf cmake-2.8.12.2.tar.gz
+      fi
+      if [[ -f /usr/local/bin/cmake ]]; then
+        log "cmake is already installed. skipping."
+      else
+        log "building cmake"
+        pushd cmake-2.8.12.2 > /dev/null
+        CC=clang CXX=clang++ ./configure
+        make
+        sudo make install
+        popd
+      fi
     fi
   fi
 }
@@ -465,6 +469,7 @@ function main() {
 
     package rocksdb
     package cmake
+    package makedepend
     package boost
     package gflags
     package glog
