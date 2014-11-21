@@ -1,24 +1,11 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <algorithm>
 #include <map>
-#include <string>
-#include <unordered_set>
-#include <map>
+#include <set>
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-
-#include <sys/types.h>
-#include <sys/sysctl.h>
 #include <libproc.h>
-#include <stdlib.h>
+#include <sys/sysctl.h>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <glog/logging.h>
@@ -27,13 +14,12 @@
 #include "osquery/database.h"
 #include "osquery/filesystem.h"
 
-#define IPv6_2_IPv4(v6) (((uint8_t *)((struct in6_addr *)v6)->s6_addr) + 12)
 
 namespace osquery {
 namespace tables {
 
-std::unordered_set<int> getProcList() {
-  std::unordered_set<int> pidlist;
+std::set<int> getProcList() {
+  std::set<int> pidlist;
   int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
   if (bufsize <= 0) {
     LOG(ERROR) << "An error occurred retrieving the process list";
@@ -66,8 +52,8 @@ std::unordered_set<int> getProcList() {
   return pidlist;
 }
 
-std::unordered_map<int, int> getParentMap(std::unordered_set<int> &pidlist) {
-  std::unordered_map<int, int> pidmap;
+std::map<int, int> getParentMap(std::set<int> &pidlist) {
+  std::map<int, int> pidmap;
   auto num_pids = pidlist.size();
   pid_t children[num_pids];
 
@@ -147,7 +133,7 @@ std::vector<std::string> getProcRawArgs(int pid, size_t argmax) {
 
   if (sysctl(mib, 3, &procargs, &argmax, NULL, 0) == -1) {
     if (euid == 0) {
-      LOG(ERROR) << "An error occurred retrieving the env for " << pid;
+      VLOG(1) << "An error occurred retrieving the env for " << pid;
     }
 
     return args;
@@ -165,9 +151,8 @@ std::vector<std::string> getProcRawArgs(int pid, size_t argmax) {
   return args;
 }
 
-std::unordered_map<std::string, std::string> getProcEnv(int pid,
-                                                        size_t argmax) {
-  std::unordered_map<std::string, std::string> env;
+std::map<std::string, std::string> getProcEnv(int pid, size_t argmax) {
+  std::map<std::string, std::string> env;
   auto args = getProcRawArgs(pid, argmax);
 
   // Since we know that all envs will have an = sign and are at the end of the
@@ -216,156 +201,6 @@ std::vector<std::string> getProcArgs(int pid, size_t argmax) {
   return args;
 }
 
-struct OpenFile {
-  std::string local_path;
-  std::string file_type;
-  std::string remote_host;
-  std::string remote_port;
-  std::string local_host;
-  std::string local_port;
-};
-
-std::vector<OpenFile> getOpenFiles(int pid) {
-  std::vector<OpenFile> open_files;
-  int sz;
-  int bufsize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
-  if (bufsize == -1) {
-    LOG(ERROR) << "An error occurred retrieving the open files " << pid;
-    return open_files;
-  }
-
-  proc_fdinfo fd_infos[bufsize / PROC_PIDLISTFD_SIZE];
-
-  int num_fds =
-      proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fd_infos, sizeof(fd_infos));
-  struct vnode_fdinfowithpath vnode_info;
-  struct socket_fdinfo socket_info;
-  void *la = NULL, *fa = NULL;
-  int lp, fp, v4mapped;
-  char buf[1024];
-
-  for (int i = 0; i < num_fds; ++i) {
-    OpenFile row;
-    auto fd_info = fd_infos[i];
-    switch (fd_info.proc_fdtype) {
-    case PROX_FDTYPE_VNODE:
-      row.file_type = "file";
-      sz = proc_pidfdinfo(pid,
-                          fd_info.proc_fd,
-                          PROC_PIDFDVNODEPATHINFO,
-                          &vnode_info,
-                          PROC_PIDFDVNODEPATHINFO_SIZE);
-      if (sz > 0) {
-        row.local_path = std::string(vnode_info.pvip.vip_path);
-      }
-      break;
-    case PROX_FDTYPE_SOCKET:
-      // Its a socket
-      sz = proc_pidfdinfo(pid,
-                          fd_info.proc_fd,
-                          PROC_PIDFDSOCKETINFO,
-                          &socket_info,
-                          PROC_PIDFDSOCKETINFO_SIZE);
-
-      if (sz > 0) {
-        switch (socket_info.psi.soi_family) {
-        case AF_INET:
-          if (socket_info.psi.soi_kind == SOCKINFO_TCP) {
-            row.file_type = "TCP";
-
-            la = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_laddr.ina_46
-                      .i46a_addr4;
-            lp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_lport);
-            fa = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_faddr.ina_46
-                      .i46a_addr4;
-            fp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_fport);
-
-          } else {
-            row.file_type = "UDP";
-            la = &socket_info.psi.soi_proto.pri_in.insi_laddr.ina_46.i46a_addr4;
-            lp = ntohs(socket_info.psi.soi_proto.pri_in.insi_lport);
-            fa = &socket_info.psi.soi_proto.pri_in.insi_faddr.ina_46.i46a_addr4;
-            fp = ntohs(socket_info.psi.soi_proto.pri_in.insi_fport);
-          }
-
-          row.local_host =
-              std::string(inet_ntop(AF_INET,
-                                    &(((struct sockaddr_in *)la)->sin_addr),
-                                    buf,
-                                    sizeof(buf)));
-          row.local_port = boost::lexical_cast<std::string>(lp);
-          row.remote_host =
-              std::string(inet_ntop(AF_INET,
-                                    &(((struct sockaddr_in *)fa)->sin_addr),
-                                    buf,
-                                    sizeof(buf)));
-          row.remote_port = boost::lexical_cast<std::string>(fp);
-
-          break;
-        case AF_INET6:
-          if (socket_info.psi.soi_kind == SOCKINFO_TCP) {
-            row.file_type = "TCP6";
-
-            la = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_laddr.ina_6;
-            lp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_lport);
-            fa = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_faddr.ina_6;
-            fp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_fport);
-
-            if ((socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_vflag &
-                 INI_IPV4) != 0) {
-              v4mapped = 1;
-            }
-          } else {
-            row.file_type = "UDP6";
-
-            la = &socket_info.psi.soi_proto.pri_in.insi_laddr.ina_6;
-            lp = ntohs(socket_info.psi.soi_proto.pri_in.insi_lport);
-            fa = &socket_info.psi.soi_proto.pri_in.insi_faddr.ina_6;
-            fp = ntohs(socket_info.psi.soi_proto.pri_in.insi_fport);
-
-            if ((socket_info.psi.soi_proto.pri_in.insi_vflag & INI_IPV4) != 0) {
-              v4mapped = 1;
-            }
-          }
-
-          if (v4mapped) {
-            // Adjust IPv4 addresses mapped in IPv6 addresses.
-            if (la) {
-              la = (struct sockaddr *)IPv6_2_IPv4(la);
-            }
-            if (fa) {
-              fa = (struct sockaddr *)IPv6_2_IPv4(fa);
-            }
-          }
-
-          row.local_host =
-              std::string(inet_ntop(AF_INET6,
-                                    &(((struct sockaddr_in6 *)la)->sin6_addr),
-                                    buf,
-                                    sizeof(buf)));
-          row.local_port = boost::lexical_cast<std::string>(lp);
-          row.remote_host =
-              std::string(inet_ntop(AF_INET6,
-                                    &(((struct sockaddr_in6 *)fa)->sin6_addr),
-                                    buf,
-                                    sizeof(buf)));
-          row.remote_port = boost::lexical_cast<std::string>(fp);
-          break;
-        default:
-          break;
-        }
-      }
-
-      break;
-    default:
-      break;
-    }
-
-    open_files.push_back(row);
-  }
-  return open_files;
-}
-
 QueryData genProcesses() {
   QueryData results;
   auto pidlist = getProcList();
@@ -374,22 +209,22 @@ QueryData genProcesses() {
 
   for (auto &pid : pidlist) {
     Row r;
-    r["pid"] = boost::lexical_cast<std::string>(pid);
+    r["pid"] = INTEGER(pid);
     r["name"] = getProcName(pid);
     r["path"] = getProcPath(pid);
     r["cmdline"] = boost::algorithm::join(getProcArgs(pid, argmax), " ");
 
     proc_cred cred;
     if (getProcCred(pid, cred)) {
-      r["uid"] = boost::lexical_cast<std::string>(cred.real.uid);
-      r["gid"] = boost::lexical_cast<std::string>(cred.real.gid);
-      r["euid"] = boost::lexical_cast<std::string>(cred.effective.uid);
-      r["egid"] = boost::lexical_cast<std::string>(cred.effective.gid);
+      r["uid"] = BIGINT(cred.real.uid);
+      r["gid"] = BIGINT(cred.real.gid);
+      r["euid"] = BIGINT(cred.effective.uid);
+      r["egid"] = BIGINT(cred.effective.gid);
     }
 
     const auto parent_it = parent_pid.find(pid);
     if (parent_it != parent_pid.end()) {
-      r["parent"] = boost::lexical_cast<std::string>(parent_it->second);
+      r["parent"] = INTEGER(parent_it->second);
     } else {
       r["parent"] = "-1";
     }
@@ -408,20 +243,14 @@ QueryData genProcesses() {
     // proc_pid_rusage returns -1 if it was unable to gather information
     if (rusage_status == 0) {
       // size information
-      r["wired_size"] =
-          boost::lexical_cast<std::string>(rusage_info_data.ri_wired_size);
-      r["resident_size"] =
-          boost::lexical_cast<std::string>(rusage_info_data.ri_resident_size);
-      r["phys_footprint"] =
-          boost::lexical_cast<std::string>(rusage_info_data.ri_phys_footprint);
+      r["wired_size"] = INTEGER(rusage_info_data.ri_wired_size);
+      r["resident_size"] = INTEGER(rusage_info_data.ri_resident_size);
+      r["phys_footprint"] = INTEGER(rusage_info_data.ri_phys_footprint);
 
       // time information
-      r["user_time"] =
-          boost::lexical_cast<std::string>(rusage_info_data.ri_user_time);
-      r["system_time"] =
-          boost::lexical_cast<std::string>(rusage_info_data.ri_system_time);
-      r["start_time"] = boost::lexical_cast<std::string>(
-          rusage_info_data.ri_proc_start_abstime);
+      r["user_time"] = INTEGER(rusage_info_data.ri_user_time);
+      r["system_time"] = INTEGER(rusage_info_data.ri_system_time);
+      r["start_time"] = INTEGER(rusage_info_data.ri_proc_start_abstime);
     }
 
     // save the results
@@ -441,37 +270,11 @@ QueryData genProcessEnvs() {
     for (auto env_itr = env.begin(); env_itr != env.end(); ++env_itr) {
       Row r;
 
-      r["pid"] = boost::lexical_cast<std::string>(pid);
+      r["pid"] = INTEGER(pid);
       r["name"] = getProcName(pid);
       r["path"] = getProcPath(pid);
       r["key"] = env_itr->first;
       r["value"] = env_itr->second;
-
-      results.push_back(r);
-    }
-  }
-
-  return results;
-}
-
-QueryData genProcessOpenFiles() {
-  QueryData results;
-  auto pidlist = getProcList();
-
-  for (auto &pid : pidlist) {
-    auto open_files = getOpenFiles(pid);
-    for (auto &open_file : open_files) {
-      Row r;
-
-      r["pid"] = boost::lexical_cast<std::string>(pid);
-      r["name"] = getProcName(pid);
-      r["path"] = getProcPath(pid);
-      r["file_type"] = open_file.file_type;
-      r["local_path"] = open_file.local_path;
-      r["local_host"] = open_file.local_host;
-      r["local_port"] = open_file.local_port;
-      r["remote_host"] = open_file.remote_host;
-      r["remote_port"] = open_file.remote_port;
 
       results.push_back(r);
     }

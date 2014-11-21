@@ -1,8 +1,6 @@
 table_name("process_open_files")
 schema([
     Column("pid", INTEGER),
-    Column("name", TEXT),
-    Column("path", TEXT),
     Column("file_type", TEXT),
     Column("local_path", TEXT),
     Column("local_host", TEXT),

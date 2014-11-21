@@ -23,6 +23,7 @@ if(APPLE)
     system/darwin/mounts.cpp
     system/darwin/nvram.cpp
     system/darwin/processes.cpp
+    system/darwin/process_open_files.cpp
     system/darwin/quarantine.cpp
     system/darwin/startup_items.cpp
   )
