@@ -75,25 +75,6 @@ if(EXISTS "/usr/lib/libprocps.a"
   set(PROCPS TRUE)
 endif()
 
-# Fill in libraries for Apple, Uunbut, Centos, FreeBSD
-if(APPLE)
-  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_APPLE_LIBS})
-elseif(FREEBSD)
-  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_FREEBSD_LIBS})
-else()
-  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_LINUX_LIBS})
-  if(UBUNTU)
-    if(PROCPS)
-      list(APPEND OSQUERY_UBUNTU_LIBS "libprocps.a")
-    else()
-      list(APPEND OSQUERY_UBUNTU_LIBS "libproc.a")
-    endif()
-    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_UBUNTU_LIBS})
-  elseif(CENTOS)
-    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_CENTOS_LIBS})
-  endif()
-endif()
-
 # Fill this in with objects for libosquery
 set(OSQUERY_SOURCES "")
 set(OSQUERY_ADDITIONAL_LINKS "")
@@ -166,6 +147,26 @@ MACRO(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
   TARGET_LINK_LIBRARIES(${TARGET} ${OSQUERY_LIB})
   TARGET_LINK_LIBRARIES(${TARGET} "${OS_WHOLELINK_POST}")
 ENDMACRO(TARGET_OSQUERY_LINK_WHOLE)
+
+# Fill in libraries for Apple, Uunbut, Centos, FreeBSD
+if(APPLE)
+  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_APPLE_LIBS})
+  ADD_OSQUERY_LINK("-mmacosx-version-min=${APPLE_MIN_ABI}")
+elseif(FREEBSD)
+  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_FREEBSD_LIBS})
+else()
+  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_LINUX_LIBS})
+  if(UBUNTU)
+    if(PROCPS)
+      list(APPEND OSQUERY_UBUNTU_LIBS "libprocps.a")
+    else()
+      list(APPEND OSQUERY_UBUNTU_LIBS "libproc.a")
+    endif()
+    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_UBUNTU_LIBS})
+  elseif(CENTOS)
+    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_CENTOS_LIBS})
+  endif()
+endif()
 
 # Make sure deps were built before compiling
 execute_process(
