@@ -3,7 +3,6 @@
 #include <CoreFoundation/CoreFoundation.h>
 
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <glog/logging.h>
 
@@ -158,8 +157,8 @@ QueryData genKextstat() {
       boost::algorithm::trim(linked_against_string);
 
       Row r;
-      r["idx"] = boost::lexical_cast<std::string>(kextTag);
-      r["refs"] = boost::lexical_cast<std::string>(references);
+      r["idx"] = INTEGER(kextTag);
+      r["refs"] = INTEGER(references);
       r["size"] = size;
       r["wired"] = wired;
       r["name"] = name;

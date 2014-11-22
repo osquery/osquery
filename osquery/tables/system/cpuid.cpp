@@ -6,8 +6,6 @@
 #include <sstream>
 #include <vector>
 
-#include <boost/lexical_cast.hpp>
-
 #include "osquery/core.h"
 #include "osquery/database.h"
 
@@ -133,7 +131,7 @@ QueryData genCPUID() {
       feature_bit = feature.second.second;
       r["value"] = isBitSet(feature_bit, regs[feature_register]) ? "1" : "0";
       r["output_register"] = feature.second.first;
-      r["output_bit"] = boost::lexical_cast<std::string>(feature_bit);
+      r["output_bit"] = INTEGER(feature_bit);
       r["input_eax"] = boost::lexical_cast<std::string>(eax);
       results.push_back(r);
     }
