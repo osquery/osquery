@@ -39,10 +39,10 @@ unsigned char *hash_data(const void *data, size_t len) {
            out_len,
            "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
            "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-           hashtext[0], hashtext[1], hashtext[2], hashtext[3], 
-           hashtext[4], hashtext[5], hashtext[6], hashtext[7], 
-           hashtext[8], hashtext[9], hashtext[10], hashtext[11], 
-           hashtext[12], hashtext[13], hashtext[14], hashtext[15], 
+           hashtext[0], hashtext[1], hashtext[2], hashtext[3],
+           hashtext[4], hashtext[5], hashtext[6], hashtext[7],
+           hashtext[8], hashtext[9], hashtext[10], hashtext[11],
+           hashtext[12], hashtext[13], hashtext[14], hashtext[15],
            hashtext[16], hashtext[17], hashtext[18], hashtext[19]
   );
 
