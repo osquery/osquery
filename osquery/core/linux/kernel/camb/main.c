@@ -19,19 +19,15 @@
 
 #include "sysfs.h"
 #include "hash.h"
-
-/* Behavioral options */
-//#define CAMB_HIDE_SELF
-#define CAMB_CHECK_HASH
-#define CAMB_CHECK_SYSCALL
-#define CAMB_HOOK_INSMOD
+#ifdef _HIDE_ME
+  #include "hide.h"
+#endif
 
 extern struct kobject *camb_kobj;
+char *module_str = "camb";
 
-const char *module_str = "camb";
-static unsigned long **syscall_table = (unsigned long **) 0xffffffff81600200;
+static unsigned long **syscall_table = (unsigned long **) SYSCALL_BASE_ADDR;
 static unsigned long *syscall_table_copy[NR_syscalls];
-unsigned char *initial_hash = NULL;
 int (*orig_init_module)(void *, unsigned long, const char *);
 
 /* Allow writes to executable memory pages */
@@ -41,15 +37,6 @@ void en_mem_wr(void) {
 
 void dis_mem_wr(void) {
   write_cr0(read_cr0() | 0x10000);
-}
-
-int check_hash(void) {
-  unsigned char *h = kernel_text_hash();
-  int ret = strcmp(h, initial_hash);
-  if (h) {
-    kfree(h);
-  }
-  return ret;
 }
 
 int syscall_addr_modified_show(struct kobject *obj,
@@ -66,7 +53,7 @@ int syscall_addr_modified_show(struct kobject *obj,
 }
 
 /* Copy the system call pointer table  */
-void grab_syscall_data(void) {
+void grab_syscall_table(void) {
   unsigned int i;
   for (i = 0; i < NR_syscalls; i++)
     syscall_table_copy[i] = syscall_table[i];
@@ -111,22 +98,17 @@ static int __init camb_init(void) {
     return -1;
   }
 
-/* Syscall hooks must be placed before grab_syscall_data() is called in order to
+  /* Hide the fact that we're monitoring the system for tampering */
+#ifdef _HIDE_ME
+  hide_me();
+#endif
+
+/* Syscall hooks must be placed before grab_syscall_table() is called in order to
  * establish a known baseline
  */
-#ifdef CAMB_HOOK_INSMOD
   hook_init_module();
-#endif
+  grab_syscall_table();
 
-#ifdef CAMB_CHECK_SYSCALL
-  grab_syscall_data();
-#endif
-
-#ifdef CAMB_CHECK_HASH
-  initial_hash = kernel_text_hash();
-  printk(KERN_INFO "Initial text hash: %s\n", initial_hash);
-#endif
-  
   return 0;
 }
 
@@ -137,15 +119,7 @@ static void __exit camb_exit(void) {
     kobject_put(camb_kobj);
   }
 
-#ifdef CAMB_HOOK_INSMOD
   unhook_init_module();
-#endif
-
-#ifdef CAMB_CHECK_HASH
-  if (initial_hash) {
-    kfree(initial_hash);
-  }
-#endif
 }
 
 module_init(camb_init);
