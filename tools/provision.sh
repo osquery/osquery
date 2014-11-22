@@ -14,23 +14,27 @@ source "$SCRIPT_DIR/lib.sh"
 
 function install_cmake() {
   if [ "$OS" = "centos" ] || [ "$OS" = "ubuntu" ] || [ "$OS" = "darwin" ]; then
-    if [[ ! -f cmake-2.8.12.2.tar.gz ]]; then
-      log "downloading the cmake source"
-      wget http://www.cmake.org/files/v2.8/cmake-2.8.12.2.tar.gz
-    fi
-    if [[ ! -d cmake-2.8.12.2 ]]; then
-      log "unpacking the cmake source"
-      tar -xf cmake-2.8.12.2.tar.gz
-    fi
     if [[ -f /usr/local/bin/cmake ]]; then
       log "cmake is already installed. skipping."
     else
-      log "building cmake"
-      pushd cmake-2.8.12.2 > /dev/null
-      CC=clang CXX=clang++ ./configure
-      make
-      sudo make install
-      popd
+      if [[ ! -f cmake-2.8.12.2.tar.gz ]]; then
+        log "downloading the cmake source"
+        wget http://www.cmake.org/files/v2.8/cmake-2.8.12.2.tar.gz
+      fi
+      if [[ ! -d cmake-2.8.12.2 ]]; then
+        log "unpacking the cmake source"
+        tar -xf cmake-2.8.12.2.tar.gz
+      fi
+      if [[ -f /usr/local/bin/cmake ]]; then
+        log "cmake is already installed. skipping."
+      else
+        log "building cmake"
+        pushd cmake-2.8.12.2 > /dev/null
+        CC=clang CXX=clang++ ./configure
+        make
+        sudo make install
+        popd
+      fi
     fi
   fi
 }
@@ -230,6 +234,12 @@ function package() {
     else
       brew install $@ || brew upgrade $@
     fi
+  elif [[ $OS = "freebsd" ]]; then
+    if pkg info -q $1; then
+      log "$1 is already installed. skipping."
+    else
+      sudo pkg install -y $@
+    fi
   fi
 }
 
@@ -238,6 +248,8 @@ function check() {
 
   if [[ $OS = "darwin" ]]; then
     HASH=`shasum $0 | awk '{print $1}'`
+  elif [[ $OS = "freebsd" ]]; then
+    HASH=`sha1 -q $0`
   else
     HASH=`sha1sum $0 | awk '{print $1}'`
   fi
@@ -291,6 +303,8 @@ function main() {
     log "detected ubuntu ($DISTRO)"
   elif [[ $OS = "darwin" ]]; then
     log "detected mac os x ($DISTRO)"
+  elif [[ $OS = "freebsd" ]]; then
+    log "detected freebsd ($DISTRO)"
   else
     fatal "could not detect the current operating system. exiting."
   fi
@@ -302,7 +316,9 @@ function main() {
     if [[ $DISTRO = "precise" ]]; then
       sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     fi
+    sudo rm -Rf /var/lib/apt/lists/*
     sudo apt-get update
+    sudo apt-get clean
 
     package git
     package unzip
@@ -453,10 +469,23 @@ function main() {
 
     package rocksdb
     package cmake
+    package makedepend
     package boost
     package gflags
     package glog
     package thrift
+
+  elif [[ $OS = "freebsd" ]]; then
+
+    package cmake
+    package git
+    package python
+    package py27-pip
+    package rocksdb
+    package libunwind
+    package thrift-cpp
+    package glog
+
   fi
 
   cd "$SCRIPT_DIR/../"

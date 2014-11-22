@@ -99,8 +99,8 @@ QueryData genCronTab() {
   std::vector<std::string> user_crons;
   auto status = listFilesInDirectory(kUserCronsPath, user_crons);
   if (!status.ok()) {
-    LOG(ERROR) << "Could not list user crons from: " << kUserCronsPath << " ("
-               << status.what() << ")";
+    LOG(INFO) << "Could not list user crons from: " << kUserCronsPath << " ("
+              << status.toString() << ")";
     return results;
   }
 

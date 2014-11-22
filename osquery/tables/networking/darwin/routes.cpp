@@ -33,7 +33,6 @@ const std::string kDefaultRoute = "0.0.0.0";
 const std::vector<RouteType> kRouteTypes = {
     std::make_pair(RTF_LOCAL, "local"),
     std::make_pair(RTF_GATEWAY, "gateway"),
-    std::make_pair(RTF_HOST, "host"),
     std::make_pair(RTF_DYNAMIC, "dynamic"),
     std::make_pair(RTF_MODIFIED, "modified"),
     std::make_pair(RTF_STATIC, "static"),

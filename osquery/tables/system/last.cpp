@@ -20,7 +20,9 @@ QueryData genLastAccess() {
   while ((ut = getutxent_wtmp()) != NULL) {
 #else
 
+#ifndef __FreeBSD__
   utmpxname("/var/log/wtmpx");
+#endif
   setutxent();
 
   while ((ut = getutxent()) != NULL) {

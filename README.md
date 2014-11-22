@@ -1,5 +1,12 @@
 osquery
 =======
+Platform | Build status
+---------|-------------
+OSX      | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/)
+CentOS   | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS/)
+Ubuntu12 | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/)
+Ubuntu14 | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/)
+
 
 osquery is an operating system instrumentation framework for OSX and Linux. osquery makes low-level operating system analytics and monitoring both performant and intuitive.
 
@@ -83,3 +90,4 @@ If you're trying to build osquery on a different, currently unsupported operatin
 Read the [launch blog post](https://code.facebook.com/posts/844436395567983/introducing-osquery/) for background on the project.
 
 If you're interested in learning more about osquery, visit the [wiki](https://github.com/facebook/osquery/wiki).
+

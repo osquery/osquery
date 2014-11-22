@@ -126,22 +126,12 @@ int {{table_name_cc}}Filter(
 {% if col.type.affinity == "TEXT" %}\
     pVtab->pContent->xCol_{{col.name}}.push_back(row["{{col.name}}"]);
 {% endif %}\
-{% if col.type.affinity == "INTEGER" %}\
+{% if col.type.affinity in ["INTEGER", "BIGINT"] %}\
     try {
       pVtab->pContent->xCol_{{col.name}}\
 .push_back(boost::lexical_cast<{{col.type.type}}>(row["{{col.name}}"]));
     } catch (const boost::bad_lexical_cast& e) {
       LOG(WARNING) << "Error casting {{col.name}} (" 
-                   << row["{{col.name}}"] << ") to {{col.type.type}}";
-      pVtab->pContent->xCol_{{col.name}}.push_back(-1);
-    }
-{% endif %}\
-{% if col.type.affinity == "BIGINT" %}\
-    try {
-      pVtab->pContent->xCol_{{col.name}}\
-.push_back(boost::lexical_cast<{{col.type.type}}>(row["{{col.name}}"]));
-    } catch (const boost::bad_lexical_cast& e) {
-      LOG(WARNING) << "Error casting {{col.name}} ("
                    << row["{{col.name}}"] << ") to {{col.type.type}}";
       pVtab->pContent->xCol_{{col.name}}.push_back(-1);
     }

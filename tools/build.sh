@@ -9,6 +9,10 @@ threads THREADS
 
 cd $SCRIPT_DIR/../
 
+# Builds dependencies
 make deps
+
+# Build osquery
 make -j$THREADS
+
 make test

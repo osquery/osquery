@@ -19,8 +19,8 @@ namespace osquery {
 namespace tables {
 
 // Macros for safe sign-extension
-#define STRING_FROM_UCHAR(x) boost::lexical_cast<std::string>((uint16_t)x);
-#define STRING_FROM_UINT32(x) boost::lexical_cast<std::string>((uint64_t)x);
+#define INTEGER_FROM_UCHAR(x) INTEGER((uint16_t)x);
+#define BIGINT_FROM_UINT32(x) BIGINT((uint64_t)x);
 
 void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
   std::string dest_address;
@@ -52,16 +52,16 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
   r["mac"] = macAsString(addr);
 
   ifd = (struct if_data *)addr->ifa_data;
-  r["type"] = STRING_FROM_UCHAR(ifd->ifi_type);
-  r["mtu"] = STRING_FROM_UINT32(ifd->ifi_mtu);
-  r["metric"] = STRING_FROM_UINT32(ifd->ifi_metric);
-  r["ipackets"] = STRING_FROM_UINT32(ifd->ifi_ipackets);
-  r["opackets"] = STRING_FROM_UINT32(ifd->ifi_opackets);
-  r["ibytes"] = STRING_FROM_UINT32(ifd->ifi_ibytes);
-  r["obytes"] = STRING_FROM_UINT32(ifd->ifi_obytes);
-  r["ierrors"] = STRING_FROM_UINT32(ifd->ifi_ierrors);
-  r["oerrors"] = STRING_FROM_UINT32(ifd->ifi_oerrors);
-  r["last_change"] = STRING_FROM_UINT32(ifd->ifi_lastchange.tv_sec);
+  r["type"] = INTEGER_FROM_UCHAR(ifd->ifi_type);
+  r["mtu"] = BIGINT_FROM_UINT32(ifd->ifi_mtu);
+  r["metric"] = BIGINT_FROM_UINT32(ifd->ifi_metric);
+  r["ipackets"] = BIGINT_FROM_UINT32(ifd->ifi_ipackets);
+  r["opackets"] = BIGINT_FROM_UINT32(ifd->ifi_opackets);
+  r["ibytes"] = BIGINT_FROM_UINT32(ifd->ifi_ibytes);
+  r["obytes"] = BIGINT_FROM_UINT32(ifd->ifi_obytes);
+  r["ierrors"] = BIGINT_FROM_UINT32(ifd->ifi_ierrors);
+  r["oerrors"] = BIGINT_FROM_UINT32(ifd->ifi_oerrors);
+  r["last_change"] = BIGINT_FROM_UINT32(ifd->ifi_lastchange.tv_sec);
   results.push_back(r);
 }
 

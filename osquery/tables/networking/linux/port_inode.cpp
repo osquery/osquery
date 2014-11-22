@@ -3,27 +3,18 @@
 #include <exception>
 
 #include <arpa/inet.h>
-#include <asm/types.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/tcp.h>
 #include <netinet/in.h>
-#include <pwd.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
 #include <sys/socket.h>
 #include <unistd.h>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <glog/logging.h>
 
 #include "osquery/core.h"
 #include "osquery/database.h"
-#include "osquery/logger.h"
 
 // From uapi/linux/sock_diag.h
 // From linux/sock_diag.h (<= 3.6)
@@ -69,12 +60,7 @@ int send_diag_msg(int sockfd, int family) {
 
   sa.nl_family = AF_NETLINK;
 
-  // IPv4 vs IPv6
-  if (family == 1) {
-    conn_req.sdiag_family = AF_INET;
-  } else if (family == 2) {
-    conn_req.sdiag_family = AF_INET6;
-  }
+  conn_req.sdiag_family = family;
   conn_req.sdiag_protocol = IPPROTO_TCP;
 
   conn_req.idiag_states = TCPF_ALL & ~((1 << TCP_SYN_RECV) |
@@ -101,7 +87,7 @@ int send_diag_msg(int sockfd, int family) {
   return retval;
 }
 
-Row parse_diag_msg(struct inet_diag_msg *diag_msg, int rtalen) {
+Row parse_diag_msg(struct inet_diag_msg *diag_msg, int rtalen, int family) {
   char local_addr_buf[INET6_ADDRSTRLEN];
   char remote_addr_buf[INET6_ADDRSTRLEN];
 
@@ -131,17 +117,16 @@ Row parse_diag_msg(struct inet_diag_msg *diag_msg, int rtalen) {
 
   // populate the Row from diag_msg fields
   Row row;
-  row["inode"] = boost::lexical_cast<std::string>(diag_msg->idiag_inode);
-  row["local_port"] =
-      boost::lexical_cast<std::string>(ntohs(diag_msg->id.idiag_sport));
-  row["remote_port"] =
-      boost::lexical_cast<std::string>(ntohs(diag_msg->id.idiag_dport));
-  row["local_ip"] = boost::lexical_cast<std::string>(local_addr_buf);
-  row["remote_ip"] = boost::lexical_cast<std::string>(remote_addr_buf);
+  row["inode"] = INTEGER(diag_msg->idiag_inode);
+  row["local_port"] = INTEGER(ntohs(diag_msg->id.idiag_sport));
+  row["remote_port"] = INTEGER(ntohs(diag_msg->id.idiag_dport));
+  row["local_ip"] = TEXT(local_addr_buf);
+  row["remote_ip"] = TEXT(remote_addr_buf);
+  row["family"] = INTEGER(family);
   return row;
 }
 
-void getPortInode(QueryData &results, int type) {
+void getPortInode(QueryData &results, int family) {
   int nl_sock = 0;
   int numbytes = 0;
   int rtalen = 0;
@@ -156,7 +141,7 @@ void getPortInode(QueryData &results, int type) {
   }
 
   // send the inet_diag message
-  if (send_diag_msg(nl_sock, type) < 0) {
+  if (send_diag_msg(nl_sock, family) < 0) {
     close(nl_sock);
     return;
   }
@@ -181,10 +166,10 @@ void getPortInode(QueryData &results, int type) {
     diag_msg = (struct inet_diag_msg *)NLMSG_DATA(nlh);
     rtalen = nlh->nlmsg_len - NLMSG_LENGTH(sizeof(*diag_msg));
     try {
-      results.push_back(parse_diag_msg(diag_msg, rtalen));
+      results.push_back(parse_diag_msg(diag_msg, rtalen, family));
     }
     catch (std::exception &e) {
-      LOG(ERROR) << e.what();
+      LOG(ERROR) << "Could not parse NL message " << e.what();
     }
 
     nlh = NLMSG_NEXT(nlh, numbytes);
@@ -195,10 +180,9 @@ void getPortInode(QueryData &results, int type) {
 }
 
 QueryData genPortInode() {
-
   QueryData results;
-  getPortInode(results, 1); // IPv4
-  getPortInode(results, 2); // IPv6
+  getPortInode(results, AF_INET);
+  getPortInode(results, AF_INET6);
   return results;
 }
 }
