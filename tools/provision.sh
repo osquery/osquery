@@ -232,7 +232,7 @@ function package() {
     if brew list | grep --quiet $1; then
       log "$1 is already installed. skipping."
     else
-      brew install $@ || brew upgrade $@
+      brew install --build-bottle $@ || brew upgrade $@
     fi
   elif [[ $OS = "freebsd" ]]; then
     if pkg info -q $1; then
