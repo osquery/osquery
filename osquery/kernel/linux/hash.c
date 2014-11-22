@@ -10,17 +10,9 @@
 
 #include "hash.h"
 
-unsigned long *begin_text_addr = (void *) 0xffffffff81000000;
-unsigned long *end_text_addr = (void *) 0xffffffff82000000;
-
-/**
- * @brief Perform a hash over the kernel's text segment
- *
- * @return allocated buffer containing the hash string.
- */
 unsigned char *kernel_text_hash(void) {
-  return (unsigned char *) hash_data((void *) begin_text_addr,
-                                     end_text_addr - begin_text_addr);
+  return (unsigned char *) hash_data((void *) TEXT_SEGMENT_START,
+                                     TEXT_SEGMENT_END - TEXT_SEGMENT_START);
 }
 
 /**
