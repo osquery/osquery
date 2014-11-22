@@ -42,7 +42,8 @@ const std::vector<RouteType> kRouteTypes = {
 };
 
 const std::vector<RouteType> kArpTypes = {
-    std::make_pair(RTF_LLINFO, "linklayer"), };
+    std::make_pair(RTF_LLINFO, "linklayer"),
+};
 
 InterfaceMap genInterfaceMap() {
   InterfaceMap ifmap;

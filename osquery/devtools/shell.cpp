@@ -4109,17 +4109,17 @@ DEFINE_shell_flag(bool, line, false, "set output mode to 'line'");
 DEFINE_shell_flag(bool, list, false, "set output mode to 'list'");
 DEFINE_shell_flag(int64, mmap, 0, "default mmap size set to N");
 DEFINE_shell_flag(string,
-                    nullvalue,
-                    "",
-                    "set text string for NULL values. Default ''");
+                  nullvalue,
+                  "",
+                  "set text string for NULL values. Default ''");
 DEFINE_shell_flag(string,
-                    separator,
-                    "|",
-                    "set output field separator. Default: '|'");
+                  separator,
+                  "|",
+                  "set output field separator. Default: '|'");
 DEFINE_shell_flag(bool,
-                    stats,
-                    false,
-                    "print memory stats before each finalize");
+                  stats,
+                  false,
+                  "print memory stats before each finalize");
 DEFINE_shell_flag(string, vfs, "", "use NAME as the default VFS");
 
 /// Optional flags enabled at compile time.

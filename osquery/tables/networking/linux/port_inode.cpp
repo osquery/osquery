@@ -167,8 +167,7 @@ void getPortInode(QueryData &results, int family) {
     rtalen = nlh->nlmsg_len - NLMSG_LENGTH(sizeof(*diag_msg));
     try {
       results.push_back(parse_diag_msg(diag_msg, rtalen, family));
-    }
-    catch (std::exception &e) {
+    } catch (std::exception &e) {
       LOG(ERROR) << "Could not parse NL message " << e.what();
     }
 

@@ -14,7 +14,6 @@
 #include "osquery/database.h"
 #include "osquery/filesystem.h"
 
-
 namespace osquery {
 namespace tables {
 
@@ -182,7 +181,7 @@ std::vector<std::string> getProcArgs(int pid, size_t argmax) {
   // Then start pushing args (in reverse order) onto a vector.
   // We trim the args of leading/trailing whitespace to make
   // analysis easier.
-  for (auto itr=raw_args.rbegin(); itr < raw_args.rend(); ++itr) {
+  for (auto itr = raw_args.rbegin(); itr < raw_args.rend(); ++itr) {
     if (collect) {
       std::string arg = *itr;
       boost::algorithm::trim(arg);

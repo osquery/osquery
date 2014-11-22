@@ -88,7 +88,8 @@ std::string generateRow(const Row& r,
     row << " ";
     try {
       row << r.at(each);
-      for (int i = 0; i < (lengths.at(each) - utf8StringSize(r.at(each)) + 1); ++i) {
+      for (int i = 0; i < (lengths.at(each) - utf8StringSize(r.at(each)) + 1);
+           ++i) {
         row << " ";
       }
     } catch (const std::out_of_range& e) {
