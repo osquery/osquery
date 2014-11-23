@@ -1,6 +1,0 @@
-table_name("usb")
-schema([
-    Column(name="manufacturer", type="std::string"),
-    Column(name="product", type="std::string"),
-])
-implementation("usb@genUsb")
