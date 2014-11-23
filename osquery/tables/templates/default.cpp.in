@@ -146,25 +146,25 @@ int {{table_name_cc}}Filter(
 
 static sqlite3_module {{table_name_cc}}Module = {
   0,
-  {{table_name_cc}}Create,
-  {{table_name_cc}}Create,
-  xBestIndex,
-  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
-  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
-  xOpen<base_cursor>,
-  xClose<base_cursor>,
-  {{table_name_cc}}Filter,
-  xNext<base_cursor>,
+  {{table_name_cc}}Create, // create a new vtable
+  {{table_name_cc}}Create, // connect to an existing vtable
+  xBestIndex, // find the best query index
+  xDestroy<x_vtab<sqlite3_{{table_name}}>>, // disconnect a vtable
+  xDestroy<x_vtab<sqlite3_{{table_name}}>>, // destory a vtable
+  xOpen<base_cursor>, // open a cursor
+  xClose<base_cursor>, // close a cursor
+  {{table_name_cc}}Filter, // configure scan constraints
+  xNext<base_cursor>, // advance the cursor
   xEof<base_cursor, x_vtab<sqlite3_{{table_name}}>>,
-  {{table_name_cc}}Column,
-  xRowid<base_cursor>,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
+  {{table_name_cc}}Column, // read data
+  xRowid<base_cursor>, // read data
+  0, // update
+  0, // begin
+  0, // sync
+  0, // commit
+  0, // rollback
+  0, // findmethod
+  0, // rename
 };
 
 class {{table_name_cc}}TablePlugin : public TablePlugin {

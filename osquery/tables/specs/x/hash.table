@@ -1,0 +1,6 @@
+table_name("hash")
+schema([
+    Column("path", TEXT, required=True),
+    Column("sha1", TEXT),
+])
+implementation("utility/hash@genHash")
