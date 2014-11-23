@@ -168,8 +168,6 @@ var API = [
     "blacklisted": false,
     "columns": [
      {"description": "","name": "pid","type": "INTEGER"},
-     {"description": "","name": "name","type": "TEXT"},
-     {"description": "","name": "path","type": "TEXT"},
      {"description": "","name": "file_type","type": "TEXT"},
      {"description": "","name": "local_path","type": "TEXT"},
      {"description": "","name": "local_host","type": "TEXT"},
@@ -186,15 +184,15 @@ var API = [
    {
     "blacklisted": false,
     "columns": [
-     {"description": "","name": "name","type": "TEXT"},
+     {"description": "The process path or shorthand argv[0]","name": "name","type": "TEXT"},
      {"description": "","name": "path","type": "TEXT"},
-     {"description": "","name": "cmdline","type": "TEXT"},
+     {"description": "Complete argv","name": "cmdline","type": "TEXT"},
      {"description": "","name": "pid","type": "INTEGER"},
      {"description": "","name": "uid","type": "BIGINT"},
      {"description": "","name": "gid","type": "BIGINT"},
      {"description": "","name": "euid","type": "BIGINT"},
      {"description": "","name": "egid","type": "BIGINT"},
-     {"description": "","name": "on_disk","type": "TEXT"},
+     {"description": "The process path exist yes=1, no=-1","name": "on_disk","type": "TEXT"},
      {"description": "","name": "wired_size","type": "TEXT"},
      {"description": "","name": "resident_size","type": "TEXT"},
      {"description": "","name": "phys_footprint","type": "TEXT"},
@@ -536,6 +534,18 @@ var API = [
     "function": "genStartupItems",
     "name": "startup_items",
     "profile": {}
+   },
+   {
+    "blacklisted": false,
+    "columns": [
+     {"description": "","name": "manufacturer","type": "TEXT"},
+     {"description": "","name": "product","type": "TEXT"}
+    ],
+    "description": "",
+    "foreign_keys": [],
+    "function": "genUsbDevices",
+    "name": "usb_devices",
+    "profile": {}
    }
   ]
  },
@@ -591,13 +601,14 @@ var API = [
     "profile": {}
    },
    {
-    "blacklisted": true,
+    "blacklisted": false,
     "columns": [
      {"description": "","name": "local_port","type": "TEXT"},
      {"description": "","name": "remote_port","type": "TEXT"},
      {"description": "","name": "local_ip","type": "TEXT"},
      {"description": "","name": "remote_ip","type": "TEXT"},
-     {"description": "","name": "inode","type": "TEXT"}
+     {"description": "","name": "inode","type": "TEXT"},
+     {"description": "","name": "family","type": "INTEGER"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -623,7 +634,7 @@ var API = [
     "profile": {}
    },
    {
-    "blacklisted": true,
+    "blacklisted": false,
     "columns": [
      {"description": "","name": "pid","type": "TEXT"},
      {"description": "","name": "inode","type": "TEXT"}
