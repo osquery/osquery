@@ -25,6 +25,7 @@ if(APPLE)
     system/darwin/processes.cpp
     system/darwin/process_open_files.cpp
     system/darwin/quarantine.cpp
+    system/darwin/usb_devices.cpp
     system/darwin/startup_items.cpp
   )
 
