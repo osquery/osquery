@@ -2,10 +2,10 @@ osquery
 =======
 Platform | Build status
 ---------|-------------
-OSX      | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/)
-CentOS   | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS/)
-Ubuntu12 | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/)
-Ubuntu14 | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/)
+OS X 10.10      | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/)
+Cent OS 6.6   | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS/)
+Ubuntu 12.04 LTS | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/)
+Ubuntu 14.04 LTS | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/)
 
 
 osquery is an operating system instrumentation framework for OSX and Linux. osquery makes low-level operating system analytics and monitoring both performant and intuitive.
