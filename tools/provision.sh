@@ -135,6 +135,26 @@ function install_gflags() {
   fi
 }
 
+function install_libkafka() {
+    if [[ ! -d /usr/local/include/libkafka ]]; then
+        if [[ ! -f libkafka-0.5.0.tar.gz ]]; then
+            wget https://github.com/adobe-research/libkafka/releases/download/0.5.0/libkafka-0.5.0.tar.gz
+        else
+            log "libkafka is already downloaded. skipping."
+        fi
+        if [[ ! -d libkafka-0.5.0 ]]; then
+            tar xf libkafka-0.5.0/tar.gz
+        fi
+        pushd libkafka-0.5.0
+        ./configure --enable-gtest=no
+        make
+        sudo make install
+        popd
+    else
+        log "libkafka is already installed. skipping."
+    fi
+}
+
 function install_glog() {
   if [[ ! -d /usr/local/include/glog ]]; then
     if [[ ! -f glog-0.3.3.tar.gz ]]; then
