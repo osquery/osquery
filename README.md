@@ -3,7 +3,7 @@ osquery
 Platform | Build status
 ---------|-------------
 OS X 10.10      | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/)
-Cent OS 6.6   | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS/)
+CentOS 6.6   | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS/)
 Ubuntu 12.04 LTS | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/)
 Ubuntu 14.04 LTS | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/)
 
