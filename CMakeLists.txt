@@ -6,7 +6,7 @@ if(APPLE)
   set(OS_WHOLELINK_PRE "-Wl,-all_load")
   set(OS_WHOLELINK_POST "")
 else()
-  set(OS_COMPILE_FLAGS "-std=c++11")
+  set(OS_COMPILE_FLAGS "-std=c++11 -DTHREADED")
   if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} -g -DDEBUG")
   endif()
@@ -80,6 +80,7 @@ endif()
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/include")
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}")
 INCLUDE_DIRECTORIES("/usr/local/include")
+INCLUDE_DIRECTORIES("/usr/include")
 LINK_DIRECTORIES("/usr/local/lib")
 
 ENABLE_TESTING()
@@ -112,4 +113,3 @@ ADD_CUSTOM_TARGET(
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
-

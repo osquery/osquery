@@ -29,6 +29,8 @@ SET(OSQUERY_LINUX_LIBS
   libboost_program_options.a
   libboost_regex.a
   udev
+  zookeeper_mt
+  libkafka.a
   blkid
   rt
 )
