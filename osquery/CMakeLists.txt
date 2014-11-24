@@ -1,7 +1,6 @@
 SET(OSQUERY_LIBS
   readline
   pthread
-  dl
   crypto
   ssl
 )
@@ -16,8 +15,10 @@ SET(OSQUERY_APPLE_LIBS
   rocksdb
   gflags
   glog
+  dl
 )
 
+# Warning: Do not statically compile unwind
 SET(OSQUERY_LINUX_LIBS
   libgflags.a
   libglog.a
@@ -28,18 +29,19 @@ SET(OSQUERY_LINUX_LIBS
   libboost_filesystem.a
   libboost_program_options.a
   libboost_regex.a
+  unwind
   udev
   zookeeper_mt
   libkafka.a
   blkid
   rt
+  dl
 )
 
 SET(OSQUERY_UBUNTU_LIBS
   libz.a
   libbz2.a
   libsnappy.a
-  libunwind.a
   liblzma.a
 )
 
@@ -47,32 +49,32 @@ SET(OSQUERY_CENTOS_LIBS
   libz.so
   libbz2.so
   libsnappy.so
-  libunwind.so
   liblzma.so
   libproc.so
+)
+
+SET(OSQUERY_FREEBSD_LIBS
+  gflags
+  glog
+  rocksdb
+  thrift
+  boost_thread
+  boost_system
+  boost_filesystem
+  boost_program_options
+  boost_regex
+  rt
+  z
+  bz2
+  snappy
+  unwind
+  lzma
 )
 
 # Check for the explicit path to determine the version of procps
 if(EXISTS "/usr/lib/libprocps.a"
     OR EXISTS "/usr/lib/x86_64-linux-gnu/libprocps.a")
   set(PROCPS TRUE)
-endif()
-
-# Fill in libraries for Apple, Uunbut, Centos
-if(APPLE)
-  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_APPLE_LIBS})
-else()
-  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_LINUX_LIBS})
-  if(UBUNTU)
-    if(PROCPS)
-      list(APPEND OSQUERY_UBUNTU_LIBS "libprocps.a")
-    else()
-      list(APPEND OSQUERY_UBUNTU_LIBS "libproc.a")
-    endif()
-    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_UBUNTU_LIBS})
-  elseif(CENTOS)
-    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_CENTOS_LIBS})
-  endif()
 endif()
 
 # Fill this in with objects for libosquery
@@ -148,6 +150,26 @@ MACRO(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
   TARGET_LINK_LIBRARIES(${TARGET} "${OS_WHOLELINK_POST}")
 ENDMACRO(TARGET_OSQUERY_LINK_WHOLE)
 
+# Fill in libraries for Apple, Uunbut, Centos, FreeBSD
+if(APPLE)
+  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_APPLE_LIBS})
+  ADD_OSQUERY_LINK("-mmacosx-version-min=${APPLE_MIN_ABI}")
+elseif(FREEBSD)
+  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_FREEBSD_LIBS})
+else()
+  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_LINUX_LIBS})
+  if(UBUNTU)
+    if(PROCPS)
+      list(APPEND OSQUERY_UBUNTU_LIBS "libprocps.a")
+    else()
+      list(APPEND OSQUERY_UBUNTU_LIBS "libproc.a")
+    endif()
+    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_UBUNTU_LIBS})
+  elseif(CENTOS)
+    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_CENTOS_LIBS})
+  endif()
+endif()
+
 # Make sure deps were built before compiling
 execute_process(
   COMMAND ${CMAKE_SOURCE_DIR}/tools/provision.sh check ${CMAKE_BINARY_DIR}
@@ -163,6 +185,9 @@ file(GLOB TABLE_FILES "tables/specs/x/*.table")
 if(APPLE)
   file(GLOB TABLE_FILES_DARWIN "tables/specs/darwin/*.table")
   list(APPEND TABLE_FILES ${TABLE_FILES_DARWIN})
+elseif(FREEBSD)
+  file(GLOB TABLE_FILES_FREEBSD "tables/specs/freebsd/*.table")
+  list(APPEND TABLE_FILES ${TABLE_FILES_FREEBSD})
 else()
   file(GLOB TABLE_FILES_LINUX "tables/specs/linux/*.table")
   list(APPEND TABLE_FILES ${TABLE_FILES_LINUX})
@@ -174,6 +199,7 @@ foreach(TABLE_FILE ${TABLE_FILES})
   SET(TABLE_FILE_GEN ${TABLE_FILE})
   STRING(REPLACE "linux/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   STRING(REPLACE "darwin/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  STRING(REPLACE "freebsd/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   STRING(REPLACE "x/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   STRING(
     REPLACE
@@ -257,7 +283,7 @@ INSTALL(TARGETS daemon DESTINATION bin)
 
 # packages
 
-if(NOT APPLE)
+if(LINUX)
   SET(CPACK_PACKAGE_NAME "osquery")
   SET(CPACK_PACKAGE_VENDOR "facebook")
 

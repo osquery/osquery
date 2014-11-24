@@ -28,14 +28,15 @@ namespace osquery {
  * types they are storing, and more importantly how they are treated at query
  * time.
  */
- #define TEXT(x) std::string(x)
- #define INTEGER(x) boost::lexical_cast<std::string>(x)
- #define BIGINT(x) boost::lexical_cast<std::string>(x)
+#define TEXT(x) boost::lexical_cast<std::string>(x)
+#define INTEGER(x) boost::lexical_cast<std::string>(x)
+#define BIGINT(x) boost::lexical_cast<std::string>(x)
+#define UNSIGNED_BIGINT(x) boost::lexical_cast<std::string>(x)
 
 /**
  * @brief A variant type for the SQLite type affinities.
  */
- typedef std::string RowData;
+typedef std::string RowData;
 
 /**
  * @brief A single row from a database query

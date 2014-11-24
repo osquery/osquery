@@ -31,18 +31,9 @@ class DBHandleTests : public testing::Test {
   std::shared_ptr<DBHandle> db;
 };
 
-TEST_F(DBHandleTests, test_create_new_database_on_disk) {
-  EXPECT_TRUE(db->getStatus().ok());
-  EXPECT_EQ(db->getStatus().toString(), "OK");
-}
-
 TEST_F(DBHandleTests, test_singleton_on_disk) {
   auto db1 = DBHandle::getInstance();
-  EXPECT_TRUE(db1->getStatus().ok());
-  EXPECT_EQ(db1->getStatus().toString(), "OK");
   auto db2 = DBHandle::getInstance();
-  EXPECT_TRUE(db2->getStatus().ok());
-  EXPECT_EQ(db2->getStatus().toString(), "OK");
   EXPECT_EQ(db1, db2);
 }
 

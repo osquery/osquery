@@ -6,7 +6,6 @@
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include "osquery/core.h"
 #include "osquery/database.h"
@@ -38,8 +37,8 @@ const std::map<std::string, std::string> kLaunchdTopLevelStringKeys = {
     {"StartOnMount", "start_on_mount"},
     {"OnDemand", "on_demand"},
     {"Disabled", "disabled"},
-    {"UserName", "user_name"},
-    {"GroupName", "group_name"},
+    {"UserName", "username"},
+    {"GroupName", "groupname"},
     {"RootDirectory", "root_directory"},
     {"WorkingDirectory", "working_directory"},
     {"ProcessType", "process_type"},

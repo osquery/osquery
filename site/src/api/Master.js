@@ -10,63 +10,84 @@ var API = [
   "name": "All Platforms",
   "tables": [
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "username","type": "std::string"},
-     {"name": "command","type": "std::string"},
-     {"name": "history_file","type": "std::string"}
+     {"description": "","name": "address","type": "TEXT"},
+     {"description": "","name": "mac","type": "TEXT"},
+     {"description": "","name": "interface","type": "TEXT"},
+     {"description": "1 for true, 0 for false","name": "permanent","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
+    "function": "genArpCache",
+    "name": "arp_cache",
+    "profile": {}
+   },
+   {
+    "blacklisted": false,
+    "columns": [
+     {"description": "","name": "username","type": "TEXT"},
+     {"description": "","name": "command","type": "TEXT"},
+     {"description": "Path to the .bash_history for this user","name": "history_file","type": "TEXT"}
+    ],
+    "description": "A line-delimited (command) table of per-user .bash_history data.",
+    "foreign_keys": [
+     {"column": "username","table": "users"}
+    ],
     "function": "genBashHistory",
     "name": "bash_history",
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "feature","type": "std::string"},
-     {"name": "value","type": "std::string"},
-     {"name": "output_register","type": "std::string"},
-     {"name": "output_bit","type": "std::string"},
-     {"name": "input_eax","type": "std::string"}
+     {"description": "","name": "feature","type": "TEXT"},
+     {"description": "Bit value or string","name": "value","type": "TEXT"},
+     {"description": "Register used to for feature value","name": "output_register","type": "TEXT"},
+     {"description": "Bit in register value for feature value","name": "output_bit","type": "INTEGER"},
+     {"description": "Value of EAX used","name": "input_eax","type": "TEXT"}
     ],
-    "description": "",
+    "description": "Useful CPU features from the cpuid ASM call.",
     "foreign_keys": [],
     "function": "genCPUID",
     "name": "cpuid",
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "event","type": "std::string"},
-     {"name": "minute","type": "std::string"},
-     {"name": "hour","type": "std::string"},
-     {"name": "day_of_month","type": "std::string"},
-     {"name": "month","type": "std::string"},
-     {"name": "day_of_week","type": "std::string"},
-     {"name": "command","type": "std::string"},
-     {"name": "path","type": "std::string"}
+     {"description": "The job @event name (rare)","name": "event","type": "TEXT"},
+     {"description": "","name": "minute","type": "TEXT"},
+     {"description": "","name": "hour","type": "TEXT"},
+     {"description": "","name": "day_of_month","type": "TEXT"},
+     {"description": "","name": "month","type": "TEXT"},
+     {"description": "","name": "day_of_week","type": "TEXT"},
+     {"description": "Raw command string","name": "command","type": "TEXT"},
+     {"description": "File parsed","name": "path","type": "TEXT"}
     ],
-    "description": "",
+    "description": "Line parsed values from system and user cron/tab.",
     "foreign_keys": [],
     "function": "genCronTab",
     "name": "crontab",
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "address","type": "std::string"},
-     {"name": "hostnames","type": "std::string"}
+     {"description": "","name": "address","type": "TEXT"},
+     {"description": "Raw hosts mapping","name": "hostnames","type": "TEXT"}
     ],
-    "description": "",
+    "description": "Line-parsed /etc/hosts.",
     "foreign_keys": [],
     "function": "genEtcHosts",
     "name": "etc_hosts",
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "gid","type": "long long int"},
-     {"name": "name","type": "std::string"}
+     {"description": "","name": "gid","type": "BIGINT"},
+     {"description": "","name": "groupname","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -75,13 +96,14 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "login","type": "std::string"},
-     {"name": "tty","type": "std::string"},
-     {"name": "pid","type": "int"},
-     {"name": "type","type": "int"},
-     {"name": "time","type": "int"},
-     {"name": "host","type": "std::string"}
+     {"description": "","name": "username","type": "TEXT"},
+     {"description": "","name": "tty","type": "TEXT"},
+     {"description": "","name": "pid","type": "INTEGER"},
+     {"description": "","name": "type","type": "INTEGER"},
+     {"description": "","name": "time","type": "INTEGER"},
+     {"description": "","name": "host","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -90,43 +112,68 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "target_path","type": "std::string"},
-     {"name": "time","type": "std::string"},
-     {"name": "action","type": "std::string"},
-     {"name": "transaction_id","type": "std::string"}
+     {"description": "","name": "device","type": "TEXT"},
+     {"description": "","name": "device_alias","type": "TEXT"},
+     {"description": "","name": "path","type": "TEXT"},
+     {"description": "","name": "type","type": "TEXT"},
+     {"description": "","name": "blocks_size","type": "BIGINT"},
+     {"description": "","name": "blocks","type": "BIGINT"},
+     {"description": "","name": "blocks_free","type": "BIGINT"},
+     {"description": "","name": "blocks_available","type": "BIGINT"},
+     {"description": "","name": "inodes","type": "BIGINT"},
+     {"description": "","name": "inodes_free","type": "BIGINT"},
+     {"description": "","name": "flags","type": "TEXT"}
     ],
     "description": "",
+    "foreign_keys": [],
+    "function": "genMounts",
+    "name": "mounts",
+    "profile": {}
+   },
+   {
+    "blacklisted": false,
+    "columns": [
+     {"description": "The path changed","name": "target_path","type": "TEXT"},
+     {"description": "","name": "time","type": "TEXT"},
+     {"description": "Change action (UPDATE, REMOVE, etc)","name": "action","type": "TEXT"},
+     {"description": "ID used during bulk update","name": "transaction_id","type": "BIGINT"}
+    ],
+    "description": "Mostly an example use of events.",
     "foreign_keys": [],
     "function": "genTable",
     "name": "passwd_changes",
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "pid","type": "int"},
-     {"name": "name","type": "std::string"},
-     {"name": "path","type": "std::string"},
-     {"name": "key","type": "std::string"},
-     {"name": "value","type": "std::string"}
+     {"description": "","name": "pid","type": "INTEGER"},
+     {"description": "Process name","name": "name","type": "TEXT"},
+     {"description": "Process path","name": "path","type": "TEXT"},
+     {"description": "Environment variable name","name": "key","type": "TEXT"},
+     {"description": "Environment variable value","name": "value","type": "TEXT"}
     ],
-    "description": "",
-    "foreign_keys": [],
+    "description": "A key/value table of environment variables for each process.",
+    "foreign_keys": [
+     {"column": "pid","table": "processes"},
+     {"column": "pid","table": "process_open_files"}
+    ],
     "function": "genProcessEnvs",
     "name": "process_envs",
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "pid","type": "int"},
-     {"name": "name","type": "std::string"},
-     {"name": "path","type": "std::string"},
-     {"name": "file_type","type": "std::string"},
-     {"name": "local_path","type": "std::string"},
-     {"name": "local_host","type": "std::string"},
-     {"name": "local_port","type": "std::string"},
-     {"name": "remote_host","type": "std::string"},
-     {"name": "remote_port","type": "std::string"}
+     {"description": "","name": "pid","type": "INTEGER"},
+     {"description": "","name": "file_type","type": "TEXT"},
+     {"description": "","name": "local_path","type": "TEXT"},
+     {"description": "","name": "local_host","type": "TEXT"},
+     {"description": "","name": "local_port","type": "TEXT"},
+     {"description": "","name": "remote_host","type": "TEXT"},
+     {"description": "","name": "remote_port","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -135,23 +182,24 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "name","type": "std::string"},
-     {"name": "path","type": "std::string"},
-     {"name": "cmdline","type": "std::string"},
-     {"name": "pid","type": "int"},
-     {"name": "uid","type": "long long int"},
-     {"name": "gid","type": "long long int"},
-     {"name": "euid","type": "long long int"},
-     {"name": "egid","type": "long long int"},
-     {"name": "on_disk","type": "std::string"},
-     {"name": "wired_size","type": "std::string"},
-     {"name": "resident_size","type": "std::string"},
-     {"name": "phys_footprint","type": "std::string"},
-     {"name": "user_time","type": "std::string"},
-     {"name": "system_time","type": "std::string"},
-     {"name": "start_time","type": "std::string"},
-     {"name": "parent","type": "int"}
+     {"description": "The process path or shorthand argv[0]","name": "name","type": "TEXT"},
+     {"description": "","name": "path","type": "TEXT"},
+     {"description": "Complete argv","name": "cmdline","type": "TEXT"},
+     {"description": "","name": "pid","type": "INTEGER"},
+     {"description": "","name": "uid","type": "BIGINT"},
+     {"description": "","name": "gid","type": "BIGINT"},
+     {"description": "","name": "euid","type": "BIGINT"},
+     {"description": "","name": "egid","type": "BIGINT"},
+     {"description": "The process path exist yes=1, no=-1","name": "on_disk","type": "TEXT"},
+     {"description": "","name": "wired_size","type": "TEXT"},
+     {"description": "","name": "resident_size","type": "TEXT"},
+     {"description": "","name": "phys_footprint","type": "TEXT"},
+     {"description": "","name": "user_time","type": "TEXT"},
+     {"description": "","name": "system_time","type": "TEXT"},
+     {"description": "","name": "start_time","type": "TEXT"},
+     {"description": "","name": "parent","type": "INTEGER"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -160,16 +208,17 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "destination","type": "std::string"},
-     {"name": "netmask","type": "std::string"},
-     {"name": "gateway","type": "std::string"},
-     {"name": "source","type": "std::string"},
-     {"name": "flags","type": "int"},
-     {"name": "interface","type": "std::string"},
-     {"name": "mtu","type": "int"},
-     {"name": "metric","type": "int"},
-     {"name": "type","type": "std::string"}
+     {"description": "","name": "destination","type": "TEXT"},
+     {"description": "","name": "netmask","type": "TEXT"},
+     {"description": "","name": "gateway","type": "TEXT"},
+     {"description": "","name": "source","type": "TEXT"},
+     {"description": "","name": "flags","type": "INTEGER"},
+     {"description": "","name": "interface","type": "TEXT"},
+     {"description": "","name": "mtu","type": "INTEGER"},
+     {"description": "","name": "metric","type": "INTEGER"},
+     {"description": "","name": "type","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -178,11 +227,12 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": true,
     "columns": [
-     {"name": "path","type": "std::string"},
-     {"name": "unix_user","type": "std::string"},
-     {"name": "unix_group","type": "std::string"},
-     {"name": "permissions","type": "std::string"}
+     {"description": "","name": "path","type": "TEXT"},
+     {"description": "","name": "username","type": "TEXT"},
+     {"description": "","name": "groupname","type": "TEXT"},
+     {"description": "","name": "permissions","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -191,10 +241,11 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "hour","type": "int"},
-     {"name": "minutes","type": "int"},
-     {"name": "seconds","type": "int"}
+     {"description": "","name": "hour","type": "INTEGER"},
+     {"description": "","name": "minutes","type": "INTEGER"},
+     {"description": "","name": "seconds","type": "INTEGER"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -203,13 +254,14 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "uid","type": "long long int"},
-     {"name": "gid","type": "long long int"},
-     {"name": "username","type": "std::string"},
-     {"name": "description","type": "std::string"},
-     {"name": "directory","type": "std::string"},
-     {"name": "shell","type": "std::string"}
+     {"description": "","name": "uid","type": "BIGINT"},
+     {"description": "","name": "gid","type": "BIGINT"},
+     {"description": "","name": "username","type": "TEXT"},
+     {"description": "","name": "description","type": "TEXT"},
+     {"description": "","name": "directory","type": "TEXT"},
+     {"description": "","name": "shell","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -224,14 +276,15 @@ var API = [
   "name": "Darwin (Apple OS X)",
   "tables": [
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "allow_signed_enabled","type": "int"},
-     {"name": "firewall_unload","type": "int"},
-     {"name": "global_state","type": "int"},
-     {"name": "logging_enabled","type": "int"},
-     {"name": "logging_option","type": "int"},
-     {"name": "stealth_enabled","type": "int"},
-     {"name": "version","type": "std::string"}
+     {"description": "","name": "allow_signed_enabled","type": "INTEGER"},
+     {"description": "","name": "firewall_unload","type": "INTEGER"},
+     {"description": "","name": "global_state","type": "INTEGER"},
+     {"description": "","name": "logging_enabled","type": "INTEGER"},
+     {"description": "","name": "logging_option","type": "INTEGER"},
+     {"description": "","name": "stealth_enabled","type": "INTEGER"},
+     {"description": "","name": "version","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -240,9 +293,10 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "path","type": "std::string"},
-     {"name": "state","type": "int"}
+     {"description": "","name": "path","type": "TEXT"},
+     {"description": "","name": "state","type": "INTEGER"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -251,8 +305,9 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "process","type": "std::string"}
+     {"description": "","name": "process","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -261,10 +316,11 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "service","type": "std::string"},
-     {"name": "process","type": "std::string"},
-     {"name": "state","type": "int"}
+     {"description": "","name": "service","type": "TEXT"},
+     {"description": "","name": "process","type": "TEXT"},
+     {"description": "","name": "state","type": "INTEGER"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -273,23 +329,24 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "name","type": "std::string"},
-     {"name": "path","type": "std::string"},
-     {"name": "bundle_executable","type": "std::string"},
-     {"name": "bundle_identifier","type": "std::string"},
-     {"name": "bundle_name","type": "std::string"},
-     {"name": "bundle_short_version","type": "std::string"},
-     {"name": "bundle_version","type": "std::string"},
-     {"name": "bundle_package_type","type": "std::string"},
-     {"name": "compiler","type": "std::string"},
-     {"name": "development_region","type": "std::string"},
-     {"name": "display_name","type": "std::string"},
-     {"name": "info_string","type": "std::string"},
-     {"name": "minimum_system_version","type": "std::string"},
-     {"name": "category","type": "std::string"},
-     {"name": "applescript_enabled","type": "std::string"},
-     {"name": "copyright","type": "std::string"}
+     {"description": "","name": "name","type": "TEXT"},
+     {"description": "","name": "path","type": "TEXT"},
+     {"description": "","name": "bundle_executable","type": "TEXT"},
+     {"description": "","name": "bundle_identifier","type": "TEXT"},
+     {"description": "","name": "bundle_name","type": "TEXT"},
+     {"description": "","name": "bundle_short_version","type": "TEXT"},
+     {"description": "","name": "bundle_version","type": "TEXT"},
+     {"description": "","name": "bundle_package_type","type": "TEXT"},
+     {"description": "","name": "compiler","type": "TEXT"},
+     {"description": "","name": "development_region","type": "TEXT"},
+     {"description": "","name": "display_name","type": "TEXT"},
+     {"description": "","name": "info_string","type": "TEXT"},
+     {"description": "","name": "minimum_system_version","type": "TEXT"},
+     {"description": "","name": "category","type": "TEXT"},
+     {"description": "","name": "applescript_enabled","type": "TEXT"},
+     {"description": "","name": "copyright","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -298,15 +355,16 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "common_name","type": "std::string"},
-     {"name": "not_valid_before","type": "std::string"},
-     {"name": "not_valid_after","type": "std::string"},
-     {"name": "key_algorithm","type": "std::string"},
-     {"name": "key_usage","type": "std::string"},
-     {"name": "subject_key_id","type": "std::string"},
-     {"name": "authority_key_id","type": "std::string"},
-     {"name": "sha1","type": "std::string"}
+     {"description": "","name": "common_name","type": "TEXT"},
+     {"description": "","name": "not_valid_before","type": "TEXT"},
+     {"description": "","name": "not_valid_after","type": "TEXT"},
+     {"description": "","name": "key_algorithm","type": "TEXT"},
+     {"description": "","name": "key_usage","type": "TEXT"},
+     {"description": "","name": "subject_key_id","type": "TEXT"},
+     {"description": "","name": "authority_key_id","type": "TEXT"},
+     {"description": "","name": "sha1","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -315,10 +373,11 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "name","type": "std::string"},
-     {"name": "path","type": "std::string"},
-     {"name": "version","type": "std::string"}
+     {"description": "","name": "name","type": "TEXT"},
+     {"description": "","name": "path","type": "TEXT"},
+     {"description": "","name": "version","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -327,12 +386,13 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "interface","type": "std::string"},
-     {"name": "address","type": "std::string"},
-     {"name": "mask","type": "std::string"},
-     {"name": "broadcast","type": "std::string"},
-     {"name": "point_to_point","type": "std::string"}
+     {"description": "","name": "interface","type": "TEXT"},
+     {"description": "","name": "address","type": "TEXT"},
+     {"description": "","name": "mask","type": "TEXT"},
+     {"description": "","name": "broadcast","type": "TEXT"},
+     {"description": "","name": "point_to_point","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -341,19 +401,20 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "interface","type": "std::string"},
-     {"name": "mac","type": "std::string"},
-     {"name": "type","type": "int"},
-     {"name": "mtu","type": "std::string"},
-     {"name": "metric","type": "std::string"},
-     {"name": "ipackets","type": "std::string"},
-     {"name": "opackets","type": "std::string"},
-     {"name": "ibytes","type": "std::string"},
-     {"name": "obytes","type": "std::string"},
-     {"name": "ierrors","type": "std::string"},
-     {"name": "oerrors","type": "std::string"},
-     {"name": "last_change","type": "std::string"}
+     {"description": "","name": "interface","type": "TEXT"},
+     {"description": "","name": "mac","type": "TEXT"},
+     {"description": "","name": "type","type": "INTEGER"},
+     {"description": "","name": "mtu","type": "INTEGER"},
+     {"description": "","name": "metric","type": "INTEGER"},
+     {"description": "","name": "ipackets","type": "BIGINT"},
+     {"description": "","name": "opackets","type": "BIGINT"},
+     {"description": "","name": "ibytes","type": "BIGINT"},
+     {"description": "","name": "obytes","type": "BIGINT"},
+     {"description": "","name": "ierrors","type": "BIGINT"},
+     {"description": "","name": "oerrors","type": "BIGINT"},
+     {"description": "","name": "last_change","type": "BIGINT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -362,14 +423,15 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "idx","type": "int"},
-     {"name": "refs","type": "int"},
-     {"name": "size","type": "std::string"},
-     {"name": "wired","type": "std::string"},
-     {"name": "name","type": "std::string"},
-     {"name": "version","type": "std::string"},
-     {"name": "linked_against","type": "std::string"}
+     {"description": "","name": "idx","type": "INTEGER"},
+     {"description": "","name": "refs","type": "INTEGER"},
+     {"description": "","name": "size","type": "TEXT"},
+     {"description": "","name": "wired","type": "TEXT"},
+     {"description": "","name": "name","type": "TEXT"},
+     {"description": "","name": "version","type": "TEXT"},
+     {"description": "","name": "linked_against","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -378,28 +440,29 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "path","type": "std::string"},
-     {"name": "name","type": "std::string"},
-     {"name": "label","type": "std::string"},
-     {"name": "run_at_load","type": "std::string"},
-     {"name": "keep_alive","type": "std::string"},
-     {"name": "on_demand","type": "std::string"},
-     {"name": "disabled","type": "std::string"},
-     {"name": "user_name","type": "std::string"},
-     {"name": "group_name","type": "std::string"},
-     {"name": "stdout_path","type": "std::string"},
-     {"name": "stderr_path","type": "std::string"},
-     {"name": "start_interval","type": "std::string"},
-     {"name": "program_arguments","type": "std::string"},
-     {"name": "program","type": "std::string"},
-     {"name": "watch_paths","type": "std::string"},
-     {"name": "queue_directories","type": "std::string"},
-     {"name": "inetd_compatibility","type": "std::string"},
-     {"name": "start_on_mount","type": "std::string"},
-     {"name": "root_directory","type": "std::string"},
-     {"name": "working_directory","type": "std::string"},
-     {"name": "process_type","type": "std::string"}
+     {"description": "","name": "path","type": "TEXT"},
+     {"description": "","name": "name","type": "TEXT"},
+     {"description": "","name": "label","type": "TEXT"},
+     {"description": "","name": "run_at_load","type": "TEXT"},
+     {"description": "","name": "keep_alive","type": "TEXT"},
+     {"description": "","name": "on_demand","type": "TEXT"},
+     {"description": "","name": "disabled","type": "TEXT"},
+     {"description": "","name": "username","type": "TEXT"},
+     {"description": "","name": "groupname","type": "TEXT"},
+     {"description": "","name": "stdout_path","type": "TEXT"},
+     {"description": "","name": "stderr_path","type": "TEXT"},
+     {"description": "","name": "start_interval","type": "TEXT"},
+     {"description": "","name": "program_arguments","type": "TEXT"},
+     {"description": "","name": "program","type": "TEXT"},
+     {"description": "","name": "watch_paths","type": "TEXT"},
+     {"description": "","name": "queue_directories","type": "TEXT"},
+     {"description": "","name": "inetd_compatibility","type": "TEXT"},
+     {"description": "","name": "start_on_mount","type": "TEXT"},
+     {"description": "","name": "root_directory","type": "TEXT"},
+     {"description": "","name": "working_directory","type": "TEXT"},
+     {"description": "","name": "process_type","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -408,12 +471,13 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "pid","type": "int"},
-     {"name": "port","type": "int"},
-     {"name": "protocol","type": "int"},
-     {"name": "family","type": "int"},
-     {"name": "address","type": "std::string"}
+     {"description": "","name": "pid","type": "INTEGER"},
+     {"description": "","name": "port","type": "INTEGER"},
+     {"description": "","name": "protocol","type": "INTEGER"},
+     {"description": "","name": "family","type": "INTEGER"},
+     {"description": "","name": "address","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -422,10 +486,11 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "name","type": "std::string"},
-     {"name": "type","type": "std::string"},
-     {"name": "value","type": "std::string"}
+     {"description": "","name": "name","type": "TEXT"},
+     {"description": "","name": "type","type": "TEXT"},
+     {"description": "","name": "value","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -434,10 +499,11 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "major","type": "int"},
-     {"name": "minor","type": "int"},
-     {"name": "patch","type": "int"}
+     {"description": "","name": "major","type": "INTEGER"},
+     {"description": "","name": "minor","type": "INTEGER"},
+     {"description": "","name": "patch","type": "INTEGER"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -446,9 +512,10 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": true,
     "columns": [
-     {"name": "path","type": "std::string"},
-     {"name": "creator","type": "std::string"}
+     {"description": "","name": "path","type": "TEXT"},
+     {"description": "","name": "creator","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -457,14 +524,27 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "name","type": "std::string"},
-     {"name": "path","type": "std::string"}
+     {"description": "","name": "name","type": "TEXT"},
+     {"description": "","name": "path","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
     "function": "genStartupItems",
     "name": "startup_items",
+    "profile": {}
+   },
+   {
+    "blacklisted": false,
+    "columns": [
+     {"description": "","name": "manufacturer","type": "TEXT"},
+     {"description": "","name": "product","type": "TEXT"}
+    ],
+    "description": "",
+    "foreign_keys": [],
+    "function": "genUsbDevices",
+    "name": "usb_devices",
     "profile": {}
    }
   ]
@@ -474,15 +554,16 @@ var API = [
   "name": "Ubuntu, CentOS",
   "tables": [
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "name","type": "std::string"},
-     {"name": "parent","type": "std::string"},
-     {"name": "vendor","type": "std::string"},
-     {"name": "model","type": "std::string"},
-     {"name": "size","type": "long long int"},
-     {"name": "uuid","type": "std::string"},
-     {"name": "type","type": "std::string"},
-     {"name": "label","type": "std::string"}
+     {"description": "","name": "name","type": "TEXT"},
+     {"description": "","name": "parent","type": "TEXT"},
+     {"description": "","name": "vendor","type": "TEXT"},
+     {"description": "","name": "model","type": "TEXT"},
+     {"description": "","name": "size","type": "BIGINT"},
+     {"description": "","name": "uuid","type": "TEXT"},
+     {"description": "","name": "type","type": "TEXT"},
+     {"description": "","name": "label","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -491,12 +572,13 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "name","type": "std::string"},
-     {"name": "size","type": "std::string"},
-     {"name": "used_by","type": "std::string"},
-     {"name": "status","type": "std::string"},
-     {"name": "address","type": "std::string"}
+     {"description": "","name": "name","type": "TEXT"},
+     {"description": "","name": "size","type": "TEXT"},
+     {"description": "","name": "used_by","type": "TEXT"},
+     {"description": "","name": "status","type": "TEXT"},
+     {"description": "","name": "address","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -505,33 +587,12 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "fsname","type": "std::string"},
-     {"name": "fsname_real","type": "std::string"},
-     {"name": "path","type": "std::string"},
-     {"name": "type","type": "std::string"},
-     {"name": "opts","type": "std::string"},
-     {"name": "freq","type": "int"},
-     {"name": "passno","type": "int"},
-     {"name": "block_size","type": "long long int"},
-     {"name": "blocks","type": "long long int"},
-     {"name": "blocks_free","type": "long long int"},
-     {"name": "blocks_avail","type": "long long int"},
-     {"name": "inodes","type": "long long int"},
-     {"name": "inodes_free","type": "long long int"}
-    ],
-    "description": "",
-    "foreign_keys": [],
-    "function": "genMounts",
-    "name": "mounts",
-    "profile": {}
-   },
-   {
-    "columns": [
-     {"name": "slot","type": "std::string"},
-     {"name": "device_class","type": "std::string"},
-     {"name": "vendor","type": "std::string"},
-     {"name": "model","type": "std::string"}
+     {"description": "","name": "slot","type": "TEXT"},
+     {"description": "","name": "device_class","type": "TEXT"},
+     {"description": "","name": "vendor","type": "TEXT"},
+     {"description": "","name": "model","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -540,12 +601,14 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "local_port","type": "std::string"},
-     {"name": "remote_port","type": "std::string"},
-     {"name": "local_ip","type": "std::string"},
-     {"name": "remote_ip","type": "std::string"},
-     {"name": "inode","type": "std::string"}
+     {"description": "","name": "local_port","type": "TEXT"},
+     {"description": "","name": "remote_port","type": "TEXT"},
+     {"description": "","name": "local_ip","type": "TEXT"},
+     {"description": "","name": "remote_ip","type": "TEXT"},
+     {"description": "","name": "inode","type": "TEXT"},
+     {"description": "","name": "family","type": "INTEGER"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -554,14 +617,15 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "name","type": "std::string"},
-     {"name": "version","type": "std::string"},
-     {"name": "release","type": "std::string"},
-     {"name": "source","type": "std::string"},
-     {"name": "size","type": "std::string"},
-     {"name": "sha1","type": "std::string"},
-     {"name": "arch","type": "std::string"}
+     {"description": "","name": "name","type": "TEXT"},
+     {"description": "","name": "version","type": "TEXT"},
+     {"description": "","name": "release","type": "TEXT"},
+     {"description": "","name": "source","type": "TEXT"},
+     {"description": "","name": "size","type": "BIGINT"},
+     {"description": "","name": "sha1","type": "TEXT"},
+     {"description": "","name": "arch","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],
@@ -570,9 +634,10 @@ var API = [
     "profile": {}
    },
    {
+    "blacklisted": false,
     "columns": [
-     {"name": "pid","type": "std::string"},
-     {"name": "inode","type": "std::string"}
+     {"description": "","name": "pid","type": "TEXT"},
+     {"description": "","name": "inode","type": "TEXT"}
     ],
     "description": "",
     "foreign_keys": [],

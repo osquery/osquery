@@ -19,8 +19,8 @@ namespace osquery {
 namespace tables {
 
 // Macros for safe sign-extension
-#define STRING_FROM_UCHAR(x) boost::lexical_cast<std::string>((uint16_t)x);
-#define STRING_FROM_UINT32(x) boost::lexical_cast<std::string>((uint64_t)x);
+#define INTEGER_FROM_UCHAR(x) INTEGER((uint16_t)x);
+#define BIGINT_FROM_UINT32(x) BIGINT((uint64_t)x);
 
 void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
   std::string dest_address;
@@ -28,12 +28,12 @@ void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
   r["interface"] = std::string(addr->ifa_name);
 
   // Address and mask will appear everytime.
-  r["address"] = canonical_ip_address((struct sockaddr *)addr->ifa_addr);
-  r["mask"] = canonical_ip_address((struct sockaddr *)addr->ifa_netmask);
+  r["address"] = ipAsString((struct sockaddr *)addr->ifa_addr);
+  r["mask"] = ipAsString((struct sockaddr *)addr->ifa_netmask);
 
   // The destination address is used for either a broadcast or PtP address.
   if (addr->ifa_dstaddr != NULL) {
-    dest_address = canonical_ip_address((struct sockaddr *)addr->ifa_dstaddr);
+    dest_address = ipAsString((struct sockaddr *)addr->ifa_dstaddr);
     if ((addr->ifa_flags & IFF_BROADCAST) == IFF_BROADCAST) {
       r["broadcast"] = dest_address;
     } else {
@@ -49,19 +49,19 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
 
   Row r;
   r["interface"] = std::string(addr->ifa_name);
-  r["mac"] = canonical_mac_address(addr);
+  r["mac"] = macAsString(addr);
 
   ifd = (struct if_data *)addr->ifa_data;
-  r["type"] = STRING_FROM_UCHAR(ifd->ifi_type);
-  r["mtu"] = STRING_FROM_UINT32(ifd->ifi_mtu);
-  r["metric"] = STRING_FROM_UINT32(ifd->ifi_metric);
-  r["ipackets"] = STRING_FROM_UINT32(ifd->ifi_ipackets);
-  r["opackets"] = STRING_FROM_UINT32(ifd->ifi_opackets);
-  r["ibytes"] = STRING_FROM_UINT32(ifd->ifi_ibytes);
-  r["obytes"] = STRING_FROM_UINT32(ifd->ifi_obytes);
-  r["ierrors"] = STRING_FROM_UINT32(ifd->ifi_ierrors);
-  r["oerrors"] = STRING_FROM_UINT32(ifd->ifi_oerrors);
-  r["last_change"] = STRING_FROM_UINT32(ifd->ifi_lastchange.tv_sec);
+  r["type"] = INTEGER_FROM_UCHAR(ifd->ifi_type);
+  r["mtu"] = BIGINT_FROM_UINT32(ifd->ifi_mtu);
+  r["metric"] = BIGINT_FROM_UINT32(ifd->ifi_metric);
+  r["ipackets"] = BIGINT_FROM_UINT32(ifd->ifi_ipackets);
+  r["opackets"] = BIGINT_FROM_UINT32(ifd->ifi_opackets);
+  r["ibytes"] = BIGINT_FROM_UINT32(ifd->ifi_ibytes);
+  r["obytes"] = BIGINT_FROM_UINT32(ifd->ifi_obytes);
+  r["ierrors"] = BIGINT_FROM_UINT32(ifd->ifi_ierrors);
+  r["oerrors"] = BIGINT_FROM_UINT32(ifd->ifi_oerrors);
+  r["last_change"] = BIGINT_FROM_UINT32(ifd->ifi_lastchange.tv_sec);
   results.push_back(r);
 }
 

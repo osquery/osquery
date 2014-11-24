@@ -11,17 +11,19 @@
 
 #include "osquery/database/results.h"
 
+#ifndef STR
+#define STR_OF(x) #x
+#define STR(x) STR_OF(x)
+#endif
+
 namespace osquery {
 
 /**
  * @brief The version of osquery
  */
 extern const std::string kVersion;
+
 /// Use a macro for the version literal, set the kVersion symbol in the library.
-#ifndef STR
-#define STR_OF(x) #x
-#define STR(x) STR_OF(x)
-#endif
 #define OSQUERY_VERSION STR(OSQUERY_BUILD_VERSION)
 
 /**
@@ -146,19 +148,20 @@ int getUnixTime();
  * @return a vector of strings representing the path of all home directories
  */
 std::vector<boost::filesystem::path> getHomeDirectories();
-}
 
 /**
  * @brief Inline helper function for use with utf8StringSize
  */
-template<typename _Iterator1, typename _Iterator2>
+template <typename _Iterator1, typename _Iterator2>
 inline size_t incUtf8StringIterator(_Iterator1& it, const _Iterator2& last) {
-  if(it == last) return 0;
+  if (it == last)
+    return 0;
   unsigned char c;
   size_t res = 1;
-  for(++it; last != it; ++it, ++res) {
+  for (++it; last != it; ++it, ++res) {
     c = *it;
-    if(!(c&0x80) || ((c&0xC0) == 0xC0)) break;
+    if (!(c & 0x80) || ((c & 0xC0) == 0xC0))
+      break;
   }
 
   return res;
@@ -171,11 +174,19 @@ inline size_t incUtf8StringIterator(_Iterator1& it, const _Iterator2& last) {
  *
  * @return the length of the string
  */
-inline size_t utf8StringSize(const std::string& str)  {
+inline size_t utf8StringSize(const std::string& str) {
   size_t res = 0;
   std::string::const_iterator it = str.begin();
-  for(; it != str.end(); incUtf8StringIterator(it, str.end()))
+  for (; it != str.end(); incUtf8StringIterator(it, str.end()))
     res++;
 
   return res;
+}
+
+/**
+ * @brief Create a pid file
+ *
+ * @return A status object indicating the success or failure of the operation
+ */
+Status createPidFile();
 }

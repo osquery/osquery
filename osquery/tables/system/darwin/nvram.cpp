@@ -3,8 +3,6 @@
 #include <string>
 #include <stdlib.h>
 
-#include <boost/lexical_cast.hpp>
-
 #include <IOKit/IOKitLib.h>
 #include <CoreFoundation/CoreFoundation.h>
 

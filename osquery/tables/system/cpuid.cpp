@@ -6,8 +6,6 @@
 #include <sstream>
 #include <vector>
 
-#include <boost/lexical_cast.hpp>
-
 #include "osquery/core.h"
 #include "osquery/database.h"
 
@@ -73,6 +71,7 @@ Status genVendorString(QueryData& results) {
   r["feature"] = "vendor";
   r["value"] = vendor_string.str();
   r["output_register"] = "ebx,edx,ecx";
+  r["output_bit"] = "0";
   r["input_eax"] = "0";
   results.push_back(r);
 
@@ -92,7 +91,7 @@ void genFamily(QueryData& results) {
   r["feature"] = "family";
   r["value"] = family_string.str();
   r["output_register"] = "eax";
-  r["output_bit"] = "";
+  r["output_bit"] = "0";
   r["input_eax"] = "1";
 
   results.push_back(r);
@@ -132,7 +131,7 @@ QueryData genCPUID() {
       feature_bit = feature.second.second;
       r["value"] = isBitSet(feature_bit, regs[feature_register]) ? "1" : "0";
       r["output_register"] = feature.second.first;
-      r["output_bit"] = boost::lexical_cast<std::string>(feature_bit);
+      r["output_bit"] = INTEGER(feature_bit);
       r["input_eax"] = boost::lexical_cast<std::string>(eax);
       results.push_back(r);
     }

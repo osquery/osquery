@@ -60,14 +60,13 @@ std::string getHostIdentifier(std::string hostIdFlag,
 
 void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
                    const int64_t& second) {
-  LOG(INFO) << "launchQueries: " << second;
   for (const auto& q : queries) {
     if (second % q.interval == 0) {
-      LOG(INFO) << "executing query: " << q.query;
+      LOG(INFO) << "Executing query: " << q.query;
       int unix_time = std::time(0);
       auto sql = SQL(q.query);
       if (!sql.ok()) {
-        LOG(ERROR) << "error executing query (" << q.query
+        LOG(ERROR) << "Error executing query (" << q.query
                    << "): " << sql.getMessageString();
         continue;
       }
@@ -76,7 +75,7 @@ void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
       auto status = dbQuery.addNewResults(sql.rows(), diff_results, unix_time);
       if (!status.ok()) {
         LOG(ERROR)
-            << "error adding new results to database: " << status.toString();
+            << "Error adding new results to database: " << status.toString();
         continue;
       }
 

@@ -28,7 +28,7 @@ class {{class_name}} {
 struct sqlite3_{{table_name}} {
   int n;
 {% for col in schema %}\
-  std::vector<{{col.type.type}}> {{col.name}};
+  std::vector<{{col.type.type}}> xCol_{{col.name}};
 {% endfor %}\
 };
 
@@ -72,26 +72,28 @@ int {{table_name_cc}}Column(
 {% for col in schema %}\
       // {{ col.name }}
       case {{ loop.index0 }}:
+        if (pVtab->pContent->xCol_{{col.name}}.size() > pCur->row) {
 {% if col.type.affinity == "TEXT" %}\
-        sqlite3_result_text(
-          ctx,
-          (pVtab->pContent->{{col.name}}[pCur->row]).c_str(),
-          -1,
-          nullptr
-        );
+          sqlite3_result_text(
+            ctx,
+            (pVtab->pContent->xCol_{{col.name}}[pCur->row]).c_str(),
+            -1,
+            nullptr
+          );
 {% endif %}\
 {% if col.type.affinity == "INTEGER" %}\
-        sqlite3_result_int(
-          ctx,
-          ({{col.type.type}})pVtab->pContent->{{col.name}}[pCur->row]
-        );
+          sqlite3_result_int(
+            ctx,
+            ({{col.type.type}})pVtab->pContent->xCol_{{col.name}}[pCur->row]
+          );
 {% endif %}\
 {% if col.type.affinity == "BIGINT" %}\
-        sqlite3_result_int64(
-          ctx,
-          ({{col.type.type}})pVtab->pContent->{{col.name}}[pCur->row]
-        );
+          sqlite3_result_int64(
+            ctx,
+            ({{col.type.type}})pVtab->pContent->xCol_{{col.name}}[pCur->row]
+          );
 {% endif %}\
+        }
         break;
 {% endfor %}\
     }
@@ -112,7 +114,7 @@ int {{table_name_cc}}Filter(
 
   pCur->row = 0;
 {% for col in schema %}\
-  pVtab->pContent->{{col.name}}.clear();
+  pVtab->pContent->xCol_{{col.name}}.clear();
 {% endfor %}\
 
 {% if class_name != "" %}
@@ -122,30 +124,22 @@ int {{table_name_cc}}Filter(
 {% endif %}
 {% for col in schema %}\
 {% if col.type.affinity == "TEXT" %}\
-    pVtab->pContent->{{col.name}}.push_back(row["{{col.name}}"]);
+    pVtab->pContent->xCol_{{col.name}}.push_back(row["{{col.name}}"]);
 {% endif %}\
-{% if col.type.affinity == "INTEGER" %}\
+{% if col.type.affinity in ["INTEGER", "BIGINT"] %}\
     try {
-      pVtab->pContent->{{col.name}}\
+      pVtab->pContent->xCol_{{col.name}}\
 .push_back(boost::lexical_cast<{{col.type.type}}>(row["{{col.name}}"]));
     } catch (const boost::bad_lexical_cast& e) {
-      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to {{col.type.type}}";
-      pVtab->pContent->{{col.name}}.push_back(-1);
-    }
-{% endif %}\
-{% if col.type == "BIGINT" %}\
-    try {
-      pVtab->pContent->{{col.name}}\
-.push_back(boost::lexical_cast<{{col.type.type}}>(row["{{col.name}}"]));
-    } catch (const boost::bad_lexical_cast& e) {
-      LOG(WARNING) << "Error casting " << row["{{col.name}}"] << " to {{col.type.type}}";
-      pVtab->pContent->{{col.name}}.push_back(-1);
+      LOG(WARNING) << "Error casting {{col.name}} (" 
+                   << row["{{col.name}}"] << ") to {{col.type.type}}";
+      pVtab->pContent->xCol_{{col.name}}.push_back(-1);
     }
 {% endif %}\
 {% endfor %}\
   }
 
-  pVtab->pContent->n = pVtab->pContent->{{schema[0].name}}.size();
+  pVtab->pContent->n = pVtab->pContent->xCol_{{schema[0].name}}.size();
 
   return SQLITE_OK;
 }

@@ -6,8 +6,8 @@ function platform() {
     eval $__resultvar="centos"
   elif [[ -f "/etc/lsb-release" ]]; then
     eval $__resultvar="ubuntu"
-  elif [[ -f "/etc/pf.conf" ]]; then
-    eval $__resultvar="darwin"
+  else
+    eval $__resultvar=`uname -s | tr '[:upper:]' '[:lower:]'`
   fi
 }
 
@@ -19,6 +19,8 @@ function distro() {
     eval $__resultvar=`cat /etc/*-release | grep DISTRIB_CODENAME | awk -F '=' '{print $2}'`
   elif [[ $1 = "darwin" ]]; then
     eval $__resultvar=`sw_vers -productVersion | awk -F '.' '{print $1 "." $2}'`
+  elif [[ $1 = "freebsd" ]]; then
+    eval $__resultvar=`uname -r | awk -F '-' '{print $1}'`
   else
     eval $__resultvar="unknown_version"
   fi
@@ -27,13 +29,12 @@ function distro() {
 function threads() {
   local __resultvar=$1
   platform OS
-  if [[ $TRAVIS_ENV = true ]]; then
-    log "running in travis"
-    eval $__resultvar=2
-  elif [ $OS = "centos" ] || [ $OS = "ubuntu" ]; then
+  if [ $OS = "centos" ] || [ $OS = "ubuntu" ]; then
     eval $__resultvar=`cat /proc/cpuinfo | grep processor | wc -l`
   elif [[ $OS = "darwin" ]]; then
     eval $__resultvar=`sysctl hw.ncpu | awk '{print $2}'`
+  elif [[ $OS = "freebsd" ]]; then
+    eval $__resultvar=`sysctl -n kern.smp.cpus`
   fi
 }
 

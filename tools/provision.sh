@@ -3,6 +3,7 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+BUILD_DIR="$SCRIPT_DIR/../build"
 WORKING_DIR="$SCRIPT_DIR/../.sources"
 export PATH="$PATH:/usr/local/bin"
 
@@ -13,23 +14,27 @@ source "$SCRIPT_DIR/lib.sh"
 
 function install_cmake() {
   if [ "$OS" = "centos" ] || [ "$OS" = "ubuntu" ] || [ "$OS" = "darwin" ]; then
-    if [[ ! -f cmake-2.8.12.2.tar.gz ]]; then
-      log "downloading the cmake source"
-      wget http://www.cmake.org/files/v2.8/cmake-2.8.12.2.tar.gz
-    fi
-    if [[ ! -d cmake-2.8.12.2 ]]; then
-      log "unpacking the cmake source"
-      tar -xf cmake-2.8.12.2.tar.gz
-    fi
     if [[ -f /usr/local/bin/cmake ]]; then
       log "cmake is already installed. skipping."
     else
-      log "building cmake"
-      pushd cmake-2.8.12.2 > /dev/null
-      CC=clang CXX=clang++ ./configure
-      make
-      sudo make install
-      popd
+      if [[ ! -f cmake-2.8.12.2.tar.gz ]]; then
+        log "downloading the cmake source"
+        wget http://www.cmake.org/files/v2.8/cmake-2.8.12.2.tar.gz
+      fi
+      if [[ ! -d cmake-2.8.12.2 ]]; then
+        log "unpacking the cmake source"
+        tar -xf cmake-2.8.12.2.tar.gz
+      fi
+      if [[ -f /usr/local/bin/cmake ]]; then
+        log "cmake is already installed. skipping."
+      else
+        log "building cmake"
+        pushd cmake-2.8.12.2 > /dev/null
+        CC=clang CXX=clang++ ./configure
+        make
+        sudo make install
+        popd
+      fi
     fi
   fi
 }
@@ -227,7 +232,13 @@ function package() {
     if brew list | grep --quiet $1; then
       log "$1 is already installed. skipping."
     else
-      brew install $@ || brew upgrade $@
+      brew install --build-bottle $@ || brew upgrade $@
+    fi
+  elif [[ $OS = "freebsd" ]]; then
+    if pkg info -q $1; then
+      log "$1 is already installed. skipping."
+    else
+      sudo pkg install -y $@
     fi
   fi
 }
@@ -237,12 +248,17 @@ function check() {
 
   if [[ $OS = "darwin" ]]; then
     HASH=`shasum $0 | awk '{print $1}'`
+  elif [[ $OS = "freebsd" ]]; then
+    HASH=`sha1 -q $0`
   else
     HASH=`sha1sum $0 | awk '{print $1}'`
   fi
 
   if [[ "$1" = "build" ]]; then
     echo $HASH > "$2/.provision"
+    if [[ ! -z "$SUDO_USER" ]]; then
+      chown $SUDO_USER "$2/.provision" > /dev/null 2>&1 || true
+    fi
     return
   elif [[ ! "$1" = "check" ]]; then
     return
@@ -255,7 +271,7 @@ function check() {
 
   CHECKPOINT=`cat $2/.provision 2>&1 &`
   if [[ ! $HASH = $CHECKPOINT ]]; then
-    echo "Requested dependencies have changed, run: sudo make deps"
+    echo "Requested dependencies may have changed, run: sudo make deps"
     exit 1
   fi
   exit 0
@@ -271,6 +287,14 @@ function main() {
   fi
 
   mkdir -p "$WORKING_DIR"
+  if [[ ! -z "$SUDO_USER" ]]; then
+    echo "chown -h $SUDO_USER $BUILD_DIR/*"
+    chown -h $SUDO_USER:$SUDO_GID "$BUILD_DIR" || true
+    if [[ $OS = "linux" ]]; then
+      chown -h $SUDO_USER:$SUDO_GID "$BUILD_DIR/linux" || true
+    fi
+    chown $SUDO_USER:$SUDO_GID "$WORKING_DIR" > /dev/null 2>&1 || true
+  fi
   cd "$WORKING_DIR"
 
   if [[ $OS = "centos" ]]; then
@@ -279,6 +303,8 @@ function main() {
     log "detected ubuntu ($DISTRO)"
   elif [[ $OS = "darwin" ]]; then
     log "detected mac os x ($DISTRO)"
+  elif [[ $OS = "freebsd" ]]; then
+    log "detected freebsd ($DISTRO)"
   else
     fatal "could not detect the current operating system. exiting."
   fi
@@ -290,7 +316,9 @@ function main() {
     if [[ $DISTRO = "precise" ]]; then
       sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     fi
+    sudo rm -Rf /var/lib/apt/lists/*
     sudo apt-get update
+    sudo apt-get clean
 
     package git
     package unzip
@@ -355,7 +383,9 @@ function main() {
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
 
-    rpm -i ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
+    if [[ -z $(rpm -qa | grep 'kernel-headers-3.10.0-123.9.3.el7.x86_64') ]]; then
+      sudo rpm -iv ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
+    fi
     package git-all
     package unzip
     package xz
@@ -366,7 +396,7 @@ function main() {
 
     pushd /etc/yum.repos.d
     if [[ ! -f /etc/yum.repos.d/devtools-2.repo ]]; then
-      wget http://people.centos.org/tru/devtools-2/devtools-2.repo
+      sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo
     fi
 
     package devtoolset-2-gcc
@@ -377,16 +407,16 @@ function main() {
     export CXX=/opt/rh/devtoolset-2/root/usr/bin/c++
     source /opt/rh/devtoolset-2/enable
     if [[ ! -d /usr/lib/gcc ]]; then
-      ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
+      sudo ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
     fi
     popd
 
     package cmake28
     if [[ ! -f /usr/bin/cmake ]]; then
-      ln -s /usr/bin/cmake28 /usr/bin/cmake
+      sudo ln -s /usr/bin/cmake28 /usr/bin/cmake
     fi
     if [[ ! -f /usr/bin/ccmake ]]; then
-      ln -s /usr/bin/ccmake28 /usr/bin/ccmake
+      sudo ln -s /usr/bin/ccmake28 /usr/bin/ccmake
     fi
 
     package clang
@@ -440,14 +470,34 @@ function main() {
 
     package rocksdb
     package cmake
+    package makedepend
     package boost
     package gflags
     package glog
     package thrift
+
+  elif [[ $OS = "freebsd" ]]; then
+
+    package cmake
+    package git
+    package python
+    package py27-pip
+    package rocksdb
+    package libunwind
+    package thrift-cpp
+    package glog
+
   fi
 
   cd "$SCRIPT_DIR/../"
-  sudo pip install -r requirements.txt
+
+  if [ $OS = "darwin" ] && [ $DISTRO = "10.8" ]; then
+    export CPPFLAGS=-Qunused-arguments
+    export CFLAGS=-Qunused-arguments
+    sudo -E pip install -r requirements.txt
+  else
+    sudo pip install -r requirements.txt
+  fi
   git submodule init
   git submodule update
 }

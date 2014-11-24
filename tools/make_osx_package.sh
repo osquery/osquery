@@ -10,7 +10,9 @@ source $SCRIPT_DIR/lib.sh
 APP_IDENTIFIER="com.facebook.osqueryd"
 OUTPUT_PKG_PATH="$SCRIPT_DIR/../osqueryd.pkg"
 LAUNCHD_PATH="$SCRIPT_DIR/$APP_IDENTIFIER.plist"
+LAUNCHD_PATH_OVERRIDE=""
 LAUNCHD_INSTALL_PATH="/Library/LaunchDaemons/$APP_IDENTIFIER.plist"
+INCLUDE_LAUNCHD=true
 OSQUERY_LOG_DIR="/var/log/osquery/"
 OSQUERY_CONFIG_PATH_DEST="/var/osquery/osquery.conf"
 OSQUERY_CONFIG_PATH_SOURCE=""
@@ -50,6 +52,11 @@ function parse_args() {
       -c | --config )         shift
                               OSQUERY_CONFIG_PATH_SRC=$1
                               ;;
+      -l | --launchd-path )   shift
+                              LAUNCHD_PATH_OVERRIDE=$1
+                              ;;
+      -n | --no-launchd )     INCLUDE_LAUNCHD=false
+                              ;;
       -h | --help )           usage
                               ;;
       * )                     usage
@@ -61,6 +68,15 @@ function parse_args() {
 function check_parsed_args() {
   if [[ $OSQUERY_CONFIG_PATH_SRC = "" ]]; then
     log "no config specified. assuming that you know what you're doing."
+  fi
+
+  if [[ $INCLUDE_LAUNCHD = true ]]; then
+    if [[ $LAUNCHD_PATH_OVERRIDE = "" ]]; then
+      log "no custom launchd path was defined. using $LAUNCHD_PATH"
+    else
+      LAUNCHD_PATH=$LAUNCHD_PATH_OVERRIDE
+      log "using $LAUNCHD_PATH as the launchd path"
+    fi
   fi
 
   if [ "$OSQUERY_CONFIG_PATH_SRC" != "" ] && [ ! -f $OSQUERY_CONFIG_PATH_SRC ]; then
@@ -134,11 +150,19 @@ function main() {
   fi
 
   log "copying osquery configurations"
-  mkdir -p `dirname $INSTALL_PREFIX$LAUNCHD_INSTALL_PATH`
-  cp $LAUNCHD_PATH $INSTALL_PREFIX$LAUNCHD_INSTALL_PATH
+  if [[ $INCLUDE_LAUNCHD = true ]]; then
+    mkdir -p `dirname $INSTALL_PREFIX$LAUNCHD_INSTALL_PATH`
+    cp $LAUNCHD_PATH $INSTALL_PREFIX$LAUNCHD_INSTALL_PATH
+  else
+    log "skipping LaunchDaemon file"
+  fi
 
   log "finalizing preinstall and postinstall scripts"
-  echo "$POSTINSTALL_ADDITIONAL_TEXT" >> $POSTINSTALL
+  if [[ $INCLUDE_LAUNCHD = true ]]; then
+    echo "$POSTINSTALL_ADDITIONAL_TEXT" >> $POSTINSTALL
+  else
+    log "skipping LaunchDaemon commands"
+  fi
 
   log "creating package"
   pkgbuild --root $INSTALL_PREFIX       \

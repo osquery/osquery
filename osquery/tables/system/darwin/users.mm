@@ -3,8 +3,6 @@
 #include <vector>
 #include <string>
 
-#include <boost/lexical_cast.hpp>
-
 #include <glog/logging.h>
 
 #include <pwd.h>
@@ -58,11 +56,11 @@ QueryData genUsers() {
       struct passwd *pwd = nullptr;
       pwd = getpwnam(r["username"].c_str());
       if (pwd != nullptr) {
-        r["uid"] = boost::lexical_cast<std::string>(pwd->pw_uid);
-        r["gid"] = boost::lexical_cast<std::string>(pwd->pw_gid);
-        r["description"] = std::string(pwd->pw_gecos);
-        r["directory"] = std::string(pwd->pw_dir);
-        r["shell"] = std::string(pwd->pw_shell);
+        r["uid"] = BIGINT(pwd->pw_uid);
+        r["gid"] = BIGINT(pwd->pw_gid);
+        r["description"] = TEXT(pwd->pw_gecos);
+        r["directory"] = TEXT(pwd->pw_dir);
+        r["shell"] = TEXT(pwd->pw_shell);
         results.push_back(r);
       }
     }

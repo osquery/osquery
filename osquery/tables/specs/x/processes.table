@@ -1,14 +1,14 @@
 table_name("processes")
 schema([
-    Column("name", TEXT),
+    Column("name", TEXT, "The process path or shorthand argv[0]"),
     Column("path", TEXT),
-    Column("cmdline", TEXT),
+    Column("cmdline", TEXT, "Complete argv"),
     Column("pid", INTEGER),
     Column("uid", BIGINT),
     Column("gid", BIGINT),
     Column("euid", BIGINT),
     Column("egid", BIGINT),
-    Column("on_disk", TEXT),
+    Column("on_disk", TEXT, "The process path exist yes=1, no=-1"),
     Column("wired_size", TEXT),
     Column("resident_size", TEXT),
     Column("phys_footprint", TEXT),
