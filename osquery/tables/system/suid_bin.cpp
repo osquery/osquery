@@ -17,9 +17,9 @@
 namespace osquery {
 namespace tables {
 
-Status genBin(const boost::filesystem::path &path,
+Status genBin(const boost::filesystem::path& path,
               int perms,
-              QueryData &results) {
+              QueryData& results) {
   struct stat info;
   // store user and group
   if (stat(path.c_str(), &info) != 0) {
