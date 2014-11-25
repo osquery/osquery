@@ -28,9 +28,7 @@ std::string getHostIdentifier(std::string hostIdFlag,
     auto status = db->Scan(kConfigurations, results);
 
     if (!status.ok()) {
-      LOG(ERROR) << "Could not access database, using hostname as the host "
-                    "identifier.";
-      return osquery::getHostname();
+      throw std::runtime_error("Failure scanning the database for the hostIdentifier field");
     }
 
     std::string hostId;
@@ -40,9 +38,7 @@ std::string getHostIdentifier(std::string hostIdFlag,
     if (present) {
       status = db->Get(kConfigurations, "hostIdentifier", hostId);
       if (!status.ok()) {
-        LOG(ERROR) << "Could not access database, using hostname as the host "
-                      "identifier.";
-        return osquery::getHostname();
+        throw std::runtime_error("Could get the hostIdentifier field from the database");
       }
     } else {
       // There was no uuid stored in the database, generate one and store it.
@@ -62,7 +58,17 @@ void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
                    const int64_t& second) {
   for (const auto& q : queries) {
     if (second % q.interval == 0) {
-      LOG(INFO) << "Executing query: " << q.query;
+      std::string hostIdentifier;
+      try {
+        hostIdentifier = getHostIdentifier(FLAGS_host_identifier, DBHandle::getInstance());
+      }
+      catch(std::exception& e){
+        LOG(ERROR) << "Unable to access hostIdentifier in database: " << e.what() << "; Using hostname to "
+                "identify this machine";
+        hostIdentifier = osquery::getHostname();
+      }
+
+      LOG(INFO) << hostIdentifier << " is executing query: " << q.query;
       int unix_time = std::time(0);
       auto sql = SQL(q.query);
       if (!sql.ok()) {
@@ -84,8 +90,7 @@ void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
         ScheduledQueryLogItem item;
         item.diffResults = diff_results;
         item.name = q.name;
-        item.hostIdentifier =
-            getHostIdentifier(FLAGS_host_identifier, DBHandle::getInstance());
+        item.hostIdentifier = hostIdentifier;
         item.unixTime = osquery::getUnixTime();
         item.calendarTime = osquery::getAsciiTime();
         auto s = logScheduledQueryLogItem(item);
