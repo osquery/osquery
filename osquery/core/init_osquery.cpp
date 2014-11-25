@@ -21,7 +21,7 @@ DEFINE_osquery_flag(bool, debug, false, "Enable debug messages.");
 DEFINE_osquery_flag(bool,
                     verbose_debug,
                     false,
-                    "Enable verbose debug messages.")
+                    "Enable verbose debug messages.");
 
 DEFINE_osquery_flag(bool,
                     disable_logging,

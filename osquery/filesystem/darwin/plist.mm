@@ -34,7 +34,10 @@ NSMutableDictionary* filterDictionary(id dataStructure) {
                    forKey:key];
       } else if ([className isEqualToString:@"__NSCFData"]) {
         id data = [dataStructure objectForKey:key];
-        NSString* dataString = [[NSString alloc] initWithBytes:[data bytes] length:[data length] encoding:NSASCIIStringEncoding];
+        NSString* dataString =
+            [[NSString alloc] initWithBytes:[data bytes]
+                                     length:[data length]
+                                   encoding:NSASCIIStringEncoding];
         [result setObject:dataString forKey:key];
       } else {
         [result setObject:[dataStructure objectForKey:key] forKey:key];
@@ -57,7 +60,10 @@ NSMutableArray* filterArray(id dataStructure) {
         [result addObject:filterArray(value)];
       } else if ([className isEqualToString:@"__NSCFData"]) {
         id data = [dataStructure objectForKey:value];
-        NSString* dataString = [[NSString alloc] initWithBytes:[data bytes] length:[data length] encoding:NSASCIIStringEncoding];
+        NSString* dataString =
+            [[NSString alloc] initWithBytes:[data bytes]
+                                     length:[data length]
+                                   encoding:NSASCIIStringEncoding];
         [result addObject:dataString];
       } else {
         [result addObject:value];

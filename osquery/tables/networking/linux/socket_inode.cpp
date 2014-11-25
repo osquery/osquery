@@ -12,7 +12,7 @@
 namespace osquery {
 namespace tables {
 
-void crawl_proc(QueryData &results) {
+void crawl_proc(QueryData& results) {
   std::vector<std::string> processes;
 
   if (!osquery::procProcesses(processes).ok()) {

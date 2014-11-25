@@ -17,7 +17,7 @@ namespace osquery {
 DEFINE_osquery_flag(bool,
                     event_pubsub,
                     true,
-                    "Use (enable) the osquery eventing pub/sub.")
+                    "Use (enable) the osquery eventing pub/sub.");
 
 const std::vector<size_t> kEventTimeLists = {
     1 * 60, // 1 minute
