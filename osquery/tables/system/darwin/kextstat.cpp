@@ -7,7 +7,7 @@
 #include <glog/logging.h>
 
 #include "osquery/core.h"
-#include "osquery/database.h"
+#include "osquery/tables.h"
 
 extern "C" {
 extern CFDictionaryRef OSKextCopyLoadedKextInfo(CFArrayRef, CFArrayRef);

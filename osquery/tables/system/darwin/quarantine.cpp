@@ -6,11 +6,11 @@
 #include <sys/stat.h>
 #include <sys/xattr.h>
 
-#include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "osquery/database.h"
+#include "osquery/logger.h"
+#include "osquery/tables.h"
 
 using std::string;
 using boost::lexical_cast;
@@ -32,7 +32,7 @@ QueryData genQuarantine() {
     try {
       Row r;
       std::vector<std::string> values;
-      std::string filePathQuotes = boost::lexical_cast<std::string>(path);
+      std::string filePathQuotes = TEXT(path);
       std::string filePath =
           filePathQuotes.substr(1, filePathQuotes.length() - 2);
 
@@ -58,13 +58,13 @@ QueryData genQuarantine() {
       }
     } catch (...) {
       LOG(ERROR) << "Couldn't handle file "
-                 << boost::lexical_cast<std::string>(*it);
+                 << TEXT(*it);
     }
     try {
       ++it;
     } catch (const std::exception &ex) {
       LOG(WARNING) << "Permissions error on "
-                   << boost::lexical_cast<std::string>(*it);
+                   << TEXT(*it);
       it.no_push();
     }
   }

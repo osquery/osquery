@@ -6,9 +6,8 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "osquery/database.h"
+#include "osquery/tables.h"
 #include "osquery/filesystem.h"
-#include "osquery/status.h"
 
 using osquery::Status;
 namespace pt = boost::property_tree;

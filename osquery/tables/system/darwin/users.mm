@@ -10,7 +10,7 @@
 #import <OpenDirectory/OpenDirectory.h>
 
 #include "osquery/core.h"
-#include "osquery/database/results.h"
+#include "osquery/tables.h"
 #include "osquery/filesystem.h"
 
 namespace osquery {

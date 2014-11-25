@@ -8,20 +8,18 @@
 #include <string>
 #include <vector>
 
-#include <boost/lexical_cast.hpp>
-
-#include "osquery/database.h"
+#include "osquery/tables.h"
 #include "osquery/tables/base.h"
 #include "osquery/registry/registry.h"
 
 namespace osquery { namespace tables {
 
 {% if class_name == "" %}\
-osquery::QueryData {{function}}();
+osquery::QueryData {{function}}(QueryRequest& request);
 {% else %}
 class {{class_name}} {
  public:
-  static osquery::QueryData {{function}}();
+  static osquery::QueryData {{function}}(QueryRequest& request);
 };
 {% endif %}\
 
@@ -30,6 +28,7 @@ struct sqlite3_{{table_name}} {
 {% for col in schema %}\
   std::vector<{{col.type.type}}> xCol_{{col.name}};
 {% endfor %}\
+  ConstraintSet xConstraints;
 };
 
 const std::string
@@ -101,6 +100,36 @@ int {{table_name_cc}}Column(
   return SQLITE_OK;
 }
 
+static int {{table_name_cc}}BestIndex(
+  sqlite3_vtab *tab,
+  sqlite3_index_info *pIdxInfo
+) {
+  // Will need to check if required=True for any cols.
+  x_vtab<sqlite3_hash> *pVtab = (x_vtab<sqlite3_hash>*)tab;
+
+  int expr_index = 0;
+  for (int i = 0; i < pIdxInfo->nConstraint; i++) {
+    if (!pIdxInfo->aConstraint[i].usable) {
+      continue;
+    }
+
+    switch (pIdxInfo->aConstraint[i].iColumn) {
+{% for col in schema %}\
+      case {{ loop.index0 }}: // {{col.name}}
+        pVtab->pContent->xConstraints.push_back(
+          std::make_pair(
+            "{{col.name}}",
+            Constraint(pIdxInfo->aConstraint[i].op)
+          )
+        );
+        pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
+        break;
+{% endfor %}\
+    }
+  }
+  return SQLITE_OK;
+}
+
 int {{table_name_cc}}Filter(
   sqlite3_vtab_cursor *pVtabCursor,
   int idxNum,
@@ -117,10 +146,20 @@ int {{table_name_cc}}Filter(
   pVtab->pContent->xCol_{{col.name}}.clear();
 {% endfor %}\
 
+  QueryRequest request;
+  for (size_t i = 0; i < argc; ++i) {
+    auto expr = (const char *)sqlite3_value_text(argv[i]);
+    // Set the expression from SQLite's now-populated argv.
+    pVtab->pContent->xConstraints[i].second.expr = std::string(expr);
+    // Add the constraint to the column-sorted query request map.
+    request.constraints[pVtab->pContent->xConstraints[i].first].add(
+      pVtab->pContent->xConstraints[i].second);
+  }
+
 {% if class_name != "" %}
-  for (auto& row : osquery::tables::{{class_name}}::{{function}}()) {
+  for (auto& row : osquery::tables::{{class_name}}::{{function}}(request)) {
 {% else %}
-  for (auto& row : osquery::tables::{{function}}()) {
+  for (auto& row : osquery::tables::{{function}}(request)) {
 {% endif %}
 {% for col in schema %}\
 {% if col.type.affinity == "TEXT" %}\
@@ -146,25 +185,25 @@ int {{table_name_cc}}Filter(
 
 static sqlite3_module {{table_name_cc}}Module = {
   0,
-  {{table_name_cc}}Create, // create a new vtable
-  {{table_name_cc}}Create, // connect to an existing vtable
-  xBestIndex, // find the best query index
-  xDestroy<x_vtab<sqlite3_{{table_name}}>>, // disconnect a vtable
-  xDestroy<x_vtab<sqlite3_{{table_name}}>>, // destory a vtable
-  xOpen<base_cursor>, // open a cursor
-  xClose<base_cursor>, // close a cursor
-  {{table_name_cc}}Filter, // configure scan constraints
-  xNext<base_cursor>, // advance the cursor
+  {{table_name_cc}}Create,
+  {{table_name_cc}}Create,
+  {{table_name_cc}}BestIndex,
+  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
+  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
+  xOpen<base_cursor>,
+  xClose<base_cursor>,
+  {{table_name_cc}}Filter,
+  xNext<base_cursor>,
   xEof<base_cursor, x_vtab<sqlite3_{{table_name}}>>,
-  {{table_name_cc}}Column, // read data
-  xRowid<base_cursor>, // read data
-  0, // update
-  0, // begin
-  0, // sync
-  0, // commit
-  0, // rollback
-  0, // findmethod
-  0, // rename
+  {{table_name_cc}}Column,
+  xRowid<base_cursor>,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
 };
 
 class {{table_name_cc}}TablePlugin : public TablePlugin {

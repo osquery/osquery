@@ -1,10 +1,10 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/database/results.h"
-
 #include <string>
 
 #import "osquery/core/darwin/NSProcessInfo+PECocoaBackports.h"
+
+#include "osquery/tables.h"
 
 namespace osquery {
 namespace tables {
