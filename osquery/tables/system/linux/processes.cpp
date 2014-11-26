@@ -10,10 +10,8 @@
 #include <unistd.h>
 #include <proc/readproc.h>
 
-#include <boost/lexical_cast.hpp>
-
 #include "osquery/core.h"
-#include "osquery/database.h"
+#include "osquery/tables.h"
 #include "osquery/filesystem.h"
 
 namespace osquery {
@@ -125,7 +123,7 @@ void standard_freeproc(proc_t* p) {
   free(p);
 }
 
-QueryData genProcesses() {
+QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
   proc_t* proc_info;
@@ -161,7 +159,7 @@ QueryData genProcesses() {
   return results;
 }
 
-QueryData genProcessEnvs() {
+QueryData genProcessEnvs(QueryContext& context) {
   QueryData results;
 
   proc_t* proc_info;
@@ -189,7 +187,7 @@ QueryData genProcessEnvs() {
   return results;
 }
 
-QueryData genProcessOpenFiles() {
+QueryData genProcessOpenFiles(QueryContext& context) {
   QueryData results;
   return results;
 }

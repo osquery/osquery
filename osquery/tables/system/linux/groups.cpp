@@ -2,20 +2,18 @@
 
 #include <set>
 #include <mutex>
-#include <vector>
-#include <string>
-
-#include "osquery/core.h"
-#include "osquery/database.h"
 
 #include <grp.h>
+
+#include "osquery/core.h"
+#include "osquery/tables.h"
 
 namespace osquery {
 namespace tables {
 
 std::mutex grpEnumerationMutex;
 
-QueryData genGroups() {
+QueryData genGroups(QueryContext &context) {
   std::lock_guard<std::mutex> lock(grpEnumerationMutex);
   QueryData results;
   struct group *grp = nullptr;

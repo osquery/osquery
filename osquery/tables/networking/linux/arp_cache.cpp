@@ -7,6 +7,7 @@
 
 #include "osquery/tables.h"
 #include "osquery/filesystem.h"
+#include "osquery/logger.h"
 
 namespace osquery {
 namespace tables {
