@@ -1,29 +1,26 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <boost/algorithm/string/join.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/lexical_cast.hpp>
+#include <string>
 
-#include <glog/logging.h>
-
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <IOKit/IOKitLib.h>
 #include <IOKit/usb/IOUSBLib.h>
 #include <IOKit/hid/IOHIDKeys.h>
-#include <string>
-#include <stdio.h>
-#include <stdlib.h>
 
-namespace pt = boost::property_tree;
+#include <boost/algorithm/string/join.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+
+#include "osquery/core.h"
+#include "osquery/tables.h"
+#include "osquery/filesystem.h"
 
 namespace osquery {
 namespace tables {
 
-QueryData genUsbDevices() {
+QueryData genUsbDevices(QueryContext& context) {
   QueryData results;
 
   io_service_t device;

@@ -5,7 +5,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include "osquery/database.h"
+#include "osquery/tables.h"
 #include "osquery/filesystem.h"
 
 namespace osquery {
@@ -13,7 +13,7 @@ namespace tables {
 
 const std::string kLinuxArpTable = "/proc/net/arp";
 
-QueryData genArpCache() {
+QueryData genArpCache(QueryContext& context) {
   QueryData results;
 
   boost::filesystem::path arp_path = kLinuxArpTable;

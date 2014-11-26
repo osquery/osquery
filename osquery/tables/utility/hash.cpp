@@ -10,11 +10,11 @@
 namespace osquery {
 namespace tables {
 
-QueryData genHash(QueryRequest& request) {
+QueryData genHash(QueryContext& context) {
   QueryData results;
   osquery::md5::MD5 digest;
 
-  auto paths = request.constraints["path"].getAll(EQUALS);
+  auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
       boost::filesystem::path path = path_string;
       if (!boost::filesystem::is_regular_file(path)) {
@@ -27,7 +27,7 @@ QueryData genHash(QueryRequest& request) {
       results.push_back(r);
   }
 
-  auto directories = request.constraints["directory"].getAll(EQUALS);
+  auto directories = context.constraints["directory"].getAll(EQUALS);
   for (const auto& directory_string : directories) {
     boost::filesystem::path directory = directory_string;
     if (!boost::filesystem::is_directory(directory)) {

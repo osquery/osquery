@@ -7,9 +7,8 @@
 #include <stdlib.h>
 #include <libproc.h>
 
-#include <glog/logging.h>
-
 #include "osquery/core.h"
+#include "osquery/logger.h"
 #include "osquery/tables.h"
 
 namespace osquery {
@@ -66,7 +65,7 @@ void genSocket(pid_t pid, struct socket_fdinfo socket, QueryData &results) {
   addUniqueRowToQueryData(results, r);
 }
 
-QueryData genListeningPorts() {
+QueryData genListeningPorts(QueryContext &context) {
   QueryData results;
 
   int num_pids;

@@ -2,17 +2,15 @@
 
 #include <sstream>
 
-#include <glog/logging.h>
-
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
-#include "osquery/status.h"
+#include <glog/logging.h>
 
-using osquery::Status;
+#include "osquery/core.h"
+#include "osquery/tables.h"
+#include "osquery/filesystem.h"
+
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -122,7 +120,7 @@ Row parseLaunchdItem(const std::string& path, const pt::ptree& tree) {
   return r;
 }
 
-QueryData genLaunchd() {
+QueryData genLaunchd(QueryContext& context) {
   QueryData results;
   auto launchd_files = getLaunchdFiles();
   for (const auto& path : launchd_files) {

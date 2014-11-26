@@ -5,11 +5,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <glog/logging.h>
-
 #include "osquery/core.h"
-#include "osquery/database.h"
+#include "osquery/tables.h"
 #include "osquery/filesystem.h"
+#include "osquery/logger.h"
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -134,7 +133,7 @@ void getLoginItems(QueryData& results) {
   }
 }
 
-QueryData genStartupItems() {
+QueryData genStartupItems(QueryContext& context) {
   QueryData results;
   getLoginItems(results);
   getLibraryStartupItems(results);

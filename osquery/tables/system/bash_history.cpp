@@ -5,11 +5,10 @@
 
 #include <pwd.h>
 
-#include <glog/logging.h>
-
 #include "osquery/core.h"
-#include "osquery/database.h"
+#include "osquery/tables.h"
 #include "osquery/filesystem.h"
+#include "osquery/logger.h"
 #include "osquery/sql.h"
 
 namespace osquery {
@@ -19,7 +18,7 @@ const std::vector<std::string> kShellHistoryFiles = {
     ".bash_history", ".zsh_history", ".zhistory", ".history",
 };
 
-QueryData genBashHistory() {
+QueryData genBashHistory(QueryContext& context) {
   QueryData results;
   std::string sql_str;
 

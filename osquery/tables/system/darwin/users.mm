@@ -3,11 +3,11 @@
 #include <vector>
 #include <string>
 
-#include <glog/logging.h>
-
 #include <pwd.h>
 
 #import <OpenDirectory/OpenDirectory.h>
+
+#include <glog/logging.h>
 
 #include "osquery/core.h"
 #include "osquery/tables.h"
@@ -16,7 +16,7 @@
 namespace osquery {
 namespace tables {
 
-QueryData genUsers() {
+QueryData genUsers(QueryContext &context) {
   @autoreleasepool {
     QueryData results;
 

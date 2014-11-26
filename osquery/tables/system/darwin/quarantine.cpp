@@ -9,8 +9,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "osquery/logger.h"
 #include "osquery/tables.h"
+#include "osquery/logger.h"
 
 using std::string;
 using boost::lexical_cast;
@@ -20,7 +20,7 @@ namespace tables {
 
 const std::string kXattrQuarantine = "com.apple.quarantine";
 
-QueryData genQuarantine() {
+QueryData genQuarantine(QueryContext &context) {
   QueryData results;
 
   auto it = boost::filesystem::recursive_directory_iterator(

@@ -8,7 +8,7 @@
 namespace osquery {
 namespace tables {
 
-QueryData genMounts() {
+QueryData genMounts(QueryContext& context) {
   Row r;
   QueryData results;
 

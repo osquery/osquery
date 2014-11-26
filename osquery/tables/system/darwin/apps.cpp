@@ -7,7 +7,7 @@
 #include <glog/logging.h>
 
 #include "osquery/core.h"
-#include "osquery/database.h"
+#include "osquery/tables.h"
 #include "osquery/filesystem.h"
 
 namespace pt = boost::property_tree;
@@ -120,7 +120,7 @@ Row parseInfoPlist(const std::string& path, const pt::ptree& tree) {
   return r;
 }
 
-QueryData genApps() {
+QueryData genApps(QueryContext& context) {
   QueryData results;
 
   for (const auto& path : getAppInfoPlistPaths()) {

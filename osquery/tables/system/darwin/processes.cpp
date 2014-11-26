@@ -200,7 +200,7 @@ std::vector<std::string> getProcArgs(int pid, size_t argmax) {
   return args;
 }
 
-QueryData genProcesses() {
+QueryData genProcesses(QueryContext &context) {
   QueryData results;
   auto pidlist = getProcList();
   auto parent_pid = getParentMap(pidlist);
@@ -259,7 +259,7 @@ QueryData genProcesses() {
   return results;
 }
 
-QueryData genProcessEnvs() {
+QueryData genProcessEnvs(QueryContext &context) {
   QueryData results;
   auto pidlist = getProcList();
   int argmax = genMaxArgs();

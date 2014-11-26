@@ -137,19 +137,19 @@ extern const std::vector<size_t> kEventTimeLists;
  *
  * EventSubscriber%s should be specific to an EventPublisher.
  */
-#define DECLARE_EVENTSUBSCRIBER(NAME, TYPE)            \
- public:                                               \
-  static std::shared_ptr<NAME> getInstance() {         \
-    static auto q = std::shared_ptr<NAME>(new NAME()); \
-    return q;                                          \
-  }                                                    \
-  static QueryData genTable() __attribute__((used)) {  \
-    return getInstance()->get(0, 0);                   \
-  }                                                    \
-                                                       \
- private:                                              \
-  EventPublisherID name() const { return #NAME; }      \
-  EventPublisherID type() const { return #TYPE; }      \
+#define DECLARE_EVENTSUBSCRIBER(NAME, TYPE)                                \
+ public:                                                                   \
+  static std::shared_ptr<NAME> getInstance() {                             \
+    static auto q = std::shared_ptr<NAME>(new NAME());                     \
+    return q;                                                              \
+  }                                                                        \
+  static QueryData genTable(QueryContext& context) __attribute__((used)) { \
+    return getInstance()->get(0, 0);                                       \
+  }                                                                        \
+                                                                           \
+ private:                                                                  \
+  EventPublisherID name() const { return #NAME; }                          \
+  EventPublisherID type() const { return #TYPE; }                          \
   NAME() {}
 
 /**

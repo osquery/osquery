@@ -4,9 +4,8 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include <glog/logging.h>
-
 #include "osquery/core.h"
+#include "osquery/logger.h"
 #include "osquery/tables.h"
 
 extern "C" {
@@ -16,7 +15,7 @@ extern CFDictionaryRef OSKextCopyLoadedKextInfo(CFArrayRef, CFArrayRef);
 namespace osquery {
 namespace tables {
 
-QueryData genKextstat() {
+QueryData genKextstat(QueryContext &context) {
   QueryData results;
   CFDictionaryRef dict = OSKextCopyLoadedKextInfo(NULL, NULL);
 

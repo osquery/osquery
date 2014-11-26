@@ -1,14 +1,15 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include <string>
+
 #include <stdlib.h>
 
 #include <IOKit/IOKitLib.h>
 #include <CoreFoundation/CoreFoundation.h>
 
-#include <glog/logging.h>
-
 #include "osquery/core.h"
+#include "osquery/logger.h"
+#include "osquery/tables.h"
 
 namespace osquery {
 namespace tables {
@@ -110,7 +111,7 @@ void genVariable(const void *key, const void *value, void *results) {
   ((QueryData *)results)->push_back(nvram_row);
 }
 
-QueryData genNVRAM() {
+QueryData genNVRAM(QueryContext &context) {
   QueryData results;
 
   kern_return_t status;

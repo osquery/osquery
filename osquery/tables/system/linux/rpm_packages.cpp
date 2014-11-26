@@ -10,10 +10,8 @@
 #include <rpm/rpmts.h>
 #include <rpm/rpmdb.h>
 
-#include <boost/lexical_cast.hpp>
-
 #include "osquery/logger.h"
-#include "osquery/database.h"
+#include "osquery/tables.h"
 
 namespace osquery {
 namespace tables {
@@ -43,18 +41,18 @@ std::string getRpmAttribute(const Header& header, rpmTag tag, const rpmtd& td) {
 
   if (rpmTagGetClass(tag) == RPM_NUMERIC_CLASS) {
     long long int attr = rpmtdGetNumber(td);
-    result = boost::lexical_cast<std::string>(attr);
+    result = BIGINT(attr);
   } else if (rpmTagGetClass(tag) == RPM_STRING_CLASS) {
     const char* attr = rpmtdGetString(td);
     if (attr != nullptr) {
-      result = std::string(attr);
+      result = TEXT(attr);
     }
   }
 
   return result;
 }
 
-QueryData genRpms() {
+QueryData genRpms(QueryContext& context) {
   QueryData results;
 
   // The following implementation uses http://rpm.org/api/4.11.1/

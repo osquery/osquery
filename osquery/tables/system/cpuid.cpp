@@ -97,7 +97,7 @@ void genFamily(QueryData& results) {
   results.push_back(r);
 }
 
-QueryData genCPUID() {
+QueryData genCPUID(QueryContext& context) {
   QueryData results;
 
   if (!genVendorString(results).ok()) {

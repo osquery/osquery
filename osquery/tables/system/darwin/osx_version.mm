@@ -9,7 +9,7 @@
 namespace osquery {
 namespace tables {
 
-QueryData genOSXVersion() {
+QueryData genOSXVersion(QueryContext& context) {
   QueryData results;
   @autoreleasepool {
 
