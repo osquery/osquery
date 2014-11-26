@@ -200,6 +200,9 @@ cpp_library(
   name="sqlite3",
   srcs=["third-party/sqlite3/sqlite3.c"],
   link_whole=True,
+  compiler_flags=[
+    "-Wno-array-bounds",
+  ],
 )
 
 cpp_library(
