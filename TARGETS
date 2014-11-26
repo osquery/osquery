@@ -54,6 +54,11 @@ cpp_library(
     "osquery/config/config.cpp",
     "osquery/config/plugins/filesystem.cpp",
     "osquery/config/plugins/glog.cpp",
+    "osquery/config/plugins/facebook/configerator.cpp",
+  ],
+  deps=[
+    "@/configerator/distribution/api:api",
+    "@/configerator/structs/osquery:osquery-cpp",
   ],
   external_deps=[
     "boost",
@@ -149,9 +154,11 @@ cpp_library(
   srcs=[
     "osquery/logger/logger.cpp",
     "osquery/logger/plugins/filesystem.cpp",
+    "osquery/logger/plugins/facebook/scribe.cpp",
   ],
   deps=[
     "@/osquery:database",
+    "@/scribe/client:scribe_client",
   ],
   external_deps=[
     "boost",
