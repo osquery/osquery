@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <zookeeper/zookeeper.h>
+#include <glog/logging.h>
 
 using osquery::Status;
 
@@ -36,10 +37,11 @@ namespace osquery {
         if (type == ZOO_SESSION_EVENT) {
             if (state == ZOO_CONNECTED_STATE) {
                 connected = 1;
-                printf("zookeeper client connected.\n");
+                // printf("zookeeper client connected.\n");
+                LOG(INFO) << "zookeeper client connected.";
             } else if (state == ZOO_AUTH_FAILED_STATE ) {
                 connected = 0;
-                printf("zookeeper client not connected.\n");
+                LOG(INFO) << "zookeeper client not connected.";
             } else if (state == ZOO_EXPIRED_SESSION_STATE) {
                 connected = 0;
                 zookeeper_close(zkh);
@@ -58,7 +60,7 @@ namespace osquery {
                 config.assign(value, value_len);
                 break;
             default:
-                printf("something went wrong.\n");
+                LOG(ERROR) << "something went wrong: " << rc;
                 break;
         }
         config_read = 1;
@@ -71,11 +73,13 @@ namespace osquery {
                 zoo_set_debug_level(ZOO_LOG_LEVEL_ERROR);
                 zk_handle = zookeeper_init(FLAGS_zk_hosts.c_str(), main_watcher, 15000, NULL, NULL, 0);
 
+                //TODO elegant ways of doing this? Because the ZK client is async
                 while(!connected) sleep(1);
 
                 // zoo_aget(zk_handle, osquery_path, 0, on_read_completion, NULL);
                 zoo_aget(zk_handle, FLAGS_zk_path.c_str(), 0, on_read_completion, NULL);
 
+                //TODO elegant ways of doing this?
                 while(!config_read) sleep(1);
 
                 zookeeper_close(zk_handle);
