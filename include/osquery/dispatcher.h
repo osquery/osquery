@@ -7,9 +7,15 @@
 #include <string>
 #include <vector>
 
+#ifdef FBOSQUERY
+#include <thrift/lib/cpp/concurrency/Thread.h>
+#include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
+#include <thrift/lib/cpp/concurrency/ThreadManager.h>
+#else
 #include <thrift/concurrency/Thread.h>
 #include <thrift/concurrency/PosixThreadFactory.h>
 #include <thrift/concurrency/ThreadManager.h>
+#endif
 
 #include "osquery/status.h"
 
