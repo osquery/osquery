@@ -9,7 +9,6 @@ namespace osquery {
 namespace tables {
 
 QueryData genMounts(QueryContext& context) {
-  Row r;
   QueryData results;
 
   struct statfs *mnt;
@@ -19,9 +18,12 @@ QueryData genMounts(QueryContext& context) {
 
   mnts = getmntinfo(&mnt, MNT_WAIT);
   if (mnts == 0) {
+    // Failed to get mount informaton.
     return results;
   }
+
   for (i = 0; i < mnts; i++) {
+    Row r;
     r["path"] = TEXT(mnt[i].f_mntonname);
     r["device"] = TEXT(mnt[i].f_mntfromname);
     r["device_alias"] = std::string(realpath(mnt[i].f_mntfromname, real_path)

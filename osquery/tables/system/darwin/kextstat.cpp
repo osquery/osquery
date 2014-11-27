@@ -15,160 +15,126 @@ extern CFDictionaryRef OSKextCopyLoadedKextInfo(CFArrayRef, CFArrayRef);
 namespace osquery {
 namespace tables {
 
+int getKextInt(const void *value, const CFStringRef key) {
+  int result;
+  auto num = (CFNumberRef)CFDictionaryGetValue((CFDictionaryRef)value, key);
+  CFNumberGetValue(num, kCFNumberSInt32Type, (void *)&result);
+  return result;
+}
+
+long long int getKextBigInt(const void *value, const CFStringRef key) {
+  long long int result;
+  auto num = (CFNumberRef)CFDictionaryGetValue((CFDictionaryRef)value, key);
+  CFNumberGetValue(num, kCFNumberSInt64Type, (void *)&result);
+  return result;
+}
+
+std::string getKextString(const void *value, const CFStringRef key) {
+  std::string result;
+  auto string = (CFStringRef)CFDictionaryGetValue((CFDictionaryRef)value, key);
+  CFIndex length = CFStringGetLength(string) + 1;
+  char *buffer = (char *)malloc(length);
+
+  if (CFStringGetCString(string, buffer, length, kCFStringEncodingUTF8)) {
+    result = std::string(buffer);
+    boost::algorithm::trim(result);
+  }
+
+  if (buffer != nullptr) {
+    free(buffer);
+  }
+  return result;
+}
+
+std::string getKextLinked(const void *value, const CFStringRef key) {
+  std::string result;
+  auto links = (CFArrayRef)CFDictionaryGetValue((CFDictionaryRef)value, key);
+  if (links == nullptr) {
+    // Very core.
+    return result;
+  }
+
+  CFIndex count = CFArrayGetCount(links);
+  if (count == 0) {
+    // Odd error case, there was a linked value, but an empty list.
+    return result;
+  }
+
+  auto link_indexes = CFArrayCreateMutableCopy(NULL, count, links);
+  CFArraySortValues(link_indexes,
+                    CFRangeMake(0, count),
+                    (CFComparatorFunction)CFNumberCompare,
+                    NULL);
+
+  for (int i = 0; i < count; i++) {
+    int link;
+    CFNumberGetValue((CFNumberRef)CFArrayGetValueAtIndex(link_indexes, i),
+                     kCFNumberSInt32Type,
+                     (void *)&link);
+
+    if (i > 0) {
+      result += " ";
+    }
+
+    result += TEXT(link);
+  }
+
+  CFRelease(link_indexes);
+  // Return in kextstat format for linked extensions.
+  return "<" + result + ">";
+}
+
 QueryData genKextstat(QueryContext &context) {
   QueryData results;
+
+  // Populate dict of kernel extensions.
   CFDictionaryRef dict = OSKextCopyLoadedKextInfo(NULL, NULL);
-
   CFIndex count = CFDictionaryGetCount(dict);
-  CFIndex i, j;
 
-  void **keys;
-  void **values;
+  // Allocate memory for each extension parse.
+  auto values = (void **)malloc(sizeof(void *) * count);
+  CFDictionaryGetKeysAndValues(dict, nullptr, (const void **)values);
 
-  keys = (void **)malloc(sizeof(void *) * count);
-  values = (void **)malloc(sizeof(void *) * count);
+  for (CFIndex j = 0; j < count; j++) {
+    // name
+    auto name = getKextString(values[j], CFSTR("CFBundleIdentifier"));
+    auto kextTag = getKextInt(values[j], CFSTR("OSBundleLoadTag"));
 
-  CFDictionaryGetKeysAndValues(
-      dict, (const void **)keys, (const void **)values);
-
-  for (i = 0; i < count; i++) {
-    for (j = 0; j < count; j++) {
-      int kextTag;
-      int references;
-      unsigned long long load_size;
-      unsigned long long wired_size;
-
-      // name
-      std::string name;
-      CFStringRef nameRef = (CFStringRef)CFDictionaryGetValue(
-          (CFDictionaryRef)(values)[j], CFSTR("CFBundleIdentifier"));
-      CFIndex nameLen = CFStringGetLength(nameRef) + 1;
-      char *nameBuffer = (char *)malloc(nameLen);
-      if (nameBuffer &&
-          CFStringGetCString(
-              nameRef, nameBuffer, nameLen, kCFStringEncodingUTF8)) {
-        name = std::string(nameBuffer);
-        boost::algorithm::trim(name);
-      }
-      if (nameBuffer != 0) {
-        free(nameBuffer);
-      }
-
-      // index
-      CFNumberGetValue(
-          (CFNumberRef)CFDictionaryGetValue((CFDictionaryRef)values[j],
-                                            CFSTR("OSBundleLoadTag")),
-          kCFNumberSInt32Type,
-          &kextTag);
-      if (kextTag != i) {
+    // Possibly limit expensive lookups.
+    if (context.constraints["name"].exists()) {
+      if (!context.constraints["name"].matches(name)) {
         continue;
       }
-
-      // refs
-      CFNumberGetValue(
-          (CFNumberRef)CFDictionaryGetValue((CFDictionaryRef)values[j],
-                                            CFSTR("OSBundleRetainCount")),
-          kCFNumberSInt32Type,
-          &references);
-
-      // size
-      CFNumberGetValue(
-          (CFNumberRef)CFDictionaryGetValue((CFDictionaryRef)values[j],
-                                            CFSTR("OSBundleLoadSize")),
-          kCFNumberSInt64Type,
-          &load_size);
-      char size_c[256] = "";
-      snprintf(size_c, sizeof(size_c), "0x%-10llx", load_size);
-      std::string size = size_c;
-      boost::algorithm::trim(size);
-
-      // wired
-      CFNumberGetValue(
-          (CFNumberRef)CFDictionaryGetValue((CFDictionaryRef)values[j],
-                                            CFSTR("OSBundleWiredSize")),
-          kCFNumberSInt64Type,
-          &wired_size);
-      char wired_c[256] = "";
-      snprintf(wired_c, sizeof(wired_c), "0x%-10llx", wired_size);
-      std::string wired = wired_c;
-      boost::algorithm::trim(wired);
-
-      // version
-      std::string version;
-      CFStringRef versionRef = (CFStringRef)CFDictionaryGetValue(
-          (CFDictionaryRef)values[j], CFSTR("CFBundleVersion"));
-      CFIndex versionLen = CFStringGetLength(versionRef) + 1;
-      char *versionBuffer = (char *)malloc(versionLen);
-      if (versionBuffer &&
-          CFStringGetCString(
-              versionRef, versionBuffer, versionLen, kCFStringEncodingUTF8)) {
-        version = std::string(versionBuffer);
-        boost::algorithm::trim(version);
-      }
-      if (versionBuffer != 0) {
-        free(versionBuffer);
-      }
-
-      // linked_against
-      CFArrayRef dependencies = (CFArrayRef)CFDictionaryGetValue(
-          (CFDictionaryRef)values[j], CFSTR("OSBundleDependencies"));
-      char linked_against[512] = "";
-
-      if (dependencies != NULL) {
-        CFIndex linked_count = CFArrayGetCount(dependencies);
-        int linked = 0;
-
-        CFMutableArrayRef marray =
-            CFArrayCreateMutableCopy(NULL, linked_count, dependencies);
-
-        CFArraySortValues(marray,
-                          CFRangeMake(0, linked_count),
-                          (CFComparatorFunction)CFNumberCompare,
-                          NULL);
-
-        if (linked_count > 0) {
-          snprintf(linked_against, sizeof(linked_against), "<");
-        }
-        for (int l = 0; l < linked_count; l++) {
-          CFNumberGetValue((CFNumberRef)CFArrayGetValueAtIndex(marray, l),
-                           kCFNumberSInt32Type,
-                           &linked);
-
-          if (l) {
-            snprintf(
-                linked_against, sizeof(linked_against), "%s ", linked_against);
-          }
-          snprintf(linked_against,
-                   sizeof(linked_against),
-                   "%s%d",
-                   linked_against,
-                   linked);
-        }
-
-        CFRelease(marray);
-
-        if (linked_count > 0) {
-          snprintf(
-              linked_against, sizeof(linked_against), "%s>", linked_against);
-        }
-      }
-      std::string linked_against_string = linked_against;
-      boost::algorithm::trim(linked_against_string);
-
-      Row r;
-      r["idx"] = INTEGER(kextTag);
-      r["refs"] = INTEGER(references);
-      r["size"] = size;
-      r["wired"] = wired;
-      r["name"] = name;
-      r["version"] = version;
-      r["linked_against"] = linked_against_string;
-      results.push_back(r);
     }
+
+    if (context.constraints["idx"].exists()) {
+      if (!context.constraints["idx"].matches<int>(kextTag)) {
+        continue;
+      }
+    }
+
+    auto references = getKextInt(values[j], CFSTR("OSBundleRetainCount"));
+
+    // size
+    auto load_size = getKextBigInt(values[j], CFSTR("OSBundleLoadSize"));
+    auto wired_size = getKextBigInt(values[j], CFSTR("OSBundleWiredSize"));
+    auto version = getKextString(values[j], CFSTR("CFBundleVersion"));
+
+    // linked_against
+    auto linked = getKextLinked(values[j], CFSTR("OSBundleDependencies"));
+
+    Row r;
+    r["idx"] = INTEGER(kextTag);
+    r["refs"] = INTEGER(references);
+    r["size"] = BIGINT(load_size);
+    r["wired"] = BIGINT(wired_size);
+    r["name"] = name;
+    r["version"] = version;
+    r["linked_against"] = linked;
+    results.push_back(r);
   }
 
   CFRelease(dict);
-  free(keys);
   free(values);
   return results;
 }

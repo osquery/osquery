@@ -110,6 +110,7 @@ static int {{table_name_cc}}BestIndex(
   int expr_index = 0;
   for (int i = 0; i < pIdxInfo->nConstraint; i++) {
     if (!pIdxInfo->aConstraint[i].usable) {
+      // TODO: OR is not usable.
       continue;
     }
 
@@ -142,11 +143,12 @@ int {{table_name_cc}}Filter(
     (x_vtab<sqlite3_{{table_name}}>*)pVtabCursor->pVtab;
 
   pCur->row = 0;
+  QueryContext request;
 {% for col in schema %}\
   pVtab->pContent->xCol_{{col.name}}.clear();
+  request.constraints["{{col.name}}"].affinity = "{{col.type.affinity}}";
 {% endfor %}\
 
-  QueryContext request;
   for (size_t i = 0; i < argc; ++i) {
     auto expr = (const char *)sqlite3_value_text(argv[i]);
     // Set the expression from SQLite's now-populated argv.

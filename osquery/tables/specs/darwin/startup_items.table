@@ -1,6 +1,8 @@
 table_name("startup_items")
 schema([
-    Column("name", TEXT),
-    Column("path", TEXT),
+    Column("name", TEXT, "Name of startup item"),
+    Column("path", TEXT, "Path of startup item"),
+    Column("type", TEXT, "Startup Item, Login Item, or Login Item keys"),
+    Column("source", TEXT, "Directory or plist containing startup item"),
 ])
 implementation("startup_items@genStartupItems")

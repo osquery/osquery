@@ -103,36 +103,48 @@ struct ConstraintList {
     if (affinity == "TEXT") {
       return literal_matches<TEXT_LITERAL>(expr); 
     } else if (affinity == "INTEGER") {
-      return literal_matches<INTEGER_LITERAL>(expr);
+      INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
+      return literal_matches<INTEGER_LITERAL>(lexpr);
     } else if (affinity == "BIGINT") {
-      return literal_matches<BIGINT_LITERAL>(expr);
+      BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
+      return literal_matches<BIGINT_LITERAL>(lexpr);
     } else if (affinity == "UNSIGNED_BIGINT") {
-      return literal_matches<UNSIGNED_BIGINT_LITERAL>(expr);
+      UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
+      return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
     } else {
       // Unsupprted affinity type.
       return false;
     }
   }
 
+  template <typename T>
+  bool matches(const T& expr) {
+    return literal_matches<T>(expr);
+  }
+
+  /**
+   * @brief If there is a constraint on this column.
+   */
+  bool exists() { return (constraints.size() > 0); }
+
   /**
    * @brief Helper templated function for ConstraintList::matches
    */
   template <typename T>
-  bool literal_matches(const std::string& base_expr) {
+  bool literal_matches(const T& base_expr) {
     bool aggregate = true;
-    T expr = AS_LITERAL(T, base_expr);
     for (size_t i = 0; i < constraints.size(); ++i) {
       T constraint_expr = AS_LITERAL(T, constraints[i].expr);
       if (constraints[i].op == EQUALS) {
-        aggregate = aggregate && (expr == constraint_expr);
+        aggregate = aggregate && (base_expr == constraint_expr);
       } else if (constraints[i].op == GREATER_THAN) {
-        aggregate = aggregate && (expr > constraint_expr);
+        aggregate = aggregate && (base_expr > constraint_expr);
       } else if (constraints[i].op == LESS_THAN) {
-        aggregate = aggregate && (expr < constraint_expr);
+        aggregate = aggregate && (base_expr < constraint_expr);
       } else if (constraints[i].op == GREATER_THAN_OR_EQUALS) {
-        aggregate = aggregate && (expr >= constraint_expr);
+        aggregate = aggregate && (base_expr >= constraint_expr);
       } else if (constraints[i].op == LESS_THAN_OR_EQUALS) {
-        aggregate = aggregate && (expr <= constraint_expr);
+        aggregate = aggregate && (base_expr <= constraint_expr);
       } else {
         // Unsupported constraint.
         return false;
@@ -158,6 +170,7 @@ struct ConstraintList {
     std::vector<std::string> set;
     for (size_t i = 0; i < constraints.size(); ++i) {
       if (constraints[i].op == op) {
+        // TODO: this does not apply a distinct.
         set.push_back(constraints[i].expr);
       }
     }

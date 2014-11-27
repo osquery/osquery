@@ -5,11 +5,10 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
-#include <glog/logging.h>
-
 #include "osquery/core.h"
-#include "osquery/tables.h"
 #include "osquery/filesystem.h"
+#include "osquery/logger.h"
+#include "osquery/tables.h"
 
 namespace pt = boost::property_tree;
 
@@ -61,6 +60,7 @@ std::vector<std::string> getLaunchdFiles() {
     }
   }
 
+  // TODO: replace home directory search with select from users.
   std::vector<std::string> home_dirs;
   auto s = osquery::listFilesInDirectory("/Users", home_dirs);
   if (s.ok()) {
@@ -122,14 +122,15 @@ Row parseLaunchdItem(const std::string& path, const pt::ptree& tree) {
 
 QueryData genLaunchd(QueryContext& context) {
   QueryData results;
+
   auto launchd_files = getLaunchdFiles();
   for (const auto& path : launchd_files) {
     pt::ptree tree;
-    auto s = osquery::parsePlist(path, tree);
-    if (s.ok()) {
+    auto status = osquery::parsePlist(path, tree);
+    if (status.ok()) {
       results.push_back(parseLaunchdItem(path, tree));
     } else {
-      VLOG(1) << "Error parsing " << path << ": " << s.toString();
+      VLOG(1) << "Error parsing " << path << ": " << status.toString();
     }
   }
   return results;
