@@ -54,7 +54,7 @@ RdkafkaPlugin() {
         exit(1);
     }
 
-    LOG(INFO) << "% Created producer " << producer->name() << std::endl;
+    LOG(INFO) << "Created producer " << producer->name() << std::endl;
 
     /*
      * Create topic handle.
