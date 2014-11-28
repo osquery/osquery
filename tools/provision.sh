@@ -135,23 +135,23 @@ function install_gflags() {
   fi
 }
 
-function install_libkafka() {
-    if [[ ! -d /usr/local/include/libkafka ]]; then
-        if [[ ! -f libkafka-0.5.0.tar.gz ]]; then
-            wget https://github.com/adobe-research/libkafka/releases/download/0.5.0/libkafka-0.5.0.tar.gz
+function install_librdkafka() {
+    if [[ ! -d /usr/local/include/librdkafka ]]; then
+        if [[ ! -f 0.8.5.tar.gz ]]; then
+            wget https://github.com/edenhill/librdkafka/archive/0.8.5.tar.gz
         else
-            log "libkafka is already downloaded. skipping."
+            log "librdkafka is already downloaded. skipping."
         fi
-        if [[ ! -d libkafka-0.5.0 ]]; then
-            tar xf libkafka-0.5.0/tar.gz
+        if [[ ! -d librdkafka-0.8.5 ]]; then
+            tar xf 0.8.5.tar.gz
         fi
-        pushd libkafka-0.5.0
-        ./configure --enable-gtest=no
+        pushd librdkafka-0.8.5
+        ./configure --CPPFLAGS=-fPIC
         make
         sudo make install
         popd
     else
-        log "libkafka is already installed. skipping."
+        log "librdkafka is already installed. skipping."
     fi
 }
 

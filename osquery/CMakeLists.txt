@@ -32,7 +32,8 @@ SET(OSQUERY_LINUX_LIBS
   unwind
   udev
   zookeeper_mt
-  libkafka.a
+  librdkafka++.so
+  librdkafka.so
   blkid
   rt
   dl
