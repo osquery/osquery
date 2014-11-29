@@ -94,7 +94,6 @@ QueryData genKextstat(QueryContext &context) {
   // Allocate memory for each extension parse.
   auto values = (void **)malloc(sizeof(void *) * count);
   CFDictionaryGetKeysAndValues(dict, nullptr, (const void **)values);
-
   for (CFIndex j = 0; j < count; j++) {
     // name
     auto name = getKextString(values[j], CFSTR("CFBundleIdentifier"));
