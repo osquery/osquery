@@ -210,6 +210,7 @@ cpp_library(
   srcs=[
     "osquery/tables/events/linux/passwd_changes.cpp",
     "osquery/tables/networking/etc_hosts.cpp",
+    "osquery/tables/networking/etc_services.cpp",
     "osquery/tables/networking/utils.cpp",
     "osquery/tables/networking/linux/arp_cache.cpp",
     "osquery/tables/networking/linux/port_inode.cpp",
