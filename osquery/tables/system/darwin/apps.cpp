@@ -33,7 +33,7 @@ const std::map<std::string, std::string> kAppsInfoPlistTopLevelStringKeys = {
 };
 
 const std::vector<std::string> kHomeDirSearchPaths = {
-    "/Applications", "/Desktops", "/Downloads",
+    "/Applications", "/Desktop", "/Downloads",
 };
 
 std::vector<std::string> getAppInfoPlistPaths() {
@@ -54,6 +54,7 @@ std::vector<std::string> getAppInfoPlistPaths() {
   }
 
   std::vector<std::string> home_dirs;
+  // TODO: Select home directories from users.
   auto home_dirs_s = osquery::listFilesInDirectory("/Users", home_dirs);
   if (home_dirs_s.ok()) {
     for (const auto& home_dir : home_dirs) {

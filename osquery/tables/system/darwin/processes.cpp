@@ -207,6 +207,11 @@ QueryData genProcesses(QueryContext &context) {
   int argmax = genMaxArgs();
 
   for (auto &pid : pidlist) {
+    if (!context.constraints["pid"].matches<int>(pid)) {
+      // Optimize by not searching when a pid is a constraint.
+      continue;
+    }
+
     Row r;
     r["pid"] = INTEGER(pid);
     r["name"] = getProcName(pid);
@@ -265,6 +270,11 @@ QueryData genProcessEnvs(QueryContext &context) {
   int argmax = genMaxArgs();
 
   for (auto &pid : pidlist) {
+    if (!context.constraints["pid"].matches<int>(pid)) {
+      // Optimize by not searching when a pid is a constraint.
+      continue;
+    }
+
     auto env = getProcEnv(pid, argmax);
     for (auto env_itr = env.begin(); env_itr != env.end(); ++env_itr) {
       Row r;

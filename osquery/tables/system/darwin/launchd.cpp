@@ -125,6 +125,11 @@ QueryData genLaunchd(QueryContext& context) {
 
   auto launchd_files = getLaunchdFiles();
   for (const auto& path : launchd_files) {
+    if (!context.constraints["path"].matches(path)) {
+      // Optimize by not searching when a path is a constraint.
+      continue;
+    }
+
     pt::ptree tree;
     auto status = osquery::parsePlist(path, tree);
     if (status.ok()) {

@@ -208,7 +208,9 @@ QueryData genRoutes(QueryContext &context) {
   // Need a map from index->name for each route entry.
   ifmap = genInterfaceMap();
   for (const auto &route_type : kRouteTypes) {
-    genRouteTableType(route_type, ifmap, results);
+    if (context.constraints["type"].notExistsOrMatches(route_type.second)) {
+      genRouteTableType(route_type, ifmap, results);
+    }
   }
 
   return results;

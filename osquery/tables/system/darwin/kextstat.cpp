@@ -100,16 +100,12 @@ QueryData genKextstat(QueryContext &context) {
     auto kextTag = getKextInt(values[j], CFSTR("OSBundleLoadTag"));
 
     // Possibly limit expensive lookups.
-    if (context.constraints["name"].exists()) {
-      if (!context.constraints["name"].matches(name)) {
-        continue;
-      }
+    if (!context.constraints["name"].matches(name)) {
+      continue;
     }
 
-    if (context.constraints["idx"].exists()) {
-      if (!context.constraints["idx"].matches<int>(kextTag)) {
-        continue;
-      }
+    if (!context.constraints["idx"].matches<int>(kextTag)) {
+      continue;
     }
 
     auto references = getKextInt(values[j], CFSTR("OSBundleRetainCount"));

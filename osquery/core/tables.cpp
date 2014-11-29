@@ -63,5 +63,15 @@ std::vector<std::string> ConstraintList::getAll(ConstraintOperator op) {
   }
   return set;
 }
+
+template<typename T>
+bool ConstraintList::existsAndMatches(const T& expr) {
+  return (exists() && literal_matches<T>(expr));
+}
+
+template<typename T>
+bool ConstraintList::notExistsOrMatches(const T& expr) {
+  return (!exists() || literal_matches<T>(expr));
+}
 }
 }

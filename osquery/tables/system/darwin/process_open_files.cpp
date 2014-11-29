@@ -179,6 +179,11 @@ QueryData genProcessOpenFiles(QueryContext &context) {
   auto pidlist = getProcList();
 
   for (auto &pid : pidlist) {
+    if (!context.constraints["pid"].matches<int>(pid)) {
+      // Optimize by not searching when a pid is a constraint.
+      continue;
+    }
+
     auto open_files = getOpenFiles(pid);
     for (auto &open_file : open_files) {
       Row r;

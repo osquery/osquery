@@ -109,6 +109,19 @@ struct ConstraintList {
    * @brief If there is a constraint on this column.
    */
   bool exists() { return (constraints.size() > 0); }
+  bool existsAndMatches(const std::string& expr) {
+    return (exists() && matches(expr));
+  }
+
+  bool notExistsOrMatches(const std::string& expr) {
+    return (!exists() || matches(expr));
+  }
+
+  template<typename T>
+  bool existsAndMatches(const T& expr);
+
+  template<typename T>
+  bool notExistsOrMatches(const T& expr);
 
   /**
    * @brief Helper templated function for ConstraintList::matches
