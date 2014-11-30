@@ -74,4 +74,9 @@ std::vector<std::string> SQL::getTableNames() {
   }
   return results;
 }
+
+QueryData SQL::selectAllFrom(const std::string& table) {
+  std::string query = "select * from " + table + ";";
+  return SQL(query).rows();
+}
 }
