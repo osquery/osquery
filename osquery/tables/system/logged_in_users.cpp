@@ -1,15 +1,10 @@
 // Copyright 2004-present Wesley Shields <wxs@atarininja.org>.
 // All Rights Reserved.
 
-#include <set>
 #include <mutex>
-#include <vector>
-#include <string>
-
-#include <boost/lexical_cast.hpp>
 
 #include "osquery/core.h"
-#include "osquery/database.h"
+#include "osquery/tables.h"
 
 #include <utmpx.h>
 
@@ -18,7 +13,7 @@ namespace tables {
 
 std::mutex utmpxEnumerationMutex;
 
-QueryData genLoggedInUsers() {
+QueryData genLoggedInUsers(QueryContext& context) {
   std::lock_guard<std::mutex> lock(utmpxEnumerationMutex);
   QueryData results;
   struct utmpx *entry = nullptr;
