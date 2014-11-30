@@ -184,7 +184,7 @@ def run_query(shell, query, timeout=0, count=1):
 
     percents = []
     # Calculate the CPU utilization in intervals of 1 second.
-    while p.is_running():
+    while p.is_running() and p.status() != psutil.STATUS_ZOMBIE:
         try:
             stats = get_stats(p, step)
             percents.append(stats["utilization"])
@@ -229,12 +229,13 @@ def summary(results, display=False):
                 continue
             if key not in result:
                 continue
-            summary_result[key] = rank(result[key], RANGES[key])
+            summary_result[key] = (rank(result[key], RANGES[key]), result[key])
         if display:
-            print ("%s:" % name, end=" ")
             for key, v in summary_result.iteritems():
-                print (RANGES["colors"][v](
-                    "%s: %s (%s)" % (key, v, result[key])), end=" ")
+                print ("%s" % (RANGES["colors"][v[0]](key[0].upper())), end="")
+            print (" %s:" % name, end=" ")
+            for key, v in summary_result.iteritems():
+                print ("%s: %s" % (key, v[1]), end=" ")
             print ("")
         summary_results[name] = summary_result
     return summary_results
