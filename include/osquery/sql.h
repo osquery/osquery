@@ -77,6 +77,13 @@ class SQL {
    */
   static std::vector<std::string> getTableNames();
 
+  /**
+   * @brief Get all, 'SELECT * ...', results given a virtual table name.
+   *
+   * @return A QueryData object of the 'SELECT *...' query results.
+   */
+  static QueryData selectAllFrom(const std::string& table);
+
  private:
   /**
    * @brief Private default constructor

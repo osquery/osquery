@@ -3,13 +3,12 @@
 #include <stdio.h>
 #include <sys/mount.h>
 
-#include "osquery/database.h"
+#include "osquery/tables.h"
 
 namespace osquery {
 namespace tables {
 
-QueryData genMounts() {
-  Row r;
+QueryData genMounts(QueryContext& context) {
   QueryData results;
 
   struct statfs *mnt;
@@ -19,9 +18,12 @@ QueryData genMounts() {
 
   mnts = getmntinfo(&mnt, MNT_WAIT);
   if (mnts == 0) {
+    // Failed to get mount informaton.
     return results;
   }
+
   for (i = 0; i < mnts; i++) {
+    Row r;
     r["path"] = TEXT(mnt[i].f_mntonname);
     r["device"] = TEXT(mnt[i].f_mntfromname);
     r["device_alias"] = std::string(realpath(mnt[i].f_mntfromname, real_path)

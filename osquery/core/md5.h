@@ -115,7 +115,7 @@ static unsigned char PADDING[64] = {0x80,
                                     0};
 
 // F, G, H and I are basic MD5 functions.
-#define F(x, y, z) (((x) & (y)) | ((~x) & (z)))
+#define FFF(x, y, z) (((x) & (y)) | ((~x) & (z)))
 #define G(x, y, z) (((x) & (z)) | ((y) & (~z)))
 #define H(x, y, z) ((x) ^ (y) ^ (z))
 #define I(x, y, z) ((y) ^ ((x) | (~z)))
@@ -125,11 +125,11 @@ static unsigned char PADDING[64] = {0x80,
 
 // FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4.
 // Rotation is separate from addition to prevent recomputation.
-#define FF(a, b, c, d, x, s, ac)                 \
-  {                                              \
-    (a) += F((b), (c), (d)) + (x) + (UINT4)(ac); \
-    (a) = ROTATE_LEFT((a), (s));                 \
-    (a) += (b);                                  \
+#define FF(a, b, c, d, x, s, ac)                   \
+  {                                                \
+    (a) += FFF((b), (c), (d)) + (x) + (UINT4)(ac); \
+    (a) = ROTATE_LEFT((a), (s));                   \
+    (a) += (b);                                    \
   }
 #define GG(a, b, c, d, x, s, ac)                 \
   {                                              \

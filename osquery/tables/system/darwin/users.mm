@@ -3,20 +3,20 @@
 #include <vector>
 #include <string>
 
-#include <glog/logging.h>
-
 #include <pwd.h>
 
 #import <OpenDirectory/OpenDirectory.h>
 
+#include <glog/logging.h>
+
 #include "osquery/core.h"
-#include "osquery/database/results.h"
+#include "osquery/tables.h"
 #include "osquery/filesystem.h"
 
 namespace osquery {
 namespace tables {
 
-QueryData genUsers() {
+QueryData genUsers(QueryContext &context) {
   @autoreleasepool {
     QueryData results;
 

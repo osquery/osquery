@@ -78,9 +78,10 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   networking/etc_hosts.cpp
   utility/time.cpp
   utility/crontab.cpp
+  utility/hash.cpp
   system/cpuid.cpp
   system/last.cpp
-  system/bash_history.cpp
+  system/shell_history.cpp
   system/suid_bin.cpp
   system/logged_in_users.cpp
   base.h

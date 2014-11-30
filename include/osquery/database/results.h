@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <boost/property_tree/ptree.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include "osquery/status.h"
 
@@ -17,21 +16,6 @@ namespace osquery {
 /////////////////////////////////////////////////////////////////////////////
 // Row
 /////////////////////////////////////////////////////////////////////////////
-
-/**
- * @brief The SQLite type affinities are available as macros
- *
- * Type affinities: TEXT, INTEGER, BIGINT
- *
- * You can represent any data that can be lexically casted to a string.
- * Using the type affinity names helps table developers understand the data
- * types they are storing, and more importantly how they are treated at query
- * time.
- */
-#define TEXT(x) boost::lexical_cast<std::string>(x)
-#define INTEGER(x) boost::lexical_cast<std::string>(x)
-#define BIGINT(x) boost::lexical_cast<std::string>(x)
-#define UNSIGNED_BIGINT(x) boost::lexical_cast<std::string>(x)
 
 /**
  * @brief A variant type for the SQLite type affinities.

@@ -5,19 +5,17 @@
 #include <vector>
 #include <string>
 
-#include <boost/lexical_cast.hpp>
+#include <pwd.h>
 
 #include "osquery/core.h"
-#include "osquery/database.h"
-
-#include <pwd.h>
+#include "osquery/tables.h"
 
 namespace osquery {
 namespace tables {
 
 std::mutex pwdEnumerationMutex;
 
-QueryData genUsers() {
+QueryData genUsers(QueryContext& context) {
   std::lock_guard<std::mutex> lock(pwdEnumerationMutex);
   QueryData results;
   struct passwd *pwd = nullptr;
@@ -27,12 +25,12 @@ QueryData genUsers() {
     if (std::find(users_in.begin(), users_in.end(), pwd->pw_uid) ==
         users_in.end()) {
       Row r;
-      r["uid"] = boost::lexical_cast<std::string>(pwd->pw_uid);
-      r["gid"] = boost::lexical_cast<std::string>(pwd->pw_gid);
-      r["username"] = std::string(pwd->pw_name);
-      r["description"] = std::string(pwd->pw_gecos);
-      r["directory"] = std::string(pwd->pw_dir);
-      r["shell"] = std::string(pwd->pw_shell);
+      r["uid"] = BIGINT(pwd->pw_uid);
+      r["gid"] = BIGINT(pwd->pw_gid);
+      r["username"] = TEXT(pwd->pw_name);
+      r["description"] = TEXT(pwd->pw_gecos);
+      r["directory"] = TEXT(pwd->pw_dir);
+      r["shell"] = TEXT(pwd->pw_shell);
       results.push_back(r);
       users_in.insert(pwd->pw_uid);
     }

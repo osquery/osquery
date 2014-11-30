@@ -5,4 +5,4 @@ schema([
     Column("vendor", TEXT),
     Column("model", TEXT),
 ])
-implementation("pci_devices@genLspci")
+implementation("pci_devices@genPCIDevices")

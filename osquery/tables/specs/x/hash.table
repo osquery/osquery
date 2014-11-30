@@ -1,0 +1,7 @@
+table_name("hash")
+schema([
+    Column("path", TEXT, "Must provide a path or directory", required=True),
+    Column("directory", TEXT, "Must provide a path or directory", required=True),
+    Column("md5", TEXT),
+])
+implementation("utility/hash@genHash")

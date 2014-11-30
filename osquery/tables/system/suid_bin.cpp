@@ -7,12 +7,10 @@
 #include <sys/stat.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/system/system_error.hpp>
 
-#include <glog/logging.h>
-
-#include "osquery/database.h"
+#include "osquery/logger.h"
+#include "osquery/tables.h"
 
 namespace osquery {
 namespace tables {
@@ -64,7 +62,7 @@ Status genBin(const boost::filesystem::path& path,
   return Status(0, "OK");
 }
 
-QueryData genSuidBin() {
+QueryData genSuidBin(QueryContext& context) {
   QueryData results;
   boost::system::error_code error;
 

@@ -1,16 +1,10 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <string>
-#include <vector>
-
-#include <boost/lexical_cast.hpp>
-
-#include <glog/logging.h>
-
 #include <libudev.h>
 
 #include "osquery/core.h"
-#include "osquery/database.h"
+#include "osquery/logger.h"
+#include "osquery/tables.h"
 
 namespace osquery {
 namespace tables {
@@ -25,7 +19,7 @@ struct udev_enumerate *enumerate;
 struct udev_list_entry *devices, *dev_list_entry;
 struct udev_device *dev;
 
-QueryData genLspci() {
+QueryData genPCIDevices(QueryContext &context) {
   QueryData results;
 
   // Create the udev object
@@ -56,16 +50,16 @@ QueryData genLspci() {
 
     Row r;
     if ((tmp = udev_device_get_property_value(dev, kSlot.c_str()))) {
-      r["slot"] = boost::lexical_cast<std::string>(tmp);
+      r["slot"] = TEXT(tmp);
     }
     if ((tmp = udev_device_get_property_value(dev, kClass.c_str()))) {
-      r["device_class"] = boost::lexical_cast<std::string>(tmp);
+      r["device_class"] = TEXT(tmp);
     }
     if ((tmp = udev_device_get_property_value(dev, kVendor.c_str()))) {
-      r["vendor"] = boost::lexical_cast<std::string>(tmp);
+      r["vendor"] = TEXT(tmp);
     }
     if ((tmp = udev_device_get_property_value(dev, kModel.c_str()))) {
-      r["model"] = boost::lexical_cast<std::string>(tmp);
+      r["model"] = TEXT(tmp);
     }
     results.push_back(r);
     udev_device_unref(dev);

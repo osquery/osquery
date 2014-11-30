@@ -2,14 +2,14 @@
 
 #include <ctime>
 
-#include "osquery/database.h"
+#include "osquery/tables.h"
 
 namespace osquery {
 namespace tables {
 
 const int kNumCols = 1;
 
-QueryData genTime() {
+QueryData genTime(QueryContext& context) {
   Row r;
   time_t _time = time(0);
   struct tm* now = localtime(&_time);

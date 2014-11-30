@@ -15,7 +15,7 @@
 #include <glog/logging.h>
 
 #include "osquery/core.h"
-#include "osquery/database.h"
+#include "osquery/tables.h"
 
 namespace osquery {
 namespace tables {
@@ -346,7 +346,7 @@ bool genOSXAuthorities(CFArrayRef &reference) {
   return (status == errSecSuccess);
 }
 
-QueryData genCerts() {
+QueryData genCerts(QueryContext &context) {
   QueryData results;
   CFArrayRef authorities = NULL;
   // Keychains/certificate stores belonging to the OS.

@@ -2,14 +2,10 @@
 
 #include <signal.h>
 
-#include <boost/filesystem.hpp>
-#include <boost/property_tree/ptree.hpp>
-
-#include <glog/logging.h>
-
 #include "osquery/core.h"
-#include "osquery/database.h"
+#include "osquery/tables.h"
 #include "osquery/filesystem.h"
+#include "osquery/logger.h"
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -21,6 +17,12 @@ const std::vector<std::string> kLibraryStartupItemPaths = {
     "/System/Library/StartupItems/", "/Library/StartupItems/",
 };
 
+// Path (after /Users/foo) where the login items plist will be found
+const std::string kLoginItemsPlistPath =
+    "Library/Preferences/com.apple.loginitems.plist";
+// Key to the array within the Login Items plist containing the items
+const std::string kLoginItemsKeyPath = "SessionItems.CustomListItems";
+
 /**
  * Find startup items in Library directories
  *
@@ -29,21 +31,22 @@ const std::vector<std::string> kLibraryStartupItemPaths = {
  */
 void getLibraryStartupItems(QueryData& results) {
   for (const auto& dir : kLibraryStartupItemPaths) {
+    fs::directory_iterator it((fs::path(dir))), end;
     try {
-      fs::directory_iterator end_iter;
-      for (auto it = fs::directory_iterator(fs::path(dir)); it != end_iter;
-           it++) {
-        if (fs::is_directory(it->status())) {
-          if (fs::exists(it->status()) && fs::is_regular_file(it->status())) {
-            Row r;
-            r["name"] = it->path().string();
-            r["path"] = it->path().string();
-            results.push_back(r);
-          }
+      for (; it != end; ++it) {
+        if (!fs::exists(it->status()) || !fs::is_directory(it->status())) {
+          continue;
         }
+
+        Row r;
+        r["name"] = it->path().string();
+        r["path"] = it->path().string();
+        r["type"] = "Startup Item";
+        r["source"] = dir;
+        results.push_back(r);
       }
     } catch (const fs::filesystem_error& e) {
-      LOG(ERROR) << "Error traversing " << dir << ":\n" << e.what();
+      VLOG(1) << "Error traversing " << dir << ": " << e.what();
     }
   }
 }
@@ -51,7 +54,7 @@ void getLibraryStartupItems(QueryData& results) {
 /**
  * Parse a Login Items Plist Alias data for bin path
  */
-osquery::Status parseAliasData(const std::string& data, std::string& filepath) {
+Status parseAliasData(const std::string& data, std::string& filepath) {
   for (int i = 0; i < data.size(); i++) {
     int size = (int)data[i];
     if (size < 2 || size > data.length() - i) {
@@ -72,12 +75,6 @@ osquery::Status parseAliasData(const std::string& data, std::string& filepath) {
   return Status(1, "No file paths found");
 }
 
-// Path (after /Users/foo) where the login items plist will be found
-const std::string kLoginItemsPlistPath =
-    "Library/Preferences/com.apple.loginitems.plist";
-// Key to the array within the Login Items plist containing the items
-const std::string kLoginItemsKeyPath = "SessionItems.CustomListItems";
-
 /*
  * Get the login items available in System Preferences
  *
@@ -85,56 +82,50 @@ const std::string kLoginItemsKeyPath = "SessionItems.CustomListItems";
  * https://github.com/synack/knockknock/blob/master/plugins/loginItem.py
  */
 void getLoginItems(QueryData& results) {
-  try {
-    fs::directory_iterator end_iter;
-    for (const auto& dir : getHomeDirectories()) {
-      if (!fs::is_directory(dir)) {
+  for (const auto& dir : getHomeDirectories()) {
+    pt::ptree tree;
+    fs::path plist_path = dir / kLoginItemsPlistPath;
+    try {
+      if (!fs::exists(plist_path) || !fs::is_regular_file(plist_path)) {
         continue;
       }
-      pt::ptree tree;
-      fs::path plist_path = dir / kLoginItemsPlistPath;
-      try {
-        if (!(fs::exists(plist_path) && fs::is_regular_file(plist_path))) {
-          continue;
-        }
-      } catch (const fs::filesystem_error& e) {
-        // Likely permission denied
-        VLOG(1) << "Error checking path " << plist_path << ": " << e.what();
-        continue;
-      }
-      Status s = osquery::parsePlist(plist_path.string(), tree);
-      if (!s.ok()) {
-        LOG(ERROR) << "Error parsing " << plist_path << ": " << s.toString();
-        continue;
-      }
-      // Enumerate Login Items if we successfully opened the plist
-      for (const auto& entry : tree.get_child(kLoginItemsKeyPath)) {
-        std::string name = entry.second.get<std::string>("Name");
-        Row r;
-        r["name"] = name;
-        auto alias_data = entry.second.get<std::string>("Alias");
-        try {
-          std::string bin_path;
-          auto s = parseAliasData(alias_data, bin_path);
-          if (!s.ok()) {
-            VLOG(1) << "No valid path found for " << name << " in "
-                    << plist_path;
-          }
-          r["path"] = bin_path;
-
-        } catch (const std::exception& e) {
-          LOG(ERROR) << "Error parsing alias data for " << name << " in "
-                     << plist_path;
-        }
-        results.push_back(r);
-      }
+    } catch (const fs::filesystem_error& e) {
+      // Likely permission denied
+      VLOG(1) << "Error checking path " << plist_path << ": " << e.what();
+      continue;
     }
-  } catch (const fs::filesystem_error& e) {
-    LOG(ERROR) << "Error traversing home dirs";
+
+    auto status = osquery::parsePlist(plist_path.string(), tree);
+    if (!status.ok()) {
+      VLOG(1) << "Error parsing " << plist_path << ": " << status.toString();
+      continue;
+    }
+
+    // Enumerate Login Items if we successfully opened the plist
+    for (const auto& entry : tree.get_child(kLoginItemsKeyPath)) {
+      Row r;
+
+      auto name = entry.second.get<std::string>("Name");
+      r["name"] = name;
+      r["type"] = "Login Item";
+      r["source"] = plist_path.string();
+      auto alias_data = entry.second.get<std::string>("Alias");
+      try {
+        std::string bin_path;
+        if (!parseAliasData(alias_data, bin_path).ok()) {
+          VLOG(1) << "No valid path found for " << name << " in " << plist_path;
+        }
+        r["path"] = bin_path;
+      } catch (const std::exception& e) {
+        VLOG(1) << "Error parsing alias data for " << name << " in "
+                << plist_path;
+      }
+      results.push_back(r);
+    }
   }
 }
 
-QueryData genStartupItems() {
+QueryData genStartupItems(QueryContext& context) {
   QueryData results;
   getLoginItems(results);
   getLibraryStartupItems(results);

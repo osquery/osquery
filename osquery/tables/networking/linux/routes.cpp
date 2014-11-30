@@ -10,13 +10,12 @@
 #include <linux/rtnetlink.h>
 #include <net/if.h>
 
-#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <glog/logging.h>
 
 #include "osquery/core.h"
-#include "osquery/database.h"
+#include "osquery/tables.h"
 #include "osquery/tables/networking/utils.h"
 
 namespace osquery {
@@ -109,7 +108,7 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
       has_destination = true;
       break;
     case RTA_PRIORITY:
-      r["metric"] = boost::lexical_cast<std::string>(*(int*)RTA_DATA(attr));
+      r["metric"] = INTEGER(*(int*)RTA_DATA(attr));
       break;
     }
     attr = RTA_NEXT(attr, attr_size);
@@ -135,17 +134,17 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
     r["type"] = "other";
   }
 
-  r["flags"] = boost::lexical_cast<std::string>(message->rtm_flags);
+  r["flags"] = INTEGER(message->rtm_flags);
 
   // This is the cidr-formatted mask
-  r["netmask"] = boost::lexical_cast<std::string>(mask);
+  r["netmask"] = INTEGER(mask);
 
   // Fields not supported by Linux routes:
   r["mtu"] = "0";
   results.push_back(r);
 }
 
-QueryData genRoutes() {
+QueryData genRoutes(QueryContext& context) {
   QueryData results;
 
   void* netlink_buffer;

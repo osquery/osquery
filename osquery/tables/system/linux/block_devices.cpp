@@ -1,18 +1,13 @@
-#include <string>
-#include <fstream>
-#include <streambuf>
-#include <sstream>
-#include <map>
+// Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <libudev.h>
 #include <blkid/blkid.h>
+#include <libudev.h>
 
 #include "osquery/core.h"
-#include "osquery/database.h"
 #include "osquery/filesystem.h"
+#include "osquery/tables.h"
 
 namespace osquery {
 namespace tables {
@@ -65,7 +60,7 @@ static void fillRow(struct udev_device *dev, Row &r) {
   }
 }
 
-QueryData genBlockDevs() {
+QueryData genBlockDevs(QueryContext &context) {
   QueryData results;
   struct udev *udev;
   struct udev_enumerate *enumerate;
