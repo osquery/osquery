@@ -60,7 +60,7 @@ static void fillRow(struct udev_device *dev, Row &r) {
   }
 }
 
-QueryData genBlockDevs(QueryContext& context) {
+QueryData genBlockDevs(QueryContext &context) {
   QueryData results;
   struct udev *udev;
   struct udev_enumerate *enumerate;

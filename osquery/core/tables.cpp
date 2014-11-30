@@ -10,7 +10,7 @@ namespace tables {
 bool ConstraintList::matches(const std::string& expr) {
   // Support each affinity type casting.
   if (affinity == "TEXT") {
-    return literal_matches<TEXT_LITERAL>(expr); 
+    return literal_matches<TEXT_LITERAL>(expr);
   } else if (affinity == "INTEGER") {
     INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
     return literal_matches<INTEGER_LITERAL>(lexpr);
@@ -64,12 +64,12 @@ std::vector<std::string> ConstraintList::getAll(ConstraintOperator op) {
   return set;
 }
 
-template<typename T>
+template <typename T>
 bool ConstraintList::existsAndMatches(const T& expr) {
   return (exists() && literal_matches<T>(expr));
 }
 
-template<typename T>
+template <typename T>
 bool ConstraintList::notExistsOrMatches(const T& expr) {
   return (!exists() || literal_matches<T>(expr));
 }

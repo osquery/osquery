@@ -19,7 +19,7 @@ struct udev_enumerate *enumerate;
 struct udev_list_entry *devices, *dev_list_entry;
 struct udev_device *dev;
 
-QueryData genPCIDevices(QueryContext& context) {
+QueryData genPCIDevices(QueryContext &context) {
   QueryData results;
 
   // Create the udev object

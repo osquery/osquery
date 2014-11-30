@@ -16,15 +16,15 @@ QueryData genHash(QueryContext& context) {
 
   auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
-      boost::filesystem::path path = path_string;
-      if (!boost::filesystem::is_regular_file(path)) {
-        continue;
-      }
-      Row r;
-      r["path"] = path.string();
-      r["md5"] = std::string(digest.digestFile(path.c_str()));
-      r["directory"] = path.parent_path().string();
-      results.push_back(r);
+    boost::filesystem::path path = path_string;
+    if (!boost::filesystem::is_regular_file(path)) {
+      continue;
+    }
+    Row r;
+    r["path"] = path.string();
+    r["md5"] = std::string(digest.digestFile(path.c_str()));
+    r["directory"] = path.parent_path().string();
+    results.push_back(r);
   }
 
   auto directories = context.constraints["directory"].getAll(EQUALS);

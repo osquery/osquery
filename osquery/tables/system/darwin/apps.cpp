@@ -64,24 +64,33 @@ std::vector<std::string> getUserApplications(const std::string& home_dir) {
     if (status.ok()) {
       for (const auto& user_app : user_apps) {
         std::string plist_path = user_app + "/Contents/Info.plist";
-          if (boost::filesystem::exists(plist_path)) {
-            results.push_back(plist_path);
-          }
+        if (boost::filesystem::exists(plist_path)) {
+          results.push_back(plist_path);
+        }
       }
     } else {
-      VLOG(1) << "Error listing " << apps_path << ": "
-              << status.toString();
+      VLOG(1) << "Error listing " << apps_path << ": " << status.toString();
     }
-  }  
+  }
   return results;
+}
+
+std::string getNameFromInfoPlistPath(const std::string& path) {
+  boost::filesystem::path full = path;
+  return full.parent_path().parent_path().filename().string();
+}
+
+std::string getPathFromInfoPlistPath(const std::string& path) {
+  boost::filesystem::path full = path;
+  return full.parent_path().parent_path().string();
 }
 
 Row parseInfoPlist(const std::string& path, const pt::ptree& tree) {
   Row r;
 
   boost::filesystem::path full = path;
-  r["name"] = full.parent_path().parent_path().filename().string();
-  r["path"] = full.parent_path().parent_path().string();
+  r["name"] = getNameFromInfoPlistPath(path);
+  r["path"] = getPathFromInfoPlistPath(path);
   for (const auto& it : kAppsInfoPlistTopLevelStringKeys) {
     try {
       r[it.second] = tree.get<std::string>(it.first);
@@ -118,7 +127,6 @@ QueryData genApps(QueryContext& context) {
       } else {
         VLOG(1) << "Error parsing user applications: " << path;
       }
-
     }
   }
 

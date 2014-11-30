@@ -117,10 +117,10 @@ struct ConstraintList {
     return (!exists() || matches(expr));
   }
 
-  template<typename T>
+  template <typename T>
   bool existsAndMatches(const T& expr);
 
-  template<typename T>
+  template <typename T>
   bool notExistsOrMatches(const T& expr);
 
   /**
@@ -167,6 +167,5 @@ struct QueryContext {
 
 typedef struct QueryContext QueryContext;
 typedef struct Constraint Constraint;
-
 }
 }

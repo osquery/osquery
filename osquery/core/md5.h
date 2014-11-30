@@ -125,11 +125,11 @@ static unsigned char PADDING[64] = {0x80,
 
 // FF, GG, HH, and II transformations for rounds 1, 2, 3, and 4.
 // Rotation is separate from addition to prevent recomputation.
-#define FF(a, b, c, d, x, s, ac)                 \
-  {                                              \
+#define FF(a, b, c, d, x, s, ac)                   \
+  {                                                \
     (a) += FFF((b), (c), (d)) + (x) + (UINT4)(ac); \
-    (a) = ROTATE_LEFT((a), (s));                 \
-    (a) += (b);                                  \
+    (a) = ROTATE_LEFT((a), (s));                   \
+    (a) += (b);                                    \
   }
 #define GG(a, b, c, d, x, s, ac)                 \
   {                                              \
