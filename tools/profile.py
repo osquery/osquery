@@ -79,7 +79,8 @@ def queries_from_tables(path, restrict):
             # Generate all tables to select from, with abandon.
             tables.append("%s.%s" % (spec_platform, table_name))
 
-    tables = [t for t in tables if t.split(".")[1] not in restrict_tables]
+    if len(restrict) > 0:
+        tables = [t for t in tables if t.split(".")[1] in restrict_tables]
     queries = {}
     for table in tables:
         queries[table] = "SELECT * FROM %s;" % table.split(".", 1)[1]
@@ -213,6 +214,20 @@ def run_query(shell, query, timeout=0, count=1):
     }
 
 
+def summary_line(name, result):
+    if not args.n:
+        for key, v in result.iteritems():
+            print ("%s" % (
+                RANGES["colors"][v[0]]("%s:%s" % (
+                    key[0].upper(), v[0]))),
+                end="")
+        print (" ", end="")
+    print ("%s:" % name, end=" ")
+    for key, v in result.iteritems():
+        print ("%s: %s" % (key, v[1]), end=" ")
+    print ("")
+
+
 def summary(results, display=False):
     """Map the results to simple thresholds."""
     def rank(value, ranges):
@@ -230,13 +245,8 @@ def summary(results, display=False):
             if key not in result:
                 continue
             summary_result[key] = (rank(result[key], RANGES[key]), result[key])
-        if display:
-            for key, v in summary_result.iteritems():
-                print ("%s" % (RANGES["colors"][v[0]](key[0].upper())), end="")
-            print (" %s:" % name, end=" ")
-            for key, v in summary_result.iteritems():
-                print ("%s: %s" % (key, v[1]), end=" ")
-            print ("")
+        if display and not args.check:
+            summary_line(name, summary_result)
         summary_results[name] = summary_result
     return summary_results
 
@@ -258,8 +268,34 @@ def profile(shell, queries, timeout=0, count=1, rounds=1):
         for k in results:
             average_results[k] = sum(results[k]) / len(results[k])
         report[name] = average_results
-        summary({"%s   avg" % name: report[name]}, display=True)
+        if rounds > 1:
+            summary({"%s   avg" % name: report[name]}, display=True)
     return report
+
+def compare(profile1, profile2):
+    """Compare two jSON profile outputs."""
+    for table in profile1:
+        if table not in profile2:
+            # No comparison possible
+            continue
+        summary_line(table, profile1[table])
+        summary_line(table, profile2[table])
+
+
+def regress_check(profile1, profile2):
+    regressed = False
+    for table in profile1:
+        if table not in profile2:
+            continue
+        for measure in profile1[table]:
+            if profile2[table][measure][0] > profile1[table][measure][0]:
+                print ("%s %s has regressed (%s->%s)!" % (table, measure,
+                    profile1[table][measure][0], profile2[table][measure][0]))
+                regressed = True
+    if not regressed:
+        print ("No regressions!")
+        return 0
+    return 1
 
 if __name__ == "__main__":
     platform = sys.platform
@@ -270,54 +306,81 @@ if __name__ == "__main__":
         "or a set of osqueryd config queries."
     ))
     parser.add_argument(
-        "--restrict", default="",
-        help="Limit to a list of comma-separated tables."
-    )
-    parser.add_argument(
-        "--tables", default="./osquery/tables/specs",
-        help="Path to the osquery table specs."
-    )
-    parser.add_argument(
-        "--config", default=None,
-        help="Use scheduled queries from a config."
-    )
-    parser.add_argument(
-        "--output", default=None,
-        help="Write JSON output to file."
-    )
-    parser.add_argument(
-        "--summary", default=False, action="store_true",
-        help="Write a summary instead of stats."
-    )
-    parser.add_argument(
-        "--query", default=None,
-        help="Profile a single query."
-    )
-    parser.add_argument(
-        "--timeout", default=0, type=int,
-        help="Max seconds a query may run --count times."
-    )
-    parser.add_argument(
-        "--count", default=1, type=int,
-        help="Number of times to run each query."
-    )
-    parser.add_argument(
-        "--rounds", default=1, type=int,
-        help="Run the profile for multiple rounds and use the average."
+        "-n", action="store_true", default=False,
+        help="Do not output colored ranks."
     )
     parser.add_argument(
         "--leaks", default=False, action="store_true",
         help="Check for memory leaks instead of performance."
     )
-    parser.add_argument(
-        "--suppressions", default=None,
-        help="Add a suppressions files to memory leak checking."
+    group = parser.add_argument_group("Query Options:")
+    group.add_argument(
+        "--restrict", metavar="LIST", default="",
+        help="Limit to a list of comma-separated tables."
     )
-    parser.add_argument(
-        "--shell", default="./build/%s/tools/run" % (platform),
-        help="Path to osquery run wrapper."
+    group.add_argument(
+        "--tables", metavar="PATH", default="./osquery/tables/specs",
+        help="Path to the osquery table specs."
+    )
+    group.add_argument(
+        "--config", metavar="FILE", default=None,
+        help="Use scheduled queries from a config."
+    )
+    group.add_argument(
+        "--query", metavar="STRING", default=None,
+        help="Profile a single query."
+    )
+
+    group = parser.add_argument_group("Run Options:")
+    group.add_argument(
+        "--timeout", metavar="N", default=0, type=int,
+        help="Max seconds a query may run --count times."
+    )
+    group.add_argument(
+        "--count", metavar="N", default=1, type=int,
+        help="Run the query N times serially."
+    )
+    group.add_argument(
+        "--rounds", metavar="N", default=1, type=int,
+        help="Run the profile for N rounds and use the average."
+    )
+    group.add_argument(
+        "--shell", metavar="PATH", default="./build/%s/tools/run" % (platform),
+        help="Path to osquery run wrapper (./build/<sys>/tools/run)."
+    )
+
+    group = parser.add_argument_group("Performance Options:")
+    group.add_argument(
+        "--output", metavar="FILE", default=None,
+        help="Write JSON performance output to file."
+    )
+    group.add_argument(
+        "--check", metavar="OLD_OUTPUT", nargs=1,
+        help="Check regressions using an existing output."
+    )
+    group.add_argument(
+        "--compare", metavar="FILE", nargs=2,
+        help="Compare existing performance outputs (old, new)."
+    )
+
+    group = parser.add_argument_group("Memory Options:")
+    group.add_argument(
+        "--suppressions", metavar="SUPP", default=None,
+        help="Add a suppressions files to memory leak checking (linux only)."
     )
     args = parser.parse_args()
+
+    if args.compare:
+        with open(args.compare[0]) as fh:
+            profile1 = json.loads(fh.read())
+        with open(args.compare[1]) as fh:
+            profile2 = json.loads(fh.read())
+        compare(profile1, profile2)
+        exit(0)
+
+    if args.check:
+        with open(args.check[0]) as fh:
+            profile1 = json.loads(fh.read())
 
     if not os.path.exists(args.shell):
         print ("Cannot find --daemon: %s" % (args.shell))
@@ -350,9 +413,9 @@ if __name__ == "__main__":
         timeout=args.timeout, count=args.count, rounds=args.rounds
     )
 
+    if args.check:
+        exit(regress_check(profile1, summary(results)))
+
     if args.output is not None and not args.summary:
         with open(args.output, "w") as fh:
-            fh.write(json.dumps(results, indent=1, sort_keys=True))
-    if args.summary is True:
-        with open(args.output, "w") as fh:
-            fh.write(json.dumps(summary(results), indent=1, sort_keys=True))
+            fh.write(json.dumps(summary(results), indent=1))
