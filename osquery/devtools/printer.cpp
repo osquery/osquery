@@ -82,27 +82,30 @@ std::string generateRow(const Row& r,
                         const std::map<std::string, int>& lengths,
                         const std::vector<std::string>& order) {
   std::ostringstream row;
+  std::string value;
 
-  row << "|";
   for (const auto& each : order) {
-    row << " ";
     try {
-      row << r.at(each);
+      value = r.at(each);
+      row << "| " << value;
       for (int i = 0; i < (lengths.at(each) - utf8StringSize(r.at(each)) + 1);
            ++i) {
         row << " ";
       }
     } catch (const std::out_of_range& e) {
-      LOG(ERROR) << "printing the faulty row";
       for (const auto& foo : r) {
-        LOG(ERROR) << foo.first << " => " << foo.second;
+        VLOG(1) << foo.first << " => " << foo.second;
       }
       LOG(ERROR) << "Error retrieving the \"" << each
-                 << "\" key in generateRow:  " << e.what();
+                 << "\" key in generateRow: " << e.what();
+      continue;
     }
-    row << "|";
   }
-  row << "\n";
+
+  if (row.str().size() > 0) {
+    // Only append if a row was added.
+    row << "|\n";
+  }
 
   return row.str();
 }
