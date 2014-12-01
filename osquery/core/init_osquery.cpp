@@ -9,8 +9,6 @@
 
 namespace osquery {
 
-#define __GFLAGS_NAMESPACE google
-
 const std::string kDescription =
     "your operating system as a high-performance "
     "relational database";
