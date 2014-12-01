@@ -1,6 +1,7 @@
 table_name("groups")
 schema([
     Column("gid", BIGINT),
+    Column("gid_signed", BIGINT),
     Column("groupname", TEXT),
 ])
 implementation("groups@genGroups")

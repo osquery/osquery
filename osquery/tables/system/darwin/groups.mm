@@ -55,6 +55,7 @@ QueryData genGroups(QueryContext &context) {
       grp = getgrnam(r["groupname"].c_str());
       if (grp != nullptr) {
         r["gid"] = BIGINT(grp->gr_gid);
+        r["gid_signed"] = BIGINT((int32_t) grp->gr_gid);
         results.push_back(r);
       }
     }

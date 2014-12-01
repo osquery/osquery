@@ -2,6 +2,8 @@ table_name("users")
 schema([
     Column("uid", BIGINT),
     Column("gid", BIGINT),
+    Column("uid_signed", BIGINT),
+    Column("gid_signed", BIGINT),
     Column("username", TEXT),
     Column("description", TEXT),
     Column("directory", TEXT),

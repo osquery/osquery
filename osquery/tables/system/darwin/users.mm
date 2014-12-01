@@ -58,6 +58,8 @@ QueryData genUsers(QueryContext &context) {
       if (pwd != nullptr) {
         r["uid"] = BIGINT(pwd->pw_uid);
         r["gid"] = BIGINT(pwd->pw_gid);
+        r["uid_signed"] = BIGINT((int32_t) pwd->pw_uid);
+        r["gid_signed"] = BIGINT((int32_t) pwd->pw_gid);
         r["description"] = TEXT(pwd->pw_gecos);
         r["directory"] = TEXT(pwd->pw_dir);
         r["shell"] = TEXT(pwd->pw_shell);

@@ -27,6 +27,8 @@ QueryData genUsers(QueryContext& context) {
       Row r;
       r["uid"] = BIGINT(pwd->pw_uid);
       r["gid"] = BIGINT(pwd->pw_gid);
+      r["uid_signed"] = BIGINT((int32_t) pwd->pw_uid);
+      r["gid_signed"] = BIGINT((int32_t) pwd->pw_gid);
       r["username"] = TEXT(pwd->pw_name);
       r["description"] = TEXT(pwd->pw_gecos);
       r["directory"] = TEXT(pwd->pw_dir);
