@@ -122,7 +122,11 @@ Status createPidFile() {
       return Status(1, "osqueryd is already running");
     } else if (errno == ESRCH) {
       // if the pid isn't running, overwrite the pidfile
-      boost::filesystem::remove(FLAGS_pidfile);
+      try {
+        boost::filesystem::remove(FLAGS_pidfile);
+      } catch (boost::filesystem::filesystem_error& e) {
+        // Unable to remove old pidfile.
+      }
       goto write_new_pidfile;
     } else {
       return Status(
