@@ -113,6 +113,8 @@ def check_leaks_linux(shell, query, supp_file=None):
         "indirectly": None,
         "possibly": None,
     }
+    if args.verbose:
+        print (stderr)
     for line in stderr.split("\n"):
         for key in summary:
             if line.find(key) >= 0:
@@ -132,6 +134,8 @@ def check_leaks_darwin(shell, query):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         stdout, _ = leaks.communicate()
+        if args.verbose:
+            print (stdout)
         try:
             for line in stdout.split("\n"):
                 if line.find("total leaked bytes") >= 0:
@@ -309,6 +313,8 @@ if __name__ == "__main__":
         "-n", action="store_true", default=False,
         help="Do not output colored ranks."
     )
+    parser.add_argument(
+        "--verbose", action="store_true", default=False, help="Be verbose.")
     parser.add_argument(
         "--leaks", default=False, action="store_true",
         help="Check for memory leaks instead of performance."
