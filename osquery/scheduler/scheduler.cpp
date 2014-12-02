@@ -24,7 +24,7 @@ DEFINE_osquery_flag(string,
 Status getHostIdentifier(std::string& ident) {
   std::shared_ptr<DBHandle> db;
   try {
-    auto db = DBHandle::getInstance();
+    db = DBHandle::getInstance();
   } catch (const std::exception& e) {
     return Status(1, e.what());
   }
