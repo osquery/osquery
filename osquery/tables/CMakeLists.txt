@@ -79,6 +79,7 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   utility/time.cpp
   utility/crontab.cpp
   utility/hash.cpp
+  utility/file.cpp
   system/cpuid.cpp
   system/last.cpp
   system/shell_history.cpp
