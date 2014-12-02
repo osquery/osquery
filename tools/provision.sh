@@ -399,6 +399,7 @@ function main() {
     fi
     install_thrift
     install_rocksdb
+    install_librdkafka
 
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
