@@ -53,7 +53,7 @@ Status getHostIdentifier(std::string& ident) {
       // There was no uuid stored in the database, generate one and store it.
       ident = osquery::generateHostUuid();
       LOG(INFO) << "Using uuid " << ident << " to identify this host.";
-      return db->Put(kConfigurations, "hosknhutIdentifier", ident);
+      return db->Put(kConfigurations, "hostIdentifier", ident);
     }
   } else {
     // use the hostname as the default machine identifier
