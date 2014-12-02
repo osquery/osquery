@@ -29,6 +29,7 @@ class RdkafkaPlugin : public LoggerPlugin {
     RdKafka::Conf *conf;
     RdKafka::Conf *tconf;
     RdKafka::Topic *topic;
+    OsqueryKafkaDeliveryReportCb os_kafka_dr_cb;
 
 public:
 RdkafkaPlugin() {
@@ -42,7 +43,6 @@ RdkafkaPlugin() {
 
     conf->set("metadata.broker.list", FLAGS_kafka_server, errstr);
     /* Set delivery report callback */
-    // OsqueryKafkaDeliveryReportCb os_kafka_dr_cb;
     // conf->set("dr_cb", &os_kafka_dr_cb, errstr);
 
     /*
