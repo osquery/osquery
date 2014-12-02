@@ -373,6 +373,7 @@ class EventPublisher {
 
   /// Overriding the EventPublisher constructor is not recommended.
   EventPublisher() : next_ec_id_(0){};
+  virtual ~EventPublisher() {}
 
   /// Return a string identifier associated with this EventPublisher.
   virtual EventPublisherID type() const = 0;
@@ -545,6 +546,7 @@ class EventSubscriber {
    * loops.
    */
   EventSubscriber() {}
+  virtual ~EventSubscriber() {}
 
   /// Backing storage indexing namespace definition methods.
   EventPublisherID dbNamespace() { return type() + "." + name(); }
