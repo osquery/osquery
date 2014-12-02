@@ -44,8 +44,6 @@ std::shared_ptr<Config> Config::getInstance() {
 Config::Config() {
   boost::unique_lock<boost::shared_mutex> lock(rw_lock);
   OsqueryConfig conf;
-  cfg_ = conf;
-
   auto s = Config::genConfig(conf);
   if (!s.ok()) {
     LOG(ERROR) << "error retrieving config: " << s.toString();
@@ -70,6 +68,7 @@ Config::Config() {
               << old_interval << " to " << new_interval;
     q.interval = new_interval;
   }
+  cfg_ = conf;
 }
 
 Status Config::genConfig(OsqueryConfig& conf) {
