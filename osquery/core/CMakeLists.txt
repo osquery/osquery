@@ -13,6 +13,7 @@ ADD_OSQUERY_LIBRARY(osquery_core
   ${OS_CORE_SOURCE}
   tables.cpp
   text.cpp
+  flags.cpp
 )
 
 ADD_OSQUERY_TEST(status_test status_tests.cpp)

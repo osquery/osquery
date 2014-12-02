@@ -6,9 +6,13 @@
 #include <gflags/gflags.h>
 
 #include "osquery/registry.h"
+#include "osquery/status.h"
+
+#define __GFLAGS_NAMESPACE google
 
 namespace osquery {
 
+/// Value, Description.
 typedef std::pair<std::string, std::string> FlagDetail;
 
 /**
@@ -35,13 +39,7 @@ class Flag {
   static Flag& get(const std::string& name = "",
                    const std::string& value = "",
                    const std::string& desc = "",
-                   bool shell_only = false) {
-    static Flag f;
-    if (name != "") {
-      f.add(name, value, desc, shell_only);
-    }
-    return f;
-  }
+                   bool shell_only = false);
 
   /*
    * @brief Wrapper by the Flag::get.
@@ -54,13 +52,7 @@ class Flag {
   void add(const std::string& name,
            const std::string& value,
            const std::string& desc,
-           bool shell_only) {
-    if (!shell_only) {
-      flags_.insert(std::make_pair(name, std::make_pair(value, desc)));
-    } else {
-      shell_flags_.insert(std::make_pair(name, std::make_pair(value, desc)));
-    }
-  }
+           bool shell_only);
 
  private:
   /// Keep the ctor private, for accessing through `add` wrapper.
@@ -73,20 +65,36 @@ class Flag {
   std::map<std::string, FlagDetail> shellFlags() { return shell_flags_; }
 
   /*
+   * @brief Access value for a flag name.
+   *
+   * @param name the flag name.
+   * @param value output parameter filled with the flag value on success.
+   * @return status of the flag existed.
+   */
+  static Status getDefaultValue(const std::string& name, std::string& value);
+
+  /*
+   * @brief Check if flag value has been overridden.
+   *
+   * @param name the flag name.
+   * @return is the flag set to its default value.
+   */
+  static bool isDefault(const std::string& name);
+
+  /*
+   * @brief Update the flag value by string name,
+   *
+   * @param name the flag name.
+   * @parma value the new value.
+   * @return if the value was updated.
+   */
+  static Status updateValue(const std::string& name, const std::string& value);
+  /*
    * @brief Print help-style output to stdout for a given flag set.
    *
    * @param flags A flag set (usually generated from Flag::flags).
    */
-  static void printFlags(const std::map<std::string, FlagDetail> flags) {
-    for (const auto& flag : flags) {
-      fprintf(stdout,
-              "  --%s, --%s=%s\n    %s\n",
-              flag.first.c_str(),
-              flag.first.c_str(),
-              flag.second.first.c_str(),
-              flag.second.second.c_str());
-    }
-  }
+  static void printFlags(const std::map<std::string, FlagDetail> flags);
 
  private:
   /// The private simple map of name to value/desc flag data.
