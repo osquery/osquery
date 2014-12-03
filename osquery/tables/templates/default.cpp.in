@@ -9,6 +9,7 @@
 
 namespace osquery { namespace tables {
 
+/// BEGIN[GENTABLE]
 {% if class_name == "" %}\
 osquery::QueryData {{function}}(QueryContext& request);
 {% else %}
@@ -56,5 +57,6 @@ REGISTER_TABLE(
   "{{table_name}}",
   std::make_shared<{{table_name_cc}}TablePlugin>()
 );
+/// END[GENTABLE]
 
 }}

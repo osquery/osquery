@@ -96,7 +96,7 @@ LINK_DIRECTORIES("/usr/local/lib")
 ENABLE_TESTING()
 
 ADD_SUBDIRECTORY(osquery)
-ADD_SUBDIRECTORY(tools)
+ADD_SUBDIRECTORY(tools/tests)
 
 # make docs
 FIND_PACKAGE(Doxygen)
@@ -119,7 +119,7 @@ ADD_CUSTOM_TARGET(
 
 ADD_CUSTOM_TARGET(
   format
-  python tools/git-clang-format.py
+  python tools/formatting/git-clang-format.py
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
