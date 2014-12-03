@@ -6,6 +6,40 @@
 namespace osquery {
 namespace tables {
 
+int xOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
+  int rc = SQLITE_NOMEM;
+  base_cursor *pCur;
+
+  pCur = new base_cursor;
+
+  if (pCur) {
+    memset(pCur, 0, sizeof(base_cursor));
+    *ppCursor = (sqlite3_vtab_cursor *)pCur;
+    rc = SQLITE_OK;
+  }
+
+  return rc;
+}
+
+int xClose(sqlite3_vtab_cursor *cur) {
+  base_cursor *pCur = (base_cursor *)cur;
+
+  delete pCur;
+  return SQLITE_OK;
+}
+
+int xNext(sqlite3_vtab_cursor *cur) {
+  base_cursor *pCur = (base_cursor *)cur;
+  pCur->row++;
+  return SQLITE_OK;
+}
+
+int xRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid) {
+  base_cursor *pCur = (base_cursor *)cur;
+  *pRowid = pCur->row;
+  return SQLITE_OK;
+}
+
 std::string osquery_table::statement(TableName name,
                                      TableTypes types,
                                      TableColumns cols) {

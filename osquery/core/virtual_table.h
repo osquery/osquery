@@ -26,13 +26,13 @@ struct base_cursor {
 };
 
 // Our virtual table object
-template <class T_STRUCT>
+template <typename T>
 struct x_vtab {
   // virtual table implementations will normally subclass this structure to add
   // additional private and implementation-specific fields
   sqlite3_vtab base;
   // to get custom functionality, add our own struct as well
-  T_STRUCT *pContent;
+  T *pContent;
 };
 
 struct osquery_table {
@@ -57,99 +57,68 @@ class TablePlugin {
 
 typedef std::shared_ptr<TablePlugin> TablePluginRef;
 
-template <class T_VTAB>
-int xDestroy(sqlite3_vtab *p) {
-  T_VTAB *pVtab = (T_VTAB *)p;
-  delete pVtab->pContent;
-  delete pVtab;
-  return SQLITE_OK;
-}
+int xOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor);
 
-template <class T_CURSOR>
-int xOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
-  int rc = SQLITE_NOMEM;
-  T_CURSOR *pCur;
+int xClose(sqlite3_vtab_cursor *cur);
 
-  pCur = new T_CURSOR;
+int xNext(sqlite3_vtab_cursor *cur);
 
-  if (pCur) {
-    memset(pCur, 0, sizeof(T_CURSOR));
-    *ppCursor = (sqlite3_vtab_cursor *)pCur;
-    rc = SQLITE_OK;
-  }
+int xRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid);
 
-  return rc;
-}
-
-template <class T_CURSOR>
-int xClose(sqlite3_vtab_cursor *cur) {
-  T_CURSOR *pCur = (T_CURSOR *)cur;
-
-  delete pCur;
-  return SQLITE_OK;
-}
-
-template <class T_CURSOR>
-int xNext(sqlite3_vtab_cursor *cur) {
-  T_CURSOR *pCur = (T_CURSOR *)cur;
-  pCur->row++;
-  return SQLITE_OK;
-}
-
-template <class T_CURSOR, class T_VTAB>
+template <typename T>
 int xEof(sqlite3_vtab_cursor *cur) {
-  T_CURSOR *pCur = (T_CURSOR *)cur;
-  T_VTAB *pVtab = (T_VTAB *)cur->pVtab;
+  base_cursor *pCur = (base_cursor *)cur;
+  auto *pVtab = (x_vtab<T> *)cur->pVtab;
   return pCur->row >= pVtab->pContent->n;
 }
 
-template <class T_CURSOR>
-int xRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid) {
-  T_CURSOR *pCur = (T_CURSOR *)cur;
-  *pRowid = pCur->row;
-  return SQLITE_OK;
-}
-
-template <class T_VTAB, class T_STRUCT>
+template <typename T>
 int xCreate(sqlite3 *db,
             void *pAux,
             int argc,
             const char *const *argv,
             sqlite3_vtab **ppVtab,
             char **pzErr) {
-  int rc = SQLITE_NOMEM;
-  T_VTAB *pVtab = new T_VTAB;
+  auto *pVtab = new x_vtab<T>;
 
-  if (pVtab) {
-    memset(pVtab, 0, sizeof(T_VTAB));
-    pVtab->pContent = new T_STRUCT;
-
-    auto statement = pVtab->pContent->statement(pVtab->pContent->name,
-                                                pVtab->pContent->types,
-                                                pVtab->pContent->column_names);
-    rc = sqlite3_declare_vtab(db, statement.c_str());
+  if (!pVtab) {
+    return SQLITE_NOMEM;
   }
+
+  memset(pVtab, 0, sizeof(x_vtab<T>));
+  auto *pContent = pVtab->pContent = new T;
+  auto create = pContent->statement(
+      pContent->name, pContent->types, pContent->column_names);
+  int rc = sqlite3_declare_vtab(db, create.c_str());
 
   *ppVtab = (sqlite3_vtab *)pVtab;
   return rc;
 }
 
 template <typename T>
+int xDestroy(sqlite3_vtab *p) {
+  auto *pVtab = (x_vtab<T> *)p;
+  delete pVtab->pContent;
+  delete pVtab;
+  return SQLITE_OK;
+}
+
+template <typename T>
 int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
   base_cursor *pCur = (base_cursor *)cur;
-  T *pVtab = (T *)cur->pVtab;
+  auto *pContent = ((x_vtab<T> *)cur->pVtab)->pContent;
 
-  if (col >= pVtab->pContent->column_names.size()) {
+  if (col >= pContent->column_names.size()) {
     return SQLITE_ERROR;
   }
 
-  const auto &column_name = pVtab->pContent->column_names[col];
-  const auto &type = pVtab->pContent->types[col];
-  if (pCur->row >= pVtab->pContent->columns[column_name].size()) {
+  const auto &column_name = pContent->column_names[col];
+  const auto &type = pContent->types[col];
+  if (pCur->row >= pContent->columns[column_name].size()) {
     return SQLITE_ERROR;
   }
 
-  const auto &value = pVtab->pContent->columns[column_name][pCur->row];
+  const auto &value = pContent->columns[column_name][pCur->row];
   if (type == "TEXT") {
     sqlite3_result_text(ctx, value.c_str(), -1, nullptr);
   } else if (type == "INTEGER") {
@@ -179,7 +148,7 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
 
 template <typename T>
 static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
-  auto *pContent = ((T *)tab)->pContent;
+  auto *pContent = ((x_vtab<T> *)tab)->pContent;
 
   int expr_index = 0;
   for (size_t i = 0; i < pIdxInfo->nConstraint; ++i) {
@@ -204,7 +173,7 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
                    int argc,
                    sqlite3_value **argv) {
   base_cursor *pCur = (base_cursor *)pVtabCursor;
-  auto pContent = ((T *)pVtabCursor->pVtab)->pContent;
+  auto *pContent = ((x_vtab<T> *)pVtabCursor->pVtab)->pContent;
 
   pCur->row = 0;
   pContent->n = 0;
@@ -241,18 +210,18 @@ int sqlite3_attach_vtable(sqlite3 *db, const std::string &name) {
 
   static sqlite3_module module = {
       0,
-      xCreate<x_vtab<T>, T>,
-      xCreate<x_vtab<T>, T>,
-      xBestIndex<x_vtab<T> >,
-      xDestroy<x_vtab<T> >,
-      xDestroy<x_vtab<T> >,
-      xOpen<base_cursor>,
-      xClose<base_cursor>,
-      xFilter<x_vtab<T> >,
-      xNext<base_cursor>,
-      xEof<base_cursor, x_vtab<T> >,
-      xColumn<x_vtab<T> >,
-      xRowid<base_cursor>,
+      xCreate<T>,
+      xCreate<T>,
+      xBestIndex<T>,
+      xDestroy<T>,
+      xDestroy<T>,
+      xOpen,
+      xClose,
+      xFilter<T>,
+      xNext,
+      xEof<T>,
+      xColumn<T>,
+      xRowid,
       0,
       0,
       0,
