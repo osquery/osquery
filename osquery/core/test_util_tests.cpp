@@ -5,7 +5,7 @@
 
 #include <sqlite3.h>
 
-#include "osquery/core.h"
+#include <osquery/core.h>
 #include "osquery/core/test_util.h"
 
 namespace osquery {

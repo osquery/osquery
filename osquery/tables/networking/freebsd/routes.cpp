@@ -1,5 +1,5 @@
-#include "osquery/core.h"
-#include "osquery/database.h"
+#include <osquery/core.h>
+#include <osquery/database.h>
 
 namespace osquery {
 namespace tables {

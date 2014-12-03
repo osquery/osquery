@@ -1,9 +1,9 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/devtools.h"
-
 #include <gtest/gtest.h>
 #include <glog/logging.h>
+
+#include <osquery/devtools.h>
 
 namespace osquery {
 

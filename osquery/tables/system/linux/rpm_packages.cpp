@@ -10,8 +10,8 @@
 #include <rpm/rpmts.h>
 #include <rpm/rpmdb.h>
 
-#include "osquery/logger.h"
-#include "osquery/tables.h"
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

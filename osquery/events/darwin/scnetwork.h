@@ -6,8 +6,8 @@
 
 #include <SystemConfiguration/SCNetworkReachability.h>
 
-#include "osquery/status.h"
-#include "osquery/events.h"
+#include <osquery/status.h>
+#include <osquery/events.h>
 
 namespace osquery {
 

@@ -13,8 +13,8 @@
 
 #include <glog/logging.h>
 
-#include "osquery/core.h"
-#include "osquery/tables.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
 
 // From uapi/linux/sock_diag.h
 // From linux/sock_diag.h (<= 3.6)

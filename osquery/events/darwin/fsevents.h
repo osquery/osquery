@@ -10,8 +10,8 @@
 
 #include <CoreServices/CoreServices.h>
 
-#include "osquery/status.h"
-#include "osquery/events.h"
+#include <osquery/events.h>
+#include <osquery/status.h>
 
 namespace osquery {
 

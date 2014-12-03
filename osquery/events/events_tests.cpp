@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/events.h"
-#include "osquery/tables.h"
+#include <osquery/events.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 

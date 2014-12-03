@@ -3,8 +3,8 @@
 
 #include <mutex>
 
-#include "osquery/core.h"
-#include "osquery/tables.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
 
 #include <utmpx.h>
 

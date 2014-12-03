@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "osquery/core.h"
+#include <osquery/core.h>
 
 namespace osquery {
 

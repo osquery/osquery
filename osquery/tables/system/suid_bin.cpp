@@ -9,8 +9,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/system/system_error.hpp>
 
-#include "osquery/logger.h"
-#include "osquery/tables.h"
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/config/plugin.h"
+#include <osquery/config/plugin.h>
 
 #include <algorithm>
 #include <functional>

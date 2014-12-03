@@ -1,7 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/database/results.h"
-
 #include <algorithm>
 #include <iostream>
 #include <sstream>
@@ -13,6 +11,8 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include <glog/logging.h>
+
+#include <osquery/database/results.h>
 
 namespace pt = boost::property_tree;
 using osquery::Status;

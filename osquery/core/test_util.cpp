@@ -10,7 +10,7 @@
 #include <glog/logging.h>
 
 #include "osquery/core/sqlite_util.h"
-#include "osquery/filesystem.h"
+#include <osquery/filesystem.h>
 
 namespace pt = boost::property_tree;
 

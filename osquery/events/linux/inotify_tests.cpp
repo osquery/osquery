@@ -8,10 +8,11 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/events.h"
+#include <osquery/events.h>
+#include <osquery/filesystem.h>
+#include <osquery/tables.h>
+
 #include "osquery/events/linux/inotify.h"
-#include "osquery/filesystem.h"
-#include "osquery/tables.h"
 
 namespace osquery {
 

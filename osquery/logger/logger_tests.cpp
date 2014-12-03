@@ -1,12 +1,11 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/logger.h"
-#include "osquery/logger/plugin.h"
-
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
-#include "osquery/core.h"
+#include <osquery/core.h>
+#include <osquery/logger.h>
+#include <osquery/logger/plugin.h>
 
 using osquery::Status;
 

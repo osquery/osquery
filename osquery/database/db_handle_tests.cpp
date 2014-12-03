@@ -1,7 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/database/db_handle.h"
-
 #include <algorithm>
 
 #include <boost/filesystem/operations.hpp>
@@ -9,7 +7,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-using osquery::Status;
+#include <osquery/database/db_handle.h>
 
 const std::string kTestingDBHandlePath = "/tmp/rocksdb-osquery-dbhandletests";
 

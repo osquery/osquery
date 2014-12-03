@@ -4,8 +4,8 @@
 
 #include <boost/filesystem.hpp>
 
-#include "osquery/tables.h"
-#include "osquery/filesystem.h"
+#include <osquery/tables.h>
+#include <osquery/filesystem.h>
 
 namespace osquery {
 namespace tables {

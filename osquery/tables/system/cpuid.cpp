@@ -6,8 +6,8 @@
 #include <sstream>
 #include <vector>
 
-#include "osquery/core.h"
-#include "osquery/tables.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
 
 #define FEATURE(name, reg, bit) std::make_pair(name, std::make_pair(reg, bit))
 

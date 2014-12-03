@@ -1,18 +1,17 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/scheduler.h"
-
 #include <climits>
 #include <ctime>
 
 #include <glog/logging.h>
 
-#include "osquery/config.h"
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/flags.h"
-#include "osquery/logger.h"
-#include "osquery/sql.h"
+#include <osquery/config.h>
+#include <osquery/core.h>
+#include <osquery/database.h>
+#include <osquery/flags.h>
+#include <osquery/logger.h>
+#include <osquery/sql.h>
+#include <osquery/scheduler.h>
 
 namespace osquery {
 

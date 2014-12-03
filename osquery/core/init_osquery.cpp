@@ -2,10 +2,10 @@
 
 #include <glog/logging.h>
 
-#include "osquery/core.h"
-#include "osquery/flags.h"
-#include "osquery/filesystem.h"
-#include "osquery/registry.h"
+#include <osquery/core.h>
+#include <osquery/flags.h>
+#include <osquery/filesystem.h>
+#include <osquery/registry.h>
 
 namespace osquery {
 

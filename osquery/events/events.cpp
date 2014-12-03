@@ -6,11 +6,12 @@
 
 #include <glog/logging.h>
 
-#include "osquery/core.h"
+#include <osquery/core.h>
+#include <osquery/dispatcher.h>
+#include <osquery/events.h>
+#include <osquery/flags.h>
+
 #include "osquery/core/conversions.h"
-#include "osquery/events.h"
-#include "osquery/flags.h"
-#include "osquery/dispatcher.h"
 
 namespace osquery {
 

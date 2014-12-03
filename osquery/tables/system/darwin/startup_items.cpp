@@ -2,10 +2,10 @@
 
 #include <signal.h>
 
-#include "osquery/core.h"
-#include "osquery/tables.h"
-#include "osquery/filesystem.h"
-#include "osquery/logger.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

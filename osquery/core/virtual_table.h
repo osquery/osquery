@@ -7,8 +7,8 @@
 #include <sqlite3.h>
 #include <stdio.h>
 
-#include "osquery/tables.h"
-#include "osquery/registry.h"
+#include <osquery/tables.h>
+#include <osquery/registry.h>
 
 namespace osquery {
 namespace tables {

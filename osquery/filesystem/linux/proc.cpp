@@ -9,7 +9,7 @@
 
 #include <glog/logging.h>
 
-#include "osquery/filesystem.h"
+#include <osquery/filesystem.h>
 
 namespace osquery {
 
