@@ -5,11 +5,11 @@
 #include <string>
 #include <vector>
 
-#include <sqlite3.h>
-
 #include <boost/filesystem.hpp>
 
-#include "osquery/database/results.h"
+#include <sqlite3.h>
+
+#include <osquery/database/results.h>
 
 #ifndef STR
 #define STR_OF(x) #x

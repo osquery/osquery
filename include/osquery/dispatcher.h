@@ -17,7 +17,7 @@
 #include <thrift/concurrency/ThreadManager.h>
 #endif
 
-#include "osquery/status.h"
+#include <osquery/status.h>
 
 namespace osquery {
 

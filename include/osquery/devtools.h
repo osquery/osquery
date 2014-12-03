@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include "osquery/database/results.h"
+#include <osquery/database/results.h>
 
 namespace osquery {
 
@@ -13,8 +13,8 @@ namespace osquery {
  *
  * @code{.cpp}
  *   // Copyright 2004-present Facebook. All Rights Reserved.
- *   #include "osquery/core.h"
- *   #include "osquery/devtools.h"
+ *   #include <osquery/core.h>
+ *   #include <osquery/devtools.h>
  *
  *   int main(int argc, char *argv[]) {
  *     osquery::initOsquery(argc, argv);

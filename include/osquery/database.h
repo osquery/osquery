@@ -2,6 +2,6 @@
 
 #pragma once
 
-#include "osquery/database/db_handle.h"
-#include "osquery/database/query.h"
-#include "osquery/database/results.h"
+#include <osquery/database/db_handle.h>
+#include <osquery/database/query.h>
+#include <osquery/database/results.h>
