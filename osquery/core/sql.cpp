@@ -1,13 +1,13 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/sql.h"
-
 #include <sstream>
 
-#include <glog/logging.h>
-
 #include "osquery/core.h"
-#include "osquery/registry/registry.h"
+#include "osquery/logger.h"
+#include "osquery/sql.h"
+#include "osquery/tables.h"
+
+#include "osquery/core/virtual_table.h"
 
 namespace osquery {
 

@@ -84,7 +84,6 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   system/shell_history.cpp
   system/suid_bin.cpp
   system/logged_in_users.cpp
-  base.h
 )
 
 ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp)

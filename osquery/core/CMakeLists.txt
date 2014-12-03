@@ -12,6 +12,7 @@ ADD_OSQUERY_LIBRARY(osquery_core
   test_util.cpp
   ${OS_CORE_SOURCE}
   tables.cpp
+  virtual_table.cpp
   text.cpp
   flags.cpp
 )
