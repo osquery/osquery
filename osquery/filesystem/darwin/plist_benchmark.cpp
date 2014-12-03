@@ -1,13 +1,13 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/filesystem.h"
-
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "osquery/core.h"
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/flags.h>
+
 #include "osquery/core/darwin/test_util.h"
-#include "osquery/flags.h"
 
 using namespace osquery::core;
 namespace pt = boost::property_tree;

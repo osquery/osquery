@@ -4,7 +4,7 @@
 
 #import "osquery/core/darwin/NSProcessInfo+PECocoaBackports.h"
 
-#include "osquery/tables.h"
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

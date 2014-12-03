@@ -4,8 +4,8 @@
 #include <glog/logging.h>
 
 #include "osquery/core/darwin/test_util.h"
-#include "osquery/filesystem.h"
-#include "osquery/tables.h"
+#include <osquery/filesystem.h>
+#include <osquery/tables.h>
 
 namespace pt = boost::property_tree;
 

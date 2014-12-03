@@ -2,10 +2,10 @@
 
 #include <sstream>
 
-#include "osquery/core.h"
-#include "osquery/logger.h"
-#include "osquery/sql.h"
-#include "osquery/tables.h"
+#include <osquery/core.h>
+#include <osquery/logger.h>
+#include <osquery/sql.h>
+#include <osquery/tables.h>
 
 #include "osquery/core/virtual_table.h"
 

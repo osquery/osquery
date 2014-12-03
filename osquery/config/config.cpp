@@ -13,10 +13,10 @@
 
 #include <glog/logging.h>
 
-#include "osquery/config.h"
-#include "osquery/config/plugin.h"
-#include "osquery/flags.h"
-#include "osquery/status.h"
+#include <osquery/config.h>
+#include <osquery/config/plugin.h>
+#include <osquery/flags.h>
+#include <osquery/status.h>
 
 using osquery::Status;
 

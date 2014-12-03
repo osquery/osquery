@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/core.h"
+#include <osquery/core.h>
 
 #include <gtest/gtest.h>
 #include <glog/logging.h>

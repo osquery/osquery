@@ -5,9 +5,9 @@
 #include <blkid/blkid.h>
 #include <libudev.h>
 
-#include "osquery/core.h"
-#include "osquery/filesystem.h"
-#include "osquery/tables.h"
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

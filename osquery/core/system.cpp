@@ -1,8 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/core.h"
-#include "osquery/database/db_handle.h"
-
 #include <sys/types.h>
 #include <signal.h>
 
@@ -19,8 +16,10 @@
 
 #include <glog/logging.h>
 
-#include "osquery/filesystem.h"
-#include "osquery/sql.h"
+#include <osquery/core.h>
+#include <osquery/database/db_handle.h>
+#include <osquery/filesystem.h>
+#include <osquery/sql.h>
 
 namespace fs = boost::filesystem;
 

@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/flags.h"
+#include <osquery/flags.h>
 
 namespace osquery {
 

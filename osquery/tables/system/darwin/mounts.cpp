@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <sys/mount.h>
 
-#include "osquery/tables.h"
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

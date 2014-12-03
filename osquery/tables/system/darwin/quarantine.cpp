@@ -10,8 +10,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "osquery/tables.h"
-#include "osquery/logger.h"
+#include <osquery/tables.h>
+#include <osquery/logger.h>
 
 namespace fs = boost::filesystem;
 

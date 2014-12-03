@@ -4,13 +4,13 @@
 
 #include <glog/logging.h>
 
-#include "osquery/config.h"
-#include "osquery/config/plugin.h"
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/events.h"
-#include "osquery/logger/plugin.h"
-#include "osquery/scheduler.h"
+#include <osquery/config.h>
+#include <osquery/config/plugin.h>
+#include <osquery/core.h>
+#include <osquery/database.h>
+#include <osquery/events.h>
+#include <osquery/logger/plugin.h>
+#include <osquery/scheduler.h>
 
 int main(int argc, char* argv[]) {
   osquery::initOsquery(argc, argv, osquery::OSQUERY_TOOL_DAEMON);

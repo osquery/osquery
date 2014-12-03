@@ -2,7 +2,7 @@
 
 #include <ctime>
 
-#include "osquery/tables.h"
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

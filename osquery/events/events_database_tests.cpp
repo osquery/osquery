@@ -4,9 +4,10 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/events.h"
+#include <osquery/events.h>
+#include <osquery/tables.h>
+
 #include "osquery/core/test_util.h"
-#include "osquery/tables.h"
 
 const std::string kTestingEventsDBPath = "/tmp/rocksdb-osquery-testevents";
 

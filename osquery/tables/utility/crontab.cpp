@@ -4,10 +4,10 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include "osquery/core.h"
-#include "osquery/tables.h"
-#include "osquery/filesystem.h"
-#include "osquery/logger.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 namespace osquery {
 namespace tables {

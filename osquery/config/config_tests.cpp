@@ -1,13 +1,12 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/config.h"
-#include "osquery/config/plugin.h"
-
 #include <gtest/gtest.h>
 
-#include "osquery/core.h"
-#include "osquery/status.h"
-#include "osquery/registry.h"
+#include <osquery/core.h>
+#include <osquery/config.h>
+#include <osquery/config/plugin.h>
+#include <osquery/status.h>
+#include <osquery/registry.h>
 
 using osquery::Status;
 

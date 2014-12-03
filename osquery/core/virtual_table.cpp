@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/logger.h"
+#include <osquery/logger.h>
 #include "osquery/core/virtual_table.h"
 
 namespace osquery {

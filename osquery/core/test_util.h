@@ -10,10 +10,10 @@
 
 #include <sqlite3.h>
 
-#include "osquery/config.h"
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <osquery/config.h>
+#include <osquery/core.h>
+#include <osquery/database.h>
+#include <osquery/filesystem.h>
 
 namespace osquery {
 namespace core {

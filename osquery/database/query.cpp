@@ -1,10 +1,8 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/database/query.h"
-
 #include <algorithm>
 
-using osquery::Status;
+#include <osquery/database/query.h>
 
 namespace osquery {
 

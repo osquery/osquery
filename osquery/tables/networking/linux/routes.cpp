@@ -14,8 +14,8 @@
 
 #include <glog/logging.h>
 
-#include "osquery/core.h"
-#include "osquery/tables.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
 #include "osquery/tables/networking/utils.h"
 
 namespace osquery {

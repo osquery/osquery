@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/core.h"
-#include "osquery/talbes.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

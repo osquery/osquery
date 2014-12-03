@@ -1,10 +1,11 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/database.h"
-#include "osquery/logger.h"
-#include "osquery/tables.h"
+#include <osquery/database.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
-#include "osquery/core.h"
+#include <osquery/core.h>
+
 #include "osquery/core/sqlite_util.h"
 #include "osquery/core/virtual_table.h"
 

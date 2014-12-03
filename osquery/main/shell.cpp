@@ -1,9 +1,9 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/devtools.h"
-#include "osquery/events.h"
+#include <osquery/core.h>
+#include <osquery/database.h>
+#include <osquery/devtools.h>
+#include <osquery/events.h>
 
 int main(int argc, char *argv[]) {
   osquery::FLAGS_db_path = "/tmp/rocksdb-osquery-shell";

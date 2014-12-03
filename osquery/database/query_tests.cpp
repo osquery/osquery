@@ -1,7 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/database/query.h"
-
 #include <algorithm>
 #include <ctime>
 #include <deque>
@@ -9,6 +7,8 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <gtest/gtest.h>
+
+#include <osquery/database/query.h>
 
 #include "osquery/core/test_util.h"
 

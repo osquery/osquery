@@ -11,10 +11,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "osquery/core.h"
-#include "osquery/filesystem.h"
-#include "osquery/logger.h"
-#include "osquery/tables.h"
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 #define IPv6_2_IPv4(v6) (((uint8_t *)((struct in6_addr *)v6)->s6_addr) + 12)
 

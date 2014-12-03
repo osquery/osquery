@@ -7,9 +7,9 @@
 #include <stdlib.h>
 #include <libproc.h>
 
-#include "osquery/core.h"
-#include "osquery/logger.h"
-#include "osquery/tables.h"
+#include <osquery/core.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

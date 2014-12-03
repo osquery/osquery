@@ -6,9 +6,10 @@
 
 #include <glog/logging.h>
 
-#include "osquery/events.h"
+#include <osquery/events.h>
+#include <osquery/filesystem.h>
+
 #include "osquery/events/linux/inotify.h"
-#include "osquery/filesystem.h"
 
 namespace osquery {
 
