@@ -4,16 +4,12 @@
 ** This file is generated. Do not modify it manually!
 */
 
-#include <cstring>
-#include <string>
-#include <vector>
-
 #include "osquery/tables.h"
-#include "osquery/tables/base.h"
-#include "osquery/registry/registry.h"
+#include "osquery/core/virtual_table.h"
 
 namespace osquery { namespace tables {
 
+/// BEGIN[GENTABLE]
 {% if class_name == "" %}\
 osquery::QueryData {{function}}(QueryContext& request);
 {% else %}
@@ -23,206 +19,33 @@ class {{class_name}} {
 };
 {% endif %}\
 
-struct sqlite3_{{table_name}} {
-  int n;
-{% for col in schema %}\
-  std::vector<{{col.type.type}}> xCol_{{col.name}};
-{% endfor %}\
-  ConstraintSet xConstraints;
-};
-
-const std::string
-  sqlite3_{{table_name}}_create_table_statement =
-  "CREATE TABLE {{table_name}}("
-  {% for col in schema %}\
-    "{{col.name}} {{col.type.affinity}}\
-{% if not loop.last %}, {% endif %}"
-  {% endfor %}\
-")";
-
-int {{table_name_cc}}Create(
-  sqlite3 *db,
-  void *pAux,
-  int argc,
-  const char *const *argv,
-  sqlite3_vtab **ppVtab,
-  char **pzErr
-) {
-  return xCreate<
-    x_vtab<sqlite3_{{table_name}}>,
-    sqlite3_{{table_name}}
-  >(
-    db, pAux, argc, argv, ppVtab, pzErr,
-    sqlite3_{{table_name}}_create_table_statement.c_str()
-  );
-}
-
-int {{table_name_cc}}Column(
-  sqlite3_vtab_cursor *cur,
-  sqlite3_context *ctx,
-  int col
-) {
-  base_cursor *pCur = (base_cursor*)cur;
-  x_vtab<sqlite3_{{table_name}}> *pVtab =
-    (x_vtab<sqlite3_{{table_name}}>*)cur->pVtab;
-
-  if(pCur->row >= 0 && pCur->row < pVtab->pContent->n) {
-    switch (col) {
-{% for col in schema %}\
-      // {{ col.name }}
-      case {{ loop.index0 }}:
-        if (pVtab->pContent->xCol_{{col.name}}.size() > pCur->row) {
-{% if col.type.affinity == "TEXT" %}\
-          sqlite3_result_text(
-            ctx,
-            (pVtab->pContent->xCol_{{col.name}}[pCur->row]).c_str(),
-            -1,
-            nullptr
-          );
-{% endif %}\
-{% if col.type.affinity == "INTEGER" %}\
-          sqlite3_result_int(
-            ctx,
-            ({{col.type.type}})pVtab->pContent->xCol_{{col.name}}[pCur->row]
-          );
-{% endif %}\
-{% if col.type.affinity == "BIGINT" %}\
-          sqlite3_result_int64(
-            ctx,
-            ({{col.type.type}})pVtab->pContent->xCol_{{col.name}}[pCur->row]
-          );
-{% endif %}\
-        }
-        break;
-{% endfor %}\
-    }
-  }
-  return SQLITE_OK;
-}
-
-static int {{table_name_cc}}BestIndex(
-  sqlite3_vtab *tab,
-  sqlite3_index_info *pIdxInfo
-) {
-  // Will need to check if required=True for any cols.
-  x_vtab<sqlite3_{{table_name}}> *pVtab = (x_vtab<sqlite3_{{table_name}}>*)tab;
-
-  int expr_index = 0;
-  for (int i = 0; i < pIdxInfo->nConstraint; i++) {
-    if (!pIdxInfo->aConstraint[i].usable) {
-      // TODO: OR is not usable.
-      continue;
-    }
-
-    switch (pIdxInfo->aConstraint[i].iColumn) {
-{% for col in schema %}\
-      case {{ loop.index0 }}: // {{col.name}}
-        pVtab->pContent->xConstraints.push_back(
-          std::make_pair(
-            "{{col.name}}",
-            Constraint(pIdxInfo->aConstraint[i].op)
-          )
-        );
-        pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
-        break;
-{% endfor %}\
-    }
-  }
-  return SQLITE_OK;
-}
-
-int {{table_name_cc}}Filter(
-  sqlite3_vtab_cursor *pVtabCursor,
-  int idxNum,
-  const char *idxStr,
-  int argc,
-  sqlite3_value **argv
-) {
-  base_cursor *pCur = (base_cursor *)pVtabCursor;
-  x_vtab<sqlite3_{{table_name}}> *pVtab =
-    (x_vtab<sqlite3_{{table_name}}>*)pVtabCursor->pVtab;
-
-  pCur->row = 0;
-  QueryContext request;
-{% for col in schema %}\
-  pVtab->pContent->xCol_{{col.name}}.clear();
-  request.constraints["{{col.name}}"].affinity = "{{col.type.affinity}}";
-{% endfor %}\
-
-  for (size_t i = 0; i < argc; ++i) {
-    auto expr = (const char *)sqlite3_value_text(argv[i]);
-    // Set the expression from SQLite's now-populated argv.
-    pVtab->pContent->xConstraints[i].second.expr = std::string(expr);
-    // Add the constraint to the column-sorted query request map.
-    request.constraints[pVtab->pContent->xConstraints[i].first].add(
-      pVtab->pContent->xConstraints[i].second);
-  }
-
-{% if class_name != "" %}
-  for (auto& row : osquery::tables::{{class_name}}::{{function}}(request)) {
-{% else %}
-  for (auto& row : osquery::tables::{{function}}(request)) {
-{% endif %}
-{% for col in schema %}\
-{% if col.type.affinity == "TEXT" %}\
-    pVtab->pContent->xCol_{{col.name}}.push_back(row["{{col.name}}"]);
-{% endif %}\
-{% if col.type.affinity in ["INTEGER", "BIGINT"] %}\
-    try {
-      pVtab->pContent->xCol_{{col.name}}\
-.push_back(boost::lexical_cast<{{col.type.type}}>(row["{{col.name}}"]));
-    } catch (const boost::bad_lexical_cast& e) {
-      LOG(WARNING) << "Error casting {{col.name}} (" 
-                   << row["{{col.name}}"] << ") to {{col.type.type}}";
-      pVtab->pContent->xCol_{{col.name}}.push_back(-1);
-    }
-{% endif %}\
-{% endfor %}\
-  }
-
-  pVtab->pContent->n = pVtab->pContent->xCol_{{schema[0].name}}.size();
-
-  return SQLITE_OK;
-}
-
-static sqlite3_module {{table_name_cc}}Module = {
-  0,
-  {{table_name_cc}}Create,
-  {{table_name_cc}}Create,
-  {{table_name_cc}}BestIndex,
-  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
-  xDestroy<x_vtab<sqlite3_{{table_name}}>>,
-  xOpen<base_cursor>,
-  xClose<base_cursor>,
-  {{table_name_cc}}Filter,
-  xNext<base_cursor>,
-  xEof<base_cursor, x_vtab<sqlite3_{{table_name}}>>,
-  {{table_name_cc}}Column,
-  xRowid<base_cursor>,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-};
-
 class {{table_name_cc}}TablePlugin : public TablePlugin {
 public:
-  {{table_name_cc}}TablePlugin() {}
+  TableName name = "{{table_name}}";
+  TableColumns columns = {
+{% for column in schema %}\
+    std::make_pair("{{column.name}}", "{{column.type.affinity}}")\
+{% if not loop.last %}, {% endif %}
+{% endfor %}\
+  };
 
-  int attachVtable(sqlite3 *db) {
-    return sqlite3_attach_vtable<sqlite3_{{table_name}}>(
-      db, "{{table_name}}", &{{table_name_cc}}Module);
+  QueryData generate(QueryContext& request) {
+{% if class_name != "" %}\
+    return osquery::tables::{{class_name}}::{{function}}(request);
+{% else %}\
+    return osquery::tables::{{function}}(request);
+{% endif %}\
   }
 
+public:
+  {{table_name_cc}}TablePlugin() {}
+  int attachVtable(sqlite3 *db) {
+    return sqlite3_attach_vtable<{{table_name_cc}}TablePlugin>(db, name);
+  }
   virtual ~{{table_name_cc}}TablePlugin() {}
 };
 
-REGISTER_TABLE(
-  "{{table_name}}",
-  std::make_shared<{{table_name_cc}}TablePlugin>()
-);
+REGISTER_TABLE("{{table_name}}", std::make_shared<{{table_name_cc}}TablePlugin>());
+/// END[GENTABLE]
 
 }}

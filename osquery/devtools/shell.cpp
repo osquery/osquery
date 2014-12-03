@@ -83,7 +83,7 @@
 #include "osquery/database/results.h"
 #include "osquery/devtools.h"
 #include "osquery/flags.h"
-#include "osquery/registry/registry.h"
+#include "osquery/core/virtual_table.h"
 
 /* Make sure isatty() has a prototype.
 */

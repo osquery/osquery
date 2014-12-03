@@ -1,20 +1,12 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
+#include "osquery/database.h"
+#include "osquery/logger.h"
+#include "osquery/tables.h"
+
 #include "osquery/core.h"
 #include "osquery/core/sqlite_util.h"
-
-#include <iostream>
-#include <map>
-#include <string>
-
-#include <glog/logging.h>
-#include <sqlite3.h>
-
-#include "osquery/database.h"
-#include "osquery/tables/base.h"
-#include "osquery/registry/registry.h"
-
-using namespace osquery::tables;
+#include "osquery/core/virtual_table.h"
 
 namespace osquery {
 

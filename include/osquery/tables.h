@@ -3,9 +3,12 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <vector>
 
 #include <boost/lexical_cast.hpp>
+
+#include <sqlite3.h>
 
 #include "osquery/database/results.h"
 #include "osquery/status.h"
