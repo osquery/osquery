@@ -28,6 +28,19 @@ int xClose(sqlite3_vtab_cursor *cur) {
   return SQLITE_OK;
 }
 
+int xEof(sqlite3_vtab_cursor *cur) {
+  base_cursor *pCur = (base_cursor *)cur;
+  auto *pVtab = (x_vtab<TablePlugin> *)cur->pVtab;
+  return pCur->row >= pVtab->pContent->n;
+}
+
+int xDestroy(sqlite3_vtab *p) {
+  auto *pVtab = (x_vtab<TablePlugin> *)p;
+  delete pVtab->pContent;
+  delete pVtab;
+  return SQLITE_OK;
+}
+
 int xNext(sqlite3_vtab_cursor *cur) {
   base_cursor *pCur = (base_cursor *)cur;
   pCur->row++;
@@ -40,13 +53,11 @@ int xRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid) {
   return SQLITE_OK;
 }
 
-std::string osquery_table::statement(TableName name,
-                                     TableTypes types,
-                                     TableColumns cols) {
+std::string TablePlugin::statement(TableName name, TableColumns columns) {
   std::string statement = "CREATE TABLE " + name + "(";
-  for (size_t i = 0; i < types.size(); ++i) {
-    statement += cols[i] + " " + types[i];
-    if (i < types.size() - 1) {
+  for (size_t i = 0; i < columns.size(); ++i) {
+    statement += columns[i].first + " " + columns[i].second;
+    if (i < columns.size() - 1) {
       statement += ", ";
     }
   }

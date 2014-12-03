@@ -13,11 +13,16 @@
 namespace osquery {
 namespace tables {
 
+/// Helper alias for TablePlugin names.
 typedef const std::string TableName;
-typedef const std::vector<std::string> TableTypes;
-typedef const std::vector<std::string> TableColumns;
+typedef const std::vector<std::pair<std::string, std::string> > TableColumns;
+typedef std::map<std::string, std::vector<std::string> > TableData;
 
-/// osquery cursor object.
+/**
+ * @brief osquery cursor object.
+ *
+ * Only used in the SQLite virtual table module methods.
+ */
 struct base_cursor {
   /// SQLite virtual table cursor.
   sqlite3_vtab_cursor base;
@@ -25,28 +30,41 @@ struct base_cursor {
   int row;
 };
 
-// Our virtual table object
-template <typename T>
+/**
+ * @brief osquery virtual table object
+ *
+ * Only used in the SQLite virtual table module methods.
+ * This adds each table plugin class to the state tracking in SQLite.
+ */
+template <class TABLE_PLUGIN>
 struct x_vtab {
-  // virtual table implementations will normally subclass this structure to add
-  // additional private and implementation-specific fields
   sqlite3_vtab base;
-  // to get custom functionality, add our own struct as well
-  T *pContent;
+  /// To get custom functionality from SQLite virtual tables, add a struct.
+  TABLE_PLUGIN *pContent;
 };
 
-struct osquery_table {
-  // Table data.
+/**
+ * @brief The TablePlugin defines the name, types, and column information.
+ *
+ * To attach a virtual table create a TablePlugin subclass and register the
+ * virtual table name as the plugin ID. osquery will enumerate all registered
+ * TablePlugins and attempt to attach them to SQLite at instanciation.
+ */
+class TablePlugin {
+ public:
+  TableName name;
+  TableColumns columns;
+  /// Helper method to generate the virtual table CREATE statement.
+  std::string statement(TableName name, TableColumns columns);
+
+ public:
+  /// Part of the query state, number of rows generated.
   int n;
-  std::map<std::string, std::vector<std::string> > columns;
+  /// Part of the query state, column data returned from a query.
+  TableData data;
+  /// Part of the query state, parsed set of query predicate constraints.
   ConstraintSet constraints;
 
-  // Helper methods.
-  osquery_table() {}
-  std::string statement(TableName name, TableTypes types, TableColumns cols);
-};
-
-class TablePlugin {
  public:
   virtual int attachVtable(sqlite3 *db) { return -1; }
   virtual ~TablePlugin(){};
@@ -65,12 +83,7 @@ int xNext(sqlite3_vtab_cursor *cur);
 
 int xRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid);
 
-template <typename T>
-int xEof(sqlite3_vtab_cursor *cur) {
-  base_cursor *pCur = (base_cursor *)cur;
-  auto *pVtab = (x_vtab<T> *)cur->pVtab;
-  return pCur->row >= pVtab->pContent->n;
-}
+int xEof(sqlite3_vtab_cursor *cur);
 
 template <typename T>
 int xCreate(sqlite3 *db,
@@ -87,38 +100,31 @@ int xCreate(sqlite3 *db,
 
   memset(pVtab, 0, sizeof(x_vtab<T>));
   auto *pContent = pVtab->pContent = new T;
-  auto create = pContent->statement(
-      pContent->name, pContent->types, pContent->column_names);
+  auto create = pContent->statement(pContent->name, pContent->columns);
   int rc = sqlite3_declare_vtab(db, create.c_str());
 
   *ppVtab = (sqlite3_vtab *)pVtab;
   return rc;
 }
 
-template <typename T>
-int xDestroy(sqlite3_vtab *p) {
-  auto *pVtab = (x_vtab<T> *)p;
-  delete pVtab->pContent;
-  delete pVtab;
-  return SQLITE_OK;
-}
+int xDestroy(sqlite3_vtab *p);
 
 template <typename T>
 int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
   base_cursor *pCur = (base_cursor *)cur;
   auto *pContent = ((x_vtab<T> *)cur->pVtab)->pContent;
 
-  if (col >= pContent->column_names.size()) {
+  if (col >= pContent->columns.size()) {
     return SQLITE_ERROR;
   }
 
-  const auto &column_name = pContent->column_names[col];
-  const auto &type = pContent->types[col];
-  if (pCur->row >= pContent->columns[column_name].size()) {
+  const auto &column_name = pContent->columns[col].first;
+  const auto &type = pContent->columns[col].second;
+  if (pCur->row >= pContent->data[column_name].size()) {
     return SQLITE_ERROR;
   }
 
-  const auto &value = pContent->columns[column_name][pCur->row];
+  const auto &value = pContent->data[column_name][pCur->row];
   if (type == "TEXT") {
     sqlite3_result_text(ctx, value.c_str(), -1, nullptr);
   } else if (type == "INTEGER") {
@@ -157,7 +163,8 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
       continue;
     }
 
-    const auto &name = pContent->column_names[pIdxInfo->aConstraint[i].iColumn];
+    const auto &name =
+        pContent->columns[pIdxInfo->aConstraint[i].iColumn].first;
     pContent->constraints.push_back(
         std::make_pair(name, Constraint(pIdxInfo->aConstraint[i].op)));
     pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
@@ -179,10 +186,10 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   pContent->n = 0;
   QueryContext request;
 
-  for (size_t i = 0; i < pContent->column_names.size(); ++i) {
-    pContent->columns[pContent->column_names[i]].clear();
-    request.constraints[pContent->column_names[i]].affinity =
-        pContent->types[i];
+  for (size_t i = 0; i < pContent->columns.size(); ++i) {
+    pContent->data[pContent->columns[i].first].clear();
+    request.constraints[pContent->columns[i].first].affinity =
+        pContent->columns[i].second;
   }
 
   for (size_t i = 0; i < argc; ++i) {
@@ -195,8 +202,8 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   }
 
   for (auto &row : pContent->generate(request)) {
-    for (const auto &column_name : pContent->column_names) {
-      pContent->columns[column_name].push_back(row[column_name]);
+    for (const auto &column : pContent->columns) {
+      pContent->data[column.first].push_back(row[column.first]);
     }
     pContent->n++;
   }
@@ -213,13 +220,13 @@ int sqlite3_attach_vtable(sqlite3 *db, const std::string &name) {
       xCreate<T>,
       xCreate<T>,
       xBestIndex<T>,
-      xDestroy<T>,
-      xDestroy<T>,
+      xDestroy,
+      xDestroy,
       xOpen,
       xClose,
       xFilter<T>,
       xNext,
-      xEof<T>,
+      xEof,
       xColumn<T>,
       xRowid,
       0,

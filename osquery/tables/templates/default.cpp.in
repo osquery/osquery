@@ -19,17 +19,12 @@ class {{class_name}} {
 };
 {% endif %}\
 
-struct osquery_table_{{table_name}} : virtual osquery_table {
+class {{table_name_cc}}TablePlugin : public TablePlugin {
+public:
   TableName name = "{{table_name}}";
-  TableTypes types = {
+  TableColumns columns = {
 {% for column in schema %}\
-    "{{column.type.affinity}}"\
-{% if not loop.last %}, {% endif %}
-{% endfor %}\
-  };
-  TableColumns column_names = {
-{% for column in schema %}\
-    "{{column.name}}"\
+    std::make_pair("{{column.name}}", "{{column.type.affinity}}")\
 {% if not loop.last %}, {% endif %}
 {% endfor %}\
   };
@@ -41,22 +36,16 @@ struct osquery_table_{{table_name}} : virtual osquery_table {
     return osquery::tables::{{function}}(request);
 {% endif %}\
   }
-};
 
-class {{table_name_cc}}TablePlugin : public TablePlugin {
 public:
   {{table_name_cc}}TablePlugin() {}
   int attachVtable(sqlite3 *db) {
-    return sqlite3_attach_vtable<osquery_table_{{table_name}}>(db, 
-      "{{table_name}}");
+    return sqlite3_attach_vtable<{{table_name_cc}}TablePlugin>(db, name);
   }
   virtual ~{{table_name_cc}}TablePlugin() {}
 };
 
-REGISTER_TABLE(
-  "{{table_name}}",
-  std::make_shared<{{table_name_cc}}TablePlugin>()
-);
+REGISTER_TABLE("{{table_name}}", std::make_shared<{{table_name_cc}}TablePlugin>());
 /// END[GENTABLE]
 
 }}
