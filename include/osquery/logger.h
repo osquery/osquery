@@ -8,8 +8,8 @@
 
 #include <glog/logging.h>
 
-#include "osquery/status.h"
-#include "osquery/database.h"
+#include <osquery/status.h>
+#include <osquery/database.h>
 
 namespace osquery {
 

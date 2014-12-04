@@ -12,9 +12,9 @@
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 
-#include "osquery/database.h"
-#include "osquery/registry.h"
-#include "osquery/status.h"
+#include <osquery/database.h>
+#include <osquery/registry.h>
+#include <osquery/status.h>
 
 namespace osquery {
 
@@ -85,7 +85,7 @@ extern const std::vector<size_t> kEventTimeLists;
  * following:
  *
  * @code{.cpp}
- *   #include "osquery/events.h"
+ *   #include <osquery/events.h>
  *
  *   class MyEventPublisher: public EventPublisher {
  *     DECLARE_EVENTPUBLISHER(MyEventPublisher, MySubscriptionContext,
@@ -128,7 +128,7 @@ extern const std::vector<size_t> kEventTimeLists;
  * following:
  *
  * @code{.cpp}
- *   #include "osquery/events.h"
+ *   #include <osquery/events.h>
  *
  *   class MyEventSubscriber: public EventSubscriber {
  *     DECLARE_EVENTSUBSCRIBER(MyEventSubscriber, MyEventPublisher);
@@ -164,7 +164,7 @@ extern const std::vector<size_t> kEventTimeLists;
  * callin/callback functions:
  *
  * @code{.cpp}
- *   #include "osquery/events.h"
+ *   #include <osquery/events.h>
  *
  *   class MyEventSubscriber: public EventSubscriber {
  *     DECLARE_EVENTSUBSCRIBER(MyEventSubscriber, MyEventPublisher);
@@ -209,7 +209,7 @@ extern const std::vector<size_t> kEventTimeLists;
  * will be called.
  *
  * @code{.cpp}
- *   #include "osquery/events.h"
+ *   #include <osquery/events.h>
  *
  *   class MyEventSubscriber: public EventSubscriber {
  *     DECLARE_EVENTSUBSCRIBER(MyEventSubscriber, MyEventPublisher);

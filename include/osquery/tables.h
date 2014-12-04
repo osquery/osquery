@@ -10,8 +10,8 @@
 
 #include <sqlite3.h>
 
-#include "osquery/database/results.h"
-#include "osquery/status.h"
+#include <osquery/database/results.h>
+#include <osquery/status.h>
 
 namespace osquery {
 namespace tables {

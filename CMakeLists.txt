@@ -4,6 +4,8 @@ PROJECT(OSQUERY)
 if(APPLE)
   set(APPLE_MIN_ABI "10.9")
   set(OS_COMPILE_FLAGS "-std=c++11 -stdlib=libc++ -mmacosx-version-min=${APPLE_MIN_ABI}")
+  # Special compile flags for Objective-C++
+  set(OBJCXX_COMPILE_FLAGS "-x objective-c++ -fobjc-arc ")
   set(OS_WHOLELINK_PRE "-Wl,-all_load")
   set(OS_WHOLELINK_POST "")
 else()
@@ -25,8 +27,8 @@ endif()
 
 # Use osquery language to set platform/os
 execute_process(
-  COMMAND ${CMAKE_SOURCE_DIR}/tools/provision.sh get_platform
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" get_platform
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   OUTPUT_VARIABLE PLATFORM
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -37,8 +39,8 @@ list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO)
 
 # Make sure deps were built before compiling
 execute_process(
-  COMMAND ${CMAKE_SOURCE_DIR}/tools/provision.sh check ${CMAKE_BINARY_DIR}
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" check "${CMAKE_BINARY_DIR}"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   OUTPUT_VARIABLE OSQUERY_DEPS_MESSAGE
   RESULT_VARIABLE OSQUERY_DEPS_CHECK
   OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -70,7 +72,7 @@ endif()
 
 set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} ${USER_COMPILE_FLAGS}")
 
-SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" ${CMAKE_MODULE_PATH})
+SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
 FIND_PACKAGE(Gtest REQUIRED)
 FIND_PACKAGE(Sqlite3 REQUIRED)
 FIND_PACKAGE(BZip2 REQUIRED)
@@ -103,8 +105,8 @@ FIND_PACKAGE(Doxygen)
 if(DOXYGEN_FOUND)
   ADD_CUSTOM_TARGET(
     docs
-    ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Doxyfile
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    "${DOXYGEN_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Doxyfile"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Generating API documentation with Doxygen" VERBATIM
   )
 endif(DOXYGEN_FOUND)
@@ -113,14 +115,14 @@ endif(DOXYGEN_FOUND)
 ADD_CUSTOM_TARGET(
   format-all
   find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \) -exec clang-format -i {} +
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting all osquery code with clang-format" VERBATIM
 )
 
 ADD_CUSTOM_TARGET(
   format
-  python tools/formatting/git-clang-format.py
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  python "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
 

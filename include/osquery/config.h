@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-#include "osquery/status.h"
+#include <osquery/status.h>
 
 namespace osquery {
 

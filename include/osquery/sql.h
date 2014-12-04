@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "osquery/database/results.h"
+#include <osquery/database/results.h>
 
 namespace osquery {
 

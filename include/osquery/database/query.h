@@ -8,10 +8,10 @@
 
 #include <gtest/gtest_prod.h>
 
-#include "osquery/config.h"
-#include "osquery/database/db_handle.h"
-#include "osquery/database/results.h"
-#include "osquery/status.h"
+#include <osquery/config.h>
+#include <osquery/database/db_handle.h>
+#include <osquery/database/results.h>
+#include <osquery/status.h>
 
 namespace osquery {
 

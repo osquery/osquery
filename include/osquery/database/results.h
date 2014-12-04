@@ -9,7 +9,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "osquery/status.h"
+#include <osquery/status.h>
 
 namespace osquery {
 
