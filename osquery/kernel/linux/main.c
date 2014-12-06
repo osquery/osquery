@@ -81,7 +81,6 @@ static void __exit camb_exit(void) {
   if (camb_kobj) {
     kobject_put(camb_kobj);
   }
-
 }
 
 module_init(camb_init);
