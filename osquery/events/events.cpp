@@ -128,20 +128,23 @@ std::vector<std::string> EventSubscriber::getIndexes(EventTime start,
     // the first bin's start time and the last bin's stop time.
     // (3) The last iteration's range includes relaxed bounds outside the
     // requested start to stop range.
-    std::vector<std::string> all_bins, bins;
+    std::vector<std::string> all_bins, bins, expirations;
     boost::split(all_bins, time_list, boost::is_any_of(","));
     for (const auto& bin : all_bins) {
       // Bins are identified by the binning size step.
-      auto step = boost::lexical_cast<int>(bin);
+      auto step = boost::lexical_cast<EventTime>(bin);
       // Check if size * step -> size * (step + 1) is within a range.
       int bin_start = size * step, bin_stop = size * (step + 1);
-      if (bin_start >= start && bin_stop <= start_max) {
+      if (expire_events_ && step * size < expire_time_) {
+        expirations.push_back(list_type + "." + bin);
+      } else if (bin_start >= start && bin_stop <= start_max) {
         bins.push_back(bin);
       } else if ((bin_start >= stop_min && bin_stop <= stop) || stop == 0) {
         bins.push_back(bin);
       }
     }
 
+    expireIndexes(list_type, all_bins, expirations);
     if (bins.size() != 0) {
       // If more percision was acheived though this list's binning.
       local_start = boost::lexical_cast<EventTime>(bins.front()) * size;
@@ -162,13 +165,48 @@ std::vector<std::string> EventSubscriber::getIndexes(EventTime start,
   return indexes;
 }
 
-std::vector<EventRecord> EventSubscriber::getRecords(EventTime start,
-                                                     EventTime stop) {
+Status EventSubscriber::expireIndexes(
+    const std::string& list_type,
+    const std::vector<std::string>& indexes,
+    const std::vector<std::string>& expirations) {
+  auto db = DBHandle::getInstance();
+  auto index_key = "indexes." + dbNamespace();
+  auto record_key = "records." + dbNamespace();
+  auto data_key = "data." + dbNamespace();
+
+  // Get the records list for the soon-to-be expired records.
+  std::vector<std::string> record_indexes;
+  for (const auto& bin : expirations) {
+    record_indexes.push_back(list_type + "." + bin);
+  }
+  auto expired_records = getRecords(record_indexes);
+
+  // Remove the records using the list of expired indexes.
+  std::vector<std::string> persisting_indexes = indexes;
+  for (const auto& bin : expirations) {
+    db->Delete(kEvents, record_key + "." + list_type + "." + bin);
+    persisting_indexes.erase(
+        std::remove(persisting_indexes.begin(), persisting_indexes.end(), bin),
+        persisting_indexes.end());
+  }
+
+  // Update the list of indexes with the non-expired indexes.
+  auto new_indexes = boost::algorithm::join(persisting_indexes, ",");
+  db->Put(kEvents, index_key + "." + list_type, new_indexes);
+
+  // Delete record events.
+  for (const auto& record : expired_records) {
+    db->Delete(kEvents, data_key + "." + record.first);
+  }
+
+  return Status(0, "OK");
+}
+
+std::vector<EventRecord> EventSubscriber::getRecords(
+    const std::vector<std::string>& indexes) {
   auto db = DBHandle::getInstance();
   auto record_key = "records." + dbNamespace();
   std::vector<EventRecord> records;
-
-  auto indexes = getIndexes(start, stop);
 
   for (const auto& index : indexes) {
     std::string record_value;
@@ -192,15 +230,7 @@ std::vector<EventRecord> EventSubscriber::getRecords(EventTime start,
     }
   }
 
-  // Now all the event_ids/event_times within the binned range exist.
-  // Select further on the EXACT time range.
-  std::vector<EventRecord> mapped_records;
-  for (const auto& record : records) {
-    if (record.second >= start && (record.second <= stop || stop == 0)) {
-      mapped_records.push_back(record);
-    }
-  }
-  return mapped_records;
+  return records;
 }
 
 Status EventSubscriber::recordEvent(EventID eid, EventTime time) {
@@ -292,13 +322,21 @@ QueryData EventSubscriber::get(EventTime start, EventTime stop) {
   auto db = DBHandle::getInstance();
 
   // Get the records for this time range.
-  auto records = getRecords(start, stop);
+  auto indexes = getIndexes(start, stop);
+  auto records = getRecords(indexes);
+
+  std::vector<EventRecord> mapped_records;
+  for (const auto& record : records) {
+    if (record.second >= start && (record.second <= stop || stop == 0)) {
+      mapped_records.push_back(record);
+    }
+  }
 
   std::string events_key = "data." + dbNamespace();
 
-  // Select records using event_ids as keys.
+  // Select mapped_records using event_ids as keys.
   std::string data_value;
-  for (const auto& record : records) {
+  for (const auto& record : mapped_records) {
     Row r;
     status = db->Get(kEvents, events_key + "." + record.first, data_value);
     if (data_value.length() == 0) {

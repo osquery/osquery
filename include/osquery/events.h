@@ -503,7 +503,7 @@ class EventSubscriber {
    *
    * @return List of EventID, EventTime%s
    */
-  std::vector<EventRecord> getRecords(EventTime start, EventTime stop);
+  std::vector<EventRecord> getRecords(const std::vector<std::string>& indexes);
 
  private:
   /**
@@ -521,7 +521,7 @@ class EventSubscriber {
    */
   EventID getEventID();
 
-  /*
+  /**
    * @brief Plan the best set of indexes for event record access.
    *
    * @param start an inclusive time to begin searching.
@@ -534,7 +534,20 @@ class EventSubscriber {
                                       EventTime stop,
                                       int list_key = 0);
 
-  /*
+  /**
+   * @brief Expire indexes and eventually records.
+   *
+   * @param list_type the string representation of list binning type.
+   * @param indexes complete set of 'index.step' indexes for the list_type.
+   * @param expirations of the indexes, the set to expire.
+   *
+   * @return status if the indexes and records were removed.
+   */
+  Status expireIndexes(const std::string& list_type,
+                       const std::vector<std::string>& indexes,
+                       const std::vector<std::string>& expirations);
+
+  /**
    * @brief Add an EventID, EventTime pair to all matching list types.
    *
    * The list types are defined by time size. Based on the EventTime this pair
@@ -558,7 +571,10 @@ class EventSubscriber {
    * EventPublisher instances will have run `setUp` and initialized their run
    * loops.
    */
-  EventSubscriber() { expire_events_ = true; }
+  EventSubscriber() {
+    expire_events_ = true;
+    expire_time_ = 0;
+  }
   virtual ~EventSubscriber() {}
 
   /// Backing storage indexing namespace definition methods.

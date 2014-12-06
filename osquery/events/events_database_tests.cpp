@@ -110,29 +110,42 @@ TEST_F(EventsDatabaseTests, test_record_indexing) {
 
 TEST_F(EventsDatabaseTests, test_record_range) {
   auto fake_event_module = FakeEventSubscriber::getInstance();
-  
+
   // Search within a specific record range.
-  auto records = fake_event_module->getRecords(0, 10);
-  EXPECT_EQ(records.size(), 2); // 2, 11
+  auto indexes = fake_event_module->getIndexes(0, 10);
+  auto records = fake_event_module->getRecords(indexes);
+  EXPECT_EQ(records.size(), 2); // 1, 2
+
   // Search within a large bound.
-  records = fake_event_module->getRecords(3, 3601);
-  EXPECT_EQ(records.size(), 3); // 11, 61, 3601
-  
+  indexes = fake_event_module->getIndexes(3, 3601);
+  // This will include the 0-10 bucket meaning 1, 2 will show up.
+  records = fake_event_module->getRecords(indexes);
+  EXPECT_EQ(records.size(), 5); // 1, 2, 11, 61, 3601
+
   // Get all of the records.
-  records = fake_event_module->getRecords(0, 3 * 3600);
+  indexes = fake_event_module->getIndexes(0, 3 * 3600);
+  records = fake_event_module->getRecords(indexes);
   EXPECT_EQ(records.size(), 8); // 1, 2, 11, 61, 3601, 7201, 7211, 7261
+
   // stop = 0 is an alias for everything.
-  records = fake_event_module->getRecords(0, 0);
+  indexes = fake_event_module->getIndexes(0, 0);
+  records = fake_event_module->getRecords(indexes);
   EXPECT_EQ(records.size(), 8);
 }
 
 TEST_F(EventsDatabaseTests, test_record_expiration) {
   auto fake_event_module = FakeEventSubscriber::getInstance();
-  auto status = fake_event_module->testAdd(1);
-  EXPECT_TRUE(status.ok());
+
+  // No expiration
+  auto indexes = fake_event_module->getIndexes(0, 60);
+  auto records = fake_event_module->getRecords(indexes);
+  EXPECT_EQ(records.size(), 3); // 1, 2, 11
+
+  fake_event_module->expire_time_ = 10;
+  indexes = fake_event_module->getIndexes(0, 60);
+  records = fake_event_module->getRecords(indexes);
+  EXPECT_EQ(records.size(), 1); // 11
 }
-
-
 }
 
 int main(int argc, char* argv[]) {
