@@ -21,7 +21,7 @@ else
 endif
 
 ifdef HIDE_ME
-  OPTS += -D_HIDE_ME
+  OPTS += -DHIDE_ME
   camb-objs += hide.o
 endif
 
@@ -29,18 +29,18 @@ all:
 
 ifndef SMAP
   ifndef TEXT_SEGMENT_START
-    @echo "Missing parameter: TEXT_SEGMENT_START"
-    @exit 1
+		@echo "Missing parameter: TEXT_SEGMENT_START"
+		@exit 1
   endif
 
   ifndef TEXT_SEGMENT_END
-    @echo "Missing parameter: TEXT_SEGMENT_END"
-    @exit 1
+		@echo "Missing parameter: TEXT_SEGMENT_END"
+		@exit 1
   endif
 
   ifndef SYSCALL_BASE_ADDR
-    @echo "Missing parameter: SYSCALL_BASE_ADDR"
-    @exit 1
+		@echo "Missing parameter: SYSCALL_BASE_ADDR"
+		@exit 1
   endif
 endif
 

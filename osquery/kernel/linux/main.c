@@ -19,7 +19,7 @@
 
 #include "sysfs.h"
 #include "hash.h"
-#ifdef _HIDE_ME
+#ifdef HIDE_ME
   #include "hide.h"
 #endif
 
@@ -28,7 +28,6 @@ char *module_str = "camb";
 
 static unsigned long **syscall_table = (unsigned long **) SYSCALL_BASE_ADDR;
 static unsigned long *syscall_table_copy[NR_syscalls];
-int (*orig_init_module)(void *, unsigned long, const char *);
 
 /* Allow writes to executable memory pages */
 void en_mem_wr(void) {
@@ -69,7 +68,7 @@ static int __init camb_init(void) {
   }
 
   /* Hide the fact that we're monitoring the system for tampering */
-#ifdef _HIDE_ME
+#ifdef HIDE_ME
   hide_me();
 #endif
 
