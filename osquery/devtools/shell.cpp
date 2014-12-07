@@ -86,6 +86,11 @@
 
 #include "osquery/core/virtual_table.h"
 
+// Json is a specific form of pretty printing.
+namespace osquery {
+DECLARE_bool(json);
+}
+
 /* Make sure isatty() has a prototype.
 */
 extern int isatty(int);
@@ -994,6 +999,21 @@ static void interrupt_handler(int NotUsed) {
 }
 #endif
 
+void callback_row(int nArg, char **azArg, char **azCol, osquery::Row &r) {
+  for (int i = 0; i < nArg; i++) {
+    std::string header;
+    if (azCol[i] != nullptr) {
+      header = std::string(azCol[i]);
+    }
+
+    std::string result;
+    if (azArg[i] != nullptr) {
+      result = std::string(azArg[i]);
+    }
+    r[header] = result;
+  }
+}
+
 /*
 ** This is the callback routine that the shell
 ** invokes for each row of a query result.
@@ -1005,7 +1025,6 @@ static int shell_callback(
 
   switch (p->mode) {
   case MODE_Pretty: {
-
     if (p->prettyPrint->resultsOrder.size() == 0) {
       for (i = 0; i < nArg; i++) {
         p->prettyPrint->resultsOrder.push_back(std::string(azCol[i]));
@@ -1013,18 +1032,7 @@ static int shell_callback(
     }
 
     osquery::Row r;
-    for (i = 0; i < nArg; i++) {
-      std::string header;
-      if (azCol[i] != nullptr) {
-        header = std::string(azCol[i]);
-      }
-
-      std::string result;
-      if (azArg[i] != nullptr) {
-        result = std::string(azArg[i]);
-      }
-      r[header] = result;
-    }
+    callback_row(nArg, azArg, azCol, r);
     p->prettyPrint->queryData.push_back(r);
     break;
   }
@@ -1836,10 +1844,14 @@ static int shell_exec(
   } /* end while */
 
   if (pArg->mode == MODE_Pretty) {
-    osquery::prettyPrint(pArg->prettyPrint->queryData,
-                         pArg->prettyPrint->resultsOrder);
-    pArg->prettyPrint->queryData.clear();
-    pArg->prettyPrint->resultsOrder.clear();
+    if (osquery::FLAGS_json) {
+      osquery::jsonPrint(pArg->prettyPrint->queryData);
+    } else {
+      osquery::prettyPrint(pArg->prettyPrint->queryData,
+                           pArg->prettyPrint->resultsOrder);
+      pArg->prettyPrint->queryData.clear();
+      pArg->prettyPrint->resultsOrder.clear();
+    }
   }
 
   return rc;
@@ -4101,6 +4113,7 @@ DEFINE_shell_flag(bool, batch, false, "force batch I/O");
 DEFINE_shell_flag(bool, column, false, "set output mode to 'column'");
 DEFINE_shell_flag(string, cmd, "", "run \"COMMAND\" before reading stdin");
 DEFINE_shell_flag(bool, csv, false, "set output mode to 'csv'");
+DEFINE_shell_flag(bool, json, false, "set output mode to 'json'");
 DEFINE_shell_flag(bool, echo, false, "print commands before execution");
 DEFINE_shell_flag(string, init, "", "read/process named file");
 DEFINE_shell_flag(bool, header, true, "turn headers on or off");
