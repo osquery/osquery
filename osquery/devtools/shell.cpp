@@ -1849,9 +1849,9 @@ static int shell_exec(
     } else {
       osquery::prettyPrint(pArg->prettyPrint->queryData,
                            pArg->prettyPrint->resultsOrder);
-      pArg->prettyPrint->queryData.clear();
-      pArg->prettyPrint->resultsOrder.clear();
     }
+    pArg->prettyPrint->queryData.clear();
+    pArg->prettyPrint->resultsOrder.clear();
   }
 
   return rc;
