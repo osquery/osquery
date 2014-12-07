@@ -113,6 +113,21 @@ void prettyPrint(const QueryData& q, const std::vector<std::string>& order) {
   std::cout << beautify(q, order);
 }
 
+void jsonPrint(const QueryData& q) {
+  printf("[\n");
+  for (int i = 0; i < q.size(); ++i) {
+    std::string row_string;
+    if (serializeRowJSON(q[i], row_string).ok()) {
+      row_string.pop_back();
+      printf("  %s", row_string.c_str());
+      if (i < q.size() - 1) {
+        printf(",\n");
+      }
+    }
+  }
+  printf("\n]\n");
+}
+
 std::map<std::string, int> computeQueryDataLengths(const QueryData& q) {
   std::map<std::string, int> results;
 

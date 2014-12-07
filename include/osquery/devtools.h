@@ -49,6 +49,16 @@ std::string beautify(const QueryData& q, const std::vector<std::string>& order);
 void prettyPrint(const QueryData& q, const std::vector<std::string>& order);
 
 /**
+ * @brief JSON print a QueryData object
+ *
+ * This is a helper method which allows a shell or other tool to print results
+ * in a JSON format.
+ *
+ * @param q The QueryData object to print
+ */
+void jsonPrint(const QueryData& q);
+
+/**
  * @brief Compute a map of metadata about the supplied QueryData object
  *
  * @param q The QueryData object to analyze
