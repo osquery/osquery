@@ -503,7 +503,7 @@ class EventSubscriber {
    *
    * @return List of EventID, EventTime%s
    */
-  std::vector<EventRecord> getRecords(EventTime start, EventTime stop);
+  std::vector<EventRecord> getRecords(const std::vector<std::string>& indexes);
 
  private:
   /**
@@ -521,7 +521,33 @@ class EventSubscriber {
    */
   EventID getEventID();
 
-  /*
+  /**
+   * @brief Plan the best set of indexes for event record access.
+   *
+   * @param start an inclusive time to begin searching.
+   * @param stop an inclusive time to end searching.
+   * @param list_key optional key to bind to a specific index binning.
+   *
+   * @return List of 'index.step' index strings.
+   */
+  std::vector<std::string> getIndexes(EventTime start, 
+                                      EventTime stop,
+                                      int list_key = 0);
+
+  /**
+   * @brief Expire indexes and eventually records.
+   *
+   * @param list_type the string representation of list binning type.
+   * @param indexes complete set of 'index.step' indexes for the list_type.
+   * @param expirations of the indexes, the set to expire.
+   *
+   * @return status if the indexes and records were removed.
+   */
+  Status expireIndexes(const std::string& list_type,
+                       const std::vector<std::string>& indexes,
+                       const std::vector<std::string>& expirations);
+
+  /**
    * @brief Add an EventID, EventTime pair to all matching list types.
    *
    * The list types are defined by time size. Based on the EventTime this pair
@@ -545,7 +571,10 @@ class EventSubscriber {
    * EventPublisher instances will have run `setUp` and initialized their run
    * loops.
    */
-  EventSubscriber() {}
+  EventSubscriber() {
+    expire_events_ = true;
+    expire_time_ = 0;
+  }
   virtual ~EventSubscriber() {}
 
   /// Backing storage indexing namespace definition methods.
@@ -554,8 +583,16 @@ class EventSubscriber {
   virtual EventPublisherID type() const = 0;
   /// The string name identifying this EventSubscriber.
   virtual EventPublisherID name() const = 0;
+  /// Disable event expiration for this subscriber.
+  void doNotExpire() { expire_events_ = false; }
 
  private:
+  /// Do not respond to periodic/scheduled/triggered event expiration requests.
+  bool expire_events_;
+
+  /// Events before the expire_time_ are invalid and will be purged.
+  EventTime expire_time_;
+
   /// Lock used when incrementing the EventID database index.
   boost::mutex event_id_lock_;
 
@@ -565,6 +602,9 @@ class EventSubscriber {
  private:
   FRIEND_TEST(EventsDatabaseTests, test_event_module_id);
   FRIEND_TEST(EventsDatabaseTests, test_unique_event_module_id);
+  FRIEND_TEST(EventsDatabaseTests, test_record_indexing);
+  FRIEND_TEST(EventsDatabaseTests, test_record_range);
+  FRIEND_TEST(EventsDatabaseTests, test_record_expiration);
 };
 
 /**

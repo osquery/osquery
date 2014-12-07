@@ -1,5 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem/operations.hpp>
 
 #include <gtest/gtest.h>
@@ -25,10 +26,11 @@ class FakeEventSubscriber : public EventSubscriber {
   DECLARE_EVENTSUBSCRIBER(FakeEventSubscriber, FakeEventPublisher);
 
  public:
-  Status testAdd(int i) {
+  /// Add a fake event at time t
+  Status testAdd(int t) {
     Row r;
     r["testing"] = "hello from space";
-    return add(r, i);
+    return add(r, t);
   }
 };
 
@@ -60,13 +62,89 @@ TEST_F(EventsDatabaseTests, test_unique_event_module_id) {
 }
 
 TEST_F(EventsDatabaseTests, test_event_add) {
-  Row r;
-  r["testing"] = std::string("hello from space");
-  size_t event_time = 10;
-
   auto fake_event_module = FakeEventSubscriber::getInstance();
   auto status = fake_event_module->testAdd(1);
   EXPECT_TRUE(status.ok());
+}
+
+TEST_F(EventsDatabaseTests, test_record_indexing) {
+  auto fake_event_module = FakeEventSubscriber::getInstance();
+  auto status = fake_event_module->testAdd(2);
+  status = fake_event_module->testAdd(11);
+  status = fake_event_module->testAdd(61);
+  status = fake_event_module->testAdd((1 * 3600) + 1);
+  status = fake_event_module->testAdd((2 * 3600) + 1);
+
+  // An "all" range, will pick up everything in the largest index.
+  auto indexes = fake_event_module->getIndexes(0, 3 * 3600);
+  auto output = boost::algorithm::join(indexes, ", ");
+  EXPECT_EQ(output, "3600.0, 3600.1, 3600.2");
+
+  // Restrict range to "most specific".
+  indexes = fake_event_module->getIndexes(0, 5);
+  output = boost::algorithm::join(indexes, ", ");
+  EXPECT_EQ(output, "10.0");
+
+  // Get a mix of indexes for the lower bounding.
+  indexes = fake_event_module->getIndexes(2, (3 * 3600));
+  output = boost::algorithm::join(indexes, ", ");
+  EXPECT_EQ(output, "3600.1, 3600.2, 60.1, 10.0, 10.1");
+
+  // Rare, but test ONLY intermediate indexes.
+  indexes = fake_event_module->getIndexes(2, (3 * 3600), 1);
+  output = boost::algorithm::join(indexes, ", ");
+  EXPECT_EQ(output, "60.0, 60.1, 60.60, 60.120");
+
+  // Add specific indexes to the upper bound.
+  status = fake_event_module->testAdd((2 * 3600) + 11);
+  status = fake_event_module->testAdd((2 * 3600) + 61);
+  indexes = fake_event_module->getIndexes(2 * 3600, (2 * 3600) + 62);
+  output = boost::algorithm::join(indexes, ", ");
+  EXPECT_EQ(output, "60.120, 10.726");
+
+  // Request specific lower and upper bounding.
+  indexes = fake_event_module->getIndexes(2, (2 * 3600) + 62);
+  output = boost::algorithm::join(indexes, ", ");
+  EXPECT_EQ(output, "3600.1, 60.1, 60.120, 10.0, 10.1, 10.726");
+}
+
+TEST_F(EventsDatabaseTests, test_record_range) {
+  auto fake_event_module = FakeEventSubscriber::getInstance();
+
+  // Search within a specific record range.
+  auto indexes = fake_event_module->getIndexes(0, 10);
+  auto records = fake_event_module->getRecords(indexes);
+  EXPECT_EQ(records.size(), 2); // 1, 2
+
+  // Search within a large bound.
+  indexes = fake_event_module->getIndexes(3, 3601);
+  // This will include the 0-10 bucket meaning 1, 2 will show up.
+  records = fake_event_module->getRecords(indexes);
+  EXPECT_EQ(records.size(), 5); // 1, 2, 11, 61, 3601
+
+  // Get all of the records.
+  indexes = fake_event_module->getIndexes(0, 3 * 3600);
+  records = fake_event_module->getRecords(indexes);
+  EXPECT_EQ(records.size(), 8); // 1, 2, 11, 61, 3601, 7201, 7211, 7261
+
+  // stop = 0 is an alias for everything.
+  indexes = fake_event_module->getIndexes(0, 0);
+  records = fake_event_module->getRecords(indexes);
+  EXPECT_EQ(records.size(), 8);
+}
+
+TEST_F(EventsDatabaseTests, test_record_expiration) {
+  auto fake_event_module = FakeEventSubscriber::getInstance();
+
+  // No expiration
+  auto indexes = fake_event_module->getIndexes(0, 60);
+  auto records = fake_event_module->getRecords(indexes);
+  EXPECT_EQ(records.size(), 3); // 1, 2, 11
+
+  fake_event_module->expire_time_ = 10;
+  indexes = fake_event_module->getIndexes(0, 60);
+  records = fake_event_module->getRecords(indexes);
+  EXPECT_EQ(records.size(), 1); // 11
 }
 }
 
