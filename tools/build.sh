@@ -11,6 +11,7 @@ cd $SCRIPT_DIR/../
 
 # Builds dependencies
 make deps
+make clean
 
 # Build osquery
 make -j$THREADS
