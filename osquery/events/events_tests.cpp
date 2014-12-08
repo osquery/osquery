@@ -96,7 +96,10 @@ class TestEventPublisher : public EventPublisher {
                          EventContext);
 
  public:
-  void setUp() { smallest_ever_ += 1; }
+  Status setUp() {
+    smallest_ever_ += 1;
+    return Status(0, "OK");
+  }
 
   void configure() {
     int smallest_subscription = smallest_ever_;

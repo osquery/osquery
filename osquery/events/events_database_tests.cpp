@@ -44,6 +44,7 @@ class AnotherFakeEventSubscriber : public EventSubscriber {
 
 TEST_F(EventsDatabaseTests, test_event_module_id) {
   auto fake_event_module = FakeEventSubscriber::getInstance();
+  fake_event_module->doNotExpire();
   // Not normally available outside of EventSubscriber->Add().
   auto event_id1 = fake_event_module->getEventID();
   EXPECT_EQ(event_id1, "1");
@@ -141,6 +142,7 @@ TEST_F(EventsDatabaseTests, test_record_expiration) {
   auto records = fake_event_module->getRecords(indexes);
   EXPECT_EQ(records.size(), 3); // 1, 2, 11
 
+  fake_event_module->expire_events_ = true;
   fake_event_module->expire_time_ = 10;
   indexes = fake_event_module->getIndexes(0, 60);
   records = fake_event_module->getRecords(indexes);

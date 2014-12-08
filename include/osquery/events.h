@@ -329,7 +329,7 @@ class EventPublisher {
    * When `setUp` is called the EventPublisher is running in a dedicated thread
    * and may manage/allocate/wait for resources.
    */
-  virtual void setUp() {}
+  virtual Status setUp() { return Status(0, "Not used."); }
 
   /**
    * @brief Perform handle closing, resource cleanup.

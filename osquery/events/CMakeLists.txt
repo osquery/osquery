@@ -14,6 +14,7 @@ elseif(FREEBSD)
 else()
   ADD_OSQUERY_LIBRARY(osquery_events_linux
     linux/inotify.cpp
+    linux/udev.cpp
   )
 endif()
 

@@ -31,12 +31,13 @@ std::map<int, std::string> kMaskActions = {
     {IN_OPEN, "OPENED"},
 };
 
-void INotifyEventPublisher::setUp() {
+Status INotifyEventPublisher::setUp() {
   inotify_handle_ = ::inotify_init();
   // If this does not work throw an exception.
   if (inotify_handle_ == -1) {
-    // Todo: throw exception and DO NOT register this eventtype.
+    return Status(1, "Could not init inotify.");
   }
+  return Status(0, "OK");
 }
 
 void INotifyEventPublisher::configure() {
