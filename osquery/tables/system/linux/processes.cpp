@@ -2,8 +2,6 @@
 
 #include <string>
 #include <fstream>
-#include <streambuf>
-#include <sstream>
 #include <map>
 
 #include <stdlib.h>
@@ -51,6 +49,11 @@ std::string proc_cmdline(const proc_t* proc_info) {
   if (fd) {
     result = std::string(std::istreambuf_iterator<char>(fd),
                          std::istreambuf_iterator<char>());
+    std::replace_if(
+      result.begin(),
+      result.end(),
+      [](const char& c) { return c == 0; },
+      ' ');
   }
 
   return result;
