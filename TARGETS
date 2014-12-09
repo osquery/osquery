@@ -13,25 +13,20 @@ OSQUERY_IGNORES = [
 
 OSQUERY_MACROS = [
   "-DFBOSQUERY",
+  "-DOSQUERY_BUILD_VERSION=1.2.0",
+  "-DCENTOS",
+  "-DCENTOS_CENTOS6_6",
 ]
 
 OSQUERY_FLAGS = OSQUERY_INCLUDES + OSQUERY_IGNORES + OSQUERY_MACROS
-
-python_binary(
-  name="gentable",
-  main_module="osquery.tools.gentable",
-  srcs=[
-    "tools/gentable.py",
-  ],
-  external_deps=[
-    "Jinja2",
-  ],
-)
 
 cpp_library(
   name="core",
   srcs=[
     "osquery/core/init_osquery.cpp",
+    "osquery/core/flags.cpp",
+    "osquery/core/tables.cpp",
+    "osquery/core/virtual_table.cpp",
     "osquery/core/sql.cpp",
     "osquery/core/sqlite_util.cpp",
     "osquery/core/system.cpp",
@@ -171,7 +166,6 @@ cpp_library(
 cpp_library(
   name="registry",
   srcs=[
-    "osquery/registry/registry.cpp",
   ],
   external_deps=[
     "boost",
@@ -215,7 +209,7 @@ cpp_library(
     "osquery/tables/networking/linux/port_inode.cpp",
     "osquery/tables/networking/linux/routes.cpp",
     "osquery/tables/networking/linux/socket_inode.cpp",
-    "osquery/tables/system/bash_history.cpp",
+    "osquery/tables/system/shell_history.cpp",
     "osquery/tables/system/cpuid.cpp",
     "osquery/tables/system/last.cpp",
     "osquery/tables/system/suid_bin.cpp",
@@ -227,8 +221,11 @@ cpp_library(
     #"osquery/tables/system/linux/processes.cpp",
     #"osquery/tables/system/linux/rpm_packages.cpp",
     "osquery/tables/system/linux/users.cpp",
+    "osquery/tables/system/logged_in_users.cpp",
     "osquery/tables/utility/crontab.cpp",
     "osquery/tables/utility/time.cpp",
+    "osquery/tables/utility/file.cpp",
+    "osquery/tables/utility/hash.cpp",
   ],
   deps=[
     "@/osquery:core",
