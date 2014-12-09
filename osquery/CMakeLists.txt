@@ -6,16 +6,20 @@ SET(OSQUERY_LIBS
 )
 
 SET(OSQUERY_APPLE_LIBS
-  boost_thread-mt
-  boost_system
-  boost_filesystem
-  boost_program_options
-  boost_regex
-  thrift
-  rocksdb
-  gflags
-  glog
+  /usr/local/lib/libboost_thread-mt.a
+  /usr/local/lib/libboost_system.a
+  /usr/local/lib/libboost_filesystem.a
+  /usr/local/lib/libboost_program_options.a
+  /usr/local/lib/libboost_regex.a
+  /usr/local/lib/libthrift.a
+  /usr/local/lib/librocksdb.a
+  /usr/local/lib/libsnappy.a
+  /usr/local/lib/liblz4.a
+  /usr/local/lib/libgflags.a
+  /usr/local/lib/libglog.a
   dl
+  bz2
+  z
 )
 
 # Warning: Do not statically compile unwind
@@ -82,6 +86,7 @@ set(OSQUERY_SOURCES "")
 set(OSQUERY_ADDITIONAL_LINKS "")
 
 if(NOT BUILD_SHARED)
+  set(Boost_USE_STATIC_LIBS ON)
   SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
   SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 endif()
@@ -240,7 +245,6 @@ ADD_LIBRARY(osquery_generated_tables OBJECT
 SET_OSQUERY_COMPILE(osquery_generated_tables)
 
 # Add subdirectories
-
 ADD_SUBDIRECTORY(config)
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(database)
