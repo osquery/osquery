@@ -4,12 +4,11 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
 
@@ -46,6 +45,7 @@ void EventPublisher::fire(const EventContextRef ec, EventTime time) {
       if (time == 0) {
         time = getUnixTime();
       }
+      // Todo: add a check to assure normalized (seconds) time.
       ec->time = time;
     }
 
@@ -162,6 +162,7 @@ std::vector<std::string> EventSubscriber::getIndexes(EventTime start,
     }
   }
 
+  // Update the new time that events expire to now - expiry.
   return indexes;
 }
 
@@ -393,10 +394,11 @@ Status EventFactory::run(EventPublisherID type_id) {
     return Status(1, "No Event Type");
   }
 
-  Status status = Status(0, "OK");
+  auto status = Status(0, "OK");
   while (!EventFactory::getInstance().ending_ && status.ok()) {
     // Can optionally implement a global cooloff latency here.
     status = event_pub->run();
+    ::usleep(20);
   }
 
   // The runloop status is not reflective of the event type's.
@@ -424,8 +426,12 @@ Status EventFactory::registerEventPublisher(const EventPublisherRef event_pub) {
     return Status(1, "Duplicate Event Type");
   }
 
+  if (!event_pub->setUp().ok()) {
+    // Only add the publisher if setUp was successful.
+    return Status(1, "SetUp failed.");
+  }
+
   ef.event_pubs_[type_id] = event_pub;
-  event_pub->setUp();
   return Status(0, "OK");
 }
 

@@ -1,0 +1,15 @@
+table_name("hardware_events")
+schema([
+    Column("action", TEXT),
+    Column("path", TEXT),
+    Column("type", TEXT),
+    Column("driver", TEXT),
+    Column("model", TEXT),
+    Column("model_id", INTEGER),
+    Column("vendor", TEXT),
+    Column("vendor_id", INTEGER),
+    Column("serial", INTEGER),
+    Column("revision", INTEGER),
+    Column("time", INTEGER),
+])
+implementation("events/hardware_events@HardwareEventSubscriber::genTable")
