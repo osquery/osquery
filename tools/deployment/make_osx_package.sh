@@ -104,52 +104,49 @@ function main() {
   # we don't need the preinstall for anything so let's skip it until we do
   # echo "$SCRIPT_PREFIX_TEXT" > $PREINSTALL
   # chmod +x $PREINSTALL
+
   echo "$SCRIPT_PREFIX_TEXT" > $POSTINSTALL
   chmod +x $POSTINSTALL
 
-  log "calculating dependency tree"
-  dependency_list=("${BREW_PACKAGES[@]}")
-  for package in ${BREW_PACKAGES[*]}; do
-    for dep in `brew deps $package`; do
-      if ! contains_element $dep "${dependency_list[@]}"; then
-        if [[ "$dep" != "openssl" ]]; then dependency_list+=($dep); fi
-      fi
+  if [[ $SIMPLE_INSTALL = false ]]; then
+    log "calculating dependency tree"
+    dependency_list=("${BREW_PACKAGES[@]}")
+    for package in ${BREW_PACKAGES[*]}; do
+      for dep in `brew deps $package`; do
+        if ! contains_element $dep "${dependency_list[@]}"; then
+          if [[ "$dep" != "openssl" ]]; then dependency_list+=($dep); fi
+        fi
+      done
     done
-  done
 
-  log "calculating library dependencies"
-  libs=`otool -L "$BUILD_DIR/osquery/osqueryd" | sed 1d | awk '{print $1}' | grep "/usr/local"`
+    log "calculating library dependencies"
+    libs=`otool -L "$BUILD_DIR/osquery/osqueryd" | sed 1d | awk '{print $1}' | grep "/usr/local"`
 
-  log "copying dependencies"
-  for dep in ${dependency_list[*]}; do
-    dep_dir=`brew info $dep | grep Cellar | grep '*' | awk '{print $1}'`
-    brew unlink $dep 2>&1  1>/dev/null
-    if [[ $SIMPLE_INSTALL = true ]]; then
-      # If a simple install is requested only copy the dylibs
-      links=`brew link --dry-run $dep | sed 1d | { grep dylib || true; }`
-      if [[ -z $links ]]; then continue; fi
-    else
+    log "copying dependencies"
+    for dep in ${dependency_list[*]}; do
+      dep_dir=`brew info $dep | grep Cellar | grep '*' | awk '{print $1}'`
+      brew unlink $dep 2>&1  1>/dev/null
       links=`brew link --dry-run $dep | sed 1d`
-    fi
-    brew link --overwrite $dep 2>&1  1>/dev/null
-    echo "    - $dep ($dep_dir)"
-    mkdir -p $INSTALL_PREFIX`dirname $dep_dir`
-    cp -r $dep_dir $INSTALL_PREFIX`dirname $dep_dir`
-    mkdir -p "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula"
-    cp "$BREW_PREFIX/Library/Formula/$dep.rb" "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula/$dep.rb"
-    for link in $links; do
-      # Skip if this link was not in the brew prefix.
-      if [[ ! $link = $BREW_PREFIX* ]]; then continue;
-      #elif [[ ! $libs =~ $link ]]; then continue;
-      fi
-      target="`dirname $link`/`ls -l $link | awk '{print $11}'`"
-      echo "if [ ! -e `dirname $link` ]; then rm -f `dirname $link`; fi" >> $POSTINSTALL
-      echo "mkdir -p `dirname $link`" >> $POSTINSTALL
-      echo "rm -rf $link" >> $POSTINSTALL
-      echo "ln -s $target $link" >> $POSTINSTALL
-      echo "" >> $POSTINSTALL
+      brew link --overwrite $dep 2>&1  1>/dev/null
+      echo "    - $dep ($dep_dir)"
+      mkdir -p $INSTALL_PREFIX`dirname $dep_dir`
+      cp -r $dep_dir $INSTALL_PREFIX`dirname $dep_dir`
+      mkdir -p "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula"
+      cp "$BREW_PREFIX/Library/Formula/$dep.rb" "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula/$dep.rb"
+      for link in $links; do
+        # Skip if this link was not in the brew prefix.
+        if [[ ! $link = $BREW_PREFIX* ]]; then continue;
+        #elif [[ ! $libs =~ $link ]]; then continue;
+        fi
+        target="`dirname $link`/`ls -l $link | awk '{print $11}'`"
+        echo "if [ ! -e `dirname $link` ]; then rm -f `dirname $link`; fi" >> $POSTINSTALL
+        echo "mkdir -p `dirname $link`" >> $POSTINSTALL
+        echo "rm -rf $link" >> $POSTINSTALL
+        echo "ln -s $target $link" >> $POSTINSTALL
+        echo "" >> $POSTINSTALL
+      done
     done
-  done
+  fi
 
   log "copying osquery binaries"
   BINARY_INSTALL_DIR="$INSTALL_PREFIX/usr/local/bin/"
