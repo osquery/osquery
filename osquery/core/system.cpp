@@ -1,5 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
+#include <sstream>
+
 #include <sys/types.h>
 #include <signal.h>
 
@@ -117,14 +119,39 @@ Status createPidFile() {
     }
 
     if (kill(osqueryd_pid, 0) == 0) {
-      // if the pid is running, return an "error" status
-      return Status(1, "osqueryd is already running");
+      // if the pid is running, check if it's osqueryd
+      std::stringstream query_text;
+      query_text << "SELECT name FROM processes WHERE pid = " << osqueryd_pid
+                 << ";";
+      auto q = SQL(query_text.str());
+      if (!q.ok()) {
+        return Status(
+            1, "Error querying the processes table: " + q.getMessageString());
+      }
+      try {
+        if (q.rows().size() == 1 && q.rows().front()["name"] == "osqueryd") {
+          // if the process really is osqueryd, return an "error" status
+          return Status(1, "osqueryd is already running");
+        } else {
+          // if it's not osqueryd, some other process has the pid. delete it
+          // anyway
+          LOG(INFO) << "found process running with same pid but it's not "
+                    << "osqueryd, deleting it";
+          goto delete_pidfile;
+        }
+      } catch (const std::exception& e) {
+        return Status(1,
+                      "An exception was thrown checking the query results: " +
+                          std::string(e.what()));
+      }
     } else if (errno == ESRCH) {
       // if the pid isn't running, overwrite the pidfile
+    delete_pidfile:
       try {
         boost::filesystem::remove(FLAGS_pidfile);
       } catch (boost::filesystem::filesystem_error& e) {
         // Unable to remove old pidfile.
+        LOG(WARNING) << "Unable to remove the old pidfile";
       }
       goto write_new_pidfile;
     } else {
