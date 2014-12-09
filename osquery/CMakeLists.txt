@@ -88,7 +88,7 @@ endif()
 
 # Generate version from git
 execute_process(
-  COMMAND git describe --tags HEAD
+  COMMAND git describe --tags HEAD --always
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   OUTPUT_VARIABLE OSQUERY_BUILD_VERSION
   OUTPUT_STRIP_TRAILING_WHITESPACE
