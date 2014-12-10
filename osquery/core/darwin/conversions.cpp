@@ -7,16 +7,31 @@
 namespace osquery {
 
 std::string stringFromCFString(const CFStringRef& cf_string) {
-  CFIndex length;
-  char *buffer;
-
   // Access, then convert the CFString. CFStringGetCStringPtr is less-safe.
-  length = CFStringGetLength(cf_string);
-  buffer = (char *)malloc(length + 1);
+  CFIndex length = CFStringGetLength(cf_string);
+  char* buffer = (char*)malloc(length + 1);
   if (!CFStringGetCString(
           cf_string, buffer, length + 1, kCFStringEncodingASCII)) {
     free(buffer);
     return "";
+  }
+
+  // Cleanup allocations.
+  std::string result(buffer);
+  free(buffer);
+  return result;
+}
+
+std::string stringFromCFData(const CFDataRef& cf_data) {
+  CFRange range = CFRangeMake(0, CFDataGetLength(cf_data));
+  char* buffer = (char*)malloc(range.length + 1);
+  memset(buffer, 0, range.length + 1);
+
+  CFDataGetBytes(cf_data, range, (UInt8*)buffer);
+  for (CFIndex i = 0; i < range.length; ++i) {
+    if (buffer[i] == 0) {
+      buffer[i] = ' ';
+    }
   }
 
   // Cleanup allocations.

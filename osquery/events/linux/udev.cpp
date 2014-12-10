@@ -70,8 +70,16 @@ Status UdevEventPublisher::run() {
 
 std::string UdevEventPublisher::getValue(struct udev_device* device,
                                          const std::string& property) {
-  auto value = udev_device_get_property_value(
-      device, std::string("ID_" + property).c_str());
+  auto value = udev_device_get_property_value(device, property.c_str());
+  if (value != nullptr) {
+    return std::string(value);
+  }
+  return "";
+}
+
+std::string UdevEventPublisher::getAttr(struct udev_device* device,
+                                        const std::string& attr) {
+  auto value = udev_device_get_sysattr_value(device, attr.c_str());
   if (value != nullptr) {
     return std::string(value);
   }

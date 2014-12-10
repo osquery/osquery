@@ -51,17 +51,19 @@ Status HardwareEventSubscriber::Callback(const UdevEventContextRef ec) {
   r["driver"] = ec->driver;
 
   // UDEV properties.
-  r["model"] = UdevEventPublisher::getValue(device, "MODEL");
+  r["model"] = UdevEventPublisher::getValue(device, "ID_MODEL_FROM_DATABASE");
   if (r["path"].empty() && r["model"].empty()) {
     // Don't emit mising path/model combos.
     return Status(0, "Missing path and model.");
   }
 
-  r["model_id"] = INTEGER(UdevEventPublisher::getValue(device, "MODEL_ID"));
-  r["vendor"] = UdevEventPublisher::getValue(device, "VENDOR");
-  r["vendor_id"] = INTEGER(UdevEventPublisher::getValue(device, "VENDOR_ID"));
-  r["serial"] = INTEGER(UdevEventPublisher::getValue(device, "SERIAL_SHORT"));
-  r["revision"] = INTEGER(UdevEventPublisher::getValue(device, "REVISION"));
+  r["model_id"] = INTEGER(UdevEventPublisher::getValue(device, "ID_MODEL_ID"));
+  r["vendor"] = UdevEventPublisher::getValue(device, "ID_VENDOR_FROM_DATABASE");
+  r["vendor_id"] =
+      INTEGER(UdevEventPublisher::getValue(device, "ID_VENDOR_ID"));
+  r["serial"] =
+      INTEGER(UdevEventPublisher::getValue(device, "ID_SERIAL_SHORT"));
+  r["revision"] = INTEGER(UdevEventPublisher::getValue(device, "ID_REVISION"));
 
   r["time"] = INTEGER(ec->time);
   add(r, ec->time);

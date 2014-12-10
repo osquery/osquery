@@ -25,6 +25,7 @@ if(APPLE)
     system/darwin/processes.cpp
     system/darwin/process_open_files.cpp
     system/darwin/quarantine.cpp
+    system/darwin/pci_devices.cpp
     system/darwin/usb_devices.cpp
     system/darwin/startup_items.cpp
   )
@@ -56,6 +57,7 @@ else()
     system/linux/groups.cpp
     system/linux/mounts.cpp
     system/linux/pci_devices.cpp
+    system/linux/usb_devices.cpp
     system/linux/block_devices.cpp
   )
 
