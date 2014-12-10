@@ -38,8 +38,14 @@ typename boost::shared_ptr<T> std_to_boost_shared_ptr(
 }
 
 #ifdef DARWIN
-/// Get a std::string from a CStringRef.
+/**
+ * @brief Convert a CFStringRef to a std::string.
+ */
 std::string stringFromCFString(const CFStringRef& cf_string);
+
+/**
+ * @brief Convert a CFNumberRef to a std::string.
+ */
 std::string stringFromCFNumber(const CFDataRef& cf_number);
 #endif
 

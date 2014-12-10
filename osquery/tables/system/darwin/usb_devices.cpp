@@ -22,7 +22,7 @@ std::string getUSBProperty(const CFMutableDictionaryRef& details,
   if (property) {
     if (CFGetTypeID(property) == CFNumberGetTypeID()) {
       return stringFromCFNumber((CFDataRef)property);
-    } else { //if (CFGetTypeID(property) == CFStringGetTypeID()) {
+    } else if (CFGetTypeID(property) == CFStringGetTypeID()) {
       return stringFromCFString((CFStringRef)property);
     }
   }
