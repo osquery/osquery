@@ -39,7 +39,7 @@ typename boost::shared_ptr<T> std_to_boost_shared_ptr(
 
 #ifdef DARWIN
 /// Get a std::string from a CStringRef.
-std::string stringFromCFString(const CFStringRef cf_string);
+std::string stringFromCFString(const CFStringRef& cf_string);
 std::string stringFromCFNumber(const CFDataRef& cf_number);
 #endif
 

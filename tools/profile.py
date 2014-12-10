@@ -351,7 +351,8 @@ if __name__ == "__main__":
         help="Run the profile for N rounds and use the average."
     )
     group.add_argument(
-        "--shell", metavar="PATH", default="./build/%s/tools/run" % (platform),
+        "--shell", metavar="PATH", default="./build/%s/tools/tests/run" % (
+            platform),
         help="Path to osquery run wrapper (./build/<sys>/tools/run)."
     )
 

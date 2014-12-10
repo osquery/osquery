@@ -6,7 +6,7 @@
 
 namespace osquery {
 
-std::string stringFromCFString(const CFStringRef cf_string) {
+std::string stringFromCFString(const CFStringRef& cf_string) {
   CFIndex length;
   char *buffer;
 
