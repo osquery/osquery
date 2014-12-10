@@ -1,14 +1,12 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <ctime>
-
 #include <pwd.h>
 #include <grp.h>
 #include <sys/stat.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/system/system_error.hpp>
 
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -24,7 +22,7 @@ std::vector<std::string> kBinarySearchPaths = {
   "/usr/sbin",
   "/usr/local/bin",
   "/usr/local/sbin",
-  "/tmp"
+  "/tmp",
 };
 
 Status genBin(const fs::path& path, int perms, QueryData& results) {
@@ -82,27 +80,42 @@ bool isSuidBin(const fs::path& path, int perms) {
   return false;
 }
 
-QueryData genSuidBinsFromPath(const std::string& path, QueryData& results) {
+void genSuidBinsFromPath(const std::string& path, QueryData& results) {
+  if (!pathExists(path).ok()) {
+    // Creating an iterator on a missing path will except.
+    return;
+  }
+
   auto it = fs::recursive_directory_iterator(fs::path(path));
-  auto end = fs::recursive_directory_iterator();
-  for (; it != end; ++it) {
+  fs::recursive_directory_iterator end;
+  while (it != end) {
+    fs::path path = *it;
     try {
-      fs::path path = *it;
-      int perms = path.status().permissions();
-      if (isSuidBin(path, perms)) {
-        genBin(path, parms, results);
+      // Do not traverse symlinked directories.
+      if (fs::is_directory(path) && fs::is_symlink(path)) {
+        it.no_push();
       }
+
+      int perms = it.status().permissions();
+      if (isSuidBin(path, perms)) {
+        // Only emit suid bins.
+        genBin(path, perms, results);
+      }
+
+      ++it;
     } catch (fs::filesystem_error& e) {
       VLOG(1) << "Cannot read binary from " << path;
       it.no_push();
+      // Try to recover, otherwise break.
+      try { ++it; } catch(fs::filesystem_error& e) { break; }
     }
   }
-
 }
 
 QueryData genSuidBin(QueryContext& context) {
   QueryData results;
 
+  // Todo: add hidden column to select on that triggers non-std path searches.
   for (const auto& path : kBinarySearchPaths) {
     genSuidBinsFromPath(path, results);
   }
