@@ -44,6 +44,8 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
       bytes = recv(socket_fd, output, MAX_NETLINK_SIZE - message_size, 0);
       if (bytes < 0) {
         return Status(1, "Could not read from NETLINK.");
+      } else if (bytes == 0) {
+        ::usleep(20);
       }
     }
 
