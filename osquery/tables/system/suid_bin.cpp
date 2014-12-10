@@ -1,23 +1,31 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <ctime>
-
 #include <pwd.h>
 #include <grp.h>
 #include <sys/stat.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/system/system_error.hpp>
 
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
 
-Status genBin(const boost::filesystem::path& path,
-              int perms,
-              QueryData& results) {
+std::vector<std::string> kBinarySearchPaths = {
+  "/bin",
+  "/sbin",
+  "/usr/bin",
+  "/usr/sbin",
+  "/usr/local/bin",
+  "/usr/local/sbin",
+  "/tmp",
+};
+
+Status genBin(const fs::path& path, int perms, QueryData& results) {
   struct stat info;
   // store user and group
   if (stat(path.c_str(), &info) != 0) {
@@ -27,7 +35,6 @@ Status genBin(const boost::filesystem::path& path,
   // store path
   Row r;
   r["path"] = path.string();
-
   struct passwd *pw = getpwuid(info.st_uid);
   struct group *gr = getgrgid(info.st_gid);
 
@@ -62,43 +69,55 @@ Status genBin(const boost::filesystem::path& path,
   return Status(0, "OK");
 }
 
-QueryData genSuidBin(QueryContext& context) {
-  QueryData results;
-  boost::system::error_code error;
-
-#if defined(UBUNTU)
-  // When building on supported Ubuntu systems, boost may ABRT.
-  if (geteuid() != 0) {
-    return results;
+bool isSuidBin(const fs::path& path, int perms) {
+  if (!fs::is_regular_file(path)) {
+    return false;
   }
-#endif
 
-  boost::filesystem::recursive_directory_iterator it =
-      boost::filesystem::recursive_directory_iterator(
-          boost::filesystem::path("/"), error);
-
-  if (error.value() != boost::system::errc::success) {
-    LOG(ERROR) << "Error opening \"/\": " << error.message();
-    return results;
+  if ((perms & 04000) == 04000 || (perms & 02000) == 02000) {
+    return true;
   }
-  boost::filesystem::recursive_directory_iterator end;
+  return false;
+}
 
+void genSuidBinsFromPath(const std::string& path, QueryData& results) {
+  if (!pathExists(path).ok()) {
+    // Creating an iterator on a missing path will except.
+    return;
+  }
+
+  auto it = fs::recursive_directory_iterator(fs::path(path));
+  fs::recursive_directory_iterator end;
   while (it != end) {
-    boost::filesystem::path path = *it;
+    fs::path path = *it;
     try {
+      // Do not traverse symlinked directories.
+      if (fs::is_directory(path) && fs::is_symlink(path)) {
+        it.no_push();
+      }
+
       int perms = it.status().permissions();
-      if (boost::filesystem::is_regular_file(path) &&
-          ((perms & 04000) == 04000 || (perms & 02000) == 02000)) {
+      if (isSuidBin(path, perms)) {
+        // Only emit suid bins.
         genBin(path, perms, results);
       }
-    } catch (...) {
-      // handle invalid files like /dev/fd/3
-    }
-    try {
+
       ++it;
-    } catch (std::exception &ex) {
-      it.no_push(); // handle permission error.
+    } catch (fs::filesystem_error& e) {
+      VLOG(1) << "Cannot read binary from " << path;
+      it.no_push();
+      // Try to recover, otherwise break.
+      try { ++it; } catch(fs::filesystem_error& e) { break; }
     }
+  }
+}
+
+QueryData genSuidBin(QueryContext& context) {
+  QueryData results;
+
+  // Todo: add hidden column to select on that triggers non-std path searches.
+  for (const auto& path : kBinarySearchPaths) {
+    genSuidBinsFromPath(path, results);
   }
 
   return results;
