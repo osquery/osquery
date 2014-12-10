@@ -25,6 +25,20 @@ namespace osquery {
 // respective value
 /////////////////////////////////////////////////////////////////////////////
 
+std::string escapeString(std::string data){
+  return pt::json_parser::create_escapes(data);
+}
+
+void escapeQueryData(const QueryData &oldData, QueryData &newData) {
+  for (const auto& r : oldData) {
+    Row newRow;
+    for (auto& i : r) {
+      newRow[i.first] = escapeString(i.second);
+    }
+    newData.push_back(newRow);
+  }
+}
+
 Status serializeRow(const Row& r, pt::ptree& tree) {
   try {
     for (auto& i : r) {

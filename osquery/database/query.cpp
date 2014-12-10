@@ -92,11 +92,16 @@ osquery::Status Query::addNewResults(const osquery::QueryData& qd,
   if (!hqr_status.ok() && hqr_status.toString() != kQueryNameNotFoundError) {
     return hqr_status;
   }
+
+  QueryData newQd;
+  // remove all non-ascii characters from the string
+  escapeQueryData(qd, newQd);
+
   if (calculate_diff) {
-    dr = diff(hQR.mostRecentResults.second, qd);
+    dr = diff(hQR.mostRecentResults.second, newQd);
   }
   hQR.mostRecentResults.first = unix_time;
-  hQR.mostRecentResults.second = qd;
+  hQR.mostRecentResults.second = newQd;
   std::string json;
   auto serialize_status = serializeHistoricalQueryResultsJSON(hQR, json);
   if (!serialize_status.ok()) {

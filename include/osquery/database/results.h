@@ -345,4 +345,9 @@ Status serializeScheduledQueryLogItemAsEventsJSON(
  * @return true if the Row was added to the QueryData, false if it wasn't
  */
 bool addUniqueRowToQueryData(QueryData& q, const Row& r);
+
+/**
+ * TODO documentation
+ */
+void escapeQueryData(const osquery::QueryData &oldData, osquery::QueryData &newData);
 }
