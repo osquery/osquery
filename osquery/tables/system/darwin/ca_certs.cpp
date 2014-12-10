@@ -232,7 +232,7 @@ CFDataRef CreatePropertyFromCertificate(const SecCertificateRef &cert,
   return property;
 }
 
-bool CertificateIsCA(const SecCertificateRef cert) {
+bool CertificateIsCA(const SecCertificateRef& cert) {
   std::string expected_label = "Certificate Authority";
   std::string expected_value = "Yes";
   CFDataRef constraints;

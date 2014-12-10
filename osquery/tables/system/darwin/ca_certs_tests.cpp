@@ -8,10 +8,12 @@
 #include <Security/Security.h>
 
 #include <gtest/gtest.h>
-#include <glog/logging.h>
 
-#include "osquery/core/test_util.h"
 #include <osquery/database.h>
+#include <osquery/logger.h>
+
+#include "osquery/core/conversions.h"
+#include "osquery/core/test_util.h"
 
 using namespace osquery::core;
 namespace bai = boost::archive::iterators;
@@ -22,14 +24,12 @@ namespace tables {
 typedef bai::binary_from_base64<const char*> base64_str;
 typedef bai::transform_width<base64_str, 8, 6> base64_dec;
 
-bool CertificateIsCA(const SecCertificateRef);
+bool CertificateIsCA(const SecCertificateRef&);
 CFDataRef CreatePropertyFromCertificate(const SecCertificateRef&,
                                         const CFTypeRef&);
-std::string genSHA1ForCertificate(const SecCertificateRef);
-
-std::string genCommonNameProperty(const CFDataRef);
-std::string genNumberProperty(const CFDataRef);
-std::string genKIDProperty(const CFDataRef);
+std::string genSHA1ForCertificate(const SecCertificateRef&);
+std::string genCommonNameProperty(const CFDataRef&);
+std::string genKIDProperty(const CFDataRef&);
 
 std::string base64_decode(const std::string& encoded) {
   std::string is;
@@ -113,7 +113,7 @@ TEST_F(CACertsTests, test_certificate_properties) {
 
   oid = kSecOIDX509V1ValidityNotBefore;
   property = CreatePropertyFromCertificate(cert, oid);
-  prop_string = genNumberProperty(property);
+  prop_string = stringFromCFNumber(property);
 
   EXPECT_EQ("430168336", prop_string);
   CFRelease(property);
