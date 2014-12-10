@@ -12,12 +12,22 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 namespace tables {
 
-Status genBin(const boost::filesystem::path& path,
-              int perms,
-              QueryData& results) {
+std::vector<std::string> kBinarySearchPaths = {
+  "/bin",
+  "/sbin",
+  "/usr/bin",
+  "/usr/sbin",
+  "/usr/local/bin",
+  "/usr/local/sbin",
+  "/tmp"
+};
+
+Status genBin(const fs::path& path, int perms, QueryData& results) {
   struct stat info;
   // store user and group
   if (stat(path.c_str(), &info) != 0) {
@@ -27,7 +37,6 @@ Status genBin(const boost::filesystem::path& path,
   // store path
   Row r;
   r["path"] = path.string();
-
   struct passwd *pw = getpwuid(info.st_uid);
   struct group *gr = getgrgid(info.st_gid);
 
@@ -62,43 +71,40 @@ Status genBin(const boost::filesystem::path& path,
   return Status(0, "OK");
 }
 
+bool isSuidBin(const fs::path& path, int perms) {
+  if (!fs::is_regular_file(path)) {
+    return false;
+  }
+
+  if ((perms & 04000) == 04000 || (perms & 02000) == 02000) {
+    return true;
+  }
+  return false;
+}
+
+QueryData genSuidBinsFromPath(const std::string& path, QueryData& results) {
+  auto it = fs::recursive_directory_iterator(fs::path(path));
+  auto end = fs::recursive_directory_iterator();
+  for (; it != end; ++it) {
+    try {
+      fs::path path = *it;
+      int perms = path.status().permissions();
+      if (isSuidBin(path, perms)) {
+        genBin(path, parms, results);
+      }
+    } catch (fs::filesystem_error& e) {
+      VLOG(1) << "Cannot read binary from " << path;
+      it.no_push();
+    }
+  }
+
+}
+
 QueryData genSuidBin(QueryContext& context) {
   QueryData results;
-  boost::system::error_code error;
 
-#if defined(UBUNTU)
-  // When building on supported Ubuntu systems, boost may ABRT.
-  if (geteuid() != 0) {
-    return results;
-  }
-#endif
-
-  boost::filesystem::recursive_directory_iterator it =
-      boost::filesystem::recursive_directory_iterator(
-          boost::filesystem::path("/"), error);
-
-  if (error.value() != boost::system::errc::success) {
-    LOG(ERROR) << "Error opening \"/\": " << error.message();
-    return results;
-  }
-  boost::filesystem::recursive_directory_iterator end;
-
-  while (it != end) {
-    boost::filesystem::path path = *it;
-    try {
-      int perms = it.status().permissions();
-      if (boost::filesystem::is_regular_file(path) &&
-          ((perms & 04000) == 04000 || (perms & 02000) == 02000)) {
-        genBin(path, perms, results);
-      }
-    } catch (...) {
-      // handle invalid files like /dev/fd/3
-    }
-    try {
-      ++it;
-    } catch (std::exception &ex) {
-      it.no_push(); // handle permission error.
-    }
+  for (const auto& path : kBinarySearchPaths) {
+    genSuidBinsFromPath(path, results);
   }
 
   return results;
