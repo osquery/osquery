@@ -3,10 +3,10 @@ schema([
     Column("usb_address", INTEGER),
     Column("usb_port", INTEGER),
     Column("vendor", TEXT),
-    Column("vendor_id", INTEGER),
+    Column("vendor_id", TEXT),
     Column("model", TEXT),
-    Column("model_id", INTEGER),
-    Column("serial", INTEGER),
+    Column("model_id", TEXT),
+    Column("serial", TEXT),
     Column("removable", INTEGER),
 ])
-implementation("usb_devices@genUsbDevices")
+implementation("usb_devices@genUSBDevices")

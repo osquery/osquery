@@ -53,7 +53,7 @@ void genUSBDevice(const io_service_t& device, QueryData& results) {
   CFRelease(details);
 }
 
-QueryData genUsbDevices(QueryContext& context) {
+QueryData genUSBDevices(QueryContext& context) {
   QueryData results;
 
   auto matching = IOServiceMatching(kIOUSBDeviceClassName);

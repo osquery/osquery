@@ -47,6 +47,7 @@ std::string stringFromCFString(const CFStringRef& cf_string);
  * @brief Convert a CFNumberRef to a std::string.
  */
 std::string stringFromCFNumber(const CFDataRef& cf_number);
+std::string stringFromCFData(const CFDataRef& cf_data);
 #endif
 
 }

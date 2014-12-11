@@ -79,11 +79,21 @@ class UdevEventPublisher : public EventPublisher {
    * @brief Return a string representation of a udev property.
    *
    * @param device the udev device pointer.
-   * @param property the udev property without the "ID_" prefix.
+   * @param property the udev property identifier string.
    * @return string representation of the property or empty if null.
    */
   static std::string getValue(struct udev_device* device,
                               const std::string& property);
+
+  /**
+   * @brief Return a string representation of a udev system attribute.
+   *
+   * @param device the udev device pointer.
+   * @param property the udev system attribute identifier string.
+   * @return string representation of the attribute or empty if null.
+   */
+  static std::string getAttr(struct udev_device* device,
+                             const std::string& attr);
 
  private:
   /// udev handle (socket descriptor contained within).
