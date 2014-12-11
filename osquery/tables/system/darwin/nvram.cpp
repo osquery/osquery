@@ -1,20 +1,16 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <string>
-
-#include <stdlib.h>
-
-#include <IOKit/IOKitLib.h>
 #include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/IOKitLib.h>
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
+
 namespace osquery {
 namespace tables {
-
-extern std::string safeSecString(const CFStringRef cf_string);
 
 std::string variableFromNumber(const void *value) {
   uint32_t number;
@@ -80,12 +76,12 @@ void genVariable(const void *key, const void *value, void *results) {
   CFStringRef type_description;
 
   // Variable name is the dictionary key.
-  nvram_row["name"] = safeSecString((CFStringRef)key);
+  nvram_row["name"] = stringFromCFString((CFStringRef)key);
 
   // Variable type will be defined by the CF type.
   type_id = CFGetTypeID(value);
   type_description = CFCopyTypeIDDescription(type_id);
-  nvram_row["type"] = safeSecString(type_description);
+  nvram_row["type"] = stringFromCFString(type_description);
   CFRelease(type_description);
 
   // Based on the type, get a texual representation of the variable.
@@ -97,7 +93,7 @@ void genVariable(const void *key, const void *value, void *results) {
     value_string = variableFromNumber(value);
   } else if (type_id == CFStringGetTypeID()) {
     // CFString!
-    value_string = safeSecString((CFStringRef)value);
+    value_string = stringFromCFString((CFStringRef)value);
   } else if (type_id == CFDataGetTypeID()) {
     // Binary Data
     value_string = variableFromData(value);

@@ -1,5 +1,8 @@
 if(APPLE)
-  set (OS_CORE_SOURCE darwin/test_util.cpp darwin/test_util.h)
+  set (OS_CORE_SOURCE
+    darwin/test_util.cpp
+    darwin/conversions.cpp
+  )
 else()
   set (OS_CORE_SOURCE "")
 endif()
