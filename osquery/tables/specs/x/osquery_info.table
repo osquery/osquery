@@ -1,0 +1,7 @@
+table_name("osquery_info")
+schema([
+    Column("version", TEXT),
+    Column("md5", TEXT),
+    Column("pid", INTEGER),
+])
+implementation("osquery_info@genOsqueryInfo")
