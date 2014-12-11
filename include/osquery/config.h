@@ -118,6 +118,13 @@ class Config {
    */
   static int splayValue(int original, int splayPercent);
 
+  /**
+   * @brief Calculate the has of the osquery config
+   *
+   * @return The MD5 of the osquery config
+   */
+  Status getMD5(std::string& hashString);
+
  private:
   /**
    * @brief Default constructor.
@@ -145,6 +152,27 @@ class Config {
    * of the operation.
    */
   static osquery::Status genConfig(OsqueryConfig& conf);
+
+  /**
+   * @brief Uses the specified config retriever to populate a string with the
+   * config JSON.
+   *
+   * Internally, genConfig checks to see if there was a config retriever
+   * specified on the command-line. If there was, it checks to see if that
+   * config retriever actually exists. If it does, it gets used to generate
+   * configuration data. If it does not, an error is logged.
+   *
+   * If no config retriever was specified, the config retriever represented by
+   * kDefaultConfigRetriever is used.
+   *
+   * @param conf a reference to a string which will be populated by the config
+   * retriever in use.
+   *
+   * @return an instance of osquery::Status, indicating the success or failure
+   * of the operation.
+   */
+
+  static osquery::Status genConfig(std::string& conf);
 
  private:
   /**
