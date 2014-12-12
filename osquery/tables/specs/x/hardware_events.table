@@ -8,7 +8,7 @@ schema([
     Column("model_id", INTEGER),
     Column("vendor", TEXT),
     Column("vendor_id", INTEGER),
-    Column("serial", INTEGER),
+    Column("serial", TEXT),
     Column("revision", INTEGER),
     Column("time", INTEGER),
 ])
