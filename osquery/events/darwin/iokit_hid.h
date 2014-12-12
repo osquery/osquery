@@ -14,33 +14,33 @@
 namespace osquery {
 
 struct IOKitHIDSubscriptionContext : public SubscriptionContext {
-  // Bus type, e.g., USB.
+  /// Bus type, e.g., USB.
   std::string transport;
-  // Product name
-  std::string product;
-  std::string vendor;
+  /// Product name
+  std::string model_id;
+  std::string vendor_id;
 
-  // Usage types.
+  /// Usage types.
   std::string primary_usage;
   std::string device_usage;
 
-  // Get values from HID events.
+  /// Get values from HID events.
   bool values;
 
-  // Do not request values by default.
+  /// Do not request values by default.
   IOKitHIDSubscriptionContext() : values(false) {}
 };
 
 struct IOKitHIDEventContext : public EventContext {
-  // The native IOKit device reference.
+  /// The native IOKit device reference.
   IOHIDDeviceRef device;
 
-  // The event action: add, remove, value change.
+  /// The event action: add, remove, value change.
   std::string action;
-  // If a value was changed, include the result (optional).
+  /// If a value was changed, include the result (optional).
   std::string result;
 
-  // The publisher pre-populates several fields.
+  /// The publisher pre-populates several fields.
   std::string vendor_id;
   std::string model_id;
   std::string vendor;
@@ -49,7 +49,7 @@ struct IOKitHIDEventContext : public EventContext {
   std::string primary_usage;
   std::string device_usage;
 
-  // More esoteric properties.
+  /// More esoteric properties.
   std::string version;
   std::string location;
   std::string serial;
@@ -106,20 +106,22 @@ class IOKitHIDEventPublisher : public EventPublisher {
                   const IOKitHIDEventContextRef ec);
 
  public:
-  /// Provide some API usage for IOKitHID parsing.
+  /**
+   * @brief Get a string representation from an IOKitHID device property.
+   *
+   * @param device The IOKitHID device from a callback or matching query.
+   * @param property The device property key from <IOKit/hid/IOHIDKeys.h>.
+   *
+   * @return A string representation of the string/number, blank if missing.
+   */
   static std::string getProperty(const IOHIDDeviceRef &device,
                                  const CFStringRef &property);
 
  private:
-  // Restart the run loop.
+  /// Restart the run loop.
   void restart();
-  // Stop the manager and the run loop.
+  /// Stop the manager and the run loop.
   void stop();
-  void schedule();
-
- private:
-  // Check if the manager (and run loop) are running.
-  bool isManagerRunning();
 
  private:
   IOHIDManagerRef manager_;

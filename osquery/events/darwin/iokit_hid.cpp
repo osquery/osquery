@@ -111,7 +111,6 @@ void IOKitHIDEventPublisher::RemovalCallback(void *context,
                                              IOReturn result,
                                              void *sender,
                                              IOHIDDeviceRef device) {
-
   fire(device, "remove");
 }
 
@@ -119,12 +118,30 @@ void IOKitHIDEventPublisher::InputValueCallback(void *context,
                                                 IOReturn result,
                                                 void *sender,
                                                 IOHIDValueRef value) {
-  // Nothing yet.
-  printf("value\n");
+  // Nothing yet (do not allow value change subscriptions).
+  // Value changes contain potentially sensitive data.
 }
 
 bool IOKitHIDEventPublisher::shouldFire(const IOKitHIDSubscriptionContextRef sc,
                                         const IOKitHIDEventContextRef ec) {
+  if (sc->values) {
+    // See InputValueCallback
+    return false;
+  }
+
+  if (sc->transport != "" && sc->transport != ec->transport) {
+    return false;
+  } else if (sc->model_id != "" && sc->model_id != ec->model_id) {
+    return false;
+  } else if (sc->vendor_id != "" && sc->vendor_id != ec->vendor_id) {
+    return false;
+  } else if (sc->primary_usage != "" &&
+             sc->primary_usage != ec->primary_usage) {
+    return false;
+  } else if (sc->device_usage != "" && sc->device_usage != ec->device_usage) {
+    return false;
+  }
+
   return true;
 }
 
@@ -165,17 +182,5 @@ void IOKitHIDEventPublisher::tearDown() {
 
   // Do not keep a reference to the run loop.
   run_loop_ = nullptr;
-}
-
-bool IOKitHIDEventPublisher::isManagerRunning() {
-  if (manager_ == nullptr || !manager_started_) {
-    return false;
-  }
-
-  if (run_loop_ == nullptr) {
-    return false;
-  }
-
-  return CFRunLoopIsWaiting(run_loop_);
 }
 }
