@@ -6,6 +6,7 @@ if(APPLE)
 
   ADD_OSQUERY_LIBRARY(osquery_events_darwin
     darwin/fsevents.cpp
+    darwin/iokit_hid.cpp
     darwin/scnetwork.cpp
   )
 elseif(FREEBSD)
