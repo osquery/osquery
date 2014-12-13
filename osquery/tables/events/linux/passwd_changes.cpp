@@ -3,12 +3,10 @@
 #include <vector>
 #include <string>
 
-#include <boost/lexical_cast.hpp>
-
 #include <glog/logging.h>
 
-#include "osquery/core.h"
-#include "osquery/database.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
 #include "osquery/events/linux/inotify.h"
 
 namespace osquery {
@@ -58,7 +56,7 @@ Status PasswdChangesEventSubscriber::Callback(const INotifyEventContextRef ec) {
   r["action"] = ec->action;
   r["time"] = ec->time_string;
   r["target_path"] = ec->path;
-  r["transaction_id"] = boost::lexical_cast<std::string>(ec->event->cookie);
+  r["transaction_id"] = INTEGER(ec->event->cookie);
   if (ec->action != "" && ec->action != "OPENED") {
     // A callback is somewhat useless unless it changes the EventSubscriber
     // state

@@ -6,8 +6,10 @@
 #include <string>
 #include <vector>
 
-#include "osquery/status.h"
-#include "osquery/database.h"
+#include <glog/logging.h>
+
+#include <osquery/status.h>
+#include <osquery/database.h>
 
 namespace osquery {
 

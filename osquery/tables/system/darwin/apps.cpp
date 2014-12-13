@@ -4,11 +4,11 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 
-#include <glog/logging.h>
-
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
+#include <osquery/sql.h>
 
 namespace pt = boost::property_tree;
 
@@ -33,79 +33,62 @@ const std::map<std::string, std::string> kAppsInfoPlistTopLevelStringKeys = {
 };
 
 const std::vector<std::string> kHomeDirSearchPaths = {
-    "/Applications", "/Desktops", "/Downloads",
+    "Applications", "Desktop", "Downloads",
 };
 
-std::vector<std::string> getAppInfoPlistPaths() {
+std::vector<std::string> getSystemApplications() {
   std::vector<std::string> results;
-
-  std::vector<std::string> slash_applications;
-  auto slash_apps_s =
-      osquery::listFilesInDirectory("/Applications", slash_applications);
-  if (slash_apps_s.ok()) {
-    for (const auto& app_path : slash_applications) {
-      std::string path = app_path + "/Contents/Info.plist";
-      if (boost::filesystem::exists(path)) {
-        results.push_back(path);
+  std::vector<std::string> sys_apps;
+  auto status = osquery::listFilesInDirectory("/Applications", sys_apps);
+  if (status.ok()) {
+    for (const auto& app_path : sys_apps) {
+      std::string plist_path = app_path + "/Contents/Info.plist";
+      if (boost::filesystem::exists(plist_path)) {
+        results.push_back(plist_path);
       }
     }
   } else {
-    LOG(ERROR) << "Error listing /Applications: " << slash_apps_s.toString();
+    VLOG(1) << "Error listing /Applications: " << status.toString();
   }
+  return results;
+}
 
-  std::vector<std::string> home_dirs;
-  auto home_dirs_s = osquery::listFilesInDirectory("/Users", home_dirs);
-  if (home_dirs_s.ok()) {
-    for (const auto& home_dir : home_dirs) {
-      for (const auto& dir_to_check : kHomeDirSearchPaths) {
-        std::string apps_path = home_dir + dir_to_check;
-        if (boost::filesystem::is_directory(apps_path)) {
-          std::vector<std::string> user_apps;
-          auto user_apps_s =
-              osquery::listFilesInDirectory(apps_path, user_apps);
-          if (!user_apps_s.ok()) {
-            VLOG(1) << "Error listing " << apps_path << ": "
-                    << user_apps_s.toString();
-            continue;
-          }
-          for (const auto& user_app : user_apps) {
-            std::string path = user_app + "/Contents/Info.plist";
-            if (boost::filesystem::exists(path)) {
-              results.push_back(path);
-            }
-          }
+std::vector<std::string> getUserApplications(const std::string& home_dir) {
+  std::vector<std::string> results;
+  for (const auto& dir_to_check : kHomeDirSearchPaths) {
+    boost::filesystem::path apps_path = home_dir;
+    apps_path /= dir_to_check;
+
+    std::vector<std::string> user_apps;
+    auto status = osquery::listFilesInDirectory(apps_path, user_apps);
+    if (status.ok()) {
+      for (const auto& user_app : user_apps) {
+        std::string plist_path = user_app + "/Contents/Info.plist";
+        if (boost::filesystem::exists(plist_path)) {
+          results.push_back(plist_path);
         }
       }
+    } else {
+      VLOG(1) << "Error listing " << apps_path << ": " << status.toString();
     }
-  } else {
-    LOG(ERROR) << "Error listing /Users: " << home_dirs_s.toString();
   }
-
   return results;
 }
 
 std::string getNameFromInfoPlistPath(const std::string& path) {
-  auto bits = osquery::split(path, "/");
-  if (bits.size() >= 4) {
-    return bits[bits.size() - 3];
-  } else {
-    return "";
-  }
+  boost::filesystem::path full = path;
+  return full.parent_path().parent_path().filename().string();
 }
 
 std::string getPathFromInfoPlistPath(const std::string& path) {
-  auto bits = osquery::split(path, "/");
-  if (bits.size() >= 4) {
-    bits.pop_back();
-    bits.pop_back();
-    return "/" + boost::algorithm::join(bits, "/");
-  } else {
-    return "";
-  }
+  boost::filesystem::path full = path;
+  return full.parent_path().parent_path().string();
 }
 
 Row parseInfoPlist(const std::string& path, const pt::ptree& tree) {
   Row r;
+
+  boost::filesystem::path full = path;
   r["name"] = getNameFromInfoPlistPath(path);
   r["path"] = getPathFromInfoPlistPath(path);
   for (const auto& it : kAppsInfoPlistTopLevelStringKeys) {
@@ -120,16 +103,30 @@ Row parseInfoPlist(const std::string& path, const pt::ptree& tree) {
   return r;
 }
 
-QueryData genApps() {
+QueryData genApps(QueryContext& context) {
   QueryData results;
+  pt::ptree tree;
 
-  for (const auto& path : getAppInfoPlistPaths()) {
-    pt::ptree tree;
-    auto s = osquery::parsePlist(path, tree);
-    if (s.ok()) {
+  // Enumerate and parse applications in / (system applications).
+  for (const auto& path : getSystemApplications()) {
+    if (osquery::parsePlist(path, tree).ok()) {
       results.push_back(parseInfoPlist(path, tree));
     } else {
-      LOG(ERROR) << "Error parsing " << path << ": " << s.toString();
+      VLOG(1) << "Error parsing system applications: " << path;
+    }
+  }
+
+  auto users = SQL::selectAllFrom("users");
+
+  // Enumerate apps for each user (several paths).
+  for (const auto& user : users) {
+    for (const auto& path : getUserApplications(user.at("directory"))) {
+      if (osquery::parsePlist(path, tree).ok()) {
+        Row r = parseInfoPlist(path, tree);
+        results.push_back(r);
+      } else {
+        VLOG(1) << "Error parsing user applications: " << path;
+      }
     }
   }
 

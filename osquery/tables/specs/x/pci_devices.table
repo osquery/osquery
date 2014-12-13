@@ -1,0 +1,17 @@
+table_name("pci_devices")
+schema([
+    Column("pci_slot", TEXT),
+    Column("pci_class", TEXT),
+    Column("driver", TEXT),
+    Column("vendor", TEXT),
+    Column("vendor_id", TEXT),
+    Column("model", TEXT),
+    Column("model_id", TEXT),
+
+    # Optional columns
+    #Column("subsystem", TEXT),
+    #Column("express", INTEGER),
+    #Column("thunderbolt", INTEGER),
+    #Column("removable", INTEGER),
+])
+implementation("pci_devices@genPCIDevices")

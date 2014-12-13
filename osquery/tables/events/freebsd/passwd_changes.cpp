@@ -1,5 +1,5 @@
-#include "osquery/core.h"
-#include "osquery/database.h"
+#include <osquery/core.h>
+#include <osquery/database.h>
 #include "osquery/events/freebsd/fsevents.h"
 
 namespace osquery {

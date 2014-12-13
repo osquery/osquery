@@ -5,13 +5,13 @@
 
 #include <utmpx.h>
 
-#include "osquery/core.h"
-#include "osquery/database.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
 
-QueryData genLastAccess() {
+QueryData genLastAccess(QueryContext& context) {
   QueryData results;
   struct utmpx *ut;
 #ifdef __APPLE__

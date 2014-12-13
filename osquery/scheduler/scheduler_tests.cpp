@@ -1,8 +1,8 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/scheduler.h"
-
 #include <gtest/gtest.h>
+
+#include <osquery/scheduler.h>
 
 class SchedulerTests : public testing::Test {};
 

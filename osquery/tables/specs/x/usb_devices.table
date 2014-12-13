@@ -1,0 +1,12 @@
+table_name("usb_devices")
+schema([
+    Column("usb_address", INTEGER),
+    Column("usb_port", INTEGER),
+    Column("vendor", TEXT),
+    Column("vendor_id", TEXT),
+    Column("model", TEXT),
+    Column("model_id", TEXT),
+    Column("serial", TEXT),
+    Column("removable", INTEGER),
+])
+implementation("usb_devices@genUSBDevices")

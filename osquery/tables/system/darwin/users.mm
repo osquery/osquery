@@ -3,20 +3,20 @@
 #include <vector>
 #include <string>
 
-#include <glog/logging.h>
-
 #include <pwd.h>
 
 #import <OpenDirectory/OpenDirectory.h>
 
-#include "osquery/core.h"
-#include "osquery/database/results.h"
-#include "osquery/filesystem.h"
+#include <glog/logging.h>
+
+#include <osquery/core.h>
+#include <osquery/tables.h>
+#include <osquery/filesystem.h>
 
 namespace osquery {
 namespace tables {
 
-QueryData genUsers() {
+QueryData genUsers(QueryContext &context) {
   @autoreleasepool {
     QueryData results;
 
@@ -58,6 +58,8 @@ QueryData genUsers() {
       if (pwd != nullptr) {
         r["uid"] = BIGINT(pwd->pw_uid);
         r["gid"] = BIGINT(pwd->pw_gid);
+        r["uid_signed"] = BIGINT((int32_t) pwd->pw_uid);
+        r["gid_signed"] = BIGINT((int32_t) pwd->pw_gid);
         r["description"] = TEXT(pwd->pw_gecos);
         r["directory"] = TEXT(pwd->pw_dir);
         r["shell"] = TEXT(pwd->pw_shell);

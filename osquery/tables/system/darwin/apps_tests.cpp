@@ -4,16 +4,15 @@
 #include <glog/logging.h>
 
 #include "osquery/core/darwin/test_util.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <osquery/filesystem.h>
+#include <osquery/tables.h>
 
-using namespace osquery::core;
 namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
 
-std::vector<std::string> getAppInfoPlistPaths();
+std::vector<std::string> getSystemApplications();
 std::string getNameFromInfoPlistPath(const std::string& path);
 std::string getPathFromInfoPlistPath(const std::string& path);
 Row parseInfoPlist(const std::string& path, const pt::ptree& tree);
@@ -51,7 +50,7 @@ TEST_F(AppsTests, get_path_from_info_plist_path) {
 }
 
 TEST_F(AppsTests, test_parse_info_plist) {
-  auto tree = getInfoPlistTree();
+  auto tree = osquery::core::getInfoPlistTree();
   Row expected = {
       {"name", "Foobar.app"},
       {"path", "/Applications/Foobar.app"},

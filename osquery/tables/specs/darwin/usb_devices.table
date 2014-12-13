@@ -1,6 +1,0 @@
-table_name("usb_devices")
-schema([
-    Column("manufacturer", TEXT),
-    Column("product", TEXT),
-])
-implementation("usb_devices@genUsbDevices")

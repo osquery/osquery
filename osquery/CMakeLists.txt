@@ -6,16 +6,20 @@ SET(OSQUERY_LIBS
 )
 
 SET(OSQUERY_APPLE_LIBS
-  boost_thread-mt
-  boost_system
-  boost_filesystem
-  boost_program_options
-  boost_regex
-  thrift
-  rocksdb
-  gflags
-  glog
+  /usr/local/lib/libboost_thread-mt.a
+  /usr/local/lib/libboost_system.a
+  /usr/local/lib/libboost_filesystem.a
+  /usr/local/lib/libboost_program_options.a
+  /usr/local/lib/libboost_regex.a
+  /usr/local/lib/libthrift.a
+  /usr/local/lib/librocksdb.a
+  /usr/local/lib/libsnappy.a
+  /usr/local/lib/liblz4.a
+  /usr/local/lib/libgflags.a
+  /usr/local/lib/libglog.a
   dl
+  bz2
+  z
 )
 
 # Warning: Do not statically compile unwind
@@ -72,7 +76,9 @@ SET(OSQUERY_FREEBSD_LIBS
 # Check for the explicit path to determine the version of procps
 if(EXISTS "/usr/lib/libprocps.a"
     OR EXISTS "/usr/lib/x86_64-linux-gnu/libprocps.a")
-  set(PROCPS TRUE)
+  list(APPEND OSQUERY_UBUNTU_LIBS "libprocps.a")
+else()
+  list(APPEND OSQUERY_UBUNTU_LIBS "libproc.a")
 endif()
 
 # Fill this in with objects for libosquery
@@ -80,14 +86,15 @@ set(OSQUERY_SOURCES "")
 set(OSQUERY_ADDITIONAL_LINKS "")
 
 if(NOT BUILD_SHARED)
+  set(Boost_USE_STATIC_LIBS ON)
   SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
   SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 endif()
 
 # Generate version from git
 execute_process(
-  COMMAND git describe --tags HEAD
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND git describe --tags HEAD --always
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   OUTPUT_VARIABLE OSQUERY_BUILD_VERSION
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -121,7 +128,7 @@ ENDMACRO(ADD_OSQUERY_LIBRARY TARGET)
 
 MACRO(ADD_OSQUERY_OBJCXX_LIBRARY TARGET)
   ADD_LIBRARY(${TARGET} OBJECT ${ARGN})
-  SET_OSQUERY_COMPILE(${TARGET} "-x objective-c++ -fobjc-arc")
+  SET_OSQUERY_COMPILE(${TARGET} "${OBJCXX_COMPILE_FLAGS}")
   list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
   set(OSQUERY_SOURCES ${OSQUERY_SOURCES} PARENT_SCOPE)
 ENDMACRO(ADD_OSQUERY_OBJCXX_LIBRARY TARGET)
@@ -132,7 +139,7 @@ MACRO(ADD_OSQUERY_TEST TEST_NAME SOURCE)
     TARGET_LINK_LIBRARIES(${TEST_NAME} osquery_shared)
     TARGET_LINK_LIBRARIES(${TEST_NAME} gtest)
     SET(OPTIONAL_FLAGS ${ARGN})
-    SET_OSQUERY_COMPILE(${TEST_NAME} ${OPTIONAL_FLAGS})
+    SET_OSQUERY_COMPILE(${TEST_NAME} "${OPTIONAL_FLAGS}")
     ADD_TEST(${TEST_NAME} ${TEST_NAME})
   endif()
 ENDMACRO(ADD_OSQUERY_TEST)
@@ -157,11 +164,6 @@ elseif(FREEBSD)
 else()
   set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_LINUX_LIBS})
   if(UBUNTU)
-    if(PROCPS)
-      list(APPEND OSQUERY_UBUNTU_LIBS "libprocps.a")
-    else()
-      list(APPEND OSQUERY_UBUNTU_LIBS "libproc.a")
-    endif()
     set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_UBUNTU_LIBS})
   elseif(CENTOS)
     set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_CENTOS_LIBS})
@@ -170,8 +172,8 @@ endif()
 
 # Make sure deps were built before compiling
 execute_process(
-  COMMAND ${CMAKE_SOURCE_DIR}/tools/provision.sh check ${CMAKE_BINARY_DIR}
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" check "${CMAKE_BINARY_DIR}"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   OUTPUT_VARIABLE OSQUERY_DEPS_MESSAGE
   RESULT_VARIABLE OSQUERY_DEPS_CHECK
   OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -191,7 +193,19 @@ else()
   list(APPEND TABLE_FILES ${TABLE_FILES_LINUX})
 endif()
 
-SET(GENERATED_TABLE "")
+SET(OSQUERY_CODEGEN_PATH "${CMAKE_SOURCE_DIR}/tools/codegen")
+SET(OSQUERY_TABLES_PATH "${CMAKE_SOURCE_DIR}/osquery/tables")
+SET(OSQUERY_GENERATED_PATH "${CMAKE_BINARY_DIR}/generated")
+set_directory_properties(PROPERTY
+  ADDITIONAL_MAKE_CLEAN_FILES "${OSQUERY_GENERATED_PATH}")
+
+file(GLOB TABLE_FILES_TEMPLATES "tables/templates/*.in")
+set(GENERATION_DEPENDENCIES
+  "${OSQUERY_CODEGEN_PATH}/gentable.py"
+  "${OSQUERY_CODEGEN_PATH}/amalgamate.py"
+  "${OSQUERY_TABLES_PATH}/specs/blacklist"
+)
+list(APPEND GENERATION_DEPENDENCIES ${TABLE_FILES_TEMPLATES})
 
 foreach(TABLE_FILE ${TABLE_FILES})
   SET(TABLE_FILE_GEN ${TABLE_FILE})
@@ -199,33 +213,38 @@ foreach(TABLE_FILE ${TABLE_FILES})
   STRING(REPLACE "darwin/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   STRING(REPLACE "freebsd/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   STRING(REPLACE "x/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  STRING(
-    REPLACE
-    "${CMAKE_SOURCE_DIR}/osquery/tables/specs"
-    "${CMAKE_BINARY_DIR}/generated/tables"
+  STRING(REPLACE
+    "${OSQUERY_TABLES_PATH}/specs"
+    "${OSQUERY_GENERATED_PATH}/tables"
     TABLE_FILE_GEN
     ${TABLE_FILE_GEN}
   )
+
   STRING(REPLACE ".table" ".cpp" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   ADD_CUSTOM_COMMAND(
     OUTPUT ${TABLE_FILE_GEN}
-    COMMAND python ${CMAKE_SOURCE_DIR}/tools/gentable.py ${TABLE_FILE} ${TABLE_FILE_GEN} $ENV{DISABLE_BLACKLIST}
-    DEPENDS ${TABLE_FILE} ${CMAKE_SOURCE_DIR}/tools/gentable.py ${CMAKE_SOURCE_DIR}/osquery/tables/specs/blacklist
+    COMMAND python "${OSQUERY_CODEGEN_PATH}/gentable.py" "${TABLE_FILE}" "${TABLE_FILE_GEN}" "$ENV{DISABLE_BLACKLIST}"
+    DEPENDS ${TABLE_FILE} ${GENERATION_DEPENDENCIES}
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   )
   list(APPEND GENERATED_TABLES ${TABLE_FILE_GEN})
 endforeach()
-ADD_CUSTOM_TARGET(osquery_generated_tables_depends
+
+SET(AMALGAMATION_FILE_GEN "${OSQUERY_GENERATED_PATH}/amalgamation.cpp")
+ADD_CUSTOM_COMMAND(
+  OUTPUT ${AMALGAMATION_FILE_GEN}
+  COMMAND python "${OSQUERY_CODEGEN_PATH}/amalgamate.py" "${OSQUERY_TABLES_PATH}" "${OSQUERY_GENERATED_PATH}"
   DEPENDS ${GENERATED_TABLES}
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
+
 ADD_LIBRARY(osquery_generated_tables OBJECT
-  ${GENERATED_TABLES}
+  "${AMALGAMATION_FILE_GEN}"
 )
-ADD_DEPENDENCIES(osquery_generated_tables osquery_generated_tables_depends)
+
 SET_OSQUERY_COMPILE(osquery_generated_tables)
 
 # Add subdirectories
-
 ADD_SUBDIRECTORY(config)
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(database)
@@ -235,7 +254,6 @@ ADD_SUBDIRECTORY(examples)
 ADD_SUBDIRECTORY(filesystem)
 ADD_SUBDIRECTORY(logger)
 ADD_SUBDIRECTORY(dispatcher)
-ADD_SUBDIRECTORY(registry)
 ADD_SUBDIRECTORY(scheduler)
 ADD_SUBDIRECTORY(tables)
 
@@ -265,7 +283,7 @@ TARGET_LINK_LIBRARIES(osquery_shared ${OSQUERY_ADDITIONAL_LINKS})
 TARGET_LINK_LIBRARIES(osquery_shared ${OSQUERY_LIBS})
 SET_TARGET_PROPERTIES(osquery_shared PROPERTIES OUTPUT_NAME osquery)
 INSTALL(TARGETS osquery_shared DESTINATION lib)
-INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include)
+INSTALL(DIRECTORY "${CMAKE_SOURCE_DIR}/include/" DESTINATION include)
 
 ADD_EXECUTABLE(shell main/shell.cpp)
 TARGET_LINK_LIBRARIES(shell osquery_shared)

@@ -1,18 +1,17 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/scheduler.h"
-
 #include <climits>
 #include <ctime>
 
 #include <glog/logging.h>
 
-#include "osquery/config.h"
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/flags.h"
-#include "osquery/logger.h"
-#include "osquery/sql.h"
+#include <osquery/config.h>
+#include <osquery/core.h>
+#include <osquery/database.h>
+#include <osquery/flags.h>
+#include <osquery/logger.h>
+#include <osquery/sql.h>
+#include <osquery/scheduler.h>
 
 namespace osquery {
 
@@ -24,7 +23,7 @@ DEFINE_osquery_flag(string,
 Status getHostIdentifier(std::string& ident) {
   std::shared_ptr<DBHandle> db;
   try {
-    auto db = DBHandle::getInstance();
+    db = DBHandle::getInstance();
   } catch (const std::exception& e) {
     return Status(1, e.what());
   }
@@ -53,7 +52,7 @@ Status getHostIdentifier(std::string& ident) {
       // There was no uuid stored in the database, generate one and store it.
       ident = osquery::generateHostUuid();
       LOG(INFO) << "Using uuid " << ident << " to identify this host.";
-      return db->Put(kConfigurations, "hosknhutIdentifier", ident);
+      return db->Put(kConfigurations, "hostIdentifier", ident);
     }
   } else {
     // use the hostname as the default machine identifier

@@ -2,8 +2,8 @@ table_name("kextstat")
 schema([
     Column("idx", INTEGER),
     Column("refs", INTEGER),
-    Column("size", TEXT),
-    Column("wired", TEXT),
+    Column("size", BIGINT),
+    Column("wired", BIGINT),
     Column("name", TEXT),
     Column("version", TEXT),
     Column("linked_against", TEXT),

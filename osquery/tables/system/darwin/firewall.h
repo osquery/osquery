@@ -8,7 +8,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "osquery/database/results.h"
+#include <osquery/database/results.h>
 
 namespace osquery {
 namespace tables {

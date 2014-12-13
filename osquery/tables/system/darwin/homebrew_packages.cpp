@@ -6,9 +6,9 @@
 
 #include <glog/logging.h>
 
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
+#include <osquery/filesystem.h>
 
 namespace pt = boost::property_tree;
 
@@ -57,7 +57,7 @@ std::vector<std::string> getHomebrewVersionsFromInfoPlistPath(
   return results;
 }
 
-QueryData genHomebrewPackages() {
+QueryData genHomebrewPackages(QueryContext& context) {
   QueryData results;
 
   for (const auto& path : getHomebrewAppInfoPlistPaths()) {

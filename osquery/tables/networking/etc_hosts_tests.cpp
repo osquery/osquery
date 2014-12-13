@@ -4,7 +4,7 @@
 #include <glog/logging.h>
 
 #include "osquery/core/test_util.h"
-#include "osquery/database.h"
+#include <osquery/database.h>
 
 using namespace osquery::core;
 

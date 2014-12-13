@@ -1,5 +1,8 @@
 if(APPLE)
-  set (OS_CORE_SOURCE darwin/test_util.cpp darwin/test_util.h)
+  set (OS_CORE_SOURCE
+    darwin/test_util.cpp
+    darwin/conversions.cpp
+  )
 else()
   set (OS_CORE_SOURCE "")
 endif()
@@ -11,7 +14,10 @@ ADD_OSQUERY_LIBRARY(osquery_core
   system.cpp
   test_util.cpp
   ${OS_CORE_SOURCE}
+  tables.cpp
+  virtual_table.cpp
   text.cpp
+  flags.cpp
 )
 
 ADD_OSQUERY_TEST(status_test status_tests.cpp)

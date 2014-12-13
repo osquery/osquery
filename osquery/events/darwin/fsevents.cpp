@@ -5,6 +5,7 @@
 #include <glog/logging.h>
 
 #include "osquery/events/darwin/fsevents.h"
+#include <osquery/tables.h>
 
 namespace osquery {
 

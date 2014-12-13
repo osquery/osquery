@@ -1,18 +1,16 @@
+// Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <stdio.h>
 #include <mntent.h>
 #include <sys/vfs.h>
 
-#include <boost/lexical_cast.hpp>
-
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
 
-QueryData genMounts() {
+QueryData genMounts(QueryContext &context) {
   QueryData results;
   FILE *mounts;
   struct mntent *ent;

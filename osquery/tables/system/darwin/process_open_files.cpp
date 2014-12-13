@@ -11,11 +11,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <glog/logging.h>
-
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 #define IPv6_2_IPv4(v6) (((uint8_t *)((struct in6_addr *)v6)->s6_addr) + 12)
 
@@ -175,11 +174,16 @@ std::vector<OpenFile> getOpenFiles(int pid) {
   return open_files;
 }
 
-QueryData genProcessOpenFiles() {
+QueryData genProcessOpenFiles(QueryContext &context) {
   QueryData results;
   auto pidlist = getProcList();
 
   for (auto &pid : pidlist) {
+    if (!context.constraints["pid"].matches<int>(pid)) {
+      // Optimize by not searching when a pid is a constraint.
+      continue;
+    }
+
     auto open_files = getOpenFiles(pid);
     for (auto &open_file : open_files) {
       Row r;

@@ -1,0 +1,9 @@
+table_name("file")
+schema([
+    Column("path", TEXT, "Must provide a path", required=True),
+    Column("filename", TEXT),
+    Column("is_file", INTEGER),
+    Column("is_dir", INTEGER),
+    Column("is_link", INTEGER),
+])
+implementation("utility/file@genFile")

@@ -5,8 +5,8 @@
 #include <future>
 #include <utility>
 
-#include "osquery/registry.h"
-#include "osquery/status.h"
+#include <osquery/registry.h>
+#include <osquery/status.h>
 
 namespace osquery {
 

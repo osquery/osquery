@@ -4,20 +4,18 @@
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/lexical_cast.hpp>
 
-#include <glog/logging.h>
-
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
 
 const std::string kKernelModulePath = "/proc/modules";
 
-QueryData genKernelModules() {
+QueryData genKernelModules(QueryContext& context) {
   QueryData results;
 
   if (!pathExists(kKernelModulePath).ok()) {

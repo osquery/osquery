@@ -8,9 +8,11 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/events.h"
+#include <osquery/events.h>
+#include <osquery/filesystem.h>
+#include <osquery/tables.h>
+
 #include "osquery/events/darwin/fsevents.h"
-#include "osquery/filesystem.h"
 
 namespace osquery {
 

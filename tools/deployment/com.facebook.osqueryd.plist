@@ -6,8 +6,6 @@
   <true/>
   <key>Disabled</key>
   <false/>
-  <key>OnDemand</key>
-  <false/>
   <key>Label</key>
   <string>com.facebook.osqueryd</string>
   <key>Program</key>

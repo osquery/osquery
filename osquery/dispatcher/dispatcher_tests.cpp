@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/dispatcher.h"
+#include <osquery/dispatcher.h>
 
 namespace osquery {
 

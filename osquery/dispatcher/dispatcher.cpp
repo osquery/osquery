@@ -2,9 +2,10 @@
 
 #include <glog/logging.h>
 
+#include <osquery/dispatcher.h>
+#include <osquery/flags.h>
+
 #include "osquery/core/conversions.h"
-#include "osquery/dispatcher.h"
-#include "osquery/flags.h"
 
 using namespace apache::thrift::concurrency;
 

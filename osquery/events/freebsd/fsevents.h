@@ -1,3 +1,3 @@
 #pragma once
 
-#include "osquery/events.h"
+#include <osquery/events.h>

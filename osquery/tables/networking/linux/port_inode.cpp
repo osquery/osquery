@@ -13,8 +13,8 @@
 
 #include <glog/logging.h>
 
-#include "osquery/core.h"
-#include "osquery/database.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
 
 // From uapi/linux/sock_diag.h
 // From linux/sock_diag.h (<= 3.6)
@@ -178,7 +178,7 @@ void getPortInode(QueryData &results, int family) {
   return;
 }
 
-QueryData genPortInode() {
+QueryData genPortInode(QueryContext &context) {
   QueryData results;
   getPortInode(results, AF_INET);
   getPortInode(results, AF_INET6);

@@ -7,12 +7,10 @@
 #include <net/if.h>
 #include <sys/socket.h>
 
-#include <boost/lexical_cast.hpp>
+#include <osquery/core.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
-#include <glog/logging.h>
-
-#include "osquery/core.h"
-#include "osquery/database.h"
 #include "osquery/tables/networking/utils.h"
 
 namespace osquery {
@@ -65,7 +63,7 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
   results.push_back(r);
 }
 
-QueryData genInterfaceAddresses() {
+QueryData genInterfaceAddresses(QueryContext &context) {
   QueryData results;
 
   struct ifaddrs *if_addrs, *if_addr;
@@ -86,7 +84,7 @@ QueryData genInterfaceAddresses() {
   return results;
 }
 
-QueryData genInterfaceDetails() {
+QueryData genInterfaceDetails(QueryContext &context) {
   QueryData results;
 
   struct ifaddrs *if_addrs, *if_addr;

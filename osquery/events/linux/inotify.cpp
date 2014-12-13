@@ -6,9 +6,10 @@
 
 #include <glog/logging.h>
 
-#include "osquery/events.h"
+#include <osquery/events.h>
+#include <osquery/filesystem.h>
+
 #include "osquery/events/linux/inotify.h"
-#include "osquery/filesystem.h"
 
 namespace osquery {
 
@@ -30,12 +31,13 @@ std::map<int, std::string> kMaskActions = {
     {IN_OPEN, "OPENED"},
 };
 
-void INotifyEventPublisher::setUp() {
+Status INotifyEventPublisher::setUp() {
   inotify_handle_ = ::inotify_init();
   // If this does not work throw an exception.
   if (inotify_handle_ == -1) {
-    // Todo: throw exception and DO NOT register this eventtype.
+    return Status(1, "Could not init inotify.");
   }
+  return Status(0, "OK");
 }
 
 void INotifyEventPublisher::configure() {

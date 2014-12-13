@@ -1,6 +1,6 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/registry.h"
+#include <osquery/registry.h>
 
 #include <memory>
 #include <string>

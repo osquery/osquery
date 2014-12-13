@@ -10,9 +10,9 @@
 
 #include <glog/logging.h>
 
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
+#include <osquery/filesystem.h>
 
 namespace osquery {
 namespace tables {
@@ -200,13 +200,18 @@ std::vector<std::string> getProcArgs(int pid, size_t argmax) {
   return args;
 }
 
-QueryData genProcesses() {
+QueryData genProcesses(QueryContext &context) {
   QueryData results;
   auto pidlist = getProcList();
   auto parent_pid = getParentMap(pidlist);
   int argmax = genMaxArgs();
 
   for (auto &pid : pidlist) {
+    if (!context.constraints["pid"].matches<int>(pid)) {
+      // Optimize by not searching when a pid is a constraint.
+      continue;
+    }
+
     Row r;
     r["pid"] = INTEGER(pid);
     r["name"] = getProcName(pid);
@@ -259,12 +264,17 @@ QueryData genProcesses() {
   return results;
 }
 
-QueryData genProcessEnvs() {
+QueryData genProcessEnvs(QueryContext &context) {
   QueryData results;
   auto pidlist = getProcList();
   int argmax = genMaxArgs();
 
   for (auto &pid : pidlist) {
+    if (!context.constraints["pid"].matches<int>(pid)) {
+      // Optimize by not searching when a pid is a constraint.
+      continue;
+    }
+
     auto env = getProcEnv(pid, argmax);
     for (auto env_itr = env.begin(); env_itr != env.end(); ++env_itr) {
       Row r;

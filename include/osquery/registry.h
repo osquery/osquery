@@ -21,7 +21,7 @@ namespace osquery {
  * To use this registry, make a header like so:
  *
  * @code{.cpp}
- *   #include "osquery/registry.h"
+ *   #include <osquery/registry.h>
  *
  *   DECLARE_REGISTRY(MathFuncs, int, std::function<double(double)>)
  *   #define REGISTERED_MATH_FUNCS REGISTRY(MathFuncs)

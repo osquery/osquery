@@ -3,22 +3,20 @@
 #include <vector>
 #include <string>
 
-#include <boost/lexical_cast.hpp>
-
-#include <glog/logging.h>
-
 #include <grp.h>
 
 #import <OpenDirectory/OpenDirectory.h>
 
-#include "osquery/core.h"
-#include "osquery/database/results.h"
-#include "osquery/filesystem.h"
+#include <glog/logging.h>
+
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
 
-QueryData genGroups() {
+QueryData genGroups(QueryContext &context) {
   @autoreleasepool {
     QueryData results;
 
@@ -56,7 +54,8 @@ QueryData genGroups() {
       struct group *grp = nullptr;
       grp = getgrnam(r["groupname"].c_str());
       if (grp != nullptr) {
-        r["gid"] = boost::lexical_cast<std::string>(grp->gr_gid);
+        r["gid"] = BIGINT(grp->gr_gid);
+        r["gid_signed"] = BIGINT((int32_t) grp->gr_gid);
         results.push_back(r);
       }
     }

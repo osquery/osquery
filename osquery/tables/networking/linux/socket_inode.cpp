@@ -5,9 +5,9 @@
 
 #include <glog/logging.h>
 
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
+#include <osquery/filesystem.h>
 
 namespace osquery {
 namespace tables {
@@ -54,7 +54,7 @@ void crawl_proc(QueryData& results) {
   return;
 }
 
-QueryData genSocketInode() {
+QueryData genSocketInode(QueryContext& context) {
   QueryData results;
   crawl_proc(results);
   return results;

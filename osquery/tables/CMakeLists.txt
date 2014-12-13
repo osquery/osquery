@@ -10,6 +10,7 @@ if(APPLE)
 
   ADD_OSQUERY_LIBRARY(osquery_tables_darwin
     events/darwin/passwd_changes.cpp
+    events/darwin/hardware_events.cpp
     networking/darwin/interfaces.cpp
     networking/darwin/listening_ports.cpp
     networking/darwin/routes.cpp
@@ -25,6 +26,7 @@ if(APPLE)
     system/darwin/processes.cpp
     system/darwin/process_open_files.cpp
     system/darwin/quarantine.cpp
+    system/darwin/pci_devices.cpp
     system/darwin/usb_devices.cpp
     system/darwin/startup_items.cpp
   )
@@ -45,6 +47,7 @@ elseif(FREEBSD)
 else()
   ADD_OSQUERY_LIBRARY(osquery_tables_linux
     events/linux/passwd_changes.cpp
+    events/linux/hardware_events.cpp
     networking/linux/routes.cpp
     networking/linux/socket_inode.cpp
     networking/linux/port_inode.cpp
@@ -55,6 +58,7 @@ else()
     system/linux/groups.cpp
     system/linux/mounts.cpp
     system/linux/pci_devices.cpp
+    system/linux/usb_devices.cpp
     system/linux/block_devices.cpp
   )
 
@@ -79,11 +83,14 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   networking/etc_services.cpp
   utility/time.cpp
   utility/crontab.cpp
+  utility/hash.cpp
+  utility/file.cpp
+  utility/osquery_info.cpp
   system/cpuid.cpp
   system/last.cpp
-  system/bash_history.cpp
+  system/shell_history.cpp
   system/suid_bin.cpp
-  base.h
+  system/logged_in_users.cpp
 )
 
 ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp)

@@ -3,21 +3,23 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SOURCE_DIR="$SCRIPT_DIR/../.."
+BUILD_DIR="$SOURCE_DIR/build/darwin"
 export PATH="$PATH:/usr/local/bin"
 
-source $SCRIPT_DIR/lib.sh
+source $SCRIPT_DIR/../lib.sh
 
-APP_IDENTIFIER="com.facebook.osqueryd"
-OUTPUT_PKG_PATH="$SCRIPT_DIR/../osqueryd.pkg"
+APP_VERSION=`git describe --tags HEAD`
+APP_IDENTIFIER="com.facebook.osquery"
+OUTPUT_PKG_PATH="$SOURCE_DIR/osquery-$APP_VERSION.pkg"
 LAUNCHD_PATH="$SCRIPT_DIR/$APP_IDENTIFIER.plist"
 LAUNCHD_PATH_OVERRIDE=""
 LAUNCHD_INSTALL_PATH="/Library/LaunchDaemons/$APP_IDENTIFIER.plist"
 INCLUDE_LAUNCHD=true
+SIMPLE_INSTALL=false
 OSQUERY_LOG_DIR="/var/log/osquery/"
 OSQUERY_CONFIG_PATH_DEST="/var/osquery/osquery.conf"
 OSQUERY_CONFIG_PATH_SOURCE=""
-
-APP_VERSION=`git describe --tags HEAD`
 
 BREW_PACKAGES=(rocksdb boost gflags glog thrift)
 BREW_PREFIX=`brew --prefix`
@@ -54,6 +56,8 @@ function parse_args() {
                               ;;
       -l | --launchd-path )   shift
                               LAUNCHD_PATH_OVERRIDE=$1
+                              ;;
+      -s | --simple )         SIMPLE_INSTALL=true
                               ;;
       -n | --no-launchd )     INCLUDE_LAUNCHD=false
                               ;;
@@ -100,49 +104,50 @@ function main() {
   # we don't need the preinstall for anything so let's skip it until we do
   # echo "$SCRIPT_PREFIX_TEXT" > $PREINSTALL
   # chmod +x $PREINSTALL
+
   echo "$SCRIPT_PREFIX_TEXT" > $POSTINSTALL
   chmod +x $POSTINSTALL
 
-  log "calculating dependency tree"
-  dependency_list=("${BREW_PACKAGES[@]}")
-  for package in ${BREW_PACKAGES[*]}; do
-    for dep in `brew deps $package`; do
-      if ! contains_element $dep "${dependency_list[@]}"; then
-        if [[ "$dep" != "openssl" ]]; then
-          dependency_list+=($dep)
+  if [[ $SIMPLE_INSTALL = false ]]; then
+    log "calculating dependency tree"
+    dependency_list=("${BREW_PACKAGES[@]}")
+    for package in ${BREW_PACKAGES[*]}; do
+      for dep in `brew deps $package`; do
+        if ! contains_element $dep "${dependency_list[@]}"; then
+          if [[ "$dep" != "openssl" ]]; then dependency_list+=($dep); fi
         fi
-      fi
+      done
     done
-  done
 
-  log "copying dependencies"
-  for dep in ${dependency_list[*]}; do
-    dep_dir=`brew info $dep | grep Cellar | grep '*' | awk '{print $1}'`
-    brew unlink $dep 2>&1  1>/dev/null
-    links=`brew link --dry-run $dep`
-    brew link --overwrite $dep 2>&1  1>/dev/null
-    echo "    - $dep ($dep_dir)"
-    mkdir -p $INSTALL_PREFIX`dirname $dep_dir`
-    cp -r $dep_dir $INSTALL_PREFIX`dirname $dep_dir`
-    mkdir -p "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula"
-    cp "$BREW_PREFIX/Library/Formula/$dep.rb" "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula/$dep.rb"
-    for link in $links; do
-      if [[ $link = $BREW_PREFIX* ]]; then
+    log "calculating library dependencies"
+    for dep in ${dependency_list[*]}; do
+      dep_dir=`brew info $dep | grep Cellar | grep '*' | awk '{print $1}'`
+      brew unlink $dep 2>&1  1>/dev/null
+      links=`brew link --dry-run $dep | sed 1d`
+      brew link --overwrite $dep 2>&1  1>/dev/null
+      echo "    - $dep ($dep_dir)"
+      mkdir -p $INSTALL_PREFIX`dirname $dep_dir`
+      cp -r $dep_dir $INSTALL_PREFIX`dirname $dep_dir`
+      mkdir -p "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula"
+      cp "$BREW_PREFIX/Library/Formula/$dep.rb" "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula/$dep.rb"
+      for link in $links; do
+        # Skip if this link was not in the brew prefix.
+        if [[ ! $link = $BREW_PREFIX* ]]; then continue; fi
         target="`dirname $link`/`ls -l $link | awk '{print $11}'`"
         echo "if [ ! -e `dirname $link` ]; then rm -f `dirname $link`; fi" >> $POSTINSTALL
         echo "mkdir -p `dirname $link`" >> $POSTINSTALL
         echo "rm -rf $link" >> $POSTINSTALL
         echo "ln -s $target $link" >> $POSTINSTALL
         echo "" >> $POSTINSTALL
-      fi
+      done
     done
-  done
+  fi
 
   log "copying osquery binaries"
   BINARY_INSTALL_DIR="$INSTALL_PREFIX/usr/local/bin/"
   mkdir -p $BINARY_INSTALL_DIR
-  cp $SCRIPT_DIR/../build/darwin/osquery/osqueryi $BINARY_INSTALL_DIR
-  cp $SCRIPT_DIR/../build/darwin/osquery/osqueryd $BINARY_INSTALL_DIR
+  cp "$BUILD_DIR/osquery/osqueryi" $BINARY_INSTALL_DIR
+  cp "$BUILD_DIR/osquery/osqueryd" $BINARY_INSTALL_DIR
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
   mkdir -p `dirname $INSTALL_PREFIX$OSQUERY_CONFIG_PATH_DEST`
   if [[ "$OSQUERY_CONFIG_PATH_SRC" != "" ]]; then

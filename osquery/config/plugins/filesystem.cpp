@@ -4,8 +4,8 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include "osquery/config/plugin.h"
-#include "osquery/flags.h"
+#include <osquery/config/plugin.h>
+#include <osquery/flags.h>
 
 namespace fs = boost::filesystem;
 using osquery::Status;

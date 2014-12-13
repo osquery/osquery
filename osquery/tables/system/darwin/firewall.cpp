@@ -6,11 +6,10 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
-#include "osquery/status.h"
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
-using osquery::Status;
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -91,7 +90,7 @@ QueryData parseALFTree(const pt::ptree& tree) {
   return {r};
 }
 
-QueryData genALF() {
+QueryData genALF(QueryContext& context) {
   pt::ptree tree;
   auto s = genALFTreeFromFilesystem(tree);
   if (!s.ok()) {
@@ -131,7 +130,7 @@ QueryData parseALFExceptionsTree(const pt::ptree& tree) {
   return results;
 }
 
-QueryData genALFExceptions() {
+QueryData genALFExceptions(QueryContext& context) {
   pt::ptree tree;
   auto s = genALFTreeFromFilesystem(tree);
   if (!s.ok()) {
@@ -165,7 +164,7 @@ QueryData parseALFExplicitAuthsTree(const pt::ptree& tree) {
   return results;
 }
 
-QueryData genALFExplicitAuths() {
+QueryData genALFExplicitAuths(QueryContext& context) {
   pt::ptree tree;
   auto s = genALFTreeFromFilesystem(tree);
   if (!s.ok()) {
@@ -205,7 +204,7 @@ QueryData parseALFServicesTree(const pt::ptree& tree) {
   return results;
 }
 
-QueryData genALFServices() {
+QueryData genALFServices(QueryContext& context) {
   pt::ptree tree;
   auto s = genALFTreeFromFilesystem(tree);
   if (!s.ok()) {

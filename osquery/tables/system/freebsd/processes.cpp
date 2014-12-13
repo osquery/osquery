@@ -1,10 +1,12 @@
-#include "osquery/core.h"
-#include "osquery/database.h"
+// Copyright 2004-present Facebook. All Rights Reserved.
+
+#include <osquery/core.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
 
-QueryData genProcessEnvs() {
+QueryData genProcessEnvs(QueryContext& context) {
   QueryData results;
 
   throw std::domain_error("Table not implemented for FreeBSD");
@@ -12,7 +14,7 @@ QueryData genProcessEnvs() {
   return results;
 }
 
-QueryData genProcesses() {
+QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
   throw std::domain_error("Table not implemented for FreeBSD");
@@ -20,7 +22,7 @@ QueryData genProcesses() {
   return results;
 }
 
-QueryData genProcessOpenFiles() {
+QueryData genProcessOpenFiles(QueryContext& context) {
   QueryData results;
 
   throw std::domain_error("Table not implemented for FreeBSD");

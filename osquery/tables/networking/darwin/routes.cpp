@@ -13,12 +13,11 @@
 #include <sys/sysctl.h>
 
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/lexical_cast.hpp>
 
-#include <glog/logging.h>
+#include <osquery/core.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
-#include "osquery/core.h"
-#include "osquery/database.h"
 #include "osquery/tables/networking/utils.h"
 
 namespace osquery {
@@ -190,7 +189,7 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
   free(table);
 }
 
-QueryData genArpCache() {
+QueryData genArpCache(QueryContext &context) {
   QueryData results;
   InterfaceMap ifmap;
 
@@ -202,14 +201,16 @@ QueryData genArpCache() {
   return results;
 }
 
-QueryData genRoutes() {
+QueryData genRoutes(QueryContext &context) {
   QueryData results;
   InterfaceMap ifmap;
 
   // Need a map from index->name for each route entry.
   ifmap = genInterfaceMap();
   for (const auto &route_type : kRouteTypes) {
-    genRouteTableType(route_type, ifmap, results);
+    if (context.constraints["type"].notExistsOrMatches(route_type.second)) {
+      genRouteTableType(route_type, ifmap, results);
+    }
   }
 
   return results;

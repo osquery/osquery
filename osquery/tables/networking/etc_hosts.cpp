@@ -8,9 +8,9 @@
 
 #include <glog/logging.h>
 
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
+#include <osquery/filesystem.h>
 
 namespace osquery {
 namespace tables {
@@ -38,7 +38,7 @@ QueryData parseEtcHostsContent(const std::string& content) {
   return results;
 }
 
-QueryData genEtcHosts() {
+QueryData genEtcHosts(QueryContext& context) {
   std::string content;
   auto s = osquery::readFile("/etc/hosts", content);
   if (s.ok()) {

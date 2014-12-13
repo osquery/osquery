@@ -1,8 +1,9 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/events.h"
-
 #include <gtest/gtest.h>
+
+#include <osquery/events.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 
@@ -95,7 +96,10 @@ class TestEventPublisher : public EventPublisher {
                          EventContext);
 
  public:
-  void setUp() { smallest_ever_ += 1; }
+  Status setUp() {
+    smallest_ever_ += 1;
+    return Status(0, "OK");
+  }
 
   void configure() {
     int smallest_subscription = smallest_ever_;

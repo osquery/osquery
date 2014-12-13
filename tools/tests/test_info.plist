@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>BuildMachineOSBuild</key>
+  <string>13C23</string>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>English</string>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeExtensions</key>
+      <array>
+        <string>Photo Booth</string>
+      </array>
+      <key>CFBundleTypeIconFile</key>
+      <string>PBLibraryIcon</string>
+      <key>CFBundleTypeName</key>
+      <string>Photo Booth Library</string>
+      <key>CFBundleTypeOSTypes</key>
+      <array>
+        <string>PBLb</string>
+      </array>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+      <key>LSTypeIsPackage</key>
+      <true/>
+      <key>NSDocumentClass</key>
+      <string>ArchiveDocument</string>
+    </dict>
+  </array>
+  <key>CFBundleExecutable</key>
+  <string>Photo Booth</string>
+  <key>CFBundleHelpBookFolder</key>
+  <string>PhotoBooth.help</string>
+  <key>CFBundleHelpBookName</key>
+  <string>com.apple.PhotoBooth.help</string>
+  <key>CFBundleIconFile</key>
+  <string>PhotoBooth.icns</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.apple.PhotoBooth</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>6.0</string>
+  <key>CFBundleSignature</key>
+  <string>PhBo</string>
+  <key>CFBundleVersion</key>
+  <string>517</string>
+  <key>DTCompiler</key>
+  <string>com.apple.compilers.llvm.clang.1_0</string>
+  <key>DTPlatformBuild</key>
+  <string>5A2053</string>
+  <key>DTPlatformVersion</key>
+  <string>GM</string>
+  <key>DTSDKBuild</key>
+  <string>13C23</string>
+  <key>DTSDKName</key>
+  <string></string>
+  <key>DTXcode</key>
+  <string>0501</string>
+  <key>DTXcodeBuild</key>
+  <string>5A2053</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.entertainment</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>10.7.0</string>
+  <key>NSMainNibFile</key>
+  <string>MainMenu</string>
+  <key>NSPrincipalClass</key>
+  <string>PBApplication</string>
+  <key>NSSupportsAutomaticGraphicsSwitching</key>
+  <true/>
+  <key>NSSupportsSuddenTermination</key>
+  <string>YES</string>
+</dict>
+</plist>

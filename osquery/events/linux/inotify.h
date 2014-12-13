@@ -3,16 +3,13 @@
 #pragma once
 
 #include <map>
-#include <string>
 #include <vector>
-
-#include <boost/make_shared.hpp>
 
 #include <sys/inotify.h>
 #include <sys/stat.h>
 
-#include "osquery/events.h"
-#include "osquery/status.h"
+#include <osquery/events.h>
+#include <osquery/status.h>
 
 namespace osquery {
 
@@ -96,7 +93,7 @@ class INotifyEventPublisher : public EventPublisher {
 
  public:
   /// Create an `inotify` handle descriptor.
-  void setUp();
+  Status setUp();
   void configure();
   /// Release the `inotify` handle descriptor.
   void tearDown();

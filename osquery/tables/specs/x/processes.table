@@ -1,9 +1,9 @@
 table_name("processes")
 schema([
+    Column("pid", INTEGER),
     Column("name", TEXT, "The process path or shorthand argv[0]"),
     Column("path", TEXT),
     Column("cmdline", TEXT, "Complete argv"),
-    Column("pid", INTEGER),
     Column("uid", BIGINT),
     Column("gid", BIGINT),
     Column("euid", BIGINT),

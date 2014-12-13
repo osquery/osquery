@@ -4,13 +4,13 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include <glog/logging.h>
+#include <osquery/core.h>
+#include <osquery/dispatcher.h>
+#include <osquery/events.h>
+#include <osquery/flags.h>
+#include <osquery/logger.h>
 
-#include "osquery/core.h"
 #include "osquery/core/conversions.h"
-#include "osquery/events.h"
-#include "osquery/flags.h"
-#include "osquery/dispatcher.h"
 
 namespace osquery {
 
@@ -19,10 +19,15 @@ DEFINE_osquery_flag(bool,
                     true,
                     "Use (enable) the osquery eventing pub/sub.");
 
+DEFINE_osquery_flag(int32,
+                    event_pubsub_expiry,
+                    86000,
+                    "Expire (remove) recorded events after a timeout.");
+
 const std::vector<size_t> kEventTimeLists = {
-    1 * 60, // 1 minute
     1 * 60 * 60, // 1 hour
-    12 * 60 * 60, // half-day
+    1 * 60, // 1 minute
+    10, // 10 seconds
 };
 
 void EventPublisher::fire(const EventContextRef ec, EventTime time) {
@@ -40,6 +45,7 @@ void EventPublisher::fire(const EventContextRef ec, EventTime time) {
       if (time == 0) {
         time = getUnixTime();
       }
+      // Todo: add a check to assure normalized (seconds) time.
       ec->time = time;
     }
 
@@ -51,7 +57,6 @@ void EventPublisher::fire(const EventContextRef ec, EventTime time) {
     auto callback = subscription->callback;
     if (shouldFire(subscription->context, ec) && callback != nullptr) {
       callback(ec, false);
-    } else {
     }
   }
 }
@@ -66,36 +71,156 @@ Status EventPublisher::run() {
   return Status(1, "No runloop required");
 }
 
-std::vector<EventRecord> EventSubscriber::getRecords(EventTime start,
-                                                     EventTime stop) {
-  Status status;
-  std::vector<EventRecord> records;
+std::vector<std::string> EventSubscriber::getIndexes(EventTime start,
+                                                     EventTime stop,
+                                                     int list_key) {
   auto db = DBHandle::getInstance();
+  auto index_key = "indexes." + dbNamespace();
+  std::vector<std::string> indexes;
 
-  std::string index_key = "indexes." + dbNamespace();
-  std::string record_key = "records." + dbNamespace();
+  // Keep track of the tail/head of account time while bin searching.
+  EventTime start_max = stop, stop_min = stop, local_start, local_stop;
+  auto types = kEventTimeLists.size();
+  // Binning keys are the list_type:list_id pairs representing bins of records.
+  std::vector<std::string> binning_keys;
+  // List types are sized bins of time containing records for this namespace.
+  for (size_t i = 0; i < types; ++i) {
+    auto size = kEventTimeLists[i];
+    if (list_key > 0 && i != list_key) {
+      // A specific list_type was requested, only return bins of this key.
+      continue;
+    }
 
-  // For now, cheat and use the first list type.
-  std::string list_key = boost::lexical_cast<std::string>(kEventTimeLists[0]);
-  std::string index_value;
+    std::string time_list;
+    auto list_type = boost::lexical_cast<std::string>(size);
+    auto status = db->Get(kEvents, index_key + "." + list_type, time_list);
+    if (time_list.length() == 0) {
+      // No events in this binning size.
+      return indexes;
+    }
 
-  // Get all bins for this list type.
-  status = db->Get(kEvents, index_key + "." + list_key, index_value);
-  if (index_value.length() == 0) {
-    // There are no events in this time range.
-    return records;
+    if (list_key == 0 && i == (types - 1) && types > 1) {
+      // Relax the requested start/stop bounds.
+      if (start != start_max) {
+        start = (start / size) * size;
+        start_max = ((start / size) + 1) * size;
+        if (start_max < stop) {
+          start_max = start + kEventTimeLists[types - 2];
+        }
+      }
+
+      if (stop != stop_min) {
+        stop = ((stop / size) + 1) * size;
+        stop_min = (stop / size) * size;
+        if (stop_min > start) {
+          stop_min = stop_min - kEventTimeLists[types - 1];
+        }
+      }
+    } else if (list_key > 0 || types == 1) {
+      // Relax the requested bounds to fit the requested/only index.
+      start = (start / size) * size;
+      start_max = ((start_max / size) + 1) * size;
+    }
+
+    // (1) The first iteration will have 1 range (start to start_max=stop).
+    // (2) Itermediate iterations will have 2 (start-start_max, stop-stop_min).
+    // For each iteration the range collapses based on the coverage using
+    // the first bin's start time and the last bin's stop time.
+    // (3) The last iteration's range includes relaxed bounds outside the
+    // requested start to stop range.
+    std::vector<std::string> all_bins, bins, expirations;
+    boost::split(all_bins, time_list, boost::is_any_of(","));
+    for (const auto& bin : all_bins) {
+      // Bins are identified by the binning size step.
+      auto step = boost::lexical_cast<EventTime>(bin);
+      // Check if size * step -> size * (step + 1) is within a range.
+      int bin_start = size * step, bin_stop = size * (step + 1);
+      if (expire_events_ && step * size < expire_time_) {
+        expirations.push_back(list_type + "." + bin);
+      } else if (bin_start >= start && bin_stop <= start_max) {
+        bins.push_back(bin);
+      } else if ((bin_start >= stop_min && bin_stop <= stop) || stop == 0) {
+        bins.push_back(bin);
+      }
+    }
+
+    expireIndexes(list_type, all_bins, expirations);
+    if (bins.size() != 0) {
+      // If more percision was acheived though this list's binning.
+      local_start = boost::lexical_cast<EventTime>(bins.front()) * size;
+      start_max = (local_start < start_max) ? local_start : start_max;
+      local_stop = (boost::lexical_cast<EventTime>(bins.back()) + 1) * size;
+      stop_min = (local_stop < stop_min) ? local_stop : stop_min;
+    }
+
+    for (const auto& bin : bins) {
+      indexes.push_back(list_type + "." + bin);
+    }
+
+    if (start == start_max && stop == stop_min) {
+      break;
+    }
   }
-  // Tokenize the value into our bins of the list type.
-  std::vector<std::string> lists;
-  boost::split(lists, index_value, boost::is_any_of(","));
-  std::string record_value;
-  for (const auto& list_id : lists) {
-    status = db->Get(
-        kEvents, record_key + "." + list_key + "." + list_id, record_value);
+
+  // Update the new time that events expire to now - expiry.
+  return indexes;
+}
+
+Status EventSubscriber::expireIndexes(
+    const std::string& list_type,
+    const std::vector<std::string>& indexes,
+    const std::vector<std::string>& expirations) {
+  auto db = DBHandle::getInstance();
+  auto index_key = "indexes." + dbNamespace();
+  auto record_key = "records." + dbNamespace();
+  auto data_key = "data." + dbNamespace();
+
+  // Get the records list for the soon-to-be expired records.
+  std::vector<std::string> record_indexes;
+  for (const auto& bin : expirations) {
+    record_indexes.push_back(list_type + "." + bin);
+  }
+  auto expired_records = getRecords(record_indexes);
+
+  // Remove the records using the list of expired indexes.
+  std::vector<std::string> persisting_indexes = indexes;
+  for (const auto& bin : expirations) {
+    db->Delete(kEvents, record_key + "." + list_type + "." + bin);
+    persisting_indexes.erase(
+        std::remove(persisting_indexes.begin(), persisting_indexes.end(), bin),
+        persisting_indexes.end());
+  }
+
+  // Update the list of indexes with the non-expired indexes.
+  auto new_indexes = boost::algorithm::join(persisting_indexes, ",");
+  db->Put(kEvents, index_key + "." + list_type, new_indexes);
+
+  // Delete record events.
+  for (const auto& record : expired_records) {
+    db->Delete(kEvents, data_key + "." + record.first);
+  }
+
+  return Status(0, "OK");
+}
+
+std::vector<EventRecord> EventSubscriber::getRecords(
+    const std::vector<std::string>& indexes) {
+  auto db = DBHandle::getInstance();
+  auto record_key = "records." + dbNamespace();
+  std::vector<EventRecord> records;
+
+  for (const auto& index : indexes) {
+    std::string record_value;
+    if (!db->Get(kEvents, record_key + "." + index, record_value).ok()) {
+      return records;
+    }
+
     if (record_value.length() == 0) {
       // There are actually no events in this bin, interesting error case.
       continue;
     }
+
+    // Each list is tokenized into a record=event_id:time.
     std::vector<std::string> bin_records;
     boost::split(bin_records, record_value, boost::is_any_of(",:"));
     auto bin_it = bin_records.begin();
@@ -105,9 +230,6 @@ std::vector<EventRecord> EventSubscriber::getRecords(EventTime start,
       records.push_back(std::make_pair(eid, time));
     }
   }
-
-  // Now all the event_ids/event_times within the binned range exist.
-  // Select further on the EXACT time range.
 
   return records;
 }
@@ -201,13 +323,21 @@ QueryData EventSubscriber::get(EventTime start, EventTime stop) {
   auto db = DBHandle::getInstance();
 
   // Get the records for this time range.
-  auto records = getRecords(start, stop);
+  auto indexes = getIndexes(start, stop);
+  auto records = getRecords(indexes);
+
+  std::vector<EventRecord> mapped_records;
+  for (const auto& record : records) {
+    if (record.second >= start && (record.second <= stop || stop == 0)) {
+      mapped_records.push_back(record);
+    }
+  }
 
   std::string events_key = "data." + dbNamespace();
 
-  // Select records using event_ids as keys.
+  // Select mapped_records using event_ids as keys.
   std::string data_value;
-  for (const auto& record : records) {
+  for (const auto& record : mapped_records) {
     Row r;
     status = db->Get(kEvents, events_key + "." + record.first, data_value);
     if (data_value.length() == 0) {
@@ -264,10 +394,11 @@ Status EventFactory::run(EventPublisherID type_id) {
     return Status(1, "No Event Type");
   }
 
-  Status status = Status(0, "OK");
+  auto status = Status(0, "OK");
   while (!EventFactory::getInstance().ending_ && status.ok()) {
     // Can optionally implement a global cooloff latency here.
     status = event_pub->run();
+    ::usleep(20);
   }
 
   // The runloop status is not reflective of the event type's.
@@ -295,8 +426,12 @@ Status EventFactory::registerEventPublisher(const EventPublisherRef event_pub) {
     return Status(1, "Duplicate Event Type");
   }
 
+  if (!event_pub->setUp().ok()) {
+    // Only add the publisher if setUp was successful.
+    return Status(1, "SetUp failed.");
+  }
+
   ef.event_pubs_[type_id] = event_pub;
-  event_pub->setUp();
   return Status(0, "OK");
 }
 

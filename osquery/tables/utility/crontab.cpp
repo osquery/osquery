@@ -4,9 +4,10 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include "osquery/core.h"
-#include "osquery/database.h"
-#include "osquery/filesystem.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 namespace osquery {
 namespace tables {
@@ -88,7 +89,7 @@ void genCronLine(const std::string& path,
   results.push_back(r);
 }
 
-QueryData genCronTab() {
+QueryData genCronTab(QueryContext& context) {
   QueryData results;
 
   auto system_lines = cronFromFile(kSystemCron);

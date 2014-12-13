@@ -1,70 +1,68 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include <ctime>
+
 #include <pwd.h>
 #include <grp.h>
 #include <sys/stat.h>
 #include <sys/xattr.h>
 
-#include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "osquery/database.h"
+#include <osquery/tables.h>
+#include <osquery/logger.h>
 
-using std::string;
-using boost::lexical_cast;
+namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
 
 const std::string kXattrQuarantine = "com.apple.quarantine";
 
-QueryData genQuarantine() {
+Status genQuarantineFile(const fs::path &path, QueryData &results) {
+  int bufferLength =
+      getxattr(path.string().c_str(), kXattrQuarantine.c_str(), NULL, 0, 0, 0);
+  if (bufferLength <= 0) {
+    return Status(1, "Failed to getxattr.");
+  }
+
+  char *value = (char *)malloc(sizeof(char *) * bufferLength);
+  getxattr(path.string().c_str(),
+           kXattrQuarantine.c_str(),
+           value,
+           bufferLength,
+           0,
+           0);
+
+  std::vector<std::string> values;
+  boost::split(values, value, boost::is_any_of(";"));
+  boost::trim(values[2]);
+  free(value);
+
+  Row r;
+  r["path"] = path.string();
+  r["creator"] = values[2];
+  results.push_back(r);
+
+  return Status(0, "OK");
+}
+
+QueryData genQuarantine(QueryContext &context) {
   QueryData results;
 
-  auto it = boost::filesystem::recursive_directory_iterator(
-      boost::filesystem::path("/"));
-  boost::filesystem::recursive_directory_iterator end;
+  auto it = fs::recursive_directory_iterator(fs::path("/"));
+  fs::recursive_directory_iterator end;
 
   while (it != end) {
-    boost::filesystem::path path = *it;
-    try {
-      Row r;
-      std::vector<std::string> values;
-      std::string filePathQuotes = boost::lexical_cast<std::string>(path);
-      std::string filePath =
-          filePathQuotes.substr(1, filePathQuotes.length() - 2);
+    fs::path path = *it;
 
-      int bufferLength =
-          getxattr(filePath.c_str(), kXattrQuarantine.c_str(), NULL, 0, 0, 0);
-      if (bufferLength > 0) {
-        char *value = (char *)malloc(sizeof(char *) * bufferLength);
-        getxattr(filePath.c_str(),
-                 kXattrQuarantine.c_str(),
-                 value,
-                 bufferLength,
-                 0,
-                 0);
+    genQuarantineFile(path, results);
 
-        boost::split(values, value, boost::is_any_of(";"));
-        boost::trim(values[2]);
-
-        r["path"] = filePath;
-        r["creator"] = values[2];
-
-        results.push_back(r);
-        free(value);
-      }
-    } catch (...) {
-      LOG(ERROR) << "Couldn't handle file "
-                 << boost::lexical_cast<std::string>(*it);
-    }
     try {
       ++it;
-    } catch (const std::exception &ex) {
-      LOG(WARNING) << "Permissions error on "
-                   << boost::lexical_cast<std::string>(*it);
+    } catch (const fs::filesystem_error &ex) {
+      VLOG(2) << "Permissions error on " << path.string();
       it.no_push();
     }
   }

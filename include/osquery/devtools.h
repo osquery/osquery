@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include "osquery/database/results.h"
+#include <osquery/database/results.h>
 
 namespace osquery {
 
@@ -13,8 +13,8 @@ namespace osquery {
  *
  * @code{.cpp}
  *   // Copyright 2004-present Facebook. All Rights Reserved.
- *   #include "osquery/core.h"
- *   #include "osquery/devtools.h"
+ *   #include <osquery/core.h>
+ *   #include <osquery/devtools.h>
  *
  *   int main(int argc, char *argv[]) {
  *     osquery::initOsquery(argc, argv);
@@ -47,6 +47,16 @@ std::string beautify(const QueryData& q, const std::vector<std::string>& order);
  * @param order The order of the keys (since maps are unordered)
  */
 void prettyPrint(const QueryData& q, const std::vector<std::string>& order);
+
+/**
+ * @brief JSON print a QueryData object
+ *
+ * This is a helper method which allows a shell or other tool to print results
+ * in a JSON format.
+ *
+ * @param q The QueryData object to print
+ */
+void jsonPrint(const QueryData& q);
 
 /**
  * @brief Compute a map of metadata about the supplied QueryData object

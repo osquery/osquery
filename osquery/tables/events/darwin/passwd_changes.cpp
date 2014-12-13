@@ -3,12 +3,10 @@
 #include <vector>
 #include <string>
 
-#include <boost/lexical_cast.hpp>
-
 #include <glog/logging.h>
 
-#include "osquery/core.h"
-#include "osquery/database.h"
+#include <osquery/core.h>
+#include <osquery/tables.h>
 #include "osquery/events/darwin/fsevents.h"
 
 namespace osquery {
@@ -64,7 +62,7 @@ Status PasswdChangesEventSubscriber::Callback(
   r["action"] = ec->action;
   r["time"] = ec->time_string;
   r["target_path"] = ec->path;
-  r["transaction_id"] = boost::lexical_cast<std::string>(ec->fsevent_id);
+  r["transaction_id"] = INTEGER(ec->fsevent_id);
   if (ec->action != "") {
     add(r, ec->time);
   }

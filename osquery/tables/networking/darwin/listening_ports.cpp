@@ -7,12 +7,9 @@
 #include <stdlib.h>
 #include <libproc.h>
 
-#include <boost/lexical_cast.hpp>
-
-#include <glog/logging.h>
-
-#include "osquery/core.h"
-#include "osquery/database.h"
+#include <osquery/core.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
@@ -36,10 +33,10 @@ void genSocket(pid_t pid, struct socket_fdinfo socket, QueryData &results) {
   struct in6_addr ipv6 = socket.psi.soi_proto.pri_in.insi_laddr.ina_6;
 
   Row r;
-  r["pid"] = boost::lexical_cast<std::string>(pid);
-  r["port"] = boost::lexical_cast<std::string>(local);
-  r["protocol"] = boost::lexical_cast<std::string>(protocol);
-  r["family"] = boost::lexical_cast<std::string>(family);
+  r["pid"] = INTEGER(pid);
+  r["port"] = INTEGER(local);
+  r["protocol"] = INTEGER(protocol);
+  r["family"] = INTEGER(family);
 
   int octet;
   std::stringstream addr;
@@ -47,7 +44,7 @@ void genSocket(pid_t pid, struct socket_fdinfo socket, QueryData &results) {
     // Parse IPv4
     for (int i = 0; i < 4; i++) {
       octet = (int)ipv6.__u6_addr.__u6_addr8[i + 12];
-      addr << boost::lexical_cast<std::string>(octet);
+      addr << TEXT(octet);
       if (i < 3) {
         addr << ".";
       }
@@ -68,7 +65,7 @@ void genSocket(pid_t pid, struct socket_fdinfo socket, QueryData &results) {
   addUniqueRowToQueryData(results, r);
 }
 
-QueryData genListeningPorts() {
+QueryData genListeningPorts(QueryContext &context) {
   QueryData results;
 
   int num_pids;
