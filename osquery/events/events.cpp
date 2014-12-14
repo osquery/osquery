@@ -30,7 +30,8 @@ const std::vector<size_t> kEventTimeLists = {
     10, // 10 seconds
 };
 
-void EventPublisher::fire(const EventContextRef ec, EventTime time) {
+template <typename SC, typename EC>
+void EventPublisher<SC, EC>::fire(const EventContextRef ec, EventTime time) {
   EventContextID ec_id;
 
   {
@@ -55,21 +56,16 @@ void EventPublisher::fire(const EventContextRef ec, EventTime time) {
 
   for (const auto& subscription : subscriptions_) {
     auto callback = subscription->callback;
-    if (shouldFire(subscription->context, ec) && callback != nullptr) {
+    if (shouldFire(getSubscriptionContext(subscription->context),
+                   getEventContext(ec)) &&
+        callback != nullptr) {
       callback(ec, false);
     }
   }
 }
 
-bool EventPublisher::shouldFire(const SubscriptionContextRef mc,
-                                const EventContextRef ec) {
-  return true;
-}
-
-Status EventPublisher::run() {
-  // Runloops/entrypoints are ONLY implemented if needed.
-  return Status(1, "No runloop required");
-}
+/// Force generation of EventPublisher::fire
+template class EventPublisher<SubscriptionContext, EventContext>;
 
 std::vector<std::string> EventSubscriber::getIndexes(EventTime start,
                                                      EventTime stop,
@@ -417,21 +413,21 @@ EventFactory& EventFactory::getInstance() {
   return ef;
 }
 
-Status EventFactory::registerEventPublisher(const EventPublisherRef event_pub) {
+Status EventFactory::registerEventPublisher(const EventPublisherRef pub) {
   auto& ef = EventFactory::getInstance();
-  auto type_id = event_pub->type();
+  auto type_id = pub->type();
 
   if (ef.getEventPublisher(type_id) != nullptr) {
     // This is a duplicate type id?
     return Status(1, "Duplicate Event Type");
   }
 
-  if (!event_pub->setUp().ok()) {
+  if (!pub->setUp().ok()) {
     // Only add the publisher if setUp was successful.
     return Status(1, "SetUp failed.");
   }
 
-  ef.event_pubs_[type_id] = event_pub;
+  ef.event_pubs_[type_id] = pub;
   return Status(0, "OK");
 }
 
@@ -474,8 +470,7 @@ size_t EventFactory::numSubscriptions(EventPublisherID type_id) {
   return 0;
 }
 
-std::shared_ptr<EventPublisher> EventFactory::getEventPublisher(
-    EventPublisherID type_id) {
+EventPublisherRef EventFactory::getEventPublisher(EventPublisherID type_id) {
   auto& ef = EventFactory::getInstance();
   const auto& it = ef.event_pubs_.find(type_id);
   if (it != ef.event_pubs_.end()) {

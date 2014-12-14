@@ -34,8 +34,10 @@ class FakeEventSubscriber : public EventSubscriber {
   }
 };
 
-class FakeEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(FakeEventPublisher, SubscriptionContext, EventContext);
+class FakeEventPublisher
+    : public EventPublisher<SubscriptionContext, EventContext> {
+ public:
+  EventPublisherID type() { return "Fake"; }
 };
 
 class AnotherFakeEventSubscriber : public EventSubscriber {

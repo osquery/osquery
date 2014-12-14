@@ -19,6 +19,8 @@
 namespace osquery {
 
 struct Subscription;
+
+template <class SC, class EC>
 class EventPublisher;
 class EventSubscriber;
 
@@ -62,7 +64,8 @@ struct EventContext {
 };
 
 typedef std::shared_ptr<Subscription> SubscriptionRef;
-typedef std::shared_ptr<EventPublisher> EventPublisherRef;
+typedef std::shared_ptr<EventPublisher<SubscriptionContext, EventContext> >
+EventPublisherRef;
 typedef std::shared_ptr<SubscriptionContext> SubscriptionContextRef;
 typedef std::shared_ptr<EventContext> EventContextRef;
 typedef std::shared_ptr<EventSubscriber> EventSubscriberRef;
@@ -77,49 +80,6 @@ typedef std::map<EventPublisherID, EventPublisherRef> EventPublisherMap;
 
 /// The set of search-time binned lookup tables.
 extern const std::vector<size_t> kEventTimeLists;
-
-/**
- * @brief Helper type casting methods for EventPublisher classes.
- *
- * A new osquery EventPublisher should subclass EventPublisher and use the
- * following:
- *
- * @code{.cpp}
- *   #include <osquery/events.h>
- *
- *   class MyEventPublisher: public EventPublisher {
- *     DECLARE_EVENTPUBLISHER(MyEventPublisher, MySubscriptionContext,
- *       MyEventContext);
- *   }
- * @endcode
- *
- * This assumes new EventPublisher%s will always include a custom
- * SubscriptionContext and EventContext. In the above example
- * MySubscriptionContext allows EventSubscriber%s to downselect or customize
- * what events to handle. And MyEventContext includes fields specific to the
- * new EventPublisher.
- */
-#define DECLARE_EVENTPUBLISHER(TYPE, MONITOR, EVENT)                           \
- public:                                                                       \
-  EventPublisherID type() const { return #TYPE; }                              \
-  bool shouldFire(const SubscriptionContextRef mc, const EventContextRef ec) { \
-    if (#MONITOR == "SubscriptionContext" && #EVENT == "EventContext")         \
-      return true;                                                             \
-    return shouldFire(getSubscriptionContext(mc), getEventContext(ec));        \
-  }                                                                            \
-  static std::shared_ptr<EVENT> getEventContext(EventContextRef context) {     \
-    return std::static_pointer_cast<EVENT>(context);                           \
-  }                                                                            \
-  static std::shared_ptr<MONITOR> getSubscriptionContext(                      \
-      SubscriptionContextRef context) {                                        \
-    return std::static_pointer_cast<MONITOR>(context);                         \
-  }                                                                            \
-  static std::shared_ptr<EVENT> createEventContext() {                         \
-    return std::make_shared<EVENT>();                                          \
-  }                                                                            \
-  static std::shared_ptr<MONITOR> createSubscriptionContext() {                \
-    return std::make_shared<MONITOR>();                                        \
-  }
 
 /**
  * @brief Required getter and namespace helper methods for EventSubscriber%s.
@@ -308,7 +268,11 @@ struct Subscription {
  * only call the Subscription%'s callback function is the EventContext
  * (thus event) matches.
  */
+template <typename SC, typename EC>
 class EventPublisher {
+  typedef std::shared_ptr<SC> SCRef;
+  typedef std::shared_ptr<EC> ECRef;
+
  public:
   /**
    * @brief A new Subscription was added, potentially change state based on all
@@ -329,7 +293,7 @@ class EventPublisher {
    * When `setUp` is called the EventPublisher is running in a dedicated thread
    * and may manage/allocate/wait for resources.
    */
-  virtual Status setUp() { return Status(0, "Not used."); }
+  virtual Status setUp() { return Status(0, "Not used"); }
 
   /**
    * @brief Perform handle closing, resource cleanup.
@@ -345,7 +309,7 @@ class EventPublisher {
    * @return A SUCCESS status will immediately call `run` again. A FAILED status
    * will exit the run loop and the thread.
    */
-  virtual Status run();
+  virtual Status run() { return Status(1, "No runloop required"); }
 
   /**
    * @brief A new EventSubscriber is subscriptioning events of this
@@ -376,16 +340,7 @@ class EventPublisher {
   virtual ~EventPublisher() {}
 
   /// Return a string identifier associated with this EventPublisher.
-  virtual EventPublisherID type() const = 0;
-
-  /// Return a string identifier for the given EventPublisher symbol.
-  template <typename T>
-  static EventPublisherID type() {
-    const auto& event_pub = new T();
-    auto type_id = event_pub->type();
-    delete event_pub;
-    return type_id;
-  }
+  virtual EventPublisherID type() { return "publisher"; }
 
  public:
   /**
@@ -399,6 +354,19 @@ class EventPublisher {
    */
   void fire(const EventContextRef ec, EventTime time = 0);
 
+ public:
+  /// Templating accessors/factories.
+  static ECRef getEventContext(EventContextRef ec) {
+    return std::static_pointer_cast<EC>(ec);
+  }
+
+  static SCRef getSubscriptionContext(SubscriptionContextRef sc) {
+    return std::static_pointer_cast<SC>(sc);
+  }
+
+  static ECRef createEventContext() { return std::make_shared<EC>(); }
+  static SCRef createSubscriptionContext() { return std::make_shared<SC>(); }
+
  protected:
   /**
    * @brief The generic `fire` will call `shouldFire` for each Subscription.
@@ -409,8 +377,7 @@ class EventPublisher {
    *
    * @return should the Subscription%'s EventCallback be called for this event.
    */
-  virtual bool shouldFire(const SubscriptionContextRef mc,
-                          const EventContextRef ec);
+  virtual bool shouldFire(const SCRef sc, const ECRef ec) { return true; }
 
  protected:
   /// The EventPublisher will keep track of Subscription%s that contain callins.
@@ -425,6 +392,7 @@ class EventPublisher {
   boost::mutex ec_id_lock_;
 
  private:
+  FRIEND_TEST(EventsTests, test_event_pub);
   FRIEND_TEST(EventsTests, test_fire_event);
 };
 
@@ -600,6 +568,7 @@ class EventSubscriber {
   boost::mutex event_record_lock_;
 
  private:
+  FRIEND_TEST(EventsTests, test_event_sub);
   FRIEND_TEST(EventsDatabaseTests, test_event_module_id);
   FRIEND_TEST(EventsDatabaseTests, test_unique_event_module_id);
   FRIEND_TEST(EventsDatabaseTests, test_record_indexing);
@@ -627,10 +596,10 @@ class EventFactory {
    *
    * The registration is mostly abstracted using osquery's registery.
    */
-  template <typename T>
+  template <class T>
   static Status registerEventPublisher() {
-    auto event_pub = std::make_shared<T>();
-    return EventFactory::registerEventPublisher(event_pub);
+    auto pub = std::make_shared<T>();
+    return registerEventPublisher<T>(pub);
   }
 
   /**
@@ -644,7 +613,13 @@ class EventFactory {
    * Access to the EventPublisher instance is not discouraged, but using the
    * EventFactory `getEventPublisher` accessor is encouraged.
    */
-  static Status registerEventPublisher(const EventPublisherRef event_pub);
+  template <class T>
+  static Status registerEventPublisher(std::shared_ptr<T> pub) {
+    auto base_pub = reinterpret_cast<EventPublisherRef&>(pub);
+    return registerEventPublisher(base_pub);
+  }
+
+  static Status registerEventPublisher(const EventPublisherRef pub);
 
   /**
    * @brief Add an EventSubscriber to the factory.
@@ -699,14 +674,14 @@ class EventFactory {
   template <typename T>
   static Status addSubscription(const SubscriptionContextRef mc,
                                 EventCallback cb = 0) {
-    return addSubscription(EventPublisher::type<T>(), mc, cb);
+    return addSubscription(T::type(), mc, cb);
   }
 
   /// Add a Subscription by templating the EventPublisher, using a Subscription
   /// instance.
   template <typename T>
   static Status addSubscription(const SubscriptionRef subscription) {
-    return addSubscription(EventPublisher::type<T>(), subscription);
+    return addSubscription(T::type(), subscription);
   }
 
   /// Get the total number of Subscription%s across ALL EventPublisher%s.
@@ -750,7 +725,7 @@ class EventFactory {
   /// If a static EventPublisher callback wants to fire
   template <typename T>
   static void fire(const EventContextRef ec) {
-    auto event_pub = getEventPublisher(EventPublisher::type<T>());
+    auto event_pub = getEventPublisher(T::type());
     event_pub->fire(ec);
   }
 
