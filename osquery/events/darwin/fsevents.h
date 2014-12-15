@@ -56,10 +56,9 @@ typedef std::shared_ptr<FSEventsSubscriptionContext>
  * preferred implementation of FSEvents handling.
  *
  */
-class FSEventsEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(FSEventsEventPublisher,
-                         FSEventsSubscriptionContext,
-                         FSEventsEventContext)
+class FSEventsEventPublisher
+    : public EventPublisher<FSEventsSubscriptionContext, FSEventsEventContext> {
+  DECLARE_PUBLISHER("FSEventsEventPublisher");
 
  public:
   void configure();
