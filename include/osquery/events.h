@@ -15,6 +15,7 @@
 #include <osquery/database.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 
@@ -81,6 +82,12 @@ typedef std::map<EventPublisherID, EventPublisherRef> EventPublisherMap;
 
 /// The set of search-time binned lookup tables.
 extern const std::vector<size_t> kEventTimeLists;
+
+#define DECLARE_PUBLISHER(TYPE) \
+ public: EventPublisherID type() { return TYPE; }
+
+#define DECLARE_SUBSCRIBER(NAME) \
+ public: EventPublisherID name() { return NAME; }
 
 /**
  * @brief Required getter and namespace helper methods for EventSubscriber%s.
@@ -696,10 +703,7 @@ class EventSubscriberCore {
    *
    * @return The query-time table data, retrieved from a backing store.
    */
-  static QueryData genTable(osquery::tables::QueryContext& context)
-      __attribute__((used)) {
-    return get(0, 0);
-  }
+  QueryData genTable(tables::QueryContext& context) __attribute__((used));
 
  protected:
   /// Backing storage indexing namespace definition methods.
@@ -769,8 +773,8 @@ class EventSubscriber: public EventSubscriberCore {
   }
 
   EventPublisherID type() {
-    const auto& pub = new PUB();
-    auto type = pub->type();
+    auto pub = new PUB();
+    EventPublisherID type = pub->type();
     delete pub;
     return type;
   }

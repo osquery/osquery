@@ -31,19 +31,17 @@ typedef std::shared_ptr<FakeEventContext> FakeEventContextRef;
 // Now a publisher with a type.
 class FakeEventPublisher
     : public EventPublisher<FakeSubscriptionContext, FakeEventContext> {
- public:
-  EventPublisherID type() { return "Fake"; }
+  DECLARE_PUBLISHER("FakePublisher");
 };
 
 class AnotherFakeEventPublisher
     : public EventPublisher<FakeSubscriptionContext, FakeEventContext> {
- public:
-  EventPublisherID type() { return "AnotherFake"; }
+  DECLARE_PUBLISHER("AnotherFakePublisher");
 };
 
 TEST_F(EventsTests, test_event_pub) {
   auto pub = std::make_shared<FakeEventPublisher>();
-  EXPECT_EQ(pub->type(), "Fake");
+  EXPECT_EQ(pub->type(), "FakePublisher");
 
   // Test type names.
   auto pub_sub = pub->createSubscriptionContext();
@@ -70,6 +68,15 @@ TEST_F(EventsTests, test_register_event_pub) {
   EXPECT_TRUE(status.ok());
 }
 
+TEST_F(EventsTests, test_event_pub_types) {
+  auto pub = std::make_shared<FakeEventPublisher>();
+  EXPECT_EQ(pub->type(), "FakePublisher");
+
+  EventFactory::registerEventPublisher(pub);
+  auto pub2 = EventFactory::getEventPublisher("FakePublisher");
+  EXPECT_EQ(pub->type(), pub2->type());
+}
+
 TEST_F(EventsTests, test_create_event_pub) {
   auto status = EventFactory::registerEventPublisher<BasicEventPublisher>();
   EXPECT_TRUE(status.ok());
@@ -84,7 +91,7 @@ TEST_F(EventsTests, test_create_subscription) {
   // Make sure a subscription cannot be added for a non-existent event type.
   // Note: It normally would not make sense to create a blank subscription.
   auto subscription = Subscription::create();
-  auto status = EventFactory::addSubscription("Fake", subscription);
+  auto status = EventFactory::addSubscription("FakePublisher", subscription);
   EXPECT_FALSE(status.ok());
 
   // In this case we can still add a blank subscription to an existing event
@@ -114,8 +121,8 @@ struct TestSubscriptionContext : public SubscriptionContext {
 
 class TestEventPublisher
     : public EventPublisher<TestSubscriptionContext, EventContext> {
+  DECLARE_PUBLISHER("TestPublisher");
  public:
-  EventPublisherID type() { return "Test"; }
   Status setUp() {
     smallest_ever_ += 1;
     return Status(0, "OK");
@@ -175,7 +182,7 @@ TEST_F(EventsTests, test_custom_subscription) {
   sc->smallest = -1;
 
   // Step 3, add the subscription to the event type
-  status = EventFactory::addSubscription("Test", sc);
+  status = EventFactory::addSubscription("TestPublisher", sc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(pub->numSubscriptions(), 1);
 
@@ -191,7 +198,7 @@ TEST_F(EventsTests, test_tear_down) {
   // Make sure set up incremented the test value.
   EXPECT_EQ(pub->getTestValue(), 1);
 
-  status = EventFactory::deregisterEventPublisher("Test");
+  status = EventFactory::deregisterEventPublisher("TestPublisher");
   EXPECT_TRUE(status.ok());
 
   // Make sure tear down inremented the test value.

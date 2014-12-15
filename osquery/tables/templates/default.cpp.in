@@ -15,7 +15,7 @@ osquery::QueryData {{function}}(QueryContext& request);
 {% else %}
 class {{class_name}} {
  public:
-  static osquery::QueryData {{function}}(QueryContext& request);
+  osquery::QueryData {{function}}(QueryContext& request);
 };
 {% endif %}\
 
@@ -31,7 +31,8 @@ public:
 
   QueryData generate(QueryContext& request) {
 {% if class_name != "" %}\
-    return osquery::tables::{{class_name}}::{{function}}(request);
+    auto subscriber = std::make_shared<{{class_name}}>();
+    return subscriber->{{function}}(request);
 {% else %}\
     return osquery::tables::{{function}}(request);
 {% endif %}\

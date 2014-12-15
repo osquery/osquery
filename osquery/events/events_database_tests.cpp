@@ -24,11 +24,11 @@ class EventsDatabaseTests : public ::testing::Test {
 
 class FakeEventPublisher
     : public EventPublisher<SubscriptionContext, EventContext> {
- public:
-  EventPublisherID type() { return "FakePublisher"; }
+  DECLARE_PUBLISHER("FakePublisher");
 };
 
 class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
+  DECLARE_SUBSCRIBER("FakeSubscriber");
  public:
   /// Add a fake event at time t
   Status testAdd(int t) {
@@ -36,27 +36,7 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
     r["testing"] = "hello from space";
     return add(r, t);
   }
-
-  EventSubscriberID name() { return "FakeSubscriber"; }
 };
-
-/**
-#define DECLARE_EVENTSUBSCRIBER(NAME, TYPE)                         \
- public:                                                            \
-  static std::shared_ptr<NAME> getInstance() {                      \
-    static auto q = std::shared_ptr<NAME>(new NAME());              \
-    return q;                                                       \
-  }                                                                 \
-  static QueryData genTable(osquery::tables::QueryContext& context) \
-      __attribute__((used)) {                                       \
-    return getInstance()->get(0, 0);                                \
-  }                                                                 \
-                                                                    \
- private:                                                           \
-  EventPublisherID name() const { return #NAME; }                   \
-  EventPublisherID type() const { return #TYPE; }                   \
-  NAME() {}
-*/
 
 TEST_F(EventsDatabaseTests, test_event_sub) {
   auto sub = std::make_shared<FakeEventSubscriber>();

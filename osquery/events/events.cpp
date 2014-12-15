@@ -370,6 +370,10 @@ Status EventSubscriberCore::add(const Row& r, EventTime time) {
   return status;
 }
 
+QueryData EventSubscriberCore::genTable(tables::QueryContext& context) {
+  return get(0, 0);
+}
+
 void EventFactory::delay() {
   auto& ef = EventFactory::getInstance();
   for (const auto& eventtype : EventFactory::getInstance().event_pubs_) {
