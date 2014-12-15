@@ -2,6 +2,8 @@
 
 #include <typeinfo>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <gtest/gtest.h>
 
 #include <osquery/events.h>
@@ -9,8 +11,15 @@
 
 namespace osquery {
 
+const std::string kTestingEventsDBPath = "/tmp/rocksdb-osquery-testevents";
+
 class EventsTests : public ::testing::Test {
  public:
+  void SetUp() {
+    // Setup a testing DB instance
+    DBHandle::getInstanceAtPath(kTestingEventsDBPath);
+  }
+
   void TearDown() { EventFactory::deregisterEventPublishers(); }
 };
 
@@ -20,9 +29,13 @@ class BasicEventPublisher
 class AnotherBasicEventPublisher
     : public EventPublisher<SubscriptionContext, EventContext> {};
 
-// Create some still-useless subscription and event structures.
-struct FakeSubscriptionContext : SubscriptionContext {};
-struct FakeEventContext : EventContext {};
+// Create some semi-useless subscription and event structures.
+struct FakeSubscriptionContext : SubscriptionContext {
+  int require_this_value;
+};
+struct FakeEventContext : EventContext {
+  int required_value;
+};
 
 // Typdef the shared_ptr accessors.
 typedef std::shared_ptr<FakeSubscriptionContext> FakeSubscriptionContextRef;
@@ -122,6 +135,7 @@ struct TestSubscriptionContext : public SubscriptionContext {
 class TestEventPublisher
     : public EventPublisher<TestSubscriptionContext, EventContext> {
   DECLARE_PUBLISHER("TestPublisher");
+
  public:
   Status setUp() {
     smallest_ever_ += 1;
@@ -219,9 +233,87 @@ TEST_F(EventsTests, test_tear_down) {
 
 static int kBellHathTolled = 0;
 
-Status TestTheeCallback(EventContextRef context, bool reserved) {
+Status TestTheeCallback(EventContextRef context) {
   kBellHathTolled += 1;
   return Status(0, "OK");
+}
+
+class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
+  DECLARE_SUBSCRIBER("FakeSubscriber");
+
+ public:
+  bool bellHathTolled;
+  bool contextBellHathTolled;
+  bool shouldFireBethHathTolled;
+
+  FakeEventSubscriber() {
+    bellHathTolled = false;
+    contextBellHathTolled = false;
+    shouldFireBethHathTolled = false;
+  }
+
+  Status Callback(const EventContextRef ec) {
+    // We don't care about the subscription or the event contexts.
+    bellHathTolled = true;
+    return Status(0, "OK");
+  }
+
+  Status SpecialCallback(const FakeEventContextRef ec) {
+    // Now we care that the event context is corrected passed.
+    if (ec->required_value == 42) {
+      contextBellHathTolled = true;
+    }
+    return Status(0, "OK");
+  }
+
+  void lateInit() {
+    auto sub_ctx = createSubscriptionContext();
+    subscribe(&FakeEventSubscriber::Callback, sub_ctx);
+  }
+
+  void laterInit() {
+    auto sub_ctx = createSubscriptionContext();
+    sub_ctx->require_this_value = 42;
+    subscribe(&FakeEventSubscriber::SpecialCallback, sub_ctx);
+  }
+};
+
+TEST_F(EventsTests, test_event_sub) {
+  auto sub = std::make_shared<FakeEventSubscriber>();
+  EXPECT_EQ(sub->type(), "FakePublisher");
+  EXPECT_EQ(sub->name(), "FakeSubscriber");
+}
+
+TEST_F(EventsTests, test_event_sub_subscribe) {
+  auto pub = std::make_shared<FakeEventPublisher>();
+  EventFactory::registerEventPublisher(pub);
+
+  auto sub = std::make_shared<FakeEventSubscriber>();
+  EventFactory::registerEventSubscriber(sub);
+
+  // Don't overload the normal `init` Subscription member.
+  sub->lateInit();
+  EXPECT_EQ(pub->numSubscriptions(), 1);
+
+  auto ec = pub->createEventContext();
+  pub->fire(ec, 0);
+
+  EXPECT_TRUE(sub->bellHathTolled);
+}
+
+TEST_F(EventsTests, test_event_sub_context) {
+  auto pub = std::make_shared<FakeEventPublisher>();
+  EventFactory::registerEventPublisher(pub);
+
+  auto sub = std::make_shared<FakeEventSubscriber>();
+  EventFactory::registerEventSubscriber(sub);
+
+  sub->laterInit();
+  auto ec = pub->createEventContext();
+  ec->required_value = 42;
+  pub->fire(ec, 0);
+
+  EXPECT_TRUE(sub->contextBellHathTolled);
 }
 
 TEST_F(EventsTests, test_fire_event) {
@@ -255,5 +347,7 @@ TEST_F(EventsTests, test_fire_event) {
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  int status = RUN_ALL_TESTS();
+  boost::filesystem::remove_all(osquery::kTestingEventsDBPath);
+  return status;
 }

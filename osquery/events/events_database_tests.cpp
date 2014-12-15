@@ -8,11 +8,9 @@
 #include <osquery/events.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/test_util.h"
+namespace osquery {
 
 const std::string kTestingEventsDBPath = "/tmp/rocksdb-osquery-testevents";
-
-namespace osquery {
 
 class EventsDatabaseTests : public ::testing::Test {
  public:
@@ -29,6 +27,7 @@ class FakeEventPublisher
 
 class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
   DECLARE_SUBSCRIBER("FakeSubscriber");
+
  public:
   /// Add a fake event at time t
   Status testAdd(int t) {
@@ -37,12 +36,6 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
     return add(r, t);
   }
 };
-
-TEST_F(EventsDatabaseTests, test_event_sub) {
-  auto sub = std::make_shared<FakeEventSubscriber>();
-  EXPECT_EQ(sub->type(), "FakePublisher");
-  EXPECT_EQ(sub->name(), "FakeSubscriber");
-}
 
 TEST_F(EventsDatabaseTests, test_event_module_id) {
   auto sub = std::make_shared<FakeEventSubscriber>();
@@ -147,6 +140,6 @@ TEST_F(EventsDatabaseTests, test_record_expiration) {
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
   int status = RUN_ALL_TESTS();
-  boost::filesystem::remove_all(kTestingEventsDBPath);
+  boost::filesystem::remove_all(osquery::kTestingEventsDBPath);
   return status;
 }

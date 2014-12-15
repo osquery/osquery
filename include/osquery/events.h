@@ -20,7 +20,6 @@
 namespace osquery {
 
 struct Subscription;
-
 template <class SC, class EC> class EventPublisher;
 template <class PUB> class EventSubscriber;
 class EventFactory;
@@ -72,7 +71,10 @@ typedef std::shared_ptr<SubscriptionContext> SubscriptionContextRef;
 typedef std::shared_ptr<EventContext> EventContextRef;
 typedef std::shared_ptr<EventSubscriber<BaseEventPublisher>> EventSubscriberRef;
 
-typedef std::function<Status(EventContextRef, bool)> EventCallback;
+/// Use a single placeholder for the EventContextRef passed to EventCallback.
+using std::placeholders::_1;
+using SubscriberCallback = Status(*)(EventContextRef);
+typedef std::function<Status(EventContextRef)> EventCallback;
 
 /// An EventPublisher must track every subscription added.
 typedef std::vector<SubscriptionRef> SubscriptionVector;
@@ -84,108 +86,12 @@ typedef std::map<EventPublisherID, EventPublisherRef> EventPublisherMap;
 extern const std::vector<size_t> kEventTimeLists;
 
 #define DECLARE_PUBLISHER(TYPE) \
- public: EventPublisherID type() { return TYPE; }
+ public:                        \
+  EventPublisherID type() { return TYPE; }
 
 #define DECLARE_SUBSCRIBER(NAME) \
- public: EventPublisherID name() { return NAME; }
-
-/**
- * @brief Required getter and namespace helper methods for EventSubscriber%s.
- *
- * A new osquery `EventSubscriber` should subclass EventSubscriber with the
- * following:
- *
- * @code{.cpp}
- *   #include <osquery/events.h>
- *
- *   class MyEventSubscriber: public EventSubscriber {
- *     DECLARE_EVENTSUBSCRIBER(MyEventSubscriber, MyEventPublisher);
- *   }
- * @endcode
- *
- * EventSubscriber%s should be specific to an EventPublisher.
- */
-
-/**
- * @brief Required callin EventSubscriber method declaration helper.
- *
- * An EventSubscriber will include 1 or more EventCallback methods. Consider the
- * following flow: (1) Event occurs, (2) EventCallback is called with the
- * event details, (3) details logged, (4) details are queried.
- *
- * The above logic can be supplied in a class-like namespace with static
- * callin/callback functions:
- *
- * @code{.cpp}
- *   #include <osquery/events.h>
- *
- *   class MyEventSubscriber: public EventSubscriber {
- *     DECLARE_EVENTSUBSCRIBER(MyEventSubscriber, MyEventPublisher);
- *     DECLARE_CALLBACK(MyCallback, MyEventContext)
- *
- *     Status ModuleMyCallback(EventContextID, EventTime, MyEventContext);
- *   }
- * @endcode
- *
- * And then somewhere else in code the callback can be registered:
- *
- * @code{.cpp}
- *   EventFactory::addSubscription("MyEventPublisher", my_subscription_context,
- *                            MyEventSubscriber::MyCallback);
- * @endcode
- *
- * The binding from static method, function pointer, and EventSubscriber
- * instance boilerplate code is added automatically.
- * Note: The macro will append `Module` to `MyCallback`.
- */
-#define DECLARE_CALLBACK(NAME, EVENT)                                  \
- public:                                                               \
-  static Status Event##NAME(const EventContextRef ec, bool reserved) { \
-    auto ec_ = std::static_pointer_cast<EVENT>(ec);                    \
-    return getInstance()->NAME(ec_);                                   \
-  }                                                                    \
-                                                                       \
- private:                                                              \
-  void BindTo##NAME(const SubscriptionContextRef mc) {                 \
-    EventFactory::addSubscription(type(), mc, Event##NAME);            \
-  }
-
-/**
- * @brief Bind a subscription context to a declared EventCallback for this
- *module.
- *
- * Binding refers to the association of a callback for this EventSubscriber to
- * a configured SubscriptionContext. Under the hood "binding" creates a factory
- * Subscription for the EventPublisher used by the EventSubscriber. Such that
- * when an event of the EventPublisher is fired, if the event details match the
- * specifics of the SubscriptionContext the EventSubscription%'s EventCallback
- * will be called.
- *
- * @code{.cpp}
- *   #include <osquery/events.h>
- *
- *   class MyEventSubscriber: public EventSubscriber {
- *     DECLARE_EVENTSUBSCRIBER(MyEventSubscriber, MyEventPublisher);
- *     DECLARE_CALLBACK(MyCallback, MyEventContext);
- *
- *    public:
- *     void init() {
- *       auto mc = MyEventPublisher::createSubscriptionContext();
- *       mc->requirement = "SOME_SPECIFIC_DETAIL";
- *       BIND_CALLBACK(MyCallback, mc);
- *     }
- *     Status MyCallback(const MyEventContextRef ec) {}
- *   }
- * @endcode
- *
- * The symbol `MyCallback` must match in `DECLARE_CALLBACK`, `BIND_CALLBACK` and
- * as a member of this EventSubscriber.
- *
- * @param NAME The symbol for the EventCallback method used in DECLARE_CALLBACK.
- * @param MC The SubscriptionContext to bind.
- */
-#define BIND_CALLBACK(NAME, MC) \
-  EventFactory::addSubscription(type(), MC, Event##NAME);
+ public:                         \
+  EventPublisherID name() { return NAME; }
 
 /**
  * @brief A Subscription is used to configure an EventPublisher and bind a
@@ -228,45 +134,7 @@ struct Subscription {
   }
 };
 
-/**
- * @brief Generate OS events of a type (FS, Network, Syscall, ioctl).
- *
- * A 'class' of OS events is abstracted into an EventPublisher responsible for
- * remaining as agile as possible given a known-set of subscriptions.
- *
- * The lifecycle of an EventPublisher may include, `setUp`, `configure`, `run`,
- * `tearDown`, and `fire`. `setUp` and `tearDown` happen when osquery starts and
- * stops either as a daemon or interactive shell. `configure` is a pseudo-start
- * called every time a Subscription is added. EventPublisher%s can adjust their
- * scope/agility specific to each added subscription by overriding
- *`addSubscription`,
- * and or globally in `configure`.
- *
- * Not all EventPublisher%s leverage pure async OS APIs, and most will require a
- * run loop either polling with a timeout on a descriptor or for a change. When
- * osquery initializes the EventFactory will optionally create a thread for each
- * EventPublisher using `run` as the thread's entrypoint. This is called in a
- * within-thread loop where returning a FAILED status ends the run loop and
- * shuts down the thread.
- *
- * To opt-out of polling in a thread consider the following run implementation:
- *
- * @code{.cpp}
- *   Status run() { return Status(1, "Not Implemented") }
- * @endcode
- *
- * The final lifecycle component, `fire` will iterate over the EventPublisher
- * Subscription%s and call `shouldFire` for each, using the EventContext fired.
- * The `shouldFire` method should check the subscription-specific selectors and
- * only call the Subscription%'s callback function is the EventContext
- * (thus event) matches.
- */
-template <typename SC, typename EC>
-class EventPublisher {
- public:
-  typedef typename std::shared_ptr<SC> SCRef;
-  typedef typename std::shared_ptr<EC> ECRef;
-
+class EventPublisherCore {
  public:
   /**
    * @brief A new Subscription was added, potentially change state based on all
@@ -319,6 +187,17 @@ class EventPublisher {
     return Status(0, "OK");
   }
 
+  /**
+   * @brief The generic check loop to call SubscriptionContext callback methods.
+   *
+   * It is NOT recommended to override `fire`. The simple logic of enumerating
+   * the Subscription%s and using `shouldFire` is more appropraite.
+   *
+   * @param ec The EventContext created and fired by the EventPublisher.
+   * @param time The most accurate time associated with the event.
+   */
+  void fire(const EventContextRef ec, EventTime time = 0);
+
   /// Number of Subscription%s watching this EventPublisher.
   size_t numSubscriptions() { return subscriptions_.size(); }
 
@@ -330,23 +209,70 @@ class EventPublisher {
   size_t numEvents() { return next_ec_id_; }
 
   /// Overriding the EventPublisher constructor is not recommended.
-  EventPublisher() : next_ec_id_(0){};
-  virtual ~EventPublisher() {}
+  EventPublisherCore() : next_ec_id_(0){};
+  virtual ~EventPublisherCore() {}
 
   /// Return a string identifier associated with this EventPublisher.
   virtual EventPublisherID type() { return "publisher"; }
 
+ protected:
+  virtual void fireCallback(const SubscriptionRef sub, 
+                            const EventContextRef ec) = 0;
+
+  /// The EventPublisher will keep track of Subscription%s that contain callins.
+  SubscriptionVector subscriptions_;
+
+  /// An Event ID is assigned by the EventPublisher within the EventContext.
+  /// This is not used to store event date in the backing store.
+  EventContextID next_ec_id_;
+
+ private:
+  /// A lock for incrementing the next EventContextID.
+  boost::mutex ec_id_lock_;
+
+ private:
+  FRIEND_TEST(EventsTests, test_event_pub);
+  FRIEND_TEST(EventsTests, test_fire_event);
+};
+
+/**
+ * @brief Generate OS events of a type (FS, Network, Syscall, ioctl).
+ *
+ * A 'class' of OS events is abstracted into an EventPublisher responsible for
+ * remaining as agile as possible given a known-set of subscriptions.
+ *
+ * The lifecycle of an EventPublisher may include, `setUp`, `configure`, `run`,
+ * `tearDown`, and `fire`. `setUp` and `tearDown` happen when osquery starts and
+ * stops either as a daemon or interactive shell. `configure` is a pseudo-start
+ * called every time a Subscription is added. EventPublisher%s can adjust their
+ * scope/agility specific to each added subscription by overriding
+ *`addSubscription`,
+ * and or globally in `configure`.
+ *
+ * Not all EventPublisher%s leverage pure async OS APIs, and most will require a
+ * run loop either polling with a timeout on a descriptor or for a change. When
+ * osquery initializes the EventFactory will optionally create a thread for each
+ * EventPublisher using `run` as the thread's entrypoint. This is called in a
+ * within-thread loop where returning a FAILED status ends the run loop and
+ * shuts down the thread.
+ *
+ * To opt-out of polling in a thread consider the following run implementation:
+ *
+ * @code{.cpp}
+ *   Status run() { return Status(1, "Not Implemented") }
+ * @endcode
+ *
+ * The final lifecycle component, `fire` will iterate over the EventPublisher
+ * Subscription%s and call `shouldFire` for each, using the EventContext fired.
+ * The `shouldFire` method should check the subscription-specific selectors and
+ * only call the Subscription%'s callback function is the EventContext
+ * (thus event) matches.
+ */
+template <typename SC, typename EC>
+class EventPublisher: public EventPublisherCore {
  public:
-  /**
-   * @brief The generic check loop to call SubscriptionContext callback methods.
-   *
-   * It is NOT recommended to override `fire`. The simple logic of enumerating
-   * the Subscription%s and using `shouldFire` is more appropraite.
-   *
-   * @param ec The EventContext created and fired by the EventPublisher.
-   * @param time The most accurate time associated with the event.
-   */
-  void fire(const EventContextRef ec, EventTime time = 0);
+  typedef typename std::shared_ptr<SC> SCRef;
+  typedef typename std::shared_ptr<EC> ECRef;
 
  public:
   /// Templating accessors/factories.
@@ -362,6 +288,15 @@ class EventPublisher {
   static SCRef createSubscriptionContext() { return std::make_shared<SC>(); }
 
  protected:
+  void fireCallback(const SubscriptionRef sub, const EventContextRef ec) {
+    auto pub_sc = getSubscriptionContext(sub->context);
+    auto pub_ec = getEventContext(ec);
+    if (shouldFire(pub_sc, pub_ec) && sub->callback != nullptr) {
+      sub->callback(pub_ec);
+    }
+  }
+
+ protected:
   /**
    * @brief The generic `fire` will call `shouldFire` for each Subscription.
    *
@@ -373,20 +308,9 @@ class EventPublisher {
    */
   virtual bool shouldFire(const SCRef sc, const ECRef ec) { return true; }
 
- protected:
-  /// The EventPublisher will keep track of Subscription%s that contain callins.
-  SubscriptionVector subscriptions_;
-
-  /// An Event ID is assigned by the EventPublisher within the EventContext.
-  /// This is not used to store event date in the backing store.
-  EventContextID next_ec_id_;
-
  private:
-  /// A lock for incrementing the next EventContextID.
-  boost::mutex ec_id_lock_;
-
- private:
-  FRIEND_TEST(EventsTests, test_event_pub);
+  FRIEND_TEST(EventsTests, test_event_sub_subscribe);
+  FRIEND_TEST(EventsTests, test_event_sub_context);
   FRIEND_TEST(EventsTests, test_fire_event);
 };
 
@@ -485,10 +409,6 @@ class EventFactory {
                                 const SubscriptionContextRef mc,
                                 EventCallback cb = 0);
 
-  /// Add a Subscription using a caller Subscription instance.
-  static Status addSubscription(EventPublisherID type_id,
-                                const SubscriptionRef subscription);
-
   /// Add a Subscription by templating the EventPublisher, using a
   /// SubscriptionContext.
   template <typename T>
@@ -497,12 +417,9 @@ class EventFactory {
     return addSubscription(T::type(), mc, cb);
   }
 
-  /// Add a Subscription by templating the EventPublisher, using a Subscription
-  /// instance.
-  template <typename T>
-  static Status addSubscription(const SubscriptionRef subscription) {
-    return addSubscription(T::type(), subscription);
-  }
+  /// Add a Subscription using a caller Subscription instance.
+  static Status addSubscription(EventPublisherID type_id,
+                                const SubscriptionRef subscription);
 
   /// Get the total number of Subscription%s across ALL EventPublisher%s.
   static size_t numSubscriptions(EventPublisherID type_id);
@@ -765,11 +682,17 @@ class EventSubscriber: public EventSubscriberCore {
   virtual void init() {}
 
  protected:
-  template <class SUB>
-  void Subscribe(Status (SUB::*entry)(const int&), const EventContextRef ec) {
-    auto self = reinterpret_cast<SUB*>(this);
-    EventCallback fp = std::bind(entry, self, NULL, false);
-    EventFactory::addSubscription(PUB::type(), ec, fp);
+  template<class T, typename C>
+  void subscribe(Status (T::*entry)(const std::shared_ptr<C>),
+                 const SubscriptionContextRef sc) {
+    auto self = dynamic_cast<T*>(this);
+    auto base_entry = reinterpret_cast<Status(T::*)(const EventContextRef)>(entry);
+    auto cb = std::bind(base_entry, self, _1);
+    EventFactory::addSubscription(type(), sc, cb);
+  }
+
+  SCRef createSubscriptionContext() {
+    return PUB::createSubscriptionContext();
   }
 
   EventPublisherID type() {
@@ -780,7 +703,9 @@ class EventSubscriber: public EventSubscriberCore {
   }
 
  private:
-  FRIEND_TEST(EventsDatabaseTests, test_event_sub);
+  FRIEND_TEST(EventsTests, test_event_sub);
+  FRIEND_TEST(EventsTests, test_event_sub_subscribe);
+  FRIEND_TEST(EventsTests, test_event_sub_context);
 };
 }
 

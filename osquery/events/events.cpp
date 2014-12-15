@@ -30,8 +30,7 @@ const std::vector<size_t> kEventTimeLists = {
     10, // 10 seconds
 };
 
-template <typename SC, typename EC>
-void EventPublisher<SC, EC>::fire(const EventContextRef ec, EventTime time) {
+void EventPublisherCore::fire(const EventContextRef ec, EventTime time) {
   EventContextID ec_id;
 
   {
@@ -55,17 +54,9 @@ void EventPublisher<SC, EC>::fire(const EventContextRef ec, EventTime time) {
   }
 
   for (const auto& subscription : subscriptions_) {
-    auto callback = subscription->callback;
-    if (shouldFire(getSubscriptionContext(subscription->context),
-                   getEventContext(ec)) &&
-        callback != nullptr) {
-      callback(ec, false);
-    }
+    fireCallback(subscription, ec);
   }
 }
-
-/// Force generation of EventPublisher::fire
-template class EventPublisher<SubscriptionContext, EventContext>;
 
 std::vector<std::string> EventSubscriberCore::getIndexes(EventTime start,
                                                      EventTime stop,
@@ -445,6 +436,13 @@ Status EventFactory::registerEventSubscriber(
 }
 
 Status EventFactory::addSubscription(EventPublisherID type_id,
+                                     const SubscriptionContextRef mc,
+                                     EventCallback cb) {
+  auto subscription = Subscription::create(mc, cb);
+  return EventFactory::addSubscription(type_id, subscription);
+}
+
+Status EventFactory::addSubscription(EventPublisherID type_id,
                                      const SubscriptionRef subscription) {
   auto event_pub = EventFactory::getInstance().getEventPublisher(type_id);
   if (event_pub == nullptr) {
@@ -456,13 +454,6 @@ Status EventFactory::addSubscription(EventPublisherID type_id,
   auto status = event_pub->addSubscription(subscription);
   event_pub->configure();
   return status;
-}
-
-Status EventFactory::addSubscription(EventPublisherID type_id,
-                                     const SubscriptionContextRef mc,
-                                     EventCallback cb) {
-  auto subscription = Subscription::create(mc, cb);
-  return EventFactory::addSubscription(type_id, subscription);
 }
 
 size_t EventFactory::numSubscriptions(EventPublisherID type_id) {
