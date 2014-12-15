@@ -67,7 +67,7 @@ void EventPublisher<SC, EC>::fire(const EventContextRef ec, EventTime time) {
 /// Force generation of EventPublisher::fire
 template class EventPublisher<SubscriptionContext, EventContext>;
 
-std::vector<std::string> EventSubscriber::getIndexes(EventTime start,
+std::vector<std::string> EventSubscriberCore::getIndexes(EventTime start,
                                                      EventTime stop,
                                                      int list_key) {
   auto db = DBHandle::getInstance();
@@ -162,7 +162,7 @@ std::vector<std::string> EventSubscriber::getIndexes(EventTime start,
   return indexes;
 }
 
-Status EventSubscriber::expireIndexes(
+Status EventSubscriberCore::expireIndexes(
     const std::string& list_type,
     const std::vector<std::string>& indexes,
     const std::vector<std::string>& expirations) {
@@ -199,7 +199,7 @@ Status EventSubscriber::expireIndexes(
   return Status(0, "OK");
 }
 
-std::vector<EventRecord> EventSubscriber::getRecords(
+std::vector<EventRecord> EventSubscriberCore::getRecords(
     const std::vector<std::string>& indexes) {
   auto db = DBHandle::getInstance();
   auto record_key = "records." + dbNamespace();
@@ -230,7 +230,7 @@ std::vector<EventRecord> EventSubscriber::getRecords(
   return records;
 }
 
-Status EventSubscriber::recordEvent(EventID eid, EventTime time) {
+Status EventSubscriberCore::recordEvent(EventID eid, EventTime time) {
   Status status;
   auto db = DBHandle::getInstance();
   std::string time_value = boost::lexical_cast<std::string>(time);
@@ -286,7 +286,7 @@ Status EventSubscriber::recordEvent(EventID eid, EventTime time) {
   return Status(0, "OK");
 }
 
-EventID EventSubscriber::getEventID() {
+EventID EventSubscriberCore::getEventID() {
   Status status;
   auto db = DBHandle::getInstance();
   // First get an event ID from the meta key.
@@ -313,7 +313,7 @@ EventID EventSubscriber::getEventID() {
   return eid_value;
 }
 
-QueryData EventSubscriber::get(EventTime start, EventTime stop) {
+QueryData EventSubscriberCore::get(EventTime start, EventTime stop) {
   QueryData results;
   Status status;
   auto db = DBHandle::getInstance();
@@ -348,7 +348,7 @@ QueryData EventSubscriber::get(EventTime start, EventTime stop) {
   return results;
 }
 
-Status EventSubscriber::add(const Row& r, EventTime time) {
+Status EventSubscriberCore::add(const Row& r, EventTime time) {
   Status status;
   auto db = DBHandle::getInstance();
 

@@ -20,11 +20,12 @@ namespace osquery {
 
 struct Subscription;
 
-template <class SC, class EC>
-class EventPublisher;
-class EventSubscriber;
+template <class SC, class EC> class EventPublisher;
+template <class PUB> class EventSubscriber;
+class EventFactory;
 
 typedef const std::string EventPublisherID;
+typedef const std::string EventSubscriberID;
 typedef const std::string EventID;
 typedef uint32_t EventContextID;
 typedef uint32_t EventTime;
@@ -64,11 +65,11 @@ struct EventContext {
 };
 
 typedef std::shared_ptr<Subscription> SubscriptionRef;
-typedef std::shared_ptr<EventPublisher<SubscriptionContext, EventContext> >
-EventPublisherRef;
+typedef EventPublisher<SubscriptionContext, EventContext> BaseEventPublisher;
+typedef std::shared_ptr<BaseEventPublisher> EventPublisherRef;
 typedef std::shared_ptr<SubscriptionContext> SubscriptionContextRef;
 typedef std::shared_ptr<EventContext> EventContextRef;
-typedef std::shared_ptr<EventSubscriber> EventSubscriberRef;
+typedef std::shared_ptr<EventSubscriber<BaseEventPublisher>> EventSubscriberRef;
 
 typedef std::function<Status(EventContextRef, bool)> EventCallback;
 
@@ -97,21 +98,6 @@ extern const std::vector<size_t> kEventTimeLists;
  *
  * EventSubscriber%s should be specific to an EventPublisher.
  */
-#define DECLARE_EVENTSUBSCRIBER(NAME, TYPE)                         \
- public:                                                            \
-  static std::shared_ptr<NAME> getInstance() {                      \
-    static auto q = std::shared_ptr<NAME>(new NAME());              \
-    return q;                                                       \
-  }                                                                 \
-  static QueryData genTable(osquery::tables::QueryContext& context) \
-      __attribute__((used)) {                                       \
-    return getInstance()->get(0, 0);                                \
-  }                                                                 \
-                                                                    \
- private:                                                           \
-  EventPublisherID name() const { return #NAME; }                   \
-  EventPublisherID type() const { return #TYPE; }                   \
-  NAME() {}
 
 /**
  * @brief Required callin EventSubscriber method declaration helper.
@@ -270,8 +256,9 @@ struct Subscription {
  */
 template <typename SC, typename EC>
 class EventPublisher {
-  typedef std::shared_ptr<SC> SCRef;
-  typedef std::shared_ptr<EC> ECRef;
+ public:
+  typedef typename std::shared_ptr<SC> SCRef;
+  typedef typename std::shared_ptr<EC> ECRef;
 
  public:
   /**
@@ -397,186 +384,6 @@ class EventPublisher {
 };
 
 /**
- * @brief An interface binding Subscriptions, event response, and table
- *generation.
- *
- * Use the EventSubscriber interface when adding event subscriptions and
- * defining callin functions. The EventCallback is usually a member function
- * for an EventSubscriber. The EventSubscriber interface includes a very
- * important `add` method that abstracts the needed event to backing store
- * interaction.
- *
- * Storing event data in the backing store must match a table spec for queries.
- * Small overheads exist that help query-time indexing and lookups.
- */
-class EventSubscriber {
- public:
-  /// Called after EventPublisher `setUp`. Add all Subscription%s here.
-  /**
-   * @brief Add Subscription%s to the EventPublisher this module will act on.
-   *
-   * When the EventSubscriber%'s `init` method is called you are assured the
-   * EventPublisher has `setUp` and is ready to subscription for events.
-   */
-  virtual void init() {}
-
-  /**
-   * @brief Suggested entrypoint for table generation.
-   *
-   * The EventSubscriber is a convention that removes a lot of boilerplate event
-   * subscriptioning and acting. The `genTable` static entrypoint is the
-   * suggested method for table specs.
-   *
-   * @return The query-time table data, retrieved from a backing store.
-   */
-  static QueryData genTable();
-
- protected:
-  /**
-   * @brief Store parsed event data from an EventCallback in a backing store.
-   *
-   * Within a EventCallback the EventSubscriber has an opprotunity to create
-   * an osquery Row element, add the relevant table data for the EventSubscriber
-   * and store that element in the osquery backing store. At query-time
-   * the added data will apply selection criteria and return these elements.
-   * The backing store data retrieval is optimized by time-based indexes. It
-   * is important to added EventTime as it relates to "when the event occurred".
-   *
-   * @param r An osquery Row element.
-   * @param time The time the added event occurred.
-   *
-   * @return Was the element added to the backing store.
-   */
-  virtual Status add(const osquery::Row& r, EventTime time) final;
-
-  /**
-   * @brief Return all events added by this EventSubscriber within start, stop.
-   *
-   * This is used internally (for the most part) by EventSubscriber::genTable.
-   *
-   * @param start Inclusive lower bound time limit.
-   * @param stop Inclusive upper bound time limit.
-   * @return Set of event rows matching time limits.
-   */
-  virtual QueryData get(EventTime start, EventTime stop);
-
-  /*
-   * @brief When `get`ting event results, return EventID%s from time indexes.
-   *
-   * Used by EventSubscriber::get to retrieve EventID, EventTime indexes. This
-   * applies the lookup-efficiency checks for time list appropriate bins.
-   * If the time range in 24 hours and there is a 24-hour list bin it will
-   * be queried using a single backing store `Get` followed by two `Get`s of
-   * the most-specific boundary lists.
-   *
-   * @return List of EventID, EventTime%s
-   */
-  std::vector<EventRecord> getRecords(const std::vector<std::string>& indexes);
-
- private:
-  /**
-   * @brief Get a unique storage-related EventID.
-   *
-   * An EventID is an index/element-identifier for the backing store.
-   * Each EventPublisher maintains a fired EventContextID to identify the many
-   * events that may or may not be fired to subscriptioning criteria for this
-   * EventSubscriber. This EventContextID is NOT the same as an EventID.
-   * EventSubscriber development should not require use of EventID%s, if this
-   * indexing is required within-EventCallback consider an
-   * EventSubscriber%-unique indexing, counting mechanic.
-   *
-   * @return A unique ID for backing storage.
-   */
-  EventID getEventID();
-
-  /**
-   * @brief Plan the best set of indexes for event record access.
-   *
-   * @param start an inclusive time to begin searching.
-   * @param stop an inclusive time to end searching.
-   * @param list_key optional key to bind to a specific index binning.
-   *
-   * @return List of 'index.step' index strings.
-   */
-  std::vector<std::string> getIndexes(EventTime start, 
-                                      EventTime stop,
-                                      int list_key = 0);
-
-  /**
-   * @brief Expire indexes and eventually records.
-   *
-   * @param list_type the string representation of list binning type.
-   * @param indexes complete set of 'index.step' indexes for the list_type.
-   * @param expirations of the indexes, the set to expire.
-   *
-   * @return status if the indexes and records were removed.
-   */
-  Status expireIndexes(const std::string& list_type,
-                       const std::vector<std::string>& indexes,
-                       const std::vector<std::string>& expirations);
-
-  /**
-   * @brief Add an EventID, EventTime pair to all matching list types.
-   *
-   * The list types are defined by time size. Based on the EventTime this pair
-   * is added to the list bin for each list type. If there are two list types:
-   * 60 seconds and 3600 seconds and `time` is 92, this pair will be added to
-   * list type 1 bin 4 and list type 2 bin 1.
-   *
-   * @param eid A unique EventID.
-   * @param time The time when this EventID%'s event occurred.
-   *
-   * @return Were the indexes recorded.
-   */
-  Status recordEvent(EventID eid, EventTime time);
-
- protected:
-  /**
-   * @brief A single instance requirement for static callback facilities.
-   *
-   * The EventSubscriber constructor is NOT responsible for adding
-   * Subscription%s. Please use `init` for adding Subscription%s as all
-   * EventPublisher instances will have run `setUp` and initialized their run
-   * loops.
-   */
-  EventSubscriber() {
-    expire_events_ = true;
-    expire_time_ = 0;
-  }
-  virtual ~EventSubscriber() {}
-
-  /// Backing storage indexing namespace definition methods.
-  EventPublisherID dbNamespace() { return type() + "." + name(); }
-  /// The string EventPublisher identifying this EventSubscriber.
-  virtual EventPublisherID type() const = 0;
-  /// The string name identifying this EventSubscriber.
-  virtual EventPublisherID name() const = 0;
-  /// Disable event expiration for this subscriber.
-  void doNotExpire() { expire_events_ = false; }
-
- private:
-  /// Do not respond to periodic/scheduled/triggered event expiration requests.
-  bool expire_events_;
-
-  /// Events before the expire_time_ are invalid and will be purged.
-  EventTime expire_time_;
-
-  /// Lock used when incrementing the EventID database index.
-  boost::mutex event_id_lock_;
-
-  /// Lock used when recording an EventID and time into search bins.
-  boost::mutex event_record_lock_;
-
- private:
-  FRIEND_TEST(EventsTests, test_event_sub);
-  FRIEND_TEST(EventsDatabaseTests, test_event_module_id);
-  FRIEND_TEST(EventsDatabaseTests, test_unique_event_module_id);
-  FRIEND_TEST(EventsDatabaseTests, test_record_indexing);
-  FRIEND_TEST(EventsDatabaseTests, test_record_range);
-  FRIEND_TEST(EventsDatabaseTests, test_record_expiration);
-};
-
-/**
  * @brief A factory for associating event generators to EventPublisherID%s.
  *
  * This factory both registers new event types and the subscriptions that use
@@ -626,10 +433,10 @@ class EventFactory {
    *
    * The registration is mostly abstracted using osquery's registery.
    */
-  template <typename T>
+  template <class T>
   static Status registerEventSubscriber() {
-    auto event_module = T::getInstance();
-    return EventFactory::registerEventSubscriber(event_module);
+    auto sub = std::make_shared<T>();
+    return EventFactory::registerEventSubscriber(sub);
   }
 
   /**
@@ -637,13 +444,19 @@ class EventFactory {
    *
    * The registration is mostly abstracted using osquery's registery.
    *
-   * @param event_module If the caller must access the EventSubscriber instance
+   * @param sub If the caller must access the EventSubscriber instance
    * control may be passed to the registry.
    *
    * Access to the EventSubscriber instance outside of the within-instance
    * table generation method and set of EventCallback%s is discouraged.
    */
-  static Status registerEventSubscriber(const EventSubscriberRef event_module);
+  template <class T>
+  static Status registerEventSubscriber(std::shared_ptr<T> sub) {
+    auto base_sub = reinterpret_cast<EventSubscriberRef&>(sub);
+    return registerEventSubscriber(base_sub);
+  }
+
+  static Status registerEventSubscriber(const EventSubscriberRef sub);
 
   /**
    * @brief Add a SubscriptionContext and EventCallback Subscription to an
@@ -758,6 +571,213 @@ class EventFactory {
   /// state).
   std::vector<EventSubscriberRef> event_modules_;
 };
+
+class EventSubscriberCore {
+ protected:
+  /**
+   * @brief Store parsed event data from an EventCallback in a backing store.
+   *
+   * Within a EventCallback the EventSubscriber has an opprotunity to create
+   * an osquery Row element, add the relevant table data for the EventSubscriber
+   * and store that element in the osquery backing store. At query-time
+   * the added data will apply selection criteria and return these elements.
+   * The backing store data retrieval is optimized by time-based indexes. It
+   * is important to added EventTime as it relates to "when the event occurred".
+   *
+   * @param r An osquery Row element.
+   * @param time The time the added event occurred.
+   *
+   * @return Was the element added to the backing store.
+   */
+  virtual Status add(const osquery::Row& r, EventTime time) final;
+
+  /**
+   * @brief Return all events added by this EventSubscriber within start, stop.
+   *
+   * This is used internally (for the most part) by EventSubscriber::genTable.
+   *
+   * @param start Inclusive lower bound time limit.
+   * @param stop Inclusive upper bound time limit.
+   * @return Set of event rows matching time limits.
+   */
+  virtual QueryData get(EventTime start, EventTime stop);
+
+  /*
+   * @brief When `get`ting event results, return EventID%s from time indexes.
+   *
+   * Used by EventSubscriber::get to retrieve EventID, EventTime indexes. This
+   * applies the lookup-efficiency checks for time list appropriate bins.
+   * If the time range in 24 hours and there is a 24-hour list bin it will
+   * be queried using a single backing store `Get` followed by two `Get`s of
+   * the most-specific boundary lists.
+   *
+   * @return List of EventID, EventTime%s
+   */
+  std::vector<EventRecord> getRecords(const std::vector<std::string>& indexes);
+
+ private:
+  /**
+   * @brief Get a unique storage-related EventID.
+   *
+   * An EventID is an index/element-identifier for the backing store.
+   * Each EventPublisher maintains a fired EventContextID to identify the many
+   * events that may or may not be fired to subscriptioning criteria for this
+   * EventSubscriber. This EventContextID is NOT the same as an EventID.
+   * EventSubscriber development should not require use of EventID%s, if this
+   * indexing is required within-EventCallback consider an
+   * EventSubscriber%-unique indexing, counting mechanic.
+   *
+   * @return A unique ID for backing storage.
+   */
+  EventID getEventID();
+
+  /**
+   * @brief Plan the best set of indexes for event record access.
+   *
+   * @param start an inclusive time to begin searching.
+   * @param stop an inclusive time to end searching.
+   * @param list_key optional key to bind to a specific index binning.
+   *
+   * @return List of 'index.step' index strings.
+   */
+  std::vector<std::string> getIndexes(EventTime start, 
+                                      EventTime stop,
+                                      int list_key = 0);
+
+  /**
+   * @brief Expire indexes and eventually records.
+   *
+   * @param list_type the string representation of list binning type.
+   * @param indexes complete set of 'index.step' indexes for the list_type.
+   * @param expirations of the indexes, the set to expire.
+   *
+   * @return status if the indexes and records were removed.
+   */
+  Status expireIndexes(const std::string& list_type,
+                       const std::vector<std::string>& indexes,
+                       const std::vector<std::string>& expirations);
+
+  /**
+   * @brief Add an EventID, EventTime pair to all matching list types.
+   *
+   * The list types are defined by time size. Based on the EventTime this pair
+   * is added to the list bin for each list type. If there are two list types:
+   * 60 seconds and 3600 seconds and `time` is 92, this pair will be added to
+   * list type 1 bin 4 and list type 2 bin 1.
+   *
+   * @param eid A unique EventID.
+   * @param time The time when this EventID%'s event occurred.
+   *
+   * @return Were the indexes recorded.
+   */
+  Status recordEvent(EventID eid, EventTime time);
+
+ public:
+  /**
+   * @brief A single instance requirement for static callback facilities.
+   *
+   * The EventSubscriber constructor is NOT responsible for adding
+   * Subscription%s. Please use `init` for adding Subscription%s as all
+   * EventPublisher instances will have run `setUp` and initialized their run
+   * loops.
+   */
+  EventSubscriberCore() {
+    expire_events_ = true;
+    expire_time_ = 0;
+  }
+  ~EventSubscriberCore() {}
+
+  /**
+   * @brief Suggested entrypoint for table generation.
+   *
+   * The EventSubscriber is a convention that removes a lot of boilerplate event
+   * subscriptioning and acting. The `genTable` static entrypoint is the
+   * suggested method for table specs.
+   *
+   * @return The query-time table data, retrieved from a backing store.
+   */
+  static QueryData genTable(osquery::tables::QueryContext& context)
+      __attribute__((used)) {
+    return get(0, 0);
+  }
+
+ protected:
+  /// Backing storage indexing namespace definition methods.
+  EventPublisherID dbNamespace() { return type() + "." + name(); }
+  /// The string EventPublisher identifying this EventSubscriber.
+  virtual EventPublisherID type() = 0;
+  /// The string name identifying this EventSubscriber.
+  virtual EventSubscriberID name() { return "subscriber"; }
+  /// Disable event expiration for this subscriber.
+  void doNotExpire() { expire_events_ = false; }
+
+ private:
+  /// Do not respond to periodic/scheduled/triggered event expiration requests.
+  bool expire_events_;
+
+  /// Events before the expire_time_ are invalid and will be purged.
+  EventTime expire_time_;
+
+  /// Lock used when incrementing the EventID database index.
+  boost::mutex event_id_lock_;
+
+  /// Lock used when recording an EventID and time into search bins.
+  boost::mutex event_record_lock_;
+
+ private:
+  FRIEND_TEST(EventsDatabaseTests, test_event_module_id);
+  FRIEND_TEST(EventsDatabaseTests, test_record_indexing);
+  FRIEND_TEST(EventsDatabaseTests, test_record_range);
+  FRIEND_TEST(EventsDatabaseTests, test_record_expiration);
+};
+
+/**
+ * @brief An interface binding Subscriptions, event response, and table
+ *generation.
+ *
+ * Use the EventSubscriber interface when adding event subscriptions and
+ * defining callin functions. The EventCallback is usually a member function
+ * for an EventSubscriber. The EventSubscriber interface includes a very
+ * important `add` method that abstracts the needed event to backing store
+ * interaction.
+ *
+ * Storing event data in the backing store must match a table spec for queries.
+ * Small overheads exist that help query-time indexing and lookups.
+ */
+template <class PUB>
+class EventSubscriber: public EventSubscriberCore {
+ protected:
+  typedef typename PUB::SCRef SCRef;
+  typedef typename PUB::ECRef ECRef;
+
+ public:
+  /// Called after EventPublisher `setUp`. Add all Subscription%s here.
+  /**
+   * @brief Add Subscription%s to the EventPublisher this module will act on.
+   *
+   * When the EventSubscriber%'s `init` method is called you are assured the
+   * EventPublisher has `setUp` and is ready to subscription for events.
+   */
+  virtual void init() {}
+
+ protected:
+  template <class SUB>
+  void Subscribe(Status (SUB::*entry)(const int&), const EventContextRef ec) {
+    auto self = reinterpret_cast<SUB*>(this);
+    EventCallback fp = std::bind(entry, self, NULL, false);
+    EventFactory::addSubscription(PUB::type(), ec, fp);
+  }
+
+  EventPublisherID type() {
+    const auto& pub = new PUB();
+    auto type = pub->type();
+    delete pub;
+    return type;
+  }
+
+ private:
+  FRIEND_TEST(EventsDatabaseTests, test_event_sub);
+};
 }
 
 /// Expose a Plugin-like Registry for EventPublisher instances.
@@ -775,7 +795,7 @@ DECLARE_REGISTRY(EventPublishers, std::string, EventPublisherRef);
 DECLARE_REGISTRY(EventSubscribers, std::string, EventSubscriberRef);
 #define REGISTERED_EVENTSUBSCRIBERS REGISTRY(EventSubscribers)
 #define REGISTER_EVENTSUBSCRIBER(decorator) \
-  REGISTER(EventSubscribers, #decorator, decorator::getInstance());
+  REGISTER(EventSubscribers, #decorator, std::make_shared<decorator>());
 
 namespace osquery {
 namespace registries {
