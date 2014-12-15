@@ -79,9 +79,6 @@ typedef std::function<Status(EventContextRef)> EventCallback;
 /// An EventPublisher must track every subscription added.
 typedef std::vector<SubscriptionRef> SubscriptionVector;
 
-/// The EventFactory tracks every EventPublisher and the name it specifies.
-typedef std::map<EventPublisherID, EventPublisherRef> EventPublisherMap;
-
 /// The set of search-time binned lookup tables.
 extern const std::vector<size_t> kEventTimeLists;
 
@@ -342,6 +339,13 @@ class EventFactory {
     return base_pub;
   }
 
+  template <class SUB>
+  static EventSubscriberRef createEventSubscriber() {
+    auto sub = std::make_shared<SUB>();
+    auto base_sub = reinterpret_cast<EventSubscriberRef&>(sub);
+    return base_sub;
+  }
+
   /**
    * @brief Add an EventPublisher to the factory.
    *
@@ -463,6 +467,7 @@ class EventFactory {
 
   /// Return an instance to a registered EventPublisher.
   static EventPublisherRef getEventPublisher(EventPublisherID);
+  static EventSubscriberRef getEventSubscriber(EventSubscriberID);
 
  public:
   /// The dispatched event thread's entrypoint (if needed).
@@ -499,14 +504,12 @@ class EventFactory {
   bool ending_;
 
   /// Set of registered EventPublisher instances.
-  EventPublisherMap event_pubs_;
+  std::map<EventPublisherID, EventPublisherRef> event_pubs_;
+  /// Set of instanciated EventSubscriber subscriptions.
+  std::map<EventSubscriberID, EventSubscriberRef> event_subs_;
 
   /// Set of running EventPublisher run loop threads.
   std::vector<std::shared_ptr<boost::thread> > threads_;
-
-  /// Set of instanciated EventSubscriber Subscription sets (with callbacks and
-  /// state).
-  std::vector<EventSubscriberRef> event_modules_;
 };
 
 class EventSubscriberCore {
@@ -633,15 +636,20 @@ class EventSubscriberCore {
    *
    * @return The query-time table data, retrieved from a backing store.
    */
-  QueryData genTable(tables::QueryContext& context) __attribute__((used));
+  virtual QueryData genTable(tables::QueryContext& context)
+      __attribute__((used)) {
+    return get(0, 0);
+  }
+
+  /// The string name identifying this EventSubscriber.
+  virtual EventSubscriberID name() { return "subscriber"; }
 
  protected:
   /// Backing storage indexing namespace definition methods.
   EventPublisherID dbNamespace() { return type() + "." + name(); }
   /// The string EventPublisher identifying this EventSubscriber.
   virtual EventPublisherID type() = 0;
-  /// The string name identifying this EventSubscriber.
-  virtual EventSubscriberID name() { return "subscriber"; }
+
   /// Disable event expiration for this subscriber.
   void doNotExpire() { expire_events_ = false; }
 
@@ -730,7 +738,7 @@ DECLARE_REGISTRY(EventPublishers, std::string, EventPublisherRef);
 DECLARE_REGISTRY(EventSubscribers, std::string, EventSubscriberRef);
 #define REGISTERED_EVENTSUBSCRIBERS REGISTRY(EventSubscribers)
 #define REGISTER_EVENTSUBSCRIBER(SUB) \
-  REGISTER(EventSubscribers, #SUB, std::make_shared<SUB>());
+  REGISTER(EventSubscribers, #SUB, EventFactory::createEventSubscriber<SUB>());
 
 namespace osquery {
 namespace registries {

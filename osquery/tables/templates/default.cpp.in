@@ -4,7 +4,9 @@
 ** This file is generated. Do not modify it manually!
 */
 
+#include <osquery/events.h>
 #include <osquery/tables.h>
+
 #include "osquery/core/virtual_table.h"
 
 namespace osquery { namespace tables {
@@ -31,7 +33,7 @@ public:
 
   QueryData generate(QueryContext& request) {
 {% if class_name != "" %}\
-    auto subscriber = std::make_shared<{{class_name}}>();
+    auto subscriber = EventFactory::getEventSubscriber("{{class_name}}");
     return subscriber->{{function}}(request);
 {% else %}\
     return osquery::tables::{{function}}(request);

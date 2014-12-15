@@ -42,10 +42,10 @@ typedef std::shared_ptr<SCNetworkEventContext> SCNetworkEventContextRef;
  * This exposes a lightweight network change monitoring capability.
  *
  */
-class SCNetworkEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(SCNetworkEventPublisher,
-                         SCNetworkSubscriptionContext,
-                         SCNetworkEventContext)
+class SCNetworkEventPublisher
+    : public EventPublisher<SCNetworkSubscriptionContext,
+                            SCNetworkEventContext> {
+  DECLARE_PUBLISHER("SCNetworkEventPublisher");
 
  public:
   void configure();

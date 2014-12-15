@@ -361,10 +361,6 @@ Status EventSubscriberCore::add(const Row& r, EventTime time) {
   return status;
 }
 
-QueryData EventSubscriberCore::genTable(tables::QueryContext& context) {
-  return get(0, 0);
-}
-
 void EventFactory::delay() {
   auto& ef = EventFactory::getInstance();
   for (const auto& eventtype : EventFactory::getInstance().event_pubs_) {
@@ -431,7 +427,7 @@ Status EventFactory::registerEventSubscriber(
   auto& ef = EventFactory::getInstance();
   // Let the module initialize any Subscriptions.
   event_module->init();
-  ef.event_modules_.push_back(event_module);
+  ef.event_subs_[event_module->name()] = event_module;
   return Status(0, "OK");
 }
 
@@ -470,6 +466,15 @@ EventPublisherRef EventFactory::getEventPublisher(EventPublisherID type_id) {
   const auto& it = ef.event_pubs_.find(type_id);
   if (it != ef.event_pubs_.end()) {
     return ef.event_pubs_[type_id];
+  }
+  return nullptr;
+}
+
+EventSubscriberRef EventFactory::getEventSubscriber(EventSubscriberID name_id) {
+  auto& ef = EventFactory::getInstance();
+  const auto& it = ef.event_subs_.find(name_id);
+  if (it != ef.event_subs_.end()) {
+    return ef.event_subs_[name_id];
   }
   return nullptr;
 }

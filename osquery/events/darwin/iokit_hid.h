@@ -64,10 +64,9 @@ typedef std::shared_ptr<IOKitHIDSubscriptionContext>
  * @brief An osquery EventPublisher for the Apple IOKit HID notification API.
  *
  */
-class IOKitHIDEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(IOKitHIDEventPublisher,
-                         IOKitHIDSubscriptionContext,
-                         IOKitHIDEventContext)
+class IOKitHIDEventPublisher
+    : public EventPublisher<IOKitHIDSubscriptionContext, IOKitHIDEventContext> {
+  DECLARE_PUBLISHER("IOKitHIDEventPublisher");
 
  public:
   void configure() {}
