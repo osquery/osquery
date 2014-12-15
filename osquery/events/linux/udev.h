@@ -61,10 +61,9 @@ typedef std::shared_ptr<UdevSubscriptionContext> UdevSubscriptionContextRef;
  * @brief A Linux `udev` EventPublisher.
  *
  */
-class UdevEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(UdevEventPublisher,
-                         UdevSubscriptionContext,
-                         UdevEventContext);
+class UdevEventPublisher
+    : public EventPublisher<UdevSubscriptionContext, UdevEventContext> {
+  DECLARE_PUBLISHER("UdevEventPublisher");
 
  public:
   Status setUp();
