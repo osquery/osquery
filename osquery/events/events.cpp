@@ -30,7 +30,7 @@ const std::vector<size_t> kEventTimeLists = {
     10, // 10 seconds
 };
 
-void EventPublisherCore::fire(const EventContextRef ec, EventTime time) {
+void EventPublisherCore::fire(const EventContextRef& ec, EventTime time) {
   EventContextID ec_id;
 
   {
@@ -68,8 +68,6 @@ std::vector<std::string> EventSubscriberCore::getIndexes(EventTime start,
   // Keep track of the tail/head of account time while bin searching.
   EventTime start_max = stop, stop_min = stop, local_start, local_stop;
   auto types = kEventTimeLists.size();
-  // Binning keys are the list_type:list_id pairs representing bins of records.
-  std::vector<std::string> binning_keys;
   // List types are sized bins of time containing records for this namespace.
   for (size_t i = 0; i < types; ++i) {
     auto size = kEventTimeLists[i];
@@ -221,7 +219,7 @@ std::vector<EventRecord> EventSubscriberCore::getRecords(
   return records;
 }
 
-Status EventSubscriberCore::recordEvent(EventID eid, EventTime time) {
+Status EventSubscriberCore::recordEvent(EventID& eid, EventTime time) {
   Status status;
   auto db = DBHandle::getInstance();
   std::string time_value = boost::lexical_cast<std::string>(time);
@@ -370,7 +368,7 @@ void EventFactory::delay() {
   }
 }
 
-Status EventFactory::run(EventPublisherID type_id) {
+Status EventFactory::run(EventPublisherID& type_id) {
   // An interesting take on an event dispatched entrypoint.
   // There is little introspection into the event type.
   // Assume it can either make use of an entrypoint poller/selector or
@@ -404,7 +402,7 @@ EventFactory& EventFactory::getInstance() {
   return ef;
 }
 
-Status EventFactory::registerEventPublisher(const EventPublisherRef pub) {
+Status EventFactory::registerEventPublisher(const EventPublisherRef& pub) {
   auto& ef = EventFactory::getInstance();
   auto type_id = pub->type();
 
@@ -423,7 +421,7 @@ Status EventFactory::registerEventPublisher(const EventPublisherRef pub) {
 }
 
 Status EventFactory::registerEventSubscriber(
-    const EventSubscriberRef event_module) {
+    const EventSubscriberRef& event_module) {
   auto& ef = EventFactory::getInstance();
   // Let the module initialize any Subscriptions.
   event_module->init();
@@ -431,15 +429,15 @@ Status EventFactory::registerEventSubscriber(
   return Status(0, "OK");
 }
 
-Status EventFactory::addSubscription(EventPublisherID type_id,
-                                     const SubscriptionContextRef mc,
+Status EventFactory::addSubscription(EventPublisherID& type_id,
+                                     const SubscriptionContextRef& mc,
                                      EventCallback cb) {
   auto subscription = Subscription::create(mc, cb);
   return EventFactory::addSubscription(type_id, subscription);
 }
 
-Status EventFactory::addSubscription(EventPublisherID type_id,
-                                     const SubscriptionRef subscription) {
+Status EventFactory::addSubscription(EventPublisherID& type_id,
+                                     const SubscriptionRef& subscription) {
   auto event_pub = EventFactory::getInstance().getEventPublisher(type_id);
   if (event_pub == nullptr) {
     // Cannot create a Subscription for a missing type_id.
@@ -452,7 +450,7 @@ Status EventFactory::addSubscription(EventPublisherID type_id,
   return status;
 }
 
-size_t EventFactory::numSubscriptions(EventPublisherID type_id) {
+size_t EventFactory::numSubscriptions(EventPublisherID& type_id) {
   const auto& event_pub =
       EventFactory::getInstance().getEventPublisher(type_id);
   if (event_pub != nullptr) {
@@ -461,7 +459,7 @@ size_t EventFactory::numSubscriptions(EventPublisherID type_id) {
   return 0;
 }
 
-EventPublisherRef EventFactory::getEventPublisher(EventPublisherID type_id) {
+EventPublisherRef EventFactory::getEventPublisher(EventPublisherID& type_id) {
   auto& ef = EventFactory::getInstance();
   const auto& it = ef.event_pubs_.find(type_id);
   if (it != ef.event_pubs_.end()) {
@@ -470,7 +468,8 @@ EventPublisherRef EventFactory::getEventPublisher(EventPublisherID type_id) {
   return nullptr;
 }
 
-EventSubscriberRef EventFactory::getEventSubscriber(EventSubscriberID name_id) {
+EventSubscriberRef EventFactory::getEventSubscriber(
+    EventSubscriberID& name_id) {
   auto& ef = EventFactory::getInstance();
   const auto& it = ef.event_subs_.find(name_id);
   if (it != ef.event_subs_.end()) {
@@ -479,12 +478,11 @@ EventSubscriberRef EventFactory::getEventSubscriber(EventSubscriberID name_id) {
   return nullptr;
 }
 
-Status EventFactory::deregisterEventPublisher(
-    const EventPublisherRef event_pub) {
-  return EventFactory::deregisterEventPublisher(event_pub->type());
+Status EventFactory::deregisterEventPublisher(const EventPublisherRef& pub) {
+  return EventFactory::deregisterEventPublisher(pub->type());
 }
 
-Status EventFactory::deregisterEventPublisher(EventPublisherID type_id) {
+Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
   auto& ef = EventFactory::getInstance();
   const auto& it = ef.event_pubs_.find(type_id);
   if (it == ef.event_pubs_.end()) {

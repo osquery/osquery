@@ -18,7 +18,7 @@ class HardwareEventSubscriber : public EventSubscriber<IOKitHIDEventPublisher> {
  public:
   void init();
 
-  Status Callback(const IOKitHIDEventContextRef ec);
+  Status Callback(const IOKitHIDEventContextRef& ec);
 };
 
 REGISTER_EVENTSUBSCRIBER(HardwareEventSubscriber);
@@ -31,7 +31,7 @@ void HardwareEventSubscriber::init() {
   subscribe(&HardwareEventSubscriber::Callback, subscription);
 }
 
-Status HardwareEventSubscriber::Callback(const IOKitHIDEventContextRef ec) {
+Status HardwareEventSubscriber::Callback(const IOKitHIDEventContextRef& ec) {
   Row r;
 
   r["action"] = ec->action;

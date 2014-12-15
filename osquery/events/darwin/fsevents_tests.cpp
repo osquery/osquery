@@ -169,7 +169,7 @@ class TestFSEventsEventSubscriber
 
  public:
   void init() { callback_count_ = 0; }
-  Status SimpleCallback(const FSEventsEventContextRef ec) {
+  Status SimpleCallback(const FSEventsEventContextRef& ec) {
     callback_count_ += 1;
     return Status(0, "OK");
   }
@@ -181,10 +181,11 @@ class TestFSEventsEventSubscriber
     return sc;
   }
 
-  Status Callback(const FSEventsEventContextRef ec) {
-    Row r;
-    r["action"] = ec->action;
-    r["path"] = ec->path;
+  Status Callback(const FSEventsEventContextRef& ec) {
+    // The following comments are an example Callback routine.
+    // Row r;
+    // r["action"] = ec->action;
+    // r["path"] = ec->path;
 
     // Normally would call Add here.
     actions_.push_back(ec->action);

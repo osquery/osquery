@@ -77,10 +77,14 @@ class FSEventsEventPublisher
                        const FSEventStreamEventId fsevent_ids[]);
 
  public:
-  FSEventsEventPublisher()
-      : EventPublisher(), stream_(nullptr), run_loop_(nullptr) {}
-  bool shouldFire(const FSEventsSubscriptionContextRef mc,
-                  const FSEventsEventContextRef ec);
+  FSEventsEventPublisher() : EventPublisher() {
+    stream_started_ = false;
+    stream_ = nullptr;
+    run_loop_ = nullptr;
+  }
+
+  bool shouldFire(const FSEventsSubscriptionContextRef& mc,
+                  const FSEventsEventContextRef& ec);
 
  private:
   // Restart the run loop.

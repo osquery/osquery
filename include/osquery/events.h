@@ -122,7 +122,7 @@ struct Subscription {
 
   static SubscriptionRef create() { return std::make_shared<Subscription>(); }
 
-  static SubscriptionRef create(const SubscriptionContextRef mc,
+  static SubscriptionRef create(const SubscriptionContextRef& mc,
                                 EventCallback ec = 0) {
     auto subscription = std::make_shared<Subscription>();
     subscription->context = mc;
@@ -179,7 +179,7 @@ class EventPublisherCore {
    *
    * @return If the Subscription is not appropriate (mismatched type) fail.
    */
-  virtual Status addSubscription(const SubscriptionRef subscription) {
+  virtual Status addSubscription(const SubscriptionRef& subscription) {
     subscriptions_.push_back(subscription);
     return Status(0, "OK");
   }
@@ -193,7 +193,7 @@ class EventPublisherCore {
    * @param ec The EventContext created and fired by the EventPublisher.
    * @param time The most accurate time associated with the event.
    */
-  void fire(const EventContextRef ec, EventTime time = 0);
+  void fire(const EventContextRef& ec, EventTime time = 0);
 
   /// Number of Subscription%s watching this EventPublisher.
   size_t numSubscriptions() { return subscriptions_.size(); }
@@ -213,8 +213,8 @@ class EventPublisherCore {
   virtual EventPublisherID type() { return "publisher"; }
 
  protected:
-  virtual void fireCallback(const SubscriptionRef sub,
-                            const EventContextRef ec) = 0;
+  virtual void fireCallback(const SubscriptionRef& sub,
+                            const EventContextRef& ec) = 0;
 
   /// The EventPublisher will keep track of Subscription%s that contain callins.
   SubscriptionVector subscriptions_;
@@ -273,11 +273,11 @@ class EventPublisher : public EventPublisherCore {
 
  public:
   /// Templating accessors/factories.
-  static ECRef getEventContext(EventContextRef ec) {
+  static ECRef getEventContext(const EventContextRef& ec) {
     return std::static_pointer_cast<EC>(ec);
   }
 
-  static SCRef getSubscriptionContext(SubscriptionContextRef sc) {
+  static SCRef getSubscriptionContext(const SubscriptionContextRef& sc) {
     return std::static_pointer_cast<SC>(sc);
   }
 
@@ -291,7 +291,7 @@ class EventPublisher : public EventPublisherCore {
   }
 
  protected:
-  void fireCallback(const SubscriptionRef sub, const EventContextRef ec) {
+  void fireCallback(const SubscriptionRef& sub, const EventContextRef& ec) {
     auto pub_sc = getSubscriptionContext(sub->context);
     auto pub_ec = getEventContext(ec);
     if (shouldFire(pub_sc, pub_ec) && sub->callback != nullptr) {
@@ -374,7 +374,7 @@ class EventFactory {
     return registerEventPublisher(base_pub);
   }
 
-  static Status registerEventPublisher(const EventPublisherRef pub);
+  static Status registerEventPublisher(const EventPublisherRef& pub);
 
   /**
    * @brief Add an EventSubscriber to the factory.
@@ -404,7 +404,7 @@ class EventFactory {
     return registerEventSubscriber(base_sub);
   }
 
-  static Status registerEventSubscriber(const EventSubscriberRef sub);
+  static Status registerEventSubscriber(const EventSubscriberRef& sub);
 
   /**
    * @brief Add a SubscriptionContext and EventCallback Subscription to an
@@ -422,24 +422,24 @@ class EventFactory {
    *
    * @return Was the SubscriptionContext appropriate for the EventPublisher.
    */
-  static Status addSubscription(EventPublisherID type_id,
-                                const SubscriptionContextRef mc,
+  static Status addSubscription(EventPublisherID& type_id,
+                                const SubscriptionContextRef& mc,
                                 EventCallback cb = 0);
 
   /// Add a Subscription by templating the EventPublisher, using a
   /// SubscriptionContext.
   template <typename PUB>
-  static Status addSubscription(const SubscriptionContextRef mc,
+  static Status addSubscription(const SubscriptionContextRef& mc,
                                 EventCallback cb = 0) {
     return addSubscription(BaseEventPublisher::getType<PUB>(), mc, cb);
   }
 
   /// Add a Subscription using a caller Subscription instance.
-  static Status addSubscription(EventPublisherID type_id,
-                                const SubscriptionRef subscription);
+  static Status addSubscription(EventPublisherID& type_id,
+                                const SubscriptionRef& subscription);
 
   /// Get the total number of Subscription%s across ALL EventPublisher%s.
-  static size_t numSubscriptions(EventPublisherID type_id);
+  static size_t numSubscriptions(EventPublisherID& type_id);
 
   /// Get the number of EventPublishers.
   static size_t numEventPublishers() {
@@ -457,21 +457,21 @@ class EventFactory {
    *
    * @return Did the EventPublisher deregister cleanly.
    */
-  static Status deregisterEventPublisher(const EventPublisherRef event_pub);
+  static Status deregisterEventPublisher(const EventPublisherRef& pub);
 
   /// Deregister an EventPublisher by EventPublisherID.
-  static Status deregisterEventPublisher(EventPublisherID type_id);
+  static Status deregisterEventPublisher(EventPublisherID& type_id);
 
   /// Deregister all EventPublisher%s.
   static Status deregisterEventPublishers();
 
   /// Return an instance to a registered EventPublisher.
-  static EventPublisherRef getEventPublisher(EventPublisherID);
-  static EventSubscriberRef getEventSubscriber(EventSubscriberID);
+  static EventPublisherRef getEventPublisher(EventPublisherID& pub);
+  static EventSubscriberRef getEventSubscriber(EventSubscriberID& pub);
 
  public:
   /// The dispatched event thread's entrypoint (if needed).
-  static Status run(EventPublisherID type_id);
+  static Status run(EventPublisherID& type_id);
 
   /// An initializer's entrypoint for spawning all event type run loops.
   static void delay();
@@ -479,7 +479,7 @@ class EventFactory {
  public:
   /// If a static EventPublisher callback wants to fire
   template <typename PUB>
-  static void fire(const EventContextRef ec) {
+  static void fire(const EventContextRef& ec) {
     auto event_pub = getEventPublisher(BaseEventPublisher::getType<PUB>());
     event_pub->fire(ec);
   }
@@ -610,7 +610,7 @@ class EventSubscriberCore {
    *
    * @return Were the indexes recorded.
    */
-  Status recordEvent(EventID eid, EventTime time);
+  Status recordEvent(EventID& eid, EventTime time);
 
  public:
   /**
@@ -705,11 +705,11 @@ class EventSubscriber: public EventSubscriberCore {
   SCRef createSubscriptionContext() { return PUB::createSubscriptionContext(); }
 
   template <class T, typename C>
-  void subscribe(Status (T::*entry)(const std::shared_ptr<C>),
-                 const SubscriptionContextRef sc) {
+  void subscribe(Status (T::*entry)(const std::shared_ptr<C>&),
+                 const SubscriptionContextRef& sc) {
     auto self = dynamic_cast<T*>(this);
     auto base_entry =
-        reinterpret_cast<Status (T::*)(const EventContextRef)>(entry);
+        reinterpret_cast<Status (T::*)(const EventContextRef&)>(entry);
     auto cb = std::bind(base_entry, self, _1);
     EventFactory::addSubscription(type(), sc, cb);
   }

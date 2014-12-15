@@ -44,7 +44,7 @@ struct INotifySubscriptionContext : public SubscriptionContext {
    *
    * @param action The string action, a value in kMaskAction%s.
    */
-  void requireAction(std::string action) {
+  void requireAction(const std::string& action) {
     for (const auto& bit : kMaskActions) {
       if (action == bit.second) {
         mask = mask | bit.first;
@@ -113,8 +113,8 @@ class INotifyEventPublisher
   bool removeMonitor(const std::string& path, bool force = false);
   bool removeMonitor(int watch, bool force = false);
   /// Given a SubscriptionContext and INotifyEventContext match path and action.
-  bool shouldFire(const INotifySubscriptionContextRef mc,
-                  const INotifyEventContextRef ec);
+  bool shouldFire(const INotifySubscriptionContextRef& mc,
+                  const INotifyEventContextRef& ec);
   /// Get the INotify file descriptor.
   int getHandle() { return inotify_handle_; }
   /// Get the number of actual INotify active descriptors.

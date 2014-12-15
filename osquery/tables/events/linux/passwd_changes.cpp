@@ -32,7 +32,7 @@ class PasswdChangesEventSubscriber
    *
    * @return Was the callback successful.
    */
-  Status Callback(const INotifyEventContextRef ec);
+  Status Callback(const INotifyEventContextRef& ec);
 };
 
 /**
@@ -51,7 +51,8 @@ void PasswdChangesEventSubscriber::init() {
   subscribe(&PasswdChangesEventSubscriber::Callback, mc);
 }
 
-Status PasswdChangesEventSubscriber::Callback(const INotifyEventContextRef ec) {
+Status PasswdChangesEventSubscriber::Callback(
+    const INotifyEventContextRef& ec) {
   Row r;
   r["action"] = ec->action;
   r["time"] = ec->time_string;

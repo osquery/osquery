@@ -169,15 +169,16 @@ class TestINotifyEventSubscriber
 
  public:
   void init() { callback_count_ = 0; }
-  Status SimpleCallback(const INotifyEventContextRef ec) {
+  Status SimpleCallback(const INotifyEventContextRef& ec) {
     callback_count_ += 1;
     return Status(0, "OK");
   }
 
-  Status Callback(const INotifyEventContextRef ec) {
-    Row r;
-    r["action"] = ec->action;
-    r["path"] = ec->path;
+  Status Callback(const INotifyEventContextRef& ec) {
+    // The following comments are an example Callback routine.
+    // Row r;
+    // r["action"] = ec->action;
+    // r["path"] = ec->path;
 
     // Normally would call Add here.
     actions_.push_back(ec->action);

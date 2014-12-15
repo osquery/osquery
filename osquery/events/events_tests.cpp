@@ -252,13 +252,13 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
     shouldFireBethHathTolled = false;
   }
 
-  Status Callback(const EventContextRef ec) {
+  Status Callback(const EventContextRef& ec) {
     // We don't care about the subscription or the event contexts.
     bellHathTolled = true;
     return Status(0, "OK");
   }
 
-  Status SpecialCallback(const FakeEventContextRef ec) {
+  Status SpecialCallback(const FakeEventContextRef& ec) {
     // Now we care that the event context is corrected passed.
     if (ec->required_value == 42) {
       contextBellHathTolled = true;

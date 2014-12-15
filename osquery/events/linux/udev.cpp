@@ -125,8 +125,8 @@ UdevEventContextRef UdevEventPublisher::createEventContext(
   return ec;
 }
 
-bool UdevEventPublisher::shouldFire(const UdevSubscriptionContextRef sc,
-                                    const UdevEventContextRef ec) {
+bool UdevEventPublisher::shouldFire(const UdevSubscriptionContextRef& sc,
+                                    const UdevEventContextRef& ec) {
   if (sc->action != UDEV_EVENT_ACTION_ALL) {
     if (sc->action != ec->action) {
       return false;
