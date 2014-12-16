@@ -80,6 +80,7 @@ FILE(GLOB table_sources
 ADD_OSQUERY_LIBRARY(osquery_tables
   networking/utils.cpp
   networking/etc_hosts.cpp
+  networking/etc_services.cpp
   utility/time.cpp
   utility/crontab.cpp
   utility/hash.cpp
