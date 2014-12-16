@@ -20,10 +20,12 @@ QueryData genOsqueryInfo(QueryContext& context) {
   std::string hash_string;
   auto s = Config::getInstance()->getMD5(hash_string);
   if (s.ok()) {
-    r["md5"] = TEXT(hash_string);
+    r["config_md5"] = TEXT(hash_string);
   } else {
-    LOG(ERROR) << "Could not retrieve config hash: " << s.toString();
+    VLOG(1) << "Could not retrieve config hash: " << s.toString();
   }
+
+  r["config_path"] = TEXT(FLAGS_config_path);
 
   results.push_back(r);
 
