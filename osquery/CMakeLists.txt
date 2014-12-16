@@ -1,8 +1,6 @@
 SET(OSQUERY_LIBS
   readline
   pthread
-  crypto
-  ssl
 )
 
 SET(OSQUERY_APPLE_LIBS
@@ -17,6 +15,8 @@ SET(OSQUERY_APPLE_LIBS
   /usr/local/lib/liblz4.a
   /usr/local/lib/libgflags.a
   /usr/local/lib/libglog.a
+  /usr/local/opt/openssl/lib/libcrypto.a
+  /usr/local/opt/openssl/lib/libssl.a
   dl
   bz2
   z
@@ -38,6 +38,8 @@ SET(OSQUERY_LINUX_LIBS
   blkid
   rt
   dl
+  crypto
+  ssl
 )
 
 SET(OSQUERY_UBUNTU_LIBS
@@ -71,6 +73,8 @@ SET(OSQUERY_FREEBSD_LIBS
   snappy
   unwind
   lzma
+  crypto
+  ssl
 )
 
 # Check for the explicit path to determine the version of procps
