@@ -5,4 +5,4 @@ schema([
     Column("config_path", TEXT),
     Column("pid", INTEGER),
 ])
-implementation("osquery_info@genOsqueryInfo")
+implementation("osquery@genOsqueryInfo")
