@@ -196,7 +196,7 @@ class TestINotifyEventSubscriber
   void WaitForEvents(int max, int num_events = 1) {
     int delay = 0;
     while (delay < max * 1000) {
-      if (getInstance()->callback_count_ >= num_events) {
+      if (callback_count_ >= num_events) {
         return;
       }
       ::usleep(50);
@@ -206,7 +206,7 @@ class TestINotifyEventSubscriber
 
   std::vector<std::string> actions() { return actions_; }
 
-  int count() { return getInstance()->callback_count_; }
+  int count() { return callback_count_; }
 
  public:
   int callback_count_;
@@ -221,10 +221,9 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
 
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(kRealTestPath, 0);
-  sc->subscribe(&TestINotifyEventSubscriber::SimpleCallback, sc);
+  sub->subscribe(&TestINotifyEventSubscriber::SimpleCallback, sc);
 
   TriggerEvent(kRealTestPath);
-
   sub->WaitForEvents(kMaxEventLatency);
 
   // Make sure our expected event fired (aka subscription callback was called).
@@ -241,8 +240,9 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   sub->init();
 
   auto sc = sub->GetSubscription(kRealTestPath, 0);
-  sc->subscribe(&TestINotifyEventSubscriber::Callback, sc);
+  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc);
 
+  TriggerEvent(kRealTestPath);
   sub->WaitForEvents(kMaxEventLatency, 4);
 
   // Make sure the inotify action was expected.

@@ -104,7 +104,7 @@ class INotifyEventPublisher
   bool isHandleOpen() { return inotify_handle_ > 0; }
 
  private:
-  INotifyEventContextRef createEventContext(struct inotify_event* event);
+  INotifyEventContextRef createEventContextFrom(struct inotify_event* event);
   /// Check all added Subscription%s for a path.
   bool isPathMonitored(const std::string& path);
   /// Add an INotify watch (monitor) on this path.

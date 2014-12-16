@@ -59,7 +59,7 @@ Status UdevEventPublisher::run() {
     return Status(1, "udev monitor failed.");
   }
 
-  auto ec = createEventContext(device);
+  auto ec = createEventContextFrom(device);
   fire(ec);
 
   udev_device_unref(device);
@@ -86,7 +86,7 @@ std::string UdevEventPublisher::getAttr(struct udev_device* device,
   return "";
 }
 
-UdevEventContextRef UdevEventPublisher::createEventContext(
+UdevEventContextRef UdevEventPublisher::createEventContextFrom(
     struct udev_device* device) {
   auto ec = createEventContext();
   ec->device = device;
