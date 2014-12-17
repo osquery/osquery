@@ -3,9 +3,10 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
-#include "osquery/core/darwin/test_util.h"
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
+
+#include "osquery/core/test_util.h"
 
 using namespace osquery::core;
 namespace pt = boost::property_tree;
@@ -15,6 +16,15 @@ namespace tables {
 
 std::vector<std::string> getLaunchdFiles();
 Row parseLaunchdItem(const std::string& path, const pt::ptree& tree);
+
+pt::ptree getLaunchdTree() {
+  std::string content;
+  readFile(kTestDataPath + "test_launchd.plist", content);
+
+  pt::ptree tree;
+  parsePlistContent(content, tree);
+  return tree;
+}
 
 class LaunchdTests : public testing::Test {};
 

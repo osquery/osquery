@@ -1,7 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include "osquery/core/test_util.h"
-
 #include <deque>
 #include <sstream>
 
@@ -9,8 +7,10 @@
 
 #include <glog/logging.h>
 
-#include "osquery/core/sqlite_util.h"
 #include <osquery/filesystem.h>
+
+#include "osquery/core/sqlite_util.h"
+#include "osquery/core/test_util.h"
 
 namespace pt = boost::property_tree;
 
@@ -18,6 +18,7 @@ namespace osquery {
 namespace core {
 
 const std::string kTestQuery = "SELECT * FROM test_table";
+const std::string kTestDataPath = "../../../../tools/tests/";
 
 sqlite3* createTestDB() {
   sqlite3* db = createDB();
@@ -226,47 +227,14 @@ std::vector<SplitStringTestData> generateSplitStringTestData() {
 }
 
 std::string getCACertificateContent() {
-  std::string content = R"(
-MIIESzCCAzOgAwIBAgIJAI1bGeY2YPlhMA0GCSqGSIb3DQEBBQUAMIG7MQswCQYD
-VQQGEwItLTESMBAGA1UECAwJU29tZVN0YXRlMREwDwYDVQQHDAhTb21lQ2l0eTEZ
-MBcGA1UECgwQU29tZU9yZ2FuaXphdGlvbjEfMB0GA1UECwwWU29tZU9yZ2FuaXph
-dGlvbmFsVW5pdDEeMBwGA1UEAwwVbG9jYWxob3N0LmxvY2FsZG9tYWluMSkwJwYJ
-KoZIhvcNAQkBFhpyb290QGxvY2FsaG9zdC5sb2NhbGRvbWFpbjAeFw0xNDA4MTkx
-OTEyMTZaFw0xNTA4MTkxOTEyMTZaMIG7MQswCQYDVQQGEwItLTESMBAGA1UECAwJ
-U29tZVN0YXRlMREwDwYDVQQHDAhTb21lQ2l0eTEZMBcGA1UECgwQU29tZU9yZ2Fu
-aXphdGlvbjEfMB0GA1UECwwWU29tZU9yZ2FuaXphdGlvbmFsVW5pdDEeMBwGA1UE
-AwwVbG9jYWxob3N0LmxvY2FsZG9tYWluMSkwJwYJKoZIhvcNAQkBFhpyb290QGxv
-Y2FsaG9zdC5sb2NhbGRvbWFpbjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
-ggEBAM6EsaVoMaHrYqH/s4YlhF6ke1XmUhzksB2eqpNqdgZw1JcZi9droRpuYmIf
-bNyvWqUffHW9mKRv+udF5Woueshn+7Kj9YnnL9jfMzFaVEC8WRwWk54RIdNkxgFq
-dqlaiwBWLvZkNUS9k/nugxVTbNu/GTqQlUG1XsIWBDJ2qRqniRfMKrfBKOxPYCZA
-l7KeFguRA+xOsA7/71OMXJZKneMSWN8duTQCFt7uYCQXWc/IV6BfKTaR/ZQQ4w7/
-iEMYPMZPSNprjun7rx0r2zPZGyrkGSCiS+4e+dfy0NbmYXodGHDxb/vBlm4q8CqF
-OoH9aq0F/3581uZcuvU2ydX/LWcCAwEAAaNQME4wHQYDVR0OBBYEFPK5mwDg7mDV
-fEJs4+ZOP9xvZBHAMB8GA1UdIwQYMBaAFPK5mwDg7mDVfEJs4+ZOP9xvZBHAMAwG
-A1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBAKNNP6f0JKxBtfq8hakrhHyl
-cSN83SmVPcrsTLeaW8w0hi+JOtNOjD9sM8KNSbmLXfhRH4yPqYV+0dpJi5+SeelW
-DjxZwbcFoI4EEu+zqufTUpu0T51eqnGvIedlIu1i2CiaoAJEmAN2OKQuN7uIQW27
-2gL/RS+DVkevaidLRh7q2QI23B0n1XZuyEUiUKB1YfTPrupMZkostuyGybAJaxrc
-ONmxUsB38pWJRCef9N/5APS74uIesfxSvEZXcXfPA+wrQY0yXn+bsEhz9pJOxZvD
-WxULUHBC6qH9gAlKEqZYS3CwpCEl/Blznwi30r4CwwQ6dLfeXoPQDxAt7LyPpV4=
-)";
+  std::string content;
+  readFile(kTestDataPath + "test_cert.pem", content);
   return content;
 }
 
 std::string getEtcHostsContent() {
-  std::string content = R"(
-##
-#Host Database
-#
-#localhost is used to configure the loopback interface
-#when the system is booting.Do not change this entry.
-##
-127.0.0.1       localhost
-255.255.255.255 broadcasthost
-::1             localhost
-fe80::1%lo0     localhost
-)";
+  std::string content;
+  readFile(kTestDataPath + "test_hosts.txt", content);
   return content;
 }
 

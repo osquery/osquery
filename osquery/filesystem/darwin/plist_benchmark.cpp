@@ -7,7 +7,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 
-#include "osquery/core/darwin/test_util.h"
+#include "osquery/core/test_util.h"
 
 using namespace osquery::core;
 namespace pt = boost::property_tree;
@@ -26,10 +26,13 @@ TEST_F(PlistBenchmark, bench_parse_plist_content) {
   LOG(ERROR) << "Performing " << FLAGS_iterations << " iterations";
   int time = getUnixTime();
   for (int i = 0; i < FLAGS_iterations; ++i) {
-    std::string content = getPlistContent();
+    std::string content;
+    readFile(kTestDataPath + "test.plist", content);
+
     pt::ptree tree;
     auto s = parsePlistContent(content, tree);
     EXPECT_TRUE(s.ok());
+
     EXPECT_EQ(s.toString(), "OK");
     EXPECT_EQ(tree.get<bool>("Disabled"), true);
     EXPECT_THROW(tree.get<bool>("foobar"), pt::ptree_bad_path);

@@ -7,7 +7,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "osquery/core/darwin/test_util.h"
+#include "osquery/core/test_util.h"
 
 using namespace osquery::core;
 namespace fs = boost::filesystem;
@@ -19,23 +19,22 @@ namespace osquery {
 
 class PlistTests : public testing::Test {};
 
-TEST_F(PlistTests, test_parse_plist) {
-  std::string path = "/System/Library/LaunchDaemons/com.apple.kextd.plist";
-  boost::property_tree::ptree tree;
-  auto s = parsePlist(path, tree);
-  EXPECT_TRUE(s.ok());
-  EXPECT_EQ(s.toString(), "OK");
-}
-
 TEST_F(PlistTests, test_parse_plist_content) {
-  std::string content = getPlistContent();
+  // Isolate plist parsing errors to the plist parser, instead of file reader.
+  std::string content;
+  readFile(kTestDataPath + "test.plist", content);
+
   pt::ptree tree;
   auto s = parsePlistContent(content, tree);
+
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
+
+  // Check the specifics of the PLIST.
   EXPECT_EQ(tree.get<bool>("Disabled"), true);
   EXPECT_THROW(tree.get<bool>("foobar"), pt::ptree_bad_path);
   EXPECT_EQ(tree.get<std::string>("Label"), "com.apple.FileSyncAgent.sshd");
+
   std::vector<std::string> program_arguments = {
       "/System/Library/CoreServices/FileSyncAgent.app/Contents/Resources/"
       "FileSyncAgent_sshd-keygen-wrapper",
@@ -52,10 +51,28 @@ TEST_F(PlistTests, test_parse_plist_content) {
   EXPECT_EQ(program_arguments_parsed, program_arguments);
 }
 
+TEST_F(PlistTests, test_parse_plist_from_file) {
+  // Now read the plist from a file and parse.
+  boost::property_tree::ptree tree;
+  auto s = parsePlist(kTestDataPath + "test.plist", tree);
+
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.toString(), "OK");
+}
+
+TEST_F(PlistTests, test_parse_plist_array) {
+  // Now read the plist from a file and parse.
+  boost::property_tree::ptree tree;
+  auto s = parsePlist(kTestDataPath + "test_array.plist", tree);
+
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.toString(), "OK");
+}
+
 TEST_F(PlistTests, test_parse_plist_content_with_blobs) {
   pt::ptree tree;
-
   fs::path bin_path(argv0);
+
   auto s = parsePlist((bin_path.parent_path() /
                        "../../../../tools/tests/test_binary.plist").string(),
                       tree);
