@@ -33,7 +33,7 @@ void genMatches(const pt::ptree& entry, std::vector<Row>& results) {
     return;
   }
 
-  bool optional = entry.count("MatchType") > 0;
+  bool optional = (entry.get("MatchType", "") == "MatchAny");
   for (const auto& match : entry.get_child("Matches")) {
     if (match.second.count("Matches") > 0) {
       genMatches(match.second, results);
@@ -44,7 +44,7 @@ void genMatches(const pt::ptree& entry, std::vector<Row>& results) {
     r["optional"] = (optional) ? "1" : "0";
     r["identity"] = match.second.get("Identity", "");
     if (match.second.count("MatchFile") == 0) {
-      printf("wut? %s\n", r["identity"].c_str());
+      // There is no file in this match entry, odd.
       continue;
     }
 
@@ -56,17 +56,7 @@ void genMatches(const pt::ptree& entry, std::vector<Row>& results) {
       r["filetype"] = fileinfo.get("NSURLTypeIdentifierKey", "");
     }
 
-    if (match.second.count("Pattern") > 0) {
-      std::string decoded_pattern;
-      auto pattern = match.second.get<std::string>("Pattern");
-      try {
-        boost::algorithm::unhex(pattern, std::back_inserter(decoded_pattern));
-        r["pattern"] = decoded_pattern;
-      } catch (boost::algorithm::hex_decode_error& e) {
-        r["pattern"] = pattern;
-      }
-    }
-
+    r["uses_pattern"] = (match.second.count("Pattern") > 0) ? "1" : "0";
     r["filename"] = fileinfo.get("NSURLNameKey", "");
     results.push_back(r);
   }
@@ -110,7 +100,6 @@ QueryData genXProtectEntries(QueryContext& context) {
 
   for (const auto& it : tree.get_child("root")) {
     genXProtectEntry(it.second, results);
-    // break;
   }
 
   return results;
