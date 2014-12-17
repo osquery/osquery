@@ -7,6 +7,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/test_util.h"
 
 using namespace osquery::core;
@@ -84,7 +85,8 @@ TEST_F(PlistTests, test_parse_plist_content_with_blobs) {
   auto first_element =
       tree.get_child("SessionItems.CustomListItems").begin()->second;
   EXPECT_EQ(first_element.get<std::string>("Name"), "Flux");
-  std::string alias = first_element.get<std::string>("Alias");
+  std::string alias = base64Decode(first_element.get<std::string>("Alias"));
+
   // Verify we parsed the binary blob correctly
   EXPECT_NE(alias.find("Applications/Flux.app"), std::string::npos);
 }

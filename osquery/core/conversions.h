@@ -37,6 +37,14 @@ typename boost::shared_ptr<T> std_to_boost_shared_ptr(
   return boost::shared_ptr<T>(p.get(), boost::bind(&do_release_std<T>, p, _1));
 }
 
+/**
+ * @brief Decode a base64 encoded string.
+ *
+ * @param encoded The encode base64 string.
+ * @return Decoded string.
+ */
+std::string base64Decode(const std::string& encoded);
+
 #ifdef DARWIN
 /**
  * @brief Convert a CFStringRef to a std::string.
