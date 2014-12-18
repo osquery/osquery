@@ -21,10 +21,13 @@ endif()
 
 ADD_OSQUERY_LIBRARY(osquery_events
   events.cpp
+  x/pcap.cpp
 )
 
 ADD_OSQUERY_TEST(events_tests events_tests.cpp)
 ADD_OSQUERY_TEST(events_database_tests events_database_tests.cpp)
+
+ADD_OSQUERY_TEST(pcap_tests x/pcap_tests.cpp)
 
 if(APPLE)
   ADD_OSQUERY_TEST(fsevents_tests darwin/fsevents_tests.cpp)

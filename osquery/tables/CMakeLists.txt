@@ -79,6 +79,7 @@ FILE(GLOB table_sources
 )
 
 ADD_OSQUERY_LIBRARY(osquery_tables
+  events/x/dns_queries.cpp
   networking/utils.cpp
   networking/etc_hosts.cpp
   networking/etc_services.cpp
@@ -93,6 +94,8 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   system/suid_bin.cpp
   system/logged_in_users.cpp
 )
+
+ADD_OSQUERY_LINK("pcap")
 
 ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp)
 if(APPLE)

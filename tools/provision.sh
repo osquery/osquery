@@ -349,6 +349,7 @@ function main() {
     package libudev-dev
     package libblkid-dev
     package linux-headers-generic
+    package libpcap-dev
 
     set_cc clang
     set_cxx clang++
@@ -451,6 +452,7 @@ function main() {
     package libunwind
     package libunwind-devel
     package libudev-devel
+    package libpcap-devel
 
     # package libtool.x86_64
     # package boost.x86_64
