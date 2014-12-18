@@ -10,6 +10,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/sql.h>
 
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
@@ -17,16 +18,13 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-/// XProtect MatchFile key to column maps.
-const std::map<std::string, std::string> kXProtectFileKeys = {
-    {"NSURLNameKey", "filename"},
-    {"NSURLTypeIdentifierKey", "filetype"},
-};
-
 /// Path to XProtect.meta.plist and XProtect.plist
 const std::string kXProtectPath = 
     "/System/Library/CoreServices/"
     "CoreTypes.bundle/Contents/Resources/";
+
+/// Relative path for each user's logging directory
+const std::string kXProtectReportsPath = "/Library/Logs/DiagnosticReports";
 
 void genMatches(const pt::ptree& entry, std::vector<Row>& results) {
   if (entry.count("Matches") == 0) {
@@ -76,6 +74,65 @@ void genXProtectEntry(const pt::ptree &entry, QueryData& results) {
     r["launch_type"] = launch_type;
     results.push_back(r);
   }
+}
+
+std::vector<std::string> getXProtectReportFiles(const std::string& home_dir) {
+  std::vector<std::string> reports;
+  std::vector<std::string> all_logs;
+
+  // XProtect reports live in the user's diagnostic reports dir.
+  auto reports_path = fs::path(home_dir) / kXProtectReportsPath;
+  auto status = osquery::listFilesInDirectory(reports_path, all_logs);
+  if (status.ok()) {
+    for (const auto& log_file : all_logs) {
+      // They are named with a "XProtect" prefix.
+      if (log_file.find("XProtect") != std::string::npos) {
+        reports.push_back(log_file);
+      }
+    }
+  }
+
+  return reports;
+}
+
+void genXProtectReport(const std::string& path, QueryData& results) {
+  pt::ptree report;
+
+  if (!osquery::parsePlist(path, report).ok()) {
+    // Failed to read the XProtect plist format.
+    return;
+  }
+
+  if (report.count("root") == 0) {
+    // Unsupported/unknown report format.
+    return;
+  }
+
+  for (const auto& entry : report.get_child("root")) {
+    Row r;
+    r["name"] = entry.second.get("XProtectSignatureName", "");
+    if (r["name"].empty()) {
+      continue;
+    }
+
+    r["user_action"] = entry.second.get("UserAction", "");
+    r["time"] = entry.second.get("LSQuarantineTimeStamp", "");
+    results.push_back(r);
+  }
+}
+
+QueryData genXProtectReports(QueryContext& context) {
+  QueryData results;
+
+  // Loop over users for home directories
+  auto users = SQL::selectAllFrom("users");
+  for (const auto& user : users) {
+    for (const auto& path : getXProtectReportFiles(user.at("directory"))) {
+      genXProtectReport(path, results);
+    }
+  }
+
+  return results;
 }
 
 QueryData genXProtectEntries(QueryContext& context) {

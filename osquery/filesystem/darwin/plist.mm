@@ -22,20 +22,20 @@ NSMutableDictionary* filterDictionary(id dataStructure) {
   @autoreleasepool {
     NSMutableDictionary* result = [NSMutableDictionary new];
     for (id key in [dataStructure allKeys]) {
-      id klass = [[dataStructure objectForKey:key] class];
-      NSString* className = NSStringFromClass(klass);
-      if ([className isEqualToString:@"__NSArrayI"] ||
-          [className isEqualToString:@"__NSArrayM"] ||
-          [className isEqualToString:@"__NSCFArray"]) {
+      id value = [dataStructure objectForKey:key];
+      if ([value isKindOfClass:[NSArray class]]) {
         [result setObject:filterArray([dataStructure objectForKey:key])
                    forKey:key];
-      } else if ([className isEqualToString:@"__NSCFDictionary"]) {
+      } else if ([value isKindOfClass:[NSDictionary class]]) {
         [result setObject:filterDictionary([dataStructure objectForKey:key])
                    forKey:key];
-      } else if ([className isEqualToString:@"__NSCFData"]) {
-        id data = [dataStructure objectForKey:key];
-        NSString* dataString = [data base64EncodedStringWithOptions:0];
+      } else if ([value isKindOfClass:[NSData class]]) {
+        NSString* dataString = [value base64EncodedStringWithOptions:0];
         [result setObject:dataString forKey:key];
+      } else if ([value isKindOfClass:[NSDate class]]) {
+        NSNumber* seconds =
+            [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
+        [result setObject:seconds forKey:key];
       } else {
         [result setObject:[dataStructure objectForKey:key] forKey:key];
       }
@@ -48,17 +48,17 @@ NSMutableArray* filterArray(id dataStructure) {
   @autoreleasepool {
     NSMutableArray* result = [NSMutableArray new];
     for (id value in dataStructure) {
-      NSString* className = NSStringFromClass([value class]);
-      if ([className isEqualToString:@"__NSCFDictionary"]) {
+      if ([value isKindOfClass:[NSDictionary class]]) {
         [result addObject:filterDictionary(value)];
-      } else if ([className isEqualToString:@"__NSArrayI"] ||
-                 [className isEqualToString:@"__NSArrayM"] ||
-                 [className isEqualToString:@"__NSCFArray"]) {
+      } else if ([value isKindOfClass:[NSArray class]]) {
         [result addObject:filterArray(value)];
-      } else if ([className isEqualToString:@"__NSCFData"]) {
-        id data = [dataStructure objectForKey:value];
-        NSString* dataString = [data base64EncodedStringWithOptions:0];
+      } else if ([value isKindOfClass:[NSData class]]) {
+        NSString* dataString = [value base64EncodedStringWithOptions:0];
         [result addObject:dataString];
+      } else if ([value isKindOfClass:[NSDate class]]) {
+        NSNumber* seconds =
+            [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
+        [result addObject:seconds];
       } else {
         [result addObject:value];
       }
@@ -69,8 +69,7 @@ NSMutableArray* filterArray(id dataStructure) {
 
 NSMutableDictionary* filterPlist(NSData* plist) {
   @autoreleasepool {
-    NSString* className = NSStringFromClass([plist class]);
-    if ([className isEqualToString:@"__NSCFDictionary"]) {
+    if ([plist isKindOfClass:[NSDictionary class]]) {
       return filterDictionary((NSMutableDictionary*)plist);
     } else {
       NSMutableDictionary* result = [NSMutableDictionary new];
