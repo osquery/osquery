@@ -1,7 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <osquery/filesystem.h>
-
 #include <sstream>
 
 #include <boost/filesystem/path.hpp>
@@ -11,12 +9,14 @@
 
 #import <Foundation/Foundation.h>
 
-using osquery::Status;
+#include <osquery/filesystem.h>
+
 namespace pt = boost::property_tree;
 
 namespace osquery {
 
 NSMutableArray* filterArray(id dataStructure);
+NSMutableDictionary* filterDictionary(id dataStructure);
 
 NSMutableDictionary* filterDictionary(id dataStructure) {
   @autoreleasepool {
@@ -34,10 +34,7 @@ NSMutableDictionary* filterDictionary(id dataStructure) {
                    forKey:key];
       } else if ([className isEqualToString:@"__NSCFData"]) {
         id data = [dataStructure objectForKey:key];
-        NSString* dataString =
-            [[NSString alloc] initWithBytes:[data bytes]
-                                     length:[data length]
-                                   encoding:NSASCIIStringEncoding];
+        NSString* dataString = [data base64EncodedStringWithOptions:0];
         [result setObject:dataString forKey:key];
       } else {
         [result setObject:[dataStructure objectForKey:key] forKey:key];
@@ -60,10 +57,7 @@ NSMutableArray* filterArray(id dataStructure) {
         [result addObject:filterArray(value)];
       } else if ([className isEqualToString:@"__NSCFData"]) {
         id data = [dataStructure objectForKey:value];
-        NSString* dataString =
-            [[NSString alloc] initWithBytes:[data bytes]
-                                     length:[data length]
-                                   encoding:NSASCIIStringEncoding];
+        NSString* dataString = [data base64EncodedStringWithOptions:0];
         [result addObject:dataString];
       } else {
         [result addObject:value];
@@ -73,8 +67,17 @@ NSMutableArray* filterArray(id dataStructure) {
   }
 }
 
-NSMutableDictionary* filterPlist(NSMutableDictionary* plist) {
-  return filterDictionary(plist);
+NSMutableDictionary* filterPlist(NSData* plist) {
+  @autoreleasepool {
+    NSString* className = NSStringFromClass([plist class]);
+    if ([className isEqualToString:@"__NSCFDictionary"]) {
+      return filterDictionary((NSMutableDictionary*)plist);
+    } else {
+      NSMutableDictionary* result = [NSMutableDictionary new];
+      [result setObject:filterArray((NSMutableArray*)plist) forKey:@"root"];
+      return result;
+    }
+  }
 }
 
 Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
@@ -91,15 +94,15 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
         [NSData dataWithBytes:fileContent.c_str() length:fileContent.size()];
 
     NSError* error = nil;
+    NSMutableDictionary* plist;
     NSPropertyListFormat plistFormat;
     id plistData = [NSPropertyListSerialization
         propertyListWithData:plistContent
                      options:NSPropertyListImmutable
                       format:&plistFormat
                        error:&error];
-    NSMutableDictionary* plist = (NSMutableDictionary*)plistData;
 
-    if (plist == nil) {
+    if (plistData == nil) {
       std::string errorMessage([[error localizedFailureReason] UTF8String]);
       LOG(ERROR) << errorMessage;
       statusCode = 1;
@@ -123,7 +126,7 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
     }
 
     try {
-      plist = filterPlist(plist);
+      plist = filterPlist(plistData);
     } catch (const std::exception& e) {
       LOG(ERROR)
           << "An exception occurred while filtering the plist: " << e.what();

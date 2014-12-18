@@ -3,9 +3,10 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
-#include "osquery/core/darwin/test_util.h"
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
+
+#include "osquery/core/test_util.h"
 #include "osquery/tables/system/darwin/firewall.h"
 
 using namespace osquery::core;
@@ -13,6 +14,15 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
+
+pt::ptree getALFTree() {
+  std::string content;
+  readFile(kTestDataPath + "test_alf.plist", content);
+
+  pt::ptree tree;
+  parsePlistContent(content, tree);
+  return tree;
+}
 
 class FirewallTests : public testing::Test {};
 

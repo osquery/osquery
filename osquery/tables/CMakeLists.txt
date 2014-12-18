@@ -29,6 +29,7 @@ if(APPLE)
     system/darwin/pci_devices.cpp
     system/darwin/usb_devices.cpp
     system/darwin/startup_items.cpp
+    system/darwin/xprotect.cpp
   )
 
   ADD_OSQUERY_LINK("-framework Foundation")

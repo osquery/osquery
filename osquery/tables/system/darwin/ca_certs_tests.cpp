@@ -1,9 +1,5 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <boost/archive/iterators/transform_width.hpp>
-#include <boost/archive/iterators/binary_from_base64.hpp>
-#include <boost/algorithm/string.hpp>
-
 #include <CoreFoundation/CoreFoundation.h>
 #include <Security/Security.h>
 
@@ -16,13 +12,9 @@
 #include "osquery/core/test_util.h"
 
 using namespace osquery::core;
-namespace bai = boost::archive::iterators;
 
 namespace osquery {
 namespace tables {
-
-typedef bai::binary_from_base64<const char*> base64_str;
-typedef bai::transform_width<base64_str, 8, 6> base64_dec;
 
 bool CertificateIsCA(const SecCertificateRef&);
 CFDataRef CreatePropertyFromCertificate(const SecCertificateRef&,
@@ -31,41 +23,13 @@ std::string genSHA1ForCertificate(const SecCertificateRef&);
 std::string genCommonNameProperty(const CFDataRef&);
 std::string genKIDProperty(const CFDataRef&);
 
-std::string base64_decode(const std::string& encoded) {
-  std::string is;
-  std::stringstream os;
-
-  is = encoded;
-  boost::replace_all(is, "\r\n", "");
-  boost::replace_all(is, "\n", "");
-  uint32_t size = is.size();
-
-  // Remove the padding characters
-  if (size && is[size - 1] == '=') {
-    --size;
-    if (size && is[size - 1] == '=') {
-      --size;
-    }
-  }
-
-  if (size == 0) {
-    return std::string();
-  }
-
-  std::copy(base64_dec(is.data()),
-            base64_dec(is.data() + size),
-            std::ostream_iterator<char>(os));
-
-  return os.str();
-}
-
 class CACertsTests : public ::testing::Test {
  protected:
   virtual void SetUp() {
     std::string raw;
     CFDataRef data;
 
-    raw = base64_decode(getCACertificateContent());
+    raw = base64Decode(getCACertificateContent());
     data = CFDataCreate(NULL, (const UInt8*)raw.c_str(), (CFIndex)raw.size());
     cert = SecCertificateCreateWithData(NULL, data);
     CFRelease(data);

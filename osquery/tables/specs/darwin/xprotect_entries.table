@@ -1,0 +1,11 @@
+table_name("xprotect_entries")
+schema([
+    Column("name", TEXT, "Description of XProtect'ed malware"),
+    Column("launch_type", TEXT, "Launch services content type"),
+    Column("identity", TEXT, "XProtect identity"),
+    Column("filename", TEXT),
+    Column("filetype", TEXT),
+    Column("optional", INTEGER, "Match any of the identities/patterns."),
+    Column("uses_pattern", INTEGER, "Uses a match pattern instead of identity"),
+])
+implementation("xprotect@genXProtectEntries")

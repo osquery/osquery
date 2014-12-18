@@ -22,6 +22,7 @@ namespace core {
 // returned from createTestDB() to result in the dataset returned from
 // getTestDBExpectedResults()
 extern const std::string kTestQuery;
+extern const std::string kTestDataPath;
 
 // createTestDB instantiates a sqlite3 struct and populates it with some test
 // data
