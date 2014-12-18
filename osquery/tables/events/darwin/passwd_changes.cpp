@@ -21,9 +21,9 @@ const std::vector<std::string> kDarwinPasswdPaths = {
  *
  * This is mostly an example EventSubscriber implementation.
  */
-class PasswdChangesEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTSUBSCRIBER(PasswdChangesEventSubscriber, FSEventsEventPublisher);
-  DECLARE_CALLBACK(Callback, FSEventsEventContext);
+class PasswdChangesEventSubscriber
+    : public EventSubscriber<FSEventsEventPublisher> {
+  DECLARE_SUBSCRIBER("PasswdChangesEventSubscriber");
 
  public:
   void init();
@@ -36,7 +36,7 @@ class PasswdChangesEventSubscriber : public EventSubscriber {
    *
    * @return Was the callback successful.
    */
-  Status Callback(const FSEventsEventContextRef ec);
+  Status Callback(const FSEventsEventContextRef& ec);
 };
 
 /**
@@ -50,14 +50,14 @@ REGISTER_EVENTSUBSCRIBER(PasswdChangesEventSubscriber);
 
 void PasswdChangesEventSubscriber::init() {
   for (const auto& path : kDarwinPasswdPaths) {
-    auto mc = FSEventsEventPublisher::createSubscriptionContext();
+    auto mc = createSubscriptionContext();
     mc->path = path;
-    BIND_CALLBACK(Callback, mc);
+    subscribe(&PasswdChangesEventSubscriber::Callback, mc);
   }
 }
 
 Status PasswdChangesEventSubscriber::Callback(
-    const FSEventsEventContextRef ec) {
+    const FSEventsEventContextRef& ec) {
   Row r;
   r["action"] = ec->action;
   r["time"] = ec->time_string;

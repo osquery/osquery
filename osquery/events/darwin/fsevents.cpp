@@ -102,13 +102,13 @@ void FSEventsEventPublisher::tearDown() {
 void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
   paths_.clear();
-  for (auto& subscription : subscriptions_) {
+  for (const auto& subscription : subscriptions_) {
     auto fs_subscription = getSubscriptionContext(subscription->context);
     paths_.insert(fs_subscription->path);
   }
 
   // There were no paths in the subscriptions?
-  if (paths_.size() == 0) {
+  if (paths_.empty()) {
     return;
   }
 
@@ -154,8 +154,9 @@ void FSEventsEventPublisher::Callback(
   }
 }
 
-bool FSEventsEventPublisher::shouldFire(const FSEventsSubscriptionContextRef mc,
-                                        const FSEventsEventContextRef ec) {
+bool FSEventsEventPublisher::shouldFire(
+    const FSEventsSubscriptionContextRef& mc,
+    const FSEventsEventContextRef& ec) {
   ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
     return false;

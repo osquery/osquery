@@ -56,10 +56,9 @@ typedef std::shared_ptr<FSEventsSubscriptionContext>
  * preferred implementation of FSEvents handling.
  *
  */
-class FSEventsEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(FSEventsEventPublisher,
-                         FSEventsSubscriptionContext,
-                         FSEventsEventContext)
+class FSEventsEventPublisher
+    : public EventPublisher<FSEventsSubscriptionContext, FSEventsEventContext> {
+  DECLARE_PUBLISHER("FSEventsEventPublisher");
 
  public:
   void configure();
@@ -78,10 +77,14 @@ class FSEventsEventPublisher : public EventPublisher {
                        const FSEventStreamEventId fsevent_ids[]);
 
  public:
-  FSEventsEventPublisher()
-      : EventPublisher(), stream_(nullptr), run_loop_(nullptr) {}
-  bool shouldFire(const FSEventsSubscriptionContextRef mc,
-                  const FSEventsEventContextRef ec);
+  FSEventsEventPublisher() : EventPublisher() {
+    stream_started_ = false;
+    stream_ = nullptr;
+    run_loop_ = nullptr;
+  }
+
+  bool shouldFire(const FSEventsSubscriptionContextRef& mc,
+                  const FSEventsEventContextRef& ec);
 
  private:
   // Restart the run loop.

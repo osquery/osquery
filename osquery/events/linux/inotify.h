@@ -44,7 +44,7 @@ struct INotifySubscriptionContext : public SubscriptionContext {
    *
    * @param action The string action, a value in kMaskAction%s.
    */
-  void requireAction(std::string action) {
+  void requireAction(const std::string& action) {
     for (const auto& bit : kMaskActions) {
       if (action == bit.second) {
         mask = mask | bit.first;
@@ -86,10 +86,9 @@ typedef std::map<int, std::string> DescriptorPathMap;
  * Uses INotifySubscriptionContext and INotifyEventContext for subscriptioning,
  *eventing.
  */
-class INotifyEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(INotifyEventPublisher,
-                         INotifySubscriptionContext,
-                         INotifyEventContext);
+class INotifyEventPublisher
+    : public EventPublisher<INotifySubscriptionContext, INotifyEventContext> {
+  DECLARE_PUBLISHER("INotifyEventPublisher");
 
  public:
   /// Create an `inotify` handle descriptor.
@@ -105,7 +104,7 @@ class INotifyEventPublisher : public EventPublisher {
   bool isHandleOpen() { return inotify_handle_ > 0; }
 
  private:
-  INotifyEventContextRef createEventContext(struct inotify_event* event);
+  INotifyEventContextRef createEventContextFrom(struct inotify_event* event);
   /// Check all added Subscription%s for a path.
   bool isPathMonitored(const std::string& path);
   /// Add an INotify watch (monitor) on this path.
@@ -114,8 +113,8 @@ class INotifyEventPublisher : public EventPublisher {
   bool removeMonitor(const std::string& path, bool force = false);
   bool removeMonitor(int watch, bool force = false);
   /// Given a SubscriptionContext and INotifyEventContext match path and action.
-  bool shouldFire(const INotifySubscriptionContextRef mc,
-                  const INotifyEventContextRef ec);
+  bool shouldFire(const INotifySubscriptionContextRef& mc,
+                  const INotifyEventContextRef& ec);
   /// Get the INotify file descriptor.
   int getHandle() { return inotify_handle_; }
   /// Get the number of actual INotify active descriptors.

@@ -17,9 +17,9 @@ namespace tables {
  *
  * This is mostly an example EventSubscriber implementation.
  */
-class PasswdChangesEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTSUBSCRIBER(PasswdChangesEventSubscriber, INotifyEventPublisher);
-  DECLARE_CALLBACK(Callback, INotifyEventContext);
+class PasswdChangesEventSubscriber
+    : public EventSubscriber<INotifyEventPublisher> {
+  DECLARE_SUBSCRIBER("PasswdChangesEventSubscriber");
 
  public:
   void init();
@@ -32,7 +32,7 @@ class PasswdChangesEventSubscriber : public EventSubscriber {
    *
    * @return Was the callback successful.
    */
-  Status Callback(const INotifyEventContextRef ec);
+  Status Callback(const INotifyEventContextRef& ec);
 };
 
 /**
@@ -45,13 +45,14 @@ class PasswdChangesEventSubscriber : public EventSubscriber {
 REGISTER_EVENTSUBSCRIBER(PasswdChangesEventSubscriber);
 
 void PasswdChangesEventSubscriber::init() {
-  auto mc = INotifyEventPublisher::createSubscriptionContext();
+  auto mc = createSubscriptionContext();
   mc->path = "/etc/passwd";
   mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
-  BIND_CALLBACK(Callback, mc);
+  subscribe(&PasswdChangesEventSubscriber::Callback, mc);
 }
 
-Status PasswdChangesEventSubscriber::Callback(const INotifyEventContextRef ec) {
+Status PasswdChangesEventSubscriber::Callback(
+    const INotifyEventContextRef& ec) {
   Row r;
   r["action"] = ec->action;
   r["time"] = ec->time_string;

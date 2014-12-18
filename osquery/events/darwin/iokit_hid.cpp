@@ -83,7 +83,7 @@ void IOKitHIDEventPublisher::MatchingCallback(void *context,
   fire(device, "add");
 }
 
-void IOKitHIDEventPublisher::fire(IOHIDDeviceRef &device,
+void IOKitHIDEventPublisher::fire(const IOHIDDeviceRef &device,
                                   const std::string &action) {
   auto ec = createEventContext();
   ec->device = device;
@@ -122,8 +122,9 @@ void IOKitHIDEventPublisher::InputValueCallback(void *context,
   // Value changes contain potentially sensitive data.
 }
 
-bool IOKitHIDEventPublisher::shouldFire(const IOKitHIDSubscriptionContextRef sc,
-                                        const IOKitHIDEventContextRef ec) {
+bool IOKitHIDEventPublisher::shouldFire(
+    const IOKitHIDSubscriptionContextRef &sc,
+    const IOKitHIDEventContextRef &ec) {
   if (sc->values) {
     // See InputValueCallback
     return false;

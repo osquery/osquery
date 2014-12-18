@@ -97,7 +97,7 @@ Status INotifyEventPublisher::run() {
       // A file was moved to replace the watched path.
       removeMonitor(event->wd, false);
     } else {
-      auto ec = createEventContext(event);
+      auto ec = createEventContextFrom(event);
       fire(ec);
     }
     // Continue to iterate
@@ -108,7 +108,7 @@ Status INotifyEventPublisher::run() {
   return Status(0, "Continue");
 }
 
-INotifyEventContextRef INotifyEventPublisher::createEventContext(
+INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
     struct inotify_event* event) {
   auto shared_event = std::make_shared<struct inotify_event>(*event);
   auto ec = createEventContext();
@@ -132,8 +132,8 @@ INotifyEventContextRef INotifyEventPublisher::createEventContext(
   return ec;
 }
 
-bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef sc,
-                                       const INotifyEventContextRef ec) {
+bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
+                                       const INotifyEventContextRef& ec) {
   if (!sc->recursive && sc->path != ec->path) {
     // Monitored path is not recursive and path is not an exact match.
     return false;
