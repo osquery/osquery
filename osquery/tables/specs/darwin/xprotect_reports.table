@@ -1,0 +1,7 @@
+table_name("xprotect_reports")
+schema([
+    Column("name", TEXT, "Description of XProtect'ed malware"),
+    Column("user_action", TEXT, "Action taken by user after prompted"),
+    Column("time", TEXT, "Quarantine alert time."),
+])
+implementation("xprotect@genXProtectReports")
