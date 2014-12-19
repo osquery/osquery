@@ -1,0 +1,5 @@
+table_name("dns_queries")
+schema([
+    Column("flags", TEXT),
+])
+implementation("utility/file@genFile")
