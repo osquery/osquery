@@ -93,15 +93,15 @@ osquery::Status Query::addNewResults(const osquery::QueryData& qd,
     return hqr_status;
   }
 
-  QueryData newQd;
+  QueryData escaped_qd;
   // remove all non-ascii characters from the string
-  escapeQueryData(qd, newQd);
+  escapeQueryData(qd, escaped_qd);
 
   if (calculate_diff) {
-    dr = diff(hQR.mostRecentResults.second, newQd);
+    dr = diff(hQR.mostRecentResults.second, escaped_qd);
   }
   hQR.mostRecentResults.first = unix_time;
-  hQR.mostRecentResults.second = newQd;
+  hQR.mostRecentResults.second = escaped_qd;
   std::string json;
   auto serialize_status = serializeHistoricalQueryResultsJSON(hQR, json);
   if (!serialize_status.ok()) {

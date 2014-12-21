@@ -25,15 +25,11 @@ namespace osquery {
 // respective value
 /////////////////////////////////////////////////////////////////////////////
 
-std::string escapeString(std::string data){
-  return pt::json_parser::create_escapes(data);
-}
-
 void escapeQueryData(const QueryData &oldData, QueryData &newData) {
   for (const auto& r : oldData) {
     Row newRow;
     for (auto& i : r) {
-      newRow[i.first] = escapeString(i.second);
+      newRow[i.first] = pt::json_parser::create_escapes(i.second);
     }
     newData.push_back(newRow);
   }

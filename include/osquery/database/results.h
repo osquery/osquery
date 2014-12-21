@@ -347,7 +347,16 @@ Status serializeScheduledQueryLogItemAsEventsJSON(
 bool addUniqueRowToQueryData(QueryData& q, const Row& r);
 
 /**
- * TODO documentation
+ * @brief Construct a new QueryData from an existing one, replacing all
+ * non-ascii characters with their \u encoding.
+ *
+ * This function is intended as a workaround for
+ * https://svn.boost.org/trac/boost/ticket/8883,
+ * and will allow rows containing data with non-ascii characters to be stored in
+ * the database and parsed back into a property tree.
+ *
+ * @param oldData the old QueryData to copy
+ * @param newData the new escaped QueryData object
  */
 void escapeQueryData(const osquery::QueryData &oldData, osquery::QueryData &newData);
 }
