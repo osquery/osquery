@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #pragma once
 
@@ -6,6 +14,10 @@
 
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
+
+#ifdef DARWIN
+#include <CoreFoundation/CoreFoundation.h>
+#endif
 
 namespace osquery {
 
@@ -32,4 +44,26 @@ typename boost::shared_ptr<T> std_to_boost_shared_ptr(
     typename std::shared_ptr<T> const& p) {
   return boost::shared_ptr<T>(p.get(), boost::bind(&do_release_std<T>, p, _1));
 }
+
+/**
+ * @brief Decode a base64 encoded string.
+ *
+ * @param encoded The encode base64 string.
+ * @return Decoded string.
+ */
+std::string base64Decode(const std::string& encoded);
+
+#ifdef DARWIN
+/**
+ * @brief Convert a CFStringRef to a std::string.
+ */
+std::string stringFromCFString(const CFStringRef& cf_string);
+
+/**
+ * @brief Convert a CFNumberRef to a std::string.
+ */
+std::string stringFromCFNumber(const CFDataRef& cf_number);
+std::string stringFromCFData(const CFDataRef& cf_data);
+#endif
+
 }

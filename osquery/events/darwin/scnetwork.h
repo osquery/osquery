@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #pragma once
 
@@ -42,10 +50,10 @@ typedef std::shared_ptr<SCNetworkEventContext> SCNetworkEventContextRef;
  * This exposes a lightweight network change monitoring capability.
  *
  */
-class SCNetworkEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(SCNetworkEventPublisher,
-                         SCNetworkSubscriptionContext,
-                         SCNetworkEventContext)
+class SCNetworkEventPublisher
+    : public EventPublisher<SCNetworkSubscriptionContext,
+                            SCNetworkEventContext> {
+  DECLARE_PUBLISHER("SCNetworkEventPublisher");
 
  public:
   void configure();
@@ -56,14 +64,14 @@ class SCNetworkEventPublisher : public EventPublisher {
 
  public:
   /// SCNetwork registers a client callback instead of using a select/poll loop.
-  static void Callback(SCNetworkReachabilityRef target,
+  static void Callback(const SCNetworkReachabilityRef target,
                        SCNetworkReachabilityFlags flags,
                        void* info);
 
  public:
   SCNetworkEventPublisher() : EventPublisher(), run_loop_(nullptr) {}
-  bool shouldFire(const SCNetworkSubscriptionContextRef sc,
-                  const SCNetworkEventContextRef ec);
+  bool shouldFire(const SCNetworkSubscriptionContextRef& sc,
+                  const SCNetworkEventContextRef& ec);
 
  private:
   // Restart the run loop by calling configure.
@@ -72,10 +80,10 @@ class SCNetworkEventPublisher : public EventPublisher {
   void stop();
 
  private:
-  void addHostname(const SCNetworkSubscriptionContextRef sc);
-  void addAddress(const SCNetworkSubscriptionContextRef sc);
-  void addTarget(const SCNetworkSubscriptionContextRef sc,
-                 const SCNetworkReachabilityRef target);
+  void addHostname(const SCNetworkSubscriptionContextRef& sc);
+  void addAddress(const SCNetworkSubscriptionContextRef& sc);
+  void addTarget(const SCNetworkSubscriptionContextRef& sc,
+                 const SCNetworkReachabilityRef& target);
 
  private:
   std::vector<std::string> target_names_;

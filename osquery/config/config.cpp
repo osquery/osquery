@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <algorithm>
 #include <future>
@@ -17,6 +25,8 @@
 #include <osquery/config/plugin.h>
 #include <osquery/flags.h>
 #include <osquery/status.h>
+
+#include "osquery/core/md5.h"
 
 using osquery::Status;
 
@@ -71,10 +81,7 @@ Config::Config() {
   cfg_ = conf;
 }
 
-Status Config::genConfig(OsqueryConfig& conf) {
-  std::stringstream json;
-  pt::ptree tree;
-
+Status Config::genConfig(std::string& conf) {
   if (REGISTERED_CONFIG_PLUGINS.find(FLAGS_config_retriever) ==
       REGISTERED_CONFIG_PLUGINS.end()) {
     LOG(ERROR) << "Config retriever " << FLAGS_config_retriever << " not found";
@@ -85,7 +92,20 @@ Status Config::genConfig(OsqueryConfig& conf) {
   if (!config_data.first.ok()) {
     return config_data.first;
   }
-  json << config_data.second;
+  conf = config_data.second;
+  return Status(0, "OK");
+}
+
+Status Config::genConfig(OsqueryConfig& conf) {
+  std::stringstream json;
+  pt::ptree tree;
+  std::string config_string;
+  auto s = genConfig(config_string);
+  if (!s.ok()) {
+    return s;
+  }
+
+  json << config_string;
   pt::read_json(json, tree);
 
   try {
@@ -134,5 +154,18 @@ int Config::splayValue(int original, int splayPercent) {
   std::default_random_engine generator;
   std::uniform_int_distribution<int> distribution(min_value, max_value);
   return distribution(generator);
+}
+
+Status Config::getMD5(std::string& hashString) {
+  std::string config_string;
+  auto s = genConfig(config_string);
+  if (!s.ok()) {
+    return s;
+  }
+
+  osquery::md5::MD5 digest;
+  hashString = std::string(digest.digestString(config_string.c_str()));
+
+  return Status(0, "OK");
 }
 }

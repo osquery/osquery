@@ -10,6 +10,7 @@ if(APPLE)
 
   ADD_OSQUERY_LIBRARY(osquery_tables_darwin
     events/darwin/passwd_changes.cpp
+    events/darwin/hardware_events.cpp
     networking/darwin/interfaces.cpp
     networking/darwin/listening_ports.cpp
     networking/darwin/routes.cpp
@@ -25,8 +26,10 @@ if(APPLE)
     system/darwin/processes.cpp
     system/darwin/process_open_files.cpp
     system/darwin/quarantine.cpp
+    system/darwin/pci_devices.cpp
     system/darwin/usb_devices.cpp
     system/darwin/startup_items.cpp
+    system/darwin/xprotect.cpp
   )
 
   ADD_OSQUERY_LINK("-framework Foundation")
@@ -56,6 +59,7 @@ else()
     system/linux/groups.cpp
     system/linux/mounts.cpp
     system/linux/pci_devices.cpp
+    system/linux/usb_devices.cpp
     system/linux/block_devices.cpp
   )
 
@@ -77,10 +81,12 @@ FILE(GLOB table_sources
 ADD_OSQUERY_LIBRARY(osquery_tables
   networking/utils.cpp
   networking/etc_hosts.cpp
+  networking/etc_services.cpp
   utility/time.cpp
   utility/crontab.cpp
   utility/hash.cpp
   utility/file.cpp
+  utility/osquery.cpp
   system/cpuid.cpp
   system/last.cpp
   system/shell_history.cpp

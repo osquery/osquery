@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <vector>
 #include <string>
@@ -15,26 +23,25 @@ namespace tables {
 /**
  * @brief Track udev events in Linux
  */
-class HardwareEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTSUBSCRIBER(HardwareEventSubscriber, UdevEventPublisher);
-  DECLARE_CALLBACK(Callback, UdevEventContext);
+class HardwareEventSubscriber : public EventSubscriber<UdevEventPublisher> {
+  DECLARE_SUBSCRIBER("HardwareEventSubscriber");
 
  public:
   void init();
 
-  Status Callback(const UdevEventContextRef ec);
+  Status Callback(const UdevEventContextRef& ec);
 };
 
 REGISTER_EVENTSUBSCRIBER(HardwareEventSubscriber);
 
 void HardwareEventSubscriber::init() {
-  auto subscription = UdevEventPublisher::createSubscriptionContext();
+  auto subscription = createSubscriptionContext();
   subscription->action = UDEV_EVENT_ACTION_ALL;
 
-  BIND_CALLBACK(Callback, subscription);
+  subscribe(&HardwareEventSubscriber::Callback, subscription);
 }
 
-Status HardwareEventSubscriber::Callback(const UdevEventContextRef ec) {
+Status HardwareEventSubscriber::Callback(const UdevEventContextRef& ec) {
   Row r;
 
   if (ec->devtype.empty()) {
@@ -51,17 +58,19 @@ Status HardwareEventSubscriber::Callback(const UdevEventContextRef ec) {
   r["driver"] = ec->driver;
 
   // UDEV properties.
-  r["model"] = UdevEventPublisher::getValue(device, "MODEL");
+  r["model"] = UdevEventPublisher::getValue(device, "ID_MODEL_FROM_DATABASE");
   if (r["path"].empty() && r["model"].empty()) {
     // Don't emit mising path/model combos.
     return Status(0, "Missing path and model.");
   }
 
-  r["model_id"] = INTEGER(UdevEventPublisher::getValue(device, "MODEL_ID"));
-  r["vendor"] = UdevEventPublisher::getValue(device, "VENDOR");
-  r["vendor_id"] = INTEGER(UdevEventPublisher::getValue(device, "VENDOR_ID"));
-  r["serial"] = INTEGER(UdevEventPublisher::getValue(device, "SERIAL_SHORT"));
-  r["revision"] = INTEGER(UdevEventPublisher::getValue(device, "REVISION"));
+  r["model_id"] = INTEGER(UdevEventPublisher::getValue(device, "ID_MODEL_ID"));
+  r["vendor"] = UdevEventPublisher::getValue(device, "ID_VENDOR_FROM_DATABASE");
+  r["vendor_id"] =
+      INTEGER(UdevEventPublisher::getValue(device, "ID_VENDOR_ID"));
+  r["serial"] =
+      INTEGER(UdevEventPublisher::getValue(device, "ID_SERIAL_SHORT"));
+  r["revision"] = INTEGER(UdevEventPublisher::getValue(device, "ID_REVISION"));
 
   r["time"] = INTEGER(ec->time);
   add(r, ec->time);

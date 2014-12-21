@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #pragma once
 
@@ -12,8 +20,8 @@
 
 namespace osquery {
 
-/// Value, Description.
-typedef std::pair<std::string, std::string> FlagDetail;
+/// Type, Value, Description.
+typedef std::tuple<std::string, std::string, std::string> FlagDetail;
 
 /**
  * @brief A small tracking wrapper for options, binary flags.
@@ -30,6 +38,7 @@ class Flag {
    * flag data requires the accessor wrapper.
    *
    * @param name The 'name' or the options switch data.
+   * @param type The lexical type of the flag.
    * @param value The default value for this flag.
    * @param desc The description printed to the screen during help.
    * @param shell_only Only print flag help when using `OSQUERY_TOOL_SHELL`.
@@ -37,6 +46,7 @@ class Flag {
    * @return A mostly needless flag instance.
    */
   static Flag& get(const std::string& name = "",
+                   const std::string& type = "",
                    const std::string& value = "",
                    const std::string& desc = "",
                    bool shell_only = false);
@@ -45,11 +55,13 @@ class Flag {
    * @brief Wrapper by the Flag::get.
    *
    * @param name The 'name' or the options switch data.
+   * @parma type The lexical type of the flag.
    * @param value The default value for this flag.
    * @param desc The description printed to the screen during help.
    * @param shell_only Restrict this flag to the shell help output.
    */
   void add(const std::string& name,
+           const std::string& type,
            const std::string& value,
            const std::string& desc,
            bool shell_only);
@@ -69,7 +81,7 @@ class Flag {
    *
    * @param name the flag name.
    * @param value output parameter filled with the flag value on success.
-   * @return status of the flag existed.
+   * @return status of the flag did exist.
    */
   static Status getDefaultValue(const std::string& name, std::string& value);
 
@@ -89,6 +101,14 @@ class Flag {
    * @return if the value was updated.
    */
   static Status updateValue(const std::string& name, const std::string& value);
+
+  /*
+   * @brief Get the value of an osquery flag.
+   *
+   * @param name the flag name.
+   */
+  std::string getValue(const std::string& name);
+
   /*
    * @brief Print help-style output to stdout for a given flag set.
    *
@@ -115,7 +135,7 @@ class Flag {
 #define DEFINE_osquery_flag(type, name, value, desc) \
   DEFINE_##type(name, value, desc);                  \
   namespace flag_##name {                            \
-    Flag flag = Flag::get(#name, #value, desc);      \
+    Flag flag = Flag::get(#name, #type, #value, desc);      \
   }
 
 /*
@@ -130,5 +150,5 @@ class Flag {
 #define DEFINE_shell_flag(type, name, value, desc)    \
   DEFINE_##type(name, value, desc);                   \
   namespace flag_##name {                             \
-    Flag flag = Flag::get(#name, #value, desc, true); \
+    Flag flag = Flag::get(#name, #type, #value, desc, true); \
   }

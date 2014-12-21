@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <boost/numeric/ublas/matrix.hpp>
 
@@ -102,13 +110,13 @@ void FSEventsEventPublisher::tearDown() {
 void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
   paths_.clear();
-  for (auto& subscription : subscriptions_) {
+  for (const auto& subscription : subscriptions_) {
     auto fs_subscription = getSubscriptionContext(subscription->context);
     paths_.insert(fs_subscription->path);
   }
 
   // There were no paths in the subscriptions?
-  if (paths_.size() == 0) {
+  if (paths_.empty()) {
     return;
   }
 
@@ -154,8 +162,9 @@ void FSEventsEventPublisher::Callback(
   }
 }
 
-bool FSEventsEventPublisher::shouldFire(const FSEventsSubscriptionContextRef mc,
-                                        const FSEventsEventContextRef ec) {
+bool FSEventsEventPublisher::shouldFire(
+    const FSEventsSubscriptionContextRef& mc,
+    const FSEventsEventContextRef& ec) {
   ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
     return false;

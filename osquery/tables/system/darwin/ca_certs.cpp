@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <string>
 #include <iomanip>
@@ -12,20 +20,20 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <Security/Security.h>
 
-#include <glog/logging.h>
-
 #include <osquery/core.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include "osquery/core/conversions.h"
 
 namespace osquery {
 namespace tables {
 
-std::string genNumberProperty(const CFDataRef);
-std::string genKIDProperty(const CFDataRef);
-std::string genCommonNameProperty(const CFDataRef);
-std::string genAlgorithmProperty(const CFDataRef);
+std::string genKIDProperty(const CFDataRef&);
+std::string genCommonNameProperty(const CFDataRef&);
+std::string genAlgorithmProperty(const CFDataRef&);
 
-typedef std::string (*PropGenerator)(const CFDataRef);
+typedef std::string (*PropGenerator)(const CFDataRef&);
 typedef std::pair<CFTypeRef, PropGenerator> Property;
 
 const std::vector<std::string> kSystemKeychainPaths = {
@@ -39,13 +47,13 @@ const std::vector<std::string> kUserKeychainPaths = {
 const std::map<std::string, Property> kCertificateProperties = {
     {"common_name", std::make_pair(kSecOIDCommonName, genCommonNameProperty)},
     {"not_valid_before",
-     std::make_pair(kSecOIDX509V1ValidityNotBefore, genNumberProperty)},
+     std::make_pair(kSecOIDX509V1ValidityNotBefore, stringFromCFNumber)},
     {"not_valid_after",
-     std::make_pair(kSecOIDX509V1ValidityNotAfter, genNumberProperty)},
+     std::make_pair(kSecOIDX509V1ValidityNotAfter, stringFromCFNumber)},
     {"key_algorithm",
      std::make_pair(kSecOIDX509V1SubjectPublicKeyAlgorithm,
                     genAlgorithmProperty)},
-    {"key_usage", std::make_pair(kSecOIDKeyUsage, genNumberProperty)},
+    {"key_usage", std::make_pair(kSecOIDKeyUsage, stringFromCFNumber)},
     {"subject_key_id",
      std::make_pair(kSecOIDSubjectKeyIdentifier, genKIDProperty)},
     {"authority_key_id",
@@ -70,38 +78,7 @@ enum {
   kSecKeyUsageAll = 0x7FFFFFFF
 };
 
-std::string safeSecString(const CFStringRef cf_string) {
-  CFIndex length;
-  char *buffer;
-
-  // Access, then convert the CFString. CFStringGetCStringPtr is less-safe.
-  length = CFStringGetLength(cf_string);
-  buffer = (char *)malloc(length + 1);
-  if (!CFStringGetCString(
-          cf_string, buffer, length + 1, kCFStringEncodingASCII)) {
-    free(buffer);
-    return "";
-  }
-
-  // Cleanup allocations.
-  std::string result(buffer);
-  free(buffer);
-  return result;
-}
-
-std::string genNumberProperty(const CFDataRef number) {
-  unsigned int value;
-
-  if (CFGetTypeID(number) != CFNumberGetTypeID() ||
-      !CFNumberGetValue((CFNumberRef)number, kCFNumberIntType, &value)) {
-    return "0";
-  }
-
-  // Cast as a string.
-  return boost::lexical_cast<std::string>(value);
-}
-
-std::string genKIDProperty(const CFDataRef kid) {
+std::string genKIDProperty(const CFDataRef& kid) {
   CFDataRef kid_data = NULL;
   CFDictionaryRef kid_dict = NULL;
   const char *kid_value = 0;
@@ -139,7 +116,7 @@ std::string genKIDProperty(const CFDataRef kid) {
   return ascii_kid.str();
 }
 
-std::string genCommonNameProperty(const CFDataRef ca) {
+std::string genCommonNameProperty(const CFDataRef& ca) {
   CFDataRef ca_data = NULL;
   CFStringRef ca_string = NULL;
 
@@ -158,10 +135,10 @@ std::string genCommonNameProperty(const CFDataRef ca) {
   }
 
   // Access, then convert the CFString. CFStringGetCStringPtr is less-safe.
-  return safeSecString(ca_string);
+  return stringFromCFString(ca_string);
 }
 
-std::string genAlgorithmProperty(const CFDataRef alg) {
+std::string genAlgorithmProperty(const CFDataRef& alg) {
   std::string expected_label = "Algorithm";
   CFStringRef label, value;
   CFDictionaryRef alg_item;
@@ -172,8 +149,8 @@ std::string genAlgorithmProperty(const CFDataRef alg) {
     label = (CFStringRef)CFDictionaryGetValue(alg_item, kSecPropertyKeyLabel);
     value = (CFStringRef)CFDictionaryGetValue(alg_item, kSecPropertyKeyValue);
 
-    if (expected_label.compare(safeSecString(label)) == 0) {
-      return safeSecString(value);
+    if (expected_label.compare(stringFromCFString(label)) == 0) {
+      return stringFromCFString(value);
     }
   }
 
@@ -181,7 +158,7 @@ std::string genAlgorithmProperty(const CFDataRef alg) {
   return "";
 }
 
-std::string genSHA1ForCertificate(const SecCertificateRef ca) {
+std::string genSHA1ForCertificate(const SecCertificateRef& ca) {
   boost::uuids::detail::sha1 sha1;
   CFDataRef ca_data;
 
@@ -203,7 +180,7 @@ std::string genSHA1ForCertificate(const SecCertificateRef ca) {
   return hash_output.str();
 }
 
-CFNumberRef CFNumberCreateCopy(const CFNumberRef number) {
+CFNumberRef CFNumberCreateCopy(const CFNumberRef& number) {
   // Easy way to get allow releasing numbers existing in arrays/dicts.
   // This follows Apple's guidance for "Create" APIs, caller controls memory.
   CFNumberRef copy;
@@ -263,7 +240,7 @@ CFDataRef CreatePropertyFromCertificate(const SecCertificateRef &cert,
   return property;
 }
 
-bool CertificateIsCA(const SecCertificateRef cert) {
+bool CertificateIsCA(const SecCertificateRef& cert) {
   std::string expected_label = "Certificate Authority";
   std::string expected_value = "Yes";
   CFDataRef constraints;
@@ -291,8 +268,8 @@ bool CertificateIsCA(const SecCertificateRef cert) {
     label = (CFStringRef)CFDictionaryGetValue(constraint, kSecPropertyKeyLabel);
     value = (CFStringRef)CFDictionaryGetValue(constraint, kSecPropertyKeyValue);
 
-    if (expected_label.compare(safeSecString(label)) == 0 &&
-        expected_value.compare(safeSecString(value)) == 0) {
+    if (expected_label.compare(stringFromCFString(label)) == 0 &&
+        expected_value.compare(stringFromCFString(value)) == 0) {
       isCA = true;
       break;
     }

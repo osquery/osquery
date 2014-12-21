@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #pragma once
 
@@ -22,6 +30,7 @@ namespace core {
 // returned from createTestDB() to result in the dataset returned from
 // getTestDBExpectedResults()
 extern const std::string kTestQuery;
+extern const std::string kTestDataPath;
 
 // createTestDB instantiates a sqlite3 struct and populates it with some test
 // data

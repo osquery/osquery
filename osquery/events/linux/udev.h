@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #pragma once
 
@@ -61,10 +69,9 @@ typedef std::shared_ptr<UdevSubscriptionContext> UdevSubscriptionContextRef;
  * @brief A Linux `udev` EventPublisher.
  *
  */
-class UdevEventPublisher : public EventPublisher {
-  DECLARE_EVENTPUBLISHER(UdevEventPublisher,
-                         UdevSubscriptionContext,
-                         UdevEventContext);
+class UdevEventPublisher
+    : public EventPublisher<UdevSubscriptionContext, UdevEventContext> {
+  DECLARE_PUBLISHER("UdevEventPublisher");
 
  public:
   Status setUp();
@@ -73,17 +80,30 @@ class UdevEventPublisher : public EventPublisher {
 
   Status run();
 
-  UdevEventPublisher() : EventPublisher() { handle_ = nullptr; }
+  UdevEventPublisher() : EventPublisher() {
+    handle_ = nullptr;
+    monitor_ = nullptr;
+  }
 
   /**
    * @brief Return a string representation of a udev property.
    *
    * @param device the udev device pointer.
-   * @param property the udev property without the "ID_" prefix.
+   * @param property the udev property identifier string.
    * @return string representation of the property or empty if null.
    */
   static std::string getValue(struct udev_device* device,
                               const std::string& property);
+
+  /**
+   * @brief Return a string representation of a udev system attribute.
+   *
+   * @param device the udev device pointer.
+   * @param property the udev system attribute identifier string.
+   * @return string representation of the attribute or empty if null.
+   */
+  static std::string getAttr(struct udev_device* device,
+                             const std::string& attr);
 
  private:
   /// udev handle (socket descriptor contained within).
@@ -92,9 +112,9 @@ class UdevEventPublisher : public EventPublisher {
 
  private:
   /// Check subscription details.
-  bool shouldFire(const UdevSubscriptionContextRef mc,
-                  const UdevEventContextRef ec);
+  bool shouldFire(const UdevSubscriptionContextRef& mc,
+                  const UdevEventContextRef& ec);
   /// Helper function to create an EventContext using a udev_device pointer.
-  UdevEventContextRef createEventContext(struct udev_device* device);
+  UdevEventContextRef createEventContextFrom(struct udev_device* device);
 };
 }

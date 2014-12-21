@@ -1,11 +1,20 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <gtest/gtest.h>
 #include <glog/logging.h>
 
-#include "osquery/core/darwin/test_util.h"
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
+
+#include "osquery/core/test_util.h"
 
 namespace pt = boost::property_tree;
 
@@ -16,6 +25,15 @@ std::vector<std::string> getSystemApplications();
 std::string getNameFromInfoPlistPath(const std::string& path);
 std::string getPathFromInfoPlistPath(const std::string& path);
 Row parseInfoPlist(const std::string& path, const pt::ptree& tree);
+
+pt::ptree getInfoPlistTree() {
+  std::string content;
+  readFile(core::kTestDataPath + "test_info.plist", content);
+
+  pt::ptree tree;
+  parsePlistContent(content, tree);
+  return tree;
+}
 
 class AppsTests : public testing::Test {};
 
@@ -50,7 +68,7 @@ TEST_F(AppsTests, get_path_from_info_plist_path) {
 }
 
 TEST_F(AppsTests, test_parse_info_plist) {
-  auto tree = osquery::core::getInfoPlistTree();
+  auto tree = getInfoPlistTree();
   Row expected = {
       {"name", "Foobar.app"},
       {"path", "/Applications/Foobar.app"},

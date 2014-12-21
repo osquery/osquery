@@ -1,0 +1,11 @@
+table_name("etc_services")
+description("Line-parsed /etc/services.")
+schema([
+    Column("name", TEXT),
+    Column("port", INTEGER),
+    Column("protocol", TEXT),
+    Column("aliases", TEXT, "Optional space separated list of other names for a service"),
+    Column("comment", TEXT, "Optional comment for a service."),
+])
+implementation("etc_services@genEtcServices")
+

@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <stdio.h>
 
@@ -33,14 +41,6 @@ class FSEventsTests : public testing::Test {
     fclose(fd);
 
     temp_thread_ = boost::thread(EventFactory::run, "FSEventsEventPublisher");
-  }
-
-  void SubscriptionAction(uint32_t mask = 0, EventCallback ec = 0) {
-    auto mc = std::make_shared<FSEventsSubscriptionContext>();
-    mc->path = kRealTestPath;
-    mc->mask = mask;
-
-    EventFactory::addSubscription("FSEventsEventPublisher", mc, ec);
   }
 
   void WaitForStream(int max) {
@@ -171,22 +171,29 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   EventFactory::end(false);
 }
 
-class TestFSEventsEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTSUBSCRIBER(TestFSEventsEventSubscriber, FSEventsEventPublisher);
-  DECLARE_CALLBACK(SimpleCallback, FSEventsEventContext);
-  DECLARE_CALLBACK(Callback, FSEventsEventContext);
+class TestFSEventsEventSubscriber
+    : public EventSubscriber<FSEventsEventPublisher> {
+  DECLARE_SUBSCRIBER("TestFSEventsEventSubscriber");
 
  public:
   void init() { callback_count_ = 0; }
-  Status SimpleCallback(const FSEventsEventContextRef ec) {
+  Status SimpleCallback(const FSEventsEventContextRef& ec) {
     callback_count_ += 1;
     return Status(0, "OK");
   }
 
-  Status Callback(const FSEventsEventContextRef ec) {
-    Row r;
-    r["action"] = ec->action;
-    r["path"] = ec->path;
+  SCRef GetSubscription(uint32_t mask = 0) {
+    auto sc = createSubscriptionContext();
+    sc->path = kRealTestPath;
+    sc->mask = mask;
+    return sc;
+  }
+
+  Status Callback(const FSEventsEventContextRef& ec) {
+    // The following comments are an example Callback routine.
+    // Row r;
+    // r["action"] = ec->action;
+    // r["path"] = ec->path;
 
     // Normally would call Add here.
     actions_.push_back(ec->action);
@@ -194,10 +201,10 @@ class TestFSEventsEventSubscriber : public EventSubscriber {
     return Status(0, "OK");
   }
 
-  static void WaitForEvents(int max) {
+  void WaitForEvents(int max) {
     int delay = 0;
     while (delay < max * 1000) {
-      if (getInstance()->callback_count_ > 0) {
+      if (callback_count_ > 0) {
         return;
       }
       ::usleep(50);
@@ -213,18 +220,23 @@ class TestFSEventsEventSubscriber : public EventSubscriber {
 TEST_F(FSEventsTests, test_fsevents_fire_event) {
   // Assume event type is registered.
   StartEventLoop();
-  TestFSEventsEventSubscriber::getInstance()->init();
+
+  // Simulate registering an event subscriber.
+  auto sub = std::make_shared<TestFSEventsEventSubscriber>();
+  sub->init();
 
   // Create a subscriptioning context, note the added Event to the symbol
-  SubscriptionAction(0, TestFSEventsEventSubscriber::EventSimpleCallback);
+  auto sc = sub->GetSubscription(0);
+  sub->subscribe(&TestFSEventsEventSubscriber::SimpleCallback, sc);
+  // SubscriptionAction(0, TestFSEventsEventSubscriber::EventSimpleCallback);
 
   CreateEvents();
 
   // This time wait for the callback.
-  TestFSEventsEventSubscriber::WaitForEvents(kMaxEventLatency);
+  sub->WaitForEvents(kMaxEventLatency);
 
   // Make sure our expected event fired (aka subscription callback was called).
-  EXPECT_TRUE(TestFSEventsEventSubscriber::getInstance()->callback_count_ > 0);
+  EXPECT_TRUE(sub->callback_count_ > 0);
 
   // Cause the thread to tear down.
   EndEventLoop();
@@ -233,18 +245,22 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
 TEST_F(FSEventsTests, test_fsevents_event_action) {
   // Assume event type is registered.
   StartEventLoop();
-  TestFSEventsEventSubscriber::getInstance()->init();
 
-  SubscriptionAction(0, TestFSEventsEventSubscriber::EventCallback);
+  // Simulate registering an event subscriber.
+  auto sub = std::make_shared<TestFSEventsEventSubscriber>();
+  sub->init();
+
+  auto sc = sub->GetSubscription(0);
+  sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc);
+  // SubscriptionAction(0, TestFSEventsEventSubscriber::EventCallback);
 
   CreateEvents();
-  TestFSEventsEventSubscriber::WaitForEvents(kMaxEventLatency);
+  sub->WaitForEvents(kMaxEventLatency);
 
   // Make sure the fsevents action was expected.
-  const auto& event_module = TestFSEventsEventSubscriber::getInstance();
-  EXPECT_TRUE(event_module->actions_.size() > 0);
-  if (event_module->actions_.size() > 1) {
-    EXPECT_EQ(event_module->actions_[0], "UPDATED");
+  EXPECT_TRUE(sub->actions_.size() > 0);
+  if (sub->actions_.size() > 1) {
+    EXPECT_EQ(sub->actions_[0], "UPDATED");
   }
 
   // Cause the thread to tear down.

@@ -1,6 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
-
-#include <osquery/filesystem.h>
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <sstream>
 
@@ -11,34 +17,33 @@
 
 #import <Foundation/Foundation.h>
 
-using osquery::Status;
+#include <osquery/filesystem.h>
+
 namespace pt = boost::property_tree;
 
 namespace osquery {
 
 NSMutableArray* filterArray(id dataStructure);
+NSMutableDictionary* filterDictionary(id dataStructure);
 
 NSMutableDictionary* filterDictionary(id dataStructure) {
   @autoreleasepool {
     NSMutableDictionary* result = [NSMutableDictionary new];
     for (id key in [dataStructure allKeys]) {
-      id klass = [[dataStructure objectForKey:key] class];
-      NSString* className = NSStringFromClass(klass);
-      if ([className isEqualToString:@"__NSArrayI"] ||
-          [className isEqualToString:@"__NSArrayM"] ||
-          [className isEqualToString:@"__NSCFArray"]) {
+      id value = [dataStructure objectForKey:key];
+      if ([value isKindOfClass:[NSArray class]]) {
         [result setObject:filterArray([dataStructure objectForKey:key])
                    forKey:key];
-      } else if ([className isEqualToString:@"__NSCFDictionary"]) {
+      } else if ([value isKindOfClass:[NSDictionary class]]) {
         [result setObject:filterDictionary([dataStructure objectForKey:key])
                    forKey:key];
-      } else if ([className isEqualToString:@"__NSCFData"]) {
-        id data = [dataStructure objectForKey:key];
-        NSString* dataString =
-            [[NSString alloc] initWithBytes:[data bytes]
-                                     length:[data length]
-                                   encoding:NSASCIIStringEncoding];
+      } else if ([value isKindOfClass:[NSData class]]) {
+        NSString* dataString = [value base64EncodedStringWithOptions:0];
         [result setObject:dataString forKey:key];
+      } else if ([value isKindOfClass:[NSDate class]]) {
+        NSNumber* seconds =
+            [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
+        [result setObject:seconds forKey:key];
       } else {
         [result setObject:[dataStructure objectForKey:key] forKey:key];
       }
@@ -51,20 +56,17 @@ NSMutableArray* filterArray(id dataStructure) {
   @autoreleasepool {
     NSMutableArray* result = [NSMutableArray new];
     for (id value in dataStructure) {
-      NSString* className = NSStringFromClass([value class]);
-      if ([className isEqualToString:@"__NSCFDictionary"]) {
+      if ([value isKindOfClass:[NSDictionary class]]) {
         [result addObject:filterDictionary(value)];
-      } else if ([className isEqualToString:@"__NSArrayI"] ||
-                 [className isEqualToString:@"__NSArrayM"] ||
-                 [className isEqualToString:@"__NSCFArray"]) {
+      } else if ([value isKindOfClass:[NSArray class]]) {
         [result addObject:filterArray(value)];
-      } else if ([className isEqualToString:@"__NSCFData"]) {
-        id data = [dataStructure objectForKey:value];
-        NSString* dataString =
-            [[NSString alloc] initWithBytes:[data bytes]
-                                     length:[data length]
-                                   encoding:NSASCIIStringEncoding];
+      } else if ([value isKindOfClass:[NSData class]]) {
+        NSString* dataString = [value base64EncodedStringWithOptions:0];
         [result addObject:dataString];
+      } else if ([value isKindOfClass:[NSDate class]]) {
+        NSNumber* seconds =
+            [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
+        [result addObject:seconds];
       } else {
         [result addObject:value];
       }
@@ -73,8 +75,16 @@ NSMutableArray* filterArray(id dataStructure) {
   }
 }
 
-NSMutableDictionary* filterPlist(NSMutableDictionary* plist) {
-  return filterDictionary(plist);
+NSMutableDictionary* filterPlist(NSData* plist) {
+  @autoreleasepool {
+    if ([plist isKindOfClass:[NSDictionary class]]) {
+      return filterDictionary((NSMutableDictionary*)plist);
+    } else {
+      NSMutableDictionary* result = [NSMutableDictionary new];
+      [result setObject:filterArray((NSMutableArray*)plist) forKey:@"root"];
+      return result;
+    }
+  }
 }
 
 Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
@@ -91,15 +101,15 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
         [NSData dataWithBytes:fileContent.c_str() length:fileContent.size()];
 
     NSError* error = nil;
+    NSMutableDictionary* plist;
     NSPropertyListFormat plistFormat;
     id plistData = [NSPropertyListSerialization
         propertyListWithData:plistContent
                      options:NSPropertyListImmutable
                       format:&plistFormat
                        error:&error];
-    NSMutableDictionary* plist = (NSMutableDictionary*)plistData;
 
-    if (plist == nil) {
+    if (plistData == nil) {
       std::string errorMessage([[error localizedFailureReason] UTF8String]);
       LOG(ERROR) << errorMessage;
       statusCode = 1;
@@ -123,7 +133,7 @@ Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
     }
 
     try {
-      plist = filterPlist(plist);
+      plist = filterPlist(plistData);
     } catch (const std::exception& e) {
       LOG(ERROR)
           << "An exception occurred while filtering the plist: " << e.what();

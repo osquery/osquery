@@ -1,0 +1,10 @@
+table_name("osquery_flags")
+schema([
+    Column("name", TEXT),
+    Column("type", TEXT),
+    Column("description", TEXT),
+    Column("default_value", TEXT),
+    Column("value", TEXT),
+    Column("shell_only", INTEGER),
+])
+implementation("osquery@genOsqueryFlags")

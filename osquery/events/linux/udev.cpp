@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
@@ -59,7 +67,7 @@ Status UdevEventPublisher::run() {
     return Status(1, "udev monitor failed.");
   }
 
-  auto ec = createEventContext(device);
+  auto ec = createEventContextFrom(device);
   fire(ec);
 
   udev_device_unref(device);
@@ -70,15 +78,23 @@ Status UdevEventPublisher::run() {
 
 std::string UdevEventPublisher::getValue(struct udev_device* device,
                                          const std::string& property) {
-  auto value = udev_device_get_property_value(
-      device, std::string("ID_" + property).c_str());
+  auto value = udev_device_get_property_value(device, property.c_str());
   if (value != nullptr) {
     return std::string(value);
   }
   return "";
 }
 
-UdevEventContextRef UdevEventPublisher::createEventContext(
+std::string UdevEventPublisher::getAttr(struct udev_device* device,
+                                        const std::string& attr) {
+  auto value = udev_device_get_sysattr_value(device, attr.c_str());
+  if (value != nullptr) {
+    return std::string(value);
+  }
+  return "";
+}
+
+UdevEventContextRef UdevEventPublisher::createEventContextFrom(
     struct udev_device* device) {
   auto ec = createEventContext();
   ec->device = device;
@@ -117,8 +133,8 @@ UdevEventContextRef UdevEventPublisher::createEventContext(
   return ec;
 }
 
-bool UdevEventPublisher::shouldFire(const UdevSubscriptionContextRef sc,
-                                    const UdevEventContextRef ec) {
+bool UdevEventPublisher::shouldFire(const UdevSubscriptionContextRef& sc,
+                                    const UdevEventContextRef& ec) {
   if (sc->action != UDEV_EVENT_ACTION_ALL) {
     if (sc->action != ec->action) {
       return false;

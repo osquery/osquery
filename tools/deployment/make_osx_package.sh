@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+#  Copyright (c) 2014, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under the BSD-style license found in the
+#  LICENSE file in the root directory of this source tree. An additional grant 
+#  of patent rights can be found in the PATENTS file in the same directory.
+
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -10,8 +17,8 @@ export PATH="$PATH:/usr/local/bin"
 source $SCRIPT_DIR/../lib.sh
 
 APP_VERSION=`git describe --tags HEAD`
-APP_IDENTIFIER="com.facebook.osqueryd"
-OUTPUT_PKG_PATH="$SOURCE_DIR/osqueryd-$APP_VERSION.pkg"
+APP_IDENTIFIER="com.facebook.osquery"
+OUTPUT_PKG_PATH="$SOURCE_DIR/osquery-$APP_VERSION.pkg"
 LAUNCHD_PATH="$SCRIPT_DIR/$APP_IDENTIFIER.plist"
 LAUNCHD_PATH_OVERRIDE=""
 LAUNCHD_INSTALL_PATH="/Library/LaunchDaemons/$APP_IDENTIFIER.plist"
@@ -120,9 +127,6 @@ function main() {
     done
 
     log "calculating library dependencies"
-    libs=`otool -L "$BUILD_DIR/osquery/osqueryd" | sed 1d | awk '{print $1}' | grep "/usr/local"`
-
-    log "copying dependencies"
     for dep in ${dependency_list[*]}; do
       dep_dir=`brew info $dep | grep Cellar | grep '*' | awk '{print $1}'`
       brew unlink $dep 2>&1  1>/dev/null
@@ -135,9 +139,7 @@ function main() {
       cp "$BREW_PREFIX/Library/Formula/$dep.rb" "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula/$dep.rb"
       for link in $links; do
         # Skip if this link was not in the brew prefix.
-        if [[ ! $link = $BREW_PREFIX* ]]; then continue;
-        #elif [[ ! $libs =~ $link ]]; then continue;
-        fi
+        if [[ ! $link = $BREW_PREFIX* ]]; then continue; fi
         target="`dirname $link`/`ls -l $link | awk '{print $11}'`"
         echo "if [ ! -e `dirname $link` ]; then rm -f `dirname $link`; fi" >> $POSTINSTALL
         echo "mkdir -p `dirname $link`" >> $POSTINSTALL

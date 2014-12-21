@@ -1,5 +1,13 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
-
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+ 
 #include <vector>
 #include <string>
 
@@ -21,9 +29,9 @@ const std::vector<std::string> kDarwinPasswdPaths = {
  *
  * This is mostly an example EventSubscriber implementation.
  */
-class PasswdChangesEventSubscriber : public EventSubscriber {
-  DECLARE_EVENTSUBSCRIBER(PasswdChangesEventSubscriber, FSEventsEventPublisher);
-  DECLARE_CALLBACK(Callback, FSEventsEventContext);
+class PasswdChangesEventSubscriber
+    : public EventSubscriber<FSEventsEventPublisher> {
+  DECLARE_SUBSCRIBER("PasswdChangesEventSubscriber");
 
  public:
   void init();
@@ -36,7 +44,7 @@ class PasswdChangesEventSubscriber : public EventSubscriber {
    *
    * @return Was the callback successful.
    */
-  Status Callback(const FSEventsEventContextRef ec);
+  Status Callback(const FSEventsEventContextRef& ec);
 };
 
 /**
@@ -50,14 +58,14 @@ REGISTER_EVENTSUBSCRIBER(PasswdChangesEventSubscriber);
 
 void PasswdChangesEventSubscriber::init() {
   for (const auto& path : kDarwinPasswdPaths) {
-    auto mc = FSEventsEventPublisher::createSubscriptionContext();
+    auto mc = createSubscriptionContext();
     mc->path = path;
-    BIND_CALLBACK(Callback, mc);
+    subscribe(&PasswdChangesEventSubscriber::Callback, mc);
   }
 }
 
 Status PasswdChangesEventSubscriber::Callback(
-    const FSEventsEventContextRef ec) {
+    const FSEventsEventContextRef& ec) {
   Row r;
   r["action"] = ec->action;
   r["time"] = ec->time_string;

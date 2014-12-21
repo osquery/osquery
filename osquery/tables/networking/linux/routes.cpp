@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <string>
 #include <iomanip>
@@ -22,6 +30,7 @@ namespace osquery {
 namespace tables {
 
 #define MAX_NETLINK_SIZE 8192
+#define MAX_NETLINK_LATENCY 2000
 
 std::string getNetlinkIP(int family, const char* buffer) {
   char dst[INET6_ADDRSTRLEN];
@@ -39,13 +48,17 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
 
   size_t message_size = 0;
   do {
+    int latency = 0;
     int bytes = 0;
     while (bytes == 0) {
       bytes = recv(socket_fd, output, MAX_NETLINK_SIZE - message_size, 0);
       if (bytes < 0) {
         return Status(1, "Could not read from NETLINK.");
+      } else if (latency >= MAX_NETLINK_LATENCY) {
+        return Status(1, "Netlink timeout.");
       } else if (bytes == 0) {
         ::usleep(20);
+        latency += 20;
       }
     }
 

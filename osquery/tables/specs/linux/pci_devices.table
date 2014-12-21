@@ -1,8 +1,0 @@
-table_name("pci_devices")
-schema([
-    Column("slot", TEXT),
-    Column("device_class", TEXT),
-    Column("vendor", TEXT),
-    Column("model", TEXT),
-])
-implementation("pci_devices@genPCIDevices")

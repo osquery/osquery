@@ -1,10 +1,13 @@
 if(APPLE)
-  set (OS_CORE_SOURCE darwin/test_util.cpp darwin/test_util.h)
+  set (OS_CORE_SOURCE
+    darwin/conversions.cpp
+  )
 else()
   set (OS_CORE_SOURCE "")
 endif()
 
 ADD_OSQUERY_LIBRARY(osquery_core
+  conversions.cpp
   init_osquery.cpp
   sql.cpp
   sqlite_util.cpp

@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -23,7 +31,7 @@ void SCNetworkEventPublisher::tearDown() {
   contexts_.clear();
 }
 
-void SCNetworkEventPublisher::Callback(SCNetworkReachabilityRef target,
+void SCNetworkEventPublisher::Callback(const SCNetworkReachabilityRef target,
                                        SCNetworkReachabilityFlags flags,
                                        void* info) {
   auto ec = createEventContext();
@@ -32,15 +40,15 @@ void SCNetworkEventPublisher::Callback(SCNetworkReachabilityRef target,
 }
 
 bool SCNetworkEventPublisher::shouldFire(
-    const SCNetworkSubscriptionContextRef sc,
-    const SCNetworkEventContextRef ec) {
+    const SCNetworkSubscriptionContextRef& sc,
+    const SCNetworkEventContextRef& ec) {
   // Only fire the event for the subscription context it matched.
   return (sc == ec->subscription);
 }
 
 void SCNetworkEventPublisher::addTarget(
-    const SCNetworkSubscriptionContextRef sc,
-    const SCNetworkReachabilityRef target) {
+    const SCNetworkSubscriptionContextRef& sc,
+    const SCNetworkReachabilityRef& target) {
   targets_.push_back(target);
 
   // Assign a context (the subscription context) to the target.
@@ -55,14 +63,14 @@ void SCNetworkEventPublisher::addTarget(
 }
 
 void SCNetworkEventPublisher::addHostname(
-    const SCNetworkSubscriptionContextRef sc) {
+    const SCNetworkSubscriptionContextRef& sc) {
   auto target = SCNetworkReachabilityCreateWithName(NULL, sc->target.c_str());
   target_names_.push_back(sc->target);
   addTarget(sc, target);
 }
 
 void SCNetworkEventPublisher::addAddress(
-    const SCNetworkSubscriptionContextRef sc) {
+    const SCNetworkSubscriptionContextRef& sc) {
   struct sockaddr* addr;
   if (sc->family == AF_INET) {
     struct sockaddr_in ipv4_addr;
