@@ -23,7 +23,7 @@ unsigned char *kernel_text_hash(void) {
  * @param data - Beginning memory address to perform hash
  * @param len - size in bytes of the address range to hash
  *
- * @return allocated buffer containing the hash string.
+ * @return allocated buffer containing the hash string; or NULL upon error.
  */
 unsigned char *hash_data(const void *data, size_t len) {
   struct scatterlist sg;
@@ -72,7 +72,7 @@ unsigned char *hash_data(const void *data, size_t len) {
  * @param attr - attribute of said kernel object
  * @param buf - buffer that will be allocated and filled with the hash
  *
- * @return size in bytes of the hash string.
+ * @return size in bytes of the hash string; or -1 upon error.
  */
 ssize_t text_segment_hash_show(struct kobject *obj,
                                struct attribute *attr,
