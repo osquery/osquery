@@ -33,6 +33,16 @@ namespace osquery {
 // respective value
 /////////////////////////////////////////////////////////////////////////////
 
+void escapeQueryData(const QueryData &oldData, QueryData &newData) {
+  for (const auto& r : oldData) {
+    Row newRow;
+    for (auto& i : r) {
+      newRow[i.first] = pt::json_parser::create_escapes(i.second);
+    }
+    newData.push_back(newRow);
+  }
+}
+
 Status serializeRow(const Row& r, pt::ptree& tree) {
   try {
     for (auto& i : r) {
