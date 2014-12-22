@@ -16,7 +16,7 @@ else()
     set(OS_WHOLELINK_POST "")
   else()
     set(LINUX TRUE)
-    set(OS_COMPILE_FLAGS "-std=c++11")
+    set(OS_COMPILE_FLAGS "-std=c++11 -DTHREADED")
     set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
     set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
   endif()
@@ -93,7 +93,9 @@ endif()
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/include")
 INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}")
 INCLUDE_DIRECTORIES("/usr/local/include")
+INCLUDE_DIRECTORIES("/usr/include")
 LINK_DIRECTORIES("/usr/local/lib")
+LINK_DIRECTORIES("/usr/lib")
 
 ENABLE_TESTING()
 
@@ -125,4 +127,3 @@ ADD_CUSTOM_TARGET(
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
-

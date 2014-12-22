@@ -35,6 +35,9 @@ SET(OSQUERY_LINUX_LIBS
   libboost_regex.a
   unwind
   udev
+  zookeeper_mt
+  librdkafka++.so
+  librdkafka.so
   blkid
   rt
   dl

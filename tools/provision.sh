@@ -142,6 +142,26 @@ function install_gflags() {
   fi
 }
 
+function install_librdkafka() {
+    if [[ ! -d /usr/local/include/librdkafka ]]; then
+        if [[ ! -f 0.8.5.tar.gz ]]; then
+            wget https://github.com/edenhill/librdkafka/archive/0.8.5.tar.gz
+        else
+            log "librdkafka is already downloaded. skipping."
+        fi
+        if [[ ! -d librdkafka-0.8.5 ]]; then
+            tar xf 0.8.5.tar.gz
+        fi
+        pushd librdkafka-0.8.5
+        ./configure --CPPFLAGS=-fPIC
+        make
+        sudo make install
+        popd
+    else
+        log "librdkafka is already installed. skipping."
+    fi
+}
+
 function install_glog() {
   if [[ ! -d /usr/local/include/glog ]]; then
     if [[ ! -f glog-0.3.3.tar.gz ]]; then
@@ -347,6 +367,7 @@ function main() {
     package clang-format-3.4
     package librpm-dev
     package libudev-dev
+    package libzookeeper-mt-dev
     package libblkid-dev
     package linux-headers-generic
 
@@ -385,6 +406,7 @@ function main() {
     fi
     install_thrift
     install_rocksdb
+    install_librdkafka
 
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
