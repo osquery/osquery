@@ -93,11 +93,11 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   networking/etc_hosts.cpp
   networking/etc_services.cpp
   utility/time.cpp
-  utility/crontab.cpp
   utility/hash.cpp
   utility/file.cpp
   utility/osquery.cpp
   system/cpuid.cpp
+  system/crontab.cpp
   system/last.cpp
   system/shell_history.cpp
   system/suid_bin.cpp
