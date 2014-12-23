@@ -19,6 +19,9 @@ namespace osquery {
 
 class PcapTests : public testing::Test {
  protected:
+  void SetUp() {
+    Flag::get().updateValue("event_pubsub_network", "1");
+  }
   void TearDown() { EventFactory::deregisterEventPublishers(); }
 };
 
