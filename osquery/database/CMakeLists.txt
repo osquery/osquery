@@ -1,4 +1,4 @@
-ADD_OSQUERY_LIBRARY(osquery_database
+ADD_OSQUERY_CORE_LIBRARY(osquery_database
   db_handle.cpp
   query.cpp
   results.cpp

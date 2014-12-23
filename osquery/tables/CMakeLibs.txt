@@ -1,0 +1,75 @@
+# -*- mode: cmake; -*-
+# - osquery table plugin generation
+#
+# Generate table plugin code from .table syntax.
+# Compile and link the core set of osquery tables/streams.
+
+# Find and generate table plugins from .table syntax
+function(GENERATE_TABLES TABLES_PATH BASE_PATH OUTPUT)
+  file(GLOB TABLE_FILES "${TABLES_PATH}/specs/x/*.table")
+  if(APPLE)
+    file(GLOB TABLE_FILES_DARWIN "${TABLES_PATH}/specs/darwin/*.table")
+    list(APPEND TABLE_FILES ${TABLE_FILES_DARWIN})
+  elseif(FREEBSD)
+    file(GLOB TABLE_FILES_FREEBSD "${TABLES_PATH}/specs/freebsd/*.table")
+    list(APPEND TABLE_FILES ${TABLE_FILES_FREEBSD})
+  else()
+    file(GLOB TABLE_FILES_LINUX "${TABLES_PATH}/specs/linux/*.table")
+    list(APPEND TABLE_FILES ${TABLE_FILES_LINUX})
+  endif()
+
+  SET(OSQUERY_CODEGEN_PATH "${BASE_PATH}/tools/codegen")
+  SET(OSQUERY_TABLES_PATH "${BASE_PATH}/osquery/tables")
+  SET(OSQUERY_GENERATED_PATH "${CMAKE_BINARY_DIR}/generated")
+  set_directory_properties(PROPERTY
+    ADDITIONAL_MAKE_CLEAN_FILES "${OSQUERY_GENERATED_PATH}")
+
+  # Depend on the generation code.
+  file(GLOB TABLE_FILES_TEMPLATES "${BASE_PATH}/osquery/tables/templates/*.in")
+  set(GENERATION_DEPENDENCIES
+    "${OSQUERY_CODEGEN_PATH}/gentable.py"
+    "${OSQUERY_CODEGEN_PATH}/amalgamate.py"
+    "${OSQUERY_TABLES_PATH}/specs/blacklist"
+  )
+  list(APPEND GENERATION_DEPENDENCIES ${TABLE_FILES_TEMPLATES})
+
+  foreach(TABLE_FILE ${TABLE_FILES})
+    SET(TABLE_FILE_GEN ${TABLE_FILE})
+    STRING(REPLACE "linux/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+    STRING(REPLACE "darwin/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+    STRING(REPLACE "freebsd/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+    STRING(REPLACE "x/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+    STRING(REPLACE
+      "${OSQUERY_TABLES_PATH}/specs"
+      "${OSQUERY_GENERATED_PATH}/tables"
+      TABLE_FILE_GEN
+      ${TABLE_FILE_GEN}
+    )
+
+    STRING(REPLACE ".table" ".cpp" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+    ADD_CUSTOM_COMMAND(
+      OUTPUT ${TABLE_FILE_GEN}
+      COMMAND python "${OSQUERY_CODEGEN_PATH}/gentable.py" "${TABLE_FILE}" "${TABLE_FILE_GEN}" "$ENV{DISABLE_BLACKLIST}"
+      DEPENDS ${TABLE_FILE} ${GENERATION_DEPENDENCIES}
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+    list(APPEND GENERATED_TABLES ${TABLE_FILE_GEN})
+  endforeach()
+
+  # Append all of the code to a single amalgamation.
+  SET(AMALGAMATION_FILE_GEN "${OSQUERY_GENERATED_PATH}/amalgamation.cpp")
+  ADD_CUSTOM_COMMAND(
+    OUTPUT ${AMALGAMATION_FILE_GEN}
+    COMMAND python "${OSQUERY_CODEGEN_PATH}/amalgamate.py" "${OSQUERY_TABLES_PATH}" "${OSQUERY_GENERATED_PATH}"
+    DEPENDS ${GENERATED_TABLES}
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  )
+
+  ADD_LIBRARY(osquery_generated_tables OBJECT
+    "${AMALGAMATION_FILE_GEN}"
+  )
+
+  SET_OSQUERY_COMPILE(osquery_generated_tables)
+
+  SET(${OUTPUT} $<TARGET_OBJECTS:osquery_generated_tables> PARENT_SCOPE)
+endfunction()

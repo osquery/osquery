@@ -1,4 +1,4 @@
-ADD_OSQUERY_LIBRARY(osquery_config
+ADD_OSQUERY_CORE_LIBRARY(osquery_config
   config.cpp
   plugins/filesystem.cpp
   plugins/glog.cpp
