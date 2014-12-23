@@ -1,5 +1,10 @@
 table_name("dns_queries")
 schema([
-    Column("flags", TEXT),
+	Column("transaction_id", INTEGER),
+    Column("flags", INTEGER),
+    Column("query", TEXT),
+    Column("type", TEXT),
+    Column("class", TEXT),
+    Column("time", INTEGER),
 ])
-implementation("utility/file@genFile")
+implementation("dns_queries@DnsQueriesEventSubscriber::genTable")

@@ -8,11 +8,7 @@
  *
  */
 
-#include <sstream>
-
 #include <boost/algorithm/string/join.hpp>
-
-#include <glog/logging.h>
 
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
@@ -21,10 +17,15 @@
 
 namespace osquery {
 
+DEFINE_osquery_flag(bool,
+                    event_pubsub_network,
+                    false,
+                    "Enable network event publishers.");
+
 REGISTER_EVENTPUBLISHER(PcapEventPublisher);
 
 size_t kPcapPublisherDefaultLength = 100;
-size_t kPcapPublisherTimeout = 60 * 1000;
+size_t kPcapPublisherTimeout = 100; // 60 * 1000;
 
 PcapSubscriptionContext::PcapSubscriptionContext() {
   promiscuous = false;
@@ -33,11 +34,15 @@ PcapSubscriptionContext::PcapSubscriptionContext() {
 
 Status PcapEventPublisher::setUp() {
   // No need to setup anything, run will restart every time.
+  if (!FLAGS_event_pubsub_network) {
+    return Status(1, "Network event publishers are disabled.");
+  }
   return Status(0, "OK");
 }
 
 void PcapEventPublisher::tearDown() {
   if (handle_ != nullptr) {
+    pcap_breakloop(handle_);
     pcap_close(handle_);
     handle_ = nullptr;
   }
@@ -85,28 +90,83 @@ void PcapEventPublisher::configure() {
 
 void PcapEventPublisher::callback(u_char *args, const struct pcap_pkthdr *header,
     const u_char *packet) {
-  const struct pcap::ethernet *ethernet;
-  const struct pcap::ip *ip;
-  const struct pcap::tcp *tcp;
-  const char *payload;
+  auto ec = createEventContext();
+  ec->ethernet = (pcap::ethernet *)packet;
+  if (header->len < PCAP_ETHER_HDR_LEN) {
+    // Invalid ethernet header.
+    return;
+  }
 
   u_int size_ip;
-  u_int size_tcp;
+  u_char transport_protocol;
+  ec->network_protocol = ntohs(ec->ethernet->ether_type);
+  if (ec->network_protocol == PCAP_ETHER_TYPE_IP) {
+    if (header->len < PCAP_IP_MIN_HDR_LEN + PCAP_ETHER_HDR_LEN) {
+      // Not enough bytes for an IP header.
+      return;
+    }
 
-  ethernet = (struct sniff_ethernet*)(packet);
-  ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
-  size_ip = IP_HL(ip)*4;
-  if (size_ip < 20) {
-    printf("   * Invalid IP header length: %u bytes\n", size_ip);
+    ec->ip = (pcap::ip *)(packet + PCAP_ETHER_HDR_LEN);
+    size_ip = PCAP_IP_HL(ec->ip->ip_vhl) * 4;
+    if (size_ip < PCAP_IP_MIN_HDR_LEN) {
+      // Invalid IP header size.
+      return;
+    }
+
+    ec->transport_protocol = ec->ip->ip_protocol;
+    ec->payload_length = ntohs(ec->ip->ip_len) - size_ip;
+  } else if (ec->network_protocol == PCAP_ETHER_TYPE_IP6) {
+    if (header->len < PCAP_IP6_HDR_LEN + PCAP_ETHER_HDR_LEN) {
+      // Not enough bytes for an IPv6 header.
+      return;
+    }
+
+    ec->ip6 = (pcap::ip6 *)(packet + PCAP_ETHER_HDR_LEN);
+    size_ip = PCAP_IP6_HDR_LEN;
+    ec->transport_protocol = ec->ip6->ip_protocol;
+    ec->payload_length = ntohs(ec->ip6->ip_len) - size_ip;
+  } else {
+    // Only support IP/IPv6 network types.
     return;
   }
-  tcp = (struct sniff_tcp*)(packet + SIZE_ETHERNET + size_ip);
-  size_tcp = TH_OFF(tcp)*4;
-  if (size_tcp < 20) {
-    printf("   * Invalid TCP header length: %u bytes\n", size_tcp);
+
+  ec->transport = (pcap::transport *)(packet + PCAP_ETHER_HDR_LEN + size_ip);
+  ec->payload = (u_char *)ec->transport;
+  if (ec->transport_protocol == PCAP_IP_PROTOCOL_TCP) {
+    if (ec->payload_length < PCAP_TCP_MIN_HDR_LEN) {
+      // Not enough bytes for a TCP header.
+      return;
+    }
+
+    u_int size_tcp = PCAP_TH_OFF(&(ec->transport->tcp)) * 4;
+    if (size_tcp < PCAP_TCP_MIN_HDR_LEN) {
+      // Invalid TCP header size.
+      return;
+    }
+    ec->payload = (u_char *)(packet + PCAP_ETHER_HDR_LEN + size_ip + size_tcp);
+    ec->payload_length = ec->payload_length - size_tcp;
+  } else if (ec->transport_protocol == PCAP_IP_PROTOCOL_UDP) {
+    if (ec->payload_length < PCAP_TCP_MIN_HDR_LEN) {
+      // Not enough bytes for a UDP header.
+      return;
+    }
+    ec->payload =
+        (u_char *)(packet + PCAP_ETHER_HDR_LEN + size_ip + PCAP_UDP_HDR_LEN);
+    ec->payload_length = ec->payload_length - PCAP_UDP_HDR_LEN;
+  } else {
+    // Unsupported transport protocol.
     return;
   }
-  payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
+
+  if (header->len > header->caplen) {
+    // The capture didn't catch all bytes.
+    ec->payload_length = ec->payload_length - (header->len - header->caplen);
+  }
+
+  // Must have the raw packet data in the event context.
+  ec->header = header;
+  ec->packet = packet;
+  EventFactory::fire<PcapEventPublisher>(ec);
 }
 
 Status PcapEventPublisher::run() {
@@ -122,7 +182,6 @@ Status PcapEventPublisher::run() {
       return Status(1, "Could not look up a requested 'default' interface.");
     } else {
       interface = std::string(device);
-      free(device);
     }
   } else {
     interface = aggregate_interface_;
@@ -153,8 +212,11 @@ Status PcapEventPublisher::run() {
   }
 
   // Start the packet loop, this will restart after the set timeout.
-  if (pcap_loop(handle_, 10, &PcapEventPublisher::callback, nullptr) == -1) {
-    return Status(1, "Error looping on packet capture.");
+  while (true) {
+    int status = pcap_loop(handle_, 0, &PcapEventPublisher::callback, nullptr);
+    if (status == -1) {
+      return Status(1, "Error looping on packet capture.");
+    }
   }
 
   return Status(0, "Continue");

@@ -70,6 +70,8 @@ struct EventContext {
   EventTime time;
   /// The string representation of the time, often used for indexing.
   std::string time_string;
+
+  EventContext() : time(0) {}
 };
 
 typedef std::shared_ptr<Subscription> SubscriptionRef;

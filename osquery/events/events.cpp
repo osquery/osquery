@@ -47,19 +47,21 @@ void EventPublisherCore::fire(const EventContextRef& ec, EventTime time) {
   }
 
   // Fill in EventContext ID and time if needed.
-  if (ec != nullptr) {
-    ec->id = ec_id;
-    if (ec->time == 0) {
-      if (time == 0) {
-        time = getUnixTime();
-      }
-      // Todo: add a check to assure normalized (seconds) time.
+  if (ec == nullptr) {
+    return;
+  }
+
+  ec->id = ec_id;
+  if (ec->time == 0) {
+    if (time == 0) {
+      ec->time = getUnixTime();
+    } else {
       ec->time = time;
     }
-
-    // Set the optional string-verion of the time for DB columns.
-    ec->time_string = boost::lexical_cast<std::string>(ec->time);
   }
+
+  // Set the optional string-verion of the time for DB columns.
+  ec->time_string = boost::lexical_cast<std::string>(ec->time);
 
   for (const auto& subscription : subscriptions_) {
     fireCallback(subscription, ec);
