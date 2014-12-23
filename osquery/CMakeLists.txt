@@ -33,28 +33,24 @@ SET(OSQUERY_LINUX_LIBS
   libboost_filesystem.a
   libboost_program_options.a
   libboost_regex.a
-  unwind
-  udev
-  blkid
-  rt
-  dl
+
+  bz2
   crypto
+  dl
+  rt
   ssl
+  unwind
+  z
 )
 
 SET(OSQUERY_UBUNTU_LIBS
-  libz.a
-  libbz2.a
   libsnappy.a
   liblzma.a
 )
 
 SET(OSQUERY_CENTOS_LIBS
-  libz.so
-  libbz2.so
   libsnappy.so
   liblzma.so
-  libproc.so
 )
 
 SET(OSQUERY_FREEBSD_LIBS
@@ -67,22 +63,23 @@ SET(OSQUERY_FREEBSD_LIBS
   boost_filesystem
   boost_program_options
   boost_regex
-  rt
-  z
+
   bz2
-  snappy
-  unwind
-  lzma
   crypto
+  lzma
+  rt
+  snappy
   ssl
+  unwind
+  z
 )
 
 # Check for the explicit path to determine the version of procps
 if(EXISTS "/usr/lib/libprocps.a"
     OR EXISTS "/usr/lib/x86_64-linux-gnu/libprocps.a")
-  list(APPEND OSQUERY_UBUNTU_LIBS "libprocps.a")
+  set(PROCPS True)
 else()
-  list(APPEND OSQUERY_UBUNTU_LIBS "libproc.a")
+  set(PROCPS False)
 endif()
 
 # Fill this in with objects for libosquery

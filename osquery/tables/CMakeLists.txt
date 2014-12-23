@@ -68,9 +68,19 @@ else()
     system/linux/rpm_packages.cpp
   )
 
+  # Add version of libproc
+  if(UBUNTU AND PROCPS)
+    ADD_OSQUERY_LINK("libprocps.a")
+  elseif(UBUNTU)
+    ADD_OSQUERY_LINK("libproc.a")
+  elseif(CENTOS)
+    ADD_OSQUERY_LINK("proc")
+  endif()
+
+  ADD_OSQUERY_LINK("blkid")
+  ADD_OSQUERY_LINK("udev")
   ADD_OSQUERY_LINK("rpm")
   ADD_OSQUERY_LINK("rpmio")
-
 endif()
 
 FILE(GLOB table_sources
