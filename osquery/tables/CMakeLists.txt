@@ -83,25 +83,23 @@ else()
   ADD_OSQUERY_LINK("rpmio")
 endif()
 
-FILE(GLOB table_sources
-  "generated/*.cpp"
-  "manual/*.cpp"
-)
-
 ADD_OSQUERY_LIBRARY(osquery_tables
   networking/utils.cpp
   networking/etc_hosts.cpp
   networking/etc_services.cpp
-  utility/time.cpp
-  utility/hash.cpp
-  utility/file.cpp
-  utility/osquery.cpp
   system/cpuid.cpp
   system/crontab.cpp
   system/last.cpp
   system/shell_history.cpp
   system/suid_bin.cpp
   system/logged_in_users.cpp
+)
+
+ADD_OSQUERY_CORE_LIBRARY(osquery_utility_tables
+  utility/time.cpp
+  utility/hash.cpp
+  utility/file.cpp
+  utility/osquery.cpp
 )
 
 ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp)

@@ -262,7 +262,6 @@ def main(argc, argv):
     if argc < 3:
         usage()
         sys.exit(1)
-
     filename = argv[1]
     output = argv[2]
 

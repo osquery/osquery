@@ -13,6 +13,8 @@ elseif(FREEBSD)
   ADD_OSQUERY_CORE_LIBRARY(osquery_events_freebsd
   )
 else()
+  ADD_OSQUERY_CORE_LINK("udev")
+
   ADD_OSQUERY_CORE_LIBRARY(osquery_events_linux
     linux/inotify.cpp
     linux/udev.cpp

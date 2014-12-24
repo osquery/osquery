@@ -24,7 +24,7 @@ END_LINE = "/// END[GENTABLE]"
 
 def usage(progname):
     """ print program usage """
-    print("Usage: %s /path/to/generated/tables output.cpp " % progname)
+    print("Usage: %s /path/to/tables /path/to/generated" % progname)
     return 1
 
 
@@ -48,11 +48,11 @@ def genTableData(filename):
 def main(argc, argv):
     if argc < 3:
         return usage(argv[0])
-
     specs = argv[1]
     directory = argv[2]
 
     tables = []
+    # Discover the output template, usually a black cpp file with includes.
     template = os.path.join(specs, "templates", "%s.in" % OUTPUT_NAME)
     with open(template, "rU") as fh:
         template_data = fh.read()
@@ -68,6 +68,11 @@ def main(argc, argv):
     amalgamation = jinja2.Template(template_data).render(
         tables=tables)
     output = os.path.join(directory, OUTPUT_NAME)
+    try:
+        os.makedirs(os.path.dirname(output))
+    except:
+        # Generated folder already exists
+        pass
     with open(output, "w") as fh:
         fh.write(amalgamation)
     return 0
