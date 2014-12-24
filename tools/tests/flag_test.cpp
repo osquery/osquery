@@ -8,28 +8,27 @@
  *
  */
 
-
 #include <map>
 #include <string>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-DEFINE_string(config_retriever, "", "config_retriever");
-DEFINE_string(config_path, "", "config_path");
-DEFINE_string(log_receiver, "", "log_receiver");
-DEFINE_string(log_path, "", "log_path");
+namespace osquery {
 
-int main(int argc, char* argv[]) {
-  google::ParseCommandLineFlags(&argc, &argv, true);
-  google::InitGoogleLogging(argv[0]);
+DECLARE_string(config_retriever);
+DECLARE_string(config_path);
+DECLARE_string(log_receiver);
+DECLARE_string(osquery_log_dir);
+
+int checkFlags() {
   FLAGS_logtostderr = 1;
 
   std::map<std::string, std::string> string_flags = {
       {"config_retriever", FLAGS_config_retriever},
       {"config_path", FLAGS_config_path},
       {"log_receiver", FLAGS_log_receiver},
-      {"log_path", FLAGS_log_path},
+      {"osquery_log_dir", FLAGS_osquery_log_dir},
   };
 
   int ok = 0;
@@ -43,4 +42,12 @@ int main(int argc, char* argv[]) {
   }
 
   return ok;
+}
+}
+
+int main(int argc, char* argv[]) {
+  google::ParseCommandLineFlags(&argc, &argv, true);
+  google::InitGoogleLogging(argv[0]);
+
+  return osquery::checkFlags();
 }
