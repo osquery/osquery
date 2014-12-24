@@ -70,7 +70,7 @@ macro(GENERATE_TABLE TABLE_FILE BASE_PATH OUTPUT)
   list(APPEND ${OUTPUT} "${TABLE_FILE_GEN}")
 endmacro()
 
-macro(AMALGAMATE BASE_PATH OUTPUT)
+macro(AMALGAMATE BASE_PATH NAME OUTPUT)
   GET_GENERATION_DEPS(${BASE_PATH})
   get_property(TARGETS GLOBAL PROPERTY AMALGAMATE_TARGETS)
 
@@ -81,12 +81,13 @@ macro(AMALGAMATE BASE_PATH OUTPUT)
 
   # Append all of the code to a single amalgamation.
   add_custom_command(
-    OUTPUT "${CMAKE_BINARY_DIR}/generated/amalgamation.cpp"
+    OUTPUT "${CMAKE_BINARY_DIR}/generated/${NAME}.cpp"
     COMMAND python "${BASE_PATH}/tools/codegen/amalgamate.py"
-      "${BASE_PATH}/osquery/tables/" "${CMAKE_BINARY_DIR}/generated"
+      "${BASE_PATH}/osquery/tables/" "${CMAKE_BINARY_DIR}/generated" "${NAME}"
     DEPENDS ${GENERATED_TARGETS} ${GENERATION_DEPENDENCIES}
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   )
 
-  set(${OUTPUT} "${CMAKE_BINARY_DIR}/generated/amalgamation.cpp")
+  set(${OUTPUT} "${CMAKE_BINARY_DIR}/generated/${NAME}.cpp")
+  set_property(GLOBAL PROPERTY AMALGAMATE_TARGETS "")
 endmacro()

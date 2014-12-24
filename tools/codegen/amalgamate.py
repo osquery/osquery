@@ -17,14 +17,14 @@ import os
 import sys
 
 
-OUTPUT_NAME = "amalgamation.cpp"
+TEMPLATE_NAME = "amalgamation.cpp.in"
 BEGIN_LINE = "/// BEGIN[GENTABLE]"
 END_LINE = "/// END[GENTABLE]"
 
 
 def usage(progname):
     """ print program usage """
-    print("Usage: %s /path/to/tables /path/to/generated" % progname)
+    print("Usage: %s /path/to/tables /path/to/generated output.cpp" % progname)
     return 1
 
 
@@ -46,20 +46,21 @@ def genTableData(filename):
 
 
 def main(argc, argv):
-    if argc < 3:
+    if argc < 4:
         return usage(argv[0])
     specs = argv[1]
     directory = argv[2]
+    name = argv[3]
 
     tables = []
     # Discover the output template, usually a black cpp file with includes.
-    template = os.path.join(specs, "templates", "%s.in" % OUTPUT_NAME)
+    template = os.path.join(specs, "templates", TEMPLATE_NAME)
     with open(template, "rU") as fh:
         template_data = fh.read()
 
-    for base, dirnames, filenames in os.walk(directory):
+    for base, _, filenames in os.walk(os.path.join(directory, "tables")):
         for filename in filenames:
-            if filename == OUTPUT_NAME:
+            if filename == name:
                 continue
             table_data = genTableData(os.path.join(base, filename))
             if table_data is not None:
@@ -67,7 +68,7 @@ def main(argc, argv):
 
     amalgamation = jinja2.Template(template_data).render(
         tables=tables)
-    output = os.path.join(directory, OUTPUT_NAME)
+    output = os.path.join(directory, "%s.cpp" % name)
     try:
         os.makedirs(os.path.dirname(output))
     except:
