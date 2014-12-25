@@ -3,6 +3,7 @@ SET(OSQUERY_EVENTS_SOURCES "")
 if(APPLE)
   ADD_OSQUERY_CORE_LINK("-framework CoreServices")
   ADD_OSQUERY_CORE_LINK("-framework SystemConfiguration")
+  ADD_OSQUERY_CORE_LINK("-framework IOKit")
 
   ADD_OSQUERY_CORE_LIBRARY(osquery_events_darwin
     darwin/fsevents.cpp

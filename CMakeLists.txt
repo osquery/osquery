@@ -5,7 +5,7 @@ if(APPLE)
   set(APPLE_MIN_ABI "10.9")
   set(OS_COMPILE_FLAGS "-std=c++11 -stdlib=libc++ -mmacosx-version-min=${APPLE_MIN_ABI}")
   # Special compile flags for Objective-C++
-  set(OBJCXX_COMPILE_FLAGS "-x objective-c++ -fobjc-arc ")
+  set(OBJCXX_COMPILE_FLAGS "-x objective-c++ -fobjc-arc -Wno-c++11-extensions")
   set(OS_WHOLELINK_PRE "-Wl,-all_load")
   set(OS_WHOLELINK_POST "")
 else()
@@ -20,9 +20,12 @@ else()
     set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
     set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
   endif()
-  if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} -g -DDEBUG")
-  endif()
+endif()
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+  set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} -g -DDEBUG -O0")
+else()
+  set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} -O2")
 endif()
 
 # Use osquery language to set platform/os
@@ -90,28 +93,7 @@ LINK_DIRECTORIES("/usr/local/lib")
 
 ENABLE_TESTING()
 
-# osquery-specific helper macros
-MACRO(SET_OSQUERY_COMPILE TARGET)
-  SET_TARGET_PROPERTIES(${TARGET} PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-  SET(OPTIONAL_FLAGS ${ARGN})
-  LIST(LENGTH OPTIONAL_FLAGS NUM_OPTIONAL_FLAGS)
-  if(${NUM_OPTIONAL_FLAGS} GREATER 0)
-    SET_TARGET_PROPERTIES(${TARGET} PROPERTIES COMPILE_FLAGS ${OPTIONAL_FLAGS})
-  ENDIF()
-ENDMACRO(SET_OSQUERY_COMPILE)
-
-MACRO(ADD_OSQUERY_TEST TEST_NAME SOURCE)
-  if(NOT DEFINED ENV{SKIP_TESTS})
-    ADD_EXECUTABLE(${TEST_NAME} ${SOURCE})
-    TARGET_OSQUERY_LINK_WHOLE(${TEST_NAME} libosquery)
-    TARGET_LINK_LIBRARIES(${TEST_NAME} gtest)
-    TARGET_LINK_LIBRARIES(${TEST_NAME} glog)
-    SET(OPTIONAL_FLAGS ${ARGN})
-    SET_OSQUERY_COMPILE(${TEST_NAME} "${OPTIONAL_FLAGS}")
-    ADD_TEST(${TEST_NAME} ${TEST_NAME})
-  endif()
-ENDMACRO(ADD_OSQUERY_TEST)
-
+include(CMakeLibs.txt)
 ADD_SUBDIRECTORY(osquery)
 ADD_SUBDIRECTORY(tools/tests)
 
@@ -140,4 +122,3 @@ ADD_CUSTOM_TARGET(
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
-

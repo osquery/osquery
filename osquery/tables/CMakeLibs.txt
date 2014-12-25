@@ -18,9 +18,9 @@ endmacro()
 
 # Find and generate table plugins from .table syntax
 macro(GENERATE_TABLES TABLES_PATH BASE_PATH)
-  set(TABLE_FILES_PLATFORM "")
+  # Get all matching files for all platforms.
   file(GLOB TABLE_FILES "${TABLES_PATH}/specs/x/*.table")
-
+  set(TABLE_FILES_PLATFORM "")
   if(APPLE)
     file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/darwin/*.table")
   elseif(FREEBSD)
@@ -28,15 +28,18 @@ macro(GENERATE_TABLES TABLES_PATH BASE_PATH)
   else()
     file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/linux/*.table")
   endif()
-
   list(APPEND TABLE_FILES ${TABLE_FILES_PLATFORM})
-  set_directory_properties(PROPERTY
-    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_BINARY_DIR}/generated")
-  GET_GENERATION_DEPS("${BASE_PATH}")
 
+  get_property(TARGETS GLOBAL PROPERTY AMALGAMATE_TARGETS)
+  set(NEW_TARGETS "")
   foreach(TABLE_FILE ${TABLE_FILES})
-    set_property(GLOBAL APPEND PROPERTY AMALGAMATE_TARGETS "${TABLE_FILE}")
+    list(FIND TARGETS "${TABLE_FILE}" INDEX)
+    if (${INDEX} EQUAL -1)
+      # Do not set duplicate targets.
+      list(APPEND NEW_TARGETS "${TABLE_FILE}")
+    endif()
   endforeach()
+  set_property(GLOBAL PROPERTY AMALGAMATE_TARGETS "${NEW_TARGETS}")
 endmacro()
 
 macro(GENERATE_UTILITY TABLE_NAME)
@@ -44,7 +47,7 @@ macro(GENERATE_UTILITY TABLE_NAME)
   set_property(GLOBAL APPEND PROPERTY AMALGAMATE_TARGETS "${TABLE_SPEC}")
 endmacro()
 
-macro(GENERATE_TABLE TABLE_FILE BASE_PATH OUTPUT)
+macro(GENERATE_TABLE TABLE_FILE NAME BASE_PATH OUTPUT)
   set(TABLE_FILE_GEN ${TABLE_FILE})
   string(REPLACE ".table" ".cpp" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   string(REPLACE "linux/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
@@ -53,7 +56,7 @@ macro(GENERATE_TABLE TABLE_FILE BASE_PATH OUTPUT)
   string(REPLACE "x/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
   string(REGEX REPLACE
     ".*/specs"
-    "${CMAKE_BINARY_DIR}/generated/tables"
+    "${CMAKE_BINARY_DIR}/generated/tables_${NAME}"
     TABLE_FILE_GEN
     ${TABLE_FILE_GEN}
   )
@@ -76,18 +79,21 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
 
   set(GENERATED_TARGETS "")
   foreach(TARGET ${TARGETS})
-    GENERATE_TABLE(${TARGET} ${BASE_PATH} GENERATED_TARGETS)
+    GENERATE_TABLE(${TARGET} ${NAME} ${BASE_PATH} GENERATED_TARGETS)
   endforeach()
+
+  # Include the generated folder in make clean.
+  set_directory_properties(PROPERTY
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_BINARY_DIR}/generated")
 
   # Append all of the code to a single amalgamation.
   add_custom_command(
-    OUTPUT "${CMAKE_BINARY_DIR}/generated/${NAME}.cpp"
+    OUTPUT "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp"
     COMMAND python "${BASE_PATH}/tools/codegen/amalgamate.py"
       "${BASE_PATH}/osquery/tables/" "${CMAKE_BINARY_DIR}/generated" "${NAME}"
     DEPENDS ${GENERATED_TARGETS} ${GENERATION_DEPENDENCIES}
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   )
 
-  set(${OUTPUT} "${CMAKE_BINARY_DIR}/generated/${NAME}.cpp")
-  set_property(GLOBAL PROPERTY AMALGAMATE_TARGETS "")
+  set(${OUTPUT} "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp")
 endmacro()

@@ -24,7 +24,8 @@ END_LINE = "/// END[GENTABLE]"
 
 def usage(progname):
     """ print program usage """
-    print("Usage: %s /path/to/tables /path/to/generated output.cpp" % progname)
+    print(("Usage: %s /path/to/tables "
+        "/path/to/generated output[_amalgamation.cpp]") % progname)
     return 1
 
 
@@ -58,7 +59,8 @@ def main(argc, argv):
     with open(template, "rU") as fh:
         template_data = fh.read()
 
-    for base, _, filenames in os.walk(os.path.join(directory, "tables")):
+    for base, _, filenames in os.walk(os.path.join(directory,
+            "tables_%s" % (name))):
         for filename in filenames:
             if filename == name:
                 continue
@@ -68,7 +70,7 @@ def main(argc, argv):
 
     amalgamation = jinja2.Template(template_data).render(
         tables=tables)
-    output = os.path.join(directory, "%s.cpp" % name)
+    output = os.path.join(directory, "%s_amalgamation.cpp" % name)
     try:
         os.makedirs(os.path.dirname(output))
     except:

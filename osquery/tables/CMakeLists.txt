@@ -6,6 +6,7 @@ if(APPLE)
     system/darwin/osx_version.mm
     system/darwin/users.mm
     system/darwin/groups.mm
+    system/darwin/ca_certs.mm
   )
 
   ADD_OSQUERY_LIBRARY(osquery_tables_darwin
@@ -15,7 +16,7 @@ if(APPLE)
     networking/darwin/listening_ports.cpp
     networking/darwin/routes.cpp
     system/darwin/apps.cpp
-    system/darwin/ca_certs.cpp
+    system/darwin/ca_certs_utils.cpp
     system/darwin/firewall.h
     system/darwin/firewall.cpp
     system/darwin/homebrew_packages.cpp
