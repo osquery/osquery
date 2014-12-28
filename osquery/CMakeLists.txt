@@ -168,10 +168,10 @@ list(APPEND OSQUERY_LIBS ${OSQUERY_LINKS})
 
 # Create the static libosquery.
 set(CMAKE_MACOSX_RPATH 0)
-add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
-target_link_libraries(libosquery ${OSQUERY_LIBS})
-set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
-install(TARGETS libosquery DESTINATION lib)
+add_library(libosquery_basic STATIC main/lib.cpp ${OSQUERY_OBJECTS})
+target_link_libraries(libosquery_basic ${OSQUERY_LIBS})
+set_target_properties(libosquery_basic PROPERTIES OUTPUT_NAME osquery_basic)
+install(TARGETS libosquery_basic DESTINATION lib)
 
 # Generate the osquery core tables (the non-util).
 GENERATE_TABLES("${CMAKE_SOURCE_DIR}/osquery/tables" "${CMAKE_SOURCE_DIR}")
@@ -184,25 +184,31 @@ target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
 set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
 install(TARGETS libosquery_additional DESTINATION lib)
 
+# Optionally build a shared library.
+add_library(libosquery SHARED EXCLUDE_FROM_ALL main/empty.cpp)
+TARGET_OSQUERY_LINK_WHOLE(libosquery libosquery_basic)
+TARGET_OSQUERY_LINK_WHOLE(libosquery libosquery_additional)
+set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
+
 # Include the public API includes.
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/" DESTINATION include)
 
 add_executable(shell main/shell.cpp)
-TARGET_OSQUERY_LINK_WHOLE(shell libosquery)
+TARGET_OSQUERY_LINK_WHOLE(shell libosquery_basic)
 TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
 set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
 set_target_properties(shell PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
 install(TARGETS shell DESTINATION bin)
 
 add_executable(daemon main/daemon.cpp)
-TARGET_OSQUERY_LINK_WHOLE(daemon libosquery)
+TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_basic)
 TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_additional)
 set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
 set_target_properties(daemon PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
 install(TARGETS daemon DESTINATION bin)
 
 add_executable(run main/run.cpp)
-TARGET_OSQUERY_LINK_WHOLE(run libosquery)
+TARGET_OSQUERY_LINK_WHOLE(run libosquery_basic)
 TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
 set_target_properties(run PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
 install(TARGETS run DESTINATION bin)
