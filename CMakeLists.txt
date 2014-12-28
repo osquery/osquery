@@ -1,5 +1,5 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
-PROJECT(OSQUERY)
+cmake_minimum_required(VERSION 2.8.8)
+project(OSQUERY)
 
 if(APPLE)
   set(APPLE_MIN_ABI "10.9")
@@ -68,39 +68,39 @@ endif()
 set(USER_COMPILE_FLAGS "-static")
 set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} ${USER_COMPILE_FLAGS}")
 
-SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
-FIND_PACKAGE(Gtest REQUIRED)
-FIND_PACKAGE(Sqlite3 REQUIRED)
-FIND_PACKAGE(BZip2 REQUIRED)
-FIND_PACKAGE(Glog REQUIRED)
-FIND_PACKAGE(Gflags REQUIRED)
-FIND_PACKAGE(Thrift 0.9.1 REQUIRED)
-FIND_PACKAGE(Readline REQUIRED)
-FIND_PACKAGE(OpenSSL REQUIRED)
-FIND_PACKAGE(Snappy REQUIRED)
-FIND_PACKAGE(RocksDB REQUIRED)
-FIND_PACKAGE(Crypto REQUIRED)
-FIND_PACKAGE(Dl REQUIRED)
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
+find_package(Gtest REQUIRED)
+find_package(Sqlite3 REQUIRED)
+find_package(BZip2 REQUIRED)
+find_package(Glog REQUIRED)
+find_package(Gflags REQUIRED)
+find_package(Thrift 0.9.1 REQUIRED)
+find_package(Readline REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(Snappy REQUIRED)
+find_package(RocksDB REQUIRED)
+find_package(Crypto REQUIRED)
+find_package(Dl REQUIRED)
 if(NOT APPLE)
-  FIND_PACKAGE(Unwind REQUIRED)
-  FIND_PACKAGE(LZMA REQUIRED)
+  find_package(Unwind REQUIRED)
+  find_package(LZMA REQUIRED)
 endif()
 
-INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}/include")
-INCLUDE_DIRECTORIES("${CMAKE_SOURCE_DIR}")
-INCLUDE_DIRECTORIES("/usr/local/include")
-LINK_DIRECTORIES("/usr/local/lib")
+include_directories("${CMAKE_SOURCE_DIR}/include")
+include_directories("${CMAKE_SOURCE_DIR}")
+include_directories("/usr/local/include")
+link_directories("/usr/local/lib")
 
-ENABLE_TESTING()
+enable_testing()
 
 include(CMakeLibs.txt)
-ADD_SUBDIRECTORY(osquery)
-ADD_SUBDIRECTORY(tools/tests)
+add_subdirectory(osquery)
+add_subdirectory(tools/tests)
 
 # make docs
-FIND_PACKAGE(Doxygen)
+find_package(Doxygen)
 if(DOXYGEN_FOUND)
-  ADD_CUSTOM_TARGET(
+  add_custom_target(
     docs
     "${DOXYGEN_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Doxyfile"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -109,14 +109,14 @@ if(DOXYGEN_FOUND)
 endif(DOXYGEN_FOUND)
 
 # make format-all
-ADD_CUSTOM_TARGET(
+add_custom_target(
   format-all
   find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \) -exec clang-format -i {} +
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting all osquery code with clang-format" VERBATIM
 )
 
-ADD_CUSTOM_TARGET(
+add_custom_target(
   format
   python "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

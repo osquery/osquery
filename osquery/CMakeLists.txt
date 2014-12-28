@@ -1,9 +1,9 @@
-SET(OSQUERY_LIBS
+set(OSQUERY_LIBS
   readline
   pthread
 )
 
-SET(OSQUERY_APPLE_LIBS
+set(OSQUERY_APPLE_LIBS
   /usr/local/lib/libboost_thread-mt.a
   /usr/local/lib/libboost_system.a
   /usr/local/lib/libboost_filesystem.a
@@ -23,7 +23,7 @@ SET(OSQUERY_APPLE_LIBS
 )
 
 # Warning: Do not statically compile unwind
-SET(OSQUERY_LINUX_LIBS
+set(OSQUERY_LINUX_LIBS
   libgflags.a
   libglog.a
   librocksdb.a
@@ -43,17 +43,17 @@ SET(OSQUERY_LINUX_LIBS
   z
 )
 
-SET(OSQUERY_UBUNTU_LIBS
+set(OSQUERY_UBUNTU_LIBS
   libsnappy.a
   liblzma.a
 )
 
-SET(OSQUERY_CENTOS_LIBS
+set(OSQUERY_CENTOS_LIBS
   libsnappy.so
   liblzma.so
 )
 
-SET(OSQUERY_FREEBSD_LIBS
+set(OSQUERY_FREEBSD_LIBS
   gflags
   glog
   rocksdb
@@ -82,19 +82,17 @@ else()
   set(PROCPS False)
 endif()
 
-# Fill this in with objects for libosquery
+# Fill this in with objects for libosquery.
 set(OSQUERY_SOURCES "")
-# Fill this in with links and linker options for libosquery
+# Fill this in with links and linker options for libosquery.
 set(OSQUERY_LINKS "")
-# Fill this in in with non-core links and linker options (for tables)
+# Fill this in in with non-core links and linker options (for plugins).
 set(OSQUERY_ADDITIONAL_SOURCES "")
 set(OSQUERY_ADDITIONAL_LINKS "")
 
 set(Boost_USE_STATIC_LIBS ON)
-if(NOT BUILD_SHARED)
-  SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
-  SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
-endif()
+set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
 # Generate version from git
 execute_process(
@@ -104,7 +102,7 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-ADD_DEFINITIONS("
+add_definitions("
 -DOSQUERY_BUILD_VERSION=${OSQUERY_BUILD_VERSION}
 -D${OSQUERY_BUILD_OS}
 -D${OSQUERY_BUILD_OS}_${OSQUERY_BUILD_DISTRO}
@@ -136,23 +134,23 @@ execute_process(
 
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
-SET(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
+set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
 
 # Add subdirectories
-ADD_SUBDIRECTORY(config)
-ADD_SUBDIRECTORY(core)
-ADD_SUBDIRECTORY(database)
-ADD_SUBDIRECTORY(devtools)
-ADD_SUBDIRECTORY(dispatcher)
-ADD_SUBDIRECTORY(events)
-ADD_SUBDIRECTORY(examples)
-ADD_SUBDIRECTORY(filesystem)
-ADD_SUBDIRECTORY(logger)
-ADD_SUBDIRECTORY(scheduler)
+add_subdirectory(config)
+add_subdirectory(core)
+add_subdirectory(database)
+add_subdirectory(devtools)
+add_subdirectory(dispatcher)
+add_subdirectory(events)
+add_subdirectory(examples)
+add_subdirectory(filesystem)
+add_subdirectory(logger)
+add_subdirectory(scheduler)
 
 # Include the tables and build the utilities tables.
 include(tables/CMakeLibs.txt)
-ADD_SUBDIRECTORY(tables)
+add_subdirectory(tables)
 
 # Utility tables are table specs that are ALWAYS built into osquery core.
 GENERATE_UTILITY("osquery_info")
@@ -168,76 +166,68 @@ ADD_OSQUERY_CORE_LIBRARY(osquery_utils_amalgamation ${AMALGAMATION_UTILS})
 list(APPEND OSQUERY_OBJECTS ${OSQUERY_SOURCES})
 list(APPEND OSQUERY_LIBS ${OSQUERY_LINKS})
 
-# Create the static libosquery
+# Create the static libosquery.
 set(CMAKE_MACOSX_RPATH 0)
-ADD_LIBRARY(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
-TARGET_LINK_LIBRARIES(libosquery ${OSQUERY_LIBS})
-SET_TARGET_PROPERTIES(libosquery PROPERTIES OUTPUT_NAME osquery)
-INSTALL(TARGETS libosquery DESTINATION lib)
+add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
+target_link_libraries(libosquery ${OSQUERY_LIBS})
+set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
+install(TARGETS libosquery DESTINATION lib)
 
 # Generate the osquery core tables (the non-util).
 GENERATE_TABLES("${CMAKE_SOURCE_DIR}/osquery/tables" "${CMAKE_SOURCE_DIR}")
-AMALGAMATE("${CMAKE_SOURCE_DIR}" "core" AMALGAMATION_CORE)
-ADD_OSQUERY_LIBRARY(osquery_core_amalgamation ${AMALGAMATION_CORE})
+AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
+ADD_OSQUERY_LIBRARY(osquery_amalgamation ${AMALGAMATION})
 
-# Create the static libosquery_extra
-ADD_LIBRARY(libosquery_extra STATIC main/empty.cpp ${OSQUERY_ADDITIONAL_SOURCES})
-TARGET_LINK_LIBRARIES(libosquery_extra
-  "${OSQUERY_ADDITIONAL_LINKS}")
-SET_TARGET_PROPERTIES(libosquery_extra PROPERTIES OUTPUT_NAME osquery_extra)
-INSTALL(TARGETS libosquery_extra DESTINATION lib)
+# Create the static libosquery_additional.
+add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})
+target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
+set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
+install(TARGETS libosquery_additional DESTINATION lib)
 
-# Include the public API includes
-INSTALL(DIRECTORY "${CMAKE_SOURCE_DIR}/include/" DESTINATION include)
+# Include the public API includes.
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/" DESTINATION include)
 
-ADD_EXECUTABLE(shell main/shell.cpp)
+add_executable(shell main/shell.cpp)
 TARGET_OSQUERY_LINK_WHOLE(shell libosquery)
-TARGET_OSQUERY_LINK_WHOLE(shell libosquery_extra)
-SET_TARGET_PROPERTIES(shell PROPERTIES OUTPUT_NAME osqueryi)
-SET_TARGET_PROPERTIES(shell PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-INSTALL(TARGETS shell DESTINATION bin)
+TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
+set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
+set_target_properties(shell PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
+install(TARGETS shell DESTINATION bin)
 
-ADD_EXECUTABLE(daemon main/daemon.cpp)
+add_executable(daemon main/daemon.cpp)
 TARGET_OSQUERY_LINK_WHOLE(daemon libosquery)
-#TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_extra)
-SET_TARGET_PROPERTIES(daemon PROPERTIES OUTPUT_NAME osqueryd)
-SET_TARGET_PROPERTIES(daemon PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-INSTALL(TARGETS daemon DESTINATION bin)
+TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_additional)
+set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
+set_target_properties(daemon PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
+install(TARGETS daemon DESTINATION bin)
 
-ADD_EXECUTABLE(run main/run.cpp)
+add_executable(run main/run.cpp)
 TARGET_OSQUERY_LINK_WHOLE(run libosquery)
-#TARGET_OSQUERY_LINK_WHOLE(run libosquery_extra)
-SET_TARGET_PROPERTIES(run PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-INSTALL(TARGETS run DESTINATION bin)
-
+TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
+set_target_properties(run PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
+install(TARGETS run DESTINATION bin)
 
 # packages
 if(LINUX)
-  SET(CPACK_PACKAGE_NAME "osquery")
-  SET(CPACK_PACKAGE_VENDOR "facebook")
+  set(CPACK_PACKAGE_NAME "osquery")
+  set(CPACK_PACKAGE_VENDOR "facebook")
+  set(CPACK_PACKAGE_VERSION "${OSQUERY_BUILD_VERSION}")
+  set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
 
-  SET(CPACK_PACKAGE_VERSION "${OSQUERY_BUILD_VERSION}")
-
-  SET(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
-  SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
-
-  EXECUTE_PROCESS(COMMAND uname -m OUTPUT_VARIABLE OSQUERY_ARCH)
-  STRING(REPLACE "\n" "" OSQUERY_ARCH ${OSQUERY_ARCH})
+  execute_process(COMMAND uname -m OUTPUT_VARIABLE OSQUERY_ARCH)
+  string(REPLACE "\n" "" OSQUERY_ARCH ${OSQUERY_ARCH})
 
   if(UBUNTU)
-    SET(CPACK_GENERATOR "DEB")
+    set(CPACK_GENERATOR "DEB")
 
-    EXECUTE_PROCESS(COMMAND grep DISTRIB_CODENAME /etc/lsb-release OUTPUT_VARIABLE DISTRO)
-    STRING(REPLACE "DISTRIB_CODENAME=" "" DISTRO ${DISTRO})
-    STRING(REPLACE "\n" "" DISTRO ${DISTRO})
+    execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE DPKG_ARCH)
+    string(REPLACE "\n" "" DPKG_ARCH ${DPKG_ARCH})
 
-    EXECUTE_PROCESS(COMMAND dpkg --print-architecture OUTPUT_VARIABLE DPKG_ARCH)
-    STRING(REPLACE "\n" "" DPKG_ARCH ${DPKG_ARCH})
-
-    SET(CPACK_SYSTEM_NAME "${DISTRO}.${DPKG_ARCH}")
-    SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${DPKG_ARCH})
-    SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "marpaia@fb.com")
+    set(CPACK_SYSTEM_NAME "${OSQUERY_BUILD_DISTRO}.${DPKG_ARCH}")
+    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${DPKG_ARCH})
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "marpaia@fb.com")
   endif()
 
-  INCLUDE(CPack)
+  include(CPack)
 endif()
