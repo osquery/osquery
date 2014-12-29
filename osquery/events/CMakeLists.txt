@@ -1,25 +1,28 @@
 SET(OSQUERY_EVENTS_SOURCES "")
 
 if(APPLE)
-  ADD_OSQUERY_LINK("-framework CoreServices")
-  ADD_OSQUERY_LINK("-framework SystemConfiguration")
+  ADD_OSQUERY_CORE_LINK("-framework CoreServices")
+  ADD_OSQUERY_CORE_LINK("-framework SystemConfiguration")
+  ADD_OSQUERY_CORE_LINK("-framework IOKit")
 
-  ADD_OSQUERY_LIBRARY(osquery_events_darwin
+  ADD_OSQUERY_CORE_LIBRARY(osquery_events_darwin
     darwin/fsevents.cpp
     darwin/iokit_hid.cpp
     darwin/scnetwork.cpp
   )
 elseif(FREEBSD)
-  ADD_OSQUERY_LIBRARY(osquery_events_freebsd
+  ADD_OSQUERY_CORE_LIBRARY(osquery_events_freebsd
   )
 else()
-  ADD_OSQUERY_LIBRARY(osquery_events_linux
+  ADD_OSQUERY_CORE_LINK("udev")
+
+  ADD_OSQUERY_CORE_LIBRARY(osquery_events_linux
     linux/inotify.cpp
     linux/udev.cpp
   )
 endif()
 
-ADD_OSQUERY_LIBRARY(osquery_events
+ADD_OSQUERY_CORE_LIBRARY(osquery_events
   events.cpp
 )
 

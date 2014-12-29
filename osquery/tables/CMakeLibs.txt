@@ -1,0 +1,99 @@
+# -*- mode: cmake; -*-
+# - osquery table plugin generation
+#
+# Generate table plugin code from .table syntax.
+# Compile and link the core set of osquery tables/streams.
+
+set(GLOBAL PROPERTY AMALGAMATE_TARGETS "")
+macro(GET_GENERATION_DEPS BASE_PATH)
+  # Depend on the generation code.
+  set(GENERATION_DEPENDENCIES "")
+  file(GLOB TABLE_FILES_TEMPLATES "${BASE_PATH}/osquery/tables/templates/*.in")
+  set(GENERATION_DEPENDENCIES
+    "${BASE_PATH}/tools/codegen/*.py"
+    "${BASE_PATH}/osquery/tables/specs/blacklist"
+  )
+  list(APPEND GENERATION_DEPENDENCIES ${TABLE_FILES_TEMPLATES})
+endmacro()
+
+# Find and generate table plugins from .table syntax
+macro(GENERATE_TABLES TABLES_PATH BASE_PATH)
+  # Get all matching files for all platforms.
+  file(GLOB TABLE_FILES "${TABLES_PATH}/specs/x/*.table")
+  set(TABLE_FILES_PLATFORM "")
+  if(APPLE)
+    file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/darwin/*.table")
+  elseif(FREEBSD)
+    file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/freebsd/*.table")
+  else()
+    file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/linux/*.table")
+  endif()
+  list(APPEND TABLE_FILES ${TABLE_FILES_PLATFORM})
+
+  get_property(TARGETS GLOBAL PROPERTY AMALGAMATE_TARGETS)
+  set(NEW_TARGETS "")
+  foreach(TABLE_FILE ${TABLE_FILES})
+    list(FIND TARGETS "${TABLE_FILE}" INDEX)
+    if (${INDEX} EQUAL -1)
+      # Do not set duplicate targets.
+      list(APPEND NEW_TARGETS "${TABLE_FILE}")
+    endif()
+  endforeach()
+  set_property(GLOBAL PROPERTY AMALGAMATE_TARGETS "${NEW_TARGETS}")
+endmacro()
+
+macro(GENERATE_UTILITY TABLE_NAME)
+  set(TABLE_SPEC "${CMAKE_SOURCE_DIR}/osquery/tables/specs/x/${TABLE_NAME}.table")
+  set_property(GLOBAL APPEND PROPERTY AMALGAMATE_TARGETS "${TABLE_SPEC}")
+endmacro()
+
+macro(GENERATE_TABLE TABLE_FILE NAME BASE_PATH OUTPUT)
+  set(TABLE_FILE_GEN ${TABLE_FILE})
+  string(REPLACE ".table" ".cpp" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  string(REPLACE "linux/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  string(REPLACE "darwin/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  string(REPLACE "freebsd/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  string(REPLACE "x/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
+  string(REGEX REPLACE
+    ".*/specs"
+    "${CMAKE_BINARY_DIR}/generated/tables_${NAME}"
+    TABLE_FILE_GEN
+    ${TABLE_FILE_GEN}
+  )
+
+  GET_GENERATION_DEPS(${BASE_PATH})
+  add_custom_command(
+    OUTPUT "${TABLE_FILE_GEN}"
+    COMMAND python "${BASE_PATH}/tools/codegen/gentable.py"
+      "${TABLE_FILE}" "${TABLE_FILE_GEN}" "$ENV{DISABLE_BLACKLIST}"
+    DEPENDS ${TABLE_FILE} ${GENERATION_DEPENDENCIES}
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  )
+
+  list(APPEND ${OUTPUT} "${TABLE_FILE_GEN}")
+endmacro()
+
+macro(AMALGAMATE BASE_PATH NAME OUTPUT)
+  GET_GENERATION_DEPS(${BASE_PATH})
+  get_property(TARGETS GLOBAL PROPERTY AMALGAMATE_TARGETS)
+
+  set(GENERATED_TARGETS "")
+  foreach(TARGET ${TARGETS})
+    GENERATE_TABLE(${TARGET} ${NAME} ${BASE_PATH} GENERATED_TARGETS)
+  endforeach()
+
+  # Include the generated folder in make clean.
+  set_directory_properties(PROPERTY
+    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_BINARY_DIR}/generated")
+
+  # Append all of the code to a single amalgamation.
+  add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp"
+    COMMAND python "${BASE_PATH}/tools/codegen/amalgamate.py"
+      "${BASE_PATH}/osquery/tables/" "${CMAKE_BINARY_DIR}/generated" "${NAME}"
+    DEPENDS ${GENERATED_TARGETS} ${GENERATION_DEPENDENCIES}
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  )
+
+  set(${OUTPUT} "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp")
+endmacro()

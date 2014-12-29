@@ -1,4 +1,4 @@
-ADD_OSQUERY_LIBRARY(osquery_devtools
+ADD_OSQUERY_CORE_LIBRARY(osquery_devtools
   shell.cpp
   printer.cpp
 )

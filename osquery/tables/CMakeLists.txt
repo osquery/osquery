@@ -6,6 +6,7 @@ if(APPLE)
     system/darwin/osx_version.mm
     system/darwin/users.mm
     system/darwin/groups.mm
+    system/darwin/ca_certs.mm
   )
 
   ADD_OSQUERY_LIBRARY(osquery_tables_darwin
@@ -15,7 +16,7 @@ if(APPLE)
     networking/darwin/listening_ports.cpp
     networking/darwin/routes.cpp
     system/darwin/apps.cpp
-    system/darwin/ca_certs.cpp
+    system/darwin/ca_certs_utils.cpp
     system/darwin/firewall.h
     system/darwin/firewall.cpp
     system/darwin/homebrew_packages.cpp
@@ -68,30 +69,38 @@ else()
     system/linux/rpm_packages.cpp
   )
 
+  # Add version of libproc
+  if(UBUNTU AND PROCPS)
+    ADD_OSQUERY_LINK("libprocps.a")
+  elseif(UBUNTU)
+    ADD_OSQUERY_LINK("libproc.a")
+  elseif(CENTOS)
+    ADD_OSQUERY_LINK("proc")
+  endif()
+
+  ADD_OSQUERY_LINK("blkid")
+  ADD_OSQUERY_LINK("udev")
   ADD_OSQUERY_LINK("rpm")
   ADD_OSQUERY_LINK("rpmio")
-
 endif()
-
-FILE(GLOB table_sources
-  "generated/*.cpp"
-  "manual/*.cpp"
-)
 
 ADD_OSQUERY_LIBRARY(osquery_tables
   networking/utils.cpp
   networking/etc_hosts.cpp
   networking/etc_services.cpp
-  utility/time.cpp
-  utility/crontab.cpp
-  utility/hash.cpp
-  utility/file.cpp
-  utility/osquery.cpp
   system/cpuid.cpp
+  system/crontab.cpp
   system/last.cpp
   system/shell_history.cpp
   system/suid_bin.cpp
   system/logged_in_users.cpp
+)
+
+ADD_OSQUERY_CORE_LIBRARY(osquery_utility_tables
+  utility/time.cpp
+  utility/hash.cpp
+  utility/file.cpp
+  utility/osquery.cpp
 )
 
 ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp)

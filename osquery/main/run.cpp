@@ -11,7 +11,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include "osquery/core.h"
+#include <osquery/core.h>
 
 DEFINE_string(query, "", "query to execute");
 DEFINE_int32(iterations, 1, "times to run the query in question");

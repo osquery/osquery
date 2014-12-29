@@ -1,9 +1,9 @@
-SET(OSQUERY_LIBS
+set(OSQUERY_LIBS
   readline
   pthread
 )
 
-SET(OSQUERY_APPLE_LIBS
+set(OSQUERY_APPLE_LIBS
   /usr/local/lib/libboost_thread-mt.a
   /usr/local/lib/libboost_system.a
   /usr/local/lib/libboost_filesystem.a
@@ -23,7 +23,7 @@ SET(OSQUERY_APPLE_LIBS
 )
 
 # Warning: Do not statically compile unwind
-SET(OSQUERY_LINUX_LIBS
+set(OSQUERY_LINUX_LIBS
   libgflags.a
   libglog.a
   librocksdb.a
@@ -33,31 +33,27 @@ SET(OSQUERY_LINUX_LIBS
   libboost_filesystem.a
   libboost_program_options.a
   libboost_regex.a
-  unwind
-  udev
-  blkid
-  rt
-  dl
+
+  bz2
   crypto
+  dl
+  rt
   ssl
+  unwind
+  z
 )
 
-SET(OSQUERY_UBUNTU_LIBS
-  libz.a
-  libbz2.a
+set(OSQUERY_UBUNTU_LIBS
   libsnappy.a
   liblzma.a
 )
 
-SET(OSQUERY_CENTOS_LIBS
-  libz.so
-  libbz2.so
+set(OSQUERY_CENTOS_LIBS
   libsnappy.so
   liblzma.so
-  libproc.so
 )
 
-SET(OSQUERY_FREEBSD_LIBS
+set(OSQUERY_FREEBSD_LIBS
   gflags
   glog
   rocksdb
@@ -67,33 +63,36 @@ SET(OSQUERY_FREEBSD_LIBS
   boost_filesystem
   boost_program_options
   boost_regex
-  rt
-  z
+
   bz2
-  snappy
-  unwind
-  lzma
   crypto
+  lzma
+  rt
+  snappy
   ssl
+  unwind
+  z
 )
 
 # Check for the explicit path to determine the version of procps
 if(EXISTS "/usr/lib/libprocps.a"
     OR EXISTS "/usr/lib/x86_64-linux-gnu/libprocps.a")
-  list(APPEND OSQUERY_UBUNTU_LIBS "libprocps.a")
+  set(PROCPS True)
 else()
-  list(APPEND OSQUERY_UBUNTU_LIBS "libproc.a")
+  set(PROCPS False)
 endif()
 
-# Fill this in with objects for libosquery
+# Fill this in with objects for libosquery.
 set(OSQUERY_SOURCES "")
+# Fill this in with links and linker options for libosquery.
+set(OSQUERY_LINKS "")
+# Fill this in in with non-core links and linker options (for plugins).
+set(OSQUERY_ADDITIONAL_SOURCES "")
 set(OSQUERY_ADDITIONAL_LINKS "")
 
-if(NOT BUILD_SHARED)
-  set(Boost_USE_STATIC_LIBS ON)
-  SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
-  SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
-endif()
+set(Boost_USE_STATIC_LIBS ON)
+set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
 # Generate version from git
 execute_process(
@@ -103,61 +102,11 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-ADD_DEFINITIONS("
+add_definitions("
 -DOSQUERY_BUILD_VERSION=${OSQUERY_BUILD_VERSION}
 -D${OSQUERY_BUILD_OS}
 -D${OSQUERY_BUILD_OS}_${OSQUERY_BUILD_DISTRO}
 ")
-
-MACRO(ADD_OSQUERY_LINK LINK)
-  list(APPEND OSQUERY_ADDITIONAL_LINKS ${LINK})
-  set(OSQUERY_ADDITIONAL_LINKS ${OSQUERY_ADDITIONAL_LINKS} PARENT_SCOPE)
-ENDMACRO(ADD_OSQUERY_LINK)
-
-MACRO(SET_OSQUERY_COMPILE TARGET)
-  SET_TARGET_PROPERTIES(${TARGET} PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-  SET(OPTIONAL_FLAGS ${ARGN})
-  LIST(LENGTH OPTIONAL_FLAGS NUM_OPTIONAL_FLAGS)
-  if(${NUM_OPTIONAL_FLAGS} GREATER 0)
-    SET_TARGET_PROPERTIES(${TARGET} PROPERTIES COMPILE_FLAGS ${OPTIONAL_FLAGS})
-  ENDIF()
-ENDMACRO(SET_OSQUERY_COMPILE)
-
-MACRO(ADD_OSQUERY_LIBRARY TARGET)
-  ADD_LIBRARY(${TARGET} OBJECT ${ARGN})
-  SET_OSQUERY_COMPILE(${TARGET})
-  list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
-  set(OSQUERY_SOURCES ${OSQUERY_SOURCES} PARENT_SCOPE)
-ENDMACRO(ADD_OSQUERY_LIBRARY TARGET)
-
-MACRO(ADD_OSQUERY_OBJCXX_LIBRARY TARGET)
-  ADD_LIBRARY(${TARGET} OBJECT ${ARGN})
-  SET_OSQUERY_COMPILE(${TARGET} "${OBJCXX_COMPILE_FLAGS}")
-  list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
-  set(OSQUERY_SOURCES ${OSQUERY_SOURCES} PARENT_SCOPE)
-ENDMACRO(ADD_OSQUERY_OBJCXX_LIBRARY TARGET)
-
-MACRO(ADD_OSQUERY_TEST TEST_NAME SOURCE)
-  if(NOT DEFINED ENV{SKIP_TESTS})
-    ADD_EXECUTABLE(${TEST_NAME} ${SOURCE})
-    TARGET_LINK_LIBRARIES(${TEST_NAME} osquery_shared)
-    TARGET_LINK_LIBRARIES(${TEST_NAME} gtest)
-    SET(OPTIONAL_FLAGS ${ARGN})
-    SET_OSQUERY_COMPILE(${TEST_NAME} "${OPTIONAL_FLAGS}")
-    ADD_TEST(${TEST_NAME} ${TEST_NAME})
-  endif()
-ENDMACRO(ADD_OSQUERY_TEST)
-
-MACRO(ADD_OSQUERY_EXECUTABLE NAME SOURCE)
-  ADD_OSQUERY_TEST(${NAME} ${SOURCE})
-  TARGET_LINK_LIBRARIES(${NAME} osquery_shared)
-ENDMACRO(ADD_OSQUERY_EXECUTABLE)
-
-MACRO(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
-  TARGET_LINK_LIBRARIES(${TARGET} "${OS_WHOLELINK_PRE}")
-  TARGET_LINK_LIBRARIES(${TARGET} ${OSQUERY_LIB})
-  TARGET_LINK_LIBRARIES(${TARGET} "${OS_WHOLELINK_POST}")
-ENDMACRO(TARGET_OSQUERY_LINK_WHOLE)
 
 # Fill in libraries for Apple, Uunbut, Centos, FreeBSD
 if(APPLE)
@@ -183,152 +132,108 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-# Table generation
-
-file(GLOB TABLE_FILES "tables/specs/x/*.table")
-if(APPLE)
-  file(GLOB TABLE_FILES_DARWIN "tables/specs/darwin/*.table")
-  list(APPEND TABLE_FILES ${TABLE_FILES_DARWIN})
-elseif(FREEBSD)
-  file(GLOB TABLE_FILES_FREEBSD "tables/specs/freebsd/*.table")
-  list(APPEND TABLE_FILES ${TABLE_FILES_FREEBSD})
-else()
-  file(GLOB TABLE_FILES_LINUX "tables/specs/linux/*.table")
-  list(APPEND TABLE_FILES ${TABLE_FILES_LINUX})
-endif()
-
-SET(OSQUERY_CODEGEN_PATH "${CMAKE_SOURCE_DIR}/tools/codegen")
-SET(OSQUERY_TABLES_PATH "${CMAKE_SOURCE_DIR}/osquery/tables")
-SET(OSQUERY_GENERATED_PATH "${CMAKE_BINARY_DIR}/generated")
-set_directory_properties(PROPERTY
-  ADDITIONAL_MAKE_CLEAN_FILES "${OSQUERY_GENERATED_PATH}")
-
-file(GLOB TABLE_FILES_TEMPLATES "tables/templates/*.in")
-set(GENERATION_DEPENDENCIES
-  "${OSQUERY_CODEGEN_PATH}/gentable.py"
-  "${OSQUERY_CODEGEN_PATH}/amalgamate.py"
-  "${OSQUERY_TABLES_PATH}/specs/blacklist"
-)
-list(APPEND GENERATION_DEPENDENCIES ${TABLE_FILES_TEMPLATES})
-
-foreach(TABLE_FILE ${TABLE_FILES})
-  SET(TABLE_FILE_GEN ${TABLE_FILE})
-  STRING(REPLACE "linux/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  STRING(REPLACE "darwin/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  STRING(REPLACE "freebsd/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  STRING(REPLACE "x/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  STRING(REPLACE
-    "${OSQUERY_TABLES_PATH}/specs"
-    "${OSQUERY_GENERATED_PATH}/tables"
-    TABLE_FILE_GEN
-    ${TABLE_FILE_GEN}
-  )
-
-  STRING(REPLACE ".table" ".cpp" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  ADD_CUSTOM_COMMAND(
-    OUTPUT ${TABLE_FILE_GEN}
-    COMMAND python "${OSQUERY_CODEGEN_PATH}/gentable.py" "${TABLE_FILE}" "${TABLE_FILE_GEN}" "$ENV{DISABLE_BLACKLIST}"
-    DEPENDS ${TABLE_FILE} ${GENERATION_DEPENDENCIES}
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  )
-  list(APPEND GENERATED_TABLES ${TABLE_FILE_GEN})
-endforeach()
-
-SET(AMALGAMATION_FILE_GEN "${OSQUERY_GENERATED_PATH}/amalgamation.cpp")
-ADD_CUSTOM_COMMAND(
-  OUTPUT ${AMALGAMATION_FILE_GEN}
-  COMMAND python "${OSQUERY_CODEGEN_PATH}/amalgamate.py" "${OSQUERY_TABLES_PATH}" "${OSQUERY_GENERATED_PATH}"
-  DEPENDS ${GENERATED_TABLES}
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-)
-
-ADD_LIBRARY(osquery_generated_tables OBJECT
-  "${AMALGAMATION_FILE_GEN}"
-)
-
-SET_OSQUERY_COMPILE(osquery_generated_tables)
+# Construct a set of all object files, starting with third-party and all
+# of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
+set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
 
 # Add subdirectories
-ADD_SUBDIRECTORY(config)
-ADD_SUBDIRECTORY(core)
-ADD_SUBDIRECTORY(database)
-ADD_SUBDIRECTORY(devtools)
-ADD_SUBDIRECTORY(events)
-ADD_SUBDIRECTORY(examples)
-ADD_SUBDIRECTORY(filesystem)
-ADD_SUBDIRECTORY(logger)
-ADD_SUBDIRECTORY(dispatcher)
-ADD_SUBDIRECTORY(scheduler)
-ADD_SUBDIRECTORY(tables)
+add_subdirectory(config)
+add_subdirectory(core)
+add_subdirectory(database)
+add_subdirectory(devtools)
+add_subdirectory(dispatcher)
+add_subdirectory(events)
+add_subdirectory(examples)
+add_subdirectory(filesystem)
+add_subdirectory(logger)
+add_subdirectory(scheduler)
 
-SET(OSQUERY_LIB_OBJECTS
-  # Third-party objects
-  $<TARGET_OBJECTS:osquery_sqlite>
+# Include the tables and build the utilities tables.
+include(tables/CMakeLibs.txt)
+add_subdirectory(tables)
 
-  # Generated code
-  $<TARGET_OBJECTS:osquery_generated_tables>
+# Utility tables are table specs that are ALWAYS built into osquery core.
+GENERATE_UTILITY("osquery_info")
+GENERATE_UTILITY("osquery_flags")
+GENERATE_UTILITY("time")
+GENERATE_UTILITY("file")
+GENERATE_UTILITY("hash")
 
-  # Build additional os-dependent libraries (may include tables)
-  ${OSQUERY_SOURCES}
-)
+# Finally amalgamate all the tables.
+AMALGAMATE("${CMAKE_SOURCE_DIR}" "utils" AMALGAMATION_UTILS)
+ADD_OSQUERY_CORE_LIBRARY(osquery_utils_amalgamation ${AMALGAMATION_UTILS})
 
+list(APPEND OSQUERY_OBJECTS ${OSQUERY_SOURCES})
+list(APPEND OSQUERY_LIBS ${OSQUERY_LINKS})
+
+# Create the static libosquery.
 set(CMAKE_MACOSX_RPATH 0)
-if(BUILD_SHARED)
-  ADD_LIBRARY(osquery_shared SHARED main/lib.cpp ${OSQUERY_LIB_OBJECTS})
-else()
-  ADD_LIBRARY(osquery_static STATIC ${OSQUERY_LIB_OBJECTS})
-  SET_TARGET_PROPERTIES(osquery_static PROPERTIES OUTPUT_NAME osquery_static)
+add_library(libosquery_basic STATIC main/lib.cpp ${OSQUERY_OBJECTS})
+target_link_libraries(libosquery_basic ${OSQUERY_LIBS})
+set_target_properties(libosquery_basic PROPERTIES OUTPUT_NAME osquery_basic)
+install(TARGETS libosquery_basic DESTINATION lib)
 
-  ADD_LIBRARY(osquery_shared STATIC main/lib.cpp)
-  TARGET_OSQUERY_LINK_WHOLE(osquery_shared osquery_static)
-  INSTALL(TARGETS osquery_static DESTINATION lib)
-endif()
-TARGET_LINK_LIBRARIES(osquery_shared ${OSQUERY_ADDITIONAL_LINKS})
-TARGET_LINK_LIBRARIES(osquery_shared ${OSQUERY_LIBS})
-SET_TARGET_PROPERTIES(osquery_shared PROPERTIES OUTPUT_NAME osquery)
-INSTALL(TARGETS osquery_shared DESTINATION lib)
-INSTALL(DIRECTORY "${CMAKE_SOURCE_DIR}/include/" DESTINATION include)
+# Generate the osquery core tables (the non-util).
+GENERATE_TABLES("${CMAKE_SOURCE_DIR}/osquery/tables" "${CMAKE_SOURCE_DIR}")
+AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
+ADD_OSQUERY_LIBRARY(osquery_amalgamation ${AMALGAMATION})
 
-ADD_EXECUTABLE(shell main/shell.cpp)
-TARGET_LINK_LIBRARIES(shell osquery_shared)
-SET_TARGET_PROPERTIES(shell PROPERTIES OUTPUT_NAME osqueryi)
-SET_TARGET_PROPERTIES(shell PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-INSTALL(TARGETS shell DESTINATION bin)
+# Create the static libosquery_additional.
+add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})
+target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
+set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
+install(TARGETS libosquery_additional DESTINATION lib)
 
-ADD_EXECUTABLE(daemon main/daemon.cpp)
-TARGET_LINK_LIBRARIES(daemon osquery_shared)
-SET_TARGET_PROPERTIES(daemon PROPERTIES OUTPUT_NAME osqueryd)
-SET_TARGET_PROPERTIES(daemon PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-INSTALL(TARGETS daemon DESTINATION bin)
+# Optionally build a shared library.
+add_library(libosquery SHARED EXCLUDE_FROM_ALL main/empty.cpp)
+TARGET_OSQUERY_LINK_WHOLE(libosquery libosquery_basic)
+TARGET_OSQUERY_LINK_WHOLE(libosquery libosquery_additional)
+set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
+
+# Include the public API includes.
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/" DESTINATION include)
+
+add_executable(shell main/shell.cpp)
+TARGET_OSQUERY_LINK_WHOLE(shell libosquery_basic)
+TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
+set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
+set_target_properties(shell PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
+install(TARGETS shell DESTINATION bin)
+
+add_executable(daemon main/daemon.cpp)
+TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_basic)
+TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_additional)
+set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
+set_target_properties(daemon PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
+install(TARGETS daemon DESTINATION bin)
+
+add_executable(run main/run.cpp)
+TARGET_OSQUERY_LINK_WHOLE(run libosquery_basic)
+TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
+set_target_properties(run PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
+install(TARGETS run DESTINATION bin)
 
 # packages
-
 if(LINUX)
-  SET(CPACK_PACKAGE_NAME "osquery")
-  SET(CPACK_PACKAGE_VENDOR "facebook")
+  set(CPACK_PACKAGE_NAME "osquery")
+  set(CPACK_PACKAGE_VENDOR "facebook")
+  set(CPACK_PACKAGE_VERSION "${OSQUERY_BUILD_VERSION}")
+  set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
 
-  SET(CPACK_PACKAGE_VERSION "${OSQUERY_BUILD_VERSION}")
-
-  SET(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
-  SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
-
-  EXECUTE_PROCESS(COMMAND uname -m OUTPUT_VARIABLE OSQUERY_ARCH)
-  STRING(REPLACE "\n" "" OSQUERY_ARCH ${OSQUERY_ARCH})
+  execute_process(COMMAND uname -m OUTPUT_VARIABLE OSQUERY_ARCH)
+  string(REPLACE "\n" "" OSQUERY_ARCH ${OSQUERY_ARCH})
 
   if(UBUNTU)
-    SET(CPACK_GENERATOR "DEB")
+    set(CPACK_GENERATOR "DEB")
 
-    EXECUTE_PROCESS(COMMAND grep DISTRIB_CODENAME /etc/lsb-release OUTPUT_VARIABLE DISTRO)
-    STRING(REPLACE "DISTRIB_CODENAME=" "" DISTRO ${DISTRO})
-    STRING(REPLACE "\n" "" DISTRO ${DISTRO})
+    execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE DPKG_ARCH)
+    string(REPLACE "\n" "" DPKG_ARCH ${DPKG_ARCH})
 
-    EXECUTE_PROCESS(COMMAND dpkg --print-architecture OUTPUT_VARIABLE DPKG_ARCH)
-    STRING(REPLACE "\n" "" DPKG_ARCH ${DPKG_ARCH})
-
-    SET(CPACK_SYSTEM_NAME "${DISTRO}.${DPKG_ARCH}")
-    SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${DPKG_ARCH})
-    SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "marpaia@fb.com")
+    set(CPACK_SYSTEM_NAME "${OSQUERY_BUILD_DISTRO}.${DPKG_ARCH}")
+    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${DPKG_ARCH})
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "marpaia@fb.com")
   endif()
 
-  INCLUDE(CPack)
+  include(CPack)
 endif()

@@ -6,7 +6,7 @@ else()
   set (OS_CORE_SOURCE "")
 endif()
 
-ADD_OSQUERY_LIBRARY(osquery_core
+ADD_OSQUERY_CORE_LIBRARY(osquery_core
   conversions.cpp
   init_osquery.cpp
   sql.cpp
