@@ -1,0 +1,6 @@
+table_name("kernel_integrity")
+schema([
+    Column("sycall_addr_modified", INTEGER),
+    Column("text_segment_hash", TEXT),
+])
+implementation("kernel_integrity@genKernelIntegrity")
