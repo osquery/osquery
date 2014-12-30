@@ -1,16 +1,16 @@
 if(APPLE)
-  ADD_OSQUERY_OBJCXX_LIBRARY(osquery_filesystem_objc
+  ADD_OSQUERY_CORE_OBJCXX_LIBRARY(osquery_filesystem_objc
     darwin/plist.mm
   )
 
-  ADD_OSQUERY_LINK("-framework Foundation")
+  ADD_OSQUERY_CORE_LINK("-framework Foundation")
 elseif(UBUNTU OR CENTOS)
-  ADD_OSQUERY_LIBRARY(osquery_filesystem_linux
+  ADD_OSQUERY_CORE_LIBRARY(osquery_filesystem_linux
     linux/proc.cpp
   )
 endif()
 
-ADD_OSQUERY_LIBRARY(osquery_filesystem
+ADD_OSQUERY_CORE_LIBRARY(osquery_filesystem
   filesystem.cpp
 )
 

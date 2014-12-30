@@ -1,4 +1,4 @@
-ADD_OSQUERY_LIBRARY(osquery_scheduler
+ADD_OSQUERY_CORE_LIBRARY(osquery_scheduler
   scheduler.cpp
 )
 

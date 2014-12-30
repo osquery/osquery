@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -11,30 +11,13 @@
 #include <string>
 #include <iomanip>
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include <boost/lexical_cast.hpp>
 #include <boost/uuid/sha1.hpp>
 
-#include <CoreFoundation/CoreFoundation.h>
-#include <Security/Security.h>
-
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
+#include "osquery/tables/system/darwin/ca_certs.h"
 
 namespace osquery {
 namespace tables {
-
-std::string genKIDProperty(const CFDataRef&);
-std::string genCommonNameProperty(const CFDataRef&);
-std::string genAlgorithmProperty(const CFDataRef&);
-
-typedef std::string (*PropGenerator)(const CFDataRef&);
-typedef std::pair<CFTypeRef, PropGenerator> Property;
 
 const std::vector<std::string> kSystemKeychainPaths = {
     "/System/Library/Keychains", "/Library/Keychains",
@@ -60,34 +43,16 @@ const std::map<std::string, Property> kCertificateProperties = {
      std::make_pair(kSecOIDAuthorityKeyIdentifier, genKIDProperty)},
 };
 
-// From SecCertificatePriv.h
-typedef uint32_t SecKeyUsage;
-enum {
-  kSecKeyUsageUnspecified = 0,
-  kSecKeyUsageDigitalSignature = 1 << 0,
-  kSecKeyUsageNonRepudiation = 1 << 1,
-  kSecKeyUsageContentCommitment = 1 << 1,
-  kSecKeyUsageKeyEncipherment = 1 << 2,
-  kSecKeyUsageDataEncipherment = 1 << 3,
-  kSecKeyUsageKeyAgreement = 1 << 4,
-  kSecKeyUsageKeyCertSign = 1 << 5,
-  kSecKeyUsageCRLSign = 1 << 6,
-  kSecKeyUsageEncipherOnly = 1 << 7,
-  kSecKeyUsageDecipherOnly = 1 << 8,
-  kSecKeyUsageCritical = 1 << 31,
-  kSecKeyUsageAll = 0x7FFFFFFF
-};
-
 std::string genKIDProperty(const CFDataRef& kid) {
   CFDataRef kid_data = NULL;
   CFDictionaryRef kid_dict = NULL;
-  const char *kid_value = 0;
+  const char* kid_value = 0;
 
   // Find the key identifier data within the property mess.
   for (CFIndex i = 0; i < CFArrayGetCount((CFArrayRef)kid); i++) {
     kid_dict = (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)kid, i);
     kid_value =
-        (const char *)CFDictionaryGetValue(kid_dict, kSecPropertyKeyValue);
+        (const char*)CFDictionaryGetValue(kid_dict, kSecPropertyKeyValue);
 
     if (CFGetTypeID(kid_value) == CFDataGetTypeID()) {
       kid_data = (CFDataRef)kid_value;
@@ -194,8 +159,8 @@ CFNumberRef CFNumberCreateCopy(const CFNumberRef& number) {
   return copy;
 }
 
-CFDataRef CreatePropertyFromCertificate(const SecCertificateRef &cert,
-                                        const CFTypeRef &oid) {
+CFDataRef CreatePropertyFromCertificate(const SecCertificateRef& cert,
+                                        const CFTypeRef& oid) {
   CFDictionaryRef certificate_values;
   CFDictionaryRef property_values;
   CFDataRef property;
@@ -231,7 +196,7 @@ CFDataRef CreatePropertyFromCertificate(const SecCertificateRef &cert,
   } else if (CFGetTypeID(property) == CFNumberGetTypeID()) {
     property = (CFDataRef)CFNumberCreateCopy((CFNumberRef)property);
   } else {
-    LOG(ERROR) << "This property type is unknown...";
+    // LOG(ERROR) << "This property type is unknown...";
     property = NULL;
   }
 
@@ -277,95 +242,6 @@ bool CertificateIsCA(const SecCertificateRef& cert) {
 
   CFRelease(constraints);
   return isCA;
-}
-
-bool genOSXAuthorities(CFArrayRef &reference) {
-  CFArrayRef keychain_certs;
-  CFMutableDictionaryRef query;
-  OSStatus status = errSecSuccess;
-
-  query = CFDictionaryCreateMutable(NULL,
-                                    0,
-                                    &kCFTypeDictionaryKeyCallBacks,
-                                    &kCFTypeDictionaryValueCallBacks);
-  CFDictionaryAddValue(query, kSecClass, kSecClassCertificate);
-  CFDictionaryAddValue(query, kSecReturnRef, kCFBooleanTrue);
-  // This can be added to restrict results to x509v3
-  // CFDictionaryAddValue(query, kSecAttrCertificateType, 0x03);
-  CFDictionaryAddValue(query, kSecAttrCanVerify, kCFBooleanTrue);
-  CFDictionaryAddValue(query, kSecMatchLimit, kSecMatchLimitAll);
-
-  status = SecItemCopyMatching(query, (CFTypeRef *)&keychain_certs);
-  CFRelease(query);
-
-  if (status != errSecSuccess) {
-    reference = NULL;
-    return false;
-  }
-
-  // Limit certificates to authorities (kSecOIDBasicConstraints).
-  CFMutableArrayRef authorities;
-  SecCertificateRef cert;
-
-  // Store just the authority certificates.
-  authorities = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
-
-  // For each certificate returned from the search, get the constraints prop.
-  for (CFIndex i = 0; i < CFArrayGetCount(keychain_certs); i++) {
-    cert = (SecCertificateRef)CFArrayGetValueAtIndex(keychain_certs, i);
-    if (CertificateIsCA(cert)) {
-      CFArrayAppendValue(authorities, cert);
-    }
-  }
-
-  reference = (CFArrayRef)authorities;
-  CFRelease(keychain_certs);
-  return (status == errSecSuccess);
-}
-
-QueryData genCerts(QueryContext &context) {
-  QueryData results;
-  CFArrayRef authorities = NULL;
-  // Keychains/certificate stores belonging to the OS.
-  if (!genOSXAuthorities(authorities)) {
-    LOG(ERROR) << "Could not find OSX Keychain Certificate Authorities.";
-    return results;
-  }
-
-  // Must have returned an array of matching certificates.
-  if (CFGetTypeID(authorities) != CFArrayGetTypeID()) {
-    LOG(ERROR) << "Unknown certificate authorities type.";
-    return results;
-  }
-
-  // Evaluate the certificate data, check for CA in Basic constraints.
-  unsigned int certificate_count = 0;
-  SecCertificateRef ca = NULL;
-  CFDataRef property = NULL;
-
-  certificate_count = CFArrayGetCount((CFArrayRef)authorities);
-  for (CFIndex i = 0; i < certificate_count; i++) {
-    Row r;
-    ca = (SecCertificateRef)CFArrayGetValueAtIndex(authorities, i);
-
-    // Iterate through each selected certificate property.
-    for (const auto &property_iterator : kCertificateProperties) {
-      property =
-          CreatePropertyFromCertificate(ca, property_iterator.second.first);
-      if (property == NULL) {
-        continue;
-      }
-      // Each property may be stored differently, apply a generator function.
-      r[property_iterator.first] = property_iterator.second.second(property);
-      CFRelease(property);
-    }
-
-    r["sha1"] = genSHA1ForCertificate(ca);
-    results.push_back(r);
-  }
-
-  CFRelease(authorities);
-  return results;
 }
 }
 }

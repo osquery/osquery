@@ -1,4 +1,4 @@
-ADD_OSQUERY_LIBRARY(osquery_dispatcher
+ADD_OSQUERY_CORE_LIBRARY(osquery_dispatcher
   dispatcher.cpp
 )
 
