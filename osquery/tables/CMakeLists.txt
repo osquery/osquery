@@ -68,8 +68,14 @@ else()
     system/linux/rpm_packages.cpp
   )
 
+  # Ubuntu specific tables
+  ADD_OSQUERY_LIBRARY(osquery_tables_ubuntu
+    system/linux/deb_packages.cpp
+  )
+
   ADD_OSQUERY_LINK("rpm")
   ADD_OSQUERY_LINK("rpmio")
+  ADD_OSQUERY_LINK("dpkg")
 
 endif()
 

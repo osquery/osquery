@@ -4,7 +4,7 @@
 #  All rights reserved.
 #
 #  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant 
+#  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 set -e
@@ -346,6 +346,7 @@ function main() {
     package clang-3.4
     package clang-format-3.4
     package librpm-dev
+    package libdpkg-dev
     package libudev-dev
     package libblkid-dev
     package linux-headers-generic
