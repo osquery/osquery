@@ -78,9 +78,11 @@ else()
     # Ubuntu specific tables
     ADD_OSQUERY_LIBRARY(osquery_tables_ubuntu
       system/linux/deb_packages.cpp
+      system/linux/apt_sources.cpp
     )
 
     ADD_OSQUERY_LINK("dpkg")
+    ADD_OSQUERY_LINK("apt-pkg")
 
     # Add version of libproc
     if(PROCPS)
