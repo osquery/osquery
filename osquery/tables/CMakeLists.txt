@@ -65,24 +65,26 @@ else()
     system/linux/block_devices.cpp
   )
 
-  # CentOS specific tables
-  ADD_OSQUERY_LIBRARY(osquery_tables_redhat
-    system/linux/rpm_packages.cpp
-  )
+  if(CENTOS)
+    # CentOS specific tables
+    ADD_OSQUERY_LIBRARY(osquery_tables_redhat
+      system/linux/rpm_packages.cpp
+    )
 
-  # Add version of libproc
-  if(UBUNTU AND PROCPS)
-    ADD_OSQUERY_LINK("libprocps.a")
-  elseif(UBUNTU)
-    ADD_OSQUERY_LINK("libproc.a")
-  elseif(CENTOS)
     ADD_OSQUERY_LINK("proc")
+    ADD_OSQUERY_LINK("rpm")
+    ADD_OSQUERY_LINK("rpmio")
+  elseif(UBUNTU)
+    # Add version of libproc
+    if(PROCPS)
+      ADD_OSQUERY_LINK("libprocps.a")
+    else()
+      ADD_OSQUERY_LINK("libproc.a")
+    endif()
   endif()
 
   ADD_OSQUERY_LINK("blkid")
   ADD_OSQUERY_LINK("udev")
-  ADD_OSQUERY_LINK("rpm")
-  ADD_OSQUERY_LINK("rpmio")
 endif()
 
 ADD_OSQUERY_LIBRARY(osquery_tables

@@ -96,8 +96,13 @@ macro(GENERATE_TABLES TABLES_PATH BASE_PATH)
     file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/darwin/*.table")
   elseif(FREEBSD)
     file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/freebsd/*.table")
-  else()
+  else(LINUX)
     file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/linux/*.table")
+    if(CENTOS)
+      file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/centos/*.table")
+    elseif(UBUNTU)
+      file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/ubuntu/*.table")
+    endif()
   endif()
   list(APPEND TABLE_FILES ${TABLE_FILES_PLATFORM})
 
@@ -120,14 +125,9 @@ endmacro()
 
 macro(GENERATE_TABLE TABLE_FILE NAME BASE_PATH OUTPUT)
   set(TABLE_FILE_GEN ${TABLE_FILE})
-  string(REPLACE ".table" ".cpp" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  string(REPLACE "linux/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  string(REPLACE "darwin/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  string(REPLACE "freebsd/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  string(REPLACE "x/" "" TABLE_FILE_GEN ${TABLE_FILE_GEN})
-  string(REGEX REPLACE
-    ".*/specs"
-    "${CMAKE_BINARY_DIR}/generated/tables_${NAME}"
+  string(REGEX REPLACE 
+    ".*/specs/.*/(.*)\\.table"
+    "${CMAKE_BINARY_DIR}/generated/tables_${NAME}/\\1.cpp"
     TABLE_FILE_GEN
     ${TABLE_FILE_GEN}
   )
