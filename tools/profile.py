@@ -378,7 +378,7 @@ if __name__ == "__main__":
 
     group = parser.add_argument_group("Memory Options:")
     group.add_argument(
-        "--suppressions", metavar="SUPP", default=None,
+        "--suppressions", metavar="SUPP", default="./tools/tests/osquery.supp",
         help="Add a suppressions files to memory leak checking (linux only)."
     )
     args = parser.parse_args()

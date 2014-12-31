@@ -147,9 +147,6 @@ add_subdirectory(examples)
 add_subdirectory(filesystem)
 add_subdirectory(logger)
 add_subdirectory(scheduler)
-
-# Include the tables and build the utilities tables.
-include(tables/CMakeLibs.txt)
 add_subdirectory(tables)
 
 # Utility tables are table specs that are ALWAYS built into osquery core.
