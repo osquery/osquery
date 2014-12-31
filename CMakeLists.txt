@@ -93,7 +93,7 @@ link_directories("/usr/local/lib")
 
 enable_testing()
 
-include(CMakeLibs.txt)
+include(CMakeLibs)
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)
 
