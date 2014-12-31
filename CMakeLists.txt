@@ -6,7 +6,7 @@ if(APPLE)
   set(OS_COMPILE_FLAGS "-std=c++11 -stdlib=libc++ -mmacosx-version-min=${APPLE_MIN_ABI}")
   # Special compile flags for Objective-C++
   set(OBJCXX_COMPILE_FLAGS "-x objective-c++ -fobjc-arc -Wno-c++11-extensions")
-  set(OS_WHOLELINK_PRE "-Wl,-all_load")
+  set(OS_WHOLELINK_PRE "-Wl,-force_load")
   set(OS_WHOLELINK_POST "")
 else()
   if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
@@ -93,7 +93,7 @@ link_directories("/usr/local/lib")
 
 enable_testing()
 
-include(CMakeLibs.txt)
+include(CMakeLibs)
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)
 
