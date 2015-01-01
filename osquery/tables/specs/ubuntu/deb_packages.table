@@ -4,6 +4,6 @@ schema([
     Column("version", TEXT),
     Column("source", TEXT),
     Column("size", TEXT),
-    Column("arch", TEXT),
+    Column("arch", TEXT)
 ])
 implementation("system/deb_packages@genDebs")
