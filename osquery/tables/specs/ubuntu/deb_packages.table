@@ -1,0 +1,10 @@
+table_name("deb_packages")
+schema([
+    Column("name", TEXT),
+    Column("version", TEXT),
+    Column("source", TEXT),
+    Column("size", BIGINT),
+    Column("arch", TEXT),
+    Column("revision", TEXT)
+])
+implementation("system/deb_packages@genDebs")

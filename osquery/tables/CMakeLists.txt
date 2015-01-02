@@ -75,6 +75,13 @@ else()
     ADD_OSQUERY_LINK("rpm")
     ADD_OSQUERY_LINK("rpmio")
   elseif(UBUNTU)
+    # Ubuntu specific tables
+    ADD_OSQUERY_LIBRARY(osquery_tables_ubuntu
+      system/linux/deb_packages.cpp
+    )
+
+    ADD_OSQUERY_LINK("dpkg")
+
     # Add version of libproc
     if(PROCPS)
       ADD_OSQUERY_LINK("libprocps.a")
