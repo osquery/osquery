@@ -1,4 +1,12 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+*  Copyright (c) 2014, Facebook, Inc.
+*  All rights reserved.
+*
+*  This source code is licensed under the BSD-style license found in the
+*  LICENSE file in the root directory of this source tree. An additional grant
+*  of patent rights can be found in the PATENTS file in the same directory.
+*
+*/
 
 #include <boost/algorithm/string.hpp>
 #include <osquery/tables.h>
@@ -16,10 +24,10 @@ enum pkgwant {
   want_hold,
   want_deinstall,
   want_purge,
-  /** Not allowed except as special sentinel value in some places. */
+  // Not allowed except as special sentinel value in some places.
   want_sentinel,
 } want;
-/** The error flag bitmask. */
+// The error flag bitmask.
 enum pkgeflag {
   eflag_ok = 0,
   eflag_reinstreq = 1,
@@ -43,8 +51,9 @@ enum pkgstatus {
 namespace osquery {
 namespace tables {
 
-// dpkg versions in 12.04 and 14.04 use completely different sorters
-// bringing this one forward to smoother over the incompatibility
+/**
+* @brief A comparator used to sort the packages array
+*/
 int pkg_sorter(const void *a, const void *b) {
   const struct pkginfo *pa = *(const struct pkginfo **)a;
   const struct pkginfo *pb = *(const struct pkginfo **)b;
@@ -62,20 +71,44 @@ int pkg_sorter(const void *a, const void *b) {
   return strcmp(arch_a, arch_b);
 }
 
-void dpkg_setup(char const *name,
-                enum modstatdb_rw mode,
-                struct pkg_array *array) {
-  dpkg_set_progname(name);
-  push_error_context();
-
-  modstatdb_open(mode);
-
-  pkg_array_init_from_db(array);
-  pkg_array_sort(array, pkg_sorter);
+/**
+* @brief A field extractor to fetch the revision of a package
+*
+* dpkg tracks the revision as part of version, but we need to
+* provde our own fwritefunction for fieldinfos to extract it.
+*/
+void w_revision(struct varbuf *vb,
+                const struct pkginfo *pkg,
+                const struct pkgbin *pkgbin,
+                enum fwriteflags flags,
+                const struct fieldinfo *fip) {
+  if (flags & fw_printheader) {
+    varbuf_add_str(vb, "Revision: ");
+  }
+  varbuf_add_str(vb, pkgbin->version.revision);
+  if (flags & fw_printheader) {
+    varbuf_add_char(vb, '\n');
+  }
 }
 
-void dpkg_teardown(struct pkg_array *array) {
-  pkg_array_destroy(array);
+/**
+* @brief Initialize dpkg and load packages into memory
+*/
+void dpkg_setup(struct pkg_array *packages) {
+  dpkg_set_progname("osquery");
+  push_error_context();
+
+  modstatdb_open(msdbrw_readonly);
+
+  pkg_array_init_from_db(packages);
+  pkg_array_sort(packages, pkg_sorter);
+}
+
+/**
+* @brief Clean up after dpkg operations
+*/
+void dpkg_teardown(struct pkg_array *packages) {
+  pkg_array_destroy(packages);
 
   pkg_db_reset();
   modstatdb_done();
@@ -89,57 +122,34 @@ const std::map<std::string, std::string> kFieldMappings = {
     {"Installed-Size", "size"},
     {"Architecture", "arch"},
     {"Source", "source"},
-    {"MD5sum", "md5sum"}, };
+    {"Revision", "revision"}};
 
 /**
-* Fields information - taken from lib/dpkg/parse.c
+* @brief Field names and function references to extract information
+*
+* These are taken from lib/dpkg/parse.c, with a slight modification to
+* add an fwritefunction for Revision. Additional fields can be taken
+* as needed.
 */
 const struct fieldinfo fieldinfos[] = {
-    /* Note: Capitalization of field name strings is important. */
     {"Package", f_name, w_name},
-    {"Essential", f_boolean, w_booleandefno, PKGIFPOFF(essential)},
-    {"Status", f_status, w_status},
-    {"Priority", f_priority, w_priority},
-    {"Section", f_section, w_section},
     {"Installed-Size", f_charfield, w_charfield, PKGIFPOFF(installedsize)},
-    {"Origin", f_charfield, w_charfield, PKGIFPOFF(origin)},
-    {"Maintainer", f_charfield, w_charfield, PKGIFPOFF(maintainer)},
-    {"Bugs", f_charfield, w_charfield, PKGIFPOFF(bugs)},
     {"Architecture", f_architecture, w_architecture},
-    {"Multi-Arch", f_multiarch, w_multiarch, PKGIFPOFF(multiarch)},
     {"Source", f_charfield, w_charfield, PKGIFPOFF(source)},
     {"Version", f_version, w_version, PKGIFPOFF(version)},
-    {"Revision", f_revision, w_null},
-    {"Config-Version", f_configversion, w_configversion},
-    {"Replaces", f_dependency, w_dependency, dep_replaces},
-    {"Provides", f_dependency, w_dependency, dep_provides},
-    {"Depends", f_dependency, w_dependency, dep_depends},
-    {"Pre-Depends", f_dependency, w_dependency, dep_predepends},
-    {"Recommends", f_dependency, w_dependency, dep_recommends},
-    {"Suggests", f_dependency, w_dependency, dep_suggests},
-    {"Breaks", f_dependency, w_dependency, dep_breaks},
-    {"Conflicts", f_dependency, w_dependency, dep_conflicts},
-    {"Enhances", f_dependency, w_dependency, dep_enhances},
-    {"Conffiles", f_conffiles, w_conffiles},
-    {"Filename", f_filecharf, w_filecharf, FILEFOFF(name)},
-    {"Size", f_filecharf, w_filecharf, FILEFOFF(size)},
-    {"MD5sum", f_filecharf, w_filecharf, FILEFOFF(md5sum)},
-    {"MSDOS-Filename", f_filecharf, w_filecharf, FILEFOFF(msdosname)},
-    {"Description", f_charfield, w_charfield, PKGIFPOFF(description)},
-    {"Triggers-Pending", f_trigpend, w_trigpend},
-    {"Triggers-Awaited", f_trigaw, w_trigaw},
-    /* Note that aliases are added to the nicknames table. */
+    {"Revision", f_revision, w_revision},
     {NULL}};
 
-Row extractDebPackageInfo(const struct pkginfo *pkg,
-                          const struct pkgbin *pkgbin) {
+void extractDebPackageInfo(const struct pkginfo *pkg, QueryData &results) {
   Row r;
   const struct fieldinfo *fip;
-
   struct varbuf vb;
   varbuf_init(&vb, 20);
+
+  // Iterate over the desired fieldinfos, calling their fwritefunctions
+  // to extract the package's information.
   for (fip = fieldinfos; fip->name; fip++) {
-    fip->wcall(&vb, pkg, pkgbin, fw_printheader, fip);
+    fip->wcall(&vb, pkg, &pkg->installed, fw_printheader, fip);
 
     std::string line = vb.string();
     if (!line.empty()) {
@@ -150,34 +160,35 @@ Row extractDebPackageInfo(const struct pkginfo *pkg,
       if (it != kFieldMappings.end()) {
         boost::algorithm::trim(value);
         r[it->second] = value;
-        }
+      }
     }
     varbuf_reset(&vb);
   }
   varbuf_destroy(&vb);
 
-  return r;
+  results.push_back(r);
 }
 
 QueryData genDebs(QueryContext &context) {
   QueryData results;
-  struct pkg_array array;
+
+  struct pkg_array packages;
   struct pkginfo *pkg;
   int i;
 
-  dpkg_setup("dpkg", msdbrw_readonly, &array);
+  dpkg_setup(&packages);
 
-  for (i = 0; i < array.n_pkgs; i++) {
-    pkg = array.pkgs[i];
+  for (i = 0; i < packages.n_pkgs; i++) {
+    pkg = packages.pkgs[i];
 
     if (pkg->status == pkg->stat_notinstalled) {
       continue;
     }
 
-    results.push_back(extractDebPackageInfo(pkg, &pkg->installed));
+    extractDebPackageInfo(pkg, results);
   }
 
-  dpkg_teardown(&array);
+  dpkg_teardown(&packages);
 
   return results;
 }

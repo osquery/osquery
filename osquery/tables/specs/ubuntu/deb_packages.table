@@ -3,7 +3,8 @@ schema([
     Column("name", TEXT),
     Column("version", TEXT),
     Column("source", TEXT),
-    Column("size", TEXT),
-    Column("arch", TEXT)
+    Column("size", BIGINT),
+    Column("arch", TEXT),
+    Column("revision", TEXT)
 ])
 implementation("system/deb_packages@genDebs")
