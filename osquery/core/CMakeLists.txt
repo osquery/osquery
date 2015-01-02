@@ -8,7 +8,7 @@ endif()
 
 ADD_OSQUERY_CORE_LIBRARY(osquery_core
   conversions.cpp
-  init_osquery.cpp
+  init.cpp
   sql.cpp
   sqlite_util.cpp
   system.cpp

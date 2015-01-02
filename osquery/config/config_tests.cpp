@@ -13,27 +13,37 @@
 #include <osquery/core.h>
 #include <osquery/config.h>
 #include <osquery/config/plugin.h>
-#include <osquery/status.h>
+#include <osquery/flags.h>
 #include <osquery/registry.h>
 
-using osquery::Status;
+#include "osquery/core/test_util.h"
 
 namespace osquery {
 
+// The config_path flag is defined in the filesystem config plugin.
+DECLARE_string(config_path);
+
 class ConfigTests : public testing::Test {
  public:
-  ConfigTests() { osquery::InitRegistry::get().run(); }
+  ConfigTests() {
+    FLAGS_config_retriever = "filesystem";
+    FLAGS_config_path = core::kTestDataPath + "test.config";
+
+    osquery::InitRegistry::get().run();
+    auto c = Config::getInstance();
+    c->load();
+  }
 };
 
 TEST_F(ConfigTests, test_queries_execute) {
   auto c = Config::getInstance();
-  for (const auto& i : c->getScheduledQueries()) {
+  auto queries = c->getScheduledQueries();
+
+  EXPECT_EQ(queries.size(), 1);
+  for (const auto& i : queries) {
     int err;
     auto r = query(i.query, err);
     EXPECT_EQ(err, 0);
-
-    // At most query one shceduled query from the config.
-    break;
   }
 }
 

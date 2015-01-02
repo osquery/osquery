@@ -581,6 +581,7 @@ class EventSubscriberCore {
    */
   virtual QueryData get(EventTime start, EventTime stop);
 
+ private:
   /*
    * @brief When `get`ting event results, return EventID%s from time indexes.
    *
@@ -594,7 +595,6 @@ class EventSubscriberCore {
    */
   std::vector<EventRecord> getRecords(const std::vector<std::string>& indexes);
 
- private:
   /**
    * @brief Get a unique storage-related EventID.
    *

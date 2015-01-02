@@ -8,12 +8,9 @@
  *
  */
 
-#include <algorithm>
-#include <future>
+#include <mutex>
 #include <random>
 #include <sstream>
-#include <string>
-#include <vector>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -24,11 +21,8 @@
 #include <osquery/config.h>
 #include <osquery/config/plugin.h>
 #include <osquery/flags.h>
-#include <osquery/status.h>
 
 #include "osquery/core/md5.h"
-
-using osquery::Status;
 
 namespace pt = boost::property_tree;
 
@@ -51,13 +45,14 @@ std::shared_ptr<Config> Config::getInstance() {
   return config;
 }
 
-Config::Config() {
+Status Config::load() {
   boost::unique_lock<boost::shared_mutex> lock(rw_lock);
   OsqueryConfig conf;
+
   auto s = Config::genConfig(conf);
   if (!s.ok()) {
     LOG(ERROR) << "error retrieving config: " << s.toString();
-    return;
+    return Status(1, "Cannot generate config");
   }
 
   // Override default arguments with flag options from config.
@@ -78,7 +73,9 @@ Config::Config() {
               << old_interval << " to " << new_interval;
     q.interval = new_interval;
   }
+
   cfg_ = conf;
+  return Status(0, "OK");
 }
 
 Status Config::genConfig(std::string& conf) {
@@ -87,6 +84,7 @@ Status Config::genConfig(std::string& conf) {
     LOG(ERROR) << "Config retriever " << FLAGS_config_retriever << " not found";
     return Status(1, "Config retriever not found");
   }
+
   auto config_data =
       REGISTERED_CONFIG_PLUGINS.at(FLAGS_config_retriever)->genConfig();
   if (!config_data.first.ok()) {
