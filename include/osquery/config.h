@@ -10,17 +10,17 @@
 
 #pragma once
 
-#include <future>
 #include <map>
 #include <memory>
-#include <mutex>
-#include <string>
-#include <utility>
 #include <vector>
 
+#include <osquery/flags.h>
 #include <osquery/status.h>
 
 namespace osquery {
+
+/// The builder or invoker may change the default config plugin.
+DECLARE_string(config_retriever);
 
 /**
  * @brief represents the relevant parameters of a scheduled query.
@@ -98,6 +98,13 @@ class Config {
   static std::shared_ptr<Config> getInstance();
 
   /**
+   * @brief Call the genConfig method of the config retriever plugin.
+   *
+   * This may perform a resource load such as TCP request or filesystem read.
+   */
+  Status load();
+
+  /**
    * @brief Get a vector of all scheduled queries.
    *
    * @code{.cpp}
@@ -140,7 +147,7 @@ class Config {
    * Since instances of Config should only be created via getInstance(),
    * Config's constructor is private
    */
-  Config();
+  Config() {}
 
   /**
    * @brief Uses the specified config retriever to populate a config struct.

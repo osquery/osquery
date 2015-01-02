@@ -11,8 +11,6 @@
 #include <climits>
 #include <ctime>
 
-#include <glog/logging.h>
-
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/database.h>
@@ -32,7 +30,7 @@ Status getHostIdentifier(std::string& ident) {
   std::shared_ptr<DBHandle> db;
   try {
     db = DBHandle::getInstance();
-  } catch (const std::exception& e) {
+  } catch (const std::runtime_error& e) {
     return Status(1, e.what());
   }
 
@@ -69,57 +67,63 @@ Status getHostIdentifier(std::string& ident) {
   }
 }
 
+void launchQuery(const OsqueryScheduledQuery& query) {
+  LOG(INFO) << "Executing query: " << query.query;
+  int unix_time = std::time(0);
+  auto sql = SQL(query.query);
+  if (!sql.ok()) {
+    LOG(ERROR) << "Error executing query (" << query.query
+               << "): " << sql.getMessageString();
+    return;
+  }
+
+  auto dbQuery = Query(query);
+  DiffResults diff_results;
+  auto status = dbQuery.addNewResults(sql.rows(), diff_results, unix_time);
+  if (!status.ok()) {
+    LOG(ERROR) << "Error adding new results to database: " << status.what();
+    return;
+  }
+
+  if (diff_results.added.size() == 0 && diff_results.removed.size() == 0) {
+    // No diff results or events to emit.
+    return;
+  }
+
+  ScheduledQueryLogItem item;
+  Status s;
+
+  item.diffResults = diff_results;
+  item.name = query.name;
+
+  std::string ident;
+  s = getHostIdentifier(ident);
+  if (s.ok()) {
+    item.hostIdentifier = ident;
+  } else {
+    LOG(ERROR) << "Error getting the host identifier";
+    if (ident.empty()) {
+      ident = "<unknown>";
+    }
+  }
+
+  item.unixTime = osquery::getUnixTime();
+  item.calendarTime = osquery::getAsciiTime();
+
+  LOG(INFO) << "Found results for query " << query.name
+            << " for host: " << ident;
+  s = logScheduledQueryLogItem(item);
+  if (!s.ok()) {
+    LOG(ERROR) << "Error logging the results of query \"" << query.query << "\""
+               << ": " << s.toString();
+  }
+}
+
 void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
                    const int64_t& second) {
   for (const auto& q : queries) {
     if (second % q.interval == 0) {
-      LOG(INFO) << "Executing query: " << q.query;
-      int unix_time = std::time(0);
-      auto sql = SQL(q.query);
-      if (!sql.ok()) {
-        LOG(ERROR) << "Error executing query (" << q.query
-                   << "): " << sql.getMessageString();
-        continue;
-      }
-      auto dbQuery = Query(q);
-      DiffResults diff_results;
-      auto status = dbQuery.addNewResults(sql.rows(), diff_results, unix_time);
-      if (!status.ok()) {
-        LOG(ERROR)
-            << "Error adding new results to database: " << status.toString();
-        continue;
-      }
-
-      if (diff_results.added.size() > 0 || diff_results.removed.size() > 0) {
-        ScheduledQueryLogItem item;
-        Status s;
-
-        item.diffResults = diff_results;
-        item.name = q.name;
-
-        std::string ident;
-        s = getHostIdentifier(ident);
-        if (s.ok()) {
-          item.hostIdentifier = ident;
-        } else {
-          LOG(ERROR) << "Error getting the host identifier";
-          if (ident.empty()) {
-            ident = "<unknown>";
-          }
-        }
-
-        item.unixTime = osquery::getUnixTime();
-        item.calendarTime = osquery::getAsciiTime();
-
-        LOG(INFO) << "Found results for query " << q.name
-                  << " for host: " << ident;
-        s = logScheduledQueryLogItem(item);
-        if (!s.ok()) {
-          LOG(ERROR) << "Error logging the results of query \"" << q.query
-                     << "\""
-                     << ": " << s.toString();
-        }
-      }
+      launchQuery(q);
     }
   }
 }
@@ -129,7 +133,7 @@ void initializeScheduler() {
   time_t t = time(0);
   struct tm* local = localtime(&t);
   unsigned long int second = local->tm_sec;
-  auto cfg = Config::getInstance();
+
 #ifdef OSQUERY_TEST_DAEMON
   // if we're testing the daemon, only iterate through 15 "seconds"
   static unsigned long int stop_at = second + 15;
@@ -137,9 +141,11 @@ void initializeScheduler() {
   // if this is production, count forever
   static unsigned long int stop_at = ULONG_MAX;
 #endif
+
+  auto cfg = Config::getInstance();
   for (; second <= stop_at; ++second) {
     launchQueries(cfg->getScheduledQueries(), second);
-    sleep(1);
+    ::sleep(1);
   }
 }
 }

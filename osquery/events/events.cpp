@@ -8,6 +8,8 @@
  *
  */
 
+#include <stdexcept>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/lexical_cast.hpp>
@@ -313,7 +315,14 @@ EventID EventSubscriberCore::getEventID() {
 QueryData EventSubscriberCore::get(EventTime start, EventTime stop) {
   QueryData results;
   Status status;
-  auto db = DBHandle::getInstance();
+
+  std::shared_ptr<DBHandle> db;
+  try {
+    db = DBHandle::getInstance();
+  } catch (const std::runtime_error& e) {
+    LOG(ERROR) << "Cannot retrieve subscriber results database is locked";
+    return results;
+  }
 
   // Get the records for this time range.
   auto indexes = getIndexes(start, stop);
@@ -347,7 +356,13 @@ QueryData EventSubscriberCore::get(EventTime start, EventTime stop) {
 
 Status EventSubscriberCore::add(const Row& r, EventTime time) {
   Status status;
-  auto db = DBHandle::getInstance();
+
+  std::shared_ptr<DBHandle> db;
+  try {
+    db = DBHandle::getInstance();
+  } catch (const std::runtime_error& e) {
+    return Status(1, e.what());
+  }
 
   // Get and increment the EID for this module.
   EventID eid = getEventID();

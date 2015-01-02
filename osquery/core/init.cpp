@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -12,6 +12,7 @@
 
 #include <glog/logging.h>
 
+#include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/filesystem.h>
@@ -76,6 +77,7 @@ void initOsquery(int argc, char* argv[], int tool) {
   std::string binary(fs::path(std::string(argv[0])).filename().string());
   std::string first_arg = (argc > 1) ? std::string(argv[1]) : "";
 
+  // osquery implements a custom help/usage output.
   if ((first_arg == "--help" || first_arg == "-h" || first_arg == "-help") &&
       tool != OSQUERY_TOOL_TEST) {
     printUsage(binary, tool);
@@ -127,5 +129,12 @@ void initOsquery(int argc, char* argv[], int tool) {
 
   google::InitGoogleLogging(argv[0]);
   osquery::InitRegistry::get().run();
+
+// Once command line arguments are parsed load the osquery config.
+#ifdef OSQUERY_DEFAULT_CONFIG_PLUGIN
+  FLAGS_config_retriever = STR(OSQUERY_DEFAULT_CONFIG_PLUGIN);
+#endif
+  auto config = Config::getInstance();
+  config->load();
 }
 }
