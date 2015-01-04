@@ -18,10 +18,11 @@ source $SCRIPT_DIR/../lib.sh
 
 APP_VERSION=`git describe --tags HEAD`
 APP_IDENTIFIER="com.facebook.osquery"
+LD_IDENTIFIER="com.facebook.osqueryd"
 OUTPUT_PKG_PATH="$SOURCE_DIR/osquery-$APP_VERSION.pkg"
-LAUNCHD_PATH="$SCRIPT_DIR/$APP_IDENTIFIER.plist"
+LAUNCHD_PATH="$SCRIPT_DIR/$LD_IDENTIFIER.plist"
 LAUNCHD_PATH_OVERRIDE=""
-LAUNCHD_INSTALL_PATH="/Library/LaunchDaemons/$APP_IDENTIFIER.plist"
+LAUNCHD_INSTALL_PATH="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
 INCLUDE_LAUNCHD=true
 SIMPLE_INSTALL=false
 OSQUERY_LOG_DIR="/var/log/osquery/"
@@ -52,7 +53,10 @@ launchctl load $LAUNCHD_INSTALL_PATH
 "
 
 function usage() {
-  fatal "Usage: $0 -c path/to/your/osquery.conf"
+  fatal "Usage: $0 [-c path/to/your/osquery.conf] [-n] [-l path/to/osqueryd.plist]
+    -c PATH embed an osqueryd config.
+    -n Do not embed the default launchd entry.
+    -l PATH override the default launchd entry."
 }
 
 function parse_args() {
@@ -63,8 +67,6 @@ function parse_args() {
                               ;;
       -l | --launchd-path )   shift
                               LAUNCHD_PATH_OVERRIDE=$1
-                              ;;
-      -s | --simple )         SIMPLE_INSTALL=true
                               ;;
       -n | --no-launchd )     INCLUDE_LAUNCHD=false
                               ;;
@@ -114,41 +116,6 @@ function main() {
 
   echo "$SCRIPT_PREFIX_TEXT" > $POSTINSTALL
   chmod +x $POSTINSTALL
-
-  if [[ $SIMPLE_INSTALL = false ]]; then
-    log "calculating dependency tree"
-    dependency_list=("${BREW_PACKAGES[@]}")
-    for package in ${BREW_PACKAGES[*]}; do
-      for dep in `brew deps $package`; do
-        if ! contains_element $dep "${dependency_list[@]}"; then
-          if [[ "$dep" != "openssl" ]]; then dependency_list+=($dep); fi
-        fi
-      done
-    done
-
-    log "calculating library dependencies"
-    for dep in ${dependency_list[*]}; do
-      dep_dir=`brew info $dep | grep Cellar | grep '*' | awk '{print $1}'`
-      brew unlink $dep 2>&1  1>/dev/null
-      links=`brew link --dry-run $dep | sed 1d`
-      brew link --overwrite $dep 2>&1  1>/dev/null
-      echo "    - $dep ($dep_dir)"
-      mkdir -p $INSTALL_PREFIX`dirname $dep_dir`
-      cp -r $dep_dir $INSTALL_PREFIX`dirname $dep_dir`
-      mkdir -p "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula"
-      cp "$BREW_PREFIX/Library/Formula/$dep.rb" "$INSTALL_PREFIX$BREW_PREFIX/Library/Formula/$dep.rb"
-      for link in $links; do
-        # Skip if this link was not in the brew prefix.
-        if [[ ! $link = $BREW_PREFIX* ]]; then continue; fi
-        target="`dirname $link`/`ls -l $link | awk '{print $11}'`"
-        echo "if [ ! -e `dirname $link` ]; then rm -f `dirname $link`; fi" >> $POSTINSTALL
-        echo "mkdir -p `dirname $link`" >> $POSTINSTALL
-        echo "rm -rf $link" >> $POSTINSTALL
-        echo "ln -s $target $link" >> $POSTINSTALL
-        echo "" >> $POSTINSTALL
-      done
-    done
-  fi
 
   log "copying osquery binaries"
   BINARY_INSTALL_DIR="$INSTALL_PREFIX/usr/local/bin/"
