@@ -51,7 +51,6 @@ Status Config::load() {
 
   auto s = Config::genConfig(conf);
   if (!s.ok()) {
-    LOG(ERROR) << "error retrieving config: " << s.toString();
     return Status(1, "Cannot generate config");
   }
 
@@ -85,28 +84,34 @@ Status Config::genConfig(std::string& conf) {
     return Status(1, "Config retriever not found");
   }
 
-  auto config_data =
-      REGISTERED_CONFIG_PLUGINS.at(FLAGS_config_retriever)->genConfig();
-  if (!config_data.first.ok()) {
-    return config_data.first;
+  try {
+    auto config_data =
+        REGISTERED_CONFIG_PLUGINS.at(FLAGS_config_retriever)->genConfig();
+    if (!config_data.first.ok()) {
+      return config_data.first;
+    }
+    conf = config_data.second;
+  } catch (std::exception& e) {
+    LOG(ERROR) << "Could not load config plugin " << FLAGS_config_retriever << ": " << e.what();
+    return Status(1, "Could not load config plugin");
   }
-  conf = config_data.second;
+
   return Status(0, "OK");
 }
 
 Status Config::genConfig(OsqueryConfig& conf) {
-  std::stringstream json;
-  pt::ptree tree;
   std::string config_string;
   auto s = genConfig(config_string);
   if (!s.ok()) {
     return s;
   }
 
-  json << config_string;
-  pt::read_json(json, tree);
-
+  std::stringstream json;
+  pt::ptree tree;
   try {
+    json << config_string;
+    pt::read_json(json, tree);
+
     // Parse each scheduled query from the config.
     for (const pt::ptree::value_type& v : tree.get_child("scheduledQueries")) {
       OsqueryScheduledQuery q;
