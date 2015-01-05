@@ -33,8 +33,6 @@ if(APPLE)
     system/darwin/xprotect.cpp
   )
 
-  ADD_OSQUERY_LINK("-framework Foundation")
-  ADD_OSQUERY_LINK("-framework IOKit")
   ADD_OSQUERY_LINK("-framework CoreFoundation")
   ADD_OSQUERY_LINK("-framework Security")
   ADD_OSQUERY_LINK("-framework OpenDirectory")
@@ -71,7 +69,6 @@ else()
       system/linux/rpm_packages.cpp
     )
 
-    ADD_OSQUERY_LINK("proc")
     ADD_OSQUERY_LINK("rpm")
     ADD_OSQUERY_LINK("rpmio")
   elseif(UBUNTU)
@@ -81,17 +78,12 @@ else()
     )
 
     ADD_OSQUERY_LINK("dpkg")
-
-    # Add version of libproc
-    if(PROCPS)
-      ADD_OSQUERY_LINK("libprocps.a")
-    else()
-      ADD_OSQUERY_LINK("libproc.a")
-    endif()
   endif()
 
+  ADD_OSQUERY_LINK("procps" "proc")
   ADD_OSQUERY_LINK("blkid")
   ADD_OSQUERY_LINK("udev")
+  ADD_OSQUERY_LINK("uuid")
 endif()
 
 ADD_OSQUERY_LIBRARY(osquery_tables
