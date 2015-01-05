@@ -29,14 +29,29 @@ endmacro(ADD_OSQUERY_TEST)
 
 # Core/non core link helping macros (tell the build to link ALL).
 macro(ADD_OSQUERY_LINK LINK)
-  list(APPEND OSQUERY_ADDITIONAL_LINKS ${LINK})
-  set(OSQUERY_ADDITIONAL_LINKS ${OSQUERY_ADDITIONAL_LINKS} PARENT_SCOPE)
+  ADD_OSQUERY_LINK_INTERNAL("${LINK}" "${ARGN}" OSQUERY_ADDITIONAL_LINKS)
 endmacro(ADD_OSQUERY_LINK)
 
 macro(ADD_OSQUERY_CORE_LINK LINK)
-  list(APPEND OSQUERY_LINKS ${LINK})
-  set(OSQUERY_LINKS ${OSQUERY_LINKS} PARENT_SCOPE)
+  ADD_OSQUERY_LINK_INTERNAL("${LINK}" "${ARGN}" OSQUERY_LINKS)
 endmacro(ADD_OSQUERY_CORE_LINK)
+
+macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
+  if(NOT "${LINK}" MATCHES "(^-.*)")
+    find_library("${LINK}_library" NAMES "lib${LINK}.a" "${LINK}" ${LINK_PATHS})
+    message("-- Found dependeny library ${${LINK}_library}")
+    if("${${LINK}_library}" STREQUAL "${${LINK}_library}-NOTFOUND")
+      string(ASCII 27 Esc)
+      message(WARNING "${Esc}[31mDependent library '${LINK}' not found${Esc}[m")
+      list(APPEND ${LINK_SET} ${LINK})
+    else()
+      list(APPEND ${LINK_SET} "${${LINK}_library}")
+    endif()
+  else()
+    list(APPEND ${LINK_SET} ${LINK})
+  endif()
+  set(${LINK_SET} "${${LINK_SET}}" PARENT_SCOPE)
+endmacro(ADD_OSQUERY_LINK_INTERNAL)
 
 # Core/non core lists of target source files.
 macro(ADD_OSQUERY_LIBRARY TARGET)
