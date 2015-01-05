@@ -9,4 +9,4 @@ schema([
     Column("maintainer", TEXT),
     Column("site", TEXT),
 ])
-implementation("system/apt_sources@genSrcs")
+implementation("system/apt_sources@genAptSrcs")

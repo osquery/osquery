@@ -53,7 +53,7 @@ void extractAptSourceInfo(pkgCache::PkgFileIterator src,
   results.push_back(r);
 }
 
-QueryData genSrcs(QueryContext& context) {
+QueryData genAptSrcs(QueryContext& context) {
   QueryData results;
 
   // Load our apt configuration into memory
