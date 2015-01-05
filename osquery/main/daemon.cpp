@@ -20,8 +20,23 @@
 #include <osquery/logger/plugin.h>
 #include <osquery/scheduler.h>
 
+#ifndef __APPLE__
+namespace osquery {
+DEFINE_osquery_flag(bool, daemonize, false, "Run as daemon (osqueryd only).");
+}
+#endif
+
 int main(int argc, char* argv[]) {
   osquery::initOsquery(argc, argv, osquery::OSQUERY_TOOL_DAEMON);
+
+#ifndef __APPLE__
+  // OSX uses launchd to daemonize.
+  if (osquery::FLAGS_daemonize) {
+    if (daemon(0, 0) == -1) {
+      ::exit(EXIT_FAILURE);
+    }
+  }
+#endif
 
   auto pid_status = osquery::createPidFile();
   if (!pid_status.ok()) {
@@ -33,7 +48,7 @@ int main(int argc, char* argv[]) {
     osquery::DBHandle::getInstance();
   } catch (std::exception& e) {
     LOG(ERROR) << "osqueryd failed to start: " << e.what();
-    ::exit(1);
+    ::exit(EXIT_FAILURE);
   }
 
   LOG(INFO) << "Listing all plugins";

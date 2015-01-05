@@ -1,90 +1,5 @@
-set(OSQUERY_LIBS
-  readline
-  pthread
-)
-
-set(OSQUERY_APPLE_LIBS
-  /usr/local/lib/libboost_thread-mt.a
-  /usr/local/lib/libboost_system.a
-  /usr/local/lib/libboost_filesystem.a
-  /usr/local/lib/libboost_program_options.a
-  /usr/local/lib/libboost_regex.a
-  /usr/local/lib/libthrift.a
-  /usr/local/lib/librocksdb.a
-  /usr/local/lib/libsnappy.a
-  /usr/local/lib/liblz4.a
-  /usr/local/lib/libgflags.a
-  /usr/local/lib/libglog.a
-  /usr/local/opt/openssl/lib/libcrypto.a
-  /usr/local/opt/openssl/lib/libssl.a
-  dl
-  bz2
-  z
-)
-
-# Warning: Do not statically compile unwind
-set(OSQUERY_LINUX_LIBS
-  libgflags.a
-  libglog.a
-  librocksdb.a
-  libthrift.a
-  libboost_thread.a
-  libboost_system.a
-  libboost_filesystem.a
-  libboost_program_options.a
-  libboost_regex.a
-
-  bz2
-  crypto
-  dl
-  rt
-  ssl
-  unwind
-  z
-)
-
-set(OSQUERY_UBUNTU_LIBS
-  libsnappy.a
-  liblzma.a
-)
-
-set(OSQUERY_CENTOS_LIBS
-  libsnappy.so
-  liblzma.so
-)
-
-set(OSQUERY_FREEBSD_LIBS
-  gflags
-  glog
-  rocksdb
-  thrift
-  boost_thread
-  boost_system
-  boost_filesystem
-  boost_program_options
-  boost_regex
-
-  bz2
-  crypto
-  lzma
-  rt
-  snappy
-  ssl
-  unwind
-  z
-)
-
-# Check for the explicit path to determine the version of procps
-if(EXISTS "/usr/lib/libprocps.a"
-    OR EXISTS "/usr/lib/x86_64-linux-gnu/libprocps.a")
-  set(PROCPS True)
-else()
-  set(PROCPS False)
-endif()
-
-# Fill this in with objects for libosquery.
+# Fill this in with objects and (linker/linker options) for libosquery.
 set(OSQUERY_SOURCES "")
-# Fill this in with links and linker options for libosquery.
 set(OSQUERY_LINKS "")
 # Fill this in in with non-core links and linker options (for plugins).
 set(OSQUERY_ADDITIONAL_SOURCES "")
@@ -93,6 +8,44 @@ set(OSQUERY_ADDITIONAL_LINKS "")
 set(Boost_USE_STATIC_LIBS ON)
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+
+# The core set of osquery libraries most discovered with find_package.
+set(OSQUERY_LIBS
+  ${THRIFT_LIB}
+  ${ROCKSDB_STATIC_LIBRARIES}
+  ${ROCKSDB_SNAPPY_LIBRARY}
+  ${GLOG_LIBRARY}
+  ${GFLAGS_LIBRARY}
+  ${OPENSSL_CRYPTO_LIBRARY}
+  ${OPENSSL_SSL_LIBRARY}
+
+  readline
+  pthread
+  dl
+  bz2
+  z
+)
+
+# The platform-specific core libraries.
+if(APPLE)
+  ADD_OSQUERY_CORE_LINK("-mmacosx-version-min=${APPLE_MIN_ABI}")
+  ADD_OSQUERY_CORE_LINK("boost_thread-mt")
+  ADD_OSQUERY_CORE_LINK("lz4")
+else()
+  # Warning: Do not statically compile unwind, also requires LZMA
+  list(APPEND OSQUERY_LIBS "${LZMA_LIBRARY}" "unwind")
+  ADD_OSQUERY_CORE_LINK("boost_thread")
+endif()
+
+if(UBUNTU)
+  ADD_OSQUERY_CORE_LINK("apt-pkg")
+endif()
+
+# The remaining boost libraries are discovered with find_library.
+ADD_OSQUERY_CORE_LINK("boost_system")
+ADD_OSQUERY_CORE_LINK("boost_filesystem")
+ADD_OSQUERY_CORE_LINK("boost_program_options")
+ADD_OSQUERY_CORE_LINK("boost_regex")
 
 # Generate version from git
 execute_process(
@@ -107,21 +60,6 @@ add_definitions("
 -D${OSQUERY_BUILD_OS}
 -D${OSQUERY_BUILD_OS}_${OSQUERY_BUILD_DISTRO}
 ")
-
-# Fill in libraries for Apple, Uunbut, Centos, FreeBSD
-if(APPLE)
-  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_APPLE_LIBS})
-  ADD_OSQUERY_LINK("-mmacosx-version-min=${APPLE_MIN_ABI}")
-elseif(FREEBSD)
-  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_FREEBSD_LIBS})
-else()
-  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_LINUX_LIBS})
-  if(UBUNTU)
-    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_UBUNTU_LIBS})
-  elseif(CENTOS)
-    set(OSQUERY_LIBS ${OSQUERY_LIBS} ${OSQUERY_CENTOS_LIBS})
-  endif()
-endif()
 
 # Make sure deps were built before compiling
 execute_process(
