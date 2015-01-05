@@ -83,7 +83,10 @@ find_package(Snappy REQUIRED)
 find_package(RocksDB REQUIRED)
 find_package(Crypto REQUIRED)
 find_package(Dl REQUIRED)
-find_package(AptPkg REQUIRED)
+
+if(UBUNTU)
+  find_package(AptPkg REQUIRED)
+endif()
 
 if(NOT APPLE)
   find_package(Unwind REQUIRED)
