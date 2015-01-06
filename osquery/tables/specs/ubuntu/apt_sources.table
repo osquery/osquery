@@ -1,0 +1,12 @@
+table_name("apt_sources")
+schema([
+    Column("name", TEXT),
+    Column("base_uri", TEXT),
+    Column("package_cache_file", TEXT),
+    Column("release", TEXT),
+    Column("component", TEXT),
+    Column("version", TEXT),
+    Column("maintainer", TEXT),
+    Column("site", TEXT),
+])
+implementation("system/apt_sources@genAptSrcs")

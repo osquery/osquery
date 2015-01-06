@@ -78,6 +78,7 @@ find_package(Crypto REQUIRED)
 find_package(BZip2 REQUIRED)
 find_package(Dl REQUIRED)
 find_package(Readline REQUIRED)
+
 if(NOT APPLE)
   find_package(Unwind REQUIRED)
 endif()

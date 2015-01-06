@@ -347,6 +347,7 @@ function main() {
     package clang-format-3.4
     package librpm-dev
     package libdpkg-dev
+    package libapt-pkg-dev
     package libudev-dev
     package libblkid-dev
     package linux-headers-generic
