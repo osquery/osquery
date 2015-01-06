@@ -37,10 +37,6 @@ else()
   ADD_OSQUERY_CORE_LINK("boost_thread")
 endif()
 
-if(UBUNTU)
-  ADD_OSQUERY_CORE_LINK("apt-pkg")
-endif()
-
 # The remaining boost libraries are discovered with find_library.
 ADD_OSQUERY_CORE_LINK("boost_system")
 ADD_OSQUERY_CORE_LINK("boost_filesystem")

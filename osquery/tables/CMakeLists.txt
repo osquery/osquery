@@ -78,6 +78,7 @@ else()
       system/linux/apt_sources.cpp
     )
 
+    ADD_OSQUERY_LINK("apt-pkg")
     ADD_OSQUERY_LINK("dpkg")
   endif()
 
