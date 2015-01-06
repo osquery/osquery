@@ -165,7 +165,11 @@ class TableState(Singleton):
             for j in range(i):
                 dir_path += "%s/" % path_bits[j]
             if not os.path.exists(dir_path):
-                os.mkdir(dir_path)
+                try:
+                    os.mkdir(dir_path)
+                except:
+                    # May encounter a race when using a make jobserver.
+                    pass
         logging.debug("generating %s" % path)
         with open(path, "w+") as file_h:
             file_h.write(self.impl_content)
