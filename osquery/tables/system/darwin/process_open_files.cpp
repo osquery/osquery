@@ -14,172 +14,120 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <libproc.h>
-#include <netinet/in.h>
-#include <sys/sysctl.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#define IPv6_2_IPv4(v6) (((uint8_t *)((struct in6_addr *)v6)->s6_addr) + 12)
 
 namespace osquery {
 namespace tables {
 
+enum {
+  SOCKET_TYPE_LOCAL,
+  SOCKET_TYPE_FOREIGN,
+};
+
 // From processes.cpp
 std::set<int> getProcList();
 
-struct OpenFile {
-  std::string local_path;
-  std::string file_type;
-  std::string remote_host;
-  std::string remote_port;
-  std::string local_host;
-  std::string local_port;
-};
+std::string socketIpAsString(const struct in_sockinfo *in,
+                             int type,
+                             int family) {
+  char dst[INET6_ADDRSTRLEN];
+  memset(dst, 0, sizeof(dst));
 
-std::vector<OpenFile> getOpenFiles(int pid) {
-  std::vector<OpenFile> open_files;
-  int sz;
+  // The caller determines whether to parse the local or remote address.
+  if (type == SOCKET_TYPE_LOCAL) {
+    // The input struct insi_vflag determines protocol type.
+    if ((in->insi_vflag & INI_IPV4) != 0 || family == AF_INET) {
+      inet_ntop(AF_INET, &(in->insi_laddr.ina_46.i46a_addr4), dst, sizeof(dst));
+    } else {
+      inet_ntop(AF_INET6, &(in->insi_laddr.ina_6), dst, sizeof(dst));
+    }
+  } else {
+    if ((in->insi_vflag & INI_IPV4) != 0 || family == AF_INET) {
+      inet_ntop(AF_INET, &(in->insi_faddr.ina_46.i46a_addr4), dst, sizeof(dst));
+    } else {
+      inet_ntop(AF_INET6, &(in->insi_faddr.ina_6), dst, sizeof(dst));
+    }
+  }
+
+  std::string address(dst);
+  return address;
+}
+
+void parseNetworkSocket(const struct socket_fdinfo socket_info, Row &r) {
+  // Set socket protocol.
+  const struct in_sockinfo *in;
+  if (socket_info.psi.soi_kind == SOCKINFO_TCP) {
+    r["file_type"] = "TCP";
+    in = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini;
+  } else {
+    r["file_type"] = "UDP";
+    in = &socket_info.psi.soi_proto.pri_in;
+  }
+
+  auto family = socket_info.psi.soi_family;
+  r["local_path"] = INTEGER(socket_info.psi.soi_kind);
+  r["local_host"] = socketIpAsString(in, SOCKET_TYPE_LOCAL, family);
+  r["local_port"] = INTEGER(ntohs(in->insi_lport));
+  r["remote_host"] = socketIpAsString(in, SOCKET_TYPE_FOREIGN, family);
+  r["remote_port"] = INTEGER(ntohs(in->insi_fport));
+}
+
+void genOpenFiles(int pid, QueryData &results) {
+  // std::vector<OpenFile> open_files;
   int bufsize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
   if (bufsize == -1) {
-    LOG(ERROR) << "An error occurred retrieving the open files " << pid;
-    return open_files;
+    VLOG(1) << "An error occurred retrieving the open files " << pid;
+    return;
   }
 
-  proc_fdinfo fd_infos[bufsize / PROC_PIDLISTFD_SIZE];
+  // Allocate structs for each descriptor.
+  proc_fdinfo fds[bufsize / PROC_PIDLISTFD_SIZE];
+  int num_fds = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fds, sizeof(fds));
 
-  int num_fds =
-      proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fd_infos, sizeof(fd_infos));
-  struct vnode_fdinfowithpath vnode_info;
-  struct socket_fdinfo socket_info;
-  void *la = NULL, *fa = NULL;
-  int lp, fp, v4mapped;
-  char buf[1024];
+  for (auto fd_info : fds) {
+    Row r;
 
-  for (int i = 0; i < num_fds; ++i) {
-    OpenFile row;
-    auto fd_info = fd_infos[i];
-    switch (fd_info.proc_fdtype) {
-    case PROX_FDTYPE_VNODE:
-      row.file_type = "file";
-      sz = proc_pidfdinfo(pid,
-                          fd_info.proc_fd,
-                          PROC_PIDFDVNODEPATHINFO,
-                          &vnode_info,
-                          PROC_PIDFDVNODEPATHINFO_SIZE);
-      if (sz > 0) {
-        row.local_path = std::string(vnode_info.pvip.vip_path);
-      }
-      break;
-    case PROX_FDTYPE_SOCKET:
-      // Its a socket
-      sz = proc_pidfdinfo(pid,
-                          fd_info.proc_fd,
-                          PROC_PIDFDSOCKETINFO,
-                          &socket_info,
-                          PROC_PIDFDSOCKETINFO_SIZE);
-
-      if (sz > 0) {
-        switch (socket_info.psi.soi_family) {
-        case AF_INET:
-          if (socket_info.psi.soi_kind == SOCKINFO_TCP) {
-            row.file_type = "TCP";
-
-            la = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_laddr.ina_46
-                      .i46a_addr4;
-            lp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_lport);
-            fa = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_faddr.ina_46
-                      .i46a_addr4;
-            fp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_fport);
-
-          } else {
-            row.file_type = "UDP";
-            la = &socket_info.psi.soi_proto.pri_in.insi_laddr.ina_46.i46a_addr4;
-            lp = ntohs(socket_info.psi.soi_proto.pri_in.insi_lport);
-            fa = &socket_info.psi.soi_proto.pri_in.insi_faddr.ina_46.i46a_addr4;
-            fp = ntohs(socket_info.psi.soi_proto.pri_in.insi_fport);
-          }
-
-          row.local_host =
-              std::string(inet_ntop(AF_INET,
-                                    &(((struct sockaddr_in *)la)->sin_addr),
-                                    buf,
-                                    sizeof(buf)));
-          row.local_port = boost::lexical_cast<std::string>(lp);
-          row.remote_host =
-              std::string(inet_ntop(AF_INET,
-                                    &(((struct sockaddr_in *)fa)->sin_addr),
-                                    buf,
-                                    sizeof(buf)));
-          row.remote_port = boost::lexical_cast<std::string>(fp);
-
-          break;
-        case AF_INET6:
-          if (socket_info.psi.soi_kind == SOCKINFO_TCP) {
-            row.file_type = "TCP6";
-
-            la = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_laddr.ina_6;
-            lp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_lport);
-            fa = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_faddr.ina_6;
-            fp = ntohs(socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_fport);
-
-            if ((socket_info.psi.soi_proto.pri_tcp.tcpsi_ini.insi_vflag &
-                 INI_IPV4) != 0) {
-              v4mapped = 1;
-            }
-          } else {
-            row.file_type = "UDP6";
-
-            la = &socket_info.psi.soi_proto.pri_in.insi_laddr.ina_6;
-            lp = ntohs(socket_info.psi.soi_proto.pri_in.insi_lport);
-            fa = &socket_info.psi.soi_proto.pri_in.insi_faddr.ina_6;
-            fp = ntohs(socket_info.psi.soi_proto.pri_in.insi_fport);
-
-            if ((socket_info.psi.soi_proto.pri_in.insi_vflag & INI_IPV4) != 0) {
-              v4mapped = 1;
-            }
-          }
-
-          if (v4mapped) {
-            // Adjust IPv4 addresses mapped in IPv6 addresses.
-            if (la) {
-              la = (struct sockaddr *)IPv6_2_IPv4(la);
-            }
-            if (fa) {
-              fa = (struct sockaddr *)IPv6_2_IPv4(fa);
-            }
-          }
-
-          row.local_host =
-              std::string(inet_ntop(AF_INET6,
-                                    &(((struct sockaddr_in6 *)la)->sin6_addr),
-                                    buf,
-                                    sizeof(buf)));
-          row.local_port = boost::lexical_cast<std::string>(lp);
-          row.remote_host =
-              std::string(inet_ntop(AF_INET6,
-                                    &(((struct sockaddr_in6 *)fa)->sin6_addr),
-                                    buf,
-                                    sizeof(buf)));
-          row.remote_port = boost::lexical_cast<std::string>(fp);
-          break;
-        default:
-          break;
-        }
+    r["pid"] = INTEGER(pid);
+    if (fd_info.proc_fdtype == PROX_FDTYPE_VNODE) {
+      struct vnode_fdinfowithpath vi;
+      if (proc_pidfdinfo(pid,
+                         fd_info.proc_fd,
+                         PROC_PIDFDVNODEPATHINFO,
+                         &vi,
+                         PROC_PIDFDVNODEPATHINFO_SIZE) <= 0) {
+        continue;
       }
 
-      break;
-    default:
-      break;
+      r["file_type"] = "file";
+      r["local_path"] = std::string(vi.pvip.vip_path);
+    } else if (fd_info.proc_fdtype == PROX_FDTYPE_SOCKET) {
+      struct socket_fdinfo si;
+      if (proc_pidfdinfo(pid,
+                         fd_info.proc_fd,
+                         PROC_PIDFDSOCKETINFO,
+                         &si,
+                         PROC_PIDFDSOCKETINFO_SIZE) <= 0) {
+        continue;
+      }
+
+      auto socket_kind = si.psi.soi_kind;
+      auto socket_family = si.psi.soi_family;
+      if (socket_kind == SOCKINFO_IN || socket_kind == SOCKINFO_TCP) {
+        parseNetworkSocket(si, r);
+      } else {
+        // Not supporting non-network socket parsing.
+        continue;
+      }
+    } else {
+      // Only supporting vnode and socket types.
+      continue;
     }
 
-    open_files.push_back(row);
+    results.push_back(r);
   }
-  return open_files;
 }
 
 QueryData genProcessOpenFiles(QueryContext &context) {
@@ -192,20 +140,7 @@ QueryData genProcessOpenFiles(QueryContext &context) {
       continue;
     }
 
-    auto open_files = getOpenFiles(pid);
-    for (auto &open_file : open_files) {
-      Row r;
-
-      r["pid"] = INTEGER(pid);
-      r["file_type"] = open_file.file_type;
-      r["local_path"] = open_file.local_path;
-      r["local_host"] = open_file.local_host;
-      r["local_port"] = open_file.local_port;
-      r["remote_host"] = open_file.remote_host;
-      r["remote_port"] = open_file.remote_port;
-
-      results.push_back(r);
-    }
+    genOpenFiles(pid, results);
   }
 
   return results;

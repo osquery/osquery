@@ -384,9 +384,9 @@ Status EventSubscriberCore::add(const Row& r, EventTime time) {
 
 void EventFactory::delay() {
   auto& ef = EventFactory::getInstance();
-  for (const auto& eventtype : EventFactory::getInstance().event_pubs_) {
+  for (const auto& publisher : EventFactory::getInstance().event_pubs_) {
     auto thread_ = std::make_shared<boost::thread>(
-        boost::bind(&EventFactory::run, eventtype.first));
+        boost::bind(&EventFactory::run, publisher.first));
     ef.threads_.push_back(thread_);
   }
 }
@@ -410,12 +410,19 @@ Status EventFactory::run(EventPublisherID& type_id) {
   }
 
   // The runloop status is not reflective of the event type's.
+  VLOG(1) << "Event publisher " << event_pub->type() << " has terminated";
   return Status(0, "OK");
 }
 
 void EventFactory::end(bool should_end) {
-  EventFactory::getInstance().ending_ = should_end;
-  // Join on the thread group.
+  auto& ef = EventFactory::getInstance();
+  ef.ending_ = should_end;
+
+  // Stop handling exceptions for the publisher threads.
+  for (const auto& publisher : ef.threads_) {
+    publisher->detach();
+  }
+  ef.threads_.clear(); 
   ::usleep(400);
 }
 
