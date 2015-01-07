@@ -35,6 +35,7 @@ else()
   # Warning: Do not statically compile unwind, also requires LZMA
   list(APPEND OSQUERY_LIBS "${LZMA_LIBRARY}" "unwind")
   ADD_OSQUERY_CORE_LINK("boost_thread")
+  ADD_OSQUERY_CORE_LINK("rt")
 endif()
 
 # The remaining boost libraries are discovered with find_library.
@@ -143,28 +144,3 @@ TARGET_OSQUERY_LINK_WHOLE(run libosquery_basic)
 TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
 set_target_properties(run PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
 install(TARGETS run DESTINATION bin)
-
-# packages
-if(LINUX)
-  set(CPACK_PACKAGE_NAME "osquery")
-  set(CPACK_PACKAGE_VENDOR "facebook")
-  set(CPACK_PACKAGE_VERSION "${OSQUERY_BUILD_VERSION}")
-  set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
-  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
-
-  execute_process(COMMAND uname -m OUTPUT_VARIABLE OSQUERY_ARCH)
-  string(REPLACE "\n" "" OSQUERY_ARCH ${OSQUERY_ARCH})
-
-  if(UBUNTU)
-    set(CPACK_GENERATOR "DEB")
-
-    execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE DPKG_ARCH)
-    string(REPLACE "\n" "" DPKG_ARCH ${DPKG_ARCH})
-
-    set(CPACK_SYSTEM_NAME "${OSQUERY_BUILD_DISTRO}.${DPKG_ARCH}")
-    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${DPKG_ARCH})
-    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "marpaia@fb.com")
-  endif()
-
-  include(CPack)
-endif()
