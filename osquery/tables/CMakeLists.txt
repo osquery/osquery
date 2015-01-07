@@ -17,6 +17,7 @@ if(APPLE)
     networking/darwin/routes.cpp
     system/darwin/apps.cpp
     system/darwin/ca_certs_utils.cpp
+    system/darwin/filesystems.cpp
     system/darwin/firewall.h
     system/darwin/firewall.cpp
     system/darwin/homebrew_packages.cpp

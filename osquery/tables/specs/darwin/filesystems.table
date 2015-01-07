@@ -1,0 +1,7 @@
+table_name("filesystems")
+schema([
+    Column("name", TEXT),
+    Column("path", TEXT),
+    Column("type", TEXT),
+])
+implementation("filesystems@genFilesystems")
