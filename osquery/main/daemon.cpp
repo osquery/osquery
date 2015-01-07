@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
 
   auto pid_status = osquery::createPidFile();
   if (!pid_status.ok()) {
-    LOG(ERROR) << "Could not create osquery pidfile: " << pid_status.toString();
+    LOG(ERROR) << "Could not start osqueryd: " << pid_status.toString();
     ::exit(EXIT_FAILURE);
   }
 
