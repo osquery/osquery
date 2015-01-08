@@ -131,27 +131,3 @@ add_custom_target(
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
-
-# make package
-if(LINUX)
-  set(CPACK_PACKAGE_NAME "osquery")
-  set(CPACK_PACKAGE_VENDOR "facebook")
-  set(CPACK_PACKAGE_CONTACT, "osquery@osquery.io")
-  set(CPACK_PACKAGE_VERSION "${OSQUERY_BUILD_VERSION}")
-  set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
-  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
-
-  execute_process(COMMAND uname -m OUTPUT_VARIABLE OSQUERY_ARCH)
-  string(REPLACE "\n" "" OSQUERY_ARCH ${OSQUERY_ARCH})
-
-  if(UBUNTU)
-    set(CPACK_GENERATOR "DEB")
-
-    execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE DPKG_ARCH)
-    string(REPLACE "\n" "" DPKG_ARCH ${DPKG_ARCH})
-    set(CPACK_DEBIAN_PACKAGE_SECTION "admin")
-    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${DPKG_ARCH})
-  endif()
-
-  include(CPack)
-endif()

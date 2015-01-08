@@ -19,19 +19,17 @@ source $SCRIPT_DIR/../lib.sh
 APP_VERSION=`git describe --tags HEAD`
 APP_IDENTIFIER="com.facebook.osquery"
 LD_IDENTIFIER="com.facebook.osqueryd"
-OUTPUT_PKG_PATH="$SOURCE_DIR/osquery-$APP_VERSION.pkg"
-LAUNCHD_PATH="$SCRIPT_DIR/$LD_IDENTIFIER.plist"
-LAUNCHD_PATH_OVERRIDE=""
-LAUNCHD_INSTALL_PATH="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
-INCLUDE_LAUNCHD=true
-SIMPLE_INSTALL=false
-OSQUERY_LOG_DIR="/var/log/osquery/"
-OSQUERY_CONFIG_PATH_DEST="/var/osquery/osquery.conf"
-OSQUERY_CONFIG_PATH_SOURCE=""
+LD_INSTALL="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
+OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$APP_VERSION.pkg"
 
-BREW_PACKAGES=(rocksdb boost gflags glog thrift)
-BREW_PREFIX=`brew --prefix`
-BREW_CELLAR=`brew --cellar`
+# Config files
+LAUNCHD_SRC="$SCRIPT_DIR/$LD_IDENTIFIER.plist"
+LAUNCHD_DST="/var/osquery/$LD_IDENTIFIER.plist"
+OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
+OSQUERY_EXAMPLE_CONFIG_DST="/var/osquery/osquery.example.conf"
+OSQUERY_CONFIG_SRC=""
+OSQUERY_CONFIG_DST="/var/osquery/osquery.conf"
+OSQUERY_LOG_DIR="/var/log/osquery/"
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX=$WORKING_DIR/prefix
@@ -46,29 +44,39 @@ set -e
 
 POSTINSTALL_ADDITIONAL_TEXT="
 if launchctl list | grep -qcm1 osquery; then
-  launchctl unload $LAUNCHD_INSTALL_PATH
+  launchctl unload $LD_INSTALL
+  launchctl load $LD_INSTALL
 fi
-
-launchctl load $LAUNCHD_INSTALL_PATH
 "
 
 function usage() {
-  fatal "Usage: $0 [-c path/to/your/osquery.conf] [-n] [-l path/to/osqueryd.plist]
+  fatal "Usage: $0 [-c path/to/your/osquery.conf] [-l path/to/osqueryd.plist]
     -c PATH embed an osqueryd config.
-    -n Do not embed the default launchd entry.
-    -l PATH override the default launchd entry."
+    -l PATH override the default launchd plist.
+    -o PATH override the output path.
+
+  This will generate an OSX package with:
+  (1) An example config /var/osquery/osquery.example.config
+  (2) An optional config /var/osquery/osquery.config if [-c] is used
+  (3) A LaunchDaemon plist /var/osquery/com.facebook.osqueryd.plist
+  (4) The osquery toolset /usr/local/bin/osquery*
+
+  To enable osqueryd to run at boot using Launchd use osqueryctl.
+  If the LaunchDaemon was previously installed a newer version of this package
+  will reload (unload/load) the daemon."
 }
 
 function parse_args() {
   while [ "$1" != "" ]; do
     case $1 in
       -c | --config )         shift
-                              OSQUERY_CONFIG_PATH_SRC=$1
+                              OSQUERY_CONFIG_SRC=$1
                               ;;
-      -l | --launchd-path )   shift
-                              LAUNCHD_PATH_OVERRIDE=$1
+      -l | --launchd )        shift
+                              LAUNCHD_SRC=$1
                               ;;
-      -n | --no-launchd )     INCLUDE_LAUNCHD=false
+      -o | --output )         shift
+                              OUTPUT_PKG_PATH=$1
                               ;;
       -h | --help )           usage
                               ;;
@@ -79,21 +87,16 @@ function parse_args() {
 }
 
 function check_parsed_args() {
-  if [[ $OSQUERY_CONFIG_PATH_SRC = "" ]]; then
-    log "no config specified. assuming that you know what you're doing."
+  if [[ $OSQUERY_CONFIG_SRC = "" ]]; then
+    log "notice: no config source specified"
+  else
+    log "using $OSQUERY_CONFIG_SRC as the config source"
   fi
 
-  if [[ $INCLUDE_LAUNCHD = true ]]; then
-    if [[ $LAUNCHD_PATH_OVERRIDE = "" ]]; then
-      log "no custom launchd path was defined. using $LAUNCHD_PATH"
-    else
-      LAUNCHD_PATH=$LAUNCHD_PATH_OVERRIDE
-      log "using $LAUNCHD_PATH as the launchd path"
-    fi
-  fi
+  log "using $LAUNCHD_SRC as the launchd source"
 
-  if [ "$OSQUERY_CONFIG_PATH_SRC" != "" ] && [ ! -f $OSQUERY_CONFIG_PATH_SRC ]; then
-    log "$OSQUERY_CONFIG_PATH_SRC is not a file"
+  if [ "$OSQUERY_CONFIG_SRC" != "" ] && [ ! -f $OSQUERY_CONFIG_SRC ]; then
+    log "$OSQUERY_CONFIG_SRC is not a file."
     usage
   fi
 }
@@ -122,26 +125,21 @@ function main() {
   mkdir -p $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryi" $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_INSTALL_DIR
+
+  # Create the prefix log dir and copy source configs
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
-  mkdir -p `dirname $INSTALL_PREFIX$OSQUERY_CONFIG_PATH_DEST`
-  if [[ "$OSQUERY_CONFIG_PATH_SRC" != "" ]]; then
-    cp $OSQUERY_CONFIG_PATH_SRC $INSTALL_PREFIX$OSQUERY_CONFIG_PATH_DEST
+  mkdir -p `dirname $INSTALL_PREFIX$OSQUERY_CONFIG_DST`
+  if [[ "$OSQUERY_CONFIG_SRC" != "" ]]; then
+    cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_CONFIG_DST
   fi
 
   log "copying osquery configurations"
-  if [[ $INCLUDE_LAUNCHD = true ]]; then
-    mkdir -p `dirname $INSTALL_PREFIX$LAUNCHD_INSTALL_PATH`
-    cp $LAUNCHD_PATH $INSTALL_PREFIX$LAUNCHD_INSTALL_PATH
-  else
-    log "skipping LaunchDaemon file"
-  fi
+  mkdir -p `dirname $INSTALL_PREFIX$LAUNCHD_DST`
+  cp $LAUNCHD_SRC $INSTALL_PREFIX$LAUNCHD_DST
+  cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
 
   log "finalizing preinstall and postinstall scripts"
-  if [[ $INCLUDE_LAUNCHD = true ]]; then
-    echo "$POSTINSTALL_ADDITIONAL_TEXT" >> $POSTINSTALL
-  else
-    log "skipping LaunchDaemon commands"
-  fi
+  echo "$POSTINSTALL_ADDITIONAL_TEXT" >> $POSTINSTALL
 
   log "creating package"
   pkgbuild --root $INSTALL_PREFIX       \

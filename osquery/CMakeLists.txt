@@ -144,3 +144,46 @@ TARGET_OSQUERY_LINK_WHOLE(run libosquery_basic)
 TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
 set_target_properties(run PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
 install(TARGETS run DESTINATION bin)
+
+# make package
+if(APPLE)
+  cmake_policy(SET CMP0037 OLD)
+  add_custom_target(
+    package
+    ./tools/deployment/make_osx_package.sh
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Building default OS X package (no custom config)" VERBATIM
+  )
+elseif(LINUX)
+  set(CPACK_PACKAGE_NAME "osquery")
+  set(CPACK_PACKAGE_VENDOR "facebook")
+  set(CPACK_PACKAGE_CONTACT "osquery@osquery.io")
+  set(CPACK_PACKAGE_VERSION "${OSQUERY_BUILD_VERSION}")
+  set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
+
+  execute_process(COMMAND uname -m OUTPUT_VARIABLE OSQUERY_ARCH)
+  string(REPLACE "\n" "" OSQUERY_ARCH ${OSQUERY_ARCH})
+
+  if(UBUNTU)
+    set(CPACK_GENERATOR "DEB")
+
+    if(OSQUERY_BUILD_DISTRO STREQUAL "PRECISE")
+      set(CPACK_DEBIAN_PACKAGE_DEPENDS "")
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "TRUSTY")
+      set(CPACK_DEBIAN_PACKAGE_DEPENDS
+        "libc6 (>= 2.17), zlib1g, libbz2-1.0, libapt-pkg4.12, libudev1, libstdc++6 (>= 4.8)"
+      )
+    endif()
+
+    # Custom architecture labels: e.g., amd64.
+    execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE DPKG_ARCH)
+    string(REPLACE "\n" "" DPKG_ARCH ${DPKG_ARCH})
+
+    set(CPACK_DEBIAN_PACKAGE_SECTION "admin")
+    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${DPKG_ARCH})
+    set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "http://osquery.io")
+  endif()
+
+  include(CPack)
+endif()
