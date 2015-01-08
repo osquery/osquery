@@ -17,6 +17,7 @@ if(APPLE)
     networking/darwin/routes.cpp
     system/darwin/apps.cpp
     system/darwin/ca_certs_utils.cpp
+    system/darwin/filesystems.cpp
     system/darwin/firewall.h
     system/darwin/firewall.cpp
     system/darwin/homebrew_packages.cpp
@@ -111,6 +112,7 @@ ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp)
 if(APPLE)
   ADD_OSQUERY_TEST(apps_tests system/darwin/apps_tests.cpp)
   ADD_OSQUERY_TEST(ca_certs_tests system/darwin/ca_certs_tests.cpp)
+  ADD_OSQUERY_TEST(filesystems_tests system/darwin/filesystems_tests.cpp)
   ADD_OSQUERY_TEST(firewall_tests system/darwin/firewall_tests.cpp)
   ADD_OSQUERY_TEST(launchd_tests system/darwin/launchd_tests.cpp)
 endif()
