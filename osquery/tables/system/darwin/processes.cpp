@@ -16,11 +16,10 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/core.h>
-#include <osquery/tables.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
@@ -224,6 +223,12 @@ QueryData genProcesses(QueryContext &context) {
     r["pid"] = INTEGER(pid);
     r["name"] = getProcName(pid);
     r["path"] = getProcPath(pid);
+    if (r["name"] == "") {
+      // The name was not available, use the basename of the path.
+      r["name"] = boost::filesystem::path(r["path"]).filename().string();
+    }
+
+    // The command line invocation including arguments.
     r["cmdline"] = boost::algorithm::join(getProcArgs(pid, argmax), " ");
 
     proc_cred cred;
