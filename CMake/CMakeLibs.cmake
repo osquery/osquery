@@ -185,3 +185,8 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
 
   set(${OUTPUT} "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp")
 endmacro()
+
+function(JOIN VALUES GLUE OUTPUT)
+  string (REPLACE ";" "${GLUE}" _TMP_STR "${VALUES}")
+  set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
+endfunction(JOIN)

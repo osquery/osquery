@@ -250,6 +250,14 @@ function package() {
   fi
 }
 
+function gem_install() {
+  if gem list | grep --quiet $1; then
+    log "$1 is already installed. skipping."
+  else
+    sudo gem install $@
+  fi
+}
+
 function check() {
   platform OS
 
@@ -351,6 +359,8 @@ function main() {
     package libudev-dev
     package libblkid-dev
     package linux-headers-generic
+    package ruby-dev
+    package gcc
 
     set_cc clang
     set_cxx clang++
@@ -388,6 +398,8 @@ function main() {
     install_thrift
     install_rocksdb
 
+    gem_install fpm
+
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
 
@@ -401,6 +413,9 @@ function main() {
     package epel-release.noarch
     package python-pip.noarch
     package python-devel
+    package rpm-build
+    package ruby-devel
+    package rubygems
 
     pushd /etc/yum.repos.d
     if [[ ! -f /etc/yum.repos.d/devtools-2.repo ]]; then
@@ -464,6 +479,8 @@ function main() {
     set_cc gcc
     set_cxx g++
     install_rocksdb
+
+    gem_install fpm
 
   elif [[ $OS = "darwin" ]]; then
     type brew >/dev/null 2>&1 || {

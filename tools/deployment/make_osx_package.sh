@@ -125,6 +125,7 @@ function main() {
   mkdir -p $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryi" $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_INSTALL_DIR
+  strip $BINARY_INSTALL_DIR/*
 
   # Create the prefix log dir and copy source configs
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
