@@ -39,7 +39,7 @@ endmacro(ADD_OSQUERY_CORE_LINK)
 macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
   if(NOT "${LINK}" MATCHES "(^-.*)")
     find_library("${LINK}_library" NAMES "lib${LINK}.a" "${LINK}" ${LINK_PATHS})
-    message("-- Found dependeny library ${${LINK}_library}")
+    message("-- Found library dependency ${${LINK}_library}")
     if("${${LINK}_library}" STREQUAL "${${LINK}_library}-NOTFOUND")
       string(ASCII 27 Esc)
       message(WARNING "${Esc}[31mDependent library '${LINK}' not found${Esc}[m")
@@ -140,7 +140,7 @@ endmacro()
 
 macro(GENERATE_TABLE TABLE_FILE NAME BASE_PATH OUTPUT)
   set(TABLE_FILE_GEN ${TABLE_FILE})
-  string(REGEX REPLACE 
+  string(REGEX REPLACE
     ".*/specs/.*/(.*)\\.table"
     "${CMAKE_BINARY_DIR}/generated/tables_${NAME}/\\1.cpp"
     TABLE_FILE_GEN
