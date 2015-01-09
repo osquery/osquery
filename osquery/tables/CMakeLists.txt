@@ -107,10 +107,10 @@ ADD_OSQUERY_CORE_LIBRARY(osquery_utility_tables
   utility/osquery.cpp
 )
 
-ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp)
+ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp TRUE)
 if(APPLE)
-  ADD_OSQUERY_TEST(apps_tests system/darwin/apps_tests.cpp)
-  ADD_OSQUERY_TEST(ca_certs_tests system/darwin/ca_certs_tests.cpp)
-  ADD_OSQUERY_TEST(firewall_tests system/darwin/firewall_tests.cpp)
-  ADD_OSQUERY_TEST(launchd_tests system/darwin/launchd_tests.cpp)
+  ADD_OSQUERY_TEST(apps_tests system/darwin/apps_tests.cpp TRUE)
+  ADD_OSQUERY_TEST(ca_certs_tests system/darwin/ca_certs_tests.cpp TRUE)
+  ADD_OSQUERY_TEST(firewall_tests system/darwin/firewall_tests.cpp TRUE)
+  ADD_OSQUERY_TEST(launchd_tests system/darwin/launchd_tests.cpp TRUE)
 endif()

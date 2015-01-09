@@ -35,12 +35,12 @@ else()
   # Warning: Do not statically compile unwind, also requires LZMA
   list(APPEND OSQUERY_LIBS "${LZMA_LIBRARY}" "unwind")
   ADD_OSQUERY_CORE_LINK("boost_thread")
+  ADD_OSQUERY_CORE_LINK("rt")
 endif()
 
 # The remaining boost libraries are discovered with find_library.
 ADD_OSQUERY_CORE_LINK("boost_system")
 ADD_OSQUERY_CORE_LINK("boost_filesystem")
-ADD_OSQUERY_CORE_LINK("boost_program_options")
 ADD_OSQUERY_CORE_LINK("boost_regex")
 
 # Generate version from git
@@ -97,12 +97,12 @@ ADD_OSQUERY_CORE_LIBRARY(osquery_utils_amalgamation ${AMALGAMATION_UTILS})
 list(APPEND OSQUERY_OBJECTS ${OSQUERY_SOURCES})
 list(APPEND OSQUERY_LIBS ${OSQUERY_LINKS})
 
-# Create the static libosquery.
+# Create the static libosquery (target called libosquery_basic).
 set(CMAKE_MACOSX_RPATH 0)
 add_library(libosquery_basic STATIC main/lib.cpp ${OSQUERY_OBJECTS})
 target_link_libraries(libosquery_basic ${OSQUERY_LIBS})
-set_target_properties(libosquery_basic PROPERTIES OUTPUT_NAME osquery_basic)
-install(TARGETS libosquery_basic DESTINATION lib)
+set_target_properties(libosquery_basic PROPERTIES OUTPUT_NAME osquery)
+install(TARGETS libosquery_basic ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)
 
 # Generate the osquery core tables (the non-util).
 GENERATE_TABLES("${CMAKE_SOURCE_DIR}/osquery/tables" "${CMAKE_SOURCE_DIR}")
@@ -113,58 +113,103 @@ ADD_OSQUERY_LIBRARY(osquery_amalgamation ${AMALGAMATION})
 add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})
 target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
 set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
-install(TARGETS libosquery_additional DESTINATION lib)
 
-# Optionally build a shared library.
-add_library(libosquery SHARED EXCLUDE_FROM_ALL main/empty.cpp)
-TARGET_OSQUERY_LINK_WHOLE(libosquery libosquery_basic)
-TARGET_OSQUERY_LINK_WHOLE(libosquery libosquery_additional)
-set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
-
-# Include the public API includes.
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/" DESTINATION include)
+# Include the public API includes if make devel.
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/" DESTINATION include COMPONENT devel OPTIONAL)
 
 add_executable(shell main/shell.cpp)
 TARGET_OSQUERY_LINK_WHOLE(shell libosquery_basic)
 TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
 set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
 set_target_properties(shell PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-install(TARGETS shell DESTINATION bin)
+install(TARGETS shell RUNTIME DESTINATION bin COMPONENT main)
 
 add_executable(daemon main/daemon.cpp)
 TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_basic)
 TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_additional)
 set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
 set_target_properties(daemon PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-install(TARGETS daemon DESTINATION bin)
+install(TARGETS daemon RUNTIME DESTINATION bin COMPONENT main)
 
 add_executable(run main/run.cpp)
 TARGET_OSQUERY_LINK_WHOLE(run libosquery_basic)
 TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
 set_target_properties(run PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-install(TARGETS run DESTINATION bin)
 
-# packages
-if(LINUX)
-  set(CPACK_PACKAGE_NAME "osquery")
-  set(CPACK_PACKAGE_VENDOR "facebook")
-  set(CPACK_PACKAGE_VERSION "${OSQUERY_BUILD_VERSION}")
-  set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
-  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "osquery is an operating system instrumentation toolchain.")
+# make devel
+add_custom_target(devel
+  COMMAND ${CMAKE_COMMAND}
+    -D COMPONENT=devel
+    -P cmake_install.cmake
+    DEPENDS libosquery_basic
+)
+add_dependencies(devel libosquery_basic)
 
-  execute_process(COMMAND uname -m OUTPUT_VARIABLE OSQUERY_ARCH)
-  string(REPLACE "\n" "" OSQUERY_ARCH ${OSQUERY_ARCH})
+# make install config files
+install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf"
+  DESTINATION "/var/osquery/" COMPONENT main)
+if(APPLE)
+  install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.plist"
+    DESTINATION "/var/osquery/" COMPONENT main)
+else()
+  install(PROGRAMS "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.initd"
+    DESTINATION "/etc/init.d/" RENAME "osqueryd" COMPONENT main)
+endif()
 
+# make package
+if(APPLE)
+  add_custom_target(
+    packages
+    ./tools/deployment/make_osx_package.sh
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Building default OS X package (no custom config)" VERBATIM
+  )
+elseif(LINUX)
   if(UBUNTU)
-    set(CPACK_GENERATOR "DEB")
-
-    execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE DPKG_ARCH)
-    string(REPLACE "\n" "" DPKG_ARCH ${DPKG_ARCH})
-
-    set(CPACK_SYSTEM_NAME "${OSQUERY_BUILD_DISTRO}.${DPKG_ARCH}")
-    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${DPKG_ARCH})
-    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "marpaia@fb.com")
+    set(PACKAGE_TYPE "deb")
+    set(PACKAGE_DEPENDENCIES
+      "libc6 (>=2.17)"
+      "zlib1g"
+      "libbz2-1.0"
+      "libapt-pkg4.12"
+      "libreadline6"
+    )
+    if(OSQUERY_BUILD_DISTRO STREQUAL "PRECISE")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libstdc++6"
+        "libudev0"
+        "libunwind7"
+      )
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "TRUSTY")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libstdc++6 (>= 4.8)"
+        "libudev1"
+        "libunwind8"
+      )
+    endif()
+  elseif(CENTOS)
+    set(PACKAGE_TYPE "rpm")
+    set(PACKAGE_DEPENDENCIES
+      "glibc >= 2.12"
+      "openssl >= 1.0"
+      "readline"
+      "zlib"
+      "snappy"
+      "bzip2-libs"
+      "procps"
+      "libudev"
+      "rpm-libs"
+      "libunwind"
+    )
   endif()
+  JOIN("${PACKAGE_DEPENDENCIES}" ", " PACKAGE_DEPENDENCIES)
 
-  include(CPack)
+  add_custom_target(
+    packages
+    ./tools/deployment/make_linux_package.sh -t ${PACKAGE_TYPE} -d "${PACKAGE_DEPENDENCIES}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Building linux packages (no custom config)" VERBATIM
+  )
 endif()
