@@ -33,7 +33,6 @@ if(APPLE)
   ADD_OSQUERY_CORE_LINK("lz4")
 else()
   # Warning: Do not statically compile unwind, also requires LZMA
-  list(APPEND OSQUERY_LIBS "${LZMA_LIBRARY}" "unwind")
   ADD_OSQUERY_CORE_LINK("boost_thread")
   ADD_OSQUERY_CORE_LINK("rt")
 endif()

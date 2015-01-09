@@ -376,12 +376,6 @@ function main() {
       package libboost1.55-all-dev
     fi
     if [[ $DISTRO = "precise" ]]; then
-      package libunwind7-dev
-    fi
-    if [[ $DISTRO = "trusty" || $DISTRO = "utopic" ]]; then
-      package libunwind8-dev
-    fi
-    if [[ $DISTRO = "precise" ]]; then
       install_gflags
       install_glog
     else
@@ -465,8 +459,6 @@ function main() {
     package byacc
     package flex
     package bison
-    package libunwind
-    package libunwind-devel
     package libudev-devel
 
     # package libtool.x86_64
@@ -508,7 +500,6 @@ function main() {
     package python
     package py27-pip
     package rocksdb
-    package libunwind
     package thrift-cpp
     package glog
 
