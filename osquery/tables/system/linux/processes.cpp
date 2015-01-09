@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -34,11 +34,7 @@ namespace tables {
 #endif
 
 std::string proc_name(const proc_t* proc_info) {
-  char cmd[17]; // cmd is a 16 char buffer
-
-  memset(cmd, 0, 17);
-  memcpy(cmd, proc_info->cmd, 16);
-  return std::string(cmd);
+  return std::string(proc_info->cmd);
 }
 
 std::string proc_attr(const std::string& attr, const proc_t* proc_info) {
