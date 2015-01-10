@@ -250,6 +250,34 @@ function package() {
   fi
 }
 
+function remove_package() {
+  if [[ $OS = "ubuntu" ]]; then
+    if dpkg --get-selections | grep --quiet $1; then
+      sudo apt-get remove $@ -y
+    else
+      log "Removing: $1 is not installed. skipping."
+    fi
+  elif [[ $OS = "centos" ]]; then
+    if rpm -qa | grep --quiet $1; then
+      sudo yum remove $@ -y
+    else
+      log "Removing: $1 is not installed. skipping."
+    fi
+  elif [[ $OS = "darwin" ]]; then
+    if brew list | grep --quiet $1; then
+      brew uninstall $@
+    else
+      log "Removing: $1 is not installed. skipping."
+    fi
+  elif [[ $OS = "freebsd" ]]; then
+    if pkg info -q $1; then
+      sudo pkg delete -y $@
+    else
+      log "Removing: $1 is not installed. skipping."
+    fi
+  fi
+}
+
 function gem_install() {
   if gem list | grep --quiet $1; then
     log "$1 is already installed. skipping."
@@ -375,15 +403,19 @@ function main() {
       package cmake
       package libboost1.55-all-dev
     fi
+
     if [[ $DISTRO = "precise" ]]; then
       install_gflags
-      install_glog
+      remove_package libunwind7-dev
     else
       package libgoogle-glog-dev
+      remove_package libunwind8-dev
     fi
+
     package libsnappy-dev
     package libbz2-dev
     package libreadline-dev
+
     if [[ $DISTRO = "precise" ]]; then
       package libproc-dev
     else
@@ -419,9 +451,11 @@ function main() {
     package devtoolset-2-gcc
     package devtoolset-2-binutils
     package devtoolset-2-gcc-c++
+
     export CC=/opt/rh/devtoolset-2/root/usr/bin/gcc
     export CPP=/opt/rh/devtoolset-2/root/usr/bin/cpp
     export CXX=/opt/rh/devtoolset-2/root/usr/bin/c++
+
     source /opt/rh/devtoolset-2/enable
     if [[ ! -d /usr/lib/gcc ]]; then
       sudo ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
@@ -461,6 +495,8 @@ function main() {
     package bison
     package libudev-devel
 
+    remove_package libunwind-devel
+
     # package libtool.x86_64
     # package boost.x86_64
 
@@ -468,6 +504,7 @@ function main() {
     install_automake
     install_libtool
     install_thrift
+
     set_cc gcc
     set_cxx g++
     install_rocksdb
@@ -494,7 +531,6 @@ function main() {
     package thrift
 
   elif [[ $OS = "freebsd" ]]; then
-
     package cmake
     package git
     package python
@@ -502,7 +538,6 @@ function main() {
     package rocksdb
     package thrift-cpp
     package glog
-
   fi
 
   cd "$SCRIPT_DIR/../"
@@ -516,6 +551,9 @@ function main() {
   fi
   git submodule init
   git submodule update
+
+  # Remove any previously-cached variables
+  rm build/$OS/CMakeCache.txt >/dev/null 2>&1
 }
 
 check $1 $2
