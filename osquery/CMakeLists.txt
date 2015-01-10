@@ -144,6 +144,13 @@ TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
 set_target_properties(run PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
 install(TARGETS run DESTINATION bin)
 
+add_executable(osqueryctl main/ctl.cpp)
+TARGET_OSQUERY_LINK_WHOLE(osqueryctl libosquery_basic)
+TARGET_OSQUERY_LINK_WHOLE(osqueryctl libosquery_additional)
+set_target_properties(osqueryctl PROPERTIES OUTPUT_NAME osqueryctl)
+set_target_properties(osqueryctl PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
+install(TARGETS osqueryctl DESTINATION bin)
+
 # packages
 if(LINUX)
   set(CPACK_PACKAGE_NAME "osquery")
