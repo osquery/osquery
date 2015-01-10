@@ -32,7 +32,6 @@ if(APPLE)
   ADD_OSQUERY_CORE_LINK("boost_thread-mt")
   ADD_OSQUERY_CORE_LINK("lz4")
 else()
-  # Warning: Do not statically compile unwind, also requires LZMA
   ADD_OSQUERY_CORE_LINK("boost_thread")
   ADD_OSQUERY_CORE_LINK("rt")
 endif()
@@ -178,14 +177,12 @@ elseif(LINUX)
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6"
         "libudev0"
-        "libunwind7"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "TRUSTY")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6 (>= 4.8)"
         "libudev1"
-        "libunwind8"
       )
     endif()
   elseif(CENTOS)
@@ -200,7 +197,6 @@ elseif(LINUX)
       "procps"
       "libudev"
       "rpm-libs"
-      "libunwind"
     )
   endif()
   JOIN("${PACKAGE_DEPENDENCIES}" ", " PACKAGE_DEPENDENCIES)

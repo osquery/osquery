@@ -52,8 +52,9 @@ execute_process(
   RESULT_VARIABLE OSQUERY_DEPS_CHECK
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+string(ASCII 27 Esc)
 if(OSQUERY_DEPS_CHECK)
-  string(ASCII 27 Esc)
   message(WARNING "${Esc}[31m${OSQUERY_DEPS_MESSAGE}${Esc}[m")
 endif()
 
