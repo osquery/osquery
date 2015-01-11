@@ -92,7 +92,7 @@ std::string getKextLinked(const void *value, const CFStringRef key) {
   return "<" + result + ">";
 }
 
-QueryData genKextstat(QueryContext &context) {
+QueryData genKernelExtensions(QueryContext &context) {
   QueryData results;
 
   // Populate dict of kernel extensions.
