@@ -22,10 +22,14 @@ ExternalProject_Add(
   libglog
   SOURCE_DIR ${GLOG_SOURCE_DIR}
   INSTALL_DIR ${GLOG_ROOT_DIR}
-  CONFIGURE_COMMAND CC=/usr/bin/clang CXX=/usr/bin/clang++ ${GLOG_SOURCE_DIR}/configure
-    --enable-frame-pointers --enable-shared=no --prefix=${GLOG_ROOT_DIR} CXXFLAGS=${CMAKE_CXX_FLAGS}
+  CONFIGURE_COMMAND ${GLOG_SOURCE_DIR}/configure
+    CC=/usr/bin/clang CXX=/usr/bin/clang++ CXXFLAGS=${CMAKE_CXX_FLAGS}
+    --enable-frame-pointers --enable-shared=no --prefix=${GLOG_ROOT_DIR}
   BUILD_COMMAND make
   INSTALL_COMMAND make install
+  LOG_CONFIGURE ON
+  LOG_BUILD ON
+  LOG_INSTALL ON
 )
 
 set(GLOG_INCLUDE_DIR "${GLOG_ROOT_DIR}/include")
