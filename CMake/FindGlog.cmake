@@ -1,49 +1,35 @@
-
-# - Try to find Glog
-#
-# The following variables are optionally searched for defaults
-#  GLOG_ROOT_DIR:            Base directory where all GLOG components are found
-#
-# The following are set after configuration is done:
-#  GLOG_FOUND
-#  GLOG_INCLUDE_DIRS
-#  GLOG_LIBRARIES
-#  GLOG_LIBRARYRARY_DIRS
-
 include(FindPackageHandleStandardArgs)
 
-set(GLOG_ROOT_DIR "" CACHE PATH "Folder contains Google glog")
+set(GLOG_ROOT_DIR "${CMAKE_BINARY_DIR}/third-party/glog")
+set(GLOG_SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party/glog")
 
-if(WIN32)
-    find_path(GLOG_INCLUDE_DIR glog/logging.h
-        PATHS ${GLOG_ROOT_DIR}/src/windows)
-else()
-    find_path(GLOG_INCLUDE_DIR glog/logging.h
-        PATHS ${GLOG_ROOT_DIR})
+if(NOT APPLE)
+  include(CheckIncludeFiles)
+  unset(LIBUNWIND_FOUND CACHE)
+  check_include_files("libunwind.h;unwind.h" LIBUNWIND_FOUND)
+  if(LIBUNWIND_FOUND)
+    unset(libglog_FOUND CACHE)
+    execute_process(
+      COMMAND rm -rf "${GLOG_ROOT_DIR}" "${CMAKE_BINARY_DIR}/libglog-prefix"
+      ERROR_QUIET
+    )
+    message(WARNING "${Esc}[31mWarning: libunwind headers found [Bug:596], please: make deps\n${Esc}[m")
+  endif()
 endif()
 
-if(MSVC)
-    find_library(GLOG_LIBRARY_RELEASE libglog_static
-        PATHS ${GLOG_ROOT_DIR}
-        PATH_SUFFIXES Release)
+INCLUDE(ExternalProject)
+ExternalProject_Add(
+  libglog
+  SOURCE_DIR ${GLOG_SOURCE_DIR}
+  INSTALL_DIR ${GLOG_ROOT_DIR}
+  UPDATE_COMMAND ${CMAKE_SOURCE_DIR}/tools/provision.sh
+  CONFIGURE_COMMAND CC=/usr/bin/gcc CXX=/usr/bin/g++ ${GLOG_SOURCE_DIR}/configure --enable-frame-pointers --prefix=${GLOG_ROOT_DIR}
+  BUILD_COMMAND make
+  INSTALL_COMMAND make install
+)
 
-    find_library(GLOG_LIBRARY_DEBUG libglog_static
-        PATHS ${GLOG_ROOT_DIR}
-        PATH_SUFFIXES Debug)
+set(GLOG_INCLUDE_DIR "${GLOG_ROOT_DIR}/include")
+set(GLOG_INCLUDE_DIRS ${GLOG_INCLUDE_DIR})
 
-    set(GLOG_LIBRARY optimized ${GLOG_LIBRARY_RELEASE} debug ${GLOG_LIBRARY_DEBUG})
-else()
-    find_library(GLOG_LIBRARY glog
-        PATHS ${GLOG_ROOT_DIR}
-        PATH_SUFFIXES
-            lib
-            lib64)
-endif()
-
-find_package_handle_standard_args(GLOG DEFAULT_MSG
-    GLOG_INCLUDE_DIR GLOG_LIBRARY)
-
-if(GLOG_FOUND)
-    set(GLOG_INCLUDE_DIRS ${GLOG_INCLUDE_DIR})
-    set(GLOG_LIBRARIES ${GLOG_LIBRARY})
-endif()
+set(GLOG_LIBRARY "${GLOG_ROOT_DIR}/lib/libglog.a")
+set(GLOG_LIBRARIES ${GLOG_LIBRARY})
