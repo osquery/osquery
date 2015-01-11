@@ -52,8 +52,9 @@ execute_process(
   RESULT_VARIABLE OSQUERY_DEPS_CHECK
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+string(ASCII 27 Esc)
 if(OSQUERY_DEPS_CHECK)
-  string(ASCII 27 Esc)
   message(WARNING "${Esc}[31m${OSQUERY_DEPS_MESSAGE}${Esc}[m")
 endif()
 
@@ -83,9 +84,6 @@ find_package(Crypto REQUIRED)
 find_package(BZip2 REQUIRED)
 find_package(Dl REQUIRED)
 find_package(Readline REQUIRED)
-if(NOT APPLE)
-  find_package(Unwind REQUIRED)
-endif()
 
 # Most dependent packages/libs we want static.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
@@ -96,9 +94,6 @@ find_package(RocksDB REQUIRED)
 find_package(Snappy REQUIRED)
 find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.1 REQUIRED)
-if(NOT APPLE)
-  find_package(LZMA REQUIRED)
-endif()
 
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
