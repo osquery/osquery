@@ -45,21 +45,21 @@ elseif(FREEBSD)
   )
 else()
   ADD_OSQUERY_LIBRARY(osquery_tables_linux
-    events/linux/passwd_changes.cpp
     events/linux/hardware_events.cpp
-    networking/linux/routes.cpp
-    networking/linux/socket_inode.cpp
-    networking/linux/port_inode.cpp
+    events/linux/passwd_changes.cpp
     networking/linux/arp_cache.cpp
+    networking/linux/process_open_sockets.cpp
+    networking/linux/routes.cpp
+    system/linux/block_devices.cpp
+    system/linux/groups.cpp
     system/linux/kernel_integrity.cpp
     system/linux/kernel_modules.cpp
-    system/linux/processes.cpp
-    system/linux/users.cpp
-    system/linux/groups.cpp
     system/linux/mounts.cpp
     system/linux/pci_devices.cpp
+    system/linux/processes.cpp
+    system/linux/process_open_files.cpp
     system/linux/usb_devices.cpp
-    system/linux/block_devices.cpp
+    system/linux/users.cpp
   )
 
   if(CENTOS)

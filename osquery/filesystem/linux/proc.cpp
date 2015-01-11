@@ -9,15 +9,16 @@
  */
 
 #include <exception>
+#include <map>
+#include <vector>
 
 #include <unistd.h>
 
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 namespace osquery {
 
@@ -47,13 +48,17 @@ Status procProcesses(std::vector<std::string>& processes) {
 }
 
 Status procDescriptors(const std::string& process,
-                       std::vector<std::string>& descriptors) {
+                       std::map<std::string, std::string>& descriptors) {
   auto descriptors_path = kLinuxProcPath + "/" + process + "/fd";
   try {
     // Access to the process' /fd may be restricted.
     boost::filesystem::directory_iterator it(descriptors_path), end;
     for (; it != end; ++it) {
-      descriptors.push_back(it->path().leaf().string());
+      auto fd = it->path().leaf().string();
+      std::string linkname;
+      if (procReadDescriptor(process, fd, linkname).ok()) {
+        descriptors[fd] = linkname;
+      }
     }
   } catch (boost::filesystem::filesystem_error& e) {
     return Status(1, "Cannot access descriptors for " + process);

@@ -1,6 +1,0 @@
-table_name("socket_inode")
-schema([
-    Column("pid", TEXT),
-    Column("inode", TEXT),
-])
-implementation("osquery/tables/networking/linux/socket_inode@genSocketInode")

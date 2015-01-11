@@ -3,25 +3,19 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
 
-#include <exception>
-
 #include <arpa/inet.h>
 #include <linux/netlink.h>
-#include <linux/rtnetlink.h>
-#include <linux/tcp.h>
-#include <netinet/in.h>
 
-#include <sys/socket.h>
-#include <unistd.h>
-
-#include <glog/logging.h>
+#include <boost/regex.hpp>
 
 #include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 // From uapi/linux/sock_diag.h
@@ -54,48 +48,44 @@ enum {
 #define SOCKET_BUFFER_SIZE (getpagesize() < 8192L ? getpagesize() : 8192L)
 
 int send_diag_msg(int sockfd, int family) {
-  struct msghdr msg;
-  struct nlmsghdr nlh;
-  struct inet_diag_req_v2 conn_req;
   struct sockaddr_nl sa;
-  struct iovec iov[4];
-  int retval = 0;
-
-  memset(&msg, 0, sizeof(msg));
   memset(&sa, 0, sizeof(sa));
-  memset(&nlh, 0, sizeof(nlh));
-  memset(&conn_req, 0, sizeof(conn_req));
-
   sa.nl_family = AF_NETLINK;
 
+  // Only interested in network sockets currently.
+  struct inet_diag_req_v2 conn_req;
+  memset(&conn_req, 0, sizeof(conn_req));
   conn_req.sdiag_family = family;
   conn_req.sdiag_protocol = IPPROTO_TCP;
-
   conn_req.idiag_states = TCPF_ALL & ~((1 << TCP_SYN_RECV) |
                                        (1 << TCP_TIME_WAIT) | (1 << TCP_CLOSE));
-
+  // Request additional TCP information.
   conn_req.idiag_ext |= (1 << (INET_DIAG_INFO - 1));
 
+  struct nlmsghdr nlh;
+  memset(&nlh, 0, sizeof(nlh));
   nlh.nlmsg_len = NLMSG_LENGTH(sizeof(conn_req));
   nlh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-
   nlh.nlmsg_type = SOCK_DIAG_BY_FAMILY;
+
+  struct iovec iov[4];
   iov[0].iov_base = (void *)&nlh;
   iov[0].iov_len = sizeof(nlh);
   iov[1].iov_base = (void *)&conn_req;
   iov[1].iov_len = sizeof(conn_req);
 
+  struct msghdr msg;
+  memset(&msg, 0, sizeof(msg));
   msg.msg_name = (void *)&sa;
   msg.msg_namelen = sizeof(sa);
   msg.msg_iov = iov;
   msg.msg_iovlen = 2;
 
-  retval = sendmsg(sockfd, &msg, 0);
-
+  int retval = sendmsg(sockfd, &msg, 0);
   return retval;
 }
 
-Row parse_diag_msg(struct inet_diag_msg *diag_msg, int rtalen, int family) {
+Row getDiagMessage(struct inet_diag_msg *diag_msg, int rtalen, int family) {
   char local_addr_buf[INET6_ADDRSTRLEN];
   char remote_addr_buf[INET6_ADDRSTRLEN];
 
@@ -125,26 +115,21 @@ Row parse_diag_msg(struct inet_diag_msg *diag_msg, int rtalen, int family) {
 
   // populate the Row from diag_msg fields
   Row row;
-  row["inode"] = INTEGER(diag_msg->idiag_inode);
-  row["local_port"] = INTEGER(ntohs(diag_msg->id.idiag_sport));
-  row["remote_port"] = INTEGER(ntohs(diag_msg->id.idiag_dport));
+  row["socket"] = INTEGER(diag_msg->idiag_inode);
+  row["family"] = INTEGER(family);
   row["local_ip"] = TEXT(local_addr_buf);
   row["remote_ip"] = TEXT(remote_addr_buf);
-  row["family"] = INTEGER(family);
+  row["local_port"] = INTEGER(ntohs(diag_msg->id.idiag_sport));
+  row["remote_port"] = INTEGER(ntohs(diag_msg->id.idiag_dport));
   return row;
 }
 
-void getPortInode(QueryData &results, int family) {
-  int nl_sock = 0;
-  int numbytes = 0;
-  int rtalen = 0;
-  struct nlmsghdr *nlh;
-  uint8_t recv_buf[SOCKET_BUFFER_SIZE];
-  struct inet_diag_msg *diag_msg;
-
+void genSocketsForFamily(const std::map<std::string, std::string> socket_inodes,
+                         int family,
+                         QueryData &results) {
   // set up the socket
+  int nl_sock = 0;
   if ((nl_sock = socket(AF_NETLINK, SOCK_DGRAM, NETLINK_INET_DIAG)) == -1) {
-    close(nl_sock);
     return;
   }
 
@@ -155,30 +140,38 @@ void getPortInode(QueryData &results, int family) {
   }
 
   // recieve netlink messages
-  numbytes = recv(nl_sock, recv_buf, sizeof(recv_buf), 0);
-  nlh = (struct nlmsghdr *)recv_buf;
-  while (NLMSG_OK(nlh, numbytes)) {
+  uint8_t recv_buf[SOCKET_BUFFER_SIZE];
+  int numbytes = recv(nl_sock, recv_buf, sizeof(recv_buf), 0);
+  if (numbytes <= 0) {
+    VLOG(1) << "NETLINK receive failed";
+    return;
+  }
 
-    // close the socket once NLMSG_DONE header recieved
+  auto nlh = (struct nlmsghdr *)recv_buf;
+  while (NLMSG_OK(nlh, numbytes)) {
     if (nlh->nlmsg_type == NLMSG_DONE) {
-      close(nl_sock);
-      return;
+      break;
     }
 
     if (nlh->nlmsg_type == NLMSG_ERROR) {
-      close(nl_sock);
-      return;
+      auto error = (struct nlmsgerr *) NLMSG_DATA(nlh);
+      VLOG(1) << "NETLINK message error " << error->error;
+      break;
     }
 
     // parse and process netlink message
-    diag_msg = (struct inet_diag_msg *)NLMSG_DATA(nlh);
-    rtalen = nlh->nlmsg_len - NLMSG_LENGTH(sizeof(*diag_msg));
-    try {
-      results.push_back(parse_diag_msg(diag_msg, rtalen, family));
-    } catch (std::exception &e) {
-      LOG(ERROR) << "Could not parse NL message " << e.what();
+    auto diag_msg = (struct inet_diag_msg *)NLMSG_DATA(nlh);
+    int rtalen = nlh->nlmsg_len - NLMSG_LENGTH(sizeof(*diag_msg));
+    auto row = getDiagMessage(diag_msg, rtalen, family);
+
+    if (socket_inodes.count(row["socket"]) > 0) {
+
+      row["pid"] = socket_inodes.at(row["socket"]);
+    } else {
+      row["pid"] = "-1";
     }
 
+    results.push_back(row);
     nlh = NLMSG_NEXT(nlh, numbytes);
   }
 
@@ -186,10 +179,36 @@ void getPortInode(QueryData &results, int family) {
   return;
 }
 
-QueryData genPortInode(QueryContext &context) {
+QueryData genOpenSockets(QueryContext &context) {
   QueryData results;
-  getPortInode(results, AF_INET);
-  getPortInode(results, AF_INET6);
+
+  // If a pid is given then set that as the only item in processes.
+  std::vector<std::string> processes;
+  if (!osquery::procProcesses(processes).ok()) {
+    VLOG(1) << "Cannot list Linux processes";
+  }
+
+  // Generate a map of socket inode to process tid.
+  boost::regex inode_regex("[0-9]+");
+  std::map<std::string, std::string> socket_inodes;
+  for (const auto& process : processes) {
+    std::map<std::string, std::string> descriptors;
+    if (osquery::procDescriptors(process, descriptors).ok()) {
+      for (const auto& fd : descriptors) {
+        if (fd.second.find("socket:") != std::string::npos) {
+          boost::smatch inode;
+          boost::regex_search(fd.second, inode, inode_regex);
+          if (inode[0].str().length() > 0) {
+            socket_inodes[inode[0].str()] = process;
+          }
+        }
+      }
+    }
+  }
+
+  // Use netlink messages to query socket information.
+  genSocketsForFamily(socket_inodes, AF_INET, results);
+  genSocketsForFamily(socket_inodes, AF_INET6, results);
   return results;
 }
 }
