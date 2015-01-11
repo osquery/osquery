@@ -452,6 +452,13 @@ function main() {
     package devtoolset-2-binutils
     package devtoolset-2-gcc-c++
 
+    if [[ ! -e /usr/bin/gcc ]]; then
+      sudo ln -s /opt/rh/devtoolset-2/root/usr/bin/gcc /usr/bin/gcc
+    fi
+    if [[ ! -e /usr/bin/g++ ]]; then
+      sudo ln -s /opt/rh/devtoolset-2/root/usr/bin/gcc /usr/bin/g++
+    fi
+
     export CC=/opt/rh/devtoolset-2/root/usr/bin/gcc
     export CPP=/opt/rh/devtoolset-2/root/usr/bin/cpp
     export CXX=/opt/rh/devtoolset-2/root/usr/bin/c++
@@ -553,7 +560,7 @@ function main() {
   git submodule update
 
   # Remove any previously-cached variables
-  rm build/$OS/CMakeCache.txt >/dev/null 2>&1
+  rm build/$OS/CMakeCache.txt >/dev/null 2>&1 || true
 }
 
 check $1 $2

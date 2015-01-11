@@ -13,7 +13,7 @@ if(NOT APPLE)
       COMMAND rm -rf "${GLOG_ROOT_DIR}" "${CMAKE_BINARY_DIR}/libglog-prefix"
       ERROR_QUIET
     )
-    message(WARNING "${Esc}[31mWarning: libunwind headers found [Bug:596], please: make deps\n${Esc}[m")
+    message(WARNING "${Esc}[31mWarning: libunwind headers found [Issue #596], please: make deps\n${Esc}[m")
   endif()
 endif()
 
@@ -22,8 +22,8 @@ ExternalProject_Add(
   libglog
   SOURCE_DIR ${GLOG_SOURCE_DIR}
   INSTALL_DIR ${GLOG_ROOT_DIR}
-  UPDATE_COMMAND ${CMAKE_SOURCE_DIR}/tools/provision.sh
-  CONFIGURE_COMMAND CC=/usr/bin/gcc CXX=/usr/bin/g++ ${GLOG_SOURCE_DIR}/configure --enable-frame-pointers --prefix=${GLOG_ROOT_DIR}
+  CONFIGURE_COMMAND CC=/usr/bin/clang CXX=/usr/bin/clang++ ${GLOG_SOURCE_DIR}/configure
+    --enable-frame-pointers --enable-shared=no --prefix=${GLOG_ROOT_DIR} CXXFLAGS=${CMAKE_CXX_FLAGS}
   BUILD_COMMAND make
   INSTALL_COMMAND make install
 )
