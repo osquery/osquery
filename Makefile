@@ -37,5 +37,10 @@ ifeq ($(PLATFORM),Linux)
 		ln -snf $(BUILD_DIR) build/linux
 endif
 
+package:
+	# Alias for packages (do not use CPack)
+	cd build/$(BUILD_DIR) && cmake -DCMAKE_BUILD_TYPE= ../../ && \
+		$(MAKE) packages --no-print-directory $(MAKEFLAGS)
+
 %::
 	cd build/$(BUILD_DIR) && cmake ../.. && $(MAKE) --no-print-directory $@

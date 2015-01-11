@@ -314,7 +314,7 @@ function check() {
 
   CHECKPOINT=`cat $2/.provision 2>&1 &`
   if [[ ! $HASH = $CHECKPOINT ]]; then
-    echo "Requested dependencies may have changed, run: sudo make deps"
+    echo "Requested dependencies may have changed, run: make deps"
     exit 1
   fi
   exit 0
