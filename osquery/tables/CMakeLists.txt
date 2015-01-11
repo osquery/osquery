@@ -48,6 +48,7 @@ else()
   ADD_OSQUERY_LIBRARY(osquery_tables_linux
     events/linux/passwd_changes.cpp
     events/linux/hardware_events.cpp
+    networking/linux/interfaces.cpp
     networking/linux/routes.cpp
     networking/linux/socket_inode.cpp
     networking/linux/port_inode.cpp
