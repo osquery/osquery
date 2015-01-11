@@ -12,7 +12,6 @@ if(APPLE)
   ADD_OSQUERY_LIBRARY(osquery_tables_darwin
     events/darwin/passwd_changes.cpp
     events/darwin/hardware_events.cpp
-    networking/darwin/interfaces.cpp
     networking/darwin/listening_ports.cpp
     networking/darwin/routes.cpp
     system/darwin/apps.cpp
@@ -90,6 +89,7 @@ endif()
 
 ADD_OSQUERY_LIBRARY(osquery_tables
   networking/utils.cpp
+  networking/interfaces.cpp
   networking/etc_hosts.cpp
   networking/etc_services.cpp
   system/cpuid.cpp
