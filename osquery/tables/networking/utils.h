@@ -18,6 +18,13 @@
 namespace osquery {
 namespace tables {
 
+// Define AF_INTERFACE as the alias for interface details.
+#ifdef __APPLE__
+#define AF_INTERFACE AF_LINK
+#else
+#define AF_INTERFACE AF_PACKET
+#endif
+
 // Return a string representation for an IPv4/IPv6 struct.
 std::string ipAsString(const struct sockaddr *in);
 std::string macAsString(const struct ifaddrs *addr);
