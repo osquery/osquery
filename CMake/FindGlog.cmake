@@ -28,7 +28,6 @@ ExternalProject_Add(
   BUILD_COMMAND make
   INSTALL_COMMAND make install
   LOG_CONFIGURE ON
-  LOG_BUILD ON
   LOG_INSTALL ON
 )
 

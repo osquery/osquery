@@ -221,11 +221,14 @@ class EventPublisherCore {
   size_t numEvents() { return next_ec_id_; }
 
   /// Overriding the EventPublisher constructor is not recommended.
-  EventPublisherCore() : next_ec_id_(0){};
+  EventPublisherCore() : next_ec_id_(0), ending_(false){};
   virtual ~EventPublisherCore() {}
 
   /// Return a string identifier associated with this EventPublisher.
   virtual EventPublisherID type() { return "publisher"; }
+
+  void shouldEnd(bool should_end) { ending_ = should_end; }
+  bool isEnding() { return ending_; }
 
  protected:
   /// The internal fire method used by the typed EventPublisher.
@@ -240,6 +243,9 @@ class EventPublisherCore {
   EventContextID next_ec_id_;
 
  private:
+  /// Set ending to True to cause event type run loops to finish.
+  bool ending_;
+
   /// A lock for incrementing the next EventContextID.
   boost::mutex ec_id_lock_;
 
@@ -341,7 +347,7 @@ class EventPublisher : public EventPublisherCore {
    *
    * @return should the Subscription%'s EventCallback be called for this event.
    */
-  virtual bool shouldFire(const SCRef sc, const ECRef ec) { return true; }
+  virtual bool shouldFire(const SCRef& sc, const ECRef& ec) { return true; }
 
  private:
   FRIEND_TEST(EventsTests, test_event_sub_subscribe);
@@ -533,14 +539,11 @@ class EventFactory {
 
  private:
   /// An EventFactory will exist for the lifetime of the application.
-  EventFactory() { ending_ = false; }
+  EventFactory() {}
   EventFactory(EventFactory const&);
   void operator=(EventFactory const&);
 
  private:
-  /// Set ending to True to cause event type run loops to finish.
-  bool ending_;
-
   /// Set of registered EventPublisher instances.
   std::map<EventPublisherID, EventPublisherRef> event_pubs_;
 

@@ -8,7 +8,7 @@
  *
  */
 
-#include <stdexcept>
+#include <exception>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -42,6 +42,11 @@ const std::vector<size_t> kEventTimeLists = {
 
 void EventPublisherCore::fire(const EventContextRef& ec, EventTime time) {
   EventContextID ec_id;
+
+  if (isEnding()) {
+    // Cannot emit/fire while ending
+    return;
+  }
 
   {
     boost::lock_guard<boost::mutex> lock(ec_id_lock_);
@@ -403,7 +408,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
   }
 
   auto status = Status(0, "OK");
-  while (!EventFactory::getInstance().ending_ && status.ok()) {
+  while (!event_pub->isEnding() && status.ok()) {
     // Can optionally implement a global cooloff latency here.
     status = event_pub->run();
     ::usleep(20);
@@ -416,14 +421,18 @@ Status EventFactory::run(EventPublisherID& type_id) {
 
 void EventFactory::end(bool should_end) {
   auto& ef = EventFactory::getInstance();
-  ef.ending_ = should_end;
+
+  for (const auto& publisher : ef.event_pubs_) {
+    publisher.second->shouldEnd(should_end);
+  }
 
   // Stop handling exceptions for the publisher threads.
-  for (const auto& publisher : ef.threads_) {
-    publisher->detach();
+  for (const auto& thread : ef.threads_) {
+    thread->detach();
   }
-  ef.threads_.clear(); 
+
   ::usleep(400);
+  ef.threads_.clear();
 }
 
 // There's no reason for the event factory to keep multiple instances.
