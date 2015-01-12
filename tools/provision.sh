@@ -394,6 +394,7 @@ function main() {
     set_cxx clang++
 
     if [[ $DISTRO = "precise" ]]; then
+      package rubygems
       package gcc-4.7
       package g++-4.7
       sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 100 --slave /usr/bin/g++ g++ /usr/bin/g++-4.7
