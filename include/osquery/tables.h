@@ -17,6 +17,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include <sqlite3.h>
+#include <gtest/gtest.h>
 
 #include <osquery/database/results.h>
 #include <osquery/status.h>
@@ -60,6 +61,11 @@ namespace tables {
 /// Cast an SQLite affinity type to the literal type.
 #define AS_LITERAL(literal, value) boost::lexical_cast<literal>(value)
 
+/// Helper alias for TablePlugin names.
+typedef const std::string TableName;
+typedef const std::vector<std::pair<std::string, std::string> > TableColumns;
+typedef std::map<std::string, std::vector<std::string> > TableData;
+
 /**
  * @brief A ConstraintOperator is applied in an query predicate.
  *
@@ -85,6 +91,12 @@ struct Constraint {
 
   /// Construct a Constraint with the most-basic information, the operator.
   Constraint(unsigned char _op) { op = _op; }
+
+  // A constraint list in a context knows only the operator at creation.
+  Constraint(unsigned char _op, const std::string& _expr) {
+    op = _op;
+    expr = _expr;
+  }
 };
 
 /**
@@ -98,44 +110,77 @@ struct Constraint {
  * A constraint list supports all AS_LITERAL types, and all ConstraintOperators.
  */
 struct ConstraintList {
-  /// List of constraint operator/expressions.
-  std::vector<struct Constraint> constraints;
   /// The SQLite affinity type.
   std::string affinity;
 
   /**
    * @brief Check if an expression matches the query constraints.
    *
-   * @param expr a TEXT representation of the column literal type to check.
+   * Evaluate ALL constraints in this ConstraintList against the string
+   * expression. The affinity of the constrait will be used as the affinite
+   * and lexical type of the expression and set of constraint expressions.
+   *
+   * @param expr a SQL type expression of the column literal type to check.
    * @return If the expression matched all constraints.
    */
   bool matches(const std::string& expr);
 
+  /**
+   * @brief Check if an expression matches the query constraints.
+   *
+   * `matches` also supports the set of SQL affinite types.
+   * The expression expr will be evaluated as a string and compared using
+   * the affinity of the constraint.
+   *
+   * @param expr a SQL type expression of the column literal type to check.
+   * @return If the expression matched all constraints.
+   */
   template <typename T>
   bool matches(const T& expr) {
-    return literal_matches<T>(expr);
+    return matches(TEXT(expr));
   }
 
   /**
-   * @brief If there is a constraint on this column.
+   * @brief Check and return if there are any constraints on this column.
+   *
+   * A ConstraintList is used in a ConstraintMap with a column name as the 
+   * map index. Tables that act on optional constraints should check if any
+   * constraint was provided.
+   *
+   * @return true if any constraint exists.
    */
-  bool exists() { return (constraints.size() > 0); }
-  bool existsAndMatches(const std::string& expr) {
+  bool exists() { return (constraints_.size() > 0); }
+
+  /**
+   * @brief Check if a constrait exist AND matches the type expression.
+   *
+   * See ConstraintList::exists and ConstraintList::matches.
+   *
+   * @param expr The expression to match.
+   * @return true if any constraint exists AND matches the type expression.
+   */
+  template <typename T>
+  bool existsAndMatches(const T& expr) {
     return (exists() && matches(expr));
   }
 
-  bool notExistsOrMatches(const std::string& expr) {
+  /**
+   * @brief Check if a constraint is missing or matches a type expression.
+   *
+   * A ConstraintList is used in a ConstraintMap with a column name as the 
+   * map index. Tables that act on required constraints can make decisions
+   * on missing constraints or a constraint match.
+   *
+   * @param expr The expression to match.
+   * @return true if constraint is missing or matches the type expression.
+   */
+  template <typename T>
+  bool notExistsOrMatches(const T& expr) {
     return (!exists() || matches(expr));
   }
 
-  template <typename T>
-  bool existsAndMatches(const T& expr);
-
-  template <typename T>
-  bool notExistsOrMatches(const T& expr);
-
   /**
-   * @brief Helper templated function for ConstraintList::matches
+   * @brief Helper templated function for ConstraintList::matches.
    */
   template <typename T>
   bool literal_matches(const T& base_expr);
@@ -157,8 +202,17 @@ struct ConstraintList {
    * @param constraint a new operator/expression to constrain.
    */
   void add(const struct Constraint& constraint) {
-    constraints.push_back(constraint);
+    constraints_.push_back(constraint);
   }
+
+  ConstraintList() { affinity = "TEXT"; }
+
+ private:
+  /// List of constraint operator/expressions.
+  std::vector<struct Constraint> constraints_;
+
+ private:
+  FRIEND_TEST(TablesTests, test_constraint_list);
 };
 
 /// Pass a constraint map to the query request.
@@ -178,5 +232,37 @@ struct QueryContext {
 
 typedef struct QueryContext QueryContext;
 typedef struct Constraint Constraint;
+
+/**
+ * @brief The TablePlugin defines the name, types, and column information.
+ *
+ * To attach a virtual table create a TablePlugin subclass and register the
+ * virtual table name as the plugin ID. osquery will enumerate all registered
+ * TablePlugins and attempt to attach them to SQLite at instanciation.
+ */
+class TablePlugin {
+ public:
+  TableName name;
+  TableColumns columns;
+  /// Helper method to generate the virtual table CREATE statement.
+  std::string statement(TableName name, TableColumns columns);
+
+ public:
+  /// Part of the query state, number of rows generated.
+  int n;
+  /// Part of the query state, column data returned from a query.
+  TableData data;
+  /// Part of the query state, parsed set of query predicate constraints.
+  ConstraintSet constraints;
+
+ public:
+  virtual int attachVtable(sqlite3 *db) { return -1; }
+  virtual ~TablePlugin(){};
+
+ protected:
+  TablePlugin() { n = 0; };
+};
+
+typedef std::shared_ptr<TablePlugin> TablePluginRef;
 }
 }
