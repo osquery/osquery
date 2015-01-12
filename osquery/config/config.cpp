@@ -9,7 +9,6 @@
  */
 
 #include <mutex>
-#include <random>
 #include <sstream>
 
 #include <boost/property_tree/ptree.hpp>
@@ -32,11 +31,6 @@ DEFINE_osquery_flag(string,
                     config_retriever,
                     "filesystem",
                     "Config type (plugin).");
-
-DEFINE_osquery_flag(int32,
-                    schedule_splay_percent,
-                    10,
-                    "Percent to splay config times.");
 
 boost::shared_mutex rw_lock;
 
@@ -64,15 +58,6 @@ Status Config::load() {
     }
   }
 
-  // Iterate over scheduled queryies and add a splay to each.
-  for (auto& q : conf.scheduledQueries) {
-    auto old_interval = q.interval;
-    auto new_interval = splayValue(old_interval, FLAGS_schedule_splay_percent);
-    LOG(INFO) << "Changing the interval for " << q.name << " from  "
-              << old_interval << " to " << new_interval;
-    q.interval = new_interval;
-  }
-
   cfg_ = conf;
   return Status(0, "OK");
 }
@@ -92,7 +77,8 @@ Status Config::genConfig(std::string& conf) {
     }
     conf = config_data.second;
   } catch (std::exception& e) {
-    LOG(ERROR) << "Could not load config plugin " << FLAGS_config_retriever << ": " << e.what();
+    LOG(ERROR) << "Could not load ConfigPlugin " << FLAGS_config_retriever
+               << ": " << e.what();
     return Status(1, "Could not load config plugin");
   }
 
@@ -138,25 +124,6 @@ Status Config::genConfig(OsqueryConfig& conf) {
 std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return cfg_.scheduledQueries;
-}
-
-int Config::splayValue(int original, int splayPercent) {
-  if (splayPercent <= 0 || splayPercent > 100) {
-    return original;
-  }
-
-  float percent_to_modify_by = (float)splayPercent / 100;
-  int possible_difference = original * percent_to_modify_by;
-  int max_value = original + possible_difference;
-  int min_value = original - possible_difference;
-
-  if (max_value == min_value) {
-    return max_value;
-  }
-
-  std::default_random_engine generator;
-  std::uniform_int_distribution<int> distribution(min_value, max_value);
-  return distribution(generator);
 }
 
 Status Config::getMD5(std::string& hashString) {
