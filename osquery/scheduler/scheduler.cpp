@@ -10,6 +10,7 @@
  
 #include <climits>
 #include <ctime>
+#include <random>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
@@ -25,6 +26,11 @@ DEFINE_osquery_flag(string,
                     host_identifier,
                     "hostname",
                     "Field used to identify the host running osqueryd");
+
+DEFINE_osquery_flag(int32,
+                    schedule_splay_percent,
+                    10,
+                    "Percent to splay config times.");
 
 Status getHostIdentifier(std::string& ident) {
   std::shared_ptr<DBHandle> db;
@@ -128,6 +134,25 @@ void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
   }
 }
 
+int splayValue(int original, int splayPercent) {
+  if (splayPercent <= 0 || splayPercent > 100) {
+    return original;
+  }
+
+  float percent_to_modify_by = (float)splayPercent / 100;
+  int possible_difference = original * percent_to_modify_by;
+  int max_value = original + possible_difference;
+  int min_value = original - possible_difference;
+
+  if (max_value == min_value) {
+    return max_value;
+  }
+
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int> distribution(min_value, max_value);
+  return distribution(generator);
+}
+
 void initializeScheduler() {
   DLOG(INFO) << "osquery::initializeScheduler";
   time_t t = time(0);
@@ -143,8 +168,19 @@ void initializeScheduler() {
 #endif
 
   auto cfg = Config::getInstance();
+
+  // Iterate over scheduled queryies and add a splay to each.
+  auto schedule = cfg->getScheduledQueries();
+  for (auto& q : schedule) {
+    auto old_interval = q.interval;
+    auto new_interval = splayValue(old_interval, FLAGS_schedule_splay_percent);
+    VLOG(1) << "Splay changing the interval for " << q.name << " from  "
+            << old_interval << " to " << new_interval;
+    q.interval = new_interval;
+  }
+
   for (; second <= stop_at; ++second) {
-    launchQueries(cfg->getScheduledQueries(), second);
+    launchQueries(schedule, second);
     ::sleep(1);
   }
 }
