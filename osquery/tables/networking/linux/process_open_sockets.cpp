@@ -47,7 +47,7 @@ enum {
 #define TCPF_ALL 0xFFF
 #define SOCKET_BUFFER_SIZE (getpagesize() < 8192L ? getpagesize() : 8192L)
 
-int send_diag_msg(int sockfd, int family) {
+int send_diag_msg(int sockfd, int protocol, int family) {
   struct sockaddr_nl sa;
   memset(&sa, 0, sizeof(sa));
   sa.nl_family = AF_NETLINK;
@@ -56,11 +56,16 @@ int send_diag_msg(int sockfd, int family) {
   struct inet_diag_req_v2 conn_req;
   memset(&conn_req, 0, sizeof(conn_req));
   conn_req.sdiag_family = family;
-  conn_req.sdiag_protocol = IPPROTO_TCP;
-  conn_req.idiag_states = TCPF_ALL & ~((1 << TCP_SYN_RECV) |
-                                       (1 << TCP_TIME_WAIT) | (1 << TCP_CLOSE));
-  // Request additional TCP information.
-  conn_req.idiag_ext |= (1 << (INET_DIAG_INFO - 1));
+  conn_req.sdiag_protocol = protocol;
+  if (protocol == IPPROTO_TCP) {
+    conn_req.idiag_states =
+        TCPF_ALL &
+        ~((1 << TCP_SYN_RECV) | (1 << TCP_TIME_WAIT) | (1 << TCP_CLOSE));
+    // Request additional TCP information.
+    conn_req.idiag_ext |= (1 << (INET_DIAG_INFO - 1));
+  } else {
+    conn_req.idiag_states = -1;
+  }
 
   struct nlmsghdr nlh;
   memset(&nlh, 0, sizeof(nlh));
@@ -85,7 +90,7 @@ int send_diag_msg(int sockfd, int family) {
   return retval;
 }
 
-Row getDiagMessage(struct inet_diag_msg *diag_msg, int rtalen, int family) {
+Row getDiagMessage(struct inet_diag_msg *diag_msg, int protocol, int family) {
   char local_addr_buf[INET6_ADDRSTRLEN];
   char remote_addr_buf[INET6_ADDRSTRLEN];
 
@@ -117,14 +122,16 @@ Row getDiagMessage(struct inet_diag_msg *diag_msg, int rtalen, int family) {
   Row row;
   row["socket"] = INTEGER(diag_msg->idiag_inode);
   row["family"] = INTEGER(family);
-  row["local_ip"] = TEXT(local_addr_buf);
-  row["remote_ip"] = TEXT(remote_addr_buf);
+  row["protocol"] = INTEGER(protocol);
+  row["local_address"] = TEXT(local_addr_buf);
+  row["remote_address"] = TEXT(remote_addr_buf);
   row["local_port"] = INTEGER(ntohs(diag_msg->id.idiag_sport));
   row["remote_port"] = INTEGER(ntohs(diag_msg->id.idiag_dport));
   return row;
 }
 
 void genSocketsForFamily(const std::map<std::string, std::string> socket_inodes,
+                         int protocol,
                          int family,
                          QueryData &results) {
   // set up the socket
@@ -134,7 +141,7 @@ void genSocketsForFamily(const std::map<std::string, std::string> socket_inodes,
   }
 
   // send the inet_diag message
-  if (send_diag_msg(nl_sock, family) < 0) {
+  if (send_diag_msg(nl_sock, protocol, family) < 0) {
     close(nl_sock);
     return;
   }
@@ -161,11 +168,9 @@ void genSocketsForFamily(const std::map<std::string, std::string> socket_inodes,
 
     // parse and process netlink message
     auto diag_msg = (struct inet_diag_msg *)NLMSG_DATA(nlh);
-    int rtalen = nlh->nlmsg_len - NLMSG_LENGTH(sizeof(*diag_msg));
-    auto row = getDiagMessage(diag_msg, rtalen, family);
+    auto row = getDiagMessage(diag_msg, protocol, family);
 
     if (socket_inodes.count(row["socket"]) > 0) {
-
       row["pid"] = socket_inodes.at(row["socket"]);
     } else {
       row["pid"] = "-1";
@@ -207,8 +212,10 @@ QueryData genOpenSockets(QueryContext &context) {
   }
 
   // Use netlink messages to query socket information.
-  genSocketsForFamily(socket_inodes, AF_INET, results);
-  genSocketsForFamily(socket_inodes, AF_INET6, results);
+  genSocketsForFamily(socket_inodes, IPPROTO_TCP, AF_INET, results);
+  genSocketsForFamily(socket_inodes, IPPROTO_UDP, AF_INET, results);
+  genSocketsForFamily(socket_inodes, IPPROTO_TCP, AF_INET6, results);
+  genSocketsForFamily(socket_inodes, IPPROTO_UDP, AF_INET6, results);
   return results;
 }
 }

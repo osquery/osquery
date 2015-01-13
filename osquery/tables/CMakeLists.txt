@@ -48,6 +48,7 @@ else()
     events/linux/hardware_events.cpp
     events/linux/passwd_changes.cpp
     networking/linux/arp_cache.cpp
+    networking/linux/listening_ports.cpp
     networking/linux/process_open_sockets.cpp
     networking/linux/routes.cpp
     system/linux/block_devices.cpp

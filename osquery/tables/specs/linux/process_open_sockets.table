@@ -3,8 +3,9 @@ schema([
     Column("pid", INTEGER),
     Column("socket", INTEGER),
     Column("family", INTEGER),
-    Column("local_ip", TEXT),
-    Column("remote_ip", TEXT),
+    Column("protocol", INTEGER),
+    Column("local_address", TEXT),
+    Column("remote_address", TEXT),
     Column("local_port", INTEGER),
     Column("remote_port", INTEGER),
 ])
