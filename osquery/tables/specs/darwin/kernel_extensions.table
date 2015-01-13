@@ -1,4 +1,4 @@
-table_name("kextstat")
+table_name("kernel_extensions")
 schema([
     Column("idx", INTEGER),
     Column("refs", INTEGER),
@@ -8,4 +8,4 @@ schema([
     Column("version", TEXT),
     Column("linked_against", TEXT),
 ])
-implementation("kextstat@genKextstat")
+implementation("kextstat@genKernelExtensions")
