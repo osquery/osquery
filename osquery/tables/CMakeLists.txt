@@ -12,7 +12,6 @@ if(APPLE)
   ADD_OSQUERY_LIBRARY(osquery_tables_darwin
     events/darwin/passwd_changes.cpp
     events/darwin/hardware_events.cpp
-    networking/darwin/listening_ports.cpp
     networking/darwin/routes.cpp
     system/darwin/apps.cpp
     system/darwin/ca_certs_utils.cpp
@@ -24,7 +23,7 @@ if(APPLE)
     system/darwin/mounts.cpp
     system/darwin/nvram.cpp
     system/darwin/processes.cpp
-    system/darwin/process_open_files.cpp
+    system/darwin/process_open_descriptors.cpp
     system/darwin/quarantine.cpp
     system/darwin/pci_devices.cpp
     system/darwin/usb_devices.cpp
@@ -48,7 +47,6 @@ else()
     events/linux/hardware_events.cpp
     events/linux/passwd_changes.cpp
     networking/linux/arp_cache.cpp
-    networking/linux/listening_ports.cpp
     networking/linux/process_open_sockets.cpp
     networking/linux/routes.cpp
     system/linux/block_devices.cpp
@@ -89,10 +87,11 @@ else()
 endif()
 
 ADD_OSQUERY_LIBRARY(osquery_tables
-  networking/utils.cpp
-  networking/interfaces.cpp
   networking/etc_hosts.cpp
   networking/etc_services.cpp
+  networking/interfaces.cpp
+  networking/listening_ports.cpp
+  networking/utils.cpp
   system/cpuid.cpp
   system/crontab.cpp
   system/last.cpp
