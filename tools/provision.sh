@@ -433,6 +433,8 @@ function main() {
     if [[ -z $(rpm -qa | grep 'kernel-headers-3.10.0-123.9.3.el7.x86_64') ]]; then
       sudo rpm -iv ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
     fi
+
+    package texinfo
     package git-all
     package unzip
     package xz
