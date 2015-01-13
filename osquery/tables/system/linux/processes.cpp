@@ -197,10 +197,5 @@ QueryData genProcessEnvs(QueryContext& context) {
 
   return results;
 }
-
-QueryData genProcessOpenFiles(QueryContext& context) {
-  QueryData results;
-  return results;
-}
 }
 }

@@ -177,7 +177,7 @@ Status procProcesses(std::vector<std::string>& processes);
  * @return status of iteration, failure if the process path did not exist.
  */
 Status procDescriptors(const std::string& process,
-                       std::vector<std::string>& descriptors);
+                       std::map<std::string, std::string>& descriptors);
 
 /**
  * @brief Read a descriptor's virtual path.

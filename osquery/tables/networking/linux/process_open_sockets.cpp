@@ -1,0 +1,222 @@
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+#include <arpa/inet.h>
+#include <linux/netlink.h>
+
+#include <boost/regex.hpp>
+
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
+
+// From uapi/linux/sock_diag.h
+// From linux/sock_diag.h (<= 3.6)
+#ifndef SOCK_DIAG_BY_FAMILY
+#define SOCK_DIAG_BY_FAMILY 20
+#endif
+
+#include "inet_diag.h"
+
+namespace osquery {
+namespace tables {
+
+// heavily influenced by github.com/kristrev/inet-diag-example
+enum {
+  TCP_ESTABLISHED = 1,
+  TCP_SYN_SENT,
+  TCP_SYN_RECV,
+  TCP_FIN_WAIT1,
+  TCP_FIN_WAIT2,
+  TCP_TIME_WAIT,
+  TCP_CLOSE,
+  TCP_CLOSE_WAIT,
+  TCP_LAST_ACK,
+  TCP_LISTEN,
+  TCP_CLOSING
+};
+
+#define TCPF_ALL 0xFFF
+#define SOCKET_BUFFER_SIZE (getpagesize() < 8192L ? getpagesize() : 8192L)
+
+int send_diag_msg(int sockfd, int protocol, int family) {
+  struct sockaddr_nl sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.nl_family = AF_NETLINK;
+
+  // Only interested in network sockets currently.
+  struct inet_diag_req_v2 conn_req;
+  memset(&conn_req, 0, sizeof(conn_req));
+  conn_req.sdiag_family = family;
+  conn_req.sdiag_protocol = protocol;
+  if (protocol == IPPROTO_TCP) {
+    conn_req.idiag_states =
+        TCPF_ALL &
+        ~((1 << TCP_SYN_RECV) | (1 << TCP_TIME_WAIT) | (1 << TCP_CLOSE));
+    // Request additional TCP information.
+    conn_req.idiag_ext |= (1 << (INET_DIAG_INFO - 1));
+  } else {
+    conn_req.idiag_states = -1;
+  }
+
+  struct nlmsghdr nlh;
+  memset(&nlh, 0, sizeof(nlh));
+  nlh.nlmsg_len = NLMSG_LENGTH(sizeof(conn_req));
+  nlh.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
+  nlh.nlmsg_type = SOCK_DIAG_BY_FAMILY;
+
+  struct iovec iov[4];
+  iov[0].iov_base = (void *)&nlh;
+  iov[0].iov_len = sizeof(nlh);
+  iov[1].iov_base = (void *)&conn_req;
+  iov[1].iov_len = sizeof(conn_req);
+
+  struct msghdr msg;
+  memset(&msg, 0, sizeof(msg));
+  msg.msg_name = (void *)&sa;
+  msg.msg_namelen = sizeof(sa);
+  msg.msg_iov = iov;
+  msg.msg_iovlen = 2;
+
+  int retval = sendmsg(sockfd, &msg, 0);
+  return retval;
+}
+
+Row getDiagMessage(struct inet_diag_msg *diag_msg, int protocol, int family) {
+  char local_addr_buf[INET6_ADDRSTRLEN];
+  char remote_addr_buf[INET6_ADDRSTRLEN];
+
+  memset(local_addr_buf, 0, sizeof(local_addr_buf));
+  memset(remote_addr_buf, 0, sizeof(remote_addr_buf));
+
+  // set up data structures depending on idiag_family type
+  if (diag_msg->idiag_family == AF_INET) {
+    inet_ntop(AF_INET,
+              (struct in_addr *)&(diag_msg->id.idiag_src),
+              local_addr_buf,
+              INET_ADDRSTRLEN);
+    inet_ntop(AF_INET,
+              (struct in_addr *)&(diag_msg->id.idiag_dst),
+              remote_addr_buf,
+              INET_ADDRSTRLEN);
+  } else if (diag_msg->idiag_family == AF_INET6) {
+    inet_ntop(AF_INET6,
+              (struct in_addr6 *)&(diag_msg->id.idiag_src),
+              local_addr_buf,
+              INET6_ADDRSTRLEN);
+    inet_ntop(AF_INET6,
+              (struct in_addr6 *)&(diag_msg->id.idiag_dst),
+              remote_addr_buf,
+              INET6_ADDRSTRLEN);
+  }
+
+  // populate the Row from diag_msg fields
+  Row row;
+  row["socket"] = INTEGER(diag_msg->idiag_inode);
+  row["family"] = INTEGER(family);
+  row["protocol"] = INTEGER(protocol);
+  row["local_address"] = TEXT(local_addr_buf);
+  row["remote_address"] = TEXT(remote_addr_buf);
+  row["local_port"] = INTEGER(ntohs(diag_msg->id.idiag_sport));
+  row["remote_port"] = INTEGER(ntohs(diag_msg->id.idiag_dport));
+  return row;
+}
+
+void genSocketsForFamily(const std::map<std::string, std::string> socket_inodes,
+                         int protocol,
+                         int family,
+                         QueryData &results) {
+  // set up the socket
+  int nl_sock = 0;
+  if ((nl_sock = socket(AF_NETLINK, SOCK_DGRAM, NETLINK_INET_DIAG)) == -1) {
+    return;
+  }
+
+  // send the inet_diag message
+  if (send_diag_msg(nl_sock, protocol, family) < 0) {
+    close(nl_sock);
+    return;
+  }
+
+  // recieve netlink messages
+  uint8_t recv_buf[SOCKET_BUFFER_SIZE];
+  int numbytes = recv(nl_sock, recv_buf, sizeof(recv_buf), 0);
+  if (numbytes <= 0) {
+    VLOG(1) << "NETLINK receive failed";
+    return;
+  }
+
+  auto nlh = (struct nlmsghdr *)recv_buf;
+  while (NLMSG_OK(nlh, numbytes)) {
+    if (nlh->nlmsg_type == NLMSG_DONE) {
+      break;
+    }
+
+    if (nlh->nlmsg_type == NLMSG_ERROR) {
+      auto error = (struct nlmsgerr *) NLMSG_DATA(nlh);
+      VLOG(1) << "NETLINK message error " << error->error;
+      break;
+    }
+
+    // parse and process netlink message
+    auto diag_msg = (struct inet_diag_msg *)NLMSG_DATA(nlh);
+    auto row = getDiagMessage(diag_msg, protocol, family);
+
+    if (socket_inodes.count(row["socket"]) > 0) {
+      row["pid"] = socket_inodes.at(row["socket"]);
+    } else {
+      row["pid"] = "-1";
+    }
+
+    results.push_back(row);
+    nlh = NLMSG_NEXT(nlh, numbytes);
+  }
+
+  close(nl_sock);
+  return;
+}
+
+QueryData genOpenSockets(QueryContext &context) {
+  QueryData results;
+
+  // If a pid is given then set that as the only item in processes.
+  std::vector<std::string> processes;
+  if (!osquery::procProcesses(processes).ok()) {
+    VLOG(1) << "Cannot list Linux processes";
+  }
+
+  // Generate a map of socket inode to process tid.
+  boost::regex inode_regex("[0-9]+");
+  std::map<std::string, std::string> socket_inodes;
+  for (const auto& process : processes) {
+    std::map<std::string, std::string> descriptors;
+    if (osquery::procDescriptors(process, descriptors).ok()) {
+      for (const auto& fd : descriptors) {
+        if (fd.second.find("socket:") != std::string::npos) {
+          boost::smatch inode;
+          boost::regex_search(fd.second, inode, inode_regex);
+          if (inode[0].str().length() > 0) {
+            socket_inodes[inode[0].str()] = process;
+          }
+        }
+      }
+    }
+  }
+
+  // Use netlink messages to query socket information.
+  genSocketsForFamily(socket_inodes, IPPROTO_TCP, AF_INET, results);
+  genSocketsForFamily(socket_inodes, IPPROTO_UDP, AF_INET, results);
+  genSocketsForFamily(socket_inodes, IPPROTO_TCP, AF_INET6, results);
+  genSocketsForFamily(socket_inodes, IPPROTO_UDP, AF_INET6, results);
+  return results;
+}
+}
+}

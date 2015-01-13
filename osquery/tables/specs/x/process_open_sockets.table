@@ -1,0 +1,13 @@
+table_name("process_open_sockets")
+schema([
+    Column("pid", INTEGER),
+    Column("socket", INTEGER),
+    Column("family", INTEGER),
+    Column("protocol", INTEGER),
+    Column("local_address", TEXT),
+    Column("remote_address", TEXT),
+    Column("local_port", INTEGER),
+    Column("remote_port", INTEGER),
+])
+implementation("system/process_open_sockets@genOpenSockets")
+

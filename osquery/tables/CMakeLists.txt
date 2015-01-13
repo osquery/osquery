@@ -12,7 +12,6 @@ if(APPLE)
   ADD_OSQUERY_LIBRARY(osquery_tables_darwin
     events/darwin/passwd_changes.cpp
     events/darwin/hardware_events.cpp
-    networking/darwin/listening_ports.cpp
     networking/darwin/routes.cpp
     system/darwin/apps.cpp
     system/darwin/ca_certs_utils.cpp
@@ -24,7 +23,7 @@ if(APPLE)
     system/darwin/mounts.cpp
     system/darwin/nvram.cpp
     system/darwin/processes.cpp
-    system/darwin/process_open_files.cpp
+    system/darwin/process_open_descriptors.cpp
     system/darwin/quarantine.cpp
     system/darwin/pci_devices.cpp
     system/darwin/usb_devices.cpp
@@ -45,21 +44,21 @@ elseif(FREEBSD)
   )
 else()
   ADD_OSQUERY_LIBRARY(osquery_tables_linux
-    events/linux/passwd_changes.cpp
     events/linux/hardware_events.cpp
-    networking/linux/routes.cpp
-    networking/linux/socket_inode.cpp
-    networking/linux/port_inode.cpp
+    events/linux/passwd_changes.cpp
     networking/linux/arp_cache.cpp
+    networking/linux/process_open_sockets.cpp
+    networking/linux/routes.cpp
+    system/linux/block_devices.cpp
+    system/linux/groups.cpp
     system/linux/kernel_integrity.cpp
     system/linux/kernel_modules.cpp
-    system/linux/processes.cpp
-    system/linux/users.cpp
-    system/linux/groups.cpp
     system/linux/mounts.cpp
     system/linux/pci_devices.cpp
+    system/linux/processes.cpp
+    system/linux/process_open_files.cpp
     system/linux/usb_devices.cpp
-    system/linux/block_devices.cpp
+    system/linux/users.cpp
   )
 
   if(CENTOS)
@@ -88,10 +87,11 @@ else()
 endif()
 
 ADD_OSQUERY_LIBRARY(osquery_tables
-  networking/utils.cpp
-  networking/interfaces.cpp
   networking/etc_hosts.cpp
   networking/etc_services.cpp
+  networking/interfaces.cpp
+  networking/listening_ports.cpp
+  networking/utils.cpp
   system/cpuid.cpp
   system/crontab.cpp
   system/last.cpp
