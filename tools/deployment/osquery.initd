@@ -40,10 +40,14 @@ pidfile=/var/run/osquery.pid
 . /etc/init.d/functions
 
 if [ ! -e $config ] ; then
-    echo "No osqueryd config file found! at $config"
-    exit 4
+    echo "No osqueryd config file found. at $config defaulting to example config"
+    if [ ! -e /usr/share/osquery/osquery.example.conf ] ; then
+        echo "No default config found"
+        exit 4
+    else
+        config=/usr/share/osquery/osquery.example.conf
     fi
-
+fi
 
 start() {
     if [ $UID -ne 0 ] ; then
@@ -54,7 +58,9 @@ start() {
         echo "$prog is already running: $PID"
         exit 4
     else
-        daemon $prog --config_path=$config --daemonize=true
+        daemon $prog --config_path=$config \
+                     --pidfile=$pidfile \
+                     --daemonize=true
                retval=$?
                echo
                [ $retval -eq 0 ] && touch $lockfile || failure 
