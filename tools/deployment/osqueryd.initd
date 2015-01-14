@@ -1,0 +1,109 @@
+#!/bin/sh
+#
+# osqueryd 	Start/Stop the osquery daemon.
+#
+# chkconfig: 3345 90 60
+# Description: 
+#             With osquery, you can use SQL to query low-level
+#             operating system information. Under the hood, instead
+#             of querying static tables, these queries dynamically execute 
+#             high-performance native code. The results of the 
+#             SQL query are transparently returned to you quickly and easily 
+#              
+### BEGIN INIT INFO
+# Provides: osquery osqueryd 
+# Required-Start: $local_fs $syslog
+# Required-Stop: $local_fs $syslog
+# Default-Start:  3345
+# Default-Stop: 90
+# Short-Description: run osqueryd daemon
+# Description: 
+#             With osquery, you can use SQL to query low-level
+#             operating system information. Under the hood, instead
+#             of querying static tables, these queries dynamically execute 
+#             high-performance native code. The results of the 
+#             SQL query are transparently returned to you quickly and easily 
+#              
+#              
+### END INIT INFO
+
+
+RETVAL=0
+prog="osqueryd"
+exec=/usr/bin/osqueryd
+config=/etc/osquery/osquery.conf
+lockfile=/var/lock/subsys/osqueryd
+pidfile=/var/run/osquery.pid
+
+[ $UID -eq 0 ] && [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
+
+. /etc/init.d/functions
+
+if [ ! -e $config ] ; then
+    echo "No osquery config file found at $config."
+    echo "See '/usr/share/osquery/osquery.example.conf' for an example config."
+    exit 4
+fi
+
+start() {
+    if [ $UID -ne 0 ] ; then
+        echo "User has insufficient privilege."
+        exit 4
+    elif [ -f $pidfile ]; then
+        PID=$(cat $pidfile)
+        echo "$prog is already running: $PID"
+        exit 4
+    else
+        daemon $prog --config_path=$config \
+                     --pidfile=$pidfile \
+                     --daemonize=true
+               retval=$?
+               echo
+               [ $retval -eq 0 ] && touch $lockfile || failure 
+    fi
+}
+
+stop() {
+    if [ $UID -ne 0 ] ; then
+        echo "User has insufficient privilege."
+        exit 4
+    elif [ ! -s $pidfile ] ; then
+        echo $"Stopping $prog: "
+        failure $"Stopping $prog"
+    else
+        echo -n $"Stopping $prog: "
+        killproc $prog
+        retval=$?
+        echo
+        [ $retval -eq 0 ] && rm -f $lockfile 
+        rm -f $pidfile
+    fi
+}
+
+restart() {
+    stop
+    start
+}
+
+get_status() {
+    status -p $pidfile $prog
+}
+
+case "$1" in
+    start)
+        $1
+        ;;
+    stop)
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    status)
+        get_status
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart}"
+        exit 2
+esac
+exit $?
