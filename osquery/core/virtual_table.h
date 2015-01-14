@@ -129,8 +129,12 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   auto *pContent = ((x_vtab<T> *)tab)->pContent;
 
   int expr_index = 0;
+  int cost = 0;
   for (size_t i = 0; i < pIdxInfo->nConstraint; ++i) {
     if (!pIdxInfo->aConstraint[i].usable) {
+      // A higher cost less priority, prefer more usable query constraints.
+      cost += 10;
+
       // TODO: OR is not usable.
       continue;
     }
@@ -142,6 +146,7 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
     pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
   }
 
+  pIdxInfo->estimatedCost = cost;
   return SQLITE_OK;
 }
 
