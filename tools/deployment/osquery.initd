@@ -40,13 +40,9 @@ pidfile=/var/run/osquery.pid
 . /etc/init.d/functions
 
 if [ ! -e $config ] ; then
-    echo "No osqueryd config file found. at $config defaulting to example config"
-    if [ ! -e /usr/share/osquery/osquery.example.conf ] ; then
-        echo "No default config found"
-        exit 4
-    else
-        config=/usr/share/osquery/osquery.example.conf
-    fi
+    echo "No osquery config file found at $config."
+    echo "See '/usr/share/osquery/osquery.example.conf' for an example config."
+    exit 4
 fi
 
 start() {
