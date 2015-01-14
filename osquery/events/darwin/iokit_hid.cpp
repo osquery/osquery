@@ -56,7 +56,7 @@ void IOKitHIDEventPublisher::restart() {
 
   auto status = IOHIDManagerOpen(manager_, kIOHIDOptionsTypeNone);
   if (status != kIOReturnSuccess) {
-    LOG(ERROR) << "Cannot open IOKit HID Manager";
+    LOG(WARNING) << "[Reference #617] Cannot open IOKit HID Manager";
     return;
   }
 
