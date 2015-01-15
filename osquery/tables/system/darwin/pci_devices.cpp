@@ -24,31 +24,10 @@
 namespace osquery {
 namespace tables {
 
+extern std::string getIOKitProperty(const CFMutableDictionaryRef& details,
+                                    const std::string& key);
+
 #define kIOPCIDeviceClassName_ "IOPCIDevice"
-
-std::string getPCIProperty(const CFMutableDictionaryRef& details,
-                           const std::string& key) {
-  std::string value;
-
-  // Get a property from the device.
-  auto cfkey = CFStringCreateWithCString(
-      kCFAllocatorDefault, key.c_str(), kCFStringEncodingUTF8);
-  auto property = CFDictionaryGetValue(details, cfkey);
-  CFRelease(cfkey);
-
-  // Several supported ways of parsing IOKit-encoded data.
-  if (property) {
-    if (CFGetTypeID(property) == CFNumberGetTypeID()) {
-      value = stringFromCFNumber((CFDataRef)property);
-    } else if (CFGetTypeID(property) == CFStringGetTypeID()) {
-      value = stringFromCFString((CFStringRef)property);
-    } else if (CFGetTypeID(property) == CFDataGetTypeID()) {
-      value = stringFromCFData((CFDataRef)property);
-    }
-  }
-
-  return value;
-}
 
 void genPCIDevice(const io_service_t& device, QueryData& results) {
   Row r;
@@ -58,10 +37,10 @@ void genPCIDevice(const io_service_t& device, QueryData& results) {
   IORegistryEntryCreateCFProperties(
       device, &details, kCFAllocatorDefault, kNilOptions);
 
-  r["pci_slot"] = getPCIProperty(details, "pcidebug");
+  r["pci_slot"] = getIOKitProperty(details, "pcidebug");
 
   std::vector<std::string> properties;
-  auto compatible = getPCIProperty(details, "compatible");
+  auto compatible = getIOKitProperty(details, "compatible");
   boost::trim(compatible);
   boost::split(properties, compatible, boost::is_any_of(" "));
 
@@ -103,7 +82,7 @@ QueryData genPCIDevices(QueryContext& context) {
 
   auto matching = IOServiceMatching(kIOPCIDeviceClassName_);
   if (matching == nullptr) {
-    // No devices matched USB, very odd.
+    // No devices matched PCI, very odd.
     return results;
   }
 
