@@ -3,5 +3,7 @@ schema([
     Column("path", TEXT, "Must provide a path or directory", required=True),
     Column("directory", TEXT, "Must provide a path or directory", required=True),
     Column("md5", TEXT),
+    Column("sha1", TEXT),
+    Column("sha256", TEXT),
 ])
 implementation("utility/hash@genHash")
