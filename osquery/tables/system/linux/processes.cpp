@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <proc/readproc.h>
+
+#include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
 #include <osquery/tables.h>
@@ -150,7 +152,9 @@ QueryData genProcesses(QueryContext& context) {
     r["euid"] = BIGINT((unsigned int)proc_info->euid);
     r["egid"] = BIGINT((unsigned int)proc_info->egid);
     r["name"] = proc_name(proc_info);
-    r["cmdline"] = proc_cmdline(proc_info);
+    std::string cmdline = proc_cmdline(proc_info);
+    boost::algorithm::trim(cmdline);
+    r["cmdline"] = cmdline;
     r["path"] = proc_link(proc_info);
     r["on_disk"] = osquery::pathExists(r["path"]).toString();
 
