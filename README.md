@@ -85,6 +85,12 @@ We don't currently supply pre-built osquery packages for Linux. We do, however, 
 
 If you're trying to build osquery on a different, currently unsupported operating system, please refer to the [building the code guide](https://github.com/facebook/osquery/wiki/building-the-code) for help.
 
+## Vulnerabilities
+
+Facebook has a [bug bounty](https://www.facebook.com/whitehat/) program which osquery participates in. If you find a vulnerability in osquery, please submit it via the process outlined on that page and do not file a public issue.
+
+For more information on finding vulnerabilities in osquery, see a recent blog post about bug-hunting osquery: https://www.facebook.com/notes/facebook-bug-bounty/bug-hunting-osquery/954850014529225
+
 ## Learn more
 
 Read the [launch blog post](https://code.facebook.com/posts/844436395567983/introducing-osquery/) for background on the project.
