@@ -31,6 +31,7 @@ if(APPLE)
     system/darwin/usb_devices.cpp
     system/darwin/startup_items.cpp
     system/darwin/xprotect.cpp
+    system/darwin/nfs_shares.cpp
   )
 
   ADD_OSQUERY_LINK("-framework CoreFoundation")
