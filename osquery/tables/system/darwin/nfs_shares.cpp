@@ -50,19 +50,16 @@ namespace osquery {
 					Row r;
 					r["share"] = *iter;
 					if(readonly){
-						r["readonly"]  = "yes";
+						r["readonly"]  = "true";
 					}else{
-						r["readonly"] = "no";
+						r["readonly"] = "false";
 					}
 					std::ostringstream oss;
 					std::copy(line.begin()+indexOfOptions, line.end(), std::ostream_iterator<std::string>(oss, " "));
 					r["options"] = oss.str();
 					results.push_back(r);
 				}
-				//r["hosts"] = boost::algorithm::join(line, " ");
-				//results.push_back(r);
 			}
-
 			return results;
 		}
 
@@ -72,7 +69,7 @@ namespace osquery {
 			if (s.ok()) {
 				return parseNfsSharesContent(content);
 			} else {
-				LOG(ERROR) << "Error reading /etc/exports: " << s.toString();
+				VLOG(1) << "Error reading /etc/exports: " << s.toString();
 				return {};
 			}
 		}
