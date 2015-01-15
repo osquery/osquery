@@ -1,0 +1,7 @@
+table_name("nfs_shares")
+schema([
+    Column("share", TEXT),
+    Column("readonly", TEXT),
+    Column("options", TEXT),
+])
+implementation("nfs_shares@genNfsShares")
