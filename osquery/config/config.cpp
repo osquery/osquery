@@ -126,14 +126,14 @@ std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
   return cfg_.scheduledQueries;
 }
 
-Status Config::getMD5(std::string& hashString) {
+Status Config::getMD5(std::string& hash_string) {
   std::string config_string;
   auto s = genConfig(config_string);
   if (!s.ok()) {
     return s;
   }
 
-  hashString = computeMD5((unsigned char *)hashString.c_str(), hashString.length());
+  hash_string = computeMD5((unsigned char *)hash_string.c_str(), hash_string.length());
 
   return Status(0, "OK");
 }
