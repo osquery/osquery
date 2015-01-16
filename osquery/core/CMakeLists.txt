@@ -18,6 +18,7 @@ ADD_OSQUERY_CORE_LIBRARY(osquery_core
   virtual_table.cpp
   text.cpp
   flags.cpp
+  hash.cpp
 )
 
 ADD_OSQUERY_TEST(status_test status_tests.cpp)
