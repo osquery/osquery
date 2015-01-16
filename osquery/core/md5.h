@@ -173,7 +173,7 @@ class MD5 {
 
   // The core of the MD5 algorithm is here.
   // MD5 basic transformation. Transforms state based on block.
-  static void MD5Transform(UINT4 state[4], unsigned char block[64]) {
+  static void MD5Transform(UINT4 state[4], const unsigned char block[64]) {
     UINT4 a = state[0], b = state[1], c = state[2], d = state[3], x[16];
 
     Decode(x, block, 64);
@@ -274,7 +274,7 @@ class MD5 {
 
   // Decodes input (unsigned char) into output (UINT4). Assumes len is
   // a multiple of 4.
-  static void Decode(UINT4 *output, unsigned char *input, unsigned int len) {
+  static void Decode(UINT4 *output, const unsigned char *input, unsigned int len) {
     unsigned int i, j;
 
     for (i = 0, j = 0; j < len; i++, j += 4) {
@@ -301,7 +301,7 @@ class MD5 {
   // MD5 block update operation. Continues an MD5 message-digest
   // operation, processing another message block, and updating the
   // context.
-  void Update(unsigned char *input, unsigned int inputLen) {
+  void Update(const unsigned char *input, unsigned int inputLen) {
     unsigned int i, index, partLen;
 
     // Compute number of bytes mod 64
@@ -400,7 +400,7 @@ class MD5 {
   }
 
   /// Digests a byte-array already in memory
-  char *digestMemory(BYTE *memchunk, int len) {
+  char *digestMemory(const BYTE *memchunk, int len) {
     Init();
     Update(memchunk, len);
     Final();
