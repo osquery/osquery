@@ -19,7 +19,8 @@
 #include <iomanip>
 #include <sstream>
 
-std::string processHash(unsigned char* hash, unsigned int length);
-std::string computeMD5(unsigned char* buffer, long fileLen);
-std::string computeSHA1(unsigned char* buffer, long fileLen);
-std::string computeSHA256(unsigned char* buffer, long fileLen);
+namespace osquery{
+	std::string computeMD5(unsigned char* buffer, long fileLen);
+	std::string computeSHA1(unsigned char* buffer, long fileLen);
+	std::string computeSHA256(unsigned char* buffer, long fileLen);
+}
