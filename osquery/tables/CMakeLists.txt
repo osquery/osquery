@@ -13,6 +13,7 @@ if(APPLE)
     events/darwin/passwd_changes.cpp
     events/darwin/hardware_events.cpp
     networking/darwin/routes.cpp
+    system/darwin/acpi_tables.cpp
     system/darwin/apps.cpp
     system/darwin/ca_certs_utils.cpp
     system/darwin/firewall.h
