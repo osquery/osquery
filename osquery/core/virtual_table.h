@@ -127,6 +127,7 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
 template <typename T>
 static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   auto *pContent = ((x_vtab<T> *)tab)->pContent;
+  pContent->constraints.clear();
 
   int expr_index = 0;
   int cost = 0;
@@ -134,7 +135,6 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
     if (!pIdxInfo->aConstraint[i].usable) {
       // A higher cost less priority, prefer more usable query constraints.
       cost += 10;
-
       // TODO: OR is not usable.
       continue;
     }
