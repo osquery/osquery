@@ -21,7 +21,7 @@
 #include <osquery/config/plugin.h>
 #include <osquery/flags.h>
 
-#include "osquery/core/md5.h"
+#include <osquery/hash.h>
 
 namespace pt = boost::property_tree;
 
@@ -133,8 +133,7 @@ Status Config::getMD5(std::string& hashString) {
     return s;
   }
 
-  osquery::md5::MD5 digest;
-  hashString = std::string(digest.digestString(config_string.c_str()));
+  hashString = computeMD5((unsigned char *)hashString.c_str(), hashString.length());
 
   return Status(0, "OK");
 }

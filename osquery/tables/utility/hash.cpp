@@ -18,8 +18,6 @@
 namespace osquery {
 namespace tables {
 
-
-
 void computeAllHashes(Row& r, const std::string& content, long filelen){
     r["md5"]        = computeMD5(   (unsigned char *)content.c_str(), filelen);
     r["sha1"]       = computeSHA1(  (unsigned char *)content.c_str(), filelen);
