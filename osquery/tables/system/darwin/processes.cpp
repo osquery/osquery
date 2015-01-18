@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -15,6 +15,7 @@
 #include <sys/sysctl.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -229,7 +230,9 @@ QueryData genProcesses(QueryContext &context) {
     }
 
     // The command line invocation including arguments.
-    r["cmdline"] = boost::algorithm::join(getProcArgs(pid, argmax), " ");
+    std::string cmdline = boost::algorithm::join(getProcArgs(pid, argmax), " ");
+    boost::algorithm::trim(cmdline);
+    r["cmdline"] = cmdline;
 
     proc_cred cred;
     if (getProcCred(pid, cred)) {
