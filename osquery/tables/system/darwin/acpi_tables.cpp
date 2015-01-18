@@ -28,7 +28,7 @@ void genACPITable(const void *key, const void *value, void *results) {
 
   auto data = (CFDataRef)value;
   auto length = CFDataGetLength(data);
-  r["length"] = INTEGER(length);
+  r["size"] = INTEGER(length);
   r["md5"] =
       osquery::hashFromBuffer(HASH_TYPE_MD5, CFDataGetBytePtr(data), length);
 
