@@ -51,6 +51,7 @@ else()
     networking/linux/arp_cache.cpp
     networking/linux/process_open_sockets.cpp
     networking/linux/routes.cpp
+    system/linux/acpi_tables.cpp
     system/linux/block_devices.cpp
     system/linux/groups.cpp
     system/linux/kernel_integrity.cpp
