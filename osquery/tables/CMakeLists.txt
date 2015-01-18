@@ -13,11 +13,13 @@ if(APPLE)
     events/darwin/passwd_changes.cpp
     events/darwin/hardware_events.cpp
     networking/darwin/routes.cpp
+    system/darwin/acpi_tables.cpp
     system/darwin/apps.cpp
     system/darwin/ca_certs_utils.cpp
     system/darwin/firewall.h
     system/darwin/firewall.cpp
     system/darwin/homebrew_packages.cpp
+    system/darwin/iokit_registry.cpp
     system/darwin/kernel_extensions.cpp
     system/darwin/launchd.cpp
     system/darwin/mounts.cpp
