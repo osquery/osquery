@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 2.8.8)
-project(OSQUERY)
 
 if(APPLE)
   set(APPLE_MIN_ABI "10.9")
@@ -17,12 +16,15 @@ else()
   else()
     set(LINUX TRUE)
     # Do not require libunwind.
+    set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
     set(CMAKE_C_FLAGS "-fno-omit-frame-pointer")
     set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS} -std=c++11")
     set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
     set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
   endif()
 endif()
+
+project(OSQUERY)
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -DDEBUG -O0")
@@ -95,6 +97,7 @@ find_package(Snappy REQUIRED)
 find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.1 REQUIRED)
 
+include_directories("${GLOG_INCLUDE_DIRS}")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("/usr/local/include")
