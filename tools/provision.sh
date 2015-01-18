@@ -142,26 +142,6 @@ function install_gflags() {
   fi
 }
 
-function install_glog() {
-  if [[ ! -d /usr/local/include/glog ]]; then
-    if [[ ! -f glog-0.3.3.tar.gz ]]; then
-      wget https://google-glog.googlecode.com/files/glog-0.3.3.tar.gz
-    else
-      log "glog source is already downloaded. skipping."
-    fi
-    if [[ ! -d glog-0.3.3 ]]; then
-      tar -xf glog-0.3.3.tar.gz
-    fi
-    pushd glog-0.3.3
-    ./configure CXXFLAGS="-DGFLAGS_NAMESPACE=google"
-    make
-    sudo make install
-    popd
-  else
-    log "glog is already installed. skipping."
-  fi
-}
-
 function install_autoconf() {
   if [[ ! -f /usr/bin/autoconf ]]; then
     if [[ ! -f autoconf-2.69.tar.gz ]]; then
@@ -409,7 +389,6 @@ function main() {
       install_gflags
       remove_package libunwind7-dev
     else
-      package libgoogle-glog-dev
       remove_package libunwind8-dev
     fi
 
@@ -462,10 +441,6 @@ function main() {
       sudo ln -s /opt/rh/devtoolset-2/root/usr/bin/gcc /usr/bin/g++
     fi
 
-    export CC=/opt/rh/devtoolset-2/root/usr/bin/gcc
-    export CPP=/opt/rh/devtoolset-2/root/usr/bin/cpp
-    export CXX=/opt/rh/devtoolset-2/root/usr/bin/c++
-
     source /opt/rh/devtoolset-2/enable
     if [[ ! -d /usr/lib/gcc ]]; then
       sudo ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
@@ -496,7 +471,6 @@ function main() {
 
     install_boost
     install_gflags
-    install_glog
     package doxygen
     package snappy
     package snappy-devel
@@ -515,8 +489,6 @@ function main() {
     install_libtool
     install_thrift
 
-    set_cc gcc
-    set_cxx g++
     install_rocksdb
 
     gem_install fpm
@@ -537,7 +509,6 @@ function main() {
     package makedepend
     package boost
     package gflags
-    package glog
     package thrift
 
   elif [[ $OS = "freebsd" ]]; then
@@ -547,7 +518,6 @@ function main() {
     package py27-pip
     package rocksdb
     package thrift-cpp
-    package glog
   fi
 
   cd "$SCRIPT_DIR/../"
