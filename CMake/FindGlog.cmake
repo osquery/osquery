@@ -17,13 +17,16 @@ if(NOT APPLE)
   endif()
 endif()
 
+set(GLOG_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unnamed-type-template-args")
+
 INCLUDE(ExternalProject)
 ExternalProject_Add(
   libglog
   SOURCE_DIR ${GLOG_SOURCE_DIR}
   INSTALL_DIR ${GLOG_ROOT_DIR}
   CONFIGURE_COMMAND ${GLOG_SOURCE_DIR}/configure
-    CC=/usr/bin/clang CXX=/usr/bin/clang++ CXXFLAGS=${CMAKE_CXX_FLAGS}
+    CC=/usr/bin/clang CXX=/usr/bin/clang++
+    CXXFLAGS=${GLOG_CXX_FLAGS}
     --enable-frame-pointers --enable-shared=no --prefix=${GLOG_ROOT_DIR}
   BUILD_COMMAND make
   INSTALL_COMMAND make install
