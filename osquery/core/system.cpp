@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -43,8 +43,8 @@ DEFINE_osquery_flag(string,
 
 std::string getHostname() {
   char hostname[256]; // Linux max should be 64.
-  memset(hostname, 0, 256);
-  gethostname(hostname, 255);
+  memset(hostname, 0, sizeof(hostname));
+  gethostname(hostname, sizeof(hostname) - 1);
   std::string hostname_string = std::string(hostname);
   boost::algorithm::trim(hostname_string);
   return hostname_string;
@@ -59,7 +59,7 @@ std::string generateHostUuid() {
 #ifdef __APPLE__
   // Use the hardware uuid available on OSX to identify this machine
   char uuid[128];
-  memset(uuid, 0, 128);
+  memset(uuid, 0, sizeof(uuid));
   uuid_t id;
   // wait at most 5 seconds for gethostuuid to return
   const timespec wait = {5, 0};

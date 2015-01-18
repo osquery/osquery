@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -24,7 +24,7 @@ std::string variableFromNumber(const void *value) {
   uint32_t number;
   char number_buffer[10];
 
-  memset(number_buffer, 0, 10);
+  memset(number_buffer, 0, sizeof(number_buffer));
   CFNumberGetValue((CFNumberRef)value, kCFNumberSInt32Type, &number);
   if (number == 0xFFFFFFFF) {
     sprintf(number_buffer, "-1");
@@ -51,12 +51,13 @@ std::string variableFromData(const void *value) {
     return "";
   }
 
-  buffer = (char *)malloc(length * 3 + 1);
+  size_t buffer_length = length * 3 + 1;
+  buffer = (char *)malloc(buffer_length);
   if (buffer == NULL) {
     return "";
   }
 
-  memset(buffer, 0, length * 3 + 1);
+  memset(buffer, 0, buffer_length);
   data_ptr = CFDataGetBytePtr((CFDataRef)value);
   for (count = count2 = 0; count < length; count++) {
     byte = data_ptr[count];

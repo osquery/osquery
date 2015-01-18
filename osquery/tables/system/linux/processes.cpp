@@ -36,11 +36,7 @@ namespace tables {
 #endif
 
 std::string proc_name(const proc_t* proc_info) {
-  char cmd[17]; // cmd is a 16 char buffer
-
-  memset(cmd, 0, 17);
-  memcpy(cmd, proc_info->cmd, 16);
-  return std::string(cmd);
+  return std::string(proc_info->cmd);
 }
 
 std::string proc_attr(const std::string& attr, const proc_t* proc_info) {
