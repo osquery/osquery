@@ -29,6 +29,7 @@ if(APPLE)
     system/darwin/quarantine.cpp
     system/darwin/pci_devices.cpp
     system/darwin/usb_devices.cpp
+    system/darwin/smbios_tables.cpp
     system/darwin/startup_items.cpp
     system/darwin/xprotect.cpp
     system/darwin/nfs_shares.cpp

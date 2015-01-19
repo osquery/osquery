@@ -20,6 +20,7 @@ namespace osquery {
 namespace tables {
 
 #define kIOACPIClassName_ "AppleACPIPlatformExpert"
+#define kIOACPIPropertyName_ "ACPI Tables"
 
 void genACPITable(const void *key, const void *value, void *results) {
   Row r;
@@ -49,13 +50,16 @@ QueryData genACPITables(QueryContext& context) {
     return {};
   }
 
-  CFTypeRef table = IORegistryEntryCreateCFProperty(service, CFSTR("ACPI Tables"), kCFAllocatorDefault, 0);
+  CFTypeRef table = IORegistryEntryCreateCFProperty(
+      service, CFSTR(kIOACPIPropertyName_), kCFAllocatorDefault, 0);
   if (table == nullptr) {
+    IOObjectRelease(service);
     return {};
   }
 
   CFDictionaryApplyFunction((CFDictionaryRef)table, genACPITable, &results);
 
+  CFRelease(table);
   IOObjectRelease(service);
   return results;
 }

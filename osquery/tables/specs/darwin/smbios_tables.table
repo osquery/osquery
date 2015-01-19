@@ -1,0 +1,11 @@
+table_name("smbios_tables")
+schema([
+    Column("number", INTEGER),
+    Column("type", INTEGER),
+    Column("description", TEXT),
+    Column("handle", INTEGER),
+    Column("header_size", INTEGER),
+    Column("size", INTEGER),
+    Column("md5", TEXT),
+])
+implementation("system/smbios_tables@genSMBIOSTables")
