@@ -30,38 +30,38 @@ DEFINE_osquery_flag(bool,
                     false,
                     "Disable physical memory reads.");
 
-int readMem(int fd, size_t base, size_t length, uint8_t* buffer) {
+Status readMem(int fd, size_t base, size_t length, uint8_t* buffer) {
   if (lseek(fd, base, SEEK_SET) == -1) {
-    return -1;
+    return Status(1, "Cannot seek to physical base");
   }
 
-  // Read from raw memory until an unrecoverable read error or the requested
-  // bytes are read.
+  // Read from raw memory until an unrecoverable read error or the all of the
+  // requested bytes are read.
   size_t total_read = 0;
   size_t bytes_read = 0;
   while (total_read != length && bytes_read != 0) {
     bytes_read = read(fd, buffer + total_read, length - total_read);
     if (bytes_read == -1) {
       if (errno != EINTR) {
-        return -1;
+        return Status(1, "Cannot read requested length");
       }
     } else {
       total_read += bytes_read;
     }
   }
 
-  // The read finished without reading the requested number of bytes.
+  // The read call finished without reading the requested number of bytes.
   if (total_read != length) {
-    return -1;
+    return Status(1, "Read incorrect number of bytes");
   }
 
-  return 0;
+  return Status(0, "OK");
 }
 
 Status readRawMem(size_t base, size_t length, void** buffer) {
   *buffer = 0;
 
-  if (!FLAGS_disable_memory) {
+  if (FLAGS_disable_memory) {
     return Status(1, "Configuration has disabled physical memory reads");
   }
 
@@ -96,7 +96,7 @@ Status readRawMem(size_t base, size_t length, void** buffer) {
   auto map = mmap(0, offset + length, PROT_READ, MAP_SHARED, fd, base - offset);
   if (map == MAP_FAILED) {
     // Could fallback to a lseek/read.
-    if (readMem(fd, base, length, (uint8_t*)*buffer) == -1) {
+    if (!readMem(fd, base, length, (uint8_t*)*buffer).ok()) {
       close(fd);
       free(*buffer);
       return Status(1, "Cannot memory map or seek/read memory");
