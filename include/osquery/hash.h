@@ -28,7 +28,7 @@ class Hash {
 
   ~Hash();
 
-  void update(void* buffer, size_t size);
+  void update(const void* buffer, size_t size);
   std::string digest();
 
  private:
@@ -46,7 +46,7 @@ class Hash {
  * @param size The length of buffer in bytes.
  * @return A string (hex) representation of the hash digest.
  */
-std::string hashFromBuffer(HashType hash_type, void* buffer, size_t size);
+std::string hashFromBuffer(HashType hash_type, const void* buffer, size_t size);
 
 /**
  * @brief Compute a hash digest from the file content at a path.

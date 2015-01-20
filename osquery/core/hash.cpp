@@ -54,7 +54,7 @@ void Hash::init() {
   }
 }
 
-void Hash::update(void* buffer, size_t size) {
+void Hash::update(const void* buffer, size_t size) {
   if (algorithm_ == HASH_TYPE_MD5) {
     __HASH_API(MD5_Update)((__HASH_API(MD5_CTX)*)ctx_, buffer, size);
   } else if (algorithm_ == HASH_TYPE_SHA1) {
@@ -84,7 +84,7 @@ std::string Hash::digest() {
   return digest.str();
 }
 
-std::string hashFromBuffer(HashType hash_type, void* buffer, size_t size) {
+std::string hashFromBuffer(HashType hash_type, const void* buffer, size_t size) {
   Hash hash(hash_type);
   hash.update(buffer, size);
   return hash.digest();

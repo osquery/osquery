@@ -28,8 +28,8 @@ QueryData genHash(QueryContext& context) {
     }
 
     Row r;
-    r["path"]       = path.string();
-    r["directory"]  = path.parent_path().string();
+    r["path"] = path.string();
+    r["directory"] = path.parent_path().string();
     r["md5"] = osquery::hashFromFile(HASH_TYPE_MD5, path.string());
     r["sha1"] = osquery::hashFromFile(HASH_TYPE_SHA1, path.string());
     r["sha256"] = osquery::hashFromFile(HASH_TYPE_SHA256, path.string());
