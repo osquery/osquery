@@ -8,7 +8,7 @@
  *
  */
 
-#include "osquery/core/md5.h"
+#include <osquery/hash.h>
 
 #include <boost/filesystem.hpp>
 
@@ -18,9 +18,14 @@
 namespace osquery {
 namespace tables {
 
+void computeAllHashes(Row& r, const std::string& content, long filelen){
+    r["md5"]        = computeMD5(   (unsigned char *)content.c_str(), filelen);
+    r["sha1"]       = computeSHA1(  (unsigned char *)content.c_str(), filelen);
+    r["sha256"]     = computeSHA256((unsigned char *)content.c_str(), filelen);
+}
+
 QueryData genHash(QueryContext& context) {
   QueryData results;
-  osquery::md5::MD5 digest;
 
   auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
@@ -28,10 +33,13 @@ QueryData genHash(QueryContext& context) {
     if (!boost::filesystem::is_regular_file(path)) {
       continue;
     }
+    std::string content;
+    auto s = osquery::readFile(path.string(), content);
+    long filelen = (long)content.length();
     Row r;
-    r["path"] = path.string();
-    r["md5"] = std::string(digest.digestFile(path.c_str()));
-    r["directory"] = path.parent_path().string();
+    r["path"]       = path.string();
+    r["directory"]  = path.parent_path().string();
+    computeAllHashes(r, content, filelen);
     results.push_back(r);
   }
 
@@ -49,7 +57,9 @@ QueryData genHash(QueryContext& context) {
       r["path"] = begin->path().string();
       r["directory"] = directory_string;
       if (boost::filesystem::is_regular_file(begin->status())) {
-        r["md5"] = digest.digestFile(begin->path().string().c_str());
+        std::string content;
+        auto s = osquery::readFile(begin->path().string(), content);
+        computeAllHashes(r, content, content.length());
       }
       results.push_back(r);
     }

@@ -21,7 +21,7 @@
 #include <osquery/config/plugin.h>
 #include <osquery/flags.h>
 
-#include "osquery/core/md5.h"
+#include <osquery/hash.h>
 
 namespace pt = boost::property_tree;
 
@@ -126,15 +126,14 @@ std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
   return cfg_.scheduledQueries;
 }
 
-Status Config::getMD5(std::string& hashString) {
+Status Config::getMD5(std::string& hash_string) {
   std::string config_string;
   auto s = genConfig(config_string);
   if (!s.ok()) {
     return s;
   }
 
-  osquery::md5::MD5 digest;
-  hashString = std::string(digest.digestString(config_string.c_str()));
+  hash_string = computeMD5((unsigned char *)hash_string.c_str(), hash_string.length());
 
   return Status(0, "OK");
 }
