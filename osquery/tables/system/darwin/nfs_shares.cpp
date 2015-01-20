@@ -27,17 +27,17 @@ QueryData parseNfsSharesContent(const std::string& content) {
     unsigned int readonly = 0;
     int index_of_options = -1;
 
-    for (std::vector<std::string>::iterator iter = line.begin();
-         iter != line.end();
-         ++iter) {
+    for (const auto& iter : line) {
       index_of_options++;
-      if ((*iter)[0] == '/') {
-        lineExports.push_back(*iter);
+      if (iter[0] == '/') {
+        lineExports.push_back(iter);
 
       } else {
         break;
       }
     }
+    // Start looping through starting at the first options
+    // (so skip the exports)
     for (std::vector<std::string>::iterator iter =
              line.begin() + index_of_options;
          iter != line.end();
