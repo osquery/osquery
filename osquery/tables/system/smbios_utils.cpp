@@ -8,7 +8,8 @@
  *
  */
 
-#include "osquery/core/md5.h"
+#include <osquery/hash.h>
+
 #include "osquery/tables/system/smbios_utils.h"
 
 namespace osquery {
@@ -101,10 +102,7 @@ void genSMBIOSTables(const uint8_t* tables, size_t length, QueryData& results) {
 
     auto table_length = next_table - table;
     r["size"] = INTEGER(table_length);
-
-    md5::MD5 digest;
-    auto md5_digest = digest.digestMemory(table, table_length);
-    r["md5"] = std::string(md5_digest);
+    r["md5"] = hashFromBuffer(HASH_TYPE_MD5, table, table_length);
 
     table = next_table;
     results.push_back(r);
