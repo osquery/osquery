@@ -10,9 +10,8 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
+#include <osquery/hash.h>
 #include <osquery/tables.h>
-
-#include "osquery/core/md5.h"
 
 namespace fs = boost::filesystem;
 
@@ -47,11 +46,8 @@ void genACPITable(const std::string& table, QueryData& results) {
     r["length"] = INTEGER(-1);
   } else {
     r["length"] = INTEGER(table_content.size());
-
-    md5::MD5 digest;
-    auto md5_digest = digest.digestMemory(
-        (const md5::BYTE*)table_content.c_str(), table_content.size());
-    r["md5"] = std::string(md5_digest);
+    r["md5"] = osquery::hashFromBuffer(
+        HASH_TYPE_MD5, table_content.c_str(), table_content.length());
   }
 
   results.push_back(r);

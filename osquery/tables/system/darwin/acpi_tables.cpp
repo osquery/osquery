@@ -11,10 +11,10 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
 
+#include <osquery/hash.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/core/md5.h"
 
 namespace osquery {
 namespace tables {
@@ -29,10 +29,8 @@ void genACPITable(const void *key, const void *value, void *results) {
   auto data = (CFDataRef)value;
   auto length = CFDataGetLength(data);
   r["length"] = INTEGER(length);
-
-  md5::MD5 digest;
-  auto md5_digest = digest.digestMemory(CFDataGetBytePtr(data), length);
-  r["md5"] = std::string(md5_digest);
+  r["md5"] =
+      osquery::hashFromBuffer(HASH_TYPE_MD5, CFDataGetBytePtr(data), length);
 
   ((QueryData *)results)->push_back(r);
 }
