@@ -8,11 +8,6 @@
  *
  */
 
-#include <string>
-#include <iomanip>
-
-#include <stdlib.h>
-
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
@@ -20,10 +15,10 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/core.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
+
 #include "osquery/tables/networking/utils.h"
 
 namespace osquery {
@@ -53,9 +48,9 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
     while (bytes == 0) {
       bytes = recv(socket_fd, output, MAX_NETLINK_SIZE - message_size, 0);
       if (bytes < 0) {
-        return Status(1, "Could not read from NETLINK.");
+        return Status(1, "Could not read from NETLINK");
       } else if (latency >= MAX_NETLINK_LATENCY) {
-        return Status(1, "Netlink timeout.");
+        return Status(1, "Netlink timeout");
       } else if (bytes == 0) {
         ::usleep(20);
         latency += 20;
@@ -65,7 +60,7 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
     // Assure valid header response, and not an error type.
     nl_hdr = (struct nlmsghdr*)output;
     if (NLMSG_OK(nl_hdr, bytes) == 0 || nl_hdr->nlmsg_type == NLMSG_ERROR) {
-      return Status(1, "Read invalid NETLINK message.");
+      return Status(1, "Read invalid NETLINK message");
     }
 
     if (nl_hdr->nlmsg_type == NLMSG_DONE) {
@@ -162,8 +157,8 @@ QueryData genRoutes(QueryContext& context) {
 
   int socket_fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
   if (socket_fd < 0) {
-    LOG(ERROR) << "Cannot open NETLINK socket.";
-    return results;
+    VLOG(1) << "Cannot open NETLINK socket";
+    return {};
   }
 
   // Create netlink message header
@@ -171,7 +166,7 @@ QueryData genRoutes(QueryContext& context) {
   struct nlmsghdr* netlink_msg = (struct nlmsghdr*)netlink_buffer;
   if (netlink_msg == nullptr) {
     close(socket_fd);
-    return results;
+    return {};
   }
 
   netlink_msg->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
@@ -182,15 +177,19 @@ QueryData genRoutes(QueryContext& context) {
 
   // Send the netlink request to the kernel
   if (send(socket_fd, netlink_msg, netlink_msg->nlmsg_len, 0) < 0) {
-    LOG(ERROR) << "Cannot write NETLINK request header to socket.";
-    goto cleanup;
+    VLOG(1) << "Cannot write NETLINK request header to socket";
+    close(socket_fd);
+    free(netlink_buffer);
+    return {};
   }
 
   // Wrap the read socket to support multi-netlink messages
   size_t size;
   if (!readNetlink(socket_fd, 1, (char*)netlink_msg, &size).ok()) {
-    LOG(ERROR) << "Cannot read NETLINK response from socket.";
-    goto cleanup;
+    VLOG(1) << "Cannot read NETLINK response from socket";
+    close(socket_fd);
+    free(netlink_buffer);
+    return {};
   }
 
   // Treat the netlink response as route information
@@ -199,10 +198,8 @@ QueryData genRoutes(QueryContext& context) {
     netlink_msg = NLMSG_NEXT(netlink_msg, size);
   }
 
-cleanup:
   close(socket_fd);
   free(netlink_buffer);
-
   return results;
 }
 }
