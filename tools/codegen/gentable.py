@@ -28,7 +28,7 @@ LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
 TEMPLATES = {}
 
 # Temporary reserved column names
-RESERVED = ["n"]
+RESERVED = ["n", "index"]
 
 # Supported SQL types for spec
 

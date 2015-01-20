@@ -1,7 +1,7 @@
 table_name("acpi_tables")
 schema([
     Column("name", TEXT),
-    Column("length", INTEGER),
+    Column("size", INTEGER),
     Column("md5", TEXT),
 ])
 implementation("system/acpi_tables@genACPITables")

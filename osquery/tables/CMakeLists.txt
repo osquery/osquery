@@ -29,6 +29,7 @@ if(APPLE)
     system/darwin/quarantine.cpp
     system/darwin/pci_devices.cpp
     system/darwin/usb_devices.cpp
+    system/darwin/smbios_tables.cpp
     system/darwin/startup_items.cpp
     system/darwin/xprotect.cpp
     system/darwin/nfs_shares.cpp
@@ -61,6 +62,7 @@ else()
     system/linux/pci_devices.cpp
     system/linux/processes.cpp
     system/linux/process_open_files.cpp
+    system/linux/smbios_tables.cpp
     system/linux/usb_devices.cpp
     system/linux/users.cpp
   )
@@ -100,6 +102,7 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   system/crontab.cpp
   system/last.cpp
   system/shell_history.cpp
+  system/smbios_utils.cpp
   system/suid_bin.cpp
   system/logged_in_users.cpp
 )

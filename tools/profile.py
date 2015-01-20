@@ -195,9 +195,13 @@ def run_query(shell, query, timeout=0, count=1):
 
     percents = []
     # Calculate the CPU utilization in intervals of 1 second.
+    stats = {}
     while p.is_running() and p.status() != psutil.STATUS_ZOMBIE:
         try:
-            stats = get_stats(p, step)
+            current_stats = get_stats(p, step)
+            if (current_stats["memory"].rss == 0):
+                break
+            stats = current_stats
             percents.append(stats["utilization"])
         except psutil.AccessDenied:
             break
