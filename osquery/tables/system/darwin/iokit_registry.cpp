@@ -18,8 +18,6 @@
 namespace osquery {
 namespace tables {
 
-#define kIOKitDevicePlane_ "IODeviceTree"
-
 std::string getIOKitProperty(const CFMutableDictionaryRef& details,
                              const std::string& key) {
   std::string value;
@@ -46,6 +44,7 @@ std::string getIOKitProperty(const CFMutableDictionaryRef& details,
 
 void genIOKitDevice(const io_service_t& device,
                     const io_service_t& parent,
+                    const io_name_t plane,
                     int depth,
                     QueryData& results) {
   Row r;
@@ -56,7 +55,7 @@ void genIOKitDevice(const io_service_t& device,
       device, &details, kCFAllocatorDefault, kNilOptions);
 
   io_name_t name, location, device_class;
-  auto kr = IORegistryEntryGetNameInPlane(device, kIOKitDevicePlane_, name);
+  auto kr = IORegistryEntryGetName(device, name);
   if (kr == KERN_SUCCESS) {
     r["name"] = std::string(name);
   }
@@ -85,6 +84,15 @@ void genIOKitDevice(const io_service_t& device,
 
   r["depth"] = INTEGER(depth);
 
+  if (IORegistryEntryInPlane(device, kIODeviceTreePlane)) {
+    io_string_t device_path;
+    kr = IORegistryEntryGetPath(device, kIODeviceTreePlane, device_path);
+    if (kr == KERN_SUCCESS) {
+      // Remove the "IODeviceTree:" from the device tree path.
+      r["device_path"] = std::string(device_path).substr(13);
+    }
+  }
+
   // Fill in service bits and busy/latency time.
   if (IOObjectConformsTo(device, "IOService")) {
     r["service"] = "1";
@@ -103,20 +111,16 @@ void genIOKitDevice(const io_service_t& device,
   auto retain_count = IOObjectGetKernelRetainCount(device);
   r["retain_count"] = INTEGER(retain_count);
 
-  kr = IORegistryEntryGetLocationInPlane(device, kIOKitDevicePlane_, location);
-  if (kr == KERN_SUCCESS) {
-    r["location"] = std::string(location);
-  }
-
   results.push_back(r);
   CFRelease(details);
 }
 
 void genIOKitDeviceChildren(const io_registry_entry_t& service,
+                            const io_name_t plane,
                             int depth,
                             QueryData& results) {
   io_iterator_t it;
-  auto kr = IORegistryEntryGetChildIterator(service, kIOKitDevicePlane_, &it);
+  auto kr = IORegistryEntryGetChildIterator(service, plane, &it);
   if (kr != KERN_SUCCESS) {
     return;
   }
@@ -124,12 +128,25 @@ void genIOKitDeviceChildren(const io_registry_entry_t& service,
   io_service_t device;
   while ((device = IOIteratorNext(it))) {
     // Use this entry as the parent, and generate a result row.
-    genIOKitDevice(device, service, depth, results);
-    genIOKitDeviceChildren(device, depth + 1, results);
+    genIOKitDevice(device, service, plane, depth, results);
+    genIOKitDeviceChildren(device, plane, depth + 1, results);
     IOObjectRelease(device);
   }
 
   IOObjectRelease(it);
+}
+
+QueryData genIOKitDeviceTree(QueryContext& context) {
+  QueryData results;
+
+  // Get the IO registry root node.
+  auto service = IORegistryGetRootEntry(kIOMasterPortDefault);
+
+  // Begin recursing along the IODeviceTree "plane".
+  genIOKitDeviceChildren(service, kIODeviceTreePlane, 0, results);
+
+  IOObjectRelease(service);
+  return results;
 }
 
 QueryData genIOKitRegistry(QueryContext& context) {
@@ -139,7 +156,7 @@ QueryData genIOKitRegistry(QueryContext& context) {
   auto service = IORegistryGetRootEntry(kIOMasterPortDefault);
 
   // Begin recursing along the IODeviceTree "plane".
-  genIOKitDeviceChildren(service, 0, results);
+  genIOKitDeviceChildren(service, kIOServicePlane, 0, results);
 
   IOObjectRelease(service);
   return results;

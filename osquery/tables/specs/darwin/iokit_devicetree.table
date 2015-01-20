@@ -1,11 +1,13 @@
-table_name("iokit_registry")
+table_name("iokit_devicetree")
 schema([
     Column("name", TEXT),
     Column("class", TEXT),
     Column("id", BIGINT),
     Column("parent", BIGINT),
+    Column("device_path", TEXT),
+    Column("service", INTEGER),
     Column("busy_state", INTEGER),
     Column("retain_count", INTEGER),
     Column("depth", INTEGER),
 ])
-implementation("system/iokit_registry@genIOKitRegistry")
+implementation("system/iokit_registry@genIOKitDeviceTree")
