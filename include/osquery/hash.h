@@ -8,16 +8,7 @@
  *
  */
 
-#ifdef __APPLE__
-  #import <CommonCrypto/CommonDigest.h>
-#else
-  #include <openssl/sha.h>
-  #include <openssl/md5.h>
-#endif
-
 #include <string>
-#include <iomanip>
-#include <sstream>
 
 namespace osquery{
 	std::string computeMD5(unsigned char* buffer, long fileLen);
