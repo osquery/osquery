@@ -7,82 +7,106 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <osquery/hash.h>
-
-#ifdef __APPLE__
-  #import <CommonCrypto/CommonDigest.h>
-#else
-  #include <openssl/sha.h>
-  #include <openssl/md5.h>
-#endif
 
 #include <iomanip>
 #include <sstream>
- 
-namespace osquery{
 
-  std::string processHash(unsigned char* hash, unsigned int length){
-      std::stringstream ss;
-      for(int i = 0; i < length; i++){
-          ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
-      }
-      return ss.str();
+#include <osquery/hash.h>
+#include <osquery/logger.h>
+
+namespace osquery {
+
+#ifdef __APPLE__
+#import <CommonCrypto/CommonDigest.h>
+#define __HASH_API(name) CC_##name
+#else
+#include <openssl/sha.h>
+#include <openssl/md5.h>
+#define __HASH_API(name) name
+// Apple included a 1.
+#define SHA1_DIGEST_LENGTH SHA_DIGEST_LENGTH
+#define SHA1_CTX SHA_CTX
+#endif
+
+#define HASH_CHUNK_SIZE 1024
+
+Hash::~Hash() {
+  if (ctx_ != nullptr) {
+    free(ctx_);
+  }
+}
+
+void Hash::init() {
+  if (algorithm_ == HASH_TYPE_MD5) {
+    length_ = __HASH_API(MD5_DIGEST_LENGTH);
+    ctx_ = (__HASH_API(MD5_CTX)*)malloc(sizeof(__HASH_API(MD5_CTX)));
+    __HASH_API(MD5_Init)((__HASH_API(MD5_CTX)*)ctx_);
+  } else if (algorithm_ == HASH_TYPE_SHA1) {
+    length_ = __HASH_API(SHA1_DIGEST_LENGTH);
+    ctx_ = (__HASH_API(SHA1_CTX)*)malloc(sizeof(__HASH_API(SHA1_CTX)));
+    __HASH_API(SHA1_Init)((__HASH_API(SHA1_CTX)*)ctx_);
+  } else if (algorithm_ == HASH_TYPE_SHA256) {
+    length_ = __HASH_API(SHA256_DIGEST_LENGTH);
+    ctx_ = (__HASH_API(SHA256_CTX)*)malloc(sizeof(__HASH_API(SHA256_CTX)));
+    __HASH_API(SHA256_Init)((__HASH_API(SHA256_CTX)*)ctx_);
+  } else {
+    throw std::domain_error("Unknown hash function");
+  }
+}
+
+void Hash::update(void* buffer, size_t size) {
+  if (algorithm_ == HASH_TYPE_MD5) {
+    __HASH_API(MD5_Update)((__HASH_API(MD5_CTX)*)ctx_, buffer, size);
+  } else if (algorithm_ == HASH_TYPE_SHA1) {
+    __HASH_API(SHA1_Update)((__HASH_API(SHA1_CTX)*)ctx_, buffer, size);
+  } else if (algorithm_ == HASH_TYPE_SHA256) {
+    __HASH_API(SHA256_Update)((__HASH_API(SHA256_CTX)*)ctx_, buffer, size);
+  }
+}
+
+std::string Hash::digest() {
+  unsigned char hash[length_];
+
+  if (algorithm_ == HASH_TYPE_MD5) {
+    __HASH_API(MD5_Final)(hash, (__HASH_API(MD5_CTX)*)ctx_);
+  } else if (algorithm_ == HASH_TYPE_SHA1) {
+    __HASH_API(SHA1_Final)(hash, (__HASH_API(SHA1_CTX)*)ctx_);
+  } else if (algorithm_ == HASH_TYPE_SHA256) {
+    __HASH_API(SHA256_Final)(hash, (__HASH_API(SHA256_CTX)*)ctx_);
   }
 
-  std::string computeMD5(unsigned char* buffer, long fileLen){
-      #ifdef __APPLE__
-        const unsigned int LENGTH = CC_MD5_DIGEST_LENGTH;
-        unsigned char hash[LENGTH];
-        CC_MD5_CTX md5;
-        CC_MD5_Init(&md5);
-        CC_MD5_Update(&md5, buffer, fileLen);
-        CC_MD5_Final(hash, &md5);
-      #else
-        const unsigned int LENGTH = MD5_DIGEST_LENGTH;
-        unsigned char hash[LENGTH];
-        MD5_CTX md5;
-        MD5_Init(&md5);
-        MD5_Update(&md5, buffer, fileLen);
-        MD5_Final(hash, &md5);
-      #endif
-      
-      return processHash(hash, LENGTH);
+  // The hash value is only relevant as a hex digest.
+  std::stringstream digest;
+  for (int i = 0; i < length_; i++) {
+    digest << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
   }
 
-  std::string computeSHA1(unsigned char* buffer, long fileLen){
-      #ifdef __APPLE__
-        const unsigned int LENGTH = CC_SHA1_DIGEST_LENGTH;
-        unsigned char hash[LENGTH];
-        CC_SHA1_CTX sha1;
-        CC_SHA1_Init(&sha1);
-        CC_SHA1_Update(&sha1, buffer, fileLen);
-        CC_SHA1_Final(hash, &sha1);
-      #else
-        const unsigned int LENGTH = SHA_DIGEST_LENGTH;
-        unsigned char hash[LENGTH];
-        SHA_CTX sha1;
-        SHA1_Init(&sha1);
-        SHA1_Update(&sha1, buffer, fileLen);
-        SHA1_Final(hash, &sha1);
-      #endif
-      return processHash(hash, LENGTH);
+  return digest.str();
+}
+
+std::string hashFromBuffer(HashType hash_type, void* buffer, size_t size) {
+  Hash hash(hash_type);
+  hash.update(buffer, size);
+  return hash.digest();
+}
+
+std::string hashFromFile(HashType hash_type, const std::string& path) {
+  Hash hash(hash_type);
+
+  FILE* file = fopen(path.c_str(), "rb");
+  if (file == nullptr) {
+    VLOG(1) << "Cannot hash/open file " << path;
+    return "";
   }
-  std::string computeSHA256(unsigned char* buffer, long fileLen){
-      #ifdef __APPLE__
-        const unsigned int LENGTH = CC_SHA256_DIGEST_LENGTH;
-        unsigned char hash[LENGTH];
-        CC_SHA256_CTX sha256;
-        CC_SHA256_Init(&sha256);
-        CC_SHA256_Update(&sha256, buffer, fileLen);
-        CC_SHA256_Final(hash, &sha256);
-      #else
-        const unsigned int LENGTH = SHA256_DIGEST_LENGTH;
-        unsigned char hash[LENGTH];
-        SHA256_CTX sha256;
-        SHA256_Init(&sha256);
-        SHA256_Update(&sha256, buffer, fileLen);
-        SHA256_Final(hash, &sha256);
-      #endif
-      return processHash(hash, LENGTH);
+
+  // Then call updates with read chunks.
+  size_t bytes_read = 0;
+  unsigned char buffer[HASH_CHUNK_SIZE];
+  while ((bytes_read = fread(buffer, 1, HASH_CHUNK_SIZE, file))) {
+    hash.update(buffer, bytes_read);
   }
+
+  fclose(file);
+  return hash.digest();
+}
 }

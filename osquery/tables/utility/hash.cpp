@@ -8,21 +8,14 @@
  *
  */
 
-#include <osquery/hash.h>
-
 #include <boost/filesystem.hpp>
 
-#include <osquery/tables.h>
 #include <osquery/filesystem.h>
+#include <osquery/hash.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
-
-void computeAllHashes(Row& r, const std::string& content, long filelen){
-    r["md5"]        = computeMD5(   (unsigned char *)content.c_str(), filelen);
-    r["sha1"]       = computeSHA1(  (unsigned char *)content.c_str(), filelen);
-    r["sha256"]     = computeSHA256((unsigned char *)content.c_str(), filelen);
-}
 
 QueryData genHash(QueryContext& context) {
   QueryData results;
@@ -33,13 +26,13 @@ QueryData genHash(QueryContext& context) {
     if (!boost::filesystem::is_regular_file(path)) {
       continue;
     }
-    std::string content;
-    auto s = osquery::readFile(path.string(), content);
-    long filelen = (long)content.length();
+
     Row r;
     r["path"]       = path.string();
     r["directory"]  = path.parent_path().string();
-    computeAllHashes(r, content, filelen);
+    r["md5"] = osquery::hashFromFile(HASH_TYPE_MD5, path.string());
+    r["sha1"] = osquery::hashFromFile(HASH_TYPE_SHA1, path.string());
+    r["sha256"] = osquery::hashFromFile(HASH_TYPE_SHA256, path.string());
     results.push_back(r);
   }
 
@@ -57,9 +50,11 @@ QueryData genHash(QueryContext& context) {
       r["path"] = begin->path().string();
       r["directory"] = directory_string;
       if (boost::filesystem::is_regular_file(begin->status())) {
-        std::string content;
-        auto s = osquery::readFile(begin->path().string(), content);
-        computeAllHashes(r, content, content.length());
+        r["md5"] = osquery::hashFromFile(HASH_TYPE_MD5, begin->path().string());
+        r["sha1"] =
+            osquery::hashFromFile(HASH_TYPE_SHA1, begin->path().string());
+        r["sha256"] =
+            osquery::hashFromFile(HASH_TYPE_SHA256, begin->path().string());
       }
       results.push_back(r);
     }

@@ -133,7 +133,8 @@ Status Config::getMD5(std::string& hash_string) {
     return s;
   }
 
-  hash_string = computeMD5((unsigned char *)hash_string.c_str(), hash_string.length());
+  hash_string = osquery::hashFromBuffer(
+      HASH_TYPE_MD5, (void*)config_string.c_str(), config_string.length());
 
   return Status(0, "OK");
 }
