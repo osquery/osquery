@@ -23,14 +23,14 @@ QueryData parseNfsSharesContent(const std::string& content) {
     if (line.size() == 0 || boost::starts_with(line[0], "#")) {
       continue;
     }
-    std::vector<std::string> lineExports;
+    std::vector<std::string> line_exports;
     unsigned int readonly = 0;
     int index_of_options = -1;
 
     for (const auto& iter : line) {
       index_of_options++;
       if (iter[0] == '/') {
-        lineExports.push_back(iter);
+        line_exports.push_back(iter);
 
       } else {
         break;
@@ -46,11 +46,9 @@ QueryData parseNfsSharesContent(const std::string& content) {
         readonly = 1;
       }
     }
-    for (std::vector<std::string>::iterator iter = lineExports.begin();
-         iter != lineExports.end();
-         ++iter) {
+    for (const auto& iter : line_exports) {
       Row r;
-      r["share"] = *iter;
+      r["share"] = iter;
       if (readonly) {
         r["readonly"] = "true";
       } else {
