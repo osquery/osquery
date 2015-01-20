@@ -7,7 +7,17 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
- #include <osquery/hash.h>
+#include <osquery/hash.h>
+
+#ifdef __APPLE__
+  #import <CommonCrypto/CommonDigest.h>
+#else
+  #include <openssl/sha.h>
+  #include <openssl/md5.h>
+#endif
+
+#include <iomanip>
+#include <sstream>
  
 namespace osquery{
 
