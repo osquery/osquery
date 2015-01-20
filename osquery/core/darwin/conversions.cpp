@@ -8,6 +8,8 @@
  *
  */
 
+#include <iomanip>
+
 #include <boost/lexical_cast.hpp>
 
 #include "osquery/core/conversions.h"
@@ -32,20 +34,28 @@ std::string stringFromCFString(const CFStringRef& cf_string) {
 
 std::string stringFromCFData(const CFDataRef& cf_data) {
   CFRange range = CFRangeMake(0, CFDataGetLength(cf_data));
+
   char* buffer = (char*)malloc(range.length + 1);
   memset(buffer, 0, range.length + 1);
 
+  std::stringstream result;
+  uint8_t byte;
   CFDataGetBytes(cf_data, range, (UInt8*)buffer);
   for (CFIndex i = 0; i < range.length; ++i) {
-    if (buffer[i] == 0) {
-      buffer[i] = ' ';
+    byte = buffer[i];
+    if (isprint(byte)) {
+      result << byte;
+    } else if (buffer[i] == 0) {
+      result << ' ';
+    } else {
+      result << '%' << std::setfill('0') << std::setw(2) << std::hex
+             << (int)byte;
     }
   }
 
   // Cleanup allocations.
-  std::string result(buffer);
   free(buffer);
-  return result;
+  return result.str();
 }
 
 std::string stringFromCFNumber(const CFDataRef& cf_number) {
