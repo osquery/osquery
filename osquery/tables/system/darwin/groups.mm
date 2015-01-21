@@ -15,10 +15,9 @@
 
 #import <OpenDirectory/OpenDirectory.h>
 
-#include <glog/logging.h>
-
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 namespace osquery {

@@ -10,14 +10,13 @@
 
 #include <sstream>
 
+#import <Foundation/Foundation.h>
+
 #include <boost/filesystem/path.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include <glog/logging.h>
-
-#import <Foundation/Foundation.h>
-
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 namespace pt = boost::property_tree;
 

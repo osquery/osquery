@@ -19,8 +19,6 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/test_util.h"
 
-using namespace osquery::core;
-
 namespace osquery {
 namespace tables {
 

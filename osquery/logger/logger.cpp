@@ -11,8 +11,6 @@
 #include <algorithm>
 #include <thread>
 
-#include <glog/logging.h>
-
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/logger/plugin.h>

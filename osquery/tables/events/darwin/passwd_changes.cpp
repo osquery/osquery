@@ -11,10 +11,10 @@
 #include <vector>
 #include <string>
 
-#include <glog/logging.h>
-
 #include <osquery/core.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
+
 #include "osquery/events/darwin/fsevents.h"
 
 namespace osquery {

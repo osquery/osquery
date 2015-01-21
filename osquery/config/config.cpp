@@ -15,13 +15,11 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/config.h>
 #include <osquery/config/plugin.h>
 #include <osquery/flags.h>
-
 #include <osquery/hash.h>
+#include <osquery/logger.h>
 
 namespace pt = boost::property_tree;
 

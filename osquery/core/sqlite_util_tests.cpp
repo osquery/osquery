@@ -8,17 +8,16 @@
  *
  */
 
-#include <osquery/core.h>
-#include "osquery/core/sqlite_util.h"
-
 #include <iostream>
 
 #include <gtest/gtest.h>
 
+#include <osquery/core.h>
+
+#include "osquery/core/sqlite_util.h"
 #include "osquery/core/test_util.h"
 
 namespace osquery {
-namespace core {
 
 class SQLiteUtilTests : public testing::Test {};
 
@@ -48,7 +47,6 @@ TEST_F(SQLiteUtilTests, test_aggregate_query) {
   QueryData d = query(kTestQuery, err, db);
   sqlite3_close(db);
   EXPECT_EQ(err, 0);
-}
 }
 }
 

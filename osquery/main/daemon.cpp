@@ -10,13 +10,12 @@
 
 #include <boost/thread.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/config.h>
 #include <osquery/config/plugin.h>
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
+#include <osquery/logger.h>
 #include <osquery/logger/plugin.h>
 #include <osquery/scheduler.h>
 

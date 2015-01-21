@@ -8,15 +8,13 @@
  *
  */
 
-#include "osquery/tables/system/darwin/firewall.h"
-
-#include <glog/logging.h>
-
 #include <boost/lexical_cast.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include "osquery/tables/system/darwin/firewall.h"
 
 namespace pt = boost::property_tree;
 

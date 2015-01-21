@@ -10,9 +10,9 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
 #include <osquery/config.h>
 #include <osquery/config/plugin.h>
+#include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
@@ -27,7 +27,7 @@ class ConfigTests : public testing::Test {
  public:
   ConfigTests() {
     FLAGS_config_retriever = "filesystem";
-    FLAGS_config_path = core::kTestDataPath + "test.config";
+    FLAGS_config_path = kTestDataPath + "test.config";
 
     osquery::InitRegistry::get().run();
     auto c = Config::getInstance();

@@ -9,9 +9,9 @@
  */
 
 #include <gtest/gtest.h>
-#include <glog/logging.h>
 
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/test_util.h"
@@ -28,7 +28,7 @@ Row parseInfoPlist(const std::string& path, const pt::ptree& tree);
 
 pt::ptree getInfoPlistTree() {
   std::string content;
-  readFile(core::kTestDataPath + "test_info.plist", content);
+  readFile(kTestDataPath + "test_info.plist", content);
 
   pt::ptree tree;
   parsePlistContent(content, tree);

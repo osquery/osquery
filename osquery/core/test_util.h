@@ -24,7 +24,6 @@
 #include <osquery/filesystem.h>
 
 namespace osquery {
-namespace core {
 
 // kTestQuery is a test query that can be executed against the database
 // returned from createTestDB() to result in the dataset returned from
@@ -96,14 +95,13 @@ std::string getEtcHostsContent();
 // generate the expected data that getEtcHostsContent() should parse into
 osquery::QueryData getEtcHostsExpectedResults();
 
-// the three items that you need to test osquery::core::splitString
+// the three items that you need to test osquery::splitString
 struct SplitStringTestData {
   std::string test_string;
   std::string delim;
   std::vector<std::string> test_vector;
 };
 
-// generate a set of test data to test osquery::core::splitString
+// generate a set of test data to test osquery::splitString
 std::vector<SplitStringTestData> generateSplitStringTestData();
-}
 }

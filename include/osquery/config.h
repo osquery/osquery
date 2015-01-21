@@ -15,40 +15,13 @@
 #include <vector>
 
 #include <osquery/flags.h>
+#include <osquery/scheduler.h>
 #include <osquery/status.h>
 
 namespace osquery {
 
 /// The builder or invoker may change the default config plugin.
 DECLARE_string(config_retriever);
-
-/**
- * @brief represents the relevant parameters of a scheduled query.
- *
- * Within the context of osqueryd, a scheduled query may have many relevant
- * attributes. Those attributes are represented in this data structure.
- */
-struct OsqueryScheduledQuery {
-  /// name represents the "name" of a query.
-  std::string name;
-
-  /// query represents the actual SQL query.
-  std::string query;
-
-  /// interval represents how often the query should be executed, in minutes.
-  int interval;
-
-  /// equals operator
-  bool operator==(const OsqueryScheduledQuery& comp) const {
-    return (comp.name == name) && (comp.query == query) &&
-           (comp.interval == interval);
-  }
-
-  /// not equals operator
-  bool operator!=(const OsqueryScheduledQuery& comp) const {
-    return !(*this == comp);
-  }
-};
 
 /**
  * @brief A native representation of osquery configuration data.

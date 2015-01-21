@@ -11,10 +11,10 @@
 #include <algorithm>
 #include <thread>
 
-#include <glog/logging.h>
 #include <scribe/client/ScribeClient.h>
 
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 #include <osquery/logger/plugin.h>
 
 using osquery::Status;

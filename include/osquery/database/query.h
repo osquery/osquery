@@ -16,9 +16,9 @@
 
 #include <gtest/gtest_prod.h>
 
-#include <osquery/config.h>
 #include <osquery/database/db_handle.h>
 #include <osquery/database/results.h>
+#include <osquery/scheduler.h>
 #include <osquery/status.h>
 
 namespace osquery {
@@ -41,7 +41,7 @@ class Query {
    * @param q an OsqueryScheduledQuery struct which represents the query which
    * you would like to interact with
    */
-  explicit Query(osquery::OsqueryScheduledQuery q) : query_(q) {}
+  explicit Query(OsqueryScheduledQuery q) : query_(q) {}
 
   /////////////////////////////////////////////////////////////////////////////
   // Getters and setters

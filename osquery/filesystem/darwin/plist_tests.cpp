@@ -8,17 +8,16 @@
  *
  */
 
-#include <osquery/filesystem.h>
+#include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
 
-#include <glog/logging.h>
-#include <gtest/gtest.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/test_util.h"
 
-using namespace osquery::core;
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 

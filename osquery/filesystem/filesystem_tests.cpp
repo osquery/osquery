@@ -8,16 +8,17 @@
  *
  */
 
-#include <osquery/filesystem.h>
 
 #include <fstream>
 
 #include <stdio.h>
 
+#include <gtest/gtest.h>
+
 #include <boost/property_tree/ptree.hpp>
 
-#include <gtest/gtest.h>
-#include <glog/logging.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 namespace pt = boost::property_tree;
 

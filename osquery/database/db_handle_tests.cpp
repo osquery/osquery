@@ -12,10 +12,10 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <glog/logging.h>
 #include <gtest/gtest.h>
 
 #include <osquery/database/db_handle.h>
+#include <osquery/tables.h>
 
 const std::string kTestingDBHandlePath = "/tmp/rocksdb-osquery-dbhandletests";
 
