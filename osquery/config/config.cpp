@@ -32,7 +32,7 @@ DEFINE_osquery_flag(string,
                     "filesystem",
                     "Config type (plugin).");
 
-boost::shared_mutex rw_lock;
+static boost::shared_mutex rw_lock;
 
 std::shared_ptr<Config> Config::getInstance() {
   static std::shared_ptr<Config> config = std::shared_ptr<Config>(new Config());
