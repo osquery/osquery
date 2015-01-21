@@ -24,7 +24,7 @@ OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$PACKAGE_VERSION."
 INITD_SRC="$SCRIPT_DIR/osqueryd.initd"
 INITD_DST="/etc/init.d/osqueryd"
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
-OSQUERY_EXAMPLE_CONFIG_DST="/var/osquery/osquery.example.conf"
+OSQUERY_EXAMPLE_CONFIG_DST="/usr/share/osquery/osquery.example.conf"
 OSQUERY_LOG_DIR="/var/log/osquery/"
 
 WORKING_DIR=/tmp/osquery_packaging
