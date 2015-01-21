@@ -123,6 +123,67 @@ def gen_spec(tree):
     }
 
 
+def gen_diff(api_old_path, api_new_path):
+    """Quick and dirty way to view table API changes."""
+    with open(api_old_path, 'r') as fh:
+        api_old = json.loads(fh.read())
+    with open(api_new_path, 'r') as fh:
+        api_new = json.loads(fh.read())
+
+    # Prune table lists into maps
+    old_tables = {}
+    new_tables = {}
+    for category in api_new["tables"]:
+        for table in category["tables"]:
+            new_tables["%s:%s" % (category["name"], table["name"])] = table
+    for category in api_old["tables"]:
+        for table in category["tables"]:
+            old_tables["%s:%s" % (category["name"], table["name"])] = table
+
+    # Iterate backwards then forward to detect added/removed.
+    tables_added = []
+    tables_removed = []
+    columns_added = []
+    columns_removed = []
+    for name, table in new_tables.iteritems():
+        if name not in old_tables:
+            tables_added.append(name)
+            continue
+        for column in table["columns"]:
+            old_columns = [c["name"] for c in old_tables[name]["columns"]]
+            if column["name"] not in old_columns:
+                columns_added.append("%s:%s:%s:%s" % (category["name"],
+                    table["name"], column["name"], column["type"]))
+
+    for name, table in old_tables.iteritems():
+        if name not in new_tables:
+            tables_removed.append(name)
+            continue
+        for column in table["columns"]:
+            new_columns = [c["name"] for c in new_tables[name]["columns"]]
+            if column["name"] not in new_columns:
+                columns_removed.append("%s:%s:%s:%s" % (category["name"],
+                    table["name"], column["name"], column["type"]))
+
+    # Sort then pretty print (md) the changes.
+    tables_added.sort()
+    for name in tables_added:
+        print ("Added table `%s` to %s" % tuple(name.split(":")[::-1]))
+    columns_added.sort()
+    for name in columns_added:
+        column = name.split(":")
+        print ("Added column `%s` (`%s`) to table `%s`" % (column[2], column[3],
+            column[1]))
+    tables_removed.sort()
+    for name in tables_removed:
+        print ("Removed table `%s` from %s" % tuple(name.split(":")[::-1]))
+    columns_removed.sort()
+    for name in columns_removed:
+        column = name.split(":")
+        print ("Removed column `%s` (`%s`) from table `%s`" % (column[2],
+            column[3], column[1]))
+
+
 def main(argc, argv):
     parser = argparse.ArgumentParser("Generate API documentation.")
     parser.add_argument(
@@ -133,9 +194,21 @@ def main(argc, argv):
         "--profile", default=None,
         help="Add the results of a profile summary to the API."
     )
+    parser.add_argument(
+        "--diff", default=False, action="store_true",
+        help="Compare API changes API_PREVIOUS API_CURRENT"
+    )
+    parser.add_argument("vars", nargs="*")
     args = parser.parse_args()
 
     logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
+
+    if args.diff:
+        if len(args.vars) < 2:
+            logging.error("If using --diff you must supply API_OLD API_NEW")
+            exit(1)
+        gen_diff(args.vars[0], args.vars[1])
+        exit(0)
 
     if not os.path.exists(args.tables):
         logging.error("Cannot find path: %s" % (args.tables))
