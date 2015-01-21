@@ -172,11 +172,14 @@ def profile_leaks(shell, queries, count=1, rounds=1, supp_file=None):
                 # Add some fun colored output if leaking.
                 if key == "definitely":
                     output = red(output)
+                    report[name] = "LEAKING"
                 if key == "indirectly":
                     output = yellow(output)
+                    report[name] = "WARNING"
+            else:
+                report[name] = "SAFE"
             display.append("%s: %s" % (key, output))
         print ("  %s" % "; ".join(display))
-        report[name] = summary
     return report
 
 
@@ -422,17 +425,22 @@ if __name__ == "__main__":
             args.shell, queries, count=args.count,
             rounds=args.rounds, supp_file=args.suppressions
         )
-        exit(0)
+    else:
+        # Start the profiling!
+        results = profile(
+            args.shell, queries,
+            timeout=args.timeout, count=args.count, rounds=args.rounds
+        )
 
-    # Start the profiling!
-    results = profile(
-        args.shell, queries,
-        timeout=args.timeout, count=args.count, rounds=args.rounds
-    )
+        # Only apply checking/regressions to performance, not leaks.
+        if args.check:
+            exit(regress_check(profile1, summary(results)))
 
-    if args.check:
-        exit(regress_check(profile1, summary(results)))
-
-    if args.output is not None and not args.summary:
+    if args.output is not None:
         with open(args.output, "w") as fh:
-            fh.write(json.dumps(summary(results), indent=1))
+            if args.leaks:
+                # Leaks report does not need a summary view.
+                fh.write(json.dumps(results, indent=1))
+            else:
+                fh.write(json.dumps(summary(results), indent=1))
+        print ("Wrote output summary: %s" % args.output)
