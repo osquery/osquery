@@ -32,6 +32,8 @@ CANONICAL_PLATFORMS = {
     "x": "All Platforms",
     "darwin": "Darwin (Apple OS X)",
     "linux": "Ubuntu, CentOS",
+    "centos": "CentOS",
+    "ubuntu": "Ubuntu",
 }
 
 TEMPLATE_API_DEFINITION = """
@@ -163,6 +165,8 @@ def main(argc, argv):
     categories = {}
     for base, _, files in os.walk(args.tables):
         for spec_file in files:
+            if spec_file[0] == '.':
+                continue
             # Exclude blacklist specific file
             if spec_file == 'blacklist':
                 continue
