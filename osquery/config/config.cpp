@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -137,5 +137,10 @@ Status Config::getMD5(std::string& hash_string) {
       HASH_TYPE_MD5, (void*)config_string.c_str(), config_string.length());
 
   return Status(0, "OK");
+}
+
+Status Config::checkConfig() {
+  OsqueryConfig c;
+  return genConfig(c);
 }
 }
