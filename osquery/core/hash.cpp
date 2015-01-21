@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -17,15 +17,15 @@
 namespace osquery {
 
 #ifdef __APPLE__
-#import <CommonCrypto/CommonDigest.h>
-#define __HASH_API(name) CC_##name
+  #import <CommonCrypto/CommonDigest.h>
+  #define __HASH_API(name) CC_##name
 #else
-#include <openssl/sha.h>
-#include <openssl/md5.h>
-#define __HASH_API(name) name
-// Apple included a 1.
-#define SHA1_DIGEST_LENGTH SHA_DIGEST_LENGTH
-#define SHA1_CTX SHA_CTX
+  #include <openssl/sha.h>
+  #include <openssl/md5.h>
+  #define __HASH_API(name) name
+
+  #define SHA1_DIGEST_LENGTH SHA_DIGEST_LENGTH
+  #define SHA1_CTX SHA_CTX
 #endif
 
 #define HASH_CHUNK_SIZE 1024
@@ -36,7 +36,7 @@ Hash::~Hash() {
   }
 }
 
-void Hash::init() {
+Hash::Hash(HashType algorithm) : algorithm_(algorithm) {
   if (algorithm_ == HASH_TYPE_MD5) {
     length_ = __HASH_API(MD5_DIGEST_LENGTH);
     ctx_ = (__HASH_API(MD5_CTX)*)malloc(sizeof(__HASH_API(MD5_CTX)));
