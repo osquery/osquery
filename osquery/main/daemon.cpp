@@ -3,11 +3,11 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
- 
+
 #include <boost/thread.hpp>
 
 #include <glog/logging.h>
@@ -26,8 +26,23 @@ DEFINE_osquery_flag(bool, daemonize, false, "Run as daemon (osqueryd only).");
 }
 #endif
 
+namespace osquery {
+DEFINE_osquery_flag(bool,
+                    config_check,
+                    false,
+                    "Check the format and accessibility of the daemon");
+}
+
 int main(int argc, char* argv[]) {
   osquery::initOsquery(argc, argv, osquery::OSQUERY_TOOL_DAEMON);
+
+  if (osquery::FLAGS_config_check) {
+    auto s = osquery::Config::checkConfig();
+    if (!s.ok()) {
+      std::cerr << "Error reading config: " << s.toString() << "\n";
+    }
+    return s.getCode();
+  }
 
 #ifndef __APPLE__
   // OSX uses launchd to daemonize.
