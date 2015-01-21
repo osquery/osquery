@@ -369,6 +369,8 @@ function main() {
     package linux-headers-generic
     package ruby-dev
     package gcc
+    package doxygen
+    install_gflags
 
     set_cc clang
     set_cxx clang++
@@ -386,7 +388,6 @@ function main() {
     fi
 
     if [[ $DISTRO = "precise" ]]; then
-      install_gflags
       remove_package libunwind7-dev
     else
       remove_package libunwind8-dev
