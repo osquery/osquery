@@ -370,7 +370,6 @@ function main() {
     package ruby-dev
     package gcc
     package doxygen
-    install_gflags
 
     set_cc clang
     set_cxx clang++
@@ -386,6 +385,8 @@ function main() {
       package cmake
       package libboost1.55-all-dev
     fi
+
+    install_gflags
 
     if [[ $DISTRO = "precise" ]]; then
       remove_package libunwind7-dev
