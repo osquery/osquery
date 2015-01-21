@@ -8,11 +8,10 @@
  *
  */
 
-#include <glog/logging.h>
-
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 

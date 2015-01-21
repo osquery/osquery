@@ -11,10 +11,9 @@
 #include <iostream>
 #include <sstream>
 
-#include <glog/logging.h>
-
 #include <osquery/core.h>
 #include <osquery/devtools.h>
+#include <osquery/logger.h>
 
 namespace osquery {
 

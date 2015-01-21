@@ -14,11 +14,10 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/core.h>
-#include <osquery/tables.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

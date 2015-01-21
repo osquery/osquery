@@ -12,12 +12,12 @@
 #include <mutex>
 #include <stdexcept>
 
-#include <glog/logging.h>
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
 
 #include <osquery/database/db_handle.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/status.h>
 
 namespace osquery {

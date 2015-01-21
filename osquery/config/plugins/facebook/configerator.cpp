@@ -8,16 +8,15 @@
  *
  */
 
-#include <osquery/config/plugin.h>
-
 #include <algorithm>
 #include <functional>
 #include <thread>
 
-#include <glog/logging.h>
-
 #include <configerator/distribution/api/api.h>
 #include <configerator/structs/osquery/gen-cpp/osquery_types.h>
+
+#include <osquery/config/plugin.h>
+#include <osquery/logger.h>
 
 using osquery::Status;
 

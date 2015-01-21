@@ -8,13 +8,13 @@
  *
  */
  
-#include <osquery/registry.h>
-
 #include <memory>
 #include <string>
 
-#include <glog/logging.h>
 #include <gtest/gtest.h>
+
+#include <osquery/logger.h>
+#include <osquery/registry.h>
 
 class TestPlugin {
  public:

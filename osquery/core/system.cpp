@@ -24,11 +24,10 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/core.h>
 #include <osquery/database/db_handle.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/sql.h>
 
 namespace fs = boost::filesystem;

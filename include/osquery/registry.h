@@ -15,7 +15,8 @@
 #include <unordered_map>
 #include <utility>
 
-#include <glog/logging.h>
+#include <osquery/database/results.h>
+#include <osquery/logger.h>
 
 #include "osquery/registry/init_registry.h"
 #include "osquery/registry/singleton.h"

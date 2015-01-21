@@ -1,16 +1,15 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include <fstream>
-#include <boost/algorithm/string/trim.hpp>
 
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/core.h>
-#include <osquery/tables.h>
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {

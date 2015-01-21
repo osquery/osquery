@@ -13,9 +13,8 @@
 
 #include <boost/property_tree/json_parser.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 #include "osquery/core/sqlite_util.h"
 #include "osquery/core/test_util.h"
@@ -23,7 +22,6 @@
 namespace pt = boost::property_tree;
 
 namespace osquery {
-namespace core {
 
 const std::string kTestQuery = "SELECT * FROM test_table";
 const std::string kTestDataPath = "../../../../tools/tests/";
@@ -261,6 +259,5 @@ osquery::QueryData getEtcHostsExpectedResults() {
   row4["address"] = "fe80::1%lo0";
   row4["hostnames"] = "localhost";
   return {row1, row2, row3, row4};
-}
 }
 }

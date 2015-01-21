@@ -20,8 +20,6 @@
 
 #include "osquery/core/test_util.h"
 
-using namespace osquery::core;
-
 const std::string kTestingQueryDBPath = "/tmp/rocksdb-osquery-querytests";
 
 namespace osquery {

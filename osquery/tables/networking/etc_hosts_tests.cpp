@@ -9,12 +9,11 @@
  */
 
 #include <gtest/gtest.h>
-#include <glog/logging.h>
 
-#include "osquery/core/test_util.h"
+#include <osquery/logger.h>
 #include <osquery/database.h>
 
-using namespace osquery::core;
+#include "osquery/core/test_util.h"
 
 namespace osquery {
 namespace tables {

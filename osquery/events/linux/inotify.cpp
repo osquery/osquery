@@ -12,10 +12,9 @@
 
 #include <linux/limits.h>
 
-#include <glog/logging.h>
-
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 #include "osquery/events/linux/inotify.h"
 

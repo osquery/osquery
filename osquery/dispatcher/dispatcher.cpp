@@ -8,10 +8,9 @@
  *
  */
 
-#include <glog/logging.h>
-
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
 

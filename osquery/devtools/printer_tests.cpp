@@ -9,9 +9,9 @@
  */
 
 #include <gtest/gtest.h>
-#include <glog/logging.h>
 
 #include <osquery/devtools.h>
+#include <osquery/logger.h>
 
 namespace osquery {
 

@@ -20,9 +20,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;

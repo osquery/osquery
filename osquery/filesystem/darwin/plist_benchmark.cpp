@@ -8,16 +8,15 @@
  *
  */
 
-#include <glog/logging.h>
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 
 #include "osquery/core/test_util.h"
 
-using namespace osquery::core;
 namespace pt = boost::property_tree;
 
 namespace osquery {

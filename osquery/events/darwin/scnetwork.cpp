@@ -11,9 +11,9 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "osquery/events/darwin/scnetwork.h"
+#include <osquery/logger.h>
 
-#include <glog/logging.h>
+#include "osquery/events/darwin/scnetwork.h"
 
 namespace osquery {
 

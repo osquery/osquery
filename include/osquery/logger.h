@@ -17,7 +17,7 @@
 #include <glog/logging.h>
 
 #include <osquery/status.h>
-#include <osquery/database.h>
+#include <osquery/scheduler.h>
 
 namespace osquery {
 
@@ -42,7 +42,7 @@ extern const std::string kDefaultLogReceiverName;
  * @return an instance of osquery::Status, indicating the success or failure
  * of the operation.
  */
-osquery::Status logString(const std::string& s);
+Status logString(const std::string& s);
 
 /**
  * @brief Log a string using a specific logger receiver.
@@ -56,7 +56,7 @@ osquery::Status logString(const std::string& s);
  * @return an instance of osquery::Status, indicating the success or failure
  * of the operation.
  */
-osquery::Status logString(const std::string& s, const std::string& receiver);
+Status logString(const std::string& s, const std::string& receiver);
 
 /**
  * @brief Directly log results of scheduled queries to the default receiver
@@ -66,8 +66,7 @@ osquery::Status logString(const std::string& s, const std::string& receiver);
  * @return an instance of osquery::Status, indicating the success or failure
  * of the operation.
  */
-osquery::Status logScheduledQueryLogItem(
-    const osquery::ScheduledQueryLogItem& item);
+Status logScheduledQueryLogItem(const ScheduledQueryLogItem& item);
 
 /**
  * @brief Directly log results of scheduled queries to a specified receiver
@@ -78,6 +77,6 @@ osquery::Status logScheduledQueryLogItem(
  * @return an instance of osquery::Status, indicating the success or failure
  * of the operation.
  */
-osquery::Status logScheduledQueryLogItem(
-    const osquery::ScheduledQueryLogItem& item, const std::string& receiver);
+Status logScheduledQueryLogItem(const ScheduledQueryLogItem& item,
+                                const std::string& receiver);
 }

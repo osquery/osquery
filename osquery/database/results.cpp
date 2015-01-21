@@ -18,9 +18,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include <glog/logging.h>
-
 #include <osquery/database/results.h>
+#include <osquery/logger.h>
 
 namespace pt = boost::property_tree;
 using osquery::Status;
