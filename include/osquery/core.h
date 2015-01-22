@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -109,9 +109,9 @@ sqlite3* createDB();
 void initOsquery(int argc, char* argv[], int tool = OSQUERY_TOOL_TEST);
 
 /**
- * @brief Split a given string based on an optional deliminator.
+ * @brief Split a given string based on an optional delimiter.
  *
- * If no deliminator is supplied, the string will be split based on whitespace.
+ * If no delimiter is supplied, the string will be split based on whitespace.
  *
  * @param s the string that you'd like to split
  * @param delim the delimiter which you'd like to split the string by
