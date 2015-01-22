@@ -56,6 +56,7 @@ else()
     system/linux/acpi_tables.cpp
     system/linux/block_devices.cpp
     system/linux/groups.cpp
+    system/linux/kernel_info.cpp
     system/linux/kernel_integrity.cpp
     system/linux/kernel_modules.cpp
     system/linux/mounts.cpp
