@@ -145,10 +145,10 @@ add_dependencies(devel libosquery_basic)
 
 # make install config files
 install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf"
-  DESTINATION "/var/osquery/" COMPONENT main)
+  DESTINATION "${CMAKE_INSTALL_PREFIX}/share/osquery/" COMPONENT main)
 if(APPLE)
   install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.plist"
-    DESTINATION "/var/osquery/" COMPONENT main)
+    DESTINATION "${CMAKE_INSTALL_PREFIX}/share/osquery/" COMPONENT main)
 else()
   install(PROGRAMS "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.initd"
     DESTINATION "/etc/init.d/" RENAME "osqueryd" COMPONENT main)
