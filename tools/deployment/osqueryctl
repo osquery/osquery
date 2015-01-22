@@ -1,0 +1,124 @@
+#!/bin/bash
+
+ensure_root() {
+  if [ $UID -ne 0 ]; then
+    echo "User has insufficient privileges. $0 must be run as root."
+    exit 4
+  fi
+}
+ensure_root
+
+check_config() {
+  if [ ! -e $REAL_CONFIG_PATH ] ; then
+      echo "No osquery config file found at $REAL_CONFIG_PATH."
+      echo "See '$EXAMPLE_CONFIG_PATH' for an example config."
+      exit 4
+  fi
+}
+
+# Use this function to detect the operating system that this
+platform() {
+  local  __resultvar=$1
+  if [[ -f "/etc/redhat-release" ]]; then
+    eval $__resultvar="centos"
+  elif [[ -f "/etc/lsb-release" ]]; then
+    eval $__resultvar="ubuntu"
+  else
+    eval $__resultvar=`uname -s | tr '[:upper:]' '[:lower:]'`
+  fi
+}
+
+platform OS
+
+if [ $OS = "darwin" ]; then
+  REAL_CONFIG_PATH="/var/osquery/osquery.conf"
+  EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
+  PIDFILE="/var/osquery/osquery.pid"
+  LOCKFILE="/var/osquery/osquery.lock"
+  EXEC="/usr/local/bin/osqueryd"
+  PLIST_DOMAIN="com.facebook.osqueryd"
+  PLIST_PATH="/Library/LaunchDaemons/$PLIST_DOMAIN.plist"
+  LAUNCHCTL_LIST=`launchctl list | grep com.facebook.osqueryd`
+  LAUNCHCTL_LIST_PID=`echo $LAUNCHCTL_LIST | awk '{ print $1 }'`
+else
+  INIT_SCRIPT_PATH="/etc/init.d/osqueryd"
+  if [ ! -e $INIT_SCRIPT_PATH ]; then
+    echo "Cannot find the init.d script at $INIT_SCRIPT_PATH"
+    exit 6
+  fi
+
+  REAL_CONFIG_PATH="/etc/osquery/osquery.conf"
+  EXAMPLE_CONFIG_PATH="/usr/share/osquery/osquery.example.conf"
+  PIDFILE="/var/run/osquery.pid"
+  LOCKFILE="/var/lock/subsys/osqueryd"
+  EXEC="/usr/bin/osqueryd"
+fi
+PROG="osqueryd"
+
+exec_with_env() {
+  REAL_CONFIG_PATH=$REAL_CONFIG_PATH \
+  EXAMPLE_CONFIG_PATH=$EXAMPLE_CONFIG_PATH \
+  PIDFILE=$PIDFILE \
+  LOCKFILE=$LOCKFILE \
+  EXEC=$EXEC \
+  PROG=$PROG \
+  $1
+  return $?
+}
+
+start() {
+  check_config
+  if [ $OS = "darwin" ]; then
+    launchctl start $PLIST_PATH
+  else
+    exec_with_env "service osqueryd start"
+  fi
+}
+
+stop() {
+  if [ $OS = "darwin" ]; then
+    launchctl stop $PLIST_PATH
+  else
+    exec_with_env "service osqueryd stop"
+  fi
+}
+
+restart() {
+  stop
+  start
+}
+
+status() {
+  if [ $OS = "darwin" ]; then
+    if [[ "$LAUNCHCTL_LIST" = "" || "$LAUNCHCTL_LIST_PID" = "-" ]]; then
+      echo "$PLIST_DOMAIN is not running"
+    else
+      echo "$PLIST_DOMAIN is running. pid: $LAUNCHCTL_LIST_PID"
+    fi
+  else
+    exec_with_env "service osqueryd status"
+  fi
+}
+
+case "$1" in
+  start)
+    $1
+    ;;
+  stop)
+    $1
+    ;;
+  restart)
+    $1
+    ;;
+  status)
+    $1
+    ;;
+  config-check)
+    $EXEC --config_path=$REAL_CONFIG_PATH --config_check
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|status|restart}"
+    exit 2
+
+esac
+exit $?
