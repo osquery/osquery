@@ -1,0 +1,107 @@
+#!/bin/bash
+
+if [ $UID -ne 0 ]; then
+  echo "User has insufficient privileges. $0 must be run as root."
+  exit 4
+fi
+
+# Use this function to detect the operating system that this
+platform() {
+  local  __resultvar=$1
+  if [[ -f "/etc/redhat-release" ]]; then
+    eval $__resultvar="centos"
+  elif [[ -f "/etc/lsb-release" ]]; then
+    eval $__resultvar="ubuntu"
+  else
+    eval $__resultvar=`uname -s | tr '[:upper:]' '[:lower:]'`
+  fi
+}
+
+platform OS
+
+if [ $OS = "darwin" ]; then
+  REAL_CONFIG_PATH="/var/osquery/osquery.conf"
+  EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
+  PIDFILE="/var/osquery/osquery.pid"
+  LOCKFILE="/var/osquery/osquery.lock"
+  EXEC="/usr/local/bin/osqueryd"
+else
+  INIT_SCRIPT_PATH="/etc/init.d/osqueryd"
+  if [ ! -e $INIT_SCRIPT_PATH ]; then
+    echo "Cannot find the init.d script at $INIT_SCRIPT_PATH."
+    exit 9001 # TODO fix return code
+  fi
+
+  REAL_CONFIG_PATH="/etc/osquery/osquery.conf"
+  EXAMPLE_CONFIG_PATH="/usr/share/osquery/osquery.example.conf"
+  PIDFILE="/var/run/osquery.pid"
+  LOCKFILE="/var/lock/subsys/osqueryd"
+  EXEC="/usr/bin/osqueryd"
+fi
+PROG="osqueryd"
+
+if [ ! -e $REAL_CONFIG_PATH ] ; then
+    echo "No osquery config file found at $REAL_CONFIG_PATH."
+    echo "See '$EXAMPLE_CONFIG_PATH' for an example config."
+    exit 4
+fi
+
+exec_with_env() {
+  REAL_CONFIG_PATH=$REAL_CONFIG_PATH \
+  EXAMPLE_CONFIG_PATH=$EXAMPLE_CONFIG_PATH \
+  PIDFILE=$PIDFILE \
+  LOCKFILE=$LOCKFILE \
+  EXEC=$EXEC \
+  PROG=$PROG \
+  $1
+  return $?
+}
+
+start() {
+  if [ $OS = "darwin" ]; then
+    echo "launchctl start osquery"
+  else
+    echo "service osquery start"
+  fi
+}
+
+stop() {
+  if [ $OS = "darwin" ]; then
+    echo "launchctl stop osquery"
+  else
+    echo "service osquery stop"
+  fi
+}
+
+restart() {
+  stop
+  start
+}
+
+status() {
+  if [ $OS = "darwin" ]; then
+    echo "querying the status of osquery on OS X"
+  else
+    echo "service osquery status"
+  fi
+}
+
+case "$1" in
+  start)
+    $1
+    ;;
+  stop)
+    $1
+    ;;
+  restart)
+    $1
+    ;;
+  status)
+    $1
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|status|restart}"
+    exit 2
+
+esac
+exit $?

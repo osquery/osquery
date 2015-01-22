@@ -3,44 +3,43 @@
 # osqueryd 	Start/Stop the osquery daemon.
 #
 # chkconfig: 3345 90 60
-# Description: 
+# Description:
 #             With osquery, you can use SQL to query low-level
 #             operating system information. Under the hood, instead
-#             of querying static tables, these queries dynamically execute 
-#             high-performance native code. The results of the 
-#             SQL query are transparently returned to you quickly and easily 
-#              
+#             of querying static tables, these queries dynamically execute
+#             high-performance native code. The results of the
+#             SQL query are transparently returned to you quickly and easily
+#
 ### BEGIN INIT INFO
-# Provides: osquery osqueryd 
+# Provides: osquery osqueryd
 # Required-Start: $local_fs $syslog
 # Required-Stop: $local_fs $syslog
 # Default-Start:  3345
 # Default-Stop: 90
 # Short-Description: run osqueryd daemon
-# Description: 
+# Description:
 #             With osquery, you can use SQL to query low-level
 #             operating system information. Under the hood, instead
-#             of querying static tables, these queries dynamically execute 
-#             high-performance native code. The results of the 
-#             SQL query are transparently returned to you quickly and easily 
-#              
-#              
+#             of querying static tables, these queries dynamically execute
+#             high-performance native code. The results of the
+#             SQL query are transparently returned to you quickly and easily
+#
+#
 ### END INIT INFO
 
+if [ -z $RETVAL ]; then RETVAL=0; fi
+if [ -z $PROG ]; then PROG="osqueryd"; fi
+if [ -z $EXEC ]; then EXEC=/usr/bin/osqueryd; fi
+if [ -z $REAL_CONFIG_PATH ]; then REAL_CONFIG_PATH=/etc/osquery/osquery.conf; fi
+if [ -z $LOCKFILE ]; then LOCKFILE=/var/lock/subsys/osqueryd; fi
+if [ -z $PIDFILE ]; then PIDFILE=/var/run/osquery.pid; fi
 
-RETVAL=0
-prog="osqueryd"
-exec=/usr/bin/osqueryd
-config=/etc/osquery/osquery.conf
-lockfile=/var/lock/subsys/osqueryd
-pidfile=/var/run/osquery.pid
-
-[ $UID -eq 0 ] && [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
+[ $UID -eq 0 ] && [ -e /etc/sysconfig/$PROG ] && . /etc/sysconfig/$PROG
 
 . /etc/init.d/functions
 
-if [ ! -e $config ] ; then
-    echo "No osquery config file found at $config."
+if [ ! -e $REAL_CONFIG_PATH ] ; then
+    echo "No osquery config file found at $REAL_CONFIG_PATH."
     echo "See '/usr/share/osquery/osquery.example.conf' for an example config."
     exit 4
 fi
@@ -49,17 +48,17 @@ start() {
     if [ $UID -ne 0 ] ; then
         echo "User has insufficient privilege."
         exit 4
-    elif [ -f $pidfile ]; then
-        PID=$(cat $pidfile)
-        echo "$prog is already running: $PID"
+    elif [ -f $PIDFILE ]; then
+        PID=$(cat $PIDFILE)
+        echo "$PROG is already running: $PID"
         exit 4
     else
-        daemon $prog --config_path=$config \
-                     --pidfile=$pidfile \
+        daemon $PROG --config_path=$REAL_CONFIG_PATH \
+                     --pidfile=$PIDFILE \
                      --daemonize=true
                retval=$?
                echo
-               [ $retval -eq 0 ] && touch $lockfile || failure 
+               [ $RETVAL -eq 0 ] && touch $LOCKFILE || failure
     fi
 }
 
@@ -67,16 +66,16 @@ stop() {
     if [ $UID -ne 0 ] ; then
         echo "User has insufficient privilege."
         exit 4
-    elif [ ! -s $pidfile ] ; then
-        echo $"Stopping $prog: "
-        failure $"Stopping $prog"
+    elif [ ! -s $PIDFILE ] ; then
+        echo $"Stopping $PROG: "
+        failure $"Stopping $PROG"
     else
-        echo -n $"Stopping $prog: "
-        killproc $prog
+        echo -n $"Stopping $PROG: "
+        killproc $PROG
         retval=$?
         echo
-        [ $retval -eq 0 ] && rm -f $lockfile 
-        rm -f $pidfile
+        [ $RETVAL -eq 0 ] && rm -f $LOCKFILE
+        rm -f $PIDFILE
     fi
 }
 
@@ -85,8 +84,8 @@ restart() {
     start
 }
 
-get_status() {
-    status -p $pidfile $prog
+status() {
+    status -p $PIDFILE $PROG
 }
 
 case "$1" in
@@ -100,7 +99,7 @@ case "$1" in
         $1
         ;;
     status)
-        get_status
+        $1
         ;;
     *)
         echo $"Usage: $0 {start|stop|status|restart}"
