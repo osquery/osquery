@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -20,6 +20,7 @@
 #include <sqlite3.h>
 
 #include <osquery/registry.h>
+#include <osquery/core.h>
 #include <osquery/database/results.h>
 #include <osquery/status.h>
 
@@ -149,7 +150,7 @@ struct ConstraintList {
   /**
    * @brief Check and return if there are any constraints on this column.
    *
-   * A ConstraintList is used in a ConstraintMap with a column name as the 
+   * A ConstraintList is used in a ConstraintMap with a column name as the
    * map index. Tables that act on optional constraints should check if any
    * constraint was provided.
    *
@@ -173,7 +174,7 @@ struct ConstraintList {
   /**
    * @brief Check if a constraint is missing or matches a type expression.
    *
-   * A ConstraintList is used in a ConstraintMap with a column name as the 
+   * A ConstraintList is used in a ConstraintMap with a column name as the
    * map index. Tables that act on required constraints can make decisions
    * on missing constraints or a constraint match.
    *
@@ -261,6 +262,9 @@ typedef struct Constraint Constraint;
  * To attach a virtual table create a TablePlugin subclass and register the
  * virtual table name as the plugin ID. osquery will enumerate all registered
  * TablePlugins and attempt to attach them to SQLite at instanciation.
+ *
+ * Note: When updating this class, be sure to update the corresponding template
+ * in osquery/tables/templates/default.cpp.in
  */
 class TablePlugin : public Plugin {
  protected:
@@ -296,5 +300,39 @@ class TablePlugin : public Plugin {
 };
 
 CREATE_REGISTRY(TablePlugin, "table");
+
+/**
+ * @brief Analyze a query, providing information about the result columns
+ *
+ * This function asks SQLite to determine what the names and types are of the
+ * result columns of the provided query. Only table columns (not expressions or
+ * subqueries) can have their types determined. Types that are not determined
+ * are indicated with the string "UNKNOWN".
+ *
+ * @param q the query to analyze
+ * @param columns the vector to fill with column information
+ *
+ * @return status indicating success or failure of the operation
+ */
+Status getQueryColumns(const std::string& q, TableColumns& columns);
+
+/**
+ * @brief Analyze a query, providing information about the result columns
+ *
+ * This function asks SQLite to determine what the names and types are of the
+ * result columns of the provided query. Only table columns (not expressions or
+ * subqueries) can have their types determined. Types that are not determined
+ * are indicated with the string "UNKNOWN".
+ *
+ * @param q the query to analyze
+ * @param columns the vector to fill with column information
+ * @param db the SQLite3 database to perform the analysis on
+ *
+ * @return status indicating success or failure of the operation
+ */
+Status getQueryColumns(const std::string& q,
+                       TableColumns& columns,
+                       sqlite3* db);
+
 }
 }
