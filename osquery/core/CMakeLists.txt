@@ -21,6 +21,7 @@ ADD_OSQUERY_CORE_LIBRARY(osquery_core
   hash.cpp
 )
 
+ADD_OSQUERY_TEST(hash_test hash_tests.cpp)
 ADD_OSQUERY_TEST(status_test status_tests.cpp)
 ADD_OSQUERY_TEST(sql_test sql_tests.cpp)
 ADD_OSQUERY_TEST(sqlite_util_tests sqlite_util_tests.cpp)
