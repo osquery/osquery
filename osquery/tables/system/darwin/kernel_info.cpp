@@ -8,9 +8,7 @@
  *
  */
 
-#include <CoreFoundation/CoreFoundation.h>
-#include <IOKit/IOKitLib.h>
-
+#include <boost/algorithm/string.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
@@ -18,7 +16,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
+#include "osquery/tables/system/darwin/iokit_utils.h"
 #include "osquery/tables/system/efi_misc.h"
 
 namespace osquery {
@@ -41,6 +39,7 @@ std::string getCanonicalEfiDevicePath(const CFDataRef& data) {
   while ((search_offset + sizeof(EFI_DEVICE_PATH_PROTOCOL)) < length) {
     auto node = (const EFI_DEVICE_PATH_PROTOCOL*)(bytes + search_offset);
     if (EfiIsDevicePathEnd(node)) {
+      // End of the EFI device path stacked structs.
       break;
     }
 
@@ -53,13 +52,20 @@ std::string getCanonicalEfiDevicePath(const CFDataRef& data) {
     if (EfiDevicePathType(node) == MEDIA_DEVICE_PATH) {
       if (node->SubType == MEDIA_FILEPATH_DP) {
         for (size_t i = 0; i < EfiDevicePathNodeLength(node); i += 2) {
+          // Strip UTF16 characters to UTF8.
           path += (((char*)(node)) + sizeof(EFI_DEVICE_PATH_PROTOCOL))[i];
         }
       } else if (node->SubType == MEDIA_HARDDRIVE_DP) {
-        auto hdd = (const HARDDRIVE_DEVICE_PATH*)node;
-        boost::uuids::uuid hdd_signature;
-        memcpy(&hdd_signature, hdd->Signature, 16);
-        path += boost::uuids::to_string(hdd_signature);
+        // Extract the device UUID to later join with block devices.
+        auto uuid = ((const HARDDRIVE_DEVICE_PATH*)node)->Signature;
+        boost::uuids::uuid hdd_signature = {
+          uuid[3], uuid[2], uuid[1], uuid[0],
+          uuid[5], uuid[4],
+          uuid[7], uuid[6],
+          uuid[8], uuid[9],
+          uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15],
+        };
+        path += boost::to_upper_copy(boost::uuids::to_string(hdd_signature));
       }
     }
 
@@ -112,6 +118,7 @@ QueryData genKernelInfo(QueryContext& context) {
   if (CFDictionaryGetValueIfPresent(
           properties, CFSTR("boot-file"), &property)) {
     r["path"] = stringFromCFData((CFDataRef)property);
+    boost::trim(r["path"]);
   }
   // No longer need chosen properties.
   CFRelease(properties);
@@ -133,7 +140,8 @@ QueryData genKernelInfo(QueryContext& context) {
 
   // With the path and device, try to locate the on-disk kernel
   if (r.count("path") > 0) {
-    r["md5"] = hashFromFile(HASH_TYPE_MD5, "/" + r.at("path"));
+    // This does not use the device path, potential invalidation.
+    r["md5"] = hashFromFile(HASH_TYPE_MD5, "/" + r["path"]);
   }
 
   results.push_back(r);

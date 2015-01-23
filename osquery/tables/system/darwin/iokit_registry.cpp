@@ -8,39 +8,13 @@
  *
  */
 
-#include <IOKit/IOKitLib.h>
-
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
+#include "osquery/tables/system/darwin/iokit_utils.h"
 
 namespace osquery {
 namespace tables {
-
-std::string getIOKitProperty(const CFMutableDictionaryRef& details,
-                             const std::string& key) {
-  std::string value;
-
-  // Get a property from the device.
-  auto cfkey = CFStringCreateWithCString(
-      kCFAllocatorDefault, key.c_str(), kCFStringEncodingUTF8);
-  auto property = CFDictionaryGetValue(details, cfkey);
-  CFRelease(cfkey);
-
-  // Several supported ways of parsing IOKit-encoded data.
-  if (property) {
-    if (CFGetTypeID(property) == CFNumberGetTypeID()) {
-      value = stringFromCFNumber((CFDataRef)property);
-    } else if (CFGetTypeID(property) == CFStringGetTypeID()) {
-      value = stringFromCFString((CFStringRef)property);
-    } else if (CFGetTypeID(property) == CFDataGetTypeID()) {
-      value = stringFromCFData((CFDataRef)property);
-    }
-  }
-
-  return value;
-}
 
 void genIOKitDevice(const io_service_t& device,
                     const io_service_t& parent,
