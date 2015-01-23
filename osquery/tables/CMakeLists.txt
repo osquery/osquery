@@ -20,6 +20,7 @@ if(APPLE)
     system/darwin/firewall.cpp
     system/darwin/homebrew_packages.cpp
     system/darwin/iokit_registry.cpp
+    system/darwin/kernel_info.cpp
     system/darwin/kernel_extensions.cpp
     system/darwin/launchd.cpp
     system/darwin/mounts.cpp
