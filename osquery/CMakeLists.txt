@@ -59,6 +59,7 @@ add_subdirectory(registry)
 add_subdirectory(scheduler)
 add_subdirectory(sql)
 add_subdirectory(tables)
+add_subdirectory(distributed)
 
 # Utility tables are table specs that are ALWAYS built into osquery core.
 GENERATE_UTILITY("osquery_info")

@@ -32,11 +32,21 @@ const std::map<tables::ConstraintOperator, std::string> kSQLOperatorRepr = {
 
 SQL::SQL(const std::string& q) { status_ = query(q, results_); }
 
-QueryData SQL::rows() { return results_; }
+const QueryData& SQL::rows() { return results_; }
 
 bool SQL::ok() { return status_.ok(); }
 
+Status SQL::getStatus() { return status_; }
+
 std::string SQL::getMessageString() { return status_.toString(); }
+
+const std::string SQL::kHostColumnName = "_source_host";
+void SQL::annotateHostInfo() {
+  std::string hostname = getHostname();
+  for (Row& row : results_) {
+    row[kHostColumnName] = hostname;
+  }
+}
 
 std::vector<std::string> SQL::getTableNames() {
   std::vector<std::string> results;
