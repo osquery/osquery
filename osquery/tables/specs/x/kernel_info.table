@@ -1,0 +1,9 @@
+table_name("kernel_info")
+schema([
+  Column("version", TEXT),
+  Column("arguments", TEXT),
+  Column("path", TEXT),
+  Column("device", TEXT),
+  Column("md5", TEXT),
+])
+implementation("system/kernel_info@genKernelInfo")

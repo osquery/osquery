@@ -15,11 +15,14 @@ if(APPLE)
     networking/darwin/routes.cpp
     system/darwin/acpi_tables.cpp
     system/darwin/apps.cpp
+    system/darwin/block_devices.cpp
     system/darwin/ca_certs_utils.cpp
     system/darwin/firewall.h
     system/darwin/firewall.cpp
     system/darwin/homebrew_packages.cpp
     system/darwin/iokit_registry.cpp
+    system/darwin/iokit_utils.cpp
+    system/darwin/kernel_info.cpp
     system/darwin/kernel_extensions.cpp
     system/darwin/launchd.cpp
     system/darwin/mounts.cpp
@@ -38,6 +41,7 @@ if(APPLE)
   ADD_OSQUERY_LINK("-framework CoreFoundation")
   ADD_OSQUERY_LINK("-framework Security")
   ADD_OSQUERY_LINK("-framework OpenDirectory")
+  ADD_OSQUERY_LINK("-framework DiskArbitration")
 elseif(FREEBSD)
   ADD_OSQUERY_LIBRARY(osquery_tables_freebsd
     events/freebsd/passwd_changes.cpp
@@ -56,6 +60,7 @@ else()
     system/linux/acpi_tables.cpp
     system/linux/block_devices.cpp
     system/linux/groups.cpp
+    system/linux/kernel_info.cpp
     system/linux/kernel_integrity.cpp
     system/linux/kernel_modules.cpp
     system/linux/mounts.cpp

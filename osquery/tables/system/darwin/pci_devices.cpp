@@ -11,7 +11,6 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include <IOKit/IOKitLib.h>
 #include <IOKit/usb/IOUSBLib.h>
 
 #include <osquery/core.h>
@@ -19,13 +18,10 @@
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 
-#include "osquery/core/conversions.h"
+#include "osquery/tables/system/darwin/iokit_utils.h"
 
 namespace osquery {
 namespace tables {
-
-extern std::string getIOKitProperty(const CFMutableDictionaryRef& details,
-                                    const std::string& key);
 
 #define kIOPCIDeviceClassName_ "IOPCIDevice"
 

@@ -20,6 +20,8 @@
 namespace osquery {
 namespace tables {
 
+#define kIODTOptionsPath_ "IODeviceTree:/options"
+
 void genVariable(const void *key, const void *value, void *results) {
   Row nvram_row;
   std::string value_string;
@@ -70,7 +72,7 @@ QueryData genNVRAM(QueryContext &context) {
   }
 
   // NVRAM registry entry is :/options.
-  auto options = IORegistryEntryFromPath(master_port, "IODeviceTree:/options");
+  auto options = IORegistryEntryFromPath(master_port, kIODTOptionsPath_);
   if (options == 0) {
     VLOG(1) << "NVRAM is not supported on this system";
     return {};
