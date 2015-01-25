@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <linux/netlink.h>
 
+#include <boost/algorithm/string/split.hpp>
 #include <boost/regex.hpp>
 
 #include <osquery/core.h>
@@ -47,7 +48,7 @@ enum {
 #define TCPF_ALL 0xFFF
 #define SOCKET_BUFFER_SIZE (getpagesize() < 8192L ? getpagesize() : 8192L)
 
-int send_diag_msg(int sockfd, int protocol, int family) {
+int sendNLDiagMessage(int sockfd, int protocol, int family) {
   struct sockaddr_nl sa;
   memset(&sa, 0, sizeof(sa));
   sa.nl_family = AF_NETLINK;
@@ -90,12 +91,9 @@ int send_diag_msg(int sockfd, int protocol, int family) {
   return retval;
 }
 
-Row getDiagMessage(struct inet_diag_msg *diag_msg, int protocol, int family) {
-  char local_addr_buf[INET6_ADDRSTRLEN];
-  char remote_addr_buf[INET6_ADDRSTRLEN];
-
-  memset(local_addr_buf, 0, sizeof(local_addr_buf));
-  memset(remote_addr_buf, 0, sizeof(remote_addr_buf));
+Row getNLDiagMessage(struct inet_diag_msg *diag_msg, int protocol, int family) {
+  char local_addr_buf[INET6_ADDRSTRLEN] = {0};
+  char remote_addr_buf[INET6_ADDRSTRLEN] = {0};
 
   // set up data structures depending on idiag_family type
   if (diag_msg->idiag_family == AF_INET) {
@@ -130,6 +128,100 @@ Row getDiagMessage(struct inet_diag_msg *diag_msg, int protocol, int family) {
   return row;
 }
 
+std::string addressFromHex(const std::string &encoded_address, int family) {
+  char addr_buffer[INET6_ADDRSTRLEN] = {0};
+  if (family == AF_INET) {
+    struct in_addr decoded;
+    if (encoded_address.length() == 8) {
+      sscanf(encoded_address.c_str(), "%X", &(decoded.s_addr));
+      inet_ntop(AF_INET, &decoded, addr_buffer, INET_ADDRSTRLEN);
+    }
+  } else if (family == AF_INET6) {
+    struct in6_addr decoded;
+    if (encoded_address.length() == 32) {
+      sscanf(encoded_address.c_str(),
+             "%8x%8x%8x%8x",
+             (unsigned int *)&(decoded.s6_addr[0]),
+             (unsigned int *)&(decoded.s6_addr[4]),
+             (unsigned int *)&(decoded.s6_addr[8]),
+             (unsigned int *)&(decoded.s6_addr[12]));
+      inet_ntop(AF_INET6, &decoded, addr_buffer, INET6_ADDRSTRLEN);
+    }
+  }
+
+  return TEXT(addr_buffer);
+}
+
+unsigned short portFromHex(const std::string &encoded_port) {
+  unsigned short decoded = 0;
+  if (encoded_port.length() == 4) {
+    sscanf(encoded_port.c_str(), "%hX", &decoded);
+  }
+  return decoded;
+}
+
+/// A fallback method for generating socket information from /proc/net
+void genSocketsFromProc(const std::map<std::string, std::string> socket_inodes,
+                        int protocol,
+                        int family,
+                        QueryData &results) {
+  std::string path = "/proc/net/";
+  path += (protocol == IPPROTO_UDP) ? "udp" : "tcp";
+  path += (family == AF_INET6) ? "6" : "";
+
+  std::string content;
+  if (!osquery::readFile(path, content).ok()) {
+    // Could not open socket information from /proc.
+    return;
+  }
+
+  // The system's socket information is tokenized by line.
+  size_t index = 0;
+  for (const auto &line : osquery::split(content, "\n")) {
+    index += 1;
+    if (index == 1) {
+      // The first line is a textual header and will be ignored.
+      if (line.find("sl") != 0) {
+        // Header fields are unknown, stop parsing.
+        break;
+      }
+      continue;
+    }
+
+    // The socket information is tokenized by spaces, each a field.
+    auto fields = osquery::split(line, " ");
+    if (fields.size() < 10) {
+      // Unknown/malformed socket information.
+      continue;
+    }
+
+    // Two of the fields are the local/remote address/port pairs.
+    auto locals = osquery::split(fields[1], ":");
+    auto remotes = osquery::split(fields[2], ":");
+    if (locals.size() != 2 || remotes.size() != 2) {
+      // Unknown/malformed socket information.
+      continue;
+    }
+
+    Row r;
+    r["socket"] = fields[9];
+    r["family"] = INTEGER(family);
+    r["protocol"] = INTEGER(protocol);
+    r["local_address"] = addressFromHex(locals[0], family);
+    r["local_port"] = INTEGER(portFromHex(locals[1]));
+    r["remote_address"] = addressFromHex(remotes[0], family);
+    r["remote_port"] = INTEGER(portFromHex(remotes[1]));
+
+    if (socket_inodes.count(r["socket"]) > 0) {
+      r["pid"] = socket_inodes.at(r["socket"]);
+    } else {
+      r["pid"] = "-1";
+    }
+
+    results.push_back(r);
+  }
+}
+
 void genSocketsForFamily(const std::map<std::string, std::string> socket_inodes,
                          int protocol,
                          int family,
@@ -141,7 +233,7 @@ void genSocketsForFamily(const std::map<std::string, std::string> socket_inodes,
   }
 
   // send the inet_diag message
-  if (send_diag_msg(nl_sock, protocol, family) < 0) {
+  if (sendNLDiagMessage(nl_sock, protocol, family) < 0) {
     close(nl_sock);
     return;
   }
@@ -161,14 +253,13 @@ void genSocketsForFamily(const std::map<std::string, std::string> socket_inodes,
     }
 
     if (nlh->nlmsg_type == NLMSG_ERROR) {
-      auto error = (struct nlmsgerr *) NLMSG_DATA(nlh);
-      VLOG(1) << "NETLINK message error " << error->error;
+      genSocketsFromProc(socket_inodes, protocol, family, results);
       break;
     }
 
     // parse and process netlink message
     auto diag_msg = (struct inet_diag_msg *)NLMSG_DATA(nlh);
-    auto row = getDiagMessage(diag_msg, protocol, family);
+    auto row = getNLDiagMessage(diag_msg, protocol, family);
 
     if (socket_inodes.count(row["socket"]) > 0) {
       row["pid"] = socket_inodes.at(row["socket"]);
