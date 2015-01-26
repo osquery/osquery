@@ -36,20 +36,20 @@ Status writeTextFile(const boost::filesystem::path& path,
   int output_fd =
       open(path.c_str(), O_CREAT | O_APPEND | O_WRONLY, permissions);
   if (output_fd <= 0) {
-    return Status(1, "Could not create file");
+    return Status(1, "Could not create file: " + path.string());
   }
 
   // If the file existed with different permissions before our open
   // they must be restricted.
   if (chmod(path.c_str(), permissions) != 0) {
     // Could not change the file to the requested permissions.
-    return Status(1, "Failed to change permissions");
+    return Status(1, "Failed to change permissions for file: " + path.string());
   }
 
   auto bytes = write(output_fd, content.c_str(), content.size());
   if (bytes != content.size()) {
     close(output_fd);
-    return Status(1, "Failed to write contents");
+    return Status(1, "Failed to write contents to file: " + path.string());
   }
 
   close(output_fd);
@@ -62,25 +62,19 @@ Status readFile(const boost::filesystem::path& path, std::string& content) {
     return path_exists;
   }
 
-  int statusCode = 0;
-  std::string statusMessage = "OK";
   std::stringstream buffer;
-
   fs::ifstream file_h(path);
   if (file_h.is_open()) {
     buffer << file_h.rdbuf();
-
     if (file_h.bad()) {
-      statusCode = 1;
-      statusMessage = "Could not read file";
-    } else
-      content.assign(std::move(buffer.str()));
-
+      return Status(1, "Error reading file: " + path.string());
+    }
+    content.assign(std::move(buffer.str()));
   } else {
-    statusCode = 1;
-    statusMessage = "Could not open file for reading";
+    return Status(1, "Could not open file: " + path.string());
   }
-  return Status(statusCode, statusMessage);
+
+  return Status(0, "OK");
 }
 
 Status isWritable(const boost::filesystem::path& path) {
@@ -92,7 +86,7 @@ Status isWritable(const boost::filesystem::path& path) {
   if (access(path.c_str(), W_OK) == 0) {
     return Status(0, "OK");
   }
-  return Status(1, "Path is not writable.");
+  return Status(1, "Path is not writable: " + path.string());
 }
 
 Status isReadable(const boost::filesystem::path& path) {
@@ -104,7 +98,7 @@ Status isReadable(const boost::filesystem::path& path) {
   if (access(path.c_str(), R_OK) == 0) {
     return Status(0, "OK");
   }
-  return Status(1, "Path is not readable.");
+  return Status(1, "Path is not readable: " + path.string());
 }
 
 Status pathExists(const boost::filesystem::path& path) {
@@ -127,11 +121,11 @@ Status listFilesInDirectory(const boost::filesystem::path& path,
                             std::vector<std::string>& results) {
   try {
     if (!boost::filesystem::exists(path)) {
-      return Status(1, "Directory not found");
+      return Status(1, "Directory not found: " + path.string());
     }
 
     if (!boost::filesystem::is_directory(path)) {
-      return Status(1, "Supplied path is not a directory");
+      return Status(1, "Supplied path is not a directory: " + path.string());
     }
 
     boost::filesystem::directory_iterator begin_iter(path);
@@ -153,14 +147,14 @@ Status getDirectory(const boost::filesystem::path& path,
     return Status(0, "OK");
   }
   dirpath = path;
-  return Status(1, "Path is a directory");
+  return Status(1, "Path is a directory: " + path.string());
 }
 
 Status isDirectory(const boost::filesystem::path& path) {
   if (boost::filesystem::is_directory(path)) {
     return Status(0, "OK");
   }
-  return Status(1, "Path is not a directory");
+  return Status(1, "Path is not a directory: " + path.string());
 }
 
 Status parseTomcatUserConfigFromDisk(

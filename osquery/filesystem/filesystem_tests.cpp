@@ -44,14 +44,14 @@ TEST_F(FilesystemTests, test_list_files_in_directory_not_found) {
   std::vector<std::string> not_found_vector;
   auto not_found = listFilesInDirectory("/foo/bar", not_found_vector);
   EXPECT_FALSE(not_found.ok());
-  EXPECT_EQ(not_found.toString(), "Directory not found");
+  EXPECT_EQ(not_found.toString(), "Directory not found: /foo/bar");
 }
 
 TEST_F(FilesystemTests, test_list_files_in_directory_not_dir) {
   std::vector<std::string> not_dir_vector;
   auto not_dir = listFilesInDirectory("/etc/hosts", not_dir_vector);
   EXPECT_FALSE(not_dir.ok());
-  EXPECT_EQ(not_dir.toString(), "Supplied path is not a directory");
+  EXPECT_EQ(not_dir.toString(), "Supplied path is not a directory: /etc/hosts");
 }
 
 TEST_F(FilesystemTests, test_list_files_in_directorty) {
