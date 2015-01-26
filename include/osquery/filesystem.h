@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -20,6 +20,16 @@
 #include <osquery/status.h>
 
 namespace osquery {
+
+/**
+ * Our wildcard directory traversal function will not resolve more than
+ * this many wildcards.
+ */
+const unsigned int kMaxDirectoryTraversalDepth = 40;
+
+const std::string kWildcardCharacter = "%";
+const std::string kWildcardCharacterRecursive =
+    kWildcardCharacter + kWildcardCharacter;
 
 /**
  * @brief Read a file from disk.
@@ -78,6 +88,42 @@ Status pathExists(const boost::filesystem::path& path);
  */
 Status listFilesInDirectory(const boost::filesystem::path& path,
                             std::vector<std::string>& results);
+
+/**
+ * @brief List all of the directories in a specific directory, non-recursively.
+ *
+ * @param path the path which you would like to list.
+ * @param results a non-const reference to a vector which will be populated
+ * with the directory listing of the path param, assuming that all operations
+ * completed successfully.
+ *
+ * @return an instance of Status, indicating the success or failure
+ * of the operation.
+ */
+Status listDirectoriesInDirectory(const boost::filesystem::path& path,
+                                  std::vector<std::string>& results);
+
+/**
+ * @brief Given a wildcard filesystem patten, resolve all possible paths
+ *
+ * @code{.cpp}
+ *   std::vector<std::string> results;
+ *   auto s = resolveFilePattern("/Users/marpaia/Downloads/%", results);
+ *   if (s.ok()) {
+ *     for (const auto& result : results) {
+ *       LOG(INFO) << result;
+ *     }
+ *   }
+ * @endcode
+ *
+ * @param fs_path The filesystem pattern
+ * @param results The vector in which all results will be returned
+ *
+ * @return An instance of osquery::Status which indicates the success or
+ * failure of the operation
+ */
+Status resolveFilePattern(const boost::filesystem::path& fs_path,
+                          std::vector<std::string>& results);
 
 /**
  * @brief Get directory portion of a path.
