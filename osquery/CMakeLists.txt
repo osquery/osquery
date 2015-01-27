@@ -80,6 +80,7 @@ add_subdirectory(filesystem)
 add_subdirectory(logger)
 add_subdirectory(scheduler)
 add_subdirectory(tables)
+add_subdirectory(python)
 
 # Utility tables are table specs that are ALWAYS built into osquery core.
 GENERATE_UTILITY("osquery_info")
