@@ -92,6 +92,12 @@ void initOsquery(int argc, char* argv[], int tool) {
   FLAGS_logbufsecs = 0; // flush the log buffer immediately
   FLAGS_stop_logging_if_full_disk = true;
   FLAGS_max_log_size = 10; // max size for individual log file is 10MB
+  
+  // if you'd like to change the default logging plugin, compile osquery with
+  // -DOSQUERY_DEFAULT_CONFIG_PLUGIN=<new_default_plugin>
+#ifdef OSQUERY_DEFAULT_CONFIG_PLUGIN
+  FLAGS_config_retriever = STR(OSQUERY_DEFAULT_CONFIG_PLUGIN);
+#endif
 
   // Set version string from CMake build
   __GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);
@@ -130,10 +136,6 @@ void initOsquery(int argc, char* argv[], int tool) {
   VLOG(1) << "osquery starting [version=" OSQUERY_VERSION "]";
   osquery::InitRegistry::get().run();
 
-// Once command line arguments are parsed load the osquery config.
-#ifdef OSQUERY_DEFAULT_CONFIG_PLUGIN
-  FLAGS_config_retriever = STR(OSQUERY_DEFAULT_CONFIG_PLUGIN);
-#endif
   auto config = Config::getInstance();
   config->load();
 }
