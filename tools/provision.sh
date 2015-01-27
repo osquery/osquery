@@ -510,6 +510,7 @@ function main() {
     package cmake
     package makedepend
     package boost
+    package boost-python
     package gflags
     package thrift
 
