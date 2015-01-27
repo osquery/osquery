@@ -13,6 +13,8 @@
 #include <boost/python.hpp>
 
 BOOST_PYTHON_MODULE(pyosquery) {
-  using namespace boost::python;
+  using boost::python::def;
+  Py_Initialize();
+
   def("getUnixTime", &osquery::getUnixTime);
 }
