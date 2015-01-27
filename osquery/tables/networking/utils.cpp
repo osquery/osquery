@@ -112,7 +112,7 @@ std::string macAsString(const struct ifaddrs *addr) {
   int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
   ifr.ifr_addr.sa_family = AF_INET;
-  strcpy(ifr.ifr_name, addr->ifa_name);
+  strncpy(ifr.ifr_name, addr->ifa_name, IFNAMSIZ);
   ioctl(socket_fd, SIOCGIFHWADDR, &ifr);
   close(socket_fd);
 
