@@ -14,7 +14,17 @@
 
 BOOST_PYTHON_MODULE(pyosquery) {
   using boost::python::def;
+  using boost::python::scope;
   Py_Initialize();
 
-  def("getUnixTime", &osquery::getUnixTime);
+  def("get_hostname", &osquery::getHostname);
+  def("generate_host_uuid", &osquery::generateHostUuid);
+  def("get_unix_time", &osquery::getUnixTime);
+  def("get_ascii_time", &osquery::getAsciiTime);
+
+  // TypeError: No to_python (by-value) converter found for C++ type:
+  //   std::__1::vector<boost::filesystem::path, std::__1::allocator<boost::filesystem::path> >
+  // def("get_home_directories", &osquery::getHomeDirectories);
+
+  scope().attr("version") = osquery::kVersion;
 }
