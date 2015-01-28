@@ -40,6 +40,12 @@ DEFINE_osquery_flag(string,
                     "/var/osquery/osqueryd.pidfile",
                     "The path to the pidfile for osqueryd.");
 
+/// Should the daemon force unload previously-running osqueryd daemons.
+DEFINE_osquery_flag(bool,
+                    force,
+                    false,
+                    "Force osqueryd to kill previously-running daemons.");
+
 std::string getHostname() {
   char hostname[256]; // Linux max should be 64.
   memset(hostname, 0, sizeof(hostname));
@@ -105,12 +111,16 @@ std::vector<fs::path> getHomeDirectories() {
   return results;
 }
 
-Status checkStalePid(const std::string& pidfile_content) {
+Status checkStalePid(const std::string& content) {
   int pid;
   try {
-    pid = stoi(pidfile_content);
-  } catch (const std::invalid_argument& e) {
-    return Status(1, std::string("Could not parse pidfile: ") + e.what());
+    pid = boost::lexical_cast<int>(content);
+  } catch (const boost::bad_lexical_cast& e) {
+    if (FLAGS_force) {
+      return Status(0, "Force loading and not parsing pidfile");
+    } else {
+      return Status(1, "Could not parse pidfile");
+    }
   }
 
   int status = kill(pid, 0);
@@ -125,21 +135,19 @@ Status checkStalePid(const std::string& pidfile_content) {
 
     if (q.rows().size() >= 1 && q.rows().front()["name"] == "osqueryd") {
       // If the process really is osqueryd, return an "error" status.
-      return Status(1,
-                    std::string("osqueryd (") + pidfile_content +
-                        ") is already running");
+      if (FLAGS_force) {
+        // The caller may choose to abort the existing daemon with --force.
+        status = kill(pid, SIGQUIT);
+        ::sleep(1);
+
+        return Status(status, "Tried to force remove the existing osqueryd");
+      }
+
+      return Status(1, "osqueryd (" + content + ") is already running");
     } else {
-      LOG(INFO) << "Found stale process for osqueryd (" << pidfile_content
+      LOG(INFO) << "Found stale process for osqueryd (" << content
                 << ") removing pidfile.";
     }
-  }
-
-  // Now the pidfile is either the wrong pid or the pid is not running.
-  try {
-    boost::filesystem::remove(FLAGS_pidfile);
-  } catch (boost::filesystem::filesystem_error& e) {
-    // Unable to remove old pidfile.
-    LOG(WARNING) << "Unable to remove the osqueryd pidfile.";
   }
 
   return Status(0, "OK");
@@ -160,6 +168,14 @@ Status createPidFile() {
     if (!stale_status.ok()) {
       return stale_status;
     }
+  }
+
+  // Now the pidfile is either the wrong pid or the pid is not running.
+  try {
+    boost::filesystem::remove(FLAGS_pidfile);
+  } catch (boost::filesystem::filesystem_error& e) {
+    // Unable to remove old pidfile.
+    LOG(WARNING) << "Unable to remove the osqueryd pidfile.";
   }
 
   // If no pidfile exists or the existing pid was stale, write, log, and run.
