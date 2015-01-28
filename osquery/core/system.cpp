@@ -63,8 +63,6 @@ std::string generateNewUuid() {
 std::string generateHostUuid() {
 #ifdef __APPLE__
   // Use the hardware uuid available on OSX to identify this machine
-  char uuid[128];
-  memset(uuid, 0, sizeof(uuid));
   uuid_t id;
   // wait at most 5 seconds for gethostuuid to return
   const timespec wait = {5, 0};
