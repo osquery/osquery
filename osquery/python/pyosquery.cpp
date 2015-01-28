@@ -9,11 +9,14 @@
  */
 
 #include <osquery/core.h>
+#include <osquery/status.h>
 
 #include <boost/python.hpp>
 
 BOOST_PYTHON_MODULE(pyosquery) {
+  using boost::python::class_;
   using boost::python::def;
+  using boost::python::init;
   using boost::python::scope;
   Py_Initialize();
 
@@ -21,6 +24,10 @@ BOOST_PYTHON_MODULE(pyosquery) {
   def("generate_host_uuid", &osquery::generateHostUuid);
   def("get_unix_time", &osquery::getUnixTime);
   def("get_ascii_time", &osquery::getAsciiTime);
+
+  class_<osquery::Status>("status")
+    .def(init<int, std::string>())
+    .def("get_code", &osquery::Status::getCode);
 
   // TypeError: No to_python (by-value) converter found for C++ type:
   //   std::__1::vector<boost::filesystem::path, std::__1::allocator<boost::filesystem::path> >
