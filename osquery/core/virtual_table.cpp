@@ -62,8 +62,8 @@ int xRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid) {
   return SQLITE_OK;
 }
 
-std::string TablePlugin::statement(TableName name, TableColumns columns) {
-  std::string statement = "CREATE TABLE " + name + "(";
+std::string TablePlugin::columnDefinition(const TableColumns &columns) {
+  std::string statement = "(";
   for (size_t i = 0; i < columns.size(); ++i) {
     statement += columns[i].first + " " + columns[i].second;
     if (i < columns.size() - 1) {
@@ -72,6 +72,10 @@ std::string TablePlugin::statement(TableName name, TableColumns columns) {
   }
   statement += ")";
   return statement;
+}
+
+std::string TablePlugin::statement(TableName name, TableColumns columns) {
+  return "CREATE TABLE " + name + columnDefinition(columns);
 }
 
 void attachVirtualTables(sqlite3 *db) {

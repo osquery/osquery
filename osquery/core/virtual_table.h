@@ -189,7 +189,9 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
 }
 
 template <typename T>
-int sqlite3_attach_vtable(sqlite3 *db, const std::string &name) {
+int sqlite3_attach_vtable(sqlite3 *db,
+                          const std::string &name,
+                          const TableColumns &columns) {
   int rc = SQLITE_OK;
 
   static sqlite3_module module = {
@@ -217,7 +219,8 @@ int sqlite3_attach_vtable(sqlite3 *db, const std::string &name) {
 
   rc = sqlite3_create_module(db, name.c_str(), &module, 0);
   if (rc == SQLITE_OK) {
-    auto format = "CREATE VIRTUAL TABLE temp." + name + " USING " + name;
+    auto format = "CREATE VIRTUAL TABLE temp." + name + " USING " + name +
+                  TablePlugin::columnDefinition(columns);
     rc = sqlite3_exec(db, format.c_str(), 0, 0, 0);
   }
   return rc;
