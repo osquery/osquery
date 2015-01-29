@@ -248,6 +248,8 @@ class TablePlugin {
  public:
   TableName name;
   TableColumns columns;
+  /// Helper method to generate the column definition for CREATE statement.
+  static std::string columnDefinition(const TableColumns& columns);
   /// Helper method to generate the virtual table CREATE statement.
   std::string statement(TableName name, TableColumns columns);
 

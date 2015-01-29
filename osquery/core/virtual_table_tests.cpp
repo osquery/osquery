@@ -34,15 +34,34 @@ class sampleTablePlugin : public TablePlugin {
  public:
   sampleTablePlugin() {}
   int attachVtable(sqlite3* db) {
-    return sqlite3_attach_vtable<sampleTablePlugin>(db, name);
+    return sqlite3_attach_vtable<sampleTablePlugin>(db, name, columns);
   }
   virtual ~sampleTablePlugin() {}
 };
 
-TEST_F(VirtualTableTests, test_statement) {
+TEST_F(VirtualTableTests, test_tableplugin_columndefinition) {
+  auto table = sampleTablePlugin();
+  EXPECT_EQ("(foo INTEGER, bar TEXT)",
+            TablePlugin::columnDefinition(table.columns));
+}
+
+TEST_F(VirtualTableTests, test_tableplugin_statement) {
   auto table = sampleTablePlugin();
   EXPECT_EQ("CREATE TABLE sample(foo INTEGER, bar TEXT)",
             table.statement(table.name, table.columns));
+}
+
+TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
+  auto table = sampleTablePlugin();
+  sqlite3* db = nullptr;
+  sqlite3_open(":memory:", &db);
+  table.attachVtable(db);
+  std::string q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
+  int error_return;
+  QueryData results = query(q, error_return, db);
+  EXPECT_EQ("CREATE VIRTUAL TABLE sample USING sample(foo INTEGER, bar TEXT)",
+            results[0]["sql"]);
+  sqlite3_close(db);
 }
 }
 }

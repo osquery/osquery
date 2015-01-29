@@ -51,7 +51,7 @@ public:
 public:
   {{table_name_cc}}TablePlugin() {}
   int attachVtable(sqlite3 *db) {
-    return sqlite3_attach_vtable<{{table_name_cc}}TablePlugin>(db, name);
+    return sqlite3_attach_vtable<{{table_name_cc}}TablePlugin>(db, name, columns);
   }
   virtual ~{{table_name_cc}}TablePlugin() {}
 };
