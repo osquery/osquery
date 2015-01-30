@@ -21,6 +21,7 @@ include("python.cmake")
 include("rocksdb.cmake")
 include("zlib.cmake")
 include("boost.cmake")
+include("openssl.cmake")
 
 include_directories(${third_party_include})
 link_directories(${third_party_lib})

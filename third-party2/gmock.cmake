@@ -1,7 +1,7 @@
-get_source_path("gmock" gmock_source_path)
+get_source_path("libgmock" gmock_source_path)
 
 ExternalProject_Add(
-  gmock
+  libgmock
   URL https://googlemock.googlecode.com/files/gmock-1.7.0.zip
   URL_HASH SHA1=f9d9dd882a25f4069ed9ee48e70aff1b53e3c5a5
   BUILD_IN_SOURCE 1
