@@ -4,7 +4,7 @@
 #  All rights reserved.
 #
 #  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant 
+#  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 set -e
@@ -18,7 +18,12 @@ source $SCRIPT_DIR/../lib.sh
 
 PACKAGE_VERSION=`git describe --tags HEAD`
 DESCRIPTION="osquery is an operating system instrumentation toolchain."
-OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$PACKAGE_VERSION."
+if [[ $PACKAGE_VERSION == *"-"* ]]; then
+  PACKAGE_NAME="osquery-latest"
+else
+  PACKAGE_NAME="osquery"
+fi
+OUTPUT_PKG_PATH="$BUILD_DIR/$PACKAGE_NAME-$PACKAGE_VERSION."
 
 # Config files
 INITD_SRC="$SCRIPT_DIR/osqueryd.initd"
@@ -99,7 +104,7 @@ function main() {
   done
 
   CMD="fpm -s dir -t $PACKAGE_TYPE \
-    -n osquery -v $PACKAGE_VERSION \
+    -n $PACKAGE_NAME -v $PACKAGE_VERSION \
     $PACKAGE_DEPENDENCIES          \
     -p $OUTPUT_PKG_PATH            \
     --url http://osquery.io        \
