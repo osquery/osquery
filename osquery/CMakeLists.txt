@@ -78,6 +78,7 @@ add_subdirectory(events)
 add_subdirectory(examples)
 add_subdirectory(filesystem)
 add_subdirectory(logger)
+add_subdirectory(registry)
 add_subdirectory(scheduler)
 add_subdirectory(tables)
 

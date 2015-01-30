@@ -146,7 +146,7 @@ struct Subscription {
   }
 };
 
-class EventPublisherCore {
+class EventPublisherPlugin : public Plugin {
  public:
   /**
    * @brief A new Subscription was added, potentially change state based on all
@@ -221,8 +221,8 @@ class EventPublisherCore {
   size_t numEvents() { return next_ec_id_; }
 
   /// Overriding the EventPublisher constructor is not recommended.
-  EventPublisherCore() : next_ec_id_(0), ending_(false){};
-  virtual ~EventPublisherCore() {}
+  EventPublisherPlugin() : next_ec_id_(0), ending_(false){};
+  virtual ~EventPublisherPlugin() {}
 
   /// Return a string identifier associated with this EventPublisher.
   virtual EventPublisherID type() { return "publisher"; }
@@ -287,7 +287,7 @@ class EventPublisherCore {
  * (thus event) matches.
  */
 template <typename SC, typename EC>
-class EventPublisher : public EventPublisherCore {
+class EventPublisher : public EventPublisherPlugin {
  public:
   /// A nested helper typename for the templated SubscriptionContextRef.
   typedef typename std::shared_ptr<SC> SCRef;
@@ -369,33 +369,6 @@ class EventFactory {
  public:
   /// Access to the EventFactory instance.
   static EventFactory& getInstance();
-
-  /// A factory event publisher generator, simplify boilerplate code.
-  template <class PUB>
-  static EventPublisherRef createEventPublisher() {
-    auto pub = std::make_shared<PUB>();
-    auto base_pub = reinterpret_cast<EventPublisherRef&>(pub);
-    return base_pub;
-  }
-
-  /// A factory event subscriber generator, simplify boilerplate code.
-  template <class SUB>
-  static EventSubscriberRef createEventSubscriber() {
-    auto sub = std::make_shared<SUB>();
-    auto base_sub = reinterpret_cast<EventSubscriberRef&>(sub);
-    return base_sub;
-  }
-
-  /**
-   * @brief Add an EventPublisher to the factory.
-   *
-   * The registration is mostly abstracted using osquery's registery.
-   */
-  template <class T>
-  static Status registerEventPublisher() {
-    auto pub = std::make_shared<T>();
-    return registerEventPublisher(pub);
-  }
 
   /**
    * @brief Add an EventPublisher to the factory.
@@ -554,7 +527,7 @@ class EventFactory {
   std::vector<std::shared_ptr<boost::thread> > threads_;
 };
 
-class EventSubscriberCore {
+class EventSubscriberPlugin : public Plugin {
  protected:
   /**
    * @brief Store parsed event data from an EventCallback in a backing store.
@@ -663,11 +636,11 @@ class EventSubscriberCore {
    * EventPublisher instances will have run `setUp` and initialized their run
    * loops.
    */
-  EventSubscriberCore() {
+  EventSubscriberPlugin() {
     expire_events_ = true;
     expire_time_ = 0;
   }
-  ~EventSubscriberCore() {}
+  ~EventSubscriberPlugin() {}
 
   /**
    * @brief Suggested entrypoint for table generation.
@@ -730,13 +703,12 @@ class EventSubscriberCore {
  * Small overheads exist that help query-time indexing and lookups.
  */
 template <class PUB>
-class EventSubscriber: public EventSubscriberCore {
+class EventSubscriber : public EventSubscriberPlugin {
  protected:
   typedef typename PUB::SCRef SCRef;
   typedef typename PUB::ECRef ECRef;
 
  public:
-  /// Called after EventPublisher `setUp`. Add all Subscription%s here.
   /**
    * @brief Add Subscription%s to the EventPublisher this module will act on.
    *
@@ -762,7 +734,7 @@ class EventSubscriber: public EventSubscriberCore {
     // Down-cast the pointer to the member function.
     auto base_entry =
         reinterpret_cast<Status (T::*)(const EventContextRef&)>(entry);
-    // Create a callable to the member function using the instance of the
+    // Create a callable theo the member function using the instance of the
     // EventSubscriber and a single parameter placeholder (the EventContext).
     auto cb = std::bind(base_entry, self, _1);
     // Add a subscription using the callable and SubscriptionContext.
@@ -777,38 +749,16 @@ class EventSubscriber: public EventSubscriberCore {
   FRIEND_TEST(EventsTests, test_event_sub_subscribe);
   FRIEND_TEST(EventsTests, test_event_sub_context);
 };
-}
 
-/// Expose a Plugin-like Registry for EventPublisher instances.
-DECLARE_REGISTRY(EventPublishers, std::string, EventPublisherRef);
-#define REGISTERED_EVENTPUBLISHERS REGISTRY(EventPublishers)
-#define REGISTER_EVENTPUBLISHER(PUB) \
-  REGISTER(EventPublishers, #PUB, EventFactory::createEventPublisher<PUB>());
+/// Iterate the event publisher registry and create run loops for each using
+/// the event factory.
+void attachEvents();
 
-/**
- * @brief Expose a Plugin-link Registry for EventSubscriber instances.
- *
- * In most cases the EventSubscriber class will organize itself to include
- * an generator entry point for query-time table generation too.
- */
-DECLARE_REGISTRY(EventSubscribers, std::string, EventSubscriberRef);
-#define REGISTERED_EVENTSUBSCRIBERS REGISTRY(EventSubscribers)
-#define REGISTER_EVENTSUBSCRIBER(SUB) \
-  REGISTER(EventSubscribers, #SUB, EventFactory::createEventSubscriber<SUB>());
+namespace registry {
+const auto EventPublisherRegistry =
+    NewRegistry::create<EventPublisherPlugin>("event_publisher", false);
 
-namespace osquery {
-namespace registries {
-/**
- * @brief A utility method for moving EventPublisher%s and EventSubscriber%s
- * (plugins) into the EventFactory.
- *
- * To handle run-time and compile-time EventPublisher and EventSubscriber
- * additions as plugins or extensions, the osquery Registry workflow is used.
- * During application launch (or within plugin load) the EventFactory faucet
- * moves managed instances of these types to the EventFactory. The
- * EventPublisher and EventSubscriber lifecycle/developer workflow is unknown
- * to the Registry.
- */
-void faucet(EventPublishers ets, EventSubscribers ems);
+const auto EventSubscriberRegistry =
+    NewRegistry::create<EventSubscriberPlugin>("event_subscriber");
 }
 }

@@ -31,7 +31,7 @@ const std::vector<std::string> kDarwinPasswdPaths = {
  */
 class PasswdChangesEventSubscriber
     : public EventSubscriber<FSEventsEventPublisher> {
-  DECLARE_SUBSCRIBER("PasswdChangesEventSubscriber");
+  DECLARE_SUBSCRIBER("passwd_changes");
 
  public:
   void init();
@@ -54,7 +54,9 @@ class PasswdChangesEventSubscriber
  * This registers PasswdChangesEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
  */
-REGISTER_EVENTSUBSCRIBER(PasswdChangesEventSubscriber);
+auto PasswdChangesEventSubscriberRegistryItem =
+    NewRegistry::add<PasswdChangesEventSubscriber>("event_subscriber",
+                                                   "passwd_changes");
 
 void PasswdChangesEventSubscriber::init() {
   for (const auto& path : kDarwinPasswdPaths) {

@@ -15,6 +15,7 @@
 #include <vector>
 
 #include <osquery/flags.h>
+#include <osquery/registry.h>
 #include <osquery/scheduler.h>
 #include <osquery/status.h>
 
@@ -164,4 +165,59 @@ class Config {
    */
   OsqueryConfig cfg_;
 };
+
+/**
+ * @brief Superclass for the pluggable config component.
+ *
+ * In order to make the distribution of configurations to hosts running
+ * osquery, we take advantage of a plugin interface which allows you to
+ * integrate osquery with your internal configuration distribution mechanisms.
+ * You may use ZooKeeper, files on disk, a custom solution, etc. In order to
+ * use your specific configuration distribution system, one simply needs to
+ * create a custom subclass of ConfigPlugin. That subclass should implement
+ * the ConfigPlugin::genConfig method.
+ *
+ * Consider the following example:
+ *
+ * @code{.cpp}
+ *   class TestConfigPlugin : public ConfigPlugin {
+ *    public:
+ *     virtual std::pair<osquery::Status, std::string> genConfig() {
+ *       std::string config;
+ *       auto status = getMyConfig(config);
+ *       return std::make_pair(status, config);
+ *     }
+ *   };
+ *
+ *   REGISTER_CONFIG_PLUGIN(
+ *     "test", std::make_shared<osquery::TestConfigPlugin>());
+ *  @endcode
+ */
+class ConfigPlugin : public Plugin {
+ public:
+  /**
+   * @brief Virtual method which should implemented custom config retrieval
+   *
+   * ConfigPlugin::genConfig should be implemented by a subclasses of
+   * ConfigPlugin which needs to retrieve config data in a custom way.
+   *
+   * @return a pair such that pair.first is an osquery::Status instance which
+   * indicates the success or failure of config retrieval. If pair.first
+   * indicates that config retrieval was successful, then the config data
+   * should be returned in pair.second.
+   */
+  virtual std::pair<osquery::Status, std::string> genConfig() = 0;
+  Status call(const PluginRequest& request, PluginResponse& response);
+};
+
+namespace registry {
+/**
+ * @brief Config plugin registry.
+ *
+ * This creates an osquery registry for "config" which may implement
+ * ConfigPlugin. A ConfigPlugin's call API should make use of a genConfig
+ * after reading JSON data in the plugin implementation.
+ */
+const auto ConfigRegistry = NewRegistry::create<ConfigPlugin>("config");
+}
 }

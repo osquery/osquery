@@ -12,7 +12,7 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <osquery/config/plugin.h>
+#include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
@@ -28,25 +28,29 @@ DEFINE_osquery_flag(string,
 
 class FilesystemConfigPlugin : public ConfigPlugin {
  public:
-  virtual std::pair<osquery::Status, std::string> genConfig() {
-    std::string config;
-    if (!fs::exists(FLAGS_config_path)) {
-      return std::make_pair(Status(1, "config file does not exist"), config);
-    }
-
-    VLOG(1) << "Filesystem ConfigPlugin reading: " << FLAGS_config_path;
-    std::ifstream config_stream(FLAGS_config_path);
-
-    config_stream.seekg(0, std::ios::end);
-    config.reserve(config_stream.tellg());
-    config_stream.seekg(0, std::ios::beg);
-
-    config.assign((std::istreambuf_iterator<char>(config_stream)),
-                  std::istreambuf_iterator<char>());
-    return std::make_pair(Status(0, "OK"), config);
-  }
+  virtual std::pair<osquery::Status, std::string> genConfig();
 };
 
-REGISTER_CONFIG_PLUGIN("filesystem",
-                       std::make_shared<osquery::FilesystemConfigPlugin>());
+namespace registry {
+auto FilesystemConfigPluginRegistryItem =
+    NewRegistry::add<FilesystemConfigPlugin>("config", "filesystem");
+}
+
+std::pair<osquery::Status, std::string> FilesystemConfigPlugin::genConfig() {
+  std::string config;
+  if (!fs::exists(FLAGS_config_path)) {
+    return std::make_pair(Status(1, "config file does not exist"), config);
+  }
+
+  VLOG(1) << "Filesystem ConfigPlugin reading: " << FLAGS_config_path;
+  std::ifstream config_stream(FLAGS_config_path);
+
+  config_stream.seekg(0, std::ios::end);
+  config.reserve(config_stream.tellg());
+  config_stream.seekg(0, std::ios::beg);
+
+  config.assign((std::istreambuf_iterator<char>(config_stream)),
+                std::istreambuf_iterator<char>());
+  return std::make_pair(Status(0, "OK"), config);
+}
 }

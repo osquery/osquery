@@ -16,9 +16,12 @@
 
 namespace osquery {
 
-REGISTER_EVENTPUBLISHER(UdevEventPublisher);
-
 int kUdevULatency = 200;
+
+namespace registry {
+auto UdevEventPublisherRegistryItem =
+    NewRegistry::add<UdevEventPublisher>("event_publisher", "udev");
+}
 
 Status UdevEventPublisher::setUp() {
   // Create the udev object.

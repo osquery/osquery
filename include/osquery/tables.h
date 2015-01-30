@@ -15,9 +15,11 @@
 #include <vector>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <sqlite3.h>
 
+#include <osquery/registry.h>
 #include <osquery/database/results.h>
 #include <osquery/status.h>
 
@@ -66,8 +68,8 @@ namespace tables {
 #define AS_LITERAL(literal, value) boost::lexical_cast<literal>(value)
 
 /// Helper alias for TablePlugin names.
-typedef const std::string TableName;
-typedef const std::vector<std::pair<std::string, std::string> > TableColumns;
+typedef std::string TableName;
+typedef std::vector<std::pair<std::string, std::string> > TableColumns;
 typedef std::map<std::string, std::vector<std::string> > TableData;
 
 /**
@@ -209,6 +211,20 @@ struct ConstraintList {
     constraints_.push_back(constraint);
   }
 
+  /**
+   * @brief Serialize a ConstraintList into a property tree.
+   *
+   * The property tree will use the format:
+   * {
+   *   "affinity": affinity,
+   *   "list": [
+   *     {"op": op, "expr": expr}, ...
+   *   ]
+   * }
+   */
+  void serialize(boost::property_tree::ptree& tree) const;
+  void unserialize(const boost::property_tree::ptree& tree);
+
   ConstraintList() { affinity = "TEXT"; }
 
  private:
@@ -232,6 +248,8 @@ struct QueryContext {
   ConstraintMap constraints;
   /// Support a limit to the number of results.
   int limit;
+
+  QueryContext() : limit(0) {}
 };
 
 typedef struct QueryContext QueryContext;
@@ -244,31 +262,36 @@ typedef struct Constraint Constraint;
  * virtual table name as the plugin ID. osquery will enumerate all registered
  * TablePlugins and attempt to attach them to SQLite at instanciation.
  */
-class TablePlugin {
- public:
-  TableName name;
-  TableColumns columns;
-  /// Helper method to generate the column definition for CREATE statement.
-  static std::string columnDefinition(const TableColumns& columns);
-  /// Helper method to generate the virtual table CREATE statement.
-  std::string statement(TableName name, TableColumns columns);
-
- public:
-  /// Part of the query state, number of rows generated.
-  int n;
-  /// Part of the query state, column data returned from a query.
-  TableData data;
-  /// Part of the query state, parsed set of query predicate constraints.
-  ConstraintSet constraints;
-
- public:
-  virtual int attachVtable(sqlite3 *db) { return -1; }
-  virtual ~TablePlugin(){};
-
+class TablePlugin : public Plugin {
  protected:
-  TablePlugin() { n = 0; };
-};
+  /// Helper method to generate the virtual table CREATE statement.
+  virtual std::string statement();
+  virtual TableColumns columns() {
+    TableColumns columns;
+    return columns;
+  }
 
-typedef std::shared_ptr<TablePlugin> TablePluginRef;
+  virtual QueryData generate(QueryContext& request) {
+    QueryData data;
+    return data;
+  }
+
+ public:
+  /// Public API methods.
+  Status call(const PluginRequest& request, PluginResponse& response);
+
+ public:
+  /// Helper data structure transformation methods
+  static void setRequestFromContext(const QueryContext& context,
+                                    PluginRequest& request);
+  static void setResponseFromQueryData(const QueryData& data,
+                                       PluginResponse& response);
+  static void setContextFromRequest(const PluginRequest& request,
+                                    QueryContext& context);
+};
+}
+
+namespace registry {
+const auto TableRegistry = NewRegistry::create<tables::TablePlugin>("table");
 }
 }

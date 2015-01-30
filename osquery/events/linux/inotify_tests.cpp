@@ -46,7 +46,7 @@ class INotifyTests : public testing::Test {
     FILE* fd = fopen(kRealTestPath.c_str(), "w");
     fclose(fd);
 
-    temp_thread_ = boost::thread(EventFactory::run, "INotifyEventPublisher");
+    temp_thread_ = boost::thread(EventFactory::run, "inotify");
   }
 
   void SubscriptionAction(const std::string& path,
@@ -56,7 +56,7 @@ class INotifyTests : public testing::Test {
     mc->path = path;
     mc->mask = mask;
 
-    EventFactory::addSubscription("INotifyEventPublisher", mc, ec);
+    EventFactory::addSubscription("inotify", mc, ec);
   }
 
   bool WaitForEvents(int max, int num_events = 0) {
@@ -91,7 +91,8 @@ class INotifyTests : public testing::Test {
 };
 
 TEST_F(INotifyTests, test_register_event_pub) {
-  auto status = EventFactory::registerEventPublisher<INotifyEventPublisher>();
+  auto pub = std::make_shared<INotifyEventPublisher>();
+  auto status = EventFactory::registerEventPublisher(pub);
   EXPECT_TRUE(status.ok());
 
   // Make sure only one event type exists
@@ -113,28 +114,28 @@ TEST_F(INotifyTests, test_inotify_init) {
 }
 
 TEST_F(INotifyTests, test_inotify_add_subscription_missing_path) {
-  EventFactory::registerEventPublisher<INotifyEventPublisher>();
+  auto pub = std::make_shared<INotifyEventPublisher>();
+  EventFactory::registerEventPublisher(pub);
 
   // This subscription path is fake, and will succeed.
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = "/this/path/is/fake";
 
   auto subscription = Subscription::create(mc);
-  auto status =
-      EventFactory::addSubscription("INotifyEventPublisher", subscription);
+  auto status = EventFactory::addSubscription("inotify", subscription);
   EXPECT_TRUE(status.ok());
 }
 
 TEST_F(INotifyTests, test_inotify_add_subscription_success) {
-  EventFactory::registerEventPublisher<INotifyEventPublisher>();
+  auto pub = std::make_shared<INotifyEventPublisher>();
+  EventFactory::registerEventPublisher(pub);
 
   // This subscription path *should* be real.
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = "/";
 
   auto subscription = Subscription::create(mc);
-  auto status =
-      EventFactory::addSubscription("INotifyEventPublisher", subscription);
+  auto status = EventFactory::addSubscription("inotify", subscription);
   EXPECT_TRUE(status.ok());
 }
 
@@ -149,11 +150,10 @@ TEST_F(INotifyTests, test_inotify_run) {
   // Create a subscriptioning context
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = kRealTestPath;
-  EventFactory::addSubscription("INotifyEventPublisher",
-                                Subscription::create(mc));
+  EventFactory::addSubscription("inotify", Subscription::create(mc));
 
   // Create an event loop thread (similar to main)
-  boost::thread temp_thread(EventFactory::run, "INotifyEventPublisher");
+  boost::thread temp_thread(EventFactory::run, "inotify");
   EXPECT_TRUE(event_pub_->numEvents() == 0);
 
   // Cause an inotify event by writing to the watched path.

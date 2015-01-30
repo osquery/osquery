@@ -12,6 +12,7 @@
 
 #include <osquery/config.h>
 #include <osquery/core.h>
+#include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -134,7 +135,8 @@ void initOsquery(int argc, char* argv[], int tool) {
 
   google::InitGoogleLogging(argv[0]);
   VLOG(1) << "osquery starting [version=" OSQUERY_VERSION "]";
-  osquery::InitRegistry::get().run();
+  osquery::NewRegistry::setUp();
+  osquery::attachEvents();
 
   auto config = Config::getInstance();
   config->load();

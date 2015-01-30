@@ -120,7 +120,6 @@ enable_testing()
 
 include(CMakeLibs)
 add_subdirectory(osquery)
-add_subdirectory(tools/tests)
 
 # make docs
 find_package(Doxygen)

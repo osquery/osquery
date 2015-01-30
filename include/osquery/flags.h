@@ -10,10 +10,11 @@
 
 #pragma once
 
+#include <map>
+
 #define STRIP_FLAG_HELP 1
 #include <gflags/gflags.h>
 
-#include <osquery/registry.h>
 #include <osquery/status.h>
 
 #define __GFLAGS_NAMESPACE google

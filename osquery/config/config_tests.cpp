@@ -11,7 +11,6 @@
 #include <gtest/gtest.h>
 
 #include <osquery/config.h>
-#include <osquery/config/plugin.h>
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
@@ -29,11 +28,32 @@ class ConfigTests : public testing::Test {
     FLAGS_config_retriever = "filesystem";
     FLAGS_config_path = kTestDataPath + "test.config";
 
-    osquery::InitRegistry::get().run();
+    NewRegistry::setUp();
     auto c = Config::getInstance();
     c->load();
   }
 };
+
+class TestConfigPlugin : public ConfigPlugin {
+ public:
+  TestConfigPlugin() {}
+
+  std::pair<Status, std::string> genConfig() {
+    return std::make_pair(Status(0, "OK"), "foobar");
+  }
+};
+
+TEST_F(ConfigTests, test_plugin) {
+  NewRegistry::add<TestConfigPlugin>("config", "test");
+
+  PluginResponse response;
+  auto status =
+      NewRegistry::call("config", "test", {{"action", "genConfig"}}, response);
+
+  EXPECT_EQ(status.ok(), true);
+  EXPECT_EQ(status.toString(), "OK");
+  EXPECT_EQ(response[0].at("data"), "foobar");
+}
 
 TEST_F(ConfigTests, test_queries_execute) {
   auto c = Config::getInstance();
@@ -45,26 +65,6 @@ TEST_F(ConfigTests, test_queries_execute) {
     auto r = query(i.query, err);
     EXPECT_EQ(err, 0);
   }
-}
-
-class TestConfigPlugin : public ConfigPlugin {
- public:
-  TestConfigPlugin() {}
-
-  std::pair<Status, std::string> genConfig() {
-    return std::make_pair(Status(0, "OK"), "foobar");
-  }
-
-  virtual ~TestConfigPlugin() {}
-};
-
-REGISTER_CONFIG_PLUGIN("test", std::make_shared<osquery::TestConfigPlugin>());
-
-TEST_F(ConfigTests, test_plugin) {
-  auto p = REGISTERED_CONFIG_PLUGINS.at("test")->genConfig();
-  EXPECT_EQ(p.first.ok(), true);
-  EXPECT_EQ(p.first.toString(), "OK");
-  EXPECT_EQ(p.second, "foobar");
 }
 }
 

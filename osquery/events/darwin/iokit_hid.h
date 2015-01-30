@@ -74,7 +74,7 @@ typedef std::shared_ptr<IOKitHIDSubscriptionContext>
  */
 class IOKitHIDEventPublisher
     : public EventPublisher<IOKitHIDSubscriptionContext, IOKitHIDEventContext> {
-  DECLARE_PUBLISHER("IOKitHIDEventPublisher");
+  DECLARE_PUBLISHER("iokit_hid");
 
  public:
   void configure() {}

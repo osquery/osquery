@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/database/db_handle.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 const std::string kTestingDBHandlePath = "/tmp/rocksdb-osquery-dbhandletests";

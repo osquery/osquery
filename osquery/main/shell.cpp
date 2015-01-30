@@ -18,8 +18,8 @@ int main(int argc, char *argv[]) {
   osquery::initOsquery(argc, argv, osquery::OSQUERY_TOOL_SHELL);
 
   // Start a thread for each appropriate event type
-  osquery::registries::faucet(REGISTERED_EVENTPUBLISHERS,
-                              REGISTERED_EVENTSUBSCRIBERS);
+  // osquery::registries::faucet(REGISTERED_EVENTPUBLISHERS,
+  //                            REGISTERED_EVENTSUBSCRIBERS);
   osquery::EventFactory::delay();
 
   int retcode = osquery::launchIntoShell(argc, argv);
