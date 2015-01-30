@@ -166,7 +166,7 @@ elseif(LINUX)
   if(UBUNTU)
     set(PACKAGE_TYPE "deb")
     set(PACKAGE_DEPENDENCIES
-      "libc6 (>=2.17)"
+      "libc6 (>=2.15)"
       "zlib1g"
       "libbz2-1.0"
       "libapt-pkg4.12"

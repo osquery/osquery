@@ -10,7 +10,8 @@ else
 	ifeq ($(DISTRO),Centos)
 		BUILD_DIR=centos
 	else
-		BUILD_DIR=ubuntu
+    DISTRO := $(shell if [ -f "/etc/lsb-release" ]; then echo "Ubuntu"; fi)
+    BUILD_DIR := $(shell lsb_release -sc)
 	endif
 endif
 
