@@ -46,6 +46,36 @@ TEST_F(FilesystemTests, test_list_files_in_directory_not_found) {
   EXPECT_FALSE(not_found.ok());
   EXPECT_EQ(not_found.toString(), "Directory not found");
 }
+// Recursive Tests
+TEST_F(FilesystemTests, test_wildcard_single_folder_list) {
+  std::vector<std::string> files;
+  auto status = resolveFilePattern("/etc/%", files);
+  EXPECT_TRUE(status.ok());
+  EXPECT_NE(std::find(files.begin(), files.end(), "/etc/hosts"), files.end());
+}
+
+TEST_F(FilesystemTests, test_wildcard_dual) {
+  std::vector<std::string> files;
+  auto status = resolveFilePattern("/%/%", files);
+  EXPECT_TRUE(status.ok());
+  EXPECT_NE(std::find(files.begin(), files.end(), "/bin/bash"), files.end());
+}
+
+TEST_F(FilesystemTests, test_wildcard_full_recursion) {
+  std::vector<std::string> files;
+  auto status = resolveFilePattern("/usr/%%", files);
+  EXPECT_TRUE(status.ok());
+  EXPECT_NE(std::find(files.begin(), files.end(), "/usr/bin/killall"),
+            files.end());
+}
+
+TEST_F(FilesystemTests, test_wildcard_invalid_path) {
+  std::vector<std::string> files;
+  auto status = resolveFilePattern("/not_there/%%", files);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(files.size(), 0);
+}
+// End Recursive Tests
 
 TEST_F(FilesystemTests, test_list_files_in_directory_not_dir) {
   std::vector<std::string> not_dir_vector;
