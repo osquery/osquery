@@ -3,13 +3,14 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
 
 #pragma once
 
+#include <sstream>
 #include <string>
 
 namespace osquery {
@@ -92,6 +93,32 @@ class Status {
    */
   std::string toString() const { return getMessage(); }
   std::string what() const { return getMessage(); }
+
+  /**
+   * @brief implicit conversion to bool
+   *
+   * Allows easy use of Status in an if statement, as below:
+   *
+   * @code{.cpp}
+   *   if (doSomethingThatReturnsStatus()) {
+   *     LOG(INFO) << "Success!";
+   *   }
+   * @endcode
+   */
+  operator bool() const { return ok(); }
+
+  // Below operator implementations useful for testing with gtest
+
+  // Enables use of gtest (ASSERT|EXPECT)_EQ
+  bool operator==(const Status& rhs) const {
+    return (code_ == rhs.getCode()) && (message_ == rhs.getMessage());
+  }
+
+  // Enables use of gtest (ASSERT|EXPECT)_NE
+  bool operator!=(const Status& rhs) const { return !operator==(rhs); }
+
+  // Enables pretty-printing in gtest (ASSERT|EXPECT)_(EQ|NE)
+  friend ::std::ostream& operator<<(::std::ostream& os, const Status& s);
 
  private:
   /// the internal storage of the status code

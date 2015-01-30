@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -259,5 +259,9 @@ osquery::QueryData getEtcHostsExpectedResults() {
   row4["address"] = "fe80::1%lo0";
   row4["hostnames"] = "localhost";
   return {row1, row2, row3, row4};
+}
+
+::std::ostream& operator<<(::std::ostream& os, const Status& s) {
+  return os << "Status(" << s.getCode() << ", \"" << s.getMessage() << "\")";
 }
 }
