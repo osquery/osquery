@@ -79,7 +79,7 @@ set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} ${USER_COMPILE_FLAGS}")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 
-add_subdirectory(third-party2)
+add_subdirectory(third-party)
 
 # We need to link some packages as dynamic/dependent.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
