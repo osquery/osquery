@@ -97,15 +97,16 @@ find_package(Snappy REQUIRED)
 find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.1 REQUIRED)
 
-include_directories("${GLOG_INCLUDE_DIRS}")
-include_directories("${CMAKE_SOURCE_DIR}/include")
-include_directories("${CMAKE_SOURCE_DIR}")
-include_directories("/usr/local/include")
-link_directories("/usr/local/lib")
+#include_directories("${GLOG_INCLUDE_DIRS}")
+#include_directories("${CMAKE_SOURCE_DIR}/include")
+#include_directories("${CMAKE_SOURCE_DIR}")
+#include_directories("/usr/local/include")
+#link_directories("/usr/local/lib")
 
 enable_testing()
 
 include(CMakeLibs)
+add_subdirectory(third-party2)
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)
 
