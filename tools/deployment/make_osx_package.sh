@@ -4,7 +4,7 @@
 #  All rights reserved.
 #
 #  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant 
+#  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 set -e
@@ -20,7 +20,12 @@ APP_VERSION=`git describe --tags HEAD`
 APP_IDENTIFIER="com.facebook.osquery"
 LD_IDENTIFIER="com.facebook.osqueryd"
 LD_INSTALL="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
-OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$APP_VERSION.pkg"
+if [[ $APP_VERSION == *"-"* ]]; then
+  APP_NAME="osquery-latest"
+else
+  APP_NAME="osquery"
+fi
+OUTPUT_PKG_PATH="$BUILD_DIR/$APP_NAME-$APP_VERSION.pkg"
 
 # Config files
 LAUNCHD_SRC="$SCRIPT_DIR/$LD_IDENTIFIER.plist"
