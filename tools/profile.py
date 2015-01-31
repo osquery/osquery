@@ -48,7 +48,7 @@ RANGES = {
     "utilization": (8, 20, 50),
     "cpu_time": (0.4, 1, 10),
     "memory": (8 * KB, 12 * KB, 24 * KB),
-    "fds": (6, 12, 50),
+    "fds": (10, 20, 50),
     "duration": (0.8, 1, 3),
 }
 
@@ -228,6 +228,7 @@ def run_query(shell, query, timeout=0, count=1):
         "system_time": stats["cpu_times"].system,
         "cpu_time": stats["cpu_times"].user + stats["cpu_times"].system,
         "fds": stats["fds"],
+        "exit": p.wait(),
     }
 
 
@@ -255,13 +256,18 @@ def summary(results, display=False):
 
     summary_results = {}
     for name, result in results.iteritems():
+        failed = "exit" in result and result["exit"] > 0
         summary_result = {}
         for key in RANGES:
             if key == "colors":
                 continue
             if key not in result:
                 continue
-            summary_result[key] = (rank(result[key], RANGES[key]), result[key])
+            if failed:
+                summary_result[key] = (len(RANGES["colors"]) - 1, -1)
+            else:
+                summary_result[key] = (rank(result[key], RANGES[key]),
+                    result[key])
         if display and not args.check:
             summary_line(name, summary_result)
         summary_results[name] = summary_result
