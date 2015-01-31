@@ -60,8 +60,7 @@ QueryData genUsers(QueryContext &context) {
     for (ODRecord *re in od_results) {
       Row r;
       r["username"] = std::string([[re recordName] UTF8String]);
-      struct passwd *pwd = nullptr;
-      pwd = getpwnam(r["username"].c_str());
+      struct passwd *pwd = getpwnam(r["username"].c_str());
       if (pwd != nullptr) {
         r["uid"] = BIGINT(pwd->pw_uid);
         r["gid"] = BIGINT(pwd->pw_gid);

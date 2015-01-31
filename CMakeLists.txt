@@ -26,12 +26,17 @@ endif()
 
 project(OSQUERY)
 
-if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+if(DEFINED ENV{DEBUG})
+  set(CMAKE_BUILD_TYPE "Debug")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -DDEBUG -O0")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -DDEBUG -O0")
 else()
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+endif()
+
+if(DEFINED ENV{ANALYZE})
+  set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
 endif()
 
 # Use osquery language to set platform/os

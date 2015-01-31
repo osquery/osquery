@@ -35,7 +35,7 @@ Status genQuarantineFile(const fs::path &path, QueryData &results) {
     return Status(1, "Failed to getxattr.");
   }
 
-  char *value = (char *)malloc(sizeof(char *) * bufferLength);
+  char *value = (char *)malloc(sizeof(char) * bufferLength);
   getxattr(path.string().c_str(),
            kXattrQuarantine.c_str(),
            value,

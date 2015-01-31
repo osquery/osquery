@@ -58,8 +58,7 @@ QueryData genGroups(QueryContext &context) {
     for (ODRecord *re in od_results) {
       Row r;
       r["groupname"] = std::string([[re recordName] UTF8String]);
-      struct group *grp = nullptr;
-      grp = getgrnam(r["groupname"].c_str());
+      struct group *grp = getgrnam(r["groupname"].c_str());
       if (grp != nullptr) {
         r["gid"] = BIGINT(grp->gr_gid);
         r["gid_signed"] = BIGINT((int32_t) grp->gr_gid);
