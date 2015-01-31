@@ -18,7 +18,7 @@ else()
   else()
     set(LINUX TRUE)
     set(CMAKE_C_FLAGS "-fno-omit-frame-pointer")
-    set(OS_COMPILE_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS} -std=c++11")
+    set(OS_COMPILE_FLAGS "-std=c++11")
     set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
     set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
   endif()
@@ -37,6 +37,14 @@ endif()
 
 if(DEFINED ENV{ANALYZE})
   set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
+endif()
+
+if(DEFINED ENV{SANITIZE})
+  set(CMAKE_CXX_FLAGS "-g -O0 -fno-omit-frame-pointer")
+  set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} -fsanitize=leak -fsanitize=address")
+  if(LINUX)
+    set(CMAKE_CXX_FLAGS "${OS_COMPILE_FLAGS} -fsanitize=memory")
+  endif()
 endif()
 
 # Use osquery language to set platform/os

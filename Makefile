@@ -27,6 +27,10 @@ analyze: .setup
 	cd build/$(BUILD_DIR) && ANALYZE=True cmake ../../ && \
 	  $(MAKE) --no-print-directory $(MAKEFLAGS)
 
+sanitize: .setup
+	cd build/$(BUILD_DIR) && SANITIZE=True cmake ../../ && \
+	  $(MAKE) --no-print-directory $(MAKEFLAGS)
+
 deps: .setup
 	./tools/provision.sh build build/$(BUILD_DIR)
 
