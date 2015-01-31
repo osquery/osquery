@@ -122,7 +122,7 @@ set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
 set_target_properties(shell PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
 install(TARGETS shell RUNTIME DESTINATION bin COMPONENT main)
 
-add_executable(daemon main/daemon.cpp)
+add_executable(daemon main/daemon.cpp core/watcher.cpp)
 TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_basic)
 TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_additional)
 set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)

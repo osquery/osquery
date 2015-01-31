@@ -13,11 +13,14 @@
 #include <osquery/config.h>
 #include <osquery/config/plugin.h>
 #include <osquery/core.h>
-#include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/logger.h>
 #include <osquery/logger/plugin.h>
 #include <osquery/scheduler.h>
+
+#include "osquery/core/watcher.h"
+
+const std::string kWatcherWorkerName = "osqueryd-worker";
 
 #ifndef __APPLE__
 namespace osquery {
@@ -30,6 +33,11 @@ DEFINE_osquery_flag(bool,
                     config_check,
                     false,
                     "Check the format and accessibility of the daemon");
+
+DEFINE_osquery_flag(bool,
+                    disable_watchdog,
+                    false,
+                    "Do not use a userland watchdog process.");
 }
 
 int main(int argc, char* argv[]) {
@@ -63,6 +71,11 @@ int main(int argc, char* argv[]) {
   } catch (std::exception& e) {
     LOG(ERROR) << "osqueryd failed to start: " << e.what();
     ::exit(EXIT_FAILURE);
+  }
+
+  if (!osquery::FLAGS_disable_watchdog) {
+    // When a watcher is used, the current watcher will fork into a worker.
+    osquery::initWorkerWatcher(kWatcherWorkerName, argc, argv);
   }
 
   LOG(INFO) << "Listing all plugins";

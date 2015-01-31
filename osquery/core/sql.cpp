@@ -53,6 +53,13 @@ const std::map<int, std::string> kSQLiteReturnCodes = {
     {101, "SQLITE_DONE: sqlite3_step() has finished executing"},
 };
 
+const std::map<tables::ConstraintOperator, std::string> kSQLOperatorRepr = {
+    {tables::EQUALS, "="},
+    {tables::GREATER_THAN, ">"},
+    {tables::LESS_THAN_OR_EQUALS, "<="},
+    {tables::LESS_THAN, "<"},
+    {tables::GREATER_THAN_OR_EQUALS, ">="}, };
+
 std::string getStringForSQLiteReturnCode(int code) {
   if (kSQLiteReturnCodes.find(code) != kSQLiteReturnCodes.end()) {
     return kSQLiteReturnCodes.at(code);
@@ -84,7 +91,23 @@ std::vector<std::string> SQL::getTableNames() {
 }
 
 QueryData SQL::selectAllFrom(const std::string& table) {
-  std::string query = "select * from " + table + ";";
+  std::string query = "select * from `" + table + "`;";
+  return SQL(query).rows();
+}
+
+QueryData SQL::selectAllFrom(const std::string& table,
+                             const std::string& column,
+                             tables::ConstraintOperator op,
+                             const std::string& expr) {
+  std::string query = "select * from `" + table + "` where `" + column + "`";
+  if (kSQLOperatorRepr.count(op) > 0) {
+    query += kSQLOperatorRepr.at(op);
+  } else {
+    LOG(WARNING) << "Cannot query using unknown SQL operator: " << op;
+    return {};
+  }
+
+  query += "'" + expr + "'";
   return SQL(query).rows();
 }
 }

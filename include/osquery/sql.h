@@ -15,6 +15,7 @@
 #include <vector>
 
 #include <osquery/database/results.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 
@@ -88,9 +89,25 @@ class SQL {
   /**
    * @brief Get all, 'SELECT * ...', results given a virtual table name.
    *
+   * @param table The name of the virtual table.
    * @return A QueryData object of the 'SELECT *...' query results.
    */
   static QueryData selectAllFrom(const std::string& table);
+
+  /**
+   * @brief Get all with constraint, 'SELECT * ... where', results given
+   * a virtual table name and single constraint
+   *
+   * @param table The name of the virtual table.
+   * @param column Table column name to apply constraint.
+   * @param op The SQL comparitive operator.
+   * @param expr The constraint expression.
+   * @return A QueryData object of the 'SELECT *...' query results.
+   */
+  static QueryData selectAllFrom(const std::string& table,
+                                 const std::string& column,
+                                 tables::ConstraintOperator op,
+                                 const std::string& expr);
 
  private:
   /**
