@@ -29,9 +29,7 @@ class HardwareEventSubscriber : public EventSubscriber<IOKitHIDEventPublisher> {
   Status Callback(const IOKitHIDEventContextRef& ec);
 };
 
-auto HardwareEventSubscriberRegistryItem =
-    NewRegistry::add<HardwareEventSubscriber>("event_subscriber",
-                                              "hardware_events");
+REGISTER(HardwareEventSubscriber, "event_subscriber", "hardware_events");
 
 void HardwareEventSubscriber::init() {
   auto subscription = createSubscriptionContext();

@@ -52,7 +52,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   EXPECT_EQ(rc, SQLITE_ERROR);
 
   // The table attach will complete only when the table name is registered.
-  NewRegistry::add<sampleTablePlugin>("table", "sample");
+  Registry::add<sampleTablePlugin>("table", "sample");
   rc = osquery::tables::attachTable(db, "sample");
   EXPECT_EQ(rc, SQLITE_OK);
 

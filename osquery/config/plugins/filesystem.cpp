@@ -31,10 +31,7 @@ class FilesystemConfigPlugin : public ConfigPlugin {
   virtual std::pair<osquery::Status, std::string> genConfig();
 };
 
-namespace registry {
-auto FilesystemConfigPluginRegistryItem =
-    NewRegistry::add<FilesystemConfigPlugin>("config", "filesystem");
-}
+REGISTER(FilesystemConfigPlugin, "config", "filesystem");
 
 std::pair<osquery::Status, std::string> FilesystemConfigPlugin::genConfig() {
   std::string config;

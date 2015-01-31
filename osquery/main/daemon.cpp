@@ -39,10 +39,6 @@ DEFINE_osquery_flag(bool,
 }
 
 int main(int argc, char* argv[]) {
-  //  for (const auto& plugin : NewRegistry::all())
-  printf("registries: %lu\n", osquery::NewRegistry::count());
-  printf("loggers: %lu\n", osquery::NewRegistry::count("logger"));
-
   osquery::initOsquery(argc, argv, osquery::OSQUERY_TOOL_DAEMON);
 
   if (osquery::FLAGS_config_check) {
@@ -83,22 +79,22 @@ int main(int argc, char* argv[]) {
   LOG(INFO) << "Listing all plugins";
 
   LOG(INFO) << "Logger plugins:";
-  for (const auto& name : osquery::NewRegistry::names("logger")) {
+  for (const auto& name : osquery::Registry::names("logger")) {
     LOG(INFO) << "  - " << name;
   }
 
   LOG(INFO) << "Config plugins:";
-  for (const auto& name : osquery::NewRegistry::names("config")) {
+  for (const auto& name : osquery::Registry::names("config")) {
     LOG(INFO) << "  - " << name;
   }
 
   LOG(INFO) << "Event Publishers:";
-  for (const auto& name : osquery::NewRegistry::names("publisher")) {
+  for (const auto& name : osquery::Registry::names("publisher")) {
     LOG(INFO) << "  - " << name;
   }
 
   LOG(INFO) << "Event Subscribers:";
-  for (const auto& name : osquery::NewRegistry::names("subscriber")) {
+  for (const auto& name : osquery::Registry::names("subscriber")) {
     LOG(INFO) << "  - " << name;
   }
 

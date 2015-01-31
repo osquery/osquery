@@ -20,8 +20,7 @@ size_t IOKitHIDEventPublisher::initial_device_count_ = 0;
 size_t IOKitHIDEventPublisher::initial_device_evented_count_ = 0;
 boost::mutex IOKitHIDEventPublisher::iokit_match_lock_;
 
-auto IOKitHIDEventPublisherRegistryItem =
-    NewRegistry::add<IOKitHIDEventPublisher>("event_publisher", "iokit");
+REGISTER(IOKitHIDEventPublisher, "event_publisher", "iokit");
 
 std::string IOKitHIDEventPublisher::getProperty(const IOHIDDeviceRef &device,
                                                 const CFStringRef &property) {

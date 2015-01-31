@@ -123,7 +123,7 @@ TEST_F(EventsTests, test_create_using_registry) {
 
   // Now add another registry item, but do not yet attach it.
   auto UniqueEventPublisherRegistryItem =
-      NewRegistry::add<UniqueEventPublisher>("event_publisher", "unique");
+      Registry::add<UniqueEventPublisher>("event_publisher", "unique");
   EXPECT_EQ(EventFactory::numEventPublishers(), default_publisher_count);
 
   // Now attach and make sure it was added.

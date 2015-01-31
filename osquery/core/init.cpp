@@ -135,7 +135,7 @@ void initOsquery(int argc, char* argv[], int tool) {
 
   google::InitGoogleLogging(argv[0]);
   VLOG(1) << "osquery starting [version=" OSQUERY_VERSION "]";
-  osquery::NewRegistry::setUp();
+  osquery::Registry::setUp();
   osquery::attachEvents();
 
   auto config = Config::getInstance();

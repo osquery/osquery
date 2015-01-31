@@ -79,7 +79,7 @@ int xCreate(sqlite3 *db,
 
   PluginResponse response;
   pVtab->content->name = std::string(argv[0]);
-  auto status = NewRegistry::call(
+  auto status = Registry::call(
       "table", pVtab->content->name, {{"action", "statement"}}, response);
   if (!status.ok() || response.size() == 0) {
     return SQLITE_ERROR;
@@ -91,7 +91,7 @@ int xCreate(sqlite3 *db,
   }
 
   // Also set the table column information.
-  status = NewRegistry::call(
+  status = Registry::call(
       "table", pVtab->content->name, {{"action", "columns"}}, response);
   if (!status.ok() || response.size() == 0) {
     return SQLITE_ERROR;
@@ -204,7 +204,7 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   PluginResponse response;
   request["action"] = "generate";
   TablePlugin::setRequestFromContext(context, request);
-  NewRegistry::call("table", pVtab->content->name, request, response);
+  Registry::call("table", pVtab->content->name, request, response);
 
   // Now organize the response rows by column instead of row.
   for (const auto &row : response) {
@@ -245,7 +245,7 @@ int attachTable(sqlite3 *db, const std::string &name) {
 
   // Column information is nice for virtual table create call.
   PluginResponse response;
-  auto status = NewRegistry::call(
+  auto status = Registry::call(
       "table", name, {{"action", "columns_definition"}}, response);
   if (!status.ok() || response.size() == 0) {
     return SQLITE_ERROR;
@@ -261,7 +261,7 @@ int attachTable(sqlite3 *db, const std::string &name) {
 }
 
 void attachVirtualTables(sqlite3 *db) {
-  for (const auto &name : NewRegistry::names("table")) {
+  for (const auto &name : Registry::names("table")) {
     int status = attachTable(db, name);
     if (status != SQLITE_OK) {
       LOG(ERROR) << "Error attaching virtual table: " << name << " (" << status

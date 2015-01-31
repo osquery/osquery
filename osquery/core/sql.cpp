@@ -88,7 +88,7 @@ std::vector<std::string> SQL::getTableNames() {
   // for (const auto& it : REGISTERED_TABLES) {
   //  results.push_back(it.first);
   //}
-  for (const auto& name : NewRegistry::names("table")) {
+  for (const auto& name : Registry::names("table")) {
     results.push_back(name);
   }
   return results;

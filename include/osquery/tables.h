@@ -294,9 +294,7 @@ class TablePlugin : public Plugin {
   FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
   FRIEND_TEST(VirtualTableTests, test_tableplugin_statement);
 };
-}
 
-namespace registry {
-const auto TableRegistry = NewRegistry::create<tables::TablePlugin>("table");
+CREATE_REGISTRY(TablePlugin, "table");
 }
 }

@@ -95,7 +95,7 @@ Status logScheduledQueryLogItem(const ScheduledQueryLogItem& item,
  * Consider the following example:
  *
  * @code{.cpp}
- *   class TestLoggerPlugin : public ConfigPlugin {
+ *   class TestLoggerPlugin : public LoggerPlugin {
  *    public:
  *     virtual osquery::Status logString(const std::string& s) {
  *       int i = 0;
@@ -110,8 +110,7 @@ Status logScheduledQueryLogItem(const ScheduledQueryLogItem& item,
  *     }
  *  };
  *
- *  REGISTER_LOGGER_PLUGIN(
- *      "test", std::make_shared<osquery::TestLoggerPlugin>());
+ *  REGISTER(TestLoggerPlugin, "logger", "test");
  * @endcode
  */
 
@@ -129,7 +128,6 @@ class LoggerPlugin : public Plugin {
   Status call(const PluginRequest& request, PluginResponse& response);
 };
 
-namespace registry {
 /**
  * @brief Logger plugin registry.
  *
@@ -137,6 +135,5 @@ namespace registry {
  * LoggerPlugin. Only strings are logged in practice, and LoggerPlugin provides
  * a helper member for transforming PluginRequest%s to strings.
  */
-const auto LoggerRegistry = NewRegistry::create<LoggerPlugin>("logger");
-}
+CREATE_REGISTRY(LoggerPlugin, "logger");
 }

@@ -42,13 +42,12 @@ Status logString(const std::string& s) {
 }
 
 Status logString(const std::string& s, const std::string& receiver) {
-  if (!NewRegistry::exists("logger", receiver)) {
+  if (!Registry::exists("logger", receiver)) {
     LOG(ERROR) << "Logger receiver " << receiver << " not found";
     return Status(1, "Logger receiver not found");
   }
 
-  PluginRequest request = {{"string", s}};
-  auto status = NewRegistry::call("logger", receiver, request);
+  auto status = Registry::call("logger", receiver, {{"string", s}});
   return Status(0, "OK");
 }
 

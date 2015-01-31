@@ -30,10 +30,7 @@ class FilesystemLoggerPlugin : public LoggerPlugin {
   std::string log_path_;
 };
 
-namespace registry {
-auto FilesystemLoggerPluginRegistryItem =
-    NewRegistry::add<FilesystemLoggerPlugin>("logger", "filesystem");
-}
+REGISTER(FilesystemLoggerPlugin, "logger", "filesystem");
 
 Status FilesystemLoggerPlugin::setUp() {
   log_path_ = FLAGS_log_dir + "osqueryd.results.log";

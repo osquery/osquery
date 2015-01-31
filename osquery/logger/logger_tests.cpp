@@ -17,9 +17,7 @@ namespace osquery {
 
 class LoggerTests : public testing::Test {
  public:
-  LoggerTests() {
-    NewRegistry::setUp();
-  }
+  LoggerTests() { Registry::setUp(); }
 };
 
 class TestLoggerPlugin : public LoggerPlugin {
@@ -32,8 +30,8 @@ class TestLoggerPlugin : public LoggerPlugin {
 };
 
 TEST_F(LoggerTests, test_plugin) {
-  NewRegistry::add<TestLoggerPlugin>("logger", "test");
-  auto s = NewRegistry::call("logger", "test", {{"string", "foobar"}});
+  Registry::add<TestLoggerPlugin>("logger", "test");
+  auto s = Registry::call("logger", "test", {{"string", "foobar"}});
   EXPECT_EQ(s.ok(), true);
 }
 }

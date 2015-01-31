@@ -60,13 +60,13 @@ Status Config::load() {
 }
 
 Status Config::genConfig(std::string& conf) {
-  if (!NewRegistry::exists("config", FLAGS_config_retriever)) {
+  if (!Registry::exists("config", FLAGS_config_retriever)) {
     LOG(ERROR) << "Config retriever " << FLAGS_config_retriever << " not found";
     return Status(1, "Config retriever not found");
   }
 
   PluginResponse response;
-  auto status = NewRegistry::call(
+  auto status = Registry::call(
       "config", FLAGS_config_retriever, {{"action", "genConfig"}}, response);
 
   if (!status.ok()) {

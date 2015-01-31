@@ -50,10 +50,7 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
   }
 };
 
-namespace registry {
-auto {{table_name_cc}}TablePluginRegistryItem =
-  NewRegistry::add<{{table_name_cc}}TablePlugin>("table", "{{table_name}}");
-}
+REGISTER({{table_name_cc}}TablePlugin, "table", "{{table_name}}");
 /// END[GENTABLE]
 
 }}

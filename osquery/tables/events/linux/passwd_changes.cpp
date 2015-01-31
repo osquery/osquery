@@ -50,9 +50,7 @@ class PasswdChangesEventSubscriber
  * This registers PasswdChangesEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
  */
-auto PasswdChangesEventSubscriberRegistryItem =
-    NewRegistry::add<PasswdChangesEventSubscriber>("event_subscriber",
-                                                   "passwd_changes");
+REGISTER(PasswdChangesEventSubscriber, "event_subscriber", "passwd_changes");
 
 void PasswdChangesEventSubscriber::init() {
   auto mc = createSubscriptionContext();

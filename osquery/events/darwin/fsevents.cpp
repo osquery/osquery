@@ -26,8 +26,7 @@ std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemRenamed, "MOVED_TO"},
 };
 
-auto FSEventsEventPublisherRegistryItem =
-    NewRegistry::add<FSEventsEventPublisher>("event_publisher", "fsevents");
+REGISTER(FSEventsEventPublisher, "event_publisher", "fsevents");
 
 void FSEventsEventPublisher::restart() {
   if (paths_.empty()) {

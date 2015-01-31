@@ -754,11 +754,6 @@ class EventSubscriber : public EventSubscriberPlugin {
 /// the event factory.
 void attachEvents();
 
-namespace registry {
-const auto EventPublisherRegistry =
-    NewRegistry::create<EventPublisherPlugin>("event_publisher", false);
-
-const auto EventSubscriberRegistry =
-    NewRegistry::create<EventSubscriberPlugin>("event_subscriber");
-}
+CREATE_LAZY_REGISTRY(EventPublisherPlugin, "event_publisher");
+CREATE_REGISTRY(EventSubscriberPlugin, "event_subscriber");
 }

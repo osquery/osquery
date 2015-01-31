@@ -36,10 +36,7 @@ std::map<int, std::string> kMaskActions = {
     {IN_OPEN, "OPENED"},
 };
 
-namespace registry {
-auto INotifyEventPublisherRegistryItem =
-    NewRegistry::add<INotifyEventPublisher>("event_publisher", "inotify");
-}
+REGISTER(INotifyEventPublisher, "event_publisher", "inotify");
 
 Status INotifyEventPublisher::setUp() {
   inotify_handle_ = ::inotify_init();

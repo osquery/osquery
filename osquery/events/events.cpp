@@ -547,12 +547,12 @@ Status EventFactory::deregisterEventPublishers() {
 }
 
 void attachEvents() {
-  const auto& publishers = NewRegistry::all("event_publisher");
+  const auto& publishers = Registry::all("event_publisher");
   for (const auto& publisher : publishers) {
     EventFactory::registerEventPublisher(publisher.second);
   }
 
-  const auto& subscribers = NewRegistry::all("event_subscriber");
+  const auto& subscribers = Registry::all("event_subscriber");
   for (const auto& subscriber : subscribers) {
     EventFactory::registerEventSubscriber(subscriber.second);
   }

@@ -189,8 +189,7 @@ class Config {
  *     }
  *   };
  *
- *   REGISTER_CONFIG_PLUGIN(
- *     "test", std::make_shared<osquery::TestConfigPlugin>());
+ *   REGISTER(TestConfigPlugin, "config", "test");
  *  @endcode
  */
 class ConfigPlugin : public Plugin {
@@ -210,7 +209,6 @@ class ConfigPlugin : public Plugin {
   Status call(const PluginRequest& request, PluginResponse& response);
 };
 
-namespace registry {
 /**
  * @brief Config plugin registry.
  *
@@ -218,6 +216,5 @@ namespace registry {
  * ConfigPlugin. A ConfigPlugin's call API should make use of a genConfig
  * after reading JSON data in the plugin implementation.
  */
-const auto ConfigRegistry = NewRegistry::create<ConfigPlugin>("config");
-}
+CREATE_REGISTRY(ConfigPlugin, "config");
 }

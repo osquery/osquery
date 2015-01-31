@@ -28,7 +28,7 @@ class ConfigTests : public testing::Test {
     FLAGS_config_retriever = "filesystem";
     FLAGS_config_path = kTestDataPath + "test.config";
 
-    NewRegistry::setUp();
+    Registry::setUp();
     auto c = Config::getInstance();
     c->load();
   }
@@ -44,11 +44,11 @@ class TestConfigPlugin : public ConfigPlugin {
 };
 
 TEST_F(ConfigTests, test_plugin) {
-  NewRegistry::add<TestConfigPlugin>("config", "test");
+  Registry::add<TestConfigPlugin>("config", "test");
 
   PluginResponse response;
   auto status =
-      NewRegistry::call("config", "test", {{"action", "genConfig"}}, response);
+      Registry::call("config", "test", {{"action", "genConfig"}}, response);
 
   EXPECT_EQ(status.ok(), true);
   EXPECT_EQ(status.toString(), "OK");
