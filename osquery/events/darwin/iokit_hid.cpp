@@ -62,7 +62,11 @@ void IOKitHIDEventPublisher::restart() {
 
   // Enumerate initial set of devices matched before time=0.
   CFSetRef devices = IOHIDManagerCopyDevices(manager_);
-  initial_device_count_ = devices == NULL ? 0 : CFSetGetCount(devices);
+  if (devices == nullptr) {
+    return;
+  }
+
+  initial_device_count_ = CFSetGetCount(devices);
   CFRelease(devices);
 
   // Register callbacks.

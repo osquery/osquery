@@ -52,6 +52,7 @@ QueryData genSMBIOSTables(QueryContext& context) {
 
   if (smbios_data == nullptr || length == 0) {
     // Problem creating SMBIOS property.
+    CFRelease(smbios);
     IOObjectRelease(service);
     return {};
   }
