@@ -266,6 +266,7 @@ class TablePlugin : public Plugin {
  protected:
   /// Helper method to generate the virtual table CREATE statement.
   virtual std::string statement();
+  virtual std::string columnDefinition();
   virtual TableColumns columns() {
     TableColumns columns;
     return columns;
@@ -288,6 +289,10 @@ class TablePlugin : public Plugin {
                                        PluginResponse& response);
   static void setContextFromRequest(const PluginRequest& request,
                                     QueryContext& context);
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
+  FRIEND_TEST(VirtualTableTests, test_tableplugin_statement);
 };
 }
 

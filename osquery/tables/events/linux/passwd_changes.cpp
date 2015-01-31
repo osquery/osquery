@@ -51,8 +51,8 @@ class PasswdChangesEventSubscriber
  * pseudo-plugin registry.
  */
 auto PasswdChangesEventSubscriberRegistryItem =
-    NewRegistry::add<PasswdChangesEventSubscriberSubscriber>("event_subscriber",
-                                                             "passwd_changes");
+    NewRegistry::add<PasswdChangesEventSubscriber>("event_subscriber",
+                                                   "passwd_changes");
 
 void PasswdChangesEventSubscriber::init() {
   auto mc = createSubscriptionContext();

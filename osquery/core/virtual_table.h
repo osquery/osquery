@@ -48,6 +48,7 @@ struct VirtualTable {
   VirtualTableContent *content;
 };
 
+int attachTable(sqlite3 *db, const std::string &name);
 void attachVirtualTables(sqlite3 *db);
 }
 }

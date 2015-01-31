@@ -8,6 +8,8 @@
  *
  */
 
+#include <tuple>
+
 #include <osquery/flags.h>
 
 namespace osquery {

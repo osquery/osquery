@@ -65,6 +65,7 @@ TEST_F(FilesystemTests, test_list_files_in_directory_not_found) {
   EXPECT_FALSE(not_found.ok());
   EXPECT_EQ(not_found.toString(), "Directory not found: /foo/bar");
 }
+
 // Recursive Tests
 TEST_F(FilesystemTests, test_wildcard_single_folder_list) {
   std::vector<std::string> files;

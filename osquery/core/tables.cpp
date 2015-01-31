@@ -174,6 +174,8 @@ Status TablePlugin::call(const PluginRequest& request,
     for (const auto& column : column_list) {
       response.push_back({{"name", column.first}, {"type", column.second}});
     }
+  } else if (request.at("action") == "columns_definition") {
+    response.push_back({{"definition", columnDefinition()}});
   } else {
     return Status(1, "Unknown table plugin action: " + request.at("action"));
   }
@@ -181,17 +183,21 @@ Status TablePlugin::call(const PluginRequest& request,
   return Status(0, "OK");
 }
 
-std::string TablePlugin::statement() {
-  auto column_list = columns();
-  std::string statement = "CREATE TABLE " + name_ + "(";
+std::string TablePlugin::columnDefinition() {
+  const auto& column_list = columns();
+  std::string statement = "(";
   for (size_t i = 0; i < column_list.size(); ++i) {
-    statement += column_list[i].first + " " + column_list[i].second;
+    statement += column_list[i].first + " " + column_list.at(i).second;
     if (i < column_list.size() - 1) {
       statement += ", ";
     }
   }
   statement += ")";
   return statement;
+}
+
+std::string TablePlugin::statement() {
+  return "CREATE TABLE " + name_ + columnDefinition();
 }
 }
 }
