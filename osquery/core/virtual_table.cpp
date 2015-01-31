@@ -209,7 +209,15 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   // Now organize the response rows by column instead of row.
   for (const auto &row : response) {
     for (const auto &column : pVtab->content->columns) {
-      pVtab->content->data[column.first].push_back(row.at(column.first));
+      try {
+        pVtab->content->data[column.first].push_back(row.at(column.first));
+      }
+      catch (const std::out_of_range &e) {
+        VLOG(1) << "Table " << pVtab->content->name << " row "
+                << pVtab->content->n << " did not include column "
+                << column.first;
+        pVtab->content->data[column.first].push_back("");
+      }
     }
     pVtab->content->n++;
   }

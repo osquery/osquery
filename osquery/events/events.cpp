@@ -68,7 +68,6 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
     ec->time_string = boost::lexical_cast<std::string>(ec->time);
   }
 
-  VLOG(1) << "Firing event (" << ec_id << ") from: " << type();
   for (const auto& subscription : subscriptions_) {
     fireCallback(subscription, ec);
   }

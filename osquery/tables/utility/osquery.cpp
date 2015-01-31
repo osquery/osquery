@@ -60,6 +60,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
   if (s.ok()) {
     r["config_md5"] = TEXT(hash_string);
   } else {
+    r["config_md5"] = "";
     VLOG(1) << "Could not retrieve config hash: " << s.toString();
   }
 
