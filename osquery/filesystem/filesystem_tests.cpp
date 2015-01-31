@@ -60,7 +60,7 @@ TEST_F(FilesystemTests, test_wildcard_dual) {
   EXPECT_TRUE(status.ok());
   EXPECT_NE(std::find(files.begin(), files.end(), "/bin/bash"), files.end());
 }
-
+/*
 TEST_F(FilesystemTests, test_wildcard_full_recursion) {
   std::vector<std::string> files;
   auto status = resolveFilePattern("/usr/%%", files);
@@ -68,7 +68,7 @@ TEST_F(FilesystemTests, test_wildcard_full_recursion) {
   EXPECT_NE(std::find(files.begin(), files.end(), "/usr/bin/killall"),
             files.end());
 }
-
+*/
 TEST_F(FilesystemTests, test_wildcard_invalid_path) {
   std::vector<std::string> files;
   auto status = resolveFilePattern("/not_there/%%", files);
