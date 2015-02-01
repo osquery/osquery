@@ -47,7 +47,6 @@ class FSEventsTests : public testing::Test {
       ::usleep(20);
     }
     EventFactory::end();
-    temp_thread_.join();
   }
 
   void WaitForStream(int max) {
@@ -164,7 +163,6 @@ TEST_F(FSEventsTests, test_fsevents_run) {
 
   EXPECT_TRUE(event_pub_->numEvents() > 0);
   EventFactory::end();
-  temp_thread.join();
 }
 
 class TestFSEventsEventSubscriber
