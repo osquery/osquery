@@ -573,12 +573,12 @@ void EventFactory::end(bool join) {
 void attachEvents() {
   const auto& publishers = Registry::all("event_publisher");
   for (const auto& publisher : publishers) {
-    EventFactory::registerEventPublisher(publisher.second);
+    EventFactory::registerEventPublisher(std::move(publisher.second));
   }
 
   const auto& subscribers = Registry::all("event_subscriber");
   for (const auto& subscriber : subscribers) {
-    EventFactory::registerEventSubscriber(subscriber.second);
+    EventFactory::registerEventSubscriber(std::move(subscriber.second));
   }
 }
 }

@@ -95,7 +95,7 @@ extern const std::vector<size_t> kEventTimeLists;
  */
 #define DECLARE_PUBLISHER(TYPE) \
  public:                        \
-  EventPublisherID type() { return TYPE; }
+  EventPublisherID type() const { return TYPE; }
 
 /**
  * @brief DECLARE_SUBSCRIBER supplies needed boilerplate code that applies a
@@ -103,7 +103,7 @@ extern const std::vector<size_t> kEventTimeLists;
  */
 #define DECLARE_SUBSCRIBER(NAME) \
  public:                         \
-  EventSubscriberID name() { return NAME; }
+  EventSubscriberID name() const { return NAME; }
 
 /**
  * @brief A Subscription is used to configure an EventPublisher and bind a
@@ -211,31 +211,31 @@ class EventPublisherPlugin : public Plugin {
   void fire(const EventContextRef& ec, EventTime time = 0);
 
   /// Number of Subscription%s watching this EventPublisher.
-  size_t numSubscriptions() { return subscriptions_.size(); }
+  size_t numSubscriptions() const { return subscriptions_.size(); }
 
   /**
    * @brief The number of events fired by this EventPublisher.
    *
    * @return The number of events.
    */
-  size_t numEvents() { return next_ec_id_; }
+  size_t numEvents() const { return next_ec_id_; }
 
   /// Overriding the EventPublisher constructor is not recommended.
   EventPublisherPlugin() : next_ec_id_(0), ending_(false), started_(false) {};
   virtual ~EventPublisherPlugin() {}
 
   /// Return a string identifier associated with this EventPublisher.
-  virtual EventPublisherID type() { return "publisher"; }
+  virtual EventPublisherID type() const { return "publisher"; }
 
-  bool isEnding() { return ending_; }
+  bool isEnding() const { return ending_; }
   void isEnding(bool ending) { ending_ = ending; }
-  bool hasStarted() { return started_; }
+  bool hasStarted() const { return started_; }
   void hasStarted(bool started) { started_ = started; }
 
  protected:
   /// The internal fire method used by the typed EventPublisher.
   virtual void fireCallback(const SubscriptionRef& sub,
-                            const EventContextRef& ec) = 0;
+                            const EventContextRef& ec) const = 0;
 
   /// The EventPublisher will keep track of Subscription%s that contain callins.
   SubscriptionVector subscriptions_;
@@ -243,6 +243,10 @@ class EventPublisherPlugin : public Plugin {
   /// An Event ID is assigned by the EventPublisher within the EventContext.
   /// This is not used to store event date in the backing store.
   EventContextID next_ec_id_;
+
+ private:
+  EventPublisherPlugin(EventPublisherPlugin const&);
+  void operator=(EventPublisherPlugin const&);
 
  private:
   /// Set ending to True to cause event type run loops to finish.
@@ -333,7 +337,8 @@ class EventPublisher : public EventPublisherPlugin {
    * @param sub The SubscriptionContext and optional EventCallback.
    * @param ec The event that was fired.
    */
-  void fireCallback(const SubscriptionRef& sub, const EventContextRef& ec) {
+  void fireCallback(const SubscriptionRef& sub,
+                    const EventContextRef& ec) const {
     auto pub_sc = getSubscriptionContext(sub->context);
     auto pub_ec = getEventContext(ec);
     if (shouldFire(pub_sc, pub_ec) && sub->callback != nullptr) {
@@ -351,7 +356,9 @@ class EventPublisher : public EventPublisherPlugin {
    *
    * @return should the Subscription%'s EventCallback be called for this event.
    */
-  virtual bool shouldFire(const SCRef& sc, const ECRef& ec) { return true; }
+  virtual bool shouldFire(const SCRef& sc, const ECRef& ec) const {
+    return true;
+  }
 
  private:
   FRIEND_TEST(EventsTests, test_event_sub_subscribe);
@@ -386,8 +393,8 @@ class EventFactory {
    * EventFactory `getEventPublisher` accessor is encouraged.
    */
   template <class T>
-  static Status registerEventPublisher(std::shared_ptr<T> pub) {
-    auto base_pub = reinterpret_cast<EventPublisherRef&>(pub);
+  static Status registerEventPublisher(const std::shared_ptr<T>& pub) {
+    auto base_pub = reinterpret_cast<const EventPublisherRef&>(pub);
     return registerEventPublisher(base_pub);
   }
 
@@ -518,6 +525,7 @@ class EventFactory {
   EventFactory() {}
   EventFactory(EventFactory const&);
   void operator=(EventFactory const&);
+  ~EventFactory() {}
 
  private:
   /// Set of registered EventPublisher instances.
@@ -643,7 +651,7 @@ class EventSubscriberPlugin : public Plugin {
     expire_events_ = true;
     expire_time_ = 0;
   }
-  ~EventSubscriberPlugin() {}
+  virtual ~EventSubscriberPlugin() {}
 
   /**
    * @brief Suggested entrypoint for table generation.
@@ -660,17 +668,21 @@ class EventSubscriberPlugin : public Plugin {
   }
 
   /// The string name identifying this EventSubscriber.
-  virtual EventSubscriberID name() { return "subscriber"; }
+  virtual EventSubscriberID name() const { return "subscriber"; }
 
  protected:
   /// Backing storage indexing namespace definition methods.
-  EventPublisherID dbNamespace() { return type() + "." + name(); }
+  EventPublisherID dbNamespace() const { return type() + "." + name(); }
 
   /// The string EventPublisher identifying this EventSubscriber.
-  virtual EventPublisherID type() = 0;
+  virtual EventPublisherID type() const = 0;
 
   /// Disable event expiration for this subscriber.
   void doNotExpire() { expire_events_ = false; }
+
+ private:
+  EventSubscriberPlugin(EventSubscriberPlugin const&);
+  void operator=(EventSubscriberPlugin const&);
 
  private:
   /// Do not respond to periodic/scheduled/triggered event expiration requests.
@@ -721,7 +733,9 @@ class EventSubscriber : public EventSubscriberPlugin {
   virtual void init() {}
 
   /// Helper function to call the publisher's templated subscription generator.
-  SCRef createSubscriptionContext() { return PUB::createSubscriptionContext(); }
+  SCRef createSubscriptionContext() const {
+    return PUB::createSubscriptionContext();
+  }
 
   /**
    * @brief Bind a registered EventSubscriber member function to a Subscription.
@@ -745,7 +759,7 @@ class EventSubscriber : public EventSubscriberPlugin {
   }
 
   /// Helper EventPublisher string type accessor.
-  EventPublisherID type() { return BaseEventPublisher::getType<PUB>(); }
+  EventPublisherID type() const { return BaseEventPublisher::getType<PUB>(); }
 
  private:
   FRIEND_TEST(EventsTests, test_event_sub);

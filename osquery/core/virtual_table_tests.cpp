@@ -31,19 +31,19 @@ class sampleTablePlugin : public TablePlugin {
 };
 
 TEST_F(VirtualTableTests, test_tableplugin_columndefinition) {
-  auto table = sampleTablePlugin();
-  EXPECT_EQ("(foo INTEGER, bar TEXT)", table.columnDefinition());
+  auto table = std::make_shared<sampleTablePlugin>();
+  EXPECT_EQ("(foo INTEGER, bar TEXT)", table->columnDefinition());
 }
 
 TEST_F(VirtualTableTests, test_tableplugin_statement) {
-  auto table = sampleTablePlugin();
-  table.setName("sample");
-  EXPECT_EQ("CREATE TABLE sample(foo INTEGER, bar TEXT)", table.statement());
+  auto table = std::make_shared<sampleTablePlugin>();
+  table->setName("sample");
+  EXPECT_EQ("CREATE TABLE sample(foo INTEGER, bar TEXT)", table->statement());
 }
 
 TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
-  auto table = sampleTablePlugin();
-  table.setName("sample");
+  auto table = std::make_shared<sampleTablePlugin>();
+  table->setName("sample");
   sqlite3* db = nullptr;
   sqlite3_open(":memory:", &db);
 

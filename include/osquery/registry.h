@@ -74,6 +74,7 @@ class RegistryCore {
 
  public:
   RegistryCore(bool auto_setup = true) : auto_setup_(auto_setup) {}
+  virtual ~RegistryCore() {}
 
   /**
    * @brief Add a plugin to this registry by allocating and indexing
@@ -198,6 +199,10 @@ class RegistryCore {
 
   /// Allow the registry to introspect into the registered name (for logging).
   void setName(const std::string& name) { name_ = name; }
+
+ private:
+  RegistryCore(RegistryCore const&);
+  void operator=(RegistryCore const&);
 
  private:
   /// The identifier for this registry, used to register items.
@@ -336,12 +341,19 @@ class RegistryFactory : private boost::noncopyable {
 
  protected:
   RegistryFactory() {}
+  RegistryFactory(RegistryFactory const&);
+  void operator=(RegistryFactory const&);
+  virtual ~RegistryFactory() {}
 
  public:
   std::map<std::string, RegistryTypeAPIRef> registries_;
 };
 
 class Plugin {
+ public:
+  Plugin() { name_ = "unnamed"; }
+  virtual ~Plugin() {}
+
  public:
   /// The plugin may perform some initialization, not required.
   virtual Status setUp() { return Status(0, "Not used"); }
@@ -374,6 +386,10 @@ class Plugin {
 
  protected:
   std::string name_;
+
+ private:
+  Plugin(Plugin const&);
+  void operator=(Plugin const&);
 };
 
 /**
