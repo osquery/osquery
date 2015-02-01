@@ -14,6 +14,7 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
+#include <osquery/registry.h>
 
 #include "osquery/core/virtual_table.h"
 
@@ -84,8 +85,11 @@ std::string SQL::getMessageString() { return status_.toString(); }
 
 std::vector<std::string> SQL::getTableNames() {
   std::vector<std::string> results;
-  for (const auto& it : REGISTERED_TABLES) {
-    results.push_back(it.first);
+  // for (const auto& it : REGISTERED_TABLES) {
+  //  results.push_back(it.first);
+  //}
+  for (const auto& name : Registry::names("table")) {
+    results.push_back(name);
   }
   return results;
 }

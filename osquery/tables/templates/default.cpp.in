@@ -30,14 +30,15 @@ class {{class_name}} {
 {% endif %}\
 
 class {{table_name_cc}}TablePlugin : public TablePlugin {
-public:
-  TableName name = "{{table_name}}";
-  TableColumns columns = {
+ private:
+  TableColumns columns() {
+    return {
 {% for column in schema %}\
-    std::make_pair("{{column.name}}", "{{column.type.affinity}}")\
+      {"{{column.name}}", "{{column.type.affinity}}"}\
 {% if not loop.last %}, {% endif %}
 {% endfor %}\
-  };
+    };
+  }
 
   QueryData generate(QueryContext& request) {
 {% if class_name != "" %}\
@@ -47,16 +48,9 @@ public:
     return osquery::tables::{{function}}(request);
 {% endif %}\
   }
-
-public:
-  {{table_name_cc}}TablePlugin() {}
-  int attachVtable(sqlite3 *db) {
-    return sqlite3_attach_vtable<{{table_name_cc}}TablePlugin>(db, name, columns);
-  }
-  virtual ~{{table_name_cc}}TablePlugin() {}
 };
 
-REGISTER_TABLE("{{table_name}}", std::make_shared<{{table_name_cc}}TablePlugin>());
+REGISTER({{table_name_cc}}TablePlugin, "table", "{{table_name}}");
 /// END[GENTABLE]
 
 }}

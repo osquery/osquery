@@ -13,9 +13,6 @@
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/logger/plugin.h>
-
-using osquery::Status;
 
 namespace osquery {
 
@@ -30,20 +27,27 @@ DEFINE_osquery_flag(bool,
                     true,
                     "Log scheduled results as events.");
 
+Status LoggerPlugin::call(const PluginRequest& request,
+                          PluginResponse& response) {
+  if (request.count("string") == 0) {
+    return Status(1, "Logger plugins only support a request string");
+  }
+
+  this->logString(request.at("string"));
+  return Status(0, "OK");
+}
+
 Status logString(const std::string& s) {
   return logString(s, FLAGS_log_receiver);
 }
 
 Status logString(const std::string& s, const std::string& receiver) {
-  if (REGISTERED_LOGGER_PLUGINS.find(receiver) ==
-      REGISTERED_LOGGER_PLUGINS.end()) {
+  if (!Registry::exists("logger", receiver)) {
     LOG(ERROR) << "Logger receiver " << receiver << " not found";
     return Status(1, "Logger receiver not found");
   }
-  auto log_status = REGISTERED_LOGGER_PLUGINS.at(receiver)->logString(s);
-  if (!log_status.ok()) {
-    return log_status;
-  }
+
+  auto status = Registry::call("logger", receiver, {{"string", s}});
   return Status(0, "OK");
 }
 

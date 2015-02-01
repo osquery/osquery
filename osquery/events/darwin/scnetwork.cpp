@@ -17,7 +17,7 @@
 
 namespace osquery {
 
-REGISTER_EVENTPUBLISHER(SCNetworkEventPublisher);
+REGISTER(SCNetworkEventPublisher, "event_publisher", "scnetwork");
 
 void SCNetworkEventPublisher::tearDown() {
   for (auto target : targets_) {

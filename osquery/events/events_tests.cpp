@@ -28,7 +28,7 @@ class EventsTests : public ::testing::Test {
     DBHandle::getInstanceAtPath(kTestingEventsDBPath);
   }
 
-  void TearDown() { EventFactory::deregisterEventPublishers(); }
+  void TearDown() { EventFactory::end(); }
 };
 
 // The most basic event publisher uses useless Subscription/Event.
@@ -70,22 +70,22 @@ TEST_F(EventsTests, test_event_pub) {
 }
 
 TEST_F(EventsTests, test_register_event_pub) {
-  // A caller may register an event type using the class template.
-  // This template class is equivilent to the reinterpret casting target.
-  auto status = EventFactory::registerEventPublisher<BasicEventPublisher>();
-  EXPECT_TRUE(status.ok());
+  auto basic_pub = std::make_shared<BasicEventPublisher>();
+  auto status = EventFactory::registerEventPublisher(basic_pub);
 
   // This class is the SAME, there was no type override.
-  status = EventFactory::registerEventPublisher<AnotherBasicEventPublisher>();
+  auto another_basic_pub = std::make_shared<AnotherBasicEventPublisher>();
+  status = EventFactory::registerEventPublisher(another_basic_pub);
   EXPECT_FALSE(status.ok());
 
   // This class is different but also uses different types!
-  status = EventFactory::registerEventPublisher<FakeEventPublisher>();
+  auto fake_pub = std::make_shared<FakeEventPublisher>();
+  status = EventFactory::registerEventPublisher(fake_pub);
   EXPECT_TRUE(status.ok());
 
   // May also register the event_pub instance
-  auto pub = std::make_shared<AnotherFakeEventPublisher>();
-  status = EventFactory::registerEventPublisher<AnotherFakeEventPublisher>(pub);
+  auto another_fake_pub = std::make_shared<AnotherFakeEventPublisher>();
+  status = EventFactory::registerEventPublisher(another_fake_pub);
   EXPECT_TRUE(status.ok());
 }
 
@@ -99,15 +99,41 @@ TEST_F(EventsTests, test_event_pub_types) {
 }
 
 TEST_F(EventsTests, test_create_event_pub) {
-  auto status = EventFactory::registerEventPublisher<BasicEventPublisher>();
+  auto pub = std::make_shared<BasicEventPublisher>();
+  auto status = EventFactory::registerEventPublisher(pub);
   EXPECT_TRUE(status.ok());
 
   // Make sure only the first event type was recorded.
   EXPECT_EQ(EventFactory::numEventPublishers(), 1);
 }
 
+class UniqueEventPublisher
+    : public EventPublisher<FakeSubscriptionContext, FakeEventContext> {
+  DECLARE_PUBLISHER("unique");
+};
+
+TEST_F(EventsTests, test_create_using_registry) {
+  // The events API uses attachEvents to move registry event publishers and
+  // subscribers into the events factory.
+  EXPECT_EQ(EventFactory::numEventPublishers(), 0);
+  attachEvents();
+
+  // Store the number of default event publishers (in core).
+  int default_publisher_count = EventFactory::numEventPublishers();
+
+  // Now add another registry item, but do not yet attach it.
+  auto UniqueEventPublisherRegistryItem =
+      Registry::add<UniqueEventPublisher>("event_publisher", "unique");
+  EXPECT_EQ(EventFactory::numEventPublishers(), default_publisher_count);
+
+  // Now attach and make sure it was added.
+  attachEvents();
+  EXPECT_EQ(EventFactory::numEventPublishers(), default_publisher_count + 1);
+}
+
 TEST_F(EventsTests, test_create_subscription) {
-  EventFactory::registerEventPublisher<BasicEventPublisher>();
+  auto pub = std::make_shared<BasicEventPublisher>();
+  EventFactory::registerEventPublisher(pub);
 
   // Make sure a subscription cannot be added for a non-existent event type.
   // Note: It normally would not make sense to create a blank subscription.
@@ -127,7 +153,8 @@ TEST_F(EventsTests, test_create_subscription) {
 TEST_F(EventsTests, test_multiple_subscriptions) {
   Status status;
 
-  EventFactory::registerEventPublisher<BasicEventPublisher>();
+  auto pub = std::make_shared<BasicEventPublisher>();
+  EventFactory::registerEventPublisher(pub);
 
   auto subscription = Subscription::create();
   status = EventFactory::addSubscription("publisher", subscription);
@@ -182,9 +209,10 @@ class TestEventPublisher
 };
 
 TEST_F(EventsTests, test_create_custom_event_pub) {
-  auto status = EventFactory::registerEventPublisher<BasicEventPublisher>();
+  auto basic_pub = std::make_shared<BasicEventPublisher>();
+  EventFactory::registerEventPublisher(basic_pub);
   auto pub = std::make_shared<TestEventPublisher>();
-  status = EventFactory::registerEventPublisher(pub);
+  auto status = EventFactory::registerEventPublisher(pub);
 
   // These event types have unique event type IDs
   EXPECT_TRUE(status.ok());
@@ -229,10 +257,7 @@ TEST_F(EventsTests, test_tear_down) {
   // Once more, now deregistering all event types.
   status = EventFactory::registerEventPublisher(pub);
   EXPECT_EQ(pub->getTestValue(), 3);
-
-  status = EventFactory::deregisterEventPublishers();
-  EXPECT_TRUE(status.ok());
-
+  EventFactory::end();
   EXPECT_EQ(pub->getTestValue(), 4);
 
   // Make sure the factory state represented.

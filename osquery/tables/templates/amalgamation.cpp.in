@@ -18,10 +18,7 @@
 #include "osquery/core/virtual_table.h"
 
 namespace osquery { namespace tables {
-
 {% for table in tables %}
 {{table}}
-
 {% endfor %}
-
 }}

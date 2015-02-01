@@ -40,7 +40,7 @@ const std::vector<size_t> kEventTimeLists = {
     10, // 10 seconds
 };
 
-void EventPublisherCore::fire(const EventContextRef& ec, EventTime time) {
+void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   EventContextID ec_id;
 
   if (isEnding()) {
@@ -73,9 +73,9 @@ void EventPublisherCore::fire(const EventContextRef& ec, EventTime time) {
   }
 }
 
-std::vector<std::string> EventSubscriberCore::getIndexes(EventTime start,
-                                                     EventTime stop,
-                                                     int list_key) {
+std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
+                                                           EventTime stop,
+                                                           int list_key) {
   auto db = DBHandle::getInstance();
   auto index_key = "indexes." + dbNamespace();
   std::vector<std::string> indexes;
@@ -166,7 +166,7 @@ std::vector<std::string> EventSubscriberCore::getIndexes(EventTime start,
   return indexes;
 }
 
-Status EventSubscriberCore::expireIndexes(
+Status EventSubscriberPlugin::expireIndexes(
     const std::string& list_type,
     const std::vector<std::string>& indexes,
     const std::vector<std::string>& expirations) {
@@ -203,7 +203,7 @@ Status EventSubscriberCore::expireIndexes(
   return Status(0, "OK");
 }
 
-std::vector<EventRecord> EventSubscriberCore::getRecords(
+std::vector<EventRecord> EventSubscriberPlugin::getRecords(
     const std::vector<std::string>& indexes) {
   auto db = DBHandle::getInstance();
   auto record_key = "records." + dbNamespace();
@@ -234,7 +234,7 @@ std::vector<EventRecord> EventSubscriberCore::getRecords(
   return records;
 }
 
-Status EventSubscriberCore::recordEvent(EventID& eid, EventTime time) {
+Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
   Status status;
   auto db = DBHandle::getInstance();
   std::string time_value = boost::lexical_cast<std::string>(time);
@@ -290,7 +290,7 @@ Status EventSubscriberCore::recordEvent(EventID& eid, EventTime time) {
   return Status(0, "OK");
 }
 
-EventID EventSubscriberCore::getEventID() {
+EventID EventSubscriberPlugin::getEventID() {
   Status status;
   auto db = DBHandle::getInstance();
   // First get an event ID from the meta key.
@@ -317,7 +317,7 @@ EventID EventSubscriberCore::getEventID() {
   return eid_value;
 }
 
-QueryData EventSubscriberCore::get(EventTime start, EventTime stop) {
+QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
   QueryData results;
   Status status;
 
@@ -359,7 +359,7 @@ QueryData EventSubscriberCore::get(EventTime start, EventTime stop) {
   return results;
 }
 
-Status EventSubscriberCore::add(const Row& r, EventTime time) {
+Status EventSubscriberPlugin::add(const Row& r, EventTime time) {
   Status status;
 
   std::shared_ptr<DBHandle> db;
@@ -402,37 +402,28 @@ Status EventFactory::run(EventPublisherID& type_id) {
   // Assume it can either make use of an entrypoint poller/selector or
   // take care of async callback registrations in setUp/configure/run
   // only once and handle event queueing/firing in callbacks.
-  auto event_pub = EventFactory::getInstance().getEventPublisher(type_id);
-  if (event_pub == nullptr) {
-    return Status(1, "No Event Type");
+  EventPublisherRef publisher;
+  try {
+    publisher = EventFactory::getInstance().getEventPublisher(type_id);
+  }
+  catch (std::out_of_range& e) {
+    return Status(1, "No event type found");
   }
 
+  VLOG(1) << "Starting event publisher runloop: " + type_id;
+  publisher->hasStarted(true);
+
   auto status = Status(0, "OK");
-  while (!event_pub->isEnding() && status.ok()) {
+  while (!publisher->isEnding() && status.ok()) {
     // Can optionally implement a global cooloff latency here.
-    status = event_pub->run();
+    status = publisher->run();
     ::usleep(20);
   }
 
   // The runloop status is not reflective of the event type's.
-  VLOG(1) << "Event publisher " << event_pub->type() << " has terminated";
+  publisher->tearDown();
+  VLOG(1) << "Event publisher " << publisher->type() << " runloop terminated";
   return Status(0, "OK");
-}
-
-void EventFactory::end(bool should_end) {
-  auto& ef = EventFactory::getInstance();
-
-  for (const auto& publisher : ef.event_pubs_) {
-    publisher.second->shouldEnd(should_end);
-  }
-
-  // Stop handling exceptions for the publisher threads.
-  for (const auto& thread : ef.threads_) {
-    thread->detach();
-  }
-
-  ::usleep(400);
-  ef.threads_.clear();
 }
 
 // There's no reason for the event factory to keep multiple instances.
@@ -445,14 +436,14 @@ Status EventFactory::registerEventPublisher(const EventPublisherRef& pub) {
   auto& ef = EventFactory::getInstance();
   auto type_id = pub->type();
 
-  if (ef.getEventPublisher(type_id) != nullptr) {
-    // This is a duplicate type id?
-    return Status(1, "Duplicate Event Type");
+  if (ef.event_pubs_.count(type_id) != 0) {
+    // This is a duplicate event publisher.
+    return Status(1, "Cannot register duplicate publisher type.");
   }
 
   if (!pub->setUp().ok()) {
-    // Only add the publisher if setUp was successful.
-    return Status(1, "SetUp failed.");
+    // Only start event loop if setUp succeeds.
+    return Status(1, "Event publisher setUp failed");
   }
 
   ef.event_pubs_[type_id] = pub;
@@ -477,44 +468,44 @@ Status EventFactory::addSubscription(EventPublisherID& type_id,
 
 Status EventFactory::addSubscription(EventPublisherID& type_id,
                                      const SubscriptionRef& subscription) {
-  auto event_pub = EventFactory::getInstance().getEventPublisher(type_id);
-  if (event_pub == nullptr) {
-    // Cannot create a Subscription for a missing type_id.
-    return Status(1, "No Event Type");
+  EventPublisherRef publisher;
+  try {
+    publisher = getInstance().getEventPublisher(type_id);
+  }
+  catch (std::out_of_range& e) {
+    return Status(1, "No event type found");
   }
 
   // The event factory is responsible for configuring the event types.
-  auto status = event_pub->addSubscription(subscription);
-  event_pub->configure();
+  auto status = publisher->addSubscription(subscription);
+  publisher->configure();
   return status;
 }
 
 size_t EventFactory::numSubscriptions(EventPublisherID& type_id) {
-  const auto& event_pub =
-      EventFactory::getInstance().getEventPublisher(type_id);
-  if (event_pub != nullptr) {
-    return event_pub->numSubscriptions();
+  EventPublisherRef publisher;
+  try {
+    publisher = EventFactory::getInstance().getEventPublisher(type_id);
   }
-  return 0;
+  catch (std::out_of_range& e) {
+    return 0;
+  }
+  return publisher->numSubscriptions();
 }
 
 EventPublisherRef EventFactory::getEventPublisher(EventPublisherID& type_id) {
-  auto& ef = EventFactory::getInstance();
-  const auto& it = ef.event_pubs_.find(type_id);
-  if (it != ef.event_pubs_.end()) {
-    return ef.event_pubs_[type_id];
+  if (getInstance().event_pubs_.count(type_id) == 0) {
+    LOG(ERROR) << "Requested unknown event publisher: " + type_id;
   }
-  return nullptr;
+  return getInstance().event_pubs_.at(type_id);
 }
 
 EventSubscriberRef EventFactory::getEventSubscriber(
     EventSubscriberID& name_id) {
-  auto& ef = EventFactory::getInstance();
-  const auto& it = ef.event_subs_.find(name_id);
-  if (it != ef.event_subs_.end()) {
-    return ef.event_subs_[name_id];
+  if (getInstance().event_subs_.count(name_id) == 0) {
+    LOG(ERROR) << "Requested unknown event subscriber: " + name_id;
   }
-  return nullptr;
+  return getInstance().event_subs_.at(name_id);
 }
 
 Status EventFactory::deregisterEventPublisher(const EventPublisherRef& pub) {
@@ -523,43 +514,71 @@ Status EventFactory::deregisterEventPublisher(const EventPublisherRef& pub) {
 
 Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
   auto& ef = EventFactory::getInstance();
-  const auto& it = ef.event_pubs_.find(type_id);
-  if (it == ef.event_pubs_.end()) {
-    return Status(1, "No Event Type registered");
+  EventPublisherRef publisher;
+  try {
+    publisher = ef.getEventPublisher(type_id);
+  }
+  catch (std::out_of_range& e) {
+    return Status(1, "No event publisher to deregister.");
   }
 
-  ef.event_pubs_[type_id]->tearDown();
-  ef.event_pubs_.erase(it);
+  publisher->isEnding(true);
+  if (!publisher->hasStarted()) {
+    // If a publisher's run loop was not started, call tearDown since
+    // the setUp happened at publisher registration time.
+    publisher->tearDown();
+  }
+
+  ef.event_pubs_.erase(type_id);
   return Status(0, "OK");
 }
 
-Status EventFactory::deregisterEventPublishers() {
+std::vector<std::string> EventFactory::publisherTypes() {
+  std::vector<std::string> types;
+  for (const auto& publisher : getInstance().event_pubs_) {
+    types.push_back(publisher.first);
+  }
+  return types;
+}
+
+std::vector<std::string> EventFactory::subscriberNames() {
+  std::vector<std::string> names;
+  for (const auto& subscriber : getInstance().event_subs_) {
+    names.push_back(subscriber.first);
+  }
+  return names;
+}
+
+void EventFactory::end(bool join) {
   auto& ef = EventFactory::getInstance();
-  auto it = ef.event_pubs_.begin();
-  for (; it != ef.event_pubs_.end(); it++) {
-    it->second->tearDown();
+
+  // Call deregister on each publisher.
+  for (const auto& publisher : ef.publisherTypes()) {
+    deregisterEventPublisher(publisher);
   }
 
-  ef.event_pubs_.erase(ef.event_pubs_.begin(), ef.event_pubs_.end());
-  return Status(0, "OK");
-}
-}
-
-namespace osquery {
-namespace registries {
-void faucet(EventPublishers ets, EventSubscribers ems) {
-  if (!FLAGS_event_pubsub) {
-    // Invocation disabled eventing.
-    return;
-  }
-  auto& ef = osquery::EventFactory::getInstance();
-  for (const auto& event_pub : ets) {
-    ef.registerEventPublisher(event_pub.second);
+  // Stop handling exceptions for the publisher threads.
+  for (const auto& thread : ef.threads_) {
+    if (join) {
+      thread->join();
+    } else {
+      thread->detach();
+    }
   }
 
-  for (const auto& event_module : ems) {
-    ef.registerEventSubscriber(event_module.second);
-  }
+  ::usleep(400);
+  ef.threads_.clear();
 }
+
+void attachEvents() {
+  const auto& publishers = Registry::all("event_publisher");
+  for (const auto& publisher : publishers) {
+    EventFactory::registerEventPublisher(std::move(publisher.second));
+  }
+
+  const auto& subscribers = Registry::all("event_subscriber");
+  for (const auto& subscriber : subscribers) {
+    EventFactory::registerEventSubscriber(std::move(subscriber.second));
+  }
 }
 }

@@ -53,7 +53,7 @@ typedef std::shared_ptr<SCNetworkEventContext> SCNetworkEventContextRef;
 class SCNetworkEventPublisher
     : public EventPublisher<SCNetworkSubscriptionContext,
                             SCNetworkEventContext> {
-  DECLARE_PUBLISHER("SCNetworkEventPublisher");
+  DECLARE_PUBLISHER("scnetwork");
 
  public:
   void configure();

@@ -5,6 +5,7 @@
 
 declare -a BLACKLIST=(
     "osquery/devtools/shell.cpp"
+    "virtual_table.cpp"
   )
 
 for BL_ITEM in ${BLACKLIST[@]}; do

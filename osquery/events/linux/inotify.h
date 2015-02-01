@@ -96,7 +96,7 @@ typedef std::map<int, std::string> DescriptorPathMap;
  */
 class INotifyEventPublisher
     : public EventPublisher<INotifySubscriptionContext, INotifyEventContext> {
-  DECLARE_PUBLISHER("INotifyEventPublisher");
+  DECLARE_PUBLISHER("inotify");
 
  public:
   /// Create an `inotify` handle descriptor.

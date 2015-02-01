@@ -27,7 +27,7 @@ namespace tables {
  */
 class PasswdChangesEventSubscriber
     : public EventSubscriber<INotifyEventPublisher> {
-  DECLARE_SUBSCRIBER("PasswdChangesEventSubscriber");
+  DECLARE_SUBSCRIBER("passwd_changes");
 
  public:
   void init();
@@ -50,7 +50,7 @@ class PasswdChangesEventSubscriber
  * This registers PasswdChangesEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
  */
-REGISTER_EVENTSUBSCRIBER(PasswdChangesEventSubscriber);
+REGISTER(PasswdChangesEventSubscriber, "event_subscriber", "passwd_changes");
 
 void PasswdChangesEventSubscriber::init() {
   auto mc = createSubscriptionContext();

@@ -21,7 +21,7 @@ namespace tables {
  * @brief Track IOKit HID events.
  */
 class HardwareEventSubscriber : public EventSubscriber<IOKitHIDEventPublisher> {
-  DECLARE_SUBSCRIBER("HardwareEventSubscriber");
+  DECLARE_SUBSCRIBER("hardware_events");
 
  public:
   void init();
@@ -29,7 +29,7 @@ class HardwareEventSubscriber : public EventSubscriber<IOKitHIDEventPublisher> {
   Status Callback(const IOKitHIDEventContextRef& ec);
 };
 
-REGISTER_EVENTSUBSCRIBER(HardwareEventSubscriber);
+REGISTER(HardwareEventSubscriber, "event_subscriber", "hardware_events");
 
 void HardwareEventSubscriber::init() {
   auto subscription = createSubscriptionContext();

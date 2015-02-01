@@ -20,8 +20,6 @@
 
 namespace osquery {
 
-REGISTER_EVENTPUBLISHER(INotifyEventPublisher);
-
 int kINotifyULatency = 200;
 static const uint32_t BUFFER_SIZE =
     (10 * ((sizeof(struct inotify_event)) + NAME_MAX + 1));
@@ -37,6 +35,8 @@ std::map<int, std::string> kMaskActions = {
     {IN_MOVED_TO, "MOVED_TO"},
     {IN_OPEN, "OPENED"},
 };
+
+REGISTER(INotifyEventPublisher, "event_publisher", "inotify");
 
 Status INotifyEventPublisher::setUp() {
   inotify_handle_ = ::inotify_init();

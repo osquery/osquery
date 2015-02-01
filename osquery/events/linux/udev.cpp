@@ -16,9 +16,9 @@
 
 namespace osquery {
 
-REGISTER_EVENTPUBLISHER(UdevEventPublisher);
-
 int kUdevULatency = 200;
+
+REGISTER(UdevEventPublisher, "event_publisher", "udev");
 
 Status UdevEventPublisher::setUp() {
   // Create the udev object.
@@ -37,6 +37,10 @@ Status UdevEventPublisher::setUp() {
 void UdevEventPublisher::configure() {}
 
 void UdevEventPublisher::tearDown() {
+  if (monitor_ != nullptr) {
+    udev_monitor_unref(monitor_);
+  }
+
   if (handle_ != nullptr) {
     udev_unref(handle_);
   }

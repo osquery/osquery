@@ -71,7 +71,7 @@ typedef std::shared_ptr<UdevSubscriptionContext> UdevSubscriptionContextRef;
  */
 class UdevEventPublisher
     : public EventPublisher<UdevSubscriptionContext, UdevEventContext> {
-  DECLARE_PUBLISHER("UdevEventPublisher");
+  DECLARE_PUBLISHER("udev");
 
  public:
   Status setUp();

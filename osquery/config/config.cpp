@@ -16,7 +16,6 @@
 #include <boost/thread/shared_mutex.hpp>
 
 #include <osquery/config.h>
-#include <osquery/config/plugin.h>
 #include <osquery/flags.h>
 #include <osquery/hash.h>
 #include <osquery/logger.h>
@@ -61,25 +60,20 @@ Status Config::load() {
 }
 
 Status Config::genConfig(std::string& conf) {
-  if (REGISTERED_CONFIG_PLUGINS.find(FLAGS_config_retriever) ==
-      REGISTERED_CONFIG_PLUGINS.end()) {
+  if (!Registry::exists("config", FLAGS_config_retriever)) {
     LOG(ERROR) << "Config retriever " << FLAGS_config_retriever << " not found";
     return Status(1, "Config retriever not found");
   }
 
-  try {
-    auto config_data =
-        REGISTERED_CONFIG_PLUGINS.at(FLAGS_config_retriever)->genConfig();
-    if (!config_data.first.ok()) {
-      return config_data.first;
-    }
-    conf = config_data.second;
-  } catch (std::exception& e) {
-    LOG(ERROR) << "Could not load ConfigPlugin " << FLAGS_config_retriever
-               << ": " << e.what();
-    return Status(1, "Could not load config plugin");
+  PluginResponse response;
+  auto status = Registry::call(
+      "config", FLAGS_config_retriever, {{"action", "genConfig"}}, response);
+
+  if (!status.ok()) {
+    return status;
   }
 
+  conf = response[0].at("data");
   return Status(0, "OK");
 }
 
@@ -140,5 +134,19 @@ Status Config::getMD5(std::string& hash_string) {
 Status Config::checkConfig() {
   OsqueryConfig c;
   return genConfig(c);
+}
+
+Status ConfigPlugin::call(const PluginRequest& request,
+                          PluginResponse& response) {
+  if (request.count("action") == 0) {
+    return Status(1, "Config plugins require an action in PluginRequest");
+  }
+
+  if (request.at("action") == "genConfig") {
+    auto config_data = genConfig();
+    response.push_back({{"data", config_data.second}});
+    return config_data.first;
+  }
+  return Status(1, "Config plugin action unknown: " + request.at("action"));
 }
 }

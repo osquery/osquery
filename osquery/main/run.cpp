@@ -8,9 +8,12 @@
  *
  */
 
+#include <errno.h>
+
 #include <gflags/gflags.h>
 
 #include <osquery/core.h>
+#include <osquery/events.h>
 #include <osquery/logger.h>
 
 DEFINE_string(query, "", "query to execute");
@@ -18,31 +21,42 @@ DEFINE_int32(iterations, 1, "times to run the query in question");
 DEFINE_int32(delay, 0, "delay before and after the query");
 
 int main(int argc, char* argv[]) {
-  osquery::initOsquery(argc, argv);
+  // Only log to stderr
+  FLAGS_logtostderr = true;
 
-  if (FLAGS_query != "") {
-    if (FLAGS_delay != 0) {
-      ::sleep(FLAGS_delay);
-    }
+  // Let gflags parse the non-help options/flags.
+  __GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, false);
+  __GFLAGS_NAMESPACE::InitGoogleLogging(argv[0]);
 
-    for (int i = 0; i < FLAGS_iterations; ++i) {
-      int err;
-      LOG(INFO) << "Executing: " << FLAGS_query;
-      osquery::query(FLAGS_query, err);
-      if (err != 0) {
-        LOG(ERROR) << "Query failed: " << err;
-        return 1;
-      }
-      LOG(INFO) << "Query succeeded";
-    }
-
-    if (FLAGS_delay != 0) {
-      ::sleep(FLAGS_delay);
-    }
-  } else {
-    LOG(ERROR) << "Usage: run --query=\"<query>\"";
+  if (FLAGS_query == "") {
+    fprintf(stderr, "Usage: %s --query=\"query\"\n", argv[0]);
     return 1;
   }
 
-  return 0;
+  osquery::Registry::setUp();
+  osquery::attachEvents();
+
+  int result = 0;
+  if (FLAGS_delay != 0) {
+    ::sleep(FLAGS_delay);
+  }
+
+  for (int i = 0; i < FLAGS_iterations; ++i) {
+    printf("Executing: %s\n", FLAGS_query.c_str());
+    osquery::query(FLAGS_query, result);
+    if (result != 0) {
+      fprintf(stderr, "Query failed: %d\n", result);
+      break;
+    } else {
+      if (FLAGS_delay != 0) {
+        ::sleep(FLAGS_delay);
+      }
+    }
+  }
+
+  // Instead of calling "shutdownOsquery" force the EF to join its threads.
+  osquery::EventFactory::end(true);
+  __GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
+
+  return result;
 }

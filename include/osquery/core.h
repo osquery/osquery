@@ -109,6 +109,12 @@ sqlite3* createDB();
 void initOsquery(int argc, char* argv[], int tool = OSQUERY_TOOL_TEST);
 
 /**
+ * @brief Turns of various aspects of osquery such as event loops.
+ *
+ */
+void shutdownOsquery();
+
+/**
  * @brief Split a given string based on an optional delimiter.
  *
  * If no delimiter is supplied, the string will be split based on whitespace.

@@ -12,4 +12,4 @@ schema([
     Column("revision", INTEGER),
     Column("time", INTEGER),
 ])
-implementation("events/hardware_events@HardwareEventSubscriber::genTable")
+implementation("events/hardware_events@hardware_events::genTable")

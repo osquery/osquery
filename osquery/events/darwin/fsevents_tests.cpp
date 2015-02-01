@@ -30,7 +30,6 @@ int kMaxEventLatency = 3000;
 class FSEventsTests : public testing::Test {
  protected:
   void TearDown() {
-    EventFactory::deregisterEventPublishers();
     boost::filesystem::remove_all(kRealTestPath);
   }
 
@@ -40,7 +39,14 @@ class FSEventsTests : public testing::Test {
     FILE* fd = fopen(kRealTestPath.c_str(), "w");
     fclose(fd);
 
-    temp_thread_ = boost::thread(EventFactory::run, "FSEventsEventPublisher");
+    temp_thread_ = boost::thread(EventFactory::run, "fsevents");
+  }
+
+  void EndEventLoop() {
+    while (!event_pub_->hasStarted()) {
+      ::usleep(20);
+    }
+    EventFactory::end();
   }
 
   void WaitForStream(int max) {
@@ -77,36 +83,33 @@ class FSEventsTests : public testing::Test {
     }
   }
 
-  void EndEventLoop() {
-    EventFactory::end();
-    event_pub_->tearDown();
-    temp_thread_.join();
-    EventFactory::end(false);
-  }
-
   std::shared_ptr<FSEventsEventPublisher> event_pub_;
   boost::thread temp_thread_;
 };
 
 TEST_F(FSEventsTests, test_register_event_pub) {
-  auto status = EventFactory::registerEventPublisher<FSEventsEventPublisher>();
+  auto pub = std::make_shared<FSEventsEventPublisher>();
+  auto status = EventFactory::registerEventPublisher(pub);
   EXPECT_TRUE(status.ok());
 
   // Make sure only one event type exists
   EXPECT_EQ(EventFactory::numEventPublishers(), 1);
+  status = EventFactory::deregisterEventPublisher("fsevents");
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(FSEventsTests, test_fsevents_add_subscription_missing_path) {
-  EventFactory::registerEventPublisher<FSEventsEventPublisher>();
+  auto pub = std::make_shared<FSEventsEventPublisher>();
+  EventFactory::registerEventPublisher(pub);
 
   // This subscription path is fake, and will succeed!
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = "/this/path/is/fake";
 
   auto subscription = Subscription::create(mc);
-  auto status =
-      EventFactory::addSubscription("FSEventsEventPublisher", subscription);
+  auto status = EventFactory::addSubscription("fsevents", subscription);
   EXPECT_TRUE(status.ok());
+  EventFactory::deregisterEventPublisher("fsevents");
 }
 
 TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
@@ -118,8 +121,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   mc->path = "/";
 
   auto subscription = Subscription::create(mc);
-  auto status =
-      EventFactory::addSubscription("FSEventsEventPublisher", subscription);
+  auto status = EventFactory::addSubscription("fsevents", subscription);
   EXPECT_TRUE(status.ok());
 
   // Make sure configure was called.
@@ -130,13 +132,13 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   auto mc_dup = std::make_shared<FSEventsSubscriptionContext>();
   mc_dup->path = "/";
   auto subscription_dup = Subscription::create(mc_dup);
-  status =
-      EventFactory::addSubscription("FSEventsEventPublisher", subscription_dup);
+  status = EventFactory::addSubscription("fsevents", subscription_dup);
   EXPECT_TRUE(status.ok());
 
   // But the paths with be deduped when the event type reconfigures.
   num_paths = event_pub->numSubscriptionedPaths();
   EXPECT_EQ(num_paths, 1);
+  EventFactory::deregisterEventPublisher("fsevents");
 }
 
 TEST_F(FSEventsTests, test_fsevents_run) {
@@ -147,11 +149,10 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   // Create a subscriptioning context
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = kRealTestPath;
-  EventFactory::addSubscription("FSEventsEventPublisher",
-                                Subscription::create(mc));
+  EventFactory::addSubscription("fsevents", Subscription::create(mc));
 
   // Create an event loop thread (similar to main)
-  boost::thread temp_thread(EventFactory::run, "FSEventsEventPublisher");
+  boost::thread temp_thread(EventFactory::run, "fsevents");
   EXPECT_TRUE(event_pub_->numEvents() == 0);
 
   // Cause an fsevents event(s) by writing to the watched path.
@@ -161,14 +162,7 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   WaitForEvents(kMaxEventLatency);
 
   EXPECT_TRUE(event_pub_->numEvents() > 0);
-
-  // Cause the thread to tear down.
   EventFactory::end();
-  // Call tearDown ourselves before joining.
-  event_pub_->tearDown();
-  temp_thread.join();
-  // Reset the event factory state.
-  EventFactory::end(false);
 }
 
 class TestFSEventsEventSubscriber
@@ -228,8 +222,6 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(0);
   sub->subscribe(&TestFSEventsEventSubscriber::SimpleCallback, sc);
-  // SubscriptionAction(0, TestFSEventsEventSubscriber::EventSimpleCallback);
-
   CreateEvents();
 
   // This time wait for the callback.
@@ -237,8 +229,6 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
 
   // Make sure our expected event fired (aka subscription callback was called).
   EXPECT_TRUE(sub->callback_count_ > 0);
-
-  // Cause the thread to tear down.
   EndEventLoop();
 }
 
@@ -252,8 +242,6 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
 
   auto sc = sub->GetSubscription(0);
   sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc);
-  // SubscriptionAction(0, TestFSEventsEventSubscriber::EventCallback);
-
   CreateEvents();
   sub->WaitForEvents(kMaxEventLatency);
 
@@ -262,8 +250,6 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   if (sub->actions_.size() > 1) {
     EXPECT_EQ(sub->actions_[0], "UPDATED");
   }
-
-  // Cause the thread to tear down.
   EndEventLoop();
 }
 }

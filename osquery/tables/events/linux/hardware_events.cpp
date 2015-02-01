@@ -24,7 +24,7 @@ namespace tables {
  * @brief Track udev events in Linux
  */
 class HardwareEventSubscriber : public EventSubscriber<UdevEventPublisher> {
-  DECLARE_SUBSCRIBER("HardwareEventSubscriber");
+  DECLARE_SUBSCRIBER("hardware_events");
 
  public:
   void init();
@@ -32,7 +32,7 @@ class HardwareEventSubscriber : public EventSubscriber<UdevEventPublisher> {
   Status Callback(const UdevEventContextRef& ec);
 };
 
-REGISTER_EVENTSUBSCRIBER(HardwareEventSubscriber);
+REGISTER(HardwareEventSubscriber, "event_subscriber", "hardware_events");
 
 void HardwareEventSubscriber::init() {
   auto subscription = createSubscriptionContext();

@@ -12,6 +12,7 @@
 
 #include <osquery/config.h>
 #include <osquery/core.h>
+#include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -134,9 +135,18 @@ void initOsquery(int argc, char* argv[], int tool) {
 
   google::InitGoogleLogging(argv[0]);
   VLOG(1) << "osquery starting [version=" OSQUERY_VERSION "]";
-  osquery::InitRegistry::get().run();
+  osquery::Registry::setUp();
+  osquery::attachEvents();
 
   auto config = Config::getInstance();
   config->load();
+}
+
+void shutdownOsquery() {
+  // End any event type run loops.
+  osquery::EventFactory::end();
+
+  // Hopefully release memory used by global string constructors in gflags.
+  __GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
 }
 }

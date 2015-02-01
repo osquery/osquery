@@ -12,15 +12,12 @@
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
-#include <osquery/logger/plugin.h>
-
-using osquery::Status;
 
 namespace osquery {
 
 class LoggerTests : public testing::Test {
  public:
-  LoggerTests() { osquery::InitRegistry::get().run(); }
+  LoggerTests() { Registry::setUp(); }
 };
 
 class TestLoggerPlugin : public LoggerPlugin {
@@ -32,12 +29,10 @@ class TestLoggerPlugin : public LoggerPlugin {
   virtual ~TestLoggerPlugin() {}
 };
 
-REGISTER_LOGGER_PLUGIN("test", std::make_shared<osquery::TestLoggerPlugin>());
-
 TEST_F(LoggerTests, test_plugin) {
-  auto s = REGISTERED_LOGGER_PLUGINS.at("test")->logString("foobar");
+  Registry::add<TestLoggerPlugin>("logger", "test");
+  auto s = Registry::call("logger", "test", {{"string", "foobar"}});
   EXPECT_EQ(s.ok(), true);
-  EXPECT_EQ(s.toString(), "foobar");
 }
 }
 
