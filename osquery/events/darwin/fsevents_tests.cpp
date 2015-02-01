@@ -30,7 +30,6 @@ int kMaxEventLatency = 3000;
 class FSEventsTests : public testing::Test {
  protected:
   void TearDown() {
-    EventFactory::deregisterEventPublishers();
     boost::filesystem::remove_all(kRealTestPath);
   }
 
@@ -41,6 +40,14 @@ class FSEventsTests : public testing::Test {
     fclose(fd);
 
     temp_thread_ = boost::thread(EventFactory::run, "fsevents");
+  }
+
+  void EndEventLoop() {
+    while (!event_pub_->hasStarted()) {
+      ::usleep(20);
+    }
+    EventFactory::end();
+    temp_thread_.join();
   }
 
   void WaitForStream(int max) {
@@ -77,13 +84,6 @@ class FSEventsTests : public testing::Test {
     }
   }
 
-  void EndEventLoop() {
-    EventFactory::end();
-    event_pub_->tearDown();
-    temp_thread_.join();
-    EventFactory::end(false);
-  }
-
   std::shared_ptr<FSEventsEventPublisher> event_pub_;
   boost::thread temp_thread_;
 };
@@ -95,6 +95,8 @@ TEST_F(FSEventsTests, test_register_event_pub) {
 
   // Make sure only one event type exists
   EXPECT_EQ(EventFactory::numEventPublishers(), 1);
+  status = EventFactory::deregisterEventPublisher("fsevents");
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(FSEventsTests, test_fsevents_add_subscription_missing_path) {
@@ -108,6 +110,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_missing_path) {
   auto subscription = Subscription::create(mc);
   auto status = EventFactory::addSubscription("fsevents", subscription);
   EXPECT_TRUE(status.ok());
+  EventFactory::deregisterEventPublisher("fsevents");
 }
 
 TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
@@ -136,6 +139,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   // But the paths with be deduped when the event type reconfigures.
   num_paths = event_pub->numSubscriptionedPaths();
   EXPECT_EQ(num_paths, 1);
+  EventFactory::deregisterEventPublisher("fsevents");
 }
 
 TEST_F(FSEventsTests, test_fsevents_run) {
@@ -159,14 +163,8 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   WaitForEvents(kMaxEventLatency);
 
   EXPECT_TRUE(event_pub_->numEvents() > 0);
-
-  // Cause the thread to tear down.
   EventFactory::end();
-  // Call tearDown ourselves before joining.
-  event_pub_->tearDown();
   temp_thread.join();
-  // Reset the event factory state.
-  EventFactory::end(false);
 }
 
 class TestFSEventsEventSubscriber
@@ -233,8 +231,6 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
 
   // Make sure our expected event fired (aka subscription callback was called).
   EXPECT_TRUE(sub->callback_count_ > 0);
-
-  // Cause the thread to tear down.
   EndEventLoop();
 }
 
@@ -256,8 +252,6 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   if (sub->actions_.size() > 1) {
     EXPECT_EQ(sub->actions_[0], "UPDATED");
   }
-
-  // Cause the thread to tear down.
   EndEventLoop();
 }
 }

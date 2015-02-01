@@ -221,14 +221,16 @@ class EventPublisherPlugin : public Plugin {
   size_t numEvents() { return next_ec_id_; }
 
   /// Overriding the EventPublisher constructor is not recommended.
-  EventPublisherPlugin() : next_ec_id_(0), ending_(false){};
+  EventPublisherPlugin() : next_ec_id_(0), ending_(false), started_(false) {};
   virtual ~EventPublisherPlugin() {}
 
   /// Return a string identifier associated with this EventPublisher.
   virtual EventPublisherID type() { return "publisher"; }
 
-  void shouldEnd(bool should_end) { ending_ = should_end; }
   bool isEnding() { return ending_; }
+  void isEnding(bool ending) { ending_ = ending; }
+  bool hasStarted() { return started_; }
+  void hasStarted(bool started) { started_ = started; }
 
  protected:
   /// The internal fire method used by the typed EventPublisher.
@@ -245,6 +247,8 @@ class EventPublisherPlugin : public Plugin {
  private:
   /// Set ending to True to cause event type run loops to finish.
   bool ending_;
+  /// Set to indicate whether the event run loop ever started.
+  bool started_;
 
   /// A lock for incrementing the next EventContextID.
   boost::mutex ec_id_lock_;
@@ -477,14 +481,14 @@ class EventFactory {
   /// Deregister an EventPublisher by EventPublisherID.
   static Status deregisterEventPublisher(EventPublisherID& type_id);
 
-  /// Deregister all EventPublisher%s.
-  static Status deregisterEventPublishers();
-
   /// Return an instance to a registered EventPublisher.
   static EventPublisherRef getEventPublisher(EventPublisherID& pub);
 
   /// Return an instance to a registered EventSubscriber.
   static EventSubscriberRef getEventSubscriber(EventSubscriberID& pub);
+
+  static std::vector<std::string> publisherTypes();
+  static std::vector<std::string> subscriberNames();
 
  public:
   /// The dispatched event thread's entrypoint (if needed).
@@ -493,7 +497,6 @@ class EventFactory {
   /// An initializer's entrypoint for spawning all event type run loops.
   static void delay();
 
- public:
   /// If a static EventPublisher callback wants to fire
   template <typename PUB>
   static void fire(const EventContextRef& ec) {
@@ -508,7 +511,7 @@ class EventFactory {
    *
    * @param should_end Reset the "is ending" state if False.
    */
-  static void end(bool should_end = true);
+  static void end(bool join = false);
 
  private:
   /// An EventFactory will exist for the lifetime of the application.

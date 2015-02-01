@@ -28,7 +28,7 @@ class EventsTests : public ::testing::Test {
     DBHandle::getInstanceAtPath(kTestingEventsDBPath);
   }
 
-  void TearDown() { EventFactory::deregisterEventPublishers(); }
+  void TearDown() { EventFactory::end(); }
 };
 
 // The most basic event publisher uses useless Subscription/Event.
@@ -257,10 +257,7 @@ TEST_F(EventsTests, test_tear_down) {
   // Once more, now deregistering all event types.
   status = EventFactory::registerEventPublisher(pub);
   EXPECT_EQ(pub->getTestValue(), 3);
-
-  status = EventFactory::deregisterEventPublishers();
-  EXPECT_TRUE(status.ok());
-
+  EventFactory::end();
   EXPECT_EQ(pub->getTestValue(), 4);
 
   // Make sure the factory state represented.

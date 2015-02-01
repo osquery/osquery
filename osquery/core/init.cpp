@@ -141,4 +141,12 @@ void initOsquery(int argc, char* argv[], int tool) {
   auto config = Config::getInstance();
   config->load();
 }
+
+void shutdownOsquery() {
+  // End any event type run loops.
+  osquery::EventFactory::end();
+
+  // Hopefully release memory used by global string constructors in gflags.
+  __GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
+}
 }

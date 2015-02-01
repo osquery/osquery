@@ -98,14 +98,14 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "  - " << name;
   }
 
-  // Start the event publisher run loops.
+  // Start event threads.
   osquery::EventFactory::delay();
 
   boost::thread scheduler_thread(osquery::initializeScheduler);
   scheduler_thread.join();
 
-  // End any event type run loops.
-  osquery::EventFactory::end();
+  // Finally shutdown.
+  osquery::shutdownOsquery();
 
   return 0;
 }
