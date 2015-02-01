@@ -37,6 +37,10 @@ Status UdevEventPublisher::setUp() {
 void UdevEventPublisher::configure() {}
 
 void UdevEventPublisher::tearDown() {
+  if (monitor_ != nullptr) {
+    udev_monitor_unref(monitor_);
+  }
+
   if (handle_ != nullptr) {
     udev_unref(handle_);
   }
