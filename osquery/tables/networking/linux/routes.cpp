@@ -184,7 +184,7 @@ QueryData genRoutes(QueryContext& context) {
   }
 
   // Wrap the read socket to support multi-netlink messages
-  size_t size;
+  size_t size = 0;
   if (!readNetlink(socket_fd, 1, (char*)netlink_msg, &size).ok()) {
     VLOG(1) << "Cannot read NETLINK response from socket";
     close(socket_fd);

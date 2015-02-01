@@ -24,8 +24,6 @@ else()
   endif()
 endif()
 
-project(OSQUERY)
-
 if(DEFINED ENV{DEBUG})
   set(CMAKE_BUILD_TYPE "Debug")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -DDEBUG -O0")
@@ -46,6 +44,8 @@ if(DEFINED ENV{SANITIZE})
     set(CMAKE_CXX_FLAGS "${OS_COMPILE_FLAGS} -fsanitize=memory")
   endif()
 endif()
+
+project(OSQUERY)
 
 # Use osquery language to set platform/os
 execute_process(

@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include <future>
 #include <string>
 #include <vector>
 

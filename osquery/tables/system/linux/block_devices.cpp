@@ -92,10 +92,10 @@ QueryData genBlockDevs(QueryContext &context) {
       results.push_back(r);
       udev_device_unref(dev);
     }
-  }
 
-  udev_enumerate_unref(enumerate);
-  udev_unref(udev);
+    udev_enumerate_unref(enumerate);
+    udev_unref(udev);
+  }
 
   return results;
 }
