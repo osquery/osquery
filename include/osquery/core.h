@@ -79,7 +79,7 @@ osquery::QueryData query(const std::string& q, int& error_return);
  *
  * @param q the query to execute
  * @param error_return an int indicating the success or failure of the query
- * @param db the SQLite3 database the execute query q against
+ * @param db the SQLite3 database to execute query q against
  *
  * @return the results of the query
  */
@@ -91,6 +91,9 @@ osquery::QueryData query(const std::string& q, int& error_return, sqlite3* db);
  * An osquery database is basically just a SQLite3 database with several
  * virtual tables attached. This method is the main abstraction for creating
  * SQLite3 databases within osquery.
+ *
+ * Note: osquery::initOsquery must be called before calling createDB in order
+ * for virtual tables to be registered.
  *
  * @return a SQLite3 database with all virtual tables attached
  */

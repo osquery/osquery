@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -199,5 +199,56 @@ std::string TablePlugin::columnDefinition() {
 std::string TablePlugin::statement() {
   return "CREATE TABLE " + name_ + columnDefinition();
 }
+
+Status getQueryColumns(const std::string& q, tables::TableColumns& columns) {
+  sqlite3* db = createDB();
+  Status status = getQueryColumns(q, columns, db);
+  sqlite3_close(db);
+  return status;
+}
+
+Status getQueryColumns(const std::string& q,
+                       tables::TableColumns& columns,
+                       sqlite3* db) {
+  int rc;
+
+  // Will automatically handle calling sqlite3_finalize on the prepared stmt
+  // (Note that sqlite3_finalize is explicitly a nop for nullptr)
+  std::unique_ptr<sqlite3_stmt, decltype(sqlite3_finalize)*> stmt_managed(
+      nullptr, sqlite3_finalize);
+  sqlite3_stmt* stmt = stmt_managed.get();
+
+  // Turn the query into a prepared statement
+  rc = sqlite3_prepare_v2(db, q.c_str(), q.length() + 1, &stmt, nullptr);
+  if (rc != SQLITE_OK) {
+    return Status(1, sqlite3_errmsg(db));
+  }
+
+  // Get column count
+  int num_columns = sqlite3_column_count(stmt);
+  std::vector<std::pair<std::string, std::string> > results;
+  results.reserve(num_columns);
+
+  // Get column names and types
+  for (int i = 0; i < num_columns; ++i) {
+    const char* col_name = sqlite3_column_name(stmt, i);
+    const char* col_type = sqlite3_column_decltype(stmt, i);
+    if (col_name == nullptr) {
+      return Status(1, "Got nullptr for column name");
+    }
+    if (col_type == nullptr) {
+      // Types are only returned for table columns (not expressions or
+      // subqueries). See docs for column_decltype
+      // (https://www.sqlite.org/c3ref/column_decltype.html).
+      col_type = "UNKNOWN";
+    }
+    results.push_back({col_name, col_type});
+  }
+
+  columns = std::move(results);
+
+  return Status(0, "OK");
+}
+
 }
 }
