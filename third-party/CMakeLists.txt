@@ -6,7 +6,7 @@ macro(get_build_path target return)
   set(${return} "${CMAKE_CURRENT_BINARY_DIR}/${target}-prefix/src/${target}-build")
 endmacro()
 
-set(third_party_prefix ${CMAKE_CURRENT_BINARY_DIR}/third-party)
+set(third_party_prefix ${CMAKE_CURRENT_BINARY_DIR}/prefix)
 set(third_party_include ${third_party_prefix}/include)
 set(third_party_lib ${third_party_prefix}/lib)
 set(third_party_mkdir mkdir -p ${third_party_include} && mkdir -p ${third_party_lib})
