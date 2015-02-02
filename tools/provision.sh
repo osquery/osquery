@@ -65,83 +65,6 @@ function install_thrift() {
   fi
 }
 
-function install_rocksdb() {
-  if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
-    if [[ ! -f rocksdb-3.5.tar.gz ]]; then
-      wget https://github.com/facebook/rocksdb/archive/rocksdb-3.5.tar.gz
-    fi
-    if [[ ! -d rocksdb-rocksdb-3.5 ]]; then
-      tar -xf rocksdb-3.5.tar.gz
-    fi
-    if [ "$OS" = "ubuntu" ] || [ "$OS" = "centos" ]; then
-      if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
-        if [[ $OS = "ubuntu" ]]; then
-          CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
-        elif [[ $OS = "centos" ]]; then
-          CLANG_VERSION=`clang --version | grep version | cut -d" " -f3`
-          CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
-        fi
-        pushd rocksdb-rocksdb-3.5
-        make static_lib CFLAGS="$CLANG_INCLUDE"
-	      popd
-      fi
-      sudo cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
-      sudo cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
-    elif [[ $OS = "darwin" ]]; then
-      if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
-        pushd rocksdb-rocksdb-3.5
-        make static_lib
-        popd
-      fi
-      sudo cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
-      sudo cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
-    fi
-  else
-    log "rocksdb already installed. skipping."
-  fi
-}
-
-function install_boost() {
-  if [[ ! -f /usr/local/lib/libboost_thread.a ]]; then
-    if [[ ! -f boost_1_55_0.tar.gz ]]; then
-      wget -O boost_1_55_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.gz/download
-    else
-      log "boost source is already downloaded. skipping."
-    fi
-    if [[ ! -d boost_1_55_0 ]]; then
-      tar -xf boost_1_55_0.tar.gz
-    fi
-    pushd boost_1_55_0
-    ./bootstrap.sh
-    n=`getconf _NPROCESSORS_ONLN`
-    sudo ./b2 --with=all -j $n toolset=clang install
-    sudo ldconfig
-    popd
-  else
-    log "boost library is already installed. skipping."
-  fi
-}
-
-function install_gflags() {
-  if [[ ! -f /usr/local/lib/libgflags.a ]]; then
-    if [[ ! -f v2.1.1.tar.gz ]]; then
-      wget https://github.com/schuhschuh/gflags/archive/v2.1.1.tar.gz
-    else
-      log "gflags source is already downloaded. skipping."
-    fi
-    if [[ ! -d gflags-2.1.1 ]]; then
-      tar -xf v2.1.1.tar.gz
-    fi
-    pushd gflags-2.1.1
-    cmake -DCMAKE_CXX_FLAGS=-fPIC -DGFLAGS_NAMESPACE:STRING=google .
-    make
-    sudo make install
-    popd
-  else
-    log "gflags library is already installed. skipping."
-  fi
-}
-
 function install_autoconf() {
   if [[ ! -f /usr/bin/autoconf ]]; then
     if [[ ! -f autoconf-2.69.tar.gz ]]; then
@@ -379,14 +302,10 @@ function main() {
       package gcc-4.7
       package g++-4.7
       sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 100 --slave /usr/bin/g++ g++ /usr/bin/g++-4.7
-      install_boost
       install_cmake
     else
       package cmake
-      package libboost1.55-all-dev
     fi
-
-    install_gflags
 
     if [[ $DISTRO = "precise" ]]; then
       remove_package libunwind7-dev
@@ -394,8 +313,6 @@ function main() {
       remove_package libunwind8-dev
     fi
 
-    package libsnappy-dev
-    package libbz2-dev
     package libreadline-dev
 
     if [[ $DISTRO = "precise" ]]; then
@@ -404,7 +321,6 @@ function main() {
       package libprocps3-dev
     fi
     install_thrift
-    install_rocksdb
 
     gem_install fpm
 
@@ -463,19 +379,12 @@ function main() {
     set_cc clang
     set_cxx clang++
 
-    package bzip2
-    package bzip2-devel
-    package openssl-devel
     package readline-devel
     package procps-devel
     package rpm-devel
     package libblkid-devel
 
-    install_boost
-    install_gflags
     package doxygen
-    package snappy
-    package snappy-devel
     package byacc
     package flex
     package bison
@@ -491,8 +400,6 @@ function main() {
     install_libtool
     install_thrift
 
-    install_rocksdb
-
     gem_install fpm
 
   elif [[ $OS = "darwin" ]]; then
@@ -506,11 +413,8 @@ function main() {
 
     brew update
 
-    package rocksdb
     package cmake
     package makedepend
-    package boost
-    package gflags
     package thrift
 
   elif [[ $OS = "freebsd" ]]; then
@@ -518,7 +422,6 @@ function main() {
     package git
     package python
     package py27-pip
-    package rocksdb
     package thrift-cpp
   fi
 

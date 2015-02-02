@@ -1,0 +1,28 @@
+macro(get_source_path target return)
+  set(${return} "${CMAKE_CURRENT_BINARY_DIR}/${target}-prefix/src/${target}")
+endmacro()
+
+macro(get_build_path target return)
+  set(${return} "${CMAKE_CURRENT_BINARY_DIR}/${target}-prefix/src/${target}-build")
+endmacro()
+
+set(third_party_prefix ${CMAKE_CURRENT_BINARY_DIR}/prefix)
+set(third_party_include ${third_party_prefix}/include)
+set(third_party_lib ${third_party_prefix}/lib)
+set(third_party_mkdir mkdir -p ${third_party_include} && mkdir -p ${third_party_lib})
+
+include(ExternalProject)
+include("bzip2.cmake")
+include("gflags.cmake")
+include("glog.cmake")
+include("gmock.cmake")
+include("gtest.cmake")
+include("python.cmake")
+include("rocksdb.cmake")
+include("zlib.cmake")
+include("boost.cmake")
+include("openssl.cmake")
+include("thrift.cmake")
+
+include_directories(${third_party_include})
+link_directories(${third_party_lib})

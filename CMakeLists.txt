@@ -92,29 +92,28 @@ set(OS_COMPILE_FLAGS "${OS_COMPILE_FLAGS} ${USER_COMPILE_FLAGS}")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 
+add_subdirectory(third-party)
+
 # We need to link some packages as dynamic/dependent.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
-find_package(OpenSSL REQUIRED)
-find_package(Crypto REQUIRED)
-find_package(BZip2 REQUIRED)
-find_package(Dl REQUIRED)
-find_package(Readline REQUIRED)
+#find_package(OpenSSL REQUIRED)
+#find_package(Crypto REQUIRED)
+#find_package(BZip2 REQUIRED)
+#find_package(Dl REQUIRED)
+#find_package(Readline REQUIRED)
 
 # Most dependent packages/libs we want static.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
-find_package(Gflags REQUIRED)
-find_package(Glog REQUIRED)
-find_package(Gtest REQUIRED)
-find_package(RocksDB REQUIRED)
-find_package(Snappy REQUIRED)
-find_package(Sqlite3 REQUIRED)
-find_package(Thrift 0.9.1 REQUIRED)
+#find_package(Gflags REQUIRED)
+#find_package(Glog REQUIRED)
+#find_package(Gtest REQUIRED)
+#find_package(RocksDB REQUIRED)
+#find_package(Snappy REQUIRED)
+#find_package(Sqlite3 REQUIRED)
+#find_package(Thrift 0.9.1 REQUIRED)
 
-include_directories("${GLOG_INCLUDE_DIRS}")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
-include_directories("/usr/local/include")
-link_directories("/usr/local/lib")
 
 enable_testing()
 

@@ -11,19 +11,19 @@ set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
 # The core set of osquery libraries most discovered with find_package.
 set(OSQUERY_LIBS
-  ${THRIFT_LIB}
-  ${ROCKSDB_STATIC_LIBRARIES}
-  ${ROCKSDB_SNAPPY_LIBRARY}
-  ${GLOG_LIBRARY}
-  ${GFLAGS_LIBRARY}
-  ${OPENSSL_CRYPTO_LIBRARY}
-  ${OPENSSL_SSL_LIBRARY}
+  #${THRIFT_LIB}
+  #${ROCKSDB_STATIC_LIBRARIES}
+  #${ROCKSDB_SNAPPY_LIBRARY}
+  #${GLOG_LIBRARY}
+  #${GFLAGS_LIBRARY}
+  #${OPENSSL_CRYPTO_LIBRARY}
+  #${OPENSSL_SSL_LIBRARY}
 
-  readline
-  pthread
-  dl
-  bz2
-  z
+  #readline
+  #pthread
+  #dl
+  #bz2
+  #z
 )
 
 # The platform-specific core libraries.
@@ -37,9 +37,9 @@ else()
 endif()
 
 # The remaining boost libraries are discovered with find_library.
-ADD_OSQUERY_CORE_LINK("boost_system")
-ADD_OSQUERY_CORE_LINK("boost_filesystem")
-ADD_OSQUERY_CORE_LINK("boost_regex")
+#ADD_OSQUERY_CORE_LINK("boost_system")
+#ADD_OSQUERY_CORE_LINK("boost_filesystem")
+#ADD_OSQUERY_CORE_LINK("boost_regex")
 
 # Generate version from git
 execute_process(
@@ -66,7 +66,7 @@ execute_process(
 
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
-set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
+#set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
 
 # Add subdirectories
 add_subdirectory(config)
@@ -99,7 +99,7 @@ list(APPEND OSQUERY_LIBS ${OSQUERY_LINKS})
 # Create the static libosquery (target called libosquery_basic).
 set(CMAKE_MACOSX_RPATH 0)
 add_library(libosquery_basic STATIC main/lib.cpp ${OSQUERY_OBJECTS})
-target_link_libraries(libosquery_basic ${OSQUERY_LIBS})
+#target_link_libraries(libosquery_basic ${OSQUERY_LIBS})
 set_target_properties(libosquery_basic PROPERTIES OUTPUT_NAME osquery)
 install(TARGETS libosquery_basic ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)
 
@@ -110,7 +110,7 @@ ADD_OSQUERY_LIBRARY(osquery_amalgamation ${AMALGAMATION})
 
 # Create the static libosquery_additional.
 add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})
-target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
+#target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
 set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
 
 # Include the public API includes if make devel.
