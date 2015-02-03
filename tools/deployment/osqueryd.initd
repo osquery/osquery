@@ -31,35 +31,46 @@ if [ -z $RETVAL ]; then RETVAL=0; fi
 if [ -z $PROG ]; then PROG="osqueryd"; fi
 if [ -z $EXEC ]; then EXEC=/usr/bin/osqueryd; fi
 if [ -z $REAL_CONFIG_PATH ]; then REAL_CONFIG_PATH=/etc/osquery/osquery.conf; fi
-if [ -z $LOCKFILE ]; then LOCKFILE=/var/lock/subsys/osqueryd; fi
+if [ -z $LOCKFILE ]; then LOCKFILE=/var/lock/osqueryd; fi
 if [ -z $PIDFILE ]; then PIDFILE=/var/run/osquery.pid; fi
+if [ -z $UID ]; then UID=$(id -u); fi
 
-[ $UID -eq 0 ] && [ -e /etc/sysconfig/$PROG ] && . /etc/sysconfig/$PROG
+if [ $UID -eq 0 ] && [ -e /etc/sysconfig/$PROG ]; then
+  . /etc/sysconfig/$PROG
+fi
 
-. /etc/init.d/functions
+if [ -e /etc/init.d/functions ]; then
+  . /etc/init.d/functions
+fi
 
 if [ ! -e $REAL_CONFIG_PATH ] ; then
-    echo "No osquery config file found at $REAL_CONFIG_PATH."
-    echo "See '/usr/share/osquery/osquery.example.conf' for an example config."
-    exit 4
+  echo "No osquery config file found at $REAL_CONFIG_PATH"
+  echo "See '/usr/share/osquery/osquery.example.conf' for an example config."
+  exit 4
 fi
 
 start() {
     if [ $UID -ne 0 ] ; then
-        echo "User has insufficient privilege."
-        exit 4
-    elif [ -f $PIDFILE ]; then
-        PID=$(cat $PIDFILE)
+      echo "User has insufficient privilege."
+      exit 4
+    fi
+
+    if [ -f $PIDFILE ]; then
+      PID=$(cat $PIDFILE)
+      PROCNAME=$(ps -p $PID -o comm\=)
+      if [ "$PROCNAME" = $PROG ]; then
         echo "$PROG is already running: $PID"
         exit 4
-    else
-        daemon $PROG --config_path=$REAL_CONFIG_PATH \
-                     --pidfile=$PIDFILE \
-                     --daemonize=true
-               retval=$?
-               echo
-               [ $RETVAL -eq 0 ] && touch $LOCKFILE || failure
+      else
+        echo "osqueryd pidfile exists but it's not running"
+        rm $PIDFILE
+      fi
     fi
+
+    echo "launching osquery"
+    $PROG --config_path=$REAL_CONFIG_PATH \
+          --pidfile=$PIDFILE &
+    return $?
 }
 
 stop() {
@@ -102,7 +113,7 @@ case "$1" in
         $1
         ;;
     *)
-        echo $"Usage: $0 {start|stop|status|restart}"
+        echo "Usage: $0 {start|stop|status|restart}"
         exit 2
 esac
 exit $?
