@@ -26,6 +26,7 @@ else
   APP_NAME="osquery"
 fi
 OUTPUT_PKG_PATH="$BUILD_DIR/$APP_NAME-$APP_VERSION.pkg"
+AUTOSTART=false
 
 # Config files
 LAUNCHD_SRC="$SCRIPT_DIR/$LD_IDENTIFIER.plist"
@@ -47,11 +48,12 @@ SCRIPT_PREFIX_TEXT="#!/usr/bin/env bash
 set -e
 "
 
-POSTINSTALL_ADDITIONAL_TEXT="
+POSTINSTALL_AUTOSTART_TEXT="
 if launchctl list | grep -qcm1 osquery; then
   launchctl unload $LD_INSTALL
-  launchctl load $LD_INSTALL
 fi
+cp $LAUNCHD_DST $LD_INSTALL
+launchctl load $LD_INSTALL
 "
 
 function usage() {
@@ -59,6 +61,7 @@ function usage() {
     -c PATH embed an osqueryd config.
     -l PATH override the default launchd plist.
     -o PATH override the output path.
+    -a start the daemon when the package is installed
 
   This will generate an OSX package with:
   (1) An example config /var/osquery/osquery.example.config
@@ -66,7 +69,7 @@ function usage() {
   (3) A LaunchDaemon plist /var/osquery/com.facebook.osqueryd.plist
   (4) The osquery toolset /usr/local/bin/osquery*
 
-  To enable osqueryd to run at boot using Launchd use osqueryctl.
+  To enable osqueryd to run at boot using Launchd, pass the -a flag.
   If the LaunchDaemon was previously installed a newer version of this package
   will reload (unload/load) the daemon."
 }
@@ -82,6 +85,8 @@ function parse_args() {
                               ;;
       -o | --output )         shift
                               OUTPUT_PKG_PATH=$1
+                              ;;
+      -a | --autostart )      AUTOSTART=true
                               ;;
       -h | --help )           usage
                               ;;
@@ -122,8 +127,6 @@ function main() {
   # echo "$SCRIPT_PREFIX_TEXT" > $PREINSTALL
   # chmod +x $PREINSTALL
 
-  echo "$SCRIPT_PREFIX_TEXT" > $POSTINSTALL
-  chmod +x $POSTINSTALL
 
   log "copying osquery binaries"
   BINARY_INSTALL_DIR="$INSTALL_PREFIX/usr/local/bin/"
@@ -145,7 +148,11 @@ function main() {
   cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
 
   log "finalizing preinstall and postinstall scripts"
-  echo "$POSTINSTALL_ADDITIONAL_TEXT" >> $POSTINSTALL
+  if [ $AUTOSTART == true ]; then
+    echo "$SCRIPT_PREFIX_TEXT" > $POSTINSTALL
+    chmod +x $POSTINSTALL
+    echo "$POSTINSTALL_AUTOSTART_TEXT" >> $POSTINSTALL
+  fi
 
   log "creating package"
   pkgbuild --root $INSTALL_PREFIX       \
