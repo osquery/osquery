@@ -89,12 +89,12 @@ int main(int argc, char* argv[]) {
   }
 
   LOG(INFO) << "Event Publishers:";
-  for (const auto& name : osquery::Registry::names("publisher")) {
+  for (const auto& name : osquery::Registry::names("event_publisher")) {
     LOG(INFO) << "  - " << name;
   }
 
   LOG(INFO) << "Event Subscribers:";
-  for (const auto& name : osquery::Registry::names("subscriber")) {
+  for (const auto& name : osquery::Registry::names("event_subscriber")) {
     LOG(INFO) << "  - " << name;
   }
 
