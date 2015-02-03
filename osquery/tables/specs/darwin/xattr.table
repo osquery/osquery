@@ -1,0 +1,9 @@
+table_name("xattr_where_from")
+schema([
+    Column("path", TEXT),
+    Column("directory", TEXT),
+    Column("download_url", TEXT),
+    Column("download_page", TEXT),
+    Column("raw64", TEXT),
+])
+implementation("xattr@genXattr")

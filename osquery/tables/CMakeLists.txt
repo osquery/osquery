@@ -36,6 +36,7 @@ if(APPLE)
     system/darwin/startup_items.cpp
     system/darwin/xprotect.cpp
     system/darwin/nfs_shares.cpp
+    system/darwin/xattr.cpp
   )
 
   ADD_OSQUERY_LINK("-framework CoreFoundation")
@@ -121,6 +122,7 @@ ADD_OSQUERY_CORE_LIBRARY(osquery_utility_tables
 
 ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp TRUE)
 if(APPLE)
+  ADD_OSQUERY_TEST(xattr_tests system/darwin/xattr_tests.cpp TRUE)
   ADD_OSQUERY_TEST(apps_tests system/darwin/apps_tests.cpp TRUE)
   ADD_OSQUERY_TEST(ca_certs_tests system/darwin/ca_certs_tests.cpp TRUE)
   ADD_OSQUERY_TEST(firewall_tests system/darwin/firewall_tests.cpp TRUE)
