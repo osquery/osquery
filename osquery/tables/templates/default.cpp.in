@@ -15,8 +15,6 @@
 #include <osquery/events.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/virtual_table.h"
-
 namespace osquery { namespace tables {
 
 /// BEGIN[GENTABLE]

@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -20,7 +20,6 @@ class SQLTests : public testing::Test {};
 TEST_F(SQLTests, test_simple_query_execution) {
   auto sql = SQL("SELECT * FROM time");
   EXPECT_TRUE(sql.ok());
-  EXPECT_EQ(sql.getMessageString(), getStringForSQLiteReturnCode(0));
   EXPECT_EQ(sql.rows().size(), 1);
 }
 

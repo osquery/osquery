@@ -84,7 +84,7 @@
 #include <osquery/devtools.h>
 #include <osquery/flags.h>
 
-#include "osquery/core/virtual_table.h"
+#include "osquery/sql/virtual_table.h"
 
 // Json is a specific form of pretty printing.
 namespace osquery {

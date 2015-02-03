@@ -10,7 +10,7 @@
 
 #include <osquery/logger.h>
 
-#include "osquery/core/virtual_table.h"
+#include "osquery/sql/virtual_table.h"
 
 namespace osquery {
 namespace tables {
@@ -211,8 +211,7 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
     for (const auto &column : pVtab->content->columns) {
       try {
         pVtab->content->data[column.first].push_back(row.at(column.first));
-      }
-      catch (const std::out_of_range &e) {
+      } catch (const std::out_of_range &e) {
         VLOG(1) << "Table " << pVtab->content->name << " row "
                 << pVtab->content->n << " did not include column "
                 << column.first;
@@ -272,8 +271,7 @@ void attachVirtualTables(sqlite3 *db) {
   for (const auto &name : Registry::names("table")) {
     int status = attachTable(db, name);
     if (status != SQLITE_OK) {
-      LOG(ERROR) << "Error attaching virtual table: " << name << " (" << status
-                 << ")";
+      LOG(ERROR) << "Error attaching table: " << name << " (" << status << ")";
     }
   }
 }

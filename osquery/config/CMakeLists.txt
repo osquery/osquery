@@ -1,6 +1,9 @@
-ADD_OSQUERY_CORE_LIBRARY(osquery_config
+ADD_OSQUERY_LIBRARY(TRUE osquery_config
   config.cpp
+)
+
+ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
   plugins/filesystem.cpp
 )
 
-ADD_OSQUERY_TEST(config_tests config_tests.cpp)
+ADD_OSQUERY_TEST(FALSE config_tests config_tests.cpp)

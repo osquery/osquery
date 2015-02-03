@@ -14,6 +14,7 @@
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
+#include <osquery/sql.h>
 
 #include "osquery/core/test_util.h"
 
@@ -61,9 +62,9 @@ TEST_F(ConfigTests, test_queries_execute) {
 
   EXPECT_EQ(queries.size(), 1);
   for (const auto& i : queries) {
-    int err;
-    auto r = query(i.query, err);
-    EXPECT_EQ(err, 0);
+    QueryData results;
+    auto status = query(i.query, results);
+    EXPECT_TRUE(status.ok());
   }
 }
 }

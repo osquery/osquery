@@ -1,5 +1,5 @@
 if(APPLE)
-  ADD_OSQUERY_OBJCXX_LIBRARY(osquery_tables_objc
+  ADD_OSQUERY_OBJCXX_LIBRARY(FALSE osquery_tables_objc
     ../core/darwin/NSProcessInfo+PECocoaBackports.mm
     ../core/darwin/NSProcessInfo+PECocoaBackports.h
     ../core/darwin/PECocoaBackportsGlobal.h
@@ -9,7 +9,7 @@ if(APPLE)
     system/darwin/ca_certs.mm
   )
 
-  ADD_OSQUERY_LIBRARY(osquery_tables_darwin
+  ADD_OSQUERY_LIBRARY(FALSE osquery_tables_darwin
     events/darwin/passwd_changes.cpp
     events/darwin/hardware_events.cpp
     networking/darwin/routes.cpp
@@ -39,12 +39,12 @@ if(APPLE)
     system/darwin/xattr.cpp
   )
 
-  ADD_OSQUERY_LINK("-framework CoreFoundation")
-  ADD_OSQUERY_LINK("-framework Security")
-  ADD_OSQUERY_LINK("-framework OpenDirectory")
-  ADD_OSQUERY_LINK("-framework DiskArbitration")
+  ADD_OSQUERY_LINK(FALSE "-framework CoreFoundation")
+  ADD_OSQUERY_LINK(FALSE "-framework Security")
+  ADD_OSQUERY_LINK(FALSE "-framework OpenDirectory")
+  ADD_OSQUERY_LINK(FALSE "-framework DiskArbitration")
 elseif(FREEBSD)
-  ADD_OSQUERY_LIBRARY(osquery_tables_freebsd
+  ADD_OSQUERY_LIBRARY(FALSE osquery_tables_freebsd
     events/freebsd/passwd_changes.cpp
     networking/freebsd/routes.cpp
     system/freebsd/processes.cpp
@@ -52,7 +52,7 @@ elseif(FREEBSD)
     system/freebsd/groups.cpp
   )
 else()
-  ADD_OSQUERY_LIBRARY(osquery_tables_linux
+  ADD_OSQUERY_LIBRARY(FALSE osquery_tables_linux
     events/linux/hardware_events.cpp
     events/linux/passwd_changes.cpp
     networking/linux/arp_cache.cpp
@@ -75,30 +75,30 @@ else()
 
   if(CENTOS)
     # CentOS specific tables
-    ADD_OSQUERY_LIBRARY(osquery_tables_redhat
+    ADD_OSQUERY_LIBRARY(FALSE osquery_tables_redhat
       system/linux/rpm_packages.cpp
     )
 
-    ADD_OSQUERY_LINK("rpm")
-    ADD_OSQUERY_LINK("rpmio")
+    ADD_OSQUERY_LINK(FALSE "rpm")
+    ADD_OSQUERY_LINK(FALSE "rpmio")
   elseif(UBUNTU)
     # Ubuntu specific tables
-    ADD_OSQUERY_LIBRARY(osquery_tables_ubuntu
+    ADD_OSQUERY_LIBRARY(FALSE osquery_tables_ubuntu
       system/linux/deb_packages.cpp
       system/linux/apt_sources.cpp
     )
 
-    ADD_OSQUERY_LINK("apt-pkg")
-    ADD_OSQUERY_LINK("dpkg")
+    ADD_OSQUERY_LINK(FALSE "apt-pkg")
+    ADD_OSQUERY_LINK(FALSE "dpkg")
   endif()
 
-  ADD_OSQUERY_LINK("procps" "proc")
-  ADD_OSQUERY_LINK("blkid")
-  ADD_OSQUERY_LINK("udev")
-  ADD_OSQUERY_LINK("uuid")
+  ADD_OSQUERY_LINK(FALSE "procps" "proc")
+  ADD_OSQUERY_LINK(FALSE "blkid")
+  ADD_OSQUERY_LINK(FALSE "udev")
+  ADD_OSQUERY_LINK(FALSE "uuid")
 endif()
 
-ADD_OSQUERY_LIBRARY(osquery_tables
+ADD_OSQUERY_LIBRARY(FALSE osquery_tables
   networking/etc_hosts.cpp
   networking/etc_services.cpp
   networking/interfaces.cpp
@@ -113,18 +113,18 @@ ADD_OSQUERY_LIBRARY(osquery_tables
   system/logged_in_users.cpp
 )
 
-ADD_OSQUERY_CORE_LIBRARY(osquery_utility_tables
+ADD_OSQUERY_LIBRARY(TRUE osquery_utility_tables
   utility/time.cpp
   utility/hash.cpp
   utility/file.cpp
   utility/osquery.cpp
 )
 
-ADD_OSQUERY_TEST(etc_hosts_tests networking/etc_hosts_tests.cpp TRUE)
+ADD_OSQUERY_TEST(FALSE etc_hosts_tests networking/etc_hosts_tests.cpp)
 if(APPLE)
-  ADD_OSQUERY_TEST(xattr_tests system/darwin/xattr_tests.cpp TRUE)
-  ADD_OSQUERY_TEST(apps_tests system/darwin/apps_tests.cpp TRUE)
-  ADD_OSQUERY_TEST(ca_certs_tests system/darwin/ca_certs_tests.cpp TRUE)
-  ADD_OSQUERY_TEST(firewall_tests system/darwin/firewall_tests.cpp TRUE)
-  ADD_OSQUERY_TEST(launchd_tests system/darwin/launchd_tests.cpp TRUE)
+  ADD_OSQUERY_TEST(FALSE xattr_tests system/darwin/xattr_tests.cpp)
+  ADD_OSQUERY_TEST(FALSE apps_tests system/darwin/apps_tests.cpp)
+  ADD_OSQUERY_TEST(FALSE ca_certs_tests system/darwin/ca_certs_tests.cpp)
+  ADD_OSQUERY_TEST(FALSE firewall_tests system/darwin/firewall_tests.cpp)
+  ADD_OSQUERY_TEST(FALSE launchd_tests system/darwin/launchd_tests.cpp)
 endif()

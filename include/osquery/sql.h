@@ -18,19 +18,6 @@
 #include <osquery/tables.h>
 
 namespace osquery {
-
-/**
- * @brief A map of SQLite status codes to their corresponding message string
- *
- * Details of this map are defined at: http://www.sqlite.org/c3ref/c_abort.html
- */
-extern const std::map<int, std::string> kSQLiteReturnCodes;
-
-/**
- * @brief Get a string representation of a SQLite return code
- */
-std::string getStringForSQLiteReturnCode(int code);
-
 /**
  * @brief The core interface to executing osquery SQL commands
  *
@@ -124,4 +111,45 @@ class SQL {
   /// the internal member which holds the status of the query
   Status status_;
 };
+
+/**
+ * @brief Execute a query
+ *
+ * This is a lower-level version of osquery::SQL. Prefer to use osquery::SQL.
+ *
+ * @code{.cpp}
+ *   std::string q = "SELECT * FROM time;";
+ *   QueryData results;
+ *   auto status = query(q, results);
+ *   if (status.ok()) {
+ *     for (const auto& each : results) {
+ *       for (const auto& it : each) {
+ *         LOG(INFO) << it.first << ": " << it.second;
+ *       }
+ *     }
+ *   } else {
+ *     LOG(ERROR) << "Error: " << status.what();
+ *   }
+ * @endcode
+ *
+ * @param q the query to execute
+ * @param results A QueryData structure to emit result rows on success.
+ * @return A status indicating query success.
+ */
+Status query(const std::string& query, QueryData& results);
+
+/**
+ * @brief Analyze a query, providing information about the result columns
+ *
+ * This function asks SQLite to determine what the names and types are of the
+ * result columns of the provided query. Only table columns (not expressions or
+ * subqueries) can have their types determined. Types that are not determined
+ * are indicated with the string "UNKNOWN".
+ *
+ * @param q the query to analyze
+ * @param columns the vector to fill with column information
+ *
+ * @return status indicating success or failure of the operation
+ */
+Status getQueryColumns(const std::string& q, tables::TableColumns& columns);
 }

@@ -3,16 +3,16 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
 
 #pragma once
 
-#include <sqlite3.h>
-
 #include <osquery/tables.h>
+
+#include "osquery/sql/sqlite_util.h"
 
 namespace osquery {
 namespace tables {
@@ -48,7 +48,10 @@ struct VirtualTable {
   VirtualTableContent *content;
 };
 
+/// Attach a table plugin name to an in-memory SQLite datable.
 int attachTable(sqlite3 *db, const std::string &name);
+
+/// Attach all table plugins to an in-memory SQLite datable.
 void attachVirtualTables(sqlite3 *db);
 }
 }

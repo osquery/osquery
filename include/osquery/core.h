@@ -14,9 +14,6 @@
 #include <vector>
 
 #include <boost/filesystem.hpp>
-
-#include <sqlite3.h>
-
 #include <osquery/database/results.h>
 
 #ifndef STR
@@ -42,62 +39,6 @@ enum osqueryTool {
   OSQUERY_TOOL_DAEMON,
   OSQUERY_TOOL_TEST,
 };
-
-/**
- * @brief Execute a query
- *
- * This is a lower-level version of osquery::SQL. Prefer to use osquery::SQL.
- *
- * @code{.cpp}
- *   std::string q = "SELECT * FROM time;";
- *   int i = 0;
- *   auto qd = query(q, i);
- *   if (i == 0) {
- *     for (const auto& each : qd) {
- *       for (const auto& it : each) {
- *         LOG(INFO) << it.first << ": " << it.second;
- *       }
- *     }
- *   } else {
- *     LOG(ERROR) << "Error: " << i;
- *   }
- * @endcode
- *
- * @param q the query to execute
- * @param error_return an int indicating the success or failure of the query
- *
- * @return the results of the query
- */
-osquery::QueryData query(const std::string& q, int& error_return);
-
-/**
- * @brief Execute a query on a specific database
- *
- * If you need to use a different database, other than the osquery default,
- * use this method and pass along a pointer to a SQLite3 database. This is
- * useful for testing.
- *
- * @param q the query to execute
- * @param error_return an int indicating the success or failure of the query
- * @param db the SQLite3 database to execute query q against
- *
- * @return the results of the query
- */
-osquery::QueryData query(const std::string& q, int& error_return, sqlite3* db);
-
-/**
- * @brief Return a fully configured sqlite3 database object
- *
- * An osquery database is basically just a SQLite3 database with several
- * virtual tables attached. This method is the main abstraction for creating
- * SQLite3 databases within osquery.
- *
- * Note: osquery::initOsquery must be called before calling createDB in order
- * for virtual tables to be registered.
- *
- * @return a SQLite3 database with all virtual tables attached
- */
-sqlite3* createDB();
 
 /**
  * @brief Sets up various aspects of osquery execution state.

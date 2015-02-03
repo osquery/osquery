@@ -31,10 +31,6 @@ namespace osquery {
 extern const std::string kTestQuery;
 extern const std::string kTestDataPath;
 
-// createTestDB instantiates a sqlite3 struct and populates it with some test
-// data
-sqlite3* createTestDB();
-
 // getTestDBExpectedResults returns the results of kTestQuery of the table that
 // initially gets returned from createTestDB()
 osquery::QueryData getTestDBExpectedResults();

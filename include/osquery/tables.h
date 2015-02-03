@@ -17,8 +17,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <sqlite3.h>
-
 #include <osquery/registry.h>
 #include <osquery/core.h>
 #include <osquery/database/results.h>
@@ -300,39 +298,5 @@ class TablePlugin : public Plugin {
 };
 
 CREATE_REGISTRY(TablePlugin, "table");
-
-/**
- * @brief Analyze a query, providing information about the result columns
- *
- * This function asks SQLite to determine what the names and types are of the
- * result columns of the provided query. Only table columns (not expressions or
- * subqueries) can have their types determined. Types that are not determined
- * are indicated with the string "UNKNOWN".
- *
- * @param q the query to analyze
- * @param columns the vector to fill with column information
- *
- * @return status indicating success or failure of the operation
- */
-Status getQueryColumns(const std::string& q, TableColumns& columns);
-
-/**
- * @brief Analyze a query, providing information about the result columns
- *
- * This function asks SQLite to determine what the names and types are of the
- * result columns of the provided query. Only table columns (not expressions or
- * subqueries) can have their types determined. Types that are not determined
- * are indicated with the string "UNKNOWN".
- *
- * @param q the query to analyze
- * @param columns the vector to fill with column information
- * @param db the SQLite3 database to perform the analysis on
- *
- * @return status indicating success or failure of the operation
- */
-Status getQueryColumns(const std::string& q,
-                       TableColumns& columns,
-                       sqlite3* db);
-
 }
 }

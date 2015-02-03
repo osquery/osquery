@@ -15,11 +15,13 @@
 
 int main(int argc, char *argv[]) {
   osquery::FLAGS_db_path = "/tmp/rocksdb-osquery-shell";
+  // Parse/apply flags, start registry, load logger/config plugins.
   osquery::initOsquery(argc, argv, osquery::OSQUERY_TOOL_SHELL);
 
   // Start event threads.
   osquery::EventFactory::delay();
 
+  // Virtual tables will be attached to the shell's in-memory SQLite DB.
   int retcode = osquery::launchIntoShell(argc, argv);
 
   // Finally shutdown.

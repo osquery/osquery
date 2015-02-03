@@ -110,50 +110,6 @@ TEST_F(TablesTests, test_constraint_map) {
 
   EXPECT_TRUE(cm["path"].matches("some"));
 }
-
-TEST_F(TablesTests, test_get_query_columns) {
-  std::unique_ptr<sqlite3, decltype(sqlite3_close)*> db_managed(createDB(),
-                                                                sqlite3_close);
-  sqlite3* db = db_managed.get();
-
-  std::string query;
-  Status status;
-  TableColumns results;
-
-  query =
-      "SELECT hour, minutes, seconds, version, config_md5, config_path, \
-           pid FROM time JOIN osquery_info";
-  status = getQueryColumns(query, results, db);
-  ASSERT_TRUE(status.ok());
-  ASSERT_EQ(7, results.size());
-  EXPECT_EQ(std::make_pair(std::string("hour"), std::string("INTEGER")),
-            results[0]);
-  EXPECT_EQ(std::make_pair(std::string("minutes"), std::string("INTEGER")),
-            results[1]);
-  EXPECT_EQ(std::make_pair(std::string("seconds"), std::string("INTEGER")),
-            results[2]);
-  EXPECT_EQ(std::make_pair(std::string("version"), std::string("TEXT")),
-            results[3]);
-  EXPECT_EQ(std::make_pair(std::string("config_md5"), std::string("TEXT")),
-            results[4]);
-  EXPECT_EQ(std::make_pair(std::string("config_path"), std::string("TEXT")),
-            results[5]);
-  EXPECT_EQ(std::make_pair(std::string("pid"), std::string("INTEGER")),
-            results[6]);
-
-  query = "SELECT hour + 1 AS hour1, minutes + 1 FROM time";
-  status = getQueryColumns(query, results, db);
-  ASSERT_TRUE(status.ok());
-  ASSERT_EQ(2, results.size());
-  EXPECT_EQ(std::make_pair(std::string("hour1"), std::string("UNKNOWN")),
-            results[0]);
-  EXPECT_EQ(std::make_pair(std::string("minutes + 1"), std::string("UNKNOWN")),
-            results[1]);
-
-  query = "SELECT * FROM foo";
-  status = getQueryColumns(query, results, db);
-  ASSERT_FALSE(status.ok());
-}
 }
 }
 
