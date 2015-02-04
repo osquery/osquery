@@ -20,8 +20,6 @@ class RegistryTests : public testing::Test {};
 class CatPlugin : public Plugin {
  public:
   CatPlugin() : some_value_(0) {}
-  virtual int getValue() { return some_value_; }
-  bool sayTrue() { return true; }
 
  protected:
   int some_value_;
@@ -38,7 +36,7 @@ class HouseCat : public CatPlugin {
 
 /// This is a manual registry type without a name, so we cannot broadcast
 /// this registry type and it does NOT need to conform to a registry API.
-class CatRegistry : public RegistryCore<CatPlugin> {};
+class CatRegistry : public RegistryHelper<CatPlugin> {};
 
 TEST_F(RegistryTests, test_registry) {
   CatRegistry cats;
@@ -58,27 +56,13 @@ TEST_F(RegistryTests, test_registry) {
   auto cat = cats.get("house");
   cats.setUp();
 
-  EXPECT_EQ(cat->getValue(), 9000);
-
   /// Now let's iterate over every registered Cat plugin.
   EXPECT_EQ(cats.all().size(), 2);
-  for (const auto& cat : cats.all()) {
-    EXPECT_TRUE(cat.second->sayTrue());
-  }
 }
-
-/// To track registry types and then broadcast them via Thrift we must define
-/// a plugin API. All broadcasted registry types and the plugins of that type
-/// must conform to this API.
-class TestPluginAPI : public Plugin {
- public:
-  virtual int getValue() = 0;
-  virtual bool sayTrue() = 0;
-};
 
 /// Normally we have "Registry" that dictates the set of possible API methods
 /// for all registry types. Here we use a "TestRegistry" instead.
-class TestCoreRegistry : public RegistryFactory<TestPluginAPI> {};
+class TestCoreRegistry : public RegistryFactory {};
 
 /// We can automatically create a registry type as long as that type conforms
 /// to the registry API defined in the "Registry". Here we use "TestRegistry".
@@ -103,14 +87,13 @@ TEST_F(RegistryTests, test_auto_factory) {
   /// And we can call an API method, since we guarantee CatPlugins conform
   /// to the "TestCoreRegistry"'s "TestPluginAPI".
   auto cat = TestCoreRegistry::get("cat", "auto_house");
-  EXPECT_EQ(cat->getValue(), 9000);
+  auto same_cat = TestCoreRegistry::get("cat", "auto_house");
+  EXPECT_EQ(cat, same_cat);
 }
 
 class DogPlugin : public Plugin {
  public:
   DogPlugin() : some_value_(10000) {}
-  virtual int getValue() { return some_value_; }
-  bool sayTrue() { return true; }
 
  protected:
   int some_value_;
@@ -133,7 +116,6 @@ TEST_F(RegistryTests, test_auto_registries) {
   TestCoreRegistry::registry("dog")->setUp();
 
   EXPECT_EQ(TestCoreRegistry::count("dog"), 1);
-  EXPECT_EQ(TestCoreRegistry::get("dog", "doge")->getValue(), 100000);
 }
 
 TEST_F(RegistryTests, test_persistant_registries) {
@@ -214,7 +196,7 @@ TEST_F(RegistryTests, test_registry_api) {
 
   // Broadcast will include all registries, and all their items.
   auto broadcast_info = TestCoreRegistry::getBroadcast();
-  EXPECT_EQ(broadcast_info.size(), 3);
+  EXPECT_TRUE(broadcast_info.size() >= 3);
   EXPECT_EQ(broadcast_info.at("widgets").at("special").at("name"), "special");
 
   PluginResponse response;
@@ -227,6 +209,19 @@ TEST_F(RegistryTests, test_registry_api) {
   request["secret_power"] = "magic";
   status = TestCoreRegistry::call("widgets", "special", request, response);
   EXPECT_EQ(response[0].at("secret_power"), "magic");
+}
+
+TEST_F(RegistryTests, test_real_registry) {
+  EXPECT_TRUE(Registry::count() > 0);
+
+  bool has_one_registered = false;
+  for (const auto& registry : Registry::all()) {
+    if (Registry::count(registry.first) > 0) {
+      has_one_registered = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(has_one_registered);
 }
 }
 

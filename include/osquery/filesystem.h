@@ -137,6 +137,8 @@ Status resolveFilePattern(const boost::filesystem::path& fs_path,
 Status getDirectory(const boost::filesystem::path& path,
                     boost::filesystem::path& dirpath);
 
+Status remove(const boost::filesystem::path& path);
+
 /**
  * @brief Check if an input path is a directory.
  *

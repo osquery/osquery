@@ -12,6 +12,7 @@
 #include <osquery/database.h>
 #include <osquery/devtools.h>
 #include <osquery/events.h>
+#include <osquery/extensions.h>
 
 int main(int argc, char *argv[]) {
   osquery::FLAGS_db_path = "/tmp/rocksdb-osquery-shell";
@@ -20,6 +21,7 @@ int main(int argc, char *argv[]) {
 
   // Start event threads.
   osquery::EventFactory::delay();
+  // osquery::startExtensionManager("/tmp/osqueryi.sock");
 
   // Virtual tables will be attached to the shell's in-memory SQLite DB.
   int retcode = osquery::launchIntoShell(argc, argv);

@@ -80,6 +80,8 @@ typedef std::map<std::string, RouteInfo> RegistryRoutes;
 /// An extension or core's broadcast includes routes from every Registry.
 typedef std::map<std::string, RegistryRoutes> RegistryBroadcast;
 
+typedef uint32_t RouteUUID;
+
 /**
  * @brief The request part of a plugin (registry item's) call.
  *
@@ -98,6 +100,127 @@ typedef std::map<std::string, std::string> PluginRequest;
  */
 typedef std::vector<PluginRequest> PluginResponse;
 
+class Plugin {
+ public:
+  Plugin() { name_ = "unnamed"; }
+  virtual ~Plugin() {}
+
+ public:
+  /// The plugin may perform some initialization, not required.
+  virtual Status setUp() { return Status(0, "Not used"); }
+  /// The plugin may perform some tear down, release, not required.
+  virtual void tearDown() {}
+  /// The plugin may publish route info (other than registry type and name).
+  virtual RouteInfo routeInfo() {
+    RouteInfo info;
+    return info;
+  }
+  /// The plugin will act on a serialized request, and if a response is needed
+  /// (response is set to true) then response should be a reference to a
+  /// string ready for a serialized response.
+  virtual Status call(const PluginRequest& request, PluginResponse& response) {
+    return Status(0, "Not used");
+  }
+
+  // Set the output request key to a serialized property tree.
+  // Used by the plugin to set a serialized PluginResponse.
+  static void setResponse(const std::string& key,
+                          const boost::property_tree::ptree& tree,
+                          PluginResponse& response);
+
+  // Get a PluginResponse key as a property tree.
+  static void getResponse(const std::string& key,
+                          const PluginResponse& response,
+                          boost::property_tree::ptree& tree);
+
+  /// Allow the plugin to introspect into the registered name (for logging).
+  void setName(const std::string& name) { name_ = name; }
+
+ protected:
+  std::string name_;
+
+ private:
+  Plugin(Plugin const&);
+  void operator=(Plugin const&);
+};
+
+class RegistryHelperCore {
+ protected:
+  virtual void type() const {}
+
+ public:
+  RegistryHelperCore(bool auto_setup = true) : auto_setup_(auto_setup) {}
+
+  /**
+   * @brief Remove a registry item by its identifier.
+   *
+   * @param item_name An identifier for this registry plugin.
+   */
+  virtual void remove(const std::string& item_name);
+
+  virtual RegistryRoutes getRoutes() const;
+
+  /**
+   * @brief The only method a plugin user should call.
+   *
+   * Registry plugins are used internally and externally. They may belong
+   * to the process making the call or to an external process via a thrift
+   * transport.
+   *
+   * All plugin input and output must be serializable. The plugin types
+   * RegistryType usually exposes protected serialization methods for the
+   * data structures used by plugins (registry items).
+   *
+   * @param item_name The plugin identifier to call.
+   * @param request The plugin request, usually containing an action request.
+   * @param response If successful, the requested information.
+   * @return Success if the plugin was called, and response was filled.
+   */
+  virtual Status call(const std::string& item_name,
+                      const PluginRequest& request,
+                      PluginResponse& response);
+
+  /**
+   * @brief Allow a plugin to perform some setup functions when osquery starts.
+   *
+   * Doing work in a plugin constructor has unknown behavior. Plugins may
+   * be constructed at anytime during osquery's life, including global variable
+   * instanciation. To have a reliable state (aka, flags have been parsed,
+   * and logs are ready to stream), do construction work in Plugin::setUp.
+   *
+   * The registry `setUp` will iterate over all of its registry items and call
+   * their setup unless the registry is lazy (see CREATE_REGISTRY).
+   */
+  virtual void setUp();
+
+  /// Facility method to check if a registry item exists.
+  virtual bool exists(const std::string& item_name) const;
+
+  virtual Status addAlias(const std::string& item_name,
+                          const std::string& alias);
+  virtual const std::string& getAlias(const std::string& alias) const;
+
+  /// Facility method to list the registry item identifiers.
+  virtual std::vector<std::string> names() const;
+
+  /// Facility method to count the number of items in this registry.
+  virtual size_t count() const;
+
+  /// Allow the registry to introspect into the registered name (for logging).
+  void setName(const std::string& name);
+
+ protected:
+  /// The identifier for this registry, used to register items.
+  std::string name_;
+  /// Does this registry run setUp on each registry item at initialization.
+  bool auto_setup_;
+
+ protected:
+  /// A map of registered plugin instances to their registered identifier.
+  std::map<std::string, std::shared_ptr<Plugin> > items_;
+  std::map<std::string, std::string> aliases_;
+};
+
 /**
  * @brief The core interface for each registry type.
  *
@@ -106,14 +229,13 @@ typedef std::vector<PluginRequest> PluginResponse;
  * Registries are created using Registry::create with a RegistryType and key.
  */
 template <class RegistryType>
-class RegistryCore {
+class RegistryHelper : public RegistryHelperCore {
  protected:
   typedef std::shared_ptr<RegistryType> RegistryTypeRef;
-  virtual void type() {}
 
  public:
-  RegistryCore(bool auto_setup = true) : auto_setup_(auto_setup) {}
-  virtual ~RegistryCore() {}
+  RegistryHelper(bool auto_setup = true) : RegistryHelperCore(auto_setup) {}
+  virtual ~RegistryHelper() {}
 
   /**
    * @brief Add a plugin to this registry by allocating and indexing
@@ -153,127 +275,28 @@ class RegistryCore {
    * @return A std::shared_ptr of type RegistryType.
    */
   RegistryTypeRef get(const std::string& item_name) {
-    return items_.at(item_name);
+    return std::dynamic_pointer_cast<RegistryType>(items_.at(item_name));
   }
 
-  /**
-   * @brief Remove a registry item by its identifier.
-   *
-   * @param item_name An identifier for this registry plugin.
-   */
-  void remove(const std::string& item_name) {
-    if (items_.count(item_name) > 0) {
-      items_[item_name]->tearDown();
-      items_.erase(item_name);
-    }
-  }
-
-  RegistryRoutes getRoutes() {
-    RegistryRoutes route_table;
+  const std::map<std::string, RegistryTypeRef> all() {
+    std::map<std::string, RegistryTypeRef> ditems;
     for (const auto& item : items_) {
-      route_table[item.first] = item.second->routeInfo();
+      ditems[item.first] = std::dynamic_pointer_cast<RegistryType>(item.second);
     }
-    return route_table;
+
+    return ditems;
   }
-
-  /**
-   * @brief The only method a plugin user should call.
-   *
-   * Registry plugins are used internally and externally. They may belong
-   * to the process making the call or to an external process via a thrift
-   * transport.
-   *
-   * All plugin input and output must be serializable. The plugin types
-   * RegistryType usually exposes protected serialization methods for the
-   * data structures used by plugins (registry items).
-   *
-   * @param item_name The plugin identifier to call.
-   * @param request The plugin request, usually containing an action request.
-   * @param response If successful, the requested information.
-   * @return Success if the plugin was called, and response was filled.
-   */
-  Status call(const std::string& item_name,
-              const PluginRequest& request,
-              PluginResponse& response) {
-    if (items_.count(item_name) > 0) {
-      return items_[item_name]->call(request, response);
-    }
-    return Status(1, "Cannot call registry item: " + item_name);
-  }
-
-  const std::map<std::string, RegistryTypeRef>& all() { return items_; }
-
-  /**
-   * @brief Allow a plugin to perform some setup functions when osquery starts.
-   *
-   * Doing work in a plugin constructor has unknown behavior. Plugins may
-   * be constructed at anytime during osquery's life, including global variable
-   * instanciation. To have a reliable state (aka, flags have been parsed,
-   * and logs are ready to stream), do construction work in Plugin::setUp.
-   *
-   * The registry `setUp` will iterate over all of its registry items and call
-   * their setup unless the registry is lazy (see CREATE_REGISTRY).
-   */
-  void setUp() {
-    // If this registry does not auto-setup do NOT setup the registry items.
-    if (!auto_setup_) {
-      return;
-    }
-
-    // Try to set up each of the registry items.
-    // If they fail, remove them from the registry.
-    std::vector<std::string> failed;
-    for (auto& item : items_) {
-      if (!item.second->setUp().ok()) {
-        failed.push_back(item.first);
-      }
-    }
-
-    for (const auto& failed_item : failed) {
-      remove(failed_item);
-    }
-  }
-
-  /// Facility method to check if a registry item exists.
-  bool exists(const std::string& item_name) {
-    return (items_.count(item_name) > 0);
-  }
-
-  /// Facility method to list the registry item identifiers.
-  std::vector<std::string> names() {
-    std::vector<std::string> names;
-    for (const auto& item : items_) {
-      names.push_back(item.first);
-    }
-    return names;
-  }
-
-  /// Facility method to count the number of items in this registry.
-  size_t count() { return items_.size(); }
-
-  /// Allow the registry to introspect into the registered name (for logging).
-  void setName(const std::string& name) { name_ = name; }
 
  private:
-  RegistryCore(RegistryCore const&);
-  void operator=(RegistryCore const&);
-
- private:
-  /// The identifier for this registry, used to register items.
-  std::string name_;
-  /// A map of registered plugin instances to their registered identifier.
-  std::map<std::string, RegistryTypeRef> items_;
-  /// Does this registry run setUp on each registry item at initialization.
-  bool auto_setup_;
+  RegistryHelper(RegistryHelper const&);
+  void operator=(RegistryHelper const&);
 };
 
-template <class TypeAPI>
-class RegistryFactory : private boost::noncopyable {
- protected:
-  typedef std::shared_ptr<TypeAPI> TypeAPIRef;
-  typedef RegistryCore<TypeAPI> RegistryTypeAPI;
-  typedef std::shared_ptr<RegistryCore<TypeAPI> > RegistryTypeAPIRef;
+typedef std::shared_ptr<Plugin> PluginRef;
+typedef RegistryHelper<Plugin> PluginRegistryHelper;
+typedef std::shared_ptr<PluginRegistryHelper> PluginRegistryHelperRef;
 
+class RegistryFactory : private boost::noncopyable {
  public:
   static RegistryFactory& instance() {
     static RegistryFactory instance;
@@ -283,7 +306,7 @@ class RegistryFactory : private boost::noncopyable {
   /**
    * @brief Create a registry using a plugin type and identifier.
    *
-   * A short hard for allocating a new registry type a RegistryCore and
+   * A short hard for allocating a new registry type a RegistryHelper and
    * plugin derived class Type or RegistryType. This shorthard performs
    * the allocation and initialization of the Type and keeps the instance
    * identified by registry_name.
@@ -303,16 +326,14 @@ class RegistryFactory : private boost::noncopyable {
       return 0;
     }
 
-    auto registry = (RegistryTypeAPI*)new RegistryCore<Type>(auto_setup);
+    auto registry = (PluginRegistryHelper*)new RegistryHelper<Type>(auto_setup);
     registry->setName(registry_name);
-    std::shared_ptr<RegistryTypeAPI> shared_registry(registry);
+    PluginRegistryHelperRef shared_registry(registry);
     instance().registries_[registry_name] = shared_registry;
     return 0;
   }
 
-  static RegistryTypeAPIRef registry(const std::string& registry_name) {
-    return instance().registries_.at(registry_name);
-  }
+  static PluginRegistryHelperRef registry(const std::string& registry_name);
 
   template <class Item>
   static Status add(const std::string& registry_name,
@@ -321,128 +342,67 @@ class RegistryFactory : private boost::noncopyable {
     return registry->template add<Item>(item_name);
   }
 
-  static const std::map<std::string, RegistryTypeAPIRef>& all() {
-    return instance().registries_;
-  }
+  static const std::map<std::string, PluginRegistryHelperRef>& all();
 
-  static const std::map<std::string, TypeAPIRef>& all(
-      const std::string& registry_name) {
-    return instance().registry(registry_name)->all();
-  }
+  static const std::map<std::string, PluginRef> all(
+      const std::string& registry_name);
 
-  static TypeAPIRef get(const std::string& registry_name,
-                        const std::string& item_name) {
-    return instance().registry(registry_name)->get(item_name);
-  }
+  static PluginRef get(const std::string& registry_name,
+                       const std::string& item_name);
 
-  static RegistryBroadcast getBroadcast() {
-    RegistryBroadcast broadcast;
-    for (const auto& registry : instance().registries_) {
-      broadcast[registry.first] = registry.second->getRoutes();
-    }
-    return broadcast;
-  }
+  static RegistryBroadcast getBroadcast();
 
-  static Status call(const std::string& registry_name,
-                     const std::string item_name,
-                     const PluginRequest& request,
-                     PluginResponse& response) {
-    if (instance().registries_.count(registry_name) > 0) {
-      return instance().registries_[registry_name]->call(
-          item_name, request, response);
-    }
-    return Status(1, "Cannot call " + registry_name + ":" + item_name);
-  }
+  static Status addBroadcast(const RouteUUID& uuid,
+                             const RegistryBroadcast& broadcast);
+
+  static Status removeBroadcast(const RouteUUID& uuid);
+
+  /// Adds an alias for an internal registry item. This registry will only
+  /// broadcast the alias name.
+  static Status addAlias(const std::string& registry_name,
+                         const std::string& item_name,
+                         const std::string& alias);
+
+  /// Returns the item_name or the item alias if an alias exists.
+  static const std::string& getAlias(const std::string& registry_name,
+                                     const std::string& alias);
 
   static Status call(const std::string& registry_name,
                      const std::string& item_name,
-                     const PluginRequest& request) {
-    PluginResponse response;
-    return call(registry_name, item_name, request, response);
-  }
+                     const PluginRequest& request,
+                     PluginResponse& response);
 
-  static void setUp() {
-    for (const auto& registry : instance().all()) {
-      registry.second->setUp();
-    }
-  }
+  static Status call(const std::string& registry_name,
+                     const std::string& item_name,
+                     const PluginRequest& request);
+
+  static void setUp();
 
   static bool exists(const std::string& registry_name,
-                     const std::string& item_name) {
-    if (instance().registries_.count(registry_name) == 0) {
-      return false;
-    }
-    return (instance().registry(registry_name)->exists(item_name));
+                     const std::string& item_name);
+
+  static std::vector<std::string> names(const std::string& registry_name);
+
+  static size_t count();
+
+  static size_t count(const std::string& registry_name);
+
+  static void allowDuplicates(bool allow) {
+    instance().allow_duplicates_ = allow;
   }
 
-  static std::vector<std::string> names(const std::string& registry_name) {
-    if (instance().registries_.at(registry_name) == 0) {
-      std::vector<std::string> names;
-      return names;
-    }
-    return instance().registry(registry_name)->names();
-  }
-
-  static size_t count() { return instance().registries_.size(); }
-
-  static size_t count(const std::string& registry_name) {
-    if (instance().registries_.count(registry_name) == 0) {
-      return 0;
-    }
-    return instance().registry(registry_name)->count();
-  }
+  static bool allowDuplicates() { return instance().allow_duplicates_; }
 
  protected:
-  RegistryFactory() {}
+  RegistryFactory() : allow_duplicates_(false) {}
   RegistryFactory(RegistryFactory const&);
   void operator=(RegistryFactory const&);
   virtual ~RegistryFactory() {}
 
- public:
-  std::map<std::string, RegistryTypeAPIRef> registries_;
-};
-
-class Plugin {
- public:
-  Plugin() { name_ = "unnamed"; }
-  virtual ~Plugin() {}
-
- public:
-  /// The plugin may perform some initialization, not required.
-  virtual Status setUp() { return Status(0, "Not used"); }
-  /// The plugin may perform some tear down, release, not required.
-  virtual void tearDown() {}
-  /// The plugin may publish route info (other than registry type and name).
-  virtual RouteInfo routeInfo() {
-    RouteInfo info;
-    return info;
-  }
-  /// The plugin will act on a serialized request, and if a response is needed
-  /// (response is set to true) then response should be a reference to a
-  /// string ready for a serialized response.
-  virtual Status call(const PluginRequest& request, PluginResponse& response) {
-    return Status(1, "Error");
-  }
-
-  // Set the output request key to a serialized property tree.
-  // Used by the plugin to set a serialized PluginResponse.
-  static void setResponse(const std::string& key,
-                          const boost::property_tree::ptree& tree,
-                          PluginResponse& response);
-  // Get a PluginResponse key as a property tree.
-  static void getResponse(const std::string& key,
-                          const PluginResponse& response,
-                          boost::property_tree::ptree& tree);
-
-  /// Allow the plugin to introspect into the registered name (for logging).
-  void setName(const std::string& name) { name_ = name; }
-
- protected:
-  std::string name_;
-
  private:
-  Plugin(Plugin const&);
-  void operator=(Plugin const&);
+  bool allow_duplicates_;
+  std::map<std::string, PluginRegistryHelperRef> registries_;
+  std::map<RouteUUID, RegistryBroadcast> extensions_;
 };
 
 /**
@@ -455,5 +415,5 @@ class Plugin {
  * The actual plugins must add themselves to a registry type and should
  * implement the Plugin and RegistryType interfaces.
  */
-class Registry : public RegistryFactory<Plugin> {};
+class Registry : public RegistryFactory {};
 }

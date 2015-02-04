@@ -22,7 +22,7 @@ TEST_F(DispatcherTests, test_singleton) {
   EXPECT_EQ(one.getThreadManager().get(), two.getThreadManager().get());
 }
 
-class TestRunnable : public apache::thrift::concurrency::Runnable {
+class TestRunnable : public InternalRunnable {
  public:
   int* i;
   TestRunnable(int* i) : i(i) {}

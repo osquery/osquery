@@ -50,9 +50,7 @@ if (THRIFT_FOUND)
     message(STATUS "${THRIFT_VERSION}")
   endif ()
 else ()
-  message(STATUS "Thrift compiler/libraries NOT found. "
-          "Thrift support will be disabled (${THRIFT_RETURN}, "
-          "${THRIFT_INCLUDE_DIR}, ${THRIFT_LIB})")
+  message(FATAL_ERROR "Thrift compiler/libraries NOT found.")
 endif ()
 
 
