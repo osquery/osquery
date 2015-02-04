@@ -15,6 +15,7 @@
 #include <osquery/core.h>
 #include <osquery/events.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 
 DEFINE_string(query, "", "query to execute");
 DEFINE_int32(iterations, 1, "times to run the query in question");
@@ -41,11 +42,12 @@ int main(int argc, char* argv[]) {
     ::sleep(FLAGS_delay);
   }
 
+  osquery::QueryData results;
   for (int i = 0; i < FLAGS_iterations; ++i) {
     printf("Executing: %s\n", FLAGS_query.c_str());
-    osquery::query(FLAGS_query, result);
-    if (result != 0) {
-      fprintf(stderr, "Query failed: %d\n", result);
+    auto status = osquery::query(FLAGS_query, results);
+    if (!status.ok()) {
+      fprintf(stderr, "Query failed: %d\n", status.getCode());
       break;
     } else {
       if (FLAGS_delay != 0) {

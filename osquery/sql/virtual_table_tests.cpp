@@ -12,8 +12,9 @@
 
 #include <osquery/core.h>
 #include <osquery/registry.h>
+#include <osquery/sql.h>
 
-#include "osquery/core/virtual_table.h"
+#include "osquery/sql/virtual_table.h"
 
 namespace osquery {
 namespace tables {
@@ -57,8 +58,8 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   EXPECT_EQ(rc, SQLITE_OK);
 
   std::string q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
-  int error_return;
-  QueryData results = query(q, error_return, db);
+  QueryData results;
+  auto status = queryInternal(q, results, db);
   EXPECT_EQ("CREATE VIRTUAL TABLE sample USING sample(foo INTEGER, bar TEXT)",
             results[0]["sql"]);
   sqlite3_close(db);

@@ -1,7 +1,7 @@
-ADD_OSQUERY_CORE_LIBRARY(osquery_dispatcher
+ADD_OSQUERY_LIBRARY(TRUE osquery_dispatcher
   dispatcher.cpp
 )
 
 if(APPLE)
-  ADD_OSQUERY_TEST(dispatcher_tests dispatcher_tests.cpp)
+  ADD_OSQUERY_TEST(TRUE dispatcher_tests dispatcher_tests.cpp)
 endif()

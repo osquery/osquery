@@ -28,41 +28,18 @@ set(OSQUERY_LIBS
 
 # The platform-specific core libraries.
 if(APPLE)
-  ADD_OSQUERY_CORE_LINK("-mmacosx-version-min=${APPLE_MIN_ABI}")
-  ADD_OSQUERY_CORE_LINK("boost_thread-mt")
-  ADD_OSQUERY_CORE_LINK("lz4")
+  ADD_OSQUERY_LINK(TRUE "-mmacosx-version-min=${APPLE_MIN_ABI}")
+  ADD_OSQUERY_LINK(TRUE "boost_thread-mt")
+  ADD_OSQUERY_LINK(TRUE "lz4")
 else()
-  ADD_OSQUERY_CORE_LINK("boost_thread")
-  ADD_OSQUERY_CORE_LINK("rt")
+  ADD_OSQUERY_LINK(TRUE "boost_thread")
+  ADD_OSQUERY_LINK(TRUE "rt")
 endif()
 
 # The remaining boost libraries are discovered with find_library.
-ADD_OSQUERY_CORE_LINK("boost_system")
-ADD_OSQUERY_CORE_LINK("boost_filesystem")
-ADD_OSQUERY_CORE_LINK("boost_regex")
-
-# Generate version from git
-execute_process(
-  COMMAND git describe --tags HEAD --always
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  OUTPUT_VARIABLE OSQUERY_BUILD_VERSION
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-add_definitions("
--DOSQUERY_BUILD_VERSION=${OSQUERY_BUILD_VERSION}
--D${OSQUERY_BUILD_OS}
--D${OSQUERY_BUILD_OS}_${OSQUERY_BUILD_DISTRO}
-")
-
-# Make sure deps were built before compiling
-execute_process(
-  COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" check "${CMAKE_BINARY_DIR}"
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  OUTPUT_VARIABLE OSQUERY_DEPS_MESSAGE
-  RESULT_VARIABLE OSQUERY_DEPS_CHECK
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+ADD_OSQUERY_LINK(TRUE "boost_system")
+ADD_OSQUERY_LINK(TRUE "boost_filesystem")
+ADD_OSQUERY_LINK(TRUE "boost_regex")
 
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
@@ -75,11 +52,11 @@ add_subdirectory(database)
 add_subdirectory(devtools)
 add_subdirectory(dispatcher)
 add_subdirectory(events)
-add_subdirectory(examples)
 add_subdirectory(filesystem)
 add_subdirectory(logger)
 add_subdirectory(registry)
 add_subdirectory(scheduler)
+add_subdirectory(sql)
 add_subdirectory(tables)
 
 # Utility tables are table specs that are ALWAYS built into osquery core.
@@ -89,123 +66,75 @@ GENERATE_UTILITY("time")
 GENERATE_UTILITY("file")
 GENERATE_UTILITY("hash")
 
-# Finally amalgamate all the tables.
+# Finally amalgamate the tables needed to compile.
 AMALGAMATE("${CMAKE_SOURCE_DIR}" "utils" AMALGAMATION_UTILS)
-ADD_OSQUERY_CORE_LIBRARY(osquery_utils_amalgamation ${AMALGAMATION_UTILS})
+ADD_OSQUERY_LIBRARY(TRUE osquery_utils_amalgamation ${AMALGAMATION_UTILS})
 
 list(APPEND OSQUERY_OBJECTS ${OSQUERY_SOURCES})
 list(APPEND OSQUERY_LIBS ${OSQUERY_LINKS})
 
-# Create the static libosquery (target called libosquery_basic).
+# Create the static libosquery (everything but non-util tables).
 set(CMAKE_MACOSX_RPATH 0)
-add_library(libosquery_basic STATIC main/lib.cpp ${OSQUERY_OBJECTS})
-target_link_libraries(libosquery_basic ${OSQUERY_LIBS})
-set_target_properties(libosquery_basic PROPERTIES OUTPUT_NAME osquery)
-install(TARGETS libosquery_basic ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)
+add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
+target_link_libraries(libosquery ${OSQUERY_LIBS})
+set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
 
-# Generate the osquery core tables (the non-util).
-GENERATE_TABLES("${CMAKE_SOURCE_DIR}/osquery/tables" "${CMAKE_SOURCE_DIR}")
-AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
-ADD_OSQUERY_LIBRARY(osquery_amalgamation ${AMALGAMATION})
-
-# Create the static libosquery_additional.
-add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})
-target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
-set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
-
-# Include the public API includes if make devel.
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/" DESTINATION include COMPONENT devel OPTIONAL)
-
-add_executable(shell main/shell.cpp)
-TARGET_OSQUERY_LINK_WHOLE(shell libosquery_basic)
-TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
-set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
-set_target_properties(shell PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-install(TARGETS shell RUNTIME DESTINATION bin COMPONENT main)
-
-add_executable(daemon main/daemon.cpp core/watcher.cpp)
-TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_basic)
-TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_additional)
-set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
-set_target_properties(daemon PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-install(TARGETS daemon RUNTIME DESTINATION bin COMPONENT main)
-
-add_executable(run main/run.cpp)
-TARGET_OSQUERY_LINK_WHOLE(run libosquery_basic)
-TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
-set_target_properties(run PROPERTIES COMPILE_FLAGS ${OS_COMPILE_FLAGS})
-
-# make devel
+# make devel (implies install)
 add_custom_target(devel
   COMMAND ${CMAKE_COMMAND}
     -D COMPONENT=devel
     -P cmake_install.cmake
     DEPENDS libosquery_basic
 )
-add_dependencies(devel libosquery_basic)
+add_dependencies(devel libosquery)
 
-# make install config files
-install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf"
-  DESTINATION "${CMAKE_INSTALL_PREFIX}/share/osquery/" COMPONENT main)
-if(APPLE)
-  install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.plist"
+# Generate the osquery additional tables (the non-util).
+GENERATE_TABLES("${CMAKE_SOURCE_DIR}/osquery/tables" "${CMAKE_SOURCE_DIR}")
+AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
+ADD_OSQUERY_LIBRARY(FALSE osquery_amalgamation ${AMALGAMATION})
+
+if(NOT OSQUERY_BUILD_SDK_ONLY)
+  # Create the static libosquery_additional.
+  add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})
+  target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
+  set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
+
+  add_executable(shell main/shell.cpp)
+  TARGET_OSQUERY_LINK_WHOLE(shell libosquery)
+  TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
+  set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
+
+  add_executable(daemon main/daemon.cpp core/watcher.cpp)
+  TARGET_OSQUERY_LINK_WHOLE(daemon libosquery)
+  TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_additional)
+  set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
+
+  add_executable(run main/run.cpp)
+  TARGET_OSQUERY_LINK_WHOLE(run libosquery)
+  TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
+
+  # Include the public API includes if make devel.
+  install(TARGETS libosquery ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)
+  install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/" DESTINATION include COMPONENT devel OPTIONAL)
+
+  # make install (executables)
+  install(TARGETS shell RUNTIME DESTINATION bin COMPONENT main)
+  install(TARGETS daemon RUNTIME DESTINATION bin COMPONENT main)
+
+  # make install (config files)
+  install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf"
     DESTINATION "${CMAKE_INSTALL_PREFIX}/share/osquery/" COMPONENT main)
-else()
-  install(PROGRAMS "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.initd"
-    DESTINATION "/etc/init.d/" RENAME "osqueryd" COMPONENT main)
-endif()
-
-# make package
-if(APPLE)
-  add_custom_target(
-    packages
-    ./tools/deployment/make_osx_package.sh
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Building default OS X package (no custom config)" VERBATIM
-  )
-elseif(LINUX)
-  if(UBUNTU)
-    set(PACKAGE_TYPE "deb")
-    set(PACKAGE_DEPENDENCIES
-      "libc6 (>=2.15)"
-      "zlib1g"
-      "libbz2-1.0"
-      "libapt-pkg4.12"
-      "libreadline6"
-    )
-    if(OSQUERY_BUILD_DISTRO STREQUAL "PRECISE")
-      set(PACKAGE_DEPENDENCIES
-        "${PACKAGE_DEPENDENCIES}"
-        "libstdc++6"
-        "libudev0"
-      )
-    elseif(OSQUERY_BUILD_DISTRO STREQUAL "TRUSTY")
-      set(PACKAGE_DEPENDENCIES
-        "${PACKAGE_DEPENDENCIES}"
-        "libstdc++6 (>= 4.8)"
-        "libudev1"
-      )
-    endif()
-  elseif(CENTOS)
-    set(PACKAGE_TYPE "rpm")
-    set(PACKAGE_DEPENDENCIES
-      "glibc >= 2.12"
-      "openssl >= 1.0"
-      "readline"
-      "zlib"
-      "snappy"
-      "bzip2-libs"
-      "procps"
-      "libudev"
-      "rpm-libs"
-    )
+  if(APPLE)
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/com.facebook.osqueryd.plist"
+      DESTINATION "${CMAKE_INSTALL_PREFIX}/share/osquery/" COMPONENT main)
+  else()
+    install(PROGRAMS "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.initd"
+      DESTINATION "/etc/init.d/" RENAME "osqueryd" COMPONENT main)
   endif()
-  JOIN("${PACKAGE_DEPENDENCIES}" ", " PACKAGE_DEPENDENCIES)
-
-  add_custom_target(
-    packages
-    ./tools/deployment/make_linux_package.sh -t ${PACKAGE_TYPE} -d "${PACKAGE_DEPENDENCIES}"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Building linux packages (no custom config)" VERBATIM
-  )
+else()
+  # Build the example extension with the SDK
+  add_executable(example_extension examples/example_extension.cpp)
+  TARGET_OSQUERY_LINK_WHOLE(example_extension libosquery)
+  set_target_properties(example_extension PROPERTIES OUTPUT_NAME example_extension)
 endif()
+

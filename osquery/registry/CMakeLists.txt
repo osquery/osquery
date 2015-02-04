@@ -1,5 +1,5 @@
-ADD_OSQUERY_CORE_LIBRARY(osquery_registry
+ADD_OSQUERY_LIBRARY(TRUE osquery_registry
   registry.cpp
 )
 
-ADD_OSQUERY_TEST(core_registry_tests registry_tests.cpp)
+ADD_OSQUERY_TEST(TRUE registry_tests registry_tests.cpp)

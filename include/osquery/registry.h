@@ -21,16 +21,55 @@
 
 namespace osquery {
 
+/**
+ * @brief A boilerplate code helper to create a registry given a name and
+ * plugin base class type.
+ *
+ * Registries are types of plugins, e.g., config, logger, table. They are
+ * defined with a string name and Plugin derived class. There is an expectation
+ * that any 'item' registered will inherit from the registry plugin-derived
+ * type. But there is NO type enforcement on that intermediate class.
+ *
+ * This boilerplate macro puts the registry into a 'registry' namespace for
+ * organization and createa a global const int that may be instanciated
+ * in a header or implementation code without symbol duplication.
+ * The initialization is also boilerplate, whereas the Registry::create method
+ * (a whole-process-lived single instance object) creates and manages the
+ * registry instance.
+ *
+ * @param type A typename that derives from Plugin.
+ * @param name A string identifier for the registry.
+ */
 #define CREATE_REGISTRY(type, name)                         \
   namespace registry {                                      \
   const auto type##Registry = Registry::create<type>(name); \
   }
 
+/**
+ * @brief A boilerplate code helper to create a registry given a name and
+ * plugin base class type. This 'lazy' registry does not automatically run
+ * Plugin::setUp on all items.
+ *
+ * @param type A typename that derives from Plugin.
+ * @param name A string identifier for the registry.
+ */
 #define CREATE_LAZY_REGISTRY(type, name)                           \
   namespace registry {                                             \
   const auto type##Registry = Registry::create<type>(name, false); \
   }
 
+/**
+ * @brief A boilerplate code helper to register a plugin.
+ *
+ * Like CREATE_REGISTRY, REGISTER creates a boilerplate global instance to
+ * create an instance of the plugin type within the whole-process-lived registry
+ * single instance. Registry items must derive from the `RegistryType` defined
+ * by the CREATE_REGISTRY and Registry::create call.
+ *
+ * @param type A typename that derives from the RegistryType.
+ * @param registry The string name for the registry.
+ * @param name A string identifier for this registry item.
+ */
 #define REGISTER(type, registry, name) \
   const auto type##RegistryItem = Registry::add<type>(registry, name);
 
@@ -80,6 +119,11 @@ class RegistryCore {
    * @brief Add a plugin to this registry by allocating and indexing
    * a type Item and a key identifier.
    *
+   * @code{.cpp}
+   *   /// Instead of calling RegistryFactory::add use:
+   *   REGISTER(Type, "registry_name", "item_name");
+   * @endcode
+   *
    * @param item_name An identifier for this registry plugin.
    * @return A success/failure status.
    */
@@ -90,12 +134,11 @@ class RegistryCore {
     }
 
     // Run the item's constructor, the setUp call will happen later.
-    auto item = new Item();
+    auto item = (RegistryType*)new Item();
     item->setName(item_name);
     // Cast the specific registry-type derived item as the API typ the registry
     // used when it was created using the registry factory.
-    auto base_item = reinterpret_cast<RegistryType*>(item);
-    std::shared_ptr<RegistryType> shared_item(base_item);
+    std::shared_ptr<RegistryType> shared_item(item);
     items_[item_name] = shared_item;
     return Status(0, "OK");
   }
@@ -160,6 +203,17 @@ class RegistryCore {
 
   const std::map<std::string, RegistryTypeRef>& all() { return items_; }
 
+  /**
+   * @brief Allow a plugin to perform some setup functions when osquery starts.
+   *
+   * Doing work in a plugin constructor has unknown behavior. Plugins may
+   * be constructed at anytime during osquery's life, including global variable
+   * instanciation. To have a reliable state (aka, flags have been parsed,
+   * and logs are ready to stream), do construction work in Plugin::setUp.
+   *
+   * The registry `setUp` will iterate over all of its registry items and call
+   * their setup unless the registry is lazy (see CREATE_REGISTRY).
+   */
   void setUp() {
     // If this registry does not auto-setup do NOT setup the registry items.
     if (!auto_setup_) {
@@ -216,8 +270,8 @@ class RegistryCore {
 template <class TypeAPI>
 class RegistryFactory : private boost::noncopyable {
  protected:
-  typedef RegistryCore<TypeAPI> RegistryTypeAPI;
   typedef std::shared_ptr<TypeAPI> TypeAPIRef;
+  typedef RegistryCore<TypeAPI> RegistryTypeAPI;
   typedef std::shared_ptr<RegistryCore<TypeAPI> > RegistryTypeAPIRef;
 
  public:
@@ -249,8 +303,7 @@ class RegistryFactory : private boost::noncopyable {
       return 0;
     }
 
-    auto registry =
-        reinterpret_cast<RegistryTypeAPI*>(new RegistryCore<Type>(auto_setup));
+    auto registry = (RegistryTypeAPI*)new RegistryCore<Type>(auto_setup);
     registry->setName(registry_name);
     std::shared_ptr<RegistryTypeAPI> shared_registry(registry);
     instance().registries_[registry_name] = shared_registry;
