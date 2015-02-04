@@ -4,11 +4,11 @@
 #
 # chkconfig: 3345 90 60
 # Description:
-#             With osquery, you can use SQL to query low-level
-#             operating system information. Under the hood, instead
-#             of querying static tables, these queries dynamically execute
-#             high-performance native code. The results of the
-#             SQL query are transparently returned to you quickly and easily
+#  With osquery, you can use SQL to query low-level
+#  operating system information. Under the hood, instead
+#  of querying static tables, these queries dynamically execute
+#  high-performance native code. The results of the
+#  SQL query are transparently returned to you quickly and easily
 #
 ### BEGIN INIT INFO
 # Provides: osquery osqueryd
@@ -18,11 +18,11 @@
 # Default-Stop: 90
 # Short-Description: run osqueryd daemon
 # Description:
-#             With osquery, you can use SQL to query low-level
-#             operating system information. Under the hood, instead
-#             of querying static tables, these queries dynamically execute
-#             high-performance native code. The results of the
-#             SQL query are transparently returned to you quickly and easily
+#   With osquery, you can use SQL to query low-level
+#   operating system information. Under the hood, instead
+#   of querying static tables, these queries dynamically execute
+#   high-performance native code. The results of the
+#   SQL query are transparently returned to you quickly and easily
 #
 #
 ### END INIT INFO
@@ -46,57 +46,69 @@ fi
 if [ ! -e $REAL_CONFIG_PATH ] ; then
   echo "No osquery config file found at $REAL_CONFIG_PATH"
   echo "See '/usr/share/osquery/osquery.example.conf' for an example config."
-  exit 4
+  exit 1
 fi
 
+ensure_root() {
+  if [ $UID -ne 0 ] ; then
+    echo "User has insufficient privilege."
+    exit 1
+  fi
+}
+
 start() {
-    if [ $UID -ne 0 ] ; then
-      echo "User has insufficient privilege."
-      exit 4
-    fi
+  ensure_root
 
-    if [ -f $PIDFILE ]; then
-      PID=$(cat $PIDFILE)
-      PROCNAME=$(ps -p $PID -o comm\=)
-      if [ "$PROCNAME" = $PROG ]; then
-        echo "$PROG is already running: $PID"
-        exit 4
-      else
-        echo "osqueryd pidfile exists but it's not running"
-        rm $PIDFILE
-      fi
+  if [ -f $PIDFILE ]; then
+    PID=$(cat $PIDFILE)
+    PROCNAME=$(ps -p $PID -o comm\=)
+    if [ "$PROCNAME" = "$PROG" ]; then
+      echo "$PROG is already running: $PID"
+      return 1
+    else
+      # osqueryd pidfile exists but it's not running
+      rm $PIDFILE
     fi
+  fi
 
-    echo "launching osquery"
-    $PROG --config_path=$REAL_CONFIG_PATH \
-          --pidfile=$PIDFILE &
-    return $?
+  $PROG --config_path=$REAL_CONFIG_PATH \
+        --pidfile=$PIDFILE \
+        --daemonize=true
+  return $?
 }
 
 stop() {
-    if [ $UID -ne 0 ] ; then
-        echo "User has insufficient privilege."
-        exit 4
-    elif [ ! -s $PIDFILE ] ; then
-        echo $"Stopping $PROG: "
-        failure $"Stopping $PROG"
-    else
-        echo -n $"Stopping $PROG: "
-        killproc $PROG
-        retval=$?
-        echo
-        [ $RETVAL -eq 0 ] && rm -f $LOCKFILE
-        rm -f $PIDFILE
-    fi
+  ensure_root
+
+  if [ ! -f $PIDFILE ] ; then
+    echo "$PROG is not running. no pidfile found."
+    return 1
+  else
+    PID=$(cat $PIDFILE)
+    pkill -P $PID && kill -9 $PID
+    rm -f $PIDFILE
+  fi
 }
 
 restart() {
-    stop
-    start
+  stop
+  start
 }
 
 status() {
-    status -p $PIDFILE $PROG
+  if [ ! -f $PIDFILE ] ; then
+    echo "$PROG is not running. no pidfile found."
+  else
+    PID=$(cat $PIDFILE)
+    PROCNAME=$(ps -p $PID -o comm\=)
+    if [ "$PROCNAME" = "$PROG" ]; then
+      echo "$PROG is already running: $PID"
+      return 0
+    else
+      # osqueryd pidfile exists but it's not running
+      echo "$PROG is not running but a stale pidfile was found."
+    fi
+  fi
 }
 
 case "$1" in
