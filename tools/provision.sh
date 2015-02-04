@@ -184,15 +184,15 @@ function install_automake() {
 
 function install_libtool() {
   if [[ ! -f /usr/bin/libtool ]]; then
-    if [[ ! -f libtool-2.4.2.tar.gz ]]; then
-      wget http://mirror.anl.gov/pub/gnu/libtool/libtool-2.4.2.tar.gz
+    if [[ ! -f libtool-2.4.5.tar.gz ]]; then
+      wget http://ftpmirror.gnu.org/libtool/libtool-2.4.5.tar.gz
     else
       log "libtool is already downloaded. skipping."
     fi
-    if [[ ! -d libtool-2.4.2 ]]; then
-      tar -xf libtool-2.4.2.tar.gz
+    if [[ ! -d libtool-2.4.5 ]]; then
+      tar -xf libtool-2.4.5.tar.gz
     fi
-    pushd libtool-2.4.2
+    pushd libtool-2.4.5
     ./configure --prefix=/usr
     make
     sudo make install
