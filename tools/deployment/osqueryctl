@@ -61,7 +61,7 @@ start() {
   if [ $OS = "darwin" ]; then
     echo "launchctl start osquery"
   else
-    echo "service osqueryd start"
+    exec_with_env "service osqueryd start"
   fi
 }
 
@@ -69,7 +69,7 @@ stop() {
   if [ $OS = "darwin" ]; then
     echo "launchctl stop osquery"
   else
-    echo "service osqueryd stop"
+    exec_with_env "service osqueryd stop"
   fi
 }
 
@@ -82,7 +82,7 @@ status() {
   if [ $OS = "darwin" ]; then
     echo "querying the status of osquery on OS X"
   else
-    echo "service osqueryd status"
+    exec_with_env "service osqueryd status"
   fi
 }
 
