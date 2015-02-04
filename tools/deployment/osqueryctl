@@ -1,9 +1,19 @@
 #!/bin/bash
 
-if [ $UID -ne 0 ]; then
-  echo "User has insufficient privileges. $0 must be run as root."
-  exit 4
-fi
+ensure_root() {
+  if [ $UID -ne 0 ]; then
+    echo "User has insufficient privileges. $0 must be run as root."
+    exit 4
+  fi
+}
+
+check_config() {
+  if [ ! -e $REAL_CONFIG_PATH ] ; then
+      echo "No osquery config file found at $REAL_CONFIG_PATH."
+      echo "See '$EXAMPLE_CONFIG_PATH' for an example config."
+      exit 4
+  fi
+}
 
 # Use this function to detect the operating system that this
 platform() {
@@ -25,6 +35,10 @@ if [ $OS = "darwin" ]; then
   PIDFILE="/var/osquery/osquery.pid"
   LOCKFILE="/var/osquery/osquery.lock"
   EXEC="/usr/local/bin/osqueryd"
+  PLIST_DOMAIN="com.facebook.osqueryd"
+  PLIST_PATH="/Library/LaunchDaemons/$PLIST_DOMAIN.plist"
+  LAUNCHCTL_LIST=`launchctl list | grep com.facebook.osqueryd`
+  LAUNCHCTL_LIST_PID=`echo $LAUNCHCTL_LIST | awk '{ print $1 }'`
 else
   INIT_SCRIPT_PATH="/etc/init.d/osqueryd"
   if [ ! -e $INIT_SCRIPT_PATH ]; then
@@ -40,12 +54,6 @@ else
 fi
 PROG="osqueryd"
 
-if [ ! -e $REAL_CONFIG_PATH ] ; then
-    echo "No osquery config file found at $REAL_CONFIG_PATH."
-    echo "See '$EXAMPLE_CONFIG_PATH' for an example config."
-    exit 4
-fi
-
 exec_with_env() {
   REAL_CONFIG_PATH=$REAL_CONFIG_PATH \
   EXAMPLE_CONFIG_PATH=$EXAMPLE_CONFIG_PATH \
@@ -58,16 +66,19 @@ exec_with_env() {
 }
 
 start() {
+  ensure_root
+  check_config
   if [ $OS = "darwin" ]; then
-    echo "launchctl start osquery"
+    launchctl start $PLIST_PATH
   else
     exec_with_env "service osqueryd start"
   fi
 }
 
 stop() {
+  ensure_root
   if [ $OS = "darwin" ]; then
-    echo "launchctl stop osquery"
+    launchctl stop $PLIST_PATH
   else
     exec_with_env "service osqueryd stop"
   fi
@@ -80,7 +91,11 @@ restart() {
 
 status() {
   if [ $OS = "darwin" ]; then
-    echo "querying the status of osquery on OS X"
+    if [[ "$LAUNCHCTL_LIST" = "" || "$LAUNCHCTL_LIST_PID" = "-" ]]; then
+      echo "$PLIST_DOMAIN is not running"
+    else
+      echo "$PLIST_DOMAIN is running. pid: $LAUNCHCTL_LIST_PID"
+    fi
   else
     exec_with_env "service osqueryd status"
   fi
