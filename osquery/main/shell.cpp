@@ -15,13 +15,17 @@
 #include <osquery/devtools.h>
 #include <osquery/events.h>
 #include <osquery/extensions.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+const std::string kShellTemp = "/tmp/osquery";
+
 int main(int argc, char *argv[]) {
-  if (boost::filesystem::create_directory("/tmp/osquery")) {
-    osquery::FLAGS_db_path = "/tmp/osquery/shell.db";
-    osquery::FLAGS_extensions_socket = "/tmp/osquery/shell.em";
-    FLAGS_log_dir = "/tmp/osquery/";
+  if (osquery::pathExists(kShellTemp).ok() ||
+      boost::filesystem::create_directory(kShellTemp)) {
+    osquery::FLAGS_db_path = kShellTemp + "/shell.db";
+    osquery::FLAGS_extensions_socket = kShellTemp + "/shell.em";
+    FLAGS_log_dir = kShellTemp;
   }
 
   // Parse/apply flags, start registry, load logger/config plugins.

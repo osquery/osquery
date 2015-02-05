@@ -10,11 +10,12 @@
 
 #include <stdexcept>
 
+// GTest must come before the Thrift includes.
+#include <gtest/gtest.h>
+
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/transport/TSocket.h>
-
-#include <gtest/gtest.h>
 
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
