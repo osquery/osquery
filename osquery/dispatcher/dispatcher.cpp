@@ -22,7 +22,7 @@ namespace osquery {
 DEFINE_osquery_flag(int32,
                     worker_threads,
                     4,
-                    "The number of threads to use for the work dispatcher");
+                    "Number of work dispatch threads");
 
 Dispatcher& Dispatcher::getInstance() {
   static Dispatcher d;

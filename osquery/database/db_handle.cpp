@@ -35,12 +35,12 @@ const std::vector<std::string> kDomains = {kConfigurations, kQueries, kEvents};
 DEFINE_osquery_flag(string,
                     db_path,
                     "/var/osquery/osquery.db",
-                    "If using a disk-based backing store, specify a path.");
+                    "If using a disk-based backing store, specify a path");
 
 DEFINE_osquery_flag(bool,
                     use_in_memory_database,
                     false,
-                    "Keep osquery backing-store in memory.");
+                    "Keep osquery backing-store in memory");
 
 /////////////////////////////////////////////////////////////////////////////
 // constructors and destructors

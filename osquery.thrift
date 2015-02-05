@@ -10,7 +10,7 @@ struct InternalExtensionInfo {
   3:string sdk_version,
 }
 
-typedef i64 ExtensionRouteUUID;
+typedef i64 ExtensionRouteUUID
 typedef map<string, string> ExtensionRoute
 typedef map<string, ExtensionRoute> ExtensionRouteTable
 typedef map<string, ExtensionRouteTable> ExtensionRegistry

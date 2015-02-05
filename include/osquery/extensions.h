@@ -12,6 +12,7 @@
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
+#include <osquery/flags.h>
 #include <osquery/registry.h>
 
 #ifdef OSQUERY_THRIFT
@@ -22,6 +23,9 @@
 #endif
 
 namespace osquery {
+
+DECLARE_string(extensions_socket);
+
 namespace extensions {
 
 /**
@@ -146,7 +150,7 @@ class ExtensionWatcher : public InternalRunnable {
  private:
   /// The UNIX domain socket path for the ExtensionManager.
   std::string manager_path_;
-  /// The internal in seconds to ping the ExtensionManager.
+  /// The internal in milliseconds to ping the ExtensionManager.
   size_t interval_;
   /// If the ExtensionManager socket is closed, should the extension exit.
   bool fatal_;

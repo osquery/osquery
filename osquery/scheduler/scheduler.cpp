@@ -30,7 +30,7 @@ DEFINE_osquery_flag(string,
 DEFINE_osquery_flag(int32,
                     schedule_splay_percent,
                     10,
-                    "Percent to splay config times.");
+                    "Percent to splay config times");
 
 Status getHostIdentifier(std::string& ident) {
   std::shared_ptr<DBHandle> db;

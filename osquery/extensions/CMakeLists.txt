@@ -1,7 +1,3 @@
-ADD_OSQUERY_LIBRARY(TRUE osquery_extensions
-  extensions.cpp
-)
-
 # Generate the thrift intermediate/interface code.
 add_custom_command(
   COMMAND
@@ -11,8 +7,9 @@ add_custom_command(
   OUTPUT ${OSQUERY_THRIFT_GENERATED_FILES} 
 )
 
-ADD_OSQUERY_LIBRARY(TRUE osquery_extensions_interface
+ADD_OSQUERY_LIBRARY(TRUE osquery_extensions
   ${OSQUERY_THRIFT_GENERATED_FILES}
+  extensions.cpp
 )
 
 ADD_OSQUERY_TEST(TRUE extensions_test extensions_tests.cpp)

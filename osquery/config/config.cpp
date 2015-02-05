@@ -25,9 +25,9 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 DEFINE_osquery_flag(string,
-                    config_retriever,
+                    config_plugin,
                     "filesystem",
-                    "Config type (plugin).");
+                    "Config type (plugin)");
 
 static boost::shared_mutex rw_lock;
 
@@ -60,14 +60,14 @@ Status Config::load() {
 }
 
 Status Config::genConfig(std::string& conf) {
-  if (!Registry::exists("config", FLAGS_config_retriever)) {
-    LOG(ERROR) << "Config retriever " << FLAGS_config_retriever << " not found";
+  if (!Registry::exists("config", FLAGS_config_plugin)) {
+    LOG(ERROR) << "Config retriever " << FLAGS_config_plugin << " not found";
     return Status(1, "Config retriever not found");
   }
 
   PluginResponse response;
   auto status = Registry::call(
-      "config", FLAGS_config_retriever, {{"action", "genConfig"}}, response);
+      "config", FLAGS_config_plugin, {{"action", "genConfig"}}, response);
 
   if (!status.ok()) {
     return status;

@@ -28,6 +28,14 @@ using namespace apache::thrift::server;
 using namespace osquery::extensions;
 
 namespace osquery {
+
+DEFINE_osquery_flag(bool, disable_extensions, false, "Disable extension API");
+
+DEFINE_osquery_flag(string,
+                    extensions_socket,
+                    "/var/osquery/osquery.em",
+                    "Path to the extensions UNIX domain socket")
+
 namespace extensions {
 
 void ExtensionHandler::ping(ExtensionStatus& _return) {
@@ -193,17 +201,22 @@ void ExtensionWatcher::exitFatal() {
   // Not yet implemented.
 }
 
+#ifdef OSQUERY_EXTENSION_NAME
 Status startExtension() {
   // No assumptions about how the extensions logs, the first action is to
   // start the extension's registry.
   Registry::setUp();
 
-  auto status = startExtensionWatcher("/tmp/osquery.sock", 100, true);
+  auto status = startExtensionWatcher(FLAGS_extensions_socket, 3000, true);
   if (status.ok()) {
-    status = startExtension("/tmp/osquery.sock", "test", "0.1", "0.1");
+    status = startExtension(FLAGS_extensions_socket,
+                            OSQUERY_EXTENSION_NAME,
+                            OSQUERY_EXTENSION_VERSION,
+                            OSQUERY_SDK_VERSION);
   }
   return status;
 }
+#endif
 
 Status startExtension(const std::string& manager_path,
                       const std::string& name,
@@ -307,7 +320,7 @@ Status startExtensionWatcher(const std::string& manager_path,
 }
 
 Status startExtensionManager() {
-  return startExtensionManager("/tmp/osquery.sock");
+  return startExtensionManager(FLAGS_extensions_socket);
 }
 
 Status startExtensionManager(const std::string& manager_path) {

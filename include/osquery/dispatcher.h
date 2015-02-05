@@ -48,7 +48,7 @@ class InternalRunnable : public apache::thrift::concurrency::Runnable {
   InternalRunnable() : run_(false) {}
 
  public:
-  void run() final {
+  void run() {
     run_ = true;
     enter();
   }
