@@ -1,11 +1,12 @@
 table_name("rpm_packages")
+description("The installed RPM package database.")
 schema([
-    Column("name", TEXT),
-    Column("version", TEXT),
-    Column("release", TEXT),
-    Column("source", TEXT),
-    Column("size", BIGINT),
-    Column("sha1", TEXT),
-    Column("arch", TEXT),
+    Column("name", TEXT, "RPM package name"),
+    Column("version", TEXT, "Package version"),
+    Column("release", TEXT, "Package release"),
+    Column("source", TEXT, "Source RPM package name (optional)"),
+    Column("size", BIGINT, "Package size in bytes"),
+    Column("sha1", TEXT, "SHA1 hash of the package contents"),
+    Column("arch", TEXT, "Architecture(s) supported"),
 ])
 implementation("system/rpm_packages@genRpms")

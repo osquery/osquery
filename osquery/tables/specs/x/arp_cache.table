@@ -1,8 +1,9 @@
 table_name("arp_cache")
+description("The ARP (IPv4) address cache")
 schema([
-    Column("address", TEXT),
-    Column("mac", TEXT),
-    Column("interface", TEXT),
+    Column("address", TEXT, "IPv4 address target"),
+    Column("mac", TEXT, "MAC address of broadcasted address"),
+    Column("interface", TEXT, "Interface of the network for the MAC"),
     Column("permanent", TEXT, "1 for true, 0 for false"),
 ])
 implementation("linux/arp_cache,darwin/routes@genArpCache")

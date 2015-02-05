@@ -1,7 +1,8 @@
 table_name("homebrew_packages")
+description("The installed homebrew package database.")
 schema([
-    Column("name", TEXT),
-    Column("path", TEXT),
-    Column("version", TEXT),
+    Column("name", TEXT, "Package name"),
+    Column("path", TEXT, "Package install path"),
+    Column("version", TEXT, "Current 'linked' version"),
 ])
 implementation("system/homebrew_packages@genHomebrewPackages")

@@ -1,7 +1,8 @@
 table_name("xprotect_reports")
+description("Database of XProtect matches (if user generated/sent an XProtect report)")
 schema([
-    Column("name", TEXT, "Description of XProtect'ed malware"),
+    Column("name", TEXT, "Description of XProtected malware"),
     Column("user_action", TEXT, "Action taken by user after prompted"),
-    Column("time", TEXT, "Quarantine alert time."),
+    Column("time", TEXT, "Quarantine alert time"),
 ])
 implementation("xprotect@genXProtectReports")

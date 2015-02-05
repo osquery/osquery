@@ -1,7 +1,8 @@
 table_name("acpi_tables")
+description("Current ACPI tables")
 schema([
-    Column("name", TEXT),
-    Column("size", INTEGER),
-    Column("md5", TEXT),
+    Column("name", TEXT, "ACPI table name"),
+    Column("size", INTEGER, "Size of compiled table data"),
+    Column("md5", TEXT, "MD5 hash of table content"),
 ])
 implementation("system/acpi_tables@genACPITables")
