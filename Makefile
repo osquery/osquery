@@ -49,8 +49,8 @@ ifeq ($(PLATFORM),Linux)
 endif
 
 .setup:
-	mkdir -p build/$(BUILD_DIR)
-	mkdir -p build/$(BUILD_DIR)/sdk
+	mkdir -p build/$(BUILD_DIR)/generated
+	mkdir -p build/$(BUILD_DIR)/sdk/generated
 ifeq ($(PLATFORM),Linux)
 		ln -snf $(BUILD_DIR) build/linux
 endif

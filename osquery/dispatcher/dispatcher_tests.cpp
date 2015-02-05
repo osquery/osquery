@@ -26,7 +26,7 @@ class TestRunnable : public InternalRunnable {
  public:
   int* i;
   TestRunnable(int* i) : i(i) {}
-  virtual void run() { ++*i; }
+  virtual void enter() { ++*i; }
 };
 
 TEST_F(DispatcherTests, test_add_work) {
