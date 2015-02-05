@@ -10,6 +10,7 @@
 
 #include <exception>
 #include <sstream>
+#include <iostream>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -246,15 +247,67 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
         doubleStarTraversal(fs_path.parent_path(), results, rec_depth);
     return stat;
   }
+
+  // Is the path a file
+  try {
+    if (boost::filesystem::is_regular_file(fs_path)) {
+      results.push_back(fs_path.string());
+      return Status(0, "OK");
+    }
+  } catch (const boost::filesystem::filesystem_error& e) {
+    // This should catch permission problems
+    return Status(0, "OK");
+  }
+
+  std::vector<std::string> files;
+  Status stat = listFilesInDirectory(fs_path.parent_path(), files);
+  if (!stat.ok()) {
+    return stat;
+  }
+
   // Is the last component a wildcard?
   if (components[components.size() - 1] == kWildcardCharacter) {
-    std::vector<std::string> files;
-    Status stat = listFilesInDirectory(fs_path.parent_path(), files);
-    if (!stat.ok()) {
-      return stat;
-    }
     for (const auto& file : files) {
       results.push_back(file);
+    }
+    return Status(0, "OK");
+  }
+
+  std::string processed_path =
+      "/" +
+      boost::algorithm::join(
+          std::vector<std::string>(components.begin(), components.end() - 1),
+          "/");
+
+  // Is this a .*% type file match
+  if (components[components.size() - 1].find(kWildcardCharacter, 1) !=
+          std::string::npos &&
+      components[components.size() - 1][0] != kWildcardCharacter[0]) {
+
+    std::string prefix =
+        processed_path + "/" +
+        components[components.size() - 1].substr(
+            0, components[components.size() - 1].find(kWildcardCharacter, 1));
+    for (const auto& file : files) {
+      if (file.find(prefix, 0) != 0) {
+        continue;
+      }
+      results.push_back(file);
+    }
+  }
+
+  // Is this a %(.*) type file match
+  if (components[components.size() - 1][0] == kWildcardCharacter[0]) {
+    std::string suffix = components[components.size() - 1].substr(1);
+
+    for (const auto& file : files) {
+      boost::filesystem::path p(file);
+      std::string file_name = p.filename().string();
+      size_t pos = file_name.find(suffix);
+      if (pos != std::string::npos &&
+          pos + suffix.length() == file_name.length()) {
+        results.push_back(file);
+      }
     }
     return Status(0, "OK");
   }
@@ -266,22 +319,12 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
 
   // Is the path a directory
   if (boost::filesystem::is_directory(fs_path)) {
-    std::vector<std::string> files;
-    Status stat = listFilesInDirectory(fs_path, files);
-    if (!stat.ok()) {
-      return stat;
-    }
     for (auto& file : files) {
       results.push_back(file);
     }
     return Status(0, "OK");
   }
 
-  // Is the path a file
-  if (boost::filesystem::is_regular_file(fs_path)) {
-    results.push_back(fs_path.string());
-    return Status(0, "OK");
-  }
   return Status(1, "UNKNOWN FILE TYPE");
 }
 
@@ -304,30 +347,41 @@ Status resolveFilePattern(std::vector<std::string> components,
                           std::vector<std::string>& results,
                           unsigned int processed_index = 0,
                           unsigned int rec_depth = 0) {
+
+  // Stop recursing here if we've reached out max depth
+  if (rec_depth >= kMaxDirectoryTraversalDepth) {
+    return Status(2, "MAX_DEPTH");
+  }
+
   // Handle all parts of the path except last because then we want to get files,
   // not directories
   for (auto i = processed_index; i < components.size() - 1; i++) {
-    // A wildcard only component
+
+    // If we encounter a full recursion, that is invalid because it is not
+    // the last component. So return.
+    if (components[i] == kWildcardCharacterRecursive) {
+      return Status(1, kWildcardCharacterRecursive + " NOT LAST COMPONENT");
+    }
+
+    // Create a vector to hold all the folders in the current folder
+    // Build the path we're at out of components
+    std::vector<std::string> folders;
+
+    std::string processed_path =
+        "/" +
+        boost::algorithm::join(std::vector<std::string>(components.begin(),
+                                                        components.begin() + i),
+                               "/");
+    Status stat = listDirectoriesInDirectory(processed_path, folders);
+    // If we couldn't list the directories it's probably because
+    // the path is invalid (or we don't have permission). Return
+    // here because this branch is no good. This is not an error
+    if (!stat.ok()) {
+      return Status(0, "OK");
+    }
+    // If we just have a wildcard character then we will recurse though
+    // all folders we find
     if (components[i] == kWildcardCharacter) {
-      if (rec_depth >= kMaxDirectoryTraversalDepth) {
-        return Status(2, "MAX_DEPTH");
-      }
-      std::vector<std::string> folders;
-      std::string processed_path =
-          "/" + boost::algorithm::join(
-                    std::vector<std::string>(components.begin(),
-                                             components.begin() + i),
-                    "/");
-
-      Status stat = listDirectoriesInDirectory(processed_path, folders);
-
-      // If we couldn't list the directories it's probably because
-      // the path is invalid (or we don't have permission). Return
-      // here because this branch is no good.
-      if (!stat.ok()) {
-        return Status(0, "OK");
-      }
-
       for (const auto& dir : folders) {
         boost::filesystem::path p(dir);
         components[i] = p.filename().string();
@@ -339,14 +393,48 @@ Status resolveFilePattern(std::vector<std::string> components,
       }
       // Our subcalls that handle processing are now complete, return
       return Status(0, "OK");
-    } else if (components[i] == kWildcardCharacterRecursive) {
-      return Status(1, "%% NOT LAST COMPONENT");
+
+      // The case of (.*)%
+    } else if (components[i].find(kWildcardCharacter, 1) != std::string::npos &&
+               components[i][0] != kWildcardCharacter[0]) {
+      std::string prefix =
+          processed_path + "/" +
+          components[i].substr(0, components[i].find(kWildcardCharacter, 1));
+      for (const auto& dir : folders) {
+        if (dir.find(prefix, 0) != 0) {
+          continue;
+        }
+        boost::filesystem::path p(dir);
+        components[i] = p.filename().string();
+        Status stat =
+            resolveFilePattern(components, results, i + 1, rec_depth + 1);
+        if (!stat.ok() && stat.getCode() == 2) {
+          return stat;
+        }
+      }
+      return Status(0, "OK");
+      // The case of %(.*)
+    } else if (components[i][0] == kWildcardCharacter[0]) {
+      std::string suffix = components[i].substr(1);
+      for (const auto& dir : folders) {
+        boost::filesystem::path p(dir);
+        std::string folder_name = p.filename().string();
+        size_t pos = folder_name.find(suffix);
+        if (pos != std::string::npos &&
+            pos + suffix.length() == folder_name.length()) {
+          components[i] = p.filename().string();
+          Status stat =
+              resolveFilePattern(components, results, i + 1, rec_depth + 1);
+          if (!stat.ok() && stat.getCode() == 2) {
+            return stat;
+          }
+        }
+      }
+      return Status(0, "OK");
     } else {
-      // When we want to support wildcards like "foobar%", this is where it
-      // will happen
     }
   }
-  
+
   // At this point, all of our call paths have been resolved, so know we want to
   // list the files at this point or do our ** traversal
   return resolveLastPathComponent("/" + boost::algorithm::join(components, "/"),
@@ -357,7 +445,7 @@ Status resolveFilePattern(std::vector<std::string> components,
 
 Status resolveFilePattern(const boost::filesystem::path& fs_path,
                           std::vector<std::string>& results) {
-  return resolveFilePattern(split(fs_path.string(), "/"), results, 0, 0);
+  return resolveFilePattern(split(fs_path.string(), "/"), results);
 }
 
 Status getDirectory(const boost::filesystem::path& path,
