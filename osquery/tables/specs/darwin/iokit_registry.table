@@ -1,11 +1,12 @@
 table_name("iokit_registry")
+description("The full IOKit registry without selecting a plane.")
 schema([
-    Column("name", TEXT),
-    Column("class", TEXT),
-    Column("id", BIGINT),
-    Column("parent", BIGINT),
-    Column("busy_state", INTEGER),
-    Column("retain_count", INTEGER),
-    Column("depth", INTEGER),
+    Column("name", TEXT, "Default name of the node"),
+    Column("class", TEXT, "Best matching device class (most-specific category)"),
+    Column("id", BIGINT, "IOKit internal registry ID"),
+    Column("parent", BIGINT, "Parent registry ID"),
+    Column("busy_state", INTEGER, "1 if the node is in a busy state else 0"),
+    Column("retain_count", INTEGER, "The node reference count"),
+    Column("depth", INTEGER, "Node nested depth"),
 ])
 implementation("system/iokit_registry@genIOKitRegistry")

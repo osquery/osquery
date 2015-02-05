@@ -1,7 +1,8 @@
 table_name("alf_services")
+description("OS X application layer firewall (Firewall) services.")
 schema([
-    Column("service", TEXT),
-    Column("process", TEXT),
+    Column("service", TEXT, "Firewalled service name"),
+    Column("process", TEXT, "Process name"),
     Column("state", INTEGER),
 ])
 implementation("firewall@genALFServices")

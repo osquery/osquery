@@ -1,11 +1,12 @@
 table_name("xprotect_entries")
+description("Database of the machine's XProtect signatures.")
 schema([
-    Column("name", TEXT, "Description of XProtect'ed malware"),
+    Column("name", TEXT, "Description of XProtected malware"),
     Column("launch_type", TEXT, "Launch services content type"),
-    Column("identity", TEXT, "XProtect identity"),
-    Column("filename", TEXT),
-    Column("filetype", TEXT),
-    Column("optional", INTEGER, "Match any of the identities/patterns."),
+    Column("identity", TEXT, "XProtect identity (SHA1) of content"),
+    Column("filename", TEXT, "Use this file name to match"),
+    Column("filetype", TEXT, "Use this file type to match"),
+    Column("optional", INTEGER, "Match any of the identities/patterns for this XProtect name"),
     Column("uses_pattern", INTEGER, "Uses a match pattern instead of identity"),
 ])
 implementation("xprotect@genXProtectEntries")

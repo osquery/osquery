@@ -1,7 +1,8 @@
 table_name("nvram")
+description("Apple NVRAM variable listing")
 schema([
-    Column("name", TEXT),
-    Column("type", TEXT),
-    Column("value", TEXT),
+    Column("name", TEXT, "Variable name"),
+    Column("type", TEXT, "Data type (CFData, CFString, etc)"),
+    Column("value", TEXT, "Raw variable data"),
 ])
 implementation("nvram@genNVRAM")

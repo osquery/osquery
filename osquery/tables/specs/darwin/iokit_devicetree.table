@@ -1,13 +1,14 @@
 table_name("iokit_devicetree")
+description("The IOKit DeviceTree registry")
 schema([
-    Column("name", TEXT),
-    Column("class", TEXT),
-    Column("id", BIGINT),
-    Column("parent", BIGINT),
-    Column("device_path", TEXT),
-    Column("service", INTEGER),
-    Column("busy_state", INTEGER),
-    Column("retain_count", INTEGER),
-    Column("depth", INTEGER),
+    Column("name", TEXT, "Device node name"),
+    Column("class", TEXT, "Best matching device class (most-specific category)"),
+    Column("id", BIGINT, "IOKit internal registry ID"),
+    Column("parent", BIGINT, "Parent device registry ID"),
+    Column("device_path", TEXT, "Device tree path"),
+    Column("service", INTEGER, "1 if the device conforms to IOService else 0"),
+    Column("busy_state", INTEGER, "1 if the device is in a busy state else 0"),
+    Column("retain_count", INTEGER, "The device reference count"),
+    Column("depth", INTEGER, "Device nested depth"),
 ])
 implementation("system/iokit_registry@genIOKitDeviceTree")
