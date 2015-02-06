@@ -103,7 +103,6 @@ void genSocketDescriptor(int pid, int descriptor, QueryData &results) {
                      PROC_PIDFDSOCKETINFO_SIZE) <= 0) {
     return;
   }
-
   if (si.psi.soi_kind == SOCKINFO_IN || si.psi.soi_kind == SOCKINFO_TCP) {
     Row r;
 
@@ -130,7 +129,6 @@ void genSocketDescriptor(int pid, int descriptor, QueryData &results) {
 }
 
 void genOpenDescriptors(int pid, descriptor_type type, QueryData &results) {
-  // std::vector<OpenFile> open_files;
   int bufsize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
   if (bufsize == -1) {
     VLOG(1) << "Could not list descriptors for pid: " << pid;
@@ -139,13 +137,14 @@ void genOpenDescriptors(int pid, descriptor_type type, QueryData &results) {
 
   // Allocate structs for each descriptor.
   proc_fdinfo fds[bufsize / PROC_PIDLISTFD_SIZE];
+  proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fds, bufsize);
 
   for (auto fd_info : fds) {
     if (type == DESCRIPTORS_TYPE_VNODE &&
         fd_info.proc_fdtype == PROX_FDTYPE_VNODE) {
       genFileDescriptor(pid, fd_info.proc_fd, results);
     } else if (type == DESCRIPTORS_TYPE_SOCKET &&
-               fd_info.proc_fdtype == PROX_FDTYPE_SOCKET) {
+        fd_info.proc_fdtype == PROX_FDTYPE_SOCKET) {
       genSocketDescriptor(pid, fd_info.proc_fd, results);
     }
   }
@@ -160,7 +159,6 @@ QueryData genOpenSockets(QueryContext &context) {
       // Optimize by not searching when a pid is a constraint.
       continue;
     }
-
     genOpenDescriptors(pid, DESCRIPTORS_TYPE_SOCKET, results);
   }
 
