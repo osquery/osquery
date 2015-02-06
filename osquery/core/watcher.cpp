@@ -15,21 +15,35 @@
 #include <signal.h>
 
 #include <osquery/core.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
 #include "osquery/core/watcher.h"
 
+extern char** environ;
+
+namespace fs = boost::filesystem;
+
 namespace osquery {
 
 #define WORKER_MEMORY_LIMIT (20 * 1024 * 1024)
+#ifdef __APPLE__
+#define WORKER_UTILIZATION_LIMIT (1000000 * 60)
+#else
 #define WORKER_UTILIZATION_LIMIT 60
+#endif
 #define WORKER_RESPAWN_LIMIT 20
 #define WORKER_RESPAWN_DELAY 5
 #define WORKER_LATENCY_LIMIT 5
 
+DEFINE_osquery_flag(bool,
+                    disable_watchdog,
+                    false,
+                    "Disable userland watchdog process");
+
 bool Watcher::ok() {
-  ::sleep(1);
+  ::sleep(3);
   return (worker_ >= 0);
 }
 
@@ -65,14 +79,23 @@ bool Watcher::isWorkerSane() {
   }
 
   // Compare CPU utilization since last check.
-  size_t user_time = AS_LITERAL(INTEGER_LITERAL, rows[0].at("user_time"));
-  size_t system_time = AS_LITERAL(INTEGER_LITERAL, rows[0].at("system_time"));
+  BIGINT_LITERAL footprint, user_time, system_time;
+
+  try {
+    user_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("user_time"));
+    system_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("system_time"));
+    footprint = AS_LITERAL(BIGINT_LITERAL, rows[0].at("phys_footprint"));
+  } catch (const std::exception& e) {
+    sustained_latency_ = 0;
+  }
+
   if (current_user_time_ + WORKER_UTILIZATION_LIMIT < user_time ||
       current_system_time_ + WORKER_UTILIZATION_LIMIT < system_time) {
     sustained_latency_++;
   } else {
     sustained_latency_ = 0;
   }
+
   current_user_time_ = user_time;
   current_system_time_ = system_time;
 
@@ -81,7 +104,6 @@ bool Watcher::isWorkerSane() {
     return false;
   }
 
-  size_t footprint = AS_LITERAL(INTEGER_LITERAL, rows[0].at("phys_footprint"));
   if (footprint > WORKER_MEMORY_LIMIT) {
     LOG(WARNING) << "osqueryd worker memory limits exceeded";
     return false;
@@ -91,7 +113,7 @@ bool Watcher::isWorkerSane() {
   return true;
 }
 
-bool Watcher::createWorker() {
+void Watcher::createWorker() {
   if (last_respawn_time_ > getUnixTime() - WORKER_RESPAWN_LIMIT) {
     LOG(WARNING) << "osqueryd worker respawning too quickly";
     ::sleep(WORKER_RESPAWN_DELAY);
@@ -104,16 +126,20 @@ bool Watcher::createWorker() {
     ::exit(EXIT_FAILURE);
   } else if (worker_ == 0) {
     // This is the new worker process, no watching needed.
-    initWorker();
-    return true;
+    setenv("OSQUERYD_WORKER", std::to_string(getpid()).c_str(), 1);
+    fs::path exec_path(fs::initial_path<fs::path>());
+    exec_path = fs::system_complete(fs::path(argv_[0]));
+    execve(exec_path.string().c_str(), argv_, environ);
+    // Code will never reach this point.
+    ::exit(EXIT_FAILURE);
   }
 
-  // This is still the watcher, reset performance monitoring.
-  resetCounters();
-  return false;
+  VLOG(1) << "osqueryd watcher (" << getpid() << ") executing worker ("
+          << worker_ << ")";
 }
 
 void Watcher::resetCounters() {
+  // Reset the monitoring counters for the watcher.
   sustained_latency_ = 0;
   current_user_time_ = 0;
   current_system_time_ = 0;
@@ -129,6 +155,26 @@ void Watcher::initWorker() {
     }
   }
   strncpy(argv_[0], name_.c_str(), name_size);
+
+  // Start a watcher watcher thread to exit the process if the watcher exits.
+  Dispatcher::getInstance().addService(
+      std::make_shared<WatcherWatcherRunner>(getppid()));
+}
+
+bool isOsqueryWorker() {
+  return (getenv("OSQUERYD_WORKER") != nullptr);
+}
+
+void WatcherWatcherRunner::enter() {
+  while (true) {
+    if (getppid() != watcher_) {
+      // Watcher died, the worker must follow.
+      VLOG(1) << "osqueryd worker (" << getpid()
+              << ") detected killed watcher (" << watcher_ << ")";
+      ::exit(EXIT_SUCCESS);
+    }
+    interruptableSleep(3000);
+  }
 }
 
 void initWorkerWatcher(const std::string& name, int argc, char* argv[]) {
@@ -136,14 +182,20 @@ void initWorkerWatcher(const std::string& name, int argc, char* argv[]) {
   Watcher watcher(argc, argv);
   watcher.setWorkerName(name);
 
-  do {
-    if (!watcher.watch()) {
-      // The watcher failed, create a worker.
-      if (watcher.createWorker()) {
-        // This is the execution of the new worker, break out of watching.
-        break;
+  if (isOsqueryWorker()) {
+    // Do not start watching/spawning if this process is a worker.
+    watcher.initWorker();
+  } else {
+    do {
+      if (!watcher.watch()) {
+        // The watcher failed, create a worker.
+        watcher.createWorker();
+        watcher.resetCounters();
       }
-    }
-  } while (watcher.ok());
+    } while (watcher.ok());
+
+    // Executation should never reach this point.
+    ::exit(EXIT_FAILURE);
+  }
 }
 }

@@ -8,8 +8,6 @@
  *
  */
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TSimpleServer.h>
 #include <thrift/transport/TServerSocket.h>
@@ -189,7 +187,7 @@ void ExtensionWatcher::enter() {
       transport->close();
       exitFatal();
     }
-    boost::this_thread::sleep(boost::posix_time::milliseconds(interval_));
+    interruptableSleep(interval_);
   }
 
   // Code will never reach this socket close.
@@ -240,7 +238,7 @@ Status startExtension(const std::string& manager_path,
   info.version = version;
   info.sdk_version = sdk_version;
 
-  // Register the extension's registery broadcast with the manager.
+  // Register the extension's registry broadcast with the manager.
   ExtensionManagerClient client(protocol);
   ExtensionStatus status;
   try {

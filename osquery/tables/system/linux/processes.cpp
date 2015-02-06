@@ -140,8 +140,13 @@ QueryData genProcesses(QueryContext& context) {
 
   // Populate proc struc for each process.
   while ((proc_info = readproc(proc, NULL))) {
-    Row r;
+    if (!context.constraints["pid"].matches<int>(proc_info->tid)) {
+      // Optimize by not searching when a pid is a constraint.
+      standard_freeproc(proc_info);
+      continue;
+    }
 
+    Row r;
     r["pid"] = INTEGER(proc_info->tid);
     r["uid"] = BIGINT((unsigned int)proc_info->ruid);
     r["gid"] = BIGINT((unsigned int)proc_info->rgid);
@@ -177,7 +182,6 @@ QueryData genProcessEnvs(QueryContext& context) {
   PROCTAB* proc = openproc(PROC_SELECTS);
 
   // Populate proc struc for each process.
-
   while ((proc_info = readproc(proc, NULL))) {
     auto env = proc_env(proc_info);
     for (auto itr = env.begin(); itr != env.end(); ++itr) {

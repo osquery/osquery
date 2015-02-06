@@ -8,6 +8,8 @@
  *
  */
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -23,6 +25,10 @@ DEFINE_osquery_flag(int32,
                     worker_threads,
                     4,
                     "Number of work dispatch threads");
+
+void InternalRunnable::interruptableSleep(size_t milli) {
+  boost::this_thread::sleep(boost::posix_time::milliseconds(milli));
+}
 
 Dispatcher& Dispatcher::getInstance() {
   static Dispatcher d;

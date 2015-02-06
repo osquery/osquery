@@ -53,6 +53,11 @@ enum osqueryTool {
 void initOsquery(int argc, char* argv[], int tool = OSQUERY_TOOL_TEST);
 
 /**
+ * @brief Sets up a process as a osquery daemon.
+ */
+void initOsqueryDaemon();
+
+/**
  * @brief Turns of various aspects of osquery such as event loops.
  *
  */

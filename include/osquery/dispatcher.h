@@ -48,14 +48,20 @@ class InternalRunnable : public apache::thrift::concurrency::Runnable {
   InternalRunnable() : run_(false) {}
 
  public:
+  /// The boost::thread entrypoint.
   void run() {
     run_ = true;
     enter();
   }
 
+  /// Check if the thread's entrypoint (run) executed, meaning thread context
+  /// was allocated.
   bool hasRun() { return run_; }
+  /// Sleep in a boost::thread interruptable state.
+  void interruptableSleep(size_t milli);
 
  protected:
+  /// Require the runnable thread define an entrypoint.
   virtual void enter() = 0;
 
  private:

@@ -13,6 +13,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <set>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -199,7 +200,17 @@ struct ConstraintList {
    * @param op the ConstraintOperator.
    * @return A list of TEXT%-represented types matching the operator.
    */
-  std::vector<std::string> getAll(ConstraintOperator op);
+  std::set<std::string> getAll(ConstraintOperator op);
+
+  template<typename T>
+  std::set<T> getAll(ConstraintOperator op) {
+    std::set<T> literal_matches;
+    auto matches = getAll(op);
+    for (const auto& match : matches) {
+      literal_matches.insert(AS_LITERAL(T, match));
+    }
+    return literal_matches;
+  }
 
   /**
    * @brief Add a new Constraint to the list of constraints.

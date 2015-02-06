@@ -88,6 +88,16 @@ class DBHandle {
   static std::shared_ptr<DBHandle> getInstance();
 
   /**
+   * @brief Check the sanify of the database configuration options
+   *
+   * Create a handle to the backing store using the database configuration.
+   * Catch any instance creation exceptions and release the handle immediately.
+   *
+   * @return Success if a handle was created without error.
+   */
+  static bool checkDB();
+
+  /**
    * @brief Helper method which can be used to get a raw pointer to the
    * underlying RocksDB database handle
    *

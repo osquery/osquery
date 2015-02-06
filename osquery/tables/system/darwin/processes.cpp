@@ -210,7 +210,17 @@ std::vector<std::string> getProcArgs(int pid, size_t argmax) {
 
 QueryData genProcesses(QueryContext &context) {
   QueryData results;
-  auto pidlist = getProcList();
+
+  std::set<int> pidlist;
+  if (context.constraints["pid"].exists()) {
+    pidlist = context.constraints["pid"].getAll<int>(EQUALS);
+  }
+
+  // No equality matches, get all pids.
+  if (pidlist.size() == 0) {
+    pidlist = getProcList();
+  }
+
   auto parent_pid = getParentMap(pidlist);
   int argmax = genMaxArgs();
 

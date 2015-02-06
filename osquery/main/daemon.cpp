@@ -19,57 +19,13 @@
 
 #include "osquery/core/watcher.h"
 
-const std::string kWatcherWorkerName = "osqueryd-worker";
-
-#ifndef __APPLE__
-namespace osquery {
-DEFINE_osquery_flag(bool, daemonize, false, "Run as daemon (osqueryd only)");
-}
-#endif
-
-namespace osquery {
-DEFINE_osquery_flag(bool,
-                    config_check,
-                    false,
-                    "Check the format of an osquery config");
-
-DEFINE_osquery_flag(bool,
-                    disable_watchdog,
-                    false,
-                    "Disable userland watchdog process");
-}
+const std::string kWatcherWorkerName = "osqueryd: worker";
 
 int main(int argc, char* argv[]) {
   osquery::initOsquery(argc, argv, osquery::OSQUERY_TOOL_DAEMON);
 
-  if (osquery::FLAGS_config_check) {
-    auto s = osquery::Config::checkConfig();
-    if (!s.ok()) {
-      std::cerr << "Error reading config: " << s.toString() << "\n";
-    }
-    return s.getCode();
-  }
-
-#ifndef __APPLE__
-  // OSX uses launchd to daemonize.
-  if (osquery::FLAGS_daemonize) {
-    if (daemon(0, 0) == -1) {
-      ::exit(EXIT_FAILURE);
-    }
-  }
-#endif
-
-  auto pid_status = osquery::createPidFile();
-  if (!pid_status.ok()) {
-    LOG(ERROR) << "Could not start osqueryd: " << pid_status.toString();
-    ::exit(EXIT_FAILURE);
-  }
-
-  try {
-    osquery::DBHandle::getInstance();
-  } catch (std::exception& e) {
-    LOG(ERROR) << "osqueryd failed to start: " << e.what();
-    ::exit(EXIT_FAILURE);
+  if (!osquery::isOsqueryWorker()) {
+    osquery::initOsqueryDaemon();
   }
 
   if (!osquery::FLAGS_disable_watchdog) {
@@ -77,32 +33,12 @@ int main(int argc, char* argv[]) {
     osquery::initWorkerWatcher(kWatcherWorkerName, argc, argv);
   }
 
-  LOG(INFO) << "Listing all plugins";
-
-  LOG(INFO) << "Logger plugins:";
-  for (const auto& name : osquery::Registry::names("logger")) {
-    LOG(INFO) << "  - " << name;
-  }
-
-  LOG(INFO) << "Config plugins:";
-  for (const auto& name : osquery::Registry::names("config")) {
-    LOG(INFO) << "  - " << name;
-  }
-
-  LOG(INFO) << "Event Publishers:";
-  for (const auto& name : osquery::Registry::names("event_publisher")) {
-    LOG(INFO) << "  - " << name;
-  }
-
-  LOG(INFO) << "Event Subscribers:";
-  for (const auto& name : osquery::Registry::names("event_subscriber")) {
-    LOG(INFO) << "  - " << name;
-  }
-
   // Start event threads.
+  osquery::attachEvents();
   osquery::EventFactory::delay();
   osquery::startExtensionManager();
 
+  // Begin the schedule runloop.
   boost::thread scheduler_thread(osquery::initializeScheduler);
   scheduler_thread.join();
 
