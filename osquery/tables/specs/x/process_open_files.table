@@ -1,4 +1,5 @@
 table_name("process_open_files")
+description("Processes which have open file descriptors on the host system.")
 schema([
     Column("pid", BIGINT),
     Column("fd", BIGINT),

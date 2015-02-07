@@ -1,4 +1,5 @@
 table_name("listening_ports")
+description("Processes which are listening on network ports.")
 schema([
     Column("pid", INTEGER),
     Column("port", INTEGER),

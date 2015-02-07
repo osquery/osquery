@@ -1,4 +1,5 @@
 table_name("interface_details")
+description("More detailed information on network interfaces and their operations.")
 schema([
     Column("interface", TEXT),
     Column("mac", TEXT),

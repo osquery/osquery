@@ -1,4 +1,5 @@
 table_name("time")
+description("Track current time in the system.")
 schema([
     Column("hour", INTEGER),
     Column("minutes", INTEGER),

@@ -1,4 +1,5 @@
 table_name("xattr_where_from")
+description("Origins of extended attributes.")
 schema([
     Column("path", TEXT),
     Column("directory", TEXT),

@@ -1,4 +1,5 @@
 table_name("quarantine")
+description("Files with quarantine xattr labels.")
 schema([
     Column("path", TEXT),
     Column("creator", TEXT),

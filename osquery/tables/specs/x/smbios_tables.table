@@ -1,4 +1,5 @@
 table_name("smbios_tables")
+description("BIOS (DMI) structure common details and content.")
 schema([
     Column("number", INTEGER),
     Column("type", INTEGER),

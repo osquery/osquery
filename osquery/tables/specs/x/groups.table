@@ -1,4 +1,5 @@
 table_name("groups")
+description("Track the groups to which users belong to.")
 schema([
     Column("gid", BIGINT),
     Column("gid_signed", BIGINT),

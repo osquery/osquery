@@ -1,5 +1,5 @@
 table_name("ca_certs")
-description("Certificate Authorities installed in Keychains/ca-bundles.")
+description("CA certificates which are trusted by the host system.")
 schema([
     Column("common_name", TEXT, "CommonName of the CA"),
     Column("not_valid_before", DATETIME, "Lower bound of valid date"),

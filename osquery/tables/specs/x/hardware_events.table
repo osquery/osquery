@@ -1,4 +1,5 @@
 table_name("hardware_events")
+description("Track IOKit HID events.")
 schema([
     Column("action", TEXT),
     Column("path", TEXT),

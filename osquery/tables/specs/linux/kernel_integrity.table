@@ -1,4 +1,5 @@
 table_name("kernel_integrity")
+description("Kernel integrity table.")
 schema([
     Column("sycall_addr_modified", INTEGER),
     Column("text_segment_hash", TEXT),

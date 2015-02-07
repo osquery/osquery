@@ -1,4 +1,5 @@
 table_name("suid_bin")
+description("suid binaries in common locations.")
 schema([
     Column("path", TEXT),
     Column("username", TEXT),

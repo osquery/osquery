@@ -1,5 +1,5 @@
 table_name("alf")
-description("OS X application layer firewall (Firewall) service details.")
+description("Information about the current configuration of the OS X application level firewall.")
 schema([
     Column("allow_signed_enabled", INTEGER),
     Column("firewall_unload", INTEGER),
