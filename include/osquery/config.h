@@ -22,7 +22,7 @@
 namespace osquery {
 
 /// The builder or invoker may change the default config plugin.
-DECLARE_string(config_retriever);
+DECLARE_string(config_plugin);
 
 /**
  * @brief A native representation of osquery configuration data.

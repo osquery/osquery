@@ -25,14 +25,14 @@
 namespace osquery {
 
 DEFINE_osquery_flag(bool,
-                    event_pubsub,
-                    true,
-                    "Use (enable) the osquery eventing pub/sub.");
+                    disable_events,
+                    false,
+                    "Disable osquery events pubsub");
 
 DEFINE_osquery_flag(int32,
-                    event_pubsub_expiry,
+                    events_expiry,
                     86000,
-                    "Expire (remove) recorded events after a timeout.");
+                    "Timeout to expire event pubsub results");
 
 const std::vector<size_t> kEventTimeLists = {
     1 * 60 * 60, // 1 hour

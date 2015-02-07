@@ -26,7 +26,7 @@ DECLARE_string(config_path);
 class ConfigTests : public testing::Test {
  public:
   ConfigTests() {
-    FLAGS_config_retriever = "filesystem";
+    FLAGS_config_plugin = "filesystem";
     FLAGS_config_path = kTestDataPath + "test.config";
 
     Registry::setUp();

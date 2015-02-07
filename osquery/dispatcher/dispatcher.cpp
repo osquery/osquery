@@ -22,7 +22,7 @@ namespace osquery {
 DEFINE_osquery_flag(int32,
                     worker_threads,
                     4,
-                    "The number of threads to use for the work dispatcher");
+                    "Number of work dispatch threads");
 
 Dispatcher& Dispatcher::getInstance() {
   static Dispatcher d;
@@ -36,8 +36,9 @@ Dispatcher::Dispatcher() {
   auto threadFactory =
       std::shared_ptr<PosixThreadFactory>(new PosixThreadFactory());
 #else
-  thread_manager_ = boost_to_std_shared_ptr(
-      ThreadManager::newSimpleThreadManager((size_t)FLAGS_worker_threads, 0));
+  thread_manager_ =
+      boost_to_std_shared_ptr(InternalThreadManager::newSimpleThreadManager(
+          (size_t)FLAGS_worker_threads, 0));
   auto threadFactory =
       boost::shared_ptr<PosixThreadFactory>(new PosixThreadFactory());
 #endif
@@ -45,7 +46,7 @@ Dispatcher::Dispatcher() {
   thread_manager_->start();
 }
 
-Status Dispatcher::add(std::shared_ptr<Runnable> task) {
+Status Dispatcher::add(std::shared_ptr<InternalRunnable> task) {
   try {
 #ifdef FBOSQUERY
     thread_manager_->add(task, 0, 0);
@@ -58,13 +59,54 @@ Status Dispatcher::add(std::shared_ptr<Runnable> task) {
   return Status(0, "OK");
 }
 
-std::shared_ptr<ThreadManager> Dispatcher::getThreadManager() {
+Status Dispatcher::addService(std::shared_ptr<InternalRunnable> service) {
+  if (service->hasRun()) {
+    return Status(1, "Cannot schedule a service twice");
+  }
+
+  auto thread = std::make_shared<boost::thread>(
+      boost::bind(&InternalRunnable::run, &*service));
+  service_threads_.push_back(thread);
+  services_.push_back(std::move(service));
+  return Status(0, "OK");
+}
+
+InternalThreadManagerRef Dispatcher::getThreadManager() {
   return thread_manager_;
 }
 
 void Dispatcher::join() { thread_manager_->join(); }
 
-ThreadManager::STATE Dispatcher::state() const {
+void Dispatcher::joinServices() {
+  for (auto& thread : service_threads_) {
+    thread->join();
+  }
+}
+
+void Dispatcher::removeServices() {
+  for (const auto& service : services_) {
+    while (true) {
+      // Wait for each thread's entry point (enter) meaning the thread context
+      // was allocated and (run) was called by boost::thread started.
+      if (service->hasRun()) {
+        break;
+      }
+      // We only need to check if std::terminate is call very quickly after
+      // the boost::thread is created.
+      ::usleep(200);
+    }
+  }
+
+  for (auto& thread : service_threads_) {
+    thread->interrupt();
+  }
+
+  // Deallocate services.
+  service_threads_.clear();
+  services_.clear();
+}
+
+InternalThreadManager::STATE Dispatcher::state() const {
   return thread_manager_->state();
 }
 

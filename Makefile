@@ -32,11 +32,11 @@ sanitize: .setup
 	  $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 sdk: .setup
-	cd build/$(BUILD_DIR) && SDK=True cmake ../../ && \
+	cd build/$(BUILD_DIR)/sdk && SDK=True cmake ../../ && \
 	  $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_sdk: .setup
-	cd build/$(BUILD_DIR) && SDK=True cmake ../../ && \
+	cd build/$(BUILD_DIR)/sdk && SDK=True cmake ../../ && \
 	  $(MAKE) test --no-print-directory $(MAKEFLAGS)	
 
 deps: .setup
@@ -49,7 +49,8 @@ ifeq ($(PLATFORM),Linux)
 endif
 
 .setup:
-	mkdir -p build/$(BUILD_DIR)
+	mkdir -p build/$(BUILD_DIR)/generated
+	mkdir -p build/$(BUILD_DIR)/sdk/generated
 ifeq ($(PLATFORM),Linux)
 		ln -snf $(BUILD_DIR) build/linux
 endif

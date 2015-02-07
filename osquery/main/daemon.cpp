@@ -13,6 +13,7 @@
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/events.h>
+#include <osquery/extensions.h>
 #include <osquery/logger.h>
 #include <osquery/scheduler.h>
 
@@ -22,7 +23,7 @@ const std::string kWatcherWorkerName = "osqueryd-worker";
 
 #ifndef __APPLE__
 namespace osquery {
-DEFINE_osquery_flag(bool, daemonize, false, "Run as daemon (osqueryd only).");
+DEFINE_osquery_flag(bool, daemonize, false, "Run as daemon (osqueryd only)");
 }
 #endif
 
@@ -30,12 +31,12 @@ namespace osquery {
 DEFINE_osquery_flag(bool,
                     config_check,
                     false,
-                    "Check the format and accessibility of the daemon");
+                    "Check the format of an osquery config");
 
 DEFINE_osquery_flag(bool,
                     disable_watchdog,
                     false,
-                    "Do not use a userland watchdog process.");
+                    "Disable userland watchdog process");
 }
 
 int main(int argc, char* argv[]) {
@@ -100,6 +101,7 @@ int main(int argc, char* argv[]) {
 
   // Start event threads.
   osquery::EventFactory::delay();
+  osquery::startExtensionManager();
 
   boost::thread scheduler_thread(osquery::initializeScheduler);
   scheduler_thread.join();

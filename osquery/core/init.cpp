@@ -25,22 +25,19 @@ const std::string kDescription =
     "relational database";
 const std::string kEpilog = "osquery project page <http://osquery.io>.";
 
-DEFINE_osquery_flag(bool, debug, false, "Enable debug messages.");
+DEFINE_osquery_flag(bool, debug, false, "Enable debug messages");
 
 DEFINE_osquery_flag(bool,
                     verbose_debug,
                     false,
-                    "Enable verbose debug messages.");
+                    "Enable verbose debug messages");
 
-DEFINE_osquery_flag(bool,
-                    disable_logging,
-                    false,
-                    "Disable ERROR/INFO logging.");
+DEFINE_osquery_flag(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
 DEFINE_osquery_flag(string,
                     osquery_log_dir,
                     "/var/log/osquery/",
-                    "Directory to store ERROR/INFO and results logging.");
+                    "Directory for ERROR/INFO and results logging");
 
 namespace fs = boost::filesystem;
 
@@ -97,7 +94,7 @@ void initOsquery(int argc, char* argv[], int tool) {
   // if you'd like to change the default logging plugin, compile osquery with
   // -DOSQUERY_DEFAULT_CONFIG_PLUGIN=<new_default_plugin>
 #ifdef OSQUERY_DEFAULT_CONFIG_PLUGIN
-  FLAGS_config_retriever = STR(OSQUERY_DEFAULT_CONFIG_PLUGIN);
+  FLAGS_config_plugin = STR(OSQUERY_DEFAULT_CONFIG_PLUGIN);
 #endif
 
   // Set version string from CMake build

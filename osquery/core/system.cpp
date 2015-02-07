@@ -38,13 +38,13 @@ namespace osquery {
 DEFINE_osquery_flag(string,
                     pidfile,
                     "/var/osquery/osqueryd.pidfile",
-                    "The path to the pidfile for osqueryd.");
+                    "The path to the pidfile for osqueryd");
 
 /// Should the daemon force unload previously-running osqueryd daemons.
 DEFINE_osquery_flag(bool,
                     force,
                     false,
-                    "Force osqueryd to kill previously-running daemons.");
+                    "Force osqueryd to kill previously-running daemons");
 
 std::string getHostname() {
   char hostname[256]; // Linux max should be 64.

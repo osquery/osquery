@@ -16,16 +16,16 @@
 
 namespace osquery {
 
-/// `log_receiver` defines the default log receiver plugin name.
+/// `logger` defines the default log receiver plugin name.
 DEFINE_osquery_flag(string,
-                    log_receiver,
+                    logger_plugin,
                     "filesystem",
-                    "The upstream log receiver to log messages to.");
+                    "The default logger plugin");
 
 DEFINE_osquery_flag(bool,
                     log_result_events,
                     true,
-                    "Log scheduled results as events.");
+                    "Log scheduled results as events");
 
 Status LoggerPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
@@ -38,7 +38,7 @@ Status LoggerPlugin::call(const PluginRequest& request,
 }
 
 Status logString(const std::string& s) {
-  return logString(s, FLAGS_log_receiver);
+  return logString(s, FLAGS_logger_plugin);
 }
 
 Status logString(const std::string& s, const std::string& receiver) {
@@ -52,7 +52,7 @@ Status logString(const std::string& s, const std::string& receiver) {
 }
 
 Status logScheduledQueryLogItem(const osquery::ScheduledQueryLogItem& results) {
-  return logScheduledQueryLogItem(results, FLAGS_log_receiver);
+  return logScheduledQueryLogItem(results, FLAGS_logger_plugin);
 }
 
 Status logScheduledQueryLogItem(const osquery::ScheduledQueryLogItem& results,

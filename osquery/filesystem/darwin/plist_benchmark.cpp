@@ -22,7 +22,10 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 // run this benchmark with --iterations=9001 to parse over 9000 property lists
-DEFINE_osquery_flag(int32, iterations, 100, "Iterations to execute.");
+DEFINE_osquery_flag(int32,
+                    plist_iterations,
+                    100,
+                    "Iterations to execute plist benchmark");
 
 class PlistBenchmark : public testing::Test {};
 
@@ -30,9 +33,9 @@ TEST_F(PlistBenchmark, bench_parse_plist_content) {
   // using LOG(ERROR) as a quick hack so that gtest displays the log line even
   // when the test passes
   LOG(ERROR) << "Starting: " << getAsciiTime();
-  LOG(ERROR) << "Performing " << FLAGS_iterations << " iterations";
+  LOG(ERROR) << "Performing " << FLAGS_plist_iterations << " iterations";
   int time = getUnixTime();
-  for (int i = 0; i < FLAGS_iterations; ++i) {
+  for (int i = 0; i < FLAGS_plist_iterations; ++i) {
     std::string content;
     readFile(kTestDataPath + "test.plist", content);
 

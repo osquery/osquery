@@ -120,6 +120,11 @@ Status pathExists(const boost::filesystem::path& path) {
   return Status(0, "1");
 }
 
+Status remove(const boost::filesystem::path& path) {
+  auto status_code = std::remove(path.string().c_str());
+  return Status(status_code, "N/A");
+}
+
 Status listFilesInDirectory(const boost::filesystem::path& path,
                             std::vector<std::string>& results) {
   try {
