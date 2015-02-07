@@ -1,4 +1,5 @@
 table_name("logged_in_users")
+description("Users with an active shell on the system.")
 schema([
     Column("user", TEXT),
     Column("tty", TEXT),

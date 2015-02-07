@@ -1,4 +1,5 @@
 table_name("hash")
+description("Interactive filesystem hash data.")
 schema([
     Column("path", TEXT, "Must provide a path or directory", required=True),
     Column("directory", TEXT, "Must provide a path or directory", required=True),

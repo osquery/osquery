@@ -1,4 +1,5 @@
 table_name("file")
+description("Interactive filesystem attributes and metadata.")
 schema([
     Column("path", TEXT, "Must provide a path", required=True),
     Column("filename", TEXT),

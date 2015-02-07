@@ -1,4 +1,5 @@
 table_name("usb_devices")
+description("USB devices that are actively plugged into the host system.")
 schema([
     Column("usb_address", INTEGER),
     Column("usb_port", INTEGER),

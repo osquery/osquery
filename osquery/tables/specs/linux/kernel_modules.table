@@ -1,5 +1,5 @@
 table_name("kernel_modules")
-description("Linux kernel modules both loaded and within the load search path")
+description("Kernel modules both loaded and within the load search path.")
 schema([
     Column("name", TEXT, "Module name"),
     Column("size", TEXT, "Size of module content"),

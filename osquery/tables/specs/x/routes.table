@@ -1,4 +1,5 @@
 table_name("routes")
+description("The active route table for the hose system.")
 schema([
     Column("destination", TEXT),
     Column("netmask", TEXT),

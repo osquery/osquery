@@ -1,4 +1,5 @@
 table_name("osquery_flags")
+description("Configurable flags that modify osquery's behavior.")
 schema([
     Column("name", TEXT),
     Column("type", TEXT),

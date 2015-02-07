@@ -1,4 +1,5 @@
 table_name("mounts")
+description("Mounted devices and filesystems.")
 schema([
 	Column("device", TEXT),
 	Column("device_alias", TEXT),

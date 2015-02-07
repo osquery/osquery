@@ -1,5 +1,5 @@
 table_name("acpi_tables")
-description("Current ACPI tables")
+description("Firmware ACPI functional table common metadata and content.")
 schema([
     Column("name", TEXT, "ACPI table name"),
     Column("size", INTEGER, "Size of compiled table data"),

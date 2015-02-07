@@ -1,4 +1,5 @@
 table_name("users")
+description("Track users that may log in to the system or other system identities that own running processes.")
 schema([
     Column("uid", BIGINT),
     Column("gid", BIGINT),

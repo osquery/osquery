@@ -1,5 +1,5 @@
 table_name("apps")
-description("OS X applications installed in known search paths (e.g., /Applications)")
+description("Enumerate and parse applications for all users.")
 schema([
     Column("name", TEXT, "Name of the Name.app folder"),
     Column("path", TEXT, "Absolute and full Name.app path"),

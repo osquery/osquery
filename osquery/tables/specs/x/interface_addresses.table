@@ -1,4 +1,5 @@
 table_name("interface_addresses")
+description("Network interfaces and relevant metadata.")
 schema([
     Column("interface", TEXT),
     Column("address", TEXT),

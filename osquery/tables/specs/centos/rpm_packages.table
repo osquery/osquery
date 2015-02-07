@@ -1,5 +1,5 @@
 table_name("rpm_packages")
-description("The installed RPM package database.")
+description("RPM packages that are currently installed on the host system.")
 schema([
     Column("name", TEXT, "RPM package name"),
     Column("version", TEXT, "Package version"),

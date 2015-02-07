@@ -1,5 +1,5 @@
 table_name("passwd_changes")
-description("Mostly an example use of events.")
+description("Track time, action changes to /etc/passwd.")
 schema([
     Column("target_path", TEXT, "The path changed"),
     Column("time", TEXT),
