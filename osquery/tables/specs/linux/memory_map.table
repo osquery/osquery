@@ -1,0 +1,9 @@
+table_name("memory_map")
+description("OS memory region map.")
+schema([
+    Column("region", INTEGER, "Region index"),
+    Column("type", TEXT, "Textual description"),
+    Column("start", TEXT, "Start address of memory region"),
+    Column("end", TEXT, "End address of memory region"),
+])
+implementation("memory_map@genMemoryMap")
