@@ -1,5 +1,5 @@
 table_name("deb_packages")
-description("DEB packages that are currently installed on the host system.")
+description("The installed DEB package database.")
 schema([
     Column("name", TEXT),
     Column("version", TEXT),

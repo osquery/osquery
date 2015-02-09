@@ -1,8 +1,8 @@
 table_name("process_open_files")
-description("Processes which have open file descriptors on the host system.")
+description("File descriptors for each process.")
 schema([
-    Column("pid", BIGINT),
-    Column("fd", BIGINT),
-    Column("path", TEXT),
+    Column("pid", BIGINT, "Process (or thread) ID"),
+    Column("fd", BIGINT, "Process-specific file descriptor number"),
+    Column("path", TEXT, "Filesystem path of descriptor"),
 ])
 implementation("system/process_open_files@genOpenFiles")

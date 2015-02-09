@@ -6,4 +6,5 @@ schema([
     Column("action", TEXT, "Change action (UPDATE, REMOVE, etc)"),
     Column("transaction_id", BIGINT, "ID used during bulk update"),
 ])
+attributes(event_subscriber=True)
 implementation("passwd_changes@passwd_changes::genTable")

@@ -1,5 +1,5 @@
 table_name("iokit_devicetree")
-description("The IOKit DeviceTree registry")
+description("The IOKit registry matching the DeviceTree plane.")
 schema([
     Column("name", TEXT, "Device node name"),
     Column("class", TEXT, "Best matching device class (most-specific category)"),

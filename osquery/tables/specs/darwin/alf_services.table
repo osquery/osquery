@@ -1,5 +1,5 @@
 table_name("alf_services")
-description("Services which are controlled by the application level firewall.")
+description("OS X application layer firewall (Firewall) services.")
 schema([
     Column("service", TEXT, "Firewalled service name"),
     Column("process", TEXT, "Process name"),

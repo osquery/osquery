@@ -1,5 +1,5 @@
 table_name("block_devices")
-description("Block (buffered access) device file nodes such as disks, ramdisks, and DMG containers.")
+description("Block (buffered access) device file nodes: disks, ramdisks, and DMG containers.")
 schema([
 	Column("name", TEXT),
 	Column("parent", TEXT),

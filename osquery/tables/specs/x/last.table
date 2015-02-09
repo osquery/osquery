@@ -1,5 +1,5 @@
 table_name("last")
-description("Track of all logins and logouts to the system.")
+description("System logins and logouts.")
 schema([
     Column("username", TEXT),
     Column("tty", TEXT),

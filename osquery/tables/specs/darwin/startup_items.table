@@ -1,5 +1,5 @@
 table_name("startup_items")
-description("Applications and binaries which are executed at host startup.")
+description("Applications and binaries set as user/login startup items.")
 schema([
     Column("name", TEXT, "Name of startup item"),
     Column("path", TEXT, "Path of startup item"),

@@ -1,7 +1,8 @@
 table_name("kernel_integrity")
-description("Kernel integrity table.")
+description("Various Linux kernel integrity checked attributes.")
 schema([
     Column("sycall_addr_modified", INTEGER),
     Column("text_segment_hash", TEXT),
 ])
+attributes(kernel_required=True)
 implementation("kernel_integrity@genKernelIntegrity")

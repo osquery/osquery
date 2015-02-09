@@ -1,8 +1,8 @@
 table_name("xattr_where_from")
-description("Origins of extended attributes.")
+description("OS X xattr (extended attributes) file labels, similar to Windows ADS.")
 schema([
-    Column("path", TEXT),
-    Column("directory", TEXT),
+    Column("path", TEXT, required=True),
+    Column("directory", TEXT, required=True),
     Column("download_url", TEXT),
     Column("download_page", TEXT),
     Column("raw64", TEXT),

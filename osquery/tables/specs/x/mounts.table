@@ -1,5 +1,5 @@
 table_name("mounts")
-description("Mounted devices and filesystems.")
+description("System mounted devices and filesystems (not process specific).")
 schema([
 	Column("device", TEXT),
 	Column("device_alias", TEXT),

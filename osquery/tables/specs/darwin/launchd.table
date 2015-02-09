@@ -1,5 +1,5 @@
 table_name("launchd")
-description("LaunchAgents and LaunchDaemons which are located in supported locations.")
+description("LaunchAgents and LaunchDaemons from default search paths.")
 schema([
     Column("path", TEXT),
     Column("name", TEXT),
