@@ -68,6 +68,7 @@ else()
     system/linux/pci_devices.cpp
     system/linux/processes.cpp
     system/linux/process_open_files.cpp
+    system/linux/shared_memory.cpp
     system/linux/smbios_tables.cpp
     system/linux/usb_devices.cpp
     system/linux/users.cpp

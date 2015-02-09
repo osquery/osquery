@@ -1,0 +1,18 @@
+table_name("shared_memory")
+description("OS shared memory regions.")
+schema([
+    Column("shmid", INTEGER, "Shared memory segment ID"),
+    Column("owner_uid", BIGINT, "User ID of owning process"),
+    Column("creator_uid", BIGINT, "User ID of creator process"),
+    Column("pid", BIGINT, "Process ID to last use the segment"),
+    Column("creator_pid", BIGINT, "Process ID that created the segment"),
+    Column("atime", BIGINT, "Attached time"),
+    Column("dtime", BIGINT, "Detached time"),
+    Column("ctime", BIGINT, "Changed time"),
+    Column("permissions", TEXT, "Memory segment permissions"),
+    Column("size", BIGINT, "Size in bytes"),
+    Column("attached", INTEGER, "Number of attached processes"),
+    Column("status", TEXT, "Destination/attach status"),
+    Column("locked", INTEGER, "1 if segment is locked else 0"),
+])
+implementation("shared_memory@genSharedMemory")
