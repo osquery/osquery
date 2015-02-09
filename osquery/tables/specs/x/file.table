@@ -1,10 +1,23 @@
 table_name("file")
 description("Interactive filesystem attributes and metadata.")
 schema([
-    Column("path", TEXT, "Must provide a path", required=True),
-    Column("filename", TEXT),
-    Column("is_file", INTEGER),
-    Column("is_dir", INTEGER),
-    Column("is_link", INTEGER),
+    Column("path", TEXT, "Absolute file path", required=True),
+    Column("filename", TEXT, "Name portion of file path"),
+    Column("inode", BIGINT),
+    Column("uid", BIGINT, "Owning user ID"),
+    Column("gid", BIGINT, "Owning group ID"),
+    Column("mode", TEXT, "Permission bits"),
+    Column("device", BIGINT, "Device ID (optional)"),
+    Column("size", BIGINT, "Size of file in bytes"),
+    Column("block_size", INTEGER, "Block size of filesystem"),
+    Column("atime", BIGINT, "Last access time"),
+    Column("mtime", BIGINT, "Last modification time"),
+    Column("ctime", BIGINT, "Creation time"),
+    Column("hard_links", INTEGER, "Number of hard links"),
+    Column("is_file", INTEGER, "1 if a file node else 0"),
+    Column("is_dir", INTEGER, "1 if a directory (not file) else 0"),
+    Column("is_link", INTEGER, "1 if a symlink else 0"),
+    Column("is_char", INTEGER, "1 if a character special device else 0"),
+    Column("is_block", INTEGER, "1 if a block special device else 0"),
 ])
 implementation("utility/file@genFile")
