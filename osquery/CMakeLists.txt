@@ -105,7 +105,7 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
   set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
 
-  add_executable(daemon main/daemon.cpp core/watcher.cpp)
+  add_executable(daemon main/daemon.cpp)
   TARGET_OSQUERY_LINK_WHOLE(daemon libosquery)
   TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_additional)
   set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)

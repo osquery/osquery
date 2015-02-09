@@ -25,6 +25,7 @@
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
@@ -468,5 +469,20 @@ Status isDirectory(const boost::filesystem::path& path) {
     return Status(0, "OK");
   }
   return Status(1, "Path is not a directory: " + path.string());
+}
+
+std::vector<fs::path> getHomeDirectories() {
+  auto sql = SQL(
+      "SELECT DISTINCT directory FROM users WHERE directory != '/var/empty';");
+  std::vector<fs::path> results;
+  if (sql.ok()) {
+    for (const auto& row : sql.rows()) {
+      results.push_back(row.at("directory"));
+    }
+  } else {
+    LOG(ERROR)
+        << "Error executing query to return users: " << sql.getMessageString();
+  }
+  return results;
 }
 }

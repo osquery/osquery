@@ -10,6 +10,8 @@
 
 #include <signal.h>
 
+#include <boost/filesystem.hpp>
+
 #include <osquery/core.h>
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>

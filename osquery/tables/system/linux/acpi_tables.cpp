@@ -8,6 +8,8 @@
  *
  */
 
+#include <boost/filesystem.hpp>
+
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/hash.h>

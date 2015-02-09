@@ -88,7 +88,7 @@ class DBHandle {
   static std::shared_ptr<DBHandle> getInstance();
 
   /**
-   * @brief Check the sanify of the database configuration options
+   * @brief Check the sanity of the database configuration options
    *
    * Create a handle to the backing store using the database configuration.
    * Catch any instance creation exceptions and release the handle immediately.

@@ -278,8 +278,8 @@ QueryData genProcesses(QueryContext &context) {
       r["phys_footprint"] = TEXT(rusage_info_data.ri_phys_footprint);
 
       // time information
-      r["user_time"] = TEXT(rusage_info_data.ri_user_time);
-      r["system_time"] = TEXT(rusage_info_data.ri_system_time);
+      r["user_time"] = TEXT(rusage_info_data.ri_user_time / 1000000);
+      r["system_time"] = TEXT(rusage_info_data.ri_system_time / 1000000);
       r["start_time"] = TEXT(rusage_info_data.ri_proc_start_abstime);
     }
 

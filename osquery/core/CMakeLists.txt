@@ -15,6 +15,7 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_core
   text.cpp
   flags.cpp
   hash.cpp
+  watcher.cpp
 )
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_test_util

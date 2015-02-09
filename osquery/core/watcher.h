@@ -21,6 +21,15 @@ namespace osquery {
 
 DECLARE_bool(disable_watchdog);
 
+enum WatchdogLimitType {
+  MEMORY_LIMIT,
+  UTILIZATION_LIMIT,
+  RESPAWN_LIMIT,
+  RESPAWN_DELAY,
+  LATENCY_LIMIT,
+  INTERVAL,
+};
+
 class Watcher {
  public:
   Watcher(int argc, char* argv[]) : worker_(0), argc_(argc), argv_(argv) {
@@ -76,6 +85,9 @@ class WatcherWatcherRunner : public InternalRunnable {
 
 /// Check if the current process is already a worker.
 bool isOsqueryWorker();
+
+/// Get a performance limit by name and optional level.
+size_t getWorkerLimit(WatchdogLimitType limit, int level = -1);
 
 /**
  * @brief Daemon tools may want to continually spawn worker processes

@@ -149,34 +149,11 @@ Status remove(const boost::filesystem::path& path);
 Status isDirectory(const boost::filesystem::path& path);
 
 /**
- * @brief Parse the users out of a tomcat user config from disk
+ * @brief Return a vector of all home directories on the system
  *
- * @param path A string which represents the path of the tomcat user config
- * @param a vector of pairs which represent all of the users which were found
- * in the supplied file. pair.first is the username and pair.second is the
- * password.
- *
- * @return an instance of Status, indicating the success or failure
- * of the operation
+ * @return a vector of strings representing the path of all home directories
  */
-Status parseTomcatUserConfigFromDisk(
-    const boost::filesystem::path& path,
-    std::vector<std::pair<std::string, std::string> >& credentials);
-
-/**
- * @brief Parse the users out of a tomcat user config
- *
- * @param content A string which represents the content of the file to parse
- * @param a vector of pairs which represent all of the users which were found
- * in the supplied file. pair.first is the username and pair.second is the
- * password.
- *
- * @return an instance of Status, indicating the success or failure
- * of the operation
- */
-Status parseTomcatUserConfig(
-    const std::string& content,
-    std::vector<std::pair<std::string, std::string> >& credentials);
+std::vector<boost::filesystem::path> getHomeDirectories();
 
 #ifdef __APPLE__
 /**

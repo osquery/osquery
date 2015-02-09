@@ -14,6 +14,8 @@
 #include <sys/wait.h>
 #include <signal.h>
 
+#include <boost/filesystem.hpp>
+
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -27,15 +29,23 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-#define WORKER_MEMORY_LIMIT (20 * 1024 * 1024)
-#ifdef __APPLE__
-#define WORKER_UTILIZATION_LIMIT (1000000 * 60)
-#else
-#define WORKER_UTILIZATION_LIMIT 60
-#endif
-#define WORKER_RESPAWN_LIMIT 20
-#define WORKER_RESPAWN_DELAY 5
-#define WORKER_LATENCY_LIMIT 5
+const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
+    {MEMORY_LIMIT, {50, 20, 10}},
+    {UTILIZATION_LIMIT, {90, 70, 60}},
+    // Number of seconds the worker should run, else consider the exit fatal.
+    {RESPAWN_LIMIT, {20, 20, 20}},
+    // If the worker respawns too quickly, backoff on creating additional.
+    {RESPAWN_DELAY, {5, 5, 5}},
+    // Seconds of tolerable sustained latency.
+    {LATENCY_LIMIT, {5, 5, 3}},
+    // How often to poll for performance limit violations.
+    {INTERVAL, {3, 3, 3}}, };
+
+DEFINE_osquery_flag(
+    int32,
+    watchdog_level,
+    1,
+    "Performance limit level (0=loose, 1=normal, 2=restrictive)");
 
 DEFINE_osquery_flag(bool,
                     disable_watchdog,
@@ -43,7 +53,7 @@ DEFINE_osquery_flag(bool,
                     "Disable userland watchdog process");
 
 bool Watcher::ok() {
-  ::sleep(3);
+  ::sleep(getWorkerLimit(INTERVAL));
   return (worker_ >= 0);
 }
 
@@ -80,17 +90,19 @@ bool Watcher::isWorkerSane() {
 
   // Compare CPU utilization since last check.
   BIGINT_LITERAL footprint, user_time, system_time;
+  // IV is the check interval in seconds, and utilization is set per-second.
+  auto iv = getWorkerLimit(INTERVAL);
 
   try {
-    user_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("user_time"));
-    system_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("system_time"));
+    user_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("user_time")) / iv;
+    system_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("system_time")) / iv;
     footprint = AS_LITERAL(BIGINT_LITERAL, rows[0].at("phys_footprint"));
   } catch (const std::exception& e) {
     sustained_latency_ = 0;
   }
 
-  if (current_user_time_ + WORKER_UTILIZATION_LIMIT < user_time ||
-      current_system_time_ + WORKER_UTILIZATION_LIMIT < system_time) {
+  if (current_user_time_ + getWorkerLimit(UTILIZATION_LIMIT) < user_time ||
+      current_system_time_ + getWorkerLimit(UTILIZATION_LIMIT) < system_time) {
     sustained_latency_++;
   } else {
     sustained_latency_ = 0;
@@ -99,12 +111,12 @@ bool Watcher::isWorkerSane() {
   current_user_time_ = user_time;
   current_system_time_ = system_time;
 
-  if (sustained_latency_ >= WORKER_LATENCY_LIMIT) {
+  if (sustained_latency_ * iv >= getWorkerLimit(LATENCY_LIMIT)) {
     LOG(WARNING) << "osqueryd worker system performance limits exceeded";
     return false;
   }
 
-  if (footprint > WORKER_MEMORY_LIMIT) {
+  if (footprint > getWorkerLimit(MEMORY_LIMIT) * 1024 * 1024) {
     LOG(WARNING) << "osqueryd worker memory limits exceeded";
     return false;
   }
@@ -114,9 +126,9 @@ bool Watcher::isWorkerSane() {
 }
 
 void Watcher::createWorker() {
-  if (last_respawn_time_ > getUnixTime() - WORKER_RESPAWN_LIMIT) {
+  if (last_respawn_time_ > getUnixTime() - getWorkerLimit(RESPAWN_LIMIT)) {
     LOG(WARNING) << "osqueryd worker respawning too quickly";
-    ::sleep(WORKER_RESPAWN_DELAY);
+    ::sleep(getWorkerLimit(RESPAWN_DELAY));
   }
 
   worker_ = fork();
@@ -173,8 +185,23 @@ void WatcherWatcherRunner::enter() {
               << ") detected killed watcher (" << watcher_ << ")";
       ::exit(EXIT_SUCCESS);
     }
-    interruptableSleep(3000);
+    interruptableSleep(getWorkerLimit(INTERVAL) * 1000);
   }
+}
+
+size_t getWorkerLimit(WatchdogLimitType name, int level) {
+  if (kWatchdogLimits.count(name) == 0) {
+    return 0;
+  }
+
+  // If no level was provided then use the default (config/switch).
+  if (level == -1) {
+    level = FLAGS_watchdog_level;
+  }
+  if (level > 3) {
+    return kWatchdogLimits.at(name).back();
+  }
+  return kWatchdogLimits.at(name).at(level);
 }
 
 void initWorkerWatcher(const std::string& name, int argc, char* argv[]) {
