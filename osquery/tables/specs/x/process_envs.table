@@ -2,8 +2,6 @@ table_name("process_envs")
 description("A key/value table of environment variables for each process.")
 schema([
     Column("pid", INTEGER),
-    Column("name", TEXT, "Process name"),
-    Column("path", TEXT, "Process path"),
     Column("key", TEXT, "Environment variable name"),
     Column("value", TEXT, "Environment variable value"),
     ForeignKey(column="pid", table="processes"),

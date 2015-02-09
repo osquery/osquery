@@ -35,22 +35,18 @@ namespace tables {
   PROC_FILLCOM | PROC_FILLMEM | PROC_FILLSTATUS | PROC_FILLSTAT
 #endif
 
-std::string proc_name(const proc_t* proc_info) {
+std::string getProcName(const proc_t* proc_info) {
   return std::string(proc_info->cmd);
 }
 
-std::string proc_attr(const std::string& attr, const proc_t* proc_info) {
-  std::stringstream filename;
-
-  filename << "/proc/" << proc_info->tid << "/" << attr;
-  return filename.str();
+std::string getProcAttr(const std::string& attr, const proc_t* proc_info) {
+  return "/proc/" + std::to_string(proc_info->tid) + "/" + attr;
 }
 
-std::string proc_cmdline(const proc_t* proc_info) {
-  std::string attr;
-  std::string result;
+std::string readProcCMDLine(const proc_t* proc_info) {
+  auto attr = getProcAttr("cmdline", proc_info);
 
-  attr = proc_attr("cmdline", proc_info);
+  std::string result;
   std::ifstream fd(attr, std::ios::in | std::ios::binary);
   if (fd) {
     result = std::string(std::istreambuf_iterator<char>(fd),
@@ -65,20 +61,15 @@ std::string proc_cmdline(const proc_t* proc_info) {
   return result;
 }
 
-std::string proc_link(const proc_t* proc_info) {
-  std::string attr;
-  std::string result;
-  char* link_path;
-  long path_max;
-  int bytes;
-
+std::string readProcLink(const proc_t* proc_info) {
   // The exe is a symlink to the binary on-disk.
-  attr = proc_attr("exe", proc_info);
-  path_max = pathconf(attr.c_str(), _PC_PATH_MAX);
-  link_path = (char*)malloc(path_max);
-
+  auto attr = getProcAttr("exe", proc_info);
+  long path_max = pathconf(attr.c_str(), _PC_PATH_MAX);
+  auto link_path = (char*)malloc(path_max);
   memset(link_path, 0, path_max);
-  bytes = readlink(attr.c_str(), link_path, path_max);
+
+  std::string result;
+  int bytes = readlink(attr.c_str(), link_path, path_max);
   if (bytes >= 0) {
     result = std::string(link_path);
   }
@@ -87,23 +78,61 @@ std::string proc_link(const proc_t* proc_info) {
   return result;
 }
 
-std::map<std::string, std::string> proc_env(const proc_t* proc_info) {
-  std::map<std::string, std::string> env;
-  std::string attr = proc_attr("environ", proc_info);
-  std::string buf;
+void genProcessEnvironment(const proc_t* proc_info, QueryData& results) {
+  auto attr = getProcAttr("environ", proc_info);
 
   std::ifstream fd(attr, std::ios::in | std::ios::binary);
-
+  std::string buf;
   while (!(fd.fail() || fd.eof())) {
     std::getline(fd, buf, '\0');
     size_t idx = buf.find_first_of("=");
 
-    std::string key = buf.substr(0, idx);
-    std::string value = buf.substr(idx + 1);
-
-    env[key] = value;
+    Row r;
+    r["pid"] = INTEGER(proc_info->tid);
+    r["key"] = buf.substr(0, idx);
+    r["value"] = buf.substr(idx + 1);
+    results.push_back(r);
   }
-  return env;
+}
+
+void genProcessMap(const proc_t* proc_info, QueryData& results) {
+  auto map = getProcAttr("maps", proc_info);
+
+  std::ifstream fd(map, std::ios::in | std::ios::binary);
+  std::string line;
+  while (!(fd.fail() || fd.eof())) {
+    std::getline(fd, line, '\n');
+    auto fields = osquery::split(line, " ");
+
+    Row r;
+    r["pid"] = INTEGER(proc_info->tid);
+
+    // If can't read address, not sure.
+    if (fields.size() < 5) {
+      continue;
+    }
+
+    if (fields[0].size() > 0) {
+      auto addresses = osquery::split(fields[0], "-");
+      r["start"] = "0x" + addresses[0];
+      r["end"] = "0x" + addresses[1];
+    }
+
+    r["permissions"] = fields[1];
+    r["offset"] = BIGINT(std::stoll(fields[2], nullptr, 16));
+    r["device"] = fields[3];
+    r["inode"] = fields[4];
+
+    // Path name must be trimmed.
+    if (fields.size() > 5) {
+      boost::trim(fields[5]);
+      r["path"] = fields[5];
+    }
+
+    // BSS with name in pathname.
+    r["is_pseudo"] = (fields[4] == "0" && r["path"].size() > 0) ? "1" : "0";
+    results.push_back(r);
+  }
 }
 
 /**
@@ -111,7 +140,7 @@ std::map<std::string, std::string> proc_env(const proc_t* proc_info) {
  *
  * @param p The rbuf to free
  */
-void standard_freeproc(proc_t* p) {
+void standardFreeproc(proc_t* p) {
   if (!p) { // in case p is NULL
     return;
   }
@@ -147,11 +176,11 @@ QueryData genProcesses(QueryContext& context) {
     r["gid"] = BIGINT((unsigned int)proc_info->rgid);
     r["euid"] = BIGINT((unsigned int)proc_info->euid);
     r["egid"] = BIGINT((unsigned int)proc_info->egid);
-    r["name"] = proc_name(proc_info);
-    std::string cmdline = proc_cmdline(proc_info);
+    r["name"] = getProcName(proc_info);
+    std::string cmdline = readProcCMDLine(proc_info);
     boost::algorithm::trim(cmdline);
     r["cmdline"] = cmdline;
-    r["path"] = proc_link(proc_info);
+    r["path"] = readProcLink(proc_info);
     r["on_disk"] = osquery::pathExists(r["path"]).toString();
 
     r["resident_size"] = INTEGER(proc_info->vm_rss);
@@ -162,7 +191,7 @@ QueryData genProcesses(QueryContext& context) {
     r["parent"] = INTEGER(proc_info->ppid);
 
     results.push_back(r);
-    standard_freeproc(proc_info);
+    standardFreeproc(proc_info);
   }
 
   closeproc(proc);
@@ -179,18 +208,24 @@ QueryData genProcessEnvs(QueryContext& context) {
   // Populate proc struc for each process.
 
   while ((proc_info = readproc(proc, NULL))) {
-    auto env = proc_env(proc_info);
-    for (auto itr = env.begin(); itr != env.end(); ++itr) {
-      Row r;
-      r["pid"] = INTEGER(proc_info->tid);
-      r["name"] = proc_name(proc_info);
-      r["path"] = proc_link(proc_info);
-      r["key"] = itr->first;
-      r["value"] = itr->second;
-      results.push_back(r);
-    }
+    genProcessEnvironment(proc_info, results);
+    standardFreeproc(proc_info);
+  }
 
-    standard_freeproc(proc_info);
+  closeproc(proc);
+
+  return results;
+}
+
+QueryData genProcessMemoryMap(QueryContext& context) {
+  QueryData results;
+
+  proc_t* proc_info;
+  PROCTAB* proc = openproc(PROC_SELECTS);
+
+  while ((proc_info = readproc(proc, NULL))) {
+    genProcessMap(proc_info, results);
+    standardFreeproc(proc_info);
   }
 
   closeproc(proc);

@@ -296,8 +296,6 @@ QueryData genProcessEnvs(QueryContext &context) {
       Row r;
 
       r["pid"] = INTEGER(pid);
-      r["name"] = getProcName(pid);
-      r["path"] = getProcPath(pid);
       r["key"] = env_itr->first;
       r["value"] = env_itr->second;
 
