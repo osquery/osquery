@@ -1,5 +1,5 @@
 table_name("kernel_extensions")
-description("Kernel extensions that are actively running on the host system.")
+description("OS X's kernel extensions, both loaded and within the load search path.")
 schema([
     Column("idx", INTEGER),
     Column("refs", INTEGER),

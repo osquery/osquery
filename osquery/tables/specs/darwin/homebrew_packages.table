@@ -1,5 +1,5 @@
 table_name("homebrew_packages")
-description("Packages that are installed via homebrew on the host system.")
+description("The installed homebrew package database.")
 schema([
     Column("name", TEXT, "Package name"),
     Column("path", TEXT, "Package install path"),

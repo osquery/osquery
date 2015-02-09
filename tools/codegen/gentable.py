@@ -131,6 +131,7 @@ class TableState(Singleton):
         self.function = ""
         self.class_name = ""
         self.description = ""
+        self.attributes = {}
 
     def columns(self):
         return [i for i in self.schema if isinstance(i, Column)]
@@ -148,7 +149,7 @@ class TableState(Singleton):
             header=self.header,
             impl=self.impl,
             function=self.function,
-            class_name=self.class_name
+            class_name=self.class_name,
         )
 
         # Check for reserved column names
@@ -214,6 +215,7 @@ def table_name(name):
     logging.debug("  - called with: %s" % name)
     table.table_name = name
     table.description = ""
+    table.attributes = {}
 
 
 def schema(schema_list):
@@ -228,6 +230,15 @@ def schema(schema_list):
         if isinstance(it, ForeignKey):
             logging.debug("  - foreign_key: %s (%s)" % (it.column, it.table))
     table.schema = schema_list
+
+
+def description(text):
+    table.description = text
+
+
+def attributes(**kwargs): 
+    for attr in kwargs:
+        table.attributes[attr] = kwargs[attr]
 
 
 def implementation(impl_string):
@@ -251,10 +262,6 @@ def implementation(impl_string):
     table.impl = impl
     table.function = function
     table.class_name = class_name
-
-
-def description(text):
-    table.description = text
 
 
 def main(argc, argv):

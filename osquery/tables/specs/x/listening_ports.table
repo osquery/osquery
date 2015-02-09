@@ -1,10 +1,10 @@
 table_name("listening_ports")
-description("Processes which are listening on network ports.")
+description("Processes with listening (bound) network sockets/ports.")
 schema([
-    Column("pid", INTEGER),
-    Column("port", INTEGER),
-    Column("protocol", INTEGER),
-    Column("family", INTEGER),
-    Column("address", TEXT),
+    Column("pid", INTEGER, "Process (or thread) ID"),
+    Column("port", INTEGER, "Transport layer port"),
+    Column("protocol", INTEGER, "Transport protocol (TCP/UDP)"),
+    Column("family", INTEGER, "Network protocol (IPv4, IPv6)"),
+    Column("address", TEXT, "Specific address for bind"),
 ])
 implementation("listening_ports@genListeningPorts")

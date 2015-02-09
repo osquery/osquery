@@ -1,8 +1,8 @@
 table_name("groups")
-description("Track the groups to which users belong to.")
+description("Local system groups.")
 schema([
-    Column("gid", BIGINT),
-    Column("gid_signed", BIGINT),
-    Column("groupname", TEXT),
+    Column("gid", BIGINT, "Unsigned int64 group ID"),
+    Column("gid_signed", BIGINT, "A signed int64 version of gid"),
+    Column("groupname", TEXT, "Canonical local group name"),
 ])
 implementation("groups@genGroups")

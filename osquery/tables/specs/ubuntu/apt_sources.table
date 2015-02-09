@@ -1,5 +1,5 @@
 table_name("apt_sources")
-description("Current list of repositories or software channels.")
+description("Current list of APT repositories or software channels.")
 schema([
     Column("name", TEXT),
     Column("base_uri", TEXT),

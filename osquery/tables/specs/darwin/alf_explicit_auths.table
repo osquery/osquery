@@ -1,5 +1,5 @@
 table_name("alf_explicit_auths")
-description("Explicitly authorized programs which are allowed to perform networking activity usually disallowed by the application level firewall.")
+description("ALF services explicitly allowed to perform networking.")
 schema([
     Column("process", TEXT),
 ])

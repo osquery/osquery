@@ -1,17 +1,17 @@
 table_name("interface_details")
-description("More detailed information on network interfaces and their operations.")
+description("Detailed information and stats of network interfaces.")
 schema([
-    Column("interface", TEXT),
-    Column("mac", TEXT),
-    Column("type", INTEGER),
-    Column("mtu", INTEGER),
+    Column("interface", TEXT, "Interface name"),
+    Column("mac", TEXT, "MAC of interface (optional)"),
+    Column("type", INTEGER, "Interface type (includes virtual)"),
+    Column("mtu", INTEGER, "Network MTU"),
     Column("metric", INTEGER),
-    Column("ipackets", BIGINT),
-    Column("opackets", BIGINT),
-    Column("ibytes", BIGINT),
-    Column("obytes", BIGINT),
-    Column("ierrors", BIGINT),
-    Column("oerrors", BIGINT),
-    Column("last_change", BIGINT),
+    Column("ipackets", BIGINT, "Input packets"),
+    Column("opackets", BIGINT, "Output packets"),
+    Column("ibytes", BIGINT, "Input bytes"),
+    Column("obytes", BIGINT, "Output bytes"),
+    Column("ierrors", BIGINT, "Input errors"),
+    Column("oerrors", BIGINT, "Output errors"),
+    Column("last_change", BIGINT, "Time of last device modification (optional)"),
 ])
 implementation("interfaces@genInterfaceDetails")

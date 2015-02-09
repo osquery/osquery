@@ -21,7 +21,7 @@ import sys
 import uuid
 
 from gentable import Column, ForeignKey, \
-    table_name, schema, implementation, description, table, \
+    table_name, schema, implementation, description, table, attributes, \
     DataType, BIGINT, DATE, DATETIME, INTEGER, TEXT, \
     is_blacklisted
 
@@ -108,6 +108,7 @@ def gen_spec(tree):
         "foreign_keys": foreign_keys,
         "function": table.function,
         "description": table.description,
+        "attributes": table.attributes,
     }
 
 

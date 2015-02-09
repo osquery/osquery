@@ -1,5 +1,5 @@
 table_name("pci_devices")
-description("PCI devices that are active on the host system.")
+description("PCI devices active on the host system.")
 schema([
     Column("pci_slot", TEXT),
     Column("pci_class", TEXT),

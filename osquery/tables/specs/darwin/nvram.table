@@ -1,5 +1,5 @@
 table_name("nvram")
-description("The value of a host system's NVRAM variables.")
+description("Apple NVRAM variable listing.")
 schema([
     Column("name", TEXT, "Variable name"),
     Column("type", TEXT, "Data type (CFData, CFString, etc)"),
