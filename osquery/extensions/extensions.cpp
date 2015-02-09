@@ -137,9 +137,15 @@ void ExtensionRunner::enter() {
       new TBinaryProtocolFactory());
 
   // Start the Thrift server's run loop.
-  TSimpleServer server(
-      processor, serverTransport, transportFactory, protocolFactory);
-  server.serve();
+  try {
+    TSimpleServer server(
+        processor, serverTransport, transportFactory, protocolFactory);
+    server.serve();
+  } catch (const std::exception& e) {
+    LOG(ERROR) << "Cannot start extension handler (" << socket_path << ") ("
+               << e.what() << ")";
+    throw e;
+  }
 }
 
 ExtensionManagerRunner::~ExtensionManagerRunner() {
@@ -164,9 +170,14 @@ void ExtensionManagerRunner::enter() {
       new TBinaryProtocolFactory());
 
   // Start the Thrift server's run loop.
-  TSimpleServer server(
-      processor, serverTransport, transportFactory, protocolFactory);
-  server.serve();
+  try {
+    TSimpleServer server(
+        processor, serverTransport, transportFactory, protocolFactory);
+    server.serve();
+  } catch (const std::exception& e) {
+    LOG(WARNING) << "Extensions disabled: cannot start extension manager ("
+                 << socket_path << ") (" << e.what() << ")";
+  }
 }
 
 void ExtensionWatcher::enter() {
