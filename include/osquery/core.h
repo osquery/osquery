@@ -13,12 +13,16 @@
 #include <string>
 #include <vector>
 
-#include <boost/filesystem.hpp>
-#include <osquery/database/results.h>
+#include <osquery/status.h>
 
 #ifndef STR
 #define STR_OF(x) #x
 #define STR(x) STR_OF(x)
+#endif
+
+#ifndef FRIEND_TEST
+#define FRIEND_TEST(test_case_name, test_name) \
+  friend class test_case_name##_##test_name##_Test
 #endif
 
 namespace osquery {
@@ -51,6 +55,11 @@ enum osqueryTool {
  * @param argv the command-line arguments passed to `main()`
  */
 void initOsquery(int argc, char* argv[], int tool = OSQUERY_TOOL_TEST);
+
+/**
+ * @brief Sets up a process as a osquery daemon.
+ */
+void initOsqueryDaemon();
 
 /**
  * @brief Turns of various aspects of osquery such as event loops.
@@ -99,13 +108,6 @@ std::string getAsciiTime();
  * @return an int representing the amount of seconds since the unix epoch
  */
 int getUnixTime();
-
-/**
- * @brief Return a vector of all home directories on the system
- *
- * @return a vector of strings representing the path of all home directories
- */
-std::vector<boost::filesystem::path> getHomeDirectories();
 
 /**
  * @brief Inline helper function for use with utf8StringSize

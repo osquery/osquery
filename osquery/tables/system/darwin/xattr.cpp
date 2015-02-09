@@ -5,6 +5,8 @@
 
 #include <sys/xattr.h>
 
+#include <boost/filesystem.hpp>
+
 #include <osquery/logger.h>
 #include <osquery/core.h>
 #include <osquery/tables.h>

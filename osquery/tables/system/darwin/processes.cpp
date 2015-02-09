@@ -210,7 +210,17 @@ std::vector<std::string> getProcArgs(int pid, size_t argmax) {
 
 QueryData genProcesses(QueryContext &context) {
   QueryData results;
-  auto pidlist = getProcList();
+
+  std::set<int> pidlist;
+  if (context.constraints["pid"].exists()) {
+    pidlist = context.constraints["pid"].getAll<int>(EQUALS);
+  }
+
+  // No equality matches, get all pids.
+  if (pidlist.size() == 0) {
+    pidlist = getProcList();
+  }
+
   auto parent_pid = getParentMap(pidlist);
   int argmax = genMaxArgs();
 
@@ -268,8 +278,8 @@ QueryData genProcesses(QueryContext &context) {
       r["phys_footprint"] = TEXT(rusage_info_data.ri_phys_footprint);
 
       // time information
-      r["user_time"] = TEXT(rusage_info_data.ri_user_time);
-      r["system_time"] = TEXT(rusage_info_data.ri_system_time);
+      r["user_time"] = TEXT(rusage_info_data.ri_user_time / 1000000);
+      r["system_time"] = TEXT(rusage_info_data.ri_system_time / 1000000);
       r["start_time"] = TEXT(rusage_info_data.ri_proc_start_abstime);
     }
 

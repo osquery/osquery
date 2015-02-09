@@ -14,32 +14,47 @@
 
 #include <unistd.h>
 
+#include <osquery/dispatcher.h>
+#include <osquery/flags.h>
+
 namespace osquery {
+
+DECLARE_bool(disable_watchdog);
+
+enum WatchdogLimitType {
+  MEMORY_LIMIT,
+  UTILIZATION_LIMIT,
+  RESPAWN_LIMIT,
+  RESPAWN_DELAY,
+  LATENCY_LIMIT,
+  INTERVAL,
+};
 
 class Watcher {
  public:
   Watcher(int argc, char* argv[]) : worker_(0), argc_(argc), argv_(argv) {
     resetCounters();
+    last_respawn_time_ = 0;
   }
 
   void setWorkerName(const std::string& name) { name_ = name; }
   const std::string& getWorkerName() { return name_; }
 
+  /// Boilerplate function to sleep for some configured latency
   bool ok();
   /// Begin the worker-watcher process.
   bool watch();
   /// Fork a worker process.
-  bool createWorker();
+  void createWorker();
+  /// If the process is a worker, clean up identification.
+  void initWorker();
+  void resetCounters();
 
  private:
-  /// The entry point into a a worker child.
-  void initWorker();
   /// Inspect into the memory, CPU, and other worker process states.
   bool isWorkerSane();
   /// If a worker as otherwise gone insane, stop it.
   void stopWorker();
-  /// Reset the performance counting.
-  void resetCounters();
 
  private:
   size_t sustained_latency_;
@@ -57,6 +72,22 @@ class Watcher {
   /// When a worker child is spawned the process name will be changed.
   std::string name_;
 };
+
+/// The WatcherWatcher is spawned within the worker and watches the watcher.
+class WatcherWatcherRunner : public InternalRunnable {
+ public:
+  WatcherWatcherRunner(pid_t watcher) : watcher_(watcher) {}
+  void enter();
+
+ private:
+  pid_t watcher_;
+};
+
+/// Check if the current process is already a worker.
+bool isOsqueryWorker();
+
+/// Get a performance limit by name and optional level.
+size_t getWorkerLimit(WatchdogLimitType limit, int level = -1);
 
 /**
  * @brief Daemon tools may want to continually spawn worker processes

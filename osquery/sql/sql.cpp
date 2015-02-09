@@ -47,24 +47,26 @@ std::vector<std::string> SQL::getTableNames() {
 }
 
 QueryData SQL::selectAllFrom(const std::string& table) {
-  std::string query = "select * from `" + table + "`;";
-  return SQL(query).rows();
+  PluginResponse response;
+  PluginRequest request;
+  request["action"] = "generate";
+
+  Registry::call("table", table, request, response);
+  return response;
 }
 
 QueryData SQL::selectAllFrom(const std::string& table,
                              const std::string& column,
                              tables::ConstraintOperator op,
                              const std::string& expr) {
-  std::string query = "select * from `" + table + "` where `" + column + "`";
-  if (kSQLOperatorRepr.count(op) > 0) {
-    query += kSQLOperatorRepr.at(op);
-  } else {
-    LOG(WARNING) << "Cannot query using unknown SQL operator: " << op;
-    return {};
-  }
+  PluginResponse response;
+  PluginRequest request = {{"action", "generate"}};
+  tables::QueryContext ctx;
+  ctx.constraints[column].add(tables::Constraint(op, expr));
 
-  query += "'" + expr + "'";
-  return SQL(query).rows();
+  tables::TablePlugin::setRequestFromContext(ctx, request);
+  Registry::call("table", table, request, response);
+  return response;
 }
 
 Status query(const std::string& q, QueryData& results) {

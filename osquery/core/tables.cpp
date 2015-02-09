@@ -63,12 +63,12 @@ bool ConstraintList::literal_matches(const T& base_expr) {
   return true;
 }
 
-std::vector<std::string> ConstraintList::getAll(ConstraintOperator op) {
-  std::vector<std::string> set;
+std::set<std::string> ConstraintList::getAll(ConstraintOperator op) {
+  std::set<std::string> set;
   for (size_t i = 0; i < constraints_.size(); ++i) {
     if (constraints_[i].op == op) {
       // TODO: this does not apply a distinct.
-      set.push_back(constraints_[i].expr);
+      set.insert(constraints_[i].expr);
     }
   }
   return set;

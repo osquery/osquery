@@ -21,6 +21,7 @@
 const std::string kShellTemp = "/tmp/osquery";
 
 int main(int argc, char *argv[]) {
+  // The shell is transient, rewrite config-loaded paths.
   if (osquery::pathExists(kShellTemp).ok() ||
       boost::filesystem::create_directory(kShellTemp)) {
     osquery::FLAGS_db_path = kShellTemp + "/shell.db";
@@ -32,6 +33,7 @@ int main(int argc, char *argv[]) {
   osquery::initOsquery(argc, argv, osquery::OSQUERY_TOOL_SHELL);
 
   // Start event threads.
+  osquery::attachEvents();
   osquery::EventFactory::delay();
   osquery::startExtensionManager();
 

@@ -94,21 +94,6 @@ int getUnixTime() {
   return result;
 }
 
-std::vector<fs::path> getHomeDirectories() {
-  auto sql = SQL(
-      "SELECT DISTINCT directory FROM users WHERE directory != '/var/empty';");
-  std::vector<fs::path> results;
-  if (sql.ok()) {
-    for (const auto& row : sql.rows()) {
-      results.push_back(row.at("directory"));
-    }
-  } else {
-    LOG(ERROR)
-        << "Error executing query to return users: " << sql.getMessageString();
-  }
-  return results;
-}
-
 Status checkStalePid(const std::string& content) {
   int pid;
   try {
@@ -144,7 +129,7 @@ Status checkStalePid(const std::string& content) {
       return Status(1, "osqueryd (" + content + ") is already running");
     } else {
       LOG(INFO) << "Found stale process for osqueryd (" << content
-                << ") removing pidfile.";
+                << ") removing pidfile";
     }
   }
 
@@ -173,7 +158,7 @@ Status createPidFile() {
     boost::filesystem::remove(FLAGS_pidfile);
   } catch (boost::filesystem::filesystem_error& e) {
     // Unable to remove old pidfile.
-    LOG(WARNING) << "Unable to remove the osqueryd pidfile.";
+    LOG(WARNING) << "Unable to remove the osqueryd pidfile";
   }
 
   // If no pidfile exists or the existing pid was stale, write, log, and run.

@@ -88,6 +88,15 @@ std::shared_ptr<DBHandle> DBHandle::getInstance() {
   return getInstance(FLAGS_db_path, FLAGS_use_in_memory_database);
 }
 
+bool DBHandle::checkDB() {
+  try {
+    auto handle = DBHandle(FLAGS_db_path, FLAGS_use_in_memory_database);
+  } catch (const std::exception& e) {
+    return false;
+  }
+  return true;
+}
+
 std::shared_ptr<DBHandle> DBHandle::getInstanceInMemory() {
   return getInstance("", true);
 }

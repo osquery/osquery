@@ -39,6 +39,17 @@ DEFINE_osquery_flag(string,
                     "/var/log/osquery/",
                     "Directory for ERROR/INFO and results logging");
 
+DEFINE_osquery_flag(bool,
+                    config_check,
+                    false,
+                    "Check the format of an osquery config");
+
+#ifndef __APPLE__
+namespace osquery {
+DEFINE_osquery_flag(bool, daemonize, false, "Run as daemon (osqueryd only)");
+}
+#endif
+
 namespace fs = boost::filesystem;
 
 void printUsage(const std::string& binary, int tool) {
@@ -66,7 +77,7 @@ void printUsage(const std::string& binary, int tool) {
   fprintf(stdout, "\n%s\n", kEpilog.c_str());
 }
 
-void announce(const std::string& basename) {
+void announce() {
   syslog(LOG_NOTICE, "osqueryd started [version=" OSQUERY_VERSION "]");
 }
 
@@ -79,11 +90,6 @@ void initOsquery(int argc, char* argv[], int tool) {
       tool != OSQUERY_TOOL_TEST) {
     printUsage(binary, tool);
     ::exit(0);
-  }
-
-  // Print the version to SYSLOG.
-  if (tool == OSQUERY_TOOL_DAEMON) {
-    announce(binary);
   }
 
   FLAGS_alsologtostderr = true;
@@ -130,18 +136,55 @@ void initOsquery(int argc, char* argv[], int tool) {
     FLAGS_minloglevel = 2; // ERROR
   }
 
+  // Start the logging, and announce the daemon is starting.
   google::InitGoogleLogging(argv[0]);
-  VLOG(1) << "osquery starting [version=" OSQUERY_VERSION "]";
-  osquery::Registry::setUp();
-  osquery::attachEvents();
+  VLOG(1) << "osquery initializing [version=" OSQUERY_VERSION "]";
 
+  // Run the setup for all non-lazy registries.
+  Registry::setUp();
+  // And finally load the config.
   auto config = Config::getInstance();
   config->load();
+
+  if (FLAGS_config_check) {
+    auto s = Config::checkConfig();
+    if (!s.ok()) {
+      std::cerr << "Error reading config: " << s.toString() << "\n";
+    }
+    ::exit(s.getCode());
+  }
+}
+
+void initOsqueryDaemon() {
+#ifndef __APPLE__
+  // OSX uses launchd to daemonize.
+  if (osquery::FLAGS_daemonize) {
+    if (daemon(0, 0) == -1) {
+      ::exit(EXIT_FAILURE);
+    }
+  }
+#endif
+
+  // Print the version to SYSLOG.
+  announce();
+
+  // Create a process mutex around the daemon.
+  auto pid_status = createPidFile();
+  if (!pid_status.ok()) {
+    LOG(ERROR) << "osqueryd initialize failed: " << pid_status.toString();
+    ::exit(EXIT_FAILURE);
+  }
+
+  // Check the backing store by allocating and exitting on error.
+  if (!DBHandle::checkDB()) {
+    LOG(ERROR) << "osqueryd initialize failed: Could not create DB handle";
+    ::exit(EXIT_FAILURE);
+  }
 }
 
 void shutdownOsquery() {
   // End any event type run loops.
-  osquery::EventFactory::end();
+  EventFactory::end();
 
   // Hopefully release memory used by global string constructors in gflags.
   __GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
