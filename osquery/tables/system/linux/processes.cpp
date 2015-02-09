@@ -171,7 +171,7 @@ QueryData genProcesses(QueryContext& context) {
   while ((proc_info = readproc(proc, NULL))) {
     if (!context.constraints["pid"].matches<int>(proc_info->tid)) {
       // Optimize by not searching when a pid is a constraint.
-      standard_freeproc(proc_info);
+      standardFreeproc(proc_info);
       continue;
     }
 
