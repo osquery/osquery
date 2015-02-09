@@ -1,0 +1,14 @@
+table_name("process_memory_map")
+description("Process memory mapped files and pseudo device/regions.")
+schema([
+    Column("pid", INTEGER),
+    Column("start", TEXT, "Virtual start address (hex)"),
+    Column("end", TEXT, "Virtual end address (hex)"),
+    Column("permissions", TEXT, "r=read, w=write, x=execute, p=private (cow)"),
+    Column("offset", BIGINT, "Offset into mapped path"),
+    Column("device", TEXT, "MA:MI Major/minor device ID"),
+    Column("inode", INTEGER, "Mapped path inode, 0 means uninitialized (BSS)"),
+    Column("path", TEXT, "Path to mapped file or mapped type"),
+    Column("is_pseudo", INTEGER, "1 if path is a pseudo path, else 0"),
+])
+implementation("processes@genProcessMemoryMap")

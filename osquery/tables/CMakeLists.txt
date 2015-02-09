@@ -64,10 +64,12 @@ else()
     system/linux/kernel_info.cpp
     system/linux/kernel_integrity.cpp
     system/linux/kernel_modules.cpp
+    system/linux/memory_map.cpp
     system/linux/mounts.cpp
     system/linux/pci_devices.cpp
     system/linux/processes.cpp
     system/linux/process_open_files.cpp
+    system/linux/shared_memory.cpp
     system/linux/smbios_tables.cpp
     system/linux/usb_devices.cpp
     system/linux/users.cpp
