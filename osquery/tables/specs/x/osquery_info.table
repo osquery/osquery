@@ -4,6 +4,6 @@ schema([
     Column("version", TEXT),
     Column("config_md5", TEXT),
     Column("config_path", TEXT),
-    Column("pid", INTEGER),
+    Column("pid", INTEGER, "Process (or thread) ID"),
 ])
 implementation("osquery@genOsqueryInfo")

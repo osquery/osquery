@@ -1,7 +1,7 @@
 table_name("processes")
 description("All running processes on the host system.")
 schema([
-    Column("pid", INTEGER),
+    Column("pid", INTEGER, "Process (or thread) ID"),
     Column("name", TEXT, "The process path or shorthand argv[0]"),
     Column("path", TEXT),
     Column("cmdline", TEXT, "Complete argv"),

@@ -1,7 +1,7 @@
 table_name("process_open_sockets")
 description("Processes which have open network sockets on the system.")
 schema([
-    Column("pid", INTEGER),
+    Column("pid", INTEGER, "Process (or thread) ID"),
     Column("socket", INTEGER),
     Column("family", INTEGER),
     Column("protocol", INTEGER),
