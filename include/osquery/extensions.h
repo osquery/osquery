@@ -15,11 +15,12 @@
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
-#ifdef OSQUERY_THRIFT
+#ifdef FBOSQUERY
+#include "osquery/gen-cpp/Extension.h"
+#include "osquery/gen-cpp/ExtensionManager.h"
+#else
 #include "Extension.h"
 #include "ExtensionManager.h"
-#else
-#error "Required -DOSQUERY_THRIFT=/path/to/thrift/gen-cpp"
 #endif
 
 namespace osquery {

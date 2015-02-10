@@ -9,11 +9,22 @@
  */
 
 #include <csignal>
+
+#ifdef FBOSQUERY
+#include <thrift/lib/cpp/protocol/TBinaryProtocol.h>
+#include <thrift/lib/cpp/server/example/TSimpleServer.h>
+#include <thrift/lib/cpp/transport/TServerSocket.h>
+#include <thrift/lib/cpp/transport/TBufferTransports.h>
+#include <thrift/lib/cpp/transport/TSocket.h>
+#define _SHARED_PTR std::shared_ptr
+#else
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TSimpleServer.h>
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/transport/TSocket.h>
+#define _SHARED_PTR boost::shared_ptr
+#endif
 
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
@@ -143,13 +154,13 @@ void ExtensionRunner::enter() {
   auto socket_path = path_;
 
   // Create the thrift instances.
-  boost::shared_ptr<ExtensionHandler> handler(new ExtensionHandler());
-  boost::shared_ptr<TProcessor> processor(new ExtensionProcessor(handler));
-  boost::shared_ptr<TServerTransport> serverTransport(
+  _SHARED_PTR<ExtensionHandler> handler(new ExtensionHandler());
+  _SHARED_PTR<TProcessor> processor(new ExtensionProcessor(handler));
+  _SHARED_PTR<TServerTransport> serverTransport(
       new TServerSocket(socket_path));
-  boost::shared_ptr<TTransportFactory> transportFactory(
+  _SHARED_PTR<TTransportFactory> transportFactory(
       new TBufferedTransportFactory());
-  boost::shared_ptr<TProtocolFactory> protocolFactory(
+  _SHARED_PTR<TProtocolFactory> protocolFactory(
       new TBinaryProtocolFactory());
 
   // Start the Thrift server's run loop.
@@ -174,15 +185,15 @@ void ExtensionManagerRunner::enter() {
   auto socket_path = path_;
 
   // Create the thrift instances.
-  boost::shared_ptr<ExtensionManagerHandler> handler(
+  _SHARED_PTR<ExtensionManagerHandler> handler(
       new ExtensionManagerHandler());
-  boost::shared_ptr<TProcessor> processor(
+  _SHARED_PTR<TProcessor> processor(
       new ExtensionManagerProcessor(handler));
-  boost::shared_ptr<TServerTransport> serverTransport(
+  _SHARED_PTR<TServerTransport> serverTransport(
       new TServerSocket(socket_path));
-  boost::shared_ptr<TTransportFactory> transportFactory(
+  _SHARED_PTR<TTransportFactory> transportFactory(
       new TBufferedTransportFactory());
-  boost::shared_ptr<TProtocolFactory> protocolFactory(
+  _SHARED_PTR<TProtocolFactory> protocolFactory(
       new TBinaryProtocolFactory());
 
   // Start the Thrift server's run loop.
@@ -198,9 +209,9 @@ void ExtensionManagerRunner::enter() {
 
 void ExtensionWatcher::enter() {
   // Watch the manager, if the socket is removed then the extension will die.
-  boost::shared_ptr<TSocket> socket(new TSocket(manager_path_));
-  boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-  boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+  _SHARED_PTR<TSocket> socket(new TSocket(manager_path_));
+  _SHARED_PTR<TTransport> transport(new TBufferedTransport(socket));
+  _SHARED_PTR<TProtocol> protocol(new TBinaryProtocol(transport));
 
   // Open a long-lived client to the extension manager.
   ExtensionManagerClient client(protocol);
@@ -253,9 +264,9 @@ Status startExtension(const std::string& manager_path,
   }
 
   // Open a socket to the extension manager to register.
-  boost::shared_ptr<TSocket> socket(new TSocket(manager_path));
-  boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-  boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+  _SHARED_PTR<TSocket> socket(new TSocket(manager_path));
+  _SHARED_PTR<TTransport> transport(new TBufferedTransport(socket));
+  _SHARED_PTR<TProtocol> protocol(new TBinaryProtocol(transport));
 
   // The Registry broadcast is used as the ExtensionRegistry.
   auto broadcast = Registry::getBroadcast();
@@ -298,9 +309,9 @@ Status pingExtension(const std::string& path) {
   }
 
   // Open a socket to the extension.
-  boost::shared_ptr<TSocket> socket(new TSocket(path));
-  boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-  boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+  _SHARED_PTR<TSocket> socket(new TSocket(path));
+  _SHARED_PTR<TTransport> transport(new TBufferedTransport(socket));
+  _SHARED_PTR<TProtocol> protocol(new TBinaryProtocol(transport));
 
   ExtensionClient client(protocol);
   ExtensionStatus ext_status;
@@ -330,9 +341,9 @@ Status getExtensions(const std::string& manager_path,
   }
 
   // Open a socket to the extension.
-  boost::shared_ptr<TSocket> socket(new TSocket(manager_path));
-  boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-  boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+  _SHARED_PTR<TSocket> socket(new TSocket(manager_path));
+  _SHARED_PTR<TTransport> transport(new TBufferedTransport(socket));
+  _SHARED_PTR<TProtocol> protocol(new TBinaryProtocol(transport));
 
   ExtensionManagerClient client(protocol);
   InternalExtensionList ext_list;
@@ -378,9 +389,9 @@ Status callExtension(const std::string& extension_path,
   }
 
   // Open a socket to the extension manager to register.
-  boost::shared_ptr<TSocket> socket(new TSocket(extension_path));
-  boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-  boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+  _SHARED_PTR<TSocket> socket(new TSocket(extension_path));
+  _SHARED_PTR<TTransport> transport(new TBufferedTransport(socket));
+  _SHARED_PTR<TProtocol> protocol(new TBinaryProtocol(transport));
 
   ExtensionClient client(protocol);
   ExtensionResponse ext_response;
