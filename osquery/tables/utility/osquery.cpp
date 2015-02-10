@@ -49,6 +49,27 @@ QueryData genOsqueryFlags(QueryContext& context) {
   return results;
 }
 
+QueryData genOsqueryExtensions(QueryContext& context) {
+  QueryData results;
+
+  ExtensionList extensions;
+  if (!getExtensions(extensions).ok()) {
+    return {};
+  }
+
+  for (const auto& extenion : extensions) {
+    Row r;
+    r["uuid"] = TEXT(extenion.first);
+    r["name"] = extenion.second.name;
+    r["version"] = extenion.second.version;
+    r["sdk_version"] = extenion.second.sdk_version;
+    r["socket"] = getExtensionSocket(extenion.first);
+    results.push_back(r);
+  }
+
+  return results;
+}
+
 QueryData genOsqueryInfo(QueryContext& context) {
   QueryData results;
 

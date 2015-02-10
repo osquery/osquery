@@ -14,7 +14,7 @@ typedef i64 ExtensionRouteUUID
 typedef map<string, string> ExtensionRoute
 typedef map<string, ExtensionRoute> ExtensionRouteTable
 typedef map<string, ExtensionRouteTable> ExtensionRegistry
-typedef map<ExtensionRouteUUID, InternalExtensionInfo> ExtensionList
+typedef map<ExtensionRouteUUID, InternalExtensionInfo> InternalExtensionList
 
 enum ExtensionCode {
   EXT_SUCCESS = 0,
@@ -49,7 +49,7 @@ service Extension {
 }
 
 service ExtensionManager extends Extension {
-  ExtensionList extensions(),
+  InternalExtensionList extensions(),
   ExtensionStatus registerExtension(
     1:InternalExtensionInfo info,
     2:ExtensionRegistry registry),

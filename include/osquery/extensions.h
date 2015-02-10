@@ -26,8 +26,6 @@ namespace osquery {
 
 DECLARE_string(extensions_socket);
 
-namespace extensions {
-
 /**
  * @brief Helper struct for managing extenion metadata.
  *
@@ -37,7 +35,29 @@ struct ExtensionInfo {
   std::string name;
   std::string version;
   std::string sdk_version;
+
+  ExtensionInfo& operator=(const extensions::InternalExtensionInfo& iei) {
+    name = iei.name;
+    version = iei.version;
+    sdk_version = iei.sdk_version;
+    return *this;
+  }
+
+  ExtensionInfo() {}
+  ExtensionInfo(const std::string& name) : name(name) {
+    version = OSQUERY_VERSION;
+    sdk_version = OSQUERY_VERSION;
+  }
 };
+
+typedef std::map<RouteUUID, ExtensionInfo> ExtensionList;
+
+inline std::string getExtensionSocket(
+    RouteUUID uuid, const std::string& path = FLAGS_extensions_socket) {
+  return path + "." + std::to_string(uuid);
+}
+
+namespace extensions {
 
 /**
  * @brief The Thrift API server used by an osquery Extension process.
@@ -85,7 +105,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
   ExtensionManagerHandler() {}
 
   /// Return a list of Route UUIDs and extension metadata.
-  void extensions(ExtensionList& _return) { _return = extensions_; }
+  void extensions(InternalExtensionList& _return) { _return = extensions_; }
 
   /**
    * @brief Request a Route UUID and advertise a set of Registry routes.
@@ -123,7 +143,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
   bool exists(const std::string& name);
 
   /// Maintain a map of extension UUID to metadata for tracking deregistrations.
-  ExtensionList extensions_;
+  InternalExtensionList extensions_;
 };
 }
 
@@ -161,7 +181,7 @@ class ExtensionRunner : public InternalRunnable {
  public:
   virtual ~ExtensionRunner();
   ExtensionRunner(const std::string& manager_path, RouteUUID uuid) {
-    path_ = manager_path + "." + std::to_string(uuid);
+    path_ = getExtensionSocket(uuid, manager_path);
     uuid_ = uuid;
   }
 
@@ -193,6 +213,13 @@ class ExtensionManagerRunner : public InternalRunnable {
  private:
   std::string path_;
 };
+
+/// Status get a list of active extenions.
+Status getExtensions(ExtensionList& extensions);
+
+/// Internal getExtensions using a UNIX domain socket path.
+Status getExtensions(const std::string& manager_path,
+                     ExtensionList& extensions);
 
 /// Ping an extension manager or extension.
 Status pingExtension(const std::string& path);

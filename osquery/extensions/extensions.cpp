@@ -299,6 +299,46 @@ Status pingExtension(const std::string& path) {
   return Status(ext_status.code, ext_status.message);
 }
 
+Status getExtensions(ExtensionList& extensions) {
+  if (FLAGS_disable_extensions) {
+    return Status(1, "Extensions disabled");
+  }
+  return getExtensions(FLAGS_extensions_socket, extensions);
+}
+
+Status getExtensions(const std::string& manager_path,
+                     ExtensionList& extensions) {
+  // Make sure the extension path exists, and is writable.
+  if (!pathExists(manager_path) || !isWritable(manager_path)) {
+    return Status(1, "Extension manager socket not availabe: " + manager_path);
+  }
+
+  // Open a socket to the extension.
+  boost::shared_ptr<TSocket> socket(new TSocket(manager_path));
+  boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+  boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+
+  ExtensionManagerClient client(protocol);
+  InternalExtensionList ext_list;
+  try {
+    transport->open();
+    client.extensions(ext_list);
+    transport->close();
+  } catch (const std::exception& e) {
+    return Status(1, "Extension call failed: " + std::string(e.what()));
+  }
+
+  // Add the extension manager to the list called (core).
+  extensions.insert(std::make_pair(0, ExtensionInfo("core")));
+
+  // Convert from Thrift-internal list type to RouteUUID/ExtenionInfo type.
+  for (const auto& extension : ext_list) {
+    extensions[extension.first] = extension.second;
+  }
+
+  return Status(0, "OK");
+}
+
 Status callExtension(const RouteUUID uuid,
                      const std::string& registry,
                      const std::string& item,
@@ -307,11 +347,8 @@ Status callExtension(const RouteUUID uuid,
   if (FLAGS_disable_extensions) {
     return Status(1, "Extensions disabled");
   }
-  return callExtension(FLAGS_extensions_socket + "." + std::to_string(uuid),
-                       registry,
-                       item,
-                       request,
-                       response);
+  return callExtension(
+      getExtensionSocket(uuid), registry, item, request, response);
 }
 
 Status callExtension(const std::string& extension_path,
@@ -340,6 +377,7 @@ Status callExtension(const std::string& extension_path,
     return Status(1, "Extension call failed: " + std::string(e.what()));
   }
 
+  // Convert from Thrift-internal list type to PluginResponse type.
   if (ext_response.status.code == ExtensionCode::EXT_SUCCESS) {
     for (const auto& item : ext_response.response) {
       response.push_back(item);
