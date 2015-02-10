@@ -12,6 +12,7 @@
 #include <pwd.h>
 
 #include <osquery/core.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -71,7 +72,7 @@ QueryData genSharedMemory(QueryContext &context) {
     r["dtime"] = BIGINT(shmseg.shm_dtime);
     r["ctime"] = BIGINT(shmseg.shm_ctime);
 
-    r["permissions"] = INTEGER(ipcp->mode);
+    r["permissions"] = lsperms(ipcp->mode);
     r["size"] = BIGINT(shmseg.shm_segsz);
     r["attached"] = INTEGER(shmseg.shm_nattch);
     r["status"] = (ipcp->mode & SHM_DEST) ? "dest" : "";
