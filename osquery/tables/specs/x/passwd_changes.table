@@ -2,7 +2,7 @@ table_name("passwd_changes")
 description("Track time, action changes to /etc/passwd.")
 schema([
     Column("target_path", TEXT, "The path changed"),
-    Column("time", TEXT),
+    Column("time", TEXT, "Time of the change"),
     Column("action", TEXT, "Change action (UPDATE, REMOVE, etc)"),
     Column("transaction_id", BIGINT, "ID used during bulk update"),
 ])

@@ -5,6 +5,6 @@ schema([
     Column("tty", TEXT),
     Column("host", TEXT),
     Column("time", INTEGER),
-    Column("pid", INTEGER),
+    Column("pid", INTEGER, "Process (or thread) ID"),
 ])
 implementation("logged_in_users@genLoggedInUsers")

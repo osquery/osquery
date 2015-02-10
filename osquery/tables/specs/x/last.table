@@ -3,7 +3,7 @@ description("System logins and logouts.")
 schema([
     Column("username", TEXT),
     Column("tty", TEXT),
-    Column("pid", INTEGER),
+    Column("pid", INTEGER, "Process (or thread) ID"),
     Column("type", INTEGER),
     Column("time", INTEGER),
     Column("host", TEXT),

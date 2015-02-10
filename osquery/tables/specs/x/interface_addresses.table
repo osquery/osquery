@@ -1,10 +1,10 @@
 table_name("interface_addresses")
 description("Network interfaces and relevant metadata.")
 schema([
-    Column("interface", TEXT),
-    Column("address", TEXT),
-    Column("mask", TEXT),
-    Column("broadcast", TEXT),
-    Column("point_to_point", TEXT),
+    Column("interface", TEXT, "Interface name"),
+    Column("address", TEXT, "Specific address for interface"),
+    Column("mask", TEXT, "Interface netmask"),
+    Column("broadcast", TEXT, "Broadcast address for the interface"),
+    Column("point_to_point", TEXT, "PtP address for the interface"),
 ])
 implementation("interfaces@genInterfaceAddresses")
