@@ -23,6 +23,15 @@
 #include <osquery/database/results.h>
 #include <osquery/status.h>
 
+/// Allow Tables to use "tracked" depricated OS APIs.
+#define OSQUERY_USE_DEPRECATED(expr)                                      \
+  do {                                                                    \
+    _Pragma("clang diagnostic push")                                      \
+        _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"") \
+        expr;                                                             \
+    _Pragma("clang diagnostic pop")                                       \
+  } while (0)
+
 namespace osquery {
 namespace tables {
 

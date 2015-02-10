@@ -27,6 +27,7 @@ if(APPLE)
     system/darwin/launchd.cpp
     system/darwin/mounts.cpp
     system/darwin/nvram.cpp
+    system/darwin/preferences.cpp
     system/darwin/processes.cpp
     system/darwin/process_open_descriptors.cpp
     system/darwin/quarantine.cpp
