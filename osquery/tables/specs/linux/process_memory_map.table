@@ -1,7 +1,7 @@
 table_name("process_memory_map")
 description("Process memory mapped files and pseudo device/regions.")
 schema([
-    Column("pid", INTEGER),
+    Column("pid", INTEGER, "Process (or thread) ID"),
     Column("start", TEXT, "Virtual start address (hex)"),
     Column("end", TEXT, "Virtual end address (hex)"),
     Column("permissions", TEXT, "r=read, w=write, x=execute, p=private (cow)"),
