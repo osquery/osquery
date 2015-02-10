@@ -67,6 +67,16 @@ TEST_F(ConfigTests, test_queries_execute) {
     EXPECT_TRUE(status.ok());
   }
 }
+
+TEST_F(ConfigTests, test_threatfiles_execute) {
+  auto c = Config::getInstance();
+  auto files = c->getThreatFiles();
+
+  EXPECT_EQ(files.size(), 2);
+  EXPECT_EQ(files["downloads"].size(), 1);
+  EXPECT_EQ(files["system_binaries"].size(), 3);
+  
+}
 }
 
 int main(int argc, char* argv[]) {

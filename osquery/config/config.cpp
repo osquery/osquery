@@ -29,6 +29,9 @@ DEFINE_osquery_flag(string,
                     "filesystem",
                     "Config type (plugin)");
 
+// This lock is used to protect the entirety of the OSqueryConfig struct
+// Is should be used when ever accessing the structs members, reading or
+// writing.
 static boost::shared_mutex rw_lock;
 
 std::shared_ptr<Config> Config::getInstance() {
@@ -105,6 +108,19 @@ Status Config::genConfig(OsqueryConfig& conf) {
         conf.options[v.first.data()] = v.second.data();
       }
     }
+
+    // We may have threat intelligence hooks to setup
+    if (tree.count("threat_intel") > 0) {
+      for (const pt::ptree::value_type& v : tree.get_child("threat_intel")) {
+        if (v.first == "file_paths") {
+          for (const pt::ptree::value_type& file_cat : v.second) {
+            for (const pt::ptree::value_type& file : file_cat.second) {
+              conf.threatFiles[file_cat.first].push_back(file.first);
+            }
+          }
+        }
+      }
+    }
   } catch (const std::exception& e) {
     LOG(ERROR) << "Error parsing config JSON: " << e.what();
     return Status(1, e.what());
@@ -116,6 +132,11 @@ Status Config::genConfig(OsqueryConfig& conf) {
 std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return cfg_.scheduledQueries;
+}
+
+std::map<std::string, std::vector<std::string> > Config::getThreatFiles() {
+  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
+  return cfg_.threatFiles;
 }
 
 Status Config::getMD5(std::string& hash_string) {
