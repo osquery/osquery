@@ -18,17 +18,6 @@
 namespace osquery {
 namespace tables {
 
-inline std::string lsperms(int mode) {
-  static const char rwx[] = {'0', '1', '2', '3', '4', '5', '6', '7'};
-  std::string bits;
-
-  bits += rwx[(mode >> 9) & 7];
-  bits += rwx[(mode >> 6) & 7];
-  bits += rwx[(mode >> 3) & 7];
-  bits += rwx[(mode >> 0) & 7];
-  return bits;
-}
-
 QueryData genFile(QueryContext& context) {
   QueryData results;
 
@@ -50,7 +39,7 @@ QueryData genFile(QueryContext& context) {
     r["inode"] = BIGINT(file_stat.st_ino);
     r["uid"] = BIGINT(file_stat.st_uid);
     r["gid"] = BIGINT(file_stat.st_gid);
-    r["mode"] = std::string(lsperms(file_stat.st_mode));
+    r["mode"] = lsperms(file_stat.st_mode);
     r["device"] = BIGINT(file_stat.st_rdev);
     r["size"] = BIGINT(file_stat.st_size);
     r["block_size"] = INTEGER(file_stat.st_blksize);

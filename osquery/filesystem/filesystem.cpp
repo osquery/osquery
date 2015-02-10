@@ -485,4 +485,15 @@ std::vector<fs::path> getHomeDirectories() {
   }
   return results;
 }
+
+std::string lsperms(int mode) {
+  static const char rwx[] = {'0', '1', '2', '3', '4', '5', '6', '7'};
+  std::string bits;
+
+  bits += rwx[(mode >> 9) & 7];
+  bits += rwx[(mode >> 6) & 7];
+  bits += rwx[(mode >> 3) & 7];
+  bits += rwx[(mode >> 0) & 7];
+  return bits;
+}
 }

@@ -155,6 +155,9 @@ Status isDirectory(const boost::filesystem::path& path);
  */
 std::vector<boost::filesystem::path> getHomeDirectories();
 
+/// Return bit-mask-style permissions.
+std::string lsperms(int mode);
+
 #ifdef __APPLE__
 /**
  * @brief Parse a property list on disk into a property tree.
