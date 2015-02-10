@@ -20,7 +20,8 @@
 
 namespace osquery {
 
-int kINotifyULatency = 200;
+int kINotifyMLatency = 200;
+
 static const uint32_t BUFFER_SIZE =
     (10 * ((sizeof(struct inotify_event)) + NAME_MAX + 1));
 
@@ -70,7 +71,7 @@ Status INotifyEventPublisher::run() {
   FD_ZERO(&set);
   FD_SET(getHandle(), &set);
 
-  struct timeval timeout = {0, kINotifyULatency};
+  struct timeval timeout = {0, kINotifyMLatency};
   int selector = ::select(getHandle() + 1, &set, nullptr, nullptr, &timeout);
   if (selector == -1) {
     LOG(ERROR) << "Could not read inotify handle";
@@ -111,7 +112,7 @@ Status INotifyEventPublisher::run() {
     p += (sizeof(struct inotify_event)) + event->len;
   }
 
-  ::usleep(kINotifyULatency);
+  osquery::interruptableSleep(kINotifyMLatency);
   return Status(0, "Continue");
 }
 

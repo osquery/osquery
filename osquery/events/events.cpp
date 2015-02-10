@@ -15,7 +15,6 @@
 #include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
-#include <osquery/dispatcher.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -23,6 +22,9 @@
 #include "osquery/core/conversions.h"
 
 namespace osquery {
+
+/// Helper cooloff (ms) macro to prevent thread failure thrashing.
+#define EVENTS_COOLOFF 20
 
 DEFINE_osquery_flag(bool,
                     disable_events,
@@ -417,7 +419,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
   while (!publisher->isEnding() && status.ok()) {
     // Can optionally implement a global cooloff latency here.
     status = publisher->run();
-    ::usleep(20);
+    osquery::interruptableSleep(EVENTS_COOLOFF);
   }
 
   // The runloop status is not reflective of the event type's.

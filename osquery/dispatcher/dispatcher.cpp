@@ -26,7 +26,7 @@ DEFINE_osquery_flag(int32,
                     4,
                     "Number of work dispatch threads");
 
-void InternalRunnable::interruptableSleep(size_t milli) {
+void interruptableSleep(size_t milli) {
   boost::this_thread::sleep(boost::posix_time::milliseconds(milli));
 }
 
