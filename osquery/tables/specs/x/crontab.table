@@ -2,11 +2,11 @@ table_name("crontab")
 description("Line parsed values from system and user cron/tab.")
 schema([
     Column("event", TEXT, "The job @event name (rare)"),
-    Column("minute", TEXT),
-    Column("hour", TEXT),
-    Column("day_of_month", TEXT),
-    Column("month", TEXT),
-    Column("day_of_week", TEXT),
+    Column("minute", TEXT, "The exact minute for the job"),
+    Column("hour", TEXT, "The hour of the day for the job"),
+    Column("day_of_month", TEXT, "The day of the month for the job"),
+    Column("month", TEXT, "The month of the year for the job"),
+    Column("day_of_week", TEXT, "The day of the week for the job"),
     Column("command", TEXT, "Raw command string"),
     Column("path", TEXT, "File parsed"),
 ])

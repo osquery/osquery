@@ -3,7 +3,7 @@ description("Interactive filesystem attributes and metadata.")
 schema([
     Column("path", TEXT, "Absolute file path", required=True),
     Column("filename", TEXT, "Name portion of file path"),
-    Column("inode", BIGINT),
+    Column("inode", BIGINT, "Filesystem inode number"),
     Column("uid", BIGINT, "Owning user ID"),
     Column("gid", BIGINT, "Owning group ID"),
     Column("mode", TEXT, "Permission bits"),

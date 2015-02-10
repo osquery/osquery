@@ -2,13 +2,13 @@ table_name("process_open_sockets")
 description("Processes which have open network sockets on the system.")
 schema([
     Column("pid", INTEGER, "Process (or thread) ID"),
-    Column("socket", INTEGER),
-    Column("family", INTEGER),
-    Column("protocol", INTEGER),
-    Column("local_address", TEXT),
-    Column("remote_address", TEXT),
-    Column("local_port", INTEGER),
-    Column("remote_port", INTEGER),
+    Column("socket", INTEGER, "Socket descriptor number"),
+    Column("family", INTEGER, "Network protocol (IPv4, IPv6)"),
+    Column("protocol", INTEGER, "Transport protocol (TCP/UDP)"),
+    Column("local_address", TEXT, "Socket local address"),
+    Column("remote_address", TEXT, "Socket remote address"),
+    Column("local_port", INTEGER, "Socket local port"),
+    Column("remote_port", INTEGER, "Socket remote port"),
 ])
 implementation("system/process_open_sockets@genOpenSockets")
 
