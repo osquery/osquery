@@ -10,6 +10,7 @@
 
 #include <osquery/config.h>
 #include <osquery/core.h>
+#include <osquery/extensions.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
@@ -65,6 +66,8 @@ QueryData genOsqueryInfo(QueryContext& context) {
   }
 
   r["config_path"] = Flag::get().getValue("config_path");
+  r["extensions"] =
+      (pingExtension(FLAGS_extensions_socket).ok()) ? "active" : "inactive";
   results.push_back(r);
 
   return results;

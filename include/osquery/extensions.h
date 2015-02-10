@@ -194,6 +194,9 @@ class ExtensionManagerRunner : public InternalRunnable {
   std::string path_;
 };
 
+/// Ping an extension manager or extension.
+Status pingExtension(const std::string& path);
+
 /**
  * @brief Call a Plugin exposed by an Extension Registry route.
  *
