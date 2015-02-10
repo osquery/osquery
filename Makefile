@@ -32,11 +32,11 @@ sanitize: .setup
 	  $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 sdk: .setup
-	cd build/$(BUILD_DIR)/sdk && SDK=True cmake ../../ && \
+	cd build/$(BUILD_DIR)/sdk && SDK=True cmake ../../../ && \
 	  $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_sdk: .setup
-	cd build/$(BUILD_DIR)/sdk && SDK=True cmake ../../ && \
+	cd build/$(BUILD_DIR)/sdk && SDK=True cmake ../../../ && \
 	  $(MAKE) test --no-print-directory $(MAKEFLAGS)	
 
 deps: .setup
