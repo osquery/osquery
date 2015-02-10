@@ -57,8 +57,6 @@ class InternalRunnable : public apache::thrift::concurrency::Runnable {
   /// Check if the thread's entrypoint (run) executed, meaning thread context
   /// was allocated.
   bool hasRun() { return run_; }
-  /// Sleep in a boost::thread interruptable state.
-  void interruptableSleep(size_t milli);
 
  protected:
   /// Require the runnable thread define an entrypoint.
@@ -121,6 +119,7 @@ class Dispatcher {
    */
   Status add(std::shared_ptr<InternalRunnable> task);
 
+  /// See `add`, but services are not limited to a thread poll size.
   Status addService(std::shared_ptr<InternalRunnable> service);
 
   /**
@@ -152,8 +151,10 @@ class Dispatcher {
    */
   void join();
 
+  /// See `join`, but applied to osquery services.
   void joinServices();
 
+  /// Destroy and stop all osquery service threads and service objects.
   void removeServices();
 
   /**
@@ -253,7 +254,12 @@ class Dispatcher {
    * @see getThreadManager
    */
   InternalThreadManagerRef thread_manager_;
+  /// The set of shared osquery service threads.
   std::vector<std::shared_ptr<boost::thread> > service_threads_;
+  /// THe set of shared osquery services.
   std::vector<std::shared_ptr<InternalRunnable> > services_;
 };
+
+/// Sleep in a boost::thread interruptable state.
+void interruptableSleep(size_t milli);
 }
