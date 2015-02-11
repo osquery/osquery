@@ -129,8 +129,8 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
       afinite = boost::lexical_cast<int>(value);
     } catch (const boost::bad_lexical_cast &e) {
       afinite = -1;
-      LOG(WARNING) << "Error casting " << column_name << " (" << value
-                   << ") to INTEGER";
+      VLOG(1) << "Error casting " << column_name << " (" << value
+              << ") to INTEGER";
     }
     sqlite3_result_int(ctx, afinite);
   } else if (type == "BIGINT") {
@@ -139,8 +139,8 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
       afinite = boost::lexical_cast<long long int>(value);
     } catch (const boost::bad_lexical_cast &e) {
       afinite = -1;
-      LOG(WARNING) << "Error casting " << column_name << " (" << value
-                   << ") to BIGINT";
+      VLOG(1) << "Error casting " << column_name << " (" << value
+              << ") to BIGINT";
     }
     sqlite3_result_int64(ctx, afinite);
   }

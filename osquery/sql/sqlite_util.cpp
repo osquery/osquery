@@ -52,6 +52,51 @@ const std::map<int, std::string> kSQLiteReturnCodes = {
     {101, "SQLITE_DONE: sqlite3_step() has finished executing"},
 };
 
+SQLiteDBInstance::SQLiteDBInstance() {
+  primary_ = false;
+  sqlite3_open(":memory:", &db_);
+  tables::attachVirtualTables(db_);
+}
+
+SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db) {
+  primary_ = true;
+  db_ = db;
+}
+
+SQLiteDBInstance::~SQLiteDBInstance() {
+  if (!primary_) {
+    sqlite3_close(db_);
+  } else {
+    SQLiteDBManager::unlock();
+  }
+}
+
+void SQLiteDBManager::unlock() { instance().lock_.unlock(); }
+
+SQLiteDBInstance SQLiteDBManager::getUnique() { return SQLiteDBInstance(); }
+
+SQLiteDBInstance SQLiteDBManager::get() {
+  auto& self = instance();
+
+  if (!self.lock_.owns_lock() && self.lock_.try_lock()) {
+    if (self.db_ == nullptr) {
+      // Create primary sqlite DB instance.
+      sqlite3_open(":memory:", &self.db_);
+      tables::attachVirtualTables(self.db_);
+    }
+    return SQLiteDBInstance(self.db_);
+  } else {
+    // If this thread or another has the lock, return a transient db.
+    return SQLiteDBInstance();
+  }
+}
+
+SQLiteDBManager::~SQLiteDBManager() {
+  if (db_ != nullptr) {
+    sqlite3_close(db_);
+  }
+}
+
 std::string getStringForSQLiteReturnCode(int code) {
   if (kSQLiteReturnCodes.find(code) != kSQLiteReturnCodes.end()) {
     return kSQLiteReturnCodes.at(code);
@@ -60,13 +105,6 @@ std::string getStringForSQLiteReturnCode(int code) {
     s << "Error: " << code << " is not a valid SQLite result code";
     return s.str();
   }
-}
-
-sqlite3* createDB() {
-  sqlite3* db = nullptr;
-  sqlite3_open(":memory:", &db);
-  tables::attachVirtualTables(db);
-  return db;
 }
 
 int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
@@ -85,9 +123,8 @@ int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
 }
 
 Status queryInternal(const std::string& q, QueryData& results) {
-  sqlite3* db = createDB();
-  auto status = queryInternal(q, results, db);
-  sqlite3_close(db);
+  auto dbc = SQLiteDBManager::get();
+  auto status = queryInternal(q, results, dbc.db());
   return status;
 }
 
@@ -104,9 +141,8 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
 
 Status getQueryColumnsInternal(const std::string& q,
     tables::TableColumns& columns) {
-  sqlite3* db = createDB();
-  Status status = getQueryColumnsInternal(q, columns, db);
-  sqlite3_close(db);
+  auto dbc = SQLiteDBManager::get();
+  Status status = getQueryColumnsInternal(q, columns, dbc.db());
   return status;
 }
 
