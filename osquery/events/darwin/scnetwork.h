@@ -71,7 +71,7 @@ class SCNetworkEventPublisher
  public:
   SCNetworkEventPublisher() : EventPublisher(), run_loop_(nullptr) {}
   bool shouldFire(const SCNetworkSubscriptionContextRef& sc,
-                  const SCNetworkEventContextRef& ec);
+                  const SCNetworkEventContextRef& ec) const;
 
  private:
   // Restart the run loop by calling configure.

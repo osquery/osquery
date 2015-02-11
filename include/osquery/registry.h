@@ -111,7 +111,7 @@ class Plugin {
   /// The plugin may perform some tear down, release, not required.
   virtual void tearDown() {}
   /// The plugin may publish route info (other than registry type and name).
-  virtual RouteInfo routeInfo() {
+  virtual RouteInfo routeInfo() const {
     RouteInfo info;
     return info;
   }
@@ -255,13 +255,11 @@ class RegistryHelper : public RegistryHelperCore {
       return Status(1, "Duplicate registry item exists: " + item_name);
     }
 
-    // Run the item's constructor, the setUp call will happen later.
-    auto item = (RegistryType*)new Item();
+    // Cast the specific registry-type derived item as the API type of the
+    // registry used when created using the registry factory.
+    std::shared_ptr<RegistryType> item((RegistryType*)new Item());
     item->setName(item_name);
-    // Cast the specific registry-type derived item as the API typ the registry
-    // used when it was created using the registry factory.
-    std::shared_ptr<RegistryType> shared_item(item);
-    items_[item_name] = shared_item;
+    items_[item_name] = item;
     return Status(0, "OK");
   }
 
@@ -274,11 +272,11 @@ class RegistryHelper : public RegistryHelperCore {
    * @param item_name An identifier for this registry plugin.
    * @return A std::shared_ptr of type RegistryType.
    */
-  RegistryTypeRef get(const std::string& item_name) {
+  RegistryTypeRef get(const std::string& item_name) const {
     return std::dynamic_pointer_cast<RegistryType>(items_.at(item_name));
   }
 
-  const std::map<std::string, RegistryTypeRef> all() {
+  const std::map<std::string, RegistryTypeRef> all() const {
     std::map<std::string, RegistryTypeRef> ditems;
     for (const auto& item : items_) {
       ditems[item.first] = std::dynamic_pointer_cast<RegistryType>(item.second);
@@ -326,10 +324,9 @@ class RegistryFactory : private boost::noncopyable {
       return 0;
     }
 
-    auto registry = (PluginRegistryHelper*)new RegistryHelper<Type>(auto_setup);
+    PluginRegistryHelperRef registry((PluginRegistryHelper*)new RegistryHelper<Type>(auto_setup));
     registry->setName(registry_name);
-    PluginRegistryHelperRef shared_registry(registry);
-    instance().registries_[registry_name] = shared_registry;
+    instance().registries_[registry_name] = registry;
     return 0;
   }
 

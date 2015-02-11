@@ -58,13 +58,13 @@ std::string getCanonicalEfiDevicePath(const CFDataRef& data) {
       } else if (node->SubType == MEDIA_HARDDRIVE_DP) {
         // Extract the device UUID to later join with block devices.
         auto uuid = ((const HARDDRIVE_DEVICE_PATH*)node)->Signature;
-        boost::uuids::uuid hdd_signature = {
+        boost::uuids::uuid hdd_signature = {{
           uuid[3], uuid[2], uuid[1], uuid[0],
           uuid[5], uuid[4],
           uuid[7], uuid[6],
           uuid[8], uuid[9],
           uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15],
-        };
+        }};
         path += boost::to_upper_copy(boost::uuids::to_string(hdd_signature));
       }
     }

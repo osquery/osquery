@@ -46,7 +46,7 @@ bool isFieldOkay(const char* fieldValue) {
 }
 
 void extractAptSourceInfo(pkgCache::PkgFileIterator src,
-                          const struct pkgIndexFile* pkgIndex,
+                          const pkgIndexFile* pkgIndex,
                           QueryData& results) {
   Row r;
 

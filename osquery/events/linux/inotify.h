@@ -122,7 +122,7 @@ class INotifyEventPublisher
   bool removeMonitor(int watch, bool force = false);
   /// Given a SubscriptionContext and INotifyEventContext match path and action.
   bool shouldFire(const INotifySubscriptionContextRef& mc,
-                  const INotifyEventContextRef& ec);
+                  const INotifyEventContextRef& ec) const;
   /// Get the INotify file descriptor.
   int getHandle() { return inotify_handle_; }
   /// Get the number of actual INotify active descriptors.

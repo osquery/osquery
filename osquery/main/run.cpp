@@ -49,12 +49,13 @@ int main(int argc, char* argv[]) {
     if (!status.ok()) {
       fprintf(stderr, "Query failed: %d\n", status.getCode());
       break;
-    } else {
-      if (FLAGS_delay != 0) {
-        ::sleep(FLAGS_delay);
-      }
     }
   }
+
+  if (FLAGS_delay != 0) {
+    ::sleep(FLAGS_delay);
+  }
+
 
   // Instead of calling "shutdownOsquery" force the EF to join its threads.
   osquery::EventFactory::end(true);

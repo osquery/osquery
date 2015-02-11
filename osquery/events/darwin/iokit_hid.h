@@ -114,7 +114,7 @@ class IOKitHIDEventPublisher
   }
 
   bool shouldFire(const IOKitHIDSubscriptionContextRef &mc,
-                  const IOKitHIDEventContextRef &ec);
+                  const IOKitHIDEventContextRef &ec) const;
 
  public:
   /**

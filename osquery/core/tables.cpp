@@ -17,7 +17,7 @@ namespace osquery {
 namespace tables {
 
 
-bool ConstraintList::matches(const std::string& expr) {
+bool ConstraintList::matches(const std::string& expr) const {
   // Support each SQL affinity type casting.
   if (affinity == "TEXT") {
     return literal_matches<TEXT_LITERAL>(expr);
@@ -37,7 +37,7 @@ bool ConstraintList::matches(const std::string& expr) {
 }
 
 template <typename T>
-bool ConstraintList::literal_matches(const T& base_expr) {
+bool ConstraintList::literal_matches(const T& base_expr) const {
   bool aggregate = true;
   for (size_t i = 0; i < constraints_.size(); ++i) {
     T constraint_expr = AS_LITERAL(T, constraints_[i].expr);
@@ -63,7 +63,7 @@ bool ConstraintList::literal_matches(const T& base_expr) {
   return true;
 }
 
-std::set<std::string> ConstraintList::getAll(ConstraintOperator op) {
+std::set<std::string> ConstraintList::getAll(ConstraintOperator op) const {
   std::set<std::string> set;
   for (size_t i = 0; i < constraints_.size(); ++i) {
     if (constraints_[i].op == op) {
@@ -122,9 +122,7 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
 
 void TablePlugin::setResponseFromQueryData(const QueryData& data,
                                            PluginResponse& response) {
-  for (const auto& row : data) {
-    response.push_back(row);
-  }
+  response = std::move(data);
 }
 
 void TablePlugin::setContextFromRequest(const PluginRequest& request,
@@ -170,7 +168,7 @@ Status TablePlugin::call(const PluginRequest& request,
   } else if (request.at("action") == "columns") {
     // "columns" returns a PluginRequest filled with column information
     // such as name and type.
-    auto column_list = columns();
+    const auto& column_list = columns();
     for (const auto& column : column_list) {
       response.push_back({{"name", column.first}, {"type", column.second}});
     }
@@ -183,20 +181,19 @@ Status TablePlugin::call(const PluginRequest& request,
   return Status(0, "OK");
 }
 
-std::string TablePlugin::columnDefinition() {
+std::string TablePlugin::columnDefinition() const {
   const auto& column_list = columns();
   std::string statement = "(";
   for (size_t i = 0; i < column_list.size(); ++i) {
-    statement += column_list[i].first + " " + column_list.at(i).second;
+    statement += column_list.at(i).first + " " + column_list.at(i).second;
     if (i < column_list.size() - 1) {
       statement += ", ";
     }
   }
-  statement += ")";
-  return statement;
+  return statement += ")";
 }
 
-std::string TablePlugin::statement() {
+std::string TablePlugin::statement() const {
   return "CREATE TABLE " + name_ + columnDefinition();
 }
 

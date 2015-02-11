@@ -24,7 +24,7 @@ class VirtualTableTests : public testing::Test {};
 // sample plugin used on tests
 class sampleTablePlugin : public TablePlugin {
  private:
-  TableColumns columns() {
+  TableColumns columns() const {
     return {
         {"foo", "INTEGER"}, {"bar", "TEXT"},
     };

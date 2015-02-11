@@ -153,8 +153,7 @@ void getFileData(Row& r,
                  const std::string& directory) {
   r["path"] = path;
   r["directory"] = directory;
-  int ret;
-  int buf_len;
+
   struct XAttrAttribute x_att =
       getAttribute(path, "com.apple.metadata:kMDItemWhereFroms");
   parseWhereFromData(r, x_att);

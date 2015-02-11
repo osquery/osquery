@@ -70,32 +70,32 @@ static void fillRow(struct udev_device *dev, Row &r) {
 
 QueryData genBlockDevs(QueryContext &context) {
   QueryData results;
-  struct udev *udev;
-  struct udev_enumerate *enumerate;
-  struct udev_list_entry *devices, *dev_list_entry;
-  struct udev_device *dev, *parent;
 
-  if ((udev = udev_new())) {
-    enumerate = udev_enumerate_new(udev);
-    udev_enumerate_add_match_subsystem(enumerate, "block");
-    udev_enumerate_scan_devices(enumerate);
-    devices = udev_enumerate_get_list_entry(enumerate);
-    udev_list_entry_foreach(dev_list_entry, devices) {
-      const char *path;
-      Row r;
-
-      path = udev_list_entry_get_name(dev_list_entry);
-      dev = udev_device_new_from_syspath(udev, path);
-
-      fillRow(dev, r);
-
-      results.push_back(r);
-      udev_device_unref(dev);
-    }
-
-    udev_enumerate_unref(enumerate);
-    udev_unref(udev);
+  struct udev *udev = udev_new();
+  if (udev == nullptr) {
+    return {};
   }
+
+  struct udev_enumerate *enumerate = udev_enumerate_new(udev);
+  udev_enumerate_add_match_subsystem(enumerate, "block");
+  udev_enumerate_scan_devices(enumerate);
+
+  struct udev_list_entry *devices, *dev_list_entry;
+  devices = udev_enumerate_get_list_entry(enumerate);
+  udev_list_entry_foreach(dev_list_entry, devices) {
+    Row r;
+
+    const char *path = udev_list_entry_get_name(dev_list_entry);
+    struct udev_device *dev = udev_device_new_from_syspath(udev, path);
+
+    fillRow(dev, r);
+
+    results.push_back(r);
+    udev_device_unref(dev);
+  }
+
+  udev_enumerate_unref(enumerate);
+  udev_unref(udev);
 
   return results;
 }

@@ -41,7 +41,7 @@ void SCNetworkEventPublisher::Callback(const SCNetworkReachabilityRef target,
 
 bool SCNetworkEventPublisher::shouldFire(
     const SCNetworkSubscriptionContextRef& sc,
-    const SCNetworkEventContextRef& ec) {
+    const SCNetworkEventContextRef& ec) const {
   // Only fire the event for the subscription context it matched.
   return (sc == ec->subscription);
 }

@@ -61,10 +61,7 @@ void genVariable(const void *key, const void *value, void *results) {
 QueryData genNVRAM(QueryContext &context) {
   QueryData results;
 
-  kern_return_t status;
   mach_port_t master_port;
-  io_registry_entry_t options_ref;
-
   auto kr = IOMasterPort(bootstrap_port, &master_port);
   if (kr != KERN_SUCCESS) {
     VLOG(1) << "Could not get the IOMaster port";

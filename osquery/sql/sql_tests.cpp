@@ -37,7 +37,7 @@ TEST_F(SQLTests, test_raw_access) {
 
 class TestTable : public tables::TablePlugin {
  private:
-  tables::TableColumns columns() {
+  tables::TableColumns columns() const {
     return {{"test_int", "INTEGER"}, {"test_text", "TEXT"}};
   }
 

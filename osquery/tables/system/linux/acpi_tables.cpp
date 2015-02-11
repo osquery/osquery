@@ -32,7 +32,7 @@ void genACPITable(const std::string& table, QueryData& results) {
     status = osquery::listFilesInDirectory(table_path, child_tables);
     if (status.ok()) {
       for (const auto& child_table : child_tables) {
-        genACPITable(table, results);
+        genACPITable(child_table, results);
       }
     }
 
