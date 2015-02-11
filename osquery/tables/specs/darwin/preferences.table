@@ -1,0 +1,10 @@
+table_name("preferences")
+description("OS X defaults and managed preferences.")
+schema([
+    Column("domain", TEXT),
+    Column("key", TEXT),
+    Column("subkey", TEXT),
+    Column("value", TEXT),
+    Column("forced", INTEGER),
+])
+implementation("system/darwin/preferences@genOSXPreferences")

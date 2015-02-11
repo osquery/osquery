@@ -23,23 +23,23 @@ namespace tables {
 #define kIODTOptionsPath_ "IODeviceTree:/options"
 
 void genVariable(const void *key, const void *value, void *results) {
-  Row nvram_row;
-  std::string value_string;
-
-  // OF variable canonical type casting.
-  CFTypeID type_id;
-  CFStringRef type_description;
+  if (key == nullptr || value == nullptr || results == nullptr) {
+    // Paranoia: don't expect the callback application to yield nullptrs.
+    return;
+  }
 
   // Variable name is the dictionary key.
+  Row nvram_row;
   nvram_row["name"] = stringFromCFString((CFStringRef)key);
 
   // Variable type will be defined by the CF type.
-  type_id = CFGetTypeID(value);
-  type_description = CFCopyTypeIDDescription(type_id);
+  CFTypeID type_id = CFGetTypeID(value);
+  CFStringRef type_description = CFCopyTypeIDDescription(type_id);
   nvram_row["type"] = stringFromCFString(type_description);
   CFRelease(type_description);
 
   // Based on the type, get a texual representation of the variable.
+  std::string value_string;
   if (type_id == CFBooleanGetTypeID()) {
     value_string = (CFBooleanGetValue((CFBooleanRef)value)) ? "true" : "false";
   } else if (type_id == CFNumberGetTypeID()) {
