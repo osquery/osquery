@@ -47,7 +47,8 @@ const std::vector<std::string> kHomeDirSearchPaths = {
 std::vector<std::string> getSystemApplications() {
   std::vector<std::string> results;
   std::vector<std::string> sys_apps;
-  auto status = osquery::listFilesInDirectory("/Applications", sys_apps);
+  auto status = osquery::listDirectoriesInDirectory("/Applications", sys_apps);
+
   if (status.ok()) {
     for (const auto& app_path : sys_apps) {
       std::string plist_path = app_path + "/Contents/Info.plist";
@@ -68,7 +69,7 @@ std::vector<std::string> getUserApplications(const std::string& home_dir) {
     apps_path /= dir_to_check;
 
     std::vector<std::string> user_apps;
-    auto status = osquery::listFilesInDirectory(apps_path, user_apps);
+    auto status = osquery::listDirectoriesInDirectory(apps_path, user_apps);
     if (status.ok()) {
       for (const auto& user_app : user_apps) {
         std::string plist_path = user_app + "/Contents/Info.plist";
