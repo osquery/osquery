@@ -23,6 +23,10 @@ debug: .setup
 	cd build/$(BUILD_DIR) && DEBUG=True cmake ../../ && \
 		$(MAKE) --no-print-directory $(MAKEFLAGS)
 
+test_debug: .setup
+	cd build/$(BUILD_DIR)/sdk && DEBUG=True cmake ../../../ && \
+	  $(MAKE) test --no-print-directory $(MAKEFLAGS)	
+
 analyze: .setup
 	cd build/$(BUILD_DIR) && ANALYZE=True cmake ../../ && \
 	  $(MAKE) --no-print-directory $(MAKEFLAGS)

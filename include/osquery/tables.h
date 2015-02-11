@@ -133,7 +133,7 @@ struct ConstraintList {
    * @param expr a SQL type expression of the column literal type to check.
    * @return If the expression matched all constraints.
    */
-  bool matches(const std::string& expr);
+  bool matches(const std::string& expr) const;
 
   /**
    * @brief Check if an expression matches the query constraints.
@@ -146,7 +146,7 @@ struct ConstraintList {
    * @return If the expression matched all constraints.
    */
   template <typename T>
-  bool matches(const T& expr) {
+  bool matches(const T& expr) const {
     return matches(TEXT(expr));
   }
 
@@ -159,7 +159,7 @@ struct ConstraintList {
    *
    * @return true if any constraint exists.
    */
-  bool exists() { return (constraints_.size() > 0); }
+  bool exists() const { return (constraints_.size() > 0); }
 
   /**
    * @brief Check if a constrait exist AND matches the type expression.
@@ -170,7 +170,7 @@ struct ConstraintList {
    * @return true if any constraint exists AND matches the type expression.
    */
   template <typename T>
-  bool existsAndMatches(const T& expr) {
+  bool existsAndMatches(const T& expr) const {
     return (exists() && matches(expr));
   }
 
@@ -185,7 +185,7 @@ struct ConstraintList {
    * @return true if constraint is missing or matches the type expression.
    */
   template <typename T>
-  bool notExistsOrMatches(const T& expr) {
+  bool notExistsOrMatches(const T& expr) const {
     return (!exists() || matches(expr));
   }
 
@@ -193,7 +193,7 @@ struct ConstraintList {
    * @brief Helper templated function for ConstraintList::matches.
    */
   template <typename T>
-  bool literal_matches(const T& base_expr);
+  bool literal_matches(const T& base_expr) const;
 
   /**
    * @brief Get all expressions for a given ConstraintOperator.
@@ -204,10 +204,10 @@ struct ConstraintList {
    * @param op the ConstraintOperator.
    * @return A list of TEXT%-represented types matching the operator.
    */
-  std::set<std::string> getAll(ConstraintOperator op);
+  std::set<std::string> getAll(ConstraintOperator op) const;
 
   template<typename T>
-  std::set<T> getAll(ConstraintOperator op) {
+  std::set<T> getAll(ConstraintOperator op) const {
     std::set<T> literal_matches;
     auto matches = getAll(op);
     for (const auto& match : matches) {
@@ -282,9 +282,9 @@ typedef struct Constraint Constraint;
 class TablePlugin : public Plugin {
  protected:
   /// Helper method to generate the virtual table CREATE statement.
-  virtual std::string statement();
-  virtual std::string columnDefinition();
-  virtual TableColumns columns() {
+  virtual std::string statement() const;
+  virtual std::string columnDefinition() const;
+  virtual TableColumns columns() const {
     TableColumns columns;
     return columns;
   }

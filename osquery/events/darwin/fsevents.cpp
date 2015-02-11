@@ -164,7 +164,7 @@ void FSEventsEventPublisher::Callback(
 
 bool FSEventsEventPublisher::shouldFire(
     const FSEventsSubscriptionContextRef& mc,
-    const FSEventsEventContextRef& ec) {
+    const FSEventsEventContextRef& ec) const {
   ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
     return false;

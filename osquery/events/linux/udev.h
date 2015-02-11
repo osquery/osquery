@@ -113,7 +113,7 @@ class UdevEventPublisher
  private:
   /// Check subscription details.
   bool shouldFire(const UdevSubscriptionContextRef& mc,
-                  const UdevEventContextRef& ec);
+                  const UdevEventContextRef& ec) const;
   /// Helper function to create an EventContext using a udev_device pointer.
   UdevEventContextRef createEventContextFrom(struct udev_device* device);
 };

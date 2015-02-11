@@ -92,7 +92,7 @@ class FSEventsEventPublisher
   }
 
   bool shouldFire(const FSEventsSubscriptionContextRef& mc,
-                  const FSEventsEventContextRef& ec);
+                  const FSEventsEventContextRef& ec) const;
 
  private:
   // Restart the run loop.

@@ -29,7 +29,7 @@ class {{class_name}} {
 
 class {{table_name_cc}}TablePlugin : public TablePlugin {
  private:
-  TableColumns columns() {
+  TableColumns columns() const {
     return {
 {% for column in schema %}\
       {"{{column.name}}", "{{column.type.affinity}}"}\

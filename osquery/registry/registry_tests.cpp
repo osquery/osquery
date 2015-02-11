@@ -154,7 +154,7 @@ class WidgetPlugin : public Plugin {
   /// to parse and format. BUT a plugin/registry item can also fill this
   /// information in if the plugin type/registry type exposes routeInfo as
   /// a virtual method.
-  RouteInfo routeInfo() {
+  RouteInfo routeInfo() const {
     RouteInfo info;
     info["name"] = name_;
     return info;
@@ -162,7 +162,7 @@ class WidgetPlugin : public Plugin {
 
   /// Plugin types should contain generic request/response formatters and
   /// decorators.
-  std::string secretPower(const PluginRequest& request) {
+  std::string secretPower(const PluginRequest& request) const {
     if (request.count("secret_power") > 0) {
       return request.at("secret_power");
     }
@@ -183,8 +183,12 @@ Status SpecialWidget::call(const PluginRequest& request,
   return Status(0, "OK");
 }
 
+#define UNUSED(x) (void)(x)
+
 TEST_F(RegistryTests, test_registry_api) {
   auto AutoWidgetRegistry = TestCoreRegistry::create<WidgetPlugin>("widgets");
+  UNUSED(AutoWidgetRegistry);
+
   TestCoreRegistry::add<SpecialWidget>("widgets", "special");
 
   // Test route info propogation, from item to registry, to broadcast.

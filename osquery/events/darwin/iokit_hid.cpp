@@ -136,7 +136,7 @@ void IOKitHIDEventPublisher::InputValueCallback(void *context,
 
 bool IOKitHIDEventPublisher::shouldFire(
     const IOKitHIDSubscriptionContextRef &sc,
-    const IOKitHIDEventContextRef &ec) {
+    const IOKitHIDEventContextRef &ec) const {
   if (sc->values) {
     // See InputValueCallback
     return false;

@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 2.8.8)
 
 set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+set(CXX_COMPILE_FLAGS
+  -Wall
+  -Wextra
+  -Wno-unused-parameter
+  -Wno-missing-field-initializers
+  -Wno-sign-compare
+)
+string(REPLACE ";" " " CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
+
 if(APPLE)
   set(APPLE_MIN_ABI "10.9")
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
@@ -9,7 +18,8 @@ if(APPLE)
   set(OS_WHOLELINK_PRE "-Wl,-force_load")
   set(OS_WHOLELINK_POST "")
   # Special compile flags for Objective-C++
-  set(OBJCXX_COMPILE_FLAGS "-x objective-c++ -fobjc-arc -Wno-c++11-extensions")
+  set(OBJCXX_COMPILE_FLAGS
+    "-x objective-c++ -fobjc-arc -Wno-c++11-extensions -mmacosx-version-min=${APPLE_MIN_ABI}")
 else()
   if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
     set(FREEBSD TRUE)
@@ -18,7 +28,7 @@ else()
     set(OS_WHOLELINK_POST "")
   else()
     set(LINUX TRUE)
-    set(CXX_COMPILE_FLAGS "-std=c++11")
+    set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
     set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
     set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
   endif()
@@ -27,7 +37,7 @@ endif()
 # make debug (environment variable from Makefile)
 if(DEFINED ENV{DEBUG})
   set(CMAKE_BUILD_TYPE "Debug")
-  set(C_COMPILE_FLAGS "${CMAKE_C_FLAGS} -g -DDEBUG -O0")
+  set(C_COMPILE_FLAGS "${CMAKE_C_FLAGS} -g -DDEBUG -O0 -pg")
 else()
   set(C_COMPILE_FLAGS "${CMAKE_C_FLAGS} -O2")
 endif()

@@ -28,7 +28,7 @@ void genIOKitDevice(const io_service_t& device,
   IORegistryEntryCreateCFProperties(
       device, &details, kCFAllocatorDefault, kNilOptions);
 
-  io_name_t name, location, device_class;
+  io_name_t name, device_class;
   auto kr = IORegistryEntryGetName(device, name);
   if (kr == KERN_SUCCESS) {
     r["name"] = std::string(name);

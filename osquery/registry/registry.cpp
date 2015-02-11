@@ -60,7 +60,7 @@ Status RegistryHelperCore::call(const std::string& item_name,
                                 const PluginRequest& request,
                                 PluginResponse& response) {
   if (items_.count(item_name) > 0) {
-    return items_[item_name]->call(request, response);
+    return items_.at(item_name)->call(request, response);
   }
   return Status(1, "Cannot call registry item: " + item_name);
 }
@@ -206,7 +206,7 @@ Status RegistryFactory::call(const std::string& registry_name,
   if (instance().registries_.count(registry_name) == 0) {
     return Status(1, "Unknown registry: " + registry_name);
   }
-  return instance().registries_[registry_name]->call(
+  return instance().registries_.at(registry_name)->call(
       item_name, request, response);
 }
 

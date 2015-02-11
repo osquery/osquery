@@ -141,7 +141,7 @@ INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
 }
 
 bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
-                                       const INotifyEventContextRef& ec) {
+                                       const INotifyEventContextRef& ec) const {
   if (!sc->recursive && sc->path != ec->path) {
     // Monitored path is not recursive and path is not an exact match.
     return false;
