@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -91,9 +91,23 @@ TEST_F(AppsTests, test_parse_info_plist) {
       parseInfoPlist("/Applications/Foobar.app/Contents/Info.plist", tree),
       expected);
 }
-}
-}
 
+TEST_F(AppsTests, test_sanity_check) {
+  int result = 0;
+  pt::ptree tree;
+  for (const auto& path : getSystemApplications()) {
+    if (osquery::parsePlist(path, tree).ok()) {
+      if (parseInfoPlist(path, tree)["bundle_identifier"] ==
+          "com.apple.Safari") {
+        result++;
+        break;
+      }
+    }
+  }
+  EXPECT_GE(result, 1);
+}
+}
+}
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
   google::InitGoogleLogging(argv[0]);
