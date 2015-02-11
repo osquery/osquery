@@ -1,0 +1,10 @@
+table_name("osquery_extensions")
+description("List of active osquery extensions.")
+schema([
+    Column("uuid", BIGINT),
+    Column("name", TEXT),
+    Column("version", TEXT),
+    Column("sdk_version", TEXT),
+    Column("socket", TEXT),
+])
+implementation("osquery@genOsqueryExtensions")

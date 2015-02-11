@@ -72,23 +72,10 @@ class ExtensionsTest : public testing::Test {
   }
 
   ExtensionList registeredExtensions(int attempts = 3) {
-    // Open a socket to the test extension manager.
-    boost::shared_ptr<TSocket> socket(new TSocket(kTestManagerSocket));
-    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-    boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-
-    ExtensionManagerClient client(protocol);
-
-    // Calling open will except if the socket does not exist.
     ExtensionList extensions;
     for (int i = 0; i < attempts; ++i) {
-      try {
-        transport->open();
-        client.extensions(extensions);
-        transport->close();
-      }
-      catch (const std::exception& e) {
-        ::usleep(kDelayUS);
+      if (getExtensions(kTestManagerSocket, extensions).ok()) {
+        break;
       }
     }
 
@@ -221,7 +208,8 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
 
   // Make sure the EM registered the extension (called in start extension).
   auto extensions = registeredExtensions();
-  EXPECT_EQ(extensions.size(), 1);
+  // Expect two, since `getExtensions` includes the core.
+  EXPECT_EQ(extensions.size(), 2);
   EXPECT_EQ(extensions.count(uuid), 1);
   EXPECT_EQ(extensions.at(uuid).name, "test");
   EXPECT_EQ(extensions.at(uuid).version, "0.1");

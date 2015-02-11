@@ -10,6 +10,7 @@
 
 #include <osquery/config.h>
 #include <osquery/core.h>
+#include <osquery/extensions.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
@@ -48,6 +49,27 @@ QueryData genOsqueryFlags(QueryContext& context) {
   return results;
 }
 
+QueryData genOsqueryExtensions(QueryContext& context) {
+  QueryData results;
+
+  ExtensionList extensions;
+  if (!getExtensions(extensions).ok()) {
+    return {};
+  }
+
+  for (const auto& extenion : extensions) {
+    Row r;
+    r["uuid"] = TEXT(extenion.first);
+    r["name"] = extenion.second.name;
+    r["version"] = extenion.second.version;
+    r["sdk_version"] = extenion.second.sdk_version;
+    r["socket"] = getExtensionSocket(extenion.first);
+    results.push_back(r);
+  }
+
+  return results;
+}
+
 QueryData genOsqueryInfo(QueryContext& context) {
   QueryData results;
 
@@ -65,6 +87,8 @@ QueryData genOsqueryInfo(QueryContext& context) {
   }
 
   r["config_path"] = Flag::get().getValue("config_path");
+  r["extensions"] =
+      (pingExtension(FLAGS_extensions_socket).ok()) ? "active" : "inactive";
   results.push_back(r);
 
   return results;
