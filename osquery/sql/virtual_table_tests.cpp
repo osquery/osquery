@@ -45,24 +45,24 @@ TEST_F(VirtualTableTests, test_tableplugin_statement) {
 TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   auto table = std::make_shared<sampleTablePlugin>();
   table->setName("sample");
-  sqlite3* db = nullptr;
-  sqlite3_open(":memory:", &db);
+  //sqlite3* db = nullptr;
+  //sqlite3_open(":memory:", &db);
+  auto dbc = SQLiteDBManager::get();
 
   // Virtual tables require the registry/plugin API to query tables.
-  int rc = osquery::tables::attachTable(db, "failed_sample");
+  int rc = osquery::tables::attachTable(dbc.db(), "failed_sample");
   EXPECT_EQ(rc, SQLITE_ERROR);
 
   // The table attach will complete only when the table name is registered.
   Registry::add<sampleTablePlugin>("table", "sample");
-  rc = osquery::tables::attachTable(db, "sample");
+  rc = osquery::tables::attachTable(dbc.db(), "sample");
   EXPECT_EQ(rc, SQLITE_OK);
 
   std::string q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
   QueryData results;
-  auto status = queryInternal(q, results, db);
+  auto status = queryInternal(q, results, dbc.db());
   EXPECT_EQ("CREATE VIRTUAL TABLE sample USING sample(foo INTEGER, bar TEXT)",
             results[0]["sql"]);
-  sqlite3_close(db);
 }
 }
 }

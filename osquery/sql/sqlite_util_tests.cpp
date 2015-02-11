@@ -22,8 +22,8 @@ namespace osquery {
 
 class SQLiteUtilTests : public testing::Test {};
 
-sqlite3* createTestDB() {
-  sqlite3* db = createDB();
+SQLiteDBInstance getTestDBC() {
+  SQLiteDBInstance dbc = SQLiteDBManager::getUnique();
   char* err = nullptr;
   std::vector<std::string> queries = {
       "CREATE TABLE test_table ("
@@ -33,29 +33,43 @@ sqlite3* createTestDB() {
       "INSERT INTO test_table VALUES (\"mike\", 23)",
       "INSERT INTO test_table VALUES (\"matt\", 24)"};
   for (auto q : queries) {
-    sqlite3_exec(db, q.c_str(), nullptr, nullptr, &err);
+    sqlite3_exec(dbc.db(), q.c_str(), nullptr, nullptr, &err);
     if (err != nullptr) {
-      return nullptr;
+      throw std::domain_error("Cannot create testing DBC's db.");
     }
   }
 
-  return db;
+  return dbc;
+}
+
+TEST_F(SQLiteUtilTests, test_sqlite_instance_manager) {
+  auto dbc1 = SQLiteDBManager::get();
+  auto dbc2 = SQLiteDBManager::get();
+  EXPECT_NE(dbc1.db(), dbc2.db());
+  EXPECT_EQ(dbc1.db(), dbc1.db());
+}
+
+TEST_F(SQLiteUtilTests, test_sqlite_instance) {
+  // Don't do this at home kids.
+  // Keep a copy of the internal DB and let the SQLiteDBInstance go oos.
+  auto internal_db = SQLiteDBManager::get().db();
+  // Compare the internal DB to another request with no SQLiteDBInstances
+  // in scope, meaning the primary will be returned.
+  EXPECT_EQ(internal_db, SQLiteDBManager::get().db());
 }
 
 TEST_F(SQLiteUtilTests, test_simple_query_execution) {
-  auto db = createTestDB();
+  auto dbc = getTestDBC();
   QueryData results;
-  auto status = queryInternal(kTestQuery, results, db);
-  sqlite3_close(db);
+  auto status = queryInternal(kTestQuery, results, dbc.db());
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results, getTestDBExpectedResults());
 }
 
 TEST_F(SQLiteUtilTests, test_passing_callback_no_data_param) {
   char* err = nullptr;
-  auto db = createTestDB();
-  sqlite3_exec(db, kTestQuery.c_str(), queryDataCallback, nullptr, &err);
-  sqlite3_close(db);
+  auto dbc = getTestDBC();
+  sqlite3_exec(dbc.db(), kTestQuery.c_str(), queryDataCallback, nullptr, &err);
   EXPECT_TRUE(err != nullptr);
   if (err != nullptr) {
     sqlite3_free(err);
@@ -63,20 +77,19 @@ TEST_F(SQLiteUtilTests, test_passing_callback_no_data_param) {
 }
 
 TEST_F(SQLiteUtilTests, test_aggregate_query) {
-  auto db = createTestDB();
+  auto dbc = getTestDBC();
   QueryData results;
-  auto status = queryInternal(kTestQuery, results, db);
-  sqlite3_close(db);
+  auto status = queryInternal(kTestQuery, results, dbc.db());
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results, getTestDBExpectedResults());
 }
 
 TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
-  auto db = createTestDB();
+  auto dbc = getTestDBC();
   auto results = getTestDBResultStream();
   for (auto r : results) {
     char* err_char = nullptr;
-    sqlite3_exec(db, (r.first).c_str(), nullptr, nullptr, &err_char);
+    sqlite3_exec(dbc.db(), (r.first).c_str(), nullptr, nullptr, &err_char);
     EXPECT_TRUE(err_char == nullptr);
     if (err_char != nullptr) {
       sqlite3_free(err_char);
@@ -84,16 +97,13 @@ TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
     }
 
     QueryData expected;
-    auto status = queryInternal(kTestQuery, expected, db);
+    auto status = queryInternal(kTestQuery, expected, dbc.db());
     EXPECT_EQ(expected, r.second);
   }
-  sqlite3_close(db);
 }
 
 TEST_F(SQLiteUtilTests, test_get_query_columns) {
-  std::unique_ptr<sqlite3, decltype(sqlite3_close)*> db_managed(createDB(),
-                                                                sqlite3_close);
-  sqlite3* db = db_managed.get();
+  auto dbc = getTestDBC();
 
   std::string query;
   Status status;
@@ -102,7 +112,7 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   query =
       "SELECT hour, minutes, seconds, version, config_md5, config_path, \
            pid FROM time JOIN osquery_info";
-  status = getQueryColumnsInternal(query, results, db);
+  status = getQueryColumnsInternal(query, results, dbc.db());
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(7, results.size());
   EXPECT_EQ(std::make_pair(std::string("hour"), std::string("INTEGER")),
@@ -121,7 +131,7 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
             results[6]);
 
   query = "SELECT hour + 1 AS hour1, minutes + 1 FROM time";
-  status = getQueryColumnsInternal(query, results, db);
+  status = getQueryColumnsInternal(query, results, dbc.db());
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(2, results.size());
   EXPECT_EQ(std::make_pair(std::string("hour1"), std::string("UNKNOWN")),
@@ -130,7 +140,7 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
             results[1]);
 
   query = "SELECT * FROM foo";
-  status = getQueryColumnsInternal(query, results, db);
+  status = getQueryColumnsInternal(query, results, dbc.db());
   ASSERT_FALSE(status.ok());
 }
 }
