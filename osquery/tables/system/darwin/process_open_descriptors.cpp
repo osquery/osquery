@@ -33,11 +33,11 @@ enum descriptor_type {
 };
 
 // From processes.cpp
-std::set<int> getProcList();
+std::set<int> getProcList(const QueryContext &context);
 
-std::string socketIpAsString(const struct in_sockinfo *in,
-                             int type,
-                             int family) {
+inline std::string socketIpAsString(const struct in_sockinfo *in,
+                                    int type,
+                                    int family) {
   char dst[INET6_ADDRSTRLEN];
   memset(dst, 0, sizeof(dst));
 
@@ -152,8 +152,8 @@ void genOpenDescriptors(int pid, descriptor_type type, QueryData &results) {
 
 QueryData genOpenSockets(QueryContext &context) {
   QueryData results;
-  auto pidlist = getProcList();
 
+  auto pidlist = getProcList(context);
   for (auto &pid : pidlist) {
     if (!context.constraints["pid"].matches(pid)) {
       // Optimize by not searching when a pid is a constraint.
@@ -167,8 +167,8 @@ QueryData genOpenSockets(QueryContext &context) {
 
 QueryData genOpenFiles(QueryContext &context) {
   QueryData results;
-  auto pidlist = getProcList();
 
+  auto pidlist = getProcList(context);
   for (auto &pid : pidlist) {
     if (!context.constraints["pid"].matches(pid)) {
       // Optimize by not searching when a pid is a constraint.

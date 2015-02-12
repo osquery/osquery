@@ -25,11 +25,20 @@
 namespace osquery {
 namespace tables {
 
-std::set<int> getProcList() {
+std::set<int> getProcList(const QueryContext &context) {
   std::set<int> pidlist;
+  if (context.constraints.at("pid").exists()) {
+    pidlist = context.constraints.at("pid").getAll<int>(EQUALS);
+  }
+
+  // No equality matches, get all pids.
+  if (pidlist.size() != 0) {
+    return pidlist;
+  }
+
   int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
   if (bufsize <= 0) {
-    LOG(ERROR) << "An error occurred retrieving the process list";
+    VLOG(1) << "An error occurred retrieving the process list";
     return pidlist;
   }
 
@@ -42,7 +51,7 @@ std::set<int> getProcList() {
   // pids data structure
   bufsize = proc_listpids(PROC_ALL_PIDS, 0, pids, sizeof(pids));
   if (bufsize <= 0) {
-    LOG(ERROR) << "An error occurred retrieving the process list";
+    VLOG(1) << "An error occurred retrieving the process list";
     return pidlist;
   }
 
@@ -75,17 +84,7 @@ std::map<int, int> getParentMap(std::set<int> &pidlist) {
   return pidmap;
 }
 
-std::string getProcName(int pid) {
-  char name[1024] = "\0";
-  int bufsize = proc_name(pid, name, sizeof(name));
-  if (bufsize <= 0) {
-    name[0] = '\0';
-  }
-
-  return std::string(name);
-}
-
-std::string getProcPath(int pid) {
+inline std::string getProcPath(int pid) {
   char path[PROC_PIDPATHINFO_MAXSIZE] = "\0";
   int bufsize = proc_pidpath(pid, path, sizeof(path));
   if (bufsize <= 0) {
@@ -102,10 +101,10 @@ struct proc_cred {
   } real, effective;
 };
 
-bool getProcCred(int pid, proc_cred &cred) {
+inline bool getProcCred(int pid, proc_cred &cred) {
   struct proc_bsdshortinfo bsdinfo;
 
-  if (proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 0, &bsdinfo, sizeof bsdinfo) !=
+  if (proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 0, &bsdinfo, sizeof(bsdinfo)) !=
       -1) {
     cred.real.uid = bsdinfo.pbsi_ruid;
     cred.real.gid = bsdinfo.pbsi_ruid;
@@ -117,13 +116,13 @@ bool getProcCred(int pid, proc_cred &cred) {
 }
 
 // Get the max args space
-int genMaxArgs() {
+static int genMaxArgs() {
   int mib[2] = {CTL_KERN, KERN_ARGMAX};
 
   int argmax = 0;
   size_t size = sizeof(argmax);
   if (sysctl(mib, 2, &argmax, &size, NULL, 0) == -1) {
-    LOG(ERROR) << "An error occurred retrieving the max arg size";
+    VLOG(1) << "An error occurred retrieving the max arg size";
     return 0;
   }
 
@@ -140,7 +139,7 @@ std::vector<std::string> getProcRawArgs(int pid, size_t argmax) {
 
   if (sysctl(mib, 3, &procargs, &argmax, NULL, 0) == -1) {
     if (euid == 0) {
-      VLOG(1) << "An error occurred retrieving the env for " << pid;
+      VLOG(1) << "An error occurred retrieving the env for pid: " << pid;
     }
 
     return args;
@@ -211,16 +210,7 @@ std::vector<std::string> getProcArgs(int pid, size_t argmax) {
 QueryData genProcesses(QueryContext &context) {
   QueryData results;
 
-  std::set<int> pidlist;
-  if (context.constraints["pid"].exists()) {
-    pidlist = context.constraints["pid"].getAll<int>(EQUALS);
-  }
-
-  // No equality matches, get all pids.
-  if (pidlist.size() == 0) {
-    pidlist = getProcList();
-  }
-
+  auto pidlist = getProcList(context);
   auto parent_pid = getParentMap(pidlist);
   int argmax = genMaxArgs();
 
@@ -232,12 +222,9 @@ QueryData genProcesses(QueryContext &context) {
 
     Row r;
     r["pid"] = INTEGER(pid);
-    r["name"] = getProcName(pid);
     r["path"] = getProcPath(pid);
-    if (r["name"] == "") {
-      // The name was not available, use the basename of the path.
-      r["name"] = boost::filesystem::path(r["path"]).filename().string();
-    }
+    // OS X proc_name only returns 16 bytes, use the basename of the path.
+    r["name"] = boost::filesystem::path(r["path"]).filename().string();
 
     // The command line invocation including arguments.
     std::string cmdline = boost::algorithm::join(getProcArgs(pid, argmax), " ");
@@ -292,9 +279,9 @@ QueryData genProcesses(QueryContext &context) {
 
 QueryData genProcessEnvs(QueryContext &context) {
   QueryData results;
-  auto pidlist = getProcList();
-  int argmax = genMaxArgs();
 
+  auto pidlist = getProcList(context);
+  int argmax = genMaxArgs();
   for (auto &pid : pidlist) {
     if (!context.constraints["pid"].matches<int>(pid)) {
       // Optimize by not searching when a pid is a constraint.
