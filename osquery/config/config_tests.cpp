@@ -17,6 +17,8 @@
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 
+#include <boost/filesystem/operations.hpp>
+
 #include "osquery/core/test_util.h"
 
 namespace osquery {

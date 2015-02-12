@@ -35,7 +35,7 @@
 namespace pt = boost::property_tree;
 typedef std::map<std::string, std::vector<std::string> > EventFileMap_t;
 
-class WildCardExpander : public apache::thrift::concurrency::Runnable {
+class WildCardExpander : public osquery::InternalRunnable {
  public:
   std::map<std::string, std::vector<std::string> > dest;
   std::promise<EventFileMap_t> promise;
@@ -44,7 +44,7 @@ class WildCardExpander : public apache::thrift::concurrency::Runnable {
       : tree(tree) {
     promise = std::move(lpromise);
   }
-  virtual void run() {
+  virtual void enter() {
     if (tree.count("threat_intel") > 0) {
       for (const pt::ptree::value_type& v : tree.get_child("threat_intel")) {
         if (v.first == "file_paths") {
