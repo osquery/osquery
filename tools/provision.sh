@@ -458,7 +458,7 @@ function main() {
     elif [[ $DISTRO = "centos7" ]]; then
       package gcc
       package binutils
-      #package gcc-c++
+      package gcc-c++
       package cmake
     fi
 
