@@ -8,6 +8,7 @@
  *
  */
 
+#include <csignal>
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TSimpleServer.h>
 #include <thrift/transport/TServerSocket.h>
@@ -271,84 +272,13 @@ Status startExtension(const std::string& manager_path,
   return Status(0, std::to_string(status.uuid));
 }
 
-Status pingExtension(const std::string& path) {
-  if (FLAGS_disable_extensions) {
-    return Status(1, "Extensions disabled");
-  }
-
-  // Make sure the extension path exists, and is writable.
-  if (!pathExists(path) || !isWritable(path)) {
-    return Status(1, "Extension socket not availabe: " + path);
-  }
-
-  // Open a socket to the extension.
-  boost::shared_ptr<TSocket> socket(new TSocket(path));
-  boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-  boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-
-  ExtensionClient client(protocol);
-  ExtensionStatus ext_status;
-  try {
-    transport->open();
-    client.ping(ext_status);
-    transport->close();
-  } catch (const std::exception& e) {
-    return Status(1, "Extension call failed: " + std::string(e.what()));
-  }
-
-  return Status(ext_status.code, ext_status.message);
-}
-
-Status getExtensions(ExtensionList& extensions) {
-  if (FLAGS_disable_extensions) {
-    return Status(1, "Extensions disabled");
-  }
-  return getExtensions(FLAGS_extensions_socket, extensions);
-}
-
-Status getExtensions(const std::string& manager_path,
-                     ExtensionList& extensions) {
-  // Make sure the extension path exists, and is writable.
-  if (!pathExists(manager_path) || !isWritable(manager_path)) {
-    return Status(1, "Extension manager socket not availabe: " + manager_path);
-  }
-
-  // Open a socket to the extension.
-  boost::shared_ptr<TSocket> socket(new TSocket(manager_path));
-  boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
-  boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
-
-  ExtensionManagerClient client(protocol);
-  InternalExtensionList ext_list;
-  try {
-    transport->open();
-    client.extensions(ext_list);
-    transport->close();
-  } catch (const std::exception& e) {
-    return Status(1, "Extension call failed: " + std::string(e.what()));
-  }
-
-  // Add the extension manager to the list called (core).
-  extensions.insert(std::make_pair(0, ExtensionInfo("core")));
-
-  // Convert from Thrift-internal list type to RouteUUID/ExtenionInfo type.
-  for (const auto& extension : ext_list) {
-    extensions[extension.first] = extension.second;
-  }
-
-  return Status(0, "OK");
-}
-
 Status callExtension(const RouteUUID uuid,
                      const std::string& registry,
                      const std::string& item,
                      const PluginRequest& request,
                      PluginResponse& response) {
-  if (FLAGS_disable_extensions) {
-    return Status(1, "Extensions disabled");
-  }
-  return callExtension(
-      getExtensionSocket(uuid), registry, item, request, response);
+  // Not yet implemented.
+  return Status(0, "OK");
 }
 
 Status callExtension(const std::string& extension_path,
@@ -377,7 +307,6 @@ Status callExtension(const std::string& extension_path,
     return Status(1, "Extension call failed: " + std::string(e.what()));
   }
 
-  // Convert from Thrift-internal list type to PluginResponse type.
   if (ext_response.status.code == ExtensionCode::EXT_SUCCESS) {
     for (const auto& item : ext_response.response) {
       response.push_back(item);
@@ -401,9 +330,6 @@ Status startExtensionWatcher(const std::string& manager_path,
 }
 
 Status startExtensionManager() {
-  if (FLAGS_disable_extensions) {
-    return Status(1, "Extensions disabled");
-  }
   return startExtensionManager(FLAGS_extensions_socket);
 }
 

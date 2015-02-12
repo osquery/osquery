@@ -8,8 +8,8 @@ else ifeq ($(PLATFORM),FreeBSD)
 else
 	DISTRO := $(shell if [ -f "/etc/redhat-release" ]; then echo "Centos"; fi)
 	ifeq ($(DISTRO),Centos)
-		BUILD_DIR=centos
-	else
+		BUILD_DIR := $(shell cat /etc/redhat-release | grep -o "release [6-7]" | sed 's/release /centos/g')
+  else
     DISTRO := $(shell if [ -f "/etc/lsb-release" ]; then echo "Ubuntu"; fi)
     BUILD_DIR := $(shell lsb_release -sc)
 	endif
@@ -22,10 +22,6 @@ all: .setup
 debug: .setup
 	cd build/$(BUILD_DIR) && DEBUG=True cmake ../../ && \
 		$(MAKE) --no-print-directory $(MAKEFLAGS)
-
-test_debug: .setup
-	cd build/$(BUILD_DIR)/sdk && DEBUG=True cmake ../../../ && \
-	  $(MAKE) test --no-print-directory $(MAKEFLAGS)	
 
 analyze: .setup
 	cd build/$(BUILD_DIR) && ANALYZE=True cmake ../../ && \
@@ -41,7 +37,7 @@ sdk: .setup
 
 test_sdk: .setup
 	cd build/$(BUILD_DIR)/sdk && SDK=True cmake ../../../ && \
-	  $(MAKE) test --no-print-directory $(MAKEFLAGS)	
+	  $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 deps: .setup
 	./tools/provision.sh build build/$(BUILD_DIR)
