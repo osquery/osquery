@@ -411,8 +411,12 @@ function main() {
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
 
-    if [[ -z $(rpm -qa | grep 'kernel-headers-3.10.0-123.9.3.el7.x86_64') ]]; then
-      sudo rpm -iv ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
+    if [[ -z $(rpm -qa | grep 'kernel-headers-3.10') ]]; then
+      if [[ $DISTRO = "centos6" ]]; then
+        sudo rpm -iv ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
+      elif [[ $DISTRO = "centos7" ]]; then
+        package kernel-headers
+      fi
     fi
 
     package texinfo
@@ -427,29 +431,37 @@ function main() {
     package ruby-devel
     package rubygems
 
-    pushd /etc/yum.repos.d
-    if [[ ! -f /etc/yum.repos.d/devtools-2.repo ]]; then
-      sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo
+    if [[ $DISTRO = "centos6" ]]; then
+      pushd /etc/yum.repos.d
+      if [[ ! -f /etc/yum.repos.d/devtools-2.repo ]]; then
+        sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo
+      fi
+
+      package devtoolset-2-gcc
+      package devtoolset-2-binutils
+      package devtoolset-2-gcc-c++
+
+      if [[ ! -e /usr/bin/gcc ]]; then
+        sudo ln -s /opt/rh/devtoolset-2/root/usr/bin/gcc /usr/bin/gcc
+      fi
+      if [[ ! -e /usr/bin/g++ ]]; then
+        sudo ln -s /opt/rh/devtoolset-2/root/usr/bin/gcc /usr/bin/g++
+      fi
+
+      source /opt/rh/devtoolset-2/enable
+      if [[ ! -d /usr/lib/gcc ]]; then
+        sudo ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
+      fi
+      popd
+
+      package cmake28
+    elif [[ $DISTRO = "centos7" ]]; then
+      package gcc
+      package binutils
+      #package gcc-c++
+      package cmake
     fi
 
-    package devtoolset-2-gcc
-    package devtoolset-2-binutils
-    package devtoolset-2-gcc-c++
-
-    if [[ ! -e /usr/bin/gcc ]]; then
-      sudo ln -s /opt/rh/devtoolset-2/root/usr/bin/gcc /usr/bin/gcc
-    fi
-    if [[ ! -e /usr/bin/g++ ]]; then
-      sudo ln -s /opt/rh/devtoolset-2/root/usr/bin/gcc /usr/bin/g++
-    fi
-
-    source /opt/rh/devtoolset-2/enable
-    if [[ ! -d /usr/lib/gcc ]]; then
-      sudo ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
-    fi
-    popd
-
-    package cmake28
     if [[ ! -f /usr/bin/cmake ]]; then
       sudo ln -s /usr/bin/cmake28 /usr/bin/cmake
     fi
@@ -471,7 +483,12 @@ function main() {
     package rpm-devel
     package libblkid-devel
 
-    install_boost
+    if [[ $DISTRO = "centos6" ]]; then
+      install_boost
+    elif [[ $DISTRO = "centos7" ]]; then
+      package boost
+    fi
+
     install_gflags
     package doxygen
     package snappy
@@ -483,13 +500,18 @@ function main() {
 
     remove_package libunwind-devel
 
-    # package libtool.x86_64
-    # package boost.x86_64
-
-    install_autoconf
-    install_automake
-    install_libtool
-    install_thrift
+    if [[ $DISTRO = "centos6" ]]; then
+      install_autoconf
+      install_automake
+      install_libtool
+      install_thrift
+    elif [[ $DISTRO = "centos7" ]]; then
+      package autoconf
+      package automake
+      package libtool
+      package thrift
+      package thrift-devel
+    fi
 
     install_rocksdb
 
