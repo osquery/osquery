@@ -497,6 +497,7 @@ function main() {
     package flex
     package bison
     package libudev-devel
+    package rpm-build
 
     remove_package libunwind-devel
 
