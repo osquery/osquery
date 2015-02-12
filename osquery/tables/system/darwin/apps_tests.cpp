@@ -78,6 +78,8 @@ TEST_F(AppsTests, test_parse_info_plist) {
       {"bundle_short_version", "6.0"},
       {"bundle_version", "517"},
       {"bundle_package_type", "APPL"},
+      {"environment", ""},
+      {"element", ""},
       {"compiler", "com.apple.compilers.llvm.clang.1_0"},
       {"development_region", "English"},
       {"display_name", ""},
