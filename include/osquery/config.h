@@ -13,6 +13,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <future>
 
 #include <osquery/flags.h>
 #include <osquery/registry.h>
@@ -34,7 +35,8 @@ struct OsqueryConfig {
   /// A vector of all of the queries that are scheduled to execute.
   std::vector<OsqueryScheduledQuery> scheduledQueries;
   std::map<std::string, std::string> options;
-  std::map<std::string, std::vector<std::string> > threatFiles;
+  std::shared_future<std::map<std::string, std::vector<std::string> > >
+      event_files;
 };
 
 /**
@@ -102,7 +104,8 @@ class Config {
    *
    * @return A map all the files in the JSON blob organized by category
    */
-  std::map<std::string, std::vector<std::string> > getThreatFiles();
+  std::shared_future<std::map<std::string, std::vector<std::string> > >
+  getThreatFiles();
 
   /**
    * @brief Calculate the has of the osquery config

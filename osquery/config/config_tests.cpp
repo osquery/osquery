@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+#include <fstream>
 
 #include <gtest/gtest.h>
 
@@ -22,17 +23,44 @@ namespace osquery {
 
 // The config_path flag is defined in the filesystem config plugin.
 DECLARE_string(config_path);
+const std::string kFakeDirectory = "/tmp/osquery-fstests-pattern";
 
 class ConfigTests : public testing::Test {
  public:
   ConfigTests() {
     FLAGS_config_plugin = "filesystem";
     FLAGS_config_path = kTestDataPath + "test.config";
+  }
+
+ protected:
+  void createFileAt(const std::string loc, const std::string content) {
+    std::ofstream test_file(loc);
+    test_file.write(content.c_str(), sizeof("test123"));
+    test_file.close();
+  }
+
+  void SetUp() {
+    boost::filesystem::create_directories(kFakeDirectory +
+                                          "/deep11/deep2/deep3/");
+    boost::filesystem::create_directories(kFakeDirectory + "/deep1/deep2/");
+
+    createFileAt(kFakeDirectory + "/root.txt", "root");
+    createFileAt(kFakeDirectory + "/toor.txt", "toor");
+    createFileAt(kFakeDirectory + "/roto.txt", "roto");
+    createFileAt(kFakeDirectory + "/deep1/level1.txt", "l1");
+    createFileAt(kFakeDirectory + "/deep11/not_bash", "l1");
+    createFileAt(kFakeDirectory + "/deep1/deep2/level2.txt", "l2");
+
+    createFileAt(kFakeDirectory + "/deep11/level1.txt", "l1");
+    createFileAt(kFakeDirectory + "/deep11/deep2/level2.txt", "l2");
+    createFileAt(kFakeDirectory + "/deep11/deep2/deep3/level3.txt", "l3");
 
     Registry::setUp();
     auto c = Config::getInstance();
     c->load();
   }
+
+  void TearDown() { boost::filesystem::remove_all(kFakeDirectory); }
 };
 
 class TestConfigPlugin : public ConfigPlugin {
@@ -70,12 +98,21 @@ TEST_F(ConfigTests, test_queries_execute) {
 
 TEST_F(ConfigTests, test_threatfiles_execute) {
   auto c = Config::getInstance();
-  auto files = c->getThreatFiles();
+  // files_f is of type std::shared_pointer
+  auto files_f = c->getThreatFiles();
+  auto files = files_f.get();
 
   EXPECT_EQ(files.size(), 2);
-  EXPECT_EQ(files["downloads"].size(), 1);
-  EXPECT_EQ(files["system_binaries"].size(), 3);
-  
+  EXPECT_EQ(files["downloads"].size(), 9);
+  EXPECT_EQ(files["system_binaries"].size(), 5);
+  // Do this twice to test the fact that multiple calls work
+  // with futures;
+  files_f = c->getThreatFiles();
+  files = files_f.get();
+
+  EXPECT_EQ(files.size(), 2);
+  EXPECT_EQ(files["downloads"].size(), 9);
+  EXPECT_EQ(files["system_binaries"].size(), 5);
 }
 }
 
