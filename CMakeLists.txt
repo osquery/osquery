@@ -5,11 +5,19 @@ set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
 set(CXX_COMPILE_FLAGS
   -Wall
   -Wextra
+  -Wstrict-aliasing
   -Wno-unused-parameter
   -Wno-missing-field-initializers
   -Wno-sign-compare
+  -Wformat
+  -Wformat-security
+  -Werror=format-security
+  -fstack-protector-all
+  -D_FORTIFY_SOURCE=2
+  -fPIE
 )
 string(REPLACE ";" " " CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
+set(CMAKE_SHARED_LINKER_FLAGS "-z relro -z now")
 
 if(APPLE)
   set(APPLE_MIN_ABI "10.9")

@@ -20,7 +20,7 @@ if(NOT APPLE)
   endif()
 endif()
 
-set(GLOG_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unnamed-type-template-args -DHAVE_PREAD")
+set(GLOG_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register -Wno-unnamed-type-template-args -Wno-deprecated -Wno-error -DHAVE_PREAD")
 
 INCLUDE(ExternalProject)
 ExternalProject_Add(
