@@ -11,10 +11,13 @@
 #include <CoreFoundation/CoreFoundation.h>
 
 #include <osquery/core.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+
+namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
@@ -152,8 +155,7 @@ void genOSXDomainPrefs(const CFStringRef& domain, QueryData& results) {
   CFRelease(keys);
 }
 
-QueryData genOSXPreferences(QueryContext& context) {
-  QueryData results;
+void genOSXDefaultPreferences(QueryContext& context, QueryData& results) {
   CFArrayRef app_map;
 
   if (context.constraints["domain"].exists()) {
@@ -176,7 +178,7 @@ QueryData genOSXPreferences(QueryContext& context) {
   }
 
   if (app_map == nullptr) {
-    return {};
+    return;
   }
 
   // Iterate over each preference domain (applicationID).
@@ -186,6 +188,70 @@ QueryData genOSXPreferences(QueryContext& context) {
   }
 
   CFRelease(app_map);
+}
+
+void genOSXPlistPrefValue(const pt::ptree& tree,
+                          const Row& base,
+                          QueryData& results) {
+  Row r = base;
+  if (tree.empty()) {
+    r["value"] = tree.data();
+    results.push_back(r);
+    // No more levels to parse.
+    return;
+  }
+
+  for (const auto& item : tree) {
+    if (r["subkey"].size() > 0) {
+      r["subkey"] += "/";
+    }
+    r["subkey"] += item.first;
+    genOSXPlistPrefValue(item.second, r, results);
+  }
+}
+
+void genOSXPlistPreferences(const std::string& path, QueryData& results) {
+  if (!pathExists(path).ok() || !isReadable(path).ok()) {
+    VLOG(1) << "Cannot find/read defaults plist from path: " + path;
+    return;
+  }
+
+  pt::ptree tree;
+  if (!osquery::parsePlist(path, tree).ok()) {
+    VLOG(1) << "Could not parse plist: " + path;
+    return;
+  }
+
+  std::string filename = boost::filesystem::path(path).filename().string();
+  for (const auto& item : tree) {
+    Row r;
+    if (filename.substr(filename.size() - 6) == ".plist") {
+      r["domain"] = filename.substr(0, filename.size() - 6);
+    } else {
+      r["domain"] = filename;
+    }
+
+    r["path"] = path;
+    r["key"] = item.first;
+    r["forced"] = "0";
+    r["subkey"] = "";
+    genOSXPlistPrefValue(item.second, r, results);
+  }
+}
+
+QueryData genOSXPreferences(QueryContext& context) {
+  QueryData results;
+
+  if (context.constraints["path"].exists()) {
+    // Read preferences from a plist at path.
+    auto paths = context.constraints["path"].getAll(EQUALS);
+    for (const auto& path : paths) {
+      genOSXPlistPreferences(path, results);
+    }
+  } else {
+    genOSXDefaultPreferences(context, results);
+  }
+
   return results;
 }
 }

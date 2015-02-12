@@ -1,10 +1,11 @@
 table_name("preferences")
 description("OS X defaults and managed preferences.")
 schema([
-    Column("domain", TEXT),
-    Column("key", TEXT),
-    Column("subkey", TEXT),
-    Column("value", TEXT),
-    Column("forced", INTEGER),
+    Column("domain", TEXT, "Application ID usually in com.name.product format"),
+    Column("key", TEXT, "Preference top-level key"),
+    Column("subkey", TEXT, "Intemediate key path, includes lists/dicts"),
+    Column("value", TEXT, "String value of most CF types"),
+    Column("forced", INTEGER, "1 if the value is forced/managed, else 0"),
+    Column("path", TEXT, "(optional) read preferences from a plist"),
 ])
 implementation("system/darwin/preferences@genOSXPreferences")
