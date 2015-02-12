@@ -30,6 +30,8 @@ const std::map<std::string, std::string> kAppsInfoPlistTopLevelStringKeys = {
     {"CFBundleShortVersionString", "bundle_short_version"},
     {"CFBundleVersion", "bundle_version"},
     {"CFBundlePackageType", "bundle_package_type"},
+    {"LSEnvironment", "environment"},
+    {"LSUIElement", "element"},
     {"CFBundleDevelopmentRegion", "development_region"},
     {"CFBundleDisplayName", "display_name"},
     {"CFBundleGetInfoString", "info_string"},
@@ -103,9 +105,16 @@ Row parseInfoPlist(const std::string& path, const pt::ptree& tree) {
   for (const auto& it : kAppsInfoPlistTopLevelStringKeys) {
     try {
       r[it.second] = tree.get<std::string>(it.first);
+      // Change boolean values into integer 1, 0.
+      if (r[it.second] == "true" || r[it.second] == "YES" ||
+          r[it.second] == "Yes") {
+        r[it.second] = INTEGER(1);
+      } else if (r[it.second] == "false" || r[it.second] == "NO" ||
+                 r[it.second] == "No") {
+        r[it.second] = INTEGER(0);
+      }
     } catch (const pt::ptree_error& e) {
-      VLOG(1) << "Error retrieving " << it.first << " from " << path << ": "
-              << e.what();
+      // Expect that most of the selected keys are missing.
       r[it.second] = "";
     }
   }
