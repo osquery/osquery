@@ -8,11 +8,12 @@
  *
  */
 
+#include <regex>
+
 #include <arpa/inet.h>
 #include <linux/netlink.h>
 
 #include <boost/algorithm/string/split.hpp>
-#include <boost/regex.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -285,15 +286,15 @@ QueryData genOpenSockets(QueryContext &context) {
   }
 
   // Generate a map of socket inode to process tid.
-  boost::regex inode_regex("[0-9]+");
+  std::regex inode_regex("[0-9]+", std::regex_constants::extended);
   std::map<std::string, std::string> socket_inodes;
   for (const auto& process : processes) {
     std::map<std::string, std::string> descriptors;
     if (osquery::procDescriptors(process, descriptors).ok()) {
       for (const auto& fd : descriptors) {
         if (fd.second.find("socket:") != std::string::npos) {
-          boost::smatch inode;
-          boost::regex_search(fd.second, inode, inode_regex);
+          std::smatch inode;
+          std::regex_search(fd.second, inode, inode_regex);
           if (inode[0].str().length() > 0) {
             socket_inodes[inode[0].str()] = process;
           }

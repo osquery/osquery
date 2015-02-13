@@ -64,18 +64,15 @@ inline std::string readProcCMDLine(const proc_t* proc_info) {
 inline std::string readProcLink(const proc_t* proc_info,
     const std::string& attr) {
   // The exe is a symlink to the binary on-disk.
-  auto attr_path = getProcAttr(attr, proc_info);
-  long path_max = pathconf(attr_path.c_str(), _PC_PATH_MAX);
-  auto link_path = (char*)malloc(path_max);
-  memset(link_path, 0, path_max);
+  auto attr_path = getProcAttr("exe", proc_info);
 
   std::string result;
-  int bytes = readlink(attr_path.c_str(), link_path, path_max);
+  char link_path[PATH_MAX] = {0};
+  auto bytes = readlink(attr_path.c_str(), link_path, sizeof(link_path) - 1);
   if (bytes >= 0) {
     result = std::string(link_path);
   }
 
-  free(link_path);
   return result;
 }
 
