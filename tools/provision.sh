@@ -204,54 +204,54 @@ function install_libtool() {
 
 function package() {
   if [[ $OS = "ubuntu" ]]; then
-    if [[ -n "$(dpkg --get-selections | grep --quiet $1)" ]]; then
+    if [[ -n "$(dpkg --get-selections | grep $1)" ]]; then
       log "$1 is already installed. skipping."
     else
-      sudo apt-get install $@ -y
+      sudo apt-get install $1 -y
     fi
   elif [[ $OS = "centos" ]]; then
-    if [[ -n "$(rpm -qa | grep --quiet $1)" ]]; then
+    if [[ -n "$(rpm -qa | grep $1)" ]]; then
       log "$1 is already installed. skipping."
     else
-      sudo yum install $@ -y
+      sudo yum install $1 -y
     fi
   elif [[ $OS = "darwin" ]]; then
-    if [[ -n "$(brew list | grep --quiet $1)" ]]; then
+    if [[ -n "$(brew list | grep $1)" ]]; then
       log "$1 is already installed. skipping."
     else
-      brew install --build-bottle $@ || brew upgrade $@
+      brew install --build-bottle $1 || brew upgrade $@
     fi
   elif [[ $OS = "freebsd" ]]; then
-    if [[ -n "$(pkg info -q $1)" ]]; then
+    if [[ -z "$(pkg info -q $1)" ]]; then
       log "$1 is already installed. skipping."
     else
-      sudo pkg install -y $@
+      sudo pkg install -y $1
     fi
   fi
 }
 
 function remove_package() {
   if [[ $OS = "ubuntu" ]]; then
-    if [[ -n "$(dpkg --get-selections | grep --quiet $1)" ]]; then
-      sudo apt-get remove $@ -y
+    if [[ -n "$(dpkg --get-selections | grep $1)" ]]; then
+      sudo apt-get remove $1 -y
     else
       log "Removing: $1 is not installed. skipping."
     fi
   elif [[ $OS = "centos" ]]; then
-    if [[ -n "$(rpm -qa | grep --quiet $1)" ]]; then
-      sudo yum remove $@ -y
+    if [[ -n "$(rpm -qa | grep $1)" ]]; then
+      sudo yum remove $1 -y
     else
       log "Removing: $1 is not installed. skipping."
     fi
   elif [[ $OS = "darwin" ]]; then
-    if [[ -n "$(brew list | grep --quiet $1)" ]]; then
-      brew uninstall $@
+    if [[ -n "$(brew list | grep $1)" ]]; then
+      brew uninstall $1
     else
       log "Removing: $1 is not installed. skipping."
     fi
   elif [[ $OS = "freebsd" ]]; then
     if [[ -n "$(pkg info -q $1)" ]]; then
-      sudo pkg delete -y $@
+      sudo pkg delete -y $1
     else
       log "Removing: $1 is not installed. skipping."
     fi
@@ -259,10 +259,10 @@ function remove_package() {
 }
 
 function gem_install() {
-  if [[ -n "$(gem list | grep --quiet $1)" ]]; then
+  if [[ -n "$(gem list | grep $1)" ]]; then
     log "$1 is already installed. skipping."
   else
-    sudo gem install $@
+    sudo gem install $1
   fi
 }
 
@@ -376,9 +376,9 @@ function main() {
 
     if [[ $DISTRO = "precise" ]]; then
       package rubygems
-      package gcc-4.7
-      package g++-4.7
-      sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 100 --slave /usr/bin/g++ g++ /usr/bin/g++-4.7
+      package gcc-4.8
+      package g++-4.8
+      sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 150 --slave /usr/bin/g++ g++ /usr/bin/g++-4.8
       install_boost
       install_cmake
     else
