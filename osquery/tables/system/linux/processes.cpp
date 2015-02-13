@@ -35,15 +35,15 @@ namespace tables {
   PROC_FILLCOM | PROC_FILLMEM | PROC_FILLSTATUS | PROC_FILLSTAT
 #endif
 
-std::string getProcName(const proc_t* proc_info) {
+inline std::string getProcName(const proc_t* proc_info) {
   return std::string(proc_info->cmd);
 }
 
-std::string getProcAttr(const std::string& attr, const proc_t* proc_info) {
+inline std::string getProcAttr(const std::string& attr, const proc_t* proc_info) {
   return "/proc/" + std::to_string(proc_info->tid) + "/" + attr;
 }
 
-std::string readProcCMDLine(const proc_t* proc_info) {
+inline std::string readProcCMDLine(const proc_t* proc_info) {
   auto attr = getProcAttr("cmdline", proc_info);
 
   std::string result;
@@ -61,15 +61,16 @@ std::string readProcCMDLine(const proc_t* proc_info) {
   return result;
 }
 
-std::string readProcLink(const proc_t* proc_info) {
+inline std::string readProcLink(const proc_t* proc_info,
+    const std::string& attr) {
   // The exe is a symlink to the binary on-disk.
-  auto attr = getProcAttr("exe", proc_info);
-  long path_max = pathconf(attr.c_str(), _PC_PATH_MAX);
+  auto attr_path = getProcAttr(attr, proc_info);
+  long path_max = pathconf(attr_path.c_str(), _PC_PATH_MAX);
   auto link_path = (char*)malloc(path_max);
   memset(link_path, 0, path_max);
 
   std::string result;
-  int bytes = readlink(attr.c_str(), link_path, path_max);
+  int bytes = readlink(attr_path.c_str(), link_path, path_max);
   if (bytes >= 0) {
     result = std::string(link_path);
   }
@@ -177,23 +178,38 @@ QueryData genProcesses(QueryContext& context) {
 
     Row r;
     r["pid"] = INTEGER(proc_info->tid);
+    r["parent"] = INTEGER(proc_info->ppid);
+    r["path"] = readProcLink(proc_info, "exe");
+    r["name"] = getProcName(proc_info);
+
+    // Read/parse cmdline arguments.
+    std::string cmdline = readProcCMDLine(proc_info);
+    boost::algorithm::trim(cmdline);
+    r["cmdline"] = cmdline;
+    r["cwd"] = readProcLink(proc_info, "cwd");
+    r["root"] = readProcLink(proc_info, "root");
+
     r["uid"] = BIGINT((unsigned int)proc_info->ruid);
     r["gid"] = BIGINT((unsigned int)proc_info->rgid);
     r["euid"] = BIGINT((unsigned int)proc_info->euid);
     r["egid"] = BIGINT((unsigned int)proc_info->egid);
-    r["name"] = getProcName(proc_info);
-    std::string cmdline = readProcCMDLine(proc_info);
-    boost::algorithm::trim(cmdline);
-    r["cmdline"] = cmdline;
-    r["path"] = readProcLink(proc_info);
+
+    // If the path of the executable that started the process is available and
+    // the path exists on disk, set on_disk to 1. If the path is not
+    // available, set on_disk to -1. If, and only if, the path of the
+    // executable is available and the file does NOT exist on disk, set on_disk
+    // to 0.
     r["on_disk"] = osquery::pathExists(r["path"]).toString();
 
+    // size/memory information
+    r["wired_size"] = "0"; // No support for unpagable counters in linux.
     r["resident_size"] = INTEGER(proc_info->vm_rss);
     r["phys_footprint"] = INTEGER(proc_info->vm_size);
+
+    // time information
     r["user_time"] = INTEGER(proc_info->utime);
     r["system_time"] = INTEGER(proc_info->stime);
     r["start_time"] = INTEGER(proc_info->start_time);
-    r["parent"] = INTEGER(proc_info->ppid);
 
     results.push_back(r);
     standardFreeproc(proc_info);
