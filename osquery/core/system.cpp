@@ -110,13 +110,14 @@ Status checkStalePid(const std::string& content) {
   if (status != ESRCH) {
     // The pid is running, check if it is an osqueryd process by name.
     std::stringstream query_text;
-    query_text << "SELECT name FROM processes WHERE pid = " << pid << ";";
+    query_text << "SELECT name FROM processes WHERE pid = " << pid
+               << " AND name = 'osqueryd';";
     auto q = SQL(query_text.str());
     if (!q.ok()) {
       return Status(1, "Error querying processes: " + q.getMessageString());
     }
 
-    if (q.rows().size() >= 1 && q.rows().front()["name"] == "osqueryd") {
+    if (q.rows().size() > 0) {
       // If the process really is osqueryd, return an "error" status.
       if (FLAGS_force) {
         // The caller may choose to abort the existing daemon with --force.

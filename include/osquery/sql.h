@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -50,7 +50,7 @@ class SQL {
    *
    * @return A QueryData object of the query results
    */
-  QueryData rows();
+  const QueryData& rows();
 
   /**
    * @brief Accessor to switch off of when checking the success of a query
@@ -60,11 +60,27 @@ class SQL {
   bool ok();
 
   /**
+   * @brief Get the status returned by the query
+   *
+   * @return The query status
+   */
+  Status getStatus();
+
+  /**
    * @brief Accessor for the message string indicating the status of the query
    *
    * @return The message string indicating the status of the query
    */
   std::string getMessageString();
+
+  /**
+   * @brief Add host info columns onto existing QueryData
+   *
+   * Use this to add columns providing host info to the query results.
+   * Distributed queries use this to add host information before returning
+   * results to the aggregator.
+   */
+  void annotateHostInfo();
 
   /**
    * @brief Accessor for the list of queryable tables
@@ -96,7 +112,7 @@ class SQL {
                                  tables::ConstraintOperator op,
                                  const std::string& expr);
 
- private:
+ protected:
   /**
    * @brief Private default constructor
    *
@@ -104,7 +120,9 @@ class SQL {
    */
   SQL(){};
 
- private:
+  // The key used to store hostname for annotateHostInfo
+  static const std::string kHostColumnName;
+
   /// the internal member which holds the results of the query
   QueryData results_;
 
@@ -152,4 +170,18 @@ Status query(const std::string& query, QueryData& results);
  * @return status indicating success or failure of the operation
  */
 Status getQueryColumns(const std::string& q, tables::TableColumns& columns);
+
+/*
+ * @brief A mocked subclass of SQL useful for testing
+ */
+class MockSQL : public SQL {
+ public:
+  explicit MockSQL() : MockSQL({}) {}
+  explicit MockSQL(const QueryData& results) : MockSQL(results, Status()) {}
+  explicit MockSQL(const QueryData& results, const Status& status) {
+    results_ = results;
+    status_ = status;
+  }
+};
+
 }
