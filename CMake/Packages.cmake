@@ -54,6 +54,9 @@ elseif(LINUX)
         "procps-ng"
         "systemd-devel"
         "rpm-libs"
+        "epel-release"
+        "thrift"
+        "thrift-devel"
       )
     endif()
   endif()

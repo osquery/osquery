@@ -204,25 +204,25 @@ function install_libtool() {
 
 function package() {
   if [[ $OS = "ubuntu" ]]; then
-    if dpkg --get-selections | grep --quiet $1; then
+    if [[ -z "$(dpkg --get-selections | grep --quiet $1)" ]]; then
       log "$1 is already installed. skipping."
     else
       sudo apt-get install $@ -y
     fi
   elif [[ $OS = "centos" ]]; then
-    if rpm -qa | grep --quiet $1; then
+    if [[ -z "$(rpm -qa | grep --quiet $1)" ]]; then
       log "$1 is already installed. skipping."
     else
       sudo yum install $@ -y
     fi
   elif [[ $OS = "darwin" ]]; then
-    if brew list | grep --quiet $1; then
+    if [[ -z "$(brew list | grep --quiet $1)" ]]; then
       log "$1 is already installed. skipping."
     else
       brew install --build-bottle $@ || brew upgrade $@
     fi
   elif [[ $OS = "freebsd" ]]; then
-    if pkg info -q $1; then
+    if [[ -z "$(pkg info -q $1)" ]]; then
       log "$1 is already installed. skipping."
     else
       sudo pkg install -y $@
@@ -232,25 +232,25 @@ function package() {
 
 function remove_package() {
   if [[ $OS = "ubuntu" ]]; then
-    if dpkg --get-selections | grep --quiet $1; then
+    if [[ -z "$(dpkg --get-selections | grep --quiet $1)" ]]; then
       sudo apt-get remove $@ -y
     else
       log "Removing: $1 is not installed. skipping."
     fi
   elif [[ $OS = "centos" ]]; then
-    if rpm -qa | grep --quiet $1; then
+    if [[ -z "$(rpm -qa | grep --quiet $1)" ]]; then
       sudo yum remove $@ -y
     else
       log "Removing: $1 is not installed. skipping."
     fi
   elif [[ $OS = "darwin" ]]; then
-    if brew list | grep --quiet $1; then
+    if [[ -z "$(brew list | grep --quiet $1)" ]]; then
       brew uninstall $@
     else
       log "Removing: $1 is not installed. skipping."
     fi
   elif [[ $OS = "freebsd" ]]; then
-    if pkg info -q $1; then
+    if [[ -z "$(pkg info -q $1)" ]]; then
       sudo pkg delete -y $@
     else
       log "Removing: $1 is not installed. skipping."
@@ -259,7 +259,7 @@ function remove_package() {
 }
 
 function gem_install() {
-  if gem list | grep --quiet $1; then
+  if [[ -z "$(gem list | grep --quiet $1)" ]]; then
     log "$1 is already installed. skipping."
   else
     sudo gem install $@
