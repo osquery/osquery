@@ -485,8 +485,10 @@ function main() {
 
     if [[ $DISTRO = "centos6" ]]; then
       install_boost
+      package libudev-devel
     elif [[ $DISTRO = "centos7" ]]; then
       package boost
+      package systemd-devel
     fi
 
     install_gflags
@@ -496,8 +498,6 @@ function main() {
     package byacc
     package flex
     package bison
-    package libudev-devel
-    package rpm-build
 
     remove_package libunwind-devel
 
