@@ -415,7 +415,8 @@ function main() {
       if [[ $DISTRO = "centos6" ]]; then
         sudo rpm -iv ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
       elif [[ $DISTRO = "centos7" ]]; then
-        package kernel-headers
+        #package kernel-headers
+        true
       fi
     fi
 
@@ -487,7 +488,7 @@ function main() {
       install_boost
       package libudev-devel
     elif [[ $DISTRO = "centos7" ]]; then
-      package boost
+      install_boost
       package systemd-devel
     fi
 
@@ -510,8 +511,7 @@ function main() {
       package autoconf
       package automake
       package libtool
-      package thrift
-      package thrift-devel
+      install_thrift
     fi
 
     install_rocksdb

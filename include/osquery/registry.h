@@ -150,6 +150,7 @@ class RegistryHelperCore {
 
  public:
   RegistryHelperCore(bool auto_setup = true) : auto_setup_(auto_setup) {}
+  virtual ~RegistryHelperCore() {}
 
   /**
    * @brief Remove a registry item by its identifier.

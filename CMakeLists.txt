@@ -2,21 +2,26 @@ cmake_minimum_required(VERSION 2.8.8)
 
 set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CXX_COMPILE_FLAGS
+set(C_COMPILE_FLAGS
   -Wall
   -Wextra
   -Wstrict-aliasing
   -Wno-unused-parameter
+  -Wno-unused-result
   -Wno-missing-field-initializers
   -Wno-sign-compare
+  -Wnon-virtual-dtor
+  -Wchar-subscripts
+  -Wpointer-arith
+  -Woverloaded-virtual
   -Wformat
   -Wformat-security
   -Werror=format-security
   -fstack-protector-all
-  -D_FORTIFY_SOURCE=2
   -fPIE
 )
-string(REPLACE ";" " " CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
+string(REPLACE ";" " " C_COMPILE_FLAGS "${C_COMPILE_FLAGS}")
+set(CXX_COMPILE_FLAGS "")
 set(CMAKE_SHARED_LINKER_FLAGS "-z relro -z now")
 
 if(APPLE)
@@ -28,47 +33,17 @@ if(APPLE)
   # Special compile flags for Objective-C++
   set(OBJCXX_COMPILE_FLAGS
     "-x objective-c++ -fobjc-arc -Wno-c++11-extensions -mmacosx-version-min=${APPLE_MIN_ABI}")
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
+  set(FREEBSD TRUE)
+  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
+  set(OS_WHOLELINK_PRE "")
+  set(OS_WHOLELINK_POST "")
 else()
-  if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
-    set(FREEBSD TRUE)
-    set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
-    set(OS_WHOLELINK_PRE "")
-    set(OS_WHOLELINK_POST "")
-  else()
-    set(LINUX TRUE)
-    set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
-    set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
-    set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
-  endif()
+  set(LINUX TRUE)
+  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
+  set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
+  set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
 endif()
-
-# make debug (environment variable from Makefile)
-if(DEFINED ENV{DEBUG})
-  set(CMAKE_BUILD_TYPE "Debug")
-  set(C_COMPILE_FLAGS "${CMAKE_C_FLAGS} -g -DDEBUG -O0 -pg")
-else()
-  set(C_COMPILE_FLAGS "${CMAKE_C_FLAGS} -O2")
-endif()
-
-# make analyze (environment variable from Makefile)
-if(DEFINED ENV{ANALYZE})
-  set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
-endif()
-
-# make sanitize (environment variable from Makefile)
-if(DEFINED ENV{SANITIZE})
-  set(CXX_COMPILE_FLAGS "-g -O0 -fno-omit-frame-pointer")
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -fsanitize=leak -fsanitize=address")
-  if(LINUX)
-    set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -fsanitize=memory")
-  endif()
-endif()
-
-# Finished setting compiler/compiler flags.
-set(CMAKE_CXX_FLAGS "${C_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}"
-  CACHE STRING "compile flags" FORCE)
-
-project(OSQUERY)
 
 # Use osquery language to set platform/os
 execute_process(
@@ -81,6 +56,31 @@ string(REPLACE "." "_" PLATFORM "${PLATFORM}")
 string(TOUPPER "${PLATFORM}" PLATFORM)
 list(GET PLATFORM 0 OSQUERY_BUILD_OS)
 list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO)
+
+# make debug (environment variable from Makefile)
+if(DEFINED ENV{DEBUG})
+  set(CMAKE_BUILD_TYPE "Debug")
+  set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -g -DDEBUG -O0 -pg")
+elseif(DEFINED ENV{SANITIZE})
+  # make santifize (cannot make debug sanitize)
+  set(C_COMPILE_FLAGS "-g -O0 -fno-omit-frame-pointer")
+  set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -fsanitize=leak -fsanitize=address")
+else()
+  set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -O2")
+  # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
+  #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
+endif()
+
+# make analyze (environment variable from Makefile)
+if(DEFINED ENV{ANALYZE})
+  set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
+endif()
+
+# Finished setting compiler/compiler flags.
+set(CMAKE_CXX_FLAGS "${C_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}"
+  CACHE STRING "compile flags" FORCE)
+
+project(OSQUERY)
 
 # Make sure deps were built before compiling (else show warning)
 execute_process(

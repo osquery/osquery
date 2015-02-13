@@ -39,7 +39,6 @@ endif()
 # The remaining boost libraries are discovered with find_library.
 ADD_OSQUERY_LINK(TRUE "boost_system")
 ADD_OSQUERY_LINK(TRUE "boost_filesystem")
-ADD_OSQUERY_LINK(TRUE "boost_regex")
 
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
