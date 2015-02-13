@@ -104,8 +104,8 @@ struct proc_cred {
 inline bool getProcCred(int pid, proc_cred &cred) {
   struct proc_bsdshortinfo bsdinfo;
 
-  if (proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 0, &bsdinfo, sizeof(bsdinfo)) !=
-      -1) {
+  if (proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 0, &bsdinfo, sizeof(bsdinfo)) ==
+      sizeof(bsdinfo)) {
     cred.real.uid = bsdinfo.pbsi_ruid;
     cred.real.gid = bsdinfo.pbsi_ruid;
     cred.effective.uid = bsdinfo.pbsi_uid;
@@ -127,6 +127,20 @@ static int genMaxArgs() {
   }
 
   return argmax;
+}
+
+void genProcRootAndCWD(int pid, Row &r) {
+  struct proc_vnodepathinfo pathinfo;
+  if (proc_pidinfo(
+          pid, PROC_PIDVNODEPATHINFO, 0, &pathinfo, sizeof(pathinfo)) ==
+      sizeof(pathinfo)) {
+    if (pathinfo.pvi_cdir.vip_vi.vi_stat.vst_dev != 0) {
+      r["cwd"] = std::string(pathinfo.pvi_cdir.vip_path);
+    }
+    if (pathinfo.pvi_rdir.vip_vi.vi_stat.vst_dev != 0) {
+      r["root"] = std::string(pathinfo.pvi_rdir.vip_path);
+    }
+  }
 }
 
 std::vector<std::string> getProcRawArgs(int pid, size_t argmax) {
@@ -230,6 +244,7 @@ QueryData genProcesses(QueryContext &context) {
     std::string cmdline = boost::algorithm::join(getProcArgs(pid, argmax), " ");
     boost::algorithm::trim(cmdline);
     r["cmdline"] = cmdline;
+    genProcRootAndCWD(pid, r);
 
     proc_cred cred;
     if (getProcCred(pid, cred)) {
@@ -239,6 +254,7 @@ QueryData genProcesses(QueryContext &context) {
       r["egid"] = BIGINT(cred.effective.gid);
     }
 
+    // Find the parent process.
     const auto parent_it = parent_pid.find(pid);
     if (parent_it != parent_pid.end()) {
       r["parent"] = INTEGER(parent_it->second);
@@ -246,10 +262,10 @@ QueryData genProcesses(QueryContext &context) {
       r["parent"] = "-1";
     }
 
-    // if the path of the executable that started the process is available and
-    // the path exists on disk, set on_disk to 1.  if the path is not
-    // available, set on_disk to -1.  if, and only if, the path of the
-    // executable is available and the file does not exist on disk, set on_disk
+    // If the path of the executable that started the process is available and
+    // the path exists on disk, set on_disk to 1. If the path is not
+    // available, set on_disk to -1. If, and only if, the path of the
+    // executable is available and the file does NOT exist on disk, set on_disk
     // to 0.
     r["on_disk"] = osquery::pathExists(r["path"]).toString();
 
@@ -259,7 +275,7 @@ QueryData genProcesses(QueryContext &context) {
         pid, RUSAGE_INFO_V2, (rusage_info_t *)&rusage_info_data);
     // proc_pid_rusage returns -1 if it was unable to gather information
     if (rusage_status == 0) {
-      // size information
+      // size/memory information
       r["wired_size"] = TEXT(rusage_info_data.ri_wired_size);
       r["resident_size"] = TEXT(rusage_info_data.ri_resident_size);
       r["phys_footprint"] = TEXT(rusage_info_data.ri_phys_footprint);
@@ -270,7 +286,6 @@ QueryData genProcesses(QueryContext &context) {
       r["start_time"] = TEXT(rusage_info_data.ri_proc_start_abstime);
     }
 
-    // save the results
     results.push_back(r);
   }
 
