@@ -143,8 +143,8 @@ void initOsquery(int argc, char* argv[], int tool) {
   // Run the setup for all non-lazy registries.
   Registry::setUp();
   // And finally load the config.
-  auto config = Config::getInstance();
-  config->load();
+  auto& config = Config::getInstance();
+  config.load();
 
   if (FLAGS_config_check) {
     auto s = Config::checkConfig();

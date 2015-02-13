@@ -15,17 +15,6 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
-#ifdef FBOSQUERY
-#include <thrift/lib/cpp/concurrency/Thread.h>
-#include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
-#include <thrift/lib/cpp/concurrency/ThreadManager.h>
-#else
-#include <thrift/concurrency/Thread.h>
-#include <thrift/concurrency/PosixThreadFactory.h>
-#include <thrift/concurrency/ThreadManager.h>
-#endif
-
-#include <osquery/dispatcher.h>
 #include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/hash.h>
@@ -34,32 +23,6 @@
 
 namespace pt = boost::property_tree;
 typedef std::map<std::string, std::vector<std::string> > EventFileMap_t;
-
-class WildCardExpander : public osquery::InternalRunnable {
- public:
-  std::map<std::string, std::vector<std::string> > dest;
-  std::promise<EventFileMap_t> promise;
-  pt::ptree tree;
-  WildCardExpander(const pt::ptree tree, std::promise<EventFileMap_t> lpromise)
-      : tree(tree) {
-    promise = std::move(lpromise);
-  }
-  virtual void enter() {
-    if (tree.count("threat_intel") > 0) {
-      for (const pt::ptree::value_type& v : tree.get_child("threat_intel")) {
-        if (v.first == "file_paths") {
-          for (const pt::ptree::value_type& file_cat : v.second) {
-            for (const pt::ptree::value_type& file : file_cat.second) {
-              osquery::resolveFilePattern(file.second.get<std::string>(""),
-                                          dest[file_cat.first]);
-            }
-          }
-        }
-      }
-    }
-    promise.set_value(dest);
-  }
-};
 
 namespace osquery {
 
@@ -72,11 +35,6 @@ DEFINE_osquery_flag(string,
 // Is should be used when ever accessing the structs members, reading or
 // writing.
 static boost::shared_mutex rw_lock;
-
-std::shared_ptr<Config> Config::getInstance() {
-  static std::shared_ptr<Config> config = std::shared_ptr<Config>(new Config());
-  return config;
-}
 
 Status Config::load() {
   boost::unique_lock<boost::shared_mutex> lock(rw_lock);
@@ -125,16 +83,14 @@ Status Config::genConfig(OsqueryConfig& conf) {
   if (!s.ok()) {
     return s;
   }
-
   std::stringstream json;
   pt::ptree tree;
   try {
     json << config_string;
     pt::read_json(json, tree);
-
     // Parse each scheduled query from the config.
     for (const pt::ptree::value_type& v : tree.get_child("scheduledQueries")) {
-      OsqueryScheduledQuery q;
+      osquery::OsqueryScheduledQuery q;
       q.name = (v.second).get<std::string>("name");
       q.query = (v.second).get<std::string>("query");
       q.interval = (v.second).get<int>("interval");
@@ -148,12 +104,18 @@ Status Config::genConfig(OsqueryConfig& conf) {
       }
     }
 
-    auto dispatch = osquery::Dispatcher::getInstance();
-    std::promise<EventFileMap_t> promise = std::promise<EventFileMap_t>(
-        std::allocator_arg, std::allocator<EventFileMap_t>());
-    conf.event_files = promise.get_future();
-    dispatch.add(std::make_shared<WildCardExpander>(tree, std::move(promise)));
-
+    if (tree.count("threat_intel") > 0) {
+      for (const pt::ptree::value_type& v : tree.get_child("threat_intel")) {
+        if (v.first == "file_paths") {
+          for (const pt::ptree::value_type& file_cat : v.second) {
+            for (const pt::ptree::value_type& file : file_cat.second) {
+              osquery::resolveFilePattern(file.second.get<std::string>(""),
+                                          conf.eventFiles[file_cat.first]);
+            }
+          }
+        }
+      }
+    }
   } catch (const std::exception& e) {
     LOG(ERROR) << "Error parsing config JSON: " << e.what();
     return Status(1, e.what());
@@ -167,12 +129,9 @@ std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
   return cfg_.scheduledQueries;
 }
 
-std::shared_future<std::map<std::string, std::vector<std::string> > >
-Config::getThreatFiles() {
+std::map<std::string, std::vector<std::string> > Config::getThreatFiles() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
-  std::shared_future<std::map<std::string, std::vector<std::string> > > sf =
-      cfg_.event_files;
-  return sf;
+  return cfg_.eventFiles;
 }
 
 Status Config::getMD5(std::string& hash_string) {

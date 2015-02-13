@@ -58,8 +58,8 @@ class ConfigTests : public testing::Test {
     createFileAt(kFakeDirectory + "/deep11/deep2/deep3/level3.txt", "l3");
 
     Registry::setUp();
-    auto c = Config::getInstance();
-    c->load();
+    auto& c = Config::getInstance();
+    c.load();
   }
 
   void TearDown() { boost::filesystem::remove_all(kFakeDirectory); }
@@ -87,8 +87,8 @@ TEST_F(ConfigTests, test_plugin) {
 }
 
 TEST_F(ConfigTests, test_queries_execute) {
-  auto c = Config::getInstance();
-  auto queries = c->getScheduledQueries();
+  auto& c = Config::getInstance();
+  auto queries = c.getScheduledQueries();
 
   EXPECT_EQ(queries.size(), 1);
   for (const auto& i : queries) {
@@ -99,18 +99,9 @@ TEST_F(ConfigTests, test_queries_execute) {
 }
 
 TEST_F(ConfigTests, test_threatfiles_execute) {
-  auto c = Config::getInstance();
-  // files_f is of type std::shared_pointer
-  auto files_f = c->getThreatFiles();
-  auto files = files_f.get();
+  auto& c = Config::getInstance();
+  auto files = c.getThreatFiles();
 
-  EXPECT_EQ(files.size(), 2);
-  EXPECT_EQ(files["downloads"].size(), 9);
-  EXPECT_EQ(files["system_binaries"].size(), 5);
-  // Do this twice to test the fact that multiple calls work
-  // with futures;
-  files_f = c->getThreatFiles();
-  files = files_f.get();
 
   EXPECT_EQ(files.size(), 2);
   EXPECT_EQ(files["downloads"].size(), 9);
