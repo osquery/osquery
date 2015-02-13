@@ -31,17 +31,31 @@ elseif(LINUX)
     endif()
   elseif(CENTOS)
     set(PACKAGE_TYPE "rpm")
-    set(PACKAGE_DEPENDENCIES
-      "glibc >= 2.12"
-      "openssl >= 1.0"
-      "readline"
-      "zlib"
-      "snappy"
-      "bzip2-libs"
-      "procps"
-      "libudev"
-      "rpm-libs"
-    )
+    if(OSQUERY_BUILD_DISTRO STREQUAL "CENTOS6")
+      set(PACKAGE_DEPENDENCIES
+        "glibc >= 2.12"
+        "openssl >= 1.0"
+        "readline"
+        "zlib"
+        "snappy"
+        "bzip2-libs"
+        "procps"
+        "libudev"
+        "rpm-libs"
+      )
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "CENTOS7")
+      set(PACKAGE_DEPENDENCIES
+        "glibc >= 2.12"
+        "openssl >= 1.0"
+        "readline"
+        "zlib"
+        "snappy"
+        "bzip2-libs"
+        "procps-ng"
+        "systemd-devel"
+        "rpm-libs"
+      )
+    endif()
   endif()
   JOIN("${PACKAGE_DEPENDENCIES}" ", " PACKAGE_DEPENDENCIES)
 

@@ -496,8 +496,7 @@ function main() {
     package byacc
     package flex
     package bison
-    package libudev-devel
-    package rpm-build
+    package systemd-devel
 
     remove_package libunwind-devel
 
