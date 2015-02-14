@@ -26,7 +26,7 @@ function install_cmake() {
     else
       if [[ ! -f cmake-2.8.12.2.tar.gz ]]; then
         log "downloading the cmake source"
-        wget http://www.cmake.org/files/v2.8/cmake-2.8.12.2.tar.gz
+        wget https://osquery-packages.s3.amazonaws.com/deps/cmake-2.8.12.2.tar.gz
       fi
       if [[ ! -d cmake-2.8.12.2 ]]; then
         log "unpacking the cmake source"
@@ -49,7 +49,7 @@ function install_cmake() {
 function install_thrift() {
   if [[ ! -f /usr/local/lib/libthrift.a ]]; then
     if [[ ! -f 0.9.1.tar.gz ]]; then
-      wget https://github.com/apache/thrift/archive/0.9.1.tar.gz
+      wget https://osquery-packages.s3.amazonaws.com/deps/0.9.1.tar.gz
     fi
     if [[ ! -d thrift-0.9.1 ]]; then
       tar -xf 0.9.1.tar.gz
@@ -68,7 +68,7 @@ function install_thrift() {
 function install_rocksdb() {
   if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
     if [[ ! -f rocksdb-3.5.tar.gz ]]; then
-      wget https://github.com/facebook/rocksdb/archive/rocksdb-3.5.tar.gz
+      wget https://osquery-packages.s3.amazonaws.com/deps/rocksdb-3.5.tar.gz
     fi
     if [[ ! -d rocksdb-rocksdb-3.5 ]]; then
       tar -xf rocksdb-3.5.tar.gz
@@ -104,7 +104,7 @@ function install_rocksdb() {
 function install_boost() {
   if [[ ! -f /usr/local/lib/libboost_thread.a ]]; then
     if [[ ! -f boost_1_55_0.tar.gz ]]; then
-      wget -O boost_1_55_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.gz/download
+      wget https://osquery-packages.s3.amazonaws.com/deps/boost_1_55_0.tar.gz
     else
       log "boost source is already downloaded. skipping."
     fi
@@ -125,7 +125,7 @@ function install_boost() {
 function install_gflags() {
   if [[ ! -f /usr/local/lib/libgflags.a ]]; then
     if [[ ! -f v2.1.1.tar.gz ]]; then
-      wget https://github.com/schuhschuh/gflags/archive/v2.1.1.tar.gz
+      wget https://osquery-packages.s3.amazonaws.com/deps/v2.1.1.tar.gz
     else
       log "gflags source is already downloaded. skipping."
     fi
@@ -145,7 +145,7 @@ function install_gflags() {
 function install_autoconf() {
   if [[ ! -f /usr/bin/autoconf ]]; then
     if [[ ! -f autoconf-2.69.tar.gz ]]; then
-      wget http://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz
+      wget https://osquery-packages.s3.amazonaws.com/deps/autoconf-2.69.tar.gz
     else
       log "autoconf is already downloaded. skipping."
     fi
@@ -165,7 +165,7 @@ function install_autoconf() {
 function install_automake() {
   if [[ ! -f /usr/bin/automake ]]; then
     if [[ ! -f automake-1.14.tar.gz ]]; then
-      wget http://ftp.gnu.org/gnu/automake/automake-1.14.tar.gz
+      wget https://osquery-packages.s3.amazonaws.com/deps/automake-1.14.tar.gz
     else
       log "automake is already downloaded. skipping."
     fi
@@ -185,7 +185,7 @@ function install_automake() {
 function install_libtool() {
   if [[ ! -f /usr/bin/libtool ]]; then
     if [[ ! -f libtool-2.4.5.tar.gz ]]; then
-      wget http://ftpmirror.gnu.org/libtool/libtool-2.4.5.tar.gz
+      wget https://osquery-packages.s3.amazonaws.com/deps/libtool-2.4.5.tar.gz
     else
       log "libtool is already downloaded. skipping."
     fi
@@ -207,24 +207,28 @@ function package() {
     if [[ -n "$(dpkg --get-selections | grep $1)" ]]; then
       log "$1 is already installed. skipping."
     else
+      log "installing $1"
       sudo apt-get install $1 -y
     fi
   elif [[ $OS = "centos" ]]; then
     if [[ -n "$(rpm -qa | grep $1)" ]]; then
       log "$1 is already installed. skipping."
     else
+      log "installing $1"
       sudo yum install $1 -y
     fi
   elif [[ $OS = "darwin" ]]; then
     if [[ -n "$(brew list | grep $1)" ]]; then
       log "$1 is already installed. skipping."
     else
+      log "installing $1"
       brew install --build-bottle $1 || brew upgrade $@
     fi
   elif [[ $OS = "freebsd" ]]; then
     if [[ -z "$(pkg info -q $1)" ]]; then
       log "$1 is already installed. skipping."
     else
+      log "installing $1"
       sudo pkg install -y $1
     fi
   fi
@@ -233,24 +237,28 @@ function package() {
 function remove_package() {
   if [[ $OS = "ubuntu" ]]; then
     if [[ -n "$(dpkg --get-selections | grep $1)" ]]; then
+      log "removing $1"
       sudo apt-get remove $1 -y
     else
       log "Removing: $1 is not installed. skipping."
     fi
   elif [[ $OS = "centos" ]]; then
     if [[ -n "$(rpm -qa | grep $1)" ]]; then
+      log "removing $1"
       sudo yum remove $1 -y
     else
       log "Removing: $1 is not installed. skipping."
     fi
   elif [[ $OS = "darwin" ]]; then
     if [[ -n "$(brew list | grep $1)" ]]; then
+      log "removing $1"
       brew uninstall $1
     else
       log "Removing: $1 is not installed. skipping."
     fi
   elif [[ $OS = "freebsd" ]]; then
     if [[ -n "$(pkg info -q $1)" ]]; then
+      log "removing $1"
       sudo pkg delete -y $1
     else
       log "Removing: $1 is not installed. skipping."
@@ -343,6 +351,7 @@ function main() {
     sudo apt-get update
     sudo apt-get clean
 
+    package wget
     package git
     package unzip
     package build-essential
@@ -411,9 +420,9 @@ function main() {
   elif [[ $OS = "centos" ]]; then
     sudo yum update -y
 
-    if [[ -z $(rpm -qa | grep 'kernel-headers-3.10') ]]; then
+    if [[ -z $(rpm -qa | grep 'kernel-headers-3') ]]; then
       if [[ $DISTRO = "centos6" ]]; then
-        sudo rpm -iv ftp://rpmfind.net/linux/centos/7.0.1406/updates/x86_64/Packages/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
+        sudo rpm -iv https://osquery-packages.s3.amazonaws.com/deps/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
       elif [[ $DISTRO = "centos7" ]]; then
         #package kernel-headers
         true
@@ -421,12 +430,13 @@ function main() {
     fi
 
     package texinfo
+    package wget
     package git-all
     package unzip
     package xz
     package xz-devel
-    package epel-release.noarch
-    package python-pip.noarch
+    package epel-release
+    package python-pip
     package python-devel
     package rpm-build
     package ruby-devel
