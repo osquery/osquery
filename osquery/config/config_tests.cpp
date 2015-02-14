@@ -17,15 +17,12 @@
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 
-#include <boost/filesystem/operations.hpp>
-
 #include "osquery/core/test_util.h"
 
 namespace osquery {
 
 // The config_path flag is defined in the filesystem config plugin.
 DECLARE_string(config_path);
-const std::string kFakeDirectory = "/tmp/osquery-fstests-pattern";
 
 class ConfigTests : public testing::Test {
  public:
@@ -35,34 +32,15 @@ class ConfigTests : public testing::Test {
   }
 
  protected:
-  void createFileAt(const std::string loc, const std::string content) {
-    std::ofstream test_file(loc);
-    test_file.write(content.c_str(), sizeof("test123"));
-    test_file.close();
-  }
 
   void SetUp() {
-    boost::filesystem::create_directories(kFakeDirectory +
-                                          "/deep11/deep2/deep3/");
-    boost::filesystem::create_directories(kFakeDirectory + "/deep1/deep2/");
-
-    createFileAt(kFakeDirectory + "/root.txt", "root");
-    createFileAt(kFakeDirectory + "/toor.txt", "toor");
-    createFileAt(kFakeDirectory + "/roto.txt", "roto");
-    createFileAt(kFakeDirectory + "/deep1/level1.txt", "l1");
-    createFileAt(kFakeDirectory + "/deep11/not_bash", "l1");
-    createFileAt(kFakeDirectory + "/deep1/deep2/level2.txt", "l2");
-
-    createFileAt(kFakeDirectory + "/deep11/level1.txt", "l1");
-    createFileAt(kFakeDirectory + "/deep11/deep2/level2.txt", "l2");
-    createFileAt(kFakeDirectory + "/deep11/deep2/deep3/level3.txt", "l3");
-
+    createMockFileStructure();
     Registry::setUp();
     auto& c = Config::getInstance();
     c.load();
   }
 
-  void TearDown() { boost::filesystem::remove_all(kFakeDirectory); }
+  void TearDown() { tearDownMockFileStructure(); }
 };
 
 class TestConfigPlugin : public ConfigPlugin {
@@ -101,7 +79,6 @@ TEST_F(ConfigTests, test_queries_execute) {
 TEST_F(ConfigTests, test_threatfiles_execute) {
   auto& c = Config::getInstance();
   auto files = c.getThreatFiles();
-
 
   EXPECT_EQ(files.size(), 2);
   EXPECT_EQ(files["downloads"].size(), 9);

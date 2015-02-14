@@ -15,48 +15,22 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/filesystem/operations.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/test_util.h"
+
 namespace pt = boost::property_tree;
 
 namespace osquery {
-
-const std::string kFakeDirectory = "/tmp/osquery-fstests-pattern";
-const std::string kFakeFile = "/tmp/osquery-fstests-pattern/file0";
-const std::string kFakeSubFile = "/tmp/osquery-fstests-pattern/1/file1";
-const std::string kFakeSubSubFile = "/tmp/osquery-fstests-pattern/1/2/file2";
-
 class FilesystemTests : public testing::Test {
 
-  void createFileAt(const std::string loc, const std::string content) {
-  std::ofstream test_file(loc);
-  test_file.write(content.c_str(), sizeof("test123"));
-  test_file.close();
-}
-
-
  protected:
-  void SetUp() {
-    boost::filesystem::create_directories(kFakeDirectory + "/deep11/deep2/deep3/");
-    boost::filesystem::create_directories(kFakeDirectory + "/deep1/deep2/");
+  void SetUp() { createMockFileStructure(); }
 
-    createFileAt(kFakeDirectory + "/root.txt", "root");
-    createFileAt(kFakeDirectory + "/toor.txt", "toor");
-    createFileAt(kFakeDirectory + "/roto.txt", "roto");
-    createFileAt(kFakeDirectory + "/deep1/level1.txt", "l1");
-    createFileAt(kFakeDirectory + "/deep11/not_bash", "l1");
-    createFileAt(kFakeDirectory + "/deep1/deep2/level2.txt", "l2");
-
-    createFileAt(kFakeDirectory + "/deep11/level1.txt", "l1");
-    createFileAt(kFakeDirectory + "/deep11/deep2/level2.txt", "l2");
-    createFileAt(kFakeDirectory + "/deep11/deep2/deep3/level3.txt", "l3");
-  }
-
-  void TearDown() { boost::filesystem::remove_all(kFakeDirectory); }
+  void TearDown() { tearDownMockFileStructure(); }
 };
 
 TEST_F(FilesystemTests, test_plugin) {
@@ -141,7 +115,6 @@ TEST_F(FilesystemTests, test_wildcard_filewild) {
   EXPECT_NE(std::find(files.begin(), files.end(),
                       kFakeDirectory + "/deep11/level1.txt"),
             files.end());
-  boost::filesystem::remove_all(kFakeDirectory + "");
 }
 
 TEST_F(FilesystemTests, test_list_files_in_directory_not_dir) {

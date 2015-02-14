@@ -21,6 +21,8 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/test_util.h"
+
 namespace pt = boost::property_tree;
 typedef std::map<std::string, std::vector<std::string> > EventFileMap_t;
 
@@ -104,12 +106,13 @@ Status Config::genConfig(OsqueryConfig& conf) {
       }
     }
 
-    if (tree.count("threat_intel") > 0) {
-      for (const pt::ptree::value_type& v : tree.get_child("threat_intel")) {
+    if (tree.count("additional_monitoring") > 0) {
+      for (const pt::ptree::value_type& v :
+           tree.get_child("additional_monitoring")) {
         if (v.first == "file_paths") {
           for (const pt::ptree::value_type& file_cat : v.second) {
             for (const pt::ptree::value_type& file : file_cat.second) {
-              osquery::resolveFilePattern(file.second.get<std::string>(""),
+              osquery::resolveFilePattern(file.second.get_value<std::string>(),
                                           conf.eventFiles[file_cat.first]);
             }
           }
