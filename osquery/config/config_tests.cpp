@@ -7,7 +7,6 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <fstream>
 
 #include <gtest/gtest.h>
 
@@ -36,8 +35,7 @@ class ConfigTests : public testing::Test {
   void SetUp() {
     createMockFileStructure();
     Registry::setUp();
-    auto& c = Config::getInstance();
-    c.load();
+    Config::getInstance().load();
   }
 
   void TearDown() { tearDownMockFileStructure(); }
@@ -65,8 +63,7 @@ TEST_F(ConfigTests, test_plugin) {
 }
 
 TEST_F(ConfigTests, test_queries_execute) {
-  auto& c = Config::getInstance();
-  auto queries = c.getScheduledQueries();
+  auto queries = Config::getInstance().getScheduledQueries();
 
   EXPECT_EQ(queries.size(), 1);
   for (const auto& i : queries) {
@@ -77,8 +74,7 @@ TEST_F(ConfigTests, test_queries_execute) {
 }
 
 TEST_F(ConfigTests, test_threatfiles_execute) {
-  auto& c = Config::getInstance();
-  auto files = c.getThreatFiles();
+  auto files = Config::getInstance().getThreatFiles();
 
   EXPECT_EQ(files.size(), 2);
   EXPECT_EQ(files["downloads"].size(), 9);

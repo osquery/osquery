@@ -13,8 +13,6 @@
 #include <map>
 #include <memory>
 #include <vector>
-#include <future>
-#include <iostream>
 
 #include <osquery/flags.h>
 #include <osquery/registry.h>
@@ -177,13 +175,15 @@ class Config {
    */
   static osquery::Status genConfig(std::string& conf);
 
+  /// Prevent ConfigPlugins from implementing setUp.
+  osquery::Status setUp() { return Status(0, "Not used"); }
+
  private:
   /**
    * @brief the private member that stores the raw osquery config data in a
    * native format
    */
   OsqueryConfig cfg_;
-
 };
 
 /**

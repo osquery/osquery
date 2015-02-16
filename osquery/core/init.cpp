@@ -25,20 +25,6 @@ const std::string kDescription =
     "relational database";
 const std::string kEpilog = "osquery project page <http://osquery.io>.";
 
-DEFINE_osquery_flag(bool, debug, false, "Enable debug messages");
-
-DEFINE_osquery_flag(bool,
-                    verbose_debug,
-                    false,
-                    "Enable verbose debug messages");
-
-DEFINE_osquery_flag(bool, disable_logging, false, "Disable ERROR/INFO logging");
-
-DEFINE_osquery_flag(string,
-                    osquery_log_dir,
-                    "/var/log/osquery/",
-                    "Directory for ERROR/INFO and results logging");
-
 DEFINE_osquery_flag(bool,
                     config_check,
                     false,
@@ -92,15 +78,16 @@ void initOsquery(int argc, char* argv[], int tool) {
     ::exit(0);
   }
 
-  FLAGS_alsologtostderr = true;
-  FLAGS_logbufsecs = 0; // flush the log buffer immediately
-  FLAGS_stop_logging_if_full_disk = true;
-  FLAGS_max_log_size = 10; // max size for individual log file is 10MB
-  
-  // if you'd like to change the default logging plugin, compile osquery with
+  // To change the default config plugin, compile osquery with
   // -DOSQUERY_DEFAULT_CONFIG_PLUGIN=<new_default_plugin>
 #ifdef OSQUERY_DEFAULT_CONFIG_PLUGIN
   FLAGS_config_plugin = STR(OSQUERY_DEFAULT_CONFIG_PLUGIN);
+#endif
+
+  // To change the default logger plugin, compile osquery with
+  // -DOSQUERY_DEFAULT_LOGGER_PLUGIN=<new_default_plugin>
+#ifdef OSQUERY_DEFAULT_LOGGER_PLUGIN
+  FLAGS_logger_plugin = STR(OSQUERY_DEFAULT_LOGGER_PLUGIN);
 #endif
 
   // Set version string from CMake build
@@ -109,50 +96,27 @@ void initOsquery(int argc, char* argv[], int tool) {
   // Let gflags parse the non-help options/flags.
   __GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, false);
 
-  // The log dir is used for glogging and the filesystem results logs.
-  if (isWritable(FLAGS_osquery_log_dir.c_str()).ok()) {
-    FLAGS_log_dir = FLAGS_osquery_log_dir;
-  }
-
-  if (FLAGS_verbose_debug) {
-    // Turn verbosity up to 1.
-    // Do log DEBUG, INFO, WARNING, ERROR to their log files.
-    // Do log the above and verbose=1 to stderr.
-    FLAGS_debug = true;
-    FLAGS_v = 1;
-  }
-
-  if (!FLAGS_debug) {
-    // Do NOT log INFO, WARNING, ERROR to stderr.
-    // Do log to their log files.
-    FLAGS_minloglevel = 0; // INFO
-    FLAGS_alsologtostderr = false;
-  }
-
-  if (FLAGS_disable_logging) {
-    // Do log ERROR to stderr.
-    // Do NOT log INFO, WARNING, ERROR to their log files.
-    FLAGS_logtostderr = true;
-    FLAGS_minloglevel = 2; // ERROR
-  }
-
-  // Start the logging, and announce the daemon is starting.
-  google::InitGoogleLogging(argv[0]);
+  // Initialize the status and results logger.
+  initStatusLogger(binary);
   VLOG(1) << "osquery initializing [version=" OSQUERY_VERSION "]";
 
-  // Run the setup for all non-lazy registries.
-  Registry::setUp();
-  // And finally load the config.
-  auto& config = Config::getInstance();
-  config.load();
+  // Load the osquery config using the default/active config plugin.
+  Config::getInstance().load();
 
   if (FLAGS_config_check) {
+    // The initiator requested an initialization and config check.
     auto s = Config::checkConfig();
     if (!s.ok()) {
       std::cerr << "Error reading config: " << s.toString() << "\n";
     }
+    // A configuration check exits the application.
     ::exit(s.getCode());
   }
+
+  // Run the setup for all non-lazy registries.
+  Registry::setUp();
+  // Initialize the status and result plugin logger.
+  initLogger(binary);
 }
 
 void initOsqueryDaemon() {
