@@ -30,6 +30,15 @@ TEST_F(ConversionsTests, test_conversion) {
   boost::shared_ptr<Foobar> b2 = std_to_boost_shared_ptr(s2);
   EXPECT_EQ(s2.get(), b2.get());
 }
+
+TEST_F(ConversionsTests, test_base64) {
+  std::string unencoded = "HELLO";
+  auto encoded = base64Encode(unencoded);
+  EXPECT_NE(encoded.size(), 0);
+
+  auto unencoded2 = base64Decode(encoded);
+  EXPECT_EQ(unencoded, unencoded2);
+}
 }
 
 int main(int argc, char* argv[]) {
