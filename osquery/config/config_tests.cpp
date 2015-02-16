@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+#include <fstream>
 
 #include <gtest/gtest.h>
 
@@ -28,11 +29,18 @@ class ConfigTests : public testing::Test {
   ConfigTests() {
     FLAGS_config_plugin = "filesystem";
     FLAGS_config_path = kTestDataPath + "test.config";
-
-    Registry::setUp();
-    auto c = Config::getInstance();
-    c->load();
   }
+
+ protected:
+
+  void SetUp() {
+    createMockFileStructure();
+    Registry::setUp();
+    auto& c = Config::getInstance();
+    c.load();
+  }
+
+  void TearDown() { tearDownMockFileStructure(); }
 };
 
 class TestConfigPlugin : public ConfigPlugin {
@@ -57,8 +65,8 @@ TEST_F(ConfigTests, test_plugin) {
 }
 
 TEST_F(ConfigTests, test_queries_execute) {
-  auto c = Config::getInstance();
-  auto queries = c->getScheduledQueries();
+  auto& c = Config::getInstance();
+  auto queries = c.getScheduledQueries();
 
   EXPECT_EQ(queries.size(), 1);
   for (const auto& i : queries) {
@@ -66,6 +74,15 @@ TEST_F(ConfigTests, test_queries_execute) {
     auto status = query(i.query, results);
     EXPECT_TRUE(status.ok());
   }
+}
+
+TEST_F(ConfigTests, test_threatfiles_execute) {
+  auto& c = Config::getInstance();
+  auto files = c.getThreatFiles();
+
+  EXPECT_EQ(files.size(), 2);
+  EXPECT_EQ(files["downloads"].size(), 9);
+  EXPECT_EQ(files["system_binaries"].size(), 5);
 }
 }
 

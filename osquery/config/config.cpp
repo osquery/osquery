@@ -18,9 +18,13 @@
 #include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/hash.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/test_util.h"
+
 namespace pt = boost::property_tree;
+typedef std::map<std::string, std::vector<std::string> > EventFileMap_t;
 
 namespace osquery {
 
@@ -29,12 +33,10 @@ DEFINE_osquery_flag(string,
                     "filesystem",
                     "Config type (plugin)");
 
+// This lock is used to protect the entirety of the OSqueryConfig struct
+// Is should be used when ever accessing the structs members, reading or
+// writing.
 static boost::shared_mutex rw_lock;
-
-std::shared_ptr<Config> Config::getInstance() {
-  static std::shared_ptr<Config> config = std::shared_ptr<Config>(new Config());
-  return config;
-}
 
 Status Config::load() {
   boost::unique_lock<boost::shared_mutex> lock(rw_lock);
@@ -55,7 +57,7 @@ Status Config::load() {
     }
   }
 
-  cfg_ = conf;
+  cfg_ = std::move(conf);
   return Status(0, "OK");
 }
 
@@ -83,16 +85,14 @@ Status Config::genConfig(OsqueryConfig& conf) {
   if (!s.ok()) {
     return s;
   }
-
   std::stringstream json;
   pt::ptree tree;
   try {
     json << config_string;
     pt::read_json(json, tree);
-
     // Parse each scheduled query from the config.
     for (const pt::ptree::value_type& v : tree.get_child("scheduledQueries")) {
-      OsqueryScheduledQuery q;
+      osquery::OsqueryScheduledQuery q;
       q.name = (v.second).get<std::string>("name");
       q.query = (v.second).get<std::string>("query");
       q.interval = (v.second).get<int>("interval");
@@ -103,6 +103,20 @@ Status Config::genConfig(OsqueryConfig& conf) {
     if (tree.count("options") > 0) {
       for (const pt::ptree::value_type& v : tree.get_child("options")) {
         conf.options[v.first.data()] = v.second.data();
+      }
+    }
+
+    if (tree.count("additional_monitoring") > 0) {
+      for (const pt::ptree::value_type& v :
+           tree.get_child("additional_monitoring")) {
+        if (v.first == "file_paths") {
+          for (const pt::ptree::value_type& file_cat : v.second) {
+            for (const pt::ptree::value_type& file : file_cat.second) {
+              osquery::resolveFilePattern(file.second.get_value<std::string>(),
+                                          conf.eventFiles[file_cat.first]);
+            }
+          }
+        }
       }
     }
   } catch (const std::exception& e) {
@@ -116,6 +130,11 @@ Status Config::genConfig(OsqueryConfig& conf) {
 std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return cfg_.scheduledQueries;
+}
+
+std::map<std::string, std::vector<std::string> > Config::getThreatFiles() {
+  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
+  return cfg_.eventFiles;
 }
 
 Status Config::getMD5(std::string& hash_string) {

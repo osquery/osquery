@@ -167,10 +167,10 @@ void initializeScheduler() {
   static unsigned long int stop_at = ULONG_MAX;
 #endif
 
-  auto cfg = Config::getInstance();
+  auto& cfg = Config::getInstance();
 
   // Iterate over scheduled queryies and add a splay to each.
-  auto schedule = cfg->getScheduledQueries();
+  auto schedule = cfg.getScheduledQueries();
   for (auto& q : schedule) {
     auto old_interval = q.interval;
     auto new_interval = splayValue(old_interval, FLAGS_schedule_splay_percent);

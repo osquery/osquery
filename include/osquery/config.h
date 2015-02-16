@@ -13,6 +13,8 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <future>
+#include <iostream>
 
 #include <osquery/flags.h>
 #include <osquery/registry.h>
@@ -34,6 +36,7 @@ struct OsqueryConfig {
   /// A vector of all of the queries that are scheduled to execute.
   std::vector<OsqueryScheduledQuery> scheduledQueries;
   std::map<std::string, std::string> options;
+  std::map<std::string, std::vector<std::string> > eventFiles;
 };
 
 /**
@@ -69,7 +72,10 @@ class Config {
    *
    * @return a singleton instance of Config.
    */
-  static std::shared_ptr<Config> getInstance();
+  static Config& getInstance() {
+    static Config cfg;
+    return cfg;
+  }
 
   /**
    * @brief Call the genConfig method of the config retriever plugin.
@@ -95,6 +101,16 @@ class Config {
   std::vector<OsqueryScheduledQuery> getScheduledQueries();
 
   /**
+   * @brief Get a map of all the files in the intel JSON blob
+   *
+   *
+   *
+   * @return A map all the files in the JSON blob organized by category
+   */
+  std::map<std::string, std::vector<std::string> >
+  getThreatFiles();
+
+  /**
    * @brief Calculate the has of the osquery config
    *
    * @return The MD5 of the osquery config
@@ -109,7 +125,6 @@ class Config {
    * of the operation.
    */
   static osquery::Status checkConfig();
-
  private:
   /**
    * @brief Default constructor.
@@ -118,6 +133,10 @@ class Config {
    * Config's constructor is private
    */
   Config() {}
+  ~Config(){}
+  Config(Config const&);
+  void operator=(Config const&);
+
 
   /**
    * @brief Uses the specified config retriever to populate a config struct.
@@ -164,6 +183,7 @@ class Config {
    * native format
    */
   OsqueryConfig cfg_;
+
 };
 
 /**

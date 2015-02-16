@@ -78,7 +78,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["pid"] = INTEGER(getpid());
 
   std::string hash_string;
-  auto s = Config::getInstance()->getMD5(hash_string);
+  auto s = Config::getInstance().getMD5(hash_string);
   if (s.ok()) {
     r["config_md5"] = TEXT(hash_string);
   } else {
