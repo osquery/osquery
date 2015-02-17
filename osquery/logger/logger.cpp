@@ -96,7 +96,7 @@ class BufferedLogSink : google::LogSink {
 
  private:
   /// Create the log sink as buffering or forwarding.
-  BufferedLogSink() : forward_(false), enabled_(false) { enable(); }
+  BufferedLogSink() : forward_(false), enabled_(false) {}
 
   /// Remove the log sink.
   ~BufferedLogSink() { disable(); }
@@ -186,7 +186,7 @@ void initStatusLogger(const std::string& name) {
   // If logging is disabled then do not buffer intermediate logs.
   if (!FLAGS_disable_logging) {
     // Create an instance of the buffered log sink and do not forward logs yet.
-    BufferedLogSink::forward(false);
+    BufferedLogSink::enable();
   }
 }
 
