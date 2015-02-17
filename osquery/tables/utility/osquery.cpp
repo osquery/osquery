@@ -20,30 +20,24 @@ namespace osquery {
 namespace tables {
 
 void genFlag(const std::string& name,
-             const FlagDetail& flag,
-             bool is_shell,
+             const FlagInfo& flag,
              QueryData& results) {
   Row r;
   r["name"] = name;
-  r["type"] = std::get<0>(flag);
-  r["description"] = std::get<2>(flag);
-  r["default_value"] = std::get<1>(flag);
-  r["value"] = Flag::get().getValue(name);
-  r["shell_only"] = (is_shell) ? "1" : "0";
+  r["type"] = flag.type;
+  r["description"] = flag.description;
+  r["default_value"] = flag.default_value;
+  r["value"] = flag.value;
+  r["shell_only"] = (flag.detail.shell) ? "1" : "0";
   results.push_back(r);
 }
 
 QueryData genOsqueryFlags(QueryContext& context) {
   QueryData results;
 
-  auto flags = Flag::get().flags();
+  auto flags = Flag::flags();
   for (const auto& flag : flags) {
-    genFlag(flag.first, flag.second, false, results);
-  }
-
-  auto shell_flags = Flag::get().shellFlags();
-  for (const auto& flag : shell_flags) {
-    genFlag(flag.first, flag.second, true, results);
+    genFlag(flag.first, flag.second, results);
   }
 
   return results;
@@ -86,7 +80,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
     VLOG(1) << "Could not retrieve config hash: " << s.toString();
   }
 
-  r["config_path"] = Flag::get().getValue("config_path");
+  r["config_path"] = Flag::getValue("config_path");
   r["extensions"] =
       (pingExtension(FLAGS_extensions_socket).ok()) ? "active" : "inactive";
   results.push_back(r);

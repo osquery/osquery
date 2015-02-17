@@ -48,16 +48,15 @@ void printUsage(const std::string& binary, int tool) {
   } else {
     fprintf(stdout, "Usage: %s [OPTION]...\n\n", binary.c_str());
   }
-  fprintf(stdout,
-          "The following options control the osquery "
-          "daemon and shell.\n\n");
+  fprintf(stdout, "The following options control osquery.\n\n");
 
-  Flag::printFlags(Flag::get().flags());
+  // Print only the core/internal flags.
+  Flag::printFlags();
 
   if (tool == OSQUERY_TOOL_SHELL) {
     // Print shell flags.
-    fprintf(stdout, "\nThe following options control the osquery shell.\n\n");
-    Flag::printFlags(Flag::get().shellFlags());
+    fprintf(stdout, "\nThe following control the osquery shell.\n\n");
+    Flag::printFlags(true);
   }
 
   fprintf(stdout, "\n%s\n", kEpilog.c_str());
@@ -91,10 +90,10 @@ void initOsquery(int argc, char* argv[], int tool) {
 #endif
 
   // Set version string from CMake build
-  __GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);
+  GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);
 
   // Let gflags parse the non-help options/flags.
-  __GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, false);
+  GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, false);
 
   // Initialize the status and results logger.
   initStatusLogger(binary);
@@ -151,6 +150,6 @@ void shutdownOsquery() {
   EventFactory::end();
 
   // Hopefully release memory used by global string constructors in gflags.
-  __GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
+  GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
 }
 }

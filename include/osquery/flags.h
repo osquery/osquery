@@ -15,67 +15,63 @@
 #define STRIP_FLAG_HELP 1
 #include <gflags/gflags.h>
 
-#include <osquery/status.h>
+#include <osquery/core.h>
 
-#define __GFLAGS_NAMESPACE google
+#define GFLAGS_NAMESPACE google
 
 namespace osquery {
 
-/// Type, Value, Description.
-typedef std::tuple<std::string, std::string, std::string> FlagDetail;
+struct FlagDetail {
+  std::string description;
+  bool shell;
+  bool external;
+};
+
+struct FlagInfo {
+  std::string type;
+  std::string description;
+  std::string default_value;
+  std::string value;
+  FlagDetail detail;
+};
 
 /**
  * @brief A small tracking wrapper for options, binary flags.
  *
- * The osquery-specific gflags-like options define macro `DEFINE_osquery_flag`
- * uses a Flag instance to track the options data.
+ * The osquery-specific gflags-like options define macro `FLAG` uses a Flag
+ & instance to track the options data.
  */
 class Flag {
  public:
   /*
-   * @brief the instance accessor, but also can register flag data.
-   *
-   * The accessor is mostly needless. The static instance and registration of
-   * flag data requires the accessor wrapper.
+   * @brief Create a new flag.
    *
    * @param name The 'name' or the options switch data.
-   * @param type The lexical type of the flag.
-   * @param value The default value for this flag.
-   * @param desc The description printed to the screen during help.
-   * @param shell_only Only print flag help when using `OSQUERY_TOOL_SHELL`.
+   * @param flag Flag information filled in using the helper macro.
    *
    * @return A mostly needless flag instance.
    */
-  static Flag& get(const std::string& name = "",
-                   const std::string& type = "",
-                   const std::string& value = "",
-                   const std::string& desc = "",
-                   bool shell_only = false);
+  static int create(const std::string& name, FlagDetail flag);
 
-  /*
-   * @brief Wrapper by the Flag::get.
-   *
-   * @param name The 'name' or the options switch data.
-   * @parma type The lexical type of the flag.
-   * @param value The default value for this flag.
-   * @param desc The description printed to the screen during help.
-   * @param shell_only Restrict this flag to the shell help output.
-   */
-  void add(const std::string& name,
-           const std::string& type,
-           const std::string& value,
-           const std::string& desc,
-           bool shell_only);
+  /// Create a glags alias to name, using the Flag::getValue accessor.
+  static int createAlias(const std::string& alias, const std::string& name);
+
+  static Flag& instance() {
+    static Flag f;
+    return f;
+  }
 
  private:
   /// Keep the ctor private, for accessing through `add` wrapper.
   Flag() {}
+  virtual ~Flag() {}
+
+  Flag(Flag const&);
+  void operator=(Flag const&);
 
  public:
   /// The public flags instance, usable when parsing `--help`.
-  std::map<std::string, FlagDetail> flags() { return flags_; }
-  /// The public flags instance, usable when parsing `--help` for the shell.
-  std::map<std::string, FlagDetail> shellFlags() { return shell_flags_; }
+  static std::map<std::string, FlagInfo> flags();
 
   /*
    * @brief Access value for a flag name.
@@ -108,20 +104,24 @@ class Flag {
    *
    * @param name the flag name.
    */
-  std::string getValue(const std::string& name);
+  static std::string getValue(const std::string& name);
+
+  template <typename T>
+  static T getValue(const std::string& name) {
+    T intermediate;
+    return intermediate;
+  }
 
   /*
    * @brief Print help-style output to stdout for a given flag set.
    *
-   * @param flags A flag set (usually generated from Flag::flags).
+   * @param shell_only Only print shell flags.
    */
-  static void printFlags(const std::map<std::string, FlagDetail> flags);
+  static void printFlags(bool shell = false, bool external = false);
 
  private:
-  /// The private simple map of name to value/desc flag data.
   std::map<std::string, FlagDetail> flags_;
-  /// The private simple map of name to value/desc shell-only flag data.
-  std::map<std::string, FlagDetail> shell_flags_;
+  std::map<std::string, std::string> aliases_;
 };
 }
 
@@ -133,23 +133,21 @@ class Flag {
  * @param value The default value, use a C++ literal.
  * @param desc A string literal used for help display.
  */
-#define DEFINE_osquery_flag(type, name, value, desc) \
-  DEFINE_##type(name, value, desc);                  \
-  namespace flag_##name {                            \
-    Flag flag = Flag::get(#name, #type, #value, desc);      \
+#define OSQUERY_FLAG(t, n, v, d, s, e)              \
+  DEFINE_##t(n, v, d);                              \
+  namespace flags {                                 \
+  const int flag_##n = Flag::create(#n, {d, s, e}); \
   }
 
-/*
- * @brief A duplicate of DEFINE_osquery_flag except the help output will only
- * show when using OSQUERY_TOOL_SHELL (osqueryi).
- *
- * @param type The `_type` symbol portion of the gflags define.
- * @param name The name symbol passed to gflags' `DEFINE_type`.
- * @param value The default value, use a C++ literal.
- * @param desc A string literal used for help display.
- */
-#define DEFINE_shell_flag(type, name, value, desc)    \
-  DEFINE_##type(name, value, desc);                   \
-  namespace flag_##name {                             \
-    Flag flag = Flag::get(#name, #type, #value, desc, true); \
+#define FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, false, false)
+#define SHELL_FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, true, false)
+#define EXTENSION_FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, false, true)
+
+#define FLAG_ALIAS(t, n, a)                             \
+  DEFINE_##t(a, FLAGS_##n);                             \
+  namespace flags {                                     \
+  const int flag_alias_##a = Flag::createAlias(#a, #n); \
   }
+
+#define DEFINE_osquery_flag(t, n, v, d) FLAG(t, n, v, d)
+#define DEFINE_shell_flag(t, n, v, d) SHELL_FLAG(t, n, v, d)
