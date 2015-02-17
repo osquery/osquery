@@ -25,10 +25,7 @@ namespace osquery {
 
 const std::string kLinuxMemPath = "/dev/mem";
 
-DEFINE_osquery_flag(bool,
-                    disable_memory,
-                    false,
-                    "Disable physical memory reads");
+FLAG(bool, disable_memory, false, "Disable physical memory reads");
 
 Status readMem(int fd, size_t base, size_t length, uint8_t* buffer) {
   if (lseek(fd, base, SEEK_SET) == -1) {

@@ -28,10 +28,7 @@ typedef std::map<std::string, std::vector<std::string> > EventFileMap_t;
 
 namespace osquery {
 
-DEFINE_osquery_flag(string,
-                    config_plugin,
-                    "filesystem",
-                    "Config type (plugin)");
+FLAG(string, config_plugin, "filesystem", "Config type (plugin)");
 
 // This lock is used to protect the entirety of the OSqueryConfig struct
 // Is should be used when ever accessing the structs members, reading or

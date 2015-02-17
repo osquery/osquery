@@ -21,23 +21,15 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-/// `logger` defines the default log receiver plugin name.
-DEFINE_osquery_flag(string,
-                    logger_plugin,
-                    "filesystem",
-                    "The default logger plugin");
+FLAG(bool, verbose, false, "Enable verbose informational messages");
+FLAG_ALIAS(bool, verbose_debug, verbose);
+FLAG_ALIAS(bool, debug, verbose);
 
-DEFINE_osquery_flag(bool,
-                    log_result_events,
-                    true,
-                    "Log scheduled results as events");
+FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
-DEFINE_osquery_flag(bool,
-                    verbose, // debug, verbose_debug
-                    false,
-                    "Enable verbose informational messages");
+FLAG(string, logger_plugin, "filesystem", "The default logger plugin");
 
-DEFINE_osquery_flag(bool, disable_logging, false, "Disable ERROR/INFO logging");
+FLAG(bool, log_result_events, true, "Log scheduled results as events");
 
 /**
  * @brief A custom Glog log sink for forwarding or buffering status logs.

@@ -22,15 +22,15 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-DEFINE_osquery_flag(int32,
-                    distributed_get_queries_retries,
-                    3,
-                    "Times to retry retrieving distributed queries");
+FLAG(int32,
+     distributed_get_queries_retries,
+     3,
+     "Times to retry retrieving distributed queries");
 
-DEFINE_osquery_flag(int32,
-                    distributed_write_results_retries,
-                    3,
-                    "Times to retry writing distributed query results");
+FLAG(int32,
+     distributed_write_results_retries,
+     3,
+     "Times to retry writing distributed query results");
 
 Status MockDistributedProvider::getQueriesJSON(std::string& query_json) {
   query_json = queriesJSON_;

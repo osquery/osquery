@@ -10,9 +10,26 @@
 
 #include <osquery/flags.h>
 
+namespace boost {
+template <>
+bool lexical_cast<bool, std::string>(const std::string& arg) {
+  std::istringstream ss(arg);
+  bool b;
+  ss >> std::boolalpha >> b;
+  return b;
+}
+
+template <>
+std::string lexical_cast<std::string, bool>(const bool& b) {
+  std::ostringstream ss;
+  ss << std::boolalpha << b;
+  return ss.str();
+}
+}
+
 namespace osquery {
 
-int Flag::create(const std::string& name, FlagDetail flag) {
+int Flag::create(const std::string& name, const FlagDetail& flag) {
   instance().flags_.insert(std::make_pair(name, flag));
   return 0;
 }
@@ -47,6 +64,14 @@ std::string Flag::getValue(const std::string& name) {
   return current_value;
 }
 
+std::string Flag::getType(const std::string& name) {
+  GFLAGS_NAMESPACE::CommandLineFlagInfo info;
+  if (!GFLAGS_NAMESPACE::GetCommandLineFlagInfo(name.c_str(), &info)) {
+    return "";
+  }
+  return info.type;
+}
+
 Status Flag::updateValue(const std::string& name, const std::string& value) {
   GFLAGS_NAMESPACE::SetCommandLineOption(name.c_str(), value.c_str());
   return Status(0, "OK");
@@ -62,8 +87,12 @@ std::map<std::string, FlagInfo> Flag::flags() {
       // This flag info was not defined within osquery.
       continue;
     }
+
+    // Set the flag info from the internal info kept by Gflags, except for
+    // the stored description. Gflag keeps an "unknown" value if the flag
+    // was declared without a definition.
     flags[flag.name] = {flag.type,
-                        flag.description,
+                        instance().flags_.at(flag.name).description,
                         flag.default_value,
                         flag.current_value,
                         instance().flags_.at(flag.name)};

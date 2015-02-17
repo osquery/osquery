@@ -21,10 +21,7 @@ using namespace apache::thrift::concurrency;
 namespace osquery {
 
 /// The worker_threads define the default thread pool size.
-DEFINE_osquery_flag(int32,
-                    worker_threads,
-                    4,
-                    "Number of work dispatch threads");
+FLAG(int32, worker_threads, 4, "Number of work dispatch threads");
 
 void interruptableSleep(size_t milli) {
   boost::this_thread::sleep(boost::posix_time::milliseconds(milli));

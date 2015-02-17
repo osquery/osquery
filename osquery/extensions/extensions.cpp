@@ -28,12 +28,12 @@ using namespace osquery::extensions;
 
 namespace osquery {
 
-DEFINE_osquery_flag(bool, disable_extensions, false, "Disable extension API");
+FLAG(bool, disable_extensions, false, "Disable extension API");
 
-DEFINE_osquery_flag(string,
-                    extensions_socket,
-                    "/var/osquery/osquery.em",
-                    "Path to the extensions UNIX domain socket")
+FLAG(string,
+     extensions_socket,
+     "/var/osquery/osquery.em",
+     "Path to the extensions UNIX domain socket")
 
 namespace extensions {
 

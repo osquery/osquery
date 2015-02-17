@@ -19,10 +19,11 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-DEFINE_osquery_flag(string,
-                    logger_path, // osquery_log_dir
-                    "/var/log/osquery/",
-                    "Directory path for ERROR/WARN/INFO and results logging");
+FLAG(string,
+     logger_path,
+     "/var/log/osquery/",
+     "Directory path for ERROR/WARN/INFO and results logging");
+FLAG_ALIAS(std::string, osquery_log_dir, logger_path);
 
 const std::string kFilesystemLoggerFilename = "osqueryd.results.log";
 

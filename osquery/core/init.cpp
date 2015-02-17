@@ -25,14 +25,11 @@ const std::string kDescription =
     "relational database";
 const std::string kEpilog = "osquery project page <http://osquery.io>.";
 
-DEFINE_osquery_flag(bool,
-                    config_check,
-                    false,
-                    "Check the format of an osquery config");
+FLAG(bool, config_check, false, "Check the format of an osquery config");
 
 #ifndef __APPLE__
 namespace osquery {
-DEFINE_osquery_flag(bool, daemonize, false, "Run as daemon (osqueryd only)");
+FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 }
 #endif
 

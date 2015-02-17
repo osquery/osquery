@@ -12,12 +12,24 @@
 
 #include <map>
 
+#include <boost/lexical_cast.hpp>
+
 #define STRIP_FLAG_HELP 1
 #include <gflags/gflags.h>
 
 #include <osquery/core.h>
 
 #define GFLAGS_NAMESPACE google
+
+namespace boost {
+/// We define a lexical_cast template for boolean for Gflags boolean string
+/// values.
+template <>
+bool lexical_cast<bool, std::string>(const std::string& arg);
+
+template <>
+std::string lexical_cast<std::string, bool>(const bool& b);
+}
 
 namespace osquery {
 
@@ -39,7 +51,7 @@ struct FlagInfo {
  * @brief A small tracking wrapper for options, binary flags.
  *
  * The osquery-specific gflags-like options define macro `FLAG` uses a Flag
- & instance to track the options data.
+ * instance to track the options data.
  */
 class Flag {
  public:
@@ -51,9 +63,9 @@ class Flag {
    *
    * @return A mostly needless flag instance.
    */
-  static int create(const std::string& name, FlagDetail flag);
+  static int create(const std::string& name, const FlagDetail& flag);
 
-  /// Create a glags alias to name, using the Flag::getValue accessor.
+  /// Create a Gflags alias to name, using the Flag::getValue accessor.
   static int createAlias(const std::string& alias, const std::string& name);
 
   static Flag& instance() {
@@ -106,22 +118,52 @@ class Flag {
    */
   static std::string getValue(const std::string& name);
 
-  template <typename T>
-  static T getValue(const std::string& name) {
-    T intermediate;
-    return intermediate;
-  }
+  /*
+   * @brief Get the type as a string of an osquery flag.
+   *
+   * @param name the flag name.
+   */
+  static std::string getType(const std::string& name);
 
   /*
    * @brief Print help-style output to stdout for a given flag set.
    *
-   * @param shell_only Only print shell flags.
+   * @param shell Only print shell flags.
+   * @param external Only print external flags (from extensions).
    */
   static void printFlags(bool shell = false, bool external = false);
 
  private:
   std::map<std::string, FlagDetail> flags_;
   std::map<std::string, std::string> aliases_;
+};
+
+/**
+ * @brief Helper accessor/assignment alias class to support deprecated flags.
+ *
+ * This templated class wraps Flag::updateValue and Flag::getValue to 'alias'
+ * a deprecated flag name as the updated name. The helper macro FLAG_ALIAS
+ * will create a global variable instances of this wrapper using the same
+ * Gflags naming scheme to prevent collisions and support existing callsites.
+ */
+template <typename T>
+class FlagAlias {
+ public:
+  FlagAlias& operator=(T const& v) {
+    Flag::updateValue(name_, boost::lexical_cast<std::string>(v));
+    return *this;
+  }
+
+  operator T() const { return boost::lexical_cast<T>(Flag::getValue(name_)); }
+
+  FlagAlias(const std::string& alias,
+            const std::string& type,
+            const std::string& name,
+            T* storage)
+      : name_(name) {}
+
+ private:
+  std::string name_;
 };
 }
 
@@ -143,11 +185,10 @@ class Flag {
 #define SHELL_FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, true, false)
 #define EXTENSION_FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, false, true)
 
-#define FLAG_ALIAS(t, n, a)                             \
-  DEFINE_##t(a, FLAGS_##n);                             \
+#define FLAG_ALIAS(t, a, n)                             \
+  FlagAlias<t> FLAGS_##a(#a, #t, #n, &FLAGS_##n);       \
   namespace flags {                                     \
+  static GFLAGS_NAMESPACE::FlagRegisterer oflag_##a(    \
+    #a, #t, #a, #a, &FLAGS_##n, &FLAGS_##n);            \
   const int flag_alias_##a = Flag::createAlias(#a, #n); \
   }
-
-#define DEFINE_osquery_flag(t, n, v, d) FLAG(t, n, v, d)
-#define DEFINE_shell_flag(t, n, v, d) SHELL_FLAG(t, n, v, d)

@@ -104,7 +104,7 @@ class LoggerPlugin : public Plugin {
    * has been loaded (which may include additional CLI flag-options).
    *
    * All of these actions may have generated VERBOSE, INFO, WARNING, or ERROR
-   * logs. The internal logging facility is, glog, collects these intermediate
+   * logs. The internal logging facility, Glog, collects these intermediate
    * status logs and a customized log sink buffers them until the active
    * osquery logger's `init` method is called.
    *
@@ -144,7 +144,7 @@ class LoggerPlugin : public Plugin {
 void initStatusLogger(const std::string& name);
 
 /**
- * @brief Initialize the osquery Logger facility by dump the buffered status
+ * @brief Initialize the osquery Logger facility by dumping the buffered status
  * logs and configurating status log forwarding.
  *
  * initLogger will disable the `BufferedLogSink` facility, dump any status logs

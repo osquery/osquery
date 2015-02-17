@@ -4108,43 +4108,37 @@ static char *cmdline_option_value(int argc, char **argv, int i) {
 namespace osquery {
 
 /// Define flags used by the shell. They are parsed by the drop-in shell.
-DEFINE_shell_flag(bool, bail, false, "stop after hitting an error");
-DEFINE_shell_flag(bool, batch, false, "force batch I/O");
-DEFINE_shell_flag(bool, column, false, "set output mode to 'column'");
-DEFINE_shell_flag(string, cmd, "", "run \"COMMAND\" before reading stdin");
-DEFINE_shell_flag(bool, csv, false, "set output mode to 'csv'");
-DEFINE_shell_flag(bool, json, false, "set output mode to 'json'");
-DEFINE_shell_flag(bool, echo, false, "print commands before execution");
-DEFINE_shell_flag(string, init, "", "read/process named file");
-DEFINE_shell_flag(bool, header, true, "turn headers on or off");
-DEFINE_shell_flag(bool, html, false, "set output mode to HTML");
-DEFINE_shell_flag(bool, interactive, false, "force interactive I/O");
-DEFINE_shell_flag(bool, line, false, "set output mode to 'line'");
-DEFINE_shell_flag(bool, list, false, "set output mode to 'list'");
-DEFINE_shell_flag(int64, mmap, 0, "default mmap size set to N");
-DEFINE_shell_flag(string,
-                  nullvalue,
-                  "",
-                  "set text string for NULL values. Default ''");
-DEFINE_shell_flag(string,
-                  separator,
-                  "|",
-                  "set output field separator. Default: '|'");
-DEFINE_shell_flag(bool,
-                  stats,
-                  false,
-                  "print memory stats before each finalize");
-DEFINE_shell_flag(string, vfs, "", "use NAME as the default VFS");
+SHELL_FLAG(bool, bail, false, "stop after hitting an error");
+SHELL_FLAG(bool, batch, false, "force batch I/O");
+SHELL_FLAG(bool, column, false, "set output mode to 'column'");
+SHELL_FLAG(string, cmd, "", "run \"COMMAND\" before reading stdin");
+SHELL_FLAG(bool, csv, false, "set output mode to 'csv'");
+SHELL_FLAG(bool, json, false, "set output mode to 'json'");
+SHELL_FLAG(bool, echo, false, "print commands before execution");
+SHELL_FLAG(string, init, "", "read/process named file");
+SHELL_FLAG(bool, header, true, "turn headers on or off");
+SHELL_FLAG(bool, html, false, "set output mode to HTML");
+SHELL_FLAG(bool, interactive, false, "force interactive I/O");
+SHELL_FLAG(bool, line, false, "set output mode to 'line'");
+SHELL_FLAG(bool, list, false, "set output mode to 'list'");
+SHELL_FLAG(int64, mmap, 0, "default mmap size set to N");
+SHELL_FLAG(string,
+           nullvalue,
+           "",
+           "set text string for NULL values. Default ''");
+SHELL_FLAG(string, separator, "|", "set output field separator. Default: '|'");
+SHELL_FLAG(bool, stats, false, "print memory stats before each finalize");
+SHELL_FLAG(string, vfs, "", "use NAME as the default VFS");
 
 /// Optional flags enabled at compile time.
 #if defined(SQLITE_ENABLE_MEMSYS3) || defined(SQLITE_ENABLE_MEMSYS5)
-DEFINE_shell_flag(int64, heap, 0, "Size of heap for memsys3 or memsys5");
+SHELL_FLAG(int64, heap, 0, "Size of heap for memsys3 or memsys5");
 #endif
 #ifdef SQLITE_ENABLE_MULTIPLEX
-DEFINE_shell_flag(bool, multiplex, false, "enable the multiplexor VFS");
+SHELL_FLAG(bool, multiplex, false, "enable the multiplexor VFS");
 #endif
 #ifdef SQLITE_ENABLE_VFSTRACE
-DEFINE_shell_flag(bool, vfstrace, false, "enable tracing of all VFS calls");
+SHELL_FLAG(bool, vfstrace, false, "enable tracing of all VFS calls");
 #endif
 
 int launchIntoShell(int argc, char **argv) {

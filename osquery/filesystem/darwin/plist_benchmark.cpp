@@ -22,10 +22,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 // run this benchmark with --iterations=9001 to parse over 9000 property lists
-DEFINE_osquery_flag(int32,
-                    plist_iterations,
-                    100,
-                    "Iterations to execute plist benchmark");
+FLAG(int32, plist_iterations, 100, "Iterations to execute plist benchmark");
 
 class PlistBenchmark : public testing::Test {};
 

@@ -22,15 +22,12 @@
 
 namespace osquery {
 
-DEFINE_osquery_flag(string,
-                    host_identifier,
-                    "hostname",
-                    "Field used to identify the host running osqueryd");
+FLAG(string,
+     host_identifier,
+     "hostname",
+     "Field used to identify the host running osqueryd");
 
-DEFINE_osquery_flag(int32,
-                    schedule_splay_percent,
-                    10,
-                    "Percent to splay config times");
+FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
 
 Status getHostIdentifier(std::string& ident) {
   std::shared_ptr<DBHandle> db;
