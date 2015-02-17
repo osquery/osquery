@@ -3668,6 +3668,7 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     }
 #endif
   } else if (c == 'v' && strncmp(azArg[0], "version", n) == 0) {
+  	fprintf(p->out, "osquery %s\n", TEXT(OSQUERY_VERSION).c_str());
     fprintf(p->out,
             "SQLite %s %s\n" /*extra-version-info*/,
             sqlite3_libversion(),
