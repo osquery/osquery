@@ -21,10 +21,7 @@ using osquery::Status;
 
 namespace osquery {
 
-DEFINE_osquery_flag(string,
-                    config_path,
-                    "/var/osquery/osquery.conf",
-                    "Path to config file");
+FLAG(string, config_path, "/var/osquery/osquery.conf", "Path to config file");
 
 class FilesystemConfigPlugin : public ConfigPlugin {
  public:

@@ -41,16 +41,12 @@ const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
     // How often to poll for performance limit violations.
     {INTERVAL, {3, 3, 3}}, };
 
-DEFINE_osquery_flag(
-    int32,
-    watchdog_level,
-    1,
-    "Performance limit level (0=loose, 1=normal, 2=restrictive)");
+FLAG(int32,
+     watchdog_level,
+     1,
+     "Performance limit level (0=loose, 1=normal, 2=restrictive)");
 
-DEFINE_osquery_flag(bool,
-                    disable_watchdog,
-                    false,
-                    "Disable userland watchdog process");
+FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
 bool Watcher::ok() {
   ::sleep(getWorkerLimit(INTERVAL));

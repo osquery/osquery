@@ -22,15 +22,12 @@
 
 namespace osquery {
 
-DEFINE_osquery_flag(string,
-                    host_identifier,
-                    "hostname",
-                    "Field used to identify the host running osqueryd");
+FLAG(string,
+     host_identifier,
+     "hostname",
+     "Field used to identify the host running osqueryd");
 
-DEFINE_osquery_flag(int32,
-                    schedule_splay_percent,
-                    10,
-                    "Percent to splay config times");
+FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
 
 Status getHostIdentifier(std::string& ident) {
   std::shared_ptr<DBHandle> db;
@@ -167,10 +164,8 @@ void initializeScheduler() {
   static unsigned long int stop_at = ULONG_MAX;
 #endif
 
-  auto& cfg = Config::getInstance();
-
   // Iterate over scheduled queryies and add a splay to each.
-  auto schedule = cfg.getScheduledQueries();
+  auto schedule = Config::getInstance().getScheduledQueries();
   for (auto& q : schedule) {
     auto old_interval = q.interval;
     auto new_interval = splayValue(old_interval, FLAGS_schedule_splay_percent);

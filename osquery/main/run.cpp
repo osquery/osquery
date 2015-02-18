@@ -26,8 +26,8 @@ int main(int argc, char* argv[]) {
   FLAGS_logtostderr = true;
 
   // Let gflags parse the non-help options/flags.
-  __GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, false);
-  __GFLAGS_NAMESPACE::InitGoogleLogging(argv[0]);
+  GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, false);
+  GFLAGS_NAMESPACE::InitGoogleLogging(argv[0]);
 
   if (FLAGS_query == "") {
     fprintf(stderr, "Usage: %s --query=\"query\"\n", argv[0]);
@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
 
   // Instead of calling "shutdownOsquery" force the EF to join its threads.
   osquery::EventFactory::end(true);
-  __GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
+  GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
 
   return status.getCode();
 }

@@ -14,7 +14,7 @@ namespace osquery {
 
 class ExampleTable : public tables::TablePlugin {
  private:
-  tables::TableColumns columns() {
+  tables::TableColumns columns() const {
     return {{"example_text", "TEXT"}, {"example_integer", "INTEGER"}};
   }
 

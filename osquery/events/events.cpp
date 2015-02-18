@@ -26,15 +26,9 @@ namespace osquery {
 /// Helper cooloff (ms) macro to prevent thread failure thrashing.
 #define EVENTS_COOLOFF 20
 
-DEFINE_osquery_flag(bool,
-                    disable_events,
-                    false,
-                    "Disable osquery events pubsub");
+FLAG(bool, disable_events, false, "Disable osquery events pubsub");
 
-DEFINE_osquery_flag(int32,
-                    events_expiry,
-                    86000,
-                    "Timeout to expire event pubsub results");
+FLAG(int32, events_expiry, 86000, "Timeout to expire event pubsub results");
 
 const std::vector<size_t> kEventTimeLists = {
     1 * 60 * 60, // 1 hour
