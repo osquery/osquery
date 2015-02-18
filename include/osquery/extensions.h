@@ -54,7 +54,11 @@ typedef std::map<RouteUUID, ExtensionInfo> ExtensionList;
 
 inline std::string getExtensionSocket(
     RouteUUID uuid, const std::string& path = FLAGS_extensions_socket) {
-  return path + "." + std::to_string(uuid);
+  if (uuid == 0) {
+    return path;
+  } else {
+    return path + "." + std::to_string(uuid);
+  }
 }
 
 namespace extensions {
