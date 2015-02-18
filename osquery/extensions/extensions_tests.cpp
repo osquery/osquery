@@ -13,9 +13,15 @@
 // GTest must come before the Thrift includes.
 #include <gtest/gtest.h>
 
+#ifdef FBOSQUERY
+#include <thrift/lib/cpp/protocol/TBinaryProtocol.h>
+#include <thrift/lib/cpp/transport/TBufferTransports.h>
+#include <thrift/lib/cpp/transport/TSocket.h>
+#else
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/transport/TSocket.h>
+#endif
 
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
