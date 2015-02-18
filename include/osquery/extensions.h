@@ -138,6 +138,8 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
   void deregisterExtension(ExtensionStatus& _return,
                            const ExtensionRouteUUID uuid);
 
+  void query(ExtensionResponse& _return, const std::string& sql);
+
  private:
   /// Check if an extension exists by the name it registered.
   bool exists(const std::string& name);

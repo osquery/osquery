@@ -18,6 +18,7 @@
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
@@ -109,6 +110,20 @@ void ExtensionManagerHandler::deregisterExtension(
 
   Registry::removeBroadcast(uuid);
   extensions_.erase(uuid);
+}
+
+void ExtensionManagerHandler::query(ExtensionResponse& _return,
+                                    const std::string& sql) {
+  QueryData results;
+  auto status = osquery::query(sql, results);
+  _return.status.code = status.getCode();
+  _return.status.message = status.getMessage();
+
+  if (status.ok()) {
+    for (const auto& row : results) {
+      _return.response.push_back(row);
+    }
+  }
 }
 
 bool ExtensionManagerHandler::exists(const std::string& name) {
