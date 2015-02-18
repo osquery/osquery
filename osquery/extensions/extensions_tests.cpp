@@ -19,6 +19,7 @@
 
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
+#include <osquery/database.h>
 
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
@@ -69,6 +70,34 @@ class ExtensionsTest : public testing::Test {
     }
 
     return false;
+  }
+
+  QueryData query(const std::string& sql, int attempts = 3) {
+    // Open a socket to the test extension manager.
+    boost::shared_ptr<TSocket> socket(new TSocket(kTestManagerSocket));
+    boost::shared_ptr<TTransport> transport(new TBufferedTransport(socket));
+    boost::shared_ptr<TProtocol> protocol(new TBinaryProtocol(transport));
+
+    ExtensionManagerClient client(protocol);
+
+    // Calling open will except if the socket does not exist.
+    ExtensionResponse response;
+    for (int i = 0; i < attempts; ++i) {
+      try {
+        transport->open();
+        client.query(response, sql);
+        transport->close();
+      } catch (const std::exception& e) {
+        ::usleep(kDelayUS);
+      }
+    }
+
+    QueryData qd;
+    for (const auto& row : response.response) {
+      qd.push_back(row);
+    }
+
+    return qd;
   }
 
   ExtensionList registeredExtensions(int attempts = 3) {
@@ -154,6 +183,17 @@ TEST_F(ExtensionsTest, test_extension_start) {
   // Then clean up the registry modifications.
   Registry::removeBroadcast(uuid);
   Registry::allowDuplicates(false);
+}
+
+TEST_F(ExtensionsTest, test_extension_query) {
+  auto status = startExtensionManager(kTestManagerSocket);
+  EXPECT_TRUE(status.ok());
+  // Wait for the extension manager to start.
+  EXPECT_TRUE(socketExists(kTestManagerSocket));
+
+  auto qd = query("select seconds from time");
+  EXPECT_EQ(qd.size(), 1);
+  EXPECT_EQ(qd[0].count("seconds"), 1);
 }
 
 class ExtensionPlugin : public Plugin {
