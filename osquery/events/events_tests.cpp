@@ -266,7 +266,7 @@ TEST_F(EventsTests, test_tear_down) {
 
 static int kBellHathTolled = 0;
 
-Status TestTheeCallback(EventContextRef context) {
+Status TestTheeCallback(EventContextRef context, const void* user_data) {
   kBellHathTolled += 1;
   return Status(0, "OK");
 }
@@ -285,13 +285,13 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
     shouldFireBethHathTolled = false;
   }
 
-  Status Callback(const EventContextRef& ec) {
+  Status Callback(const EventContextRef& ec, const void* user_data) {
     // We don't care about the subscription or the event contexts.
     bellHathTolled = true;
     return Status(0, "OK");
   }
 
-  Status SpecialCallback(const FakeEventContextRef& ec) {
+  Status SpecialCallback(const FakeEventContextRef& ec, const void* user_data) {
     // Now we care that the event context is corrected passed.
     if (ec->required_value == 42) {
       contextBellHathTolled = true;
@@ -301,13 +301,13 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
 
   void lateInit() {
     auto sub_ctx = createSubscriptionContext();
-    subscribe(&FakeEventSubscriber::Callback, sub_ctx);
+    subscribe(&FakeEventSubscriber::Callback, sub_ctx, nullptr);
   }
 
   void laterInit() {
     auto sub_ctx = createSubscriptionContext();
     sub_ctx->require_this_value = 42;
-    subscribe(&FakeEventSubscriber::SpecialCallback, sub_ctx);
+    subscribe(&FakeEventSubscriber::SpecialCallback, sub_ctx, nullptr);
   }
 };
 

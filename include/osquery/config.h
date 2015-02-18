@@ -96,7 +96,7 @@ class Config {
    * @return a vector of OsqueryScheduledQuery's which represent the queries
    * that are to be executed
    */
-  std::vector<OsqueryScheduledQuery> getScheduledQueries();
+  static std::vector<OsqueryScheduledQuery> getScheduledQueries();
 
   /**
    * @brief Get a map of all the files in the intel JSON blob
@@ -105,8 +105,7 @@ class Config {
    *
    * @return A map all the files in the JSON blob organized by category
    */
-  std::map<std::string, std::vector<std::string> >
-  getThreatFiles();
+  static std::map<std::string, std::vector<std::string> >& getWatchedFiles();
 
   /**
    * @brief Calculate the has of the osquery config

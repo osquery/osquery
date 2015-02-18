@@ -53,8 +53,7 @@ Status Config::load() {
               << option.second;
     }
   }
-
-  cfg_ = std::move(conf);
+  cfg_ = conf;
   return Status(0, "OK");
 }
 
@@ -126,12 +125,12 @@ Status Config::genConfig(OsqueryConfig& conf) {
 
 std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
-  return cfg_.scheduledQueries;
+  return getInstance().cfg_.scheduledQueries;
 }
 
-std::map<std::string, std::vector<std::string> > Config::getThreatFiles() {
+std::map<std::string, std::vector<std::string> >& Config::getWatchedFiles() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
-  return cfg_.eventFiles;
+  return getInstance().cfg_.eventFiles;
 }
 
 Status Config::getMD5(std::string& hash_string) {

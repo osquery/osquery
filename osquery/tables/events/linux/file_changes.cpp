@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -12,8 +12,10 @@
 #include <string>
 
 #include <osquery/core.h>
+#include <osquery/config.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/hash.h>
 
 #include "osquery/events/linux/inotify.h"
 
@@ -25,9 +27,9 @@ namespace tables {
  *
  * This is mostly an example EventSubscriber implementation.
  */
-class PasswdChangesEventSubscriber
+class FileChangesEventSubscriber
     : public EventSubscriber<INotifyEventPublisher> {
-  DECLARE_SUBSCRIBER("passwd_changes");
+  DECLARE_SUBSCRIBER("file_changes");
 
  public:
   void init();
@@ -50,22 +52,33 @@ class PasswdChangesEventSubscriber
  * This registers PasswdChangesEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
  */
-REGISTER(PasswdChangesEventSubscriber, "event_subscriber", "passwd_changes");
+REGISTER(FileChangesEventSubscriber, "event_subscriber", "file_changes");
 
-void PasswdChangesEventSubscriber::init() {
-  auto mc = createSubscriptionContext();
-  mc->path = "/etc/passwd";
-  mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
-  subscribe(&PasswdChangesEventSubscriber::Callback, mc, nullptr);
+void FileChangesEventSubscriber::init() {
+  const auto& file_map = Config::getInstance().getWatchedFiles();
+
+  for (const auto& element_kv : file_map) {
+    for (const auto& file : element_kv.second) {
+      auto mc = createSubscriptionContext();
+      mc->path = file;
+      mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
+      subscribe(&FileChangesEventSubscriber::Callback, mc,
+      (void*)(&element_kv.first));
+    }
+  }
 }
 
-Status PasswdChangesEventSubscriber::Callback(const INotifyEventContextRef& ec,
-                                              const void* user_data) {
+Status FileChangesEventSubscriber::Callback(const INotifyEventContextRef& ec,
+                                            const void* user_data) {
   Row r;
   r["action"] = ec->action;
   r["time"] = ec->time_string;
   r["target_path"] = ec->path;
+  r["category"] = *(std::string*)user_data;
   r["transaction_id"] = INTEGER(ec->event->cookie);
+  r["md5"] = hashFromFile(HASH_TYPE_MD5, ec->path);
+  r["sha1"] = hashFromFile(HASH_TYPE_SHA1, ec->path);
+  r["sha256"] = hashFromFile(HASH_TYPE_SHA256, ec->path);
   if (ec->action != "" && ec->action != "OPENED") {
     // A callback is somewhat useless unless it changes the EventSubscriber
     // state

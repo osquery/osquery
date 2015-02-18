@@ -457,8 +457,9 @@ Status EventFactory::registerEventSubscriber(
 
 Status EventFactory::addSubscription(EventPublisherID& type_id,
                                      const SubscriptionContextRef& mc,
-                                     EventCallback cb) {
-  auto subscription = Subscription::create(mc, cb);
+                                     EventCallback cb,
+                                     void* user_data) {
+  auto subscription = Subscription::create(mc, cb, user_data);
   return EventFactory::addSubscription(type_id, subscription);
 }
 

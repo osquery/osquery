@@ -171,7 +171,8 @@ class TestFSEventsEventSubscriber
 
  public:
   void init() { callback_count_ = 0; }
-  Status SimpleCallback(const FSEventsEventContextRef& ec) {
+  Status SimpleCallback(const FSEventsEventContextRef& ec,
+                        const void* user_data) {
     callback_count_ += 1;
     return Status(0, "OK");
   }
@@ -183,7 +184,7 @@ class TestFSEventsEventSubscriber
     return sc;
   }
 
-  Status Callback(const FSEventsEventContextRef& ec) {
+  Status Callback(const FSEventsEventContextRef& ec, const void* user_data) {
     // The following comments are an example Callback routine.
     // Row r;
     // r["action"] = ec->action;
@@ -221,7 +222,7 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
 
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(0);
-  sub->subscribe(&TestFSEventsEventSubscriber::SimpleCallback, sc);
+  sub->subscribe(&TestFSEventsEventSubscriber::SimpleCallback, sc, nullptr);
   CreateEvents();
 
   // This time wait for the callback.
@@ -241,7 +242,7 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   sub->init();
 
   auto sc = sub->GetSubscription(0);
-  sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc);
+  sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc, nullptr);
   CreateEvents();
   sub->WaitForEvents(kMaxEventLatency);
 
