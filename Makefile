@@ -1,4 +1,5 @@
 PLATFORM := $(shell uname -s)
+VERSION := $(shell git describe --tags HEAD --always)
 MAKE = make
 ifeq ($(PLATFORM),Darwin)
 	BUILD_DIR=darwin
@@ -86,8 +87,8 @@ sync:
 	python tools/codegen/gentargets.py -i $(SYNC_DIR)/code-analysis/compile_commands.json > $(SYNC_DIR)/osquery/TARGETS
 	@
 	@# wrap it up in a tarball
-	cd $(SYNC_DIR) && tar -zcf osquery-sync.tar.gz osquery
-	@echo "The output file is located at $(SYNC_DIR)/osquery-sync.tar.gz"
+	cd $(SYNC_DIR) && tar -zcf osquery-sync-$(VERSION).tar.gz osquery
+	@echo "The output file is located at $(SYNC_DIR)/osquery-sync-$(VERSION).tar.gz"
 
 %::
 	cd build/$(BUILD_DIR) && cmake ../.. && $(MAKE) --no-print-directory $@
