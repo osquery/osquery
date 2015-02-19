@@ -13,6 +13,7 @@
 
 #include <boost/property_tree/json_parser.hpp>
 
+#include <osquery/logger.h>
 #include <osquery/registry.h>
 
 namespace osquery {
@@ -39,6 +40,12 @@ void RegistryHelperCore::remove(const std::string& item_name) {
 RegistryRoutes RegistryHelperCore::getRoutes() const {
   RegistryRoutes route_table;
   for (const auto& item : items_) {
+    if (std::find(internal_.begin(), internal_.end(), item.first) !=
+        internal_.end()) {
+      // This is an internal plugin, do not include the route.
+      continue;
+    }
+
     bool has_alias = false;
     for (const auto& alias : aliases_) {
       if (alias.second == item.first) {
@@ -160,6 +167,9 @@ Status RegistryFactory::addBroadcast(const RouteUUID& uuid,
     for (const auto& registry : broadcast) {
       for (const auto& item : registry.second) {
         if (Registry::exists(registry.first, item.first)) {
+          VLOG(1) << "Extension " << uuid
+                  << " has duplicate plugin name: " << item.first
+                  << " in registry: " << registry.first;
           return Status(1, "Duplicate registry item: " + item.first);
         }
       }
@@ -253,6 +263,14 @@ std::vector<std::string> RegistryFactory::names(
     return names;
   }
   return instance().registry(registry_name)->names();
+}
+
+std::vector<RouteUUID> RegistryFactory::routeUUIDs() {
+  std::vector<RouteUUID> uuids;
+  for (const auto& extension : instance().extensions_) {
+    uuids.push_back(extension.first);
+  }
+  return uuids;
 }
 
 size_t RegistryFactory::count() { return instance().registries_.size(); }

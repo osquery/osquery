@@ -46,6 +46,14 @@ test_sdk: .setup
 	cd build/$(BUILD_DIR)/sdk && SDK=True cmake ../../../ && \
 	  $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
+debug_sdk: .setup
+	cd build/$(BUILD_DIR)/sdk && SDK=True DEBUG=True cmake ../../../ && \
+	  $(MAKE) --no-print-directory $(MAKEFLAGS)
+
+test_debug_sdk: .setup
+	cd build/$(BUILD_DIR)/sdk && SDK=True DEBUG=True cmake ../../../ && \
+	  $(MAKE) test --no-print-directory $(MAKEFLAGS)
+
 deps: .setup
 	./tools/provision.sh build build/$(BUILD_DIR)
 

@@ -8,4 +8,5 @@ schema([
     Column("value", TEXT),
     Column("shell_only", INTEGER),
 ])
+attributes(utility=True)
 implementation("osquery@genOsqueryFlags")

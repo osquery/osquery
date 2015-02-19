@@ -149,18 +149,6 @@ TEST_F(ExtensionsTest, test_extension_runnable) {
   EXPECT_TRUE(ping());
 }
 
-TEST_F(ExtensionsTest, test_extension_start_failed) {
-  auto status = startExtensionManager(kTestManagerSocket);
-  EXPECT_TRUE(status.ok());
-  // Wait for the extension manager to start.
-  EXPECT_TRUE(socketExists(kTestManagerSocket));
-
-  // Start an extension that does NOT fatal if the extension manager dies.
-  status = startExtension(kTestManagerSocket, "test", "0.1", "0.0.1");
-  // This will be false since we are registering duplicate items
-  EXPECT_FALSE(status.ok());
-}
-
 TEST_F(ExtensionsTest, test_extension_start) {
   auto status = startExtensionManager(kTestManagerSocket);
   EXPECT_TRUE(status.ok());
@@ -168,7 +156,7 @@ TEST_F(ExtensionsTest, test_extension_start) {
 
   // Now allow duplicates (for testing, since EM/E are the same).
   Registry::allowDuplicates(true);
-  status = startExtension(kTestManagerSocket, "test", "0.1", "0.0.1");
+  status = startExtension(kTestManagerSocket, "test", "0.1", "0.0.0", "0.0.1");
   // This will be false since we are registering duplicate items
   EXPECT_TRUE(status.ok());
 
@@ -192,6 +180,8 @@ TEST_F(ExtensionsTest, test_extension_start) {
 }
 
 TEST_F(ExtensionsTest, test_extension_query) {
+// Only test calling query when the extension manager is core.
+#ifndef OSQUERY_BUILD_SDK
   auto status = startExtensionManager(kTestManagerSocket);
   EXPECT_TRUE(status.ok());
   // Wait for the extension manager to start.
@@ -199,7 +189,10 @@ TEST_F(ExtensionsTest, test_extension_query) {
 
   auto qd = query("select seconds from time");
   EXPECT_EQ(qd.size(), 1);
-  EXPECT_EQ(qd[0].count("seconds"), 1);
+  if (qd.size() > 0) {
+    EXPECT_EQ(qd[0].count("seconds"), 1);
+  }
+#endif
 }
 
 class ExtensionPlugin : public Plugin {
@@ -237,7 +230,7 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
   EXPECT_TRUE(Registry::exists("extension_test", "test_item"));
   EXPECT_FALSE(Registry::exists("extension_test", "test_alias"));
 
-  status = startExtension(kTestManagerSocket, "test", "0.1", "0.0.1");
+  status = startExtension(kTestManagerSocket, "test", "0.1", "0.0.0", "0.0.1");
   EXPECT_TRUE(status.ok());
 
   RouteUUID uuid;

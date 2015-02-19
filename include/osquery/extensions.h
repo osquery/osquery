@@ -14,6 +14,7 @@
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
+#include <osquery/sql.h>
 
 #ifdef FBOSQUERY
 #include "osquery/gen-cpp/Extension.h"
@@ -143,7 +144,29 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
   void deregisterExtension(ExtensionStatus& _return,
                            const ExtensionRouteUUID uuid);
 
+  /**
+   * @brief Execute an SQL statement in osquery core.
+   *
+   * Extensions do not have access to the internal SQLite implementation.
+   * For complex queries (beyond select all from a table) the statement must
+   * be passed into SQLite.
+   *
+   * @param _return The output Status and QueryData (as response).
+   * @param sql The sql statement.
+   */
   void query(ExtensionResponse& _return, const std::string& sql);
+
+  /**
+   * @brief Get SQL column information for SQL statements in osquery core.
+   *
+   * Extensions do not have access to the internal SQLite implementation.
+   * For complex queries (beyond metadata for a table) the statement must
+   * be passed into SQLite.
+   *
+   * @param _return The output Status and TableColumns (as response).
+   * @param sql The sql statement.
+   */
+  void getQueryColumns(ExtensionResponse& _return, const std::string& sql);
 
  private:
   /// Check if an extension exists by the name it registered.
@@ -158,29 +181,34 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
 class ExtensionWatcher : public InternalRunnable {
  public:
   virtual ~ExtensionWatcher() {}
-  ExtensionWatcher(const std::string& manager_path,
-                   size_t interval,
-                   bool fatal) {
-    manager_path_ = manager_path;
-    interval_ = interval;
-    fatal_ = fatal;
-  }
+  ExtensionWatcher(const std::string& path, size_t interval, bool fatal)
+      : path_(path), interval_(interval), fatal_(fatal) {}
 
  public:
   /// The Dispatcher thread entry point.
   void enter();
+  /// Perform health checks.
+  virtual void watch();
 
- private:
+ protected:
   /// Exit the extension process with a fatal if the ExtensionManager dies.
-  void exitFatal();
+  void exitFatal(int return_code = 1);
 
- private:
+ protected:
   /// The UNIX domain socket path for the ExtensionManager.
-  std::string manager_path_;
+  std::string path_;
   /// The internal in milliseconds to ping the ExtensionManager.
   size_t interval_;
   /// If the ExtensionManager socket is closed, should the extension exit.
   bool fatal_;
+};
+
+class ExtensionManagerWatcher : public ExtensionWatcher {
+ public:
+  ExtensionManagerWatcher(const std::string& path, size_t interval)
+      : ExtensionWatcher(path, interval, false) {}
+
+  void watch();
 };
 
 /// A Dispatcher service thread that starts ExtensionHandler.
@@ -221,6 +249,13 @@ class ExtensionManagerRunner : public InternalRunnable {
   std::string path_;
 };
 
+/// External (extensions) SQL implementation of the osquery query API.
+Status queryExternal(const std::string& query, QueryData& results);
+
+/// External (extensions) SQL implementation of the osquery getQueryColumns API.
+Status getQueryColumnsExternal(const std::string& q,
+                               tables::TableColumns& columns);
+
 /// Status get a list of active extenions.
 Status getExtensions(ExtensionList& extensions);
 
@@ -259,12 +294,18 @@ Status callExtension(const std::string& extension_path,
                      PluginResponse& response);
 
 /// The main runloop entered by an Extension, start an ExtensionRunner thread.
-Status startExtension();
+Status startExtension(const std::string& name, const std::string& version);
+
+/// The main runloop entered by an Extension, start an ExtensionRunner thread.
+Status startExtension(const std::string& name,
+                      const std::string& version,
+                      const std::string& min_sdk_version);
 
 /// Internal startExtension implementation using a UNIX domain socket path.
 Status startExtension(const std::string& manager_path,
                       const std::string& name,
                       const std::string& version,
+                      const std::string& min_sdk_version,
                       const std::string& sdk_version);
 
 /// Start an ExtensionWatcher thread.

@@ -5,4 +5,5 @@ schema([
     Column("minutes", INTEGER),
     Column("seconds", INTEGER),
 ])
+attributes(utility=True)
 implementation("time@genTime")

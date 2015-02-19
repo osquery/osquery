@@ -8,9 +8,9 @@
  *
  */
 
-#include <osquery/tables.h>
+#include <osquery/sdk.h>
 
-namespace osquery {
+using namespace osquery;
 
 class ExampleTable : public tables::TablePlugin {
  private:
@@ -31,9 +31,16 @@ class ExampleTable : public tables::TablePlugin {
 };
 
 REGISTER(ExampleTable, "table", "example");
-}
 
 int main(int argc, char* argv[]) {
-  // Do some broadcast of the registry.
-  auto example = std::make_shared<osquery::ExampleTable>();
+  initOsquery(argc, argv, OSQUERY_EXTENSION);
+
+  auto status = startExtension("example", "0.0.1");
+  if (!status.ok()) {
+    LOG(ERROR) << status.getMessage();
+  }
+
+  // Finally shutdown.
+  shutdownOsquery();
+  return 0;
 }

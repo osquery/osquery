@@ -21,4 +21,5 @@ schema([
     Column("is_char", INTEGER, "1 if a character special device else 0"),
     Column("is_block", INTEGER, "1 if a block special device else 0"),
 ])
+attributes(utility=True)
 implementation("utility/file@genFile")

@@ -7,4 +7,5 @@ schema([
     Column("sdk_version", TEXT),
     Column("socket", TEXT),
 ])
+attributes(utility=True)
 implementation("osquery@genOsqueryExtensions")
