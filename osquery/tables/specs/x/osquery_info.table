@@ -7,4 +7,5 @@ schema([
     Column("pid", INTEGER, "Process (or thread) ID"),
     Column("extensions", TEXT),
 ])
+attributes(utility=True)
 implementation("osquery@genOsqueryInfo")

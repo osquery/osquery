@@ -48,7 +48,11 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
   }
 };
 
+{% if attributes.utility %}
+REGISTER_INTERNAL({{table_name_cc}}TablePlugin, "table", "{{table_name}}");
+{% else %}
 REGISTER({{table_name_cc}}TablePlugin, "table", "{{table_name}}");
+{% endif %}
 /// END[GENTABLE]
 
 }}

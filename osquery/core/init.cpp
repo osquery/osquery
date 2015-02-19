@@ -94,19 +94,21 @@ void initOsquery(int argc, char* argv[], int tool) {
 
   // Initialize the status and results logger.
   initStatusLogger(binary);
-  VLOG(1) << "osquery initializing [version=" OSQUERY_VERSION "]";
+  if (tool != OSQUERY_EXTENSION) {
+    VLOG(1) << "osquery initializing [version=" OSQUERY_VERSION "]";
 
-  // Load the osquery config using the default/active config plugin.
-  Config::getInstance().load();
+    // Load the osquery config using the default/active config plugin.
+    Config::getInstance().load();
 
-  if (FLAGS_config_check) {
-    // The initiator requested an initialization and config check.
-    auto s = Config::checkConfig();
-    if (!s.ok()) {
-      std::cerr << "Error reading config: " << s.toString() << "\n";
+    if (FLAGS_config_check) {
+      // The initiator requested an initialization and config check.
+      auto s = Config::checkConfig();
+      if (!s.ok()) {
+        std::cerr << "Error reading config: " << s.toString() << "\n";
+      }
+      // A configuration check exits the application.
+      ::exit(s.getCode());
     }
-    // A configuration check exits the application.
-    ::exit(s.getCode());
   }
 
   // Run the setup for all non-lazy registries.

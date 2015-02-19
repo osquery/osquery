@@ -28,8 +28,11 @@
 #endif
 
 #include <osquery/status.h>
+#include <osquery/flags.h>
 
 namespace osquery {
+
+DECLARE_int32(worker_threads);
 
 typedef apache::thrift::concurrency::ThreadManager InternalThreadManager;
 typedef std::shared_ptr<InternalThreadManager> InternalThreadManagerRef;
@@ -152,7 +155,7 @@ class Dispatcher {
   void join();
 
   /// See `join`, but applied to osquery services.
-  void joinServices();
+  static void joinServices();
 
   /// Destroy and stop all osquery service threads and service objects.
   void removeServices();

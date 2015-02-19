@@ -73,6 +73,10 @@ namespace osquery {
 #define REGISTER(type, registry, name) \
   const auto type##RegistryItem = Registry::add<type>(registry, name);
 
+/// The same as REGISTER but prevents the plugin item from being broadcasted.
+#define REGISTER_INTERNAL(type, registry, name) \
+  const auto type##RegistryItem = Registry::add<type>(registry, name, true);
+
 /// A plugin (registry item) may return a custom key value map with its Route.
 typedef std::map<std::string, std::string> RouteInfo;
 /// Registry routes are a map of item name to each optional RouteInfo.
@@ -220,6 +224,7 @@ class RegistryHelperCore {
   /// A map of registered plugin instances to their registered identifier.
   std::map<std::string, std::shared_ptr<Plugin> > items_;
   std::map<std::string, std::string> aliases_;
+  std::vector<std::string> internal_;
 };
 
 /**
@@ -251,7 +256,7 @@ class RegistryHelper : public RegistryHelperCore {
    * @return A success/failure status.
    */
   template <class Item>
-  Status add(const std::string& item_name) {
+  Status add(const std::string& item_name, bool internal = false) {
     if (items_.count(item_name) > 0) {
       return Status(1, "Duplicate registry item exists: " + item_name);
     }
@@ -261,6 +266,12 @@ class RegistryHelper : public RegistryHelperCore {
     std::shared_ptr<RegistryType> item((RegistryType*)new Item());
     item->setName(item_name);
     items_[item_name] = item;
+
+    // The item can be listed as internal, meaning it does not broadcast.
+    if (internal) {
+      internal_.push_back(item_name);
+    }
+
     return Status(0, "OK");
   }
 
@@ -335,9 +346,10 @@ class RegistryFactory : private boost::noncopyable {
 
   template <class Item>
   static Status add(const std::string& registry_name,
-                    const std::string& item_name) {
+                    const std::string& item_name,
+                    bool internal = false) {
     auto registry = instance().registry(registry_name);
-    return registry->template add<Item>(item_name);
+    return registry->template add<Item>(item_name, internal);
   }
 
   static const std::map<std::string, PluginRegistryHelperRef>& all();
@@ -380,6 +392,9 @@ class RegistryFactory : private boost::noncopyable {
                      const std::string& item_name);
 
   static std::vector<std::string> names(const std::string& registry_name);
+
+  /// Get a list of the registered extension UUIDs.
+  static std::vector<RouteUUID> routeUUIDs();
 
   static size_t count();
 

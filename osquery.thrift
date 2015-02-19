@@ -9,6 +9,7 @@ struct InternalExtensionInfo {
   1:string name,
   2:string version,
   3:string sdk_version,
+  4:string min_sdk_version,
 }
 
 /// Unique ID for each extension.
@@ -73,6 +74,10 @@ service ExtensionManager extends Extension {
   ),
   /// Allow an extension to query using an SQL string.
   ExtensionResponse query(
+    1:string sql,
+  ),
+  /// Allow an extension to introspect into SQL used in a parsed query.
+  ExtensionResponse getQueryColumns(
     1:string sql,
   ),
 }

@@ -150,6 +150,7 @@ class TableState(Singleton):
             impl=self.impl,
             function=self.function,
             class_name=self.class_name,
+            attributes=self.attributes,
         )
 
         # Check for reserved column names

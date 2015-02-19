@@ -81,7 +81,7 @@ InternalThreadManagerRef Dispatcher::getThreadManager() {
 void Dispatcher::join() { thread_manager_->join(); }
 
 void Dispatcher::joinServices() {
-  for (auto& thread : service_threads_) {
+  for (auto& thread : getInstance().service_threads_) {
     thread->join();
   }
 }

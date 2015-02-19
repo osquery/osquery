@@ -79,11 +79,9 @@ TEST_F(PlistTests, test_parse_plist_array) {
 
 TEST_F(PlistTests, test_parse_plist_content_with_blobs) {
   pt::ptree tree;
-  fs::path bin_path(argv0);
+  fs::path test_root(kTestDataPath);
 
-  auto s = parsePlist((bin_path.parent_path() /
-                       "../../../../tools/tests/test_binary.plist").string(),
-                      tree);
+  auto s = parsePlist((test_root / "test_binary.plist").string(), tree);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_THROW(tree.get<bool>("foobar"), pt::ptree_bad_path);
