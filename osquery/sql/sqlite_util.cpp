@@ -18,6 +18,11 @@
 
 namespace osquery {
 
+/**
+ * @brief A map of SQLite status codes to their corresponding message string
+ *
+ * Details of this map are defined at: http://www.sqlite.org/c3ref/c_abort.html
+ */
 const std::map<int, std::string> kSQLiteReturnCodes = {
     {0, "SQLITE_OK: Successful result"},
     {1, "SQLITE_ERROR: SQL error or missing database"},
@@ -51,6 +56,22 @@ const std::map<int, std::string> kSQLiteReturnCodes = {
     {100, "SQLITE_ROW: sqlite3_step() has another row ready"},
     {101, "SQLITE_DONE: sqlite3_step() has finished executing"},
 };
+
+/// The SQLiteSQLPlugin implements the "sql" registry for internal/core.
+class SQLiteSQLPlugin : SQLPlugin {
+ public:
+  Status query(const std::string& q, QueryData& results) const {
+    return queryInternal(q, results);
+  }
+
+  Status getQueryColumns(const std::string& q,
+                         tables::TableColumns& columns) const {
+    return getQueryColumnsInternal(q, columns);
+  }
+};
+
+/// sql provider for osquery internal/core.
+REGISTER_INTERNAL(SQLiteSQLPlugin, "sql", "sql");
 
 SQLiteDBInstance::SQLiteDBInstance() {
   primary_ = false;

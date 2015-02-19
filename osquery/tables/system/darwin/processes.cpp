@@ -137,9 +137,14 @@ void genProcRootAndCWD(int pid, Row &r) {
       sizeof(pathinfo)) {
     if (pathinfo.pvi_cdir.vip_vi.vi_stat.vst_dev != 0) {
       r["cwd"] = std::string(pathinfo.pvi_cdir.vip_path);
+    } else {
+      r["cwd"] = "";
     }
+
     if (pathinfo.pvi_rdir.vip_vi.vi_stat.vst_dev != 0) {
       r["root"] = std::string(pathinfo.pvi_rdir.vip_path);
+    } else {
+      r["root"] = "";
     }
   }
 }
@@ -253,6 +258,11 @@ QueryData genProcesses(QueryContext &context) {
       r["gid"] = BIGINT(cred.real.gid);
       r["euid"] = BIGINT(cred.effective.uid);
       r["egid"] = BIGINT(cred.effective.gid);
+    } else {
+      r["uid"] = "-1";
+      r["gid"] = "-1";
+      r["euid"] = "-1";
+      r["egid"] = "-1";
     }
 
     // Find the parent process.
@@ -285,6 +295,13 @@ QueryData genProcesses(QueryContext &context) {
       r["user_time"] = TEXT(rusage_info_data.ri_user_time / 1000000);
       r["system_time"] = TEXT(rusage_info_data.ri_system_time / 1000000);
       r["start_time"] = TEXT(rusage_info_data.ri_proc_start_abstime);
+    } else {
+      r["wired_size"] = "-1";
+      r["resident_size"] = "-1";
+      r["phys_footprint"] = "-1";
+      r["user_time"] = "-1";
+      r["system_time"] = "-1";
+      r["start_time"] = "-1";
     }
 
     results.push_back(r);

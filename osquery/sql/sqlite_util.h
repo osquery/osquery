@@ -18,6 +18,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/noncopyable.hpp>
 
+#include <osquery/sql.h>
+
 namespace osquery {
 
 /**
@@ -103,18 +105,11 @@ class SQLiteDBManager : private boost::noncopyable {
   boost::unique_lock<boost::mutex> lock_;
 };
 
-/**
- * @brief A map of SQLite status codes to their corresponding message string
- *
- * Details of this map are defined at: http://www.sqlite.org/c3ref/c_abort.html
- */
-extern const std::map<int, std::string> kSQLiteReturnCodes;
-
 /// Internal (core) SQL implementation of the osquery query API.
 Status queryInternal(const std::string& q, QueryData& results);
 
 /**
- * @brief Execute a query on a specific database
+ * @brief SQLite Internal: Execute a query on a specific database
  *
  * If you need to use a different database, other than the osquery default,
  * use this method and pass along a pointer to a SQLite3 database. This is
@@ -132,7 +127,8 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db);
 Status getQueryColumnsInternal(const std::string& q, tables::TableColumns& columns);
 
 /**
- * @brief Analyze a query, providing information about the result columns
+ * @brief SQLite Intern: Analyze a query, providing information about the
+ * result columns
  *
  * This function asks SQLite to determine what the names and types are of the
  * result columns of the provided query. Only table columns (not expressions or

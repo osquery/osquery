@@ -10,11 +10,11 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/dispatcher/dispatcher.h"
 
 using namespace apache::thrift::concurrency;
 

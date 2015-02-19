@@ -60,6 +60,7 @@ void printUsage(const std::string& binary, int tool) {
 }
 
 void announce() {
+  VLOG(1) << "osqueryd started [version=" OSQUERY_VERSION "]";
   syslog(LOG_NOTICE, "osqueryd started [version=" OSQUERY_VERSION "]");
 }
 
@@ -95,8 +96,6 @@ void initOsquery(int argc, char* argv[], int tool) {
   // Initialize the status and results logger.
   initStatusLogger(binary);
   if (tool != OSQUERY_EXTENSION) {
-    VLOG(1) << "osquery initializing [version=" OSQUERY_VERSION "]";
-
     // Load the osquery config using the default/active config plugin.
     Config::getInstance().load();
 

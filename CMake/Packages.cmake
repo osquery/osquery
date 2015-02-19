@@ -51,7 +51,7 @@ elseif(LINUX)
         "${PACKAGE_DEPENDENCIES}"
         "procps-ng"
         "systemd-devel"
-	"epel-release"
+        "epel-release"
       )
     endif()
   endif()

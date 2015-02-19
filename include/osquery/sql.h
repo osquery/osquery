@@ -130,6 +130,16 @@ class SQL {
   Status status_;
 };
 
+class SQLPlugin : public Plugin {
+ public:
+  virtual Status query(const std::string& q, QueryData& results) const = 0;
+  virtual Status getQueryColumns(const std::string& q,
+                                 tables::TableColumns& columns) const = 0;
+
+ public:
+  Status call(const PluginRequest& request, PluginResponse& response);
+};
+
 /**
  * @brief Execute a query
  *
@@ -184,4 +194,5 @@ class MockSQL : public SQL {
   }
 };
 
+CREATE_REGISTRY(SQLPlugin, "sql");
 }

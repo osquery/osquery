@@ -14,8 +14,9 @@
 
 #include <unistd.h>
 
-#include <osquery/dispatcher.h>
 #include <osquery/flags.h>
+
+#include "osquery/dispatcher/dispatcher.h"
 
 namespace osquery {
 

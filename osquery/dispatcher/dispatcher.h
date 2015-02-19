@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -17,22 +17,20 @@
 
 #include <boost/thread.hpp>
 
-#ifdef FBOSQUERY
-#include <thrift/lib/cpp/concurrency/Thread.h>
-#include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
-#include <thrift/lib/cpp/concurrency/ThreadManager.h>
-#else
-#include <thrift/concurrency/Thread.h>
-#include <thrift/concurrency/PosixThreadFactory.h>
-#include <thrift/concurrency/ThreadManager.h>
-#endif
+#include <osquery/core.h>
 
-#include <osquery/status.h>
-#include <osquery/flags.h>
+// osquery is built with various versions of thrift that use different search
+// paths for their includes. Unfortunately, changing include paths is not
+// possible in every build system.
+// clang-format off
+#include CONCAT(OSQUERY_THRIFT_LIB, /concurrency/Thread.h)
+#include CONCAT(OSQUERY_THRIFT_LIB, /concurrency/ThreadManager.h)
+#include CONCAT(OSQUERY_THRIFT_LIB, /concurrency/PosixThreadFactory.h)
+// clang-format on
+
+using namespace apache::thrift::concurrency;
 
 namespace osquery {
-
-DECLARE_int32(worker_threads);
 
 typedef apache::thrift::concurrency::ThreadManager InternalThreadManager;
 typedef std::shared_ptr<InternalThreadManager> InternalThreadManagerRef;
@@ -262,7 +260,4 @@ class Dispatcher {
   /// THe set of shared osquery services.
   std::vector<std::shared_ptr<InternalRunnable> > services_;
 };
-
-/// Sleep in a boost::thread interruptable state.
-void interruptableSleep(size_t milli);
 }

@@ -11,21 +11,12 @@
 #pragma once
 
 #include <osquery/core.h>
-#include <osquery/dispatcher.h>
 #include <osquery/flags.h>
-#include <osquery/registry.h>
 #include <osquery/sql.h>
-
-#ifdef FBOSQUERY
-#include "osquery/gen-cpp/Extension.h"
-#include "osquery/gen-cpp/ExtensionManager.h"
-#else
-#include "Extension.h"
-#include "ExtensionManager.h"
-#endif
 
 namespace osquery {
 
+DECLARE_int32(worker_threads);
 DECLARE_string(extensions_socket);
 
 /**
@@ -36,20 +27,8 @@ DECLARE_string(extensions_socket);
 struct ExtensionInfo {
   std::string name;
   std::string version;
+  std::string min_sdk_version;
   std::string sdk_version;
-
-  ExtensionInfo& operator=(const extensions::InternalExtensionInfo& iei) {
-    name = iei.name;
-    version = iei.version;
-    sdk_version = iei.sdk_version;
-    return *this;
-  }
-
-  ExtensionInfo() {}
-  ExtensionInfo(const std::string& name) : name(name) {
-    version = OSQUERY_VERSION;
-    sdk_version = OSQUERY_VERSION;
-  }
 };
 
 typedef std::map<RouteUUID, ExtensionInfo> ExtensionList;
@@ -63,198 +42,25 @@ inline std::string getExtensionSocket(
   }
 }
 
-namespace extensions {
-
-/**
- * @brief The Thrift API server used by an osquery Extension process.
- *
- * An extension will load and start a thread to serve the ExtensionHandler
- * Thrift runloop. This handler is the implementation of the thrift IDL spec.
- * It implements all the Extension API handlers.
- *
- */
-class ExtensionHandler : virtual public ExtensionIf {
- public:
-  ExtensionHandler() {}
-
-  /// Ping an Extension for status and metrics.
-  void ping(ExtensionStatus& _return);
-
-  /**
-   * @brief The Thrift API used by Registry::call for an extension route.
-   *
-   * @param _return The return response (combo Status and PluginResponse).
-   * @param registry The name of the Extension registry.
-   * @param item The Extension plugin name.
-   * @param request The plugin request.
-   */
-  void call(ExtensionResponse& _return,
-            const std::string& registry,
-            const std::string& item,
-            const ExtensionPluginRequest& request);
-};
-
-/**
- * @brief The Thrift API server used by an osquery process.
- *
- * An extension will load and start a thread to serve the
- * ExtensionManagerHandler. This listens for extensions and allows them to
- * register their Registry route information. Calls to the registry may then
- * match a route exposed by an extension.
- * This handler is the implementation of the thrift IDL spec.
- * It implements all the ExtensionManager API handlers.
- *
- */
-class ExtensionManagerHandler : virtual public ExtensionManagerIf,
-                                public ExtensionHandler {
- public:
-  ExtensionManagerHandler() {}
-
-  /// Return a list of Route UUIDs and extension metadata.
-  void extensions(InternalExtensionList& _return) { _return = extensions_; }
-
-  /**
-   * @brief Request a Route UUID and advertise a set of Registry routes.
-   *
-   * When an Extension starts it must call registerExtension using a well known
-   * ExtensionManager UNIX domain socket path. The ExtensionManager will check
-   * the broadcasted routes for duplicates as well as enforce SDK version
-   * compatibility checks. On success the Extension is returned a Route UUID and
-   * begins to serve the ExtensionHandler Thrift API.
-   *
-   * @param _return The output Status and optional assigned RouteUUID.
-   * @param info The osquery Thrift-internal Extension metadata container.
-   * @param registry The Extension's Registry::getBroadcast information.
-   */
-  void registerExtension(ExtensionStatus& _return,
-                         const InternalExtensionInfo& info,
-                         const ExtensionRegistry& registry);
-
-  /**
-   * @brief Request an Extension removal and removal of Registry routes.
-   *
-   * When an Extension process is gracefull killed it should deregister.
-   * Other priviledged tools may choose to deregister an Extension by
-   * the transient Extension's Route UUID, obtained using
-   * ExtensionManagerHandler::extensions.
-   *
-   * @param _return The output Status.
-   * @param uuid The assigned Route UUID to deregister.
-   */
-  void deregisterExtension(ExtensionStatus& _return,
-                           const ExtensionRouteUUID uuid);
-
-  /**
-   * @brief Execute an SQL statement in osquery core.
-   *
-   * Extensions do not have access to the internal SQLite implementation.
-   * For complex queries (beyond select all from a table) the statement must
-   * be passed into SQLite.
-   *
-   * @param _return The output Status and QueryData (as response).
-   * @param sql The sql statement.
-   */
-  void query(ExtensionResponse& _return, const std::string& sql);
-
-  /**
-   * @brief Get SQL column information for SQL statements in osquery core.
-   *
-   * Extensions do not have access to the internal SQLite implementation.
-   * For complex queries (beyond metadata for a table) the statement must
-   * be passed into SQLite.
-   *
-   * @param _return The output Status and TableColumns (as response).
-   * @param sql The sql statement.
-   */
-  void getQueryColumns(ExtensionResponse& _return, const std::string& sql);
-
- private:
-  /// Check if an extension exists by the name it registered.
-  bool exists(const std::string& name);
-
-  /// Maintain a map of extension UUID to metadata for tracking deregistrations.
-  InternalExtensionList extensions_;
-};
-}
-
-/// A Dispatcher service thread that watches an ExtensionManagerHandler.
-class ExtensionWatcher : public InternalRunnable {
- public:
-  virtual ~ExtensionWatcher() {}
-  ExtensionWatcher(const std::string& path, size_t interval, bool fatal)
-      : path_(path), interval_(interval), fatal_(fatal) {}
-
- public:
-  /// The Dispatcher thread entry point.
-  void enter();
-  /// Perform health checks.
-  virtual void watch();
-
- protected:
-  /// Exit the extension process with a fatal if the ExtensionManager dies.
-  void exitFatal(int return_code = 1);
-
- protected:
-  /// The UNIX domain socket path for the ExtensionManager.
-  std::string path_;
-  /// The internal in milliseconds to ping the ExtensionManager.
-  size_t interval_;
-  /// If the ExtensionManager socket is closed, should the extension exit.
-  bool fatal_;
-};
-
-class ExtensionManagerWatcher : public ExtensionWatcher {
- public:
-  ExtensionManagerWatcher(const std::string& path, size_t interval)
-      : ExtensionWatcher(path, interval, false) {}
-
-  void watch();
-};
-
-/// A Dispatcher service thread that starts ExtensionHandler.
-class ExtensionRunner : public InternalRunnable {
- public:
-  virtual ~ExtensionRunner();
-  ExtensionRunner(const std::string& manager_path, RouteUUID uuid) {
-    path_ = getExtensionSocket(uuid, manager_path);
-    uuid_ = uuid;
-  }
-
- public:
-  /// The Dispatcher thread entry point.
-  void enter();
-
-  /// Access the UUID provided by the ExtensionManager.
-  RouteUUID getUUID() { return uuid_; }
-
- private:
-  /// The UNIX domain socket used for requests from the ExtensionManager.
-  std::string path_;
-  /// The unique and transient Extension UUID assigned by the ExtensionManager.
-  RouteUUID uuid_;
-};
-
-/// A Dispatcher service thread that starts ExtensionManagerHandler.
-class ExtensionManagerRunner : public InternalRunnable {
- public:
-  virtual ~ExtensionManagerRunner();
-  ExtensionManagerRunner(const std::string& manager_path) {
-    path_ = manager_path;
-  }
-
- public:
-  void enter();
-
- private:
-  std::string path_;
-};
-
 /// External (extensions) SQL implementation of the osquery query API.
 Status queryExternal(const std::string& query, QueryData& results);
 
 /// External (extensions) SQL implementation of the osquery getQueryColumns API.
 Status getQueryColumnsExternal(const std::string& q,
                                tables::TableColumns& columns);
+
+/// External (extensions) SQL implementation plugin provider for "sql" registry.
+class ExternalSQLPlugin : SQLPlugin {
+ public:
+  Status query(const std::string& q, QueryData& results) const {
+    return queryExternal(q, results);
+  }
+
+  Status getQueryColumns(const std::string& q,
+                         tables::TableColumns& columns) const {
+    return getQueryColumnsExternal(q, columns);
+  }
+};
 
 /// Status get a list of active extenions.
 Status getExtensions(ExtensionList& extensions);
