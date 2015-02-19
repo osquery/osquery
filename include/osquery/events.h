@@ -82,7 +82,9 @@ typedef std::shared_ptr<EventSubscriber<BaseEventPublisher>> EventSubscriberRef;
 
 /// Use a single placeholder for the EventContextRef passed to EventCallback.
 using std::placeholders::_1;
-typedef std::function<Status(const EventContextRef&)> EventCallback;
+using std::placeholders::_2;
+typedef std::function<Status(const EventContextRef&, const void*)>
+    EventCallback;
 
 /// An EventPublisher must track every subscription added.
 typedef std::vector<SubscriptionRef> SubscriptionVector;
@@ -135,14 +137,18 @@ struct Subscription {
   SubscriptionContextRef context;
   /// An EventSubscription member EventCallback method.
   EventCallback callback;
+  /// A pointer to possible extra data
+  void* user_data;
 
   static SubscriptionRef create() { return std::make_shared<Subscription>(); }
 
   static SubscriptionRef create(const SubscriptionContextRef& mc,
-                                EventCallback ec = 0) {
+                                EventCallback ec = 0,
+                                void* user_data = nullptr) {
     auto subscription = std::make_shared<Subscription>();
     subscription->context = mc;
     subscription->callback = ec;
+    subscription->user_data = user_data;
     return subscription;
   }
 };
@@ -343,7 +349,7 @@ class EventPublisher : public EventPublisherPlugin {
     auto pub_sc = getSubscriptionContext(sub->context);
     auto pub_ec = getEventContext(ec);
     if (shouldFire(pub_sc, pub_ec) && sub->callback != nullptr) {
-      sub->callback(pub_ec);
+      sub->callback(pub_ec, sub->user_data);
     }
   }
 
@@ -451,7 +457,8 @@ class EventFactory {
    */
   static Status addSubscription(EventPublisherID& type_id,
                                 const SubscriptionContextRef& mc,
-                                EventCallback cb = 0);
+                                EventCallback cb = 0,
+                                void* user_data = nullptr);
 
   /// Add a Subscription by templating the EventPublisher, using a
   /// SubscriptionContext.
@@ -745,18 +752,20 @@ class EventSubscriber : public EventSubscriberPlugin {
    * @param sc The subscription context.
    */
   template <class T, typename C>
-  void subscribe(Status (T::*entry)(const std::shared_ptr<C>&),
-                 const SubscriptionContextRef& sc) {
+  void subscribe(Status (T::*entry)(const std::shared_ptr<C>&, const void*),
+                 const SubscriptionContextRef& sc,
+                 void* user_data) {
     // Up-cast the CRTP-style EventSubscriber to the caller.
     auto self = dynamic_cast<T*>(this);
     // Down-cast the pointer to the member function.
     auto base_entry =
-        reinterpret_cast<Status (T::*)(const EventContextRef&)>(entry);
+        reinterpret_cast<Status (T::*)(const EventContextRef&, void const*)>(
+            entry);
     // Create a callable theo the member function using the instance of the
     // EventSubscriber and a single parameter placeholder (the EventContext).
-    auto cb = std::bind(base_entry, self, _1);
+    auto cb = std::bind(base_entry, self, _1, _2);
     // Add a subscription using the callable and SubscriptionContext.
-    EventFactory::addSubscription(type(), sc, cb);
+    EventFactory::addSubscription(type(), sc, cb, user_data);
   }
 
   /// Helper EventPublisher string type accessor.

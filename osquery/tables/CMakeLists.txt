@@ -11,6 +11,7 @@ if(APPLE)
 
   ADD_OSQUERY_LIBRARY(FALSE osquery_tables_darwin
     events/darwin/passwd_changes.cpp
+    events/darwin/file_changes.cpp
     events/darwin/hardware_events.cpp
     networking/darwin/routes.cpp
     system/darwin/acpi_tables.cpp
@@ -56,6 +57,7 @@ else()
   ADD_OSQUERY_LIBRARY(FALSE osquery_tables_linux
     events/linux/hardware_events.cpp
     events/linux/passwd_changes.cpp
+    events/linux/file_changes.cpp
     networking/linux/arp_cache.cpp
     networking/linux/process_open_sockets.cpp
     networking/linux/routes.cpp

@@ -1,0 +1,14 @@
+table_name("file_changes")
+description("Track time, action changes to files specified in configuation data.")
+schema([
+    Column("target_path", TEXT, "The path changed"),
+    Column("category", TEXT, "The category of the file"),
+    Column("time", TEXT, "Time of the change"),
+    Column("action", TEXT, "Change action (UPDATE, REMOVE, etc)"),
+    Column("transaction_id", BIGINT, "ID used during bulk update"),
+    Column("md5", TEXT, "The MD5 of the file after change"),
+    Column("sha1", TEXT, "The SHA1 of the file after change"),
+    Column("sha256", TEXT, "The SHA256 of the file after change"),
+])
+attributes(event_subscriber=True)
+implementation("file_changes@file_changes::genTable")
