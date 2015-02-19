@@ -59,6 +59,7 @@ TARGETS_POSTSCRIPT = """  ],
     "-Wno-address",
     "-Wno-overloaded-virtual",
     "-DFBOSQUERY",
+    "-DOSQUERY_BUILD_SDK",
   ],
 )
 """
