@@ -131,6 +131,9 @@ elseif(FREEBSD)
   message("-- Building for FreeBSD")
 endif()
 
+# Make sure the generated paths exist
+execute_process(COMMAND mkdir -p "${CMAKE_BINARY_DIR}/generated")
+
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 
@@ -191,4 +194,12 @@ add_custom_target(
   python "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
+)
+
+# make sync
+add_custom_target(
+  sync
+  "${CMAKE_SOURCE_DIR}/tools/sync.sh" "${CMAKE_BINARY_DIR}"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  COMMENT "Generating sdk sync: ${CMAKE_BINARY_DIR}/sync"
 )
