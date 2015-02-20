@@ -16,8 +16,6 @@ else
 	endif
 endif
 
-SYNC_DIR=build/sync
-
 all: .setup
 	cd build/$(BUILD_DIR) && cmake ../.. && \
 		$(MAKE) --no-print-directory $(MAKEFLAGS)
@@ -58,14 +56,14 @@ deps: .setup
 	./tools/provision.sh build build/$(BUILD_DIR)
 
 distclean:
-	rm -rf .sources build/$(BUILD_DIR) doxygen/html doxygen/latex $(SYNC_DIR)
+	rm -rf .sources build/$(BUILD_DIR) doxygen/html doxygen/latex
 ifeq ($(PLATFORM),Linux)
 		rm -rf build/linux
 endif
 
 .setup:
-	mkdir -p build/$(BUILD_DIR)/generated
-	mkdir -p build/$(BUILD_DIR)/sdk/generated
+	mkdir -p build/$(BUILD_DIR)
+	mkdir -p build/$(BUILD_DIR)/sdk
 ifeq ($(PLATFORM),Linux)
 		ln -snf $(BUILD_DIR) build/linux
 endif
@@ -74,29 +72,6 @@ package:
 	# Alias for packages (do not use CPack)
 	cd build/$(BUILD_DIR) && cmake ../../ && \
 		$(MAKE) packages --no-print-directory $(MAKEFLAGS)
-
-sync:
-	mkdir -p $(SYNC_DIR)
-	rm -rf $(SYNC_DIR)/osquery*
-	@
-	@# merge the headers with the implementation files
-	cp -R osquery $(SYNC_DIR)
-	cp -R include/osquery $(SYNC_DIR)
-	cp -R build/$(BUILD_DIR)/sdk/generated/ $(SYNC_DIR)/osquery
-	cp osquery.thrift $(SYNC_DIR)/osquery/extensions
-	@
-	@# delete all of the old CMake files
-	find $(SYNC_DIR) -type f -name "CMakeLists.txt" -exec rm -f {} \;
-	@
-	@# make the targets file
-	mkdir -p $(SYNC_DIR)/code-analysis
-	cd $(SYNC_DIR)/code-analysis && SDK=True cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../../../
-	SDK=True
-	python tools/codegen/gentargets.py -i $(SYNC_DIR)/code-analysis/compile_commands.json > $(SYNC_DIR)/osquery/TARGETS
-	@
-	@# wrap it up in a tarball
-	cd $(SYNC_DIR) && tar -zcf osquery-sync-$(VERSION).tar.gz osquery
-	@echo "The output file is located at $(SYNC_DIR)/osquery-sync-$(VERSION).tar.gz"
 
 %::
 	cd build/$(BUILD_DIR) && cmake ../.. && $(MAKE) --no-print-directory $@
