@@ -428,30 +428,55 @@ EventFactory& EventFactory::getInstance() {
   return ef;
 }
 
-Status EventFactory::registerEventPublisher(const EventPublisherRef& pub) {
-  auto& ef = EventFactory::getInstance();
-  auto type_id = pub->type();
-
-  if (ef.event_pubs_.count(type_id) != 0) {
-    // This is a duplicate event publisher.
-    return Status(1, "Cannot register duplicate publisher type.");
+Status EventFactory::registerEventPublisher(const PluginRef& pub) {
+  // Try to downcast the plugin to an event publisher.
+  EventPublisherRef specialized_pub;
+  try {
+    auto base_pub = std::dynamic_pointer_cast<EventPublisherPlugin>(pub);
+    specialized_pub = std::static_pointer_cast<BaseEventPublisher>(base_pub);
+  } catch (const std::bad_cast& e) {
+    return Status(1, "Incorrect plugin");
   }
 
-  if (!pub->setUp().ok()) {
+  if (specialized_pub == nullptr || specialized_pub.get() == nullptr) {
+    return Status(0, "Invalid subscriber");
+  }
+
+  auto& ef = EventFactory::getInstance();
+  auto type_id = specialized_pub->type();
+  if (ef.event_pubs_.count(type_id) != 0) {
+    // This is a duplicate event publisher.
+    return Status(1, "Duplicate publisher type");
+  }
+
+  if (!specialized_pub->setUp().ok()) {
     // Only start event loop if setUp succeeds.
     return Status(1, "Event publisher setUp failed");
   }
 
-  ef.event_pubs_[type_id] = pub;
+  ef.event_pubs_[type_id] = specialized_pub;
   return Status(0, "OK");
 }
 
-Status EventFactory::registerEventSubscriber(
-    const EventSubscriberRef& event_module) {
-  auto& ef = EventFactory::getInstance();
+Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
+  // Try to downcast the plugin to an event subscriber.
+  EventSubscriberRef specialized_sub;
+  try {
+    auto base_sub = std::dynamic_pointer_cast<EventSubscriberPlugin>(sub);
+    specialized_sub = std::static_pointer_cast<BaseEventSubscriber>(base_sub);
+  } catch (const std::bad_cast& e) {
+    return Status(1, "Incorrect plugin");
+  }
+
+  if (specialized_sub == nullptr || specialized_sub.get() == nullptr) {
+    return Status(0, "Invalid subscriber");
+  }
+
   // Let the module initialize any Subscriptions.
-  event_module->init();
-  ef.event_subs_[event_module->name()] = event_module;
+  specialized_sub->init();
+
+  auto& ef = EventFactory::getInstance();
+  ef.event_subs_[specialized_sub->name()] = specialized_sub;
   return Status(0, "OK");
 }
 
@@ -516,7 +541,7 @@ Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
     publisher = ef.getEventPublisher(type_id);
   }
   catch (std::out_of_range& e) {
-    return Status(1, "No event publisher to deregister.");
+    return Status(1, "No event publisher to deregister");
   }
 
   publisher->isEnding(true);
@@ -567,15 +592,17 @@ void EventFactory::end(bool join) {
   ef.threads_.clear();
 }
 
+typedef std::shared_ptr<EventPublisherPlugin> EventPublisherPluginRef;
+
 void attachEvents() {
   const auto& publishers = Registry::all("event_publisher");
   for (const auto& publisher : publishers) {
-    EventFactory::registerEventPublisher(std::move(publisher.second));
+    EventFactory::registerEventPublisher(publisher.second);
   }
 
   const auto& subscribers = Registry::all("event_subscriber");
   for (const auto& subscriber : subscribers) {
-    EventFactory::registerEventSubscriber(std::move(subscriber.second));
+    EventFactory::registerEventSubscriber(subscriber.second);
   }
 }
 }
