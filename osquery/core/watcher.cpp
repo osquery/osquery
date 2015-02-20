@@ -127,6 +127,14 @@ void Watcher::createWorker() {
     ::sleep(getWorkerLimit(RESPAWN_DELAY));
   }
 
+  // Get the path of the current process.
+  auto qd = SQL::selectAllFrom("processes", "pid", tables::EQUALS,
+    INTEGER(getpid()));
+  if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
+    LOG(ERROR) << "osquery watcher cannot determine process path";
+    ::exit(EXIT_FAILURE);
+  }
+
   worker_ = fork();
   if (worker_ < 0) {
     // Unrecoverable error, cannot create a worker process.
@@ -135,8 +143,8 @@ void Watcher::createWorker() {
   } else if (worker_ == 0) {
     // This is the new worker process, no watching needed.
     setenv("OSQUERYD_WORKER", std::to_string(getpid()).c_str(), 1);
-    fs::path exec_path(fs::initial_path<fs::path>());
-    exec_path = fs::system_complete(fs::path(argv_[0]));
+    // Get the complete path of the osquery process binary.
+    auto exec_path = fs::system_complete(fs::path(qd[0]["path"]));
     execve(exec_path.string().c_str(), argv_, environ);
     // Code will never reach this point.
     ::exit(EXIT_FAILURE);
