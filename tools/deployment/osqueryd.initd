@@ -3,90 +3,112 @@
 # osqueryd 	Start/Stop the osquery daemon.
 #
 # chkconfig: 3345 90 60
-# Description: 
-#             With osquery, you can use SQL to query low-level
-#             operating system information. Under the hood, instead
-#             of querying static tables, these queries dynamically execute 
-#             high-performance native code. The results of the 
-#             SQL query are transparently returned to you quickly and easily 
-#              
+# Description:
+#  With osquery, you can use SQL to query low-level
+#  operating system information. Under the hood, instead
+#  of querying static tables, these queries dynamically execute
+#  high-performance native code. The results of the
+#  SQL query are transparently returned to you quickly and easily
+#
 ### BEGIN INIT INFO
-# Provides: osquery osqueryd 
+# Provides: osquery osqueryd
 # Required-Start: $local_fs $syslog
 # Required-Stop: $local_fs $syslog
 # Default-Start:  3345
 # Default-Stop: 90
 # Short-Description: run osqueryd daemon
-# Description: 
-#             With osquery, you can use SQL to query low-level
-#             operating system information. Under the hood, instead
-#             of querying static tables, these queries dynamically execute 
-#             high-performance native code. The results of the 
-#             SQL query are transparently returned to you quickly and easily 
-#              
-#              
+# Description:
+#   With osquery, you can use SQL to query low-level
+#   operating system information. Under the hood, instead
+#   of querying static tables, these queries dynamically execute
+#   high-performance native code. The results of the
+#   SQL query are transparently returned to you quickly and easily
+#
+#
 ### END INIT INFO
 
+if [ -z $RETVAL ]; then RETVAL=0; fi
+if [ -z $PROG ]; then PROG="osqueryd"; fi
+if [ -z $EXEC ]; then EXEC=/usr/bin/osqueryd; fi
+if [ -z $REAL_CONFIG_PATH ]; then REAL_CONFIG_PATH=/etc/osquery/osquery.conf; fi
+if [ -z $LOCKFILE ]; then LOCKFILE=/var/lock/osqueryd; fi
+if [ -z $PIDFILE ]; then PIDFILE=/var/run/osquery.pid; fi
+if [ -z $UID ]; then UID=$(id -u); fi
 
-RETVAL=0
-prog="osqueryd"
-exec=/usr/bin/osqueryd
-config=/etc/osquery/osquery.conf
-lockfile=/var/lock/subsys/osqueryd
-pidfile=/var/run/osquery.pid
-
-[ $UID -eq 0 ] && [ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
-
-. /etc/init.d/functions
-
-if [ ! -e $config ] ; then
-    echo "No osquery config file found at $config."
-    echo "See '/usr/share/osquery/osquery.example.conf' for an example config."
-    exit 4
+if [ $UID -eq 0 ] && [ -e /etc/sysconfig/$PROG ]; then
+  . /etc/sysconfig/$PROG
 fi
 
+if [ -e /etc/init.d/functions ]; then
+  . /etc/init.d/functions
+fi
+
+if [ ! -e $REAL_CONFIG_PATH ] ; then
+  echo "No osquery config file found at $REAL_CONFIG_PATH"
+  echo "See '/usr/share/osquery/osquery.example.conf' for an example config."
+  exit 1
+fi
+
+ensure_root() {
+  if [ $UID -ne 0 ] ; then
+    echo "User has insufficient privilege."
+    exit 1
+  fi
+}
+
 start() {
-    if [ $UID -ne 0 ] ; then
-        echo "User has insufficient privilege."
-        exit 4
-    elif [ -f $pidfile ]; then
-        PID=$(cat $pidfile)
-        echo "$prog is already running: $PID"
-        exit 4
+  ensure_root
+
+  if [ -f $PIDFILE ]; then
+    PID=$(cat $PIDFILE)
+    PROCNAME=$(ps -p $PID -o comm\=)
+    if [ "$PROCNAME" = "$PROG" ]; then
+      echo "$PROG is already running: $PID"
+      return 1
     else
-        daemon $prog --config_path=$config \
-                     --pidfile=$pidfile \
-                     --daemonize=true
-               retval=$?
-               echo
-               [ $retval -eq 0 ] && touch $lockfile || failure 
+      # osqueryd pidfile exists but it's not running
+      rm $PIDFILE
     fi
+  fi
+
+  $PROG --config_path=$REAL_CONFIG_PATH \
+        --pidfile=$PIDFILE \
+        --daemonize=true
+  return $?
 }
 
 stop() {
-    if [ $UID -ne 0 ] ; then
-        echo "User has insufficient privilege."
-        exit 4
-    elif [ ! -s $pidfile ] ; then
-        echo $"Stopping $prog: "
-        failure $"Stopping $prog"
-    else
-        echo -n $"Stopping $prog: "
-        killproc $prog
-        retval=$?
-        echo
-        [ $retval -eq 0 ] && rm -f $lockfile 
-        rm -f $pidfile
-    fi
+  ensure_root
+
+  if [ ! -f $PIDFILE ] ; then
+    echo "$PROG is not running. no pidfile found."
+    return 1
+  else
+    PID=$(cat $PIDFILE)
+    pkill -P $PID && kill -9 $PID
+    rm -f $PIDFILE
+  fi
 }
 
 restart() {
-    stop
-    start
+  stop
+  start
 }
 
-get_status() {
-    status -p $pidfile $prog
+status() {
+  if [ ! -f $PIDFILE ] ; then
+    echo "$PROG is not running. no pidfile found."
+  else
+    PID=$(cat $PIDFILE)
+    PROCNAME=$(ps -p $PID -o comm\=)
+    if [ "$PROCNAME" = "$PROG" ]; then
+      echo "$PROG is already running: $PID"
+      return 0
+    else
+      # osqueryd pidfile exists but it's not running
+      echo "$PROG is not running but a stale pidfile was found."
+    fi
+  fi
 }
 
 case "$1" in
@@ -100,10 +122,10 @@ case "$1" in
         $1
         ;;
     status)
-        get_status
+        $1
         ;;
     *)
-        echo $"Usage: $0 {start|stop|status|restart}"
+        echo "Usage: $0 {start|stop|status|restart}"
         exit 2
 esac
 exit $?
