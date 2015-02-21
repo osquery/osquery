@@ -27,6 +27,8 @@ namespace osquery {
  */
 const unsigned int kMaxDirectoryTraversalDepth = 40;
 
+enum {REC_LIST_FILES, REC_LIST_FOLDERS};
+
 const std::string kWildcardCharacter = "%";
 const std::string kWildcardCharacterRecursive =
     kWildcardCharacter + kWildcardCharacter;
@@ -124,6 +126,10 @@ Status listDirectoriesInDirectory(const boost::filesystem::path& path,
  */
 Status resolveFilePattern(const boost::filesystem::path& fs_path,
                           std::vector<std::string>& results);
+
+Status resolveFilePattern(const boost::filesystem::path& fs_path,
+                          std::vector<std::string>& results,
+                          unsigned int setting);
 
 /**
  * @brief Get directory portion of a path.

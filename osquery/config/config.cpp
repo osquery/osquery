@@ -111,7 +111,7 @@ Status Config::genConfig(OsqueryConfig& conf) {
           for (const pt::ptree::value_type& file_cat : v.second) {
             for (const pt::ptree::value_type& file : file_cat.second) {
               osquery::resolveFilePattern(file.second.get_value<std::string>(),
-                                          conf.eventFiles[file_cat.first]);
+                                          conf.eventFiles[file_cat.first], REC_LIST_FOLDERS);
             }
           }
         }

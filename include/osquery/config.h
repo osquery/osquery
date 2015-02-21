@@ -13,6 +13,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <set>
 
 #include <osquery/flags.h>
 #include <osquery/registry.h>

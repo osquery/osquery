@@ -71,8 +71,8 @@ TEST_F(ConfigTests, test_threatfiles_execute) {
   auto files = Config::getInstance().getWatchedFiles();
 
   EXPECT_EQ(files.size(), 2);
-  EXPECT_EQ(files["downloads"].size(), 9);
-  EXPECT_EQ(files["system_binaries"].size(), 5);
+  EXPECT_EQ(files["downloads"].size(), 1);
+  EXPECT_EQ(files["system_binaries"].size(), 2);
 }
 }
 
