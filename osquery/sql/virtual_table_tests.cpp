@@ -36,12 +36,6 @@ TEST_F(VirtualTableTests, test_tableplugin_columndefinition) {
   EXPECT_EQ("(foo INTEGER, bar TEXT)", table->columnDefinition());
 }
 
-TEST_F(VirtualTableTests, test_tableplugin_statement) {
-  auto table = std::make_shared<sampleTablePlugin>();
-  table->setName("sample");
-  EXPECT_EQ("CREATE TABLE sample(foo INTEGER, bar TEXT)", table->statement());
-}
-
 TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   auto table = std::make_shared<sampleTablePlugin>();
   table->setName("sample");
@@ -50,17 +44,24 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   auto dbc = SQLiteDBManager::get();
 
   // Virtual tables require the registry/plugin API to query tables.
-  int rc = osquery::tables::attachTable(dbc.db(), "failed_sample");
-  EXPECT_EQ(rc, SQLITE_ERROR);
+  auto status =
+      tables::attachTableInternal("failed_sample", "(foo INTEGER)", dbc.db());
+  EXPECT_EQ(status.getCode(), SQLITE_ERROR);
 
   // The table attach will complete only when the table name is registered.
   Registry::add<sampleTablePlugin>("table", "sample");
-  rc = osquery::tables::attachTable(dbc.db(), "sample");
-  EXPECT_EQ(rc, SQLITE_OK);
+  PluginResponse response;
+  status = Registry::call("table", "sample", {{"action", "columns"}}, response);
+  EXPECT_TRUE(status.ok());
+
+  // Use the table name, plugin-generated schema to attach.
+  status = tables::attachTableInternal(
+      "sample", tables::columnDefinition(response), dbc.db());
+  EXPECT_EQ(status.getCode(), SQLITE_OK);
 
   std::string q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
   QueryData results;
-  auto status = queryInternal(q, results, dbc.db());
+  status = queryInternal(q, results, dbc.db());
   EXPECT_EQ("CREATE VIRTUAL TABLE sample USING sample(foo INTEGER, bar TEXT)",
             results[0]["sql"]);
 }

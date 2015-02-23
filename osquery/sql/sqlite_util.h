@@ -39,6 +39,9 @@ class SQLiteDBInstance {
   SQLiteDBInstance(sqlite3*& db);
   ~SQLiteDBInstance();
 
+  /// Check if the instance is the osquery primary.
+  bool isPrimary() { return primary_; }
+
   /**
    * @brief Accessor to the internal `sqlite3` object, do not store references
    * to the object within osquery code.
@@ -105,9 +108,6 @@ class SQLiteDBManager : private boost::noncopyable {
   boost::unique_lock<boost::mutex> lock_;
 };
 
-/// Internal (core) SQL implementation of the osquery query API.
-Status queryInternal(const std::string& q, QueryData& results);
-
 /**
  * @brief SQLite Internal: Execute a query on a specific database
  *
@@ -122,9 +122,6 @@ Status queryInternal(const std::string& q, QueryData& results);
  * @return A status indicating SQL query results.
  */
 Status queryInternal(const std::string& q, QueryData& results, sqlite3* db);
-
-/// Internal (core) SQL implementation of the osquery getQueryColumns API.
-Status getQueryColumnsInternal(const std::string& q, tables::TableColumns& columns);
 
 /**
  * @brief SQLite Intern: Analyze a query, providing information about the
@@ -144,6 +141,26 @@ Status getQueryColumnsInternal(const std::string& q, tables::TableColumns& colum
 Status getQueryColumnsInternal(const std::string& q,
                                tables::TableColumns& columns,
                                sqlite3* db);
+
+/// The SQLiteSQLPlugin implements the "sql" registry for internal/core.
+class SQLiteSQLPlugin : SQLPlugin {
+ public:
+  Status query(const std::string& q, QueryData& results) const {
+    auto dbc = SQLiteDBManager::get();
+    return queryInternal(q, results, dbc.db());
+  }
+
+  Status getQueryColumns(const std::string& q,
+                         tables::TableColumns& columns) const {
+    auto dbc = SQLiteDBManager::get();
+    return getQueryColumnsInternal(q, columns, dbc.db());
+  }
+
+  /// Create a SQLite module and attach (CREATE).
+  Status attach(const std::string& name);
+  /// Detach a virtual table (DROP).
+  void detach(const std::string& name);
+};
 
 /**
  * @brief Get a string representation of a SQLite return code

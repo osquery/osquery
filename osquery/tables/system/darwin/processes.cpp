@@ -131,20 +131,19 @@ static int genMaxArgs() {
 }
 
 void genProcRootAndCWD(int pid, Row &r) {
+  r["cwd"] = "";
+  r["root"] = "";
+
   struct proc_vnodepathinfo pathinfo;
   if (proc_pidinfo(
           pid, PROC_PIDVNODEPATHINFO, 0, &pathinfo, sizeof(pathinfo)) ==
       sizeof(pathinfo)) {
     if (pathinfo.pvi_cdir.vip_vi.vi_stat.vst_dev != 0) {
       r["cwd"] = std::string(pathinfo.pvi_cdir.vip_path);
-    } else {
-      r["cwd"] = "";
     }
 
     if (pathinfo.pvi_rdir.vip_vi.vi_stat.vst_dev != 0) {
       r["root"] = std::string(pathinfo.pvi_rdir.vip_path);
-    } else {
-      r["root"] = "";
     }
   }
 }

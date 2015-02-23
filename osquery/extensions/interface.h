@@ -48,7 +48,8 @@ namespace extensions {
  */
 class ExtensionHandler : virtual public ExtensionIf {
  public:
-  ExtensionHandler() {}
+  ExtensionHandler() : uuid_(0) {}
+  ExtensionHandler(RouteUUID uuid) : uuid_(uuid) {}
 
   /// Ping an Extension for status and metrics.
   void ping(ExtensionStatus& _return);
@@ -65,6 +66,9 @@ class ExtensionHandler : virtual public ExtensionIf {
             const std::string& registry,
             const std::string& item,
             const ExtensionPluginRequest& request);
+
+ protected:
+  RouteUUID uuid_;
 };
 
 /**
@@ -84,7 +88,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
   ExtensionManagerHandler() {}
 
   /// Return a list of Route UUIDs and extension metadata.
-  void extensions(InternalExtensionList& _return) { _return = extensions_; }
+  void extensions(InternalExtensionList& _return);
 
   /**
    * @brief Request a Route UUID and advertise a set of Registry routes.
@@ -144,6 +148,9 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
  private:
   /// Check if an extension exists by the name it registered.
   bool exists(const std::string& name);
+  /// Introspect into the registry, checking if any extension routes have been
+  /// removed.
+  void refresh();
 
   /// Maintain a map of extension UUID to metadata for tracking deregistrations.
   InternalExtensionList extensions_;

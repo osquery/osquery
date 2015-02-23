@@ -149,22 +149,6 @@ TEST_F(ExtensionsTest, test_extension_start) {
   Registry::allowDuplicates(false);
 }
 
-TEST_F(ExtensionsTest, test_extension_query) {
-// Only test calling query when the extension manager is core.
-#ifndef OSQUERY_BUILD_SDK
-  auto status = startExtensionManager(kTestManagerSocket);
-  EXPECT_TRUE(status.ok());
-  // Wait for the extension manager to start.
-  EXPECT_TRUE(socketExists(kTestManagerSocket));
-
-  auto qd = query("select seconds from time");
-  EXPECT_EQ(qd.size(), 1);
-  if (qd.size() > 0) {
-    EXPECT_EQ(qd[0].count("seconds"), 1);
-  }
-#endif
-}
-
 class ExtensionPlugin : public Plugin {
  public:
   Status call(const PluginRequest& request, PluginResponse& response) {

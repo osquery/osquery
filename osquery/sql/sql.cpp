@@ -95,6 +95,12 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
       response.push_back({{"n", column.first}, {"t", column.second}});
     }
     return status;
+  } else if (request.at("action") == "attach") {
+    // Attach a virtual table name using an optional included definition.
+    return this->attach(request.at("table"));
+  } else if (request.at("action") == "detach") {
+    this->detach(request.at("table"));
+    return Status(0, "OK");
   }
   return Status(1, "Unknown action");
 }

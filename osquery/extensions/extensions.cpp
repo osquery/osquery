@@ -31,92 +31,6 @@ FLAG(string,
      "/var/osquery/osquery.em",
      "Path to the extensions UNIX domain socket")
 
-ExtensionRunner::~ExtensionRunner() { remove(path_); }
-
-void ExtensionRunner::enter() {
-  // Set the socket information for the extension manager.
-  auto socket_path = path_;
-
-  // Create the thrift instances.
-  OSQUERY_THRIFT_POINTER::shared_ptr<ExtensionHandler> handler(
-      new ExtensionHandler());
-  OSQUERY_THRIFT_POINTER::shared_ptr<TProcessor> processor(
-      new ExtensionProcessor(handler));
-  OSQUERY_THRIFT_POINTER::shared_ptr<TServerTransport> serverTransport(
-      new TServerSocket(socket_path));
-  OSQUERY_THRIFT_POINTER::shared_ptr<TTransportFactory> transportFactory(
-      new TBufferedTransportFactory());
-  OSQUERY_THRIFT_POINTER::shared_ptr<TProtocolFactory> protocolFactory(
-      new TBinaryProtocolFactory());
-
-  OSQUERY_THRIFT_POINTER::shared_ptr<ThreadManager> threadManager =
-      ThreadManager::newSimpleThreadManager(FLAGS_worker_threads);
-  OSQUERY_THRIFT_POINTER::shared_ptr<PosixThreadFactory> threadFactory =
-      OSQUERY_THRIFT_POINTER::shared_ptr<PosixThreadFactory>(
-          new PosixThreadFactory());
-  threadManager->threadFactory(threadFactory);
-  threadManager->start();
-
-  // Start the Thrift server's run loop.
-  try {
-    VLOG(1) << "Extension service starting: " << socket_path;
-    TThreadPoolServer server(processor,
-                             serverTransport,
-                             transportFactory,
-                             protocolFactory,
-                             threadManager);
-    server.serve();
-  } catch (const std::exception& e) {
-    LOG(ERROR) << "Cannot start extension handler: " << socket_path << " ("
-               << e.what() << ")";
-    return;
-  }
-}
-
-ExtensionManagerRunner::~ExtensionManagerRunner() {
-  // Remove the socket path.
-  remove(path_);
-}
-
-void ExtensionManagerRunner::enter() {
-  // Set the socket information for the extension manager.
-  auto socket_path = path_;
-
-  // Create the thrift instances.
-  OSQUERY_THRIFT_POINTER::shared_ptr<ExtensionManagerHandler> handler(
-      new ExtensionManagerHandler());
-  OSQUERY_THRIFT_POINTER::shared_ptr<TProcessor> processor(
-      new ExtensionManagerProcessor(handler));
-  OSQUERY_THRIFT_POINTER::shared_ptr<TServerTransport> serverTransport(
-      new TServerSocket(socket_path));
-  OSQUERY_THRIFT_POINTER::shared_ptr<TTransportFactory> transportFactory(
-      new TBufferedTransportFactory());
-  OSQUERY_THRIFT_POINTER::shared_ptr<TProtocolFactory> protocolFactory(
-      new TBinaryProtocolFactory());
-
-  OSQUERY_THRIFT_POINTER::shared_ptr<ThreadManager> threadManager =
-      ThreadManager::newSimpleThreadManager(FLAGS_worker_threads);
-  OSQUERY_THRIFT_POINTER::shared_ptr<PosixThreadFactory> threadFactory =
-      OSQUERY_THRIFT_POINTER::shared_ptr<PosixThreadFactory>(
-          new PosixThreadFactory());
-  threadManager->threadFactory(threadFactory);
-  threadManager->start();
-
-  // Start the Thrift server's run loop.
-  try {
-    VLOG(1) << "Extension manager service starting: " << socket_path;
-    TThreadPoolServer server(processor,
-                             serverTransport,
-                             transportFactory,
-                             protocolFactory,
-                             threadManager);
-    server.serve();
-  } catch (const std::exception& e) {
-    LOG(WARNING) << "Extensions disabled: cannot start extension manager ("
-                 << socket_path << ") (" << e.what() << ")";
-  }
-}
-
 void ExtensionWatcher::enter() {
   // Watch the manager, if the socket is removed then the extension will die.
   while (true) {
@@ -161,6 +75,7 @@ void ExtensionManagerWatcher::watch() {
     } catch (const std::exception& e) {
       LOG(INFO) << "Extension UUID " << uuid << " has gone away";
       Registry::removeBroadcast(uuid);
+      continue;
     }
 
     if (status.code != ExtensionCode::EXT_SUCCESS && fatal_) {

@@ -64,13 +64,7 @@ TEST_F(ConfigTests, test_plugin) {
 
 TEST_F(ConfigTests, test_queries_execute) {
   auto queries = Config::getInstance().getScheduledQueries();
-
   EXPECT_EQ(queries.size(), 1);
-  for (const auto& i : queries) {
-    QueryData results;
-    auto status = query(i.query, results);
-    EXPECT_TRUE(status.ok());
-  }
 }
 
 TEST_F(ConfigTests, test_threatfiles_execute) {

@@ -19,23 +19,6 @@ namespace osquery {
 
 class SQLTests : public testing::Test {};
 
-TEST_F(SQLTests, test_simple_query_execution) {
-// Access to the internal SQL implementation is only available in core.
-#ifndef OSQUERY_BUILD_SDK
-  auto sql = SQL("SELECT * FROM time");
-  EXPECT_TRUE(sql.ok());
-  EXPECT_EQ(sql.rows().size(), 1);
-#endif
-}
-
-TEST_F(SQLTests, test_get_tables) {
-// Access to the internal SQL implementation is only available in core.
-#ifndef OSQUERY_BUILD_SDK
-  auto tables = SQL::getTableNames();
-  EXPECT_TRUE(tables.size() > 0);
-#endif
-}
-
 TEST_F(SQLTests, test_raw_access) {
   // Access to the table plugins (no SQL parsing required) works in both
   // extensions and core, though with limitations on available tables.

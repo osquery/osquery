@@ -154,9 +154,9 @@ class WidgetPlugin : public Plugin {
   /// to parse and format. BUT a plugin/registry item can also fill this
   /// information in if the plugin type/registry type exposes routeInfo as
   /// a virtual method.
-  RouteInfo routeInfo() const {
-    RouteInfo info;
-    info["name"] = name_;
+  PluginResponse routeInfo() const {
+    PluginResponse info;
+    info.push_back({{"name", name_}});
     return info;
   }
 
@@ -193,15 +193,16 @@ TEST_F(RegistryTests, test_registry_api) {
 
   // Test route info propogation, from item to registry, to broadcast.
   auto ri = TestCoreRegistry::get("widgets", "special")->routeInfo();
-  EXPECT_EQ(ri.at("name"), "special");
+  EXPECT_EQ(ri[0].at("name"), "special");
   auto rr = TestCoreRegistry::registry("widgets")->getRoutes();
   EXPECT_EQ(rr.size(), 1);
-  EXPECT_EQ(rr.at("special").at("name"), "special");
+  EXPECT_EQ(rr.at("special")[0].at("name"), "special");
 
   // Broadcast will include all registries, and all their items.
   auto broadcast_info = TestCoreRegistry::getBroadcast();
   EXPECT_TRUE(broadcast_info.size() >= 3);
-  EXPECT_EQ(broadcast_info.at("widgets").at("special").at("name"), "special");
+  EXPECT_EQ(broadcast_info.at("widgets").at("special")[0].at("name"),
+            "special");
 
   PluginResponse response;
   PluginRequest request;

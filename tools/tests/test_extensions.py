@@ -201,7 +201,10 @@ class ProcessGenerator(object):
     def _run_daemon(self, config, silent=False):
         write_config(config)
         daemon = ProcRunner("daemon", os.path.join(BUILD, "osquery/osqueryd"),
-            ["--config_path=%s.conf" % CONFIG_NAME, "--verbose" if VERBOSE else ""],
+            [
+                "--config_path=%s.conf" % CONFIG_NAME,
+                "--verbose" if VERBOSE else ""
+            ],
             silent=silent)
         self.generators.append(daemon)
         return daemon
@@ -209,7 +212,10 @@ class ProcessGenerator(object):
     def _run_extension(self, silent=False):
         extension = ProcRunner("extension",
             os.path.join(BUILD, "osquery/example_extension"),
-            ["--extensions_socket=%s.em" % CONFIG_NAME, "--verbose" if VERBOSE else ""],
+            [
+                "--extensions_socket=%s.em" % CONFIG_NAME,
+                "--verbose" if VERBOSE else ""
+            ],
             silent=silent)
         self.generators.append(extension)
         return extension
@@ -217,7 +223,10 @@ class ProcessGenerator(object):
     def tearDown(self):
         for generator in self.generators:
             if generator.pid is not None:
-                os.kill(generator.pid, signal.SIGKILL)
+                try:
+                    os.kill(generator.pid, signal.SIGKILL)
+                except:
+                    pass
 
 class WatchdogTests(ProcessGenerator, unittest.TestCase):
     @unittest.skipIf("--extensions" in sys.argv, "only running extensions")
@@ -334,13 +343,13 @@ class ExtensionTests(ProcessGenerator, unittest.TestCase):
         self.assertEqual(ex.ping().code, 0)
 
         # Make sure the extension can receive a call
-        em_time = em.call("table", "time", {"action": "statement"})
-        ex_time = ex.call("table", "time", {"action": "statement"})
+        em_time = em.call("table", "time", {"action": "columns"})
+        ex_time = ex.call("table", "time", {"action": "columns"})
         print (em_time)
         print (ex_time)
         self.assertEqual(ex_time.status.code, 0)
-        self.assertEqual(len(ex_time.response), 1)
-        self.assertTrue("statement" in ex_time.response[0])
+        self.assertTrue(len(ex_time.response) > 0)
+        self.assertTrue("name" in ex_time.response[0])
         self.assertEqual(ex_time.status.uuid, ex_uuid)
 
         # Make sure the extension includes a custom registry plugin
@@ -400,6 +409,7 @@ class ExtensionTests(ProcessGenerator, unittest.TestCase):
         # With the reset there should be 1 extension again
         result = expect(em.extensions, 1)
         self.assertEqual(len(result), 1)
+        print (em.query("select * from example"))
 
         # Now tear down the daemon
         client.close()

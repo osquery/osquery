@@ -16,6 +16,135 @@
 namespace osquery {
 namespace tables {
 
+Status TablePlugin::addExternal(const std::string& name,
+                                const PluginResponse& response) {
+  // Attach the table.
+  if (response.size() == 0) {
+    // Invalid table route info.
+    return Status(1, "Invalid route info");
+  }
+
+  // Use the SQL registry to attach the name/definition.
+  return Registry::call("sql", "sql", {{"action", "attach"}, {"table", name}});
+}
+
+void TablePlugin::removeExternal(const std::string& name) {
+  // Detach the table name.
+  Registry::call("sql", "sql", {{"action", "detach"}, {"table", name}});
+}
+
+void TablePlugin::setRequestFromContext(const QueryContext& context,
+                                        PluginRequest& request) {
+  boost::property_tree::ptree tree;
+  tree.put("limit", context.limit);
+
+  // The QueryContext contains a constraint map from column to type information
+  // and the list of operand/expression constraints applied to that column from
+  // the query given.
+  boost::property_tree::ptree constraints;
+  for (const auto& constraint : context.constraints) {
+    boost::property_tree::ptree child;
+    child.put("name", constraint.first);
+    constraint.second.serialize(child);
+    constraints.push_back(std::make_pair("", child));
+  }
+  tree.add_child("constraints", constraints);
+
+  // Write the property tree as a JSON string into the PluginRequest.
+  std::ostringstream output;
+  boost::property_tree::write_json(output, tree, false);
+  request["context"] = output.str();
+}
+
+void TablePlugin::setResponseFromQueryData(const QueryData& data,
+                                           PluginResponse& response) {
+  response = std::move(data);
+}
+
+void TablePlugin::setContextFromRequest(const PluginRequest& request,
+                                        QueryContext& context) {
+  if (request.count("context") == 0) {
+    return;
+  }
+
+  // Read serialized context from PluginRequest.
+  std::stringstream input;
+  input << request.at("context");
+  boost::property_tree::ptree tree;
+  boost::property_tree::read_json(input, tree);
+
+  // Set the context limit and deserialize each column constraint list.
+  context.limit = tree.get<int>("limit");
+  for (const auto& constraint : tree.get_child("constraints")) {
+    auto column_name = constraint.second.get<std::string>("name");
+    context.constraints[column_name].unserialize(constraint.second);
+  }
+}
+
+Status TablePlugin::call(const PluginRequest& request,
+                         PluginResponse& response) {
+  response.clear();
+  // TablePlugin API calling requires an action.
+  if (request.count("action") == 0) {
+    return Status(1, "Table plugins must include a request action");
+  }
+
+  if (request.at("action") == "generate") {
+    // "generate" runs the table implementation using a PluginRequest with
+    // optional serialized QueryContext and returns the QueryData results as
+    // the PluginRequest data.
+    QueryContext context;
+    if (request.count("context") > 0) {
+      setContextFromRequest(request, context);
+    }
+    setResponseFromQueryData(generate(context), response);
+  } else if (request.at("action") == "columns") {
+    // "columns" returns a PluginRequest filled with column information
+    // such as name and type.
+    const auto& column_list = columns();
+    for (const auto& column : column_list) {
+      response.push_back({{"name", column.first}, {"type", column.second}});
+    }
+  } else if (request.at("action") == "definition") {
+    response.push_back({{"definition", columnDefinition()}});
+  } else {
+    return Status(1, "Unknown table plugin action: " + request.at("action"));
+  }
+
+  return Status(0, "OK");
+}
+
+std::string TablePlugin::columnDefinition() const {
+  return tables::columnDefinition(columns());
+}
+
+PluginResponse TablePlugin::routeInfo() const {
+  // Route info consists of only the serialized column information.
+  PluginResponse response;
+  for (const auto& column : columns()) {
+    response.push_back({{"name", column.first}, {"type", column.second}});
+  }
+  return response;
+}
+
+std::string columnDefinition(const TableColumns& columns) {
+  std::string statement = "(";
+  for (size_t i = 0; i < columns.size(); ++i) {
+    statement += columns.at(i).first + " " + columns.at(i).second;
+    if (i < columns.size() - 1) {
+      statement += ", ";
+    }
+  }
+  return statement += ")";
+}
+
+std::string columnDefinition(const PluginResponse& response) {
+  TableColumns columns;
+  for (const auto& column : response) {
+    columns.push_back(make_pair(column.at("name"), column.at("type")));
+  }
+  return columnDefinition(columns);
+}
 
 bool ConstraintList::matches(const std::string& expr) const {
   // Support each SQL affinity type casting.
@@ -96,106 +225,5 @@ void ConstraintList::unserialize(const boost::property_tree::ptree& tree) {
   }
   affinity = tree.get<std::string>("affinity");
 }
-
-void TablePlugin::setRequestFromContext(const QueryContext& context,
-                                        PluginRequest& request) {
-  boost::property_tree::ptree tree;
-  tree.put("limit", context.limit);
-
-  // The QueryContext contains a constraint map from column to type information
-  // and the list of operand/expression constraints applied to that column from
-  // the query given.
-  boost::property_tree::ptree constraints;
-  for (const auto& constraint : context.constraints) {
-    boost::property_tree::ptree child;
-    child.put("name", constraint.first);
-    constraint.second.serialize(child);
-    constraints.push_back(std::make_pair("", child));
-  }
-  tree.add_child("constraints", constraints);
-
-  // Write the property tree as a JSON string into the PluginRequest.
-  std::ostringstream output;
-  boost::property_tree::write_json(output, tree, false);
-  request["context"] = output.str();
-}
-
-void TablePlugin::setResponseFromQueryData(const QueryData& data,
-                                           PluginResponse& response) {
-  response = std::move(data);
-}
-
-void TablePlugin::setContextFromRequest(const PluginRequest& request,
-                                        QueryContext& context) {
-  if (request.count("context") == 0) {
-    return;
-  }
-
-  // Read serialized context from PluginRequest.
-  std::stringstream input;
-  input << request.at("context");
-  boost::property_tree::ptree tree;
-  boost::property_tree::read_json(input, tree);
-
-  // Set the context limit and deserialize each column constraint list.
-  context.limit = tree.get<int>("limit");
-  for (const auto& constraint : tree.get_child("constraints")) {
-    auto column_name = constraint.second.get<std::string>("name");
-    context.constraints[column_name].unserialize(constraint.second);
-  }
-}
-
-Status TablePlugin::call(const PluginRequest& request,
-                         PluginResponse& response) {
-  response.clear();
-  // TablePlugin API calling requires an action.
-  if (request.count("action") == 0) {
-    return Status(1, "Table plugins must include a request action");
-  }
-
-  if (request.at("action") == "statement") {
-    // The "statement" action generates an SQL create table statement.
-    response.push_back({{"statement", statement()}});
-  } else if (request.at("action") == "generate") {
-    // "generate" runs the table implementation using a PluginRequest with
-    // optional serialized QueryContext and returns the QueryData results as
-    // the PluginRequest data.
-    QueryContext context;
-    if (request.count("context") > 0) {
-      setContextFromRequest(request, context);
-    }
-    setResponseFromQueryData(generate(context), response);
-  } else if (request.at("action") == "columns") {
-    // "columns" returns a PluginRequest filled with column information
-    // such as name and type.
-    const auto& column_list = columns();
-    for (const auto& column : column_list) {
-      response.push_back({{"name", column.first}, {"type", column.second}});
-    }
-  } else if (request.at("action") == "columns_definition") {
-    response.push_back({{"definition", columnDefinition()}});
-  } else {
-    return Status(1, "Unknown table plugin action: " + request.at("action"));
-  }
-
-  return Status(0, "OK");
-}
-
-std::string TablePlugin::columnDefinition() const {
-  const auto& column_list = columns();
-  std::string statement = "(";
-  for (size_t i = 0; i < column_list.size(); ++i) {
-    statement += column_list.at(i).first + " " + column_list.at(i).second;
-    if (i < column_list.size() - 1) {
-      statement += ", ";
-    }
-  }
-  return statement += ")";
-}
-
-std::string TablePlugin::statement() const {
-  return "CREATE TABLE " + name_ + columnDefinition();
-}
-
 }
 }
