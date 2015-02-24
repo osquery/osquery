@@ -71,14 +71,18 @@ std::set<int> getProcList(const QueryContext &context) {
 
 std::map<int, int> getParentMap(std::set<int> &pidlist) {
   std::map<int, int> pidmap;
-  auto num_pids = pidlist.size();
-  pid_t children[num_pids];
 
-  // Find children for each pid, and mark that pid as their parent
-  for (auto &pid : pidlist) {
-    int num_children = proc_listchildpids(pid, children, sizeof(children));
-    for (int i = 0; i < num_children; ++i) {
-      pidmap[children[i]] = pid;
+  struct kinfo_proc proc;
+  size_t size = sizeof(proc);
+
+  for (const auto &pid : pidlist) {
+    int name[] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
+    if (sysctl((int *)name, 4, &proc, &size, NULL, 0) == -1) {
+      break;
+    }
+
+    if (size > 0) {
+      pidmap[pid] = (int)proc.kp_eproc.e_ppid;
     }
   }
 
