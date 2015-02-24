@@ -8,8 +8,6 @@
  *
  */
 
-#include <regex>
-
 #include <arpa/inet.h>
 #include <linux/netlink.h>
 
@@ -92,7 +90,9 @@ int sendNLDiagMessage(int sockfd, int protocol, int family) {
   return retval;
 }
 
-Row getNLDiagMessage(struct inet_diag_msg *diag_msg, int protocol, int family) {
+Row getNLDiagMessage(const struct inet_diag_msg *diag_msg,
+                     int protocol,
+                     int family) {
   char local_addr_buf[INET6_ADDRSTRLEN] = {0};
   char remote_addr_buf[INET6_ADDRSTRLEN] = {0};
 
@@ -162,7 +162,7 @@ unsigned short portFromHex(const std::string &encoded_port) {
 }
 
 /// A fallback method for generating socket information from /proc/net
-void genSocketsFromProc(const std::map<std::string, std::string> socket_inodes,
+void genSocketsFromProc(const std::map<std::string, std::string> &socket_inodes,
                         int protocol,
                         int family,
                         QueryData &results) {
@@ -223,10 +223,11 @@ void genSocketsFromProc(const std::map<std::string, std::string> socket_inodes,
   }
 }
 
-void genSocketsForFamily(const std::map<std::string, std::string> socket_inodes,
-                         int protocol,
-                         int family,
-                         QueryData &results) {
+void genSocketsForFamily(
+    const std::map<std::string, std::string> &socket_inodes,
+    int protocol,
+    int family,
+    QueryData &results) {
   // set up the socket
   int nl_sock = 0;
   if ((nl_sock = socket(AF_NETLINK, SOCK_DGRAM, NETLINK_INET_DIAG)) == -1) {
@@ -286,18 +287,15 @@ QueryData genOpenSockets(QueryContext &context) {
   }
 
   // Generate a map of socket inode to process tid.
-  std::regex inode_regex("[0-9]+", std::regex_constants::extended);
   std::map<std::string, std::string> socket_inodes;
   for (const auto& process : processes) {
     std::map<std::string, std::string> descriptors;
     if (osquery::procDescriptors(process, descriptors).ok()) {
       for (const auto& fd : descriptors) {
         if (fd.second.find("socket:") != std::string::npos) {
-          std::smatch inode;
-          std::regex_search(fd.second, inode, inode_regex);
-          if (inode[0].str().length() > 0) {
-            socket_inodes[inode[0].str()] = process;
-          }
+          // See #792: std::regex is incomplete until GCC 4.9
+          auto inode = fd.second.substr(fd.second.find("socket:") + 8);
+          socket_inodes[inode.substr(0, inode.size() - 1)] = process;
         }
       }
     }

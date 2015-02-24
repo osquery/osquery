@@ -10,7 +10,6 @@
 
 #include <exception>
 #include <map>
-#include <regex>
 #include <vector>
 
 #include <linux/limits.h>
@@ -26,14 +25,13 @@ namespace osquery {
 const std::string kLinuxProcPath = "/proc";
 
 Status procProcesses(std::vector<std::string>& processes) {
-
   // Iterate over each process-like directory in proc.
   boost::filesystem::directory_iterator it(kLinuxProcPath), end;
-  std::regex process_filter("[0-9]+", std::regex_constants::extended);
   try {
     for (; it != end; ++it) {
       if (boost::filesystem::is_directory(it->status())) {
-        if (std::regex_match(it->path().leaf().string(), process_filter)) {
+        // See #792: std::regex is incomplete until GCC 4.9
+        if (std::atoll(it->path().leaf().string().c_str()) > 0) {
           processes.push_back(it->path().leaf().string());
         }
       }
