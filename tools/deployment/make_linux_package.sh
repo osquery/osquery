@@ -28,9 +28,14 @@ OUTPUT_PKG_PATH="$BUILD_DIR/$PACKAGE_NAME-$PACKAGE_VERSION."
 # Config files
 INITD_SRC="$SCRIPT_DIR/osqueryd.initd"
 INITD_DST="/etc/init.d/osqueryd"
+
+CTL_SRC="$SCRIPT_DIR/osqueryctl"
+
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/usr/share/osquery/osquery.example.conf"
 OSQUERY_LOG_DIR="/var/log/osquery/"
+OSQUERY_VAR_DIR="/var/osquery"
+OSQUERY_ETC_DIR="/etc/osquery"
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX=$WORKING_DIR/prefix
@@ -84,10 +89,13 @@ function main() {
   cp "$BUILD_DIR/osquery/osqueryi" $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_INSTALL_DIR
   strip $BINARY_INSTALL_DIR/*
+  cp "$CTL_SRC" $BINARY_INSTALL_DIR
 
   # Create the prefix log dir and copy source configs
   log "copying osquery configurations"
+  mkdir -p $INSTALL_PREFIX/$OSQUERY_VAR_DIR
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
+  mkdir -p $INSTALL_PREFIX/$OSQUERY_ETC_DIR
   mkdir -p `dirname $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST`
   cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
 
