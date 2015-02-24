@@ -42,6 +42,7 @@ INSTALL_PREFIX=$WORKING_DIR/prefix
 SCRIPT_ROOT=$WORKING_DIR/scripts
 PREINSTALL=$SCRIPT_ROOT/preinstall
 POSTINSTALL=$SCRIPT_ROOT/postinstall
+OSQUERYCTL_PATH="$SOURCE_DIR/tools/deployment/osqueryctl"
 
 SCRIPT_PREFIX_TEXT="#!/usr/bin/env bash
 
@@ -134,6 +135,7 @@ function main() {
   cp "$BUILD_DIR/osquery/osqueryi" $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_INSTALL_DIR
   strip $BINARY_INSTALL_DIR/*
+  cp "$OSQUERYCTL_PATH" $BINARY_INSTALL_DIR
 
   # Create the prefix log dir and copy source configs
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
