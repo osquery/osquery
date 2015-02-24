@@ -60,6 +60,18 @@ void printUsage(const std::string& binary, int tool) {
   fprintf(stdout, "\n%s\n", kEpilog.c_str());
 }
 
+void printConfigWarning() {
+  std::cerr << "You are using default configurations for osqueryd for one or "
+               "more of the following\n"
+            << "flags: pidfile, db_path.\n\n"
+            << "These options create files in /var/osquery but it looks like "
+               "that path has not\n"
+            << "been created. Please consider explicitly defining those "
+               "options as a different \n"
+            << "path. Additionally, review the \"using osqueryd\" wiki page:\n"
+            << " - https://github.com/facebook/osquery/wiki/using-osqueryd\n\n";
+}
+
 void announce() {
   syslog(LOG_NOTICE, "osqueryd started [version=" OSQUERY_VERSION "]");
 }
@@ -76,14 +88,14 @@ void initOsquery(int argc, char* argv[], int tool) {
     ::exit(0);
   }
 
-  // To change the default config plugin, compile osquery with
-  // -DOSQUERY_DEFAULT_CONFIG_PLUGIN=<new_default_plugin>
+// To change the default config plugin, compile osquery with
+// -DOSQUERY_DEFAULT_CONFIG_PLUGIN=<new_default_plugin>
 #ifdef OSQUERY_DEFAULT_CONFIG_PLUGIN
   FLAGS_config_plugin = STR(OSQUERY_DEFAULT_CONFIG_PLUGIN);
 #endif
 
-  // To change the default logger plugin, compile osquery with
-  // -DOSQUERY_DEFAULT_LOGGER_PLUGIN=<new_default_plugin>
+// To change the default logger plugin, compile osquery with
+// -DOSQUERY_DEFAULT_LOGGER_PLUGIN=<new_default_plugin>
 #ifdef OSQUERY_DEFAULT_LOGGER_PLUGIN
   FLAGS_logger_plugin = STR(OSQUERY_DEFAULT_LOGGER_PLUGIN);
 #endif
@@ -131,6 +143,12 @@ void initOsqueryDaemon() {
 
   // Print the version to SYSLOG.
   announce();
+
+  // check if /var/osquery exists
+  if ((Flag::isDefault("pidfile") || Flag::isDefault("db_path")) &&
+      !isDirectory("/var/osquery")) {
+    printConfigWarning();
+  }
 
   // Create a process mutex around the daemon.
   auto pid_status = createPidFile();
