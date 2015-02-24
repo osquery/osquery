@@ -162,7 +162,8 @@ class Plugin {
 
 class RegistryHelperCore {
  public:
-  RegistryHelperCore(bool auto_setup = true) : auto_setup_(auto_setup) {}
+  explicit RegistryHelperCore(bool auto_setup = true)
+      : auto_setup_(auto_setup) {}
   virtual ~RegistryHelperCore() {}
 
   /**
@@ -258,7 +259,7 @@ class RegistryHelper : public RegistryHelperCore {
   typedef std::shared_ptr<RegistryType> RegistryTypeRef;
 
  public:
-  RegistryHelper(bool auto_setup = true)
+  explicit RegistryHelper(bool auto_setup = true)
       : RegistryHelperCore(auto_setup),
         add_(&RegistryType::addExternal),
         remove_(&RegistryType::removeExternal) {}

@@ -49,7 +49,7 @@ namespace extensions {
 class ExtensionHandler : virtual public ExtensionIf {
  public:
   ExtensionHandler() : uuid_(0) {}
-  ExtensionHandler(RouteUUID uuid) : uuid_(uuid) {}
+  explicit ExtensionHandler(RouteUUID uuid) : uuid_(uuid) {}
 
   /// Ping an Extension for status and metrics.
   void ping(ExtensionStatus& _return);
@@ -218,7 +218,7 @@ class ExtensionRunner : public InternalRunnable {
 class ExtensionManagerRunner : public InternalRunnable {
  public:
   virtual ~ExtensionManagerRunner();
-  ExtensionManagerRunner(const std::string& manager_path) {
+  explicit ExtensionManagerRunner(const std::string& manager_path) {
     path_ = manager_path;
   }
 
@@ -232,7 +232,7 @@ class ExtensionManagerRunner : public InternalRunnable {
 /// Internal accessor for extension clients.
 class EXInternal {
  public:
-  EXInternal(const std::string& path)
+  explicit EXInternal(const std::string& path)
       : socket_(new TSocket(path)),
         transport_(new TBufferedTransport(socket_)),
         protocol_(new TBinaryProtocol(transport_)) {}
@@ -248,7 +248,7 @@ class EXInternal {
 /// Internal accessor for a client to an extension (from an extension manager).
 class EXClient : public EXInternal {
  public:
-  EXClient(const std::string& path) : EXInternal(path) {
+  explicit EXClient(const std::string& path) : EXInternal(path) {
     client_ = std::make_shared<extensions::ExtensionClient>(protocol_);
     transport_->open();
   }
@@ -262,7 +262,8 @@ class EXClient : public EXInternal {
 /// Internal accessor for a client to an extension manager (from an extension).
 class EXManagerClient : public EXInternal {
  public:
-  EXManagerClient(const std::string& manager_path) : EXInternal(manager_path) {
+  explicit EXManagerClient(const std::string& manager_path)
+      : EXInternal(manager_path) {
     client_ = std::make_shared<extensions::ExtensionManagerClient>(protocol_);
     transport_->open();
   }

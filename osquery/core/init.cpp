@@ -65,7 +65,7 @@ void announce() {
 }
 
 void initOsquery(int argc, char* argv[], int tool) {
-  std::srand(time(NULL));
+  std::srand(time(nullptr));
   std::string binary(fs::path(std::string(argv[0])).filename().string());
   std::string first_arg = (argc > 1) ? std::string(argv[1]) : "";
 

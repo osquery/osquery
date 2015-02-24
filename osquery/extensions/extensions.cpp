@@ -127,7 +127,7 @@ Status startExtension(const std::string& manager_path,
                       const std::string& sdk_version) {
   // Make sure the extension manager path exists, and is writable.
   if (!pathExists(manager_path) || !isWritable(manager_path)) {
-    return Status(1, "Extension manager socket not availabe: " + manager_path);
+    return Status(1, "Extension manager socket not available: " + manager_path);
   }
 
   // The Registry broadcast is used as the ExtensionRegistry.
@@ -178,7 +178,7 @@ Status queryExternal(const std::string& manager_path,
                      QueryData& results) {
   // Make sure the extension path exists, and is writable.
   if (!pathExists(manager_path) || !isWritable(manager_path)) {
-    return Status(1, "Extension manager socket not availabe: " + manager_path);
+    return Status(1, "Extension manager socket not available: " + manager_path);
   }
 
   ExtensionResponse response;
@@ -205,7 +205,7 @@ Status getQueryColumnsExternal(const std::string& manager_path,
                                tables::TableColumns& columns) {
   // Make sure the extension path exists, and is writable.
   if (!pathExists(manager_path) || !isWritable(manager_path)) {
-    return Status(1, "Extension manager socket not availabe: " + manager_path);
+    return Status(1, "Extension manager socket not available: " + manager_path);
   }
 
   ExtensionResponse response;
@@ -238,7 +238,7 @@ Status pingExtension(const std::string& path) {
 
   // Make sure the extension path exists, and is writable.
   if (!pathExists(path) || !isWritable(path)) {
-    return Status(1, "Extension socket not availabe: " + path);
+    return Status(1, "Extension socket not available: " + path);
   }
 
   ExtensionStatus ext_status;
@@ -263,7 +263,7 @@ Status getExtensions(const std::string& manager_path,
                      ExtensionList& extensions) {
   // Make sure the extension path exists, and is writable.
   if (!pathExists(manager_path) || !isWritable(manager_path)) {
-    return Status(1, "Extension manager socket not availabe: " + manager_path);
+    return Status(1, "Extension manager socket not available: " + manager_path);
   }
 
   InternalExtensionList ext_list;
@@ -307,7 +307,7 @@ Status callExtension(const std::string& extension_path,
                      PluginResponse& response) {
   // Make sure the extension manager path exists, and is writable.
   if (!pathExists(extension_path) || !isWritable(extension_path)) {
-    return Status(1, "Extension socket not availabe: " + extension_path);
+    return Status(1, "Extension socket not available: " + extension_path);
   }
 
   ExtensionResponse ext_response;
@@ -333,7 +333,7 @@ Status startExtensionWatcher(const std::string& manager_path,
                              bool fatal) {
   // Make sure the extension manager path exists, and is writable.
   if (!pathExists(manager_path) || !isWritable(manager_path)) {
-    return Status(1, "Extension manager socket not availabe: " + manager_path);
+    return Status(1, "Extension manager socket not available: " + manager_path);
   }
 
   // Start a extension manager watcher, if the manager dies, so should we.

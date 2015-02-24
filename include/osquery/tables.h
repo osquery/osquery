@@ -100,10 +100,10 @@ struct Constraint {
   std::string expr;
 
   /// Construct a Constraint with the most-basic information, the operator.
-  Constraint(unsigned char _op) { op = _op; }
+  explicit Constraint(unsigned char _op) { op = _op; }
 
   // A constraint list in a context knows only the operator at creation.
-  Constraint(unsigned char _op, const std::string& _expr) {
+  explicit Constraint(unsigned char _op, const std::string& _expr) {
     op = _op;
     expr = _expr;
   }

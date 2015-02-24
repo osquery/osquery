@@ -36,7 +36,7 @@ namespace osquery {
 class SQLiteDBInstance {
  public:
   SQLiteDBInstance();
-  SQLiteDBInstance(sqlite3*& db);
+  explicit SQLiteDBInstance(sqlite3*& db);
   ~SQLiteDBInstance();
 
   /// Check if the instance is the osquery primary.
