@@ -28,8 +28,6 @@
 #include CONCAT(OSQUERY_THRIFT_LIB, /concurrency/PosixThreadFactory.h)
 // clang-format on
 
-using namespace apache::thrift::concurrency;
-
 namespace osquery {
 
 typedef apache::thrift::concurrency::ThreadManager InternalThreadManager;
@@ -72,7 +70,8 @@ typedef std::shared_ptr<InternalRunnable> InternalRunnableRef;
 typedef std::shared_ptr<boost::thread> InternalThreadRef;
 /// A thrift internal runnable with variable pointer wrapping.
 typedef OSQUERY_THRIFT_POINTER::shared_ptr<InternalRunnable> ThriftInternalRunnableRef;
-typedef OSQUERY_THRIFT_POINTER::shared_ptr<PosixThreadFactory> ThriftThreadFactory;
+typedef OSQUERY_THRIFT_POINTER::shared_ptr<
+    apache::thrift::concurrency::PosixThreadFactory> ThriftThreadFactory;
 
 /**
  * @brief Singleton for queueing asynchronous tasks to be executed in parallel

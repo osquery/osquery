@@ -27,7 +27,7 @@ TEST_F(DispatcherTests, test_singleton) {
 class TestRunnable : public InternalRunnable {
  public:
   int* i;
-  TestRunnable(int* i) : i(i) {}
+  explicit TestRunnable(int* i) : i(i) {}
   virtual void enter() { ++*i; }
 };
 
