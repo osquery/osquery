@@ -8,6 +8,8 @@
  *
  */
 
+#include <boost/make_shared.hpp>
+
 #include <gtest/gtest.h>
 
 #include "osquery/dispatcher/dispatcher.h"
@@ -36,7 +38,7 @@ TEST_F(DispatcherTests, test_add_work) {
 
   int i = base;
   for (int c = 0; c < repetitions; ++c) {
-    dispatcher.add(std::make_shared<TestRunnable>(&i));
+    dispatcher.add(OSQUERY_THRIFT_POINTER::make_shared<TestRunnable>(&i));
   }
   while (dispatcher.totalTaskCount() > 0) {
   }

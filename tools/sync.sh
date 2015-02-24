@@ -9,7 +9,7 @@
 
 set -e
 
-if [[ "$#" < 1 ]]; then
+if [ "$#" -ne 1 ]; then
   echo "Usage: $0 BUILD_DIR"
   exit 1
 fi
@@ -18,20 +18,24 @@ BUILD_DIR=$1
 SYNC_DIR="$BUILD_DIR/sync"
 VERSION=`git describe --tags HEAD --always`
 
-if [[ -f "$BUILD_DIR/sdk/generated" ]]; then
-  echo "Error: $BUILD_DIR/sdk/generated not found."
+if [ -f "$BUILD_DIR/generated" ]; then
+  echo "Error: $BUILD_DIR/generated not found."
   echo "Run 'make sdk' first"
   exit 1
 fi
 
 mkdir -p "$SYNC_DIR"
 rm -rf "$SYNC_DIR/osquery*"
+mkdir -p "$SYNC_DIR/osquery/generated"
 
 # merge the headers with the implementation files
 cp -R osquery "$SYNC_DIR"
 cp -R include/osquery "$SYNC_DIR"
-cp -R "$BUILD_DIR/sdk/generated/" "$SYNC_DIR/osquery"
+for file in $BUILD_DIR/generated/*.cpp; do
+  cp "$file" "$SYNC_DIR/osquery/generated/";
+done
 cp osquery.thrift "$SYNC_DIR/osquery/extensions"
+rm -rf "$SYNC_DIR/osquery/examples"
 
 # delete all of the old CMake files
 find "$SYNC_DIR" -type f -name "CMakeLists.txt" -exec rm -f {} \;

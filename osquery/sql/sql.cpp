@@ -16,10 +16,6 @@
 #include <osquery/tables.h>
 #include <osquery/registry.h>
 
-#ifndef OSQUERY_BUILD_SDK
-#include "osquery/sql/sqlite_util.h"
-#endif
-
 namespace osquery {
 
 const std::map<tables::ConstraintOperator, std::string> kSQLOperatorRepr = {

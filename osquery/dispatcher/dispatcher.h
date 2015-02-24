@@ -33,7 +33,7 @@ using namespace apache::thrift::concurrency;
 namespace osquery {
 
 typedef apache::thrift::concurrency::ThreadManager InternalThreadManager;
-typedef std::shared_ptr<InternalThreadManager> InternalThreadManagerRef;
+typedef OSQUERY_THRIFT_POINTER::shared_ptr<InternalThreadManager> InternalThreadManagerRef;
 
 /**
  * @brief Default number of threads in the thread pool.
@@ -67,7 +67,12 @@ class InternalRunnable : public apache::thrift::concurrency::Runnable {
   bool run_;
 };
 
-typedef boost::shared_ptr<InternalRunnable> InternalRunnableRef;
+/// An internal runnable used throughout osquery as dispatcher services.
+typedef std::shared_ptr<InternalRunnable> InternalRunnableRef;
+typedef std::shared_ptr<boost::thread> InternalThreadRef;
+/// A thrift internal runnable with variable pointer wrapping.
+typedef OSQUERY_THRIFT_POINTER::shared_ptr<InternalRunnable> ThriftInternalRunnableRef;
+typedef OSQUERY_THRIFT_POINTER::shared_ptr<PosixThreadFactory> ThriftThreadFactory;
 
 /**
  * @brief Singleton for queueing asynchronous tasks to be executed in parallel
@@ -118,10 +123,10 @@ class Dispatcher {
    * @return an instance of osquery::Status, indicating the success or failure
    * of the operation.
    */
-  Status add(std::shared_ptr<InternalRunnable> task);
+  Status add(ThriftInternalRunnableRef task);
 
   /// See `add`, but services are not limited to a thread poll size.
-  Status addService(std::shared_ptr<InternalRunnable> service);
+  Status addService(InternalRunnableRef service);
 
   /**
    * @brief Getter for the underlying thread manager instance.
@@ -256,8 +261,8 @@ class Dispatcher {
    */
   InternalThreadManagerRef thread_manager_;
   /// The set of shared osquery service threads.
-  std::vector<std::shared_ptr<boost::thread> > service_threads_;
+  std::vector<InternalThreadRef> service_threads_;
   /// THe set of shared osquery services.
-  std::vector<std::shared_ptr<InternalRunnable> > services_;
+  std::vector<InternalRunnableRef> services_;
 };
 }
