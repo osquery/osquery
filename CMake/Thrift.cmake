@@ -11,7 +11,10 @@ set(OSQUERY_THRIFT_GENERATED_FILES
 
 # Allow targets to warn if the thrift interface code is not defined.
 add_definitions(
-  -DOSQUERY_THRIFT="${OSQUERY_THRIFT_DIR}"
+  -DOSQUERY_THRIFT_LIB=thrift
+  -DOSQUERY_THRIFT_SERVER_LIB=thrift/server
+  -DOSQUERY_THRIFT_POINTER=boost
+  -DOSQUERY_THRIFT=
 )
 
 # For the extensions targets, allow them to include thrift interface headers.

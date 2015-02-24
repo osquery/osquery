@@ -25,7 +25,7 @@ debug: .setup
 		$(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_debug: .setup
-	cd build/$(BUILD_DIR)/sdk && DEBUG=True cmake ../../../ && \
+	cd build/$(BUILD_DIR) && DEBUG=True cmake ../../ && \
 	  $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 analyze: .setup
@@ -37,19 +37,19 @@ sanitize: .setup
 	  $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 sdk: .setup
-	cd build/$(BUILD_DIR)/sdk && SDK=True cmake ../../../ && \
+	cd build/$(BUILD_DIR) && SDK=True cmake ../../ && \
 	  $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_sdk: .setup
-	cd build/$(BUILD_DIR)/sdk && SDK=True cmake ../../../ && \
+	cd build/$(BUILD_DIR) && SDK=True cmake ../../ && \
 	  $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 debug_sdk: .setup
-	cd build/$(BUILD_DIR)/sdk && SDK=True DEBUG=True cmake ../../../ && \
+	cd build/$(BUILD_DIR) && SDK=True DEBUG=True cmake ../../ && \
 	  $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_debug_sdk: .setup
-	cd build/$(BUILD_DIR)/sdk && SDK=True DEBUG=True cmake ../../../ && \
+	cd build/$(BUILD_DIR) && SDK=True DEBUG=True cmake ../../ && \
 	  $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 deps: .setup
@@ -62,8 +62,8 @@ ifeq ($(PLATFORM),Linux)
 endif
 
 .setup:
+	export CTEST_OUTPUT_ON_FAILURE=1
 	mkdir -p build/$(BUILD_DIR)
-	mkdir -p build/$(BUILD_DIR)/sdk
 ifeq ($(PLATFORM),Linux)
 		ln -snf $(BUILD_DIR) build/linux
 endif

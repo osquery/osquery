@@ -131,6 +131,48 @@ class SQL {
 };
 
 /**
+ * @brief The osquery SQL implementation is managed as a plugin.
+ *
+ * The osquery RegistryFactory creates a Registry type called "sql", then
+ * requires a single plugin registration also called "sql". Calls within
+ * the application use boilerplate methods that wrap Registry::call%s to this
+ * well-known registry and registry item name.
+ *
+ * Abstracting the SQL implementation behind the osquery registry allows
+ * the SDK (libosquery) to describe how the SQL implementation is used without
+ * having dependencies on the thrird-party code.
+ *
+ * When osqueryd/osqueryi are built libosquery_additional, the library which
+ * provides the core plugins and core virtual tables, includes SQLite as
+ * the SQL implementation.
+ */
+class SQLPlugin : public Plugin {
+ public:
+  /// Run a SQL query string against the SQL implementation.
+  virtual Status query(const std::string& q, QueryData& results) const = 0;
+  /// Use the SQL implementation to parse a query string and return details
+  /// (name, type) about the columns.
+  virtual Status getQueryColumns(const std::string& q,
+                                 tables::TableColumns& columns) const = 0;
+
+  /**
+   * @brief Attach a table at runtime.
+   *
+   * The SQL implementation plugin may need to manage how virtual tables are
+   * attached at run time. In the case of SQLite where a single DB object is
+   * managed, tables are enumerated and attached during initialization.
+   */
+  virtual Status attach(const std::string& name) {
+    return Status(0, "Not used");
+  }
+  /// Tables may be detached by name.
+  virtual void detach(const std::string& name) {}
+
+ public:
+  Status call(const PluginRequest& request, PluginResponse& response);
+};
+
+/**
  * @brief Execute a query
  *
  * This is a lower-level version of osquery::SQL. Prefer to use osquery::SQL.
@@ -184,4 +226,5 @@ class MockSQL : public SQL {
   }
 };
 
+CREATE_REGISTRY(SQLPlugin, "sql");
 }

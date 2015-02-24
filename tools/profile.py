@@ -16,7 +16,6 @@ try:
     import argparse
 except ImportError:
     print ("Cannot import argparse.")
-    print ("Try: sudo yum install python-argparse")
     exit(1)
 
 import json
@@ -26,21 +25,9 @@ import subprocess
 import sys
 import time
 
-
-def red(msg):
-    return "\033[41m\033[1;30m %s \033[0m" % str(msg)
-
-
-def yellow(msg):
-    return "\033[43m\033[1;30m %s \033[0m" % str(msg)
-
-
-def green(msg):
-    return "\033[42m\033[1;30m %s \033[0m" % str(msg)
-
-
-def blue(msg):
-    return "\033[46m\033[1;30m %s \033[0m" % str(msg)
+# Import the testing utils
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/tests/")
+from utils import *
 
 KB = 1024 * 1024
 RANGES = {
@@ -51,46 +38,6 @@ RANGES = {
     "fds": (10, 20, 50),
     "duration": (0.8, 1, 3),
 }
-
-
-def queries_from_config(config_path):
-    config = {}
-    try:
-        with open(config_path, "r") as fh:
-            config = json.loads(fh.read())
-    except Exception as e:
-        print ("Cannot open/parse config: %s" % str(e))
-        exit(1)
-    if "scheduledQueries" not in config:
-        print ("Config does not contain any scheduledQueries.")
-        exit(0)
-    queries = {}
-    for query in config["scheduledQueries"]:
-        queries[query["name"]] = query["query"]
-    return queries
-
-
-def queries_from_tables(path, restrict):
-    """Construct select all queries from all tables."""
-    # Let the caller limit the tables
-    restrict_tables = [t.strip() for t in restrict.split(",")]
-
-    tables = []
-    for base, _, files in os.walk(path):
-        for spec in files:
-            spec_platform = os.path.basename(base)
-            table_name = spec.split(".table", 1)[0]
-            if spec_platform not in ["x", platform]:
-                continue
-            # Generate all tables to select from, with abandon.
-            tables.append("%s.%s" % (spec_platform, table_name))
-
-    if len(restrict) > 0:
-        tables = [t for t in tables if t.split(".")[1] in restrict_tables]
-    queries = {}
-    for table in tables:
-        queries[table] = "SELECT * FROM %s;" % table.split(".", 1)[1]
-    return queries
 
 
 def get_stats(p, interval=1):

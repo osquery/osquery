@@ -10,11 +10,11 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/dispatcher/dispatcher.h"
 
 using namespace apache::thrift::concurrency;
 
@@ -33,36 +33,23 @@ Dispatcher& Dispatcher::getInstance() {
 }
 
 Dispatcher::Dispatcher() {
-#ifdef FBOSQUERY
-  thread_manager_ = ThreadManager::newSimpleThreadManager(
-      (size_t)FLAGS_worker_threads, 0);
-  auto threadFactory =
-      std::shared_ptr<PosixThreadFactory>(new PosixThreadFactory());
-#else
-  thread_manager_ =
-      boost_to_std_shared_ptr(InternalThreadManager::newSimpleThreadManager(
-          (size_t)FLAGS_worker_threads, 0));
-  auto threadFactory =
-      boost::shared_ptr<PosixThreadFactory>(new PosixThreadFactory());
-#endif
+  thread_manager_ = InternalThreadManager::newSimpleThreadManager(
+          (size_t)FLAGS_worker_threads, 0);
+  auto threadFactory = ThriftThreadFactory(new PosixThreadFactory());
   thread_manager_->threadFactory(threadFactory);
   thread_manager_->start();
 }
 
-Status Dispatcher::add(std::shared_ptr<InternalRunnable> task) {
+Status Dispatcher::add(ThriftInternalRunnableRef task) {
   try {
-#ifdef FBOSQUERY
     thread_manager_->add(task, 0, 0);
-#else
-    thread_manager_->add(std_to_boost_shared_ptr(task), 0, 0);
-#endif
   } catch (std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
 }
 
-Status Dispatcher::addService(std::shared_ptr<InternalRunnable> service) {
+Status Dispatcher::addService(InternalRunnableRef service) {
   if (service->hasRun()) {
     return Status(1, "Cannot schedule a service twice");
   }

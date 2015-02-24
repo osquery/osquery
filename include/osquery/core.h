@@ -15,15 +15,19 @@
 
 #include <osquery/status.h>
 
+// clang-format off
 #ifndef STR
 #define STR_OF(x) #x
 #define STR(x) STR_OF(x)
 #endif
+#define STR_EX(x) x
+#define CONCAT(x, y) STR(STR_EX(x)STR_EX(y))
 
 #ifndef FRIEND_TEST
 #define FRIEND_TEST(test_case_name, test_name) \
   friend class test_case_name##_##test_name##_Test
 #endif
+// clang-format on
 
 namespace osquery {
 

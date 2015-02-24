@@ -16,8 +16,6 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <sqlite3.h>
-
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/database.h>

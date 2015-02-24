@@ -18,10 +18,14 @@
 #include <osquery/sql.h>
 
 #include "osquery/distributed/distributed.h"
+#include "osquery/sql/sqlite_util.h"
 
 namespace pt = boost::property_tree;
 
 namespace osquery {
+
+// Distributed tests expect an SQL implementation for queries.
+REGISTER_INTERNAL(SQLiteSQLPlugin, "sql", "sql");
 
 class DistributedTests : public testing::Test {};
 
@@ -59,7 +63,6 @@ TEST_F(DistributedTests, test_parse_query_json) {
 
 TEST_F(DistributedTests, test_handle_query) {
 // Access to the internal SQL implementation is only available in core.
-#ifndef OSQUERY_BUILD_SDK
   SQL query = DistributedQueryHandler::handleQuery("SELECT hour from time");
   ASSERT_TRUE(query.ok());
   QueryData rows = query.rows();
@@ -70,7 +73,6 @@ TEST_F(DistributedTests, test_handle_query) {
   ASSERT_FALSE(query.ok());
   rows = query.rows();
   ASSERT_EQ(0, rows.size());
-#endif
 }
 
 TEST_F(DistributedTests, test_serialize_results_empty) {
@@ -136,7 +138,6 @@ TEST_F(DistributedTests, test_serialize_results_multiple) {
 
 TEST_F(DistributedTests, test_do_queries) {
 // Access to the internal SQL implementation is only available in core.
-#ifndef OSQUERY_BUILD_SDK
   auto provider_raw = new MockDistributedProvider();
   provider_raw->queriesJSON_ =
     R"([
@@ -181,12 +182,10 @@ TEST_F(DistributedTests, test_do_queries) {
     EXPECT_LE(row->second.get<int>("minutes"), 60);
     EXPECT_EQ(getHostname(), row->second.get<std::string>("_source_host"));
   }
-#endif
 }
 
 TEST_F(DistributedTests, test_duplicate_request) {
 // Access to the internal SQL implementation is only available in core.
-#ifndef OSQUERY_BUILD_SDK
   auto provider_raw = new MockDistributedProvider();
   provider_raw->queriesJSON_ =
     R"([
@@ -217,7 +216,6 @@ TEST_F(DistributedTests, test_duplicate_request) {
   json_stream.str(provider_raw->resultsJSON_);
   ASSERT_NO_THROW(pt::read_json(json_stream, tree));
   EXPECT_EQ(0, tree.get_child("results").size());
-#endif
 }
 }
 

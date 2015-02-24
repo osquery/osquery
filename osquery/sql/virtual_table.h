@@ -48,10 +48,15 @@ struct VirtualTable {
   VirtualTableContent *content;
 };
 
-/// Attach a table plugin name to an in-memory SQLite datable.
-int attachTable(sqlite3 *db, const std::string &name);
+/// Attach a table plugin name to an in-memory SQLite database.
+Status attachTableInternal(const std::string &name,
+                           const std::string &statement,
+                           sqlite3 *db);
 
-/// Attach all table plugins to an in-memory SQLite datable.
+/// Detach (drop) a table.
+Status detachTableInternal(const std::string &name, sqlite3 *db);
+
+/// Attach all table plugins to an in-memory SQLite database.
 void attachVirtualTables(sqlite3 *db);
 }
 }

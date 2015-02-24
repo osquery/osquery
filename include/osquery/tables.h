@@ -281,9 +281,6 @@ typedef struct Constraint Constraint;
  */
 class TablePlugin : public Plugin {
  protected:
-  /// Helper method to generate the virtual table CREATE statement.
-  virtual std::string statement() const;
-  virtual std::string columnDefinition() const;
   virtual TableColumns columns() const {
     TableColumns columns;
     return columns;
@@ -293,6 +290,10 @@ class TablePlugin : public Plugin {
     QueryData data;
     return data;
   }
+
+ protected:
+  std::string columnDefinition() const;
+  PluginResponse routeInfo() const;
 
  public:
   /// Public API methods.
@@ -307,10 +308,21 @@ class TablePlugin : public Plugin {
   static void setContextFromRequest(const PluginRequest& request,
                                     QueryContext& context);
 
+ public:
+  /// When external table plugins are registered the core will attach them
+  /// as virtual tables to the SQL internal implementation
+  static Status addExternal(const std::string& name,
+                            const PluginResponse& info);
+  static void removeExternal(const std::string& name);
+
  private:
   FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
   FRIEND_TEST(VirtualTableTests, test_tableplugin_statement);
 };
+
+/// Helper method to generate the virtual table CREATE statement.
+std::string columnDefinition(const TableColumns& columns);
+std::string columnDefinition(const PluginResponse& response);
 
 CREATE_REGISTRY(TablePlugin, "table");
 }

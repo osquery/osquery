@@ -18,6 +18,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/noncopyable.hpp>
 
+#include <osquery/sql.h>
+
 namespace osquery {
 
 /**
@@ -36,6 +38,9 @@ class SQLiteDBInstance {
   SQLiteDBInstance();
   SQLiteDBInstance(sqlite3*& db);
   ~SQLiteDBInstance();
+
+  /// Check if the instance is the osquery primary.
+  bool isPrimary() { return primary_; }
 
   /**
    * @brief Accessor to the internal `sqlite3` object, do not store references
@@ -104,17 +109,7 @@ class SQLiteDBManager : private boost::noncopyable {
 };
 
 /**
- * @brief A map of SQLite status codes to their corresponding message string
- *
- * Details of this map are defined at: http://www.sqlite.org/c3ref/c_abort.html
- */
-extern const std::map<int, std::string> kSQLiteReturnCodes;
-
-/// Internal (core) SQL implementation of the osquery query API.
-Status queryInternal(const std::string& q, QueryData& results);
-
-/**
- * @brief Execute a query on a specific database
+ * @brief SQLite Internal: Execute a query on a specific database
  *
  * If you need to use a different database, other than the osquery default,
  * use this method and pass along a pointer to a SQLite3 database. This is
@@ -128,11 +123,9 @@ Status queryInternal(const std::string& q, QueryData& results);
  */
 Status queryInternal(const std::string& q, QueryData& results, sqlite3* db);
 
-/// Internal (core) SQL implementation of the osquery getQueryColumns API.
-Status getQueryColumnsInternal(const std::string& q, tables::TableColumns& columns);
-
 /**
- * @brief Analyze a query, providing information about the result columns
+ * @brief SQLite Intern: Analyze a query, providing information about the
+ * result columns
  *
  * This function asks SQLite to determine what the names and types are of the
  * result columns of the provided query. Only table columns (not expressions or
@@ -148,6 +141,26 @@ Status getQueryColumnsInternal(const std::string& q, tables::TableColumns& colum
 Status getQueryColumnsInternal(const std::string& q,
                                tables::TableColumns& columns,
                                sqlite3* db);
+
+/// The SQLiteSQLPlugin implements the "sql" registry for internal/core.
+class SQLiteSQLPlugin : SQLPlugin {
+ public:
+  Status query(const std::string& q, QueryData& results) const {
+    auto dbc = SQLiteDBManager::get();
+    return queryInternal(q, results, dbc.db());
+  }
+
+  Status getQueryColumns(const std::string& q,
+                         tables::TableColumns& columns) const {
+    auto dbc = SQLiteDBManager::get();
+    return getQueryColumnsInternal(q, columns, dbc.db());
+  }
+
+  /// Create a SQLite module and attach (CREATE).
+  Status attach(const std::string& name);
+  /// Detach a virtual table (DROP).
+  void detach(const std::string& name);
+};
 
 /**
  * @brief Get a string representation of a SQLite return code

@@ -106,15 +106,12 @@ execute_process(
 # make extensions (tests building SDK-based extensions)
 if(DEFINED ENV{SDK})
   set(OSQUERY_BUILD_SDK_ONLY TRUE)
-  add_definitions(
-    -DOSQUERY_BUILD_SDK
-    -DOSQUERY_BUILD_SDK_VERSION=${OSQUERY_BUILD_VERSION}
-  )
 endif()
 
 # Set various platform/platform-version/build version/etc defines.
 add_definitions(
   -DOSQUERY_BUILD_VERSION=${OSQUERY_BUILD_VERSION}
+  -DOSQUERY_BUILD_SDK_VERSION=${OSQUERY_BUILD_VERSION}
   -D${OSQUERY_BUILD_OS}
   -D${OSQUERY_BUILD_OS}_${OSQUERY_BUILD_DISTRO}
 )
@@ -202,4 +199,13 @@ add_custom_target(
   "${CMAKE_SOURCE_DIR}/tools/sync.sh" "${CMAKE_BINARY_DIR}"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Generating sdk sync: ${CMAKE_BINARY_DIR}/sync"
+)
+
+# make python-thrift
+add_custom_target(
+  python-thrift
+    ${THRIFT_COMPILER} --gen py:dense "${CMAKE_SOURCE_DIR}/osquery.thrift"
+  DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
+  COMMENT "Generating python bindings for thrift extensions: ${CMAKE_BINARY_DIR}/generated/gen-py"
 )

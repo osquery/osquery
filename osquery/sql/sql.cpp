@@ -16,10 +16,6 @@
 #include <osquery/tables.h>
 #include <osquery/registry.h>
 
-#ifndef OSQUERY_BUILD_SDK
-#include "osquery/sql/sqlite_util.h"
-#endif
-
 namespace osquery {
 
 const std::map<tables::ConstraintOperator, std::string> kSQLOperatorRepr = {
@@ -79,23 +75,46 @@ QueryData SQL::selectAllFrom(const std::string& table,
   return response;
 }
 
+Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
+  response.clear();
+  if (request.count("action") == 0) {
+    return Status(1, "SQL plugin must include a request action");
+  }
+
+  if (request.at("action") == "query") {
+    return this->query(request.at("query"), response);
+  } else if (request.at("action") == "columns") {
+    tables::TableColumns columns;
+    auto status = this->getQueryColumns(request.at("query"), columns);
+    // Convert columns to response
+    for (const auto& column : columns) {
+      response.push_back({{"n", column.first}, {"t", column.second}});
+    }
+    return status;
+  } else if (request.at("action") == "attach") {
+    // Attach a virtual table name using an optional included definition.
+    return this->attach(request.at("table"));
+  } else if (request.at("action") == "detach") {
+    this->detach(request.at("table"));
+    return Status(0, "OK");
+  }
+  return Status(1, "Unknown action");
+}
+
 Status query(const std::string& q, QueryData& results) {
-// Depending on the build type (core or sdk/extension) osquery will call the
-// internal SQL implementation or the Thrift API endpoint.
-#ifndef OSQUERY_BUILD_SDK
-  return queryInternal(q, results);
-#else
-  return Status(0, "OK");
-#endif
+  return Registry::call(
+      "sql", "sql", {{"action", "query"}, {"query", q}}, results);
 }
 
 Status getQueryColumns(const std::string& q, tables::TableColumns& columns) {
-// Depending on the build type (core or sdk/extension) osquery will call the
-// internal SQL implementation or the Thrift API endpoint.
-#ifndef OSQUERY_BUILD_SDK
-  return getQueryColumnsInternal(q, columns);
-#else
-  return Status(0, "OK");
-#endif
+  PluginResponse response;
+  auto status = Registry::call(
+      "sql", "sql", {{"action", "columns"}, {"query", q}}, response);
+
+  // Convert response to columns
+  for (const auto& item : response) {
+    columns.push_back(make_pair(item.at("n"), item.at("t")));
+  }
+  return status;
 }
 }

@@ -27,3 +27,9 @@
 #include <osquery/sql.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>
+
+namespace osquery {
+/// Anything built with only libosquery.a (SDK) will not include an SQL
+/// provider (aka "sql" registry).
+REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
+}

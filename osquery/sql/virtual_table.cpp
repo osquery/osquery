@@ -79,20 +79,21 @@ int xCreate(sqlite3 *db,
 
   PluginResponse response;
   pVtab->content->name = std::string(argv[0]);
+
+  // Get the table column information.
   auto status = Registry::call(
-      "table", pVtab->content->name, {{"action", "statement"}}, response);
+      "table", pVtab->content->name, {{"action", "columns"}}, response);
   if (!status.ok() || response.size() == 0) {
     return SQLITE_ERROR;
   }
 
-  int rc = sqlite3_declare_vtab(db, response[0].at("statement").c_str());
+  auto statement =
+      "CREATE TABLE " + pVtab->content->name + columnDefinition(response);
+  int rc = sqlite3_declare_vtab(db, statement.c_str());
   if (rc != SQLITE_OK) {
     return rc;
   }
 
-  // Also set the table column information.
-  status = Registry::call(
-      "table", pVtab->content->name, {{"action", "columns"}}, response);
   if (!status.ok() || response.size() == 0) {
     return SQLITE_ERROR;
   }
@@ -224,9 +225,10 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   return SQLITE_OK;
 }
 
-int attachTable(sqlite3 *db, const std::string &name) {
-  int rc = SQLITE_OK;
-
+Status attachTableInternal(const std::string &name,
+                           const std::string &statement,
+                           sqlite3 *db) {
+  // A static module structure does not need specific logic per-table.
   static sqlite3_module module = {
       0,
       xCreate,
@@ -250,28 +252,38 @@ int attachTable(sqlite3 *db, const std::string &name) {
       0,
   };
 
-  // Column information is nice for virtual table create call.
-  PluginResponse response;
-  auto status = Registry::call(
-      "table", name, {{"action", "columns_definition"}}, response);
-  if (!status.ok() || response.size() == 0) {
-    return SQLITE_ERROR;
+  // Note, if the clientData API is used then this will save a registry call
+  // within xCreate.
+  int rc = sqlite3_create_module(db, name.c_str(), &module, 0);
+  if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
+    auto format =
+        "CREATE VIRTUAL TABLE temp." + name + " USING " + name + statement;
+    rc = sqlite3_exec(db, format.c_str(), 0, 0, 0);
+  } else {
+    LOG(ERROR) << "Error attaching table: " << name << " (" << rc << ")";
+  }
+  return Status(rc, getStringForSQLiteReturnCode(rc));
+}
+
+Status detachTableInternal(const std::string &name, sqlite3 *db) {
+  auto format = "DROP TABLE IF EXISTS temp." + name;
+  int rc = sqlite3_exec(db, format.c_str(), 0, 0, 0);
+  if (rc != SQLITE_OK) {
+    LOG(ERROR) << "Error detaching table: " << name << " (" << rc << ")";
   }
 
-  rc = sqlite3_create_module(db, name.c_str(), &module, 0);
-  if (rc == SQLITE_OK) {
-    auto format = "CREATE VIRTUAL TABLE temp." + name + " USING " + name +
-                  response[0].at("definition");
-    rc = sqlite3_exec(db, format.c_str(), 0, 0, 0);
-  }
-  return rc;
+  return Status(rc, getStringForSQLiteReturnCode(rc));
 }
 
 void attachVirtualTables(sqlite3 *db) {
+  PluginResponse response;
   for (const auto &name : Registry::names("table")) {
-    int status = attachTable(db, name);
-    if (status != SQLITE_OK) {
-      LOG(ERROR) << "Error attaching table: " << name << " (" << status << ")";
+    // Column information is nice for virtual table create call.
+    auto status =
+        Registry::call("table", name, {{"action", "columns"}}, response);
+    if (status.ok()) {
+      auto statement = columnDefinition(response);
+      attachTableInternal(name, statement, db);
     }
   }
 }

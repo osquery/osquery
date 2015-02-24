@@ -17,6 +17,7 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/core.h>
+#include <osquery/events.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
@@ -30,21 +31,24 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
-    {MEMORY_LIMIT, {50, 20, 10}},
-    {UTILIZATION_LIMIT, {90, 70, 60}},
+    // Maximum MB worker can privately allocate.
+    {MEMORY_LIMIT, {50, 20, 10, 10}},
+    // Percent of user or system CPU worker can utilize for LATENCY_LIMIT
+    // seconds.
+    {UTILIZATION_LIMIT, {90, 70, 60, 50}},
     // Number of seconds the worker should run, else consider the exit fatal.
-    {RESPAWN_LIMIT, {20, 20, 20}},
+    {RESPAWN_LIMIT, {20, 20, 20, 5}},
     // If the worker respawns too quickly, backoff on creating additional.
-    {RESPAWN_DELAY, {5, 5, 5}},
-    // Seconds of tolerable sustained latency.
-    {LATENCY_LIMIT, {5, 5, 3}},
+    {RESPAWN_DELAY, {5, 5, 5, 1}},
+    // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
+    {LATENCY_LIMIT, {5, 5, 3, 1}},
     // How often to poll for performance limit violations.
-    {INTERVAL, {3, 3, 3}}, };
+    {INTERVAL, {3, 3, 3, 1}}, };
 
 FLAG(int32,
      watchdog_level,
      1,
-     "Performance limit level (0=loose, 1=normal, 2=restrictive)");
+     "Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug)");
 
 FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 

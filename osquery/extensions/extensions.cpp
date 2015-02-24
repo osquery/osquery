@@ -10,36 +10,13 @@
 
 #include <csignal>
 
-#ifdef FBOSQUERY
-#include <thrift/lib/cpp/concurrency/ThreadManager.h>
-#include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
-#include <thrift/lib/cpp/server/example/TThreadPoolServer.h>
-#include <thrift/lib/cpp/protocol/TBinaryProtocol.h>
-#include <thrift/lib/cpp/transport/TServerSocket.h>
-#include <thrift/lib/cpp/transport/TBufferTransports.h>
-#include <thrift/lib/cpp/transport/TSocket.h>
-#define _SHARED_PTR std
-#else
-#include <thrift/concurrency/ThreadManager.h>
-#include <thrift/concurrency/PosixThreadFactory.h>
-#include <thrift/server/TThreadPoolServer.h>
-#include <thrift/protocol/TBinaryProtocol.h>
-#include <thrift/transport/TServerSocket.h>
-#include <thrift/transport/TBufferTransports.h>
-#include <thrift/transport/TSocket.h>
-#define _SHARED_PTR boost
-#endif
-
-#include <osquery/extensions.h>
+#include <osquery/events.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/sql.h>
 
-using namespace apache::thrift;
-using namespace apache::thrift::protocol;
-using namespace apache::thrift::transport;
-using namespace apache::thrift::server;
-using namespace apache::thrift::concurrency;
+#include "osquery/extensions/interface.h"
 
 using namespace osquery::extensions;
 
@@ -53,259 +30,6 @@ FLAG(string,
      extensions_socket,
      "/var/osquery/osquery.em",
      "Path to the extensions UNIX domain socket")
-
-/// Internal accessor for extension clients.
-class EXInternal {
- public:
-  EXInternal(const std::string& path)
-      : socket_(new TSocket(path)),
-        transport_(new TBufferedTransport(socket_)),
-        protocol_(new TBinaryProtocol(transport_)) {}
-
-  virtual ~EXInternal() { transport_->close(); }
-
- protected:
-  _SHARED_PTR::shared_ptr<TSocket> socket_;
-  _SHARED_PTR::shared_ptr<TTransport> transport_;
-  _SHARED_PTR::shared_ptr<TProtocol> protocol_;
-};
-
-/// Internal accessor for a client to an extension (from an extension manager).
-class EXClient : public EXInternal {
- public:
-  EXClient(const std::string& path) : EXInternal(path) {
-    client_ = std::make_shared<ExtensionClient>(protocol_);
-    transport_->open();
-  }
-
-  const std::shared_ptr<ExtensionClient>& get() { return client_; }
-
- private:
-  std::shared_ptr<ExtensionClient> client_;
-};
-
-/// Internal accessor for a client to an extension manager (from an extension).
-class EXManagerClient : public EXInternal {
- public:
-  EXManagerClient(const std::string& manager_path) : EXInternal(manager_path) {
-    client_ = std::make_shared<ExtensionManagerClient>(protocol_);
-    transport_->open();
-  }
-
-  const std::shared_ptr<ExtensionManagerClient>& get() { return client_; }
-
- private:
-  std::shared_ptr<ExtensionManagerClient> client_;
-};
-
-namespace extensions {
-
-void ExtensionHandler::ping(ExtensionStatus& _return) {
-  _return.code = ExtensionCode::EXT_SUCCESS;
-  _return.message = "pong";
-}
-
-void ExtensionHandler::call(ExtensionResponse& _return,
-                            const std::string& registry,
-                            const std::string& item,
-                            const ExtensionPluginRequest& request) {
-  // Call will receive an extension or core's request to call the other's
-  // internal registry call. It is the ONLY actor that resolves registry
-  // item aliases.
-  auto local_item = Registry::getAlias(registry, item);
-
-  PluginResponse response;
-  PluginRequest plugin_request;
-  for (const auto& request_item : request) {
-    plugin_request[request_item.first] = request_item.second;
-  }
-
-  auto status = Registry::call(registry, local_item, request, response);
-  _return.status.code = status.getCode();
-  _return.status.message = status.getMessage();
-
-  if (status.ok()) {
-    for (const auto& response_item : response) {
-      _return.response.push_back(response_item);
-    }
-  }
-}
-
-void ExtensionManagerHandler::registerExtension(
-    ExtensionStatus& _return,
-    const InternalExtensionInfo& info,
-    const ExtensionRegistry& registry) {
-  if (exists(info.name)) {
-    LOG(WARNING) << "Refusing to register duplicate extension " << info.name;
-    _return.code = ExtensionCode::EXT_FAILED;
-    _return.message = "Duplicate extension registered";
-    return;
-  }
-
-  // Every call to registerExtension is assigned a new RouteUUID.
-  RouteUUID uuid = rand();
-  LOG(INFO) << "Registering extension (" << info.name << ", " << uuid
-            << ", version=" << info.version << ", sdk=" << info.sdk_version
-            << ")";
-
-  if (!Registry::addBroadcast(uuid, registry).ok()) {
-    LOG(WARNING) << "Could not add extension (" << info.name << ", " << uuid
-                 << ") broadcast to registry";
-    _return.code = ExtensionCode::EXT_FAILED;
-    _return.message = "Failed adding registry broadcast";
-    return;
-  }
-
-  extensions_[uuid] = info;
-  _return.code = ExtensionCode::EXT_SUCCESS;
-  _return.message = "OK";
-  _return.uuid = uuid;
-}
-
-void ExtensionManagerHandler::deregisterExtension(
-    ExtensionStatus& _return, const ExtensionRouteUUID uuid) {
-  if (extensions_.count(uuid) == 0) {
-    _return.code = ExtensionCode::EXT_FAILED;
-    _return.message = "No extension UUID registered";
-    return;
-  }
-
-  Registry::removeBroadcast(uuid);
-  extensions_.erase(uuid);
-}
-
-void ExtensionManagerHandler::query(ExtensionResponse& _return,
-                                    const std::string& sql) {
-  QueryData results;
-  auto status = osquery::query(sql, results);
-  _return.status.code = status.getCode();
-  _return.status.message = status.getMessage();
-
-  if (status.ok()) {
-    for (const auto& row : results) {
-      _return.response.push_back(row);
-    }
-  }
-}
-
-void ExtensionManagerHandler::getQueryColumns(ExtensionResponse& _return,
-                                              const std::string& sql) {
-  tables::TableColumns columns;
-  auto status = osquery::getQueryColumns(sql, columns);
-  _return.status.code = status.getCode();
-  _return.status.message = status.getMessage();
-
-  if (status.ok()) {
-    for (const auto& column : columns) {
-      _return.response.push_back({{column.first, column.second}});
-    }
-  }
-}
-
-bool ExtensionManagerHandler::exists(const std::string& name) {
-  std::vector<RouteUUID> removed_routes;
-  const auto uuids = Registry::routeUUIDs();
-  for (const auto& ext : extensions_) {
-    // Find extension UUIDs that have gone away.
-    if (std::find(uuids.begin(), uuids.end(), ext.first) == uuids.end()) {
-      removed_routes.push_back(ext.first);
-    }
-  }
-
-  // Remove each from the manager's list of extenion metadata.
-  for (const auto& uuid : removed_routes) {
-    extensions_.erase(uuid);
-  }
-
-  // Search the remaining extension list for duplicates.
-  for (const auto& extension : extensions_) {
-    if (extension.second.name == name) {
-      return true;
-    }
-  }
-  return false;
-}
-}
-
-ExtensionRunner::~ExtensionRunner() { remove(path_); }
-
-void ExtensionRunner::enter() {
-  // Set the socket information for the extension manager.
-  auto socket_path = path_;
-
-  // Create the thrift instances.
-  _SHARED_PTR::shared_ptr<ExtensionHandler> handler(new ExtensionHandler());
-  _SHARED_PTR::shared_ptr<TProcessor> processor(new ExtensionProcessor(handler));
-  _SHARED_PTR::shared_ptr<TServerTransport> serverTransport(
-      new TServerSocket(socket_path));
-  _SHARED_PTR::shared_ptr<TTransportFactory> transportFactory(
-      new TBufferedTransportFactory());
-  _SHARED_PTR::shared_ptr<TProtocolFactory> protocolFactory(
-      new TBinaryProtocolFactory());
-
-  _SHARED_PTR::shared_ptr<ThreadManager> threadManager =
-      ThreadManager::newSimpleThreadManager(FLAGS_worker_threads);
-  _SHARED_PTR::shared_ptr<PosixThreadFactory> threadFactory =
-      _SHARED_PTR::shared_ptr<PosixThreadFactory>(new PosixThreadFactory());
-  threadManager->threadFactory(threadFactory);
-  threadManager->start();
-
-  // Start the Thrift server's run loop.
-  try {
-    TThreadPoolServer server(processor,
-                             serverTransport,
-                             transportFactory,
-                             protocolFactory,
-                             threadManager);
-    server.serve();
-  } catch (const std::exception& e) {
-    LOG(ERROR) << "Cannot start extension handler: " << socket_path << " ("
-               << e.what() << ")";
-    return;
-  }
-}
-
-ExtensionManagerRunner::~ExtensionManagerRunner() {
-  // Remove the socket path.
-  remove(path_);
-}
-
-void ExtensionManagerRunner::enter() {
-  // Set the socket information for the extension manager.
-  auto socket_path = path_;
-
-  // Create the thrift instances.
-  _SHARED_PTR::shared_ptr<ExtensionManagerHandler> handler(
-      new ExtensionManagerHandler());
-  _SHARED_PTR::shared_ptr<TProcessor> processor(
-      new ExtensionManagerProcessor(handler));
-  _SHARED_PTR::shared_ptr<TServerTransport> serverTransport(
-      new TServerSocket(socket_path));
-  _SHARED_PTR::shared_ptr<TTransportFactory> transportFactory(
-      new TBufferedTransportFactory());
-  _SHARED_PTR::shared_ptr<TProtocolFactory> protocolFactory(
-      new TBinaryProtocolFactory());
-
-  _SHARED_PTR::shared_ptr<ThreadManager> threadManager =
-      ThreadManager::newSimpleThreadManager(FLAGS_worker_threads);
-  _SHARED_PTR::shared_ptr<PosixThreadFactory> threadFactory =
-      _SHARED_PTR::shared_ptr<PosixThreadFactory>(new PosixThreadFactory());
-  threadManager->threadFactory(threadFactory);
-  threadManager->start();
-
-  // Start the Thrift server's run loop.
-  try {
-    TThreadPoolServer server(processor,
-                             serverTransport,
-                             transportFactory,
-                             protocolFactory,
-                             threadManager);
-    server.serve();
-  } catch (const std::exception& e) {
-    LOG(WARNING) << "Extensions disabled: cannot start extension manager ("
-                 << socket_path << ") (" << e.what() << ")";
-  }
-}
 
 void ExtensionWatcher::enter() {
   // Watch the manager, if the socket is removed then the extension will die.
@@ -351,6 +75,7 @@ void ExtensionManagerWatcher::watch() {
     } catch (const std::exception& e) {
       LOG(INFO) << "Extension UUID " << uuid << " has gone away";
       Registry::removeBroadcast(uuid);
+      continue;
     }
 
     if (status.code != ExtensionCode::EXT_SUCCESS && fatal_) {
@@ -550,11 +275,14 @@ Status getExtensions(const std::string& manager_path,
   }
 
   // Add the extension manager to the list called (core).
-  extensions.insert(std::make_pair(0, ExtensionInfo("core")));
+  extensions[0] = {"core", OSQUERY_VERSION, "0.0.0", OSQUERY_SDK_VERSION};
 
   // Convert from Thrift-internal list type to RouteUUID/ExtenionInfo type.
-  for (const auto& extension : ext_list) {
-    extensions[extension.first] = extension.second;
+  for (const auto& ext : ext_list) {
+    extensions[ext.first] = {ext.second.name,
+                             ext.second.version,
+                             ext.second.min_sdk_version,
+                             ext.second.sdk_version};
   }
 
   return Status(0, "OK");

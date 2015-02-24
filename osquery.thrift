@@ -14,10 +14,8 @@ struct InternalExtensionInfo {
 
 /// Unique ID for each extension.
 typedef i64 ExtensionRouteUUID
-/// An optional key/value pair provided by extension plugins.
-typedef map<string, string> ExtensionRoute
 /// A map from each plugin name to its optional route information.
-typedef map<string, ExtensionRoute> ExtensionRouteTable
+typedef map<string, ExtensionPluginResponse> ExtensionRouteTable
 /// A map from each registry name.
 typedef map<string, ExtensionRouteTable> ExtensionRegistry
 /// A map from each extension's unique ID to its map of registries.

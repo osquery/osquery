@@ -9,6 +9,7 @@
  */
 
 #include <syslog.h>
+#include <time.h>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
@@ -64,6 +65,7 @@ void announce() {
 }
 
 void initOsquery(int argc, char* argv[], int tool) {
+  std::srand(time(NULL));
   std::string binary(fs::path(std::string(argv[0])).filename().string());
   std::string first_arg = (argc > 1) ? std::string(argv[1]) : "";
 
@@ -94,9 +96,9 @@ void initOsquery(int argc, char* argv[], int tool) {
 
   // Initialize the status and results logger.
   initStatusLogger(binary);
-  if (tool != OSQUERY_EXTENSION) {
-    VLOG(1) << "osquery initializing [version=" OSQUERY_VERSION "]";
+  VLOG(1) << "osquery initialized [version=" OSQUERY_VERSION "]";
 
+  if (tool != OSQUERY_EXTENSION) {
     // Load the osquery config using the default/active config plugin.
     Config::getInstance().load();
 

@@ -21,7 +21,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/core/watcher.h"
 
 namespace pt = boost::property_tree;
 typedef std::map<std::string, std::vector<std::string> > EventFileMap_t;
@@ -49,8 +49,10 @@ Status Config::load() {
     if (Flag::isDefault(option.first)) {
       // Only override if option was NOT given as an argument.
       Flag::updateValue(option.first, option.second);
-      VLOG(1) << "Setting flag option: " << option.first << "="
-              << option.second;
+      if (!osquery::isOsqueryWorker()) {
+        VLOG(1) << "Setting flag option: " << option.first << "="
+                << option.second;
+      }
     }
   }
   cfg_ = conf;

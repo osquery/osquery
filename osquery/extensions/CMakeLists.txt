@@ -10,6 +10,7 @@ add_custom_command(
 ADD_OSQUERY_LIBRARY(TRUE osquery_extensions
   ${OSQUERY_THRIFT_GENERATED_FILES}
   extensions.cpp
+  interface.cpp
 )
 
 ADD_OSQUERY_TEST(TRUE extensions_test extensions_tests.cpp)

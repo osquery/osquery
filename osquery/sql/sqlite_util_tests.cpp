@@ -42,6 +42,19 @@ SQLiteDBInstance getTestDBC() {
   return dbc;
 }
 
+TEST_F(SQLiteUtilTests, test_simple_query_execution) {
+  // Access to the internal SQL implementation is only available in core.
+  auto sql = SQL("SELECT * FROM time");
+  EXPECT_TRUE(sql.ok());
+  EXPECT_EQ(sql.rows().size(), 1);
+}
+
+TEST_F(SQLiteUtilTests, test_get_tables) {
+  // Access to the internal SQL implementation is only available in core.
+  auto tables = SQL::getTableNames();
+  EXPECT_TRUE(tables.size() > 0);
+}
+
 TEST_F(SQLiteUtilTests, test_sqlite_instance_manager) {
   auto dbc1 = SQLiteDBManager::get();
   auto dbc2 = SQLiteDBManager::get();
@@ -58,7 +71,7 @@ TEST_F(SQLiteUtilTests, test_sqlite_instance) {
   EXPECT_EQ(internal_db, SQLiteDBManager::get().db());
 }
 
-TEST_F(SQLiteUtilTests, test_simple_query_execution) {
+TEST_F(SQLiteUtilTests, test_direct_query_execution) {
   auto dbc = getTestDBC();
   QueryData results;
   auto status = queryInternal(kTestQuery, results, dbc.db());

@@ -16,12 +16,16 @@ def get_files_to_compile(json_data):
     for element in json_data:
         filename = element["file"]
         if not filename.endswith("_tests.cpp") and \
-            "third-party" not in filename and \
-            "generated" not in filename:
-            filename = filename.replace(REPO_ROOT_DIR + "/osquery/", "")
-            filename = filename.replace(REPO_ROOT_DIR + "/build/sync/code-analysis/", "")
+                "third-party" not in filename and \
+                "example" not in filename and \
+                "generated/gen" not in filename:
+            base = filename.rfind("osquery/")
+            filename = filename[base + len("osquery/"):]
+            base_generated = filename.rfind("generated/")
+            if base_generated >= 0:
+                filename = filename[base + len("generated/"):]
+            #filename = filename.replace(REPO_ROOT_DIR + "/build/sync/code-analysis/", "")
             files_to_compile.append(filename)
-
     return files_to_compile
 
 TARGETS_PREAMBLE = """
@@ -50,7 +54,6 @@ TARGETS_POSTSCRIPT = """  ],
     "gflags",
     "gtest",
     "rocksdb",
-    "sqlite",
     "libuuid",
   ],
   compiler_flags=[
@@ -58,8 +61,10 @@ TARGETS_POSTSCRIPT = """  ],
     "-Wno-non-virtual-dtor",
     "-Wno-address",
     "-Wno-overloaded-virtual",
-    "-DFBOSQUERY",
-    "-DOSQUERY_BUILD_SDK",
+    "-DOSQUERY_THRIFT_LIB=thrift/lib/cpp",
+    "-DOSQUERY_THRIFT_SERVER_LIB=thrift/lib/cpp/server/example",
+    "-DOSQUERY_THRIFT_POINTER=std",
+    "-DOSQUERY_THRIFT=osquery/gen-cpp/",
   ],
 )
 """

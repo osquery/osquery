@@ -132,10 +132,10 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
     install(PROGRAMS "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.initd"
       DESTINATION "/etc/init.d/" RENAME "osqueryd" COMPONENT main)
   endif()
-else()
-  # Build the example extension with the SDK
-  add_executable(example_extension examples/example_extension.cpp)
-  TARGET_OSQUERY_LINK_WHOLE(example_extension libosquery)
-  set_target_properties(example_extension PROPERTIES OUTPUT_NAME example_extension)
 endif()
+
+# Build the example extension with the SDK
+add_executable(example_extension examples/example_extension.cpp)
+TARGET_OSQUERY_LINK_WHOLE(example_extension libosquery)
+set_target_properties(example_extension PROPERTIES OUTPUT_NAME example_extension)
 

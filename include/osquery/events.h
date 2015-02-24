@@ -21,7 +21,6 @@
 #include <boost/thread/mutex.hpp>
 
 #include <osquery/database.h>
-#include <osquery/dispatcher.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>
@@ -767,6 +766,9 @@ class EventSubscriber : public EventSubscriberPlugin {
 /// Iterate the event publisher registry and create run loops for each using
 /// the event factory.
 void attachEvents();
+
+/// Sleep in a boost::thread interruptable state.
+void interruptableSleep(size_t milli);
 
 CREATE_LAZY_REGISTRY(EventPublisherPlugin, "event_publisher");
 CREATE_REGISTRY(EventSubscriberPlugin, "event_subscriber");

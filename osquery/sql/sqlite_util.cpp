@@ -17,7 +17,14 @@
 #include "osquery/sql/virtual_table.h"
 
 namespace osquery {
+/// SQL provider for osquery internal/core.
+REGISTER_INTERNAL(SQLiteSQLPlugin, "sql", "sql");
 
+/**
+ * @brief A map of SQLite status codes to their corresponding message string
+ *
+ * Details of this map are defined at: http://www.sqlite.org/c3ref/c_abort.html
+ */
 const std::map<int, std::string> kSQLiteReturnCodes = {
     {0, "SQLITE_OK: Successful result"},
     {1, "SQLITE_ERROR: SQL error or missing database"},
@@ -52,6 +59,43 @@ const std::map<int, std::string> kSQLiteReturnCodes = {
     {101, "SQLITE_DONE: sqlite3_step() has finished executing"},
 };
 
+std::string getStringForSQLiteReturnCode(int code) {
+  if (kSQLiteReturnCodes.find(code) != kSQLiteReturnCodes.end()) {
+    return kSQLiteReturnCodes.at(code);
+  } else {
+    std::ostringstream s;
+    s << "Error: " << code << " is not a valid SQLite result code";
+    return s.str();
+  }
+}
+
+Status SQLiteSQLPlugin::attach(const std::string& name) {
+  // This may be the managed DB, or a transient.
+  auto dbc = SQLiteDBManager::get();
+  if (!dbc.isPrimary()) {
+    // Do not "reattach" to transient instance.
+    return Status(0, "OK");
+  }
+
+  PluginResponse response;
+  auto status =
+      Registry::call("table", name, {{"action", "columns"}}, response);
+  if (!status.ok()) {
+    return status;
+  }
+
+  auto statement = tables::columnDefinition(response);
+  return tables::attachTableInternal(name, statement, dbc.db());
+}
+
+void SQLiteSQLPlugin::detach(const std::string& name) {
+  auto dbc = SQLiteDBManager::get();
+  if (!dbc.isPrimary()) {
+    return;
+  }
+  tables::detachTableInternal(name, dbc.db());
+}
+
 SQLiteDBInstance::SQLiteDBInstance() {
   primary_ = false;
   sqlite3_open(":memory:", &db_);
@@ -68,6 +112,7 @@ SQLiteDBInstance::~SQLiteDBInstance() {
     sqlite3_close(db_);
   } else {
     SQLiteDBManager::unlock();
+    db_ = nullptr;
   }
 }
 
@@ -87,6 +132,7 @@ SQLiteDBInstance SQLiteDBManager::get() {
     return SQLiteDBInstance(self.db_);
   } else {
     // If this thread or another has the lock, return a transient db.
+    VLOG(1) << "DBManager contention: opening transient SQLite database";
     return SQLiteDBInstance();
   }
 }
@@ -94,16 +140,7 @@ SQLiteDBInstance SQLiteDBManager::get() {
 SQLiteDBManager::~SQLiteDBManager() {
   if (db_ != nullptr) {
     sqlite3_close(db_);
-  }
-}
-
-std::string getStringForSQLiteReturnCode(int code) {
-  if (kSQLiteReturnCodes.find(code) != kSQLiteReturnCodes.end()) {
-    return kSQLiteReturnCodes.at(code);
-  } else {
-    std::ostringstream s;
-    s << "Error: " << code << " is not a valid SQLite result code";
-    return s.str();
+    db_ = nullptr;
   }
 }
 
@@ -122,12 +159,6 @@ int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
   return 0;
 }
 
-Status queryInternal(const std::string& q, QueryData& results) {
-  auto dbc = SQLiteDBManager::get();
-  auto status = queryInternal(q, results, dbc.db());
-  return status;
-}
-
 Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
   char* err = nullptr;
   sqlite3_exec(db, q.c_str(), queryDataCallback, &results, &err);
@@ -137,13 +168,6 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
   }
 
   return Status(0, "OK");
-}
-
-Status getQueryColumnsInternal(const std::string& q,
-    tables::TableColumns& columns) {
-  auto dbc = SQLiteDBManager::get();
-  Status status = getQueryColumnsInternal(q, columns, dbc.db());
-  return status;
 }
 
 Status getQueryColumnsInternal(const std::string& q,
@@ -165,7 +189,7 @@ Status getQueryColumnsInternal(const std::string& q,
 
   // Get column count
   int num_columns = sqlite3_column_count(stmt);
-  std::vector<std::pair<std::string, std::string> > results;
+  tables::TableColumns results;
   results.reserve(num_columns);
 
   // Get column names and types

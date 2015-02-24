@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -17,25 +17,23 @@
 
 #include <boost/thread.hpp>
 
-#ifdef FBOSQUERY
-#include <thrift/lib/cpp/concurrency/Thread.h>
-#include <thrift/lib/cpp/concurrency/PosixThreadFactory.h>
-#include <thrift/lib/cpp/concurrency/ThreadManager.h>
-#else
-#include <thrift/concurrency/Thread.h>
-#include <thrift/concurrency/PosixThreadFactory.h>
-#include <thrift/concurrency/ThreadManager.h>
-#endif
+#include <osquery/core.h>
 
-#include <osquery/status.h>
-#include <osquery/flags.h>
+// osquery is built with various versions of thrift that use different search
+// paths for their includes. Unfortunately, changing include paths is not
+// possible in every build system.
+// clang-format off
+#include CONCAT(OSQUERY_THRIFT_LIB, /concurrency/Thread.h)
+#include CONCAT(OSQUERY_THRIFT_LIB, /concurrency/ThreadManager.h)
+#include CONCAT(OSQUERY_THRIFT_LIB, /concurrency/PosixThreadFactory.h)
+// clang-format on
+
+using namespace apache::thrift::concurrency;
 
 namespace osquery {
 
-DECLARE_int32(worker_threads);
-
 typedef apache::thrift::concurrency::ThreadManager InternalThreadManager;
-typedef std::shared_ptr<InternalThreadManager> InternalThreadManagerRef;
+typedef OSQUERY_THRIFT_POINTER::shared_ptr<InternalThreadManager> InternalThreadManagerRef;
 
 /**
  * @brief Default number of threads in the thread pool.
@@ -69,7 +67,12 @@ class InternalRunnable : public apache::thrift::concurrency::Runnable {
   bool run_;
 };
 
-typedef boost::shared_ptr<InternalRunnable> InternalRunnableRef;
+/// An internal runnable used throughout osquery as dispatcher services.
+typedef std::shared_ptr<InternalRunnable> InternalRunnableRef;
+typedef std::shared_ptr<boost::thread> InternalThreadRef;
+/// A thrift internal runnable with variable pointer wrapping.
+typedef OSQUERY_THRIFT_POINTER::shared_ptr<InternalRunnable> ThriftInternalRunnableRef;
+typedef OSQUERY_THRIFT_POINTER::shared_ptr<PosixThreadFactory> ThriftThreadFactory;
 
 /**
  * @brief Singleton for queueing asynchronous tasks to be executed in parallel
@@ -120,10 +123,10 @@ class Dispatcher {
    * @return an instance of osquery::Status, indicating the success or failure
    * of the operation.
    */
-  Status add(std::shared_ptr<InternalRunnable> task);
+  Status add(ThriftInternalRunnableRef task);
 
   /// See `add`, but services are not limited to a thread poll size.
-  Status addService(std::shared_ptr<InternalRunnable> service);
+  Status addService(InternalRunnableRef service);
 
   /**
    * @brief Getter for the underlying thread manager instance.
@@ -258,11 +261,8 @@ class Dispatcher {
    */
   InternalThreadManagerRef thread_manager_;
   /// The set of shared osquery service threads.
-  std::vector<std::shared_ptr<boost::thread> > service_threads_;
+  std::vector<InternalThreadRef> service_threads_;
   /// THe set of shared osquery services.
-  std::vector<std::shared_ptr<InternalRunnable> > services_;
+  std::vector<InternalRunnableRef> services_;
 };
-
-/// Sleep in a boost::thread interruptable state.
-void interruptableSleep(size_t milli);
 }
