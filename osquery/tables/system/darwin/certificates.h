@@ -19,23 +19,23 @@
 namespace osquery {
 namespace tables {
 
-std::string genKIDProperty(const CFDataRef&);
-std::string genCommonNameProperty(const CFDataRef&);
-std::string genAlgorithmProperty(const CFDataRef&);
-
 typedef std::string (*PropGenerator)(const CFDataRef&);
-typedef std::pair<CFTypeRef, PropGenerator> Property;
 
-extern const std::vector<std::string> kSystemKeychainPaths;
-extern const std::vector<std::string> kUserKeychainPaths;
-extern const std::map<std::string, Property> kCertificateProperties;
+struct CertProperty {
+  CFTypeRef type;
+  PropGenerator generate;
+};
+
+extern const std::map<std::string, CertProperty> kCertificateProperties;
 
 std::string genKIDProperty(const CFDataRef& kid);
-std::string genCommonNameProperty(const CFDataRef& ca);
-std::string genAlgorithmProperty(const CFDataRef& alg);
+std::string genCommonNameProperty(const CFDataRef& constraints);
+std::string genAlgProperty(const CFDataRef& alg);
+std::string genCAProperty(const CFDataRef& ca);
+
+/// Not a property generator, do not use in kCertificateProperties.
 std::string genSHA1ForCertificate(const SecCertificateRef& ca);
 
-CFNumberRef CFNumberCreateCopy(const CFNumberRef& number);
 CFDataRef CreatePropertyFromCertificate(const SecCertificateRef& cert,
                                         const CFTypeRef& oid);
 bool CertificateIsCA(const SecCertificateRef& cert);

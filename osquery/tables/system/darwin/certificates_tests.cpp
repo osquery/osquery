@@ -22,12 +22,12 @@
 namespace osquery {
 namespace tables {
 
-bool CertificateIsCA(const SecCertificateRef&);
 CFDataRef CreatePropertyFromCertificate(const SecCertificateRef&,
                                         const CFTypeRef&);
 std::string genSHA1ForCertificate(const SecCertificateRef&);
 std::string genCommonNameProperty(const CFDataRef&);
 std::string genKIDProperty(const CFDataRef&);
+std::string genCAProperty(const CFDataRef& constraints);
 
 class CACertsTests : public ::testing::Test {
  protected:
@@ -50,13 +50,8 @@ class CACertsTests : public ::testing::Test {
   SecCertificateRef cert;
 };
 
-TEST_F(CACertsTests, test_certificate_is_ca) {
-  EXPECT_EQ(true, CertificateIsCA(cert));
-}
-
 TEST_F(CACertsTests, test_certificate_sha1) {
   std::string sha1;
-
   sha1 = genSHA1ForCertificate(cert);
 
   EXPECT_EQ("f149bae28e3c754ff4bb062b2c1b8bac81b8783e", sha1);
@@ -86,6 +81,13 @@ TEST_F(CACertsTests, test_certificate_properties) {
   prop_string = stringFromCFNumber(property);
 
   EXPECT_EQ("430168336", prop_string);
+  CFRelease(property);
+
+  oid = kSecOIDBasicConstraints;
+  property = CreatePropertyFromCertificate(cert, oid);
+  prop_string = genCAProperty(property);
+
+  EXPECT_EQ("1", prop_string);
   CFRelease(property);
 }
 }
