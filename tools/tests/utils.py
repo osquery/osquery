@@ -13,6 +13,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import json
+import os
 import sys
 
 def red(msg):
@@ -61,7 +62,7 @@ def queries_from_tables(path, restrict):
     """Construct select all queries from all tables."""
     # Let the caller limit the tables
     restrict_tables = [t.strip() for t in restrict.split(",")]
-
+    platform = sys.platform if sys.platform is not "linux2" else "linux"
     tables = []
     for base, _, files in os.walk(path):
         for spec in files:

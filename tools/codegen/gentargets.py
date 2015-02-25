@@ -23,16 +23,19 @@ def get_files_to_compile(json_data):
             filename = filename[base + len("osquery/"):]
             base_generated = filename.rfind("generated/")
             if base_generated >= 0:
-                filename = filename[base + len("generated/"):]
-            #filename = filename.replace(REPO_ROOT_DIR + "/build/sync/code-analysis/", "")
+                filename = filename[base_generated + len("generated/"):]
             files_to_compile.append(filename)
     return files_to_compile
 
 TARGETS_PREAMBLE = """
+# DO NOT EDIT
+# Automatically generated: make sync
+
 thrift_library(
   name="if",
   languages=[
     "cpp",
+    "py",
   ],
   thrift_srcs={
     "extensions/osquery.thrift": ["Extension", "ExtensionManager"],
@@ -61,6 +64,8 @@ TARGETS_POSTSCRIPT = """  ],
     "-Wno-non-virtual-dtor",
     "-Wno-address",
     "-Wno-overloaded-virtual",
+    "-DOSQUERY_BUILD_VERSION=%s",
+    "-DOSQUERY_BUILD_SDK_VERSION=%s",
     "-DOSQUERY_THRIFT_LIB=thrift/lib/cpp",
     "-DOSQUERY_THRIFT_SERVER_LIB=thrift/lib/cpp/server/example",
     "-DOSQUERY_THRIFT_POINTER=std",
@@ -74,6 +79,8 @@ if __name__ == "__main__":
         "Generate a TARGETS files from CMake metadata"
     ))
     parser.add_argument("--input", "-i", required=True)
+    parser.add_argument("--version", "-v", required=True)
+    parser.add_argument("-sdk", required=True)
     args = parser.parse_args()
 
     try:
@@ -87,7 +94,7 @@ if __name__ == "__main__":
             print(TARGETS_PREAMBLE)
             for source_file in source_files:
                 print("    \"%s\"," % source_file)
-            print(TARGETS_POSTSCRIPT)
+            print(TARGETS_POSTSCRIPT % (args.version, args.sdk))
 
     except IOError:
         logging.critical("Error: %s doesn't exist" % args.input)
