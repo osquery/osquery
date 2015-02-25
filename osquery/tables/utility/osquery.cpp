@@ -13,6 +13,7 @@
 #include <osquery/extensions.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
@@ -38,6 +39,36 @@ QueryData genOsqueryFlags(QueryContext& context) {
   auto flags = Flag::flags();
   for (const auto& flag : flags) {
     genFlag(flag.first, flag.second, results);
+  }
+
+  return results;
+}
+
+QueryData genOsqueryRegistry(QueryContext& context) {
+  QueryData results;
+
+  const auto& registries = RegistryFactory::all();
+  for (const auto& registry : registries) {
+    const auto& plugins = registry.second->all();
+    for (const auto& plugin : plugins) {
+      Row r;
+      r["registry"] = registry.first;
+      r["name"] = plugin.first;
+      r["owner_uuid"] = "0";
+      r["internal"] = (registry.second->isInternal(plugin.first)) ? "1" : "0";
+      r["active"] = "1";
+      results.push_back(r);
+    }
+
+    for (const auto& route : registry.second->getExternal()) {
+      Row r;
+      r["registry"] = registry.first;
+      r["name"] = route.first;
+      r["owner_uuid"] = INTEGER(route.second);
+      r["internal"] = "0";
+      r["active"] = "1";
+      results.push_back(r);
+    }
   }
 
   return results;

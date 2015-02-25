@@ -31,6 +31,10 @@ FLAG(string,
      "/var/osquery/osquery.em",
      "Path to the extensions UNIX domain socket")
 
+/// Alias the extensions_socket (used by core) to an alternate name reserved
+/// for extension binaries
+EXTENSION_FLAG_ALIAS(std::string, socket, extensions_socket);
+
 void ExtensionWatcher::enter() {
   // Watch the manager, if the socket is removed then the extension will die.
   while (true) {
