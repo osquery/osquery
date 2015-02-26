@@ -244,7 +244,7 @@ Status doubleStarTraversal(const boost::filesystem::path& fs_path,
  */
 Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
                                 std::vector<std::string>& results,
-                                unsigned int setting,
+                                ReturnSetting setting,
                                 const std::vector<std::string>& components,
                                 unsigned int rec_depth) {
   // Is the last component a double star?
@@ -365,7 +365,7 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
  */
 Status resolveFilePattern(std::vector<std::string> components,
                           std::vector<std::string>& results,
-                          unsigned int setting = REC_LIST_FILES,
+                          ReturnSetting setting = REC_LIST_FILES,
                           unsigned int processed_index = 0,
                           unsigned int rec_depth = 0) {
 
@@ -472,7 +472,7 @@ Status resolveFilePattern(const boost::filesystem::path& fs_path,
 
 Status resolveFilePattern(const boost::filesystem::path& fs_path,
                           std::vector<std::string>& results,
-                          unsigned int setting) {
+                          ReturnSetting setting) {
   return resolveFilePattern(split(fs_path.string(), "/"), results, setting);
 }
 

@@ -60,6 +60,7 @@ void FileChangesEventSubscriber::init() {
   for (const auto& element_kv : file_map) {
     for (const auto& file : element_kv.second) {
       auto mc = createSubscriptionContext();
+      mc->recursive = 1;
       mc->path = file;
       mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
       subscribe(&FileChangesEventSubscriber::Callback, mc,

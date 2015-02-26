@@ -56,7 +56,6 @@ REGISTER(FileChangesEventSubscriber, "event_subscriber", "file_changes");
 
 void FileChangesEventSubscriber::init() {
   const auto& file_map = Config::getInstance().getWatchedFiles();
-  const auto& folder_set = Config::getInstance().getWatchedFiles();
   for (const auto& element_kv : file_map) {
     for (const auto& file : element_kv.second) {
       auto mc = createSubscriptionContext();

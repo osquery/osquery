@@ -419,6 +419,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
   // The runloop status is not reflective of the event type's.
   publisher->tearDown();
   VLOG(1) << "Event publisher " << publisher->type() << " runloop terminated";
+  VLOG(1) << "Reason Given: " << status.getMessage();
   return Status(0, "OK");
 }
 
