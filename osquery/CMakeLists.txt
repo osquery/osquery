@@ -80,6 +80,11 @@ add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
 target_link_libraries(libosquery ${OSQUERY_LIBS})
 set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
 
+add_custom_target(BUILD_LIB_SUCCESS ALL
+  DEPENDS libosquery
+  COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold "Built libosquery: ${CMAKE_BINARY_DIR}"
+)
+
 # make devel (implies install)
 add_custom_target(devel
   COMMAND ${CMAKE_COMMAND}
@@ -138,4 +143,3 @@ endif()
 add_executable(example_extension examples/example_extension.cpp)
 TARGET_OSQUERY_LINK_WHOLE(example_extension libosquery)
 set_target_properties(example_extension PROPERTIES OUTPUT_NAME example_extension)
-
