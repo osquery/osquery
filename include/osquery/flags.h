@@ -47,6 +47,12 @@ struct FlagInfo {
   FlagDetail detail;
 };
 
+struct FlagAliasDetail {
+  std::string name;
+  bool shell;
+  bool external;
+};
+
 /**
  * @brief A small tracking wrapper for options, binary flags.
  *
@@ -66,7 +72,7 @@ class Flag {
   static int create(const std::string& name, const FlagDetail& flag);
 
   /// Create a Gflags alias to name, using the Flag::getValue accessor.
-  static int createAlias(const std::string& alias, const std::string& name);
+  static int createAlias(const std::string& alias, const FlagAliasDetail& flag);
 
   static Flag& instance() {
     static Flag f;
@@ -126,6 +132,13 @@ class Flag {
   static std::string getType(const std::string& name);
 
   /*
+   * @brief Get the description as a string of an osquery flag.
+   *
+   * @param name the flag name.
+   */
+  static std::string getDescription(const std::string& name);
+
+  /*
    * @brief Print help-style output to stdout for a given flag set.
    *
    * @param shell Only print shell flags.
@@ -135,7 +148,7 @@ class Flag {
 
  private:
   std::map<std::string, FlagDetail> flags_;
-  std::map<std::string, std::string> aliases_;
+  std::map<std::string, FlagAliasDetail> aliases_;
 };
 
 /**
@@ -185,10 +198,14 @@ class FlagAlias {
 #define SHELL_FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, true, false)
 #define EXTENSION_FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, false, true)
 
-#define FLAG_ALIAS(t, a, n)                             \
-  FlagAlias<t> FLAGS_##a(#a, #t, #n, &FLAGS_##n);       \
-  namespace flags {                                     \
-  static GFLAGS_NAMESPACE::FlagRegisterer oflag_##a(    \
-    #a, #t, #a, #a, &FLAGS_##n, &FLAGS_##n);            \
-  const int flag_alias_##a = Flag::createAlias(#a, #n); \
+#define OSQUERY_FLAG_ALIAS(t, a, n, s, e)                       \
+  FlagAlias<t> FLAGS_##a(#a, #t, #n, &FLAGS_##n);               \
+  namespace flags {                                             \
+  static GFLAGS_NAMESPACE::FlagRegisterer oflag_##a(            \
+      #a, #t, #a, #a, &FLAGS_##n, &FLAGS_##n);                  \
+  const int flag_alias_##a = Flag::createAlias(#a, {#n, s, e}); \
   }
+
+#define FLAG_ALIAS(t, a, n) OSQUERY_FLAG_ALIAS(t, a, n, false, false)
+#define SHELL_FLAG_ALIAS(t, a, n) _OSQUERY_FLAG_ALIAS(t, a, n, true, false)
+#define EXTENSION_FLAG_ALIAS(t, a, n) OSQUERY_FLAG_ALIAS(t, a, n, false, true)

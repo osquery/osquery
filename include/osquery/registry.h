@@ -226,6 +226,23 @@ class RegistryHelperCore {
   /// Allow the registry to introspect into the registered name (for logging).
   void setName(const std::string& name);
 
+  /// Allow others to introspect into the registered name (for reporting).
+  const std::string& getName() const { return name_; }
+
+  /// Check if a given plugin name is considered internal.
+  bool isInternal(const std::string& item_name) const;
+
+  /// Allow others to introspect into the routes from extensions.
+  const std::map<std::string, RouteUUID>& getExternal() const {
+    return external_;
+  }
+
+  /// Set an 'active' plugin to receive registry calls when no item name given.
+  Status setActive(const std::string& item_name);
+
+  /// Get the 'active' plugin, return success with the active plugin name.
+  Status getActive() const;
+
  protected:
   /// The identifier for this registry, used to register items.
   std::string name_;
@@ -244,6 +261,9 @@ class RegistryHelperCore {
   std::map<std::string, PluginResponse> routes_;
   /// Keep a lookup of registry items that are blacklisted from broadcast.
   std::vector<std::string> internal_;
+  /// Support an 'active' mode where calls without a specific item name will
+  /// be directed to the 'active' plugin.
+  std::string active_;
 };
 
 /**
@@ -497,6 +517,19 @@ class RegistryFactory : private boost::noncopyable {
                      const std::string& item_name,
                      const PluginRequest& request);
 
+  /// A helper call that uses the active plugin (if the registry has one).
+  static Status call(const std::string& registry_name,
+                     const PluginRequest& request,
+                     PluginResponse& response);
+
+  /// A helper call that uses the active plugin (if the registry has one).
+  static Status call(const std::string& registry_name,
+                     const PluginRequest& request);
+
+  /// Set a registry's active plugin.
+  static Status setActive(const std::string& registry_name,
+                          const std::string& item_name);
+
   /// Run `setUp` on every registry that is not marked 'lazy'.
   static void setUp();
 
@@ -504,6 +537,9 @@ class RegistryFactory : private boost::noncopyable {
   static bool exists(const std::string& registry_name,
                      const std::string& item_name,
                      bool local = false);
+
+  /// Get a list of the registry names.
+  static std::vector<std::string> names();
 
   /// Get a list of the registry item names for a given registry.
   static std::vector<std::string> names(const std::string& registry_name);

@@ -46,10 +46,19 @@ void printUsage(const std::string& binary, int tool) {
   } else {
     fprintf(stdout, "Usage: %s [OPTION]...\n\n", binary.c_str());
   }
-  fprintf(stdout, "The following options control osquery.\n\n");
 
-  // Print only the core/internal flags.
-  Flag::printFlags();
+  fprintf(stdout, "The following options control osquery");
+  if (tool == OSQUERY_EXTENSION) {
+    fprintf(stdout, " extensions");
+  }
+  fprintf(stdout, ".\n\n");
+
+  // Print only the core/internal or extension flags.
+  if (tool == OSQUERY_EXTENSION) {
+    Flag::printFlags(false, true);
+  } else {
+    Flag::printFlags();
+  }
 
   if (tool == OSQUERY_TOOL_SHELL) {
     // Print shell flags.

@@ -38,11 +38,33 @@ void RegistryHelperCore::remove(const std::string& item_name) {
   }
 }
 
+bool RegistryHelperCore::isInternal(const std::string& item_name) const {
+  if (std::find(internal_.begin(), internal_.end(), item_name) ==
+      internal_.end()) {
+    return false;
+  }
+  return true;
+}
+
+Status RegistryHelperCore::setActive(const std::string& item_name) {
+  if (items_.count(item_name) == 0 && external_.count(item_name) == 0) {
+    return Status(1, "Unknown registry item");
+  }
+  active_ = item_name;
+  return Status(0, "OK");
+}
+
+Status RegistryHelperCore::getActive() const {
+  if (active_.size() > 0) {
+    return Status(0, active_);
+  }
+  return Status(1, "No active registry item");
+}
+
 RegistryRoutes RegistryHelperCore::getRoutes() const {
   RegistryRoutes route_table;
   for (const auto& item : items_) {
-    if (std::find(internal_.begin(), internal_.end(), item.first) !=
-        internal_.end()) {
+    if (isInternal(item.first)) {
       // This is an internal plugin, do not include the route.
       continue;
     }
@@ -206,6 +228,11 @@ Status RegistryFactory::addBroadcast(const RouteUUID& uuid,
       // If any registry fails to add the set of external routes, stop.
       break;
     }
+
+    for (const auto& plugin : registry.second) {
+      VLOG(1) << "Extension " << uuid << " registered " << registry.first
+              << " plugin " << plugin.first;
+    }
   }
 
   // If any registry failed, remove each (assume a broadcast is atomic).
@@ -270,6 +297,30 @@ Status RegistryFactory::call(const std::string& registry_name,
   return call(registry_name, item_name, request, response);
 }
 
+Status RegistryFactory::call(const std::string& registry_name,
+                             const PluginRequest& request,
+                             PluginResponse& response) {
+  auto status = registry(registry_name)->getActive();
+  if (!status.ok()) {
+    return status;
+  }
+  return registry(registry_name)->call(status.getMessage(), request, response);
+}
+
+Status RegistryFactory::call(const std::string& registry_name,
+                             const PluginRequest& request) {
+  PluginResponse response;
+  return call(registry_name, request, response);
+}
+
+Status RegistryFactory::setActive(const std::string& registry_name,
+                                  const std::string& item_name) {
+  if (!exists(registry_name, item_name)) {
+    return Status(1, "Registry plugin does not exist");
+  }
+  return registry(registry_name)->setActive(item_name);
+}
+
 void RegistryFactory::setUp() {
   for (const auto& registry : instance().all()) {
     registry.second->setUp();
@@ -285,6 +336,14 @@ bool RegistryFactory::exists(const std::string& registry_name,
 
   // Check the registry.
   return registry(registry_name)->exists(item_name, local);
+}
+
+std::vector<std::string> RegistryFactory::names() {
+  std::vector<std::string> names;
+  for (const auto& registry : all()) {
+    names.push_back(registry.second->getName());
+  }
+  return names;
 }
 
 std::vector<std::string> RegistryFactory::names(
