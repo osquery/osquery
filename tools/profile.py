@@ -52,11 +52,11 @@ def get_stats(p, interval=1):
     }
 
 
-def check_leaks_linux(shell, query, supp_file=None):
+def check_leaks_linux(shell, query, count=1, supp_file=None):
     """Run valgrind using the shell and a query, parse leak reports."""
     suppressions = "" if supp_file is None else "--suppressions=%s" % supp_file
-    cmd = "valgrind --tool=memcheck %s %s --query=\"%s\"" % (
-        suppressions, shell, query)
+    cmd = "valgrind --tool=memcheck %s %s --iterations=%d --query=\"%s\"" % (
+        suppressions, shell, count, query)
     proc = subprocess.Popen(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
@@ -75,10 +75,11 @@ def check_leaks_linux(shell, query, supp_file=None):
     return summary
 
 
-def check_leaks_darwin(shell, query):
+def check_leaks_darwin(shell, query, count=1):
     # Run the shell with a --delay flag such that leaks can attach before exit.
-    proc = subprocess.Popen([shell, "--query", query, "--delay", "1"],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        [shell, "--query", query, "--iterations", str(count), "--delay", "1"],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     leak_checks = None
     while proc.poll() is None:
         # Continue to run leaks until the monitored shell exits.
@@ -99,11 +100,11 @@ def check_leaks_darwin(shell, query):
     return {"definitely": leak_checks}
 
 
-def check_leaks(shell, query, supp_file=None):
+def check_leaks(shell, query, count=1, supp_file=None):
     if sys.platform == "darwin":
-        return check_leaks_darwin(shell, query)
+        return check_leaks_darwin(shell, query, count=count)
     else:
-        return check_leaks_linux(shell, query, supp_file=supp_file)
+        return check_leaks_linux(shell, query, count=count, supp_file=supp_file)
 
 
 def profile_leaks(shell, queries, count=1, rounds=1, supp_file=None):
@@ -111,7 +112,7 @@ def profile_leaks(shell, queries, count=1, rounds=1, supp_file=None):
     for name, query in queries.iteritems():
         print ("Analyzing leaks in query: %s" % query)
         # Apply count (optionally run the query several times).
-        summary = check_leaks(shell, query * count, supp_file)
+        summary = check_leaks(shell, query, count, supp_file)
         display = []
         for key in summary:
             output = summary[key]

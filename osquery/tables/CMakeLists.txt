@@ -6,7 +6,7 @@ if(APPLE)
     system/darwin/osx_version.mm
     system/darwin/users.mm
     system/darwin/groups.mm
-    system/darwin/ca_certs.mm
+    system/darwin/certificates.mm
   )
 
   ADD_OSQUERY_LIBRARY(FALSE osquery_tables_darwin
@@ -17,7 +17,7 @@ if(APPLE)
     system/darwin/acpi_tables.cpp
     system/darwin/apps.cpp
     system/darwin/block_devices.cpp
-    system/darwin/ca_certs_utils.cpp
+    system/darwin/certificates_utils.cpp
     system/darwin/firewall.h
     system/darwin/firewall.cpp
     system/darwin/homebrew_packages.cpp
@@ -129,7 +129,7 @@ ADD_OSQUERY_TEST(FALSE etc_hosts_tests networking/etc_hosts_tests.cpp)
 if(APPLE)
   ADD_OSQUERY_TEST(FALSE xattr_tests system/darwin/xattr_tests.cpp)
   ADD_OSQUERY_TEST(FALSE apps_tests system/darwin/apps_tests.cpp)
-  ADD_OSQUERY_TEST(FALSE ca_certs_tests system/darwin/ca_certs_tests.cpp)
+  ADD_OSQUERY_TEST(FALSE certificates_tests system/darwin/certificates_tests.cpp)
   ADD_OSQUERY_TEST(FALSE firewall_tests system/darwin/firewall_tests.cpp)
   ADD_OSQUERY_TEST(FALSE launchd_tests system/darwin/launchd_tests.cpp)
 endif()

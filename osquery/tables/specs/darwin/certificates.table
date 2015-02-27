@@ -1,7 +1,8 @@
-table_name("ca_certs")
+table_name("certificates")
 description("Certificate Authorities installed in Keychains/ca-bundles.")
 schema([
-    Column("common_name", TEXT, "CommonName of the CA"),
+    Column("common_name", TEXT, "Certificate CommonName"),
+    Column("ca", INTEGER, "1 if CA: true (certificate is an authority) else 0"),
     Column("not_valid_before", DATETIME, "Lower bound of valid date"),
     Column("not_valid_after", DATETIME, "Certificate expiration data"),
     Column("key_algorithm", TEXT, "Key algorithm used"),
@@ -9,6 +10,7 @@ schema([
     Column("subject_key_id", TEXT, "SKID an optionally included SHA1"),
     Column("authority_key_id", TEXT, "AKID an optionally included SHA1"),
     Column("sha1", TEXT, "SHA1 hash of the raw certificate contents"),
+    Column("path", TEXT, "Path to Keychain or PEM bundle"),
 
 ])
-implementation("ca_certs@genCerts")
+implementation("certificates@genCerts")
