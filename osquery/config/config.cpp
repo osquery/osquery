@@ -105,13 +105,15 @@ Status Config::genConfig(OsqueryConfig& conf) {
     }
 
     if (tree.count("additional_monitoring") > 0) {
+      ReturnSetting settings = REC_LIST_FOLDERS | REC_EVENT_OPT;
       for (const pt::ptree::value_type& v :
            tree.get_child("additional_monitoring")) {
         if (v.first == "file_paths") {
           for (const pt::ptree::value_type& file_cat : v.second) {
             for (const pt::ptree::value_type& file : file_cat.second) {
               osquery::resolveFilePattern(file.second.get_value<std::string>(),
-                                          conf.eventFiles[file_cat.first], REC_LIST_FOLDERS);
+                                          conf.eventFiles[file_cat.first],
+                                          settings);
             }
           }
         }

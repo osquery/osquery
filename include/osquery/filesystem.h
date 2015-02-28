@@ -26,8 +26,13 @@ namespace osquery {
  * this many wildcards.
  */
 const unsigned int kMaxDirectoryTraversalDepth = 40;
-
-enum ReturnSetting {REC_LIST_FILES, REC_LIST_FOLDERS, REC_LIST_ALL};
+typedef unsigned int ReturnSetting;
+enum {
+  REC_LIST_FILES = 0x1, // Return only files
+  REC_LIST_FOLDERS = 0x2, // Return only folders
+  REC_EVENT_OPT = 0x4, // Enable optimizations for file event resolutions
+  REC_LIST_ALL = REC_LIST_FILES | REC_LIST_FOLDERS
+};
 
 const std::string kWildcardCharacter = "%";
 const std::string kWildcardCharacterRecursive =

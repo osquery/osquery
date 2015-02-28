@@ -9,6 +9,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <iostream>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
@@ -72,6 +73,9 @@ TEST_F(ConfigTests, test_threatfiles_execute) {
 
   EXPECT_EQ(files.size(), 2);
   EXPECT_EQ(files["downloads"].size(), 1);
+  for (const auto& file : files["system_binaries"]) {
+    std::cout << file << "\n";
+  }
   EXPECT_EQ(files["system_binaries"].size(), 2);
 }
 }
