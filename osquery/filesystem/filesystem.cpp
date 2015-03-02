@@ -214,15 +214,15 @@ Status doubleStarTraversal(const boost::filesystem::path& fs_path,
   if (!stat.ok()) {
     return Status(0, "OK");
   }
-
+  if (setting & REC_LIST_FOLDERS) {
+    results.push_back(fs_path.string());
+  }
   for (const auto& folder : folders) {
     boost::filesystem::path p(folder);
     if (boost::filesystem::is_symlink(p)) {
       continue;
     }
-    if (setting & REC_LIST_FOLDERS) {
-      results.push_back(folder);
-    }
+
     stat = doubleStarTraversal(folder, results, setting, rec_depth + 1);
     if (!stat.ok() && stat.getCode() == 2) {
       return stat;

@@ -161,12 +161,13 @@ TEST_F(FilesystemTests, test_wildcard_single_all_list) {
             all.end());
 }
 
-TEST_F(FilesystemTests, test_wildcard_double_files) {
+TEST_F(FilesystemTests, test_wildcard_double_folders) {
   std::vector<std::string> all;
   auto status =
       resolveFilePattern(kFakeDirectory + "/%%", all, REC_LIST_FOLDERS);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(all.size(), 5);
+  EXPECT_EQ(all.size(), 6);
+  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory), all.end());
   EXPECT_NE(
       std::find(all.begin(), all.end(), kFakeDirectory + "/deep11/deep2/deep3"),
       all.end());
@@ -176,20 +177,32 @@ TEST_F(FilesystemTests, test_wildcard_double_all) {
   std::vector<std::string> all;
   auto status = resolveFilePattern(kFakeDirectory + "/%%", all, REC_LIST_ALL);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(all.size(), 14);
+  EXPECT_EQ(all.size(), 15);
   EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory + "/roto.txt"),
             all.end());
   EXPECT_NE(
       std::find(all.begin(), all.end(), kFakeDirectory + "/deep11/deep2/deep3"),
       all.end());
 }
-TEST_F(FilesystemTests, test_double_wild_fsevent) {
+TEST_F(FilesystemTests, test_double_wild_event_opt) {
   std::vector<std::string> all;
   auto status = resolveFilePattern(kFakeDirectory + "/%%", all,
                                    REC_LIST_FOLDERS | REC_EVENT_OPT);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(all.size(), 1);
   EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory), all.end());
+}
+
+TEST_F(FilesystemTests, test_letter_wild_opt) {
+  std::vector<std::string> all;
+  auto status = resolveFilePattern(kFakeDirectory + "/d%", all,
+                                   REC_LIST_FOLDERS | REC_EVENT_OPT);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(all.size(), 3);
+  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory + "/deep1"),
+            all.end());
+  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory + "/door.txt"),
+            all.end());
 }
 }
 
