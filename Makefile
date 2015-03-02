@@ -16,41 +16,43 @@ else
 	endif
 endif
 
+DEFINES := CTEST_OUTPUT_ON_FAILURE=1
+
 all: .setup
 	cd build/$(BUILD_DIR) && cmake ../.. && \
-		$(MAKE) --no-print-directory $(MAKEFLAGS)
+		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 debug: .setup
 	cd build/$(BUILD_DIR) && DEBUG=True cmake ../../ && \
-		$(MAKE) --no-print-directory $(MAKEFLAGS)
+		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_debug: .setup
 	cd build/$(BUILD_DIR) && DEBUG=True cmake ../../ && \
-	  $(MAKE) test --no-print-directory $(MAKEFLAGS)
+	  $(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 analyze: .setup
 	cd build/$(BUILD_DIR) && ANALYZE=True cmake ../../ && \
-	  $(MAKE) --no-print-directory $(MAKEFLAGS)
+	  $(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 sanitize: .setup
 	cd build/$(BUILD_DIR) && SANITIZE=True cmake ../../ && \
-	  $(MAKE) --no-print-directory $(MAKEFLAGS)
+	  $(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 sdk: .setup
 	cd build/$(BUILD_DIR) && SDK=True cmake ../../ && \
-	  $(MAKE) --no-print-directory $(MAKEFLAGS)
+	  $(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_sdk: .setup
 	cd build/$(BUILD_DIR) && SDK=True cmake ../../ && \
-	  $(MAKE) test --no-print-directory $(MAKEFLAGS)
+	  $(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 debug_sdk: .setup
 	cd build/$(BUILD_DIR) && SDK=True DEBUG=True cmake ../../ && \
-	  $(MAKE) --no-print-directory $(MAKEFLAGS)
+	  $(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_debug_sdk: .setup
 	cd build/$(BUILD_DIR) && SDK=True DEBUG=True cmake ../../ && \
-	  $(MAKE) test --no-print-directory $(MAKEFLAGS)
+	  $(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 deps: .setup
 	./tools/provision.sh build build/$(BUILD_DIR)
@@ -71,7 +73,8 @@ endif
 package:
 	# Alias for packages (do not use CPack)
 	cd build/$(BUILD_DIR) && cmake ../../ && \
-		$(MAKE) packages --no-print-directory $(MAKEFLAGS)
+		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
 %::
-	cd build/$(BUILD_DIR) && cmake ../.. && $(MAKE) --no-print-directory $@
+	cd build/$(BUILD_DIR) && cmake ../.. && \
+	  $(DEFINES) $(MAKE) --no-print-directory $@

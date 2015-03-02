@@ -22,12 +22,6 @@ import threading
 import unittest
 
 try:
-    import argparse
-except ImportError:
-    print ("Cannot import argparse: pip install argparse?")
-    exit(1)
-
-try:
     from thrift import Thrift
     from thrift.transport import TSocket
     from thrift.transport import TTransport
@@ -36,108 +30,8 @@ except ImportError:
     print ("Cannot import thrift: pip install thrift?")
     exit(1)
 
-# Import the testing utils
-sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/tests/")
-try:
-    from utils import *
-except ImportError:
-    print ("Cannot import osquery testing utils from ./tools/tests")
-    exit(1)
-
-# For each daemon test, write a config
-CONFIG_NAME = "/tmp/osquery-extensions-test"
-DEFAULT_CONFIG = {
-    "options": {
-        "db_path": "%s.db" % CONFIG_NAME,
-        "pidfile": "%s.pid" % CONFIG_NAME,
-        "config_path": "%s.conf" % CONFIG_NAME,
-        "extensions_socket": "%s.em" % CONFIG_NAME,
-        "watchdog_level": "3",
-        "disable_logging": "true",
-        "force": "true",
-    },
-    "scheduledQueries": [],
-}
-
-# Defaults
-PLATFORM = sys.platform if sys.platform != "linux2" else "linux"
-CONFIG = DEFAULT_CONFIG
-VERBOSE = False
-BUILD = "./build/%s/" % (PLATFORM)
-
-class ProcRunner(object):
-    def __init__(self, name, path, _args=[], interval=0.2, silent=False):
-        self.proc = None
-        self.name = name
-        self.path = path
-        self.args = _args
-        self.interval = interval
-        self.silent = silent
-        thread = threading.Thread(target=self.run, args=())
-        thread.daemon = True
-        thread.start()
-
-    def run(self):
-        try:
-            if self.silent:
-                self.proc = subprocess.Popen([self.path] + self.args,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            else:
-                self.proc = subprocess.Popen([self.path] + self.args)
-        except Exception as e:
-            print (red("Process start failed:") + " %s" % self.name)
-            print (str(e))
-            sys.exit(1)
-        try:
-            while self.proc.poll() is None:
-                time.sleep(self.interval)
-            self.proc = None
-        except:
-            return
-        print ("Process %s ended" % self.name)
-
-    def getChildren(self, max_interval=1):
-        if not self.proc:
-            return []
-        proc = psutil.Process(pid=self.proc.pid)
-        delay = 0
-        while len(proc.get_children()) == 0:
-            if delay > max_interval:
-                return []
-            time.sleep(self.interval)
-            delay += self.interval
-        return proc.get_children()
-
-    @property
-    def pid(self):
-        return self.proc.pid if self.proc is not None else None
-
-    def kill(self):
-        if self.proc:
-            try:
-                self.proc.kill()
-            except:
-                pass
-        self.proc = None
-
-    def isAlive(self, timeout=1):
-        delay = 0
-        while self.proc is None:
-            if delay > timeout:
-                break
-            time.sleep(self.interval)
-            delay += self.interval
-        return self.proc.poll() is None
-
-    def isDead(self, pid, timeout=5):
-        proc = psutil.Process(pid=pid)
-        delay = 0
-        while delay < timeout:
-            if not proc.is_running():
-                return True
-            time.sleep(delay)
-            delay += self.interval
-        return False
+# osquery-specific testing utils
+import test_base
 
 class EXClient:
     transport = None
@@ -156,6 +50,7 @@ class EXClient:
             self.transport.close()
 
     def open(self):
+        '''Attempt to open the UNIX domain socket.'''
         try:
             self.transport.open()
         except:
@@ -163,9 +58,11 @@ class EXClient:
         return True
 
     def getEM(self):
+        '''Return an extension manager (osquery core) client.'''
         return ExtensionManager.Client(self.protocol)
 
     def getEX(self):
+        '''Return an extension (osquery extension) client.'''
         return Extension.Client(self.protocol)
 
 
@@ -195,72 +92,12 @@ def expectTrue(functional, interval=0.2, timeout=2):
         delay += interval
     return False
 
-class ProcessGenerator(object):
-    generators = []
 
-    def _run_daemon(self, config, silent=False):
-        write_config(config)
-        daemon = ProcRunner("daemon", os.path.join(BUILD, "osquery/osqueryd"),
-            [
-                "--config_path=%s.conf" % CONFIG_NAME,
-                "--verbose" if VERBOSE else ""
-            ],
-            silent=silent)
-        self.generators.append(daemon)
-        return daemon
-
-    def _run_extension(self, silent=False):
-        extension = ProcRunner("extension",
-            os.path.join(BUILD, "osquery/example_extension"),
-            [
-                "--extensions_socket=%s.em" % CONFIG_NAME,
-                "--verbose" if VERBOSE else ""
-            ],
-            silent=silent)
-        self.generators.append(extension)
-        return extension
-
-    def tearDown(self):
-        for generator in self.generators:
-            if generator.pid is not None:
-                try:
-                    os.kill(generator.pid, signal.SIGKILL)
-                except:
-                    pass
-
-class WatchdogTests(ProcessGenerator, unittest.TestCase):
-    @unittest.skipIf("--extensions" in sys.argv, "only running extensions")
-    def setUp(self):
-        pass
-
-    def test_1_daemon_without_watchdog(self):
-        config = CONFIG.copy()
-        config["options"]["disable_watchdog"] = "true"
-        config["options"]["disable_extensions"] = "true"
-        daemon = self._run_daemon(config)
-        self.assertTrue(daemon.isAlive())
-        daemon.kill()
-
-    def test_2_daemon_with_watchdog(self):
-        config = CONFIG.copy()
-        config["options"]["disable_watchdog"] = "false"
-        daemon = self._run_daemon(config)
-        self.assertTrue(daemon.isAlive())
-
-        # Check that the daemon spawned a child process
-        children = daemon.getChildren()
-        self.assertTrue(len(children) > 0)
-        daemon.kill()
-
-        # This will take a few moments to make sure the client process
-        # dies when the watcher goes away
-        self.assertTrue(daemon.isDead(children[0].pid))
-
-class ExtensionTests(ProcessGenerator, unittest.TestCase):
+class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_1_daemon_without_extensions(self):
         # Start the daemon without thrift, prefer no watchdog because the tests
         # kill the daemon very quickly.
-        config = CONFIG.copy()
+        config = test_base.CONFIG.copy()
         config["options"]["disable_watchdog"] = "true"
         config["options"]["disable_extensions"] = "true"
         daemon = self._run_daemon(config)
@@ -272,7 +109,7 @@ class ExtensionTests(ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     def test_2_daemon_api(self):
-        config = CONFIG.copy()
+        config = test_base.CONFIG.copy()
         config["options"]["disable_watchdog"] = "true"
         config["options"]["disable_extensions"] = "false"
         daemon = self._run_daemon(config)
@@ -307,7 +144,7 @@ class ExtensionTests(ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     def test_3_example_extension(self):
-        config = CONFIG.copy()
+        config = test_base.CONFIG.copy()
         config["options"]["disable_watchdog"] = "true"
         config["options"]["disable_extensions"] = "false"
         daemon = self._run_daemon(config)
@@ -371,7 +208,7 @@ class ExtensionTests(ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     def test_4_extension_dies(self):
-        config = CONFIG.copy()
+        config = test_base.CONFIG.copy()
         config["options"]["disable_watchdog"] = "true"
         config["options"]["disable_extensions"] = "false"
         daemon = self._run_daemon(config)
@@ -418,49 +255,18 @@ class ExtensionTests(ProcessGenerator, unittest.TestCase):
         # The extension should tear down as well
         self.assertTrue(extension.isDead(extension.pid))
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=(
-        "Test the osquery extensions API."
-    ))
-    parser.add_argument(
-        "--config", metavar="FILE", default=None,
-        help="Use special options from a config."
-    )
-    parser.add_argument(
-        "--extensions", default=False, action="store_true",
-        help="Only run extensions tests."
-    )
-    parser.add_argument(
-        "--verbose", default=False, action="store_true",
-        help="Run daemons and extensions with --verbose"
-    )
-
-    # Directory structure options
-    parser.add_argument(
-        "--build", metavar="PATH", default=BUILD,
-        help="Path to osquery build (./build/<sys>/)."
-    )
-    args = parser.parse_args()
-
-    if not os.path.exists(args.build):
-        print ("Cannot find --build: %s" % args.build)
-        print ("You must first: make")
-        exit(1)
+    module = test_base.Tester()
 
     # Find and import the thrift-generated python interface
-    thrift_path = args.build + "/generated/gen-py"
+    thrift_path = test_base.ARGS.build + "/generated/gen-py"
     try:
         sys.path.append(thrift_path)
         from osquery import *
     except ImportError:
-        print ("Cannot import osquery from %s" % (thrift_path))
-        print ("You must first: make python-thrift")
+        print ("Cannot import osquery thrift API from %s" % (thrift_path))
+        print ("You must first run: make")
         exit(1)
 
-    # Write config
-    CONFIG = read_config(args.config) if args.config else DEFAULT_CONFIG
-    VERBOSE = args.verbose
-    BUILD = args.build
-
-    os.setpgrp()
-    unittest.main(argv=[sys.argv[0]])
+    module.run()

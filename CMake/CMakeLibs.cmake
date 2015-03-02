@@ -28,8 +28,9 @@ macro(ADD_OSQUERY_TEST IS_CORE TEST_NAME SOURCE)
 endmacro(ADD_OSQUERY_TEST)
 
 macro(ADD_OSQUERY_PYTHON_TEST TEST_NAME SOURCE)
-  SYMLINK_FILE(${CMAKE_CURRENT_LIST_DIR}/${SOURCE} ${CMAKE_BINARY_DIR}/osquery/python_tests/${SOURCE})
-  add_test(NAME python_${TEST_NAME} COMMAND python ${CMAKE_BINARY_DIR}/osquery/python_tests/${SOURCE})
+  add_test(NAME python_${TEST_NAME}
+    COMMAND python "${CMAKE_SOURCE_DIR}/tools/tests/${SOURCE}" --build "${CMAKE_BINARY_DIR}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tools/tests/")
 endmacro(ADD_OSQUERY_PYTHON_TEST)
 
 # Core/non core link helping macros (tell the build to link ALL).
@@ -191,10 +192,6 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
 
   set(${OUTPUT} "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp")
 endmacro()
-
-macro(SYMLINK_FILE SOURCE DEST)
-  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${SOURCE} ${DEST})
-endmacro(SYMLINK_FILE)
 
 function(JOIN VALUES GLUE OUTPUT)
   string(REPLACE ";" "${GLUE}" _TMP_STR "${VALUES}")
