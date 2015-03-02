@@ -11,6 +11,7 @@
 #pragma once
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -153,7 +154,7 @@ Status isDirectory(const boost::filesystem::path& path);
  *
  * @return a vector of strings representing the path of all home directories
  */
-std::vector<boost::filesystem::path> getHomeDirectories();
+std::set<boost::filesystem::path> getHomeDirectories();
 
 /// Return bit-mask-style permissions.
 std::string lsperms(int mode);
