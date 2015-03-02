@@ -30,12 +30,12 @@ AUTOSTART=false
 
 # Config files
 LAUNCHD_SRC="$SCRIPT_DIR/$LD_IDENTIFIER.plist"
-LAUNCHD_DST="/var/osquery/$LD_IDENTIFIER.plist"
+LAUNCHD_DST="/private/var/osquery/$LD_IDENTIFIER.plist"
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
-OSQUERY_EXAMPLE_CONFIG_DST="/var/osquery/osquery.example.conf"
+OSQUERY_EXAMPLE_CONFIG_DST="/private/var/osquery/osquery.example.conf"
 OSQUERY_CONFIG_SRC=""
-OSQUERY_CONFIG_DST="/var/osquery/osquery.conf"
-OSQUERY_LOG_DIR="/var/log/osquery/"
+OSQUERY_CONFIG_DST="/private/var/osquery/osquery.conf"
+OSQUERY_LOG_DIR="/private/var/log/osquery/"
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX=$WORKING_DIR/prefix
