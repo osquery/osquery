@@ -64,10 +64,10 @@ void INotifyEventPublisher::tearDown() {
 }
 
 Status INotifyEventPublisher::restartMonitoring(){
-  if(last_restart != 0 && getUnixTime() - last_restart < 10){
+  if (last_restart_ != 0 && getUnixTime() - last_restart_ < 10) {
     return Status(1, "Overflow");
   }
-  last_restart = getUnixTime();
+  last_restart_ = getUnixTime();
   VLOG(1) << "Got an overflow, trying to restart...";
   for(const auto& desc : descriptors_){
     removeMonitor(desc, 1);
@@ -125,7 +125,6 @@ Status INotifyEventPublisher::run() {
     } else {
       auto ec = createEventContextFrom(event);
       if(event->mask & IN_CREATE && isDirectory(ec->path).ok()){
-        VLOG(1) << "Adding a monitor";
         addMonitor(ec->path, 1);
       }
       fire(ec);
@@ -151,7 +150,6 @@ INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
     path << "/" << event->name;
   }
   ec->path = path.str();
-  //VLOG(1) << event->mask;
   for (const auto& action : kMaskActions) {
     if (event->mask & action.first) {
       ec->action = action.second;

@@ -267,7 +267,8 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
 
   // Is the path a file
   try {
-    if (boost::filesystem::is_regular_file(fs_path) && setting == REC_LIST_FILES) {
+    if (setting == REC_LIST_FILES &&
+        boost::filesystem::is_regular_file(fs_path)) {
       results.push_back(fs_path.string());
       return Status(0, "OK");
     }
@@ -348,8 +349,8 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
     std::string suffix = components[components.size() - 1].substr(1);
     if (setting & REC_LIST_FOLDERS) {
       for (const auto& fold : folders) {
-        boost::filesystem::path p(fold);
-        std::string file_name = p.filename().string();
+        std::string file_name =
+            boost::filesystem::path(fold).filename().string();
         size_t pos = file_name.find(suffix);
         if (pos != std::string::npos &&
             pos + suffix.length() == file_name.length()) {

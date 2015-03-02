@@ -165,9 +165,9 @@ void FSEventsEventPublisher::Callback(
 bool FSEventsEventPublisher::shouldFire(
     const FSEventsSubscriptionContextRef& mc,
     const FSEventsEventContextRef& ec) const {
-  // This is stopping us from getting events on links
-  // If we need this feature later, this code will
-  // Have to be updated
+  // This is stopping us from getting events on links.
+  // If we need this feature later, this line will have to be updated to
+  // understand links.
   ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
     return false;
@@ -175,7 +175,6 @@ bool FSEventsEventPublisher::shouldFire(
 
   if (mc->mask != 0 && !(ec->fsevent_flags & mc->mask)) {
     // Compare the event context mask to the subscription context.
-
     return false;
   }
   return true;
