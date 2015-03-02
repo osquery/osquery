@@ -380,11 +380,6 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
   // Is the path a directory
   if (boost::filesystem::is_directory(fs_path)) {
     results.push_back(fs_path.string());
-    /*if(setting & REC_LIST_FILES){
-      for (auto& file : files) {
-        results.push_back(file);
-      }
-    }*/
     return Status(0, "OK");
   }
 
