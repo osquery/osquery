@@ -65,7 +65,7 @@ void FileChangesEventSubscriber::init() {
       mc->path = file;
       mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
       subscribe(&FileChangesEventSubscriber::Callback, mc,
-      (void*)(&element_kv.first));
+                (void*)(&element_kv.first));
     }
   }
 }

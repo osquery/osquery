@@ -340,7 +340,7 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
         results.push_back(file);
       }
     }
-    //Should be a return here?
+    // Should be a return here?
     return Status(0, "OK");
   }
 
@@ -444,8 +444,8 @@ Status resolveFilePattern(std::vector<std::string> components,
       for (const auto& dir : folders) {
         boost::filesystem::path p(dir);
         components[i] = p.filename().string();
-        Status stat =
-            resolveFilePattern(components, results, setting, i + 1, rec_depth + 1);
+        Status stat = resolveFilePattern(
+            components, results, setting, i + 1, rec_depth + 1);
         if (!stat.ok() && stat.getCode() == 2) {
           return stat;
         }
@@ -465,8 +465,8 @@ Status resolveFilePattern(std::vector<std::string> components,
         }
         boost::filesystem::path p(dir);
         components[i] = p.filename().string();
-        Status stat =
-            resolveFilePattern(components, results, setting, i + 1, rec_depth + 1);
+        Status stat = resolveFilePattern(
+            components, results, setting, i + 1, rec_depth + 1);
         if (!stat.ok() && stat.getCode() == 2) {
           return stat;
         }
@@ -482,8 +482,8 @@ Status resolveFilePattern(std::vector<std::string> components,
         if (pos != std::string::npos &&
             pos + suffix.length() == folder_name.length()) {
           components[i] = p.filename().string();
-          Status stat =
-              resolveFilePattern(components, results, setting, i + 1, rec_depth + 1);
+          Status stat = resolveFilePattern(
+              components, results, setting, i + 1, rec_depth + 1);
           if (!stat.ok() && stat.getCode() == 2) {
             return stat;
           }

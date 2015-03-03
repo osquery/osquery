@@ -73,9 +73,9 @@ Status FileChangesEventSubscriber::Callback(const FSEventsEventContextRef& ec,
   r["action"] = ec->action;
   r["time"] = ec->time_string;
   r["target_path"] = ec->path;
-  if(user_data != nullptr){
+  if (user_data != nullptr) {
     r["category"] = *(std::string*)user_data;
-  }else{
+  } else {
     r["category"] = "Undefined";
   }
   r["transaction_id"] = INTEGER(ec->fsevent_id);
