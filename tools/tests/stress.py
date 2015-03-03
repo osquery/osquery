@@ -16,18 +16,11 @@ import time
 import argparse
 import subprocess
 
-
-def lightred(msg):
-    return "\033[1;31m %s \033[0m" % str(msg)
-
-
-def red(msg):
-    return "\033[41m\033[1;37m %s \033[0m" % str(msg)
-
-
-def green(msg):
-    return "\033[42m\033[1;37m %s \033[0m" % str(msg)
-
+try:
+    from utils import *
+except ImportError:
+    print ("Cannot import osquery testing utils from ./tools/tests")
+    exit(1)
 
 def stress(args):
     """Small utility to run unittests several times."""
