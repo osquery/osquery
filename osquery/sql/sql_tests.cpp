@@ -67,6 +67,5 @@ TEST_F(SQLTests, test_raw_access_context) {
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  osquery::initOsquery(argc, argv);
   return RUN_ALL_TESTS();
 }

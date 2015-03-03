@@ -21,14 +21,12 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
-#include "osquery/core/watcher.h"
-
 namespace pt = boost::property_tree;
 typedef std::map<std::string, std::vector<std::string> > EventFileMap_t;
 
 namespace osquery {
 
-FLAG(string, config_plugin, "filesystem", "Config type (plugin)");
+CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
 // This lock is used to protect the entirety of the OSqueryConfig struct
 // Is should be used when ever accessing the structs members, reading or
@@ -49,10 +47,8 @@ Status Config::load() {
     if (Flag::isDefault(option.first)) {
       // Only override if option was NOT given as an argument.
       Flag::updateValue(option.first, option.second);
-      if (!osquery::isOsqueryWorker()) {
-        VLOG(1) << "Setting flag option: " << option.first << "="
-                << option.second;
-      }
+      VLOG(1) << "Setting flag option: " << option.first << "="
+              << option.second;
     }
   }
   cfg_ = conf;

@@ -34,7 +34,7 @@ int Flag::create(const std::string& name, const FlagDetail& flag) {
   return 0;
 }
 
-int Flag::createAlias(const std::string& alias, const FlagAliasDetail& flag) {
+int Flag::createAlias(const std::string& alias, const FlagDetail& flag) {
   instance().aliases_.insert(std::make_pair(alias, flag));
   return 0;
 }
@@ -78,7 +78,7 @@ std::string Flag::getDescription(const std::string& name) {
   }
 
   if (instance().aliases_.count(name)) {
-    return getDescription(instance().aliases_.at(name).name);
+    return getDescription(instance().aliases_.at(name).description);
   }
   return "";
 }
@@ -111,7 +111,7 @@ std::map<std::string, FlagInfo> Flag::flags() {
   return flags;
 }
 
-void Flag::printFlags(bool shell, bool external) {
+void Flag::printFlags(bool shell, bool external, bool cli) {
   std::vector<GFLAGS_NAMESPACE::CommandLineFlagInfo> info;
   GFLAGS_NAMESPACE::GetAllFlags(&info);
 
@@ -127,7 +127,8 @@ void Flag::printFlags(bool shell, bool external) {
     if (details.count(flag.name) > 0) {
       const auto& detail = details.at(flag.name);
       if ((shell && !detail.shell) || (!shell && detail.shell) ||
-          (external && !detail.external) || (!external && detail.external)) {
+          (external && !detail.external) || (!external && detail.external) ||
+          (cli && !detail.cli) || (!cli && detail.cli)) {
         continue;
       }
     } else if (aliases.count(flag.name) > 0) {

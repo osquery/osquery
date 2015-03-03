@@ -16,7 +16,6 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/core.h>
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -50,7 +49,7 @@ FLAG(int32,
      1,
      "Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug)");
 
-FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
+CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
 bool Watcher::ok() {
   ::sleep(getWorkerLimit(INTERVAL));
@@ -181,9 +180,6 @@ void Watcher::initWorker() {
       std::make_shared<WatcherWatcherRunner>(getppid()));
 }
 
-bool isOsqueryWorker() {
-  return (getenv("OSQUERYD_WORKER") != nullptr);
-}
 
 void WatcherWatcherRunner::enter() {
   while (true) {
@@ -210,27 +206,5 @@ size_t getWorkerLimit(WatchdogLimitType name, int level) {
     return kWatchdogLimits.at(name).back();
   }
   return kWatchdogLimits.at(name).at(level);
-}
-
-void initWorkerWatcher(const std::string& name, int argc, char* argv[]) {
-  // The watcher will forever monitor and spawn additional workers.
-  Watcher watcher(argc, argv);
-  watcher.setWorkerName(name);
-
-  if (isOsqueryWorker()) {
-    // Do not start watching/spawning if this process is a worker.
-    watcher.initWorker();
-  } else {
-    do {
-      if (!watcher.watch()) {
-        // The watcher failed, create a worker.
-        watcher.createWorker();
-        watcher.resetCounters();
-      }
-    } while (watcher.ok());
-
-    // Executation should never reach this point.
-    ::exit(EXIT_FAILURE);
-  }
 }
 }

@@ -29,6 +29,8 @@
 #endif
 // clang-format on
 
+#define EXIT_CATASTROPHIC 9001
+
 namespace osquery {
 
 /**
@@ -51,28 +53,59 @@ enum osqueryTool {
   OSQUERY_EXTENSION,
 };
 
-/**
- * @brief Sets up various aspects of osquery execution state.
- *
- * osquery needs a few things to happen as soon as the executable begins
- * executing. initOsquery takes care of setting up the relevant parameters.
- * initOsquery should be called in an executable's `main()` function.
- *
- * @param argc the number of elements in argv
- * @param argv the command-line arguments passed to `main()`
- */
-void initOsquery(int argc, char* argv[], int tool = OSQUERY_TOOL_TEST);
+class Initializer {
+ public:
+  /**
+   * @brief Sets up various aspects of osquery execution state.
+   *
+   * osquery needs a few things to happen as soon as the executable begins
+   * executing. initOsquery takes care of setting up the relevant parameters.
+   * initOsquery should be called in an executable's `main()` function.
+   *
+   * @param argc the number of elements in argv
+   * @param argv the command-line arguments passed to `main()`
+   */
+  Initializer(int argc, char* argv[], int tool = OSQUERY_TOOL_TEST);
 
-/**
- * @brief Sets up a process as a osquery daemon.
- */
-void initOsqueryDaemon();
+  /**
+   * @brief Sets up the process as an osquery daemon.
+   *
+   * A daemon has additional constraints, it can use a process mutext, check
+   * for sane/non-default configurations, etc.
+   */
+  void initDaemon();
 
-/**
- * @brief Turns of various aspects of osquery such as event loops.
- *
- */
-void shutdownOsquery();
+  /**
+   * @brief Daemon tools may want to continually spawn worker processes
+   * and monitor their utilization.
+   *
+   * A daemon may call initWorkerWatcher to begin watching child daemon
+   * processes until it-itself is unscheduled. The basic guarentee is that only
+   * workers will return from the function.
+   *
+   * The worker-watcher will implement performance bounds on CPU utilization
+   * and memory, as well as check for zombie/defunct workers and respawn them
+   * if appropriate. The appropriateness is determined from heuristics around
+   * how the worker exitted. Various exit states and velocities may cause the
+   * watcher to resign.
+   *
+   * @param name The name of the worker process.
+   */
+  void initWorkerWatcher(const std::string& name);
+
+  /// Assume initialization finished, start work.
+  void start();
+  /// Turns of various aspects of osquery such as event loops.
+  void shutdown();
+  /// Check if a process is an osquery worker.
+  bool isWorker();
+
+ private:
+  int argc_;
+  char** argv_;
+  int tool_;
+  std::string binary_;
+};
 
 /**
  * @brief Split a given string based on an optional delimiter.

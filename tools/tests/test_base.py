@@ -16,6 +16,7 @@ import os
 import psutil
 import re
 import subprocess
+import signal
 import sys
 import time
 import threading
@@ -212,11 +213,12 @@ class ProcessGenerator(object):
         global ARGS, CONFIG_NAME
         utils.write_config(config)
         binary = os.path.join(ARGS.build, "osquery", "osqueryd")
+        config = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
         daemon = ProcRunner("daemon", binary,
             [
                 "--config_path=%s.conf" % CONFIG_NAME,
                 "--verbose" if ARGS.verbose else ""
-            ],
+            ] + config,
             silent=silent)
         self.generators.append(daemon)
         return daemon
@@ -229,7 +231,7 @@ class ProcessGenerator(object):
         extension = ProcRunner("extension",
             binary,
             [
-                "--extensions_socket=%s.em" % CONFIG_NAME,
+                "--socket=%s" % CONFIG["options"]["extensions_socket"],
                 "--verbose" if ARGS.verbose else ""
             ],
             silent=silent)
@@ -247,8 +249,8 @@ class ProcessGenerator(object):
             if generator.pid is not None:
                 try:
                     os.kill(generator.pid, signal.SIGKILL)
-                except:
-                    pass
+                except Exception as e:
+                    print("Cannot kill generated process: %s" % str(e))
 
 
 class Tester(object):

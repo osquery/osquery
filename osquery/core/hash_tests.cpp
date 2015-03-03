@@ -50,6 +50,5 @@ TEST_F(HashTests, test_file_hashing) {
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  osquery::initOsquery(argc, argv);
   return RUN_ALL_TESTS();
 }

@@ -25,7 +25,7 @@ namespace osquery {
 FLAG(string,
      host_identifier,
      "hostname",
-     "Field used to identify the host running osqueryd");
+     "Field used to identify the host running osquery");
 
 FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
 

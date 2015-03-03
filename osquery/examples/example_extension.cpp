@@ -33,7 +33,7 @@ class ExampleTable : public tables::TablePlugin {
 REGISTER(ExampleTable, "table", "example");
 
 int main(int argc, char* argv[]) {
-  initOsquery(argc, argv, OSQUERY_EXTENSION);
+  osquery::Initializer runner(argc, argv, OSQUERY_EXTENSION);
 
   auto status = startExtension("example", "0.0.1");
   if (!status.ok()) {
@@ -41,6 +41,6 @@ int main(int argc, char* argv[]) {
   }
 
   // Finally shutdown.
-  shutdownOsquery();
+  runner.shutdown();
   return 0;
 }

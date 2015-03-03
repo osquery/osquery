@@ -70,6 +70,5 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  osquery::initOsquery(argc, argv);
   return RUN_ALL_TESTS();
 }

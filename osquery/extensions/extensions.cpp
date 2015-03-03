@@ -24,12 +24,17 @@ namespace osquery {
 
 const int kWatcherMLatency = 3000;
 
-FLAG(bool, disable_extensions, false, "Disable extension API");
+CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
 
-FLAG(string,
-     extensions_socket,
-     "/var/osquery/osquery.em",
-     "Path to the extensions UNIX domain socket")
+CLI_FLAG(string,
+         extensions_socket,
+         "/var/osquery/osquery.em",
+         "Path to the extensions UNIX domain socket")
+
+CLI_FLAG(string,
+         extensions_autoload,
+         "",
+         "An optional search path for autoloaded & managed extensions")
 
 /// Alias the extensions_socket (used by core) to an alternate name reserved
 /// for extension binaries
@@ -86,6 +91,19 @@ void ExtensionManagerWatcher::watch() {
       Registry::removeBroadcast(uuid);
     }
   }
+}
+
+void initOsqueryExtensions() {
+  // Optionally autoload extensions
+  auto status = loadExtensions(FLAGS_extensions_autoload);
+  if (!status.ok()) {
+    LOG(WARNING) << "Could not autoload extensions: " << status.what();
+  }
+}
+
+Status loadExtensions(const std::string& paths) {
+  // Not implemented: Autoloading extensions given a search path.
+  return Status(0, "OK");
 }
 
 Status startExtension(const std::string& name, const std::string& version) {

@@ -73,6 +73,21 @@ Status getExtensions(const std::string& manager_path,
 Status pingExtension(const std::string& path);
 
 /**
+ * @brief Request the extensions API to autoload any appropriate extensions.
+ *
+ * Extensions may be 'autoloaded' using the `extensions_autoload` command line
+ * argument. loadExtensions should be called before any plugin or registry item
+ * is used. This allows appropriate extensions to expose plugin requirements.
+ *
+ * An 'appropriate' extension is one within the `extensions_autoload` search
+ * path with file ownership equivilent or greater (root) than the osquery
+ * process requesting autoload.
+ *
+ * @param paths A colon-delimited path variable, e.g: '/path1:/path2'.
+ */
+Status loadExtensions(const std::string& paths);
+
+/**
  * @brief Call a Plugin exposed by an Extension Registry route.
  *
  * This is mostly a Registry%-internal method used to call an ExtensionHandler

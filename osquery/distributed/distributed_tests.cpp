@@ -221,6 +221,5 @@ TEST_F(DistributedTests, test_duplicate_request) {
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  osquery::initOsquery(argc, argv);
   return RUN_ALL_TESTS();
 }

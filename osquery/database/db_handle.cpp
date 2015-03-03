@@ -33,14 +33,13 @@ const std::string kEvents = "events";
 const std::vector<std::string> kDomains = {kConfigurations, kQueries, kEvents};
 
 FLAG(string,
-     db_path,
+     database_path,
      "/var/osquery/osquery.db",
      "If using a disk-based backing store, specify a path");
+FLAG_ALIAS(std::string, db_path, database_path);
 
-FLAG(bool,
-     use_in_memory_database,
-     false,
-     "Keep osquery backing-store in memory");
+FLAG(bool, database_in_memory, false, "Keep osquery backing-store in memory");
+FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
 
 /////////////////////////////////////////////////////////////////////////////
 // constructors and destructors
@@ -85,12 +84,12 @@ DBHandle::~DBHandle() {
 // getInstance methods
 /////////////////////////////////////////////////////////////////////////////
 std::shared_ptr<DBHandle> DBHandle::getInstance() {
-  return getInstance(FLAGS_db_path, FLAGS_use_in_memory_database);
+  return getInstance(FLAGS_database_path, FLAGS_database_in_memory);
 }
 
 bool DBHandle::checkDB() {
   try {
-    auto handle = DBHandle(FLAGS_db_path, FLAGS_use_in_memory_database);
+    auto handle = DBHandle(FLAGS_database_path, FLAGS_database_in_memory);
   } catch (const std::exception& e) {
     return false;
   }

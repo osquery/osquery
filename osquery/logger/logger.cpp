@@ -27,7 +27,7 @@ FLAG_ALIAS(bool, debug, verbose);
 
 FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
-FLAG(string, logger_plugin, "filesystem", "The default logger plugin");
+FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 
 FLAG(bool, log_result_events, true, "Log scheduled results as events");
 
