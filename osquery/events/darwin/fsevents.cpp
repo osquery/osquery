@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -20,6 +20,7 @@ namespace osquery {
 std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemChangeOwner, "ATTRIBUTES_MODIFIED"},
     {kFSEventStreamEventFlagItemXattrMod, "ATTRIBUTES_MODIFIED"},
+    {kFSEventStreamEventFlagItemInodeMetaMod, "ATTRIBUTES_MODIFIED"},
     {kFSEventStreamEventFlagItemCreated, "CREATED"},
     {kFSEventStreamEventFlagItemRemoved, "DELETED"},
     {kFSEventStreamEventFlagItemModified, "UPDATED"},
@@ -156,7 +157,6 @@ void FSEventsEventPublisher::Callback(
         break;
       }
     }
-
     ec->path = std::string(((char**)event_paths)[i]);
     EventFactory::fire<FSEventsEventPublisher>(ec);
   }
@@ -165,6 +165,9 @@ void FSEventsEventPublisher::Callback(
 bool FSEventsEventPublisher::shouldFire(
     const FSEventsSubscriptionContextRef& mc,
     const FSEventsEventContextRef& ec) const {
+  // This is stopping us from getting events on links.
+  // If we need this feature later, this line will have to be updated to
+  // understand links.
   ssize_t found = ec->path.find(mc->path);
   if (found != 0) {
     return false;

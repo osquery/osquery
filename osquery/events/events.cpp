@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -401,8 +401,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
   EventPublisherRef publisher;
   try {
     publisher = EventFactory::getInstance().getEventPublisher(type_id);
-  }
-  catch (std::out_of_range& e) {
+  } catch (std::out_of_range& e) {
     return Status(1, "No event type found");
   }
 
@@ -418,7 +417,8 @@ Status EventFactory::run(EventPublisherID& type_id) {
 
   // The runloop status is not reflective of the event type's.
   publisher->tearDown();
-  VLOG(1) << "Event publisher " << publisher->type() << " runloop terminated";
+  VLOG(1) << "Event publisher " << publisher->type()
+          << " runloop terminated for reason: " << status.getMessage();
   return Status(0, "OK");
 }
 
@@ -493,8 +493,7 @@ Status EventFactory::addSubscription(EventPublisherID& type_id,
   EventPublisherRef publisher;
   try {
     publisher = getInstance().getEventPublisher(type_id);
-  }
-  catch (std::out_of_range& e) {
+  } catch (std::out_of_range& e) {
     return Status(1, "No event type found");
   }
 
@@ -508,8 +507,7 @@ size_t EventFactory::numSubscriptions(EventPublisherID& type_id) {
   EventPublisherRef publisher;
   try {
     publisher = EventFactory::getInstance().getEventPublisher(type_id);
-  }
-  catch (std::out_of_range& e) {
+  } catch (std::out_of_range& e) {
     return 0;
   }
   return publisher->numSubscriptions();
@@ -539,8 +537,7 @@ Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
   EventPublisherRef publisher;
   try {
     publisher = ef.getEventPublisher(type_id);
-  }
-  catch (std::out_of_range& e) {
+  } catch (std::out_of_range& e) {
     return Status(1, "No event publisher to deregister");
   }
 

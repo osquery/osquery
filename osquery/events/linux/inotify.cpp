@@ -63,6 +63,21 @@ void INotifyEventPublisher::tearDown() {
   inotify_handle_ = -1;
 }
 
+Status INotifyEventPublisher::restartMonitoring(){
+  if (last_restart_ != 0 && getUnixTime() - last_restart_ < 10) {
+    return Status(1, "Overflow");
+  }
+  last_restart_ = getUnixTime();
+  VLOG(1) << "Got an overflow, trying to restart...";
+  for(const auto& desc : descriptors_){
+    removeMonitor(desc, 1);
+  }
+  path_descriptors_.clear();
+  descriptor_paths_.clear();
+  configure();
+  return Status(0, "OK");
+}
+
 Status INotifyEventPublisher::run() {
   // Get a while wrapper for free.
   char buffer[BUFFER_SIZE];
@@ -92,7 +107,10 @@ Status INotifyEventPublisher::run() {
     auto event = reinterpret_cast<struct inotify_event*>(p);
     if (event->mask & IN_Q_OVERFLOW) {
       // The inotify queue was overflown (remove all paths).
-      return Status(1, "Overflow");
+      Status stat = restartMonitoring();
+      if(!stat.ok()){
+        return stat;
+      }
     }
 
     if (event->mask & IN_IGNORED) {
@@ -106,6 +124,9 @@ Status INotifyEventPublisher::run() {
       removeMonitor(event->wd, false);
     } else {
       auto ec = createEventContextFrom(event);
+      if(event->mask & IN_CREATE && isDirectory(ec->path).ok()){
+        addMonitor(ec->path, 1);
+      }
       fire(ec);
     }
     // Continue to iterate
@@ -129,8 +150,6 @@ INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
     path << "/" << event->name;
   }
   ec->path = path.str();
-
-  // Set the action (may be multiple)
   for (const auto& action : kMaskActions) {
     if (event->mask & action.first) {
       ec->action = action.second;
@@ -179,15 +198,10 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
   if (recursive && isDirectory(path).ok()) {
     std::vector<std::string> children;
     // Get a list of children of this directory (requesed recursive watches).
-    if (!listFilesInDirectory(path, children).ok()) {
-      return false;
-    }
+    listDirectoriesInDirectory(path, children);
 
     for (const auto& child : children) {
-      // Only watch child directories, a watch on the directory implies files.
-      if (isDirectory(child).ok()) {
-        addMonitor(child, recursive);
-      }
+      addMonitor(child, recursive);
     }
   }
 

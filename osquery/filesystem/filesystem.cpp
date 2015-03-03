@@ -10,7 +10,6 @@
 
 #include <exception>
 #include <sstream>
-#include <iostream>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -198,27 +197,33 @@ Status listDirectoriesInDirectory(const boost::filesystem::path& path,
  */
 Status doubleStarTraversal(const boost::filesystem::path& fs_path,
                            std::vector<std::string>& results,
+                           ReturnSetting setting,
                            unsigned int rec_depth) {
   if (rec_depth >= kMaxDirectoryTraversalDepth) {
     return Status(2, fs_path.string().c_str());
   }
   // List files first
-  Status stat = listFilesInDirectory(fs_path, results);
-  if (!stat.ok()) {
-    return Status(0, "OK");
+  if (setting & REC_LIST_FILES) {
+    Status stat = listFilesInDirectory(fs_path, results);
+    if (!stat.ok()) {
+      return Status(0, "OK");
+    }
   }
   std::vector<std::string> folders;
-  stat = listDirectoriesInDirectory(fs_path, folders);
+  Status stat = listDirectoriesInDirectory(fs_path, folders);
   if (!stat.ok()) {
     return Status(0, "OK");
   }
-
+  if (setting & REC_LIST_FOLDERS) {
+    results.push_back(fs_path.string());
+  }
   for (const auto& folder : folders) {
     boost::filesystem::path p(folder);
     if (boost::filesystem::is_symlink(p)) {
       continue;
     }
-    stat = doubleStarTraversal(folder, results, rec_depth + 1);
+
+    stat = doubleStarTraversal(folder, results, setting, rec_depth + 1);
     if (!stat.ok() && stat.getCode() == 2) {
       return stat;
     }
@@ -245,18 +250,25 @@ Status doubleStarTraversal(const boost::filesystem::path& fs_path,
  */
 Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
                                 std::vector<std::string>& results,
+                                ReturnSetting setting,
                                 const std::vector<std::string>& components,
                                 unsigned int rec_depth) {
   // Is the last component a double star?
   if (components[components.size() - 1] == kWildcardCharacterRecursive) {
-    Status stat =
-        doubleStarTraversal(fs_path.parent_path(), results, rec_depth);
-    return stat;
+    if (setting & REC_EVENT_OPT) {
+      results.push_back(fs_path.parent_path().string());
+      return Status(0, "OK");
+    } else {
+      Status stat = doubleStarTraversal(
+          fs_path.parent_path(), results, setting, rec_depth);
+      return stat;
+    }
   }
 
   // Is the path a file
   try {
-    if (boost::filesystem::is_regular_file(fs_path)) {
+    if (setting == REC_LIST_FILES &&
+        boost::filesystem::is_regular_file(fs_path)) {
       results.push_back(fs_path.string());
       return Status(0, "OK");
     }
@@ -266,15 +278,33 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
   }
 
   std::vector<std::string> files;
-  Status stat = listFilesInDirectory(fs_path.parent_path(), files);
-  if (!stat.ok()) {
-    return stat;
+  std::vector<std::string> folders;
+  Status stat_file = listFilesInDirectory(fs_path.parent_path(), files);
+  Status stat_fold = listDirectoriesInDirectory(fs_path.parent_path(), folders);
+
+  if (!stat_file.ok()) {
+    return stat_file;
+  }
+  if (!stat_fold.ok()) {
+    return stat_fold;
   }
 
   // Is the last component a wildcard?
   if (components[components.size() - 1] == kWildcardCharacter) {
-    for (const auto& file : files) {
-      results.push_back(file);
+    if (setting & REC_EVENT_OPT) {
+      results.push_back(fs_path.parent_path().string());
+      return Status(0, "OK");
+    }
+    if (setting & REC_LIST_FOLDERS) {
+      results.push_back(fs_path.parent_path().string());
+      for (const auto& fold : folders) {
+        results.push_back(fold);
+      }
+    }
+    if (setting & REC_LIST_FILES) {
+      for (const auto& file : files) {
+        results.push_back(file);
+      }
     }
     return Status(0, "OK");
   }
@@ -285,7 +315,7 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
           std::vector<std::string>(components.begin(), components.end() - 1),
           "/");
 
-  // Is this a .*% type file match
+  // Is this a (.*)% type file match
   if (components[components.size() - 1].find(kWildcardCharacter, 1) !=
           std::string::npos &&
       components[components.size() - 1][0] != kWildcardCharacter[0]) {
@@ -294,25 +324,49 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
         processed_path + "/" +
         components[components.size() - 1].substr(
             0, components[components.size() - 1].find(kWildcardCharacter, 1));
-    for (const auto& file : files) {
-      if (file.find(prefix, 0) != 0) {
-        continue;
+    if (setting & REC_LIST_FOLDERS) {
+      for (const auto& fold : folders) {
+        if (fold.find(prefix, 0) != 0) {
+          continue;
+        }
+        results.push_back(fold);
       }
-      results.push_back(file);
     }
+    if (setting & REC_LIST_FILES || setting & REC_EVENT_OPT) {
+      for (const auto& file : files) {
+        if (file.find(prefix, 0) != 0) {
+          continue;
+        }
+        results.push_back(file);
+      }
+    }
+    // Should be a return here?
+    return Status(0, "OK");
   }
 
   // Is this a %(.*) type file match
   if (components[components.size() - 1][0] == kWildcardCharacter[0]) {
     std::string suffix = components[components.size() - 1].substr(1);
-
-    for (const auto& file : files) {
-      boost::filesystem::path p(file);
-      std::string file_name = p.filename().string();
-      size_t pos = file_name.find(suffix);
-      if (pos != std::string::npos &&
-          pos + suffix.length() == file_name.length()) {
-        results.push_back(file);
+    if (setting & REC_LIST_FOLDERS) {
+      for (const auto& fold : folders) {
+        std::string file_name =
+            boost::filesystem::path(fold).filename().string();
+        size_t pos = file_name.find(suffix);
+        if (pos != std::string::npos &&
+            pos + suffix.length() == file_name.length()) {
+          results.push_back(fold);
+        }
+      }
+    }
+    if (setting & REC_LIST_FILES || setting & REC_EVENT_OPT) {
+      for (const auto& file : files) {
+        boost::filesystem::path p(file);
+        std::string file_name = p.filename().string();
+        size_t pos = file_name.find(suffix);
+        if (pos != std::string::npos &&
+            pos + suffix.length() == file_name.length()) {
+          results.push_back(file);
+        }
       }
     }
     return Status(0, "OK");
@@ -325,9 +379,7 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
 
   // Is the path a directory
   if (boost::filesystem::is_directory(fs_path)) {
-    for (auto& file : files) {
-      results.push_back(file);
-    }
+    results.push_back(fs_path.string());
     return Status(0, "OK");
   }
 
@@ -351,6 +403,7 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
  */
 Status resolveFilePattern(std::vector<std::string> components,
                           std::vector<std::string>& results,
+                          ReturnSetting setting = REC_LIST_FILES,
                           unsigned int processed_index = 0,
                           unsigned int rec_depth = 0) {
 
@@ -391,8 +444,8 @@ Status resolveFilePattern(std::vector<std::string> components,
       for (const auto& dir : folders) {
         boost::filesystem::path p(dir);
         components[i] = p.filename().string();
-        Status stat =
-            resolveFilePattern(components, results, i + 1, rec_depth + 1);
+        Status stat = resolveFilePattern(
+            components, results, setting, i + 1, rec_depth + 1);
         if (!stat.ok() && stat.getCode() == 2) {
           return stat;
         }
@@ -412,8 +465,8 @@ Status resolveFilePattern(std::vector<std::string> components,
         }
         boost::filesystem::path p(dir);
         components[i] = p.filename().string();
-        Status stat =
-            resolveFilePattern(components, results, i + 1, rec_depth + 1);
+        Status stat = resolveFilePattern(
+            components, results, setting, i + 1, rec_depth + 1);
         if (!stat.ok() && stat.getCode() == 2) {
           return stat;
         }
@@ -429,8 +482,8 @@ Status resolveFilePattern(std::vector<std::string> components,
         if (pos != std::string::npos &&
             pos + suffix.length() == folder_name.length()) {
           components[i] = p.filename().string();
-          Status stat =
-              resolveFilePattern(components, results, i + 1, rec_depth + 1);
+          Status stat = resolveFilePattern(
+              components, results, setting, i + 1, rec_depth + 1);
           if (!stat.ok() && stat.getCode() == 2) {
             return stat;
           }
@@ -445,6 +498,7 @@ Status resolveFilePattern(std::vector<std::string> components,
   // list the files at this point or do our ** traversal
   return resolveLastPathComponent("/" + boost::algorithm::join(components, "/"),
                                   results,
+                                  setting,
                                   components,
                                   rec_depth);
 }
@@ -452,6 +506,12 @@ Status resolveFilePattern(std::vector<std::string> components,
 Status resolveFilePattern(const boost::filesystem::path& fs_path,
                           std::vector<std::string>& results) {
   return resolveFilePattern(split(fs_path.string(), "/"), results);
+}
+
+Status resolveFilePattern(const boost::filesystem::path& fs_path,
+                          std::vector<std::string>& results,
+                          ReturnSetting setting) {
+  return resolveFilePattern(split(fs_path.string(), "/"), results, setting);
 }
 
 Status getDirectory(const boost::filesystem::path& path,

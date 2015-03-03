@@ -254,7 +254,7 @@ void createMockFileStructure() {
                                         "/deep11/deep2/deep3/");
   boost::filesystem::create_directories(kFakeDirectory + "/deep1/deep2/");
   writeTextFile(kFakeDirectory + "/root.txt", "root");
-  writeTextFile(kFakeDirectory + "/toor.txt", "toor");
+  writeTextFile(kFakeDirectory + "/door.txt", "toor");
   writeTextFile(kFakeDirectory + "/roto.txt", "roto");
   writeTextFile(kFakeDirectory + "/deep1/level1.txt", "l1");
   writeTextFile(kFakeDirectory + "/deep11/not_bash", "l1");

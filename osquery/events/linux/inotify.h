@@ -127,12 +127,15 @@ class INotifyEventPublisher
   int getHandle() { return inotify_handle_; }
   /// Get the number of actual INotify active descriptors.
   int numDescriptors() { return descriptors_.size(); }
+  /// If we overflow, try and restart the monitor
+  Status restartMonitoring();
 
   // Consider an event queue if separating buffering from firing/servicing.
   DescriptorVector descriptors_;
   PathDescriptorMap path_descriptors_;
   DescriptorPathMap descriptor_paths_;
   int inotify_handle_;
+  int last_restart_;
 
  public:
   FRIEND_TEST(INotifyTests, test_inotify_optimization);

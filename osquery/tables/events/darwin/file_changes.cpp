@@ -58,6 +58,7 @@ void FileChangesEventSubscriber::init() {
   const auto& file_map = Config::getInstance().getWatchedFiles();
   for (const auto& element_kv : file_map) {
     for (const auto& file : element_kv.second) {
+      VLOG(1) << "Added listener to: " << file;
       auto mc = createSubscriptionContext();
       mc->path = file;
       subscribe(&FileChangesEventSubscriber::Callback, mc,
@@ -72,7 +73,11 @@ Status FileChangesEventSubscriber::Callback(const FSEventsEventContextRef& ec,
   r["action"] = ec->action;
   r["time"] = ec->time_string;
   r["target_path"] = ec->path;
-  r["category"] = *(std::string*)user_data;
+  if (user_data != nullptr) {
+    r["category"] = *(std::string*)user_data;
+  } else {
+    r["category"] = "Undefined";
+  }
   r["transaction_id"] = INTEGER(ec->fsevent_id);
   r["md5"] = hashFromFile(HASH_TYPE_MD5, ec->path);
   r["sha1"] = hashFromFile(HASH_TYPE_SHA1, ec->path);

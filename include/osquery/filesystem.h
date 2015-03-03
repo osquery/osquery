@@ -26,6 +26,13 @@ namespace osquery {
  * this many wildcards.
  */
 const unsigned int kMaxDirectoryTraversalDepth = 40;
+typedef unsigned int ReturnSetting;
+enum {
+  REC_LIST_FILES = 0x1, // Return only files
+  REC_LIST_FOLDERS = 0x2, // Return only folders
+  REC_EVENT_OPT = 0x4, // Enable optimizations for file event resolutions
+  REC_LIST_ALL = REC_LIST_FILES | REC_LIST_FOLDERS
+};
 
 const std::string kWildcardCharacter = "%";
 const std::string kWildcardCharacterRecursive =
@@ -124,6 +131,30 @@ Status listDirectoriesInDirectory(const boost::filesystem::path& path,
  */
 Status resolveFilePattern(const boost::filesystem::path& fs_path,
                           std::vector<std::string>& results);
+
+/**
+ * @brief Given a wildcard filesystem patten, resolve all possible paths
+ *
+ * @code{.cpp}
+ *   std::vector<std::string> results;
+ *   auto s = resolveFilePattern("/Users/marpaia/Downloads/%", results);
+ *   if (s.ok()) {
+ *     for (const auto& result : results) {
+ *       LOG(INFO) << result;
+ *     }
+ *   }
+ * @endcode
+ *
+ * @param fs_path The filesystem pattern
+ * @param results The vector in which all results will be returned
+ * @param setting Do you want files returned, folders or both?
+ *
+ * @return An instance of osquery::Status which indicates the success or
+ * failure of the operation
+ */
+Status resolveFilePattern(const boost::filesystem::path& fs_path,
+                          std::vector<std::string>& results,
+                          ReturnSetting setting);
 
 /**
  * @brief Get directory portion of a path.
