@@ -468,12 +468,12 @@ function main() {
       fi
       popd
 
-      package cmake28
+      install_cmake
     elif [[ $DISTRO = "centos7" ]]; then
       package gcc
       package binutils
       package gcc-c++
-      package cmake
+      install_cmake
     fi
 
     if [[ ! -f /usr/bin/cmake ]]; then

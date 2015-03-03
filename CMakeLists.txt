@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 2.8.8)
+cmake_minimum_required(VERSION 2.8.12)
 
 set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(C_COMPILE_FLAGS
+add_compile_options(
   -Wall
   -Wextra
   -Wstrict-aliasing
@@ -20,7 +20,6 @@ set(C_COMPILE_FLAGS
   -fstack-protector-all
   -fPIE
 )
-string(REPLACE ";" " " C_COMPILE_FLAGS "${C_COMPILE_FLAGS}")
 set(CXX_COMPILE_FLAGS "")
 set(CMAKE_SHARED_LINKER_FLAGS "-z relro -z now")
 
@@ -60,13 +59,13 @@ list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO)
 # make debug (environment variable from Makefile)
 if(DEFINED ENV{DEBUG})
   set(CMAKE_BUILD_TYPE "Debug")
-  set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -g -DDEBUG -O0 -pg")
+  add_compile_options(-g -DDEBUG -O0 -pg)
 elseif(DEFINED ENV{SANITIZE})
-  # make santifize (cannot make debug sanitize)
-  set(C_COMPILE_FLAGS "-g -O0 -fno-omit-frame-pointer -DNDEBUG")
-  set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -fsanitize=leak -fsanitize=address")
+  # make sanitize (cannot make debug sanitize)
+  add_compile_options(-g -O0 -fno-omit-frame-pointer -DNDEBUG)
+  add_compile_options(-fsanitize=leak -fsanitize=address)
 else()
-  set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -O2 -DNDEBUG")
+  add_compile_options(-O2 -DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
 endif()
@@ -77,7 +76,7 @@ if(DEFINED ENV{ANALYZE})
 endif()
 
 # Finished setting compiler/compiler flags.
-set(CMAKE_CXX_FLAGS "${C_COMPILE_FLAGS} ${CXX_COMPILE_FLAGS}"
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMPILE_FLAGS}"
   CACHE STRING "compile flags" FORCE)
 
 project(OSQUERY)
@@ -199,13 +198,4 @@ add_custom_target(
   "${CMAKE_SOURCE_DIR}/tools/sync.sh" "${CMAKE_BINARY_DIR}"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Generating sdk sync: ${CMAKE_BINARY_DIR}/sync"
-)
-
-# make python-thrift
-add_custom_target(
-  python-thrift
-    ${THRIFT_COMPILER} --gen py:dense "${CMAKE_SOURCE_DIR}/osquery.thrift"
-  DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
-  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
-  COMMENT "Generating python bindings for thrift extensions: ${CMAKE_BINARY_DIR}/generated/gen-py"
 )

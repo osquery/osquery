@@ -463,4 +463,4 @@ if __name__ == "__main__":
     BUILD = args.build
 
     os.setpgrp()
-    unittest.main(argv=[sys.argv[0], "-v" if VERBOSE else ""])
+    unittest.main(argv=[sys.argv[0]])
