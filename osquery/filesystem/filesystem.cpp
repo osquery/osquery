@@ -505,12 +505,25 @@ Status resolveFilePattern(std::vector<std::string> components,
 
 Status resolveFilePattern(const boost::filesystem::path& fs_path,
                           std::vector<std::string>& results) {
+  if (fs_path.string()[0] != '/') {
+    return resolveFilePattern(split(boost::filesystem::current_path().string() +
+                                        "/" + fs_path.string(),
+                                    "/"),
+                              results);
+  }
   return resolveFilePattern(split(fs_path.string(), "/"), results);
 }
 
 Status resolveFilePattern(const boost::filesystem::path& fs_path,
                           std::vector<std::string>& results,
                           ReturnSetting setting) {
+  if (fs_path.string()[0] != '/') {
+    return resolveFilePattern(split(boost::filesystem::current_path().string() +
+                                        "/" + fs_path.string(),
+                                    "/"),
+                              results,
+                              setting);
+  }
   return resolveFilePattern(split(fs_path.string(), "/"), results, setting);
 }
 
