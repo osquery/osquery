@@ -132,6 +132,9 @@ function install_gflags() {
     if [[ ! -d gflags-2.1.1 ]]; then
       tar -xf v2.1.1.tar.gz
     fi
+    if [[ ! -x "$(which gmake)" ]]; then
+      sudo ln -s `which make` /usr/local/bin/gmake
+    fi
     pushd gflags-2.1.1
     cmake -DCMAKE_CXX_FLAGS=-fPIC -DGFLAGS_NAMESPACE:STRING=google .
     make
