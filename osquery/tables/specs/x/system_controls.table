@@ -1,0 +1,11 @@
+table_name("system_controls")
+description("sysctl names, values, and settings information.")
+schema([
+    Column("name", TEXT, "Full sysctl MIB name"),
+    Column("oid", TEXT, "Control MIB"),
+    Column("subsystem", TEXT, "Subsystem ID, control type"),
+    Column("current_value", TEXT, "Value of setting"),
+    Column("config_value", TEXT, "The MIB value set in /etc/sysctl.conf"),
+    Column("type", TEXT, "Data type"),
+])
+implementation("system_controls@genSystemControls")

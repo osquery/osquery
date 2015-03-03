@@ -36,6 +36,7 @@ if(APPLE)
     system/darwin/usb_devices.cpp
     system/darwin/smbios_tables.cpp
     system/darwin/startup_items.cpp
+    system/darwin/sysctl_utils.cpp
     system/darwin/xprotect.cpp
     system/darwin/nfs_shares.cpp
     system/darwin/xattr.cpp
@@ -74,6 +75,7 @@ else()
     system/linux/process_open_files.cpp
     system/linux/shared_memory.cpp
     system/linux/smbios_tables.cpp
+    system/linux/sysctl_utils.cpp
     system/linux/usb_devices.cpp
     system/linux/users.cpp
   )
@@ -115,6 +117,7 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_tables
   system/shell_history.cpp
   system/smbios_utils.cpp
   system/suid_bin.cpp
+  system/system_controls.cpp
   system/logged_in_users.cpp
 )
 
