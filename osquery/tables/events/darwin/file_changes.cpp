@@ -58,7 +58,7 @@ void FileChangesEventSubscriber::init() {
   const auto& file_map = Config::getInstance().getWatchedFiles();
   for (const auto& element_kv : file_map) {
     for (const auto& file : element_kv.second) {
-      VLOG(1) << "Added Listener To: " << file;
+      VLOG(1) << "Added listener to: " << file;
       auto mc = createSubscriptionContext();
       mc->path = file;
       subscribe(&FileChangesEventSubscriber::Callback, mc,

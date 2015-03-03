@@ -59,7 +59,7 @@ void FileChangesEventSubscriber::init() {
 
   for (const auto& element_kv : file_map) {
     for (const auto& file : element_kv.second) {
-      VLOG(1) << "Added Listener To: " << file;
+      VLOG(1) << "Added listener to: " << file;
       auto mc = createSubscriptionContext();
       mc->recursive = 1;
       mc->path = file;
