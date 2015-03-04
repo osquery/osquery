@@ -82,12 +82,10 @@ QueryData genFile(QueryContext& context) {
     // Iterate over the directory and generate a hash for each regular file.
     boost::filesystem::directory_iterator begin(directory), end;
     for (; begin != end; ++begin) {
-      if (boost::filesystem::is_regular_file(begin->status())) {
-        genFileInfo(begin->path().string(),
-                    begin->path().filename().string(),
-                    directory_string,
-                    results);
-      }
+      genFileInfo(begin->path().string(),
+                  begin->path().filename().string(),
+                  directory_string,
+                  results);
     }
   }
 
