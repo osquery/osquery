@@ -9,7 +9,6 @@
  */
 
 #include <cstring>
-#include <sstream>
 
 #include <sys/wait.h>
 #include <signal.h>
@@ -31,16 +30,16 @@ namespace osquery {
 
 const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
-    {MEMORY_LIMIT, {50, 20, 10, 10}},
+    {MEMORY_LIMIT, {50, 30, 10, 10}},
     // Percent of user or system CPU worker can utilize for LATENCY_LIMIT
     // seconds.
-    {UTILIZATION_LIMIT, {90, 70, 60, 50}},
+    {UTILIZATION_LIMIT, {90, 80, 60, 50}},
     // Number of seconds the worker should run, else consider the exit fatal.
     {RESPAWN_LIMIT, {20, 20, 20, 5}},
     // If the worker respawns too quickly, backoff on creating additional.
     {RESPAWN_DELAY, {5, 5, 5, 1}},
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
-    {LATENCY_LIMIT, {5, 5, 3, 1}},
+    {LATENCY_LIMIT, {12, 6, 3, 1}},
     // How often to poll for performance limit violations.
     {INTERVAL, {3, 3, 3, 1}}, };
 
@@ -51,15 +50,25 @@ FLAG(int32,
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
+/// If the worker exits the watcher will inspect the return code.
+void childHandler(int signum) {
+  siginfo_t status;
+  waitid(P_ALL, 0, &status, WEXITED | WSTOPPED | WNOHANG);
+  if (status.si_code == CLD_EXITED && status.si_status == EXIT_CATASTROPHIC) {
+    // A child process had a catastrophic error, abort the watcher.
+    ::exit(EXIT_FAILURE);
+  }
+}
+
 bool Watcher::ok() {
   ::sleep(getWorkerLimit(INTERVAL));
   return (worker_ >= 0);
 }
 
 bool Watcher::watch() {
-  int status;
-  pid_t result = waitpid(worker_, &status, WNOHANG);
-  if (worker_ == 0 || result == worker_) {
+  siginfo_t info;
+  pid_t result = waitid(P_ALL, 0, &info, WEXITED | WSTOPPED | WNOHANG);
+  if (worker_ == 0 || result == worker_ || result < 0) {
     // Worker does not exist or never existed.
     return false;
   } else if (result == 0) {
@@ -75,6 +84,7 @@ bool Watcher::watch() {
 void Watcher::stopWorker() {
   kill(worker_, SIGKILL);
   worker_ = 0;
+
   // Clean up the defunct (zombie) process.
   waitpid(-1, 0, 0);
 }
@@ -110,13 +120,13 @@ bool Watcher::isWorkerSane() {
   current_user_time_ = user_time;
   current_system_time_ = system_time;
 
-  if (sustained_latency_ * iv >= getWorkerLimit(LATENCY_LIMIT)) {
+  if (sustained_latency_ > 0 && sustained_latency_ * iv >= getWorkerLimit(LATENCY_LIMIT)) {
     LOG(WARNING) << "osqueryd worker system performance limits exceeded";
     return false;
   }
 
-  if (footprint > getWorkerLimit(MEMORY_LIMIT) * 1024 * 1024) {
-    LOG(WARNING) << "osqueryd worker memory limits exceeded";
+  if (footprint > 0 && footprint > getWorkerLimit(MEMORY_LIMIT) * 1024 * 1024) {
+    LOG(WARNING) << "osqueryd worker memory limits exceeded: " << footprint;
     return false;
   }
 
@@ -153,6 +163,7 @@ void Watcher::createWorker() {
     ::exit(EXIT_FAILURE);
   }
 
+  signal(SIGCHLD, childHandler);
   VLOG(1) << "osqueryd watcher (" << getpid() << ") executing worker ("
           << worker_ << ")";
 }

@@ -185,6 +185,8 @@ class ProcRunner(object):
                 break
             time.sleep(self.interval)
             delay += self.interval
+        if self.proc is None:
+            return False
         return self.proc.poll() is None
 
     def isDead(self, pid, timeout=5):
@@ -194,12 +196,15 @@ class ProcRunner(object):
         that the process will die before the timeout, `isAlive`'s timeout is
         an expectation that the process will be scheduled before the timeout.
         '''
-        proc = psutil.Process(pid=pid)
+        try:
+            proc = psutil.Process(pid=pid)
+        except psutil.NoSuchProcess as e:
+            return True
         delay = 0
         while delay < timeout:
             if not proc.is_running():
                 return True
-            time.sleep(delay)
+            time.sleep(self.interval)
             delay += self.interval
         return False
 
@@ -250,7 +255,7 @@ class ProcessGenerator(object):
                 try:
                     os.kill(generator.pid, signal.SIGKILL)
                 except Exception as e:
-                    print("Cannot kill generated process: %s" % str(e))
+                    pass
 
 
 class Tester(object):

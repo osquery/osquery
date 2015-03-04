@@ -154,14 +154,17 @@ int getUnixTime();
  */
 template <typename _Iterator1, typename _Iterator2>
 inline size_t incUtf8StringIterator(_Iterator1& it, const _Iterator2& last) {
-  if (it == last)
+  if (it == last) {
     return 0;
+  }
+
   unsigned char c;
   size_t res = 1;
   for (++it; last != it; ++it, ++res) {
     c = *it;
-    if (!(c & 0x80) || ((c & 0xC0) == 0xC0))
+    if (!(c & 0x80) || ((c & 0xC0) == 0xC0)) {
       break;
+    }
   }
 
   return res;
@@ -177,8 +180,9 @@ inline size_t incUtf8StringIterator(_Iterator1& it, const _Iterator2& last) {
 inline size_t utf8StringSize(const std::string& str) {
   size_t res = 0;
   std::string::const_iterator it = str.begin();
-  for (; it != str.end(); incUtf8StringIterator(it, str.end()))
+  for (; it != str.end(); incUtf8StringIterator(it, str.end())) {
     res++;
+  }
 
   return res;
 }
