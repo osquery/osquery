@@ -21,7 +21,6 @@ add_compile_options(
   -fPIE
 )
 set(CXX_COMPILE_FLAGS "")
-set(CMAKE_SHARED_LINKER_FLAGS "-z relro -z now")
 
 # Set non-C compile flags and whole-loading linker flags.
 # osquery needs ALL symbols in the libraries it includes for relaxed ctors
@@ -42,6 +41,8 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
   set(OS_WHOLELINK_POST "")
 else()
   set(LINUX TRUE)
+  # Do not used the shared linker flags for modules.
+  #set(CMAKE_SHARED_LINKER_FLAGS "-z relro -z now")
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
   set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
   set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")

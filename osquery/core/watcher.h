@@ -33,7 +33,7 @@ enum WatchdogLimitType {
 
 class Watcher {
  public:
-  Watcher(int argc, char* argv[]) : worker_(0), argc_(argc), argv_(argv) {
+  Watcher(int argc, char** argv) : worker_(0), argc_(argc), argv_(argv) {
     resetCounters();
     last_respawn_time_ = 0;
   }

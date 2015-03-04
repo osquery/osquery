@@ -26,6 +26,9 @@ set(OSQUERY_LIBS
   z
 )
 
+# Add default linking details
+ADD_OSQUERY_LINK(TRUE "-rdynamic")
+
 # The platform-specific core libraries.
 if(APPLE)
   ADD_OSQUERY_LINK(TRUE "-mmacosx-version-min=${APPLE_MIN_ABI}")
@@ -61,7 +64,7 @@ add_subdirectory(sql)
 add_subdirectory(tables)
 
 # Finally amalgamate the tables needed to compile.
-GENERATE_UTILITIES()
+GENERATE_UTILITIES("${CMAKE_SOURCE_DIR}/osquery/tables")
 AMALGAMATE("${CMAKE_SOURCE_DIR}" "utils" AMALGAMATION_UTILS)
 ADD_OSQUERY_LIBRARY(TRUE osquery_utils_amalgamation ${AMALGAMATION_UTILS})
 
@@ -89,7 +92,7 @@ add_custom_target(devel
 add_dependencies(devel libosquery)
 
 # Generate the osquery additional tables (the non-util).
-GENERATE_TABLES("${CMAKE_SOURCE_DIR}/osquery/tables" "${CMAKE_SOURCE_DIR}")
+GENERATE_TABLES("${CMAKE_SOURCE_DIR}/osquery/tables")
 AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
 ADD_OSQUERY_LIBRARY(FALSE osquery_amalgamation ${AMALGAMATION})
 

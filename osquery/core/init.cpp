@@ -83,7 +83,7 @@ void printUsage(const std::string& binary, int tool) {
   fprintf(stdout, EPILOG);
 }
 
-Initializer::Initializer(int argc, char* argv[], int tool)
+Initializer::Initializer(int argc, char* argv[], ToolType tool)
     : argc_(argc),
       argv_((char**)argv),
       tool_(tool),
@@ -179,6 +179,9 @@ void Initializer::initWorkerWatcher(const std::string& name) {
 bool Initializer::isWorker() { return (getenv("OSQUERYD_WORKER") != nullptr); }
 
 void Initializer::start() {
+  // Load registry/extension modules before extensions.
+  osquery::loadModules();
+
   // Bind to an extensions socket and wait for registry additions.
   osquery::startExtensionManager();
 

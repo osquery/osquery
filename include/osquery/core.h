@@ -47,7 +47,7 @@ extern const std::string kSDKVersion;
 /**
  * @brief A helpful tool type to report when logging, print help, or debugging.
  */
-enum osqueryTool {
+enum ToolType {
   OSQUERY_TOOL_SHELL,
   OSQUERY_TOOL_DAEMON,
   OSQUERY_TOOL_TEST,
@@ -59,14 +59,15 @@ class Initializer {
   /**
    * @brief Sets up various aspects of osquery execution state.
    *
-   * osquery needs a few things to happen as soon as the executable begins
-   * executing. initOsquery takes care of setting up the relevant parameters.
-   * initOsquery should be called in an executable's `main()` function.
+   * osquery needs a few things to happen as soon as the process begins
+   * executing. Initializer takes care of setting up the relevant parameters.
+   * Initializer should be called in an executable's `main()` function.
    *
    * @param argc the number of elements in argv
    * @param argv the command-line arguments passed to `main()`
+   * @param tool the type of osquery main (daemon, shell, test, extension).
    */
-  Initializer(int argc, char* argv[], int tool = OSQUERY_TOOL_TEST);
+  Initializer(int argc, char* argv[], ToolType tool = OSQUERY_TOOL_TEST);
 
   /**
    * @brief Sets up the process as an osquery daemon.
@@ -96,7 +97,7 @@ class Initializer {
 
   /// Assume initialization finished, start work.
   void start();
-  /// Turns of various aspects of osquery such as event loops.
+  /// Turns off various aspects of osquery such as event loops.
   void shutdown();
   /// Check if a process is an osquery worker.
   bool isWorker();

@@ -16,6 +16,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/database.h>
 
+#include "osquery/core/test_util.h"
 #include "osquery/extensions/interface.h"
 
 using namespace osquery::extensions;
@@ -234,6 +235,13 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
 
   Registry::removeBroadcast(uuid);
   Registry::allowDuplicates(false);
+}
+
+TEST_F(ExtensionsTest, test_extension_module_search) {
+  createMockFileStructure();
+  EXPECT_TRUE(loadModules(kFakeDirectory));
+  EXPECT_FALSE(loadModules("/dir/does/not/exist"));
+  tearDownMockFileStructure();
 }
 }
 

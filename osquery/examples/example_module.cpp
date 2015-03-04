@@ -30,4 +30,6 @@ class ExampleTable : public tables::TablePlugin {
   }
 };
 
-// REGISTER(ExampleTable, "table", "example");
+CREATE_MODULE("example", "0.0.1", "0.0.0");
+
+void initModule(void) { REGISTER_MODULE(ExampleTable, "table", "example"); }

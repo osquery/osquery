@@ -18,7 +18,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/status.h>
+#include <osquery/core.h>
 
 namespace osquery {
 
@@ -114,6 +114,18 @@ typedef std::function<Status(const std::string&, const PluginResponse&)>
     AddExternalCallback;
 typedef std::function<void(const std::string&)> RemoveExternalCallback;
 
+/// When a module is being initialized its information is kept in a transient
+/// RegistryFactory lookup location.
+struct ModuleInfo {
+  std::string path;
+  std::string name;
+  std::string version;
+  std::string sdk_version;
+};
+
+/// The call-in prototype for Registry modules.
+typedef void (*ModuleInitalizer)(void);
+
 class Plugin {
  public:
   Plugin() { name_ = "unnamed"; }
@@ -203,6 +215,8 @@ class RegistryHelperCore {
                       const PluginRequest& request,
                       PluginResponse& response);
 
+  Status add(const std::string& item_name, bool internal = false);
+
   /**
    * @brief Allow a plugin to perform some setup functions when osquery starts.
    *
@@ -272,6 +286,8 @@ class RegistryHelperCore {
   /// Support an 'active' mode where calls without a specific item name will
   /// be directed to the 'active' plugin.
   std::string active_;
+  /// If a module was initialized/declared then store lookup information.
+  std::map<std::string, RouteUUID> modules_;
 };
 
 /**
@@ -359,13 +375,7 @@ class RegistryHelper : public RegistryHelperCore {
     std::shared_ptr<RegistryType> item((RegistryType*)new Item());
     item->setName(item_name);
     items_[item_name] = item;
-
-    // The item can be listed as internal, meaning it does not broadcast.
-    if (internal) {
-      internal_.push_back(item_name);
-    }
-
-    return Status(0, "OK");
+    return RegistryHelperCore::add(item_name, internal);
   }
 
   /**
@@ -397,9 +407,46 @@ class RegistryHelper : public RegistryHelperCore {
   RemoveExternalCallback remove_;
 };
 
+/// Helper defintion for a shared pointer to a Plugin.
 typedef std::shared_ptr<Plugin> PluginRef;
+/// Helper definition for a basic-templated Registry type using a base Plugin.
 typedef RegistryHelper<Plugin> PluginRegistryHelper;
+/// Helper definitions for a shared pointer to the basic Registry type.
 typedef std::shared_ptr<PluginRegistryHelper> PluginRegistryHelperRef;
+
+/**
+ * @basic A workflow manager for opening a module path and appending to the
+ * core registry.
+ *
+ * osquery Registry modules are part of the extensions API, in that they use
+ * the osquery SDK to expose additional features to the osquery core. Modules
+ * do not require the Thrift interface and may be compiled as shared objects
+ * and loaded late at run time once the core and internal registry has been
+ * initialized and setUp.
+ *
+ * A ModuleLoader interprets search paths, dynamically loads the modules,
+ * maintains identification within the RegistryFactory and any registries
+ * the module adds items into.
+ */
+class RegistryModuleLoader : private boost::noncopyable {
+ public:
+  /// Unlock the registry, open, construct, and allow the module to declare.
+  RegistryModuleLoader(const std::string& path);
+  /// Keep the symbol resolution/calling out of construction.
+  void init();
+
+  /// Clear module information, 'lock' the registry.
+  ~RegistryModuleLoader();
+
+ private:
+  // Keep the handle for symbol resolution/calling.
+  void* handle_;
+  // Keep the path for debugging/logging.
+  std::string path_;
+
+ private:
+  FRIEND_TEST(RegistryTests, test_registry_modules);
+};
 
 class RegistryFactory : private boost::noncopyable {
  public:
@@ -572,6 +619,27 @@ class RegistryFactory : private boost::noncopyable {
   /// Check if duplicate registry items using registry aliasing are allowed.
   static bool allowDuplicates() { return instance().allow_duplicates_; }
 
+  /// Declare a module for initialization and subsequent registration attempts
+  static void declareModule(const std::string& name,
+                            const std::string& version,
+                            const std::string& min_sdk_version,
+                            const std::string& sdk_version);
+
+  /// Access module metadata.
+  static const std::map<RouteUUID, ModuleInfo>& getModules();
+
+ private:
+  /// Access the current initializing module UUID.
+  static RouteUUID getModule();
+
+  /// Check if the registry is allowing module registrations.
+  static bool usingModule();
+
+  /// Initialize a module for lookup, resolution, and its registrations.
+  static void initModule(const std::string& path);
+
+  static void shutdownModule();
+
   /// Check if the registries are locked.
   static bool locked() { return instance().locked_; }
 
@@ -585,10 +653,39 @@ class RegistryFactory : private boost::noncopyable {
   virtual ~RegistryFactory() {}
 
  private:
+  /// Track duplicate registry item support, used for testing.
   bool allow_duplicates_;
+  /// Track registry "locking", while locked a registry cannot add/create.
   bool locked_;
+
+  /// The primary storage for constructed registries.
   std::map<std::string, PluginRegistryHelperRef> registries_;
+  /**
+   * @brief The registry tracks the set of active extension routes.
+   *
+   * If an extension dies (the process ends or does not respond to a ping),
+   * the registry will be notified via the extension watcher.
+   * When an operation requests to use that extension route the extension
+   * manager will lazily check the registry for changes.
+   */
   std::set<RouteUUID> extensions_;
+
+  /**
+   * @brief The registry tracks loaded extension module metadata/info.
+   *
+   * Each extension module is assigned a transient RouteUUID for identification
+   * those route IDs are passed to each registry to identify which plugin
+   * items belong to modules, similarly to extensions.
+   */
+  std::map<RouteUUID, ModuleInfo> modules_;
+
+  // During module initialization store the current-working module ID.
+  RouteUUID module_uuid_;
+
+ private:
+  friend class RegistryHelperCore;
+  friend class RegistryModuleLoader;
+  FRIEND_TEST(RegistryTests, test_registry_modules);
 };
 
 /**

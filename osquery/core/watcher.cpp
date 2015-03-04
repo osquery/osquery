@@ -53,6 +53,8 @@ CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 /// If the worker exits the watcher will inspect the return code.
 void childHandler(int signum) {
   siginfo_t info;
+  // Make sure WNOWAIT is used to the wait information is not removed.
+  // Watcher::watch implements a thread to poll for this information.
   waitid(P_ALL, 0, &info, WEXITED | WSTOPPED | WNOHANG | WNOWAIT);
   if (info.si_code == CLD_EXITED && info.si_status == EXIT_CATASTROPHIC) {
     // A child process had a catastrophic error, abort the watcher.

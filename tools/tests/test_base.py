@@ -10,7 +10,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from __future__ import unicode_literals
+# pyexpect.replwrap will not work with unicode_literals
+#from __future__ import unicode_literals
 
 import os
 import psutil
@@ -77,7 +78,10 @@ class OsqueryWrapper(REPLWrapper):
     CONTINUATION_PROMPT = u'    ...> '
     ERROR_PREFIX = 'Error:'
 
-    def __init__(self, command='../osqueryi'):
+    def __init__(self, command='../osqueryi', args=None):
+        if args:
+            command = command + " " + " ".join(["--%s=%s" % (k, v) for
+                k, v in args.iteritems()])
         super(OsqueryWrapper, self).__init__(
             command,
             self.PROMPT,
