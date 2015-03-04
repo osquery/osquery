@@ -204,6 +204,33 @@ TEST_F(FilesystemTests, test_letter_wild_opt) {
   EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory + "/door.txt"),
             all.end());
 }
+
+TEST_F(FilesystemTests, test_dotdot) {
+  std::vector<std::string> all;
+  auto status = resolveFilePattern(kFakeDirectory + "/deep11/deep2/../../%",
+                                   all, REC_LIST_FILES);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(all.size(), 3);
+  EXPECT_NE(std::find(all.begin(), all.end(),
+                      kFakeDirectory + "/deep11/deep2/../../door.txt"),
+            all.end());
+}
+
+TEST_F(FilesystemTests, test_dotdot_relative) {
+  std::vector<std::string> all;
+  auto status =
+      resolveFilePattern("../../../../tools/tests/%", all, REC_LIST_ALL);
+  EXPECT_TRUE(status.ok());
+
+  bool found = false;
+  for (const auto& file : all) {
+    if (file.find("test.config")) {
+      found = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(found);
+}
 }
 
 int main(int argc, char* argv[]) {
