@@ -109,7 +109,7 @@ class BadDoge : public DogPlugin {
   Status setUp() { return Status(1, "Expect error... this is a bad dog"); }
 };
 
-auto AutoDogRegistry = TestCoreRegistry::create<DogPlugin>("dog");
+auto AutoDogRegistry = TestCoreRegistry::create<DogPlugin>("dog", true);
 
 TEST_F(RegistryTests, test_auto_registries) {
   TestCoreRegistry::add<Doge>("dog", "doge");

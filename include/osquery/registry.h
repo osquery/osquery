@@ -41,22 +41,26 @@ namespace osquery {
  * @param type A typename that derives from Plugin.
  * @param name A string identifier for the registry.
  */
-#define CREATE_REGISTRY(type, name)                         \
-  namespace registry {                                      \
-  const auto type##Registry = Registry::create<type>(name); \
+#define CREATE_REGISTRY(type, name)                           \
+  namespace registry {                                        \
+  __attribute__((constructor)) static void type##Registry() { \
+    Registry::create<type>(name);                             \
+  }                                                           \
   }
 
 /**
  * @brief A boilerplate code helper to create a registry given a name and
- * plugin base class type. This 'lazy' registry does not automatically run
- * Plugin::setUp on all items.
+ * plugin base class type. This 'lazy' registry does not run
+ * Plugin::setUp on its items, so the registry will do it.
  *
  * @param type A typename that derives from Plugin.
  * @param name A string identifier for the registry.
  */
-#define CREATE_LAZY_REGISTRY(type, name)                           \
-  namespace registry {                                             \
-  const auto type##Registry = Registry::create<type>(name, false); \
+#define CREATE_LAZY_REGISTRY(type, name)                      \
+  namespace registry {                                        \
+  __attribute__((constructor)) static void type##Registry() { \
+    Registry::create<type>(name, true);                       \
+  }                                                           \
   }
 
 /**
@@ -71,12 +75,16 @@ namespace osquery {
  * @param registry The string name for the registry.
  * @param name A string identifier for this registry item.
  */
-#define REGISTER(type, registry, name) \
-  const auto type##RegistryItem = Registry::add<type>(registry, name);
+#define REGISTER(type, registry, name)                            \
+  __attribute__((constructor)) static void type##RegistryItem() { \
+    Registry::add<type>(registry, name);                          \
+  }
 
 /// The same as REGISTER but prevents the plugin item from being broadcasted.
-#define REGISTER_INTERNAL(type, registry, name) \
-  const auto type##RegistryItem = Registry::add<type>(registry, name, true);
+#define REGISTER_INTERNAL(type, registry, name)                   \
+  __attribute__((constructor)) static void type##RegistryItem() { \
+    Registry::add<type>(registry, name, true);                    \
+  }
 
 /**
  * @brief The request part of a plugin (registry item's) call.
@@ -162,7 +170,7 @@ class Plugin {
 
 class RegistryHelperCore {
  public:
-  explicit RegistryHelperCore(bool auto_setup = true)
+  explicit RegistryHelperCore(bool auto_setup = false)
       : auto_setup_(auto_setup) {}
   virtual ~RegistryHelperCore() {}
 
@@ -279,7 +287,7 @@ class RegistryHelper : public RegistryHelperCore {
   typedef std::shared_ptr<RegistryType> RegistryTypeRef;
 
  public:
-  explicit RegistryHelper(bool auto_setup = true)
+  explicit RegistryHelper(bool auto_setup = false)
       : RegistryHelperCore(auto_setup),
         add_(&RegistryType::addExternal),
         remove_(&RegistryType::removeExternal) {}
@@ -414,12 +422,12 @@ class RegistryFactory : private boost::noncopyable {
    * @endcode
    *
    * @param registry_name The canonical name for this registry.
-   * @param auto_setup Optionally set false if the registry handles setup
+   * @param auto_setup Set true if the registry does not setup itself
    * @return A non-sense int that must be casted const.
    */
   template <class Type>
-  static int create(const std::string& registry_name, bool auto_setup = true) {
-    if (instance().registries_.count(registry_name) > 0) {
+  static int create(const std::string& registry_name, bool auto_setup = false) {
+    if (locked() || instance().registries_.count(registry_name) > 0) {
       return 0;
     }
 
@@ -452,8 +460,11 @@ class RegistryFactory : private boost::noncopyable {
   static Status add(const std::string& registry_name,
                     const std::string& item_name,
                     bool internal = false) {
-    auto registry = instance().registry(registry_name);
-    return registry->template add<Item>(item_name, internal);
+    if (!locked()) {
+      auto registry = instance().registry(registry_name);
+      return registry->template add<Item>(item_name, internal);
+    }
+    return Status(0, "Registry locked");
   }
 
   /// Direct access to all registries.
@@ -561,14 +572,21 @@ class RegistryFactory : private boost::noncopyable {
   /// Check if duplicate registry items using registry aliasing are allowed.
   static bool allowDuplicates() { return instance().allow_duplicates_; }
 
+  /// Check if the registries are locked.
+  static bool locked() { return instance().locked_; }
+
+  /// Set the registry locked status.
+  static void locked(bool locked) { instance().locked_ = locked; }
+
  protected:
-  RegistryFactory() : allow_duplicates_(false) {}
+  RegistryFactory() : allow_duplicates_(false), locked_(false) {}
   RegistryFactory(RegistryFactory const&);
   void operator=(RegistryFactory const&);
   virtual ~RegistryFactory() {}
 
  private:
   bool allow_duplicates_;
+  bool locked_;
   std::map<std::string, PluginRegistryHelperRef> registries_;
   std::set<RouteUUID> extensions_;
 };

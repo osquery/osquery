@@ -88,7 +88,8 @@ QueryData genOsqueryExtensions(QueryContext& context) {
     r["name"] = extenion.second.name;
     r["version"] = extenion.second.version;
     r["sdk_version"] = extenion.second.sdk_version;
-    r["socket"] = getExtensionSocket(extenion.first);
+    r["path"] = getExtensionSocket(extenion.first);
+    r["type"] = "extension";
     results.push_back(r);
   }
 
@@ -103,7 +104,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["pid"] = INTEGER(getpid());
 
   std::string hash_string;
-  auto s = Config::getInstance().getMD5(hash_string);
+  auto s = Config::getMD5(hash_string);
   if (s.ok()) {
     r["config_md5"] = TEXT(hash_string);
   } else {

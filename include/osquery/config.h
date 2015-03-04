@@ -80,7 +80,7 @@ class Config {
    *
    * This may perform a resource load such as TCP request or filesystem read.
    */
-  Status load();
+  static Status load();
 
   /**
    * @brief Get a vector of all scheduled queries.
@@ -112,7 +112,7 @@ class Config {
    *
    * @return The MD5 of the osquery config
    */
-  Status getMD5(std::string& hashString);
+  static Status getMD5(std::string& hashString);
 
   /**
    * @brief Check to ensure that the config is accessible and properly
@@ -129,7 +129,7 @@ class Config {
    * Since instances of Config should only be created via getInstance(),
    * Config's constructor is private
    */
-  Config() {}
+  Config() { loaded_ = false; }
   ~Config(){}
   Config(Config const&);
   void operator=(Config const&);
@@ -183,6 +183,8 @@ class Config {
    * native format
    */
   OsqueryConfig cfg_;
+  /// Only load the config once.
+  bool loaded_;
 };
 
 /**

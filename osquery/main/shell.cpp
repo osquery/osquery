@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
       boost::filesystem::create_directory(kShellTemp)) {
     osquery::FLAGS_database_path = kShellTemp + "/shell.db";
     osquery::FLAGS_extensions_socket = kShellTemp + "/shell.em";
-    FLAGS_log_dir = kShellTemp;
+    osquery::FLAGS_disable_logging = true;
   }
 
   // Parse/apply flags, start registry, load logger/config plugins.

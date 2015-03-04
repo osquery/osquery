@@ -52,9 +52,9 @@ CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
 /// If the worker exits the watcher will inspect the return code.
 void childHandler(int signum) {
-  siginfo_t status;
-  waitid(P_ALL, 0, &status, WEXITED | WSTOPPED | WNOHANG);
-  if (status.si_code == CLD_EXITED && status.si_status == EXIT_CATASTROPHIC) {
+  siginfo_t info;
+  waitid(P_ALL, 0, &info, WEXITED | WSTOPPED | WNOHANG | WNOWAIT);
+  if (info.si_code == CLD_EXITED && info.si_status == EXIT_CATASTROPHIC) {
     // A child process had a catastrophic error, abort the watcher.
     ::exit(EXIT_FAILURE);
   }
@@ -66,9 +66,9 @@ bool Watcher::ok() {
 }
 
 bool Watcher::watch() {
-  siginfo_t info;
-  pid_t result = waitid(P_ALL, 0, &info, WEXITED | WSTOPPED | WNOHANG);
-  if (worker_ == 0 || result == worker_ || result < 0) {
+  int status;
+  pid_t result = waitpid(worker_, &status, WNOHANG);
+  if (worker_ == 0 || result == worker_) {
     // Worker does not exist or never existed.
     return false;
   } else if (result == 0) {

@@ -34,11 +34,20 @@ CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 static boost::shared_mutex rw_lock;
 
 Status Config::load() {
-  boost::unique_lock<boost::shared_mutex> lock(rw_lock);
-  OsqueryConfig conf;
+  if (!Registry::exists("config", FLAGS_config_plugin)) {
+    return Status(1, "Missing config plugin " + FLAGS_config_plugin);
+  }
 
-  auto s = Config::genConfig(conf);
-  if (!s.ok()) {
+  boost::unique_lock<boost::shared_mutex> lock(rw_lock);
+
+  // Set up the active config plugin once when the config is first loaded.
+  if (!getInstance().loaded_) {
+    Registry::get("config", FLAGS_config_plugin)->setUp();
+    getInstance().loaded_ = true;
+  }
+
+  OsqueryConfig conf;
+  if (!genConfig(conf).ok()) {
     return Status(1, "Cannot generate config");
   }
 
@@ -51,7 +60,7 @@ Status Config::load() {
               << option.second;
     }
   }
-  cfg_ = conf;
+  getInstance().cfg_ = conf;
   return Status(0, "OK");
 }
 

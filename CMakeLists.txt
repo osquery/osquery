@@ -23,6 +23,9 @@ add_compile_options(
 set(CXX_COMPILE_FLAGS "")
 set(CMAKE_SHARED_LINKER_FLAGS "-z relro -z now")
 
+# Set non-C compile flags and whole-loading linker flags.
+# osquery needs ALL symbols in the libraries it includes for relaxed ctors
+# late-loading modules and SQLite introspection utilities.
 if(APPLE)
   set(APPLE_MIN_ABI "10.9")
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
@@ -76,10 +79,6 @@ if(DEFINED ENV{ANALYZE})
 endif()
 
 # Finished setting compiler/compiler flags.
-unset(CMAKE_CXX_FLAGS CACHE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMPILE_FLAGS}"
-  CACHE STRING "compile flags" FORCE)
-
 project(OSQUERY)
 
 # Make sure deps were built before compiling (else show warning)

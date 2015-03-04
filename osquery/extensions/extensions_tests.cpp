@@ -155,7 +155,7 @@ class ExtensionPlugin : public Plugin {
     for (const auto& request_item : request) {
       response.push_back({{request_item.first, request_item.second}});
     }
-    return Status(0, "Test sucess");
+    return Status(0, "Test success");
   }
 };
 
@@ -169,7 +169,7 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
   EXPECT_TRUE(socketExists(kTestManagerSocket));
 
   // This time we're going to add a plugin to the extension_test registry.
-  REGISTER(TestExtensionPlugin, "extension_test", "test_item");
+  Registry::add<TestExtensionPlugin>("extension_test", "test_item");
 
   // Now we create a registry alias that will be broadcasted but NOT used for
   // internal call lookups. Aliasing was introduced for testing such that an

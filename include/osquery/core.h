@@ -29,7 +29,8 @@
 #endif
 // clang-format on
 
-#define EXIT_CATASTROPHIC 9001
+/// A configuration error is catastrophic and should exit the watcher.
+#define EXIT_CATASTROPHIC 78
 
 namespace osquery {
 

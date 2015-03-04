@@ -50,7 +50,7 @@ class TestTable : public tables::TablePlugin {
 };
 
 TEST_F(SQLTests, test_raw_access_context) {
-  REGISTER(TestTable, "table", "test_table");
+  Registry::add<TestTable>("table", "test_table");
   auto results = SQL::selectAllFrom("test_table");
 
   EXPECT_EQ(results.size(), 1);

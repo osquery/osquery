@@ -165,7 +165,7 @@ void initializeScheduler() {
 #endif
 
   // Iterate over scheduled queryies and add a splay to each.
-  auto schedule = Config::getInstance().getScheduledQueries();
+  auto schedule = Config::getScheduledQueries();
   for (auto& q : schedule) {
     auto old_interval = q.interval;
     auto new_interval = splayValue(old_interval, FLAGS_schedule_splay_percent);

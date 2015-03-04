@@ -60,14 +60,8 @@ add_subdirectory(scheduler)
 add_subdirectory(sql)
 add_subdirectory(tables)
 
-# Utility tables are table specs that are ALWAYS built into osquery core.
-GENERATE_UTILITY("osquery_info")
-GENERATE_UTILITY("osquery_flags")
-GENERATE_UTILITY("time")
-GENERATE_UTILITY("file")
-GENERATE_UTILITY("hash")
-
 # Finally amalgamate the tables needed to compile.
+GENERATE_UTILITIES()
 AMALGAMATE("${CMAKE_SOURCE_DIR}" "utils" AMALGAMATION_UTILS)
 ADD_OSQUERY_LIBRARY(TRUE osquery_utils_amalgamation ${AMALGAMATION_UTILS})
 
@@ -108,16 +102,19 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   add_executable(shell main/shell.cpp)
   TARGET_OSQUERY_LINK_WHOLE(shell libosquery)
   TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
+  set_target_properties(shell PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
   set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
 
   add_executable(daemon main/daemon.cpp)
   TARGET_OSQUERY_LINK_WHOLE(daemon libosquery)
   TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_additional)
+  set_target_properties(daemon PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
   set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
 
   add_executable(run main/run.cpp)
   TARGET_OSQUERY_LINK_WHOLE(run libosquery)
   TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
+  set_target_properties(run PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
 
   # Include the public API includes if make devel.
   install(TARGETS libosquery ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)
@@ -140,6 +137,7 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
 endif()
 
 # Build the example extension with the SDK
-add_executable(example_extension examples/example_extension.cpp)
-TARGET_OSQUERY_LINK_WHOLE(example_extension libosquery)
-set_target_properties(example_extension PROPERTIES OUTPUT_NAME example_extension)
+ADD_OSQUERY_EXTENSION(example_extension examples/example_extension.cpp)
+
+# Build the example extension module with the SDK
+ADD_OSQUERY_MODULE(modexample examples/example_module.cpp)

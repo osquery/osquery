@@ -183,7 +183,7 @@ void Initializer::start() {
   osquery::startExtensionManager();
 
   // Load the osquery config using the default/active config plugin.
-  Config::getInstance().load();
+  Config::load();
 
   if (FLAGS_config_check) {
     // The initiator requested an initialization and config check.

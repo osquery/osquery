@@ -29,7 +29,40 @@
 #include <osquery/tables.h>
 
 namespace osquery {
-/// Anything built with only libosquery.a (SDK) will not include an SQL
-/// provider (aka "sql" registry).
+/**
+ * @brief Create the external SQLite implementation wrapper.
+ *
+ * Anything built with only libosquery and not the 'additional' library will
+ * not include a native SQL implementation. This applies to extensions and
+ * separate applications built with the osquery SDK.
+ *
+ * The ExternalSQLPlugin is a wrapper around the SQLite API, which forwards
+ * calls to an osquery extension manager (core).
+ */
 REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
+
+/**
+ * @brief Mimic the REGISTER macro, extensions should use this helper.
+ *
+ * The SDK does not provide a REGISTER macro for modules or extensions.
+ * Tools build with the osquery SDK should use REGISTER_EXTERNAL to add to
+ * their own 'external' registry. This registry will broadcast to the osquery
+ * extension manager (core) in an extension.
+ *
+ * osquery 'modules' should not construct their plugin registrations in
+ * global scope (global construction time). Instead they should use the
+ * module call-in well defined symbol, declare their SDK constraints, then
+ * use the RegistryFactory::add call directly.
+ */
+#define REGISTER_EXTERNAL(type, registry, name)                            \
+  __attribute__((constructor)) static void type##ExtensionRegistryItem() { \
+    Registry::add<type>(registry, name);                                   \
+  }
+
+// Remove registry-helper macros from the SDK.
+#undef REGISTER
+#define REGISTER #error "Do not use REGISTER in the osquery SDK"
+#undef REGISTER_INTERNAL
+#undef CREATE_REGISTRY
+#undef CREATE_LAZY_REGISTRY
 }
