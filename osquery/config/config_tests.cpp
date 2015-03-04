@@ -22,12 +22,15 @@ namespace osquery {
 
 // The config_path flag is defined in the filesystem config plugin.
 DECLARE_string(config_path);
+// The config_extra_files flag is defined in the filesystem config plugin.
+DECLARE_string(config_extra_files);
 
 class ConfigTests : public testing::Test {
  public:
   ConfigTests() {
     FLAGS_config_plugin = "filesystem";
     FLAGS_config_path = kTestDataPath + "test.config";
+    FLAGS_config_extra_files = kTestDataPath + "/notreal/";
   }
 
  protected:
