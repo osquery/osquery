@@ -41,6 +41,9 @@ REGISTER(FilesystemConfigPlugin, "config", "filesystem");
 
 std::pair<osquery::Status, std::string> FilesystemConfigPlugin::genConfig() {
   std::string config;
+  if (!fs::exists(FLAGS_config_path)) {
+    return std::make_pair(Status(1, "config file does not exist"), "");
+  }
   std::vector<std::string> conf_files;
   Status stat = resolveFilePattern(FLAGS_config_extra_files, conf_files);
   if (!stat.ok()) {
@@ -56,8 +59,8 @@ std::pair<osquery::Status, std::string> FilesystemConfigPlugin::genConfig() {
 
   for (const auto& conf_file : conf_files) {
     VLOG(1) << "Filesystem ConfigPlugin reading: " << conf_file;
-    std::ifstream config_stream(conf_file);
 
+    std::ifstream config_stream(conf_file);
     config_stream.seekg(0, std::ios::end);
     config.reserve(config_stream.tellg());
     config_stream.seekg(0, std::ios::beg);
@@ -65,10 +68,11 @@ std::pair<osquery::Status, std::string> FilesystemConfigPlugin::genConfig() {
     config.assign((std::istreambuf_iterator<char>(config_stream)),
                   std::istreambuf_iterator<char>());
 
-    std::stringstream json(config);
+    std::stringstream json;
+    json << config;
+
     pt::ptree tree;
     pt::read_json(json, tree);
-
     for (const pt::ptree::value_type& v : tree.get_child("scheduledQueries")) {
       pt::ptree child;
       child.put("name", (v.second).get<std::string>("name"));
@@ -100,8 +104,6 @@ std::pair<osquery::Status, std::string> FilesystemConfigPlugin::genConfig() {
   merged.add_child("additional_monitoring", additional_monitoring);
   std::stringstream complete;
   write_json(complete, merged);
-#include <iostream>
-  std::cout << complete.str() << "\n";
   return std::make_pair(Status(0, "OK"), complete.str());
 }
 }
