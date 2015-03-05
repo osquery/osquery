@@ -77,6 +77,10 @@ add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
 target_link_libraries(libosquery ${OSQUERY_LIBS})
 set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
 
+add_library(libosquery_testing STATIC core/test_util.cpp)
+set_target_properties(libosquery_testing PROPERTIES OUTPUT_NAME osquery_testing)
+set_target_properties(libosquery_testing PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
+
 add_custom_target(BUILD_LIB_SUCCESS ALL
   DEPENDS libosquery
   COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold "Built libosquery: ${CMAKE_BINARY_DIR}"
@@ -102,7 +106,7 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
   set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
 
-  add_executable(shell main/shell.cpp)
+  add_executable(shell devtools/shell.cpp main/shell.cpp)
   TARGET_OSQUERY_LINK_WHOLE(shell libosquery)
   TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
   set_target_properties(shell PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")

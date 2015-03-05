@@ -18,10 +18,6 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_core
   watcher.cpp
 )
 
-ADD_OSQUERY_LIBRARY(TRUE osquery_test_util
-  test_util.cpp
-)
-
 ADD_OSQUERY_TEST(TRUE flags_tests flags_tests.cpp)
 ADD_OSQUERY_TEST(TRUE hash_test hash_tests.cpp)
 ADD_OSQUERY_TEST(TRUE status_test status_tests.cpp)
