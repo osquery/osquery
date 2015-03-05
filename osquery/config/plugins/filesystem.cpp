@@ -50,9 +50,9 @@ std::pair<osquery::Status, std::string> FilesystemConfigPlugin::genConfig() {
   VLOG(1) << "Finished resolving, merging " << conf_files.size()
           << " additional JSONs";
 
+  std::sort(conf_files.begin(), conf_files.end());
   conf_files.push_back(FLAGS_config_path);
-
-  pt::ptree merged;
+  pt::ptree merged, scheduled_queries, options, additional_monitoring;
 
   for (const auto& conf_file : conf_files) {
     VLOG(1) << "Filesystem ConfigPlugin reading: " << conf_file;
@@ -69,12 +69,39 @@ std::pair<osquery::Status, std::string> FilesystemConfigPlugin::genConfig() {
     pt::ptree tree;
     pt::read_json(json, tree);
 
-    for (const auto& elem : tree) {
-      merged.push_back(elem);
+    for (const pt::ptree::value_type& v : tree.get_child("scheduledQueries")) {
+      pt::ptree child;
+      child.put("name", (v.second).get<std::string>("name"));
+      child.put("query", (v.second).get<std::string>("query"));
+      child.put("interval", (v.second).get<int>("interval"));
+      scheduled_queries.add_child("", child);
+    }
+
+    if (tree.count("additional_monitoring") > 0) {
+      for (const pt::ptree::value_type& v :
+           tree.get_child("additional_monitoring")) {
+        if (additional_monitoring.count(v.first) == 0) {
+          pt::ptree child;
+          additional_monitoring.add_child(v.first, v.second);
+        }
+      }
+    }
+    if (tree.count("options") > 0) {
+      for (const pt::ptree::value_type& v : tree.get_child("options")) {
+        if (options.count(v.first) == 0) {
+          pt::ptree child;
+          options.add_child(v.first, v.second);
+        }
+      }
     }
   }
+  merged.add_child("scheduledQueries", scheduled_queries);
+  merged.add_child("options", options);
+  merged.add_child("additional_monitoring", additional_monitoring);
   std::stringstream complete;
   write_json(complete, merged);
+#include <iostream>
+  std::cout << complete.str() << "\n";
   return std::make_pair(Status(0, "OK"), complete.str());
 }
 }
