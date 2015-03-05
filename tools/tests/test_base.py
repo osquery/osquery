@@ -78,12 +78,13 @@ class OsqueryWrapper(REPLWrapper):
     CONTINUATION_PROMPT = u'    ...> '
     ERROR_PREFIX = 'Error:'
 
-    def __init__(self, command='../osqueryi', args=None):
+    def __init__(self, command='../osqueryi', args=None, env={}):
         if args:
             command = command + " " + " ".join(["--%s=%s" % (k, v) for
                 k, v in args.iteritems()])
+        proc = pexpect.spawn(command, env=env)
         super(OsqueryWrapper, self).__init__(
-            command,
+            proc,
             self.PROMPT,
             None,
             continuation_prompt=self.CONTINUATION_PROMPT)

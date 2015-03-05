@@ -433,7 +433,7 @@ RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
   handle_ = dlopen(path_.c_str(), RTLD_NOW | RTLD_LOCAL);
   if (handle_ == nullptr) {
     VLOG(1) << "Failed to load module: " << path_;
-    RegistryFactory::shutdownModule();
+    VLOG(1) << dlerror();
     return;
   }
 
@@ -441,6 +441,7 @@ RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
   // the registry for modification. The module should have done this using
   // the SDK's CREATE_MODULE macro, which adds the global-scope constructor.
   if (RegistryFactory::locked()) {
+    VLOG(1) << "Failed to declare module: " << path_;
     dlclose(handle_);
     handle_ = nullptr;
   }
@@ -448,6 +449,7 @@ RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
 
 void RegistryModuleLoader::init() {
   if (handle_ == nullptr || RegistryFactory::locked()) {
+    handle_ = nullptr;
     return;
   }
 
@@ -457,24 +459,26 @@ void RegistryModuleLoader::init() {
   auto initializer = (ModuleInitalizer)dlsym(handle_, "initModule");
   if (initializer != nullptr) {
     initializer();
+    VLOG(1) << "Initialized module: " << path_;
   } else {
+    VLOG(1) << "Failed to initialize module: " << path_;
+    VLOG(1) << dlerror();
     dlclose(handle_);
     handle_ = nullptr;
-    VLOG(1) << "Failed to initialize module: " << path_;
   }
 }
 
 RegistryModuleLoader::~RegistryModuleLoader() {
+  if (handle_ == nullptr) {
+    // The module was not loaded or did not initalize.
+    RegistryFactory::instance().modules_.erase(RegistryFactory::getModule());
+  }
+
   // We do not close the module, and thus are OK with losing a reference to the
   // module's handle. Attempting to close and clean up is very expensive for
   // very little value/features.
   if (!RegistryFactory::locked()) {
     RegistryFactory::shutdownModule();
-  }
-
-  if (handle_ == nullptr) {
-    // The module was not loaded or did not initalize.
-    RegistryFactory::instance().modules_.erase(RegistryFactory::getModule());
   }
   // No need to clean this resource.
   handle_ = nullptr;
