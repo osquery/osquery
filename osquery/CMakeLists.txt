@@ -77,7 +77,9 @@ add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
 target_link_libraries(libosquery ${OSQUERY_LIBS})
 set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
 
+# Also create a static testing library (mostly testing utilities).
 add_library(libosquery_testing STATIC core/test_util.cpp)
+add_dependencies(libosquery_testing libosquery)
 set_target_properties(libosquery_testing PROPERTIES OUTPUT_NAME osquery_testing)
 set_target_properties(libosquery_testing PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
 
