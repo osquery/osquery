@@ -1,5 +1,4 @@
 ADD_OSQUERY_LIBRARY(FALSE osquery_devtools
-  shell.cpp
   printer.cpp
 )
 

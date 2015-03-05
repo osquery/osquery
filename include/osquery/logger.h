@@ -13,6 +13,9 @@
 #include <string>
 #include <vector>
 
+#ifdef NDEBUG
+#define GOOGLE_STRIP_LOG 1
+#endif
 #include <glog/logging.h>
 
 #include <osquery/flags.h>
