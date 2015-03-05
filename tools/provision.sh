@@ -468,12 +468,10 @@ function main() {
       fi
       popd
 
-      install_cmake
     elif [[ $DISTRO = "centos7" ]]; then
       package gcc
       package binutils
       package gcc-c++
-      install_cmake
     fi
 
     if [[ ! -f /usr/bin/cmake ]]; then
@@ -497,11 +495,12 @@ function main() {
     package rpm-devel
     package libblkid-devel
 
+    install_cmake
+    install_boost
+
     if [[ $DISTRO = "centos6" ]]; then
-      install_boost
       package libudev-devel
     elif [[ $DISTRO = "centos7" ]]; then
-      install_boost
       package systemd-devel
     fi
 
