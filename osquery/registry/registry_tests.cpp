@@ -109,7 +109,7 @@ class BadDoge : public DogPlugin {
   Status setUp() { return Status(1, "Expect error... this is a bad dog"); }
 };
 
-auto AutoDogRegistry = TestCoreRegistry::create<DogPlugin>("dog");
+auto AutoDogRegistry = TestCoreRegistry::create<DogPlugin>("dog", true);
 
 TEST_F(RegistryTests, test_auto_registries) {
   TestCoreRegistry::add<Doge>("dog", "doge");
@@ -227,6 +227,47 @@ TEST_F(RegistryTests, test_real_registry) {
     }
   }
   EXPECT_TRUE(has_one_registered);
+}
+
+TEST_F(RegistryTests, test_registry_modules) {
+  // Test the registry's module loading state tracking.
+  RegistryFactory::locked(false);
+  EXPECT_FALSE(RegistryFactory::locked());
+  RegistryFactory::locked(true);
+  EXPECT_TRUE(RegistryFactory::locked());
+  RegistryFactory::locked(false);
+
+  // Test initializing a module load and the module's registry modifications.
+  EXPECT_EQ(RegistryFactory::getModule(), 0);
+  RegistryFactory::initModule("/my/test/module");
+  // The registry is locked, no modifications during module global ctors.
+  EXPECT_TRUE(RegistryFactory::locked());
+  // The 'is the registry using a module' is not set during module ctors.
+  EXPECT_FALSE(RegistryFactory::usingModule());
+  EXPECT_EQ(RegistryFactory::getModules().size(), 1);
+  // The unittest can introspect into the current module.
+  auto& module = RegistryFactory::getModules().at(RegistryFactory::getModule());
+  EXPECT_EQ(module.path, "/my/test/module");
+  EXPECT_EQ(module.name, "");
+  RegistryFactory::declareModule("test", "0.1.1", "0.0.0", "0.0.1");
+  // The registry is unlocked after the module is declared.
+  // This assures that module modifications happen with the correct information
+  // and state tracking (aka the SDK limits, name, and version).
+  EXPECT_FALSE(RegistryFactory::locked());
+  // Now the 'is the registry using a module' is set for the duration of the
+  // modules loading.
+  EXPECT_TRUE(RegistryFactory::usingModule());
+  EXPECT_EQ(module.name, "test");
+  EXPECT_EQ(module.version, "0.1.1");
+  EXPECT_EQ(module.sdk_version, "0.0.1");
+
+  // Finally, when the module load is complete, we clear state.
+  RegistryFactory::shutdownModule();
+  // The registry is again locked.
+  EXPECT_TRUE(RegistryFactory::locked());
+  // And the registry is no longer using a module.
+  EXPECT_FALSE(RegistryFactory::usingModule());
+  EXPECT_EQ(RegistryFactory::getModule(), 0);
 }
 }
 

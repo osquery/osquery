@@ -35,7 +35,7 @@ class ConfigTests : public testing::Test {
   void SetUp() {
     createMockFileStructure();
     Registry::setUp();
-    Config::getInstance().load();
+    Config::load();
   }
 
   void TearDown() { tearDownMockFileStructure(); }
@@ -63,12 +63,12 @@ TEST_F(ConfigTests, test_plugin) {
 }
 
 TEST_F(ConfigTests, test_queries_execute) {
-  auto queries = Config::getInstance().getScheduledQueries();
+  auto queries = Config::getScheduledQueries();
   EXPECT_EQ(queries.size(), 1);
 }
 
 TEST_F(ConfigTests, test_threatfiles_execute) {
-  auto files = Config::getInstance().getWatchedFiles();
+  auto files = Config::getWatchedFiles();
 
   EXPECT_EQ(files.size(), 2);
   EXPECT_EQ(files["downloads"].size(), 1);

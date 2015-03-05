@@ -9,14 +9,12 @@
  */
 
 #include <cstring>
-#include <sstream>
 
 #include <sys/wait.h>
 #include <signal.h>
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/core.h>
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -32,16 +30,16 @@ namespace osquery {
 
 const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
-    {MEMORY_LIMIT, {50, 20, 10, 10}},
+    {MEMORY_LIMIT, {50, 30, 10, 10}},
     // Percent of user or system CPU worker can utilize for LATENCY_LIMIT
     // seconds.
-    {UTILIZATION_LIMIT, {90, 70, 60, 50}},
+    {UTILIZATION_LIMIT, {90, 80, 60, 50}},
     // Number of seconds the worker should run, else consider the exit fatal.
     {RESPAWN_LIMIT, {20, 20, 20, 5}},
     // If the worker respawns too quickly, backoff on creating additional.
     {RESPAWN_DELAY, {5, 5, 5, 1}},
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
-    {LATENCY_LIMIT, {5, 5, 3, 1}},
+    {LATENCY_LIMIT, {12, 6, 3, 1}},
     // How often to poll for performance limit violations.
     {INTERVAL, {3, 3, 3, 1}}, };
 
@@ -50,7 +48,19 @@ FLAG(int32,
      1,
      "Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug)");
 
-FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
+CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
+
+/// If the worker exits the watcher will inspect the return code.
+void childHandler(int signum) {
+  siginfo_t info;
+  // Make sure WNOWAIT is used to the wait information is not removed.
+  // Watcher::watch implements a thread to poll for this information.
+  waitid(P_ALL, 0, &info, WEXITED | WSTOPPED | WNOHANG | WNOWAIT);
+  if (info.si_code == CLD_EXITED && info.si_status == EXIT_CATASTROPHIC) {
+    // A child process had a catastrophic error, abort the watcher.
+    ::exit(EXIT_FAILURE);
+  }
+}
 
 bool Watcher::ok() {
   ::sleep(getWorkerLimit(INTERVAL));
@@ -76,6 +86,7 @@ bool Watcher::watch() {
 void Watcher::stopWorker() {
   kill(worker_, SIGKILL);
   worker_ = 0;
+
   // Clean up the defunct (zombie) process.
   waitpid(-1, 0, 0);
 }
@@ -111,13 +122,13 @@ bool Watcher::isWorkerSane() {
   current_user_time_ = user_time;
   current_system_time_ = system_time;
 
-  if (sustained_latency_ * iv >= getWorkerLimit(LATENCY_LIMIT)) {
+  if (sustained_latency_ > 0 && sustained_latency_ * iv >= getWorkerLimit(LATENCY_LIMIT)) {
     LOG(WARNING) << "osqueryd worker system performance limits exceeded";
     return false;
   }
 
-  if (footprint > getWorkerLimit(MEMORY_LIMIT) * 1024 * 1024) {
-    LOG(WARNING) << "osqueryd worker memory limits exceeded";
+  if (footprint > 0 && footprint > getWorkerLimit(MEMORY_LIMIT) * 1024 * 1024) {
+    LOG(WARNING) << "osqueryd worker memory limits exceeded: " << footprint;
     return false;
   }
 
@@ -154,6 +165,7 @@ void Watcher::createWorker() {
     ::exit(EXIT_FAILURE);
   }
 
+  signal(SIGCHLD, childHandler);
   VLOG(1) << "osqueryd watcher (" << getpid() << ") executing worker ("
           << worker_ << ")";
 }
@@ -181,9 +193,6 @@ void Watcher::initWorker() {
       std::make_shared<WatcherWatcherRunner>(getppid()));
 }
 
-bool isOsqueryWorker() {
-  return (getenv("OSQUERYD_WORKER") != nullptr);
-}
 
 void WatcherWatcherRunner::enter() {
   while (true) {
@@ -210,27 +219,5 @@ size_t getWorkerLimit(WatchdogLimitType name, int level) {
     return kWatchdogLimits.at(name).back();
   }
   return kWatchdogLimits.at(name).at(level);
-}
-
-void initWorkerWatcher(const std::string& name, int argc, char* argv[]) {
-  // The watcher will forever monitor and spawn additional workers.
-  Watcher watcher(argc, argv);
-  watcher.setWorkerName(name);
-
-  if (isOsqueryWorker()) {
-    // Do not start watching/spawning if this process is a worker.
-    watcher.initWorker();
-  } else {
-    do {
-      if (!watcher.watch()) {
-        // The watcher failed, create a worker.
-        watcher.createWorker();
-        watcher.resetCounters();
-      }
-    } while (watcher.ok());
-
-    // Executation should never reach this point.
-    ::exit(EXIT_FAILURE);
-  }
 }
 }

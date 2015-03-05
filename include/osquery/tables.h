@@ -324,6 +324,6 @@ class TablePlugin : public Plugin {
 std::string columnDefinition(const TableColumns& columns);
 std::string columnDefinition(const PluginResponse& response);
 
-CREATE_REGISTRY(TablePlugin, "table");
+CREATE_LAZY_REGISTRY(TablePlugin, "table");
 }
 }

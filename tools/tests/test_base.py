@@ -10,12 +10,14 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from __future__ import unicode_literals
+# pyexpect.replwrap will not work with unicode_literals
+#from __future__ import unicode_literals
 
 import os
 import psutil
 import re
 import subprocess
+import signal
 import sys
 import time
 import threading
@@ -76,7 +78,10 @@ class OsqueryWrapper(REPLWrapper):
     CONTINUATION_PROMPT = u'    ...> '
     ERROR_PREFIX = 'Error:'
 
-    def __init__(self, command='../osqueryi'):
+    def __init__(self, command='../osqueryi', args=None):
+        if args:
+            command = command + " " + " ".join(["--%s=%s" % (k, v) for
+                k, v in args.iteritems()])
         super(OsqueryWrapper, self).__init__(
             command,
             self.PROMPT,
@@ -184,6 +189,8 @@ class ProcRunner(object):
                 break
             time.sleep(self.interval)
             delay += self.interval
+        if self.proc is None:
+            return False
         return self.proc.poll() is None
 
     def isDead(self, pid, timeout=5):
@@ -193,12 +200,15 @@ class ProcRunner(object):
         that the process will die before the timeout, `isAlive`'s timeout is
         an expectation that the process will be scheduled before the timeout.
         '''
-        proc = psutil.Process(pid=pid)
+        try:
+            proc = psutil.Process(pid=pid)
+        except psutil.NoSuchProcess as e:
+            return True
         delay = 0
         while delay < timeout:
             if not proc.is_running():
                 return True
-            time.sleep(delay)
+            time.sleep(self.interval)
             delay += self.interval
         return False
 
@@ -212,11 +222,12 @@ class ProcessGenerator(object):
         global ARGS, CONFIG_NAME
         utils.write_config(config)
         binary = os.path.join(ARGS.build, "osquery", "osqueryd")
+        config = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
         daemon = ProcRunner("daemon", binary,
             [
                 "--config_path=%s.conf" % CONFIG_NAME,
                 "--verbose" if ARGS.verbose else ""
-            ],
+            ] + config,
             silent=silent)
         self.generators.append(daemon)
         return daemon
@@ -229,7 +240,7 @@ class ProcessGenerator(object):
         extension = ProcRunner("extension",
             binary,
             [
-                "--extensions_socket=%s.em" % CONFIG_NAME,
+                "--socket=%s" % CONFIG["options"]["extensions_socket"],
                 "--verbose" if ARGS.verbose else ""
             ],
             silent=silent)
@@ -247,7 +258,7 @@ class ProcessGenerator(object):
             if generator.pid is not None:
                 try:
                     os.kill(generator.pid, signal.SIGKILL)
-                except:
+                except Exception as e:
                     pass
 
 

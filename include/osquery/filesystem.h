@@ -186,6 +186,20 @@ Status isDirectory(const boost::filesystem::path& path);
  */
 std::vector<boost::filesystem::path> getHomeDirectories();
 
+/**
+ * @brief Check the permissions of a file and it's directory.
+ *
+ * 'Safe' implies the directory is not a /tmp-like directory in that users
+ * cannot control super-user-owner files. The file should be owned by the
+ * process's UID or the file should be owned by root.
+ *
+ * @param dir the directory to check /tmp mode
+ * @param path a path to a file to check
+ *
+ * @return true if the file is 'safe' else false
+ */
+bool safePermissions(const std::string& dir, const std::string& path);
+
 /// Return bit-mask-style permissions.
 std::string lsperms(int mode);
 

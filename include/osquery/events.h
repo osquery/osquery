@@ -770,6 +770,6 @@ void attachEvents();
 /// Sleep in a boost::thread interruptable state.
 void interruptableSleep(size_t milli);
 
-CREATE_LAZY_REGISTRY(EventPublisherPlugin, "event_publisher");
-CREATE_REGISTRY(EventSubscriberPlugin, "event_subscriber");
+CREATE_REGISTRY(EventPublisherPlugin, "event_publisher");
+CREATE_LAZY_REGISTRY(EventSubscriberPlugin, "event_subscriber");
 }

@@ -30,17 +30,6 @@ class ExampleTable : public tables::TablePlugin {
   }
 };
 
-REGISTER_EXTERNAL(ExampleTable, "table", "example");
+CREATE_MODULE("example", "0.0.1", "0.0.0");
 
-int main(int argc, char* argv[]) {
-  osquery::Initializer runner(argc, argv, OSQUERY_EXTENSION);
-
-  auto status = startExtension("example", "0.0.1");
-  if (!status.ok()) {
-    LOG(ERROR) << status.getMessage();
-  }
-
-  // Finally shutdown.
-  runner.shutdown();
-  return 0;
-}
+void initModule(void) { REGISTER_MODULE(ExampleTable, "table", "example"); }

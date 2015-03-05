@@ -35,13 +35,16 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 /// The path to the pidfile for osqueryd
-FLAG(string,
-     pidfile,
-     "/var/osquery/osqueryd.pidfile",
-     "The path to the pidfile for osqueryd");
+CLI_FLAG(string,
+         pidfile,
+         "/var/osquery/osqueryd.pidfile",
+         "Path to the daemon pidfile mutex");
 
 /// Should the daemon force unload previously-running osqueryd daemons.
-FLAG(bool, force, false, "Force osqueryd to kill previously-running daemons");
+CLI_FLAG(bool,
+         force,
+         false,
+         "Force osqueryd to kill previously-running daemons");
 
 std::string getHostname() {
   char hostname[256]; // Linux max should be 64.

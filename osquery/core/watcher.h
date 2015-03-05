@@ -33,7 +33,7 @@ enum WatchdogLimitType {
 
 class Watcher {
  public:
-  Watcher(int argc, char* argv[]) : worker_(0), argc_(argc), argv_(argv) {
+  Watcher(int argc, char** argv) : worker_(0), argc_(argc), argv_(argv) {
     resetCounters();
     last_respawn_time_ = 0;
   }
@@ -84,29 +84,6 @@ class WatcherWatcherRunner : public InternalRunnable {
   pid_t watcher_;
 };
 
-/// Check if the current process is already a worker.
-bool isOsqueryWorker();
-
 /// Get a performance limit by name and optional level.
 size_t getWorkerLimit(WatchdogLimitType limit, int level = -1);
-
-/**
- * @brief Daemon tools may want to continually spawn worker processes
- * and monitor their utilization.
- *
- * A daemon may call initWorkerWatcher to begin watching child daemon
- * processes until it-itself is unscheduled. The basic guarentee is that only
- * workers will return from the function.
- *
- * The worker-watcher will implement performance bounds on CPU utilization
- * and memory, as well as check for zombie/defunct workers and respawn them
- * if appropriate. The appropriateness is determined from heuristics around
- * how the worker exitted. Various exit states and velocities may cause the
- * watcher to resign.
- *
- * @param name The name of the worker process.
- * @param argc The daemon's argc.
- * @param argv The daemon's volitle argv.
- */
-void initWorkerWatcher(const std::string& name, int argc, char* argv[]);
 }

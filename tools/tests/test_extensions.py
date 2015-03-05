@@ -53,7 +53,7 @@ class EXClient:
         '''Attempt to open the UNIX domain socket.'''
         try:
             self.transport.open()
-        except:
+        except Exception as e:
             return False
         return True
 

@@ -474,13 +474,6 @@ function main() {
       package gcc-c++
     fi
 
-    if [[ ! -f /usr/bin/cmake ]]; then
-      sudo ln -s /usr/bin/cmake28 /usr/bin/cmake
-    fi
-    if [[ ! -f /usr/bin/ccmake ]]; then
-      sudo ln -s /usr/bin/ccmake28 /usr/bin/ccmake
-    fi
-
     package clang
     package clang-devel
 

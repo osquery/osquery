@@ -25,7 +25,7 @@ namespace osquery {
 FLAG(string,
      host_identifier,
      "hostname",
-     "Field used to identify the host running osqueryd");
+     "Field used to identify the host running osquery");
 
 FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
 
@@ -165,7 +165,7 @@ void initializeScheduler() {
 #endif
 
   // Iterate over scheduled queryies and add a splay to each.
-  auto schedule = Config::getInstance().getScheduledQueries();
+  auto schedule = Config::getScheduledQueries();
   for (auto& q : schedule) {
     auto old_interval = q.interval;
     auto new_interval = splayValue(old_interval, FLAGS_schedule_splay_percent);

@@ -43,7 +43,8 @@ find "$SYNC_DIR" -type f -name "CMakeLists.txt" -exec rm -f {} \;
 # make the targets file
 mkdir -p "$SYNC_DIR/code-analysis"
 (cd "$SYNC_DIR/code-analysis" && SDK=True cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../../../../)
-python tools/codegen/gentargets.py -i "$SYNC_DIR/code-analysis/compile_commands.json" >$SYNC_DIR/osquery/TARGETS
+python tools/codegen/gentargets.py -v $VERSION --sdk $VERSION \
+  -i "$SYNC_DIR/code-analysis/compile_commands.json" >$SYNC_DIR/osquery/TARGETS
 
 # wrap it up in a tarball
 (cd "$SYNC_DIR" && tar -zcf osquery-sync-$VERSION.tar.gz osquery)

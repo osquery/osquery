@@ -231,6 +231,17 @@ TEST_F(FilesystemTests, test_dotdot_relative) {
   }
   EXPECT_TRUE(found);
 }
+
+TEST_F(FilesystemTests, test_safe_permissions) {
+  // For testing we can request a different directory path.
+  EXPECT_TRUE(safePermissions("/", kFakeDirectory + "/door.txt"));
+  // A file with a directory.mode & 0x1000 fails.
+  EXPECT_FALSE(safePermissions("/tmp", kFakeDirectory + "/door.txt"));
+  // A directory for a file will fail.
+  EXPECT_FALSE(safePermissions("/", kFakeDirectory + "/deep11"));
+  // A root-owned file is appropriate
+  EXPECT_TRUE(safePermissions("/", "/dev/zero"));
+}
 }
 
 int main(int argc, char* argv[]) {

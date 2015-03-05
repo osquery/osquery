@@ -29,6 +29,9 @@
 #endif
 // clang-format on
 
+/// A configuration error is catastrophic and should exit the watcher.
+#define EXIT_CATASTROPHIC 78
+
 namespace osquery {
 
 /**
@@ -44,35 +47,67 @@ extern const std::string kSDKVersion;
 /**
  * @brief A helpful tool type to report when logging, print help, or debugging.
  */
-enum osqueryTool {
+enum ToolType {
   OSQUERY_TOOL_SHELL,
   OSQUERY_TOOL_DAEMON,
   OSQUERY_TOOL_TEST,
   OSQUERY_EXTENSION,
 };
 
-/**
- * @brief Sets up various aspects of osquery execution state.
- *
- * osquery needs a few things to happen as soon as the executable begins
- * executing. initOsquery takes care of setting up the relevant parameters.
- * initOsquery should be called in an executable's `main()` function.
- *
- * @param argc the number of elements in argv
- * @param argv the command-line arguments passed to `main()`
- */
-void initOsquery(int argc, char* argv[], int tool = OSQUERY_TOOL_TEST);
+class Initializer {
+ public:
+  /**
+   * @brief Sets up various aspects of osquery execution state.
+   *
+   * osquery needs a few things to happen as soon as the process begins
+   * executing. Initializer takes care of setting up the relevant parameters.
+   * Initializer should be called in an executable's `main()` function.
+   *
+   * @param argc the number of elements in argv
+   * @param argv the command-line arguments passed to `main()`
+   * @param tool the type of osquery main (daemon, shell, test, extension).
+   */
+  Initializer(int argc, char* argv[], ToolType tool = OSQUERY_TOOL_TEST);
 
-/**
- * @brief Sets up a process as a osquery daemon.
- */
-void initOsqueryDaemon();
+  /**
+   * @brief Sets up the process as an osquery daemon.
+   *
+   * A daemon has additional constraints, it can use a process mutext, check
+   * for sane/non-default configurations, etc.
+   */
+  void initDaemon();
 
-/**
- * @brief Turns of various aspects of osquery such as event loops.
- *
- */
-void shutdownOsquery();
+  /**
+   * @brief Daemon tools may want to continually spawn worker processes
+   * and monitor their utilization.
+   *
+   * A daemon may call initWorkerWatcher to begin watching child daemon
+   * processes until it-itself is unscheduled. The basic guarentee is that only
+   * workers will return from the function.
+   *
+   * The worker-watcher will implement performance bounds on CPU utilization
+   * and memory, as well as check for zombie/defunct workers and respawn them
+   * if appropriate. The appropriateness is determined from heuristics around
+   * how the worker exitted. Various exit states and velocities may cause the
+   * watcher to resign.
+   *
+   * @param name The name of the worker process.
+   */
+  void initWorkerWatcher(const std::string& name);
+
+  /// Assume initialization finished, start work.
+  void start();
+  /// Turns off various aspects of osquery such as event loops.
+  void shutdown();
+  /// Check if a process is an osquery worker.
+  bool isWorker();
+
+ private:
+  int argc_;
+  char** argv_;
+  int tool_;
+  std::string binary_;
+};
 
 /**
  * @brief Split a given string based on an optional delimiter.
@@ -121,14 +156,17 @@ int getUnixTime();
  */
 template <typename _Iterator1, typename _Iterator2>
 inline size_t incUtf8StringIterator(_Iterator1& it, const _Iterator2& last) {
-  if (it == last)
+  if (it == last) {
     return 0;
+  }
+
   unsigned char c;
   size_t res = 1;
   for (++it; last != it; ++it, ++res) {
     c = *it;
-    if (!(c & 0x80) || ((c & 0xC0) == 0xC0))
+    if (!(c & 0x80) || ((c & 0xC0) == 0xC0)) {
       break;
+    }
   }
 
   return res;
@@ -144,8 +182,9 @@ inline size_t incUtf8StringIterator(_Iterator1& it, const _Iterator2& last) {
 inline size_t utf8StringSize(const std::string& str) {
   size_t res = 0;
   std::string::const_iterator it = str.begin();
-  for (; it != str.end(); incUtf8StringIterator(it, str.end()))
+  for (; it != str.end(); incUtf8StringIterator(it, str.end())) {
     res++;
+  }
 
   return res;
 }

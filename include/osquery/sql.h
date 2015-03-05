@@ -226,5 +226,5 @@ class MockSQL : public SQL {
   }
 };
 
-CREATE_REGISTRY(SQLPlugin, "sql");
+CREATE_LAZY_REGISTRY(SQLPlugin, "sql");
 }

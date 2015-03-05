@@ -23,7 +23,7 @@ def get_files_to_compile(json_data):
             filename = filename[base + len("osquery/"):]
             base_generated = filename.rfind("generated/")
             if base_generated >= 0:
-                filename = filename[base_generated + len("generated/"):]
+                filename = filename[base_generated:]
             files_to_compile.append(filename)
     return files_to_compile
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     ))
     parser.add_argument("--input", "-i", required=True)
     parser.add_argument("--version", "-v", required=True)
-    parser.add_argument("-sdk", required=True)
+    parser.add_argument("--sdk", required=True)
     args = parser.parse_args()
 
     try:

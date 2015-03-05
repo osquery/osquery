@@ -115,6 +115,5 @@ TEST_F(TablesTests, test_constraint_map) {
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
-  osquery::initOsquery(argc, argv);
   return RUN_ALL_TESTS();
 }

@@ -21,7 +21,7 @@
 
 namespace osquery {
 
-DECLARE_string(db_path);
+DECLARE_string(database_path);
 
 /////////////////////////////////////////////////////////////////////////////
 // Constants

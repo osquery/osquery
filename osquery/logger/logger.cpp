@@ -27,7 +27,7 @@ FLAG_ALIAS(bool, debug, verbose);
 
 FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
-FLAG(string, logger_plugin, "filesystem", "The default logger plugin");
+FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 
 FLAG(bool, log_result_events, true, "Log scheduled results as events");
 
@@ -192,6 +192,8 @@ void initLogger(const std::string& name, bool forward_all) {
   auto intermediate_logs = std::move(BufferedLogSink::dump());
 
   if (Registry::exists("logger", FLAGS_logger_plugin)) {
+    // Set up the active logger plugin.
+    Registry::get("logger", FLAGS_logger_plugin)->setUp();
     // Start the custom status logging facilities, which may instruct glog as is
     // the case with filesystem logging.
     PluginRequest request = {{"init", name}};

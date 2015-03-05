@@ -11,6 +11,8 @@
 #include <cstdlib>
 #include <sstream>
 
+#include <dlfcn.h>
+
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/extensions.h>
@@ -370,6 +372,112 @@ size_t RegistryFactory::count(const std::string& registry_name) {
     return 0;
   }
   return instance().registry(registry_name)->count();
+}
+
+Status RegistryHelperCore::add(const std::string& item_name, bool internal) {
+  // The item can be listed as internal, meaning it does not broadcast.
+  if (internal) {
+    internal_.push_back(item_name);
+  }
+
+  // The item may belong to a module.
+  if (RegistryFactory::usingModule()) {
+    modules_[item_name] = RegistryFactory::getModule();
+  }
+
+  return Status(0, "OK");
+}
+
+const std::map<RouteUUID, ModuleInfo>& RegistryFactory::getModules() {
+  return instance().modules_;
+}
+
+RouteUUID RegistryFactory::getModule() { return instance().module_uuid_; }
+
+bool RegistryFactory::usingModule() {
+  // Check if the registry is allowing a module's registrations.
+  return (!instance().locked() && instance().module_uuid_ != 0);
+}
+
+void RegistryFactory::shutdownModule() {
+  instance().locked(true);
+  instance().module_uuid_ = 0;
+}
+
+void RegistryFactory::initModule(const std::string& path) {
+  // Begin a module initialization, lock until the module is determined
+  // appropriate by requesting a call to `declareModule`.
+  instance().module_uuid_ = (RouteUUID)rand();
+  instance().modules_[getModule()].path = path;
+  instance().locked(true);
+}
+
+void RegistryFactory::declareModule(const std::string& name,
+                                    const std::string& version,
+                                    const std::string& min_sdk_version,
+                                    const std::string& sdk_version) {
+  // Check the min_sdk_version against the Registry's SDK version.
+  auto& module = instance().modules_[instance().module_uuid_];
+  module.name = name;
+  module.version = version;
+  module.sdk_version = sdk_version;
+  instance().locked(false);
+}
+
+RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
+    : handle_(nullptr), path_(path) {
+  // Tell the registry that we are attempting to construct a module.
+  // Locking the registry prevents the module's global initialization from
+  // adding or creating registry items.
+  RegistryFactory::initModule(path_);
+  handle_ = dlopen(path_.c_str(), RTLD_NOW | RTLD_LOCAL);
+  if (handle_ == nullptr) {
+    VLOG(1) << "Failed to load module: " << path_;
+    RegistryFactory::shutdownModule();
+    return;
+  }
+
+  // The module should have called RegistryFactory::declareModule and unlocked
+  // the registry for modification. The module should have done this using
+  // the SDK's CREATE_MODULE macro, which adds the global-scope constructor.
+  if (RegistryFactory::locked()) {
+    dlclose(handle_);
+    handle_ = nullptr;
+  }
+}
+
+void RegistryModuleLoader::init() {
+  if (handle_ == nullptr || RegistryFactory::locked()) {
+    return;
+  }
+
+  // Locate a well-known symbol in the module.
+  // This symbol name is protected against rewriting when the module uses the
+  // SDK's CREATE_MODULE macro.
+  auto initializer = (ModuleInitalizer)dlsym(handle_, "initModule");
+  if (initializer != nullptr) {
+    initializer();
+  } else {
+    dlclose(handle_);
+    handle_ = nullptr;
+    VLOG(1) << "Failed to initialize module: " << path_;
+  }
+}
+
+RegistryModuleLoader::~RegistryModuleLoader() {
+  // We do not close the module, and thus are OK with losing a reference to the
+  // module's handle. Attempting to close and clean up is very expensive for
+  // very little value/features.
+  if (!RegistryFactory::locked()) {
+    RegistryFactory::shutdownModule();
+  }
+
+  if (handle_ == nullptr) {
+    // The module was not loaded or did not initalize.
+    RegistryFactory::instance().modules_.erase(RegistryFactory::getModule());
+  }
+  // No need to clean this resource.
+  handle_ = nullptr;
 }
 
 void Plugin::getResponse(const std::string& key,

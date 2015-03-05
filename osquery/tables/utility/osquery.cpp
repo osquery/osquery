@@ -78,17 +78,28 @@ QueryData genOsqueryExtensions(QueryContext& context) {
   QueryData results;
 
   ExtensionList extensions;
-  if (!getExtensions(extensions).ok()) {
-    return {};
+  if (getExtensions(extensions).ok()) {
+    for (const auto& extenion : extensions) {
+      Row r;
+      r["uuid"] = TEXT(extenion.first);
+      r["name"] = extenion.second.name;
+      r["version"] = extenion.second.version;
+      r["sdk_version"] = extenion.second.sdk_version;
+      r["path"] = getExtensionSocket(extenion.first);
+      r["type"] = "extension";
+      results.push_back(r);
+    }
   }
 
-  for (const auto& extenion : extensions) {
+  const auto& modules = RegistryFactory::getModules();
+  for (const auto& module : modules) {
     Row r;
-    r["uuid"] = TEXT(extenion.first);
-    r["name"] = extenion.second.name;
-    r["version"] = extenion.second.version;
-    r["sdk_version"] = extenion.second.sdk_version;
-    r["socket"] = getExtensionSocket(extenion.first);
+    r["uuid"] = TEXT(module.first);
+    r["name"] = module.second.name;
+    r["version"] = module.second.version;
+    r["sdk_version"] = module.second.sdk_version;
+    r["path"] = module.second.path;
+    r["type"] = "module";
     results.push_back(r);
   }
 
@@ -103,7 +114,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["pid"] = INTEGER(getpid());
 
   std::string hash_string;
-  auto s = Config::getInstance().getMD5(hash_string);
+  auto s = Config::getMD5(hash_string);
   if (s.ok()) {
     r["config_md5"] = TEXT(hash_string);
   } else {

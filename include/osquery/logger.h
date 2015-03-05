@@ -15,11 +15,14 @@
 
 #include <glog/logging.h>
 
+#include <osquery/flags.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 #include <osquery/scheduler.h>
 
 namespace osquery {
+
+DECLARE_bool(disable_logging);
 
 /**
  * @breif An internal severity set mapping to Glog's LogSeverity levels.

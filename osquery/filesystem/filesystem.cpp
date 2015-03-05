@@ -559,6 +559,28 @@ std::vector<fs::path> getHomeDirectories() {
   return results;
 }
 
+bool safePermissions(const std::string& dir, const std::string& path) {
+  struct stat file_stat, link_stat, dir_stat;
+  if (lstat(path.c_str(), &link_stat) < 0 || stat(path.c_str(), &file_stat) ||
+      stat(dir.c_str(), &dir_stat)) {
+    // Path was not real, had too may links, or could not be accessed.
+    return false;
+  }
+
+  if (dir_stat.st_mode & (1 << 9)) {
+    // Do not load modules from /tmp-like directories.
+    return false;
+  } else if (S_ISDIR(file_stat.st_mode)) {
+    // Only load file-like nodes (not directories).
+    return false;
+  } else if (file_stat.st_uid == getuid() || file_stat.st_uid == 0) {
+    // Otherwise, require matching or root file ownership.
+    return true;
+  }
+  // Do not load modules not owned by the user.
+  return false;
+}
+
 std::string lsperms(int mode) {
   static const char rwx[] = {'0', '1', '2', '3', '4', '5', '6', '7'};
   std::string bits;
