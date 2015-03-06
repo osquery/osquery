@@ -27,10 +27,6 @@ using osquery::Status;
 namespace osquery {
 
 FLAG(string, config_path, "/var/osquery/osquery.conf", "Path to config file");
-FLAG(string,
-     config_extra_files,
-     "/var/osquery/osquery.conf.d/%.conf",
-     "Path to extra config files");
 
 class FilesystemConfigPlugin : public ConfigPlugin {
  public:
@@ -45,7 +41,7 @@ std::pair<osquery::Status, std::string> FilesystemConfigPlugin::genConfig() {
     return std::make_pair(Status(1, "config file does not exist"), "");
   }
   std::vector<std::string> conf_files;
-  Status stat = resolveFilePattern(FLAGS_config_extra_files, conf_files);
+  Status stat = resolveFilePattern(FLAGS_config_path + ".d/%.conf", conf_files);
   if (!stat.ok()) {
     VLOG(1) << "Error is resolving extra configuration files: "
             << stat.getMessage();
