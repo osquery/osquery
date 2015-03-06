@@ -26,6 +26,12 @@ namespace osquery {
 
 const int kWatcherMLatency = 3000;
 
+#ifdef __APPLE__
+const std::string kModuleExtension = "dylib";
+#else
+const std::string kModuleExtension = "so";
+#endif
+
 CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
 
 CLI_FLAG(string,
@@ -128,9 +134,16 @@ Status loadModulesFromDirectory(const std::string& dir) {
 
   for (const auto& module_path : modules) {
     if (safePermissions(dir, module_path)) {
-      // Silently allow module load failures to drop.
-      RegistryModuleLoader loader(module_path);
-      loader.init();
+      if (std::find_end(module_path.begin(),
+                        module_path.end(),
+                        kModuleExtension.begin(),
+                        kModuleExtension.end()) -
+              module_path.end() ==
+          (kModuleExtension.size() * -1)) {
+        // Silently allow module load failures to drop.
+        RegistryModuleLoader loader(module_path);
+        loader.init();
+      }
     }
   }
   return Status(0, "OK");

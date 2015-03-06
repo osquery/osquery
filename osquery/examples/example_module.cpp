@@ -30,6 +30,15 @@ class ExampleTable : public tables::TablePlugin {
   }
 };
 
-CREATE_MODULE("example", "0.0.1", "0.0.0");
+// Create the module if the environment variable TESTFAIL1 is not defined.
+// This allows the integration tests to, at run time, test the module
+// loading workflow.
+CREATE_MODULE_IF(getenv("TESTFAIL1") == nullptr, "example", "0.0.1", "0.0.0");
 
-void initModule(void) { REGISTER_MODULE(ExampleTable, "table", "example"); }
+void initModule(void) {
+  // Register a plugin from a module if the environment variable TESTFAIL2
+  // is not defined.
+  if (getenv("TESTFAIL2") == nullptr) {
+    REGISTER_MODULE(ExampleTable, "table", "example");
+  }
+}

@@ -59,12 +59,49 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
     Registry::add<type>(registry, name);                                   \
   }
 
-/// Helper macro to define a module's metadata.
-#define CREATE_MODULE(name, version, min_sdk_version)        \
-  extern "C" void initModule(void);                          \
-  __attribute__((constructor)) static void declareModule() { \
-    Registry::declareModule(name, version, min_sdk_version,  \
-                            OSQUERY_SDK_VERSION);            \
+/// Helper macro to write the `initModule` symbol without rewrites.
+#define DECLARE_MODULE(name)        \
+  extern "C" void initModule(void); \
+  __attribute__((constructor)) static void declareModule()
+
+/**
+ * @brief Create an osquery extension 'module'.
+ *
+ * This helper macro creates a constructor to declare an osquery module is
+ * loading. The osquery registry is set up when modules (shared objects) are
+ * discovered via search paths and opened. At that phase the registry is locked
+ * meaning no additional plugins can be registered. To unlock the registry
+ * for modifications a module must call Registry::declareModule. This declares
+ * and any plugins added will use the metadata in the declare to determine:
+ *  - The name of the module adding the plugin
+ *  - The SDK version the module was built with, to determine compatibility
+ *  - The minimum SDK the module requires from osquery core
+ *
+ * The registry is again locked when the module load is complete and a well
+ * known module-exported symbol is called.
+ */
+#define CREATE_MODULE(name, version, min_sdk_version)         \
+  DECLARE_MODULE(name) {                                      \
+    Registry::declareModule(                                  \
+        name, version, min_sdk_version, OSQUERY_SDK_VERSION); \
+  }
+
+/**
+ * @brief Create an osquery extension 'module', if an expression is true.
+ *
+ * This is a helper testing wrapper around CREATE_MODULE and DECLARE_MODULE.
+ * It allows unit and integration tests to generate global construction code
+ * that depends on data/variables available during global construction.
+ *
+ * And example use includes checking if a process environment variable is
+ * defined. If defined the module is declared.
+ */
+#define CREATE_MODULE_IF(expr, name, version, min_sdk_version)  \
+  DECLARE_MODULE(name) {                                        \
+    if ((expr)) {                                               \
+      Registry::declareModule(                                  \
+          name, version, min_sdk_version, OSQUERY_SDK_VERSION); \
+    }                                                           \
   }
 
 /// Helper replacement for REGISTER, used within extension modules.
