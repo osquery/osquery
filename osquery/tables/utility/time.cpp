@@ -15,8 +15,6 @@
 namespace osquery {
 namespace tables {
 
-const int kNumCols = 1;
-
 QueryData genTime(QueryContext& context) {
   Row r;
   time_t _time = time(0);
@@ -25,9 +23,7 @@ QueryData genTime(QueryContext& context) {
   r["minutes"] = INTEGER(now->tm_min);
   r["seconds"] = INTEGER(now->tm_sec);
   QueryData results;
-  for (int i = 0; i < kNumCols; ++i) {
-    results.push_back(r);
-  }
+  results.push_back(r);
   return results;
 }
 }
