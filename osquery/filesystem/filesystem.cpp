@@ -538,24 +538,26 @@ Status getDirectory(const boost::filesystem::path& path,
 }
 
 Status isDirectory(const boost::filesystem::path& path) {
-  if (boost::filesystem::is_directory(path)) {
-    return Status(0, "OK");
+  try {
+    if (boost::filesystem::is_directory(path)) {
+      return Status(0, "OK");
+    }
+    return Status(1, "Path is not a directory: " + path.string());
+  } catch (const boost::filesystem::filesystem_error& e) {
+    return Status(1, e.what());
   }
-  return Status(1, "Path is not a directory: " + path.string());
 }
 
-std::vector<fs::path> getHomeDirectories() {
-  auto sql = SQL(
-      "SELECT DISTINCT directory FROM users WHERE directory != '/var/empty';");
-  std::vector<fs::path> results;
-  if (sql.ok()) {
-    for (const auto& row : sql.rows()) {
-      results.push_back(row.at("directory"));
+std::set<fs::path> getHomeDirectories() {
+  std::set<fs::path> results;
+
+  auto users = SQL::selectAllFrom("users");
+  for (const auto& user : users) {
+    if (user.at("directory").size() > 0) {
+      results.insert(user.at("directory"));
     }
-  } else {
-    LOG(ERROR)
-        << "Error executing query to return users: " << sql.getMessageString();
   }
+
   return results;
 }
 
