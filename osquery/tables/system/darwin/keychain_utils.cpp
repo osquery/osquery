@@ -13,23 +13,64 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <osquery/filesystem.h>
 #include <osquery/hash.h>
 
-#include "osquery/tables/system/darwin/certificates.h"
+#include "osquery/tables/system/darwin/keychain.h"
 
 namespace osquery {
 namespace tables {
 
-const std::map<std::string, CertProperty> kCertificateProperties = {
-    {"common_name", {kSecOIDCommonName, genCommonNameProperty}},
-    {"ca", {kSecOIDBasicConstraints, genCAProperty}},
-    {"not_valid_before", {kSecOIDX509V1ValidityNotBefore, stringFromCFNumber}},
-    {"not_valid_after", {kSecOIDX509V1ValidityNotAfter, stringFromCFNumber}},
-    {"key_algorithm", {kSecOIDX509V1SubjectPublicKeyAlgorithm, genAlgProperty}},
-    {"key_usage", {kSecOIDKeyUsage, stringFromCFNumber}},
-    {"subject_key_id", {kSecOIDSubjectKeyIdentifier, genKIDProperty}},
-    {"authority_key_id", {kSecOIDAuthorityKeyIdentifier, genKIDProperty}},
+const std::vector<std::string> kSystemKeychainPaths = {
+    "/System/Library/Keychains", "/Library/Keychains",
 };
+
+const std::vector<std::string> kUserKeychainPaths = {
+    "/Library/Keychains",
+};
+
+void genKeychains(const std::string& path, CFMutableArrayRef& keychains) {
+  std::vector<std::string> paths;
+
+  // Support both a directory and explicit path search.
+  if (isDirectory(path).ok()) {
+    // Try to list every file in the given keychain search path.
+    if (!listFilesInDirectory(path, paths).ok()) {
+      return;
+    }
+  } else {
+    // The explicit path search comes from a query predicate.
+    paths.push_back(path);
+  }
+
+  for (const auto& keychain_path : paths) {
+    SecKeychainRef keychain = nullptr;
+    auto status = SecKeychainOpen(keychain_path.c_str(), &keychain);
+    if (status == 0 && keychain != nullptr) {
+      CFArrayAppendValue(keychains, keychain);
+    }
+  }
+}
+
+std::string getKeychainPath(const SecKeychainItemRef& item) {
+  SecKeychainRef keychain = nullptr;
+  std::string path;
+  auto status = SecKeychainItemCopyKeychain(item, &keychain);
+  if (keychain == nullptr) {
+    // Unhandled error, cannot get the keychain reference from certificate.
+    return path;
+  }
+
+  UInt32 path_size = 1024;
+  char keychain_path[1024] = {0};
+  status = SecKeychainGetPath(keychain, &path_size, keychain_path);
+  if (path_size > 0 && keychain_path[0] != 0) {
+    path = std::string(keychain_path);
+  }
+
+  CFRelease(keychain);
+  return path;
+}
 
 std::string genKIDProperty(const CFDataRef& kid) {
   CFDataRef kid_data = NULL;
@@ -116,9 +157,8 @@ std::string genSHA1ForCertificate(const SecCertificateRef& ca) {
 
   // Access raw data, hash and release.
   ca_data = SecCertificateCopyData(ca);
-  auto digest = hashFromBuffer(HASH_TYPE_SHA1,
-                               CFDataGetBytePtr(ca_data),
-                               CFDataGetLength(ca_data));
+  auto digest = hashFromBuffer(
+      HASH_TYPE_SHA1, CFDataGetBytePtr(ca_data), CFDataGetLength(ca_data));
   CFRelease(ca_data);
   return digest;
 }
@@ -173,6 +213,43 @@ CFDataRef CreatePropertyFromCertificate(const SecCertificateRef& cert,
   // Release and give the caller control of the property.
   CFRelease(certificate_values);
   return property;
+}
+
+CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
+                               const CFTypeRef& item_type) {
+  auto keychains = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
+  for (const auto& path : paths) {
+    genKeychains(path, keychains);
+  }
+
+  CFMutableDictionaryRef query;
+  query = CFDictionaryCreateMutable(NULL,
+                                    0,
+                                    &kCFTypeDictionaryKeyCallBacks,
+                                    &kCFTypeDictionaryValueCallBacks);
+  CFDictionaryAddValue(query, kSecClass, item_type);
+  CFDictionaryAddValue(query, kSecReturnRef, kCFBooleanTrue);
+  // This can be added to restrict results to x509v3
+  // CFDictionaryAddValue(query, kSecAttrCertificateType, 0x03);
+  CFDictionaryAddValue(query, kSecMatchSearchList, keychains);
+  CFDictionaryAddValue(query, kSecAttrCanVerify, kCFBooleanTrue);
+  CFDictionaryAddValue(query, kSecMatchLimit, kSecMatchLimitAll);
+
+  CFArrayRef keychain_certs;
+  auto status = SecItemCopyMatching(query, (CFTypeRef*)&keychain_certs);
+  CFRelease(query);
+
+  if (status != errSecSuccess) {
+    return nullptr;
+  }
+
+  // Release each keychain search path.
+  for (CFIndex i = 0; i < CFArrayGetCount(keychains); ++i) {
+    CFRelease((SecKeychainRef)CFArrayGetValueAtIndex(keychains, i));
+  }
+  CFRelease(keychains);
+
+  return keychain_certs;
 }
 
 std::string genCAProperty(const CFDataRef& constraints) {

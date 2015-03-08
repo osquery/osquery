@@ -1,0 +1,12 @@
+table_name("keychain_items")
+description("Generic details about keychain items")
+schema([
+    Column("label", TEXT, "Generic item name"),
+    Column("description", TEXT, "Optional item description"),
+    Column("comment", TEXT, "Optional keychain comment"),
+    Column("created", TEXT, "Data item was created"),
+    Column("modified", TEXT, "Date of last modification"),
+    Column("type", TEXT, "Keychain item type (class)"),
+    Column("path", TEXT, "Path to keychain containing item"),
+])
+implementation("keychain_items@genKeychainItems")

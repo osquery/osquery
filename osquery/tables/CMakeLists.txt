@@ -17,7 +17,8 @@ if(APPLE)
     system/darwin/acpi_tables.cpp
     system/darwin/apps.cpp
     system/darwin/block_devices.cpp
-    system/darwin/certificates_utils.cpp
+    system/darwin/keychain_items.cpp
+    system/darwin/keychain_utils.cpp
     system/darwin/firewall.h
     system/darwin/firewall.cpp
     system/darwin/homebrew_packages.cpp
