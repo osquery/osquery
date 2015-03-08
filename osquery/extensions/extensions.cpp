@@ -40,11 +40,6 @@ CLI_FLAG(string,
          "Path to the extensions UNIX domain socket")
 
 CLI_FLAG(string,
-         extensions_autoload,
-         "",
-         "An optional search path for autoloaded & managed extensions")
-
-CLI_FLAG(string,
          modules_autoload,
          "/usr/lib/osquery/modules",
          "Search path for autoloaded registry modules")
@@ -106,24 +101,11 @@ void ExtensionManagerWatcher::watch() {
   }
 }
 
-void loadExtensions() {
-  // Optionally autoload extensions
-  auto status = loadExtensions(FLAGS_extensions_autoload);
-  if (!status.ok()) {
-    LOG(WARNING) << "Could not autoload extensions: " << status.what();
-  }
-}
-
 void loadModules() {
   auto status = loadModules(FLAGS_modules_autoload);
   if (!status.ok()) {
     LOG(WARNING) << "Modules autoload contains invalid paths";
   }
-}
-
-Status loadExtensions(const std::string& paths) {
-  // Not implemented: Autoloading extensions given a search path.
-  return Status(0, "OK");
 }
 
 Status loadModulesFromDirectory(const std::string& dir) {
