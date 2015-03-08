@@ -182,6 +182,17 @@ void Initializer::start() {
   // Load registry/extension modules before extensions.
   osquery::loadModules();
 
+  // Then set the config/logger plugins, which use a single/active plugin.
+  if (!Registry::setActive("config", FLAGS_config_plugin)) {
+    LOG(ERROR) << "Config plugin not found: " << FLAGS_config_plugin;
+    ::exit(EXIT_CATASTROPHIC);
+  }
+
+  if (!Registry::setActive("logger", FLAGS_logger_plugin)) {
+    LOG(ERROR) << "Logger plugin not found: " << FLAGS_logger_plugin;
+    ::exit(EXIT_CATASTROPHIC);
+  }
+
   // Bind to an extensions socket and wait for registry additions.
   osquery::startExtensionManager();
 
