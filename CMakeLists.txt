@@ -183,7 +183,7 @@ find_package(Doxygen)
 if(DOXYGEN_FOUND)
   add_custom_target(
     docs
-    "${DOXYGEN_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Doxyfile"
+    echo "PROJECT_NUMBER=${OSQUERY_BUILD_VERSION}" | cat ${CMAKE_SOURCE_DIR}/Doxyfile - | "${DOXYGEN_EXECUTABLE}" -
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Generating API documentation with Doxygen" VERBATIM
   )
