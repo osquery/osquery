@@ -128,7 +128,7 @@ void YARAEventSubscriber::init() {
       // file. This is easy to accomplish with yarac(1).
       result = yr_rules_load(rule.c_str(), &tmp_rules);
       if (result != ERROR_SUCCESS && result != ERROR_INVALID_FILE) {
-        VLOG(1) << "Error loading YARA rules.";
+        VLOG(1) << "Error loading YARA rules: " << result;
         yr_compiler_destroy(compiler);
         return;
       } else if (result == ERROR_SUCCESS) {
