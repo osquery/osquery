@@ -49,12 +49,16 @@ def queries_from_config(config_path):
     except Exception as e:
         print ("Cannot open/parse config: %s" % str(e))
         exit(1)
-    if "scheduledQueries" not in config:
-        print ("Config does not contain any scheduledQueries.")
-        exit(0)
     queries = {}
-    for query in config["scheduledQueries"]:
-        queries[query["name"]] = query["query"]
+    if "scheduledQueries" in config:
+        for query in config["scheduledQueries"]:
+            queries[query["name"]] = query["query"]
+    if "schedule" in config:
+        for name, details in config["schedule"].iteritems():
+            queries[name] = details["query"]
+    if len(queries) == 0:
+        print ("Could not find a schedule/queries in config: %s" % config_path)
+        exit(0)
     return queries
 
 

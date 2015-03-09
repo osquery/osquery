@@ -25,7 +25,7 @@ DECLARE_bool(disable_logging);
 DECLARE_string(logger_plugin);
 
 /**
- * @breif An internal severity set mapping to Glog's LogSeverity levels.
+ * @brief An internal severity set mapping to Glog's LogSeverity levels.
  */
 enum StatusLogSeverity {
   O_INFO = 0,

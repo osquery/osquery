@@ -13,10 +13,15 @@ else
 endif
 
 DEFINES := CTEST_OUTPUT_ON_FAILURE=1
+.PHONY: docs
 
 all: .setup
 	cd build/$(BUILD_DIR) && cmake ../.. && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
+
+docs: .setup
+	cd build && cmake .. && \
+		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
 
 debug: .setup
 	cd build/$(BUILD_DIR) && DEBUG=True cmake ../../ && \

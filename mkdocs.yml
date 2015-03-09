@@ -1,0 +1,32 @@
+site_name: osquery
+theme: readthedocs
+
+docs_dir: docs/wiki
+site_dir: build/wiki
+pages:
+- ['index.md', 'Introduction']
+
+- ['introduction/overview.md', 'Introduction', 'Features Overview']
+- ['introduction/using-osqueryi.md', 'Introduction', 'osqueryi (shell)']
+- ['introduction/using-osqueryd.md', 'Introduction', 'osqueryd (daemon)']
+
+- ['installation/install-osx.md', 'Installation', 'Install on OS X']
+- ['installation/install-linux.md', 'Installation', 'Install on Linux']
+- ['installation/custom-packages.md', 'Installation', 'Optional: Custom Packages']
+
+- ['deployment/log-aggregation.md', 'Deployment', 'Log Aggregation']
+- ['deployment/performance-safety.md', 'Deployment', 'Performance Safety']
+- ['deployment/anomaly-detection.md', 'Deployment', 'Anomaly Detection']
+- ['deployment/kernel-linux.md', 'Deployment', 'Kernel Extensions']
+
+- ['development/building.md', 'Development', 'Building osquery']
+- ['development/contributing-code.md', 'Development', 'Contributing Code']
+- ['development/creating-tables.md', 'Development', 'Creating New Tables']
+- ['development/config-plugins.md', 'Development', 'Configuration Plugins']
+- ['development/logger-plugins.md', 'Development', 'Logging Plugins']
+- ['development/osquery-sdk.md', 'Development', 'SDK and Extensions']
+- ['development/pubsub-framework.md', 'Development', 'Eventing Framework']
+- ['development/unit-tests.md', 'Development', 'Writing Tests']
+- ['development/options-arguments.md', 'Development', 'Adding CLI Arguments']
+- ['development/reading-files.md', 'Development', 'Reading/Writing Files']
+- ['development/wildcard-rules.md', 'Development', 'Wildcards and Globbing']
