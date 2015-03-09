@@ -50,12 +50,19 @@ AND
 ```
 
 Check for ARP anomalies from the host's perspective:
+
 ```sql
-SELECT address, mac, mac_count 
+SELECT address, mac, count(mac) AS mac_count FROM arp_cache GROUP BY mac HAVING count(mac) > 1;
+```
+
+Alternatively, you could also use a SQL sub-query to accomplish the same result:
+
+```sql
+SELECT address, mac, mac_count
 FROM
-  (SELECT address, mac, count(mac) AS mac_count FROM arp_cache GROUP BY mac) 
+  (SELECT address, mac, count(mac) AS mac_count FROM arp_cache GROUP BY mac)
 WHERE mac_count > 1;
-``` 
+```
 
 These queries can be:
 * performed on an ad-hoc basis to explore operating system state using the [osqueryi](https://github.com/facebook/osquery/wiki/using-osqueryi) shell
