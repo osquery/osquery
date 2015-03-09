@@ -56,7 +56,7 @@ class ModuleTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertRaises(test_base.OsqueryException,
             self.osqueryi.run_query, 'SELECT * from example;')
 
-    def test_3_module_prevent_initialize(self):
+    def test_4_module_prevent_initialize(self):
         '''Test a failed module initialize (we interrupt the registry call).
         '''
         self.osqueryi = test_base.OsqueryWrapper(self.binary,
