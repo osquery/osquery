@@ -51,10 +51,7 @@ AND
 
 Check for ARP anomalies from the host's perspective:
 ```sql
-SELECT address, mac, mac_count 
-FROM
-  (SELECT address, mac, count(mac) AS mac_count FROM arp_cache GROUP BY mac) 
-WHERE mac_count > 1;
+SELECT address, mac, count(mac) AS mac_count FROM arp_cache GROUP BY mac HAVING count(mac) > 1;
 ``` 
 
 These queries can be:
