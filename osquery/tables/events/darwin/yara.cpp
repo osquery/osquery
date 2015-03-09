@@ -113,14 +113,14 @@ void YARAEventSubscriber::init() {
       // rules. Sadly there is no way to load multiple compiled rules in
       // succession. This means that:
       //
-      // saved1, saved2 
+      // saved1, saved2
       //
       // results in saved2 being the only file used.
       //
       // Also, mixing source and saved rules results in the saved rules being
       // overridden by the combination of the source rules once compiled, e.g.:
       //
-      // file1, saved1 
+      // file1, saved1
       //
       // result in file1 being the only file used.
       //
