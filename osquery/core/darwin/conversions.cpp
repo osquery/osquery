@@ -59,13 +59,33 @@ std::string stringFromCFData(const CFDataRef& cf_data) {
 }
 
 std::string stringFromCFNumber(const CFDataRef& cf_number) {
-  unsigned int value;
-  if (CFGetTypeID(cf_number) != CFNumberGetTypeID() ||
-      !CFNumberGetValue((CFNumberRef)cf_number, kCFNumberIntType, &value)) {
+  return stringFromCFNumber(cf_number, kCFNumberIntType);
+}
+
+std::string stringFromCFNumber(const CFDataRef& cf_number, CFNumberType type) {
+  // Make sure the type is a number.
+  if (CFGetTypeID(cf_number) != CFNumberGetTypeID()) {
     return "0";
   }
 
+  // Support a signed 64, a double, and treat everything else as a signed int.
+  if (type == kCFNumberSInt64Type) {
+    long long int value;
+    if (CFNumberGetValue((CFNumberRef)cf_number, type, &value)) {
+      return boost::lexical_cast<std::string>(value);
+    }
+  } else if (type == kCFNumberDoubleType) {
+    double value;
+    if (CFNumberGetValue((CFNumberRef)cf_number, type, &value)) {
+      return boost::lexical_cast<std::string>(value);
+    }
+  } else {
+    unsigned int value;
+    if (CFNumberGetValue((CFNumberRef)cf_number, type, &value)) {
+      return boost::lexical_cast<std::string>(value);
+    }
+  }
   // Cast as a string.
-  return boost::lexical_cast<std::string>(value);
+  return "0";
 }
 }
