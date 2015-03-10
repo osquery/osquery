@@ -132,7 +132,6 @@ Status Config::genConfig(OsqueryConfig& conf) {
           for (const pt::ptree::value_type& file_cat : v.second) {
             // Make sure the category exists in file_paths.
             if (conf.eventFiles.find(file_cat.first) != conf.eventFiles.end()) {
-              // XXX
               for (const pt::ptree::value_type& file : file_cat.second) {
                 conf.yaraFiles[file_cat.first].push_back(file.second.get_value<std::string>());
               }

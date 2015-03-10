@@ -109,18 +109,20 @@ void YARAEventSubscriber::init() {
       compiled = false;
       YR_RULES *tmp_rules;
 
+      VLOG(1) << "Loading " << rule;
+
       // First attempt to load the file, in case it is saved (pre-compiled)
       // rules. Sadly there is no way to load multiple compiled rules in
       // succession. This means that:
       //
-      // saved1, saved2 
+      // saved1, saved2
       //
       // results in saved2 being the only file used.
       //
       // Also, mixing source and saved rules results in the saved rules being
       // overridden by the combination of the source rules once compiled, e.g.:
       //
-      // file1, saved1 
+      // file1, saved1
       //
       // result in file1 being the only file used.
       //
@@ -128,7 +130,7 @@ void YARAEventSubscriber::init() {
       // file. This is easy to accomplish with yarac(1).
       result = yr_rules_load(rule.c_str(), &tmp_rules);
       if (result != ERROR_SUCCESS && result != ERROR_INVALID_FILE) {
-        VLOG(1) << "Error loading YARA rules.";
+        VLOG(1) << "Error loading YARA rules: " << result;
         yr_compiler_destroy(compiler);
         return;
       } else if (result == ERROR_SUCCESS) {
