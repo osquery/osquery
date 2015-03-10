@@ -109,6 +109,8 @@ void YARAEventSubscriber::init() {
       compiled = false;
       YR_RULES *tmp_rules;
 
+      VLOG(1) << "Loading " << rule;
+
       // First attempt to load the file, in case it is saved (pre-compiled)
       // rules. Sadly there is no way to load multiple compiled rules in
       // succession. This means that:
