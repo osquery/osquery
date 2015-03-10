@@ -11,8 +11,6 @@
 #include <mutex>
 #include <sstream>
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
 #include <osquery/config.h>
@@ -87,6 +85,7 @@ Status Config::genConfig(OsqueryConfig& conf) {
   try {
     json << config_string;
     pt::read_json(json, tree);
+    conf.all_data = tree;
     // Parse each scheduled query from the config.
     for (const pt::ptree::value_type& v : tree.get_child("scheduledQueries")) {
       osquery::OsqueryScheduledQuery q;
@@ -134,6 +133,11 @@ std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
 std::map<std::string, std::vector<std::string> >& Config::getWatchedFiles() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return getInstance().cfg_.eventFiles;
+}
+
+pt::ptree& Config::getEntireConfiguration() {
+  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
+  return getInstance().cfg_.all_data;
 }
 
 Status Config::getMD5(std::string& hash_string) {
