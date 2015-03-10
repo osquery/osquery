@@ -35,6 +35,7 @@ struct OsqueryConfig {
   std::vector<OsqueryScheduledQuery> scheduledQueries;
   std::map<std::string, std::string> options;
   std::map<std::string, std::vector<std::string> > eventFiles;
+  std::map<std::string, std::vector<std::string> > yaraFiles;
 };
 
 /**
@@ -106,6 +107,15 @@ class Config {
    * @return A map all the files in the JSON blob organized by category
    */
   static std::map<std::string, std::vector<std::string> >& getWatchedFiles();
+
+  /**
+   * @brief Get a map of all the files in the YARA JSON blob
+   *
+   *
+   *
+   * @return A map all the files in the JSON blob organized by category
+   */
+  static std::map<std::string, std::vector<std::string> >& getYARAFiles();
 
   /**
    * @brief Calculate the has of the osquery config

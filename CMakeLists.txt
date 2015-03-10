@@ -159,6 +159,7 @@ find_package(RocksDB REQUIRED)
 find_package(Snappy REQUIRED)
 find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.1 REQUIRED)
+find_package(YARA REQUIRED)
 
 enable_testing()
 

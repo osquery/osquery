@@ -24,6 +24,7 @@ set(OSQUERY_LIBS
   dl
   bz2
   z
+  yara
 )
 
 # Add default linking details

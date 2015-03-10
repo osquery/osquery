@@ -13,6 +13,7 @@ if(APPLE)
     events/darwin/passwd_changes.cpp
     events/darwin/file_changes.cpp
     events/darwin/hardware_events.cpp
+    events/darwin/yara.cpp
     networking/darwin/routes.cpp
     system/darwin/acpi_tables.cpp
     system/darwin/apps.cpp
