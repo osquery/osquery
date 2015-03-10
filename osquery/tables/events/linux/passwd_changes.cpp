@@ -30,7 +30,7 @@ class PasswdChangesEventSubscriber
   DECLARE_SUBSCRIBER("passwd_changes");
 
  public:
-  void init();
+  Status init();
 
   /**
    * @brief This exports a single Callback for INotifyEventPublisher events.
@@ -52,11 +52,12 @@ class PasswdChangesEventSubscriber
  */
 REGISTER(PasswdChangesEventSubscriber, "event_subscriber", "passwd_changes");
 
-void PasswdChangesEventSubscriber::init() {
+Status PasswdChangesEventSubscriber::init() {
   auto mc = createSubscriptionContext();
   mc->path = "/etc/passwd";
   mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
   subscribe(&PasswdChangesEventSubscriber::Callback, mc, nullptr);
+  return Status(0, "OK");
 }
 
 Status PasswdChangesEventSubscriber::Callback(const INotifyEventContextRef& ec,

@@ -32,7 +32,7 @@ class FileChangesEventSubscriber
   DECLARE_SUBSCRIBER("file_changes");
 
  public:
-  void init();
+  Status init();
 
   /**
    * @brief This exports a single Callback for INotifyEventPublisher events.
@@ -67,6 +67,8 @@ void FileChangesEventSubscriber::init() {
                 (void*)(&element_kv.first));
     }
   }
+
+  return Status(0, "OK");
 }
 
 Status FileChangesEventSubscriber::Callback(const INotifyEventContextRef& ec,

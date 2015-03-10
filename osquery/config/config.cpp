@@ -107,16 +107,27 @@ inline void mergeAdditional(const tree_node& node, ConfigData& conf) {
   conf.all_data.add_child("additional_monitoring." + node.first, node.second);
 
   // Support special merging of file paths.
-  if (node.first != "file_paths") {
-    return;
-  }
-
-  for (const auto& category : node.second) {
-    for (const auto& path : category.second) {
-      resolveFilePattern(path.second.data(),
-                         conf.files[category.first],
-                         REC_LIST_FOLDERS | REC_EVENT_OPT);
+  if (node.first == "file_paths") {
+    for (const auto& category : node.second) {
+      for (const auto& path : category.second) {
+        resolveFilePattern(path.second.data(),
+                           conf.files[category.first],
+                           REC_LIST_FOLDERS | REC_EVENT_OPT);
+      }
     }
+  } else if (node.first == "yara") {
+    for (const auto& category : node.second) {
+      // Todo: the yara category key must come after "file_paths".
+      if (conf.files.find(category.first) == conf.files.end()) {
+        continue;
+      }
+      for (const auto& file : category.second) {
+        conf.yara[category.first].push_back(
+          file.second.get_value<std::string>());
+      }
+    }
+  } else {
+    // Unknown additional monitoring key.
   }
 }
 
@@ -176,12 +187,12 @@ void Config::mergeConfig(const std::string& source, ConfigData& conf) {
     }
   }
 
-  if (tree.count("options") > 0) {
-    for (const auto& option : tree.get_child("options")) {
-      mergeOption(option, conf);
-    }
+Status Config::getMD5(std::string& hash_string) {
+  std::string config_string;
+  auto s = genConfig(config_string);
+  if (!s.ok()) {
+    return s;
   }
-}
 
 Status Config::getMD5(std::string& hash_string) {
   // Request an accessor to our own config, outside of an update.
