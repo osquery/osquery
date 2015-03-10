@@ -56,12 +56,7 @@ Status RegistryHelperCore::setActive(const std::string& item_name) {
   return Status(0, "OK");
 }
 
-Status RegistryHelperCore::getActive() const {
-  if (active_.size() > 0) {
-    return Status(0, active_);
-  }
-  return Status(1, "No active registry item");
-}
+const std::string& RegistryHelperCore::getActive() const { return active_; }
 
 RegistryRoutes RegistryHelperCore::getRoutes() const {
   RegistryRoutes route_table;
@@ -302,11 +297,8 @@ Status RegistryFactory::call(const std::string& registry_name,
 Status RegistryFactory::call(const std::string& registry_name,
                              const PluginRequest& request,
                              PluginResponse& response) {
-  auto status = registry(registry_name)->getActive();
-  if (!status.ok()) {
-    return status;
-  }
-  return registry(registry_name)->call(status.getMessage(), request, response);
+  auto& plugin = registry(registry_name)->getActive();
+  return registry(registry_name)->call(plugin, request, response);
 }
 
 Status RegistryFactory::call(const std::string& registry_name,
@@ -321,6 +313,11 @@ Status RegistryFactory::setActive(const std::string& registry_name,
     return Status(1, "Registry plugin does not exist");
   }
   return registry(registry_name)->setActive(item_name);
+}
+
+const std::string& RegistryFactory::getActive(
+    const std::string& registry_name) {
+  return registry(registry_name)->getActive();
 }
 
 void RegistryFactory::setUp() {

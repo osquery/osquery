@@ -190,21 +190,23 @@ void initLogger(const std::string& name, bool forward_all) {
 
   BufferedLogSink::disable();
   auto intermediate_logs = std::move(BufferedLogSink::dump());
+  auto& logger_plugin = Registry::getActive("logger");
+  if (!Registry::exists("logger", logger_plugin)) {
+    return;
+  }
 
-  if (Registry::exists("logger", FLAGS_logger_plugin)) {
-    // Set up the active logger plugin.
-    Registry::get("logger", FLAGS_logger_plugin)->setUp();
-    // Start the custom status logging facilities, which may instruct glog as is
-    // the case with filesystem logging.
-    PluginRequest request = {{"init", name}};
-    serializeIntermediateLog(intermediate_logs, request);
-    auto status = Registry::call("logger", FLAGS_logger_plugin, request);
-    if (status.ok() || forward_all) {
-      // When init returns success we reenabled the log sink in forwarding
-      // mode. Now, Glog status logs are buffered and sent to logStatus.
-      BufferedLogSink::forward(true);
-      BufferedLogSink::enable();
-    }
+  // Set up the active logger plugin.
+  Registry::get("logger", logger_plugin)->setUp();
+  // Start the custom status logging facilities, which may instruct glog as is
+  // the case with filesystem logging.
+  PluginRequest request = {{"init", name}};
+  serializeIntermediateLog(intermediate_logs, request);
+  auto status = Registry::call("logger", request);
+  if (status.ok() || forward_all) {
+    // When init returns success we reenabled the log sink in forwarding
+    // mode. Now, Glog status logs are buffered and sent to logStatus.
+    BufferedLogSink::forward(true);
+    BufferedLogSink::enable();
   }
 }
 
@@ -225,7 +227,7 @@ void BufferedLogSink::send(google::LogSeverity severity,
                    std::string(message, message_len)});
     PluginRequest request = {{"status", "true"}};
     serializeIntermediateLog(log, request);
-    Registry::call("logger", FLAGS_logger_plugin, request);
+    Registry::call("logger", request);
   } else {
     logs_.push_back({(StatusLogSeverity)severity,
                      std::string(base_filename),
@@ -251,7 +253,7 @@ Status LoggerPlugin::call(const PluginRequest& request,
 }
 
 Status logString(const std::string& s) {
-  return logString(s, FLAGS_logger_plugin);
+  return logString(s, Registry::getActive("logger"));
 }
 
 Status logString(const std::string& s, const std::string& receiver) {
@@ -265,7 +267,7 @@ Status logString(const std::string& s, const std::string& receiver) {
 }
 
 Status logScheduledQueryLogItem(const osquery::ScheduledQueryLogItem& results) {
-  return logScheduledQueryLogItem(results, FLAGS_logger_plugin);
+  return logScheduledQueryLogItem(results, Registry::getActive("logger"));
 }
 
 Status logScheduledQueryLogItem(const osquery::ScheduledQueryLogItem& results,

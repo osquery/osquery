@@ -90,8 +90,8 @@ TEST_F(LoggerTests, test_plugin) {
 TEST_F(LoggerTests, test_logger_init) {
   // Expect the logger to have been registered from the first test.
   EXPECT_TRUE(Registry::exists("logger", "test"));
+  EXPECT_TRUE(Registry::setActive("logger", "test").ok());
 
-  FLAGS_logger_plugin = "test";
   initStatusLogger("logger_test");
   // This will be printed to stdout.
   LOG(WARNING) << "Logger test is generating a warning status (1)";

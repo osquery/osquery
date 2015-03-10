@@ -263,7 +263,7 @@ class RegistryHelperCore {
   Status setActive(const std::string& item_name);
 
   /// Get the 'active' plugin, return success with the active plugin name.
-  Status getActive() const;
+  const std::string& getActive() const;
 
  protected:
   /// The identifier for this registry, used to register items.
@@ -587,6 +587,9 @@ class RegistryFactory : private boost::noncopyable {
   /// Set a registry's active plugin.
   static Status setActive(const std::string& registry_name,
                           const std::string& item_name);
+
+  /// Get a registry's active plugin.
+  static const std::string& getActive(const std::string& registry_nane);
 
   /// Run `setUp` on every registry that is not marked 'lazy'.
   static void setUp();

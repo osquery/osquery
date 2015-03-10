@@ -26,7 +26,7 @@ DECLARE_string(config_path);
 class ConfigTests : public testing::Test {
  public:
   ConfigTests() {
-    FLAGS_config_plugin = "filesystem";
+    Registry::setActive("config", "filesystem");
     FLAGS_config_path = kTestDataPath + "test.config";
   }
 
@@ -53,9 +53,11 @@ class TestConfigPlugin : public ConfigPlugin {
 TEST_F(ConfigTests, test_plugin) {
   Registry::add<TestConfigPlugin>("config", "test");
 
+  // Change the active config plugin.
+  EXPECT_TRUE(Registry::setActive("config", "test").ok());
+
   PluginResponse response;
-  auto status =
-      Registry::call("config", "test", {{"action", "genConfig"}}, response);
+  auto status = Registry::call("config", {{"action", "genConfig"}}, response);
 
   EXPECT_EQ(status.ok(), true);
   EXPECT_EQ(status.toString(), "OK");

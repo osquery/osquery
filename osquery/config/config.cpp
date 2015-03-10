@@ -34,15 +34,16 @@ CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 static boost::shared_mutex rw_lock;
 
 Status Config::load() {
-  if (!Registry::exists("config", FLAGS_config_plugin)) {
-    return Status(1, "Missing config plugin " + FLAGS_config_plugin);
+  auto& config_plugin = Registry::getActive("config");
+  if (!Registry::exists("config", config_plugin)) {
+    return Status(1, "Missing config plugin " + config_plugin);
   }
 
   boost::unique_lock<boost::shared_mutex> lock(rw_lock);
 
   // Set up the active config plugin once when the config is first loaded.
   if (!getInstance().loaded_) {
-    Registry::get("config", FLAGS_config_plugin)->setUp();
+    Registry::get("config", config_plugin)->setUp();
     getInstance().loaded_ = true;
   }
 
@@ -65,15 +66,8 @@ Status Config::load() {
 }
 
 Status Config::genConfig(std::string& conf) {
-  if (!Registry::exists("config", FLAGS_config_plugin)) {
-    LOG(ERROR) << "Config retriever " << FLAGS_config_plugin << " not found";
-    return Status(1, "Config retriever not found");
-  }
-
   PluginResponse response;
-  auto status = Registry::call(
-      "config", FLAGS_config_plugin, {{"action", "genConfig"}}, response);
-
+  auto status = Registry::call("config", {{"action", "genConfig"}}, response);
   if (!status.ok()) {
     return status;
   }
