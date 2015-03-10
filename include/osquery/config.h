@@ -14,10 +14,15 @@
 #include <memory>
 #include <vector>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 #include <osquery/scheduler.h>
 #include <osquery/status.h>
+
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -35,6 +40,8 @@ struct OsqueryConfig {
   std::vector<OsqueryScheduledQuery> scheduledQueries;
   std::map<std::string, std::string> options;
   std::map<std::string, std::vector<std::string> > eventFiles;
+  std::map<std::string, std::vector<std::string> > yaraFiles;
+  pt::ptree all_data;
 };
 
 /**
@@ -106,6 +113,24 @@ class Config {
    * @return A map all the files in the JSON blob organized by category
    */
   static std::map<std::string, std::vector<std::string> >& getWatchedFiles();
+
+  /**
+   * @brief Get a map of all the files in the YARA JSON blob
+   *
+   *
+   *
+   * @return A map all the files in the JSON blob organized by category
+   */
+  static std::map<std::string, std::vector<std::string> >& getYARAFiles();
+
+  /**
+   * @brief Return the configuration ptree
+   *
+   *
+   *
+   * @return Returns the unparsed, ptree representation of the given config
+   */
+  static pt::ptree& getEntireConfiguration();
 
   /**
    * @brief Calculate the has of the osquery config

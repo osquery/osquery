@@ -11,8 +11,6 @@
 #include <mutex>
 #include <sstream>
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
 #include <osquery/config.h>
@@ -93,6 +91,7 @@ Status Config::genConfig(OsqueryConfig& conf) {
   try {
     json << config_string;
     pt::read_json(json, tree);
+    conf.all_data = tree;
     // Parse each scheduled query from the config.
     for (const pt::ptree::value_type& v : tree.get_child("scheduledQueries")) {
       osquery::OsqueryScheduledQuery q;
@@ -111,6 +110,7 @@ Status Config::genConfig(OsqueryConfig& conf) {
 
     if (tree.count("additional_monitoring") > 0) {
       ReturnSetting settings = REC_LIST_FOLDERS | REC_EVENT_OPT;
+      // Parse each entry in file_paths first.
       for (const pt::ptree::value_type& v :
            tree.get_child("additional_monitoring")) {
         if (v.first == "file_paths") {
@@ -119,6 +119,21 @@ Status Config::genConfig(OsqueryConfig& conf) {
               osquery::resolveFilePattern(file.second.get_value<std::string>(),
                                           conf.eventFiles[file_cat.first],
                                           settings);
+            }
+          }
+        }
+      }
+      // Parse each entry in yara. We iterate through additional_monitoring
+      // twice because the yara section depends on entries in file_paths.
+      for (const pt::ptree::value_type& v :
+           tree.get_child("additional_monitoring")) {
+        if (v.first == "yara") {
+          for (const pt::ptree::value_type& file_cat : v.second) {
+            // Make sure the category exists in file_paths.
+            if (conf.eventFiles.find(file_cat.first) != conf.eventFiles.end()) {
+              for (const pt::ptree::value_type& file : file_cat.second) {
+                conf.yaraFiles[file_cat.first].push_back(file.second.get_value<std::string>());
+              }
             }
           }
         }
@@ -140,6 +155,16 @@ std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
 std::map<std::string, std::vector<std::string> >& Config::getWatchedFiles() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return getInstance().cfg_.eventFiles;
+}
+
+std::map<std::string, std::vector<std::string> >& Config::getYARAFiles() {
+  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
+  return getInstance().cfg_.yaraFiles;
+}
+
+pt::ptree& Config::getEntireConfiguration() {
+  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
+  return getInstance().cfg_.all_data;
 }
 
 Status Config::getMD5(std::string& hash_string) {
