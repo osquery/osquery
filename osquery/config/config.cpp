@@ -86,25 +86,37 @@ Status Config::genConfig(OsqueryConfig& conf) {
     return s;
   }
   std::stringstream json;
-  pt::ptree tree, merged, scheduled_queries, options, additional_monitoring;
+  pt::ptree tree, scheduled_queries, options, additional_monitoring;
 
   for (const auto& conf_file : config_files) {
     std::stringstream json;
     json << conf_file;
 
     pt::read_json(json, tree);
-    for (const pt::ptree::value_type& v : tree.get_child("scheduledQueries")) {
-      osquery::OsqueryScheduledQuery q;
-      q.name = (v.second).get<std::string>("name");
-      q.query = (v.second).get<std::string>("query");
-      q.interval = (v.second).get<int>("interval");
-      conf.scheduledQueries.push_back(q);
+    if (tree.count("scheduledQueries") > 0) {
+      for (const pt::ptree::value_type& v :
+           tree.get_child("scheduledQueries")) {
+        osquery::OsqueryScheduledQuery q;
+        pt::ptree child;
+
+        q.name = (v.second).get<std::string>("name");
+        q.query = (v.second).get<std::string>("query");
+        q.interval = (v.second).get<int>("interval");
+
+        child.put("name", (v.second).get<std::string>("name"));
+        child.put("query", (v.second).get<std::string>("query"));
+        child.put("interval", (v.second).get<int>("interval"));
+
+        scheduled_queries.add_child("", child);
+        conf.scheduledQueries.push_back(q);
+      }
     }
 
     if (tree.count("additional_monitoring") > 0) {
       ReturnSetting settings = REC_LIST_FOLDERS | REC_EVENT_OPT;
       for (const pt::ptree::value_type& v :
            tree.get_child("additional_monitoring")) {
+        additional_monitoring.add_child(v.first, v.second);
         if (v.first == "file_paths") {
           for (const pt::ptree::value_type& file_cat : v.second) {
             for (const pt::ptree::value_type& file : file_cat.second) {
@@ -120,10 +132,17 @@ Status Config::genConfig(OsqueryConfig& conf) {
     if (tree.count("options") > 0) {
       for (const pt::ptree::value_type& v : tree.get_child("options")) {
         conf.options[v.first.data()] = v.second.data();
+        options.add_child(v.first, v.second);
       }
     }
   }
+  conf.all_data.add_child("scheduledQueries", scheduled_queries);
+  conf.all_data.add_child("options", options);
+  conf.all_data.add_child("additional_monitoring", additional_monitoring);
 
+  std::stringstream out;
+  write_json(out, conf.all_data);
+  VLOG(1) << "The merged configuration:\n" << out.str();
   return Status(0, "OK");
 }
 
