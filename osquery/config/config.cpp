@@ -57,7 +57,7 @@ Status Config::load() {
   return Status(0, "OK");
 }
 
-Status Config::genConfig(std::string& conf) {
+Status Config::genConfig(std::vector<std::string>& conf) {
   if (!Registry::exists("config", FLAGS_config_plugin)) {
     LOG(ERROR) << "Config retriever " << FLAGS_config_plugin << " not found";
     return Status(1, "Config retriever not found");
@@ -71,36 +71,34 @@ Status Config::genConfig(std::string& conf) {
     return status;
   }
 
-  conf = response[0].at("data");
+  for (std::map<std::string, std::string>::iterator it = response[0].begin();
+       it != response[0].end();
+       ++it) {
+    conf.push_back(it->second);
+  }
   return Status(0, "OK");
 }
 
 Status Config::genConfig(OsqueryConfig& conf) {
-  std::string config_string;
-  auto s = genConfig(config_string);
+  std::vector<std::string> config_files;
+  auto s = genConfig(config_files);
   if (!s.ok()) {
     return s;
   }
   std::stringstream json;
-  pt::ptree tree;
-  try {
-    json << config_string;
+  pt::ptree tree, merged, scheduled_queries, options, additional_monitoring;
+
+  for (const auto& conf_file : config_files) {
+    std::stringstream json;
+    json << conf_file;
+
     pt::read_json(json, tree);
-    conf.all_data = tree;
-    // Parse each scheduled query from the config.
     for (const pt::ptree::value_type& v : tree.get_child("scheduledQueries")) {
       osquery::OsqueryScheduledQuery q;
       q.name = (v.second).get<std::string>("name");
       q.query = (v.second).get<std::string>("query");
       q.interval = (v.second).get<int>("interval");
       conf.scheduledQueries.push_back(q);
-    }
-
-    // Flags may be set as 'options' within the config.
-    if (tree.count("options") > 0) {
-      for (const pt::ptree::value_type& v : tree.get_child("options")) {
-        conf.options[v.first.data()] = v.second.data();
-      }
     }
 
     if (tree.count("additional_monitoring") > 0) {
@@ -118,9 +116,12 @@ Status Config::genConfig(OsqueryConfig& conf) {
         }
       }
     }
-  } catch (const std::exception& e) {
-    LOG(ERROR) << "Error parsing config JSON: " << e.what();
-    return Status(1, e.what());
+    // Flags may be set as 'options' within the config.
+    if (tree.count("options") > 0) {
+      for (const pt::ptree::value_type& v : tree.get_child("options")) {
+        conf.options[v.first.data()] = v.second.data();
+      }
+    }
   }
 
   return Status(0, "OK");
@@ -142,16 +143,13 @@ pt::ptree& Config::getEntireConfiguration() {
 }
 
 Status Config::getMD5(std::string& hash_string) {
-  std::string config_string;
-  auto s = genConfig(config_string);
-  if (!s.ok()) {
-    return s;
-  }
+  std::stringstream out;
+  write_json(out, getEntireConfiguration());
 
   hash_string = osquery::hashFromBuffer(
-      HASH_TYPE_MD5, (void*)config_string.c_str(), config_string.length());
+      HASH_TYPE_MD5, (void*)out.str().c_str(), out.str().length());
 
-  return Status(0, "OK");
+  return Status(1, "NI");
 }
 
 Status Config::checkConfig() {
@@ -166,9 +164,10 @@ Status ConfigPlugin::call(const PluginRequest& request,
   }
 
   if (request.at("action") == "genConfig") {
-    auto config_data = genConfig();
-    response.push_back({{"data", config_data.second}});
-    return config_data.first;
+    std::map<std::string, std::string> returned_config;
+    auto stat = genConfig(returned_config);
+    response.push_back(returned_config);
+    return stat;
   }
   return Status(1, "Config plugin action unknown: " + request.at("action"));
 }

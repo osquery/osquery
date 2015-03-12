@@ -187,7 +187,7 @@ class Config {
    * @return an instance of osquery::Status, indicating the success or failure
    * of the operation.
    */
-  static osquery::Status genConfig(std::string& conf);
+  static osquery::Status genConfig(std::vector<std::string>& conf);
 
   /// Prevent ConfigPlugins from implementing setUp.
   osquery::Status setUp() { return Status(0, "Not used"); }
@@ -239,7 +239,7 @@ class ConfigPlugin : public Plugin {
    * indicates that config retrieval was successful, then the config data
    * should be returned in pair.second.
    */
-  virtual std::pair<osquery::Status, std::string> genConfig() = 0;
+  virtual Status genConfig(std::map<std::string, std::string>&) = 0;
   Status call(const PluginRequest& request, PluginResponse& response);
 };
 

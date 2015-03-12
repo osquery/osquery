@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -44,9 +45,11 @@ class ConfigTests : public testing::Test {
 class TestConfigPlugin : public ConfigPlugin {
  public:
   TestConfigPlugin() {}
-
-  std::pair<Status, std::string> genConfig() {
-    return std::make_pair(Status(0, "OK"), "foobar");
+  Status genConfig(std::map<std::string, std::string>& config) {
+    std::vector<std::string> test;
+    test.push_back("foobar");
+    return Status(0, "OK");
+    ;
   }
 };
 
@@ -59,7 +62,8 @@ TEST_F(ConfigTests, test_plugin) {
 
   EXPECT_EQ(status.ok(), true);
   EXPECT_EQ(status.toString(), "OK");
-  EXPECT_EQ(response[0].at("data"), "foobar");
+  // std::vector<std::string> result = response[0].at("data");
+  // EXPECT_EQ(response[0].at("data").at(0), "foobar");
 }
 
 TEST_F(ConfigTests, test_queries_execute) {
