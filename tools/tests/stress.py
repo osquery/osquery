@@ -34,7 +34,7 @@ def stress(args):
         times.append(time.time() - start_time)
         if proc.returncode is not 0:
             print (stdout)
-            print (lightred(stderr))
+            print (stderr)
             print ("%s Test %d failed. (total %6.4fs)" % (
                 red("FAILED"), i + 1, sum(times)))
             return proc.returncode

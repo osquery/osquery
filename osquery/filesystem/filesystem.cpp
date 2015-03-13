@@ -561,7 +561,9 @@ std::set<fs::path> getHomeDirectories() {
   return results;
 }
 
-bool safePermissions(const std::string& dir, const std::string& path) {
+bool safePermissions(const std::string& dir,
+                     const std::string& path,
+                     bool executable) {
   struct stat file_stat, link_stat, dir_stat;
   if (lstat(path.c_str(), &link_stat) < 0 || stat(path.c_str(), &file_stat) ||
       stat(dir.c_str(), &dir_stat)) {
@@ -577,6 +579,10 @@ bool safePermissions(const std::string& dir, const std::string& path) {
     return false;
   } else if (file_stat.st_uid == getuid() || file_stat.st_uid == 0) {
     // Otherwise, require matching or root file ownership.
+    if (executable && !file_stat.st_mode & S_IXUSR) {
+      // Require executable, implies by the owner.
+      return false;
+    }
     return true;
   }
   // Do not load modules not owned by the user.

@@ -38,6 +38,7 @@ class ExtensionsTest : public testing::Test {
 
   void TearDown() {
     Dispatcher::getInstance().removeServices();
+    Dispatcher::joinServices();
     remove(kTestManagerSocket);
   }
 
@@ -129,18 +130,11 @@ TEST_F(ExtensionsTest, test_extension_start) {
   Registry::allowDuplicates(true);
   status = startExtension(kTestManagerSocket, "test", "0.1", "0.0.0", "0.0.1");
   // This will be false since we are registering duplicate items
-  EXPECT_TRUE(status.ok());
+  ASSERT_TRUE(status.ok());
 
   // The `startExtension` internal call (exposed for testing) returns the
   // uuid of the extension in the success status.
-  RouteUUID uuid;
-  try {
-    uuid = (RouteUUID)stoi(status.getMessage(), nullptr, 0);
-  }
-  catch (const std::exception& e) {
-    EXPECT_TRUE(false);
-    return;
-  }
+  RouteUUID uuid = (RouteUUID)stoi(status.getMessage(), nullptr, 0);
 
   // We can test-wait for the extensions's socket to open.
   EXPECT_TRUE(socketExists(kTestManagerSocket + "." + std::to_string(uuid)));

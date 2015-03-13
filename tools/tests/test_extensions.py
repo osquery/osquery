@@ -12,6 +12,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import glob
 import os
 import psutil
 import signal
@@ -94,6 +95,11 @@ def expectTrue(functional, interval=0.2, timeout=2):
 
 
 class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
+    def tearDown(self):
+        stale_sockets = glob.glob("/tmp/osquery-test.em*")
+        for stale_socket in stale_sockets:
+            os.remove(stale_socket)
+
     def test_1_daemon_without_extensions(self):
         # Start the daemon without thrift, prefer no watchdog because the tests
         # kill the daemon very quickly.
@@ -239,7 +245,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         result = expect(em.extensions, 0, timeout=5)
         self.assertEqual(len(result), 0)
 
-        # Make sure the extension restart
+        # Make sure the extension restarts
         extension = self._run_extension()
         self.assertTrue(extension.isAlive())
 
@@ -255,6 +261,78 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         # The extension should tear down as well
         self.assertTrue(extension.isDead(extension.pid))
 
+    def test_5_extension_timeout(self):
+        # Start an extension without a daemon, with a timeout.
+        extension = self._run_extension(timeout=3)
+        self.assertTrue(extension.isAlive())
+
+        # Now start a daemon
+        config = test_base.CONFIG.copy()
+        config["options"]["disable_watchdog"] = "true"
+        config["options"]["disable_extensions"] = "false"
+        daemon = self._run_daemon(config)
+        self.assertTrue(daemon.isAlive())
+
+        # Get a python-based thrift client
+        client = EXClient(config["options"]["extensions_socket"])
+        expectTrue(client.open)
+        self.assertTrue(client.open())
+        em = client.getEM()
+
+        # The waiting extension should have connected to the daemon.
+        result = expect(em.extensions, 1)
+        self.assertEqual(len(result), 1)
+
+        client.close()
+        daemon.kill()
+        extension.kill()
+
+    def test_6_extensions_autoload(self):
+        config = test_base.CONFIG.copy()
+        config["options"]["disable_watchdog"] = "true"
+        config["options"]["disable_extensions"] = "false"
+        # Inlcude an extensions autoload path.
+        config["options"]["extensions_autoload"] = test_base.ARGS.build + "/osquery"
+        daemon = self._run_daemon(config)
+        self.assertTrue(daemon.isAlive())
+
+        # Get a python-based thrift client
+        client = EXClient(config["options"]["extensions_socket"])
+        expectTrue(client.open)
+        self.assertTrue(client.open())
+        em = client.getEM()
+
+        # The waiting extension should have connected to the daemon.
+        result = expect(em.extensions, 1)
+        self.assertEqual(len(result), 1)
+
+        client.close()
+        daemon.kill()
+
+    def test_7_external_config(self):
+        config = test_base.CONFIG.copy()
+        config["options"]["disable_watchdog"] = "true"
+        config["options"]["disable_extensions"] = "false"
+        # Inlcude an extensions autoload path.
+        config["options"]["extensions_autoload"] = test_base.ARGS.build + "/osquery"
+        # Now set a config plugin broadcasted by an autoloaded extension.
+        config["options"]["config_plugin"] = "example"
+        daemon = self._run_daemon(config)
+        self.assertTrue(daemon.isAlive())
+
+        # Get a python-based thrift client
+        client = EXClient(config["options"]["extensions_socket"])
+        expectTrue(client.open)
+        self.assertTrue(client.open())
+        em = client.getEM()
+
+        # The waiting extension should have connected to the daemon.
+        # If there are no extensions the daemon may have exited (in error).
+        result = expect(em.extensions, 1)
+        self.assertEqual(len(result), 1)
+
+        client.close()
+        daemon.kill()
 
 if __name__ == "__main__":
     module = test_base.Tester()

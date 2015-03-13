@@ -22,14 +22,19 @@
 
 using namespace osquery::extensions;
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 
+// Millisecond latency between watcher pings.
 const int kWatcherMLatency = 3000;
+// Millisecond latency between initalizing manager pings.
+const int kExtensionInitializeMLatency = 200;
 
 #ifdef __APPLE__
-const std::string kModuleExtension = "dylib";
+const std::string kModuleExtension = ".dylib";
 #else
-const std::string kModuleExtension = "so";
+const std::string kModuleExtension = ".so";
 #endif
 
 CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
@@ -45,6 +50,11 @@ CLI_FLAG(string,
          "An optional search path for autoloaded & managed extensions")
 
 CLI_FLAG(string,
+         extensions_timeout,
+         "0",
+         "Seconds to wait for autoloaded extensions");
+
+CLI_FLAG(string,
          modules_autoload,
          "/usr/lib/osquery/modules",
          "Search path for autoloaded registry modules")
@@ -52,6 +62,9 @@ CLI_FLAG(string,
 /// Alias the extensions_socket (used by core) to an alternate name reserved
 /// for extension binaries
 EXTENSION_FLAG_ALIAS(std::string, socket, extensions_socket);
+
+/// An extension manager may not be immediately available.
+EXTENSION_FLAG_ALIAS(std::string, timeout, extensions_timeout);
 
 void ExtensionWatcher::enter() {
   // Watch the manager, if the socket is removed then the extension will die.
@@ -134,12 +147,7 @@ Status loadModulesFromDirectory(const std::string& dir) {
 
   for (const auto& module_path : modules) {
     if (safePermissions(dir, module_path)) {
-      if (std::find_end(module_path.begin(),
-                        module_path.end(),
-                        kModuleExtension.begin(),
-                        kModuleExtension.end()) -
-              module_path.end() ==
-          (kModuleExtension.size() * -1)) {
+      if (fs::path(module_path).extension().string() == kModuleExtension) {
         // Silently allow module load failures to drop.
         RegistryModuleLoader loader(module_path);
         loader.init();
@@ -165,6 +173,30 @@ Status loadModules(const std::string& paths) {
   return status;
 }
 
+Status extensionPathActive(const std::string& path, bool use_timeout = false) {
+  // Make sure the extension manager path exists, and is writable.
+  size_t delay = 0;
+  size_t timeout = atoi(FLAGS_extensions_timeout.c_str());
+  do {
+    if (pathExists(path) && isWritable(path)) {
+      try {
+        auto client = EXManagerClient(path);
+        return Status(0, "OK");
+      } catch (const std::exception& e) {
+        // Path might exist without a connected extension or extension manager.
+      }
+    }
+    // Only check active once if this check does not allow a timeout.
+    if (!use_timeout || timeout == 0) {
+      break;
+    }
+    // Increase the total wait detail.
+    delay += kExtensionInitializeMLatency;
+    ::usleep(kExtensionInitializeMLatency * 1000);
+  } while (delay < timeout * 1000);
+  return Status(1, "Extension socket not available: " + path);
+}
+
 Status startExtension(const std::string& name, const std::string& version) {
   return startExtension(name, version, "0.0.0");
 }
@@ -172,10 +204,6 @@ Status startExtension(const std::string& name, const std::string& version) {
 Status startExtension(const std::string& name,
                       const std::string& version,
                       const std::string& min_sdk_version) {
-  // No assumptions about how the extensions logs, the first action is to
-  // start the extension's registry.
-  Registry::setUp();
-
   auto status =
       startExtensionWatcher(FLAGS_extensions_socket, kWatcherMLatency, true);
   if (!status.ok()) {
@@ -191,6 +219,8 @@ Status startExtension(const std::string& name,
   }
 
   try {
+    // The extension does nothing but serve the thrift API.
+    // Join on both the thrift and extension manager watcher services.
     Dispatcher::joinServices();
   } catch (const std::exception& e) {
     // The extension manager may shutdown without notifying the extension.
@@ -198,7 +228,7 @@ Status startExtension(const std::string& name,
   }
 
   // An extension will only return on failure.
-  return Status(0, "OK");
+  return Status(0, "Extension was shutdown");
 }
 
 Status startExtension(const std::string& manager_path,
@@ -207,35 +237,43 @@ Status startExtension(const std::string& manager_path,
                       const std::string& min_sdk_version,
                       const std::string& sdk_version) {
   // Make sure the extension manager path exists, and is writable.
-  if (!pathExists(manager_path) || !isWritable(manager_path)) {
-    return Status(1, "Extension manager socket not available: " + manager_path);
+  auto status = extensionPathActive(manager_path, true);
+  if (!status.ok()) {
+    printf("bad path active\n");
+    return status;
   }
 
   // The Registry broadcast is used as the ExtensionRegistry.
   auto broadcast = Registry::getBroadcast();
-
+  // The extension will register and provide name, version, sdk details.
   InternalExtensionInfo info;
   info.name = name;
   info.version = version;
   info.sdk_version = sdk_version;
   info.min_sdk_version = min_sdk_version;
 
+  // If registration is successful, we will also request the manager's options.
+  InternalOptionList options;
   // Register the extension's registry broadcast with the manager.
-  ExtensionStatus status;
+  ExtensionStatus ext_status;
   try {
     auto client = EXManagerClient(manager_path);
-    client.get()->registerExtension(status, info, broadcast);
-  }
-  catch (const std::exception& e) {
+    client.get()->registerExtension(ext_status, info, broadcast);
+    // The main reason for a failed registry is a duplicate extension name
+    // (the extension process is already running), or the extension broadcasts
+    // a duplicate registry item.
+    if (ext_status.code != ExtensionCode::EXT_SUCCESS) {
+      return Status(ext_status.code, ext_status.message);
+    }
+    // Request the core options, mainly to set the active registry plugins for
+    // logger and config.
+    client.get()->options(options);
+  } catch (const std::exception& e) {
     return Status(1, "Extension register failed: " + std::string(e.what()));
   }
 
-  if (status.code != ExtensionCode::EXT_SUCCESS) {
-    return Status(status.code, status.message);
-  }
-
   // Now that the uuid is known, try to clean up stale socket paths.
-  auto extension_path = getExtensionSocket(status.uuid, manager_path);
+  auto extension_path = getExtensionSocket(ext_status.uuid, manager_path);
   if (pathExists(extension_path).ok()) {
     if (!isWritable(extension_path).ok()) {
       return Status(1, "Cannot write extension socket: " + extension_path);
@@ -246,20 +284,28 @@ Status startExtension(const std::string& manager_path,
     }
   }
 
+  // Set the active config and logger plugins. The core will arbitrate if the
+  // plugins are not available in the extension's local registry.
+  Registry::setActive("config", options["config_plugin"].value);
+  Registry::setActive("logger", options["logger_plugin"].value);
+  // Set up all lazy registry plugins and the active config/logger plugin.
+  Registry::setUp();
+
   // Start the extension's Thrift server
   Dispatcher::getInstance().addService(
-      std::make_shared<ExtensionRunner>(manager_path, status.uuid));
-  VLOG(1) << "Extension (" << name << ", " << status.uuid << ", " << version
+      std::make_shared<ExtensionRunner>(manager_path, ext_status.uuid));
+  VLOG(1) << "Extension (" << name << ", " << ext_status.uuid << ", " << version
           << ", " << sdk_version << ") registered";
-  return Status(0, std::to_string(status.uuid));
+  return Status(0, std::to_string(ext_status.uuid));
 }
 
 Status queryExternal(const std::string& manager_path,
                      const std::string& query,
                      QueryData& results) {
   // Make sure the extension path exists, and is writable.
-  if (!pathExists(manager_path) || !isWritable(manager_path)) {
-    return Status(1, "Extension manager socket not available: " + manager_path);
+  auto status = extensionPathActive(manager_path);
+  if (!status.ok()) {
+    return status;
   }
 
   ExtensionResponse response;
@@ -285,8 +331,9 @@ Status getQueryColumnsExternal(const std::string& manager_path,
                                const std::string& query,
                                tables::TableColumns& columns) {
   // Make sure the extension path exists, and is writable.
-  if (!pathExists(manager_path) || !isWritable(manager_path)) {
-    return Status(1, "Extension manager socket not available: " + manager_path);
+  auto status = extensionPathActive(manager_path);
+  if (!status.ok()) {
+    return status;
   }
 
   ExtensionResponse response;
@@ -318,8 +365,9 @@ Status pingExtension(const std::string& path) {
   }
 
   // Make sure the extension path exists, and is writable.
-  if (!pathExists(path) || !isWritable(path)) {
-    return Status(1, "Extension socket not available: " + path);
+  auto status = extensionPathActive(path);
+  if (!status.ok()) {
+    return status;
   }
 
   ExtensionStatus ext_status;
@@ -343,8 +391,9 @@ Status getExtensions(ExtensionList& extensions) {
 Status getExtensions(const std::string& manager_path,
                      ExtensionList& extensions) {
   // Make sure the extension path exists, and is writable.
-  if (!pathExists(manager_path) || !isWritable(manager_path)) {
-    return Status(1, "Extension manager socket not available: " + manager_path);
+  auto status = extensionPathActive(manager_path);
+  if (!status.ok()) {
+    return status;
   }
 
   InternalExtensionList ext_list;
@@ -387,8 +436,9 @@ Status callExtension(const std::string& extension_path,
                      const PluginRequest& request,
                      PluginResponse& response) {
   // Make sure the extension manager path exists, and is writable.
-  if (!pathExists(extension_path) || !isWritable(extension_path)) {
-    return Status(1, "Extension socket not available: " + extension_path);
+  auto status = extensionPathActive(extension_path);
+  if (!status.ok()) {
+    return status;
   }
 
   ExtensionResponse ext_response;
@@ -413,8 +463,9 @@ Status startExtensionWatcher(const std::string& manager_path,
                              size_t interval,
                              bool fatal) {
   // Make sure the extension manager path exists, and is writable.
-  if (!pathExists(manager_path) || !isWritable(manager_path)) {
-    return Status(1, "Extension manager socket not available: " + manager_path);
+  auto status = extensionPathActive(manager_path, true);
+  if (!status.ok()) {
+    return status;
   }
 
   // Start a extension manager watcher, if the manager dies, so should we.

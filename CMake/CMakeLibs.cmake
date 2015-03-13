@@ -95,7 +95,7 @@ macro(ADD_OSQUERY_EXTENSION TARGET)
   add_executable(${TARGET} ${ARGN})
   TARGET_OSQUERY_LINK_WHOLE(${TARGET} libosquery)
   set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
-  set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME ${TARGET})
+  set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "${TARGET}.ext")
 endmacro(ADD_OSQUERY_EXTENSION)
 
 macro(ADD_OSQUERY_MODULE TARGET)

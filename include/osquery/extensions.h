@@ -18,6 +18,11 @@ namespace osquery {
 
 DECLARE_int32(worker_threads);
 DECLARE_string(extensions_socket);
+DECLARE_string(extensions_autoload);
+DECLARE_string(extensions_timeout);
+
+/// A millisecond internal applied to extension initialization.
+extern const int kExtensionInitializeMLatency;
 
 /**
  * @brief Helper struct for managing extenion metadata.

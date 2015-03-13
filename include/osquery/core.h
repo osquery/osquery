@@ -103,6 +103,14 @@ class Initializer {
   bool isWorker();
 
  private:
+  /// Initialize this process as an osquery daemon worker.
+  void initWorker(const std::string& name);
+  /// Initialize the osquery watcher, optionally spawn a worker.
+  void initWatcher();
+  /// Set the config and logger plugins, optionally depend on an extension.
+  void initConfigLogger();
+
+ private:
   int argc_;
   char** argv_;
   int tool_;
