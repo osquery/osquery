@@ -1,0 +1,13 @@
+table_name("safari_plugins")
+description("Safari browser plugin details for all users.")
+schema([
+    Column("name", TEXT, "Plugin display name"),
+    Column("identifier", TEXT, "Plugin identifier"),
+    Column("version", TEXT, "Plugin short version"),
+    Column("sdk", TEXT, "Build SDK used to compile plugin"),
+    Column("description", TEXT, "Plugin description text"),
+    Column("development_region", TEXT, "Plugin language-localization"),
+    Column("native", INTEGER, "Plugin requires native execution"),
+    Column("path", TEXT, "Path to plugin bundle"),
+])
+implementation("applications/browser_safari@genSafariPlugins")
