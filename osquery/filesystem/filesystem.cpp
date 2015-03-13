@@ -287,9 +287,9 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
 
   std::vector<std::string> files;
   std::vector<std::string> folders;
-  Status stat_file = listFilesInDirectory(fs_path.parent_path(), files, 1);
+  Status stat_file = listFilesInDirectory(fs_path.parent_path(), files);
   Status stat_fold =
-      listDirectoriesInDirectory(fs_path.parent_path(), folders, 1);
+      listDirectoriesInDirectory(fs_path.parent_path(), folders);
 
   // Is the last component a wildcard?
   if (components[components.size() - 1] == kWildcardCharacter) {

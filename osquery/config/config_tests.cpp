@@ -66,7 +66,7 @@ TEST_F(ConfigTests, test_plugin) {
 
 TEST_F(ConfigTests, test_queries_execute) {
   auto queries = Config::getInstance().getScheduledQueries();
-  EXPECT_EQ(queries.size(), 1);
+  EXPECT_EQ(queries.size(), 2);
 }
 
 TEST_F(ConfigTests, test_threatfiles_execute) {
