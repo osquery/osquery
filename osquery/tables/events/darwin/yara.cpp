@@ -94,6 +94,8 @@ void YARAEventSubscriber::init() {
       VLOG(1) << "Added YARA listener to: " << file;
       auto mc = createSubscriptionContext();
       mc->path = file;
+      mc->mask = kFSEventStreamEventFlagItemCreated |
+                 kFSEventStreamEventFlagItemModified;
       subscribe(&YARAEventSubscriber::Callback, mc, (void*)(&element.first));
     }
 
@@ -207,8 +209,8 @@ int YARACallback(int message, void *message_data, void *user_data) {
 
 Status YARAEventSubscriber::Callback(const FSEventsEventContextRef& ec,
                                      const void* user_data) {
-  // Don't scan if there was an error with the init or if the file is deleted.
-  if (ready == false || ec->action == "DELETED") {
+  // Don't scan if there was an error with the init.
+  if (ready == false) {
     return Status(0, "OK");
   }
 
