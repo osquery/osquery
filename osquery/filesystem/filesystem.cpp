@@ -290,14 +290,7 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
   Status stat_file = listFilesInDirectory(fs_path.parent_path(), files, 1);
   Status stat_fold =
       listDirectoriesInDirectory(fs_path.parent_path(), folders, 1);
-  if (!stat_file.ok()) {
-    VLOG(1) << "FILE LIST ERROR: " << stat_file.getMessage();
-    return stat_file;
-  }
-  if (!stat_fold.ok()) {
-    VLOG(1) << "FOLD LIST ERROR: " << stat_fold.getMessage();
-    return stat_fold;
-  }
+
   // Is the last component a wildcard?
   if (components[components.size() - 1] == kWildcardCharacter) {
 

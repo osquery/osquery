@@ -111,7 +111,7 @@ class Config {
    *
    * @return A map all the files in the JSON blob organized by category
    */
-  static std::map<std::string, std::vector<std::string> >& getWatchedFiles();
+  static std::map<std::string, std::vector<std::string> > getWatchedFiles();
 
   /**
    * @brief Return the configuration ptree
@@ -120,7 +120,7 @@ class Config {
    *
    * @return Returns the unparsed, ptree representation of the given config
    */
-  static pt::ptree& getEntireConfiguration();
+  static pt::ptree getEntireConfiguration();
 
   /**
    * @brief Calculate the has of the osquery config
@@ -239,7 +239,7 @@ class ConfigPlugin : public Plugin {
    * indicates that config retrieval was successful, then the config data
    * should be returned in pair.second.
    */
-  virtual Status genConfig(std::map<std::string, std::string>&) = 0;
+  virtual Status genConfig(std::map<std::string, std::string>& config) = 0;
   Status call(const PluginRequest& request, PluginResponse& response);
 };
 

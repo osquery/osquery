@@ -46,8 +46,7 @@ class TestConfigPlugin : public ConfigPlugin {
  public:
   TestConfigPlugin() {}
   Status genConfig(std::map<std::string, std::string>& config) {
-    std::vector<std::string> test;
-    test.push_back("foobar");
+    config["data"] = "foobar";
     return Status(0, "OK");
     ;
   }
@@ -62,8 +61,7 @@ TEST_F(ConfigTests, test_plugin) {
 
   EXPECT_EQ(status.ok(), true);
   EXPECT_EQ(status.toString(), "OK");
-  // std::vector<std::string> result = response[0].at("data");
-  // EXPECT_EQ(response[0].at("data").at(0), "foobar");
+  EXPECT_EQ(response[0].at("data"), "foobar");
 }
 
 TEST_F(ConfigTests, test_queries_execute) {

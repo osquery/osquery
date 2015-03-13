@@ -71,10 +71,10 @@ Status Config::genConfig(std::vector<std::string>& conf) {
     return status;
   }
 
-  for (std::map<std::string, std::string>::iterator it = response[0].begin();
-       it != response[0].end();
-       ++it) {
-    conf.push_back(it->second);
+  if (response.size() > 0) {
+    for (const auto& it : response[0]) {
+      conf.push_back(it.second);
+    }
   }
   return Status(0, "OK");
 }
@@ -151,12 +151,12 @@ std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
   return getInstance().cfg_.scheduledQueries;
 }
 
-std::map<std::string, std::vector<std::string> >& Config::getWatchedFiles() {
+std::map<std::string, std::vector<std::string> > Config::getWatchedFiles() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return getInstance().cfg_.eventFiles;
 }
 
-pt::ptree& Config::getEntireConfiguration() {
+pt::ptree Config::getEntireConfiguration() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return getInstance().cfg_.all_data;
 }
@@ -168,7 +168,7 @@ Status Config::getMD5(std::string& hash_string) {
   hash_string = osquery::hashFromBuffer(
       HASH_TYPE_MD5, (void*)out.str().c_str(), out.str().length());
 
-  return Status(1, "NI");
+  return Status(0, "OK");
 }
 
 Status Config::checkConfig() {
