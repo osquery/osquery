@@ -60,6 +60,7 @@ else()
     events/linux/hardware_events.cpp
     events/linux/passwd_changes.cpp
     events/linux/file_changes.cpp
+    events/linux/yara.cpp
     networking/linux/arp_cache.cpp
     networking/linux/process_open_sockets.cpp
     networking/linux/routes.cpp
