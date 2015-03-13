@@ -182,7 +182,7 @@ class ProcRunner(object):
                 pass
         self.proc = None
 
-    def isAlive(self, timeout=1):
+    def isAlive(self, timeout=3):
         '''Check if the process is alive.'''
         delay = 0
         while self.proc is None:
@@ -233,16 +233,16 @@ class ProcessGenerator(object):
         self.generators.append(daemon)
         return daemon
 
-    def _run_extension(self, silent=False):
+    def _run_extension(self, timeout=0, silent=False):
         '''Spawn an osquery extension (example_extension)'''
         global ARGS, CONFIG_NAME
-        binary = os.path.join(ARGS.build, "osquery",
-            "example_extension")
+        binary = os.path.join(ARGS.build, "osquery", "example_extension.ext")
         extension = ProcRunner("extension",
             binary,
             [
                 "--socket=%s" % CONFIG["options"]["extensions_socket"],
-                "--verbose" if ARGS.verbose else ""
+                "--verbose" if ARGS.verbose else "",
+                "--timeout=%d" % timeout,
             ],
             silent=silent)
         self.generators.append(extension)

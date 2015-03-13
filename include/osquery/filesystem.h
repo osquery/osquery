@@ -196,10 +196,13 @@ std::set<boost::filesystem::path> getHomeDirectories();
  *
  * @param dir the directory to check /tmp mode
  * @param path a path to a file to check
+ * @param executable the file must also be executable
  *
  * @return true if the file is 'safe' else false
  */
-bool safePermissions(const std::string& dir, const std::string& path);
+bool safePermissions(const std::string& dir,
+                     const std::string& path,
+                     bool executable = false);
 
 /// Return bit-mask-style permissions.
 std::string lsperms(int mode);

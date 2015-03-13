@@ -129,7 +129,7 @@ class Config {
    * Since instances of Config should only be created via getInstance(),
    * Config's constructor is private
    */
-  Config() { loaded_ = false; }
+  Config() {}
   ~Config(){}
   Config(Config const&);
   void operator=(Config const&);
@@ -183,8 +183,6 @@ class Config {
    * native format
    */
   OsqueryConfig cfg_;
-  /// Only load the config once.
-  bool loaded_;
 };
 
 /**

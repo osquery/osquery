@@ -12,6 +12,14 @@
 
 using namespace osquery;
 
+class ExampleConfigPlugin : public ConfigPlugin {
+ public:
+  std::pair<Status, std::string> genConfig() {
+    return std::make_pair(Status(0, "OK"),
+                          "{\"options\": [], \"scheduledQueries\": []}");
+  }
+};
+
 class ExampleTable : public tables::TablePlugin {
  private:
   tables::TableColumns columns() const {
@@ -30,6 +38,7 @@ class ExampleTable : public tables::TablePlugin {
   }
 };
 
+REGISTER_EXTERNAL(ExampleConfigPlugin, "config", "example");
 REGISTER_EXTERNAL(ExampleTable, "table", "example");
 
 int main(int argc, char* argv[]) {

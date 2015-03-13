@@ -121,6 +121,13 @@ const std::string& RegistryHelperCore::getAlias(
 }
 
 void RegistryHelperCore::setUp() {
+  // If the registry is using a single 'active' plugin, setUp that plugin.
+  // For config and logger, only setUp the selected plugin.
+  if (active_.size() != 0 && exists(active_, true)) {
+    items_.at(active_)->setUp();
+    return;
+  }
+
   // If this registry does not auto-setup do NOT setup the registry items.
   if (!auto_setup_) {
     return;

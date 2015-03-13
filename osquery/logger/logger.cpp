@@ -195,8 +195,6 @@ void initLogger(const std::string& name, bool forward_all) {
     return;
   }
 
-  // Set up the active logger plugin.
-  Registry::get("logger", logger_plugin)->setUp();
   // Start the custom status logging facilities, which may instruct glog as is
   // the case with filesystem logging.
   PluginRequest request = {{"init", name}};

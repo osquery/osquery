@@ -41,12 +41,6 @@ Status Config::load() {
 
   boost::unique_lock<boost::shared_mutex> lock(rw_lock);
 
-  // Set up the active config plugin once when the config is first loaded.
-  if (!getInstance().loaded_) {
-    Registry::get("config", config_plugin)->setUp();
-    getInstance().loaded_ = true;
-  }
-
   OsqueryConfig conf;
   if (!genConfig(conf).ok()) {
     return Status(1, "Cannot generate config");
