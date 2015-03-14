@@ -158,7 +158,7 @@ std::map<std::string, std::vector<std::string> >& Config::getWatchedFiles() {
   return getInstance().cfg_.eventFiles;
 }
 
-std::map<std::string, std::vector<std::string> >& Config::getYARAFiles() {
+const std::map<std::string, std::vector<std::string> >& Config::getYARAFiles() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return getInstance().cfg_.yaraFiles;
 }

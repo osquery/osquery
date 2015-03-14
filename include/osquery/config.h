@@ -115,7 +115,7 @@ class Config {
    *
    * @return A map all the files in the JSON blob organized by category
    */
-  static std::map<std::string, std::vector<std::string> >& getYARAFiles();
+  static const std::map<std::string, std::vector<std::string> >& getYARAFiles();
 
   /**
    * @brief Calculate the has of the osquery config
