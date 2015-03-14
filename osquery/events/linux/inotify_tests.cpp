@@ -64,7 +64,7 @@ class INotifyTests : public testing::Test {
     mc->path = path;
     mc->mask = mask;
 
-    EventFactory::addSubscription("inotify", mc, ec);
+    EventFactory::addSubscription("inotify", "TestSubscriber", mc, ec);
   }
 
   bool WaitForEvents(int max, int num_events = 0) {
@@ -126,7 +126,7 @@ TEST_F(INotifyTests, test_inotify_add_subscription_missing_path) {
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = "/this/path/is/fake";
 
-  auto subscription = Subscription::create(mc);
+  auto subscription = Subscription::create("TestSubscriber", mc);
   auto status = EventFactory::addSubscription("inotify", subscription);
   EXPECT_TRUE(status.ok());
   EventFactory::deregisterEventPublisher("inotify");
@@ -140,7 +140,7 @@ TEST_F(INotifyTests, test_inotify_add_subscription_success) {
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = "/";
 
-  auto subscription = Subscription::create(mc);
+  auto subscription = Subscription::create("TestSubscriber", mc);
   auto status = EventFactory::addSubscription("inotify", subscription);
   EXPECT_TRUE(status.ok());
   EventFactory::deregisterEventPublisher("inotify");
@@ -158,7 +158,7 @@ TEST_F(INotifyTests, test_inotify_run) {
   // Create a subscriptioning context
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = kRealTestPath;
-  status = EventFactory::addSubscription("inotify", Subscription::create(mc));
+  status = EventFactory::addSubscription("inotify", Subscription::create("TestSubscriber", mc));
   EXPECT_TRUE(status.ok());
 
   // Create an event loop thread (similar to main)
@@ -181,7 +181,7 @@ class TestINotifyEventSubscriber
   DECLARE_SUBSCRIBER("TestINotifyEventSubscriber");
 
  public:
-  void init() { callback_count_ = 0; }
+  Status init() { callback_count_ = 0; return Status(0, "OK"); }
   Status SimpleCallback(const INotifyEventContextRef& ec,
                         const void* user_data) {
     callback_count_ += 1;
