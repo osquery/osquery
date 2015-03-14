@@ -37,7 +37,9 @@ import test_base
 class EXClient:
     transport = None
 
-    def __init__(self, path, uuid=None):
+    def __init__(self, path=None, uuid=None):
+        if path is None:
+            path = test_base.CONFIG["options"]["extensions_socket"]
         self.path = path
         if uuid:
             self.path += ".%s" % str(uuid)
@@ -103,26 +105,25 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_1_daemon_without_extensions(self):
         # Start the daemon without thrift, prefer no watchdog because the tests
         # kill the daemon very quickly.
-        config = test_base.CONFIG.copy()
-        config["options"]["disable_watchdog"] = "true"
-        config["options"]["disable_extensions"] = "true"
-        daemon = self._run_daemon(config)
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "disable_extensions": True,
+        })
         self.assertTrue(daemon.isAlive())
 
         # Now try to connect to the disabled API
-        client = EXClient(config["options"]["extensions_socket"])
+        client = EXClient()
         self.assertFalse(client.open())
         daemon.kill()
 
     def test_2_daemon_api(self):
-        config = test_base.CONFIG.copy()
-        config["options"]["disable_watchdog"] = "true"
-        config["options"]["disable_extensions"] = "false"
-        daemon = self._run_daemon(config)
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+        })
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient(config["options"]["extensions_socket"])
+        client = EXClient()
         expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -150,14 +151,13 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     def test_3_example_extension(self):
-        config = test_base.CONFIG.copy()
-        config["options"]["disable_watchdog"] = "true"
-        config["options"]["disable_extensions"] = "false"
-        daemon = self._run_daemon(config)
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+        })
         self.assertTrue(daemon.isAlive())
         
         # Get a python-based thrift client
-        client = EXClient(config["options"]["extensions_socket"])
+        client = EXClient()
         expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -180,7 +180,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(ex_data.min_sdk_version, "0.0.0")
 
         # Get a python-based thrift client to the extension's service
-        client2 = EXClient(config["options"]["extensions_socket"], ex_uuid)
+        client2 = EXClient(uuid=ex_uuid)
         client2.open()
         ex = client2.getEX()
         self.assertEqual(ex.ping().code, 0)
@@ -214,14 +214,13 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     def test_4_extension_dies(self):
-        config = test_base.CONFIG.copy()
-        config["options"]["disable_watchdog"] = "true"
-        config["options"]["disable_extensions"] = "false"
-        daemon = self._run_daemon(config)
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+        })
         self.assertTrue(daemon.isAlive())
         
         # Get a python-based thrift client
-        client = EXClient(config["options"]["extensions_socket"])
+        client = EXClient()
         expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -267,14 +266,13 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(extension.isAlive())
 
         # Now start a daemon
-        config = test_base.CONFIG.copy()
-        config["options"]["disable_watchdog"] = "true"
-        config["options"]["disable_extensions"] = "false"
-        daemon = self._run_daemon(config)
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+        })
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient(config["options"]["extensions_socket"])
+        client = EXClient()
         expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -288,16 +286,14 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         extension.kill()
 
     def test_6_extensions_autoload(self):
-        config = test_base.CONFIG.copy()
-        config["options"]["disable_watchdog"] = "true"
-        config["options"]["disable_extensions"] = "false"
-        # Inlcude an extensions autoload path.
-        config["options"]["extensions_autoload"] = test_base.ARGS.build + "/osquery"
-        daemon = self._run_daemon(config)
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "extensions_autoload": test_base.ARGS.build + "/osquery",
+        })
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient(config["options"]["extensions_socket"])
+        client = EXClient()
         expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -309,19 +305,35 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         client.close()
         daemon.kill()
 
-    def test_7_external_config(self):
-        config = test_base.CONFIG.copy()
-        config["options"]["disable_watchdog"] = "true"
-        config["options"]["disable_extensions"] = "false"
-        # Inlcude an extensions autoload path.
-        config["options"]["extensions_autoload"] = test_base.ARGS.build + "/osquery"
-        # Now set a config plugin broadcasted by an autoloaded extension.
-        config["options"]["config_plugin"] = "example"
-        daemon = self._run_daemon(config)
+    def test_7_extensions_autoload_watchdog(self):
+        daemon = self._run_daemon({
+            "extensions_autoload": test_base.ARGS.build + "/osquery",
+        })
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient(config["options"]["extensions_socket"])
+        client = EXClient()
+        expectTrue(client.open)
+        self.assertTrue(client.open())
+        em = client.getEM()
+
+        # The waiting extension should have connected to the daemon.
+        result = expect(em.extensions, 1)
+        self.assertEqual(len(result), 1)
+
+        client.close()
+        daemon.kill()
+
+    def test_8_external_config(self):
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "extensions_autoload": test_base.ARGS.build + "/osquery",
+            "config_plugin": "example",
+        })
+        self.assertTrue(daemon.isAlive())
+
+        # Get a python-based thrift client
+        client = EXClient()
         expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
