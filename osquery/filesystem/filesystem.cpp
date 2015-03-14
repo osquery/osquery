@@ -126,8 +126,9 @@ Status remove(const boost::filesystem::path& path) {
 }
 
 Status listFilesInDirectory(const boost::filesystem::path& path,
-                            std::vector<std::string>& results) {
-  try {
+                            std::vector<std::string>& results,
+                            bool ignore_error) {
+
     if (!boost::filesystem::exists(path)) {
       return Status(1, "Directory not found: " + path.string());
     }
@@ -139,20 +140,23 @@ Status listFilesInDirectory(const boost::filesystem::path& path,
     boost::filesystem::directory_iterator begin_iter(path);
     boost::filesystem::directory_iterator end_iter;
     for (; begin_iter != end_iter; begin_iter++) {
-      if (!boost::filesystem::is_directory(begin_iter->path())) {
-        results.push_back(begin_iter->path().string());
+      try {
+        if (boost::filesystem::is_regular_file(begin_iter->path())) {
+          results.push_back(begin_iter->path().string());
+        }
+      } catch (const boost::filesystem::filesystem_error& e) {
+        if (ignore_error == 0) {
+          return Status(1, e.what());
+        }
       }
     }
 
     return Status(0, "OK");
-  } catch (const boost::filesystem::filesystem_error& e) {
-    return Status(1, e.what());
-  }
 }
 
 Status listDirectoriesInDirectory(const boost::filesystem::path& path,
-                                  std::vector<std::string>& results) {
-  try {
+                                  std::vector<std::string>& results,
+                                  bool ignore_error) {
     if (!boost::filesystem::exists(path)) {
       return Status(1, "Directory not found");
     }
@@ -170,15 +174,18 @@ Status listDirectoriesInDirectory(const boost::filesystem::path& path,
     boost::filesystem::directory_iterator begin_iter(path);
     boost::filesystem::directory_iterator end_iter;
     for (; begin_iter != end_iter; begin_iter++) {
-      if (boost::filesystem::is_directory(begin_iter->path())) {
-        results.push_back(begin_iter->path().string());
+      try {
+        if (boost::filesystem::is_directory(begin_iter->path())) {
+          results.push_back(begin_iter->path().string());
+        }
+      } catch (const boost::filesystem::filesystem_error& e) {
+        if (ignore_error == 0) {
+          return Status(1, e.what());
+        }
       }
     }
 
     return Status(0, "OK");
-  } catch (const boost::filesystem::filesystem_error& e) {
-    return Status(1, e.what());
-  }
 }
 
 /**
@@ -253,6 +260,7 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
                                 ReturnSetting setting,
                                 const std::vector<std::string>& components,
                                 unsigned int rec_depth) {
+
   // Is the last component a double star?
   if (components[components.size() - 1] == kWildcardCharacterRecursive) {
     if (setting & REC_EVENT_OPT) {
@@ -282,15 +290,9 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
   Status stat_file = listFilesInDirectory(fs_path.parent_path(), files);
   Status stat_fold = listDirectoriesInDirectory(fs_path.parent_path(), folders);
 
-  if (!stat_file.ok()) {
-    return stat_file;
-  }
-  if (!stat_fold.ok()) {
-    return stat_fold;
-  }
-
   // Is the last component a wildcard?
   if (components[components.size() - 1] == kWildcardCharacter) {
+
     if (setting & REC_EVENT_OPT) {
       results.push_back(fs_path.parent_path().string());
       return Status(0, "OK");

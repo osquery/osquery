@@ -14,9 +14,9 @@ using namespace osquery;
 
 class ExampleConfigPlugin : public ConfigPlugin {
  public:
-  std::pair<Status, std::string> genConfig() {
-    return std::make_pair(Status(0, "OK"),
-                          "{\"options\": [], \"scheduledQueries\": []}");
+  Status genConfig(std::map<std::string, std::string>& config) {
+    config["data"] = "{\"options\": [], \"scheduledQueries\": []}";
+    return Status(0, "OK");
   }
 };
 

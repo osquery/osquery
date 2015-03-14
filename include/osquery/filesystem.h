@@ -95,7 +95,8 @@ Status pathExists(const boost::filesystem::path& path);
  * of the operation.
  */
 Status listFilesInDirectory(const boost::filesystem::path& path,
-                            std::vector<std::string>& results);
+                            std::vector<std::string>& results,
+                            bool ignore_error = 1);
 
 /**
  * @brief List all of the directories in a specific directory, non-recursively.
@@ -109,7 +110,8 @@ Status listFilesInDirectory(const boost::filesystem::path& path,
  * of the operation.
  */
 Status listDirectoriesInDirectory(const boost::filesystem::path& path,
-                                  std::vector<std::string>& results);
+                                  std::vector<std::string>& results,
+                                  bool ignore_error = 1);
 
 /**
  * @brief Given a wildcard filesystem patten, resolve all possible paths
