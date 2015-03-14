@@ -26,8 +26,6 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-// Millisecond latency between watcher pings.
-const int kWatcherMLatency = 3000;
 // Millisecond latency between initalizing manager pings.
 const int kExtensionInitializeMLatency = 200;
 
@@ -46,13 +44,18 @@ CLI_FLAG(string,
 
 CLI_FLAG(string,
          extensions_autoload,
-         "",
+         "/usr/lib/osquery/extensions",
          "An optional search path for autoloaded & managed extensions")
 
 CLI_FLAG(string,
          extensions_timeout,
-         "0",
+         "3",
          "Seconds to wait for autoloaded extensions");
+
+CLI_FLAG(string,
+         extensions_interval,
+         "3",
+         "Seconds delay between connectivity checks")
 
 CLI_FLAG(string,
          modules_autoload,
@@ -65,6 +68,7 @@ EXTENSION_FLAG_ALIAS(std::string, socket, extensions_socket);
 
 /// An extension manager may not be immediately available.
 EXTENSION_FLAG_ALIAS(std::string, timeout, extensions_timeout);
+EXTENSION_FLAG_ALIAS(std::string, interval, extensions_interval);
 
 void ExtensionWatcher::enter() {
   // Watch the manager, if the socket is removed then the extension will die.
@@ -204,8 +208,8 @@ Status startExtension(const std::string& name, const std::string& version) {
 Status startExtension(const std::string& name,
                       const std::string& version,
                       const std::string& min_sdk_version) {
-  auto status =
-      startExtensionWatcher(FLAGS_extensions_socket, kWatcherMLatency, true);
+  auto latency = atoi(FLAGS_extensions_interval.c_str()) * 1000;
+  auto status = startExtensionWatcher(FLAGS_extensions_socket, latency, true);
   if (!status.ok()) {
     // If the threaded watcher fails to start, fail the extension.
     return status;
@@ -493,10 +497,10 @@ Status startExtensionManager(const std::string& manager_path) {
     }
   }
 
+  auto latency = atoi(FLAGS_extensions_interval.c_str()) * 1000;
   // Start a extension manager watcher, if the manager dies, so should we.
   Dispatcher::getInstance().addService(
-      std::make_shared<ExtensionManagerWatcher>(manager_path,
-                                                kWatcherMLatency));
+      std::make_shared<ExtensionManagerWatcher>(manager_path, latency));
 
   // Start the extension manager thread.
   Dispatcher::getInstance().addService(

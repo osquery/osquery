@@ -19,17 +19,17 @@ import test_base
 
 class WatchdogTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_1_daemon_without_watchdog(self):
-        config = test_base.CONFIG.copy()
-        config["options"]["disable_watchdog"] = "true"
-        config["options"]["disable_extensions"] = "true"
-        daemon = self._run_daemon(config)
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "disable_extensions": True,
+        })
         self.assertTrue(daemon.isAlive())
         daemon.kill()
 
     def test_2_daemon_with_watchdog(self):
-        config = test_base.CONFIG.copy()
-        config["options"]["disable_watchdog"] = "false"
-        daemon = self._run_daemon(config)
+        daemon = self._run_daemon({
+            "disable_watchdog": False,
+        })
         self.assertTrue(daemon.isAlive())
 
         # Check that the daemon spawned a child process
@@ -43,12 +43,10 @@ class WatchdogTests(test_base.ProcessGenerator, unittest.TestCase):
 
     def test_3_catastrophic_worker_failure(self):
         ### Seems to fail often, disable test
-        return
-        config = test_base.CONFIG.copy()
-        # A bad DB path will cause the worker to fail.
-        config["options"]["db_path"] = "/tmp/this/does/not/exists.db"
-        config["options"]["disable_watchdog"] = "false"
-        daemon = self._run_daemon(config)
+        daemon = self._run_daemon({
+            "disable_watchdog": False,
+            "database_path": "/tmp/this/does/not/exists.db",
+        })
         daemon.isAlive(5)
         self.assertTrue(daemon.isDead(daemon.pid))
         daemon.kill()

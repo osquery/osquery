@@ -45,10 +45,10 @@ const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
 
 const std::string kExtensionExtension = ".ext";
 
-FLAG(int32,
-     watchdog_level,
-     1,
-     "Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug)");
+CLI_FLAG(int32,
+         watchdog_level,
+         1,
+         "Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug)");
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
@@ -160,7 +160,7 @@ void Watcher::addExtensionPath(const std::string& path) {
 }
 
 bool WatcherRunner::ok() {
-  ::sleep(getWorkerLimit(INTERVAL));
+  interruptableSleep(getWorkerLimit(INTERVAL) * 1000);
   // Watcher is OK to run if a worker or at least one extension exists.
   return (Watcher::getWorker() >= 0 || Watcher::countExtensions() > 0);
 }
@@ -290,7 +290,7 @@ void WatcherRunner::createWorker() {
     if (Watcher::getState(Watcher::getWorker()).last_respawn_time >
         getUnixTime() - getWorkerLimit(RESPAWN_LIMIT)) {
       LOG(WARNING) << "osqueryd worker respawning too quickly";
-      ::sleep(getWorkerLimit(RESPAWN_DELAY));
+      interruptableSleep(getWorkerLimit(RESPAWN_DELAY) * 1000);
     }
   }
 
@@ -359,6 +359,8 @@ bool WatcherRunner::createExtension(const std::string& extension) {
            Flag::getValue("extensions_socket").c_str(),
            "--timeout",
            Flag::getValue("extensions_timeout").c_str(),
+           "--interval",
+           Flag::getValue("extensions_interval").c_str(),
            (Flag::getValue("verbose") == "true") ? "--verbose" : (char*)nullptr,
            (char*)nullptr,
            environ);

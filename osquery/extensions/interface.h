@@ -177,7 +177,9 @@ class ExtensionWatcher : public InternalRunnable {
  public:
   virtual ~ExtensionWatcher() {}
   ExtensionWatcher(const std::string& path, size_t interval, bool fatal)
-      : path_(path), interval_(interval), fatal_(fatal) {}
+      : path_(path), interval_(interval), fatal_(fatal) {
+    interval_ = (interval_ < 200) ? 200 : interval_;
+  }
 
  public:
   /// The Dispatcher thread entry point.
