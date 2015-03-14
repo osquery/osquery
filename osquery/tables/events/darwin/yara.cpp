@@ -77,7 +77,7 @@ void YARAEventSubscriber::init() {
 
   int result = yr_initialize();
   if (result != ERROR_SUCCESS) {
-    VLOG(1) << "Unable to initalize YARA.";
+    LOG(WARNING) << "Unable to initalize YARA (" << result << ").";
     return;
   }
 
