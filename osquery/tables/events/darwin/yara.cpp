@@ -14,9 +14,12 @@
 #include <osquery/config.h>
 #include <osquery/logger.h>
 
+#define NOMINMAX
 #include <yara.h>
+#undef NOMINMAX
 
 #include "osquery/events/darwin/fsevents.h"
+#include "osquery/tables/events/yara_utils.h"
 
 namespace osquery {
 namespace tables {
@@ -55,25 +58,8 @@ class YARAEventSubscriber : public EventSubscriber<FSEventsEventPublisher> {
  */
 REGISTER(YARAEventSubscriber, "event_subscriber", "yara");
 
-/**
- * The callback used when there are compilation problems in the rules.
- */
-void YARACompilerCallback(int error_level,
-                          const char* file_name,
-                          int line_number,
-                          const char* message,
-                          void* user_data) {
-  if (error_level == YARA_ERROR_LEVEL_ERROR) {
-    VLOG(1) << file_name << "(" << line_number << "): error: " << message;
-  }
-  else {
-    VLOG(1) << file_name << "(" << line_number << "): warning: " << message;
-  }
-}
-
 void YARAEventSubscriber::init() {
-  YR_COMPILER *compiler = nullptr;
-  bool compiled;
+  Status status;
 
   int result = yr_initialize();
   if (result != ERROR_SUCCESS) {
@@ -99,112 +85,15 @@ void YARAEventSubscriber::init() {
       subscribe(&YARAEventSubscriber::Callback, mc, (void*)(&element.first));
     }
 
-    if (yr_compiler_create(&compiler) != ERROR_SUCCESS) {
-      VLOG(1) << "Could not create compiler.";
-      return;
-    }
-
-    yr_compiler_set_callback(compiler, YARACompilerCallback, NULL);
-
     // Attempt to compile the rules for this category.
-    for (const auto& rule : element.second) {
-      compiled = false;
-      YR_RULES *tmp_rules;
-
-      VLOG(1) << "Loading " << rule;
-
-      // First attempt to load the file, in case it is saved (pre-compiled)
-      // rules. Sadly there is no way to load multiple compiled rules in
-      // succession. This means that:
-      //
-      // saved1, saved2
-      //
-      // results in saved2 being the only file used.
-      //
-      // Also, mixing source and saved rules results in the saved rules being
-      // overridden by the combination of the source rules once compiled, e.g.:
-      //
-      // file1, saved1
-      //
-      // result in file1 being the only file used.
-      //
-      // If you want to use saved rule files you must have them all in a single
-      // file. This is easy to accomplish with yarac(1).
-      result = yr_rules_load(rule.c_str(), &tmp_rules);
-      if (result != ERROR_SUCCESS && result != ERROR_INVALID_FILE) {
-        VLOG(1) << "Error loading YARA rules: " << result;
-        yr_compiler_destroy(compiler);
-        return;
-      } else if (result == ERROR_SUCCESS) {
-        // If there are already rules there, destroy them and put new ones in.
-        if (rules.count(element.first) > 0) {
-          yr_rules_destroy(rules[element.first]);
-        }
-        rules[element.first] = tmp_rules;
-      } else {
-        compiled = true;
-        // Try to compile the rules.
-        FILE *rule_file = fopen(rule.c_str(), "r");
-
-        if (rule_file == nullptr) {
-          VLOG(1) << "Could not open file: " << rule;
-          yr_compiler_destroy(compiler);
-          return;
-        }
-
-        int errors = yr_compiler_add_file(compiler,
-                                          rule_file,
-                                          NULL,
-                                          rule.c_str());
-
-        fclose(rule_file);
-        rule_file = nullptr;
-
-        if (errors > 0) {
-          yr_compiler_destroy(compiler);
-          return;
-        }
-      }
-    }
-
-    if (compiled) {
-      // All the rules for this category have been compiled, save them in
-      // the map.
-      result = yr_compiler_get_rules(compiler, &rules[element.first]);
-
-      if (result != ERROR_SUCCESS) {
-        VLOG(1) << "Insufficent memory to get rules.";
-        yr_compiler_destroy(compiler);
-        return;
-      }
-    }
-
-    if (compiler != nullptr) {
-      yr_compiler_destroy(compiler);
-      compiler = nullptr;
+    status = handleRuleFiles(element.first, element.second, &rules);
+    if (!status.ok()) {
+      VLOG(1) << "Error: " << status.getMessage();
+      return; // XXX status;
     }
   }
 
   ready = true;
-}
-
-/**
- * This is the YARA callback. Used to store matching rules in the row which is
- * passed in as user_data.
- */
-int YARACallback(int message, void *message_data, void *user_data) {
-  if (message == CALLBACK_MSG_RULE_MATCHING) {
-    Row *r = (Row *) user_data;
-    YR_RULE *rule = (YR_RULE *) message_data;
-    if ((*r)["matches"].length() > 0) {
-      (*r)["matches"] += "," + std::string(rule->identifier);
-    } else {
-      (*r)["matches"] = std::string(rule->identifier);
-    }
-    (*r)["count"] = INTEGER(std::stoi((*r)["count"]) + 1);
-  }
-
-  return CALLBACK_CONTINUE;
 }
 
 Status YARAEventSubscriber::Callback(const FSEventsEventContextRef& ec,
