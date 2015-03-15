@@ -173,7 +173,13 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
 }
 }
 
-ExtensionRunner::~ExtensionRunner() { remove(path_); }
+ExtensionRunner::~ExtensionRunner() {
+  // Remove the socket path.
+  if (server_ != nullptr) {
+    server_->stop();
+  }
+  remove(path_);
+}
 
 void ExtensionRunner::enter() {
   // Set the socket information for the extension manager.
@@ -202,12 +208,12 @@ void ExtensionRunner::enter() {
   // Start the Thrift server's run loop.
   try {
     VLOG(1) << "Extension service starting: " << socket_path;
-    TThreadPoolServer server(processor,
-                             serverTransport,
-                             transportFactory,
-                             protocolFactory,
-                             threadManager);
-    server.serve();
+    server_ = std::move(std::make_shared<TThreadPoolServer>(processor,
+                                                            serverTransport,
+                                                            transportFactory,
+                                                            protocolFactory,
+                                                            threadManager));
+    server_->serve();
   } catch (const std::exception& e) {
     LOG(ERROR) << "Cannot start extension handler: " << socket_path << " ("
                << e.what() << ")";
@@ -217,6 +223,9 @@ void ExtensionRunner::enter() {
 
 ExtensionManagerRunner::~ExtensionManagerRunner() {
   // Remove the socket path.
+  if (server_ != nullptr) {
+    server_->stop();
+  }
   remove(path_);
 }
 
@@ -247,12 +256,12 @@ void ExtensionManagerRunner::enter() {
   // Start the Thrift server's run loop.
   try {
     VLOG(1) << "Extension manager service starting: " << socket_path;
-    TThreadPoolServer server(processor,
-                             serverTransport,
-                             transportFactory,
-                             protocolFactory,
-                             threadManager);
-    server.serve();
+    server_ = std::move(std::make_shared<TThreadPoolServer>(processor,
+                                                            serverTransport,
+                                                            transportFactory,
+                                                            protocolFactory,
+                                                            threadManager));
+    server_->serve();
   } catch (const std::exception& e) {
     LOG(WARNING) << "Extensions disabled: cannot start extension manager ("
                  << socket_path << ") (" << e.what() << ")";

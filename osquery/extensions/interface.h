@@ -212,9 +212,10 @@ class ExtensionManagerWatcher : public ExtensionWatcher {
 class ExtensionRunner : public InternalRunnable {
  public:
   virtual ~ExtensionRunner();
-  ExtensionRunner(const std::string& manager_path, RouteUUID uuid) {
+
+  ExtensionRunner(const std::string& manager_path, RouteUUID uuid)
+      : server_(nullptr), uuid_(uuid) {
     path_ = getExtensionSocket(uuid, manager_path);
-    uuid_ = uuid;
   }
 
  public:
@@ -225,24 +226,29 @@ class ExtensionRunner : public InternalRunnable {
   RouteUUID getUUID() { return uuid_; }
 
  private:
-  /// The UNIX domain socket used for requests from the ExtensionManager.
-  std::string path_;
+  /// Reference to the thrift service.
+  std::shared_ptr<TThreadPoolServer> server_;
   /// The unique and transient Extension UUID assigned by the ExtensionManager.
   RouteUUID uuid_;
+  /// The UNIX domain socket used for requests from the ExtensionManager.
+  std::string path_;
 };
 
 /// A Dispatcher service thread that starts ExtensionManagerHandler.
 class ExtensionManagerRunner : public InternalRunnable {
  public:
   virtual ~ExtensionManagerRunner();
-  explicit ExtensionManagerRunner(const std::string& manager_path) {
-    path_ = manager_path;
-  }
+
+  explicit ExtensionManagerRunner(const std::string& manager_path)
+      : server_(nullptr), path_(manager_path) {}
 
  public:
   void enter();
 
  private:
+  /// Reference to the thrift service.
+  std::shared_ptr<TThreadPoolServer> server_;
+  /// The UNIX domain socket used for requests from extensions.
   std::string path_;
 };
 
