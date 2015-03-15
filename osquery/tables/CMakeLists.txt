@@ -1,9 +1,5 @@
 if(APPLE)
   ADD_OSQUERY_OBJCXX_LIBRARY(FALSE osquery_tables_objc
-    ../core/darwin/NSProcessInfo+PECocoaBackports.mm
-    ../core/darwin/NSProcessInfo+PECocoaBackports.h
-    ../core/darwin/PECocoaBackportsGlobal.h
-    system/darwin/osx_version.mm
     system/darwin/users.mm
     system/darwin/groups.mm
     system/darwin/certificates.mm
@@ -32,6 +28,7 @@ if(APPLE)
     system/darwin/launchd.cpp
     system/darwin/mounts.cpp
     system/darwin/nvram.cpp
+    system/darwin/os_version.cpp
     system/darwin/preferences.cpp
     system/darwin/processes.cpp
     system/darwin/process_open_descriptors.cpp
@@ -74,6 +71,7 @@ else()
     system/linux/kernel_modules.cpp
     system/linux/memory_map.cpp
     system/linux/mounts.cpp
+    system/linux/os_version.cpp
     system/linux/pci_devices.cpp
     system/linux/processes.cpp
     system/linux/process_open_files.cpp
@@ -87,7 +85,7 @@ else()
   if(CENTOS)
     # CentOS specific tables
     ADD_OSQUERY_LIBRARY(FALSE osquery_tables_redhat
-      system/linux/rpm_packages.cpp
+      system/centos/rpm_packages.cpp
     )
 
     ADD_OSQUERY_LINK(FALSE "rpm")
@@ -95,8 +93,8 @@ else()
   elseif(UBUNTU)
     # Ubuntu specific tables
     ADD_OSQUERY_LIBRARY(FALSE osquery_tables_ubuntu
-      system/linux/deb_packages.cpp
-      system/linux/apt_sources.cpp
+      system/ubuntu/deb_packages.cpp
+      system/ubuntu/apt_sources.cpp
     )
 
     ADD_OSQUERY_LINK(FALSE "apt-pkg")

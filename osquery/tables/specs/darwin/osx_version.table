@@ -1,8 +1,0 @@
-table_name("osx_version")
-description("The version of OS X on the host system.")
-schema([
-  Column("major", INTEGER),
-  Column("minor", INTEGER),
-  Column("patch", INTEGER),
-])
-implementation("osx_version@genOSXVersion")
