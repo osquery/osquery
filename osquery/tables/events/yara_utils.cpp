@@ -103,7 +103,7 @@ Status handleRuleFiles(std::string category,
       if (errors > 0) {
         yr_compiler_destroy(compiler);
         // Errors printed via callback.
-        return Status(1, "XXX");
+        return Status(1, "Compilation errors.");
       }
     }
   }
