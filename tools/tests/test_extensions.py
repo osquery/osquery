@@ -282,7 +282,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(len(result), 1)
 
         client.close()
-        daemon.kill()
+        daemon.kill(True)
         extension.kill()
 
     def test_6_extensions_autoload(self):
@@ -303,7 +303,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(len(result), 1)
 
         client.close()
-        daemon.kill()
+        daemon.kill(True)
 
     def test_7_extensions_autoload_watchdog(self):
         daemon = self._run_daemon({
@@ -322,7 +322,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(len(result), 1)
 
         client.close()
-        daemon.kill()
+        daemon.kill(True)
 
     def test_8_external_config(self):
         daemon = self._run_daemon({
@@ -344,7 +344,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(len(result), 1)
 
         client.close()
-        daemon.kill()
+        daemon.kill(True)
 
 if __name__ == "__main__":
     module = test_base.Tester()

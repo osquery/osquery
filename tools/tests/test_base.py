@@ -164,25 +164,35 @@ class ProcRunner(object):
         '''Get the child pids.'''
         if not self.proc:
             return []
-        proc = psutil.Process(pid=self.proc.pid)
-        delay = 0
-        while len(proc.get_children()) == 0:
-            if delay > max_interval:
-                return []
-            time.sleep(self.interval)
-            delay += self.interval
-        return proc.get_children()
+        try:
+            proc = psutil.Process(pid=self.proc.pid)
+            delay = 0
+            while len(proc.get_children()) == 0:
+                if delay > max_interval:
+                    return []
+                time.sleep(self.interval)
+                delay += self.interval
+            return [p.pid for p in proc.get_children()]
+        except:
+            pass
+        return []
 
     @property
     def pid(self):
         return self.proc.pid if self.proc is not None else None
 
-    def kill(self):
+    def kill(self, children=False):
+        if children:
+            for child in self.getChildren():
+                try:
+                    os.kill(child, 9)
+                except:
+                    pass
         if self.proc:
             try:
                 self.proc.kill()
             except:
-                pass
+                pass          
         self.proc = None
 
     def isAlive(self, timeout=3):
