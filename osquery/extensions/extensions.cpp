@@ -64,12 +64,11 @@ CLI_FLAG(string,
 
 /// Alias the extensions_socket (used by core) to an alternate name reserved
 /// for extension binaries
-EXTENSION_FLAG_ALIAS(std::string, socket, extensions_socket);
+EXTENSION_FLAG_ALIAS(socket, extensions_socket);
 
 /// An extension manager may not be immediately available.
-EXTENSION_FLAG_ALIAS(std::string, timeout, extensions_timeout);
-EXTENSION_FLAG_ALIAS(std::string, interval, extensions_interval);
-
+EXTENSION_FLAG_ALIAS(timeout, extensions_timeout);
+EXTENSION_FLAG_ALIAS(interval, extensions_interval);
 void ExtensionWatcher::enter() {
   // Watch the manager, if the socket is removed then the extension will die.
   while (true) {
