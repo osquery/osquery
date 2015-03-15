@@ -9,6 +9,7 @@
 
 set -e
 
+CFLAGS="-fPIE -fPIC -O2 -DNDEBUG"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="$SCRIPT_DIR/../build"
 WORKING_DIR="$SCRIPT_DIR/../.sources"
@@ -56,7 +57,7 @@ function install_thrift() {
     fi
     pushd thrift-0.9.1
     ./bootstrap.sh
-    ./configure --with-cpp=yes --with-ruby=no --with-go=no --with-erlang=no --with-java=no --with-python=no
+    ./configure CFLAGS="$CFLAGS" --with-cpp=yes --with-ruby=no --with-go=no --with-erlang=no --with-java=no --with-python=no
     make
     sudo make install
     popd
@@ -82,7 +83,7 @@ function install_rocksdb() {
           CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
         fi
         pushd rocksdb-rocksdb-3.5
-        make static_lib CFLAGS="$CLANG_INCLUDE"
+        make static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
 	      popd
       fi
       sudo cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
@@ -136,7 +137,7 @@ function install_gflags() {
       sudo ln -s `which make` /usr/local/bin/gmake
     fi
     pushd gflags-2.1.1
-    cmake -DCMAKE_CXX_FLAGS=-fPIC -DGFLAGS_NAMESPACE:STRING=google .
+    cmake -DCMAKE_CXX_FLAGS="$CFLAGS" -DGFLAGS_NAMESPACE:STRING=google .
     make
     sudo make install
     popd
