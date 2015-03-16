@@ -1,0 +1,8 @@
+table_name("os_version")
+description("A single row containing the operating system version.")
+schema([
+  Column("major", INTEGER),
+  Column("minor", INTEGER),
+  Column("patch", INTEGER),
+])
+implementation("system/os_version@genOSVersion")
