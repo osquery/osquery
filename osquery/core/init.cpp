@@ -8,10 +8,12 @@
  *
  */
 
+#include <pwd.h>
 #include <syslog.h>
 #include <time.h>
 
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem.hpp>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
@@ -111,6 +113,28 @@ Initializer::Initializer(int argc, char* argv[], ToolType tool)
 #ifdef OSQUERY_DEFAULT_LOGGER_PLUGIN
   FLAGS_logger_plugin = STR(OSQUERY_DEFAULT_LOGGER_PLUGIN);
 #endif
+
+  if (tool == OSQUERY_TOOL_SHELL) {
+    // The shell is transient, rewrite config-loaded paths.
+    osquery::FLAGS_disable_logging = true;
+
+    // Get the caller's home dir for temporary storage/state management.
+    auto user = getpwuid(getuid());
+    std::string homedir;
+    if (getenv("HOME") != nullptr) {
+      homedir = std::string(getenv("HOME")) + "/.osquery";
+    } else if (user != nullptr || user->pw_dir != nullptr) {
+      homedir = std::string(user->pw_dir) + "/.osquery";
+    } else {
+      homedir = "/tmp/osquery";
+    }
+
+    if (osquery::pathExists(homedir).ok() ||
+        boost::filesystem::create_directory(homedir)) {
+      osquery::FLAGS_database_path = homedir + "/shell.db";
+      osquery::FLAGS_extensions_socket = homedir + "/shell.em";
+    }
+  }
 
   // Set version string from CMake build
   GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);

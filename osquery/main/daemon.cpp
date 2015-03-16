@@ -13,8 +13,6 @@
 #include <osquery/core.h>
 #include <osquery/scheduler.h>
 
-#include "osquery/core/watcher.h"
-
 const std::string kWatcherWorkerName = "osqueryd: worker";
 
 int main(int argc, char* argv[]) {
