@@ -128,13 +128,16 @@ Status remove(const boost::filesystem::path& path) {
 Status listFilesInDirectory(const boost::filesystem::path& path,
                             std::vector<std::string>& results,
                             bool ignore_error) {
-
+  try {
     if (!boost::filesystem::exists(path)) {
       return Status(1, "Directory not found: " + path.string());
     }
 
     if (!boost::filesystem::is_directory(path)) {
       return Status(1, "Supplied path is not a directory: " + path.string());
+    }
+  } catch (const boost::filesystem::filesystem_error& e) {
+    return Status(1, e.what());
     }
 
     boost::filesystem::directory_iterator begin_iter(path);
@@ -157,6 +160,7 @@ Status listFilesInDirectory(const boost::filesystem::path& path,
 Status listDirectoriesInDirectory(const boost::filesystem::path& path,
                                   std::vector<std::string>& results,
                                   bool ignore_error) {
+  try {
     if (!boost::filesystem::exists(path)) {
       return Status(1, "Directory not found");
     }
@@ -169,6 +173,9 @@ Status listDirectoriesInDirectory(const boost::filesystem::path& path,
     stat = isDirectory(path);
     if (!stat.ok()) {
       return stat;
+    }
+  } catch (const boost::filesystem::filesystem_error& e) {
+    return Status(1, e.what());
     }
 
     boost::filesystem::directory_iterator begin_iter(path);
