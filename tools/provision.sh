@@ -487,6 +487,7 @@ function main() {
     package readline-devel
     package procps-devel
     package rpm-devel
+    package rpm-build
     package libblkid-devel
 
     install_cmake
