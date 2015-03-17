@@ -46,7 +46,7 @@ function usage() {
   This will generate an Linux package with:
   (1) An example config /var/osquery/osquery.example.config
   (2) An init.d script /etc/init.d/osqueryd
-  (3) The osquery toolset /usr/bin/osquery*"
+  (3) The osquery toolset /usr/local/bin/osquery*"
 }
 
 function parse_args() {
