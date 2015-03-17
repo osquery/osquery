@@ -9,6 +9,6 @@ schema([
     Column("device", TEXT, "MA:MI Major/minor device ID"),
     Column("inode", INTEGER, "Mapped path inode, 0 means uninitialized (BSS)"),
     Column("path", TEXT, "Path to mapped file or mapped type"),
-    Column("is_pseudo", INTEGER, "1 if path is a pseudo path, else 0"),
+    Column("pseudo", INTEGER, "1 if path is a pseudo path, else 0"),
 ])
 implementation("processes@genProcessMemoryMap")

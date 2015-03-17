@@ -128,7 +128,7 @@ void genProcessMap(const proc_t* proc_info, QueryData& results) {
     }
 
     // BSS with name in pathname.
-    r["is_pseudo"] = (fields[4] == "0" && r["path"].size() > 0) ? "1" : "0";
+    r["pseudo"] = (fields[4] == "0" && r["path"].size() > 0) ? "1" : "0";
     results.push_back(r);
   }
 }
