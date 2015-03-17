@@ -286,9 +286,11 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         extension.kill()
 
     def test_6_extensions_autoload(self):
+        loader = test_base.Autoloader("/tmp/osqueryd-temp-ext.load",
+            [test_base.ARGS.build + "/osquery/example_extension.ext"])
         daemon = self._run_daemon({
             "disable_watchdog": True,
-            "extensions_autoload": test_base.ARGS.build + "/osquery",
+            "extensions_autoload": loader.path,
         })
         self.assertTrue(daemon.isAlive())
 
@@ -306,8 +308,10 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill(True)
 
     def test_7_extensions_autoload_watchdog(self):
+        loader = test_base.Autoloader("/tmp/osqueryd-temp-ext.load",
+            [test_base.ARGS.build + "/osquery/example_extension.ext"])
         daemon = self._run_daemon({
-            "extensions_autoload": test_base.ARGS.build + "/osquery",
+            "extensions_autoload": loader.path,
         })
         self.assertTrue(daemon.isAlive())
 
@@ -325,9 +329,11 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill(True)
 
     def test_8_external_config(self):
+        loader = test_base.Autoloader("/tmp/osqueryd-temp-ext.load",
+            [test_base.ARGS.build + "/osquery/example_extension.ext"])
         daemon = self._run_daemon({
             "disable_watchdog": True,
-            "extensions_autoload": test_base.ARGS.build + "/osquery",
+            "extensions_autoload": loader.path,
             "config_plugin": "example",
         })
         self.assertTrue(daemon.isAlive())

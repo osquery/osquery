@@ -280,6 +280,19 @@ class ProcessGenerator(object):
                     pass
 
 
+class Autoloader(object):
+    '''Helper class to write a module or extension autoload file.'''
+    def __init__(self, path, autoloads=[]):
+        self.path = path
+        with open(path, "w") as fh:
+            fh.write("\n".join(autoloads))
+
+    def __del__(self):
+        try:
+            os.unlink(self.path)
+        except:
+            pass
+
 class Tester(object):
     def __init__(self):
         global ARGS, CONFIG

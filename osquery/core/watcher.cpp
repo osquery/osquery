@@ -133,28 +133,20 @@ void Watcher::reset(pid_t child) {
 
 void Watcher::addExtensionPath(const std::string& path) {
   // Resolve acceptable extension binaries from autoload paths.
-  if (!isDirectory(path).ok()) {
-    VLOG(1) << "Cannot autoload extensions from non-directory: " << path;
+  if (isDirectory(path).ok()) {
+    VLOG(1) << "Cannot autoload extension from directory: " << path;
     return;
   }
 
-  // Get all potentially-safe/appropriate extension binaries in path.
-  std::vector<std::string> extensions;
-  if (!listFilesInDirectory(path, extensions).ok()) {
-    VLOG(1) << "Cannot autoload extensions from: " << path;
-    return;
-  }
-
-  for (const auto& extension : extensions) {
-    // Only autoload extensions which were safe at the time of discovery.
-    // If the extension binary later becomes unsafe (permissions change) then
-    // it will fail to reload if a reload is ever needed.
-    if (safePermissions(path, extension, true)) {
-      if (fs::path(extension).extension().string() == kExtensionExtension) {
-        setExtension(extension, 0);
-        resetExtensionCounters(extension, 0);
-        VLOG(1) << "Found autoloadable extension: " << extension;
-      }
+  // Only autoload extensions which were safe at the time of discovery.
+  // If the extension binary later becomes unsafe (permissions change) then
+  // it will fail to reload if a reload is ever needed.
+  fs::path extension(path);
+  if (safePermissions(extension.parent_path().string(), path, true)) {
+    if (extension.extension().string() == kExtensionExtension) {
+      setExtension(extension.string(), 0);
+      resetExtensionCounters(extension.string(), 0);
+      VLOG(1) << "Found autoloadable extension: " << extension.string();
     }
   }
 }

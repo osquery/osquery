@@ -95,7 +95,7 @@ void loadExtensions();
  *
  * @param paths A colon-delimited path variable, e.g: '/path1:/path2'.
  */
-Status loadExtensions(const std::string& paths);
+Status loadExtensions(const std::string& loadfile);
 
 /**
  * @brief Request the extensions API to autoload any appropriate modules.
@@ -110,10 +110,10 @@ void loadModules();
  *
  * @param paths A colon-delimited path variable, e.g: '/path1:/path2'.
  */
-Status loadModules(const std::string& paths);
+Status loadModules(const std::string& loadfile);
 
 /// Load all modules in a direcotry.
-Status loadModulesFromDirectory(const std::string& dir);
+Status loadModuleFile(const std::string& path);
 
 /**
  * @brief Call a Plugin exposed by an Extension Registry route.
