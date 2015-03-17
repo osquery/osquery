@@ -31,11 +31,9 @@ class YARAEventSubscriber : public EventSubscriber<FSEventsEventPublisher> {
   DECLARE_SUBSCRIBER("yara");
 
  public:
-  void init();
+  Status init();
 
  private:
-  // XXX: Is there a better way to say "I'm not ready to receive events"?
-  bool ready = false;
   std::map<std::string, YR_RULES *> rules;
 
   /**
@@ -58,13 +56,13 @@ class YARAEventSubscriber : public EventSubscriber<FSEventsEventPublisher> {
  */
 REGISTER(YARAEventSubscriber, "event_subscriber", "yara");
 
-void YARAEventSubscriber::init() {
+Status YARAEventSubscriber::init() {
   Status status;
 
   int result = yr_initialize();
   if (result != ERROR_SUCCESS) {
     LOG(WARNING) << "Unable to initalize YARA (" << result << ").";
-    return;
+    return Status(1, "Unable to initalize YARA.");
   }
 
   const auto& yara_map = Config::getYARAFiles();
@@ -89,20 +87,15 @@ void YARAEventSubscriber::init() {
     status = handleRuleFiles(element.first, element.second, &rules);
     if (!status.ok()) {
       VLOG(1) << "Error: " << status.getMessage();
-      return; // XXX status;
+      return status;
     }
   }
 
-  ready = true;
+  return Status(0, "OK");
 }
 
 Status YARAEventSubscriber::Callback(const FSEventsEventContextRef& ec,
                                      const void* user_data) {
-  // Don't scan if there was an error with the init.
-  if (ready == false) {
-    return Status(0, "OK");
-  }
-
   Row r;
   r["action"] = ec->action;
   r["time"] = ec->time_string;

@@ -133,6 +133,9 @@ extern const std::vector<size_t> kEventTimeLists;
  */
 struct Subscription {
  public:
+  // EventSubscriber name.
+  std::string subscriber_name;
+
   /// An EventPublisher%-specific SubscriptionContext.
   SubscriptionContextRef context;
   /// An EventSubscription member EventCallback method.
@@ -142,10 +145,12 @@ struct Subscription {
 
   static SubscriptionRef create() { return std::make_shared<Subscription>(); }
 
-  static SubscriptionRef create(const SubscriptionContextRef& mc,
+  static SubscriptionRef create(const EventSubscriberID name_id,
+                                const SubscriptionContextRef& mc,
                                 EventCallback ec = 0,
                                 void* user_data = nullptr) {
     auto subscription = std::make_shared<Subscription>();
+    subscription->subscriber_name = name_id;
     subscription->context = mc;
     subscription->callback = ec;
     subscription->user_data = user_data;
@@ -608,6 +613,7 @@ class EventFactory {
    * @return Was the SubscriptionContext appropriate for the EventPublisher.
    */
   static Status addSubscription(EventPublisherID& type_id,
+                                const EventSubscriberID name_id,
                                 const SubscriptionContextRef& mc,
                                 EventCallback cb = 0,
                                 void* user_data = nullptr);
@@ -699,6 +705,20 @@ class EventFactory {
 };
 
 /**
+ * EventSubscribers can be in various states. They are:
+ *
+ * Uninitialized: The default state, uninitialized.
+ * Running: Subscriber is ready for events.
+ * Paused: Subscriber was successfully initialized but not currently accepting
+ *         events.
+ * Failed: Subscriber failed to initialize or is otherwise offline.
+ */
+#define EVENT_SUBSCRIBER_UNINITIALIZED 0
+#define EVENT_SUBSCRIBER_RUNNING       1
+#define EVENT_SUBSCRIBER_PAUSED        2
+#define EVENT_SUBSCRIBER_FAILED        3
+
+/**
  * @brief An interface binding Subscriptions, event response, and table
  *generation.
  *
@@ -716,6 +736,7 @@ class EventSubscriber : public EventSubscriberPlugin {
  protected:
   typedef typename PUB::SCRef SCRef;
   typedef typename PUB::ECRef ECRef;
+  int state_ = EVENT_SUBSCRIBER_UNINITIALIZED;
 
  public:
   /**
@@ -724,7 +745,7 @@ class EventSubscriber : public EventSubscriberPlugin {
    * When the EventSubscriber%'s `init` method is called you are assured the
    * EventPublisher has `setUp` and is ready to subscription for events.
    */
-  virtual void init() {}
+  virtual Status init() { return Status(0, "OK"); }
 
   /// Helper function to call the publisher's templated subscription generator.
   SCRef createSubscriptionContext() const {
@@ -751,11 +772,14 @@ class EventSubscriber : public EventSubscriberPlugin {
     // EventSubscriber and a single parameter placeholder (the EventContext).
     auto cb = std::bind(base_entry, self, _1, _2);
     // Add a subscription using the callable and SubscriptionContext.
-    EventFactory::addSubscription(type(), sc, cb, user_data);
+    EventFactory::addSubscription(type(), self->name(), sc, cb, user_data);
   }
 
   /// Helper EventPublisher string type accessor.
   EventPublisherID type() const { return BaseEventPublisher::getType<PUB>(); }
+
+  int state() const { return state_; }
+  void state(int state) { state_ = state; }
 
  private:
   FRIEND_TEST(EventsTests, test_event_sub);

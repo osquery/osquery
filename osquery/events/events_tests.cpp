@@ -232,7 +232,7 @@ TEST_F(EventsTests, test_custom_subscription) {
   sc->smallest = -1;
 
   // Step 3, add the subscription to the event type
-  status = EventFactory::addSubscription("TestPublisher", sc);
+  status = EventFactory::addSubscription("TestPublisher", "TestSubscriber", sc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(pub->numSubscriptions(), 1);
 

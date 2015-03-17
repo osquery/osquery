@@ -104,7 +104,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_missing_path) {
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = "/this/path/is/fake";
 
-  auto subscription = Subscription::create(mc);
+  auto subscription = Subscription::create("TestSubscriber", mc);
   auto status = EventFactory::addSubscription("fsevents", subscription);
   EXPECT_TRUE(status.ok());
   EventFactory::deregisterEventPublisher("fsevents");
@@ -118,7 +118,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = "/";
 
-  auto subscription = Subscription::create(mc);
+  auto subscription = Subscription::create("TestSubscriber", mc);
   auto status = EventFactory::addSubscription("fsevents", subscription);
   EXPECT_TRUE(status.ok());
 
@@ -129,7 +129,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   // A duplicate subscription will work.
   auto mc_dup = std::make_shared<FSEventsSubscriptionContext>();
   mc_dup->path = "/";
-  auto subscription_dup = Subscription::create(mc_dup);
+  auto subscription_dup = Subscription::create("TestSubscriber", mc_dup);
   status = EventFactory::addSubscription("fsevents", subscription_dup);
   EXPECT_TRUE(status.ok());
 
@@ -147,7 +147,7 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   // Create a subscriptioning context
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = kRealTestPath;
-  EventFactory::addSubscription("fsevents", Subscription::create(mc));
+  EventFactory::addSubscription("fsevents", Subscription::create("TestSubscriber", mc));
 
   // Create an event loop thread (similar to main)
   boost::thread temp_thread(EventFactory::run, "fsevents");
@@ -168,7 +168,7 @@ class TestFSEventsEventSubscriber
   DECLARE_SUBSCRIBER("TestFSEventsEventSubscriber");
 
  public:
-  void init() { callback_count_ = 0; }
+  Status init() { callback_count_ = 0; return Status(0, "OK"); }
   Status SimpleCallback(const FSEventsEventContextRef& ec,
                         const void* user_data) {
     callback_count_ += 1;
@@ -216,7 +216,7 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
 
   // Simulate registering an event subscriber.
   auto sub = std::make_shared<TestFSEventsEventSubscriber>();
-  sub->init();
+  auto status = sub->init();
 
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(0);
@@ -237,7 +237,7 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
 
   // Simulate registering an event subscriber.
   auto sub = std::make_shared<TestFSEventsEventSubscriber>();
-  sub->init();
+  auto status = sub->init();
 
   auto sc = sub->GetSubscription(0);
   sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc, nullptr);
