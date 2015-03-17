@@ -128,6 +128,8 @@ Status remove(const boost::filesystem::path& path) {
 Status listFilesInDirectory(const boost::filesystem::path& path,
                             std::vector<std::string>& results,
                             bool ignore_error) {
+  boost::filesystem::directory_iterator begin_iter;
+
   try {
     if (!boost::filesystem::exists(path)) {
       return Status(1, "Directory not found: " + path.string());
@@ -136,30 +138,31 @@ Status listFilesInDirectory(const boost::filesystem::path& path,
     if (!boost::filesystem::is_directory(path)) {
       return Status(1, "Supplied path is not a directory: " + path.string());
     }
+    begin_iter = boost::filesystem::directory_iterator(path);
+
   } catch (const boost::filesystem::filesystem_error& e) {
     return Status(1, e.what());
-    }
+  }
 
-    boost::filesystem::directory_iterator begin_iter(path);
-    boost::filesystem::directory_iterator end_iter;
-    for (; begin_iter != end_iter; begin_iter++) {
-      try {
-        if (boost::filesystem::is_regular_file(begin_iter->path())) {
-          results.push_back(begin_iter->path().string());
-        }
-      } catch (const boost::filesystem::filesystem_error& e) {
-        if (ignore_error == 0) {
-          return Status(1, e.what());
-        }
+  boost::filesystem::directory_iterator end_iter;
+  for (; begin_iter != end_iter; begin_iter++) {
+    try {
+      if (boost::filesystem::is_regular_file(begin_iter->path())) {
+        results.push_back(begin_iter->path().string());
+      }
+    } catch (const boost::filesystem::filesystem_error& e) {
+      if (ignore_error == 0) {
+        return Status(1, e.what());
       }
     }
-
-    return Status(0, "OK");
+  }
+  return Status(0, "OK");
 }
 
 Status listDirectoriesInDirectory(const boost::filesystem::path& path,
                                   std::vector<std::string>& results,
                                   bool ignore_error) {
+  boost::filesystem::directory_iterator begin_iter;
   try {
     if (!boost::filesystem::exists(path)) {
       return Status(1, "Directory not found");
@@ -174,25 +177,24 @@ Status listDirectoriesInDirectory(const boost::filesystem::path& path,
     if (!stat.ok()) {
       return stat;
     }
+    begin_iter = boost::filesystem::directory_iterator(path);
   } catch (const boost::filesystem::filesystem_error& e) {
     return Status(1, e.what());
-    }
+  }
 
-    boost::filesystem::directory_iterator begin_iter(path);
-    boost::filesystem::directory_iterator end_iter;
-    for (; begin_iter != end_iter; begin_iter++) {
-      try {
-        if (boost::filesystem::is_directory(begin_iter->path())) {
-          results.push_back(begin_iter->path().string());
-        }
-      } catch (const boost::filesystem::filesystem_error& e) {
-        if (ignore_error == 0) {
-          return Status(1, e.what());
-        }
+  boost::filesystem::directory_iterator end_iter;
+  for (; begin_iter != end_iter; begin_iter++) {
+    try {
+      if (boost::filesystem::is_directory(begin_iter->path())) {
+        results.push_back(begin_iter->path().string());
+      }
+    } catch (const boost::filesystem::filesystem_error& e) {
+      if (ignore_error == 0) {
+        return Status(1, e.what());
       }
     }
-
-    return Status(0, "OK");
+  }
+  return Status(0, "OK");
 }
 
 /**
