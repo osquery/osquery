@@ -132,7 +132,7 @@ class Watcher : private boost::noncopyable {
   static void reset(pid_t child);
 
   /// Return the number of autoloadable extensions.
-  static size_t countExtensions() { return instance().extensions_.size(); }
+  static bool hasManagedExtensions();
 
  private:
   /// Do not request the lock until extensions are used.

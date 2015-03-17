@@ -191,7 +191,7 @@ void Initializer::initWatcher() {
 
   // Add a watcher service thread to start/watch an optional worker and set
   // of optional extensions in the autoload paths.
-  if (Watcher::countExtensions() > 0 || !FLAGS_disable_watchdog) {
+  if (Watcher::hasManagedExtensions() || !FLAGS_disable_watchdog) {
     Dispatcher::getInstance().addService(
         std::make_shared<WatcherRunner>(argc_, argv_, !FLAGS_disable_watchdog));
   }
@@ -231,7 +231,7 @@ void Initializer::initWorkerWatcher(const std::string& name) {
   }
 }
 
-bool Initializer::isWorker() { return (getenv("OSQUERYD_WORKER") != nullptr); }
+bool Initializer::isWorker() { return (getenv("OSQUERY_WORKER") != nullptr); }
 
 void Initializer::initConfigLogger() {
   // Use a delay, meaning the amount of milliseconds waited for extensions.
@@ -241,7 +241,7 @@ void Initializer::initConfigLogger() {
   while (!Registry::setActive("config", FLAGS_config_plugin)) {
     // If there is at least 1 autoloaded extension, it may broadcast a route
     // to the active config plugin.
-    if (Watcher::countExtensions() == 0 || delay > timeout * 1000) {
+    if (!Watcher::hasManagedExtensions() || delay > timeout * 1000) {
       LOG(ERROR) << "Config plugin not found: " << FLAGS_config_plugin;
       ::exit(EXIT_CATASTROPHIC);
     }
@@ -251,7 +251,7 @@ void Initializer::initConfigLogger() {
 
   // Try the same wait for a logger pluing too.
   while (!Registry::setActive("logger", FLAGS_logger_plugin)) {
-    if (Watcher::countExtensions() == 0 || delay > timeout * 1000) {
+    if (!Watcher::hasManagedExtensions() || delay > timeout * 1000) {
       LOG(ERROR) << "Logger plugin not found: " << FLAGS_logger_plugin;
       ::exit(EXIT_CATASTROPHIC);
     }

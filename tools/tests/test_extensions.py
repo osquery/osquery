@@ -332,7 +332,6 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         loader = test_base.Autoloader("/tmp/osqueryd-temp-ext.load",
             [test_base.ARGS.build + "/osquery/example_extension.ext"])
         daemon = self._run_daemon({
-            "disable_watchdog": True,
             "extensions_autoload": loader.path,
             "config_plugin": "example",
         })
