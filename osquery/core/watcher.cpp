@@ -151,10 +151,22 @@ void Watcher::addExtensionPath(const std::string& path) {
   }
 }
 
+bool Watcher::hasManagedExtensions() {
+  if (instance().extensions_.size() > 0) {
+    return true;
+  }
+
+  // A watchdog process may hint to a worker the number of managed extensions.
+  // Setting this counter to 0 will prevent the worker from waiting for missing
+  // dependent config plugins. Otherwise, its existance, will cause a worker to
+  // wait for missing plugins to broadcast from managed extensions.
+  return (getenv("OSQUERY_EXTENSIONS") != nullptr);
+}
+
 bool WatcherRunner::ok() {
   interruptableSleep(getWorkerLimit(INTERVAL) * 1000);
   // Watcher is OK to run if a worker or at least one extension exists.
-  return (Watcher::getWorker() >= 0 || Watcher::countExtensions() > 0);
+  return (Watcher::getWorker() >= 0 || Watcher::hasManagedExtensions());
 }
 
 void WatcherRunner::enter() {
@@ -294,6 +306,12 @@ void WatcherRunner::createWorker() {
     ::exit(EXIT_FAILURE);
   }
 
+  // Set an environment signaling to potential plugin-dependent workers to wait
+  // for extensions to broadcast.
+  if (Watcher::hasManagedExtensions()) {
+    setenv("OSQUERY_EXTENSIONS", "true", 1);
+  }
+
   auto worker_pid = fork();
   if (worker_pid < 0) {
     // Unrecoverable error, cannot create a worker process.
@@ -301,7 +319,7 @@ void WatcherRunner::createWorker() {
     ::exit(EXIT_FAILURE);
   } else if (worker_pid == 0) {
     // This is the new worker process, no watching needed.
-    setenv("OSQUERYD_WORKER", std::to_string(getpid()).c_str(), 1);
+    setenv("OSQUERY_WORKER", std::to_string(getpid()).c_str(), 1);
     // Get the complete path of the osquery process binary.
     auto exec_path = fs::system_complete(fs::path(qd[0]["path"]));
     execve(exec_path.string().c_str(), argv_, environ);
