@@ -187,11 +187,7 @@ void Initializer::initDaemon() {
 
 void Initializer::initWatcher() {
   // The watcher takes a list of paths to autoload extensions from.
-  auto autoload_paths = osquery::split(FLAGS_extensions_autoload, ":");
-  for (auto& path : autoload_paths) {
-    boost::trim(path);
-    Watcher::addExtensionPath(path);
-  }
+  loadExtensions();
 
   // Add a watcher service thread to start/watch an optional worker and set
   // of optional extensions in the autoload paths.

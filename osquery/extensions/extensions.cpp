@@ -19,6 +19,7 @@
 #include <osquery/sql.h>
 
 #include "osquery/extensions/interface.h"
+#include "osquery/core/watcher.h"
 
 using namespace osquery::extensions;
 
@@ -44,8 +45,8 @@ CLI_FLAG(string,
 
 CLI_FLAG(string,
          extensions_autoload,
-         "/usr/lib/osquery/extensions",
-         "An optional search path for autoloaded & managed extensions")
+         "/etc/osquery/extensions.load",
+         "Optional path to a list of autoloaded & managed extensions")
 
 CLI_FLAG(string,
          extensions_timeout,
@@ -59,8 +60,8 @@ CLI_FLAG(string,
 
 CLI_FLAG(string,
          modules_autoload,
-         "/usr/lib/osquery/modules",
-         "Search path for autoloaded registry modules")
+         "/etc/osquery/modules.load",
+         "Optional path to a list of autoloaded registry modules")
 
 /// Alias the extensions_socket (used by core) to an alternate name reserved
 /// for extension binaries
@@ -137,43 +138,49 @@ void loadModules() {
   }
 }
 
-Status loadExtensions(const std::string& paths) {
-  // Not implemented: Autoloading extensions given a search path.
-  return Status(0, "OK");
-}
-
-Status loadModulesFromDirectory(const std::string& dir) {
-  std::vector<std::string> modules;
-  if (!listFilesInDirectory(dir, modules).ok()) {
-    return Status(1, "Cannot read files from " + dir);
-  }
-
-  for (const auto& module_path : modules) {
-    if (safePermissions(dir, module_path)) {
-      if (fs::path(module_path).extension().string() == kModuleExtension) {
-        // Silently allow module load failures to drop.
-        RegistryModuleLoader loader(module_path);
-        loader.init();
+Status loadExtensions(const std::string& loadfile) {
+  std::string autoload_paths;
+  if (readFile(loadfile, autoload_paths).ok()) {
+    for (auto& path : osquery::split(autoload_paths, "\n")) {
+      boost::trim(path);
+      if (path.size() > 0 && path[0] != '#' && path[0] != ';') {
+        Watcher::addExtensionPath(path);
       }
     }
+    return Status(0, "OK");
   }
-  return Status(0, "OK");
+  return Status(1, "Cannot read extensions autoload file");
 }
 
-Status loadModules(const std::string& paths) {
-  auto status = Status(0, "OK");
-
-  // Split the search path for modules using a ':' delimiter.
-  auto search_paths = osquery::split(paths, ":");
-  for (auto& path : search_paths) {
-    boost::trim(path);
-    auto path_status = loadModulesFromDirectory(path);
-    if (!path_status.ok()) {
-      status = path_status;
+Status loadModuleFile(const std::string& path) {
+  fs::path module(path);
+  if (safePermissions(module.parent_path().string(), path)) {
+    if (module.extension().string() == kModuleExtension) {
+      // Silently allow module load failures to drop.
+      RegistryModuleLoader loader(module.string());
+      loader.init();
+      return Status(0, "OK");
     }
   }
-  // Return an aggregate failure if any load fails (invalid search path).
-  return status;
+  return Status(1, "Module check failed");
+}
+
+Status loadModules(const std::string& loadfile) {
+  // Split the search path for modules using a ':' delimiter.
+  std::string autoload_paths;
+  if (readFile(loadfile, autoload_paths).ok()) {
+    auto status = Status(0, "OK");
+    for (auto& module_path : osquery::split(autoload_paths, "\n")) {
+      boost::trim(module_path);
+      auto path_status = loadModuleFile(module_path);
+      if (!path_status.ok()) {
+        status = path_status;
+      }
+    }
+    // Return an aggregate failure if any load fails (invalid search path).
+    return status;
+  }
+  return Status(1, "Cannot read modules autoload file");
 }
 
 Status extensionPathActive(const std::string& path, bool use_timeout = false) {
