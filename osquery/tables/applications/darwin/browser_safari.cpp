@@ -58,9 +58,9 @@ void genSafariPlugin(const std::string& path, QueryData& results) {
     }
   }
 
-  if (r.at("is_native").size() == 0) {
+  if (r.count("native") == 0 || r.at("native").size() == 0) {
     // The default case for native execution is false.
-    r["is_native"] = "0";
+    r["native"] = "0";
   }
 
   r["path"] = path;
