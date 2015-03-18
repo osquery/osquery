@@ -13,8 +13,6 @@
 #include <osquery/core.h>
 #include <osquery/scheduler.h>
 
-#include "osquery/core/watcher.h"
-
 const std::string kWatcherWorkerName = "osqueryd: worker";
 
 int main(int argc, char* argv[]) {
@@ -24,10 +22,9 @@ int main(int argc, char* argv[]) {
     runner.initDaemon();
   }
 
-  if (!osquery::FLAGS_disable_watchdog) {
-    // When a watcher is used, the current watcher will fork into a worker.
-    runner.initWorkerWatcher(kWatcherWorkerName);
-  }
+  // When a watchdog is used, the current daemon will fork/exec into a worker.
+  // In either case the watcher may start optionally loaded extensions.
+  runner.initWorkerWatcher(kWatcherWorkerName);
 
   // Start osquery work.
   runner.start();

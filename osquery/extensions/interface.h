@@ -91,6 +91,21 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
   void extensions(InternalExtensionList& _return);
 
   /**
+   * @brief Return a map of osquery options (Flags, bootstrap CLI flags).
+   *
+   * osquery options are set via command line flags or overridden by a config
+   * options dictionary. There are some CLI-only flags that should never
+   * be overridden. If a bootstrap flag is changed there is undefined behavior
+   * since bootstrap candidates are settings needed before a configuration
+   * plugin is setUp.
+   *
+   * Extensions may broadcast config or logger plugins that need a snapshot
+   * of the current options. The best example is the `config_plugin` bootstrap
+   * flag.
+   */
+  void options(InternalOptionList& _return);
+
+  /**
    * @brief Request a Route UUID and advertise a set of Registry routes.
    *
    * When an Extension starts it must call registerExtension using a well known
@@ -162,7 +177,9 @@ class ExtensionWatcher : public InternalRunnable {
  public:
   virtual ~ExtensionWatcher() {}
   ExtensionWatcher(const std::string& path, size_t interval, bool fatal)
-      : path_(path), interval_(interval), fatal_(fatal) {}
+      : path_(path), interval_(interval), fatal_(fatal) {
+    interval_ = (interval_ < 200) ? 200 : interval_;
+  }
 
  public:
   /// The Dispatcher thread entry point.

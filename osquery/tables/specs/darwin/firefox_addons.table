@@ -1,0 +1,23 @@
+table_name("firefox_addons")
+description("Firefox browser extensions, webapps, and addons.")
+schema([
+    Column("name", TEXT, "Addon display name"),
+    Column("identifier", TEXT, "Addon identifier"),
+    Column("creator", TEXT< "Addon-supported creator string"),
+    Column("type", TEXT, "Extension, addon, webapp"),
+    Column("version", TEXT, "Addon-supplied version string"),
+    Column("description", TEXT, "Addon-supplied description string"),
+    Column("source_url", TEXT, "URL that installed the addon"),
+    Column("visible", INTEGER, "1 if the addon is shown in browser else 0"),
+    Column("active", INTEGER, "1 if the addon is active else 0"),
+    Column("disabled", INTEGER,
+      "1 if the addon is application-disabled else 0"),
+    Column("autoupdate", INTEGER,
+      "1 if the addon applies background updates else 0"),
+    Column("native", INTEGER,
+      "1 if the addon includes binary components else 0"),
+    Column("location", TEXT, "Global, profile location"),
+    Column("path", TEXT, "Path to plugin bundle"),
+
+])
+implementation("applications/browser_firefox@genFirefoxAddons")

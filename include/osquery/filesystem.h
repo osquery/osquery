@@ -95,7 +95,8 @@ Status pathExists(const boost::filesystem::path& path);
  * of the operation.
  */
 Status listFilesInDirectory(const boost::filesystem::path& path,
-                            std::vector<std::string>& results);
+                            std::vector<std::string>& results,
+                            bool ignore_error = 1);
 
 /**
  * @brief List all of the directories in a specific directory, non-recursively.
@@ -109,7 +110,8 @@ Status listFilesInDirectory(const boost::filesystem::path& path,
  * of the operation.
  */
 Status listDirectoriesInDirectory(const boost::filesystem::path& path,
-                                  std::vector<std::string>& results);
+                                  std::vector<std::string>& results,
+                                  bool ignore_error = 1);
 
 /**
  * @brief Given a wildcard filesystem patten, resolve all possible paths
@@ -196,10 +198,13 @@ std::set<boost::filesystem::path> getHomeDirectories();
  *
  * @param dir the directory to check /tmp mode
  * @param path a path to a file to check
+ * @param executable the file must also be executable
  *
  * @return true if the file is 'safe' else false
  */
-bool safePermissions(const std::string& dir, const std::string& path);
+bool safePermissions(const std::string& dir,
+                     const std::string& path,
+                     bool executable = false);
 
 /// Return bit-mask-style permissions.
 std::string lsperms(int mode);

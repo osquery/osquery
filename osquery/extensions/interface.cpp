@@ -36,6 +36,7 @@ void ExtensionHandler::call(ExtensionResponse& _return,
   PluginResponse response;
   PluginRequest plugin_request;
   for (const auto& request_item : request) {
+    // Create a PluginRequest from an ExtensionPluginRequest.
     plugin_request[request_item.first] = request_item.second;
   }
 
@@ -46,8 +47,23 @@ void ExtensionHandler::call(ExtensionResponse& _return,
 
   if (status.ok()) {
     for (const auto& response_item : response) {
+      // Translate a PluginResponse to an ExtensionPluginResponse.
       _return.response.push_back(response_item);
     }
+  }
+}
+
+void ExtensionManagerHandler::extensions(InternalExtensionList& _return) {
+  refresh();
+  _return = extensions_;
+}
+
+void ExtensionManagerHandler::options(InternalOptionList& _return) {
+  auto flags = Flag::flags();
+  for (const auto& flag : flags) {
+    _return[flag.first].value = flag.second.value;
+    _return[flag.first].default_value = flag.second.default_value;
+    _return[flag.first].type = flag.second.type;
   }
 }
 
@@ -142,11 +158,6 @@ void ExtensionManagerHandler::refresh() {
   for (const auto& uuid : removed_routes) {
     extensions_.erase(uuid);
   }
-}
-
-void ExtensionManagerHandler::extensions(InternalExtensionList& _return) {
-  refresh();
-  _return = extensions_;
 }
 
 bool ExtensionManagerHandler::exists(const std::string& name) {

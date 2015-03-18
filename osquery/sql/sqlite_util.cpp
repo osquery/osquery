@@ -153,7 +153,9 @@ int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
   QueryData* qData = (QueryData*)argument;
   Row r;
   for (int i = 0; i < argc; i++) {
-    r[column[i]] = argv[i];
+    if (column[i] != nullptr) {
+      r[column[i]] = (argv[i] != nullptr) ? argv[i] : "";
+    }
   }
   (*qData).push_back(r);
   return 0;

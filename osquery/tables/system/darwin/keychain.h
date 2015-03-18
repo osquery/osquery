@@ -21,13 +21,21 @@ namespace tables {
 
 typedef std::string (*PropGenerator)(const CFDataRef&);
 
+/// A helper data structure to apply a decode generator to property.
 struct CertProperty {
+  /// Property key.
   CFTypeRef type;
+  /// Generator function.
   PropGenerator generate;
 };
 
-extern const std::map<std::string, CertProperty> kCertificateProperties;
+extern const std::vector<std::string> kSystemKeychainPaths;
+extern const std::vector<std::string> kUserKeychainPaths;
 
+void genKeychains(const std::string& path, CFMutableArrayRef& keychains);
+std::string getKeychainPath(const SecKeychainItemRef& item);
+
+/// Certificate property parsing functions.
 std::string genKIDProperty(const CFDataRef& kid);
 std::string genCommonNameProperty(const CFDataRef& constraints);
 std::string genAlgProperty(const CFDataRef& alg);
@@ -39,6 +47,10 @@ std::string genSHA1ForCertificate(const SecCertificateRef& ca);
 CFDataRef CreatePropertyFromCertificate(const SecCertificateRef& cert,
                                         const CFTypeRef& oid);
 bool CertificateIsCA(const SecCertificateRef& cert);
+
+/// Generate a list of keychain items for a given item type.
+CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
+                               const CFTypeRef& item_type);
 
 // From SecCertificatePriv.h
 typedef uint32_t SecKeyUsage;

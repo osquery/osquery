@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -26,7 +27,7 @@ DECLARE_string(config_path);
 class ConfigTests : public testing::Test {
  public:
   ConfigTests() {
-    FLAGS_config_plugin = "filesystem";
+    Registry::setActive("config", "filesystem");
     FLAGS_config_path = kTestDataPath + "test.config";
   }
 
@@ -44,18 +45,21 @@ class ConfigTests : public testing::Test {
 class TestConfigPlugin : public ConfigPlugin {
  public:
   TestConfigPlugin() {}
-
-  std::pair<Status, std::string> genConfig() {
-    return std::make_pair(Status(0, "OK"), "foobar");
+  Status genConfig(std::map<std::string, std::string>& config) {
+    config["data"] = "foobar";
+    return Status(0, "OK");
+    ;
   }
 };
 
 TEST_F(ConfigTests, test_plugin) {
   Registry::add<TestConfigPlugin>("config", "test");
 
+  // Change the active config plugin.
+  EXPECT_TRUE(Registry::setActive("config", "test").ok());
+
   PluginResponse response;
-  auto status =
-      Registry::call("config", "test", {{"action", "genConfig"}}, response);
+  auto status = Registry::call("config", {{"action", "genConfig"}}, response);
 
   EXPECT_EQ(status.ok(), true);
   EXPECT_EQ(status.toString(), "OK");
@@ -63,8 +67,8 @@ TEST_F(ConfigTests, test_plugin) {
 }
 
 TEST_F(ConfigTests, test_queries_execute) {
-  auto queries = Config::getScheduledQueries();
-  EXPECT_EQ(queries.size(), 1);
+  auto queries = Config::getInstance().getScheduledQueries();
+  EXPECT_EQ(queries.size(), 2);
 }
 
 TEST_F(ConfigTests, test_threatfiles_execute) {

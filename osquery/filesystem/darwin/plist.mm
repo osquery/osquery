@@ -86,102 +86,89 @@ NSMutableDictionary* filterPlist(NSData* plist) {
   }
 }
 
-Status parsePlistContent(const std::string& fileContent, pt::ptree& tree) {
+Status parsePlistContent(const std::string& file_content, pt::ptree& tree) {
   @autoreleasepool {
-    int statusCode = 0;
-    std::string statusString = "OK";
+    NSData* plist_content =
+        [NSData dataWithBytes:file_content.c_str() length:file_content.size()];
 
-    std::stringstream ss;
-    std::string jsonStringCxx;
-    NSString* jsonStringObjc;
-    NSData* jsonDataObjc;
-
-    NSData* plistContent =
-        [NSData dataWithBytes:fileContent.c_str() length:fileContent.size()];
-
+    // Read file content into a data object, containing potential plist data.
     NSError* error = nil;
-    NSMutableDictionary* plist;
-    NSPropertyListFormat plistFormat;
-    id plistData = [NSPropertyListSerialization
-        propertyListWithData:plistContent
+    NSPropertyListFormat plist_format;
+    id plist_data = [NSPropertyListSerialization
+        propertyListWithData:plist_content
                      options:NSPropertyListImmutable
-                      format:&plistFormat
+                      format:&plist_format
                        error:&error];
-
-    if (plistData == nil) {
-      std::string errorMessage([[error localizedFailureReason] UTF8String]);
-      LOG(ERROR) << errorMessage;
-      statusCode = 1;
-      statusString = errorMessage;
-      goto cleanup;
-    } else {
-      switch (plistFormat) {
-      case NSPropertyListOpenStepFormat:
-        VLOG(1) << "plist was in openstep format";
-        break;
-      case NSPropertyListXMLFormat_v1_0:
-        VLOG(1) << "plist was in xml format";
-        break;
-      case NSPropertyListBinaryFormat_v1_0:
-        VLOG(1) << "plist was in binary format";
-        break;
-      default:
-        VLOG(1) << "plist was in unknown format";
-        break;
-      }
+    if (plist_data == nil) {
+      std::string error_message([[error localizedFailureReason] UTF8String]);
+      LOG(ERROR) << error_message;
+      return Status(1, error_message);
     }
 
+    // Print a helpful verbose message based on the plist data's format.
+    switch (plist_format) {
+    case NSPropertyListOpenStepFormat:
+      VLOG(1) << "plist was in openstep format";
+      break;
+    case NSPropertyListXMLFormat_v1_0:
+      VLOG(1) << "plist was in xml format";
+      break;
+    case NSPropertyListBinaryFormat_v1_0:
+      VLOG(1) << "plist was in binary format";
+      break;
+    default:
+      VLOG(1) << "plist was in unknown format";
+      break;
+    }
+
+    // Parse the plist data into a core foundation dictionary-literal.
+    NSMutableDictionary* plist;
     try {
-      plist = filterPlist(plistData);
+      plist = filterPlist(plist_data);
     } catch (const std::exception& e) {
-      LOG(ERROR)
-          << "An exception occurred while filtering the plist: " << e.what();
-      statusCode = 1;
-      statusString = e.what();
-      goto cleanup;
+      LOG(ERROR) << "Exception occurred while filtering plist: " << e.what();
+      return Status(1, e.what());
     }
 
+    // Convert the dictionary type into a JSON literal.
+    NSData* json_data;
     if ([NSJSONSerialization isValidJSONObject:plist]) {
-      jsonDataObjc =
+      json_data =
           [NSJSONSerialization dataWithJSONObject:plist options:0 error:&error];
     } else {
-      statusCode = 1;
-      statusString = "Valid JSON was not deserialized";
-      goto cleanup;
+      return Status(1, "Valid JSON was not deserialized");
     }
-    if (jsonDataObjc == nil) {
-      std::string errorMessage([[error localizedFailureReason] UTF8String]);
-      LOG(ERROR) << errorMessage;
-      statusCode = 1;
-      statusString = errorMessage;
-      goto cleanup;
+    if (json_data == nil) {
+      std::string error_message([[error localizedFailureReason] UTF8String]);
+      LOG(ERROR) << error_message;
+      return Status(1, error_message);
     }
 
-    jsonStringObjc = [[NSString alloc] initWithBytes:[jsonDataObjc bytes]
-                                              length:[jsonDataObjc length]
-                                            encoding:NSUTF8StringEncoding];
-    jsonStringCxx = std::string([jsonStringObjc UTF8String]);
-    ss << jsonStringCxx;
+    // Convert the JSON literal into a standard string.
+    std::string json_string =
+        [[[NSString alloc] initWithBytes:[json_data bytes]
+                                  length:[json_data length]
+                                encoding:NSUTF8StringEncoding] UTF8String];
+
+    // Finally, parse the JSON blob into a property tree literal.
     try {
-      pt::read_json(ss, tree);
-    } catch (pt::json_parser::json_parser_error& e) {
+      std::stringstream json_stream;
+      json_stream << json_string;
+      pt::read_json(json_stream, tree);
+    } catch (const pt::json_parser::json_parser_error& e) {
       LOG(ERROR) << "Error reading JSON: " << e.what();
-      statusCode = 1;
-      statusString = e.what();
-      goto cleanup;
+      return Status(1, e.what());
     }
-
-  cleanup:
-    return Status(statusCode, statusString);
+    return Status(0, "OK");
   }
 }
 
 Status parsePlist(const boost::filesystem::path& path, pt::ptree& tree) {
-  std::string fileContent;
-  Status s = readFile(path, fileContent);
+  std::string file_content;
+  Status s = readFile(path, file_content);
   if (!s.ok()) {
     return s;
   }
-  return parsePlistContent(fileContent, tree);
+  return parsePlistContent(file_content, tree);
 }
 }

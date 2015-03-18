@@ -8,8 +8,12 @@
  *
  */
 
+#include <pwd.h>
 #include <syslog.h>
 #include <time.h>
+
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/filesystem.hpp>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
@@ -110,6 +114,28 @@ Initializer::Initializer(int argc, char* argv[], ToolType tool)
   FLAGS_logger_plugin = STR(OSQUERY_DEFAULT_LOGGER_PLUGIN);
 #endif
 
+  if (tool == OSQUERY_TOOL_SHELL) {
+    // The shell is transient, rewrite config-loaded paths.
+    osquery::FLAGS_disable_logging = true;
+
+    // Get the caller's home dir for temporary storage/state management.
+    auto user = getpwuid(getuid());
+    std::string homedir;
+    if (getenv("HOME") != nullptr) {
+      homedir = std::string(getenv("HOME")) + "/.osquery";
+    } else if (user != nullptr || user->pw_dir != nullptr) {
+      homedir = std::string(user->pw_dir) + "/.osquery";
+    } else {
+      homedir = "/tmp/osquery";
+    }
+
+    if (osquery::pathExists(homedir).ok() ||
+        boost::filesystem::create_directory(homedir)) {
+      osquery::FLAGS_database_path = homedir + "/shell.db";
+      osquery::FLAGS_extensions_socket = homedir + "/shell.em";
+    }
+  }
+
   // Set version string from CMake build
   GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);
 
@@ -123,7 +149,12 @@ Initializer::Initializer(int argc, char* argv[], ToolType tool)
 
   // Initialize the status and results logger.
   initStatusLogger(binary_);
-  VLOG(1) << "osquery initialized [version=" << OSQUERY_VERSION << "]";
+  if (tool != OSQUERY_EXTENSION) {
+    VLOG(1) << "osquery initialized [version=" << OSQUERY_VERSION << "]";
+  } else {
+    VLOG(1) << "osquery extension initialized [sdk=" << OSQUERY_SDK_VERSION
+            << "]";
+  }
 }
 
 void Initializer::initDaemon() {
@@ -154,29 +185,80 @@ void Initializer::initDaemon() {
   }
 }
 
-void Initializer::initWorkerWatcher(const std::string& name) {
-  // The watcher will forever monitor and spawn additional workers.
-  Watcher watcher(argc_, argv_);
-  watcher.setWorkerName(name);
+void Initializer::initWatcher() {
+  // The watcher takes a list of paths to autoload extensions from.
+  loadExtensions();
 
-  if (isWorker()) {
-    // Do not start watching/spawning if this process is a worker.
-    watcher.initWorker();
-  } else {
-    do {
-      if (!watcher.watch()) {
-        // The watcher failed, create a worker.
-        watcher.createWorker();
-        watcher.resetCounters();
-      }
-    } while (watcher.ok());
+  // Add a watcher service thread to start/watch an optional worker and set
+  // of optional extensions in the autoload paths.
+  if (Watcher::hasManagedExtensions() || !FLAGS_disable_watchdog) {
+    Dispatcher::getInstance().addService(
+        std::make_shared<WatcherRunner>(argc_, argv_, !FLAGS_disable_watchdog));
+  }
 
+  // If there are no autoloaded extensions, the watcher service will end,
+  // otherwise it will continue as a background thread and respawn them.
+  // If the watcher is also a worker watchdog it will do nothing but monitor
+  // the extensions and worker process.
+  if (!FLAGS_disable_watchdog) {
+    Dispatcher::joinServices();
     // Executation should never reach this point.
     ::exit(EXIT_FAILURE);
   }
 }
 
-bool Initializer::isWorker() { return (getenv("OSQUERYD_WORKER") != nullptr); }
+void Initializer::initWorker(const std::string& name) {
+  // Set the worker's process name.
+  size_t name_size = strlen(argv_[0]);
+  for (int i = 0; i < argc_; i++) {
+    if (argv_[i] != nullptr) {
+      memset(argv_[i], 0, strlen(argv_[i]));
+    }
+  }
+  strncpy(argv_[0], name.c_str(), name_size);
+
+  // Start a watcher watcher thread to exit the process if the watcher exits.
+  Dispatcher::getInstance().addService(
+      std::make_shared<WatcherWatcherRunner>(getppid()));
+}
+
+void Initializer::initWorkerWatcher(const std::string& name) {
+  if (isWorker()) {
+    initWorker(name);
+  } else {
+    // The watcher will forever monitor and spawn additional workers.
+    initWatcher();
+  }
+}
+
+bool Initializer::isWorker() { return (getenv("OSQUERY_WORKER") != nullptr); }
+
+void Initializer::initConfigLogger() {
+  // Use a delay, meaning the amount of milliseconds waited for extensions.
+  size_t delay = 0;
+  // The timeout is the maximum time in seconds to wait for extensions.
+  size_t timeout = atoi(FLAGS_extensions_timeout.c_str());
+  while (!Registry::setActive("config", FLAGS_config_plugin)) {
+    // If there is at least 1 autoloaded extension, it may broadcast a route
+    // to the active config plugin.
+    if (!Watcher::hasManagedExtensions() || delay > timeout * 1000) {
+      LOG(ERROR) << "Config plugin not found: " << FLAGS_config_plugin;
+      ::exit(EXIT_CATASTROPHIC);
+    }
+    ::usleep(kExtensionInitializeMLatency * 1000);
+    delay += kExtensionInitializeMLatency;
+  }
+
+  // Try the same wait for a logger pluing too.
+  while (!Registry::setActive("logger", FLAGS_logger_plugin)) {
+    if (!Watcher::hasManagedExtensions() || delay > timeout * 1000) {
+      LOG(ERROR) << "Logger plugin not found: " << FLAGS_logger_plugin;
+      ::exit(EXIT_CATASTROPHIC);
+    }
+    ::usleep(kExtensionInitializeMLatency * 1000);
+    delay += kExtensionInitializeMLatency;
+  }
+}
 
 void Initializer::start() {
   // Load registry/extension modules before extensions.
@@ -185,8 +267,11 @@ void Initializer::start() {
   // Bind to an extensions socket and wait for registry additions.
   osquery::startExtensionManager();
 
-  // Load the osquery config using the default/active config plugin.
-  Config::load();
+  // Then set the config/logger plugins, which use a single/active plugin.
+  initConfigLogger();
+
+  // Run the setup for all lazy registries (tables, SQL).
+  Registry::setUp();
 
   if (FLAGS_config_check) {
     // The initiator requested an initialization and config check.
@@ -198,8 +283,8 @@ void Initializer::start() {
     ::exit(s.getCode());
   }
 
-  // Run the setup for all lazy registries (tables, SQL).
-  Registry::setUp();
+  // Load the osquery config using the default/active config plugin.
+  Config::load();
 
   // Check the backing store by allocating and exiting on error.
   if (!DBHandle::checkDB()) {

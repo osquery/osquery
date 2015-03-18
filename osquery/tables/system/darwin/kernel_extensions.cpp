@@ -8,6 +8,7 @@
  *
  */
 
+#include <IOKit/kext/KextManager.h>
 #include <CoreFoundation/CoreFoundation.h>
 
 #include <boost/algorithm/string/trim.hpp>
@@ -16,47 +17,41 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-extern "C" {
-extern CFDictionaryRef OSKextCopyLoadedKextInfo(CFArrayRef, CFArrayRef);
-}
+#include "osquery/core/conversions.h"
 
 namespace osquery {
 namespace tables {
 
-int getKextInt(const void *value, const CFStringRef key) {
-  int result;
-  auto num = (CFNumberRef)CFDictionaryGetValue((CFDictionaryRef)value, key);
-  CFNumberGetValue(num, kCFNumberSInt32Type, (void *)&result);
-  return result;
+inline std::string getKextInt(const CFDictionaryRef &value,
+                              const CFStringRef key) {
+  auto num = (CFDataRef)CFDictionaryGetValue(value, key);
+  return stringFromCFNumber(num, kCFNumberSInt32Type);
 }
 
-long long int getKextBigInt(const void *value, const CFStringRef key) {
-  long long int result;
-  auto num = (CFNumberRef)CFDictionaryGetValue((CFDictionaryRef)value, key);
-  CFNumberGetValue(num, kCFNumberSInt64Type, (void *)&result);
-  return result;
+inline std::string getKextBigInt(const CFDictionaryRef &value,
+                                 const CFStringRef key) {
+  auto num = (CFDataRef)CFDictionaryGetValue(value, key);
+  return stringFromCFNumber(num, kCFNumberSInt64Type);
 }
 
-std::string getKextString(const void *value, const CFStringRef key) {
-  std::string result;
-  auto string = (CFStringRef)CFDictionaryGetValue((CFDictionaryRef)value, key);
-  CFIndex length = CFStringGetLength(string) + 1;
-  char *buffer = (char *)malloc(length);
-
-  if (CFStringGetCString(string, buffer, length, kCFStringEncodingUTF8)) {
-    result = std::string(buffer);
-    boost::algorithm::trim(result);
+inline std::string getKextString(const CFDictionaryRef &value,
+                                 const CFStringRef key) {
+  // Some values are optional, meaning the key is empty or does not exist.
+  if (!CFDictionaryContainsKey(value, key)) {
+    return "";
+  }
+  auto string = (CFStringRef)CFDictionaryGetValue(value, key);
+  if (string == nullptr) {
+    return "";
   }
 
-  if (buffer != nullptr) {
-    free(buffer);
-  }
-  return result;
+  return stringFromCFString(string);
 }
 
-std::string getKextLinked(const void *value, const CFStringRef key) {
+inline std::string getKextLinked(const CFDictionaryRef &value,
+                                 const CFStringRef key) {
   std::string result;
-  auto links = (CFArrayRef)CFDictionaryGetValue((CFDictionaryRef)value, key);
+  auto links = (CFArrayRef)CFDictionaryGetValue(value, key);
   if (links == nullptr) {
     // Very core.
     return result;
@@ -79,11 +74,9 @@ std::string getKextLinked(const void *value, const CFStringRef key) {
     CFNumberGetValue((CFNumberRef)CFArrayGetValueAtIndex(link_indexes, i),
                      kCFNumberSInt32Type,
                      (void *)&link);
-
     if (i > 0) {
       result += " ";
     }
-
     result += TEXT(link);
   }
 
@@ -92,53 +85,43 @@ std::string getKextLinked(const void *value, const CFStringRef key) {
   return "<" + result + ">";
 }
 
+void genExtension(const void *key, const void *value, void *results) {
+  if (key == nullptr || value == nullptr || results == nullptr) {
+    return;
+  }
+
+  // Make sure the extension value is a dictionary
+  if (CFGetTypeID((CFTypeRef)value) != CFDictionaryGetTypeID()) {
+    return;
+  }
+
+  // name
+  CFDictionaryRef extension = (CFDictionaryRef)value;
+  auto name = getKextString(extension, CFSTR("CFBundleIdentifier"));
+  auto idx = getKextInt(extension, CFSTR("OSBundleLoadTag"));
+
+  Row r;
+  r["name"] = name;
+  r["idx"] = INTEGER(idx);
+  r["refs"] = getKextInt(extension, CFSTR("OSBundleRetainCount"));
+  r["size"] = getKextBigInt(extension, CFSTR("OSBundleLoadSize"));
+  r["version"] = getKextString(extension, CFSTR("CFBundleVersion"));
+  r["linked_against"] = getKextLinked(extension, CFSTR("OSBundleDependencies"));
+  r["path"] = getKextString(extension, CFSTR("OSBundlePath"));
+  ((QueryData *)results)->push_back(r);
+}
+
 QueryData genKernelExtensions(QueryContext &context) {
   QueryData results;
 
   // Populate dict of kernel extensions.
-  CFDictionaryRef dict = OSKextCopyLoadedKextInfo(NULL, NULL);
-  CFIndex count = CFDictionaryGetCount(dict);
-
-  // Allocate memory for each extension parse.
-  auto values = (void **)malloc(sizeof(void *) * count);
-  CFDictionaryGetKeysAndValues(dict, nullptr, (const void **)values);
-  for (CFIndex j = 0; j < count; j++) {
-    // name
-    auto name = getKextString(values[j], CFSTR("CFBundleIdentifier"));
-    auto kextTag = getKextInt(values[j], CFSTR("OSBundleLoadTag"));
-
-    // Possibly limit expensive lookups.
-    if (!context.constraints["name"].matches(name)) {
-      continue;
-    }
-
-    if (!context.constraints["idx"].matches<int>(kextTag)) {
-      continue;
-    }
-
-    auto references = getKextInt(values[j], CFSTR("OSBundleRetainCount"));
-
-    // size
-    auto load_size = getKextBigInt(values[j], CFSTR("OSBundleLoadSize"));
-    auto wired_size = getKextBigInt(values[j], CFSTR("OSBundleWiredSize"));
-    auto version = getKextString(values[j], CFSTR("CFBundleVersion"));
-
-    // linked_against
-    auto linked = getKextLinked(values[j], CFSTR("OSBundleDependencies"));
-
-    Row r;
-    r["idx"] = INTEGER(kextTag);
-    r["refs"] = INTEGER(references);
-    r["size"] = BIGINT(load_size);
-    r["wired"] = BIGINT(wired_size);
-    r["name"] = name;
-    r["version"] = version;
-    r["linked_against"] = linked;
-    results.push_back(r);
+  CFDictionaryRef dict = KextManagerCopyLoadedKextInfo(NULL, NULL);
+  if (dict == nullptr) {
+    return {};
   }
 
+  CFDictionaryApplyFunction(dict, &genExtension, &results);
   CFRelease(dict);
-  free(values);
   return results;
 }
 }

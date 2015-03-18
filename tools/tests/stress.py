@@ -29,12 +29,14 @@ def stress(args):
     for i in xrange(args["num"]):
         start_time = time.time()
         proc = subprocess.Popen(test,
-                                stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+                                shell=True,
+                                stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE)
         stdout, stderr = proc.communicate()
         times.append(time.time() - start_time)
         if proc.returncode is not 0:
             print (stdout)
-            print (lightred(stderr))
+            print (stderr)
             print ("%s Test %d failed. (total %6.4fs)" % (
                 red("FAILED"), i + 1, sum(times)))
             return proc.returncode

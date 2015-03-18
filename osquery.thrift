@@ -4,6 +4,17 @@ namespace cpp osquery.extensions
 typedef map<string, string> ExtensionPluginRequest
 typedef list<map<string, string>> ExtensionPluginResponse
 
+/// Extensions should request osquery options to set active registries and
+/// bootstrap any config/logger plugins.
+struct InternalOptionInfo {
+  1:string value,
+  2:string default_value,
+  3:string type,
+}
+
+/// Each option (CLI flag) has a unique name.
+typedef map<string, InternalOptionInfo> InternalOptionList
+
 /// When communicating extension metadata, use a thrift-internal structure.
 struct InternalExtensionInfo {
   1:string name,
@@ -63,6 +74,8 @@ service Extension {
 service ExtensionManager extends Extension {
   /// Return the list of active registered extensions.
   InternalExtensionList extensions(),
+  /// Return the list of bootstrap or configuration options.
+  InternalOptionList options(),
   /// The API endpoint used by an extension to register its plugins.
   ExtensionStatus registerExtension(
     1:InternalExtensionInfo info,

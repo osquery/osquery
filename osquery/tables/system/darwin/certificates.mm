@@ -14,112 +14,21 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#include "osquery/tables/system/darwin/certificates.h"
+#include "osquery/tables/system/darwin/keychain.h"
 
 namespace osquery {
 namespace tables {
 
-const std::vector<std::string> kSystemKeychainPaths = {
-    "/System/Library/Keychains", "/Library/Keychains",
+const std::map<std::string, CertProperty> kCertificateProperties = {
+    {"common_name", {kSecOIDCommonName, genCommonNameProperty}},
+    {"ca", {kSecOIDBasicConstraints, genCAProperty}},
+    {"not_valid_before", {kSecOIDX509V1ValidityNotBefore, stringFromCFNumber}},
+    {"not_valid_after", {kSecOIDX509V1ValidityNotAfter, stringFromCFNumber}},
+    {"key_algorithm", {kSecOIDX509V1SubjectPublicKeyAlgorithm, genAlgProperty}},
+    {"key_usage", {kSecOIDKeyUsage, stringFromCFNumber}},
+    {"subject_key_id", {kSecOIDSubjectKeyIdentifier, genKIDProperty}},
+    {"authority_key_id", {kSecOIDAuthorityKeyIdentifier, genKIDProperty}},
 };
-
-const std::vector<std::string> kUserKeychainPaths = {
-    "/Library/Keychains",
-};
-
-void genKeychains(const std::string& path, CFMutableArrayRef& keychains) {
-  std::vector<std::string> paths;
-
-  // Support both a directory and explicit path search.
-  if (isDirectory(path).ok()) {
-    // Try to list every file in the given keychain search path.
-    if (!listFilesInDirectory(path, paths).ok()) {
-      return;
-    }
-  } else {
-    // The explicit path search comes from a query predicate.
-    paths.push_back(path);
-  }
-
-  for (const auto& keychain_path : paths) {
-    SecKeychainRef keychain = nullptr;
-    auto status = SecKeychainOpen(keychain_path.c_str(), &keychain);
-    if (status == 0 && keychain != nullptr) {
-      CFArrayAppendValue(keychains, keychain);
-    }
-  }
-}
-
-CFArrayRef CreateAuthorities(const std::set<std::string>& paths) {
-  auto keychains = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
-  if (paths.size() == 0) {
-    // Populate keychain paths from known-locations.
-    for (const auto& keychains_directory : kSystemKeychainPaths) {
-      genKeychains(keychains_directory, keychains);
-    }
-
-    // Iterate over each user and their keychain search paths.
-    auto homes = osquery::getHomeDirectories();
-    for (const auto& dir : homes) {
-      for (const auto& keychains_dir : kUserKeychainPaths) {
-        genKeychains((dir / keychains_dir).string(), keychains);
-      }
-    }
-  } else {
-    for (const auto& path : paths) {
-      genKeychains(path, keychains);
-    }
-  }
-
-  CFMutableDictionaryRef query;
-  query = CFDictionaryCreateMutable(NULL,
-                                    0,
-                                    &kCFTypeDictionaryKeyCallBacks,
-                                    &kCFTypeDictionaryValueCallBacks);
-  CFDictionaryAddValue(query, kSecClass, kSecClassCertificate);
-  CFDictionaryAddValue(query, kSecReturnRef, kCFBooleanTrue);
-  // This can be added to restrict results to x509v3
-  // CFDictionaryAddValue(query, kSecAttrCertificateType, 0x03);
-  CFDictionaryAddValue(query, kSecMatchSearchList, keychains);
-  CFDictionaryAddValue(query, kSecAttrCanVerify, kCFBooleanTrue);
-  CFDictionaryAddValue(query, kSecMatchLimit, kSecMatchLimitAll);
-
-  CFArrayRef keychain_certs;
-  auto status = SecItemCopyMatching(query, (CFTypeRef *)&keychain_certs);
-  CFRelease(query);
-
-  if (status != errSecSuccess) {
-    return nullptr;
-  }
-
-  // Release each keychain search path.
-  for (CFIndex i = 0; i < CFArrayGetCount(keychains); ++i) {
-    CFRelease((SecKeychainRef)CFArrayGetValueAtIndex(keychains, i));
-  }
-  CFRelease(keychains);
-
-  return keychain_certs;
-}
-
-std::string getKeychainPath(const SecKeychainItemRef& item) {
-  SecKeychainRef keychain = nullptr;
-  std::string path;
-  auto status = SecKeychainItemCopyKeychain(item, &keychain);
-  if (keychain == nullptr) {
-    // Unhandled error, cannot get the keychain reference from certificate.
-    return path;
-  }
-
-  UInt32 path_size = 1024;
-  char keychain_path[1024] = {0};
-  status = SecKeychainGetPath(keychain, &path_size, keychain_path);
-  if (path_size > 0 && keychain_path[0] != 0) {
-    path = std::string(keychain_path);
-  }
-
-  CFRelease(keychain);
-  return path;
-}
 
 void genCertificate(const SecCertificateRef& cert, QueryData& results) {
   Row r;
@@ -156,10 +65,20 @@ QueryData genCerts(QueryContext &context) {
   std::set<std::string> keychain_paths;
   if (context.constraints["path"].exists()) {
     keychain_paths = context.constraints["path"].getAll(EQUALS);
+  } else {
+    for (const auto& path : kSystemKeychainPaths) {
+      keychain_paths.insert(path);
+    }
+    auto homes = osquery::getHomeDirectories();
+    for (const auto& dir : homes) {
+      for (const auto& keychains_dir : kUserKeychainPaths) {
+        keychain_paths.insert((dir / keychains_dir).string());
+      }
+    }
   }
 
   // Keychains/certificate stores belonging to the OS.
-  CFArrayRef certs = CreateAuthorities(keychain_paths);
+  CFArrayRef certs = CreateKeychainItems(keychain_paths, kSecClassCertificate);
   // Must have returned an array of matching certificates.
   if (certs == nullptr || CFGetTypeID(certs) != CFArrayGetTypeID()) {
     VLOG(1) << "Could not find OS X Keychain";

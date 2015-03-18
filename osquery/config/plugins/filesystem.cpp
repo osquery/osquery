@@ -8,16 +8,16 @@
  *
  */
 
-#include <fstream>
+#include <vector>
 
 #include <boost/filesystem/operations.hpp>
 
 #include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/filesystem.h>
 
 namespace fs = boost::filesystem;
-using osquery::Status;
 
 namespace osquery {
 
@@ -28,26 +28,32 @@ CLI_FLAG(string,
 
 class FilesystemConfigPlugin : public ConfigPlugin {
  public:
-  virtual std::pair<osquery::Status, std::string> genConfig();
+  Status genConfig(std::map<std::string, std::string>& config);
 };
 
 REGISTER(FilesystemConfigPlugin, "config", "filesystem");
 
-std::pair<osquery::Status, std::string> FilesystemConfigPlugin::genConfig() {
-  std::string config;
+Status FilesystemConfigPlugin::genConfig(
+    std::map<std::string, std::string>& config) {
   if (!fs::exists(FLAGS_config_path)) {
-    return std::make_pair(Status(1, "config file does not exist"), config);
+    return Status(1, "config file does not exist");
   }
 
-  VLOG(1) << "Filesystem ConfigPlugin reading: " << FLAGS_config_path;
-  std::ifstream config_stream(FLAGS_config_path);
+  std::vector<std::string> conf_files;
+  resolveFilePattern(FLAGS_config_path + ".d/%.conf", conf_files);
+  if (conf_files.size() > 0) {
+    VLOG(1) << "Discovered (" << conf_files.size() << ") additional configs";
+  }
 
-  config_stream.seekg(0, std::ios::end);
-  config.reserve(config_stream.tellg());
-  config_stream.seekg(0, std::ios::beg);
+  std::sort(conf_files.begin(), conf_files.end());
+  conf_files.push_back(FLAGS_config_path);
 
-  config.assign((std::istreambuf_iterator<char>(config_stream)),
-                std::istreambuf_iterator<char>());
-  return std::make_pair(Status(0, "OK"), config);
+  for (const auto& path : conf_files) {
+    std::string content;
+    if (readFile(path, content).ok()) {
+      config[path] = content;
+    }
+  }
+  return Status(0, "OK");
 }
 }

@@ -1,0 +1,7 @@
+table_name("safari_extensions")
+description("Safari browser extension details for all users.")
+schema([
+    Column("name", TEXT, "Default name of the node"),
+    Column("path", TEXT, "Path to extension xar"),
+])
+implementation("applications/browser_safari@genSafariExtensions")

@@ -8,26 +8,16 @@
  *
  */
 
-#include <CoreFoundation/CoreFoundation.h>
-#include <Security/Security.h>
-
 #include <gtest/gtest.h>
 
 #include <osquery/database.h>
 #include <osquery/logger.h>
 
-#include "osquery/core/conversions.h"
+#include "osquery/tables/system/darwin/keychain.h"
 #include "osquery/core/test_util.h"
 
 namespace osquery {
 namespace tables {
-
-CFDataRef CreatePropertyFromCertificate(const SecCertificateRef&,
-                                        const CFTypeRef&);
-std::string genSHA1ForCertificate(const SecCertificateRef&);
-std::string genCommonNameProperty(const CFDataRef&);
-std::string genKIDProperty(const CFDataRef&);
-std::string genCAProperty(const CFDataRef& constraints);
 
 class CACertsTests : public ::testing::Test {
  protected:

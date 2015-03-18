@@ -14,10 +14,15 @@
 #include <memory>
 #include <vector>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 #include <osquery/scheduler.h>
 #include <osquery/status.h>
+
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -36,6 +41,7 @@ struct OsqueryConfig {
   std::map<std::string, std::string> options;
   std::map<std::string, std::vector<std::string> > eventFiles;
   std::map<std::string, std::vector<std::string> > yaraFiles;
+  pt::ptree all_data;
 };
 
 /**
@@ -106,7 +112,16 @@ class Config {
    *
    * @return A map all the files in the JSON blob organized by category
    */
-  static std::map<std::string, std::vector<std::string> >& getWatchedFiles();
+  static std::map<std::string, std::vector<std::string> > getWatchedFiles();
+
+  /**
+   * @brief Return the configuration ptree
+   *
+   *
+   *
+   * @return Returns the unparsed, ptree representation of the given config
+   */
+  static pt::ptree getEntireConfiguration();
 
   /**
    * @brief Get a map of all the files in the YARA JSON blob
@@ -139,7 +154,7 @@ class Config {
    * Since instances of Config should only be created via getInstance(),
    * Config's constructor is private
    */
-  Config() { loaded_ = false; }
+  Config() {}
   ~Config(){}
   Config(Config const&);
   void operator=(Config const&);
@@ -182,7 +197,7 @@ class Config {
    * @return an instance of osquery::Status, indicating the success or failure
    * of the operation.
    */
-  static osquery::Status genConfig(std::string& conf);
+  static osquery::Status genConfig(std::vector<std::string>& conf);
 
   /// Prevent ConfigPlugins from implementing setUp.
   osquery::Status setUp() { return Status(0, "Not used"); }
@@ -193,8 +208,6 @@ class Config {
    * native format
    */
   OsqueryConfig cfg_;
-  /// Only load the config once.
-  bool loaded_;
 };
 
 /**
@@ -236,7 +249,7 @@ class ConfigPlugin : public Plugin {
    * indicates that config retrieval was successful, then the config data
    * should be returned in pair.second.
    */
-  virtual std::pair<osquery::Status, std::string> genConfig() = 0;
+  virtual Status genConfig(std::map<std::string, std::string>& config) = 0;
   Status call(const PluginRequest& request, PluginResponse& response);
 };
 

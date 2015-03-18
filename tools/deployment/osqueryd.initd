@@ -30,9 +30,10 @@
 if [ -z $RETVAL ]; then RETVAL=0; fi
 if [ -z $PROG ]; then PROG="osqueryd"; fi
 if [ -z $EXEC ]; then EXEC=/usr/bin/osqueryd; fi
+if [ -z $FLAGS_PATH ]; then FLAGS_PATH=/etc/osquery/osquery.flags; fi
 if [ -z $REAL_CONFIG_PATH ]; then REAL_CONFIG_PATH=/etc/osquery/osquery.conf; fi
 if [ -z $LOCKFILE ]; then LOCKFILE=/var/lock/osqueryd; fi
-if [ -z $PIDFILE ]; then PIDFILE=/var/run/osquery.pid; fi
+if [ -z $PIDFILE ]; then PIDFILE=/var/run/osqueryd.pid; fi
 if [ -z $UID ]; then UID=$(id -u); fi
 
 if [ $UID -eq 0 ] && [ -e /etc/sysconfig/$PROG ]; then
@@ -43,8 +44,9 @@ if [ -e /etc/init.d/functions ]; then
   . /etc/init.d/functions
 fi
 
-if [ ! -e $REAL_CONFIG_PATH ] ; then
-  echo "No osquery config file found at $REAL_CONFIG_PATH"
+if [ ! -e $FLAGS_PATH ] && [ ! -e $REAL_CONFIG_PATH ]; then
+  echo "No config file found at $REAL_CONFIG_PATH"
+  echo "Additionally, no flags file or config override found at $FLAGS_PATH"
   echo "See '/usr/share/osquery/osquery.example.conf' for an example config."
   exit 1
 fi
@@ -59,6 +61,7 @@ ensure_root() {
 start() {
   ensure_root
 
+  ARGS=""
   if [ -f $PIDFILE ]; then
     PID=$(cat $PIDFILE)
     PROCNAME=$(ps -p $PID -o comm\=)
@@ -71,7 +74,10 @@ start() {
     fi
   fi
 
-  $PROG --config_path=$REAL_CONFIG_PATH \
+  if [ -e $FLAGS_PATH ]; then ARGS="$ARGS --flagfile=$FLAGS_PATH"; fi
+  if [ -e $REAL_CONFIG_PATH ]; then ARGS="$ARGS --config_path=$REAL_CONFIG_PATH"; fi
+
+  $PROG $ARGS \
         --pidfile=$PIDFILE \
         --daemonize=true
   return $?

@@ -13,6 +13,7 @@ from __future__ import print_function
 # pyexpect.replwrap will not work with unicode_literals
 #from __future__ import unicode_literals
 
+import copy
 import os
 import psutil
 import re
@@ -43,10 +44,12 @@ except ImportError:
 CONFIG_NAME = "/tmp/osquery-test"
 DEFAULT_CONFIG = {
     "options": {
-        "db_path": "%s.db" % CONFIG_NAME,
+        "database_path": "%s.db" % CONFIG_NAME,
         "pidfile": "%s.pid" % CONFIG_NAME,
         "config_path": "%s.conf" % CONFIG_NAME,
         "extensions_socket": "%s.em" % CONFIG_NAME,
+        "extensions_interval": "1",
+        "extensions_timeout": "1",
         "watchdog_level": "3",
         "disable_logging": "true",
         "force": "true",
@@ -161,28 +164,38 @@ class ProcRunner(object):
         '''Get the child pids.'''
         if not self.proc:
             return []
-        proc = psutil.Process(pid=self.proc.pid)
-        delay = 0
-        while len(proc.get_children()) == 0:
-            if delay > max_interval:
-                return []
-            time.sleep(self.interval)
-            delay += self.interval
-        return proc.get_children()
+        try:
+            proc = psutil.Process(pid=self.proc.pid)
+            delay = 0
+            while len(proc.get_children()) == 0:
+                if delay > max_interval:
+                    return []
+                time.sleep(self.interval)
+                delay += self.interval
+            return [p.pid for p in proc.get_children()]
+        except:
+            pass
+        return []
 
     @property
     def pid(self):
         return self.proc.pid if self.proc is not None else None
 
-    def kill(self):
+    def kill(self, children=False):
+        if children:
+            for child in self.getChildren():
+                try:
+                    os.kill(child, 9)
+                except:
+                    pass
         if self.proc:
             try:
                 self.proc.kill()
             except:
-                pass
+                pass          
         self.proc = None
 
-    def isAlive(self, timeout=1):
+    def isAlive(self, timeout=3):
         '''Check if the process is alive.'''
         delay = 0
         while self.proc is None:
@@ -218,31 +231,35 @@ class ProcessGenerator(object):
     '''Helper methods to patch into a unittest'''
     generators = []
 
-    def _run_daemon(self, config, silent=False):
+    def _run_daemon(self, options={}, silent=False):
         '''Spawn an osquery daemon process'''
-        global ARGS, CONFIG_NAME
+        global ARGS, CONFIG_NAME, CONFIG
+        config = copy.deepcopy(CONFIG)
+        for option in options.keys():
+            config["options"][option] = options[option]
         utils.write_config(config)
         binary = os.path.join(ARGS.build, "osquery", "osqueryd")
-        config = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
+        flags = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
         daemon = ProcRunner("daemon", binary,
             [
                 "--config_path=%s.conf" % CONFIG_NAME,
                 "--verbose" if ARGS.verbose else ""
-            ] + config,
+            ] + flags,
             silent=silent)
         self.generators.append(daemon)
         return daemon
 
-    def _run_extension(self, silent=False):
+    def _run_extension(self, timeout=0, silent=False):
         '''Spawn an osquery extension (example_extension)'''
         global ARGS, CONFIG_NAME
-        binary = os.path.join(ARGS.build, "osquery",
-            "example_extension")
+        binary = os.path.join(ARGS.build, "osquery", "example_extension.ext")
         extension = ProcRunner("extension",
             binary,
             [
                 "--socket=%s" % CONFIG["options"]["extensions_socket"],
-                "--verbose" if ARGS.verbose else ""
+                "--verbose" if ARGS.verbose else "",
+                "--timeout=%d" % timeout,
+                "--interval=%d" % 1,
             ],
             silent=silent)
         self.generators.append(extension)
@@ -262,6 +279,19 @@ class ProcessGenerator(object):
                 except Exception as e:
                     pass
 
+
+class Autoloader(object):
+    '''Helper class to write a module or extension autoload file.'''
+    def __init__(self, path, autoloads=[]):
+        self.path = path
+        with open(path, "w") as fh:
+            fh.write("\n".join(autoloads))
+
+    def __del__(self):
+        try:
+            os.unlink(self.path)
+        except:
+            pass
 
 class Tester(object):
     def __init__(self):
