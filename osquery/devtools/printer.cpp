@@ -12,112 +12,88 @@
 #include <sstream>
 
 #include <osquery/core.h>
-#include <osquery/devtools.h>
-#include <osquery/logger.h>
+
+#include "osquery/devtools/devtools.h"
 
 namespace osquery {
 
-std::string beautify(const QueryData& q,
-                     const std::vector<std::string>& order) {
-  auto lengths = computeQueryDataLengths(q);
-
-  if (q.size() == 0) {
-    return std::string();
+std::string generateToken(const std::map<std::string, size_t>& lengths,
+                          const std::vector<std::string>& columns) {
+  std::string output = "+";
+  for (const auto& col : columns) {
+    if (lengths.count(col) > 0) {
+      output += std::string(lengths.at(col) + 2, '-');
+    }
+    output += "+";
   }
 
-  auto separator = generateSeparator(lengths, order);
-  std::ostringstream results;
-  results << "\n";
-
-  results << separator;
-  results << generateHeader(lengths, order);
-  results << separator;
-  for (const auto& r : q) {
-    results << generateRow(r, lengths, order);
-  }
-  results << separator;
-
-  return results.str();
+  output += "\n";
+  return output;
 }
 
-std::string generateSeparator(const std::map<std::string, int>& lengths,
-                              const std::vector<std::string>& order) {
-  std::ostringstream separator;
-
-  separator << "+";
-  for (const auto& each : order) {
-    try {
-      for (int i = 0; i < lengths.at(each) + 2; ++i) {
-        separator << "-";
+std::string generateHeader(const std::map<std::string, size_t>& lengths,
+                           const std::vector<std::string>& columns) {
+  std::string output = "|";
+  for (const auto& col : columns) {
+    output += " " + col;
+    if (lengths.count(col) > 0) {
+      int buffer_size = lengths.at(col) - utf8StringSize(col) + 1;
+      if (buffer_size > 0) {
+        output += std::string(buffer_size, ' ');
+      } else {
+        output += ' ';
       }
-    } catch (const std::out_of_range& e) {
-      LOG(ERROR) << "Error retrieving the \"" << each
-                 << "\" key in generateSeparator:  " << e.what();
     }
-    separator << "+";
+    output += "|";
   }
-  separator << "\n";
-
-  return separator.str();
-}
-
-std::string generateHeader(const std::map<std::string, int>& lengths,
-                           const std::vector<std::string>& order) {
-  std::ostringstream header;
-
-  header << "|";
-  for (const auto& each : order) {
-    header << " ";
-    header << each;
-    try {
-      for (int i = 0; i < (lengths.at(each) - utf8StringSize(each) + 1); ++i) {
-        header << " ";
-      }
-    } catch (const std::out_of_range& e) {
-      LOG(ERROR) << "Error retrieving the \"" << each
-                 << "\" key in generateHeader:  " << e.what();
-    }
-    header << "|";
-  }
-  header << "\n";
-
-  return header.str();
+  output += "\n";
+  return output;
 }
 
 std::string generateRow(const Row& r,
-                        const std::map<std::string, int>& lengths,
+                        const std::map<std::string, size_t>& lengths,
                         const std::vector<std::string>& order) {
-  std::ostringstream row;
-  std::string value;
-
-  for (const auto& each : order) {
-    try {
-      value = r.at(each);
-      row << "| " << value;
-      for (int i = 0; i < (lengths.at(each) - utf8StringSize(r.at(each)) + 1);
-           ++i) {
-        row << " ";
-      }
-    } catch (const std::out_of_range& e) {
-      for (const auto& foo : r) {
-        VLOG(1) << foo.first << " => " << foo.second;
-      }
-      LOG(ERROR) << "Error retrieving the \"" << each
-                 << "\" key in generateRow: " << e.what();
+  std::string output;
+  for (const auto& column : order) {
+    if (r.count(column) == 0 || lengths.count(column) == 0) {
       continue;
+    }
+    // Print a terminator for the previous value or lhs, followed by spaces.
+
+    int buffer_size = lengths.at(column) - utf8StringSize(r.at(column)) + 1;
+    if (buffer_size > 0) {
+      output += "| " + r.at(column) + std::string(buffer_size, ' ');
     }
   }
 
-  if (row.str().size() > 0) {
+  if (output.size() > 0) {
     // Only append if a row was added.
-    row << "|\n";
+    output += "|\n";
   }
 
-  return row.str();
+  return output;
 }
 
-void prettyPrint(const QueryData& q, const std::vector<std::string>& order) {
-  std::cout << beautify(q, order);
+void prettyPrint(const QueryData& results,
+                 const std::vector<std::string>& columns,
+                 std::map<std::string, size_t>& lengths) {
+  if (results.size() == 0) {
+    return;
+  }
+
+  // Call a final compute using the column names as minimum lengths.
+  computeRowLengths(results.front(), lengths, true);
+
+  // Output a nice header wrapping the column names.
+  auto separator = generateToken(lengths, columns);
+  auto header = separator + generateHeader(lengths, columns) + separator;
+  printf("%s", header.c_str());
+
+  // Iterate each row and pretty print.
+  for (const auto& row : results) {
+    printf("%s", generateRow(row, lengths, columns).c_str());
+  }
+  printf("%s", separator.c_str());
 }
 
 void jsonPrint(const QueryData& q) {
@@ -135,31 +111,14 @@ void jsonPrint(const QueryData& q) {
   printf("\n]\n");
 }
 
-std::map<std::string, int> computeQueryDataLengths(const QueryData& q) {
-  std::map<std::string, int> results;
-
-  if (q.size() == 0) {
-    return results;
+void computeRowLengths(const Row& r,
+                       std::map<std::string, size_t>& lengths,
+                       bool use_columns) {
+  for (const auto& col : r) {
+    size_t current = (lengths.count(col.first) > 0) ? lengths.at(col.first) : 0;
+    size_t size =
+        (use_columns) ? utf8StringSize(col.first) : utf8StringSize(col.second);
+    lengths[col.first] = (size > current) ? size : current;
   }
-
-  for (const auto& it : q.front()) {
-    results[it.first] = utf8StringSize(it.first);
-  }
-
-  for (const auto& row : q) {
-    for (const auto& it : row) {
-      try {
-        auto s = utf8StringSize(it.second);
-        if (s > results[it.first]) {
-          results[it.first] = s;
-        }
-      } catch (const std::out_of_range& e) {
-        LOG(ERROR) << "Error retrieving the \"" << it.first
-                   << "\" key in computeQueryDataLength:  " << e.what();
-      }
-    }
-  }
-
-  return results;
 }
 }

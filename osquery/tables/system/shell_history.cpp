@@ -26,21 +26,9 @@ const std::vector<std::string> kShellHistoryFiles = {
     ".bash_history", ".zsh_history", ".zhistory", ".history",
 };
 
-Status genShellHistoryForUser(const Row& row, QueryData& results) {
-  std::string username;
-  std::string directory;
-  try {
-    username = row.at("username");
-    directory = row.at("directory");
-  } catch (const std::out_of_range& e) {
-    return Status(1, "Error retrieving query column");
-  }
-
-  std::vector<std::string> history_files;
-  if (!osquery::listFilesInDirectory(directory, history_files).ok()) {
-    return Status(1, "Cannot list files in: " + directory);
-  }
-
+void genShellHistoryForUser(const std::string& username,
+                            const std::string& directory,
+                            QueryData& results) {
   for (const auto& hfile : kShellHistoryFiles) {
     boost::filesystem::path history_file = directory;
     history_file /= hfile;
@@ -59,32 +47,30 @@ Status genShellHistoryForUser(const Row& row, QueryData& results) {
       results.push_back(r);
     }
   }
-  return Status(0, "OK");
 }
 
 QueryData genShellHistory(QueryContext& context) {
   QueryData results;
   std::string sql_str;
 
+  QueryData users;
   if (!getuid()) {
-    sql_str = "SELECT username,directory FROM users";
+    // No uid is available, attempt to select from all users.
+    users = SQL::selectAllFrom("users");
   } else {
-    struct passwd* pwd = nullptr;
-    pwd = getpwuid(getuid());
-    // TODO: https://github.com/facebook/osquery/issues/244
-    sql_str = "SELECT username,directory FROM users WHERE username = '" +
-              std::string(pwd->pw_name) + "';";
+    // A uid is available, select only the home directory for this user.
+    struct passwd* pwd = getpwuid(getuid());
+    if (pwd != nullptr && pwd->pw_name != nullptr) {
+      users = SQL::selectAllFrom(
+          "users", "username", EQUALS, std::string(pwd->pw_name));
+    }
   }
 
-  auto sql = SQL(sql_str);
-
-  if (!sql.ok()) {
-    LOG(ERROR) << "Error executing SQL: " << sql.getMessageString();
-    return results;
-  }
-
-  for (const auto& row : sql.rows()) {
-    auto status = genShellHistoryForUser(row, results);
+  // Iterate over each user
+  for (const auto& row : users) {
+    if (row.count("username") > 0 && row.count("directory") > 0) {
+      genShellHistoryForUser(row.at("username"), row.at("directory"), results);
+    }
   }
 
   return results;

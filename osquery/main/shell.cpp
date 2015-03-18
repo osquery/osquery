@@ -10,7 +10,8 @@
 
 
 #include <osquery/core.h>
-#include <osquery/devtools.h>
+
+#include "osquery/devtools/devtools.h"
 
 int main(int argc, char *argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.

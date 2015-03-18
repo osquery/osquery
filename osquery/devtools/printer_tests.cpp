@@ -10,8 +10,9 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/devtools.h>
 #include <osquery/logger.h>
+
+#include "osquery/devtools/devtools.h"
 
 namespace osquery {
 
@@ -20,132 +21,87 @@ class PrinterTests : public testing::Test {
   QueryData q;
   std::vector<std::string> order;
   void SetUp() {
-    order = {"name", "age", "favorite_food", "lucky_number"};
+    order = {"name", "age", "food", "number"};
     q = {
         {
          {"name", "Mike Jones"},
          {"age", "39"},
-         {"favorite_food", "mac and cheese"},
-         {"lucky_number", "1"},
+         {"food", "mac and cheese"},
+         {"number", "1"},
         },
         {
          {"name", "John Smith"},
          {"age", "44"},
-         {"favorite_food", "peanut butter and jelly"},
-         {"lucky_number", "2"},
+         {"food", "peanut butter and jelly"},
+         {"number", "2"},
         },
         {
          {"name", "Doctor Who"},
          {"age", "2000"},
-         {"favorite_food", "fish sticks and custard"},
-         {"lucky_number", "11"},
+         {"food", "fish sticks and custard"},
+         {"number", "11"},
         },
     };
   }
 };
 
 TEST_F(PrinterTests, test_compute_query_data_lengths) {
-  auto results = computeQueryDataLengths(q);
-  std::map<std::string, int> expected = {
-      {"name", 10}, {"age", 4}, {"favorite_food", 23}, {"lucky_number", 12},
-  };
-  EXPECT_EQ(results, expected);
+  std::map<std::string, size_t> lengths;
+  for (const auto& row : q) {
+    computeRowLengths(row, lengths);
+  }
+
+  // Check that all value lengths were maxed.
+  std::map<std::string, size_t> expected = {
+      {"name", 10}, {"age", 4}, {"food", 23}, {"number", 2}};
+  EXPECT_EQ(lengths, expected);
+
+  // Then compute lengths of column names.
+  computeRowLengths(q.front(), lengths, true);
+  expected = {{"name", 10}, {"age", 4}, {"food", 23}, {"number", 6}};
+  EXPECT_EQ(lengths, expected);
 }
 
 TEST_F(PrinterTests, test_generate_separator) {
-  auto results = generateSeparator(computeQueryDataLengths(q), order);
-  auto expected =
-      "+------------+------+-------------------------+--------------+\n";
-  EXPECT_EQ(results, expected);
-}
+  std::map<std::string, size_t> lengths;
+  for (const auto& row : q) {
+    computeRowLengths(row, lengths);
+  }
 
-TEST_F(PrinterTests, test_generate_separator_2) {
-  auto results =
-      generateSeparator(computeQueryDataLengths(q),
-                        {"lucky_number", "age", "name", "favorite_food"});
-  auto expected =
-      "+--------------+------+------------+-------------------------+\n";
+  auto results = generateToken(lengths, order);
+  auto expected = "+------------+------+-------------------------+----+\n";
   EXPECT_EQ(results, expected);
 }
 
 TEST_F(PrinterTests, test_generate_header) {
-  auto results = generateHeader(computeQueryDataLengths(q), order);
-  auto expected =
-      "| name       | age  | favorite_food           | lucky_number |\n";
-  EXPECT_EQ(results, expected);
-}
+  std::map<std::string, size_t> lengths;
+  for (const auto& row : q) {
+    computeRowLengths(row, lengths);
+  }
 
-TEST_F(PrinterTests, test_generate_header_2) {
-  auto results =
-      generateHeader(computeQueryDataLengths(q),
-                     {"lucky_number", "age", "name", "favorite_food"});
-  auto expected =
-      "| lucky_number | age  | name       | favorite_food           |\n";
+  auto results = generateHeader(lengths, order);
+  auto expected = "| name       | age  | food                    | number |\n";
   EXPECT_EQ(results, expected);
 }
 
 TEST_F(PrinterTests, test_generate_row) {
-  auto results = generateRow(q.back(), computeQueryDataLengths(q), order);
-  auto expected =
-      "| Doctor Who | 2000 | fish sticks and custard | 11           |\n";
-  EXPECT_EQ(results, expected);
-}
+  std::map<std::string, size_t> lengths;
+  for (const auto& row : q) {
+    computeRowLengths(row, lengths);
+  }
 
-TEST_F(PrinterTests, test_generate_row_2) {
-  auto results = generateRow(q.back(),
-                             computeQueryDataLengths(q),
-                             {"lucky_number", "age", "name", "favorite_food"});
-  auto expected =
-      "| 11           | 2000 | Doctor Who | fish sticks and custard |\n";
+  auto results = generateRow(q.front(), lengths, order);
+  auto expected = "| Mike Jones | 39   | mac and cheese          | 1  |\n";
   EXPECT_EQ(results, expected);
-}
-
-TEST_F(PrinterTests, test_beautify) {
-  auto result = beautify(q, order);
-  std::string expected = R"(
-+------------+------+-------------------------+--------------+
-| name       | age  | favorite_food           | lucky_number |
-+------------+------+-------------------------+--------------+
-| Mike Jones | 39   | mac and cheese          | 1            |
-| John Smith | 44   | peanut butter and jelly | 2            |
-| Doctor Who | 2000 | fish sticks and custard | 11           |
-+------------+------+-------------------------+--------------+
-)";
-  EXPECT_EQ(result, expected);
 }
 
 TEST_F(PrinterTests, test_unicode) {
-  QueryData augmented = {
-      {
-       {"name", "Mike Jones"},
-       {"age", "39"},
-       {"favorite_food", "mac and cheese"},
-       {"lucky_number", "1"},
-      },
-      {
-       {"name", "Àlex Smith"},
-       {"age", "44"},
-       {"favorite_food", "peanut butter and jelly"},
-       {"lucky_number", "2"},
-      },
-      {
-       {"name", "Doctor Who"},
-       {"age", "2000"},
-       {"favorite_food", "fish sticks and custard"},
-       {"lucky_number", "11"},
-      },
-  };
-  auto result = beautify(augmented, order);
-  std::string expected = R"(
-+------------+------+-------------------------+--------------+
-| name       | age  | favorite_food           | lucky_number |
-+------------+------+-------------------------+--------------+
-| Mike Jones | 39   | mac and cheese          | 1            |
-| Àlex Smith | 44   | peanut butter and jelly | 2            |
-| Doctor Who | 2000 | fish sticks and custard | 11           |
-+------------+------+-------------------------+--------------+
-)";
-  EXPECT_EQ(result, expected);
+  Row r = {{"name", "Àlex Smith"}};
+  std::map<std::string, size_t> lengths;
+  computeRowLengths(r, lengths);
+
+  std::map<std::string, size_t> expected = {{"name", 10}};
+  EXPECT_EQ(lengths, expected);
 }
 }
 
