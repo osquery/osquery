@@ -175,6 +175,7 @@ std::map<std::string, std::vector<std::string> > Config::getWatchedFiles() {
 const std::map<std::string, std::vector<std::string> >& Config::getYARAFiles() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
   return getInstance().cfg_.yaraFiles;
+}
 
 pt::ptree Config::getEntireConfiguration() {
   boost::shared_lock<boost::shared_mutex> lock(rw_lock);
