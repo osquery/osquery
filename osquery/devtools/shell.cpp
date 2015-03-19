@@ -81,9 +81,9 @@
 #else
 
 #include <osquery/database/results.h>
-#include <osquery/devtools.h>
 #include <osquery/flags.h>
 
+#include "osquery/devtools/devtools.h"
 #include "osquery/sql/virtual_table.h"
 
 // Json is a specific form of pretty printing.
@@ -479,8 +479,9 @@ struct previous_mode_data {
 ** Pretty print structure
  */
 struct prettyprint_data {
-  osquery::QueryData queryData;
-  std::vector<std::string> resultsOrder;
+  osquery::QueryData results;
+  std::vector<std::string> columns;
+  std::map<std::string, size_t> lengths;
 };
 
 /*
@@ -999,21 +1000,6 @@ static void interrupt_handler(int NotUsed) {
 }
 #endif
 
-void callback_row(int nArg, char **azArg, char **azCol, osquery::Row &r) {
-  for (int i = 0; i < nArg; i++) {
-    std::string header;
-    if (azCol[i] != nullptr) {
-      header = std::string(azCol[i]);
-    }
-
-    std::string result;
-    if (azArg[i] != nullptr) {
-      result = std::string(azArg[i]);
-    }
-    r[header] = result;
-  }
-}
-
 /*
 ** This is the callback routine that the shell
 ** invokes for each row of a query result.
@@ -1025,15 +1011,20 @@ static int shell_callback(
 
   switch (p->mode) {
   case MODE_Pretty: {
-    if (p->prettyPrint->resultsOrder.size() == 0) {
+    if (p->prettyPrint->columns.size() == 0) {
       for (i = 0; i < nArg; i++) {
-        p->prettyPrint->resultsOrder.push_back(std::string(azCol[i]));
+        p->prettyPrint->columns.push_back(std::string(azCol[i]));
       }
     }
 
     osquery::Row r;
-    callback_row(nArg, azArg, azCol, r);
-    p->prettyPrint->queryData.push_back(r);
+    for (int i = 0; i < nArg; ++i) {
+      if (azCol[i] != nullptr && azArg[i] != nullptr) {
+        r[std::string(azCol[i])] = std::string(azArg[i]);
+      }
+    }
+    osquery::computeRowLengths(r, p->prettyPrint->lengths);
+    p->prettyPrint->results.push_back(r);
     break;
   }
   case MODE_Line: {
@@ -1845,13 +1836,15 @@ static int shell_exec(
 
   if (pArg->mode == MODE_Pretty) {
     if (osquery::FLAGS_json) {
-      osquery::jsonPrint(pArg->prettyPrint->queryData);
+      osquery::jsonPrint(pArg->prettyPrint->results);
     } else {
-      osquery::prettyPrint(pArg->prettyPrint->queryData,
-                           pArg->prettyPrint->resultsOrder);
+      osquery::prettyPrint(pArg->prettyPrint->results,
+                           pArg->prettyPrint->columns,
+                           pArg->prettyPrint->lengths);
     }
-    pArg->prettyPrint->queryData.clear();
-    pArg->prettyPrint->resultsOrder.clear();
+    pArg->prettyPrint->results.clear();
+    pArg->prettyPrint->columns.clear();
+    pArg->prettyPrint->lengths.clear();
   }
 
   return rc;
