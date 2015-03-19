@@ -67,7 +67,7 @@ class Initializer {
    * @param argv the command-line arguments passed to `main()`
    * @param tool the type of osquery main (daemon, shell, test, extension).
    */
-  Initializer(int argc, char* argv[], ToolType tool = OSQUERY_TOOL_TEST);
+  Initializer(int& argc, char**& argv, ToolType tool = OSQUERY_TOOL_TEST);
 
   /**
    * @brief Sets up the process as an osquery daemon.
@@ -111,8 +111,8 @@ class Initializer {
   void initConfigLogger();
 
  private:
-  int argc_;
-  char** argv_;
+  int* argc_;
+  char*** argv_;
   int tool_;
   std::string binary_;
 };

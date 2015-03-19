@@ -12,6 +12,7 @@
 #include <sstream>
 
 #include <fcntl.h>
+#include <pwd.h>
 #include <sys/stat.h>
 
 #include <boost/algorithm/string/join.hpp>
@@ -598,6 +599,23 @@ bool safePermissions(const std::string& dir,
   }
   // Do not load modules not owned by the user.
   return false;
+}
+
+const std::string& osqueryHomeDirectory() {
+  static std::string homedir;
+  if (homedir.size() == 0) {
+    // Try to get the caller's home directory using HOME and getpwuid.
+    auto user = getpwuid(getuid());
+    if (getenv("HOME") != nullptr && isWritable(getenv("HOME")).ok()) {
+      homedir = std::string(getenv("HOME")) + "/.osquery";
+    } else if (user != nullptr && user->pw_dir != nullptr) {
+      homedir = std::string(user->pw_dir) + "/.osquery";
+    } else {
+      // Failover to a temporary directory (used for the shell).
+      homedir = "/tmp/osquery";
+    }
+  }
+  return homedir;
 }
 
 std::string lsperms(int mode) {
