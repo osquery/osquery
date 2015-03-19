@@ -143,7 +143,11 @@ struct Subscription {
   /// A pointer to possible extra data
   void* user_data;
 
-  static SubscriptionRef create() { return std::make_shared<Subscription>(); }
+  static SubscriptionRef create(const EventSubscriberID name_id) {
+    auto subscription = std::make_shared<Subscription>();
+    subscription->subscriber_name = name_id;
+    return subscription;
+  }
 
   static SubscriptionRef create(const EventSubscriberID name_id,
                                 const SubscriptionContextRef& mc,
