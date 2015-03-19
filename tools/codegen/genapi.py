@@ -34,6 +34,7 @@ CANONICAL_PLATFORMS = {
     "linux": "Ubuntu, CentOS",
     "centos": "CentOS",
     "ubuntu": "Ubuntu",
+    "utility": "Utility",
 }
 
 TEMPLATE_API_DEFINITION = """

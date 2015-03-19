@@ -20,14 +20,19 @@
 namespace osquery {
 namespace tables {
 
-static void fillRow(struct udev_device *dev, Row &r) {
+static void getBlockDevice(struct udev_device *dev, QueryData& results) {
   struct udev_device *parent, *scsi_dev;
   blkid_probe pr;
   const char *name, *tmp;
 
+  Row r;
   if ((name = udev_device_get_devnode(dev))) {
     r["name"] = std::string(name);
+  } else {
+    // Cannot get devnode information from UDEV.
+    return;
   }
+
   if ((parent =
            udev_device_get_parent_with_subsystem_devtype(dev, "block", NULL))) {
     r["parent"] = std::string(udev_device_get_devnode(parent));
@@ -66,6 +71,7 @@ static void fillRow(struct udev_device *dev, Row &r) {
     }
     blkid_free_probe(pr);
   }
+  results.push_back(r);
 }
 
 QueryData genBlockDevs(QueryContext &context) {
@@ -83,14 +89,11 @@ QueryData genBlockDevs(QueryContext &context) {
   struct udev_list_entry *devices, *dev_list_entry;
   devices = udev_enumerate_get_list_entry(enumerate);
   udev_list_entry_foreach(dev_list_entry, devices) {
-    Row r;
-
     const char *path = udev_list_entry_get_name(dev_list_entry);
     struct udev_device *dev = udev_device_new_from_syspath(udev, path);
-
-    fillRow(dev, r);
-
-    results.push_back(r);
+    if (path != nullptr && dev != nullptr) {
+      getBlockDevice(dev, results);
+    }
     udev_device_unref(dev);
   }
 

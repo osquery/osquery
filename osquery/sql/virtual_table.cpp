@@ -208,17 +208,24 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   Registry::call("table", pVtab->content->name, request, response);
 
   // Now organize the response rows by column instead of row.
+  auto &data = pVtab->content->data;
   for (const auto &row : response) {
     for (const auto &column : pVtab->content->columns) {
       try {
-        pVtab->content->data[column.first].push_back(row.at(column.first));
+        auto &value = row.at(column.first);
+        if (value.size() > FLAGS_value_max) {
+          data[column.first].push_back(value.substr(0, FLAGS_value_max));
+        } else {
+          data[column.first].push_back(value);
+        }
       } catch (const std::out_of_range &e) {
         VLOG(1) << "Table " << pVtab->content->name << " row "
                 << pVtab->content->n << " did not include column "
                 << column.first;
-        pVtab->content->data[column.first].push_back("");
+        data[column.first].push_back("");
       }
     }
+
     pVtab->content->n++;
   }
 

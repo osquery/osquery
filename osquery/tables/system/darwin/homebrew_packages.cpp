@@ -17,6 +17,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -26,16 +27,9 @@ const std::string kHomebrewRoot = "/usr/local/Cellar/";
 
 std::vector<std::string> getHomebrewAppInfoPlistPaths() {
   std::vector<std::string> results;
-
-  std::vector<std::string> homebrew_apps;
-  auto status = osquery::listFilesInDirectory(kHomebrewRoot, homebrew_apps);
-  if (status.ok()) {
-    for (const auto& app_path : homebrew_apps) {
-      results.push_back(app_path);
-    }
-  } else {
-    LOG(ERROR) << "Error listing " << kHomebrewRoot << ": "
-               << status.toString();
+  auto status = osquery::listDirectoriesInDirectory(kHomebrewRoot, results);
+  if (!status.ok()) {
+    TLOG << "Error listing " << kHomebrewRoot << ": " << status.toString();
   }
 
   return results;
@@ -49,16 +43,14 @@ std::string getHomebrewNameFromInfoPlistPath(const std::string& path) {
 std::vector<std::string> getHomebrewVersionsFromInfoPlistPath(
     const std::string& path) {
   std::vector<std::string> results;
-
   std::vector<std::string> app_versions;
-  auto status = osquery::listFilesInDirectory(path, app_versions);
+  auto status = osquery::listDirectoriesInDirectory(path, app_versions);
   if (status.ok()) {
-    for (const auto& version_path : app_versions) {
-      auto bits = osquery::split(version_path, "/");
-      results.push_back(bits[bits.size() - 1]);
+    for (const auto& version : app_versions) {
+      results.push_back(fs::path(version).filename().string());
     }
   } else {
-    LOG(ERROR) << "Error listing " << path << ": " << status.toString();
+    TLOG << "Error listing " << path << ": " << status.toString();
   }
 
   return results;

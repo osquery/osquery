@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -38,23 +38,18 @@ namespace osquery {
 int launchIntoShell(int argc, char** argv);
 
 /**
- * @brief Generate a pretty representation of a QueryData object
- *
- * @return The beautified string representation of the supplied QueryData
- * @param order The order of the keys (since maps are unordered)
- */
-std::string beautify(const QueryData& q, const std::vector<std::string>& order);
-
-/**
  * @brief Pretty print a QueryData object
  *
  * This is a helper method which called osquery::beautify on the supplied
  * QueryData object and prints the results to stdout.
  *
- * @param q The QueryData object to print
- * @param order The order of the keys (since maps are unordered)
+ * @param results The QueryData object to print
+ * @param columns The order of the keys (since maps are unordered)
+ * @param lengths A mutable set of column lengths
  */
-void prettyPrint(const QueryData& q, const std::vector<std::string>& order);
+void prettyPrint(const QueryData& results,
+                 const std::vector<std::string>& columns,
+                 std::map<std::string, size_t>& lengths);
 
 /**
  * @brief JSON print a QueryData object
@@ -69,44 +64,49 @@ void jsonPrint(const QueryData& q);
 /**
  * @brief Compute a map of metadata about the supplied QueryData object
  *
- * @param q The QueryData object to analyze
+ * @param r A row to analyze
+ * @param lengths A mutable set of column lengths
+ * @param use_columns Calulate lengths of column names or values
  *
  * @return A map of string to int such that the key represents the "column" in
  * the supplied QueryData and the int represents the length of the longest key
  */
-std::map<std::string, int> computeQueryDataLengths(const QueryData& q);
+void computeRowLengths(const Row& r,
+                       std::map<std::string, size_t>& lengths,
+                       bool use_columns = false);
 
 /**
  * @brief Generate the separator string for query results
  *
  * @param lengths The data returned from computeQueryDataLengths
- * @param order The order of the keys (since maps are unordered)
+ * @param columns The order of the keys (since maps are unordered)
  *
  * @return A string, with a newline, representing your separator
  */
-std::string generateSeparator(const std::map<std::string, int>& lengths,
-                              const std::vector<std::string>& order);
+std::string generateToken(const std::map<std::string, size_t>& lengths,
+                          const std::vector<std::string>& columns);
 
 /**
  * @brief Generate the header string for query results
  *
  * @param lengths The data returned from computeQueryDataLengths
- * @param order The order of the keys (since maps are unordered)
+ * @param columns The order of the keys (since maps are unordered)
  *
  * @return A string, with a newline, representing your header
  */
-std::string generateHeader(const std::map<std::string, int>& lengths,
-                           const std::vector<std::string>& order);
+std::string generateHeader(const std::map<std::string, size_t>& lengths,
+                           const std::vector<std::string>& columns);
 
 /**
  * @brief Generate a row string for query results
  *
+ * @param r A row to analyze
  * @param lengths The data returned from computeQueryDataLengths
- * @param order The order of the keys (since maps are unordered)
+ * @param columns The order of the keys (since maps are unordered)
  *
  * @return A string, with a newline, representing your row
  */
 std::string generateRow(const Row& r,
-                        const std::map<std::string, int>& lengths,
-                        const std::vector<std::string>& order);
+                        const std::map<std::string, size_t>& lengths,
+                        const std::vector<std::string>& columns);
 }

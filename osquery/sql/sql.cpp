@@ -18,6 +18,8 @@
 
 namespace osquery {
 
+FLAG(int32, value_max, 512, "Maximum returned row value size");
+
 const std::map<tables::ConstraintOperator, std::string> kSQLOperatorRepr = {
     {tables::EQUALS, "="},
     {tables::GREATER_THAN, ">"},

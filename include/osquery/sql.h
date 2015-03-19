@@ -15,9 +15,13 @@
 #include <vector>
 
 #include <osquery/database/results.h>
+#include <osquery/flags.h>
 #include <osquery/tables.h>
 
 namespace osquery {
+
+DECLARE_int32(value_max);
+
 /**
  * @brief The core interface to executing osquery SQL commands
  *

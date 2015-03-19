@@ -3,11 +3,11 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
- 
+
 #include <climits>
 #include <ctime>
 #include <random>
@@ -25,7 +25,7 @@ namespace osquery {
 FLAG(string,
      host_identifier,
      "hostname",
-     "Field used to identify the host running osquery");
+     "Field used to identify the host running osquery (hostname, uuid)");
 
 FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
 
