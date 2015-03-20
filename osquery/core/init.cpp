@@ -8,7 +8,6 @@
  *
  */
 
-#include <pwd.h>
 #include <syslog.h>
 #include <time.h>
 
@@ -87,15 +86,15 @@ void printUsage(const std::string& binary, int tool) {
   fprintf(stdout, EPILOG);
 }
 
-Initializer::Initializer(int argc, char* argv[], ToolType tool)
-    : argc_(argc),
-      argv_((char**)argv),
+Initializer::Initializer(int& argc, char**& argv, ToolType tool)
+    : argc_(&argc),
+      argv_(&argv),
       tool_(tool),
       binary_(fs::path(std::string(argv[0])).filename().string()) {
   std::srand(time(nullptr));
 
   // osquery implements a custom help/usage output.
-  std::string first_arg = (argc_ > 1) ? std::string(argv_[1]) : "";
+  std::string first_arg = (*argc_ > 1) ? std::string((*argv_)[1]) : "";
   if ((first_arg == "--help" || first_arg == "-h" || first_arg == "-help") &&
       tool != OSQUERY_TOOL_TEST) {
     printUsage(binary_, tool_);
@@ -119,16 +118,7 @@ Initializer::Initializer(int argc, char* argv[], ToolType tool)
     osquery::FLAGS_disable_logging = true;
 
     // Get the caller's home dir for temporary storage/state management.
-    auto user = getpwuid(getuid());
-    std::string homedir;
-    if (getenv("HOME") != nullptr) {
-      homedir = std::string(getenv("HOME")) + "/.osquery";
-    } else if (user != nullptr || user->pw_dir != nullptr) {
-      homedir = std::string(user->pw_dir) + "/.osquery";
-    } else {
-      homedir = "/tmp/osquery";
-    }
-
+    auto homedir = osqueryHomeDirectory();
     if (osquery::pathExists(homedir).ok() ||
         boost::filesystem::create_directory(homedir)) {
       osquery::FLAGS_database_path = homedir + "/shell.db";
@@ -140,7 +130,8 @@ Initializer::Initializer(int argc, char* argv[], ToolType tool)
   GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);
 
   // Let gflags parse the non-help options/flags.
-  GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc_, &argv_, false);
+  GFLAGS_NAMESPACE::ParseCommandLineFlags(
+      argc_, argv_, (tool == OSQUERY_TOOL_SHELL));
 
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check) {
@@ -192,8 +183,8 @@ void Initializer::initWatcher() {
   // Add a watcher service thread to start/watch an optional worker and set
   // of optional extensions in the autoload paths.
   if (Watcher::hasManagedExtensions() || !FLAGS_disable_watchdog) {
-    Dispatcher::getInstance().addService(
-        std::make_shared<WatcherRunner>(argc_, argv_, !FLAGS_disable_watchdog));
+    Dispatcher::getInstance().addService(std::make_shared<WatcherRunner>(
+        *argc_, *argv_, !FLAGS_disable_watchdog));
   }
 
   // If there are no autoloaded extensions, the watcher service will end,
@@ -209,13 +200,13 @@ void Initializer::initWatcher() {
 
 void Initializer::initWorker(const std::string& name) {
   // Set the worker's process name.
-  size_t name_size = strlen(argv_[0]);
-  for (int i = 0; i < argc_; i++) {
-    if (argv_[i] != nullptr) {
-      memset(argv_[i], 0, strlen(argv_[i]));
+  size_t name_size = strlen((*argv_)[0]);
+  for (int i = 0; i < *argc_; i++) {
+    if ((*argv_)[i] != nullptr) {
+      memset((*argv_)[i], 0, strlen((*argv_)[i]));
     }
   }
-  strncpy(argv_[0], name.c_str(), name_size);
+  strncpy((*argv_)[0], name.c_str(), name_size);
 
   // Start a watcher watcher thread to exit the process if the watcher exits.
   Dispatcher::getInstance().addService(

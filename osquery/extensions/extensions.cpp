@@ -127,14 +127,15 @@ void loadExtensions() {
   // Optionally autoload extensions
   auto status = loadExtensions(FLAGS_extensions_autoload);
   if (!status.ok()) {
-    LOG(WARNING) << "Could not autoload extensions: " << status.what();
+    VLOG(1) << "Could not autoload extensions: " << status.what();
   }
 }
 
 void loadModules() {
   auto status = loadModules(FLAGS_modules_autoload);
   if (!status.ok()) {
-    LOG(WARNING) << "Modules autoload contains invalid paths";
+    VLOG(1) << "Modules autoload contains invalid paths: "
+            << FLAGS_modules_autoload;
   }
 }
 
@@ -249,7 +250,6 @@ Status startExtension(const std::string& manager_path,
   // Make sure the extension manager path exists, and is writable.
   auto status = extensionPathActive(manager_path, true);
   if (!status.ok()) {
-    printf("bad path active\n");
     return status;
   }
 

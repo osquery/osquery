@@ -51,6 +51,13 @@ INTEGER = DataType("INTEGER", "int")
 BIGINT = DataType("BIGINT", "long long int")
 UNSIGNED_BIGINT = DataType("UNSIGNED_BIGINT", "long long unsigned int")
 
+# Define table-category MACROS from the table specs
+UNKNOWN = "UNKNOWN"
+UTILITY = "UTILITY"
+SYSTEM = "SYSTEM"
+NETWORK = "NETWORK"
+EVENTS = "EVENTS"
+APPLICATION = "APPLICATION"
 
 def usage():
     """ print program usage """

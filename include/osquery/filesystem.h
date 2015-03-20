@@ -206,6 +206,9 @@ bool safePermissions(const std::string& dir,
                      const std::string& path,
                      bool executable = false);
 
+/// The shell tooling may store local resources in an "osquery" home.
+const std::string& osqueryHomeDirectory();
+
 /// Return bit-mask-style permissions.
 std::string lsperms(int mode);
 
