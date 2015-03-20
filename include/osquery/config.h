@@ -89,6 +89,14 @@ class Config {
   static Status load();
 
   /**
+   * @brief Update the internal config data.
+   *
+   * @param config A map of domain or namespace to config data.
+   * @return If the config changes were applied.
+   */
+  static Status update(const std::map<std::string, std::string>& config);
+
+  /**
    * @brief Get a vector of all scheduled queries.
    *
    * @code{.cpp}
@@ -181,13 +189,9 @@ class Config {
    * If no config retriever was specified, the config retriever represented by
    * kDefaultConfigRetriever is used.
    *
-   * @param conf a reference to a string which will be populated by the config
-   * retriever in use.
-   *
-   * @return an instance of osquery::Status, indicating the success or failure
-   * of the operation.
+   * @return status indicating the success or failure of the operation.
    */
-  static osquery::Status genConfig(std::vector<std::string>& conf);
+  static osquery::Status genConfig();
 
   /// Prevent ConfigPlugins from implementing setUp.
   osquery::Status setUp() { return Status(0, "Not used"); }
@@ -198,6 +202,8 @@ class Config {
    * native format
    */
   OsqueryConfig cfg_;
+  /// The raw JSON source map from the config plugin.
+  std::map<std::string, std::string> raw_;
 };
 
 /**

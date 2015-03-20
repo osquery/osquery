@@ -39,27 +39,25 @@ Status Config::load() {
     return Status(1, "Missing config plugin " + config_plugin);
   }
 
-  boost::unique_lock<boost::shared_mutex> lock(rw_lock);
-
-  OsqueryConfig conf;
-  if (!genConfig(conf).ok()) {
-    return Status(1, "Cannot generate config");
-  }
-
-  // Override default arguments with flag options from config.
-  for (const auto& option : conf.options) {
-    if (Flag::isDefault(option.first)) {
-      // Only override if option was NOT given as an argument.
-      Flag::updateValue(option.first, option.second);
-      VLOG(1) << "Setting flag option: " << option.first << "="
-              << option.second;
-    }
-  }
-  getInstance().cfg_ = conf;
-  return Status(0, "OK");
+  return genConfig();
 }
 
-Status Config::genConfig(std::vector<std::string>& conf) {
+Status Config::update(const std::map<std::string, std::string>& config) {
+  boost::unique_lock<boost::shared_mutex> lock(rw_lock);
+
+  for (const auto& source : config) {
+    getInstance().raw_[source.first] = source.second;
+  }
+
+  OsqueryConfig conf;
+  auto status = genConfig(conf);
+  if (status.ok()) {
+    getInstance().cfg_ = conf;
+  }
+  return status;
+}
+
+Status Config::genConfig() {
   auto& config_plugin = Registry::getActive("config");
   if (!Registry::exists("config", config_plugin)) {
     return Status(1, "Missing config plugin " + config_plugin);
@@ -72,19 +70,23 @@ Status Config::genConfig(std::vector<std::string>& conf) {
   }
 
   if (response.size() > 0) {
-    for (const auto& it : response[0]) {
-      conf.push_back(it.second);
-    }
+    return update(response[0]);
   }
   return Status(0, "OK");
 }
 
 inline void mergeOption(const tree_node& option, OsqueryConfig& conf) {
   conf.options[option.first.data()] = option.second.data();
+  if (conf.all_data.count("options") > 0) {
+    conf.all_data.get_child("options").erase(option.first);
+  }
   conf.all_data.add_child("options." + option.first, option.second);
 }
 
 inline void mergeAdditional(const tree_node& node, OsqueryConfig& conf) {
+  if (conf.all_data.count("additional_monitoring") > 0) {
+    conf.all_data.get_child("additional_monitoring").erase(node.first);
+  }
   conf.all_data.add_child("additional_monitoring." + node.first, node.second);
 
   // Support special merging of file paths.
@@ -113,15 +115,9 @@ inline void mergeScheduledQuery(const tree_node& node, OsqueryConfig& conf) {
 }
 
 Status Config::genConfig(OsqueryConfig& conf) {
-  std::vector<std::string> configs;
-  auto s = genConfig(configs);
-  if (!s.ok()) {
-    return s;
-  }
-
-  for (const auto& config_data : configs) {
+  for (const auto& source : getInstance().raw_) {
     std::stringstream json_data;
-    json_data << config_data;
+    json_data << source.second;
 
     pt::ptree tree;
     pt::read_json(json_data, tree);
@@ -172,10 +168,7 @@ Status Config::getMD5(std::string& hash_string) {
   return Status(0, "OK");
 }
 
-Status Config::checkConfig() {
-  OsqueryConfig c;
-  return genConfig(c);
-}
+Status Config::checkConfig() { return load(); }
 
 Status ConfigPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
