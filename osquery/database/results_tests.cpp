@@ -24,6 +24,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 class ResultsTests : public testing::Test {};
+std::string escapeNonPrintableBytes(const std::string& data);
 
 TEST_F(ResultsTests, test_simple_diff) {
   QueryData o;
@@ -128,6 +129,33 @@ TEST_F(ResultsTests, test_serialize_scheduled_query_log_item_json) {
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(results.first, json);
+}
+
+TEST_F(ResultsTests, test_unicode_to_ascii_conversion) {
+  EXPECT_EQ(escapeNonPrintableBytes("しかたがない"),
+            "\\xE3\\x81\\x97\\xE3\\x81\\x8B\\xE3\\x81\\x9F\\xE3\\x81\\x8C\\xE3"
+            "\\x81\\xAA\\xE3\\x81\\x84");
+  EXPECT_EQ(escapeNonPrintableBytes("悪因悪果"),
+            "\\xE6\\x82\\xAA\\xE5\\x9B\\xA0\\xE6\\x82\\xAA\\xE6\\x9E\\x9C");
+  EXPECT_EQ(escapeNonPrintableBytes("モンスターハンター"),
+            "\\xE3\\x83\\xA2\\xE3\\x83\\xB3\\xE3\\x82\\xB9\\xE3\\x82\\xBF\\xE3"
+            "\\x83\\xBC\\xE3\\x83\\x8F\\xE3\\x83\\xB3\\xE3\\x82\\xBF\\xE3\\x83"
+            "\\xBC");
+  EXPECT_EQ(
+      escapeNonPrintableBytes(
+          "съешь же ещё этих мягких французских булок, да выпей чаю"),
+      "\\xD1\\x81\\xD1\\x8A\\xD0\\xB5\\xD1\\x88\\xD1\\x8C \\xD0\\xB6\\xD0\\xB5 "
+      "\\xD0\\xB5\\xD1\\x89\\xD1\\x91 \\xD1\\x8D\\xD1\\x82\\xD0\\xB8\\xD1\\x85 "
+      "\\xD0\\xBC\\xD1\\x8F\\xD0\\xB3\\xD0\\xBA\\xD0\\xB8\\xD1\\x85 "
+      "\\xD1\\x84\\xD1\\x80\\xD0\\xB0\\xD0\\xBD\\xD1\\x86\\xD1\\x83\\xD0\\xB7\\"
+      "xD1\\x81\\xD0\\xBA\\xD0\\xB8\\xD1\\x85 "
+      "\\xD0\\xB1\\xD1\\x83\\xD0\\xBB\\xD0\\xBE\\xD0\\xBA, "
+      "\\xD0\\xB4\\xD0\\xB0 \\xD0\\xB2\\xD1\\x8B\\xD0\\xBF\\xD0\\xB5\\xD0\\xB9 "
+      "\\xD1\\x87\\xD0\\xB0\\xD1\\x8E");
+
+  EXPECT_EQ(
+      escapeNonPrintableBytes("The quick brown fox jumps over the lazy dog."),
+      "The quick brown fox jumps over the lazy dog.");
 }
 
 TEST_F(ResultsTests, test_adding_duplicate_rows_to_query_data) {

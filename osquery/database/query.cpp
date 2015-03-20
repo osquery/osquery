@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -101,11 +101,15 @@ osquery::Status Query::addNewResults(const osquery::QueryData& qd,
     return hqr_status;
   }
 
+  QueryData escaped_qd;
+  // remove all non-ascii characters from the string
+  escapeQueryData(qd, escaped_qd);
+
   if (calculate_diff) {
-    dr = diff(hQR.mostRecentResults.second, qd);
+    dr = diff(hQR.mostRecentResults.second, escaped_qd);
   }
   hQR.mostRecentResults.first = unix_time;
-  hQR.mostRecentResults.second = qd;
+  hQR.mostRecentResults.second = escaped_qd;
   std::string json;
   auto serialize_status = serializeHistoricalQueryResultsJSON(hQR, json);
   if (!serialize_status.ok()) {
