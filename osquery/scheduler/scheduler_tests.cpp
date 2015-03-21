@@ -10,13 +10,11 @@
  
 #include <gtest/gtest.h>
 
-#include <osquery/scheduler.h>
+#include "osquery/scheduler/scheduler.h"
 
 namespace osquery {
 
 class SchedulerTests : public testing::Test {};
-
-TEST_F(SchedulerTests, test) { EXPECT_EQ(true, true); }
 
 TEST_F(SchedulerTests, test_splay) {
   auto val1 = splayValue(100, 10);

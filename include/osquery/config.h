@@ -17,9 +17,9 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <osquery/database/results.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
-#include <osquery/scheduler.h>
 #include <osquery/status.h>
 
 namespace pt = boost::property_tree;

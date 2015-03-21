@@ -16,7 +16,6 @@
 
 #include <osquery/database/db_handle.h>
 #include <osquery/database/results.h>
-#include <osquery/scheduler.h>
 #include <osquery/status.h>
 
 #ifndef FRIEND_TEST

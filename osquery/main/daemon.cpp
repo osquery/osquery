@@ -11,7 +11,8 @@
 #include <boost/thread.hpp>
 
 #include <osquery/core.h>
-#include <osquery/scheduler.h>
+
+#include "osquery/scheduler/scheduler.h"
 
 const std::string kWatcherWorkerName = "osqueryd: worker";
 
@@ -30,8 +31,7 @@ int main(int argc, char* argv[]) {
   runner.start();
 
   // Begin the schedule runloop.
-  boost::thread scheduler_thread(osquery::initializeScheduler);
-  scheduler_thread.join();
+  osquery::startScheduler();
 
   // Finally shutdown.
   runner.shutdown();

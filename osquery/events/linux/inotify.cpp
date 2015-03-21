@@ -133,7 +133,7 @@ Status INotifyEventPublisher::run() {
     p += (sizeof(struct inotify_event)) + event->len;
   }
 
-  osquery::interruptableSleep(kINotifyMLatency);
+  osquery::publisherSleep(kINotifyMLatency);
   return Status(0, "Continue");
 }
 

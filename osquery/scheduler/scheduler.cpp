@@ -18,7 +18,8 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
-#include <osquery/scheduler.h>
+
+#include "osquery/scheduler/scheduler.h"
 
 namespace osquery {
 
@@ -29,6 +30,8 @@ FLAG(string,
 
 FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
 
+CLI_FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
+
 Status getHostIdentifier(std::string& ident) {
   std::shared_ptr<DBHandle> db;
   try {
@@ -37,37 +40,37 @@ Status getHostIdentifier(std::string& ident) {
     return Status(1, e.what());
   }
 
-  if (FLAGS_host_identifier == "uuid") {
-    std::vector<std::string> results;
-    auto status = db->Scan(kConfigurations, results);
-
-    if (!status.ok()) {
-      LOG(ERROR) << "Could not access database, using hostname as the host "
-                    "identifier.";
-      ident = osquery::getHostname();
-      return Status(0, "OK");
-    }
-
-    if (std::find(results.begin(), results.end(), "hostIdentifier") !=
-        results.end()) {
-      status = db->Get(kConfigurations, "hostIdentifier", ident);
-      if (!status.ok()) {
-        LOG(ERROR) << "Could not access database, using hostname as the host "
-                      "identifier.";
-        ident = osquery::getHostname();
-      }
-      return status;
-    } else {
-      // There was no uuid stored in the database, generate one and store it.
-      ident = osquery::generateHostUuid();
-      LOG(INFO) << "Using uuid " << ident << " to identify this host.";
-      return db->Put(kConfigurations, "hostIdentifier", ident);
-    }
-  } else {
+  if (FLAGS_host_identifier != "uuid") {
     // use the hostname as the default machine identifier
     ident = osquery::getHostname();
     return Status(0, "OK");
   }
+
+  std::vector<std::string> results;
+  auto status = db->Scan(kConfigurations, results);
+
+  if (!status.ok()) {
+    VLOG(1) << "Could not access database, using hostname as the host "
+               "identifier";
+    ident = osquery::getHostname();
+    return Status(0, "OK");
+  }
+
+  if (std::find(results.begin(), results.end(), "hostIdentifier") !=
+      results.end()) {
+    status = db->Get(kConfigurations, "hostIdentifier", ident);
+    if (!status.ok()) {
+      VLOG(1) << "Could not access database, using hostname as the host "
+                 "identifier";
+      ident = osquery::getHostname();
+    }
+    return status;
+  }
+
+  // There was no uuid stored in the database, generate one and store it.
+  ident = osquery::generateHostUuid();
+  VLOG(1) << "Using uuid " << ident << " to identify this host";
+  return db->Put(kConfigurations, "hostIdentifier", ident);
 }
 
 void launchQuery(const OsqueryScheduledQuery& query) {
@@ -94,40 +97,25 @@ void launchQuery(const OsqueryScheduledQuery& query) {
   }
 
   ScheduledQueryLogItem item;
-  Status s;
-
   item.diffResults = diff_results;
   item.name = query.name;
 
   std::string ident;
-  s = getHostIdentifier(ident);
-  if (s.ok()) {
+  status = getHostIdentifier(ident);
+  if (status.ok()) {
     item.hostIdentifier = ident;
-  } else {
-    LOG(ERROR) << "Error getting the host identifier";
-    if (ident.empty()) {
-      ident = "<unknown>";
-    }
+  } else if (ident.empty()) {
+    ident = "<unknown>";
   }
 
   item.unixTime = osquery::getUnixTime();
   item.calendarTime = osquery::getAsciiTime();
 
-  LOG(INFO) << "Found results for query " << query.name
-            << " for host: " << ident;
-  s = logScheduledQueryLogItem(item);
-  if (!s.ok()) {
+  VLOG(1) << "Found results for query " << query.name << " for host: " << ident;
+  status = logScheduledQueryLogItem(item);
+  if (!status.ok()) {
     LOG(ERROR) << "Error logging the results of query \"" << query.query << "\""
-               << ": " << s.toString();
-  }
-}
-
-void launchQueries(const std::vector<OsqueryScheduledQuery>& queries,
-                   const int64_t& second) {
-  for (const auto& q : queries) {
-    if (second % q.interval == 0) {
-      launchQuery(q);
-    }
+               << ": " << status.toString();
   }
 }
 
@@ -150,33 +138,41 @@ int splayValue(int original, int splayPercent) {
   return distribution(generator);
 }
 
-void initializeScheduler() {
-  DLOG(INFO) << "osquery::initializeScheduler";
-  time_t t = time(0);
-  struct tm* local = localtime(&t);
-  unsigned long int second = local->tm_sec;
-
-#ifdef OSQUERY_TEST_DAEMON
-  // if we're testing the daemon, only iterate through 15 "seconds"
-  static unsigned long int stop_at = second + 15;
-#else
-  // if this is production, count forever
-  static unsigned long int stop_at = ULONG_MAX;
-#endif
-
+void SchedulerRunner::enter() {
   // Iterate over scheduled queryies and add a splay to each.
   auto schedule = Config::getScheduledQueries();
-  for (auto& q : schedule) {
-    auto old_interval = q.interval;
+  for (auto& query : schedule) {
+    auto old_interval = query.interval;
     auto new_interval = splayValue(old_interval, FLAGS_schedule_splay_percent);
-    VLOG(1) << "Splay changing the interval for " << q.name << " from  "
+    VLOG(1) << "Splay changing the interval for " << query.name << " from  "
             << old_interval << " to " << new_interval;
-    q.interval = new_interval;
+    query.interval = new_interval;
   }
 
-  for (; second <= stop_at; ++second) {
-    launchQueries(schedule, second);
-    ::sleep(1);
+  time_t t = time(0);
+  struct tm* local = localtime(&t);
+  unsigned long int i = local->tm_sec;
+  for (; (timeout_ == 0) || (i <= timeout_); ++i) {
+    for (const auto& query : schedule) {
+      if (i % query.interval == 0) {
+        launchQuery(query);
+      }
+    }
+    osquery::interruptableSleep(interval_ * 1000);
   }
+}
+
+Status startScheduler() {
+  if (startScheduler(FLAGS_schedule_timeout, 1).ok()) {
+    Dispatcher::joinServices();
+    return Status(0, "OK");
+  }
+  return Status(1, "Could not start scheduler");
+}
+
+Status startScheduler(unsigned long int timeout, size_t interval) {
+  Dispatcher::getInstance().addService(
+      std::make_shared<SchedulerRunner>(timeout, interval));
+  return Status(0, "OK");
 }
 }
