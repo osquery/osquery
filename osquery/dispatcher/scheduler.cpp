@@ -7,10 +7,8 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-
-#include <climits>
+ 
 #include <ctime>
-#include <random>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
@@ -19,7 +17,7 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
-#include "osquery/scheduler/scheduler.h"
+#include "osquery/dispatcher/scheduler.h"
 
 namespace osquery {
 
@@ -27,8 +25,6 @@ FLAG(string,
      host_identifier,
      "hostname",
      "Field used to identify the host running osquery (hostname, uuid)");
-
-FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
 
 CLI_FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
 
@@ -73,7 +69,7 @@ Status getHostIdentifier(std::string& ident) {
   return db->Put(kConfigurations, "hostIdentifier", ident);
 }
 
-void launchQuery(const OsqueryScheduledQuery& query) {
+void launchQuery(const std::string& name, const ScheduledQuery& query) {
   LOG(INFO) << "Executing query: " << query.query;
   int unix_time = std::time(0);
   auto sql = SQL(query.query);
@@ -83,7 +79,7 @@ void launchQuery(const OsqueryScheduledQuery& query) {
     return;
   }
 
-  auto dbQuery = Query(query);
+  auto dbQuery = Query(name, query);
   DiffResults diff_results;
   auto status = dbQuery.addNewResults(sql.rows(), diff_results, unix_time);
   if (!status.ok()) {
@@ -98,7 +94,7 @@ void launchQuery(const OsqueryScheduledQuery& query) {
 
   ScheduledQueryLogItem item;
   item.diffResults = diff_results;
-  item.name = query.name;
+  item.name = name;
 
   std::string ident;
   status = getHostIdentifier(ident);
@@ -111,7 +107,7 @@ void launchQuery(const OsqueryScheduledQuery& query) {
   item.unixTime = osquery::getUnixTime();
   item.calendarTime = osquery::getAsciiTime();
 
-  VLOG(1) << "Found results for query " << query.name << " for host: " << ident;
+  VLOG(1) << "Found results for query " << name << " for host: " << ident;
   status = logScheduledQueryLogItem(item);
   if (!status.ok()) {
     LOG(ERROR) << "Error logging the results of query \"" << query.query << "\""
@@ -119,38 +115,7 @@ void launchQuery(const OsqueryScheduledQuery& query) {
   }
 }
 
-int splayValue(int original, int splayPercent) {
-  if (splayPercent <= 0 || splayPercent > 100) {
-    return original;
-  }
-
-  float percent_to_modify_by = (float)splayPercent / 100;
-  int possible_difference = original * percent_to_modify_by;
-  int max_value = original + possible_difference;
-  int min_value = original - possible_difference;
-
-  if (max_value == min_value) {
-    return max_value;
-  }
-
-  std::default_random_engine generator;
-  std::uniform_int_distribution<int> distribution(min_value, max_value);
-  return distribution(generator);
-}
-
 void SchedulerRunner::enter() {
-  /**
-    // Iterate over scheduled queryies and add a splay to each.
-    for (auto& query : schedule) {
-      auto old_interval = query.interval;
-      auto new_interval = splayValue(old_interval,
-  FLAGS_schedule_splay_percent);
-      VLOG(1) << "Splay changing the interval for " << query.name << " from  "
-              << old_interval << " to " << new_interval;
-      query.interval = new_interval;
-    }
-  **/
-
   time_t t = time(0);
   struct tm* local = localtime(&t);
   unsigned long int i = local->tm_sec;
@@ -158,8 +123,8 @@ void SchedulerRunner::enter() {
     ConfigDataInstance config;
 
     for (const auto& query : config.schedule()) {
-      if (i % query.interval == 0) {
-        launchQuery(query);
+      if (i % query.second.splayed_interval == 0) {
+        launchQuery(query.first, query.second);
       }
     }
     osquery::interruptableSleep(interval_ * 1000);

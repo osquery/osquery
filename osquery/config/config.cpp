@@ -9,6 +9,7 @@
  */
 
 #include <mutex>
+#include <random>
 #include <sstream>
 
 #include <osquery/config.h>
@@ -26,6 +27,8 @@ namespace osquery {
 
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
+FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
+
 Status Config::load() {
   auto& config_plugin = Registry::getActive("config");
   if (!Registry::exists("config", config_plugin)) {
@@ -39,17 +42,18 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   // Request a unique write lock when updating config.
   boost::unique_lock<boost::shared_mutex> unique_lock(getInstance().mutex_);
 
+  ConfigData conf;
   for (const auto& source : config) {
     getInstance().raw_[source.first] = source.second;
   }
 
-  ConfigData conf;
-  auto status = genConfig(conf);
-  if (status.ok()) {
-    getInstance().data_ = conf;
+  // Now merge all sources together.
+  for (const auto& source : getInstance().raw_) {
+    mergeConfig(source.second, conf);
   }
 
-  return status;
+  getInstance().data_ = conf;
+  return Status(0, "OK");
 }
 
 Status Config::genConfig() {
@@ -93,44 +97,67 @@ inline void mergeAdditional(const tree_node& node, ConfigData& conf) {
   }
 }
 
-inline void mergeScheduledQuery(const tree_node& node, ConfigData& conf) {
+// inline void mergeScheduledQuery(const tree_node& node, ConfigData& conf) {
+inline void mergeScheduledQuery(const std::string& name,
+                                const tree_node& node,
+                                ConfigData& conf) {
   // Read tree/JSON into a query structure.
-  OsqueryScheduledQuery query;
-  query.name = node.second.get<std::string>("name", "");
+  ScheduledQuery query;
   query.query = node.second.get<std::string>("query", "");
   query.interval = node.second.get<int>("interval", 0);
-  // Also store the raw node in the property tree list.
-  conf.schedule.push_back(query);
-  conf.all_data.add_child("scheduledQueries", node.second);
-}
 
-Status Config::genConfig(ConfigData& conf) {
-  for (const auto& source : getInstance().raw_) {
-    std::stringstream json_data;
-    json_data << source.second;
-
-    pt::ptree tree;
-    pt::read_json(json_data, tree);
-
-    if (tree.count("scheduledQueries") > 0) {
-      for (const auto& node : tree.get_child("scheduledQueries")) {
-        mergeScheduledQuery(node, conf);
-      }
-    }
-
-    if (tree.count("additional_monitoring") > 0) {
-      for (const auto& node : tree.get_child("additional_monitoring")) {
-        mergeAdditional(node, conf);
-      }
-    }
-
-    if (tree.count("options") > 0) {
-      for (const auto& option : tree.get_child("options")) {
-        mergeOption(option, conf);
-      }
+  // Check if this query exists, if so, check if it was changed.
+  if (conf.schedule.count(name) > 0) {
+    if (query == conf.schedule.at(name)) {
+      return;
     }
   }
-  return Status(0, "OK");
+
+  // This is a new or updated scheduled query, update the splay.
+  query.splayed_interval =
+      splayValue(query.interval, FLAGS_schedule_splay_percent);
+  // Update the schedule map and replace the all_data node record.
+  conf.schedule[name] = query;
+  if (conf.all_data.count("schedule") > 0) {
+    conf.all_data.get_child("schedule").erase(name);
+  }
+  conf.all_data.add_child("schedule." + name, node.second);
+}
+
+void Config::mergeConfig(const std::string& source, ConfigData& conf) {
+  std::stringstream json_data;
+  json_data << source;
+
+  pt::ptree tree;
+  pt::read_json(json_data, tree);
+
+  // Legacy query schedule vector support.
+  if (tree.count("scheduledQueries") > 0) {
+    LOG(INFO) << RLOG(903) << "config 'scheduledQueries' is deprecated";
+    for (const auto& node : tree.get_child("scheduledQueries")) {
+      auto query_name = node.second.get<std::string>("name", "");
+      mergeScheduledQuery(query_name, node, conf);
+    }
+  }
+
+  // Key/value query schedule map support.
+  if (tree.count("schedule") > 0) {
+    for (const auto& node : tree.get_child("schedule")) {
+      mergeScheduledQuery(node.first.data(), node, conf);
+    }
+  }
+
+  if (tree.count("additional_monitoring") > 0) {
+    for (const auto& node : tree.get_child("additional_monitoring")) {
+      mergeAdditional(node, conf);
+    }
+  }
+
+  if (tree.count("options") > 0) {
+    for (const auto& option : tree.get_child("options")) {
+      mergeOption(option, conf);
+    }
+  }
 }
 
 Status Config::getMD5(std::string& hash_string) {
@@ -161,5 +188,24 @@ Status ConfigPlugin::call(const PluginRequest& request,
     return stat;
   }
   return Status(1, "Config plugin action unknown: " + request.at("action"));
+}
+
+int splayValue(int original, int splayPercent) {
+  if (splayPercent <= 0 || splayPercent > 100) {
+    return original;
+  }
+
+  float percent_to_modify_by = (float)splayPercent / 100;
+  int possible_difference = original * percent_to_modify_by;
+  int max_value = original + possible_difference;
+  int min_value = original - possible_difference;
+
+  if (max_value == min_value) {
+    return max_value;
+  }
+
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int> distribution(min_value, max_value);
+  return distribution(generator);
 }
 }

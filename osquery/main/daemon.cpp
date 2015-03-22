@@ -12,7 +12,7 @@
 
 #include <osquery/core.h>
 
-#include "osquery/scheduler/scheduler.h"
+#include "osquery/dispatcher/scheduler.h"
 
 const std::string kWatcherWorkerName = "osqueryd: worker";
 

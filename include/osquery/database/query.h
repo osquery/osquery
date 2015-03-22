@@ -10,18 +10,13 @@
 
 #pragma once
 
-#include <deque>
 #include <memory>
 #include <string>
+#include <vector>
 
+#include <osquery/core.h>
 #include <osquery/database/db_handle.h>
 #include <osquery/database/results.h>
-#include <osquery/status.h>
-
-#ifndef FRIEND_TEST
-#define FRIEND_TEST(test_case_name, test_name) \
-  friend class test_case_name##_##test_name##_Test
-#endif
 
 namespace osquery {
 
@@ -40,10 +35,11 @@ class Query {
    * Given a query, this constructor calculates the value of columnFamily_,
    * which can be accessed via the getColumnFamilyName getter method.
    *
-   * @param q an OsqueryScheduledQuery struct which represents the query which
+   * @param q a SheduledQuery struct which represents the query which
    * you would like to interact with
    */
-  explicit Query(OsqueryScheduledQuery q) : query_(q) {}
+  explicit Query(const std::string& name, ScheduledQuery q)
+      : query_(q), name_(name) {}
 
   /////////////////////////////////////////////////////////////////////////////
   // Getters and setters
@@ -88,7 +84,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status getHistoricalQueryResults(HistoricalQueryResults& hQR);
+  Status getHistoricalQueryResults(HistoricalQueryResults& hQR);
 
  private:
   /**
@@ -112,8 +108,8 @@ class Query {
    *
    * @see getHistoricalQueryResults
    */
-  osquery::Status getHistoricalQueryResults(HistoricalQueryResults& hQR,
-                                            std::shared_ptr<DBHandle> db);
+  Status getHistoricalQueryResults(HistoricalQueryResults& hQR,
+                                   std::shared_ptr<DBHandle> db);
 
  public:
   /**
@@ -185,7 +181,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status addNewResults(const osquery::QueryData& qd, int unix_time);
+  Status addNewResults(const QueryData& qd, int unix_time);
 
  private:
   /**
@@ -203,9 +199,9 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status addNewResults(const osquery::QueryData& qd,
-                                int unix_time,
-                                std::shared_ptr<DBHandle> db);
+  Status addNewResults(const QueryData& qd,
+                       int unix_time,
+                       std::shared_ptr<DBHandle> db);
 
  public:
   /**
@@ -226,9 +222,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status addNewResults(const osquery::QueryData& qd,
-                                osquery::DiffResults& dr,
-                                int unix_time);
+  Status addNewResults(const QueryData& qd, DiffResults& dr, int unix_time);
 
  private:
   /**
@@ -250,11 +244,11 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status addNewResults(const osquery::QueryData& qd,
-                                osquery::DiffResults& dr,
-                                bool calculate_diff,
-                                int unix_time,
-                                std::shared_ptr<DBHandle> db);
+  Status addNewResults(const QueryData& qd,
+                       DiffResults& dr,
+                       bool calculate_diff,
+                       int unix_time,
+                       std::shared_ptr<DBHandle> db);
 
  public:
   /**
@@ -266,7 +260,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status getCurrentResults(osquery::QueryData& qd);
+  osquery::Status getCurrentResults(QueryData& qd);
 
  private:
   /**
@@ -284,16 +278,17 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  osquery::Status getCurrentResults(osquery::QueryData& qd,
-                                    std::shared_ptr<DBHandle> db);
+  Status getCurrentResults(QueryData& qd, std::shared_ptr<DBHandle> db);
 
  private:
   /////////////////////////////////////////////////////////////////////////////
   // Private members
   /////////////////////////////////////////////////////////////////////////////
 
-  /// The scheduled query that Query is operating on
-  osquery::OsqueryScheduledQuery query_;
+  /// The scheduled query and internal
+  ScheduledQuery query_;
+  /// The scheduled query name.
+  std::string name_;
 
  private:
   /////////////////////////////////////////////////////////////////////////////

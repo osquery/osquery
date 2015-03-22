@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include <deque>
 #include <map>
 #include <string>
 #include <vector>
@@ -278,26 +277,21 @@ void escapeQueryData(const osquery::QueryData &oldData, osquery::QueryData &newD
  * Within the context of osqueryd, a scheduled query may have many relevant
  * attributes. Those attributes are represented in this data structure.
  */
-struct OsqueryScheduledQuery {
-  /// name represents the "name" of a query.
-  std::string name;
-
-  /// query represents the actual SQL query.
+struct ScheduledQuery {
+  /// The SQL query.
   std::string query;
-
-  /// interval represents how often the query should be executed, in minutes.
+  /// How often the query should be executed, in second.
   int interval;
+  /// A temporary splayed internal.
+  int splayed_interval;
 
   /// equals operator
-  bool operator==(const OsqueryScheduledQuery& comp) const {
-    return (comp.name == name) && (comp.query == query) &&
-           (comp.interval == interval);
+  bool operator==(const ScheduledQuery& comp) const {
+    return (comp.query == query) && (comp.interval == interval);
   }
 
   /// not equals operator
-  bool operator!=(const OsqueryScheduledQuery& comp) const {
-    return !(*this == comp);
-  }
+  bool operator!=(const ScheduledQuery& comp) const { return !(*this == comp); }
 };
 
 /////////////////////////////////////////////////////////////////////////////

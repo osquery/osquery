@@ -39,21 +39,11 @@ DECLARE_string(config_plugin);
  */
 struct ConfigData {
   /// A vector of all of the queries that are scheduled to execute.
-  std::vector<OsqueryScheduledQuery> schedule;
+  std::map<std::string, ScheduledQuery> schedule;
   std::map<std::string, std::string> options;
   std::map<std::string, std::vector<std::string> > files;
   pt::ptree all_data;
 };
-
-/**
- * @brief A string which represents the default consfig retriever.
- *
- * The config plugin that you use to define your config retriever can be
- * defined via a command-line flag, however, if you don't define a config
- * plugin to use via the command-line, then the config retriever which is
- * represented by the string stored in kDefaultConfigRetriever will be used.
- */
-extern const std::string kDefaultConfigRetriever;
 
 /**
  * @brief A singleton that exposes accessors to osquery's configuration data.
@@ -126,26 +116,6 @@ class Config : private boost::noncopyable {
   Config(Config const&);
   void operator=(Config const&);
 
-
-  /**
-   * @brief Uses the specified config retriever to populate a config struct.
-   *
-   * Internally, genConfig checks to see if there was a config retriever
-   * specified on the command-line. If there was, it checks to see if that
-   * config retriever actually exists. If it does, it gets used to generate
-   * configuration data. If it does not, an error is logged.
-   *
-   * If no config retriever was specified, the config retriever represented by
-   * kDefaultConfigRetriever is used.
-   *
-   * @param conf a reference to a struct which will be populated by the config
-   * retriever in use.
-   *
-   * @return an instance of osquery::Status, indicating the success or failure
-   * of the operation.
-   */
-  static Status genConfig(ConfigData& conf);
-
   /**
    * @brief Uses the specified config retriever to populate a string with the
    * config JSON.
@@ -155,12 +125,12 @@ class Config : private boost::noncopyable {
    * config retriever actually exists. If it does, it gets used to generate
    * configuration data. If it does not, an error is logged.
    *
-   * If no config retriever was specified, the config retriever represented by
-   * kDefaultConfigRetriever is used.
-   *
    * @return status indicating the success or failure of the operation.
    */
   static Status genConfig();
+
+  /// Merge a retrieved config source JSON into a working ConfigData.
+  static void mergeConfig(const std::string& source, ConfigData& conf);
 
  private:
   /**
@@ -198,7 +168,7 @@ class ConfigDataInstance {
   ~ConfigDataInstance() { lock_.unlock(); }
 
   /// Helper accessor for Config::data_.schedule.
-  const std::vector<OsqueryScheduledQuery> schedule() {
+  const std::map<std::string, ScheduledQuery> schedule() {
     return Config::getInstance().data_.schedule;
   }
 
@@ -262,6 +232,19 @@ class ConfigPlugin : public Plugin {
   virtual Status genConfig(std::map<std::string, std::string>& config) = 0;
   Status call(const PluginRequest& request, PluginResponse& response);
 };
+
+/**
+ * @brief Calculate a splayed integer based on a variable splay percentage
+ *
+ * The value of splayPercent must be between 1 and 100. If it's not, the
+ * value of original will be returned.
+ *
+ * @param original The original value to be modified
+ * @param splayPercent The percent in which to splay the original value by
+ *
+ * @return The modified version of original
+ */
+int splayValue(int original, int splayPercent);
 
 /**
  * @brief Config plugin registry.

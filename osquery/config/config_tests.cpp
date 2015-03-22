@@ -104,9 +104,9 @@ TEST_F(ConfigTests, test_config_update) {
   auto status = Config::getMD5(digest);
   EXPECT_TRUE(status);
 
-  // Request an update of the 'new_source1'.
+  // Request an update of the 'new_source1'. Set new1 = value.
   status =
-      Config::update({{"1new_source", "{\"options\": {\"new1\": \"value\"}}"}});
+      Config::update({{"new_source1", "{\"options\": {\"new1\": \"value\"}}"}});
   EXPECT_TRUE(status);
 
   // At least, the amalgamated config digest should have changed.
@@ -122,18 +122,18 @@ TEST_F(ConfigTests, test_config_update) {
   }
 
   // Add a lexically larger source that emits the same option 'new1'.
-  Config::update({{"2new_source", "{\"options\": {\"new1\": \"changed\"}}"}});
+  Config::update({{"new_source2", "{\"options\": {\"new1\": \"changed\"}}"}});
 
   {
     ConfigDataInstance config;
     auto option = config.data().get<std::string>("options.new1", "");
-    // Expect the amalgamation to have overritten 'new_source1'.
+    // Expect the amalgamation to have overwritten 'new_source1'.
     EXPECT_EQ(option, "changed");
   }
 
   // Again add a source but emit a different option, both 'new1' and 'new2'
   // should be in the amalgamated/merged config.
-  Config::update({{"3new_source", "{\"options\": {\"new2\": \"different\"}}"}});
+  Config::update({{"new_source3", "{\"options\": {\"new2\": \"different\"}}"}});
 
   {
     ConfigDataInstance config;
@@ -142,6 +142,26 @@ TEST_F(ConfigTests, test_config_update) {
     option = config.data().get<std::string>("options.new2", "");
     EXPECT_EQ(option, "different");
   }
+}
+
+TEST_F(ConfigTests, test_splay) {
+  auto val1 = splayValue(100, 10);
+  EXPECT_GE(val1, 90);
+  EXPECT_LE(val1, 110);
+
+  auto val2 = splayValue(100, 10);
+  EXPECT_GE(val2, 90);
+  EXPECT_LE(val2, 110);
+
+  auto val3 = splayValue(10, 0);
+  EXPECT_EQ(val3, 10);
+
+  auto val4 = splayValue(100, 1);
+  EXPECT_GE(val4, 99);
+  EXPECT_LE(val4, 101);
+
+  auto val5 = splayValue(1, 10);
+  EXPECT_EQ(val5, 1);
 }
 }
 

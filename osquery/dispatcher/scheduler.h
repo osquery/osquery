@@ -39,17 +39,4 @@ Status startScheduler();
 
 /// Helper scheduler start with variable settings for testing.
 Status startScheduler(unsigned long int timeout, size_t interval);
-
-/**
- * @brief Calculate a splayed integer based on a variable splay percentage
- *
- * The value of splayPercent must be between 1 and 100. If it's not, the
- * value of original will be returned.
- *
- * @param original The original value to be modified
- * @param splayPercent The percent in which to splay the original value by
- *
- * @return The modified version of original
- */
-int splayValue(int original, int splayPercent);
 }
