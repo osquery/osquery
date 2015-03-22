@@ -11,8 +11,6 @@
 #include <mutex>
 #include <sstream>
 
-#include <boost/thread/shared_mutex.hpp>
-
 #include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/hash.h>
@@ -28,11 +26,6 @@ namespace osquery {
 
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
-// This lock is used to protect the entirety of the OSqueryConfig struct
-// Is should be used when ever accessing the structs members, reading or
-// writing.
-static boost::shared_mutex rw_lock;
-
 Status Config::load() {
   auto& config_plugin = Registry::getActive("config");
   if (!Registry::exists("config", config_plugin)) {
@@ -43,26 +36,23 @@ Status Config::load() {
 }
 
 Status Config::update(const std::map<std::string, std::string>& config) {
-  boost::unique_lock<boost::shared_mutex> lock(rw_lock);
+  // Request a unique write lock when updating config.
+  boost::unique_lock<boost::shared_mutex> unique_lock(getInstance().mutex_);
 
   for (const auto& source : config) {
     getInstance().raw_[source.first] = source.second;
   }
 
-  OsqueryConfig conf;
+  ConfigData conf;
   auto status = genConfig(conf);
   if (status.ok()) {
-    getInstance().cfg_ = conf;
+    getInstance().data_ = conf;
   }
+
   return status;
 }
 
 Status Config::genConfig() {
-  auto& config_plugin = Registry::getActive("config");
-  if (!Registry::exists("config", config_plugin)) {
-    return Status(1, "Missing config plugin " + config_plugin);
-  }
-
   PluginResponse response;
   auto status = Registry::call("config", {{"action", "genConfig"}}, response);
   if (!status.ok()) {
@@ -75,7 +65,7 @@ Status Config::genConfig() {
   return Status(0, "OK");
 }
 
-inline void mergeOption(const tree_node& option, OsqueryConfig& conf) {
+inline void mergeOption(const tree_node& option, ConfigData& conf) {
   conf.options[option.first.data()] = option.second.data();
   if (conf.all_data.count("options") > 0) {
     conf.all_data.get_child("options").erase(option.first);
@@ -83,7 +73,7 @@ inline void mergeOption(const tree_node& option, OsqueryConfig& conf) {
   conf.all_data.add_child("options." + option.first, option.second);
 }
 
-inline void mergeAdditional(const tree_node& node, OsqueryConfig& conf) {
+inline void mergeAdditional(const tree_node& node, ConfigData& conf) {
   if (conf.all_data.count("additional_monitoring") > 0) {
     conf.all_data.get_child("additional_monitoring").erase(node.first);
   }
@@ -97,24 +87,24 @@ inline void mergeAdditional(const tree_node& node, OsqueryConfig& conf) {
   for (const auto& category : node.second) {
     for (const auto& path : category.second) {
       resolveFilePattern(path.second.data(),
-                         conf.eventFiles[category.first],
+                         conf.files[category.first],
                          REC_LIST_FOLDERS | REC_EVENT_OPT);
     }
   }
 }
 
-inline void mergeScheduledQuery(const tree_node& node, OsqueryConfig& conf) {
+inline void mergeScheduledQuery(const tree_node& node, ConfigData& conf) {
   // Read tree/JSON into a query structure.
   OsqueryScheduledQuery query;
   query.name = node.second.get<std::string>("name", "");
   query.query = node.second.get<std::string>("query", "");
   query.interval = node.second.get<int>("interval", 0);
   // Also store the raw node in the property tree list.
-  conf.scheduledQueries.push_back(query);
+  conf.schedule.push_back(query);
   conf.all_data.add_child("scheduledQueries", node.second);
 }
 
-Status Config::genConfig(OsqueryConfig& conf) {
+Status Config::genConfig(ConfigData& conf) {
   for (const auto& source : getInstance().raw_) {
     std::stringstream json_data;
     json_data << source.second;
@@ -143,24 +133,12 @@ Status Config::genConfig(OsqueryConfig& conf) {
   return Status(0, "OK");
 }
 
-std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
-  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
-  return getInstance().cfg_.scheduledQueries;
-}
-
-std::map<std::string, std::vector<std::string> > Config::getWatchedFiles() {
-  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
-  return getInstance().cfg_.eventFiles;
-}
-
-pt::ptree Config::getEntireConfiguration() {
-  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
-  return getInstance().cfg_.all_data;
-}
-
 Status Config::getMD5(std::string& hash_string) {
+  // Request an accessor to our own config, outside of an update.
+  ConfigDataInstance config;
+
   std::stringstream out;
-  write_json(out, getEntireConfiguration());
+  write_json(out, config.data());
 
   hash_string = osquery::hashFromBuffer(
       HASH_TYPE_MD5, (void*)out.str().c_str(), out.str().length());

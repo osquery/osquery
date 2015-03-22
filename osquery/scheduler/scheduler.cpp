@@ -139,21 +139,25 @@ int splayValue(int original, int splayPercent) {
 }
 
 void SchedulerRunner::enter() {
-  // Iterate over scheduled queryies and add a splay to each.
-  auto schedule = Config::getScheduledQueries();
-  for (auto& query : schedule) {
-    auto old_interval = query.interval;
-    auto new_interval = splayValue(old_interval, FLAGS_schedule_splay_percent);
-    VLOG(1) << "Splay changing the interval for " << query.name << " from  "
-            << old_interval << " to " << new_interval;
-    query.interval = new_interval;
-  }
+  /**
+    // Iterate over scheduled queryies and add a splay to each.
+    for (auto& query : schedule) {
+      auto old_interval = query.interval;
+      auto new_interval = splayValue(old_interval,
+  FLAGS_schedule_splay_percent);
+      VLOG(1) << "Splay changing the interval for " << query.name << " from  "
+              << old_interval << " to " << new_interval;
+      query.interval = new_interval;
+    }
+  **/
 
   time_t t = time(0);
   struct tm* local = localtime(&t);
   unsigned long int i = local->tm_sec;
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
-    for (const auto& query : schedule) {
+    ConfigDataInstance config;
+
+    for (const auto& query : config.schedule()) {
       if (i % query.interval == 0) {
         launchQuery(query);
       }

@@ -32,7 +32,6 @@ class ConfigTests : public testing::Test {
   }
 
  protected:
-
   void SetUp() {
     createMockFileStructure();
     Registry::setUp();
@@ -67,16 +66,36 @@ TEST_F(ConfigTests, test_plugin) {
 }
 
 TEST_F(ConfigTests, test_queries_execute) {
-  auto queries = Config::getScheduledQueries();
-  EXPECT_EQ(queries.size(), 2);
+  ConfigDataInstance config;
+  EXPECT_EQ(config.schedule().size(), 2);
 }
 
 TEST_F(ConfigTests, test_watched_files) {
-  auto files = Config::getWatchedFiles();
+  ConfigDataInstance config;
+  EXPECT_EQ(config.files().size(), 2);
+  EXPECT_EQ(config.files().at("downloads").size(), 1);
+  EXPECT_EQ(config.files().at("system_binaries").size(), 2);
+}
 
-  EXPECT_EQ(files.size(), 2);
-  EXPECT_EQ(files["downloads"].size(), 1);
-  EXPECT_EQ(files["system_binaries"].size(), 2);
+TEST_F(ConfigTests, test_locking) {
+  {
+    // Assume multiple instance accessors will be active.
+    ConfigDataInstance config1;
+    ConfigDataInstance config2;
+
+    // But a unique lock cannot be aquired.
+    boost::unique_lock<boost::shared_mutex> lock(Config::getInstance().mutex_,
+                                                 boost::defer_lock);
+
+    ASSERT_FALSE(lock.try_lock());
+  }
+
+  {
+    // However, a unique lock can be obtained when without instances accessors.
+    boost::unique_lock<boost::shared_mutex> lock(Config::getInstance().mutex_,
+                                                 boost::defer_lock);
+    ASSERT_TRUE(lock.try_lock());
+  }
 }
 
 TEST_F(ConfigTests, test_config_update) {
@@ -96,25 +115,33 @@ TEST_F(ConfigTests, test_config_update) {
   EXPECT_NE(digest, new_digest);
 
   // Access the option that was added in the update to source 'new_source1'.
-  auto config = Config::getEntireConfiguration();
-  auto option = config.get<std::string>("options.new1", "");
-  EXPECT_EQ(option, "value");
+  {
+    ConfigDataInstance config;
+    auto option = config.data().get<std::string>("options.new1", "");
+    EXPECT_EQ(option, "value");
+  }
 
   // Add a lexically larger source that emits the same option 'new1'.
   Config::update({{"2new_source", "{\"options\": {\"new1\": \"changed\"}}"}});
-  config = Config::getEntireConfiguration();
-  option = config.get<std::string>("options.new1", "");
-  // Expect the amalgamation to have overritten 'new_source1'.
-  EXPECT_EQ(option, "changed");
+
+  {
+    ConfigDataInstance config;
+    auto option = config.data().get<std::string>("options.new1", "");
+    // Expect the amalgamation to have overritten 'new_source1'.
+    EXPECT_EQ(option, "changed");
+  }
 
   // Again add a source but emit a different option, both 'new1' and 'new2'
   // should be in the amalgamated/merged config.
   Config::update({{"3new_source", "{\"options\": {\"new2\": \"different\"}}"}});
-  config = Config::getEntireConfiguration();
-  option = config.get<std::string>("options.new1", "");
-  EXPECT_EQ(option, "changed");
-  option = config.get<std::string>("options.new2", "");
-  EXPECT_EQ(option, "different");
+
+  {
+    ConfigDataInstance config;
+    auto option = config.data().get<std::string>("options.new1", "");
+    EXPECT_EQ(option, "changed");
+    option = config.data().get<std::string>("options.new2", "");
+    EXPECT_EQ(option, "different");
+  }
 }
 }
 

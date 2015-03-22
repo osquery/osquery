@@ -14,8 +14,10 @@
 #include <memory>
 #include <vector>
 
+#include <boost/noncopyable.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 #include <osquery/database/results.h>
 #include <osquery/flags.h>
@@ -35,11 +37,11 @@ DECLARE_string(config_plugin);
  * When you use osquery::Config::getInstance(), you are getting a singleton
  * handle to interact with the data stored in an instance of this struct.
  */
-struct OsqueryConfig {
+struct ConfigData {
   /// A vector of all of the queries that are scheduled to execute.
-  std::vector<OsqueryScheduledQuery> scheduledQueries;
+  std::vector<OsqueryScheduledQuery> schedule;
   std::map<std::string, std::string> options;
-  std::map<std::string, std::vector<std::string> > eventFiles;
+  std::map<std::string, std::vector<std::string> > files;
   pt::ptree all_data;
 };
 
@@ -62,7 +64,7 @@ extern const std::string kDefaultConfigRetriever;
  * should be defined using the osquery::config::Config class and the pluggable
  * plugin interface that is included with it.
  */
-class Config {
+class Config : private boost::noncopyable {
  public:
   /**
    * @brief The primary way to access the Config singleton.
@@ -97,40 +99,6 @@ class Config {
   static Status update(const std::map<std::string, std::string>& config);
 
   /**
-   * @brief Get a vector of all scheduled queries.
-   *
-   * @code{.cpp}
-   *   auto config = osquery::config::Config::getInstance();
-   *   for (const auto& q : config->getScheduledQueries()) {
-   *     LOG(INFO) << "name:     " << q.name;
-   *     LOG(INFO) << "interval: " << q.interval;
-   *   }
-   * @endcode
-   *
-   * @return a vector of OsqueryScheduledQuery's which represent the queries
-   * that are to be executed
-   */
-  static std::vector<OsqueryScheduledQuery> getScheduledQueries();
-
-  /**
-   * @brief Get a map of all the files in the intel JSON blob
-   *
-   *
-   *
-   * @return A map all the files in the JSON blob organized by category
-   */
-  static std::map<std::string, std::vector<std::string> > getWatchedFiles();
-
-  /**
-   * @brief Return the configuration ptree
-   *
-   *
-   *
-   * @return Returns the unparsed, ptree representation of the given config
-   */
-  static pt::ptree getEntireConfiguration();
-
-  /**
    * @brief Calculate the has of the osquery config
    *
    * @return The MD5 of the osquery config
@@ -144,7 +112,8 @@ class Config {
    * @return an instance of osquery::Status, indicating the success or failure
    * of the operation.
    */
-  static osquery::Status checkConfig();
+  static Status checkConfig();
+
  private:
   /**
    * @brief Default constructor.
@@ -175,7 +144,7 @@ class Config {
    * @return an instance of osquery::Status, indicating the success or failure
    * of the operation.
    */
-  static osquery::Status genConfig(OsqueryConfig& conf);
+  static Status genConfig(ConfigData& conf);
 
   /**
    * @brief Uses the specified config retriever to populate a string with the
@@ -191,19 +160,64 @@ class Config {
    *
    * @return status indicating the success or failure of the operation.
    */
-  static osquery::Status genConfig();
-
-  /// Prevent ConfigPlugins from implementing setUp.
-  osquery::Status setUp() { return Status(0, "Not used"); }
+  static Status genConfig();
 
  private:
   /**
    * @brief the private member that stores the raw osquery config data in a
    * native format
    */
-  OsqueryConfig cfg_;
+  ConfigData data_;
   /// The raw JSON source map from the config plugin.
   std::map<std::string, std::string> raw_;
+
+  /// The reader/writer config data mutex.
+  boost::shared_mutex mutex_;
+
+ private:
+  /// Config accessors, `ConfigDataInstance`, are the forced use of the config
+  /// data. This forces the caller to use a shared read lock.
+  friend class ConfigDataInstance;
+
+ private:
+  FRIEND_TEST(ConfigTests, test_locking);
+};
+
+/**
+ * @brief All accesses to the Config's data must request a ConfigDataInstance.
+ *
+ * This class will request a read-only lock of the config's changable internal
+ * data structures such as query schedule, options, monitored files, etc.
+ *
+ * Since a variable config plugin may implement `update` calls, internal uses
+ * of config data needs simple read and write locking.
+ */
+class ConfigDataInstance {
+ public:
+  ConfigDataInstance() : lock_(Config::getInstance().mutex_) {}
+  ~ConfigDataInstance() { lock_.unlock(); }
+
+  /// Helper accessor for Config::data_.schedule.
+  const std::vector<OsqueryScheduledQuery> schedule() {
+    return Config::getInstance().data_.schedule;
+  }
+
+  /// Helper accessor for Config::data_.options.
+  const std::map<std::string, std::string>& options() {
+    return Config::getInstance().data_.options;
+  }
+
+  /// Helper accessor for Config::data_.files.
+  const std::map<std::string, std::vector<std::string> >& files() {
+    return Config::getInstance().data_.files;
+  }
+
+  /// Helper accessor for Config::data_.all_data.
+  const pt::ptree& data() { return Config::getInstance().data_.all_data; }
+
+ private:
+  /// A read lock on the reader/writer config data accessor/update mutex.
+  boost::shared_lock<boost::shared_mutex> lock_;
 };
 
 /**
