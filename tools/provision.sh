@@ -17,6 +17,35 @@ export PATH="$PATH:/usr/local/bin"
 
 source "$SCRIPT_DIR/lib.sh"
 
+function install_yara() {
+  if [ "$OS" = "centos" ] || [ "$OS" = "ubuntu" ] || [ "$OS" = "darwin" ]; then
+    if [[ -f /usr/local/bin/yara ]]; then
+      log "yara is already installed. skipping."
+    else
+      if [[ ! -f yara-v3.3.0.tar.gz ]]; then
+        log "downloading the yara source"
+        wget -O yara-v3.3.0.tar.gz https://github.com/plusvic/yara/archive/v3.3.0.tar.gz
+      fi
+      if [[ ! -d yara-3.3.0 ]]; then
+        log "unpacking the yara source"
+        tar -xf yara-v3.3.0.tar.gz
+      fi
+      log "patching yara to use yr_min"
+      pushd yara-3.3.0 > /dev/null
+      # This can be removed once the next release is out.
+      # Backport the fix in fc4696c8b725be1ac099d340359c8d550d116041, which
+      # switches the min() and max() macros to be yr_min() and yr_max().
+      patch -p1 < $SCRIPT_DIR/fc4696c8b725be1ac099d340359c8d550d116041.diff
+      log "building yara"
+      ./bootstrap.sh
+      CC=clang CXX=clang++ ./configure
+      make
+      sudo make install
+      popd
+    fi
+  fi
+}
+
 # cmake
 # downloads: http://www.cmake.org/download/
 
@@ -418,6 +447,7 @@ function main() {
     fi
     install_thrift
     install_rocksdb
+    install_yara
 
     gem_install fpm
 
@@ -522,6 +552,7 @@ function main() {
     fi
 
     install_rocksdb
+    install_yara
 
     gem_install fpm
 
@@ -542,6 +573,7 @@ function main() {
     package boost
     package gflags
     package thrift
+    install_yara
 
   elif [[ $OS = "freebsd" ]]; then
     package cmake

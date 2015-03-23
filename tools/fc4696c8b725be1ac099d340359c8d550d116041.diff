@@ -1,0 +1,266 @@
+commit fc4696c8b725be1ac099d340359c8d550d116041
+Author: Victor M. Alvarez <plusvic@gmail.com>
+Date:   Mon Mar 16 12:17:37 2015 +0100
+
+    Prepend yr_ prefix to min and max to avoid conflicts in C++ programs
+
+diff --git a/libyara/ahocorasick.c b/libyara/ahocorasick.c
+index ee77361..10e1451 100644
+--- a/libyara/ahocorasick.c
++++ b/libyara/ahocorasick.c
+@@ -633,7 +633,7 @@ void _yr_ac_print_automaton_state(
+     {
+       printf("{ ");
+ 
+-      for (i = 0; i < min(match->string->length, 10); i++)
++      for (i = 0; i < yr_min(match->string->length, 10); i++)
+         printf("%02x ", match->string->string[i]);
+ 
+       printf("}");
+@@ -642,7 +642,7 @@ void _yr_ac_print_automaton_state(
+     {
+       printf("/");
+ 
+-      for (i = 0; i < min(match->string->length, 10); i++)
++      for (i = 0; i < yr_min(match->string->length, 10); i++)
+         printf("%c", match->string->string[i]);
+ 
+       printf("/");
+@@ -651,7 +651,7 @@ void _yr_ac_print_automaton_state(
+     {
+       printf("\"");
+ 
+-      for (i = 0; i < min(match->string->length, 10); i++)
++      for (i = 0; i < yr_min(match->string->length, 10); i++)
+         printf("%c", match->string->string[i]);
+ 
+       printf("\"");
+diff --git a/libyara/atoms.c b/libyara/atoms.c
+index 3b478aa..3c13452 100644
+--- a/libyara/atoms.c
++++ b/libyara/atoms.c
+@@ -591,7 +591,7 @@ int _yr_atoms_wide(
+         break;
+     }
+ 
+-    new_atom->atom_length = min(atom->atom_length * 2, MAX_ATOM_LENGTH);
++    new_atom->atom_length = yr_min(atom->atom_length * 2, MAX_ATOM_LENGTH);
+     new_atom->forward_code = atom->forward_code;
+     new_atom->backward_code = atom->backward_code;
+     new_atom->backtrack = atom->backtrack * 2;
+@@ -1137,7 +1137,7 @@ int yr_atoms_extract_from_string(
+   item->next = NULL;
+   item->backtrack = 0;
+ 
+-  length = min(string_length, MAX_ATOM_LENGTH);
++  length = yr_min(string_length, MAX_ATOM_LENGTH);
+ 
+   for (i = 0; i < length; i++)
+     item->atom[i] = string[i];
+diff --git a/libyara/filemap.c b/libyara/filemap.c
+index 178ea4a..25c1e12 100644
+--- a/libyara/filemap.c
++++ b/libyara/filemap.c
+@@ -132,7 +132,7 @@ YR_API int yr_filemap_map_ex(
+   if (size == 0)
+     size = file_size - offset;
+ 
+-  pmapped_file->size = min(size, file_size - offset);
++  pmapped_file->size = yr_min(size, file_size - offset);
+ 
+   if (pmapped_file->size != 0)
+   {
+@@ -211,7 +211,7 @@ YR_API int yr_filemap_map_ex(
+   if (pmapped_file->file == -1)
+     return ERROR_COULD_NOT_OPEN_FILE;
+ 
+-  pmapped_file->size = min(size, fstat.st_size - offset);
++  pmapped_file->size = yr_min(size, fstat.st_size - offset);
+ 
+   if (pmapped_file->size != 0)
+   {
+diff --git a/libyara/include/yara/utils.h b/libyara/include/yara/utils.h
+index 9b98800..18f2c01 100644
+--- a/libyara/include/yara/utils.h
++++ b/libyara/include/yara/utils.h
+@@ -44,14 +44,8 @@ limitations under the License.
+ #deinfe YR_API EXTERNC
+ #endif
+ 
+-#ifndef min
+-#define min(x, y) ((x < y) ? (x) : (y))
+-#endif
+-
+-#ifndef max
+-#define max(x, y) ((x > y) ? (x) : (y))
+-#endif
+-
++#define yr_min(x, y) ((x < y) ? (x) : (y))
++#define yr_max(x, y) ((x > y) ? (x) : (y))
+ 
+ #define PTR_TO_INT64(x)  ((int64_t) (size_t) x)
+ 
+diff --git a/libyara/modules/hash.c b/libyara/modules/hash.c
+index 072401b..4191a0c 100644
+--- a/libyara/modules/hash.c
++++ b/libyara/modules/hash.c
+@@ -136,7 +136,7 @@ define_function(data_md5)
+         offset < block->base + block->size)
+     {
+       uint64_t data_offset = offset - block->base;
+-      uint64_t data_len = min(length, block->size - data_offset);
++      uint64_t data_len = yr_min(length, block->size - data_offset);
+ 
+       offset += data_len;
+       length -= data_len;
+@@ -199,7 +199,7 @@ define_function(data_sha1)
+         offset < block->base + block->size)
+     {
+       uint64_t data_offset = offset - block->base;
+-      uint64_t data_len = min(length, block->size - data_offset);
++      uint64_t data_len = yr_min(length, block->size - data_offset);
+ 
+       offset += data_len;
+       length -= data_len;
+@@ -262,7 +262,7 @@ define_function(data_sha256)
+         offset < block->base + block->size)
+     {
+       uint64_t data_offset = offset - block->base;
+-      uint64_t data_len = min(length, block->size - data_offset);
++      uint64_t data_len = yr_min(length, block->size - data_offset);
+ 
+       offset += data_len;
+       length -= data_len;
+@@ -319,7 +319,7 @@ define_function(data_checksum32)
+         offset < block->base + block->size)
+     {
+       uint64_t data_offset = offset - block->base;
+-      uint64_t data_len = min(length, block->size - data_offset);
++      uint64_t data_len = yr_min(length, block->size - data_offset);
+ 
+       offset += data_len;
+       length -= data_len;
+diff --git a/libyara/modules/math.c b/libyara/modules/math.c
+index 2365032..801d119 100644
+--- a/libyara/modules/math.c
++++ b/libyara/modules/math.c
+@@ -91,7 +91,7 @@ define_function(data_entropy)
+         offset < block->base + block->size)
+     {
+       uint64_t data_offset = offset - block->base;
+-      uint64_t data_len = min(length, block->size - data_offset);
++      uint64_t data_len = yr_min(length, block->size - data_offset);
+ 
+       total_len += data_len;
+       offset += data_len;
+@@ -181,7 +181,7 @@ define_function(data_deviation)
+         offset < block->base + block->size)
+     {
+       uint64_t data_offset = offset - block->base;
+-      uint64_t data_len = min(length, block->size - data_offset);
++      uint64_t data_len = yr_min(length, block->size - data_offset);
+ 
+       total_len += data_len;
+       offset += data_len;
+@@ -249,7 +249,7 @@ define_function(data_mean)
+         offset < block->base + block->size)
+     {
+       uint64_t data_offset = offset - block->base;
+-      uint64_t data_len = min(length, block->size - data_offset);
++      uint64_t data_len = yr_min(length, block->size - data_offset);
+ 
+       total_len += data_len;
+       offset += data_len;
+@@ -309,7 +309,7 @@ define_function(data_serial_correlation)
+         offset < block->base + block->size)
+     {
+       uint64_t data_offset = offset - block->base;
+-      uint64_t data_len = min(length, block->size - data_offset);
++      uint64_t data_len = yr_min(length, block->size - data_offset);
+ 
+       total_len += data_len;
+       offset += data_len;
+@@ -416,7 +416,7 @@ define_function(data_monte_carlo_pi)
+         offset < block->base + block->size)
+     {
+       uint64_t data_offset = offset - block->base;
+-      uint64_t data_len = min(length, block->size - data_offset);
++      uint64_t data_len = yr_min(length, block->size - data_offset);
+ 
+       offset += data_len;
+       length -= data_len;
+diff --git a/libyara/modules/pe.c b/libyara/modules/pe.c
+index 879de78..b723e7f 100644
+--- a/libyara/modules/pe.c
++++ b/libyara/modules/pe.c
+@@ -376,7 +376,7 @@ uint64_t pe_rva_to_offset(
+ 
+   int i = 0;
+ 
+-  while(i < min(pe->header->FileHeader.NumberOfSections, MAX_PE_SECTIONS))
++  while(i < yr_min(pe->header->FileHeader.NumberOfSections, MAX_PE_SECTIONS))
+   {
+     if ((uint8_t*) section - \
+         (uint8_t*) pe->data + sizeof(IMAGE_SECTION_HEADER) < pe->data_size)
+@@ -828,7 +828,7 @@ IMPORTED_FUNCTION* pe_parse_import_descriptor(
+           {
+             name = (char *) yr_strndup(
+                 (char*) import->Name,
+-                min(available_space(pe, import->Name), 512));
++                yr_min(available_space(pe, import->Name), 512));
+           }
+         }
+       }
+@@ -881,7 +881,7 @@ IMPORTED_FUNCTION* pe_parse_import_descriptor(
+           {
+             name = (char *) yr_strndup(
+                 (char*) import->Name,
+-                min(available_space(pe, import->Name), 512));
++                yr_min(available_space(pe, import->Name), 512));
+           }
+         }
+       }
+@@ -1250,7 +1250,7 @@ void pe_parse_header(
+ 
+   section = IMAGE_FIRST_SECTION(pe->header);
+ 
+-  int scount = min(pe->header->FileHeader.NumberOfSections, MAX_PE_SECTIONS);
++  int scount = yr_min(pe->header->FileHeader.NumberOfSections, MAX_PE_SECTIONS);
+ 
+   for (int i = 0; i < scount; i++)
+   {
+diff --git a/libyara/object.c b/libyara/object.c
+index ef84d2a..65bda34 100644
+--- a/libyara/object.c
++++ b/libyara/object.c
+@@ -709,7 +709,7 @@ int yr_object_array_set_item(
+ 
+   if (array->items == NULL)
+   {
+-    count = max(64, (index + 1) * 2);
++    count = yr_max(64, (index + 1) * 2);
+ 
+     array->items = (YR_ARRAY_ITEMS*) yr_malloc(
+         sizeof(YR_ARRAY_ITEMS) + count * sizeof(YR_OBJECT*));
+@@ -1076,7 +1076,7 @@ void yr_object_print_data(
+ 
+   char indent_spaces[32];
+ 
+-  indent = min(indent, sizeof(indent_spaces));
++  indent = yr_min(indent, sizeof(indent_spaces));
+ 
+   memset(indent_spaces, '\t', indent);
+   indent_spaces[indent] = '\0';
+diff --git a/libyara/re.c b/libyara/re.c
+index 643bc8f..895ed5f 100644
+--- a/libyara/re.c
++++ b/libyara/re.c
+@@ -1579,7 +1579,7 @@ int yr_re_exec(
+     input_incr = -input_incr;
+   }
+ 
+-  max_count = min(input_size, RE_SCAN_LIMIT);
++  max_count = yr_min(input_size, RE_SCAN_LIMIT);
+ 
+   // Round down max_count to a multiple of character_size, this way if
+   // character_size is 2 and input_size is impair we are ignoring the
