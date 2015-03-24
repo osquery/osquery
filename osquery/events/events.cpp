@@ -384,6 +384,12 @@ Status EventSubscriberPlugin::add(const Row& r, EventTime time) {
 }
 
 void EventFactory::delay() {
+  // Caller may disable event publisher threads.
+  if (FLAGS_disable_events) {
+    return;
+  }
+
+  // Create a thread for each event publisher.
   auto& ef = EventFactory::getInstance();
   for (const auto& publisher : EventFactory::getInstance().event_pubs_) {
     auto thread_ = std::make_shared<boost::thread>(
@@ -592,6 +598,11 @@ void EventFactory::end(bool join) {
 typedef std::shared_ptr<EventPublisherPlugin> EventPublisherPluginRef;
 
 void attachEvents() {
+  // Caller may disable events, do not setup any publishers or subscribers.
+  if (FLAGS_disable_events) {
+    return;
+  }
+
   const auto& publishers = Registry::all("event_publisher");
   for (const auto& publisher : publishers) {
     EventFactory::registerEventPublisher(publisher.second);
