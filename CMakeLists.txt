@@ -168,6 +168,7 @@ include(Packages)
 include(Thrift)
 
 include_directories("${GLOG_INCLUDE_DIRS}")
+include_directories("${YARA_INCLUDE_DIRS}")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("/usr/local/include")

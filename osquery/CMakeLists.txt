@@ -18,13 +18,13 @@ set(OSQUERY_LIBS
   ${GFLAGS_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
   ${OPENSSL_SSL_LIBRARY}
+  ${YARA_LIBRARY}
 
   readline
   pthread
   dl
   bz2
   z
-  yara
 )
 
 # Add default linking details

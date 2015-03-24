@@ -1,51 +1,40 @@
-# - Find the YARA library
-# This module defines
-#  YARA_INCLUDE_DIR, path to yara.h, etc.
-#  YARA_LIBRARIES, the libraries required to use YARA.
-#  YARA_FOUND, If false, do not try to use YARA.
-# also defined, but not for general use are
-# YARA_LIBRARY, where to find the YARA library.
+include(FindPackageHandleStandardArgs)
+if(POLICY CMP0054)
+  cmake_policy(SET CMP0054 NEW)
+endif()
 
-# Apple readline does not support readline hooks
-# So we look for another one by default
-IF(APPLE)
-  FIND_PATH(YARA_INCLUDE_DIR NAMES yara.h PATHS
-    /sw/include
-    /opt/local/include
-    /opt/include
-    /usr/local/include
-    /usr/include/
-    NO_DEFAULT_PATH)
-ENDIF(APPLE)
-FIND_PATH(YARA_INCLUDE_DIR NAMES yara.h)
+set(YARA_VERSION "3.3.0")
 
-IF(APPLE)
-  FIND_LIBRARY(YARA_LIBRARY NAMES yara PATHS
-    /sw/lib
-    /opt/local/lib
-    /opt/lib
-    /usr/local/lib
-    /usr/lib
-    NO_DEFAULT_PATH
-    )
-ENDIF(APPLE)
-FIND_LIBRARY(YARA_LIBRARY NAMES yara)
+set(YARA_ROOT_DIR "${CMAKE_BINARY_DIR}/third-party/yara-${YARA_VERSION}")
+set(YARA_SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party/yara-${YARA_VERSION}")
 
-MARK_AS_ADVANCED(
-  YARA_INCLUDE_DIR
-  YARA_LIBRARY)
+set(YARA_PATCH_01 "${CMAKE_SOURCE_DIR}/third-party/yara-${YARA_VERSION}/fc4696c8b725be1ac099d340359c8d550d116041.diff")
 
-SET(YARA_FOUND "NO")
-IF(YARA_INCLUDE_DIR)
-  SET(YARA_FOUND "YES")
-  SET(YARA_LIBRARIES)
+INCLUDE(ExternalProject)
+ExternalProject_Add(
+  yara
+  SOURCE_DIR ${YARA_SOURCE_DIR}
+  INSTALL_DIR ${YARA_ROOT_DIR}
+  PATCH_COMMAND patch -p1 < ${YARA_PATCH_01}
+  CONFIGURE_COMMAND ${YARA_SOURCE_DIR}/configure
+    CC=/usr/bin/clang CXX=/usr/bin/clang++ --prefix=${YARA_ROOT_DIR}
+  BUILD_COMMAND make
+  BUILD_IN_SOURCE 1
+  INSTALL_COMMAND make install
+  LOG_CONFIGURE ON
+  LOG_INSTALL ON
+  LOG_BUILD ON
+)
 
-ENDIF(YARA_INCLUDE_DIR)
+ExternalProject_Add_Step(
+  yara bootstrap
+  COMMAND sh ./bootstrap.sh
+  DEPENDERS configure
+  WORKING_DIRECTORY ${YARA_SOURCE_DIR}
+)
 
-IF(YARA_FOUND)
-  MESSAGE(STATUS "Found YARA library")
-ELSE(YARA_FOUND)
-  IF(YARA_FIND_REQUIRED)
-    MESSAGE(FATAL_ERROR "Could not find YARA -- please give some paths to CMake")
-  ENDIF(YARA_FIND_REQUIRED)
-ENDIF(YARA_FOUND)
+set(YARA_INCLUDE_DIR "${YARA_ROOT_DIR}/include")
+set(YARA_INCLUDE_DIRS ${YARA_INCLUDE_DIR})
+
+set(YARA_LIBRARY "${YARA_ROOT_DIR}/lib/libyara.a")
+set(YARA_LIBRARIES ${YARA_LIBRARY})
