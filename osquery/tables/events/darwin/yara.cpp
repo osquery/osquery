@@ -14,9 +14,7 @@
 #include <osquery/config.h>
 #include <osquery/logger.h>
 
-#define NOMINMAX
 #include <yara.h>
-#undef NOMINMAX
 
 #include "osquery/events/darwin/fsevents.h"
 #include "osquery/tables/events/yara_utils.h"
