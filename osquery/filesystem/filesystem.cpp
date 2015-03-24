@@ -8,7 +8,6 @@
  *
  */
 
-#include <exception>
 #include <sstream>
 
 #include <fcntl.h>
@@ -32,7 +31,7 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-Status writeTextFile(const boost::filesystem::path& path,
+Status writeTextFile(const fs::path& path,
                      const std::string& content,
                      int permissions,
                      bool force_permissions) {
@@ -60,7 +59,7 @@ Status writeTextFile(const boost::filesystem::path& path,
   return Status(0, "OK");
 }
 
-Status readFile(const boost::filesystem::path& path, std::string& content) {
+Status readFile(const fs::path& path, std::string& content) {
   auto path_exists = pathExists(path);
   if (!path_exists.ok()) {
     return path_exists;
@@ -81,7 +80,7 @@ Status readFile(const boost::filesystem::path& path, std::string& content) {
   return Status(0, "OK");
 }
 
-Status isWritable(const boost::filesystem::path& path) {
+Status isWritable(const fs::path& path) {
   auto path_exists = pathExists(path);
   if (!path_exists.ok()) {
     return path_exists;
@@ -93,7 +92,7 @@ Status isWritable(const boost::filesystem::path& path) {
   return Status(1, "Path is not writable: " + path.string());
 }
 
-Status isReadable(const boost::filesystem::path& path) {
+Status isReadable(const fs::path& path) {
   auto path_exists = pathExists(path);
   if (!path_exists.ok()) {
     return path_exists;
@@ -105,7 +104,7 @@ Status isReadable(const boost::filesystem::path& path) {
   return Status(1, "Path is not readable: " + path.string());
 }
 
-Status pathExists(const boost::filesystem::path& path) {
+Status pathExists(const fs::path& path) {
   if (path.empty()) {
     return Status(1, "-1");
   }
@@ -115,43 +114,41 @@ Status pathExists(const boost::filesystem::path& path) {
     if (!boost::filesystem::exists(path)) {
       return Status(1, "0");
     }
-  } catch (boost::filesystem::filesystem_error e) {
+  } catch (const fs::filesystem_error& e) {
     return Status(1, e.what());
   }
   return Status(0, "1");
 }
 
-Status remove(const boost::filesystem::path& path) {
+Status remove(const fs::path& path) {
   auto status_code = std::remove(path.string().c_str());
   return Status(status_code, "N/A");
 }
 
-Status listFilesInDirectory(const boost::filesystem::path& path,
+Status listFilesInDirectory(const fs::path& path,
                             std::vector<std::string>& results,
                             bool ignore_error) {
-  boost::filesystem::directory_iterator begin_iter;
-
+  fs::directory_iterator begin_iter;
   try {
-    if (!boost::filesystem::exists(path)) {
+    if (!fs::exists(path)) {
       return Status(1, "Directory not found: " + path.string());
     }
 
-    if (!boost::filesystem::is_directory(path)) {
+    if (!fs::is_directory(path)) {
       return Status(1, "Supplied path is not a directory: " + path.string());
     }
-    begin_iter = boost::filesystem::directory_iterator(path);
-
-  } catch (const boost::filesystem::filesystem_error& e) {
+    begin_iter = fs::directory_iterator(path);
+  } catch (const fs::filesystem_error& e) {
     return Status(1, e.what());
   }
 
-  boost::filesystem::directory_iterator end_iter;
+  fs::directory_iterator end_iter;
   for (; begin_iter != end_iter; begin_iter++) {
     try {
-      if (boost::filesystem::is_regular_file(begin_iter->path())) {
+      if (fs::is_regular_file(begin_iter->path())) {
         results.push_back(begin_iter->path().string());
       }
-    } catch (const boost::filesystem::filesystem_error& e) {
+    } catch (const fs::filesystem_error& e) {
       if (ignore_error == 0) {
         return Status(1, e.what());
       }
@@ -160,12 +157,12 @@ Status listFilesInDirectory(const boost::filesystem::path& path,
   return Status(0, "OK");
 }
 
-Status listDirectoriesInDirectory(const boost::filesystem::path& path,
+Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
                                   bool ignore_error) {
-  boost::filesystem::directory_iterator begin_iter;
+  fs::directory_iterator begin_iter;
   try {
-    if (!boost::filesystem::exists(path)) {
+    if (!fs::exists(path)) {
       return Status(1, "Directory not found");
     }
 
@@ -178,18 +175,18 @@ Status listDirectoriesInDirectory(const boost::filesystem::path& path,
     if (!stat.ok()) {
       return stat;
     }
-    begin_iter = boost::filesystem::directory_iterator(path);
-  } catch (const boost::filesystem::filesystem_error& e) {
+    begin_iter = fs::directory_iterator(path);
+  } catch (const fs::filesystem_error& e) {
     return Status(1, e.what());
   }
 
-  boost::filesystem::directory_iterator end_iter;
+  fs::directory_iterator end_iter;
   for (; begin_iter != end_iter; begin_iter++) {
     try {
-      if (boost::filesystem::is_directory(begin_iter->path())) {
+      if (fs::is_directory(begin_iter->path())) {
         results.push_back(begin_iter->path().string());
       }
-    } catch (const boost::filesystem::filesystem_error& e) {
+    } catch (const fs::filesystem_error& e) {
       if (ignore_error == 0) {
         return Status(1, e.what());
       }
@@ -212,7 +209,7 @@ Status listDirectoriesInDirectory(const boost::filesystem::path& path,
  * @return An instance of osquery::Status indicating the success of failure of
  * the operation
  */
-Status doubleStarTraversal(const boost::filesystem::path& fs_path,
+Status doubleStarTraversal(const fs::path& fs_path,
                            std::vector<std::string>& results,
                            ReturnSetting setting,
                            unsigned int rec_depth) {
@@ -235,8 +232,7 @@ Status doubleStarTraversal(const boost::filesystem::path& fs_path,
     results.push_back(fs_path.string());
   }
   for (const auto& folder : folders) {
-    boost::filesystem::path p(folder);
-    if (boost::filesystem::is_symlink(p)) {
+    if (fs::is_symlink(folder)) {
       continue;
     }
 
@@ -265,7 +261,7 @@ Status doubleStarTraversal(const boost::filesystem::path& fs_path,
  * @return An instance of osquery::Status indicating the success of failure of
  * the operation
  */
-Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
+Status resolveLastPathComponent(const fs::path& fs_path,
                                 std::vector<std::string>& results,
                                 ReturnSetting setting,
                                 const std::vector<std::string>& components,
@@ -283,15 +279,13 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
     }
   }
 
-  // Is the path a file
   try {
-    if (setting == REC_LIST_FILES &&
-        boost::filesystem::is_regular_file(fs_path)) {
+    // Is the path a file
+    if (setting == REC_LIST_FILES && fs::is_regular_file(fs_path)) {
       results.push_back(fs_path.string());
       return Status(0, "OK");
     }
-  } catch (const boost::filesystem::filesystem_error& e) {
-    // This should catch permission problems
+  } catch (const fs::filesystem_error& e) {
     return Status(0, "OK");
   }
 
@@ -390,7 +384,7 @@ Status resolveLastPathComponent(const boost::filesystem::path& fs_path,
   }
 
   // Is the path a directory
-  if (boost::filesystem::is_directory(fs_path)) {
+  if (fs::is_directory(fs_path)) {
     results.push_back(fs_path.string());
     return Status(0, "OK");
   }
@@ -515,47 +509,44 @@ Status resolveFilePattern(std::vector<std::string> components,
                                   rec_depth);
 }
 
-Status resolveFilePattern(const boost::filesystem::path& fs_path,
+Status resolveFilePattern(const fs::path& fs_path,
                           std::vector<std::string>& results) {
   if (fs_path.string()[0] != '/') {
-    return resolveFilePattern(split(boost::filesystem::current_path().string() +
-                                        "/" + fs_path.string(),
-                                    "/"),
-                              results);
+    return resolveFilePattern(
+        split(fs::current_path().string() + "/" + fs_path.string(), "/"),
+        results);
   }
   return resolveFilePattern(split(fs_path.string(), "/"), results);
 }
 
-Status resolveFilePattern(const boost::filesystem::path& fs_path,
+Status resolveFilePattern(const fs::path& fs_path,
                           std::vector<std::string>& results,
                           ReturnSetting setting) {
   if (fs_path.string()[0] != '/') {
-    return resolveFilePattern(split(boost::filesystem::current_path().string() +
-                                        "/" + fs_path.string(),
-                                    "/"),
-                              results,
-                              setting);
+    return resolveFilePattern(
+        split(fs::current_path().string() + "/" + fs_path.string(), "/"),
+        results,
+        setting);
   }
   return resolveFilePattern(split(fs_path.string(), "/"), results, setting);
 }
 
-Status getDirectory(const boost::filesystem::path& path,
-                    boost::filesystem::path& dirpath) {
+Status getDirectory(const fs::path& path, fs::path& dirpath) {
   if (!isDirectory(path).ok()) {
-    dirpath = boost::filesystem::path(path).parent_path().string();
+    dirpath = fs::path(path).parent_path().string();
     return Status(0, "OK");
   }
   dirpath = path;
   return Status(1, "Path is a directory: " + path.string());
 }
 
-Status isDirectory(const boost::filesystem::path& path) {
+Status isDirectory(const fs::path& path) {
   try {
-    if (boost::filesystem::is_directory(path)) {
+    if (fs::is_directory(path)) {
       return Status(0, "OK");
     }
     return Status(1, "Path is not a directory: " + path.string());
-  } catch (const boost::filesystem::filesystem_error& e) {
+  } catch (const fs::filesystem_error& e) {
     return Status(1, e.what());
   }
 }
