@@ -86,7 +86,7 @@ Status INotifyEventPublisher::run() {
   FD_ZERO(&set);
   FD_SET(getHandle(), &set);
 
-  struct timeval timeout = {0, kINotifyMLatency};
+  struct timeval timeout = {3, 3000};
   int selector = ::select(getHandle() + 1, &set, nullptr, nullptr, &timeout);
   if (selector == -1) {
     LOG(ERROR) << "Could not read inotify handle";
