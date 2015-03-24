@@ -14,6 +14,7 @@ if(APPLE)
     events/darwin/hardware_events.cpp
     networking/darwin/routes.cpp
     system/darwin/acpi_tables.cpp
+    system/darwin/ad_config.cpp
     system/darwin/apps.cpp
     system/darwin/block_devices.cpp
     system/darwin/keychain_items.cpp
