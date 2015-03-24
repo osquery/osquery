@@ -170,7 +170,7 @@ Status IOKitHIDEventPublisher::run() {
   CFRunLoopRun();
 
   // Add artificial latency to run loop.
-  osquery::interruptableSleep(1000);
+  osquery::publisherSleep(1000);
   return Status(0, "OK");
 }
 

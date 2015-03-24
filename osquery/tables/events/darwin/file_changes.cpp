@@ -55,8 +55,8 @@ class FileChangesEventSubscriber
 REGISTER(FileChangesEventSubscriber, "event_subscriber", "file_changes");
 
 void FileChangesEventSubscriber::init() {
-  const auto& file_map = Config::getWatchedFiles();
-  for (const auto& element_kv : file_map) {
+  ConfigDataInstance config;
+  for (const auto& element_kv : config.files()) {
     for (const auto& file : element_kv.second) {
       VLOG(1) << "Added listener to: " << file;
       auto mc = createSubscriptionContext();

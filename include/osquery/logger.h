@@ -15,10 +15,9 @@
 
 #include <glog/logging.h>
 
+#include <osquery/database/results.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
-#include <osquery/status.h>
-#include <osquery/scheduler.h>
 
 namespace osquery {
 

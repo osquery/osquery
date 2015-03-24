@@ -36,6 +36,10 @@ const std::vector<size_t> kEventTimeLists = {
     10, // 10 seconds
 };
 
+void publisherSleep(size_t milli) {
+  boost::this_thread::sleep(boost::posix_time::milliseconds(milli));
+}
+
 void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   EventContextID ec_id;
 
@@ -418,7 +422,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
   while (!publisher->isEnding() && status.ok()) {
     // Can optionally implement a global cooloff latency here.
     status = publisher->run();
-    osquery::interruptableSleep(EVENTS_COOLOFF);
+    osquery::publisherSleep(EVENTS_COOLOFF);
   }
 
   // The runloop status is not reflective of the event type's.

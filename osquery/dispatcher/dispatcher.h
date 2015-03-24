@@ -264,4 +264,7 @@ class Dispatcher {
   /// THe set of shared osquery services.
   std::vector<InternalRunnableRef> services_;
 };
+
+/// Allow a dispatched thread to wait while processing or to prevent thrashing.
+void interruptableSleep(size_t milli);
 }

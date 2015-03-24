@@ -150,7 +150,7 @@ Status SCNetworkEventPublisher::run() {
   CFRunLoopRun();
 
   // Do not expect the run loop to exit often, if so, add artificial latency.
-  osquery::interruptableSleep(1000);
+  osquery::publisherSleep(1000);
   return Status(0, "OK");
 }
 };

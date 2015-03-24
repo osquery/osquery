@@ -76,7 +76,7 @@ Status UdevEventPublisher::run() {
 
   udev_device_unref(device);
 
-  osquery::interruptableSleep(kUdevMLatency);
+  osquery::publisherSleep(kUdevMLatency);
   return Status(0, "Continue");
 }
 
