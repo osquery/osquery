@@ -64,7 +64,6 @@ void genOSXListPref(const CFArrayRef& list,
   // Iterate over a preference value that contains a list structure.
   for (CFIndex j = 0; j < CFArrayGetCount(list); ++j) {
     Row r = base;
-
     CFTypeRef value = (CFTypeRef)CFArrayGetValueAtIndex(list, j);
     if (r["subkey"].size() > 0) {
       r["subkey"] += "/";
@@ -193,8 +192,8 @@ void genOSXDefaultPreferences(QueryContext& context, QueryData& results) {
 void genOSXPlistPrefValue(const pt::ptree& tree,
                           const Row& base,
                           QueryData& results) {
-  Row r = base;
   if (tree.empty()) {
+    Row r = base;
     r["value"] = tree.data();
     results.push_back(r);
     // No more levels to parse.
@@ -202,6 +201,7 @@ void genOSXPlistPrefValue(const pt::ptree& tree,
   }
 
   for (const auto& item : tree) {
+    Row r = base;
     if (r["subkey"].size() > 0) {
       r["subkey"] += "/";
     }

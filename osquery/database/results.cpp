@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -23,6 +23,7 @@
 
 namespace pt = boost::property_tree;
 using osquery::Status;
+typedef unsigned char byte;
 
 namespace osquery {
 
@@ -32,11 +33,41 @@ namespace osquery {
 // respective value
 /////////////////////////////////////////////////////////////////////////////
 
-void escapeQueryData(const QueryData &oldData, QueryData &newData) {
+std::string escapeNonPrintableBytes(const std::string& data) {
+  std::string escaped;
+  char const hex_chars[16] = {'0',
+                              '1',
+                              '2',
+                              '3',
+                              '4',
+                              '5',
+                              '6',
+                              '7',
+                              '8',
+                              '9',
+                              'A',
+                              'B',
+                              'C',
+                              'D',
+                              'E',
+                              'F'};
+  for (int i = 0; i < data.length(); i++) {
+    if (((byte)data[i]) < 0x20 || ((byte)data[i]) >= 0x80) {
+      escaped += "\\x";
+      escaped += hex_chars[(((byte)data[i])) >> 4];
+      escaped += hex_chars[((byte)data[i] & 0x0F) >> 0];
+    } else {
+      escaped += data[i];
+    }
+  }
+  return escaped;
+}
+
+void escapeQueryData(const QueryData& oldData, QueryData& newData) {
   for (const auto& r : oldData) {
     Row newRow;
     for (auto& i : r) {
-      newRow[i.first] = pt::json_parser::create_escapes(i.second);
+      newRow[i.first] = escapeNonPrintableBytes(i.second);
     }
     newData.push_back(newRow);
   }
