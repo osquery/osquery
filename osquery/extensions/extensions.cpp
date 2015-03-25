@@ -145,6 +145,11 @@ inline Status socketWritable(const fs::path& path) {
 }
 
 void loadExtensions() {
+  // Disabling extensions will disable autoloading.
+  if (FLAGS_disable_extensions) {
+    return;
+  }
+
   // Optionally autoload extensions
   auto status = loadExtensions(FLAGS_extensions_autoload);
   if (!status.ok()) {
