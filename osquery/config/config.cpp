@@ -44,6 +44,7 @@ Status Config::update(const std::map<std::string, std::string>& config) {
 
   ConfigData conf;
   for (const auto& source : config) {
+    VLOG(1) << "Updating config source: " << source.first;
     getInstance().raw_[source.first] = source.second;
   }
 
@@ -186,6 +187,11 @@ Status ConfigPlugin::call(const PluginRequest& request,
     auto stat = genConfig(config);
     response.push_back(config);
     return stat;
+  } else if (request.at("action") == "update") {
+    if (request.count("source") == 0 || request.count("data") == 0) {
+      return Status(1, "Missing source or data");
+    }
+    return Config::update({{request.at("source"), request.at("data")}});
   }
   return Status(1, "Config plugin action unknown: " + request.at("action"));
 }
