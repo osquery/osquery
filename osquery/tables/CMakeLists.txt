@@ -102,7 +102,6 @@ else()
     ADD_OSQUERY_LINK(FALSE "dpkg")
   endif()
 
-  ADD_OSQUERY_LINK(FALSE "procps" "proc")
   ADD_OSQUERY_LINK(FALSE "blkid")
   ADD_OSQUERY_LINK(FALSE "udev")
   ADD_OSQUERY_LINK(FALSE "uuid")

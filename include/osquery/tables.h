@@ -129,6 +129,8 @@ struct ConstraintList {
    * Evaluate ALL constraints in this ConstraintList against the string
    * expression. The affinity of the constrait will be used as the affinite
    * and lexical type of the expression and set of constraint expressions.
+   * If there are no predicate constraints in this list, all expression will
+   * match. Constraints are limitations.
    *
    * @param expr a SQL type expression of the column literal type to check.
    * @return If the expression matched all constraints.

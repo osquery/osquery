@@ -108,7 +108,22 @@ TEST_F(TablesTests, test_constraint_map) {
   cl.add(Constraint(EQUALS, "some"));
   cm["path"] = cl;
 
+  // If a constraint list exists for a map key, normal constraints apply.
   EXPECT_TRUE(cm["path"].matches("some"));
+  EXPECT_FALSE(cm["path"].matches("not_some"));
+
+  // If a constraint list does not exist, then all checks will match.
+  // If there is no predicate clause then all results will match.
+  EXPECT_TRUE(cm["not_path"].matches("some"));
+  EXPECT_TRUE(cm["not_path"].notExistsOrMatches("some"));
+  EXPECT_FALSE(cm["not_path"].exists());
+  EXPECT_FALSE(cm["not_path"].existsAndMatches("some"));
+
+  // And of the column has constraints:
+  EXPECT_TRUE(cm["path"].notExistsOrMatches("some"));
+  EXPECT_FALSE(cm["path"].notExistsOrMatches("not_some"));
+  EXPECT_TRUE(cm["path"].exists());
+  EXPECT_TRUE(cm["path"].existsAndMatches("some"));
 }
 }
 }

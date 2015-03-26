@@ -125,11 +125,33 @@ class Initializer {
  * @param s the string that you'd like to split
  * @param delim the delimiter which you'd like to split the string by
  *
- * @return a vector of strings which represent the split string that you
- * passed as the s parameter.
+ * @return a vector of strings split by delim.
  */
 std::vector<std::string> split(const std::string& s,
                                const std::string& delim = "\t ");
+
+/**
+ * @brief Split a given string based on an delimiter.
+ *
+ * @param s the string that you'd like to split.
+ * @param delim the delimiter which you'd like to split the string by.
+ * @param occurences the number of times to split by delim.
+ *
+ * @return a vector of strings split by delim for occurences.
+ */
+std::vector<std::string> split(const std::string& s,
+                               const std::string& delim,
+                               size_t occurences);
+
+/**
+ * @brief Join a vector of strings using a tokenizer.
+ *
+ * @param s the string that you'd like to split.
+ * @param tok a token glue.
+ *
+ * @return a joined string.
+ */
+std::string join(const std::vector<std::string>& s, const std::string& tok);
 
 /**
  * @brief Getter for a host's current hostname

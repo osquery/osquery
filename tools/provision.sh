@@ -411,11 +411,6 @@ function main() {
     package libbz2-dev
     package libreadline-dev
 
-    if [[ $DISTRO = "precise" ]]; then
-      package libproc-dev
-    else
-      package libprocps3-dev
-    fi
     install_thrift
     install_rocksdb
 
@@ -485,7 +480,6 @@ function main() {
     package bzip2-devel
     package openssl-devel
     package readline-devel
-    package procps-devel
     package rpm-devel
     package rpm-build
     package libblkid-devel
