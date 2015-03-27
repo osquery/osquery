@@ -40,13 +40,14 @@ void genDescriptors(const std::string& process,
 QueryData genOpenFiles(QueryContext& context) {
   QueryData results;
 
-  std::vector<std::string> processes;
-  if (!osquery::procProcesses(processes).ok()) {
-    VLOG(1) << "Cannot list Linux processes";
-    return results;
+  std::set<std::string> pids;
+  if (context.constraints["pid"].exists()) {
+    pids = context.constraints["pid"].getAll(EQUALS);
+  } else {
+    osquery::procProcesses(pids);
   }
 
-  for (const auto& process : processes) {
+  for (const auto& process : pids) {
     std::map<std::string, std::string> descriptors;
     if (osquery::procDescriptors(process, descriptors).ok()) {
       genDescriptors(process, descriptors, results);

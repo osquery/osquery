@@ -281,14 +281,16 @@ QueryData genOpenSockets(QueryContext &context) {
   QueryData results;
 
   // If a pid is given then set that as the only item in processes.
-  std::vector<std::string> processes;
-  if (!osquery::procProcesses(processes).ok()) {
-    VLOG(1) << "Cannot list Linux processes";
+  std::set<std::string> pids;
+  if (context.constraints["pid"].exists()) {
+    pids = context.constraints["pid"].getAll(EQUALS);
+  } else {
+    osquery::procProcesses(pids);
   }
 
   // Generate a map of socket inode to process tid.
   std::map<std::string, std::string> socket_inodes;
-  for (const auto& process : processes) {
+  for (const auto &process : pids) {
     std::map<std::string, std::string> descriptors;
     if (osquery::procDescriptors(process, descriptors).ok()) {
       for (const auto& fd : descriptors) {

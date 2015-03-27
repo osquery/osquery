@@ -250,7 +250,7 @@ Status parsePlistContent(const std::string& fileContent,
  *
  * @return status of iteration.
  */
-Status procProcesses(std::vector<std::string>& processes);
+Status procProcesses(std::set<std::string>& processes);
 
 /**
  * @brief Iterate over a proc process's descriptors, return a list of fds.
