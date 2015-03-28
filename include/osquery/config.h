@@ -14,12 +14,14 @@
 #include <memory>
 #include <vector>
 
+#include <boost/noncopyable.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
+#include <osquery/database/results.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
-#include <osquery/scheduler.h>
 #include <osquery/status.h>
 
 namespace pt = boost::property_tree;
@@ -35,24 +37,14 @@ DECLARE_string(config_plugin);
  * When you use osquery::Config::getInstance(), you are getting a singleton
  * handle to interact with the data stored in an instance of this struct.
  */
-struct OsqueryConfig {
+struct ConfigData {
   /// A vector of all of the queries that are scheduled to execute.
-  std::vector<OsqueryScheduledQuery> scheduledQueries;
+  std::map<std::string, ScheduledQuery> schedule;
   std::map<std::string, std::string> options;
-  std::map<std::string, std::vector<std::string> > eventFiles;
+  std::map<std::string, std::vector<std::string> > files;
   std::map<std::string, std::vector<std::string> > yaraFiles;
   pt::ptree all_data;
 };
-
-/**
- * @brief A string which represents the default consfig retriever.
- *
- * The config plugin that you use to define your config retriever can be
- * defined via a command-line flag, however, if you don't define a config
- * plugin to use via the command-line, then the config retriever which is
- * represented by the string stored in kDefaultConfigRetriever will be used.
- */
-extern const std::string kDefaultConfigRetriever;
 
 /**
  * @brief A singleton that exposes accessors to osquery's configuration data.
@@ -63,7 +55,7 @@ extern const std::string kDefaultConfigRetriever;
  * should be defined using the osquery::config::Config class and the pluggable
  * plugin interface that is included with it.
  */
-class Config {
+class Config : private boost::noncopyable {
  public:
   /**
    * @brief The primary way to access the Config singleton.
@@ -90,38 +82,12 @@ class Config {
   static Status load();
 
   /**
-   * @brief Get a vector of all scheduled queries.
+   * @brief Update the internal config data.
    *
-   * @code{.cpp}
-   *   auto config = osquery::config::Config::getInstance();
-   *   for (const auto& q : config->getScheduledQueries()) {
-   *     LOG(INFO) << "name:     " << q.name;
-   *     LOG(INFO) << "interval: " << q.interval;
-   *   }
-   * @endcode
-   *
-   * @return a vector of OsqueryScheduledQuery's which represent the queries
-   * that are to be executed
+   * @param config A map of domain or namespace to config data.
+   * @return If the config changes were applied.
    */
-  static std::vector<OsqueryScheduledQuery> getScheduledQueries();
-
-  /**
-   * @brief Get a map of all the files in the intel JSON blob
-   *
-   *
-   *
-   * @return A map all the files in the JSON blob organized by category
-   */
-  static std::map<std::string, std::vector<std::string> > getWatchedFiles();
-
-  /**
-   * @brief Return the configuration ptree
-   *
-   *
-   *
-   * @return Returns the unparsed, ptree representation of the given config
-   */
-  static pt::ptree getEntireConfiguration();
+  static Status update(const std::map<std::string, std::string>& config);
 
   /**
    * @brief Get a map of all the files in the YARA JSON blob
@@ -146,7 +112,8 @@ class Config {
    * @return an instance of osquery::Status, indicating the success or failure
    * of the operation.
    */
-  static osquery::Status checkConfig();
+  static Status checkConfig();
+
  private:
   /**
    * @brief Default constructor.
@@ -159,26 +126,6 @@ class Config {
   Config(Config const&);
   void operator=(Config const&);
 
-
-  /**
-   * @brief Uses the specified config retriever to populate a config struct.
-   *
-   * Internally, genConfig checks to see if there was a config retriever
-   * specified on the command-line. If there was, it checks to see if that
-   * config retriever actually exists. If it does, it gets used to generate
-   * configuration data. If it does not, an error is logged.
-   *
-   * If no config retriever was specified, the config retriever represented by
-   * kDefaultConfigRetriever is used.
-   *
-   * @param conf a reference to a struct which will be populated by the config
-   * retriever in use.
-   *
-   * @return an instance of osquery::Status, indicating the success or failure
-   * of the operation.
-   */
-  static osquery::Status genConfig(OsqueryConfig& conf);
-
   /**
    * @brief Uses the specified config retriever to populate a string with the
    * config JSON.
@@ -188,26 +135,74 @@ class Config {
    * config retriever actually exists. If it does, it gets used to generate
    * configuration data. If it does not, an error is logged.
    *
-   * If no config retriever was specified, the config retriever represented by
-   * kDefaultConfigRetriever is used.
-   *
-   * @param conf a reference to a string which will be populated by the config
-   * retriever in use.
-   *
-   * @return an instance of osquery::Status, indicating the success or failure
-   * of the operation.
+   * @return status indicating the success or failure of the operation.
    */
-  static osquery::Status genConfig(std::vector<std::string>& conf);
+  static Status genConfig();
 
-  /// Prevent ConfigPlugins from implementing setUp.
-  osquery::Status setUp() { return Status(0, "Not used"); }
+  /// Merge a retrieved config source JSON into a working ConfigData.
+  static void mergeConfig(const std::string& source, ConfigData& conf);
 
  private:
   /**
    * @brief the private member that stores the raw osquery config data in a
    * native format
    */
-  OsqueryConfig cfg_;
+  ConfigData data_;
+  /// The raw JSON source map from the config plugin.
+  std::map<std::string, std::string> raw_;
+
+  /// The reader/writer config data mutex.
+  boost::shared_mutex mutex_;
+
+ private:
+  /// Config accessors, `ConfigDataInstance`, are the forced use of the config
+  /// data. This forces the caller to use a shared read lock.
+  friend class ConfigDataInstance;
+
+ private:
+  FRIEND_TEST(ConfigTests, test_locking);
+};
+
+/**
+ * @brief All accesses to the Config's data must request a ConfigDataInstance.
+ *
+ * This class will request a read-only lock of the config's changable internal
+ * data structures such as query schedule, options, monitored files, etc.
+ *
+ * Since a variable config plugin may implement `update` calls, internal uses
+ * of config data needs simple read and write locking.
+ */
+class ConfigDataInstance {
+ public:
+  ConfigDataInstance() : lock_(Config::getInstance().mutex_) {}
+  ~ConfigDataInstance() { lock_.unlock(); }
+
+  /// Helper accessor for Config::data_.schedule.
+  const std::map<std::string, ScheduledQuery> schedule() {
+    return Config::getInstance().data_.schedule;
+  }
+
+  /// Helper accessor for Config::data_.options.
+  const std::map<std::string, std::string>& options() {
+    return Config::getInstance().data_.options;
+  }
+
+  /// Helper accessor for Config::data_.files.
+  const std::map<std::string, std::vector<std::string> >& files() {
+    return Config::getInstance().data_.files;
+  }
+
+  /// Helper accessor for Config::data_.yaraFiles.
+  const std::map<std::string, std::vector<std::string> >& yaraFiles() {
+    return Config::getInstance().data_.yaraFiles;
+  }
+
+  /// Helper accessor for Config::data_.all_data.
+  const pt::ptree& data() { return Config::getInstance().data_.all_data; }
+
+ private:
+  /// A read lock on the reader/writer config data accessor/update mutex.
+  boost::shared_lock<boost::shared_mutex> lock_;
 };
 
 /**
@@ -252,6 +247,19 @@ class ConfigPlugin : public Plugin {
   virtual Status genConfig(std::map<std::string, std::string>& config) = 0;
   Status call(const PluginRequest& request, PluginResponse& response);
 };
+
+/**
+ * @brief Calculate a splayed integer based on a variable splay percentage
+ *
+ * The value of splayPercent must be between 1 and 100. If it's not, the
+ * value of original will be returned.
+ *
+ * @param original The original value to be modified
+ * @param splayPercent The percent in which to splay the original value by
+ *
+ * @return The modified version of original
+ */
+int splayValue(int original, int splayPercent);
 
 /**
  * @brief Config plugin registry.

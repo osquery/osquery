@@ -22,7 +22,7 @@ const std::string kQueryNameNotFoundError = "query name not found in database";
 
 std::string Query::getQuery() { return query_.query; }
 
-std::string Query::getQueryName() { return query_.name; }
+std::string Query::getQueryName() { return name_; }
 
 int Query::getInterval() { return query_.interval; }
 
@@ -38,7 +38,7 @@ Status Query::getHistoricalQueryResults(HistoricalQueryResults& hQR,
                                         std::shared_ptr<DBHandle> db) {
   if (isQueryNameInDatabase()) {
     std::string raw;
-    auto get_status = db->Get(kQueries, query_.name, raw);
+    auto get_status = db->Get(kQueries, name_, raw);
     if (get_status.ok()) {
       auto deserialize_status = deserializeHistoricalQueryResultsJSON(raw, hQR);
       if (!deserialize_status.ok()) {
@@ -70,7 +70,7 @@ bool Query::isQueryNameInDatabase() {
 
 bool Query::isQueryNameInDatabase(std::shared_ptr<DBHandle> db) {
   auto names = Query::getStoredQueryNames(db);
-  return std::find(names.begin(), names.end(), query_.name) != names.end();
+  return std::find(names.begin(), names.end(), name_) != names.end();
 }
 
 Status Query::addNewResults(const osquery::QueryData& qd, int unix_time) {
@@ -115,7 +115,7 @@ osquery::Status Query::addNewResults(const osquery::QueryData& qd,
   if (!serialize_status.ok()) {
     return serialize_status;
   }
-  auto put_status = db->Put(kQueries, query_.name, json);
+  auto put_status = db->Put(kQueries, name_, json);
   if (!put_status.ok()) {
     return put_status;
   }

@@ -62,7 +62,6 @@ add_subdirectory(extensions)
 add_subdirectory(filesystem)
 add_subdirectory(logger)
 add_subdirectory(registry)
-add_subdirectory(scheduler)
 add_subdirectory(sql)
 add_subdirectory(tables)
 

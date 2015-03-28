@@ -53,7 +53,7 @@ Status UdevEventPublisher::run() {
   FD_ZERO(&set);
   FD_SET(fd, &set);
 
-  struct timeval timeout = {1, 1000};
+  struct timeval timeout = {3, 3000};
   int selector = ::select(fd + 1, &set, nullptr, nullptr, &timeout);
   if (selector == -1) {
     LOG(ERROR) << "Could not read udev monitor";
@@ -76,7 +76,7 @@ Status UdevEventPublisher::run() {
 
   udev_device_unref(device);
 
-  osquery::interruptableSleep(kUdevMLatency);
+  osquery::publisherSleep(kUdevMLatency);
   return Status(0, "Continue");
 }
 

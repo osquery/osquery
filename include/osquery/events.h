@@ -799,7 +799,7 @@ class EventSubscriber : public EventSubscriberPlugin {
 void attachEvents();
 
 /// Sleep in a boost::thread interruptable state.
-void interruptableSleep(size_t milli);
+void publisherSleep(size_t milli);
 
 CREATE_REGISTRY(EventPublisherPlugin, "event_publisher");
 CREATE_REGISTRY(EventSubscriberPlugin, "event_subscriber");

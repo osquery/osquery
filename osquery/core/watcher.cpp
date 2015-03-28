@@ -243,7 +243,7 @@ bool WatcherRunner::isChildSane(pid_t child) {
       parent = AS_LITERAL(BIGINT_LITERAL, rows[0].at("parent"));
       user_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("user_time")) / iv;
       system_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("system_time")) / iv;
-      footprint = AS_LITERAL(BIGINT_LITERAL, rows[0].at("phys_footprint"));
+      footprint = AS_LITERAL(BIGINT_LITERAL, rows[0].at("resident_size"));
     } catch (const std::exception& e) {
       state.sustained_latency = 0;
     }

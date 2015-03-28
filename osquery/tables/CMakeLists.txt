@@ -16,6 +16,7 @@ if(APPLE)
     events/yara_utils.cpp
     networking/darwin/routes.cpp
     system/darwin/acpi_tables.cpp
+    system/darwin/ad_config.cpp
     system/darwin/apps.cpp
     system/darwin/block_devices.cpp
     system/darwin/keychain_items.cpp
@@ -105,7 +106,6 @@ else()
     ADD_OSQUERY_LINK(FALSE "dpkg")
   endif()
 
-  ADD_OSQUERY_LINK(FALSE "procps" "proc")
   ADD_OSQUERY_LINK(FALSE "blkid")
   ADD_OSQUERY_LINK(FALSE "udev")
   ADD_OSQUERY_LINK(FALSE "uuid")

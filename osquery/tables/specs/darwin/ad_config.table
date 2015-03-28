@@ -1,0 +1,9 @@
+table_name("ad_config")
+description("OS X Active Directory configuration.")
+schema([
+    Column("name", TEXT, "The OS X-specific configuration name"),
+    Column("domain", TEXT, "Active Directory trust domain"),
+    Column("option", TEXT, "Canonical name of option"),
+    Column("value", TEXT, "Variable typed option value"),
+])
+implementation("ad_config@genADConfig")

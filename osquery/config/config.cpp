@@ -9,9 +9,8 @@
  */
 
 #include <mutex>
+#include <random>
 #include <sstream>
-
-#include <boost/thread/shared_mutex.hpp>
 
 #include <osquery/config.h>
 #include <osquery/flags.h>
@@ -28,10 +27,7 @@ namespace osquery {
 
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
-// This lock is used to protect the entirety of the OSqueryConfig struct
-// Is should be used when ever accessing the structs members, reading or
-// writing.
-static boost::shared_mutex rw_lock;
+FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
 
 Status Config::load() {
   auto& config_plugin = Registry::getActive("config");
@@ -39,32 +35,29 @@ Status Config::load() {
     return Status(1, "Missing config plugin " + config_plugin);
   }
 
-  boost::unique_lock<boost::shared_mutex> lock(rw_lock);
+  return genConfig();
+}
 
-  OsqueryConfig conf;
-  if (!genConfig(conf).ok()) {
-    return Status(1, "Cannot generate config");
+Status Config::update(const std::map<std::string, std::string>& config) {
+  // Request a unique write lock when updating config.
+  boost::unique_lock<boost::shared_mutex> unique_lock(getInstance().mutex_);
+
+  ConfigData conf;
+  for (const auto& source : config) {
+    VLOG(1) << "Updating config source: " << source.first;
+    getInstance().raw_[source.first] = source.second;
   }
 
-  // Override default arguments with flag options from config.
-  for (const auto& option : conf.options) {
-    if (Flag::isDefault(option.first)) {
-      // Only override if option was NOT given as an argument.
-      Flag::updateValue(option.first, option.second);
-      VLOG(1) << "Setting flag option: " << option.first << "="
-              << option.second;
-    }
+  // Now merge all sources together.
+  for (const auto& source : getInstance().raw_) {
+    mergeConfig(source.second, conf);
   }
-  getInstance().cfg_ = conf;
+
+  getInstance().data_ = conf;
   return Status(0, "OK");
 }
 
-Status Config::genConfig(std::vector<std::string>& conf) {
-  auto& config_plugin = Registry::getActive("config");
-  if (!Registry::exists("config", config_plugin)) {
-    return Status(1, "Missing config plugin " + config_plugin);
-  }
-
+Status Config::genConfig() {
   PluginResponse response;
   auto status = Registry::call("config", {{"action", "genConfig"}}, response);
   if (!status.ok()) {
@@ -72,119 +65,118 @@ Status Config::genConfig(std::vector<std::string>& conf) {
   }
 
   if (response.size() > 0) {
-    for (const auto& it : response[0]) {
-      conf.push_back(it.second);
-    }
+    return update(response[0]);
   }
   return Status(0, "OK");
 }
 
-inline void mergeOption(const tree_node& option, OsqueryConfig& conf) {
+inline void mergeOption(const tree_node& option, ConfigData& conf) {
   conf.options[option.first.data()] = option.second.data();
+  if (conf.all_data.count("options") > 0) {
+    conf.all_data.get_child("options").erase(option.first);
+  }
   conf.all_data.add_child("options." + option.first, option.second);
 }
 
-inline void mergeAdditional(const tree_node& node, OsqueryConfig& conf) {
+inline void mergeAdditional(const tree_node& node, ConfigData& conf) {
+  if (conf.all_data.count("additional_monitoring") > 0) {
+    conf.all_data.get_child("additional_monitoring").erase(node.first);
+  }
   conf.all_data.add_child("additional_monitoring." + node.first, node.second);
 
   // Support special merging of file paths.
-  if (node.first != "file_paths") {
-    return;
-  }
-
-  for (const auto& category : node.second) {
-    for (const auto& path : category.second) {
-      resolveFilePattern(path.second.data(),
-                         conf.eventFiles[category.first],
-                         REC_LIST_FOLDERS | REC_EVENT_OPT);
-    }
-  }
-}
-
-inline void mergeScheduledQuery(const tree_node& node, OsqueryConfig& conf) {
-  // Read tree/JSON into a query structure.
-  OsqueryScheduledQuery query;
-  query.name = node.second.get<std::string>("name", "");
-  query.query = node.second.get<std::string>("query", "");
-  query.interval = node.second.get<int>("interval", 0);
-  // Also store the raw node in the property tree list.
-  conf.scheduledQueries.push_back(query);
-  conf.all_data.add_child("scheduledQueries", node.second);
-}
-
-Status Config::genConfig(OsqueryConfig& conf) {
-  std::vector<std::string> configs;
-  auto s = genConfig(configs);
-  if (!s.ok()) {
-    return s;
-  }
-
-  for (const auto& config_data : configs) {
-    std::stringstream json_data;
-    json_data << config_data;
-
-    pt::ptree tree;
-    pt::read_json(json_data, tree);
-
-    if (tree.count("scheduledQueries") > 0) {
-      for (const auto& node : tree.get_child("scheduledQueries")) {
-        mergeScheduledQuery(node, conf);
+  if (node.first == "file_paths") {
+    for (const auto& category : node.second) {
+      for (const auto& path : category.second) {
+        resolveFilePattern(path.second.data(),
+                           conf.files[category.first],
+                           REC_LIST_FOLDERS | REC_EVENT_OPT);
       }
     }
-
-    if (tree.count("additional_monitoring") > 0) {
-      for (const auto& node : tree.get_child("additional_monitoring")) {
-        mergeAdditional(node, conf);
-      }
-      // Parse each entry in yara. We iterate through additional_monitoring
-      // twice because the yara section depends on entries in file_paths.
-      for (const pt::ptree::value_type& v :
-           tree.get_child("additional_monitoring")) {
-        if (v.first == "yara") {
-          for (const pt::ptree::value_type& file_cat : v.second) {
-            // Make sure the category exists in file_paths.
-            if (conf.eventFiles.find(file_cat.first) != conf.eventFiles.end()) {
-              for (const pt::ptree::value_type& file : file_cat.second) {
-                conf.yaraFiles[file_cat.first].push_back(file.second.get_value<std::string>());
-              }
-            }
-          }
+  }
+  // Collect YARA information. For each category listed in YARA make sure the
+  // category exists in file_paths first then collect the list of signatures
+  // to use.
+  else if (node.first == "yara") {
+    for (const auto& category : node.second) {
+      if (conf.files.find(category.first) != conf.files.end()) {
+        for (const auto& file : category.second) {
+          conf.yaraFiles[category.first].push_back(file.second.get_value<std::string>());
         }
       }
     }
+  }
+}
 
-    if (tree.count("options") > 0) {
-      for (const auto& option : tree.get_child("options")) {
-        mergeOption(option, conf);
-      }
+// inline void mergeScheduledQuery(const tree_node& node, ConfigData& conf) {
+inline void mergeScheduledQuery(const std::string& name,
+                                const tree_node& node,
+                                ConfigData& conf) {
+  // Read tree/JSON into a query structure.
+  ScheduledQuery query;
+  query.query = node.second.get<std::string>("query", "");
+  query.interval = node.second.get<int>("interval", 0);
+
+  // Check if this query exists, if so, check if it was changed.
+  if (conf.schedule.count(name) > 0) {
+    if (query == conf.schedule.at(name)) {
+      return;
     }
   }
-  return Status(0, "OK");
+
+  // This is a new or updated scheduled query, update the splay.
+  query.splayed_interval =
+      splayValue(query.interval, FLAGS_schedule_splay_percent);
+  // Update the schedule map and replace the all_data node record.
+  conf.schedule[name] = query;
+  if (conf.all_data.count("schedule") > 0) {
+    conf.all_data.get_child("schedule").erase(name);
+  }
+  conf.all_data.add_child("schedule." + name, node.second);
 }
 
-std::vector<OsqueryScheduledQuery> Config::getScheduledQueries() {
-  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
-  return getInstance().cfg_.scheduledQueries;
-}
+void Config::mergeConfig(const std::string& source, ConfigData& conf) {
+  std::stringstream json_data;
+  json_data << source;
 
-std::map<std::string, std::vector<std::string> > Config::getWatchedFiles() {
-  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
-  return getInstance().cfg_.eventFiles;
-}
+  pt::ptree tree;
+  pt::read_json(json_data, tree);
 
-const std::map<std::string, std::vector<std::string> >& Config::getYARAFiles() {
-  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
-  return getInstance().cfg_.yaraFiles;
-}
+  // Legacy query schedule vector support.
+  if (tree.count("scheduledQueries") > 0) {
+    LOG(INFO) << RLOG(903) << "config 'scheduledQueries' is deprecated";
+    for (const auto& node : tree.get_child("scheduledQueries")) {
+      auto query_name = node.second.get<std::string>("name", "");
+      mergeScheduledQuery(query_name, node, conf);
+    }
+  }
 
-pt::ptree Config::getEntireConfiguration() {
-  boost::shared_lock<boost::shared_mutex> lock(rw_lock);
-  return getInstance().cfg_.all_data;
+  // Key/value query schedule map support.
+  if (tree.count("schedule") > 0) {
+    for (const auto& node : tree.get_child("schedule")) {
+      mergeScheduledQuery(node.first.data(), node, conf);
+    }
+  }
+
+  if (tree.count("additional_monitoring") > 0) {
+    for (const auto& node : tree.get_child("additional_monitoring")) {
+      mergeAdditional(node, conf);
+    }
+  }
+
+  if (tree.count("options") > 0) {
+    for (const auto& option : tree.get_child("options")) {
+      mergeOption(option, conf);
+    }
+  }
 }
 
 Status Config::getMD5(std::string& hash_string) {
+  // Request an accessor to our own config, outside of an update.
+  ConfigDataInstance config;
+
   std::stringstream out;
-  write_json(out, getEntireConfiguration());
+  write_json(out, config.data());
 
   hash_string = osquery::hashFromBuffer(
       HASH_TYPE_MD5, (void*)out.str().c_str(), out.str().length());
@@ -192,10 +184,7 @@ Status Config::getMD5(std::string& hash_string) {
   return Status(0, "OK");
 }
 
-Status Config::checkConfig() {
-  OsqueryConfig c;
-  return genConfig(c);
-}
+Status Config::checkConfig() { return load(); }
 
 Status ConfigPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
@@ -208,7 +197,31 @@ Status ConfigPlugin::call(const PluginRequest& request,
     auto stat = genConfig(config);
     response.push_back(config);
     return stat;
+  } else if (request.at("action") == "update") {
+    if (request.count("source") == 0 || request.count("data") == 0) {
+      return Status(1, "Missing source or data");
+    }
+    return Config::update({{request.at("source"), request.at("data")}});
   }
   return Status(1, "Config plugin action unknown: " + request.at("action"));
+}
+
+int splayValue(int original, int splayPercent) {
+  if (splayPercent <= 0 || splayPercent > 100) {
+    return original;
+  }
+
+  float percent_to_modify_by = (float)splayPercent / 100;
+  int possible_difference = original * percent_to_modify_by;
+  int max_value = original + possible_difference;
+  int min_value = original - possible_difference;
+
+  if (max_value == min_value) {
+    return max_value;
+  }
+
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int> distribution(min_value, max_value);
+  return distribution(generator);
 }
 }

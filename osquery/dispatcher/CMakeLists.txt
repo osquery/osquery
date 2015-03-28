@@ -1,5 +1,6 @@
 ADD_OSQUERY_LIBRARY(TRUE osquery_dispatcher
   dispatcher.cpp
+  scheduler.cpp
 )
 
 if(APPLE)

@@ -36,6 +36,10 @@ const std::vector<size_t> kEventTimeLists = {
     10, // 10 seconds
 };
 
+void publisherSleep(size_t milli) {
+  boost::this_thread::sleep(boost::posix_time::milliseconds(milli));
+}
+
 void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   EventContextID ec_id;
 
@@ -387,6 +391,12 @@ Status EventSubscriberPlugin::add(const Row& r, EventTime time) {
 }
 
 void EventFactory::delay() {
+  // Caller may disable event publisher threads.
+  if (FLAGS_disable_events) {
+    return;
+  }
+
+  // Create a thread for each event publisher.
   auto& ef = EventFactory::getInstance();
   for (const auto& publisher : EventFactory::getInstance().event_pubs_) {
     auto thread_ = std::make_shared<boost::thread>(
@@ -415,7 +425,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
   while (!publisher->isEnding() && status.ok()) {
     // Can optionally implement a global cooloff latency here.
     status = publisher->run();
-    osquery::interruptableSleep(EVENTS_COOLOFF);
+    osquery::publisherSleep(EVENTS_COOLOFF);
   }
 
   // The runloop status is not reflective of the event type's.
@@ -604,6 +614,11 @@ void EventFactory::end(bool join) {
 typedef std::shared_ptr<EventPublisherPlugin> EventPublisherPluginRef;
 
 void attachEvents() {
+  // Caller may disable events, do not setup any publishers or subscribers.
+  if (FLAGS_disable_events) {
+    return;
+  }
+
   const auto& publishers = Registry::all("event_publisher");
   for (const auto& publisher : publishers) {
     EventFactory::registerEventPublisher(publisher.second);

@@ -9,12 +9,10 @@
  */
 
 #include <string>
-#include <fstream>
 #include <map>
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <proc/readproc.h>
 
 #include <boost/algorithm/string/trim.hpp>
 
@@ -25,46 +23,28 @@
 namespace osquery {
 namespace tables {
 
-#ifdef PROC_EDITCMDLCVT
-/// EDITCMDLCVT is available in libprocps3-dev
-#define PROC_SELECTS                                                 \
-  PROC_FILLCOM | PROC_EDITCMDLCVT | PROC_FILLMEM | PROC_FILLSTATUS | \
-      PROC_FILLSTAT
-#else
-#define PROC_SELECTS \
-  PROC_FILLCOM | PROC_FILLMEM | PROC_FILLSTATUS | PROC_FILLSTAT
-#endif
-
-inline std::string getProcName(const proc_t* proc_info) {
-  return std::string(proc_info->cmd);
+inline std::string getProcAttr(const std::string& attr, const std::string& pid) {
+  return "/proc/" + pid + "/" + attr;
 }
 
-inline std::string getProcAttr(const std::string& attr, const proc_t* proc_info) {
-  return "/proc/" + std::to_string(proc_info->tid) + "/" + attr;
+inline std::string readProcCMDLine(const std::string& pid) {
+  auto attr = getProcAttr("cmdline", pid);
+
+  std::string content;
+  readFile(attr, content);
+  // Remove \0 delimiters.
+  std::replace_if(content.begin(),
+                  content.end(),
+                  [](const char& c) { return c == 0; },
+                  ' ');
+  // Remove trailing delimiter.
+  boost::algorithm::trim(content);
+  return content;
 }
 
-inline std::string readProcCMDLine(const proc_t* proc_info) {
-  auto attr = getProcAttr("cmdline", proc_info);
-
-  std::string result;
-  std::ifstream fd(attr, std::ios::in | std::ios::binary);
-  if (fd) {
-    result = std::string(std::istreambuf_iterator<char>(fd),
-                         std::istreambuf_iterator<char>());
-    std::replace_if(
-      result.begin(),
-      result.end(),
-      [](const char& c) { return c == 0; },
-      ' ');
-  }
-
-  return result;
-}
-
-inline std::string readProcLink(const proc_t* proc_info,
-    const std::string& attr) {
+inline std::string readProcLink(const std::string& attr, const std::string& pid) {
   // The exe is a symlink to the binary on-disk.
-  auto attr_path = getProcAttr("exe", proc_info);
+  auto attr_path = getProcAttr(attr, pid);
 
   std::string result;
   char link_path[PATH_MAX] = {0};
@@ -76,34 +56,32 @@ inline std::string readProcLink(const proc_t* proc_info,
   return result;
 }
 
-void genProcessEnvironment(const proc_t* proc_info, QueryData& results) {
-  auto attr = getProcAttr("environ", proc_info);
+void genProcessEnvironment(const std::string& pid, QueryData& results) {
+  auto attr = getProcAttr("environ", pid);
 
-  std::ifstream fd(attr, std::ios::in | std::ios::binary);
-  std::string buf;
-  while (!(fd.fail() || fd.eof())) {
-    std::getline(fd, buf, '\0');
+  std::string content;
+  readFile(attr, content);
+  for (const auto& buf : osquery::split(content, "\n")) {
     size_t idx = buf.find_first_of("=");
 
     Row r;
-    r["pid"] = INTEGER(proc_info->tid);
+    r["pid"] = pid;
     r["key"] = buf.substr(0, idx);
     r["value"] = buf.substr(idx + 1);
     results.push_back(r);
   }
 }
 
-void genProcessMap(const proc_t* proc_info, QueryData& results) {
-  auto map = getProcAttr("maps", proc_info);
+void genProcessMap(const std::string& pid, QueryData& results) {
+  auto map = getProcAttr("maps", pid);
 
-  std::ifstream fd(map, std::ios::in | std::ios::binary);
-  std::string line;
-  while (!(fd.fail() || fd.eof())) {
-    std::getline(fd, line, '\n');
+  std::string content;
+  readFile(map, content);
+  for (auto& line : osquery::split(content, "\n")) {
     auto fields = osquery::split(line, " ");
 
     Row r;
-    r["pid"] = INTEGER(proc_info->tid);
+    r["pid"] = pid;
 
     // If can't read address, not sure.
     if (fields.size() < 5) {
@@ -133,86 +111,132 @@ void genProcessMap(const proc_t* proc_info, QueryData& results) {
   }
 }
 
-/**
- * @brief deallocate the space allocated by readproc if the passed rbuf was NULL
- *
- * @param p The rbuf to free
- */
-void standardFreeproc(proc_t* p) {
-  if (!p) { // in case p is NULL
-    return;
+struct SimpleProcStat {
+  // Output from string parsing /proc/<pid>/status.
+  std::string parent; // PPid:
+  std::string name; // Name:
+  std::string real_uid; // Uid: * - - -
+  std::string real_gid; // Gid: * - - -
+  std::string effective_uid; // Uid: - * - -
+  std::string effective_gid; // Gid: - * - -
+
+  std::string resident_size; // VmRSS:
+  std::string phys_footprint;  // VmSize:
+
+  // Output from sring parsing /proc/<pid>/stat.
+  std::string user_time;
+  std::string system_time;
+  std::string start_time;
+};
+
+SimpleProcStat getProcStat(const std::string& pid) {
+  SimpleProcStat stat;
+  std::string content;
+  if (readFile(getProcAttr("stat", pid), content).ok()) {
+    auto detail_start = content.find_last_of(")");
+    // Start parsing stats from ") <MODE>..."
+    auto details = osquery::split(content.substr(detail_start + 2), " ");
+    stat.parent = details.at(1);
+    stat.user_time = details.at(11);
+    stat.system_time = details.at(12);
+    stat.start_time = details.at(19);
   }
 
-#ifdef PROC_EDITCMDLCVT
-  freeproc(p);
-  return;
-#endif
+  if (readFile(getProcAttr("status", pid), content).ok()) {
+    for (const auto& line : osquery::split(content, "\n")) {
+      // Status lines are formatted: Key: Value....\n.
+      auto detail = osquery::split(line, ":", 1);
+      if (detail.size() != 2) {
+        continue;
+      }
 
-  // ptrs are after strings to avoid copying memory when building them.
-  // so free is called on the address of the address of strvec[0].
-  if (p->cmdline) {
-    free((void*)*p->cmdline);
+      // There are specific fields from each detail.
+      if (detail.at(0) == "Name") {
+        stat.name = detail.at(1);
+      } else if (detail.at(0) == "VmRSS") {
+        detail[1].erase(detail.at(1).end() - 3, detail.at(1).end());
+        // Memory is reported in kB.
+        stat.resident_size = detail.at(1) + "000";
+      } else if (detail.at(0) == "VmSize") {
+        detail[1].erase(detail.at(1).end() - 3, detail.at(1).end());
+        // Memory is reported in kB.
+        stat.phys_footprint = detail.at(1) + "000";
+      } else if (detail.at(0) == "Gid") {
+        // Format is: R E - -
+        auto gid_detail = osquery::split(detail.at(1), "\t");
+        if (gid_detail.size() == 4) {
+          stat.real_gid = gid_detail.at(0);
+          stat.effective_gid = gid_detail.at(1);
+        }
+      } else if (detail.at(0) == "Uid") {
+        auto uid_detail = osquery::split(detail.at(1), "\t");
+        if (uid_detail.size() == 4) {
+          stat.real_uid = uid_detail.at(0);
+          stat.effective_uid = uid_detail.at(1);
+        }
+      }
+    }
   }
-  if (p->environ) {
-    free((void*)*p->environ);
-  }
-  free(p);
+
+  return stat;
+}
+
+void genProcess(const std::string& pid, QueryData& results) {
+  // Parse the process stat and status.
+  auto proc_stat = getProcStat(pid);
+
+  Row r;
+  r["pid"] = pid;
+  r["parent"] = proc_stat.parent;
+  r["path"] = readProcLink("exe", pid);
+  r["name"] = proc_stat.name;
+
+  // Read/parse cmdline arguments.
+  r["cmdline"] = readProcCMDLine(pid);
+  r["cwd"] = readProcLink("cwd", pid);
+  r["root"] = readProcLink("root", pid);
+
+  r["uid"] = proc_stat.real_uid;
+  r["euid"] = proc_stat.effective_uid;
+  r["gid"] = proc_stat.real_gid;
+  r["egid"] = proc_stat.effective_gid;
+
+  // If the path of the executable that started the process is available and
+  // the path exists on disk, set on_disk to 1. If the path is not
+  // available, set on_disk to -1. If, and only if, the path of the
+  // executable is available and the file does NOT exist on disk, set on_disk
+  // to 0.
+  r["on_disk"] = osquery::pathExists(r["path"]).toString();
+
+  // size/memory information
+  r["wired_size"] = "0"; // No support for unpagable counters in linux.
+  r["resident_size"] = proc_stat.resident_size;
+  r["phys_footprint"] = proc_stat.phys_footprint;
+
+  // time information
+  r["user_time"] = proc_stat.user_time;
+  r["system_time"] = proc_stat.system_time;
+  r["start_time"] = proc_stat.start_time;
+
+  results.push_back(r);
 }
 
 QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
-  proc_t* proc_info;
-  PROCTAB* proc = openproc(PROC_SELECTS);
-
-  // Populate proc struc for each process.
-  while ((proc_info = readproc(proc, NULL))) {
-    if (!context.constraints["pid"].matches<int>(proc_info->tid)) {
-      // Optimize by not searching when a pid is a constraint.
-      standardFreeproc(proc_info);
-      continue;
-    }
-
-    Row r;
-    r["pid"] = INTEGER(proc_info->tid);
-    r["parent"] = INTEGER(proc_info->ppid);
-    r["path"] = readProcLink(proc_info, "exe");
-    r["name"] = getProcName(proc_info);
-
-    // Read/parse cmdline arguments.
-    std::string cmdline = readProcCMDLine(proc_info);
-    boost::algorithm::trim(cmdline);
-    r["cmdline"] = cmdline;
-    r["cwd"] = readProcLink(proc_info, "cwd");
-    r["root"] = readProcLink(proc_info, "root");
-
-    r["uid"] = BIGINT((unsigned int)proc_info->ruid);
-    r["gid"] = BIGINT((unsigned int)proc_info->rgid);
-    r["euid"] = BIGINT((unsigned int)proc_info->euid);
-    r["egid"] = BIGINT((unsigned int)proc_info->egid);
-
-    // If the path of the executable that started the process is available and
-    // the path exists on disk, set on_disk to 1. If the path is not
-    // available, set on_disk to -1. If, and only if, the path of the
-    // executable is available and the file does NOT exist on disk, set on_disk
-    // to 0.
-    r["on_disk"] = osquery::pathExists(r["path"]).toString();
-
-    // size/memory information
-    r["wired_size"] = "0"; // No support for unpagable counters in linux.
-    r["resident_size"] = INTEGER(proc_info->vm_rss);
-    r["phys_footprint"] = INTEGER(proc_info->vm_size);
-
-    // time information
-    r["user_time"] = INTEGER(proc_info->utime);
-    r["system_time"] = INTEGER(proc_info->stime);
-    r["start_time"] = INTEGER(proc_info->start_time);
-
-    results.push_back(r);
-    standardFreeproc(proc_info);
+  std::set<std::string> pids;
+  if (context.constraints["pid"].exists()) {
+    pids = context.constraints["pid"].getAll(EQUALS);
+  } else {
+    osquery::procProcesses(pids);
   }
 
-  closeproc(proc);
+  // Generate data for all pids in the vector.
+  // If there are comparison constraints this could apply the operator
+  // before generating the process structure.
+  for (const auto& pid : pids) {
+    genProcess(pid, results);
+  }
 
   return results;
 }
@@ -220,16 +244,16 @@ QueryData genProcesses(QueryContext& context) {
 QueryData genProcessEnvs(QueryContext& context) {
   QueryData results;
 
-  proc_t* proc_info;
-  PROCTAB* proc = openproc(PROC_SELECTS);
-
-  // Populate proc struc for each process.
-  while ((proc_info = readproc(proc, NULL))) {
-    genProcessEnvironment(proc_info, results);
-    standardFreeproc(proc_info);
+  std::set<std::string> pids;
+  if (context.constraints["pid"].exists()) {
+    pids = context.constraints["pid"].getAll(EQUALS);
+  } else {
+    osquery::procProcesses(pids);
   }
 
-  closeproc(proc);
+  for (const auto& pid : pids) {
+    genProcessEnvironment(pid, results);
+  }
 
   return results;
 }
@@ -237,15 +261,16 @@ QueryData genProcessEnvs(QueryContext& context) {
 QueryData genProcessMemoryMap(QueryContext& context) {
   QueryData results;
 
-  proc_t* proc_info;
-  PROCTAB* proc = openproc(PROC_SELECTS);
-
-  while ((proc_info = readproc(proc, NULL))) {
-    genProcessMap(proc_info, results);
-    standardFreeproc(proc_info);
+  std::set<std::string> pids;
+  if (context.constraints["pid"].exists()) {
+    pids = context.constraints["pid"].getAll(EQUALS);
+  } else {
+    osquery::procProcesses(pids);
   }
 
-  closeproc(proc);
+  for (const auto& pid : pids) {
+    genProcessMap(pid, results);
+  }
 
   return results;
 }
