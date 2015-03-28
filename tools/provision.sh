@@ -102,6 +102,28 @@ function install_rocksdb() {
   fi
 }
 
+function install_snappy() {
+  if [[ ! -f /usr/local/lib/libsnappy.a ]]; then
+    if [[ ! -f snappy-1.1.1.tar.gz ]]; then
+      wget https://snappy.googlecode.com/files/snappy-1.1.1.tar.gz
+    else
+      log "snappy source is already downloaded. skipping."
+    fi
+    if [[ ! -d snappy-1.1.1 ]]; then
+      tar -xf snappy-1.1.1.tar.gz
+    fi
+    if [[ ! -f snappy-1.1.1/.libs/libsnappy.a ]]; then
+      pushd snappy-1.1.1
+      ./configure --with-pic --enable-static
+      make
+      popd
+    fi
+    sudo cp snappy-1.1.1/.libs/libsnappy.a /usr/local/lib
+  else
+    log "snappy library is already installed. skipping."
+  fi
+}
+
 function install_boost() {
   if [[ ! -f /usr/local/lib/libboost_thread.a ]]; then
     if [[ ! -f boost_1_55_0.tar.gz ]]; then
@@ -500,9 +522,8 @@ function main() {
     fi
 
     install_gflags
+
     package doxygen
-    package snappy
-    package snappy-devel
     package byacc
     package flex
     package bison
@@ -521,6 +542,7 @@ function main() {
       install_thrift
     fi
 
+    install_snappy
     install_rocksdb
 
     gem_install fpm
