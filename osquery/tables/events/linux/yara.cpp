@@ -57,6 +57,7 @@ REGISTER(YARAEventSubscriber, "event_subscriber", "yara");
 
 Status YARAEventSubscriber::init() {
   Status status;
+  ConfigDataInstance config;
 
   int result = yr_initialize();
   if (result != ERROR_SUCCESS) {
@@ -64,8 +65,8 @@ Status YARAEventSubscriber::init() {
     return Status(1, "Unable to initalize YARA.");
   }
 
-  const auto& yara_map = Config::getYARAFiles();
-  const auto& file_map = Config::getWatchedFiles();
+  const auto& yara_map = config.yaraFiles();
+  const auto& file_map = config.files();
 
   // yara_map has a key of the category and a vector of rule files to load.
   // file_map has a key of the category and a vector of files to watch. Use
