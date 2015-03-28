@@ -90,15 +90,6 @@ class Config : private boost::noncopyable {
   static Status update(const std::map<std::string, std::string>& config);
 
   /**
-   * @brief Get a map of all the files in the YARA JSON blob
-   *
-   *
-   *
-   * @return A map all the files in the JSON blob organized by category
-   */
-  static const std::map<std::string, std::vector<std::string> >& getYARAFiles();
-
-  /**
    * @brief Calculate the has of the osquery config
    *
    * @return The MD5 of the osquery config
