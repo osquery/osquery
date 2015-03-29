@@ -17,14 +17,14 @@ elseif(LINUX)
       "libreadline6"
     )
     if(OSQUERY_BUILD_DISTRO STREQUAL "PRECISE")
-      set(PACKAGE_ITERATION "1.ubuntu12_12.04")
+      set(PACKAGE_ITERATION "1.ubuntu12.04")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6"
         "libudev0"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "TRUSTY")
-      set(PACKAGE_ITERATION "1.ubuntu14_14.04")
+      set(PACKAGE_ITERATION "1.ubuntu14.04")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6 (>= 4.8)"
