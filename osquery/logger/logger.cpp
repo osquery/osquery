@@ -121,7 +121,7 @@ void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
   request["log"] = output.str();
 }
 
-void unserializeIntermediateLog(const PluginRequest& request,
+void deserializeIntermediateLog(const PluginRequest& request,
                                 std::vector<StatusLogLine>& log) {
   if (request.count("log") == 0) {
     return;
@@ -135,10 +135,10 @@ void unserializeIntermediateLog(const PluginRequest& request,
 
   for (const auto& item : tree.get_child("")) {
     log.push_back({
-        (StatusLogSeverity)item.second.get<int>("s"),
-        item.second.get<std::string>("f"),
-        item.second.get<int>("i"),
-        item.second.get<std::string>("m"),
+        (StatusLogSeverity)item.second.get<int>("s", O_INFO),
+        item.second.get<std::string>("f", "<unknown>"),
+        item.second.get<int>("i", 0),
+        item.second.get<std::string>("m", ""),
     });
   }
 }
@@ -240,10 +240,10 @@ Status LoggerPlugin::call(const PluginRequest& request,
   if (request.count("string") > 0) {
     return this->logString(request.at("string"));
   } else if (request.count("init") > 0) {
-    unserializeIntermediateLog(request, intermediate_logs);
+    deserializeIntermediateLog(request, intermediate_logs);
     return this->init(request.at("init"), intermediate_logs);
   } else if (request.count("status") > 0) {
-    unserializeIntermediateLog(request, intermediate_logs);
+    deserializeIntermediateLog(request, intermediate_logs);
     return this->logStatus(intermediate_logs);
   } else {
     return Status(1, "Unsupported call to logger plugin");
