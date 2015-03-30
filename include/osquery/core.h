@@ -144,6 +144,27 @@ std::vector<std::string> split(const std::string& s,
                                size_t occurences);
 
 /**
+ * @brief Inline replace all instances of from with to.
+ *
+ * @param str The input/output mutable string.
+ * @param from Search string
+ * @param to Replace string
+ */
+inline void replaceAll(std::string& str,
+                       const std::string& from,
+                       const std::string& to) {
+  if (from.empty()) {
+    return;
+  }
+
+  size_t start_pos = 0;
+  while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+    str.replace(start_pos, from.length(), to);
+    start_pos += to.length();
+  }
+}
+
+/**
  * @brief Join a vector of strings using a tokenizer.
  *
  * @param s the string that you'd like to split.

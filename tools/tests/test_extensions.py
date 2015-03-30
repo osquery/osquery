@@ -101,6 +101,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         stale_sockets = glob.glob("/tmp/osquery-test.em*")
         for stale_socket in stale_sockets:
             os.remove(stale_socket)
+            os.system("killall osqueryd")
 
     def test_1_daemon_without_extensions(self):
         # Start the daemon without thrift, prefer no watchdog because the tests
@@ -117,9 +118,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     def test_2_daemon_api(self):
-        daemon = self._run_daemon({
-            "disable_watchdog": True,
-        })
+        daemon = self._run_daemon({"disable_watchdog": True})
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
@@ -151,9 +150,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     def test_3_example_extension(self):
-        daemon = self._run_daemon({
-            "disable_watchdog": True,
-        })
+        daemon = self._run_daemon({"disable_watchdog": True})
         self.assertTrue(daemon.isAlive())
         
         # Get a python-based thrift client
@@ -214,9 +211,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     def test_4_extension_dies(self):
-        daemon = self._run_daemon({
-            "disable_watchdog": True,
-        })
+        daemon = self._run_daemon({"disable_watchdog": True})
         self.assertTrue(daemon.isAlive())
         
         # Get a python-based thrift client
@@ -266,9 +261,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(extension.isAlive())
 
         # Now start a daemon
-        daemon = self._run_daemon({
-            "disable_watchdog": True,
-        })
+        daemon = self._run_daemon({"disable_watchdog": True})
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
@@ -310,9 +303,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_7_extensions_autoload_watchdog(self):
         loader = test_base.Autoloader("/tmp/osqueryd-temp-ext.load",
             [test_base.ARGS.build + "/osquery/example_extension.ext"])
-        daemon = self._run_daemon({
-            "extensions_autoload": loader.path,
-        })
+        daemon = self._run_daemon({"extensions_autoload": loader.path})
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
@@ -350,6 +341,46 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         client.close()
         daemon.kill(True)
+
+    def test_9_external_config_update(self):
+        # Start an extension without a daemon, with a timeout.
+        extension = self._run_extension(timeout=3)
+        self.assertTrue(extension.isAlive())
+
+        # Now start a daemon
+        daemon = self._run_daemon({"disable_watchdog": True})
+        self.assertTrue(daemon.isAlive())
+
+        # Get a python-based thrift client to the manager and extension.
+        client = EXClient()
+        client.open()
+        em = client.getEM()
+        # Need the manager to request the extension's UUID.
+        result = expect(em.extensions, 1)
+        self.assertTrue(result is not None)
+        ex_uuid = result.keys()[0]
+        client2 = EXClient(uuid=ex_uuid)
+        client2.open()
+        ex = client2.getEX()
+
+        # Trigger an async update from the extension.
+        request = {
+            "action": "update",
+            "source": "test",
+            "data": "{\"options\": {\"config_plugin\": \"update_test\"}}"}
+        ex.call("config", "example", request)
+
+        # The update call in the extension should filter to the core.
+        options = em.options()
+        self.assertTrue("config_plugin" in options.keys())
+        self.assertTrue(options["config_plugin"], "update_test")
+
+        # Cleanup thrift connections and subprocesses.
+        client2.close()
+        client.close()
+        extension.kill()
+        daemon.kill()
+
 
 if __name__ == "__main__":
     module = test_base.Tester()

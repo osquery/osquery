@@ -120,13 +120,15 @@ void SchedulerRunner::enter() {
   struct tm* local = localtime(&t);
   unsigned long int i = local->tm_sec;
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
-    ConfigDataInstance config;
-
-    for (const auto& query : config.schedule()) {
-      if (i % query.second.splayed_interval == 0) {
-        launchQuery(query.first, query.second);
+    {
+      ConfigDataInstance config;
+      for (const auto& query : config.schedule()) {
+        if (i % query.second.splayed_interval == 0) {
+          launchQuery(query.first, query.second);
+        }
       }
     }
+    // Put the thread into an interruptable sleep without a config instance.
     osquery::interruptableSleep(interval_ * 1000);
   }
 }

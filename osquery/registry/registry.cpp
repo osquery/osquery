@@ -98,6 +98,9 @@ Status RegistryHelperCore::call(const std::string& item_name,
     // The item has a route, but no extension, pass in the route info.
     response = routes_.at(item_name);
     return Status(0, "Route only");
+  } else if (Registry::external()) {
+    // If this is an extension's registry forward unknown calls to the core.
+    return callExtension(0, name_, item_name, request, response);
   }
 
   return Status(1, "Cannot call registry item: " + item_name);
@@ -285,10 +288,6 @@ Status RegistryFactory::call(const std::string& registry_name,
                              const std::string& item_name,
                              const PluginRequest& request,
                              PluginResponse& response) {
-  if (!exists(registry_name, item_name)) {
-    return Status(1, "Registry: " + registry_name + ", item: " + item_name +
-                         " not found");
-  }
   // Forward factory call to the registry.
   return registry(registry_name)->call(item_name, request, response);
 }

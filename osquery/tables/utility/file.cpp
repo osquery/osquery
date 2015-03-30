@@ -12,8 +12,11 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/tables.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
@@ -64,7 +67,11 @@ QueryData genFile(QueryContext& context) {
 
   auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
-    boost::filesystem::path path = path_string;
+    if (!isReadable(path_string)) {
+      continue;
+    }
+
+    fs::path path = path_string;
     genFileInfo(path_string,
                 path.filename().string(),
                 path.parent_path().string(),
@@ -74,18 +81,21 @@ QueryData genFile(QueryContext& context) {
   // Now loop through constraints using the directory column constraint.
   auto directories = context.constraints["directory"].getAll(EQUALS);
   for (const auto& directory_string : directories) {
-    boost::filesystem::path directory = directory_string;
-    if (!boost::filesystem::is_directory(directory)) {
+    if (!isReadable(directory_string) || !isDirectory(directory_string)) {
       continue;
     }
 
-    // Iterate over the directory and generate a hash for each regular file.
-    boost::filesystem::directory_iterator begin(directory), end;
-    for (; begin != end; ++begin) {
-      genFileInfo(begin->path().string(),
-                  begin->path().filename().string(),
-                  directory_string,
-                  results);
+    try {
+      // Iterate over the directory and generate info for each regular file.
+      fs::directory_iterator begin(directory_string), end;
+      for (; begin != end; ++begin) {
+        genFileInfo(begin->path().string(),
+                    begin->path().filename().string(),
+                    directory_string,
+                    results);
+      }
+    } catch (const fs::filesystem_error& e) {
+      continue;
     }
   }
 

@@ -631,6 +631,13 @@ class RegistryFactory : private boost::noncopyable {
   /// Access module metadata.
   static const std::map<RouteUUID, ModuleInfo>& getModules();
 
+  /// Set the registry external (such that internal events are forwarded).
+  /// Once set external, it should not be unset.
+  static void setExternal() { instance().external_ = true; }
+
+  /// Get the registry external status.
+  static bool external() { return instance().external_; }
+
  private:
   /// Access the current initializing module UUID.
   static RouteUUID getModule();
@@ -650,7 +657,8 @@ class RegistryFactory : private boost::noncopyable {
   static void locked(bool locked) { instance().locked_ = locked; }
 
  protected:
-  RegistryFactory() : allow_duplicates_(false), locked_(false) {}
+  RegistryFactory()
+    : allow_duplicates_(false), locked_(false), external_(false) {}
   RegistryFactory(RegistryFactory const&);
   void operator=(RegistryFactory const&);
   virtual ~RegistryFactory() {}
@@ -682,8 +690,11 @@ class RegistryFactory : private boost::noncopyable {
    */
   std::map<RouteUUID, ModuleInfo> modules_;
 
-  // During module initialization store the current-working module ID.
+  /// During module initialization store the current-working module ID.
   RouteUUID module_uuid_;
+  /// Calling startExtension should declare the registry external.
+  /// This will cause extension-internal events to forward to osquery core.
+  bool external_;
 
  private:
   friend class RegistryHelperCore;
