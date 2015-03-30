@@ -3,6 +3,7 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_config
 )
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
+  update.cpp
   plugins/filesystem.cpp
 )
 

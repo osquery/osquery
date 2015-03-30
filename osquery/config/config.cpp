@@ -17,6 +17,7 @@
 #include <osquery/hash.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 namespace pt = boost::property_tree;
 
@@ -39,12 +40,33 @@ Status Config::load() {
 }
 
 Status Config::update(const std::map<std::string, std::string>& config) {
+  // A config plugin may call update from an extension. This will update
+  // the config instance within the extension process and the update must be
+  // reflected in the core.
+  if (Registry::external()) {
+    for (const auto& source : config) {
+      PluginRequest request = {
+        {"action", "update"},
+        {"source", source.first},
+        {"data", source.second},
+      };
+      // A "update" registry item within core should call the core's update
+      // method. The config plugin call action handling must also know to
+      // update.
+      Registry::call("config", "update", request);
+    }
+  }
+
   // Request a unique write lock when updating config.
   boost::unique_lock<boost::shared_mutex> unique_lock(getInstance().mutex_);
 
   ConfigData conf;
   for (const auto& source : config) {
-    VLOG(1) << "Updating config source: " << source.first;
+    if (Registry::external()) {
+      VLOG(1) << "Updating extension config source: " << source.first;
+    } else {
+      VLOG(1) << "Updating config source: " << source.first;
+    }
     getInstance().raw_[source.first] = source.second;
   }
 
