@@ -23,6 +23,7 @@ FLAG(string,
      logger_path,
      "/var/log/osquery/",
      "Directory path for ERROR/WARN/INFO and results logging");
+/// Legacy, backward compatible "osquery_log_dir" CLI option.
 FLAG_ALIAS(std::string, osquery_log_dir, logger_path);
 
 const std::string kFilesystemLoggerFilename = "osqueryd.results.log";
@@ -50,8 +51,6 @@ Status FilesystemLoggerPlugin::setUp() {
 Status FilesystemLoggerPlugin::logString(const std::string& s) {
   std::lock_guard<std::mutex> lock(filesystemLoggerPluginMutex);
   try {
-    VLOG(3) << "filesystem logger plugin: logging to " << log_path_.string();
-
     // The results log may contain sensitive information if run as root.
     auto status = writeTextFile(log_path_.string(), s, 0640, true);
     if (!status.ok()) {
@@ -96,11 +95,10 @@ Status FilesystemLoggerPlugin::init(const std::string& name,
   google::InitGoogleLogging(name.c_str());
 
   // We may violate glog global object assumptions. So set names manually.
-  auto glog_basename = (log_path_.parent_path() / name).string();
-  google::SetLogDestination(google::INFO, (glog_basename + ".INFO.").c_str());
-  google::SetLogDestination(google::WARNING,
-                            (glog_basename + ".WARNING.").c_str());
-  google::SetLogDestination(google::ERROR, (glog_basename + ".ERROR.").c_str());
+  auto basename = (log_path_.parent_path() / name).string();
+  google::SetLogDestination(google::INFO, (basename + ".INFO.").c_str());
+  google::SetLogDestination(google::WARNING, (basename + ".WARNING.").c_str());
+  google::SetLogDestination(google::ERROR, (basename + ".ERROR.").c_str());
 
   // Store settings for logging to stderr.
   bool log_to_stderr = FLAGS_logtostderr;
