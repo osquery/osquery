@@ -241,6 +241,7 @@ Status startExtension(const std::string& name, const std::string& version) {
 Status startExtension(const std::string& name,
                       const std::string& version,
                       const std::string& min_sdk_version) {
+  Registry::setExternal();
   auto latency = atoi(FLAGS_extensions_interval.c_str()) * 1000;
   auto status = startExtensionWatcher(FLAGS_extensions_socket, latency, true);
   if (!status.ok()) {
