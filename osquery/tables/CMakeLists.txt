@@ -30,6 +30,7 @@ if(APPLE)
     system/darwin/mounts.cpp
     system/darwin/nvram.cpp
     system/darwin/os_version.cpp
+    system/darwin/packages.cpp
     system/darwin/preferences.cpp
     system/darwin/processes.cpp
     system/darwin/process_open_descriptors.cpp
