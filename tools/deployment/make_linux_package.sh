@@ -17,6 +17,9 @@ export PATH="$PATH:/usr/local/bin"
 source $SCRIPT_DIR/../lib.sh
 
 PACKAGE_VERSION=`git describe --tags HEAD`
+PACKAGE_ARCH=`uname -m`
+PACKAGE_ITERATION=""
+PACKAGE_TYPE=""
 DESCRIPTION="osquery is an operating system instrumentation toolchain."
 if [[ $PACKAGE_VERSION == *"-"* ]]; then
   PACKAGE_NAME="osquery-latest"
@@ -41,7 +44,7 @@ WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX=$WORKING_DIR/prefix
 
 function usage() {
-  fatal "Usage: $0 -t deb|rpm -d DEPENDENCY_LIST
+  fatal "Usage: $0 -t deb|rpm -i REVISION -d DEPENDENCY_LIST
 
   This will generate an Linux package with:
   (1) An example config /var/osquery/osquery.example.config
@@ -55,6 +58,9 @@ function parse_args() {
       -t | --type )           shift
                               PACKAGE_TYPE=$1
                               ;;
+      -i | --iteration )      shift
+                              PACKAGE_ITERATION=$1
+                              ;;
       -d | --dependencies )   shift
                               PACKAGE_DEPENDENCIES="${@}"
                               ;;
@@ -66,7 +72,7 @@ function parse_args() {
 }
 
 function check_parsed_args() {
-  if [[ $PACKAGE_TYPE = "" ]]; then
+  if [[ $PACKAGE_TYPE = "" ]] || [[ $PACKAGE_ITERATION = "" ]]; then
     usage
   fi
 
@@ -113,9 +119,11 @@ function main() {
 
   CMD="fpm -s dir -t $PACKAGE_TYPE \
     -n $PACKAGE_NAME -v $PACKAGE_VERSION \
+    --iteration $PACKAGE_ITERATION \
+    -a $PACKAGE_ARCH               \
     $PACKAGE_DEPENDENCIES          \
     -p $OUTPUT_PKG_PATH            \
-    --url http://osquery.io        \
+    --url https://osquery.io       \
     -m osquery@osquery.io          \
     --vendor Facebook              \
     --license BSD                  \
