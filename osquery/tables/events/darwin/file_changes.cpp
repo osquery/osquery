@@ -32,7 +32,7 @@ class FileChangesEventSubscriber
   DECLARE_SUBSCRIBER("file_changes");
 
  public:
-  void init();
+  Status init();
 
   /**
    * @brief This exports a single Callback for INotifyEventPublisher events.
@@ -54,7 +54,7 @@ class FileChangesEventSubscriber
  */
 REGISTER(FileChangesEventSubscriber, "event_subscriber", "file_changes");
 
-void FileChangesEventSubscriber::init() {
+Status FileChangesEventSubscriber::init() {
   ConfigDataInstance config;
   for (const auto& element_kv : config.files()) {
     for (const auto& file : element_kv.second) {
@@ -65,6 +65,8 @@ void FileChangesEventSubscriber::init() {
                 (void*)(&element_kv.first));
     }
   }
+
+  return Status(0, "OK");
 }
 
 Status FileChangesEventSubscriber::Callback(const FSEventsEventContextRef& ec,

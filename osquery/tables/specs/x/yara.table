@@ -1,0 +1,13 @@
+table_name("yara")
+description("Track YARA matches for files specified in configuation data.")
+schema([
+    Column("target_path", TEXT, "The path scanned"),
+    Column("category", TEXT, "The category of the file"),
+    Column("time", TEXT, "Time of the scan"),
+    Column("action", TEXT, "Change action (UPDATE, REMOVE, etc)"),
+    Column("transaction_id", BIGINT, "ID used during bulk update"),
+    Column("matches", TEXT, "List of YARA matches"),
+    Column("count", INTEGER, "Number of YARA matches"),
+])
+attributes(event_subscriber=True)
+implementation("yara@yara::genTable")

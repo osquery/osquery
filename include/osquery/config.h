@@ -42,6 +42,7 @@ struct ConfigData {
   std::map<std::string, ScheduledQuery> schedule;
   std::map<std::string, std::string> options;
   std::map<std::string, std::vector<std::string> > files;
+  std::map<std::string, std::vector<std::string> > yaraFiles;
   pt::ptree all_data;
 };
 
@@ -180,6 +181,11 @@ class ConfigDataInstance {
   /// Helper accessor for Config::data_.files.
   const std::map<std::string, std::vector<std::string> >& files() {
     return Config::getInstance().data_.files;
+  }
+
+  /// Helper accessor for Config::data_.yaraFiles.
+  const std::map<std::string, std::vector<std::string> >& yaraFiles() {
+    return Config::getInstance().data_.yaraFiles;
   }
 
   /// Helper accessor for Config::data_.all_data.

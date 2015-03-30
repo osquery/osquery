@@ -64,7 +64,7 @@ class INotifyTests : public testing::Test {
     mc->path = path;
     mc->mask = mask;
 
-    EventFactory::addSubscription("inotify", mc, ec);
+    EventFactory::addSubscription("inotify", "TestSubscriber", mc, ec);
   }
 
   bool WaitForEvents(int max, int num_events = 0) {
@@ -126,7 +126,7 @@ TEST_F(INotifyTests, test_inotify_add_subscription_missing_path) {
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = "/this/path/is/fake";
 
-  auto subscription = Subscription::create(mc);
+  auto subscription = Subscription::create("TestSubscriber", mc);
   auto status = EventFactory::addSubscription("inotify", subscription);
   EXPECT_TRUE(status.ok());
   EventFactory::deregisterEventPublisher("inotify");
@@ -140,40 +140,10 @@ TEST_F(INotifyTests, test_inotify_add_subscription_success) {
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = "/";
 
-  auto subscription = Subscription::create(mc);
+  auto subscription = Subscription::create("TestSubscriber", mc);
   auto status = EventFactory::addSubscription("inotify", subscription);
   EXPECT_TRUE(status.ok());
   EventFactory::deregisterEventPublisher("inotify");
-}
-
-TEST_F(INotifyTests, test_inotify_run) {
-  // Assume event type is registered.
-  event_pub_ = std::make_shared<INotifyEventPublisher>();
-  auto status = EventFactory::registerEventPublisher(event_pub_);
-  EXPECT_TRUE(status.ok());
-
-  // Create a temporary file to watch, open writeable
-  FILE* fd = fopen(kRealTestPath.c_str(), "w");
-
-  // Create a subscriptioning context
-  auto mc = std::make_shared<INotifySubscriptionContext>();
-  mc->path = kRealTestPath;
-  status = EventFactory::addSubscription("inotify", Subscription::create(mc));
-  EXPECT_TRUE(status.ok());
-
-  // Create an event loop thread (similar to main)
-  boost::thread temp_thread(EventFactory::run, "inotify");
-  EXPECT_TRUE(event_pub_->numEvents() == 0);
-
-  // Cause an inotify event by writing to the watched path.
-  fputs("inotify", fd);
-  fclose(fd);
-
-  // Wait for the thread's run loop to select.
-  WaitForEvents(kMaxEventLatency);
-  EXPECT_TRUE(event_pub_->numEvents() > 0);
-  EventFactory::end();
-  temp_thread.join();
 }
 
 class TestINotifyEventSubscriber
@@ -181,7 +151,7 @@ class TestINotifyEventSubscriber
   DECLARE_SUBSCRIBER("TestINotifyEventSubscriber");
 
  public:
-  void init() { callback_count_ = 0; }
+  Status init() { callback_count_ = 0; return Status(0, "OK"); }
   Status SimpleCallback(const INotifyEventContextRef& ec,
                         const void* user_data) {
     callback_count_ += 1;
@@ -226,6 +196,41 @@ class TestINotifyEventSubscriber
   int callback_count_;
   std::vector<std::string> actions_;
 };
+
+TEST_F(INotifyTests, test_inotify_run) {
+  // Assume event type is registered.
+  event_pub_ = std::make_shared<INotifyEventPublisher>();
+  auto status = EventFactory::registerEventPublisher(event_pub_);
+  EXPECT_TRUE(status.ok());
+
+  // Create a temporary file to watch, open writeable
+  FILE* fd = fopen(kRealTestPath.c_str(), "w");
+
+
+  // Create a subscriber.
+  auto sub = std::make_shared<TestINotifyEventSubscriber>();
+  EventFactory::registerEventSubscriber(sub);
+
+  // Create a subscriptioning context
+  auto mc = std::make_shared<INotifySubscriptionContext>();
+  mc->path = kRealTestPath;
+  status = EventFactory::addSubscription("inotify", Subscription::create("TestINotifyEventSubscriber", mc));
+  EXPECT_TRUE(status.ok());
+
+  // Create an event loop thread (similar to main)
+  boost::thread temp_thread(EventFactory::run, "inotify");
+  EXPECT_TRUE(event_pub_->numEvents() == 0);
+
+  // Cause an inotify event by writing to the watched path.
+  fputs("inotify", fd);
+  fclose(fd);
+
+  // Wait for the thread's run loop to select.
+  WaitForEvents(kMaxEventLatency);
+  EXPECT_TRUE(event_pub_->numEvents() > 0);
+  EventFactory::end();
+  temp_thread.join();
+}
 
 TEST_F(INotifyTests, test_inotify_fire_event) {
   // Assume event type is registered.

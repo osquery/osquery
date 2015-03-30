@@ -27,18 +27,19 @@ class HardwareEventSubscriber : public EventSubscriber<UdevEventPublisher> {
   DECLARE_SUBSCRIBER("hardware_events");
 
  public:
-  void init();
+  Status init();
 
   Status Callback(const UdevEventContextRef& ec, const void* user_data);
 };
 
 REGISTER(HardwareEventSubscriber, "event_subscriber", "hardware_events");
 
-void HardwareEventSubscriber::init() {
+Status HardwareEventSubscriber::init() {
   auto subscription = createSubscriptionContext();
   subscription->action = UDEV_EVENT_ACTION_ALL;
 
   subscribe(&HardwareEventSubscriber::Callback, subscription, nullptr);
+  return Status(0, "OK");
 }
 
 Status HardwareEventSubscriber::Callback(const UdevEventContextRef& ec,

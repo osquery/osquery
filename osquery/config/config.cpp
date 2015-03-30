@@ -107,15 +107,25 @@ inline void mergeAdditional(const tree_node& node, ConfigData& conf) {
   conf.all_data.add_child("additional_monitoring." + node.first, node.second);
 
   // Support special merging of file paths.
-  if (node.first != "file_paths") {
-    return;
+  if (node.first == "file_paths") {
+    for (const auto& category : node.second) {
+      for (const auto& path : category.second) {
+        resolveFilePattern(path.second.data(),
+                           conf.files[category.first],
+                           REC_LIST_FOLDERS | REC_EVENT_OPT);
+      }
+    }
   }
-
-  for (const auto& category : node.second) {
-    for (const auto& path : category.second) {
-      resolveFilePattern(path.second.data(),
-                         conf.files[category.first],
-                         REC_LIST_FOLDERS | REC_EVENT_OPT);
+  // Collect YARA information. For each category listed in YARA make sure the
+  // category exists in file_paths first then collect the list of signatures
+  // to use.
+  else if (node.first == "yara") {
+    for (const auto& category : node.second) {
+      if (conf.files.find(category.first) != conf.files.end()) {
+        for (const auto& file : category.second) {
+          conf.yaraFiles[category.first].push_back(file.second.get_value<std::string>());
+        }
+      }
     }
   }
 }

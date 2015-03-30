@@ -12,6 +12,8 @@ if(APPLE)
     events/darwin/passwd_changes.cpp
     events/darwin/file_changes.cpp
     events/darwin/hardware_events.cpp
+    events/darwin/yara.cpp
+    events/yara_utils.cpp
     networking/darwin/routes.cpp
     system/darwin/acpi_tables.cpp
     system/darwin/ad_config.cpp
@@ -62,6 +64,8 @@ else()
     events/linux/hardware_events.cpp
     events/linux/passwd_changes.cpp
     events/linux/file_changes.cpp
+    events/linux/yara.cpp
+    events/yara_utils.cpp
     networking/linux/arp_cache.cpp
     networking/linux/process_open_sockets.cpp
     networking/linux/routes.cpp
