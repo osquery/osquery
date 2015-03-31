@@ -7,7 +7,6 @@ if(APPLE)
 
   ADD_OSQUERY_LIBRARY(FALSE osquery_tables_darwin
     applications/darwin/browser_chrome.cpp
-    applications/darwin/browser_firefox.cpp
     applications/darwin/browser_safari.cpp
     events/darwin/passwd_changes.cpp
     events/darwin/file_changes.cpp
@@ -109,6 +108,7 @@ else()
 endif()
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_tables
+  applications/x/browser_firefox.cpp
   networking/etc_hosts.cpp
   networking/etc_services.cpp
   networking/interfaces.cpp
