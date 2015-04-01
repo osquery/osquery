@@ -99,13 +99,16 @@ QueryData genKeychainItems(QueryContext& context) {
 
   for (const auto& item_type : kKeychainItemTypes) {
     CFArrayRef items = CreateKeychainItems(keychain_paths, item_type);
-    auto count = CFArrayGetCount(items);
-    for (CFIndex i = 0; i < count; i++) {
-      genKeychainItem((SecKeychainItemRef)CFArrayGetValueAtIndex(items, i),
-                      results);
-    }
+    if (items) {
+      auto count = CFArrayGetCount(items);
 
-    CFRelease(items);
+      for (CFIndex i = 0; i < count; i++) {
+        genKeychainItem((SecKeychainItemRef)CFArrayGetValueAtIndex(items, i),
+        results);
+      }
+
+      CFRelease(items);
+    }
   }
 
   return results;
