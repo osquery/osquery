@@ -5,11 +5,11 @@ Vagrant.configure("2") do |config|
     v.cpus = 2
   end
  [
-   %w{ centos6.5 chef/centos-6.5 },
-   %w{ centos7   chef/centos-7 },
-   %w{ ubuntu14  ubuntu/trusty64 },
-   %w{ ubuntu12  ubuntu12/precise64 },
-   %w{ freebsd10 chef/freebsd-10.0}
+   %w{centos6.5 chef/centos-6.5},
+   %w{centos7   chef/centos-7},
+   %w{ubuntu14  ubuntu/trusty64},
+   %w{ubuntu12  ubuntu12/precise64},
+   %w{freebsd10 chef/freebsd-10.0}
  ].each do |machine|
   (name, box) = machine
   config.vm.define name do |box|
