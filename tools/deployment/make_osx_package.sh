@@ -27,6 +27,7 @@ else
 fi
 OUTPUT_PKG_PATH="$BUILD_DIR/$APP_NAME-$APP_VERSION.pkg"
 AUTOSTART=false
+CLEAN=false
 
 # Config files
 LAUNCHD_SRC="$SCRIPT_DIR/$LD_IDENTIFIER.plist"
@@ -35,6 +36,7 @@ OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/private/var/osquery/osquery.example.conf"
 OSQUERY_CONFIG_SRC=""
 OSQUERY_CONFIG_DST="/private/var/osquery/osquery.conf"
+OSQUERY_DB_LOCATION="/private/var/osquery/osquery.db/"
 OSQUERY_LOG_DIR="/private/var/log/osquery/"
 
 WORKING_DIR=/tmp/osquery_packaging
@@ -50,11 +52,15 @@ set -e
 "
 
 POSTINSTALL_AUTOSTART_TEXT="
-if launchctl list | grep -qcm1 osquery; then
+if launchctl list | grep -qcm1 $LD_IDENTIFIER; then
   launchctl unload $LD_INSTALL
 fi
 cp $LAUNCHD_DST $LD_INSTALL
 launchctl load $LD_INSTALL
+"
+
+POSTINSTALL_CLEAN_TEXT="
+rm -rf $OSQUERY_DB_LOCATION
 "
 
 function usage() {
@@ -63,6 +69,7 @@ function usage() {
     -l PATH override the default launchd plist.
     -o PATH override the output path.
     -a start the daemon when the package is installed
+    -x force the daemon to start fresh, removing any results previously stored in the database
 
   This will generate an OSX package with:
   (1) An example config /var/osquery/osquery.example.config
@@ -88,6 +95,8 @@ function parse_args() {
                               OUTPUT_PKG_PATH=$1
                               ;;
       -a | --autostart )      AUTOSTART=true
+                              ;;
+      -x | --clean )          CLEAN=true
                               ;;
       -h | --help )           usage
                               ;;
@@ -150,10 +159,15 @@ function main() {
   cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
 
   log "finalizing preinstall and postinstall scripts"
-  if [ $AUTOSTART == true ]; then
+  if [ $AUTOSTART == true ]  || [ $CLEAN == true ]; then
     echo "$SCRIPT_PREFIX_TEXT" > $POSTINSTALL
     chmod +x $POSTINSTALL
-    echo "$POSTINSTALL_AUTOSTART_TEXT" >> $POSTINSTALL
+    if [ $CLEAN == true ]; then
+        echo "$POSTINSTALL_CLEAN_TEXT" >> $POSTINSTALL
+    fi
+    if [ $AUTOSTART == true ]; then
+        echo "$POSTINSTALL_AUTOSTART_TEXT" >> $POSTINSTALL
+    fi
   fi
 
   log "creating package"
