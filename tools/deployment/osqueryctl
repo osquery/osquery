@@ -30,6 +30,7 @@ platform() {
 
 platform OS
 
+
 if [ $OS = "darwin" ]; then
   REAL_CONFIG_PATH="/var/osquery/osquery.conf"
   EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
@@ -38,6 +39,7 @@ if [ $OS = "darwin" ]; then
   EXEC="/usr/local/bin/osqueryd"
   PLIST_DOMAIN="com.facebook.osqueryd"
   PLIST_PATH="/Library/LaunchDaemons/$PLIST_DOMAIN.plist"
+  PLIST_INSTALLATION_PATH="/var/osquery/$PLIST_DOMAIN.plist"
   LAUNCHCTL_LIST=`launchctl list | grep com.facebook.osqueryd`
   LAUNCHCTL_LIST_PID=`echo $LAUNCHCTL_LIST | awk '{ print $1 }'`
 else
@@ -53,6 +55,7 @@ else
   LOCKFILE="/var/lock/subsys/osqueryd"
   EXEC="/usr/bin/osqueryd"
 fi
+OSQUERY_DB="/var/osquery/osquery.db"
 PROG="osqueryd"
 
 exec_with_env() {
@@ -69,7 +72,8 @@ exec_with_env() {
 start() {
   check_config
   if [ $OS = "darwin" ]; then
-    launchctl start $PLIST_PATH
+    cp $PLIST_INSTALLATION_PATH $PLIST_PATH
+    launchctl load $PLIST_PATH
   else
     exec_with_env "service osqueryd start"
   fi
@@ -77,7 +81,8 @@ start() {
 
 stop() {
   if [ $OS = "darwin" ]; then
-    launchctl stop $PLIST_PATH
+    launchctl unload $PLIST_PATH
+    rm $PLIST_PATH
   else
     exec_with_env "service osqueryd stop"
   fi
@@ -100,7 +105,16 @@ status() {
   fi
 }
 
+clean() {
+  if [ -d $OSQUERY_DB ]; then
+    rm -rf $OSQUERY_DB
+  fi
+}
+
 case "$1" in
+  clean)
+    $1
+    ;;
   start)
     $1
     ;;
@@ -117,7 +131,7 @@ case "$1" in
     $EXEC --config_path=$REAL_CONFIG_PATH --config_check
     ;;
   *)
-    echo $"Usage: $0 {start|stop|status|restart}"
+    echo $"Usage: $0 {clean|config-check|start|stop|status|restart}"
     exit 2
 
 esac
