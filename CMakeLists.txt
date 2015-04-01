@@ -159,7 +159,6 @@ find_package(RocksDB REQUIRED)
 find_package(Snappy REQUIRED)
 find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.1 REQUIRED)
-find_package(YARA REQUIRED)
 
 enable_testing()
 
@@ -168,7 +167,6 @@ include(Packages)
 include(Thrift)
 
 include_directories("${GLOG_INCLUDE_DIRS}")
-include_directories("${YARA_INCLUDE_DIRS}")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("/usr/local/include")

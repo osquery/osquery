@@ -1,4 +1,4 @@
-table_name("yara")
+table_name("yara_matches")
 description("Track YARA matches for files specified in configuation data.")
 schema([
     Column("target_path", TEXT, "The path scanned"),

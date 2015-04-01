@@ -71,6 +71,9 @@ function main() {
   else
     sudo pip install -r requirements.txt
   fi
+
+  # Reset any work or artifacts from build tests in TP.
+  (cd third-party && git reset --hard HEAD)
   git submodule init
   git submodule update
 

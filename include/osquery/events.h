@@ -20,7 +20,6 @@
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 
-#include <osquery/database.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>

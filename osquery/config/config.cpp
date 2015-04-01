@@ -187,12 +187,12 @@ void Config::mergeConfig(const std::string& source, ConfigData& conf) {
     }
   }
 
-Status Config::getMD5(std::string& hash_string) {
-  std::string config_string;
-  auto s = genConfig(config_string);
-  if (!s.ok()) {
-    return s;
+  if (tree.count("options") > 0) {
+    for (const auto& option : tree.get_child("options")) {
+      mergeOption(option, conf);
+    }
   }
+}
 
 Status Config::getMD5(std::string& hash_string) {
   // Request an accessor to our own config, outside of an update.

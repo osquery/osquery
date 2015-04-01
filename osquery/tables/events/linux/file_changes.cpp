@@ -54,7 +54,7 @@ class FileChangesEventSubscriber
  */
 REGISTER(FileChangesEventSubscriber, "event_subscriber", "file_changes");
 
-void FileChangesEventSubscriber::init() {
+Status FileChangesEventSubscriber::init() {
   ConfigDataInstance config;
   for (const auto& element_kv : config.files()) {
     for (const auto& file : element_kv.second) {
