@@ -24,8 +24,6 @@ namespace tables {
  * @brief Track udev events in Linux
  */
 class HardwareEventSubscriber : public EventSubscriber<UdevEventPublisher> {
-  DECLARE_SUBSCRIBER("hardware_events");
-
  public:
   Status init();
 

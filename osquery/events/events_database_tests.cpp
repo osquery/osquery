@@ -35,9 +35,8 @@ class FakeEventPublisher
 };
 
 class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
-  DECLARE_SUBSCRIBER("FakeSubscriber");
-
  public:
+  FakeEventSubscriber() { setName("FakeSubscriber"); }
   /// Add a fake event at time t
   Status testAdd(int t) {
     Row r;

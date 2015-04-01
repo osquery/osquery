@@ -69,6 +69,8 @@ struct EventContext {
   EventTime time;
   /// The string representation of the time, often used for indexing.
   std::string time_string;
+
+  EventContext() : id(0), time(0) {}
 };
 
 typedef std::shared_ptr<Subscription> SubscriptionRef;
@@ -78,6 +80,29 @@ typedef std::shared_ptr<SubscriptionContext> SubscriptionContextRef;
 typedef std::shared_ptr<EventContext> EventContextRef;
 typedef EventSubscriber<BaseEventPublisher> BaseEventSubscriber;
 typedef std::shared_ptr<EventSubscriber<BaseEventPublisher>> EventSubscriberRef;
+
+/**
+ * @brief EventSubscriber%s may exist in various states.
+ *
+ * The subscriber will move through states when osquery is initializing the
+ * registry, starting event publisher loops, and requesting initialization of
+ * each subscriber and the optional set of subscriptions it creates. If this
+ * initialization fails the publishers or EventFactory may eject, warn, or
+ * otherwise not use the subscriber's subscriptions.
+ *
+ * The supported states are:
+ * - None: The default state, uninitialized.
+ * - Running: Subscriber is ready for events.
+ * - Paused: Subscriber was successfully initialized but not currently accepting
+ *          events.
+ * - Failed: Subscriber failed to initialize or is otherwise offline.
+ */
+enum EventSubscriberState {
+  SUBSCRIBER_NONE,
+  SUBSCRIBER_RUNNING,
+  SUBSCRIBER_PAUSED,
+  SUBSCRIBER_FAILED,
+};
 
 /// Use a single placeholder for the EventContextRef passed to EventCallback.
 using std::placeholders::_1;
@@ -98,14 +123,6 @@ extern const std::vector<size_t> kEventTimeLists;
 #define DECLARE_PUBLISHER(TYPE) \
  public:                        \
   EventPublisherID type() const { return TYPE; }
-
-/**
- * @brief DECLARE_SUBSCRIBER supplies needed boilerplate code that applies a
- * string-type EventSubscriberID to identify the subscriber declaration.
- */
-#define DECLARE_SUBSCRIBER(NAME) \
- public:                         \
-  EventSubscriberID name() const { return NAME; }
 
 /**
  * @brief A Subscription is used to configure an EventPublisher and bind a
@@ -142,18 +159,19 @@ struct Subscription {
   /// A pointer to possible extra data
   void* user_data;
 
-  static SubscriptionRef create(const EventSubscriberID name_id) {
-    auto subscription = std::make_shared<Subscription>();
-    subscription->subscriber_name = name_id;
+  Subscription(const EventSubscriberID name)
+    : subscriber_name(name), user_data(nullptr) {}
+
+  static SubscriptionRef create(const EventSubscriberID name) {
+    auto subscription = std::make_shared<Subscription>(name);
     return subscription;
   }
 
-  static SubscriptionRef create(const EventSubscriberID name_id,
+  static SubscriptionRef create(const EventSubscriberID name,
                                 const SubscriptionContextRef& mc,
                                 EventCallback ec = 0,
                                 void* user_data = nullptr) {
-    auto subscription = std::make_shared<Subscription>();
-    subscription->subscriber_name = name_id;
+    auto subscription = std::make_shared<Subscription>(name);
     subscription->context = mc;
     subscription->callback = ec;
     subscription->user_data = user_data;
@@ -510,12 +528,9 @@ class EventSubscriberPlugin : public Plugin {
     return get(0, 0);
   }
 
-  /// The string name identifying this EventSubscriber.
-  virtual EventSubscriberID name() const { return "subscriber"; }
-
  protected:
   /// Backing storage indexing namespace definition methods.
-  EventPublisherID dbNamespace() const { return type() + "." + name(); }
+  EventPublisherID dbNamespace() const { return type() + "." + getName(); }
 
   /// The string EventPublisher identifying this EventSubscriber.
   virtual EventPublisherID type() const = 0;
@@ -604,7 +619,7 @@ class EventFactory {
 
   /**
    * @brief Add a SubscriptionContext and EventCallback Subscription to an
-   *EventPublisher.
+   * EventPublisher.
    *
    * Create a Subscription from a given SubscriptionContext and EventCallback
    * and add that Subscription to the EventPublisher associated identifier.
@@ -711,20 +726,6 @@ class EventFactory {
 };
 
 /**
- * EventSubscribers can be in various states. They are:
- *
- * Uninitialized: The default state, uninitialized.
- * Running: Subscriber is ready for events.
- * Paused: Subscriber was successfully initialized but not currently accepting
- *         events.
- * Failed: Subscriber failed to initialize or is otherwise offline.
- */
-#define EVENT_SUBSCRIBER_UNINITIALIZED 0
-#define EVENT_SUBSCRIBER_RUNNING       1
-#define EVENT_SUBSCRIBER_PAUSED        2
-#define EVENT_SUBSCRIBER_FAILED        3
-
-/**
  * @brief An interface binding Subscriptions, event response, and table
  *generation.
  *
@@ -742,7 +743,6 @@ class EventSubscriber : public EventSubscriberPlugin {
  protected:
   typedef typename PUB::SCRef SCRef;
   typedef typename PUB::ECRef ECRef;
-  int state_ = EVENT_SUBSCRIBER_UNINITIALIZED;
 
  public:
   /**
@@ -778,14 +778,30 @@ class EventSubscriber : public EventSubscriberPlugin {
     // EventSubscriber and a single parameter placeholder (the EventContext).
     auto cb = std::bind(base_entry, self, _1, _2);
     // Add a subscription using the callable and SubscriptionContext.
-    EventFactory::addSubscription(type(), self->name(), sc, cb, user_data);
+    EventFactory::addSubscription(type(), self->getName(), sc, cb, user_data);
   }
 
   /// Helper EventPublisher string type accessor.
   EventPublisherID type() const { return BaseEventPublisher::getType<PUB>(); }
 
-  int state() const { return state_; }
-  void state(int state) { state_ = state; }
+  /**
+   * @brief Request the subscriber's initialization state.
+   *
+   * When event subscribers are created (initialized) they are expected to emit
+   * a set of subscriptions to their publisher "type". If the subscriber fails
+   * to initialize then the publisher may remove any intermediate subscriptions.
+   */
+  EventSubscriberState state() const { return state_; }
+
+  /// Set the subscriber state.
+  void state(EventSubscriberState state) { state_ = state; }
+
+ public:
+  EventSubscriber() : EventSubscriberPlugin(), state_(SUBSCRIBER_NONE) {}
+
+ private:
+  /// The event subscriber's run state.
+  EventSubscriberState state_;
 
  private:
   FRIEND_TEST(EventsTests, test_event_sub);

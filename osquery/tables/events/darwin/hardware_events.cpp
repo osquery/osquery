@@ -21,8 +21,6 @@ namespace tables {
  * @brief Track IOKit HID events.
  */
 class HardwareEventSubscriber : public EventSubscriber<IOKitHIDEventPublisher> {
-  DECLARE_SUBSCRIBER("hardware_events");
-
  public:
   Status init();
 

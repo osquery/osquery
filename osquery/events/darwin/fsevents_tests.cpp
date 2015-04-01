@@ -141,9 +141,8 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
 
 class TestFSEventsEventSubscriber
     : public EventSubscriber<FSEventsEventPublisher> {
-  DECLARE_SUBSCRIBER("TestFSEventsEventSubscriber");
-
  public:
+  TestFSEventsEventSubscriber() { setName("TestFSEventsEventSubscriber"); }
   Status init() { callback_count_ = 0; return Status(0, "OK"); }
   Status SimpleCallback(const FSEventsEventContextRef& ec,
                         const void* user_data) {

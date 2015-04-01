@@ -27,8 +27,6 @@ namespace tables {
  */
 class PasswdChangesEventSubscriber
     : public EventSubscriber<INotifyEventPublisher> {
-  DECLARE_SUBSCRIBER("passwd_changes");
-
  public:
   Status init();
 

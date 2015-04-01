@@ -29,8 +29,6 @@ namespace tables {
  */
 class FileChangesEventSubscriber
     : public EventSubscriber<FSEventsEventPublisher> {
-  DECLARE_SUBSCRIBER("file_changes");
-
  public:
   Status init();
 
@@ -80,7 +78,7 @@ Status FileChangesEventSubscriber::Callback(const FSEventsEventContextRef& ec,
   } else {
     r["category"] = "Undefined";
   }
-  r["transaction_id"] = INTEGER(ec->fsevent_id);
+  r["transaction_id"] = INTEGER(ec->transaction_id);
   r["md5"] = hashFromFile(HASH_TYPE_MD5, ec->path);
   r["sha1"] = hashFromFile(HASH_TYPE_SHA1, ec->path);
   r["sha256"] = hashFromFile(HASH_TYPE_SHA256, ec->path);

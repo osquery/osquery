@@ -148,7 +148,7 @@ void FSEventsEventPublisher::Callback(
     auto ec = createEventContext();
     ec->fsevent_stream = stream;
     ec->fsevent_flags = fsevent_flags[i];
-    ec->fsevent_id = fsevent_ids[i];
+    ec->transaction_id = fsevent_ids[i];
 
     // Record the string-version of the first matched mask bit.
     for (const auto& action : kMaskActions) {

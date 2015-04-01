@@ -148,9 +148,8 @@ TEST_F(INotifyTests, test_inotify_add_subscription_success) {
 
 class TestINotifyEventSubscriber
     : public EventSubscriber<INotifyEventPublisher> {
-  DECLARE_SUBSCRIBER("TestINotifyEventSubscriber");
-
  public:
+  TestINotifyEventSubscriber() { setName("TestINotifyEventSubscriber"); }
   Status init() { callback_count_ = 0; return Status(0, "OK"); }
   Status SimpleCallback(const INotifyEventContextRef& ec,
                         const void* user_data) {
