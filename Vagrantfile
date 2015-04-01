@@ -6,7 +6,7 @@ Vagrant.configure("2") do |config|
   end
  [
    %w{centos6.5 chef/centos-6.5},
-   %w{centos7   chef/centos-7},
+   %w{centos7   chef/centos-7.0},
    %w{ubuntu14  ubuntu/trusty64},
    %w{ubuntu12  ubuntu/precise64},
    %w{freebsd10 chef/freebsd-10.0}
