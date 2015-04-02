@@ -2,7 +2,7 @@
 #
 # osqueryd 	Start/Stop the osquery daemon.
 #
-# chkconfig: 3345 90 60
+# chkconfig: 345 90 60
 # Description:
 #  With osquery, you can use SQL to query low-level
 #  operating system information. Under the hood, instead
@@ -14,7 +14,7 @@
 # Provides: osquery osqueryd
 # Required-Start: $local_fs $syslog
 # Required-Stop: $local_fs $syslog
-# Default-Start:  3345
+# Default-Start:  345
 # Default-Stop: 90
 # Short-Description: run osqueryd daemon
 # Description:
