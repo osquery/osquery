@@ -2,16 +2,21 @@
 
 #include <string>
 #include <iomanip>
+#include <vector>
 
 #include <sys/xattr.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/logger.h>
 #include <osquery/core.h>
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 #include <osquery/core/conversions.h>
+
+namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
@@ -78,85 +83,32 @@ struct XAttrAttribute getAttribute(const std::string& path,
   return x_att;
 }
 
-struct XAttrField getFieldLength(int buffer_position,
-                                 struct XAttrAttribute x_att_data) {
-  struct XAttrField field;
-  field.length = 0;
-  field.header_length =
-      ((unsigned char)x_att_data.attribute_data[buffer_position]) -
-      15; // Get the number of bytes
-  if (field.header_length > 8) {
-    field.header_length = 0;
-    return field;
-  }
-
-  for (unsigned int i = 1; i < field.header_length + 1; i++) {
-    field.length = field.length << 8;
-    field.length +=
-        (unsigned char)x_att_data.attribute_data[buffer_position + i];
-  }
-  return field;
-}
-
-std::string fixString(const std::string& toFix) {
-  std::stringstream result;
-  unsigned char byte;
-  int count = 0;
-  for (int i = 0; i < toFix.length(); ++i) {
-    byte = toFix[i];
-    if ((int)byte > 0x1F && (int)byte < 0x7F) {
-      result << byte;
-      continue;
-    } else if (byte == 0) {
-      result << ' ';
-    } else {
-      result << '%' << std::setfill('0') << std::setw(2) << std::hex
-             << (int)byte;
-    }
-    count++;
-  }
-  return result.str();
-}
-
-void parseWhereFromData(Row& r, const struct XAttrAttribute x_att) {
-  if (x_att.return_value == -1) {
-    VLOG(1) << handleError();
-  } else {
-    r["raw64"] = base64Encode(x_att.attribute_data);
-    if (x_att.buffer_length < 11 ||
-        0x5F != (unsigned char)x_att.attribute_data[11]) {
-      r["download_url"] = "No data";
-      r["download_page"] = "No data";
-    } else {
-      unsigned int starting_position = 12;
-      struct XAttrField field = getFieldLength(starting_position, x_att);
-      starting_position += 1 + field.header_length;
-      if (starting_position + field.length >= x_att.attribute_data.length()) {
-        return;
-      }
-      r["download_url"] = fixString(
-          x_att.attribute_data.substr(starting_position, field.length));
-      starting_position += field.length + 1;
-      if (starting_position + field.length >= x_att.attribute_data.length()) {
-        return;
-      }
-      field = getFieldLength(starting_position, x_att);
-      starting_position += field.header_length + 1;
-      r["download_page"] = fixString(
-          x_att.attribute_data.substr(starting_position, field.length));
-    }
-  }
-}
-
 void getFileData(Row& r,
                  const std::string& path,
                  const std::string& directory) {
-  r["path"] = path;
-  r["directory"] = directory;
-
   struct XAttrAttribute x_att =
       getAttribute(path, "com.apple.metadata:kMDItemWhereFroms");
-  parseWhereFromData(r, x_att);
+  r["path"] = path;
+  r["directory"] = directory;
+  r["raw64"] = base64Encode(x_att.attribute_data);
+
+  pt::ptree data;
+  osquery::parsePlistContent(x_att.attribute_data, data);
+
+  if(data.count("root") > 0){
+    std::vector<std::string> values;
+    for (const auto& node : data.get_child("root")) {
+      auto value = node.second.get<std::string>("", "");
+      values.push_back(value);
+    }
+    if(values.size() == 2){
+      r["download_url"] = values[0];
+      r["download_page"] = values[1];
+    }else{
+      r["download_url"] = "No data";
+      r["download_page"] = "No data";
+    }
+  }
 }
 
 QueryData genXattr(QueryContext& context) {
