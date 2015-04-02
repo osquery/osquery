@@ -21,7 +21,12 @@ namespace osquery {
 namespace tables {
 
 /// Each home directory will include custom extensions.
-#define kFirefoxPath "/Library/Application Support/Firefox/Profiles/"
+#ifdef __APPLE__
+  #define kFirefoxPath "/Library/Application Support/Firefox/Profiles/"
+#else
+  #define kFirefoxPath "/.mozilla/firefox/"
+#endif
+
 #define kFirefoxExtensionsFile "/extensions.json"
 
 /// Not parsed, but may be helpful later.
