@@ -8,7 +8,7 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 function install_cmake() {
-  if [ "$OS" = "centos" ] || [ "$OS" = "ubuntu" ] || [ "$OS" = "darwin" ]; then
+  if [ "$OS" = "centos" ] || [ "$OS" = "rhel" ] || [ "$OS" = "ubuntu" ] || [ "$OS" = "darwin" ]; then
     if [[ -f /usr/local/bin/cmake ]]; then
       log "cmake is already installed. skipping."
     else
@@ -61,11 +61,11 @@ function install_rocksdb() {
     if [[ ! -d rocksdb-rocksdb-3.5 ]]; then
       tar -xf rocksdb-3.5.tar.gz
     fi
-    if [ "$OS" = "ubuntu" ] || [ "$OS" = "centos" ]; then
+    if [ "$OS" = "ubuntu" ] || [ "$OS" = "centos" ] || [ $OS = "rhel" ]; then
       if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
         if [[ $OS = "ubuntu" ]]; then
           CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
-        elif [[ $OS = "centos" ]]; then
+        elif [ $OS = "centos" ] || [ $OS = "rhel" ]; then
           CLANG_VERSION=`clang --version | grep version | cut -d" " -f3`
           CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
         fi
@@ -244,7 +244,7 @@ function package() {
       log "installing $1"
       sudo apt-get install $1 -y
     fi
-  elif [[ $OS = "centos" ]]; then
+  elif [ $OS = "centos" ] || [ $OS = "rhel" ]; then
     if [[ -n "$(rpm -qa | grep $1)" ]]; then
       log "$1 is already installed. skipping."
     else
@@ -276,7 +276,7 @@ function remove_package() {
     else
       log "Removing: $1 is not installed. skipping."
     fi
-  elif [[ $OS = "centos" ]]; then
+  elif [ $OS = "centos" ] || [ $OS = "rhel" ]; then
     if [[ -n "$(rpm -qa | grep $1)" ]]; then
       log "removing $1"
       sudo yum remove $1 -y

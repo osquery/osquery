@@ -7,13 +7,18 @@ else ifeq ($(PLATFORM),FreeBSD)
 	BUILD_DIR=freebsd
 	MAKE=gmake
 else
-	DISTRO := $(shell if [ -f "/etc/redhat-release" ]; then echo "Centos"; fi)
-	ifeq ($(DISTRO),Centos)
-		BUILD_DIR := $(shell cat /etc/redhat-release | grep -o "release [6-7]" | sed 's/release /centos/g')
-	else
-    DISTRO := $(shell if [ -f "/etc/lsb-release" ]; then echo "Ubuntu"; fi)
+  DISTRO := $(shell if [[ -f "/etc/lsb-release" ]]; then echo "Ubuntu"; fi)
+  DISTRO := $(shell if [[ -n `cat /etc/redhat-release | grep -o "CentOS"` ]]; then echo "Centos"; fi)
+  DISTRO := $(shell if [[ -n `cat /etc/redhat-release | grep -o "Red Hat Enterprise"` ]]; then echo "RHEL"; fi)
+  ifeq ($(DISTRO),Centos)
+    BUILD_DIR := $(shell cat /etc/redhat-release | grep -o "release [6-7]" | sed 's/release /centos/g')
+  endif
+  ifeq ($(DISTRO),RHEL)
+    BUILD_DIR := $(shell cat /etc/redhat-release | grep -o "release [6-7]" | sed 's/release /rhel/g')
+  endif
+  ifeq ($(DISTRO),Ubuntu)
     BUILD_DIR := $(shell lsb_release -sc)
-	endif
+  endif
 endif
 
 DEFINES := CTEST_OUTPUT_ON_FAILURE=1
