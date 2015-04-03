@@ -10,4 +10,4 @@ schema([
     Column("count", INTEGER, "Number of YARA matches"),
 ])
 attributes(event_subscriber=True)
-implementation("yara@yara::genTable")
+implementation("yara@yara_matches::genTable")

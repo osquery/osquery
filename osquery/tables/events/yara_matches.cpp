@@ -14,17 +14,17 @@
 #include <osquery/config.h>
 #include <osquery/logger.h>
 
-#ifdef CONCAT
-#undef CONCAT
-#endif
-#include <yara.h>
-
 /// The file change event publishers are slightly different in OS X and Linux.
 #ifdef __APPLE__
 #include "osquery/events/darwin/fsevents.h"
 #else
 #include "osquery/events/linux/inotify.h"
 #endif
+
+#ifdef CONCAT
+#undef CONCAT
+#endif
+#include <yara.h>
 
 namespace osquery {
 namespace tables {
@@ -172,6 +172,8 @@ int YARACallback(int message, void *message_data, void *user_data) {
  * @brief Track YARA matches to files.
  */
 class YARAEventSubscriber : public FileEventSubscriber {
+ DECLARE_SUBSCRIBER("yara_matches");
+
  public:
   Status init();
 
@@ -222,6 +224,9 @@ Status YARAEventSubscriber::init() {
       auto mc = createSubscriptionContext();
       mc->path = file;
       mc->mask = FILE_CHANGE_MASK;
+#ifndef __APPLE__
+      mc->recursive = true;
+#endif
       subscribe(&YARAEventSubscriber::Callback, mc, (void*)(&element.first));
     }
 
