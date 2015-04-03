@@ -112,6 +112,7 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_tables
   applications/x/browser_opera.cpp
   applications/x/browser_firefox.cpp
   applications/browser_utils.cpp
+  events/yara_matches.cpp
   networking/etc_hosts.cpp
   networking/etc_services.cpp
   networking/interfaces.cpp

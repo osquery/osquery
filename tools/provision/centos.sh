@@ -107,6 +107,7 @@ function main_centos() {
 
   install_snappy
   install_rocksdb
+  install_yara
 
   gem_install fpm
 }

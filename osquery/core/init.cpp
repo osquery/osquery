@@ -16,6 +16,7 @@
 
 #include <osquery/config.h>
 #include <osquery/core.h>
+#include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/extensions.h>
 #include <osquery/flags.h>

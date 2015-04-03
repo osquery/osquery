@@ -24,19 +24,21 @@ class HardwareEventSubscriber : public EventSubscriber<IOKitHIDEventPublisher> {
   DECLARE_SUBSCRIBER("hardware_events");
 
  public:
-  void init();
+  Status init();
 
   Status Callback(const IOKitHIDEventContextRef& ec, const void* user_data);
 };
 
 REGISTER(HardwareEventSubscriber, "event_subscriber", "hardware_events");
 
-void HardwareEventSubscriber::init() {
+Status HardwareEventSubscriber::init() {
   auto subscription = createSubscriptionContext();
   // We don't want hardware value changes.
   subscription->values = false;
 
   subscribe(&HardwareEventSubscriber::Callback, subscription, nullptr);
+
+  return Status(0, "OK");
 }
 
 Status HardwareEventSubscriber::Callback(const IOKitHIDEventContextRef& ec,

@@ -104,7 +104,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_missing_path) {
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = "/this/path/is/fake";
 
-  auto subscription = Subscription::create(mc);
+  auto subscription = Subscription::create("TestSubscriber", mc);
   auto status = EventFactory::addSubscription("fsevents", subscription);
   EXPECT_TRUE(status.ok());
   EventFactory::deregisterEventPublisher("fsevents");
@@ -118,7 +118,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = "/";
 
-  auto subscription = Subscription::create(mc);
+  auto subscription = Subscription::create("TestSubscriber", mc);
   auto status = EventFactory::addSubscription("fsevents", subscription);
   EXPECT_TRUE(status.ok());
 
@@ -129,7 +129,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   // A duplicate subscription will work.
   auto mc_dup = std::make_shared<FSEventsSubscriptionContext>();
   mc_dup->path = "/";
-  auto subscription_dup = Subscription::create(mc_dup);
+  auto subscription_dup = Subscription::create("TestSubscriber", mc_dup);
   status = EventFactory::addSubscription("fsevents", subscription_dup);
   EXPECT_TRUE(status.ok());
 
@@ -139,36 +139,12 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   EventFactory::deregisterEventPublisher("fsevents");
 }
 
-TEST_F(FSEventsTests, test_fsevents_run) {
-  // Assume event type is registered.
-  event_pub_ = std::make_shared<FSEventsEventPublisher>();
-  EventFactory::registerEventPublisher(event_pub_);
-
-  // Create a subscriptioning context
-  auto mc = std::make_shared<FSEventsSubscriptionContext>();
-  mc->path = kRealTestPath;
-  EventFactory::addSubscription("fsevents", Subscription::create(mc));
-
-  // Create an event loop thread (similar to main)
-  boost::thread temp_thread(EventFactory::run, "fsevents");
-  EXPECT_TRUE(event_pub_->numEvents() == 0);
-
-  // Cause an fsevents event(s) by writing to the watched path.
-  CreateEvents();
-
-  // Wait for the thread's run loop to select.
-  WaitForEvents(kMaxEventLatency);
-
-  EXPECT_TRUE(event_pub_->numEvents() > 0);
-  EventFactory::end();
-}
-
 class TestFSEventsEventSubscriber
     : public EventSubscriber<FSEventsEventPublisher> {
   DECLARE_SUBSCRIBER("TestFSEventsEventSubscriber");
 
  public:
-  void init() { callback_count_ = 0; }
+  Status init() { callback_count_ = 0; return Status(0, "OK"); }
   Status SimpleCallback(const FSEventsEventContextRef& ec,
                         const void* user_data) {
     callback_count_ += 1;
@@ -210,13 +186,41 @@ class TestFSEventsEventSubscriber
   std::vector<std::string> actions_;
 };
 
+TEST_F(FSEventsTests, test_fsevents_run) {
+  // Assume event type is registered.
+  event_pub_ = std::make_shared<FSEventsEventPublisher>();
+  EventFactory::registerEventPublisher(event_pub_);
+
+  // Create a subscriber.
+  auto sub = std::make_shared<TestFSEventsEventSubscriber>();
+  EventFactory::registerEventSubscriber(sub);
+
+  // Create a subscriptioning context
+  auto mc = std::make_shared<FSEventsSubscriptionContext>();
+  mc->path = kRealTestPath;
+  EventFactory::addSubscription("fsevents", Subscription::create("TestFSEventsEventSubscriber", mc));
+
+  // Create an event loop thread (similar to main)
+  boost::thread temp_thread(EventFactory::run, "fsevents");
+  EXPECT_TRUE(event_pub_->numEvents() == 0);
+
+  // Cause an fsevents event(s) by writing to the watched path.
+  CreateEvents();
+
+  // Wait for the thread's run loop to select.
+  WaitForEvents(kMaxEventLatency);
+
+  EXPECT_TRUE(event_pub_->numEvents() > 0);
+  EventFactory::end();
+}
+
 TEST_F(FSEventsTests, test_fsevents_fire_event) {
   // Assume event type is registered.
   StartEventLoop();
 
   // Simulate registering an event subscriber.
   auto sub = std::make_shared<TestFSEventsEventSubscriber>();
-  sub->init();
+  auto status = sub->init();
 
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(0);
@@ -237,9 +241,10 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
 
   // Simulate registering an event subscriber.
   auto sub = std::make_shared<TestFSEventsEventSubscriber>();
-  sub->init();
+  auto status = sub->init();
 
   auto sc = sub->GetSubscription(0);
+  EventFactory::registerEventSubscriber(sub);
   sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc, nullptr);
   CreateEvents();
   sub->WaitForEvents(kMaxEventLatency);
