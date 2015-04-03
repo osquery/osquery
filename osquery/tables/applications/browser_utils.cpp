@@ -8,24 +8,15 @@
  *
  */
 
-#include <boost/property_tree/json_parser.hpp>
-
-#include <osquery/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/tables.h>
-
-namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
+#include <osquery/tables/applications/browser_utils.h>
 
 namespace osquery {
 namespace tables {
 
-/// Each home directory will include custom extensions.
-#define kChromePath "/Library/Application Support/Google/Chrome/Default/"
-#define kChromeExtensionsPath "Extensions/"
-#define kChromeManifestFile "/manifest.json"
+#define kManifestFile "/manifest.json"
 
-const std::map<std::string, std::string> kChromeExtensionKeys = {
+const std::map<std::string, std::string> kExtensionKeys = {
     {"version", "version"},
     {"name", "name"},
     {"description", "description"},
@@ -35,10 +26,10 @@ const std::map<std::string, std::string> kChromeExtensionKeys = {
     {"background.persistent", "persistent"},
 };
 
-void genChromeExtension(const std::string& path, QueryData& results) {
+void genExtension(const std::string& path, QueryData& results) {
   std::string json_data;
-  if (!readFile(path + kChromeManifestFile, json_data).ok()) {
-    VLOG(1) << "Could not read file: " << path + kChromeManifestFile;
+  if (!readFile(path + kManifestFile, json_data).ok()) {
+    VLOG(1) << "Could not read file: " << path + kManifestFile;
     return;
   }
 
@@ -49,13 +40,13 @@ void genChromeExtension(const std::string& path, QueryData& results) {
   try {
     pt::read_json(json_stream, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
-    VLOG(1) << "Could not parse JSON from: " << path + kChromeManifestFile;
+    VLOG(1) << "Could not parse JSON from: " << path + kManifestFile;
     return;
   }
 
   Row r;
   // Most of the keys are in the top-level JSON dictionary.
-  for (const auto& it : kChromeExtensionKeys) {
+  for (const auto& it : kExtensionKeys) {
     try {
       r[it.second] = tree.get<std::string>(it.first);
     } catch (const pt::ptree_error& e) {
@@ -80,14 +71,14 @@ void genChromeExtension(const std::string& path, QueryData& results) {
   results.push_back(r);
 }
 
-QueryData genChromeExtensions(QueryContext& context) {
+QueryData genChromeBasedExtensions(QueryContext& context, const fs::path sub_dir) {
   QueryData results;
 
   auto homes = osquery::getHomeDirectories();
   for (const auto& home : homes) {
-    // For each user, enumerate all of their Chrome profiles.
+    // For each user, enumerate all of their opera profiles.
     std::vector<std::string> extensions;
-    fs::path extension_path = home / (kChromePath kChromeExtensionsPath);
+    fs::path extension_path = home.string() + sub_dir.string();
     if (!listDirectoriesInDirectory(extension_path, extensions).ok()) {
       continue;
     }
@@ -101,7 +92,7 @@ QueryData genChromeExtensions(QueryContext& context) {
 
       // Extensions use /<ID>/<VERSION>/manifest.json.
       for (const auto& version : versions) {
-        genChromeExtension(version, results);
+        genExtension(version, results);
       }
     }
   }

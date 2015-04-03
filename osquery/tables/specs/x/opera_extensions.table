@@ -1,0 +1,15 @@
+table_name("opera_extensions")
+description("Opera browser extensions.")
+schema([
+  Column("name", TEXT, "Extension display name"),
+  Column("identifier", TEXT, "Extension identifier"),
+  Column("version", TEXT, "Extension-supplied version"),
+  Column("description", TEXT, "Extension-optional description"),
+  Column("locale", TEXT, "Default locale supported by extension"),
+  Column("update_url", TEXT, "Extension-supplied update URI"),
+  Column("author", TEXT, "Optional extension author"),
+  Column("persistent", INTEGER,
+    "1 if extension is persistent across all tabs else 0"),
+  Column("path", TEXT, "Path to extension folder"),
+])
+implementation("applications/browser_opera@genOperaExtensions")
