@@ -15,6 +15,7 @@ if(APPLE)
     system/darwin/ad_config.cpp
     system/darwin/apps.cpp
     system/darwin/block_devices.cpp
+    system/darwin/disk_encryption.cpp
     system/darwin/keychain_items.cpp
     system/darwin/keychain_utils.cpp
     system/darwin/firewall.h
