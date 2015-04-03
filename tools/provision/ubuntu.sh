@@ -73,6 +73,7 @@ function main_ubuntu() {
 
   install_thrift
   install_rocksdb
+  install_yara
 
   gem_install fpm
 }

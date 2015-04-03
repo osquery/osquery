@@ -111,6 +111,27 @@ function install_snappy() {
   fi
 }
 
+function install_yara() {
+  if [[ ! -f /usr/local/lib/libyara.a ]]; then
+    if [[ ! -f yara-3.3.0.tar.gz ]]; then
+      wget https://s3.amazonaws.com/osquery-packages/deps/yara-3.3.0.tar.gz
+    else
+      log "yara source is already downloaded. skipping."
+    fi
+    if [[ ! -d yara-3.3.0 ]]; then
+      tar xzf yara-3.3.0.tar.gz
+    fi
+    pushd yara-3.3.0
+    ./bootstrap.sh
+    CC=clang CXX=clang++ ./configure --with-pic --enable-static
+    make
+    sudo make install
+    popd
+  else
+    log "yara library is already installed. skipping."
+  fi
+}
+
 function install_boost() {
   if [[ ! -f /usr/local/lib/libboost_thread.a ]]; then
     if [[ ! -f boost_1_55_0.tar.gz ]]; then

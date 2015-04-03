@@ -24,4 +24,5 @@ function main_darwin() {
   package boost
   package gflags
   package thrift
+  package yara
 }
