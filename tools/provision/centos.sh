@@ -97,16 +97,15 @@ function main_centos() {
     install_autoconf
     install_automake
     install_libtool
-    install_thrift
   elif [[ $DISTRO = "centos7" ]]; then
     package autoconf
     package automake
     package libtool
-    install_thrift
   fi
 
   install_snappy
   install_rocksdb
+  install_thrift
   install_yara
 
   gem_install fpm

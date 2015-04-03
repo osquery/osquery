@@ -8,29 +8,23 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 function install_cmake() {
-  if [ "$OS" = "centos" ] || [ "$OS" = "rhel" ] || [ "$OS" = "ubuntu" ] || [ "$OS" = "darwin" ]; then
-    if [[ -f /usr/local/bin/cmake ]]; then
-      log "cmake is already installed. skipping."
-    else
-      if [[ ! -f cmake-2.8.12.2.tar.gz ]]; then
-        log "downloading the cmake source"
-        wget https://osquery-packages.s3.amazonaws.com/deps/cmake-2.8.12.2.tar.gz
-      fi
-      if [[ ! -d cmake-2.8.12.2 ]]; then
-        log "unpacking the cmake source"
-        tar -xf cmake-2.8.12.2.tar.gz
-      fi
-      if [[ -f /usr/local/bin/cmake ]]; then
-        log "cmake is already installed. skipping."
-      else
-        log "building cmake"
-        pushd cmake-2.8.12.2 > /dev/null
-        CC=clang CXX=clang++ ./configure
-        make
-        sudo make install
-        popd
-      fi
+  if [[ ! -f /usr/local/bin/cmake ]]; then
+    if [[ ! -f cmake-2.8.12.2.tar.gz ]]; then
+      log "downloading the cmake source"
+      wget https://osquery-packages.s3.amazonaws.com/deps/cmake-2.8.12.2.tar.gz
     fi
+    if [[ ! -d cmake-2.8.12.2 ]]; then
+      log "unpacking the cmake source"
+      tar -xf cmake-2.8.12.2.tar.gz
+    fi
+    log "building cmake"
+    pushd cmake-2.8.12.2 > /dev/null
+    CC=clang CXX=clang++ ./configure
+    make
+    sudo make install
+    popd
+  else
+    log "cmake is already installed. skipping."
   fi
 }
 
@@ -44,7 +38,13 @@ function install_thrift() {
     fi
     pushd thrift-0.9.1
     ./bootstrap.sh
-    ./configure CFLAGS="$CFLAGS" --with-cpp=yes --with-ruby=no --with-go=no --with-erlang=no --with-java=no --with-python=no
+    ./configure CFLAGS="$CFLAGS" \
+      --with-cpp=yes \
+      --with-ruby=no \
+      --with-go=no \
+      --with-erlang=no \
+      --with-java=no \
+      --with-python=no
     make
     sudo make install
     popd
@@ -57,33 +57,25 @@ function install_rocksdb() {
   if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
     if [[ ! -f rocksdb-3.5.tar.gz ]]; then
       wget https://osquery-packages.s3.amazonaws.com/deps/rocksdb-3.5.tar.gz
+    else
+      log "rocksdb source is already downloaded. skipping."
     fi
     if [[ ! -d rocksdb-rocksdb-3.5 ]]; then
       tar -xf rocksdb-3.5.tar.gz
     fi
-    if [ "$OS" = "ubuntu" ] || [ "$OS" = "centos" ] || [ $OS = "rhel" ]; then
-      if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
-        if [[ $OS = "ubuntu" ]]; then
-          CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
-        elif [ $OS = "centos" ] || [ $OS = "rhel" ]; then
-          CLANG_VERSION=`clang --version | grep version | cut -d" " -f3`
-          CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
-        fi
-        pushd rocksdb-rocksdb-3.5
-        make static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
-	      popd
+    if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
+      if [[ $OS = "ubuntu" ]]; then
+        CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
+      elif [ $OS = "centos" ] || [ $OS = "rhel" ]; then
+        CLANG_VERSION=`clang --version | grep version | cut -d" " -f3`
+        CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
       fi
-      sudo cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
-      sudo cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
-    elif [[ $OS = "darwin" ]]; then
-      if [[ ! -f rocksdb-rocksdb-3.5/librocksdb.a ]]; then
-        pushd rocksdb-rocksdb-3.5
-        make static_lib
-        popd
-      fi
-      sudo cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
-      sudo cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
+      pushd rocksdb-rocksdb-3.5
+      make static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
+      popd
     fi
+    sudo cp rocksdb-rocksdb-3.5/librocksdb.a /usr/local/lib
+    sudo cp -R rocksdb-rocksdb-3.5/include/rocksdb /usr/local/include
   else
     log "rocksdb already installed. skipping."
   fi
@@ -177,7 +169,7 @@ function install_gflags() {
 }
 
 function install_autoconf() {
-  if [[ ! -f /usr/bin/autoconf ]]; then
+  if [[ ! -f /usr/bin/autoconf ]] || [[ `autoconf -V | head -1 | awk '{print $4}' | sed 's/\.//g'` -lt "269" ]]; then
     if [[ ! -f autoconf-2.69.tar.gz ]]; then
       wget https://osquery-packages.s3.amazonaws.com/deps/autoconf-2.69.tar.gz
     else

@@ -64,13 +64,7 @@ function main() {
 
   cd "$SCRIPT_DIR/../"
 
-  if [ $OS = "darwin" ] && [ $DISTRO = "10.8" ]; then
-    export CPPFLAGS=-Qunused-arguments
-    export CFLAGS=-Qunused-arguments
-    sudo -E pip install -r requirements.txt
-  else
-    sudo pip install -r requirements.txt
-  fi
+  sudo pip install -r requirements.txt
 
   # Reset any work or artifacts from build tests in TP.
   (cd third-party && git reset --hard HEAD)
