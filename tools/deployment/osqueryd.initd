@@ -48,13 +48,13 @@ if [ ! -e $FLAGS_PATH ] && [ ! -e $REAL_CONFIG_PATH ]; then
   echo "No config file found at $REAL_CONFIG_PATH"
   echo "Additionally, no flags file or config override found at $FLAGS_PATH"
   echo "See '/usr/share/osquery/osquery.example.conf' for an example config."
-  exit 1
+  RETVAL=1
 fi
 
 ensure_root() {
   if [ $UID -ne 0 ] ; then
     echo "User has insufficient privilege."
-    exit 1
+    RETVAL=1
   fi
 }
 
@@ -79,14 +79,14 @@ start() {
   $PROG $ARGS \
         --pidfile=$PIDFILE \
         --daemonize=true
-  return $?
+  RETVAL=$?
 }
 
 stop() {
   ensure_root
 
   if [ ! -f $PIDFILE ] ; then
-    return 0
+    RETVAL=0
   else
     PID=$(cat $PIDFILE)
     pkill -P $PID && kill -9 $PID
@@ -102,34 +102,32 @@ restart() {
 status() {
   if [ ! -f $PIDFILE ] ; then
     echo "$PROG is not running. no pidfile found."
+    RETVAL=7
   else
     PID=$(cat $PIDFILE)
     PROCNAME=$(ps -p $PID -o comm\=)
     if [ "$PROCNAME" = "$PROG" ]; then
       echo "$PROG is already running: $PID"
-      return 0
+      RETVAL=0
     else
       # osqueryd pidfile exists but it's not running
       echo "$PROG is not running but a stale pidfile was found."
+      RETVAL=7
     fi
   fi
 }
 
+usage() {
+  echo "Usage: $0 {start|stop|status|restart}"
+  RETVAL=2
+}
+
 case "$1" in
-    start)
-        $1
-        ;;
-    stop)
-        $1
-        ;;
-    restart)
-        $1
-        ;;
-    status)
-        $1
-        ;;
-    *)
-        echo "Usage: $0 {start|stop|status|restart}"
-        exit 2
+    start) start ;;
+    stop) stop ;;
+    restart) restart ;;
+    status) status ;;
+    *) usage ;;
 esac
-exit $?
+
+exit ${RETVAL}
