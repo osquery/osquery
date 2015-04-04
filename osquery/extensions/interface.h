@@ -18,15 +18,15 @@
 // paths for their includes. Unfortunately, changing include paths is not
 // possible in every build system.
 // clang-format off
-#include CONCAT(OSQUERY_THRIFT_SERVER_LIB, /TThreadPoolServer.h)
-#include CONCAT(OSQUERY_THRIFT_LIB, /protocol/TBinaryProtocol.h)
-#include CONCAT(OSQUERY_THRIFT_LIB, /transport/TServerSocket.h)
-#include CONCAT(OSQUERY_THRIFT_LIB, /transport/TBufferTransports.h)
-#include CONCAT(OSQUERY_THRIFT_LIB, /transport/TSocket.h)
+#include CONCAT(OSQUERY_THRIFT_SERVER_LIB,/TThreadPoolServer.h)
+#include CONCAT(OSQUERY_THRIFT_LIB,/protocol/TBinaryProtocol.h)
+#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TServerSocket.h)
+#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TBufferTransports.h)
+#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TSocket.h)
 
 // Include intermediate Thrift-generated interface definitions.
-#include CONCAT(OSQUERY_THRIFT, Extension.h)
-#include CONCAT(OSQUERY_THRIFT, ExtensionManager.h)
+#include CONCAT(OSQUERY_THRIFT,Extension.h)
+#include CONCAT(OSQUERY_THRIFT,ExtensionManager.h)
 // clang-format on
 
 using namespace apache::thrift;

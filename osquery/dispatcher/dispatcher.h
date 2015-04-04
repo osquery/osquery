@@ -23,9 +23,9 @@
 // paths for their includes. Unfortunately, changing include paths is not
 // possible in every build system.
 // clang-format off
-#include CONCAT(OSQUERY_THRIFT_LIB, /concurrency/Thread.h)
-#include CONCAT(OSQUERY_THRIFT_LIB, /concurrency/ThreadManager.h)
-#include CONCAT(OSQUERY_THRIFT_LIB, /concurrency/PosixThreadFactory.h)
+#include CONCAT(OSQUERY_THRIFT_LIB,/concurrency/Thread.h)
+#include CONCAT(OSQUERY_THRIFT_LIB,/concurrency/ThreadManager.h)
+#include CONCAT(OSQUERY_THRIFT_LIB,/concurrency/PosixThreadFactory.h)
 // clang-format on
 
 namespace osquery {

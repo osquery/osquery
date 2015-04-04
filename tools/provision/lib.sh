@@ -9,17 +9,17 @@
 
 function install_cmake() {
   if [[ ! -f /usr/local/bin/cmake ]]; then
-    if [[ ! -f cmake-2.8.12.2.tar.gz ]]; then
+    if [[ ! -f cmake-3.2.1.tar.gz ]]; then
       log "downloading the cmake source"
-      wget https://osquery-packages.s3.amazonaws.com/deps/cmake-2.8.12.2.tar.gz
+      wget https://osquery-packages.s3.amazonaws.com/deps/cmake-3.2.1.tar.gz
     fi
-    if [[ ! -d cmake-2.8.12.2 ]]; then
+    if [[ ! -d cmake-3.2.1 ]]; then
       log "unpacking the cmake source"
-      tar -xf cmake-2.8.12.2.tar.gz
+      tar -xf cmake-3.2.1.tar.gz
     fi
     log "building cmake"
-    pushd cmake-2.8.12.2 > /dev/null
-    CC=clang CXX=clang++ ./configure
+    pushd cmake-3.2.1
+    ./configure
     make
     sudo make install
     popd
@@ -115,7 +115,7 @@ function install_yara() {
     fi
     pushd yara-3.3.0
     ./bootstrap.sh
-    CC=clang CXX=clang++ ./configure --with-pic --enable-static
+    CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static
     make
     sudo make install
     popd
@@ -137,7 +137,7 @@ function install_boost() {
     pushd boost_1_55_0
     ./bootstrap.sh
     n=`getconf _NPROCESSORS_ONLN`
-    sudo ./b2 --with=all -j $n toolset=clang install
+    sudo ./b2 --with=all -j $n toolset="$CC" install
     sudo ldconfig
     popd
   else

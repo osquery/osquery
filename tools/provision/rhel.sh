@@ -7,9 +7,29 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
+function require_channel() {
+  local channel=$1
+  # Check if developer channels exist
+  DEV_EXISTS=`sudo rhn-channel -l | grep -o $channel || true`
+  if [[ "$DEV_EXISTS" != "$channel" ]]; then
+    echo ""
+    echo "Action needed: "
+    echo "You need the RHEL6 $channel channel installed."
+    echo "sudo rhn-channel --add --channel=$channel"
+    echo ""
+    exit 1
+  fi
+}
+
 function main_rhel() {
+  if [[ $DISTRO = "rhel6" ]]; then
+    require_channel "rhel-x86_64-server-6-rhscl-1"
+    require_channel "rhel-x86_64-server-optional-6"
+  fi
+
   sudo yum update -y
 
+  package git
   package texinfo
   package wget
   package git
@@ -34,18 +54,16 @@ function main_rhel() {
   package python-devel
   package rpm-build
   package ruby
-  sudo subscription-manager repos --enable=rhel-7-server-optional-rpms
   package ruby-devel
   package rubygems
 
   if [[ $DISTRO = "rhel6" ]]; then
     package scl-utils
     package policycoreutils-python
-    package
-    package rhscl-devtoolset-3
     package devtoolset-3
-    sudo scl enable devtoolset-3 bash
+    source /opt/rh/devtoolset-3/enable 
   elif [[ $DISTRO = "rhel7" ]]; then
+    sudo subscription-manager repos --enable=rhel-7-server-optional-rpms
     package gcc
     package binutils
     package gcc-c++
@@ -54,8 +72,15 @@ function main_rhel() {
   package clang
   package clang-devel
 
-  set_cc clang
-  set_cxx clang++
+  if [[ $DISTRO = "rhel6" ]]; then
+    # GCC is needed for glib/libstdc++ 4.9+
+    set_cc gcc
+    set_cxx g++
+  elif [[ $DISTRO = "rhel7" ]]; then
+    # Clang was built with a newer libstdc++
+    set_cc clang
+    set_cxx clang++
+  fi
 
   package bzip2
   package bzip2-devel
@@ -87,16 +112,16 @@ function main_rhel() {
     install_autoconf
     install_automake
     install_libtool
-    install_thrift
   elif [[ $DISTRO = "rhel7" ]]; then
     package autoconf
     package automake
     package libtool
-    install_thrift
   fi
 
   install_snappy
   install_rocksdb
+  install_thrift
+  install_yara
 
   gem_install fpm
 }
