@@ -162,6 +162,8 @@ class Plugin {
   /// Allow the plugin to introspect into the registered name (for logging).
   void setName(const std::string& name) { name_ = name; }
 
+  const std::string& getName() const { return name_; }
+
   /// Allow a specialized plugin type to act when an external plugin is
   /// registered (e.g., a TablePlugin will attach the table name).
   static Status addExternal(const std::string& name,

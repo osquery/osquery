@@ -30,6 +30,8 @@ struct FSEventsSubscriptionContext : public SubscriptionContext {
   std::string path;
   /// Limit the FSEvents actions to the subscriptioned mask (if not 0).
   FSEventStreamEventFlags mask;
+  // A no-op since FSEvent subscriptions are always recursive.
+  bool recursive;
 
   void requireAction(std::string action) {
     for (const auto& bit : kMaskActions) {
@@ -45,12 +47,12 @@ struct FSEventsSubscriptionContext : public SubscriptionContext {
 struct FSEventsEventContext : public EventContext {
   ConstFSEventStreamRef fsevent_stream;
   FSEventStreamEventFlags fsevent_flags;
-  FSEventStreamEventId fsevent_id;
+  FSEventStreamEventId transaction_id;
 
   std::string path;
   std::string action;
 
-  FSEventsEventContext() : fsevent_flags(0), fsevent_id(0) {}
+  FSEventsEventContext() : fsevent_flags(0), transaction_id(0) {}
 };
 
 typedef std::shared_ptr<FSEventsEventContext> FSEventsEventContextRef;

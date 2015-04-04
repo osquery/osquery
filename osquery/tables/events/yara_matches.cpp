@@ -172,8 +172,6 @@ int YARACallback(int message, void *message_data, void *user_data) {
  * @brief Track YARA matches to files.
  */
 class YARAEventSubscriber : public FileEventSubscriber {
- DECLARE_SUBSCRIBER("yara_matches");
-
  public:
   Status init();
 
@@ -224,9 +222,7 @@ Status YARAEventSubscriber::init() {
       auto mc = createSubscriptionContext();
       mc->path = file;
       mc->mask = FILE_CHANGE_MASK;
-#ifndef __APPLE__
       mc->recursive = true;
-#endif
       subscribe(&YARAEventSubscriber::Callback, mc, (void*)(&element.first));
     }
 
@@ -252,12 +248,8 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
     r["category"] = "Undefined";
   }
 
-#ifdef __APPLE__
-  // Only FSEvents transactions updates.
-  r["transaction_id"] = INTEGER(ec->fsevent_id);
-#else
-  r["transaction_id"] = INTEGER(0);
-#endif
+  // Only FSEvents transactions updates (inotify is a no-op).
+  r["transaction_id"] = INTEGER(ec->transaction_id);
 
   // These are default values, to be updated in YARACallback.
   r["count"] = INTEGER(0);

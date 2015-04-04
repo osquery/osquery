@@ -71,6 +71,10 @@ struct INotifyEventContext : public EventContext {
   std::string path;
   /// A string action representing the event action `inotify` bit.
   std::string action;
+  /// A no-op event transaction id.
+  uint32_t transaction_id;
+
+  INotifyEventContext() : event(nullptr), transaction_id(0) {}
 };
 
 typedef std::shared_ptr<INotifyEventContext> INotifyEventContextRef;

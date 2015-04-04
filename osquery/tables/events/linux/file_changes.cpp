@@ -29,8 +29,6 @@ namespace tables {
  */
 class FileChangesEventSubscriber
     : public EventSubscriber<INotifyEventPublisher> {
-  DECLARE_SUBSCRIBER("file_changes");
-
  public:
   Status init();
 

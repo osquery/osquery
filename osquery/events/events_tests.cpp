@@ -274,14 +274,13 @@ Status TestTheeCallback(EventContextRef context, const void* user_data) {
 }
 
 class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
-  DECLARE_SUBSCRIBER("FakeSubscriber");
-
  public:
   bool bellHathTolled;
   bool contextBellHathTolled;
   bool shouldFireBethHathTolled;
 
   FakeEventSubscriber() {
+    setName("FakeSubscriber");
     bellHathTolled = false;
     contextBellHathTolled = false;
     shouldFireBethHathTolled = false;
@@ -316,7 +315,7 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
 TEST_F(EventsTests, test_event_sub) {
   auto sub = std::make_shared<FakeEventSubscriber>();
   EXPECT_EQ(sub->type(), "FakePublisher");
-  EXPECT_EQ(sub->name(), "FakeSubscriber");
+  EXPECT_EQ(sub->getName(), "FakeSubscriber");
 }
 
 TEST_F(EventsTests, test_event_sub_subscribe) {

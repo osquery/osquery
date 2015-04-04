@@ -66,12 +66,12 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
     }
 
     // Set the optional string-verion of the time for DB columns.
-    ec->time_string = boost::lexical_cast<std::string>(ec->time);
+    ec->time_string = std::to_string(ec->time);
   }
 
   for (const auto& subscription : subscriptions_) {
     auto es = EventFactory::getEventSubscriber(subscription->subscriber_name);
-    if (es->state() == EVENT_SUBSCRIBER_RUNNING) {
+    if (es->state() == SUBSCRIBER_RUNNING) {
       fireCallback(subscription, ec);
     }
   }
@@ -490,14 +490,14 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
   auto status = specialized_sub->init();
 
   auto& ef = EventFactory::getInstance();
-  ef.event_subs_[specialized_sub->name()] = specialized_sub;
+  ef.event_subs_[specialized_sub->getName()] = specialized_sub;
 
   // Set state of subscriber.
   if (!status.ok()) {
-    specialized_sub->state(EVENT_SUBSCRIBER_FAILED);
+    specialized_sub->state(SUBSCRIBER_FAILED);
     return Status(1, status.getMessage());
   } else {
-    specialized_sub->state(EVENT_SUBSCRIBER_RUNNING);
+    specialized_sub->state(SUBSCRIBER_RUNNING);
     return Status(0, "OK");
   }
 }

@@ -31,8 +31,6 @@ const std::vector<std::string> kDarwinPasswdPaths = {
  */
 class PasswdChangesEventSubscriber
     : public EventSubscriber<FSEventsEventPublisher> {
-  DECLARE_SUBSCRIBER("passwd_changes");
-
  public:
   Status init();
 
@@ -72,7 +70,7 @@ Status PasswdChangesEventSubscriber::Callback(const FSEventsEventContextRef& ec,
   r["action"] = ec->action;
   r["time"] = ec->time_string;
   r["target_path"] = ec->path;
-  r["transaction_id"] = INTEGER(ec->fsevent_id);
+  r["transaction_id"] = INTEGER(ec->transaction_id);
   if (ec->action != "") {
     add(r, ec->time);
   }
