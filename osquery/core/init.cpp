@@ -150,6 +150,11 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 }
 
 void Initializer::initDaemon() {
+  if (FLAGS_config_check) {
+    // No need to daemonize, emit log lines, or create process mutexes.
+    return;
+  }
+
 #ifndef __APPLE__
   // OSX uses launchd to daemonize.
   if (osquery::FLAGS_daemonize) {
