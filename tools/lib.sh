@@ -9,8 +9,10 @@
 
 function platform() {
   local  __resultvar=$1
-  if [[ -f "/etc/redhat-release" ]]; then
+  if [[ -n `cat /etc/redhat-release | grep -o "CentOS"` ]]; then
     eval $__resultvar="centos"
+  elif [[ -n `cat /etc/redhat-release | grep -o "Red Hat Enterprise"` ]]; then
+    eval $__resultvar="rhel"
   elif [[ -f "/etc/lsb-release" ]]; then
     eval $__resultvar="ubuntu"
   else
@@ -22,6 +24,8 @@ function distro() {
   local __resultvar=$2
   if [[ $1 = "centos" ]]; then
     eval $__resultvar=`cat /etc/redhat-release | grep -o "release [6-7]" | sed 's/release /centos/g'`
+  elif [[ $1 = "rhel" ]]; then
+    eval $__resultvar=`cat /etc/redhat-release | grep -o "release [6-7]" | sed 's/release /rhel/g'`
   elif [[ $1 = "ubuntu" ]]; then
     eval $__resultvar=`cat /etc/*-release | grep DISTRIB_CODENAME | awk -F '=' '{print $2}'`
   elif [[ $1 = "darwin" ]]; then
@@ -36,7 +40,7 @@ function distro() {
 function threads() {
   local __resultvar=$1
   platform OS
-  if [ $OS = "centos" ] || [ $OS = "ubuntu" ]; then
+  if [ $OS = "centos" ] || [ $OS = "rhel" ] || [ $OS = "ubuntu" ]; then
     eval $__resultvar=`cat /proc/cpuinfo | grep processor | wc -l`
   elif [[ $OS = "darwin" ]]; then
     eval $__resultvar=`sysctl hw.ncpu | awk '{print $2}'`

@@ -56,6 +56,31 @@ elseif(LINUX)
         "epel-release"
       )
     endif()
+  elseif(RHEL)
+    set(PACKAGE_TYPE "rpm")
+    set(PACKAGE_ITERATION "1.el")
+    set(PACKAGE_DEPENDENCIES
+      "glibc >= 2.12"
+      "openssl >= 1.0"
+      "bzip2-libs"
+      "readline"
+      "zlib"
+      "rpm-libs"
+    )
+    if(OSQUERY_BUILD_DISTRO STREQUAL "RHEL6")
+      set(PACKAGE_ITERATION "1.el6_6.5")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libudev"
+      )
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "RHEL7")
+      set(PACKAGE_ITERATION "1.el7_7.0")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "systemd-devel"
+        "epel-release"
+      )
+    endif()
   endif()
   JOIN("${PACKAGE_DEPENDENCIES}" ", " PACKAGE_DEPENDENCIES)
 
