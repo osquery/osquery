@@ -7,45 +7,57 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
+RH_RELEASE=/etc/redhat-release
+
 function platform() {
-  local  __resultvar=$1
-  if [[ -n `cat /etc/redhat-release | grep -o "CentOS"` ]]; then
-    eval $__resultvar="centos"
-  elif [[ -n `cat /etc/redhat-release | grep -o "Red Hat Enterprise"` ]]; then
-    eval $__resultvar="rhel"
+  local  __out=$1
+  if [[ -n `grep -o "CentOS" $RH_RELEASE 2>/dev/null` ]]; then
+    eval $__out="centos"
+  elif [[ -n `grep -o "Red Hat Enterprise" $RH_RELEASE 2>/dev/null` ]]; then
+    eval $__out="rhel"
   elif [[ -f "/etc/lsb-release" ]]; then
-    eval $__resultvar="ubuntu"
+    eval $__out="ubuntu"
   else
-    eval $__resultvar=`uname -s | tr '[:upper:]' '[:lower:]'`
+    eval $__out=`uname -s | tr '[:upper:]' '[:lower:]'`
   fi
+}
+
+function _platform() {
+  platform PLATFORM
+  echo $PLATFORM
 }
 
 function distro() {
-  local __resultvar=$2
+  local __out=$2
   if [[ $1 = "centos" ]]; then
-    eval $__resultvar=`cat /etc/redhat-release | grep -o "release [6-7]" | sed 's/release /centos/g'`
+    eval $__out=`grep -o "release [6-7]" $RH_RELEASE | sed 's/release /centos/g'`
   elif [[ $1 = "rhel" ]]; then
-    eval $__resultvar=`cat /etc/redhat-release | grep -o "release [6-7]" | sed 's/release /rhel/g'`
+    eval $__out=`grep -o "release [6-7]" $RH_RELEASE | sed 's/release /rhel/g'`
   elif [[ $1 = "ubuntu" ]]; then
-    eval $__resultvar=`cat /etc/*-release | grep DISTRIB_CODENAME | awk -F '=' '{print $2}'`
+    eval $__out=`grep DISTRIB_CODENAME /etc/*-release | awk -F'=' '{print $2}'`
   elif [[ $1 = "darwin" ]]; then
-    eval $__resultvar=`sw_vers -productVersion | awk -F '.' '{print $1 "." $2}'`
+    eval $__out=`sw_vers -productVersion | awk -F '.' '{print $1 "." $2}'`
   elif [[ $1 = "freebsd" ]]; then
-    eval $__resultvar=`uname -r | awk -F '-' '{print $1}'`
+    eval $__out=`uname -r | awk -F '-' '{print $1}'`
   else
-    eval $__resultvar="unknown_version"
+    eval $__out="unknown_version"
   fi
 }
 
+function _distro() {
+  distro $1 DISTRO
+  echo $DISTRO
+}
+
 function threads() {
-  local __resultvar=$1
+  local __out=$1
   platform OS
   if [ $OS = "centos" ] || [ $OS = "rhel" ] || [ $OS = "ubuntu" ]; then
-    eval $__resultvar=`cat /proc/cpuinfo | grep processor | wc -l`
+    eval $__out=`cat /proc/cpuinfo | grep processor | wc -l`
   elif [[ $OS = "darwin" ]]; then
-    eval $__resultvar=`sysctl hw.ncpu | awk '{print $2}'`
+    eval $__out=`sysctl hw.ncpu | awk '{print $2}'`
   elif [[ $OS = "freebsd" ]]; then
-    eval $__resultvar=`sysctl -n kern.smp.cpus`
+    eval $__out=`sysctl -n kern.smp.cpus`
   fi
 }
 

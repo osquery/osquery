@@ -1,28 +1,15 @@
 PLATFORM := $(shell uname -s)
 VERSION := $(shell git describe --tags HEAD --always)
-RELEASE = /etc/redhat-release
 MAKE = make
 
-ifeq ($(PLATFORM),Darwin)
-	DISTRO=Darwin
-	BUILD_DIR=darwin
-else ifeq ($(PLATFORM),FreeBSD)
-	DISTRO=FreeBSD
-	BUILD_DIR=freebsd
-	MAKE=gmake
-else ifneq ("$(wildcard $(RELEASE))","")
-	# Red Hat-based distro
-	DISTRO := $(shell rpm -qf /etc/redhat-release | sed 's/-.*//g')
-	VERSION := $(shell grep -o "release [6-7]" $(RELEASE) | sed 's/release //g')
-	BUILD_DIR=$(DISTRO)$(VERSION)
+SHELL := /bin/bash
+
+DISTRO := $(shell . ./tools/lib.sh; _platform)
+DISTRO_VERSION := $(shell . ./tools/lib.sh; _distro $(DISTRO))
+ifeq ($(DISTRO),darwin)
+	BUILD_DIR = darwin
 else
-	RELEASE=/etc/lsb-release
-	DISTRO := $(shell if [ -f "$(RELEASE)" ]; then echo "Ubuntu"; fi)
-	ifeq ($(DISTRO),Ubuntu)
-		BUILD_DIR := $(shell lsb_release -sc)
-	else
-		DISTRO=Unknown
-	endif
+	BUILD_DIR = $(DISTRO_VERSION)
 endif
 
 DEFINES := CTEST_OUTPUT_ON_FAILURE=1
@@ -73,7 +60,7 @@ ifeq ($(PLATFORM),Linux)
 endif
 
 .setup:
-ifeq ($(DISTRO),Unknown)
+ifeq ($(DISTRO),unknown_version)
 	@echo Unknown, non-Redhat, non-Ubuntu based Linux distro
 	false
 endif
