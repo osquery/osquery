@@ -7,7 +7,7 @@ else ifeq ($(PLATFORM),FreeBSD)
 	BUILD_DIR=freebsd
 	MAKE=gmake
 else
-  DISTRO := $(shell if [[ -f "/etc/lsb-release" ]]; then echo "Ubuntu"; fi)
+  DISTRO := $(shell if [ -f "/etc/lsb-release" ]; then echo "Ubuntu"; fi)
   DISTRO := $(shell if [ -n `cat /etc/redhat-release | grep -o "CentOS"` ]; then echo "Centos"; fi)
   DISTRO := $(shell if [ -n `cat /etc/redhat-release | grep -o "Red Hat Enterprise"` ]; then echo "RHEL"; fi)
   ifeq ($(DISTRO),Centos)
