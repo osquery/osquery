@@ -74,6 +74,6 @@ package:
 	cd build/$(BUILD_DIR) && cmake ../../ && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
-%::
+%:: .setup
 	cd build/$(BUILD_DIR) && cmake ../.. && \
 		$(DEFINES) $(MAKE) --no-print-directory $@
