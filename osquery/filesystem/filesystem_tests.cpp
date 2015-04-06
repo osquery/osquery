@@ -232,6 +232,17 @@ TEST_F(FilesystemTests, test_dotdot_relative) {
   EXPECT_TRUE(found);
 }
 
+TEST_F(FilesystemTests, test_no_wild) {
+  std::vector<std::string> all;
+  auto status = resolveFilePattern(kFakeDirectory + "/roto.txt",
+                                   all, REC_LIST_FILES);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(all.size(), 1);
+  EXPECT_NE(std::find(all.begin(), all.end(),
+                      kFakeDirectory + "/roto.txt"),
+            all.end());
+}
+
 TEST_F(FilesystemTests, test_safe_permissions) {
   // For testing we can request a different directory path.
   EXPECT_TRUE(safePermissions("/", kFakeDirectory + "/door.txt"));
