@@ -281,7 +281,8 @@ Status resolveLastPathComponent(const fs::path& fs_path,
 
   try {
     // Is the path a file
-    if (setting == REC_LIST_FILES && fs::is_regular_file(fs_path)) {
+    if ((setting & (REC_EVENT_OPT | REC_LIST_FILES)) > 0  &&
+          fs::is_regular_file(fs_path)) {
       results.push_back(fs_path.string());
       return Status(0, "OK");
     }
