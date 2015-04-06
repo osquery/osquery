@@ -1,0 +1,5 @@
+/** osquery-specific read the docs / markdown themeing */
+
+.wy-side-nav-search {
+  background-color: rgb(165, 150, 255);
+}

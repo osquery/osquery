@@ -1,0 +1,45 @@
+[include/osquery/filesystem.h](https://github.com/facebook/osquery/blob/master/include/osquery/filesystem.h) contains utilities for accessing the filesystem.
+
+Consider the following example for reading a file from the filesystem:
+
+```cpp
+#include <iostream>
+#include <string>
+#include <osquery/filesystem.h>
+
+const std::string kPath = "/foo/bar.txt"
+
+int main(int argc, char* argv[]) {
+  auto s = osquery::pathExists(kPath);
+  if (s.ok()) {
+    std::string content;
+    s = osquery::readFile(kPath, content);
+    if (s.ok()) {
+      std::cout << "Contents of " << kPath << ":\n";
+      std::cout << content;
+    } else {
+      std::cerr << "Error reading file: " << s.toString();
+      return s.code();
+    }
+  } else {
+    std::cerr << "The path doesn't exist\n";
+    return 1;
+  }
+  return 0;
+}
+```
+
+In order to internalize the main API, consider the same example without error checking:
+
+```cpp
+#include <iostream>
+#include <string>
+#include <osquery/filesystem.h>
+
+int main(int argc, char* argv[]) {
+  std::string content;
+  osquery::readFile("/foo/bar.txt", content);
+  std::cout << "Contents of " << kPath << ":\n" << content;
+  return 0;
+}
+```
