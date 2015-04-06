@@ -21,8 +21,8 @@ import test_base
 
 class OsqueryiTest(unittest.TestCase):
     def setUp(self):
-        binary = os.path.join(test_base.ARGS.build, "osquery", "osqueryi")
-        self.osqueryi = test_base.OsqueryWrapper(binary)
+        self.binary = os.path.join(test_base.ARGS.build, "osquery", "osqueryi")
+        self.osqueryi = test_base.OsqueryWrapper(self.binary)
 
     def test_error(self):
         '''Test that we throw an error on bad query'''
@@ -40,6 +40,12 @@ class OsqueryiTest(unittest.TestCase):
         self.assertTrue(0 <= int(row['hour']) <= 24)
         self.assertTrue(0 <= int(row['minutes']) <= 60)
         self.assertTrue(0 <= int(row['seconds']) <= 60)
+
+    def test_config_bad_json(self):
+        self.osqueryi = test_base.OsqueryWrapper(self.binary,
+            args={"config_path": "/"})
+        result = self.osqueryi.run_query('SELECT * FROM time;')
+        self.assertEqual(len(result), 1)
 
 
 if __name__ == '__main__':
