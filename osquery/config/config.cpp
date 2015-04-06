@@ -46,9 +46,9 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   if (Registry::external()) {
     for (const auto& source : config) {
       PluginRequest request = {
-        {"action", "update"},
-        {"source", source.first},
-        {"data", source.second},
+          {"action", "update"},
+          {"source", source.first},
+          {"data", source.second},
       };
       // A "update" registry item within core should call the core's update
       // method. The config plugin call action handling must also know to
@@ -123,7 +123,7 @@ inline void mergeAdditional(const tree_node& node, ConfigData& conf) {
       }
       for (const auto& file : category.second) {
         conf.yara[category.first].push_back(
-          file.second.get_value<std::string>());
+            file.second.get_value<std::string>());
       }
     }
   } else {
@@ -163,7 +163,13 @@ void Config::mergeConfig(const std::string& source, ConfigData& conf) {
   json_data << source;
 
   pt::ptree tree;
-  pt::read_json(json_data, tree);
+  try {
+    pt::read_json(json_data, tree);
+  } catch (const pt::ptree_error& e) {
+    VLOG(1)
+        << "There was an error parsing the JSON read from a file: " << e.what();
+    return;
+  }
 
   // Legacy query schedule vector support.
   if (tree.count("scheduledQueries") > 0) {
