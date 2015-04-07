@@ -35,6 +35,9 @@ QueryData parseEtcHostsContent(const std::string& content) {
     if (line.size() > 1) {
       std::vector<std::string> hostnames;
       for (int i = 1; i < line.size(); ++i) {
+        if (boost::starts_with(line[i], "#")) {
+          break;
+        }
         hostnames.push_back(line[i]);
       }
       r["hostnames"] = boost::algorithm::join(hostnames, " ");

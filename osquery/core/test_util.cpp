@@ -232,6 +232,8 @@ QueryData getEtcHostsExpectedResults() {
   Row row2;
   Row row3;
   Row row4;
+  Row row5;
+  Row row6;
 
   row1["address"] = "127.0.0.1";
   row1["hostnames"] = "localhost";
@@ -241,7 +243,11 @@ QueryData getEtcHostsExpectedResults() {
   row3["hostnames"] = "localhost";
   row4["address"] = "fe80::1%lo0";
   row4["hostnames"] = "localhost";
-  return {row1, row2, row3, row4};
+  row5["address"] = "127.0.0.1";
+  row5["hostnames"] = "example.com example";
+  row6["address"] = "127.0.0.1";
+  row6["hostnames"] = "example.net";
+  return {row1, row2, row3, row4, row5, row6};
 }
 
 ::std::ostream& operator<<(::std::ostream& os, const Status& s) {
