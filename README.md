@@ -5,21 +5,23 @@ osquery
 <img align="center" src="http://osquery.io/assets/logo-dark.png" alt="osquery logo" width="200"/>
 
 <p align="center">
-osquery is an operating system instrumentation framework for OS X and Linux. It makes low-level operating system analytics performant and intuitive. For downloads, and community resources visit<br/> **[http://osquery.io](http://osquery.io/)**
+osquery is an operating system instrumentation framework for OS X and Linux. <br/>
+The tools make low-level operating system analytics and monitoring both performant and intuitive.
 
-| Platform | Build status |
-|---------|-------------|
-OS X 10.10      | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/)
-CentOS 6.5      | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/)
-CentOS 7.0      | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/)
-Ubuntu 12.04 LTS | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/)
-Ubuntu 14.04 LTS | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/)
+| Platform | Build status  | | | |
+|----------|---------------|---|---|---|
+CentOS 6.5   | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Homepage:** | https://osquery.io
+CentOS 7.0   | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Downloads:** | https://osquery.io/downloads
+Ubuntu 12.04 | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/) | |**Tables:** | https://osquery.io/tables
+Ubuntu 14.04 | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | **Guide:** | http://osquery.rtfd.org
+OS X 10.10   | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/) | | **Homebrew:** | `brew install osquery`
 
 #### What is osquery?
 
 osquery exposes an operating system as a high-performance relational database. This allows you to write SQL-based queries to explore operating system data. With osquery, SQL tables represent abstract concepts such as running processes, loaded kernel modules, open network connections, browser plugins, hardware events or file hashes.
 
 SQL tables are implemented via a simple plugin and extensions API. A variety of tables already exist and more are being written: [http://osquery.io/tables](http://osquery.io/tables). To best understand the expressiveness that is afforded to you by osquery, consider the following SQL queries:
+
 
 List the the users:
 ```sql
