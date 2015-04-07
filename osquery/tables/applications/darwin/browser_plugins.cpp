@@ -20,12 +20,12 @@ namespace tables {
 /// Each home directory will include custom extensions.
 #define kSafariExtensionsPath "/Library/Safari/Extensions/"
 
-#define kSafariPluginsPath "/Library/Internet Plug-Ins/"
-
 /// Safari extensions will not load unless they have the expected pattern.
 #define kSafariExtensionsPattern "%.safariextz"
 
-const std::map<std::string, std::string> kSafariPluginKeys = {
+#define kBrowserPluginsPath "/Library/Internet Plug-Ins/"
+
+const std::map<std::string, std::string> kBrowserPluginKeys = {
     {"WebPluginName", "name"},
     {"CFBundleIdentifier", "identifier"},
     {"CFBundleShortVersionString", "version"},
@@ -35,12 +35,12 @@ const std::map<std::string, std::string> kSafariPluginKeys = {
     {"LSRequiresNativeExecution", "native"},
 };
 
-void genSafariPlugin(const std::string& path, QueryData& results) {
+void genBrowserPlugin(const std::string& path, QueryData& results) {
   Row r;
   pt::ptree tree;
   if (osquery::parsePlist(path + "/Contents/Info.plist", tree).ok()) {
     // Plugin did not include an Info.plist, or it was invalid
-    for (const auto& it : kSafariPluginKeys) {
+    for (const auto& it : kBrowserPluginKeys) {
       try {
         r[it.second] = tree.get<std::string>(it.first);
       } catch (const pt::ptree_error& e) {
@@ -67,22 +67,22 @@ void genSafariPlugin(const std::string& path, QueryData& results) {
   results.push_back(r);
 }
 
-QueryData genSafariPlugins(QueryContext& context) {
+QueryData genBrowserPlugins(QueryContext& context) {
   QueryData results;
 
   std::vector<std::string> bundles;
-  if (listDirectoriesInDirectory(kSafariPluginsPath, bundles).ok()) {
+  if (listDirectoriesInDirectory(kBrowserPluginsPath, bundles).ok()) {
     for (const auto& dir : bundles) {
-      genSafariPlugin(dir, results);
+      genBrowserPlugin(dir, results);
     }
   }
 
   auto homes = osquery::getHomeDirectories();
   for (const auto& home : homes) {
     bundles.clear();
-    if (listDirectoriesInDirectory(home / kSafariPluginsPath, bundles).ok()) {
+    if (listDirectoriesInDirectory(home / kBrowserPluginsPath, bundles).ok()) {
       for (const auto& dir : bundles) {
-        genSafariPlugin(dir, results);
+        genBrowserPlugin(dir, results);
       }
     }
   }

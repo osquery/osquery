@@ -1,5 +1,5 @@
-table_name("safari_plugins")
-description("Safari browser plugin details for all users.")
+table_name("browser_plugins")
+description("All C/NPAPI browser plugin details for all users.")
 schema([
     Column("name", TEXT, "Plugin display name"),
     Column("identifier", TEXT, "Plugin identifier"),
@@ -10,4 +10,4 @@ schema([
     Column("native", INTEGER, "Plugin requires native execution"),
     Column("path", TEXT, "Path to plugin bundle"),
 ])
-implementation("applications/browser_safari@genSafariPlugins")
+implementation("applications/browser_plugins@genBrowserPlugins")

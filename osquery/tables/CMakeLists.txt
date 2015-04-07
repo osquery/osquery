@@ -6,7 +6,7 @@ if(APPLE)
   )
 
   ADD_OSQUERY_LIBRARY(FALSE osquery_tables_darwin
-    applications/darwin/browser_safari.cpp
+    applications/darwin/browser_plugins.cpp
     events/darwin/passwd_changes.cpp
     events/darwin/file_changes.cpp
     events/darwin/hardware_events.cpp
