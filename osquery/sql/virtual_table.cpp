@@ -194,6 +194,10 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
 
   for (size_t i = 0; i < argc; ++i) {
     auto expr = (const char *)sqlite3_value_text(argv[i]);
+    if (expr == nullptr) {
+      // SQLite did not expose the expression value.
+      continue;
+    }
     // Set the expression from SQLite's now-populated argv.
     pVtab->content->constraints[i].second.expr = std::string(expr);
     // Add the constraint to the column-sorted query request map.
