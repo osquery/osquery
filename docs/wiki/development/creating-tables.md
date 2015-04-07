@@ -119,9 +119,9 @@ The most important use of the context is query predicate constraints (e.g., `WHE
 
 Examples:
 
-`hash` requires a predicate, since the resultant rows are the hashes of the EQUALS or MATCHES constraint operators (`=`, `LIKE`). The table implementation includes:
+`hash` requires a predicate, since the resultant rows are the hashes of the EQUALS constraint operators (`=`). The table implementation includes:
 ```cpp
-  auto paths = context.constraints["path"].getAll(EQUALS | MATCHES);
+  auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
     [...]
