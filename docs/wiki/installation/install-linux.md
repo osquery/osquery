@@ -51,7 +51,7 @@ We publish that same two packages, osquery and osquery-unstable, in an apt repos
 
 ```sh
 $ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C9D8B80B
-$ sudo add-apt-repository "deb https://osquery-packages.s3.amazonaws.com/trusty trusty main"
+$ sudo add-apt-repository "deb [arch=amd64] https://osquery-packages.s3.amazonaws.com/trusty trusty main"
 $ sudo apt-get update
 $ sudo apt-get install osquery
 ```
@@ -60,7 +60,7 @@ $ sudo apt-get install osquery
 
 ```sh
 $ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C9D8B80B
-$ sudo add-apt-repository "deb https://osquery-packages.s3.amazonaws.com/precise precise main"
+$ sudo add-apt-repository "deb [arch=amd64] https://osquery-packages.s3.amazonaws.com/precise precise main"
 $ sudo apt-get update
 $ sudo apt-get install osquery
 ```

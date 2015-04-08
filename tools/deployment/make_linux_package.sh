@@ -23,6 +23,7 @@ PACKAGE_TYPE=""
 DESCRIPTION="osquery is an operating system instrumentation toolchain."
 if [[ $PACKAGE_VERSION == *"-"* ]]; then
   PACKAGE_NAME="osquery-latest"
+  DESCRIPTION="$DESCRIPTION (unstable/latest version)"
 else
   PACKAGE_NAME="osquery"
 fi
@@ -49,7 +50,7 @@ function usage() {
   This will generate an Linux package with:
   (1) An example config /var/osquery/osquery.example.config
   (2) An init.d script /etc/init.d/osqueryd
-  (3) The osquery toolset /usr/local/bin/osquery*"
+  (3) The osquery toolset /usr/bin/osquery*"
 }
 
 function parse_args() {
