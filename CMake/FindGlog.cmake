@@ -28,7 +28,7 @@ ExternalProject_Add(
   SOURCE_DIR ${GLOG_SOURCE_DIR}
   INSTALL_DIR ${GLOG_ROOT_DIR}
   CONFIGURE_COMMAND ${GLOG_SOURCE_DIR}/configure
-    CC=/usr/bin/clang CXX=/usr/bin/clang++
+    CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
     CXXFLAGS=${GLOG_CXX_FLAGS}
     --enable-frame-pointers --enable-shared=no --prefix=${GLOG_ROOT_DIR}
   BUILD_COMMAND make

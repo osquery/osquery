@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-set(CMAKE_C_COMPILER "/usr/bin/clang")
-set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+set(CMAKE_C_COMPILER "clang")
+set(CMAKE_CXX_COMPILER "clang++")
 add_compile_options(
   -Wall
   -Wextra
@@ -58,6 +58,11 @@ string(REPLACE "." "_" PLATFORM "${PLATFORM}")
 string(TOUPPER "${PLATFORM}" PLATFORM)
 list(GET PLATFORM 0 OSQUERY_BUILD_OS)
 list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO)
+
+if(${OSQUERY_BUILD_DISTRO} STREQUAL "RHEL6")
+  set(CMAKE_C_COMPILER "gcc")
+  set(CMAKE_CXX_COMPILER "g++")
+endif()
 
 # make debug (environment variable from Makefile)
 if(DEFINED ENV{DEBUG})
