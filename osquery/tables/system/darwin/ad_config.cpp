@@ -13,11 +13,12 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-const std::string kADConfigPath = "/Library/Preferences/OpenDirectory/"
-                                  "Configurations/Active Directory/";
-
 namespace osquery {
 namespace tables {
+
+const std::string kADConfigPath =
+    "/Library/Preferences/OpenDirectory/"
+    "Configurations/Active Directory/";
 
 void genADConfig(const std::string& path, QueryData& results) {
   auto config = SQL::selectAllFrom("preferences", "path", EQUALS, path);

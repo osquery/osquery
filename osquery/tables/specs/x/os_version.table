@@ -1,8 +1,10 @@
 table_name("os_version")
-description("A single row containing the operating system version.")
+description("A single row containing the operating system name and version.")
 schema([
-  Column("major", INTEGER),
-  Column("minor", INTEGER),
-  Column("patch", INTEGER),
+  Column("name", TEXT, "Distribution or product name"),
+  Column("major", INTEGER, "Major release version"),
+  Column("minor", INTEGER, "Minor release version"),
+  Column("patch", INTEGER, "Optional patch release"),
+  Column("build", TEXT, "Optional build-specific or variant string"),
 ])
 implementation("system/os_version@genOSVersion")

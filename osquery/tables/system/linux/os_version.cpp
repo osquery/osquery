@@ -11,21 +11,28 @@
 #include <string>
 
 #include <boost/regex.hpp>
+#include <boost/xpressive/xpressive.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#ifdef CENTOS
-const std::string kLinuxOSRelease = "/etc/redhat-release";
-#define kLinuxOSRegex "CentOS release ([0-9]+).([0-9]+)"
-#else
-const std::string kLinuxOSRelease = "/etc/os-release";
-#define kLinuxOSRegex "VERSION=\"([0-9]+)\\.([0-9]+)[\\.]{0,1}([0-9]+)?"
-#endif
+namespace xp = boost::xpressive;
 
 namespace osquery {
 namespace tables {
+
+#ifdef CENTOS
+const std::string kLinuxOSRelease = "/etc/redhat-release";
+const std::string kLinuxOSRegex =
+    "(?P<name>\\w+) .* "
+    "(?P<major>[0-9]+).(?P<minor>[0-9]+)[\\.]{0,1}(?P<patch>[0-9]+)";
+#else
+const std::string kLinuxOSRelease = "/etc/os-release";
+const std::string kLinuxOSRegex =
+    "VERSION=\"(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)[\\.]{0,1}(?P<patch>[0-9]+)"
+    "?, (?P<name>[\\w ]*)\"$";
+#endif
 
 QueryData genOSVersion(QueryContext& context) {
   std::string content;
@@ -33,28 +40,22 @@ QueryData genOSVersion(QueryContext& context) {
     return {};
   }
 
-  std::vector<std::string> version = {"0", "0", "0"};
-  boost::regex rx(kLinuxOSRegex);
-  boost::smatch matches;
+  Row r;
+  auto rx = xp::sregex::compile(kLinuxOSRegex);
+  xp::smatch matches;
   for (const auto& line : osquery::split(content, "\n")) {
-    if (boost::regex_search(line, matches, rx)) {
-      // Push the matches in reverse order.
-      version[0] = matches[1];
-      version[1] = matches[2];
-      if (matches.size() == 4) {
-        // Patch is optional for Ubuntu and not used for CentOS.
-        version[2] = matches[3];
-      }
+    if (xp::regex_search(line, matches, rx)) {
+      r["major"] = INTEGER(matches["major"]);
+      r["minor"] = INTEGER(matches["minor"]);
+      r["patch"] =
+          (matches["patch"].length() > 0) ? INTEGER(matches["patch"]) : "0";
+      r["name"] = matches["name"];
       break;
     }
   }
 
-  Row r;
-  if (version.size() == 3) {
-    r["major"] = INTEGER(version[0]);
-    r["minor"] = INTEGER(version[1]);
-    r["patch"] = INTEGER(version[2]);
-  }
+  // No build name.
+  r["build"] = "";
   return {r};
 }
 }

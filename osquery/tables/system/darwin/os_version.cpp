@@ -16,18 +16,35 @@
 namespace osquery {
 namespace tables {
 
+#define OSX_VERSION_PATH "/System/Library/CoreServices/SystemVersion.plist"
+
 QueryData genOSVersion(QueryContext& context) {
-  auto sysctl =
-      SQL::selectAllFrom("system_controls", "name", EQUALS, "kern.osrelease");
-  if (sysctl.size() == 0) {
+  // The version path plist is parsed by the OS X tool: sw_vers.
+  auto sw_vers =
+      SQL::selectAllFrom("preferences", "path", EQUALS, OSX_VERSION_PATH);
+  if (sw_vers.size() == 0) {
     return {};
   }
 
-  auto version = osquery::split(sysctl[0].at("current_value"), ".");
+  std::string version_string;
   Row r;
-  r["major"] = INTEGER(version[0]);
-  r["minor"] = INTEGER(version[1]);
-  r["patch"] = INTEGER(version[2]);
+  for (const auto& row : sw_vers) {
+    // Iterate over each plist key searching for the version string.
+    if (row.at("key") == "ProductBuildVersion") {
+      r["build"] = row.at("value");
+    } else if (row.at("key") == "ProductVersion") {
+      version_string = row.at("value");
+    } else if (row.at("key") == "ProductName") {
+      r["name"] = row.at("value");
+    }
+  }
+
+  auto version = osquery::split(version_string, ".");
+  if (version.size() == 3) {
+    r["major"] = INTEGER(version[0]);
+    r["minor"] = INTEGER(version[1]);
+    r["patch"] = INTEGER(version[2]);
+  }
   return {r};
 }
 }
