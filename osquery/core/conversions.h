@@ -61,6 +61,14 @@ std::string base64Decode(const std::string& encoded);
  */
 std::string base64Encode(const std::string& unencoded);
 
+/**
+ * @brief Check if a string is ASCII printable
+ *
+ * @param A string to check.
+ * @return If the string is printable.
+ */
+bool isPrintable(const std::string& check);
+
 #ifdef DARWIN
 /**
  * @brief Convert a CFStringRef to a std::string.

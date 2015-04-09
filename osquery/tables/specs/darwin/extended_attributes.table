@@ -1,0 +1,10 @@
+table_name("extended_attributes")
+description("Get the extended attributes for files (similar to Windows ADS)")
+schema([
+    Column("path", TEXT, "Absolute file path", required=True),
+    Column("directory", TEXT, "Directory of file(s)", required=True),
+    Column("key", TEXT, "Name of the value generated from the extended attribute"),
+    Column("value", TEXT, "The parsed information from the attribute"),
+    Column("base64", TEXT, "Is the attribute a base64 of the content"),
+])
+implementation("extended_attributes@genXattr")

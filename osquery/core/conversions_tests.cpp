@@ -39,6 +39,18 @@ TEST_F(ConversionsTests, test_base64) {
   auto unencoded2 = base64Decode(encoded);
   EXPECT_EQ(unencoded, unencoded2);
 }
+
+TEST_F(ConversionsTests, test_ascii_true) {
+  std::string unencoded = "HELLO";
+  auto result = isPrintable(unencoded);
+  EXPECT_TRUE(result);
+}
+
+TEST_F(ConversionsTests, test_ascii_false) {
+  std::string unencoded = "こんにちは";
+  auto result = isPrintable(unencoded);
+  EXPECT_FALSE(result);
+}
 }
 
 int main(int argc, char* argv[]) {
