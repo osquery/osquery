@@ -1,0 +1,11 @@
+table_name("managed_policies")
+description("The managed configuration policies from AD, MDM, MCX, etc.")
+schema([
+    Column("domain", TEXT, "System or manager-chosen domain key"),
+    Column("uuid", TEXT, "Optional UUID assigned to policy set"),
+    Column("name", TEXT, "Policy key name"),
+    Column("value", TEXT, "Policy value"),
+    Column("username", TEXT, "Policy applies only this user", superuser=True),
+    Column("manual", INTEGER, "1 if policy was loaded manually, otherwise 0"),
+])
+implementation("managed_policy@genManagedPolicies")
