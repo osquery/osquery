@@ -22,9 +22,9 @@ namespace tables {
 
 /// Each home directory will include custom extensions.
 #ifdef __APPLE__
-  #define kFirefoxPath "/Library/Application Support/Firefox/Profiles/"
+#define kFirefoxPath "/Library/Application Support/Firefox/Profiles/"
 #else
-  #define kFirefoxPath "/.mozilla/firefox/"
+#define kFirefoxPath "/.mozilla/firefox/"
 #endif
 
 #define kFirefoxExtensionsFile "/extensions.json"

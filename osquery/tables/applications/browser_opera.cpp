@@ -18,9 +18,9 @@ namespace tables {
 
 /// Each home directory will include custom extensions.
 #ifdef __APPLE__
-  #define kOperaPath "/Library/Application Support/com.operasoftware.Opera/"
+#define kOperaPath "/Library/Application Support/com.operasoftware.Opera/"
 #else
-  #define kOperaPath "/.config/opera/"
+#define kOperaPath "/.config/opera/"
 #endif
 #define kOperaExtensionsPath "Extensions/"
 
