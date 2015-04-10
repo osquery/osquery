@@ -1,8 +1,8 @@
 ## Downloads
 
 Distro-specific packages are built for each supported operating system.
-These packages contain the osquery daemon, shell, and example configuration and startup scripts. This means a `/etc/init.d/osqueryd` script that does
-not automatically start until a configuration file is created(*).
+These packages contain the osquery daemon, shell, and example configuration and startup scripts.
+This means a `/etc/init.d/osqueryd` script that does not automatically start until a configuration file is created*.
 
 Supported distributions are:
 
@@ -27,7 +27,7 @@ The default packages create the following structure:
 
 ## yum-based Distros
 
-We publish two packages, osquery and osquery-unstable(**), in a yum repository for CentOS/RHEL 6.3-6.6 and 7.0 built from our Jenkins build hosts. You may install the "auto-repo-add" RPM or add the repository target:
+We publish two packages, osquery and osquery-unstable**, in a yum repository for CentOS/RHEL 6.3-6.6 and 7.0 built from our Jenkins build hosts. You may install the "auto-repo-add" RPM or add the repository target:
 
 **CentOS/RHEL 7.0**
 
@@ -67,10 +67,12 @@ $ sudo apt-get install osquery
 
 ## Optional: Kernel driver
 
-* [Linux Kernel instrumentation](https://github.com/facebook/osquery/wiki/Linux-Kernel)
+osquery does not require a kernel driver currently.
+There are medium priority plans to extend table data collection into the kernel
+as well as use kernel frameworks to protect the daemon and log data.
 
+We include an optional [kernel driver](https://github.com/facebook/osquery/wiki/Linux-Kernel) that implements an example osquery table.
 
-(*) You may also set a different config plugin using `/etc/osquery/osquery.flags`.
-
-(**) We do not recommend using the latest/unstable package as it is built
+\* You may also set a different config plugin using `/etc/osquery/osquery.flags`.<br />
+\** We do not recommend using the latest/unstable package as it is built
 from our master branch and does not guarentee safety.
