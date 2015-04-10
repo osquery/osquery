@@ -2,7 +2,7 @@ osquery
 ======
 
 <p align="center">
-<img align="center" src="http://osquery.io/assets/logo-dark.png" alt="osquery logo" width="200"/>
+<img align="center" src="https://osquery.io/assets/logo-dark.png" alt="osquery logo" width="200"/>
 
 <p align="center">
 osquery is an operating system instrumentation framework for OS X and Linux. <br/>
@@ -10,11 +10,11 @@ The tools make low-level operating system analytics and monitoring both performa
 
 | Platform | Build status  | | | |
 |----------|---------------|---|---|---|
-CentOS 6.5   | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Homepage:** | https://osquery.io
-CentOS 7.0   | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Downloads:** | https://osquery.io/downloads
-Ubuntu 12.04 | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/) | |**Tables:** | https://osquery.io/tables
-Ubuntu 14.04 | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | **Guide:** | http://osquery.rtfd.org
-OS X 10.10   | [![Build Status](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](http://jenkins.osquery.io/job/osqueryMasterBuildOSX/) | | **Homebrew:** | `brew install osquery`
+CentOS 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Homepage:** | https://osquery.io
+CentOS 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Downloads:** | https://osquery.io/downloads
+Ubuntu 12.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/) | |**Tables:** | https://osquery.io/tables
+Ubuntu 14.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | **Guide:** | http://osquery.rtfd.org
+OS X 10.10   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX/) | | **Homebrew:** | `brew install osquery`
 
 #### What is osquery?
 
@@ -67,13 +67,13 @@ WHERE mac_count > 1;
 ```
 
 These queries can be:
-* performed on an ad-hoc basis to explore operating system state using the [osqueryi](https://github.com/facebook/osquery/wiki/using-osqueryi) shell
-* executed via a [scheduler](https://github.com/facebook/osquery/wiki/using-osqueryd) to monitor operating system state across a set of hosts
+* performed on an ad-hoc basis to explore operating system state using the [osqueryi](http://osquery.readthedocs.org/introduction/using-osqueryi/) shell
+* executed via a [scheduler](http://osquery.readthedocs.org/introduction/using-osqueryd/) to monitor operating system state across a set of hosts
 * launched from custom applications using osquery Thrift APIs
 
 #### Downloads / Install
 
-For latest stable and nightly builds for OS X and Linux (deb/rpm), as well as yum and apt repository information visit [http://osquery.io/downloads](http://osquery.io/downloads/).
+For latest stable and nightly builds for OS X and Linux (deb/rpm), as well as yum and apt repository information visit [http://osquery.io/downloads](https://osquery.io/downloads/).
 
 ##### OS X (Homebrew)
 
@@ -88,7 +88,7 @@ brew upgrade osquery
 
 ##### Building from source
 
-[Building](https://github.com/facebook/osquery/wiki/building-the-code) osquery from source is encouraged! Join our developer community by giving us feedback in Github issues or submitting pull requests!
+[Building](http://osquery.readthedocs.org/development/building/) osquery from source is encouraged! Join our developer community by giving us feedback in Github issues or submitting pull requests!
 
 #### Vulnerabilities
 
@@ -98,4 +98,4 @@ Facebook has a [bug bounty](https://www.facebook.com/whitehat/) program that inc
 
 Read the [launch blog post](https://code.facebook.com/posts/844436395567983/introducing-osquery/) for background on the project.
 
-If you're interested in learning more about osquery, visit the [wiki](https://github.com/facebook/osquery/wiki) and browse our RFC-labeled Github issues.
+If you're interested in learning more about osquery, visit the [users guide](http://osquery.readthedocs.org/) and browse our RFC-labeled Github issues.
