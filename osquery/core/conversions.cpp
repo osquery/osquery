@@ -69,4 +69,13 @@ std::string base64Encode(const std::string& unencoded) {
   os << base64;
   return os.str();
 }
+
+bool isPrintable(const std::string& check) {
+  for (const unsigned char ch : check) {
+    if (ch >= 0x7F || ch <= 0x1F) {
+      return false;
+    }
+  }
+  return true;
+}
 }

@@ -2,4 +2,3 @@
 # Usage: add table spec names to this list to prevent table generation
 # Example: add tables that are not yet ready for release
 
-quarantine
