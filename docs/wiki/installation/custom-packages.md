@@ -14,7 +14,7 @@ In your cloned osquery repository, once you have [built the code](development/bu
 $ make packages
 ```
 
-This will use CMake and `fpm`, installed as an osquery build dependency, to generate an `osquery-VERSION.{rpm/deb}` and optionally debug and devel packages.
+This will use CMake and *fpm*, installed as an osquery build dependency, to generate an `osquery-VERSION.{rpm/deb}` and optionally debug and devel packages.
 
 ## OS X
 
