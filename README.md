@@ -25,12 +25,12 @@ SQL tables are implemented via a simple plugin and extensions API. A variety of 
 
 List the the users:
 ```sql
-select * from users;
+SELECT * FROM users;
 ```
 
 Check the processes that have a deleted executable:
 ```sql
-SELECT * FROM processes where on_disk = 0;
+SELECT * FROM processes WHERE on_disk = 0;
 ```
 
 Get the process name, port, and PID, which are listening on all interfaces:
@@ -80,9 +80,12 @@ For latest stable and nightly builds for OS X and Linux (deb/rpm), as well as yu
 The easiest way to install osquery on OS X is via Homebrew. Check the [Homebrew](http://brew.sh/) homepage for installation instructions.
 
 ```bash
+# if you've never installed osquery
 brew update
 brew install osquery
-# Or update!
+
+# don't forget to update osquery!
+brew update
 brew upgrade osquery
 ```
 
