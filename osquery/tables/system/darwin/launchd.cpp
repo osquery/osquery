@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -18,6 +18,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -27,6 +28,10 @@ const std::vector<std::string> kLaunchdSearchPaths = {
     "/System/Library/LaunchDaemons",
     "/Library/LaunchDaemons",
     "/System/Library/LaunchAgents",
+    "/Library/LaunchAgents",
+};
+
+const std::vector<std::string> kUserLaunchdSearchPaths = {
     "/Library/LaunchAgents",
 };
 
@@ -55,97 +60,67 @@ const std::map<std::string, std::string> kLaunchdTopLevelArrayKeys = {
     {"QueueDirectories", "queue_directories"},
 };
 
-std::vector<std::string> getLaunchdFiles() {
-  std::vector<std::string> results;
-
-  for (const auto& path : kLaunchdSearchPaths) {
-    std::vector<std::string> files;
-    auto s = osquery::listFilesInDirectory(path, files);
-    if (s.ok()) {
-      std::copy(files.begin(), files.end(), std::back_inserter(results));
-    } else {
-      VLOG(1) << "Error listing files in: " << path;
-    }
+void genLaunchdItem(const std::string& path, QueryData& results) {
+  pt::ptree tree;
+  if (!osquery::parsePlist(path, tree).ok()) {
+    TLOG << "Could not parse launchd plist: " << path;
+    return;
   }
 
-  // TODO: replace home directory search with select from users.
-  std::vector<std::string> home_dirs;
-  auto s = osquery::listFilesInDirectory("/Users", home_dirs);
-  if (s.ok()) {
-    for (const auto& home_dir : home_dirs) {
-      std::string path = home_dir + "/Library/LaunchAgents";
-      std::vector<std::string> files;
-      auto user_list_s = osquery::listFilesInDirectory(path, files);
-      if (user_list_s.ok()) {
-        std::copy(files.begin(), files.end(), std::back_inserter(results));
-      } else {
-        VLOG(1) << "Error listing " << path << ": " << user_list_s.toString();
-      }
-    }
-  } else {
-    VLOG(1) << "Error listing /Users: " << s.toString();
-  }
-
-  return results;
-}
-
-Row parseLaunchdItem(const std::string& path, const pt::ptree& tree) {
   Row r;
   r["path"] = path;
-  auto bits = osquery::split(path, "/");
-  r["name"] = bits[bits.size() - 1];
-
+  r["name"] = fs::path(path).filename().string();
   for (const auto& it : kLaunchdTopLevelStringKeys) {
-    std::string item;
-    try {
-      item = tree.get<std::string>(it.first);
-      if (it.first == "Program") {
-        boost::replace_all(item, " ", "\\ ");
-      }
-    } catch (const pt::ptree_error& e) {
-      VLOG(3) << "Error parsing " << it.first << " from " << path << ": "
-              << e.what();
-    }
-    r[it.second] = item;
+    // For known string-values, the column is the value.
+    r[it.second] = tree.get(it.first, "");
   }
 
   for (const auto& it : kLaunchdTopLevelArrayKeys) {
-    try {
-      pt::ptree subtree = tree.get_child(it.first);
-      std::vector<std::string> array_results;
-      for (const auto& each : subtree) {
-        std::string item = each.second.get<std::string>("");
-        boost::replace_all(item, " ", "\\ ");
-        array_results.push_back(item);
-      }
-      r[it.second] = boost::algorithm::join(array_results, " ");
-    } catch (pt::ptree_error& e) {
-      VLOG(1) << "Error parsing " << it.first << " from " << path << ": "
-              << e.what();
-      r[it.second] = "";
+    // Otherwise walk an array item and join the arguments.
+    if (tree.count(it.first) == 0) {
+      continue;
     }
+
+    auto subtree = tree.get_child(it.first);
+    std::vector<std::string> arguments;
+    for (const auto& argument : subtree) {
+      arguments.push_back(argument.second.get<std::string>(""));
+    }
+    r[it.second] = boost::algorithm::join(arguments, " ");
   }
-  return r;
+
+  results.push_back(r);
 }
 
 QueryData genLaunchd(QueryContext& context) {
   QueryData results;
 
-  auto launchd_files = getLaunchdFiles();
-  for (const auto& path : launchd_files) {
-    if (!context.constraints["path"].matches(path)) {
-      // Optimize by not searching when a path is a constraint.
-      continue;
-    }
-
-    pt::ptree tree;
-    auto status = osquery::parsePlist(path, tree);
-    if (status.ok()) {
-      results.push_back(parseLaunchdItem(path, tree));
-    } else {
-      VLOG(1) << "Error parsing " << path << ": " << status.toString();
+  for (const auto& search_path : kLaunchdSearchPaths) {
+    std::vector<std::string> launchers;
+    osquery::listFilesInDirectory(search_path, launchers);
+    for (const auto& launcher : launchers) {
+      if (!context.constraints["path"].matches(launcher)) {
+        // Optimize by not searching when a path is a constraint.
+        continue;
+      }
+      genLaunchdItem(launcher, results);
     }
   }
+
+  auto homes = osquery::getHomeDirectories();
+  for (const auto& home : homes) {
+    for (const auto& search_path : kUserLaunchdSearchPaths) {
+      std::vector<std::string> launchers;
+      osquery::listFilesInDirectory(home / search_path, launchers);
+      for (const auto& launcher : launchers) {
+        if (!context.constraints["path"].matches(launcher)) {
+          continue;
+        }
+        genLaunchdItem(launcher, results);
+      }
+    }
+  }
+
   return results;
 }
 }

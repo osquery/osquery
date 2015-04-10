@@ -22,20 +22,23 @@
 
 namespace osquery {
 
-/**
- * Our wildcard directory traversal function will not resolve more than
- * this many wildcards.
- */
+/// Globbing directory traversal function recursive limit.
 const unsigned int kMaxDirectoryTraversalDepth = 40;
 typedef unsigned int ReturnSetting;
+
 enum {
-  REC_LIST_FILES = 0x1, // Return only files
-  REC_LIST_FOLDERS = 0x2, // Return only folders
-  REC_EVENT_OPT = 0x4, // Enable optimizations for file event resolutions
+  /// Return only files
+  REC_LIST_FILES = 0x1,
+  /// Return only folders
+  REC_LIST_FOLDERS = 0x2,
+  /// Enable optimizations for file event resolutions
+  REC_EVENT_OPT = 0x4,
   REC_LIST_ALL = REC_LIST_FILES | REC_LIST_FOLDERS
 };
 
+/// Globbing wildcard character.
 const std::string kWildcardCharacter = "%";
+/// Globbing wildcard recursive character (double wildcard).
 const std::string kWildcardCharacterRecursive =
     kWildcardCharacter + kWildcardCharacter;
 
@@ -214,6 +217,28 @@ const std::string& osqueryHomeDirectory();
 /// Return bit-mask-style permissions.
 std::string lsperms(int mode);
 
+/**
+ * @brief Parse a JSON file on disk into a property tree.
+ *
+ * @param path the path of the JSON file
+ * @param tree output property tree
+ *
+ * @return an instance of Status, indicating the success or failure
+ */
+Status parseJSON(const boost::filesystem::path& path,
+                 boost::property_tree::ptree& tree);
+
+/**
+ * @brief Parse JSON content into a property tree.
+ *
+ * @param path JSON string data
+ * @param tree output property tree
+ *
+ * @return an instance of Status, indicating the success or failure
+ */
+Status parseJSONContent(const std::string& content,
+                        boost::property_tree::ptree& tree);
+
 #ifdef __APPLE__
 /**
  * @brief Parse a property list on disk into a property tree.
@@ -231,14 +256,14 @@ Status parsePlist(const boost::filesystem::path& path,
 /**
  * @brief Parse property list content into a property tree.
  *
- * @param fileContent a string reference to the content of a plist
+ * @param content a string reference to the content of a plist
  * @param tree a non-const reference to a Boost property tree, which will be
  * populated with the results of the property list
  *
  * @return an instance of Status, indicating the success or failure
  * of the operation.
  */
-Status parsePlistContent(const std::string& fileContent,
+Status parsePlistContent(const std::string& content,
                          boost::property_tree::ptree& tree);
 #endif
 
