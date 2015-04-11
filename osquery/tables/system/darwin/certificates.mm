@@ -80,9 +80,12 @@ QueryData genCerts(QueryContext &context) {
   // Keychains/certificate stores belonging to the OS.
   CFArrayRef certs = CreateKeychainItems(keychain_paths, kSecClassCertificate);
   // Must have returned an array of matching certificates.
-  if (certs == nullptr || CFGetTypeID(certs) != CFArrayGetTypeID()) {
+  if (certs == nullptr) {
     VLOG(1) << "Could not find OS X Keychain";
-    return results;
+    return {};
+  } else if (CFGetTypeID(certs) != CFArrayGetTypeID()) {
+    CFRelease(certs);
+    return {};
   }
 
   // Evaluate the certificate data, check for CA in Basic constraints.

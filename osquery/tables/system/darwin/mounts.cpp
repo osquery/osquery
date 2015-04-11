@@ -26,7 +26,7 @@ QueryData genMounts(QueryContext& context) {
 
   mnts = getmntinfo(&mnt, MNT_WAIT);
   if (mnts == 0) {
-    // Failed to get mount informaton.
+    // Failed to get mount information.
     return results;
   }
 

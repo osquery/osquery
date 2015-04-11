@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+
 #include <sys/xattr.h>
 
 #include <boost/filesystem.hpp>
@@ -29,12 +30,12 @@ struct XAttrAttribute {
   int buffer_length;
 };
 
-typedef void (*ParseFunction)(QueryData &,
-                              const XAttrAttribute &,
-                              const std::string &,
-                              const std::string &);
+typedef void (*xattrParseFunction)(QueryData &,
+                                   const XAttrAttribute &,
+                                   const std::string &,
+                                   const std::string &);
 
-// Foward declares of all parse functions
+// Forward declares of all parse functions
 void parseWhereFrom(QueryData &results,
                     const XAttrAttribute &x_att,
                     const std::string &path,
@@ -47,7 +48,7 @@ void parseQuarantineFile(QueryData &results,
 
 // Extended attribute name to the required parse function. If there is no parse
 // function, the data is returned as is.
-const std::map<std::string, ParseFunction> xParseMap = {
+const std::map<std::string, xattrParseFunction> xParseMap = {
     {"com.apple.metadata:kMDItemWhereFroms", parseWhereFrom},
     {"com.apple.quarantine", parseQuarantineFile},
 };
@@ -137,32 +138,35 @@ void parseWhereFrom(QueryData &results,
       auto value = node.second.get<std::string>("", "");
       values.push_back(value);
     }
-    Row r1, r2;
+
+    Row r1;
     r1["path"] = path;
     r1["directory"] = directory;
     r1["key"] = "where_from_download_url";
     r1["base64"] = INTEGER(0);
 
+    Row r2;
     r2["path"] = path;
     r2["directory"] = directory;
     r2["key"] = "where_from_download_page";
     r2["base64"] = INTEGER(0);
+
     if (values.size() == 2) {
       r1["value"] = values[0];
       r2["value"] = values[1];
     } else {
       // Changed to blank because it might not be no data, it might be we just
-      // don't know how to parse because it's corrupted. So I have elected
-      // to not make the No Data decision for the investigator.
+      // don't know how to parse because it's corrupted.
       r1["value"] = "";
       r2["value"] = "";
     }
+
     results.push_back(r1);
     results.push_back(r2);
   }
 }
 
-// Parse a given XAttrAttribute struct as a Apple Quarantine string
+// Parse a given XAttrAttribute struct as an OS X quarantine string
 void parseQuarantineFile(QueryData &results,
                          const XAttrAttribute &x_att,
                          const std::string &path,
@@ -171,13 +175,15 @@ void parseQuarantineFile(QueryData &results,
   if (values.size() < 2) {
     return;
   }
-  Row r1, r2;
+
+  Row r1;
   r1["path"] = path;
   r1["directory"] = directory;
   r1["key"] = "quarantine_creator";
   r1["base64"] = INTEGER(0);
   r1["value"] = values[2];
 
+  Row r2;
   r2["path"] = path;
   r2["directory"] = directory;
   r2["key"] = "quarantine_state";
@@ -204,6 +210,7 @@ void getFileData(QueryData &results,
       r["path"] = path;
       r["directory"] = directory;
       r["key"] = attribute;
+
       if (isPrintable(x_att.attribute_data)) {
         r["base64"] = INTEGER(0);
         r["value"] = x_att.attribute_data;    

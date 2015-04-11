@@ -45,7 +45,7 @@ void genOSXHashPref(const void* key, const void* value, void* tref) {
     return;
   }
 
-  TRowResults* trow = (TRowResults*)tref;
+  const TRowResults* trow = (const TRowResults*)tref;
   Row r = *(trow->base);
   if (CFGetTypeID((CFTypeRef)key) == CFStringGetTypeID()) {
     if (r["subkey"].size() > 0) {
@@ -123,6 +123,7 @@ void genOSXDomainPrefs(const CFStringRef& domain, QueryData& results) {
   CFDictionaryRef values = CFPreferencesCopyMultiple(
       keys, domain, kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
   if (values == nullptr) {
+    CFRelease(keys);
     return;
   }
 

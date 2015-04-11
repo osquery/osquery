@@ -56,7 +56,7 @@ std::string getKeychainPath(const SecKeychainItemRef& item) {
   SecKeychainRef keychain = nullptr;
   std::string path;
   auto status = SecKeychainItemCopyKeychain(item, &keychain);
-  if (keychain == nullptr) {
+  if (keychain == nullptr || status != errSecSuccess) {
     // Unhandled error, cannot get the keychain reference from certificate.
     return path;
   }
@@ -64,7 +64,7 @@ std::string getKeychainPath(const SecKeychainItemRef& item) {
   UInt32 path_size = 1024;
   char keychain_path[1024] = {0};
   status = SecKeychainGetPath(keychain, &path_size, keychain_path);
-  if (path_size > 0 && keychain_path[0] != 0) {
+  if (status != errSecSuccess || (path_size > 0 && keychain_path[0] != 0)) {
     path = std::string(keychain_path);
   }
 
@@ -75,12 +75,11 @@ std::string getKeychainPath(const SecKeychainItemRef& item) {
 std::string genKIDProperty(const CFDataRef& kid) {
   CFDataRef kid_data = NULL;
   CFDictionaryRef kid_dict = NULL;
-  const char* kid_value = 0;
 
   // Find the key identifier data within the property mess.
   for (CFIndex i = 0; i < CFArrayGetCount((CFArrayRef)kid); i++) {
     kid_dict = (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)kid, i);
-    kid_value =
+    auto kid_value =
         (const char*)CFDictionaryGetValue(kid_dict, kSecPropertyKeyValue);
 
     if (CFGetTypeID(kid_value) == CFDataGetTypeID()) {
@@ -96,10 +95,8 @@ std::string genKIDProperty(const CFDataRef& kid) {
 
   // Provide an ASCII-representation of the KID, similar to keychain.
   std::stringstream ascii_kid;
-  int kid_byte;
-
   for (CFIndex i = 0; i < CFDataGetLength(kid_data); i++) {
-    kid_byte = (uint8_t)CFDataGetBytePtr(kid_data)[i];
+    int kid_byte = (uint8_t)CFDataGetBytePtr(kid_data)[i];
     ascii_kid << std::setfill('0') << std::setw(2) << std::hex << kid_byte;
     // Then make it easy to read.
     if (i < CFDataGetLength(kid_data) - 1) {
@@ -244,9 +241,6 @@ CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
   }
 
   // Release each keychain search path.
-  for (CFIndex i = 0; i < CFArrayGetCount(keychains); ++i) {
-    CFRelease((SecKeychainRef)CFArrayGetValueAtIndex(keychains, i));
-  }
   CFRelease(keychains);
 
   return keychain_certs;

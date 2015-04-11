@@ -215,7 +215,6 @@ bool WatcherRunner::watch(pid_t child) {
 
 void WatcherRunner::stopChild(pid_t child) {
   kill(child, SIGKILL);
-  child = 0;
 
   // Clean up the defunct (zombie) process.
   waitpid(-1, 0, WNOHANG);
@@ -234,7 +233,7 @@ bool WatcherRunner::isChildSane(pid_t child) {
   // Compare CPU utilization since last check.
   BIGINT_LITERAL footprint, user_time, system_time, parent;
   // IV is the check interval in seconds, and utilization is set per-second.
-  auto iv = getWorkerLimit(INTERVAL);
+  auto iv = std::max(getWorkerLimit(INTERVAL), (size_t)1);
 
   {
     WatcherLocker locker;

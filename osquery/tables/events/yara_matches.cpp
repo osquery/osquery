@@ -238,15 +238,15 @@ Status YARAEventSubscriber::init() {
 
 Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
                                      const void* user_data) {
+  if (user_data == nullptr) {
+    return Status(1, "No YARA category string provided");
+  }
+
   Row r;
   r["action"] = ec->action;
   r["time"] = ec->time_string;
   r["target_path"] = ec->path;
-  if (user_data != nullptr) {
-    r["category"] = *(std::string*)user_data;
-  } else {
-    r["category"] = "Undefined";
-  }
+  r["category"] = *(std::string*)user_data;
 
   // Only FSEvents transactions updates (inotify is a no-op).
   r["transaction_id"] = INTEGER(ec->transaction_id);
@@ -255,11 +255,11 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   r["count"] = INTEGER(0);
   r["matches"] = std::string("");
 
-  int result = yr_rules_scan_file(rules[*(std::string*)user_data],
+  int result = yr_rules_scan_file(rules[r.at("category")],
                                   ec->path.c_str(),
                                   SCAN_FLAGS_FAST_MODE,
                                   YARACallback,
-                                  (void*) &r,
+                                  (void*)&r,
                                   0);
 
   if (result != ERROR_SUCCESS) {

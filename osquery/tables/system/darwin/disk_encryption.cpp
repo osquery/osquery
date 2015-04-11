@@ -34,23 +34,24 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
   auto matching_dict =
       IOBSDNameMatching(kIOMasterPortDefault, kNilOptions, bsd_name.c_str());
   if (matching_dict == nullptr) {
-    CFRelease(matching_dict);
     return;
   }
 
   auto service =
       IOServiceGetMatchingService(kIOMasterPortDefault, matching_dict);
   if (!service) {
-    IOObjectRelease(service);
     return;
   }
 
   CFMutableDictionaryRef properties;
-  IORegistryEntryCreateCFProperties(
-      service, &properties, kCFAllocatorDefault, kNilOptions);
+  if (IORegistryEntryCreateCFProperties(
+          service, &properties, kCFAllocatorDefault, kNilOptions) !=
+      KERN_SUCCESS) {
+    IOObjectRelease(service);
+    return;
+  }
 
   Row r;
-
   r["name"] = kDeviceNamePrefix + bsd_name;
   r["uuid"] = uuid;
 
