@@ -12,7 +12,7 @@ Config plugin name
 
 The plugin/type of configuration retrieval, the default "filesystem" plugin reads a configuration JSON from disk.
 
-`--config_path="/etc/osquery/osquery.conf`
+`--config_path="/etc/osquery/osquery.conf"`
 
 (filesystem) config plugin path to JSON config file
 
