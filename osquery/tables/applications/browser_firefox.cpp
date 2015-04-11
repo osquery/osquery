@@ -51,20 +51,9 @@ const std::map<std::string, std::string> kFirefoxAddonKeys = {
 
 void genFirefoxAddonsFromExtensions(const std::string& path,
                                     QueryData& results) {
-  std::string json_data;
-  if (!readFile(path + kFirefoxExtensionsFile, json_data).ok()) {
-    VLOG(1) << "Could not read file: " << path + kFirefoxExtensionsFile;
-    return;
-  }
-
-  // Read the extensions data into a JSON blob, then property tree.
   pt::ptree tree;
-  std::stringstream json_stream;
-  json_stream << json_data;
-  try {
-    pt::read_json(json_stream, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    VLOG(1) << "Could not parse JSON from: " << path + kFirefoxExtensionsFile;
+  if (!osquery::parseJSON(path + kFirefoxExtensionsFile, tree).ok()) {
+    TLOG << "Could not parse JSON from: " << path + kFirefoxExtensionsFile;
     return;
   }
 
@@ -72,10 +61,8 @@ void genFirefoxAddonsFromExtensions(const std::string& path,
     Row r;
     // Most of the keys are in the top-level JSON dictionary.
     for (const auto& it : kFirefoxAddonKeys) {
-      try {
-        r[it.second] = addon.second.get<std::string>(it.first);
-      } catch (const pt::ptree_error& e) {
-        r[it.second] = "";
+      if (addon.second.count(it.first)) {
+        r[it.second] = addon.second.get<std::string>(it.first, "");
       }
 
       // Convert bool-types to an integer.

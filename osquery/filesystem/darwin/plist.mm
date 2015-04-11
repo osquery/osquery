@@ -86,10 +86,10 @@ NSMutableDictionary* filterPlist(NSData* plist) {
   }
 }
 
-Status parsePlistContent(const std::string& file_content, pt::ptree& tree) {
+Status parsePlistContent(const std::string& content, pt::ptree& tree) {
   @autoreleasepool {
     NSData* plist_content =
-        [NSData dataWithBytes:file_content.c_str() length:file_content.size()];
+        [NSData dataWithBytes:content.c_str() length:content.size()];
 
     // Read file content into a data object, containing potential plist data.
     NSError* error = nil;

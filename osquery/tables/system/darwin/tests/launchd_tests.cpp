@@ -16,30 +16,21 @@
 
 #include "osquery/core/test_util.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 namespace tables {
 
-std::vector<std::string> getLaunchdFiles();
-Row parseLaunchdItem(const std::string& path, const pt::ptree& tree);
-
-pt::ptree getLaunchdTree() {
-  std::string content;
-  readFile(kTestDataPath + "test_launchd.plist", content);
-
-  pt::ptree tree;
-  parsePlistContent(content, tree);
-  return tree;
-}
+// From the launchd table implementation.
+void genLaunchdItem(const std::string& path, QueryData& results);
 
 class LaunchdTests : public testing::Test {};
 
 TEST_F(LaunchdTests, test_parse_launchd_item) {
-  auto tree = getLaunchdTree();
+  QueryData results;
+  genLaunchdItem(kTestDataPath + "test_launchd.plist", results);
+
   Row expected = {
-      {"path", "/Library/LaunchDaemons/Foobar.plist"},
-      {"name", "Foobar.plist"},
+      {"path", kTestDataPath + "test_launchd.plist"},
+      {"name", "test_launchd.plist"},
       {"label", "com.apple.mDNSResponder"},
       {"run_at_load", ""},
       {"keep_alive", ""},
@@ -60,8 +51,10 @@ TEST_F(LaunchdTests, test_parse_launchd_item) {
       {"working_directory", ""},
       {"process_type", ""},
   };
-  EXPECT_EQ(parseLaunchdItem("/Library/LaunchDaemons/Foobar.plist", tree),
-            expected);
+  ASSERT_EQ(results.size(), 1);
+  for (const auto& column : expected) {
+    EXPECT_EQ(results[0][column.first], column.second);
+  }
 }
 }
 }
