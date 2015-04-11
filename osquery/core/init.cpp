@@ -9,7 +9,9 @@
  */
 
 #include <syslog.h>
+#include <stdio.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
@@ -46,6 +48,8 @@ namespace osquery {
   "options as a different \n"                                                 \
   "path. Additionally, review the \"using osqueryd\" wiki page:\n"            \
   " - https://github.com/facebook/osquery/wiki/using-osqueryd\n\n";
+
+DECLARE_bool(disable_events);
 
 CLI_FLAG(bool,
          config_check,
@@ -114,9 +118,20 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   FLAGS_logger_plugin = STR(OSQUERY_DEFAULT_LOGGER_PLUGIN);
 #endif
 
+  // Set version string from CMake build
+  GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);
+
+  // Let gflags parse the non-help options/flags.
+  GFLAGS_NAMESPACE::ParseCommandLineFlags(
+      argc_, argv_, (tool == OSQUERY_TOOL_SHELL));
+
   if (tool == OSQUERY_TOOL_SHELL) {
     // The shell is transient, rewrite config-loaded paths.
     osquery::FLAGS_disable_logging = true;
+    if (*argc_ > 1 || !isatty(fileno(stdin))) {
+      // A query was set as a positional argument for via stdin.
+      osquery::FLAGS_disable_events = true;
+    }
 
     // Get the caller's home dir for temporary storage/state management.
     auto homedir = osqueryHomeDirectory();
@@ -126,13 +141,6 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       osquery::FLAGS_extensions_socket = homedir + "/shell.em";
     }
   }
-
-  // Set version string from CMake build
-  GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);
-
-  // Let gflags parse the non-help options/flags.
-  GFLAGS_NAMESPACE::ParseCommandLineFlags(
-      argc_, argv_, (tool == OSQUERY_TOOL_SHELL));
 
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check) {
