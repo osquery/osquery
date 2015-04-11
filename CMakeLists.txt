@@ -160,6 +160,7 @@ find_package(Readline REQUIRED)
 
 # Most dependent packages/libs we want static.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
+find_package(CppNetlib 0.11.0 REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Gtest REQUIRED)
@@ -188,8 +189,8 @@ find_package(Doxygen)
 if(DOXYGEN_FOUND)
   add_custom_target(
     docs
-    echo "PROJECT_NUMBER=${OSQUERY_BUILD_VERSION}" | 
-      cat ${CMAKE_SOURCE_DIR}/docs/Doxyfile - | 
+    echo "PROJECT_NUMBER=${OSQUERY_BUILD_VERSION}" |
+      cat ${CMAKE_SOURCE_DIR}/docs/Doxyfile - |
       "${DOXYGEN_EXECUTABLE}" -
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Generating API documentation with Doxygen" VERBATIM
@@ -199,7 +200,7 @@ endif(DOXYGEN_FOUND)
 # make format-all
 add_custom_target(
   format-all
-  find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \) 
+  find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \)
     -exec clang-format -i {} +
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting all osquery code with clang-format" VERBATIM
