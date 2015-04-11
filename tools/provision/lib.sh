@@ -40,11 +40,12 @@ function install_thrift() {
     ./bootstrap.sh
     ./configure CFLAGS="$CFLAGS" \
       --with-cpp=yes \
+      --with-python=yes \
       --with-ruby=no \
       --with-go=no \
       --with-erlang=no \
       --with-java=no \
-      --with-python=no
+      --with-php=no
     make
     sudo make install
     popd
