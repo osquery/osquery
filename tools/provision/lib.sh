@@ -44,7 +44,8 @@ function install_thrift() {
       --with-go=no \
       --with-erlang=no \
       --with-java=no \
-      --with-python=no
+      --with-python=no \
+	  --with-php=no
     make
     sudo make install
     popd
