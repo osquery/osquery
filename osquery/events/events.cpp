@@ -503,7 +503,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
 }
 
 Status EventFactory::addSubscription(EventPublisherID& type_id,
-                                     const EventSubscriberID name_id,
+                                     EventSubscriberID& name_id,
                                      const SubscriptionContextRef& mc,
                                      EventCallback cb,
                                      void* user_data) {

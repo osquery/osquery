@@ -125,8 +125,8 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
   /**
    * @brief Request an Extension removal and removal of Registry routes.
    *
-   * When an Extension process is gracefull killed it should deregister.
-   * Other priviledged tools may choose to deregister an Extension by
+   * When an Extension process is graceful killed it should deregister.
+   * Other privileged tools may choose to deregister an Extension by
    * the transient Extension's Route UUID, obtained using
    * ExtensionManagerHandler::extensions.
    *
@@ -167,7 +167,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
   /// removed.
   void refresh();
 
-  /// Maintain a map of extension UUID to metadata for tracking deregistrations.
+  /// Maintain a map of extension UUID to metadata for tracking deregistration.
   InternalExtensionList extensions_;
 };
 }
@@ -212,9 +212,9 @@ class ExtensionManagerWatcher : public ExtensionWatcher {
 class ExtensionRunner : public InternalRunnable {
  public:
   virtual ~ExtensionRunner();
-  ExtensionRunner(const std::string& manager_path, RouteUUID uuid) {
+  ExtensionRunner(const std::string& manager_path, RouteUUID uuid)
+      : uuid_(uuid) {
     path_ = getExtensionSocket(uuid, manager_path);
-    uuid_ = uuid;
   }
 
  public:
@@ -235,9 +235,8 @@ class ExtensionRunner : public InternalRunnable {
 class ExtensionManagerRunner : public InternalRunnable {
  public:
   virtual ~ExtensionManagerRunner();
-  explicit ExtensionManagerRunner(const std::string& manager_path) {
-    path_ = manager_path;
-  }
+  explicit ExtensionManagerRunner(const std::string& manager_path)
+      : path_(manager_path) {}
 
  public:
   void enter();

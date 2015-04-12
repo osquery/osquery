@@ -128,7 +128,7 @@ typedef void (*ModuleInitalizer)(void);
 
 class Plugin {
  public:
-  Plugin() { name_ = "unnamed"; }
+  Plugin() : name_("unnamed") {}
   virtual ~Plugin() {}
 
  public:
@@ -660,7 +660,10 @@ class RegistryFactory : private boost::noncopyable {
 
  protected:
   RegistryFactory()
-    : allow_duplicates_(false), locked_(false), external_(false) {}
+      : allow_duplicates_(false),
+        locked_(false),
+        module_uuid_(0),
+        external_(false) {}
   RegistryFactory(RegistryFactory const&);
   void operator=(RegistryFactory const&);
   virtual ~RegistryFactory() {}

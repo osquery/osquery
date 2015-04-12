@@ -41,7 +41,7 @@ struct FSEventsSubscriptionContext : public SubscriptionContext {
     }
   }
 
-  FSEventsSubscriptionContext() : mask(0) {}
+  FSEventsSubscriptionContext() : mask(0), recursive(false) {}
 };
 
 struct FSEventsEventContext : public EventContext {

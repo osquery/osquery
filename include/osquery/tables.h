@@ -23,7 +23,7 @@
 #include <osquery/database/results.h>
 #include <osquery/status.h>
 
-/// Allow Tables to use "tracked" depricated OS APIs.
+/// Allow Tables to use "tracked" deprecated OS APIs.
 #define OSQUERY_USE_DEPRECATED(expr)                                      \
   do {                                                                    \
     _Pragma("clang diagnostic push")                                      \
@@ -103,10 +103,8 @@ struct Constraint {
   explicit Constraint(unsigned char _op) { op = _op; }
 
   // A constraint list in a context knows only the operator at creation.
-  explicit Constraint(unsigned char _op, const std::string& _expr) {
-    op = _op;
-    expr = _expr;
-  }
+  explicit Constraint(unsigned char _op, const std::string& _expr)
+      : op(_op), expr(_expr) {}
 };
 
 /**
@@ -127,7 +125,7 @@ struct ConstraintList {
    * @brief Check if an expression matches the query constraints.
    *
    * Evaluate ALL constraints in this ConstraintList against the string
-   * expression. The affinity of the constrait will be used as the affinite
+   * expression. The affinity of the constraint will be used as the affinite
    * and lexical type of the expression and set of constraint expressions.
    * If there are no predicate constraints in this list, all expression will
    * match. Constraints are limitations.
@@ -164,7 +162,7 @@ struct ConstraintList {
   bool exists() const { return (constraints_.size() > 0); }
 
   /**
-   * @brief Check if a constrait exist AND matches the type expression.
+   * @brief Check if a constraint exist AND matches the type expression.
    *
    * See ConstraintList::exists and ConstraintList::matches.
    *
@@ -241,7 +239,7 @@ struct ConstraintList {
   void serialize(boost::property_tree::ptree& tree) const;
   void unserialize(const boost::property_tree::ptree& tree);
 
-  ConstraintList() { affinity = "TEXT"; }
+  ConstraintList() : affinity("TEXT") {}
 
  private:
   /// List of constraint operator/expressions.
@@ -253,7 +251,7 @@ struct ConstraintList {
 
 /// Pass a constraint map to the query request.
 typedef std::map<std::string, struct ConstraintList> ConstraintMap;
-/// Populate a containst list from a query's parsed predicate.
+/// Populate a constraint list from a query's parsed predicate.
 typedef std::vector<std::pair<std::string, struct Constraint> > ConstraintSet;
 
 /**
@@ -276,7 +274,7 @@ typedef struct Constraint Constraint;
  *
  * To attach a virtual table create a TablePlugin subclass and register the
  * virtual table name as the plugin ID. osquery will enumerate all registered
- * TablePlugins and attempt to attach them to SQLite at instanciation.
+ * TablePlugins and attempt to attach them to SQLite at instantiation.
  *
  * Note: When updating this class, be sure to update the corresponding template
  * in osquery/tables/templates/default.cpp.in

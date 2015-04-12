@@ -42,7 +42,7 @@ typedef std::pair<EventID, EventTime> EventRecord;
  * @brief An EventPublisher will define a SubscriptionContext for
  * EventSubscriber%s to use.
  *
- * Most EventPublisher%s will reqire specific information for interacting with
+ * Most EventPublisher%s will require specific information for interacting with
  * an OS to receive events. The SubscriptionContext contains information the
  * EventPublisher will use to register OS API callbacks, create
  * subscriptioning/listening handles, etc.
@@ -58,7 +58,7 @@ struct SubscriptionContext {};
  * @brief An EventSubscriber EventCallback method will receive an EventContext.
  *
  * The EventContext contains the event-related data supplied by an
- * EventPublisher when the event occures. If a subscribing EventSubscriber
+ * EventPublisher when the event occurs. If a subscribing EventSubscriber
  * would be called for the event, the EventSubscriber%'s EventCallback is
  * passed an EventContext.
  */
@@ -159,15 +159,15 @@ struct Subscription {
   /// A pointer to possible extra data
   void* user_data;
 
-  Subscription(const EventSubscriberID name)
-    : subscriber_name(name), user_data(nullptr) {}
+  Subscription(EventSubscriberID& name)
+      : subscriber_name(name), user_data(nullptr) {}
 
-  static SubscriptionRef create(const EventSubscriberID name) {
+  static SubscriptionRef create(EventSubscriberID& name) {
     auto subscription = std::make_shared<Subscription>(name);
     return subscription;
   }
 
-  static SubscriptionRef create(const EventSubscriberID name,
+  static SubscriptionRef create(EventSubscriberID& name,
                                 const SubscriptionContextRef& mc,
                                 EventCallback ec = 0,
                                 void* user_data = nullptr) {
@@ -189,14 +189,14 @@ class EventPublisherPlugin : public Plugin {
    * subscriptions. An example is Linux `inotify` where multiple
    * EventSubscription%s will subscription identical paths, e.g., /etc for
    * config changes. Since Linux `inotify` has a subscription limit, `configure`
-   * can depup paths.
+   * can dedup paths.
    */
   virtual void configure() {}
 
   /**
    * @brief Perform handle opening, OS API callback registration.
    *
-   * `setUp` is the event framework's EventPublisher constructor equivilent.
+   * `setUp` is the event framework's EventPublisher constructor equivalent.
    * When `setUp` is called the EventPublisher is running in a dedicated thread
    * and may manage/allocate/wait for resources.
    */
@@ -236,7 +236,7 @@ class EventPublisherPlugin : public Plugin {
    * @brief The generic check loop to call SubscriptionContext callback methods.
    *
    * It is NOT recommended to override `fire`. The simple logic of enumerating
-   * the Subscription%s and using `shouldFire` is more appropraite.
+   * the Subscription%s and using `shouldFire` is more appropriate.
    *
    * @param ec The EventContext created and fired by the EventPublisher.
    * @param time The most accurate time associated with the event.
@@ -365,7 +365,7 @@ class EventPublisher : public EventPublisherPlugin {
    *
    * This is a template-generated method that up-casts the generic fired
    * event/subscription contexts, and calls the callback if the event should
-   * fire given a scription.
+   * fire given a subscription.
    *
    * @param sub The SubscriptionContext and optional EventCallback.
    * @param ec The event that was fired.
@@ -404,7 +404,7 @@ class EventSubscriberPlugin : public Plugin {
   /**
    * @brief Store parsed event data from an EventCallback in a backing store.
    *
-   * Within a EventCallback the EventSubscriber has an opprotunity to create
+   * Within a EventCallback the EventSubscriber has an opportunity to create
    * an osquery Row element, add the relevant table data for the EventSubscriber
    * and store that element in the osquery backing store. At query-time
    * the added data will apply selection criteria and return these elements.
@@ -431,7 +431,7 @@ class EventSubscriberPlugin : public Plugin {
 
  private:
   /*
-   * @brief When `get`ting event results, return EventID%s from time indexes.
+   * @brief When `get`ing event results, return EventID%s from time indexes.
    *
    * Used by EventSubscriber::get to retrieve EventID, EventTime indexes. This
    * applies the lookup-efficiency checks for time list appropriate bins.
@@ -448,7 +448,7 @@ class EventSubscriberPlugin : public Plugin {
    *
    * An EventID is an index/element-identifier for the backing store.
    * Each EventPublisher maintains a fired EventContextID to identify the many
-   * events that may or may not be fired to subscriptioning criteria for this
+   * events that may or may not be fired to 'subscriptioning' criteria for this
    * EventSubscriber. This EventContextID is NOT the same as an EventID.
    * EventSubscriber development should not require use of EventID%s, if this
    * indexing is required within-EventCallback consider an
@@ -518,7 +518,7 @@ class EventSubscriberPlugin : public Plugin {
    * @brief Suggested entrypoint for table generation.
    *
    * The EventSubscriber is a convention that removes a lot of boilerplate event
-   * subscriptioning and acting. The `genTable` static entrypoint is the
+   * 'subscriptioning' and acting. The `genTable` static entrypoint is the
    * suggested method for table specs.
    *
    * @return The query-time table data, retrieved from a backing store.
@@ -569,8 +569,9 @@ class EventSubscriberPlugin : public Plugin {
  * @brief A factory for associating event generators to EventPublisherID%s.
  *
  * This factory both registers new event types and the subscriptions that use
- * them. An EventPublisher is also a factory, the single event factory arbitates
- * Subscription creatating and management for each associated EventPublisher.
+ * them. An EventPublisher is also a factory, the single event factory
+ * arbitrates Subscription creation and management for each associated
+ * EventPublisher.
  *
  * Since event types may be plugins, they are created using the factory.
  * Since subscriptions may be configured/disabled they are also factory-managed.
@@ -583,7 +584,7 @@ class EventFactory {
   /**
    * @brief Add an EventPublisher to the factory.
    *
-   * The registration is mostly abstracted using osquery's registery.
+   * The registration is mostly abstracted using osquery's registry.
    *
    * @param event_pub If for some reason the caller needs access to the
    * EventPublisher instance they can register-by-instance.
@@ -634,7 +635,7 @@ class EventFactory {
    * @return Was the SubscriptionContext appropriate for the EventPublisher.
    */
   static Status addSubscription(EventPublisherID& type_id,
-                                const EventSubscriberID name_id,
+                                EventSubscriberID& name_id,
                                 const SubscriptionContextRef& mc,
                                 EventCallback cb = 0,
                                 void* user_data = nullptr);
@@ -813,7 +814,7 @@ class EventSubscriber : public EventSubscriberPlugin {
 /// the event factory.
 void attachEvents();
 
-/// Sleep in a boost::thread interruptable state.
+/// Sleep in a boost::thread interruptible state.
 void publisherSleep(size_t milli);
 
 CREATE_REGISTRY(EventPublisherPlugin, "event_publisher");

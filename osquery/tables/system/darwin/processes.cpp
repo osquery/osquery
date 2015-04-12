@@ -33,7 +33,7 @@ std::set<int> getProcList(const QueryContext &context) {
   }
 
   // No equality matches, get all pids.
-  if (pidlist.size() != 0) {
+  if (!pidlist.empty()) {
     return pidlist;
   }
 
@@ -207,7 +207,7 @@ std::vector<std::string> getProcArgs(int pid, size_t argmax) {
   std::vector<std::string> args;
   bool collect = false;
 
-  // Iterate from the back until we stop seing environment vars
+  // Iterate from the back until we stop seeing environment vars
   // Then start pushing args (in reverse order) onto a vector.
   // We trim the args of leading/trailing whitespace to make
   // analysis easier.

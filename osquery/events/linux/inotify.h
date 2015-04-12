@@ -111,7 +111,8 @@ class INotifyEventPublisher
 
   Status run();
 
-  INotifyEventPublisher() : EventPublisher() { inotify_handle_ = -1; }
+  INotifyEventPublisher()
+      : EventPublisher(), inotify_handle_(-1), last_restart_(-1) {}
   /// Check if the application-global `inotify` handle is alive.
   bool isHandleOpen() { return inotify_handle_ > 0; }
 
