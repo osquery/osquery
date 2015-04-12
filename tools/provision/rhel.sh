@@ -56,6 +56,7 @@ function main_rhel() {
   package ruby
   package ruby-devel
   package rubygems
+  package cppcheck
 
   if [[ $DISTRO = "rhel6" ]]; then
     package scl-utils
