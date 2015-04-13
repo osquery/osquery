@@ -18,6 +18,7 @@ set(OSQUERY_LIBS
   ${GFLAGS_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
   ${OPENSSL_SSL_LIBRARY}
+  ${CPP-NETLIB_LIBRARY}
 
   readline
   pthread
@@ -62,6 +63,7 @@ add_subdirectory(extensions)
 add_subdirectory(filesystem)
 add_subdirectory(logger)
 add_subdirectory(registry)
+add_subdirectory(remote)
 add_subdirectory(sql)
 add_subdirectory(tables)
 
