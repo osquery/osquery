@@ -75,6 +75,25 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     mergeConfig(source.second, conf);
   }
 
+  // Call each parser with the optionally-empty, requested, top level keys.
+  for (const auto& plugin : Registry::all("config_parser")) {
+    auto parser = std::static_pointer_cast<ConfigParserPlugin>(plugin.second);
+    if (parser == nullptr || parser.get() == nullptr) {
+      continue;
+    }
+
+    // For each key requested by the parser, add a property tree reference.
+    std::map<std::string, ConfigTree> parser_config;
+    for (const auto& key : parser->keys()) {
+      if (conf.all_data.count(key) > 0) {
+        parser_config[key] = conf.all_data.get_child(key);
+      } else {
+        parser_config[key] = pt::ptree();
+      }
+    }
+    parser->update(parser_config);
+  }
+
   getInstance().data_ = conf;
   return Status(0, "OK");
 }
@@ -98,37 +117,6 @@ inline void mergeOption(const tree_node& option, ConfigData& conf) {
     conf.all_data.get_child("options").erase(option.first);
   }
   conf.all_data.add_child("options." + option.first, option.second);
-}
-
-inline void mergeAdditional(const tree_node& node, ConfigData& conf) {
-  if (conf.all_data.count("additional_monitoring") > 0) {
-    conf.all_data.get_child("additional_monitoring").erase(node.first);
-  }
-  conf.all_data.add_child("additional_monitoring." + node.first, node.second);
-
-  // Support special merging of file paths.
-  if (node.first == "file_paths") {
-    for (const auto& category : node.second) {
-      for (const auto& path : category.second) {
-        resolveFilePattern(path.second.data(),
-                           conf.files[category.first],
-                           REC_LIST_FOLDERS | REC_EVENT_OPT);
-      }
-    }
-  } else if (node.first == "yara") {
-    for (const auto& category : node.second) {
-      // Todo: the yara category key must come after "file_paths".
-      if (conf.files.find(category.first) == conf.files.end()) {
-        continue;
-      }
-      for (const auto& file : category.second) {
-        conf.yara[category.first].push_back(
-            file.second.get_value<std::string>());
-      }
-    }
-  } else {
-    // Unknown additional monitoring key.
-  }
 }
 
 // inline void mergeScheduledQuery(const tree_node& node, ConfigData& conf) {
@@ -158,6 +146,29 @@ inline void mergeScheduledQuery(const std::string& name,
   conf.all_data.add_child("schedule." + name, node.second);
 }
 
+inline void mergeExtraKey(const std::string& name,
+                          const tree_node& node,
+                          ConfigData& conf) {
+  // Automatically merge extra list/dict top level keys.
+  for (const auto& subitem : node.second) {
+    if (node.second.count("") == 0 && conf.all_data.count(name) > 0) {
+      conf.all_data.get_child(name).erase(subitem.first);
+    }
+    conf.all_data.add_child(name + "." + subitem.first, subitem.second);
+  }
+}
+
+inline void mergeFilePath(const std::string& name,
+                          const tree_node& node,
+                          ConfigData& conf) {
+  for (const auto& path : node.second) {
+    resolveFilePattern(path.second.data(),
+                       conf.files[node.first],
+                       REC_LIST_FOLDERS | REC_EVENT_OPT);
+  }
+  conf.all_data.add_child(name + "." + node.first, node.second);
+}
+
 void Config::mergeConfig(const std::string& source, ConfigData& conf) {
   std::stringstream json_data;
   json_data << source;
@@ -166,38 +177,57 @@ void Config::mergeConfig(const std::string& source, ConfigData& conf) {
   try {
     pt::read_json(json_data, tree);
   } catch (const pt::ptree_error& e) {
-    VLOG(1)
-        << "There was an error parsing the JSON read from a file: " << e.what();
+    VLOG(1) << "Error parsing config JSON: " << e.what();
     return;
   }
 
-  // Legacy query schedule vector support.
-  if (tree.count("scheduledQueries") > 0) {
-    LOG(INFO) << RLOG(903) << "config 'scheduledQueries' is deprecated";
-    for (const auto& node : tree.get_child("scheduledQueries")) {
-      auto query_name = node.second.get<std::string>("name", "");
-      mergeScheduledQuery(query_name, node, conf);
-    }
-  }
-
-  // Key/value query schedule map support.
-  if (tree.count("schedule") > 0) {
-    for (const auto& node : tree.get_child("schedule")) {
-      mergeScheduledQuery(node.first.data(), node, conf);
-    }
-  }
-
   if (tree.count("additional_monitoring") > 0) {
+    LOG(INFO) << RLOG(903) << "config 'additional_monitoring' is deprecated";
     for (const auto& node : tree.get_child("additional_monitoring")) {
-      mergeAdditional(node, conf);
+      tree.add_child(node.first, node.second);
     }
+    tree.erase("additional_monitoring");
   }
 
-  if (tree.count("options") > 0) {
-    for (const auto& option : tree.get_child("options")) {
-      mergeOption(option, conf);
+  for (const auto& item : tree) {
+    // Iterate over each top-level configuration key.
+    auto key = std::string(item.first.data());
+    if (key == "scheduledQueries") {
+      LOG(INFO) << RLOG(903) << "config 'scheduledQueries' is deprecated";
+      for (const auto& node : item.second) {
+        auto query_name = node.second.get<std::string>("name", "");
+        mergeScheduledQuery(query_name, node, conf);
+      }
+    } else if (key == "schedule") {
+      for (const auto& node : item.second) {
+        mergeScheduledQuery(node.first.data(), node, conf);
+      }
+    } else if (key == "options") {
+      for (const auto& option : item.second) {
+        mergeOption(option, conf);
+      }
+    } else if (key == "file_paths") {
+      for (const auto& category : item.second) {
+        mergeFilePath(key, category, conf);
+      }
+    } else {
+      mergeExtraKey(key, item, conf);
     }
   }
+}
+
+const pt::ptree& Config::getParsedData(const std::string& key) {
+  if (!Registry::exists("config_parser", key)) {
+    return getInstance().empty_data_;
+  }
+
+  const auto& item = Registry::get("config_parser", key);
+  auto parser = std::static_pointer_cast<ConfigParserPlugin>(item);
+  if (parser == nullptr || parser.get() == nullptr) {
+    return getInstance().empty_data_;
+  }
+
+  return parser->data_;
 }
 
 Status Config::getMD5(std::string& hash_string) {
@@ -205,7 +235,7 @@ Status Config::getMD5(std::string& hash_string) {
   ConfigDataInstance config;
 
   std::stringstream out;
-  write_json(out, config.data());
+  pt::write_json(out, config.data());
 
   hash_string = osquery::hashFromBuffer(
       HASH_TYPE_MD5, (void*)out.str().c_str(), out.str().length());
@@ -233,6 +263,13 @@ Status ConfigPlugin::call(const PluginRequest& request,
     return Config::update({{request.at("source"), request.at("data")}});
   }
   return Status(1, "Config plugin action unknown: " + request.at("action"));
+}
+
+Status ConfigParserPlugin::setUp() {
+  for (const auto& key : keys()) {
+    data_.put(key, "");
+  }
+  return Status(0, "OK");
 }
 
 int splayValue(int original, int splayPercent) {

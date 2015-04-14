@@ -42,9 +42,11 @@ struct ConfigData {
   std::map<std::string, ScheduledQuery> schedule;
   std::map<std::string, std::string> options;
   std::map<std::string, std::vector<std::string> > files;
-  std::map<std::string, std::vector<std::string> > yara;
+  /// All data catches optional/plugin-parsed configuration keys.
   pt::ptree all_data;
 };
+
+class ConfigParserPlugin;
 
 /**
  * @brief A singleton that exposes accessors to osquery's configuration data.
@@ -146,6 +148,12 @@ class Config : private boost::noncopyable {
   boost::shared_mutex mutex_;
 
  private:
+  static const pt::ptree& getParsedData(const std::string& parser);
+
+  /// A default, empty property tree used when a missing parser is requested.
+  pt::ptree empty_data_;
+
+ private:
   /// Config accessors, `ConfigDataInstance`, are the forced use of the config
   /// data. This forces the caller to use a shared read lock.
   friend class ConfigDataInstance;
@@ -157,7 +165,7 @@ class Config : private boost::noncopyable {
 /**
  * @brief All accesses to the Config's data must request a ConfigDataInstance.
  *
- * This class will request a read-only lock of the config's changable internal
+ * This class will request a read-only lock of the config's changeable internal
  * data structures such as query schedule, options, monitored files, etc.
  *
  * Since a variable config plugin may implement `update` calls, internal uses
@@ -169,27 +177,26 @@ class ConfigDataInstance {
   ~ConfigDataInstance() { lock_.unlock(); }
 
   /// Helper accessor for Config::data_.schedule.
-  const std::map<std::string, ScheduledQuery> schedule() {
+  const std::map<std::string, ScheduledQuery> schedule() const {
     return Config::getInstance().data_.schedule;
   }
 
   /// Helper accessor for Config::data_.options.
-  const std::map<std::string, std::string>& options() {
+  const std::map<std::string, std::string>& options() const {
     return Config::getInstance().data_.options;
   }
 
   /// Helper accessor for Config::data_.files.
-  const std::map<std::string, std::vector<std::string> >& files() {
+  const std::map<std::string, std::vector<std::string> >& files() const {
     return Config::getInstance().data_.files;
   }
 
-  /// Helper accessor for Config::data_.yara.
-  const std::map<std::string, std::vector<std::string> >& yara() {
-    return Config::getInstance().data_.yara;
+  const pt::ptree& getParsedData(const std::string& parser) const {
+    return Config::getParsedData(parser);
   }
 
   /// Helper accessor for Config::data_.all_data.
-  const pt::ptree& data() { return Config::getInstance().data_.all_data; }
+  const pt::ptree& data() const { return Config::getInstance().data_.all_data; }
 
  private:
   /// A read lock on the reader/writer config data accessor/update mutex.
@@ -239,6 +246,72 @@ class ConfigPlugin : public Plugin {
   Status call(const PluginRequest& request, PluginResponse& response);
 };
 
+/// Helper merged and parsed property tree.
+typedef pt::ptree ConfigTree;
+
+/**
+ * @brief A pluggable configuration parser.
+ *
+ * An osquery config instance is populated from JSON using a ConfigPlugin.
+ * That plugin may update the config data asynchronously and read from
+ * several sources, as is the case with "filesystem" and reading multiple files.
+ *
+ * A ConfigParserPlugin will receive the merged configuration at osquery start
+ * and the updated (still merged) config if any ConfigPlugin updates the
+ * instance asynchronously. Each parser specifies a set of top-level JSON
+ * keys to receive. The config instance will auto-merge the key values
+ * from multiple sources if they are dictionaries or lists.
+ *
+ * If a top-level key is a dictionary, each source with the top-level key
+ * will have its own dictionary keys merged and replaced based on the lexical
+ * order of sources. For the "filesystem" config plugin this is the lexical
+ * sorting of filenames. If the top-level key is a list, each source with the
+ * top-level key will have its contents appended.
+ *
+ * Each config parser plugin will live alongside the config instance for the
+ * life of the osquery process. The parser may perform actions at config load
+ * and config update "time" as well as keep its own data members and be
+ * accessible through the Config class API.
+ */
+class ConfigParserPlugin : public Plugin {
+ protected:
+  /**
+   * @brief Return a list of top-level config keys to receive in updates.
+   *
+   * The ::update method will receive a map of these keys with a JSON-parsed
+   * property tree of configuration data.
+   *
+   * @return A list of string top-level JSON keys.
+   */
+  virtual std::vector<std::string> keys() = 0;
+
+  /**
+   * @brief Receive a merged property tree for each top-level config key.
+   *
+   * Called when the Config instance is initially loaded with data from the
+   * active config plugin and when it is updated via an async ConfigPlugin
+   * update. Every config parser will receive a map of merged data for each key
+   * they requested in keys().
+   *
+   * @param config A JSON-parsed property tree map.
+   * @return Failure if the parser should no longer receive updates.
+   */
+  virtual Status update(const std::map<std::string, ConfigTree>& config) = 0;
+
+ protected:
+  /// Allow the config parser to keep some global state.
+  pt::ptree data_;
+
+ private:
+  Status setUp() final;
+
+ private:
+  /// Config::update will call all appropriate parser updates.
+  friend class Config;
+  /// A config data instance implements a read/write lock around data_ access.
+  friend class ConfigDataInstance;
+};
+
 /**
  * @brief Calculate a splayed integer based on a variable splay percentage
  *
@@ -260,4 +333,13 @@ int splayValue(int original, int splayPercent);
  * after reading JSON data in the plugin implementation.
  */
 CREATE_REGISTRY(ConfigPlugin, "config");
+
+/**
+ * @brief ConfigParser plugin registry.
+ *
+ * This creates an osquery registry for "config_parser" which may implement
+ * ConfigParserPlugin. A ConfigParserPlugin should not export any call actions
+ * but rather have a simple property tree-accessor API through Config.
+ */
+CREATE_LAZY_REGISTRY(ConfigParserPlugin, "config_parser");
 }

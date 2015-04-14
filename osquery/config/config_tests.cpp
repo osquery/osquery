@@ -86,7 +86,6 @@ TEST_F(ConfigTests, test_locking) {
     // But a unique lock cannot be aquired.
     boost::unique_lock<boost::shared_mutex> lock(Config::getInstance().mutex_,
                                                  boost::defer_lock);
-
     ASSERT_FALSE(lock.try_lock());
   }
 
@@ -141,6 +140,88 @@ TEST_F(ConfigTests, test_config_update) {
     EXPECT_EQ(option, "changed");
     option = config.data().get<std::string>("options.new2", "");
     EXPECT_EQ(option, "different");
+  }
+}
+
+class TestConfigParserPlugin : public ConfigParserPlugin {
+ public:
+  std::vector<std::string> keys() { return {"dictionary", "dictionary2", "list"}; }
+
+  Status update(const std::map<std::string, ConfigTree>& config) {
+    // Set a simple boolean indicating the update callin occurred.
+    update_called = true;
+    // Copy all expected keys into the parser's data.
+    for (const auto& key : config) {
+      data_.put_child(key.first, key.second);
+    }
+
+    // Set parser-rendered additional data.
+    data_.put("dictionary3.key2", "value2");
+    return Status(0, "OK");
+  }
+
+  static bool update_called;
+
+ private:
+  FRIEND_TEST(ConfigTests, test_config_parser);
+};
+
+// An intermediate boolean to check parser updates.
+bool TestConfigParserPlugin::update_called = false;
+
+TEST_F(ConfigTests, test_config_parser) {
+  // Register a config parser plugin.
+  Registry::add<TestConfigParserPlugin>("config_parser", "test");
+  Registry::get("config_parser", "test")->setUp();
+
+  {
+    // Access the parser's data without having updated the configuration.
+    ConfigDataInstance config;
+    const auto& test_data = config.getParsedData("test");
+
+    // Expect the setUp method to have run and set blank defaults.
+    // Accessing an invalid property tree key will abort.
+    ASSERT_EQ(test_data.get_child("dictionary").count(""), 0);
+  }
+
+  // Update or load the config, expect the parser to be called.
+  Config::update(
+      {{"source1",
+        "{\"dictionary\": {\"key1\": \"value1\"}, \"list\": [\"first\"]}"}});
+  ASSERT_TRUE(TestConfigParserPlugin::update_called);
+
+  {
+    // Now access the parser's data AFTER updating the config (no longer blank)
+    ConfigDataInstance config;
+    const auto& test_data = config.getParsedData("test");
+
+    // Expect a value that existed in the configuration.
+    EXPECT_EQ(test_data.count("dictionary"), 1);
+    EXPECT_EQ(test_data.get("dictionary.key1", ""), "value1");
+    // Expect a value for every key the parser requested.
+    // Every requested key will be present, event if the key's tree is empty.
+    EXPECT_EQ(test_data.count("dictionary2"), 1);
+    // Expect the parser-created data item.
+    EXPECT_EQ(test_data.count("dictionary3"), 1);
+    EXPECT_EQ(test_data.get("dictionary3.key2", ""), "value2");
+  }
+
+  // Update from a secondary source into a dictionary.
+  // Expect that the keys in the top-level dictionary are merged.
+  Config::update({{"source2", "{\"dictionary\": {\"key3\": \"value3\"}}"}});
+  // Update from a third source into a list.
+  // Expect that the items from each source in the top-level list are merged.
+  Config::update({{"source3", "{\"list\": [\"second\"]}"}});
+
+  {
+    ConfigDataInstance config;
+    const auto& test_data = config.getParsedData("test");
+
+    EXPECT_EQ(test_data.count("dictionary"), 1);
+    EXPECT_EQ(test_data.get("dictionary.key1", ""), "value1");
+    EXPECT_EQ(test_data.get("dictionary.key3", ""), "value3");
+    EXPECT_EQ(test_data.count("list"), 1);
+    EXPECT_EQ(test_data.get_child("list").count(""), 2);
   }
 }
 
