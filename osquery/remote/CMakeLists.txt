@@ -6,6 +6,11 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_requests
   serializers/json.cpp
 )
 
-ADD_OSQUERY_TEST(TRUE requests_tests requests_tests.cpp)
-ADD_OSQUERY_TEST(TRUE json_tests serializers/json_tests.cpp)
-ADD_OSQUERY_TEST(TRUE http_tests transports/http_tests.cpp)
+ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment
+  enrollment/plugins/http_enrollment.cpp
+)
+
+ADD_OSQUERY_TEST(FALSE requests_tests requests_tests.cpp)
+ADD_OSQUERY_TEST(FALSE json_tests serializers/json_tests.cpp)
+ADD_OSQUERY_TEST(FALSE http_tests transports/http_tests.cpp)
+ADD_OSQUERY_TEST(FALSE enrollment_tests enrollment/enrollment_tests.cpp)
