@@ -44,6 +44,14 @@ extern const std::string kSDKVersion;
 #define OSQUERY_VERSION STR(OSQUERY_BUILD_VERSION)
 #define OSQUERY_SDK_VERSION STR(OSQUERY_BUILD_SDK_VERSION)
 
+//#ifdef OSQUERY_BUILD_OS
+#define OSQUERY_BUILD_PLATFORM_DISTRO STR(OSQUERY_BUILD_OS)
+//#endif
+
+//#ifdef OSQUERY_BUILD_DISTRO
+#define OSQUERY_BUILD_PLATFORM_VERSION STR(OSQUERY_BUILD_DISTRO)
+//#endif
+
 /**
  * @brief A helpful tool type to report when logging, print help, or debugging.
  */

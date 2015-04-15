@@ -2,6 +2,8 @@ table_name("osquery_info")
 description("Top level information about the running version of osquery.")
 schema([
     Column("version", TEXT),
+    Column("build_distro", TEXT),
+    Column("build_version", TEXT),
     Column("config_md5", TEXT),
     Column("config_path", TEXT),
     Column("pid", INTEGER, "Process (or thread) ID"),
