@@ -24,11 +24,11 @@ docs: .setup
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
 
 debug: .setup
-	cd build/$(BUILD_DIR) && DEBUG=True cmake ../../ && \
+	cd build/debug_$(BUILD_DIR) && DEBUG=True cmake ../../ && \
 	  $(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_debug: .setup
-	cd build/$(BUILD_DIR) && DEBUG=True cmake ../../ && \
+	cd build/debug_$(BUILD_DIR) && DEBUG=True cmake ../../ && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 analyze: .setup
@@ -48,11 +48,11 @@ test_sdk: .setup
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 debug_sdk: .setup
-	cd build/$(BUILD_DIR) && SDK=True DEBUG=True cmake ../../ && \
+	cd build/debug_$(BUILD_DIR) && SDK=True DEBUG=True cmake ../../ && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_debug_sdk: .setup
-	cd build/$(BUILD_DIR) && SDK=True DEBUG=True cmake ../../ && \
+	cd build/debug_$(BUILD_DIR) && SDK=True DEBUG=True cmake ../../ && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 deps: .setup
@@ -69,9 +69,11 @@ ifeq ($(DISTRO),unknown_version)
 	@echo Unknown, non-Redhat, non-Ubuntu based Linux distro
 	false
 endif
-	mkdir -p build/$(BUILD_DIR)
+	@mkdir -p build/$(BUILD_DIR)
+	@mkdir -p build/debug_$(BUILD_DIR)
 ifeq ($(PLATFORM),Linux)
-		ln -snf $(BUILD_DIR) build/linux
+		@ln -snf $(BUILD_DIR) build/linux
+		@ln -snf debug_$(BUILD_DIR) build/debug_linux
 endif
 
 package:
