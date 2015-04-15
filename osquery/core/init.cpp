@@ -47,7 +47,7 @@ namespace osquery {
   "been created. Please consider explicitly defining those "                  \
   "options as a different \n"                                                 \
   "path. Additionally, review the \"using osqueryd\" wiki page:\n"            \
-  " - https://github.com/facebook/osquery/wiki/using-osqueryd\n\n";
+  " - http://osquery.rtfd.org/introduction/using-osqueryd/\n\n";
 
 DECLARE_bool(disable_events);
 
