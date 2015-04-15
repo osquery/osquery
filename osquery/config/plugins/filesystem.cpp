@@ -36,16 +36,11 @@ REGISTER(FilesystemConfigPlugin, "config", "filesystem");
 Status FilesystemConfigPlugin::genConfig(
     std::map<std::string, std::string>& config) {
   if (!fs::is_regular_file(FLAGS_config_path)) {
-    VLOG(1) << "Was not given a file to load config from";
     return Status(1, "config file does not exist");
   }
 
   std::vector<std::string> conf_files;
   resolveFilePattern(FLAGS_config_path + ".d/%.conf", conf_files);
-  if (conf_files.size() > 0) {
-    VLOG(1) << "Discovered (" << conf_files.size() << ") additional configs";
-  }
-
   std::sort(conf_files.begin(), conf_files.end());
   conf_files.push_back(FLAGS_config_path);
 

@@ -58,14 +58,11 @@ void YARACompilerCallback(int error_level,
   }
 }
 
-Status handleRuleFiles(std::string category,
-                        std::vector<std::string> rule_files,
-                        std::map<std::string, YR_RULES *> *rules) {
-  int result;
+Status handleRuleFiles(const std::string& category,
+                       const pt::ptree& rule_files,
+                       std::map<std::string, YR_RULES*>* rules) {
   YR_COMPILER *compiler = nullptr;
-  bool compiled = false;
-
-  result = yr_compiler_create(&compiler);
+  int result = yr_compiler_create(&compiler);
   if (result != ERROR_SUCCESS) {
     VLOG(1) << "Could not create compiler: " + std::to_string(result);
     return Status(1, "Could not create compiler: " + std::to_string(result));
@@ -73,9 +70,10 @@ Status handleRuleFiles(std::string category,
 
   yr_compiler_set_callback(compiler, YARACompilerCallback, NULL);
 
-  for (const auto& rule : rule_files) {
+  bool compiled = false;
+  for (const auto& item : rule_files) {
     YR_RULES *tmp_rules;
-
+    const auto rule = item.second.get("", "");
     VLOG(1) << "Loading " << rule;
 
     // First attempt to load the file, in case it is saved (pre-compiled)
@@ -109,7 +107,6 @@ Status handleRuleFiles(std::string category,
       FILE *rule_file = fopen(rule.c_str(), "r");
 
       if (rule_file == nullptr) {
-        VLOG(1) << "Could not open file: " << rule;
         yr_compiler_destroy(compiler);
         return Status(1, "Could not open file: " + rule);
       }
@@ -135,9 +132,8 @@ Status handleRuleFiles(std::string category,
     result = yr_compiler_get_rules(compiler, &((*rules)[category]));
 
     if (result != ERROR_SUCCESS) {
-      VLOG(1) << "Insufficient memory to get yara rules.";
       yr_compiler_destroy(compiler);
-      return Status(1, "Insufficient memory to get yara rules");
+      return Status(1, "Insufficient memory to get YARA rules");
     }
   }
 
@@ -169,6 +165,31 @@ int YARACallback(int message, void *message_data, void *user_data) {
 }
 
 /**
+ * @brief A simple ConfigParserPlugin for a "yara" dictionary key.
+ *
+ * A straight forward ConfigParserPlugin that requests a single "yara" key.
+ * This stores a rather trivial "yara" data key. The accessor will be
+ * redundant since this is so simple:
+ *
+ * Pseudo-code:
+ *   getParser("yara")->getKey("yara");
+ */
+class YARAConfigParserPlugin : public ConfigParserPlugin {
+ public:
+  /// Request a single "yara" top level key.
+  std::vector<std::string> keys() { return {"yara"}; }
+
+  /// Store the "yara" key rather simply.
+  Status update(const std::map<std::string, ConfigTree>& config) {
+    data_.add_child("yara", config.at("yara"));
+    return Status(0, "OK");
+  }
+};
+
+/// Call the simple YARA ConfigParserPlugin "yara".
+REGISTER(YARAConfigParserPlugin, "config_parser", "yara");
+
+/**
  * @brief Track YARA matches to files.
  */
 class YARAEventSubscriber : public FileEventSubscriber {
@@ -196,28 +217,32 @@ class YARAEventSubscriber : public FileEventSubscriber {
  * This registers YARAEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
  */
-REGISTER(YARAEventSubscriber, "event_subscriber", "yara");
+REGISTER(YARAEventSubscriber, "event_subscriber", "yara_matches");
 
 Status YARAEventSubscriber::init() {
   Status status;
 
   int result = yr_initialize();
   if (result != ERROR_SUCCESS) {
-    LOG(WARNING) << "Unable to initalize YARA (" << result << ")";
-    return Status(1, "Unable to initalize YARA");
+    LOG(WARNING) << "Unable to initialize YARA (" << result << ")";
+    return Status(1, "Unable to initialize YARA");
   }
 
   ConfigDataInstance config;
-  const auto& yara_map = config.yara();
+  const auto& yara_config = config.getParsedData("yara");
   const auto& file_map = config.files();
 
-  // yara_map has a key of the category and a vector of rule files to load.
+  // yara_config has a key of the category and a vector of rule files to load.
   // file_map has a key of the category and a vector of files to watch. Use
-  // yara_map to get the category and subscribe to each file in file_map
-  // with that category. Then load each YARA rule file from yara_map.
-  for (const auto& element : yara_map) {
+  // yara_config to get the category and subscribe to each file in file_map
+  // with that category. Then load each YARA rule file from yara_config.
+  for (const auto& element : yara_config.get_child("yara")) {
     // Subscribe to each file for the given key (category).
-    for (const auto& file : file_map.find(element.first)->second) {
+    if (file_map.count(element.first) == 0) {
+      continue;
+    }
+
+    for (const auto& file : file_map.at(element.first)) {
       VLOG(1) << "Added YARA listener to: " << file;
       auto mc = createSubscriptionContext();
       mc->path = file;
