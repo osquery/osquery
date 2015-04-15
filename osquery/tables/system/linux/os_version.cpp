@@ -31,7 +31,7 @@ const std::string kLinuxOSRegex =
 const std::string kLinuxOSRelease = "/etc/os-release";
 const std::string kLinuxOSRegex =
     "VERSION=\"(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)[\\.]{0,1}(?P<patch>[0-9]+)"
-    "?, (?P<name>[\\w ]*)\"$";
+    "?.*, (?P<name>[\\w ]*)\"$";
 #endif
 
 QueryData genOSVersion(QueryContext& context) {
