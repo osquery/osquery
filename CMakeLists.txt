@@ -41,7 +41,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
   set(OS_WHOLELINK_POST "")
 else()
   set(LINUX TRUE)
-  # Do not used the shared linker flags for modules.
+  # Do not use the shared linker flags for modules.
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
   set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
   set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
@@ -59,9 +59,11 @@ string(TOUPPER "${PLATFORM}" PLATFORM)
 list(GET PLATFORM 0 OSQUERY_BUILD_OS)
 list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO)
 
+# RHEL6 uses a different gcc 4.9 runtime
 if(${OSQUERY_BUILD_DISTRO} STREQUAL "RHEL6")
-  set(CMAKE_C_COMPILER "gcc")
-  set(CMAKE_CXX_COMPILER "g++")
+  set(GCC_RUNTIME "/opt/rh/devtoolset-3/root/usr/")
+  message("-- Setting RHEL6 GCC runtime: ${GCC_RUNTIME}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
 endif()
 
 # make debug (environment variable from Makefile)
@@ -116,7 +118,7 @@ else()
   list(GET OSQUERY_BUILD_SDK_VERSION 0 OSQUERY_BUILD_SDK_VERSION)
 endif()
 
-# make extensions (tests building SDK-based extensions)
+# make sdk (tests building SDK-based extensions)
 if(DEFINED ENV{SDK})
   set(OSQUERY_BUILD_SDK_ONLY TRUE)
 endif()

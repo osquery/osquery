@@ -73,11 +73,11 @@ function main_rhel() {
   package clang-devel
 
   if [[ $DISTRO = "rhel6" ]]; then
-    # GCC is needed for glib/libstdc++ 4.9+
+    # GCC is needed for glib/libstdc++/gcc4.9+
+    # osquery code will use the 4.9+ toolchain
     set_cc gcc
     set_cxx g++
   elif [[ $DISTRO = "rhel7" ]]; then
-    # Clang was built with a newer libstdc++
     set_cc clang
     set_cxx clang++
   fi

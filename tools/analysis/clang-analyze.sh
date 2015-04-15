@@ -4,8 +4,8 @@
 # All rights reserved.
 
 declare -a BLACKLIST=(
-    "osquery/devtools/shell.cpp"
-    "virtual_table.cpp"
+    "logging.cc"
+    "logging_unittest.cc"
   )
 
 for BL_ITEM in ${BLACKLIST[@]}; do
