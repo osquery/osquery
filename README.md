@@ -1,5 +1,5 @@
 osquery
-======
+=======
 
 <p align="center">
 <img align="center" src="https://osquery.io/assets/logo-dark.png" alt="osquery logo" width="200"/>
@@ -20,7 +20,7 @@ OS X 10.10   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuil
 
 osquery exposes an operating system as a high-performance relational database. This allows you to write SQL-based queries to explore operating system data. With osquery, SQL tables represent abstract concepts such as running processes, loaded kernel modules, open network connections, browser plugins, hardware events or file hashes.
 
-SQL tables are implemented via a simple plugin and extensions API. A variety of tables already exist and more are being written: [http://osquery.io/tables](http://osquery.io/tables). To best understand the expressiveness that is afforded to you by osquery, consider the following SQL queries:
+SQL tables are implemented via a simple plugin and extensions API. A variety of tables already exist and more are being written: [https://osquery.io/tables](https://osquery.io/tables). To best understand the expressiveness that is afforded to you by osquery, consider the following SQL queries:
 
 
 List the the users:
@@ -54,7 +54,9 @@ AND
 Check for ARP anomalies from the host's perspective:
 
 ```sql
-SELECT address, mac, count(mac) AS mac_count FROM arp_cache GROUP BY mac HAVING count(mac) > 1;
+SELECT address, mac, count(mac) AS mac_count
+FROM arp_cache GROUP BY mac
+HAVING count(mac) > 1;
 ```
 
 Alternatively, you could also use a SQL sub-query to accomplish the same result:
@@ -91,7 +93,7 @@ brew upgrade osquery
 
 ##### Building from source
 
-[Building](http://osquery.readthedocs.org/development/building/) osquery from source is encouraged! Join our developer community by giving us feedback in Github issues or submitting pull requests!
+[Building](https://osquery.readthedocs.org/development/building/) osquery from source is encouraged! Join our developer community by giving us feedback in Github issues or submitting pull requests!
 
 #### Vulnerabilities
 
@@ -101,4 +103,4 @@ Facebook has a [bug bounty](https://www.facebook.com/whitehat/) program that inc
 
 Read the [launch blog post](https://code.facebook.com/posts/844436395567983/introducing-osquery/) for background on the project.
 
-If you're interested in learning more about osquery, visit the [users guide](http://osquery.readthedocs.org/) and browse our RFC-labeled Github issues.
+If you're interested in learning more about osquery, visit the [users guide](https://osquery.readthedocs.org/) and browse our RFC-labeled Github issues.
