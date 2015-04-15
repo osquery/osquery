@@ -12,6 +12,8 @@
 #include <mutex>
 #include <stdexcept>
 
+#include <sys/stat.h>
+
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
 
@@ -70,6 +72,11 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   auto s = rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
   if (!s.ok()) {
     throw std::runtime_error(s.ToString());
+  }
+
+  // RocksDB may not create/append a directory with acceptable permissions.
+  if (chmod(path.c_str(), S_IRWXU) != 0) {
+    throw std::runtime_error("Cannot set permissions on RocksDB path: " + path);
   }
 }
 
