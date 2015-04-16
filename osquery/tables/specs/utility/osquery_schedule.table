@@ -1,0 +1,9 @@
+table_name("osquery_schedule")
+description("Information about the current queries that are scheduled in osquery.")
+schema([
+    Column("interval", INTEGER, "The interval in seconds to run this query, not an exact interval."),
+    Column("name", TEXT, "The given name for this query."),
+    Column("query", TEXT, "The exact query to run."),
+])
+attributes(utility=True)
+implementation("osquery@genOsquerySchedule")
