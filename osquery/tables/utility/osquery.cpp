@@ -110,10 +110,8 @@ QueryData genOsqueryInfo(QueryContext& context) {
   QueryData results;
 
   Row r;
-  r["version"] = TEXT(OSQUERY_VERSION);
-  r["build_distro"] = TEXT(OSQUERY_BUILD_PLATFORM_DISTRO);
-  r["build_version"] = TEXT(OSQUERY_BUILD_PLATFORM_VERSION);
   r["pid"] = INTEGER(getpid());
+  r["version"] = TEXT(OSQUERY_VERSION);
 
   std::string hash_string;
   auto s = Config::getMD5(hash_string);
@@ -127,6 +125,10 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["config_path"] = Flag::getValue("config_path");
   r["extensions"] =
       (pingExtension(FLAGS_extensions_socket).ok()) ? "active" : "inactive";
+
+  r["build_platform"] = STR(OSQUERY_BUILD_PLATFORM);
+  r["build_distro"] = STR(OSQUERY_BUILD_DISTRO);
+
   results.push_back(r);
 
   return results;
