@@ -101,7 +101,7 @@ Status parsePlistContent(const std::string& content, pt::ptree& tree) {
                        error:&error];
     if (plist_data == nil) {
       std::string error_message([[error localizedFailureReason] UTF8String]);
-      LOG(ERROR) << error_message;
+      VLOG(1) << error_message;
       return Status(1, error_message);
     }
 

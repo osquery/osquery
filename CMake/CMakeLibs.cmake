@@ -131,7 +131,7 @@ endmacro()
 # Find and generate table plugins from .table syntax
 macro(GENERATE_TABLES TABLES_PATH)
   # Get all matching files for all platforms.
-  file(GLOB TABLE_FILES "${TABLES_PATH}/specs/x/*.table")
+  file(GLOB TABLE_FILES "${TABLES_PATH}/specs/*.table")
   set(TABLE_FILES_PLATFORM "")
   if(APPLE)
     file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/darwin/*.table")
@@ -168,7 +168,7 @@ endmacro(GENERATE_UTILITIES)
 macro(GENERATE_TABLE TABLE_FILE NAME BASE_PATH OUTPUT)
   set(TABLE_FILE_GEN ${TABLE_FILE})
   string(REGEX REPLACE
-    ".*/specs/.*/(.*)\\.table"
+    ".*/specs.*/(.*)\\.table"
     "${CMAKE_BINARY_DIR}/generated/tables_${NAME}/\\1.cpp"
     TABLE_FILE_GEN
     ${TABLE_FILE_GEN}
