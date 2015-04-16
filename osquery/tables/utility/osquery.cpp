@@ -133,5 +133,20 @@ QueryData genOsqueryInfo(QueryContext& context) {
 
   return results;
 }
+
+QueryData genOsqueryScheduled(QueryContext& context) {
+  QueryData results;
+
+  ConfigDataInstance config;
+  for (const auto& query : config.schedule()) {
+    Row r;
+    r["name"] = TEXT(query.first);
+    r["query"] = TEXT(query.second.query);
+    r["interval"] = INTEGER(query.second.interval);
+    results.push_back(r);
+  }
+
+  return results;
+}
 }
 }
