@@ -134,7 +134,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
   return results;
 }
 
-QueryData genOsqueryScheduled(QueryContext& context) {
+QueryData genOsquerySchedule(QueryContext& context) {
   QueryData results;
 
   ConfigDataInstance config;
