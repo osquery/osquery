@@ -96,12 +96,14 @@ def is_blacklisted(table_name, path=None, blacklist=None):
 
 
 def setup_templates(path):
-    tables_path = os.path.dirname(os.path.dirname(os.path.dirname(path)))
+    tables_path = os.path.dirname(os.path.dirname(path))
     templates_path = os.path.join(tables_path, "templates")
     if not os.path.exists(templates_path):
-        print ("Cannot read templates path: %s" % (templates_path))
-        exit(1)
-    for template in os.listdir(os.path.join(tables_path, "templates")):
+        templates_path = os.path.join(os.path.dirname(tables_path), "templates")
+        if not os.path.exists(templates_path):
+            print ("Cannot read templates path: %s" % (templates_path))
+            exit(1)
+    for template in os.listdir(templates_path):
         template_name = template.split(".", 1)[0]
         with open(os.path.join(templates_path, template), "rb") as fh:
             TEMPLATES[template_name] = fh.read().replace("\\\n", "")
@@ -159,6 +161,10 @@ class TableState(Singleton):
             class_name=self.class_name,
             attributes=self.attributes,
         )
+
+        if self.table_name == "" or self.function == "":
+            print (lightred("Invalid table spec: %s" % (path)))
+            exit(1)
 
         # Check for reserved column names
         for column in self.columns():

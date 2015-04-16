@@ -60,6 +60,9 @@ const std::map<std::string, std::string> kLaunchdTopLevelArrayKeys = {
     {"QueueDirectories", "queue_directories"},
 };
 
+const std::string kLaunchdOverridesPath =
+    "/var/db/launchd.db/%/overrides.plist";
+
 void genLaunchdItem(const std::string& path, QueryData& results) {
   pt::ptree tree;
   if (!osquery::parsePlist(path, tree).ok()) {
@@ -119,6 +122,42 @@ QueryData genLaunchd(QueryContext& context) {
         genLaunchdItem(launcher, results);
       }
     }
+  }
+
+  return results;
+}
+
+void genLaunchdOverride(const fs::path& path, QueryData& results) {
+  Row r;
+  r["path"] = path.string();
+  // The overrides may be restricted to a user, based on the folder.
+  auto group = osquery::split(path.parent_path().filename().string(), ".");
+  r["uid"] = (group.size() == 5) ? BIGINT(group.at(4)) : "0";
+
+  pt::ptree tree;
+  if (!osquery::parsePlist(path, tree).ok()) {
+    return;
+  }
+
+  // Include a row for each label : key since we do not know the set of keys
+  // that may be overridden.
+  for (const auto& daemon : tree) {
+    r["label"] = daemon.first.data();
+    for (const auto& item : daemon.second) {
+      r["key"] = item.first.data();
+      r["value"] = item.second.get_value("");
+      results.push_back(r);
+    }
+  }
+}
+
+QueryData genLaunchdOverrides(QueryContext& context) {
+  QueryData results;
+
+  std::vector<std::string> overrides;
+  osquery::resolveFilePattern(kLaunchdOverridesPath, overrides);
+  for (const auto& group : overrides) {
+    genLaunchdOverride(group, results);
   }
 
   return results;
