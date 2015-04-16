@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -110,8 +110,8 @@ QueryData genOsqueryInfo(QueryContext& context) {
   QueryData results;
 
   Row r;
-  r["version"] = TEXT(OSQUERY_VERSION);
   r["pid"] = INTEGER(getpid());
+  r["version"] = TEXT(OSQUERY_VERSION);
 
   std::string hash_string;
   auto s = Config::getMD5(hash_string);
@@ -125,6 +125,10 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["config_path"] = Flag::getValue("config_path");
   r["extensions"] =
       (pingExtension(FLAGS_extensions_socket).ok()) ? "active" : "inactive";
+
+  r["build_platform"] = STR(OSQUERY_BUILD_PLATFORM);
+  r["build_distro"] = STR(OSQUERY_BUILD_DISTRO);
+
   results.push_back(r);
 
   return results;

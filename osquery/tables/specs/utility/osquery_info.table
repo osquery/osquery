@@ -1,11 +1,15 @@
 table_name("osquery_info")
 description("Top level information about the running version of osquery.")
 schema([
-    Column("version", TEXT),
-    Column("config_md5", TEXT),
-    Column("config_path", TEXT),
     Column("pid", INTEGER, "Process (or thread) ID"),
-    Column("extensions", TEXT),
+    Column("version", TEXT, "osquery toolkit version"),
+    Column("config_md5", TEXT, "md5 hash of the working configuration"),
+    Column("config_path", TEXT,
+      "Optional: path to filesystem config plugin content"),
+    Column("extensions", TEXT, "osquery extensions status"),
+    Column("build_platform", TEXT, "osquery toolkit build platform"),
+    Column("build_distro", TEXT,
+      "osquery toolkit platform distribution name (os version)"),
 ])
 attributes(utility=True)
 implementation("osquery@genOsqueryInfo")
