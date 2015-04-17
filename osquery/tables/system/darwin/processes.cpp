@@ -37,7 +37,7 @@ std::set<int> getProcList(const QueryContext &context) {
     return pidlist;
   }
 
-  int bufsize = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
+  int bufsize = proc_listpids(PROC_ALL_PIDS, 0, nullptr, 0);
   if (bufsize <= 0) {
     VLOG(1) << "An error occurred retrieving the process list";
     return pidlist;
@@ -77,7 +77,7 @@ std::map<int, int> getParentMap(std::set<int> &pidlist) {
 
   for (const auto &pid : pidlist) {
     int name[] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
-    if (sysctl((int *)name, 4, &proc, &size, NULL, 0) == -1) {
+    if (sysctl((int *)name, 4, &proc, &size, nullptr, 0) == -1) {
       break;
     }
 
@@ -126,7 +126,7 @@ static int genMaxArgs() {
 
   int argmax = 0;
   size_t size = sizeof(argmax);
-  if (sysctl(mib, 2, &argmax, &size, NULL, 0) == -1) {
+  if (sysctl(mib, 2, &argmax, &size, nullptr, 0) == -1) {
     VLOG(1) << "An error occurred retrieving the max arg size";
     return 0;
   }
@@ -160,7 +160,7 @@ std::vector<std::string> getProcRawArgs(int pid, size_t argmax) {
   const char *cp = procargs;
   int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
 
-  if (sysctl(mib, 3, &procargs, &argmax, NULL, 0) == -1) {
+  if (sysctl(mib, 3, &procargs, &argmax, nullptr, 0) == -1) {
     if (euid == 0) {
       VLOG(1) << "An error occurred retrieving the env for pid: " << pid;
     }

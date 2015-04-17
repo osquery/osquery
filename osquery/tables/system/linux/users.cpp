@@ -29,7 +29,7 @@ QueryData genUsers(QueryContext& context) {
   struct passwd *pwd = nullptr;
   std::set<long> users_in;
 
-  while ((pwd = getpwent()) != NULL) {
+  while ((pwd = getpwent()) != nullptr) {
     if (std::find(users_in.begin(), users_in.end(), pwd->pw_uid) ==
         users_in.end()) {
       Row r;

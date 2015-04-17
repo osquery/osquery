@@ -29,6 +29,10 @@
 #endif
 // clang-format on
 
+#ifndef __constructor__
+#define __constructor__ __attribute__((constructor))
+#endif
+
 /// A configuration error is catastrophic and should exit the watcher.
 #define EXIT_CATASTROPHIC 78
 

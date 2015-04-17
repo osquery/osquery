@@ -44,12 +44,12 @@ void FSEventsEventPublisher::restart() {
   std::vector<CFStringRef> cf_paths;
   for (const auto& path : paths_) {
     auto cf_path =
-        CFStringCreateWithCString(NULL, path.c_str(), kCFStringEncodingUTF8);
+        CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
     cf_paths.push_back(cf_path);
   }
 
   // The FSEvents watch takes a CFArrayRef
-  auto watch_list = CFArrayCreate(NULL,
+  auto watch_list = CFArrayCreate(nullptr,
                                   reinterpret_cast<const void**>(&cf_paths[0]),
                                   cf_paths.size(),
                                   &kCFTypeArrayCallBacks);
@@ -58,9 +58,9 @@ void FSEventsEventPublisher::restart() {
   stop();
 
   // Create the FSEvent stream
-  stream_ = FSEventStreamCreate(NULL,
+  stream_ = FSEventStreamCreate(nullptr,
                                 &FSEventsEventPublisher::Callback,
-                                NULL,
+                                nullptr,
                                 watch_list,
                                 kFSEventStreamEventIdSinceNow,
                                 1,

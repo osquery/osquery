@@ -25,7 +25,7 @@ QueryData genLoggedInUsers(QueryContext& context) {
   QueryData results;
   struct utmpx *entry = nullptr;
 
-  while ((entry = getutxent()) != NULL) {
+  while ((entry = getutxent()) != nullptr) {
     if (entry->ut_pid == 1) {
       continue;
     }

@@ -95,7 +95,8 @@ void genAllControls(QueryData& results,
   }
 
   for (const auto& sub : subsystems) {
-    if (subsystem.size() != 0 && fs::path(sub).filename().string() != subsystem) {
+    if (subsystem.size() != 0 &&
+        fs::path(sub).filename().string() != subsystem) {
       // Request is limiting subsystem.
       continue;
     } 
