@@ -23,4 +23,9 @@ make clean
 # Build osquery
 make -j$THREADS
 
+# Run unit and integration tests
 make test
+
+# Run non-fatal linting
+cppcheck --quiet -j$THREADS --error-exitcode=0 --enable=performance,warning \
+   -I ./include ./osquery

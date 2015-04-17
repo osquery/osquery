@@ -31,6 +31,7 @@ function main_centos() {
   package rpm-build
   package ruby-devel
   package rubygems
+  package cppcheck
 
   if [[ $DISTRO = "centos6" ]]; then
     pushd /etc/yum.repos.d

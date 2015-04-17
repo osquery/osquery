@@ -18,6 +18,7 @@ function main_darwin() {
 
   brew update
 
+  package cppcheck
   package rocksdb
   package cmake
   package makedepend

@@ -43,6 +43,7 @@ function main_ubuntu() {
   package ruby-dev
   package gcc
   package doxygen
+  package cppcheck
 
   set_cc clang
   set_cxx clang++
