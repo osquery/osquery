@@ -60,6 +60,11 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_tables_utility
   ${OSQUERY_UTILITY_TABLES}
 )
 
+file(GLOB OSQUERY_UTILS "utils/*.cpp")
+ADD_OSQUERY_LIBRARY(TRUE osquery_utils
+  ${OSQUERY_UTILS}
+)
+
 ADD_OSQUERY_TEST(FALSE etc_hosts_tests networking/tests/etc_hosts_tests.cpp)
 ADD_OSQUERY_TEST(FALSE etc_protocols_tests networking/tests/etc_protocols_tests.cpp)
 if(APPLE)
