@@ -21,56 +21,61 @@ namespace osquery {
 namespace tables {
 
 static void getBlockDevice(struct udev_device *dev, QueryData& results) {
-  struct udev_device *parent, *scsi_dev;
-  blkid_probe pr;
-  const char *name, *tmp;
-
   Row r;
-  if ((name = udev_device_get_devnode(dev))) {
-    r["name"] = std::string(name);
-  } else {
+  const char *name = udev_device_get_devnode(dev);
+  if (name == nullptr) {
     // Cannot get devnode information from UDEV.
     return;
   }
 
-  if ((parent =
-           udev_device_get_parent_with_subsystem_devtype(dev, "block", NULL))) {
-    r["parent"] = std::string(udev_device_get_devnode(parent));
-  }
-  if ((tmp = udev_device_get_sysattr_value(dev, "size"))) {
-    r["size"] = std::string(tmp);
-  }
-  if ((scsi_dev =
-           udev_device_get_parent_with_subsystem_devtype(dev, "scsi", NULL))) {
-    if ((tmp = udev_device_get_sysattr_value(scsi_dev, "model"))) {
-      std::string model = tmp;
-      boost::algorithm::trim(model);
-      r["model"] = model;
-    }
-    if ((tmp = udev_device_get_sysattr_value(scsi_dev, "vendor"))) {
-      std::string vendor = tmp;
-      boost::algorithm::trim(vendor);
-      r["vendor"] = vendor;
-    }
+  // The device name may be blank but will have a string value.
+  r["name"] = std::string(name);
+
+  struct udev_device *subdev =
+      udev_device_get_parent_with_subsystem_devtype(dev, "block", nullptr);
+  if (subdev != nullptr) {
+    r["parent"] = std::string(udev_device_get_devnode(subdev));
   }
 
-  if (name && ((pr = blkid_new_probe_from_filename(name)))) {
+  const char *size = udev_device_get_sysattr_value(dev, "size");
+  if (size != nullptr) {
+    r["size"] = std::string(size);
+  }
+
+  subdev = udev_device_get_parent_with_subsystem_devtype(dev, "scsi", nullptr);
+  if (subdev != nullptr) {
+    const char *model = udev_device_get_sysattr_value(subdev, "model");
+    std::string model_string = std::string(model);
+    boost::algorithm::trim(model_string);
+    r["model"] = model_string;
+
+    model = udev_device_get_sysattr_value(subdev, "vendor");
+    model_string = std::string(model);
+    boost::algorithm::trim(model_string);
+    r["vendor"] = model_string;
+  }
+
+  blkid_probe pr = blkid_new_probe_from_filename(name);
+  if (pr != nullptr) {
     blkid_probe_enable_superblocks(pr, 1);
     blkid_probe_set_superblocks_flags(
         pr, BLKID_SUBLKS_LABEL | BLKID_SUBLKS_UUID | BLKID_SUBLKS_TYPE);
+
     if (!blkid_do_safeprobe(pr)) {
-      if (!blkid_probe_lookup_value(pr, "TYPE", &tmp, NULL)) {
-        r["type"] = std::string(tmp);
+      const char *blk_value = nullptr;
+      if (!blkid_probe_lookup_value(pr, "TYPE", &blk_value, nullptr)) {
+        r["type"] = std::string(blk_value);
       }
-      if (!blkid_probe_lookup_value(pr, "UUID", &tmp, NULL)) {
-        r["uuid"] = std::string(tmp);
+      if (!blkid_probe_lookup_value(pr, "UUID", &blk_value, nullptr)) {
+        r["uuid"] = std::string(blk_value);
       }
-      if (!blkid_probe_lookup_value(pr, "LABEL", &tmp, NULL)) {
-        r["label"] = std::string(tmp);
+      if (!blkid_probe_lookup_value(pr, "LABEL", &blk_value, nullptr)) {
+        r["label"] = std::string(blk_value);
       }
     }
     blkid_free_probe(pr);
   }
+
   results.push_back(r);
 }
 

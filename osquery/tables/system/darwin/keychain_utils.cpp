@@ -73,8 +73,8 @@ std::string getKeychainPath(const SecKeychainItemRef& item) {
 }
 
 std::string genKIDProperty(const CFDataRef& kid) {
-  CFDataRef kid_data = NULL;
-  CFDictionaryRef kid_dict = NULL;
+  CFDataRef kid_data = nullptr;
+  CFDictionaryRef kid_dict = nullptr;
 
   // Find the key identifier data within the property mess.
   for (CFIndex i = 0; i < CFArrayGetCount((CFArrayRef)kid); i++) {
@@ -88,7 +88,7 @@ std::string genKIDProperty(const CFDataRef& kid) {
     }
   }
 
-  if (kid_data == NULL) {
+  if (kid_data == nullptr) {
     // No key identifier found.
     return "";
   }
@@ -108,8 +108,8 @@ std::string genKIDProperty(const CFDataRef& kid) {
 }
 
 std::string genCommonNameProperty(const CFDataRef& ca) {
-  CFDataRef ca_data = NULL;
-  CFStringRef ca_string = NULL;
+  CFDataRef ca_data = nullptr;
+  CFStringRef ca_string = nullptr;
 
   // Find the key identifier data within the property mess.
   for (CFIndex i = 0; i < CFArrayGetCount((CFArrayRef)ca); i++) {
@@ -120,7 +120,7 @@ std::string genCommonNameProperty(const CFDataRef& ca) {
     }
   }
 
-  if (ca_string == NULL) {
+  if (ca_string == nullptr) {
     // Could not find a CFString reference within the common name array.
     return "";
   }
@@ -167,21 +167,21 @@ CFNumberRef CFNumberCreateCopy(const CFNumberRef& number) {
   unsigned int value;
 
   if (!CFNumberGetValue(number, kCFNumberIntType, &value)) {
-    return NULL;
+    return nullptr;
   }
 
-  copy = CFNumberCreate(NULL, kCFNumberIntType, &value);
+  copy = CFNumberCreate(nullptr, kCFNumberIntType, &value);
   return copy;
 }
 
 CFDataRef CreatePropertyFromCertificate(const SecCertificateRef& cert,
                                         const CFTypeRef& oid) {
   // Set the list of attributes.
-  auto keys = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
+  auto keys = CFArrayCreateMutable(nullptr, 0, &kCFTypeArrayCallBacks);
   CFArrayAppendValue(keys, oid); // SecCertificateOIDs.h
 
   // Request dictionary of dictionaries (one for each attribute).
-  auto certificate_values = SecCertificateCopyValues(cert, keys, NULL);
+  auto certificate_values = SecCertificateCopyValues(cert, keys, nullptr);
   CFRelease(keys);
 
   if (!CFDictionaryContainsKey(certificate_values, oid)) {
@@ -200,7 +200,7 @@ CFDataRef CreatePropertyFromCertificate(const SecCertificateRef& cert,
   // Create copy of the property value, which is an index to owned dict.
   auto property = (CFDataRef)CFDictionaryGetValue(values, kSecPropertyKeyValue);
   if (CFGetTypeID(property) == CFArrayGetTypeID()) {
-    property = (CFDataRef)CFArrayCreateCopy(NULL, (CFArrayRef)property);
+    property = (CFDataRef)CFArrayCreateCopy(nullptr, (CFArrayRef)property);
   } else if (CFGetTypeID(property) == CFNumberGetTypeID()) {
     property = (CFDataRef)CFNumberCreateCopy((CFNumberRef)property);
   } else {
@@ -214,13 +214,13 @@ CFDataRef CreatePropertyFromCertificate(const SecCertificateRef& cert,
 
 CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
                                const CFTypeRef& item_type) {
-  auto keychains = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
+  auto keychains = CFArrayCreateMutable(nullptr, 0, &kCFTypeArrayCallBacks);
   for (const auto& path : paths) {
     genKeychains(path, keychains);
   }
 
   CFMutableDictionaryRef query;
-  query = CFDictionaryCreateMutable(NULL,
+  query = CFDictionaryCreateMutable(nullptr,
                                     0,
                                     &kCFTypeDictionaryKeyCallBacks,
                                     &kCFTypeDictionaryValueCallBacks);

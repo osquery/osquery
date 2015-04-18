@@ -101,7 +101,7 @@ std::string macAsString(const char *addr) {
 std::string macAsString(const struct ifaddrs *addr) {
   std::stringstream mac;
 
-  if (addr->ifa_addr == NULL) {
+  if (addr->ifa_addr == nullptr) {
     // No link or MAC exists.
     return "";
   }
@@ -112,7 +112,7 @@ std::string macAsString(const struct ifaddrs *addr) {
   int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
   ifr.ifr_addr.sa_family = AF_INET;
-  strncpy(ifr.ifr_name, addr->ifa_name, IFNAMSIZ);
+  memcpy(ifr.ifr_name, addr->ifa_name, IFNAMSIZ);
   ioctl(socket_fd, SIOCGIFHWADDR, &ifr);
   close(socket_fd);
 

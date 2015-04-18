@@ -40,8 +40,10 @@ std::string stringFromMIB(const int* oid, size_t oid_size) {
   return result;
 }
 
-void genControlInfoFromOIDString(const std::string& oid_string, QueryData& results,
-                    const std::map<std::string, std::string>& config) {
+void genControlInfoFromOIDString(
+    const std::string& oid_string,
+    QueryData& results,
+    const std::map<std::string, std::string>& config) {
   int request[CTL_DEBUG_MAXID + 2] = {0};
   auto tokens = osquery::split(oid_string, ".");
   if (tokens.size() > CTL_DEBUG_MAXID) {

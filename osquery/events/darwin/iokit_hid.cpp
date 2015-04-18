@@ -25,7 +25,7 @@ REGISTER(IOKitHIDEventPublisher, "event_publisher", "iokit");
 std::string IOKitHIDEventPublisher::getProperty(const IOHIDDeviceRef &device,
                                                 const CFStringRef &property) {
   CFTypeRef value = IOHIDDeviceGetProperty(device, property);
-  if (value == NULL) {
+  if (value == nullptr) {
     return "";
   }
 
@@ -52,7 +52,7 @@ void IOKitHIDEventPublisher::restart() {
   }
 
   // Match anything.
-  IOHIDManagerSetDeviceMatching(manager_, NULL);
+  IOHIDManagerSetDeviceMatching(manager_, nullptr);
 
   auto status = IOHIDManagerOpen(manager_, kIOHIDOptionsTypeNone);
   if (status != kIOReturnSuccess) {
@@ -71,9 +71,9 @@ void IOKitHIDEventPublisher::restart() {
 
   // Register callbacks.
   IOHIDManagerRegisterDeviceMatchingCallback(
-      manager_, IOKitHIDEventPublisher::MatchingCallback, NULL);
+      manager_, IOKitHIDEventPublisher::MatchingCallback, nullptr);
   IOHIDManagerRegisterDeviceRemovalCallback(
-      manager_, IOKitHIDEventPublisher::RemovalCallback, NULL);
+      manager_, IOKitHIDEventPublisher::RemovalCallback, nullptr);
 
   IOHIDManagerScheduleWithRunLoop(manager_, run_loop_, kCFRunLoopDefaultMode);
   manager_started_ = true;

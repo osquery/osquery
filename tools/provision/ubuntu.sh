@@ -32,8 +32,20 @@ function main_ubuntu() {
   package libbz2-dev
   package devscripts
   package debhelper
-  package clang-3.4
-  package clang-format-3.4
+
+  if [[ $DISTRO = "precise" ]]; then
+    package clang-3.4
+    package clang-format-3.4
+  else
+    package clang-3.5
+    package clang-format-3.5
+
+    sudo ln -sf /usr/bin/clang-3.5 /usr/bin/clang
+    sudo ln -sf /usr/bin/clang++-3.5 /usr/bin/clang++
+    sudo ln -sf /usr/bin/clang-format-3.5 /usr/bin/clang-format
+    sudo ln -sf /usr/bin/llvm-config-3.5 /usr/bin/llvm-config
+  fi
+
   package librpm-dev
   package libdpkg-dev
   package libapt-pkg-dev

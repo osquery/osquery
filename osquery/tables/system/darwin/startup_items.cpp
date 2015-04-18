@@ -77,7 +77,7 @@ Status parseAliasData(const std::string& data, std::string& result) {
   }
 
   auto url = CFURLCreateByResolvingBookmarkData(
-      kCFAllocatorDefault, bookmark, 0, NULL, NULL, NULL, NULL);
+      kCFAllocatorDefault, bookmark, 0, nullptr, nullptr, nullptr, nullptr);
   if (url == nullptr) {
     CFRelease(alias);
     CFRelease(bookmark);

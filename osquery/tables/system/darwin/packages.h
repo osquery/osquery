@@ -38,7 +38,7 @@ struct BOMBlockTable {
   // See header for number of non-null blocks
   uint32_t count;
   // First entry must always be a null entry
-  BOMPointer blockPointers[];
+  BOMPointer* blockPointers;
 } __attribute__((packed));
 
 struct BOMTree {
@@ -58,12 +58,12 @@ struct BOMTree {
 struct BOMVar {
   uint32_t index;
   uint8_t length;
-  char name[];
+  char* name;
 } __attribute__((packed));
 
 struct BOMVars {
   uint32_t count;
-  BOMVar list[];
+  BOMVar* list;
 } __attribute__((packed));
 
 struct BOMPathIndices {
@@ -78,7 +78,7 @@ struct BOMPaths {
   uint16_t count;
   uint32_t forward;
   uint32_t backward;
-  BOMPathIndices indices[];
+  BOMPathIndices* indices;
 } __attribute__((packed));
 
 struct BOMPathInfo2 {
@@ -96,7 +96,7 @@ struct BOMPathInfo2 {
     uint32_t devType;
   };
   uint32_t linkNameLength;
-  char linkName[];
+  char* linkName;
 } __attribute__((packed));
 
 struct BOMPathInfo1 {
@@ -108,7 +108,7 @@ struct BOMPathInfo1 {
 struct BOMFile {
   // Parent BOMPathInfo1->id
   uint32_t parent;
-  char name[];
+  char* name;
 } __attribute__((packed));
 
 class BOM {

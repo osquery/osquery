@@ -26,8 +26,9 @@ class CACertsTests : public ::testing::Test {
     CFDataRef data;
 
     raw = base64Decode(getCACertificateContent());
-    data = CFDataCreate(NULL, (const UInt8*)raw.c_str(), (CFIndex)raw.size());
-    cert = SecCertificateCreateWithData(NULL, data);
+    data =
+        CFDataCreate(nullptr, (const UInt8*)raw.c_str(), (CFIndex)raw.size());
+    cert = SecCertificateCreateWithData(nullptr, data);
     CFRelease(data);
   }
 
