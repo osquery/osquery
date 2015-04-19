@@ -179,9 +179,29 @@ class YARAConfigParserPlugin : public ConfigParserPlugin {
   /// Request a single "yara" top level key.
   std::vector<std::string> keys() { return {"yara"}; }
 
-  /// Store the "yara" key rather simply.
+  // Retrieve compiled rules.
+  std::map<std::string, YR_RULES *> rules() { return rules_; }
+
+ private:
+  // Store compiled rules in a map (group => rules).
+  std::map<std::string, YR_RULES *> rules_;
+
+  /// Store the signatures and file_paths and compile the rules.
   Status update(const std::map<std::string, ConfigTree>& config) {
-    data_.add_child("yara", config.at("yara"));
+    Status status;
+    const auto& yara_config = config.at("yara");
+    const auto& signatures = yara_config.get_child("signatures");
+    const auto& file_paths = yara_config.get_child("file_paths");
+    data_.add_child("signatures", signatures);
+    data_.add_child("file_paths", file_paths);
+    for (const auto& element : signatures) {
+      VLOG(1) << "Compiling YARA signature group: " << element.first;
+      status = handleRuleFiles(element.first, element.second, &rules_);
+      if (!status.ok()) {
+        VLOG(1) << "YARA rule compile error: " << status.getMessage();
+        return status;
+      }
+    }
     return Status(0, "OK");
   }
 };
@@ -197,8 +217,6 @@ class YARAEventSubscriber : public FileEventSubscriber {
   Status init();
 
  private:
-  std::map<std::string, YR_RULES *> rules;
-
   /**
    * @brief This exports a single Callback for FSEventsEventPublisher events.
    *
@@ -217,11 +235,12 @@ class YARAEventSubscriber : public FileEventSubscriber {
  * This registers YARAEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
  */
-REGISTER(YARAEventSubscriber, "event_subscriber", "yara_matches");
+REGISTER(YARAEventSubscriber, "event_subscriber", "yara_events");
 
 Status YARAEventSubscriber::init() {
   Status status;
 
+  // XXX: Move into config parser update?
   int result = yr_initialize();
   if (result != ERROR_SUCCESS) {
     LOG(WARNING) << "Unable to initialize YARA (" << result << ")";
@@ -230,34 +249,28 @@ Status YARAEventSubscriber::init() {
 
   ConfigDataInstance config;
   const auto& yara_config = config.getParsedData("yara");
+  const auto& yara_paths = yara_config.get_child("file_paths");
   const auto& file_map = config.files();
-
-  // yara_config has a key of the category and a vector of rule files to load.
-  // file_map has a key of the category and a vector of files to watch. Use
-  // yara_config to get the category and subscribe to each file in file_map
-  // with that category. Then load each YARA rule file from yara_config.
-  for (const auto& element : yara_config.get_child("yara")) {
+  for (const auto& yara_path_element : yara_paths) {
     // Subscribe to each file for the given key (category).
-    if (file_map.count(element.first) == 0) {
+    if (file_map.count(yara_path_element.first) == 0) {
+      LOG(WARNING) << "Key in yara.file_paths not found in file_paths: " <<
+        yara_path_element.first;
       continue;
     }
 
-    for (const auto& file : file_map.at(element.first)) {
+    for (const auto& file : file_map.at(yara_path_element.first)) {
       VLOG(1) << "Added YARA listener to: " << file;
       auto mc = createSubscriptionContext();
       mc->path = file;
       mc->mask = FILE_CHANGE_MASK;
       mc->recursive = true;
-      subscribe(&YARAEventSubscriber::Callback, mc, (void*)(&element.first));
-    }
-
-    // Attempt to compile the rules for this category.
-    status = handleRuleFiles(element.first, element.second, &rules);
-    if (!status.ok()) {
-      VLOG(1) << "YARA rule compile error: " << status.getMessage();
-      return status;
+      subscribe(&YARAEventSubscriber::Callback,
+                mc,
+                (void*)(&yara_path_element.first));
     }
   }
+
   return Status(0, "OK");
 }
 
@@ -280,20 +293,37 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   r["count"] = INTEGER(0);
   r["matches"] = std::string("");
 
-  int result = yr_rules_scan_file(rules[r.at("category")],
-                                  ec->path.c_str(),
-                                  SCAN_FLAGS_FAST_MODE,
-                                  YARACallback,
-                                  (void*)&r,
-                                  0);
+  ConfigDataInstance config;
+  const auto& parser = config.getParser("yara");
+  if (parser == nullptr)
+    return Status(1, "ConfigParser unknown.");
+  const auto& yaraParser = std::static_pointer_cast<YARAConfigParserPlugin>(parser);
+  auto rules = yaraParser->rules();
 
-  if (result != ERROR_SUCCESS) {
-    return Status(1, "YARA error: " + std::to_string(result));
+  // Use the category as a lookup into the yara file_paths. The value will be
+  // a list of signature groups to scan with.
+  auto category = r.at("category");
+  const auto& yara_config = config.getParsedData("yara");
+  const auto& yara_paths = yara_config.get_child("file_paths");
+  const auto& sig_groups = yara_paths.find(category);
+  for (const auto& rule : sig_groups->second) {
+    const std::string group = rule.second.data();
+    int result = yr_rules_scan_file(rules[group],
+                                    ec->path.c_str(),
+                                    SCAN_FLAGS_FAST_MODE,
+                                    YARACallback,
+                                    (void*)&r,
+                                    0);
+
+    if (result != ERROR_SUCCESS) {
+      return Status(1, "YARA error: " + std::to_string(result));
+    }
   }
 
   if (ec->action != "") {
     add(r, ec->time);
   }
+
   return Status(0, "OK");
 }
 }
