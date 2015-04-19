@@ -230,6 +230,20 @@ const pt::ptree& Config::getParsedData(const std::string& key) {
   return parser->data_;
 }
 
+const ConfigPluginRef Config::getParser(const std::string& key) {
+  if (!Registry::exists("config_parser", key)) {
+    return ConfigPluginRef();
+  }
+
+  const auto& item = Registry::get("config_parser", key);
+  const auto parser = std::static_pointer_cast<ConfigParserPlugin>(item);
+  if (parser == nullptr || parser.get() == nullptr) {
+    return ConfigPluginRef();
+  }
+
+  return parser;
+}
+
 Status Config::getMD5(std::string& hash_string) {
   // Request an accessor to our own config, outside of an update.
   ConfigDataInstance config;
