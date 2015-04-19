@@ -12,10 +12,11 @@ pages:
 
 - ['installation/install-osx.md', 'Installation', 'Install on OS X']
 - ['installation/install-linux.md', 'Installation', 'Install on Linux']
-- ['installation/cli-flags.md', 'Installation', 'CLI Flags']
+- ['installation/cli-flags.md', 'Installation', 'Command Line Flags']
 - ['installation/custom-packages.md', 'Installation', 'Optional: Custom Packages']
 
 - ['deployment/configuration.md', 'Deployment', 'Configuration']
+- ['deployment/logging.md', 'Deployment', 'Logging']
 - ['deployment/log-aggregation.md', 'Deployment', 'Log Aggregation']
 - ['deployment/performance-safety.md', 'Deployment', 'Performance Safety']
 - ['deployment/anomaly-detection.md', 'Deployment', 'Anomaly Detection']

@@ -25,19 +25,19 @@ We can use osquery's log aggregation capabilities to easily pinpoint when the at
 
 ## Looking at the logs
 
-Using the [Log Aggregation Guide](deployment/log-aggregation), you will receive log lines like the following in your datastore (ElasticSearch, Splunk, etc):
+Using the [log aggregation guide](deployment/log-aggregation), you will receive log lines like the following in your datastore (ElasticSearch, Splunk, etc):
 
 ```json
 {
     "name": "startup_items",
-    "action":  "added", 
-    "columns": { 
-      "name":  "Phone.app", 
+    "action":  "added",
+    "columns": {
+      "name":  "Phone.app",
       "path":  "/Applications/Phone.app"
     },
-    "hostname":  "ted-osx.local", 
+    "hostname":  "ted-osx.local",
     "calendarTime":  "Fri Nov  7 09:42:42 2014",
-    "unixTime":  1415382685 
+    "unixTime":  1415382685
 }
 ```
 
@@ -50,7 +50,7 @@ In November, Palo Alto Networks [discovered](http://researchcenter.paloaltonetwo
 If you have osquery deployed, you can search for their static IOCs (indicators of compromise):
 
 ```SQL
-SELECT * 
+SELECT *
   FROM launchd
   WHERE path = '/Library/LaunchDaemons/com.apple.machook_damon.plist'
   OR path = '/Library/LaunchDaemons/com.apple.globalupdate.plist';

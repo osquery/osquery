@@ -1,9 +1,9 @@
 An osquery deployment consists of:
 
-* installing the tools for [OS X](../installation/install-osx) or [Linux](../installation/install-linux)
-* reviewing the [osqueryd](../introduction/using-osqueryd) introduction
-* configuring and starting the osqueryd service (this page)
-* managing and [collecting](deployment/log-aggregation) the query results
+* Installing the tools for [OS X](../installation/install-osx) or [Linux](../installation/install-linux)
+* Reviewing the [osqueryd](../introduction/using-osqueryd) introduction
+* Configuring and starting the osqueryd service (this page)
+* Managing and [collecting](deployment/log-aggregation) the query results
 
 In the future, osquery tools may allow for **ad-hoc** or distributed queries
 that are not part of the configured query schedule and return results
@@ -12,23 +12,58 @@ a query schedule from a configuration.
 
 ## Configuration components
 
-The osquery "configuration", as outlined in the osqueryd introduction, uses
-a config plugin. This plugin is a config retrieval method and is set to "filesystem" by default.
+The osquery "configuration" is read from a config plugin. This plugin is a data retrieval method and is set to **filesystem** by default.
 Other retrieval and run-time updating methods may include an HTTL/TLS request.
-In each case the response data must always be JSON-formatted.
+In each case the response data must be JSON-formatted.
 
 There are several components to a configuration:
 
-* daemon options or settings
-* the query schedule
-* file change monitoring sets
-* yara signature sets
+* Daemon options and feature settings
+* Query Schedule: the set of SQL queries and intervals
+* File Change Monitoring: categories and paths of monitored files and directories
 * (insert new feature that requires a configuration here!)
 
 There are also "initialization" parameters that control how osqueryd is launched.
 These parameters only make sense as command-line arguments since they are used
-before a configuration plugin is selected. See the [CLI flags](../installation/cli-flags)
+before a configuration plugin is selected. See the [command line flags](../installation/cli-flags)
 overview for a complete list of these parameters.
+
+The default config plugin, **filesystem**, reads from a file and optional directory ".d" based on the filename.
+
+* Linux: **/etc/osquery/osquery.conf** and **/etc/osquery/osquery.conf.d/**
+* Mac OS X: **/var/osquery/osquery.conf** and **/var/osquery/osquery.conf.d/**
+
+You may override the **filesystem** plugin's path using `--config_path=/path/to/osquery.conf`. And you may use the ".d/" directory search path based on that custom location.
+
+Here is an example config that includes options and the query schedule:
+
+```json
+{
+  "options": {
+    "host_identifier": "hostname",
+    "schedule_splay_percent": 10
+  },
+  "schedule": {
+    "macosx_kextstat": {
+      "query": "SELECT * FROM kernel_extensions;",
+      "interval": 10
+    },
+    "foobar": {
+      "query": "SELECT foo, bar, pid FROM foobar_table;",
+      "interval": 600
+    }
+  }
+}
+```
+
+This config tells osqueryd to schedule two queries, **macosx_kextstat** and **foobar**:
+
+* the schedule keys must be unique
+* the "interval" specifies query frequency, in seconds
+
+The first query will document changes to an OS X host's kernel extensions, with a query interval of 10 seconds. Consider using osquery's [performance tooling](deployment/performance-safety) to understand the performance impact for each query.
+
+The results of your query are cached on disk via [RocksDB](http://rocksdb.org/). On first query run, all of the results are stored in RocksDB. On subsequent runs, only result-set changes are logged to RocksDB.
 
 ## Chef Configuration
 

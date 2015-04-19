@@ -71,7 +71,7 @@ osquery does not require a kernel driver currently.
 There are medium priority plans to extend table data collection into the kernel
 as well as use kernel frameworks to protect the daemon and log data.
 
-We include an optional [kernel driver](https://github.com/facebook/osquery/wiki/Linux-Kernel) that implements an example osquery table.
+We include an optional [kernel driver](../deployment/kernel-linux) that implements an example osquery table.
 
 \* You may also set a different config plugin using `/etc/osquery/osquery.flags`.<br />
 \** We do not recommend using the latest/unstable package as it is built

@@ -1,14 +1,14 @@
-The osquery "public API" or SDK is the set of osquery headers and a subset of the source "cpp" files implementing what we call osquery "core". The core code can be thought of as the framework, it's almost everything except for the SQLite code and most table implementations. The public headers can be found in [osquery/include/osquery/](https://github.com/facebook/osquery/tree/master/include/osquery).
+The osquery "public API" or SDK is the set of osquery headers and a subset of the source "cpp" files implementing what we call osquery **core**. The core code can be thought of as the framework or platform, it is everything except for the SQLite code and most table implementations. The public headers can be found in [osquery/include/osquery/](https://github.com/facebook/osquery/tree/master/include/osquery).
 
-osquery is organized into a "core", "additional", and "testing" during a default build from source. We call the set of public headers implementing "core" the 'osquery SDK'. This SDK can be used to build osquery outside of our CMake build system with a minimum set of dependencies. This organization better isolates OS API dependencies from development tools and libraries and provides a logical separation between code needed for extensions and module compiling.
+osquery is organized into a **core**, **additional**, and **testing** during a default build from source. We call the set of public headers implementing **core** the 'osquery SDK'. This SDK can be used to build osquery outside of our CMake build system with a minimum set of dependencies. This organization better isolates OS API dependencies from development tools and libraries and provides a logical separation between code needed for extensions and module compiling.
 
-The public API and SDK headers are documented via doxygen. To generate web-based documentation, you'll need to install doxygen, run `make docs` from the repository root, and open "./build/docs/html/index.html". 
+The public API and SDK headers are documented via **doxygen**. To generate web-based documentation, you will need to install doxygen, run `make docs` from the repository root, then open *./build/docs/html/index.html*.
 
 ## Extensions
 
-Extensions are separate processes built using osquery "core" designed to register one or more plugins. An extension may be compiled and linked using an external build system, against proprietary code, and will be version-compatible with our publicly-built binary packages on [https://osquery.io/downloads](https://osquery.io/downloads).
+Extensions are separate processes built using osquery **core** designed to register one or more plugins. An extension may be compiled and linked using an external build system, against proprietary code, and will be version-compatible with our publicly-built binary packages on [https://osquery.io/downloads](https://osquery.io/downloads).
 
-osquery extensions should statically link the "core" code and use the `<osquery/sdk.h>` helper include file. Let's walk through a basic example extension (source for [example_extension.cpp](https://github.com/facebook/osquery/blob/master/osquery/examples/example_extension.cpp)):
+osquery extensions should statically link the **core** code and use the `<osquery/sdk.h>` helper include file. Let's walk through a basic example extension (source for [example_extension.cpp](https://github.com/facebook/osquery/blob/master/osquery/examples/example_extension.cpp)):
 
 ```cpp
 // Note 1: Include the sdk.h helper.
@@ -17,7 +17,7 @@ osquery extensions should statically link the "core" code and use the `<osquery/
 using namespace osquery;
 
 // Note 2: Define at least one plugin.
-class ExampleTable : public tables::TablePlugin {
+class ExampleTablePlugin : public tables::TablePlugin {
  private:
   tables::TableColumns columns() const {
     return {{"example_text", "TEXT"}, {"example_integer", "INTEGER"}};
@@ -35,7 +35,7 @@ class ExampleTable : public tables::TablePlugin {
 };
 
 // Note 3: Use REGISTER_EXTERNAL to define your plugin.
-REGISTER_EXTERNAL(ExampleTable, "table", "example");
+REGISTER_EXTERNAL(ExampleTablePlugin, "table", "example");
 
 int main(int argc, char* argv[]) {
   // Note 4: Start logging, threads, etc.
@@ -59,7 +59,7 @@ The osqueryi or osqueryd processes start an "extension manager" thrift service t
 
 ## Thrift API
 
-[Thrift](https://thrift.apache.org/) is a code-generation/cross-language service development framework. osquery uses thrift to allow plugin extensions for config retrieval, log export, table implementations, event subscribers, and event publishers. We also use thrift to wrap our SQL implementation using SQLite. 
+[Thrift](https://thrift.apache.org/) is a code-generation/cross-language service development framework. osquery uses thrift to allow plugin extensions for config retrieval, log export, table implementations, event subscribers, and event publishers. We also use thrift to wrap our SQL implementation using SQLite.
 
 **Extension API**
 
