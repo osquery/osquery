@@ -238,7 +238,7 @@ function package() {
       sudo apt-get install $1 -y
     fi
   elif [ $OS = "centos" ] || [ $OS = "rhel" ]; then
-    if [[ -n "$(rpm -qa | grep $1)" ]]; then
+    if [[ ! -n "$(rpm -V $1)" ]]; then
       log "$1 is already installed. skipping."
     else
       log "installing $1"

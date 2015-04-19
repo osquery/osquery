@@ -2,17 +2,11 @@ SQL tables are used to represent abstract operating system concepts, such as run
 
 A table can be used in conjunction with other tables via operations like sub-queries and joins. This allows for a rich data exploration experience. While osquery ships with a default set of tables, osquery provides an API that allows you to create new tables.
 
-You can explore current tables: [https://osquery.io/tables](https://osquery.io/tables)
-
-Tables that are up for grabs in terms of development can be found on Github issues using the "virtual tables" + "[up for grabs tag](https://github.com/facebook/osquery/issues?q=is%3Aopen+is%3Aissue+label%3A%22virtual+tables%22)".
+You can explore current tables: [https://osquery.io/tables](https://osquery.io/tables). Tables that are up for grabs in terms of development can be found on Github issues using the "virtual tables" + "[up for grabs tag](https://github.com/facebook/osquery/issues?q=is%3Aopen+is%3Aissue+label%3A%22virtual+tables%22)".
 
 ## New Table Walkthrough
 
-Let's walk through an exercise where we build a 'time' table. The table will have one row, and that row will have three columns:
-
-- hour
-- minute
-- second
+Let's walk through an exercise where we build a 'time' table. The table will have one row, and that row will have three columns: hour, minute, and second.
 
 Column values (a single row) will be dynamically computed at query time.
 
@@ -20,52 +14,40 @@ Column values (a single row) will be dynamically computed at query time.
 
 Under the hood, osquery uses libraries from SQLite core to create "virtual tables". The default API for creating virtual tables is relatively complex. osquery has abstracted this complexity away, allowing you to write a simple table declaration.
 
-To make table-creation simple osquery uses a "table spec" file.
+To make table-creation simple osquery uses a *table spec* file.
 The current specs are organized by operating system in the [osquery/tables/specs](https://github.com/facebook/osquery/tree/master/osquery/tables/specs) source folder.
 For our time exercise, a spec file would look like the following:
 
 ```python
-# use the table_name function to define what the name of
-# your table is
+# Use the table_name function to define a virtual table name.
 table_name("time")
 
-# provide a short "one line" description
+# Provide a short "one line" description.
 description("Returns the current hour, minutes, and seconds.")
 
-# define your schema using the schema function, which 
-# accepts a list of Column instances
+# Define your schema, which accepts a list of Column instances at minimum.
+# You may also describe foreign keys and "action" columns (more later).
 schema([
-    # each column can be creating inline for maximum
-    # readability. declare the name of your column
-    # as well as the type of the column. Currently
-    # supported options are INTEGER, BIGINT, TEXT, 
-    # DATE and DATETIME
+    # Declare the name, type, and documentation description for each column.
+    # The supported types are INTEGER, BIGINT, TEXT, DATE, and DATETIME.
     Column("hour", INTEGER, "The current hour"),
     Column("minutes", INTEGER, "The current minutes past the hour"),
     Column("seconds", INTEGER, "The current seconds past the minute"),
 ])
 
-# use the implementation function to declare where in
-# osquery codebase your table is implemented. the string
-# that you pass to this function is made up of two parts
-# separated by an @ symbol. the first part is the name 
-# of the implementation file and the second part is the
-# name of the function that implements the table.
-#
-# the general pattern here is:
-#  "{table_name}@gen{TableName}"
-implementation("utility/time@genTime")
+# Name of the C++ function that implements the table: "gen{TableName}"
+implementation("genTime")
 ```
 
-You can leave the comments out in your production spec. Shoot for simplicity, do not go "hard in the paint" and do things like inheritance for Column objects, loops in your table spec, etc.
+You can leave the comments out in your production spec. Shoot for simplicity, do NOT go "hard in the paint" and do things like inheritance for Column objects, loops in your table spec, etc.
 
 You might wonder "this syntax looks similar to Python?". Well, it is! The build process actually parses the spec files as Python code and meta-programs necessary C/C++ implementation files.
 
 **Where do I put the spec?**
 
-You may be wondering how osquery handles cross-platform support while still allowing operating-system specific tables. The osquery build process takes care of this by only generating the relevant code based on a directory structure convention. 
+You may be wondering how osquery handles cross-platform support while still allowing operating-system specific tables. The osquery build process takes care of this by only generating the relevant code based on a directory structure convention.
 
-- Cross-platform: [osquery/tables/specs/x/](https://github.com/facebook/osquery/tree/master/osquery/tables/specs/x)
+- Cross-platform: [osquery/tables/specs/](https://github.com/facebook/osquery/tree/master/osquery/tables/specs/)
 - Mac OS X: [osquery/tables/specs/darwin/](https://github.com/facebook/osquery/tree/master/osquery/tables/specs/darwin)
 - General Linux: [osquery/tables/specs/linux/](https://github.com/facebook/osquery/tree/master/osquery/tables/specs/linux)
 - Ubuntu: [osquery/tables/specs/ubuntu/](https://github.com/facebook/osquery/tree/master/osquery/tables/specs/ubuntu)
@@ -75,9 +57,9 @@ Note: the CMake build provides custom defines for each platform and platform ver
 
 **Creating your implementation**
 
-As indicated in the spec file, our implementation will be in a function called `genTime` in the file "osquery/tables/utility/time.cpp".
+As indicated in the spec file, our implementation will be in a function called `genTime`. Since this is a very general table and should compile on all supported operating systems we can place it in *osquery/tables/utility/time.cpp*. The directory *osquery/table/* contains the set of *specs* and implementation categories. Place implementations in the corresponding category using your best judgement.
 
-Here is that code:
+Here is that code for *osquery/tables/utility/time.cpp*:
 
 ```cpp
 // Copyright 2004-present Facebook. All Rights Reserved.
@@ -115,7 +97,7 @@ Key points to remember:
 
 The `QueryContext` data type is osquery's abstraction of the underlying SQL engine's query parsing. It is defined in [include/osquery/tables.h](https://github.com/facebook/osquery/blob/master/include/osquery/tables.h).
 
-The most important use of the context is query predicate constraints (e.g., `WHERE col = 'value'`). Some tables MUST have a predicate constraint, others may optionally use the constraints to increase performance. 
+The most important use of the context is query predicate constraints (e.g., `WHERE col = 'value'`). Some tables MUST have a predicate constraint, others may optionally use the constraints to increase performance.
 
 Examples:
 
@@ -136,7 +118,7 @@ Examples:
       continue;
     }
     [...]
-  } 
+  }
 ```
 
 ## SQL data types
@@ -147,7 +129,7 @@ Data types like `QueryData`, `Row`, `DiffResults`, etc. are osquery's built-in d
 
 `QueryData` is just a `typedef` for a `std::vector<Row>`. Query data is just a list of rows. Simple enough.
 
-To populate the data that will be returned to the user at runtime, your implementation function must generate the data that you'd like to display and populate a `QueryData` map with the appropriate `Rows`. Then, just return the `QueryData`. 
+To populate the data that will be returned to the user at runtime, your implementation function must generate the data that you'd like to display and populate a `QueryData` map with the appropriate `Rows`. Then, just return the `QueryData`.
 
 In our case, we used system APIs to create a struct of type `tm` which has fields such as `tm_hour`, `tm_min` and `tm_sec` which represent the current time. We can then create our three entries in our `Row` variable: hour, minutes and seconds. Then we push that single row onto the `QueryData` variable and return it. Note that if we wanted our table to have many rows (a more common use-case), we would just push back more `Row` maps onto `results`.
 

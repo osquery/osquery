@@ -1,4 +1,4 @@
-For details on how osqueryd schedules queries and loads information from a config, see [using-osqueryd](../introduction/using-osqueryd).
+For details on how osqueryd schedules queries and loads information from a config, see the [configuration](../deployment/configuration) deployment guide.
 
 You may distribute configurations in your environment differently than Facebook. To support all environments, the way that osqueryd goes about retrieving configurations is completely pluggable and configurable.
 
@@ -47,14 +47,14 @@ There are 5 parts of a config plugin.
 
 - Include the plugin macros as well as command line argument macros.
 - If your config requires customization expose it as arguments.
-- Inherit from `ConfigPlugin` and implement: `osquery::Status genConfig(std::map<std::string, std::string>&)`.
+- Inherit from **ConfigPlugin** and implement: **osquery::Status genConfig(std::map<std::string, std::string>&)**.
 - Return an osquery Status and map of config sources to JSON-encoded strings.
 - Register the plugin using a string-identifier.
 
-The filesystem plugin is very very simple the config plugin architecture expects config plugins to yield valid JSON. 
+The filesystem plugin is very very simple the config plugin architecture expects config plugins to yield valid JSON.
 
 ## Using the plugin
 
-Add the source to "osquery/config/plugins/CMakeLists.txt" and it will be compiled and linked.
+Add the source to *osquery/config/plugins/CMakeLists.txt* and it will be compiled and linked.
 
-Now when starting `osqueryd` you may use `--config_plugin=yourconfigpluginname` where the name is the string identifier used in `REGISTER`.
+Now when starting `osqueryd` you may use `--config_plugin=yourconfigpluginname` where the name is the string identifier used in **REGISTER**.

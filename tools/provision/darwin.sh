@@ -25,4 +25,5 @@ function main_darwin() {
   package gflags
   package thrift
   package yara
+  package doxygen
 }

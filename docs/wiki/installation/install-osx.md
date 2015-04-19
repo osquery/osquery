@@ -1,6 +1,6 @@
 ## Homebrew
 
-The easiest way to install osquery on OS X is via Homebrew. Check the [Homebrew](http://brew.sh/) homepage for installation instructions. 
+The easiest way to install osquery on OS X is via Homebrew. Check the [Homebrew](http://brew.sh/) homepage for installation instructions.
 
 Run the following:
 
@@ -19,7 +19,7 @@ $ brew upgrade osquery
 ## OS X Package
 
 If you plan to manage an enterprise osquery deployment, the easiest installation method is
-an OS X package/installer. You will have to manage/deploy updates.
+an OS X package installer. You will have to manage and deploy updates.
 
 Each osquery tag (release) builds an OS X package:
 [osquery.io/downloads](http://osquery.io/downloads/).

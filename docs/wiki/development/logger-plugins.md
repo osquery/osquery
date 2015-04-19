@@ -1,8 +1,10 @@
-For details on how osqueryd schedules queries and loads information from a config, see [using-osqueryd](../introduction/using-osqueryd).
+For details on how osqueryd schedules queries and loads information from a config, see the [configuration](../deployment/configuration) deployment guide.
 
-If you'd like to use services like [scribe](https://github.com/facebookarchive/scribe) or [flume](http://flume.apache.org/), you need to write a C++ function that consumes/handles a string argument.
+If you would like to use services like [scribe](https://github.com/facebookarchive/scribe) or [flume](http://flume.apache.org/), you need to write a C++ function that consumes/handles a string argument.
 
-Consider the following example for logging results to the application's info log:
+## Example: glog logger
+
+This following is a overly simplified logger plugin that writes results to a glog info line.
 
 ```cpp
 #include <osquery/logger.h>
@@ -10,7 +12,7 @@ Consider the following example for logging results to the application's info log
 
 namespace osquery {
 
-class GlogPlugin : public LoggerPlugin {
+class GlogLoggerPlugin : public LoggerPlugin {
  public:
   Status logString(const std::string& message) {
     LOG(INFO) << message;
@@ -20,10 +22,14 @@ class GlogPlugin : public LoggerPlugin {
   virtual ~GlogPlugin() {}
 };
 
-REGISTER(GlogPlugin, "logger", "glog");
+REGISTER(GlogLoggerPlugin, "logger", "glog");
 }
 ```
 
-Essentially, you're just implementing `logString`.
+Essentially, you are just implementing a **logString** method. When the daemon identifies a change to a query schedule it will call the active logger plugin's **logString** method after converting the change details into JSON.
 
-Once you you have built a logger plugin, it's automatically built into the available options for `--logger_plugin` as a result of your `REGISTER` call. That's it.
+## Using the plugin
+
+Add the source to *osquery/logger/plugins/CMakeLists.txts* and it will be compiled and linked.
+
+Now when starting osqueryd you may use `--logger_plugin=glog` where the name is the string identifier used in **REGISTER**.

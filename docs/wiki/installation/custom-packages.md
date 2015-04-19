@@ -55,7 +55,7 @@ You can now use your existing package distribution system ([JAMF](http://www.jam
 
 ### Custom LaunchDaemon
 
-If you want to modify the command-line arguments used to start osquery, copy and modify the [LaunchDaemon](https://github.com/facebook/osquery/blob/master/tools/com.facebook.osqueryd.plist) which is included with this repository to suit your liking.
+If you want to modify the command-line arguments used to start osqueryd, copy and modify the [LaunchDaemon](https://github.com/facebook/osquery/blob/master/tools/com.facebook.osqueryd.plist), which is included with this repository, to suit your liking.
 
 When you run `make_osx_package.sh`, include a `-l`/`--launchd-path` flag which indicates the path of your new LaunchDaemon. If specified, this will be used instead of the default LaunchDaemon. For example:
 
@@ -64,7 +64,7 @@ $ ./tools/deployment/make_osx_package.sh -c /internal/osquery/osquery.conf \
   -l /internal/osquery/com.facebook.osqueryd.plist
 ```
 
-### Removing the LaunchdDaemon
+### Removing the LaunchDaemon
 
 Perhaps you just want to deploy the osquery binaries via a pkg and you'd like to manage the scheduling of osqueryd via some other mechanism. To do this, when you run `make_osx_package.sh`, include a `-n`/`--no-launchd` flag.
 

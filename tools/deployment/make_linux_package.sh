@@ -16,7 +16,7 @@ export PATH="$PATH:/usr/local/bin"
 
 source $SCRIPT_DIR/../lib.sh
 
-PACKAGE_VERSION=`git describe --tags HEAD`
+PACKAGE_VERSION=`git describe --tags HEAD || echo 'unknown-version'`
 PACKAGE_ARCH=`uname -m`
 PACKAGE_ITERATION=""
 PACKAGE_TYPE=""
