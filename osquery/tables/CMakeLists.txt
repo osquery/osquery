@@ -59,6 +59,11 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_tables_utility
   ${OSQUERY_UTILITY_TABLES}
 )
 
+file(GLOB OSQUERY_UTILS "utils/*.cpp")
+ADD_OSQUERY_LIBRARY(TRUE osquery_utils
+  ${OSQUERY_UTILS}
+)
+
 ADD_OSQUERY_TEST(FALSE etc_hosts_tests networking/tests/etc_hosts_tests.cpp)
 if(APPLE)
   ADD_OSQUERY_TEST(FALSE apps_tests system/darwin/tests/apps_tests.cpp)
