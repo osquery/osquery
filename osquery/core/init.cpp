@@ -220,7 +220,7 @@ void Initializer::initWorker(const std::string& name) {
       memset((*argv_)[i], 0, strlen((*argv_)[i]));
     }
   }
-  strncpy((*argv_)[0], name.c_str(), name_size);
+  memcpy((*argv_)[0], name.c_str(), name_size);
 
   // Start a watcher watcher thread to exit the process if the watcher exits.
   Dispatcher::getInstance().addService(

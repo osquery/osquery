@@ -53,7 +53,7 @@ void genIOMediaDevice(const io_service_t& device,
   // This is the IOKit name, which is the device's label.
   io_name_t name;
   auto kr = IORegistryEntryGetName(device, name);
-  if (kr == KERN_SUCCESS && name != nullptr) {
+  if (kr == KERN_SUCCESS && (char*)name != nullptr) {
     r["label"] = std::string(name);
   }
 

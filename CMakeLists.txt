@@ -139,13 +139,13 @@ add_definitions(
 
 if(APPLE)
   message("-- Building for OS X")
-elseif(OSQUERY_BUILD_OS STREQUAL "UBUNTU")
+elseif(OSQUERY_BUILD_PLATFORM STREQUAL "ubuntu")
   set(UBUNTU TRUE)
   message("-- Building for Ubuntu")
-elseif(OSQUERY_BUILD_OS STREQUAL "CENTOS")
+elseif(OSQUERY_BUILD_PLATFORM STREQUAL "centos")
   set(CENTOS TRUE)
   message("-- Building for CentOS")
-elseif(OSQUERY_BUILD_OS STREQUAL "RHEL")
+elseif(OSQUERY_BUILD_PLATFORM STREQUAL "rhel")
   set(RHEL TRUE)
   message("-- Building for RHEL")
 elseif(FREEBSD)
@@ -198,8 +198,8 @@ if(DOXYGEN_FOUND)
   add_custom_target(
     docs
     echo "PROJECT_NUMBER=${OSQUERY_BUILD_VERSION}" |
-      cat ${CMAKE_SOURCE_DIR}/docs/Doxyfile - |
-      "${DOXYGEN_EXECUTABLE}" -
+      cat ${CMAKE_SOURCE_DIR}/Doxyfile - |
+      "${DOXYGEN_EXECUTABLE}" -;
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Generating API documentation with Doxygen" VERBATIM
   )

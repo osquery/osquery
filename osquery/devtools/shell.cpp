@@ -1013,10 +1013,12 @@ static void explain_data_prepare(struct callback_data *p, sqlite3_stmt *pSql) {
 ** Free the array allocated by explain_data_prepare().
 */
 static void explain_data_delete(struct callback_data *p) {
-  sqlite3_free(p->aiIndent);
-  p->aiIndent = 0;
-  p->nIndent = 0;
-  p->iIndent = 0;
+  if (p != nullptr) {
+    sqlite3_free(p->aiIndent);
+    p->aiIndent = 0;
+    p->nIndent = 0;
+    p->iIndent = 0;
+  }
 }
 
 /*
@@ -1187,7 +1189,7 @@ static int shell_exec(
     }
   } /* end while */
 
-  if (pArg->mode == MODE_Pretty) {
+  if (pArg && pArg->mode == MODE_Pretty) {
     if (osquery::FLAGS_json) {
       osquery::jsonPrint(pArg->prettyPrint->results);
     } else {
@@ -1871,6 +1873,10 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
 */
 static int line_contains_semicolon(const char *z, int N) {
   int i;
+  if (z == nullptr) {
+    return 0;
+  }
+
   for (i = 0; i < N; i++) {
     if (z[i] == ';')
       return 1;
@@ -2013,8 +2019,10 @@ static int process_input(struct callback_data *p, FILE *in) {
       int i;
       for (i = 0; zLine[i] && IsSpace(zLine[i]); i++) {
       }
-      assert(nAlloc > 0 && zSql != 0);
-      memcpy(zSql, zLine + i, nLine + 1 - i);
+      assert(nAlloc > 0 && zSql != nullptr);
+      if (zSql != nullptr) {
+        memcpy(zSql, zLine + i, nLine + 1 - i);
+      }
       startline = lineno;
       nSql = nLine - i;
     } else {

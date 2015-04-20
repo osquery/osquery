@@ -5,6 +5,8 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_config
 ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
   update.cpp
   plugins/filesystem.cpp
+  plugins/http.cpp
 )
 
 ADD_OSQUERY_TEST(FALSE config_tests config_tests.cpp)
+ADD_OSQUERY_TEST(FALSE config_http_tests plugins/http_tests.cpp)

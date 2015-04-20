@@ -6,6 +6,7 @@
 declare -a BLACKLIST=(
     "logging.cc"
     "logging_unittest.cc"
+    "signalhandler_unittest.cc"
   )
 
 for BL_ITEM in ${BLACKLIST[@]}; do

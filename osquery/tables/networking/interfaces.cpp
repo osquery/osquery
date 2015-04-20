@@ -38,7 +38,7 @@ void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
   Row r;
   r["interface"] = std::string(addr->ifa_name);
 
-  // Address and mask will appear everytime.
+  // Address and mask will appear every time.
   if (addr->ifa_addr != nullptr) {
     r["address"] = ipAsString((struct sockaddr *)addr->ifa_addr);
   }
@@ -80,7 +80,7 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
     int fd = socket(AF_INET, SOCK_DGRAM, 0); 
     if (fd >= 0) {
       struct ifreq ifr;
-      strncpy(ifr.ifr_name, addr->ifa_name, IFNAMSIZ);
+      memcpy(ifr.ifr_name, addr->ifa_name, IFNAMSIZ);
       if (ioctl(fd, SIOCGIFMTU, &ifr) >= 0) {
         r["mtu"] = BIGINT_FROM_UINT32(ifr.ifr_mtu);
       }
@@ -123,7 +123,7 @@ QueryData genInterfaceAddresses(QueryContext &context) {
     return {};
   }
 
-  for (if_addr = if_addrs; if_addr != NULL; if_addr = if_addr->ifa_next) {
+  for (if_addr = if_addrs; if_addr != nullptr; if_addr = if_addr->ifa_next) {
     if (if_addr->ifa_addr->sa_family == AF_INET || if_addr->ifa_addr->sa_family == AF_INET6) {
       genAddressesFromAddr(if_addr, results);
     }
@@ -142,7 +142,7 @@ QueryData genInterfaceDetails(QueryContext &context) {
     return {};
   }
 
-  for (if_addr = if_addrs; if_addr != NULL; if_addr = if_addr->ifa_next) {
+  for (if_addr = if_addrs; if_addr != nullptr; if_addr = if_addr->ifa_next) {
     if (if_addr->ifa_addr->sa_family != AF_INTERFACE) {
       // This interface entry does not describe the link details.
       continue;

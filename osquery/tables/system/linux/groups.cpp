@@ -28,7 +28,7 @@ QueryData genGroups(QueryContext &context) {
   std::set<long> groups_in;
 
   setgrent();
-  while ((grp = getgrent()) != NULL) {
+  while ((grp = getgrent()) != nullptr) {
     if (std::find(groups_in.begin(), groups_in.end(), grp->gr_gid) ==
         groups_in.end()) {
       Row r;

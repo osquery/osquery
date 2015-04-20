@@ -16,14 +16,14 @@ elseif(LINUX)
       "libapt-pkg4.12"
       "libreadline6"
     )
-    if(OSQUERY_BUILD_DISTRO STREQUAL "PRECISE")
+    if(OSQUERY_BUILD_DISTRO STREQUAL "precise")
       set(PACKAGE_ITERATION "1.ubuntu12.04")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6"
         "libudev0"
       )
-    elseif(OSQUERY_BUILD_DISTRO STREQUAL "TRUSTY")
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "trusty")
       set(PACKAGE_ITERATION "1.ubuntu14.04")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
@@ -42,13 +42,13 @@ elseif(LINUX)
       "zlib"
       "rpm-libs"
     )
-    if(OSQUERY_BUILD_DISTRO STREQUAL "CENTOS6")
+    if(OSQUERY_BUILD_DISTRO STREQUAL "centos6")
       set(PACKAGE_ITERATION "1.el6_6.5")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libudev"
       )
-    elseif(OSQUERY_BUILD_DISTRO STREQUAL "CENTOS7")
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "centos7")
       set(PACKAGE_ITERATION "1.el7_7.0")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
@@ -67,13 +67,13 @@ elseif(LINUX)
       "zlib"
       "rpm-libs"
     )
-    if(OSQUERY_BUILD_DISTRO STREQUAL "RHEL6")
+    if(OSQUERY_BUILD_DISTRO STREQUAL "rhel6")
       set(PACKAGE_ITERATION "1.el6_6.5")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libudev"
       )
-    elseif(OSQUERY_BUILD_DISTRO STREQUAL "RHEL7")
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "rhel7")
       set(PACKAGE_ITERATION "1.el7_7.0")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"

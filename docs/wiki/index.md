@@ -12,9 +12,9 @@ If you're interested in **performing ad-hoc queries**, check out [using osqueryi
 
 If you're interested in **extending one of the existing osquery products** or improving core libraries read the developer documentation pages. You should start with "[building the code](development/building)" and "[contributing code](development/contributing-code)".
 
-If you're interest in **using osquery's functionality in your own tool**, check out the [osquery SDK](development/osquery-sdk).
+If you're interested in **using osquery's functionality in your own tool**, check out the [osquery SDK](development/osquery-sdk).
 
 ## Getting help
 
-If you any part of osquery isn't working as expected, please create a [GitHub Issue](https://github.com/facebook/osquery/issues). 
+If you any part of osquery isn't working as expected, please create a [GitHub Issue](https://github.com/facebook/osquery/issues).
 Keep in touch with osquery developers and users in **#osquery** on **freenode**.

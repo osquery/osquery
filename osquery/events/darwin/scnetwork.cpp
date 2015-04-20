@@ -64,7 +64,8 @@ void SCNetworkEventPublisher::addTarget(
 
 void SCNetworkEventPublisher::addHostname(
     const SCNetworkSubscriptionContextRef& sc) {
-  auto target = SCNetworkReachabilityCreateWithName(NULL, sc->target.c_str());
+  auto target =
+      SCNetworkReachabilityCreateWithName(nullptr, sc->target.c_str());
   target_names_.push_back(sc->target);
   addTarget(sc, target);
 }
@@ -84,7 +85,7 @@ void SCNetworkEventPublisher::addAddress(
     addr = (struct sockaddr*)&ip6_addr;
   }
 
-  auto target = SCNetworkReachabilityCreateWithAddress(NULL, addr);
+  auto target = SCNetworkReachabilityCreateWithAddress(nullptr, addr);
   target_addresses_.push_back(sc->target);
   addTarget(sc, target);
 }

@@ -63,11 +63,11 @@ inline std::string getKextLinked(const CFDictionaryRef &value,
     return result;
   }
 
-  auto link_indexes = CFArrayCreateMutableCopy(NULL, count, links);
+  auto link_indexes = CFArrayCreateMutableCopy(nullptr, count, links);
   CFArraySortValues(link_indexes,
                     CFRangeMake(0, count),
                     (CFComparatorFunction)CFNumberCompare,
-                    NULL);
+                    nullptr);
 
   for (int i = 0; i < count; i++) {
     int link;
@@ -115,7 +115,7 @@ QueryData genKernelExtensions(QueryContext &context) {
   QueryData results;
 
   // Populate dict of kernel extensions.
-  CFDictionaryRef dict = KextManagerCopyLoadedKextInfo(NULL, NULL);
+  CFDictionaryRef dict = KextManagerCopyLoadedKextInfo(nullptr, nullptr);
   if (dict == nullptr) {
     return {};
   }

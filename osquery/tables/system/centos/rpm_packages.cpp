@@ -74,8 +74,8 @@ QueryData genRpms(QueryContext& context) {
   }
 
   rpmts ts = rpmtsCreate();
-  match_iterator = rpmtsInitIterator(ts, RPMTAG_NAME, NULL, 0);
-  while ((header = rpmdbNextIterator(match_iterator)) != NULL) {
+  match_iterator = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
+  while ((header = rpmdbNextIterator(match_iterator)) != nullptr) {
     Row r;
     rpmtd td = rpmtdNew();
     r["name"] = getRpmAttribute(header, RPMTAG_NAME, td);

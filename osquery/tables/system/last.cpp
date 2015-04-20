@@ -25,7 +25,7 @@ QueryData genLastAccess(QueryContext& context) {
 #ifdef __APPLE__
   setutxent_wtmp(0); // 0 = reverse chronological order
 
-  while ((ut = getutxent_wtmp()) != NULL) {
+  while ((ut = getutxent_wtmp()) != nullptr) {
 #else
 
 #ifndef __FreeBSD__
@@ -33,7 +33,7 @@ QueryData genLastAccess(QueryContext& context) {
 #endif
   setutxent();
 
-  while ((ut = getutxent()) != NULL) {
+  while ((ut = getutxent()) != nullptr) {
 #endif
 
     Row r;
