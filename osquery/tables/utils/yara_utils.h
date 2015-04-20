@@ -8,6 +8,7 @@
  *
  */
 
+#include <osquery/config.h>
 #include <osquery/tables.h>
 
 #ifdef CONCAT
@@ -24,6 +25,8 @@ void YARACompilerCallback(int error_level,
                           int line_number,
                           const char* message,
                           void* user_data);
+
+Status compileSingleFile(const std::string file, YR_RULES** rule);
 
 Status handleRuleFiles(const std::string& category,
                        const pt::ptree& rule_files,
