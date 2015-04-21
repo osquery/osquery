@@ -16,13 +16,19 @@
 #include <rpm/rpmlib.h>
 #include <rpm/header.h>
 #include <rpm/rpmts.h>
+#include <rpm/rpmfi.h>
 #include <rpm/rpmdb.h>
+#include <rpm/rpmpgp.h>
 
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
+
+// Maximum number of files per RPM.
+#define MAX_RPM_FILES 2048
 
 /**
  * @brief Return a string representation of the RPM tag type.
@@ -38,12 +44,13 @@ namespace tables {
  *
  * @return The string representation of the tag type.
  */
-std::string getRpmAttribute(const Header& header, rpmTag tag, const rpmtd& td) {
+static std::string getRpmAttribute(const Header& header,
+                                   rpmTag tag,
+                                   const rpmtd& td) {
   std::string result;
-
   if (headerGet(header, tag, td, HEADERGET_DEFAULT) == 0) {
     // Intentional check for a 0 = failure.
-    VLOG(3) << "Could not get RPM header flag.";
+    TLOG << "Could not get RPM header flag.";
     return result;
   }
 
@@ -60,22 +67,26 @@ std::string getRpmAttribute(const Header& header, rpmTag tag, const rpmtd& td) {
   return result;
 }
 
-QueryData genRpms(QueryContext& context) {
+QueryData genRpmPackages(QueryContext& context) {
   QueryData results;
-
   // The following implementation uses http://rpm.org/api/4.11.1/
-  Header header;
-  rpmdbMatchIterator match_iterator;
-
   rpmInitCrypto();
   if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
-    LOG(ERROR) << "Cannot read RPM configuration files.";
+    TLOG << "Cannot read RPM configuration files.";
     return results;
   }
 
   rpmts ts = rpmtsCreate();
-  match_iterator = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
-  while ((header = rpmdbNextIterator(match_iterator)) != nullptr) {
+  rpmdbMatchIterator matches;
+  if (context.constraints["name"].exists()) {
+    auto name = (*context.constraints["name"].getAll(EQUALS).begin());
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size());
+  } else {
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
+  }
+
+  Header header;
+  while ((header = rpmdbNextIterator(matches)) != nullptr) {
     Row r;
     rpmtd td = rpmtdNew();
     r["name"] = getRpmAttribute(header, RPMTAG_NAME, td);
@@ -90,10 +101,74 @@ QueryData genRpms(QueryContext& context) {
     results.push_back(r);
   }
 
-  rpmdbFreeIterator(match_iterator);
+  rpmdbFreeIterator(matches);
   rpmtsFree(ts);
-
   rpmFreeCrypto();
+  rpmFreeRpmrc();
+
+  return results;
+}
+
+QueryData genRpmPackageFiles(QueryContext& context) {
+  QueryData results;
+  if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
+    TLOG << "Cannot read RPM configuration files.";
+    return results;
+  }
+
+  rpmts ts = rpmtsCreate();
+  rpmdbMatchIterator matches;
+  if (context.constraints["package"].exists()) {
+    auto name = (*context.constraints["package"].getAll(EQUALS).begin());
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size());
+  } else {
+    matches = rpmtsInitIterator(ts, RPMTAG_NAME, nullptr, 0);
+  }
+
+  Header header;
+  while ((header = rpmdbNextIterator(matches)) != nullptr) {
+    rpmtd td = rpmtdNew();
+    rpmfi fi = rpmfiNew(ts, header, RPMTAG_BASENAMES, RPMFI_NOHEADER);
+    auto file_count = rpmfiFC(fi);
+    if (file_count <= 0 || file_count > MAX_RPM_FILES) {
+      // This package contains no or too many files.
+      rpmfiFree(fi);
+      continue;
+    }
+
+    // Iterate over every file in this package.
+    for (size_t i = 0; rpmfiNext(fi) >= 0 && i < file_count; i++) {
+      Row r;
+      r["package"] = getRpmAttribute(header, RPMTAG_NAME, td);
+      auto path = rpmfiFN(fi);
+      r["path"] = (path != nullptr) ? path : "";
+      auto username = rpmfiFUser(fi);
+      r["username"] = (username != nullptr) ? username : "";
+      auto groupname = rpmfiFGroup(fi);
+      r["groupname"] = (groupname != nullptr) ? groupname : "";
+      r["mode"] = lsperms(rpmfiFMode(fi));
+      r["size"] = BIGINT(rpmfiFSize(fi));
+
+#ifdef CENTOS_CENTOS6
+      // Older versions of rpmlib/rpmip use a hash algorithm enum.
+      pgpHashAlgo digest_algo;
+#else
+      int digest_algo;
+#endif
+      auto digest = rpmfiFDigestHex(fi, &digest_algo);
+      if (digest_algo == PGPHASHALGO_SHA256) {
+        r["sha256"] = (digest != nullptr) ? digest : "";
+      }
+
+      results.push_back(r);
+    }
+
+    rpmfiFree(fi);
+    rpmtdFree(td);
+  }
+
+  rpmdbFreeIterator(matches);
+  rpmtsFree(ts);
   rpmFreeRpmrc();
 
   return results;
