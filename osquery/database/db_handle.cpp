@@ -56,6 +56,7 @@ REGISTER_INTERNAL(RocksDatabasePlugin, "database", "rocks");
 const std::string kPersistentSettings = "configurations";
 const std::string kQueries = "queries";
 const std::string kEvents = "events";
+const std::string kLogs = "logs";
 
 /**
  * @brief A const vector of column families in RocksDB
@@ -66,7 +67,7 @@ const std::string kEvents = "events";
  * database.
  */
 const std::vector<std::string> kDomains = {
-    kPersistentSettings, kQueries, kEvents
+    kPersistentSettings, kQueries, kEvents, kLogs
 };
 
 FLAG(string,
@@ -82,7 +83,19 @@ FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
 // constructors and destructors
 /////////////////////////////////////////////////////////////////////////////
 
-DBHandle::DBHandle(const std::string& path, bool in_memory) {
+DBHandle::DBHandle(const std::string& path, bool in_memory, bool throw_error) {
+  db_ = nullptr;
+  init(path, in_memory, throw_error);
+}
+
+void DBHandle::init(const std::string& path, bool in_memory, bool throw_error) {
+  if (db_ != nullptr) {
+    for (auto handle : handles_) {
+      delete handle;
+    }
+    delete db_;
+  }
+
   options_.create_if_missing = true;
   options_.create_missing_column_families = true;
   options_.info_log_level = rocksdb::WARN_LEVEL;
@@ -97,7 +110,11 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   }
 
   if (pathExists(path).ok() && !isWritable(path).ok()) {
-    throw std::runtime_error("Cannot write to RocksDB path: " + path);
+    if (throw_error) {
+      throw std::runtime_error("Cannot write to RocksDB path: " + path);
+    } else {
+      return;
+    }
   }
 
   column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
