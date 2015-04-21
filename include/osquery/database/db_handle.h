@@ -49,6 +49,9 @@ extern const std::string kConfigurations;
 /// The "domain" where event results are stored, queued for querytime
 extern const std::string kEvents;
 
+/// The "domain" where log results are stored, queued for log time
+extern const std::string kLogs;
+
 /////////////////////////////////////////////////////////////////////////////
 // DBHandle RAII singleton
 /////////////////////////////////////////////////////////////////////////////
@@ -85,7 +88,7 @@ class DBHandle {
    *
    * @return a shared pointer to an instance of DBHandle
    */
-  static std::shared_ptr<DBHandle> getInstance();
+  static std::shared_ptr<DBHandle> getInstance(bool throw_error = true);
 
   /**
    * @brief Check the sanity of the database configuration options
@@ -168,7 +171,7 @@ class DBHandle {
    */
   Status Scan(const std::string& domain, std::vector<std::string>& results);
 
- private:
+ public:
   /**
    * @brief Default constructor
    *
@@ -191,7 +194,9 @@ class DBHandle {
    * @param in_memory a boolean indicating whether or not the database should
    * be creating in memory or not.
    */
-  DBHandle(const std::string& path, bool in_memory);
+  DBHandle(const std::string& path, bool in_memory, bool throw_error = true);
+
+  void init(const std::string& path, bool in_memory, bool throw_error = true);
 
   /**
    * @brief A method which allows you to override the database path
@@ -224,7 +229,8 @@ class DBHandle {
    * @return a shared pointer to an instance of DBHandle
    */
   static std::shared_ptr<DBHandle> getInstance(const std::string& path,
-                                               bool in_memory);
+                                               bool in_memory,
+                                               bool throw_error = true);
 
   /**
    * @brief Private helper around accessing the column family handle for a
@@ -255,6 +261,7 @@ class DBHandle {
   /////////////////////////////////////////////////////////////////////////////
 
   friend class DBHandleTests;
+  friend class HTTPLoggerTests;
   friend class EventsTests;
   friend class EventsDatabaseTests;
   friend class QueryTests;
