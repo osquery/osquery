@@ -31,8 +31,10 @@ namespace osquery {
 const std::string kConfigurations = "configurations";
 const std::string kQueries = "queries";
 const std::string kEvents = "events";
+const std::string kLogs = "logs";
 
-const std::vector<std::string> kDomains = {kConfigurations, kQueries, kEvents};
+const std::vector<std::string> kDomains = {
+    kConfigurations, kQueries, kEvents, kLogs};
 
 FLAG(string,
      database_path,
@@ -47,7 +49,19 @@ FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
 // constructors and destructors
 /////////////////////////////////////////////////////////////////////////////
 
-DBHandle::DBHandle(const std::string& path, bool in_memory) {
+DBHandle::DBHandle(const std::string& path, bool in_memory, bool throw_error) {
+  db_ = nullptr;
+  init(path, in_memory, throw_error);
+}
+
+void DBHandle::init(const std::string& path, bool in_memory, bool throw_error) {
+  if (db_ != nullptr) {
+    for (auto handle : handles_) {
+      delete handle;
+    }
+    delete db_;
+  }
+
   options_.create_if_missing = true;
   options_.create_missing_column_families = true;
 
@@ -58,7 +72,11 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   }
 
   if (pathExists(path).ok() && !isWritable(path).ok()) {
-    throw std::runtime_error("Cannot write to RocksDB path: " + path);
+    if (throw_error) {
+      throw std::runtime_error("Cannot write to RocksDB path: " + path);
+    } else {
+      return;
+    }
   }
 
   column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
@@ -90,8 +108,9 @@ DBHandle::~DBHandle() {
 /////////////////////////////////////////////////////////////////////////////
 // getInstance methods
 /////////////////////////////////////////////////////////////////////////////
-std::shared_ptr<DBHandle> DBHandle::getInstance() {
-  return getInstance(FLAGS_database_path, FLAGS_database_in_memory);
+std::shared_ptr<DBHandle> DBHandle::getInstance(bool throw_error) {
+  return getInstance(
+      FLAGS_database_path, FLAGS_database_in_memory, throw_error);
 }
 
 bool DBHandle::checkDB() {
@@ -112,9 +131,10 @@ std::shared_ptr<DBHandle> DBHandle::getInstanceAtPath(const std::string& path) {
 }
 
 std::shared_ptr<DBHandle> DBHandle::getInstance(const std::string& path,
-                                                bool in_memory) {
+                                                bool in_memory,
+                                                bool throw_error) {
   static std::shared_ptr<DBHandle> db_handle =
-      std::shared_ptr<DBHandle>(new DBHandle(path, in_memory));
+      std::shared_ptr<DBHandle>(new DBHandle(path, in_memory, throw_error));
   return db_handle;
 }
 
