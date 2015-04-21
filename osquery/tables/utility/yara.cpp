@@ -66,6 +66,8 @@ QueryData genYara(QueryContext& context) {
 
     for (const auto& group : groups) {
       r["sig_group"] = std::string(group);
+      if (rules.count(group) == 0)
+        continue;
       VLOG(1) << "Scanning with group: " << group;
       int result = yr_rules_scan_file(rules[group],
                                       path_string.c_str(),

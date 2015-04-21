@@ -60,17 +60,21 @@ class YARAConfigParserPlugin : public ConfigParserPlugin {
   Status update(const std::map<std::string, ConfigTree>& config) {
     Status status;
     const auto& yara_config = config.at("yara");
-    const auto& signatures = yara_config.get_child("signatures");
-    const auto& file_paths = yara_config.get_child("file_paths");
-    data_.add_child("signatures", signatures);
-    data_.add_child("file_paths", file_paths);
-    for (const auto& element : signatures) {
-      VLOG(1) << "Compiling YARA signature group: " << element.first;
-      status = handleRuleFiles(element.first, element.second, &rules_);
-      if (!status.ok()) {
-        VLOG(1) << "YARA rule compile error: " << status.getMessage();
-        return status;
+    if (yara_config.count("signatures") > 0) {
+      const auto& signatures = yara_config.get_child("signatures");
+      data_.add_child("signatures", signatures);
+      for (const auto& element : signatures) {
+        VLOG(1) << "Compiling YARA signature group: " << element.first;
+        status = handleRuleFiles(element.first, element.second, &rules_);
+        if (!status.ok()) {
+          VLOG(1) << "YARA rule compile error: " << status.getMessage();
+          return status;
+        }
       }
+    }
+    if (yara_config.count("file_paths") > 0) {
+      const auto& file_paths = yara_config.get_child("file_paths");
+      data_.add_child("file_paths", file_paths);
     }
     return Status(0, "OK");
   }

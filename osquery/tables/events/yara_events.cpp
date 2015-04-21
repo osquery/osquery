@@ -84,6 +84,8 @@ Status YARAEventSubscriber::init() {
 
   ConfigDataInstance config;
   const auto& yara_config = config.getParsedData("yara");
+  if (yara_config.count("file_paths") == 0)
+    return Status(0, "OK");
   const auto& yara_paths = yara_config.get_child("file_paths");
   const auto& file_map = config.files();
   for (const auto& yara_path_element : yara_paths) {
