@@ -33,32 +33,39 @@ function main_centos() {
   package rubygems
 
   if [[ $DISTRO = "centos6" ]]; then
+    DEVTOOLS_VER=2
     pushd /etc/yum.repos.d
     if [[ ! -f /etc/yum.repos.d/devtools-2.repo ]]; then
       sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo
     fi
-
-    package devtoolset-2-gcc
-    package devtoolset-2-binutils
-    package devtoolset-2-gcc-c++
-
-    if [[ ! -e /usr/bin/gcc ]]; then
-      sudo ln -s /opt/rh/devtoolset-2/root/usr/bin/gcc /usr/bin/gcc
-    fi
-    if [[ ! -e /usr/bin/g++ ]]; then
-      sudo ln -s /opt/rh/devtoolset-2/root/usr/bin/gcc /usr/bin/g++
-    fi
-
-    source /opt/rh/devtoolset-2/enable
-    if [[ ! -d /usr/lib/gcc ]]; then
-      sudo ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
+    popd
+    
+  elif [[ $DISTRO = "centos7" ]]; then
+    DEVTOOLS_VER=3
+    pushd /tmp
+    if [[ ! -f /tmp/rhscl-devtoolset-3-epel-7-x86_64.noarch.rpm ]]; then
+      sudo wget https://www.softwarecollections.org/en/scls/rhscl/devtoolset-3/epel-7-x86_64/download/rhscl-devtoolset-3-epel-7-x86_64.noarch.rpm
+      sudo rpm -Uvh /tmp/rhscl-devtoolset-3-epel-7-x86_64.noarch.rpm
     fi
     popd
 
-  elif [[ $DISTRO = "centos7" ]]; then
-    package gcc
-    package binutils
-    package gcc-c++
+    package scl-utils
+  fi
+
+  package devtoolset-${DEVTOOLS_VER}-gcc
+  package devtoolset-${DEVTOOLS_VER}-binutils
+  package devtoolset-${DEVTOOLS_VER}-gcc-c++
+
+  if [[ ! -e /usr/bin/gcc ]]; then
+    sudo ln -s /opt/rh/devtoolset-${DEVTOOLS_VER}/root/usr/bin/gcc /usr/bin/gcc
+  fi
+  if [[ ! -e /usr/bin/g++ ]]; then
+    sudo ln -s /opt/rh/devtoolset-${DEVTOOLS_VER}/root/usr/bin/gcc /usr/bin/g++
+  fi
+
+  source /opt/rh/devtoolset-${DEVTOOLS_VER}/enable
+  if [[ ! -d /usr/lib/gcc ]]; then
+    sudo ln -s /opt/rh/devtoolset-${DEVTOOLS_VER}/root/usr/lib/gcc /usr/lib/
   fi
 
   package clang
