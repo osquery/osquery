@@ -24,6 +24,23 @@
 namespace osquery {
 namespace tables {
 
+Row generateRow(std::string path) {
+  Row r;
+
+  // These are filled in depending upon what is used to scan.
+  r["sigfile"] = std::string("");
+  r["sig_group"] = std::string("");
+
+  // These are default values, to be updated in YARACallback.
+  r["count"] = INTEGER(0);
+  r["matches"] = std::string("");
+
+  // XXX: use target_path instead to be consistent with yara_events?
+  r["path"] = path;
+
+  return r;
+}
+
 QueryData genYara(QueryContext& context) {
   QueryData results;
 
@@ -45,29 +62,19 @@ QueryData genYara(QueryContext& context) {
   const auto& yaraParser = std::static_pointer_cast<YARAConfigParserPlugin>(parser);
   auto rules = yaraParser->rules();
 
-  Row r;
-
-  // These are filled in depending upon what is used to scan.
-  r["sigfile"] = std::string("");
-  r["sig_group"] = std::string("");
-
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
     if (!boost::filesystem::is_regular_file(path)) {
       continue;
     }
 
-    // These are default values, to be updated in YARACallback.
-    r["count"] = INTEGER(0);
-    r["matches"] = std::string("");
-
-    // XXX: use target_path instead to be consistent with yara_events?
-    r["path"] = path_string;
-
     for (const auto& group : groups) {
-      r["sig_group"] = std::string(group);
       if (rules.count(group) == 0)
         continue;
+
+      Row r = generateRow(path_string);
+      r["sig_group"] = std::string(group);
+
       VLOG(1) << "Scanning with group: " << group;
       int result = yr_rules_scan_file(rules[group],
                                       path_string.c_str(),
@@ -84,7 +91,10 @@ QueryData genYara(QueryContext& context) {
 
     for (const auto& file : sigfiles) {
       YR_RULES* rules = nullptr;
+
+      Row r = generateRow(path_string);
       r["sigfile"] = std::string(file);
+
       VLOG(1) << "Scanning with file: " << file;
       Status status = compileSingleFile(file, &rules);
       if (status.ok()) {
@@ -98,8 +108,9 @@ QueryData genYara(QueryContext& context) {
         if (result != ERROR_SUCCESS) {
           return results;
         }
-
         yr_rules_destroy(rules);
+      } else {
+        VLOG(1) << status.toString();
       }
       results.push_back(r);
     }
