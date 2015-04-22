@@ -12,7 +12,10 @@
 #include <set>
 
 #include <libproc.h>
+#include <mach/mach.h>
 #include <sys/sysctl.h>
+
+#include <mach-o/dyld_images.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -24,6 +27,9 @@
 
 namespace osquery {
 namespace tables {
+
+// The maximum number of expected memory regions per process.
+#define MAX_MEMORY_MAPS 512
 
 std::set<int> getProcList(const QueryContext &context) {
   std::set<int> pidlist;
@@ -238,11 +244,6 @@ QueryData genProcesses(QueryContext &context) {
   int argmax = genMaxArgs();
 
   for (auto &pid : pidlist) {
-    if (!context.constraints["pid"].matches<int>(pid)) {
-      // Optimize by not searching when a pid is a constraint.
-      continue;
-    }
-
     Row r;
     r["pid"] = INTEGER(pid);
     r["path"] = getProcPath(pid);
@@ -318,12 +319,7 @@ QueryData genProcessEnvs(QueryContext &context) {
 
   auto pidlist = getProcList(context);
   int argmax = genMaxArgs();
-  for (auto &pid : pidlist) {
-    if (!context.constraints["pid"].matches<int>(pid)) {
-      // Optimize by not searching when a pid is a constraint.
-      continue;
-    }
-
+  for (const auto &pid : pidlist) {
     auto env = getProcEnv(pid, argmax);
     for (auto env_itr = env.begin(); env_itr != env.end(); ++env_itr) {
       Row r;
@@ -334,6 +330,232 @@ QueryData genProcessEnvs(QueryContext &context) {
 
       results.push_back(r);
     }
+  }
+
+  return results;
+}
+
+void genMemoryRegion(int pid,
+                     const vm_address_t &address,
+                     const vm_size_t &size,
+                     struct vm_region_submap_info_64 &info,
+                     const std::map<vm_address_t, std::string> &libraries,
+                     QueryData &results) {
+  Row r;
+  r["pid"] = INTEGER(pid);
+
+  char addr_str[17] = {0};
+  sprintf(addr_str, "%016lx", address);
+  r["start"] = "0x" + std::string(addr_str);
+  sprintf(addr_str, "%016lx", address + size);
+  r["end"] = "0x" + std::string(addr_str);
+
+  char perms[5] = {0};
+  sprintf(perms,
+          "%c%c%c",
+          (info.protection & VM_PROT_READ) ? 'r' : '-',
+          (info.protection & VM_PROT_WRITE) ? 'w' : '-',
+          (info.protection & VM_PROT_EXECUTE) ? 'x' : '-');
+  // Mimic Linux permissions reporting.
+  r["permissions"] = std::string(perms) + 'p';
+
+  char filename[PATH_MAX] = {0};
+  // Eventually we'll arrive at dynamic memory COW regions.
+  // OS X will return a dyld_shared_cache[...] substitute alias.
+  int bytes = proc_regionfilename(pid, address, filename, sizeof(filename));
+
+  if (info.share_mode == SM_COW && info.ref_count == 1) {
+    // (psutil) Treat single reference SM_COW as SM_PRIVATE
+    info.share_mode = SM_PRIVATE;
+  }
+
+  if (bytes == 0 || filename[0] == 0) {
+    switch (info.share_mode) {
+    case SM_COW:
+      r["path"] = "[cow]";
+      break;
+    case SM_PRIVATE:
+      r["path"] = "[private]";
+      break;
+    case SM_EMPTY:
+      r["path"] = "[null]";
+      break;
+    case SM_SHARED:
+    case SM_TRUESHARED:
+      r["path"] = "[shared]";
+      break;
+    case SM_PRIVATE_ALIASED:
+      r["path"] = "[private_aliased]";
+      break;
+    case SM_SHARED_ALIASED:
+      r["path"] = "[shared_aliased]";
+      break;
+    default:
+      r["path"] = "[unknown]";
+    }
+    // Labeling all non-path regions pseudo is not 100% appropriate.
+    // Practically, pivoting on non-meta (actual) paths is helpful.
+    r["pseudo"] = "1";
+  } else {
+    // The share mode is not a mutex for having a filled-in path.
+    r["path"] = std::string(filename);
+    r["pseudo"] = "0";
+  }
+
+  r["offset"] = INTEGER(info.offset);
+  r["device"] = INTEGER(info.object_id);
+
+  // Fields not applicable to OS X maps.
+  r["inode"] = "0";
+
+  // Increment the address/region request offset.
+  results.push_back(r);
+
+  // Submaps or offsets into regions may contain libraries mapped from the
+  // dyld cache.
+  for (const auto &library : libraries) {
+    if (library.first > address && library.first < (address + size)) {
+      r["offset"] = INTEGER(info.offset + (library.first - address));
+      r["path"] = library.second;
+      r["pseudo"] = "0";
+      results.push_back(r);
+    }
+  }
+}
+
+static bool readProcessMemory(const mach_port_t &task,
+                              const vm_address_t &from,
+                              const vm_size_t &size,
+                              vm_address_t to) {
+  vm_size_t bytes;
+  auto status = vm_read_overwrite(task, from, size, to, &bytes);
+  if (status != KERN_SUCCESS) {
+    return false;
+  }
+
+  if (bytes != size) {
+    return false;
+  }
+  return true;
+}
+
+void genProcessLibraries(const mach_port_t &task,
+                         std::map<vm_address_t, std::string> &libraries) {
+  struct task_dyld_info dyld_info;
+  mach_msg_type_number_t count = TASK_DYLD_INFO_COUNT;
+  auto status =
+      task_info(task, TASK_DYLD_INFO, (task_info_t)&dyld_info, &count);
+  if (status != KERN_SUCCESS) {
+    // Cannot request dyld information for pid (permissions, invalid).
+    return;
+  }
+
+  // The info struct is a pointer to another process's virtual space.
+  auto all_info = (struct dyld_all_image_infos *)dyld_info.all_image_info_addr;
+  uint64_t image_offset = (uint64_t)all_info;
+  if (dyld_info.all_image_info_format != TASK_DYLD_ALL_IMAGE_INFO_64) {
+    // Only support 64bit process images.
+    return;
+  }
+
+  // Skip the 32-bit integer version field.
+  image_offset += sizeof(uint32_t);
+  uint32_t info_array_count = 0;
+  // Read the process's 32-bit integer infoArrayCount (number of libraries).
+  if (!readProcessMemory(task,
+                         image_offset,
+                         sizeof(uint32_t),
+                         (vm_address_t)&info_array_count)) {
+    return;
+  }
+
+  image_offset += sizeof(uint32_t);
+  vm_address_t info_array = 0;
+  // Read the process's infoArray address field.
+  if (!readProcessMemory(task,
+                         image_offset,
+                         sizeof(vm_address_t),
+                         (vm_address_t)&info_array)) {
+    return;
+  }
+
+  // Loop over the array of dyld_image_info structures.
+  // Read the process-mapped address and pointer to the library path.
+  for (uint32_t i = 0; i < info_array_count; i++) {
+    dyld_image_info image;
+    if (!readProcessMemory(task,
+                           info_array + (i * sizeof(struct dyld_image_info)),
+                           sizeof(dyld_image_info),
+                           (vm_address_t)&image)) {
+      return;
+    }
+
+    // It's possible to optimize for smaller reads by chucking the memory reads.
+    char path[PATH_MAX] = {0};
+    if (!readProcessMemory(task,
+                           (vm_address_t)image.imageFilePath,
+                           PATH_MAX,
+                           (vm_address_t)&path)) {
+      continue;
+    }
+
+    // Keep the process-mapped address as the library index.
+    libraries[(vm_address_t)image.imageLoadAddress] = path;
+  }
+}
+
+void genProcessMemoryMap(int pid, QueryData &results) {
+  mach_port_t task = MACH_PORT_NULL;
+  kern_return_t status = task_for_pid(mach_task_self(), pid, &task);
+  if (status != KERN_SUCCESS) {
+    // Cannot request memory map for pid (permissions, invalid).
+    return;
+  }
+
+  // Create a map of library paths from the dyld cache.
+  std::map<vm_address_t, std::string> libraries;
+  genProcessLibraries(task, libraries);
+
+  // Use address offset (starting at 0) to count memory maps.
+  vm_address_t address = 0;
+  size_t map_count = 0;
+  uint32_t depth = 0;
+
+  while (map_count++ < MAX_MEMORY_MAPS) {
+    struct vm_region_submap_info_64 info;
+    mach_msg_type_number_t count = VM_REGION_SUBMAP_INFO_COUNT_64;
+
+    vm_size_t size = 0;
+    status = vm_region_recurse_64(
+        task, &address, &size, &depth, (vm_region_info_64_t)&info, &count);
+
+    if (status == KERN_INVALID_ADDRESS) {
+      // Reached the end of the memory map.
+      break;
+    }
+
+    if (info.is_submap) {
+      // A submap increments the depth search to vm_region_recurse.
+      // Use the same address to continue a recursive search within the region.
+      depth++;
+      continue;
+    }
+
+    genMemoryRegion(pid, address, size, info, libraries, results);
+    address += size;
+  }
+
+  if (task != MACH_PORT_NULL) {
+    mach_port_deallocate(mach_task_self(), task);
+  }
+}
+
+QueryData genProcessMemoryMap(QueryContext& context) {
+  QueryData results;
+
+  auto pidlist = getProcList(context);
+  for (const auto &pid : pidlist) {
+    genProcessMemoryMap(pid, results);
   }
 
   return results;

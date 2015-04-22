@@ -60,7 +60,7 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_tables_utility
 )
 
 file(GLOB OSQUERY_UTILS "utils/*.cpp")
-ADD_OSQUERY_LIBRARY(TRUE osquery_utils
+ADD_OSQUERY_LIBRARY(FALSE osquery_utils
   ${OSQUERY_UTILS}
 )
 
