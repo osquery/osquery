@@ -90,7 +90,7 @@ class ExtensionManager(Singleton, osquery.extensions.Extension.Iface):
     def ping(self):
         print("[+] ping")
         return osquery.extensions.ttypes.ExtensionStatus(code=0,
-                                                         status="OK")
+                                                         message="OK")
 
     def call(self, registry, item, request):
         raise NotImplementedError
@@ -115,7 +115,7 @@ def start_extension(path=DEFAULT_SOCKET_PATH):
     )
 
     if status.code is not 0:
-        raise RuntimeError(status.status)
+        raise RuntimeError(status.message)
 
     handler = em
     processor = osquery.extensions.Extension.Processor(handler)
