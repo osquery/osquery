@@ -129,7 +129,8 @@ TEST_F(ExtensionsTest, test_extension_start) {
   // Now allow duplicates (for testing, since EM/E are the same).
   Registry::allowDuplicates(true);
   status = startExtension(kTestManagerSocket, "test", "0.1", "0.0.0", "0.0.1");
-  // This will be false since we are registering duplicate items
+  // This will not be false since we are allowing deplicate items.
+  // Otherwise, starting an extension and extensionManager would fatal.
   ASSERT_TRUE(status.ok());
 
   // The `startExtension` internal call (exposed for testing) returns the
