@@ -6,5 +6,7 @@ schema([
     Column("count", INTEGER, "Number of YARA matches"),
     Column("sig_group", TEXT, "Signature group used"),
     Column("sigfile", TEXT, "Signature file used"),
+    Column("pattern", TEXT, "A pattern which can be used to match file paths"),
+
 ])
 implementation("yara@genYara")
