@@ -4,7 +4,7 @@ theme: readthedocs
 docs_dir: docs/wiki
 site_dir: build/wiki
 pages:
-- ['index.md', 'Introduction']
+- ['index.md', 'Introduction', 'Welcome to osquery']
 
 - ['introduction/overview.md', 'Introduction', 'Features Overview']
 - ['introduction/using-osqueryi.md', 'Introduction', 'osqueryi (shell)']
