@@ -75,7 +75,12 @@ function main_centos() {
   package rpm-build
   package libblkid-devel
 
-  install_cmake
+  if [[ $DISTRO = "centos6" ]]; then
+    install_cmake
+  else
+    package cmake
+  fi
+
   install_boost
 
   if [[ $DISTRO = "centos6" ]]; then
