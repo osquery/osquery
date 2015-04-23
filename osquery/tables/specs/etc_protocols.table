@@ -1,0 +1,10 @@
+table_name("etc_protocols")
+description("Line-parsed /etc/protocols.")
+schema([
+    Column("name", TEXT, "Protocol name"),
+    Column("number", INTEGER, "Protocol number"),
+    Column("alias", TEXT, "Protocol alias"),
+    Column("comment", TEXT, "Comment with protocol description"),
+])
+implementation("etc_protocols@genEtcProtocols")
+

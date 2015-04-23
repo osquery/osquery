@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -85,8 +85,14 @@ std::string getCACertificateContent();
 // generate the content that would be found in an /etc/hosts file
 std::string getEtcHostsContent();
 
+// generate the content that would be found in an /etc/protocols file
+std::string getEtcProtocolsContent();
+
 // generate the expected data that getEtcHostsContent() should parse into
 QueryData getEtcHostsExpectedResults();
+
+// generate the expected data that getEtcProtocolsContent() should parse into
+QueryData getEtcProtocolsExpectedResults();
 
 // the three items that you need to test osquery::splitString
 struct SplitStringTestData {
