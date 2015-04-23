@@ -2133,7 +2133,7 @@ int launchIntoShell(int argc, char **argv) {
   } else if (FLAGS_column) {
     data.mode = MODE_Column;
   } else if (FLAGS_csv) {
-    data.mode = FLAGS_csv;
+    data.mode = MODE_Csv;
     memcpy(data.separator, ",", 2);
   } else {
     data.mode = MODE_Pretty;
