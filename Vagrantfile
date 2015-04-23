@@ -1,7 +1,11 @@
 Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |v|
+    if ENV['OSQUERY_BUILD_CPUS']
+      v.cpus = ENV['OSQUERY_BUILD_CPUS'].to_i
+    else
+      v.cpus = 2
+    end
     v.memory = 4096
-    v.cpus = 2
   end
  [
    %w{centos6.5 chef/centos-6.5},
