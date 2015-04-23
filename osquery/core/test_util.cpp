@@ -227,6 +227,12 @@ std::string getEtcHostsContent() {
   return content;
 }
 
+std::string getEtcProtocolsContent() {
+  std::string content;
+  readFile(kTestDataPath + "test_protocols.txt", content);
+  return content;
+}
+
 QueryData getEtcHostsExpectedResults() {
   Row row1;
   Row row2;
@@ -252,6 +258,27 @@ QueryData getEtcHostsExpectedResults() {
 
 ::std::ostream& operator<<(::std::ostream& os, const Status& s) {
   return os << "Status(" << s.getCode() << ", \"" << s.getMessage() << "\")";
+}
+
+QueryData getEtcProtocolsExpectedResults() {
+  Row row1;
+  Row row2;
+  Row row3;
+
+  row1["name"] = "ip";
+  row1["number"] = "0";
+  row1["alias"] = "IP";
+  row1["comment"] = "internet protocol, pseudo protocol number";
+  row2["name"] = "icmp";
+  row2["number"] = "1";
+  row2["alias"] = "ICMP";
+  row2["comment"] = "internet control message protocol";
+  row3["name"] = "tcp";
+  row3["number"] = "6";
+  row3["alias"] = "TCP";
+  row3["comment"] = "transmission control protocol";
+
+  return {row1, row2, row3};
 }
 
 void createMockFileStructure() {
