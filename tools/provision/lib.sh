@@ -18,8 +18,9 @@ function install_cmake() {
       tar -xf cmake-3.2.1.tar.gz
     fi
     log "building cmake"
+
     pushd cmake-3.2.1
-    ./configure
+    ./bootstrap --prefix=/usr/local/
     make
     sudo make install
     popd
