@@ -92,12 +92,19 @@ QueryData genYara(QueryContext& context) {
     for (const auto& file : sigfiles) {
       YR_RULES* rules = nullptr;
 
-      Row r = generateRow(path_string);
-      r["sigfile"] = std::string(file);
+      std::string full_path;
+      if (file[0] != '/') {
+        full_path = std::string("/var/osquery/") + file;
+      } else {
+        full_path = file;
+      }
 
-      VLOG(1) << "Scanning with file: " << file;
-      Status status = compileSingleFile(file, &rules);
+      VLOG(1) << "Scanning with file: " << full_path;
+      Status status = compileSingleFile(full_path, &rules);
       if (status.ok()) {
+        Row r = generateRow(path_string);
+        r["sigfile"] = std::string(file);
+
         int result = yr_rules_scan_file(rules,
                                         path_string.c_str(),
                                         SCAN_FLAGS_FAST_MODE,
@@ -109,10 +116,10 @@ QueryData genYara(QueryContext& context) {
           return results;
         }
         yr_rules_destroy(rules);
+        results.push_back(r);
       } else {
         VLOG(1) << status.toString();
       }
-      results.push_back(r);
     }
   }
 
