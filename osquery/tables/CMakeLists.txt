@@ -65,6 +65,7 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_utils
 )
 
 ADD_OSQUERY_TEST(FALSE etc_hosts_tests networking/tests/etc_hosts_tests.cpp)
+ADD_OSQUERY_TEST(FALSE yara_tests utils/tests/yara_tests.cpp)
 if(APPLE)
   ADD_OSQUERY_TEST(FALSE apps_tests system/darwin/tests/apps_tests.cpp)
   ADD_OSQUERY_TEST(FALSE certificates_tests system/darwin/tests/certificates_tests.cpp)
