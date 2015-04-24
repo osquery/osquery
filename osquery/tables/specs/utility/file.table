@@ -20,7 +20,7 @@ schema([
     Column("is_link", INTEGER, "1 if a symlink else 0"),
     Column("is_char", INTEGER, "1 if a character special device else 0"),
     Column("is_block", INTEGER, "1 if a block special device else 0"),
-    Column("wildcard", TEXT, "A wildcard which can be used to match file patterns"),
+    Column("pattern", TEXT, "A pattern which can be used to match file paths"),
 ])
 attributes(utility=True)
 implementation("utility/file@genFile")

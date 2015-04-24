@@ -24,7 +24,7 @@ namespace tables {
 void genFileInfo(const std::string& path,
                  const std::string& filename,
                  const std::string& dir,
-                 const std::string& wildcard,
+                 const std::string& pattern,
                  QueryData& results) {
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
@@ -60,8 +60,8 @@ void genFileInfo(const std::string& path,
   r["is_char"] = (S_ISCHR(file_stat.st_mode)) ? "1" : "0";
   r["is_block"] = (S_ISBLK(file_stat.st_mode)) ? "1" : "0";
 
-  // wildcard
-  r["wildcard"] = wildcard;
+  // pattern
+  r["pattern"] = pattern;
 
   results.push_back(r);
 }
@@ -105,21 +105,21 @@ QueryData genFile(QueryContext& context) {
     }
   }
 
-  // Now loop through contraints using the wildcard column constraint.
-  auto wildcards = context.constraints["wildcard"].getAll(EQUALS);
-  if (wildcards.size() != 1) {
+  // Now loop through contraints using the pattern column constraint.
+  auto patterns = context.constraints["pattern"].getAll(EQUALS);
+  if (patterns.size() != 1) {
     return results;
   }
 
-  for (const auto& wildcard : wildcards) {
-    std::vector<std::string> expanded_wildcards;
-    auto status = resolveFilePattern(wildcard, expanded_wildcards);
+  for (const auto& pattern : patterns) {
+    std::vector<std::string> expanded_patterns;
+    auto status = resolveFilePattern(pattern, expanded_patterns);
     if (!status.ok()) {
-      LOG(WARNING) << "Could not expand wildcard properly: " << status.toString();
+      LOG(WARNING) << "Could not expand pattern properly: " << status.toString();
       return results;
     }
 
-    for (const auto& resolved : expanded_wildcards) {
+    for (const auto& resolved : expanded_patterns) {
       if (!isReadable(resolved)) {
         continue;
       }
@@ -127,7 +127,7 @@ QueryData genFile(QueryContext& context) {
       genFileInfo(resolved,
                   path.filename().string(),
                   path.parent_path().string(),
-                  wildcard,
+                  pattern,
                   results);
 
     }
