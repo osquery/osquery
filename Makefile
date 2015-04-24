@@ -59,7 +59,7 @@ deps: .setup
 	./tools/provision.sh build build/$(BUILD_DIR)
 
 distclean:
-	rm -rf .sources build/$(BUILD_DIR) doxygen/html doxygen/latex
+	rm -rf .sources build/$(BUILD_DIR) build/debug_$(BUILD_DIR) build/docs
 ifeq ($(PLATFORM),Linux)
 		rm -rf build/linux
 endif
