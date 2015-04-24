@@ -47,6 +47,13 @@ $ vagrant up ubuntu14
 $ vagrant ssh ubuntu14
 ```
 
+By default vagrant will allocate 2 virtual CPUs to the virtual machine instance. You can override this by setting `OSQUERY_BUILD_CPUS` environment variable before spinning up an instance. To allocate the maximum number of CPUs `OSQUERY_BUILD_CPUS` can be set as:
+
+```sh
+OSQUERY_BUILD_CPUS=`nproc`             # for Linux
+OSQUERY_BUILD_CPUS=`sysctl -n hw.ncpu` # for OS X
+```
+
 Once you have logged into the vagrant box, run the following to create a package:
 
 ```sh

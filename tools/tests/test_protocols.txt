@@ -1,0 +1,12 @@
+#
+# Internet protocols
+#
+# $FreeBSD: src/etc/protocols,v 1.14 2000/09/24 11:20:27 asmodai Exp $
+# from: @(#)protocols 5.1 (Berkeley) 4/17/89
+#
+# See also http://www.isi.edu/in-notes/iana/assignments/protocol-numbers
+#
+ip  0 IP    # internet protocol, pseudo protocol number
+#hopopt 0 HOPOPT    # hop-by-hop options for ipv6
+icmp  1 ICMP    # internet control message protocol
+tcp 6 TCP   # transmission control protocol

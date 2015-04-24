@@ -64,9 +64,6 @@ function main_centos() {
   package clang
   package clang-devel
 
-  set_cc clang
-  set_cxx clang++
-
   package bzip2
   package bzip2-devel
   package openssl-devel
@@ -76,6 +73,10 @@ function main_centos() {
   package libblkid-devel
 
   install_cmake
+
+  set_cc clang
+  set_cxx clang++
+
   install_boost
 
   if [[ $DISTRO = "centos6" ]]; then
