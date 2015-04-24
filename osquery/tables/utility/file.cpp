@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -24,6 +24,7 @@ namespace tables {
 void genFileInfo(const std::string& path,
                  const std::string& filename,
                  const std::string& dir,
+                 const std::string& wildcard,
                  QueryData& results) {
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
@@ -59,6 +60,9 @@ void genFileInfo(const std::string& path,
   r["is_char"] = (S_ISCHR(file_stat.st_mode)) ? "1" : "0";
   r["is_block"] = (S_ISBLK(file_stat.st_mode)) ? "1" : "0";
 
+  // wildcard
+  r["wildcard"] = wildcard;
+
   results.push_back(r);
 }
 
@@ -75,6 +79,7 @@ QueryData genFile(QueryContext& context) {
     genFileInfo(path_string,
                 path.filename().string(),
                 path.parent_path().string(),
+                "",
                 results);
   }
 
@@ -92,10 +97,39 @@ QueryData genFile(QueryContext& context) {
         genFileInfo(begin->path().string(),
                     begin->path().filename().string(),
                     directory_string,
+                    "",
                     results);
       }
     } catch (const fs::filesystem_error& e) {
       continue;
+    }
+  }
+
+  // Now loop through contraints using the wildcard column constraint.
+  auto wildcards = context.constraints["wildcard"].getAll(EQUALS);
+  if (wildcards.size() != 1) {
+    return results;
+  }
+
+  for (const auto& wildcard : wildcards) {
+    std::vector<std::string> expanded_wildcards;
+    auto status = resolveFilePattern(wildcard, expanded_wildcards);
+    if (!status.ok()) {
+      LOG(WARNING) << "Could not expand wildcard properly: " << status.toString();
+      return results;
+    }
+
+    for (const auto& resolved : expanded_wildcards) {
+      if (!isReadable(resolved)) {
+        continue;
+      }
+      fs::path path = resolved;
+      genFileInfo(resolved,
+                  path.filename().string(),
+                  path.parent_path().string(),
+                  wildcard,
+                  results);
+
     }
   }
 
