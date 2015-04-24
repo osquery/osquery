@@ -115,7 +115,7 @@ QueryData genFile(QueryContext& context) {
     std::vector<std::string> expanded_patterns;
     auto status = resolveFilePattern(pattern, expanded_patterns);
     if (!status.ok()) {
-      LOG(WARNING) << "Could not expand pattern properly: " << status.toString();
+      VLOG(1) << "Could not expand pattern properly: " << status.toString();
       return results;
     }
 
