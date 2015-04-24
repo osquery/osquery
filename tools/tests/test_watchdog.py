@@ -4,7 +4,7 @@
 #  All rights reserved.
 #
 #  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant 
+#  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 from __future__ import absolute_import
@@ -12,12 +12,27 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import os
+import shutil
 import unittest
 
 # osquery-specific testing utils
 import test_base
 
 class WatchdogTests(test_base.ProcessGenerator, unittest.TestCase):
+    def setUp(self):
+        self.logger_path = "/tmp/osquery/logger-tests"
+        try:
+            os.makedirs(self.logger_path)
+        except:
+            # The logger path temporary directory exists.
+            # The previous integration test run may have failed.
+            pass
+
+    def tearDown(self):
+        #shutil.rmtree(self.logger_path)
+        pass
+
     def test_1_daemon_without_watchdog(self):
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -26,7 +41,27 @@ class WatchdogTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
         daemon.kill()
 
-    def test_2_daemon_with_watchdog(self):
+    def test_2_daemon_with_option(self):
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "disable_extensions": True,
+            "disable_logging": False,
+        },
+        options_only={
+            "logger_path": self.logger_path,
+            "verbose": True,
+        })
+        info_path = os.path.join(self.logger_path, "osqueryd.INFO")
+        self.assertTrue(daemon.isAlive())
+
+        def info_exists():
+            return os.path.exists(info_path)
+        # Wait for the daemon to flush to GLOG.
+        test_base.expectTrue(info_exists)
+        self.assertTrue(os.path.exists(info_path))
+        daemon.kill()
+    
+    def test_3_daemon_with_watchdog(self):
         daemon = self._run_daemon({
             "disable_watchdog": False,
         })
@@ -41,7 +76,7 @@ class WatchdogTests(test_base.ProcessGenerator, unittest.TestCase):
         # dies when the watcher goes away
         self.assertTrue(daemon.isDead(children[0]))
 
-    def test_3_catastrophic_worker_failure(self):
+    def test_4_catastrophic_worker_failure(self):
         ### Seems to fail often, disable test
         daemon = self._run_daemon({
             "disable_watchdog": False,

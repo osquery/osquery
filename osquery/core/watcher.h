@@ -131,7 +131,13 @@ class Watcher : private boost::noncopyable {
   /// Reset pid and performance counters for a worker or extension process.
   static void reset(pid_t child);
 
-  /// Return the number of autoloadable extensions.
+  /**
+   * @brief Return the state of autoloadable extensions.
+   *
+   * Some initialization decisions are made based on waiting for plugins to
+   * broadcast from potentially-loaded extensions. If no extensions are loaded
+   * and an active (selected at comand line) plugin is missing, fail quickly.
+   */
   static bool hasManagedExtensions();
 
  private:
@@ -152,7 +158,7 @@ class Watcher : private boost::noncopyable {
   pid_t worker_;
   /// Keep a list of resolved extension paths and their managed pids.
   std::map<std::string, pid_t> extensions_;
-  /// Path to autoload extensions from.
+  /// Paths to autoload extensions.
   std::vector<std::string> extensions_paths_;
 
  private:
@@ -180,9 +186,9 @@ class WatcherLocker {
 /**
  * @brief The watchdog thread responsible for spawning/monitoring children.
  *
- * The WatcherRunner thread will spawn any autoloaded modules or optional
+ * The WatcherRunner thread will spawn any autoloaded extensions or optional
  * osquery daemon worker processes. It will then poll for their performance
- * state and kill/respawn osquery child processes.
+ * state and kill/respawn osquery child processes if they violate limits.
  */
 class WatcherRunner : public InternalRunnable {
  public:
@@ -199,6 +205,7 @@ class WatcherRunner : public InternalRunnable {
   }
 
  private:
+  /// Dispatcher (this service thread's) entry point.
   void enter();
   /// Boilerplate function to sleep for some configured latency
   bool ok();
@@ -208,7 +215,7 @@ class WatcherRunner : public InternalRunnable {
   bool isChildSane(pid_t child);
 
  private:
-  /// Fork a worker process.
+  /// Fork and execute a worker process.
   void createWorker();
   /// Fork an extension process.
   bool createExtension(const std::string& extension);

@@ -19,6 +19,7 @@ import unittest
 
 # osquery-specific testing utils
 import test_base
+import utils
 
 class ModuleTests(test_base.ProcessGenerator, unittest.TestCase):
     def setUp(self):
@@ -70,4 +71,5 @@ class ModuleTests(test_base.ProcessGenerator, unittest.TestCase):
 
 
 if __name__ == "__main__":
+    test_base.assertPermissions()
     module = test_base.Tester().run()

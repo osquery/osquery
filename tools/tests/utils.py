@@ -20,6 +20,10 @@ def red(msg):
     return "\033[41m\033[1;30m %s \033[0m" % str(msg)
 
 
+def lightred(msg):
+    return "\033[1;31m %s \033[0m" % str(msg)
+
+
 def yellow(msg):
     return "\033[43m\033[1;30m %s \033[0m" % str(msg)
 
