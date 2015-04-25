@@ -63,7 +63,7 @@ list(GET PLATFORM 0 OSQUERY_BUILD_PLATFORM_DEFINE)
 list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO_DEFINE)
 
 # RHEL6 uses a different gcc 4.9 runtime
-if(${OSQUERY_BUILD_DISTRO} STREQUAL "RHEL6")
+if(${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6")
   set(GCC_RUNTIME "/opt/rh/devtoolset-3/root/usr/")
   message("-- Setting RHEL6 GCC runtime: ${GCC_RUNTIME}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
