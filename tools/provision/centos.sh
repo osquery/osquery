@@ -81,8 +81,10 @@ function main_centos() {
 
   if [[ $DISTRO = "centos6" ]]; then
     package libudev-devel
+    package cryptsetup-luks-devel
   elif [[ $DISTRO = "centos7" ]]; then
     package systemd-devel
+    package cryptsetup-devel
   fi
 
   install_gflags
