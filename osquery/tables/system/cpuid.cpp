@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -28,20 +28,20 @@ typedef std::pair<std::string, RegisterBit_t> FeatureDef_t;
 std::map<int, std::vector<FeatureDef_t> > kCPUFeatures = {
     {1,
      {
-      FEATURE("pae", "edx", 6),
-      FEATURE("msr", "edx", 5),
-      FEATURE("mtrr", "edx", 12),
-      FEATURE("acpi", "edx", 22),
-      FEATURE("htt", "edx", 28),
-      FEATURE("ia64", "edx", 30),
-      FEATURE("vmx", "ecx", 5),
-      FEATURE("smx", "ecx", 6),
-      FEATURE("hypervisor", "ecx", 31),
-      FEATURE("aes", "ecx", 25),
+         FEATURE("pae", "edx", 6),
+         FEATURE("msr", "edx", 5),
+         FEATURE("mtrr", "edx", 12),
+         FEATURE("acpi", "edx", 22),
+         FEATURE("htt", "edx", 28),
+         FEATURE("ia64", "edx", 30),
+         FEATURE("vmx", "ecx", 5),
+         FEATURE("smx", "ecx", 6),
+         FEATURE("hypervisor", "ecx", 31),
+         FEATURE("aes", "ecx", 25),
      }},
     {7,
      {
-      FEATURE("mpx", "ebx", 14), FEATURE("sha", "ebx", 29),
+         FEATURE("mpx", "ebx", 14), FEATURE("sha", "ebx", 29),
      }},
 };
 

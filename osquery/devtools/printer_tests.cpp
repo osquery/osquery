@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -24,22 +24,22 @@ class PrinterTests : public testing::Test {
     order = {"name", "age", "food", "number"};
     q = {
         {
-         {"name", "Mike Jones"},
-         {"age", "39"},
-         {"food", "mac and cheese"},
-         {"number", "1"},
+            {"name", "Mike Jones"},
+            {"age", "39"},
+            {"food", "mac and cheese"},
+            {"number", "1"},
         },
         {
-         {"name", "John Smith"},
-         {"age", "44"},
-         {"food", "peanut butter and jelly"},
-         {"number", "2"},
+            {"name", "John Smith"},
+            {"age", "44"},
+            {"food", "peanut butter and jelly"},
+            {"number", "2"},
         },
         {
-         {"name", "Doctor Who"},
-         {"age", "2000"},
-         {"food", "fish sticks and custard"},
-         {"number", "11"},
+            {"name", "Doctor Who"},
+            {"age", "2000"},
+            {"food", "fish sticks and custard"},
+            {"number", "11"},
         },
     };
   }

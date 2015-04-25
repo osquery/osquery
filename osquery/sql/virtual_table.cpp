@@ -241,26 +241,9 @@ Status attachTableInternal(const std::string &name,
                            sqlite3 *db) {
   // A static module structure does not need specific logic per-table.
   static sqlite3_module module = {
-      0,
-      xCreate,
-      xCreate,
-      xBestIndex,
-      xDestroy,
-      xDestroy,
-      xOpen,
-      xClose,
-      xFilter,
-      xNext,
-      xEof,
-      xColumn,
-      xRowid,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
+      0,      xCreate, xCreate, xBestIndex, xDestroy, xDestroy, xOpen,
+      xClose, xFilter, xNext,   xEof,       xColumn,  xRowid,   0,
+      0,      0,       0,       0,          0,        0,
   };
 
   // Note, if the clientData API is used then this will save a registry call

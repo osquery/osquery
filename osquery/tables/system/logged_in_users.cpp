@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -23,7 +23,7 @@ std::mutex utmpxEnumerationMutex;
 QueryData genLoggedInUsers(QueryContext& context) {
   std::lock_guard<std::mutex> lock(utmpxEnumerationMutex);
   QueryData results;
-  struct utmpx *entry = nullptr;
+  struct utmpx* entry = nullptr;
 
   while ((entry = getutxent()) != nullptr) {
     if (entry->ut_pid == 1) {

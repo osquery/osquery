@@ -41,7 +41,8 @@ const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
     {LATENCY_LIMIT, {12, 6, 3, 1}},
     // How often to poll for performance limit violations.
-    {INTERVAL, {3, 3, 3, 1}}, };
+    {INTERVAL, {3, 3, 3, 1}},
+};
 
 const std::string kExtensionExtension = ".ext";
 
@@ -298,8 +299,8 @@ void WatcherRunner::createWorker() {
   }
 
   // Get the path of the current process.
-  auto qd = SQL::selectAllFrom("processes", "pid", tables::EQUALS,
-    INTEGER(getpid()));
+  auto qd =
+      SQL::selectAllFrom("processes", "pid", tables::EQUALS, INTEGER(getpid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
     LOG(ERROR) << "osquery watcher cannot determine process path";
     ::exit(EXIT_FAILURE);
@@ -346,8 +347,8 @@ bool WatcherRunner::createExtension(const std::string& extension) {
 
   // Check the path to the previously-discovered extension binary.
   auto exec_path = fs::system_complete(fs::path(extension));
-  if (!safePermissions(
-          exec_path.parent_path().string(), exec_path.string(), true)) {
+  if (!safePermissions(exec_path.parent_path().string(), exec_path.string(),
+                       true)) {
     // Extension binary has become unsafe.
     LOG(WARNING) << "Extension binary has unsafe permissions: " << extension;
     return false;
@@ -380,8 +381,8 @@ bool WatcherRunner::createExtension(const std::string& extension) {
 
   Watcher::setExtension(extension, ext_pid);
   Watcher::resetExtensionCounters(extension, getUnixTime());
-  VLOG(1) << "Created and monitoring extension child (" << ext_pid << "): "
-          << extension;
+  VLOG(1) << "Created and monitoring extension child (" << ext_pid
+          << "): " << extension;
   return true;
 }
 

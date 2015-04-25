@@ -29,7 +29,7 @@ namespace osquery {
  * file, querying a message queue, etc.)
  */
 class IDistributedProvider {
-public:
+ public:
   virtual ~IDistributedProvider() {}
 
   /*
@@ -58,8 +58,8 @@ public:
  * DistributedQueryHandler functionality.
  */
 class MockDistributedProvider : public IDistributedProvider {
-public:
- // These methods just read/write the corresponding public members
+ public:
+  // These methods just read/write the corresponding public members
   Status getQueriesJSON(std::string& query_json) override;
   Status writeResultsJSON(const std::string& results) override;
 
@@ -72,10 +72,10 @@ public:
  * distributed query
  */
 struct DistributedQueryRequest {
-public:
- explicit DistributedQueryRequest() {}
- explicit DistributedQueryRequest(const std::string& q, const std::string& i)
-     : query(q), id(i) {}
+ public:
+  explicit DistributedQueryRequest() {}
+  explicit DistributedQueryRequest(const std::string& q, const std::string& i)
+      : query(q), id(i) {}
   std::string query;
   std::string id;
 };
@@ -88,60 +88,61 @@ public:
  * the master, and executes queries.
  */
 class DistributedQueryHandler {
-public:
- /**
-  * @brief Construct a new handler with the given provider
-  *
-  * @param provider The provider used retrieving queries and writing results
-  */
- explicit DistributedQueryHandler(
-     std::unique_ptr<IDistributedProvider> provider)
-     : provider_(std::move(provider)) {}
+ public:
+  /**
+   * @brief Construct a new handler with the given provider
+   *
+   * @param provider The provider used retrieving queries and writing results
+   */
+  explicit DistributedQueryHandler(
+      std::unique_ptr<IDistributedProvider> provider)
+      : provider_(std::move(provider)) {}
 
- /**
-  * @brief Retrieve queries, run them, and write results
-  *
-  * This is the core method of DistributedQueryHandler, tying together all the
-  * other components to read the requests from the provider, execute the
-  * queries, and write the results back to the provider.
-  *
-  * @return osquery::Status indicating success or failure of the operation
-  */
- Status doQueries();
+  /**
+   * @brief Retrieve queries, run them, and write results
+   *
+   * This is the core method of DistributedQueryHandler, tying together all the
+   * other components to read the requests from the provider, execute the
+   * queries, and write the results back to the provider.
+   *
+   * @return osquery::Status indicating success or failure of the operation
+   */
+  Status doQueries();
 
- /**
-  * @brief Run and annotate an individual query
-  *
-  * @param query_string A string containing the query to be executed
-  *
-  * @return A SQL object containing the (annotated) query results
-  */
- static SQL handleQuery(const std::string& query_string);
+  /**
+   * @brief Run and annotate an individual query
+   *
+   * @param query_string A string containing the query to be executed
+   *
+   * @return A SQL object containing the (annotated) query results
+   */
+  static SQL handleQuery(const std::string& query_string);
 
- /**
-  * @brief Serialize the results of all requests into a ptree
-  *
-  * @param results The vector of requests and results
-  * @param tree The tree to serialize results into
-  *
-  * @return osquery::Status indicating success or failure of the operation
-  */
- static Status serializeResults(
-     const std::vector<std::pair<DistributedQueryRequest, SQL> >& results,
-     boost::property_tree::ptree& tree);
+  /**
+   * @brief Serialize the results of all requests into a ptree
+   *
+   * @param results The vector of requests and results
+   * @param tree The tree to serialize results into
+   *
+   * @return osquery::Status indicating success or failure of the operation
+   */
+  static Status serializeResults(
+      const std::vector<std::pair<DistributedQueryRequest, SQL> >& results,
+      boost::property_tree::ptree& tree);
 
- /**
-  * @brief Parse the query JSON into the individual query objects
-  *
-  * @param query_json The JSON string containing the queries
-  * @param requests A vector to fill with the query objects
-  *
-  * @return osquery::Status indicating success or failure of the parsing
-  */
-  static Status parseQueriesJSON(const std::string& query_json,
-                                 std::vector<DistributedQueryRequest>& requests);
+  /**
+   * @brief Parse the query JSON into the individual query objects
+   *
+   * @param query_json The JSON string containing the queries
+   * @param requests A vector to fill with the query objects
+   *
+   * @return osquery::Status indicating success or failure of the parsing
+   */
+  static Status parseQueriesJSON(
+      const std::string& query_json,
+      std::vector<DistributedQueryRequest>& requests);
 
-private:
+ private:
   // The provider used to read and write queries and results
   std::unique_ptr<IDistributedProvider> provider_;
 

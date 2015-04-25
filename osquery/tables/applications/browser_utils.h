@@ -18,7 +18,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-QueryData genChromeBasedExtensions(QueryContext& context, const fs::path sub_dir);
-
+QueryData genChromeBasedExtensions(QueryContext& context,
+                                   const fs::path sub_dir);
 }
 }

@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -63,9 +63,9 @@ std::string base64Encode(const std::string& unencoded) {
     return std::string();
   }
 
-  unsigned int writePaddChars = (3-unencoded.length()%3)%3;
+  unsigned int writePaddChars = (3 - unencoded.length() % 3) % 3;
   std::string base64(it_base64(unencoded.begin()), it_base64(unencoded.end()));
-  base64.append(writePaddChars,'=');
+  base64.append(writePaddChars, '=');
   os << base64;
   return os.str();
 }

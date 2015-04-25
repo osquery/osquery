@@ -185,8 +185,7 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
   RouteUUID uuid;
   try {
     uuid = (RouteUUID)stoi(status.getMessage(), nullptr, 0);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     EXPECT_TRUE(false);
     return;
   }

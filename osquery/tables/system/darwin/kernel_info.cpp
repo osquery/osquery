@@ -59,11 +59,22 @@ std::string getCanonicalEfiDevicePath(const CFDataRef& data) {
         // Extract the device UUID to later join with block devices.
         auto uuid = ((const HARDDRIVE_DEVICE_PATH*)node)->Signature;
         boost::uuids::uuid hdd_signature = {{
-          uuid[3], uuid[2], uuid[1], uuid[0],
-          uuid[5], uuid[4],
-          uuid[7], uuid[6],
-          uuid[8], uuid[9],
-          uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15],
+            uuid[3],
+            uuid[2],
+            uuid[1],
+            uuid[0],
+            uuid[5],
+            uuid[4],
+            uuid[7],
+            uuid[6],
+            uuid[8],
+            uuid[9],
+            uuid[10],
+            uuid[11],
+            uuid[12],
+            uuid[13],
+            uuid[14],
+            uuid[15],
         }};
         path += boost::to_upper_copy(boost::uuids::to_string(hdd_signature));
       }
@@ -94,8 +105,8 @@ QueryData genKernelInfo(QueryContext& context) {
 
   // Parse the boot arguments, usually none.
   CFMutableDictionaryRef properties;
-  kr = IORegistryEntryCreateCFProperties(
-      chosen, &properties, kCFAllocatorDefault, 0);
+  kr = IORegistryEntryCreateCFProperties(chosen, &properties,
+                                         kCFAllocatorDefault, 0);
   IOObjectRelease(chosen);
 
   if (kr != KERN_SUCCESS) {
@@ -105,18 +116,18 @@ QueryData genKernelInfo(QueryContext& context) {
 
   Row r;
   CFTypeRef property;
-  if (CFDictionaryGetValueIfPresent(
-          properties, CFSTR("boot-args"), &property)) {
+  if (CFDictionaryGetValueIfPresent(properties, CFSTR("boot-args"),
+                                    &property)) {
     r["arguments"] = stringFromCFData((CFDataRef)property);
   }
 
-  if (CFDictionaryGetValueIfPresent(
-          properties, CFSTR("boot-device-path"), &property)) {
+  if (CFDictionaryGetValueIfPresent(properties, CFSTR("boot-device-path"),
+                                    &property)) {
     r["device"] = getCanonicalEfiDevicePath((CFDataRef)property);
   }
 
-  if (CFDictionaryGetValueIfPresent(
-          properties, CFSTR("boot-file"), &property)) {
+  if (CFDictionaryGetValueIfPresent(properties, CFSTR("boot-file"),
+                                    &property)) {
     r["path"] = stringFromCFData((CFDataRef)property);
     boost::trim(r["path"]);
   }

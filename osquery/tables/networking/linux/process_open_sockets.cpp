@@ -293,7 +293,7 @@ QueryData genOpenSockets(QueryContext &context) {
   for (const auto &process : pids) {
     std::map<std::string, std::string> descriptors;
     if (osquery::procDescriptors(process, descriptors).ok()) {
-      for (const auto& fd : descriptors) {
+      for (const auto &fd : descriptors) {
         if (fd.second.find("socket:") != std::string::npos) {
           // See #792: std::regex is incomplete until GCC 4.9
           auto inode = fd.second.substr(fd.second.find("socket:") + 8);

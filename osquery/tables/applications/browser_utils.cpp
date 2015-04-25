@@ -71,7 +71,8 @@ void genExtension(const std::string& path, QueryData& results) {
   results.push_back(r);
 }
 
-QueryData genChromeBasedExtensions(QueryContext& context, const fs::path sub_dir) {
+QueryData genChromeBasedExtensions(QueryContext& context,
+                                   const fs::path sub_dir) {
   QueryData results;
 
   auto homes = osquery::getHomeDirectories();

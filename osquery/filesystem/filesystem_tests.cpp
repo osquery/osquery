@@ -3,11 +3,10 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-
 
 #include <fstream>
 
@@ -63,9 +62,8 @@ TEST_F(FilesystemTests, test_wildcard_single_file_list) {
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(files.size(), 3);
   EXPECT_EQ(files.size(), files_flag.size());
-  EXPECT_NE(
-      std::find(files.begin(), files.end(), kFakeDirectory + "/roto.txt"),
-      files.end());
+  EXPECT_NE(std::find(files.begin(), files.end(), kFakeDirectory + "/roto.txt"),
+            files.end());
 }
 
 TEST_F(FilesystemTests, test_wildcard_dual) {
@@ -234,12 +232,11 @@ TEST_F(FilesystemTests, test_dotdot_relative) {
 
 TEST_F(FilesystemTests, test_no_wild) {
   std::vector<std::string> all;
-  auto status = resolveFilePattern(kFakeDirectory + "/roto.txt",
-                                   all, REC_LIST_FILES);
+  auto status =
+      resolveFilePattern(kFakeDirectory + "/roto.txt", all, REC_LIST_FILES);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(all.size(), 1);
-  EXPECT_NE(std::find(all.begin(), all.end(),
-                      kFakeDirectory + "/roto.txt"),
+  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory + "/roto.txt"),
             all.end());
 }
 

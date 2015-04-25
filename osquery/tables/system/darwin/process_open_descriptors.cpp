@@ -144,7 +144,7 @@ void genOpenDescriptors(int pid, descriptor_type type, QueryData &results) {
         fd_info.proc_fdtype == PROX_FDTYPE_VNODE) {
       genFileDescriptor(pid, fd_info.proc_fd, results);
     } else if (type == DESCRIPTORS_TYPE_SOCKET &&
-        fd_info.proc_fdtype == PROX_FDTYPE_SOCKET) {
+               fd_info.proc_fdtype == PROX_FDTYPE_SOCKET) {
       genSocketDescriptor(pid, fd_info.proc_fd, results);
     }
   }

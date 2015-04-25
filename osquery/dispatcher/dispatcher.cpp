@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -34,7 +34,7 @@ Dispatcher& Dispatcher::getInstance() {
 
 Dispatcher::Dispatcher() {
   thread_manager_ = InternalThreadManager::newSimpleThreadManager(
-          (size_t)FLAGS_worker_threads, 0);
+      (size_t)FLAGS_worker_threads, 0);
   auto threadFactory = ThriftThreadFactory(new PosixThreadFactory());
   thread_manager_->threadFactory(threadFactory);
   thread_manager_->start();

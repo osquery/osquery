@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -69,7 +69,8 @@ QueryData parseEtcServicesContent(const std::string& content) {
     // If there is a comment for the service.
     if (service_info_comment.size() > 1) {
       // Removes everything except the comment (parts of the comment).
-      service_info_comment.erase(service_info_comment.begin(), service_info_comment.begin() + 1);
+      service_info_comment.erase(service_info_comment.begin(),
+                                 service_info_comment.begin() + 1);
       r["comment"] = TEXT(boost::algorithm::join(service_info_comment, " # "));
     }
     results.push_back(r);

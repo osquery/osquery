@@ -80,10 +80,10 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
  * The registry is again locked when the module load is complete and a well
  * known module-exported symbol is called.
  */
-#define CREATE_MODULE(name, version, min_sdk_version)         \
-  DECLARE_MODULE(name) {                                      \
-    Registry::declareModule(                                  \
-        name, version, min_sdk_version, OSQUERY_SDK_VERSION); \
+#define CREATE_MODULE(name, version, min_sdk_version)       \
+  DECLARE_MODULE(name) {                                    \
+    Registry::declareModule(name, version, min_sdk_version, \
+                            OSQUERY_SDK_VERSION);           \
   }
 
 /**
@@ -96,12 +96,12 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
  * And example use includes checking if a process environment variable is
  * defined. If defined the module is declared.
  */
-#define CREATE_MODULE_IF(expr, name, version, min_sdk_version)  \
-  DECLARE_MODULE(name) {                                        \
-    if ((expr)) {                                               \
-      Registry::declareModule(                                  \
-          name, version, min_sdk_version, OSQUERY_SDK_VERSION); \
-    }                                                           \
+#define CREATE_MODULE_IF(expr, name, version, min_sdk_version) \
+  DECLARE_MODULE(name) {                                       \
+    if ((expr)) {                                              \
+      Registry::declareModule(name, version, min_sdk_version,  \
+                              OSQUERY_SDK_VERSION);            \
+    }                                                          \
   }
 
 /// Helper replacement for REGISTER, used within extension modules.

@@ -38,7 +38,7 @@ void genFDEStatusForBlockDevice(const std::string &name,
     crypt_init = crypt_init_by_name(&cd, name.c_str());
 #else
     crypt_init =
-      crypt_init_by_name_and_header(&cd, name.c_str(), opt_header_device);
+        crypt_init_by_name_and_header(&cd, name.c_str(), opt_header_device);
 #endif
 
     if (crypt_init < 0) {
@@ -46,7 +46,7 @@ void genFDEStatusForBlockDevice(const std::string &name,
       crypt_free(cd);
       break;
     }
-    
+
     type = crypt_get_type(cd);
     if (crypt_get_active_device(cd, name.c_str(), &cad) < 0) {
       VLOG(1) << "Unable to get active device for " << name;

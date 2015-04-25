@@ -173,8 +173,8 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
 }
 
 Status getQueryColumnsInternal(const std::string& q,
-                       tables::TableColumns& columns,
-                       sqlite3* db) {
+                               tables::TableColumns& columns,
+                               sqlite3* db) {
   int rc;
 
   // Will automatically handle calling sqlite3_finalize on the prepared stmt

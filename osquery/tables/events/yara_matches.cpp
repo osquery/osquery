@@ -38,8 +38,7 @@ typedef FSEventsEventContextRef FileEventContextRef;
 #else
 typedef EventSubscriber<INotifyEventPublisher> FileEventSubscriber;
 typedef INotifyEventContextRef FileEventContextRef;
-#define FILE_CHANGE_MASK \
-  IN_CREATE | IN_CLOSE_WRITE | IN_MODIFY
+#define FILE_CHANGE_MASK IN_CREATE | IN_CLOSE_WRITE | IN_MODIFY
 #endif
 
 /**
@@ -52,8 +51,7 @@ void YARACompilerCallback(int error_level,
                           void* user_data) {
   if (error_level == YARA_ERROR_LEVEL_ERROR) {
     VLOG(1) << file_name << "(" << line_number << "): error: " << message;
-  }
-  else {
+  } else {
     VLOG(1) << file_name << "(" << line_number << "): warning: " << message;
   }
 }
@@ -61,7 +59,7 @@ void YARACompilerCallback(int error_level,
 Status handleRuleFiles(const std::string& category,
                        const pt::ptree& rule_files,
                        std::map<std::string, YR_RULES*>* rules) {
-  YR_COMPILER *compiler = nullptr;
+  YR_COMPILER* compiler = nullptr;
   int result = yr_compiler_create(&compiler);
   if (result != ERROR_SUCCESS) {
     VLOG(1) << "Could not create compiler: " + std::to_string(result);
@@ -72,7 +70,7 @@ Status handleRuleFiles(const std::string& category,
 
   bool compiled = false;
   for (const auto& item : rule_files) {
-    YR_RULES *tmp_rules;
+    YR_RULES* tmp_rules;
     const auto rule = item.second.get("", "");
     VLOG(1) << "Loading " << rule;
 
@@ -104,17 +102,15 @@ Status handleRuleFiles(const std::string& category,
     } else {
       compiled = true;
       // Try to compile the rules.
-      FILE *rule_file = fopen(rule.c_str(), "r");
+      FILE* rule_file = fopen(rule.c_str(), "r");
 
       if (rule_file == nullptr) {
         yr_compiler_destroy(compiler);
         return Status(1, "Could not open file: " + rule);
       }
 
-      int errors = yr_compiler_add_file(compiler,
-                                        rule_file,
-                                        NULL,
-                                        rule.c_str());
+      int errors =
+          yr_compiler_add_file(compiler, rule_file, NULL, rule.c_str());
 
       fclose(rule_file);
       rule_file = nullptr;
@@ -149,10 +145,10 @@ Status handleRuleFiles(const std::string& category,
  * This is the YARA callback. Used to store matching rules in the row which is
  * passed in as user_data.
  */
-int YARACallback(int message, void *message_data, void *user_data) {
+int YARACallback(int message, void* message_data, void* user_data) {
   if (message == CALLBACK_MSG_RULE_MATCHING) {
-    Row *r = (Row *) user_data;
-    YR_RULE *rule = (YR_RULE *) message_data;
+    Row* r = (Row*)user_data;
+    YR_RULE* rule = (YR_RULE*)message_data;
     if ((*r)["matches"].length() > 0) {
       (*r)["matches"] += "," + std::string(rule->identifier);
     } else {
@@ -197,7 +193,7 @@ class YARAEventSubscriber : public FileEventSubscriber {
   Status init();
 
  private:
-  std::map<std::string, YR_RULES *> rules;
+  std::map<std::string, YR_RULES*> rules;
 
   /**
    * @brief This exports a single Callback for FSEventsEventPublisher events.

@@ -14,7 +14,8 @@
 namespace osquery {
 namespace tables {
 
-const std::string kKernelSyscallAddrModifiedPath = "/sys/kernel/camb/syscall_addr_modified";
+const std::string kKernelSyscallAddrModifiedPath =
+    "/sys/kernel/camb/syscall_addr_modified";
 const std::string kKernelTextHashPath = "/sys/kernel/camb/text_segment_hash";
 
 QueryData genKernelIntegrity(QueryContext &context) {
@@ -24,7 +25,8 @@ QueryData genKernelIntegrity(QueryContext &context) {
   std::string text_segment_hash;
   std::string syscall_addr_modified;
 
-  // Get an integral value, 0 or 1, for whether a syscall table pointer is modified. 
+  // Get an integral value, 0 or 1, for whether a syscall table pointer is
+  // modified.
   auto f1 = osquery::readFile(kKernelSyscallAddrModifiedPath, content);
   if (f1.ok()) {
     boost::trim(content);

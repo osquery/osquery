@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -47,10 +47,8 @@ void genADConfig(const std::string& path, QueryData& results) {
     // Get references to common columns.
     const auto& key = row.at("key");
     const auto& subkey = row.at("subkey");
-    if (key == "trustoptions" ||
-        key == "trustkerberosprincipal" ||
-        key == "trustaccount" ||
-        key == "trusttype") {
+    if (key == "trustoptions" || key == "trustkerberosprincipal" ||
+        key == "trustaccount" || key == "trusttype") {
       r["option"] = key;
       r["value"] = row.at("value");
       results.push_back(r);

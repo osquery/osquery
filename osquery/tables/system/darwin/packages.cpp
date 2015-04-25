@@ -212,7 +212,8 @@ void genPackageBOM(const std::string& path, QueryData& results) {
 
     size_t var_size;
     const char* var_data = bom.getPointer(var->index, &var_size);
-    if (var_data == nullptr || var_size < sizeof(BOMTree) || var_size < var->length) {
+    if (var_data == nullptr || var_size < sizeof(BOMTree) ||
+        var_size < var->length) {
       break;
     }
 

@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -50,8 +50,8 @@ TEST_F(DBHandleTests, test_get_handle_for_column_family) {
 }
 
 TEST_F(DBHandleTests, test_get) {
-  db->getDB()->Put(
-      rocksdb::WriteOptions(), cfh_queries, "test_query_123", "{}");
+  db->getDB()->Put(rocksdb::WriteOptions(), cfh_queries, "test_query_123",
+                   "{}");
   std::string r;
   std::string key = "test_query_123";
   auto s = db->Get(kQueries, key, r);

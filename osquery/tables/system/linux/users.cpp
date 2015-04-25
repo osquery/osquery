@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -26,7 +26,7 @@ std::mutex pwdEnumerationMutex;
 QueryData genUsers(QueryContext& context) {
   std::lock_guard<std::mutex> lock(pwdEnumerationMutex);
   QueryData results;
-  struct passwd *pwd = nullptr;
+  struct passwd* pwd = nullptr;
   std::set<long> users_in;
 
   while ((pwd = getpwent()) != nullptr) {
@@ -35,8 +35,8 @@ QueryData genUsers(QueryContext& context) {
       Row r;
       r["uid"] = BIGINT(pwd->pw_uid);
       r["gid"] = BIGINT(pwd->pw_gid);
-      r["uid_signed"] = BIGINT((int32_t) pwd->pw_uid);
-      r["gid_signed"] = BIGINT((int32_t) pwd->pw_gid);
+      r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
+      r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
       r["username"] = TEXT(pwd->pw_name);
       r["description"] = TEXT(pwd->pw_gecos);
       r["directory"] = TEXT(pwd->pw_dir);

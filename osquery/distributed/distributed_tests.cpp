@@ -46,7 +46,9 @@ TEST_F(DistributedTests, test_test_distributed_provider) {
 }
 
 TEST_F(DistributedTests, test_parse_query_json) {
+  // clang-format off
   std::string request_json = R"([{"query": "foo", "id": "bar"}])";
+  // clang-format on
   std::vector<DistributedQueryRequest> requests;
   Status s = DistributedQueryHandler::parseQueriesJSON(request_json, requests);
   ASSERT_EQ(Status(), s);
@@ -54,7 +56,9 @@ TEST_F(DistributedTests, test_parse_query_json) {
   EXPECT_EQ("foo", requests[0].query);
   EXPECT_EQ("bar", requests[0].id);
 
+  // clang-format off
   std::string bad_json = R"([{"query": "foo", "id": "bar"}, {"query": "b"}])";
+  // clang-format on
   requests.clear();
   s = DistributedQueryHandler::parseQueriesJSON(bad_json, requests);
   ASSERT_FALSE(s.ok());
@@ -62,7 +66,7 @@ TEST_F(DistributedTests, test_parse_query_json) {
 }
 
 TEST_F(DistributedTests, test_handle_query) {
-// Access to the internal SQL implementation is only available in core.
+  // Access to the internal SQL implementation is only available in core.
   SQL query = DistributedQueryHandler::handleQuery("SELECT hour from time");
   ASSERT_TRUE(query.ok());
   QueryData rows = query.rows();
@@ -88,8 +92,10 @@ TEST_F(DistributedTests, test_serialize_results_empty) {
 
 TEST_F(DistributedTests, test_serialize_results_basic) {
   DistributedQueryRequest r0("foo", "foo_id");
-  QueryData rows0 = {{{"foo0", "foo0_val"}, {"bar0", "bar0_val"}},
-                     {{"foo1", "foo1_val"}, {"bar1", "bar1_val"}}, };
+  QueryData rows0 = {
+      {{"foo0", "foo0_val"}, {"bar0", "bar0_val"}},
+      {{"foo1", "foo1_val"}, {"bar1", "bar1_val"}},
+  };
   MockSQL q0 = MockSQL(rows0);
   pt::ptree tree;
 
@@ -110,8 +116,10 @@ TEST_F(DistributedTests, test_serialize_results_basic) {
 
 TEST_F(DistributedTests, test_serialize_results_multiple) {
   DistributedQueryRequest r0("foo", "foo_id");
-  QueryData rows0 = {{{"foo0", "foo0_val"}, {"bar0", "bar0_val"}},
-                     {{"foo1", "foo1_val"}, {"bar1", "bar1_val"}}, };
+  QueryData rows0 = {
+      {{"foo0", "foo0_val"}, {"bar0", "bar0_val"}},
+      {{"foo1", "foo1_val"}, {"bar1", "bar1_val"}},
+  };
   MockSQL q0 = MockSQL(rows0);
 
   DistributedQueryRequest r1("bar", "bar_id");
@@ -137,7 +145,7 @@ TEST_F(DistributedTests, test_serialize_results_multiple) {
 }
 
 TEST_F(DistributedTests, test_do_queries) {
-// Access to the internal SQL implementation is only available in core.
+  // Access to the internal SQL implementation is only available in core.
   auto provider_raw = new MockDistributedProvider();
   provider_raw->queriesJSON_ =
     R"([
@@ -185,7 +193,7 @@ TEST_F(DistributedTests, test_do_queries) {
 }
 
 TEST_F(DistributedTests, test_duplicate_request) {
-// Access to the internal SQL implementation is only available in core.
+  // Access to the internal SQL implementation is only available in core.
   auto provider_raw = new MockDistributedProvider();
   provider_raw->queriesJSON_ =
     R"([

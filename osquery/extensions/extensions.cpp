@@ -477,8 +477,7 @@ Status callExtension(const std::string& extension_path,
   try {
     auto client = EXClient(extension_path);
     client.get()->call(ext_response, registry, item, request);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
   }
 

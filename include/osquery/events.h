@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -27,8 +27,10 @@
 namespace osquery {
 
 struct Subscription;
-template <class SC, class EC> class EventPublisher;
-template <class PUB> class EventSubscriber;
+template <class SC, class EC>
+class EventPublisher;
+template <class PUB>
+class EventSubscriber;
 class EventFactory;
 
 typedef const std::string EventPublisherID;
@@ -79,7 +81,8 @@ typedef std::shared_ptr<BaseEventPublisher> EventPublisherRef;
 typedef std::shared_ptr<SubscriptionContext> SubscriptionContextRef;
 typedef std::shared_ptr<EventContext> EventContextRef;
 typedef EventSubscriber<BaseEventPublisher> BaseEventSubscriber;
-typedef std::shared_ptr<EventSubscriber<BaseEventPublisher>> EventSubscriberRef;
+typedef std::shared_ptr<EventSubscriber<BaseEventPublisher> >
+    EventSubscriberRef;
 
 /**
  * @brief EventSubscriber%s may exist in various states.
@@ -254,7 +257,7 @@ class EventPublisherPlugin : public Plugin {
   size_t numEvents() const { return next_ec_id_; }
 
   /// Overriding the EventPublisher constructor is not recommended.
-  EventPublisherPlugin() : next_ec_id_(0), ending_(false), started_(false) {};
+  EventPublisherPlugin() : next_ec_id_(0), ending_(false), started_(false){};
   virtual ~EventPublisherPlugin() {}
 
   /// Return a string identifier associated with this EventPublisher.
@@ -467,7 +470,7 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @return List of 'index.step' index strings.
    */
-  std::vector<std::string> getIndexes(EventTime start, 
+  std::vector<std::string> getIndexes(EventTime start,
                                       EventTime stop,
                                       int list_key = 0);
 
