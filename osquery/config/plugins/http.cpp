@@ -50,7 +50,7 @@ Status runEnrollment(const bool force = false) {
   }
   Status stat = Registry::call("enrollment", "get_key", req, resp);
 
-  if(!stat.ok()){
+  if (!stat.ok()) {
     return stat;
   }
   if (resp.size() > 0 && resp[0]["key"].length() == 0) {
