@@ -9,4 +9,4 @@ schema([
     Column("sha1", TEXT, "SHA1 hash of the package contents"),
     Column("arch", TEXT, "Architecture(s) supported"),
 ])
-implementation("system/rpm_packages@genRpms")
+implementation("@genRpmPackages")

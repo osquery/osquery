@@ -13,7 +13,7 @@ else
 endif
 
 DEFINES := CTEST_OUTPUT_ON_FAILURE=1
-.PHONY: docs
+.PHONY: docs build
 
 all: .setup
 	cd build/$(BUILD_DIR) && cmake ../.. && \
@@ -53,6 +53,22 @@ debug_sdk: .setup
 
 test_debug_sdk: .setup
 	cd build/debug_$(BUILD_DIR) && SDK=True DEBUG=True cmake ../../ && \
+		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
+
+build:
+	cd build/$(BUILD_DIR) && \
+		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
+
+debug_build:
+	cd build/debug_$(BUILD_DIR) && \
+		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
+
+test_build:
+	cd build/$(BUILD_DIR) && \
+		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
+
+test_debug_build:
+	cd build/debug_$(BUILD_DIR) && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 deps: .setup

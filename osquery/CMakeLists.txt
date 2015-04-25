@@ -124,10 +124,12 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   set_target_properties(daemon PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
   set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
 
-  add_executable(run main/run.cpp)
-  TARGET_OSQUERY_LINK_WHOLE(run libosquery)
-  TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
-  set_target_properties(run PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
+  if(NOT DEFINED ENV{SKIP_TESTS})
+    add_executable(run main/run.cpp)
+    TARGET_OSQUERY_LINK_WHOLE(run libosquery)
+    TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
+    set_target_properties(run PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
+  endif()
 
   # Include the public API includes if make devel.
   install(TARGETS libosquery ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)
@@ -149,8 +151,10 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   endif()
 endif()
 
-# Build the example extension with the SDK
-ADD_OSQUERY_EXTENSION(example_extension examples/example_extension.cpp)
+if (NOT DEFINED ENV{SKIP_TESTS})
+  # Build the example extension with the SDK
+  ADD_OSQUERY_EXTENSION(example_extension examples/example_extension.cpp)
 
-# Build the example extension module with the SDK
-ADD_OSQUERY_MODULE(modexample examples/example_module.cpp)
+  # Build the example extension module with the SDK
+  ADD_OSQUERY_MODULE(modexample examples/example_module.cpp)
+endif()
