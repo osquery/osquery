@@ -112,11 +112,15 @@ Status Config::genConfig() {
 }
 
 inline void mergeOption(const tree_node& option, ConfigData& conf) {
-  conf.options[option.first.data()] = option.second.data();
+  std::string key = option.first.data();
+  std::string value = option.second.data();
+
+  Flag::updateValue(key, value);
+  conf.options[key] = value;
   if (conf.all_data.count("options") > 0) {
-    conf.all_data.get_child("options").erase(option.first);
+    conf.all_data.get_child("options").erase(key);
   }
-  conf.all_data.add_child("options." + option.first, option.second);
+  conf.all_data.add_child("options." + key, option.second);
 }
 
 // inline void mergeScheduledQuery(const tree_node& node, ConfigData& conf) {
