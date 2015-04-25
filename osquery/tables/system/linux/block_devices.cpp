@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -12,15 +12,17 @@
 
 #include <blkid/blkid.h>
 #include <libudev.h>
+#include <unistd.h>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
 
-static void getBlockDevice(struct udev_device *dev, QueryData& results) {
+static void getBlockDevice(struct udev_device *dev, QueryData &results) {
   Row r;
   const char *name = udev_device_get_devnode(dev);
   if (name == nullptr) {
@@ -29,17 +31,17 @@ static void getBlockDevice(struct udev_device *dev, QueryData& results) {
   }
 
   // The device name may be blank but will have a string value.
-  r["name"] = std::string(name);
+  r["name"] = name;
 
   struct udev_device *subdev =
       udev_device_get_parent_with_subsystem_devtype(dev, "block", nullptr);
   if (subdev != nullptr) {
-    r["parent"] = std::string(udev_device_get_devnode(subdev));
+    r["parent"] = udev_device_get_devnode(subdev);
   }
 
   const char *size = udev_device_get_sysattr_value(dev, "size");
   if (size != nullptr) {
-    r["size"] = std::string(size);
+    r["size"] = size;
   }
 
   subdev = udev_device_get_parent_with_subsystem_devtype(dev, "scsi", nullptr);
@@ -64,13 +66,13 @@ static void getBlockDevice(struct udev_device *dev, QueryData& results) {
     if (!blkid_do_safeprobe(pr)) {
       const char *blk_value = nullptr;
       if (!blkid_probe_lookup_value(pr, "TYPE", &blk_value, nullptr)) {
-        r["type"] = std::string(blk_value);
+	r["type"] = blk_value;
       }
       if (!blkid_probe_lookup_value(pr, "UUID", &blk_value, nullptr)) {
-        r["uuid"] = std::string(blk_value);
+	r["uuid"] = blk_value;
       }
       if (!blkid_probe_lookup_value(pr, "LABEL", &blk_value, nullptr)) {
-        r["label"] = std::string(blk_value);
+	r["label"] = blk_value;
       }
     }
     blkid_free_probe(pr);
@@ -80,6 +82,10 @@ static void getBlockDevice(struct udev_device *dev, QueryData& results) {
 }
 
 QueryData genBlockDevs(QueryContext &context) {
+  if (getuid() || geteuid()) {
+    VLOG(1) << "Not running as root, some column data not available";
+  }
+
   QueryData results;
 
   struct udev *udev = udev_new();

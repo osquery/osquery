@@ -51,6 +51,7 @@ function main_ubuntu() {
   package libapt-pkg-dev
   package libudev-dev
   package libblkid-dev
+  package libcryptsetup-dev
   package linux-headers-generic
   package ruby-dev
   package gcc

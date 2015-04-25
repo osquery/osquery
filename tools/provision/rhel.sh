@@ -89,6 +89,7 @@ function main_rhel() {
   package rpm-devel
   package rpm-build
   package libblkid-devel
+  package cryptsetup-devel
 
   install_cmake
   install_boost

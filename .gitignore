@@ -45,6 +45,7 @@ build/
 .idea/sqlDataSources.xml
 .idea/dynamic.xml
 .idea/dictionaries
+.idea/codeStyleSettings.xml
 
 # Doxygen Documentation
 doxygen/html
