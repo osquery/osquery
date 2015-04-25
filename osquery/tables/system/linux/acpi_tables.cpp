@@ -48,8 +48,8 @@ void genACPITable(const std::string& table, QueryData& results) {
     r["size"] = INTEGER(-1);
   } else {
     r["size"] = INTEGER(table_content.size());
-    r["md5"] = osquery::hashFromBuffer(
-        HASH_TYPE_MD5, table_content.c_str(), table_content.length());
+    r["md5"] = osquery::hashFromBuffer(HASH_TYPE_MD5, table_content.c_str(),
+                                       table_content.length());
   }
 
   results.push_back(r);

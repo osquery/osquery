@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -33,7 +33,7 @@ QueryData genGroups(QueryContext &context) {
         groups_in.end()) {
       Row r;
       r["gid"] = INTEGER(grp->gr_gid);
-      r["gid_signed"] = INTEGER((int32_t) grp->gr_gid);
+      r["gid_signed"] = INTEGER((int32_t)grp->gr_gid);
       r["groupname"] = TEXT(grp->gr_name);
       results.push_back(r);
       groups_in.insert(grp->gr_gid);

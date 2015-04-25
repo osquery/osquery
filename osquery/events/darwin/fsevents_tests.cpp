@@ -143,7 +143,10 @@ class TestFSEventsEventSubscriber
     : public EventSubscriber<FSEventsEventPublisher> {
  public:
   TestFSEventsEventSubscriber() { setName("TestFSEventsEventSubscriber"); }
-  Status init() { callback_count_ = 0; return Status(0, "OK"); }
+  Status init() {
+    callback_count_ = 0;
+    return Status(0, "OK");
+  }
   Status SimpleCallback(const FSEventsEventContextRef& ec,
                         const void* user_data) {
     callback_count_ += 1;
@@ -197,7 +200,8 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   // Create a subscriptioning context
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
   mc->path = kRealTestPath;
-  EventFactory::addSubscription("fsevents", Subscription::create("TestFSEventsEventSubscriber", mc));
+  EventFactory::addSubscription(
+      "fsevents", Subscription::create("TestFSEventsEventSubscriber", mc));
 
   // Create an event loop thread (similar to main)
   boost::thread temp_thread(EventFactory::run, "fsevents");

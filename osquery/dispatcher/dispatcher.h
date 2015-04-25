@@ -31,7 +31,8 @@
 namespace osquery {
 
 typedef apache::thrift::concurrency::ThreadManager InternalThreadManager;
-typedef OSQUERY_THRIFT_POINTER::shared_ptr<InternalThreadManager> InternalThreadManagerRef;
+typedef OSQUERY_THRIFT_POINTER::shared_ptr<InternalThreadManager>
+    InternalThreadManagerRef;
 
 /**
  * @brief Default number of threads in the thread pool.
@@ -69,7 +70,8 @@ class InternalRunnable : public apache::thrift::concurrency::Runnable {
 typedef std::shared_ptr<InternalRunnable> InternalRunnableRef;
 typedef std::shared_ptr<boost::thread> InternalThreadRef;
 /// A thrift internal runnable with variable pointer wrapping.
-typedef OSQUERY_THRIFT_POINTER::shared_ptr<InternalRunnable> ThriftInternalRunnableRef;
+typedef OSQUERY_THRIFT_POINTER::shared_ptr<InternalRunnable>
+    ThriftInternalRunnableRef;
 typedef OSQUERY_THRIFT_POINTER::shared_ptr<
     apache::thrift::concurrency::PosixThreadFactory> ThriftThreadFactory;
 

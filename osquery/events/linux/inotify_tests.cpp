@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -150,7 +150,10 @@ class TestINotifyEventSubscriber
     : public EventSubscriber<INotifyEventPublisher> {
  public:
   TestINotifyEventSubscriber() { setName("TestINotifyEventSubscriber"); }
-  Status init() { callback_count_ = 0; return Status(0, "OK"); }
+  Status init() {
+    callback_count_ = 0;
+    return Status(0, "OK");
+  }
   Status SimpleCallback(const INotifyEventContextRef& ec,
                         const void* user_data) {
     callback_count_ += 1;
@@ -205,7 +208,6 @@ TEST_F(INotifyTests, test_inotify_run) {
   // Create a temporary file to watch, open writeable
   FILE* fd = fopen(kRealTestPath.c_str(), "w");
 
-
   // Create a subscriber.
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
   EventFactory::registerEventSubscriber(sub);
@@ -213,7 +215,8 @@ TEST_F(INotifyTests, test_inotify_run) {
   // Create a subscriptioning context
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = kRealTestPath;
-  status = EventFactory::addSubscription("inotify", Subscription::create("TestINotifyEventSubscriber", mc));
+  status = EventFactory::addSubscription(
+      "inotify", Subscription::create("TestINotifyEventSubscriber", mc));
   EXPECT_TRUE(status.ok());
 
   // Create an event loop thread (similar to main)

@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -51,7 +51,7 @@ Status HardwareEventSubscriber::Callback(const UdevEventContextRef& ec,
     return Status(0, "Missing node and driver.");
   }
 
-  struct udev_device *device = ec->device;
+  struct udev_device* device = ec->device;
   r["action"] = ec->action_string;
   r["path"] = ec->devnode;
   r["type"] = ec->devtype;

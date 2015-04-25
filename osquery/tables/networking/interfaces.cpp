@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -77,7 +77,7 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
     r["oerrors"] = BIGINT_FROM_UINT32(ifd->tx_errors);
 
     // Get Linux physical properties for the AF_PACKET entry.
-    int fd = socket(AF_INET, SOCK_DGRAM, 0); 
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd >= 0) {
       struct ifreq ifr;
       memcpy(ifr.ifr_name, addr->ifa_name, IFNAMSIZ);
@@ -86,11 +86,11 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
       }
 
       if (ioctl(fd, SIOCGIFMETRIC, &ifr) >= 0) {
-       r["metric"] = BIGINT_FROM_UINT32(ifr.ifr_metric);
+        r["metric"] = BIGINT_FROM_UINT32(ifr.ifr_metric);
       }
 
       if (ioctl(fd, SIOCGIFHWADDR, &ifr) >= 0) {
-        r["type"] = INTEGER_FROM_UCHAR(ifr.ifr_hwaddr.sa_family); 
+        r["type"] = INTEGER_FROM_UCHAR(ifr.ifr_hwaddr.sa_family);
       }
     }
 
@@ -124,7 +124,8 @@ QueryData genInterfaceAddresses(QueryContext &context) {
   }
 
   for (if_addr = if_addrs; if_addr != nullptr; if_addr = if_addr->ifa_next) {
-    if (if_addr->ifa_addr->sa_family == AF_INET || if_addr->ifa_addr->sa_family == AF_INET6) {
+    if (if_addr->ifa_addr->sa_family == AF_INET ||
+        if_addr->ifa_addr->sa_family == AF_INET6) {
       genAddressesFromAddr(if_addr, results);
     }
   }

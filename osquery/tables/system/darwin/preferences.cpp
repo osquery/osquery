@@ -164,9 +164,8 @@ void genOSXDefaultPreferences(QueryContext& context, QueryData& results) {
     app_map = (CFArrayRef)CFArrayCreateMutable(
         kCFAllocatorDefault, domains.size(), &kCFTypeArrayCallBacks);
     for (const auto& domain : domains) {
-      auto cf_domain = CFStringCreateWithCString(kCFAllocatorDefault,
-                                                 domain.c_str(),
-                                                 kCFStringEncodingASCII);
+      auto cf_domain = CFStringCreateWithCString(
+          kCFAllocatorDefault, domain.c_str(), kCFStringEncodingASCII);
       CFArrayAppendValue((CFMutableArrayRef)app_map, cf_domain);
       CFRelease(cf_domain);
     }

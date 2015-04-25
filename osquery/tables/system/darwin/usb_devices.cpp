@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -24,7 +24,7 @@ std::string getUSBProperty(const CFMutableDictionaryRef& details,
                            const std::string& key) {
   // Get a property from the device.
   auto cfkey = CFStringCreateWithCString(kCFAllocatorDefault, key.c_str(),
-    kCFStringEncodingUTF8);
+                                         kCFStringEncodingUTF8);
   auto property = CFDictionaryGetValue(details, cfkey);
   CFRelease(cfkey);
   if (property) {
@@ -42,8 +42,8 @@ void genUSBDevice(const io_service_t& device, QueryData& results) {
 
   // Get the device details
   CFMutableDictionaryRef details;
-  IORegistryEntryCreateCFProperties(
-      device, &details, kCFAllocatorDefault, kNilOptions);
+  IORegistryEntryCreateCFProperties(device, &details, kCFAllocatorDefault,
+                                    kNilOptions);
 
   r["usb_address"] = getUSBProperty(details, "USB Address");
   r["usb_port"] = getUSBProperty(details, "PortNum");

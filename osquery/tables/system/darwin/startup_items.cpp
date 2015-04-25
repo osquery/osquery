@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -62,8 +62,8 @@ Status parseAliasData(const std::string& data, std::string& result) {
     return Status(1, "Failed base64 decode");
   }
 
-  auto alias = CFDataCreate(
-      kCFAllocatorDefault, (const UInt8*)decoded.c_str(), decoded.size());
+  auto alias = CFDataCreate(kCFAllocatorDefault, (const UInt8*)decoded.c_str(),
+                            decoded.size());
   if (alias == nullptr) {
     // Failed to create CFData object.
     return Status(2, "CFData allocation failed");

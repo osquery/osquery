@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -63,13 +63,13 @@ void INotifyEventPublisher::tearDown() {
   inotify_handle_ = -1;
 }
 
-Status INotifyEventPublisher::restartMonitoring(){
+Status INotifyEventPublisher::restartMonitoring() {
   if (last_restart_ != 0 && getUnixTime() - last_restart_ < 10) {
     return Status(1, "Overflow");
   }
   last_restart_ = getUnixTime();
   VLOG(1) << "Got an overflow, trying to restart...";
-  for(const auto& desc : descriptors_){
+  for (const auto& desc : descriptors_) {
     removeMonitor(desc, 1);
   }
   path_descriptors_.clear();
@@ -108,7 +108,7 @@ Status INotifyEventPublisher::run() {
     if (event->mask & IN_Q_OVERFLOW) {
       // The inotify queue was overflown (remove all paths).
       Status stat = restartMonitoring();
-      if(!stat.ok()){
+      if (!stat.ok()) {
         return stat;
       }
     }
@@ -124,7 +124,7 @@ Status INotifyEventPublisher::run() {
       removeMonitor(event->wd, false);
     } else {
       auto ec = createEventContextFrom(event);
-      if(event->mask & IN_CREATE && isDirectory(ec->path).ok()){
+      if (event->mask & IN_CREATE && isDirectory(ec->path).ok()) {
         addMonitor(ec->path, 1);
       }
       fire(ec);

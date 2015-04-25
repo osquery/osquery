@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -19,7 +19,7 @@ namespace tables {
 QueryData genMounts(QueryContext& context) {
   QueryData results;
 
-  struct statfs *mnt;
+  struct statfs* mnt;
   int mnts = 0;
   int i;
   char real_path[PATH_MAX];

@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -65,7 +65,7 @@ Status UdevEventPublisher::run() {
     return Status(0, "Timeout");
   }
 
-  struct udev_device *device = udev_monitor_receive_device(monitor_);
+  struct udev_device* device = udev_monitor_receive_device(monitor_);
   if (device == nullptr) {
     LOG(ERROR) << "udev monitor returned invalid device.";
     return Status(1, "udev monitor failed.");

@@ -34,7 +34,7 @@ void genCertificate(const SecCertificateRef& cert, QueryData& results) {
   Row r;
 
   // Iterate through each selected certificate property.
-  for (const auto &detail : kCertificateProperties) {
+  for (const auto& detail : kCertificateProperties) {
     auto property = CreatePropertyFromCertificate(cert, detail.second.type);
     if (property == nullptr) {
       r[detail.first] = "";
@@ -58,7 +58,7 @@ void genCertificate(const SecCertificateRef& cert, QueryData& results) {
   results.push_back(r);
 }
 
-QueryData genCerts(QueryContext &context) {
+QueryData genCerts(QueryContext& context) {
   QueryData results;
 
   // Allow the caller to set an explicit certificate (keychain) search path.

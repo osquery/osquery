@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -48,14 +48,13 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
 TEST_F(EventsDatabaseTests, test_event_module_id) {
   auto sub = std::make_shared<FakeEventSubscriber>();
   sub->doNotExpire();
-  
+
   // Not normally available outside of EventSubscriber->Add().
   auto event_id1 = sub->getEventID();
   EXPECT_EQ(event_id1, "1");
   auto event_id2 = sub->getEventID();
   EXPECT_EQ(event_id2, "2");
 }
-
 
 TEST_F(EventsDatabaseTests, test_event_add) {
   auto sub = std::make_shared<FakeEventSubscriber>();

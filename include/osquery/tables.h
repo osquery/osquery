@@ -28,7 +28,7 @@
   do {                                                                    \
     _Pragma("clang diagnostic push")                                      \
         _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"") \
-        expr;                                                             \
+            expr;                                                         \
     _Pragma("clang diagnostic pop")                                       \
   } while (0)
 
@@ -206,7 +206,7 @@ struct ConstraintList {
    */
   std::set<std::string> getAll(ConstraintOperator op) const;
 
-  template<typename T>
+  template <typename T>
   std::set<T> getAll(ConstraintOperator op) const {
     std::set<T> literal_matches;
     auto matches = getAll(op);

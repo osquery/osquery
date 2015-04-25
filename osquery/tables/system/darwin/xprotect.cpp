@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -27,7 +27,7 @@ namespace osquery {
 namespace tables {
 
 /// Path to XProtect.meta.plist and XProtect.plist
-const std::string kXProtectPath = 
+const std::string kXProtectPath =
     "/System/Library/CoreServices/"
     "CoreTypes.bundle/Contents/Resources/";
 
@@ -68,7 +68,7 @@ void genMatches(const pt::ptree& entry, std::vector<Row>& results) {
   }
 }
 
-void genXProtectEntry(const pt::ptree &entry, QueryData& results) {
+void genXProtectEntry(const pt::ptree& entry, QueryData& results) {
   // Entry is an XProtect dictionary of meta data about the item.
   auto name = entry.get("Description", "");
   auto launch_type = entry.get("LaunchServices.LSItemContentType", "");

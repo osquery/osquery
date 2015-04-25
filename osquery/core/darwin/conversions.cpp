@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -20,8 +20,8 @@ std::string stringFromCFString(const CFStringRef& cf_string) {
   // Access, then convert the CFString. CFStringGetCStringPtr is less-safe.
   CFIndex length = CFStringGetLength(cf_string);
   char* buffer = (char*)malloc(length + 1);
-  if (!CFStringGetCString(
-          cf_string, buffer, length + 1, kCFStringEncodingASCII)) {
+  if (!CFStringGetCString(cf_string, buffer, length + 1,
+                          kCFStringEncodingASCII)) {
     free(buffer);
     return "";
   }

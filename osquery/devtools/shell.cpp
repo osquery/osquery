@@ -324,15 +324,7 @@ struct callback_data {
 #define MODE_Pretty 9 /* Pretty print the SQL results */
 
 static const char *modeDescr[] = {
-    "line",
-    "column",
-    "list",
-    "semi",
-    "html",
-    "tcl",
-    "csv",
-    "explain",
-    "pretty",
+    "line", "column", "list", "semi", "html", "tcl", "csv", "explain", "pretty",
 };
 
 /*
@@ -404,7 +396,7 @@ static void output_html_string(FILE *out, const char *z) {
     z = "";
   while (*z) {
     for (i = 0; z[i] && z[i] != '<' && z[i] != '&' && z[i] != '>' &&
-                    z[i] != '\"' && z[i] != '\'';
+                z[i] != '\"' && z[i] != '\'';
          i++) {
     }
     if (i > 0) {
@@ -840,16 +832,16 @@ static int display_stats(sqlite3 *db, /* Database to query */
             iHiwtr);
     iHiwtr = iCur = -1;
     sqlite3_status(SQLITE_STATUS_MALLOC_SIZE, &iCur, &iHiwtr, bReset);
-    fprintf(
-        pArg->out, "Largest Allocation:                  %d bytes\n", iHiwtr);
+    fprintf(pArg->out, "Largest Allocation:                  %d bytes\n",
+            iHiwtr);
     iHiwtr = iCur = -1;
     sqlite3_status(SQLITE_STATUS_PAGECACHE_SIZE, &iCur, &iHiwtr, bReset);
-    fprintf(
-        pArg->out, "Largest Pcache Allocation:           %d bytes\n", iHiwtr);
+    fprintf(pArg->out, "Largest Pcache Allocation:           %d bytes\n",
+            iHiwtr);
     iHiwtr = iCur = -1;
     sqlite3_status(SQLITE_STATUS_SCRATCH_SIZE, &iCur, &iHiwtr, bReset);
-    fprintf(
-        pArg->out, "Largest Scratch Allocation:          %d bytes\n", iHiwtr);
+    fprintf(pArg->out, "Largest Scratch Allocation:          %d bytes\n",
+            iHiwtr);
 #ifdef YYTRACKMAXSTACKDEPTH
     iHiwtr = iCur = -1;
     sqlite3_status(SQLITE_STATUS_PARSER_STACK, &iCur, &iHiwtr, bReset);
@@ -862,20 +854,20 @@ static int display_stats(sqlite3 *db, /* Database to query */
 
   if (pArg && pArg->out && db) {
     iHiwtr = iCur = -1;
-    sqlite3_db_status(
-        db, SQLITE_DBSTATUS_LOOKASIDE_USED, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_USED, &iCur, &iHiwtr,
+                      bReset);
     fprintf(pArg->out,
             "Lookaside Slots Used:                %d (max %d)\n",
             iCur,
             iHiwtr);
-    sqlite3_db_status(
-        db, SQLITE_DBSTATUS_LOOKASIDE_HIT, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_HIT, &iCur, &iHiwtr,
+                      bReset);
     fprintf(pArg->out, "Successful lookaside attempts:       %d\n", iHiwtr);
-    sqlite3_db_status(
-        db, SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE, &iCur, &iHiwtr,
+                      bReset);
     fprintf(pArg->out, "Lookaside failures due to size:      %d\n", iHiwtr);
-    sqlite3_db_status(
-        db, SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL, &iCur, &iHiwtr, bReset);
+    sqlite3_db_status(db, SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL, &iCur, &iHiwtr,
+                      bReset);
     fprintf(pArg->out, "Lookaside failures due to OOM:       %d\n", iHiwtr);
     iHiwtr = iCur = -1;
     sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &iCur, &iHiwtr, bReset);
@@ -898,8 +890,8 @@ static int display_stats(sqlite3 *db, /* Database to query */
   }
 
   if (pArg && pArg->out && db && pArg->pStmt) {
-    iCur = sqlite3_stmt_status(
-        pArg->pStmt, SQLITE_STMTSTATUS_FULLSCAN_STEP, bReset);
+    iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_FULLSCAN_STEP,
+                               bReset);
     fprintf(pArg->out, "Fullscan Steps:                      %d\n", iCur);
     iCur = sqlite3_stmt_status(pArg->pStmt, SQLITE_STMTSTATUS_SORT, bReset);
     fprintf(pArg->out, "Sort Operations:                     %d\n", iCur);
@@ -1205,7 +1197,6 @@ static int shell_exec(
   return rc;
 }
 
-
 /*
 ** Text of a help message
 */
@@ -1315,16 +1306,16 @@ static sqlite3_int64 integerValue(const char *zArg) {
     char *zSuffix;
     int iMult;
   } aMult[] = {
-        {(char *)"KiB", 1024},
-        {(char *)"MiB", 1024 * 1024},
-        {(char *)"GiB", 1024 * 1024 * 1024},
-        {(char *)"KB", 1000},
-        {(char *)"MB", 1000000},
-        {(char *)"GB", 1000000000},
-        {(char *)"K", 1000},
-        {(char *)"M", 1000000},
-        {(char *)"G", 1000000000},
-    };
+      {(char *)"KiB", 1024},
+      {(char *)"MiB", 1024 * 1024},
+      {(char *)"GiB", 1024 * 1024 * 1024},
+      {(char *)"KB", 1000},
+      {(char *)"MB", 1000000},
+      {(char *)"GB", 1000000000},
+      {(char *)"K", 1000},
+      {(char *)"M", 1000000},
+      {(char *)"G", 1000000000},
+  };
   int i;
   int isNeg = 0;
   if (zArg[0] == '-') {
@@ -1376,8 +1367,8 @@ static int booleanValue(char *zArg) {
   if (sqlite3_stricmp(zArg, "off") == 0 || sqlite3_stricmp(zArg, "no") == 0) {
     return 0;
   }
-  fprintf(
-      stderr, "ERROR: Not a boolean value: \"%s\". Assuming \"no\".\n", zArg);
+  fprintf(stderr, "ERROR: Not a boolean value: \"%s\". Assuming \"no\".\n",
+          zArg);
   return 0;
 }
 
@@ -1471,8 +1462,8 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     return 0; /* no tokens, no error */
   n = strlen30(azArg[0]);
   c = azArg[0][0];
-  if (c == 'b' && n >= 3 && strncmp(azArg[0], "bail", n) == 0 &&
-             nArg > 1 && nArg < 3) {
+  if (c == 'b' && n >= 3 && strncmp(azArg[0], "bail", n) == 0 && nArg > 1 &&
+      nArg < 3) {
     bail_on_error = booleanValue(azArg[1]);
   } else if (c == 'e' && strncmp(azArg[0], "echo", n) == 0 && nArg > 1 &&
              nArg < 3) {
@@ -1705,8 +1696,8 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     int i;
     fprintf(p->out, "%9.9s: %s\n", "echo", p->echoOn ? "on" : "off");
     fprintf(p->out, "%9.9s: %s\n", "eqp", p->autoEQP ? "on" : "off");
-    fprintf(
-        p->out, "%9.9s: %s\n", "explain", p->explainPrev.valid ? "on" : "off");
+    fprintf(p->out, "%9.9s: %s\n", "explain",
+            p->explainPrev.valid ? "on" : "off");
     fprintf(p->out, "%9.9s: %s\n", "headers", p->showHeader ? "on" : "off");
     fprintf(p->out, "%9.9s: %s\n", "mode", modeDescr[p->mode]);
     fprintf(p->out, "%9.9s: ", "nullvalue");
@@ -1845,7 +1836,7 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     }
 #endif
   } else if (c == 'v' && strncmp(azArg[0], "version", n) == 0) {
-  	fprintf(p->out, "osquery %s\n", TEXT(OSQUERY_VERSION).c_str());
+    fprintf(p->out, "osquery %s\n", TEXT(OSQUERY_VERSION).c_str());
     fprintf(p->out,
             "SQLite %s %s\n" /*extra-version-info*/,
             sqlite3_libversion(),
@@ -2039,8 +2030,8 @@ static int process_input(struct callback_data *p, FILE *in) {
       if (rc || zErrMsg) {
         char zPrefix[100];
         if (in != 0 || !stdin_is_interactive) {
-          sqlite3_snprintf(
-              sizeof(zPrefix), zPrefix, "Error: near line %d:", startline);
+          sqlite3_snprintf(sizeof(zPrefix), zPrefix, "Error: near line %d:",
+                           startline);
         } else {
           sqlite3_snprintf(sizeof(zPrefix), zPrefix, "Error:");
         }
@@ -2103,8 +2094,8 @@ int launchIntoShell(int argc, char **argv) {
   data.db = db;
 
   // Add some shell-specific functions to the instance.
-  sqlite3_create_function(
-      db, "shellstatic", 0, SQLITE_UTF8, 0, shellstaticFunc, 0, 0);
+  sqlite3_create_function(db, "shellstatic", 0, SQLITE_UTF8, 0, shellstaticFunc,
+                          0, 0);
 
   Argv0 = argv[0];
   stdin_is_interactive = isatty(0);
@@ -2116,7 +2107,7 @@ int launchIntoShell(int argc, char **argv) {
     // SQLite: Need to check for batch mode here to so we can avoid printing
     // informational messages (like from process_sqliterc) before we do the
     // actual processing of arguments later in a second pass.
-      stdin_is_interactive = 0;
+    stdin_is_interactive = 0;
   }
 
   int warnInmemoryDb = 1;
@@ -2150,9 +2141,9 @@ int launchIntoShell(int argc, char **argv) {
   bail_on_error = (FLAGS_bail) ? 1 : 0;
 
   sqlite3_snprintf(sizeof(data.separator), data.separator, "%s",
-    FLAGS_separator.c_str());
+                   FLAGS_separator.c_str());
   sqlite3_snprintf(sizeof(data.nullvalue), data.nullvalue, "%s",
-    FLAGS_nullvalue.c_str());
+                   FLAGS_nullvalue.c_str());
 
   int rc = 0;
   if (argc > 1 && argv[1] != nullptr) {

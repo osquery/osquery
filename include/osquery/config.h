@@ -115,7 +115,7 @@ class Config : private boost::noncopyable {
    * Config's constructor is private
    */
   Config() {}
-  ~Config(){}
+  ~Config() {}
   Config(Config const&);
   void operator=(Config const&);
 

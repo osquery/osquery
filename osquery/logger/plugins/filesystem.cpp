@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -66,9 +66,9 @@ Status FilesystemLoggerPlugin::logStatus(
     const std::vector<StatusLogLine>& log) {
   for (const auto& item : log) {
     // Emit this intermediate log to the glog filesystem logger.
-    google::LogMessage(item.filename.c_str(),
-                       item.line,
-                       (google::LogSeverity)item.severity).stream()
+    google::LogMessage(
+        item.filename.c_str(), item.line, (google::LogSeverity)item.severity)
+            .stream()
         << item.message;
   }
 

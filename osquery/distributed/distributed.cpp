@@ -38,8 +38,8 @@ Status MockDistributedProvider::getQueriesJSON(std::string& query_json) {
 }
 
 Status MockDistributedProvider::writeResultsJSON(const std::string& results) {
-    resultsJSON_ = results;
-    return Status();
+  resultsJSON_ = results;
+  return Status();
 }
 
 Status DistributedQueryHandler::parseQueriesJSON(
@@ -50,8 +50,7 @@ Status DistributedQueryHandler::parseQueriesJSON(
   try {
     std::istringstream query_stream(query_json);
     pt::read_json(query_stream, tree);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, std::string("Error loading query JSON: ") + e.what());
   }
 
@@ -96,8 +95,7 @@ Status DistributedQueryHandler::serializeResults(
         return s;
       }
     }
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, std::string("Error serializing results: ") + e.what());
   }
   return Status();
@@ -146,8 +144,7 @@ Status DistributedQueryHandler::doQueries() {
     std::ostringstream ss;
     pt::write_json(ss, serialized_results, false);
     json = ss.str();
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, e.what());
   }
 

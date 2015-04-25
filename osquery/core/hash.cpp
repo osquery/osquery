@@ -17,15 +17,15 @@
 namespace osquery {
 
 #ifdef __APPLE__
-  #import <CommonCrypto/CommonDigest.h>
-  #define __HASH_API(name) CC_##name
+#import <CommonCrypto/CommonDigest.h>
+#define __HASH_API(name) CC_##name
 #else
-  #include <openssl/sha.h>
-  #include <openssl/md5.h>
-  #define __HASH_API(name) name
+#include <openssl/sha.h>
+#include <openssl/md5.h>
+#define __HASH_API(name) name
 
-  #define SHA1_DIGEST_LENGTH SHA_DIGEST_LENGTH
-  #define SHA1_CTX SHA_CTX
+#define SHA1_DIGEST_LENGTH SHA_DIGEST_LENGTH
+#define SHA1_CTX SHA_CTX
 #endif
 
 #define HASH_CHUNK_SIZE 1024
@@ -84,7 +84,9 @@ std::string Hash::digest() {
   return digest.str();
 }
 
-std::string hashFromBuffer(HashType hash_type, const void* buffer, size_t size) {
+std::string hashFromBuffer(HashType hash_type,
+                           const void* buffer,
+                           size_t size) {
   Hash hash(hash_type);
   hash.update(buffer, size);
   return hash.digest();

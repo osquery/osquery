@@ -55,7 +55,8 @@ QueryData parseEtcProtocolsContent(const std::string& content) {
     // If there is a comment for the service.
     if (protocol_comment.size() > 1) {
       // Removes everything except the comment (parts of the comment).
-      protocol_comment.erase(protocol_comment.begin(), protocol_comment.begin() + 1);
+      protocol_comment.erase(protocol_comment.begin(),
+                             protocol_comment.begin() + 1);
       r["comment"] = TEXT(boost::algorithm::join(protocol_comment, " # "));
     }
     results.push_back(r);

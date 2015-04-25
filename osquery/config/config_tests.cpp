@@ -149,7 +149,9 @@ TEST_F(ConfigTests, test_config_update) {
 
 class TestConfigParserPlugin : public ConfigParserPlugin {
  public:
-  std::vector<std::string> keys() { return {"dictionary", "dictionary2", "list"}; }
+  std::vector<std::string> keys() {
+    return {"dictionary", "dictionary2", "list"};
+  }
 
   Status update(const std::map<std::string, ConfigTree>& config) {
     // Set a simple boolean indicating the update callin occurred.

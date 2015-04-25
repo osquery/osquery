@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -24,13 +24,13 @@ namespace osquery {
 namespace tables {
 
 std::vector<std::string> kBinarySearchPaths = {
-  "/bin",
-  "/sbin",
-  "/usr/bin",
-  "/usr/sbin",
-  "/usr/local/bin",
-  "/usr/local/sbin",
-  "/tmp",
+    "/bin",
+    "/sbin",
+    "/usr/bin",
+    "/usr/sbin",
+    "/usr/local/bin",
+    "/usr/local/sbin",
+    "/tmp",
 };
 
 Status genBin(const fs::path& path, int perms, QueryData& results) {
@@ -43,8 +43,8 @@ Status genBin(const fs::path& path, int perms, QueryData& results) {
   // store path
   Row r;
   r["path"] = path.string();
-  struct passwd *pw = getpwuid(info.st_uid);
-  struct group *gr = getgrgid(info.st_gid);
+  struct passwd* pw = getpwuid(info.st_uid);
+  struct group* gr = getgrgid(info.st_gid);
 
   // get user name + group
   std::string user;
@@ -115,7 +115,11 @@ void genSuidBinsFromPath(const std::string& path, QueryData& results) {
       VLOG(1) << "Cannot read binary from " << path;
       it.no_push();
       // Try to recover, otherwise break.
-      try { ++it; } catch(fs::filesystem_error& e) { break; }
+      try {
+        ++it;
+      } catch (fs::filesystem_error& e) {
+        break;
+      }
     }
   }
 }

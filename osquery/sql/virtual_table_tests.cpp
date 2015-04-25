@@ -39,8 +39,8 @@ TEST_F(VirtualTableTests, test_tableplugin_columndefinition) {
 TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   auto table = std::make_shared<sampleTablePlugin>();
   table->setName("sample");
-  //sqlite3* db = nullptr;
-  //sqlite3_open(":memory:", &db);
+  // sqlite3* db = nullptr;
+  // sqlite3_open(":memory:", &db);
   auto dbc = SQLiteDBManager::get();
 
   // Virtual tables require the registry/plugin API to query tables.

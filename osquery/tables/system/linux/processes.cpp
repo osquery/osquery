@@ -23,7 +23,8 @@
 namespace osquery {
 namespace tables {
 
-inline std::string getProcAttr(const std::string& attr, const std::string& pid) {
+inline std::string getProcAttr(const std::string& attr,
+                               const std::string& pid) {
   return "/proc/" + pid + "/" + attr;
 }
 
@@ -42,7 +43,8 @@ inline std::string readProcCMDLine(const std::string& pid) {
   return content;
 }
 
-inline std::string readProcLink(const std::string& attr, const std::string& pid) {
+inline std::string readProcLink(const std::string& attr,
+                                const std::string& pid) {
   // The exe is a symlink to the binary on-disk.
   auto attr_path = getProcAttr(attr, pid);
 
@@ -121,7 +123,7 @@ struct SimpleProcStat {
   std::string effective_gid; // Gid: - * - -
 
   std::string resident_size; // VmRSS:
-  std::string phys_footprint;  // VmSize:
+  std::string phys_footprint; // VmSize:
 
   // Output from sring parsing /proc/<pid>/stat.
   std::string user_time;

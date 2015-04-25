@@ -112,8 +112,9 @@ void genControlInfo(int* oid,
   results.push_back(r);
 }
 
-void genControlInfoFromName(const std::string& name, QueryData& results,
-                    const std::map<std::string, std::string>& config) {
+void genControlInfoFromName(const std::string& name,
+                            QueryData& results,
+                            const std::map<std::string, std::string>& config) {
   int request[CTL_DEBUG_MAXID + 2] = {0};
   size_t oid_size = CTL_DEBUG_MAXID;
   if (sysctlnametomib(name.c_str(), request, &oid_size) != 0) {

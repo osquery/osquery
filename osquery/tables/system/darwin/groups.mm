@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -61,7 +61,7 @@ QueryData genGroups(QueryContext &context) {
       struct group *grp = getgrnam(r["groupname"].c_str());
       if (grp != nullptr) {
         r["gid"] = BIGINT(grp->gr_gid);
-        r["gid_signed"] = BIGINT((int32_t) grp->gr_gid);
+        r["gid_signed"] = BIGINT((int32_t)grp->gr_gid);
         results.push_back(r);
       }
     }

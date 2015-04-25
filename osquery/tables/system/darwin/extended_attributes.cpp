@@ -213,7 +213,7 @@ void getFileData(QueryData &results,
 
       if (isPrintable(x_att.attribute_data)) {
         r["base64"] = INTEGER(0);
-        r["value"] = x_att.attribute_data;    
+        r["value"] = x_att.attribute_data;
       } else {
         r["base64"] = INTEGER(1);
         r["value"] = base64Encode(x_att.attribute_data);

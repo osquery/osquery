@@ -35,7 +35,8 @@ void genControlInfo(int* oid,
                     const std::map<std::string, std::string>& config);
 
 /// Must be implemented by the platform.
-void genControlInfoFromName(const std::string& name, QueryData& results,
-                    const std::map<std::string, std::string>& config);
+void genControlInfoFromName(const std::string& name,
+                            QueryData& results,
+                            const std::map<std::string, std::string>& config);
 }
 }
