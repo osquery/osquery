@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -84,8 +84,11 @@ std::string Flag::getDescription(const std::string& name) {
 }
 
 Status Flag::updateValue(const std::string& name, const std::string& value) {
-  GFLAGS_NAMESPACE::SetCommandLineOption(name.c_str(), value.c_str());
-  return Status(0, "OK");
+  if (instance().flags_.count(name) > 0) {
+    GFLAGS_NAMESPACE::SetCommandLineOption(name.c_str(), value.c_str());
+    return Status(0, "OK");
+  }
+  return Status(1, "Flag not found");
 }
 
 std::map<std::string, FlagInfo> Flag::flags() {

@@ -28,6 +28,8 @@
 
 #include "osquery/core/watcher.h"
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 
 #define DESCRIPTION \
@@ -59,8 +61,6 @@ CLI_FLAG(bool,
 #ifndef __APPLE__
 CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 #endif
-
-namespace fs = boost::filesystem;
 
 void printUsage(const std::string& binary, int tool) {
   // Parse help options before gflags. Only display osquery-related options.
@@ -176,8 +176,8 @@ void Initializer::initDaemon() {
   syslog(
       LOG_NOTICE, "%s started [version=%s]", binary_.c_str(), OSQUERY_VERSION);
 
-  // check if /var/osquery exists
-  if ((Flag::isDefault("pidfile") || Flag::isDefault("db_path")) &&
+  // Check if /var/osquery exists
+  if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
       !isDirectory("/var/osquery")) {
     std::cerr << CONFIG_ERROR
   }
@@ -192,7 +192,7 @@ void Initializer::initDaemon() {
 
 void Initializer::initWatcher() {
   // The watcher takes a list of paths to autoload extensions from.
-  loadExtensions();
+  osquery::loadExtensions();
 
   // Add a watcher service thread to start/watch an optional worker and set
   // of optional extensions in the autoload paths.
@@ -306,7 +306,7 @@ void Initializer::start() {
 
   // Start event threads.
   osquery::attachEvents();
-  osquery::EventFactory::delay();
+  EventFactory::delay();
 }
 
 void Initializer::shutdown() {

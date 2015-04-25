@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -67,13 +67,17 @@ TEST_F(ConfigTests, test_plugin) {
 
 TEST_F(ConfigTests, test_queries_execute) {
   ConfigDataInstance config;
-  EXPECT_EQ(config.schedule().size(), 2);
+  EXPECT_EQ(config.schedule().size(), 3);
 }
 
 TEST_F(ConfigTests, test_watched_files) {
   ConfigDataInstance config;
-  EXPECT_EQ(config.files().size(), 2);
+  ASSERT_EQ(config.files().size(), 3);
+  // From the deprecated "additional_monitoring" collection.
   EXPECT_EQ(config.files().at("downloads").size(), 1);
+
+  // From the new, recommended top-level "file_paths" collection.
+  EXPECT_EQ(config.files().at("downloads2").size(), 1);
   EXPECT_EQ(config.files().at("system_binaries").size(), 2);
 }
 

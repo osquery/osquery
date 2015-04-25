@@ -45,6 +45,7 @@ else()
   endif()
 
   ADD_OSQUERY_LINK(FALSE "blkid")
+  ADD_OSQUERY_LINK(FALSE "cryptsetup")
   ADD_OSQUERY_LINK(FALSE "udev")
   ADD_OSQUERY_LINK(FALSE "uuid")
 endif()

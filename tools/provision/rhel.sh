@@ -22,17 +22,11 @@ function require_channel() {
 }
 
 function main_rhel() {
-  if [[ $DISTRO = "rhel6" ]]; then
-    require_channel "rhel-x86_64-server-6-rhscl-1"
-    require_channel "rhel-x86_64-server-optional-6"
-  fi
-
   sudo yum update -y
 
   package git
   package texinfo
   package wget
-  package git
   package unzip
   package xz
   package xz-devel
@@ -46,10 +40,6 @@ function main_rhel() {
     fi
   fi
 
-  # This solves a problem with epel and how it retrieves packages
-  sudo yum clean all
-  sudo yum --disablerepo="epel" update nss
-
   package python-pip
   package python-devel
   package rpm-build
@@ -58,10 +48,15 @@ function main_rhel() {
   package rubygems
 
   if [[ $DISTRO = "rhel6" ]]; then
+    sudo subscription-manager repos --enable=rhel-server-rhscl-6-rpms
     package scl-utils
     package policycoreutils-python
-    package devtoolset-3
-    source /opt/rh/devtoolset-3/enable 
+    package devtoolset-3-runtime
+    package devtoolset-3-binutils
+    package devtoolset-3-libstdc++-devel
+    package devtoolset-3-gcc-4.9.2
+    package devtoolset-3-gcc-c++-4.9.2
+    source /opt/rh/devtoolset-3/enable
   elif [[ $DISTRO = "rhel7" ]]; then
     sudo subscription-manager repos --enable=rhel-7-server-optional-rpms
     package gcc
@@ -89,6 +84,7 @@ function main_rhel() {
   package rpm-devel
   package rpm-build
   package libblkid-devel
+  package cryptsetup-devel
 
   install_cmake
   install_boost

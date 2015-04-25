@@ -1,0 +1,12 @@
+table_name("rpm_package_files")
+description("RPM packages that are currently installed on the host system.")
+schema([
+    Column("package", TEXT, "RPM package name"),
+    Column("path", TEXT, "Path name"),
+    Column("username", TEXT, "File default username from info DB"),
+    Column("groupname", TEXT, "File default groupname from info DB"),
+    Column("mode", TEXT, "File permissions mode from info DB"),
+    Column("size", BIGINT, "Expected file size in bytes from RPM info DB"),
+    Column("sha256", TEXT, "SHA256 file digest from RPM info DB"),
+])
+implementation("@genRpmPackageFiles")

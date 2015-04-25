@@ -4,7 +4,7 @@
 #  All rights reserved.
 #
 #  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant 
+#  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 from __future__ import absolute_import
@@ -69,33 +69,6 @@ class EXClient:
         return Extension.Client(self.protocol)
 
 
-def expect(functional, expected, interval=0.2, timeout=2):
-    """Helper function to run a function with expected latency"""
-    delay = 0
-    result = None
-    while result is None or len(result) != expected:
-        try:
-            result = functional()
-            if len(result) == expected: break
-        except: pass
-        if delay >= timeout:
-            return None
-        time.sleep(interval)
-        delay += interval
-    return result
-
-
-def expectTrue(functional, interval=0.2, timeout=2): 
-    """Helper function to run a function with expected latency"""
-    delay = 0
-    while delay < timeout:
-        if functional():
-            return True
-        time.sleep(interval)
-        delay += interval
-    return False
-
-
 class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
     def tearDown(self):
         stale_sockets = glob.glob("/tmp/osquery-test.em*")
@@ -123,13 +96,13 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client
         client = EXClient()
-        expectTrue(client.open)
+        test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
 
         # List the number of extensions
         print (em.ping())
-        result = expect(em.extensions, 0)
+        result = test_base.expect(em.extensions, 0)
         self.assertEqual(len(result), 0)
 
         # Try the basic ping API
@@ -152,15 +125,15 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_3_example_extension(self):
         daemon = self._run_daemon({"disable_watchdog": True})
         self.assertTrue(daemon.isAlive())
-        
+
         # Get a python-based thrift client
         client = EXClient()
-        expectTrue(client.open)
+        test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
 
         # Make sure there are no extensions registered
-        result = expect(em.extensions, 0)
+        result = test_base.expect(em.extensions, 0)
         self.assertEqual(len(result), 0)
 
         # Make sure the extension process starts
@@ -168,7 +141,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(extension.isAlive())
 
         # Now that an extension has started, check extension list
-        result = expect(em.extensions, 1)
+        result = test_base.expect(em.extensions, 1)
         self.assertEqual(len(result), 1)
         ex_uuid = result.keys()[0]
         ex_data = result[ex_uuid]
@@ -213,15 +186,15 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_4_extension_dies(self):
         daemon = self._run_daemon({"disable_watchdog": True})
         self.assertTrue(daemon.isAlive())
-        
+
         # Get a python-based thrift client
         client = EXClient()
-        expectTrue(client.open)
+        test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
 
         # Make sure there are no extensions registered
-        result = expect(em.extensions, 0)
+        result = test_base.expect(em.extensions, 0)
         self.assertEqual(len(result), 0)
 
         # Make sure the extension process starts
@@ -229,14 +202,14 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(extension.isAlive())
 
         # Now that an extension has started, check extension list
-        result = expect(em.extensions, 1)
+        result = test_base.expect(em.extensions, 1)
         self.assertEqual(len(result), 1)
 
         # Kill the extension
         extension.kill()
 
         # Make sure the daemon detects the change
-        result = expect(em.extensions, 0, timeout=5)
+        result = test_base.expect(em.extensions, 0, timeout=5)
         self.assertEqual(len(result), 0)
 
         # Make sure the extension restarts
@@ -244,7 +217,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(extension.isAlive())
 
         # With the reset there should be 1 extension again
-        result = expect(em.extensions, 1)
+        result = test_base.expect(em.extensions, 1)
         self.assertEqual(len(result), 1)
         print (em.query("select * from example"))
 
@@ -266,12 +239,12 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client
         client = EXClient()
-        expectTrue(client.open)
+        test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
 
         # The waiting extension should have connected to the daemon.
-        result = expect(em.extensions, 1)
+        result = test_base.expect(em.extensions, 1)
         self.assertEqual(len(result), 1)
 
         client.close()
@@ -289,12 +262,12 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client
         client = EXClient()
-        expectTrue(client.open)
+        test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
 
         # The waiting extension should have connected to the daemon.
-        result = expect(em.extensions, 1)
+        result = test_base.expect(em.extensions, 1)
         self.assertEqual(len(result), 1)
 
         client.close()
@@ -308,12 +281,12 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client
         client = EXClient()
-        expectTrue(client.open)
+        test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
 
         # The waiting extension should have connected to the daemon.
-        result = expect(em.extensions, 1)
+        result = test_base.expect(em.extensions, 1)
         self.assertEqual(len(result), 1)
 
         client.close()
@@ -330,13 +303,13 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client
         client = EXClient()
-        expectTrue(client.open)
+        test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
 
         # The waiting extension should have connected to the daemon.
         # If there are no extensions the daemon may have exited (in error).
-        result = expect(em.extensions, 1)
+        result = test_base.expect(em.extensions, 1)
         self.assertEqual(len(result), 1)
 
         client.close()
@@ -356,7 +329,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         client.open()
         em = client.getEM()
         # Need the manager to request the extension's UUID.
-        result = expect(em.extensions, 1)
+        result = test_base.expect(em.extensions, 1)
         self.assertTrue(result is not None)
         ex_uuid = result.keys()[0]
         client2 = EXClient(uuid=ex_uuid)
@@ -383,6 +356,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
 
 if __name__ == "__main__":
+    test_base.assertPermissions()
     module = test_base.Tester()
 
     # Find and import the thrift-generated python interface

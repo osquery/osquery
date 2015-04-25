@@ -4,7 +4,7 @@
 #  All rights reserved.
 #
 #  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant 
+#  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 from __future__ import absolute_import
@@ -192,7 +192,7 @@ class ProcRunner(object):
             try:
                 self.proc.kill()
             except:
-                pass          
+                pass
         self.proc = None
 
     def isAlive(self, timeout=3):
@@ -231,21 +231,18 @@ class ProcessGenerator(object):
     '''Helper methods to patch into a unittest'''
     generators = []
 
-    def _run_daemon(self, options={}, silent=False):
+    def _run_daemon(self, options={}, silent=False, options_only={}):
         '''Spawn an osquery daemon process'''
         global ARGS, CONFIG_NAME, CONFIG
         config = copy.deepcopy(CONFIG)
         for option in options.keys():
             config["options"][option] = options[option]
+        for option in options_only.keys():
+            config["options"][option] = options_only[option]
         utils.write_config(config)
         binary = os.path.join(ARGS.build, "osquery", "osqueryd")
         flags = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
-        daemon = ProcRunner("daemon", binary,
-            [
-                "--config_path=%s.conf" % CONFIG_NAME,
-                "--verbose" if ARGS.verbose else ""
-            ] + flags,
-            silent=silent)
+        daemon = ProcRunner("daemon", binary, flags, silent=silent)
         self.generators.append(daemon)
         return daemon
 
@@ -330,3 +327,39 @@ class Tester(object):
         if ARGS.verbose:
             unittest_args += ["-v"]
         unittest.main(argv=unittest_args)
+
+
+def expect(functional, expected, interval=0.2, timeout=2):
+    """Helper function to run a function with expected latency"""
+    delay = 0
+    result = None
+    while result is None or len(result) != expected:
+        try:
+            result = functional()
+            if len(result) == expected: break
+        except: pass
+        if delay >= timeout:
+            return None
+        time.sleep(interval)
+        delay += interval
+    return result
+
+
+def expectTrue(functional, interval=0.2, timeout=2):
+    """Helper function to run a function with expected latency"""
+    delay = 0
+    while delay < timeout:
+        if functional():
+            return True
+        time.sleep(interval)
+        delay += interval
+    return False
+
+
+def assertPermissions():
+    stat_info = os.stat('.')
+    if stat_info.st_uid != os.getuid():
+        print (utils.lightred("Will not load modules/extensions in tests."))
+        print (utils.lightred("Repository owner (%d) executer (%d) mismatch" % (
+            stat_info.st_uid, os.getuid())))
+        exit(1)
