@@ -57,9 +57,6 @@ function main_ubuntu() {
   package gcc
   package doxygen
 
-  set_cc clang
-  set_cxx clang++
-
   if [[ $DISTRO = "precise" ]]; then
     package rubygems
     package gcc-4.8
@@ -83,6 +80,9 @@ function main_ubuntu() {
   package libsnappy-dev
   package libbz2-dev
   package libreadline-dev
+
+  set_cc clang
+  set_cxx clang++
 
   install_thrift
   install_rocksdb
