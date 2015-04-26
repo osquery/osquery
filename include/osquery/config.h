@@ -47,6 +47,7 @@ struct ConfigData {
 };
 
 class ConfigParserPlugin;
+typedef std::shared_ptr<ConfigParserPlugin> ConfigPluginRef;
 
 /**
  * @brief A singleton that exposes accessors to osquery's configuration data.
@@ -149,6 +150,7 @@ class Config : private boost::noncopyable {
 
  private:
   static const pt::ptree& getParsedData(const std::string& parser);
+  static const ConfigPluginRef getParser(const std::string& parser);
 
   /// A default, empty property tree used when a missing parser is requested.
   pt::ptree empty_data_;
@@ -193,6 +195,10 @@ class ConfigDataInstance {
 
   const pt::ptree& getParsedData(const std::string& parser) const {
     return Config::getParsedData(parser);
+  }
+
+  const ConfigPluginRef getParser(const std::string& parser) const {
+    return Config::getParser(parser);
   }
 
   /// Helper accessor for Config::data_.all_data.
