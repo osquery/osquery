@@ -1,4 +1,4 @@
-table_name("yara_matches")
+table_name("yara_events")
 description("Track YARA matches for files specified in configuation data.")
 schema([
     Column("target_path", TEXT, "The path scanned"),
@@ -10,4 +10,4 @@ schema([
     Column("count", INTEGER, "Number of YARA matches"),
 ])
 attributes(event_subscriber=True)
-implementation("yara@yara_matches::genTable")
+implementation("yara@yara_events::genTable")
