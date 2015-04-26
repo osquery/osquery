@@ -67,12 +67,11 @@ function main_ubuntu() {
     sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 150 \
       --slave /usr/bin/g++ g++ /usr/bin/g++-4.8
     install_boost
-    install_cmake
   else
-    package cmake
     package libboost1.55-all-dev
   fi
 
+  install_cmake
   install_gflags
 
   if [[ $DISTRO = "precise" ]]; then
