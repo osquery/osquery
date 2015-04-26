@@ -513,11 +513,9 @@ Status EventFactory::addSubscription(EventPublisherID& type_id,
 
 Status EventFactory::addSubscription(EventPublisherID& type_id,
                                      const SubscriptionRef& subscription) {
-  EventPublisherRef publisher;
-  try {
-    publisher = getInstance().getEventPublisher(type_id);
-  } catch (std::out_of_range& e) {
-    return Status(1, "No event type found");
+  EventPublisherRef publisher = getInstance().getEventPublisher(type_id);
+  if (publisher == nullptr) {
+    return Status(1, "Unknown event publisher");
   }
 
   // The event factory is responsible for configuring the event types.
@@ -539,16 +537,22 @@ size_t EventFactory::numSubscriptions(EventPublisherID& type_id) {
 EventPublisherRef EventFactory::getEventPublisher(EventPublisherID& type_id) {
   if (getInstance().event_pubs_.count(type_id) == 0) {
     LOG(ERROR) << "Requested unknown event publisher: " + type_id;
+    return nullptr;
   }
   return getInstance().event_pubs_.at(type_id);
 }
 
 EventSubscriberRef EventFactory::getEventSubscriber(
     EventSubscriberID& name_id) {
-  if (getInstance().event_subs_.count(name_id) == 0) {
+  if (!exists(name_id)) {
     LOG(ERROR) << "Requested unknown event subscriber: " + name_id;
+    return nullptr;
   }
   return getInstance().event_subs_.at(name_id);
+}
+
+bool EventFactory::exists(EventSubscriberID& name_id) {
+  return (getInstance().event_subs_.count(name_id) > 0);
 }
 
 Status EventFactory::deregisterEventPublisher(const EventPublisherRef& pub) {

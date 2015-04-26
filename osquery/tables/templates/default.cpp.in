@@ -40,8 +40,12 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
 
   QueryData generate(QueryContext& request) {
 {% if class_name != "" %}\
-    auto subscriber = EventFactory::getEventSubscriber("{{class_name}}");
-    return subscriber->{{function}}(request);
+    if (EventFactory::exists("{{class_name}}")) {
+      auto subscriber = EventFactory::getEventSubscriber("{{class_name}}");
+      return subscriber->{{function}}(request);
+    } else {
+      return {};
+    }
 {% else %}\
     return osquery::tables::{{function}}(request);
 {% endif %}\

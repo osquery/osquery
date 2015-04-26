@@ -680,7 +680,8 @@ class EventFactory {
   static EventPublisherRef getEventPublisher(EventPublisherID& pub);
 
   /// Return an instance to a registered EventSubscriber.
-  static EventSubscriberRef getEventSubscriber(EventSubscriberID& pub);
+  static EventSubscriberRef getEventSubscriber(EventSubscriberID& sub);
+  static bool exists(EventSubscriberID& sub);
 
   static std::vector<std::string> publisherTypes();
   static std::vector<std::string> subscriberNames();
