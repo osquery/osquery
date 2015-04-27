@@ -76,8 +76,3 @@ TEST_F(YARATest, test_match_false) {
   EXPECT_TRUE(r["count"] == "0");
 }
 }
-
-int main(int argc, char* argv[]) {
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

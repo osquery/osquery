@@ -58,9 +58,3 @@ TEST_F(LaunchdTests, test_parse_launchd_item) {
 }
 }
 }
-
-int main(int argc, char* argv[]) {
-  testing::InitGoogleTest(&argc, argv);
-  google::InitGoogleLogging(argv[0]);
-  return RUN_ALL_TESTS();
-}

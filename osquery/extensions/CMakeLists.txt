@@ -13,4 +13,5 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_extensions
   interface.cpp
 )
 
-ADD_OSQUERY_TEST(TRUE extensions_test extensions_tests.cpp)
+file(GLOB OSQUERY_EXTENSIONS_TESTS "tests/*.cpp")
+ADD_OSQUERY_TEST(TRUE ${OSQUERY_EXTENSIONS_TESTS})

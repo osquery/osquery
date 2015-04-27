@@ -269,7 +269,7 @@ Status attachTableInternal(const std::string &name,
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
     auto format =
         "CREATE VIRTUAL TABLE temp." + name + " USING " + name + statement;
-    rc = sqlite3_exec(db, format.c_str(), 0, 0, 0);
+    rc = sqlite3_exec(db, format.c_str(), nullptr, nullptr, 0);
   } else {
     LOG(ERROR) << "Error attaching table: " << name << " (" << rc << ")";
   }
@@ -278,7 +278,7 @@ Status attachTableInternal(const std::string &name,
 
 Status detachTableInternal(const std::string &name, sqlite3 *db) {
   auto format = "DROP TABLE IF EXISTS temp." + name;
-  int rc = sqlite3_exec(db, format.c_str(), 0, 0, 0);
+  int rc = sqlite3_exec(db, format.c_str(), nullptr, nullptr, 0);
   if (rc != SQLITE_OK) {
     LOG(ERROR) << "Error detaching table: " << name << " (" << rc << ")";
   }

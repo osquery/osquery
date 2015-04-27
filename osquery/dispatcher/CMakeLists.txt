@@ -3,6 +3,5 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_dispatcher
   scheduler.cpp
 )
 
-if(APPLE)
-  ADD_OSQUERY_TEST(TRUE dispatcher_tests dispatcher_tests.cpp)
-endif()
+file(GLOB OSQUERY_DISPATCHER_TESTS "tests/*.cpp")
+ADD_OSQUERY_TEST(TRUE ${OSQUERY_DISPATCHER_TESTS})
