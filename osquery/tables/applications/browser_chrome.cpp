@@ -18,9 +18,9 @@ namespace tables {
 
 /// Each home directory will include custom extensions.
 #ifdef __APPLE__
-#define kChromePath "/Library/Application Support/Google/Chrome/Default/"
+#define kChromePath "/Library/Application Support/Google/Chrome/%/"
 #else
-#define kChromePath "/.config/google-chrome/Default/"
+#define kChromePath "/.config/google-chrome/%/"
 #endif
 #define kChromeExtensionsPath "Extensions/"
 

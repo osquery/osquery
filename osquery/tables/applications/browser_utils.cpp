@@ -76,24 +76,28 @@ QueryData genChromeBasedExtensions(QueryContext& context, const fs::path sub_dir
 
   auto homes = osquery::getHomeDirectories();
   for (const auto& home : homes) {
-    // For each user, enumerate all of their opera profiles.
-    std::vector<std::string> extensions;
-    fs::path extension_path = home.string() + sub_dir.string();
-    if (!listDirectoriesInDirectory(extension_path, extensions).ok()) {
+    // For each user, enumerate all of their chrome profiles.
+    std::vector<std::string> profiles;
+    fs::path extension_path = home / sub_dir;
+    if (!resolveFilePattern(extension_path, profiles, REC_LIST_FOLDERS).ok()) {
       continue;
     }
 
-    // Generate an addons list from their extensions JSON.
-    for (const auto& extension : extensions) {
-      std::vector<std::string> versions;
-      if (!listDirectoriesInDirectory(extension, versions).ok()) {
-        continue;
-      }
+    // For each profile list each extension in the Extensions directory.
+    std::vector<std::string> extensions;
+    for (const auto& profile : profiles) {
+      listDirectoriesInDirectory(profile, extensions);
+    }
 
-      // Extensions use /<ID>/<VERSION>/manifest.json.
-      for (const auto& version : versions) {
-        genExtension(version, results);
-      }
+    // Generate an addons list from their extensions JSON.
+    std::vector<std::string> versions;
+    for (const auto& extension : extensions) {
+      listDirectoriesInDirectory(extension, versions);
+    }
+
+    // Extensions use /<EXTENSION>/<VERSION>/manifest.json.
+    for (const auto& version : versions) {
+      genExtension(version, results);
     }
   }
 
