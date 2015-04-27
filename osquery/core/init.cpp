@@ -34,7 +34,7 @@ namespace osquery {
 
 #define DESCRIPTION \
   "osquery %s, your OS as a high-performance relational database\n"
-#define EPILOG "\nosquery project page <http://osquery.io>.\n"
+#define EPILOG "\nosquery project page <https://osquery.io>.\n"
 #define OPTIONS \
   "\nosquery configuration options (set by config or CLI flags):\n\n"
 #define OPTIONS_SHELL "\nosquery shell-only CLI flags:\n\n"
@@ -49,7 +49,9 @@ namespace osquery {
   "been created. Please consider explicitly defining those "                  \
   "options as a different \n"                                                 \
   "path. Additionally, review the \"using osqueryd\" wiki page:\n"            \
-  " - http://osquery.rtfd.org/introduction/using-osqueryd/\n\n";
+  " - "                                                                       \
+  "https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/"    \
+  "\n\n ";
 
 DECLARE_bool(disable_events);
 
