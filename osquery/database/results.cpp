@@ -22,10 +22,10 @@
 #include <osquery/logger.h>
 
 namespace pt = boost::property_tree;
-using osquery::Status;
-typedef unsigned char byte;
 
 namespace osquery {
+
+typedef unsigned char byte;
 
 /////////////////////////////////////////////////////////////////////////////
 // Row - the representation of a row in a set of database results. Row is a
@@ -35,22 +35,12 @@ namespace osquery {
 
 std::string escapeNonPrintableBytes(const std::string& data) {
   std::string escaped;
-  char const hex_chars[16] = {'0',
-                              '1',
-                              '2',
-                              '3',
-                              '4',
-                              '5',
-                              '6',
-                              '7',
-                              '8',
-                              '9',
-                              'A',
-                              'B',
-                              'C',
-                              'D',
-                              'E',
-                              'F'};
+  // clang-format off
+  char const hex_chars[16] = {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'A', 'B', 'C', 'D', 'E', 'F',
+  };
+  // clang-format on
   for (int i = 0; i < data.length(); i++) {
     if (((byte)data[i]) < 0x20 || ((byte)data[i]) >= 0x80) {
       escaped += "\\x";
@@ -107,11 +97,11 @@ Status deserializeRow(const pt::ptree& tree, Row& r) {
         r[i.first] = i.second.data();
       }
     }
-    return Status(0, "OK");
   } catch (const std::exception& e) {
     LOG(ERROR) << e.what();
     return Status(1, e.what());
   }
+  return Status(0, "OK");
 }
 
 Status deserializeRowJSON(const std::string& json, Row& r) {
@@ -147,39 +137,12 @@ Status serializeQueryData(const QueryData& q, pt::ptree& tree) {
   return Status(0, "OK");
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// DiffResults - the representation of two diffed QueryData result sets.
-// Given and old and new QueryData, DiffResults indicates the "added" subset
-// of rows and the "removed" subset of Rows
-/////////////////////////////////////////////////////////////////////////////
-
-Status serializeDiffResults(const DiffResults& d, pt::ptree& tree) {
+Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
+  pt::ptree tree;
   try {
-    pt::ptree added;
-    auto added_status = serializeQueryData(d.added, added);
-    if (!added_status.ok()) {
-      return added_status;
-    }
-    tree.add_child("added", added);
-
-    pt::ptree removed;
-    auto removed_status = serializeQueryData(d.removed, removed);
-    if (!removed_status.ok()) {
-      return removed_status;
-    }
-    tree.add_child("removed", removed);
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
-  }
-  return Status(0, "OK");
-}
-
-Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
-  try {
-    pt::ptree tree;
-    auto s = serializeDiffResults(d, tree);
-    if (!s.ok()) {
-      return s;
+    auto status = serializeQueryData(q, tree);
+    if (!status.ok()) {
+      return status;
     }
     std::ostringstream ss;
     pt::write_json(ss, tree, false);
@@ -190,106 +153,23 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
   return Status(0, "OK");
 }
 
-DiffResults diff(const QueryData& old_, const QueryData& new_) {
-  DiffResults r;
-  QueryData overlap;
-
-  for (const auto& i : new_) {
-    auto item = std::find(old_.begin(), old_.end(), i);
-    if (item != old_.end()) {
-      overlap.push_back(i);
-    } else {
-      r.added.push_back(i);
-    }
-  }
-
-  std::multiset<Row> overlap_set(overlap.begin(), overlap.end());
-
-  std::multiset<Row> old_set(old_.begin(), old_.end());
-
-  std::set_difference(old_set.begin(),
-                      old_set.end(),
-                      overlap_set.begin(),
-                      overlap_set.end(),
-                      std::back_inserter(r.removed));
-
-  return r;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// HistoricalQueryResults - the representation of the historical results of
-// a particlar scheduled database query.
-/////////////////////////////////////////////////////////////////////////////
-
-Status serializeHistoricalQueryResultsJSON(const HistoricalQueryResults& r,
-                                           std::string& json) {
+Status deserializeQueryData(const pt::ptree& tree, QueryData& qd) {
   try {
-    pt::ptree tree;
-    auto s = serializeHistoricalQueryResults(r, tree);
-    if (!s.ok()) {
-      return s;
+    for (const auto& i : tree) {
+      Row r;
+      auto status = deserializeRow(i.second, r);
+      if (!status.ok()) {
+        return status;
+      }
+      qd.push_back(r);
     }
-    std::ostringstream ss;
-    pt::write_json(ss, tree, false);
-    json = ss.str();
   } catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
 }
 
-Status serializeHistoricalQueryResults(const HistoricalQueryResults& r,
-                                       pt::ptree& tree) {
-  try {
-    pt::ptree mostRecentResults;
-
-    pt::ptree most_recent_serialized;
-    auto mrr_status =
-        serializeQueryData(r.mostRecentResults.second, most_recent_serialized);
-    if (!mrr_status.ok()) {
-      return mrr_status;
-    }
-    mostRecentResults.add_child(
-        boost::lexical_cast<std::string>(r.mostRecentResults.first),
-        most_recent_serialized);
-    tree.add_child("mostRecentResults", mostRecentResults);
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
-  }
-  return Status(0, "OK");
-}
-
-Status deserializeHistoricalQueryResults(const pt::ptree& tree,
-                                         HistoricalQueryResults& r) {
-  try {
-    for (const auto& v : tree.get_child("mostRecentResults")) {
-      try {
-        int execution = boost::lexical_cast<int>(v.first);
-        r.mostRecentResults.first = execution;
-      } catch (const boost::bad_lexical_cast& e) {
-        return Status(1, e.what());
-      }
-
-      QueryData q;
-      for (const auto& each : v.second) {
-        Row row_;
-        for (const auto& item : each.second) {
-          row_[item.first] = item.second.get_value<std::string>();
-        }
-        q.push_back(row_);
-      }
-      r.mostRecentResults.second = q;
-    }
-
-    return Status(0, "OK");
-  } catch (const std::exception& e) {
-    LOG(ERROR) << e.what();
-    return Status(1, e.what());
-  }
-}
-
-Status deserializeHistoricalQueryResultsJSON(const std::string& json,
-                                             HistoricalQueryResults& r) {
+Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
   pt::ptree tree;
   try {
     std::stringstream j;
@@ -298,41 +178,162 @@ Status deserializeHistoricalQueryResultsJSON(const std::string& json,
   } catch (const std::exception& e) {
     return Status(1, e.what());
   }
-  return deserializeHistoricalQueryResults(tree, r);
+  return deserializeQueryData(tree, qd);
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// ScheduledQueryLogItem - the representation of a log result occuring when a
-// scheduled query yields operating system state change.
+// DiffResults - the representation of two diffed QueryData result sets.
+// Given and old and new QueryData, DiffResults indicates the "added" subset
+// of rows and the "removed" subset of Rows
 /////////////////////////////////////////////////////////////////////////////
 
-Status serializeScheduledQueryLogItem(const ScheduledQueryLogItem& i,
-                                      boost::property_tree::ptree& tree) {
-  try {
-    pt::ptree diffResults;
-    auto diff_results_status = serializeDiffResults(i.diffResults, diffResults);
-    if (!diff_results_status.ok()) {
-      return diff_results_status;
-    }
+Status serializeDiffResults(const DiffResults& d, pt::ptree& tree) {
+  pt::ptree added;
+  auto status = serializeQueryData(d.added, added);
+  if (!status.ok()) {
+    return status;
+  }
+  tree.add_child("added", added);
 
-    tree.add_child("diffResults", diffResults);
-    tree.put<std::string>("name", i.name);
-    tree.put<std::string>("hostIdentifier", i.hostIdentifier);
-    tree.put<std::string>("calendarTime", i.calendarTime);
-    tree.put<int>("unixTime", i.unixTime);
+  pt::ptree removed;
+  status = serializeQueryData(d.removed, removed);
+  if (!status.ok()) {
+    return status;
+  }
+  tree.add_child("removed", removed);
+  return Status(0, "OK");
+}
+
+Status deserializeDiffResults(const pt::ptree& tree, DiffResults& dr) {
+  if (tree.count("added") > 0) {
+    auto status = deserializeQueryData(tree.get_child("added"), dr.added);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  if (tree.count("removed") > 0) {
+    auto status = deserializeQueryData(tree.get_child("removed"), dr.removed);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  return Status(0, "OK");
+}
+
+Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
+  pt::ptree tree;
+  auto status = serializeDiffResults(d, tree);
+  if (!status.ok()) {
+    return status;
+  }
+
+  try {
+    std::ostringstream ss;
+    pt::write_json(ss, tree, false);
+    json = ss.str();
   } catch (const std::exception& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");
 }
 
-Status serializeEvent(const ScheduledQueryLogItem& item,
-                      const boost::property_tree::ptree& event,
-                      boost::property_tree::ptree& tree) {
+DiffResults diff(const QueryData& old, const QueryData& current) {
+  DiffResults r;
+  QueryData overlap;
+
+  for (const auto& i : current) {
+    auto item = std::find(old.begin(), old.end(), i);
+    if (item != old.end()) {
+      overlap.push_back(i);
+    } else {
+      r.added.push_back(i);
+    }
+  }
+
+  std::multiset<Row> overlap_set(overlap.begin(), overlap.end());
+  std::multiset<Row> old_set(old.begin(), old.end());
+  std::set_difference(old_set.begin(),
+                      old_set.end(),
+                      overlap_set.begin(),
+                      overlap_set.end(),
+                      std::back_inserter(r.removed));
+  return r;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// QueryLogItem - the representation of a log result occuring when a
+// scheduled query yields operating system state change.
+/////////////////////////////////////////////////////////////////////////////
+
+Status serializeQueryLogItem(const QueryLogItem& i, pt::ptree& tree) {
+  pt::ptree diff_results;
+  auto status = serializeDiffResults(i.results, diff_results);
+  if (!status.ok()) {
+    return status;
+  }
+
+  tree.add_child("diffResults", diff_results);
+  tree.put<std::string>("name", i.name);
+  tree.put<std::string>("hostIdentifier", i.identifier);
+  tree.put<std::string>("calendarTime", i.calendar_time);
+  tree.put<int>("unixTime", i.time);
+  return Status(0, "OK");
+}
+
+Status serializeQueryLogItemJSON(const QueryLogItem& i, std::string& json) {
+  pt::ptree tree;
+  auto status = serializeQueryLogItem(i, tree);
+  if (!status.ok()) {
+    return status;
+  }
+
+  try {
+    std::ostringstream ss;
+    pt::write_json(ss, tree, false);
+    json = ss.str();
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+  return Status(0, "OK");
+}
+
+Status deserializeQueryLogItem(const pt::ptree& tree, QueryLogItem& item) {
+  if (tree.count("diffResults") > 0) {
+    auto status =
+        deserializeDiffResults(tree.get_child("diffResults"), item.results);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  item.name = tree.get<std::string>("name", "");
+  item.identifier = tree.get<std::string>("hostIdentifier", "");
+  item.calendar_time = tree.get<std::string>("calendarTime", "");
+  item.time = tree.get<int>("unixTime", 0);
+  return Status(0, "OK");
+}
+
+Status deserializeQueryLogItemJSON(const std::string& json,
+                                   QueryLogItem& item) {
+  pt::ptree tree;
+  try {
+    std::stringstream j;
+    j << json;
+    pt::read_json(j, tree);
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+  return deserializeQueryLogItem(tree, item);
+}
+
+Status serializeEvent(const QueryLogItem& item,
+                      const pt::ptree& event,
+                      pt::ptree& tree) {
   tree.put<std::string>("name", item.name);
-  tree.put<std::string>("hostIdentifier", item.hostIdentifier);
-  tree.put<std::string>("calendarTime", item.calendarTime);
-  tree.put<int>("unixTime", item.unixTime);
+  tree.put<std::string>("hostIdentifier", item.identifier);
+  tree.put<std::string>("calendarTime", item.calendar_time);
+  tree.put<int>("unixTime", item.time);
 
   pt::ptree columns;
   for (auto& i : event) {
@@ -344,59 +345,37 @@ Status serializeEvent(const ScheduledQueryLogItem& item,
   return Status(0, "OK");
 }
 
-Status serializeScheduledQueryLogItemAsEvents(
-    const ScheduledQueryLogItem& item, boost::property_tree::ptree& tree) {
-  try {
-    pt::ptree diff_results;
-    auto status = serializeDiffResults(item.diffResults, diff_results);
-    if (!status.ok()) {
-      return status;
-    }
-
-    for (auto& i : diff_results) {
-      for (auto& j : i.second) {
-        pt::ptree event;
-        serializeEvent(item, j.second, event);
-        event.put<std::string>("action", i.first);
-        tree.push_back(std::make_pair("", event));
-      }
-    }
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
+Status serializeQueryLogItemAsEvents(const QueryLogItem& i, pt::ptree& tree) {
+  pt::ptree diff_results;
+  auto status = serializeDiffResults(i.results, diff_results);
+  if (!status.ok()) {
+    return status;
   }
 
+  for (auto& action : diff_results) {
+    for (auto& row : action.second) {
+      pt::ptree event;
+      serializeEvent(i, row.second, event);
+      event.put<std::string>("action", action.first);
+      tree.push_back(std::make_pair("", event));
+    }
+  }
   return Status(0, "OK");
 }
 
-Status serializeScheduledQueryLogItemAsEventsJSON(
-    const ScheduledQueryLogItem& i, std::string& json) {
+Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
+                                         std::string& json) {
+  pt::ptree tree;
+  auto status = serializeQueryLogItemAsEvents(i, tree);
+  if (!status.ok()) {
+    return status;
+  }
+
   try {
-    pt::ptree tree;
-    auto s = serializeScheduledQueryLogItemAsEvents(i, tree);
-    if (!s.ok()) {
-      return s;
-    }
     std::ostringstream ss;
     for (auto& event : tree) {
       pt::write_json(ss, event.second, false);
     }
-    json = ss.str();
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
-  }
-  return Status(0, "OK");
-}
-
-Status serializeScheduledQueryLogItemJSON(const ScheduledQueryLogItem& i,
-                                          std::string& json) {
-  try {
-    pt::ptree tree;
-    auto s = serializeScheduledQueryLogItem(i, tree);
-    if (!s.ok()) {
-      return s;
-    }
-    std::ostringstream ss;
-    pt::write_json(ss, tree, false);
     json = ss.str();
   } catch (const std::exception& e) {
     return Status(1, e.what());

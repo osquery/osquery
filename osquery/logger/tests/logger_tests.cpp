@@ -41,6 +41,11 @@ class LoggerTests : public testing::Test {
 
   // Count calls to logStatus
   static int statuses_logged;
+  // Count added and removed snapshot rows
+  static int snapshot_rows_added;
+  static int snapshot_rows_removed;
+  // Count the added health status rows
+  static int health_status_rows;
 
  private:
   /// Save the status of logging before running tests, restore afterward.
@@ -51,6 +56,9 @@ std::vector<std::string> LoggerTests::log_lines;
 StatusLogLine LoggerTests::last_status;
 std::vector<std::string> LoggerTests::status_messages;
 int LoggerTests::statuses_logged = 0;
+int LoggerTests::snapshot_rows_added = 0;
+int LoggerTests::snapshot_rows_removed = 0;
+int LoggerTests::health_status_rows = 0;
 
 class TestLoggerPlugin : public LoggerPlugin {
  public:
@@ -79,6 +87,17 @@ class TestLoggerPlugin : public LoggerPlugin {
 
   Status logStatus(const std::vector<StatusLogLine>& log) {
     ++LoggerTests::statuses_logged;
+    return Status(0, "OK");
+  }
+
+  Status logSnapshot(const QueryLogItem& snapshot) {
+    LoggerTests::snapshot_rows_added += snapshot.results.added.size();
+    LoggerTests::snapshot_rows_removed += snapshot.results.removed.size();
+    return Status(0, "OK");
+  }
+
+  Status logHealth(const QueryLogItem& health) {
+    LoggerTests::health_status_rows += health.results.added.size();
     return Status(0, "OK");
   }
 
@@ -134,5 +153,25 @@ TEST_F(LoggerTests, test_logger_variations) {
   // Since the initLogger call triggered a failed init, meaning the logger
   // does NOT handle Glog logs, there will be no statuses logged.
   EXPECT_EQ(LoggerTests::statuses_logged, 0);
+}
+
+TEST_F(LoggerTests, test_logger_snapshots) {
+  // A snapshot query should not include removed items.
+  QueryLogItem item;
+  item.name = "test_query";
+  item.identifier = "unknown_test_host";
+  item.time = 0;
+  item.calendar_time = "no_time";
+
+  // Add a fake set of results.
+  item.results.added.push_back({{"test_column", "test_value"}});
+  logSnapshotQuery(item);
+
+  // Expect the plugin to optionally handle snapshot logging.
+  EXPECT_EQ(LoggerTests::snapshot_rows_added, 1);
+
+  // Add the same item as a health status log item.
+  logHealthStatus(item);
+  EXPECT_EQ(LoggerTests::health_status_rows, 1);
 }
 }

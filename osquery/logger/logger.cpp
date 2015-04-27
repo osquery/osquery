@@ -201,7 +201,7 @@ void initLogger(const std::string& name, bool forward_all) {
   serializeIntermediateLog(intermediate_logs, request);
   auto status = Registry::call("logger", request);
   if (status.ok() || forward_all) {
-    // When init returns success we reenabled the log sink in forwarding
+    // When init returns success we re-enabled the log sink in forwarding
     // mode. Now, Glog status logs are buffered and sent to logStatus.
     BufferedLogSink::forward(true);
     BufferedLogSink::enable();
@@ -236,9 +236,28 @@ void BufferedLogSink::send(google::LogSeverity severity,
 
 Status LoggerPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
+  QueryLogItem item;
   std::vector<StatusLogLine> intermediate_logs;
   if (request.count("string") > 0) {
-    return this->logString(request.at("string"));
+    auto status = Status(0, "OK");
+    if (request.count("category") && request.at("category") == "event") {
+      // Optionally overload the logEvent method, but receive a duplicate.
+      // message to log string.
+      deserializeQueryLogItemJSON(request.at("event"), item);
+      status = this->logEvent(item);
+    }
+
+    if (status.ok()) {
+      return this->logString(request.at("string"));
+    } else {
+      return status;
+    }
+  } else if (request.count("snapshot") > 0) {
+    deserializeQueryLogItemJSON(request.at("snapshot"), item);
+    return this->logSnapshot(item);
+  } else if (request.count("health") > 0) {
+    deserializeQueryLogItemJSON(request.at("health"), item);
+    return this->logHealth(item);
   } else if (request.count("init") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
     return this->init(request.at("init"), intermediate_logs);
@@ -250,36 +269,55 @@ Status LoggerPlugin::call(const PluginRequest& request,
   }
 }
 
-Status logString(const std::string& s) {
-  return logString(s, Registry::getActive("logger"));
+Status logString(const std::string& message, const std::string& category) {
+  return logString(message, category, Registry::getActive("logger"));
 }
 
-Status logString(const std::string& s, const std::string& receiver) {
+Status logString(const std::string& message,
+                 const std::string& category,
+                 const std::string& receiver) {
   if (!Registry::exists("logger", receiver)) {
     LOG(ERROR) << "Logger receiver " << receiver << " not found";
     return Status(1, "Logger receiver not found");
   }
 
-  auto status = Registry::call("logger", receiver, {{"string", s}});
+  auto status = Registry::call(
+      "logger", receiver, {{"string", message}, {"category", category}});
   return Status(0, "OK");
 }
 
-Status logScheduledQueryLogItem(const osquery::ScheduledQueryLogItem& results) {
-  return logScheduledQueryLogItem(results, Registry::getActive("logger"));
+Status logQueryLogItem(const QueryLogItem& results) {
+  return logQueryLogItem(results, Registry::getActive("logger"));
 }
 
-Status logScheduledQueryLogItem(const osquery::ScheduledQueryLogItem& results,
-                                const std::string& receiver) {
+Status logQueryLogItem(const QueryLogItem& results,
+                       const std::string& receiver) {
   std::string json;
   Status status;
   if (FLAGS_log_result_events) {
-    status = serializeScheduledQueryLogItemAsEventsJSON(results, json);
+    status = serializeQueryLogItemAsEventsJSON(results, json);
   } else {
-    status = serializeScheduledQueryLogItemJSON(results, json);
+    status = serializeQueryLogItemJSON(results, json);
   }
   if (!status.ok()) {
     return status;
   }
-  return logString(json, receiver);
+  return logString(json, "event", receiver);
+}
+
+Status logSnapshotQuery(const QueryLogItem& item) {
+  std::string json;
+  if (!serializeQueryLogItemJSON(item, json)) {
+    return Status(1, "Could not serialize snapshot");
+  }
+  return Registry::call("logger", {{"snapshot", json}});
+}
+
+Status logHealthStatus(const QueryLogItem& item) {
+  std::string json;
+  if (!serializeQueryLogItemJSON(item, json)) {
+    return Status(1, "Could not serialize health");
+  }
+  return Registry::call("logger", {{"health", json}});
 }
 }

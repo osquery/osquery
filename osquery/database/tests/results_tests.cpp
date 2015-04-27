@@ -48,6 +48,19 @@ TEST_F(ResultsTests, test_serialize_row) {
   EXPECT_EQ(results.first, tree);
 }
 
+TEST_F(ResultsTests, test_deserialize_row_json) {
+  auto results = getSerializedRow();
+  std::string input;
+  serializeRowJSON(results.second, input);
+
+  // Pull the serialized JSON back into a Row output container.
+  Row output;
+  auto s = deserializeRowJSON(input, output);
+  EXPECT_TRUE(s.ok());
+  // The output container should match the input row.
+  EXPECT_EQ(output, results.second);
+}
+
 TEST_F(ResultsTests, test_serialize_query_data) {
   auto results = getSerializedQueryData();
   pt::ptree tree;
@@ -55,6 +68,26 @@ TEST_F(ResultsTests, test_serialize_query_data) {
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(results.first, tree);
+}
+
+TEST_F(ResultsTests, test_serialize_query_data_json) {
+  auto results = getSerializedQueryDataJSON();
+  std::string json;
+  auto s = serializeQueryDataJSON(results.second, json);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.toString(), "OK");
+  EXPECT_EQ(results.first, json);
+}
+
+TEST_F(ResultsTests, test_deserialize_query_data_json) {
+  auto results = getSerializedQueryDataJSON();
+
+  // Pull the serialized JSON back into a QueryData output container.
+  QueryData output;
+  auto s = deserializeQueryDataJSON(results.first, output);
+  EXPECT_TRUE(s.ok());
+  // The output container should match the input query data.
+  EXPECT_EQ(output, results.second);
 }
 
 TEST_F(ResultsTests, test_serialize_diff_results) {
@@ -75,60 +108,33 @@ TEST_F(ResultsTests, test_serialize_diff_results_json) {
   EXPECT_EQ(results.first, json);
 }
 
-TEST_F(ResultsTests, test_serialize_historical_query_results) {
-  auto results = getSerializedHistoricalQueryResults();
+TEST_F(ResultsTests, test_serialize_query_log_item) {
+  auto results = getSerializedQueryLogItem();
   pt::ptree tree;
-  auto s = serializeHistoricalQueryResults(results.second, tree);
+  auto s = serializeQueryLogItem(results.second, tree);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(results.first, tree);
 }
 
-TEST_F(ResultsTests, test_serialize_historical_query_results_json) {
-  auto results = getSerializedHistoricalQueryResultsJSON();
+TEST_F(ResultsTests, test_serialize_query_log_item_json) {
+  auto results = getSerializedQueryLogItemJSON();
   std::string json;
-  auto s = serializeHistoricalQueryResultsJSON(results.second, json);
+  auto s = serializeQueryLogItemJSON(results.second, json);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(results.first, json);
 }
 
-TEST_F(ResultsTests, test_deserialize_historical_query_results) {
-  auto results = getSerializedHistoricalQueryResults();
-  HistoricalQueryResults r;
-  auto s = deserializeHistoricalQueryResults(results.first, r);
-  EXPECT_EQ(results.second, r);
-  EXPECT_EQ(results.second.mostRecentResults, r.mostRecentResults);
-  EXPECT_TRUE(s.ok());
-  EXPECT_EQ(s.toString(), "OK");
-}
+TEST_F(ResultsTests, test_deserialize_query_log_item_json) {
+  auto results = getSerializedQueryLogItemJSON();
 
-TEST_F(ResultsTests, test_deserialize_historical_query_results_json) {
-  auto results = getSerializedHistoricalQueryResultsJSON();
-  HistoricalQueryResults r;
-  auto s = deserializeHistoricalQueryResultsJSON(results.first, r);
-  EXPECT_EQ(results.second, r);
-  EXPECT_EQ(results.second.mostRecentResults, r.mostRecentResults);
+  // Pull the serialized JSON back into a QueryLogItem output container.
+  QueryLogItem output;
+  auto s = deserializeQueryLogItemJSON(results.first, output);
   EXPECT_TRUE(s.ok());
-  EXPECT_EQ(s.toString(), "OK");
-}
-
-TEST_F(ResultsTests, test_serialize_scheduled_query_log_item) {
-  auto results = getSerializedScheduledQueryLogItem();
-  pt::ptree tree;
-  auto s = serializeScheduledQueryLogItem(results.second, tree);
-  EXPECT_TRUE(s.ok());
-  EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(results.first, tree);
-}
-
-TEST_F(ResultsTests, test_serialize_scheduled_query_log_item_json) {
-  auto results = getSerializedScheduledQueryLogItemJSON();
-  std::string json;
-  auto s = serializeScheduledQueryLogItemJSON(results.second, json);
-  EXPECT_TRUE(s.ok());
-  EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(results.first, json);
+  // The output container should match the input query data.
+  EXPECT_EQ(output, results.second);
 }
 
 TEST_F(ResultsTests, test_unicode_to_ascii_conversion) {

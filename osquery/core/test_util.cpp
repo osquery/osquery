@@ -19,8 +19,6 @@
 
 #include "osquery/core/test_util.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 QueryData getTestDBExpectedResults() {
@@ -88,14 +86,14 @@ std::vector<std::pair<std::string, QueryData> > getTestDBResultStream() {
   return results;
 }
 
-osquery::ScheduledQuery getOsqueryScheduledQuery() {
+ScheduledQuery getOsqueryScheduledQuery() {
   ScheduledQuery sq;
   sq.query = "SELECT filename FROM fs WHERE path = '/bin' ORDER BY filename";
   sq.interval = 5;
   return sq;
 }
 
-std::pair<boost::property_tree::ptree, Row> getSerializedRow() {
+std::pair<pt::ptree, Row> getSerializedRow() {
   Row r;
   r["foo"] = "bar";
   r["meaning_of_life"] = "42";
@@ -105,7 +103,7 @@ std::pair<boost::property_tree::ptree, Row> getSerializedRow() {
   return std::make_pair(arr, r);
 }
 
-std::pair<boost::property_tree::ptree, QueryData> getSerializedQueryData() {
+std::pair<pt::ptree, QueryData> getSerializedQueryData() {
   auto r = getSerializedRow();
   QueryData q = {r.second, r.second};
   pt::ptree arr;
@@ -114,7 +112,7 @@ std::pair<boost::property_tree::ptree, QueryData> getSerializedQueryData() {
   return std::make_pair(arr, q);
 }
 
-std::pair<boost::property_tree::ptree, DiffResults> getSerializedDiffResults() {
+std::pair<pt::ptree, DiffResults> getSerializedDiffResults() {
   auto qd = getSerializedQueryData();
   DiffResults diff_results;
   diff_results.added = qd.second;
@@ -129,50 +127,27 @@ std::pair<boost::property_tree::ptree, DiffResults> getSerializedDiffResults() {
 
 std::pair<std::string, DiffResults> getSerializedDiffResultsJSON() {
   auto results = getSerializedDiffResults();
-
   std::ostringstream ss;
   pt::write_json(ss, results.first, false);
-
   return std::make_pair(ss.str(), results.second);
 }
 
-std::pair<pt::ptree, HistoricalQueryResults>
-getSerializedHistoricalQueryResults() {
-  auto qd = getSerializedQueryData();
-  auto dr = getSerializedDiffResults();
-  HistoricalQueryResults r;
-  r.mostRecentResults.first = 2;
-  r.mostRecentResults.second = qd.second;
-
-  pt::ptree root;
-
-  pt::ptree mostRecentResults;
-  mostRecentResults.add_child("2", qd.first);
-  root.add_child("mostRecentResults", mostRecentResults);
-
-  return std::make_pair(root, r);
-}
-
-std::pair<std::string, HistoricalQueryResults>
-getSerializedHistoricalQueryResultsJSON() {
-  auto results = getSerializedHistoricalQueryResults();
-
+std::pair<std::string, QueryData> getSerializedQueryDataJSON() {
+  auto results = getSerializedQueryData();
   std::ostringstream ss;
   pt::write_json(ss, results.first, false);
-
   return std::make_pair(ss.str(), results.second);
 }
 
-std::pair<boost::property_tree::ptree, ScheduledQueryLogItem>
-getSerializedScheduledQueryLogItem() {
-  ScheduledQueryLogItem i;
+std::pair<pt::ptree, QueryLogItem> getSerializedQueryLogItem() {
+  QueryLogItem i;
   pt::ptree root;
   auto dr = getSerializedDiffResults();
-  i.diffResults = dr.second;
+  i.results = dr.second;
   i.name = "foobar";
-  i.calendarTime = "Mon Aug 25 12:10:57 2014";
-  i.unixTime = 1408993857;
-  i.hostIdentifier = "foobaz";
+  i.calendar_time = "Mon Aug 25 12:10:57 2014";
+  i.time = 1408993857;
+  i.identifier = "foobaz";
   root.add_child("diffResults", dr.first);
   root.put<std::string>("name", "foobar");
   root.put<std::string>("hostIdentifier", "foobaz");
@@ -181,9 +156,8 @@ getSerializedScheduledQueryLogItem() {
   return std::make_pair(root, i);
 }
 
-std::pair<std::string, ScheduledQueryLogItem>
-getSerializedScheduledQueryLogItemJSON() {
-  auto results = getSerializedScheduledQueryLogItem();
+std::pair<std::string, QueryLogItem> getSerializedQueryLogItemJSON() {
+  auto results = getSerializedQueryLogItem();
 
   std::ostringstream ss;
   pt::write_json(ss, results.first, false);

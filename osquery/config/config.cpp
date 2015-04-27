@@ -63,9 +63,9 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   ConfigData conf;
   for (const auto& source : config) {
     if (Registry::external()) {
-      VLOG(1) << "Updating extension config source: " << source.first;
+      VLOG(1) << "Updating extension config with source: " << source.first;
     } else {
-      VLOG(1) << "Updating config source: " << source.first;
+      VLOG(1) << "Updating config with source: " << source.first;
     }
     getInstance().raw_[source.first] = source.second;
   }
@@ -123,7 +123,6 @@ inline void mergeOption(const tree_node& option, ConfigData& conf) {
   conf.all_data.add_child("options." + key, option.second);
 }
 
-// inline void mergeScheduledQuery(const tree_node& node, ConfigData& conf) {
 inline void mergeScheduledQuery(const std::string& name,
                                 const tree_node& node,
                                 ConfigData& conf) {
@@ -131,6 +130,8 @@ inline void mergeScheduledQuery(const std::string& name,
   ScheduledQuery query;
   query.query = node.second.get<std::string>("query", "");
   query.interval = node.second.get<int>("interval", 0);
+  // This is a candidate for a catch-all iterator with a catch for boolean type.
+  query.options["snapshot"] = node.second.get<bool>("snapshot", false);
 
   // Check if this query exists, if so, check if it was changed.
   if (conf.schedule.count(name) > 0) {
