@@ -42,15 +42,15 @@ QueryData parseEtcProtocolsContent(const std::string& content) {
     // [2]: alias
     auto protocol_fields = split(protocol_comment[0]);
     if (protocol_fields.size() < 2) {
-      LOG(WARNING) << "Line of /etc/protocols wasn't properly formatted. "
-                   << "Expected at least 2, got " << protocol_fields.size();
       continue;
     }
 
     Row r;
     r["name"] = TEXT(protocol_fields[0]);
     r["number"] = INTEGER(protocol_fields[1]);
-    r["alias"] = TEXT(protocol_fields[2]);
+    if (protocol_fields.size() > 2) {
+      r["alias"] = TEXT(protocol_fields[2]);
+    }
 
     // If there is a comment for the service.
     if (protocol_comment.size() > 1) {
@@ -69,7 +69,7 @@ QueryData genEtcProtocols(QueryContext& context) {
   if (s.ok()) {
     return parseEtcProtocolsContent(content);
   } else {
-    LOG(ERROR) << "Error reading /etc/protocols: " << s.toString();
+    TLOG << "Error reading /etc/protocols: " << s.toString();
     return {};
   }
 }

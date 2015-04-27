@@ -51,8 +51,6 @@ namespace osquery {
   "path. Additionally, review the \"using osqueryd\" wiki page:\n"            \
   " - http://osquery.rtfd.org/introduction/using-osqueryd/\n\n";
 
-DECLARE_bool(disable_events);
-
 CLI_FLAG(bool,
          config_check,
          false,
@@ -100,7 +98,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   // osquery implements a custom help/usage output.
   std::string first_arg = (*argc_ > 1) ? std::string((*argv_)[1]) : "";
-  if ((first_arg == "--help" || first_arg == "-h" || first_arg == "-help") &&
+  if ((first_arg == "--help" || first_arg == "-help" || first_arg == "--h" ||
+       first_arg == "-h") &&
       tool != OSQUERY_TOOL_TEST) {
     printUsage(binary_, tool_);
     ::exit(0);
@@ -127,12 +126,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   if (tool == OSQUERY_TOOL_SHELL) {
     // The shell is transient, rewrite config-loaded paths.
-    osquery::FLAGS_disable_logging = true;
-    if (*argc_ > 1 || !isatty(fileno(stdin))) {
-      // A query was set as a positional argument for via stdin.
-      osquery::FLAGS_disable_events = true;
-    }
-
+    FLAGS_disable_logging = true;
     // Get the caller's home dir for temporary storage/state management.
     auto homedir = osqueryHomeDirectory();
     if (osquery::pathExists(homedir).ok() ||
