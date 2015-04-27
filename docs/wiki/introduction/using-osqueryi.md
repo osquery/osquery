@@ -104,4 +104,4 @@ $
 ```
 
 The shell does not keep much state or connect to a osqueryd daemon.
-If you would like to run queries and log changes to the output or log operating system events consider deploying a query **schedule** using [osqueryd](introduction/using-osqueryd).
+If you would like to run queries and log changes to the output or log operating system events consider deploying a query **schedule** using [osqueryd](using-osqueryd).

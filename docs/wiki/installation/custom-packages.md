@@ -4,11 +4,11 @@ We support building custom deployment packages (pkg/deb/rpm) for less common use
 - Proprietary modifications to "core" features that aren't simple additional plugins
 - Custom dependency modifications (patched versions of glog, thrift, etc)
 
-The first step to creating custom packages is having [built](development/building) and tested osquery. This means reading the development guides and in most cases having a dedicated "build host".
+The first step to creating custom packages is having [built](../development/building) and tested osquery. This means reading the development guides and in most cases having a dedicated "build host".
 
 ## Linux
 
-In your cloned osquery repository, once you have [built the code](development/building) (hopefully a tagged release):
+In your cloned osquery repository, once you have [built the code](../development/building) (hopefully a tagged release):
 
 ```sh
 $ make packages
@@ -18,7 +18,7 @@ This will use CMake and *fpm*, installed as an osquery build dependency, to gene
 
 ## OS X
 
-In your cloned osquery repository, once you have [built the code](development/building) (hopefully a tagged release):
+In your cloned osquery repository, once you have [built the code](../development/building) (hopefully a tagged release):
 
 ```sh
 $ make packages
