@@ -75,13 +75,6 @@ REGISTER(YARAEventSubscriber, "event_subscriber", "yara_events");
 Status YARAEventSubscriber::init() {
   Status status;
 
-  // XXX: Move into config parser update?
-  int result = yr_initialize();
-  if (result != ERROR_SUCCESS) {
-    LOG(WARNING) << "Unable to initialize YARA (" << result << ")";
-    return Status(1, "Unable to initialize YARA");
-  }
-
   ConfigDataInstance config;
   const auto& yara_config = config.getParsedData("yara");
   if (yara_config.count("file_paths") == 0)
