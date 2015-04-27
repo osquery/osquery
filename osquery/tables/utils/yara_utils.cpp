@@ -217,6 +217,16 @@ int YARACallback(int message, void *message_data, void *user_data) {
   return CALLBACK_CONTINUE;
 }
 
+Status YARAConfigParserPlugin::setUp() {
+  int result = yr_initialize();
+  if (result != ERROR_SUCCESS) {
+    LOG(WARNING) << "Unable to initialize YARA (" << result << ")";
+    return Status(1, "Unable to initialize YARA");
+  }
+
+  return Status(0, "OK");
+}
+
 Status YARAConfigParserPlugin::update(const std::map<std::string, ConfigTree>& config) {
   Status status;
   const auto& yara_config = config.at("yara");
