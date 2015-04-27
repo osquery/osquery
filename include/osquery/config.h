@@ -309,7 +309,7 @@ class ConfigParserPlugin : public Plugin {
   pt::ptree data_;
 
  private:
-  Status setUp() final;
+  Status setUp();
 
  private:
   /// Config::update will call all appropriate parser updates.

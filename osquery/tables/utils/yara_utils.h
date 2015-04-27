@@ -52,6 +52,8 @@ class YARAConfigParserPlugin : public ConfigParserPlugin {
   // Retrieve compiled rules.
   std::map<std::string, YR_RULES *> rules() { return rules_; }
 
+  Status setUp();
+
  private:
   // Store compiled rules in a map (group => rules).
   std::map<std::string, YR_RULES *> rules_;
