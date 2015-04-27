@@ -26,11 +26,13 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_events
   events.cpp
 )
 
-ADD_OSQUERY_TEST(TRUE events_tests events_tests.cpp)
-ADD_OSQUERY_TEST(TRUE events_database_tests events_database_tests.cpp)
+file(GLOB OSQUERY_EVENTS_TESTS "tests/*.cpp")
+ADD_OSQUERY_TEST(TRUE ${OSQUERY_EVENTS_TESTS})
 
 if(APPLE)
-  ADD_OSQUERY_TEST(FALSE fsevents_tests darwin/fsevents_tests.cpp)
+  file(GLOB OSQUERY_DARWIN_EVENTS_TESTS "darwin/tests/*.cpp")
+  ADD_OSQUERY_TEST(FALSE ${OSQUERY_DARWIN_EVENTS_TESTS})
 elseif(LINUX)
-  ADD_OSQUERY_TEST(FALSE inotify_tests linux/inotify_tests.cpp)
+  file(GLOB OSQUERY_LINUX_EVENTS_TESTS "linux/tests/*.cpp")
+  ADD_OSQUERY_TEST(FALSE ${OSQUERY_LINUX_EVENTS_TESTS})
 endif()

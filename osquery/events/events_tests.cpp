@@ -379,10 +379,3 @@ TEST_F(EventsTests, test_fire_event) {
   EXPECT_EQ(kBellHathTolled, 4);
 }
 }
-
-int main(int argc, char* argv[]) {
-  testing::InitGoogleTest(&argc, argv);
-  int status = RUN_ALL_TESTS();
-  boost::filesystem::remove_all(osquery::kTestingEventsDBPath);
-  return status;
-}

@@ -26,9 +26,9 @@ namespace osquery {
 const std::string kTestQuery = "SELECT * FROM test_table";
 
 #ifndef OSQUERY_BUILD_SDK
-const std::string kTestDataPath = "../../../../tools/tests/";
+const std::string kTestDataPath = "../../../tools/tests/";
 #else
-const std::string kTestDataPath = "../../../../../tools/tests/";
+const std::string kTestDataPath = "../../../../tools/tests/";
 #endif
 
 QueryData getTestDBExpectedResults() {

@@ -2,4 +2,5 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_devtools
   printer.cpp
 )
 
-ADD_OSQUERY_TEST(FALSE printer_tests printer_tests.cpp)
+file(GLOB OSQUERY_DEVTOOLS_TESTS "tests/*.cpp")
+ADD_OSQUERY_TEST(FALSE ${OSQUERY_DEVTOOLS_TESTS})

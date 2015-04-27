@@ -67,7 +67,6 @@ Status getConfig(boost::property_tree::ptree& recv) {
   PluginResponse resp;
   Status stat =
       Registry::call("enrollment", "get_key", {{"enroll", "0"}}, resp);
-
   params.put<std::string>("enrollment_key", resp[0]["key"]);
   params.put<std::string>("app_id", FLAGS_enrollment_app_id);
   stat = r.call(params);

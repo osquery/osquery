@@ -16,8 +16,10 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem
   globbing.cpp
 )
 
-ADD_OSQUERY_TEST(TRUE filesystem_tests filesystem_tests.cpp)
+file(GLOB OSQUERY_FILESYSTEM_TESTS "tests/*.cpp")
+ADD_OSQUERY_TEST(TRUE ${OSQUERY_FILESYSTEM_TESTS})
+
 if(APPLE)
-  ADD_OSQUERY_TEST(TRUE plist_tests darwin/plist_tests.cpp)
-  ADD_OSQUERY_TEST(TRUE plist_benchmark darwin/plist_benchmark.cpp)
+  file(GLOB OSQUERY_DARWIN_FILESYSTEM_TESTS "darwin/tests/*.cpp")
+  ADD_OSQUERY_TEST(TRUE ${OSQUERY_DARWIN_FILESYSTEM_TESTS})
 endif()

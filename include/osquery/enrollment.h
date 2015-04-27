@@ -11,15 +11,11 @@
 #pragma once
 
 #include <string>
-#include <vector>
 
-#include <glog/logging.h>
-
-#include <osquery/database/results.h>
-#include <osquery/flags.h>
 #include <osquery/registry.h>
 
 namespace osquery {
+
 /**
  * @brief Superclass for enrollment plugins
  *
