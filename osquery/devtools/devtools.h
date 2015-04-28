@@ -13,8 +13,16 @@
 #include <string>
 
 #include <osquery/database/results.h>
+#include <osquery/flags.h>
 
 namespace osquery {
+
+/// Show all tables and exit the shell.
+DECLARE_bool(L);
+/// Select all from a table an exit the shell.
+DECLARE_string(A);
+/// The shell may need to disable events for fast operations.
+DECLARE_bool(disable_events);
 
 /**
  * @brief Run an interactive SQL query shell.

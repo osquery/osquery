@@ -8,6 +8,7 @@
  *
  */
 
+#include <stdio.h>
 
 #include <osquery/core.h>
 
@@ -16,6 +17,12 @@
 int main(int argc, char *argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.
   osquery::Initializer runner(argc, argv, osquery::OSQUERY_TOOL_SHELL);
+  if (argc > 1 || !isatty(fileno(stdin)) || osquery::FLAGS_A.size() > 0 ||
+      osquery::FLAGS_L) {
+    // A query was set as a positional argument for via stdin.
+    osquery::FLAGS_disable_events = true;
+  }
+
   runner.start();
 
   // Virtual tables will be attached to the shell's in-memory SQLite DB.

@@ -35,21 +35,16 @@
 namespace osquery {
 
 /// Define flags used by the shell. They are parsed by the drop-in shell.
-SHELL_FLAG(bool, bail, false, "stop after hitting an error");
-SHELL_FLAG(bool, batch, false, "force batch I/O");
-SHELL_FLAG(bool, column, false, "set output mode to 'column'");
-SHELL_FLAG(bool, csv, false, "set output mode to 'csv'");
-SHELL_FLAG(bool, json, false, "set output mode to 'json'");
-SHELL_FLAG(bool, echo, false, "print commands before execution");
-SHELL_FLAG(bool, header, true, "turn headers on or off");
-SHELL_FLAG(bool, interactive, false, "force interactive I/O");
-SHELL_FLAG(bool, line, false, "set output mode to 'line'");
-SHELL_FLAG(bool, list, false, "set output mode to 'list'");
-SHELL_FLAG(string,
-           nullvalue,
-           "",
-           "set text string for NULL values. Default ''");
-SHELL_FLAG(string, separator, "|", "set output field separator. Default: '|'");
+SHELL_FLAG(bool, csv, false, "Set output mode to 'csv'");
+SHELL_FLAG(bool, json, false, "Set output mode to 'json'");
+SHELL_FLAG(bool, line, false, "Set output mode to 'line'");
+SHELL_FLAG(bool, list, false, "Set output mode to 'list'");
+SHELL_FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
+SHELL_FLAG(string, separator, "|", "Set output field separator, default '|'");
+
+/// Define short-hand shell switches.
+SHELL_FLAG(bool, L, false, "List all table names");
+SHELL_FLAG(string, A, "", "Select all from a table");
 }
 
 /* Make sure isatty() has a prototype.
@@ -710,13 +705,13 @@ static int shell_exec(
   auto dbc = osquery::SQLiteDBManager::get();
   auto db = dbc.db();
 
-  sqlite3_stmt *pStmt = NULL; /* Statement to execute. */
+  sqlite3_stmt *pStmt = nullptr; /* Statement to execute. */
   int rc = SQLITE_OK; /* Return Code */
   int rc2;
   const char *zLeftover; /* Tail of unprocessed SQL */
 
   if (pzErrMsg) {
-    *pzErrMsg = NULL;
+    *pzErrMsg = nullptr;
   }
 
   while (zSql[0] && (SQLITE_OK == rc)) {
@@ -815,7 +810,7 @@ static int shell_exec(
 
       /* clear saved stmt handle */
       if (pArg) {
-        pArg->pStmt = NULL;
+        pArg->pStmt = nullptr;
       }
     }
   } /* end while */
@@ -844,6 +839,7 @@ static char zHelp[] =
     "Welcome to the osquery shell. Please explore your OS!\n"
     "You are connected to a transient 'in-memory' virtual database.\n"
     "\n"
+    ".all [TABLE]       Select all from a table\n"
     ".bail ON|OFF       Stop after hitting an error; default OFF\n"
     ".echo ON|OFF       Turn command echo on or off\n"
     ".exit              Exit this program\n"
@@ -1033,15 +1029,6 @@ static FILE *output_file_open(const char *zFile) {
 }
 
 /*
-** A routine for handling output from sqlite3_trace().
-*/
-static void sql_trace_callback(void *pArg, const char *z) {
-  FILE *f = (FILE *)pArg;
-  if (f)
-    fprintf(f, "%s\n", z);
-}
-
-/*
 ** If an input line begins with "." then invoke this routine to
 ** process that line.
 **
@@ -1096,15 +1083,20 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     return 0; /* no tokens, no error */
   n = strlen30(azArg[0]);
   c = azArg[0][0];
-  if (c == 'b' && n >= 3 && strncmp(azArg[0], "bail", n) == 0 &&
+  if (c == 'a' && strncmp(azArg[0], "all", n) == 0 && nArg == 2) {
+    struct callback_data data;
+    memcpy(&data, p, sizeof(data));
+    auto query = std::string("SELECT * FROM ") + azArg[1];
+    rc = shell_exec(query.c_str(), shell_callback, &data, nullptr);
+    if (rc != SQLITE_OK) {
+      fprintf(stderr, "Error querying table: %s\n", azArg[1]);
+    }
+  } else if (c == 'b' && n >= 3 && strncmp(azArg[0], "bail", n) == 0 &&
              nArg > 1 && nArg < 3) {
     bail_on_error = booleanValue(azArg[1]);
   } else if (c == 'e' && strncmp(azArg[0], "echo", n) == 0 && nArg > 1 &&
              nArg < 3) {
     p->echoOn = booleanValue(azArg[1]);
-  } else if (c == 'e' && strncmp(azArg[0], "eqp", n) == 0 && nArg > 1 &&
-             nArg < 3) {
-    p->autoEQP = booleanValue(azArg[1]);
   } else if (c == 'e' && strncmp(azArg[0], "exit", n) == 0) {
     if (nArg > 1 && (rc = (int)integerValue(azArg[1])) != 0)
       exit(rc);
@@ -1288,9 +1280,6 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
   } else if (c == 's' && strncmp(azArg[0], "show", n) == 0 && nArg == 1) {
     int i;
     fprintf(p->out, "%9.9s: %s\n", "echo", p->echoOn ? "on" : "off");
-    fprintf(p->out, "%9.9s: %s\n", "eqp", p->autoEQP ? "on" : "off");
-    fprintf(
-        p->out, "%9.9s: %s\n", "explain", p->explainPrev.valid ? "on" : "off");
     fprintf(p->out, "%9.9s: %s\n", "headers", p->showHeader ? "on" : "off");
     fprintf(p->out, "%9.9s: %s\n", "mode", modeDescr[p->mode]);
     fprintf(p->out, "%9.9s: ", "nullvalue");
@@ -1417,13 +1406,6 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
   } else if (c == 't' && strncmp(azArg[0], "trace", n) == 0 && nArg > 1) {
     output_file_close(p->traceOut);
     p->traceOut = output_file_open(azArg[1]);
-#if !defined(SQLITE_OMIT_TRACE) && !defined(SQLITE_OMIT_FLOATING_POINT)
-    if (p->traceOut == 0) {
-      sqlite3_trace(db, 0, 0);
-    } else {
-      sqlite3_trace(db, sql_trace_callback, p->traceOut);
-    }
-#endif
   } else if (c == 'v' && strncmp(azArg[0], "version", n) == 0) {
   	fprintf(p->out, "osquery %s\n", TEXT(OSQUERY_VERSION).c_str());
     fprintf(p->out,
@@ -1689,13 +1671,6 @@ int launchIntoShell(int argc, char **argv) {
   // SQLite: Make sure we have a valid signal handler early
   signal(SIGINT, interrupt_handler);
 
-  if (FLAGS_batch) {
-    // SQLite: Need to check for batch mode here to so we can avoid printing
-    // informational messages (like from process_sqliterc) before we do the
-    // actual processing of arguments later in a second pass.
-      stdin_is_interactive = 0;
-  }
-
   int warnInmemoryDb = 1;
   data.zDbFilename = ":memory:";
   data.out = stdout;
@@ -1705,8 +1680,6 @@ int launchIntoShell(int argc, char **argv) {
     data.mode = MODE_List;
   } else if (FLAGS_line) {
     data.mode = MODE_Line;
-  } else if (FLAGS_column) {
-    data.mode = MODE_Column;
   } else if (FLAGS_csv) {
     data.mode = MODE_Csv;
     memcpy(data.separator, ",", 2);
@@ -1714,21 +1687,20 @@ int launchIntoShell(int argc, char **argv) {
     data.mode = MODE_Pretty;
   }
 
-  if (FLAGS_interactive) {
-    stdin_is_interactive = 1;
-  }
-
-  data.echoOn = (FLAGS_echo) ? 1 : 0;
-  data.showHeader = (FLAGS_header) ? 1 : 0;
-  bail_on_error = (FLAGS_bail) ? 1 : 0;
-
   sqlite3_snprintf(sizeof(data.separator), data.separator, "%s",
     FLAGS_separator.c_str());
   sqlite3_snprintf(sizeof(data.nullvalue), data.nullvalue, "%s",
     FLAGS_nullvalue.c_str());
 
   int rc = 0;
-  if (argc > 1 && argv[1] != nullptr) {
+  if (FLAGS_L == true || FLAGS_A.size() > 0) {
+    // Helper meta commands from shell switches.
+    std::string query = (FLAGS_L) ? ".tables" : ".all " + FLAGS_A;
+    char *cmd = new char[query.size() + 1];
+    memset(cmd, 0, query.size() + 1);
+    std::copy(query.begin(), query.end(), cmd);
+    rc = do_meta_command(cmd, &data);
+  } else if (argc > 1 && argv[1] != nullptr) {
     // Run a command or statement from CLI
     char *query = argv[1];
     char *error = 0;
