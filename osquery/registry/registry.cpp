@@ -289,7 +289,17 @@ Status RegistryFactory::call(const std::string& registry_name,
                              const PluginRequest& request,
                              PluginResponse& response) {
   // Forward factory call to the registry.
-  return registry(registry_name)->call(item_name, request, response);
+  try {
+    return registry(registry_name)->call(item_name, request, response);
+  } catch (const std::exception& e) {
+    LOG(ERROR) << registry_name << " registry " << item_name
+               << " plugin caused exception: " << e.what();
+    return Status(1, e.what());
+  } catch (...) {
+    LOG(ERROR) << registry_name << " registry " << item_name
+               << " plugin caused unknown exception";
+    return Status(2, "Unknown exception");
+  }
 }
 
 Status RegistryFactory::call(const std::string& registry_name,
@@ -304,7 +314,7 @@ Status RegistryFactory::call(const std::string& registry_name,
                              const PluginRequest& request,
                              PluginResponse& response) {
   auto& plugin = registry(registry_name)->getActive();
-  return registry(registry_name)->call(plugin, request, response);
+  return call(registry_name, plugin, request, response);
 }
 
 Status RegistryFactory::call(const std::string& registry_name,
