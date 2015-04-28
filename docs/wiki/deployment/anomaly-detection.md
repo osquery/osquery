@@ -25,7 +25,7 @@ We can use osquery's log aggregation capabilities to easily pinpoint when the at
 
 ## Looking at the logs
 
-Using the [log aggregation guide](deployment/log-aggregation), you will receive log lines like the following in your datastore (ElasticSearch, Splunk, etc):
+Using the [log aggregation guide](log-aggregation), you will receive log lines like the following in your datastore (ElasticSearch, Splunk, etc):
 
 ```json
 {

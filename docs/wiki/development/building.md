@@ -73,7 +73,7 @@ $ ls -la ./build/linux/osquery/
 
 Building osquery on OS X or Linux requires a significant number of dependencies, which
 are not needed when deploying. It does not make sense to install osquery on
-your build hosts. See the [Custom Packages](installation/custom-packages) guide
+your build hosts. See the [Custom Packages](../installation/custom-packages) guide
 for generating pkgs, debs or rpms.
 
 ## Notes and FAQ
@@ -94,7 +94,7 @@ You must run `make deps` to make sure you are pulling in the most-recent depende
 
 ## Build Performance
 
-Generating a virtual table should NOT impact system performance. This is easier said than done as some tables may _seem_ inherently latent such as `SELECT * from suid_bin;` if your expectation is a complete filesystem traversal looking for binaries with suid permissions. Please read the osquery features and guide on [performance safety](../deployment/performance-safety.md). 
+Generating a virtual table should NOT impact system performance. This is easier said than done as some tables may _seem_ inherently latent such as `SELECT * from suid_bin;` if your expectation is a complete filesystem traversal looking for binaries with suid permissions. Please read the osquery features and guide on [performance safety](../deployment/performance-safety.md).
 
 Some quick features include:
 
@@ -102,4 +102,3 @@ Some quick features include:
 * Blacklisting performance-impacting virtual tables.
 * Scheduled query optimization and profilling.
 * Query implementation isolation options.
-
