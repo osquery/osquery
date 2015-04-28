@@ -1,0 +1,21 @@
+table_name("iptables")
+description("Linux IP packet filtering and NAT tool.")
+schema([
+    Column("filter_name", TEXT, "Packet matching filter table name."),
+    Column("chain", TEXT, "Size of module content."),
+    Column("policy", TEXT, "Policy that applies for this rule."),
+    Column("target", TEXT, "Target that applies for this rule."),
+    Column("protocol", INTEGER, "Protocol number identification."),
+    Column("src_ip", TEXT, "Source IP address."),
+    Column("src_mask", TEXT, "Source IP address mask."),
+    Column("iniface", TEXT, "Input interface for the rule."),
+    Column("iniface_mask", TEXT, "Input interface mask for the rule."),
+    Column("dst_ip", TEXT, "Destination IP address."),
+    Column("dst_mask", TEXT, "Destination IP address mask."),
+    Column("outiface", TEXT, "Output interface for the rule."),
+    Column("outiface_mask", TEXT, "Output interface mask for the rule."),
+    Column("match", TEXT, "Matching rule that applies."),
+    Column("packets", INTEGER, "Number of matching packets for this rule."),
+    Column("bytes", INTEGER, "Number of matching bytes for this rule."),
+])
+implementation("iptables@genIptables")
