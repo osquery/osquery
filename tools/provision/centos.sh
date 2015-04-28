@@ -71,6 +71,8 @@ function main_centos() {
   package rpm-devel
   package rpm-build
   package libblkid-devel
+  package iptables
+  package iptables-devel
 
   install_cmake
 

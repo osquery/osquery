@@ -32,6 +32,8 @@ function main_ubuntu() {
   package libbz2-dev
   package devscripts
   package debhelper
+  package iptables
+  package iptables-dev
 
   if [[ $DISTRO = "precise" ]]; then
     package clang-3.4

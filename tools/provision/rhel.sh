@@ -37,6 +37,8 @@ function main_rhel() {
   package xz
   package xz-devel
   package subscription-manager
+  package iptables
+  package iptables-devel
 
   if [[ -z `rpm -qa epel-release` ]]; then
     if [[ $DISTRO = "rhel6" ]]; then
@@ -61,7 +63,7 @@ function main_rhel() {
     package scl-utils
     package policycoreutils-python
     package devtoolset-3
-    source /opt/rh/devtoolset-3/enable 
+    source /opt/rh/devtoolset-3/enable
   elif [[ $DISTRO = "rhel7" ]]; then
     sudo subscription-manager repos --enable=rhel-7-server-optional-rpms
     package gcc

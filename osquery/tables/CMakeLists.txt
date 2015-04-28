@@ -47,6 +47,7 @@ else()
   ADD_OSQUERY_LINK(FALSE "blkid")
   ADD_OSQUERY_LINK(FALSE "udev")
   ADD_OSQUERY_LINK(FALSE "uuid")
+  ADD_OSQUERY_LINK(FALSE "ip4tc")
 endif()
 
 file(GLOB OSQUERY_CROSS_TABLES "[!u]*/*.cpp")
