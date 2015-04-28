@@ -41,6 +41,8 @@ function main_rhel() {
   package xz
   package xz-devel
   package subscription-manager
+  package iptables
+  package iptables-devel
 
   if [[ -z `rpm -qa epel-release` ]]; then
     if [[ $DISTRO = "rhel6" ]]; then
