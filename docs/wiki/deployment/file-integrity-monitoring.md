@@ -1,7 +1,7 @@
 As of osquery version 1.4.2, file integrity monitoring support was introduced
 for linux and darwin variants.  This module reads a list of directories to
 monitor from the osquery config and details changes and hashes to those
-selected files in the `file_changes` table.
+selected files in the `file_events` table.
 
 To get started with FIM (file integrity monitoring), you must first identify
 which files and directories you wish to monitor.
@@ -21,17 +21,17 @@ add them to a new section in the config `file_paths`.
       "query": "select * from crontab;",
       "interval": 300
     },
-    "file_changes": {
-      "query": "select * from file_changes;",
+    "file_events": {
+      "query": "select * from file_events;",
       "interval": 300
     }
   },
   "file_paths": {
     "homes": [
       "/root/%%",
-      "/home/apprunner/%%"
+      "/home/%/%%"
     ],
-    "all_etc": [
+    "etc": [
       "/etc/%%"
     ],
     "tmp": [
@@ -43,7 +43,7 @@ add them to a new section in the config `file_paths`.
 
 ### Sample output
 
-As file changes happen, events will appear in the `file_changes` table.  During
+As file changes happen, events will appear in the `file_events` table.  During
 a file change event, the md5, sha1, and sha256 for the file will be calculated
 if possible.  A sample event looks like this:
 
