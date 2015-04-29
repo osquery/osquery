@@ -96,8 +96,8 @@ class ExtensionManager(Singleton, osquery.extensions.Extension.Iface):
         print("[+] call %s %s" % (registry, item))
         response = self._plugins[registry][item].generate(request)
         return osquery.extensions.ttypes.ExtensionResponse(
-            status=osquery.extensions.ttypes.Status(code=0,
-                                                    message="OK",),
+            status=osquery.extensions.ttypes.ExtensionStatus(code=0,
+                                                             message="OK",),
             response=response,
         )
 
