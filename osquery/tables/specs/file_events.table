@@ -1,5 +1,5 @@
-table_name("file_changes")
-description("Track time, action changes to files specified in configuation data.")
+table_name("file_events")
+description("Track time/action changes to files specified in configuration data.")
 schema([
     Column("target_path", TEXT, "The path changed"),
     Column("category", TEXT, "The category of the file"),
@@ -11,4 +11,4 @@ schema([
     Column("sha256", TEXT, "The SHA256 of the file after change"),
 ])
 attributes(event_subscriber=True)
-implementation("file_changes@file_changes::genTable")
+implementation("file_events@file_events::genTable")

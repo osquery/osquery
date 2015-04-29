@@ -17,7 +17,7 @@
 #include <osquery/tables.h>
 #include <osquery/hash.h>
 
-#include "osquery/events/darwin/fsevents.h"
+#include "osquery/events/linux/inotify.h"
 
 namespace osquery {
 namespace tables {
@@ -27,8 +27,8 @@ namespace tables {
  *
  * This is mostly an example EventSubscriber implementation.
  */
-class FileChangesEventSubscriber
-    : public EventSubscriber<FSEventsEventPublisher> {
+class FileEventSubscriber
+    : public EventSubscriber<INotifyEventPublisher> {
  public:
   Status init();
 
@@ -40,26 +40,28 @@ class FileChangesEventSubscriber
    *
    * @return Was the callback successful.
    */
-  Status Callback(const FSEventsEventContextRef& ec, const void* user_data);
+  Status Callback(const INotifyEventContextRef& ec, const void* user_data);
 };
 
 /**
  * @brief Each EventSubscriber must register itself so the init method is
  *called.
  *
- * This registers FileChangesEventSubscriber into the osquery EventSubscriber
+ * This registers FileEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
  */
-REGISTER(FileChangesEventSubscriber, "event_subscriber", "file_changes");
+REGISTER(FileEventSubscriber, "event_subscriber", "file_events");
 
-Status FileChangesEventSubscriber::init() {
+Status FileEventSubscriber::init() {
   ConfigDataInstance config;
   for (const auto& element_kv : config.files()) {
     for (const auto& file : element_kv.second) {
       VLOG(1) << "Added listener to: " << file;
       auto mc = createSubscriptionContext();
+      mc->recursive = 1;
       mc->path = file;
-      subscribe(&FileChangesEventSubscriber::Callback, mc,
+      mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
+      subscribe(&FileEventSubscriber::Callback, mc,
                 (void*)(&element_kv.first));
     }
   }
@@ -67,7 +69,7 @@ Status FileChangesEventSubscriber::init() {
   return Status(0, "OK");
 }
 
-Status FileChangesEventSubscriber::Callback(const FSEventsEventContextRef& ec,
+Status FileEventSubscriber::Callback(const INotifyEventContextRef& ec,
                                             const void* user_data) {
   Row r;
   r["action"] = ec->action;
@@ -78,11 +80,14 @@ Status FileChangesEventSubscriber::Callback(const FSEventsEventContextRef& ec,
   } else {
     r["category"] = "Undefined";
   }
-  r["transaction_id"] = INTEGER(ec->transaction_id);
+  r["transaction_id"] = INTEGER(ec->event->cookie);
   r["md5"] = hashFromFile(HASH_TYPE_MD5, ec->path);
   r["sha1"] = hashFromFile(HASH_TYPE_SHA1, ec->path);
   r["sha256"] = hashFromFile(HASH_TYPE_SHA256, ec->path);
-  if (ec->action != "") {
+  if (ec->action != "" && ec->action != "OPENED") {
+    // A callback is somewhat useless unless it changes the EventSubscriber
+    // state
+    // or calls `add` to store a marked up event.
     add(r, ec->time);
   }
   return Status(0, "OK");
