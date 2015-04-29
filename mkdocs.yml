@@ -21,6 +21,7 @@ pages:
 - ['deployment/performance-safety.md', 'Deployment', 'Performance Safety']
 - ['deployment/anomaly-detection.md', 'Deployment', 'Anomaly Detection']
 - ['deployment/kernel-linux.md', 'Deployment', 'Kernel Extensions']
+- ['deployment/yara.md', 'Deployment', 'YARA Scanning']
 
 - ['development/building.md', 'Development', 'Building osquery']
 - ['development/contributing-code.md', 'Development', 'Contributing Code']
