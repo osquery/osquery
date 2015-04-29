@@ -17,7 +17,6 @@
 #include <sys/stat.h>
 
 #include <osquery/events.h>
-#include <osquery/status.h>
 
 namespace osquery {
 

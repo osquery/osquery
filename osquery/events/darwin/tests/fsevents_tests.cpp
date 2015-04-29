@@ -21,10 +21,11 @@
 #include <osquery/tables.h>
 
 #include "osquery/events/darwin/fsevents.h"
+#include "osquery/core/test_util.h"
 
 namespace osquery {
 
-const std::string kRealTestPath = "/private/tmp/osquery-fsevents-trigger";
+const std::string kRealTestPath = kTestWorkingDirectory + "fsevents_trigger";
 int kMaxEventLatency = 3000;
 
 class FSEventsTests : public testing::Test {
@@ -142,7 +143,10 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
 class TestFSEventsEventSubscriber
     : public EventSubscriber<FSEventsEventPublisher> {
  public:
-  TestFSEventsEventSubscriber() { setName("TestFSEventsEventSubscriber"); }
+  TestFSEventsEventSubscriber() : callback_count_(0) {
+    setName("TestFSEventsEventSubscriber");
+  }
+
   Status init() {
     callback_count_ = 0;
     return Status(0, "OK");

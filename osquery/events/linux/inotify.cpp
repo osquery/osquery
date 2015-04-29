@@ -12,7 +12,6 @@
 
 #include <linux/limits.h>
 
-#include <osquery/events.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
@@ -43,7 +42,7 @@ Status INotifyEventPublisher::setUp() {
   inotify_handle_ = ::inotify_init();
   // If this does not work throw an exception.
   if (inotify_handle_ == -1) {
-    return Status(1, "Could not init inotify.");
+    return Status(1, "Could not init inotify");
   }
   return Status(0, "OK");
 }
@@ -68,7 +67,7 @@ Status INotifyEventPublisher::restartMonitoring(){
     return Status(1, "Overflow");
   }
   last_restart_ = getUnixTime();
-  VLOG(1) << "Got an overflow, trying to restart...";
+  VLOG(1) << "inotify was overflown, attempting to restart handle";
   for(const auto& desc : descriptors_){
     removeMonitor(desc, 1);
   }
@@ -183,7 +182,7 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
   if (!isPathMonitored(path)) {
     int watch = ::inotify_add_watch(getHandle(), path.c_str(), IN_ALL_EVENTS);
     if (watch == -1) {
-      LOG(ERROR) << "Could not add inotfy watch on: " << path;
+      LOG(ERROR) << "Could not add inotify watch on: " << path;
       return false;
     }
 
@@ -232,7 +231,7 @@ bool INotifyEventPublisher::removeMonitor(int watch, bool force) {
     return false;
   }
 
-  std::string path = descriptor_paths_[watch];
+  auto path = descriptor_paths_[watch];
   return removeMonitor(path, force);
 }
 

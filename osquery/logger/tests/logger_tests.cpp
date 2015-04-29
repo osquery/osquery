@@ -20,14 +20,17 @@ DECLARE_string(logger_plugin);
 
 class LoggerTests : public testing::Test {
  public:
-  LoggerTests() {}
-
   void SetUp() {
+    logging_status_ = FLAGS_disable_logging;
+    FLAGS_disable_logging = false;
+
     log_lines.clear();
     status_messages.clear();
     statuses_logged = 0;
     last_status = {O_INFO, "", -1, ""};
   }
+
+  void TearDown() { FLAGS_disable_logging = logging_status_; }
 
   // Track lines emitted to logString
   static std::vector<std::string> log_lines;
@@ -38,6 +41,10 @@ class LoggerTests : public testing::Test {
 
   // Count calls to logStatus
   static int statuses_logged;
+
+ private:
+  /// Save the status of logging before running tests, restore afterward.
+  bool logging_status_;
 };
 
 std::vector<std::string> LoggerTests::log_lines;

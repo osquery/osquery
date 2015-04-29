@@ -21,14 +21,15 @@
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/inotify.h"
+#include "osquery/core/test_util.h"
 
 namespace osquery {
 
-const std::string kRealTestPath = "/tmp/osquery-inotify-trigger";
-const std::string kRealTestDir = "/tmp/osquery-inotify-triggers";
-const std::string kRealTestDirPath = "/tmp/osquery-inotify-triggers/1";
-const std::string kRealTestSubDir = "/tmp/osquery-inotify-triggers/2";
-const std::string kRealTestSubDirPath = "/tmp/osquery-inotify-triggers/2/1";
+const std::string kRealTestPath = kTestWorkingDirectory + "inotify-trigger";
+const std::string kRealTestDir = kTestWorkingDirectory + "inotify-triggers";
+const std::string kRealTestDirPath = kRealTestDir + "/1";
+const std::string kRealTestSubDir = kRealTestDir + "/2";
+const std::string kRealTestSubDirPath = kRealTestSubDir + "/1";
 
 int kMaxEventLatency = 3000;
 
@@ -149,11 +150,15 @@ TEST_F(INotifyTests, test_inotify_add_subscription_success) {
 class TestINotifyEventSubscriber
     : public EventSubscriber<INotifyEventPublisher> {
  public:
-  TestINotifyEventSubscriber() { setName("TestINotifyEventSubscriber"); }
+  TestINotifyEventSubscriber() : callback_count_(0) {
+    setName("TestINotifyEventSubscriber");
+  }
+
   Status init() {
     callback_count_ = 0;
     return Status(0, "OK");
   }
+
   Status SimpleCallback(const INotifyEventContextRef& ec,
                         const void* user_data) {
     callback_count_ += 1;

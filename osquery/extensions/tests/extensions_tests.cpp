@@ -25,7 +25,7 @@ namespace osquery {
 
 const int kDelayUS = 200;
 const int kTimeoutUS = 10000;
-const std::string kTestManagerSocket = "/tmp/osquery-em.socket";
+const std::string kTestManagerSocket = kTestWorkingDirectory + "test.em";
 
 class ExtensionsTest : public testing::Test {
  protected:

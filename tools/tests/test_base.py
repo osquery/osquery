@@ -17,8 +17,9 @@ import copy
 import os
 import psutil
 import re
-import subprocess
+import shutil
 import signal
+import subprocess
 import sys
 import time
 import threading
@@ -41,7 +42,8 @@ except ImportError:
     exit(1)
 
 '''Defaults that should be used in integration tests.'''
-CONFIG_NAME = "/tmp/osquery-test"
+CONFIG_DIR = "/tmp/osquery-tests/"
+CONFIG_NAME = CONFIG_DIR + "tests"
 DEFAULT_CONFIG = {
     "options": {
         "database_path": "%s.db" % CONFIG_NAME,
@@ -81,10 +83,14 @@ class OsqueryWrapper(REPLWrapper):
     CONTINUATION_PROMPT = u'    ...> '
     ERROR_PREFIX = 'Error:'
 
-    def __init__(self, command='../osqueryi', args=None, env={}):
-        if args:
-            command = command + " " + " ".join(["--%s=%s" % (k, v) for
-                k, v in args.iteritems()])
+    def __init__(self, command='../osqueryi', args={}, env={}):
+        global CONFIG_NAME, CONFIG
+        options = copy.deepcopy(CONFIG)["options"]
+        for option in args.keys():
+            options[option] = args[option]
+        command = command + " " + " ".join(["--%s=%s" % (k, v) for
+            k, v in options.iteritems()])
+        print (command)
         proc = pexpect.spawn(command, env=env)
         super(OsqueryWrapper, self).__init__(
             proc,
@@ -292,7 +298,7 @@ class Autoloader(object):
 
 class Tester(object):
     def __init__(self):
-        global ARGS, CONFIG
+        global ARGS, CONFIG, CONFIG_DIR
         parser = argparse.ArgumentParser(description=(
             "osquery python integration testing."
         ))
@@ -318,6 +324,8 @@ class Tester(object):
             exit(1)
 
         # Write config
+        shutil.rmtree(CONFIG_DIR)
+        os.makedirs(CONFIG_DIR)
         CONFIG = read_config(ARGS.config) if ARGS.config else DEFAULT_CONFIG
 
     def run(self):
