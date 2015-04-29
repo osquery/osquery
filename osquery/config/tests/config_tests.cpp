@@ -78,7 +78,7 @@ TEST_F(ConfigTests, test_watched_files) {
 
   // From the new, recommended top-level "file_paths" collection.
   EXPECT_EQ(config.files().at("downloads2").size(), 1);
-  EXPECT_EQ(config.files().at("system_binaries").size(), 2);
+  EXPECT_EQ(config.files().at("system_binaries").size(), 1);
 }
 
 TEST_F(ConfigTests, test_locking) {

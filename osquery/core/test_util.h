@@ -23,13 +23,26 @@
 
 namespace osquery {
 
-// kTestQuery is a test query that can be executed against the database
-// returned from createTestDB() to result in the dataset returned from
-// getTestDBExpectedResults()
-extern const std::string kTestQuery;
-extern const std::string kTestDataPath;
+/// Any SQL-dependent tests should use kTestQuery for a pre-populated example.
+const std::string kTestQuery = "SELECT * FROM test_table";
 
-const std::string kFakeDirectory = "/tmp/osquery-fstests-pattern";
+/// Most tests will use binary or disk-backed content for parsing tests.
+#ifndef OSQUERY_BUILD_SDK
+const std::string kTestDataPath = "../../../tools/tests/";
+#else
+const std::string kTestDataPath = "../../../../tools/tests/";
+#endif
+
+/// Tests should limit intermediate input/output to a working directory.
+/// Config data, logging results, and intermediate database/caching usage.
+#ifdef DARWIN
+const std::string kTestWorkingDirectory = "/private/tmp/osquery-tests/";
+#else
+const std::string kTestWorkingDirectory = "/tmp/osquery-tests/";
+#endif
+
+/// A fake directory tree should be used for filesystem iterator testing.
+const std::string kFakeDirectory = kTestWorkingDirectory + "fstree";
 
 // getTestDBExpectedResults returns the results of kTestQuery of the table that
 // initially gets returned from createTestDB()

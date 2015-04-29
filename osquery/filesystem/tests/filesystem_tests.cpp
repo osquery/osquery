@@ -33,17 +33,17 @@ class FilesystemTests : public testing::Test {
 };
 
 TEST_F(FilesystemTests, test_plugin) {
-  std::ofstream test_file("/tmp/osquery-fstests-file");
+  std::ofstream test_file(kTestWorkingDirectory + "fstests-file");
   test_file.write("test123\n", sizeof("test123"));
   test_file.close();
 
   std::string content;
-  auto s = readFile("/tmp/osquery-fstests-file", content);
+  auto s = readFile(kTestWorkingDirectory + "fstests-file", content);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(content, "test123\n");
 
-  remove("/tmp/osquery-fstests-file");
+  remove(kTestWorkingDirectory + "fstests-file");
 }
 
 TEST_F(FilesystemTests, test_list_files_in_directory_not_found) {
