@@ -6,7 +6,7 @@ All commits to osquery should be well unit-tested. Having tests is useful for ma
 
 This guide is going to take you through the process of creating and building a new unit test in the osquery project.
 
-Ensure that you can properly build the code by running `make` at the root of the osquery repository. If your build fails, refer to the ["building the code"](https://github.com/facebook/osquery/wiki/building-the-code) guide.
+Ensure that you can properly build the code by running `make` at the root of the osquery repository. If your build fails, refer to the ["building the code"](building) guide.
 
 Before you modify osquery code (or any code for that matter), make sure that you can successfully execute all tests. Run `make test` to run all tests.
 
@@ -40,7 +40,7 @@ The above code is very simple. If you're unfamiliar with the syntax/concepts of 
 
 ## Building a test
 
-Whatever component of osquery you're working on has it's own "CMakeLists.txt" file. For example, the _tables_ component (folder) has it's own "CMakeLists.txt"`" file at [osquery/tables/CMakeLists.txt](https://github.com/facebook/osquery/blob/master/osquery/tables/CMakeLists.txt). The file that we're going to be modifying today is [osquery/examples/CMakeLists.txt](https://github.com/facebook/osquery/tree/master/osquery/examples/CMakeLists.txt). Edit that file to include the following contents:
+Whatever component of osquery you're working on has it's own "CMakeLists.txt" file. For example, the _tables_ component (folder) has it's own "CMakeLists.txt"`" file at [osquery/tables/CMakeLists.txt](https://github.com/facebook/osquery/blob/master/osquery/tables/CMakeLists.txt). The file that we're going to be modifying today is [osquery/CMakeLists.txt](https://github.com/facebook/osquery/tree/master/osquery/CMakeLists.txt). Edit that file to include the following contents:
 
 ```CMake
 ADD_OSQUERY_TEST(example_test example_test.cpp)

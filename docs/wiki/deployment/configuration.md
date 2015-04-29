@@ -3,7 +3,7 @@ An osquery deployment consists of:
 * Installing the tools for [OS X](../installation/install-osx) or [Linux](../installation/install-linux)
 * Reviewing the [osqueryd](../introduction/using-osqueryd) introduction
 * Configuring and starting the osqueryd service (this page)
-* Managing and [collecting](deployment/log-aggregation) the query results
+* Managing and [collecting](log-aggregation) the query results
 
 In the future, osquery tools may allow for **ad-hoc** or distributed queries
 that are not part of the configured query schedule and return results
@@ -61,7 +61,7 @@ This config tells osqueryd to schedule two queries, **macosx_kextstat** and **fo
 * the schedule keys must be unique
 * the "interval" specifies query frequency, in seconds
 
-The first query will document changes to an OS X host's kernel extensions, with a query interval of 10 seconds. Consider using osquery's [performance tooling](deployment/performance-safety) to understand the performance impact for each query.
+The first query will document changes to an OS X host's kernel extensions, with a query interval of 10 seconds. Consider using osquery's [performance tooling](performance-safety) to understand the performance impact for each query.
 
 The results of your query are cached on disk via [RocksDB](http://rocksdb.org/). On first query run, all of the results are stored in RocksDB. On subsequent runs, only result-set changes are logged to RocksDB.
 
