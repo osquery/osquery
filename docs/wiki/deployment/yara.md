@@ -1,12 +1,15 @@
 # Introduction
 
-I recently put [YARA](https://github.com/plusvic/yara) inside [osquery](https://osquery.io) and thought I would provide some details on how to use it. There are two YARA related tables in osquery, which serve very different purposes. The first table, called **yara_events**, uses osquery's pub-sub framework to monitor for filesystem changes and will execute YARA when a file change event fires. The second table, called **yara**, is an on-demand YARA scanning table.
+There are two YARA related tables in osquery, which serve very different purposes. The first table, called **yara_events**, uses osquery's [pub-sub](https://osquery.readthedocs.org/en/latest/development/pubsub-framework/) framework to monitor for filesystem changes and will execute YARA when a file change event fires. The second table, called **yara**, is an on-demand YARA scanning table.
+
+Both of these tables are considered a beta feature right now.
 
 # Configuration
 
-The configuration for osquery is simple. Here is an example config (I've left out the non-relevant parts):
+The configuration for osquery is simple. Here is an example config:
 
 ```
+{
   // Description of the YARA feature.
   "yara": {
     "signatures": {
@@ -32,9 +35,9 @@ The configuration for osquery is simple. Here is an example config (I've left ou
 }
 ```
 
-The first thing to notice is the *file_paths* section, which is used to describe which paths to monitor for changes. Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented [here](http://osquery.readthedocs.org/en/latest/development/wildcard-rules/index.html). The paths, when expanded out by osquery, are monitored for changes and processed by the [file_changes](https://osquery.io/docs/tables/#file_changes) table.
+The first thing to notice is the *file_paths* section, which is used to describe which paths to monitor for changes. Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented [here](http://osquery.readthedocs.org/en/latest/development/wildcard-rules/index.html). The paths, when expanded out by osquery, are monitored for changes and processed by the [file_events](https://osquery.io/docs/tables/#file_events) table.
 
-The second thing to notice is the *yara* section, which contains the configuration to use for YARA within osquery. The *yara* section contains two keys: *signatures* and *file_paths*. The *signatures* key contains a set of arbitrary key names, called "signature groups". The value for each of these groups are the absolute paths to the signature files that will be compiled and stored within osquery. The *file_paths* key maps the category name for an event described in the global *file_paths* section to a signature grouping to use when scanning.
+The second thing to notice is the *yara* section, which contains the configuration to use for YARA within osquery. The *yara* section contains two keys: *signatures* and *file_paths*. The *signatures* key contains a set of arbitrary key names, called "signature groups". The value for each of these groups are the paths to the signature files that will be compiled and stored within osquery. The paths to the signature files can be absolute or relative to ```/etc/osquery/yara/```. The *file_paths* key maps the category name for an event described in the global *file_paths* section to a signature grouping to use when scanning.
 
 For example, when a file in */usr/bin/* and */usr/sbin/* is changed it will be scanned with *sig_group_1*, which consists of *foo.sig* and *bar.sig*. When a file in */Users/wxs/tmp/* (recursively) is changed it will be scanned with *sig_group_1* and *sig_group_2*, which consists of all three signature files.
 
@@ -43,7 +46,7 @@ For example, when a file in */usr/bin/* and */usr/sbin/* is changed it will be s
 Using the configuration above you can see it in action. While osquery is running I executed *touch /Users/wxs/tmp/foo* in another terminal. Here is the relevant queries to show what happened:
 
 ```
-osquery> select * from file_changes;
+osquery> select * from file_events;
 +--------------------+----------+------------+---------+----------------+----------------------------------+------------------------------------------+------------------------------------------------------------------+
 | target_path        | category | time       | action  | transaction_id | md5                              | sha1                                     | sha256                                                           |
 +--------------------+----------+------------+---------+----------------+----------------------------------+------------------------------------------+------------------------------------------------------------------+
@@ -55,10 +58,10 @@ osquery> select * from yara_events;
 +--------------------+----------+------------+---------+----------------+-------------+-------+
 | /Users/wxs/tmp/foo | tmp      | 1430078285 | CREATED | 33859499       | always_true | 1     |
 +--------------------+----------+------------+---------+----------------+-------------+-------+
-osquery> 
+osquery>
 ```
 
-The **file_changes** table recorded that a file named */Users/wxs/tmp/foo* was created with the corresponding hashes and a timestamp.
+The **file_events** table recorded that a file named */Users/wxs/tmp/foo* was created with the corresponding hashes and a timestamp.
 
 The **yara_events** table recorded that 1 matching rule (*always_true*) was found when the file was created. In this example every file will always have at least one match because I am using a rule which always evaluates to true. In this next example I'll issue the same command to create a file in a monitored directory but have removed the *always_true* rule from my signature files.
 
@@ -70,7 +73,7 @@ osquery> select * from yara_events;
 | /Users/wxs/tmp/foo | tmp      | 1430078285 | CREATED | 33859499       | always_true | 1     |
 | /Users/wxs/tmp/foo | tmp      | 1430078524 | CREATED | 33860795       |             | 0     |
 +--------------------+----------+------------+---------+----------------+-------------+-------+
-osquery> 
+osquery>
 ```
 
 As you can see, even though no matches were found an row is still created and stored.
@@ -98,7 +101,7 @@ osquery> select * from yara where path="/bin/ls" and sig_group="sig_group_2";
 +---------+---------+-------+-------------+---------+---------+
 | /bin/ls |         | 0     | sig_group_2 |         |         |
 +---------+---------+-------+-------------+---------+---------+
-osquery> 
+osquery>
 ```
 
 As you can see in these examples, I'm scanning the same file with two different signature groups and getting different results.
@@ -115,7 +118,7 @@ osquery> select * from yara where pattern="/bin/%sh" and sig_group="sig_group_1"
 | /bin/tcsh | always_true | 1     | sig_group_1 |         | /bin/%sh |
 | /bin/zsh  | always_true | 1     | sig_group_1 |         | /bin/%sh |
 +-----------+-------------+-------+-------------+---------+----------+
-osquery> 
+osquery>
 ```
 
 The above illustrates using the *pattern* constraint to scan /bin/%sh with a signature group.
