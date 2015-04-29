@@ -67,16 +67,9 @@ function main_rhel() {
   package clang
   package clang-devel
 
-  if [[ $DISTRO = "rhel6" ]]; then
-    # GCC is needed for glib/libstdc++/gcc4.9+
-    # osquery code will use the 4.9+ toolchain
-    set_cc gcc
-    set_cxx g++
-  elif [[ $DISTRO = "rhel7" ]]; then
-    set_cc clang
-    set_cxx clang++
-  fi
-
+  set_cc gcc
+  set_cxx g++
+  
   package bzip2
   package bzip2-devel
   package openssl-devel
