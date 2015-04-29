@@ -73,11 +73,11 @@ class ExtensionClient:
         self.transport.open()
 
     def extension_manager_client(self):
-        '''Return an extension manager (osquery core) client.'''
+        """Return an extension manager (osquery core) client."""
         return osquery.extensions.ExtensionManager.Client(self.protocol)
 
     def extension_client(self):
-        '''Return an extension (osquery extension) client.'''
+        """Return an extension (osquery extension) client."""
         return Extension.Client(self.protocol)
 
 class ExtensionManager(Singleton, osquery.extensions.Extension.Iface):
