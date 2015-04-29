@@ -49,6 +49,7 @@ function main_rhel() {
 
   if [[ $DISTRO = "rhel6" ]]; then
     sudo subscription-manager repos --enable=rhel-server-rhscl-6-rpms
+    sudo subscription-manager repos --enable=rhel-6-server-optional-rpms
     package scl-utils
     package policycoreutils-python
     package devtoolset-3-runtime
