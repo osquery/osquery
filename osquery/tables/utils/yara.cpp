@@ -120,7 +120,7 @@ QueryData genYara(QueryContext& context) {
 
     std::string full_path;
     if (file[0] != '/') {
-      full_path = std::string("/var/osquery/") + file;
+      full_path = std::string("/etc/osquery/yara/") + file;
     } else {
       full_path = file;
     }

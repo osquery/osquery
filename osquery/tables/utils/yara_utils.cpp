@@ -131,7 +131,7 @@ Status handleRuleFiles(const std::string& category,
 
     std::string full_path;
     if (rule[0] != '/') {
-      full_path = std::string("/var/osquery/") + rule;
+      full_path = std::string("/etc/osquery/yara/") + rule;
     } else {
       full_path = rule;
     }
