@@ -35,7 +35,7 @@ class MyTablePlugin(osquery.TablePlugin):
     def columns(self):
         return [
             osquery.TableColumn(name="foo", type=osquery.STRING),
-            osquery.TableColumn(name="baz", type=osquery.INTEGER),
+            osquery.TableColumn(name="baz", type=osquery.STRING),
         ]
 
     def generate(self, context):

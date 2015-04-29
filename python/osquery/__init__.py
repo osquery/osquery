@@ -67,25 +67,25 @@ class ExtensionClient:
         return Extension.Client(self.protocol)
 
 class ExtensionManager(Singleton, osquery.extensions.Extension.Iface):
-    _plugins = []
+    _plugins = {}
     _registry = {}
 
     def add_plugin(self, plugin):
-        self._plugins.append(plugin)
-
         obj = plugin()
         if obj.registry_name() not in self._registry:
             self._registry[obj.registry_name()] = {}
 
+        if obj.registry_name() not in self._plugins:
+            self._plugins[obj.registry_name()] = {}
+
         if obj.name() not in self._registry[obj.registry_name()]:
-            self._registry[obj.registry_name()][obj.name()] = \
-                obj.routes()
+            self._registry[obj.registry_name()][obj.name()] = obj.routes()
+
+        if obj.name() not in self._plugins[obj.registry_name()]:
+            self._plugins[obj.registry_name()][obj.name()] = obj
 
     def registry(self):
         return self._registry
-
-    def plugin_count(self):
-        return len(self._plugins)
 
     def ping(self):
         print("[+] ping")
@@ -93,7 +93,13 @@ class ExtensionManager(Singleton, osquery.extensions.Extension.Iface):
                                                          message="OK")
 
     def call(self, registry, item, request):
-        raise NotImplementedError
+        print("[+] call %s %s" % (registry, item))
+        response = self._plugins[registry][item].generate(request)
+        return osquery.extensions.ttypes.ExtensionResponse(
+            status=osquery.extensions.ttypes.Status(code=0,
+                                                    message="OK",),
+            response=response,
+        )
 
 def register_plugin(plugin):
     em = ExtensionManager()
