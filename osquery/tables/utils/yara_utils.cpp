@@ -129,6 +129,13 @@ Status handleRuleFiles(const std::string& category,
     const auto rule = item.second.get("", "");
     VLOG(1) << "Loading " << rule;
 
+    std::string full_path;
+    if (rule[0] != '/') {
+      full_path = std::string("/etc/osquery/yara/") + rule;
+    } else {
+      full_path = rule;
+    }
+
     // First attempt to load the file, in case it is saved (pre-compiled)
     // rules. Sadly there is no way to load multiple compiled rules in
     // succession. This means that:
@@ -144,7 +151,7 @@ Status handleRuleFiles(const std::string& category,
     //
     // If you want to use saved rule files you must have them all in a single
     // file. This is easy to accomplish with yarac(1).
-    result = yr_rules_load(rule.c_str(), &tmp_rules);
+    result = yr_rules_load(full_path.c_str(), &tmp_rules);
     if (result != ERROR_SUCCESS && result != ERROR_INVALID_FILE) {
       yr_compiler_destroy(compiler);
       return Status(1, "Error loading YARA rules: " + std::to_string(result));
@@ -157,17 +164,17 @@ Status handleRuleFiles(const std::string& category,
     } else {
       compiled = true;
       // Try to compile the rules.
-      FILE *rule_file = fopen(rule.c_str(), "r");
+      FILE *rule_file = fopen(full_path.c_str(), "r");
 
       if (rule_file == nullptr) {
         yr_compiler_destroy(compiler);
-        return Status(1, "Could not open file: " + rule);
+        return Status(1, "Could not open file: " + full_path);
       }
 
       int errors = yr_compiler_add_file(compiler,
                                         rule_file,
                                         NULL,
-                                        rule.c_str());
+                                        full_path.c_str());
 
       fclose(rule_file);
       rule_file = nullptr;
