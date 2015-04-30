@@ -7,6 +7,67 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
+function install_gcc() {
+  TARBALL=gcc-4.8.4.tar.gz
+  URL=http://www.netgull.com/gcc/releases/gcc-4.8.4/gcc-4.8.4.tar.gz
+  SOURCE=gcc-4.8.4
+  TARGET=/opt/osquery/gcc
+
+  if provision gcc $TARGET/bin/gcc4.8.4; then
+    log "compiling a gcc toolchain, this may take a while..."
+    TARGET_SOURCE=$SOURCE
+
+    # GCC-dependency: GMP
+    TARBALL=gmp-6.0.0a.tar.bz2
+    URL=https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
+    SOURCE=gmp-6.0.0
+    if provision gmp $WORKING_DIR/$TARGET_SOURCE/gmp/README; then
+      log "Moving gmp sources into $TARGET_SOURCE"
+      cp -R $SOURCE $TARGET_SOURCE/gmp
+    fi
+
+    # GCC-dependency: MPFR
+    TARBALL=mpfr-3.1.2.tar.gz
+    URL=http://www.mpfr.org/mpfr-current/mpfr-3.1.2.tar.gz
+    SOURCE=mpfr-3.1.2
+    if provision mpfr $WORKING_DIR/$TARGET_SOURCE/mpfr/README; then
+      log "Moving mpfr sources into $TARGET_SOURCE"
+      cp -R $SOURCE $TARGET_SOURCE/mpfr
+    fi
+
+    # GCC-dependency: MPC
+    TARBALL=mpc-1.0.3.tar.gz
+    URL=http://www.multiprecision.org/mpc/download/mpc-1.0.3.tar.gz
+    SOURCE=mpc-1.0.3
+    if provision mpc $WORKING_DIR/$TARGET_SOURCE/mpc/README; then
+      log "Moving mpc sources into $TARGET_SOURCE"
+      cp -R $SOURCE $TARGET_SOURCE/mpc
+    fi
+
+    sudo mkdir -p $TARGET
+    pushd $TARGET_SOURCE
+    ./configure \
+      --disable-checking \
+      --enable-languages=c,c++ \
+      --disable-multilib \
+      --disable-multiarch \
+      --enable-shared \
+      --enable-threads=posix \
+      --program-suffix=4.8.4 \
+      --without-included-gettext \
+      --prefix=$TARGET
+    make -j $THREADS
+    sudo make install
+
+    [ -L /usr/bin/gcc ] && sudo unlink /usr/bin/gcc
+    [ -L /usr/bin/g++ ] && sudo unlink /usr/bin/g++
+    sudo ln -sf $TARGET/bin/gcc4.8.4 /usr/bin/gcc
+    sudo ln -sf $TARGET/bin/g++4.8.4 /usr/bin/g++
+    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib64/libstdc++.so.6
+    popd
+  fi
+}
+
 function install_cmake() {
   TARBALL=cmake-3.2.1.tar.gz
   URL=https://osquery-packages.s3.amazonaws.com/deps/cmake-3.2.1.tar.gz
@@ -54,17 +115,19 @@ function install_rocksdb() {
 
   if provision rocksdb /usr/local/lib/librocksdb.a; then
     if [[ ! -f rocksdb-rocksdb-3.10.2/librocksdb.a ]]; then
-      if [[ $OS = "ubuntu" ]]; then
+      if [[ $FAMILY = "debian" ]]; then
         CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
-      elif [ $OS = "centos" ] || [ $OS = "rhel" ]; then
+      elif [ $FAMILY = "redhat" ]; then
         CLANG_VERSION=`clang --version | grep version | cut -d" " -f3`
         CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
       fi
       pushd $SOURCE
       if [[ $OS = "freebsd" ]]; then
-        CC=cc CXX=c++ gmake static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
+        PORTABLE=1 CC=cc CXX=c++ gmake -j $THREADS static_lib \
+          CFLAGS="$CLANG_INCLUDE $CFLAGS"
       else
-        CC="$CC" CXX="$CXX" make static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
+        PORTABLE=1 CC="$CC" CXX="$CXX" make -j $THREADS static_lib \
+          CFLAGS="$CLANG_INCLUDE $CFLAGS"
       fi
       popd
     fi
@@ -127,7 +190,7 @@ function install_gflags() {
   if provision gflags /usr/local/lib/libgflags.a; then
     pushd $SOURCE
     cmake -DCMAKE_CXX_FLAGS="$CFLAGS" -DGFLAGS_NAMESPACE:STRING=google .
-    make -j $THREADS
+    CC="$CC" CXX="$CXX" make -j $THREADS
     sudo make install
     popd
   fi
@@ -142,7 +205,7 @@ function install_iptables_dev() {
     pushd $SOURCE
     ./configure --disable-shared --prefix=/usr/local
     pushd libiptc
-    make -j $THREADS
+    CC="$CC" CXX="$CXX" make -j $THREADS
     sudo make install
     popd
     pushd include
@@ -186,7 +249,7 @@ function install_autoconf() {
   if $PROVISION_AUTOCONF; then
     pushd $SOURCE
     ./configure --prefix=/usr
-    make -j $THREADS
+    CC="$CC" CXX="$CXX" make -j $THREADS
     sudo make install
     popd
   fi
@@ -201,7 +264,7 @@ function install_automake() {
     pushd $SOURCE
     ./bootstrap.sh
     ./configure --prefix=/usr
-    make -j $THREADS
+    CC="$CC" CXX="$CXX" make -j $THREADS
     sudo make install
     popd
   fi
@@ -236,15 +299,61 @@ function install_pkgconfig() {
   fi
 }
 
+function install_udev_devel_095() {
+  TARBALL=udev-095.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/udev-095.tar.gz
+  SOURCE=udev-095
+
+  if provision udev-095 /usr/local/lib/libudev.a; then
+    pushd $SOURCE
+    CC="$CC" CXX="$CXX" make libudev.a
+    sudo cp libudev.a /usr/local/lib/
+    popd
+  fi
+}
+
+function install_pip() {
+  PYTHON_EXECUTABLE=$1
+  URL=https://bootstrap.pypa.io/get-pip.py
+
+  if [[ ! -e /usr/bin/pip ]]; then
+    curl $URL | sudo $PYTHON_EXECUTABLE -
+  fi
+}
+
+function install_ruby() {
+  TARBALL=ruby-1.8.7-p370.tar.gz
+  URL=ftp://ftp.ruby-lang.org/pub/ruby/1.8/ruby-1.8.7-p370.tar.gz
+  SOURCE=ruby-1.8.7-p370
+
+  if provision ruby-1.8.7 /usr/local/bin/ruby; then
+    pushd $SOURCE
+    ./configure --prefix=/usr/local
+    CC="$CC" CXX="$CXX" make -j $THREADS
+    sudo make install
+    popd
+  fi
+
+  TARBALL=rubygems-1.8.24.tgz
+  URL=http://production.cf.rubygems.org/rubygems/rubygems-1.8.24.tgz
+  SOURCE=rubygems-1.8.24
+
+  if provision rubygems-1.8.24 /usr/local/bin/gem; then
+    pushd $SOURCE
+    sudo ruby setup.rb
+    popd
+  fi
+}
+
 function package() {
-  if [[ $OS = "ubuntu" ]]; then
+  if [[ $FAMILY = "debian" ]]; then
     if [[ -n "$(dpkg --get-selections | grep $1)" ]]; then
       log "$1 is already installed. skipping."
     else
       log "installing $1"
       sudo apt-get install $1 -y
     fi
-  elif [ $OS = "centos" ] || [ $OS = "rhel" ] || [ $OS = "amazon" ] ; then
+  elif [ $FAMILY = "redhat" ]; then
     if [[ ! -n "$(rpm -V $1)" ]]; then
       log "$1 is already installed. skipping."
     else
@@ -269,14 +378,14 @@ function package() {
 }
 
 function remove_package() {
-  if [[ $OS = "ubuntu" ]]; then
+  if [[ $FAMILY = "debian" ]]; then
     if [[ -n "$(dpkg --get-selections | grep $1)" ]]; then
       log "removing $1"
       sudo apt-get remove $1 -y
     else
       log "Removing: $1 is not installed. skipping."
     fi
-  elif [ $OS = "centos" ] || [ $OS = "rhel" ] || [ $OS = "amazon" ]; then
+  elif [ $FAMILY = "redhat" ]; then
     if [[ -n "$(rpm -qa | grep $1)" ]]; then
       log "removing $1"
       sudo yum remove $1 -y

@@ -4,13 +4,13 @@ if(NOT DEFINED ENV{CC})
   set(CMAKE_C_COMPILER "clang")
 else()
   set(CMAKE_C_COMPILER "$ENV{CC}")
-  message("-- Overriding C compiler from clang to $ENV{CC}")
+  LOG("Overriding C compiler from clang to $ENV{CC}")
 endif()
 if(NOT DEFINED ENV{CXX})
   set(CMAKE_CXX_COMPILER "clang++")
 else()
   set(CMAKE_CXX_COMPILER "$ENV{CXX}")
-  message("-- Overriding CXX compiler from clang++ to $ENV{CXX}")
+  LOG("Overriding CXX compiler from clang++ to $ENV{CXX}")
 endif()
 
 add_compile_options(
@@ -82,7 +82,7 @@ endif()
 # RHEL6 uses a different gcc 4.9 runtime
 if(${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6")
   set(GCC_RUNTIME "/opt/rh/devtoolset-3/root/usr/")
-  message("-- Setting RHEL6 GCC runtime: ${GCC_RUNTIME}")
+  WARNING_LOG("Setting RHEL6 GCC runtime: ${GCC_RUNTIME}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
 endif()
 
@@ -100,7 +100,7 @@ if(DEFINED ENV{DEBUG})
   set(CMAKE_BUILD_TYPE "Debug")
   add_compile_options(-g -O0)
   add_definitions(-DDEBUG)
-  message("-- Setting DEBUG build")
+  WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
   # make sanitize (cannot make debug sanitize)
   add_compile_options(-g -O0 -fno-omit-frame-pointer)
@@ -141,6 +141,10 @@ endif()
 # Finished setting compiler/compiler flags.
 project(OSQUERY)
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
+include(CMakeLibs)
+
 # Make sure deps were built before compiling (else show warning).
 execute_process(
   COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" check "${CMAKE_BINARY_DIR}"
@@ -149,9 +153,8 @@ execute_process(
   RESULT_VARIABLE OSQUERY_DEPS_CHECK
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-string(ASCII 27 Esc)
 if(OSQUERY_DEPS_CHECK)
-  message("-- ${Esc}[31m${OSQUERY_DEPS_MESSAGE}${Esc}[m")
+  WARNING_LOG("${OSQUERY_DEPS_MESSAGE}")
 endif()
 
 # Discover build version from an environment variable or from the git checkout.
@@ -186,29 +189,40 @@ add_definitions(
 )
 
 if(APPLE)
-  message("-- Building for OS X")
+  LOG("Building for OS X")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "ubuntu")
+  set(DEBIAN_BASED TRUE)
   set(UBUNTU TRUE)
-  message("-- Building for Ubuntu")
+  LOG("Building for Ubuntu")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "centos")
+  set(REDHAT_BASED TRUE)
   set(CENTOS TRUE)
-  message("-- Building for CentOS")
+  LOG("Building for CentOS")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "rhel")
+  set(REDHAT_BASED TRUE)
   set(RHEL TRUE)
-  message("-- Building for RHEL")
+  LOG("Building for RHEL")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "amazon")
+  set(REDHAT_BASED TRUE)
   set(AMAZON TRUE)
-  message("-- Building for Amazon")
+  LOG("Building for Amazon Linux")
+elseif(OSQUERY_BUILD_PLATFORM STREQUAL "oracle")
+  set(REDHAT_BASED TRUE)
+  set(ORACLE TRUE)
+  LOG("Building for Oracle Linux")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "freebsd")
   set(FREEBSD TRUE)
-  message("-- Building for FreeBSD")
+  LOG("Building for FreeBSD")
+endif()
+
+if(REDHAT_BASED)
+  add_definitions(-DREDHAT_BASED=1)
+elseif(DEBIAN_BASED)
+  add_definitions(-DDEBIAN_BASED=1)
 endif()
 
 # Make sure the generated paths exist
 execute_process(COMMAND mkdir -p "${CMAKE_BINARY_DIR}/generated")
-
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
-set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 
 # We need to link some packages as dynamic/dependent.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
@@ -231,10 +245,13 @@ find_package(Thrift 0.9.1 REQUIRED)
 
 # Python is used for table spec generation and formating.
 find_package(PythonInterp 2 REQUIRED)
+if(PYTHON_VERSION_MAJOR STREQUAL "2" AND PYTHON_VERSION_MINOR STREQUAL "4")
+  WARNING_LOG("Found python 2.4, overriding to /usr/bin/python2.6")
+  set(PYTHON_EXECUTABLE "/usr/bin/python2.6")
+endif()
 
 enable_testing()
 
-include(CMakeLibs)
 include(Packages)
 include(Thrift)
 
