@@ -69,8 +69,8 @@ WHERE mac_count > 1;
 ```
 
 These queries can be:
-* performed on an ad-hoc basis to explore operating system state using the [osqueryi](http://osquery.readthedocs.org/introduction/using-osqueryi/) shell
-* executed via a [scheduler](http://osquery.readthedocs.org/introduction/using-osqueryd/) to monitor operating system state across a set of hosts
+* performed on an ad-hoc basis to explore operating system state using the [osqueryi](https://osquery.readthedocs.org/en/latest/introduction/using-osqueryi/) shell
+* executed via a [scheduler](https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/) to monitor operating system state across a set of hosts
 * launched from custom applications using osquery Thrift APIs
 
 #### Downloads / Install
@@ -93,7 +93,7 @@ brew upgrade osquery
 
 ##### Building from source
 
-[Building](https://osquery.readthedocs.org/development/building/) osquery from source is encouraged! Join our developer community by giving us feedback in Github issues or submitting pull requests!
+[Building](https://osquery.readthedocs.org/en/latest/development/building/) osquery from source is encouraged! Join our developer community by giving us feedback in Github issues or submitting pull requests!
 
 #### Vulnerabilities
 
