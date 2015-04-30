@@ -12,6 +12,7 @@
 
 #include <map>
 #include <mutex>
+#include <unordered_set>
 
 #include <sqlite3.h>
 
@@ -90,11 +91,24 @@ class SQLiteDBManager : private boost::noncopyable {
   /// See `get` but always return a transient DB connection (for testing).
   static SQLiteDBInstance getUnique();
 
+  /**
+   * @brief Check if `table_name` is disabled.
+   *
+   * Check if `table_name` is in the list of tables passed in to the
+   * `--disable_tables` flag.
+   *
+   * @param The name of the Table to check.
+   * @return If `table_name` is disabled.
+   */
+  static bool isDisabled(const std::string& table_name);
+
   /// When the primary SQLiteDBInstance is destructed it will unlock.
   static void unlock();
 
  protected:
-  SQLiteDBManager() : db_(nullptr), lock_(mutex_, boost::defer_lock) {}
+  SQLiteDBManager() : db_(nullptr), lock_(mutex_, boost::defer_lock) {
+    disabled_tables_ = parseDisableTablesFlag(Flag::getValue("disable_tables"));
+  }
   SQLiteDBManager(SQLiteDBManager const&);
   void operator=(SQLiteDBManager const&);
   virtual ~SQLiteDBManager();
@@ -106,6 +120,10 @@ class SQLiteDBManager : private boost::noncopyable {
   boost::mutex mutex_;
   /// Mutex and lock around sqlite3 access.
   boost::unique_lock<boost::mutex> lock_;
+  /// Member variable to hold set of disabled tables.
+  std::unordered_set<std::string> disabled_tables_;
+  /// Parse a comma-delimited set of tables names, passed in as a flag.
+  std::unordered_set<std::string> parseDisableTablesFlag(const std::string& s);
 };
 
 /**

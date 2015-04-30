@@ -239,28 +239,16 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
 Status attachTableInternal(const std::string &name,
                            const std::string &statement,
                            sqlite3 *db) {
+  if (SQLiteDBManager::isDisabled(name)) {
+    VLOG(0) << "Table " << name << " is disabled, not attaching";
+    return Status(0, getStringForSQLiteReturnCode(0));
+  }
+
   // A static module structure does not need specific logic per-table.
   static sqlite3_module module = {
-      0,
-      xCreate,
-      xCreate,
-      xBestIndex,
-      xDestroy,
-      xDestroy,
-      xOpen,
-      xClose,
-      xFilter,
-      xNext,
-      xEof,
-      xColumn,
-      xRowid,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
+      0,      xCreate, xCreate, xBestIndex, xDestroy, xDestroy, xOpen,
+      xClose, xFilter, xNext,   xEof,       xColumn,  xRowid,   0,
+      0,      0,       0,       0,          0,        0,
   };
 
   // Note, if the clientData API is used then this will save a registry call

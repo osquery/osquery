@@ -10,6 +10,7 @@
 
 #include <osquery/core.h>
 #include <osquery/database.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
@@ -19,6 +20,11 @@
 namespace osquery {
 /// SQL provider for osquery internal/core.
 REGISTER_INTERNAL(SQLiteSQLPlugin, "sql", "sql");
+
+FLAG(string,
+     disable_tables,
+     "Not Specified",
+     "Comma-delimited list of table names to be disabled");
 
 /**
  * @brief A map of SQLite status codes to their corresponding message string
@@ -118,6 +124,17 @@ SQLiteDBInstance::~SQLiteDBInstance() {
 
 void SQLiteDBManager::unlock() { instance().lock_.unlock(); }
 
+bool SQLiteDBManager::isDisabled(const std::string& table_name) {
+  const auto& element = instance().disabled_tables_.find(table_name);
+  return (element != instance().disabled_tables_.end());
+}
+
+std::unordered_set<std::string> SQLiteDBManager::parseDisableTablesFlag(
+    const std::string& list) {
+  const auto& tables = split(list, ",");
+  return std::unordered_set<std::string>(tables.begin(), tables.end());
+}
+
 SQLiteDBInstance SQLiteDBManager::getUnique() { return SQLiteDBInstance(); }
 
 SQLiteDBInstance SQLiteDBManager::get() {
@@ -173,8 +190,8 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
 }
 
 Status getQueryColumnsInternal(const std::string& q,
-                       tables::TableColumns& columns,
-                       sqlite3* db) {
+                               tables::TableColumns& columns,
+                               sqlite3* db) {
   int rc;
 
   // Will automatically handle calling sqlite3_finalize on the prepared stmt
