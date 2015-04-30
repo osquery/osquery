@@ -127,6 +127,11 @@ Times to retry writing distributed query results.
 
 Disable osquery events pubsub.
 
+`--disable_tables=table_name1,table_name2`
+
+Comma-delimited list of table names to be disabled.
+This allows osquery to be launched without certain tables.
+
 `--events_expiry=86000`
 
 Timeout to expire event pubsub results.
