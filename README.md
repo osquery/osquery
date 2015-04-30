@@ -10,11 +10,11 @@ The tools make low-level operating system analytics and monitoring both performa
 
 | Platform | Build status  | | | |
 |----------|---------------|---|---|---|
-CentOS 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Homepage:** | https://osquery.io
-CentOS 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Downloads:** | https://osquery.io/downloads
-Ubuntu 12.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/) | |**Tables:** | https://osquery.io/tables
-Ubuntu 14.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | **Guide:** | https://osquery.readthedocs.org
-OS X 10.10   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX/) | | **Homebrew:** | `brew install osquery`
+CentOS 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6Package/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6Package/) | | **Homepage:** | https://osquery.io
+CentOS 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7Package/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7Package/) | | **Downloads:** | https://osquery.io/downloads
+Ubuntu 12.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12Package/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12Package/) | |**Tables:** | https://osquery.io/tables
+Ubuntu 14.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14Package/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14Package/) | | **Guide:** | https://osquery.readthedocs.org
+OS X 10.10   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSXPackage/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSXPackage/) | | **Homebrew:** | `brew install osquery`
 
 #### What is osquery?
 
