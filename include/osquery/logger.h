@@ -121,7 +121,7 @@ class LoggerPlugin : public Plugin {
    * logs generated between program launch and logger start.
    *
    * The logger initialization is called once CLI flags have been parsed, the
-   * registry items are constructed, extension routes broadcased and extension
+   * registry items are constructed, extension routes broadcasted and extension
    * plugins discovered (as a logger may be an extension plugin) and the config
    * has been loaded (which may include additional CLI flag-options).
    *
@@ -131,9 +131,9 @@ class LoggerPlugin : public Plugin {
    * osquery logger's `init` method is called.
    *
    * The return status of `init` is very important. If a success is returned
-   * then the glog log sink stays active and now forwards every status log
+   * then the Glog log sink stays active and now forwards every status log
    * to the logger's `logStatus` method. If a failure is returned this means
-   * the logger does not support status logging and glog should continue
+   * the logger does not support status logging and Glog should continue
    * as the only status log sink.
    *
    * @param binary_name The string name of the process (argv[0]).
@@ -148,31 +148,39 @@ class LoggerPlugin : public Plugin {
   }
 
   /**
-   * @brief If the active logger's `init` method returned success then glog
+   * @brief If the active logger's `init` method returned success then Glog
    * log lines will be collected, and forwarded to `logStatus`.
    *
    * `logStatus` and `init` are tightly coupled. Glog log lines will ONLY be
    * forwarded to `logStatus` if the logger's `init` method returned success.
    *
-   * @param log A vector of parsed glog log lines.
+   * @param log A vector of parsed Glog log lines.
    * @return Status non-op indicating success or failure.
    */
   virtual Status logStatus(const std::vector<StatusLogLine>& log) {
     return Status(1, "Not enabled");
   }
 
-  virtual Status logEvent(const QueryLogItem& event) {
-    return Status(1, "Not used");
-  }
+  /**
+   * @brief Optionally handle snapshot query results separately from events.
+   *
+   * If a logger plugin wants to write snapshot query results (potentially
+   * large amounts of data) to a specific sink it should implement logSnapshot.
+   * Otherwise the serialized log item data will be forwarded to logString.
+   *
+   * @param s A special log item will complete results from a query.
+   * @return log status
+   */
+  virtual Status logSnapshot(const std::string& s) { return logString(s); }
 
-  virtual Status logSnapshot(const QueryLogItem& snapshot) {
-    return Status(1, "Not used");
-  }
-
-  virtual Status logHealth(const QueryLogItem& health) {
+  /// An optional health logging facility.
+  virtual Status logHealth(const std::string& s) {
     return Status(1, "Not used");
   }
 };
+
+/// Set the verbose mode, changes Glog's sinking logic and will affect plugins.
+void setVerboseLevel();
 
 /// Start status logging to a buffer until the logger plugin is online.
 void initStatusLogger(const std::string& name);

@@ -20,19 +20,6 @@ import unittest
 import test_base
 
 class WatchdogTests(test_base.ProcessGenerator, unittest.TestCase):
-    def setUp(self):
-        self.logger_path = "/tmp/osquery/logger-tests"
-        try:
-            os.makedirs(self.logger_path)
-        except:
-            # The logger path temporary directory exists.
-            # The previous integration test run may have failed.
-            pass
-
-    def tearDown(self):
-        #shutil.rmtree(self.logger_path)
-        pass
-
     def test_1_daemon_without_watchdog(self):
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -42,16 +29,18 @@ class WatchdogTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     def test_2_daemon_with_option(self):
+        logger_path = os.path.join(test_base.CONFIG_DIR, "logger-tests")
+        os.makedirs(logger_path)
         daemon = self._run_daemon({
             "disable_watchdog": True,
             "disable_extensions": True,
             "disable_logging": False,
         },
         options_only={
-            "logger_path": self.logger_path,
+            "logger_path": logger_path,
             "verbose": True,
         })
-        info_path = os.path.join(self.logger_path, "osqueryd.INFO")
+        info_path = os.path.join(logger_path, "osqueryd.INFO")
         self.assertTrue(daemon.isAlive())
 
         def info_exists():

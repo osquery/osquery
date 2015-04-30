@@ -70,12 +70,6 @@ class EXClient:
 
 
 class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
-    def tearDown(self):
-        stale_sockets = glob.glob("/tmp/osquery-test.em*")
-        for stale_socket in stale_sockets:
-            os.remove(stale_socket)
-            os.system("killall osqueryd")
-
     def test_1_daemon_without_extensions(self):
         # Start the daemon without thrift, prefer no watchdog because the tests
         # kill the daemon very quickly.
@@ -252,7 +246,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         extension.kill()
 
     def test_6_extensions_autoload(self):
-        loader = test_base.Autoloader("/tmp/osqueryd-temp-ext.load",
+        loader = test_base.Autoloader(
             [test_base.ARGS.build + "/osquery/example_extension.ext"])
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -274,7 +268,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill(True)
 
     def test_7_extensions_autoload_watchdog(self):
-        loader = test_base.Autoloader("/tmp/osqueryd-temp-ext.load",
+        loader = test_base.Autoloader(
             [test_base.ARGS.build + "/osquery/example_extension.ext"])
         daemon = self._run_daemon({"extensions_autoload": loader.path})
         self.assertTrue(daemon.isAlive())
@@ -293,11 +287,12 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill(True)
 
     def test_8_external_config(self):
-        loader = test_base.Autoloader("/tmp/osqueryd-temp-ext.load",
+        loader = test_base.Autoloader(
             [test_base.ARGS.build + "/osquery/example_extension.ext"])
         daemon = self._run_daemon({
             "extensions_autoload": loader.path,
             "config_plugin": "example",
+            "verbose": True,
         })
         self.assertTrue(daemon.isAlive())
 

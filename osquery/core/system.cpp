@@ -83,14 +83,14 @@ std::string generateHostUuid() {
 }
 
 std::string getAsciiTime() {
-  std::time_t result = std::time(nullptr);
-  std::string time_str = std::string(std::asctime(std::localtime(&result)));
+  auto result = std::time(nullptr);
+  auto time_str = std::string(std::asctime(std::gmtime(&result)));
   boost::algorithm::trim(time_str);
-  return time_str;
+  return time_str + " UTC";
 }
 
 int getUnixTime() {
-  std::time_t result = std::time(nullptr);
+  auto result = std::time(nullptr);
   return result;
 }
 

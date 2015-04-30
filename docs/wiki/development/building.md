@@ -16,7 +16,7 @@ Anything that does not have a homebrew package is built from source from *https:
 The complete installation/build steps are as follows:
 
 ```sh
-$ git clone git@github.com:facebook/osquery.git
+$ git clone https://github.com/facebook/osquery.git
 $ cd osquery
 $ make deps
 $ make
@@ -69,12 +69,52 @@ The binaries are built to a distro-specific folder within *build* and symlinked 
 $ ls -la ./build/linux/osquery/
 ```
 
+## Debug Builds, formatting, and more
+
+To generate a non-optimized debug build use `make debug`.
+
+CMake regenerates build information everytime `make [all]` is run. To avoid the "configure" and project setup use `make build`.
+
+make building and testing macros:
+
+```
+make # Default optimized configure/build
+make test # Test the default build
+make debug # Configure and build non-optimized with debuginfo
+make test_debug # Test the debug build
+make build # Skip the CMake project configure (compile only)
+make debug_build # Same as build, but applied to the debug target
+make test_debug_build # Take a guess ;)
+make clean # Clean the CMake project configuration
+make distclean # Clean all cached information and build dependencies
+```
+
+There are several additional code testing and formatting macros:
+
+```
+make format # Apply clang-format using osquery's format spec*
+make format-all # Not recommended but formats the entire code base
+make analyze # Run clean first, then rebuild with the LLVM static analyzer
+make sanitize # Run clean first, then rebuild with sanitations
+```
+
+Generating the osquery SDK or sync:
+
+```
+make sdk # Build only the osquery SDK (libosquery.a) 
+make sync # Create a tarball for building the SDK externally
+```
+
 ## Custom Packages
 
-Building osquery on OS X or Linux requires a significant number of dependencies, which
-are not needed when deploying. It does not make sense to install osquery on
-your build hosts. See the [Custom Packages](../installation/custom-packages.md) guide
-for generating pkgs, debs or rpms.
+Building osquery on OS X or Linux requires a significant number of dependencies, which are not needed when deploying. It does not make sense to install osquery on your build hosts. See the [Custom Packages](../installation/custom-packages) guide for generating pkgs, debs or rpms.
+
+Debug and from-source package building is not recommended but supported. You may generate several packages including devel, debuginfo, and additional sets of tools:
+
+```
+make package # Generate an osquery package for the build target
+make packages # Generate optional/additional packages
+```
 
 ## Notes and FAQ
 

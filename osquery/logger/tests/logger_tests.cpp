@@ -90,14 +90,14 @@ class TestLoggerPlugin : public LoggerPlugin {
     return Status(0, "OK");
   }
 
-  Status logSnapshot(const QueryLogItem& snapshot) {
-    LoggerTests::snapshot_rows_added += snapshot.results.added.size();
-    LoggerTests::snapshot_rows_removed += snapshot.results.removed.size();
+  Status logSnapshot(const std::string& s) {
+    LoggerTests::snapshot_rows_added += 1;
+    LoggerTests::snapshot_rows_removed += 0;
     return Status(0, "OK");
   }
 
-  Status logHealth(const QueryLogItem& health) {
-    LoggerTests::health_status_rows += health.results.added.size();
+  Status logHealth(const std::string& s) {
+    LoggerTests::health_status_rows += 1;
     return Status(0, "OK");
   }
 

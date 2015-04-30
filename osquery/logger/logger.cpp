@@ -143,17 +143,13 @@ void deserializeIntermediateLog(const PluginRequest& request,
   }
 }
 
-void initStatusLogger(const std::string& name) {
-  FLAGS_alsologtostderr = true;
-  FLAGS_logbufsecs = 0; // flush the log buffer immediately
-  FLAGS_stop_logging_if_full_disk = true;
-  FLAGS_max_log_size = 10; // max size for individual log file is 10MB
-  FLAGS_logtostderr = true;
-
-  if (FLAGS_verbose) {
+void setVerboseLevel() {
+  if (Flag::getValue("verbose") == "true") {
     // Turn verbosity up to 1.
     // Do log DEBUG, INFO, WARNING, ERROR to their log files.
     // Do log the above and verbose=1 to stderr.
+    FLAGS_minloglevel = 0; // WARNING
+    FLAGS_stderrthreshold = 0;
     FLAGS_v = 1;
   } else {
     // Do NOT log INFO, WARNING, ERROR to stderr.
@@ -171,7 +167,16 @@ void initStatusLogger(const std::string& name) {
       FLAGS_minloglevel = 2; // ERROR
     }
   }
+}
 
+void initStatusLogger(const std::string& name) {
+  FLAGS_alsologtostderr = false;
+  FLAGS_logbufsecs = 0; // flush the log buffer immediately
+  FLAGS_stop_logging_if_full_disk = true;
+  FLAGS_max_log_size = 10; // max size for individual log file is 10MB
+  FLAGS_logtostderr = true;
+
+  setVerboseLevel();
   // Start the logging, and announce the daemon is starting.
   google::InitGoogleLogging(name.c_str());
 
@@ -195,13 +200,13 @@ void initLogger(const std::string& name, bool forward_all) {
     return;
   }
 
-  // Start the custom status logging facilities, which may instruct glog as is
+  // Start the custom status logging facilities, which may instruct Glog as is
   // the case with filesystem logging.
   PluginRequest request = {{"init", name}};
   serializeIntermediateLog(intermediate_logs, request);
   auto status = Registry::call("logger", request);
   if (status.ok() || forward_all) {
-    // When init returns success we re-enabled the log sink in forwarding
+    // When `init` returns success we re-enabled the log sink in forwarding
     // mode. Now, Glog status logs are buffered and sent to logStatus.
     BufferedLogSink::forward(true);
     BufferedLogSink::enable();
@@ -239,25 +244,11 @@ Status LoggerPlugin::call(const PluginRequest& request,
   QueryLogItem item;
   std::vector<StatusLogLine> intermediate_logs;
   if (request.count("string") > 0) {
-    auto status = Status(0, "OK");
-    if (request.count("category") && request.at("category") == "event") {
-      // Optionally overload the logEvent method, but receive a duplicate.
-      // message to log string.
-      deserializeQueryLogItemJSON(request.at("event"), item);
-      status = this->logEvent(item);
-    }
-
-    if (status.ok()) {
-      return this->logString(request.at("string"));
-    } else {
-      return status;
-    }
+    return this->logString(request.at("string"));
   } else if (request.count("snapshot") > 0) {
-    deserializeQueryLogItemJSON(request.at("snapshot"), item);
-    return this->logSnapshot(item);
+    return this->logSnapshot(request.at("snapshot"));
   } else if (request.count("health") > 0) {
-    deserializeQueryLogItemJSON(request.at("health"), item);
-    return this->logHealth(item);
+    return this->logHealth(request.at("health"));
   } else if (request.count("init") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
     return this->init(request.at("init"), intermediate_logs);

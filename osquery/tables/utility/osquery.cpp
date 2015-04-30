@@ -38,7 +38,10 @@ QueryData genOsqueryFlags(QueryContext& context) {
 
   auto flags = Flag::flags();
   for (const auto& flag : flags) {
-    genFlag(flag.first, flag.second, results);
+    if (flag.first.size() > 2) {
+      // Skip single-character flags.
+      genFlag(flag.first, flag.second, results);
+    }
   }
 
   return results;
@@ -143,6 +146,14 @@ QueryData genOsquerySchedule(QueryContext& context) {
     r["name"] = TEXT(query.first);
     r["query"] = TEXT(query.second.query);
     r["interval"] = INTEGER(query.second.interval);
+
+    // Report optional performance information.
+    r["executions"] = BIGINT(query.second.executions);
+    r["output_size"] = BIGINT(query.second.output_size);
+    r["wall_time"] = BIGINT(query.second.wall_time);
+    r["user_time"] = BIGINT(query.second.user_time);
+    r["system_time"] = BIGINT(query.second.system_time);
+    r["average_memory"] = BIGINT(query.second.memory);
     results.push_back(r);
   }
 

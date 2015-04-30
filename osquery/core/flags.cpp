@@ -87,6 +87,11 @@ Status Flag::updateValue(const std::string& name, const std::string& value) {
   if (instance().flags_.count(name) > 0) {
     GFLAGS_NAMESPACE::SetCommandLineOption(name.c_str(), value.c_str());
     return Status(0, "OK");
+  } else if (instance().aliases_.count(name) > 0) {
+    // Updating a flag by an alias name.
+    auto& real_name = instance().aliases_.at(name).description;
+    GFLAGS_NAMESPACE::SetCommandLineOption(real_name.c_str(), value.c_str());
+    return Status(0, "OK");
   }
   return Status(1, "Flag not found");
 }
@@ -118,11 +123,13 @@ void Flag::printFlags(bool shell, bool external, bool cli) {
   std::vector<GFLAGS_NAMESPACE::CommandLineFlagInfo> info;
   GFLAGS_NAMESPACE::GetAllFlags(&info);
 
+  // Determine max indent needed for all flag names.
   size_t max = 0;
   for (const auto& flag : info) {
     max = (max > flag.name.size()) ? max : flag.name.size();
   }
-  max += 7;
+  // Additional index for flag values.
+  max += 5;
 
   auto& aliases = instance().aliases_;
   auto& details = instance().flags_;
