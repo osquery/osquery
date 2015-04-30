@@ -160,6 +160,18 @@ class LoggerPlugin : public Plugin {
   virtual Status logStatus(const std::vector<StatusLogLine>& log) {
     return Status(1, "Not enabled");
   }
+
+  virtual Status logEvent(const QueryLogItem& event) {
+    return Status(1, "Not used");
+  }
+
+  virtual Status logSnapshot(const QueryLogItem& snapshot) {
+    return Status(1, "Not used");
+  }
+
+  virtual Status logHealth(const QueryLogItem& health) {
+    return Status(1, "Not used");
+  }
 };
 
 /// Start status logging to a buffer until the logger plugin is online.
@@ -190,11 +202,11 @@ void initLogger(const std::string& name, bool forward_all = false);
  * log normal osquery operations, use Google Logging.
  *
  * @param s the string to log
+ * @param category a category/metadata key
  *
- * @return an instance of osquery::Status, indicating the success or failure
- * of the operation.
+ * @return Status indicating the success or failure of the operation
  */
-Status logString(const std::string& s);
+Status logString(const std::string& message, const std::string& category);
 
 /**
  * @brief Log a string using a specific logger receiver.
@@ -202,35 +214,53 @@ Status logString(const std::string& s);
  * Note that this method should only be used to log results. If you'd like to
  * log normal osquery operations, use Google Logging.
  *
- * @param s the string to log
+ * @param message the string to log
+ * @param category a category/metadata key
  * @param receiver a string representing the log receiver to use
  *
- * @return an instance of osquery::Status, indicating the success or failure
- * of the operation.
+ * @return Status indicating the success or failure of the operation
  */
-Status logString(const std::string& s, const std::string& receiver);
+Status logString(const std::string& message,
+                 const std::string& category,
+                 const std::string& receiver);
 
 /**
- * @brief Directly log results of scheduled queries to the default receiver
+ * @brief Log results of scheduled queries to the default receiver
  *
  * @param item a struct representing the results of a scheduled query
  *
- * @return an instance of osquery::Status, indicating the success or failure
- * of the operation.
+ * @return Status indicating the success or failure of the operation
  */
-Status logScheduledQueryLogItem(const ScheduledQueryLogItem& item);
+Status logQueryLogItem(const QueryLogItem& item);
 
 /**
- * @brief Directly log results of scheduled queries to a specified receiver
+ * @brief Log results of scheduled queries to a specified receiver
  *
  * @param item a struct representing the results of a scheduled query
  * @param receiver a string representing the log receiver to use
  *
- * @return an instance of osquery::Status, indicating the success or failure
- * of the operation.
+ * @return Status indicating the success or failure of the operation
  */
-Status logScheduledQueryLogItem(const ScheduledQueryLogItem& item,
-                                const std::string& receiver);
+Status logQueryLogItem(const QueryLogItem& item, const std::string& receiver);
+
+/**
+ * @brief Log raw results from a query (or a snapshot scheduled query).
+ *
+ * @param results the unmangled results from the query planner.
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status logSnapshotQuery(const QueryLogItem& item);
+
+/**
+ * @brief Log the worker's health along with health of each query.
+ *
+ * @param results the query results from the osquery schedule appended with a
+ * row of health from the worker.
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status logHealthStatus(const QueryLogItem& item);
 
 /**
  * @brief Logger plugin registry.

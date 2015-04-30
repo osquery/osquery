@@ -53,6 +53,9 @@ extern const std::string kEvents;
 // DBHandle RAII singleton
 /////////////////////////////////////////////////////////////////////////////
 
+class DBHandle;
+typedef std::shared_ptr<DBHandle> DBHandleRef;
+
 /**
  * @brief RAII singleton around RocksDB database access.
  *
@@ -85,7 +88,7 @@ class DBHandle {
    *
    * @return a shared pointer to an instance of DBHandle
    */
-  static std::shared_ptr<DBHandle> getInstance();
+  static DBHandleRef getInstance();
 
   /**
    * @brief Check the sanity of the database configuration options
@@ -200,7 +203,7 @@ class DBHandle {
    *
    * @return a shared pointer to an instance of DBHandle
    */
-  static std::shared_ptr<DBHandle> getInstanceAtPath(const std::string& path);
+  static DBHandleRef getInstanceAtPath(const std::string& path);
 
   /**
    * @brief A method which gets you an in-memory RocksDB instance.
@@ -209,7 +212,7 @@ class DBHandle {
    *
    * @return a shared pointer to an instance of DBHandle
    */
-  static std::shared_ptr<DBHandle> getInstanceInMemory();
+  static DBHandleRef getInstanceInMemory();
 
   /**
    * @brief A method which allows you to configure various aspects of RocksDB
@@ -223,8 +226,7 @@ class DBHandle {
    *
    * @return a shared pointer to an instance of DBHandle
    */
-  static std::shared_ptr<DBHandle> getInstance(const std::string& path,
-                                               bool in_memory);
+  static DBHandleRef getInstance(const std::string& path, bool in_memory);
 
   /**
    * @brief Private helper around accessing the column family handle for a

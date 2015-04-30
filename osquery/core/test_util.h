@@ -21,6 +21,8 @@
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
 
+namespace pt = boost::property_tree;
+
 namespace osquery {
 
 /// Any SQL-dependent tests should use kTestQuery for a pre-populated example.
@@ -44,6 +46,8 @@ const std::string kTestWorkingDirectory = "/tmp/osquery-tests/";
 /// A fake directory tree should be used for filesystem iterator testing.
 const std::string kFakeDirectory = kTestWorkingDirectory + "fstree";
 
+ScheduledQuery getOsqueryScheduledQuery();
+
 // getTestDBExpectedResults returns the results of kTestQuery of the table that
 // initially gets returned from createTestDB()
 QueryData getTestDBExpectedResults();
@@ -53,44 +57,28 @@ QueryData getTestDBExpectedResults();
 // need to be performed on the dataset to make the results be pair.second
 std::vector<std::pair<std::string, QueryData> > getTestDBResultStream();
 
-// getOsqueryScheduledQuery returns a test scheduled query which would normally
-// be returned via the config
-ScheduledQuery getOsqueryScheduledQuery();
-
 // getSerializedRow() return an std::pair where pair->first is a string which
 // should serialize to pair->second. pair->second should deserialize
 // to pair->first
-std::pair<boost::property_tree::ptree, Row> getSerializedRow();
+std::pair<pt::ptree, Row> getSerializedRow();
 
 // getSerializedQueryData() return an std::pair where pair->first is a string
 // which should serialize to pair->second. pair->second should
 // deserialize to pair->first
-std::pair<boost::property_tree::ptree, QueryData> getSerializedQueryData();
+std::pair<pt::ptree, QueryData> getSerializedQueryData();
+std::pair<std::string, QueryData> getSerializedQueryDataJSON();
 
 // getSerializedDiffResults() return an std::pair where pair->first is a string
 // which should serialize to pair->second. pair->second should
 // deserialize to pair->first
-std::pair<boost::property_tree::ptree, DiffResults> getSerializedDiffResults();
-
+std::pair<pt::ptree, DiffResults> getSerializedDiffResults();
 std::pair<std::string, DiffResults> getSerializedDiffResultsJSON();
 
-// getSerializedHistoricalQueryResults() return an std::pair where pair->first
+// getSerializedQueryLogItem() return an std::pair where pair->first
 // is a string which should serialize to pair->second. pair->second
 // should deserialize to pair->first
-std::pair<boost::property_tree::ptree, HistoricalQueryResults>
-getSerializedHistoricalQueryResults();
-
-std::pair<std::string, HistoricalQueryResults>
-getSerializedHistoricalQueryResultsJSON();
-
-// getSerializedScheduledQueryLogItem() return an std::pair where pair->first
-// is a string which should serialize to pair->second. pair->second
-// should deserialize to pair->first
-std::pair<boost::property_tree::ptree, ScheduledQueryLogItem>
-getSerializedScheduledQueryLogItem();
-
-std::pair<std::string, ScheduledQueryLogItem>
-getSerializedScheduledQueryLogItemJSON();
+std::pair<pt::ptree, QueryLogItem> getSerializedQueryLogItem();
+std::pair<std::string, QueryLogItem> getSerializedQueryLogItemJSON();
 
 // generate content for a PEM-encoded certificate
 std::string getCACertificateContent();

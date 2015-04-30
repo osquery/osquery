@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-#include <osquery/core.h>
+#include <osquery/status.h>
 #include <osquery/database/db_handle.h>
 #include <osquery/database/results.h>
 
@@ -35,10 +35,9 @@ class Query {
    * Given a query, this constructor calculates the value of columnFamily_,
    * which can be accessed via the getColumnFamilyName getter method.
    *
-   * @param q a SheduledQuery struct which represents the query which
-   * you would like to interact with
+   * @param q a SheduledQuery struct
    */
-  explicit Query(const std::string& name, ScheduledQuery q)
+  explicit Query(const std::string& name, const ScheduledQuery& q)
       : query_(q), name_(name) {}
 
   /////////////////////////////////////////////////////////////////////////////
@@ -77,39 +76,31 @@ class Query {
    * This method retrieves the data from RocksDB and returns the data in a
    * HistoricalQueryResults struct.
    *
-   * @param hQR a reference to a HistoricalQueryResults struct which will be
-   * populated with results if the osquery::Status indicates the operation was
-   * successful
+   * @param hQR the output HistoricalQueryResults struct
    *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return the success or failure of the operation
    */
-  Status getHistoricalQueryResults(HistoricalQueryResults& hQR);
+  // Status getHistoricalQueryResults(HistoricalQueryResults& hQR);
+  Status getPreviousQueryResults(QueryData& results);
 
  private:
   /**
    * @brief Serialize the data in RocksDB into a useful data structure using a
    * custom database handle
    *
-   * This method is the same as getHistoricalQueryResults(), but with the
+   * This method is the same as getHistoricalQueryResults, but with the
    * addition of a parameter which allows you to pass a custom RocksDB
-   * database handle. This version of getHistoricalQueryResults should only be
-   * used internally and by unit tests.
+   * database handle.
    *
-   * @param hQR a reference to a HistoricalQueryResults struct which will be
-   * populated with results if the osquery::Status indicates the operation was
-   * successful @param db the RocksDB database handle to use to acquire the
-   * relevant data
-   *
+   * @param hQR the output HistoricalQueryResults struct
    * @param db a shared pointer to a custom DBHandle
    *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation
-   *
+   * @return the success or failure of the operation
    * @see getHistoricalQueryResults
    */
-  Status getHistoricalQueryResults(HistoricalQueryResults& hQR,
-                                   std::shared_ptr<DBHandle> db);
+  // Status getHistoricalQueryResults(HistoricalQueryResults& hQR,
+  //                                 std::shared_ptr<DBHandle> db);
+  Status getPreviousQueryResults(QueryData& results, DBHandleRef db);
 
  public:
   /**
@@ -135,20 +126,17 @@ class Query {
    * @param db a custom RocksDB database handle
    *
    * @return a vector containing the string names of all scheduled queries
-   * which currently exist in the database
    *
    * @see getStoredQueryNames()
    */
-  static std::vector<std::string> getStoredQueryNames(
-      std::shared_ptr<DBHandle> db);
+  static std::vector<std::string> getStoredQueryNames(DBHandleRef db);
 
  public:
   /**
    * @brief Accessor method for checking if a given scheduled query exists in
    * the database
    *
-   * @return a boolean indicating whether or not the scheduled query which is
-   * being operated on already exists in the database
+   * @return does the scheduled query which is already exists in the database
    */
   bool isQueryNameInDatabase();
 
@@ -162,10 +150,9 @@ class Query {
    *
    * @param db a custom RocksDB database handle
    *
-   * @return a boolean indicating whether or not the scheduled query which is
-   * being operated on already exists in the database
+   * @return does the scheduled query which is already exists in the database
    */
-  bool isQueryNameInDatabase(std::shared_ptr<DBHandle> db);
+  bool isQueryNameInDatabase(DBHandleRef db);
 
  public:
   /**
@@ -181,7 +168,7 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  Status addNewResults(const QueryData& qd, int unix_time);
+  Status addNewResults(const QueryData& qd);
 
  private:
   /**
@@ -199,86 +186,67 @@ class Query {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation
    */
-  Status addNewResults(const QueryData& qd,
-                       int unix_time,
-                       std::shared_ptr<DBHandle> db);
+  Status addNewResults(const QueryData& qd, DBHandleRef db);
 
  public:
   /**
-   * @brief Add a new set of results to the persistant storage and get back
-   * the diff results.
+   * @brief Add a new set of results to the persistent storage and get back
+   * the differential results.
    *
-   * Given the results of the execution of a scheduled query, add the results
+   * Given the results of an execution of a scheduled query, add the results
    * to the database using addNewResults and get back a data structure
    * indicating what rows in the query's results have changed.
    *
-   * @param qd the QueryData object, which has the results of the query which
-   * you would like to store
-   * @param dr a reference to a DiffResults object, which will be populated
-   * with the difference of the execution which is currently in the database
-   * and the execution you just put in the database
-   * @param unix_time the time that the query was executed
+   * @param qd the QueryData object containing query results to store
+   * @param dr an output to a DiffResults object populated based on last run
    *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return the success or failure of the operation
    */
-  Status addNewResults(const QueryData& qd, DiffResults& dr, int unix_time);
+  Status addNewResults(const QueryData& qd, DiffResults& dr);
 
  private:
   /**
-   * @brief Add a new set of results to the persistant storage and get back
-   * the diff results, using a custom database handle.
+   * @brief Add a new set of results to the persistent storage and get back
+   * the differential results, using a custom database handle.
    *
-   * This method is the same as addNewResults(), but with the addition of a
+   * This method is the same as Query::addNewResults, but with the addition of a
    * parameter which allows you to pass a custom RocksDB database handle
    *
-   * @param qd the QueryData object, which has the results of the query which
-   * you would like to store
-   * @param dr a reference to a DiffResults object, which will be populated
-   * with the difference of the execution which is currently in the database
-   * and the execution you just put in the database
-   * @param calculate_diff a boolean indicating whether or not you'd like to
-   * calculate the diff result to be stored in the dr parameter.
-   * @param unix_time the time that the query was executed
+   * @param qd the QueryData object containing query results to store
+   * @param dr an output to a DiffResults object populated based on last run
    *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return the success or failure of the operation
    */
   Status addNewResults(const QueryData& qd,
                        DiffResults& dr,
                        bool calculate_diff,
-                       int unix_time,
-                       std::shared_ptr<DBHandle> db);
+                       DBHandleRef db);
 
  public:
   /**
    * @brief A getter for the most recent result set for a scheduled query
    *
-   * @param qd the QueryData object which will be populated if all operations
-   * are successful
+   * @param qd the output QueryData object
    *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return the success or failure of the operation
    */
-  osquery::Status getCurrentResults(QueryData& qd);
+  Status getCurrentResults(QueryData& qd);
 
  private:
   /**
    * @brief A getter for the most recent result set for a scheduled query,
    * but with the addition of a parameter which allows you to pass a custom
-   * RocksDB database handle
+   * RocksDB database handle.
    *
-   * This method is the same as getCurrentResults(), but with addition of a
-   * parameter which allows you to pass a custom RocksDB database handle
+   * This method is the same as Query::getCurrentResults, but with addition of a
+   * parameter which allows you to pass a custom RocksDB database handle.
    *
-   * @param qd the QueryData object which will be populated if all operations
-   * are successful
+   * @param qd the output QueryData object
    * @param db a custom RocksDB database handle
    *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return the success or failure of the operation
    */
-  Status getCurrentResults(QueryData& qd, std::shared_ptr<DBHandle> db);
+  Status getCurrentResults(QueryData& qd, DBHandleRef db);
 
  private:
   /////////////////////////////////////////////////////////////////////////////
@@ -300,8 +268,7 @@ class Query {
   FRIEND_TEST(QueryTests, test_is_query_name_in_database);
   FRIEND_TEST(QueryTests, test_get_stored_query_names);
   FRIEND_TEST(QueryTests, test_get_executions);
-  FRIEND_TEST(QueryTests, test_get_current_results);
-  FRIEND_TEST(QueryTests, test_get_historical_query_results);
+  FRIEND_TEST(QueryTests, test_get_query_results);
   FRIEND_TEST(QueryTests, test_query_name_not_found_in_db);
 };
 }
