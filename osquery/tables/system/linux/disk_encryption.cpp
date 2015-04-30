@@ -20,7 +20,6 @@ void genFDEStatusForBlockDevice(const std::string &name,
   r["uuid"] = uuid;
 
   struct crypt_device *cd = nullptr;
-  const char *opt_header_device = nullptr;
   struct crypt_active_device cad;
   crypt_status_info ci;
   std::string type;
@@ -34,11 +33,11 @@ void genFDEStatusForBlockDevice(const std::string &name,
     r["encrypted"] = "1";
 
     int crypt_init;
-#ifdef CENTOS_CENTOS6
+#if defined(CENTOS_CENTOS6) || defined(RHEL_RHEL6)
     crypt_init = crypt_init_by_name(&cd, name.c_str());
 #else
     crypt_init =
-      crypt_init_by_name_and_header(&cd, name.c_str(), opt_header_device);
+      crypt_init_by_name_and_header(&cd, name.c_str(), nullptr);
 #endif
 
     if (crypt_init < 0) {
