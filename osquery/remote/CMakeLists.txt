@@ -1,4 +1,4 @@
-ADD_OSQUERY_LIBRARY(TRUE osquery_remote
+ADD_OSQUERY_LIBRARY(FALSE osquery_remote
   enrollment/enrollment.cpp
   serializers/json.cpp
   transports/http.cpp
