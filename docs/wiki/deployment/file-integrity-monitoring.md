@@ -5,7 +5,7 @@ selected files in the `file_events` table.
 
 To get started with FIM (file integrity monitoring), you must first identify
 which files and directories you wish to monitor.
-Following the [wildcard rules](../development/wildcard-rules/), you can specify
+Following the [wildcard rules](../development/wildcard-rules.md), you can specify
 a directory or filename filter to limit the selection of files to monitor.
 
 For example, you may want to monitor `/etc` along with other files on a linux

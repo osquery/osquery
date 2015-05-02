@@ -5,14 +5,14 @@ osquery exposes an operating system as a high-performance relational database. T
 
 ## Getting Started
 
-If you're interested in **installing osquery** check out the install guide for [OS X](installation/install-osx) and [Linux](installation/install-linux).
+If you're interested in **installing osquery** check out the install guide for [OS X](installation/install-osx.md) and [Linux](installation/install-linux.md).
 
-If you're interested in **deploying osquery** to provide your organization with deeper insight into your Linux and OS X hosts check out the [using osqueryd guide](introduction/using-osqueryd).
-If you're interested in **performing ad-hoc queries**, check out [using osqueryi](introduction/using-osqueryi).
+If you're interested in **deploying osquery** to provide your organization with deeper insight into your Linux and OS X hosts check out the [using osqueryd guide](introduction/using-osqueryd.md).
+If you're interested in **performing ad-hoc queries**, check out [using osqueryi](introduction/using-osqueryi.md).
 
-If you're interested in **extending one of the existing osquery products** or improving core libraries read the developer documentation pages. You should start with "[building the code](development/building)" and "[contributing code](development/contributing-code)".
+If you're interested in **extending one of the existing osquery products** or improving core libraries read the developer documentation pages. You should start with "[building the code](development/building.md)" and "[contributing code](development/contributing-code.md)".
 
-If you're interested in **using osquery's functionality in your own tool**, check out the [osquery SDK](development/osquery-sdk).
+If you're interested in **using osquery's functionality in your own tool**, check out the [osquery SDK](development/osquery-sdk.md).
 
 ## Getting help
 

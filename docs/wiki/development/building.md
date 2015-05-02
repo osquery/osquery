@@ -73,7 +73,7 @@ $ ls -la ./build/linux/osquery/
 
 Building osquery on OS X or Linux requires a significant number of dependencies, which
 are not needed when deploying. It does not make sense to install osquery on
-your build hosts. See the [Custom Packages](../installation/custom-packages) guide
+your build hosts. See the [Custom Packages](../installation/custom-packages.md) guide
 for generating pkgs, debs or rpms.
 
 ## Notes and FAQ

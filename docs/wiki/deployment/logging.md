@@ -103,7 +103,7 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
 }
 ```
 
-Most of the time the **Event format** is the most appropriate. The next section in the deployment guide describes [log aggregation](log-aggregation) methods. The aggregation methods describe collecting, searching, and alerting on the results from a query schedule.
+Most of the time the **Event format** is the most appropriate. The next section in the deployment guide describes [log aggregation](log-aggregation.md) methods. The aggregation methods describe collecting, searching, and alerting on the results from a query schedule.
 
 ## Unique host identification
 

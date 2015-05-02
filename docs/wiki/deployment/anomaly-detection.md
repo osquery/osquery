@@ -2,7 +2,7 @@
 
 An osquery deployment can help you establish an infrastructural baseline, allowing you to detect malicious activity using scheduled queries.
 
-This approach will help you catch known malware ([WireLurker](http://bits.blogs.nytimes.com/2014/11/05/malicious-software-campaign-targets-apple-users-in-china/), IceFog, Imuler, etc), and more importantly, unknown malware. Let's look at Mac OS X startup items for a given laptop using [osqueryi](../introduction/using-osqueryi):
+This approach will help you catch known malware ([WireLurker](http://bits.blogs.nytimes.com/2014/11/05/malicious-software-campaign-targets-apple-users-in-china/), IceFog, Imuler, etc), and more importantly, unknown malware. Let's look at Mac OS X startup items for a given laptop using [osqueryi](../introduction/using-osqueryi.md):
 
 ```sh
 $ osqueryi
@@ -25,7 +25,7 @@ We can use osquery's log aggregation capabilities to easily pinpoint when the at
 
 ## Looking at the logs
 
-Using the [log aggregation guide](log-aggregation), you will receive log lines like the following in your datastore (ElasticSearch, Splunk, etc):
+Using the [log aggregation guide](log-aggregation.md), you will receive log lines like the following in your datastore (ElasticSearch, Splunk, etc):
 
 ```json
 {

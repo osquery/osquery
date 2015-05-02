@@ -4,7 +4,7 @@ The installation and deployment guides are mostly focused on the osquery daemon 
 
 ## Configuration and query schedule
 
-The primary daemon feature is executing a query schedule. This schedule is defined in an [osquery configuration](../deployment/configuration) and includes a list of semi-broad queries and their interval. The interval is an approximate time to run the query.
+The primary daemon feature is executing a query schedule. This schedule is defined in an [osquery configuration](../deployment/configuration.md) and includes a list of semi-broad queries and their interval. The interval is an approximate time to run the query.
 
 ```json
 {
@@ -41,4 +41,4 @@ If there are no USB devices added or removed to the laptop this query would neve
 ]
 ```
 
-Each line in the results is decorated with a bit more information as described in the [logging](../deployment/logging) guide. This includes time, hostname, added or removed action, etc.
+Each line in the results is decorated with a bit more information as described in the [logging](../deployment/logging.md) guide. This includes time, hostname, added or removed action, etc.
