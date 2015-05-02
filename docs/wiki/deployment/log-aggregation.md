@@ -90,7 +90,7 @@ Kibana has a default logstash dashboard and automatically field-extracts all log
 
 An example Kibana log entry:
 
-![](http://i.imgur.com/thivGYc.png)
+![](https://i.imgur.com/thivGYc.png)
 
 ### Splunk
 
@@ -98,7 +98,7 @@ If you're forwarding logs with the [Splunk Universal Forwarder](http://docs.splu
 
 Splunk will automatically extract the relevant fields for analytics, as shown below:
 
-![](http://i.imgur.com/tWCPx51.png)
+![](https://i.imgur.com/tWCPx51.png)
 
 ### Rsyslog, Fluentd, Scribe, etc
 
