@@ -35,7 +35,7 @@ The configuration for osquery is simple. Here is an example config:
 }
 ```
 
-The first thing to notice is the *file_paths* section, which is used to describe which paths to monitor for changes. Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented [here](http://osquery.readthedocs.org/en/latest/development/wildcard-rules/index.html). The paths, when expanded out by osquery, are monitored for changes and processed by the [file_events](https://osquery.io/docs/tables/#file_events) table.
+The first thing to notice is the *file_paths* section, which is used to describe which paths to monitor for changes. Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented [here](https://osquery.readthedocs.org/en/latest/development/wildcard-rules/index.html). The paths, when expanded out by osquery, are monitored for changes and processed by the [file_events](https://osquery.io/docs/tables/#file_events) table.
 
 The second thing to notice is the *yara* section, which contains the configuration to use for YARA within osquery. The *yara* section contains two keys: *signatures* and *file_paths*. The *signatures* key contains a set of arbitrary key names, called "signature groups". The value for each of these groups are the paths to the signature files that will be compiled and stored within osquery. The paths to the signature files can be absolute or relative to ```/etc/osquery/yara/```. The *file_paths* key maps the category name for an event described in the global *file_paths* section to a signature grouping to use when scanning.
 
@@ -82,7 +82,7 @@ As you can see, even though no matches were found an row is still created and st
 
 The **yara** table is used for on-demand scanning. With this table you can arbitrarily YARA scan any available file on the filesystem with any available signature files or signature group from the configuration. In order to scan the table must be given a constraint which says where to scan and what to scan with.
 
-In order to determine where to scan the table accepts either a *path* or a *pattern* constraint. The *path* constraint must be a full path to a single file. There is no expansion or recursion with this constraint. The *pattern* constraint follows the same [wildcard rules](http://osquery.readthedocs.org/en/latest/development/wildcard-rules/index.html) mentioned before.
+In order to determine where to scan the table accepts either a *path* or a *pattern* constraint. The *path* constraint must be a full path to a single file. There is no expansion or recursion with this constraint. The *pattern* constraint follows the same [wildcard rules](https://osquery.readthedocs.org/en/latest/development/wildcard-rules/index.html) mentioned before.
 
 Once the "where" is out of the way you must specify the "what" part. This is done through either the *sigfile* or *sig_group* constraints. The *sigfile* constraint can be either an absolute path to a signature file on disk or a path relative to */var/osquery/*. The signature file will be compiled only for the execution of this one query and removed afterwards. The *sig_group* constraint must consist of a named signature grouping from your configuration file.
 

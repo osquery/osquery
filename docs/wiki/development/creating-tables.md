@@ -147,6 +147,6 @@ If your code compiled properly, launch the interactive query console by executin
 
 ### Getting your query ready for use in osqueryd
 
-You don't have to do anything to make your query work in the osqueryd daemon. All osquery queries work in osqueryd. It's worth noting, however, that osqueryd is a long-running process. If your table leaks memory or uses a lot of systems resources, you will notice poor performance from osqueryd. For more information on ensuring a performant table, see [performance overview](../deployment/performance-safety).
+You don't have to do anything to make your query work in the osqueryd daemon. All osquery queries work in osqueryd. It's worth noting, however, that osqueryd is a long-running process. If your table leaks memory or uses a lot of systems resources, you will notice poor performance from osqueryd. For more information on ensuring a performant table, see [performance overview](../deployment/performance-safety.md).
 
 When in doubt, use existing open source tables to guide your development.

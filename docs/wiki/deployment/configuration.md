@@ -1,9 +1,9 @@
 An osquery deployment consists of:
 
-* Installing the tools for [OS X](../installation/install-osx) or [Linux](../installation/install-linux)
-* Reviewing the [osqueryd](../introduction/using-osqueryd) introduction
+* Installing the tools for [OS X](../installation/install-osx.md) or [Linux](../installation/install-linux.md)
+* Reviewing the [osqueryd](../introduction/using-osqueryd.md) introduction
 * Configuring and starting the osqueryd service (this page)
-* Managing and [collecting](log-aggregation) the query results
+* Managing and [collecting](log-aggregation.md) the query results
 
 In the future, osquery tools may allow for **ad-hoc** or distributed queries
 that are not part of the configured query schedule and return results
@@ -25,7 +25,7 @@ There are several components to a configuration:
 
 There are also "initialization" parameters that control how osqueryd is launched.
 These parameters only make sense as command-line arguments since they are used
-before a configuration plugin is selected. See the [command line flags](../installation/cli-flags)
+before a configuration plugin is selected. See the [command line flags](../installation/cli-flags.md)
 overview for a complete list of these parameters.
 
 The default config plugin, **filesystem**, reads from a file and optional directory ".d" based on the filename.
@@ -61,7 +61,7 @@ This config tells osqueryd to schedule two queries, **macosx_kextstat** and **fo
 * the schedule keys must be unique
 * the "interval" specifies query frequency, in seconds
 
-The first query will document changes to an OS X host's kernel extensions, with a query interval of 10 seconds. Consider using osquery's [performance tooling](performance-safety) to understand the performance impact for each query.
+The first query will document changes to an OS X host's kernel extensions, with a query interval of 10 seconds. Consider using osquery's [performance tooling](performance-safety.md) to understand the performance impact for each query.
 
 The results of your query are cached on disk via [RocksDB](http://rocksdb.org/). On first query run, all of the results are stored in RocksDB. On subsequent runs, only result-set changes are logged to RocksDB.
 

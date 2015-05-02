@@ -2,7 +2,7 @@ The osquery shell and daemon use optional command line (CLI) flags to control
 initialization, disable/enable features, and select plugins.
 
 Most of these flag-based parameters apply to both tools. Flags that do not
-control startup settings may be included as "options" to the daemon within its [configuration](../deployment/configuration).
+control startup settings may be included as "options" to the daemon within its [configuration](../deployment/configuration.md).
 
 ## CLI-only (initialization) flags
 

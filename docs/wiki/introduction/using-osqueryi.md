@@ -3,7 +3,7 @@ not need to run as an administrator. Use the shell to prototype queries and expl
 
 ## Executing SQL queries
 
-osqueryi lets you run commands and query osquery tables. See the [table API](http://osquery.io/tables/) for a complete list of tables, types, and column descriptions. For SQL syntax help, see [SQL as understood by SQLite](http://www.sqlite.org/lang.html).
+osqueryi lets you run commands and query osquery tables. See the [table API](https://osquery.io/tables/) for a complete list of tables, types, and column descriptions. For SQL syntax help, see [SQL as understood by SQLite](http://www.sqlite.org/lang.html).
 
 Here is an example query:
 
@@ -104,4 +104,4 @@ $
 ```
 
 The shell does not keep much state or connect to a osqueryd daemon.
-If you would like to run queries and log changes to the output or log operating system events consider deploying a query **schedule** using [osqueryd](using-osqueryd).
+If you would like to run queries and log changes to the output or log operating system events consider deploying a query **schedule** using [osqueryd](using-osqueryd.md).

@@ -6,7 +6,7 @@ All commits to osquery should be well unit-tested. Having tests is useful for ma
 
 This guide is going to take you through the process of creating and building a new unit test in the osquery project.
 
-Ensure that you can properly build the code by running `make` at the root of the osquery repository. If your build fails, refer to the ["building the code"](building) guide.
+Ensure that you can properly build the code by running `make` at the root of the osquery repository. If your build fails, refer to the ["building the code"](building.md) guide.
 
 Before you modify osquery code (or any code for that matter), make sure that you can successfully execute all tests. Run `make test` to run all tests.
 

@@ -1,4 +1,4 @@
-For details on how osqueryd schedules queries and loads information from a config, see the [configuration](../deployment/configuration) deployment guide.
+For details on how osqueryd schedules queries and loads information from a config, see the [configuration](../deployment/configuration.md) deployment guide.
 
 You may distribute configurations in your environment differently than Facebook. To support all environments, the way that osqueryd goes about retrieving configurations is completely pluggable and configurable.
 

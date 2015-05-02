@@ -18,7 +18,7 @@ There's an array of yet-to-be-implemented uses of the inotify publisher, but a s
 
 ## Event Subscribers
 
-Let's continue to use the inotify event publisher as an example. And let's implement a table that reports new files created in "/etc/`" The first thing we need is a [table spec](creating-tables):
+Let's continue to use the inotify event publisher as an example. And let's implement a table that reports new files created in "/etc/`" The first thing we need is a [table spec](creating-tables.md):
 
 ```python
 table_name("new_etc_files")

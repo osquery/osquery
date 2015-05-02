@@ -22,7 +22,7 @@ If you plan to manage an enterprise osquery deployment, the easiest installation
 an OS X package installer. You will have to manage and deploy updates.
 
 Each osquery tag (release) builds an OS X package:
-[osquery.io/downloads](http://osquery.io/downloads/).
+[osquery.io/downloads](https://osquery.io/downloads/).
 There are no package or library dependencies.
 
 The default package creates the following structure:
