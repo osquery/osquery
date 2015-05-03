@@ -128,10 +128,14 @@ void deserializeIntermediateLog(const PluginRequest& request,
   }
 
   // Read the plugin request string into a JSON tree and enumerate.
-  std::stringstream input;
-  input << request.at("log");
   pt::ptree tree;
-  pt::read_json(input, tree);
+  try {
+    std::stringstream input;
+    input << request.at("log");
+    pt::read_json(input, tree);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return;
+  }
 
   for (const auto& item : tree.get_child("")) {
     log.push_back({

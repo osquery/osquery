@@ -76,30 +76,22 @@ Status serializeRow(const Row& r, pt::ptree& tree) {
 
 Status serializeRowJSON(const Row& r, std::string& json) {
   pt::ptree tree;
-  try {
-    auto status = serializeRow(r, tree);
-    if (!status.ok()) {
-      return status;
-    }
-    std::ostringstream ss;
-    pt::write_json(ss, tree, false);
-    json = ss.str();
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
+  auto status = serializeRow(r, tree);
+  if (!status.ok()) {
+    return status;
   }
+
+  std::ostringstream output;
+  pt::write_json(output, tree, false);
+  json = output.str();
   return Status(0, "OK");
 }
 
 Status deserializeRow(const pt::ptree& tree, Row& r) {
-  try {
-    for (auto& i : tree) {
-      if (i.first.length() > 0) {
-        r[i.first] = i.second.data();
-      }
+  for (const auto& i : tree) {
+    if (i.first.length() > 0) {
+      r[i.first] = i.second.data();
     }
-  } catch (const std::exception& e) {
-    LOG(ERROR) << e.what();
-    return Status(1, e.what());
   }
   return Status(0, "OK");
 }
@@ -107,10 +99,10 @@ Status deserializeRow(const pt::ptree& tree, Row& r) {
 Status deserializeRowJSON(const std::string& json, Row& r) {
   pt::ptree tree;
   try {
-    std::stringstream j;
-    j << json;
-    pt::read_json(j, tree);
-  } catch (const std::exception& e) {
+    std::stringstream input;
+    input << json;
+    pt::read_json(input, tree);
+  } catch (const pt::json_parser::json_parser_error& e) {
     return Status(1, e.what());
   }
   return deserializeRow(tree, r);
@@ -122,49 +114,38 @@ Status deserializeRowJSON(const std::string& json, Row& r) {
 /////////////////////////////////////////////////////////////////////////////
 
 Status serializeQueryData(const QueryData& q, pt::ptree& tree) {
-  try {
-    for (const auto& r : q) {
-      pt::ptree serialized;
-      auto s = serializeRow(r, serialized);
-      if (!s.ok()) {
-        return s;
-      }
-      tree.push_back(std::make_pair("", serialized));
+  for (const auto& r : q) {
+    pt::ptree serialized;
+    auto s = serializeRow(r, serialized);
+    if (!s.ok()) {
+      return s;
     }
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
+    tree.push_back(std::make_pair("", serialized));
   }
   return Status(0, "OK");
 }
 
 Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
   pt::ptree tree;
-  try {
-    auto status = serializeQueryData(q, tree);
-    if (!status.ok()) {
-      return status;
-    }
-    std::ostringstream ss;
-    pt::write_json(ss, tree, false);
-    json = ss.str();
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
+  auto status = serializeQueryData(q, tree);
+  if (!status.ok()) {
+    return status;
   }
+
+  std::ostringstream output;
+  pt::write_json(output, tree, false);
+  json = output.str();
   return Status(0, "OK");
 }
 
 Status deserializeQueryData(const pt::ptree& tree, QueryData& qd) {
-  try {
-    for (const auto& i : tree) {
-      Row r;
-      auto status = deserializeRow(i.second, r);
-      if (!status.ok()) {
-        return status;
-      }
-      qd.push_back(r);
+  for (const auto& i : tree) {
+    Row r;
+    auto status = deserializeRow(i.second, r);
+    if (!status.ok()) {
+      return status;
     }
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
+    qd.push_back(r);
   }
   return Status(0, "OK");
 }
@@ -172,10 +153,10 @@ Status deserializeQueryData(const pt::ptree& tree, QueryData& qd) {
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
   pt::ptree tree;
   try {
-    std::stringstream j;
-    j << json;
-    pt::read_json(j, tree);
-  } catch (const std::exception& e) {
+    std::stringstream input;
+    input << json;
+    pt::read_json(input, tree);
+  } catch (const pt::json_parser::json_parser_error& e) {
     return Status(1, e.what());
   }
   return deserializeQueryData(tree, qd);
@@ -228,13 +209,9 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
     return status;
   }
 
-  try {
-    std::ostringstream ss;
-    pt::write_json(ss, tree, false);
-    json = ss.str();
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
-  }
+  std::ostringstream output;
+  pt::write_json(output, tree, false);
+  json = output.str();
   return Status(0, "OK");
 }
 
@@ -296,13 +273,9 @@ Status serializeQueryLogItemJSON(const QueryLogItem& i, std::string& json) {
     return status;
   }
 
-  try {
-    std::ostringstream ss;
-    pt::write_json(ss, tree, false);
-    json = ss.str();
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
-  }
+  std::ostringstream output;
+  pt::write_json(output, tree, false);
+  json = output.str();
   return Status(0, "OK");
 }
 
@@ -332,10 +305,10 @@ Status deserializeQueryLogItemJSON(const std::string& json,
                                    QueryLogItem& item) {
   pt::ptree tree;
   try {
-    std::stringstream j;
-    j << json;
-    pt::read_json(j, tree);
-  } catch (const std::exception& e) {
+    std::stringstream input;
+    input << json;
+    pt::read_json(input, tree);
+  } catch (const pt::json_parser::json_parser_error& e) {
     return Status(1, e.what());
   }
   return deserializeQueryLogItem(tree, item);
@@ -385,15 +358,11 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
     return status;
   }
 
-  try {
-    std::ostringstream ss;
-    for (auto& event : tree) {
-      pt::write_json(ss, event.second, false);
-    }
-    json = ss.str();
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
+  std::ostringstream output;
+  for (auto& event : tree) {
+    pt::write_json(output, event.second, false);
   }
+  json = output.str();
   return Status(0, "OK");
 }
 

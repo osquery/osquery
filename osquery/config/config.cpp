@@ -183,13 +183,12 @@ inline void mergeFilePath(const std::string& name,
 }
 
 void Config::mergeConfig(const std::string& source, ConfigData& conf) {
-  std::stringstream json_data;
-  json_data << source;
-
   pt::ptree tree;
   try {
+    std::stringstream json_data;
+    json_data << source;
     pt::read_json(json_data, tree);
-  } catch (const pt::ptree_error& e) {
+  } catch (const pt::json_parser::json_parser_error& e) {
     VLOG(1) << "Error parsing config JSON: " << e.what();
     return;
   }

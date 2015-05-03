@@ -18,23 +18,19 @@ namespace osquery {
 
 Status JSONSerializer::serialize(const pt::ptree& params,
                                  std::string& serialized) {
-  std::ostringstream ss;
-  try {
-    pt::write_json(ss, params, false);
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
-  }
-  serialized = ss.str();
+  std::ostringstream output;
+  pt::write_json(output, params, false);
+  serialized = output.str();
   return Status(0, "OK");
 }
 
 Status JSONSerializer::deserialize(const std::string& serialized,
                                    pt::ptree& params) {
-  std::stringstream j;
-  j << serialized;
   try {
-    pt::read_json(j, params);
-  } catch (const std::exception& e) {
+    std::stringstream input;
+    input << serialized;
+    pt::read_json(input, params);
+  } catch (const pt::json_parser::json_parser_error& e) {
     return Status(1, e.what());
   }
   return Status(0, "OK");

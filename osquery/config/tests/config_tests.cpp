@@ -87,7 +87,7 @@ TEST_F(ConfigTests, test_locking) {
     ConfigDataInstance config1;
     ConfigDataInstance config2;
 
-    // But a unique lock cannot be aquired.
+    // But a unique lock cannot be acquired.
     boost::unique_lock<boost::shared_mutex> lock(Config::getInstance().mutex_,
                                                  boost::defer_lock);
     ASSERT_FALSE(lock.try_lock());
@@ -145,6 +145,11 @@ TEST_F(ConfigTests, test_config_update) {
     option = config.data().get<std::string>("options.new2", "");
     EXPECT_EQ(option, "different");
   }
+}
+
+TEST_F(ConfigTests, test_bad_config_update) {
+  std::string bad_json = "{\"options\": {},}";
+  ASSERT_NO_THROW(Config::update({{"bad_source", bad_json}}));
 }
 
 class TestConfigParserPlugin : public ConfigParserPlugin {
