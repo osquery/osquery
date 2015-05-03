@@ -98,12 +98,14 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   std::srand(time(nullptr));
 
   // osquery implements a custom help/usage output.
-  std::string first_arg = (*argc_ > 1) ? std::string((*argv_)[1]) : "";
-  if ((first_arg == "--help" || first_arg == "-help" || first_arg == "--h" ||
-       first_arg == "-h") &&
-      tool != OSQUERY_TOOL_TEST) {
-    printUsage(binary_, tool_);
-    ::exit(0);
+  for (int i = 1; i < *argc_; i++) {
+    auto help = std::string((*argv_)[i]);
+    if ((help == "--help" || help == "-help" || help == "--h" ||
+         help == "-h") &&
+        tool != OSQUERY_TOOL_TEST) {
+      printUsage(binary_, tool_);
+      ::exit(0);
+    }
   }
 
 // To change the default config plugin, compile osquery with
@@ -145,7 +147,12 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   // Initialize the status and results logger.
   initStatusLogger(binary_);
   if (tool != OSQUERY_EXTENSION) {
-    VLOG(1) << "osquery initialized [version=" << OSQUERY_VERSION << "]";
+    if (isWorker()) {
+      VLOG(1) << "osquery worker initialized [watcher="
+              << getenv("OSQUERY_WORKER") << "]";
+    } else {
+      VLOG(1) << "osquery initialized [version=" << OSQUERY_VERSION << "]";
+    }
   } else {
     VLOG(1) << "osquery extension initialized [sdk=" << OSQUERY_SDK_VERSION
             << "]";
@@ -202,7 +209,7 @@ void Initializer::initWatcher() {
   // the extensions and worker process.
   if (!FLAGS_disable_watchdog) {
     Dispatcher::joinServices();
-    // Executation should never reach this point.
+    // Execution should never reach this point.
     ::exit(EXIT_FAILURE);
   }
 }
@@ -233,26 +240,15 @@ void Initializer::initWorkerWatcher(const std::string& name) {
 
 bool Initializer::isWorker() { return (getenv("OSQUERY_WORKER") != nullptr); }
 
-void Initializer::initConfigLogger() {
+void Initializer::initActivePlugin(const std::string& type,
+                                   const std::string& name) {
   // Use a delay, meaning the amount of milliseconds waited for extensions.
   size_t delay = 0;
   // The timeout is the maximum time in seconds to wait for extensions.
   size_t timeout = atoi(FLAGS_extensions_timeout.c_str());
-  while (!Registry::setActive("config", FLAGS_config_plugin)) {
-    // If there is at least 1 autoloaded extension, it may broadcast a route
-    // to the active config plugin.
+  while (!Registry::setActive(type, name)) {
     if (!Watcher::hasManagedExtensions() || delay > timeout * 1000) {
-      LOG(ERROR) << "Config plugin not found: " << FLAGS_config_plugin;
-      ::exit(EXIT_CATASTROPHIC);
-    }
-    ::usleep(kExtensionInitializeMLatency * 1000);
-    delay += kExtensionInitializeMLatency;
-  }
-
-  // Try the same wait for a logger pluing too.
-  while (!Registry::setActive("logger", FLAGS_logger_plugin)) {
-    if (!Watcher::hasManagedExtensions() || delay > timeout * 1000) {
-      LOG(ERROR) << "Logger plugin not found: " << FLAGS_logger_plugin;
+      LOG(ERROR) << "Active " << type << " plugin not found: " << name;
       ::exit(EXIT_CATASTROPHIC);
     }
     ::usleep(kExtensionInitializeMLatency * 1000);
@@ -267,8 +263,8 @@ void Initializer::start() {
   // Bind to an extensions socket and wait for registry additions.
   osquery::startExtensionManager();
 
-  // Then set the config/logger plugins, which use a single/active plugin.
-  initConfigLogger();
+  // Then set the config plugin, which uses a single/active plugin.
+  initActivePlugin("config", FLAGS_config_plugin);
 
   // Run the setup for all lazy registries (tables, SQL).
   Registry::setUp();
@@ -297,6 +293,7 @@ void Initializer::start() {
   }
 
   // Initialize the status and result plugin logger.
+  initActivePlugin("logger", FLAGS_logger_plugin);
   initLogger(binary_);
 
   // Start event threads.

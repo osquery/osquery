@@ -26,6 +26,8 @@ FLAG(string,
      "hostname",
      "Field used to identify the host running osquery (hostname, uuid)");
 
+FLAG(bool, disable_monitor, false, "Disable the schedule monitor");
+
 CLI_FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
 
 Status getHostIdentifier(std::string& ident) {
@@ -67,10 +69,33 @@ Status getHostIdentifier(std::string& ident) {
   return db->Put(kConfigurations, "hostIdentifier", ident);
 }
 
+inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
+  // Snapshot the performance and times for the worker before running.
+  auto pid = std::to_string(getpid());
+  auto r0 = SQL::selectAllFrom("processes", "pid", tables::EQUALS, pid);
+  auto t0 = time(nullptr);
+  auto sql = SQL(query.query);
+  // Snapshot the performance after, and compare.
+  auto t1 = time(nullptr);
+  auto r1 = SQL::selectAllFrom("processes", "pid", tables::EQUALS, pid);
+  if (r0.size() > 0 && r1.size() > 0) {
+    size_t size = 0;
+    for (const auto& row : sql.rows()) {
+      for (const auto& column : row) {
+        size += column.first.size();
+        size += column.second.size();
+      }
+    }
+    Config::recordQueryPerformance(name, t1 - t0, size, r0[0], r1[0]);
+  }
+  return sql;
+}
+
 void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
   VLOG(1) << "Executing query: " << query.query;
-  auto sql = SQL(query.query);
+  auto sql = (!FLAGS_disable_monitor) ? monitor(name, query) : SQL(query.query);
+
   if (!sql.ok()) {
     LOG(ERROR) << "Error executing query (" << query.query
                << "): " << sql.getMessageString();
@@ -94,7 +119,7 @@ void launchQuery(const std::string& name, const ScheduledQuery& query) {
 
   if (query.options.count("snapshot") && query.options.at("snapshot")) {
     // This is a snapshot query, emit results with a differential or state.
-    item.results.added = std::move(sql.rows());
+    item.snapshot_results = std::move(sql.rows());
     logSnapshotQuery(item);
     return;
   }

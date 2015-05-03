@@ -267,13 +267,21 @@ DiffResults diff(const QueryData& old, const QueryData& current) {
 /////////////////////////////////////////////////////////////////////////////
 
 Status serializeQueryLogItem(const QueryLogItem& i, pt::ptree& tree) {
-  pt::ptree diff_results;
-  auto status = serializeDiffResults(i.results, diff_results);
-  if (!status.ok()) {
-    return status;
+  pt::ptree results_tree;
+  if (i.results.added.size() > 0 || i.results.removed.size() > 0) {
+    auto status = serializeDiffResults(i.results, results_tree);
+    if (!status.ok()) {
+      return status;
+    }
+    tree.add_child("diffResults", results_tree);
+  } else {
+    auto status = serializeQueryData(i.snapshot_results, results_tree);
+    if (!status.ok()) {
+      return status;
+    }
+    tree.add_child("snapshot", results_tree);
   }
 
-  tree.add_child("diffResults", diff_results);
   tree.put<std::string>("name", i.name);
   tree.put<std::string>("hostIdentifier", i.identifier);
   tree.put<std::string>("calendarTime", i.calendar_time);
@@ -302,6 +310,12 @@ Status deserializeQueryLogItem(const pt::ptree& tree, QueryLogItem& item) {
   if (tree.count("diffResults") > 0) {
     auto status =
         deserializeDiffResults(tree.get_child("diffResults"), item.results);
+    if (!status.ok()) {
+      return status;
+    }
+  } else if (tree.count("snapshot") > 0) {
+    auto status =
+        deserializeQueryData(tree.get_child("snapshot"), item.snapshot_results);
     if (!status.ok()) {
       return status;
     }

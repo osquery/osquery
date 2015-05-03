@@ -116,6 +116,14 @@ inline void mergeOption(const tree_node& option, ConfigData& conf) {
   std::string value = option.second.data();
 
   Flag::updateValue(key, value);
+  // There is a special case for supported Gflags-reserved switches.
+  if (key == "verbose" || key == "verbose_debug" || key == "debug") {
+    setVerboseLevel();
+    if (Flag::getValue("verbose") == "true") {
+      VLOG(1) << "Verbose logging enabled by config option";
+    }
+  }
+
   conf.options[key] = value;
   if (conf.all_data.count("options") > 0) {
     conf.all_data.get_child("options").erase(key);
@@ -263,6 +271,36 @@ Status Config::getMD5(std::string& hash_string) {
 }
 
 Status Config::checkConfig() { return load(); }
+
+void Config::recordQueryPerformance(const std::string& name,
+                                    size_t delay,
+                                    size_t size,
+                                    const Row& r0,
+                                    const Row& r1) {
+  // Grab a lock on the schedule structure and check the name.
+  ConfigDataInstance config;
+  if (config.schedule().count(name) == 0) {
+    // Unknown query schedule name.
+    return;
+  }
+
+  // Grab access to the non-const schedule item.
+  auto& query = getInstance().data_.schedule.at(name);
+  auto diff = strtol(r1.at("user_time").c_str(), nullptr, 10) -
+              strtol(r0.at("user_time").c_str(), nullptr, 10);
+  query.user_time += diff;
+  diff = strtol(r1.at("system_time").c_str(), nullptr, 10) -
+         strtol(r0.at("system_time").c_str(), nullptr, 10);
+  query.system_time += diff;
+  diff = strtol(r1.at("resident_size").c_str(), nullptr, 10) -
+         strtol(r0.at("resident_size").c_str(), nullptr, 10);
+  // Memory is stored as an average of BSS changes between query executions.
+  query.memory =
+      (query.memory * query.executions + diff) / (query.executions + 1);
+  query.wall_time += delay;
+  query.output_size += size;
+  query.executions += 1;
+}
 
 Status ConfigPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {

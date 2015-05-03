@@ -14,6 +14,11 @@ using namespace osquery;
 
 class ExampleConfigPlugin : public ConfigPlugin {
  public:
+  Status setUp() {
+    LOG(WARNING) << "ExampleConfigPlugin setting up.";
+    return Status(0, "OK");
+  }
+
   Status genConfig(std::map<std::string, std::string>& config) {
     config["data"] = "{\"options\": [], \"scheduledQueries\": []}";
     return Status(0, "OK");

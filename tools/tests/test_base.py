@@ -16,6 +16,7 @@ from __future__ import print_function
 import copy
 import os
 import psutil
+import random
 import re
 import shutil
 import signal
@@ -88,9 +89,9 @@ class OsqueryWrapper(REPLWrapper):
         options = copy.deepcopy(CONFIG)["options"]
         for option in args.keys():
             options[option] = args[option]
+        options["database_path"] += str(random.randint(1000, 9999))
         command = command + " " + " ".join(["--%s=%s" % (k, v) for
             k, v in options.iteritems()])
-        print (command)
         proc = pexpect.spawn(command, env=env)
         super(OsqueryWrapper, self).__init__(
             proc,
@@ -237,17 +238,23 @@ class ProcessGenerator(object):
     '''Helper methods to patch into a unittest'''
     generators = []
 
+    def setUp(self):
+        shutil.rmtree(CONFIG_DIR)
+        os.makedirs(CONFIG_DIR)
+
     def _run_daemon(self, options={}, silent=False, options_only={}):
         '''Spawn an osquery daemon process'''
         global ARGS, CONFIG_NAME, CONFIG
         config = copy.deepcopy(CONFIG)
+        config["options"]["database_path"] += str(random.randint(1000, 9999))
         for option in options.keys():
             config["options"][option] = options[option]
+        flags = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
         for option in options_only.keys():
             config["options"][option] = options_only[option]
         utils.write_config(config)
         binary = os.path.join(ARGS.build, "osquery", "osqueryd")
-        flags = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
+
         daemon = ProcRunner("daemon", binary, flags, silent=silent)
         self.generators.append(daemon)
         return daemon
@@ -285,9 +292,10 @@ class ProcessGenerator(object):
 
 class Autoloader(object):
     '''Helper class to write a module or extension autoload file.'''
-    def __init__(self, path, autoloads=[]):
-        self.path = path
-        with open(path, "w") as fh:
+    def __init__(self, autoloads=[]):
+        global CONFIG_DIR
+        self.path = CONFIG_DIR + "ext.load" + str(random.randint(1000, 9999))
+        with open(self.path, "w") as fh:
             fh.write("\n".join(autoloads))
 
     def __del__(self):
@@ -324,6 +332,7 @@ class Tester(object):
             exit(1)
 
         # Write config
+        random.seed(time.time())
         shutil.rmtree(CONFIG_DIR)
         os.makedirs(CONFIG_DIR)
         CONFIG = read_config(ARGS.config) if ARGS.config else DEFAULT_CONFIG
