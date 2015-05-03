@@ -17,7 +17,6 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/xml_parser.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -109,7 +108,7 @@ Status pathExists(const fs::path& path) {
 
   // A tri-state determination of presence
   try {
-    if (!boost::filesystem::exists(path)) {
+    if (!fs::exists(path)) {
       return Status(1, "0");
     }
   } catch (const fs::filesystem_error& e) {
@@ -282,8 +281,7 @@ std::string lsperms(int mode) {
   return bits;
 }
 
-Status parseJSON(const boost::filesystem::path& path,
-                 boost::property_tree::ptree& tree) {
+Status parseJSON(const fs::path& path, pt::ptree& tree) {
   std::string json_data;
   if (!readFile(path, json_data).ok()) {
     return Status(1, "Could not read JSON from file");
@@ -292,12 +290,11 @@ Status parseJSON(const boost::filesystem::path& path,
   return parseJSONContent(json_data, tree);
 }
 
-Status parseJSONContent(const std::string& content,
-                        boost::property_tree::ptree& tree) {
+Status parseJSONContent(const std::string& content, pt::ptree& tree) {
   // Read the extensions data into a JSON blob, then property tree.
-  std::stringstream json_stream;
-  json_stream << content;
   try {
+    std::stringstream json_stream;
+    json_stream << content;
     pt::read_json(json_stream, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
     return Status(1, "Could not parse JSON from file");

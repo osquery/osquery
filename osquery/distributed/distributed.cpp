@@ -43,10 +43,9 @@ Status DistributedQueryHandler::parseQueriesJSON(
   // Parse the JSON into a ptree
   pt::ptree tree;
   try {
-    std::istringstream query_stream(query_json);
+    std::stringstream query_stream(query_json);
     pt::read_json(query_stream, tree);
-  }
-  catch (const std::exception& e) {
+  } catch (const pt::json_parser::json_parser_error& e) {
     return Status(1, std::string("Error loading query JSON: ") + e.what());
   }
 

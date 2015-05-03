@@ -13,6 +13,8 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+namespace pt = boost::property_tree;
+
 namespace osquery {
 namespace tables {
 
@@ -35,15 +37,15 @@ void TablePlugin::removeExternal(const std::string& name) {
 
 void TablePlugin::setRequestFromContext(const QueryContext& context,
                                         PluginRequest& request) {
-  boost::property_tree::ptree tree;
+  pt::ptree tree;
   tree.put("limit", context.limit);
 
   // The QueryContext contains a constraint map from column to type information
   // and the list of operand/expression constraints applied to that column from
   // the query given.
-  boost::property_tree::ptree constraints;
+  pt::ptree constraints;
   for (const auto& constraint : context.constraints) {
-    boost::property_tree::ptree child;
+    pt::ptree child;
     child.put("name", constraint.first);
     constraint.second.serialize(child);
     constraints.push_back(std::make_pair("", child));
@@ -52,7 +54,7 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
 
   // Write the property tree as a JSON string into the PluginRequest.
   std::ostringstream output;
-  boost::property_tree::write_json(output, tree, false);
+  pt::write_json(output, tree, false);
   request["context"] = output.str();
 }
 
@@ -68,10 +70,14 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
   }
 
   // Read serialized context from PluginRequest.
-  std::stringstream input;
-  input << request.at("context");
-  boost::property_tree::ptree tree;
-  boost::property_tree::read_json(input, tree);
+  pt::ptree tree;
+  try {
+    std::stringstream input;
+    input << request.at("context");
+    pt::read_json(input, tree);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return;
+  }
 
   // Set the context limit and deserialize each column constraint list.
   context.limit = tree.get<int>("limit");

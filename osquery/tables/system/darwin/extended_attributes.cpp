@@ -93,6 +93,10 @@ struct XAttrAttribute getAttribute(const std::string &path,
   x_att.buffer_length =
       getxattr(path.c_str(), attribute.c_str(), nullptr, (size_t)0, 0, 0);
   char *buffer = (char *)malloc(x_att.buffer_length);
+  if (buffer == nullptr) {
+    return x_att;
+  }
+
   x_att.return_value = getxattr(path.c_str(), attribute.c_str(), buffer,
                                 x_att.buffer_length, 0, 0);
 
@@ -111,10 +115,15 @@ std::vector<std::string> parseExtendedAttributeList(const std::string &path) {
   std::vector<std::string> attributes;
   ssize_t value = listxattr(path.c_str(), nullptr, (size_t)0, 0);
   char *content = (char *)malloc(value);
+  if (content == nullptr) {
+    return attributes;
+  }
+
   ssize_t ret = listxattr(path.c_str(), content, value, 0);
   if (ret == 0) {
     return attributes;
   }
+
   char *stable = content;
   do {
     attributes.push_back(std::string(content));

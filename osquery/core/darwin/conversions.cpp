@@ -20,6 +20,10 @@ std::string stringFromCFString(const CFStringRef& cf_string) {
   // Access, then convert the CFString. CFStringGetCStringPtr is less-safe.
   CFIndex length = CFStringGetLength(cf_string);
   char* buffer = (char*)malloc(length + 1);
+  if (buffer == nullptr) {
+    return "";
+  }
+
   if (!CFStringGetCString(
           cf_string, buffer, length + 1, kCFStringEncodingASCII)) {
     free(buffer);
@@ -36,6 +40,9 @@ std::string stringFromCFData(const CFDataRef& cf_data) {
   CFRange range = CFRangeMake(0, CFDataGetLength(cf_data));
 
   char* buffer = (char*)malloc(range.length + 1);
+  if (buffer == nullptr) {
+    return "";
+  }
   memset(buffer, 0, range.length + 1);
 
   std::stringstream result;
