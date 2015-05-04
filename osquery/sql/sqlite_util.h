@@ -110,7 +110,7 @@ class SQLiteDBManager : private boost::noncopyable {
     disabled_tables_ = parseDisableTablesFlag(Flag::getValue("disable_tables"));
   }
   SQLiteDBManager(SQLiteDBManager const&);
-  void operator=(SQLiteDBManager const&);
+  SQLiteDBManager& operator=(SQLiteDBManager const&);
   virtual ~SQLiteDBManager();
 
  private:

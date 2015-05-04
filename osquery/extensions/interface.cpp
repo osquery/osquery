@@ -40,7 +40,7 @@ void ExtensionHandler::call(ExtensionResponse& _return,
     plugin_request[request_item.first] = request_item.second;
   }
 
-  auto status = Registry::call(registry, local_item, request, response);
+  auto status = Registry::call(registry, local_item, plugin_request, response);
   _return.status.code = status.getCode();
   _return.status.message = status.getMessage();
   _return.status.uuid = uuid_;

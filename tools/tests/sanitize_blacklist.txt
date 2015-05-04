@@ -1,0 +1,6 @@
+# This function and source blacklist is applied to LLVM's sanitize frameworks.
+# Please restrict entries to known-problems in third-party libraries.
+
+# ASIO 0-lookups
+fun:*get_io_service*
+src:*asio/impl/*

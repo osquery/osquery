@@ -66,13 +66,13 @@ static void getBlockDevice(struct udev_device *dev, QueryData &results) {
     if (!blkid_do_safeprobe(pr)) {
       const char *blk_value = nullptr;
       if (!blkid_probe_lookup_value(pr, "TYPE", &blk_value, nullptr)) {
-	r["type"] = blk_value;
+        r["type"] = blk_value;
       }
       if (!blkid_probe_lookup_value(pr, "UUID", &blk_value, nullptr)) {
-	r["uuid"] = blk_value;
+        r["uuid"] = blk_value;
       }
       if (!blkid_probe_lookup_value(pr, "LABEL", &blk_value, nullptr)) {
-	r["label"] = blk_value;
+        r["label"] = blk_value;
       }
     }
     blkid_free_probe(pr);

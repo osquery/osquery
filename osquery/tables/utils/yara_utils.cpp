@@ -38,7 +38,7 @@ void YARACompilerCallback(int error_level,
 /**
  * Compile a single rule file and load it into rule pointer.
  */
-Status compileSingleFile(const std::string file, YR_RULES** rules) {
+Status compileSingleFile(const std::string& file, YR_RULES** rules) {
   YR_COMPILER *compiler = nullptr;
   int result = yr_compiler_create(&compiler);
   if (result != ERROR_SUCCESS) {

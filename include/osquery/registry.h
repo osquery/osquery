@@ -126,7 +126,7 @@ struct ModuleInfo {
 /// The call-in prototype for Registry modules.
 typedef void (*ModuleInitalizer)(void);
 
-class Plugin {
+class Plugin : private boost::noncopyable {
  public:
   Plugin() : name_("unnamed") {}
   virtual ~Plugin() {}
@@ -179,10 +179,10 @@ class Plugin {
 
  private:
   Plugin(Plugin const&);
-  void operator=(Plugin const&);
+  Plugin& operator=(Plugin const&);
 };
 
-class RegistryHelperCore {
+class RegistryHelperCore : private boost::noncopyable {
  public:
   explicit RegistryHelperCore(bool auto_setup = false)
       : auto_setup_(auto_setup) {}
@@ -665,7 +665,7 @@ class RegistryFactory : private boost::noncopyable {
         module_uuid_(0),
         external_(false) {}
   RegistryFactory(RegistryFactory const&);
-  void operator=(RegistryFactory const&);
+  RegistryFactory& operator=(RegistryFactory const&);
   virtual ~RegistryFactory() {}
 
  private:

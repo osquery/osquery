@@ -36,7 +36,7 @@ class YARATest : public testing::Test {
     remove(ruleFile);
   }
 
-  Row scanFile(const std::string ruleContent) {
+  Row scanFile(const std::string& ruleContent) {
     YR_RULES* rules = nullptr;
     int result = yr_initialize();
     EXPECT_TRUE(result == ERROR_SUCCESS);

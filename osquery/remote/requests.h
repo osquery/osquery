@@ -186,11 +186,11 @@ class Request {
    *
    * @param destination A string of the remote URI destination
    */
-  Request(const std::string& destination) : destination_(destination) {
-    transport_ = std::make_shared<TTransport>();
+  Request(const std::string& destination)
+      : destination_(destination),
+        serializer_(new TSerializer),
+        transport_(new TTransport) {
     transport_->setDestination(destination_);
-    serializer_ = std::make_shared<TSerializer>();
-
     transport_->setSerializer(serializer_);
     serializer_->setTransport(transport_);
   }

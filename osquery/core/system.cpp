@@ -8,6 +8,7 @@
  *
  */
 
+#include <ctime>
 #include <sstream>
 
 #include <sys/types.h>

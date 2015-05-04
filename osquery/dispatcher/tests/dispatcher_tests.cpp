@@ -19,8 +19,8 @@ namespace osquery {
 class DispatcherTests : public testing::Test {};
 
 TEST_F(DispatcherTests, test_singleton) {
-  auto& one = Dispatcher::getInstance();
-  auto& two = Dispatcher::getInstance();
+  auto& one = Dispatcher::instance();
+  auto& two = Dispatcher::instance();
   EXPECT_EQ(one.getThreadManager().get(), two.getThreadManager().get());
 }
 
@@ -32,7 +32,7 @@ class TestRunnable : public InternalRunnable {
 };
 
 TEST_F(DispatcherTests, test_add_work) {
-  auto& dispatcher = Dispatcher::getInstance();
+  auto& dispatcher = Dispatcher::instance();
   int base = 5;
   int repetitions = 1;
 

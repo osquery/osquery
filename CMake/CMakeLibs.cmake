@@ -29,7 +29,7 @@ macro(ADD_OSQUERY_LINK IS_CORE LINK)
 endmacro(ADD_OSQUERY_LINK)
 
 macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
-  if(NOT "${LINK}" MATCHES "(^-.*)")
+  if(NOT "${LINK}" MATCHES "(^[-/].*)")
     find_library("${LINK}_library" NAMES "lib${LINK}.a" "${LINK}" ${LINK_PATHS})
     message("-- Found library dependency ${${LINK}_library}")
     if("${${LINK}_library}" STREQUAL "${${LINK}_library}-NOTFOUND")

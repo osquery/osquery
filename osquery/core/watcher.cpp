@@ -21,6 +21,7 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/watcher.h"
+#include "osquery/dispatcher/dispatcher.h"
 
 extern char** environ;
 
@@ -30,10 +31,10 @@ namespace osquery {
 
 const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
-    {MEMORY_LIMIT, {50, 30, 10, 10}},
+    {MEMORY_LIMIT, {50, 30, 10, 1000}},
     // Percent of user or system CPU worker can utilize for LATENCY_LIMIT
     // seconds.
-    {UTILIZATION_LIMIT, {90, 80, 60, 50}},
+    {UTILIZATION_LIMIT, {90, 80, 60, 1000}},
     // Number of seconds the worker should run, else consider the exit fatal.
     {RESPAWN_LIMIT, {20, 20, 20, 5}},
     // If the worker respawns too quickly, backoff on creating additional.
@@ -41,7 +42,8 @@ const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
     {LATENCY_LIMIT, {12, 6, 3, 1}},
     // How often to poll for performance limit violations.
-    {INTERVAL, {3, 3, 3, 1}}, };
+    {INTERVAL, {3, 3, 3, 1}},
+};
 
 const std::string kExtensionExtension = ".ext";
 
@@ -391,6 +393,8 @@ void WatcherWatcherRunner::enter() {
       // Watcher died, the worker must follow.
       VLOG(1) << "osqueryd worker (" << getpid()
               << ") detected killed watcher (" << watcher_ << ")";
+      Dispatcher::removeServices();
+      Dispatcher::joinServices();
       ::exit(EXIT_SUCCESS);
     }
     interruptableSleep(getWorkerLimit(INTERVAL) * 1000);

@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/noncopyable.hpp>
 #include <boost/thread.hpp>
 
 #include <osquery/core.h>
@@ -80,22 +81,22 @@ typedef OSQUERY_THRIFT_POINTER::shared_ptr<
  * execution of asynchronous tasks across an application. Internally,
  * Dispatcher is back by the Apache Thrift thread pool.
  */
-class Dispatcher {
+class Dispatcher : private boost::noncopyable {
  public:
   /**
-   * @brief The primary way to access the Dispatcher singleton.
+   * @brief The primary way to access the Dispatcher factory facility.
    *
-   * osquery::Dispatcher::getInstance() provides access to the Dispatcher
-   * singleton.
+   * @code{.cpp} auto dispatch = osquery::Dispatcher::instance(); @endcode
    *
-   * @code{.cpp} auto dispatch = osquery::Dispatcher::getInstance(); @endcode
-   *
-   * @return a shared pointer to an instance of osquery::Dispatch.
+   * @return The osquery::Dispatcher instance.
    */
-  static Dispatcher& getInstance();
+  static Dispatcher& instance() {
+    static Dispatcher instance;
+    return instance;
+  }
 
   /**
-   * @brief add a task to the dispatcher.
+   * @brief Add a task to the dispatcher.
    *
    * Adding tasks to the Dispatcher's thread pool requires you to create a
    * "runnable" class which publicly implements Apache Thrift's Runnable
@@ -110,8 +111,8 @@ class Dispatcher {
    *     virtual void run() { ++*i; }
    *   };
    *
-   *   auto dispatch = osquery::Dispatcher::getInstance(); int i = 5;
-   *   dispatch->add(std::make_shared<TestRunnable>(&i);
+   *   int i = 5;
+   *   Dispatcher::add(std::make_shared<TestRunnable>(&i);
    *   while (dispatch->totalTaskCount() > 0) {}
    *   assert(i == 6);
    * @endcode
@@ -119,13 +120,12 @@ class Dispatcher {
    * @param task a C++11 std shared pointer to an instance of a class which
    * publicly inherits from `apache::thrift::concurrency::Runnable`.
    *
-   * @return an instance of osquery::Status, indicating the success or failure
-   * of the operation.
+   * @return osquery success status
    */
-  Status add(ThriftInternalRunnableRef task);
+  static Status add(ThriftInternalRunnableRef task);
 
   /// See `add`, but services are not limited to a thread poll size.
-  Status addService(InternalRunnableRef service);
+  static Status addService(InternalRunnableRef service);
 
   /**
    * @brief Getter for the underlying thread manager instance.
@@ -139,13 +139,13 @@ class Dispatcher {
    * underlying thread manager has been determined to be necessary.
    *
    * @code{.cpp}
-   *   auto t = osquery::Dispatcher::getInstance()->getThreadManager();
+   *   auto t = osquery::Dispatcher::getThreadManager();
    * @endcode
    *
    * @return a shared pointer to the Apache Thrift `ThreadManager` instance
    * which is currently being used to orchestrate multi-threaded operations.
    */
-  InternalThreadManagerRef getThreadManager();
+  InternalThreadManagerRef getThreadManager() const;
 
   /**
    * @brief Joins the thread manager.
@@ -154,13 +154,13 @@ class Dispatcher {
    * have finished their work. At that point the ThreadManager will transition
    * into the STOPPED state.
    */
-  void join();
+  static void join();
 
   /// See `join`, but applied to osquery services.
   static void joinServices();
 
   /// Destroy and stop all osquery service threads and service objects.
-  void removeServices();
+  static void removeServices();
 
   /**
    * @brief Get the current state of the thread manager.
@@ -180,7 +180,7 @@ class Dispatcher {
    *
    * @see osquery::Dispatcher::removeWorker
    */
-  void addWorker(size_t value = 1);
+  static void addWorker(size_t value = 1);
 
   /**
    * @brief Remove a worker thread.
@@ -193,7 +193,7 @@ class Dispatcher {
    *
    * @see osquery::Dispatcher::addWorker
    */
-  void removeWorker(size_t value = 1);
+  static void removeWorker(size_t value = 1);
 
   /**
    * @brief Gets the current number of idle worker threads.
@@ -242,17 +242,20 @@ class Dispatcher {
   /**
    * @brief Default constructor.
    *
-   * Since instances of Dispatcher should only be created via getInstance(),
+   * Since instances of Dispatcher should only be created via instance(),
    * Dispatcher's constructor is private.
    */
   Dispatcher();
+  Dispatcher(Dispatcher const&);
+  void operator=(Dispatcher const&);
+  virtual ~Dispatcher() {}
 
  private:
   /**
    * @brief Internal shared pointer which references Thrift's thread manager
    *
    * All thread operations occur via Apache Thrift's ThreadManager class. This
-   * private member represents a shared pointer to an instantiation os that
+   * private member represents a shared pointer to an instantiation of that
    * thread manager, which can be used to accomplish various threading
    * objectives.
    *

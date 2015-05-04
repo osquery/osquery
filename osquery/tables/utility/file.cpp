@@ -105,7 +105,7 @@ QueryData genFile(QueryContext& context) {
     }
   }
 
-  // Now loop through contraints using the pattern column constraint.
+  // Now loop through constraints using the pattern column constraint.
   auto patterns = context.constraints["pattern"].getAll(EQUALS);
   if (patterns.size() != 1) {
     return results;

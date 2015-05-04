@@ -199,7 +199,7 @@ void Initializer::initWatcher() {
   // Add a watcher service thread to start/watch an optional worker and set
   // of optional extensions in the autoload paths.
   if (Watcher::hasManagedExtensions() || !FLAGS_disable_watchdog) {
-    Dispatcher::getInstance().addService(std::make_shared<WatcherRunner>(
+    Dispatcher::addService(std::make_shared<WatcherRunner>(
         *argc_, *argv_, !FLAGS_disable_watchdog));
   }
 
@@ -215,18 +215,21 @@ void Initializer::initWatcher() {
 }
 
 void Initializer::initWorker(const std::string& name) {
-  // Set the worker's process name.
-  size_t name_size = strlen((*argv_)[0]);
+  // Clear worker's arguments.
   for (int i = 0; i < *argc_; i++) {
     if ((*argv_)[i] != nullptr) {
       memset((*argv_)[i], 0, strlen((*argv_)[i]));
     }
   }
-  memcpy((*argv_)[0], name.c_str(), name_size);
+
+  // Set the worker's process name.
+  size_t name_size = strlen((*argv_)[0]);
+  if (name.size() <= name_size) {
+    std::copy(name.begin(), name.end(), (*argv_)[0]);
+  }
 
   // Start a watcher watcher thread to exit the process if the watcher exits.
-  Dispatcher::getInstance().addService(
-      std::make_shared<WatcherWatcherRunner>(getppid()));
+  Dispatcher::addService(std::make_shared<WatcherWatcherRunner>(getppid()));
 }
 
 void Initializer::initWorkerWatcher(const std::string& name) {

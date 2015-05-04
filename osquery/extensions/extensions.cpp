@@ -63,13 +63,19 @@ CLI_FLAG(string,
          "/etc/osquery/modules.load",
          "Optional path to a list of autoloaded registry modules")
 
-/// Alias the extensions_socket (used by core) to an alternate name reserved
-/// for extension binaries
+/**
+ * @brief Alias the extensions_socket (used by core) to a simple 'socket'.
+ *
+ * Extension binaries will more commonly set the path to an extension manager
+ * socket. Alias the long switch name to 'socket' for an easier UX.
+ *
+ * We include timeout and interval, where the 'extensions_' prefix is removed
+ * in the alias since we are already within the context of an extension.
+ */
 EXTENSION_FLAG_ALIAS(socket, extensions_socket);
-
-/// An extension manager may not be immediately available.
 EXTENSION_FLAG_ALIAS(timeout, extensions_timeout);
 EXTENSION_FLAG_ALIAS(interval, extensions_interval);
+
 void ExtensionWatcher::enter() {
   // Watch the manager, if the socket is removed then the extension will die.
   while (true) {
@@ -324,7 +330,7 @@ Status startExtension(const std::string& manager_path,
   Registry::setUp();
 
   // Start the extension's Thrift server
-  Dispatcher::getInstance().addService(
+  Dispatcher::addService(
       std::make_shared<ExtensionRunner>(manager_path, ext_status.uuid));
   VLOG(1) << "Extension (" << name << ", " << ext_status.uuid << ", " << version
           << ", " << sdk_version << ") registered";
@@ -501,7 +507,7 @@ Status startExtensionWatcher(const std::string& manager_path,
   }
 
   // Start a extension manager watcher, if the manager dies, so should we.
-  Dispatcher::getInstance().addService(
+  Dispatcher::addService(
       std::make_shared<ExtensionWatcher>(manager_path, interval, fatal));
   return Status(0, "OK");
 }
@@ -522,11 +528,11 @@ Status startExtensionManager(const std::string& manager_path) {
 
   auto latency = atoi(FLAGS_extensions_interval.c_str()) * 1000;
   // Start a extension manager watcher, if the manager dies, so should we.
-  Dispatcher::getInstance().addService(
+  Dispatcher::addService(
       std::make_shared<ExtensionManagerWatcher>(manager_path, latency));
 
   // Start the extension manager thread.
-  Dispatcher::getInstance().addService(
+  Dispatcher::addService(
       std::make_shared<ExtensionManagerRunner>(manager_path));
   return Status(0, "OK");
 }
