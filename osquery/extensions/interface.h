@@ -29,14 +29,14 @@
 #include CONCAT(OSQUERY_THRIFT,ExtensionManager.h)
 // clang-format on
 
+namespace osquery {
+namespace extensions {
+
 using namespace apache::thrift;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 using namespace apache::thrift::server;
 using namespace apache::thrift::concurrency;
-
-namespace osquery {
-namespace extensions {
 
 /**
  * @brief The Thrift API server used by an osquery Extension process.
@@ -249,16 +249,16 @@ class ExtensionManagerRunner : public InternalRunnable {
 class EXInternal {
  public:
   explicit EXInternal(const std::string& path)
-      : socket_(new TSocket(path)),
-        transport_(new TBufferedTransport(socket_)),
-        protocol_(new TBinaryProtocol(transport_)) {}
+      : socket_(new extensions::TSocket(path)),
+        transport_(new extensions::TBufferedTransport(socket_)),
+        protocol_(new extensions::TBinaryProtocol(transport_)) {}
 
   virtual ~EXInternal() { transport_->close(); }
 
  protected:
-  OSQUERY_THRIFT_POINTER::shared_ptr<TSocket> socket_;
-  OSQUERY_THRIFT_POINTER::shared_ptr<TTransport> transport_;
-  OSQUERY_THRIFT_POINTER::shared_ptr<TProtocol> protocol_;
+  OSQUERY_THRIFT_POINTER::shared_ptr<extensions::TSocket> socket_;
+  OSQUERY_THRIFT_POINTER::shared_ptr<extensions::TTransport> transport_;
+  OSQUERY_THRIFT_POINTER::shared_ptr<extensions::TProtocol> protocol_;
 };
 
 /// Internal accessor for a client to an extension (from an extension manager).

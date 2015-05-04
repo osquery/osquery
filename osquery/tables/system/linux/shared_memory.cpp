@@ -26,7 +26,7 @@ struct shm_info {
   unsigned long shm_swp;
   unsigned long swap_attempts;
   unsigned long swap_successes;
-};
+} __attribute__((unused));
 
 QueryData genSharedMemory(QueryContext &context) {
   QueryData results;

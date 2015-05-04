@@ -51,7 +51,6 @@ void genShellHistoryForUser(const std::string& username,
 
 QueryData genShellHistory(QueryContext& context) {
   QueryData results;
-  std::string sql_str;
 
   QueryData users;
   if (!getuid()) {

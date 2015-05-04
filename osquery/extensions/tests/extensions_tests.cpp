@@ -37,7 +37,7 @@ class ExtensionsTest : public testing::Test {
   }
 
   void TearDown() {
-    Dispatcher::getInstance().removeServices();
+    Dispatcher::removeServices();
     Dispatcher::joinServices();
     remove(kTestManagerSocket);
   }

@@ -16,6 +16,7 @@
 
 extern "C" {
 #include <dpkg/dpkg-db.h>
+
 // copy pasted from dpkg-db.h
 // these enums are inside struct pkginfo and are not visible for other headers
 enum pkgwant {
@@ -27,11 +28,13 @@ enum pkgwant {
   // Not allowed except as special sentinel value in some places.
   want_sentinel,
 } want;
+
 // The error flag bitmask.
 enum pkgeflag {
   eflag_ok = 0,
   eflag_reinstreq = 1,
 } eflag;
+
 enum pkgstatus {
   stat_notinstalled,
   stat_configfiles,
@@ -173,14 +176,9 @@ QueryData genDebs(QueryContext &context) {
   QueryData results;
 
   struct pkg_array packages;
-  struct pkginfo *pkg;
-  int i;
-
   dpkg_setup(&packages);
-
-  for (i = 0; i < packages.n_pkgs; i++) {
-    pkg = packages.pkgs[i];
-
+  for (int i = 0; i < packages.n_pkgs; i++) {
+    struct pkginfo *pkg = packages.pkgs[i];
     if (pkg->status == pkg->stat_notinstalled) {
       continue;
     }
@@ -189,7 +187,6 @@ QueryData genDebs(QueryContext &context) {
   }
 
   dpkg_teardown(&packages);
-
   return results;
 }
 }

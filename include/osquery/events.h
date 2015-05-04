@@ -159,7 +159,7 @@ struct Subscription {
   /// A pointer to possible extra data
   void* user_data;
 
-  Subscription(EventSubscriberID& name)
+  explicit Subscription(EventSubscriberID& name)
       : subscriber_name(name), user_data(nullptr) {}
 
   static SubscriptionRef create(EventSubscriberID& name) {
@@ -279,7 +279,7 @@ class EventPublisherPlugin : public Plugin {
 
  private:
   EventPublisherPlugin(EventPublisherPlugin const&);
-  void operator=(EventPublisherPlugin const&);
+  EventPublisherPlugin& operator=(EventPublisherPlugin const&);
 
  private:
   /// Set ending to True to cause event type run loops to finish.
@@ -540,7 +540,7 @@ class EventSubscriberPlugin : public Plugin {
 
  private:
   EventSubscriberPlugin(EventSubscriberPlugin const&);
-  void operator=(EventSubscriberPlugin const&);
+  EventSubscriberPlugin& operator=(EventSubscriberPlugin const&);
 
  private:
   Status setUp() { return Status(0, "Setup never used"); }
@@ -576,7 +576,7 @@ class EventSubscriberPlugin : public Plugin {
  * Since event types may be plugins, they are created using the factory.
  * Since subscriptions may be configured/disabled they are also factory-managed.
  */
-class EventFactory {
+class EventFactory : private boost::noncopyable {
  public:
   /// Access to the EventFactory instance.
   static EventFactory& getInstance();
@@ -713,7 +713,7 @@ class EventFactory {
   /// An EventFactory will exist for the lifetime of the application.
   EventFactory() {}
   EventFactory(EventFactory const&);
-  void operator=(EventFactory const&);
+  EventFactory& operator=(EventFactory const&);
   ~EventFactory() {}
 
  private:

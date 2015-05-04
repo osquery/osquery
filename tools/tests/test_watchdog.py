@@ -14,6 +14,7 @@ from __future__ import unicode_literals
 
 import os
 import shutil
+import time
 import unittest
 
 # osquery-specific testing utils

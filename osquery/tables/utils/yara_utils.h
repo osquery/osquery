@@ -26,7 +26,7 @@ void YARACompilerCallback(int error_level,
                           const char* message,
                           void* user_data);
 
-Status compileSingleFile(const std::string file, YR_RULES** rule);
+Status compileSingleFile(const std::string& file, YR_RULES** rule);
 
 Status handleRuleFiles(const std::string& category,
                        const pt::ptree& rule_files,

@@ -151,8 +151,8 @@ void launchQuery(const std::string& name, const ScheduledQuery& query) {
 }
 
 void SchedulerRunner::enter() {
-  time_t t = time(0);
-  struct tm* local = localtime(&t);
+  time_t t = std::time(nullptr);
+  struct tm* local = std::localtime(&t);
   unsigned long int i = local->tm_sec;
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
     {
@@ -177,8 +177,7 @@ Status startScheduler() {
 }
 
 Status startScheduler(unsigned long int timeout, size_t interval) {
-  Dispatcher::getInstance().addService(
-      std::make_shared<SchedulerRunner>(timeout, interval));
+  Dispatcher::addService(std::make_shared<SchedulerRunner>(timeout, interval));
   return Status(0, "OK");
 }
 }

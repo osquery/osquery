@@ -47,6 +47,15 @@ ADD_OSQUERY_LINK(TRUE "boost_filesystem")
 ADD_OSQUERY_LINK(TRUE "boost_regex")
 ADD_OSQUERY_LINK(TRUE "yara")
 
+if(DEFINED ENV{SANITIZE})
+  if(DEFINED ENV{SANITIZE_THREAD})
+    ADD_OSQUERY_LINK(TRUE -fsanitize=thread)
+  else()
+    ADD_OSQUERY_LINK(TRUE -fsanitize=address -fsanitize=leak)
+  endif()
+  ADD_OSQUERY_LINK(TRUE -fsanitize-blacklist=${SANITIZE_BLACKLIST})
+endif()
+
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
 set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
@@ -78,6 +87,7 @@ list(APPEND OSQUERY_LIBS ${OSQUERY_LINKS})
 
 # Create the static libosquery (everything but non-utility tables).
 set(CMAKE_MACOSX_RPATH 0)
+set(CMAKE_SKIP_RPATH TRUE)
 add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
 target_link_libraries(libosquery ${OSQUERY_LIBS})
 set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)

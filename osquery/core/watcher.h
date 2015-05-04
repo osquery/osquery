@@ -75,7 +75,7 @@ struct PerformanceState {
  * autoloaded extension ended. Tables may also report on the historic worker
  * or extension utilizations.
  *
- * Though not critical, it is perferred to remove the extension's broadcasted
+ * Though not critical, it is preferred to remove the extension's broadcasted
  * routes quickly. Locking access to the extensions list between signals and
  * the WatcherRunner thread allows osquery to tearDown registry changes before
  * attempting to respawn an extension process.
@@ -136,7 +136,7 @@ class Watcher : private boost::noncopyable {
    *
    * Some initialization decisions are made based on waiting for plugins to
    * broadcast from potentially-loaded extensions. If no extensions are loaded
-   * and an active (selected at comand line) plugin is missing, fail quickly.
+   * and an active (selected at command line) plugin is missing, fail quickly.
    */
   static bool hasManagedExtensions();
 
@@ -225,7 +225,7 @@ class WatcherRunner : public InternalRunnable {
  private:
   /// Keep the invocation daemon's argc to iterate through argv.
   int argc_;
-  /// When a worker child is spawned the argv will be scrubed.
+  /// When a worker child is spawned the argv will be scrubbed.
   char** argv_;
   /// Spawn/monitor a worker process.
   bool use_worker_;

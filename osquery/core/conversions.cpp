@@ -15,8 +15,6 @@
 #include <boost/archive/iterators/binary_from_base64.hpp>
 #include <boost/archive/iterators/base64_from_binary.hpp>
 
-#include <boost/archive/iterators/transform_width.hpp>
-
 #include "osquery/core/conversions.h"
 
 namespace bai = boost::archive::iterators;
