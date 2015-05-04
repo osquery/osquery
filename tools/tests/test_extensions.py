@@ -80,7 +80,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Now try to connect to the disabled API
-        client = EXClient()
+        client = EXClient(daemon.options["extensions_socket"])
         self.assertFalse(client.open())
         daemon.kill()
 
@@ -89,7 +89,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient()
+        client = EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -121,7 +121,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient()
+        client = EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -131,7 +131,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(len(result), 0)
 
         # Make sure the extension process starts
-        extension = self._run_extension()
+        extension = self._run_extension(path=daemon.options["extensions_socket"])
         self.assertTrue(extension.isAlive())
 
         # Now that an extension has started, check extension list
@@ -144,7 +144,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(ex_data.min_sdk_version, "0.0.0")
 
         # Get a python-based thrift client to the extension's service
-        client2 = EXClient(uuid=ex_uuid)
+        client2 = EXClient(daemon.options["extensions_socket"], uuid=ex_uuid)
         client2.open()
         ex = client2.getEX()
         self.assertEqual(ex.ping().code, 0)
@@ -182,7 +182,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient()
+        client = EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -192,7 +192,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(len(result), 0)
 
         # Make sure the extension process starts
-        extension = self._run_extension()
+        extension = self._run_extension(path=daemon.options["extensions_socket"])
         self.assertTrue(extension.isAlive())
 
         # Now that an extension has started, check extension list
@@ -207,7 +207,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(len(result), 0)
 
         # Make sure the extension restarts
-        extension = self._run_extension()
+        extension = self._run_extension(path=daemon.options["extensions_socket"])
         self.assertTrue(extension.isAlive())
 
         # With the reset there should be 1 extension again
@@ -228,11 +228,14 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(extension.isAlive())
 
         # Now start a daemon
-        daemon = self._run_daemon({"disable_watchdog": True})
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "extensions_socket": extension.options["extensions_socket"],
+        })
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient()
+        client = EXClient(extension.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -255,7 +258,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient()
+        client = EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -274,7 +277,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient()
+        client = EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -297,7 +300,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient()
+        client = EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -316,18 +319,21 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(extension.isAlive())
 
         # Now start a daemon
-        daemon = self._run_daemon({"disable_watchdog": True})
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "extensions_socket": extension.options["extensions_socket"],
+        })
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client to the manager and extension.
-        client = EXClient()
+        client = EXClient(extension.options["extensions_socket"])
         client.open()
         em = client.getEM()
         # Need the manager to request the extension's UUID.
         result = test_base.expect(em.extensions, 1)
         self.assertTrue(result is not None)
         ex_uuid = result.keys()[0]
-        client2 = EXClient(uuid=ex_uuid)
+        client2 = EXClient(extension.options["extensions_socket"], uuid=ex_uuid)
         client2.open()
         ex = client2.getEX()
 

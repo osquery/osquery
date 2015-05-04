@@ -247,6 +247,7 @@ class ProcessGenerator(object):
         global ARGS, CONFIG_NAME, CONFIG
         config = copy.deepcopy(CONFIG)
         config["options"]["database_path"] += str(random.randint(1000, 9999))
+        config["options"]["extensions_socket"] += str(random.randint(1000, 9999))
         for option in options.keys():
             config["options"][option] = options[option]
         flags = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
@@ -256,23 +257,28 @@ class ProcessGenerator(object):
         binary = os.path.join(ARGS.build, "osquery", "osqueryd")
 
         daemon = ProcRunner("daemon", binary, flags, silent=silent)
+        daemon.options = config["options"]
         self.generators.append(daemon)
         return daemon
 
-    def _run_extension(self, timeout=0, silent=False):
+    def _run_extension(self, timeout=0, path=None, silent=False):
         '''Spawn an osquery extension (example_extension)'''
-        global ARGS, CONFIG_NAME
+        global ARGS, CONFIG
+        config = copy.deepcopy(CONFIG)
+        config["options"]["extensions_socket"] += str(random.randint(1000, 9999))
         binary = os.path.join(ARGS.build, "osquery", "example_extension.ext")
+        path = path if path else config["options"]["extensions_socket"]
         extension = ProcRunner("extension",
             binary,
             [
-                "--socket=%s" % CONFIG["options"]["extensions_socket"],
+                "--socket=%s" % path,
                 "--verbose" if ARGS.verbose else "",
                 "--timeout=%d" % timeout,
                 "--interval=%d" % 1,
             ],
             silent=silent)
         self.generators.append(extension)
+        extension.options = config["options"]
         return extension
 
     def tearDown(self):
