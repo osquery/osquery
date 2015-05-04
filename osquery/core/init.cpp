@@ -216,6 +216,7 @@ void Initializer::initWatcher() {
 
 void Initializer::initWorker(const std::string& name) {
   // Clear worker's arguments.
+  size_t name_size = strlen((*argv_)[0]);
   for (int i = 0; i < *argc_; i++) {
     if ((*argv_)[i] != nullptr) {
       memset((*argv_)[i], 0, strlen((*argv_)[i]));
@@ -223,7 +224,6 @@ void Initializer::initWorker(const std::string& name) {
   }
 
   // Set the worker's process name.
-  size_t name_size = strlen((*argv_)[0]);
   if (name.size() <= name_size) {
     std::copy(name.begin(), name.end(), (*argv_)[0]);
   }

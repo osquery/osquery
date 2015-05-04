@@ -92,9 +92,13 @@ ifeq ($(PLATFORM),Linux)
 		@ln -snf debug_$(BUILD_DIR) build/debug_linux
 endif
 
-package:
+package: .setup
 	# Alias for packages (do not use CPack)
-	cd build/$(BUILD_DIR) && cmake ../../ && \
+	cd build/$(BUILD_DIR) && PACKAGE=True cmake ../../ && \
+		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
+
+packages: .setup
+	cd build/$(BUILD_DIR) && PACKAGE=True cmake ../../ && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
 %::
