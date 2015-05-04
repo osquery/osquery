@@ -21,6 +21,16 @@ function require_channel() {
   fi
 }
 
+function enable_repo() {
+  if sudo subscription-manager repos --enable=$1; then
+    echo "RHN subscription repo enabled: $1"
+  else
+    echo "WARNING: Could not enable RHN repo!"
+    echo "WARNING: Please run: sudo subscription-manager repos --enable=$1"
+    echo "WARNING: Continuing dependency installation, this may fail..."
+  fi
+}
+
 function main_rhel() {
   sudo yum update -y
 
@@ -48,7 +58,7 @@ function main_rhel() {
   package rubygems
 
   if [[ $DISTRO = "rhel6" ]]; then
-    sudo subscription-manager repos --enable=rhel-6-server-optional-rpms
+    enable_repo rhel-6-server-optional-rpms
     package scl-utils
     package policycoreutils-python
     package devtoolset-3-runtime
@@ -58,7 +68,7 @@ function main_rhel() {
     package devtoolset-3-gcc-c++-4.9.2
     source /opt/rh/devtoolset-3/enable
   elif [[ $DISTRO = "rhel7" ]]; then
-    sudo subscription-manager repos --enable=rhel-7-server-optional-rpms
+    enable_repo rhel-7-server-optional-rpms
     package gcc
     package binutils
     package gcc-c++
