@@ -10,15 +10,6 @@
 function main_centos() {
   sudo yum update -y
 
-  if [[ -z $(rpm -qa | grep 'kernel-headers-3') ]]; then
-    if [[ $DISTRO = "centos6" ]]; then
-      sudo rpm -iv https://osquery-packages.s3.amazonaws.com/deps/kernel-headers-3.10.0-123.9.3.el7.x86_64.rpm
-    elif [[ $DISTRO = "centos7" ]]; then
-      #package kernel-headers
-      true
-    fi
-  fi
-
   package texinfo
   package wget
   package git-all
