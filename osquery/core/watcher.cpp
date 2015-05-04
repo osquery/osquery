@@ -260,6 +260,20 @@ bool WatcherRunner::isChildSane(pid_t child) {
 
     // Check if the sustained difference exceeded the acceptable latency limit.
     sustained_latency = state.sustained_latency;
+
+    // Set the memory footprint as the amount of resident bytes allocated
+    // since the process image was created (estimate).
+    // A more-meaningful check would limit this to writable regions.
+    if (state.initial_footprint == 0) {
+      state.initial_footprint = footprint;
+    }
+
+    // Set the measured/limit-applied footprint to the post-launch allocations.
+    if (footprint < state.initial_footprint) {
+      footprint = 0;
+    } else {
+      footprint = footprint - state.initial_footprint;
+    }
   }
 
   // Only make a decision about the child sanity if it is still the watcher's

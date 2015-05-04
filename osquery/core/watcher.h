@@ -58,11 +58,15 @@ struct PerformanceState {
   /// A timestamp when the process/worker was last created.
   size_t last_respawn_time;
 
+  /// The initial (or as close as possible) process image footprint.
+  size_t initial_footprint;
+
   PerformanceState() {
     sustained_latency = 0;
     user_time = 0;
     system_time = 0;
     last_respawn_time = 0;
+    initial_footprint = 0;
   }
 };
 
