@@ -147,6 +147,38 @@ function install_boost() {
   fi
 }
 
+function patch_iptables_headers() {
+  IPV4FILE="/usr/include/linux/netfilter_ipv4/ip_tables.h"
+  IPV6FILE="/usr/include/linux/netfilter_ipv6/ip6_tables.h"
+  CODE_TO_PATCH="return (void \*)e + e->target_offset;"
+  if [[ -f "$IPV4FILE" ]]; then
+    if [[ -n `grep "$CODE_TO_PATCH" "$IPV4FILE"` ]]; then
+      log "IPv4 code to patch found, backing up first"
+      sudo cp "$IPV4FILE" "$IPV4FILE.osquery"
+      PATCH="return (struct ipt_entry_target *)((char *)e + e->target_offset);"
+      cat "$IPV4FILE" | sudo bash -c "sed \"s/$CODE_TO_PATCH/$PATCH/g\" > \"$IPV4FILE\""
+      log "IPv4 headers patched succesfully"
+    else
+      log "IPv4 code to patch not found, skipping."
+    fi
+  else
+    log "IPv4 iptables headers not found, skipping."
+  fi
+  if [[ -f "$IPV6FILE" ]]; then
+    if [[ -n `grep "$CODE_TO_PATCH" "$IPV6FILE"` ]]; then
+      log "IPv6 code to patch found, backing up first"
+      sudo cp "$IPV6FILE" "$IPV6FILE.osquery"
+      PATCH="return (struct ip6t_entry_target *)((char *)e + e->target_offset);"
+      cat "$IPV6FILE" | sudo bash -c "sed \"s/$CODE_TO_PATCH/$PATCH/g\" > \"$IPV6FILE\""
+      log "IPv6 headers patched succesfully"
+    else
+      log "IPv6 code to patch not found, skipping."
+    fi
+  else
+    log "IPv6 iptables headers not found, skipping."
+  fi
+}
+
 function install_gflags() {
   if [[ ! -f /usr/local/lib/libgflags.a ]]; then
     if [[ ! -f v2.1.1.tar.gz ]]; then
