@@ -36,10 +36,12 @@ if(APPLE)
     "-x objective-c++ -fobjc-arc -Wno-c++11-extensions -mmacosx-version-min=${APPLE_MIN_ABI}")
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
   set(FREEBSD TRUE)
+  set(LINUX FALSE)
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
   set(OS_WHOLELINK_PRE "")
   set(OS_WHOLELINK_POST "")
 else()
+  set(FREEBSD FALSE)
   set(LINUX TRUE)
   # Do not use the shared linker flags for modules.
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
@@ -164,7 +166,8 @@ elseif(OSQUERY_BUILD_PLATFORM STREQUAL "centos")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "rhel")
   set(RHEL TRUE)
   message("-- Building for RHEL")
-elseif(FREEBSD)
+elseif(OSQUERY_BUILD_PLATFORM STREQUAL "freebsd")
+  set(FREEBSD TRUE)
   message("-- Building for FreeBSD")
 endif()
 
@@ -244,4 +247,5 @@ add_custom_target(
   "${CMAKE_SOURCE_DIR}/tools/sync.sh" "${CMAKE_BINARY_DIR}"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Generating sdk sync: ${CMAKE_BINARY_DIR}/sync"
+  DEPENDS osquery_extensions osquery_amalgamation
 )
