@@ -34,6 +34,7 @@ function main_ubuntu() {
   package debhelper
   package iptables
   package iptables-dev
+  patch_iptables_headers
 
   if [[ $DISTRO = "precise" ]]; then
     package clang-3.4

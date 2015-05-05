@@ -16,7 +16,6 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -44,20 +43,18 @@ QueryData getIptablesRules(const std::string& content) {
 
     r["filter_name"] = TEXT(line);
 
-    struct iptc_handle *h;
-
     // Initialize the access to iptc
-    h = (struct iptc_handle*) iptc_init(line.c_str());
+    auto handle = (struct iptc_handle*) iptc_init(line.c_str());
 
-    if (h) {
+    if (handle) {
       // Iterate through chains
-      for (auto chain = iptc_first_chain((struct iptc_handle*)h); chain; chain = iptc_next_chain((struct iptc_handle*)h))  {
+      for (auto chain = iptc_first_chain((struct iptc_handle*)handle); chain; chain = iptc_next_chain((struct iptc_handle*)handle))  {
         r["chain"] = TEXT(chain);
 
         struct ipt_counters counters;
         const char* policy;
 
-        if ((policy = iptc_get_policy(chain, &counters, (struct iptc_handle*)h))) {
+        if ((policy = iptc_get_policy(chain, &counters, (struct iptc_handle*)handle))) {
           r["policy"] = TEXT(policy);
           r["packets"] = INTEGER(counters.pcnt);
           r["bytes"] = INTEGER(counters.bcnt);
@@ -66,10 +63,10 @@ QueryData getIptablesRules(const std::string& content) {
         struct ipt_entry *prev_rule;
 
         // Iterating through all the rules per chain
-        for (auto chain_rule = iptc_first_rule(chain, (struct iptc_handle*)h); chain_rule; chain_rule = iptc_next_rule(prev_rule, (struct iptc_handle*)h))  {
+        for (auto chain_rule = iptc_first_rule(chain, (struct iptc_handle*)handle); chain_rule; chain_rule = iptc_next_rule(prev_rule, (struct iptc_handle*)handle))  {
           prev_rule = (struct ipt_entry*)chain_rule;
           struct ipt_ip *ip = (struct ipt_ip*)&chain_rule->ip;
-          auto target = iptc_get_target(chain_rule, (struct iptc_handle*)h);
+          auto target = iptc_get_target(chain_rule, (struct iptc_handle*)handle);
           if (target) {
             r["target"] = TEXT(target);
           }
@@ -130,7 +127,7 @@ QueryData getIptablesRules(const std::string& content) {
         results.push_back(r);
       } // Chain iteration
 
-      iptc_free((struct iptc_handle*) h);
+      iptc_free((struct iptc_handle*) handle);
 
     }
   } // Filter table iteration
