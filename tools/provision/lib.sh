@@ -58,7 +58,7 @@ function install_thrift() {
 function install_rocksdb() {
   if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
     if [[ ! -f rocksdb-3.10.2.tar.gz ]]; then
-      wget https://github.com/facebook/rocksdb/archive/rocksdb-3.10.2.tar.gz
+      wget https://osquery-packages.s3.amazonaws.com/deps/rocksdb-3.10.2.tar.gz
     else
       log "rocksdb source is already downloaded. skipping."
     fi
