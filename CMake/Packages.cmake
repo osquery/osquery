@@ -5,6 +5,7 @@ if(APPLE)
     "${CMAKE_SOURCE_DIR}/tools/deployment/make_osx_package.sh"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Building default OS X package (no custom config)" VERBATIM
+    DEPENDS daemon shell
   )
 elseif(LINUX)
   if(UBUNTU)
@@ -91,5 +92,6 @@ elseif(LINUX)
       -d "${PACKAGE_DEPENDENCIES}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Building linux packages (no custom config)" VERBATIM
+    DEPENDS daemon shell
   )
 endif()

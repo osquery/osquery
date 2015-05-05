@@ -2,10 +2,20 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_config
   config.cpp
 )
 
-ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
-  update.cpp
+set(OSQUERY_CONFIG_PLUGINS
   plugins/filesystem.cpp
-  plugins/http.cpp
+  update.cpp
+)
+
+if(NOT OSQUERY_BUILD_RELEASE)
+  set(OSQUERY_CONFIG_PLUGINS
+    ${OSQUERY_CONFIG_PLUGINS}
+    plugins/http.cpp
+  )
+endif()
+
+ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
+  ${OSQUERY_CONFIG_PLUGINS}
 )
 
 file(GLOB OSQUERY_CONFIG_TESTS "tests/*.cpp")

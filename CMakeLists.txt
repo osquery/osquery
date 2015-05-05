@@ -71,6 +71,7 @@ endif()
 
 # make debug (environment variable from Makefile)
 if(DEFINED ENV{DEBUG})
+  set(DEBUG TRUE)
   set(CMAKE_BUILD_TYPE "Debug")
   add_compile_options(-g -O0 -pg)
   add_definitions(-DDEBUG)
@@ -87,6 +88,7 @@ elseif(DEFINED ENV{SANITIZE})
   set(SANITIZE_BLACKLIST "${CMAKE_SOURCE_DIR}/tools/tests/sanitize_blacklist.txt")
   add_compile_options(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
 else()
+  set(DEBUG FALSE)
   add_compile_options(-O2)
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
@@ -96,6 +98,19 @@ endif()
 # make analyze (environment variable from Makefile)
 if(DEFINED ENV{ANALYZE})
   set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
+endif()
+
+# make sdk (tests building SDK-based extensions)
+if(DEFINED ENV{SDK})
+  set(OSQUERY_BUILD_SDK_ONLY TRUE)
+endif()
+
+# make packages will set release to true and blacklist development features,
+# development plugins, etc.
+if(DEFINED ENV{PACKAGE})
+  set(OSQUERY_BUILD_RELEASE TRUE)
+else()
+  set(OSQUERY_BUILD_RELEASE FALSE)
 endif()
 
 # Finished setting compiler/compiler flags.
@@ -126,11 +141,6 @@ if(DEFINED ENV{SDK_VERSION})
 else()
   string(REPLACE "-" ";" OSQUERY_BUILD_SDK_VERSION ${OSQUERY_BUILD_VERSION})
   list(GET OSQUERY_BUILD_SDK_VERSION 0 OSQUERY_BUILD_SDK_VERSION)
-endif()
-
-# make sdk (tests building SDK-based extensions)
-if(DEFINED ENV{SDK})
-  set(OSQUERY_BUILD_SDK_ONLY TRUE)
 endif()
 
 # Set various platform/platform-version/build version/etc defines.

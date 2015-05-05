@@ -29,7 +29,7 @@ from gentable import Column, ForeignKey, \
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
 
 CANONICAL_PLATFORMS = {
-    "x": "All Platforms",
+    "specs": "All Platforms",
     "darwin": "Darwin (Apple OS X)",
     "linux": "Ubuntu, CentOS",
     "centos": "CentOS",

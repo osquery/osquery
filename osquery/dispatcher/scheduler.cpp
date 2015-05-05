@@ -26,7 +26,7 @@ FLAG(string,
      "hostname",
      "Field used to identify the host running osquery (hostname, uuid)");
 
-FLAG(bool, disable_monitor, false, "Disable the schedule monitor");
+FLAG(bool, enable_monitor, false, "Enable the schedule monitor");
 
 CLI_FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
 
@@ -94,7 +94,7 @@ inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
 void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
   VLOG(1) << "Executing query: " << query.query;
-  auto sql = (!FLAGS_disable_monitor) ? monitor(name, query) : SQL(query.query);
+  auto sql = (FLAGS_enable_monitor) ? monitor(name, query) : SQL(query.query);
 
   if (!sql.ok()) {
     LOG(ERROR) << "Error executing query (" << query.query
