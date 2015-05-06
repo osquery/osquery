@@ -2,7 +2,10 @@ PLATFORM := $(shell uname -s)
 VERSION := $(shell git describe --tags HEAD --always)
 MAKE = make
 
-SHELL := /bin/bash
+SHELL := $(shell which bash)
+ifeq ($(PLATFORM),FreeBSD)
+	MAKE = gmake
+endif
 
 DISTRO := $(shell . ./tools/lib.sh; _platform)
 DISTRO_VERSION := $(shell . ./tools/lib.sh; _distro $(DISTRO))

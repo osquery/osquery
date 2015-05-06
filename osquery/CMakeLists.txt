@@ -22,10 +22,13 @@ set(OSQUERY_LIBS
 
   readline
   pthread
-  dl
   bz2
   z
 )
+
+if(NOT FREEBSD)
+  ADD_OSQUERY_LINK(TRUE "dl")
+endif()
 
 # Add default linking details (the first argument means SDK + core).
 ADD_OSQUERY_LINK(TRUE "-rdynamic")
