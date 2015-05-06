@@ -253,7 +253,7 @@ function package() {
       brew install --build-bottle $1 || brew upgrade $@
     fi
   elif [[ $OS = "freebsd" ]]; then
-    if [[ -z "$(pkg info -q $1)" ]]; then
+    if pkg info -q $1; then
       log "$1 is already installed. skipping."
     else
       log "installing $1"

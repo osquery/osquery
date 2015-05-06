@@ -19,7 +19,11 @@
 
 #include <osquery/core.h>
 
+#ifdef FREEBSD
+#define GFLAGS_NAMESPACE gflags
+#else
 #define GFLAGS_NAMESPACE google
+#endif
 
 namespace boost {
 /// We define a lexical_cast template for boolean for Gflags boolean string

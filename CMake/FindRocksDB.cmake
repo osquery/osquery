@@ -73,6 +73,8 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   # On Linux
   set(ROCKSDB_LIBRARY_NAMES ${ROCKSDB_LIBRARY_NAMES} librocksdb.so)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
+  set(ROCKSDB_LIBRARY_NAMES ${ROCKSDB_LIBRARY_NAMES} librocksdb.so)
 else()
   set(ROCKSDB_LIBRARY_NAMES ${ROCKSDB_LIBRARY_NAMES} librocksdb.a)
 endif()

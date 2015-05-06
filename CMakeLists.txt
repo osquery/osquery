@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-set(CMAKE_C_COMPILER "clang")
-set(CMAKE_CXX_COMPILER "clang++")
+#set(CMAKE_C_COMPILER "cc")
+#set(CMAKE_CXX_COMPILER "c++")
 add_compile_options(
   -Wall
   -Wextra
@@ -36,7 +36,8 @@ if(APPLE)
     "-x objective-c++ -fobjc-arc -Wno-c++11-extensions -mmacosx-version-min=${APPLE_MIN_ABI}")
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
   set(FREEBSD TRUE)
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
+  set(LINUX FALSE)
+  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
   set(OS_WHOLELINK_PRE "")
   set(OS_WHOLELINK_POST "")
 else()
@@ -139,7 +140,7 @@ execute_process(
 if(DEFINED ENV{SDK_VERSION})
   set(OSQUERY_BUILD_SDK_VERSION "${ENV{SDK_VERSION}}")
 else()
-  string(REPLACE "-" ";" OSQUERY_BUILD_SDK_VERSION ${OSQUERY_BUILD_VERSION})
+  string(REPLACE "-" ";" OSQUERY_BUILD_SDK_VERSION "1.4.5")
   list(GET OSQUERY_BUILD_SDK_VERSION 0 OSQUERY_BUILD_SDK_VERSION)
 endif()
 
@@ -164,7 +165,8 @@ elseif(OSQUERY_BUILD_PLATFORM STREQUAL "centos")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "rhel")
   set(RHEL TRUE)
   message("-- Building for RHEL")
-elseif(FREEBSD)
+elseif(OSQUERY_BUILD_PLATFORM STREQUAL "freebsd")
+  set(FREEBSD TRUE)
   message("-- Building for FreeBSD")
 endif()
 
@@ -183,7 +185,7 @@ find_package(Dl REQUIRED)
 find_package(Readline REQUIRED)
 
 # Most dependent packages/libs we want static.
-set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
+set(CMAKE_FIND_LIBRARY_SUFFIXES .so .a .dylib)
 find_package(CppNetlib 0.11.0 REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(Glog REQUIRED)
@@ -233,7 +235,7 @@ add_custom_target(
 # make format
 add_custom_target(
   format
-  python "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
+  python2 "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )

@@ -17,7 +17,7 @@
 /// The file change event publishers are slightly different in OS X and Linux.
 #ifdef __APPLE__
 #include "osquery/events/darwin/fsevents.h"
-#else
+#elif defined(LINUX)
 #include "osquery/events/linux/inotify.h"
 #endif
 
