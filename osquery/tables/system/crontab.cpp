@@ -25,7 +25,7 @@ const std::string kSystemCron = "/etc/crontab";
 #ifdef __APPLE__
 const std::string kUserCronsPath = "/var/at/tabs/";
 #else
-const std::string kUserCronsPath = "/var/spool/cron/crontabs/";
+const std::string kUserCronsPath = "/var/spool/cron/";
 #endif
 
 std::vector<std::string> cronFromFile(const std::string& path) {
