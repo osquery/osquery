@@ -23,7 +23,7 @@ class SchedulerRunner : public InternalRunnable {
 
  public:
   /// The Dispatcher thread entry point.
-  void enter();
+  void start();
 
  protected:
   /// The UNIX domain socket path for the ExtensionManager.

@@ -171,7 +171,7 @@ bool WatcherRunner::ok() {
   return (Watcher::getWorker() >= 0 || Watcher::hasManagedExtensions());
 }
 
-void WatcherRunner::enter() {
+void WatcherRunner::start() {
   // Set worker performance counters to an initial state.
   Watcher::resetWorkerCounters(0);
   signal(SIGCHLD, childHandler);
@@ -401,13 +401,13 @@ bool WatcherRunner::createExtension(const std::string& extension) {
   return true;
 }
 
-void WatcherWatcherRunner::enter() {
+void WatcherWatcherRunner::start() {
   while (true) {
     if (getppid() != watcher_) {
       // Watcher died, the worker must follow.
       VLOG(1) << "osqueryd worker (" << getpid()
               << ") detected killed watcher (" << watcher_ << ")";
-      Dispatcher::removeServices();
+      Dispatcher::stopServices();
       Dispatcher::joinServices();
       ::exit(EXIT_SUCCESS);
     }

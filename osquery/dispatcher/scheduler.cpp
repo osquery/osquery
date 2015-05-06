@@ -150,7 +150,7 @@ void launchQuery(const std::string& name, const ScheduledQuery& query) {
   }
 }
 
-void SchedulerRunner::enter() {
+void SchedulerRunner::start() {
   time_t t = std::time(nullptr);
   struct tm* local = std::localtime(&t);
   unsigned long int i = local->tm_sec;
