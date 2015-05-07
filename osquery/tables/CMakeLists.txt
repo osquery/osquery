@@ -59,12 +59,10 @@ else()
   ADD_OSQUERY_LINK(FALSE "uuid")
 endif()
 
-if(NOT FREEBSD)
-  file(GLOB OSQUERY_CROSS_TABLES "[!u]*/*.cpp")
-  ADD_OSQUERY_LIBRARY(FALSE osquery_tables
-    ${OSQUERY_CROSS_TABLES}
-  )
-endif()
+file(GLOB OSQUERY_CROSS_TABLES "[!ue]*/*.cpp")
+ADD_OSQUERY_LIBRARY(FALSE osquery_tables
+  ${OSQUERY_CROSS_TABLES}
+)
 
 file(GLOB OSQUERY_CROSS_TABLES_TESTS "[!u]*/tests/*.cpp")
 ADD_OSQUERY_TABLE_TEST(${OSQUERY_CROSS_TABLES_TESTS})
@@ -74,10 +72,12 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_tables_utility
   ${OSQUERY_UTILITY_TABLES}
 )
 
-file(GLOB OSQUERY_UTILS "utils/*.cpp")
-ADD_OSQUERY_LIBRARY(FALSE osquery_utils
-  ${OSQUERY_UTILS}
-)
+if(NOT FREEBSD)
+  file(GLOB OSQUERY_UTILS "utils/*.cpp")
+  ADD_OSQUERY_LIBRARY(FALSE osquery_utils
+    ${OSQUERY_UTILS}
+  )
 
-file(GLOB OSQUERY_UTILS_TESTS "utils/tests/*.cpp")
-ADD_OSQUERY_TEST(FALSE ${OSQUERY_UTILS_TESTS})
+  file(GLOB OSQUERY_UTILS_TESTS "utils/tests/*.cpp")
+  ADD_OSQUERY_TEST(FALSE ${OSQUERY_UTILS_TESTS})
+endif()

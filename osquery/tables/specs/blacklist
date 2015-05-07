@@ -1,4 +1,36 @@
 # osquery/tables/specs/blacklist
 # Usage: add table spec names to this list to prevent table generation
 # Example: add tables that are not yet ready for release
-
+# Example: add a platform:table_name, which is not yet ready
+freebsd:acpi_tables
+freebsd:arp_cache
+freebsd:block_devices
+freebsd:chrome_extensions
+freebsd:disk_encryption
+freebsd:file_events
+freebsd:firefox_addons
+freebsd:groups
+freebsd:hardware_events
+#freebsd:interface_addresses
+#freebsd:interface_details
+freebsd:kernel_info
+freebsd:last
+#freebsd:listening_ports
+freebsd:mounts
+freebsd:opera_extensions
+freebsd:os_version
+freebsd:passwd_changes
+freebsd:pci_devices
+freebsd:process_envs
+freebsd:process_memory_map
+freebsd:process_open_files
+freebsd:process_open_sockets
+freebsd:processes
+freebsd:routes
+freebsd:system_controls
+freebsd:usb_devices
+freebsd:users
+freebsd:yara_events
+freebsd:yara
+freebsd:system_controls
+freebsd:smbios_tables

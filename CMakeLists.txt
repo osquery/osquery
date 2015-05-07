@@ -1,7 +1,18 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-set(CMAKE_C_COMPILER "clang")
-set(CMAKE_CXX_COMPILER "clang++")
+if(NOT DEFINED ENV{CC})
+  set(CMAKE_C_COMPILER "clang")
+else()
+  set(CMAKE_C_COMPILER "$ENV{CC}")
+  message("-- Overriding C compiler from clang to $ENV{CC}")
+endif()
+if(NOT DEFINED ENV{CXX})
+  set(CMAKE_CXX_COMPILER "clang++")
+else()
+  set(CMAKE_CXX_COMPILER "$ENV{CXX}")
+  message("-- Overriding CXX compiler from clang++ to $ENV{CXX}")
+endif()
+
 add_compile_options(
   -Wall
   -Wextra
@@ -22,33 +33,6 @@ add_compile_options(
 )
 set(CXX_COMPILE_FLAGS "")
 
-# Set non-C compile flags and whole-loading linker flags.
-# osquery needs ALL symbols in the libraries it includes for relaxed ctors
-# late-loading modules and SQLite introspection utilities.
-if(APPLE)
-  set(APPLE_MIN_ABI "10.9")
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -mmacosx-version-min=${APPLE_MIN_ABI}")
-  set(OS_WHOLELINK_PRE "-Wl,-force_load")
-  set(OS_WHOLELINK_POST "")
-  # Special compile flags for Objective-C++
-  set(OBJCXX_COMPILE_FLAGS
-    "-x objective-c++ -fobjc-arc -Wno-c++11-extensions -mmacosx-version-min=${APPLE_MIN_ABI}")
-elseif(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
-  set(FREEBSD TRUE)
-  set(LINUX FALSE)
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
-  set(OS_WHOLELINK_PRE "")
-  set(OS_WHOLELINK_POST "")
-else()
-  set(FREEBSD FALSE)
-  set(LINUX TRUE)
-  # Do not use the shared linker flags for modules.
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
-  set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
-  set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
-endif()
-
 # Use osquery language to set platform/os
 execute_process(
   COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" get_platform
@@ -63,6 +47,33 @@ string(REPLACE "." "_" PLATFORM "${PLATFORM}")
 string(TOUPPER "${PLATFORM}" PLATFORM)
 list(GET PLATFORM 0 OSQUERY_BUILD_PLATFORM_DEFINE)
 list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO_DEFINE)
+
+# Set non-C compile flags and whole-loading linker flags.
+# osquery needs ALL symbols in the libraries it includes for relaxed ctors
+# late-loading modules and SQLite introspection utilities.
+if(APPLE)
+  set(APPLE_MIN_ABI "10.9")
+  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
+  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -mmacosx-version-min=${APPLE_MIN_ABI}")
+  set(OS_WHOLELINK_PRE "-Wl,-force_load")
+  set(OS_WHOLELINK_POST "")
+  # Special compile flags for Objective-C++
+  set(OBJCXX_COMPILE_FLAGS
+    "-x objective-c++ -fobjc-arc -Wno-c++11-extensions -mmacosx-version-min=${APPLE_MIN_ABI}")
+else()
+  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
+  set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
+  set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
+  # Set CMAKE variables depending on platform, to know which tables and what
+  # component-specific globbing is needed.
+  if(${OSQUERY_BUILD_PLATFORM} STREQUAL "freebsd")
+    set(FREEBSD TRUE)
+    set(LINUX FALSE)
+  else()
+    set(LINUX TRUE)
+    set(FREEBSD FALSE)
+  endif()
+endif()
 
 # RHEL6 uses a different gcc 4.9 runtime
 if(${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6")
@@ -118,7 +129,7 @@ endif()
 # Finished setting compiler/compiler flags.
 project(OSQUERY)
 
-# Make sure deps were built before compiling (else show warning)
+# Make sure deps were built before compiling (else show warning).
 execute_process(
   COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" check "${CMAKE_BINARY_DIR}"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -128,16 +139,23 @@ execute_process(
 )
 string(ASCII 27 Esc)
 if(OSQUERY_DEPS_CHECK)
-  message(WARNING "${Esc}[31m${OSQUERY_DEPS_MESSAGE}${Esc}[m")
+  message("-- ${Esc}[31m${OSQUERY_DEPS_MESSAGE}${Esc}[m")
 endif()
 
-# Generate version from git
-execute_process(
-  COMMAND git describe --tags HEAD --always
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  OUTPUT_VARIABLE OSQUERY_BUILD_VERSION
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+# Discover build version from an environment variable or from the git checkout.
+if(DEFINED ENV{OSQUERY_BUILD_VERSION})
+  set(OSQUERY_BUILD_VERSION "$ENV{OSQUERY_BUILD_VERSION}")
+else()
+  # Generate version from git
+  execute_process(
+    COMMAND git describe --tags HEAD --always
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE OSQUERY_BUILD_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+endif()
+
+# Discover the SDK version from an environment variable or the build version.
 if(DEFINED ENV{SDK_VERSION})
   set(OSQUERY_BUILD_SDK_VERSION "${ENV{SDK_VERSION}}")
 else()
