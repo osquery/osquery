@@ -327,6 +327,15 @@ void WatcherRunner::createWorker() {
     setenv("OSQUERY_EXTENSIONS", "true", 1);
   }
 
+  // Get the complete path of the osquery process binary.
+  auto exec_path = fs::system_complete(fs::path(qd[0]["path"]));
+  if (!safePermissions(
+          exec_path.parent_path().string(), exec_path.string(), true)) {
+    // osqueryd binary has become unsafe.
+    LOG(ERROR) << "osqueryd has unsafe permissions: " << exec_path.string();
+    ::exit(EXIT_FAILURE);
+  }
+
   auto worker_pid = fork();
   if (worker_pid < 0) {
     // Unrecoverable error, cannot create a worker process.
@@ -335,8 +344,6 @@ void WatcherRunner::createWorker() {
   } else if (worker_pid == 0) {
     // This is the new worker process, no watching needed.
     setenv("OSQUERY_WORKER", std::to_string(getpid()).c_str(), 1);
-    // Get the complete path of the osquery process binary.
-    auto exec_path = fs::system_complete(fs::path(qd[0]["path"]));
     execve(exec_path.string().c_str(), argv_, environ);
     // Code should never reach this point.
     LOG(ERROR) << "osqueryd could not start worker process";
