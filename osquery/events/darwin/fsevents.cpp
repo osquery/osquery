@@ -137,6 +137,8 @@ Status FSEventsEventPublisher::run() {
   return Status(0, "OK");
 }
 
+void FSEventsEventPublisher::end() { stop(); }
+
 void FSEventsEventPublisher::Callback(
     ConstFSEventStreamRef stream,
     void* callback_info,

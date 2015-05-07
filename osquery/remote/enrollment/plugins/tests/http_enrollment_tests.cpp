@@ -62,7 +62,6 @@ class RemoteEnrollmentTests : public testing::Test {
   std::shared_ptr<boost::thread> t_;
 };
 
-/*
 TEST_F(RemoteEnrollmentTests, test_enroll) {
   // Call enroll
   PluginRequest request = {
@@ -78,5 +77,4 @@ TEST_F(RemoteEnrollmentTests, test_enroll) {
     EXPECT_EQ(resp.size(), 1);
   }
 }
-*/
 }
