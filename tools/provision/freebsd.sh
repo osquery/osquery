@@ -13,5 +13,7 @@ function main_freebsd() {
   package python
   package py27-pip
   package rocksdb
+  package thrift
   package thrift-cpp
+  package yara
 }

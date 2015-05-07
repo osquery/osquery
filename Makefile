@@ -1,8 +1,11 @@
 PLATFORM := $(shell uname -s)
 VERSION := $(shell git describe --tags HEAD --always)
-MAKE = make
+SHELL := $(shell which bash)
 
-SHELL := /bin/bash
+MAKE = make
+ifeq ($(PLATFORM),FreeBSD)
+	MAKE = gmake
+endif
 
 DISTRO := $(shell . ./tools/lib.sh; _platform)
 DISTRO_VERSION := $(shell . ./tools/lib.sh; _distro $(DISTRO))
@@ -16,11 +19,11 @@ DEFINES := CTEST_OUTPUT_ON_FAILURE=1
 .PHONY: docs build
 
 all: .setup
-	cd build/$(BUILD_DIR) && cmake ../.. && \
+	cd build/$(BUILD_DIR) && cmake ../../ && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 docs: .setup
-	cd build && cmake .. && \
+	cd build && cmake ../ && \
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
 
 debug: .setup
@@ -74,6 +77,10 @@ test_debug_build:
 deps: .setup
 	./tools/provision.sh build build/$(BUILD_DIR)
 
+clean: .setup
+	cd build/$(BUILD_DIR) && cmake ../../ && \
+		$(DEFINES) $(MAKE) clean --no-print-directory $(MAKEFLAGS)
+
 distclean:
 	rm -rf .sources build/$(BUILD_DIR) build/debug_$(BUILD_DIR) build/docs
 ifeq ($(PLATFORM),Linux)
@@ -101,6 +108,10 @@ packages: .setup
 	cd build/$(BUILD_DIR) && PACKAGE=True cmake ../../ && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
+sync: .setup
+	cd build/$(BUILD_DIR) && PACKAGE=True cmake ../../ && \
+		$(DEFINES) $(MAKE) sync --no-print-directory $(MAKEFLAGS)
+
 %::
-	cd build/$(BUILD_DIR) && cmake ../.. && \
+	cd build/$(BUILD_DIR) && cmake ../../ && \
 		$(DEFINES) $(MAKE) --no-print-directory $@
