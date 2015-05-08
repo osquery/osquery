@@ -73,7 +73,11 @@ function install_rocksdb() {
         CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
       fi
       pushd rocksdb-rocksdb-3.10.2
-      make static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
+      if [[ $OS = "freebsd" ]]; then
+        CC=cc CXX=c++ gmake static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
+      else
+        make static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
+      fi
       popd
     fi
     sudo cp rocksdb-rocksdb-3.10.2/librocksdb.a /usr/local/lib

@@ -124,7 +124,8 @@ QueryData genInterfaceAddresses(QueryContext &context) {
   }
 
   for (if_addr = if_addrs; if_addr != nullptr; if_addr = if_addr->ifa_next) {
-    if (if_addr->ifa_addr->sa_family == AF_INET || if_addr->ifa_addr->sa_family == AF_INET6) {
+    if (if_addr->ifa_addr->sa_family == AF_INET ||
+        if_addr->ifa_addr->sa_family == AF_INET6) {
       genAddressesFromAddr(if_addr, results);
     }
   }
