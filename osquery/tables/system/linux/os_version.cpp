@@ -22,7 +22,7 @@ namespace xp = boost::xpressive;
 namespace osquery {
 namespace tables {
 
-#ifdef CENTOS
+#if defined(CENTOS) || defined(RHEL)
 const std::string kLinuxOSRelease = "/etc/redhat-release";
 const std::string kLinuxOSRegex =
     "(?P<name>\\w+) .* "
