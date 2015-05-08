@@ -62,6 +62,7 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_tables_utility
 
 ADD_OSQUERY_TEST(FALSE etc_hosts_tests networking/tests/etc_hosts_tests.cpp)
 ADD_OSQUERY_TEST(FALSE etc_protocols_tests networking/tests/etc_protocols_tests.cpp)
+ADD_OSQUERY_TEST(FALSE iptables_tests networking/tests/iptables_tests.cpp)
 if(APPLE)
   ADD_OSQUERY_TEST(FALSE apps_tests system/darwin/tests/apps_tests.cpp)
   ADD_OSQUERY_TEST(FALSE certificates_tests system/darwin/tests/certificates_tests.cpp)
