@@ -33,7 +33,7 @@ else()
   file(GLOB OSQUERY_LINUX_TABLES_TESTS "*/linux/tests/*.cpp")
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_LINUX_TABLES_TESTS})
 
-  if(CENTOS)
+  if(CENTOS OR RHEL)
     # CentOS specific tables
     file(GLOB OSQUERY_REDHAT_TABLES "*/centos/*.cpp")
     ADD_OSQUERY_LIBRARY(FALSE osquery_tables_redhat
