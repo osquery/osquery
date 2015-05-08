@@ -77,7 +77,7 @@ These queries can be:
 
 #### Downloads / Install
 
-For latest stable and nightly builds for OS X and Linux (deb/rpm), as well as yum and apt repository information visit [http://osquery.io/downloads](https://osquery.io/downloads/).
+For latest stable and nightly builds for OS X and Linux (deb/rpm), as well as yum and apt repository information visit [https://osquery.io/downloads](https://osquery.io/downloads/).
 
 ##### OS X (Homebrew)
 
