@@ -214,6 +214,9 @@ find_package(Snappy REQUIRED)
 find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.1 REQUIRED)
 
+# Python is used for table spec generation and formating.
+find_package(PythonInterp 2 REQUIRED)
+
 enable_testing()
 
 include(CMakeLibs)
@@ -254,7 +257,7 @@ add_custom_target(
 # make format
 add_custom_target(
   format
-  python "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
+  ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )

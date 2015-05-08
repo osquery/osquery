@@ -31,9 +31,9 @@ TEMPLATES = {}
 RESERVED = ["n", "index"]
 
 # Set the platform in osquery-language
-if sys.platform in ["freebsd10"]:
+if sys.platform.find("freebsd") == 0:
     PLATFORM = "freebsd"
-elif sys.platform in ["linux", "linux2"]:
+elif sys.platform.find("linux") == 0:
     PLATFORM = "linux"
 else:
     PLATFORM = sys.platform

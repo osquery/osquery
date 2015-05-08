@@ -11,8 +11,9 @@
 #include <sstream>
 #include <iomanip>
 
-#include <ifaddrs.h>
+// Maintain the order of includes (ifaddrs after if).
 #include <net/if.h>
+#include <ifaddrs.h>
 #include <sys/socket.h>
 
 #ifdef __linux__
