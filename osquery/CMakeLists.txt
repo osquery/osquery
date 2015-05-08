@@ -136,7 +136,11 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
 
   # Include the public API includes if make devel.
   install(TARGETS libosquery ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)
-  install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/" DESTINATION include COMPONENT devel OPTIONAL)
+  install(DIRECTORY "${CMAKE_SOURCE_DIR}/include"
+    DESTINATION include
+    COMPONENT devel OPTIONAL
+    PATTERN ".*" EXCLUDE
+  )
 
   # make install (executables)
   install(TARGETS shell RUNTIME DESTINATION bin COMPONENT main)
