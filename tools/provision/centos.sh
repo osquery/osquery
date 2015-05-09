@@ -64,7 +64,6 @@ function main_centos() {
   package libblkid-devel
   package iptables
   package iptables-devel
-  patch_iptables_headers
 
   install_cmake
 

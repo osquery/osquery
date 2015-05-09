@@ -226,6 +226,11 @@ include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("/usr/local/include")
 link_directories("/usr/local/lib")
 
+# Add sysroot overrides for each platform/distro.
+if(LINUX)
+  include_directories("${CMAKE_SOURCE_DIR}/sysroots/linux")
+endif()
+
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)
 
