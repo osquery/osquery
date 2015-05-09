@@ -79,6 +79,21 @@ These queries can be:
 
 For latest stable and nightly builds for OS X and Linux (deb/rpm), as well as yum and apt repository information visit [https://osquery.io/downloads](https://osquery.io/downloads/).
 
+##### FreeBSD
+
+The easiest way to install osquery on FreeBSD is via the ports tree.  Check [FreshPorts](http://www.freshports.org/sysutils/osquery) for the latest version information.
+
+```bash
+# from ports
+cd /usr/ports/sysutils/osquery && make install clean
+
+# from binary package
+pkg install osquery
+
+# using portmaster
+portmaster sysutils/osquery
+```
+
 ##### OS X (Homebrew)
 
 The easiest way to install osquery on OS X is via Homebrew. Check the [Homebrew](http://brew.sh/) homepage for installation instructions.
