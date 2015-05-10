@@ -30,6 +30,51 @@ class OsqueryiTest(unittest.TestCase):
         self.assertRaises(test_base.OsqueryException,
             self.osqueryi.run_query, 'foo')
 
+    def test_meta_commands(self):
+        '''Test the supported meta shell/help/info commands'''
+        commands = [
+            '.help',
+            '.all',
+            '.all osquery_info',
+            '.all this_table_does_not_exist',
+            '.echo',
+            '.echo on',
+            '.echo off',
+            '.header',
+            '.header off',
+            '.header on',
+            '.mode',
+            '.mode csv',
+            '.mode column',
+            '.mode line',
+            '.mode list',
+            '.mode pretty',
+            '.mode this_mode_does_not_exists',
+            '.nullvalue',
+            '.nullvalue ""',
+            '.print',
+            '.print hello',
+            '.schema osquery_info',
+            '.schema this_table_does_not_exist',
+            '.schema',
+            '.separator',
+            '.separator ,',
+            '.show',
+            '.tables osquery',
+            '.tables osquery_info',
+            '.tables this_table_does_not_exist',
+            '.tables',
+            '.trace',
+            '.width',
+            '.width 80',
+            '.timer',
+            '.timer on',
+            '.timer off'
+        ]
+        for command in commands:
+            result = self.osqueryi.run_command(command)
+        pass
+
     def test_time(self):
         '''Demonstrating basic usage of OsqueryWrapper with the time table'''
         self.osqueryi.run_command(' ')  # flush error output
