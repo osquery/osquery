@@ -62,8 +62,6 @@ function main_centos() {
   package rpm-devel
   package rpm-build
   package libblkid-devel
-  package iptables
-  package iptables-devel
 
   install_cmake
 
@@ -76,18 +74,16 @@ function main_centos() {
     package libudev-devel
     package cryptsetup-luks-devel
   elif [[ $DISTRO = "centos7" ]]; then
-    package systemd-devel
     package cryptsetup-devel
   fi
 
   install_gflags
+  install_iptables_dev
 
   package doxygen
   package byacc
   package flex
   package bison
-
-  remove_package libunwind-devel
 
   if [[ $DISTRO = "centos6" ]]; then
     install_autoconf

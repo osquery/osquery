@@ -8,36 +8,28 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 function install_cmake() {
-  if [[ ! -f /usr/local/bin/cmake ]]; then
-    if [[ ! -f cmake-3.2.1.tar.gz ]]; then
-      log "downloading the cmake source"
-      wget https://osquery-packages.s3.amazonaws.com/deps/cmake-3.2.1.tar.gz
-    fi
-    if [[ ! -d cmake-3.2.1 ]]; then
-      log "unpacking the cmake source"
-      tar -xf cmake-3.2.1.tar.gz
-    fi
-    log "building cmake"
+  TARBALL=cmake-3.2.1.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/cmake-3.2.1.tar.gz
+  SOURCE=cmake-3.2.1
 
-    pushd cmake-3.2.1
+  if provision cmake /usr/local/bin/cmake; then
+    pushd $SOURCE
     ./bootstrap --prefix=/usr/local/
-    make
+    # Note: this sometimes fails with an error about a missing libncurses
+    # The solution is to run make deps again.
+    CC="$CC" CXX="$CXX" make -j $THREADS
     sudo make install
     popd
-  else
-    log "cmake is already installed. skipping."
   fi
 }
 
 function install_thrift() {
-  if [[ ! -f /usr/local/lib/libthrift.a ]]; then
-    if [[ ! -f 0.9.1.tar.gz ]]; then
-      wget https://osquery-packages.s3.amazonaws.com/deps/0.9.1.tar.gz
-    fi
-    if [[ ! -d thrift-0.9.1 ]]; then
-      tar -xf 0.9.1.tar.gz
-    fi
-    pushd thrift-0.9.1
+  TARBALL=0.9.1.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/0.9.1.tar.gz
+  SOURCE=thrift-0.9.1
+
+  if provision thrift /usr/local/lib/libthrift.a; then
+    pushd $SOURCE
     ./bootstrap.sh
     ./configure CFLAGS="$CFLAGS" \
       --with-cpp=yes \
@@ -47,24 +39,18 @@ function install_thrift() {
       --with-erlang=no \
       --with-java=no \
       --with-php=no
-    make
+    CC="$CC" CXX="$CXX" make -j $THREADS
     sudo make install
     popd
-  else
-    log "thrift is installed. skipping."
   fi
 }
 
 function install_rocksdb() {
-  if [[ ! -f /usr/local/lib/librocksdb.a ]]; then
-    if [[ ! -f rocksdb-3.10.2.tar.gz ]]; then
-      wget https://osquery-packages.s3.amazonaws.com/deps/rocksdb-3.10.2.tar.gz
-    else
-      log "rocksdb source is already downloaded. skipping."
-    fi
-    if [[ ! -d rocksdb-rocksdb-3.10.2 ]]; then
-      tar -xf rocksdb-3.10.2.tar.gz
-    fi
+  TARBALL=rocksdb-3.10.2.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/rocksdb-3.10.2.tar.gz
+  SOURCE=rocksdb-rocksdb-3.10.2
+
+  if provision rocksdb /usr/local/lib/librocksdb.a; then
     if [[ ! -f rocksdb-rocksdb-3.10.2/librocksdb.a ]]; then
       if [[ $OS = "ubuntu" ]]; then
         CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
@@ -72,165 +58,146 @@ function install_rocksdb() {
         CLANG_VERSION=`clang --version | grep version | cut -d" " -f3`
         CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
       fi
-      pushd rocksdb-rocksdb-3.10.2
+      pushd $SOURCE
       if [[ $OS = "freebsd" ]]; then
         CC=cc CXX=c++ gmake static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
       else
-        make static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
+        CC="$CC" CXX="$CXX" make static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
       fi
       popd
     fi
     sudo cp rocksdb-rocksdb-3.10.2/librocksdb.a /usr/local/lib
     sudo cp -R rocksdb-rocksdb-3.10.2/include/rocksdb /usr/local/include
-  else
-    log "rocksdb already installed. skipping."
   fi
 }
 
 function install_snappy() {
-  if [[ ! -f /usr/local/lib/libsnappy.a ]]; then
-    if [[ ! -f snappy-1.1.1.tar.gz ]]; then
-      wget https://osquery-packages.s3.amazonaws.com/deps/snappy-1.1.1.tar.gz
-    else
-      log "snappy source is already downloaded. skipping."
-    fi
-    if [[ ! -d snappy-1.1.1 ]]; then
-      tar -xf snappy-1.1.1.tar.gz
-    fi
+  TARBALL=snappy-1.1.1.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/snappy-1.1.1.tar.gz
+  SOURCE=snappy-1.1.1
+
+  if provision snappy /usr/local/lib/libsnappy.a; then
     if [[ ! -f snappy-1.1.1/.libs/libsnappy.a ]]; then
-      pushd snappy-1.1.1
-      ./configure --with-pic --enable-static
-      make
+      pushd $SOURCE
+      CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static
+      make -j $THREADS
       popd
     fi
+    # We do not need the snappy include headers, just static library.
     sudo cp snappy-1.1.1/.libs/libsnappy.a /usr/local/lib
-  else
-    log "snappy library is already installed. skipping."
   fi
 }
 
 function install_yara() {
-  if [[ ! -f /usr/local/lib/libyara.a ]]; then
-    if [[ ! -f yara-3.3.0.tar.gz ]]; then
-      wget https://s3.amazonaws.com/osquery-packages/deps/yara-3.3.0.tar.gz
-    else
-      log "yara source is already downloaded. skipping."
-    fi
-    if [[ ! -d yara-3.3.0 ]]; then
-      tar xzf yara-3.3.0.tar.gz
-    fi
-    pushd yara-3.3.0
+  TARBALL=yara-3.3.0.tar.gz
+  URL=https://s3.amazonaws.com/osquery-packages/deps/yara-3.3.0.tar.gz
+  SOURCE=yara-3.3.0
+
+  if provision yara /usr/local/lib/libyara.a; then
+    pushd $SOURCE
     ./bootstrap.sh
     CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static
-    make
+    make -j $THREADS
     sudo make install
     popd
-  else
-    log "yara library is already installed. skipping."
   fi
 }
 
 function install_boost() {
-  if [[ ! -f /usr/local/lib/libboost_thread.a ]]; then
-    if [[ ! -f boost_1_55_0.tar.gz ]]; then
-      wget https://osquery-packages.s3.amazonaws.com/deps/boost_1_55_0.tar.gz
-    else
-      log "boost source is already downloaded. skipping."
-    fi
-    if [[ ! -d boost_1_55_0 ]]; then
-      tar -xf boost_1_55_0.tar.gz
-    fi
-    pushd boost_1_55_0
+  TARBALL=boost_1_55_0.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/boost_1_55_0.tar.gz
+  SOURCE=boost_1_55_0
+
+  if provision boost /usr/local/lib/libboost_thread.a; then
+    pushd $SOURCE
     ./bootstrap.sh
-    n=`getconf _NPROCESSORS_ONLN`
-    sudo ./b2 --with=all -j $n toolset="$CC" install
+    sudo ./b2 --with=all -j $THREADS toolset="$CC" install
     sudo ldconfig
     popd
-  else
-    log "boost library is already installed. skipping."
   fi
 }
 
 function install_gflags() {
-  if [[ ! -f /usr/local/lib/libgflags.a ]]; then
-    if [[ ! -f v2.1.1.tar.gz ]]; then
-      wget https://osquery-packages.s3.amazonaws.com/deps/v2.1.1.tar.gz
-    else
-      log "gflags source is already downloaded. skipping."
-    fi
-    if [[ ! -d gflags-2.1.1 ]]; then
-      tar -xf v2.1.1.tar.gz
-    fi
-    if [[ ! -x "$(which gmake)" ]]; then
-      sudo ln -s `which make` /usr/local/bin/gmake
-    fi
-    pushd gflags-2.1.1
+  TARBALL=v2.1.1.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/v2.1.1.tar.gz
+  SOURCE=gflags-2.1.1
+
+  if provision gflags /usr/local/lib/libgflags.a; then
+    pushd $SOURCE
     cmake -DCMAKE_CXX_FLAGS="$CFLAGS" -DGFLAGS_NAMESPACE:STRING=google .
-    make
+    make -j $THREADS
     sudo make install
     popd
-  else
-    log "gflags library is already installed. skipping."
+  fi
+}
+
+function install_iptables_dev() {
+  TARBALL=iptables-1.4.21.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/iptables-1.4.21.tar.gz
+  SOURCE=iptables-1.4.21
+
+  if provision iptables_dev /usr/local/lib/libip4tc.a; then
+    pushd $SOURCE
+    ./configure --disable-shared --prefix=/usr/local
+    pushd libiptc
+    make -j $THREADS
+    sudo make install
+    popd
+    pushd include
+    sudo make install
+    popd
+    popd
   fi
 }
 
 function install_autoconf() {
-  if [[ ! -f /usr/bin/autoconf ]] || [[ `autoconf -V | head -1 | awk '{print $4}' | sed 's/\.//g'` -lt "269" ]]; then
-    if [[ ! -f autoconf-2.69.tar.gz ]]; then
-      wget https://osquery-packages.s3.amazonaws.com/deps/autoconf-2.69.tar.gz
-    else
-      log "autoconf is already downloaded. skipping."
-    fi
-    if [[ ! -d autoconf-2.69 ]]; then
-      tar -xf autoconf-2.69.tar.gz
-    fi
-    pushd autoconf-2.69
-    ./configure --prefix=/usr
-    make
+  TARBALL=autoconf-2.69.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/autoconf-2.69.tar.gz
+  SOURCE=autoconf-2.69
+
+  # Two methods for provisioning autoconf (1) install, (2) upgrade
+  PROVISION_AUTOCONF=false
+  if provision autoconf /usr/bin/autoconf; then
+    PROVISION_AUTOCONF=true
+  elif [[ `autoconf -V | head -1 | awk '{print $4}' | sed 's/\.//g'` -lt "269" ]]; then
+    force_provision autoconf
+    PROVISION_AUTOCONF=true
+  fi
+
+  if $PROVISION_AUTOCONF; then
+    pushd $SOURCE
+    ./configure --prefix=/usr/
+    make -j $THREADS
     sudo make install
     popd
-  else
-    log "autoconf is already installed. skipping."
   fi
 }
 
 function install_automake() {
-  if [[ ! -f /usr/bin/automake ]]; then
-    if [[ ! -f automake-1.14.tar.gz ]]; then
-      wget https://osquery-packages.s3.amazonaws.com/deps/automake-1.14.tar.gz
-    else
-      log "automake is already downloaded. skipping."
-    fi
-    if [[ ! -d automake-1.14 ]]; then
-      tar -xf automake-1.14.tar.gz
-    fi
-    pushd automake-1.14
+  TARBALL=automake-1.14.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/automake-1.14.tar.gz
+  SOURCE=automake-1.14
+
+  if provision automake /usr/bin/automake; then
+    pushd $SOURCE
     ./configure --prefix=/usr
-    make
+    make -j $THREADS
     sudo make install
     popd
-  else
-    log "automake is already installed. skipping."
   fi
 }
 
 function install_libtool() {
-  if [[ ! -f /usr/bin/libtool ]]; then
-    if [[ ! -f libtool-2.4.5.tar.gz ]]; then
-      wget https://osquery-packages.s3.amazonaws.com/deps/libtool-2.4.5.tar.gz
-    else
-      log "libtool is already downloaded. skipping."
-    fi
-    if [[ ! -d libtool-2.4.5 ]]; then
-      tar -xf libtool-2.4.5.tar.gz
-    fi
-    pushd libtool-2.4.5
+  TARBALL=libtool-2.4.5.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/automake-2.4.5.tar.gz
+  SOURCE=libtool-2.4.5
+
+  if provision libtool /usr/bin/libtool; then
+    pushd $SOURCE
     ./configure --prefix=/usr
-    make
+    make -j $THREADS
     sudo make install
     popd
-  else
-    log "libtool is already installed. skipping."
   fi
 }
 
@@ -304,6 +271,28 @@ function gem_install() {
   else
     sudo gem install $1
   fi
+}
+
+function provision() {
+  local _name=$1
+  local _install_check=$2
+
+  if [[ ! -f $_install_check ]]; then
+    log "$_name is not installed/provisioned. installing..."
+    if [[ ! -f $TARBALL ]]; then
+      log "$_name has not been downloaded. downloading..."
+      wget "$URL"
+    else
+      log "$_name is already downloaded. skipping download."
+    fi
+    if [[ ! -d $SOURCE ]]; then
+      log "$_name has not been extracted. extracting..."
+      tar -xzf $TARBALL
+    fi
+    return 0
+  fi
+  log "$_name is already installed. skipping provision."
+  return 1
 }
 
 function check() {

@@ -32,8 +32,6 @@ function main_ubuntu() {
   package libbz2-dev
   package devscripts
   package debhelper
-  package iptables
-  package iptables-dev
 
   if [[ $DISTRO = "precise" ]]; then
     package clang-3.4
@@ -72,12 +70,7 @@ function main_ubuntu() {
 
   install_cmake
   install_gflags
-
-  if [[ $DISTRO = "precise" ]]; then
-    remove_package libunwind7-dev
-  else
-    remove_package libunwind8-dev
-  fi
+  install_iptables_dev
 
   package libsnappy-dev
   package libbz2-dev

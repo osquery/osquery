@@ -35,9 +35,9 @@ namespace osquery {
 namespace tables {
 
 std::string ipAsString(const struct sockaddr *in) {
-  char dst[INET6_ADDRSTRLEN];
-  memset(dst, 0, sizeof(dst));
-  void *in_addr;
+  char dst[INET6_ADDRSTRLEN] = {0};
+  // memset(dst, 0, sizeof(dst));
+  void *in_addr = nullptr;
 
   if (in->sa_family == AF_INET) {
     in_addr = (void *)&(((struct sockaddr_in *)in)->sin_addr);
@@ -50,7 +50,15 @@ std::string ipAsString(const struct sockaddr *in) {
   inet_ntop(in->sa_family, in_addr, dst, sizeof(dst));
   std::string address(dst);
   boost::trim(address);
+  return address;
+}
 
+std::string ipAsString(const struct in_addr *in) {
+  char dst[INET6_ADDRSTRLEN] = {0};
+
+  inet_ntop(AF_INET, in, dst, sizeof(dst));
+  std::string address(dst);
+  boost::trim(address);
   return address;
 }
 
@@ -124,7 +132,7 @@ std::string macAsString(const struct ifaddrs *addr) {
     }
   }
 #else
-  struct sockaddr_dl *sdl;
+  struct sockaddr_dl *sdl = nullptr;
 
   sdl = (struct sockaddr_dl *)addr->ifa_addr;
   if (sdl->sdl_alen != 6) {

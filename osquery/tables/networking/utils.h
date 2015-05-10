@@ -27,6 +27,7 @@ namespace tables {
 
 // Return a string representation for an IPv4/IPv6 struct.
 std::string ipAsString(const struct sockaddr *in);
+std::string ipAsString(const struct in_addr *in);
 std::string macAsString(const struct ifaddrs *addr);
 std::string macAsString(const char *addr);
 int netmaskFromIP(const struct sockaddr *in);
