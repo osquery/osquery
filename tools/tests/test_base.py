@@ -339,7 +339,12 @@ class Tester(object):
 
         # Write config
         random.seed(time.time())
-        shutil.rmtree(CONFIG_DIR)
+
+        try:
+            shutil.rmtree(CONFIG_DIR)
+        except:
+            # Allow the tester to fail
+            pass
         os.makedirs(CONFIG_DIR)
         CONFIG = read_config(ARGS.config) if ARGS.config else DEFAULT_CONFIG
 
