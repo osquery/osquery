@@ -15,7 +15,8 @@ endmacro(SET_OSQUERY_COMPILE)
 
 macro(ADD_OSQUERY_PYTHON_TEST TEST_NAME SOURCE)
   add_test(NAME python_${TEST_NAME}
-    COMMAND python "${CMAKE_SOURCE_DIR}/tools/tests/${SOURCE}" --build "${CMAKE_BINARY_DIR}"
+    COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/tests/${SOURCE}"
+      --build "${CMAKE_BINARY_DIR}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tools/tests/")
 endmacro(ADD_OSQUERY_PYTHON_TEST)
 
@@ -184,7 +185,7 @@ macro(GENERATE_TABLE TABLE_FILE NAME BASE_PATH OUTPUT)
   GET_GENERATION_DEPS(${BASE_PATH})
   add_custom_command(
     OUTPUT "${TABLE_FILE_GEN}"
-    COMMAND python "${BASE_PATH}/tools/codegen/gentable.py"
+    COMMAND ${PYTHON_EXECUTABLE} "${BASE_PATH}/tools/codegen/gentable.py"
       "${TABLE_FILE}" "${TABLE_FILE_GEN}" "$ENV{DISABLE_BLACKLIST}"
     DEPENDS ${TABLE_FILE} ${GENERATION_DEPENDENCIES}
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -209,7 +210,7 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
   # Append all of the code to a single amalgamation.
   add_custom_command(
     OUTPUT "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp"
-    COMMAND python "${BASE_PATH}/tools/codegen/amalgamate.py"
+    COMMAND ${PYTHON_EXECUTABLE} "${BASE_PATH}/tools/codegen/amalgamate.py"
       "${BASE_PATH}/osquery/tables/" "${CMAKE_BINARY_DIR}/generated" "${NAME}"
     DEPENDS ${GENERATED_TARGETS} ${GENERATION_DEPENDENCIES}
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

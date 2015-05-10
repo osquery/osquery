@@ -70,12 +70,7 @@ function main_ubuntu() {
 
   install_cmake
   install_gflags
-
-  if [[ $DISTRO = "precise" ]]; then
-    remove_package libunwind7-dev
-  else
-    remove_package libunwind8-dev
-  fi
+  install_iptables_dev
 
   package libsnappy-dev
   package libbz2-dev

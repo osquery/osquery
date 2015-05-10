@@ -47,6 +47,52 @@ SHELL_FLAG(bool, L, false, "List all table names");
 SHELL_FLAG(string, A, "", "Select all from a table");
 }
 
+/*
+** Text of a help message
+*/
+static char zHelp[] =
+    "Welcome to the osquery shell. Please explore your OS!\n"
+    "You are connected to a transient 'in-memory' virtual database.\n"
+    "\n"
+    ".all [TABLE]       Select all from a table\n"
+    ".bail ON|OFF       Stop after hitting an error; default OFF\n"
+    ".echo ON|OFF       Turn command echo on or off\n"
+    ".exit              Exit this program\n"
+    ".header(s) ON|OFF  Turn display of headers on or off\n"
+    ".help              Show this message\n"
+    ".mode MODE         Set output mode where MODE is one of:\n"
+    "                     csv      Comma-separated values\n"
+    "                     column   Left-aligned columns.  (See .width)\n"
+    "                     line     One value per line\n"
+    "                     list     Values delimited by .separator string\n"
+    "                     pretty   Pretty printed SQL results\n"
+    ".nullvalue STR     Use STRING in place of NULL values\n"
+    ".print STR...      Print literal STRING\n"
+    ".quit              Exit this program\n"
+    ".schema [TABLE]    Show the CREATE statements\n"
+    ".separator STR     Change separator used by output mode and .import\n"
+    ".show              Show the current values for various settings\n"
+    ".tables [TABLE]    List names of tables\n"
+    ".trace FILE|off    Output each SQL statement as it is run\n"
+    ".width [NUM1]+     Set column widths for \"column\" mode\n";
+
+static char zTimerHelp[] =
+    ".timer ON|OFF      Turn the CPU timer measurement on or off\n";
+
+/*
+** These are the allowed modes.
+*/
+#define MODE_Line 0 /* One column per line.  Blank line between records */
+#define MODE_Column 1 /* One record per line in neat columns */
+#define MODE_List 2 /* One record per line with a separator */
+#define MODE_Semi 3 /* Same as MODE_List but append ";" to each line */
+#define MODE_Csv 4 /* Quote strings, numbers are plain */
+#define MODE_Pretty 5 /* Pretty print the SQL results */
+
+static const char *modeDescr[] = {
+    "line", "column", "list", "semi", "csv", "pretty",
+};
+
 /* Make sure isatty() has a prototype.
 */
 extern int isatty(int);
@@ -290,25 +336,6 @@ struct callback_data {
 
   /* Additional attributes to be used in pretty mode */
   struct prettyprint_data *prettyPrint;
-};
-
-/*
-** These are the allowed modes.
-*/
-#define MODE_Line 0 /* One column per line.  Blank line between records */
-#define MODE_Column 1 /* One record per line in neat columns */
-#define MODE_List 2 /* One record per line with a separator */
-#define MODE_Semi 3 /* Same as MODE_List but append ";" to each line */
-#define MODE_Csv 7 /* Quote strings, numbers are plain */
-#define MODE_Pretty 9 /* Pretty print the SQL results */
-
-static const char *modeDescr[] = {
-    "line",
-    "column",
-    "list",
-    "semi",
-    "csv",
-    "pretty",
 };
 
 /*
@@ -619,15 +646,6 @@ static int shell_callback(
 }
 
 /*
-** This is the callback routine that the SQLite library
-** invokes for each row of a query result.
-*/
-static int callback(void *pArg, int nArg, char **azArg, char **azCol) {
-  /* since we don't have type info, call the shell_callback with a NULL value */
-  return shell_callback(pArg, nArg, azArg, azCol, NULL);
-}
-
-/*
 ** Set the destination table field of the callback_data structure to
 ** the name of the table given.  Escape any quote characters in the
 ** table name.
@@ -831,40 +849,6 @@ static int shell_exec(
   return rc;
 }
 
-
-/*
-** Text of a help message
-*/
-static char zHelp[] =
-    "Welcome to the osquery shell. Please explore your OS!\n"
-    "You are connected to a transient 'in-memory' virtual database.\n"
-    "\n"
-    ".all [TABLE]       Select all from a table\n"
-    ".bail ON|OFF       Stop after hitting an error; default OFF\n"
-    ".echo ON|OFF       Turn command echo on or off\n"
-    ".exit              Exit this program\n"
-    ".header(s) ON|OFF  Turn display of headers on or off\n"
-    ".help              Show this message\n"
-    ".indices [TABLE]   Show names of all indices\n"
-    ".mode MODE         Set output mode where MODE is one of:\n"
-    "                     csv      Comma-separated values\n"
-    "                     column   Left-aligned columns.  (See .width)\n"
-    "                     line     One value per line\n"
-    "                     list     Values delimited by .separator string\n"
-    "                     pretty   Pretty printed SQL results\n"
-    ".nullvalue STR     Use STRING in place of NULL values\n"
-    ".print STR...      Print literal STRING\n"
-    ".quit              Exit this program\n"
-    ".schema [TABLE]    Show the CREATE statements\n"
-    ".separator STR     Change separator used by output mode and .import\n"
-    ".show              Show the current values for various settings\n"
-    ".tables [TABLE]    List names of tables\n"
-    ".trace FILE|off    Output each SQL statement as it is run\n"
-    ".width [NUM1]+     Set column widths for \"column\" mode\n";
-
-static char zTimerHelp[] =
-    ".timer ON|OFF      Turn the CPU timer measurement on or off\n";
-
 /* Forward reference */
 static int process_input(struct callback_data *p, FILE *in);
 
@@ -1028,6 +1012,37 @@ static FILE *output_file_open(const char *zFile) {
   return f;
 }
 
+inline void meta_tables(int nArg, char **azArg) {
+  auto tables = osquery::Registry::names("table");
+  std::sort(tables.begin(), tables.end());
+  for (const auto &table_name : tables) {
+    if (nArg == 1 || table_name.find(azArg[1]) == 0) {
+      printf("  => %s\n", table_name.c_str());
+    }
+  }
+}
+
+inline void meta_schema(int nArg, char **azArg) {
+  for (const auto &table_name : osquery::Registry::names("table")) {
+    if (nArg > 1 && table_name.find(azArg[1]) != 0) {
+      continue;
+    }
+
+    osquery::PluginRequest request = {{"action", "columns"}};
+    osquery::PluginResponse response;
+
+    osquery::Registry::call("table", table_name, request, response);
+    std::vector<std::string> columns;
+    for (const auto &column : response) {
+      columns.push_back(column.at("name") + " " + column.at("type"));
+    }
+
+    printf("CREATE TABLE %s(%s);\n",
+           table_name.c_str(),
+           osquery::join(columns, ", ").c_str());
+  }
+}
+
 /*
 ** If an input line begins with "." then invoke this routine to
 ** process that line.
@@ -1110,45 +1125,6 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     if (HAS_TIMER) {
       fprintf(stderr, "%s", zTimerHelp);
     }
-  } else if (c == 'i' && strncmp(azArg[0], "indices", n) == 0 && nArg < 3) {
-    struct callback_data data;
-    char *zErrMsg = 0;
-    memcpy(&data, p, sizeof(data));
-    data.showHeader = 0;
-    data.mode = MODE_List;
-    if (nArg == 1) {
-      rc = sqlite3_exec(db,
-                        "SELECT name FROM sqlite_master "
-                        "WHERE type='index' AND name NOT LIKE 'sqlite_%' "
-                        "UNION ALL "
-                        "SELECT name FROM sqlite_temp_master "
-                        "WHERE type='index' "
-                        "ORDER BY 1",
-                        callback,
-                        &data,
-                        &zErrMsg);
-    } else {
-      zShellStatic = azArg[1];
-      rc = sqlite3_exec(db,
-                        "SELECT name FROM sqlite_master "
-                        "WHERE type='index' AND tbl_name LIKE shellstatic() "
-                        "UNION ALL "
-                        "SELECT name FROM sqlite_temp_master "
-                        "WHERE type='index' AND tbl_name LIKE shellstatic() "
-                        "ORDER BY 1",
-                        callback,
-                        &data,
-                        &zErrMsg);
-      zShellStatic = 0;
-    }
-    if (zErrMsg) {
-      fprintf(stderr, "Error: %s\n", zErrMsg);
-      sqlite3_free(zErrMsg);
-      rc = 1;
-    } else if (rc != SQLITE_OK) {
-      fprintf(stderr, "Error: querying sqlite_master and sqlite_temp_master\n");
-      rc = 1;
-    }
   } else if (c == 'l' && strncmp(azArg[0], "log", n) == 0 && nArg >= 2) {
     const char *zFile = azArg[1];
     output_file_close(p->pLog);
@@ -1194,83 +1170,7 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
   } else if (c == 'q' && strncmp(azArg[0], "quit", n) == 0 && nArg == 1) {
     rc = 2;
   } else if (c == 's' && strncmp(azArg[0], "schema", n) == 0 && nArg < 3) {
-    struct callback_data data;
-    char *zErrMsg = 0;
-    memcpy(&data, p, sizeof(data));
-    data.showHeader = 0;
-    data.mode = MODE_Semi;
-    if (nArg > 1) {
-      int i;
-      for (i = 0; azArg[1][i]; i++)
-        azArg[1][i] = ToLower(azArg[1][i]);
-      if (strcmp(azArg[1], "sqlite_master") == 0) {
-        char *new_argv[2], *new_colv[2];
-        new_argv[0] = (char*)"CREATE TABLE sqlite_master (\n"
-                      "  type text,\n"
-                      "  name text,\n"
-                      "  tbl_name text,\n"
-                      "  rootpage integer,\n"
-                      "  sql text\n"
-                      ")";
-        new_argv[1] = 0;
-        new_colv[0] = (char *)"sql";
-        new_colv[1] = 0;
-        callback(&data, 1, new_argv, new_colv);
-        rc = SQLITE_OK;
-      } else if (strcmp(azArg[1], "sqlite_temp_master") == 0) {
-        char *new_argv[2], *new_colv[2];
-        new_argv[0] = (char*)"CREATE TEMP TABLE sqlite_temp_master (\n"
-                      "  type text,\n"
-                      "  name text,\n"
-                      "  tbl_name text,\n"
-                      "  rootpage integer,\n"
-                      "  sql text\n"
-                      ")";
-        new_argv[1] = 0;
-        new_colv[0] = (char *)"sql";
-        new_colv[1] = 0;
-        callback(&data, 1, new_argv, new_colv);
-        rc = SQLITE_OK;
-      } else {
-        zShellStatic = azArg[1];
-        rc = sqlite3_exec(db,
-                          "SELECT sql FROM "
-                          "  (SELECT sql sql, type type, tbl_name tbl_name, "
-                          "name name, rowid x"
-                          "     FROM sqlite_master UNION ALL"
-                          "   SELECT sql, type, tbl_name, name, rowid FROM "
-                          "sqlite_temp_master) "
-                          "WHERE lower(tbl_name) LIKE shellstatic()"
-                          "  AND type!='meta' AND sql NOTNULL "
-                          "ORDER BY rowid",
-                          callback,
-                          &data,
-                          &zErrMsg);
-        zShellStatic = 0;
-      }
-    } else {
-      rc = sqlite3_exec(
-          db,
-          "SELECT sql FROM "
-          "  (SELECT sql sql, type type, tbl_name tbl_name, name name, rowid x"
-          "     FROM sqlite_master UNION ALL"
-          "   SELECT sql, type, tbl_name, name, rowid FROM sqlite_temp_master) "
-          "WHERE type!='meta' AND sql NOTNULL AND name NOT LIKE 'sqlite_%'"
-          "ORDER BY rowid",
-          callback,
-          &data,
-          &zErrMsg);
-    }
-    if (zErrMsg) {
-      fprintf(stderr, "Error: %s\n", zErrMsg);
-      sqlite3_free(zErrMsg);
-      rc = 1;
-    } else if (rc != SQLITE_OK) {
-      fprintf(stderr, "Error: querying schema information\n");
-      rc = 1;
-    } else {
-      rc = 0;
-    }
+    meta_schema(nArg, azArg);
   } else if (c == 's' && strncmp(azArg[0], "separator", n) == 0 && nArg == 2) {
     sqlite3_snprintf(sizeof(p->separator),
                      p->separator,
@@ -1299,104 +1199,7 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     fprintf(p->out, "\n");
   } else if (c == 't' && n > 1 && strncmp(azArg[0], "tables", n) == 0 &&
              nArg < 3) {
-    sqlite3_stmt *pStmt;
-    char **azResult;
-    int nRow, nAlloc;
-    char *zSql = 0;
-    int ii;
-    rc = sqlite3_prepare_v2(db, "PRAGMA database_list", -1, &pStmt, 0);
-    if (rc)
-      return rc;
-    zSql = sqlite3_mprintf(
-        "SELECT name FROM sqlite_master"
-        " WHERE type IN ('table','view')"
-        "   AND name NOT LIKE 'sqlite_%%'"
-        "   AND name LIKE ?1");
-    while (sqlite3_step(pStmt) == SQLITE_ROW) {
-      const char *zDbName = (const char *)sqlite3_column_text(pStmt, 1);
-      if (zDbName == 0 || strcmp(zDbName, "main") == 0)
-        continue;
-      if (strcmp(zDbName, "temp") == 0) {
-        zSql = sqlite3_mprintf(
-            "%z UNION ALL "
-            "SELECT 'temp.' || name FROM sqlite_temp_master"
-            " WHERE type IN ('table','view')"
-            "   AND name NOT LIKE 'sqlite_%%'"
-            "   AND name LIKE ?1",
-            zSql);
-      } else {
-        zSql = sqlite3_mprintf(
-            "%z UNION ALL "
-            "SELECT '%q.' || name FROM \"%w\".sqlite_master"
-            " WHERE type IN ('table','view')"
-            "   AND name NOT LIKE 'sqlite_%%'"
-            "   AND name LIKE ?1",
-            zSql,
-            zDbName,
-            zDbName);
-      }
-    }
-    sqlite3_finalize(pStmt);
-    zSql = sqlite3_mprintf("%z ORDER BY 1", zSql);
-    rc = sqlite3_prepare_v2(db, zSql, -1, &pStmt, 0);
-    sqlite3_free(zSql);
-    if (rc)
-      return rc;
-    nRow = nAlloc = 0;
-    azResult = 0;
-    if (nArg > 1) {
-      sqlite3_bind_text(pStmt, 1, azArg[1], -1, SQLITE_TRANSIENT);
-    } else {
-      sqlite3_bind_text(pStmt, 1, "%", -1, SQLITE_STATIC);
-    }
-    while (sqlite3_step(pStmt) == SQLITE_ROW) {
-      if (nRow >= nAlloc) {
-        char **azNew;
-        int n = nAlloc * 2 + 10;
-        azNew = (char **)sqlite3_realloc(azResult, sizeof(azResult[0]) * n);
-        if (azNew == 0) {
-          fprintf(stderr, "Error: out of memory\n");
-          break;
-        }
-        nAlloc = n;
-        azResult = azNew;
-      }
-      azResult[nRow] = sqlite3_mprintf("%s", sqlite3_column_text(pStmt, 0));
-      if (azResult[nRow])
-        nRow++;
-    }
-    sqlite3_finalize(pStmt);
-    if (nRow > 0) {
-      int len, maxlen = 0;
-      int i, j;
-      int nPrintCol, nPrintRow;
-      for (i = 0; i < nRow; i++) {
-        len = strlen30(azResult[i]);
-        if (len > maxlen)
-          maxlen = len;
-      }
-      nPrintCol = 80 / (maxlen + 2);
-      if (nPrintCol < 1)
-        nPrintCol = 1;
-      nPrintRow = (nRow + nPrintCol - 1) / nPrintCol;
-      std::vector<std::string> tables;
-      for (i = 0; i < nPrintRow; i++) {
-        for (j = i; j < nRow; j += nPrintRow) {
-          std::string tablename = std::string(azResult[j] ? azResult[j] : "");
-          if (boost::starts_with(tablename, "temp.")) {
-            tablename.erase(0, 5);
-          }
-          tables.push_back(tablename);
-        }
-      }
-      std::sort(tables.begin(), tables.end());
-      for (const auto &table : tables) {
-        std::cout << "  => " << table << "\n";
-      }
-    }
-    for (ii = 0; ii < nRow; ii++)
-      sqlite3_free(azResult[ii]);
-    sqlite3_free(azResult);
+    meta_tables(nArg, azArg);
   } else if (c == 't' && n > 4 && strncmp(azArg[0], "timeout", n) == 0 &&
              nArg == 2) {
     sqlite3_busy_timeout(db, (int)integerValue(azArg[1]));
@@ -1408,10 +1211,7 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     p->traceOut = output_file_open(azArg[1]);
   } else if (c == 'v' && strncmp(azArg[0], "version", n) == 0) {
     fprintf(p->out, "osquery %s\n", TEXT(OSQUERY_VERSION).c_str());
-    fprintf(p->out,
-            "SQLite %s %s\n" /*extra-version-info*/,
-            sqlite3_libversion(),
-            sqlite3_sourceid());
+    fprintf(p->out, "using SQLite %s\n", sqlite3_libversion());
   } else if (c == 'w' && strncmp(azArg[0], "width", n) == 0 && nArg > 1) {
     int j;
     assert(nArg <= ArraySize(azArg));
