@@ -41,8 +41,6 @@ function main_rhel() {
   package xz
   package xz-devel
   package subscription-manager
-  package iptables
-  package iptables-devel
 
   if [[ -z `rpm -qa epel-release` ]]; then
     if [[ $DISTRO = "rhel6" ]]; then
@@ -98,17 +96,15 @@ function main_rhel() {
     package libudev-devel
   elif [[ $DISTRO = "rhel7" ]]; then
     package cryptsetup-devel
-    package systemd-devel
   fi
 
   install_gflags
+  install_iptables_dev
 
   package doxygen
   package byacc
   package flex
   package bison
-
-  remove_package libunwind-devel
 
   if [[ $DISTRO = "rhel6" ]]; then
     install_autoconf

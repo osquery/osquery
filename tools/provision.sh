@@ -21,6 +21,7 @@ source "$SCRIPT_DIR/provision/lib.sh"
 function main() {
   platform OS
   distro $OS DISTRO
+  threads THREADS
 
   if [[ $1 = "get_platform" ]]; then
     echo "$OS;$DISTRO"

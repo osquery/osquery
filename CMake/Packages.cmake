@@ -53,8 +53,6 @@ elseif(LINUX)
       set(PACKAGE_ITERATION "1.el7_7.0")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "systemd-devel"
-        "epel-release"
       )
     endif()
   elseif(RHEL)
@@ -78,8 +76,6 @@ elseif(LINUX)
       set(PACKAGE_ITERATION "1.el7_7.0")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "systemd-devel"
-        "epel-release"
       )
     endif()
   endif()
