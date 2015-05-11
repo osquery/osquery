@@ -11,7 +11,9 @@
 #include <stdio.h>
 
 #include <osquery/core.h>
+#include <osquery/extensions.h>
 
+#include "osquery/core/watcher.h"
 #include "osquery/devtools/devtools.h"
 
 int main(int argc, char *argv[]) {
@@ -21,6 +23,10 @@ int main(int argc, char *argv[]) {
       osquery::FLAGS_L) {
     // A query was set as a positional argument for via stdin.
     osquery::FLAGS_disable_events = true;
+    // The shell may have loaded table extensions, if not, disable the manager.
+    if (!osquery::Watcher::hasManagedExtensions()) {
+      osquery::FLAGS_disable_extensions = true;
+    }
   }
 
   runner.start();

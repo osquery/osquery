@@ -115,7 +115,7 @@ class Config : private boost::noncopyable {
    * Since instances of Config should only be created via getInstance(),
    * Config's constructor is private
    */
-  Config() {}
+  Config() : force_merge_success_(false) {}
   ~Config(){}
   Config(Config const&);
   void operator=(Config const&);
@@ -134,7 +134,7 @@ class Config : private boost::noncopyable {
   static Status genConfig();
 
   /// Merge a retrieved config source JSON into a working ConfigData.
-  static void mergeConfig(const std::string& source, ConfigData& conf);
+  static Status mergeConfig(const std::string& source, ConfigData& conf);
 
  public:
   /**
@@ -171,6 +171,9 @@ class Config : private boost::noncopyable {
 
   /// The reader/writer config data mutex.
   boost::shared_mutex mutex_;
+
+  /// Enforce merge success.
+  bool force_merge_success_;
 
  private:
   static const pt::ptree& getParsedData(const std::string& parser);

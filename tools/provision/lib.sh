@@ -160,7 +160,7 @@ function install_autoconf() {
   if provision autoconf /usr/bin/autoconf; then
     PROVISION_AUTOCONF=true
   elif [[ `autoconf -V | head -1 | awk '{print $4}' | sed 's/\.//g'` -lt "269" ]]; then
-    force_provision autoconf
+    provision autoconf
     PROVISION_AUTOCONF=true
   fi
 
@@ -189,7 +189,7 @@ function install_automake() {
 
 function install_libtool() {
   TARBALL=libtool-2.4.5.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/automake-2.4.5.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/libtool-2.4.5.tar.gz
   SOURCE=libtool-2.4.5
 
   if provision libtool /usr/bin/libtool; then

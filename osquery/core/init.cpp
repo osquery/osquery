@@ -263,6 +263,11 @@ void Initializer::start() {
   // Load registry/extension modules before extensions.
   osquery::loadModules();
 
+  // Pre-extension manager initialization options checking.
+  if (FLAGS_config_check && !Watcher::hasManagedExtensions()) {
+    FLAGS_disable_extensions = true;
+  }
+
   // Bind to an extensions socket and wait for registry additions.
   osquery::startExtensionManager();
 

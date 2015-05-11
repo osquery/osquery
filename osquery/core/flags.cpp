@@ -122,17 +122,17 @@ std::map<std::string, FlagInfo> Flag::flags() {
 void Flag::printFlags(bool shell, bool external, bool cli) {
   std::vector<GFLAGS_NAMESPACE::CommandLineFlagInfo> info;
   GFLAGS_NAMESPACE::GetAllFlags(&info);
+  auto& details = instance().flags_;
 
   // Determine max indent needed for all flag names.
   size_t max = 0;
-  for (const auto& flag : info) {
-    max = (max > flag.name.size()) ? max : flag.name.size();
+  for (const auto& flag : details) {
+    max = (max > flag.first.size()) ? max : flag.first.size();
   }
   // Additional index for flag values.
-  max += 5;
+  max += 6;
 
   auto& aliases = instance().aliases_;
-  auto& details = instance().flags_;
   for (const auto& flag : info) {
     if (details.count(flag.name) > 0) {
       const auto& detail = details.at(flag.name);
@@ -155,14 +155,18 @@ void Flag::printFlags(bool shell, bool external, bool cli) {
 
     fprintf(stdout, "    --%s", flag.name.c_str());
 
-    size_t pad = max;
+    int pad = max;
     if (flag.type != "bool") {
       fprintf(stdout, " VALUE");
       pad -= 6;
     }
+    pad -= flag.name.size();
 
-    fprintf(stdout, "%s", std::string(pad - flag.name.size(), ' ').c_str());
-    fprintf(stdout, "%s\n", getDescription(flag.name).c_str());
+    if (pad > 0 && pad < 80) {
+      // Never pad more than 80 characters.
+      fprintf(stdout, "%s", std::string(pad, ' ').c_str());
+    }
+    fprintf(stdout, "  %s\n", getDescription(flag.name).c_str());
   }
 }
 }
