@@ -1,0 +1,38 @@
+{
+  // Deprecated query schedule
+  "scheduledQueries": [
+    {
+      "name": "time",
+      "query": "select * from time;",
+      "interval": 1
+    }
+  ],
+
+  // New, recommended query schedule
+  "schedule": {
+    "time2": {"query": "select * from time;", "interval": 1}
+  },
+
+  // Deprecated collection for file monitoring
+  "additional_monitoring" : {
+    "file_paths": {
+      "downloads": [
+        "/tmp/osquery-fstests-pattern/%%"
+      ]
+    }
+  },
+
+  // New, recommended file monitoring (top-level)
+  "file_paths": {
+    "downloads2": [
+      "/tmp/osquery-fstests-pattern/%%"
+    ],
+    "system_binaries": [
+      "/tmp/osquery-fstests-pattern/%",
+      "/tmp/osquery-fstests-pattern/deep11/%"
+    ]
+  }
+}
+
+// The horror!!!
+,

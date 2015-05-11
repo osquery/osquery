@@ -310,6 +310,20 @@ class Autoloader(object):
         except:
             pass
 
+class TimeoutRunner(object):
+    def __init__(self, cmd=[], timeout_sec=1):
+        self.stdout = None
+        self.stderr = None
+        self.proc = subprocess.Popen(" ".join(cmd),
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        kill_proc = lambda p: p.kill()
+        timer = threading.Timer(timeout_sec, kill_proc, [self.proc])
+        timer.start()
+        self.stdout, self.stderr = self.proc.communicate()
+        timer.cancel()
+
 class Tester(object):
     def __init__(self):
         global ARGS, CONFIG, CONFIG_DIR

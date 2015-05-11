@@ -30,6 +30,44 @@ class OsqueryiTest(unittest.TestCase):
         self.assertRaises(test_base.OsqueryException,
             self.osqueryi.run_query, 'foo')
 
+    def test_config_check_success(self):
+        '''Test that a 0-config passes'''
+        proc = test_base.TimeoutRunner([
+            self.binary,
+            "--config_check",
+            "--config_path=test.config"], 2)
+        self.assertEqual(proc.stdout, "")
+        print (proc.stdout)
+        print (proc.stderr)
+        self.assertEqual(proc.proc.poll(), 0)
+
+    def test_config_check_failure(self):
+        '''Test that a missing config fails'''
+        proc = test_base.TimeoutRunner([
+            self.binary,
+            "--config_check",
+            "--config_path=/this/path/does/not/exist"], 2)
+        self.assertNotEqual(proc.stderr, "")
+        print (proc.stdout)
+        print (proc.stderr)
+        self.assertEqual(proc.proc.poll(), 1)
+
+        # Now with a valid path, but invalid content.
+        proc = test_base.TimeoutRunner([
+            self.binary,
+            "--config_check",
+            "--config_path=test.badconfig"], 2)
+        self.assertNotEqual(proc.stderr, "")
+        self.assertEqual(proc.proc.poll(), 1)
+
+        # Finally with a missing config plugin
+        proc = test_base.TimeoutRunner([
+            self.binary,
+            "--config_check",
+            "--config_plugin=does_not_exist"], 2)
+        self.assertNotEqual(proc.stderr, "")
+        self.assertNotEqual(proc.proc.poll(), 0)
+
     def test_meta_commands(self):
         '''Test the supported meta shell/help/info commands'''
         commands = [
@@ -91,7 +129,6 @@ class OsqueryiTest(unittest.TestCase):
             args={"config_path": "/"})
         result = self.osqueryi.run_query('SELECT * FROM time;')
         self.assertEqual(len(result), 1)
-
 
 if __name__ == '__main__':
     test_base.Tester().run()
