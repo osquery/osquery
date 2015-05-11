@@ -160,7 +160,7 @@ function install_autoconf() {
   if provision autoconf /usr/bin/autoconf; then
     PROVISION_AUTOCONF=true
   elif [[ `autoconf -V | head -1 | awk '{print $4}' | sed 's/\.//g'` -lt "269" ]]; then
-    force_provision autoconf
+    provision autoconf
     PROVISION_AUTOCONF=true
   fi
 
