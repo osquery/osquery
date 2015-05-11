@@ -189,7 +189,7 @@ function install_automake() {
 
 function install_libtool() {
   TARBALL=libtool-2.4.5.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/automake-2.4.5.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/libtool-2.4.5.tar.gz
   SOURCE=libtool-2.4.5
 
   if provision libtool /usr/bin/libtool; then
