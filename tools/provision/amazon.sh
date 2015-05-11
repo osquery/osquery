@@ -8,6 +8,7 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 function main_amazon() {
+
   sudo yum update -y
 
   package texinfo
@@ -23,13 +24,9 @@ function main_amazon() {
   package ruby-devel
   package rubygems
 
-  if [[ $DISTRO = "amazon2015.03" ]]; then
- 
-    package gcc
-    package binutils
-    package gcc-c++
-
-  fi
+  package gcc
+  package binutils
+  package gcc-c++
 
   package clang
   package clang-devel
@@ -49,11 +46,9 @@ function main_amazon() {
 
   install_boost
 
-  if [[ $DISTRO = "amazon2015.03" ]]; then
-    package libudev-devel
-    package cryptsetup-luks-devel
-  fi
-
+  package libudev-devel
+  package cryptsetup-luks-devel
+  
   install_gflags
 
   package doxygen
@@ -63,11 +58,9 @@ function main_amazon() {
 
   remove_package libunwind-devel
 
-  if [[ $DISTRO = "amazon2015.03" ]]; then
-    install_autoconf
-    install_automake
-    install_libtool
-  fi
+  install_autoconf
+  install_automake
+  install_libtool
 
   install_snappy
   install_rocksdb
