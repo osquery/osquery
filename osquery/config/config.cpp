@@ -72,7 +72,10 @@ Status Config::update(const std::map<std::string, std::string>& config) {
 
   // Now merge all sources together.
   for (const auto& source : getInstance().raw_) {
-    mergeConfig(source.second, conf);
+    auto status = mergeConfig(source.second, conf);
+    if (getInstance().force_merge_success_ && !status.ok()) {
+      return Status(1, status.what());
+    }
   }
 
   // Call each parser with the optionally-empty, requested, top level keys.
@@ -190,15 +193,15 @@ inline void mergeFilePath(const std::string& name,
   conf.all_data.add_child(name + "." + node.first, node.second);
 }
 
-void Config::mergeConfig(const std::string& source, ConfigData& conf) {
+Status Config::mergeConfig(const std::string& source, ConfigData& conf) {
   pt::ptree tree;
   try {
     std::stringstream json_data;
     json_data << source;
     pt::read_json(json_data, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
-    VLOG(1) << "Error parsing config JSON: " << e.what();
-    return;
+    LOG(WARNING) << "Error parsing config JSON: " << e.what();
+    return Status(1, e.what());
   }
 
   if (tree.count("additional_monitoring") > 0) {
@@ -234,6 +237,8 @@ void Config::mergeConfig(const std::string& source, ConfigData& conf) {
       mergeExtraKey(key, item, conf);
     }
   }
+
+  return Status(0, "OK");
 }
 
 const pt::ptree& Config::getParsedData(const std::string& key) {
@@ -277,7 +282,10 @@ Status Config::getMD5(std::string& hash_string) {
   return Status(0, "OK");
 }
 
-Status Config::checkConfig() { return load(); }
+Status Config::checkConfig() {
+  getInstance().force_merge_success_ = true;
+  return load();
+}
 
 void Config::recordQueryPerformance(const std::string& name,
                                     size_t delay,
