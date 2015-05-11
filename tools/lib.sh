@@ -7,18 +7,18 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
-RH_RELEASE=/etc/redhat-release
-AMAZON_RELEASE=/etc/system-release
+SYSTEM_RELEASE=/etc/system-release
+UBUNTU_RELEASE=/etc/lsb-release
 
 function platform() {
   local  __out=$1
-  if [[ -n `grep -o "CentOS" $RH_RELEASE 2>/dev/null` ]]; then
+  if [[ -n `grep -o "CentOS" $SYSTEM_RELEASE 2>/dev/null` ]]; then
     eval $__out="centos"
-  elif [[ -n `grep -o "Red Hat Enterprise" $RH_RELEASE 2>/dev/null` ]]; then
+  elif [[ -n `grep -o "Red Hat Enterprise" $SYSTEM_RELEASE 2>/dev/null` ]]; then
     eval $__out="rhel"
-  elif [[ -n `grep -o "Amazon Linux" $AMAZON_RELEASE 2>/dev/null` ]]; then
+  elif [[ -n `grep -o "Amazon Linux" $SYSTEM_RELEASE 2>/dev/null` ]]; then
     eval $__out="amazon"
-  elif [[ -f "/etc/lsb-release" ]]; then
+  elif [[ -f "$UBUNTU_RELEASE" ]]; then
     eval $__out="ubuntu"
   else
     eval $__out=`uname -s | tr '[:upper:]' '[:lower:]'`
@@ -33,13 +33,13 @@ function _platform() {
 function distro() {
   local __out=$2
   if [[ $1 = "centos" ]]; then
-    eval $__out=`grep -o "release [6-7]" $RH_RELEASE | sed 's/release /centos/g'`
+    eval $__out=`grep -o "release [6-7]" $SYSTEM_RELEASE | sed 's/release /centos/g'`
   elif [[ $1 = "rhel" ]]; then
-    eval $__out=`grep -o "release [6-7]" $RH_RELEASE | sed 's/release /rhel/g'`
+    eval $__out=`grep -o "release [6-7]" $SYSTEM_RELEASE | sed 's/release /rhel/g'`
   elif [[ $1 = "amazon" ]]; then
-    eval $__out=`grep -o "release 20[12][0-9]\.[0-9][0-9]" $AMAZON_RELEASE | sed 's/release /amazon/g'`
+    eval $__out=`grep -o "release 20[12][0-9]\.[0-9][0-9]" $SYSTEM_RELEASE | sed 's/release /amazon/g'`
   elif [[ $1 = "ubuntu" ]]; then
-    eval $__out=`grep DISTRIB_CODENAME /etc/*-release | awk -F'=' '{print $2}'`
+    eval $__out=`grep DISTRIB_CODENAME $UBUNTU_RELEASE | awk -F'=' '{print $2}'`
   elif [[ $1 = "darwin" ]]; then
     eval $__out=`sw_vers -productVersion | awk -F '.' '{print $1 "." $2}'`
   elif [[ $1 = "freebsd" ]]; then
