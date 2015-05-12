@@ -4,7 +4,7 @@ add_custom_command(
     ${THRIFT_COMPILER} --gen cpp:dense --gen py:dense "${CMAKE_SOURCE_DIR}/osquery.thrift"
   DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
-  OUTPUT ${OSQUERY_THRIFT_GENERATED_FILES} 
+  OUTPUT ${OSQUERY_THRIFT_GENERATED_FILES}
 )
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_extensions

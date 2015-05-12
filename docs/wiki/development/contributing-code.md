@@ -10,6 +10,6 @@ The format style used by osquery is defined by the configurations of osquery's [
 
 ## Style guide
 
-If you would really like a style guide to follow or refer to, please use the [LLVM Coding Standards](http://llvm.org/docs/CodingStandards.html). 
+If you would really like a style guide to follow or refer to, please use the [LLVM Coding Standards](http://llvm.org/docs/CodingStandards.html).
 
 Keep in mind, osquery's style configurations are slightly different than vanilla LLVM coding standards, so be sure to still run `make format` before submitting any code.

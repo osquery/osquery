@@ -99,7 +99,7 @@ void genAllControls(QueryData& results,
         fs::path(sub).filename().string() != subsystem) {
       // Request is limiting subsystem.
       continue;
-    } 
+    }
     genControlInfo(sub, results, config);
   }
 }
