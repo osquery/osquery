@@ -9,19 +9,19 @@
 #
 #===------------------------------------------------------------------------===#
 
-r"""                                                                             
-clang-format git integration                                                     
-============================                                                     
-                                                                                 
-This file provides a clang-format integration for git. Put it somewhere in your  
-path and ensure that it is executable. Then, "git clang-format" will invoke      
-clang-format on the changes in current files or a specific commit.               
-                                                                                 
-For further details, run:                                                        
-git clang-format -h                                                              
-                                                                                 
-Requires Python 2.7                                                              
-"""               
+r"""
+clang-format git integration
+============================
+
+This file provides a clang-format integration for git. Put it somewhere in your
+path and ensure that it is executable. Then, "git clang-format" will invoke
+clang-format on the changes in current files or a specific commit.
+
+For further details, run:
+git clang-format -h
+
+Requires Python 2.7
+"""
 
 import argparse
 import collections

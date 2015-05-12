@@ -101,7 +101,7 @@ make sanitize # Run clean first, then rebuild with sanitations
 Generating the osquery SDK or sync:
 
 ```
-make sdk # Build only the osquery SDK (libosquery.a) 
+make sdk # Build only the osquery SDK (libosquery.a)
 make sync # Create a tarball for building the SDK externally
 ```
 

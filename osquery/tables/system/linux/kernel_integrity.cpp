@@ -24,7 +24,7 @@ QueryData genKernelIntegrity(QueryContext &context) {
   std::string text_segment_hash;
   std::string syscall_addr_modified;
 
-  // Get an integral value, 0 or 1, for whether a syscall table pointer is modified. 
+  // Get an integral value, 0 or 1, for whether a syscall table pointer is modified.
   auto f1 = osquery::readFile(kKernelSyscallAddrModifiedPath, content);
   if (f1.ok()) {
     boost::trim(content);

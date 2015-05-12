@@ -10,7 +10,7 @@ a directory or filename filter to limit the selection of files to monitor.
 
 For example, you may want to monitor `/etc` along with other files on a linux
 system.  After you identify your target files and directories you wish to monitor,
-add them to a new section in the config *file_paths*.  
+add them to a new section in the config *file_paths*.
 
 ## Example FIM Config
 

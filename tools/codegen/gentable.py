@@ -268,7 +268,7 @@ def description(text):
     table.description = text
 
 
-def attributes(**kwargs): 
+def attributes(**kwargs):
     for attr in kwargs:
         table.attributes[attr] = kwargs[attr]
 

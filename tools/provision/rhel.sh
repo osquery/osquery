@@ -79,7 +79,7 @@ function main_rhel() {
 
   set_cc gcc
   set_cxx g++
-  
+
   package bzip2
   package bzip2-devel
   package openssl-devel
