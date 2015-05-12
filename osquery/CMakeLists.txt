@@ -29,7 +29,7 @@ set(OSQUERY_LIBS
 if(NOT FREEBSD)
   set(OSQUERY_LIBS ${OSQUERY_LIBS} dl)
 else()
-  ADD_OSQUERY_LINK("icuuc")
+  ADD_OSQUERY_LINK(TRUE "icuuc")
 endif()
 
 # Add default linking details (the first argument means SDK + core).
