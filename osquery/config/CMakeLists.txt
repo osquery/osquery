@@ -10,7 +10,7 @@ set(OSQUERY_CONFIG_PLUGINS
 if(NOT OSQUERY_BUILD_RELEASE)
   set(OSQUERY_CONFIG_PLUGINS
     ${OSQUERY_CONFIG_PLUGINS}
-    plugins/http.cpp
+    plugins/tls.cpp
   )
 endif()
 

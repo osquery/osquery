@@ -195,6 +195,23 @@ class Request {
     serializer_->setTransport(transport_);
   }
 
+ private:
+  /**
+   * @brief Create a request with a customized Transport (testing only).
+   *
+   * @param destination A string of the remote URI destination
+   * @param t A transport shared pointer.
+   */
+  Request(const std::string& destination, std::shared_ptr<TTransport>& t)
+      : destination_(destination),
+        serializer_(new TSerializer),
+        transport_(std::move(t)) {
+    transport_->setDestination(destination_);
+    transport_->setSerializer(serializer_);
+    serializer_->setTransport(transport_);
+  }
+
+ public:
   /**
    * @brief Class destructor
    */
@@ -244,5 +261,12 @@ class Request {
 
   /// storage for the transport to be used
   std::shared_ptr<TTransport> transport_;
+
+ private:
+  FRIEND_TEST(TLSTransportsTests, test_call);
+  FRIEND_TEST(TLSTransportsTests, test_call_with_params);
+  FRIEND_TEST(TLSTransportsTests, test_call_verify_peer);
+  FRIEND_TEST(TLSTransportsTests, test_call_server_cert_pinning);
+  FRIEND_TEST(TLSTransportsTests, test_call_client_auth);
 };
 }

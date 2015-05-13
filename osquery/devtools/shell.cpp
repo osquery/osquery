@@ -224,30 +224,35 @@ static void shellstaticFunc(sqlite3_context *context,
 ** a previous call to this routine that may be reused.
 */
 static char *local_getline(char *zLine, FILE *in) {
-  int nLine = zLine == 0 ? 0 : 100;
+  int nLine = ((zLine == nullptr) ? 0 : 100);
   int n = 0;
 
   while (1) {
     if (n + 100 > nLine) {
       nLine = nLine * 2 + 100;
-      zLine = (char *)realloc(zLine, nLine);
-      if (zLine == 0)
-        return 0;
+      auto zLine_new = (char *)realloc(zLine, nLine);
+      if (zLine_new == nullptr) {
+        free(zLine);
+        return nullptr;
+      }
+      zLine = zLine_new;
     }
     if (fgets(&zLine[n], nLine - n, in) == 0) {
       if (n == 0) {
         free(zLine);
-        return 0;
+        return nullptr;
       }
       zLine[n] = 0;
       break;
     }
-    while (zLine[n])
+    while (zLine[n]) {
       n++;
+    }
     if (n > 0 && zLine[n - 1] == '\n') {
       n--;
-      if (n > 0 && zLine[n - 1] == '\r')
+      if (n > 0 && zLine[n - 1] == '\r') {
         n--;
+      }
       zLine[n] = 0;
       break;
     }
@@ -1250,16 +1255,23 @@ static int line_contains_semicolon(const char *z, int N) {
 ** Test to see if a line consists entirely of whitespace.
 */
 static int _all_whitespace(const char *z) {
+  if (z == nullptr) {
+    return 0;
+  }
+
   for (; *z; z++) {
-    if (IsSpace(z[0]))
+    if (IsSpace(z[0])) {
       continue;
+    }
+
     if (*z == '/' && z[1] == '*') {
       z += 2;
       while (*z && (*z != '*' || z[1] != '/')) {
         z++;
       }
-      if (*z == 0)
+      if (*z == 0) {
         return 0;
+      }
       z++;
       continue;
     }
@@ -1268,8 +1280,9 @@ static int _all_whitespace(const char *z) {
       while (*z && *z != '\n') {
         z++;
       }
-      if (*z == 0)
+      if (*z == 0) {
         return 1;
+      }
       continue;
     }
     return 0;
@@ -1302,8 +1315,9 @@ static int line_is_command_terminator(const char *zLine) {
 */
 static int line_is_complete(char *zSql, int nSql) {
   int rc;
-  if (zSql == 0)
+  if (zSql == 0) {
     return 1;
+  }
   zSql[nSql] = ';';
   zSql[nSql + 1] = 0;
   rc = sqlite3_complete(zSql);
@@ -1338,24 +1352,28 @@ static int process_input(struct callback_data *p, FILE *in) {
     zLine = one_input_line(in, zLine, nSql > 0);
     if (zLine == 0) {
       /* End of input */
-      if (stdin_is_interactive)
+      if (stdin_is_interactive) {
         printf("\n");
+      }
       break;
     }
     if (seenInterrupt) {
-      if (in != 0)
+      if (in != 0) {
         break;
+      }
       seenInterrupt = 0;
     }
     lineno++;
     if (nSql == 0 && _all_whitespace(zLine)) {
-      if (p->echoOn)
+      if (p->echoOn) {
         printf("%s\n", zLine);
+      }
       continue;
     }
     if (zLine && zLine[0] == '.' && nSql == 0) {
-      if (p->echoOn)
+      if (p->echoOn) {
         printf("%s\n", zLine);
+      }
       rc = do_meta_command(zLine, p);
       if (rc == 2) { /* exit requested */
         break;
