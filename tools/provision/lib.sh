@@ -209,7 +209,7 @@ function package() {
       log "installing $1"
       sudo apt-get install $1 -y
     fi
-  elif [ $OS = "centos" ] || [ $OS = "rhel" ]; then
+  elif [ $OS = "centos" ] || [ $OS = "rhel" ] || [ $OS = "amazon" ] ; then
     if [[ ! -n "$(rpm -V $1)" ]]; then
       log "$1 is already installed. skipping."
     else
@@ -241,7 +241,7 @@ function remove_package() {
     else
       log "Removing: $1 is not installed. skipping."
     fi
-  elif [ $OS = "centos" ] || [ $OS = "rhel" ]; then
+  elif [ $OS = "centos" ] || [ $OS = "rhel" ] || [ $OS = "amazon" ]; then
     if [[ -n "$(rpm -qa | grep $1)" ]]; then
       log "removing $1"
       sudo yum remove $1 -y
