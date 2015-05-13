@@ -47,12 +47,14 @@ elseif(LINUX)
       set(PACKAGE_ITERATION "1.el6_6.5")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
+        "cryptsetup-luks-libs"
         "libudev"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "centos7")
       set(PACKAGE_ITERATION "1.el7_7.0")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
+        "cryptsetup-libs"
       )
     endif()
   elseif(RHEL)
@@ -70,12 +72,14 @@ elseif(LINUX)
       set(PACKAGE_ITERATION "1.el6_6.5")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
+        "cryptsetup-luks-libs"
         "libudev"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "rhel7")
       set(PACKAGE_ITERATION "1.el7_7.0")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
+        "cryptsetup-libs"
       )
     endif()
   endif()
