@@ -40,8 +40,7 @@ else()
       ${OSQUERY_REDHAT_TABLES}
     )
 
-    ADD_OSQUERY_LINK(FALSE "rpm")
-    ADD_OSQUERY_LINK(FALSE "rpmio")
+    ADD_OSQUERY_LINK(FALSE "rpm rpmio")
   elseif(UBUNTU)
     # Ubuntu specific tables
     file(GLOB OSQUERY_UBUNTU_TABLES "*/ubuntu/*.cpp")
@@ -49,12 +48,11 @@ else()
       ${OSQUERY_UBUNTU_TABLES}
     )
 
-    ADD_OSQUERY_LINK(FALSE "apt-pkg")
-    ADD_OSQUERY_LINK(FALSE "dpkg")
+    ADD_OSQUERY_LINK(FALSE "apt-pkg dpkg")
   endif()
 
   ADD_OSQUERY_LINK(FALSE "blkid")
-  ADD_OSQUERY_LINK(FALSE "cryptsetup")
+  ADD_OSQUERY_LINK(FALSE "cryptsetup libdevmapper.so libgcrypt.so")
   ADD_OSQUERY_LINK(FALSE "udev")
   ADD_OSQUERY_LINK(FALSE "uuid")
   ADD_OSQUERY_LINK(FALSE "ip4tc")

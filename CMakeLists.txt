@@ -34,12 +34,16 @@ add_compile_options(
 set(CXX_COMPILE_FLAGS "")
 
 # Use osquery language to set platform/os
-execute_process(
-  COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" get_platform
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  OUTPUT_VARIABLE PLATFORM
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+if(DEFINED ENV{OSQUERY_PLATFORM})
+  set(PLATFORM ENV{OSQUERY_PLATFORM})
+else()
+  execute_process(
+    COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" get_platform
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE PLATFORM
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+endif()
 
 list(GET PLATFORM 0 OSQUERY_BUILD_PLATFORM)
 list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO)
@@ -81,6 +85,14 @@ if(${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6")
   message("-- Setting RHEL6 GCC runtime: ${GCC_RUNTIME}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
 endif()
+
+# Provisioning installs non-default C++11 runtimes on build hosts.
+# List those distros that include a non-system-default runtime.
+set(OSQUERY_REQUIRE_RUNTIMES
+  "precise"
+  "centos6"
+  "rhel6"
+)
 
 # make debug (environment variable from Makefile)
 if(DEFINED ENV{DEBUG})

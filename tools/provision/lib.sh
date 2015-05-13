@@ -38,7 +38,9 @@ function install_thrift() {
       --with-go=no \
       --with-erlang=no \
       --with-java=no \
-      --with-php=no
+      --with-php=no \
+      --with-qt4=no \
+      --with-qt=no
     CC="$CC" CXX="$CXX" make -j $THREADS
     sudo make install
     popd
@@ -111,7 +113,7 @@ function install_boost() {
   if provision boost /usr/local/lib/libboost_thread.a; then
     pushd $SOURCE
     ./bootstrap.sh
-    sudo ./b2 --with=all -j $THREADS toolset="$CC" install
+    sudo ./b2 --with=all -j $THREADS toolset="gcc" install || true
     sudo ldconfig
     popd
   fi
@@ -150,6 +152,23 @@ function install_iptables_dev() {
   fi
 }
 
+function install_libcryptsetup() {
+  TARBALL=cryptsetup-1.6.7.tar.gz
+  URL=https://s3.amazonaws.com/osquery-packages/deps/cryptsetup-1.6.7.tar.gz
+  SOURCE=cryptsetup-1.6.7
+
+  if provision libcryptsetup /usr/local/lib/libcryptsetup.a; then
+    pushd $SOURCE
+    ./autogen.sh --prefix=/usr/local --enable-static --disable-kernel_crypto
+    ./configure --prefix=/usr/local --enable-static --disable-kernel_crypto
+    pushd lib
+    make -j $THREADS
+    sudo make install
+    popd
+    popd
+  fi
+}
+
 function install_autoconf() {
   TARBALL=autoconf-2.69.tar.gz
   URL=https://osquery-packages.s3.amazonaws.com/deps/autoconf-2.69.tar.gz
@@ -166,7 +185,7 @@ function install_autoconf() {
 
   if $PROVISION_AUTOCONF; then
     pushd $SOURCE
-    ./configure --prefix=/usr/
+    ./configure --prefix=/usr
     make -j $THREADS
     sudo make install
     popd
@@ -180,6 +199,7 @@ function install_automake() {
 
   if provision automake /usr/bin/automake; then
     pushd $SOURCE
+    ./bootstrap.sh
     ./configure --prefix=/usr
     make -j $THREADS
     sudo make install
@@ -195,6 +215,21 @@ function install_libtool() {
   if provision libtool /usr/bin/libtool; then
     pushd $SOURCE
     ./configure --prefix=/usr
+    make -j $THREADS
+    sudo make install
+    popd
+  fi
+}
+
+function install_pkgconfig() {
+  TARBALL=pkg-config-0.28.tar.gz
+  URL=http://pkgconfig.freedesktop.org/releases/pkg-config-0.28.tar.gz
+  SOURCE=pkg-config-0.28
+
+  if provision pkg-config /usr/bin/pkg-config; then
+    pushd $SOURCE
+    sudo rm /usr/bin/x86_64-unknown-linux-gnu-pkg-config || true
+    ./configure --with-internal-glib --prefix=/usr
     make -j $THREADS
     sudo make install
     popd
