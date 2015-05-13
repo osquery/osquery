@@ -10,13 +10,13 @@ The tools make low-level operating system analytics and monitoring both performa
 
 | Platform | Build status  | | | |
 |----------|---------------|---|---|---|
-RHEL 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL6Package/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL6Package/) | |  | 
+RHEL 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL6Package/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL6Package/) | |  |
 RHEL 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL7Package/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL7Package/) | | **Homepage:** | https://osquery.io
 CentOS 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6Package/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6Package/) | | **Downloads:** | https://osquery.io/downloads
 CentOS 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7Package/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7Package/) | | **Tables:** | https://osquery.io/tables
 Ubuntu 12.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12Package/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12Package/) | | **Guide:** | https://osquery.readthedocs.org
 Ubuntu 14.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14Package/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14Package/) | | **Homebrew:** | `brew install osquery`
-OS X 10.10   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSXPackage/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSXPackage/) | |  | 
+OS X 10.10   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSXPackage/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSXPackage/) | |  |
 
 #### What is osquery?
 
@@ -78,6 +78,21 @@ These queries can be:
 #### Downloads / Install
 
 For latest stable and nightly builds for OS X and Linux (deb/rpm), as well as yum and apt repository information visit [https://osquery.io/downloads](https://osquery.io/downloads/).
+
+##### FreeBSD
+
+The easiest way to install osquery on FreeBSD is via the ports tree.  Check [FreshPorts](http://www.freshports.org/sysutils/osquery) for the latest version information.
+
+```bash
+# from ports
+cd /usr/ports/sysutils/osquery && make install clean
+
+# from binary package
+pkg install osquery
+
+# using portmaster
+portmaster sysutils/osquery
+```
 
 ##### OS X (Homebrew)
 

@@ -3,7 +3,7 @@
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant 
+ *  LICENSE file in the root directory of this source tree. An additional grant
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
@@ -486,7 +486,7 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @return List of 'index.step' index strings.
    */
-  std::vector<std::string> getIndexes(EventTime start, 
+  std::vector<std::string> getIndexes(EventTime start,
                                       EventTime stop,
                                       int list_key = 0);
 
