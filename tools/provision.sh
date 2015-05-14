@@ -47,6 +47,10 @@ function main() {
     log "detected rhel ($DISTRO)"
     source "$SCRIPT_DIR/provision/rhel.sh"
     main_rhel
+  elif [[ $OS = "amazon" ]]; then
+    log "detected amazon ($DISTRO)"
+    source "$SCRIPT_DIR/provision/amazon.sh"
+    main_amazon
   elif [[ $OS = "ubuntu" ]]; then
     log "detected ubuntu ($DISTRO)"
     source "$SCRIPT_DIR/provision/ubuntu.sh"

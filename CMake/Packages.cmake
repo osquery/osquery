@@ -82,6 +82,24 @@ elseif(LINUX)
         "cryptsetup-libs"
       )
     endif()
+  elseif(AMAZON)
+    set(PACKAGE_TYPE "rpm")
+    set(PACKAGE_ITERATION "1.el")
+    set(PACKAGE_DEPENDENCIES
+      "glibc >= 2.12"
+      "openssl >= 1.0"
+      "bzip2-libs"
+      "readline"
+      "zlib"
+      "rpm-libs"
+    )
+    if(OSQUERY_BUILD_DISTRO STREQUAL "amazon2015.03")
+      set(PACKAGE_ITERATION "1.el6_6.5")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libudev"
+      )
+    endif()
   endif()
   JOIN("${PACKAGE_DEPENDENCIES}" ", " PACKAGE_DEPENDENCIES)
 
