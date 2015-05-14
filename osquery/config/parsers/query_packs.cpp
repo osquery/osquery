@@ -24,13 +24,13 @@ namespace tables {
 
 
 /**
- * @brief A simple ConfigParserPlugin for a "pack" dictionary key.
+ * @brief A simple ConfigParserPlugin for a "packs" dictionary key.
  *
  */
 class QueryPackConfigParserPlugin : public ConfigParserPlugin {
  public:
-  /// Request "pack" top level key.
-  std::vector<std::string> keys() { return {"pack"}; }
+  /// Request "packs" top level key.
+  std::vector<std::string> keys() { return {"packs"}; }
 
  private:
   /// Store the signatures and file_paths and compile the rules.
