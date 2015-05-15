@@ -6,7 +6,8 @@ endif()
 set(GLOG_ROOT_DIR "${CMAKE_BINARY_DIR}/third-party/glog")
 set(GLOG_SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party/glog")
 
-set(GLOG_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register -Wno-unnamed-type-template-args -Wno-deprecated -Wno-error")
+set(GLOG_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMPILE_FLAGS}")
+set(GLOG_CXX_FLAGS "${GLOG_CXX_FLAGS} -Wno-deprecated-register -Wno-unnamed-type-template-args -Wno-deprecated -Wno-error")
 
 INCLUDE(ExternalProject)
 ExternalProject_Add(

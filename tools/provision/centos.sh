@@ -9,6 +9,7 @@
 
 function main_centos() {
   sudo yum update -y
+  package epel-release -y
 
   package texinfo
   package wget
@@ -16,18 +17,21 @@ function main_centos() {
   package unzip
   package xz
   package xz-devel
-  package epel-release
   package python-pip
   package python-devel
   package rpm-build
   package ruby-devel
   package rubygems
+  package bzip2
+  package bzip2-devel
+  package openssl-devel
+  package readline-devel
+  package rpm-devel
+  package libblkid-devel
 
   if [[ $DISTRO = "centos6" ]]; then
-    pushd /etc/yum.repos.d
-    if [[ ! -f /etc/yum.repos.d/devtools-2.repo ]]; then
-      sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo
-    fi
+    # Install the CentOS6 Devtools-2 yum repository.
+    sudo cp $FILES_DIR/centos6.devtools-2.repo /etc/yum.repos.d/
 
     package devtoolset-2-gcc
     package devtoolset-2-binutils
@@ -44,8 +48,6 @@ function main_centos() {
     if [[ ! -d /usr/lib/gcc ]]; then
       sudo ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
     fi
-    popd
-
   elif [[ $DISTRO = "centos7" ]]; then
     package gcc
     package binutils
@@ -54,14 +56,6 @@ function main_centos() {
 
   package clang
   package clang-devel
-
-  package bzip2
-  package bzip2-devel
-  package openssl-devel
-  package readline-devel
-  package rpm-devel
-  package rpm-build
-  package libblkid-devel
 
   install_cmake
 

@@ -32,6 +32,14 @@ function enable_repo() {
 }
 
 function main_rhel() {
+  if [[ -z `rpm -qa epel-release` ]]; then
+    if [[ $DISTRO = "rhel6" ]]; then
+      sudo rpm -iv https://osquery-packages.s3.amazonaws.com/deps/epel-release-6-8.noarch.rpm
+    elif [[ $DISTRO = "rhel7" ]]; then
+      sudo rpm -iv https://osquery-packages.s3.amazonaws.com/deps/epel-release-7-5.noarch.rpm
+    fi
+  fi
+
   sudo yum update -y
 
   package git
@@ -41,14 +49,6 @@ function main_rhel() {
   package xz
   package xz-devel
   package subscription-manager
-
-  if [[ -z `rpm -qa epel-release` ]]; then
-    if [[ $DISTRO = "rhel6" ]]; then
-      sudo rpm -iv https://osquery-packages.s3.amazonaws.com/deps/epel-release-6-8.noarch.rpm
-    elif [[ $DISTRO = "rhel7" ]]; then
-      sudo rpm -iv https://osquery-packages.s3.amazonaws.com/deps/epel-release-7-5.noarch.rpm
-    fi
-  fi
 
   package python-pip
   package python-devel
