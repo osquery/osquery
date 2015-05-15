@@ -34,6 +34,11 @@ endif()
 
 # Add default linking details (the first argument means SDK + core).
 ADD_OSQUERY_LINK(TRUE "-rdynamic")
+foreach(DISTRO ${OSQUERY_REQUIRE_RUNTIMES})
+  if(${OSQUERY_BUILD_DISTRO} STREQUAL ${DISTRO})
+    ADD_OSQUERY_LINK(FALSE "-static-libstdc++")
+  endif()
+endforeach()
 
 # The platform-specific SDK + core libraries.
 if(APPLE)

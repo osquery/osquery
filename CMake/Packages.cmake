@@ -38,6 +38,7 @@ elseif(LINUX)
     set(PACKAGE_DEPENDENCIES
       "glibc >= 2.12"
       "openssl >= 1.0"
+      "device-mapper >= 1.02.90"
       "bzip2-libs"
       "readline"
       "zlib"
@@ -47,14 +48,12 @@ elseif(LINUX)
       set(PACKAGE_ITERATION "1.el6_6.5")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "cryptsetup-luks-libs"
         "libudev"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "centos7")
       set(PACKAGE_ITERATION "1.el7_7.0")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "cryptsetup-libs"
       )
     endif()
   elseif(RHEL)
@@ -72,14 +71,12 @@ elseif(LINUX)
       set(PACKAGE_ITERATION "1.el6_6.5")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "cryptsetup-luks-libs"
         "libudev"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "rhel7")
       set(PACKAGE_ITERATION "1.el7_7.0")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "cryptsetup-libs"
       )
     endif()
   elseif(AMAZON)

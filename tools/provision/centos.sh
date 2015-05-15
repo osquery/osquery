@@ -72,9 +72,6 @@ function main_centos() {
 
   if [[ $DISTRO = "centos6" ]]; then
     package libudev-devel
-    package cryptsetup-luks-devel
-  elif [[ $DISTRO = "centos7" ]]; then
-    package cryptsetup-devel
   fi
 
   install_gflags
@@ -99,6 +96,11 @@ function main_centos() {
   install_rocksdb
   install_thrift
   install_yara
+
+  package device-mapper-devel
+  package libgcrypt-devel
+  package gettext-devel
+  install_libcryptsetup
 
   gem_install fpm
 }

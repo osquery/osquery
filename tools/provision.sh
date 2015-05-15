@@ -12,7 +12,7 @@ set -e
 CFLAGS="-fPIE -fPIC -O2 -DNDEBUG"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="$SCRIPT_DIR/../build"
-WORKING_DIR="$SCRIPT_DIR/../.sources"
+WORKING_DIR="/tmp/osquery-provisioning"
 export PATH="$PATH:/usr/local/bin"
 
 source "$SCRIPT_DIR/lib.sh"

@@ -92,8 +92,8 @@ function main_rhel() {
   install_boost
 
   if [[ $DISTRO = "rhel6" ]]; then
-    package cryptsetup-luks-devel
     package libudev-devel
+    package cryptsetup-luks-devel
   elif [[ $DISTRO = "rhel7" ]]; then
     package cryptsetup-devel
   fi
@@ -120,6 +120,9 @@ function main_rhel() {
   install_rocksdb
   install_thrift
   install_yara
+
+  package gettext-devel
+  install_libcryptsetup
 
   gem_install fpm
 }
