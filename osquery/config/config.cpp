@@ -79,6 +79,7 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   }
 
   // Call each parser with the optionally-empty, requested, top level keys.
+  getInstance().data_ = conf;
   for (const auto& plugin : Registry::all("config_parser")) {
     auto parser = std::static_pointer_cast<ConfigParserPlugin>(plugin.second);
     if (parser == nullptr || parser.get() == nullptr) {
@@ -97,7 +98,6 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     parser->update(parser_config);
   }
 
-  getInstance().data_ = conf;
   return Status(0, "OK");
 }
 

@@ -39,7 +39,7 @@ class QueryPackConfigParserPlugin : public ConfigParserPlugin {
 
 pt::ptree QueryPackSingleEntry(const pt::ptree pack_data) {
   std::string query = pack_data.get<std::string>("query", "");
-  int interval = pack_data.get<int>("interval", 0);
+  int interval = std::stoi(pack_data.get<std::string>("interval", "0"));
   std::string platform = pack_data.get<std::string>("platform", "");
   std::string version = pack_data.get<std::string>("version", "");
   std::string description = pack_data.get<std::string>("description", "");
@@ -69,35 +69,41 @@ Status QueryPackConfigParserPlugin::update(const std::map<std::string, ConfigTre
     status = osquery::parseJSON(pack_path, pack_tree);
 
     if (!status.ok()) {
+      LOG(ERROR) << "Error parsing Pack JSON : " << status.getCode() << " - " << status.getMessage();
       return status;
     }
 
-    // Get all pack details
-    const auto& pack_data = pack_tree.get_child(pack_name);
-    if (pack_data.size() == 0) {
-      continue;
+    // Get all the parsed elements from the pack JSON file
+    pt::ptree pack_file_element = pack_tree.get_child(pack_name);
+
+    // Iterate through all the pack elements
+    for(auto const &pack_query : pack_file_element) {
+      // Grab query name and fields
+      std::string pack_query_name = pack_query.first.data();
+      pt::ptree pack_query_element = pack_file_element.get_child(pack_query_name);
+
+      // Get all the query fields
+      pt::ptree single_pk = QueryPackSingleEntry(pack_query_element);
+
+      // Check if pack is valid for this system
+      std::string pk_platform = single_pk.get<std::string>("platform");
+      if (pk_platform.find(STR(OSQUERY_BUILD_PLATFORM)) == std::string::npos) {
+        continue;
+      }
+
+      // Check if current osquery version is equal or higher than needed
+      std::string pk_version = single_pk.get<std::string>("version");
+      if (STR(OSQUERY_VERSION) > pk_version) {
+        continue;
+      }
+
+      // Preparing new queries to add to schedule
+      std::string new_query = single_pk.get<std::string>("query");
+      int new_interval = single_pk.get<int>("interval");
+
+      // Adding extracted pack to the schedule
+      Config::addScheduledQuery(pack_query_name, new_query, new_interval);
     }
-
-    pt::ptree single_pk = QueryPackSingleEntry(pack_data);
-
-    // Check if pack is valid for this system
-    std::string pk_platform = single_pk.get<std::string>("platform");
-    if (pk_platform.find(STR(OSQUERY_BUILD_PLATFORM)) == std::string::npos) {
-      continue;
-    }
-
-    // Check if current osquery version is equal or higher than needed
-    std::string pk_version = single_pk.get<std::string>("version");
-    if (STR(OSQUERY_VERSION) < pk_version) {
-      continue;
-    }
-
-    // Preparing new queries to add to schedule
-    std::string new_query = single_pk.get<std::string>("query");
-    int new_interval = single_pk.get<int>("interval");
-
-    // Adding extracted pack to the schedule
-    Config::addScheduledQuery(pack_name, new_query, new_interval);
   }
   return Status(0, "OK");
 }
