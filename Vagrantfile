@@ -1,19 +1,4 @@
 targets = {
-  "centos6.5" => {
-    "box" => "chef/centos-6.5"
-  },
-  "centos7"   => {
-    "box" => "chef/centos-7.0"
-  },
-  "ubuntu14"  => {
-    "box" => "ubuntu/trusty64"
-  },
-  "ubuntu12"  => {
-    "box" => "ubuntu/precise64"
-  },
-  "freebsd10" => {
-    "box" => "chef/freebsd-10.0"
-  },
   "aws-amazon2015.03" => {
     "box" => "andytson/aws-dummy",
     "regions" => { "us-east-1" => "ami-1ecae776", "us-west-1" => "ami-d114f295" },
@@ -24,30 +9,10 @@ targets = {
     "regions" => { "us-east-1" => "ami-12663b7a", "us-west-1" => "ami-a540a5e1" },
     "username" => "ec2-user"
   },
-  "aws-rhel6.5" => {
+  "aws-rhel6.6" => {
     "box" => "andytson/aws-dummy",
     "regions" => { "us-east-1" => "ami-1643ff7e", "us-west-1" => "ami-2b171d6e" },
     "username" => "ec2-user"
-  },
-  "aws-centos7" => {
-    "box" => "andytson/aws-dummy",
-    "regions" => { "us-east-1" => "ami-96a818fe", "us-west-1" => "ami-6bcfc42e" },
-    "username" => "centos"
-  },
-  "aws-centos6.5" => {
-    "box" => "andytson/aws-dummy",
-    "regions" => { "us-east-1" => "ami-8997afe0", "us-west-1" => "ami-1a013c5f" },
-    "username" => "centos"
-  },
-  "aws-ubuntu14" => {
-    "box" => "andytson/aws-dummy",
-    "regions" => { "us-east-1" => "ami-d05e75b8", "us-west-1" => "ami-df6a8b9b" },
-    "username" => "ubuntu"
-  },
-  "aws-ubuntu12" => {
-    "box" => "andytson/aws-dummy",
-    "regions" => { "us-east-1" => "ami-487a3920", "us-west-1" => "ami-febba3bb" },
-    "username" => "ubuntu"
   },
 }
 Vagrant.configure("2") do |config|
@@ -94,7 +59,11 @@ targets.each do |name, target|
     if name.start_with?('aws-')
       build.vm.provider :aws do |aws, override|
         aws.ami = target['regions'][targets["active_region"]]
-        aws.user_data = "#!/bin/bash\necho 'Defaults:" + target['username'] + " !requiretty' > /etc/sudoers.d/999-vagrant-cloud-init-requiretty && chmod 440 /etc/sudoers.d/999-vagrant-cloud-init-requiretty "
+        aws.user_data = [
+          "#!/bin/bash",
+          "echo 'Defaults:" + target['username'] + " !requiretty' > /etc/sudoers.d/999-vagrant-cloud-init-requiretty",
+          "chmod 440 /etc/sudoers.d/999-vagrant-cloud-init-requiretty"
+        ].join("\n")
         override.ssh.username = target['username']
         aws.tags = { 'Name' => name }
       end
