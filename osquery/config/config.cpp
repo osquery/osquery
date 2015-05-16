@@ -79,6 +79,7 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   }
 
   // Call each parser with the optionally-empty, requested, top level keys.
+  getInstance().data_ = conf;
   for (const auto& plugin : Registry::all("config_parser")) {
     auto parser = std::static_pointer_cast<ConfigParserPlugin>(plugin.second);
     if (parser == nullptr || parser.get() == nullptr) {
@@ -97,7 +98,6 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     parser->update(parser_config);
   }
 
-  getInstance().data_ = conf;
   return Status(0, "OK");
 }
 
@@ -134,9 +134,9 @@ inline void mergeOption(const tree_node& option, ConfigData& conf) {
   conf.all_data.add_child("options." + key, option.second);
 }
 
-inline void mergeScheduledQuery(const std::string& name,
-                                const tree_node& node,
-                                ConfigData& conf) {
+inline void additionalScheduledQuery(const std::string& name,
+                                     const tree_node& node,
+                                     ConfigData& conf) {
   // Read tree/JSON into a query structure.
   ScheduledQuery query;
   query.query = node.second.get<std::string>("query", "");
@@ -156,6 +156,14 @@ inline void mergeScheduledQuery(const std::string& name,
       splayValue(query.interval, FLAGS_schedule_splay_percent);
   // Update the schedule map and replace the all_data node record.
   conf.schedule[name] = query;
+}
+
+inline void mergeScheduledQuery(const std::string& name,
+                                const tree_node& node,
+                                ConfigData& conf) {
+  // Add the new query to the configuration.
+  additionalScheduledQuery(name, node, conf);
+  // Replace the all_data node record.
   if (conf.all_data.count("schedule") > 0) {
     conf.all_data.get_child("schedule").erase(name);
   }
@@ -280,6 +288,18 @@ Status Config::getMD5(std::string& hash_string) {
       HASH_TYPE_MD5, (void*)out.str().c_str(), out.str().length());
 
   return Status(0, "OK");
+}
+
+void Config::addScheduledQuery(const std::string name,
+                               const std::string query,
+                               const int interval) {
+  // Create structure to add to the schedule.
+  tree_node node;
+  node.second.put("query", query);
+  node.second.put("interval", interval);
+
+  // Call to the inline function.
+  additionalScheduledQuery(name, node, getInstance().data_);
 }
 
 Status Config::checkConfig() {

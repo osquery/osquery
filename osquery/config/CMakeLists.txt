@@ -14,8 +14,11 @@ if(NOT OSQUERY_BUILD_RELEASE)
   )
 endif()
 
+file(GLOB OSQUERY_CONFIG_PARSERS "parsers/*.cpp")
+
 ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
   ${OSQUERY_CONFIG_PLUGINS}
+  ${OSQUERY_CONFIG_PARSERS}
 )
 
 file(GLOB OSQUERY_CONFIG_TESTS "tests/*.cpp")
