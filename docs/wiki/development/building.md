@@ -69,6 +69,45 @@ The binaries are built to a distro-specific folder within *build* and symlinked 
 $ ls -la ./build/linux/osquery/
 ```
 
+## AWS EC2 Backed Vagrant Targets
+
+The osquery vagrant infrastructure supports leveraging aws ec2 to run virtual machines.
+This capability is provided by the [vagrant-aws](https://github.com/mitchellh/vagrant-aws) plugin, which is installed as follows:
+
+```
+$ vagrant plugin install vagrant-aws
+```  
+
+Next, add a vagrant dummy box for aws:
+
+```
+$ vagrant box add andytson/aws-dummy
+```
+
+Before launching an aws-backed virtual machine, a few environment variables must be set:
+
+```
+# Required. Credentials for aws api. vagrant-aws will error if these are unset.
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+# Name of aws keypair for launching and accessing the ec2 instance.
+export AWS_KEYPAIR_NAME=my-osquery-vagrant-security-group
+export AWS_SSH_PRIVATE_KEY_PATH=/path/to/keypair.pem
+# Name of aws security group that allows tcp/22 from vagrant host.
+export AWS_SECURITY_GROUP=my-osquery-vagrant-security-group
+# Set this to the aws region the ec2 instances should be launced in. If unset, "us-east-1" is used.
+export AWS_DEFAULT_REGION=...
+# Set this to the desired aws instance type. If unset, m3.medium is used.
+export AWS_INSTANCE_TYPE=m3.large
+```
+
+Spin up a vm and ssh in:
+
+```
+$ vagrant up aws-amazon2015.03 --provider=aws
+$ vagrant ssh aws-amazon2015.03
+```
+
 ## Debug Builds, formatting, and more
 
 To generate a non-optimized debug build use `make debug`.
@@ -142,3 +181,5 @@ Some quick features include:
 * Blacklisting performance-impacting virtual tables.
 * Scheduled query optimization and profilling.
 * Query implementation isolation options.
+
+
