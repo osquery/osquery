@@ -1,4 +1,19 @@
 targets = {
+  "centos6.5" => {
+    "box" => "chef/centos-6.5"
+  },
+  "centos7"   => {
+    "box" => "chef/centos-7.0"
+  },
+  "ubuntu14"  => {
+    "box" => "ubuntu/trusty64"
+  },
+  "ubuntu12"  => {
+    "box" => "ubuntu/precise64"
+  },
+  "freebsd10" => {
+    "box" => "chef/freebsd-10.0"
+  },
   "aws-amazon2015.03" => {
     "box" => "andytson/aws-dummy",
     "regions" => { "us-east-1" => "ami-1ecae776", "us-west-1" => "ami-d114f295" },
@@ -13,7 +28,7 @@ targets = {
     "box" => "andytson/aws-dummy",
     "regions" => { "us-east-1" => "ami-1643ff7e", "us-west-1" => "ami-2b171d6e" },
     "username" => "ec2-user"
-  },
+  }
 }
 Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |v|
