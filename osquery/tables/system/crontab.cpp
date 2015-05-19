@@ -22,11 +22,9 @@ namespace tables {
 
 const std::string kSystemCron = "/etc/crontab";
 
-#ifdef __APPLE__
-const std::string kUserCronsPath = "/var/at/tabs/";
-#else
-const std::string kUserCronsPath = "/var/spool/cron/";
-#endif
+const std::vector<std::string> kUserCronPaths = {
+    "/var/at/tabs/", "/var/spool/cron/", "/var/spool/cron/crontabs/",
+};
 
 std::vector<std::string> cronFromFile(const std::string& path) {
   std::string content;
@@ -106,11 +104,8 @@ QueryData genCronTab(QueryContext& context) {
   }
 
   std::vector<std::string> user_crons;
-  auto status = listFilesInDirectory(kUserCronsPath, user_crons);
-  if (!status.ok()) {
-    LOG(INFO) << "Could not list user crons from: " << kUserCronsPath << " ("
-              << status.toString() << ")";
-    return results;
+  for (const auto cron_path : kUserCronPaths) {
+    osquery::listFilesInDirectory(cron_path, user_crons);
   }
 
   // The user-based crons are identified by their path.
