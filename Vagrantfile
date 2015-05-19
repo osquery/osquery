@@ -24,7 +24,7 @@ targets = {
     "regions" => { "us-east-1" => "ami-12663b7a", "us-west-1" => "ami-a540a5e1" },
     "username" => "ec2-user"
   },
-  "aws-rhel6.6" => {
+  "aws-rhel6.5" => {
     "box" => "andytson/aws-dummy",
     "regions" => { "us-east-1" => "ami-1643ff7e", "us-west-1" => "ami-2b171d6e" },
     "username" => "ec2-user"
