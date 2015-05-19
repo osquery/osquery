@@ -9,14 +9,9 @@ freebsd:chrome_extensions
 freebsd:disk_encryption
 freebsd:file_events
 freebsd:firefox_addons
-freebsd:groups
 freebsd:hardware_events
-#freebsd:interface_addresses
-#freebsd:interface_details
 freebsd:kernel_info
 freebsd:last
-#freebsd:listening_ports
-freebsd:mounts
 freebsd:opera_extensions
 freebsd:os_version
 freebsd:passwd_changes
@@ -29,7 +24,6 @@ freebsd:processes
 freebsd:routes
 freebsd:system_controls
 freebsd:usb_devices
-freebsd:users
 freebsd:yara_events
 freebsd:yara
 freebsd:system_controls
