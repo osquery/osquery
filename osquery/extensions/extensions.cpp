@@ -367,7 +367,7 @@ Status queryExternal(const std::string& query, QueryData& results) {
 
 Status getQueryColumnsExternal(const std::string& manager_path,
                                const std::string& query,
-                               tables::TableColumns& columns) {
+                               TableColumns& columns) {
   // Make sure the extension path exists, and is writable.
   auto status = extensionPathActive(manager_path);
   if (!status.ok()) {
@@ -393,7 +393,7 @@ Status getQueryColumnsExternal(const std::string& manager_path,
 }
 
 Status getQueryColumnsExternal(const std::string& query,
-                               tables::TableColumns& columns) {
+                               TableColumns& columns) {
   return getQueryColumnsExternal(FLAGS_extensions_socket, query, columns);
 }
 

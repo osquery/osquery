@@ -17,8 +17,6 @@
 #include <yara.h>
 
 namespace osquery {
-namespace tables {
-
 
 void YARACompilerCallback(int error_level,
                           const char* file_name,
@@ -61,6 +59,4 @@ class YARAConfigParserPlugin : public ConfigParserPlugin {
   /// Store the signatures and file_paths and compile the rules.
   Status update(const std::map<std::string, ConfigTree>& config);
 };
-
-}
 }

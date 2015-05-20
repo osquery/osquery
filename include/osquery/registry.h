@@ -126,6 +126,8 @@ struct ModuleInfo {
 /// The call-in prototype for Registry modules.
 typedef void (*ModuleInitalizer)(void);
 
+template <class PluginItem> class PluginFactory {};
+
 class Plugin : private boost::noncopyable {
  public:
   Plugin() : name_("unnamed") {}

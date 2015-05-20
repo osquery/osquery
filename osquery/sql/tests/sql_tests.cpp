@@ -26,13 +26,13 @@ TEST_F(SQLTests, test_raw_access) {
   EXPECT_EQ(results.size(), 1);
 }
 
-class TestTablePlugin : public tables::TablePlugin {
+class TestTablePlugin : public TablePlugin {
  private:
-  tables::TableColumns columns() const {
+  TableColumns columns() const {
     return {{"test_int", "INTEGER"}, {"test_text", "TEXT"}};
   }
 
-  QueryData generate(tables::QueryContext& ctx) {
+  QueryData generate(QueryContext& ctx) {
     QueryData results;
     if (ctx.constraints["test_int"].existsAndMatches("1")) {
       results.push_back({{"test_int", "1"}, {"test_text", "0"}});
@@ -40,7 +40,7 @@ class TestTablePlugin : public tables::TablePlugin {
       results.push_back({{"test_int", "0"}, {"test_text", "1"}});
     }
 
-    auto ints = ctx.constraints["test_int"].getAll<int>(tables::EQUALS);
+    auto ints = ctx.constraints["test_int"].getAll<int>(EQUALS);
     for (const auto& int_match : ints) {
       results.push_back({{"test_int", INTEGER(int_match)}});
     }
@@ -56,10 +56,10 @@ TEST_F(SQLTests, test_raw_access_context) {
   EXPECT_EQ(results.size(), 1);
   EXPECT_EQ(results[0]["test_text"], "1");
 
-  results = SQL::selectAllFrom("test", "test_int", tables::EQUALS, "1");
+  results = SQL::selectAllFrom("test", "test_int", EQUALS, "1");
   EXPECT_EQ(results.size(), 2);
 
-  results = SQL::selectAllFrom("test", "test_int", tables::EQUALS, "2");
+  results = SQL::selectAllFrom("test", "test_int", EQUALS, "2");
   EXPECT_EQ(results.size(), 2);
   EXPECT_EQ(results[0]["test_int"], "0");
 }

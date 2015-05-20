@@ -20,7 +20,6 @@
 #include "osquery/events/linux/inotify.h"
 
 namespace osquery {
-namespace tables {
 
 /**
  * @brief Track time, action changes to /etc/passwd
@@ -91,6 +90,5 @@ Status FileEventSubscriber::Callback(const INotifyEventContextRef& ec,
     add(r, ec->time);
   }
   return Status(0, "OK");
-}
 }
 }

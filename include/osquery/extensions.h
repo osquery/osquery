@@ -53,7 +53,7 @@ Status queryExternal(const std::string& query, QueryData& results);
 
 /// External (extensions) SQL implementation of the osquery getQueryColumns API.
 Status getQueryColumnsExternal(const std::string& q,
-                               tables::TableColumns& columns);
+                               TableColumns& columns);
 
 /// External (extensions) SQL implementation plugin provider for "sql" registry.
 class ExternalSQLPlugin : SQLPlugin {
@@ -63,7 +63,7 @@ class ExternalSQLPlugin : SQLPlugin {
   }
 
   Status getQueryColumns(const std::string& q,
-                         tables::TableColumns& columns) const {
+                         TableColumns& columns) const {
     return getQueryColumnsExternal(q, columns);
   }
 };

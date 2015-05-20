@@ -17,7 +17,6 @@
 #include "osquery/sql/virtual_table.h"
 
 namespace osquery {
-namespace tables {
 
 class VirtualTableTests : public testing::Test {};
 
@@ -47,7 +46,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
 
   // Virtual tables require the registry/plugin API to query tables.
   auto status =
-      tables::attachTableInternal("failed_sample", "(foo INTEGER)", dbc.db());
+      attachTableInternal("failed_sample", "(foo INTEGER)", dbc.db());
   EXPECT_EQ(status.getCode(), SQLITE_ERROR);
 
   // The table attach will complete only when the table name is registered.
@@ -57,8 +56,8 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   EXPECT_TRUE(status.ok());
 
   // Use the table name, plugin-generated schema to attach.
-  status = tables::attachTableInternal(
-      "sample", tables::columnDefinition(response), dbc.db());
+  status = attachTableInternal(
+      "sample", columnDefinition(response), dbc.db());
   EXPECT_EQ(status.getCode(), SQLITE_OK);
 
   std::string q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
@@ -66,6 +65,5 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   status = queryInternal(q, results, dbc.db());
   EXPECT_EQ("CREATE VIRTUAL TABLE sample USING sample(foo INTEGER, bar TEXT)",
             results[0]["sql"]);
-}
 }
 }

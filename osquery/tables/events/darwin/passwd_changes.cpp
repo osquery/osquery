@@ -18,7 +18,6 @@
 #include "osquery/events/darwin/fsevents.h"
 
 namespace osquery {
-namespace tables {
 
 const std::vector<std::string> kDarwinPasswdPaths = {
     "/etc/passwd", "/private/etc/passwd", "/etc/shadow", "/private/etc/shadow",
@@ -75,6 +74,5 @@ Status PasswdChangesEventSubscriber::Callback(const FSEventsEventContextRef& ec,
     add(r, ec->time);
   }
   return Status(0, "OK");
-}
 }
 }

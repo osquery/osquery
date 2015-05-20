@@ -113,7 +113,7 @@ class SQL {
    */
   static QueryData selectAllFrom(const std::string& table,
                                  const std::string& column,
-                                 tables::ConstraintOperator op,
+                                 ConstraintOperator op,
                                  const std::string& expr);
 
  protected:
@@ -157,7 +157,7 @@ class SQLPlugin : public Plugin {
   /// Use the SQL implementation to parse a query string and return details
   /// (name, type) about the columns.
   virtual Status getQueryColumns(const std::string& q,
-                                 tables::TableColumns& columns) const = 0;
+                                 TableColumns& columns) const = 0;
 
   /**
    * @brief Attach a table at runtime.
@@ -215,7 +215,7 @@ Status query(const std::string& query, QueryData& results);
  *
  * @return status indicating success or failure of the operation
  */
-Status getQueryColumns(const std::string& q, tables::TableColumns& columns);
+Status getQueryColumns(const std::string& q, TableColumns& columns);
 
 /*
  * @brief A mocked subclass of SQL useful for testing

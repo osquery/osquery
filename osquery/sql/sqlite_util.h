@@ -157,7 +157,7 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db);
  * @return status indicating success or failure of the operation
  */
 Status getQueryColumnsInternal(const std::string& q,
-                               tables::TableColumns& columns,
+                               TableColumns& columns,
                                sqlite3* db);
 
 /// The SQLiteSQLPlugin implements the "sql" registry for internal/core.
@@ -169,7 +169,7 @@ class SQLiteSQLPlugin : SQLPlugin {
   }
 
   Status getQueryColumns(const std::string& q,
-                         tables::TableColumns& columns) const {
+                         TableColumns& columns) const {
     auto dbc = SQLiteDBManager::get();
     return getQueryColumnsInternal(q, columns, dbc.db());
   }

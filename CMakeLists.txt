@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 2.8.12)
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
-include(CMakeLibs)
+macro(WARNING_LOG MESSAGE)
+  string(ASCII 27 Esc)
+  message("-- ${Esc}[31m${MESSAGE}${Esc}[m")
+endmacro(WARNING_LOG)
+
+macro(LOG MESSAGE)
+  message("-- ${MESSAGE}")
+endmacro(LOG)
 
 if(NOT DEFINED ENV{CC})
   set(CMAKE_C_COMPILER "clang")
@@ -116,7 +122,7 @@ elseif(DEFINED ENV{SANITIZE})
   add_compile_options(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
 else()
   set(DEBUG FALSE)
-  add_compile_options(-O2)
+  add_compile_options(-O3)
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
@@ -143,6 +149,8 @@ endif()
 # Finished setting compiler/compiler flags.
 project(OSQUERY)
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
+include(CMakeLibs)
 
 # Make sure deps were built before compiling (else show warning).
 execute_process(

@@ -131,7 +131,7 @@ void ExtensionManagerHandler::query(ExtensionResponse& _return,
 
 void ExtensionManagerHandler::getQueryColumns(ExtensionResponse& _return,
                                               const std::string& sql) {
-  tables::TableColumns columns;
+  TableColumns columns;
   auto status = osquery::getQueryColumns(sql, columns);
   _return.status.code = status.getCode();
   _return.status.message = status.getMessage();

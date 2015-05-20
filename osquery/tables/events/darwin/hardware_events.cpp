@@ -15,7 +15,6 @@
 #include "osquery/events/darwin/iokit_hid.h"
 
 namespace osquery {
-namespace tables {
 
 /**
  * @brief Track IOKit HID events.
@@ -61,6 +60,5 @@ Status HardwareEventSubscriber::Callback(const IOKitHIDEventContextRef& ec,
   r["time"] = INTEGER(ec->time);
   add(r, ec->time);
   return Status(0, "OK");
-}
 }
 }

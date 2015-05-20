@@ -87,4 +87,3 @@ TEST_F(QueryPacksConfigTests, test_query_packs_configuration) {
   EXPECT_EQ(expected["launchd"].get<std::string>("value"),
             data["launchd"].get<std::string>("value"));
 }
-}

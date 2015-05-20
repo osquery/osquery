@@ -17,7 +17,6 @@
 #include "osquery/tables/utils/yara_utils.h"
 
 namespace osquery {
-namespace tables {
 
 /**
  * The callback used when there are compilation problems in the rules.
@@ -258,6 +257,4 @@ Status YARAConfigParserPlugin::update(const std::map<std::string, ConfigTree>& c
 
 /// Call the simple YARA ConfigParserPlugin "yara".
 REGISTER(YARAConfigParserPlugin, "config_parser", "yara");
-
-}
 }
