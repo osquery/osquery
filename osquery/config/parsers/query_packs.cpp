@@ -15,27 +15,12 @@
 #include <osquery/filesystem.h>
 #include <osquery/config.h>
 #include <osquery/logger.h>
+#include <osquery/query_packs.h>
 
 namespace pt = boost::property_tree;
-namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
-
-
-/**
- * @brief A simple ConfigParserPlugin for a "packs" dictionary key.
- *
- */
-class QueryPackConfigParserPlugin : public ConfigParserPlugin {
- public:
-  /// Request "packs" top level key.
-  std::vector<std::string> keys() { return {"packs"}; }
-
- private:
-  /// Store the signatures and file_paths and compile the rules.
-  Status update(const std::map<std::string, ConfigTree>& config);
-};
 
 pt::ptree QueryPackSingleEntry(const pt::ptree& pack_data) {
   // Extract all the pack fields

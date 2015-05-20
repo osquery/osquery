@@ -67,7 +67,7 @@ function _distro() {
 function threads() {
   local __out=$1
   platform OS
-  if [ $FAMILY = "redhat" ] || [ $FAMILY = "debian" ]; then
+  if [[ $FAMILY = "redhat" ]] || [[ $FAMILY = "debian" ]]; then
     eval $__out=`cat /proc/cpuinfo | grep processor | wc -l`
   elif [[ $OS = "darwin" ]]; then
     eval $__out=`sysctl hw.ncpu | awk '{print $2}'`

@@ -9,6 +9,7 @@
  */
 
 #include <osquery/config.h>
+#include <osquery/query_packs.h>
 #include <osquery/core.h>
 #include <osquery/extensions.h>
 #include <osquery/flags.h>
@@ -16,6 +17,7 @@
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
+#include <osquery/filesystem.h>
 
 namespace osquery {
 namespace tables {
@@ -155,6 +157,68 @@ QueryData genOsquerySchedule(QueryContext& context) {
     r["system_time"] = BIGINT(query.second.system_time);
     r["average_memory"] = BIGINT(query.second.memory);
     results.push_back(r);
+  }
+
+  return results;
+}
+
+QueryData genOsqueryPacks(QueryContext& context) {
+  QueryData results;
+  ConfigDataInstance config;
+
+  const auto& pack_config = config.getParsedData("packs");
+  const auto& pack_parser = config.getParser("packs");
+  if (pack_parser == nullptr) {
+    return results;
+  }
+  const auto& queryPackParser = std::static_pointer_cast<QueryPackConfigParserPlugin>(pack_parser);
+  if (queryPackParser == nullptr) {
+    return results;
+  }
+
+  for(auto const &pack_element : pack_config) {
+    Row r;
+
+    // Iterate through all the packs to get the configuration
+    auto pack_name = std::string(pack_element.first.data());
+    auto pack_path = std::string(pack_element.second.data());
+
+    r["name"] = TEXT(pack_name);
+    r["path"] = TEXT(pack_path);
+
+    // Read each pack configuration in JSON
+    pt::ptree pack_tree;
+    Status status = osquery::parseJSON(pack_path, pack_tree);
+
+    // Get all the parsed elements from the pack JSON file
+    if (pack_tree.count(pack_name) == 0) {
+      continue;
+    }
+    pt::ptree pack_file_element = pack_tree.get_child(pack_name);
+
+    // Get all the valid packs and return them in a map
+
+    std::map<std::string, pt::ptree> clean_packs = queryPackParser->QueryPackParsePacks(pack_file_element, false, false);
+
+    // Iterate through the already parsed and valid packs
+    std::map<std::string, pt::ptree>::iterator pk = clean_packs.begin();
+    for(pk=clean_packs.begin(); pk!=clean_packs.end(); ++pk) {
+      // Adding a prefix to the pack queries, to be easily found in the scheduled queries
+      std::string pk_name = "pack_" + pack_name + "_" + pk->first;
+      pt::ptree pk_data = pk->second;
+
+      r["query_name"] = TEXT(pk->first);
+
+      // Query data to return as Row
+      r["query"] = TEXT(pk_data.get<std::string>("query"));
+      r["interval"] = INTEGER(pk_data.get<int>("interval"));
+      r["platform"] = TEXT(pk_data.get<std::string>("platform"));
+      r["version"] = TEXT(pk_data.get<std::string>("version"));
+      r["description"] = TEXT(pk_data.get<std::string>("description"));
+      r["value"] = TEXT(pk_data.get<std::string>("value"));
+
+      results.push_back(r);
+    }
   }
 
   return results;

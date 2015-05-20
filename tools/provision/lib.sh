@@ -117,7 +117,7 @@ function install_rocksdb() {
     if [[ ! -f rocksdb-rocksdb-3.10.2/librocksdb.a ]]; then
       if [[ $FAMILY = "debian" ]]; then
         CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
-      elif [ $FAMILY = "redhat" ]; then
+      elif [[ $FAMILY = "redhat" ]]; then
         CLANG_VERSION=`clang --version | grep version | cut -d" " -f3`
         CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
       fi
@@ -353,7 +353,7 @@ function package() {
       log "installing $1"
       sudo apt-get install $1 -y
     fi
-  elif [ $FAMILY = "redhat" ]; then
+  elif [[ $FAMILY = "redhat" ]]; then
     if [[ ! -n "$(rpm -V $1)" ]]; then
       log "$1 is already installed. skipping."
     else
@@ -385,7 +385,7 @@ function remove_package() {
     else
       log "Removing: $1 is not installed. skipping."
     fi
-  elif [ $FAMILY = "redhat" ]; then
+  elif [[ $FAMILY = "redhat" ]]; then
     if [[ -n "$(rpm -qa | grep $1)" ]]; then
       log "removing $1"
       sudo yum remove $1 -y
