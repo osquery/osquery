@@ -8,6 +8,7 @@
  *
  */
 
+#include <CoreServices/CoreServices.h>
 #include <sys/xattr.h>
 
 #include <boost/filesystem.hpp>
@@ -133,46 +134,46 @@ std::vector<std::string> parseExtendedAttributeList(const std::string &path) {
   return attributes;
 }
 
-// Parse a given XAttrAttribute struct as a where from plist
 void parseWhereFrom(QueryData &results,
                     const XAttrAttribute &x_att,
                     const std::string &path,
                     const std::string &directory) {
-  pt::ptree data;
-  osquery::parsePlistContent(x_att.attribute_data, data);
 
-  if (data.count("root") > 0) {
-    std::vector<std::string> values;
-    for (const auto &node : data.get_child("root")) {
-      auto value = node.second.get<std::string>("", "");
-      values.push_back(value);
-    }
+  CFStringRef CFPath = CFStringCreateWithCString(
+      kCFAllocatorDefault, path.c_str(), kCFStringEncodingUTF8);
 
-    Row r1;
-    r1["path"] = path;
-    r1["directory"] = directory;
-    r1["key"] = "where_from_download_url";
-    r1["base64"] = INTEGER(0);
+  MDItemRef metadata = MDItemCreate(kCFAllocatorDefault, CFPath);
+  CFRelease(CFPath);
 
-    Row r2;
-    r2["path"] = path;
-    r2["directory"] = directory;
-    r2["key"] = "where_from_download_page";
-    r2["base64"] = INTEGER(0);
-
-    if (values.size() == 2) {
-      r1["value"] = values[0];
-      r2["value"] = values[1];
-    } else {
-      // Changed to blank because it might not be no data, it might be we just
-      // don't know how to parse because it's corrupted.
-      r1["value"] = "";
-      r2["value"] = "";
-    }
-
-    results.push_back(r1);
-    results.push_back(r2);
+  if (metadata == nullptr) {
+    VLOG(1) << "Metadata for " << path << " is null.";
+    return;
   }
+
+  CFTypeRef attributes;
+  attributes = MDItemCopyAttribute(metadata, kMDItemWhereFroms);
+  CFRelease(metadata);
+
+  if (attributes == nullptr) {
+    VLOG(1) << "No attributes found for " << path;
+    return;
+  }
+
+  CFArrayRef attribs = (CFArrayRef)attributes;
+  CFIndex count = CFArrayGetCount(attribs);
+
+  for (CFIndex i = 0; i < count; i++) {
+    CFStringRef attribute = (CFStringRef)CFArrayGetValueAtIndex(attribs, i);
+    Row r;
+    r["path"] = path;
+    r["directory"] = directory;
+    r["key"] = "where_from";
+    r["value"] = stringFromCFString(attribute);
+    r["base64"] = INTEGER(0);
+    results.push_back(r);
+  }
+
+  CFRelease(attributes);
 }
 
 // Parse a given XAttrAttribute struct as an OS X quarantine string

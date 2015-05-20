@@ -9,13 +9,14 @@ if(APPLE)
     ${OSQUERY_DARWIN_TABLES}
   )
 
-  file(GLOB OSQUERY_DARWIN_TABLES_TESTS "*/darwin/tests/*.cpp")
-  ADD_OSQUERY_TABLE_TEST(${OSQUERY_DARWIN_TABLES_TESTS})
-
   ADD_OSQUERY_LINK(FALSE "-framework CoreFoundation")
   ADD_OSQUERY_LINK(FALSE "-framework Security")
   ADD_OSQUERY_LINK(FALSE "-framework OpenDirectory")
   ADD_OSQUERY_LINK(FALSE "-framework DiskArbitration")
+  ADD_OSQUERY_LINK(FALSE "-framework CoreServices")
+
+  file(GLOB OSQUERY_DARWIN_TABLES_TESTS "*/darwin/tests/*.cpp")
+  ADD_OSQUERY_TABLE_TEST(${OSQUERY_DARWIN_TABLES_TESTS})
 elseif(FREEBSD)
   file(GLOB OSQUERY_FREEBSD_TABLES "*/freebsd/*.cpp")
   ADD_OSQUERY_LIBRARY(FALSE osquery_tables_freebsd
