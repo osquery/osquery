@@ -1,12 +1,12 @@
 ADD_OSQUERY_LIBRARY(FALSE osquery_remote
-  enrollment/enrollment.cpp
+  enroll/enroll.cpp
   serializers/json.cpp
-  transports/http.cpp
+  transports/tls.cpp
 )
 
 if(NOT OSQUERY_BUILD_RELEASE)
   ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
-    enrollment/plugins/http.cpp
+    enroll/plugins/tls.cpp
   )
 endif()
 

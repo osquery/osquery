@@ -440,6 +440,8 @@ Status EventFactory::run(EventPublisherID& type_id) {
           << " run loop terminated for reason: " << status.getMessage();
   // Publishers auto tear down when their run loop stops.
   publisher->tearDown();
+
+  // TODO: The event factory dtor will also remove every publisher.
   ef.event_pubs_.erase(type_id);
   return Status(0, "OK");
 }
@@ -627,8 +629,6 @@ void EventFactory::end(bool join) {
   ::usleep(400);
   ef.threads_.clear();
 }
-
-typedef std::shared_ptr<EventPublisherPlugin> EventPublisherPluginRef;
 
 void attachEvents() {
   // Caller may disable events, do not setup any publishers or subscribers.

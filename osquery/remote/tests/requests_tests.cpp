@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 
 #include "osquery/remote/requests.h"
-#include "osquery/remote/transports/http.h"
+#include "osquery/remote/transports/tls.h"
 #include "osquery/remote/serializers/json.h"
 
 namespace osquery {

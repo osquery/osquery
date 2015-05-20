@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 2.8.12)
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
+include(CMakeLibs)
 
 if(NOT DEFINED ENV{CC})
   set(CMAKE_C_COMPILER "clang")
@@ -140,10 +142,7 @@ endif()
 
 # Finished setting compiler/compiler flags.
 project(OSQUERY)
-
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
-include(CMakeLibs)
 
 # Make sure deps were built before compiling (else show warning).
 execute_process(
@@ -186,6 +185,7 @@ add_definitions(
   -DOSQUERY_BUILD_DISTRO=${OSQUERY_BUILD_DISTRO}
   -D${OSQUERY_BUILD_PLATFORM_DEFINE}
   -D${OSQUERY_BUILD_PLATFORM_DEFINE}_${OSQUERY_BUILD_DISTRO_DEFINE}
+  -DBOOST_NETWORK_ENABLE_HTTPS
 )
 
 if(APPLE)
