@@ -168,8 +168,7 @@ class SQLiteSQLPlugin : SQLPlugin {
     return queryInternal(q, results, dbc.db());
   }
 
-  Status getQueryColumns(const std::string& q,
-                         TableColumns& columns) const {
+  Status getQueryColumns(const std::string& q, TableColumns& columns) const {
     auto dbc = SQLiteDBManager::get();
     return getQueryColumnsInternal(q, columns, dbc.db());
   }

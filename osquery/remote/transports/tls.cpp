@@ -8,7 +8,15 @@
  *
  */
 
-#include <boost/network/protocol/http/client.hpp>
+#include <boost/asio/ssl/context_base.hpp>
+
+#ifndef OPENSSL_NO_SSL2
+#define OPENSSL_NO_SSL2 1
+#endif
+
+#define OPENSSL_NO_SSL3 1
+#define OPENSSL_NO_MD5 1
+#define OPENSSL_NO_DEPRECATED 1
 
 #include <osquery/filesystem.h>
 
@@ -18,6 +26,9 @@ namespace http = boost::network::http;
 
 namespace osquery {
 
+const std::string kTLSCiphers =
+    "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:"
+    "DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5";
 const std::string kTLSUserAgent = "osquery/" STR(OSQUERY_BUILD_VERSION);
 
 /// Path to optional TLS client secret key, used for enrollment/requests.
@@ -58,7 +69,7 @@ TLSTransport::TLSTransport() : verify_peer_(true) {
 void TLSTransport::decorateRequest(http::client::request& r) {
   r << boost::network::header("Connection", "close");
   r << boost::network::header("Content-Type", serializer_->getContentType());
-  r << boost::network::header("Accpet", serializer_->getContentType());
+  r << boost::network::header("Accept", serializer_->getContentType());
   r << boost::network::header("Host", FLAGS_tls_hostname);
   r << boost::network::header("User-Agent", kTLSUserAgent);
 }
@@ -66,6 +77,16 @@ void TLSTransport::decorateRequest(http::client::request& r) {
 http::client TLSTransport::getClient() {
   http::client::options options;
   options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(4);
+
+  std::string ciphers = kTLSCiphers;
+  // Some Ubuntu 12.04 clients exhaust their cipher suites without SHA.
+#if defined(SSL_TXT_TLSV1_2) && !defined(UBUNTU_PRECISE)
+  // Otherwise we prefer GCM and SHA256+
+  ciphers += ":!CBC:!SHA";
+#endif
+
+  options.openssl_ciphers(ciphers);
+  options.openssl_options(SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2 | SSL_OP_ALL);
 
   if (server_certificate_file_.size() > 0) {
     if (!osquery::isReadable(server_certificate_file_).ok()) {
@@ -97,7 +118,7 @@ http::client TLSTransport::getClient() {
 
 Status TLSTransport::sendRequest() {
   if (destination_.find("https://") == std::string::npos) {
-    return Status(1, "Cannot create TLS request non https handler");
+    return Status(1, "Cannot create TLS request for non-HTTPS protocol URI");
   }
 
   auto client = getClient();
@@ -105,7 +126,7 @@ Status TLSTransport::sendRequest() {
   decorateRequest(r);
 
   try {
-    VLOG(1) << "TLS/HTTPS GET request to endpoint: " << destination_;
+    VLOG(1) << "TLS/HTTPS GET request to URI: " << destination_;
     response_ = client.get(r);
     response_status_ =
         serializer_->deserialize(body(response_), response_params_);
@@ -118,7 +139,7 @@ Status TLSTransport::sendRequest() {
 
 Status TLSTransport::sendRequest(const std::string& params) {
   if (destination_.find("https://") == std::string::npos) {
-    return Status(1, "Cannot create TLS request non https handler");
+    return Status(1, "Cannot create TLS request for non-HTTPS protocol URI");
   }
 
   auto client = getClient();
@@ -126,7 +147,7 @@ Status TLSTransport::sendRequest(const std::string& params) {
   decorateRequest(r);
 
   try {
-    VLOG(1) << "TLS/HTTPS POST request to endpoint: " << destination_;
+    VLOG(1) << "TLS/HTTPS POST request to URI: " << destination_;
     response_ = client.post(r, params);
     response_status_ =
         serializer_->deserialize(body(response_), response_params_);

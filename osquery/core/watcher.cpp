@@ -223,8 +223,7 @@ void WatcherRunner::stopChild(pid_t child) {
 }
 
 bool WatcherRunner::isChildSane(pid_t child) {
-  auto rows =
-      SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(child));
+  auto rows = SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(child));
   if (rows.size() == 0) {
     // Could not find worker process?
     return false;
@@ -314,8 +313,7 @@ void WatcherRunner::createWorker() {
   }
 
   // Get the path of the current process.
-  auto qd = SQL::selectAllFrom("processes", "pid", EQUALS,
-    INTEGER(getpid()));
+  auto qd = SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(getpid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
     LOG(ERROR) << "osquery watcher cannot determine process path";
     ::exit(EXIT_FAILURE);

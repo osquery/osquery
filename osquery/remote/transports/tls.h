@@ -10,7 +10,17 @@
 
 #pragma once
 
+// Our third-party version of cpp-netlib uses OpenSSL APIs.
+// On OS X these symbols are marked deprecated and clang will warn against
+// us including them. We are squashing the noise for OS X's OpenSSL only.
+#if defined(DARWIN)
+_Pragma("clang diagnostic push")
+_Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
+#endif
 #include <boost/network/protocol/http/client.hpp>
+#if defined(DARWIN)
+_Pragma("clang diagnostic pop")
+#endif
 
 #include <osquery/flags.h>
 

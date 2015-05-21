@@ -100,22 +100,24 @@ class Config : private boost::noncopyable {
   static Status getMD5(std::string& hashString);
 
   /**
-   * @brief Adds a new query to the schedule queries
+   * @brief Adds a new query to the scheduled queries.
    *
    */
-  static void addScheduledQuery(const std::string name, const std::string query, const int interval);
+  static void addScheduledQuery(const std::string& name,
+                                const std::string& query,
+                                int interval);
 
   /**
-   * @brief Checks if the query is already added to the schedule
+   * @brief Checks if a query exists in the query schedule.
    *
    */
-  static bool checkScheduledQuery(const std::string query);
+  static bool checkScheduledQuery(const std::string& query);
 
   /**
-   * @brief Checks if the query name is already added to the schedule
+   * @brief Checks if the query name exists in the query schedule.
    *
    */
-  static bool checkScheduledQueryName(const std::string query_name);
+  static bool checkScheduledQueryName(const std::string& query_name);
 
   /**
    * @brief Check to ensure that the config is accessible and properly

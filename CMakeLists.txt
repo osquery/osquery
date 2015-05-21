@@ -91,6 +91,7 @@ endif()
 if(${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6")
   set(GCC_RUNTIME "/opt/rh/devtoolset-3/root/usr/")
   WARNING_LOG("Setting RHEL6 GCC runtime: ${GCC_RUNTIME}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
 endif()
 
@@ -240,6 +241,24 @@ find_package(BZip2 REQUIRED)
 find_package(Dl REQUIRED)
 find_package(Readline REQUIRED)
 
+# Make sure the OpenSSL/ssl library has a TLS client method.
+# Prefer the highest version of TLS, but accept 1.2, 1.1, or 1.0.
+include(CheckLibraryExists)
+CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_2_client_method" "" OPENSSL_TLSV12)
+CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_1_client_method" "" OPENSSL_TLSV11)
+CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_client_method" "" OPENSSL_TLSV10)
+
+# Add a define based on the highest TLS version found. Fatal if no TLS client.
+if(OPENSSL_TLSV12)
+  add_definitions(-DSSL_TXT_TLSV1_2)
+elseif(OPENSSL_TLSV11)
+  add_definitions(-DSSL_TXT_TLSV1_1)
+elseif(OPENSSL_TLSV10)
+  add_definitions(-DSSL_TXT_TLSV1)
+else()
+  message(FATAL "Cannot find any TLS client methods")
+endif()
+
 # Most dependent packages/libs we want static.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
 find_package(CppNetlib 0.11.0 REQUIRED)
@@ -252,7 +271,6 @@ find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.1 REQUIRED)
 
 # Python is used for table spec generation and formating.
-find_package(PythonInterp 2 REQUIRED)
 if(PYTHON_VERSION_MAJOR STREQUAL "2" AND PYTHON_VERSION_MINOR STREQUAL "4")
   WARNING_LOG("Found python 2.4, overriding to /usr/bin/python2.6")
   set(PYTHON_EXECUTABLE "/usr/bin/python2.6")

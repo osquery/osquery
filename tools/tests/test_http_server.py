@@ -20,6 +20,7 @@ import sys
 
 # Create a simple TLS/HTTP server.
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from urlparse import parse_qs
 
 class RealSimpleHandler(BaseHTTPRequestHandler):
     def _set_headers(self):
@@ -28,16 +29,16 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self.end_headers()
  
     def do_GET(self):
-        print("[DEBUG] RealSimpleHandler::get")
+        print("[DEBUG] RealSimpleHandler::get %s" % self.path)
         self._set_headers()
         self.wfile.write('{"foo": "bar"}')
  
     def do_HEAD(self):
-        print("[DEBUG] RealSimpleHandler::head")
+        print("[DEBUG] RealSimpleHandler::head %s" % self.path)
         self._set_headers()
         
     def do_POST(self):
-        print("[DEBUG] RealSimpleHandler::post")
+        print("[DEBUG] RealSimpleHandler::post %s" % self.path)
         # Doesn't do anything with posted data
         self._set_headers()
         self.wfile.write('{"foo": "bar"}')
@@ -70,6 +71,11 @@ if __name__ == '__main__':
         default=SCRIPT_DIR + "/test_server.key",
         help="TLS server cert private key."
     )
+    parser.add_argument(
+        "--ca", metavar="CA_FILE",
+        default=SCRIPT_DIR + "/test_server_ca.pem",
+        help="TLS server CA list for client-auth."
+    )
 
     parser.add_argument(
         "port", metavar="PORT", type=int,
@@ -84,12 +90,19 @@ if __name__ == '__main__':
 
     httpd = HTTPServer(('localhost', ARGS.port), RealSimpleHandler)
     if ARGS.tls:
-        httpd.socket = ssl.wrap_socket(
-            httpd.socket,
-            ssl_version=ssl.PROTOCOL_SSLv23,
-            certfile=ARGS.cert,
-            keyfile=ARGS.key,
-            server_side=True)
+        if 'SSLContext' in vars(ssl):
+            ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+            ctx.load_cert_chain(ARGS.cert, keyfile=ARGS.key)
+            ctx.load_verify_locations(capath=ARGS.ca)
+            ctx.options ^=  ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3
+            httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
+        else:
+            httpd.socket = ssl.wrap_socket(httpd.socket,
+                ca_certs=ARGS.ca,
+                ssl_version=ssl.PROTOCOL_SSLv23,
+                certfile=ARGS.cert,
+                keyfile=ARGS.key,
+                server_side=True)
         print("[DEBUG] Starting TLS/HTTPS server on TCP port: %d" % ARGS.port)
     else:
         print("[DEBUG] Starting HTTP server on TCP port: %d" % ARGS.port)
