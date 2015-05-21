@@ -2,7 +2,6 @@
 #include <osquery/tables.h>
 
 namespace osquery {
-namespace tables {
 
 /**
  * @brief A simple ConfigParserPlugin for a "packs" dictionary key.
@@ -20,5 +19,4 @@ class QueryPackConfigParserPlugin : public ConfigParserPlugin {
   Status update(const std::map<std::string, ConfigTree>& config);
 };
 
-}
 }

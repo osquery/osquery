@@ -106,6 +106,12 @@ class Config : private boost::noncopyable {
   static void addScheduledQuery(const std::string name, const std::string query, const int interval);
 
   /**
+   * @brief Checks if the query is already added to the schedule
+   *
+   */
+  static bool checkScheduledQuery(const std::string query);
+
+  /**
    * @brief Check to ensure that the config is accessible and properly
    * formatted
    *

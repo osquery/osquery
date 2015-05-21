@@ -15,12 +15,11 @@
 #include <osquery/filesystem.h>
 #include <osquery/config.h>
 #include <osquery/logger.h>
-#include <osquery/query_packs.h>
+#include "query_packs.h"
 
 namespace pt = boost::property_tree;
 
 namespace osquery {
-namespace tables {
 
 pt::ptree QueryPackSingleEntry(const pt::ptree& pack_data) {
   // Extract all the pack fields
@@ -92,7 +91,7 @@ bool versionChecker(const std::string& pack_version) {
   return false;
 }
 
-std::map<std::string, pt::ptree> QueryPackParsePacks(const pt::ptree& raw_packs, bool check_platform, bool check_version) {
+std::map<std::string, pt::ptree> QueryPackConfigParserPlugin::QueryPackParsePacks(const pt::ptree& raw_packs, bool check_platform, bool check_version) {
   std::map<std::string, pt::ptree> result;
 
   // Iterate through all the pack elements
@@ -128,9 +127,13 @@ std::map<std::string, pt::ptree> QueryPackParsePacks(const pt::ptree& raw_packs,
 
 Status QueryPackConfigParserPlugin::update(const std::map<std::string, ConfigTree>& config) {
   Status status;
+
   const auto& pack_config = config.at("packs");
+
+  data_.add_child("packs", pack_config);
+
+  // Iterate through all the packs to get the configuration
   for(auto const &pack_element : pack_config) {
-    // Iterate through all the packs to get the configuration
     auto pack_name = std::string(pack_element.first.data());
     auto pack_path = std::string(pack_element.second.data());
 
@@ -169,11 +172,11 @@ Status QueryPackConfigParserPlugin::update(const std::map<std::string, ConfigTre
       }
     }
   }
+
   return Status(0, "OK");
 }
 
 /// Call the simple Query Packs ConfigParserPlugin "packs".
 REGISTER(QueryPackConfigParserPlugin, "config_parser", "packs");
 
-}
 }
