@@ -91,11 +91,14 @@ bool versionChecker(const std::string& pack_version) {
   return false;
 }
 
-std::map<std::string, pt::ptree> QueryPackConfigParserPlugin::QueryPackParsePacks(const pt::ptree& raw_packs, bool check_platform, bool check_version) {
+std::map<std::string, pt::ptree>
+QueryPackConfigParserPlugin::QueryPackParsePacks(const pt::ptree& raw_packs,
+                                                 bool check_platform,
+                                                 bool check_version) {
   std::map<std::string, pt::ptree> result;
 
   // Iterate through all the pack elements
-  for(auto const &one_pack : raw_packs) {
+  for (auto const& one_pack : raw_packs) {
     // Grab query name and fields
     std::string pack_query_name = one_pack.first.data();
     pt::ptree pack_query_element = raw_packs.get_child(pack_query_name);
@@ -119,13 +122,15 @@ std::map<std::string, pt::ptree> QueryPackConfigParserPlugin::QueryPackParsePack
       }
     }
 
-    result.insert(std::pair<std::string, pt::ptree>(pack_query_name, single_pk));
+    result.insert(
+        std::pair<std::string, pt::ptree>(pack_query_name, single_pk));
   }
 
   return result;
 }
 
-Status QueryPackConfigParserPlugin::update(const std::map<std::string, ConfigTree>& config) {
+Status QueryPackConfigParserPlugin::update(
+    const std::map<std::string, ConfigTree>& config) {
   Status status;
 
   const auto& pack_config = config.at("packs");
@@ -133,7 +138,7 @@ Status QueryPackConfigParserPlugin::update(const std::map<std::string, ConfigTre
   data_.add_child("packs", pack_config);
 
   // Iterate through all the packs to get the configuration
-  for(auto const &pack_element : pack_config) {
+  for (auto const& pack_element : pack_config) {
     auto pack_name = std::string(pack_element.first.data());
     auto pack_path = std::string(pack_element.second.data());
 
@@ -142,7 +147,8 @@ Status QueryPackConfigParserPlugin::update(const std::map<std::string, ConfigTre
     status = osquery::parseJSON(pack_path, pack_tree);
 
     if (!status.ok()) {
-      LOG(WARNING) << "Problem parsing JSON pack: " << status.getCode() << " - " << status.getMessage();
+      LOG(WARNING) << "Problem parsing JSON pack: " << status.getCode() << " - "
+                   << status.getMessage();
       continue;
     }
 
@@ -153,12 +159,14 @@ Status QueryPackConfigParserPlugin::update(const std::map<std::string, ConfigTre
     pt::ptree pack_file_element = pack_tree.get_child(pack_name);
 
     // Get all the valid packs and return them in a map
-    std::map<std::string, pt::ptree> clean_packs = QueryPackParsePacks(pack_file_element, true, true);
+    std::map<std::string, pt::ptree> clean_packs =
+        QueryPackParsePacks(pack_file_element, true, true);
 
     // Iterate through the already parsed and valid packs
     std::map<std::string, pt::ptree>::iterator pk = clean_packs.begin();
-    for(pk=clean_packs.begin(); pk!=clean_packs.end(); ++pk) {
-      // Adding a prefix to the pack queries, to be easily found in the scheduled queries
+    for (pk = clean_packs.begin(); pk != clean_packs.end(); ++pk) {
+      // Adding a prefix to the pack queries, to be easily found in the
+      // scheduled queries
       std::string pk_name = "pack_" + pack_name + "_" + pk->first;
       pt::ptree pk_data = pk->second;
 
@@ -168,7 +176,14 @@ Status QueryPackConfigParserPlugin::update(const std::map<std::string, ConfigTre
 
       // Adding extracted pack to the schedule, if values valid
       if (!new_query.empty() && new_interval > 0) {
-        Config::addScheduledQuery(pk_name, new_query, new_interval);
+        bool exists_in_schedule = Config::checkScheduledQuery(new_query);
+
+        // If query is already in schedule, do not add it again
+        if (exists_in_schedule) {
+          LOG(WARNING) << "Query already exist in the schedule: " << new_query;
+        } else {
+          Config::addScheduledQuery(pk_name, new_query, new_interval);
+        }
       }
     }
   }
@@ -178,5 +193,4 @@ Status QueryPackConfigParserPlugin::update(const std::map<std::string, ConfigTre
 
 /// Call the simple Query Packs ConfigParserPlugin "packs".
 REGISTER(QueryPackConfigParserPlugin, "config_parser", "packs");
-
 }

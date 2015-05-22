@@ -85,7 +85,7 @@ QueryData genOsqueryPacks(QueryContext& context) {
         r["description"] = TEXT(pk_data.get<std::string>("description"));
         r["value"] = TEXT(pk_data.get<std::string>("value"));
         r["scheduled_name"] = TEXT(pk_name);
-        int scheduled = Config::checkScheduledQuery(r["query"]) ? 1 : 0;
+        int scheduled = Config::checkScheduledQueryName(r["scheduled_name"]) ? 1 : 0;
         r["scheduled"] = INTEGER(scheduled);
 
         results.push_back(r);
