@@ -16,6 +16,7 @@
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
+#include <osquery/filesystem.h>
 
 namespace osquery {
 namespace tables {
@@ -159,5 +160,6 @@ QueryData genOsquerySchedule(QueryContext& context) {
 
   return results;
 }
+
 }
 }

@@ -307,6 +307,24 @@ Status Config::checkConfig() {
   return load();
 }
 
+bool Config::checkScheduledQuery(const std::string query) {
+  for (const auto& scheduled_query : getInstance().data_.schedule) {
+    if (scheduled_query.second.query == query) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool Config::checkScheduledQueryName(const std::string query_name) {
+  if (getInstance().data_.schedule.count(query_name) == 0) {
+    return false;
+  }
+
+  return true;
+}
+
 void Config::recordQueryPerformance(const std::string& name,
                                     size_t delay,
                                     size_t size,

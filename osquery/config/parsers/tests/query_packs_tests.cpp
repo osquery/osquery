@@ -13,14 +13,16 @@
 #include <osquery/logger.h>
 #include <osquery/database.h>
 
+#include "osquery/config/parsers/query_packs.h"
 #include "osquery/core/test_util.h"
 
 namespace pt = boost::property_tree;
 
 namespace osquery {
-namespace tables {
 
-std::map<std::string, pt::ptree> QueryPackParsePacks(const pt::ptree& raw_packs, bool check_platform, bool check_version);
+std::map<std::string, pt::ptree> QueryPackParsePacks(const pt::ptree& raw_packs,
+                                                     bool check_platform,
+                                                     bool check_version);
 
 std::map<std::string, pt::ptree> getQueryPacksContent() {
   std::map<std::string, pt::ptree> result;
@@ -29,7 +31,18 @@ std::map<std::string, pt::ptree> getQueryPacksContent() {
   Status status = osquery::parseJSON(pack_path, pack_tree);
   pt::ptree pack_file_element = pack_tree.get_child("test_pack_test");
 
-  result = QueryPackParsePacks(pack_file_element, false, true);
+  ConfigDataInstance config;
+  const auto& pack_parser = config.getParser("packs");
+  if (pack_parser == nullptr) {
+    return result;
+  }
+  const auto& queryPackParser =
+      std::static_pointer_cast<QueryPackConfigParserPlugin>(pack_parser);
+  if (queryPackParser == nullptr) {
+    return result;
+  }
+
+  result = queryPackParser->QueryPackParsePacks(pack_file_element, false, true);
 
   return result;
 }
@@ -61,12 +74,17 @@ class QueryPacksConfigTests : public testing::Test {};
 TEST_F(QueryPacksConfigTests, test_query_packs_configuration) {
   std::map<std::string, pt::ptree> data = getQueryPacksContent();
   std::map<std::string, pt::ptree> expected = getQueryPacksExpectedResults();
-  EXPECT_EQ(expected["launchd"].get<std::string>("query"), data["launchd"].get<std::string>("query"));
-  EXPECT_EQ(expected["launchd"].get<int>("interval"), data["launchd"].get<int>("interval"));
-  EXPECT_EQ(expected["launchd"].get<std::string>("platform"), data["launchd"].get<std::string>("platform"));
-  EXPECT_EQ(expected["launchd"].get<std::string>("version"), data["launchd"].get<std::string>("version"));
-  EXPECT_EQ(expected["launchd"].get<std::string>("description"), data["launchd"].get<std::string>("description"));
-  EXPECT_EQ(expected["launchd"].get<std::string>("value"), data["launchd"].get<std::string>("value"));
-}
+  EXPECT_EQ(expected["launchd"].get<std::string>("query"),
+            data["launchd"].get<std::string>("query"));
+  EXPECT_EQ(expected["launchd"].get<int>("interval"),
+            data["launchd"].get<int>("interval"));
+  EXPECT_EQ(expected["launchd"].get<std::string>("platform"),
+            data["launchd"].get<std::string>("platform"));
+  EXPECT_EQ(expected["launchd"].get<std::string>("version"),
+            data["launchd"].get<std::string>("version"));
+  EXPECT_EQ(expected["launchd"].get<std::string>("description"),
+            data["launchd"].get<std::string>("description"));
+  EXPECT_EQ(expected["launchd"].get<std::string>("value"),
+            data["launchd"].get<std::string>("value"));
 }
 }
