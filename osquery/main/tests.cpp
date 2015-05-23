@@ -20,6 +20,8 @@
 
 #include "osquery/core/test_util.h"
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 DECLARE_string(database_path);
 DECLARE_string(extensions_socket);
@@ -37,8 +39,8 @@ void initTesting() {
 
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
-  boost::filesystem::remove_all(kTestWorkingDirectory);
-  boost::filesystem::create_directories(kTestWorkingDirectory);
+  fs::remove_all(kTestWorkingDirectory);
+  fs::create_directories(kTestWorkingDirectory);
   FLAGS_database_path = kTestWorkingDirectory + "unittests.db";
   FLAGS_extensions_socket = kTestWorkingDirectory + "unittests.em";
   FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
@@ -51,6 +53,17 @@ void initTesting() {
 }
 
 int main(int argc, char* argv[]) {
+  // Allow unit test execution from anywhere in the osquery source/build tree.
+  while (osquery::kTestDataPath != "/") {
+    if (!fs::exists(osquery::kTestDataPath)) {
+      printf("not: %s\n", osquery::kTestDataPath.c_str());
+      osquery::kTestDataPath =
+          osquery::kTestDataPath.substr(3, osquery::kTestDataPath.size());
+    } else {
+      break;
+    }
+  }
+
   osquery::initTesting();
   testing::InitGoogleTest(&argc, argv);
   // Optionally enable Goggle Logging
