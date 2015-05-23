@@ -38,7 +38,7 @@ endif (DL_INCLUDES AND DL_LIBRARIES)
 
 if (HAVE_DL)
   if (NOT DL_FIND_QUIETLY)
-    message (STATUS "Found components for DL")
+    LOG_LIBRARY(dl "${DL_LIBRARIES}")
   endif (NOT DL_FIND_QUIETLY)
 else (HAVE_DL)
   if (DL_FIND_REQUIRED)

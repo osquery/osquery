@@ -38,7 +38,7 @@ find_program(THRIFT_COMPILER thrift
 if (THRIFT_LIB)
   set(THRIFT_FOUND TRUE)
   set(THRIFT_LIBS ${THRIFT_LIB})
-  set(THRIFT_STATIC_LIB ${THRIFT_STATIC_LIB_PATH}/libthrift.a)
+  set(THRIFT_STATIC_LIBRARY ${THRIFT_STATIC_LIB_PATH}/libthrift.a)
   exec_program(${THRIFT_COMPILER}
     ARGS -version OUTPUT_VARIABLE THRIFT_VERSION RETURN_VALUE THRIFT_RETURN)
 else ()
@@ -47,7 +47,7 @@ endif ()
 
 if (THRIFT_FOUND)
   if (NOT THRIFT_FIND_QUIETLY)
-    message(STATUS "${THRIFT_VERSION}")
+    LOG_LIBRARY(thrift "${THRIFT_STATIC_LIBRARY}")
   endif ()
 else ()
   message(FATAL_ERROR "Thrift compiler/libraries NOT found.")
