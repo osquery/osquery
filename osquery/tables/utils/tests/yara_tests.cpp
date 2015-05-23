@@ -14,8 +14,6 @@
 
 #include "osquery/tables/utils/yara_utils.h"
 
-using namespace osquery::tables;
-
 namespace osquery {
 
 const std::string ruleFile = "/tmp/osquery-yara.sig";

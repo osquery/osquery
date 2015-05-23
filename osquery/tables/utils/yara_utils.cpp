@@ -17,7 +17,6 @@
 #include "osquery/tables/utils/yara_utils.h"
 
 namespace osquery {
-namespace tables {
 
 /**
  * The callback used when there are compilation problems in the rules.
@@ -46,7 +45,7 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
     return Status(1, "Could not create compiler: " + std::to_string(result));
   }
 
-  yr_compiler_set_callback(compiler, YARACompilerCallback, NULL);
+  yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
 
   bool compiled = false;
   YR_RULES *tmp_rules;
@@ -73,10 +72,8 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
       return Status(1, "Could not open file: " + file);
     }
 
-    int errors = yr_compiler_add_file(compiler,
-                                      rule_file,
-                                      NULL,
-                                      file.c_str());
+    int errors =
+        yr_compiler_add_file(compiler, rule_file, nullptr, file.c_str());
 
     fclose(rule_file);
     rule_file = nullptr;
@@ -121,7 +118,7 @@ Status handleRuleFiles(const std::string& category,
     return Status(1, "Could not create compiler: " + std::to_string(result));
   }
 
-  yr_compiler_set_callback(compiler, YARACompilerCallback, NULL);
+  yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
 
   bool compiled = false;
   for (const auto& item : rule_files) {
@@ -171,10 +168,8 @@ Status handleRuleFiles(const std::string& category,
         return Status(1, "Could not open file: " + full_path);
       }
 
-      int errors = yr_compiler_add_file(compiler,
-                                        rule_file,
-                                        NULL,
-                                        full_path.c_str());
+      int errors =
+          yr_compiler_add_file(compiler, rule_file, nullptr, full_path.c_str());
 
       fclose(rule_file);
       rule_file = nullptr;
@@ -258,6 +253,4 @@ Status YARAConfigParserPlugin::update(const std::map<std::string, ConfigTree>& c
 
 /// Call the simple YARA ConfigParserPlugin "yara".
 REGISTER(YARAConfigParserPlugin, "config_parser", "yara");
-
-}
 }

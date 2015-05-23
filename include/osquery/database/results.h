@@ -47,7 +47,7 @@ typedef std::map<std::string, RowData> Row;
  *
  * @return Status indicating the success or failure of the operation
  */
-Status serializeRow(const Row& r, boost::property_tree::ptree& tree);
+Status serializeRow(const Row& r, pt::ptree& tree);
 
 /**
  * @brief Serialize a Row object into a JSON string
@@ -67,7 +67,7 @@ Status serializeRowJSON(const Row& r, std::string& json);
  *
  * @return Status indicating the success or failure of the operation
  */
-Status deserializeRow(const boost::property_tree::ptree& tree, Row& r);
+Status deserializeRow(const pt::ptree& tree, Row& r);
 
 /**
  * @brief Deserialize a Row object from a JSON string

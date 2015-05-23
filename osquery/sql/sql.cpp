@@ -20,12 +20,12 @@ namespace osquery {
 
 FLAG(int32, value_max, 512, "Maximum returned row value size");
 
-const std::map<tables::ConstraintOperator, std::string> kSQLOperatorRepr = {
-    {tables::EQUALS, "="},
-    {tables::GREATER_THAN, ">"},
-    {tables::LESS_THAN_OR_EQUALS, "<="},
-    {tables::LESS_THAN, "<"},
-    {tables::GREATER_THAN_OR_EQUALS, ">="},
+const std::map<ConstraintOperator, std::string> kSQLOperatorRepr = {
+    {EQUALS, "="},
+    {GREATER_THAN, ">"},
+    {LESS_THAN_OR_EQUALS, "<="},
+    {LESS_THAN, "<"},
+    {GREATER_THAN_OR_EQUALS, ">="},
 };
 
 SQL::SQL(const std::string& q) { status_ = query(q, results_); }
@@ -65,14 +65,14 @@ QueryData SQL::selectAllFrom(const std::string& table) {
 
 QueryData SQL::selectAllFrom(const std::string& table,
                              const std::string& column,
-                             tables::ConstraintOperator op,
+                             ConstraintOperator op,
                              const std::string& expr) {
   PluginResponse response;
   PluginRequest request = {{"action", "generate"}};
-  tables::QueryContext ctx;
-  ctx.constraints[column].add(tables::Constraint(op, expr));
+  QueryContext ctx;
+  ctx.constraints[column].add(Constraint(op, expr));
 
-  tables::TablePlugin::setRequestFromContext(ctx, request);
+  TablePlugin::setRequestFromContext(ctx, request);
   Registry::call("table", table, request, response);
   return response;
 }
@@ -86,7 +86,7 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
   if (request.at("action") == "query") {
     return this->query(request.at("query"), response);
   } else if (request.at("action") == "columns") {
-    tables::TableColumns columns;
+    TableColumns columns;
     auto status = this->getQueryColumns(request.at("query"), columns);
     // Convert columns to response
     for (const auto& column : columns) {
@@ -108,7 +108,7 @@ Status query(const std::string& q, QueryData& results) {
       "sql", "sql", {{"action", "query"}, {"query", q}}, results);
 }
 
-Status getQueryColumns(const std::string& q, tables::TableColumns& columns) {
+Status getQueryColumns(const std::string& q, TableColumns& columns) {
   PluginResponse response;
   auto status = Registry::call(
       "sql", "sql", {{"action", "columns"}, {"query", q}}, response);

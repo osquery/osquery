@@ -15,9 +15,10 @@
 #include <osquery/events.h>
 #include <osquery/tables.h>
 
-namespace osquery { namespace tables {
+namespace osquery {
 
 /// BEGIN[GENTABLE]
+namespace tables {
 {% if class_name == "" %}\
 osquery::QueryData {{function}}(QueryContext& request);
 {% else %}
@@ -26,6 +27,7 @@ class {{class_name}} {
   osquery::QueryData {{function}}(QueryContext& request);
 };
 {% endif %}\
+}
 
 class {{table_name_cc}}TablePlugin : public TablePlugin {
  private:
@@ -47,7 +49,7 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
       return {};
     }
 {% else %}\
-    return osquery::tables::{{function}}(request);
+    return tables::{{function}}(request);
 {% endif %}\
   }
 };
@@ -59,4 +61,4 @@ REGISTER({{table_name_cc}}TablePlugin, "table", "{{table_name}}");
 {% endif %}
 /// END[GENTABLE]
 
-}}
+}

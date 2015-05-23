@@ -19,20 +19,59 @@
 namespace osquery {
 namespace tables {
 
-QueryData genOsqueryPacks(QueryContext& context) {
-  Row r;
-  QueryData results;
-  ConfigDataInstance config;
+typedef pt::ptree::value_type tree_node;
 
-  // Get the instance for the parser
-  const auto& pack_parser = config.getParser("packs");
-  if (pack_parser == nullptr) {
-    return results;
+void genQueryPack(const tree_node& pack_element, QueryData& results) {
+  // Find all the packs from loaded configuration
+  for (auto const& conf_element : pack_element.second) {
+    auto pack_name = std::string(conf_element.first.data());
+    auto pack_path = std::string(conf_element.second.data());
+
+    // Read each pack configuration in JSON
+    pt::ptree pack_tree;
+    Status status = osquery::parseJSON(pack_path, pack_tree);
+
+    // Get all the parsed elements from the pack JSON file
+    if (pack_tree.count(pack_name) == 0) {
+      continue;
+    }
+
+    // Get all the valid packs and return them in a map
+    auto pack_file_element = pack_tree.get_child(pack_name);
+    auto clean_packs = queryPackParsePacks(pack_file_element, false, false);
+
+    // Iterate through the already parsed and valid packs
+    for (const auto& pack : clean_packs) {
+      Row r;
+
+      // Query data to return as Row
+      r["name"] = pack_name;
+      r["path"] = pack_path;
+      r["query_name"] = pack.first;
+      r["query"] = pack.second.get("query", "");
+      r["interval"] = INTEGER(pack.second.get("interval", 0));
+      r["platform"] = pack.second.get("platform", "");
+      r["version"] = pack.second.get("version", "");
+      r["description"] = pack.second.get("description", "");
+      r["value"] = pack.second.get("value", "");
+
+      // Adding a prefix to the pack queries, to be easily found in the
+      // scheduled queries
+      r["scheduled_name"] = "pack_" + pack_name + "_" + pack.first;
+      int scheduled =
+          Config::checkScheduledQueryName(r.at("scheduled_name")) ? 1 : 0;
+      r["scheduled"] = INTEGER(scheduled);
+
+      results.push_back(r);
+    }
   }
-  const auto& queryPackParser = std::static_pointer_cast<QueryPackConfigParserPlugin>(pack_parser);
-  if (queryPackParser == nullptr) {
-    return results;
-  }
+}
+
+QueryData genOsqueryPacks(QueryContext& context) {
+  QueryData results;
+
+  // Get a lock on the config instance
+  ConfigDataInstance config;
 
   // Get the loaded data tree from global JSON configuration
   const auto& packs_parsed_data = config.getParsedData("packs");
@@ -41,56 +80,12 @@ QueryData genOsqueryPacks(QueryContext& context) {
   }
 
   // Iterate through all the packs to get the configuration
-  for(auto const &pack_element : packs_parsed_data) {
+  for (auto const& pack_element : packs_parsed_data) {
     // Make sure the element has items
     if (pack_element.second.size() == 0) {
       continue;
     }
-    std::string pack_name;
-    std::string pack_path;
-
-    // Find all the packs from loaded configuration
-    for (auto const &conf_element : pack_element.second) {
-      pack_name = std::string(conf_element.first.data());
-      pack_path = std::string(conf_element.second.data());
-
-      // Read each pack configuration in JSON
-      pt::ptree pack_tree;
-      Status status = osquery::parseJSON(pack_path, pack_tree);
-
-      // Get all the parsed elements from the pack JSON file
-      if (pack_tree.count(pack_name) == 0) {
-        continue;
-      }
-      pt::ptree pack_file_element = pack_tree.get_child(pack_name);
-
-      // Get all the valid packs and return them in a map
-      std::map<std::string, pt::ptree> clean_packs = queryPackParser->QueryPackParsePacks(pack_file_element, false, false);
-
-      // Iterate through the already parsed and valid packs
-      std::map<std::string, pt::ptree>::iterator pk = clean_packs.begin();
-      for(pk=clean_packs.begin(); pk!=clean_packs.end(); ++pk) {
-        // Adding a prefix to the pack queries, to be easily found in the scheduled queries
-        std::string pk_name = "pack_" + pack_name + "_" + pk->first;
-        pt::ptree pk_data = pk->second;
-
-        // Query data to return as Row
-        r["query_name"] = TEXT(pk->first);
-        r["name"] = TEXT(pack_name);
-        r["path"] = TEXT(pack_path);
-        r["query"] = TEXT(pk_data.get<std::string>("query"));
-        r["interval"] = INTEGER(pk_data.get<int>("interval"));
-        r["platform"] = TEXT(pk_data.get<std::string>("platform"));
-        r["version"] = TEXT(pk_data.get<std::string>("version"));
-        r["description"] = TEXT(pk_data.get<std::string>("description"));
-        r["value"] = TEXT(pk_data.get<std::string>("value"));
-        r["scheduled_name"] = TEXT(pk_name);
-        int scheduled = Config::checkScheduledQueryName(r["scheduled_name"]) ? 1 : 0;
-        r["scheduled"] = INTEGER(scheduled);
-
-        results.push_back(r);
-      }
-    }
+    genQueryPack(pack_element, results);
   }
 
   return results;

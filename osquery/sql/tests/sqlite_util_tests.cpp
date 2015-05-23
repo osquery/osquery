@@ -116,7 +116,7 @@ TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
 
 TEST_F(SQLiteUtilTests, test_get_query_columns) {
   auto dbc = getTestDBC();
-  tables::TableColumns results;
+  TableColumns results;
 
   std::string query = "SELECT seconds, version FROM time JOIN osquery_info";
   auto status = getQueryColumnsInternal(query, results, dbc.db());

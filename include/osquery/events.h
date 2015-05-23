@@ -542,8 +542,7 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @return The query-time table data, retrieved from a backing store.
    */
-  virtual QueryData genTable(tables::QueryContext& context)
-      __attribute__((used)) {
+  virtual QueryData genTable(QueryContext& context) __attribute__((used)) {
     return get(0, 0);
   }
 

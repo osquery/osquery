@@ -16,7 +16,6 @@
 namespace pt = boost::property_tree;
 
 namespace osquery {
-namespace tables {
 
 Status TablePlugin::addExternal(const std::string& name,
                                 const PluginResponse& response) {
@@ -121,7 +120,7 @@ Status TablePlugin::call(const PluginRequest& request,
 }
 
 std::string TablePlugin::columnDefinition() const {
-  return tables::columnDefinition(columns());
+  return osquery::columnDefinition(columns());
 }
 
 PluginResponse TablePlugin::routeInfo() const {
@@ -230,6 +229,5 @@ void ConstraintList::unserialize(const boost::property_tree::ptree& tree) {
     constraints_.push_back(constraint);
   }
   affinity = tree.get<std::string>("affinity");
-}
 }
 }

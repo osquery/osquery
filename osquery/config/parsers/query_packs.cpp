@@ -11,103 +11,72 @@
 #include <map>
 #include <string>
 
+#include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
-#include <osquery/config.h>
 #include <osquery/logger.h>
+
 #include "query_packs.h"
 
 namespace pt = boost::property_tree;
 
 namespace osquery {
 
-pt::ptree QueryPackSingleEntry(const pt::ptree& pack_data) {
-  // Extract all the pack fields
-  std::string query = pack_data.get<std::string>("query", "");
-  int interval = pack_data.get<int>("interval", 0);
-  std::string platform = pack_data.get<std::string>("platform", "");
-  std::string version = pack_data.get<std::string>("version", "");
-  std::string description = pack_data.get<std::string>("description", "");
-  std::string value = pack_data.get<std::string>("value", "");
+typedef std::map<std::string, pt::ptree> query_pack_t;
 
+inline pt::ptree queryPackSingleEntry(const pt::ptree& in) {
   // Prepare result to be returned
-  pt::ptree result;
-  result.put("query", query);
-  result.put("interval", interval);
-  result.put("platform", platform);
-  result.put("version", version);
-  result.put("description", description);
-  result.put("value", value);
-
-  return result;
+  pt::ptree out;
+  out.put("query", in.get("query", ""));
+  out.put("interval", in.get("interval", 0));
+  out.put("platform", in.get("platform", ""));
+  out.put("version", in.get("version", ""));
+  out.put("description", in.get("description", "  "));
+  out.put("value", in.get("value", ""));
+  return out;
 }
 
 // Function to check if the pack is valid for this version of osquery.
 // If the osquery version is greater or equal than the pack, it is good to go.
-bool versionChecker(const std::string& pack_version) {
-  std::vector<std::string> version_chunk = split(pack_version, ".");
-  std::vector<std::string> osquery_chunk = split(OSQUERY_VERSION, ".");
+bool versionChecker(const std::string& pack, const std::string& version) {
+  auto required_version = split(pack, ".");
+  auto build_version = split(version, ".");
 
-  // This is the logic for versioning used
-  // 1.2.3
-  // | | |----> build
-  // | |------> minor
-  // |--------> major
-  //
-  // [0]: major
-  // [1]: minor
-  // [2]: build
-
-  if (version_chunk.size() != 3 || osquery_chunk.size() != 3) {
-    return false;
-  }
-
-  // Now we compare major first
-  if (std::stoi(osquery_chunk[0]) > std::stoi(version_chunk[0])) {
-    return true;
-  }
-  if (std::stoi(osquery_chunk[0]) < std::stoi(version_chunk[0])) {
-    return false;
-  }
-  if (std::stoi(osquery_chunk[0]) == std::stoi(version_chunk[0])) {
-    // We need to check minor
-    if (std::stoi(osquery_chunk[1]) > std::stoi(version_chunk[1])) {
+  size_t index = 0;
+  for (const auto& chunk : build_version) {
+    if (required_version.size() <= index) {
       return true;
     }
-    if (std::stoi(osquery_chunk[1]) < std::stoi(version_chunk[1])) {
-      return false;
-    }
-    if (std::stoi(osquery_chunk[1]) == std::stoi(version_chunk[1])) {
-      // Last check is the build
-      if (std::stoi(osquery_chunk[2]) >= std::stoi(version_chunk[2])) {
-        return true;
+    try {
+      if (std::stoi(chunk) < std::stoi(required_version[index])) {
+        return false;
       }
-      if (std::stoi(osquery_chunk[2]) < std::stoi(version_chunk[2])) {
+    } catch (const std::invalid_argument& e) {
+      if (chunk.compare(required_version[index]) < 0) {
         return false;
       }
     }
+    index++;
   }
-
-  return false;
+  return true;
 }
 
-std::map<std::string, pt::ptree>
-QueryPackConfigParserPlugin::QueryPackParsePacks(const pt::ptree& raw_packs,
-                                                 bool check_platform,
-                                                 bool check_version) {
-  std::map<std::string, pt::ptree> result;
+query_pack_t queryPackParsePacks(const pt::ptree& raw_packs,
+                                 bool check_platform,
+                                 bool check_version) {
+  query_pack_t result;
 
   // Iterate through all the pack elements
   for (auto const& one_pack : raw_packs) {
     // Grab query name and fields
     std::string pack_query_name = one_pack.first.data();
-    pt::ptree pack_query_element = raw_packs.get_child(pack_query_name);
 
     // Get all the query fields
-    pt::ptree single_pk = QueryPackSingleEntry(pack_query_element);
+    auto pack_query_element = raw_packs.get_child(pack_query_name);
+    auto single_pk = queryPackSingleEntry(pack_query_element);
 
     // Check if pack is valid for this system
-    std::string pk_platform = single_pk.get<std::string>("platform");
+    auto pk_platform = single_pk.get("platform", "");
     if (check_platform) {
       if (pk_platform.find(STR(OSQUERY_BUILD_PLATFORM)) == std::string::npos) {
         continue;
@@ -115,15 +84,14 @@ QueryPackConfigParserPlugin::QueryPackParsePacks(const pt::ptree& raw_packs,
     }
 
     // Check if current osquery version is equal or higher than needed
-    std::string pk_version = single_pk.get<std::string>("version");
+    auto pk_version = single_pk.get("version", "");
     if (check_version) {
-      if (!versionChecker(pk_version)) {
+      if (!versionChecker(pk_version, STR(OSQUERY_VERSION))) {
         continue;
       }
     }
 
-    result.insert(
-        std::pair<std::string, pt::ptree>(pack_query_name, single_pk));
+    result[pack_query_name] = single_pk;
   }
 
   return result;
@@ -147,7 +115,7 @@ Status QueryPackConfigParserPlugin::update(
     status = osquery::parseJSON(pack_path, pack_tree);
 
     if (!status.ok()) {
-      LOG(WARNING) << "Problem parsing JSON pack: " << status.getCode() << " - "
+      LOG(WARNING) << "Error parsing Query Pack " << pack_name << ": "
                    << status.getMessage();
       continue;
     }
@@ -156,23 +124,16 @@ Status QueryPackConfigParserPlugin::update(
     if (pack_tree.count(pack_name) == 0) {
       continue;
     }
-    pt::ptree pack_file_element = pack_tree.get_child(pack_name);
 
     // Get all the valid packs and return them in a map
-    std::map<std::string, pt::ptree> clean_packs =
-        QueryPackParsePacks(pack_file_element, true, true);
+    auto pack_file_element = pack_tree.get_child(pack_name);
+    auto clean_packs = queryPackParsePacks(pack_file_element, true, true);
 
     // Iterate through the already parsed and valid packs
-    std::map<std::string, pt::ptree>::iterator pk = clean_packs.begin();
-    for (pk = clean_packs.begin(); pk != clean_packs.end(); ++pk) {
-      // Adding a prefix to the pack queries, to be easily found in the
-      // scheduled queries
-      std::string pk_name = "pack_" + pack_name + "_" + pk->first;
-      pt::ptree pk_data = pk->second;
-
+    for (const auto& pack : clean_packs) {
       // Preparing new queries to add to schedule
-      std::string new_query = pk_data.get<std::string>("query");
-      int new_interval = pk_data.get<int>("interval");
+      std::string new_query = pack.second.get("query", "");
+      int new_interval = pack.second.get("interval", 0);
 
       // Adding extracted pack to the schedule, if values valid
       if (!new_query.empty() && new_interval > 0) {
@@ -182,6 +143,9 @@ Status QueryPackConfigParserPlugin::update(
         if (exists_in_schedule) {
           LOG(WARNING) << "Query already exist in the schedule: " << new_query;
         } else {
+          // Adding a prefix to the pack queries, to be easily found in the
+          // scheduled queries
+          std::string pk_name = "pack_" + pack_name + "_" + pack.first;
           Config::addScheduledQuery(pk_name, new_query, new_interval);
         }
       }

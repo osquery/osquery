@@ -72,12 +72,12 @@ Status getHostIdentifier(std::string& ident) {
 inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
   // Snapshot the performance and times for the worker before running.
   auto pid = std::to_string(getpid());
-  auto r0 = SQL::selectAllFrom("processes", "pid", tables::EQUALS, pid);
+  auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
   auto t0 = time(nullptr);
   auto sql = SQL(query.query);
   // Snapshot the performance after, and compare.
   auto t1 = time(nullptr);
-  auto r1 = SQL::selectAllFrom("processes", "pid", tables::EQUALS, pid);
+  auto r1 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
   if (r0.size() > 0 && r1.size() > 0) {
     size_t size = 0;
     for (const auto& row : sql.rows()) {

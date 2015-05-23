@@ -290,8 +290,8 @@ Status Config::getMD5(std::string& hash_string) {
   return Status(0, "OK");
 }
 
-void Config::addScheduledQuery(const std::string name,
-                               const std::string query,
+void Config::addScheduledQuery(const std::string& name,
+                               const std::string& query,
                                const int interval) {
   // Create structure to add to the schedule.
   tree_node node;
@@ -307,7 +307,7 @@ Status Config::checkConfig() {
   return load();
 }
 
-bool Config::checkScheduledQuery(const std::string query) {
+bool Config::checkScheduledQuery(const std::string& query) {
   for (const auto& scheduled_query : getInstance().data_.schedule) {
     if (scheduled_query.second.query == query) {
       return true;
@@ -317,7 +317,7 @@ bool Config::checkScheduledQuery(const std::string query) {
   return false;
 }
 
-bool Config::checkScheduledQueryName(const std::string query_name) {
+bool Config::checkScheduledQueryName(const std::string& query_name) {
   if (getInstance().data_.schedule.count(query_name) == 0) {
     return false;
   }
