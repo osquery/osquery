@@ -10,12 +10,18 @@ set(OSQUERY_CONFIG_PLUGINS
 if(NOT OSQUERY_BUILD_RELEASE)
   set(OSQUERY_CONFIG_PLUGINS
     ${OSQUERY_CONFIG_PLUGINS}
-    plugins/http.cpp
+    plugins/tls.cpp
   )
 endif()
 
+file(GLOB OSQUERY_CONFIG_PARSERS "parsers/*.cpp")
+
 ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
   ${OSQUERY_CONFIG_PLUGINS}
+)
+
+ADD_OSQUERY_LIBRARY(FALSE osquery_config_parsers
+  ${OSQUERY_CONFIG_PARSERS}
 )
 
 file(GLOB OSQUERY_CONFIG_TESTS "tests/*.cpp")

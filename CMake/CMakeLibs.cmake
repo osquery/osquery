@@ -13,12 +13,39 @@ macro(SET_OSQUERY_COMPILE TARGET)
   endif()
 endmacro(SET_OSQUERY_COMPILE)
 
+macro(LOG_PLATFORM NAME)
+  LOG("Building for platform ${ESC}[36;1m${NAME} (${OSQUERY_BUILD_PLATFORM}, ${OSQUERY_BUILD_DISTRO})${ESC}[m")
+  LOG("Building osquery version ${ESC}[36;1m ${OSQUERY_BUILD_VERSION} sdk ${OSQUERY_BUILD_SDK_VERSION}${ESC}[m")
+endmacro(LOG_PLATFORM)
+
+macro(LOG_LIBRARY NAME PATH)
+  set(BUILD_POSITION -1)
+  string(FIND "${PATH}" "${CMAKE_BINARY_DIR}" BUILD_POSITION)
+  if(${BUILD_POSITION} EQUAL 0)
+    string(LENGTH "${CMAKE_BINARY_DIR}" BUILD_DIR_LENGTH)
+    string(SUBSTRING "${PATH}" ${BUILD_DIR_LENGTH} -1 LIB_PATH)
+    LOG("Found osquery-built library ${LIB_PATH}")
+  else()
+    LOG("Found library ${PATH}")
+  endif()
+endmacro(LOG_LIBRARY)
+
 macro(ADD_OSQUERY_PYTHON_TEST TEST_NAME SOURCE)
   add_test(NAME python_${TEST_NAME}
     COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/tests/${SOURCE}"
       --build "${CMAKE_BINARY_DIR}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tools/tests/")
 endmacro(ADD_OSQUERY_PYTHON_TEST)
+
+# Add a static or dynamic link to libosquery.a (the core library)
+macro(ADD_OSQUERY_LINK_CORE LINK)
+  ADD_OSQUERY_LINK(TRUE ${LINK} ${ARGN})
+endmacro(ADD_OSQUERY_LINK_CORE)
+
+# Add a static or dynamic link to libosquery_additional.a (the non-sdk library)
+macro(ADD_OSQUERY_LINK_ADDITIONAL LINK)
+  ADD_OSQUERY_LINK(FALSE ${LINK} ${ARGN})
+endmacro(ADD_OSQUERY_LINK_ADDITIONAL)
 
 # Core/non core link helping macros (tell the build to link ALL).
 macro(ADD_OSQUERY_LINK IS_CORE LINK)
@@ -31,21 +58,34 @@ endmacro(ADD_OSQUERY_LINK)
 
 macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
   if(NOT "${LINK}" MATCHES "(^[-/].*)")
-    find_library("${LINK}_library" NAMES "lib${LINK}.a" "${LINK}" ${LINK_PATHS})
-    message("-- Found library dependency ${${LINK}_library}")
-    if("${${LINK}_library}" STREQUAL "${${LINK}_library}-NOTFOUND")
-      string(ASCII 27 Esc)
-      message(WARNING "${Esc}[31mDependent library '${LINK}' not found${Esc}[m")
-      list(APPEND ${LINK_SET} ${LINK})
-    else()
-      list(APPEND ${LINK_SET} "${${LINK}_library}")
-    endif()
+    string(REPLACE " " ";" ITEMS "${LINK}")
+    foreach(ITEM ${ITEMS})
+      find_library("${ITEM}_library" NAMES "lib${ITEM}.a" "${ITEM}" ${LINK_PATHS})
+      LOG_LIBRARY(${ITEM} "${${ITEM}_library}")
+      if("${${ITEM}_library}" STREQUAL "${${ITEM}_library}-NOTFOUND")
+        WARNING_LOG("Dependent library '${ITEM}' not found")
+        list(APPEND ${LINK_SET} ${ITEM})
+      else()
+        list(APPEND ${LINK_SET} "${${ITEM}_library}")
+      endif()
+    endforeach()
   else()
     list(APPEND ${LINK_SET} ${LINK})
   endif()
   set(${LINK_SET} "${${LINK_SET}}" PARENT_SCOPE)
 endmacro(ADD_OSQUERY_LINK_INTERNAL)
 
+# Add a test and sources for components in libosquery.a (the core library)
+macro(ADD_OSQUERY_TEST_CORE)
+  ADD_OSQUERY_TEST(TRUE ${ARGN})
+endmacro(ADD_OSQUERY_TEST_CORE)
+
+# Add a test and sources for components in libosquery_additional.a (the non-sdk library)
+macro(ADD_OSQUERY_TEST_ADDITIONAL)
+  ADD_OSQUERY_TEST(FALSE ${ARGN})
+endmacro(ADD_OSQUERY_TEST_ADDITIONAL)
+
+# Core/non core test names and sources macros.
 macro(ADD_OSQUERY_TEST IS_CORE)
   if(NOT DEFINED ENV{SKIP_TESTS} AND (${IS_CORE} OR NOT OSQUERY_BUILD_SDK_ONLY))
     if(${IS_CORE})
@@ -65,6 +105,16 @@ macro(ADD_OSQUERY_TABLE_TEST)
   endif()
 endmacro(ADD_OSQUERY_TABLE_TEST)
 
+# Add sources to libosquery.a (the core library)
+macro(ADD_OSQUERY_LIBRARY_CORE TARGET)
+  ADD_OSQUERY_LIBRARY(TRUE ${TARGET} ${ARGN})
+endmacro(ADD_OSQUERY_LIBRARY_CORE)
+
+# Add sources to libosquery_additional.a (the non-sdk library)
+macro(ADD_OSQUERY_LIBRARY_ADDITIONAL TARGET)
+  ADD_OSQUERY_LIBRARY(FALSE ${TARGET} ${ARGN})
+endmacro(ADD_OSQUERY_LIBRARY_ADDITIONAL)
+
 # Core/non core lists of target source files.
 macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
   if(${IS_CORE} OR NOT OSQUERY_BUILD_SDK_ONLY)
@@ -80,6 +130,16 @@ macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
     endif()
   endif()
 endmacro(ADD_OSQUERY_LIBRARY TARGET)
+
+# Add sources to libosquery.a (the core library)
+macro(ADD_OSQUERY_OBJCXX_LIBRARY_CORE TARGET)
+  ADD_OSQUERY_OBJCXX_LIBRARY(TRUE TARGET ${ARGN})
+endmacro(ADD_OSQUERY_OBJCXX_LIBRARY_CORE)
+
+# Add sources to libosquery_additional.a (the non-sdk library)
+macro(ADD_OSQUERY_OBJCXX_LIBRARY_ADDITIONAL TARGET)
+  ADD_OSQUERY_OBJCXX_LIBRARY(FALSE TARGET ${ARGN})
+endmacro(ADD_OSQUERY_OBJCXX_LIBRARY_ADDITIONAL)
 
 # Core/non core lists of target source files compiled as ObjC++.
 macro(ADD_OSQUERY_OBJCXX_LIBRARY IS_CORE TARGET)

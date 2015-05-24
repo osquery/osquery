@@ -11,16 +11,16 @@ set(OSQUERY_TABLES_TESTS "")
 
 # The core set of osquery libraries most discovered with find_package.
 set(OSQUERY_LIBS
-  ${THRIFT_LIB}
-  ${ROCKSDB_STATIC_LIBRARIES}
+  ${THRIFT_STATIC_LIBRARY}
+  ${ROCKSDB_STATIC_LIBRARY}
   ${ROCKSDB_SNAPPY_LIBRARY}
   ${GLOG_LIBRARY}
   ${GFLAGS_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
   ${OPENSSL_SSL_LIBRARY}
   ${CPP-NETLIB_LIBRARY}
+  ${READLINE_LIBRARIES}
 
-  readline
   pthread
   bz2
   z
@@ -29,36 +29,41 @@ set(OSQUERY_LIBS
 if(NOT FREEBSD)
   set(OSQUERY_LIBS ${OSQUERY_LIBS} dl)
 else()
-  ADD_OSQUERY_LINK(TRUE "icuuc")
+  ADD_OSQUERY_LINK_CORE("icuuc")
 endif()
 
 # Add default linking details (the first argument means SDK + core).
-ADD_OSQUERY_LINK(TRUE "-rdynamic")
+ADD_OSQUERY_LINK_CORE("-rdynamic")
+foreach(DISTRO ${OSQUERY_REQUIRE_RUNTIMES})
+  if(${OSQUERY_BUILD_DISTRO} STREQUAL ${DISTRO})
+    ADD_OSQUERY_LINK_ADDITIONAL("-static-libstdc++")
+  endif()
+endforeach()
 
 # The platform-specific SDK + core libraries.
 if(APPLE)
-  ADD_OSQUERY_LINK(TRUE "-mmacosx-version-min=${APPLE_MIN_ABI}")
-  ADD_OSQUERY_LINK(TRUE "boost_thread-mt")
-  ADD_OSQUERY_LINK(TRUE "lz4")
+  ADD_OSQUERY_LINK_CORE("-mmacosx-version-min=${APPLE_MIN_ABI}")
+  ADD_OSQUERY_LINK_CORE("boost_thread-mt")
+  ADD_OSQUERY_LINK_CORE("lz4")
 else()
-  ADD_OSQUERY_LINK(TRUE "-Wl,-zrelro -Wl,-znow")
-  ADD_OSQUERY_LINK(TRUE "boost_thread")
-  ADD_OSQUERY_LINK(TRUE "rt")
+  ADD_OSQUERY_LINK_CORE("-Wl,-zrelro -Wl,-znow")
+  ADD_OSQUERY_LINK_CORE("boost_thread")
+  ADD_OSQUERY_LINK_CORE("rt")
 endif()
 
 # The remaining boost libraries are discovered with find_library.
-ADD_OSQUERY_LINK(TRUE "boost_system")
-ADD_OSQUERY_LINK(TRUE "boost_filesystem")
-ADD_OSQUERY_LINK(TRUE "boost_regex")
-ADD_OSQUERY_LINK(TRUE "yara")
+ADD_OSQUERY_LINK_CORE("boost_system")
+ADD_OSQUERY_LINK_CORE("boost_filesystem")
+ADD_OSQUERY_LINK_CORE("boost_regex")
+ADD_OSQUERY_LINK_CORE("yara")
 
 if(DEFINED ENV{SANITIZE})
   if(DEFINED ENV{SANITIZE_THREAD})
-    ADD_OSQUERY_LINK(TRUE -fsanitize=thread)
+    ADD_OSQUERY_LINK_CORE(-fsanitize=thread)
   else()
-    ADD_OSQUERY_LINK(TRUE -fsanitize=address -fsanitize=leak)
+    ADD_OSQUERY_LINK_CORE(-fsanitize=address -fsanitize=leak)
   endif()
-  ADD_OSQUERY_LINK(TRUE -fsanitize-blacklist=${SANITIZE_BLACKLIST})
+  ADD_OSQUERY_LINK_CORE(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
 endif()
 
 # Construct a set of all object files, starting with third-party and all
@@ -84,15 +89,16 @@ add_subdirectory(tables)
 # Amalgamate the utility tables needed to compile.
 GENERATE_UTILITIES("${CMAKE_SOURCE_DIR}/osquery/tables")
 AMALGAMATE("${CMAKE_SOURCE_DIR}" "utils" AMALGAMATION_UTILS)
-ADD_OSQUERY_LIBRARY(TRUE osquery_amalgamation ${AMALGAMATION_UTILS})
+ADD_OSQUERY_LIBRARY_CORE(osquery_amalgamation ${AMALGAMATION_UTILS})
 
 # Bubble the subdirectory (component) sources and links for this build.
 list(APPEND OSQUERY_OBJECTS ${OSQUERY_SOURCES})
 list(APPEND OSQUERY_LIBS ${OSQUERY_LINKS})
 
-# Create the static libosquery (everything but non-utility tables).
 set(CMAKE_MACOSX_RPATH 0)
 set(CMAKE_SKIP_RPATH TRUE)
+
+# Create the static libosquery (everything but non-utility tables).
 add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
 target_link_libraries(libosquery ${OSQUERY_LIBS})
 set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
@@ -101,7 +107,7 @@ set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
 add_custom_target(osquery_library ALL
   DEPENDS libosquery
   COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-    "Built libosquery: ${CMAKE_BINARY_DIR}"
+    "-- Built libosquery: ${CMAKE_BINARY_DIR}/libosquery.a"
 )
 
 # make devel (implies install)
@@ -117,7 +123,7 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   # Generate the osquery additional tables (the non-util).
   GENERATE_TABLES("${CMAKE_SOURCE_DIR}/osquery/tables")
   AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
-  ADD_OSQUERY_LIBRARY(FALSE osquery_additional_amalgamation ${AMALGAMATION})
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_additional_amalgamation ${AMALGAMATION})
 
   # Create the static libosquery_additional.
   add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})

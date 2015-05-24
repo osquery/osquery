@@ -15,8 +15,9 @@
 #include <osquery/events.h>
 #include <osquery/tables.h>
 
-namespace osquery { namespace tables {
+
+namespace osquery {
 {% for table in tables %}
 {{table}}
 {% endfor %}
-}}
+}

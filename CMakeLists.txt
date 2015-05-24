@@ -1,16 +1,24 @@
 cmake_minimum_required(VERSION 2.8.12)
+string(ASCII 27 ESC)
+macro(WARNING_LOG MESSAGE)
+  message("-- ${ESC}[31m${MESSAGE}${ESC}[m")
+endmacro(WARNING_LOG)
+
+macro(LOG MESSAGE)
+  message("-- ${MESSAGE}")
+endmacro(LOG)
 
 if(NOT DEFINED ENV{CC})
   set(CMAKE_C_COMPILER "clang")
 else()
   set(CMAKE_C_COMPILER "$ENV{CC}")
-  message("-- Overriding C compiler from clang to $ENV{CC}")
+  LOG("Overriding C compiler from clang to $ENV{CC}")
 endif()
 if(NOT DEFINED ENV{CXX})
   set(CMAKE_CXX_COMPILER "clang++")
 else()
   set(CMAKE_CXX_COMPILER "$ENV{CXX}")
-  message("-- Overriding CXX compiler from clang++ to $ENV{CXX}")
+  LOG("Overriding CXX compiler from clang++ to $ENV{CXX}")
 endif()
 
 add_compile_options(
@@ -34,12 +42,16 @@ add_compile_options(
 set(CXX_COMPILE_FLAGS "")
 
 # Use osquery language to set platform/os
-execute_process(
-  COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" get_platform
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  OUTPUT_VARIABLE PLATFORM
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+if(DEFINED ENV{OSQUERY_PLATFORM})
+  set(PLATFORM ENV{OSQUERY_PLATFORM})
+else()
+  execute_process(
+    COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" get_platform
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE PLATFORM
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+endif()
 
 list(GET PLATFORM 0 OSQUERY_BUILD_PLATFORM)
 list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO)
@@ -78,9 +90,18 @@ endif()
 # RHEL6 uses a different gcc 4.9 runtime
 if(${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6")
   set(GCC_RUNTIME "/opt/rh/devtoolset-3/root/usr/")
-  message("-- Setting RHEL6 GCC runtime: ${GCC_RUNTIME}")
+  WARNING_LOG("Setting RHEL6 GCC runtime: ${GCC_RUNTIME}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
 endif()
+
+# Provisioning installs non-default C++11 runtimes on build hosts.
+# List those distros that include a non-system-default runtime.
+set(OSQUERY_REQUIRE_RUNTIMES
+  "precise"
+  "centos6"
+  "rhel6"
+)
 
 # make debug (environment variable from Makefile)
 if(DEFINED ENV{DEBUG})
@@ -88,7 +109,7 @@ if(DEFINED ENV{DEBUG})
   set(CMAKE_BUILD_TYPE "Debug")
   add_compile_options(-g -O0)
   add_definitions(-DDEBUG)
-  message("-- Setting DEBUG build")
+  WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
   # make sanitize (cannot make debug sanitize)
   add_compile_options(-g -O0 -fno-omit-frame-pointer)
@@ -102,7 +123,7 @@ elseif(DEFINED ENV{SANITIZE})
   add_compile_options(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
 else()
   set(DEBUG FALSE)
-  add_compile_options(-O2)
+  add_compile_options(-O3)
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
@@ -128,6 +149,15 @@ endif()
 
 # Finished setting compiler/compiler flags.
 project(OSQUERY)
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
+include(CMakeLibs)
+
+if(NOT IS_DIRECTORY ${CMAKE_SOURCE_DIR}/third-party/sqlite3)
+  WARNING_LOG("Cannot find git submodule third-party/sqlite3 directory.")
+  WARNING_LOG("Please run: make deps or git submodule update --init")
+  message(FATAL_ERROR "No sqlite3 directory")
+endif()
 
 # Make sure deps were built before compiling (else show warning).
 execute_process(
@@ -137,9 +167,8 @@ execute_process(
   RESULT_VARIABLE OSQUERY_DEPS_CHECK
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-string(ASCII 27 Esc)
 if(OSQUERY_DEPS_CHECK)
-  message("-- ${Esc}[31m${OSQUERY_DEPS_MESSAGE}${Esc}[m")
+  WARNING_LOG("${OSQUERY_DEPS_MESSAGE}")
 endif()
 
 # Discover build version from an environment variable or from the git checkout.
@@ -171,46 +200,75 @@ add_definitions(
   -DOSQUERY_BUILD_DISTRO=${OSQUERY_BUILD_DISTRO}
   -D${OSQUERY_BUILD_PLATFORM_DEFINE}
   -D${OSQUERY_BUILD_PLATFORM_DEFINE}_${OSQUERY_BUILD_DISTRO_DEFINE}
+  -DBOOST_NETWORK_ENABLE_HTTPS
 )
 
 if(APPLE)
-  message("-- Building for OS X")
+  LOG_PLATFORM("OS X")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "ubuntu")
+  set(DEBIAN_BASED TRUE)
   set(UBUNTU TRUE)
-  message("-- Building for Ubuntu")
+  LOG_PLATFORM("Ubuntu")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "centos")
+  set(REDHAT_BASED TRUE)
   set(CENTOS TRUE)
-  message("-- Building for CentOS")
+  LOG_PLATFORM("CentOS")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "rhel")
+  set(REDHAT_BASED TRUE)
   set(RHEL TRUE)
-  message("-- Building for RHEL")
+  LOG_PLATFORM("RHEL")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "amazon")
+  set(REDHAT_BASED TRUE)
   set(AMAZON TRUE)
-  message("-- Building for Amazon")
+  LOG_PLATFORM("Amazon Linux")
+elseif(OSQUERY_BUILD_PLATFORM STREQUAL "oracle")
+  set(REDHAT_BASED TRUE)
+  set(ORACLE TRUE)
+  LOG_PLATFORM("Oracle Linux")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "freebsd")
   set(FREEBSD TRUE)
-  message("-- Building for FreeBSD")
+  LOG_PLATFORM("FreeBSD")
+endif()
+
+if(REDHAT_BASED)
+  add_definitions(-DREDHAT_BASED=1)
+elseif(DEBIAN_BASED)
+  add_definitions(-DDEBIAN_BASED=1)
 endif()
 
 # Make sure the generated paths exist
 execute_process(COMMAND mkdir -p "${CMAKE_BINARY_DIR}/generated")
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
-set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
-
 # We need to link some packages as dynamic/dependent.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
 find_package(OpenSSL REQUIRED)
-find_package(Crypto REQUIRED)
 find_package(BZip2 REQUIRED)
 find_package(Dl REQUIRED)
 find_package(Readline REQUIRED)
 
+# Make sure the OpenSSL/ssl library has a TLS client method.
+# Prefer the highest version of TLS, but accept 1.2, 1.1, or 1.0.
+include(CheckLibraryExists)
+CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_2_client_method" "" OPENSSL_TLSV12)
+CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_1_client_method" "" OPENSSL_TLSV11)
+CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_client_method" "" OPENSSL_TLSV10)
+
+# Add a define based on the highest TLS version found. Fatal if no TLS client.
+if(OPENSSL_TLSV12)
+  add_definitions(-DSSL_TXT_TLSV1_2)
+elseif(OPENSSL_TLSV11)
+  add_definitions(-DSSL_TXT_TLSV1_1)
+elseif(OPENSSL_TLSV10)
+  add_definitions(-DSSL_TXT_TLSV1)
+else()
+  message(FATAL "Cannot find any TLS client methods")
+endif()
+
 # Most dependent packages/libs we want static.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
 find_package(CppNetlib 0.11.0 REQUIRED)
-find_package(Gflags REQUIRED)
 find_package(Glog REQUIRED)
+find_package(Gflags REQUIRED)
 find_package(Gtest REQUIRED)
 find_package(RocksDB REQUIRED)
 find_package(Snappy REQUIRED)
@@ -218,11 +276,13 @@ find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.1 REQUIRED)
 
 # Python is used for table spec generation and formating.
-find_package(PythonInterp 2 REQUIRED)
+if(PYTHON_VERSION_MAJOR STREQUAL "2" AND PYTHON_VERSION_MINOR STREQUAL "4")
+  WARNING_LOG("Found python 2.4, overriding to /usr/bin/python2.6")
+  set(PYTHON_EXECUTABLE "/usr/bin/python2.6")
+endif()
 
 enable_testing()
 
-include(CMakeLibs)
 include(Packages)
 include(Thrift)
 

@@ -12,13 +12,13 @@
 
 using namespace osquery;
 
-class ExampleTable : public tables::TablePlugin {
+class ExampleTable : public TablePlugin {
  private:
-  tables::TableColumns columns() const {
+  TableColumns columns() const {
     return {{"example_text", "TEXT"}, {"example_integer", "INTEGER"}};
   }
 
-  QueryData generate(tables::QueryContext& request) {
+  QueryData generate(QueryContext& request) {
     QueryData results;
 
     Row r;

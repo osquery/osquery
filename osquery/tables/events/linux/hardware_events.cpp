@@ -18,7 +18,6 @@
 #include "osquery/events/linux/udev.h"
 
 namespace osquery {
-namespace tables {
 
 /**
  * @brief Track udev events in Linux
@@ -75,6 +74,5 @@ Status HardwareEventSubscriber::Callback(const UdevEventContextRef& ec,
   r["time"] = INTEGER(ec->time);
   add(r, ec->time);
   return Status(0, "OK");
-}
 }
 }

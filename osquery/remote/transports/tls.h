@@ -1,0 +1,124 @@
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+#pragma once
+
+// Our third-party version of cpp-netlib uses OpenSSL APIs.
+// On OS X these symbols are marked deprecated and clang will warn against
+// us including them. We are squashing the noise for OS X's OpenSSL only.
+#if defined(DARWIN)
+_Pragma("clang diagnostic push")
+_Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
+#endif
+#include <boost/network/protocol/http/client.hpp>
+#if defined(DARWIN)
+_Pragma("clang diagnostic pop")
+#endif
+
+#include <osquery/flags.h>
+
+#include "osquery/remote/requests.h"
+
+namespace osquery {
+
+/// Path to optional TLS client secret key, used for enrollment/requests.
+DECLARE_string(tls_client_key);
+
+/// Path to optional TLS client certificate (PEM), used for enrollment/requests.
+DECLARE_string(tls_client_cert);
+
+/// TLS server hostname.
+DECLARE_string(tls_hostname);
+
+/**
+ * @brief HTTPS (TLS) transport.
+ */
+class TLSTransport : public Transport {
+ public:
+
+  /**
+   * @brief Send a simple request to the destination with no parameters
+   *
+   * @return An instance of osquery::Status indicating the success or failure
+   * of the operation
+   */
+  Status sendRequest();
+
+  /**
+   * @brief Send a simple request to the destination with parameters
+   *
+   * @param params A string representing the serialized parameters
+   *
+   * @return An instance of osquery::Status indicating the success or failure
+   * of the operation
+   */
+  Status sendRequest(const std::string& params);
+
+  /**
+   * @brief Class destructor
+  */
+  virtual ~TLSTransport() {}
+
+ public:
+  TLSTransport();
+
+ protected:
+  boost::network::http::client getClient();
+
+ private:
+  /// Testing-only, disable peer verification.
+  void disableVerifyPeer() { verify_peer_ = false; }
+
+  /// Set TLS-client authentication options.
+  void setClientCertificate(const std::string& certificate_file,
+                            const std::string& private_key_file) {
+    client_certificate_file_ = certificate_file;
+    client_private_key_file_ = private_key_file;
+  }
+
+  /// Set TLS server/ca pinning options.
+  void setPeerCertificate(const std::string& server_certificate_file) {
+    server_certificate_file_ = server_certificate_file;
+  }
+
+ private:
+  /// Optional TLS client-auth client certificate filename.
+  std::string client_certificate_file_;
+
+  /// Optional TLS client-auth client private key filename.
+  std::string client_private_key_file_;
+
+  /// Optional TLS server-pinning server certificate/bundle filename.
+  std::string server_certificate_file_;
+
+  /// Testing-only, disable peer verification.
+  bool verify_peer_;
+
+ protected:
+  /**
+    * @brief Modify a request object with base modifications
+    *
+    * @param The request object, to be modified
+    */
+  void decorateRequest(boost::network::http::client::request& r);
+
+ protected:
+  /// Storage for the HTTP response object
+  boost::network::http::client::response response_;
+
+ private:
+  FRIEND_TEST(TLSTransportsTests, test_call);
+  FRIEND_TEST(TLSTransportsTests, test_call_with_params);
+  FRIEND_TEST(TLSTransportsTests, test_call_verify_peer);
+  FRIEND_TEST(TLSTransportsTests, test_call_server_cert_pinning);
+  FRIEND_TEST(TLSTransportsTests, test_call_client_auth);
+  FRIEND_TEST(TLSTransportsTests, test_call_http);
+};
+}

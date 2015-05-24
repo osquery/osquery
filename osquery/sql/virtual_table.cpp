@@ -235,6 +235,7 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
 
   return SQLITE_OK;
 }
+}
 
 Status attachTableInternal(const std::string &name,
                            const std::string &statement,
@@ -245,11 +246,30 @@ Status attachTableInternal(const std::string &name,
   }
 
   // A static module structure does not need specific logic per-table.
+  // clang-format off
   static sqlite3_module module = {
-      0,      xCreate, xCreate, xBestIndex, xDestroy, xDestroy, xOpen,
-      xClose, xFilter, xNext,   xEof,       xColumn,  xRowid,   0,
-      0,      0,       0,       0,          0,        0,
+      0,
+      tables::xCreate,
+      tables::xCreate,
+      tables::xBestIndex,
+      tables::xDestroy,
+      tables::xDestroy,
+      tables::xOpen,
+      tables::xClose,
+      tables::xFilter,
+      tables::xNext,
+      tables::xEof,
+      tables::xColumn,
+      tables::xRowid,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
   };
+  // clang-format on
 
   // Note, if the clientData API is used then this will save a registry call
   // within xCreate.
@@ -285,6 +305,5 @@ void attachVirtualTables(sqlite3 *db) {
       attachTableInternal(name, statement, db);
     }
   }
-}
 }
 }

@@ -15,7 +15,6 @@
 #include "osquery/sql/sqlite_util.h"
 
 namespace osquery {
-namespace tables {
 
 /**
  * @brief osquery cursor object.
@@ -58,5 +57,4 @@ Status detachTableInternal(const std::string &name, sqlite3 *db);
 
 /// Attach all table plugins to an in-memory SQLite database.
 void attachVirtualTables(sqlite3 *db);
-}
 }

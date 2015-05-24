@@ -33,7 +33,6 @@
   } while (0)
 
 namespace osquery {
-namespace tables {
 
 /**
  * @brief The SQLite type affinities are available as macros
@@ -325,5 +324,4 @@ std::string columnDefinition(const TableColumns& columns);
 std::string columnDefinition(const PluginResponse& response);
 
 CREATE_LAZY_REGISTRY(TablePlugin, "table");
-}
 }

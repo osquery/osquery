@@ -15,3 +15,8 @@ set(CPP-NETLIB_LIBRARY
   "${CPP-NETLIB_LINK_DIR}/libcppnetlib-client-connections.a"
   "${CPP-NETLIB_LINK_DIR}/libcppnetlib-server-parsers.a"
 )
+
+#LOG("Found library dependency ${CPP-NETLIB_LINK_DIR}/libcppnetlib-uri.a")
+LOG_LIBRARY(cpp-netlib "${CPP-NETLIB_LINK_DIR}/libcppnetlib-client-connections.a")
+LOG_LIBRARY(cpp-netlib "${CPP-NETLIB_LINK_DIR}/libcppnetlib-server-parsers.a")
+LOG_LIBRARY(cpp-netlib "${CPP-NETLIB_LINK_DIR}/libcppnetlib-uri.a")

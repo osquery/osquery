@@ -81,6 +81,9 @@ QueryData genYara(QueryContext& context) {
     return results;
   }
   const auto& yaraParser = std::static_pointer_cast<YARAConfigParserPlugin>(parser);
+  if (yaraParser == nullptr) {
+    return results;
+  }
   auto rules = yaraParser->rules();
 
   // Store resolved paths in a vector of pairs.

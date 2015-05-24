@@ -90,8 +90,8 @@ Status SQLiteSQLPlugin::attach(const std::string& name) {
     return status;
   }
 
-  auto statement = tables::columnDefinition(response);
-  return tables::attachTableInternal(name, statement, dbc.db());
+  auto statement = columnDefinition(response);
+  return attachTableInternal(name, statement, dbc.db());
 }
 
 void SQLiteSQLPlugin::detach(const std::string& name) {
@@ -99,13 +99,13 @@ void SQLiteSQLPlugin::detach(const std::string& name) {
   if (!dbc.isPrimary()) {
     return;
   }
-  tables::detachTableInternal(name, dbc.db());
+  detachTableInternal(name, dbc.db());
 }
 
 SQLiteDBInstance::SQLiteDBInstance() {
   primary_ = false;
   sqlite3_open(":memory:", &db_);
-  tables::attachVirtualTables(db_);
+  attachVirtualTables(db_);
 }
 
 SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db) {
@@ -144,7 +144,7 @@ SQLiteDBInstance SQLiteDBManager::get() {
     if (self.db_ == nullptr) {
       // Create primary sqlite DB instance.
       sqlite3_open(":memory:", &self.db_);
-      tables::attachVirtualTables(self.db_);
+      attachVirtualTables(self.db_);
     }
     return SQLiteDBInstance(self.db_);
   } else {
@@ -190,7 +190,7 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
 }
 
 Status getQueryColumnsInternal(const std::string& q,
-                               tables::TableColumns& columns,
+                               TableColumns& columns,
                                sqlite3* db) {
   int rc;
 
@@ -208,7 +208,7 @@ Status getQueryColumnsInternal(const std::string& q,
 
   // Get column count
   int num_columns = sqlite3_column_count(stmt);
-  tables::TableColumns results;
+  TableColumns results;
   results.reserve(num_columns);
 
   // Get column names and types

@@ -12,7 +12,8 @@ set -e
 CFLAGS="-fPIE -fPIC -O2 -DNDEBUG"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="$SCRIPT_DIR/../build"
-WORKING_DIR="$SCRIPT_DIR/../.sources"
+WORKING_DIR="/tmp/osquery-provisioning"
+FILES_DIR="$SCRIPT_DIR/provision/files"
 export PATH="$PATH:/usr/local/bin"
 
 source "$SCRIPT_DIR/lib.sh"
@@ -39,7 +40,11 @@ function main() {
   fi
   cd "$WORKING_DIR"
 
-  if [[ $OS = "centos" ]]; then
+  if [[ $OS = "oracle" ]]; then
+    log "detected oracle ($DISTRO)"
+    source "$SCRIPT_DIR/provision/oracle.sh"
+    main_oracle
+  elif [[ $OS = "centos" ]]; then
     log "detected centos ($DISTRO)"
     source "$SCRIPT_DIR/provision/centos.sh"
     main_centos

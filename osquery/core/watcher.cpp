@@ -223,8 +223,7 @@ void WatcherRunner::stopChild(pid_t child) {
 }
 
 bool WatcherRunner::isChildSane(pid_t child) {
-  auto rows =
-      SQL::selectAllFrom("processes", "pid", tables::EQUALS, INTEGER(child));
+  auto rows = SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(child));
   if (rows.size() == 0) {
     // Could not find worker process?
     return false;
@@ -233,7 +232,7 @@ bool WatcherRunner::isChildSane(pid_t child) {
   // Get the performance state for the worker or extension.
   size_t sustained_latency = 0;
   // Compare CPU utilization since last check.
-  BIGINT_LITERAL footprint, user_time, system_time, parent;
+  BIGINT_LITERAL footprint = 0, user_time = 0, system_time = 0, parent = 0;
   // IV is the check interval in seconds, and utilization is set per-second.
   auto iv = std::max(getWorkerLimit(INTERVAL), (size_t)1);
 
@@ -314,8 +313,7 @@ void WatcherRunner::createWorker() {
   }
 
   // Get the path of the current process.
-  auto qd = SQL::selectAllFrom("processes", "pid", tables::EQUALS,
-    INTEGER(getpid()));
+  auto qd = SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(getpid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
     LOG(ERROR) << "osquery watcher cannot determine process path";
     ::exit(EXIT_FAILURE);

@@ -7,18 +7,26 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
+ORACLE_RELEASE=/etc/oracle-release
 SYSTEM_RELEASE=/etc/system-release
 UBUNTU_RELEASE=/etc/lsb-release
 
 function platform() {
   local  __out=$1
-  if [[ -n `grep -o "CentOS" $SYSTEM_RELEASE 2>/dev/null` ]]; then
+  if [[ -f "$ORACLE_RELEASE" ]]; then
+    FAMILY="redhat"
+    eval $__out="oracle"
+  elif [[ -n `grep -o "CentOS" $SYSTEM_RELEASE 2>/dev/null` ]]; then
+    FAMILY="redhat"
     eval $__out="centos"
   elif [[ -n `grep -o "Red Hat Enterprise" $SYSTEM_RELEASE 2>/dev/null` ]]; then
+    FAMILY="redhat"
     eval $__out="rhel"
   elif [[ -n `grep -o "Amazon Linux" $SYSTEM_RELEASE 2>/dev/null` ]]; then
+    FAMILY="redhat"
     eval $__out="amazon"
   elif [[ -f "$UBUNTU_RELEASE" ]]; then
+    FAMILY="debian"
     eval $__out="ubuntu"
   else
     eval $__out=`uname -s | tr '[:upper:]' '[:lower:]'`
@@ -32,7 +40,9 @@ function _platform() {
 
 function distro() {
   local __out=$2
-  if [[ $1 = "centos" ]]; then
+  if [[ $1 = "oracle" ]]; then
+    eval $__out=`grep -o "release [5-7]" $SYSTEM_RELEASE | sed 's/release /oracle/g'`
+  elif [[ $1 = "centos" ]]; then
     eval $__out=`grep -o "release [6-7]" $SYSTEM_RELEASE | sed 's/release /centos/g'`
   elif [[ $1 = "rhel" ]]; then
     eval $__out=`grep -o "release [6-7]" $SYSTEM_RELEASE | sed 's/release /rhel/g'`
@@ -57,12 +67,14 @@ function _distro() {
 function threads() {
   local __out=$1
   platform OS
-  if [ $OS = "centos" ] || [ $OS = "rhel" ] || [ $OS = "ubuntu" ] || [ $OS = "amazon" ]; then
+  if [[ $FAMILY = "redhat" ]] || [[ $FAMILY = "debian" ]]; then
     eval $__out=`cat /proc/cpuinfo | grep processor | wc -l`
   elif [[ $OS = "darwin" ]]; then
     eval $__out=`sysctl hw.ncpu | awk '{print $2}'`
   elif [[ $OS = "freebsd" ]]; then
     eval $__out=`sysctl -n kern.smp.cpus`
+  else
+    eval $__out=1
   fi
 }
 

@@ -6,7 +6,8 @@ endif()
 set(GLOG_ROOT_DIR "${CMAKE_BINARY_DIR}/third-party/glog")
 set(GLOG_SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party/glog")
 
-set(GLOG_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register -Wno-unnamed-type-template-args -Wno-deprecated -Wno-error")
+set(GLOG_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMPILE_FLAGS}")
+set(GLOG_CXX_FLAGS "${GLOG_CXX_FLAGS} -Wno-deprecated-register -Wno-unnamed-type-template-args -Wno-deprecated -Wno-error")
 
 INCLUDE(ExternalProject)
 ExternalProject_Add(
@@ -15,7 +16,7 @@ ExternalProject_Add(
   INSTALL_DIR ${GLOG_ROOT_DIR}
   CONFIGURE_COMMAND ${GLOG_SOURCE_DIR}/configure
     CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
-    CXXFLAGS=${GLOG_CXX_FLAGS}
+    CFLAGS=${CMAKE_C_FLAGS} CXXFLAGS=${GLOG_CXX_FLAGS}
     --enable-frame-pointers --enable-shared=no --prefix=${GLOG_ROOT_DIR}
   BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
   INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install
@@ -29,3 +30,5 @@ set(GLOG_INCLUDE_DIRS ${GLOG_INCLUDE_DIR})
 
 set(GLOG_LIBRARY "${GLOG_ROOT_DIR}/lib/libglog.a")
 set(GLOG_LIBRARIES ${GLOG_LIBRARY})
+
+LOG_LIBRARY(glog "${GLOG_LIBRARY}")

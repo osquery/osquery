@@ -20,7 +20,6 @@
 #include "osquery/events/darwin/fsevents.h"
 
 namespace osquery {
-namespace tables {
 
 /**
  * @brief Track time, action changes to /etc/passwd
@@ -86,6 +85,5 @@ Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec,
     add(r, ec->time);
   }
   return Status(0, "OK");
-}
 }
 }

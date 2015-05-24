@@ -130,6 +130,6 @@ function main_rhel() {
 
   package gettext-devel
   install_libcryptsetup
- 
+
   gem_install fpm
 }

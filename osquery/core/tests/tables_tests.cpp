@@ -13,7 +13,6 @@
 #include <osquery/tables.h>
 
 namespace osquery {
-namespace tables {
 
 class TablesTests : public testing::Test {};
 
@@ -124,6 +123,5 @@ TEST_F(TablesTests, test_constraint_map) {
   EXPECT_FALSE(cm["path"].notExistsOrMatches("not_some"));
   EXPECT_TRUE(cm["path"].exists());
   EXPECT_TRUE(cm["path"].existsAndMatches("some"));
-}
 }
 }
