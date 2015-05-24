@@ -44,6 +44,8 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self.wfile.write('{"foo": "bar"}')
 
 def handler(signum, frame):
+    print("[DEBUG] Shutting down HTTP server via timeout (%d) seconds."
+        % (ARGS.timeout))
     sys.exit(0)
 
 if __name__ == '__main__':
@@ -59,6 +61,10 @@ if __name__ == '__main__':
     parser.add_argument(
         "--persist", default=False, action="store_true",
         help="Wrap the HTTP server socket in TLS."
+    )
+    parser.add_argument(
+        "--timeout", default=5, type=int,
+        help="If not persisting, exit after a number of seconds"
     )
 
     parser.add_argument(
@@ -86,7 +92,7 @@ if __name__ == '__main__':
 
     if not ARGS.persist:
         signal.signal(signal.SIGALRM, handler)
-        signal.alarm(5)
+        signal.alarm(ARGS.timeout)
 
     httpd = HTTPServer(('localhost', ARGS.port), RealSimpleHandler)
     if ARGS.tls:

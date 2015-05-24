@@ -11,16 +11,16 @@ set(OSQUERY_TABLES_TESTS "")
 
 # The core set of osquery libraries most discovered with find_package.
 set(OSQUERY_LIBS
-  ${THRIFT_LIB}
-  ${ROCKSDB_STATIC_LIBRARIES}
+  ${THRIFT_STATIC_LIBRARY}
+  ${ROCKSDB_STATIC_LIBRARY}
   ${ROCKSDB_SNAPPY_LIBRARY}
   ${GLOG_LIBRARY}
   ${GFLAGS_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
   ${OPENSSL_SSL_LIBRARY}
   ${CPP-NETLIB_LIBRARY}
+  ${READLINE_LIBRARIES}
 
-  readline
   pthread
   bz2
   z
@@ -107,7 +107,7 @@ set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
 add_custom_target(osquery_library ALL
   DEPENDS libosquery
   COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-    "Built libosquery: ${CMAKE_BINARY_DIR}"
+    "-- Built libosquery: ${CMAKE_BINARY_DIR}/libosquery.a"
 )
 
 # make devel (implies install)
