@@ -26,7 +26,7 @@ function enable_repo() {
     echo "RHN subscription repo enabled: $1"
   else
     echo "WARNING: Could not enable RHN a repo: $1!"
-    echo "WARNING: Please run: sudo yum-config-manager repos --enable $1"
+    echo "WARNING: Please run: sudo yum-config-manager --enable $1"
     echo "WARNING: Continuing dependency installation, this may fail..."
   fi
 }
