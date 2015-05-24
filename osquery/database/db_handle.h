@@ -16,42 +16,14 @@
 
 #include <rocksdb/db.h>
 
+#include <boost/noncopyable.hpp>
+
+#include <osquery/core.h>
 #include <osquery/flags.h>
-#include <osquery/status.h>
 
 namespace osquery {
 
 DECLARE_string(database_path);
-
-/////////////////////////////////////////////////////////////////////////////
-// Constants
-/////////////////////////////////////////////////////////////////////////////
-
-/// The default path of the RocksDB database on disk
-extern const std::string kDBPath;
-
-/**
- * @brief A const vector of column families in RocksDB
- *
- * RocksDB has a concept of "column families" which are kind of like tables
- * in other databases. kDomainds is populated with a list of all column
- * families. If a string exists in kDomains, it's a column family in the
- * database.
- */
-extern const std::vector<std::string> kDomains;
-
-/// The "domain" where the results of scheduled queries are stored
-extern const std::string kQueries;
-
-/// The "domain" where certain global configurations are stored
-extern const std::string kConfigurations;
-
-/// The "domain" where event results are stored, queued for querytime
-extern const std::string kEvents;
-
-/////////////////////////////////////////////////////////////////////////////
-// DBHandle RAII singleton
-/////////////////////////////////////////////////////////////////////////////
 
 class DBHandle;
 typedef std::shared_ptr<DBHandle> DBHandleRef;
@@ -66,14 +38,11 @@ typedef std::shared_ptr<DBHandle> DBHandleRef;
  */
 class DBHandle {
  public:
-  /**
-   * @brief Destructor which takes care of deallocating all previously
-   * allocated resources
-   */
+  /// Removes every column family handle and single DB handle/lock.
   ~DBHandle();
 
   /**
-   * @brief The primary way to access the DBHandle singleton
+   * @brief The primary way to access the DBHandle singleton.
    *
    * DBHandle::getInstance() provides access to the DBHandle singleton.
    *
@@ -100,17 +69,7 @@ class DBHandle {
    */
   static bool checkDB();
 
-  /**
-   * @brief Helper method which can be used to get a raw pointer to the
-   * underlying RocksDB database handle
-   *
-   * You probably shouldn't use this. DBHandle::getDB() should only be used
-   * when you're positive that it's the right thing to use.
-   *
-   * @return a pointer to the underlying RocksDB database handle
-   */
-  rocksdb::DB* getDB();
-
+ private:
   /////////////////////////////////////////////////////////////////////////////
   // Data access methods
   /////////////////////////////////////////////////////////////////////////////
@@ -234,6 +193,17 @@ class DBHandle {
    */
   rocksdb::ColumnFamilyHandle* getHandleForColumnFamily(const std::string& cf);
 
+  /**
+   * @brief Helper method which can be used to get a raw pointer to the
+   * underlying RocksDB database handle
+   *
+   * You probably shouldn't use this. DBHandle::getDB() should only be used
+   * when you're positive that it's the right thing to use.
+   *
+   * @return a pointer to the underlying RocksDB database handle
+   */
+  rocksdb::DB* getDB();
+
  private:
   /////////////////////////////////////////////////////////////////////////////
   // Private members
@@ -252,13 +222,24 @@ class DBHandle {
   rocksdb::Options options_;
 
  private:
+  friend class RocksDatabasePlugin;
+  friend class Query;
+  friend class EventSubscriberPlugin;
+
   /////////////////////////////////////////////////////////////////////////////
   // Unit tests which can access private members
   /////////////////////////////////////////////////////////////////////////////
 
   friend class DBHandleTests;
+  FRIEND_TEST(DBHandleTests, test_get);
+  FRIEND_TEST(DBHandleTests, test_put);
+  FRIEND_TEST(DBHandleTests, test_delete);
+  FRIEND_TEST(DBHandleTests, test_scan);
+  friend class QueryTests;
+  FRIEND_TEST(QueryTests, test_get_query_results);
+  FRIEND_TEST(QueryTests, test_is_query_name_in_database);
+  FRIEND_TEST(QueryTests, test_get_stored_query_names);
   friend class EventsTests;
   friend class EventsDatabaseTests;
-  friend class QueryTests;
 };
 }

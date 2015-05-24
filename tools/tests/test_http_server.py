@@ -13,6 +13,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import json
 import os
 import signal
 import ssl
@@ -22,6 +23,32 @@ import sys
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from urlparse import parse_qs
 
+EXAMPLE_CONFIG = {
+    "schedule": {
+        "tls_proc": {"query": "select * from processes"},
+    }
+}
+
+TEST_RESPONSE = {
+    "foo": "bar",
+}
+
+NODE_KEYS = [
+    "this_is_a_node_secret",
+    "this_is_also_a_node_secret",
+]
+
+FAILED_ENROLL_RESPONSE = {
+    "node_invalid": True
+}
+
+ENROLL_RESPONSE = {
+    "node_key": "this_is_a_node_secret"
+}
+
+def debug(response):
+    print("-- [DEBUG] %s" % str(response))
+
 class RealSimpleHandler(BaseHTTPRequestHandler):
     def _set_headers(self):
         self.send_response(200)
@@ -29,19 +56,70 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self.end_headers()
  
     def do_GET(self):
-        print("[DEBUG] RealSimpleHandler::get %s" % self.path)
+        debug("RealSimpleHandler::get %s" % self.path)
         self._set_headers()
-        self.wfile.write('{"foo": "bar"}')
+        self._reply(TEST_RESPONSE)
  
     def do_HEAD(self):
-        print("[DEBUG] RealSimpleHandler::head %s" % self.path)
+        debug("RealSimpleHandler::head %s" % self.path)
         self._set_headers()
         
     def do_POST(self):
-        print("[DEBUG] RealSimpleHandler::post %s" % self.path)
-        # Doesn't do anything with posted data
+        debug("RealSimpleHandler::post %s" % self.path)
         self._set_headers()
-        self.wfile.write('{"foo": "bar"}')
+        content_len = int(self.headers.getheader('content-length', 0))
+        request = json.loads(self.rfile.read(content_len))
+        debug("Request: %s" % str(request))
+
+        if self.path == '/enroll':
+            self.enroll(request)
+        elif self.path == '/config':
+            self.config(request)
+        elif self.path == '/log':
+            self.log(request)
+        else:
+            self._reply(TEST_RESPONSE)
+
+    def enroll(self, request):
+        '''A basic enrollment endpoint'''
+
+        # This endpoint expects an "enroll_secret" POST body variable.
+        # Over TLS, this string may be a shared secret value installed on every
+        # managed host in an enterprise.
+
+        # Alternatively, each client could authenticate with a TLS client cert.
+        # Then, access to the enrollment endpoint implies the required auth.
+        # A generated node_key is still supplied for identification.
+        if ARGS.use_enroll_secret and ENROLL_SECRET != request["enroll_secret"]:
+            self._reply(FAILED_ENROLL_RESPONSE)
+            return
+        self._reply(ENROLL_RESPONSE)
+
+    def config(self, request):
+        '''A basic config endpoint'''
+
+        # This endpoint responds with a JSON body that is the entire config
+        # content. There is no special key or status.
+
+        # Authorization is simple authentication (the ability to download the
+        # config data) using a "valid" node_key. Validity means the node_key is
+        # known to this server. This toy server delivers a shared node_key,
+        # imagine generating a unique node_key per enroll request, tracking the
+        # generated keys, and asserting a match.
+
+        # The osquery TLS config plugin calls the TLS enroll plugin to retrieve
+        # a node_key, then submits that key alongside config/logger requests.
+        if "node_key" not in request or request["node_key"] != ENROLL_SECRET:
+            self._reply(FAILED_ENROLL_RESPONSE)
+            return
+        self._reply(EXAMPLE_CONFIG)
+
+    def log(self, request):
+        self._reply({})
+
+    def _reply(self, response):
+        debug("Replying: %s" % (str(response)))
+        self.wfile.write(json.dumps(response))
 
 def handler(signum, frame):
     print("[DEBUG] Shutting down HTTP server via timeout (%d) seconds."
@@ -84,11 +162,31 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        "--use_enroll_secret", action="store_true",
+        default=True,
+        help="Require an enrollment secret for node enrollment"
+    )
+    parser.add_argument(
+        "--enroll_secret", metavar="SECRET_FILE",
+        default=SCRIPT_DIR + "/test_enroll_secret.txt",
+        help="File containing enrollment secret"
+    )
+
+    parser.add_argument(
         "port", metavar="PORT", type=int,
         help="Bind to which local TCP port."
     )
 
     ARGS = parser.parse_args()
+
+    ENROLL_SECRET = ""
+    if ARGS.use_enroll_secret:
+        try:
+            with open(ARGS.enroll_secret, "r") as fh:
+                ENROLL_SECRET = fh.read().strip()
+        except IOError as e:
+            print("Cannot read --enroll_secret: %s" % str(e))
+            exit(1)
 
     if not ARGS.persist:
         signal.signal(signal.SIGALRM, handler)
@@ -109,7 +207,7 @@ if __name__ == '__main__':
                 certfile=ARGS.cert,
                 keyfile=ARGS.key,
                 server_side=True)
-        print("[DEBUG] Starting TLS/HTTPS server on TCP port: %d" % ARGS.port)
+        debug("Starting TLS/HTTPS server on TCP port: %d" % ARGS.port)
     else:
-        print("[DEBUG] Starting HTTP server on TCP port: %d" % ARGS.port)
+        debug("Starting HTTP server on TCP port: %d" % ARGS.port)
     httpd.serve_forever()

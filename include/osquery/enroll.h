@@ -18,7 +18,7 @@
 namespace osquery {
 
 /// Allow users to disable enrollment features.
-DECLARE_bool(disable_enroll);
+DECLARE_bool(disable_enrollment);
 
 /**
  * @brief Superclass for enroll plugins.
@@ -56,6 +56,34 @@ class EnrollPlugin : public Plugin {
    */
   virtual std::string enroll(bool force) = 0;
 };
+
+/**
+ * @brief Get a node key from the osquery RocksDB cache or perform node
+ * enrollment.
+ *
+ * Enrollment allows a new node to announce to an enrollment endpoint via an
+ * enroll plugin. While the details of authentication/authorization are up to
+ * the plugin implementation, the endpoint may return a "node secret".
+ *
+ * If a node_key is requested from an enroll plugin because no current key
+ * exists in the backing store, the result will be cached.
+ *
+ * @param enroll_plugin Name of the enroll plugin to use if no node_key set.
+ * @param force Optionally bypass cache and force call the enroll plugin.
+ * @return node_key A unique, often private, node secret key.
+ */
+std::string getNodeKey(const std::string& enroll_plugin, bool force = false);
+
+/**
+ * @brief Read the enrollment secret from disk.
+ *
+ * We suspect multiple enrollment types may require an apriori, and enterprise
+ * shared, secret. Use of this enroll or deployment secret is an optional choice
+ * made by the enroll plugin type.
+ *
+ * @return enroll_secret The trimmed content read from FLAGS_enroll_secret_path.
+ */
+std::string getEnrollSecret();
 
 /**
  * @brief Enroll plugin registry.

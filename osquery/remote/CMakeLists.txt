@@ -4,11 +4,9 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_remote
   transports/tls.cpp
 )
 
-if(NOT OSQUERY_BUILD_RELEASE)
-  ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
-    enroll/plugins/tls.cpp
-  )
-endif()
+ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
+  enroll/plugins/tls.cpp
+)
 
 file(GLOB OSQUERY_ENROLLMENT_PLUGIN_TESTS "enrollment/plugins/tests/*.cpp")
 ADD_OSQUERY_TEST(FALSE ${OSQUERY_ENROLLMENT_PLUGIN_TESTS})

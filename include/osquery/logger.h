@@ -15,7 +15,7 @@
 
 #include <glog/logging.h>
 
-#include <osquery/database/results.h>
+#include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 

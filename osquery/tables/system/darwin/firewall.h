@@ -8,38 +8,36 @@
  *
  */
 
-#ifndef OSQUERY_TABLES_SYSTEM_FIREWALL_H
-#define OSQUERY_TABLES_SYSTEM_FIREWALL_H
+#pragma once
 
 #include <map>
 #include <string>
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/database/results.h>
+#include <osquery/database.h>
+
+namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
 
 // Given a property tree of the parsed content of com.apple.alf.plist,
 // parseALFExceptionsTree parses out the "exceptions" key
-osquery::QueryData parseALFExceptionsTree(
-    const boost::property_tree::ptree& tree);
+osquery::QueryData parseALFExceptionsTree(const pt::ptree& tree);
 
 // Given a property tree of the parsed content of com.apple.alf.plist,
 // parseALFExplicitAuthsTree parses out the "explicitauth" key
-osquery::QueryData parseALFExplicitAuthsTree(
-    const boost::property_tree::ptree& tree);
+osquery::QueryData parseALFExplicitAuthsTree(const pt::ptree& tree);
 
 // Given a property tree of the parsed content of com.apple.alf.plist,
 // parseALFServicesTree parses out the services which exist under the
 // "firewall" key
-osquery::QueryData parseALFServicesTree(
-    const boost::property_tree::ptree& tree);
+osquery::QueryData parseALFServicesTree(const pt::ptree& tree);
 
 // Given a property tree of the parsed content of com.apple.alf.plist,
 // parseALFTree parses out the top level string and int keys
-osquery::QueryData parseALFTree(const boost::property_tree::ptree& tree);
+osquery::QueryData parseALFTree(const pt::ptree& tree);
 
 // kALFPlistPath is the path of the com.apple.alf.plist path
 extern const std::string kALFPlistPath;
@@ -57,5 +55,3 @@ extern const std::map<std::string, std::string> kTopLevelIntKeys;
 extern const std::map<std::string, std::string> kTopLevelStringKeys;
 }
 }
-
-#endif /* OSQUERY_TABLES_SYSTEM_FIREWALL_H */

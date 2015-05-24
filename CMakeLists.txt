@@ -38,6 +38,9 @@ add_compile_options(
   -Werror=format-security
   -fstack-protector-all
   -fPIE
+  -fpie
+  -fPIC
+  -fpic
 )
 set(CXX_COMPILE_FLAGS "")
 
@@ -123,7 +126,7 @@ elseif(DEFINED ENV{SANITIZE})
   add_compile_options(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
 else()
   set(DEBUG FALSE)
-  add_compile_options(-O3)
+  add_compile_options(-Os)
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
@@ -200,7 +203,10 @@ add_definitions(
   -DOSQUERY_BUILD_DISTRO=${OSQUERY_BUILD_DISTRO}
   -D${OSQUERY_BUILD_PLATFORM_DEFINE}
   -D${OSQUERY_BUILD_PLATFORM_DEFINE}_${OSQUERY_BUILD_DISTRO_DEFINE}
+  -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
+  # There are platform incompatibilities on OS X with lite and construction.
+  #-DROCKSDB_LITE
 )
 
 if(APPLE)

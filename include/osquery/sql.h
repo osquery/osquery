@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-#include <osquery/database/results.h>
+#include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/tables.h>
 

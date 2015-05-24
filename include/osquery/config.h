@@ -19,7 +19,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
-#include <osquery/database/results.h>
+#include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>

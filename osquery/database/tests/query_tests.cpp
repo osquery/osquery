@@ -16,9 +16,8 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/database/query.h>
-
 #include "osquery/core/test_util.h"
+#include "osquery/database/query.h"
 
 const std::string kTestingQueryDBPath = "/tmp/rocksdb-osquery-querytests";
 

@@ -18,7 +18,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include <osquery/database/results.h>
+#include <osquery/database.h>
 #include <osquery/logger.h>
 
 namespace pt = boost::property_tree;
@@ -372,5 +372,73 @@ bool addUniqueRowToQueryData(QueryData& q, const Row& r) {
   }
   q.push_back(r);
   return true;
+}
+
+Status DatabasePlugin::call(const PluginRequest& request,
+                            PluginResponse& response) {
+  if (request.count("action") == 0) {
+    return Status(1, "Database plugin must include a request action");
+  }
+
+  // Get a domain/key, which are used for most database plugin actions.
+  auto domain = (request.count("domain") > 0) ? request.at("domain") : "";
+  auto key = (request.count("key") > 0) ? request.at("key") : "";
+
+  // Switch over the possible database plugin actions.
+  if (request.at("action") == "get") {
+    std::string value;
+    auto status = this->get(domain, key, value);
+    response.push_back({{"v", value}});
+    return status;
+  } else if (request.at("action") == "put") {
+    if (request.count("value") == 0) {
+      return Status(1, "Database plugin put action requires a value");
+    }
+    return this->put(domain, key, request.at("value"));
+  } else if (request.at("action") == "remove") {
+    return this->remove(domain, key);
+  } else if (request.at("action") == "scan") {
+    std::vector<std::string> keys;
+    auto status = this->scan(domain, keys);
+    for (const auto& key : keys) {
+      response.push_back({{"k", key}});
+    }
+    return status;
+  }
+
+  return Status(1, "Unknown database plugin action");
+}
+
+Status getDatabaseValue(const std::string& domain,
+                        const std::string& key,
+                        std::string& value) {
+  PluginRequest request = {{"action", "get"}, {"domain", domain}, {"key", key}};
+  PluginResponse response;
+  auto status = Registry::call("database", "rocks", request, response);
+  if (!status.ok()) {
+    VLOG(1) << "Cannot get database " << domain << "/" << key << ": "
+            << status.getMessage();
+    return status;
+  }
+
+  // Set value from the internally-known "v" key.
+  if (response.size() > 0 && response[0].count("v") > 0) {
+    value = response[0].at("v");
+  }
+  return status;
+}
+
+Status setDatabaseValue(const std::string& domain,
+                        const std::string& key,
+                        const std::string& value) {
+  PluginRequest request = {
+      {"action", "put"}, {"domain", domain}, {"key", key}, {"value", value}};
+  return Registry::call("database", "rocks", request);
+}
+
+Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
+  PluginRequest request = {
+      {"action", "delete"}, {"domain", domain}, {"key", key}};
+  return Registry::call("database", "rocks", request);
 }
 }

@@ -17,6 +17,7 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
+#include "osquery/database/query.h"
 #include "osquery/dispatcher/scheduler.h"
 
 namespace osquery {
@@ -28,45 +29,31 @@ FLAG(string,
 
 FLAG(bool, enable_monitor, false, "Enable the schedule monitor");
 
-CLI_FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
+FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
 
 Status getHostIdentifier(std::string& ident) {
-  std::shared_ptr<DBHandle> db;
-  try {
-    db = DBHandle::getInstance();
-  } catch (const std::runtime_error& e) {
-    return Status(1, e.what());
-  }
-
   if (FLAGS_host_identifier != "uuid") {
     // use the hostname as the default machine identifier
     ident = osquery::getHostname();
     return Status(0, "OK");
   }
 
-  std::vector<std::string> results;
-  auto status = db->Scan(kConfigurations, results);
-
+  // Lookup the host identifier (UUID) previously generated and stored.
+  auto status = getDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
   if (!status.ok()) {
+    // The lookup failed, there is a problem accessing the database.
     VLOG(1) << "Could not access database; using hostname as host identifier";
     ident = osquery::getHostname();
     return Status(0, "OK");
   }
 
-  if (std::find(results.begin(), results.end(), "hostIdentifier") !=
-      results.end()) {
-    status = db->Get(kConfigurations, "hostIdentifier", ident);
-    if (!status.ok()) {
-      VLOG(1) << "Could not access database; using hostname as host identifier";
-      ident = osquery::getHostname();
-    }
-    return status;
+  if (ident.size() == 0) {
+    // There was no uuid stored in the database, generate one and store it.
+    ident = osquery::generateHostUuid();
+    VLOG(1) << "Using uuid " << ident << " as host identifier";
+    return setDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
   }
-
-  // There was no uuid stored in the database, generate one and store it.
-  ident = osquery::generateHostUuid();
-  VLOG(1) << "Using uuid " << ident << " as host identifier";
-  return db->Put(kConfigurations, "hostIdentifier", ident);
+  return status;
 }
 
 inline SQL monitor(const std::string& name, const ScheduledQuery& query) {

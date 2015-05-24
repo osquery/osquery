@@ -15,7 +15,6 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/database/results.h>
 #include <osquery/sql.h>
 
 namespace osquery {

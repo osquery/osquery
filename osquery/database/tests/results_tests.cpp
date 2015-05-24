@@ -14,7 +14,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/database/results.h>
+#include <osquery/database.h>
 #include <osquery/logger.h>
 
 #include "osquery/core/test_util.h"

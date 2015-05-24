@@ -16,9 +16,8 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/database.h>
-
 #include "osquery/core/test_util.h"
+#include "osquery/database/db_handle.h"
 
 namespace fs = boost::filesystem;
 
@@ -56,7 +55,6 @@ int main(int argc, char* argv[]) {
   // Allow unit test execution from anywhere in the osquery source/build tree.
   while (osquery::kTestDataPath != "/") {
     if (!fs::exists(osquery::kTestDataPath)) {
-      printf("not: %s\n", osquery::kTestDataPath.c_str());
       osquery::kTestDataPath =
           osquery::kTestDataPath.substr(3, osquery::kTestDataPath.size());
     } else {

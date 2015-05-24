@@ -13,7 +13,6 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core.h>
-#include <osquery/database.h>
 #include <osquery/logger.h>
 
 #include "osquery/distributed/distributed.h"

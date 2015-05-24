@@ -24,13 +24,15 @@
 
 #define CONFIG_TLS_MAX_ATTEMPTS 3
 
+namespace pt = boost::property_tree;
+
 namespace osquery {
 
 /// Config retrieval TLS endpoint (path) using TLS hostname.
-FLAG(string,
-     config_tls_endpoint,
-     "",
-     "TLS/HTTPS endpoint for config retrieval");
+CLI_FLAG(string,
+         config_tls_endpoint,
+         "",
+         "TLS/HTTPS endpoint for config retrieval");
 
 class TLSConfigPlugin : public ConfigPlugin {
  public:
@@ -39,20 +41,10 @@ class TLSConfigPlugin : public ConfigPlugin {
 
 REGISTER(TLSConfigPlugin, "config", "tls");
 
-Status getConfig(const std::string& uri, boost::property_tree::ptree& output) {
-  // Request the TLS enroll plugin's enrollment secret.
-  PluginResponse response;
-  Registry::call("enroll", "tls", {{"action", "enroll"}}, response);
-
-  // Enrollment keys are optional, as enrollment may be disabled.
-  std::string enroll_key;
-  if (response.size() > 0 && response[0].count("enroll_key") != 0) {
-    enroll_key = response[0].at("enroll_key");
-  }
-
+Status getConfig(const std::string& uri, pt::ptree& output) {
   // Make a request to the config endpoint, providing the node secret.
-  boost::property_tree::ptree params;
-  params.put<std::string>("enroll_key", enroll_key);
+  pt::ptree params;
+  params.put<std::string>("node_key", getNodeKey("tls"));
 
   auto request = Request<TLSTransport, JSONSerializer>(uri);
   auto status = request.call(params);
@@ -67,8 +59,8 @@ Status getConfig(const std::string& uri, boost::property_tree::ptree& output) {
   }
 
   // Receive config or key rejection
-  if (output.count("enroll_invalid") > 0) {
-    return Status(1, "Config retrieval failed: Invalid enrollment key");
+  if (output.count("node_invalid") > 0) {
+    return Status(1, "Config retrieval failed: Invalid node key");
   }
   return Status(0, "OK");
 }
@@ -77,7 +69,7 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
   auto uri = "https://" + FLAGS_tls_hostname + FLAGS_config_tls_endpoint;
   VLOG(1) << "TLSConfigPlugin requesting a config from: " << uri;
 
-  boost::property_tree::ptree recv;
+  pt::ptree recv;
   for (size_t i = 1; i <= CONFIG_TLS_MAX_ATTEMPTS; i++) {
     auto status = getConfig(uri, recv);
     if (status.ok()) {
