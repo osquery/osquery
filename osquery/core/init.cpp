@@ -18,7 +18,6 @@
 
 #include <osquery/config.h>
 #include <osquery/core.h>
-#include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/extensions.h>
 #include <osquery/flags.h>
@@ -27,6 +26,7 @@
 #include <osquery/registry.h>
 
 #include "osquery/core/watcher.h"
+#include "osquery/database/db_handle.h"
 
 namespace fs = boost::filesystem;
 

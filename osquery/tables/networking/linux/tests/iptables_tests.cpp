@@ -11,7 +11,6 @@
 #include <gtest/gtest.h>
 
 #include <osquery/logger.h>
-#include <osquery/database.h>
 
 #include <libiptc/libiptc.h>
 #include <arpa/inet.h>

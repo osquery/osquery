@@ -19,17 +19,14 @@
 
 namespace osquery {
 
-/// Enrollment TLS endpoint (path) using TLS hostname.
-FLAG(string,
-     enroll_tls_endpoint,
-     "",
-     "TLS/HTTPS endpoint for client enrollment");
+DECLARE_string(enroll_secret_path);
+DECLARE_bool(disable_enrollment);
 
-/// Path to optional enrollment secret data, sent with enrollment requests.
-FLAG(string,
-     enroll_secret_path,
-     "",
-     "Path to an optional client enrollment-auth secret");
+/// Enrollment TLS endpoint (path) using TLS hostname.
+CLI_FLAG(string,
+         enroll_tls_endpoint,
+         "",
+         "TLS/HTTPS endpoint for client enrollment");
 
 class TLSEnrollPlugin : public EnrollPlugin {
  private:
@@ -69,13 +66,8 @@ std::string TLSEnrollPlugin::enroll(bool force) {
 
 Status TLSEnrollPlugin::requestKey(const std::string& uri) {
   // Read the optional enrollment secret data (sent with an enrollment request).
-  std::string enroll_secret;
-  if (FLAGS_enroll_secret_path.size() > 0) {
-    osquery::readFile(FLAGS_enroll_secret_path, enroll_secret);
-  }
-
   boost::property_tree::ptree params;
-  params.put<std::string>("enroll_secret", enroll_secret);
+  params.put<std::string>("enroll_secret", getEnrollSecret());
 
   auto request = Request<TLSTransport, JSONSerializer>(uri);
   auto status = request.call(params);
@@ -90,10 +82,10 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri) {
     return status;
   }
 
-  if (recv.count("enroll_key") > 0) {
+  if (recv.count("node_key") > 0) {
     // Set the enroll key, should be stored in the RocksDB cache.
     // TODO: Store this response key in RocksDB.
-    node_secret_key_ = recv.get<std::string>("enroll_key", "");
+    node_secret_key_ = recv.get<std::string>("node_key", "");
     return Status(0, "OK");
   } else {
     return Status(1, "No enrollment key returned from TLS enroll plugin");

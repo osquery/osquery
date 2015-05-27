@@ -20,7 +20,7 @@ import unittest
 # osquery-specific testing utils
 import test_base
 
-class WatchdogTests(test_base.ProcessGenerator, unittest.TestCase):
+class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_1_daemon_without_watchdog(self):
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -65,16 +65,6 @@ class WatchdogTests(test_base.ProcessGenerator, unittest.TestCase):
         # This will take a few moments to make sure the client process
         # dies when the watcher goes away
         self.assertTrue(daemon.isDead(children[0]))
-
-    def test_4_catastrophic_worker_failure(self):
-        ### Seems to fail often, disable test
-        daemon = self._run_daemon({
-            "disable_watchdog": False,
-            "database_path": "/tmp/this/does/not/exists.db",
-        })
-        daemon.isAlive()
-        self.assertTrue(daemon.pid is None or daemon.isDead(daemon.pid))
-        daemon.kill(True)
 
 if __name__ == '__main__':
     test_base.Tester().run()

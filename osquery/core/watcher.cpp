@@ -413,7 +413,7 @@ void WatcherWatcherRunner::start() {
       VLOG(1) << "osqueryd worker (" << getpid()
               << ") detected killed watcher (" << watcher_ << ")";
       Dispatcher::stopServices();
-      Dispatcher::joinServices();
+      // The watcher watcher is a thread. Do not join services after removing.
       ::exit(EXIT_SUCCESS);
     }
     interruptableSleep(getWorkerLimit(INTERVAL) * 1000);

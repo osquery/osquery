@@ -26,7 +26,6 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include <osquery/core.h>
-#include <osquery/database/db_handle.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>

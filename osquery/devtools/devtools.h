@@ -12,7 +12,7 @@
 
 #include <string>
 
-#include <osquery/database/results.h>
+#include <osquery/database.h>
 #include <osquery/flags.h>
 
 namespace osquery {

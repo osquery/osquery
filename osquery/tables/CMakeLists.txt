@@ -53,8 +53,7 @@ else()
 
   ADD_OSQUERY_LINK_ADDITIONAL("blkid")
   ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup libdevmapper.so libgcrypt.so")
-  ADD_OSQUERY_LINK_ADDITIONAL("udev")
-  ADD_OSQUERY_LINK_ADDITIONAL("uuid")
+  ADD_OSQUERY_LINK_ADDITIONAL("libuuid.so")
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
 endif()
 

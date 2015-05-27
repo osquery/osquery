@@ -14,7 +14,6 @@
 
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
-#include <osquery/database.h>
 
 #include "osquery/core/test_util.h"
 #include "osquery/extensions/interface.h"

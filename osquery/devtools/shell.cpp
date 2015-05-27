@@ -25,7 +25,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-#include <osquery/database/results.h>
+#include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 

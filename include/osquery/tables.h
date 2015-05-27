@@ -20,7 +20,7 @@
 
 #include <osquery/registry.h>
 #include <osquery/core.h>
-#include <osquery/database/results.h>
+#include <osquery/database.h>
 #include <osquery/status.h>
 
 /// Allow Tables to use "tracked" deprecated OS APIs.

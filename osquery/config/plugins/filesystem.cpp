@@ -24,7 +24,7 @@ namespace osquery {
 CLI_FLAG(string,
          config_path,
          "/var/osquery/osquery.conf",
-         "(filesystem) config plugin path to JSON config file");
+         "Path to JSON config file");
 
 class FilesystemConfigPlugin : public ConfigPlugin {
  public:

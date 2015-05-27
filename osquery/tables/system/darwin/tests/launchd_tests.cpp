@@ -10,7 +10,6 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 

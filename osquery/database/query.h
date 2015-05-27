@@ -15,8 +15,9 @@
 #include <vector>
 
 #include <osquery/status.h>
-#include <osquery/database/db_handle.h>
-#include <osquery/database/results.h>
+#include <osquery/database.h>
+
+#include "osquery/database/db_handle.h"
 
 namespace osquery {
 

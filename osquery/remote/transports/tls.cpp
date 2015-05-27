@@ -31,29 +31,29 @@ const std::string kTLSCiphers =
     "DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5";
 const std::string kTLSUserAgent = "osquery/" STR(OSQUERY_BUILD_VERSION);
 
-/// Path to optional TLS client secret key, used for enrollment/requests.
-FLAG(string,
-     tls_client_key,
-     "",
-     "Optional path to a client-auth TLS PEM private key");
-
-/// Path to optional TLS client certificate, used for enrollment/requests.
-FLAG(string,
-     tls_client_cert,
-     "",
-     "Optional path to a client-auth TLS PEM certificate");
+/// TLS server hostname.
+CLI_FLAG(string,
+         tls_hostname,
+         "",
+         "TLS/HTTPS hostname for Config, Logger, and Enroll plugins");
 
 /// Path to optional TLS server/CA certificate(s), used for pinning.
-FLAG(string,
-     tls_server_certs,
-     "",
-     "Optional path to a TLS server PEM certificate(s) bundle");
+CLI_FLAG(string,
+         tls_server_certs,
+         "",
+         "Optional path to a TLS server PEM certificate(s) bundle");
 
-/// TLS server hostname.
-FLAG(string,
-     tls_hostname,
-     "",
-     "TLS/HTTPS hostname for Config, Logger, and Enroll plugins");
+/// Path to optional TLS client certificate, used for enrollment/requests.
+CLI_FLAG(string,
+         tls_client_cert,
+         "",
+         "Optional path to a TLS client-auth PEM certificate");
+
+/// Path to optional TLS client secret key, used for enrollment/requests.
+CLI_FLAG(string,
+         tls_client_key,
+         "",
+         "Optional path to a TLS client-auth PEM private key");
 
 TLSTransport::TLSTransport() : verify_peer_(true) {
   if (FLAGS_tls_server_certs.size() > 0) {

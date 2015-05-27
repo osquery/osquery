@@ -1,7 +1,11 @@
 ADD_OSQUERY_LIBRARY(TRUE osquery_database
+  database.cpp
+)
+
+# osquery_database_internal should be an 'additional' CORE=False lib
+ADD_OSQUERY_LIBRARY(TRUE osquery_database_internal
   db_handle.cpp
   query.cpp
-  results.cpp
 )
 
 file(GLOB OSQUERY_DATABASE_TESTS "tests/*.cpp")

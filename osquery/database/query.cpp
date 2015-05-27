@@ -10,7 +10,7 @@
 
 #include <algorithm>
 
-#include <osquery/database/query.h>
+#include "osquery/database/query.h"
 
 namespace osquery {
 

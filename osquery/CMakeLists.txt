@@ -48,7 +48,7 @@ if(APPLE)
 else()
   ADD_OSQUERY_LINK_CORE("-Wl,-zrelro -Wl,-znow")
   ADD_OSQUERY_LINK_CORE("boost_thread")
-  ADD_OSQUERY_LINK_CORE("rt")
+  ADD_OSQUERY_LINK_CORE("librt.so")
 endif()
 
 # The remaining boost libraries are discovered with find_library.
@@ -84,7 +84,10 @@ add_subdirectory(logger)
 add_subdirectory(registry)
 add_subdirectory(remote)
 add_subdirectory(sql)
-add_subdirectory(tables)
+
+if(NOT ENV{SKIP_TABLES})
+  add_subdirectory(tables)
+endif()
 
 # Amalgamate the utility tables needed to compile.
 GENERATE_UTILITIES("${CMAKE_SOURCE_DIR}/osquery/tables")

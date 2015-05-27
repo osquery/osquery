@@ -15,12 +15,12 @@
 #include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
-#include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/database/db_handle.h"
 
 namespace osquery {
 

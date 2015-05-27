@@ -4,15 +4,9 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_config
 
 set(OSQUERY_CONFIG_PLUGINS
   plugins/filesystem.cpp
+  plugins/tls.cpp
   update.cpp
 )
-
-if(NOT OSQUERY_BUILD_RELEASE)
-  set(OSQUERY_CONFIG_PLUGINS
-    ${OSQUERY_CONFIG_PLUGINS}
-    plugins/tls.cpp
-  )
-endif()
 
 file(GLOB OSQUERY_CONFIG_PARSERS "parsers/*.cpp")
 
