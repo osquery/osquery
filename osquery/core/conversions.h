@@ -81,6 +81,11 @@ std::string stringFromCFString(const CFStringRef& cf_string);
 std::string stringFromCFNumber(const CFDataRef& cf_number);
 std::string stringFromCFNumber(const CFDataRef& cf_number, CFNumberType type);
 
+/**
+ * @brief Convert a CFAbsoluteTime to a std::string.
+ */
+std::string stringFromCFAbsoluteTime(const CFDataRef& cf_abstime);
+
 std::string stringFromCFData(const CFDataRef& cf_data);
 #endif
 

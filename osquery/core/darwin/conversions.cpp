@@ -95,4 +95,19 @@ std::string stringFromCFNumber(const CFDataRef& cf_number, CFNumberType type) {
   // Cast as a string.
   return "0";
 }
+
+std::string stringFromCFAbsoluteTime(const CFDataRef& cf_abstime) {
+  double value;
+  if (CFNumberGetValue((CFNumberRef)cf_abstime, kCFNumberDoubleType, &value)) {
+    // Add seconds difference between CFAbsoluteTime and UNIX times.
+    value += 978307200;
+
+    // Return "0" if the above overflows.
+    if (value > 0) {
+      return boost::lexical_cast<std::string>(value);
+    }
+  }
+
+  return "0";
+}
 }
