@@ -1,0 +1,7 @@
+table_name("user_groups")
+description("Local system user group relationships.")
+schema([
+    Column("uid", BIGINT, "User ID"),
+    Column("gid", BIGINT, "Group ID")
+])
+implementation("user_groups@genUserGroups")
