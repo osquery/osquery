@@ -42,6 +42,9 @@ add_compile_options(
   -fPIC
   -fpic
 )
+
+# osquery additional compiler flags added by CMake.
+set(C_COMPILE_FLAGS "")
 set(CXX_COMPILE_FLAGS "")
 
 # Use osquery language to set platform/os
@@ -94,8 +97,12 @@ endif()
 if(${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6")
   set(GCC_RUNTIME "/opt/rh/devtoolset-3/root/usr/")
   WARNING_LOG("Setting RHEL6 GCC runtime: ${GCC_RUNTIME}")
+  set(CMAKE_C_COMPILER "${CMAKE_C_COMPILER}" "--gcc-toolchain=${GCC_RUNTIME}")
+  set(CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER}" "--gcc-toolchain=${GCC_RUNTIME}")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
+  set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
+  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
 endif()
 
 # Provisioning installs non-default C++11 runtimes on build hosts.

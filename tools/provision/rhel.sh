@@ -22,11 +22,11 @@ function require_channel() {
 }
 
 function enable_repo() {
-  if sudo subscription-manager repos --enable=$1; then
+  if sudo yum-config-manager --enable $1; then
     echo "RHN subscription repo enabled: $1"
   else
     echo "WARNING: Could not enable RHN a repo: $1!"
-    echo "WARNING: Please run: sudo subscription-manager repos --enable=$1"
+    echo "WARNING: Please run: sudo yum-config-manager repos --enable $1"
     echo "WARNING: Continuing dependency installation, this may fail..."
   fi
 }
@@ -48,17 +48,13 @@ function main_rhel() {
   package unzip
   package xz
   package xz-devel
-  package subscription-manager
-
-  package python-pip
-  package python-devel
-  package rpm-build
-  package ruby
-  package ruby-devel
-  package rubygems
 
   if [[ $DISTRO = "rhel6" ]]; then
-    enable_repo rhel-6-server-optional-rpms
+    if in_ec2; then
+      enable_repo rhui-REGION-rhel-server-rhscl
+    else
+      enable_repo rhel-6-server-optional-rpms
+    fi
     package scl-utils
     package policycoreutils-python
     package devtoolset-3-runtime
@@ -68,11 +64,22 @@ function main_rhel() {
     package devtoolset-3-gcc-c++-4.9.2
     source /opt/rh/devtoolset-3/enable
   elif [[ $DISTRO = "rhel7" ]]; then
-    enable_repo rhel-7-server-optional-rpms
+    if in_ec2; then
+      enable_repo rhui-REGION-rhel-server-optional
+    else
+      enable_repo rhel-7-server-optional-rpms
+    fi
     package gcc
     package binutils
     package gcc-c++
   fi
+
+  package python-pip
+  package python-devel
+  package rpm-build
+  package ruby
+  package ruby-devel
+  package rubygems
 
   package clang
   package clang-devel
