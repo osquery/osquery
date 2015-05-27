@@ -11,7 +11,7 @@ WARNING: This will install or build various dependencies on the build host that 
 To build osquery on OS X, you need `pip` and `brew` installed. `make deps` will take care of installing the appropriate library dependencies, but it's recommended to take take a look at the Makefile, just in case
 something conflicts with your environment.
 
-Anything that does not have a homebrew package is built from source from *https://github.com/osquery/third-party*, which is a git submodule of this repository and is set up by `make deps`.
+Anything that does not have a homebrew package is built from source from _https://github.com/osquery/third-party_, which is a git submodule of this repository and is set up by `make deps`.
 
 The complete installation/build steps are as follows:
 
@@ -71,39 +71,43 @@ $ ls -la ./build/linux/osquery/
 
 ## AWS EC2 Backed Vagrant Targets
 
-The osquery vagrant infrastructure supports leveraging aws ec2 to run virtual machines.
+The osquery vagrant infrastructure supports leveraging AWS EC2 to run virtual machines.
 This capability is provided by the [vagrant-aws](https://github.com/mitchellh/vagrant-aws) plugin, which is installed as follows:
 
-```
+```sh
 $ vagrant plugin install vagrant-aws
-```  
-
-Next, add a vagrant dummy box for aws:
-
 ```
+
+Next, add a vagrant dummy box for AWS:
+
+```sh
 $ vagrant box add andytson/aws-dummy
 ```
 
-Before launching an aws-backed virtual machine, a few environment variables must be set:
+Before launching an AWS-backed virtual machine, a few environment variables must be set:
 
-```
-# Required. Credentials for aws api. vagrant-aws will error if these are unset.
+```sh
+# Required. Credentials for AWS API. vagrant-aws will error if these are unset.
 export AWS_ACCESS_KEY_ID=...
 export AWS_SECRET_ACCESS_KEY=...
-# Name of aws keypair for launching and accessing the ec2 instance.
+# Name of AWS keypair for launching and accessing the EC2 instance.
 export AWS_KEYPAIR_NAME=my-osquery-vagrant-security-group
 export AWS_SSH_PRIVATE_KEY_PATH=/path/to/keypair.pem
-# Name of aws security group that allows tcp/22 from vagrant host.
+# Name of AWS security group that allows TCP/22 from vagrant host.
+# If using a non-default VPC use the security group ID instead.
 export AWS_SECURITY_GROUP=my-osquery-vagrant-security-group
-# Set this to the aws region the ec2 instances should be launced in. If unset, "us-east-1" is used.
+# Set this to the AWS region, "us-east-1" (default) or "us-west-1".
 export AWS_DEFAULT_REGION=...
-# Set this to the desired aws instance type. If unset, m3.medium is used.
+# Set this to the AWS instance type. If unset, m3.medium is used.
 export AWS_INSTANCE_TYPE=m3.large
+# (Optional) Set this to the VPC subnet ID.
+# (Optional) Make sure your subnet assigns public IPs and there is a route.
+export AWS_SUBNET_ID=...
 ```
 
-Spin up a vm and ssh in:
+Spin up a VM in EC2 and SSH in (remember to suspect/destroy when finished):
 
-```
+```sh
 $ vagrant up aws-amazon2015.03 --provider=aws
 $ vagrant ssh aws-amazon2015.03
 ```
@@ -112,11 +116,11 @@ $ vagrant ssh aws-amazon2015.03
 
 To generate a non-optimized debug build use `make debug`.
 
-CMake regenerates build information everytime `make [all]` is run. To avoid the "configure" and project setup use `make build`.
+CMake regenerates build information every time `make [all]` is run. To avoid the "configure" and project setup use `make build`.
 
 make building and testing macros:
 
-```
+```sh
 make # Default optimized configure/build
 make test # Test the default build
 make debug # Configure and build non-optimized with debuginfo
@@ -130,7 +134,7 @@ make distclean # Clean all cached information and build dependencies
 
 There are several additional code testing and formatting macros:
 
-```
+```sh
 make format # Apply clang-format using osquery's format spec*
 make format-all # Not recommended but formats the entire code base
 make analyze # Run clean first, then rebuild with the LLVM static analyzer
@@ -139,7 +143,7 @@ make sanitize # Run clean first, then rebuild with sanitations
 
 Generating the osquery SDK or sync:
 
-```
+```sh
 make sdk # Build only the osquery SDK (libosquery.a)
 make sync # Create a tarball for building the SDK externally
 ```
@@ -150,7 +154,7 @@ Building osquery on OS X or Linux requires a significant number of dependencies,
 
 Debug and from-source package building is not recommended but supported. You may generate several packages including devel, debuginfo, and additional sets of tools:
 
-```
+```sh
 make package # Generate an osquery package for the build target
 make packages # Generate optional/additional packages
 ```
@@ -179,7 +183,5 @@ Some quick features include:
 
 * Performance regression and leak detection CI guards.
 * Blacklisting performance-impacting virtual tables.
-* Scheduled query optimization and profilling.
+* Scheduled query optimization and profiling.
 * Query implementation isolation options.
-
-
