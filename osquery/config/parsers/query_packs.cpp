@@ -22,20 +22,6 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-typedef std::map<std::string, pt::ptree> query_pack_t;
-
-inline pt::ptree queryPackSingleEntry(const pt::ptree& in) {
-  // Prepare result to be returned
-  pt::ptree out;
-  out.put("query", in.get("query", ""));
-  out.put("interval", in.get("interval", 0));
-  out.put("platform", in.get("platform", ""));
-  out.put("version", in.get("version", ""));
-  out.put("description", in.get("description", "  "));
-  out.put("value", in.get("value", ""));
-  return out;
-}
-
 // Function to check if the pack is valid for this version of osquery.
 // If the osquery version is greater or equal than the pack, it is good to go.
 bool versionChecker(const std::string& pack, const std::string& version) {
@@ -61,95 +47,88 @@ bool versionChecker(const std::string& pack, const std::string& version) {
   return true;
 }
 
-query_pack_t queryPackParsePacks(const pt::ptree& raw_packs,
-                                 bool check_platform,
-                                 bool check_version) {
-  query_pack_t result;
-
-  // Iterate through all the pack elements
-  for (auto const& one_pack : raw_packs) {
-    // Grab query name and fields
-    std::string pack_query_name = one_pack.first.data();
-
-    // Get all the query fields
-    auto pack_query_element = raw_packs.get_child(pack_query_name);
-    auto single_pk = queryPackSingleEntry(pack_query_element);
-
-    // Check if pack is valid for this system
-    auto pk_platform = single_pk.get("platform", "");
-    if (check_platform) {
-      if (pk_platform.find(STR(OSQUERY_BUILD_PLATFORM)) == std::string::npos) {
-        continue;
-      }
-    }
-
-    // Check if current osquery version is equal or higher than needed
-    auto pk_version = single_pk.get("version", "");
-    if (check_version) {
-      if (!versionChecker(pk_version, STR(OSQUERY_VERSION))) {
-        continue;
-      }
-    }
-
-    result[pack_query_name] = single_pk;
-  }
-
-  return result;
+// Perform a string string search for the actual platform within the required.
+bool platformChecker(const std::string& required, const std::string& platform) {
+  // Match if platform is 'ubuntu12' and required is 'ubuntu'.
+  // Do not match if platform is 'ubuntu12' and required is 'ubuntu14'.
+  return (platform.find(required) == std::string::npos);
 }
 
-Status QueryPackConfigParserPlugin::update(
-    const std::map<std::string, ConfigTree>& config) {
-  Status status;
+Status parsePack(const std::string& name, const pt::ptree& data) {
+  if (data.count("queries") == 0) {
+    return Status(0, "Pack contains no queries");
+  }
 
-  const auto& pack_config = config.at("packs");
+  // Check the pack-global minimum SDK version and platform.
+  auto version = data.get("version", "");
+  if (version.size() > 0 && !versionChecker(version, kSDKVersion)) {
+    return Status(0, "Minimum SDK version not met");
+  }
 
-  data_.add_child("packs", pack_config);
+  auto platform = data.get("platform", "");
+  if (platform.size() > 7 && !platformChecker(platform, kSDKPlatform)) {
+    return Status(0, "Platform version mismatch");
+  }
 
-  // Iterate through all the packs to get the configuration
-  for (auto const& pack_element : pack_config) {
-    auto pack_name = std::string(pack_element.first.data());
-    auto pack_path = std::string(pack_element.second.data());
+  // For each query in the pack's queries, check their version/platform.
+  for (const auto& query : data.get_child("queries")) {
+    auto query_string = query.second.get("query", "");
+    if (Config::checkScheduledQuery(query_string)) {
+      VLOG(1) << "Query pack " << name
+              << " contains a duplicated query name: " << query.first;
+      continue;
+    }
+
+    // Check the specific query's required version.
+    version = query.second.get("version", "");
+    if (version.size() > 0 && !versionChecker(version, kSDKVersion)) {
+      continue;
+    }
+
+    // Check the specific query's required platform.
+    platform = query.second.get("platform", "");
+    if (platform.size() > 0 && !platformChecker(platform, kSDKPlatform)) {
+      continue;
+    }
+
+    // Hope there is a supplied/non-0 query interval to apply this query pack
+    // query to the osquery schedule.
+    auto query_interval = query.second.get("interval", 0);
+    if (query_interval > 0) {
+      auto query_name = "pack_" + name + "_" + query.first;
+      Config::addScheduledQuery(query_name, query_string, query_interval);
+    }
+  }
+
+  return Status(0, "OK");
+}
+
+Status QueryPackConfigParserPlugin::update(const ConfigTreeMap& config) {
+  // Iterate through all the packs to get the configuration.
+  for (auto const& pack : config.at("packs")) {
+    auto pack_name = std::string(pack.first.data());
+    auto pack_path = std::string(pack.second.data());
 
     // Read each pack configuration in JSON
-    pt::ptree pack_tree;
-    status = osquery::parseJSON(pack_path, pack_tree);
-
+    pt::ptree pack_data;
+    auto status = osquery::parseJSON(pack_path, pack_data);
     if (!status.ok()) {
       LOG(WARNING) << "Error parsing Query Pack " << pack_name << ": "
                    << status.getMessage();
       continue;
     }
 
-    // Get all the parsed elements from the pack JSON file
-    if (pack_tree.count(pack_name) == 0) {
-      continue;
+    // Parse the pack, meaning compare version/platform requirements and
+    // check the sanity of each query in the pack's queries.
+    status = parsePack(pack_name, pack_data);
+    if (!status.ok()) {
+      return status;
     }
 
-    // Get all the valid packs and return them in a map
-    auto pack_file_element = pack_tree.get_child(pack_name);
-    auto clean_packs = queryPackParsePacks(pack_file_element, true, true);
-
-    // Iterate through the already parsed and valid packs
-    for (const auto& pack : clean_packs) {
-      // Preparing new queries to add to schedule
-      std::string new_query = pack.second.get("query", "");
-      int new_interval = pack.second.get("interval", 0);
-
-      // Adding extracted pack to the schedule, if values valid
-      if (!new_query.empty() && new_interval > 0) {
-        bool exists_in_schedule = Config::checkScheduledQuery(new_query);
-
-        // If query is already in schedule, do not add it again
-        if (exists_in_schedule) {
-          LOG(WARNING) << "Query already exist in the schedule: " << new_query;
-        } else {
-          // Adding a prefix to the pack queries, to be easily found in the
-          // scheduled queries
-          std::string pk_name = "pack_" + pack_name + "_" + pack.first;
-          Config::addScheduledQuery(pk_name, new_query, new_interval);
-        }
-      }
-    }
+    // Save the queries list for table-based introspection.
+    data_.put_child(pack_name, pack_data);
+    // Record the pack path.
+    data_.put(pack_name + ".path", pack_path);
   }
 
   return Status(0, "OK");

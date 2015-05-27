@@ -7,25 +7,39 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
+function add_repo() {
+  REPO=$1
+  echo "Adding repository: $REPO"
+  sudo add-apt-repository -y $REPO
+}
+
 function main_ubuntu() {
   if [[ $DISTRO = "precise" ]]; then
-    sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+    add_repo ppa:ubuntu-toolchain-r/test
+  elif [[ $DISTRO = "lucid" ]]; then
+    add_repo ppa:lucid-bleed/ppa
   fi
 
   sudo apt-get update -y
 
+  if [[ $DISTRO = "lucid" ]]; then
+    package git-core
+  else
+    package git
+    package autopoint
+  fi
+
   package wget
-  package git
   package unzip
   package build-essential
-  package autopoint
   package bison
   package flex
   package devscripts
   package debhelper
   package python-pip
   package python-dev
-  package linux-headers-generic
+  # package linux-headers-generic
+  package libcurl3-dev
   package ruby-dev
   package gcc
   package doxygen
@@ -35,15 +49,18 @@ function main_ubuntu() {
   package uuid-dev
   package libpopt-dev
   package libdpkg-dev
-  package libapt-pkg-dev
   package libudev-dev
   package libblkid-dev
 
-  package libsnappy-dev
   package libbz2-dev
   package libreadline-dev
 
-  if [[ $DISTRO = "precise" ]]; then
+  if [[ $DISTRO = "lucid" ]]; then
+    package libopenssl-ruby
+
+    package clang
+    install_gcc
+  elif [[ $DISTRO = "precise" ]]; then
     # Need gcc 4.8 from ubuntu-toolchain-r/test to compile RocksDB/osquery.
     package gcc-4.8
     package g++-4.8
@@ -53,6 +70,9 @@ function main_ubuntu() {
 
     package clang-3.4
     package clang-format-3.4
+  fi
+
+  if [[ $DISTRO = "precise" || $DISTRO = "lucid" ]]; then
     package rubygems
 
     # Temporary removes (so we can override default paths).
@@ -89,8 +109,16 @@ function main_ubuntu() {
   install_gflags
   install_iptables_dev
 
-  set_cc clang
-  set_cxx clang++
+  if [[ $DISTRO = "lucid" ]]; then
+    install_snappy
+    install_libaptpkg
+  else
+    # No clang++ on lucid
+    set_cc clang
+    set_cxx clang++
+    package libsnappy-dev
+    package libapt-pkg-dev
+  fi
 
   install_thrift
   install_rocksdb

@@ -22,15 +22,11 @@ namespace osquery {
 // Test the pack version checker.
 bool versionChecker(const std::string& pack, const std::string& version);
 
-std::map<std::string, pt::ptree> getQueryPacksContent() {
+pt::ptree getQueryPacksContent() {
   pt::ptree pack_tree;
-  std::string pack_path = kTestDataPath + "test_pack.conf";
-  Status status = osquery::parseJSON(pack_path, pack_tree);
-  pt::ptree pack_file_element = pack_tree.get_child("test_pack_test");
-
-  std::map<std::string, pt::ptree> result;
-  result = queryPackParsePacks(pack_file_element, false, false);
-  return result;
+  auto pack_path = kTestDataPath + "test_pack.conf";
+  auto status = osquery::parseJSON(pack_path, pack_tree);
+  return pack_tree.get_child("queries");
 }
 
 std::map<std::string, pt::ptree> getQueryPacksExpectedResults() {
@@ -70,7 +66,7 @@ TEST_F(QueryPacksConfigTests, version_comparisons) {
 TEST_F(QueryPacksConfigTests, test_query_packs_configuration) {
   auto data = getQueryPacksContent();
   auto expected = getQueryPacksExpectedResults();
-  auto& real_ld = data["launchd"];
+  auto& real_ld = data.get_child("launchd");
   auto& expect_ld = expected["launchd"];
 
   EXPECT_EQ(expect_ld.get("query", ""), real_ld.get("query", ""));

@@ -42,7 +42,17 @@ except ImportError:
     print ("Cannot import argparse: pip install argparse?")
     exit(1)
 
+try:
+    from thrift import Thrift
+    from thrift.transport import TSocket
+    from thrift.transport import TTransport
+    from thrift.protocol import TBinaryProtocol
+except ImportError:
+    print ("Cannot import thrift: pip install thrift?")
+    exit(1)
+
 '''Defaults that should be used in integration tests.'''
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 CONFIG_DIR = "/tmp/osquery-tests/"
 CONFIG_NAME = CONFIG_DIR + "tests"
 DEFAULT_CONFIG = {
@@ -57,7 +67,7 @@ DEFAULT_CONFIG = {
         "disable_logging": "true",
         "force": "true",
     },
-    "scheduledQueries": [],
+    "schedule": {},
 }
 
 # osquery-specific python tooling and utilities
@@ -242,7 +252,8 @@ class ProcessGenerator(object):
         shutil.rmtree(CONFIG_DIR)
         os.makedirs(CONFIG_DIR)
 
-    def _run_daemon(self, options={}, silent=False, options_only={}):
+    def _run_daemon(self, options={}, silent=False, options_only={},
+            overwrite={}):
         '''Spawn an osquery daemon process'''
         global ARGS, CONFIG_NAME, CONFIG
         config = copy.deepcopy(CONFIG)
@@ -253,6 +264,8 @@ class ProcessGenerator(object):
         flags = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
         for option in options_only.keys():
             config["options"][option] = options_only[option]
+        for key in overwrite:
+            config[key] = overwrite[key]
         utils.write_config(config)
         binary = os.path.join(ARGS.build, "osquery", "osqueryd")
 
@@ -294,6 +307,59 @@ class ProcessGenerator(object):
                     os.kill(generator.pid, signal.SIGKILL)
                 except Exception as e:
                     pass
+
+
+class EXClient:
+    '''An osquery Thrift/extensions python client generator.'''
+    transport = None
+    '''The instance transport object.'''
+    _manager = None
+    '''The client class's reference to run-time discovered manager.'''
+    _client = None
+    '''The client class's reference to run-time discovered client.'''
+
+    def __init__(self, path=None, uuid=None):
+        global CONFIG
+        '''Create a extensions client to a UNIX path and optional UUID.'''
+        if path is None:
+            path = CONFIG["options"]["extensions_socket"]
+        self.path = path
+        if uuid:
+            self.path += ".%s" % str(uuid)
+        transport = TSocket.TSocket(unix_socket=self.path)
+        transport = TTransport.TBufferedTransport(transport)
+        self.protocol = TBinaryProtocol.TBinaryProtocol(transport)
+        self.transport = transport
+
+    @classmethod
+    def setUp(cls, manager, client):
+        '''Set the manager and client modules to generate clients from.'''
+        cls._manager = manager
+        cls._client = client
+
+    def close(self):
+        if self.transport:
+            self.transport.close()
+
+    def open(self):
+        '''Attempt to open the UNIX domain socket.'''
+        try:
+            self.transport.open()
+        except Exception as e:
+            return False
+        return True
+
+    def getEM(self):
+        '''Return an extension manager (osquery core) client.'''
+        if self._manager is None:
+            raise(Exception, "The EXClient must be 'setUp' with a manager")
+        return self._manager.Client(self.protocol)
+
+    def getEX(self):
+        '''Return an extension (osquery extension) client.'''
+        if self._client is None:
+            raise(Exception, "The EXClient must be 'setUp' with a client")
+        return self._client.Client(self.protocol)
 
 
 class Autoloader(object):
@@ -404,4 +470,19 @@ def assertPermissions():
         print (utils.lightred("Will not load modules/extensions in tests."))
         print (utils.lightred("Repository owner (%d) executer (%d) mismatch" % (
             stat_info.st_uid, os.getuid())))
+        exit(1)
+
+
+def loadThriftFromBuild(build_dir):
+    '''Find and import the thrift-generated python interface.'''
+    thrift_path = build_dir + "/generated/gen-py"
+    try:
+        sys.path.append(thrift_path)
+        sys.path.append(thrift_path + "/osquery")
+        from osquery import ExtensionManager, Extension
+        EXClient.setUp(ExtensionManager, Extension)
+    except ImportError as e:
+        print ("Cannot import osquery thrift API from %s" % (thrift_path))
+        print ("Exception: %s" % (str(e)))
+        print ("You must first run: make")
         exit(1)

@@ -16,4 +16,5 @@ namespace osquery {
 
 const std::string kVersion = OSQUERY_VERSION;
 const std::string kSDKVersion = OSQUERY_SDK_VERSION;
+const std::string kSDKPlatform = OSQUERY_PLATFORM;
 }

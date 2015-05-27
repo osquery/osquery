@@ -26,10 +26,6 @@ class QueryPackConfigParserPlugin : public ConfigParserPlugin {
 
  private:
   /// Store the signatures and file_paths and compile the rules.
-  Status update(const std::map<std::string, ConfigTree>& config);
+  Status update(const ConfigTreeMap& config);
 };
-
-std::map<std::string, pt::ptree> queryPackParsePacks(const pt::ptree& raw_packs,
-                                                     bool check_platform,
-                                                     bool check_version);
 }

@@ -37,10 +37,41 @@ function main_oracle() {
   if [[ $DISTRO = "oracle5" ]]; then
     package gcc
     install_gcc
+  elif [[ $DISTRO = "oracle6" ]]; then
+    # Install the CentOS6 Devtools-2 yum repository.
+    sudo cp $FILES_DIR/centos6.devtools-2.repo /etc/yum.repos.d/
+
+    package devtoolset-2-gcc
+    package devtoolset-2-binutils
+    package devtoolset-2-gcc-c++
+
+    if [[ ! -e /usr/bin/gcc ]]; then
+      sudo ln -s /opt/rh/devtoolset-2/root/usr/bin/gcc /usr/bin/gcc
+    fi
+    if [[ ! -e /usr/bin/g++ ]]; then
+      sudo ln -s /opt/rh/devtoolset-2/root/usr/bin/gcc /usr/bin/g++
+    fi
+
+    source /opt/rh/devtoolset-2/enable
+    if [[ ! -d /usr/lib/gcc ]]; then
+      sudo ln -s /opt/rh/devtoolset-2/root/usr/lib/gcc /usr/lib/
+    fi
+  else
+    package gcc
+    package binutils
+    package gcc-c++
   fi
 
-  set_cc gcc
-  set_cxx g++
+  if [[ $DISTRO = "oracle5" ]]; then
+    set_cc gcc
+    set_cxx g++
+  else
+    package clang
+    package clang-devel
+
+    set_cc clang
+    set_cxx clang++
+  fi
 
   install_cmake
   install_boost
@@ -48,6 +79,8 @@ function main_oracle() {
   if [[ $DISTRO = "oracle5" ]]; then
     package cryptsetup-luks-devel
     install_udev_devel_095
+  elif [[ $DISTRO = "oracle6" ]]; then
+    package libudev-devel
   fi
 
   install_gflags
@@ -58,10 +91,14 @@ function main_oracle() {
   package flex
   package bison
 
-  if [[ $DISTRO = "oracle5" ]]; then
+  if [[ $DISTRO = "oracle5" || $DISTRO = "oracle6" ]]; then
     install_autoconf
     install_automake
     install_libtool
+  else
+    package autoconf
+    package automake
+    package libtool
   fi
 
   install_snappy
@@ -77,6 +114,10 @@ function main_oracle() {
 
     # Install ruby 1.8.7/gems.
     install_ruby
+  else
+    package python-pip
+    package ruby-devel
+    package rubygems
   fi
 
   gem_install fpm

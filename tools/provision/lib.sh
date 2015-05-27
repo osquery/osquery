@@ -9,7 +9,7 @@
 
 function install_gcc() {
   TARBALL=gcc-4.8.4.tar.gz
-  URL=http://www.netgull.com/gcc/releases/gcc-4.8.4/gcc-4.8.4.tar.gz
+  URL=https://s3.amazonaws.com/osquery-packages/deps/gcc-4.8.4.tar.gz
   SOURCE=gcc-4.8.4
   TARGET=/opt/osquery/gcc
 
@@ -18,8 +18,8 @@ function install_gcc() {
     TARGET_SOURCE=$SOURCE
 
     # GCC-dependency: GMP
-    TARBALL=gmp-6.0.0a.tar.bz2
-    URL=https://gmplib.org/download/gmp/gmp-6.0.0a.tar.bz2
+    TARBALL=gmp-6.0.0a.tar.gz
+    URL=https://s3.amazonaws.com/osquery-packages/deps/gmp-6.0.0a.tar.gz
     SOURCE=gmp-6.0.0
     if provision gmp $WORKING_DIR/$TARGET_SOURCE/gmp/README; then
       log "Moving gmp sources into $TARGET_SOURCE"
@@ -28,7 +28,7 @@ function install_gcc() {
 
     # GCC-dependency: MPFR
     TARBALL=mpfr-3.1.2.tar.gz
-    URL=http://www.mpfr.org/mpfr-current/mpfr-3.1.2.tar.gz
+    URL=https://s3.amazonaws.com/osquery-packages/deps/mpfr-3.1.2.tar.gz
     SOURCE=mpfr-3.1.2
     if provision mpfr $WORKING_DIR/$TARGET_SOURCE/mpfr/README; then
       log "Moving mpfr sources into $TARGET_SOURCE"
@@ -37,7 +37,7 @@ function install_gcc() {
 
     # GCC-dependency: MPC
     TARBALL=mpc-1.0.3.tar.gz
-    URL=http://www.multiprecision.org/mpc/download/mpc-1.0.3.tar.gz
+    URL=https://s3.amazonaws.com/osquery-packages/deps/mpc-1.0.3.tar.gz
     SOURCE=mpc-1.0.3
     if provision mpc $WORKING_DIR/$TARGET_SOURCE/mpc/README; then
       log "Moving mpc sources into $TARGET_SOURCE"
@@ -155,7 +155,7 @@ function install_snappy() {
 
 function install_yara() {
   TARBALL=yara-3.3.0.tar.gz
-  URL=https://s3.amazonaws.com/osquery-packages/deps/yara-3.3.0.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/yara-3.3.0.tar.gz
   SOURCE=yara-3.3.0
 
   if provision yara /usr/local/lib/libyara.a; then
@@ -217,7 +217,7 @@ function install_iptables_dev() {
 
 function install_libcryptsetup() {
   TARBALL=cryptsetup-1.6.7.tar.gz
-  URL=https://s3.amazonaws.com/osquery-packages/deps/cryptsetup-1.6.7.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/cryptsetup-1.6.7.tar.gz
   SOURCE=cryptsetup-1.6.7
 
   if provision libcryptsetup /usr/local/lib/libcryptsetup.a; then
@@ -286,7 +286,7 @@ function install_libtool() {
 
 function install_pkgconfig() {
   TARBALL=pkg-config-0.28.tar.gz
-  URL=http://pkgconfig.freedesktop.org/releases/pkg-config-0.28.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/pkg-config-0.28.tar.gz
   SOURCE=pkg-config-0.28
 
   if provision pkg-config /usr/bin/pkg-config; then
@@ -314,7 +314,7 @@ function install_udev_devel_095() {
 
 function install_pip() {
   PYTHON_EXECUTABLE=$1
-  URL=https://bootstrap.pypa.io/get-pip.py
+  URL=https://osquery-packages.s3.amazonaws.com/deps/get-pip.py
 
   if [[ ! -e /usr/bin/pip ]]; then
     curl $URL | sudo $PYTHON_EXECUTABLE -
@@ -323,7 +323,7 @@ function install_pip() {
 
 function install_ruby() {
   TARBALL=ruby-1.8.7-p370.tar.gz
-  URL=ftp://ftp.ruby-lang.org/pub/ruby/1.8/ruby-1.8.7-p370.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/ruby-1.8.7-p370.tar.gz
   SOURCE=ruby-1.8.7-p370
 
   if provision ruby-1.8.7 /usr/local/bin/ruby; then
@@ -334,13 +334,29 @@ function install_ruby() {
     popd
   fi
 
-  TARBALL=rubygems-1.8.24.tgz
-  URL=http://production.cf.rubygems.org/rubygems/rubygems-1.8.24.tgz
+  TARBALL=rubygems-1.8.24.tar.gz
+  URL=https://osquery-packages.s3.amazonaws.com/deps/rubygems-1.8.24.tar.gz
   SOURCE=rubygems-1.8.24
 
   if provision rubygems-1.8.24 /usr/local/bin/gem; then
     pushd $SOURCE
     sudo ruby setup.rb
+    popd
+  fi
+}
+
+function install_libaptpkg() {
+  TARBALL=apt-0.8.16-12.10.22.tar.gz
+  URL=https://s3.amazonaws.com/osquery-packages/deps/apt-0.8.16-12.10.22.tar.gz
+  SOURCE=apt-0.8.16-12.10.22
+  if provision libaptpkg /usr/local/lib/libapt-pkg.a; then
+    pushd $SOURCE
+    mkdir build
+    pushd build
+    ../configure --prefix=/usr/local
+    make -j $THREADS
+    sudo make install
+    popd
     popd
   fi
 }
@@ -351,7 +367,7 @@ function package() {
       log "$1 is already installed. skipping."
     else
       log "installing $1"
-      sudo apt-get install $1 -y
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install $1 -y
     fi
   elif [[ $FAMILY = "redhat" ]]; then
     if [[ ! -n "$(rpm -V $1)" ]]; then

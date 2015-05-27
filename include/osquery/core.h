@@ -47,10 +47,12 @@ namespace osquery {
  */
 extern const std::string kVersion;
 extern const std::string kSDKVersion;
+extern const std::string kSDKPlatform;
 
 /// Use a macro for the version literal, set the kVersion symbol in the library.
 #define OSQUERY_VERSION STR(OSQUERY_BUILD_VERSION)
 #define OSQUERY_SDK_VERSION STR(OSQUERY_BUILD_SDK_VERSION)
+#define OSQUERY_PLATFORM STR(OSQUERY_BUILD_PLATFORM)
 
 /**
  * @brief A helpful tool type to report when logging, print help, or debugging.

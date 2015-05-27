@@ -21,71 +21,66 @@ namespace tables {
 
 typedef pt::ptree::value_type tree_node;
 
-void genQueryPack(const tree_node& pack_element, QueryData& results) {
-  // Find all the packs from loaded configuration
-  for (auto const& conf_element : pack_element.second) {
-    auto pack_name = std::string(conf_element.first.data());
-    auto pack_path = std::string(conf_element.second.data());
+void genQueryPack(const tree_node& pack, QueryData& results) {
+  Row r;
+  // Packs are stored by name and contain configuration data.
+  r["name"] = pack.first;
+  r["path"] = pack.second.get("path", "");
 
-    // Read each pack configuration in JSON
-    pt::ptree pack_tree;
-    Status status = osquery::parseJSON(pack_path, pack_tree);
+  // There are optional restrictions on the set of queries applied pack-wide.
+  auto pack_wide_version = pack.second.get("version", "");
+  auto pack_wide_platform = pack.second.get("platform", "");
 
-    // Get all the parsed elements from the pack JSON file
-    if (pack_tree.count(pack_name) == 0) {
-      continue;
+  // Iterate through each query in the pack.
+  for (auto const& query : pack.second.get_child("queries")) {
+    r["query_name"] = query.first;
+    r["query"] = query.second.get("query", "");
+    r["interval"] = INTEGER(query.second.get("interval", 0));
+    r["description"] = query.second.get("description", "");
+    r["value"] = query.second.get("value", "");
+
+    // Set the version requirement based on the query-specific or pack-wide.
+    if (query.second.count("version") > 0) {
+      r["version"] = query.second.get("version", "");
+    } else {
+      r["version"] = pack_wide_platform;
     }
 
-    // Get all the valid packs and return them in a map
-    auto pack_file_element = pack_tree.get_child(pack_name);
-    auto clean_packs = queryPackParsePacks(pack_file_element, false, false);
-
-    // Iterate through the already parsed and valid packs
-    for (const auto& pack : clean_packs) {
-      Row r;
-
-      // Query data to return as Row
-      r["name"] = pack_name;
-      r["path"] = pack_path;
-      r["query_name"] = pack.first;
-      r["query"] = pack.second.get("query", "");
-      r["interval"] = INTEGER(pack.second.get("interval", 0));
-      r["platform"] = pack.second.get("platform", "");
-      r["version"] = pack.second.get("version", "");
-      r["description"] = pack.second.get("description", "");
-      r["value"] = pack.second.get("value", "");
-
-      // Adding a prefix to the pack queries, to be easily found in the
-      // scheduled queries
-      r["scheduled_name"] = "pack_" + pack_name + "_" + pack.first;
-      int scheduled =
-          Config::checkScheduledQueryName(r.at("scheduled_name")) ? 1 : 0;
-      r["scheduled"] = INTEGER(scheduled);
-
-      results.push_back(r);
+    // Set the platform requirement based on the query-specific or pack-wide.
+    if (query.second.count("platform") > 0) {
+      r["platform"] = query.second.get("platform", "");
+    } else {
+      r["platform"] = pack_wide_platform;
     }
+
+    // Adding a prefix to the pack queries to differentiate packs from schedule.
+    r["scheduled_name"] = "pack_" + r.at("name") + "_" + r.at("query_name");
+    if (Config::checkScheduledQueryName(r.at("scheduled_name"))) {
+      r["scheduled"] = INTEGER(1);
+    } else {
+      r["scheduled"] = INTEGER(0);
+    }
+
+    results.push_back(r);
   }
 }
 
 QueryData genOsqueryPacks(QueryContext& context) {
   QueryData results;
 
-  // Get a lock on the config instance
+  // Get a lock on the config instance.
   ConfigDataInstance config;
 
-  // Get the loaded data tree from global JSON configuration
+  // Get the loaded data tree from global JSON configuration.
   const auto& packs_parsed_data = config.getParsedData("packs");
-  if (packs_parsed_data.count("packs") == 0) {
-    return results;
-  }
 
-  // Iterate through all the packs to get the configuration
-  for (auto const& pack_element : packs_parsed_data) {
-    // Make sure the element has items
-    if (pack_element.second.size() == 0) {
+  // Iterate through all the packs to get each configuration and set of queries.
+  for (auto const& pack : packs_parsed_data) {
+    // Make sure the pack data contains queries.
+    if (pack.second.count("queries") == 0) {
       continue;
     }
-    genQueryPack(pack_element, results);
+    genQueryPack(pack, results);
   }
 
   return results;

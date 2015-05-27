@@ -22,51 +22,9 @@ import time
 import threading
 import unittest
 
-try:
-    from thrift import Thrift
-    from thrift.transport import TSocket
-    from thrift.transport import TTransport
-    from thrift.protocol import TBinaryProtocol
-except ImportError:
-    print ("Cannot import thrift: pip install thrift?")
-    exit(1)
 
 # osquery-specific testing utils
 import test_base
-
-class EXClient:
-    transport = None
-
-    def __init__(self, path=None, uuid=None):
-        if path is None:
-            path = test_base.CONFIG["options"]["extensions_socket"]
-        self.path = path
-        if uuid:
-            self.path += ".%s" % str(uuid)
-        transport = TSocket.TSocket(unix_socket=self.path)
-        transport = TTransport.TBufferedTransport(transport)
-        self.protocol = TBinaryProtocol.TBinaryProtocol(transport)
-        self.transport = transport
-
-    def close(self):
-        if self.transport:
-            self.transport.close()
-
-    def open(self):
-        '''Attempt to open the UNIX domain socket.'''
-        try:
-            self.transport.open()
-        except Exception as e:
-            return False
-        return True
-
-    def getEM(self):
-        '''Return an extension manager (osquery core) client.'''
-        return ExtensionManager.Client(self.protocol)
-
-    def getEX(self):
-        '''Return an extension (osquery extension) client.'''
-        return Extension.Client(self.protocol)
 
 
 class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
@@ -80,7 +38,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Now try to connect to the disabled API
-        client = EXClient(daemon.options["extensions_socket"])
+        client = test_base.EXClient(daemon.options["extensions_socket"])
         self.assertFalse(client.open())
         daemon.kill()
 
@@ -89,7 +47,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient(daemon.options["extensions_socket"])
+        client = test_base.EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -121,7 +79,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient(daemon.options["extensions_socket"])
+        client = test_base.EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -131,7 +89,8 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(len(result), 0)
 
         # Make sure the extension process starts
-        extension = self._run_extension(path=daemon.options["extensions_socket"])
+        extension = self._run_extension(
+            path=daemon.options["extensions_socket"])
         self.assertTrue(extension.isAlive())
 
         # Now that an extension has started, check extension list
@@ -144,7 +103,8 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(ex_data.min_sdk_version, "0.0.0")
 
         # Get a python-based thrift client to the extension's service
-        client2 = EXClient(daemon.options["extensions_socket"], uuid=ex_uuid)
+        client2 = test_base.EXClient(daemon.options["extensions_socket"],
+            uuid=ex_uuid)
         client2.open()
         ex = client2.getEX()
         self.assertEqual(ex.ping().code, 0)
@@ -182,7 +142,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient(daemon.options["extensions_socket"])
+        client = test_base.EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -192,7 +152,8 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(len(result), 0)
 
         # Make sure the extension process starts
-        extension = self._run_extension(path=daemon.options["extensions_socket"])
+        extension = self._run_extension(
+            path=daemon.options["extensions_socket"])
         self.assertTrue(extension.isAlive())
 
         # Now that an extension has started, check extension list
@@ -207,7 +168,8 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(len(result), 0)
 
         # Make sure the extension restarts
-        extension = self._run_extension(path=daemon.options["extensions_socket"])
+        extension = self._run_extension(
+            path=daemon.options["extensions_socket"])
         self.assertTrue(extension.isAlive())
 
         # With the reset there should be 1 extension again
@@ -235,7 +197,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient(extension.options["extensions_socket"])
+        client = test_base.EXClient(extension.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -258,7 +220,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient(daemon.options["extensions_socket"])
+        client = test_base.EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -277,7 +239,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient(daemon.options["extensions_socket"])
+        client = test_base.EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -300,7 +262,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
-        client = EXClient(daemon.options["extensions_socket"])
+        client = test_base.EXClient(daemon.options["extensions_socket"])
         test_base.expectTrue(client.open)
         self.assertTrue(client.open())
         em = client.getEM()
@@ -326,14 +288,15 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client to the manager and extension.
-        client = EXClient(extension.options["extensions_socket"])
+        client = test_base.EXClient(extension.options["extensions_socket"])
         client.open()
         em = client.getEM()
         # Need the manager to request the extension's UUID.
         result = test_base.expect(em.extensions, 1)
         self.assertTrue(result is not None)
         ex_uuid = result.keys()[0]
-        client2 = EXClient(extension.options["extensions_socket"], uuid=ex_uuid)
+        client2 = test_base.EXClient(extension.options["extensions_socket"],
+            uuid=ex_uuid)
         client2.open()
         ex = client2.getEX()
 
@@ -361,15 +324,6 @@ if __name__ == "__main__":
     module = test_base.Tester()
 
     # Find and import the thrift-generated python interface
-    thrift_path = test_base.ARGS.build + "/generated/gen-py"
-    try:
-        sys.path.append(thrift_path)
-        sys.path.append(thrift_path + "/osquery")
-        from osquery import *
-    except ImportError as e:
-        print ("Cannot import osquery thrift API from %s" % (thrift_path))
-        print ("Exception: %s" % (str(e)))
-        print ("You must first run: make")
-        exit(1)
+    test_base.loadThriftFromBuild(test_base.ARGS.build)
 
     module.run()

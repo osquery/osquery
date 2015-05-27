@@ -8,17 +8,19 @@ macro(LOG MESSAGE)
   message("-- ${MESSAGE}")
 endmacro(LOG)
 
-if(NOT DEFINED ENV{CC})
-  set(CMAKE_C_COMPILER "clang")
-else()
+# If no explicit compiler override and clang++ exists, prefer clang.
+find_file(CLANGXX_EXISTS "clang++")
+if(DEFINED ENV{CC})
   set(CMAKE_C_COMPILER "$ENV{CC}")
   LOG("Overriding C compiler from clang to $ENV{CC}")
+elseif(CLANGXX_EXISTS)
+  set(CMAKE_C_COMPILER "clang")
 endif()
-if(NOT DEFINED ENV{CXX})
-  set(CMAKE_CXX_COMPILER "clang++")
-else()
+if(DEFINED ENV{CXX})
   set(CMAKE_CXX_COMPILER "$ENV{CXX}")
   LOG("Overriding CXX compiler from clang++ to $ENV{CXX}")
+elseif(CLANGXX_EXISTS)
+  set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
 add_compile_options(
@@ -108,9 +110,11 @@ endif()
 # Provisioning installs non-default C++11 runtimes on build hosts.
 # List those distros that include a non-system-default runtime.
 set(OSQUERY_REQUIRE_RUNTIMES
+  "lucid"
   "precise"
   "centos6"
   "rhel6"
+  "oracle6"
 )
 
 # make debug (environment variable from Makefile)
