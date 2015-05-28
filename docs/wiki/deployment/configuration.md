@@ -185,6 +185,59 @@ end
 
 And the same configuration file from the OS X example is appropriate.
 
+## Query Packs
+
+Configuration supports sets, called packs, of queries that help define your schedule. Packs are distributed with osquery and labeled based on broad categories of information and visibility. For example, a "compliance" pack will include queries that check for changes in locked down operating system features and user settings. A "vulnerability management" pack may perform general asset management queries that build event logs around package and software install changes.
+
+In an osquery configuration JSON, packs are defined as a top-level-key and consist of (pack name to pack location JSON) pairs.
+
+```json
+{
+  "schedule": {...},
+  "packs": {
+    "compliance": "/usr/share/osquery/packs/compliance.json",
+    "vuln_management": "/usr/share/osquery/packs/vulnerabilities.json",
+    "malware": "/etc/private/malware.json"
+  }
+}
+```
+
+Most packs are cross-platform concepts that may include platform-specific tables/queries. The pack content is slightly different and more descriptive that a normal osquery schedule.
+
+Here is an example "compliance" pack:
+
+```json
+{
+  "queries": {
+    "active_directory": {
+      "query": "select * from ad_config;",
+      "interval": "1200",
+      "platform": "darwin",
+      "description": "Check each user's active directory cached settings."
+    },
+    "full_disk_encryption": {
+      "query": "select * from disk_encryption;",
+      "interval": "86400",
+      "description": "Monitor for newly-encrypted/unencrypted disks."
+    }
+  }
+}
+```
+
+A query pack may make wider limitations about how the queries apply too:
+
+```json
+{
+  "queries": {...},
+  "platform": "ubuntu",
+  "version": "1.4.5"
+}
+```
+
+Then every query within will only be added to a schedule if the osqueryd process is running on a Ubuntu distro with a minimum osquery version of 1.4.5.
+
+We plan to release (and bundle alongside RPMs/DEBs/PKGs/etc) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts.
+
 ## osqueryctl helper
 
 To test a deploy or configuration we include a short helper script called osqueryctl.
