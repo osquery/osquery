@@ -40,7 +40,34 @@ targets = {
       "us-west-2" => "ami-7df0bd4d"
     },
     "username" => "ec2-user"
-  }
+  },
+  "aws-ubuntu10" => {
+    "box" => "andytson/aws-dummy",
+    "regions" => {
+      "us-east-1" => "ami-1e6f6176",
+      "us-west-1" => "ami-250fe361",
+      "us-west-2" => "ami-1b2a1c2b"
+    },
+    "username" => "ubuntu"
+  },
+  "aws-oracle6.6" => {
+    "box" => "andytson/aws-dummy",
+    "regions" => {
+      "us-east-1" => "ami-20e4b748",
+      "us-west-1" => "ami-f3d83db7",
+      "us-west-2" => "ami-b34f6e83"
+    },
+    "username" => "ec2-user"
+  },
+  "aws-oracle5.11" => {
+    "box" => "andytson/aws-dummy",
+    "regions" => {
+      "us-east-1" => "ami-0ecd7766",
+      "us-west-1" => "ami-4b00150e",
+      "us-west-2" => "ami-6b57185b"
+    },
+    "username" => "root"
+  },
 }
 
 Vagrant.configure("2") do |config|
@@ -105,7 +132,11 @@ Vagrant.configure("2") do |config|
           aws.tags = { 'Name' => 'osquery-vagrant-' + name }
         end
         build.vm.synced_folder ".", "/vagrant", type: "rsync",
-          rsync__exclude: ["build"]
+          rsync__exclude: [
+            "build",
+            ".git/objects",
+            ".git/modules/third-party/objects"
+          ]
       end
       if name == 'freebsd10'
         # configure the NICs
