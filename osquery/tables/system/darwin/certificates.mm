@@ -22,8 +22,8 @@ namespace tables {
 const std::map<std::string, CertProperty> kCertificateProperties = {
     {"common_name", {kSecOIDCommonName, genCommonNameProperty}},
     {"ca", {kSecOIDBasicConstraints, genCAProperty}},
-    {"not_valid_before", {kSecOIDX509V1ValidityNotBefore, stringFromCFNumber}},
-    {"not_valid_after", {kSecOIDX509V1ValidityNotAfter, stringFromCFNumber}},
+    {"not_valid_before", {kSecOIDX509V1ValidityNotBefore, stringFromCFAbsoluteTime}},
+    {"not_valid_after", {kSecOIDX509V1ValidityNotAfter, stringFromCFAbsoluteTime}},
     {"key_algorithm", {kSecOIDX509V1SubjectPublicKeyAlgorithm, genAlgProperty}},
     {"key_usage", {kSecOIDKeyUsage, stringFromCFNumber}},
     {"subject_key_id", {kSecOIDSubjectKeyIdentifier, genKIDProperty}},
