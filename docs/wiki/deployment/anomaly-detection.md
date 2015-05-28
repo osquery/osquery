@@ -1,5 +1,3 @@
-## Introduction
-
 An osquery deployment can help you establish an infrastructural baseline, allowing you to detect malicious activity using scheduled queries.
 
 This approach will help you catch known malware ([WireLurker](http://bits.blogs.nytimes.com/2014/11/05/malicious-software-campaign-targets-apple-users-in-china/), IceFog, Imuler, etc), and more importantly, unknown malware. Let's look at Mac OS X startup items for a given laptop using [osqueryi](../introduction/using-osqueryi.md):
