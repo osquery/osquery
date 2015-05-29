@@ -238,7 +238,7 @@ void genPackageBOM(const std::string& path, QueryData& results) {
 
 QueryData genPackageBOM(QueryContext& context) {
   QueryData results;
-  if (context.constraints["path"].exists()) {
+  if (context.constraints["path"].exists(EQUALS)) {
     // If an explicit path was given, generate and return.
     auto paths = context.constraints["path"].getAll(EQUALS);
     for (const auto& path : paths) {
@@ -268,7 +268,7 @@ void genPackageReceipt(const std::string& path, QueryData& results) {
 
 QueryData genPackageReceipts(QueryContext& context) {
   QueryData results;
-  if (context.constraints["path"].exists()) {
+  if (context.constraints["path"].exists(EQUALS)) {
     // If an explicit path was given, generate and return.
     auto paths = context.constraints["path"].getAll(EQUALS);
     for (const auto& path : paths) {

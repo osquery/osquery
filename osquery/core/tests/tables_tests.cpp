@@ -51,13 +51,19 @@ TEST_F(TablesTests, test_constraint_matching) {
   struct ConstraintList cl;
   // An empty constraint list has expectations.
   EXPECT_FALSE(cl.exists());
+  EXPECT_FALSE(cl.exists(GREATER_THAN));
   EXPECT_TRUE(cl.notExistsOrMatches("some"));
 
   auto constraint = Constraint(EQUALS);
   constraint.expr = "some";
   cl.add(constraint);
 
+  // Test existence checks based on flags.
   EXPECT_TRUE(cl.exists());
+  EXPECT_TRUE(cl.exists(EQUALS));
+  EXPECT_TRUE(cl.exists(EQUALS | LESS_THAN));
+  EXPECT_FALSE(cl.exists(LESS_THAN));
+
   EXPECT_TRUE(cl.notExistsOrMatches("some"));
   EXPECT_TRUE(cl.matches("some"));
   EXPECT_FALSE(cl.notExistsOrMatches("not_some"));

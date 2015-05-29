@@ -88,7 +88,7 @@ QueryData genKeychainItems(QueryContext& context) {
 
   // Allow the caller to set an explicit certificate (keychain) search path.
   std::set<std::string> keychain_paths;
-  if (context.constraints["path"].exists()) {
+  if (context.constraints["path"].exists(EQUALS)) {
     keychain_paths = context.constraints["path"].getAll(EQUALS);
   } else {
     // Otherwise limit ONLY to system keychains.

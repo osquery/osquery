@@ -20,8 +20,7 @@ QueryData genUserGroups(QueryContext &context) {
     QueryData results;
     struct passwd *pwd = nullptr;
 
-    // TODO(1160):  Add exists uid EQUALS constraint
-    if (context.constraints["uid"].exists()) {
+    if (context.constraints["uid"].exists(EQUALS)) {
       std::set<std::string> uids = context.constraints["uid"].getAll(EQUALS);
       for (const auto &uid : uids) {
         pwd = getpwuid(std::strtol(uid.c_str(), NULL, 10));

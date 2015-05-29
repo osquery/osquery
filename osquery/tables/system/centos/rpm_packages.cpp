@@ -76,7 +76,7 @@ QueryData genRpmPackages(QueryContext& context) {
 
   rpmts ts = rpmtsCreate();
   rpmdbMatchIterator matches;
-  if (context.constraints["name"].exists()) {
+  if (context.constraints["name"].exists(EQUALS)) {
     auto name = (*context.constraints["name"].getAll(EQUALS).begin());
     matches = rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size());
   } else {
@@ -116,7 +116,7 @@ QueryData genRpmPackageFiles(QueryContext& context) {
 
   rpmts ts = rpmtsCreate();
   rpmdbMatchIterator matches;
-  if (context.constraints["package"].exists()) {
+  if (context.constraints["package"].exists(EQUALS)) {
     auto name = (*context.constraints["package"].getAll(EQUALS).begin());
     matches = rpmtsInitIterator(ts, RPMTAG_NAME, name.c_str(), name.size());
   } else {
