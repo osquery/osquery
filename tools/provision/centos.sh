@@ -20,6 +20,7 @@ function main_centos() {
   package python-pip
   package python-devel
   package rpm-build
+  package ruby
   package ruby-devel
   package rubygems
   package bzip2

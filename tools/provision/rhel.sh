@@ -34,20 +34,11 @@ function enable_repo() {
 function main_rhel() {
   if [[ -z `rpm -qa epel-release` ]]; then
     if [[ $DISTRO = "rhel6" ]]; then
-      sudo rpm -iv https://osquery-packages.s3.amazonaws.com/deps/epel-release-6-8.noarch.rpm
+      sudo rpm -iv $DEPS_URL/epel-release-6-8.noarch.rpm
     elif [[ $DISTRO = "rhel7" ]]; then
-      sudo rpm -iv https://osquery-packages.s3.amazonaws.com/deps/epel-release-7-5.noarch.rpm
+      sudo rpm -iv $DEPS_URL/epel-release-7-5.noarch.rpm
     fi
   fi
-
-  sudo yum update -y
-
-  package git
-  package texinfo
-  package wget
-  package unzip
-  package xz
-  package xz-devel
 
   if [[ $DISTRO = "rhel6" ]]; then
     if in_ec2; then
@@ -55,6 +46,37 @@ function main_rhel() {
     else
       enable_repo rhel-6-server-optional-rpms
     fi
+  elif [[ $DISTRO = "rhel7" ]]; then
+    if in_ec2; then
+      enable_repo rhui-REGION-rhel-server-optional
+    else
+      enable_repo rhel-7-server-optional-rpms
+    fi
+  fi
+
+  sudo yum update -y
+
+  package texinfo
+  package wget
+  package git
+  package unzip
+  package xz
+  package xz-devel
+  package python-pip
+  package python-devel
+  package rpm-build
+  package ruby
+  package ruby-devel
+  package rubygems
+  package bzip2
+  package bzip2-devel
+  package openssl-devel
+  package readline-devel
+  package rpm-devel
+  package rpm-build
+  package libblkid-devel
+
+  if [[ $DISTRO = "rhel6" ]]; then
     package scl-utils
     package policycoreutils-python
     package devtoolset-3-runtime
@@ -64,36 +86,16 @@ function main_rhel() {
     package devtoolset-3-gcc-c++-4.9.2
     source /opt/rh/devtoolset-3/enable
   elif [[ $DISTRO = "rhel7" ]]; then
-    if in_ec2; then
-      enable_repo rhui-REGION-rhel-server-optional
-    else
-      enable_repo rhel-7-server-optional-rpms
-    fi
     package gcc
     package binutils
     package gcc-c++
   fi
-
-  package python-pip
-  package python-devel
-  package rpm-build
-  package ruby
-  package ruby-devel
-  package rubygems
 
   package clang
   package clang-devel
 
   set_cc gcc
   set_cxx g++
-
-  package bzip2
-  package bzip2-devel
-  package openssl-devel
-  package readline-devel
-  package rpm-devel
-  package rpm-build
-  package libblkid-devel
 
   install_cmake
   install_boost
@@ -128,6 +130,8 @@ function main_rhel() {
   install_thrift
   install_yara
 
+  package device-mapper-devel
+  package libgcrypt-devel
   package gettext-devel
   install_libcryptsetup
 

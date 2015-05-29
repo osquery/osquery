@@ -39,6 +39,15 @@ extern const std::string kQueries;
 /// The "domain" where event results are stored, queued for querytime retrieval.
 extern const std::string kEvents;
 
+/**
+ * @brief The "domain" where buffered log results are stored.
+ *
+ * Logger plugins may shuttle logs to a remote endpoint or API call
+ * asynchronously. The backing store can be used to buffer results and status
+ * logs until the logger plugin-specific thread decided to flush.
+ */
+extern const std::string kLogs;
+
 /////////////////////////////////////////////////////////////////////////////
 // Row
 /////////////////////////////////////////////////////////////////////////////
@@ -463,6 +472,10 @@ Status setDatabaseValue(const std::string& domain,
 
 /// Remove a domain/key identified value from backing-store.
 Status deleteDatabaseValue(const std::string& domain, const std::string& key);
+
+/// Get a list of keys for a given domain.
+Status scanDatabaseKeys(const std::string& domain,
+                        std::vector<std::string>& keys);
 
 /// Generate a specific-use registry for database access abstraction.
 CREATE_REGISTRY(DatabasePlugin, "database");

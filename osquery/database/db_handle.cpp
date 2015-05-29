@@ -83,19 +83,7 @@ FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
 // constructors and destructors
 /////////////////////////////////////////////////////////////////////////////
 
-DBHandle::DBHandle(const std::string& path, bool in_memory, bool throw_error) {
-  db_ = nullptr;
-  init(path, in_memory, throw_error);
-}
-
-void DBHandle::init(const std::string& path, bool in_memory, bool throw_error) {
-  if (db_ != nullptr) {
-    for (auto handle : handles_) {
-      delete handle;
-    }
-    delete db_;
-  }
-
+DBHandle::DBHandle(const std::string& path, bool in_memory) {
   options_.create_if_missing = true;
   options_.create_missing_column_families = true;
   options_.info_log_level = rocksdb::WARN_LEVEL;
@@ -110,11 +98,7 @@ void DBHandle::init(const std::string& path, bool in_memory, bool throw_error) {
   }
 
   if (pathExists(path).ok() && !isWritable(path).ok()) {
-    if (throw_error) {
-      throw std::runtime_error("Cannot write to RocksDB path: " + path);
-    } else {
-      return;
-    }
+    throw std::runtime_error("Cannot write to RocksDB path: " + path);
   }
 
   column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
