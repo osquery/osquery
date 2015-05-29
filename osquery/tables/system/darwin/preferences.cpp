@@ -158,7 +158,7 @@ void genOSXDomainPrefs(const CFStringRef& domain, QueryData& results) {
 void genOSXDefaultPreferences(QueryContext& context, QueryData& results) {
   CFArrayRef app_map;
 
-  if (context.constraints["domain"].exists()) {
+  if (context.constraints["domain"].exists(EQUALS)) {
     // If a specific domain is requested, speed up the set of type conversions.
     auto domains = context.constraints["domain"].getAll(EQUALS);
     app_map = (CFArrayRef)CFArrayCreateMutable(
@@ -243,7 +243,7 @@ void genOSXPlistPreferences(const std::string& path, QueryData& results) {
 QueryData genOSXPreferences(QueryContext& context) {
   QueryData results;
 
-  if (context.constraints["path"].exists()) {
+  if (context.constraints["path"].exists(EQUALS)) {
     // Read preferences from a plist at path.
     auto paths = context.constraints["path"].getAll(EQUALS);
     for (const auto& path : paths) {

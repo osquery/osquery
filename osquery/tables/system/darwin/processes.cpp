@@ -34,7 +34,7 @@ namespace tables {
 std::set<int> getProcList(const QueryContext &context) {
   std::set<int> pidlist;
   if (context.constraints.count("pid") > 0 &&
-      context.constraints.at("pid").exists()) {
+      context.constraints.at("pid").exists(EQUALS)) {
     pidlist = context.constraints.at("pid").getAll<int>(EQUALS);
   }
 

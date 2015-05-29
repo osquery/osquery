@@ -41,7 +41,7 @@ QueryData genOpenFiles(QueryContext& context) {
   QueryData results;
 
   std::set<std::string> pids;
-  if (context.constraints["pid"].exists()) {
+  if (context.constraints["pid"].exists(EQUALS)) {
     pids = context.constraints["pid"].getAll(EQUALS);
   } else {
     osquery::procProcesses(pids);

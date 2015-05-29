@@ -127,7 +127,7 @@ QueryData genOpenSockets(QueryContext &context) {
 
   // If a pid is given then set that as the only item in processes.
   std::set<std::string> pids;
-  if (context.constraints["pid"].exists()) {
+  if (context.constraints["pid"].exists(EQUALS)) {
     pids = context.constraints["pid"].getAll(EQUALS);
   } else {
     osquery::procProcesses(pids);
