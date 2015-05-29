@@ -16,11 +16,6 @@ freebsd:opera_extensions
 freebsd:os_version
 freebsd:passwd_changes
 freebsd:pci_devices
-freebsd:process_envs
-freebsd:process_memory_map
-freebsd:process_open_files
-freebsd:process_open_sockets
-freebsd:processes
 freebsd:routes
 freebsd:system_controls
 freebsd:usb_devices
