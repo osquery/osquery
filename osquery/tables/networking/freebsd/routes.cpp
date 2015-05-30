@@ -9,6 +9,7 @@
  */
 
 #include <osquery/core.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
