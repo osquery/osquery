@@ -46,7 +46,7 @@ unsigned int getProcesses(QueryContext& context,
     return 0;
   }
 
-  if (context.constraints["pid"].exists()) {
+  if (context.constraints["pid"].exists(EQUALS)) {
     pids = context.constraints["pid"].getAll(EQUALS);
 
     // Generate data for all pids in the vector.

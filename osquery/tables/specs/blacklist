@@ -9,6 +9,7 @@ freebsd:chrome_extensions
 freebsd:disk_encryption
 freebsd:file_events
 freebsd:firefox_addons
+freebsd:user_groups
 freebsd:hardware_events
 freebsd:kernel_info
 freebsd:last
