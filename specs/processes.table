@@ -1,7 +1,7 @@
 table_name("processes")
 description("All running processes on the host system.")
 schema([
-    Column("pid", INTEGER, "Process (or thread) ID"),
+    Column("pid", INTEGER, "Process (or thread) ID", index=True),
     Column("name", TEXT, "The process path or shorthand argv[0]"),
     Column("path", TEXT, "Path to executed binary"),
     Column("cmdline", TEXT, "Complete argv"),
@@ -21,3 +21,6 @@ schema([
     Column("parent", INTEGER, "Process parent's PID"),
 ])
 implementation("system/processes@genProcesses")
+examples([
+  "select * from processes where pid = 1",
+])

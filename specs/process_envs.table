@@ -1,10 +1,14 @@
 table_name("process_envs")
 description("A key/value table of environment variables for each process.")
 schema([
-    Column("pid", INTEGER, "Process (or thread) ID"),
+    Column("pid", INTEGER, "Process (or thread) ID", index=True),
     Column("key", TEXT, "Environment variable name"),
     Column("value", TEXT, "Environment variable value"),
-    ForeignKey(column="pid", table="processes"),
-    ForeignKey(column="pid", table="process_open_files"),
 ])
 implementation("system/processes@genProcessEnvs")
+examples([
+  "select * from process_envs where pid = 1",
+  '''select pe.*
+     from process_envs pe, (select * from processes limit 10) p
+     where p.pid = pe.pid;'''
+])

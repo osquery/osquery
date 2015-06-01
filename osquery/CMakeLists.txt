@@ -90,7 +90,7 @@ if(NOT ENV{SKIP_TABLES})
 endif()
 
 # Amalgamate the utility tables needed to compile.
-GENERATE_UTILITIES("${CMAKE_SOURCE_DIR}/osquery/tables")
+GENERATE_UTILITIES("${CMAKE_SOURCE_DIR}")
 AMALGAMATE("${CMAKE_SOURCE_DIR}" "utils" AMALGAMATION_UTILS)
 ADD_OSQUERY_LIBRARY_CORE(osquery_amalgamation ${AMALGAMATION_UTILS})
 
@@ -124,7 +124,7 @@ add_dependencies(devel libosquery)
 
 if(NOT OSQUERY_BUILD_SDK_ONLY)
   # Generate the osquery additional tables (the non-util).
-  GENERATE_TABLES("${CMAKE_SOURCE_DIR}/osquery/tables")
+  GENERATE_TABLES("${CMAKE_SOURCE_DIR}")
   AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_additional_amalgamation ${AMALGAMATION})
 

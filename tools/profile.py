@@ -45,7 +45,7 @@ def get_stats(p, interval=1):
     utilization = p.cpu_percent(interval=interval)
     return {
         "utilization": utilization,
-        "counters": p.io_counters() if sys.platform != "darwin" else None,
+        "counters": p.io_counters() if platform() != "darwin" else None,
         "fds": p.num_fds(),
         "cpu_times": p.cpu_times(),
         "memory": p.memory_info_ex(),
@@ -101,7 +101,7 @@ def check_leaks_darwin(shell, query, count=1):
 
 
 def check_leaks(shell, query, count=1, supp_file=None):
-    if sys.platform == "darwin":
+    if platform() == "darwin":
         return check_leaks_darwin(shell, query, count=count)
     else:
         return check_leaks_linux(shell, query, count=count, supp_file=supp_file)
@@ -269,9 +269,6 @@ def regress_check(profile1, profile2):
     return 1
 
 if __name__ == "__main__":
-    platform = sys.platform
-    if platform == "linux2":
-        platform = "linux"
     parser = argparse.ArgumentParser(description=(
         "Profile osquery, individual tables, "
         "or a set of osqueryd config queries."
@@ -319,7 +316,7 @@ if __name__ == "__main__":
     )
     group.add_argument(
         "--shell", metavar="PATH", default="./build/%s/osquery/run" % (
-            platform),
+            platform()),
         help="Path to osquery run wrapper (./build/<sys>/osquery/run)."
     )
 

@@ -8,4 +8,3 @@ schema([
     Column("comment", TEXT, "Optional comment for a service."),
 ])
 implementation("etc_services@genEtcServices")
-

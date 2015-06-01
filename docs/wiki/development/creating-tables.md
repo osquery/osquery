@@ -15,18 +15,19 @@ Column values (a single row) will be dynamically computed at query time.
 Under the hood, osquery uses libraries from SQLite core to create "virtual tables". The default API for creating virtual tables is relatively complex. osquery has abstracted this complexity away, allowing you to write a simple table declaration.
 
 To make table-creation simple osquery uses a *table spec* file.
-The current specs are organized by operating system in the [osquery/tables/specs](https://github.com/facebook/osquery/tree/master/osquery/tables/specs) source folder.
+The current specs are organized by operating system in the [specs](https://github.com/facebook/osquery/tree/master/specs) source folder.
 For our time exercise, a spec file would look like the following:
 
 ```python
-# Use the table_name function to define a virtual table name.
+# This .table file is called a "spec" and is written in Python
+# This syntax (several definitions) is defined in /tools/codegen/gentable/py.
 table_name("time")
 
-# Provide a short "one line" description.
+# Provide a short "one line" description, please use punctuation!
 description("Returns the current hour, minutes, and seconds.")
 
 # Define your schema, which accepts a list of Column instances at minimum.
-# You may also describe foreign keys and "action" columns (more later).
+# You may also describe foreign keys and "action" columns.
 schema([
     # Declare the name, type, and documentation description for each column.
     # The supported types are INTEGER, BIGINT, TEXT, DATE, and DATETIME.
@@ -35,7 +36,7 @@ schema([
     Column("seconds", INTEGER, "The current seconds past the minute"),
 ])
 
-# Name of the C++ function that implements the table: "gen{TableName}"
+# Use the "@gen{TableName}" to communicate the C++ symbol name.
 implementation("genTime")
 ```
 
@@ -47,11 +48,11 @@ You might wonder "this syntax looks similar to Python?". Well, it is! The build 
 
 You may be wondering how osquery handles cross-platform support while still allowing operating-system specific tables. The osquery build process takes care of this by only generating the relevant code based on a directory structure convention.
 
-- Cross-platform: [osquery/tables/specs/](https://github.com/facebook/osquery/tree/master/osquery/tables/specs/)
-- Mac OS X: [osquery/tables/specs/darwin/](https://github.com/facebook/osquery/tree/master/osquery/tables/specs/darwin)
-- General Linux: [osquery/tables/specs/linux/](https://github.com/facebook/osquery/tree/master/osquery/tables/specs/linux)
-- Ubuntu: [osquery/tables/specs/ubuntu/](https://github.com/facebook/osquery/tree/master/osquery/tables/specs/ubuntu)
-- CentOS: [osquery/tables/specs/centos/](https://github.com/facebook/osquery/tree/master/osquery/tables/specs/centos)
+- Cross-platform: [specs/](https://github.com/facebook/osquery/tree/master/specs/)
+- Mac OS X: [specs/darwin/](https://github.com/facebook/osquery/tree/master/specs/darwin)
+- General Linux: [specs/linux/](https://github.com/facebook/osquery/tree/master/specs/linux)
+- Ubuntu: [specs/ubuntu/](https://github.com/facebook/osquery/tree/master/specs/ubuntu)
+- CentOS: [specs/centos/](https://github.com/facebook/osquery/tree/master/specs/centos)
 
 Note: the CMake build provides custom defines for each platform and platform version.
 

@@ -24,3 +24,8 @@ schema([
 ])
 attributes(utility=True)
 implementation("utility/file@genFile")
+examples([
+  "select * from file where path = '/etc/passwd'",
+  "select * from file where directory = '/etc/'",
+  "select * from file where pattern = '/etc/%'",
+])

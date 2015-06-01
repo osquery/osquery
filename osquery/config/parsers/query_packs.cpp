@@ -135,5 +135,5 @@ Status QueryPackConfigParserPlugin::update(const ConfigTreeMap& config) {
 }
 
 /// Call the simple Query Packs ConfigParserPlugin "packs".
-REGISTER(QueryPackConfigParserPlugin, "config_parser", "packs");
+REGISTER_INTERNAL(QueryPackConfigParserPlugin, "config_parser", "packs");
 }

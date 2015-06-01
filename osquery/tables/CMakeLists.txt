@@ -62,12 +62,12 @@ else()
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
 endif()
 
-file(GLOB OSQUERY_CROSS_TABLES "[!ue]*/*.cpp")
+file(GLOB OSQUERY_CROSS_TABLES "[!ueo]*/*.cpp")
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables
   ${OSQUERY_CROSS_TABLES}
 )
 
-file(GLOB OSQUERY_CROSS_TABLES_TESTS "[!u]*/tests/*.cpp")
+file(GLOB OSQUERY_CROSS_TABLES_TESTS "[!uo]*/tests/*.cpp")
 ADD_OSQUERY_TABLE_TEST(${OSQUERY_CROSS_TABLES_TESTS})
 
 file(GLOB OSQUERY_UTILITY_TABLES "utility/*.cpp")
@@ -76,11 +76,11 @@ ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
 )
 
 if(NOT FREEBSD)
-  file(GLOB OSQUERY_UTILS "utils/*.cpp")
+  file(GLOB OSQUERY_UTILS "other/*.cpp")
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_utils
     ${OSQUERY_UTILS}
   )
 
-  file(GLOB OSQUERY_UTILS_TESTS "utils/tests/*.cpp")
+  file(GLOB OSQUERY_UTILS_TESTS "other/tests/*.cpp")
   ADD_OSQUERY_TEST_ADDITIONAL(${OSQUERY_UTILS_TESTS})
 endif()

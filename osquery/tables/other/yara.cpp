@@ -15,7 +15,7 @@
 #include <osquery/tables.h>
 #include <osquery/status.h>
 
-#include "osquery/tables/utils/yara_utils.h"
+#include "osquery/tables/other/yara_utils.h"
 
 #ifdef CONCAT
 #undef CONCAT

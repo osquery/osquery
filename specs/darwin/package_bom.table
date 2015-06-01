@@ -10,3 +10,6 @@ schema([
     Column("path", TEXT, "Path of package bom", required=True),
 ])
 implementation("packages@genPackageBOM")
+examples([
+  "select * from package_bom where path = '/var/db/receipts/com.apple.pkg.MobileDevice.bom'"
+])

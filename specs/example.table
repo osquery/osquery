@@ -1,0 +1,60 @@
+# This .table file is called a "spec" and is written in Python
+# This syntax (several definitions) is defined in /tools/codegen/gentable/py.
+table_name("example")
+
+# Provide a short "one line" description, please use punctuation!
+description("This is an example table spec.")
+
+# Define your schema, which accepts a list of Column instances at minimum.
+# You may also describe foreign keys and "action" columns.
+schema([
+    # Declare the name, type, and documentation description for each column.
+    # The supported types are INTEGER, BIGINT, TEXT, DATE, and DATETIME.
+    Column("name", TEXT, "Description for name column"),
+    Column("points", INTEGER, "This is a signed SQLite int column"),
+    Column("size", BIGINT, "This is a signed SQLite bigint column"),
+
+    # More complex tables include columns denoted as "required".
+    # A required column MUST be present in a query predicate (WHERE clause).
+    Column("action", TEXT, "Action performed in generation", required=True),
+
+    # Tables may optimize there selection using "index" columns.
+    # The optimization is undefined, but this is a hint to table users that
+    # JOINing on this column will improve performance.
+    Column("id", INTEGER, "An index of some sort", index=True),
+
+    # Some tables operate using default configurations or OS settings.
+    # OS X has default paths for .app executions, but .apps exist otherwise.
+    # Tables may generate additional or different data when using some columns.
+    # Set the "additional" argument if searching a non-default path.
+    Column("path", TEXT, "Path of example", additional=True),
+    # When paths are involved they are usually both additional and an index.
+])
+
+# Use the "@gen{TableName}" to communicate the C++ symbol name.
+# Event subscriber tables and other more-complex implementations may use
+# class-static methods for generation; they use "@ClassName::genTable" syntax.
+implementation("@genExample")
+
+# Provide some example queries that stress table use.
+# If using actions or indexing, it will be best to include those predicates.
+examples([
+  "select * from example where id = 1",
+  "select name from example where action = 'new'",
+
+  # Examples may be used in documentation and in stress/fuzz testing.
+  # Including example JOINs on indexes is preferred.
+  "select e.* from example e, example_environments ee where e.id = ee.id"
+])
+
+# Attributes provide help to documentation/API generation tools.
+# If an attribute is false, or no attributes apply, do no include 'attributes'.
+attributes(
+  # Set event_subscriber if this table is generated using an EventSubscriber.
+  event_subscriber=False,
+  # Set utility if this table should be built into the osquery-SDK (core).
+  # Utility tables are mostly reserved for osquery meta-information.
+  utility=False,
+  # Set kernel_required if an osquery kernel extension/module/driver is needed.
+  kernel_required=False
+)

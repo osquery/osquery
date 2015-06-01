@@ -8,6 +8,9 @@ schema([
     Column("install_time", INTEGER, "Timestamp of install time"),
     Column("installer_name", TEXT, "Name of installer process"),
     Column("path", TEXT, "Path of receipt plist",
-      additional=True),
+      index=True, additional=True),
 ])
 implementation("packages@genPackageReceipts")
+examples([
+  "select * from package_bom where path = '/var/db/receipts/com.apple.pkg.MobileDevice.bom'"
+])
