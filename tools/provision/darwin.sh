@@ -18,7 +18,7 @@ function main_darwin() {
 
   brew update
 
-  package rocksdb
+  package wget
   package cmake
   package makedepend
   package boost
@@ -26,4 +26,8 @@ function main_darwin() {
   package thrift
   package yara
   package doxygen
+
+  # RocksDB is in Homebrew, but we like more control over our compile.
+  remove_package rocksdb
+  install_rocksdb
 }
