@@ -78,6 +78,10 @@ function main_centos() {
   package bison
 
   if [[ $DISTRO = "centos6" ]]; then
+    remove_package autoconf
+    remove_package automake
+    remove_package libtool
+
     install_autoconf
     install_automake
     install_libtool

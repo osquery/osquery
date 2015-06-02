@@ -116,6 +116,10 @@ function main_rhel() {
   package bison
 
   if [[ $DISTRO = "rhel6" ]]; then
+    remove_package autoconf
+    remove_package automake
+    remove_package libtool
+
     install_autoconf
     install_automake
     install_libtool
