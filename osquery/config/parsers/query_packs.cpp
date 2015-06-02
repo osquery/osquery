@@ -51,7 +51,7 @@ bool versionChecker(const std::string& pack, const std::string& version) {
 bool platformChecker(const std::string& required, const std::string& platform) {
   // Match if platform is 'ubuntu12' and required is 'ubuntu'.
   // Do not match if platform is 'ubuntu12' and required is 'ubuntu14'.
-  return (platform.find(required) == std::string::npos);
+  return (required.find(platform) != std::string::npos);
 }
 
 Status parsePack(const std::string& name, const pt::ptree& data) {
@@ -66,7 +66,7 @@ Status parsePack(const std::string& name, const pt::ptree& data) {
   }
 
   auto platform = data.get("platform", "");
-  if (platform.size() > 7 && !platformChecker(platform, kSDKPlatform)) {
+  if (platform.size() > 0 && !platformChecker(platform, kSDKPlatform)) {
     return Status(0, "Platform version mismatch");
   }
 
@@ -75,7 +75,7 @@ Status parsePack(const std::string& name, const pt::ptree& data) {
     auto query_string = query.second.get("query", "");
     if (Config::checkScheduledQuery(query_string)) {
       VLOG(1) << "Query pack " << name
-              << " contains a duplicated query name: " << query.first;
+              << " contains a duplicated query: " << query.first;
       continue;
     }
 
