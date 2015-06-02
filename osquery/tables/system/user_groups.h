@@ -69,13 +69,13 @@ static void getGroupsForUser(QueryData &results,
 
     if (getgrouplist(user.name, user.gid, groups, &ngroups) < 0) {
       TLOG << "Error could not get user's group list.";
-      delete groups;
+      delete[] groups;
       return;
     }
 
     addGroupsToResults(results, user.uid, groups, ngroups);
 
-    delete groups;
+    delete[] groups;
     return;
   }
   addGroupsToResults(results, user.uid, groups, ngroups);
