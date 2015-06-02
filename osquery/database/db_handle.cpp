@@ -56,6 +56,7 @@ REGISTER_INTERNAL(RocksDatabasePlugin, "database", "rocks");
 const std::string kPersistentSettings = "configurations";
 const std::string kQueries = "queries";
 const std::string kEvents = "events";
+const std::string kLogs = "logs";
 
 /**
  * @brief A const vector of column families in RocksDB
@@ -66,7 +67,7 @@ const std::string kEvents = "events";
  * database.
  */
 const std::vector<std::string> kDomains = {
-    kPersistentSettings, kQueries, kEvents
+    kPersistentSettings, kQueries, kEvents, kLogs
 };
 
 CLI_FLAG(string,

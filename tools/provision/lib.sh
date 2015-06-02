@@ -9,7 +9,7 @@
 
 function install_gcc() {
   TARBALL=gcc-4.8.4.tar.gz
-  URL=https://s3.amazonaws.com/osquery-packages/deps/gcc-4.8.4.tar.gz
+  URL=$DEPS_URL/gcc-4.8.4.tar.gz
   SOURCE=gcc-4.8.4
   TARGET=/opt/osquery/gcc
 
@@ -19,7 +19,7 @@ function install_gcc() {
 
     # GCC-dependency: GMP
     TARBALL=gmp-6.0.0a.tar.gz
-    URL=https://s3.amazonaws.com/osquery-packages/deps/gmp-6.0.0a.tar.gz
+    URL=$DEPS_URL/gmp-6.0.0a.tar.gz
     SOURCE=gmp-6.0.0
     if provision gmp $WORKING_DIR/$TARGET_SOURCE/gmp/README; then
       log "Moving gmp sources into $TARGET_SOURCE"
@@ -28,7 +28,7 @@ function install_gcc() {
 
     # GCC-dependency: MPFR
     TARBALL=mpfr-3.1.2.tar.gz
-    URL=https://s3.amazonaws.com/osquery-packages/deps/mpfr-3.1.2.tar.gz
+    URL=$DEPS_URL/mpfr-3.1.2.tar.gz
     SOURCE=mpfr-3.1.2
     if provision mpfr $WORKING_DIR/$TARGET_SOURCE/mpfr/README; then
       log "Moving mpfr sources into $TARGET_SOURCE"
@@ -37,7 +37,7 @@ function install_gcc() {
 
     # GCC-dependency: MPC
     TARBALL=mpc-1.0.3.tar.gz
-    URL=https://s3.amazonaws.com/osquery-packages/deps/mpc-1.0.3.tar.gz
+    URL=$DEPS_URL/mpc-1.0.3.tar.gz
     SOURCE=mpc-1.0.3
     if provision mpc $WORKING_DIR/$TARGET_SOURCE/mpc/README; then
       log "Moving mpc sources into $TARGET_SOURCE"
@@ -70,7 +70,7 @@ function install_gcc() {
 
 function install_cmake() {
   TARBALL=cmake-3.2.1.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/cmake-3.2.1.tar.gz
+  URL=$DEPS_URL/cmake-3.2.1.tar.gz
   SOURCE=cmake-3.2.1
 
   if provision cmake /usr/local/bin/cmake; then
@@ -86,7 +86,7 @@ function install_cmake() {
 
 function install_thrift() {
   TARBALL=0.9.1.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/0.9.1.tar.gz
+  URL=$DEPS_URL/0.9.1.tar.gz
   SOURCE=thrift-0.9.1
 
   if provision thrift /usr/local/lib/libthrift.a; then
@@ -110,7 +110,7 @@ function install_thrift() {
 
 function install_rocksdb() {
   TARBALL=rocksdb-3.10.2.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/rocksdb-3.10.2.tar.gz
+  URL=$DEPS_URL/rocksdb-3.10.2.tar.gz
   SOURCE=rocksdb-rocksdb-3.10.2
 
   if provision rocksdb /usr/local/lib/librocksdb.a; then
@@ -138,7 +138,7 @@ function install_rocksdb() {
 
 function install_snappy() {
   TARBALL=snappy-1.1.1.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/snappy-1.1.1.tar.gz
+  URL=$DEPS_URL/snappy-1.1.1.tar.gz
   SOURCE=snappy-1.1.1
 
   if provision snappy /usr/local/lib/libsnappy.a; then
@@ -155,7 +155,7 @@ function install_snappy() {
 
 function install_yara() {
   TARBALL=yara-3.3.0.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/yara-3.3.0.tar.gz
+  URL=$DEPS_URL/yara-3.3.0.tar.gz
   SOURCE=yara-3.3.0
 
   if provision yara /usr/local/lib/libyara.a; then
@@ -170,7 +170,7 @@ function install_yara() {
 
 function install_boost() {
   TARBALL=boost_1_55_0.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/boost_1_55_0.tar.gz
+  URL=$DEPS_URL/boost_1_55_0.tar.gz
   SOURCE=boost_1_55_0
 
   if provision boost /usr/local/lib/libboost_thread.a; then
@@ -184,7 +184,7 @@ function install_boost() {
 
 function install_gflags() {
   TARBALL=v2.1.1.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/v2.1.1.tar.gz
+  URL=$DEPS_URL/v2.1.1.tar.gz
   SOURCE=gflags-2.1.1
 
   if provision gflags /usr/local/lib/libgflags.a; then
@@ -198,7 +198,7 @@ function install_gflags() {
 
 function install_iptables_dev() {
   TARBALL=iptables-1.4.21.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/iptables-1.4.21.tar.gz
+  URL=$DEPS_URL/iptables-1.4.21.tar.gz
   SOURCE=iptables-1.4.21
 
   if provision iptables_dev /usr/local/lib/libip4tc.a; then
@@ -217,7 +217,7 @@ function install_iptables_dev() {
 
 function install_libcryptsetup() {
   TARBALL=cryptsetup-1.6.7.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/cryptsetup-1.6.7.tar.gz
+  URL=$DEPS_URL/cryptsetup-1.6.7.tar.gz
   SOURCE=cryptsetup-1.6.7
 
   if provision libcryptsetup /usr/local/lib/libcryptsetup.a; then
@@ -234,7 +234,7 @@ function install_libcryptsetup() {
 
 function install_autoconf() {
   TARBALL=autoconf-2.69.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/autoconf-2.69.tar.gz
+  URL=$DEPS_URL/autoconf-2.69.tar.gz
   SOURCE=autoconf-2.69
 
   # Two methods for provisioning autoconf (1) install, (2) upgrade
@@ -257,7 +257,7 @@ function install_autoconf() {
 
 function install_automake() {
   TARBALL=automake-1.14.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/automake-1.14.tar.gz
+  URL=$DEPS_URL/automake-1.14.tar.gz
   SOURCE=automake-1.14
 
   if provision automake /usr/bin/automake; then
@@ -272,7 +272,7 @@ function install_automake() {
 
 function install_libtool() {
   TARBALL=libtool-2.4.5.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/libtool-2.4.5.tar.gz
+  URL=$DEPS_URL/libtool-2.4.5.tar.gz
   SOURCE=libtool-2.4.5
 
   if provision libtool /usr/bin/libtool; then
@@ -286,7 +286,7 @@ function install_libtool() {
 
 function install_pkgconfig() {
   TARBALL=pkg-config-0.28.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/pkg-config-0.28.tar.gz
+  URL=$DEPS_URL/pkg-config-0.28.tar.gz
   SOURCE=pkg-config-0.28
 
   if provision pkg-config /usr/bin/pkg-config; then
@@ -301,7 +301,7 @@ function install_pkgconfig() {
 
 function install_udev_devel_095() {
   TARBALL=udev-095.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/udev-095.tar.gz
+  URL=$DEPS_URL/udev-095.tar.gz
   SOURCE=udev-095
 
   if provision udev-095 /usr/local/lib/libudev.a; then
@@ -314,7 +314,7 @@ function install_udev_devel_095() {
 
 function install_pip() {
   PYTHON_EXECUTABLE=$1
-  URL=https://osquery-packages.s3.amazonaws.com/deps/get-pip.py
+  URL=$DEPS_URL/get-pip.py
 
   if [[ ! -e /usr/bin/pip ]]; then
     curl $URL | sudo $PYTHON_EXECUTABLE -
@@ -323,7 +323,7 @@ function install_pip() {
 
 function install_ruby() {
   TARBALL=ruby-1.8.7-p370.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/ruby-1.8.7-p370.tar.gz
+  URL=$DEPS_URL/ruby-1.8.7-p370.tar.gz
   SOURCE=ruby-1.8.7-p370
 
   if provision ruby-1.8.7 /usr/local/bin/ruby; then
@@ -335,7 +335,7 @@ function install_ruby() {
   fi
 
   TARBALL=rubygems-1.8.24.tar.gz
-  URL=https://osquery-packages.s3.amazonaws.com/deps/rubygems-1.8.24.tar.gz
+  URL=$DEPS_URL/rubygems-1.8.24.tar.gz
   SOURCE=rubygems-1.8.24
 
   if provision rubygems-1.8.24 /usr/local/bin/gem; then
@@ -347,7 +347,7 @@ function install_ruby() {
 
 function install_libaptpkg() {
   TARBALL=apt-0.8.16-12.10.22.tar.gz
-  URL=https://s3.amazonaws.com/osquery-packages/deps/apt-0.8.16-12.10.22.tar.gz
+  URL=$DEPS_URL/apt-0.8.16-12.10.22.tar.gz
   SOURCE=apt-0.8.16-12.10.22
   if provision libaptpkg /usr/local/lib/libapt-pkg.a; then
     pushd $SOURCE

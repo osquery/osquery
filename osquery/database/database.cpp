@@ -438,7 +438,21 @@ Status setDatabaseValue(const std::string& domain,
 
 Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
   PluginRequest request = {
-      {"action", "delete"}, {"domain", domain}, {"key", key}};
+      {"action", "remove"}, {"domain", domain}, {"key", key}};
   return Registry::call("database", "rocks", request);
+}
+
+Status scanDatabaseKeys(const std::string& domain,
+                        std::vector<std::string>& keys) {
+  PluginRequest request = {{"action", "scan"}, {"domain", domain}};
+  PluginResponse response;
+  auto status = Registry::call("database", "rocks", request, response);
+
+  for (const auto& item : response) {
+    if (item.count("k") > 0) {
+      keys.push_back(item.at("k"));
+    }
+  }
+  return status;
 }
 }
