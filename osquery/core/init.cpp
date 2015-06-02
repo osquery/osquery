@@ -134,8 +134,13 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     auto homedir = osqueryHomeDirectory();
     if (osquery::pathExists(homedir).ok() ||
         boost::filesystem::create_directory(homedir)) {
-      osquery::FLAGS_database_path = homedir + "/shell.db";
-      osquery::FLAGS_extensions_socket = homedir + "/shell.em";
+      // Only apply user/shell-specific paths if not overridden by CLI flag.
+      if (Flag::isDefault("database_path")) {
+        osquery::FLAGS_database_path = homedir + "/shell.db";
+      }
+      if (Flag::isDefault("extension_socket")) {
+        osquery::FLAGS_extensions_socket = homedir + "/shell.em";
+      }
     }
   }
 
@@ -268,6 +273,16 @@ void Initializer::start() {
     FLAGS_disable_extensions = true;
   }
 
+  // Check the backing store by allocating and exiting on error.
+  if (!DBHandle::checkDB()) {
+    LOG(ERROR) << binary_ << " initialize failed: Could not open RocksDB";
+    if (isWorker()) {
+      ::exit(EXIT_CATASTROPHIC);
+    } else {
+      ::exit(EXIT_FAILURE);
+    }
+  }
+
   // Bind to an extensions socket and wait for registry additions.
   osquery::startExtensionManager();
 
@@ -289,16 +304,6 @@ void Initializer::start() {
 
   // Load the osquery config using the default/active config plugin.
   Config::load();
-
-  // Check the backing store by allocating and exiting on error.
-  if (!DBHandle::checkDB()) {
-    LOG(ERROR) << binary_ << " initialize failed: Could not create DB handle";
-    if (isWorker()) {
-      ::exit(EXIT_CATASTROPHIC);
-    } else {
-      ::exit(EXIT_FAILURE);
-    }
-  }
 
   // Initialize the status and result plugin logger.
   initActivePlugin("logger", FLAGS_logger_plugin);

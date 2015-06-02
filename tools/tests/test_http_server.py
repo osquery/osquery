@@ -25,7 +25,7 @@ from urlparse import parse_qs
 
 EXAMPLE_CONFIG = {
     "schedule": {
-        "tls_proc": {"query": "select * from processes"},
+        "tls_proc": {"query": "select * from processes", "interval": 0},
     }
 }
 
@@ -109,7 +109,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
 
         # The osquery TLS config plugin calls the TLS enroll plugin to retrieve
         # a node_key, then submits that key alongside config/logger requests.
-        if "node_key" not in request or request["node_key"] != ENROLL_SECRET:
+        if "node_key" not in request or request["node_key"] not in NODE_KEYS:
             self._reply(FAILED_ENROLL_RESPONSE)
             return
         self._reply(EXAMPLE_CONFIG)

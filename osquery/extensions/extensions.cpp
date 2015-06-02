@@ -166,8 +166,7 @@ void loadExtensions() {
 void loadModules() {
   auto status = loadModules(FLAGS_modules_autoload);
   if (!status.ok()) {
-    VLOG(1) << "Modules autoload contains invalid paths: "
-            << FLAGS_modules_autoload;
+    VLOG(1) << "Could not autoload modules: " << status.what();
   }
 }
 
@@ -182,7 +181,7 @@ Status loadExtensions(const std::string& loadfile) {
     }
     return Status(0, "OK");
   }
-  return Status(1, "Cannot read extensions autoload file");
+  return Status(1, "Failed reading: " + loadfile);
 }
 
 Status loadModuleFile(const std::string& path) {
@@ -213,7 +212,7 @@ Status loadModules(const std::string& loadfile) {
     // Return an aggregate failure if any load fails (invalid search path).
     return status;
   }
-  return Status(1, "Cannot read modules autoload file");
+  return Status(1, "Failed reading: " + loadfile);
 }
 
 Status extensionPathActive(const std::string& path, bool use_timeout = false) {
