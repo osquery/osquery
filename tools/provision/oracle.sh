@@ -92,6 +92,10 @@ function main_oracle() {
   package bison
 
   if [[ $DISTRO = "oracle5" || $DISTRO = "oracle6" ]]; then
+    remove_package autoconf
+    remove_package automake
+    remove_package libtool
+
     install_autoconf
     install_automake
     install_libtool
