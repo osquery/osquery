@@ -14,6 +14,7 @@ from __future__ import print_function
 #from __future__ import unicode_literals
 
 import os
+import random
 import unittest
 
 # osquery-specific testing utils
@@ -23,6 +24,9 @@ class OsqueryiTest(unittest.TestCase):
     def setUp(self):
         self.binary = os.path.join(test_base.ARGS.build, "osquery", "osqueryi")
         self.osqueryi = test_base.OsqueryWrapper(self.binary)
+        self.dbpath = "%s%s" % (
+            test_base.CONFIG["options"]["database_path"],
+            str(random.randint(1000, 9999)))
 
     def test_error(self):
         '''Test that we throw an error on bad query'''
@@ -35,6 +39,7 @@ class OsqueryiTest(unittest.TestCase):
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
+            "--database_path=%s" % (self.dbpath),
             "--config_path=test.config"], 2)
         self.assertEqual(proc.stdout, "")
         print (proc.stdout)
@@ -46,6 +51,7 @@ class OsqueryiTest(unittest.TestCase):
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
+            "--database_path=%s" % (self.dbpath),
             "--config_path=/this/path/does/not/exist"], 2)
         self.assertNotEqual(proc.stderr, "")
         print (proc.stdout)
@@ -56,6 +62,7 @@ class OsqueryiTest(unittest.TestCase):
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
+            "--database_path=%s" % (self.dbpath),
             "--config_path=test.badconfig"], 2)
         self.assertNotEqual(proc.stderr, "")
         self.assertEqual(proc.proc.poll(), 1)
@@ -64,6 +71,7 @@ class OsqueryiTest(unittest.TestCase):
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
+            "--database_path=%s" % (self.dbpath),
             "--config_plugin=does_not_exist"], 2)
         self.assertNotEqual(proc.stderr, "")
         self.assertNotEqual(proc.proc.poll(), 0)

@@ -69,13 +69,16 @@ const std::vector<std::string> kDomains = {
     kPersistentSettings, kQueries, kEvents
 };
 
-FLAG(string,
-     database_path,
-     "/var/osquery/osquery.db",
-     "If using a disk-based backing store, specify a path");
+CLI_FLAG(string,
+         database_path,
+         "/var/osquery/osquery.db",
+         "If using a disk-based backing store, specify a path");
 FLAG_ALIAS(std::string, db_path, database_path);
 
-FLAG(bool, database_in_memory, false, "Keep osquery backing-store in memory");
+CLI_FLAG(bool,
+         database_in_memory,
+         false,
+         "Keep osquery backing-store in memory");
 FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
 
 /////////////////////////////////////////////////////////////////////////////
@@ -108,7 +111,7 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
         cf_name, rocksdb::ColumnFamilyOptions()));
   }
 
-  VLOG(1) << "Opening DB handle: " << path;
+  VLOG(1) << "Opening RocksDB handle: " << path;
   auto s = rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
   if (!s.ok()) {
     throw std::runtime_error(s.ToString());

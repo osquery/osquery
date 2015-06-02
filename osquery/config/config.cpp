@@ -141,6 +141,11 @@ inline void additionalScheduledQuery(const std::string& name,
   ScheduledQuery query;
   query.query = node.second.get<std::string>("query", "");
   query.interval = node.second.get<int>("interval", 0);
+  if (query.interval == 0) {
+    VLOG(1) << "Setting invalid interval=0 to 84600 for query: " << name;
+    query.interval = 86400;
+  }
+
   // This is a candidate for a catch-all iterator with a catch for boolean type.
   query.options["snapshot"] = node.second.get<bool>("snapshot", false);
 
