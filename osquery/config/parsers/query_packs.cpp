@@ -16,11 +16,23 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
-#include "query_packs.h"
-
 namespace pt = boost::property_tree;
 
 namespace osquery {
+
+/**
+ * @brief A simple ConfigParserPlugin for a "packs" dictionary key.
+ *
+ */
+class QueryPackConfigParserPlugin : public ConfigParserPlugin {
+ public:
+  /// Request "packs" top level key.
+  std::vector<std::string> keys() { return {"packs"}; }
+
+ private:
+  /// Store the signatures and file_paths and compile the rules.
+  Status update(const ConfigTreeMap& config);
+};
 
 // Function to check if the pack is valid for this version of osquery.
 // If the osquery version is greater or equal than the pack, it is good to go.
@@ -51,6 +63,15 @@ bool versionChecker(const std::string& pack, const std::string& version) {
 bool platformChecker(const std::string& required, const std::string& platform) {
   // Match if platform is 'ubuntu12' and required is 'ubuntu'.
   // Do not match if platform is 'ubuntu12' and required is 'ubuntu14'.
+#ifdef __linux__
+  if (required.find("linux") != std::string::npos) {
+    return true;
+  }
+#endif
+  if (required.find("any") != std::string::npos ||
+      required.find("all") != std::string::npos) {
+    return true;
+  }
   return (required.find(platform) != std::string::npos);
 }
 

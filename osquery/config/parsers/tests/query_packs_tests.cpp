@@ -12,7 +12,6 @@
 
 #include <osquery/logger.h>
 
-#include "osquery/config/parsers/query_packs.h"
 #include "osquery/core/test_util.h"
 
 namespace pt = boost::property_tree;
@@ -21,6 +20,8 @@ namespace osquery {
 
 // Test the pack version checker.
 bool versionChecker(const std::string& pack, const std::string& version);
+// Test the pack platform checker.
+bool platformChecker(const std::string& required, const std::string& platform);
 
 pt::ptree getQueryPacksContent() {
   pt::ptree pack_tree;
@@ -61,6 +62,24 @@ TEST_F(QueryPacksConfigTests, version_comparisons) {
   EXPECT_TRUE(versionChecker("1.0.0", "1.0.2-r1"));
   EXPECT_FALSE(versionChecker("1.2", "1.0.2"));
   EXPECT_TRUE(versionChecker("1.0.0-r1", "1.0.0"));
+}
+
+TEST_F(QueryPacksConfigTests, platform_comparisons) {
+#ifdef __linux__
+  // If the platform is linux and the required platform is linux, match
+  EXPECT_TRUE(platformChecker("linux", "ubuntu"));
+  EXPECT_TRUE(platformChecker("linux", "who_knows_what"));
+#endif
+  EXPECT_TRUE(platformChecker("linux,darwin", "darwin"));
+  EXPECT_TRUE(platformChecker("darwin", "darwin"));
+  EXPECT_FALSE(platformChecker("darwin", "linux"));
+
+  EXPECT_TRUE(platformChecker(" darwin", "darwin"));
+  // There are no logical operators, just matching.
+  EXPECT_TRUE(platformChecker("!darwin", "darwin"));
+
+  EXPECT_TRUE(platformChecker("all", "darwin"));
+  EXPECT_TRUE(platformChecker("any", "darwin"));
 }
 
 TEST_F(QueryPacksConfigTests, test_query_packs_configuration) {

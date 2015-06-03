@@ -18,8 +18,6 @@
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 
-#include "osquery/config/parsers/query_packs.h"
-
 namespace osquery {
 namespace tables {
 
