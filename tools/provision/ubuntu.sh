@@ -10,7 +10,11 @@
 function add_repo() {
   REPO=$1
   echo "Adding repository: $REPO"
-  sudo add-apt-repository -y $REPO
+  if [[ $DISTRO = "lucid" ]]; then
+    sudo add-apt-repository $REPO
+  else
+    sudo add-apt-repository -y $REPO
+  fi
 }
 
 function main_ubuntu() {
