@@ -6,3 +6,8 @@ schema([
     Column("groupname", TEXT, "Canonical local group name"),
 ])
 implementation("groups@genGroups")
+examples([
+  "select * from groups where gid = 0",
+  # Group/user_groups is not JOIN optimized
+  #"select g.groupname, ug.uid from groups g, user_groups ug where g.gid = ug.gid",
+])

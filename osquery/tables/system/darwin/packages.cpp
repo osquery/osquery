@@ -99,6 +99,10 @@ const char* BOM::getPointer(int index, size_t* length) const {
 }
 
 const BOMVar* BOM::getVariable(size_t* offset) const {
+  if (offset == nullptr) {
+    return nullptr;
+  }
+
   if (size_ < vars_offset_ + *offset + sizeof(BOMVar)) {
     // Offset overflows the variable list.
     *offset = 0;
@@ -106,6 +110,11 @@ const BOMVar* BOM::getVariable(size_t* offset) const {
   }
 
   const BOMVar* var = (BOMVar*)((char*)Vars->list + *offset);
+  if (var == nullptr) {
+    *offset = 0;
+    return nullptr;
+  }
+
   *offset += sizeof(BOMVar) + var->length;
   return var;
 }
@@ -206,7 +215,7 @@ void genPackageBOM(const std::string& path, QueryData& results) {
   for (unsigned i = 0; i < ntohl(bom.Vars->count); i++) {
     // Iterate through each BOM variable, a packed set of structures.
     auto var = bom.getVariable(&var_offset);
-    if (var == nullptr || var->name == nullptr) {
+    if (var == nullptr || (char*)var->name == nullptr) {
       break;
     }
 
@@ -225,7 +234,7 @@ void genPackageBOM(const std::string& path, QueryData& results) {
     const BOMTree* tree = (const BOMTree*)var_data;
     auto paths = bom.getPaths(tree->child);
     while (paths != nullptr && paths->isLeaf == htons(0)) {
-      if (paths->indices == nullptr) {
+      if ((BOMPathIndices*)paths->indices == nullptr) {
         break;
       }
       paths = bom.getPaths(paths->indices[0].index0);

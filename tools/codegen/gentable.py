@@ -12,14 +12,16 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import ast
 import jinja2
 import logging
 import os
 import sys
 
-# set DEVELOPING to True for debug statements
-DEVELOPING = False
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(SCRIPT_DIR + "/../tests")
+from utils import platform
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -31,12 +33,7 @@ TEMPLATES = {}
 RESERVED = ["n", "index"]
 
 # Set the platform in osquery-language
-if sys.platform.find("freebsd") == 0:
-    PLATFORM = "freebsd"
-elif sys.platform.find("linux") == 0:
-    PLATFORM = "linux"
-else:
-    PLATFORM = sys.platform
+PLATFORM = platform()
 
 # Supported SQL types for spec
 class DataType(object):
@@ -84,9 +81,9 @@ def lightred(msg):
 def is_blacklisted(table_name, path=None, blacklist=None):
     """Allow blacklisting by tablename."""
     if blacklist is None:
-        specs_path = os.path.dirname(os.path.dirname(path))
-        if os.path.basename(specs_path) == "tables":
-            specs_path += "/specs"
+        specs_path = os.path.dirname(path)
+        if os.path.basename(specs_path) != "specs":
+            specs_path = os.path.basename(specs_path)
         blacklist_path = os.path.join(specs_path, "blacklist")
         if not os.path.exists(blacklist_path):
             return False
@@ -113,9 +110,7 @@ def is_blacklisted(table_name, path=None, blacklist=None):
             return True
     return False
 
-def setup_templates(path):
-    tables_path = os.path.dirname(os.path.dirname(path))
-    templates_path = os.path.join(tables_path, "templates")
+def setup_templates(templates_path):
     if not os.path.exists(templates_path):
         templates_path = os.path.join(os.path.dirname(tables_path), "templates")
         if not os.path.exists(templates_path):
@@ -159,6 +154,7 @@ class TableState(Singleton):
         self.class_name = ""
         self.description = ""
         self.attributes = {}
+        self.examples = []
 
     def columns(self):
         return [i for i in self.schema if isinstance(i, Column)]
@@ -178,6 +174,7 @@ class TableState(Singleton):
             function=self.function,
             class_name=self.class_name,
             attributes=self.attributes,
+            examples=self.examples,
         )
 
         if self.table_name == "" or self.function == "":
@@ -248,6 +245,7 @@ def table_name(name):
     table.table_name = name
     table.description = ""
     table.attributes = {}
+    table.examples = []
 
 
 def schema(schema_list):
@@ -266,6 +264,16 @@ def schema(schema_list):
 
 def description(text):
     table.description = text
+
+
+def select_all(name=None):
+    if name == None:
+        name = table.table_name
+    return "select count(*) from %s;" % (name)
+
+
+def examples(example_queries):
+    table.examples = example_queries
 
 
 def attributes(**kwargs):
@@ -297,7 +305,18 @@ def implementation(impl_string):
 
 
 def main(argc, argv):
-    if DEVELOPING:
+    parser = argparse.ArgumentParser("Generate C++ Table Plugin from specfile.")
+    parser.add_argument(
+        "--debug", default=False, action="store_true",
+        help="Output debug messages (when developing)"
+    )
+    parser.add_argument("--templates", default=SCRIPT_DIR + "/templates",
+        help="Path to codegen output .cpp.in templates")
+    parser.add_argument("spec_file", help="Path to input .table spec file")
+    parser.add_argument("output", help="Path to output .cpp file")
+    args = parser.parse_args()
+
+    if args.debug:
         logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG)
     else:
         logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
@@ -305,14 +324,14 @@ def main(argc, argv):
     if argc < 3:
         usage()
         sys.exit(1)
-    filename = argv[1]
-    output = argv[2]
+    filename = args.spec_file
+    output = args.output
 
     if filename.endswith(".table"):
         # Adding a 3rd parameter will enable the blacklist
         disable_blacklist = argc > 3
 
-        setup_templates(filename)
+        setup_templates(args.templates)
         with open(filename, "rU") as file_handle:
             tree = ast.parse(file_handle.read())
             exec(compile(tree, "<string>", "exec"))
@@ -323,4 +342,5 @@ def main(argc, argv):
                 table.generate(output)
 
 if __name__ == "__main__":
+    SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
     main(len(sys.argv), sys.argv)

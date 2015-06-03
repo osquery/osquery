@@ -1,7 +1,7 @@
 table_name("process_open_sockets")
 description("Processes which have open network sockets on the system.")
 schema([
-    Column("pid", INTEGER, "Process (or thread) ID"),
+    Column("pid", INTEGER, "Process (or thread) ID", index=True),
     Column("socket", INTEGER, "Socket descriptor number"),
     Column("family", INTEGER, "Network protocol (IPv4, IPv6)"),
     Column("protocol", INTEGER, "Transport protocol (TCP/UDP)"),
@@ -11,4 +11,6 @@ schema([
     Column("remote_port", INTEGER, "Socket remote port"),
 ])
 implementation("system/process_open_sockets@genOpenSockets")
-
+examples([
+  "select * from process_open_sockets where pid = 1",
+])

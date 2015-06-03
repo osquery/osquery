@@ -20,10 +20,11 @@ import os
 import sys
 import uuid
 
-from gentable import Column, ForeignKey, \
-    table_name, schema, implementation, description, table, attributes, \
-    DataType, BIGINT, DATE, DATETIME, INTEGER, TEXT, \
-    is_blacklisted
+from gentable import *
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(SCRIPT_DIR + "/../tests")
+from utils import platform
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -85,7 +86,7 @@ class Encoder(json.JSONEncoder):
         return result
 
 
-def gen_api(api):
+def gen_api_json(api):
     """Apply the api literal object to the template."""
     api = json.dumps(
         api, cls=Encoder, sort_keys=True, indent=1, separators=(',', ': ')
@@ -110,6 +111,7 @@ def gen_spec(tree):
         "function": table.function,
         "description": table.description,
         "attributes": table.attributes,
+        "examples": table.examples,
     }
 
 
@@ -174,10 +176,46 @@ def gen_diff(api_old_path, api_new_path):
             column[3], column[1]))
 
 
+def gen_api(tables_path, profile={}):
+    blacklist = None
+    blacklist_path = os.path.join(tables_path, "blacklist")
+    if os.path.exists(blacklist_path):
+        with open(blacklist_path, "r") as fh:
+            blacklist = fh.read()
+
+    categories = {}
+    for base, _, files in os.walk(tables_path):
+        for spec_file in files:
+            if spec_file[0] == '.' or spec_file.find("example") == 0:
+                continue
+            # Exclude blacklist specific file
+            if spec_file == 'blacklist':
+                continue
+            platform = os.path.basename(base)
+            platform_name = CANONICAL_PLATFORMS[platform]
+            name = spec_file.split(".table", 1)[0]
+            if platform not in categories.keys():
+                categories[platform] = {"name": platform_name, "tables": []}
+            with open(os.path.join(base, spec_file), "rU") as fh:
+                tree = ast.parse(fh.read())
+                table_spec = gen_spec(tree)
+                table_profile = profile.get("%s.%s" % (platform, name), {})
+                table_spec["profile"] = NoIndent(table_profile)
+                table_spec["blacklisted"] = is_blacklisted(table_spec["name"],
+                                                           blacklist=blacklist)
+                categories[platform]["tables"].append(table_spec)
+    categories = [{"key": k, "name": v["name"], "tables": v["tables"]}
+                  for k, v in categories.iteritems()]
+    return categories
+
 def main(argc, argv):
     parser = argparse.ArgumentParser("Generate API documentation.")
     parser.add_argument(
-        "--tables", default="osquery/tables/specs",
+        "--debug", default=False, action="store_true",
+        help="Output debug messages (when developing)"
+    )
+    parser.add_argument(
+        "--tables", default="specs",
         help="Path to osquery table specs"
     )
     parser.add_argument(
@@ -189,9 +227,12 @@ def main(argc, argv):
         help="Compare API changes API_PREVIOUS API_CURRENT"
     )
     parser.add_argument("vars", nargs="*")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
-    logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
+    if args.debug:
+        logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG)
+    else:
+        logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
 
     if args.diff:
         if len(args.vars) < 2:
@@ -216,38 +257,11 @@ def main(argc, argv):
                 logging.error("Cannot parse profile data: %s" % (str(e)))
                 exit(2)
 
-    # Read in the optional list of blacklisted tables
-    blacklist = None
-    blacklist_path = os.path.join(args.tables, "blacklist")
-    if os.path.exists(blacklist_path):
-        with open(blacklist_path, "r") as fh:
-            blacklist = fh.read()
-
-    categories = {}
-    for base, _, files in os.walk(args.tables):
-        for spec_file in files:
-            if spec_file[0] == '.':
-                continue
-            # Exclude blacklist specific file
-            if spec_file == 'blacklist':
-                continue
-            platform = os.path.basename(base)
-            platform_name = CANONICAL_PLATFORMS[platform]
-            name = spec_file.split(".table", 1)[0]
-            if platform not in categories.keys():
-                categories[platform] = {"name": platform_name, "tables": []}
-            with open(os.path.join(base, spec_file), "rU") as fh:
-                tree = ast.parse(fh.read())
-                table_spec = gen_spec(tree)
-                table_profile = profile.get("%s.%s" % (platform, name), {})
-                table_spec["profile"] = NoIndent(table_profile)
-                table_spec["blacklisted"] = is_blacklisted(table_spec["name"],
-                                                           blacklist=blacklist)
-                categories[platform]["tables"].append(table_spec)
-    categories = [{"key": k, "name": v["name"], "tables": v["tables"]}
-                  for k, v in categories.iteritems()]
-    print(gen_api(categories))
+    # Read in the optional list of blacklisted tables, then generate categories.
+    api = gen_api(args.tables, profile)
+    print(gen_api_json(api))
 
 
 if __name__ == "__main__":
+    SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
     main(len(sys.argv), sys.argv)

@@ -24,3 +24,4 @@ freebsd:yara_events
 freebsd:yara
 freebsd:system_controls
 freebsd:smbios_tables
+example

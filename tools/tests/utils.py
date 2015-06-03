@@ -21,7 +21,7 @@ def red(msg):
 
 
 def lightred(msg):
-    return "\033[1;31m %s \033[0m" % str(msg)
+    return "\033[1;31m%s\033[0m" % str(msg)
 
 
 def yellow(msg):
@@ -46,6 +46,16 @@ def write_config(data={}, path=None):
         path = data["options"]["config_path"]
     with open(path, "w") as fh:
         fh.write(json.dumps(data))
+
+
+def platform():
+    platform = sys.platform
+    if platform.find("linux") == 0:
+        platform = "linux"
+    if platform.find("freebsd") == 0:
+        platform = "freebsd"
+    return platform
+
 
 def queries_from_config(config_path):
     config = {}
@@ -72,7 +82,7 @@ def queries_from_tables(path, restrict):
     """Construct select all queries from all tables."""
     # Let the caller limit the tables
     restrict_tables = [t.strip() for t in restrict.split(",")]
-    platform = sys.platform if sys.platform is not "linux2" else "linux"
+    platform = platform()
     tables = []
     for base, _, files in os.walk(path):
         for spec in files:

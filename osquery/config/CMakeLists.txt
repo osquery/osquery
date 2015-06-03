@@ -14,7 +14,7 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
   ${OSQUERY_CONFIG_PLUGINS}
 )
 
-ADD_OSQUERY_LIBRARY(FALSE osquery_config_parsers
+ADD_OSQUERY_LIBRARY(TRUE osquery_config_parsers
   ${OSQUERY_CONFIG_PARSERS}
 )
 

@@ -191,7 +191,7 @@ macro(GET_GENERATION_DEPS BASE_PATH)
   file(GLOB TABLE_FILES_TEMPLATES "${BASE_PATH}/osquery/tables/templates/*.in")
   set(GENERATION_DEPENDENCIES
     "${BASE_PATH}/tools/codegen/*.py"
-    "${BASE_PATH}/osquery/tables/specs/blacklist"
+    "${BASE_PATH}/specs/blacklist"
   )
   list(APPEND GENERATION_DEPENDENCIES ${TABLE_FILES_TEMPLATES})
 endmacro()
@@ -271,7 +271,7 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
   add_custom_command(
     OUTPUT "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp"
     COMMAND ${PYTHON_EXECUTABLE} "${BASE_PATH}/tools/codegen/amalgamate.py"
-      "${BASE_PATH}/osquery/tables/" "${CMAKE_BINARY_DIR}/generated" "${NAME}"
+      "${BASE_PATH}/tools/codegen/" "${CMAKE_BINARY_DIR}/generated" "${NAME}"
     DEPENDS ${GENERATED_TARGETS} ${GENERATION_DEPENDENCIES}
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   )

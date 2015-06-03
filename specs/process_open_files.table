@@ -1,8 +1,11 @@
 table_name("process_open_files")
 description("File descriptors for each process.")
 schema([
-    Column("pid", BIGINT, "Process (or thread) ID"),
+    Column("pid", BIGINT, "Process (or thread) ID", index=True),
     Column("fd", BIGINT, "Process-specific file descriptor number"),
     Column("path", TEXT, "Filesystem path of descriptor"),
 ])
 implementation("system/process_open_files@genOpenFiles")
+examples([
+  "select * from process_open_files where pid = 1",
+])

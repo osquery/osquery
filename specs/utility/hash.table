@@ -9,3 +9,7 @@ schema([
 ])
 attributes(utility=True)
 implementation("utility/hash@genHash")
+examples([
+  "select * from hash where path = '/etc/passwd'",
+  "select * from hash where directory = '/etc/'",
+])

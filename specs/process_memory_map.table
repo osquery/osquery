@@ -1,7 +1,7 @@
 table_name("process_memory_map")
 description("Process memory mapped files and pseudo device/regions.")
 schema([
-    Column("pid", INTEGER, "Process (or thread) ID"),
+    Column("pid", INTEGER, "Process (or thread) ID", index=True),
     Column("start", TEXT, "Virtual start address (hex)"),
     Column("end", TEXT, "Virtual end address (hex)"),
     Column("permissions", TEXT, "r=read, w=write, x=execute, p=private (cow)"),
@@ -12,3 +12,6 @@ schema([
     Column("pseudo", INTEGER, "1 if path is a pseudo path, else 0"),
 ])
 implementation("processes@genProcessMemoryMap")
+examples([
+  "select * from process_memory_map where pid = 1",
+])

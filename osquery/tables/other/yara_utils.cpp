@@ -14,7 +14,7 @@
 #include <osquery/config.h>
 #include <osquery/logger.h>
 
-#include "osquery/tables/utils/yara_utils.h"
+#include "osquery/tables/other/yara_utils.h"
 
 namespace osquery {
 
