@@ -8,8 +8,9 @@ if(APPLE)
     DEPENDS daemon shell
   )
 elseif(LINUX)
-  if(UBUNTU)
+  if(DEBIAN_BASED)
     set(PACKAGE_TYPE "deb")
+    set(PACKAGE_ITERATION "1.ubuntu")
     set(PACKAGE_DEPENDENCIES
       "libc6 (>=2.15)"
       "zlib1g"
@@ -18,21 +19,21 @@ elseif(LINUX)
       "libreadline6"
     )
     if(OSQUERY_BUILD_DISTRO STREQUAL "precise")
-      set(PACKAGE_ITERATION "1.ubuntu12.04")
+      set(PACKAGE_ITERATION "1.ubuntu12")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6"
         "libudev0"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "trusty")
-      set(PACKAGE_ITERATION "1.ubuntu14.04")
+      set(PACKAGE_ITERATION "1.ubuntu14")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6 (>= 4.8)"
         "libudev1"
       )
     endif()
-  elseif(CENTOS)
+  elseif(REDHAT_BASED)
     set(PACKAGE_TYPE "rpm")
     set(PACKAGE_ITERATION "1.el")
     set(PACKAGE_DEPENDENCIES
@@ -45,57 +46,31 @@ elseif(LINUX)
       "rpm-libs"
     )
     if(OSQUERY_BUILD_DISTRO STREQUAL "centos6")
-      set(PACKAGE_ITERATION "1.el6_6.5")
+      set(PACKAGE_ITERATION "1.el6")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libudev"
+      )
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "rhel6")
+      set(PACKAGE_ITERATION "1.rhel6")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libudev"
+      )
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "oracle6")
+      set(PACKAGE_ITERATION "1.oel6")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libudev"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "centos7")
-      set(PACKAGE_ITERATION "1.el7_7.0")
-      set(PACKAGE_DEPENDENCIES
-        "${PACKAGE_DEPENDENCIES}"
-      )
-    endif()
-  elseif(RHEL)
-    set(PACKAGE_TYPE "rpm")
-    set(PACKAGE_ITERATION "1.el")
-    set(PACKAGE_DEPENDENCIES
-      "glibc >= 2.12"
-      "openssl >= 1.0"
-      "bzip2-libs"
-      "readline"
-      "zlib"
-      "rpm-libs"
-    )
-    if(OSQUERY_BUILD_DISTRO STREQUAL "rhel6")
-      set(PACKAGE_ITERATION "1.el6_6.5")
-      set(PACKAGE_DEPENDENCIES
-        "${PACKAGE_DEPENDENCIES}"
-        "libudev"
-      )
+      set(PACKAGE_ITERATION "1.el7")
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "rhel7")
-      set(PACKAGE_ITERATION "1.el7_7.0")
-      set(PACKAGE_DEPENDENCIES
-        "${PACKAGE_DEPENDENCIES}"
-      )
-    endif()
-  elseif(AMAZON)
-    set(PACKAGE_TYPE "rpm")
-    set(PACKAGE_ITERATION "1.el")
-    set(PACKAGE_DEPENDENCIES
-      "glibc >= 2.12"
-      "openssl >= 1.0"
-      "bzip2-libs"
-      "readline"
-      "zlib"
-      "rpm-libs"
-    )
-    if(OSQUERY_BUILD_DISTRO STREQUAL "amazon2015.03")
-      set(PACKAGE_ITERATION "1.el6_6.5")
-      set(PACKAGE_DEPENDENCIES
-        "${PACKAGE_DEPENDENCIES}"
-        "libudev"
-      )
+      set(PACKAGE_ITERATION "1.rhel7")
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "oracle7")
+      set(PACKAGE_ITERATION "1.oel7")
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "amazon2015.03")
+      set(PACKAGE_ITERATION "1.amazon2015")
     endif()
   endif()
   JOIN("${PACKAGE_DEPENDENCIES}" ", " PACKAGE_DEPENDENCIES)
