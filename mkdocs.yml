@@ -35,3 +35,4 @@ pages:
 - ['development/options-arguments.md', 'Development', 'Adding CLI Arguments']
 - ['development/reading-files.md', 'Development', 'Reading/Writing Files']
 - ['development/wildcard-rules.md', 'Development', 'Wildcards and Globbing']
+- ['development/kernel.md', 'Development', 'Kernel OS X']
