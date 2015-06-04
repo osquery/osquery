@@ -82,7 +82,7 @@ def queries_from_tables(path, restrict):
     """Construct select all queries from all tables."""
     # Let the caller limit the tables
     restrict_tables = [t.strip() for t in restrict.split(",")]
-    platform = platform()
+    spec_platform = platform()
     tables = []
     for base, _, files in os.walk(path):
         for spec in files:

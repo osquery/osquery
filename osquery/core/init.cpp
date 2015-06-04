@@ -8,6 +8,9 @@
  *
  */
 
+#include <chrono>
+#include <random>
+
 #include <syslog.h>
 #include <stdio.h>
 #include <time.h>
@@ -52,6 +55,8 @@ namespace osquery {
   " - https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/" \
   "\n\n";
 
+typedef std::chrono::high_resolution_clock chrono_clock;
+
 CLI_FLAG(bool,
          config_check,
          false,
@@ -95,7 +100,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       argv_(&argv),
       tool_(tool),
       binary_(fs::path(std::string(argv[0])).filename().string()) {
-  std::srand(time(nullptr));
+  std::srand(chrono_clock::now().time_since_epoch().count());
 
   // osquery implements a custom help/usage output.
   for (int i = 1; i < *argc_; i++) {

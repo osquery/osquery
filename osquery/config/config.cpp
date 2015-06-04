@@ -8,6 +8,7 @@
  *
  */
 
+#include <chrono>
 #include <mutex>
 #include <random>
 #include <sstream>
@@ -21,10 +22,11 @@
 
 namespace pt = boost::property_tree;
 
+namespace osquery {
+
 typedef pt::ptree::value_type tree_node;
 typedef std::map<std::string, std::vector<std::string> > EventFileMap_t;
-
-namespace osquery {
+typedef std::chrono::high_resolution_clock chrono_clock;
 
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
@@ -402,6 +404,7 @@ int splayValue(int original, int splayPercent) {
   }
 
   std::default_random_engine generator;
+  generator.seed(chrono_clock::now().time_since_epoch().count());
   std::uniform_int_distribution<int> distribution(min_value, max_value);
   return distribution(generator);
 }
