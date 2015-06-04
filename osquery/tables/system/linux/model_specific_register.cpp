@@ -94,7 +94,7 @@ const static msr_record_t fields[] = {
      .is_flag = false}};
 
 void getModelSpecificRegisterData(QueryData &results, int cpu_number) {
-  auto msr_filename = 
+  auto msr_filename =
     std::string("/dev/cpu/") + std::to_string(cpu_number) + "/msr";
 
   int fd = open(msr_filename.c_str(), O_RDONLY);
@@ -130,7 +130,7 @@ void getModelSpecificRegisterData(QueryData &results, int cpu_number) {
 }
 
 // Filter only for filenames starting with a digit.
-int filter(const struct dirent *entry) {
+int msrScandirFilter(const struct dirent *entry) {
   if (isdigit(entry->d_name[0])) {
     return 1;
   } else {
@@ -142,7 +142,7 @@ QueryData genModelSpecificRegister(QueryContext &context) {
   QueryData results;
 
   struct dirent **entries = nullptr;
-  int num_entries = scandir("/dev/cpu", &entries, filter, 0);
+  int num_entries = scandir("/dev/cpu", &entries, msrScandirFilter, 0);
   if (num_entries < 1) {
     LOG(WARNING) << "No msr information check msr kernel module is enabled.";
     return results;
