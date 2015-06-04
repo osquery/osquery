@@ -1,4 +1,4 @@
-table_name("model_specific_register")
+table_name("msr")
 description("Various pieces of data stored in the model specific register per "
             "processor. NOTE: the msr kernel module must be enabled, and "
             "osquery must be run as root.")
