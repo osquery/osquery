@@ -27,11 +27,11 @@ import time
 
 # Import the testing utils
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/tests/")
-from utils import *
+import utils
 
 KB = 1024 * 1024
 RANGES = {
-    "colors": (blue, green, yellow, red),
+    "colors": (utils.blue, utils.green, utils.yellow, utils.red),
     "utilization": (8, 20, 50),
     "cpu_time": (0.4, 1, 10),
     "memory": (8 * KB, 12 * KB, 24 * KB),
@@ -45,7 +45,7 @@ def get_stats(p, interval=1):
     utilization = p.cpu_percent(interval=interval)
     return {
         "utilization": utilization,
-        "counters": p.io_counters() if platform() != "darwin" else None,
+        "counters": p.io_counters() if utils.platform() != "darwin" else None,
         "fds": p.num_fds(),
         "cpu_times": p.cpu_times(),
         "memory": p.memory_info_ex(),
@@ -101,7 +101,7 @@ def check_leaks_darwin(shell, query, count=1):
 
 
 def check_leaks(shell, query, count=1, supp_file=None):
-    if platform() == "darwin":
+    if utils.platform() == "darwin":
         return check_leaks_darwin(shell, query, count=count)
     else:
         return check_leaks_linux(shell, query, count=count, supp_file=supp_file)
@@ -289,7 +289,7 @@ if __name__ == "__main__":
         help="Limit to a list of comma-separated tables."
     )
     group.add_argument(
-        "--tables", metavar="PATH", default="./osquery/tables/specs",
+        "--tables", metavar="PATH", default="./specs",
         help="Path to the osquery table specs."
     )
     group.add_argument(
@@ -316,7 +316,7 @@ if __name__ == "__main__":
     )
     group.add_argument(
         "--shell", metavar="PATH", default="./build/%s/osquery/run" % (
-            platform()),
+            utils.platform()),
         help="Path to osquery run wrapper (./build/<sys>/osquery/run)."
     )
 
@@ -365,11 +365,11 @@ if __name__ == "__main__":
         if not os.path.exists(args.config):
             print ("Cannot find --config: %s" % (args.config))
             exit(1)
-        queries = queries_from_config(args.config)
+        queries = utils.queries_from_config(args.config)
     elif args.query is not None:
         queries["manual"] = args.query
     else:
-        queries = queries_from_tables(args.tables, args.restrict)
+        queries = utils.queries_from_tables(args.tables, args.restrict)
 
     if args.leaks:
         results = profile_leaks(

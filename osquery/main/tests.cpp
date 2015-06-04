@@ -23,19 +23,19 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
 DECLARE_string(database_path);
 DECLARE_string(extensions_socket);
 DECLARE_string(modules_autoload);
 DECLARE_string(extensions_autoload);
 DECLARE_bool(disable_logging);
 
+typedef std::chrono::high_resolution_clock chrono_clock;
+
 void initTesting() {
   // Seed the random number generator, some tests generate temporary files
   // ports, sockets, etc using random numbers.
-  std::chrono::milliseconds ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::system_clock::now().time_since_epoch());
-  srand(ms.count());
+  std::srand(chrono_clock::now().time_since_epoch().count());
 
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.

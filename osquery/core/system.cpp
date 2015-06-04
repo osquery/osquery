@@ -47,8 +47,7 @@ CLI_FLAG(bool,
          "Force osqueryd to kill previously-running daemons");
 
 std::string getHostname() {
-  char hostname[256]; // Linux max should be 64.
-  memset(hostname, 0, sizeof(hostname));
+  char hostname[256] = {0}; // Linux max should be 64.
   gethostname(hostname, sizeof(hostname) - 1);
   std::string hostname_string = std::string(hostname);
   boost::algorithm::trim(hostname_string);
