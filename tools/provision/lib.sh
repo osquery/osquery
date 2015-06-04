@@ -63,7 +63,8 @@ function install_gcc() {
     [ -L /usr/bin/g++ ] && sudo unlink /usr/bin/g++
     sudo ln -sf $TARGET/bin/gcc4.8.4 /usr/bin/gcc
     sudo ln -sf $TARGET/bin/g++4.8.4 /usr/bin/g++
-    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib64/libstdc++.so.6
+    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.19
+    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib/x86_64-linux-gnu/libstdc++.so.6
     popd
   fi
 }
