@@ -10,6 +10,7 @@
 
 #include <cstring>
 
+#include <math.h>
 #include <sys/wait.h>
 #include <signal.h>
 
@@ -308,7 +309,10 @@ void WatcherRunner::createWorker() {
     if (Watcher::getState(Watcher::getWorker()).last_respawn_time >
         getUnixTime() - getWorkerLimit(RESPAWN_LIMIT)) {
       LOG(WARNING) << "osqueryd worker respawning too quickly";
+      Watcher::workerRestarted();
       interruptableSleep(getWorkerLimit(RESPAWN_DELAY) * 1000);
+      // Exponential back off for quickly-respawning clients.
+      interruptableSleep(pow(2, Watcher::workerRestartCount()) * 1000);
     }
   }
 

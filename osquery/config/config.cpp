@@ -150,6 +150,7 @@ inline void additionalScheduledQuery(const std::string& name,
 
   // This is a candidate for a catch-all iterator with a catch for boolean type.
   query.options["snapshot"] = node.second.get<bool>("snapshot", false);
+  query.options["removed"] = node.second.get<bool>("removed", true);
 
   // Check if this query exists, if so, check if it was changed.
   if (conf.schedule.count(name) > 0) {

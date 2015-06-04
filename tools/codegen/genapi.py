@@ -227,7 +227,7 @@ def main(argc, argv):
         help="Compare API changes API_PREVIOUS API_CURRENT"
     )
     parser.add_argument("vars", nargs="*")
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
 
     if args.debug:
         logging.basicConfig(format=LOG_FORMAT, level=logging.DEBUG)
