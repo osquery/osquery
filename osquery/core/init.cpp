@@ -31,6 +31,35 @@
 #include "osquery/core/watcher.h"
 #include "osquery/database/db_handle.h"
 
+#ifdef __linux__
+#include <sys/resource.h>
+#include <sys/syscall.h>
+
+/*
+ * These are the io priority groups as implemented by CFQ. RT is the realtime
+ * class, it always gets premium service. BE is the best-effort scheduling
+ * class, the default for any process. IDLE is the idle scheduling class, it
+ * is only served when no one else is using the disk.
+ */
+enum {
+  IOPRIO_CLASS_NONE,
+  IOPRIO_CLASS_RT,
+  IOPRIO_CLASS_BE,
+  IOPRIO_CLASS_IDLE,
+};
+
+/*
+ * 8 best effort priority levels are supported
+ */
+#define IOPRIO_BE_NR  (8)
+
+enum {
+  IOPRIO_WHO_PROCESS = 1,
+  IOPRIO_WHO_PGRP,
+  IOPRIO_WHO_USER,
+};
+#endif
+
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -199,6 +228,20 @@ void Initializer::initDaemon() {
   if (!pid_status.ok()) {
     LOG(ERROR) << binary_ << " initialize failed: " << pid_status.toString();
     ::exit(EXIT_FAILURE);
+  }
+
+  // Nice ourselves if using a watchdog and the level is not too permissive.
+  if (!FLAGS_disable_watchdog &&
+      FLAGS_watchdog_level >= WATCHDOG_LEVEL_DEFAULT &&
+      FLAGS_watchdog_level != WATCHDOG_LEVEL_DEBUG) {
+    // Set CPU scheduling IO limits.
+    setpriority(PRIO_PGRP, 0, 10);
+#ifdef __linux__
+    // Using: ioprio_set(IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
+    syscall(SYS_ioprio_set, IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
+#elif defined(__APPLE__) || defined(__FreeBSD__)
+    setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_PROCESS, IOPOL_THROTTLE);
+#endif
   }
 }
 

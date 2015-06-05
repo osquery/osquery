@@ -224,6 +224,7 @@ class Column(object):
         self.name = name
         self.type = col_type
         self.description = description
+        self.options = kwargs
 
 
 class ForeignKey(object):

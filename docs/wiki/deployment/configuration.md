@@ -65,6 +65,8 @@ The first query will document changes to an OS X host's kernel extensions, with 
 
 The results of your query are cached on disk via [RocksDB](http://rocksdb.org/). On first query run, all of the results are stored in RocksDB. On subsequent runs, only result-set changes are logged to RocksDB.
 
+Scheduled queries can also set: `"removed":false` and `"snapshot":true`. See the next section on [logging](logging.md) for how query options affect output.
+
 ## Chef Configuration
 
 Here are example chef cookbook recipes and files for OS X and Linux deployments.
