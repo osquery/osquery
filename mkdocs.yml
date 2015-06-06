@@ -23,6 +23,7 @@ pages:
 - ['deployment/extensions.md', 'Deployment', 'Extensions']
 - ['deployment/file-integrity-monitoring.md', 'Deployment', 'File Integrity Monitoring']
 - ['deployment/yara.md', 'Deployment', 'YARA Scanning']
+- ['deployment/remote.md', 'Deployment', 'Remote settings']
 
 - ['development/building.md', 'Development', 'Building osquery']
 - ['development/contributing-code.md', 'Development', 'Contributing Code']
