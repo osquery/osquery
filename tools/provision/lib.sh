@@ -382,7 +382,14 @@ function package() {
       log "$1 is already installed. skipping."
     else
       log "installing $1"
-      brew install --build-bottle --build-from-source $1 || brew upgrade --build-from-source $@
+      export HOMEBREW_MAKE_JOBS=$THREADS
+      export HOMEBREW_NO_EMOJI=1
+      if [[ $1 = "rocksdb" ]]; then
+        # Build RocksDB from source in brew
+        export HOMEBREW_BUILD_FROM_SOURCE=1
+        HOMEBREW_ARGS=--build-bottle
+      fi
+      brew install -v $HOMEBREW_ARGS $1 || brew upgrade -v $HOMEBREW_ARGS $@
     fi
   elif [[ $OS = "freebsd" ]]; then
     if pkg info -q $1; then
