@@ -13,8 +13,7 @@ a query schedule from a configuration.
 ## Configuration components
 
 The osquery "configuration" is read from a config plugin. This plugin is a data retrieval method and is set to **filesystem** by default.
-Other retrieval and run-time updating methods may include an HTTL/TLS request.
-In each case the response data must be JSON-formatted.
+Other retrieval and run-time updating methods may include a HTTP/TLS request using the **tls** config plugin. In all cases the response data must be JSON-formatted.
 
 There are several components to a configuration:
 
