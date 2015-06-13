@@ -18,6 +18,7 @@
 #include <osquery/tables.h>
 #include <osquery/sql.h>
 
+namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -46,106 +47,81 @@ const std::vector<std::string> kHomeDirSearchPaths = {
     "Applications", "Desktop", "Downloads",
 };
 
-std::vector<std::string> getSystemApplications() {
-  std::vector<std::string> results;
-  std::vector<std::string> sys_apps;
-  auto status = osquery::listDirectoriesInDirectory("/Applications", sys_apps);
-
-  if (status.ok()) {
-    for (const auto& app_path : sys_apps) {
-      std::string plist_path = app_path + "/Contents/Info.plist";
-      if (boost::filesystem::exists(plist_path)) {
-        results.push_back(plist_path);
-      }
-    }
-  } else {
-    VLOG(1) << "Error listing /Applications: " << status.toString();
+void genApplicationsFromPath(const fs::path& path,
+                             std::vector<std::string>& apps) {
+  std::vector<std::string> new_apps;
+  if (!osquery::listDirectoriesInDirectory(path.string(), new_apps).ok()) {
+    return;
   }
-  return results;
-}
 
-std::vector<std::string> getUserApplications(const std::string& home_dir) {
-  std::vector<std::string> results;
-  for (const auto& dir_to_check : kHomeDirSearchPaths) {
-    boost::filesystem::path apps_path = home_dir;
-    apps_path /= dir_to_check;
-
-    std::vector<std::string> user_apps;
-    auto status = osquery::listDirectoriesInDirectory(apps_path, user_apps);
-    if (status.ok()) {
-      for (const auto& user_app : user_apps) {
-        std::string plist_path = user_app + "/Contents/Info.plist";
-        if (boost::filesystem::exists(plist_path)) {
-          results.push_back(plist_path);
-        }
-      }
-    } else {
-      VLOG(1) << "Error listing " << apps_path << ": " << status.toString();
+  for (const auto& app : new_apps) {
+    if (fs::exists(app + "/Contents/Info.plist")) {
+      apps.push_back(app + "/Contents/Info.plist");
     }
   }
-  return results;
 }
 
-std::string getNameFromInfoPlistPath(const std::string& path) {
-  boost::filesystem::path full = path;
-  return full.parent_path().parent_path().filename().string();
-}
-
-std::string getPathFromInfoPlistPath(const std::string& path) {
-  boost::filesystem::path full = path;
-  return full.parent_path().parent_path().string();
-}
-
-Row parseInfoPlist(const std::string& path, const pt::ptree& tree) {
+void genApplication(const pt::ptree& tree,
+                    const fs::path& path,
+                    QueryData& results) {
   Row r;
+  r["name"] = path.parent_path().parent_path().filename().string();
+  r["path"] = path.parent_path().parent_path().string();
 
-  boost::filesystem::path full = path;
-  r["name"] = getNameFromInfoPlistPath(path);
-  r["path"] = getPathFromInfoPlistPath(path);
-  for (const auto& it : kAppsInfoPlistTopLevelStringKeys) {
+  // Loop through each column and its mapped Info.plist key name.
+  for (const auto& item : kAppsInfoPlistTopLevelStringKeys) {
     try {
-      r[it.second] = tree.get<std::string>(it.first);
+      r[item.second] = tree.get<std::string>(item.first);
       // Change boolean values into integer 1, 0.
-      if (r[it.second] == "true" || r[it.second] == "YES" ||
-          r[it.second] == "Yes") {
-        r[it.second] = INTEGER(1);
-      } else if (r[it.second] == "false" || r[it.second] == "NO" ||
-                 r[it.second] == "No") {
-        r[it.second] = INTEGER(0);
+      if (r[item.second] == "true" || r[item.second] == "YES" ||
+          r[item.second] == "Yes") {
+        r[item.second] = INTEGER(1);
+      } else if (r[item.second] == "false" || r[item.second] == "NO" ||
+                 r[item.second] == "No") {
+        r[item.second] = INTEGER(0);
       }
     } catch (const pt::ptree_error& e) {
       // Expect that most of the selected keys are missing.
-      r[it.second] = "";
+      r[item.second] = "";
     }
   }
-  return r;
+  results.push_back(r);
 }
 
 QueryData genApps(QueryContext& context) {
   QueryData results;
-  pt::ptree tree;
 
-  // Enumerate and parse applications in / (system applications).
-  for (const auto& path : getSystemApplications()) {
-    if (osquery::parsePlist(path, tree).ok()) {
-      results.push_back(parseInfoPlist(path, tree));
-    } else {
-      VLOG(1) << "Error parsing system applications: " << path;
+  // Walk through several groups of common search paths that may contain apps.
+  std::vector<std::string> apps;
+  genApplicationsFromPath("/Applications", apps);
+
+  // List all users on the system, and walk common search paths with homes.
+  auto homes = osquery::getHomeDirectories();
+  for (const auto& home : homes) {
+    for (const auto& path : kHomeDirSearchPaths) {
+      genApplicationsFromPath(home / path, apps);
     }
   }
 
-  auto users = SQL::selectAllFrom("users");
+  // The osquery::parsePlist method will reset/clear a property tree.
+  // Keeping the data structure in a larger scope preserves allocations
+  // between similar-sized trees.
+  pt::ptree tree;
 
-  // Enumerate apps for each user (several paths).
-  for (const auto& user : users) {
-    for (const auto& path : getUserApplications(user.at("directory"))) {
-      if (osquery::parsePlist(path, tree).ok()) {
-        Row r = parseInfoPlist(path, tree);
-        results.push_back(r);
-      } else {
-        VLOG(1) << "Error parsing user applications: " << path;
-      }
+  // For each found application (path with an Info.plist) parse the plist.
+  for (const auto& path : apps) {
+    if (!context.constraints["path"].matches(path)) {
+      // Optimize by not searching when a path is a constraint.
+      continue;
     }
+
+    if (!osquery::parsePlist(path, tree).ok()) {
+      TLOG << "Error parsing application plist: " << path;
+      continue;
+    }
+
+    // Using the parsed plist, pull out each interesting key.
+    genApplication(tree, path, results);
   }
 
   return results;

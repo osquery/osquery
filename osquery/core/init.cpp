@@ -97,7 +97,7 @@ CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 
 void printUsage(const std::string& binary, int tool) {
   // Parse help options before gflags. Only display osquery-related options.
-  fprintf(stdout, DESCRIPTION, OSQUERY_VERSION);
+  fprintf(stdout, DESCRIPTION, kVersion.c_str());
   if (tool == OSQUERY_TOOL_SHELL) {
     // The shell allows a caller to run a single SQL statement and exit.
     fprintf(stdout, USAGE, binary.c_str(), "[SQL STATEMENT]");
@@ -155,7 +155,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 #endif
 
   // Set version string from CMake build
-  GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);
+  GFLAGS_NAMESPACE::SetVersionString(kVersion.c_str());
 
   // Let gflags parse the non-help options/flags.
   GFLAGS_NAMESPACE::ParseCommandLineFlags(
@@ -190,11 +190,10 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       VLOG(1) << "osquery worker initialized [watcher="
               << getenv("OSQUERY_WORKER") << "]";
     } else {
-      VLOG(1) << "osquery initialized [version=" << OSQUERY_VERSION << "]";
+      VLOG(1) << "osquery initialized [version=" << kVersion << "]";
     }
   } else {
-    VLOG(1) << "osquery extension initialized [sdk=" << OSQUERY_SDK_VERSION
-            << "]";
+    VLOG(1) << "osquery extension initialized [sdk=" << kSDKVersion << "]";
   }
 }
 
@@ -215,7 +214,7 @@ void Initializer::initDaemon() {
 
   // Print the version to SYSLOG.
   syslog(
-      LOG_NOTICE, "%s started [version=%s]", binary_.c_str(), OSQUERY_VERSION);
+      LOG_NOTICE, "%s started [version=%s]", binary_.c_str(), kVersion.c_str());
 
   // Check if /var/osquery exists
   if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&

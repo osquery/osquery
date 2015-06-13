@@ -63,16 +63,12 @@ const std::map<std::string, std::string> kLaunchdTopLevelArrayKeys = {
 const std::string kLaunchdOverridesPath =
     "/var/db/launchd.db/%/overrides.plist";
 
-void genLaunchdItem(const std::string& path, QueryData& results) {
-  pt::ptree tree;
-  if (!osquery::parsePlist(path, tree).ok()) {
-    TLOG << "Could not parse launchd plist: " << path;
-    return;
-  }
-
+void genLaunchdItem(const pt::ptree& tree,
+                    const fs::path& path,
+                    QueryData& results) {
   Row r;
-  r["path"] = path;
-  r["name"] = fs::path(path).filename().string();
+  r["path"] = path.string();
+  r["name"] = path.filename().string();
   for (const auto& it : kLaunchdTopLevelStringKeys) {
     // For known string-values, the column is the value.
     r[it.second] = tree.get(it.first, "");
@@ -98,30 +94,38 @@ void genLaunchdItem(const std::string& path, QueryData& results) {
 QueryData genLaunchd(QueryContext& context) {
   QueryData results;
 
+  std::vector<std::string> launchers;
   for (const auto& search_path : kLaunchdSearchPaths) {
-    std::vector<std::string> launchers;
     osquery::listFilesInDirectory(search_path, launchers);
-    for (const auto& launcher : launchers) {
-      if (!context.constraints["path"].matches(launcher)) {
-        // Optimize by not searching when a path is a constraint.
-        continue;
-      }
-      genLaunchdItem(launcher, results);
+  }
+
+  // List all users on the system, and walk common search paths with homes.
+  auto homes = osquery::getHomeDirectories();
+  for (const auto& home : homes) {
+    for (const auto& path : kUserLaunchdSearchPaths) {
+      osquery::listFilesInDirectory(home / path, launchers);
     }
   }
 
-  auto homes = osquery::getHomeDirectories();
-  for (const auto& home : homes) {
-    for (const auto& search_path : kUserLaunchdSearchPaths) {
-      std::vector<std::string> launchers;
-      osquery::listFilesInDirectory(home / search_path, launchers);
-      for (const auto& launcher : launchers) {
-        if (!context.constraints["path"].matches(launcher)) {
-          continue;
-        }
-        genLaunchdItem(launcher, results);
-      }
+  // The osquery::parsePlist method will reset/clear a property tree.
+  // Keeping the data structure in a larger scope preserves allocations
+  // between similar-sized trees.
+  pt::ptree tree;
+
+  // For each found launcher (plist in known paths) parse the plist.
+  for (const auto& path : launchers) {
+    if (!context.constraints["path"].matches(path)) {
+      // Optimize by not searching when a path is a constraint.
+      continue;
     }
+
+    if (!osquery::parsePlist(path, tree).ok()) {
+      TLOG << "Error parsing launch daemon/agent plist: " << path;
+      continue;
+    }
+
+    // Using the parsed plist, pull out each set of interesting keys.
+    genLaunchdItem(tree, path, results);
   }
 
   return results;
