@@ -9,6 +9,7 @@
  */
 
 #include <map>
+#include <set>
 #include <vector>
 
 #include <CoreFoundation/CoreFoundation.h>
@@ -51,6 +52,8 @@ bool CertificateIsCA(const SecCertificateRef& cert);
 /// Generate a list of keychain items for a given item type.
 CFArrayRef CreateKeychainItems(const std::set<std::string>& paths,
                                const CFTypeRef& item_type);
+
+std::set<std::string> getKeychainPaths();
 
 // From SecCertificatePriv.h
 typedef uint32_t SecKeyUsage;
