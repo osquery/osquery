@@ -9,50 +9,52 @@ Complete your CLA here: <https://code.facebook.com/cla>
 
 ## Git workflow
 
-There are two possible scenarios which you may find yourself wondering how to go about developing and pushing code to osquery.
+Please do all of your development in a feature branch, on your own fork of osquery. You should clone osquery normally, like this:
 
-### You have push access to the osquery repository
-
-Most importantly, **don't push to master.**
-
-If you're a member of the core team at Facebook or you, in some other way, have acquired push access to https://github.com/facebook/osquery, then feel free to do your development on feature branches.
-
-Before you start working on your feature, ensure that you create your branch off of a fully-updated master.
-
-```bash
-# make sure that you're currently on master
-$ git branch
-  * master
-    new-feature-1
-
-# before you start working on your feature, make sure that you update master
-$ git pull --rebase origin master
-
-# create a new branch to work on off of master
-$ git checkout -b new-feature-2
-
-# check that you've properly switched to your new branch
-$ git branch
-  * new-feature-2
-    new-feature-1
-    master
+```
+git clone git@github.com:facebook/osquery.git
 ```
 
-Now that you're on your own feature branch, do some development, commit your changes and, when you're ready, push the new branch to origin:
+Then, your "remote" should be set up as follows:
 
-```bash
-$ git push -u origin new-feature-2
+```
+$ cd osquery
+$ git remote -v
+origin  git@github.com:facebook/osquery.git (fetch)
+origin  git@gitHub.com:facebook/osquery.git (push)
 ```
 
-The "-u" is for "untracked". Since you just created a new branch locally, the "-u" basically tells git that you know that the branch doesn't exist remotely and that you want to create it.
+Now, use the GitHub UI to fork osquery to your personal GitHub organization. Then, add the remote URL of your fork to git's local remotes:
 
-Every time you push from now on, on this branch, you can just do `git push`.
+```
+$ git remote add marpaia git@github.com:marpaia/osquery.git
+```
 
-When you're ready to have your code reviewed, create a new pull request with your new branch.
+Now, your "remote" should be set up as follows:
 
-### You're an open source contributor
+```
+$ git remote -v
+marpaia git@github.com:marpaiagitaia/osquery.git (fetch)
+marpaia git@github.com:marpaia/osquery.git (push)
+origin  git@github.com:facebook/osquery.git (fetch)
+origin  git@gitHub.com:facebook/osquery.git (push)
+```
 
-If you don't have push access to the main osquery repo, fork the GitHub repo to your own personal account. Once you've forked the repo, see the instructions above for creating and pushing feature branches. Once you've pushed your feature branch to your personal fork, visit the official osquery repository and create a Pull Request.
+When you're ready to start working on a new feature, create a new branch:
+
+```
+$ git checkout -b my-feature
+```
+
+Write your code and when you're ready to put up a Pull Request, push your local branch to your fork:
+
+```
+$ git add .
+$ git commit -m "my awesome feature!"
+$ git push -u marpaia my-feature
+```
+
+Visit https://github.com/facebook/osquery and use the web UI to create a Pull Request. Once your pull request has gone through sufficient review and iteration, please squash all of your commits into one commit.
 
 ## Pull Request workflow
 
