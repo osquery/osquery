@@ -1,0 +1,10 @@
+table_name("keychain_acls")
+description("Applications that have ACL entries in the keychain.")
+schema([
+    Column("path", TEXT, "The path of the keychain"),
+    Column("authorizations", TEXT, "A space delimited set of authorization attributes"),
+    Column("app_path", TEXT, "The path of the authorized application"),
+    Column("description", TEXT, "The description included with the ACL entry"),
+    Column("label", TEXT, "An optional label tag that may be included with the keychain entry"),
+])
+implementation("keychain_acl@genKeychainACLApps")

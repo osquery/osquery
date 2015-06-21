@@ -1,0 +1,356 @@
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+#include <sstream>
+
+#include <Security/Security.h>
+
+#include <boost/format.hpp>
+
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/sql.h>
+#include <osquery/tables.h>
+
+#include "osquery/core/conversions.h"
+#include "osquery/tables/system/darwin/keychain.h"
+
+namespace osquery {
+namespace tables {
+
+typedef struct {
+  std::string keychain_path;
+  std::string label;
+} KeychainItemMetadata;
+
+typedef struct {
+  std::vector<std::string> authorizations;
+  std::string description;
+  std::vector<std::string> applications;
+} KeychainItemACL;
+
+const std::map<CSSM_ACL_AUTHORIZATION_TAG, std::string> kACLAuthorizationTags =
+    {
+        {CSSM_ACL_AUTHORIZATION_ANY, "any"},
+        {CSSM_ACL_AUTHORIZATION_LOGIN, "login"},
+        {CSSM_ACL_AUTHORIZATION_GENKEY, "genkey"},
+        {CSSM_ACL_AUTHORIZATION_DELETE, "delete"},
+        {CSSM_ACL_AUTHORIZATION_EXPORT_WRAPPED, "export_wrapped"},
+        {CSSM_ACL_AUTHORIZATION_EXPORT_CLEAR, "export_clear"},
+        {CSSM_ACL_AUTHORIZATION_IMPORT_WRAPPED, "import_wrapped"},
+        {CSSM_ACL_AUTHORIZATION_IMPORT_CLEAR, "import_clear"},
+        {CSSM_ACL_AUTHORIZATION_SIGN, "sign"},
+        {CSSM_ACL_AUTHORIZATION_ENCRYPT, "encrypt"},
+        {CSSM_ACL_AUTHORIZATION_DECRYPT, "decrypt"},
+        {CSSM_ACL_AUTHORIZATION_MAC, "mac"},
+        {CSSM_ACL_AUTHORIZATION_DERIVE, "derive"},
+        {CSSM_ACL_AUTHORIZATION_DBS_CREATE, "dbs_create"},
+        {CSSM_ACL_AUTHORIZATION_DBS_DELETE, "dbs_delete"},
+        {CSSM_ACL_AUTHORIZATION_DB_READ, "db_read"},
+        {CSSM_ACL_AUTHORIZATION_DB_INSERT, "db_insert"},
+        {CSSM_ACL_AUTHORIZATION_DB_MODIFY, "db_modify"},
+        {CSSM_ACL_AUTHORIZATION_DB_DELETE, "db_delete"},
+        {CSSM_ACL_AUTHORIZATION_CHANGE_ACL, "change_acl"},
+        {CSSM_ACL_AUTHORIZATION_CHANGE_OWNER, "change_owner"},
+};
+
+Status inline parseKeychainItemACLEntry(SecACLRef acl,
+                                        std::vector<KeychainItemACL> &acls) {
+  KeychainItemACL acl_data;
+  OSStatus os_status;
+
+  uint32 acl_tag_size = 64;
+  CSSM_ACL_AUTHORIZATION_TAG tags[acl_tag_size];
+  OSQUERY_USE_DEPRECATED(
+      os_status = SecACLGetAuthorizations(acl, tags, &acl_tag_size););
+  if (os_status != noErr) {
+    return Status(os_status, "Could not get ACL authorizations");
+  }
+
+  for (int tag_index = 0; tag_index < acl_tag_size; ++tag_index) {
+    CSSM_ACL_AUTHORIZATION_TAG tag = tags[tag_index];
+    if (kACLAuthorizationTags.find(tag) != kACLAuthorizationTags.end()) {
+      acl_data.authorizations.push_back(kACLAuthorizationTags.at(tag));
+    }
+  }
+
+  CFStringRef description = nullptr;
+  CSSM_ACL_KEYCHAIN_PROMPT_SELECTOR prompt_selector = {};
+  CFArrayRef application_list = nullptr;
+  OSQUERY_USE_DEPRECATED(
+      os_status = SecACLCopySimpleContents(
+          acl, &application_list, &description, &prompt_selector););
+  if (os_status != noErr) {
+    return Status(os_status, "Could not copy ACL content");
+  }
+
+  if (description != nullptr) {
+    acl_data.description = stringFromCFString(description);
+    CFRelease(description);
+  }
+
+  if (application_list != nullptr) {
+    CFIndex app_count = CFArrayGetCount(application_list);
+    for (CFIndex app_index = 0; app_index < app_count; app_index++) {
+      SecTrustedApplicationRef app =
+          (SecTrustedApplicationRef)CFArrayGetValueAtIndex(application_list,
+                                                           app_index);
+      CFDataRef data = nullptr;
+      os_status = SecTrustedApplicationCopyData(app, &data);
+      if (os_status != noErr) {
+        return Status(os_status, "Coult not copy trusted application data");
+      }
+
+      const UInt8 *bytes = CFDataGetBytePtr(data);
+      if (bytes && bytes[0] == 0x2f) {
+        acl_data.applications.push_back(std::string((const char *)bytes));
+      }
+      if (data != nullptr) {
+        CFRelease(data);
+      }
+    }
+    if (application_list != nullptr) {
+      CFRelease(application_list);
+    }
+  }
+
+  acls.push_back(acl_data);
+  return Status(0, "OK");
+}
+
+Status parseKeychainItemACL(SecAccessRef access,
+                            std::vector<KeychainItemACL> &acls) {
+  OSStatus os_status;
+  CFArrayRef acl_list = nullptr;
+  os_status = SecAccessCopyACLList(access, &acl_list);
+  if (os_status != noErr) {
+    return Status(os_status, "Could not copy ACL list");
+  }
+
+  auto acl_count = CFArrayGetCount(acl_list);
+  for (CFIndex i = 0; i < acl_count; i++) {
+    SecACLRef acl = (SecACLRef)CFArrayGetValueAtIndex(acl_list, i);
+    auto s = parseKeychainItemACLEntry(acl, acls);
+    if (!s.ok()) {
+      TLOG << "Error parsing individual ACL entry: " << s.toString();
+      continue;
+    }
+  }
+  if (acl_list != nullptr) {
+    CFRelease(acl_list);
+  }
+
+  return Status(0, "OK");
+}
+
+static std::string inline attributeBufferToString(const void *data, UInt32 length) {
+  std::stringstream stream;
+  uint8 *p = (uint8 *)data;
+  while (length--) {
+    char ch = *p++;
+    if (ch >= ' ' && ch <= '~' && ch != '\\') {
+      stream << (char)ch;
+    } else {
+      stream << std::hex << ch;
+    }
+  }
+  return stream.str();
+}
+
+Status inline genKeychainACLAppsForEntry(SecKeychainRef keychain,
+                                         SecKeychainItemRef item,
+                                         const std::string &path,
+                                         QueryData &results) {
+  KeychainItemMetadata item_metadata;
+  item_metadata.keychain_path = path;
+
+  SecItemClass item_class = 0;
+  SecKeychainItemCopyAttributesAndData(
+      item, nullptr, &item_class, nullptr, nullptr, nullptr);
+
+  SecAccessRef access = nullptr;
+  OSStatus os_status;
+  Status s;
+  os_status = SecKeychainItemCopyAccess(item, &access);
+  if (os_status == errSecNoAccessForItem) {
+    s = Status(1, "No ACLs for keychain item");
+  }
+  std::vector<KeychainItemACL> acl;
+  s = parseKeychainItemACL(access, acl);
+  if (access != nullptr) {
+    CFRelease(access);
+  }
+  if (!s.ok()) {
+    return s;
+  }
+
+  UInt32 item_id;
+  switch (item_class) {
+  case kSecInternetPasswordItemClass:
+    item_id = CSSM_DL_DB_RECORD_INTERNET_PASSWORD;
+    break;
+  case kSecGenericPasswordItemClass:
+    item_id = CSSM_DL_DB_RECORD_GENERIC_PASSWORD;
+    break;
+  case 'ashp':
+    item_id = CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD;
+    break;
+  default:
+    item_id = item_class;
+    break;
+  }
+
+  SecKeychainAttributeInfo *info = nullptr;
+  SecKeychainAttributeInfoForItemID(keychain, item_id, &info);
+
+  SecKeychainAttributeList *attr_list = nullptr;
+  os_status = SecKeychainItemCopyAttributesAndData(
+      item, info, &item_class, &attr_list, nullptr, nullptr);
+  if (os_status != noErr) {
+    if (attr_list != nullptr) {
+      SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
+    }
+    if (info != nullptr) {
+      SecKeychainFreeAttributeInfo(info);
+    }
+    return Status(os_status,
+                  "Could not copy attributes and data from the keychain");
+  }
+
+  Status copy_attr_status = Status(0, "OK");
+  if (info == nullptr || attr_list == nullptr) {
+    copy_attr_status = Status(1, "Could not get info or attr_list");
+  }
+  if (info->count != attr_list->count) {
+    copy_attr_status = Status(1, "Info and attributes don't match");
+  }
+  if (!copy_attr_status.ok()) {
+    if (attr_list != nullptr) {
+      SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
+    }
+    if (info != nullptr) {
+      SecKeychainFreeAttributeInfo(info);
+    }
+    return copy_attr_status;
+  }
+
+  for (int i = 0; i < info->count; ++i) {
+    SecKeychainAttribute *attribute = &attr_list->attr[i];
+    if (attribute->length == 0) {
+      continue;
+    }
+
+    UInt32 tag = info->tag[i];
+    if (tag == 7) {
+      item_metadata.label =
+          attributeBufferToString(attribute->data, attribute->length);
+    }
+  }
+  if (attr_list != nullptr) {
+    SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
+  }
+  if (info != nullptr) {
+    SecKeychainFreeAttributeInfo(info);
+  }
+
+  for (const auto &acl_data : acl) {
+    for (const auto &app_path : acl_data.applications) {
+      Row r;
+      r["keychain_path"] = item_metadata.keychain_path;
+      r["label"] = item_metadata.label;
+      r["authorizations"] = join(acl_data.authorizations, " ");
+      r["description"] = acl_data.description;
+      r["app_path"] = app_path;
+      results.push_back(r);
+    }
+  }
+
+  return Status(0, "OK");
+}
+
+Status genKeychainACLApps(const std::string &path, QueryData &results) {
+  SecKeychainRef keychain = nullptr;
+  OSStatus os_status = 0;
+
+  os_status = SecKeychainOpen(path.c_str(), &keychain);
+  if (os_status != noErr) {
+    return Status(os_status, "Could not open the keychain at " + path);
+  }
+  if (keychain == nullptr) {
+    return Status(1, "keychain object was not populated properly");
+  }
+
+  SecKeychainSearchRef search = nullptr;
+  OSQUERY_USE_DEPRECATED(os_status = SecKeychainSearchCreateFromAttributes(
+                             keychain, CSSM_DL_DB_RECORD_ANY, NULL, &search););
+  if (os_status != noErr) {
+    if (keychain != nullptr) {
+      CFRelease(keychain);
+    }
+    return Status(os_status,
+                  "Could not pull keychain items from the search API");
+  }
+  if (search == nullptr) {
+    if (keychain != nullptr) {
+      CFRelease(keychain);
+    }
+    return Status(1, "keychain search object was not populated properly");
+  }
+
+  SecKeychainItemRef item = nullptr;
+  while (true) {
+    OSQUERY_USE_DEPRECATED(os_status =
+                               SecKeychainSearchCopyNext(search, &item));
+    if (os_status != noErr || item == nullptr) {
+      break;
+    }
+
+    auto s = genKeychainACLAppsForEntry(keychain, item, path, results);
+    CFRelease(item);
+    if (!s.ok()) {
+      TLOG << "Error parsing keychain at " << path << ": " << s.toString();
+    }
+  }
+
+  if (keychain != nullptr) {
+    CFRelease(keychain);
+  }
+  if (search != nullptr) {
+    CFRelease(search);
+  }
+
+  return Status(0, "OK");
+}
+
+QueryData genKeychainACLApps(QueryContext &context) {
+  QueryData results;
+
+  for (const auto &path : getKeychainPaths()) {
+    std::vector<std::string> ls_results;
+    auto list_status = listFilesInDirectory(path, ls_results, false);
+    if (!list_status.ok()) {
+      TLOG << "Could not list files in " << path << ": "
+           << list_status.toString();
+    }
+    for (const auto &keychain : ls_results) {
+      TLOG << "Checking directory: " << keychain;
+      auto gen_status = genKeychainACLApps(keychain, results);
+      if (!gen_status.ok()) {
+        TLOG << "Could not list keychain from " << keychain << ": "
+             << gen_status.toString();
+      }
+    }
+  }
+
+  return results;
+}
+}
+}
