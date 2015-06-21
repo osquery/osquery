@@ -268,7 +268,7 @@ Status inline genKeychainACLAppsForEntry(SecKeychainRef keychain,
       r["label"] = item_metadata.label;
       r["authorizations"] = join(acl_data.authorizations, " ");
       r["description"] = acl_data.description;
-      r["app_path"] = app_path;
+      r["path"] = app_path;
       results.push_back(r);
     }
   }
