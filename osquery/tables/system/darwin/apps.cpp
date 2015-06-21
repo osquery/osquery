@@ -8,6 +8,8 @@
  *
  */
 
+#include <CoreServices/CoreServices.h>
+
 #include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -17,6 +19,8 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/sql.h>
+
+#include "osquery/core/conversions.h"
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -45,6 +49,110 @@ const std::map<std::string, std::string> kAppsInfoPlistTopLevelStringKeys = {
 
 const std::vector<std::string> kHomeDirSearchPaths = {
     "Applications", "Desktop", "Downloads",
+};
+
+enum AppSchemeFlags {
+  kSchemeNormal = 0,
+  // Default flag from the list of schemes on a default OS X 10.10 install.
+  kSchemeSystemDefault = 1,
+  // Protected flag from Apple Reference: Inter-app Communication
+  kSchemeProtected = 2,
+};
+
+const std::map<std::string, unsigned short> kApplicationSchemes = {
+    {"account", 0},
+    {"addressbook", kSchemeSystemDefault},
+    {"afp", kSchemeSystemDefault | kSchemeProtected},
+    {"aim", kSchemeSystemDefault},
+    {"alfred", 0},
+    {"alfredapp", 0},
+    {"app-prefs", 0},
+    {"applefeedback", kSchemeSystemDefault},
+    {"applescript", kSchemeSystemDefault},
+    {"apupdate", kSchemeSystemDefault},
+    {"at", kSchemeSystemDefault | kSchemeProtected},
+    {"atom", 0},
+    {"bluejeans", 0},
+    {"calinvite", 0},
+    {"calinvitelist", 0},
+    {"callto", 0},
+    {"calshow", 0},
+    {"cloudphoto", kSchemeSystemDefault},
+    {"conf", 0},
+    {"daap", kSchemeSystemDefault},
+    {"dict", kSchemeSystemDefault},
+    {"facetime", kSchemeSystemDefault | kSchemeProtected},
+    {"fb", kSchemeSystemDefault},
+    {"fbauth", 0},
+    {"file", kSchemeSystemDefault | kSchemeProtected},
+    {"ftp", kSchemeSystemDefault | kSchemeProtected},
+    {"gamecenter", kSchemeSystemDefault},
+    {"gopher", 0},
+    {"grammar", 0},
+    {"h323", 0},
+    {"help", kSchemeSystemDefault},
+    {"http", kSchemeSystemDefault | kSchemeProtected},
+    {"https", kSchemeSystemDefault | kSchemeProtected},
+    {"iadoptout", 0},
+    {"ibooks", kSchemeSystemDefault},
+    {"ical", kSchemeSystemDefault},
+    {"ichat", kSchemeSystemDefault},
+    {"icloud-sharing", kSchemeSystemDefault},
+    {"im", kSchemeSystemDefault},
+    {"imessage", kSchemeSystemDefault},
+    {"ipps", kSchemeSystemDefault},
+    {"irc", 0},
+    {"itls", kSchemeSystemDefault},
+    {"itms", kSchemeSystemDefault},
+    {"itms-books", kSchemeSystemDefault},
+    {"itms-bookss", kSchemeSystemDefault},
+    {"itmsp-app", 0},
+    {"itunesradio", kSchemeSystemDefault},
+    {"macappstore", kSchemeSystemDefault},
+    {"macappstores", kSchemeSystemDefault},
+    {"mailto", kSchemeSystemDefault | kSchemeProtected},
+    {"map", 0},
+    {"maps", kSchemeSystemDefault},
+    {"message", kSchemeSystemDefault},
+    {"messages", kSchemeSystemDefault},
+    {"ms-excel", 0},
+    {"ms-word", 0},
+    {"munki", 0},
+    {"news", kSchemeSystemDefault | kSchemeProtected},
+    {"nntp", 0},
+    {"nwnode", kSchemeSystemDefault | kSchemeProtected},
+    {"omnifocus", 0},
+    {"ophttp", 0},
+    {"pcast", kSchemeSystemDefault},
+    {"photos", kSchemeSystemDefault},
+    {"photos-event", 0},
+    {"photos-migrate-iphoto", 0},
+    {"photos-redirect", 0},
+    {"powerpoint", 0},
+    {"prefs", 0},
+    {"qs", 0},
+    {"qsinstall", 0},
+    {"qss-http", 0},
+    {"qssp-http", 0},
+    {"reminders", kSchemeSystemDefault},
+    {"rtsp", kSchemeSystemDefault},
+    {"shoebox", 0},
+    {"slack", 0},
+    {"smb", kSchemeSystemDefault | kSchemeProtected},
+    {"sms", kSchemeSystemDefault | kSchemeProtected},
+    {"ssh", kSchemeSystemDefault},
+    {"tel", kSchemeSystemDefault | kSchemeProtected},
+    {"telnet", kSchemeSystemDefault},
+    {"twitter", kSchemeSystemDefault},
+    {"txmt", 0},
+    {"vnc", kSchemeSystemDefault | kSchemeProtected},
+    {"wais", 0},
+    {"webapp", 0},
+    {"webcal", kSchemeSystemDefault},
+    {"whois", 0},
+    {"wunderlist", 0},
+    {"xmpp", kSchemeSystemDefault},
+    {"yelp", 0},
 };
 
 void genApplicationsFromPath(const fs::path& path,
@@ -93,13 +201,20 @@ QueryData genApps(QueryContext& context) {
 
   // Walk through several groups of common search paths that may contain apps.
   std::vector<std::string> apps;
-  genApplicationsFromPath("/Applications", apps);
+  if (context.constraints["path"].exists(EQUALS)) {
+    auto app_constraints = context.constraints["path"].getAll(EQUALS);
+    for (const auto& app : app_constraints) {
+      apps.push_back((fs::path(app) / "Contents/Info.plist").string());
+    }
+  } else {
+    genApplicationsFromPath("/Applications", apps);
 
-  // List all users on the system, and walk common search paths with homes.
-  auto homes = osquery::getHomeDirectories();
-  for (const auto& home : homes) {
-    for (const auto& path : kHomeDirSearchPaths) {
-      genApplicationsFromPath(home / path, apps);
+    // List all users on the system, and walk common search paths with homes.
+    auto homes = osquery::getHomeDirectories();
+    for (const auto& home : homes) {
+      for (const auto& path : kHomeDirSearchPaths) {
+        genApplicationsFromPath(home / path, apps);
+      }
     }
   }
 
@@ -110,11 +225,6 @@ QueryData genApps(QueryContext& context) {
 
   // For each found application (path with an Info.plist) parse the plist.
   for (const auto& path : apps) {
-    if (!context.constraints["path"].matches(path)) {
-      // Optimize by not searching when a path is a constraint.
-      continue;
-    }
-
     if (!osquery::parsePlist(path, tree).ok()) {
       TLOG << "Error parsing application plist: " << path;
       continue;
@@ -122,6 +232,74 @@ QueryData genApps(QueryContext& context) {
 
     // Using the parsed plist, pull out each interesting key.
     genApplication(tree, path, results);
+  }
+
+  return results;
+}
+
+QueryData genAppSchemes(QueryContext& context) {
+  QueryData results;
+
+  for (const auto& scheme : kApplicationSchemes) {
+    auto protocol = scheme.first + "://";
+    auto cfprotocol = CFStringCreateWithCString(
+        kCFAllocatorDefault, protocol.c_str(), protocol.length());
+    if (cfprotocol == nullptr) {
+      continue;
+    }
+
+    // Create a "fake" URL that only contains the protocol component of a URI.
+    auto url = CFURLCreateWithString(kCFAllocatorDefault, cfprotocol, nullptr);
+    CFRelease(cfprotocol);
+    if (url == nullptr) {
+      continue;
+    }
+
+    // List all application bundles that request this protocol scheme.
+    auto apps = LSCopyApplicationURLsForURL(url, kLSRolesAll);
+    if (apps == nullptr) {
+      CFRelease(url);
+      continue;
+    }
+
+    // Check the default handler assigned to the protocol scheme.
+    auto default_app =
+        LSCopyDefaultApplicationURLForURL(url, kLSRolesAll, nullptr);
+    CFRelease(url);
+    for (CFIndex i = 0; i < CFArrayGetCount(apps); i++) {
+      Row r;
+      r["scheme"] = scheme.first;
+
+      auto app = CFArrayGetValueAtIndex(apps, i);
+      if (app == nullptr || CFGetTypeID(app) != CFURLGetTypeID()) {
+        // Handle problems with application listings.
+        continue;
+      }
+
+      auto path = CFURLCopyFileSystemPath((CFURLRef)app, kCFURLPOSIXPathStyle);
+      if (path == nullptr) {
+        continue;
+      }
+
+      r["handler"] = stringFromCFString(path);
+      CFRelease(path);
+      // Check if the handler is set (in the OS) as the default.
+      if (default_app != nullptr &&
+          CFEqual((CFTypeRef)app, (CFTypeRef)default_app)) {
+        r["enabled"] = "1";
+      } else {
+        r["enabled"] = "0";
+      }
+      r["external"] = (scheme.second & kSchemeSystemDefault) ? "0" : "1";
+      r["protected"] = (scheme.second & kSchemeProtected) ? "1" : "0";
+      results.push_back(r);
+    }
+
+    if (default_app != nullptr) {
+      CFRelease(default_app);
+    }
+
+    CFRelease(apps);
   }
 
   return results;
