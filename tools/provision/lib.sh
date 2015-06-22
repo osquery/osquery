@@ -155,9 +155,9 @@ function install_snappy() {
 }
 
 function install_yara() {
-  TARBALL=yara-3.3.0.tar.gz
-  URL=$DEPS_URL/yara-3.3.0.tar.gz
-  SOURCE=yara-3.3.0
+  TARBALL=yara-3.4.0.tar.gz
+  URL=$DEPS_URL/yara-3.4.0.tar.gz
+  SOURCE=yara-3.4.0
 
   if provision yara /usr/local/lib/libyara.a; then
     pushd $SOURCE
