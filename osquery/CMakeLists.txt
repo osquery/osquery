@@ -103,6 +103,7 @@ set(CMAKE_SKIP_RPATH TRUE)
 
 # Create the static libosquery (everything but non-utility tables).
 add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
+
 target_link_libraries(libosquery ${OSQUERY_LIBS})
 set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
 set_target_properties(libosquery PROPERTIES COMPILE_FLAGS
