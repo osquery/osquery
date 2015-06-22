@@ -11,9 +11,11 @@
 #include <sstream>
 
 #include <fcntl.h>
+#include <glob.h>
 #include <pwd.h>
 #include <sys/stat.h>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -122,74 +124,86 @@ Status remove(const fs::path& path) {
   return Status(status_code, "N/A");
 }
 
-Status listFilesInDirectory(const fs::path& path,
-                            std::vector<std::string>& results,
-                            bool ignore_error) {
-  fs::directory_iterator begin_iter;
+static void genGlobs(std::string path,
+                     std::vector<std::string>& results,
+                     GlobLimits limits) {
+  // Replace SQL-wildcard '%' with globbing wildcard '*'.
+  if (path.find("%") != std::string::npos) {
+    boost::replace_all(path, "%", "*");
+  } 
+
+  // Relative paths are a bad idea, but we try to accommodate.
+  if ((path.size() == 0 || path[0] != '/') && path[0] != '~') {
+    path = (fs::initial_path() / path).string();
+  }
+
+  // Generate a glob set and recurse for double star.
+  while (true) {
+    glob_t data;
+    glob(path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, &data);
+    size_t count = data.gl_pathc;
+    for (size_t index = 0; index < count; index++) {
+      results.push_back(data.gl_pathv[index]);
+    }
+    globfree(&data);
+    // The end state is a non-recursive ending or empty set of matches.
+    size_t wild = path.rfind("**");
+    // Allow a trailing slash after the double wild indicator.
+    if (count == 0 || wild > path.size() || wild < path.size() - 3) {
+      break;
+    }
+    path += "/**";
+  }
+
+  // Prune results based on settings/requested glob limitations.
+  auto end = std::remove_if(
+      results.begin(), results.end(), [limits](const std::string& found) {
+        return !((found[found.length() - 1] == '/' && limits & GLOB_FOLDERS) ||
+                 (found[found.length() - 1] != '/' && limits & GLOB_FILES));
+      });
+  results.erase(end, results.end());
+}
+
+Status resolveFilePattern(const fs::path& fs_path,
+                          std::vector<std::string>& results) {
+  return resolveFilePattern(fs_path, results, GLOB_ALL);
+}
+
+Status resolveFilePattern(const fs::path& fs_path,
+                          std::vector<std::string>& results,
+                          GlobLimits setting) {
+  genGlobs(fs_path.string(), results, setting);
+  return Status(0, "OK");
+}
+
+inline Status listInAbsoluteDirectory(const fs::path& path,
+                                      std::vector<std::string>& results,
+                                      GlobLimits limits) {
   try {
-    if (!fs::exists(path)) {
-      return Status(1, "Directory not found: " + path.string());
+    if (path.filename() == "*" && !fs::exists(path.parent_path())) {
+      return Status(1, "Directory not found: " + path.parent_path().string());
     }
 
-    if (!fs::is_directory(path)) {
-      return Status(1, "Supplied path is not a directory: " + path.string());
+    if (path.filename() == "*" && !fs::is_directory(path.parent_path())) {
+      return Status(1, "Path not a directory: " + path.parent_path().string());
     }
-    begin_iter = fs::directory_iterator(path);
   } catch (const fs::filesystem_error& e) {
     return Status(1, e.what());
   }
-
-  fs::directory_iterator end_iter;
-  for (; begin_iter != end_iter; begin_iter++) {
-    try {
-      if (fs::is_regular_file(begin_iter->path())) {
-        results.push_back(begin_iter->path().string());
-      }
-    } catch (const fs::filesystem_error& e) {
-      if (ignore_error == 0) {
-        return Status(1, e.what());
-      }
-    }
-  }
+  genGlobs(path.string(), results, limits);
   return Status(0, "OK");
+}
+
+Status listFilesInDirectory(const fs::path& path,
+                            std::vector<std::string>& results,
+                            bool ignore_error) {
+  return listInAbsoluteDirectory((path / "*"), results, GLOB_FILES);
 }
 
 Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
                                   bool ignore_error) {
-  fs::directory_iterator begin_iter;
-  try {
-    if (!fs::exists(path)) {
-      return Status(1, "Directory not found");
-    }
-
-    auto stat = pathExists(path);
-    if (!stat.ok()) {
-      return stat;
-    }
-
-    stat = isDirectory(path);
-    if (!stat.ok()) {
-      return stat;
-    }
-    begin_iter = fs::directory_iterator(path);
-  } catch (const fs::filesystem_error& e) {
-    return Status(1, e.what());
-  }
-
-  fs::directory_iterator end_iter;
-  for (; begin_iter != end_iter; begin_iter++) {
-    try {
-      if (fs::is_directory(begin_iter->path())) {
-        results.push_back(begin_iter->path().string());
-      }
-    } catch (const fs::filesystem_error& e) {
-      if (ignore_error == 0) {
-        return Status(1, e.what());
-      }
-    }
-  }
-  return Status(0, "OK");
+  return listInAbsoluteDirectory((path / "*"), results, GLOB_FOLDERS);
 }
 
 Status getDirectory(const fs::path& path, fs::path& dirpath) {

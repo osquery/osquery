@@ -74,11 +74,11 @@ TEST_F(ConfigTests, test_watched_files) {
   ConfigDataInstance config;
   ASSERT_EQ(config.files().size(), 3);
   // From the deprecated "additional_monitoring" collection.
-  EXPECT_EQ(config.files().at("downloads").size(), 1);
+  EXPECT_EQ(config.files().at("downloads").size(), 5);
 
   // From the new, recommended top-level "file_paths" collection.
-  EXPECT_EQ(config.files().at("downloads2").size(), 1);
-  EXPECT_EQ(config.files().at("system_binaries").size(), 1);
+  EXPECT_EQ(config.files().at("downloads2").size(), 5);
+  EXPECT_EQ(config.files().at("system_binaries").size(), 3);
 }
 
 TEST_F(ConfigTests, test_locking) {
