@@ -62,8 +62,8 @@ const std::map<CSSM_ACL_AUTHORIZATION_TAG, std::string> kACLAuthorizationTags =
         {CSSM_ACL_AUTHORIZATION_CHANGE_OWNER, "change_owner"},
 };
 
-Status inline parseKeychainItemACLEntry(SecACLRef acl,
-                                        std::vector<KeychainItemACL> &acls) {
+Status parseKeychainItemACLEntry(SecACLRef acl,
+                                 std::vector<KeychainItemACL> &acls) {
   KeychainItemACL acl_data;
   OSStatus os_status;
 
@@ -105,21 +105,22 @@ Status inline parseKeychainItemACLEntry(SecACLRef acl,
                                                            app_index);
       CFDataRef data = nullptr;
       os_status = SecTrustedApplicationCopyData(app, &data);
-      if (os_status != noErr) {
-        return Status(os_status, "Coult not copy trusted application data");
+      if (os_status != noErr || data == nullptr) {
+        CFRelease(application_list);
+        if (data != nullptr) {
+          // To be very safe, assume data may have been allocated on error.
+          CFRelease(data);
+        }
+        return Status(os_status, "Could not copy trusted application data");
       }
 
       const UInt8 *bytes = CFDataGetBytePtr(data);
-      if (bytes && bytes[0] == 0x2f) {
+      if (bytes != nullptr && bytes[0] == '/') {
         acl_data.applications.push_back(std::string((const char *)bytes));
       }
-      if (data != nullptr) {
-        CFRelease(data);
-      }
+      CFRelease(data);
     }
-    if (application_list != nullptr) {
-      CFRelease(application_list);
-    }
+    CFRelease(application_list);
   }
 
   acls.push_back(acl_data);
@@ -131,7 +132,10 @@ Status parseKeychainItemACL(SecAccessRef access,
   OSStatus os_status;
   CFArrayRef acl_list = nullptr;
   os_status = SecAccessCopyACLList(access, &acl_list);
-  if (os_status != noErr) {
+  if (os_status != noErr || acl_list == nullptr) {
+    if (acl_list != nullptr) {
+      CFRelease(acl_list);
+    }
     return Status(os_status, "Could not copy ACL list");
   }
 
@@ -144,14 +148,12 @@ Status parseKeychainItemACL(SecAccessRef access,
       continue;
     }
   }
-  if (acl_list != nullptr) {
-    CFRelease(acl_list);
-  }
 
+  CFRelease(acl_list);
   return Status(0, "OK");
 }
 
-static std::string inline attributeBufferToString(const void *data, UInt32 length) {
+static std::string attributeBufferToString(const void *data, UInt32 length) {
   std::stringstream stream;
   uint8 *p = (uint8 *)data;
   while (length--) {
@@ -165,10 +167,10 @@ static std::string inline attributeBufferToString(const void *data, UInt32 lengt
   return stream.str();
 }
 
-Status inline genKeychainACLAppsForEntry(SecKeychainRef keychain,
-                                         SecKeychainItemRef item,
-                                         const std::string &path,
-                                         QueryData &results) {
+Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
+                                  SecKeychainItemRef item,
+                                  const std::string &path,
+                                  QueryData &results) {
   KeychainItemMetadata item_metadata;
   item_metadata.keychain_path = path;
 
@@ -180,14 +182,16 @@ Status inline genKeychainACLAppsForEntry(SecKeychainRef keychain,
   OSStatus os_status;
   Status s;
   os_status = SecKeychainItemCopyAccess(item, &access);
-  if (os_status == errSecNoAccessForItem) {
-    s = Status(1, "No ACLs for keychain item");
+  if (os_status == errSecNoAccessForItem || access == nullptr) {
+    if (access != nullptr) {
+      CFRelease(access);
+    }
+    return Status(os_status, "No ACLs for keychain item");
   }
+
   std::vector<KeychainItemACL> acl;
   s = parseKeychainItemACL(access, acl);
-  if (access != nullptr) {
-    CFRelease(access);
-  }
+  CFRelease(access);
   if (!s.ok()) {
     return s;
   }
@@ -214,7 +218,7 @@ Status inline genKeychainACLAppsForEntry(SecKeychainRef keychain,
   SecKeychainAttributeList *attr_list = nullptr;
   os_status = SecKeychainItemCopyAttributesAndData(
       item, info, &item_class, &attr_list, nullptr, nullptr);
-  if (os_status != noErr) {
+  if (os_status != noErr || attr_list == nullptr || info == nullptr) {
     if (attr_list != nullptr) {
       SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
     }
@@ -225,21 +229,11 @@ Status inline genKeychainACLAppsForEntry(SecKeychainRef keychain,
                   "Could not copy attributes and data from the keychain");
   }
 
-  Status copy_attr_status = Status(0, "OK");
-  if (info == nullptr || attr_list == nullptr) {
-    copy_attr_status = Status(1, "Could not get info or attr_list");
-  }
+  // Bail if the number of elements from the info/Attr list do not match.
   if (info->count != attr_list->count) {
-    copy_attr_status = Status(1, "Info and attributes don't match");
-  }
-  if (!copy_attr_status.ok()) {
-    if (attr_list != nullptr) {
-      SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
-    }
-    if (info != nullptr) {
-      SecKeychainFreeAttributeInfo(info);
-    }
-    return copy_attr_status;
+    SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
+    SecKeychainFreeAttributeInfo(info);
+    return Status(1, "Info and attributes do not match");
   }
 
   for (int i = 0; i < info->count; ++i) {
@@ -254,12 +248,10 @@ Status inline genKeychainACLAppsForEntry(SecKeychainRef keychain,
           attributeBufferToString(attribute->data, attribute->length);
     }
   }
-  if (attr_list != nullptr) {
-    SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
-  }
-  if (info != nullptr) {
-    SecKeychainFreeAttributeInfo(info);
-  }
+
+  // Finally, release/free the info/Attr lists.
+  SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
+  SecKeychainFreeAttributeInfo(info);
 
   for (const auto &acl_data : acl) {
     for (const auto &app_path : acl_data.applications) {
@@ -281,28 +273,23 @@ Status genKeychainACLApps(const std::string &path, QueryData &results) {
   OSStatus os_status = 0;
 
   os_status = SecKeychainOpen(path.c_str(), &keychain);
-  if (os_status != noErr) {
+  if (os_status != noErr || keychain == nullptr) {
+    if (keychain != nullptr) {
+      CFRelease(keychain);
+    }
     return Status(os_status, "Could not open the keychain at " + path);
-  }
-  if (keychain == nullptr) {
-    return Status(1, "keychain object was not populated properly");
   }
 
   SecKeychainSearchRef search = nullptr;
   OSQUERY_USE_DEPRECATED(os_status = SecKeychainSearchCreateFromAttributes(
                              keychain, CSSM_DL_DB_RECORD_ANY, NULL, &search););
-  if (os_status != noErr) {
-    if (keychain != nullptr) {
-      CFRelease(keychain);
+  if (os_status != noErr || search == nullptr) {
+    if (search != nullptr) {
+      CFRelease(search);
     }
+    CFRelease(keychain);
     return Status(os_status,
                   "Could not pull keychain items from the search API");
-  }
-  if (search == nullptr) {
-    if (keychain != nullptr) {
-      CFRelease(keychain);
-    }
-    return Status(1, "keychain search object was not populated properly");
   }
 
   SecKeychainItemRef item = nullptr;
@@ -320,19 +307,15 @@ Status genKeychainACLApps(const std::string &path, QueryData &results) {
     }
   }
 
-  if (keychain != nullptr) {
-    CFRelease(keychain);
-  }
-  if (search != nullptr) {
-    CFRelease(search);
-  }
-
+  CFRelease(keychain);
+  CFRelease(search);
   return Status(0, "OK");
 }
 
 QueryData genKeychainACLApps(QueryContext &context) {
   QueryData results;
 
+  SecKeychainSetUserInteractionAllowed(false);
   for (const auto &path : getKeychainPaths()) {
     std::vector<std::string> ls_results;
     auto list_status = listFilesInDirectory(path, ls_results, false);
@@ -344,11 +327,12 @@ QueryData genKeychainACLApps(QueryContext &context) {
       TLOG << "Checking directory: " << keychain;
       auto gen_status = genKeychainACLApps(keychain, results);
       if (!gen_status.ok()) {
-        TLOG << "Could not list keychain from " << keychain << ": "
+        TLOG << "Could not list items from " << keychain << ": "
              << gen_status.toString();
       }
     }
   }
+  SecKeychainSetUserInteractionAllowed(true);
 
   return results;
 }

@@ -51,6 +51,8 @@ namespace osquery {
 #define BIGINT(x) boost::lexical_cast<std::string>(x)
 /// See the affinity type documentation for TEXT.
 #define UNSIGNED_BIGINT(x) boost::lexical_cast<std::string>(x)
+/// See the affinity type documentation for TEXT.
+#define DOUBLE(x) boost::lexical_cast<std::string>(x)
 
 /**
  * @brief The SQLite type affinities as represented as implementation literals.
@@ -67,6 +69,8 @@ namespace osquery {
 #define BIGINT_LITERAL long long int
 /// See the literal type documentation for TEXT_LITERAL.
 #define UNSIGNED_BIGINT_LITERAL unsigned long long int
+/// See the literal type documentation for TEXT_LITERAL.
+#define DOUBLE_LITERAL double
 /// Cast an SQLite affinity type to the literal type.
 #define AS_LITERAL(literal, value) boost::lexical_cast<literal>(value)
 
@@ -89,7 +93,7 @@ enum ConstraintOperator : unsigned char {
   GREATER_THAN_OR_EQUALS = 32
 };
 
-/// Type for flags for what constraint operators are admissable.
+/// Type for flags for what constraint operators are admissible.
 typedef unsigned char ConstraintOperatorFlag;
 /// Flag for any operator type.
 #define ANY_OP 0xFFU

@@ -172,7 +172,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       if (Flag::isDefault("database_path")) {
         osquery::FLAGS_database_path = homedir + "/shell.db";
       }
-      if (Flag::isDefault("extension_socket")) {
+      if (Flag::isDefault("extensions_socket")) {
         osquery::FLAGS_extensions_socket = homedir + "/shell.em";
       }
     }
