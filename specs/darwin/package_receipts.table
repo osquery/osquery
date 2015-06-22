@@ -5,7 +5,7 @@ schema([
     Column("package_filename", TEXT, "Filename of original .pkg file"),
     Column("version", TEXT, "Installed package version"),
     Column("location", TEXT, "Optional relative install path on volume"),
-    Column("install_time", INTEGER, "Timestamp of install time"),
+    Column("install_time", DOUBLE, "Timestamp of install time"),
     Column("installer_name", TEXT, "Name of installer process"),
     Column("path", TEXT, "Path of receipt plist",
       index=True, additional=True),

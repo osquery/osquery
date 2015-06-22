@@ -139,9 +139,9 @@ void parseWhereFrom(QueryData &results, const std::string &path) {
   CFRelease(attributes);
 }
 
-void extractQuarantineProperty(const std::string table_key_name,
+void extractQuarantineProperty(const std::string &table_key_name,
                                CFTypeRef property,
-                               const std::string path,
+                               const std::string &path,
                                QueryData &results) {
   std::string value;
   if (CFGetTypeID(property) == CFStringGetTypeID()) {
