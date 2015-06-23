@@ -184,12 +184,12 @@ class ProcRunner(object):
         try:
             proc = psutil.Process(pid=self.proc.pid)
             delay = 0
-            while len(proc.get_children()) == 0:
+            while len(proc.children()) == 0:
                 if delay > max_interval:
                     return []
                 time.sleep(self.interval)
                 delay += self.interval
-            return [p.pid for p in proc.get_children()]
+            return [p.pid for p in proc.children()]
         except:
             pass
         return []
