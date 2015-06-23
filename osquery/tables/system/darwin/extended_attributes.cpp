@@ -167,28 +167,12 @@ void parseQuarantineFile(QueryData &results, const std::string &path) {
   }
 
   CFTypeRef quarantine_properties;
-#if defined(DARWIN_10_9)
-  FSRef fs_url;
-  if (!CFURLGetFSRef(url, &fs_url)) {
-    VLOG(1) << "Error obtaining FSRef for " << path;
-    VLOG(1) << "Unable to fetch quarantine data";
-    CFRelease(url);
-    return;
-  }
-  if (LSCopyItemAttribute(&fs_url, kLSRolesAll, kLSItemQuarantineProperties,
-                          &quarantine_properties) != noErr) {
-    VLOG(1) << "Error retrieving quarantine properties for " << path;
-    CFRelease(url);
-    return;
-  }
-#else
   if (!CFURLCopyResourcePropertyForKey(url, kCFURLQuarantinePropertiesKey,
                                        &quarantine_properties, nullptr)) {
     VLOG(1) << "Error retrieving quarantine properties for " << path;
     CFRelease(url);
     return;
   }
-#endif
 
   if (quarantine_properties == nullptr) {
     VLOG(1) << "Error retrieving quarantine properties for " << path;
