@@ -8,11 +8,13 @@
  *
  */
 
-#include <circular_queue_user.h>
+#include "osquery/events/kernel/circular_queue_user.h"
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
+
+namespace osquery {
 
 CQueue::CQueue(size_t size) {
   buffer_ = NULL;
@@ -100,3 +102,4 @@ int CQueue::kernelSync() {
   return update.drops;
 }
 
+}  // namespace osquery

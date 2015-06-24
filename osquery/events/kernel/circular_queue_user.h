@@ -10,9 +10,10 @@
 
 #pragma once
 
-#include <feeds.h>
-
+#include "kernel/include/feeds.h"
 #include <stdexcept>
+
+namespace osquery {
 
 class CQueueException : public std::runtime_error {
  public:
@@ -75,3 +76,4 @@ class CQueue {
   int fd_;
 };
 
+}  // namespace osquery
