@@ -183,6 +183,9 @@ CFDataRef CreatePropertyFromCertificate(const SecCertificateRef& cert,
   // Request dictionary of dictionaries (one for each attribute).
   auto certificate_values = SecCertificateCopyValues(cert, keys, nullptr);
   CFRelease(keys);
+  if (certificate_values == nullptr) {
+    return nullptr;
+  }
 
   if (!CFDictionaryContainsKey(certificate_values, oid)) {
     // Certificate does not have the requested property.
@@ -191,6 +194,10 @@ CFDataRef CreatePropertyFromCertificate(const SecCertificateRef& cert,
   }
 
   auto values = (CFDictionaryRef)CFDictionaryGetValue(certificate_values, oid);
+  if (values == nullptr) {
+    CFRelease(certificate_values);
+    return nullptr;
+  }
   if (!CFDictionaryContainsKey(values, kSecPropertyKeyValue)) {
     // Odd, there was not value in the property result.
     CFRelease(certificate_values);
