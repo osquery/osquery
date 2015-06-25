@@ -52,16 +52,17 @@ void genShellHistoryForUser(const std::string& username,
 QueryData genShellHistory(QueryContext& context) {
   QueryData results;
 
+  // Select only the home directory for this user.
   QueryData users;
-  if (!getuid()) {
-    // No uid is available, attempt to select from all users.
-    users = SQL::selectAllFrom("users");
+  if (!context.constraints["username"].exists(EQUALS)) {
+    users =
+        SQL::selectAllFrom("users", "uid", EQUALS, std::to_string(getuid()));
   } else {
-    // A uid is available, select only the home directory for this user.
-    struct passwd* pwd = getpwuid(getuid());
-    if (pwd != nullptr && pwd->pw_name != nullptr) {
-      users = SQL::selectAllFrom(
-          "users", "username", EQUALS, std::string(pwd->pw_name));
+    auto usernames = context.constraints["username"].getAll(EQUALS);
+    for (const auto& username : usernames) {
+      // Use a predicated select all for each user.
+      auto user = SQL::selectAllFrom("users", "username", EQUALS, username);
+      users.insert(users.end(), user.begin(), user.end());
     }
   }
 

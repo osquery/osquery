@@ -6,20 +6,39 @@ control startup settings may be included as "options" to the daemon within its [
 
 ## CLI-only (initialization) flags
 
+A special flag, part of Gflags, can be used to read additional flags from a line-delimited file. On OS X and Linux this "flagfile" is the recommended way to add/remove the following CLI-only initialization flags.
+
+`--flagfile="/etc/osquery/osquery.flags"`
+
+Include line-delimited switches to be interpreted and used as CLI-flags:
+
+```
+--config_plugin=custom_plugin
+--logger_plugin=custom_plugin
+--watchlog_level=2
+```
+
+
+### Configuration control flags
+
 `--config_plugin="filesystem"`
 
-Config plugin name. The type of configuration retrieval, the default "filesystem" plugin reads a configuration JSON from disk.
+Config plugin name. The type of configuration retrieval, the default **filesystem** plugin reads a configuration JSON from disk.
+
+Built-in options include: **filesystem**, **tls**
 
 `--config_path="/etc/osquery/osquery.conf"`
 
-The "filesystem" config plugin's path to a JSON file.
-On OS X the default path is "/var/osquery/osquery.conf".
-If you want to read from multiple configuration paths create a directory: "/etc/osquery/osquery.conf.d/".
+The **filesystem** config plugin's path to a JSON file.
+On OS X the default path is **/var/osquery/osquery.conf**.
+If you want to read from multiple configuration paths create a directory: **/etc/osquery/osquery.conf.d/**.
 All files within that optional directory will be read and merged in lexical order.
 
 `--config_check=false`
 
 Check the format of an osquery config and exit. Arbitrary config plugins may be used. osquery will return a non-0 exit if the parsing failed.
+
+### osquery daemon control flags
 
 `--force=false`
 
@@ -39,30 +58,40 @@ the "worker" process will be restarted.
 
 `--watchdog_level=1`
 
+### Backing storage control flags
+
 Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug). The default watchdog process uses a "level" to configure performance limits.
 The higher the level the more strict the limits become.
 
-`--schedule_timeout=0`
+`--database_in_memory=false`
 
-Limit the schedule, 0 for no limit. Optionally limit the osqueryd's life by adding a schedule limit in seconds.
-This should only be used for testing.
+Keep osquery backing-store in memory.
+This has a number of performance implications and is not recommended.
+For the default backing-store, RocksDB, this option is not supported.
+
+`--database_path=/var/osquery/osquery.db`
+
+### Extensions control flags
+
+If using a disk-based backing store, specify a path.
+osquery will keep state using a "backing store" using RocksDB by default.
+This state holds event information such that it may be queried later according
+to a schedule. It holds the results of the most recent query for each query within
+the schedule. This last-queried result allows query-differential logging.
 
 `--disable_extensions=false`
 
-Disable extension API.
+Disable extension API. See the [SDK development](../development/osquery-sdk.md) page for more information on osquery extensions, and the [deployment](../deployment/extensions.md) page for how to use extensions.
 
 `--extensions_socket=/var/osquery/osquery.em`
 
 Path to the extensions UNIX domain socket.
-Extensions use a UNIX domain socket for communication.
-It is very uncommon to change the local of the file.
-The osquery shell may use extensions, but the socket location is relative to the
-user invoking the shell and does not support concurrent shells.
+[Extensions](../deployment/extensions.md) use a UNIX domain socket for communication. It is very uncommon to change the location of the file. The osquery shell may use extensions, but the socket location is relative to the user invoking the shell and does not support concurrent shells.
 
 `--extensions_autoload=/etc/osquery/extensions.load`
 
 Optional path to a list of autoloaded and managed extensions.
-If using an extension to provide a proprietary config or logger plugin the extension process can be started by the daemon. Include line-delimited paths to extension executables.
+If using an extension to provide a proprietary config or logger plugin the extension process can be started by the daemon. Include line-delimited paths to extension executables. See the extensions [deployment](../deployment/extensions.md) page for more details on extension autoloading.
 
 `--extensions_timeout=3`
 
@@ -74,12 +103,57 @@ osqueryd may depend on a config plugin from an extension. If the requested confi
 Seconds delay between extension connectivity checks.
 Extensions are loaded as processes. They are expected to start a thrift service thread. The osqueryd process will continue to check this API. If an extension process is incorrectly stopped, osqueryd will detect the connectivity failure and unregister the extension.
 
-
 `--modules_autoload=/etc/osquery/modules.load`
 
-Optional path to a list of autoloaded registry modules. Modules are similar to extensions but are loaded as shared libraries. They are less flexible and should be built using the same GCC runtime and developer dependency library versions as osqueryd.
+Optional path to a list of autoloaded library module-based extensions. Modules are similar to extensions but are loaded as shared libraries. They are less flexible and should be built using the same GCC runtime and developer dependency library versions as osqueryd. See the extensions [deployment](../deployment/extensions.md) page for more details on extension module autoloading.
+
+### Remote settings (optional for config/logger) flags
+
+When using non-default [remote](../deployment/remote.md) plugins such as the **tls** config and logger plugins, there are process-wide settings applied to every plugin.
+
+`--tls_hostname=""`
+
+When using **tls**-based config or logger plugins, a single TLS host URI is used. Using separate hosts for configuration and logging is not supported among the **tls**-based plugin suite. Provide a host name and optional port, e.g.: `facebook.com` or `facebook.com:443`.
+
+`--tls_client_cert=""`
+
+See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a PEM-formatted client TLS certificate.
+
+`--tls_client_key=""`
+
+See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a decrypted/password-less PEM-formatted client TLS private key.
+
+`--tls_server_certs=""`
+
+See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a PEM-formatted server or authority certificate bundle. This path will be used as either an explicit set of accepted certificates or an OpenSSL-verify path directory of well-formed filename certificates.
+
+`--disable_enrollment=false`
+
+See the **tls**/[remote](../deployment/remote.md) plugin documentation. Remote plugins use an enrollment process to enable possible server-side implemented authentication and identification/authorization. Config and logger plugins implicitly require enrollment features. It is not recommended to disable enrollment and this option may be removed in the future.
+
+`--enroll_secret_path=""`
+
+See the **tls**/[remote](../deployment/remote.md) plugin documentation. A very simple authentication/enrollment involves posting a deployment or staged shared secret. This secret should be protected on the host, but potentially shared among an enterprise or fleet. Provide a path for the osquery process to read and use during enrollment phases.
+
+`--config_tls_endpoint=""`
+
+The **tls** endpoint path, e.g.: **/api/v1/config** when using the **tls** config plugin. See the other **tls_** related CLI flags.
+
+`--logger_tls_endpoint=""`
+
+The **tls** endpoint path, e.g.: **/api/v1/logger** when using the **tls** logger plugin. See the other **tls_** related CLI flags.
+
+`--enrollment_tls_endpoint=""`
+
+See the **tls**/[remote](../deployment/remote.md) plugin documentation. An enrollment process will be used to allow server-side implemented authentication and identification/authorization. You must provide an endpoint relative to the **--tls_hostname** URI.
+
+`--logger_tls_period=3`
+
+See the **tls**/[remote](../deployment/remote.md) plugin documentation. This is a number of seconds before checking for buffered logs. Results are sent to the TLS endpoint in intervals, not on demand (unless the period=0).
 
 ## Runtime flags
+
+### osquery daemon runtime control flags
 
 `--schedule_splay_percent=10`
 
@@ -89,23 +163,49 @@ It is often not the intention of the schedule author to run these queries togeth
 at that interval. But rather, each query should run at about the interval.
 A default schedule splay of 10% is applied to each query when the configuration is loaded.
 
-`--database_in_memory=false`
-
-Keep osquery backing-store in memory.
-This has a number of performance implications and is not recommended.
-For the default backing-store, RocksDB, this option is not supported.
-
-`--database_path=/var/osquery/osquery.db`
-
-If using a disk-based backing store, specify a path.
-osquery will keep state using a "backing store" using RocksDB by default.
-This state holds event information such that it may be queried later according
-to a schedule. It holds the results of the most recent query for each query within
-the schedule. This last-queried result allows query-differential logging.
-
 `--worker_threads=4`
 
 Number of work dispatch threads.
+
+`--schedule_timeout=0`
+
+Limit the schedule, 0 for no limit. Optionally limit the osqueryd's life by adding a schedule limit in seconds.
+This should only be used for testing.
+
+`--distributed_retries=3`
+
+(Unsupported) Times to retry retrieving distributed queries.
+
+`--disable_tables=table_name1,table_name2`
+
+Comma-delimited list of table names to be disabled.
+This allows osquery to be launched without certain tables.
+
+### osquery events control flags
+
+`--disable_events=false`
+
+Disable osquery Operating System [eventing publish subscribe](../development/pubsub-framework.md) APIs. This will implicitly disable several tables that report based on logged events. 
+
+`--events_expiry=86000`
+
+Timeout to expire Operating System [eventing publish subscribe](../development/pubsub-framework.md) results.
+
+### Logging/results flags
+
+`--logger_plugin=filesystem`
+
+Logger plugin name. The default logger is **filesystem**. This writes the various log types as JSON to specific file paths.
+
+Built-in options include: **filesystem**, **tls**
+
+`--disable_logging=false`
+
+Disable ERROR/WARNING/INFO (called status logs) and query result [logging](../deployment/logging.md).
+
+`--log_result_events=true`
+
+Log scheduled results as events.
 
 `--host_identifier=hostname`
 
@@ -114,39 +214,6 @@ Field used to identify the host running osquery (hostname, uuid)
 Select either "hostname" or "uuid" for the host identifier.
 DHCP may assign variable hostnames, if this is the case, select UUID for a
 consistant logging label.
-
-`--distributed_get_queries_retries=3`
-
-Times to retry retrieving distributed queries.
-
-`--distributed_write_results_retries=3`
-
-Times to retry writing distributed query results.
-
-`--disable_events=false`
-
-Disable osquery events pubsub.
-
-`--disable_tables=table_name1,table_name2`
-
-Comma-delimited list of table names to be disabled.
-This allows osquery to be launched without certain tables.
-
-`--events_expiry=86000`
-
-Timeout to expire event pubsub results.
-
-`--disable_logging=false`
-
-Disable ERROR/INFO logging.
-
-`--log_result_events=true`
-
-Log scheduled results as events.
-
-`--logger_plugin=filesystem`
-
-Logger plugin name.
 
 `--verbose=false`
 

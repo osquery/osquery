@@ -12,9 +12,16 @@
 
 #include <osquery/core.h>
 
+// If CMake/gmake did not define a build version set the version to 1.0.
+// clang-format off
+#ifndef OSQUERY_BUILD_VERSION
+#define OSQUERY_BUILD_VERSION 1.0.0-unknown
+#endif
+// clang-format on
+
 namespace osquery {
 
-const std::string kVersion = OSQUERY_VERSION;
+const std::string kVersion = STR(OSQUERY_BUILD_VERSION);
 const std::string kSDKVersion = OSQUERY_SDK_VERSION;
 const std::string kSDKPlatform = OSQUERY_PLATFORM;
 }

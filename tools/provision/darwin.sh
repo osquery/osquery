@@ -23,11 +23,8 @@ function main_darwin() {
   package makedepend
   package boost
   package gflags
+  package rocksdb
   package thrift
   package yara
   package doxygen
-
-  # RocksDB is in Homebrew, but we like more control over our compile.
-  remove_package rocksdb
-  install_rocksdb
 }

@@ -17,6 +17,7 @@
 
 #include "osquery/core/conversions.h"
 
+namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -223,7 +224,7 @@ void genOSXPlistPreferences(const std::string& path, QueryData& results) {
     return;
   }
 
-  std::string filename = boost::filesystem::path(path).filename().string();
+  std::string filename = fs::path(path).filename().string();
   for (const auto& item : tree) {
     Row r;
     if (filename.substr(filename.size() - 6) == ".plist") {
