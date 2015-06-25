@@ -43,6 +43,7 @@ add_compile_options(
   -fpie
   -fPIC
   -fpic
+  -pipe
 )
 
 # osquery additional compiler flags added by CMake.
@@ -147,6 +148,10 @@ else()
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
 endif()
 
+if(NOT DEFINED ENV{OPTIMIZED})
+  add_compile_options(-march=x86-64 -mtune=generic)
+endif()
+
 # make analyze (environment variable from Makefile)
 if(DEFINED ENV{ANALYZE})
   set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
@@ -217,7 +222,6 @@ endif()
 
 # Set various platform/platform-version/build version/etc defines.
 add_definitions(
-  -DOSQUERY_BUILD_VERSION=${OSQUERY_BUILD_VERSION}
   -DOSQUERY_BUILD_SDK_VERSION=${OSQUERY_BUILD_SDK_VERSION}
   -DOSQUERY_BUILD_PLATFORM=${OSQUERY_BUILD_PLATFORM}
   -DOSQUERY_BUILD_DISTRO=${OSQUERY_BUILD_DISTRO}
@@ -226,7 +230,7 @@ add_definitions(
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
   # There are platform incompatibilities on OS X with lite and construction.
-  #-DROCKSDB_LITE
+  #-DROCKSDB_LITE=1
 )
 
 if(APPLE)
@@ -291,7 +295,9 @@ else()
 endif()
 
 # Most dependent packages/libs we want static.
-set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
+if(NOT DEFINED $ENV{BUILD_LINK_SHARED})
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
+endif()
 find_package(CppNetlib 0.11.0 REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)

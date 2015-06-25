@@ -91,10 +91,7 @@ QueryData genKeychainItems(QueryContext& context) {
   if (context.constraints["path"].exists(EQUALS)) {
     keychain_paths = context.constraints["path"].getAll(EQUALS);
   } else {
-    // Otherwise limit ONLY to system keychains.
-    for (const auto& path : kSystemKeychainPaths) {
-      keychain_paths.insert(path);
-    }
+    keychain_paths = getKeychainPaths();
   }
 
   for (const auto& item_type : kKeychainItemTypes) {

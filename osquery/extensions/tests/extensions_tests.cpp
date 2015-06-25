@@ -200,7 +200,7 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
   // Make sure the EM registered the extension (called in start extension).
   auto extensions = registeredExtensions();
   // Expect two, since `getExtensions` includes the core.
-  EXPECT_EQ(extensions.size(), 2);
+  ASSERT_EQ(extensions.size(), 2);
   EXPECT_EQ(extensions.count(uuid), 1);
   EXPECT_EQ(extensions.at(uuid).name, "test");
   EXPECT_EQ(extensions.at(uuid).version, "0.1");
