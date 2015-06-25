@@ -10,6 +10,7 @@
 
 #include <cstring>
 
+#include <math.h>
 #include <sys/wait.h>
 #include <signal.h>
 
@@ -31,7 +32,7 @@ namespace osquery {
 
 const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
-    {MEMORY_LIMIT, {50, 30, 10, 1000}},
+    {MEMORY_LIMIT, {80, 50, 30, 1000}},
     // Percent of user or system CPU worker can utilize for LATENCY_LIMIT
     // seconds.
     {UTILIZATION_LIMIT, {90, 80, 60, 1000}},
@@ -238,7 +239,7 @@ bool WatcherRunner::isChildSane(pid_t child) {
 
   {
     WatcherLocker locker;
-    auto state = Watcher::getState(child);
+    auto& state = Watcher::getState(child);
     try {
       parent = AS_LITERAL(BIGINT_LITERAL, rows[0].at("parent"));
       user_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("user_time")) / iv;
@@ -248,9 +249,9 @@ bool WatcherRunner::isChildSane(pid_t child) {
       state.sustained_latency = 0;
     }
 
-    // Check the different of CPU time used since last check.
-    if (state.user_time + getWorkerLimit(UTILIZATION_LIMIT) < user_time ||
-        state.system_time + getWorkerLimit(UTILIZATION_LIMIT) < system_time) {
+    // Check the difference of CPU time used since last check.
+    if (user_time - state.user_time > getWorkerLimit(UTILIZATION_LIMIT) ||
+        system_time - state.system_time > getWorkerLimit(UTILIZATION_LIMIT)) {
       state.sustained_latency++;
     } else {
       state.sustained_latency = 0;
@@ -291,7 +292,6 @@ bool WatcherRunner::isChildSane(pid_t child) {
     LOG(WARNING) << "osqueryd worker system performance limits exceeded";
     return false;
   }
-
   // Check if the private memory exceeds a memory limit.
   if (footprint > 0 && footprint > getWorkerLimit(MEMORY_LIMIT) * 1024 * 1024) {
     LOG(WARNING) << "osqueryd worker memory limits exceeded: " << footprint;
@@ -308,7 +308,10 @@ void WatcherRunner::createWorker() {
     if (Watcher::getState(Watcher::getWorker()).last_respawn_time >
         getUnixTime() - getWorkerLimit(RESPAWN_LIMIT)) {
       LOG(WARNING) << "osqueryd worker respawning too quickly";
+      Watcher::workerRestarted();
       interruptableSleep(getWorkerLimit(RESPAWN_DELAY) * 1000);
+      // Exponential back off for quickly-respawning clients.
+      interruptableSleep(pow(2, Watcher::workerRestartCount()) * 1000);
     }
   }
 

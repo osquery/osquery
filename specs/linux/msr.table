@@ -1,0 +1,21 @@
+table_name("msr")
+description("Various pieces of data stored in the model specific register per "
+            "processor. NOTE: the msr kernel module must be enabled, and "
+            "osquery must be run as root.")
+schema([
+    Column("processor_number", BIGINT,
+      "The processor number as reported in /proc/cpuinfo"),
+    Column("turbo_disabled", BIGINT, "Whether the turbo feature is disabled."),
+    Column("turbo_ratio_limit", BIGINT, "The turbo feature ratio limit."),
+    Column("platform_info", BIGINT, "Platform information."),
+    Column("perf_ctl", BIGINT, "Performance setting for the processor."),
+    Column("perf_status", BIGINT, "Performance status for the processor."),
+    Column("feature_control", BIGINT, "Bitfield controling enabled features."),
+    Column("rapl_power_limit", BIGINT,
+      "Run Time Average Power Limiting power limit."),
+    Column("rapl_energy_status", BIGINT,
+      "Run Time Average Power Limiting energy status."),
+    Column("rapl_power_units", BIGINT,
+      "Run Time Average Power Limiting power units.")
+])
+implementation("model_specific_register@genModelSpecificRegister")

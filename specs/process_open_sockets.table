@@ -9,6 +9,7 @@ schema([
     Column("remote_address", TEXT, "Socket remote address"),
     Column("local_port", INTEGER, "Socket local port"),
     Column("remote_port", INTEGER, "Socket remote port"),
+    Column("path", TEXT, "For UNIX sockets (family=AF_UNIX), the domain path"),
 ])
 implementation("system/process_open_sockets@genOpenSockets")
 examples([

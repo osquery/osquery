@@ -19,8 +19,6 @@
 #include <osquery/filesystem.h>
 #include <osquery/core/conversions.h>
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 namespace tables {
 
@@ -31,60 +29,17 @@ struct XAttrAttribute {
   int buffer_length;
 };
 
-typedef void (*xattrParseFunction)(QueryData &,
-                                   const XAttrAttribute &,
-                                   const std::string &,
-                                   const std::string &);
+const std::string kMetadataXattr = "com.apple.metadata:kMDItemWhereFroms";
+const std::string kQuarantineXattr = "com.apple.quarantine";
 
-// Forward declares of all parse functions
-void parseWhereFrom(QueryData &results,
-                    const XAttrAttribute &x_att,
-                    const std::string &path,
-                    const std::string &directory);
-
-void parseQuarantineFile(QueryData &results,
-                         const XAttrAttribute &x_att,
-                         const std::string &path,
-                         const std::string &directory);
-
-// Extended attribute name to the required parse function. If there is no parse
-// function, the data is returned as is.
-const std::map<std::string, xattrParseFunction> xParseMap = {
-    {"com.apple.metadata:kMDItemWhereFroms", parseWhereFrom},
-    {"com.apple.quarantine", parseQuarantineFile},
-};
-
-// Handle any errors thrown by sys/xattr
-std::string handleError() {
-  switch (errno) {
-  case ENOATTR:
-    return "No such attribute";
-  case ENOTSUP:
-    return "No system support, or support disabled";
-  case ERANGE:
-    return "Size too small to hold attribute";
-  case EPERM:
-    return "The named attribute is not permitted for this type of object";
-  case EINVAL:
-    return "Name is invalid, or options has an unsupported bit set";
-  case EISDIR:
-    return "The path is not a regular file";
-  case ENOTDIR:
-    return "Part of the path was not a directory";
-  case ENAMETOOLONG:
-    return "The filename was too long";
-  case EACCES:
-    return "Insufficient permissions to read the requested file";
-  case ELOOP:
-    return "Too many symbolic links were encountered";
-  case EFAULT:
-    return "The path or name is invalid";
-  case EIO:
-    return "There was an I/O error while reading";
-  default:
-    return "No data";
-  }
-}
+const std::map<std::string, std::string> kQuarantineKeys = {
+    {"quarantine_agent", "LSQuarantineAgentName"},
+    {"quarantine_type", "LSQuarantineType"},
+    {"quarantine_timestamp", "LSQuarantineTimeStamp"},
+    {"quarantine_event_id", "LSQuarantineEventIdentifier"},
+    {"quarantine_sender", "LSQuarantineSenderName"},
+    {"quarantine_data_url", "LSQuarantineDataURL"},
+    {"quarantine_origin_url", "LSQuarantineOriginURL"}};
 
 // Pull the requested extended attribute from the path and return
 // the XAttrAttribute structure
@@ -134,10 +89,21 @@ std::vector<std::string> parseExtendedAttributeList(const std::string &path) {
   return attributes;
 }
 
-void parseWhereFrom(QueryData &results,
-                    const XAttrAttribute &x_att,
-                    const std::string &path,
-                    const std::string &directory) {
+void setRow(QueryData &results,
+            const std::string &path,
+            const std::string &key,
+            const std::string &value) {
+  Row r;
+  r["path"] = path;
+  r["directory"] = boost::filesystem::path(path).parent_path().string();
+  r["key"] = key;
+  auto value_printable = isPrintable(value);
+  r["value"] = (value_printable) ? value : base64Encode(value);
+  r["base64"] = (value_printable) ? INTEGER(0) : INTEGER(1);
+  results.push_back(r);
+}
+
+void parseWhereFrom(QueryData &results, const std::string &path) {
 
   CFStringRef CFPath = CFStringCreateWithCString(
       kCFAllocatorDefault, path.c_str(), kCFStringEncodingUTF8);
@@ -164,72 +130,100 @@ void parseWhereFrom(QueryData &results,
 
   for (CFIndex i = 0; i < count; i++) {
     CFStringRef attribute = (CFStringRef)CFArrayGetValueAtIndex(attribs, i);
-    Row r;
-    r["path"] = path;
-    r["directory"] = directory;
-    r["key"] = "where_from";
-    r["value"] = stringFromCFString(attribute);
-    r["base64"] = INTEGER(0);
-    results.push_back(r);
+    auto where_from_attribute = stringFromCFString(attribute);
+    if (!where_from_attribute.empty()) {
+      setRow(results, path, "where_from", where_from_attribute);
+    }
   }
 
   CFRelease(attributes);
 }
 
-// Parse a given XAttrAttribute struct as an OS X quarantine string
-void parseQuarantineFile(QueryData &results,
-                         const XAttrAttribute &x_att,
-                         const std::string &path,
-                         const std::string &directory) {
-  std::vector<std::string> values = osquery::split(x_att.attribute_data, ";");
-  if (values.size() < 2) {
+void extractQuarantineProperty(const std::string &table_key_name,
+                               CFTypeRef property,
+                               const std::string &path,
+                               QueryData &results) {
+  std::string value;
+  if (CFGetTypeID(property) == CFStringGetTypeID()) {
+    value = stringFromCFString((CFStringRef)property);
+  } else if (CFGetTypeID(property) == CFDateGetTypeID()) {
+    auto unix_time = CFDateGetAbsoluteTime((CFDateRef)property) +
+                     kCFAbsoluteTimeIntervalSince1970;
+    value = INTEGER(std::llround(unix_time));
+  } else if (CFGetTypeID(property) == CFURLGetTypeID()) {
+    value = stringFromCFString(CFURLGetString((CFURLRef)property));
+  }
+  setRow(results, path, table_key_name, value);
+}
+
+void parseQuarantineFile(QueryData &results, const std::string &path) {
+  CFURLRef url = CFURLCreateFromFileSystemRepresentation(
+      kCFAllocatorDefault, (const UInt8 *)path.c_str(), path.length(), false);
+
+  if (url == nullptr) {
+    VLOG(1) << "Error obtaining CFURLRef for " << path;
+    VLOG(1) << "Unable to fetch quarantine data";
     return;
   }
 
-  Row r1;
-  r1["path"] = path;
-  r1["directory"] = directory;
-  r1["key"] = "quarantine_creator";
-  r1["base64"] = INTEGER(0);
-  r1["value"] = values[2];
+  CFTypeRef quarantine_properties;
+#if defined(DARWIN_10_9)
+  FSRef fs_url;
+  if (!CFURLGetFSRef(url, &fs_url)) {
+    VLOG(1) << "Error obtaining FSRef for " << path;
+    VLOG(1) << "Unable to fetch quarantine data";
+    CFRelease(url);
+    return;
+  }
+  if (LSCopyItemAttribute(&fs_url, kLSRolesAll, kLSItemQuarantineProperties,
+                          &quarantine_properties) != noErr) {
+    VLOG(1) << "Error retrieving quarantine properties for " << path;
+    CFRelease(url);
+    return;
+  }
+#else
+  if (!CFURLCopyResourcePropertyForKey(url, kCFURLQuarantinePropertiesKey,
+                                       &quarantine_properties, nullptr)) {
+    VLOG(1) << "Error retrieving quarantine properties for " << path;
+    CFRelease(url);
+    return;
+  }
+#endif
 
-  Row r2;
-  r2["path"] = path;
-  r2["directory"] = directory;
-  r2["key"] = "quarantine_state";
-  r2["base64"] = INTEGER(0);
-  r2["value"] = values[0];
+  if (quarantine_properties == nullptr) {
+    VLOG(1) << "Error retrieving quarantine properties for " << path;
+    CFRelease(url);
+    return;
+  }
 
-  results.push_back(r1);
-  results.push_back(r2);
+  CFTypeRef property;
+  for (const auto &kv : kQuarantineKeys) {
+    CFStringRef key = CFStringCreateWithCString(
+        kCFAllocatorDefault, kv.second.c_str(), kCFStringEncodingUTF8);
+
+    if (CFDictionaryGetValueIfPresent((CFDictionaryRef)quarantine_properties,
+                                      key, &property)) {
+      extractQuarantineProperty(kv.first, property, path, results);
+    }
+    CFRelease(key);
+  }
+
+  CFRelease(quarantine_properties);
+  CFRelease(url);
 }
 
 // Process a file and extract all attribute information, parsed or not.
-void getFileData(QueryData &results,
-                 const std::string &path,
-                 const std::string &directory) {
+void getFileData(QueryData &results, const std::string &path) {
   std::vector<std::string> attributes = parseExtendedAttributeList(path);
   for (const auto &attribute : attributes) {
     struct XAttrAttribute x_att = getAttribute(path, attribute);
-    if (xParseMap.count(attribute) > 0) {
-      (*xParseMap.at(attribute))(results, x_att, path, directory);
+
+    if (attribute == kMetadataXattr) {
+      parseWhereFrom(results, path);
+    } else if (attribute == kQuarantineXattr) {
+      parseQuarantineFile(results, path);
     } else {
-      // We don't have a function in our map for this key so throw it in
-      // verbatim
-      Row r;
-      r["path"] = path;
-      r["directory"] = directory;
-      r["key"] = attribute;
-
-      if (isPrintable(x_att.attribute_data)) {
-        r["base64"] = INTEGER(0);
-        r["value"] = x_att.attribute_data;
-      } else {
-        r["base64"] = INTEGER(1);
-        r["value"] = base64Encode(x_att.attribute_data);
-      }
-
-      results.push_back(r);
+      setRow(results, path, attribute, x_att.attribute_data);
     }
   }
 }
@@ -245,7 +239,7 @@ QueryData genXattr(QueryContext &context) {
           boost::filesystem::is_directory(path))) {
       continue;
     }
-    getFileData(results, path.string(), path.parent_path().string());
+    getFileData(results, path.string());
   }
 
   auto directories = context.constraints["directory"].getAll(EQUALS);
@@ -257,7 +251,7 @@ QueryData genXattr(QueryContext &context) {
     listFilesInDirectory(directory, files);
 
     for (auto &file : files) {
-      getFileData(results, file, directory);
+      getFileData(results, file);
     }
   }
   return results;

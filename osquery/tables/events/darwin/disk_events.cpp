@@ -1,0 +1,69 @@
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+#include <osquery/core.h>
+#include <osquery/logger.h>
+#include <osquery/tables.h>
+#include <osquery/events.h>
+
+#include "osquery/events/darwin/diskarbitration.h"
+
+namespace osquery {
+
+class DiskEventSubscriber
+    : public EventSubscriber<DiskArbitrationEventPublisher> {
+ public:
+  Status init();
+
+  Status Callback(const DiskArbitrationEventContextRef& ec,
+                  const void* user_data);
+};
+
+REGISTER(DiskEventSubscriber, "event_subscriber", "disk_events");
+
+Status DiskEventSubscriber::init() {
+  auto subscription = createSubscriptionContext();
+  // Don't want physical disk events
+  subscription->physical_disks = false;
+
+  subscribe(&DiskEventSubscriber::Callback, subscription, nullptr);
+  return Status(0, "OK");
+}
+
+Status DiskEventSubscriber::Callback(const DiskArbitrationEventContextRef& ec,
+                                     const void* user_data) {
+  Row r;
+
+  r["action"] = ec->action;
+  r["path"] = ec->path;
+  r["name"] = ec->name;
+  r["bsd_name"] = "/dev/" + ec->bsd_name;
+  r["uuid"] = ec->uuid;
+  r["size"] = ec->size;
+  r["ejectable"] = ec->ejectable;
+  r["mountable"] = ec->mountable;
+  r["writable"] = ec->writable;
+  r["content"] = ec->content;
+  r["media_name"] = ec->media_name;
+  r["vendor"] = ec->vendor;
+  r["filesystem"] = ec->filesystem;
+  r["checksum"] = ec->checksum;
+
+  if (ec->action == "add") {
+    r["time"] = ec->disk_appearance_time;
+    add(r, boost::lexical_cast<uint32_t>(ec->disk_appearance_time));
+  } else if (ec->action == "remove") {
+    r["time"] = INTEGER(ec->time);
+    add(r, ec->time);
+  }
+
+  return Status(0, "OK");
+}
+}

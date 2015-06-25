@@ -442,7 +442,7 @@ Status getExtensions(const std::string& manager_path,
   }
 
   // Add the extension manager to the list called (core).
-  extensions[0] = {"core", OSQUERY_VERSION, "0.0.0", OSQUERY_SDK_VERSION};
+  extensions[0] = {"core", kVersion, "0.0.0", kSDKVersion};
 
   // Convert from Thrift-internal list type to RouteUUID/ExtenionInfo type.
   for (const auto& ext : ext_list) {

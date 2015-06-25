@@ -53,6 +53,7 @@ DATETIME = DataType("TEXT")
 INTEGER = DataType("INTEGER", "int")
 BIGINT = DataType("BIGINT", "long long int")
 UNSIGNED_BIGINT = DataType("UNSIGNED_BIGINT", "long long unsigned int")
+DOUBLE = DataType("DOUBLE", "double")
 
 # Define table-category MACROS from the table specs
 UNKNOWN = "UNKNOWN"
@@ -224,6 +225,7 @@ class Column(object):
         self.name = name
         self.type = col_type
         self.description = description
+        self.options = kwargs
 
 
 class ForeignKey(object):
