@@ -304,15 +304,18 @@ void Initializer::initActivePlugin(const std::string& type,
                                    const std::string& name) {
   // Use a delay, meaning the amount of milliseconds waited for extensions.
   size_t delay = 0;
-  // The timeout is the maximum time in seconds to wait for extensions.
-  size_t timeout = atoi(FLAGS_extensions_timeout.c_str());
+  // The timeout is the maximum microseconds in seconds to wait for extensions.
+  size_t timeout = atoi(FLAGS_extensions_timeout.c_str()) * 1000000;
+  if (timeout < kExtensionInitializeLatencyUS * 10) {
+    timeout = kExtensionInitializeLatencyUS * 10;
+  }
   while (!Registry::setActive(type, name)) {
-    if (!Watcher::hasManagedExtensions() || delay > timeout * 1000) {
+    if (!Watcher::hasManagedExtensions() || delay > timeout) {
       LOG(ERROR) << "Active " << type << " plugin not found: " << name;
       ::exit(EXIT_CATASTROPHIC);
     }
-    ::usleep(kExtensionInitializeMLatency * 1000);
-    delay += kExtensionInitializeMLatency;
+    delay += kExtensionInitializeLatencyUS;
+    ::usleep(kExtensionInitializeLatencyUS);
   }
 }
 
