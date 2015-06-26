@@ -8,7 +8,7 @@
  *
  */
 
-#include <feeds.h>
+#include "kernel/include/feeds.h"
 
 #include <sys/ioctl.h>
 #include <fcntl.h>

@@ -8,7 +8,7 @@
  *
  */
 
-#include <circular_queue_user.h>
+#include "osquery/events/kernel/circular_queue_user.h"
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -36,28 +36,27 @@ int main() {
   sigaction(SIGINT, &sigIntHandler, NULL);
   
   try {
-  CQueue cqueue(20 * (1<<20));
+    osquery::CQueue cqueue(20 * (1<<20));
 
-  test_event_0_data_t *my_event;
-  osquery_event_t event;
-  void *event_buf = NULL;
-  while(!exit_flag) {
-    drops += cqueue.kernelSync();
-    int max_before_sync = 2000;
-    while (max_before_sync > 0 && (event = cqueue.dequeue(&event_buf))) {
-      switch (event) {
-        case OSQUERY_TEST_EVENT_0:
-        case OSQUERY_TEST_EVENT_1:
-          // Do something with the event_buf now.
-          reads++;
-          break;
-        default:
-          throw std::runtime_error("Uh oh. Unknown event.");
+    osquery_event_t event;
+    void *event_buf = NULL;
+    while(!exit_flag) {
+      drops += cqueue.kernelSync();
+      int max_before_sync = 2000;
+      while (max_before_sync > 0 && (event = cqueue.dequeue(&event_buf))) {
+        switch (event) {
+          case OSQUERY_TEST_EVENT_0:
+          case OSQUERY_TEST_EVENT_1:
+            // Do something with the event_buf now.
+            reads++;
+            break;
+          default:
+            throw std::runtime_error("Uh oh. Unknown event.");
+        }
+        max_before_sync --;
       }
-      max_before_sync --;
     }
-  }
-  } catch (const CQueueException &e) {
+  } catch (const osquery::CQueueException &e) {
     std::cerr << e.what() << std::endl;
   }
   printf("Read %d, entries.\n", reads);
