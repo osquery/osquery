@@ -467,11 +467,11 @@ function check() {
   platform OS
 
   if [[ $OS = "darwin" ]]; then
-    HASH=`shasum $0 | awk '{print $1}'`
+    HASH=`shasum "$0" | awk '{print $1}'`
   elif [[ $OS = "freebsd" ]]; then
-    HASH=`sha1 -q $0`
+    HASH=`sha1 -q "$0"`
   else
-    HASH=`sha1sum $0 | awk '{print $1}'`
+    HASH=`sha1sum "$0" | awk '{print $1}'`
   fi
 
   if [[ "$1" = "build" ]]; then
