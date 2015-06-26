@@ -24,9 +24,14 @@ else()
   )
 endif()
 
+file(GLOB OSQUERY_KERNEL_QUEUE "kernel/*.cpp")
 ADD_OSQUERY_LIBRARY(TRUE osquery_events
   events.cpp
+  ${OSQUERY_KERNEL_QUEUE}
 )
+
+file(GLOB OSQUERY_KERNEL_QUEUE_TEST "kernel/tests/*.cpp")
+ADD_OSQUERY_TEST(TRUE ${OSQUERY_KERNEL_QUEUE_TEST})
 
 file(GLOB OSQUERY_EVENTS_TESTS "tests/*.cpp")
 ADD_OSQUERY_TEST(TRUE ${OSQUERY_EVENTS_TESTS})

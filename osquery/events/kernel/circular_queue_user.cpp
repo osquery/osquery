@@ -45,7 +45,6 @@ CQueue::CQueue(size_t size) {
 
 CQueue::~CQueue() {
   if (fd_ >= 0) {
-    printf("Cleaning up %d\n", fd_);
     close(fd_);
     fd_ = -1;
   }
@@ -85,21 +84,23 @@ osquery_event_t CQueue::dequeue(void **event) {
 }
 
 // return positive idicates drop, 0 is all good in the hood.
-int CQueue::kernelSync() {
-  osquery_buf_update_args_t update;
-  update.read_offset = read_ - buffer_;
+// options are listed in kernel feeds.  primarily OSQUERY_NO_BLOCK.
+int CQueue::kernelSync(int options) {
+  osquery_buf_sync_args_t sync;
+  sync.read_offset = read_ - buffer_;
+  sync.options = options;
 
   int err = 0;
-  if ((err = ioctl(fd_, OSQUERY_IOCTL_BUF_UPDATE, &update))) {
+  if ((err = ioctl(fd_, OSQUERY_IOCTL_BUF_SYNC, &sync))) {
     throw CQueueException("Could not sync buffer with kernel properly.");
   }
-  uint8_t *new_max_read =  update.max_read_offset + buffer_;
+  uint8_t *new_max_read =  sync.max_read_offset + buffer_;
   max_read_ = new_max_read;
   if (err) {
     read_ = max_read_;
   }
 
-  return update.drops;
+  return sync.drops;
 }
 
 }  // namespace osquery
