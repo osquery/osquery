@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>osquery</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.facebook.driver.osquery</string>
+	<string>com.facebook.security.osquery</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
