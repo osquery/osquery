@@ -13,8 +13,7 @@ a query schedule from a configuration.
 ## Configuration components
 
 The osquery "configuration" is read from a config plugin. This plugin is a data retrieval method and is set to **filesystem** by default.
-Other retrieval and run-time updating methods may include an HTTL/TLS request.
-In each case the response data must be JSON-formatted.
+Other retrieval and run-time updating methods may include a HTTP/TLS request using the **tls** config plugin. In all cases the response data must be JSON-formatted.
 
 There are several components to a configuration:
 
@@ -64,6 +63,8 @@ This config tells osqueryd to schedule two queries, **macosx_kextstat** and **fo
 The first query will document changes to an OS X host's kernel extensions, with a query interval of 10 seconds. Consider using osquery's [performance tooling](performance-safety.md) to understand the performance impact for each query.
 
 The results of your query are cached on disk via [RocksDB](http://rocksdb.org/). On first query run, all of the results are stored in RocksDB. On subsequent runs, only result-set changes are logged to RocksDB.
+
+Scheduled queries can also set: `"removed":false` and `"snapshot":true`. See the next section on [logging](logging.md) for how query options affect output.
 
 ## Chef Configuration
 

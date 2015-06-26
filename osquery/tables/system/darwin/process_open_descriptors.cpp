@@ -103,11 +103,13 @@ void genSocketDescriptor(int pid, int descriptor, QueryData &results) {
                      PROC_PIDFDSOCKETINFO_SIZE) <= 0) {
     return;
   }
-  if (si.psi.soi_kind == SOCKINFO_IN || si.psi.soi_kind == SOCKINFO_TCP) {
+
+  if (si.psi.soi_family == AF_INET || si.psi.soi_family == AF_INET6) {
     Row r;
 
     r["pid"] = INTEGER(pid);
     r["socket"] = INTEGER(descriptor);
+    r["path"] = "";
 
     // Darwin/OSX SOCKINFO_TCP is not IPPROTO_TCP
     if (si.psi.soi_kind == SOCKINFO_TCP) {
@@ -125,6 +127,29 @@ void genSocketDescriptor(int pid, int descriptor, QueryData &results) {
 
     parseNetworkSocket(si, r);
     results.push_back(r);
+  } else if (si.psi.soi_family == AF_UNIX) {
+    Row r;
+
+    r["pid"] = INTEGER(pid);
+    r["socket"] = INTEGER(descriptor);
+    r["family"] = "0";
+    r["protocol"] = "0";
+    r["local_address"] = "";
+    r["local_port"] = "0";
+    r["remote_address"] = "";
+    r["remote_port"] = "0";
+    if ((char *)si.psi.soi_proto.pri_un.unsi_addr.ua_sun.sun_path != nullptr) {
+      r["path"] = si.psi.soi_proto.pri_un.unsi_addr.ua_sun.sun_path;
+    } else {
+      r["path"] = "";
+    }
+    results.push_back(r);
+  } else if (si.psi.soi_family == AF_APPLETALK) {
+    // AF_APPLETALK = 17
+  } else if (si.psi.soi_family == AF_NATM) {
+    // AF_NATM = 32
+  } else {
+    // Unsupported socket type.
   }
 }
 

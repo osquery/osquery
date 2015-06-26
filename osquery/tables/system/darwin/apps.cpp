@@ -8,6 +8,8 @@
  *
  */
 
+#include <CoreServices/CoreServices.h>
+
 #include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -18,6 +20,9 @@
 #include <osquery/tables.h>
 #include <osquery/sql.h>
 
+#include "osquery/core/conversions.h"
+
+namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -46,106 +51,255 @@ const std::vector<std::string> kHomeDirSearchPaths = {
     "Applications", "Desktop", "Downloads",
 };
 
-std::vector<std::string> getSystemApplications() {
-  std::vector<std::string> results;
-  std::vector<std::string> sys_apps;
-  auto status = osquery::listDirectoriesInDirectory("/Applications", sys_apps);
+enum AppSchemeFlags {
+  kSchemeNormal = 0,
+  // Default flag from the list of schemes on a default OS X 10.10 install.
+  kSchemeSystemDefault = 1,
+  // Protected flag from Apple Reference: Inter-app Communication
+  kSchemeProtected = 2,
+};
 
-  if (status.ok()) {
-    for (const auto& app_path : sys_apps) {
-      std::string plist_path = app_path + "/Contents/Info.plist";
-      if (boost::filesystem::exists(plist_path)) {
-        results.push_back(plist_path);
-      }
-    }
-  } else {
-    VLOG(1) << "Error listing /Applications: " << status.toString();
+const std::map<std::string, unsigned short> kApplicationSchemes = {
+    {"account", 0},
+    {"addressbook", kSchemeSystemDefault},
+    {"afp", kSchemeSystemDefault | kSchemeProtected},
+    {"aim", kSchemeSystemDefault},
+    {"alfred", 0},
+    {"alfredapp", 0},
+    {"app-prefs", 0},
+    {"applefeedback", kSchemeSystemDefault},
+    {"applescript", kSchemeSystemDefault},
+    {"apupdate", kSchemeSystemDefault},
+    {"at", kSchemeSystemDefault | kSchemeProtected},
+    {"atom", 0},
+    {"bluejeans", 0},
+    {"calinvite", 0},
+    {"calinvitelist", 0},
+    {"callto", 0},
+    {"calshow", 0},
+    {"cloudphoto", kSchemeSystemDefault},
+    {"conf", 0},
+    {"daap", kSchemeSystemDefault},
+    {"dict", kSchemeSystemDefault},
+    {"facetime", kSchemeSystemDefault | kSchemeProtected},
+    {"fb", kSchemeSystemDefault},
+    {"fbauth", 0},
+    {"file", kSchemeSystemDefault | kSchemeProtected},
+    {"ftp", kSchemeSystemDefault | kSchemeProtected},
+    {"gamecenter", kSchemeSystemDefault},
+    {"gopher", 0},
+    {"grammar", 0},
+    {"h323", 0},
+    {"help", kSchemeSystemDefault},
+    {"http", kSchemeSystemDefault | kSchemeProtected},
+    {"https", kSchemeSystemDefault | kSchemeProtected},
+    {"iadoptout", 0},
+    {"ibooks", kSchemeSystemDefault},
+    {"ical", kSchemeSystemDefault},
+    {"ichat", kSchemeSystemDefault},
+    {"icloud-sharing", kSchemeSystemDefault},
+    {"im", kSchemeSystemDefault},
+    {"imessage", kSchemeSystemDefault},
+    {"ipps", kSchemeSystemDefault},
+    {"irc", 0},
+    {"itls", kSchemeSystemDefault},
+    {"itms", kSchemeSystemDefault},
+    {"itms-books", kSchemeSystemDefault},
+    {"itms-bookss", kSchemeSystemDefault},
+    {"itmsp-app", 0},
+    {"itunesradio", kSchemeSystemDefault},
+    {"macappstore", kSchemeSystemDefault},
+    {"macappstores", kSchemeSystemDefault},
+    {"mailto", kSchemeSystemDefault | kSchemeProtected},
+    {"map", 0},
+    {"maps", kSchemeSystemDefault},
+    {"message", kSchemeSystemDefault},
+    {"messages", kSchemeSystemDefault},
+    {"ms-excel", 0},
+    {"ms-word", 0},
+    {"munki", 0},
+    {"news", kSchemeSystemDefault | kSchemeProtected},
+    {"nntp", 0},
+    {"nwnode", kSchemeSystemDefault | kSchemeProtected},
+    {"omnifocus", 0},
+    {"ophttp", 0},
+    {"pcast", kSchemeSystemDefault},
+    {"photos", kSchemeSystemDefault},
+    {"photos-event", 0},
+    {"photos-migrate-iphoto", 0},
+    {"photos-redirect", 0},
+    {"powerpoint", 0},
+    {"prefs", 0},
+    {"qs", 0},
+    {"qsinstall", 0},
+    {"qss-http", 0},
+    {"qssp-http", 0},
+    {"reminders", kSchemeSystemDefault},
+    {"rtsp", kSchemeSystemDefault},
+    {"shoebox", 0},
+    {"slack", 0},
+    {"smb", kSchemeSystemDefault | kSchemeProtected},
+    {"sms", kSchemeSystemDefault | kSchemeProtected},
+    {"ssh", kSchemeSystemDefault},
+    {"tel", kSchemeSystemDefault | kSchemeProtected},
+    {"telnet", kSchemeSystemDefault},
+    {"twitter", kSchemeSystemDefault},
+    {"txmt", 0},
+    {"vnc", kSchemeSystemDefault | kSchemeProtected},
+    {"wais", 0},
+    {"webapp", 0},
+    {"webcal", kSchemeSystemDefault},
+    {"whois", 0},
+    {"wunderlist", 0},
+    {"xmpp", kSchemeSystemDefault},
+    {"yelp", 0},
+};
+
+void genApplicationsFromPath(const fs::path& path,
+                             std::vector<std::string>& apps) {
+  std::vector<std::string> new_apps;
+  if (!osquery::listDirectoriesInDirectory(path.string(), new_apps).ok()) {
+    return;
   }
-  return results;
-}
 
-std::vector<std::string> getUserApplications(const std::string& home_dir) {
-  std::vector<std::string> results;
-  for (const auto& dir_to_check : kHomeDirSearchPaths) {
-    boost::filesystem::path apps_path = home_dir;
-    apps_path /= dir_to_check;
-
-    std::vector<std::string> user_apps;
-    auto status = osquery::listDirectoriesInDirectory(apps_path, user_apps);
-    if (status.ok()) {
-      for (const auto& user_app : user_apps) {
-        std::string plist_path = user_app + "/Contents/Info.plist";
-        if (boost::filesystem::exists(plist_path)) {
-          results.push_back(plist_path);
-        }
-      }
-    } else {
-      VLOG(1) << "Error listing " << apps_path << ": " << status.toString();
+  for (const auto& app : new_apps) {
+    if (fs::exists(app + "/Contents/Info.plist")) {
+      apps.push_back(app + "/Contents/Info.plist");
     }
   }
-  return results;
 }
 
-std::string getNameFromInfoPlistPath(const std::string& path) {
-  boost::filesystem::path full = path;
-  return full.parent_path().parent_path().filename().string();
-}
-
-std::string getPathFromInfoPlistPath(const std::string& path) {
-  boost::filesystem::path full = path;
-  return full.parent_path().parent_path().string();
-}
-
-Row parseInfoPlist(const std::string& path, const pt::ptree& tree) {
+void genApplication(const pt::ptree& tree,
+                    const fs::path& path,
+                    QueryData& results) {
   Row r;
+  r["name"] = path.parent_path().parent_path().filename().string();
+  r["path"] = path.parent_path().parent_path().string();
 
-  boost::filesystem::path full = path;
-  r["name"] = getNameFromInfoPlistPath(path);
-  r["path"] = getPathFromInfoPlistPath(path);
-  for (const auto& it : kAppsInfoPlistTopLevelStringKeys) {
+  // Loop through each column and its mapped Info.plist key name.
+  for (const auto& item : kAppsInfoPlistTopLevelStringKeys) {
     try {
-      r[it.second] = tree.get<std::string>(it.first);
+      r[item.second] = tree.get<std::string>(item.first);
       // Change boolean values into integer 1, 0.
-      if (r[it.second] == "true" || r[it.second] == "YES" ||
-          r[it.second] == "Yes") {
-        r[it.second] = INTEGER(1);
-      } else if (r[it.second] == "false" || r[it.second] == "NO" ||
-                 r[it.second] == "No") {
-        r[it.second] = INTEGER(0);
+      if (r[item.second] == "true" || r[item.second] == "YES" ||
+          r[item.second] == "Yes") {
+        r[item.second] = INTEGER(1);
+      } else if (r[item.second] == "false" || r[item.second] == "NO" ||
+                 r[item.second] == "No") {
+        r[item.second] = INTEGER(0);
       }
     } catch (const pt::ptree_error& e) {
       // Expect that most of the selected keys are missing.
-      r[it.second] = "";
+      r[item.second] = "";
     }
   }
-  return r;
+  results.push_back(r);
 }
 
 QueryData genApps(QueryContext& context) {
   QueryData results;
-  pt::ptree tree;
 
-  // Enumerate and parse applications in / (system applications).
-  for (const auto& path : getSystemApplications()) {
-    if (osquery::parsePlist(path, tree).ok()) {
-      results.push_back(parseInfoPlist(path, tree));
-    } else {
-      VLOG(1) << "Error parsing system applications: " << path;
+  // Walk through several groups of common search paths that may contain apps.
+  std::vector<std::string> apps;
+  if (context.constraints["path"].exists(EQUALS)) {
+    auto app_constraints = context.constraints["path"].getAll(EQUALS);
+    for (const auto& app : app_constraints) {
+      apps.push_back((fs::path(app) / "Contents/Info.plist").string());
+    }
+  } else {
+    genApplicationsFromPath("/Applications", apps);
+
+    // List all users on the system, and walk common search paths with homes.
+    auto homes = osquery::getHomeDirectories();
+    for (const auto& home : homes) {
+      for (const auto& path : kHomeDirSearchPaths) {
+        genApplicationsFromPath(home / path, apps);
+      }
     }
   }
 
-  auto users = SQL::selectAllFrom("users");
+  // The osquery::parsePlist method will reset/clear a property tree.
+  // Keeping the data structure in a larger scope preserves allocations
+  // between similar-sized trees.
+  pt::ptree tree;
 
-  // Enumerate apps for each user (several paths).
-  for (const auto& user : users) {
-    for (const auto& path : getUserApplications(user.at("directory"))) {
-      if (osquery::parsePlist(path, tree).ok()) {
-        Row r = parseInfoPlist(path, tree);
-        results.push_back(r);
-      } else {
-        VLOG(1) << "Error parsing user applications: " << path;
-      }
+  // For each found application (path with an Info.plist) parse the plist.
+  for (const auto& path : apps) {
+    if (!osquery::parsePlist(path, tree).ok()) {
+      TLOG << "Error parsing application plist: " << path;
+      continue;
     }
+
+    // Using the parsed plist, pull out each interesting key.
+    genApplication(tree, path, results);
+  }
+
+  return results;
+}
+
+QueryData genAppSchemes(QueryContext& context) {
+  QueryData results;
+
+  for (const auto& scheme : kApplicationSchemes) {
+    auto protocol = scheme.first + "://";
+    auto cfprotocol = CFStringCreateWithCString(
+        kCFAllocatorDefault, protocol.c_str(), protocol.length());
+    if (cfprotocol == nullptr) {
+      continue;
+    }
+
+    // Create a "fake" URL that only contains the protocol component of a URI.
+    auto url = CFURLCreateWithString(kCFAllocatorDefault, cfprotocol, nullptr);
+    CFRelease(cfprotocol);
+    if (url == nullptr) {
+      continue;
+    }
+
+    // List all application bundles that request this protocol scheme.
+    auto apps = LSCopyApplicationURLsForURL(url, kLSRolesAll);
+    if (apps == nullptr) {
+      CFRelease(url);
+      continue;
+    }
+
+    // Check the default handler assigned to the protocol scheme.
+    auto default_app =
+        LSCopyDefaultApplicationURLForURL(url, kLSRolesAll, nullptr);
+    CFRelease(url);
+    for (CFIndex i = 0; i < CFArrayGetCount(apps); i++) {
+      Row r;
+      r["scheme"] = scheme.first;
+
+      auto app = CFArrayGetValueAtIndex(apps, i);
+      if (app == nullptr || CFGetTypeID(app) != CFURLGetTypeID()) {
+        // Handle problems with application listings.
+        continue;
+      }
+
+      auto path = CFURLCopyFileSystemPath((CFURLRef)app, kCFURLPOSIXPathStyle);
+      if (path == nullptr) {
+        continue;
+      }
+
+      r["handler"] = stringFromCFString(path);
+      CFRelease(path);
+      // Check if the handler is set (in the OS) as the default.
+      if (default_app != nullptr &&
+          CFEqual((CFTypeRef)app, (CFTypeRef)default_app)) {
+        r["enabled"] = "1";
+      } else {
+        r["enabled"] = "0";
+      }
+      r["external"] = (scheme.second & kSchemeSystemDefault) ? "0" : "1";
+      r["protected"] = (scheme.second & kSchemeProtected) ? "1" : "0";
+      results.push_back(r);
+    }
+
+    if (default_app != nullptr) {
+      CFRelease(default_app);
+    }
+
+    CFRelease(apps);
   }
 
   return results;

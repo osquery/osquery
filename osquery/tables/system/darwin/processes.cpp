@@ -25,6 +25,8 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 namespace tables {
 
@@ -75,7 +77,7 @@ std::set<int> getProcList(const QueryContext &context) {
   return pidlist;
 }
 
-std::map<int, int> getParentMap(std::set<int> &pidlist) {
+std::map<int, int> getParentMap(const std::set<int> &pidlist) {
   std::map<int, int> pidmap;
 
   struct kinfo_proc proc;
@@ -158,80 +160,54 @@ void genProcRootAndCWD(int pid, Row &r) {
   }
 }
 
-std::vector<std::string> getProcRawArgs(int pid, size_t argmax) {
+struct proc_args {
   std::vector<std::string> args;
+  std::map<std::string, std::string> env;
+};
+
+proc_args getProcRawArgs(int pid, size_t argmax) {
+  proc_args args;
   uid_t euid = geteuid();
-
   char procargs[argmax];
-  const char *cp = procargs;
   int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
-
-  if (sysctl(mib, 3, &procargs, &argmax, nullptr, 0) == -1) {
+  if (sysctl(mib, 3, &procargs, &argmax, nullptr, 0) == -1 || argmax == 0) {
     if (euid == 0) {
-      VLOG(1) << "An error occurred retrieving the env for pid: " << pid;
+      TLOG << "An error occurred retrieving the env for pid: " << pid;
     }
-
     return args;
   }
 
-  // Here we make the assertion that we are interested in all non-empty strings
-  // in the proc args+env
-  do {
-    std::string s = std::string(cp);
-    if (s.length() > 0) {
-      args.push_back(s);
+  // The number of arguments is an integer in front of the result buffer.
+  int nargs = 0;
+  memcpy(&nargs, procargs, sizeof(nargs));
+  // Walk the \0-tokenized list of arguments until reaching the returned 'max'
+  // number of arguments or the number appended to the front.
+  const char *current_arg = &procargs[0] + sizeof(nargs);
+  // Then skip the exec/program name.
+  auto exec_name = std::string(current_arg);
+  current_arg += exec_name.size() + 1;
+  while (current_arg < &procargs[argmax]) {
+    // Skip optional null-character padding.
+    if (*current_arg == '\0') {
+      current_arg++;
+      continue;
     }
-    cp += args.back().size() + 1;
-  } while (cp < procargs + argmax);
-  return args;
-}
 
-std::map<std::string, std::string> getProcEnv(int pid, size_t argmax) {
-  std::map<std::string, std::string> env;
-  auto args = getProcRawArgs(pid, argmax);
-
-  // Since we know that all envs will have an = sign and are at the end of the
-  // list, we iterate from the end forward until we stop seeing = signs.
-  // According to the // ps source, there is no programmatic way to know where
-  // args stop and env begins, so args at the end of a command string which
-  // contain "=" may erroneously appear as env vars.
-  for (auto itr = args.rbegin(); itr < args.rend(); ++itr) {
-    size_t idx = itr->find_first_of("=");
-    if (idx == std::string::npos) {
-      break;
-    }
-    std::string key = itr->substr(0, idx);
-    std::string value = itr->substr(idx + 1);
-    env[key] = value;
-  }
-
-  return env;
-}
-
-std::vector<std::string> getProcArgs(int pid, size_t argmax) {
-  auto raw_args = getProcRawArgs(pid, argmax);
-  std::vector<std::string> args;
-  bool collect = false;
-
-  // Iterate from the back until we stop seeing environment vars
-  // Then start pushing args (in reverse order) onto a vector.
-  // We trim the args of leading/trailing whitespace to make
-  // analysis easier.
-  for (auto itr = raw_args.rbegin(); itr < raw_args.rend(); ++itr) {
-    if (collect) {
-      std::string arg = *itr;
-      boost::algorithm::trim(arg);
-      args.push_back(arg);
-    } else {
-      size_t idx = itr->find_first_of("=");
-      if (idx == std::string::npos) {
-        collect = true;
+    auto string_arg = std::string(current_arg);
+    if (string_arg.size() > 0) {
+      if (nargs > 0) {
+        // The first nargs are CLI arguments, afterward they are environment.
+        args.args.push_back(string_arg);
+        nargs--;
+      } else {
+        size_t idx = string_arg.find_first_of("=");
+        if (idx != std::string::npos && idx > 0) {
+          args.env[string_arg.substr(0, idx)] = string_arg.substr(idx + 1);
+        }
       }
     }
+    current_arg += string_arg.size() + 1;
   }
-
-  // We pushed them on backwards, so we need to fix that.
-  std::reverse(args.begin(), args.end());
 
   return args;
 }
@@ -248,12 +224,16 @@ QueryData genProcesses(QueryContext &context) {
     r["pid"] = INTEGER(pid);
     r["path"] = getProcPath(pid);
     // OS X proc_name only returns 16 bytes, use the basename of the path.
-    r["name"] = boost::filesystem::path(r["path"]).filename().string();
+    r["name"] = fs::path(r["path"]).filename().string();
 
-    // The command line invocation including arguments.
-    std::string cmdline = boost::algorithm::join(getProcArgs(pid, argmax), " ");
-    boost::algorithm::trim(cmdline);
-    r["cmdline"] = cmdline;
+    {
+      // The command line invocation including arguments.
+      auto args = getProcRawArgs(pid, argmax);
+      std::string cmdline = boost::algorithm::join(args.args, " ");
+      r["cmdline"] = cmdline;
+    }
+
+    // The process relative root and current working directory.
     genProcRootAndCWD(pid, r);
 
     proc_cred cred;
@@ -320,14 +300,12 @@ QueryData genProcessEnvs(QueryContext &context) {
   auto pidlist = getProcList(context);
   int argmax = genMaxArgs();
   for (const auto &pid : pidlist) {
-    auto env = getProcEnv(pid, argmax);
-    for (auto env_itr = env.begin(); env_itr != env.end(); ++env_itr) {
+    auto args = getProcRawArgs(pid, argmax);
+    for (const auto &env : args.env) {
       Row r;
-
       r["pid"] = INTEGER(pid);
-      r["key"] = env_itr->first;
-      r["value"] = env_itr->second;
-
+      r["key"] = env.first;
+      r["value"] = env.second;
       results.push_back(r);
     }
   }

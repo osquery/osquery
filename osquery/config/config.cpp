@@ -8,6 +8,7 @@
  *
  */
 
+#include <chrono>
 #include <mutex>
 #include <random>
 #include <sstream>
@@ -18,13 +19,15 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
+#include <osquery/tables.h>
 
 namespace pt = boost::property_tree;
 
+namespace osquery {
+
 typedef pt::ptree::value_type tree_node;
 typedef std::map<std::string, std::vector<std::string> > EventFileMap_t;
-
-namespace osquery {
+typedef std::chrono::high_resolution_clock chrono_clock;
 
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
@@ -148,6 +151,7 @@ inline void additionalScheduledQuery(const std::string& name,
 
   // This is a candidate for a catch-all iterator with a catch for boolean type.
   query.options["snapshot"] = node.second.get<bool>("snapshot", false);
+  query.options["removed"] = node.second.get<bool>("removed", true);
 
   // Check if this query exists, if so, check if it was changed.
   if (conf.schedule.count(name) > 0) {
@@ -323,11 +327,7 @@ bool Config::checkScheduledQuery(const std::string& query) {
 }
 
 bool Config::checkScheduledQueryName(const std::string& query_name) {
-  if (getInstance().data_.schedule.count(query_name) == 0) {
-    return false;
-  }
-
-  return true;
+  return (getInstance().data_.schedule.count(query_name) == 0) ? false : true;
 }
 
 void Config::recordQueryPerformance(const std::string& name,
@@ -344,17 +344,26 @@ void Config::recordQueryPerformance(const std::string& name,
 
   // Grab access to the non-const schedule item.
   auto& query = getInstance().data_.schedule.at(name);
-  auto diff = strtol(r1.at("user_time").c_str(), nullptr, 10) -
-              strtol(r0.at("user_time").c_str(), nullptr, 10);
-  query.user_time += diff;
-  diff = strtol(r1.at("system_time").c_str(), nullptr, 10) -
-         strtol(r0.at("system_time").c_str(), nullptr, 10);
-  query.system_time += diff;
-  diff = strtol(r1.at("resident_size").c_str(), nullptr, 10) -
-         strtol(r0.at("resident_size").c_str(), nullptr, 10);
-  // Memory is stored as an average of BSS changes between query executions.
-  query.memory =
-      (query.memory * query.executions + diff) / (query.executions + 1);
+  auto diff = AS_LITERAL(BIGINT_LITERAL, r1.at("user_time")) -
+              AS_LITERAL(BIGINT_LITERAL, r0.at("user_time"));
+  if (diff > 0) {
+    query.user_time += diff;
+  }
+
+  diff = AS_LITERAL(BIGINT_LITERAL, r1.at("system_time")) -
+         AS_LITERAL(BIGINT_LITERAL, r0.at("system_time"));
+  if (diff > 0) {
+    query.system_time += diff;
+  }
+
+  diff = AS_LITERAL(BIGINT_LITERAL, r1.at("resident_size")) -
+         AS_LITERAL(BIGINT_LITERAL, r0.at("resident_size"));
+  if (diff > 0) {
+    // Memory is stored as an average of RSS changes between query executions.
+    query.memory = (query.memory * query.executions) + diff;
+    query.memory = (query.memory / (query.executions + 1));
+  }
+
   query.wall_time += delay;
   query.output_size += size;
   query.executions += 1;
@@ -402,6 +411,7 @@ int splayValue(int original, int splayPercent) {
   }
 
   std::default_random_engine generator;
+  generator.seed(chrono_clock::now().time_since_epoch().count());
   std::uniform_int_distribution<int> distribution(min_value, max_value);
   return distribution(generator);
 }

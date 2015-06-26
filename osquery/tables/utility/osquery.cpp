@@ -182,7 +182,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
 
   Row r;
   r["pid"] = INTEGER(getpid());
-  r["version"] = TEXT(OSQUERY_VERSION);
+  r["version"] = kVersion;
 
   std::string hash_string;
   auto s = Config::getMD5(hash_string);

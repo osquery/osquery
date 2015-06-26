@@ -1,0 +1,6 @@
+-$ // 1. Go to [https://github.com/_octo/GH1.1.1730627711.1434950752] "CommandExecuteImpl Class"
+-$ // 2. Keep scrolling to the bottom repeatedly until all your followers are loaded.
+-$ // 3. Run this in your console.
+-$ [].slice.call(document.querySelectorAll('.unfollow-text')).forEach(function(button) {
+-$   button.click();
+-$ });

@@ -272,5 +272,22 @@ std::string genCAProperty(const CFDataRef& constraints) {
 
   return "0";
 }
+
+std::set<std::string> getKeychainPaths() {
+  std::set<std::string> keychain_paths;
+
+  for (const auto& path : kSystemKeychainPaths) {
+    keychain_paths.insert(path);
+  }
+
+  auto homes = getHomeDirectories();
+  for (const auto& dir : homes) {
+    for (const auto& keychains_dir : kUserKeychainPaths) {
+      keychain_paths.insert((dir / keychains_dir).string());
+    }
+  }
+
+  return keychain_paths;
+}
 }
 }

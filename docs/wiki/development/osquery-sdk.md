@@ -63,7 +63,7 @@ The osqueryi or osqueryd processes start an "extension manager" thrift service t
 
 **Extension API**
 
-An extension process should implement the following API. During an extension's set up it will "broadcast" all the registered plugins to and osqueryi or osqueryd process. Then the extension will be asked to start a UNIX domain socket and thrift service thread implementing the `ping` and `call` methods.
+An extension process should implement the following API. During an extension's set up it will "broadcast" all the registered plugins to an osqueryi or osqueryd process. Then the extension will be asked to start a UNIX domain socket and thrift service thread implementing the `ping` and `call` methods.
 
 ```thrift
 service Extension {
