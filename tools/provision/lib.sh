@@ -63,7 +63,8 @@ function install_gcc() {
     [ -L /usr/bin/g++ ] && sudo unlink /usr/bin/g++
     sudo ln -sf $TARGET/bin/gcc4.8.4 /usr/bin/gcc
     sudo ln -sf $TARGET/bin/g++4.8.4 /usr/bin/g++
-    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib64/libstdc++.so.6
+    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.19
+    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib/x86_64-linux-gnu/libstdc++.so.6
     popd
   fi
 }
@@ -154,9 +155,9 @@ function install_snappy() {
 }
 
 function install_yara() {
-  TARBALL=yara-3.3.0.tar.gz
-  URL=$DEPS_URL/yara-3.3.0.tar.gz
-  SOURCE=yara-3.3.0
+  TARBALL=yara-3.4.0.tar.gz
+  URL=$DEPS_URL/yara-3.4.0.tar.gz
+  SOURCE=yara-3.4.0
 
   if provision yara /usr/local/lib/libyara.a; then
     pushd $SOURCE
@@ -381,7 +382,14 @@ function package() {
       log "$1 is already installed. skipping."
     else
       log "installing $1"
-      brew install --build-bottle --build-from-source $1 || brew upgrade --build-from-source $@
+      export HOMEBREW_MAKE_JOBS=$THREADS
+      export HOMEBREW_NO_EMOJI=1
+      if [[ $1 = "rocksdb" ]]; then
+        # Build RocksDB from source in brew
+        export HOMEBREW_BUILD_FROM_SOURCE=1
+        HOMEBREW_ARGS=--build-bottle
+      fi
+      brew install -v $HOMEBREW_ARGS $1 || brew upgrade -v $HOMEBREW_ARGS $@
     fi
   elif [[ $OS = "freebsd" ]]; then
     if pkg info -q $1; then

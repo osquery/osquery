@@ -25,6 +25,9 @@ std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemRemoved, "DELETED"},
     {kFSEventStreamEventFlagItemModified, "UPDATED"},
     {kFSEventStreamEventFlagItemRenamed, "MOVED_TO"},
+    {kFSEventStreamEventFlagMustScanSubDirs, "COLLISION_WITHIN"},
+    {kFSEventStreamEventFlagUnmount, "UNMOUNTED"},
+    {kFSEventStreamEventFlagRootChanged, "ROOT_CHANGED"},
 };
 
 REGISTER(FSEventsEventPublisher, "event_publisher", "fsevents");
@@ -65,14 +68,18 @@ void FSEventsEventPublisher::restart() {
                                 kFSEventStreamEventIdSinceNow,
                                 1,
                                 kFSEventStreamCreateFlagFileEvents |
-                                    kFSEventStreamCreateFlagNoDefer);
-  if (stream_) {
+                                    kFSEventStreamCreateFlagNoDefer |
+                                    kFSEventStreamCreateFlagWatchRoot);
+  if (stream_ != nullptr) {
     // Schedule the stream on the run loop.
     FSEventStreamScheduleWithRunLoop(stream_, run_loop_, kCFRunLoopDefaultMode);
-    FSEventStreamStart(stream_);
-    stream_started_ = true;
+    if (FSEventStreamStart(stream_)) {
+      stream_started_ = true;
+    } else {
+      LOG(ERROR) << "Cannot start FSEvent stream: FSEventStreamStart failed";
+    }
   } else {
-    LOG(ERROR) << "Cannot create FSEvent stream";
+    LOG(ERROR) << "Cannot create FSEvent stream: FSEventStreamCreate failed";
   }
 
   // Clean up strings, watch list, and context.
@@ -91,7 +98,6 @@ void FSEventsEventPublisher::stop() {
         stream_, run_loop_, kCFRunLoopDefaultMode);
     FSEventStreamInvalidate(stream_);
     FSEventStreamRelease(stream_);
-
     stream_ = nullptr;
   }
 
@@ -151,16 +157,37 @@ void FSEventsEventPublisher::Callback(
     ec->fsevent_stream = stream;
     ec->fsevent_flags = fsevent_flags[i];
     ec->transaction_id = fsevent_ids[i];
+    ec->path = std::string(((char**)event_paths)[i]);
+
+    if (ec->fsevent_flags & kFSEventStreamEventFlagMustScanSubDirs) {
+      // The FSEvents thread coalesced events within and will report a root.
+      TLOG << "FSEvents collision, root: " << ec->path;
+    }
+
+    if (ec->fsevent_flags & kFSEventStreamEventFlagRootChanged) {
+      // Must rescan for the changed root.
+    }
+
+    if (ec->fsevent_flags & kFSEventStreamEventFlagUnmount) {
+      // Should remove the watch on this path.
+    }
 
     // Record the string-version of the first matched mask bit.
+    bool has_action = false;
     for (const auto& action : kMaskActions) {
       if (ec->fsevent_flags & action.first) {
+        // Actions may be multiplexed. Fire and event for each.
         ec->action = action.second;
-        break;
+        EventFactory::fire<FSEventsEventPublisher>(ec);
+        has_action = true;
       }
     }
-    ec->path = std::string(((char**)event_paths)[i]);
-    EventFactory::fire<FSEventsEventPublisher>(ec);
+
+    if (!has_action) {
+      // If no action was matched for this path event, fire and unknown.
+      ec->action = "UNKNOWN";
+      EventFactory::fire<FSEventsEventPublisher>(ec);
+    }
   }
 }
 

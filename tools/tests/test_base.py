@@ -61,8 +61,8 @@ DEFAULT_CONFIG = {
         "pidfile": "%s.pid" % CONFIG_NAME,
         "config_path": "%s.conf" % CONFIG_NAME,
         "extensions_socket": "%s.em" % CONFIG_NAME,
-        "extensions_interval": "1",
-        "extensions_timeout": "1",
+        "extensions_interval": "0",
+        "extensions_timeout": "0",
         "watchdog_level": "3",
         "disable_logging": "true",
         "force": "true",
@@ -159,6 +159,7 @@ class ProcRunner(object):
         thread.start()
 
     def run(self):
+        code = -1
         try:
             if self.silent:
                 self.proc = subprocess.Popen([self.path] + self.args,
@@ -172,10 +173,11 @@ class ProcRunner(object):
         try:
             while self.proc.poll() is None:
                 time.sleep(self.interval)
+            code = self.proc.poll()
             self.proc = None
         except:
             return
-        print ("Process %s ended" % self.name)
+        print ("Process %s ended: %s" % (self.name, code))
 
     def getChildren(self, max_interval=1):
         '''Get the child pids.'''
@@ -184,12 +186,12 @@ class ProcRunner(object):
         try:
             proc = psutil.Process(pid=self.proc.pid)
             delay = 0
-            while len(proc.get_children()) == 0:
+            while len(proc.children()) == 0:
                 if delay > max_interval:
                     return []
                 time.sleep(self.interval)
                 delay += self.interval
-            return [p.pid for p in proc.get_children()]
+            return [p.pid for p in proc.children()]
         except:
             pass
         return []
@@ -207,7 +209,7 @@ class ProcRunner(object):
                     pass
         if self.proc:
             try:
-                self.proc.kill()
+                os.kill(self.pid, 9)
             except:
                 pass
         self.proc = None
@@ -287,7 +289,7 @@ class ProcessGenerator(object):
                 "--socket=%s" % path,
                 "--verbose" if ARGS.verbose else "",
                 "--timeout=%d" % timeout,
-                "--interval=%d" % 1,
+                "--interval=%d" % 0,
             ],
             silent=silent)
         self.generators.append(extension)
@@ -437,7 +439,7 @@ class Tester(object):
         unittest.main(argv=unittest_args)
 
 
-def expect(functional, expected, interval=0.2, timeout=2):
+def expect(functional, expected, interval=0.01, timeout=4):
     """Helper function to run a function with expected latency"""
     delay = 0
     result = None
@@ -445,7 +447,9 @@ def expect(functional, expected, interval=0.2, timeout=2):
         try:
             result = functional()
             if len(result) == expected: break
-        except: pass
+        except Exception as e:
+            print ("Expect exception (%s): %s not %s" % (
+                str(e), str(functional), expected))
         if delay >= timeout:
             return None
         time.sleep(interval)
@@ -453,7 +457,7 @@ def expect(functional, expected, interval=0.2, timeout=2):
     return result
 
 
-def expectTrue(functional, interval=0.2, timeout=2):
+def expectTrue(functional, interval=0.01, timeout=4):
     """Helper function to run a function with expected latency"""
     delay = 0
     while delay < timeout:

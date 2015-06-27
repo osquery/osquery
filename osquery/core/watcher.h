@@ -21,15 +21,23 @@
 
 #include "osquery/dispatcher/dispatcher.h"
 
+/// Define a special debug/testing watchdog level.
+#define WATCHDOG_LEVEL_DEBUG 3
+/// Define the default watchdog level, level below are considered permissive.
+#define WATCHDOG_LEVEL_DEFAULT 1
+
 namespace osquery {
 
 DECLARE_bool(disable_watchdog);
+DECLARE_int32(watchdog_level);
+
+class WatcherRunner;
 
 /**
  * @brief Categories of process performance limitations.
  *
  * Performance limits are applied by a watcher thread on autoloaded extensions
- * and optional a daemon worker process. The performance types are identified
+ * and a optional daemon worker process. The performance types are identified
  * here, and organized into levels. Such that a caller may enforce rigor or
  * relax the performance expectations of a osquery daemon.
  */
@@ -135,6 +143,9 @@ class Watcher : private boost::noncopyable {
   /// Reset pid and performance counters for a worker or extension process.
   static void reset(pid_t child);
 
+  /// Count the number of worker restarts.
+  static size_t workerRestartCount() { return instance().worker_restarts_; }
+
   /**
    * @brief Return the state of autoloadable extensions.
    *
@@ -146,10 +157,15 @@ class Watcher : private boost::noncopyable {
 
  private:
   /// Do not request the lock until extensions are used.
-  Watcher() : worker_(-1), lock_(mutex_, boost::defer_lock) {}
+  Watcher()
+      : worker_(-1), worker_restarts_(0), lock_(mutex_, boost::defer_lock) {}
   Watcher(Watcher const&);
   void operator=(Watcher const&);
   virtual ~Watcher() {}
+
+ private:
+  /// Inform the watcher that the worker restarted without cause.
+  static void workerRestarted() { instance().worker_restarts_++; }
 
  private:
   /// Performance state for the worker process.
@@ -160,6 +176,8 @@ class Watcher : private boost::noncopyable {
  private:
   /// Keep the single worker process/thread ID for inspection.
   pid_t worker_;
+  /// Number of worker restarts NOT induced by a watchdog process.
+  size_t worker_restarts_;
   /// Keep a list of resolved extension paths and their managed pids.
   std::map<std::string, pid_t> extensions_;
   /// Paths to autoload extensions.
@@ -170,6 +188,9 @@ class Watcher : private boost::noncopyable {
   boost::mutex mutex_;
   /// Mutex and lock around extensions access.
   boost::unique_lock<boost::mutex> lock_;
+
+ private:
+  friend class WatcherRunner;
 };
 
 /**
@@ -239,9 +260,12 @@ class WatcherRunner : public InternalRunnable {
 class WatcherWatcherRunner : public InternalRunnable {
  public:
   explicit WatcherWatcherRunner(pid_t watcher) : watcher_(watcher) {}
+
+  /// Runnable thread's entry point.
   void start();
 
  private:
+  /// Parent, or watchdog, process ID.
   pid_t watcher_;
 };
 

@@ -243,9 +243,8 @@ Status parseJSONContent(const std::string& content,
 /**
  * @brief Parse a property list on disk into a property tree.
  *
- * @param path the path of the propery list which you'd like to read
- * @param tree a non-const reference to a Boost property tree, which will be
- * populated with the results of the property list
+ * @param path the input path to a property list
+ * @param tree the output reference to a Boost property tree
  *
  * @return an instance of Status, indicating the success or failure
  * of the operation.
@@ -256,9 +255,8 @@ Status parsePlist(const boost::filesystem::path& path,
 /**
  * @brief Parse property list content into a property tree.
  *
- * @param content a string reference to the content of a plist
- * @param tree a non-const reference to a Boost property tree, which will be
- * populated with the results of the property list
+ * @param content the input string-content of a property list
+ * @param tree the output reference to a Boost property tree
  *
  * @return an instance of Status, indicating the success or failure
  * of the operation.

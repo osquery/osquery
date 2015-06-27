@@ -8,6 +8,9 @@
  *
  */
 
+#include <chrono>
+#include <random>
+
 #include <syslog.h>
 #include <stdio.h>
 #include <time.h>
@@ -27,6 +30,35 @@
 
 #include "osquery/core/watcher.h"
 #include "osquery/database/db_handle.h"
+
+#ifdef __linux__
+#include <sys/resource.h>
+#include <sys/syscall.h>
+
+/*
+ * These are the io priority groups as implemented by CFQ. RT is the realtime
+ * class, it always gets premium service. BE is the best-effort scheduling
+ * class, the default for any process. IDLE is the idle scheduling class, it
+ * is only served when no one else is using the disk.
+ */
+enum {
+  IOPRIO_CLASS_NONE,
+  IOPRIO_CLASS_RT,
+  IOPRIO_CLASS_BE,
+  IOPRIO_CLASS_IDLE,
+};
+
+/*
+ * 8 best effort priority levels are supported
+ */
+#define IOPRIO_BE_NR  (8)
+
+enum {
+  IOPRIO_WHO_PROCESS = 1,
+  IOPRIO_WHO_PGRP,
+  IOPRIO_WHO_USER,
+};
+#endif
 
 namespace fs = boost::filesystem;
 
@@ -52,6 +84,8 @@ namespace osquery {
   " - https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/" \
   "\n\n";
 
+typedef std::chrono::high_resolution_clock chrono_clock;
+
 CLI_FLAG(bool,
          config_check,
          false,
@@ -63,7 +97,7 @@ CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 
 void printUsage(const std::string& binary, int tool) {
   // Parse help options before gflags. Only display osquery-related options.
-  fprintf(stdout, DESCRIPTION, OSQUERY_VERSION);
+  fprintf(stdout, DESCRIPTION, kVersion.c_str());
   if (tool == OSQUERY_TOOL_SHELL) {
     // The shell allows a caller to run a single SQL statement and exit.
     fprintf(stdout, USAGE, binary.c_str(), "[SQL STATEMENT]");
@@ -95,7 +129,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       argv_(&argv),
       tool_(tool),
       binary_(fs::path(std::string(argv[0])).filename().string()) {
-  std::srand(time(nullptr));
+  std::srand(chrono_clock::now().time_since_epoch().count());
 
   // osquery implements a custom help/usage output.
   for (int i = 1; i < *argc_; i++) {
@@ -121,7 +155,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 #endif
 
   // Set version string from CMake build
-  GFLAGS_NAMESPACE::SetVersionString(OSQUERY_VERSION);
+  GFLAGS_NAMESPACE::SetVersionString(kVersion.c_str());
 
   // Let gflags parse the non-help options/flags.
   GFLAGS_NAMESPACE::ParseCommandLineFlags(
@@ -138,7 +172,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       if (Flag::isDefault("database_path")) {
         osquery::FLAGS_database_path = homedir + "/shell.db";
       }
-      if (Flag::isDefault("extension_socket")) {
+      if (Flag::isDefault("extensions_socket")) {
         osquery::FLAGS_extensions_socket = homedir + "/shell.em";
       }
     }
@@ -156,11 +190,10 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       VLOG(1) << "osquery worker initialized [watcher="
               << getenv("OSQUERY_WORKER") << "]";
     } else {
-      VLOG(1) << "osquery initialized [version=" << OSQUERY_VERSION << "]";
+      VLOG(1) << "osquery initialized [version=" << kVersion << "]";
     }
   } else {
-    VLOG(1) << "osquery extension initialized [sdk=" << OSQUERY_SDK_VERSION
-            << "]";
+    VLOG(1) << "osquery extension initialized [sdk=" << kSDKVersion << "]";
   }
 }
 
@@ -181,7 +214,7 @@ void Initializer::initDaemon() {
 
   // Print the version to SYSLOG.
   syslog(
-      LOG_NOTICE, "%s started [version=%s]", binary_.c_str(), OSQUERY_VERSION);
+      LOG_NOTICE, "%s started [version=%s]", binary_.c_str(), kVersion.c_str());
 
   // Check if /var/osquery exists
   if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
@@ -194,6 +227,20 @@ void Initializer::initDaemon() {
   if (!pid_status.ok()) {
     LOG(ERROR) << binary_ << " initialize failed: " << pid_status.toString();
     ::exit(EXIT_FAILURE);
+  }
+
+  // Nice ourselves if using a watchdog and the level is not too permissive.
+  if (!FLAGS_disable_watchdog &&
+      FLAGS_watchdog_level >= WATCHDOG_LEVEL_DEFAULT &&
+      FLAGS_watchdog_level != WATCHDOG_LEVEL_DEBUG) {
+    // Set CPU scheduling IO limits.
+    setpriority(PRIO_PGRP, 0, 10);
+#ifdef __linux__
+    // Using: ioprio_set(IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
+    syscall(SYS_ioprio_set, IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
+#elif defined(__APPLE__) || defined(__FreeBSD__)
+    setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_PROCESS, IOPOL_THROTTLE);
+#endif
   }
 }
 
@@ -222,15 +269,20 @@ void Initializer::initWatcher() {
 void Initializer::initWorker(const std::string& name) {
   // Clear worker's arguments.
   size_t name_size = strlen((*argv_)[0]);
+  auto original_name = std::string((*argv_)[0]);
   for (int i = 0; i < *argc_; i++) {
     if ((*argv_)[i] != nullptr) {
-      memset((*argv_)[i], 0, strlen((*argv_)[i]));
+      memset((*argv_)[i], ' ', strlen((*argv_)[i]));
     }
   }
 
   // Set the worker's process name.
-  if (name.size() <= name_size) {
+  if (name.size() < name_size) {
     std::copy(name.begin(), name.end(), (*argv_)[0]);
+    (*argv_)[0][name.size()] = '\0';
+  } else {
+    std::copy(original_name.begin(), original_name.end(), (*argv_)[0]);
+    (*argv_)[0][original_name.size()] = '\0';
   }
 
   // Start a watcher watcher thread to exit the process if the watcher exits.
@@ -252,15 +304,18 @@ void Initializer::initActivePlugin(const std::string& type,
                                    const std::string& name) {
   // Use a delay, meaning the amount of milliseconds waited for extensions.
   size_t delay = 0;
-  // The timeout is the maximum time in seconds to wait for extensions.
-  size_t timeout = atoi(FLAGS_extensions_timeout.c_str());
+  // The timeout is the maximum microseconds in seconds to wait for extensions.
+  size_t timeout = atoi(FLAGS_extensions_timeout.c_str()) * 1000000;
+  if (timeout < kExtensionInitializeLatencyUS * 10) {
+    timeout = kExtensionInitializeLatencyUS * 10;
+  }
   while (!Registry::setActive(type, name)) {
-    if (!Watcher::hasManagedExtensions() || delay > timeout * 1000) {
+    if (!Watcher::hasManagedExtensions() || delay > timeout) {
       LOG(ERROR) << "Active " << type << " plugin not found: " << name;
       ::exit(EXIT_CATASTROPHIC);
     }
-    ::usleep(kExtensionInitializeMLatency * 1000);
-    delay += kExtensionInitializeMLatency;
+    delay += kExtensionInitializeLatencyUS;
+    ::usleep(kExtensionInitializeLatencyUS);
   }
 }
 

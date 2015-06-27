@@ -61,13 +61,17 @@ unsigned short portFromHex(const std::string &encoded_port) {
   return decoded;
 }
 
-void genSocketsFromProc(const std::map<std::string, std::string> &socket_inodes,
+void genSocketsFromProc(const std::map<std::string, std::string> &inodes,
                         int protocol,
                         int family,
                         QueryData &results) {
   std::string path = "/proc/net/";
-  path += kLinuxProtocolNames.at(protocol);
-  path += (family == AF_INET6) ? "6" : "";
+  if (family == AF_UNIX) {
+    path += "unix";
+  } else {
+    path += kLinuxProtocolNames.at(protocol);
+    path += (family == AF_INET6) ? "6" : "";
+  }
 
   std::string content;
   if (!osquery::readFile(path, content).ok()) {
@@ -78,10 +82,10 @@ void genSocketsFromProc(const std::map<std::string, std::string> &socket_inodes,
   // The system's socket information is tokenized by line.
   size_t index = 0;
   for (const auto &line : osquery::split(content, "\n")) {
-    index += 1;
-    if (index == 1) {
+    if (++index == 1) {
       // The first line is a textual header and will be ignored.
-      if (line.find("sl") != 0) {
+      if (line.find("sl") != 0 && line.find("sk") != 0 &&
+          line.find("Num") != 0) {
         // Header fields are unknown, stop parsing.
         break;
       }
@@ -90,30 +94,46 @@ void genSocketsFromProc(const std::map<std::string, std::string> &socket_inodes,
 
     // The socket information is tokenized by spaces, each a field.
     auto fields = osquery::split(line, " ");
-    if (fields.size() < 10) {
+    // UNIX socket reporting has a smaller number of fields.
+    size_t min_fields = (family == AF_UNIX) ? 7 : 10;
+    if (fields.size() < min_fields) {
       // Unknown/malformed socket information.
       continue;
     }
 
-    // Two of the fields are the local/remote address/port pairs.
-    auto locals = osquery::split(fields[1], ":");
-    auto remotes = osquery::split(fields[2], ":");
-    if (locals.size() != 2 || remotes.size() != 2) {
-      // Unknown/malformed socket information.
-      continue;
-    }
 
     Row r;
-    r["socket"] = fields[9];
-    r["family"] = INTEGER(family);
-    r["protocol"] = INTEGER(protocol);
-    r["local_address"] = addressFromHex(locals[0], family);
-    r["local_port"] = INTEGER(portFromHex(locals[1]));
-    r["remote_address"] = addressFromHex(remotes[0], family);
-    r["remote_port"] = INTEGER(portFromHex(remotes[1]));
+    if (family == AF_UNIX) {
+      r["socket"] = fields[6];
+      r["family"] = "0";
+      r["protocol"] = fields[2];
+      r["local_address"] = "";
+      r["local_port"] = "0";
+      r["remote_address"] = "";
+      r["remote_port"] = "0";
+      r["path"] = (fields.size() >= 8) ? fields[7] : "";
+    } else {
+      // Two of the fields are the local/remote address/port pairs.
+      auto locals = osquery::split(fields[1], ":");
+      auto remotes = osquery::split(fields[2], ":");
+      if (locals.size() != 2 || remotes.size() != 2) {
+        // Unknown/malformed socket information.
+        continue;
+      }
 
-    if (socket_inodes.count(r["socket"]) > 0) {
-      r["pid"] = socket_inodes.at(r["socket"]);
+      r["socket"] = fields[9];
+      r["family"] = INTEGER(family);
+      r["protocol"] = INTEGER(protocol);
+      r["local_address"] = addressFromHex(locals[0], family);
+      r["local_port"] = INTEGER(portFromHex(locals[1]));
+      r["remote_address"] = addressFromHex(remotes[0], family);
+      r["remote_port"] = INTEGER(portFromHex(remotes[1]));
+      // Path is only used for UNIX domain sockets.
+      r["path"] = "";
+    }
+
+    if (inodes.count(r["socket"]) > 0) {
+      r["pid"] = inodes.at(r["socket"]);
     } else {
       r["pid"] = "-1";
     }
@@ -139,9 +159,9 @@ QueryData genOpenSockets(QueryContext &context) {
     std::map<std::string, std::string> descriptors;
     if (osquery::procDescriptors(process, descriptors).ok()) {
       for (const auto& fd : descriptors) {
-        if (fd.second.find("socket:") != std::string::npos) {
-          // See #792: std::regex is incomplete until GCC 4.9
-          auto inode = fd.second.substr(fd.second.find("socket:") + 8);
+        if (fd.second.find("socket:[") == 0) {
+          // See #792: std::regex is incomplete until GCC 4.9 (skip 8 chars)
+          auto inode = fd.second.substr(8);
           socket_inodes[inode.substr(0, inode.size() - 1)] = process;
         }
       }
@@ -155,6 +175,7 @@ QueryData genOpenSockets(QueryContext &context) {
     genSocketsFromProc(socket_inodes, protocol.first, AF_INET6, results);
   }
 
+  genSocketsFromProc(socket_inodes, IPPROTO_IP, AF_UNIX, results);
   return results;
 }
 }

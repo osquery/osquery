@@ -15,69 +15,147 @@
 namespace osquery {
 namespace tables {
 
-QueryData genUserGroups(QueryContext &context) {
+void genODEntries(ODRecordType type, std::set<std::string> &names) {
   @autoreleasepool {
-    QueryData results;
-    struct passwd *pwd = nullptr;
+    ODSession *s = [ODSession defaultSession];
+    NSError *err = nullptr;
+    ODNode *root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
+    if (err != nullptr) {
+      TLOG << "Error with OpenDirectory node: "
+           << std::string([[err localizedDescription] UTF8String]);
+      return;
+    }
 
-    if (context.constraints["uid"].exists(EQUALS)) {
-      std::set<std::string> uids = context.constraints["uid"].getAll(EQUALS);
-      for (const auto &uid : uids) {
-        pwd = getpwuid(std::strtol(uid.c_str(), NULL, 10));
-        if (pwd != nullptr) {
-          user_t<int, int> user;
-          user.name = pwd->pw_name;
-          user.uid = pwd->pw_uid;
-          user.gid = pwd->pw_gid;
-          getGroupsForUser<int, int>(results, user);
-        }
-      }
-    } else {
-        ODSession *session = [ODSession defaultSession];
-        NSError *err;
-        ODNode *root =
-            [ODNode nodeWithSession:session name:@"/Local/Default" error:&err];
-        if (err) {
-          TLOG << "Error with OD node: "
-                     << std::string([[err localizedDescription] UTF8String]);
-          return results;
-        }
-        ODQuery *q = [ODQuery queryWithNode:root
-                             forRecordTypes:kODRecordTypeUsers
-                                  attribute:nil
-                                  matchType:0
-                                queryValues:nil
-                           returnAttributes:nil
-                             maximumResults:0
-                                      error:&err];
-        if (err) {
-          TLOG << "Error with OD query: "
-                     << std::string([[err localizedDescription] UTF8String]);
-          return results;
-        }
+    ODQuery *q = [ODQuery queryWithNode:root
+                         forRecordTypes:type
+                              attribute:kODAttributeTypeUniqueID
+                              matchType:kODMatchEqualTo
+                            queryValues:nil
+                       returnAttributes:kODAttributeTypeStandardOnly
+                         maximumResults:0
+                                  error:&err];
+    if (err != nullptr) {
+      TLOG << "Error with OpenDirectory query: "
+           << std::string([[err localizedDescription] UTF8String]);
+      return;
+    }
 
-        NSArray *od_results = [q resultsAllowingPartial:NO error:&err];
-        if (err) {
-          TLOG << "Error with OD results: "
-                     << std::string([[err localizedDescription] UTF8String]);
-          return results;
-        }
+    // Obtain the results synchronously, not good for very large sets.
+    NSArray *od_results = [q resultsAllowingPartial:NO error:&err];
+    if (err != nullptr) {
+      TLOG << "Error with OpenDirectory results: "
+           << std::string([[err localizedDescription] UTF8String]);
+      return;
+    }
 
-        for (ODRecord *re in od_results) {
-          std::string username = std::string([[re recordName] UTF8String]);
-          struct passwd *pwd = getpwnam(username.c_str());
-          if (pwd != nullptr) {
-            user_t<int, int> user;
-            user.name = pwd->pw_name;
-            user.uid = pwd->pw_uid;
-            user.gid = pwd->pw_gid;
-            getGroupsForUser<int, int>(results, user);
-          }
-        }
-      }
-
-    return results;
+    for (ODRecord *re in od_results) {
+      names.insert([[re recordName] UTF8String]);
+    }
   }
+}
+
+QueryData genGroups(QueryContext &context) {
+  QueryData results;
+  if (context.constraints["gid"].exists(EQUALS)) {
+    auto gids = context.constraints["gid"].getAll<long long>(EQUALS);
+    for (const auto &gid : gids) {
+      Row r;
+      struct group *grp = getgrgid(gid);
+      r["gid"] = BIGINT(gid);
+      if (grp != nullptr) {
+        r["groupname"] = std::string(grp->gr_name);
+        r["gid_signed"] = BIGINT((int32_t)grp->gr_gid);
+      }
+      results.push_back(r);
+    }
+  } else {
+    std::set<std::string> groupnames;
+    genODEntries(kODRecordTypeGroups, groupnames);
+    for (const auto &groupname : groupnames) {
+      Row r;
+      struct group *grp = getgrnam(groupname.c_str());
+      r["groupname"] = groupname;
+      if (grp != nullptr) {
+        r["gid"] = BIGINT(grp->gr_gid);
+        r["gid_signed"] = BIGINT((int32_t)grp->gr_gid);
+      }
+      results.push_back(r);
+    }
+  }
+  return results;
+}
+
+QueryData genUsers(QueryContext &context) {
+  QueryData results;
+  if (context.constraints["uid"].exists(EQUALS)) {
+    auto uids = context.constraints["uid"].getAll<long long>(EQUALS);
+    for (const auto &uid : uids) {
+      Row r;
+      struct passwd *pwd = getpwuid(uid);
+      r["uid"] = BIGINT(uid);
+      if (pwd != nullptr) {
+        r["username"] = std::string(pwd->pw_name);
+        r["gid"] = BIGINT(pwd->pw_gid);
+        r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
+        r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
+        r["description"] = TEXT(pwd->pw_gecos);
+        r["directory"] = TEXT(pwd->pw_dir);
+        r["shell"] = TEXT(pwd->pw_shell);
+      }
+      results.push_back(r);
+    }
+  } else {
+    std::set<std::string> usernames;
+    genODEntries(kODRecordTypeUsers, usernames);
+    for (const auto &username : usernames) {
+      Row r;
+      r["username"] = username;
+      struct passwd *pwd = getpwnam(username.c_str());
+      if (pwd != nullptr) {
+        r["uid"] = BIGINT(pwd->pw_uid);
+        r["gid"] = BIGINT(pwd->pw_gid);
+        r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
+        r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
+        r["description"] = TEXT(pwd->pw_gecos);
+        r["directory"] = TEXT(pwd->pw_dir);
+        r["shell"] = TEXT(pwd->pw_shell);
+      }
+      results.push_back(r);
+    }
+  }
+  return results;
+}
+
+QueryData genUserGroups(QueryContext &context) {
+  QueryData results;
+  if (context.constraints["uid"].exists(EQUALS)) {
+    // Use UID as the index.
+    auto uids = context.constraints["uid"].getAll<long long>(EQUALS);
+    for (const auto &uid : uids) {
+      struct passwd *pwd = getpwuid(uid);
+      if (pwd != nullptr) {
+        user_t<int, int> user;
+        user.name = pwd->pw_name;
+        user.uid = pwd->pw_uid;
+        user.gid = pwd->pw_gid;
+        getGroupsForUser<int, int>(results, user);
+      }
+    }
+  } else {
+    std::set<std::string> usernames;
+    genODEntries(kODRecordTypeUsers, usernames);
+    for (const auto &username : usernames) {
+      struct passwd *pwd = getpwnam(username.c_str());
+      if (pwd != nullptr) {
+        user_t<int, int> user;
+        user.name = pwd->pw_name;
+        user.uid = pwd->pw_uid;
+        user.gid = pwd->pw_gid;
+        getGroupsForUser<int, int>(results, user);
+      }
+    }
+  }
+  return results;
 }
 }
 }

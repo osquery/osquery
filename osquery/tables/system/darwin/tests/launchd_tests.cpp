@@ -15,17 +15,30 @@
 
 #include "osquery/core/test_util.h"
 
+namespace fs = boost::filesystem;
+namespace pt = boost::property_tree;
+
 namespace osquery {
 namespace tables {
 
 // From the launchd table implementation.
-void genLaunchdItem(const std::string& path, QueryData& results);
+void genLaunchdItem(const pt::ptree& tree,
+                    const fs::path& path,
+                    QueryData& results);
 
 class LaunchdTests : public testing::Test {};
 
 TEST_F(LaunchdTests, test_parse_launchd_item) {
+  // Read the contents of our testing launchd plist.
+  pt::ptree tree;
+  auto launchd_path = kTestDataPath + "test_launchd.plist";
+  auto status = osquery::parsePlist(launchd_path, tree);
+  ASSERT_TRUE(status.ok());
+
+  // Parse the contents into a launchd table row.
   QueryData results;
-  genLaunchdItem(kTestDataPath + "test_launchd.plist", results);
+  genLaunchdItem(tree, launchd_path, results);
+  ASSERT_EQ(results.size(), 1);
 
   Row expected = {
       {"path", kTestDataPath + "test_launchd.plist"},
@@ -33,7 +46,7 @@ TEST_F(LaunchdTests, test_parse_launchd_item) {
       {"label", "com.apple.mDNSResponder"},
       {"run_at_load", ""},
       {"keep_alive", ""},
-      {"on_demand", "false"},
+      {"on_demand", "0"},
       {"disabled", ""},
       {"username", "_mdnsresponder"},
       {"groupname", "_mdnsresponder"},
@@ -50,7 +63,9 @@ TEST_F(LaunchdTests, test_parse_launchd_item) {
       {"working_directory", ""},
       {"process_type", ""},
   };
-  ASSERT_EQ(results.size(), 1);
+
+  // We could compare the entire map, but iterating the columns will produce
+  // better error text as most likely parsing for a certain column/type changed.
   for (const auto& column : expected) {
     EXPECT_EQ(results[0][column.first], column.second);
   }

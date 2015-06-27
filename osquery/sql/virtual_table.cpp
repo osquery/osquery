@@ -144,6 +144,16 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
               << ") to BIGINT";
     }
     sqlite3_result_int64(ctx, afinite);
+  } else if (type == "DOUBLE") {
+    double afinite;
+    try {
+      afinite = boost::lexical_cast<double>(value);
+    } catch (const boost::bad_lexical_cast &e) {
+      afinite = 0;
+      VLOG(1) << "Error casting" << column_name << " (" << value
+              << ") to DOUBLE";
+    }
+    sqlite3_result_double(ctx, afinite);
   }
 
   return SQLITE_OK;

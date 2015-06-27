@@ -278,6 +278,17 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   ASSERT_TRUE(sub->actions_.size() > 0);
   EXPECT_EQ(sub->actions_[0], "CREATED");
 
+  CreateEvents();
+  sub->WaitForEvents(kMaxEventLatency, 2);
+  bool has_updated = false;
+  // We may have triggered several updated events.
+  for (const auto& action : sub->actions_) {
+    if (action == "UPDATED") {
+      has_updated = true;
+    }
+  }
+  EXPECT_TRUE(has_updated);
+
   EndEventLoop();
 }
 }
