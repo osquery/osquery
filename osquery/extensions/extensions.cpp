@@ -114,17 +114,26 @@ void ExtensionManagerWatcher::watch() {
   for (const auto& uuid : uuids) {
     try {
       auto client = EXClient(getExtensionSocket(uuid));
-
       // Ping the extension until it goes down.
       client.get()->ping(status);
     } catch (const std::exception& e) {
-      LOG(INFO) << "Extension UUID " << uuid << " has gone away";
-      Registry::removeBroadcast(uuid);
+      failures_[uuid] += 1;
       continue;
     }
 
-    if (status.code != ExtensionCode::EXT_SUCCESS && fatal_) {
-      Registry::removeBroadcast(uuid);
+    if (status.code != ExtensionCode::EXT_SUCCESS) {
+      LOG(INFO) << "Extension UUID " << uuid << " ping failed";
+      failures_[uuid] += 1;
+    } else {
+      failures_[uuid] = 0;
+    }
+  }
+
+  for (const auto& uuid : failures_) {
+    if (uuid.second >= 3) {
+      LOG(INFO) << "Extension UUID " << uuid.first << " has gone away";
+      Registry::removeBroadcast(uuid.first);
+      failures_[uuid.first] = 0;
     }
   }
 }
