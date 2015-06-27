@@ -28,7 +28,7 @@ namespace tables {
 template <typename T>
 static inline void addGroupsToResults(QueryData &results,
                                       int uid,
-                                      T *groups,
+                                      const T *groups,
                                       int ngroups) {
   for (int i = 0; i < ngroups; i++) {
     Row r;
@@ -62,24 +62,21 @@ static void getGroupsForUser(QueryData &results,
     // Darwin appears to not resize ngroups correctly.  We can hope
     // we had enough space to start with.
     groups = new gid_type[ngroups];
-    if (!groups) {
-      TLOG << "Couldn't allocated memory to get user's groups";
+    if (groups == nullptr) {
+      TLOG << "Could not allocate memory to get user groups";
       return;
     }
 
     if (getgrouplist(user.name, user.gid, groups, &ngroups) < 0) {
-      TLOG << "Error could not get user's group list.";
-      delete[] groups;
-      return;
+      TLOG << "Could not get users group list";
+    } else {
+      addGroupsToResults(results, user.uid, groups, ngroups);
     }
 
-    addGroupsToResults(results, user.uid, groups, ngroups);
-
     delete[] groups;
-    return;
+  } else {
+    addGroupsToResults(results, user.uid, groups, ngroups);
   }
-  addGroupsToResults(results, user.uid, groups, ngroups);
-
   return;
 }
 }

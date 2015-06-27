@@ -4,35 +4,36 @@ theme: readthedocs
 docs_dir: docs/wiki
 site_dir: build/wiki
 pages:
-- ['index.md', 'Introduction', 'Welcome to osquery']
-
-- ['introduction/overview.md', 'Introduction', 'Features Overview']
-- ['introduction/using-osqueryi.md', 'Introduction', 'osqueryi (shell)']
-- ['introduction/using-osqueryd.md', 'Introduction', 'osqueryd (daemon)']
-
-- ['installation/install-osx.md', 'Installation', 'Install on OS X']
-- ['installation/install-linux.md', 'Installation', 'Install on Linux']
-- ['installation/cli-flags.md', 'Installation', 'Command Line Flags']
-- ['installation/custom-packages.md', 'Installation', 'Optional: Custom Packages']
-
-- ['deployment/configuration.md', 'Deployment', 'Configuration']
-- ['deployment/logging.md', 'Deployment', 'Logging']
-- ['deployment/log-aggregation.md', 'Deployment', 'Aggregating Logs']
-- ['deployment/performance-safety.md', 'Deployment', 'Performance Safety']
-- ['deployment/anomaly-detection.md', 'Deployment', 'Anomaly Detection']
-- ['deployment/extensions.md', 'Deployment', 'Extensions']
-- ['deployment/file-integrity-monitoring.md', 'Deployment', 'File Integrity Monitoring']
-- ['deployment/yara.md', 'Deployment', 'YARA Scanning']
-
-- ['development/building.md', 'Development', 'Building osquery']
-- ['development/contributing-code.md', 'Development', 'Contributing Code']
-- ['development/creating-tables.md', 'Development', 'Creating New Tables']
-- ['development/config-plugins.md', 'Development', 'Configuration Plugins']
-- ['development/logger-plugins.md', 'Development', 'Logging Plugins']
-- ['development/osquery-sdk.md', 'Development', 'SDK and Extensions']
-- ['development/pubsub-framework.md', 'Development', 'Eventing Framework']
-- ['development/unit-tests.md', 'Development', 'Writing Tests']
-- ['development/options-arguments.md', 'Development', 'Adding CLI Arguments']
-- ['development/reading-files.md', 'Development', 'Reading/Writing Files']
-- ['development/wildcard-rules.md', 'Development', 'Wildcards and Globbing']
-- ['development/kernel.md', 'Development', 'Kernel OS X']
+- Introduction:
+  - Welcome to osquery: index.md
+  - Features Overview: introduction/overview.md
+  - osqueryi (shell): introduction/using-osqueryi.md
+  - osqueryd (daemon): introduction/using-osqueryd.md
+- Installation:
+  - Install on OS X: installation/install-osx.md
+  - Install on Linux: installation/install-linux.md
+  - Command Line Flags: installation/cli-flags.md
+  - 'Optional: Custom Packages': installation/custom-packages.md
+- Deployment:
+  - Configuration: deployment/configuration.md
+  - Logging: deployment/logging.md
+  - Aggregating Logs: deployment/log-aggregation.md
+  - Performance Safety: deployment/performance-safety.md
+  - Anomaly Detection: deployment/anomaly-detection.md
+  - Extensions: deployment/extensions.md
+  - File Integrity Monitoring: deployment/file-integrity-monitoring.md
+  - YARA Scanning: deployment/yara.md
+  - Remote settings: deployment/remote.md
+- Development:
+  - Building osquery: development/building.md
+  - Contributing Code: development/contributing-code.md
+  - Creating New Tables: development/creating-tables.md
+  - Configuration Plugins: development/config-plugins.md
+  - Logging Plugins: development/logger-plugins.md
+  - SDK and Extensions: development/osquery-sdk.md
+  - Eventing Framework: development/pubsub-framework.md
+  - Writing Tests: development/unit-tests.md
+  - Adding CLI Arguments: development/options-arguments.md
+  - Reading/Writing Files: development/reading-files.md
+  - Wildcards and Globbing: development/wildcard-rules.md
+  - Kernel OS X: development/kernel.md

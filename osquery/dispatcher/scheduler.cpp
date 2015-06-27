@@ -130,6 +130,10 @@ void launchQuery(const std::string& name, const ScheduledQuery& query) {
 
   VLOG(1) << "Found results for query (" << name << ") for host: " << ident;
   item.results = diff_results;
+  if (query.options.count("removed") && !query.options.at("removed")) {
+    item.results.removed.clear();
+  }
+
   status = logQueryLogItem(item);
   if (!status.ok()) {
     LOG(ERROR) << "Error logging the results of query (" << query.query

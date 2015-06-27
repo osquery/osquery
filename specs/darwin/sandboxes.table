@@ -1,0 +1,11 @@
+table_name("sandboxes")
+description("OS X application sandboxes container details.")
+schema([
+    Column("label", TEXT, "UTI-format bundle or label ID"),
+    Column("user", TEXT, "Sandbox owner"),
+    Column("enabled", INTEGER, "Application sandboxings enabled on container"),
+    Column("build_id", TEXT, "Sandbox-specific identifier"),
+    Column("bundle_path", TEXT, "Application bundle used by the sandbox"),
+    Column("path", TEXT, "Path to sandbox container directory"),
+])
+implementation("sandboxes@genSandboxContainers")
