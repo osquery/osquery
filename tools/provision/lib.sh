@@ -63,8 +63,8 @@ function install_gcc() {
     [ -L /usr/bin/g++ ] && sudo unlink /usr/bin/g++
     sudo ln -sf $TARGET/bin/gcc4.8.4 /usr/bin/gcc
     sudo ln -sf $TARGET/bin/g++4.8.4 /usr/bin/g++
-    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.19
-    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib64/libstdc++.so.6.0.19
+    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib64/libstdc++.so.6
     popd
   fi
 }
@@ -352,11 +352,15 @@ function install_libaptpkg() {
   SOURCE=apt-0.8.16-12.10.22
   if provision libaptpkg /usr/local/lib/libapt-pkg.a; then
     pushd $SOURCE
-    mkdir build
+    mkdir -p build
     pushd build
     ../configure --prefix=/usr/local
-    make -j $THREADS
-    sudo make install
+    make -j $THREADS library
+    sudo cp bin/libapt-pkg.so.4.12.0 /usr/local/lib/
+    sudo ln -sf /usr/lib/local/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
+    sudo cp bin/libapt-pkg.a /usr/local/lib/
+    sudo mkdir -p /usr/local/include/apt-pkg/
+    sudo cp include/apt-pkg/*.h /usr/local/include/apt-pkg/
     popd
     popd
   fi

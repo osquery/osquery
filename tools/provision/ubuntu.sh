@@ -30,7 +30,6 @@ function main_ubuntu() {
     package git-core
   else
     package git
-    package autopoint
   fi
 
   package wget
@@ -43,11 +42,11 @@ function main_ubuntu() {
   package python-pip
   package python-dev
   # package linux-headers-generic
-  package libcurl3-dev
   package ruby-dev
   package gcc
   package doxygen
 
+  package autopoint
   package libssl-dev
   package liblzma-dev
   package uuid-dev
@@ -80,12 +79,17 @@ function main_ubuntu() {
     package rubygems
 
     # Temporary removes (so we can override default paths).
-    remove_package pkg-config
+    package autotools-dev
+
+    #remove_package pkg-config
     remove_package autoconf
     remove_package automake
     remove_package libtool
 
-    install_pkgconfig
+    #install_pkgconfig
+    package pkg-config
+    package libcurl4-openssl-dev
+
     install_autoconf
     install_automake
     install_libtool
