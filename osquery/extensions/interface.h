@@ -230,6 +230,10 @@ class ExtensionManagerWatcher : public ExtensionWatcher {
 
   /// Start a specialized health check for an ExtensionManager.
   void watch();
+
+ private:
+  /// Allow extensions to fail for several intervals.
+  std::map<RouteUUID, size_t> failures_;
 };
 
 class ExtensionRunnerCore : public InternalRunnable {
@@ -316,7 +320,7 @@ class EXClient : public EXInternal {
  public:
   explicit EXClient(const std::string& path) : EXInternal(path) {
     client_ = std::make_shared<extensions::ExtensionClient>(protocol_);
-    transport_->open();
+    (void)transport_->open();
   }
 
   const std::shared_ptr<extensions::ExtensionClient>& get() { return client_; }
@@ -331,7 +335,7 @@ class EXManagerClient : public EXInternal {
   explicit EXManagerClient(const std::string& manager_path)
       : EXInternal(manager_path) {
     client_ = std::make_shared<extensions::ExtensionManagerClient>(protocol_);
-    transport_->open();
+    (void)transport_->open();
   }
 
   const std::shared_ptr<extensions::ExtensionManagerClient>& get() {

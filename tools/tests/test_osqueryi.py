@@ -52,7 +52,7 @@ class OsqueryiTest(unittest.TestCase):
             self.binary,
             "--config_check",
             "--database_path=%s" % (self.dbpath),
-            "--config_path=/this/path/does/not/exist"], 2)
+            "--config_path=/this/path/does/not/exist"], 3)
         self.assertNotEqual(proc.stderr, "")
         print (proc.stdout)
         print (proc.stderr)
