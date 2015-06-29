@@ -21,7 +21,7 @@ using namespace apache::thrift::concurrency;
 namespace osquery {
 
 /// The worker_threads define the default thread pool size.
-FLAG(int32, worker_threads, 4, "Number of work dispatch threads");
+FLAG(int32, worker_threads, 1, "Number of work dispatch threads");
 
 void interruptableSleep(size_t milli) {
   boost::this_thread::sleep(boost::posix_time::milliseconds(milli));
@@ -58,7 +58,7 @@ Status Dispatcher::addService(InternalRunnableRef service) {
   auto& self = instance();
   auto thread = std::make_shared<boost::thread>(
       boost::bind(&InternalRunnable::run, &*service));
-  self.service_threads_.push_back(thread);
+  self.service_threads_.push_back(std::move(thread));
   self.services_.push_back(std::move(service));
   return Status(0, "OK");
 }

@@ -108,3 +108,26 @@ if(ROCKSDB_INCLUDE_DIR AND ROCKSDB_LIBRARIES)
   LOG_LIBRARY(rocksdb "${ROCKSDB_STATIC_LIBRARY}")
   LOG_LIBRARY(snappy "${ROCKSDB_SNAPPY_LIBRARY}")
 endif()
+
+# Check for RocksDB LITE by detecting missing symbols at link time.
+# If the LITE version is installed, we must also define ROCKSDB_LITE=1.
+include(CheckCXXSourceCompiles)
+set(CMAKE_CXX_FLAGS ${CXX_COMPILE_FLAGS})
+set(CMAKE_REQUIRED_LIBRARIES rocksdb snappy)
+check_cxx_source_compiles("
+  #include <rocksdb/db.h>
+  using namespace rocksdb;
+  // Check for symbol that does not exist with -DROCKSDB_LITE=1
+  int main(int, char**) {
+    Options options;
+    auto status = RepairDB(\"test\", options);
+    return 0;
+  }" ROCKSDB_NON_LITE)
+
+if(${ROCKSDB_NON_LITE})
+  WARNING_LOG("RocksDB was NOT installed as RocksDB LITE [Reference #1259]")
+  WARNING_LOG("Installing RocksDB with -DROCKSDB_LITE=1 will improve osquery performance")
+else()
+  add_definitions(-DROCKSDB_LITE=1)
+endif()
+

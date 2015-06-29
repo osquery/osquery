@@ -229,8 +229,6 @@ add_definitions(
   -D${OSQUERY_BUILD_PLATFORM_DEFINE}_${OSQUERY_BUILD_DISTRO_DEFINE}
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
-  # There are platform incompatibilities on OS X with lite and construction.
-  #-DROCKSDB_LITE=1
 )
 
 if(APPLE)
@@ -279,9 +277,9 @@ find_package(Readline REQUIRED)
 # Make sure the OpenSSL/ssl library has a TLS client method.
 # Prefer the highest version of TLS, but accept 1.2, 1.1, or 1.0.
 include(CheckLibraryExists)
-CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_2_client_method" "" OPENSSL_TLSV12)
-CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_1_client_method" "" OPENSSL_TLSV11)
-CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_client_method" "" OPENSSL_TLSV10)
+check_library_exists(${OPENSSL_SSL_LIBRARY} "TLSv1_2_client_method" "" OPENSSL_TLSV12)
+check_library_exists(${OPENSSL_SSL_LIBRARY} "TLSv1_1_client_method" "" OPENSSL_TLSV11)
+check_library_exists(${OPENSSL_SSL_LIBRARY} "TLSv1_client_method" "" OPENSSL_TLSV10)
 
 # Add a define based on the highest TLS version found. Fatal if no TLS client.
 if(OPENSSL_TLSV12)
