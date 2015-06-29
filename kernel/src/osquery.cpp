@@ -27,7 +27,7 @@
 #include "circular_queue_kern.h"
 
 #ifdef DEBUG
-#define dbg_printf(...) printf(__VA_ARGS__ )
+#define dbg_printf(...) printf("OSQUERY KEXT: " __VA_ARGS__)
 #else
 #define dbg_printf(...) do{ } while(0)
 #endif
@@ -93,7 +93,8 @@ static int subscribe_to_event(osquery_event_t event, int subscribe) {
   return -EINVAL;
 }
 
-static int update_user_kernel_buffer(size_t read_offset,
+static int update_user_kernel_buffer(int options,
+                                     size_t read_offset,
                                      size_t *max_read_offset,
                                      int *drops) {
   if (osquery_cqueue_advance_read(&osquery.cqueue,
@@ -101,13 +102,14 @@ static int update_user_kernel_buffer(size_t read_offset,
                                   max_read_offset)) {
     return -EINVAL;
   }
+  if (!(options & OSQUERY_NO_BLOCK)) {
+    ssize_t offset = 0;
+    if ((offset = osquery_cqueue_wait_for_data(&osquery.cqueue)) < 0) {
+      return -EINVAL;
+    }
 
-  ssize_t offset = 0;
-  if ((offset = osquery_cqueue_wait_for_data(&osquery.cqueue)) < 0) {
-    return -EINVAL;
+    *max_read_offset = offset;
   }
-
-  *max_read_offset = offset;
   *drops = osquery_cqueue_dropped_data(&osquery.cqueue);
   return 0;
 }
@@ -178,15 +180,14 @@ static int osquery_open(dev_t dev, int oflags, int devtype, struct proc *p) {
   int err = 0;
   lck_mtx_lock(osquery.mtx);
   if (osquery.open_count == 0) {
-    OSKextRetainKextWithLoadTag(OSKextGetCurrentLoadTag());  
     osquery.open_count ++;
   }
-#ifndef DEBUG
+#ifndef KERNEL_TEST
   else {
     err = -EACCES;
     goto error_exit;
   }
-#endif // !DEBUG
+#endif // !KERNEL_TEST
 
 error_exit:
   lck_mtx_unlock(osquery.mtx);
@@ -198,7 +199,6 @@ static int osquery_close(dev_t dev, int flag, int fmt, struct proc *p) {
   if (osquery.open_count == 1) {
     osquery.open_count--;
     cleanup_user_kernel_buffer();
-    OSKextReleaseKextWithLoadTag(OSKextGetCurrentLoadTag());
   }
   lck_mtx_unlock(osquery.mtx);
 
@@ -210,7 +210,7 @@ static int osquery_close(dev_t dev, int flag, int fmt, struct proc *p) {
 // in locks to guarantee proper use.
 static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
                          int flag, struct proc *p) {
-#ifdef DEBUG
+#ifdef KERNEL_TEST  // Reentrant code used for testing the queue functionality.
   static unsigned int test_counter = 0;
   if (cmd == OSQUERY_IOCTL_TEST) {
     if (osquery.buffer == NULL) {
@@ -247,14 +247,14 @@ static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
 
     return 0;
   }
-#endif // DEBUG
+#endif // KERNEL_TEST
 
   lck_mtx_lock(osquery.mtx);
 
   int err = 0;
-  osquery_subscription_args_t *sub;
-  osquery_buf_update_args_t *update;
-  osquery_buf_allocate_args_t *alloc;
+  osquery_subscription_args_t *sub = NULL;
+  osquery_buf_sync_args_t *sync = NULL;
+  osquery_buf_allocate_args_t *alloc = NULL;
 
   switch (cmd) {
     case OSQUERY_IOCTL_SUBSCRIPTION:
@@ -263,16 +263,17 @@ static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
         goto error_exit;
       }
       break;
-    case OSQUERY_IOCTL_BUF_UPDATE:
-      update = (osquery_buf_update_args_t *)data;
+    case OSQUERY_IOCTL_BUF_SYNC:
+      sync = (osquery_buf_sync_args_t *)data;
       if (osquery.buffer == NULL) {
         err = -EINVAL;
         goto error_exit;
       }
       lck_mtx_unlock(osquery.mtx);
-      if ((err = update_user_kernel_buffer(update->read_offset,
-                                           &(update->max_read_offset),
-                                           &(update->drops)))) {
+      if ((err = update_user_kernel_buffer(sync->options,
+                                           sync->read_offset,
+                                           &(sync->max_read_offset),
+                                           &(sync->drops)))) {
         lck_mtx_lock(osquery.mtx);
         goto error_exit;
       }
@@ -359,7 +360,11 @@ error_exit:
 kern_return_t OSQueryStop(kmod_info_t *ki, void *d) {
   dbg_printf("OSQuery kernel module stoping!\n");
 
-  destroy_locks();
+  lck_mtx_lock(osquery.mtx);
+  if (osquery.open_count > 0) {
+    lck_mtx_unlock(osquery.mtx);
+    return KERN_FAILURE;
+  }
 
   cleanup_user_kernel_buffer();
 
@@ -369,6 +374,9 @@ kern_return_t OSQueryStop(kmod_info_t *ki, void *d) {
   if (cdevsw_remove(osquery.major_number, &osquery_cdevsw) < 0) {
     panic("OSQuery kext:  Cannot remove osquery from cdevsw");
   }
+
+  lck_mtx_unlock(osquery.mtx);
+  destroy_locks();
 
   return KERN_SUCCESS;
 }

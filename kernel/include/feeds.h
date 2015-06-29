@@ -12,11 +12,26 @@
 
 #include <stdint.h>
 #include <sys/types.h>
+
+#ifdef __linux__
+#include <linux/ioctl.h>
+#else
 #include <sys/ioccom.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @def KERNEL_TEST
+ * @brief This gates the testing portions of kernel module.
+ *
+ * When kernel test is defined two testing events are exposed.  Additionally
+ * the character device can be opened multiple times, which allows the use of
+ * a reentrant testing IOCTL call that adds test events to the cqueue structure.
+ */
+
 
 //
 // Event feed types
@@ -25,15 +40,15 @@ extern "C" {
 typedef enum osquery_event {
   END_OF_BUFFER_EVENT = 0,  // Null event used to signal the end of the buffer.
 
-#ifdef DEBUG
+#ifdef KERNEL_TEST
   OSQUERY_TEST_EVENT_0,
   OSQUERY_TEST_EVENT_1,
-#endif // DEBUG
+#endif // KERNEL_TEST
 
   OSQUERY_EVENT_NUM_EVENTS  // Number of different event types.
 } osquery_event_t;
 
-#ifdef DEBUG
+#ifdef KERNEL_TEST
 typedef struct test_event_0 {
   uint32_t my_num;
   char my_str[64];
@@ -43,16 +58,16 @@ typedef struct test_event_1 {
   uint32_t my_num;
   char my_str[33];
 } test_event_1_data_t;
-#endif // DEBUG
+#endif // KERNEL_TEST
 
 static inline size_t osquery_sizeof_event(osquery_event_t e) {
   switch (e) {
-#ifdef DEBUG
+#ifdef KERNEL_TEST
     case OSQUERY_TEST_EVENT_0:
       return sizeof(test_event_0_data_t);
     case OSQUERY_TEST_EVENT_1:
       return sizeof(test_event_1_data_t);
-#endif // DEBUG
+#endif // KERNEL_TEST
     default:
       return -1;
   }
@@ -76,11 +91,16 @@ typedef struct osquery_subscription_args {
   int subscribe;
 } osquery_subscription_args_t;
 
-typedef struct osquery_buf_update_args {
+// Flags for buffer sync options.
+#define OSQUERY_DEFAULT 0
+#define OSQUERY_NO_BLOCK 1
+
+typedef struct osquery_buf_sync_args {
+  int options;             // Option such as OSQUERY_NO_BLOCK.
   size_t read_offset;      // Offset of daemon read pointer.
   size_t max_read_offset;  // (Output) Offset of max_read pointer.
   int drops;               // (Output) Number of drops or negative on overflow.
-} osquery_buf_update_args_t;
+} osquery_buf_sync_args_t;
 
 typedef struct osquery_buf_allocate_args {
   size_t size;      // Size of shared user kernel buffer.
@@ -91,15 +111,15 @@ typedef struct osquery_buf_allocate_args {
 #define OSQUERY_IOCTL_NUM 0xFA
 #define OSQUERY_IOCTL_SUBSCRIPTION \
   _IOW(OSQUERY_IOCTL_NUM, 0x1, osquery_subscription_args_t)
-#define OSQUERY_IOCTL_BUF_UPDATE \
-  _IOWR(OSQUERY_IOCTL_NUM, 0x2, osquery_buf_update_args_t)
+#define OSQUERY_IOCTL_BUF_SYNC \
+  _IOWR(OSQUERY_IOCTL_NUM, 0x2, osquery_buf_sync_args_t)
 #define OSQUERY_IOCTL_BUF_ALLOCATE \
   _IOWR(OSQUERY_IOCTL_NUM, 0x3, osquery_buf_allocate_args_t)
 
-#ifdef DEBUG
+#ifdef KERNEL_TEST
 #define OSQUERY_IOCTL_TEST \
   _IOW(OSQUERY_IOCTL_NUM, 0x4, int)
-#endif // DEBUG
+#endif // KERNEL_TEST
 
 #ifdef __cplusplus
 }  // end extern "c"
