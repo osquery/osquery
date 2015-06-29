@@ -21,7 +21,7 @@
 #include "osquery/events/linux/inotify.h"
 #endif
 
-#include "osquery/tables/utils/yara_utils.h"
+#include "osquery/tables/other/yara_utils.h"
 
 #ifdef CONCAT
 #undef CONCAT

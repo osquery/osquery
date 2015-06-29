@@ -46,7 +46,7 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
       auto subscriber = EventFactory::getEventSubscriber("{{class_name}}");
       return subscriber->{{function}}(request);
     } else {
-      return {};
+      throw std::runtime_error("Subscriber table: {{class_name}} missing.");
     }
 {% else %}\
     return tables::{{function}}(request);
