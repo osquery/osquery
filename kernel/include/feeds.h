@@ -15,8 +15,12 @@
 
 #ifdef __linux__
 #include <linux/ioctl.h>
+#include <linux/limits.h>
+
+#define MAXPATHLEN PATH_MAX
 #else
 #include <sys/ioccom.h>
+#include <sys/param.h>
 #endif
 
 #ifdef __cplusplus
@@ -37,9 +41,10 @@ extern "C" {
 // Event feed types
 //
 
-typedef enum osquery_event {
+typedef enum {
   END_OF_BUFFER_EVENT = 0, // Null event used to signal the end of the buffer.
   OSQUERY_NULL_EVENT = 0,
+  OSQUERY_PROCESS_EVENT,
 
 #ifdef KERNEL_TEST
   OSQUERY_TEST_EVENT_0,
@@ -49,13 +54,30 @@ typedef enum osquery_event {
   OSQUERY_EVENT_NUM_EVENTS // Number of different event types.
 } osquery_event_t;
 
+typedef struct {
+  uint64_t pid;
+  uint64_t ppid;
+  uint64_t uid;
+  uint64_t euid;
+  uint64_t gid;
+  uint64_t egid;
+  uint64_t owner_uid;
+  uint64_t owner_gid;
+  uint64_t create_time;
+  uint64_t access_time;
+  uint64_t modify_time;
+  uint64_t change_time;
+  int mode;
+  char path[MAXPATHLEN];
+} osquery_process_event_t;
+
 #ifdef KERNEL_TEST
-typedef struct test_event_0 {
+typedef struct {
   uint32_t my_num;
   char my_str[64];
 } test_event_0_data_t;
 
-typedef struct test_event_1 {
+typedef struct {
   uint32_t my_num;
   char my_str[33];
 } test_event_1_data_t;
@@ -63,6 +85,8 @@ typedef struct test_event_1 {
 
 static inline ssize_t osquery_sizeof_event(osquery_event_t e) {
   switch (e) {
+  case OSQUERY_PROCESS_EVENT:
+    return sizeof(osquery_process_event_t);
 #ifdef KERNEL_TEST
   case OSQUERY_TEST_EVENT_0:
     return sizeof(test_event_0_data_t);
@@ -78,16 +102,24 @@ static inline ssize_t osquery_sizeof_event(osquery_event_t e) {
 // Header for event data.
 //
 
-typedef struct osquery_data_header {
+typedef struct {
+  /// Calendar time in seconds since UNIX epoch.
+  uint32_t time;
+  /// System uptime in seconds.
+  uint32_t uptime;
+} osquery_event_time_t;
+
+typedef struct {
   osquery_event_t event;
   int finished;
+  osquery_event_time_t time; // Should be last member of header.
 } osquery_data_header_t;
 
 //
 // IOCTL messages
 //
 
-typedef struct osquery_subscription_args {
+typedef struct {
   osquery_event_t event;
   int subscribe;
 } osquery_subscription_args_t;
@@ -96,14 +128,14 @@ typedef struct osquery_subscription_args {
 #define OSQUERY_DEFAULT 0
 #define OSQUERY_NO_BLOCK 1
 
-typedef struct osquery_buf_sync_args {
+typedef struct {
   int options;             // Option such as OSQUERY_NO_BLOCK.
   size_t read_offset;      // Offset of daemon read pointer.
   size_t max_read_offset;  // (Output) Offset of max_read pointer.
   int drops;               // (Output) Number of drops or negative on overflow.
 } osquery_buf_sync_args_t;
 
-typedef struct osquery_buf_allocate_args {
+typedef struct {
   size_t size;      // Size of shared user kernel buffer.
   void *buffer;     // (Output) Pointer to buffer location.
 } osquery_buf_allocate_args_t;

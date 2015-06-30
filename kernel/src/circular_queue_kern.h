@@ -32,7 +32,7 @@ extern "C" {
 #endif
 
 // Circular queue data structure.
-typedef struct osquery_cqueue {
+typedef struct {
   uint8_t *buffer;
   size_t size;
   uint8_t *write;

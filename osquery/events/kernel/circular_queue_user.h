@@ -23,6 +23,14 @@ class CQueueException : public std::runtime_error {
 class CQueue {
  public:
   /**
+   * @brief Structure to hold event metadata and pointer to an event.
+   */
+  struct event {
+    osquery_event_time_t time;
+    char buf[];
+  };
+
+  /**
    * @brief Creates cqueue.
    *
    * This connects to the osquery kernel extension dev file and sets up a
@@ -57,7 +65,7 @@ class CQueue {
    * @return Returns 0 if queue is empty, otherwise the number of the event put
    * into event.
    */
-  osquery_event_t dequeue(void **event);
+  osquery_event_t dequeue(event **event);
 
   /**
    * @brief Sync the cqueue structure with the cqueue structure in the kernel.

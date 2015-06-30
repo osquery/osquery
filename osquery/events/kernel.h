@@ -31,6 +31,9 @@ struct KernelSubscriptionContext : public SubscriptionContext {
 struct KernelEventContext : public EventContext {
   /// The event type.
   osquery_event_t event_type;
+
+  uint32_t time;
+  uint32_t uptime;
 };
 
 template <typename EventType>
@@ -66,7 +69,7 @@ class KernelEventPublisher
 
   template <typename EventType>
   KernelEventContextRef createEventContextFrom(osquery_event_t event_type,
-                                               void *event_buf) const;
+                                               CQueue::event *event) const;
 };
 
 }  // namespace osquery

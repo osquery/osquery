@@ -2,6 +2,7 @@
 set(OSQUERY_SOURCES "")
 set(OSQUERY_LINKS "")
 set(OSQUERY_TESTS "")
+set(OSQUERY_KERNEL_TESTS "")
 
 # osquery core additional sources files not included with SDK (libosquery_additional).
 set(OSQUERY_ADDITIONAL_SOURCES "")
@@ -185,6 +186,13 @@ if(NOT DEFINED ENV{SKIP_TESTS})
   target_link_libraries(osquery_tests gtest libosquery_testing)
   SET_OSQUERY_COMPILE(osquery_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=0")
   add_test(osquery_tests osquery_tests)
+
+  # osquery kernel tests.
+  add_executable(osquery_kernel_tests main/tests.cpp ${OSQUERY_KERNEL_TESTS})
+  TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery)
+  TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery_additional)
+  target_link_libraries(osquery_kernel_tests gtest libosquery_testing)
+  SET_OSQUERY_COMPILE(osquery_kernel_tests "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1 -DGTEST_HAS_TR1_TUPLE=0")
 
   if(NOT OSQUERY_BUILD_SDK_ONLY)
     # osquery core (additional) set of unit tests built outside of SDK.

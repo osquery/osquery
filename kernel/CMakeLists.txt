@@ -1,3 +1,4 @@
+
 # Set includes/compile options for kernel modules/extensions.
 set(CMAKE_C_FLAGS "")
 set(CMAKE_CXX_FLAGS "")
@@ -146,6 +147,12 @@ if(APPLE)
     COMMENT "Generating symbols and launching a debugger with kernel target..."
   )
 
+  add_custom_target(
+    kernel-test
+    COMMAND echo ""
+    COMMAND echo "Running kernel tests requires root."
+    COMMAND sudo $<TARGET_FILE:osquery_kernel_tests>
+  )
 elseif(LINUX)
   add_custom_target(
     base_kernel
@@ -160,6 +167,11 @@ elseif(LINUX)
   add_custom_target(
     kernel-deps
     COMMAND echo "-- No kernel dependencies for Linux"
+  )
+
+  add_custom_target(
+    kernel-test
+    COMMAND echo "-- No kernel test is run for Linux"
   )
 else()
   add_custom_target(
@@ -176,6 +188,11 @@ else()
     kernel-deps
     COMMAND echo "-- No kernel dependencies for unsupported platform"
   )
+
+  add_custom_target(
+    kernel-test
+    COMMAND echo "-- No kernel test is run for unsupported platform"
+  )
 endif()
 
 # make kernel-build
@@ -183,11 +200,4 @@ add_custom_target(
   kernel-build
   DEPENDS kernel-layout base_kernel
   COMMAND echo "-- Building osquery kernel extension/module..."
-)
-
-# make kernel-test
-add_custom_target(
-  kernel-test
-  DEPENDS kernel-build
-  COMMAND echo "-- Running kernel-specific unit tests"
 )

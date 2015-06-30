@@ -62,7 +62,7 @@ TEST_F(KernelCommunicationTests, test_communication) {
   }
 
   osquery_event_t event;
-  void *event_buf = nullptr;
+  osquery::CQueue::event *event_buf = nullptr;
   int tasks = 0;
   do {
     tasks = dispatcher.totalTaskCount();

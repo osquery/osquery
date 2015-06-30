@@ -112,6 +112,14 @@ macro(ADD_OSQUERY_TABLE_TEST)
   endif()
 endmacro(ADD_OSQUERY_TABLE_TEST)
 
+# Add kernel test macro.
+macro(ADD_OSQUERY_KERNEL_TEST)
+  if(NOT DEFINED ENV{SKIP_TESTS})
+    list(APPEND OSQUERY_KERNEL_TESTS ${ARGN})
+    set(OSQUERY_KERNEL_TESTS ${OSQUERY_KERNEL_TESTS} PARENT_SCOPE)
+  endif()
+endmacro(ADD_OSQUERY_KERNEL_TEST)
+
 # Add sources to libosquery.a (the core library)
 macro(ADD_OSQUERY_LIBRARY_CORE TARGET)
   ADD_OSQUERY_LIBRARY(TRUE ${TARGET} ${ARGN})

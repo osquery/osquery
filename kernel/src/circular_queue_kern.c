@@ -328,6 +328,12 @@ int osquery_cqueue_commit(osquery_cqueue_t *queue, void *space) {
   }
 
   header->finished = 1;
+  clock_sec_t seconds;
+  clock_usec_t microsecs;
+  clock_get_calendar_microtime(&seconds, &microsecs);
+  header->time.time = (uint64_t)seconds;
+  clock_get_system_microtime(&seconds, &microsecs);
+  header->time.uptime = (uint64_t)seconds;
 
   coalesce_readable(queue);
 
