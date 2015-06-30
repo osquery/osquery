@@ -41,7 +41,7 @@ class TLSConfigPlugin : public ConfigPlugin {
 
 REGISTER(TLSConfigPlugin, "config", "tls");
 
-Status getConfig(const std::string& uri, pt::ptree& output) {
+Status makeTLSConfigRequest(const std::string& uri, pt::ptree& output) {
   // Make a request to the config endpoint, providing the node secret.
   pt::ptree params;
   params.put<std::string>("node_key", getNodeKey("tls"));
@@ -71,7 +71,7 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
 
   pt::ptree recv;
   for (size_t i = 1; i <= CONFIG_TLS_MAX_ATTEMPTS; i++) {
-    auto status = getConfig(uri, recv);
+    auto status = makeTLSConfigRequest(uri, recv);
     if (status.ok()) {
       std::stringstream ss;
       write_json(ss, recv);
