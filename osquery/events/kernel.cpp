@@ -62,6 +62,10 @@ Status KernelEventPublisher::run() {
   void *event_buf = nullptr;
   while (max_before_sync > 0 && (event = queue_->dequeue(&event_buf))) {
     switch (event) {
+      case OSQUERY_PROCESS_EVENT:
+        ec = createEventContextFrom<osquery_process_event_t>(event, event_buf);
+        fire(ec);
+        break;
       default:
         LOG(WARNING) << "Unknown kernel event received: " << event;
         break;

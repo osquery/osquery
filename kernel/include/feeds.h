@@ -17,6 +17,7 @@
 #include <linux/ioctl.h>
 #else
 #include <sys/ioccom.h>
+#include <sys/param.h>
 #endif
 
 #ifdef __cplusplus
@@ -40,6 +41,7 @@ extern "C" {
 typedef enum osquery_event {
   END_OF_BUFFER_EVENT = 0, // Null event used to signal the end of the buffer.
   OSQUERY_NULL_EVENT = 0,
+  OSQUERY_PROCESS_EVENT,
 
 #ifdef KERNEL_TEST
   OSQUERY_TEST_EVENT_0,
@@ -48,6 +50,20 @@ typedef enum osquery_event {
 
   OSQUERY_EVENT_NUM_EVENTS // Number of different event types.
 } osquery_event_t;
+
+// Currently used for testing.
+typedef struct osquery_process_event {
+  uint64_t uid;
+  uint64_t euid;
+  uint64_t gid;
+  uint64_t egid;
+  uint64_t owner_uid;
+  uint64_t owner_gid;
+  int mode;
+  char path[MAXPATHLEN];
+  uint64_t time;
+  uint64_t uptime;
+} osquery_process_event_t;
 
 #ifdef KERNEL_TEST
 typedef struct test_event_0 {
@@ -63,6 +79,8 @@ typedef struct test_event_1 {
 
 static inline ssize_t osquery_sizeof_event(osquery_event_t e) {
   switch (e) {
+  case OSQUERY_PROCESS_EVENT:
+    return sizeof(osquery_process_event_t);
 #ifdef KERNEL_TEST
   case OSQUERY_TEST_EVENT_0:
     return sizeof(test_event_0_data_t);

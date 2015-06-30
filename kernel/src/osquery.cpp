@@ -17,7 +17,10 @@
 #include <sys/conf.h>
 #include <sys/proc.h>
 #include <sys/systm.h>
+#include <sys/kauth.h>
 #include <miscfs/devfs/devfs.h>
+#include <sys/vnode.h>
+#include <kern/clock.h>
 
 // IOKit headers
 #include <IOKit/IOMemoryDescriptor.h>
@@ -47,6 +50,7 @@ static struct osquery {
   void *devfs;
   int major_number;
   int open_count;
+  kauth_listener_t fileop_listener;
 
   lck_grp_attr_t *lck_grp_attr;
   lck_grp_t *lck_grp;
@@ -61,6 +65,63 @@ static struct osquery {
   .devfs = NULL,
   .major_number = OSQUERY_MAJOR
 };
+
+static int fileop_scope_callback(kauth_cred_t credential,
+                                 void *idata,
+                                 kauth_action_t action,
+                                 uintptr_t arg0,
+                                 uintptr_t arg1,
+                                 uintptr_t arg2,
+                                 uintptr_t arg3) {
+  vnode_t vp = (vnode_t)arg0;
+  if (action == KAUTH_FILEOP_EXEC && vp != NULL) {
+    // Someone is executing a file.
+    int path_len = MAXPATHLEN;
+
+    osquery_process_event_t *e =
+      (osquery_process_event_t *)osquery_cqueue_reserve(&osquery.cqueue,
+                                                        OSQUERY_PROCESS_EVENT);
+    if (e) {
+      e->owner_uid = 0;
+      e->owner_gid = 0;
+      e->mode = -1;
+      vfs_context_t context = vfs_context_create(NULL);
+      if (context) {
+        struct vnode_attr vattr = {0};
+        VATTR_INIT(&vattr);
+        VATTR_WANTED(&vattr, va_uid);
+        VATTR_WANTED(&vattr, va_gid);
+        VATTR_WANTED(&vattr, va_mode);
+
+        if (vnode_getattr(vp, &vattr, context) == 0) {
+          e->owner_uid = vattr.va_uid;
+          e->owner_gid = vattr.va_gid;
+          e->mode = vattr.va_mode;
+        }
+
+        vfs_context_rele(context);
+      }
+
+      e->uid = kauth_cred_getruid(credential);
+      e->euid = kauth_cred_getuid(credential);
+
+      e->gid = kauth_cred_getrgid(credential);
+      e->egid = kauth_cred_getgid(credential);
+
+      vn_getpath(vp, e->path, &path_len);
+
+      clock_sec_t seconds;
+      clock_usec_t microsecs;
+      clock_get_calendar_microtime(&seconds, &microsecs);
+      e->time = (uint64_t)seconds;
+      clock_get_system_microtime(&seconds, &microsecs);
+      e->uptime = (uint64_t)seconds;
+
+      osquery_cqueue_commit(&osquery.cqueue, e);
+    }
+  }
+  return KAUTH_RESULT_DEFER;
+}
 
 static inline void setup_locks() {
   /* Create locks.  Cannot be done on the stack. */
@@ -85,6 +146,10 @@ static inline void teardown_locks() {
 }
 
 static void unsubscribe_all_events() {
+  if (osquery.fileop_listener) {
+    kauth_unlisten_scope(osquery.fileop_listener);
+    osquery.fileop_listener = NULL;
+  }
 }
 
 static int subscribe_to_event(osquery_event_t event, int subscribe) {
@@ -94,6 +159,15 @@ static int subscribe_to_event(osquery_event_t event, int subscribe) {
   }
 
   switch (event) {
+  case OSQUERY_PROCESS_EVENT:
+    if (subscribe && osquery.fileop_listener == NULL) {
+      osquery.fileop_listener =
+          kauth_listen_scope(KAUTH_SCOPE_FILEOP, fileop_scope_callback, NULL);
+    } else if (osquery.fileop_listener) {
+      kauth_unlisten_scope(osquery.fileop_listener);
+      osquery.fileop_listener = NULL;
+    }
+    break;
   default:
     return -EINVAL;
   }
