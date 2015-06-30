@@ -24,6 +24,11 @@
 namespace pt = boost::property_tree;
 
 namespace osquery {
+
+DECLARE_uint64(read_max);
+DECLARE_uint64(read_user_max);
+DECLARE_bool(read_user_links);
+
 class FilesystemTests : public testing::Test {
 
  protected:
@@ -37,7 +42,7 @@ class FilesystemTests : public testing::Test {
   }
 };
 
-TEST_F(FilesystemTests, test_plugin) {
+TEST_F(FilesystemTests, test_read_file) {
   std::ofstream test_file(kTestWorkingDirectory + "fstests-file");
   test_file.write("test123\n", sizeof("test123"));
   test_file.close();
@@ -49,6 +54,35 @@ TEST_F(FilesystemTests, test_plugin) {
   EXPECT_EQ(content, "test123\n");
 
   remove(kTestWorkingDirectory + "fstests-file");
+}
+
+TEST_F(FilesystemTests, test_read_limit) {
+  auto max = FLAGS_read_max;
+  auto user_max = FLAGS_read_user_max;
+  FLAGS_read_max = 3;
+  std::string content;
+  auto status = readFile(kFakeDirectory + "/root.txt", content);
+  EXPECT_FALSE(status.ok());
+  FLAGS_read_max = max;
+
+  if (getuid() != 0) {
+    content.erase();
+    FLAGS_read_user_max = 2;
+    status = readFile(kFakeDirectory + "/root.txt", content);
+    EXPECT_FALSE(status.ok());
+    FLAGS_read_user_max = user_max;
+
+    // Test that user symlinks aren't followed if configured.
+    FLAGS_read_user_links = false;
+    content.erase();
+    status = readFile(kFakeDirectory + "/root2.txt", content);
+    EXPECT_FALSE(status.ok());
+
+    // But they are read if enabled.
+    FLAGS_read_user_links = true;
+    status = readFile(kFakeDirectory + "/root2.txt", content);
+    EXPECT_TRUE(status.ok());
+  }
 }
 
 TEST_F(FilesystemTests, test_list_files_missing_directory) {
@@ -76,12 +110,12 @@ TEST_F(FilesystemTests, test_simple_globs) {
   // Test the shell '*', we will support SQL's '%' too.
   auto status = resolveFilePattern(kFakeDirectory + "/*", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 5);
+  EXPECT_EQ(results.size(), 6);
 
   // Test the csh-style bracket syntax: {}.
   results.clear();
   resolveFilePattern(kFakeDirectory + "/{root,door}*", results);
-  EXPECT_EQ(results.size(), 2);
+  EXPECT_EQ(results.size(), 3);
 
   // Test a tilde, home directory expansion, make no asserts about contents.
   results.clear();
@@ -96,7 +130,7 @@ TEST_F(FilesystemTests, test_wildcard_single_all) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(kFakeDirectory + "/%", results, GLOB_ALL);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 5);
+  EXPECT_EQ(results.size(), 6);
   EXPECT_TRUE(contains(results, kFakeDirectory + "/roto.txt"));
   EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/"));
 }
@@ -105,7 +139,7 @@ TEST_F(FilesystemTests, test_wildcard_single_files) {
   // Now list again with a restriction to only files.
   std::vector<std::string> results;
   resolveFilePattern(kFakeDirectory + "/%", results, GLOB_FILES);
-  EXPECT_EQ(results.size(), 3);
+  EXPECT_EQ(results.size(), 4);
   EXPECT_TRUE(contains(results, kFakeDirectory + "/roto.txt"));
 }
 
@@ -129,7 +163,7 @@ TEST_F(FilesystemTests, test_wildcard_double) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(kFakeDirectory + "/%%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 14);
+  EXPECT_EQ(results.size(), 15);
   EXPECT_TRUE(contains(results, kFakeDirectory + "/deep1/deep2/level2.txt"));
 }
 
@@ -151,6 +185,7 @@ TEST_F(FilesystemTests, test_wildcard_middle_component) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(kFakeDirectory + "/deep1%/%", results);
   EXPECT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 5);
   EXPECT_TRUE(contains(results, kFakeDirectory + "/deep1/level1.txt"));
   EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/level1.txt"));
 }
@@ -175,7 +210,7 @@ TEST_F(FilesystemTests, test_wildcard_dotdot_files) {
   auto status = resolveFilePattern(
       kFakeDirectory + "/deep11/deep2/../../%", results, GLOB_FILES);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 3);
+  EXPECT_EQ(results.size(), 4);
   EXPECT_TRUE(
       contains(results, kFakeDirectory + "/deep11/deep2/../../door.txt"));
 }

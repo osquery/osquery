@@ -30,6 +30,10 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
+FLAG(uint64, read_max, 50 * 1024 * 1024, "Maximum file read size");
+FLAG(uint64, read_user_max, 10 * 1024 * 1024, "Maximum non-su read size");
+FLAG(bool, read_user_links, true, "Read user-owned filesystem links");
+
 Status writeTextFile(const fs::path& path,
                      const std::string& content,
                      int permissions,
@@ -59,23 +63,47 @@ Status writeTextFile(const fs::path& path,
 }
 
 Status readFile(const fs::path& path, std::string& content) {
-  auto path_exists = pathExists(path);
-  if (!path_exists.ok()) {
-    return path_exists;
+  struct stat file;
+  if (lstat(path.string().c_str(), &file) == 0) {
+    if (file.st_uid != 0 && !FLAGS_read_user_links) {
+      return Status(1, "User link reads disabled");
+    }
+  } else if (stat(path.string().c_str(), &file) < 0) {
+    return Status(1, "Cannot access path: " + path.string());
   }
 
-  std::stringstream buffer;
-  fs::ifstream file_h(path);
-  if (file_h.is_open()) {
-    buffer << file_h.rdbuf();
-    if (file_h.bad()) {
-      return Status(1, "Error reading file: " + path.string());
+  // Apply the max byte-read based on file/link target ownership.
+  size_t read_max = (file.st_uid == 0)
+                        ? FLAGS_read_max
+                        : std::min(FLAGS_read_max, FLAGS_read_user_max);
+  std::ifstream is(path.string(), std::ifstream::binary);
+  if (!is) {
+    return Status(1, "Error reading file: " + path.string());
+  }
+
+  // Attempt to read the file size.
+  ssize_t size = file.st_size;
+
+  // Erase/clear provided string buffer.
+  content.erase();
+  if (file.st_size > read_max) {
+    VLOG(1) << "Cannot read " << path
+            << " size exceeds limit: " << file.st_size << " > " << read_max;
+    return Status(1, "File exceeds read limits");
+  }
+
+  if (size == -1 || size == 0) {
+    // Size could not be determined. This may be a special device.
+    std::stringstream buffer;
+    buffer << is.rdbuf();
+    if (is.bad()) {
+      return Status(1, "Error reading special file: " + path.string());
     }
     content.assign(std::move(buffer.str()));
   } else {
-    return Status(1, "Could not open file: " + path.string());
+    content = std::string(size, '\0');
+    is.read(&content[0], size);
   }
-
   return Status(0, "OK");
 }
 
