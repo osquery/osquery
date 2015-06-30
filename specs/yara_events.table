@@ -1,5 +1,5 @@
 table_name("yara_events")
-description("Track YARA matches for files specified in configuation data.")
+description("Track YARA matches for files specified in configuration data.")
 schema([
     Column("target_path", TEXT, "The path scanned"),
     Column("category", TEXT, "The category of the file"),

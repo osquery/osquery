@@ -21,11 +21,9 @@ PACKAGE_ARCH=`uname -m`
 PACKAGE_ITERATION=""
 PACKAGE_TYPE=""
 DESCRIPTION="osquery is an operating system instrumentation toolchain."
+PACKAGE_NAME="osquery"
 if [[ $PACKAGE_VERSION == *"-"* ]]; then
-  PACKAGE_NAME="osquery-latest"
   DESCRIPTION="$DESCRIPTION (unstable/latest version)"
-else
-  PACKAGE_NAME="osquery"
 fi
 OUTPUT_PKG_PATH="$BUILD_DIR/$PACKAGE_NAME-$PACKAGE_VERSION."
 

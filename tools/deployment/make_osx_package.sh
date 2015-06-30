@@ -21,12 +21,7 @@ APP_VERSION=`git describe --tags HEAD`
 APP_IDENTIFIER="com.facebook.osquery"
 LD_IDENTIFIER="com.facebook.osqueryd"
 LD_INSTALL="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
-if [[ $APP_VERSION == *"-"* ]]; then
-  APP_NAME="osquery-latest"
-else
-  APP_NAME="osquery"
-fi
-OUTPUT_PKG_PATH="$BUILD_DIR/$APP_NAME-$APP_VERSION.pkg"
+OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$APP_VERSION.pkg"
 AUTOSTART=false
 CLEAN=false
 
