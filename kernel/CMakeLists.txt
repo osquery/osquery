@@ -112,6 +112,15 @@ if(APPLE)
     COMMAND echo "Wrote unsigned extension bundle: /tmp/osquery.kext"
   )
 
+  # make kernel-unload
+  add_custom_target(
+    kernel-unload
+    # Unload the kernel extension.
+    COMMAND sudo kextunload -v -b "com.facebook.security.osquery"
+    COMMAND echo "Attempted to unload kernel extension with identifier:"
+    COMMAND echo "com.facebook.security.osquery"
+  )
+
   # Additional helpful commands for configuring a debug environment for OS X.
   add_custom_target(
     kernel-configure-target
