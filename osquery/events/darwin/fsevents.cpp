@@ -10,10 +10,23 @@
 
 #include <fnmatch.h>
 
+#include <boost/filesystem.hpp>
+
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/events/darwin/fsevents.h"
+
+/**
+ * @brief FSEvents needs a real/absolute path for watches.
+ *
+ * When adding a subscription, FSEvents will resolve a depth of recursive
+ * symlinks. Increasing the max will make tolerance to odd setups more robust
+ * but introduce additional latency during startup.
+ */
+#define FSEVENTS_MAX_SYMLINK_DEPTH 5
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 
@@ -117,11 +130,28 @@ void FSEventsEventPublisher::tearDown() {
 void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
   paths_.clear();
-  for (const auto& subscription : subscriptions_) {
-    auto fs_subscription = getSubscriptionContext(subscription->context);
-    // FSEvents will subscribe to all child files/folders/notes recursively.
-    // This is not always desired so we change behavior explicitly using flags.
-    paths_.insert(fs_subscription->path);
+  for (auto& subscription : subscriptions_) {
+    auto sub = getSubscriptionContext(subscription->context);
+    // Check if the requested path was a symlink at configure time.
+    boost::system::error_code ec;
+    size_t link_depth = 0;
+    while (link_depth++ < FSEVENTS_MAX_SYMLINK_DEPTH) {
+      // Attempt to follow multiple levels of path links.
+      if (fs::is_symlink(sub->path, ec)) {
+        if (sub->link_.size() == 0) {
+          // Only set the original link path (requested path) once.
+          sub->link_ = sub->path;
+        }
+        auto source_path = fs::read_symlink(sub->path, ec);
+        if (!source_path.is_absolute()) {
+          source_path = fs::path(sub->link_).parent_path() / source_path;
+        }
+        sub->path = source_path.string();
+      } else {
+        break;
+      }
+    }
+    paths_.insert(sub->path);
   }
 
   // There were no paths in the subscriptions?
