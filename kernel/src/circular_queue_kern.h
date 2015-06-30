@@ -23,6 +23,8 @@
 #include <stdint.h>
 #include <sys/lock.h>
 
+#include <kern/clock.h>
+
 #include <feeds.h>
 
 #ifdef __cplusplus
@@ -38,6 +40,8 @@ typedef struct osquery_cqueue {
   uint8_t *read;
   int drops;
   int initialized;
+  uint32_t reservations;
+  clock_sec_t last_destruction_time;
 
   lck_grp_attr_t *lck_grp_attr;
   lck_grp_t *lck_grp;
@@ -45,6 +49,26 @@ typedef struct osquery_cqueue {
   lck_spin_t *lck;
 } osquery_cqueue_t;
 
+/** @brief Setup a circular queue lock system.
+ *
+ *  @param queue The circular queue to initialize the locks of.
+ *  @return Void.
+ */
+void osquery_cqueue_setup(osquery_cqueue_t *queue);
+
+/** @brief Teardown the circular queue locking system.
+ *
+ *  Throws an error if the cqueue is currently initialized, or if it has NOT
+ *  been more than 1 second of system uptime since osquery_cqueue_destroy()
+ *  finished running.  This should be run at kernel extension unload time, a
+ *  priveledged action.  The extension unload should fail if this call fails.
+ *  A panic may ensue if the delay of 1 second is satisfied, but all pending
+ *  event callbacks have still not finished.
+ *
+ *  @param queue The queue to teardown the locks for.
+ *  @return 0 on success.  Negative due to an error.
+ */
+int osquery_cqueue_teardown(osquery_cqueue_t *queue);
 
 /** @brief Initialize a circular queue.
  *
@@ -59,6 +83,15 @@ void osquery_cqueue_init(osquery_cqueue_t *queue, void *buffer, size_t size);
 
 
 /** @brief Cleanup a cqueue.
+ *
+ *  This waits till there are no pending events.  ie. it blocks till the kernel
+ *  cannot possibly be writing to the buffer.  This means, after this function
+ *  call, it is safe to deallocate the buffer used by the queue.  This
+ *  function additionally records the system uptime of when it exits so we can
+ *  try to guarantee that osquery_cqueue_teardown() does not come along and free
+ *  the cqueue locks before lingering event callbacks finish executing.  We do
+ *  this by having osquery_cqueue_teardown() fail if it is being called to soon
+ *  after the return from this function.
  *
  *  @param queue The cqueue to destroy.
  *  @return Void.

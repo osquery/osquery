@@ -91,13 +91,12 @@ int CQueue::kernelSync(int options) {
   sync.options = options;
 
   int err = 0;
-  if ((err = ioctl(fd_, OSQUERY_IOCTL_BUF_SYNC, &sync))) {
-    throw CQueueException("Could not sync buffer with kernel properly.");
-  }
+  err = ioctl(fd_, OSQUERY_IOCTL_BUF_SYNC, &sync);
   uint8_t *new_max_read =  sync.max_read_offset + buffer_;
   max_read_ = new_max_read;
   if (err) {
     read_ = max_read_;
+    throw CQueueException("Could not sync buffer with kernel properly.");
   }
 
   return sync.drops;

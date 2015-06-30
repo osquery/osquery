@@ -60,16 +60,16 @@ typedef struct test_event_1 {
 } test_event_1_data_t;
 #endif // KERNEL_TEST
 
-static inline size_t osquery_sizeof_event(osquery_event_t e) {
+static inline ssize_t osquery_sizeof_event(osquery_event_t e) {
   switch (e) {
 #ifdef KERNEL_TEST
-    case OSQUERY_TEST_EVENT_0:
-      return sizeof(test_event_0_data_t);
-    case OSQUERY_TEST_EVENT_1:
-      return sizeof(test_event_1_data_t);
+  case OSQUERY_TEST_EVENT_0:
+    return sizeof(test_event_0_data_t);
+  case OSQUERY_TEST_EVENT_1:
+    return sizeof(test_event_1_data_t);
 #endif // KERNEL_TEST
-    default:
-      return -1;
+  default:
+    return -1;
   }
 }
 
@@ -124,4 +124,3 @@ typedef struct osquery_buf_allocate_args {
 #ifdef __cplusplus
 }  // end extern "c"
 #endif
-

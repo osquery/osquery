@@ -9,7 +9,6 @@
  */
 
 #include <libkern/libkern.h>
-#include <libkern/OSKextLib.h>
 #include <mach/mach_types.h>
 
 #include <kern/debug.h>
@@ -29,7 +28,7 @@
 #include "circular_queue_kern.h"
 
 #ifdef DEBUG
-#define dbg_printf(...) printf("OSQUERY KEXT: " __VA_ARGS__)
+#define dbg_printf(...) printf("osquery kext: " __VA_ARGS__)
 #else
 #define dbg_printf(...) do{ } while(0)
 #endif
@@ -75,7 +74,7 @@ static inline void setup_locks() {
   osquery.mtx = lck_mtx_alloc_init(osquery.lck_grp, osquery.lck_attr);
 }
 
-static inline void destroy_locks() {
+static inline void teardown_locks() {
   lck_mtx_free(osquery.mtx, osquery.lck_grp);
 
   lck_attr_free(osquery.lck_attr);
@@ -85,13 +84,21 @@ static inline void destroy_locks() {
   lck_grp_attr_free(osquery.lck_grp_attr);
 }
 
+static void unsubscribe_all_events() {
+}
+
 static int subscribe_to_event(osquery_event_t event, int subscribe) {
   // TODO: Logic to start a subscription for events of a given type.
   if (osquery.buffer == NULL) {
     return -EINVAL;
   }
 
-  return -EINVAL;
+  switch (event) {
+  default:
+    return -EINVAL;
+  }
+
+  return 0;
 }
 
 static int update_user_kernel_buffer(int options,
@@ -116,6 +123,8 @@ static int update_user_kernel_buffer(int options,
 }
 
 static void cleanup_user_kernel_buffer() {
+  osquery_cqueue_destroy(&osquery.cqueue);
+
   if (osquery.mm) {
     osquery.mm->release();
     osquery.mm = NULL;
@@ -126,8 +135,6 @@ static void cleanup_user_kernel_buffer() {
     osquery.md = NULL;
   }
 
-  osquery_cqueue_destroy(&osquery.cqueue);
-
   if (osquery.buffer) {
     IOFreeAligned(osquery.buffer, osquery.buf_size);
     osquery.buffer = NULL;
@@ -136,7 +143,6 @@ static void cleanup_user_kernel_buffer() {
 
 static int allocate_user_kernel_buffer(size_t size, void **buf) {
   int err = 0;
-  char *s;
 
   if (size > MAX_KMEM || size < MIN_KMEM) {
     err = -EINVAL;
@@ -186,11 +192,9 @@ static int osquery_open(dev_t dev, int oflags, int devtype, struct proc *p) {
 #ifndef KERNEL_TEST
   else {
     err = -EACCES;
-    goto error_exit;
   }
 #endif // !KERNEL_TEST
 
-error_exit:
   lck_mtx_unlock(osquery.mtx);
   return err;
 }
@@ -198,8 +202,9 @@ error_exit:
 static int osquery_close(dev_t dev, int flag, int fmt, struct proc *p) {
   lck_mtx_lock(osquery.mtx);
   if (osquery.open_count == 1) {
-    osquery.open_count--;
+    unsubscribe_all_events();
     cleanup_user_kernel_buffer();
+    osquery.open_count--;
   }
   lck_mtx_unlock(osquery.mtx);
 
@@ -324,8 +329,10 @@ static struct cdevsw osquery_cdevsw = {
     0                // int               d_type;
 };
 
-kern_return_t OSQueryStart(kmod_info_t *ki, void *d) {
-  dbg_printf("OSQuery kernel module starting!\n");
+kern_return_t OsqueryStart(kmod_info_t *ki, void *d) {
+  dbg_printf("Kernel module starting!\n");
+
+  osquery_cqueue_setup(&osquery.cqueue);
 
   osquery.major_number = cdevsw_add(osquery.major_number, &osquery_cdevsw);
   if (osquery.major_number < 0) {
@@ -352,14 +359,16 @@ error_exit:
 
   if (!(osquery.major_number < 0)) {
     if (cdevsw_remove(osquery.major_number, &osquery_cdevsw) < 0) {
-      panic("OSQuery kext:  Cannot remove osquery from cdevsw");
+      panic("osquery kext: Cannot remove osquery from cdevsw");
     }
   }
+
+  osquery_cqueue_teardown(&osquery.cqueue);
   return KERN_FAILURE;
 }
 
-kern_return_t OSQueryStop(kmod_info_t *ki, void *d) {
-  dbg_printf("OSQuery kernel module stoping!\n");
+kern_return_t OsqueryStop(kmod_info_t *ki, void *d) {
+  dbg_printf("Kernel module stoping!\n");
 
   lck_mtx_lock(osquery.mtx);
   if (osquery.open_count > 0) {
@@ -367,17 +376,20 @@ kern_return_t OSQueryStop(kmod_info_t *ki, void *d) {
     return KERN_FAILURE;
   }
 
-  cleanup_user_kernel_buffer();
+  if (osquery_cqueue_teardown(&osquery.cqueue)) {
+    lck_mtx_unlock(osquery.mtx);
+    return KERN_FAILURE;
+  }
 
   devfs_remove(osquery.devfs);
   osquery.devfs = NULL;
 
   if (cdevsw_remove(osquery.major_number, &osquery_cdevsw) < 0) {
-    panic("OSQuery kext:  Cannot remove osquery from cdevsw");
+    panic("osquery kext: Cannot remove osquery from cdevsw");
   }
 
   lck_mtx_unlock(osquery.mtx);
-  destroy_locks();
+  teardown_locks();
 
   return KERN_SUCCESS;
 }
@@ -388,7 +400,6 @@ extern kern_return_t _stop(kmod_info_t *ki, void *data);
 }
 
 KMOD_EXPLICIT_DECL(com.facebook.security.osquery, OSQUERY_KERNEL_VERSION, _start, _stop)
-__private_extern__ kmod_start_func_t *_realmain = OSQueryStart;
-__private_extern__ kmod_stop_func_t *_antimain = OSQueryStop;
+__private_extern__ kmod_start_func_t *_realmain = OsqueryStart;
+__private_extern__ kmod_stop_func_t *_antimain = OsqueryStop;
 __private_extern__ int _kext_apple_cc = __APPLE_CC__;
-
