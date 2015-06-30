@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+
 #include <libkern/libkern.h>
 #include <libkern/OSKextLib.h>
 #include <mach/mach_types.h>
@@ -24,6 +25,7 @@
 #include <IOKit/IOLib.h>
 
 #include <feeds.h>
+
 #include "circular_queue_kern.h"
 
 #ifdef DEBUG
@@ -36,7 +38,6 @@
 #define OSQUERY_MAJOR -1
 #define MAX_KMEM (20 * (1 << 20))
 #define MIN_KMEM (8 * (1 << 10))
-
 
 static struct osquery {
   osquery_cqueue_t cqueue;
@@ -386,7 +387,7 @@ extern kern_return_t _start(kmod_info_t *ki, void *data);
 extern kern_return_t _stop(kmod_info_t *ki, void *data);
 }
 
-KMOD_EXPLICIT_DECL(com.facebook.driver.osquery, VERSION, _start, _stop)
+KMOD_EXPLICIT_DECL(com.facebook.security.osquery, OSQUERY_KERNEL_VERSION, _start, _stop)
 __private_extern__ kmod_start_func_t *_realmain = OSQueryStart;
 __private_extern__ kmod_stop_func_t *_antimain = OSQueryStop;
 __private_extern__ int _kext_apple_cc = __APPLE_CC__;

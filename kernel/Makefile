@@ -1,6 +1,6 @@
 # OS X kext makefile
 VERSION:=$(shell git describe --tags HEAD --always)
-VERSION_DEFINE:=-DVERSION="\"$(VERSION)\""
+VERSION_DEFINE:=-DOSQUERY_KERNEL_VERSION="\"$(VERSION)\""
 
 CC:=clang
 CXX:=clang++

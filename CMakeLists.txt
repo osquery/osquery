@@ -77,7 +77,7 @@ list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO_DEFINE)
 # osquery needs ALL symbols in the libraries it includes for relaxed ctors
 # late-loading modules and SQLite introspection utilities.
 if(APPLE)
-  set(APPLE_MIN_ABI "10.9")
+  set(APPLE_MIN_ABI "10.10")
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -mmacosx-version-min=${APPLE_MIN_ABI}")
   set(OS_WHOLELINK_PRE "-Wl,-force_load")
@@ -268,6 +268,9 @@ endif()
 
 # Make sure the generated paths exist
 execute_process(COMMAND mkdir -p "${CMAKE_BINARY_DIR}/generated")
+
+# Include the kernel building targets/macros
+add_subdirectory(kernel)
 
 # We need to link some packages as dynamic/dependent.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
