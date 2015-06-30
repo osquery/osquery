@@ -38,14 +38,15 @@ extern "C" {
 //
 
 typedef enum osquery_event {
-  END_OF_BUFFER_EVENT = 0,  // Null event used to signal the end of the buffer.
+  END_OF_BUFFER_EVENT = 0, // Null event used to signal the end of the buffer.
+  OSQUERY_NULL_EVENT = 0,
 
 #ifdef KERNEL_TEST
   OSQUERY_TEST_EVENT_0,
   OSQUERY_TEST_EVENT_1,
 #endif // KERNEL_TEST
 
-  OSQUERY_EVENT_NUM_EVENTS  // Number of different event types.
+  OSQUERY_EVENT_NUM_EVENTS // Number of different event types.
 } osquery_event_t;
 
 #ifdef KERNEL_TEST
