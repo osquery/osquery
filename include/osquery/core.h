@@ -81,7 +81,7 @@ class Initializer {
   /**
    * @brief Sets up the process as an osquery daemon.
    *
-   * A daemon has additional constraints, it can use a process mutext, check
+   * A daemon has additional constraints, it can use a process mutex, check
    * for sane/non-default configurations, etc.
    */
   void initDaemon();
@@ -91,13 +91,13 @@ class Initializer {
    * and monitor their utilization.
    *
    * A daemon may call initWorkerWatcher to begin watching child daemon
-   * processes until it-itself is unscheduled. The basic guarentee is that only
+   * processes until it-itself is unscheduled. The basic guarantee is that only
    * workers will return from the function.
    *
    * The worker-watcher will implement performance bounds on CPU utilization
    * and memory, as well as check for zombie/defunct workers and respawn them
    * if appropriate. The appropriateness is determined from heuristics around
-   * how the worker exitted. Various exit states and velocities may cause the
+   * how the worker exited. Various exit states and velocities may cause the
    * watcher to resign.
    *
    * @param name The name of the worker process.
@@ -108,8 +108,17 @@ class Initializer {
   void start();
   /// Turns off various aspects of osquery such as event loops.
   void shutdown();
-  /// Check if a process is an osquery worker.
-  bool isWorker();
+
+  /**
+   * @brief Check if a process is an osquery worker.
+   *
+   * By default an osqueryd process will fork/exec then set an environment
+   * variable: `OSQUERY_WORKER` while continually monitoring child I/O.
+   * The environment variable causes subsequent child processes to skip several
+   * initialization steps and jump into extension handling, registry setup,
+   * config/logger discovery and then the event publisher and scheduler.
+   */
+  static bool isWorker();
 
  private:
   /// Initialize this process as an osquery daemon worker.
@@ -144,7 +153,7 @@ std::vector<std::string> split(const std::string& s,
  *
  * @param s the string that you'd like to split.
  * @param delim the delimiter which you'd like to split the string by.
- * @param occurences the number of times to split by delim.
+ * @param occurrences the number of times to split by delim.
  *
  * @return a vector of strings split by delim for occurrences.
  */
@@ -153,7 +162,7 @@ std::vector<std::string> split(const std::string& s,
                                size_t occurences);
 
 /**
- * @brief Inline replace all instances of from with to.
+ * @brief In-line replace all instances of from with to.
  *
  * @param str The input/output mutable string.
  * @param from Search string
@@ -205,14 +214,14 @@ std::string generateHostUuid();
 std::string getAsciiTime();
 
 /**
- * @brief Getter for the current unix time.
+ * @brief Getter for the current UNIX time.
  *
- * @return an int representing the amount of seconds since the unix epoch
+ * @return an int representing the amount of seconds since the UNIX epoch
  */
 int getUnixTime();
 
 /**
- * @brief Inline helper function for use with utf8StringSize
+ * @brief In-line helper function for use with utf8StringSize
  */
 template <typename _Iterator1, typename _Iterator2>
 inline size_t incUtf8StringIterator(_Iterator1& it, const _Iterator2& last) {
