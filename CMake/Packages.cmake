@@ -39,7 +39,7 @@ elseif(LINUX)
     set(PACKAGE_DEPENDENCIES
       "glibc >= 2.12"
       "openssl >= 1.0"
-      "device-mapper >= 1.02.90"
+      "device-mapper >= 7:1.02.90"
       "bzip2-libs"
       "readline"
       "zlib"
