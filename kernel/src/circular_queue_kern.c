@@ -29,7 +29,7 @@ static inline void setup_locks(osquery_cqueue_t *queue) {
   queue->lck = lck_spin_alloc_init(queue->lck_grp, queue->lck_attr);
 }
 
-static inline void destroy_locks(osquery_cqueue_t *queue) {
+static inline void teardown_locks(osquery_cqueue_t *queue) {
   lck_spin_free(queue->lck, queue->lck_grp);
 
   lck_attr_free(queue->lck_attr);
@@ -85,9 +85,38 @@ static inline osquery_between_t is_between(osquery_cqueue_t *queue, void *ptr,
   return b;
 }
 
-void osquery_cqueue_init(osquery_cqueue_t *queue, void *buffer, size_t size) {
+void osquery_cqueue_setup(osquery_cqueue_t *queue) {
+  queue->last_destruction_time = 0;
+  queue->initialized = 0;
   setup_locks(queue);
+}
 
+int osquery_cqueue_teardown(osquery_cqueue_t *queue) {
+  lck_spin_lock(queue->lck);
+
+  // We make sure that the queue hasn't been serving requests for at least 1
+  // second before we free up our locks.  This is in an attempt to make sure
+  // that lingering event callbacks are all finished before we teardown the
+  // locks.
+  //
+  // 2 seconds of time is used because of the seconds value is floored, and
+  // we want this to not succeed for at least one second after
+  // osquery_cqueue_destroy()
+  clock_sec_t seconds;
+  clock_usec_t micro_sec;
+  clock_get_system_microtime(&seconds, &micro_sec);
+  if (!queue->initialized && seconds > 2 + queue->last_destruction_time) {
+    lck_spin_unlock(queue->lck);
+    teardown_locks(queue);
+    return 0;
+  } else {
+    lck_spin_unlock(queue->lck);
+    return -1;
+  }
+}
+
+void osquery_cqueue_init(osquery_cqueue_t *queue, void *buffer, size_t size) {
+  lck_spin_lock(queue->lck);
   queue->buffer = (uint8_t *)buffer;
   queue->size = size;
 
@@ -97,22 +126,40 @@ void osquery_cqueue_init(osquery_cqueue_t *queue, void *buffer, size_t size) {
 
   queue->drops = 0;
   queue->initialized = 1;
+  queue->reservations = 0;
+  lck_spin_unlock(queue->lck);
 }
 
 void osquery_cqueue_destroy(osquery_cqueue_t *queue) {
+  lck_spin_lock(queue->lck);
   if (queue->initialized) {
     queue->initialized = 0;
-    destroy_locks(queue);
+
+    while (queue->reservations > 0) {
+      lck_spin_sleep(queue->lck, LCK_SLEEP_DEFAULT, &queue->reservations,
+                     THREAD_UNINT);
+    }
+
+    // Time is recorded so we can fail cqueue_teardown (destruction of cqueue
+    // locks) for a short period of time.  This should allow pending event
+    // callbacks to notice ths cqueue has been unitialized and error out before
+    // the locks become unusable.
+    clock_usec_t micro_sec;
+    clock_get_system_microtime(&queue->last_destruction_time, &micro_sec);
   }
+
+  lck_spin_unlock(queue->lck);
 }
 
 int osquery_cqueue_advance_read(osquery_cqueue_t *queue, size_t read_offset,
                                 size_t *max_read_offset) {
-  if (!queue->initialized) {
-    return -1;
-  }
   int err = 0;
   lck_spin_lock(queue->lck);
+
+  if (!queue->initialized) {
+    err = -1;
+    goto error_exit;
+  }
 
   uint8_t *new_read = queue->buffer + read_offset;
   if (OSQUERY_BETWEEN == is_between(queue, new_read, queue->read,
@@ -124,54 +171,68 @@ int osquery_cqueue_advance_read(osquery_cqueue_t *queue, size_t read_offset,
   }
   *max_read_offset = queue->max_read - queue->buffer;
 
+error_exit:
   lck_spin_unlock(queue->lck);
 
   return err;
 }
 
 ssize_t osquery_cqueue_wait_for_data(osquery_cqueue_t *queue) {
-  if (!queue->initialized) {
-    return -1;
-  }
-  wait_result_t wait_result = THREAD_AWAKENED;
-
+  ssize_t offset = 0;
   lck_spin_lock(queue->lck);
+
+  if (!queue->initialized) {
+    offset = -1;
+    goto error_exit;
+  }
+
+  wait_result_t wait_result = THREAD_AWAKENED;
   while (wait_result == THREAD_AWAKENED && queue->max_read == queue->read) {
     wait_result = lck_spin_sleep(queue->lck, LCK_SLEEP_DEFAULT,
                                  &queue->max_read, THREAD_ABORTSAFE);
   }
-  size_t offset = queue->max_read - queue->buffer;
-  
+  offset = queue->max_read - queue->buffer;
+
+error_exit:
   lck_spin_unlock(queue->lck);
   return offset;
 }
 
 int osquery_cqueue_dropped_data(osquery_cqueue_t *queue) {
   int drops;
+  lck_spin_lock(queue->lck);
   if (!queue->initialized) {
-    return -1;
+    drops = -1;
+    goto error_exit;
   }
 
-  lck_spin_lock(queue->lck);
   drops = queue->drops;
   queue->drops = 0;
+
+error_exit:
   lck_spin_unlock(queue->lck);
 
   return drops;
 }
 
 void *osquery_cqueue_reserve(osquery_cqueue_t *queue, osquery_event_t event) {
+  void *ret = NULL;
+  lck_spin_lock(queue->lck);
   if (!queue->initialized) {
-    return NULL;
+    ret = NULL;
+    goto error_exit;
   }
   
-  void *ret = NULL;
   osquery_data_header_t *header = NULL;
 
-  size_t size = osquery_sizeof_event(event) + sizeof(osquery_data_header_t);
+  ssize_t event_size = osquery_sizeof_event(event);
+  size_t size = event_size;
+  if (event_size >= 0) {
+    // Event exist.  If the event doesnt exist we will try to allocate
+    // a too large amount of space and the allocation will fail.
+    size += sizeof(osquery_data_header_t);
+  }
 
-  lck_spin_lock(queue->lck);
-  
   // We do not want the write pointer to ever equal the read pointer unless
   // everything is empty.  Otherwise we need to track the empty states for the
   // buffer.
@@ -203,13 +264,14 @@ void *osquery_cqueue_reserve(osquery_cqueue_t *queue, osquery_event_t event) {
 
     // Give them the pointer to the space not the header.
     ret = (void *)(header + 1);
+    queue->reservations++;
   } else {
     if (queue->drops >= 0) {
       queue->drops += 1;
     }
     ret = NULL;
   }
-
+error_exit:
   lck_spin_unlock(queue->lck);
 
   return ret;
@@ -250,9 +312,6 @@ static inline void coalesce_readable(osquery_cqueue_t *queue) {
 }
 
 int osquery_cqueue_commit(osquery_cqueue_t *queue, void *space) {
-  if (!queue->initialized) {
-    return -1;
-  }
   int err = 0;
 
   lck_spin_lock(queue->lck);
@@ -260,9 +319,10 @@ int osquery_cqueue_commit(osquery_cqueue_t *queue, void *space) {
   // Retrieve the header for the initialized space.
   osquery_data_header_t *header = ((osquery_data_header_t *)space) - 1;
   if (OSQUERY_BETWEEN != is_between(queue, header, queue->max_read,
-                                    queue->write, sizeof(osquery_data_header_t))
-      || header->event == END_OF_BUFFER_EVENT
-      || header->finished) {
+                                    queue->write,
+                                    sizeof(osquery_data_header_t)) ||
+      queue->reservations == 0 || header->event == END_OF_BUFFER_EVENT ||
+      header->finished) {
     err = -1;  // Invalid space.
     goto error_exit;
   }
@@ -271,6 +331,8 @@ int osquery_cqueue_commit(osquery_cqueue_t *queue, void *space) {
 
   coalesce_readable(queue);
 
+  queue->reservations--;
+  wakeup(&queue->reservations);
 error_exit:
   lck_spin_unlock(queue->lck);
   return err;
