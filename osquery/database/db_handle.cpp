@@ -16,6 +16,7 @@
 
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
+#include <snappy.h>
 
 #include <osquery/database.h>
 #include <osquery/filesystem.h>

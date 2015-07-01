@@ -34,7 +34,7 @@ Status Query::getPreviousQueryResults(QueryData& results) {
 
 Status Query::getPreviousQueryResults(QueryData& results, DBHandleRef db) {
   if (!isQueryNameInDatabase()) {
-    return Status(1, "Query name not found in database");
+    return Status(0, "Query name not found in database");
   }
 
   std::string raw;
@@ -89,6 +89,9 @@ Status Query::addNewResults(const QueryData& current_qd,
   // Get the rows from the last run of this query name.
   QueryData previous_qd;
   auto status = getPreviousQueryResults(previous_qd);
+  if (!status.ok()) {
+    return status;
+  }
 
   // Sanitize all non-ASCII characters from the query data values.
   QueryData escaped_current_qd;
