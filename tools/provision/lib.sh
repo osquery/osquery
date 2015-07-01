@@ -142,15 +142,14 @@ function install_snappy() {
   URL=$DEPS_URL/snappy-1.1.1.tar.gz
   SOURCE=snappy-1.1.1
 
-  if provision snappy /usr/local/lib/libsnappy.a; then
-    if [[ ! -f snappy-1.1.1/.libs/libsnappy.a ]]; then
-      pushd $SOURCE
-      CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static
+  if provision snappy /usr/local/include/snappy.h; then
+    pushd $SOURCE
+    CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static
+    if [[ ! -f .libs/libsnappy.a ]]; then
       make -j $THREADS
-      popd
     fi
-    # We do not need the snappy include headers, just static library.
-    sudo cp snappy-1.1.1/.libs/libsnappy.a /usr/local/lib
+    sudo make install
+    popd
   fi
 }
 
