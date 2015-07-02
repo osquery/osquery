@@ -16,6 +16,7 @@ export PATH="$PATH:/usr/local/bin"
 
 source $SCRIPT_DIR/../lib.sh
 
+# Binary identifiers
 APP_VERSION=`git describe --tags HEAD`
 APP_IDENTIFIER="com.facebook.osquery"
 LD_IDENTIFIER="com.facebook.osqueryd"
@@ -35,6 +36,13 @@ OSQUERY_CONFIG_SRC=""
 OSQUERY_CONFIG_DST="/private/var/osquery/osquery.conf"
 OSQUERY_DB_LOCATION="/private/var/osquery/osquery.db/"
 OSQUERY_LOG_DIR="/private/var/log/osquery/"
+
+# Kernel extension identifiers and config files
+KERNEL_EXTENSION_SRC="$BUILD_DIR/kernel/osquery.kext"
+KERNEL_EXTENSION_DST="/tmp/osquery.kext"
+# TODO: change to install to /Sys/Lib/Exts
+
+WORKING_DIR=/tmp/osquery_kernel_packaging
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX=$WORKING_DIR/prefix
@@ -67,6 +75,8 @@ function usage() {
     -o PATH override the output path.
     -a start the daemon when the package is installed
     -x force the daemon to start fresh, removing any results previously stored in the database
+    -k Build dedicated kernel extension package
+    -z Bundle kernel extension inline with osquery-VERSION.pkg
 
   This will generate an OSX package with:
   (1) An example config /var/osquery/osquery.example.config
@@ -94,6 +104,10 @@ function parse_args() {
       -a | --autostart )      AUTOSTART=true
                               ;;
       -x | --clean )          CLEAN=true
+                              ;;
+      -k | --kernel )         KERNEL=true
+                              ;;
+      -z | --kernel-inline )  KERNEL_INLINE=true
                               ;;
       -h | --help )           usage
                               ;;
@@ -134,7 +148,6 @@ function main() {
   # echo "$SCRIPT_PREFIX_TEXT" > $PREINSTALL
   # chmod +x $PREINSTALL
 
-
   log "copying osquery binaries"
   BINARY_INSTALL_DIR="$INSTALL_PREFIX/usr/local/bin/"
   mkdir -p $BINARY_INSTALL_DIR
@@ -143,19 +156,21 @@ function main() {
   strip $BINARY_INSTALL_DIR/*
   cp "$OSQUERYCTL_PATH" $BINARY_INSTALL_DIR
 
-  # Create the prefix log dir and copy source configs
+  # Create the prefix log dir and copy source configs.
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
   mkdir -p `dirname $INSTALL_PREFIX$OSQUERY_CONFIG_DST`
   if [[ "$OSQUERY_CONFIG_SRC" != "" ]]; then
     cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_CONFIG_DST
   fi
 
+  # Move configurations into the packaging root.
   log "copying osquery configurations"
   mkdir -p `dirname $INSTALL_PREFIX$LAUNCHD_DST`
   cp $LAUNCHD_SRC $INSTALL_PREFIX$LAUNCHD_DST
   cp $NEWSYSLOG_SRC $INSTALL_PREFIX$NEWSYSLOG_DST
   cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
 
+  # Move/install pre/post install scripts within the packaging root.
   log "finalizing preinstall and postinstall scripts"
   if [ $AUTOSTART == true ]  || [ $CLEAN == true ]; then
     echo "$SCRIPT_PREFIX_TEXT" > $POSTINSTALL
@@ -166,6 +181,12 @@ function main() {
     if [ $AUTOSTART == true ]; then
         echo "$POSTINSTALL_AUTOSTART_TEXT" >> $POSTINSTALL
     fi
+  fi
+
+  # Check if a kernel extension should be included inline.
+  if [ $KERNEL == true || $KERNEL_INLINE == true ]; then
+    mkdir -p $INSTALL_PREFIX$KERNEL_EXTENSION_DST
+    cp -R $KERNEL_EXTENSION_SRC $INSTALL_PREFIX$KERNEL_EXTENSION_DST
   fi
 
   log "creating package"
