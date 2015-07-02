@@ -204,7 +204,7 @@ void Initializer::initDaemon() {
   }
 
 #ifndef __APPLE__
-  // OSX uses launchd to daemonize.
+  // OS X uses launchd to daemonize.
   if (osquery::FLAGS_daemonize) {
     if (daemon(0, 0) == -1) {
       ::exit(EXIT_FAILURE);
@@ -233,7 +233,7 @@ void Initializer::initDaemon() {
   if (!FLAGS_disable_watchdog &&
       FLAGS_watchdog_level >= WATCHDOG_LEVEL_DEFAULT &&
       FLAGS_watchdog_level != WATCHDOG_LEVEL_DEBUG) {
-    // Set CPU scheduling IO limits.
+    // Set CPU scheduling I/O limits.
     setpriority(PRIO_PGRP, 0, 10);
 #ifdef __linux__
     // Using: ioprio_set(IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);

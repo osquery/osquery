@@ -11,8 +11,10 @@
 #include <algorithm>
 #include <thread>
 
+#include <boost/noncopyable.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <osquery/extensions.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -47,7 +49,7 @@ FLAG(bool, log_result_events, true, "Log scheduled results as events");
  * the active logger plugin is handling Glog status logs and (2) it must remove
  * itself as a Glog target.
  */
-class BufferedLogSink : google::LogSink {
+class BufferedLogSink : public google::LogSink, private boost::noncopyable {
  public:
   /// We create this as a Singleton for proper disable/shutdown.
   static BufferedLogSink& instance() {
@@ -103,8 +105,25 @@ class BufferedLogSink : google::LogSink {
   bool enabled_;
 };
 
-void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
-                              PluginRequest& request) {
+/// Scoped helper to perform logging actions without races.
+class LoggerDisabler {
+ public:
+  LoggerDisabler() : stderr_status_(FLAGS_logtostderr) {
+    BufferedLogSink::disable();
+    FLAGS_logtostderr = true;
+  }
+
+  ~LoggerDisabler() {
+    BufferedLogSink::enable();
+    FLAGS_logtostderr = stderr_status_;
+  }
+
+ private:
+  bool stderr_status_;
+};
+
+static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
+                                     PluginRequest& request) {
   pt::ptree tree;
   for (const auto& log_item : log) {
     pt::ptree child;
@@ -121,8 +140,8 @@ void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
   request["log"] = output.str();
 }
 
-void deserializeIntermediateLog(const PluginRequest& request,
-                                std::vector<StatusLogLine>& log) {
+static void deserializeIntermediateLog(const PluginRequest& request,
+                                       std::vector<StatusLogLine>& log) {
   if (request.count("log") == 0) {
     return;
   }
@@ -192,11 +211,12 @@ void initStatusLogger(const std::string& name) {
 }
 
 void initLogger(const std::string& name, bool forward_all) {
-  // Check if logging is disabled, if it is no need to shuttle intermediates.
+  // Check if logging is disabled, if so then no need to shuttle intermediates.
   if (FLAGS_disable_logging) {
     return;
   }
 
+  // Stop the buffering sink and store the intermediate logs.
   BufferedLogSink::disable();
   auto intermediate_logs = std::move(BufferedLogSink::dump());
   auto& logger_plugin = Registry::getActive("logger");
@@ -210,8 +230,8 @@ void initLogger(const std::string& name, bool forward_all) {
   serializeIntermediateLog(intermediate_logs, request);
   auto status = Registry::call("logger", request);
   if (status.ok() || forward_all) {
-    // When `init` returns success we re-enabled the log sink in forwarding
-    // mode. Now, Glog status logs are buffered and sent to logStatus.
+    // When LoggerPlugin::init returns success we enable the log sink in
+    // forwarding mode. Then Glog status logs are forwarded to logStatus.
     BufferedLogSink::forward(true);
     BufferedLogSink::enable();
   }
@@ -314,5 +334,27 @@ Status logHealthStatus(const QueryLogItem& item) {
     return Status(1, "Could not serialize health");
   }
   return Registry::call("logger", {{"health", json}});
+}
+
+void relayStatusLogs() {
+  // Prevent out dumping and registry calling from producing additional logs.
+  LoggerDisabler disabler;
+
+  // Construct a status log plugin request.
+  PluginRequest req = {{"status", "true"}};
+  auto& status_logs = BufferedLogSink::dump();
+  if (status_logs.size() == 0) {
+    return;
+  }
+
+  // Skip the registry's logic, and send directly to the core's logger.
+  PluginResponse resp;
+  serializeIntermediateLog(status_logs, req);
+  auto status = callExtension(0, "logger", FLAGS_logger_plugin, req, resp);
+  if (status.ok()) {
+    // Flush the buffered status logs.
+    // Otherwise the extension call failed and the buffering should continue.
+    status_logs.clear();
+  }
 }
 }
