@@ -14,7 +14,6 @@ endif()
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem
   filesystem.cpp
-  globbing.cpp
 )
 
 file(GLOB OSQUERY_FILESYSTEM_TESTS "tests/*.cpp")

@@ -205,7 +205,7 @@ inline void mergeFilePath(const std::string& name,
   for (const auto& path : node.second) {
     resolveFilePattern(path.second.data(),
                        conf.files[node.first],
-                       REC_LIST_FOLDERS | REC_EVENT_OPT);
+                       GLOB_FOLDERS);
   }
   conf.all_data.add_child(name + "." + node.first, node.second);
 }

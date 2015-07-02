@@ -127,7 +127,7 @@ std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
     }
 
     // (1) The first iteration will have 1 range (start to start_max=stop).
-    // (2) Itermediate iterations will have 2 (start-start_max, stop-stop_min).
+    // (2) Intermediate iterations will have 2 (start-start_max, stop-stop_min).
     // For each iteration the range collapses based on the coverage using
     // the first bin's start time and the last bin's stop time.
     // (3) The last iteration's range includes relaxed bounds outside the
@@ -139,8 +139,8 @@ std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
       auto step = boost::lexical_cast<EventTime>(bin);
       // Check if size * step -> size * (step + 1) is within a range.
       int bin_start = size * step, bin_stop = size * (step + 1);
-      if (expire_events_ && step * size < expire_time_) {
-        expirations.push_back(list_type + "." + bin);
+      if (expire_events_ && bin_stop - size < expire_time_) {
+        expirations.push_back(bin);
       } else if (bin_start >= start && bin_stop <= start_max) {
         bins.push_back(bin);
       } else if ((bin_start >= stop_min && bin_stop <= stop) || stop == 0) {
@@ -148,9 +148,13 @@ std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
       }
     }
 
-    expireIndexes(list_type, all_bins, expirations);
+    // Rewrite the index lists and delete each expired item.
+    if (expirations.size() > 0) {
+      expireIndexes(list_type, all_bins, expirations);
+    }
+
     if (bins.size() != 0) {
-      // If more percision was acheived though this list's binning.
+      // If more precision was achieved though this list's binning.
       local_start = boost::lexical_cast<EventTime>(bins.front()) * size;
       start_max = (local_start < start_max) ? local_start : start_max;
       local_stop = (boost::lexical_cast<EventTime>(bins.back()) + 1) * size;
@@ -185,9 +189,10 @@ Status EventSubscriberPlugin::expireIndexes(
     record_indexes.push_back(list_type + "." + bin);
   }
   auto expired_records = getRecords(record_indexes);
+  // Construct a mutable list of persisting indexes to rewrite as records.
+  std::vector<std::string> persisting_indexes = indexes;
 
   // Remove the records using the list of expired indexes.
-  std::vector<std::string> persisting_indexes = indexes;
   for (const auto& bin : expirations) {
     db->Delete(kEvents, record_key + "." + list_type + "." + bin);
     persisting_indexes.erase(
@@ -345,6 +350,11 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
   }
 
   std::string events_key = "data." + dbNamespace();
+  if (FLAGS_events_expiry > 0) {
+    // Set the expire time to NOW - "configured lifetime".
+    // Index retrieval will apply the constraints checking and auto-expire.
+    expire_time_ = getUnixTime() - FLAGS_events_expiry;
+  }
 
   // Select mapped_records using event_ids as keys.
   std::string data_value;

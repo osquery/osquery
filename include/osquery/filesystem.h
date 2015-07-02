@@ -24,16 +24,12 @@ namespace osquery {
 
 /// Globbing directory traversal function recursive limit.
 const unsigned int kMaxDirectoryTraversalDepth = 40;
-typedef unsigned int ReturnSetting;
+typedef unsigned short GlobLimits;
 
 enum {
-  /// Return only files
-  REC_LIST_FILES = 0x1,
-  /// Return only folders
-  REC_LIST_FOLDERS = 0x2,
-  /// Enable optimizations for file event resolutions
-  REC_EVENT_OPT = 0x4,
-  REC_LIST_ALL = REC_LIST_FILES | REC_LIST_FOLDERS
+  GLOB_FILES = 0x1,
+  GLOB_FOLDERS = 0x2,
+  GLOB_ALL = GLOB_FILES | GLOB_FOLDERS,
 };
 
 /// Globbing wildcard character.
@@ -162,7 +158,7 @@ Status resolveFilePattern(const boost::filesystem::path& fs_path,
  */
 Status resolveFilePattern(const boost::filesystem::path& fs_path,
                           std::vector<std::string>& results,
-                          ReturnSetting setting);
+                          GlobLimits setting);
 
 /**
  * @brief Get directory portion of a path.

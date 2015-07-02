@@ -8,7 +8,7 @@
  *
  */
 
-#include <boost/numeric/ublas/matrix.hpp>
+#include <fnmatch.h>
 
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -119,6 +119,8 @@ void FSEventsEventPublisher::configure() {
   paths_.clear();
   for (const auto& subscription : subscriptions_) {
     auto fs_subscription = getSubscriptionContext(subscription->context);
+    // FSEvents will subscribe to all child files/folders/notes recursively.
+    // This is not always desired so we change behavior explicitly using flags.
     paths_.insert(fs_subscription->path);
   }
 
@@ -192,17 +194,23 @@ void FSEventsEventPublisher::Callback(
 }
 
 bool FSEventsEventPublisher::shouldFire(
-    const FSEventsSubscriptionContextRef& mc,
+    const FSEventsSubscriptionContextRef& sc,
     const FSEventsEventContextRef& ec) const {
-  // This is stopping us from getting events on links.
-  // If we need this feature later, this line will have to be updated to
-  // understand links.
-  ssize_t found = ec->path.find(mc->path);
-  if (found != 0) {
+  if (sc->recursive) {
+    // This is stopping us from getting events on links.
+    // If we need this feature later, this line will have to be updated to
+    // understand links.
+    ssize_t found = ec->path.find(sc->path);
+    if (found != 0) {
+      return false;
+    }
+  } else if (fnmatch((sc->path + "*").c_str(),
+                     ec->path.c_str(),
+                     FNM_PATHNAME | FNM_CASEFOLD) != 0) {
     return false;
   }
 
-  if (mc->mask != 0 && !(ec->fsevent_flags & mc->mask)) {
+  if (sc->mask != 0 && !(ec->fsevent_flags & sc->mask)) {
     // Compare the event context mask to the subscription context.
     return false;
   }
