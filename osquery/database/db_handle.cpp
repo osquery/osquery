@@ -213,7 +213,9 @@ Status DBHandle::Delete(const std::string& domain, const std::string& key) {
   if (cfh == nullptr) {
     return Status(1, "Could not get column family for " + domain);
   }
-  auto s = getDB()->Delete(rocksdb::WriteOptions(), cfh, key);
+  auto options = rocksdb::WriteOptions();
+  options.sync = true;
+  auto s = getDB()->Delete(options, cfh, key);
   return Status(s.code(), s.ToString());
 }
 

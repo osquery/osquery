@@ -139,9 +139,15 @@ std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
       auto step = boost::lexical_cast<EventTime>(bin);
       // Check if size * step -> size * (step + 1) is within a range.
       int bin_start = size * step, bin_stop = size * (step + 1);
-      if (expire_events_ && bin_stop - size < expire_time_) {
-        expirations.push_back(bin);
-      } else if (bin_start >= start && bin_stop <= start_max) {
+      if (expire_events_ && expire_time_ > 0) {
+        if (bin_stop <= expire_time_) {
+          expirations.push_back(bin);
+        } else if (bin_start < expire_time_) {
+          expireRecords(list_type, bin, false);
+        }
+      }
+
+      if (bin_start >= start && bin_stop <= start_max) {
         bins.push_back(bin);
       } else if ((bin_start >= stop_min && bin_stop <= stop) || stop == 0) {
         bins.push_back(bin);
@@ -174,27 +180,47 @@ std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
   return indexes;
 }
 
-Status EventSubscriberPlugin::expireIndexes(
+void EventSubscriberPlugin::expireRecords(const std::string& list_type,
+                                          const std::string& index,
+                                          bool all) {
+  auto db = DBHandle::getInstance();
+  auto record_key = "records." + dbNamespace();
+  auto data_key = "data." + dbNamespace();
+
+  // If the expirations is not removing all records, rewrite the persisting.
+  std::vector<std::string> persisting_records;
+  // Request all records within this list-size + bin offset.
+  auto expired_records = getRecords({list_type + "." + index});
+  for (const auto& record : expired_records) {
+    if (all) {
+      db->Delete(kEvents, data_key + "." + record.first);
+    } else if (record.second > expire_time_) {
+      persisting_records.push_back(record.first + ":" +
+                                   std::to_string(record.second));
+    }
+  }
+
+  // Either drop or overwrite the record list.
+  if (all) {
+    db->Delete(kEvents, record_key + "." + list_type + "." + index);
+  } else {
+    auto new_records = boost::algorithm::join(persisting_records, ",");
+    db->Put(kEvents, record_key + "." + list_type + "." + index, new_records);
+  }
+}
+
+void EventSubscriberPlugin::expireIndexes(
     const std::string& list_type,
     const std::vector<std::string>& indexes,
     const std::vector<std::string>& expirations) {
   auto db = DBHandle::getInstance();
   auto index_key = "indexes." + dbNamespace();
-  auto record_key = "records." + dbNamespace();
-  auto data_key = "data." + dbNamespace();
 
-  // Get the records list for the soon-to-be expired records.
-  std::vector<std::string> record_indexes;
-  for (const auto& bin : expirations) {
-    record_indexes.push_back(list_type + "." + bin);
-  }
-  auto expired_records = getRecords(record_indexes);
   // Construct a mutable list of persisting indexes to rewrite as records.
   std::vector<std::string> persisting_indexes = indexes;
-
   // Remove the records using the list of expired indexes.
   for (const auto& bin : expirations) {
-    db->Delete(kEvents, record_key + "." + list_type + "." + bin);
+    expireRecords(list_type, bin, true);
     persisting_indexes.erase(
         std::remove(persisting_indexes.begin(), persisting_indexes.end(), bin),
         persisting_indexes.end());
@@ -203,21 +229,14 @@ Status EventSubscriberPlugin::expireIndexes(
   // Update the list of indexes with the non-expired indexes.
   auto new_indexes = boost::algorithm::join(persisting_indexes, ",");
   db->Put(kEvents, index_key + "." + list_type, new_indexes);
-
-  // Delete record events.
-  for (const auto& record : expired_records) {
-    db->Delete(kEvents, data_key + "." + record.first);
-  }
-
-  return Status(0, "OK");
 }
 
 std::vector<EventRecord> EventSubscriberPlugin::getRecords(
     const std::vector<std::string>& indexes) {
   auto db = DBHandle::getInstance();
   auto record_key = "records." + dbNamespace();
-  std::vector<EventRecord> records;
 
+  std::vector<EventRecord> records;
   for (const auto& index : indexes) {
     std::string record_value;
     if (!db->Get(kEvents, record_key + "." + index, record_value).ok()) {

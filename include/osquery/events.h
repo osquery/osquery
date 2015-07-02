@@ -496,12 +496,14 @@ class EventSubscriberPlugin : public Plugin {
    * @param list_type the string representation of list binning type.
    * @param indexes complete set of 'index.step' indexes for the list_type.
    * @param expirations of the indexes, the set to expire.
-   *
-   * @return status if the indexes and records were removed.
    */
-  Status expireIndexes(const std::string& list_type,
-                       const std::vector<std::string>& indexes,
-                       const std::vector<std::string>& expirations);
+  void expireIndexes(const std::string& list_type,
+                     const std::vector<std::string>& indexes,
+                     const std::vector<std::string>& expirations);
+  /// Expire all datums within a bin.
+  void expireRecords(const std::string& list_type,
+                     const std::string& index,
+                     bool all);
 
   /**
    * @brief Add an EventID, EventTime pair to all matching list types.

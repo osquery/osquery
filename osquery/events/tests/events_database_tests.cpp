@@ -20,20 +20,9 @@
 
 namespace osquery {
 
-const std::string kTestingEventsDBPath = "/tmp/rocksdb-osquery-testevents";
+//const std::string kTestingEventsDBPath = "/tmp/rocksdb-osquery-testevents";
 
-class EventsDatabaseTests : public ::testing::Test {
- public:
-  void SetUp() {
-    // Setup a testing DB instance
-    DBHandle::getInstanceAtPath(kTestingEventsDBPath);
-  }
-
-  void TearDown() {
-    // Todo: each test set should operate on a clear working directory.
-    boost::filesystem::remove_all(osquery::kTestingEventsDBPath);
-  }
-};
+class EventsDatabaseTests : public ::testing::Test {};
 
 class FakeEventPublisher
     : public EventPublisher<SubscriptionContext, EventContext> {
@@ -138,14 +127,32 @@ TEST_F(EventsDatabaseTests, test_record_expiration) {
   auto sub = std::make_shared<FakeEventSubscriber>();
 
   // No expiration
-  auto indexes = sub->getIndexes(0, 60);
+  auto indexes = sub->getIndexes(0, 5000);
   auto records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 3); // 1, 2, 11
+  EXPECT_EQ(records.size(), 5); // 1, 2, 11, 61, 3601
 
   sub->expire_events_ = true;
   sub->expire_time_ = 10;
-  indexes = sub->getIndexes(0, 60);
+  indexes = sub->getIndexes(0, 5000);
   records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 1); // 11
+  EXPECT_EQ(records.size(), 3); // 11, 61, 3601
+
+  indexes = sub->getIndexes(0, 5000, 0);
+  records = sub->getRecords(indexes);
+  EXPECT_EQ(records.size(), 3); // 11, 61, 3601
+
+  indexes = sub->getIndexes(0, 5000, 1);
+  records = sub->getRecords(indexes);
+  EXPECT_EQ(records.size(), 3); // 11, 61, 3601
+
+  indexes = sub->getIndexes(0, 5000, 2);
+  records = sub->getRecords(indexes);
+  EXPECT_EQ(records.size(), 3); // 11, 61, 3601
+
+  // Check that get/deletes did not act on cache.
+  sub->expire_time_ = 0;
+  indexes = sub->getIndexes(0, 5000);
+  records = sub->getRecords(indexes);
+  EXPECT_EQ(records.size(), 3); // 11, 61, 3601
 }
 }
