@@ -39,7 +39,7 @@ elseif(LINUX)
     set(PACKAGE_DEPENDENCIES
       "glibc >= 2.12"
       "openssl >= 1.0"
-      "device-mapper >= 7:1.02.90"
+      "device-mapper >= 1.02.90"
       "bzip2-libs"
       "readline"
       "zlib"
@@ -65,6 +65,10 @@ elseif(LINUX)
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "centos7")
       set(PACKAGE_ITERATION "1.el7")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "device-mapper >= 7:1.02.90"
+      )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "rhel7")
       set(PACKAGE_ITERATION "1.rhel7")
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "oracle7")
