@@ -12,6 +12,7 @@ pages:
 - Installation:
   - Install on OS X: installation/install-osx.md
   - Install on Linux: installation/install-linux.md
+  - Install on FreeBSD: installation/install-freebsd.md
   - Command Line Flags: installation/cli-flags.md
   - 'Optional: Custom Packages': installation/custom-packages.md
 - Deployment:
