@@ -39,7 +39,6 @@ elseif(LINUX)
     set(PACKAGE_DEPENDENCIES
       "glibc >= 2.12"
       "openssl >= 1.0"
-      "device-mapper >= 1.02.90"
       "bzip2-libs"
       "readline"
       "zlib"
@@ -50,18 +49,21 @@ elseif(LINUX)
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libudev"
+        "device-mapper >= 1.02.90"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "rhel6")
       set(PACKAGE_ITERATION "1.rhel6")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libudev"
+        "device-mapper >= 1.02.90"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "oracle6")
       set(PACKAGE_ITERATION "1.oel6")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libudev"
+        "device-mapper >= 1.02.90"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "centos7")
       set(PACKAGE_ITERATION "1.el7")
@@ -71,10 +73,22 @@ elseif(LINUX)
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "rhel7")
       set(PACKAGE_ITERATION "1.rhel7")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "device-mapper >= 7:1.02.90"
+      )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "oracle7")
       set(PACKAGE_ITERATION "1.oel7")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "device-mapper >= 7:1.02.90"
+      )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "amazon2015.03")
       set(PACKAGE_ITERATION "1.amazon2015")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "device-mapper >= 7:1.02.90"
+      )
     endif()
   endif()
   JOIN("${PACKAGE_DEPENDENCIES}" ", " PACKAGE_DEPENDENCIES)
