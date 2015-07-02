@@ -94,6 +94,10 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   options_.log_file_time_to_roll = 0;
   options_.keep_log_file_num = 10;
   options_.max_log_file_size = 1024 * 1024 * 1;
+  options_.compaction_style = rocksdb::kCompactionStyleLevel;
+  options_.write_buffer_size = 1 * 1024 * 1024;
+  options_.max_write_buffer_number = 2;
+  options_.max_background_compactions = 1;
 
   if (in_memory) {
     // Remove when MemEnv is included in librocksdb

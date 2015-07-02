@@ -173,13 +173,14 @@ int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
       r[column[i]] = (argv[i] != nullptr) ? argv[i] : "";
     }
   }
-  (*qData).push_back(r);
+  (*qData).push_back(std::move(r));
   return 0;
 }
 
 Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
   char* err = nullptr;
   sqlite3_exec(db, q.c_str(), queryDataCallback, &results, &err);
+  sqlite3_db_release_memory(db);
   if (err != nullptr) {
     sqlite3_free(err);
     return Status(1, "Error running query: " + q);
