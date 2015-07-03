@@ -1,0 +1,10 @@
+table_name("uptime")
+description("Track time passed since last boot.")
+schema([
+    Column("days", INTEGER),
+    Column("hours", INTEGER),
+    Column("minutes", INTEGER),
+    Column("seconds", INTEGER),
+    Column("total_seconds", BIGINT),
+])
+implementation("system/uptime@genUptime")
