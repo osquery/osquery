@@ -26,6 +26,7 @@ namespace osquery {
 extern std::map<FSEventStreamEventFlags, std::string> kMaskActions;
 
 struct FSEventsSubscriptionContext : public SubscriptionContext {
+ public:
   /// Subscription the following filesystem path.
   std::string path;
   /// Limit the FSEvents actions to the subscriptioned mask (if not 0).
@@ -42,9 +43,25 @@ struct FSEventsSubscriptionContext : public SubscriptionContext {
   }
 
   FSEventsSubscriptionContext() : mask(0), recursive(false) {}
+
+ private:
+  /**
+   * @brief The configure-time discovered symlink to `path`.
+   *
+   * The FSEvents publisher may resolve a symlink at configure time. If the
+   * requested target path is a link the `path` member is replaced with the link
+   * source and the requested target is backed up into `link_`.
+   *
+   * This will allow post-fire subscriptions to match.
+   */
+  std::string link_;
+
+ private:
+  friend class FSEventsEventPublisher;
 };
 
 struct FSEventsEventContext : public EventContext {
+ public:
   ConstFSEventStreamRef fsevent_stream;
   FSEventStreamEventFlags fsevent_flags;
   FSEventStreamEventId transaction_id;
