@@ -120,7 +120,7 @@ inline bool getProcCred(int pid, proc_cred &cred) {
   if (proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 0, &bsdinfo, sizeof(bsdinfo)) ==
       sizeof(bsdinfo)) {
     cred.real.uid = bsdinfo.pbsi_ruid;
-    cred.real.gid = bsdinfo.pbsi_ruid;
+    cred.real.gid = bsdinfo.pbsi_rgid;
     cred.effective.uid = bsdinfo.pbsi_uid;
     cred.effective.gid = bsdinfo.pbsi_gid;
     return true;
