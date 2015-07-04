@@ -31,8 +31,11 @@
 #include "osquery/core/watcher.h"
 #include "osquery/database/db_handle.h"
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
 #include <sys/resource.h>
+#endif
+
+#ifdef __linux__
 #include <sys/syscall.h>
 
 /*
@@ -238,7 +241,7 @@ void Initializer::initDaemon() {
 #ifdef __linux__
     // Using: ioprio_set(IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
     syscall(SYS_ioprio_set, IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
-#elif defined(__APPLE__) || defined(__FreeBSD__)
+#elif defined(__APPLE__)
     setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_PROCESS, IOPOL_THROTTLE);
 #endif
   }
