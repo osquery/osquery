@@ -78,24 +78,24 @@ TEST_F(EventsDatabaseTests, test_record_indexing) {
   // Get a mix of indexes for the lower bounding.
   indexes = sub->getIndexes(2, (3 * 3600));
   output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ(output, "3600.1, 3600.2, 60.1, 10.0, 10.1");
+  EXPECT_EQ(output, "10.0, 10.1, 3600.1, 3600.2, 60.1");
 
   // Rare, but test ONLY intermediate indexes.
   indexes = sub->getIndexes(2, (3 * 3600), 1);
   output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ(output, "60.0, 60.1, 60.60, 60.120");
+  EXPECT_EQ(output, "60.0, 60.1, 60.120, 60.60");
 
   // Add specific indexes to the upper bound.
   status = sub->testAdd((2 * 3600) + 11);
   status = sub->testAdd((2 * 3600) + 61);
   indexes = sub->getIndexes(2 * 3600, (2 * 3600) + 62);
   output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ(output, "60.120, 10.726");
+  EXPECT_EQ(output, "10.726, 60.120");
 
   // Request specific lower and upper bounding.
   indexes = sub->getIndexes(2, (2 * 3600) + 62);
   output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ(output, "3600.1, 60.1, 60.120, 10.0, 10.1, 10.726");
+  EXPECT_EQ(output, "10.0, 10.1, 10.726, 3600.1, 60.1, 60.120");
 }
 
 TEST_F(EventsDatabaseTests, test_record_range) {

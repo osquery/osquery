@@ -67,8 +67,6 @@ struct EventContext {
   EventContextID id;
   /// The time the event occurred.
   EventTime time;
-  /// The string representation of the time, often used for indexing.
-  std::string time_string;
 
   EventContext() : id(0), time(0) {}
 };
@@ -435,7 +433,7 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @return Was the element added to the backing store.
    */
-  virtual Status add(const osquery::Row& r, EventTime time) final;
+  virtual Status add(Row& r, EventTime event_time) final;
 
   /**
    * @brief Return all events added by this EventSubscriber within start, stop.
@@ -460,7 +458,7 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @return List of EventID, EventTime%s
    */
-  std::vector<EventRecord> getRecords(const std::vector<std::string>& indexes);
+  std::vector<EventRecord> getRecords(const std::set<std::string>& indexes);
 
   /**
    * @brief Get a unique storage-related EventID.
@@ -486,9 +484,9 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @return List of 'index.step' index strings.
    */
-  std::vector<std::string> getIndexes(EventTime start,
-                                      EventTime stop,
-                                      int list_key = 0);
+  std::set<std::string> getIndexes(EventTime start,
+                                   EventTime stop,
+                                   int list_key = 0);
 
   /**
    * @brief Expire indexes and eventually records.
@@ -529,10 +527,8 @@ class EventSubscriberPlugin : public Plugin {
    * EventPublisher instances will have run `setUp` and initialized their run
    * loops.
    */
-  EventSubscriberPlugin() {
-    expire_events_ = true;
-    expire_time_ = 0;
-  }
+  EventSubscriberPlugin()
+      : expire_events_(true), expire_time_(0), optimize_time_(0) {}
   virtual ~EventSubscriberPlugin() {}
 
   /**
@@ -544,9 +540,7 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @return The query-time table data, retrieved from a backing store.
    */
-  virtual QueryData genTable(QueryContext& context) __attribute__((used)) {
-    return get(0, 0);
-  }
+  virtual QueryData genTable(QueryContext& context) __attribute__((used));
 
  protected:
   /// Backing storage indexing namespace definition methods.
@@ -571,6 +565,15 @@ class EventSubscriberPlugin : public Plugin {
 
   /// Events before the expire_time_ are invalid and will be purged.
   EventTime expire_time_;
+
+  /**
+   * @brief Optimize subscriber selects by tracking the last select time.
+   *
+   * Event subscribers may optimize selects when used in a daemon schedule by
+   * requiring an event 'time' constraint and otherwise applying a minimum time
+   * as the last time the scheduled query ran.
+   */
+  EventTime optimize_time_;
 
   /// Lock used when incrementing the EventID database index.
   boost::mutex event_id_lock_;

@@ -31,8 +31,10 @@ struct FSEventsSubscriptionContext : public SubscriptionContext {
   std::string path;
   /// Limit the FSEvents actions to the subscriptioned mask (if not 0).
   FSEventStreamEventFlags mask;
-  // A no-op since FSEvent subscriptions are always recursive.
+  /// A pattern with a recursive match was provided.
   bool recursive;
+  /// A configure-time pattern was expanded to match absolute paths.
+  bool recursive_match;
 
   void requireAction(std::string action) {
     for (const auto& bit : kMaskActions) {
@@ -42,7 +44,8 @@ struct FSEventsSubscriptionContext : public SubscriptionContext {
     }
   }
 
-  FSEventsSubscriptionContext() : mask(0), recursive(false) {}
+  FSEventsSubscriptionContext()
+      : mask(0), recursive(false), recursive_match(false) {}
 
  private:
   /**

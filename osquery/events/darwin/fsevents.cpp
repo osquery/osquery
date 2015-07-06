@@ -162,6 +162,7 @@ void FSEventsEventPublisher::configure() {
         for (const auto& path : paths) {
           paths_.insert(path);
         }
+        sub->recursive_match = sub->recursive;
         continue;
       }
     }
@@ -240,17 +241,17 @@ void FSEventsEventPublisher::Callback(
 bool FSEventsEventPublisher::shouldFire(
     const FSEventsSubscriptionContextRef& sc,
     const FSEventsEventContextRef& ec) const {
-  if (sc->recursive) {
-    // This is stopping us from getting events on links.
-    // If we need this feature later, this line will have to be updated to
-    // understand links.
+  if (sc->recursive && !sc->recursive_match) {
     ssize_t found = ec->path.find(sc->path);
     if (found != 0) {
       return false;
     }
   } else if (fnmatch((sc->path + "*").c_str(),
                      ec->path.c_str(),
-                     FNM_PATHNAME | FNM_CASEFOLD) != 0) {
+                     FNM_PATHNAME | FNM_CASEFOLD |
+                         ((sc->recursive_match) ? FNM_LEADING_DIR : 0)) != 0) {
+    // Only apply a leading-dir match if this is a recursive watch with a
+    // match requirement (an inline wildcard with ending recursive wildcard).
     return false;
   }
 

@@ -70,7 +70,6 @@ Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec,
                                             const void* user_data) {
   Row r;
   r["action"] = ec->action;
-  r["time"] = ec->time_string;
   r["target_path"] = ec->path;
   if (user_data != nullptr) {
     r["category"] = *(std::string*)user_data;

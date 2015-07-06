@@ -98,6 +98,8 @@ CLI_FLAG(bool,
 CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 #endif
 
+ToolType kToolType = OSQUERY_TOOL_UNKNOWN;
+
 void printUsage(const std::string& binary, int tool) {
   // Parse help options before gflags. Only display osquery-related options.
   fprintf(stdout, DESCRIPTION, kVersion.c_str());
@@ -164,6 +166,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   GFLAGS_NAMESPACE::ParseCommandLineFlags(
       argc_, argv_, (tool == OSQUERY_TOOL_SHELL));
 
+  // Set the tool type to allow runtime decisions based on daemon, shell, etc.
+  kToolType = tool;
   if (tool == OSQUERY_TOOL_SHELL) {
     // The shell is transient, rewrite config-loaded paths.
     FLAGS_disable_logging = true;

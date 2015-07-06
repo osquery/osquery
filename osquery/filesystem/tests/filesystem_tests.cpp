@@ -233,7 +233,7 @@ TEST_F(FilesystemTests, test_wildcard_dotdot_files) {
   auto status = resolveFilePattern(
       kFakeDirectory + "/deep11/deep2/../../%", results, GLOB_FILES);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 3);
+  EXPECT_EQ(results.size(), 4);
   // The response list will contain canonicalized versions: /tmp/<tests>/...
   std::string door_path = kFakeDirectory + "/deep11/deep2/../../door.txt";
   replaceGlobWildcards(door_path);
