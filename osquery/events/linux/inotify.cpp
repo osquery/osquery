@@ -42,7 +42,7 @@ Status INotifyEventPublisher::setUp() {
   inotify_handle_ = ::inotify_init();
   // If this does not work throw an exception.
   if (inotify_handle_ == -1) {
-    return Status(1, "Could not init inotify");
+    return Status(1, "Could not start inotify: inotify_init failed");
   }
   return Status(0, "OK");
 }
@@ -53,7 +53,15 @@ void INotifyEventPublisher::configure() {
     // Configure is called as a response to removing/adding subscriptions.
     // This means recalculating all monitored paths.
     auto sc = getSubscriptionContext(sub->context);
-    addMonitor(sc->path, sc->recursive);
+    if (sc->path.find('*') != std::string::npos) {
+      std::vector<std::string> paths;
+      resolveFilePattern(sc->path, paths);
+      for (const auto& _path : paths) {
+        addMonitor(_path, sc->recursive);
+      }
+    } else {
+      addMonitor(sc->path, sc->recursive);
+    }
   }
 }
 
@@ -196,7 +204,7 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
 
   if (recursive && isDirectory(path).ok()) {
     std::vector<std::string> children;
-    // Get a list of children of this directory (requesed recursive watches).
+    // Get a list of children of this directory (requested recursive watches).
     listDirectoriesInDirectory(path, children);
 
     for (const auto& child : children) {

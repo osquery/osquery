@@ -46,15 +46,19 @@ struct FSEventsSubscriptionContext : public SubscriptionContext {
 
  private:
   /**
-   * @brief The configure-time discovered symlink to `path`.
+   * @brief The existing configure-time discovered path.
    *
-   * The FSEvents publisher may resolve a symlink at configure time. If the
-   * requested target path is a link the `path` member is replaced with the link
-   * source and the requested target is backed up into `link_`.
+   * The FSEvents publisher expects paths from a configuration to contain
+   * filesystem globbing wildcards, as opposed to SQL wildcards. It also expects
+   * paths to be canonicalized up to the first wildcard. To FSEvents a double
+   * wildcard, meaning recursive, is a watch on the base path string. A single
+   * wildcard means the same watch but a preserved globbing pattern, which is
+   * applied at event-fire time to limit subscriber results.
    *
-   * This will allow post-fire subscriptions to match.
+   * This backup will allow post-fire subscriptions to match. It will also allow
+   * faster reconfigures by not performing string manipulation twice.
    */
-  std::string link_;
+  std::string discovered_;
 
  private:
   friend class FSEventsEventPublisher;

@@ -12,6 +12,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -129,29 +130,42 @@ void FSEventsEventPublisher::tearDown() {
 
 void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
-  paths_.clear();
   for (auto& subscription : subscriptions_) {
     auto sub = getSubscriptionContext(subscription->context);
-    // Check if the requested path was a symlink at configure time.
-    boost::system::error_code ec;
-    size_t link_depth = 0;
-    while (link_depth++ < FSEVENTS_MAX_SYMLINK_DEPTH) {
-      // Attempt to follow multiple levels of path links.
-      if (fs::is_symlink(sub->path, ec)) {
-        if (sub->link_.size() == 0) {
-          // Only set the original link path (requested path) once.
-          sub->link_ = sub->path;
+    if (sub->discovered_.size() > 0) {
+      continue;
+    }
+
+    sub->discovered_ = sub->path;
+    if (sub->path.find("**") != std::string::npos) {
+      // Double star will indicate recursive matches, restricted to endings.
+      sub->recursive = true;
+      sub->discovered_ = sub->path.substr(0, sub->path.find("**"));
+      // Remove '**' from the subscription path (used to match later).
+      sub->path = sub->discovered_;
+    }
+
+    // If the path 'still' OR 'either' contains a single wildcard.
+    if (sub->path.find('*') != std::string::npos) {
+      // First check if the wildcard is applied to the end.
+      if (sub->path.rfind('*') == sub->path.size() - 1) {
+        // Remove from the discovery path, FSEvents does not care.
+        // Maintain within the path for the fnmatch pattern matching.
+        sub->discovered_ = sub->path.substr(0, sub->path.size() - 1);
+      }
+
+      // FSEvents needs a real path, if the wildcard is within the path then
+      // a configure-time resolve is required.
+      if (sub->discovered_.find('*') != std::string::npos) {
+        std::vector<std::string> paths;
+        resolveFilePattern(sub->discovered_, paths);
+        for (const auto& path : paths) {
+          paths_.insert(path);
         }
-        auto source_path = fs::read_symlink(sub->path, ec);
-        if (!source_path.is_absolute()) {
-          source_path = fs::path(sub->link_).parent_path() / source_path;
-        }
-        sub->path = source_path.string();
-      } else {
-        break;
+        continue;
       }
     }
-    paths_.insert(sub->path);
+    paths_.insert(sub->discovered_);
   }
 
   // There were no paths in the subscriptions?

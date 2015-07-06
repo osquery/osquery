@@ -203,9 +203,10 @@ inline void mergeFilePath(const std::string& name,
                           const tree_node& node,
                           ConfigData& conf) {
   for (const auto& path : node.second) {
-    resolveFilePattern(path.second.data(),
-                       conf.files[node.first],
-                       GLOB_FOLDERS);
+    // Add the exact path after converting wildcards.
+    std::string pattern = path.second.data();
+    replaceGlobWildcards(pattern);
+    conf.files[node.first].push_back(std::move(pattern));
   }
   conf.all_data.add_child(name + "." + node.first, node.second);
 }
