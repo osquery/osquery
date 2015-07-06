@@ -153,6 +153,21 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. This is 
 
 ## Runtime flags
 
+`--read_max=52428800` (50MB)
+
+Maximum file read size.
+The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
+
+`--read_user_max=10485760` (10MB)
+
+Maximum non-super user read size.
+Similar to `--read_max` but applied to user-controlled (owned) files.
+
+`--read_user_links=true`
+
+Read user-controlled (owned) filesystem links.
+This allows specific control over symbolic links owned by users.
+
 ### osquery daemon runtime control flags
 
 `--schedule_splay_percent=10`
