@@ -33,8 +33,6 @@ struct FSEventsSubscriptionContext : public SubscriptionContext {
   FSEventStreamEventFlags mask;
   /// A pattern with a recursive match was provided.
   bool recursive;
-  /// A configure-time pattern was expanded to match absolute paths.
-  bool recursive_match;
 
   void requireAction(std::string action) {
     for (const auto& bit : kMaskActions) {
@@ -62,6 +60,8 @@ struct FSEventsSubscriptionContext : public SubscriptionContext {
    * faster reconfigures by not performing string manipulation twice.
    */
   std::string discovered_;
+  /// A configure-time pattern was expanded to match absolute paths.
+  bool recursive_match;
 
  private:
   friend class FSEventsEventPublisher;

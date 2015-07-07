@@ -130,43 +130,42 @@ void FSEventsEventPublisher::tearDown() {
 
 void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
-  for (auto& subscription : subscriptions_) {
-    auto sub = getSubscriptionContext(subscription->context);
-    if (sub->discovered_.size() > 0) {
+  for (auto& sub : subscriptions_) {
+    auto sc = getSubscriptionContext(sub->context);
+    if (sc->discovered_.size() > 0) {
       continue;
     }
 
-    sub->discovered_ = sub->path;
-    if (sub->path.find("**") != std::string::npos) {
+    sc->discovered_ = sc->path;
+    if (sc->path.find("**") != std::string::npos) {
       // Double star will indicate recursive matches, restricted to endings.
-      sub->recursive = true;
-      sub->discovered_ = sub->path.substr(0, sub->path.find("**"));
+      sc->recursive = true;
+      sc->discovered_ = sc->path.substr(0, sc->path.find("**"));
       // Remove '**' from the subscription path (used to match later).
-      sub->path = sub->discovered_;
+      sc->path = sc->discovered_;
     }
 
     // If the path 'still' OR 'either' contains a single wildcard.
-    if (sub->path.find('*') != std::string::npos) {
+    if (sc->path.find('*') != std::string::npos) {
       // First check if the wildcard is applied to the end.
-      if (sub->path.rfind('*') == sub->path.size() - 1) {
-        // Remove from the discovery path, FSEvents does not care.
-        // Maintain within the path for the fnmatch pattern matching.
-        sub->discovered_ = sub->path.substr(0, sub->path.size() - 1);
+      auto fullpath = fs::path(sc->path);
+      if (fullpath.filename().string().find('*') != std::string::npos) {
+        sc->discovered_ = fullpath.parent_path().string();
       }
 
       // FSEvents needs a real path, if the wildcard is within the path then
       // a configure-time resolve is required.
-      if (sub->discovered_.find('*') != std::string::npos) {
+      if (sc->discovered_.find('*') != std::string::npos) {
         std::vector<std::string> paths;
-        resolveFilePattern(sub->discovered_, paths);
+        resolveFilePattern(sc->discovered_, paths);
         for (const auto& path : paths) {
           paths_.insert(path);
         }
-        sub->recursive_match = sub->recursive;
+        sc->recursive_match = sc->recursive;
         continue;
       }
     }
-    paths_.insert(sub->discovered_);
+    paths_.insert(sc->discovered_);
   }
 
   // There were no paths in the subscriptions?
