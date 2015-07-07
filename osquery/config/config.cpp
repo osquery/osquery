@@ -360,8 +360,8 @@ void Config::recordQueryPerformance(const std::string& name,
          AS_LITERAL(BIGINT_LITERAL, r0.at("resident_size"));
   if (diff > 0) {
     // Memory is stored as an average of RSS changes between query executions.
-    query.memory = (query.memory * query.executions) + diff;
-    query.memory = (query.memory / (query.executions + 1));
+    query.average_memory = (query.average_memory * query.executions) + diff;
+    query.average_memory = (query.average_memory / (query.executions + 1));
   }
 
   query.wall_time += delay;

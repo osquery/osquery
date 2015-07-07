@@ -221,7 +221,7 @@ QueryData genOsquerySchedule(QueryContext& context) {
     r["wall_time"] = BIGINT(query.second.wall_time);
     r["user_time"] = BIGINT(query.second.user_time);
     r["system_time"] = BIGINT(query.second.system_time);
-    r["average_memory"] = BIGINT(query.second.memory);
+    r["average_memory"] = BIGINT(query.second.average_memory);
     results.push_back(r);
   }
 
