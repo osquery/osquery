@@ -29,7 +29,7 @@ namespace osquery {
 const std::string kTLSCiphers =
     "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:"
     "DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5";
-const std::string kTLSUserAgent = "osquery/" STR(OSQUERY_BUILD_VERSION);
+const std::string kTLSUserAgent = "osquery/" + kVersion;
 
 /// TLS server hostname.
 CLI_FLAG(string,
