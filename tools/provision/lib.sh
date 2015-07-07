@@ -264,7 +264,8 @@ function install_automake() {
     pushd $SOURCE
     ./bootstrap.sh
     ./configure --prefix=/usr
-    CC="$CC" CXX="$CXX" make -j $THREADS
+    # Version 1.14 of automake fails to build with more than one thread
+    CC="$CC" CXX="$CXX" make -j 1
     sudo make install
     popd
   fi
@@ -354,9 +355,9 @@ function install_libaptpkg() {
     mkdir -p build
     pushd build
     ../configure --prefix=/usr/local
-    make -j $THREADS library
+    make -j $THREADS STATICLIBS=1 library
     sudo cp bin/libapt-pkg.so.4.12.0 /usr/local/lib/
-    sudo ln -sf /usr/lib/local/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
+    sudo ln -sf /usr/local/lib/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
     sudo cp bin/libapt-pkg.a /usr/local/lib/
     sudo mkdir -p /usr/local/include/apt-pkg/
     sudo cp include/apt-pkg/*.h /usr/local/include/apt-pkg/
