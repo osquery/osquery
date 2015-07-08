@@ -61,7 +61,6 @@ Status PasswdChangesEventSubscriber::Callback(const INotifyEventContextRef& ec,
                                               const void* user_data) {
   Row r;
   r["action"] = ec->action;
-  r["time"] = ec->time_string;
   r["target_path"] = ec->path;
   r["transaction_id"] = INTEGER(ec->event->cookie);
   if (ec->action != "" && ec->action != "OPENED") {

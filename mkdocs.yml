@@ -36,5 +36,3 @@ pages:
   - Writing Tests: development/unit-tests.md
   - Adding CLI Arguments: development/options-arguments.md
   - Reading/Writing Files: development/reading-files.md
-  - Wildcards and Globbing: development/wildcard-rules.md
-

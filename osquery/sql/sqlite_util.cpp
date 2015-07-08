@@ -141,7 +141,7 @@ SQLiteDBInstance SQLiteDBManager::get() {
 
   if (!self.lock_.owns_lock() && self.lock_.try_lock()) {
     if (self.db_ == nullptr) {
-      // Create primary sqlite DB instance.
+      // Create primary SQLite DB instance.
       sqlite3_open(":memory:", &self.db_);
       attachVirtualTables(self.db_);
     }
@@ -162,7 +162,7 @@ SQLiteDBManager::~SQLiteDBManager() {
 
 int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
   if (argument == nullptr) {
-    LOG(ERROR) << "queryDataCallback received nullptr as data argument";
+    VLOG(1) << "Query execution failed: received a bad callback argument";
     return SQLITE_MISUSE;
   }
 
@@ -182,8 +182,9 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
   sqlite3_exec(db, q.c_str(), queryDataCallback, &results, &err);
   sqlite3_db_release_memory(db);
   if (err != nullptr) {
+    auto error_string = std::string(err);
     sqlite3_free(err);
-    return Status(1, "Error running query: " + q);
+    return Status(1, "Error running query: " + error_string);
   }
 
   return Status(0, "OK");

@@ -227,6 +227,7 @@ struct ConstraintList {
    */
   std::set<std::string> getAll(ConstraintOperator op) const;
 
+  /// See ConstraintList::getAll, but as a selected literal type.
   template<typename T>
   std::set<T> getAll(ConstraintOperator op) const {
     std::set<T> literal_matches;
@@ -236,6 +237,9 @@ struct ConstraintList {
     }
     return literal_matches;
   }
+
+  /// Constraint list accessor, types and operator.
+  const std::vector<struct Constraint> getAll() const { return constraints_; }
 
   /**
    * @brief Add a new Constraint to the list of constraints.
@@ -258,6 +262,8 @@ struct ConstraintList {
    * }
    */
   void serialize(boost::property_tree::ptree& tree) const;
+
+  /// See ConstraintList::unserialize.
   void unserialize(const boost::property_tree::ptree& tree);
 
   ConstraintList() : affinity("TEXT") {}

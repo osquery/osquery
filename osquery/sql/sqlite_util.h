@@ -187,7 +187,11 @@ class SQLiteSQLPlugin : SQLPlugin {
  */
 std::string getStringForSQLiteReturnCode(int code);
 
-// the callback for populating a std::vector<row> set of results. "argument"
-// should be a non-const reference to a std::vector<row>
+/**
+ * @brief Accumulate rows from an SQLite exec into a QueryData struct.
+ *
+ * The callback for populating a std::vector<Row> set of results. "argument"
+ * should be a non-const reference to a std::vector<Row>.
+ */
 int queryDataCallback(void* argument, int argc, char* argv[], char* column[]);
 }

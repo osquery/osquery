@@ -100,9 +100,32 @@ TEST_F(FilesystemTests, test_list_files_invalid_directory) {
 TEST_F(FilesystemTests, test_list_files_valid_directorty) {
   std::vector<std::string> results;
   auto s = listFilesInDirectory("/etc", results);
+  // This directory may be different on OS X or Linux.
+  std::string hosts_path = "/etc/hosts";
+  replaceGlobWildcards(hosts_path);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_TRUE(contains(results, "/etc/hosts"));
+  EXPECT_TRUE(contains(results, hosts_path));
+}
+
+TEST_F(FilesystemTests, test_canonicalization) {
+  std::string complex = kFakeDirectory + "/deep1/../deep1/..";
+  std::string simple = kFakeDirectory + "/";
+  // Use the inline wildcard and canonicalization replacement.
+  // The 'simple' path contains a trailing '/', the replacement method will
+  // distinguish between file and directory paths.
+  replaceGlobWildcards(complex);
+  EXPECT_EQ(simple, complex);
+  // Now apply the same inline replacement on the simple directory and expect
+  // no change to the comparison.
+  replaceGlobWildcards(simple);
+  EXPECT_EQ(simple, complex);
+
+  // Now add a wildcard within the complex pattern. The replacement method
+  // will not canonicalize past a '*' as the proceeding paths are limiters.
+  complex = kFakeDirectory + "/*/deep2/../deep2/";
+  replaceGlobWildcards(complex);
+  EXPECT_EQ(complex, kFakeDirectory + "/*/deep2/../deep2/");
 }
 
 TEST_F(FilesystemTests, test_simple_globs) {
@@ -211,8 +234,10 @@ TEST_F(FilesystemTests, test_wildcard_dotdot_files) {
       kFakeDirectory + "/deep11/deep2/../../%", results, GLOB_FILES);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 4);
-  EXPECT_TRUE(
-      contains(results, kFakeDirectory + "/deep11/deep2/../../door.txt"));
+  // The response list will contain canonicalized versions: /tmp/<tests>/...
+  std::string door_path = kFakeDirectory + "/deep11/deep2/../../door.txt";
+  replaceGlobWildcards(door_path);
+  EXPECT_TRUE(contains(results, door_path));
 }
 
 TEST_F(FilesystemTests, test_dotdot_relative) {

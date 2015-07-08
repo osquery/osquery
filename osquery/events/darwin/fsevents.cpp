@@ -12,6 +12,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -129,29 +130,42 @@ void FSEventsEventPublisher::tearDown() {
 
 void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
-  paths_.clear();
-  for (auto& subscription : subscriptions_) {
-    auto sub = getSubscriptionContext(subscription->context);
-    // Check if the requested path was a symlink at configure time.
-    boost::system::error_code ec;
-    size_t link_depth = 0;
-    while (link_depth++ < FSEVENTS_MAX_SYMLINK_DEPTH) {
-      // Attempt to follow multiple levels of path links.
-      if (fs::is_symlink(sub->path, ec)) {
-        if (sub->link_.size() == 0) {
-          // Only set the original link path (requested path) once.
-          sub->link_ = sub->path;
+  for (auto& sub : subscriptions_) {
+    auto sc = getSubscriptionContext(sub->context);
+    if (sc->discovered_.size() > 0) {
+      continue;
+    }
+
+    sc->discovered_ = sc->path;
+    if (sc->path.find("**") != std::string::npos) {
+      // Double star will indicate recursive matches, restricted to endings.
+      sc->recursive = true;
+      sc->discovered_ = sc->path.substr(0, sc->path.find("**"));
+      // Remove '**' from the subscription path (used to match later).
+      sc->path = sc->discovered_;
+    }
+
+    // If the path 'still' OR 'either' contains a single wildcard.
+    if (sc->path.find('*') != std::string::npos) {
+      // First check if the wildcard is applied to the end.
+      auto fullpath = fs::path(sc->path);
+      if (fullpath.filename().string().find('*') != std::string::npos) {
+        sc->discovered_ = fullpath.parent_path().string();
+      }
+
+      // FSEvents needs a real path, if the wildcard is within the path then
+      // a configure-time resolve is required.
+      if (sc->discovered_.find('*') != std::string::npos) {
+        std::vector<std::string> paths;
+        resolveFilePattern(sc->discovered_, paths);
+        for (const auto& path : paths) {
+          paths_.insert(path);
         }
-        auto source_path = fs::read_symlink(sub->path, ec);
-        if (!source_path.is_absolute()) {
-          source_path = fs::path(sub->link_).parent_path() / source_path;
-        }
-        sub->path = source_path.string();
-      } else {
-        break;
+        sc->recursive_match = sc->recursive;
+        continue;
       }
     }
-    paths_.insert(sub->path);
+    paths_.insert(sc->discovered_);
   }
 
   // There were no paths in the subscriptions?
@@ -226,17 +240,17 @@ void FSEventsEventPublisher::Callback(
 bool FSEventsEventPublisher::shouldFire(
     const FSEventsSubscriptionContextRef& sc,
     const FSEventsEventContextRef& ec) const {
-  if (sc->recursive) {
-    // This is stopping us from getting events on links.
-    // If we need this feature later, this line will have to be updated to
-    // understand links.
+  if (sc->recursive && !sc->recursive_match) {
     ssize_t found = ec->path.find(sc->path);
     if (found != 0) {
       return false;
     }
   } else if (fnmatch((sc->path + "*").c_str(),
                      ec->path.c_str(),
-                     FNM_PATHNAME | FNM_CASEFOLD) != 0) {
+                     FNM_PATHNAME | FNM_CASEFOLD |
+                         ((sc->recursive_match) ? FNM_LEADING_DIR : 0)) != 0) {
+    // Only apply a leading-dir match if this is a recursive watch with a
+    // match requirement (an inline wildcard with ending recursive wildcard).
     return false;
   }
 

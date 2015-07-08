@@ -155,15 +155,8 @@ Status remove(const fs::path& path) {
 static void genGlobs(std::string path,
                      std::vector<std::string>& results,
                      GlobLimits limits) {
-  // Replace SQL-wildcard '%' with globbing wildcard '*'.
-  if (path.find("%") != std::string::npos) {
-    boost::replace_all(path, "%", "*");
-  } 
-
-  // Relative paths are a bad idea, but we try to accommodate.
-  if ((path.size() == 0 || path[0] != '/') && path[0] != '~') {
-    path = (fs::initial_path() / path).string();
-  }
+  // Use our helped escape/replace for wildcards.
+  replaceGlobWildcards(path);
 
   // Generate a glob set and recurse for double star.
   while (true) {
@@ -202,6 +195,34 @@ Status resolveFilePattern(const fs::path& fs_path,
                           GlobLimits setting) {
   genGlobs(fs_path.string(), results, setting);
   return Status(0, "OK");
+}
+
+inline void replaceGlobWildcards(std::string& pattern) {
+  // Replace SQL-wildcard '%' with globbing wildcard '*'.
+  if (pattern.find("%") != std::string::npos) {
+    boost::replace_all(pattern, "%", "*");
+  }
+
+  // Relative paths are a bad idea, but we try to accommodate.
+  if ((pattern.size() == 0 || pattern[0] != '/') && pattern[0] != '~') {
+    pattern = (fs::initial_path() / pattern).string();
+  }
+
+  auto base = pattern.substr(0, pattern.find('*'));
+  if (base.size() > 0) {
+    boost::system::error_code ec;
+    auto canonicalized = fs::canonical(base, ec).string();
+    if (canonicalized.size() > 0 && canonicalized != base) {
+      if (isDirectory(canonicalized)) {
+        // Canonicalized directory paths will no include a trailing '/'.
+        // But if the wildcards applied to files within a directory then a the
+        // missing '/' changes the wildcard meaning.
+        canonicalized += '/';
+      }
+      // We are unable to canonicalize the meaning of post-wildcard limiters.
+      pattern = canonicalized + pattern.substr(base.size());
+    }
+  }
 }
 
 inline Status listInAbsoluteDirectory(const fs::path& path,
@@ -244,14 +265,14 @@ Status getDirectory(const fs::path& path, fs::path& dirpath) {
 }
 
 Status isDirectory(const fs::path& path) {
-  try {
-    if (fs::is_directory(path)) {
-      return Status(0, "OK");
-    }
-    return Status(1, "Path is not a directory: " + path.string());
-  } catch (const fs::filesystem_error& e) {
-    return Status(1, e.what());
+  boost::system::error_code ec;
+  if (fs::is_directory(path, ec)) {
+    return Status(0, "OK");
   }
+  if (ec.value() == 0) {
+    return Status(1, "Path is not a directory: " + path.string());
+  }
+  return Status(ec.value(), ec.message());
 }
 
 std::set<fs::path> getHomeDirectories() {
@@ -305,7 +326,7 @@ const std::string& osqueryHomeDirectory() {
     } else if (user != nullptr && user->pw_dir != nullptr) {
       homedir = std::string(user->pw_dir) + "/.osquery";
     } else {
-      // Failover to a temporary directory (used for the shell).
+      // Fail over to a temporary directory (used for the shell).
       homedir = "/tmp/osquery";
     }
   }

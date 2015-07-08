@@ -57,11 +57,15 @@ extern const std::string kSDKPlatform;
  * @brief A helpful tool type to report when logging, print help, or debugging.
  */
 enum ToolType {
+  OSQUERY_TOOL_UNKNOWN = 0,
   OSQUERY_TOOL_SHELL,
   OSQUERY_TOOL_DAEMON,
   OSQUERY_TOOL_TEST,
   OSQUERY_EXTENSION,
 };
+
+/// The osquery tool type for runtime decisions.
+extern ToolType kToolType;
 
 class Initializer {
  public:

@@ -126,7 +126,7 @@ set(OSQUERY_REQUIRE_RUNTIMES
 if(DEFINED ENV{DEBUG})
   set(DEBUG TRUE)
   set(CMAKE_BUILD_TYPE "Debug")
-  add_compile_options(-g -O0)
+  add_compile_options(-g -O0 -fstandalone-debug)
   add_definitions(-DDEBUG)
   WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})

@@ -2,9 +2,9 @@ table_name("passwd_changes")
 description("Track time, action changes to /etc/passwd.")
 schema([
     Column("target_path", TEXT, "The path changed"),
-    Column("time", TEXT, "Time of the change"),
     Column("action", TEXT, "Change action (UPDATE, REMOVE, etc)"),
     Column("transaction_id", BIGINT, "ID used during bulk update"),
+    Column("time", BIGINT, "Time of the change"),
 ])
 attributes(event_subscriber=True)
 implementation("passwd_changes@passwd_changes::genTable")
