@@ -38,9 +38,12 @@ OSQUERY_DB_LOCATION="/private/var/osquery/osquery.db/"
 OSQUERY_LOG_DIR="/private/var/log/osquery/"
 
 # Kernel extension identifiers and config files
+KERNEL_INLINE=false
+KERNEL_UNLOAD_SCRIPT="$SOURCE_DIR/kernel/tools/unload_with_retry.sh"
+KERNEL_EXTENSION_IDENTIFIER="com.facebook.security.osquery"
 KERNEL_EXTENSION_SRC="$BUILD_DIR/kernel/osquery.kext"
-KERNEL_EXTENSION_DST="/tmp/osquery.kext"
-# TODO: change to install to /Sys/Lib/Exts
+KERNEL_EXTENSION_DST="/private/var/osquery/osquery.kext"
+KERNEL_EXTENSION_INSTALL="/Library/Extensions/osquery.kext"
 
 WORKING_DIR=/tmp/osquery_kernel_packaging
 
@@ -56,12 +59,21 @@ SCRIPT_PREFIX_TEXT="#!/usr/bin/env bash
 set -e
 "
 
-POSTINSTALL_AUTOSTART_TEXT="
+POSTINSTALL_UNLOAD_TEXT="
 if launchctl list | grep -qcm1 $LD_IDENTIFIER; then
   launchctl unload $LD_INSTALL
 fi
+"
+POSTINSTALL_AUTOSTART_TEXT="
 cp $LAUNCHD_DST $LD_INSTALL
 launchctl load $LD_INSTALL
+"
+POSTINSTALL_UNLOAD_KERNEL_TEXT="
+./unload_with_retry.sh
+"
+POSTINSTALL_AUTOSTART_KERNEL_TEXT="
+cp -R $KERNEL_EXTENSION_DST/ $KERNEL_EXTENSION_INSTALL
+kextload $KERNEL_EXTENSION_INSTALL
 "
 
 POSTINSTALL_CLEAN_TEXT="
@@ -75,8 +87,7 @@ function usage() {
     -o PATH override the output path.
     -a start the daemon when the package is installed
     -x force the daemon to start fresh, removing any results previously stored in the database
-    -k Build dedicated kernel extension package
-    -z Bundle kernel extension inline with osquery-VERSION.pkg
+    -k Bundle kernel extension inline with osquery-VERSION.pkg
 
   This will generate an OSX package with:
   (1) An example config /var/osquery/osquery.example.config
@@ -105,9 +116,7 @@ function parse_args() {
                               ;;
       -x | --clean )          CLEAN=true
                               ;;
-      -k | --kernel )         KERNEL=true
-                              ;;
-      -z | --kernel-inline )  KERNEL_INLINE=true
+      -k | --kernel-inline )  KERNEL_INLINE=true
                               ;;
       -h | --help )           usage
                               ;;
@@ -179,14 +188,20 @@ function main() {
         echo "$POSTINSTALL_CLEAN_TEXT" >> $POSTINSTALL
     fi
     if [ $AUTOSTART == true ]; then
+        echo "$POSTINSTALL_UNLOAD_TEXT" >> $POSTINSTALL
+        if [ $KERNEL_INLINE == true ]; then
+          cp $KERNEL_UNLOAD_SCRIPT $SCRIPT_ROOT
+          echo "$POSTINSTALL_UNLOAD_KERNEL_TEXT" >> $POSTINSTALL
+          echo "$POSTINSTALL_AUTOSTART_KERNEL_TEXT" >> $POSTINSTALL
+        fi
         echo "$POSTINSTALL_AUTOSTART_TEXT" >> $POSTINSTALL
     fi
   fi
 
   # Check if a kernel extension should be included inline.
-  if [ $KERNEL == true || $KERNEL_INLINE == true ]; then
+  if [ $KERNEL_INLINE == true ]; then
     mkdir -p $INSTALL_PREFIX$KERNEL_EXTENSION_DST
-    cp -R $KERNEL_EXTENSION_SRC $INSTALL_PREFIX$KERNEL_EXTENSION_DST
+    cp -R $KERNEL_EXTENSION_SRC/ $INSTALL_PREFIX$KERNEL_EXTENSION_DST
   fi
 
   log "creating package"
