@@ -67,7 +67,6 @@ Status PasswdChangesEventSubscriber::Callback(const FSEventsEventContextRef& ec,
                                               const void* user_data) {
   Row r;
   r["action"] = ec->action;
-  r["time"] = ec->time_string;
   r["target_path"] = ec->path;
   r["transaction_id"] = INTEGER(ec->transaction_id);
   if (ec->action != "") {

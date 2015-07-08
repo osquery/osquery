@@ -1,4 +1,4 @@
-There are two YARA related tables in osquery, which serve very different purposes. The first table, called `yara_events`, uses osquery's [pub-sub framework](../development/pubsub-framework.md) to monitor for filesystem changes and will execute YARA when a file change event fires. The second table, called **yara**, is an on-demand YARA scanning table.
+There are two YARA related tables in osquery, which serve very different purposes. The first table, called `yara_events`, uses osquery's [Events framework](../development/pubsub-framework.md) to monitor for filesystem changes and will execute YARA when a file change event fires. The second table, called **yara**, is an on-demand YARA scanning table.
 
 Both of these tables are considered a beta feature right now.
 
@@ -28,16 +28,16 @@ The configuration for osquery is simple. Here is an example config:
   // Paths to watch for filesystem events
   "file_paths": {
     "system_binaries": [ "/usr/bin/%", "/usr/sbin/%" ],
-    "tmp": [ "/Users/wxs/tmp/%%" ]
+    "tmp": [ "/Users/%/tmp/%%", "/tmp/%" ]
   }
 }
 ```
 
-The first thing to notice is the *file_paths* section, which is used to describe which paths to monitor for changes. Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented on the osquery [wildcarding rules](../development/wildcard-rules.md) page. The paths, when expanded out by osquery, are monitored for changes and processed by the [**file_events**](https://osquery.io/docs/tables/#file_events) table.
+The first thing to notice is the **file_paths** section, which is used to describe which paths to monitor for changes. Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented on the osquery wildcarding rules described on the [FIM](../development/wildcard-rules.md) page. The paths, when expanded out by osquery, are monitored for changes and processed by the [**file_events**](https://osquery.io/docs/tables/#file_events) table.
 
-The second thing to notice is the *yara* section, which contains the configuration to use for YARA within osquery. The *yara* section contains two keys: *signatures* and *file_paths*. The *signatures* key contains a set of arbitrary key names, called "signature groups". The value for each of these groups are the paths to the signature files that will be compiled and stored within osquery. The paths to the signature files can be absolute or relative to ```/etc/osquery/yara/```. The *file_paths* key maps the category name for an event described in the global *file_paths* section to a signature grouping to use when scanning.
+The second thing to notice is the **yara** section, which contains the configuration to use for YARA within osquery. The **yara** section contains two keys: **signatures** and **file_paths**. The **signatures** key contains a set of arbitrary key names, called "signature groups". The value for each of these groups are the paths to the signature files that will be compiled and stored within osquery. The paths to the signature files can be absolute or relative to ```/etc/osquery/yara/```. The **file_paths** key maps the category name for an event described in the global **file_paths** section to a signature grouping to use when scanning.
 
-For example, when a file in */usr/bin/* and */usr/sbin/* is changed it will be scanned with *sig_group_1*, which consists of *foo.sig* and *bar.sig*. When a file in */Users/wxs/tmp/* (recursively) is changed it will be scanned with *sig_group_1* and *sig_group_2*, which consists of all three signature files.
+For example, when a file in */usr/bin/* and */usr/sbin/* is changed it will be scanned with *sig_group_1*, which consists of *foo.sig* and *bar.sig*. When a file in */Users/%/tmp/* (recursively) is changed it will be scanned with *sig_group_1* and *sig_group_2*, which consists of all three signature files.
 
 # yara_events table
 
@@ -80,7 +80,7 @@ As you can see, even though no matches were found an row is still created and st
 
 The [**yara**](https://osquery.io/docs/tables/#yara) table is used for on-demand scanning. With this table you can arbitrarily YARA scan any available file on the filesystem with any available signature files or signature group from the configuration. In order to scan the table must be given a constraint which says where to scan and what to scan with.
 
-In order to determine where to scan the table accepts either a *path* or a *pattern* constraint. The *path* constraint must be a full path to a single file. There is no expansion or recursion with this constraint. The *pattern* constraint follows the same [wildcard rules](../development/wildcard-rules.md) mentioned before.
+In order to determine where to scan the table accepts either a *path* or a *pattern* constraint. The *path* constraint must be a full path to a single file. There is no expansion or recursion with this constraint. The *pattern* constraint follows the same wildcard rules mentioned before.
 
 Once the "where" is out of the way you must specify the "what" part. This is done through either the *sigfile* or *sig_group* constraints. The *sigfile* constraint can be either an absolute path to a signature file on disk or a path relative to */var/osquery/*. The signature file will be compiled only for the execution of this one query and removed afterwards. The *sig_group* constraint must consist of a named signature grouping from your configuration file.
 
@@ -119,7 +119,7 @@ osquery> select * from yara where pattern="/bin/%sh" and sig_group="sig_group_1"
 osquery>
 ```
 
-The above illustrates using the *pattern* constraint to scan /bin/%sh with a signature group.
+The above illustrates using the *pattern* constraint to scan */bin/%sh* with a signature group.
 
 ```
 osquery> select * from yara where pattern="/bin/%sh" and sigfile="/Users/wxs/sigs/baz.sig";

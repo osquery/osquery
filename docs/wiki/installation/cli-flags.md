@@ -153,6 +153,21 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. This is 
 
 ## Runtime flags
 
+`--read_max=52428800` (50MB)
+
+Maximum file read size.
+The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
+
+`--read_user_max=10485760` (10MB)
+
+Maximum non-super user read size.
+Similar to `--read_max` but applied to user-controlled (owned) files.
+
+`--read_user_links=true`
+
+Read user-controlled (owned) filesystem links.
+This allows specific control over symbolic links owned by users.
+
 ### osquery daemon runtime control flags
 
 `--schedule_splay_percent=10`
@@ -189,7 +204,11 @@ Disable osquery Operating System [eventing publish subscribe](../development/pub
 
 `--events_expiry=86000`
 
-Timeout to expire Operating System [eventing publish subscribe](../development/pubsub-framework.md) results.
+Timeout to expire [eventing publish subscribe](../development/pubsub-framework.md) results from the backing-store. This expiration is only applied when results are queried. For example, if `--events_expiry=1` then events will only practically exist for a single select from the subscriber. If no select occurs then events will be saved in the backing store indefinitely.
+
+`--events_optimize=true`
+
+Since event rows are only "added" it does not make sense to emit "removed" results. An optimization can occur within the osquery daemon's query schedule. Every time the select query runs on a subscriber the current time is saved. Subsequent selects will use the previously saved time as the lower bound. This optimization is removed if any constraints on the "time" column are included.
 
 ### Logging/results flags
 

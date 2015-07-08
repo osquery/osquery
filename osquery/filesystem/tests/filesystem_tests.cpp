@@ -24,15 +24,25 @@
 namespace pt = boost::property_tree;
 
 namespace osquery {
+
+DECLARE_uint64(read_max);
+DECLARE_uint64(read_user_max);
+DECLARE_bool(read_user_links);
+
 class FilesystemTests : public testing::Test {
 
  protected:
   void SetUp() { createMockFileStructure(); }
 
   void TearDown() { tearDownMockFileStructure(); }
+
+  /// Helper method to check if a path was included in results.
+  bool contains(const std::vector<std::string>& all, const std::string& n) {
+    return !(std::find(all.begin(), all.end(), n) == all.end());
+  }
 };
 
-TEST_F(FilesystemTests, test_plugin) {
+TEST_F(FilesystemTests, test_read_file) {
   std::ofstream test_file(kTestWorkingDirectory + "fstests-file");
   test_file.write("test123\n", sizeof("test123"));
   test_file.close();
@@ -46,188 +56,197 @@ TEST_F(FilesystemTests, test_plugin) {
   remove(kTestWorkingDirectory + "fstests-file");
 }
 
-TEST_F(FilesystemTests, test_list_files_in_directory_not_found) {
-  std::vector<std::string> not_found_vector;
-  auto not_found = listFilesInDirectory("/foo/bar", not_found_vector);
-  EXPECT_FALSE(not_found.ok());
-  EXPECT_EQ(not_found.toString(), "Directory not found: /foo/bar");
+TEST_F(FilesystemTests, test_read_limit) {
+  auto max = FLAGS_read_max;
+  auto user_max = FLAGS_read_user_max;
+  FLAGS_read_max = 3;
+  std::string content;
+  auto status = readFile(kFakeDirectory + "/root.txt", content);
+  EXPECT_FALSE(status.ok());
+  FLAGS_read_max = max;
+
+  if (getuid() != 0) {
+    content.erase();
+    FLAGS_read_user_max = 2;
+    status = readFile(kFakeDirectory + "/root.txt", content);
+    EXPECT_FALSE(status.ok());
+    FLAGS_read_user_max = user_max;
+
+    // Test that user symlinks aren't followed if configured.
+    FLAGS_read_user_links = false;
+    content.erase();
+    status = readFile(kFakeDirectory + "/root2.txt", content);
+    EXPECT_FALSE(status.ok());
+
+    // But they are read if enabled.
+    FLAGS_read_user_links = true;
+    status = readFile(kFakeDirectory + "/root2.txt", content);
+    EXPECT_TRUE(status.ok());
+  }
 }
 
-TEST_F(FilesystemTests, test_wildcard_single_file_list) {
-  std::vector<std::string> files;
-  std::vector<std::string> files_flag;
-  auto status = resolveFilePattern(kFakeDirectory + "/%", files);
-  auto status2 =
-      resolveFilePattern(kFakeDirectory + "/%", files_flag, REC_LIST_FILES);
+TEST_F(FilesystemTests, test_list_files_missing_directory) {
+  std::vector<std::string> results;
+  auto status = listFilesInDirectory("/foo/bar", results);
+  EXPECT_FALSE(status.ok());
+}
+
+TEST_F(FilesystemTests, test_list_files_invalid_directory) {
+  std::vector<std::string> results;
+  auto status = listFilesInDirectory("/etc/hosts", results);
+  EXPECT_FALSE(status.ok());
+}
+
+TEST_F(FilesystemTests, test_list_files_valid_directorty) {
+  std::vector<std::string> results;
+  auto s = listFilesInDirectory("/etc", results);
+  // This directory may be different on OS X or Linux.
+  std::string hosts_path = "/etc/hosts";
+  replaceGlobWildcards(hosts_path);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.toString(), "OK");
+  EXPECT_TRUE(contains(results, hosts_path));
+}
+
+TEST_F(FilesystemTests, test_canonicalization) {
+  std::string complex = kFakeDirectory + "/deep1/../deep1/..";
+  std::string simple = kFakeDirectory + "/";
+  // Use the inline wildcard and canonicalization replacement.
+  // The 'simple' path contains a trailing '/', the replacement method will
+  // distinguish between file and directory paths.
+  replaceGlobWildcards(complex);
+  EXPECT_EQ(simple, complex);
+  // Now apply the same inline replacement on the simple directory and expect
+  // no change to the comparison.
+  replaceGlobWildcards(simple);
+  EXPECT_EQ(simple, complex);
+
+  // Now add a wildcard within the complex pattern. The replacement method
+  // will not canonicalize past a '*' as the proceeding paths are limiters.
+  complex = kFakeDirectory + "/*/deep2/../deep2/";
+  replaceGlobWildcards(complex);
+  EXPECT_EQ(complex, kFakeDirectory + "/*/deep2/../deep2/");
+}
+
+TEST_F(FilesystemTests, test_simple_globs) {
+  std::vector<std::string> results;
+  // Test the shell '*', we will support SQL's '%' too.
+  auto status = resolveFilePattern(kFakeDirectory + "/*", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(files.size(), 3);
-  EXPECT_EQ(files.size(), files_flag.size());
-  EXPECT_NE(std::find(files.begin(), files.end(), kFakeDirectory + "/roto.txt"),
-            files.end());
+  EXPECT_EQ(results.size(), 6);
+
+  // Test the csh-style bracket syntax: {}.
+  results.clear();
+  resolveFilePattern(kFakeDirectory + "/{root,door}*", results);
+  EXPECT_EQ(results.size(), 3);
+
+  // Test a tilde, home directory expansion, make no asserts about contents.
+  results.clear();
+  resolveFilePattern("~", results);
+  if (results.size() == 0) {
+    LOG(WARNING) << "Tilde expansion failed.";
+  }
+}
+
+TEST_F(FilesystemTests, test_wildcard_single_all) {
+  // Use '%' as a wild card to glob files within the temporarily-created dir.
+  std::vector<std::string> results;
+  auto status = resolveFilePattern(kFakeDirectory + "/%", results, GLOB_ALL);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 6);
+  EXPECT_TRUE(contains(results, kFakeDirectory + "/roto.txt"));
+  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/"));
+}
+
+TEST_F(FilesystemTests, test_wildcard_single_files) {
+  // Now list again with a restriction to only files.
+  std::vector<std::string> results;
+  resolveFilePattern(kFakeDirectory + "/%", results, GLOB_FILES);
+  EXPECT_EQ(results.size(), 4);
+  EXPECT_TRUE(contains(results, kFakeDirectory + "/roto.txt"));
+}
+
+TEST_F(FilesystemTests, test_wildcard_single_folders) {
+  std::vector<std::string> results;
+  resolveFilePattern(kFakeDirectory + "/%", results, GLOB_FOLDERS);
+  EXPECT_EQ(results.size(), 2);
+  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/"));
 }
 
 TEST_F(FilesystemTests, test_wildcard_dual) {
-  std::vector<std::string> files;
-  auto status = resolveFilePattern(kFakeDirectory + "/%/%", files);
-  EXPECT_TRUE(status.ok());
-  EXPECT_NE(std::find(files.begin(),
-                      files.end(),
-                      kFakeDirectory + "/deep1/level1.txt"),
-            files.end());
-}
-
-TEST_F(FilesystemTests, test_wildcard_full_recursion) {
-  std::vector<std::string> files;
-  auto status = resolveFilePattern(kFakeDirectory + "/%%", files);
-  EXPECT_TRUE(status.ok());
-  EXPECT_NE(std::find(files.begin(),
-                      files.end(),
-                      kFakeDirectory + "/deep1/deep2/level2.txt"),
-            files.end());
-}
-
-TEST_F(FilesystemTests, test_wildcard_end_last_component) {
-  std::vector<std::string> files;
-  auto status = resolveFilePattern(kFakeDirectory + "/%11/%sh", files);
-  EXPECT_TRUE(status.ok());
-  EXPECT_NE(std::find(files.begin(),
-                      files.end(),
-                      kFakeDirectory + "/deep11/not_bash"),
-            files.end());
-}
-
-TEST_F(FilesystemTests, test_wildcard_three_kinds) {
-  std::vector<std::string> files;
-  auto status = resolveFilePattern(kFakeDirectory + "/%p11/%/%%", files);
-  EXPECT_TRUE(status.ok());
-  EXPECT_NE(std::find(files.begin(),
-                      files.end(),
-                      kFakeDirectory + "/deep11/deep2/deep3/level3.txt"),
-            files.end());
-}
-
-TEST_F(FilesystemTests, test_wildcard_invalid_path) {
-  std::vector<std::string> files;
-  auto status = resolveFilePattern("/not_ther_abcdefz/%%", files);
-  EXPECT_TRUE(status.ok());
-  EXPECT_EQ(files.size(), 0);
-}
-
-TEST_F(FilesystemTests, test_wildcard_filewild) {
-  std::vector<std::string> files;
-  auto status = resolveFilePattern(kFakeDirectory + "/deep1%/%", files);
-  EXPECT_TRUE(status.ok());
-  EXPECT_NE(std::find(files.begin(),
-                      files.end(),
-                      kFakeDirectory + "/deep1/level1.txt"),
-            files.end());
-  EXPECT_NE(std::find(files.begin(),
-                      files.end(),
-                      kFakeDirectory + "/deep11/level1.txt"),
-            files.end());
-}
-
-TEST_F(FilesystemTests, test_list_files_in_directory_not_dir) {
-  std::vector<std::string> not_dir_vector;
-  auto not_dir = listFilesInDirectory("/etc/hosts", not_dir_vector);
-  EXPECT_FALSE(not_dir.ok());
-  EXPECT_EQ(not_dir.toString(), "Supplied path is not a directory: /etc/hosts");
-}
-
-TEST_F(FilesystemTests, test_list_files_in_directorty) {
+  // Now test two directories deep with a single wildcard for each.
   std::vector<std::string> results;
-  auto s = listFilesInDirectory("/etc", results);
-  EXPECT_TRUE(s.ok());
-  EXPECT_EQ(s.toString(), "OK");
-  EXPECT_NE(std::find(results.begin(), results.end(), "/etc/hosts"),
-            results.end());
+  auto status = resolveFilePattern(kFakeDirectory + "/%/%", results);
+  EXPECT_TRUE(status.ok());
+  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep1/level1.txt"));
 }
 
-TEST_F(FilesystemTests, test_wildcard_single_folder_list) {
-  std::vector<std::string> folders;
-  auto status =
-      resolveFilePattern(kFakeDirectory + "/%", folders, REC_LIST_FOLDERS);
+TEST_F(FilesystemTests, test_wildcard_double) {
+  // TODO: this will fail.
+  std::vector<std::string> results;
+  auto status = resolveFilePattern(kFakeDirectory + "/%%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(folders.size(), 3);
-  EXPECT_NE(
-      std::find(folders.begin(), folders.end(), kFakeDirectory + "/deep11"),
-      folders.end());
-}
-
-TEST_F(FilesystemTests, test_wildcard_single_all_list) {
-  std::vector<std::string> all;
-  auto status = resolveFilePattern(kFakeDirectory + "/%", all, REC_LIST_ALL);
-  EXPECT_TRUE(status.ok());
-  EXPECT_EQ(all.size(), 6);
-  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory + "/roto.txt"),
-            all.end());
-  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory + "/deep11"),
-            all.end());
+  EXPECT_EQ(results.size(), 15);
+  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep1/deep2/level2.txt"));
 }
 
 TEST_F(FilesystemTests, test_wildcard_double_folders) {
-  std::vector<std::string> all;
-  auto status =
-      resolveFilePattern(kFakeDirectory + "/%%", all, REC_LIST_FOLDERS);
-  EXPECT_TRUE(status.ok());
-  EXPECT_EQ(all.size(), 6);
-  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory), all.end());
-  EXPECT_NE(
-      std::find(all.begin(), all.end(), kFakeDirectory + "/deep11/deep2/deep3"),
-      all.end());
+  std::vector<std::string> results;
+  resolveFilePattern(kFakeDirectory + "/%%", results, GLOB_FOLDERS);
+  EXPECT_EQ(results.size(), 5);
+  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/deep2/deep3/"));
 }
 
-TEST_F(FilesystemTests, test_wildcard_double_all) {
-  std::vector<std::string> all;
-  auto status = resolveFilePattern(kFakeDirectory + "/%%", all, REC_LIST_ALL);
+TEST_F(FilesystemTests, test_wildcard_end_last_component) {
+  std::vector<std::string> results;
+  auto status = resolveFilePattern(kFakeDirectory + "/%11/%sh", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(all.size(), 15);
-  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory + "/roto.txt"),
-            all.end());
-  EXPECT_NE(
-      std::find(all.begin(), all.end(), kFakeDirectory + "/deep11/deep2/deep3"),
-      all.end());
-}
-TEST_F(FilesystemTests, test_double_wild_event_opt) {
-  std::vector<std::string> all;
-  auto status = resolveFilePattern(
-      kFakeDirectory + "/%%", all, REC_LIST_FOLDERS | REC_EVENT_OPT);
-  EXPECT_TRUE(status.ok());
-  EXPECT_EQ(all.size(), 1);
-  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory), all.end());
+  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/not_bash"));
 }
 
-TEST_F(FilesystemTests, test_letter_wild_opt) {
-  std::vector<std::string> all;
-  auto status = resolveFilePattern(
-      kFakeDirectory + "/d%", all, REC_LIST_FOLDERS | REC_EVENT_OPT);
+TEST_F(FilesystemTests, test_wildcard_middle_component) {
+  std::vector<std::string> results;
+  auto status = resolveFilePattern(kFakeDirectory + "/deep1%/%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(all.size(), 3);
-  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory + "/deep1"),
-            all.end());
-  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory + "/door.txt"),
-            all.end());
+  EXPECT_EQ(results.size(), 5);
+  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep1/level1.txt"));
+  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/level1.txt"));
 }
 
-TEST_F(FilesystemTests, test_dotdot) {
-  std::vector<std::string> all;
-  auto status = resolveFilePattern(
-      kFakeDirectory + "/deep11/deep2/../../%", all, REC_LIST_FILES);
+TEST_F(FilesystemTests, test_wildcard_all_types) {
+  std::vector<std::string> results;
+  auto status = resolveFilePattern(kFakeDirectory + "/%p11/%/%%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(all.size(), 3);
-  EXPECT_NE(std::find(all.begin(),
-                      all.end(),
-                      kFakeDirectory + "/deep11/deep2/../../door.txt"),
-            all.end());
+  EXPECT_TRUE(
+      contains(results, kFakeDirectory + "/deep11/deep2/deep3/level3.txt"));
+}
+
+TEST_F(FilesystemTests, test_wildcard_invalid_path) {
+  std::vector<std::string> results;
+  auto status = resolveFilePattern("/not_ther_abcdefz/%%", results);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 0);
+}
+
+TEST_F(FilesystemTests, test_wildcard_dotdot_files) {
+  std::vector<std::string> results;
+  auto status = resolveFilePattern(
+      kFakeDirectory + "/deep11/deep2/../../%", results, GLOB_FILES);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 4);
+  // The response list will contain canonicalized versions: /tmp/<tests>/...
+  std::string door_path = kFakeDirectory + "/deep11/deep2/../../door.txt";
+  replaceGlobWildcards(door_path);
+  EXPECT_TRUE(contains(results, door_path));
 }
 
 TEST_F(FilesystemTests, test_dotdot_relative) {
-  std::vector<std::string> all;
-  auto status = resolveFilePattern(kTestDataPath + "%", all, REC_LIST_ALL);
+  std::vector<std::string> results;
+  auto status = resolveFilePattern(kTestDataPath + "%", results);
   EXPECT_TRUE(status.ok());
 
   bool found = false;
-  for (const auto& file : all) {
+  for (const auto& file : results) {
     if (file.find("test.config")) {
       found = true;
       break;
@@ -237,13 +256,12 @@ TEST_F(FilesystemTests, test_dotdot_relative) {
 }
 
 TEST_F(FilesystemTests, test_no_wild) {
-  std::vector<std::string> all;
+  std::vector<std::string> results;
   auto status =
-      resolveFilePattern(kFakeDirectory + "/roto.txt", all, REC_LIST_FILES);
+      resolveFilePattern(kFakeDirectory + "/roto.txt", results, GLOB_FILES);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(all.size(), 1);
-  EXPECT_NE(std::find(all.begin(), all.end(), kFakeDirectory + "/roto.txt"),
-            all.end());
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_TRUE(contains(results, kFakeDirectory + "/roto.txt"));
 }
 
 TEST_F(FilesystemTests, test_safe_permissions) {

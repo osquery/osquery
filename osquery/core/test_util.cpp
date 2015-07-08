@@ -19,6 +19,8 @@
 
 #include "osquery/core/test_util.h"
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 
 /// Most tests will use binary or disk-backed content for parsing tests.
@@ -255,9 +257,8 @@ QueryData getEtcProtocolsExpectedResults() {
 }
 
 void createMockFileStructure() {
-  boost::filesystem::create_directories(kFakeDirectory +
-                                        "/deep11/deep2/deep3/");
-  boost::filesystem::create_directories(kFakeDirectory + "/deep1/deep2/");
+  fs::create_directories(kFakeDirectory + "/deep11/deep2/deep3/");
+  fs::create_directories(kFakeDirectory + "/deep1/deep2/");
   writeTextFile(kFakeDirectory + "/root.txt", "root");
   writeTextFile(kFakeDirectory + "/door.txt", "toor");
   writeTextFile(kFakeDirectory + "/roto.txt", "roto");
@@ -268,6 +269,10 @@ void createMockFileStructure() {
   writeTextFile(kFakeDirectory + "/deep11/level1.txt", "l1");
   writeTextFile(kFakeDirectory + "/deep11/deep2/level2.txt", "l2");
   writeTextFile(kFakeDirectory + "/deep11/deep2/deep3/level3.txt", "l3");
+
+  boost::system::error_code ec;
+  fs::create_symlink(
+      kFakeDirectory + "/root.txt", kFakeDirectory + "/root2.txt", ec);
 }
 
 void tearDownMockFileStructure() {

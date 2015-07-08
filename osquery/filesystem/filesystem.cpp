@@ -11,9 +11,11 @@
 #include <sstream>
 
 #include <fcntl.h>
+#include <glob.h>
 #include <pwd.h>
 #include <sys/stat.h>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -27,6 +29,10 @@ namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
+FLAG(uint64, read_max, 50 * 1024 * 1024, "Maximum file read size");
+FLAG(uint64, read_user_max, 10 * 1024 * 1024, "Maximum non-su read size");
+FLAG(bool, read_user_links, true, "Read user-owned filesystem links");
 
 Status writeTextFile(const fs::path& path,
                      const std::string& content,
@@ -57,23 +63,47 @@ Status writeTextFile(const fs::path& path,
 }
 
 Status readFile(const fs::path& path, std::string& content) {
-  auto path_exists = pathExists(path);
-  if (!path_exists.ok()) {
-    return path_exists;
+  struct stat file;
+  if (lstat(path.string().c_str(), &file) == 0) {
+    if (file.st_uid != 0 && !FLAGS_read_user_links) {
+      return Status(1, "User link reads disabled");
+    }
+  } else if (stat(path.string().c_str(), &file) < 0) {
+    return Status(1, "Cannot access path: " + path.string());
   }
 
-  std::stringstream buffer;
-  fs::ifstream file_h(path);
-  if (file_h.is_open()) {
-    buffer << file_h.rdbuf();
-    if (file_h.bad()) {
-      return Status(1, "Error reading file: " + path.string());
+  // Apply the max byte-read based on file/link target ownership.
+  size_t read_max = (file.st_uid == 0)
+                        ? FLAGS_read_max
+                        : std::min(FLAGS_read_max, FLAGS_read_user_max);
+  std::ifstream is(path.string(), std::ifstream::binary);
+  if (!is) {
+    return Status(1, "Error reading file: " + path.string());
+  }
+
+  // Attempt to read the file size.
+  ssize_t size = file.st_size;
+
+  // Erase/clear provided string buffer.
+  content.erase();
+  if (file.st_size > read_max) {
+    VLOG(1) << "Cannot read " << path
+            << " size exceeds limit: " << file.st_size << " > " << read_max;
+    return Status(1, "File exceeds read limits");
+  }
+
+  if (size == -1 || size == 0) {
+    // Size could not be determined. This may be a special device.
+    std::stringstream buffer;
+    buffer << is.rdbuf();
+    if (is.bad()) {
+      return Status(1, "Error reading special file: " + path.string());
     }
     content.assign(std::move(buffer.str()));
   } else {
-    return Status(1, "Could not open file: " + path.string());
+    content = std::string(size, '\0');
+    is.read(&content[0], size);
   }
-
   return Status(0, "OK");
 }
 
@@ -122,74 +152,107 @@ Status remove(const fs::path& path) {
   return Status(status_code, "N/A");
 }
 
-Status listFilesInDirectory(const fs::path& path,
-                            std::vector<std::string>& results,
-                            bool ignore_error) {
-  fs::directory_iterator begin_iter;
+static void genGlobs(std::string path,
+                     std::vector<std::string>& results,
+                     GlobLimits limits) {
+  // Use our helped escape/replace for wildcards.
+  replaceGlobWildcards(path);
+
+  // Generate a glob set and recurse for double star.
+  while (true) {
+    glob_t data;
+    glob(path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, &data);
+    size_t count = data.gl_pathc;
+    for (size_t index = 0; index < count; index++) {
+      results.push_back(data.gl_pathv[index]);
+    }
+    globfree(&data);
+    // The end state is a non-recursive ending or empty set of matches.
+    size_t wild = path.rfind("**");
+    // Allow a trailing slash after the double wild indicator.
+    if (count == 0 || wild > path.size() || wild < path.size() - 3) {
+      break;
+    }
+    path += "/**";
+  }
+
+  // Prune results based on settings/requested glob limitations.
+  auto end = std::remove_if(
+      results.begin(), results.end(), [limits](const std::string& found) {
+        return !((found[found.length() - 1] == '/' && limits & GLOB_FOLDERS) ||
+                 (found[found.length() - 1] != '/' && limits & GLOB_FILES));
+      });
+  results.erase(end, results.end());
+}
+
+Status resolveFilePattern(const fs::path& fs_path,
+                          std::vector<std::string>& results) {
+  return resolveFilePattern(fs_path, results, GLOB_ALL);
+}
+
+Status resolveFilePattern(const fs::path& fs_path,
+                          std::vector<std::string>& results,
+                          GlobLimits setting) {
+  genGlobs(fs_path.string(), results, setting);
+  return Status(0, "OK");
+}
+
+inline void replaceGlobWildcards(std::string& pattern) {
+  // Replace SQL-wildcard '%' with globbing wildcard '*'.
+  if (pattern.find("%") != std::string::npos) {
+    boost::replace_all(pattern, "%", "*");
+  }
+
+  // Relative paths are a bad idea, but we try to accommodate.
+  if ((pattern.size() == 0 || pattern[0] != '/') && pattern[0] != '~') {
+    pattern = (fs::initial_path() / pattern).string();
+  }
+
+  auto base = pattern.substr(0, pattern.find('*'));
+  if (base.size() > 0) {
+    boost::system::error_code ec;
+    auto canonicalized = fs::canonical(base, ec).string();
+    if (canonicalized.size() > 0 && canonicalized != base) {
+      if (isDirectory(canonicalized)) {
+        // Canonicalized directory paths will no include a trailing '/'.
+        // But if the wildcards applied to files within a directory then a the
+        // missing '/' changes the wildcard meaning.
+        canonicalized += '/';
+      }
+      // We are unable to canonicalize the meaning of post-wildcard limiters.
+      pattern = canonicalized + pattern.substr(base.size());
+    }
+  }
+}
+
+inline Status listInAbsoluteDirectory(const fs::path& path,
+                                      std::vector<std::string>& results,
+                                      GlobLimits limits) {
   try {
-    if (!fs::exists(path)) {
-      return Status(1, "Directory not found: " + path.string());
+    if (path.filename() == "*" && !fs::exists(path.parent_path())) {
+      return Status(1, "Directory not found: " + path.parent_path().string());
     }
 
-    if (!fs::is_directory(path)) {
-      return Status(1, "Supplied path is not a directory: " + path.string());
+    if (path.filename() == "*" && !fs::is_directory(path.parent_path())) {
+      return Status(1, "Path not a directory: " + path.parent_path().string());
     }
-    begin_iter = fs::directory_iterator(path);
   } catch (const fs::filesystem_error& e) {
     return Status(1, e.what());
   }
-
-  fs::directory_iterator end_iter;
-  for (; begin_iter != end_iter; begin_iter++) {
-    try {
-      if (fs::is_regular_file(begin_iter->path())) {
-        results.push_back(begin_iter->path().string());
-      }
-    } catch (const fs::filesystem_error& e) {
-      if (ignore_error == 0) {
-        return Status(1, e.what());
-      }
-    }
-  }
+  genGlobs(path.string(), results, limits);
   return Status(0, "OK");
+}
+
+Status listFilesInDirectory(const fs::path& path,
+                            std::vector<std::string>& results,
+                            bool ignore_error) {
+  return listInAbsoluteDirectory((path / "*"), results, GLOB_FILES);
 }
 
 Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
                                   bool ignore_error) {
-  fs::directory_iterator begin_iter;
-  try {
-    if (!fs::exists(path)) {
-      return Status(1, "Directory not found");
-    }
-
-    auto stat = pathExists(path);
-    if (!stat.ok()) {
-      return stat;
-    }
-
-    stat = isDirectory(path);
-    if (!stat.ok()) {
-      return stat;
-    }
-    begin_iter = fs::directory_iterator(path);
-  } catch (const fs::filesystem_error& e) {
-    return Status(1, e.what());
-  }
-
-  fs::directory_iterator end_iter;
-  for (; begin_iter != end_iter; begin_iter++) {
-    try {
-      if (fs::is_directory(begin_iter->path())) {
-        results.push_back(begin_iter->path().string());
-      }
-    } catch (const fs::filesystem_error& e) {
-      if (ignore_error == 0) {
-        return Status(1, e.what());
-      }
-    }
-  }
-  return Status(0, "OK");
+  return listInAbsoluteDirectory((path / "*"), results, GLOB_FOLDERS);
 }
 
 Status getDirectory(const fs::path& path, fs::path& dirpath) {
@@ -202,14 +265,14 @@ Status getDirectory(const fs::path& path, fs::path& dirpath) {
 }
 
 Status isDirectory(const fs::path& path) {
-  try {
-    if (fs::is_directory(path)) {
-      return Status(0, "OK");
-    }
-    return Status(1, "Path is not a directory: " + path.string());
-  } catch (const fs::filesystem_error& e) {
-    return Status(1, e.what());
+  boost::system::error_code ec;
+  if (fs::is_directory(path, ec)) {
+    return Status(0, "OK");
   }
+  if (ec.value() == 0) {
+    return Status(1, "Path is not a directory: " + path.string());
+  }
+  return Status(ec.value(), ec.message());
 }
 
 std::set<fs::path> getHomeDirectories() {
@@ -263,7 +326,7 @@ const std::string& osqueryHomeDirectory() {
     } else if (user != nullptr && user->pw_dir != nullptr) {
       homedir = std::string(user->pw_dir) + "/.osquery";
     } else {
-      // Failover to a temporary directory (used for the shell).
+      // Fail over to a temporary directory (used for the shell).
       homedir = "/tmp/osquery";
     }
   }

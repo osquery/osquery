@@ -56,8 +56,6 @@ Status HardwareEventSubscriber::Callback(const IOKitHIDEventContextRef& ec,
   r["vendor"] = ec->vendor;
   r["serial"] = ec->serial; // Not always filled in.
   r["revision"] = ec->version;
-
-  r["time"] = INTEGER(ec->time);
   add(r, ec->time);
   return Status(0, "OK");
 }

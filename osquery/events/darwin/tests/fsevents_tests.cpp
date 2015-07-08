@@ -60,8 +60,8 @@ class FSEventsTests : public testing::Test {
       if (event_pub_->isStreamRunning()) {
         return;
       }
-      ::usleep(50);
-      delay += 50;
+      ::usleep(100);
+      delay += 100;
     }
   }
 
@@ -73,8 +73,8 @@ class FSEventsTests : public testing::Test {
       } else if (num_events == 0 && event_pub_->numEvents() > 0) {
         return true;
       }
-      delay += 50;
-      ::usleep(50);
+      delay += 100;
+      ::usleep(100);
     }
     return false;
   }
@@ -191,11 +191,11 @@ class TestFSEventsEventSubscriber
   void WaitForEvents(int max, int initial = 0) {
     int delay = 0;
     while (delay < max * 1000) {
-      if (callback_count_ > initial) {
+      if (callback_count_ >= initial) {
         return;
       }
-      ::usleep(50);
-      delay += 50;
+      delay += 100;
+      ::usleep(100);
     }
   }
 
@@ -253,7 +253,7 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
   CreateEvents();
 
   // This time wait for the callback.
-  sub->WaitForEvents(kMaxEventLatency);
+  sub->WaitForEvents(kMaxEventLatency, 1);
 
   // Make sure our expected event fired (aka subscription callback was called).
   EXPECT_TRUE(sub->callback_count_ > 0);
@@ -272,11 +272,22 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   EventFactory::registerEventSubscriber(sub);
   sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc, nullptr);
   CreateEvents();
-  sub->WaitForEvents(kMaxEventLatency);
+  sub->WaitForEvents(kMaxEventLatency, 1);
 
   // Make sure the fsevents action was expected.
   ASSERT_TRUE(sub->actions_.size() > 0);
-  EXPECT_EQ(sub->actions_[0], "CREATED");
+  bool has_created = false;
+  bool has_unknown = false;
+  for (const auto& action : sub->actions_) {
+    // Expect either a created event or attributes modified event.
+    if (action == "CREATED" || action == "ATTRIBUTES_MODIFIED") {
+      has_created = true;
+    } else if (action == "UNKNOWN" || action == "") {
+      // Allow an undetermined but existing FSevent on our target to pass.
+      has_unknown = true;
+    }
+  }
+  EXPECT_TRUE(has_created || has_unknown);
 
   CreateEvents();
   sub->WaitForEvents(kMaxEventLatency, 2);

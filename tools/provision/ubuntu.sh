@@ -11,6 +11,7 @@ function add_repo() {
   REPO=$1
   echo "Adding repository: $REPO"
   if [[ $DISTRO = "lucid" ]]; then
+    package python-software-properties
     sudo add-apt-repository $REPO
   else
     sudo add-apt-repository -y $REPO
@@ -62,6 +63,7 @@ function main_ubuntu() {
     package libopenssl-ruby
 
     package clang
+    package g++-multilib
     install_gcc
   elif [[ $DISTRO = "precise" ]]; then
     # Need gcc 4.8 from ubuntu-toolchain-r/test to compile RocksDB/osquery.

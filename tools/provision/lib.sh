@@ -142,15 +142,14 @@ function install_snappy() {
   URL=$DEPS_URL/snappy-1.1.1.tar.gz
   SOURCE=snappy-1.1.1
 
-  if provision snappy /usr/local/lib/libsnappy.a; then
-    if [[ ! -f snappy-1.1.1/.libs/libsnappy.a ]]; then
-      pushd $SOURCE
-      CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static
+  if provision snappy /usr/local/include/snappy.h; then
+    pushd $SOURCE
+    CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static
+    if [[ ! -f .libs/libsnappy.a ]]; then
       make -j $THREADS
-      popd
     fi
-    # We do not need the snappy include headers, just static library.
-    sudo cp snappy-1.1.1/.libs/libsnappy.a /usr/local/lib
+    sudo make install
+    popd
   fi
 }
 
@@ -265,7 +264,8 @@ function install_automake() {
     pushd $SOURCE
     ./bootstrap.sh
     ./configure --prefix=/usr
-    CC="$CC" CXX="$CXX" make -j $THREADS
+    # Version 1.14 of automake fails to build with more than one thread
+    CC="$CC" CXX="$CXX" make -j 1
     sudo make install
     popd
   fi
@@ -355,9 +355,9 @@ function install_libaptpkg() {
     mkdir -p build
     pushd build
     ../configure --prefix=/usr/local
-    make -j $THREADS library
+    make -j $THREADS STATICLIBS=1 library
     sudo cp bin/libapt-pkg.so.4.12.0 /usr/local/lib/
-    sudo ln -sf /usr/lib/local/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
+    sudo ln -sf /usr/local/lib/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
     sudo cp bin/libapt-pkg.a /usr/local/lib/
     sudo mkdir -p /usr/local/include/apt-pkg/
     sudo cp include/apt-pkg/*.h /usr/local/include/apt-pkg/

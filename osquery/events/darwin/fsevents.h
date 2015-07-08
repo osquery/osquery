@@ -26,11 +26,12 @@ namespace osquery {
 extern std::map<FSEventStreamEventFlags, std::string> kMaskActions;
 
 struct FSEventsSubscriptionContext : public SubscriptionContext {
+ public:
   /// Subscription the following filesystem path.
   std::string path;
   /// Limit the FSEvents actions to the subscriptioned mask (if not 0).
   FSEventStreamEventFlags mask;
-  // A no-op since FSEvent subscriptions are always recursive.
+  /// A pattern with a recursive match was provided.
   bool recursive;
 
   void requireAction(std::string action) {
@@ -41,10 +42,33 @@ struct FSEventsSubscriptionContext : public SubscriptionContext {
     }
   }
 
-  FSEventsSubscriptionContext() : mask(0), recursive(false) {}
+  FSEventsSubscriptionContext()
+      : mask(0), recursive(false), recursive_match(false) {}
+
+ private:
+  /**
+   * @brief The existing configure-time discovered path.
+   *
+   * The FSEvents publisher expects paths from a configuration to contain
+   * filesystem globbing wildcards, as opposed to SQL wildcards. It also expects
+   * paths to be canonicalized up to the first wildcard. To FSEvents a double
+   * wildcard, meaning recursive, is a watch on the base path string. A single
+   * wildcard means the same watch but a preserved globbing pattern, which is
+   * applied at event-fire time to limit subscriber results.
+   *
+   * This backup will allow post-fire subscriptions to match. It will also allow
+   * faster reconfigures by not performing string manipulation twice.
+   */
+  std::string discovered_;
+  /// A configure-time pattern was expanded to match absolute paths.
+  bool recursive_match;
+
+ private:
+  friend class FSEventsEventPublisher;
 };
 
 struct FSEventsEventContext : public EventContext {
+ public:
   ConstFSEventStreamRef fsevent_stream;
   FSEventStreamEventFlags fsevent_flags;
   FSEventStreamEventId transaction_id;

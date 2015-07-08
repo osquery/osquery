@@ -271,6 +271,21 @@ Status logSnapshotQuery(const QueryLogItem& item);
 Status logHealthStatus(const QueryLogItem& item);
 
 /**
+ * @brief Sink a set of buffered status logs.
+ *
+ * When the osquery daemon uses a watcher/worker set, the watcher's status logs
+ * are accumulated in a buffered log sink. Well-performing workers should have
+ * the set of watcher status logs relayed and sent to the configured logger
+ * plugin.
+ *
+ * Status logs from extensions will be forwarded to the extension manager (core)
+ * normally, but the watcher does not receive or send registry requests.
+ * Extensions, the registry, configuration, and optional config/logger plugins
+ * are all protected as a monitored worker.
+ */
+void relayStatusLogs();
+
+/**
  * @brief Logger plugin registry.
  *
  * This creates an osquery registry for "logger" which may implement

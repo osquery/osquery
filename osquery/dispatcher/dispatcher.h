@@ -82,7 +82,7 @@ typedef SHARED_PTR_IMPL<InternalRunnable> ThriftInternalRunnableRef;
 typedef SHARED_PTR_IMPL<PosixThreadFactory> ThriftThreadFactory;
 
 /**
- * @brief Singleton for queueing asynchronous tasks to be executed in parallel
+ * @brief Singleton for queuing asynchronous tasks to be executed in parallel
  *
  * Dispatcher is a singleton which can be used to coordinate the parallel
  * execution of asynchronous tasks across an application. Internally,
