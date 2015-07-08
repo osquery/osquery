@@ -10,12 +10,17 @@
 
 #include <sstream>
 
+#include <fnmatch.h>
 #include <linux/limits.h>
+
+#include <boost/filesystem.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
 #include "osquery/events/linux/inotify.h"
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 
@@ -42,18 +47,49 @@ Status INotifyEventPublisher::setUp() {
   inotify_handle_ = ::inotify_init();
   // If this does not work throw an exception.
   if (inotify_handle_ == -1) {
-    return Status(1, "Could not init inotify");
+    return Status(1, "Could not start inotify: inotify_init failed");
   }
   return Status(0, "OK");
 }
 
 void INotifyEventPublisher::configure() {
-  for (const auto& sub : subscriptions_) {
+  for (auto& sub : subscriptions_) {
     // Anytime a configure is called, try to monitor all subscriptions.
     // Configure is called as a response to removing/adding subscriptions.
     // This means recalculating all monitored paths.
     auto sc = getSubscriptionContext(sub->context);
-    addMonitor(sc->path, sc->recursive);
+    if (sc->discovered_.size() > 0) {
+      continue;
+    }
+
+    sc->discovered_ = sc->path;
+    if (sc->path.find("**") != std::string::npos) {
+      sc->recursive = true;
+      sc->discovered_ = sc->path.substr(0, sc->path.find("**"));
+      sc->path = sc->discovered_;
+    }
+
+    if (sc->path.find('*') != std::string::npos) {
+      // If the wildcard exists within the file (leaf), remove and monitor the
+      // directory instead. Apply a fnmatch on fired events to filter leafs.
+      auto fullpath = fs::path(sc->path);
+      if (fullpath.filename().string().find('*') != std::string::npos) {
+        sc->discovered_ = fullpath.parent_path().string();
+      }
+
+      if (sc->discovered_.find('*') != std::string::npos) {
+        // If a wildcard exists within the tree (stem), resolve at configure
+        // time and monitor each path.
+        std::vector<std::string> paths;
+        resolveFilePattern(sc->discovered_, paths);
+        for (const auto& _path : paths) {
+          addMonitor(_path, sc->recursive);
+        }
+        sc->recursive_match = sc->recursive;
+        continue;
+      }
+    }
+    addMonitor(sc->discovered_, sc->recursive);
   }
 }
 
@@ -123,9 +159,6 @@ Status INotifyEventPublisher::run() {
       removeMonitor(event->wd, false);
     } else {
       auto ec = createEventContextFrom(event);
-      if(event->mask & IN_CREATE && isDirectory(ec->path).ok()){
-        addMonitor(ec->path, 1);
-      }
       fire(ec);
     }
     // Continue to iterate
@@ -143,12 +176,11 @@ INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
   ec->event = shared_event;
 
   // Get the pathname the watch fired on.
-  std::ostringstream path;
-  path << descriptor_paths_[event->wd];
+  ec->path = descriptor_paths_[event->wd];
   if (event->len > 1) {
-    path << "/" << event->name;
+    ec->path += event->name;
   }
-  ec->path = path.str();
+
   for (const auto& action : kMaskActions) {
     if (event->mask & action.first) {
       ec->action = action.second;
@@ -160,20 +192,29 @@ INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
 
 bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
                                        const INotifyEventContextRef& ec) const {
-  if (!sc->recursive && sc->path != ec->path) {
-    // Monitored path is not recursive and path is not an exact match.
+  if (sc->recursive && !sc->recursive_match) {
+    ssize_t found = ec->path.find(sc->path);
+    if (found != 0) {
+      return false;
+    }
+  } else if (fnmatch((sc->path + "*").c_str(),
+                     ec->path.c_str(),
+                     FNM_PATHNAME | FNM_CASEFOLD |
+                         ((sc->recursive_match) ? FNM_LEADING_DIR : 0)) != 0) {
+    // Only apply a leading-dir match if this is a recursive watch with a
+    // match requirement (an inline wildcard with ending recursive wildcard).
     return false;
   }
-
-  if (ec->path.find(sc->path) != 0) {
-    // The path does not exist as the base event path.
-    return false;
-  }
-
   // The subscription may supply a required event mask.
   if (sc->mask != 0 && !(ec->event->mask & sc->mask)) {
     return false;
   }
+
+  // inotify will not monitor recursively, new directories need watches.
+  if(sc->recursive && ec->action == "CREATED" && isDirectory(ec->path)){
+    const_cast<INotifyEventPublisher*>(this)->addMonitor(ec->path + '/', true);
+  }
+
   return true;
 }
 
@@ -196,7 +237,7 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
 
   if (recursive && isDirectory(path).ok()) {
     std::vector<std::string> children;
-    // Get a list of children of this directory (requesed recursive watches).
+    // Get a list of children of this directory (requested recursive watches).
     listDirectoriesInDirectory(path, children);
 
     for (const auto& child : children) {

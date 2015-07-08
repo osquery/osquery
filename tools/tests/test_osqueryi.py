@@ -20,6 +20,8 @@ import unittest
 # osquery-specific testing utils
 import test_base
 
+SHELL_TIMEOUT = 10
+
 class OsqueryiTest(unittest.TestCase):
     def setUp(self):
         self.binary = os.path.join(test_base.ARGS.build, "osquery", "osqueryi")
@@ -37,10 +39,12 @@ class OsqueryiTest(unittest.TestCase):
     def test_config_check_success(self):
         '''Test that a 0-config passes'''
         proc = test_base.TimeoutRunner([
-            self.binary,
-            "--config_check",
-            "--database_path=%s" % (self.dbpath),
-            "--config_path=test.config"], 2)
+                self.binary,
+                "--config_check",
+                "--database_path=%s" % (self.dbpath),
+                "--config_path=%s/test.config" % test_base.SCRIPT_DIR
+            ],
+            SHELL_TIMEOUT)
         self.assertEqual(proc.stdout, "")
         print (proc.stdout)
         print (proc.stderr)
@@ -50,9 +54,11 @@ class OsqueryiTest(unittest.TestCase):
         '''Test that a missing config fails'''
         proc = test_base.TimeoutRunner([
             self.binary,
-            "--config_check",
-            "--database_path=%s" % (self.dbpath),
-            "--config_path=/this/path/does/not/exist"], 3)
+                "--config_check",
+                "--database_path=%s" % (self.dbpath),
+                "--config_path=/this/path/does/not/exist"
+            ],
+            SHELL_TIMEOUT)
         self.assertNotEqual(proc.stderr, "")
         print (proc.stdout)
         print (proc.stderr)
@@ -60,19 +66,23 @@ class OsqueryiTest(unittest.TestCase):
 
         # Now with a valid path, but invalid content.
         proc = test_base.TimeoutRunner([
-            self.binary,
-            "--config_check",
-            "--database_path=%s" % (self.dbpath),
-            "--config_path=test.badconfig"], 2)
-        self.assertNotEqual(proc.stderr, "")
+                self.binary,
+                "--config_check",
+                "--database_path=%s" % (self.dbpath),
+                "--config_path=%s/test.badconfig" % test_base.SCRIPT_DIR
+            ],
+            SHELL_TIMEOUT)
         self.assertEqual(proc.proc.poll(), 1)
+        self.assertNotEqual(proc.stderr, "")
 
         # Finally with a missing config plugin
         proc = test_base.TimeoutRunner([
-            self.binary,
-            "--config_check",
-            "--database_path=%s" % (self.dbpath),
-            "--config_plugin=does_not_exist"], 2)
+                self.binary,
+                "--config_check",
+                "--database_path=%s" % (self.dbpath),
+                "--config_plugin=does_not_exist"
+            ],
+            SHELL_TIMEOUT)
         self.assertNotEqual(proc.stderr, "")
         self.assertNotEqual(proc.proc.poll(), 0)
 

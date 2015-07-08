@@ -11,7 +11,7 @@ schema([
     Column("vendor_id", INTEGER),
     Column("serial", TEXT, "Device serial (optional)"),
     Column("revision", INTEGER, "Device revision (optional)"),
-    Column("time", INTEGER, "Time of hardware event"),
+    Column("time", BIGINT, "Time of hardware event"),
 ])
 attributes(event_subscriber=True)
 implementation("events/hardware_events@hardware_events::genTable")

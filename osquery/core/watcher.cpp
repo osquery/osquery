@@ -161,7 +161,7 @@ bool Watcher::hasManagedExtensions() {
 
   // A watchdog process may hint to a worker the number of managed extensions.
   // Setting this counter to 0 will prevent the worker from waiting for missing
-  // dependent config plugins. Otherwise, its existance, will cause a worker to
+  // dependent config plugins. Otherwise, its existence, will cause a worker to
   // wait for missing plugins to broadcast from managed extensions.
   return (getenv("OSQUERY_EXTENSIONS") != nullptr);
 }
@@ -289,16 +289,20 @@ bool WatcherRunner::isChildSane(pid_t child) {
 
   if (sustained_latency > 0 &&
       sustained_latency * iv >= getWorkerLimit(LATENCY_LIMIT)) {
-    LOG(WARNING) << "osqueryd worker system performance limits exceeded";
+    LOG(WARNING) << "osqueryd worker (" << child
+                 << ") system performance limits exceeded";
     return false;
   }
   // Check if the private memory exceeds a memory limit.
   if (footprint > 0 && footprint > getWorkerLimit(MEMORY_LIMIT) * 1024 * 1024) {
-    LOG(WARNING) << "osqueryd worker memory limits exceeded: " << footprint;
+    LOG(WARNING) << "osqueryd worker (" << child
+                 << ") memory limits exceeded: " << footprint;
     return false;
   }
 
   // The worker is sane, no action needed.
+  // Attempt to flush status logs to the well-behaved worker.
+  relayStatusLogs();
   return true;
 }
 
@@ -307,7 +311,8 @@ void WatcherRunner::createWorker() {
     WatcherLocker locker;
     if (Watcher::getState(Watcher::getWorker()).last_respawn_time >
         getUnixTime() - getWorkerLimit(RESPAWN_LIMIT)) {
-      LOG(WARNING) << "osqueryd worker respawning too quickly";
+      LOG(WARNING) << "osqueryd worker respawning too quickly: "
+                   << Watcher::workerRestartCount() << " times";
       Watcher::workerRestarted();
       interruptableSleep(getWorkerLimit(RESPAWN_DELAY) * 1000);
       // Exponential back off for quickly-respawning clients.
@@ -318,7 +323,7 @@ void WatcherRunner::createWorker() {
   // Get the path of the current process.
   auto qd = SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(getpid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
-    LOG(ERROR) << "osquery watcher cannot determine process path";
+    LOG(ERROR) << "osquery watcher cannot determine process path for worker";
     ::exit(EXIT_FAILURE);
   }
 

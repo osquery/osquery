@@ -31,8 +31,11 @@
 #include "osquery/core/watcher.h"
 #include "osquery/database/db_handle.h"
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
 #include <sys/resource.h>
+#endif
+
+#ifdef __linux__
 #include <sys/syscall.h>
 
 /*
@@ -94,6 +97,8 @@ CLI_FLAG(bool,
 #ifndef __APPLE__
 CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 #endif
+
+ToolType kToolType = OSQUERY_TOOL_UNKNOWN;
 
 void printUsage(const std::string& binary, int tool) {
   // Parse help options before gflags. Only display osquery-related options.
@@ -161,6 +166,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   GFLAGS_NAMESPACE::ParseCommandLineFlags(
       argc_, argv_, (tool == OSQUERY_TOOL_SHELL));
 
+  // Set the tool type to allow runtime decisions based on daemon, shell, etc.
+  kToolType = tool;
   if (tool == OSQUERY_TOOL_SHELL) {
     // The shell is transient, rewrite config-loaded paths.
     FLAGS_disable_logging = true;
@@ -204,7 +211,7 @@ void Initializer::initDaemon() {
   }
 
 #ifndef __APPLE__
-  // OSX uses launchd to daemonize.
+  // OS X uses launchd to daemonize.
   if (osquery::FLAGS_daemonize) {
     if (daemon(0, 0) == -1) {
       ::exit(EXIT_FAILURE);
@@ -233,12 +240,12 @@ void Initializer::initDaemon() {
   if (!FLAGS_disable_watchdog &&
       FLAGS_watchdog_level >= WATCHDOG_LEVEL_DEFAULT &&
       FLAGS_watchdog_level != WATCHDOG_LEVEL_DEBUG) {
-    // Set CPU scheduling IO limits.
+    // Set CPU scheduling I/O limits.
     setpriority(PRIO_PGRP, 0, 10);
 #ifdef __linux__
     // Using: ioprio_set(IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
     syscall(SYS_ioprio_set, IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
-#elif defined(__APPLE__) || defined(__FreeBSD__)
+#elif defined(__APPLE__)
     setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_PROCESS, IOPOL_THROTTLE);
 #endif
   }

@@ -40,7 +40,6 @@ Status DiskEventSubscriber::init() {
 Status DiskEventSubscriber::Callback(const DiskArbitrationEventContextRef& ec,
                                      const void* user_data) {
   Row r;
-
   r["action"] = ec->action;
   r["path"] = ec->path;
   r["name"] = ec->name;
@@ -56,14 +55,12 @@ Status DiskEventSubscriber::Callback(const DiskArbitrationEventContextRef& ec,
   r["filesystem"] = ec->filesystem;
   r["checksum"] = ec->checksum;
 
+  EventTime time = ec->time;
   if (ec->action == "add") {
-    r["time"] = ec->disk_appearance_time;
-    add(r, boost::lexical_cast<uint32_t>(ec->disk_appearance_time));
-  } else if (ec->action == "remove") {
-    r["time"] = INTEGER(ec->time);
-    add(r, ec->time);
+    boost::conversion::try_lexical_convert(ec->disk_appearance_time, time);
   }
 
+  add(r, ec->time);
   return Status(0, "OK");
 }
 }

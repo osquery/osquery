@@ -56,9 +56,7 @@ std::vector<std::string> SQL::getTableNames() {
 
 QueryData SQL::selectAllFrom(const std::string& table) {
   PluginResponse response;
-  PluginRequest request;
-  request["action"] = "generate";
-
+  PluginRequest request = {{"action", "generate"}};
   Registry::call("table", table, request, response);
   return response;
 }

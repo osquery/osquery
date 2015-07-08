@@ -111,6 +111,7 @@ def is_blacklisted(table_name, path=None, blacklist=None):
             return True
     return False
 
+
 def setup_templates(templates_path):
     if not os.path.exists(templates_path):
         templates_path = os.path.join(os.path.dirname(tables_path), "templates")
@@ -304,6 +305,23 @@ def implementation(impl_string):
     table.impl = impl
     table.function = function
     table.class_name = class_name
+
+    '''Check if the table has a subscriber attribute, if so, enforce time.'''
+    if "event_subscriber" in table.attributes:
+        columns = {}
+        # There is no dictionary comprehension on all supported platforms.
+        for column in table.schema:
+            if isinstance(column, Column):
+                columns[column.name] = column.type
+        if "time" not in columns:
+            print(lightred("Event subscriber: %s needs a 'time' column." % (
+                table.table_name)))
+            sys.exit(1)
+        if columns["time"] is not BIGINT:
+            print(lightred(
+                "Event subscriber: %s, 'time' column must be a %s type" % (
+                    table.table_name, BIGINT)))
+            sys.exit(1)
 
 
 def main(argc, argv):

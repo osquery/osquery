@@ -79,7 +79,7 @@ QueryData genChromeBasedExtensions(QueryContext& context, const fs::path sub_dir
     // For each user, enumerate all of their chrome profiles.
     std::vector<std::string> profiles;
     fs::path extension_path = home / sub_dir;
-    if (!resolveFilePattern(extension_path, profiles, REC_LIST_FOLDERS).ok()) {
+    if (!resolveFilePattern(extension_path, profiles, GLOB_FOLDERS).ok()) {
       continue;
     }
 
