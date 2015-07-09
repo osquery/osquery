@@ -11,6 +11,7 @@
 #include "osquery/events/kernel.h"
 
 #include <osquery/logger.h>
+#include <osquery/core.h>
 
 namespace osquery {
 
@@ -23,7 +24,9 @@ Status KernelEventPublisher::setUp() {
   try {
     queue_ = new CQueue(shared_buffer_size_bytes);
   } catch (const CQueueException &e) {
-    LOG(WARNING) << "Cannot connect to kernel. " << e.what();
+    if (kToolType == OSQUERY_TOOL_DAEMON) {
+      LOG(WARNING) << "Cannot connect to kernel. " << e.what();
+    }
     return Status(1, e.what());
   }
   if (queue_ == nullptr) {
@@ -37,7 +40,6 @@ void KernelEventPublisher::configure() {
   for (const auto &sub : subscriptions_) {
     if (queue_ != nullptr) {
       auto sc = getSubscriptionContext(sub->context);
-      LOG(INFO) << "Subscribing to" << sc->event_type;
       queue_->subscribe(sc->event_type);
     }
   }
@@ -51,19 +53,27 @@ void KernelEventPublisher::tearDown() {
 
 Status KernelEventPublisher::run() {
   try {
-    queue_->kernelSync(OSQUERY_DEFAULT);
+    int drops = 0;
+    if ((drops = queue_->kernelSync(OSQUERY_DEFAULT)) > 0 &&
+        kToolType == OSQUERY_TOOL_DAEMON) {
+      LOG(WARNING) << "Dropping " << drops << " kernel events.";
+    }
   } catch (const CQueueException &e) {
     LOG(WARNING) << e.what();
   }
 
   int max_before_sync = max_events_before_sync;
   KernelEventContextRef ec;
-  osquery_event_t event = OSQUERY_NULL_EVENT;
-  void *event_buf = nullptr;
-  while (max_before_sync > 0 && (event = queue_->dequeue(&event_buf))) {
-    switch (event) {
+  osquery_event_t event_type = OSQUERY_NULL_EVENT;
+  CQueue::event *event = nullptr;
+  while (max_before_sync > 0 && (event_type = queue_->dequeue(&event))) {
+    switch (event_type) {
+      case OSQUERY_PROCESS_EVENT:
+        ec = createEventContextFrom<osquery_process_event_t>(event_type, event);
+        fire(ec);
+        break;
       default:
-        LOG(WARNING) << "Unknown kernel event received: " << event;
+        LOG(WARNING) << "Unknown kernel event received: " << event_type;
         break;
     }
     max_before_sync--;
@@ -74,15 +84,16 @@ Status KernelEventPublisher::run() {
 
 template <typename EventType>
 KernelEventContextRef KernelEventPublisher::createEventContextFrom(
-    osquery_event_t event_type,
-    void *event_buf) const {
+    osquery_event_t event_type, CQueue::event *event) const {
   TypedKernelEventContextRef<EventType> ec;
 
   ec = std::make_shared<TypedKernelEventContext<EventType> >();
   ec->event_type = event_type;
-  memcpy(&(ec->event), event_buf, sizeof(EventType));
+  ec->time = event->time.time;
+  ec->uptime = event->time.uptime;
+  memcpy(&(ec->event), event->buf, sizeof(EventType));
 
-  return ec;
+  return std::static_pointer_cast<KernelEventContext>(ec);
 }
 
 bool KernelEventPublisher::shouldFire(const KernelSubscriptionContextRef &sc,

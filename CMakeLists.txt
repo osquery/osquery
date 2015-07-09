@@ -269,9 +269,6 @@ endif()
 # Make sure the generated paths exist
 execute_process(COMMAND mkdir -p "${CMAKE_BINARY_DIR}/generated")
 
-# Include the kernel building targets/macros
-add_subdirectory(kernel)
-
 # We need to link some packages as dynamic/dependent.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
 find_package(OpenSSL REQUIRED)
@@ -334,6 +331,9 @@ endif()
 
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)
+
+# Include the kernel building targets/macros
+add_subdirectory(kernel)
 
 # make docs
 find_package(Doxygen)

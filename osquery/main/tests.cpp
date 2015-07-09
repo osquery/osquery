@@ -24,6 +24,8 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
+std::string kFakeDirectory = "";
+
 DECLARE_string(database_path);
 DECLARE_string(extensions_socket);
 DECLARE_string(modules_autoload);
@@ -39,12 +41,16 @@ void initTesting() {
 
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
-  fs::remove_all(kTestWorkingDirectory);
-  fs::create_directories(kTestWorkingDirectory);
-  FLAGS_database_path = kTestWorkingDirectory + "unittests.db";
-  FLAGS_extensions_socket = kTestWorkingDirectory + "unittests.em";
-  FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
-  FLAGS_modules_autoload = kTestWorkingDirectory + "unittests-mod.load";
+  std::string testWorkingDirectory =
+      kTestWorkingDirectory + std::to_string(getuid()) + "/";
+  kFakeDirectory = testWorkingDirectory + kFakeDirectoryName;
+
+  fs::remove_all(testWorkingDirectory);
+  fs::create_directories(testWorkingDirectory);
+  FLAGS_database_path = testWorkingDirectory + "unittests.db";
+  FLAGS_extensions_socket = testWorkingDirectory + "unittests.em";
+  FLAGS_extensions_autoload = testWorkingDirectory + "unittests-ext.load";
+  FLAGS_modules_autoload = testWorkingDirectory + "unittests-mod.load";
   FLAGS_disable_logging = true;
 
   // Create a default DBHandle instance before unittests.

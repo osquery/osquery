@@ -60,12 +60,13 @@ void CQueue::subscribe(osquery_event_t event) {
   }
 }
 
-osquery_event_t CQueue::dequeue(void **event) {
+osquery_event_t CQueue::dequeue(CQueue::event **event) {
   if (read_ == max_read_) {
     return (osquery_event_t)0;
   }
   osquery_data_header_t *header = (osquery_data_header_t *)read_;
-  if (header->event == END_OF_BUFFER_EVENT) {
+  if (read_ + sizeof(osquery_data_header_t) > buffer_ + size_ ||
+      header->event == END_OF_BUFFER_EVENT) {
     read_ = buffer_;
     if (read_ == max_read_) {
       return (osquery_event_t)0;
@@ -78,8 +79,7 @@ osquery_event_t CQueue::dequeue(void **event) {
     read_ = (read_ + size - buffer_) % size_ + buffer_;
   }
 
-
-  *event = (void *)(header + 1);
+  *event = (CQueue::event *)&(header->time);
   return header->event;
 }
 

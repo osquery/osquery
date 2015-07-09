@@ -1,0 +1,30 @@
+table_name("process_events")
+description("Track time/action process executions.")
+schema([
+    Column("pid", BIGINT,
+           "Process ID of the process executing this file."),
+    Column("parent", BIGINT,
+           "Parent process ID of the process executing this file."),
+    Column("uid", BIGINT,
+           "Real user ID of the user executing file at exec time."),
+    Column("euid", BIGINT,
+           "Effective user ID of the user executing file at exec time."),
+    Column("gid", BIGINT,
+           "Real group ID of the group executing file at exec time."),
+    Column("egid", BIGINT,
+           "Effective group ID of the group executing file at exec time."),
+    Column("owner_uid", BIGINT, "User ID of the owner of the executing file."),
+    Column("owner_gid", BIGINT, "Group ID of the owner of the executing file."),
+    Column("mode", BIGINT, "Indicates if the file had setuid permissions."),
+    Column("path", TEXT, "Path of executed file."),
+    Column("create_time", BIGINT, "Time of creation in UNIX epoch time."),
+    Column("access_time", BIGINT, "Time of last access in UNIX epoch time."),
+    Column("modify_time", BIGINT,
+      "Time of last modification in UNIX epoch time."),
+    Column("change_time", BIGINT,
+      "Time of last metadata change in UNIX epoch time."),
+    Column("time", BIGINT, "Time of execution in UNIX epoch time."),
+    Column("uptime", BIGINT, "Time of execution in system uptime."),
+])
+attributes(event_subscriber=True)
+implementation("process_events@process_events::genTable")
