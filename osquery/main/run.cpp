@@ -20,6 +20,12 @@ DEFINE_string(query, "", "query to execute");
 DEFINE_int32(iterations, 1, "times to run the query in question");
 DEFINE_int32(delay, 0, "delay before and after the query");
 
+namespace osquery {
+
+DECLARE_bool(disable_events);
+DECLARE_bool(registry_exceptions);
+}
+
 int main(int argc, char* argv[]) {
   // Only log to stderr
   FLAGS_logtostderr = true;
@@ -34,6 +40,8 @@ int main(int argc, char* argv[]) {
   }
 
   osquery::Registry::setUp();
+  osquery::FLAGS_disable_events = true;
+  osquery::FLAGS_registry_exceptions = true;
   osquery::attachEvents();
 
   if (FLAGS_delay != 0) {
@@ -55,7 +63,6 @@ int main(int argc, char* argv[]) {
   }
 
   // Instead of calling "shutdownOsquery" force the EF to join its threads.
-  osquery::EventFactory::end(true);
   GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
 
   return status.getCode();
