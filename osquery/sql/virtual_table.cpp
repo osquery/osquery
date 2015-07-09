@@ -115,15 +115,16 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
     return SQLITE_ERROR;
   }
 
-  const auto &column_name = pVtab->content->columns[col].first;
-  const auto &type = pVtab->content->columns[col].second;
+  auto &column_name = pVtab->content->columns[col].first;
+  auto &type = pVtab->content->columns[col].second;
   if (pCur->row >= pVtab->content->data[column_name].size()) {
     return SQLITE_ERROR;
   }
 
-  const auto &value = pVtab->content->data[column_name][pCur->row];
+  // Attempt to cast each xFilter-populated row/column to the SQLite type.
+  auto &value = pVtab->content->data[column_name][pCur->row];
   if (type == "TEXT") {
-    sqlite3_result_text(ctx, value.c_str(), -1, nullptr);
+    sqlite3_result_text(ctx, value.c_str(), value.size(), SQLITE_TRANSIENT);
   } else if (type == "INTEGER") {
     int afinite;
     try {
@@ -155,6 +156,8 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
     }
     sqlite3_result_double(ctx, afinite);
   }
+  // Instead of moving the content it was casted, so clear the container.
+  value.clear();
 
   return SQLITE_OK;
 }
@@ -197,11 +200,15 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   QueryContext context;
 
   for (size_t i = 0; i < pVtab->content->columns.size(); ++i) {
+    // Clear any data, this is the result container for each column + row.
     pVtab->content->data[pVtab->content->columns[i].first].clear();
+    // Set the column affinity for each optional constraint list.
+    // There is a separate list for each column name.
     context.constraints[pVtab->content->columns[i].first].affinity =
         pVtab->content->columns[i].second;
   }
 
+  // Iterate over every argument to xFilter, filling in constraint values.
   for (size_t i = 0; i < argc; ++i) {
     auto expr = (const char *)sqlite3_value_text(argv[i]);
     if (expr == nullptr) {
@@ -223,20 +230,22 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
 
   // Now organize the response rows by column instead of row.
   auto &data = pVtab->content->data;
-  for (const auto &row : response) {
+  for (auto &row : response) {
     for (const auto &column : pVtab->content->columns) {
-      try {
-        auto &value = row.at(column.first);
-        if (value.size() > FLAGS_value_max) {
-          data[column.first].push_back(value.substr(0, FLAGS_value_max));
-        } else {
-          data[column.first].push_back(value);
-        }
-      } catch (const std::out_of_range &e) {
+      if (row.count(column.first) == 0) {
         VLOG(1) << "Table " << pVtab->content->name << " row "
                 << pVtab->content->n << " did not include column "
                 << column.first;
         data[column.first].push_back("");
+        continue;
+      }
+
+      auto &value = row.at(column.first);
+      if (value.size() > FLAGS_value_max) {
+        data[column.first].push_back(value.substr(0, FLAGS_value_max));
+        value.clear();
+      } else {
+        data[column.first].push_back(std::move(value));
       }
     }
 

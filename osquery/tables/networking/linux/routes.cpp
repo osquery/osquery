@@ -39,7 +39,7 @@ std::string getNetlinkIP(int family, const char* buffer) {
 }
 
 Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
-  struct nlmsghdr* nl_hdr;
+  struct nlmsghdr* nl_hdr = nullptr;
 
   size_t message_size = 0;
   do {
@@ -162,13 +162,13 @@ QueryData genRoutes(QueryContext& context) {
   }
 
   // Create netlink message header
-  void* netlink_buffer = malloc(MAX_NETLINK_SIZE);
-  struct nlmsghdr* netlink_msg = (struct nlmsghdr*)netlink_buffer;
-  if (netlink_msg == nullptr) {
+  auto netlink_buffer = (void*)malloc(MAX_NETLINK_SIZE);
+  if (netlink_buffer == nullptr) {
     close(socket_fd);
     return {};
   }
 
+  auto netlink_msg = (struct nlmsghdr*)netlink_buffer;
   netlink_msg->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
   netlink_msg->nlmsg_type = RTM_GETROUTE; // routes from kernel routing table
   netlink_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
@@ -177,7 +177,7 @@ QueryData genRoutes(QueryContext& context) {
 
   // Send the netlink request to the kernel
   if (send(socket_fd, netlink_msg, netlink_msg->nlmsg_len, 0) < 0) {
-    VLOG(1) << "Cannot write NETLINK request header to socket";
+    TLOG << "Cannot write NETLINK request header to socket";
     close(socket_fd);
     free(netlink_buffer);
     return {};
@@ -186,7 +186,7 @@ QueryData genRoutes(QueryContext& context) {
   // Wrap the read socket to support multi-netlink messages
   size_t size = 0;
   if (!readNetlink(socket_fd, 1, (char*)netlink_msg, &size).ok()) {
-    VLOG(1) << "Cannot read NETLINK response from socket";
+    TLOG << "Cannot read NETLINK response from socket";
     close(socket_fd);
     free(netlink_buffer);
     return {};
