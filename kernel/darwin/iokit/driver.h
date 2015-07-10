@@ -16,12 +16,12 @@
 #include <IOKit/IOSharedDataQueue.h>
 #include <sys/kauth.h>
 
-#define OSQueryDriverClassName com_facebook_iokit_OSQuery
+#define OsqueryDriverClassName com_facebook_iokit_osquery
 
 // I/O Kit drivers are subclassed from the IOService base class.
 // The OSDeclareDefaultStructors macro defines C++ constructors.
-class OSQueryDriverClassName : public IOService {
-  OSDeclareDefaultStructors(com_facebook_iokit_OSQuery)
+class OsqueryDriverClassName : public IOService {
+  OSDeclareDefaultStructors(com_facebook_iokit_osquery)
 
  public:
   // Starts driver functionality.

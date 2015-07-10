@@ -17,10 +17,10 @@
 
 #include "kernel/darwin/iokit/driver.h"
 
-#define OSQueryUserClientClassName com_facebook_iokit_OSQueryUserClient
+#define OsqueryUserClientClassName com_facebook_iokit_osqueryUserClient
 
-class OSQueryUserClientClassName : public IOUserClient {
-  OSDeclareDefaultStructors(com_facebook_iokit_OSQueryUserClient);
+class OsqueryUserClientClassName : public IOUserClient {
+  OSDeclareDefaultStructors(com_facebook_iokit_osqueryUserClient);
 
  public:
   // Initializes user client when the user process calls IOServiceOpen.
@@ -42,5 +42,5 @@ class OSQueryUserClientClassName : public IOUserClient {
   IOReturn clientMemoryForType(UInt32 type, IOOptionBits *options,
                                IOMemoryDescriptor **memory) override;
  private:
-  OSQueryDriverClassName *provider_;
+  OsqueryDriverClassName *provider_;
 };
