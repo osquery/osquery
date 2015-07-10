@@ -77,9 +77,14 @@ Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec,
     r["category"] = "Undefined";
   }
   r["transaction_id"] = INTEGER(ec->transaction_id);
-  r["md5"] = hashFromFile(HASH_TYPE_MD5, ec->path);
-  r["sha1"] = hashFromFile(HASH_TYPE_SHA1, ec->path);
-  r["sha256"] = hashFromFile(HASH_TYPE_SHA256, ec->path);
+
+  // Only hash if the file content could have been modified.
+  if (ec->action == "CREATED" || ec->action == "UPDATED") {
+    r["md5"] = hashFromFile(HASH_TYPE_MD5, ec->path);
+    r["sha1"] = hashFromFile(HASH_TYPE_SHA1, ec->path);
+    r["sha256"] = hashFromFile(HASH_TYPE_SHA256, ec->path);
+  }
+
   if (ec->action != "") {
     add(r, ec->time);
   }

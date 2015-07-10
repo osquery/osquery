@@ -80,9 +80,13 @@ Status FileEventSubscriber::Callback(const INotifyEventContextRef& ec,
     r["category"] = "Undefined";
   }
   r["transaction_id"] = INTEGER(ec->event->cookie);
-  r["md5"] = hashFromFile(HASH_TYPE_MD5, ec->path);
-  r["sha1"] = hashFromFile(HASH_TYPE_SHA1, ec->path);
-  r["sha256"] = hashFromFile(HASH_TYPE_SHA256, ec->path);
+
+  if (ec->action == "CREATED" || ec->action == "UPDATED") {
+    r["md5"] = hashFromFile(HASH_TYPE_MD5, ec->path);
+    r["sha1"] = hashFromFile(HASH_TYPE_SHA1, ec->path);
+    r["sha256"] = hashFromFile(HASH_TYPE_SHA256, ec->path);
+  }
+
   if (ec->action != "" && ec->action != "OPENED") {
     // A callback is somewhat useless unless it changes the EventSubscriber
     // state or calls `add` to store a marked up event.
