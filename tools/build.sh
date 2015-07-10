@@ -23,5 +23,15 @@ make clean
 # Build osquery
 make -j$THREADS
 
+# Build osquery kernel
+make kernel-build
+make kernel-load
+
 # Run code unit and integration tests
 make test
+
+make kernel-test
+
+# Cleanup kernel
+make kernel-unload || sudo reboot
+

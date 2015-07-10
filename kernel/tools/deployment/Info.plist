@@ -25,13 +25,13 @@
 	<key>OSBundleLibraries</key>
 	<dict>
 		<key>com.apple.kpi.bsd</key>
-		<string>14.3</string>
+		<string>14.0</string>
 		<key>com.apple.kpi.libkern</key>
-		<string>14.3</string>
+		<string>14.0</string>
 		<key>com.apple.kpi.iokit</key>
-		<string>14.3</string>
+		<string>14.0</string>
 		<key>com.apple.kpi.mach</key>
-		<string>14.3</string>
+		<string>14.0</string>
 	</dict>
 </dict>
 </plist>

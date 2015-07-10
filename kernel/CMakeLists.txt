@@ -109,6 +109,7 @@ if(APPLE)
     # A virtual machine shared folder/filesystem may not allow root owned files.
     COMMAND sudo cp -R "${CMAKE_BINARY_DIR}/kernel/osquery.kext" "/tmp/"
     COMMAND sudo chown -R root:wheel "/tmp/osquery.kext"
+    COMMAND sudo chmod -R 0644 "/tmp/osquery.kext"
     COMMAND sudo kextload -v "/tmp/osquery.kext"
     COMMAND echo "Wrote unsigned extension bundle: /tmp/osquery.kext"
   )
@@ -117,9 +118,10 @@ if(APPLE)
   add_custom_target(
     kernel-unload
     # Unload the kernel extension.
-    COMMAND sudo kextunload -v -b "com.facebook.security.osquery"
+    COMMAND sudo "./kernel/tools/unload_with_retry.sh"
     COMMAND echo "Attempted to unload kernel extension with identifier:"
     COMMAND echo "com.facebook.security.osquery"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   )
 
   # Additional helpful commands for configuring a debug environment for OS X.
@@ -170,6 +172,16 @@ elseif(LINUX)
   )
 
   add_custom_target(
+    kernel-load
+    COMMAND echo "-- No kernel load for Linux"
+  )
+
+  add_custom_target(
+    kernel-unload
+    COMMAND echo "-- No kernel unload for Linux"
+  )
+
+  add_custom_target(
     kernel-test
     COMMAND echo "-- No kernel test is run for Linux"
   )
@@ -187,6 +199,16 @@ else()
   add_custom_target(
     kernel-deps
     COMMAND echo "-- No kernel dependencies for unsupported platform"
+  )
+
+  add_custom_target(
+    kernel-load
+    COMMAND echo "-- No kernel load for unsupported platform"
+  )
+
+  add_custom_target(
+    kernel-unload
+    COMMAND echo "-- No kernel unload for unsupported platform"
   )
 
   add_custom_target(
