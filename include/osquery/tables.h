@@ -51,6 +51,8 @@ namespace osquery {
 #define BIGINT(x) boost::lexical_cast<std::string>(x)
 /// See the affinity type documentation for TEXT.
 #define UNSIGNED_BIGINT(x) boost::lexical_cast<std::string>(x)
+/// See the affinity type documentation for TEXT.
+#define DOUBLE(x) boost::lexical_cast<std::string>(x)
 
 /**
  * @brief The SQLite type affinities as represented as implementation literals.
@@ -67,6 +69,8 @@ namespace osquery {
 #define BIGINT_LITERAL long long int
 /// See the literal type documentation for TEXT_LITERAL.
 #define UNSIGNED_BIGINT_LITERAL unsigned long long int
+/// See the literal type documentation for TEXT_LITERAL.
+#define DOUBLE_LITERAL double
 /// Cast an SQLite affinity type to the literal type.
 #define AS_LITERAL(literal, value) boost::lexical_cast<literal>(value)
 
@@ -89,7 +93,7 @@ enum ConstraintOperator : unsigned char {
   GREATER_THAN_OR_EQUALS = 32
 };
 
-/// Type for flags for what constraint operators are admissable.
+/// Type for flags for what constraint operators are admissible.
 typedef unsigned char ConstraintOperatorFlag;
 /// Flag for any operator type.
 #define ANY_OP 0xFFU
@@ -223,6 +227,7 @@ struct ConstraintList {
    */
   std::set<std::string> getAll(ConstraintOperator op) const;
 
+  /// See ConstraintList::getAll, but as a selected literal type.
   template<typename T>
   std::set<T> getAll(ConstraintOperator op) const {
     std::set<T> literal_matches;
@@ -232,6 +237,9 @@ struct ConstraintList {
     }
     return literal_matches;
   }
+
+  /// Constraint list accessor, types and operator.
+  const std::vector<struct Constraint> getAll() const { return constraints_; }
 
   /**
    * @brief Add a new Constraint to the list of constraints.
@@ -254,6 +262,8 @@ struct ConstraintList {
    * }
    */
   void serialize(boost::property_tree::ptree& tree) const;
+
+  /// See ConstraintList::unserialize.
   void unserialize(const boost::property_tree::ptree& tree);
 
   ConstraintList() : affinity("TEXT") {}

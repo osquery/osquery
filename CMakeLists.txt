@@ -43,6 +43,7 @@ add_compile_options(
   -fpie
   -fPIC
   -fpic
+  -pipe
 )
 
 # osquery additional compiler flags added by CMake.
@@ -125,7 +126,7 @@ set(OSQUERY_REQUIRE_RUNTIMES
 if(DEFINED ENV{DEBUG})
   set(DEBUG TRUE)
   set(CMAKE_BUILD_TYPE "Debug")
-  add_compile_options(-g -O0)
+  add_compile_options(-g -O0 -fstandalone-debug)
   add_definitions(-DDEBUG)
   WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
@@ -145,6 +146,10 @@ else()
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
+endif()
+
+if(NOT DEFINED ENV{OPTIMIZED})
+  add_compile_options(-march=x86-64 -mtune=generic)
 endif()
 
 # make analyze (environment variable from Makefile)
@@ -217,7 +222,6 @@ endif()
 
 # Set various platform/platform-version/build version/etc defines.
 add_definitions(
-  -DOSQUERY_BUILD_VERSION=${OSQUERY_BUILD_VERSION}
   -DOSQUERY_BUILD_SDK_VERSION=${OSQUERY_BUILD_SDK_VERSION}
   -DOSQUERY_BUILD_PLATFORM=${OSQUERY_BUILD_PLATFORM}
   -DOSQUERY_BUILD_DISTRO=${OSQUERY_BUILD_DISTRO}
@@ -226,7 +230,7 @@ add_definitions(
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
   # There are platform incompatibilities on OS X with lite and construction.
-  #-DROCKSDB_LITE
+  #-DROCKSDB_LITE=1
 )
 
 if(APPLE)
@@ -291,7 +295,9 @@ else()
 endif()
 
 # Most dependent packages/libs we want static.
-set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
+if(NOT DEFINED $ENV{BUILD_LINK_SHARED})
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
+endif()
 find_package(CppNetlib 0.11.0 REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)

@@ -17,43 +17,68 @@
 
 namespace osquery {
 
+static std::vector<size_t> kOffset = {0, 0};
+static std::string kToken = "|";
+
 std::string generateToken(const std::map<std::string, size_t>& lengths,
                           const std::vector<std::string>& columns) {
-  std::string output = "+";
+  std::string out = "+";
   for (const auto& col : columns) {
     if (lengths.count(col) > 0) {
-      output += std::string(lengths.at(col) + 2, '-');
+      if (getenv("ENHANCE") != nullptr) {
+        std::string e = "\xF0\x9F\x90\x8C";
+        e[2] += kOffset[1];
+        e[3] += kOffset[0];
+        for (int i = 0; i < lengths.at(col) + 2; i++) {
+          e[3] = '\x8c' + kOffset[0]++;
+          if (e[3] == '\xbf') {
+            e[3] = '\x80';
+            kOffset[1] = (kOffset[1] > 3 && kOffset[1] < 8) ? 9 : kOffset[1];
+            e[2] = '\x90' + ++kOffset[1];
+            kOffset[0] = 0;
+          }
+          if (kOffset[1] == ('\x97' - '\x8d')) {
+            kOffset = {0, 0};
+          }
+          out += e.c_str();
+        }
+      } else {
+        out += std::string(lengths.at(col) + 2, '-');
+      }
     }
-    output += "+";
+    out += "+";
   }
 
-  output += "\n";
-  return output;
+  out += "\n";
+  return out;
 }
 
 std::string generateHeader(const std::map<std::string, size_t>& lengths,
                            const std::vector<std::string>& columns) {
-  std::string output = "|";
+  if (getenv("ENHANCE") != nullptr) {
+    kToken = "\xF0\x9F\x91\x8D";
+  }
+  std::string out = kToken;
   for (const auto& col : columns) {
-    output += " " + col;
+    out += " " + col;
     if (lengths.count(col) > 0) {
       int buffer_size = lengths.at(col) - utf8StringSize(col) + 1;
       if (buffer_size > 0) {
-        output += std::string(buffer_size, ' ');
+        out += std::string(buffer_size, ' ');
       } else {
-        output += ' ';
+        out += ' ';
       }
     }
-    output += "|";
+    out += kToken;
   }
-  output += "\n";
-  return output;
+  out += "\n";
+  return out;
 }
 
 std::string generateRow(const Row& r,
                         const std::map<std::string, size_t>& lengths,
                         const std::vector<std::string>& order) {
-  std::string output;
+  std::string out;
   for (const auto& column : order) {
     if (r.count(column) == 0 || lengths.count(column) == 0) {
       continue;
@@ -62,16 +87,16 @@ std::string generateRow(const Row& r,
 
     int buffer_size = lengths.at(column) - utf8StringSize(r.at(column)) + 1;
     if (buffer_size > 0) {
-      output += "| " + r.at(column) + std::string(buffer_size, ' ');
+      out += kToken + " " + r.at(column) + std::string(buffer_size, ' ');
     }
   }
 
-  if (output.size() > 0) {
+  if (out.size() > 0) {
     // Only append if a row was added.
-    output += "|\n";
+    out += kToken + "\n";
   }
 
-  return output;
+  return out;
 }
 
 void prettyPrint(const QueryData& results,

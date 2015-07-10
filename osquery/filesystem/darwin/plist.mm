@@ -22,153 +22,175 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-NSMutableArray* filterArray(id dataStructure);
-NSMutableDictionary* filterDictionary(id dataStructure);
+/**
+ * @brief Filter selected data types from deserialized property list.
+ *
+ * Since a property list supports a superset of JSON types we must pass
+ * through each type, focusing on the dictionary and list containers, to
+ * cherry-pick JSON-supported types. The resultant boost property tree will
+ * serialize/deserialize into JSON. It is the most used data type in osquery.
+ *
+ * The filter functions support:
+ * NSString, NSDate, NSNumber, YES, NO, NSArray, and NSDictionary.
+ * For NSData the result will be base64 encoded as a string type.
+ */
+Status filterDictionary(id plist, const std::string& root, pt::ptree& tree);
 
-NSMutableDictionary* filterDictionary(id dataStructure) {
+/// See filterDictionary, the mimicked logic with a anonymous key more or less.
+Status filterArray(id plist, const std::string& root, pt::ptree& tree);
+
+Status filterDictionary(id plist, const std::string& root, pt::ptree& tree) {
+  Status total_status = Status(0, "OK");
   @autoreleasepool {
-    NSMutableDictionary* result = [NSMutableDictionary new];
-    for (id key in [dataStructure allKeys]) {
-      id value = [dataStructure objectForKey:key];
-      if ([value isKindOfClass:[NSArray class]]) {
-        [result setObject:filterArray([dataStructure objectForKey:key])
-                   forKey:key];
-      } else if ([value isKindOfClass:[NSDictionary class]]) {
-        [result setObject:filterDictionary([dataStructure objectForKey:key])
-                   forKey:key];
-      } else if ([value isKindOfClass:[NSData class]]) {
-        NSString* dataString = [value base64EncodedStringWithOptions:0];
-        [result setObject:dataString forKey:key];
-      } else if ([value isKindOfClass:[NSDate class]]) {
-        NSNumber* seconds =
-            [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
-        [result setObject:seconds forKey:key];
-      } else {
-        [result setObject:[dataStructure objectForKey:key] forKey:key];
+    for (id key in [plist allKeys]) {
+      if (key == nil || ![key isKindOfClass:[NSString class]]) {
+        // Unknown type as dictionary key, most likely a malformed plist.
+        continue;
       }
-    }
-    return result;
-  }
-}
 
-NSMutableArray* filterArray(id dataStructure) {
-  @autoreleasepool {
-    NSMutableArray* result = [NSMutableArray new];
-    for (id value in dataStructure) {
-      if ([value isKindOfClass:[NSDictionary class]]) {
-        [result addObject:filterDictionary(value)];
+      id value = [plist objectForKey:key];
+      if (value == nil) {
+        continue;
+      }
+
+      if ([value isKindOfClass:[NSString class]]) {
+        tree.add(root + [key UTF8String], [value UTF8String]);
+      } else if ([value isKindOfClass:[NSNumber class]]) {
+        tree.add(root + [key UTF8String], [[value stringValue] UTF8String]);
       } else if ([value isKindOfClass:[NSArray class]]) {
-        [result addObject:filterArray(value)];
+        auto child = root + [key UTF8String];
+        auto status = filterArray(value, child, tree);
+        if (!status.ok()) {
+          total_status = status;
+        }
+      } else if ([value isKindOfClass:[NSDictionary class]]) {
+        auto child = root + [key UTF8String] + ".";
+        auto status = filterDictionary(value, child, tree);
+        if (!status.ok()) {
+          total_status = status;
+        }
       } else if ([value isKindOfClass:[NSData class]]) {
         NSString* dataString = [value base64EncodedStringWithOptions:0];
-        [result addObject:dataString];
+        tree.add(root + [key UTF8String], [dataString UTF8String]);
       } else if ([value isKindOfClass:[NSDate class]]) {
         NSNumber* seconds =
             [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
-        [result addObject:seconds];
-      } else {
-        [result addObject:value];
+        tree.add(root + [key UTF8String], [[seconds stringValue] UTF8String]);
+      } else if ([value isEqual:@(YES)]) {
+        tree.add(root + [key UTF8String], "true");
+      } else if ([value isEqual:@(NO)]) {
+        tree.add(root + [key UTF8String], "false");
       }
     }
-    return result;
   }
+  return total_status;
 }
 
-NSMutableDictionary* filterPlist(NSData* plist) {
+Status filterArray(id plist, const std::string& root, pt::ptree& tree) {
+  Status total_status = Status(0, "OK");
+  pt::ptree child_tree;
+  @autoreleasepool {
+    for (id value in plist) {
+      if (value == nil) {
+        continue;
+      }
+
+      pt::ptree child;
+      if ([value isKindOfClass:[NSString class]]) {
+        child.put_value([value UTF8String]);
+      } else if ([value isKindOfClass:[NSNumber class]]) {
+        child.put_value([[value stringValue] UTF8String]);
+      } else if ([value isKindOfClass:[NSArray class]]) {
+        auto status = filterArray(value, "root", child);
+        if (!status.ok()) {
+          total_status = status;
+        }
+        if (child.count("root") > 0) {
+          child = child.get_child("root");
+        }
+      } else if ([value isKindOfClass:[NSDictionary class]]) {
+        auto status = filterDictionary(value, "", child);
+        if (!status.ok()) {
+          total_status = status;
+        }
+      } else if ([value isKindOfClass:[NSData class]]) {
+        NSString* dataString = [value base64EncodedStringWithOptions:0];
+        child.put_value([dataString UTF8String]);
+      } else if ([value isKindOfClass:[NSDate class]]) {
+        NSNumber* seconds =
+            [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
+        child.put_value([[seconds stringValue] UTF8String]);
+      } else if ([value isEqual:@(YES)]) {
+        child.put_value("true");
+      } else if ([value isEqual:@(NO)]) {
+        child.put_value("false");
+      }
+      child_tree.push_back(std::make_pair("", child));
+    }
+  }
+  tree.add_child(root, child_tree);
+  return total_status;
+}
+
+Status filterPlist(NSData* plist, pt::ptree& tree) {
   @autoreleasepool {
     if ([plist isKindOfClass:[NSDictionary class]]) {
-      return filterDictionary((NSMutableDictionary*)plist);
+      return filterDictionary((NSMutableDictionary*)plist, "", tree);
     } else {
-      NSMutableDictionary* result = [NSMutableDictionary new];
-      [result setObject:filterArray((NSMutableArray*)plist) forKey:@"root"];
-      return result;
+      return filterArray((NSMutableArray*)plist, "root", tree);
     }
   }
+  return Status(0, "OK");
 }
 
 Status parsePlistContent(const std::string& content, pt::ptree& tree) {
+  tree.clear();
   @autoreleasepool {
-    NSData* plist_content =
-        [NSData dataWithBytes:content.c_str() length:content.size()];
+    id data = [NSData dataWithBytes:content.c_str() length:content.size()];
+    if (data == nil) {
+      return Status(1, "Unable to create plist content");
+    }
 
     // Read file content into a data object, containing potential plist data.
     NSError* error = nil;
-    NSPropertyListFormat plist_format;
     id plist_data = [NSPropertyListSerialization
-        propertyListWithData:plist_content
+        propertyListWithData:data
                      options:NSPropertyListImmutable
-                      format:&plist_format
+                      format:NULL
                        error:&error];
     if (plist_data == nil) {
       std::string error_message([[error localizedFailureReason] UTF8String]);
       VLOG(1) << error_message;
       return Status(1, error_message);
     }
-
-    // Print a helpful verbose message based on the plist data's format.
-    switch (plist_format) {
-    case NSPropertyListOpenStepFormat:
-      VLOG(1) << "plist was in openstep format";
-      break;
-    case NSPropertyListXMLFormat_v1_0:
-      VLOG(1) << "plist was in xml format";
-      break;
-    case NSPropertyListBinaryFormat_v1_0:
-      VLOG(1) << "plist was in binary format";
-      break;
-    default:
-      VLOG(1) << "plist was in unknown format";
-      break;
-    }
-
     // Parse the plist data into a core foundation dictionary-literal.
-    NSMutableDictionary* plist;
-    try {
-      plist = filterPlist(plist_data);
-    } catch (const std::exception& e) {
-      LOG(ERROR) << "Exception occurred while filtering plist: " << e.what();
-      return Status(1, e.what());
-    }
-
-    // Convert the dictionary type into a JSON literal.
-    NSData* json_data;
-    if ([NSJSONSerialization isValidJSONObject:plist]) {
-      json_data =
-          [NSJSONSerialization dataWithJSONObject:plist options:0 error:&error];
-    } else {
-      return Status(1, "Valid JSON was not deserialized");
-    }
-    if (json_data == nil) {
-      std::string error_message([[error localizedFailureReason] UTF8String]);
-      LOG(ERROR) << error_message;
-      return Status(1, error_message);
-    }
-
-    // Convert the JSON literal into a standard string.
-    std::string json_string =
-        [[[NSString alloc] initWithBytes:[json_data bytes]
-                                  length:[json_data length]
-                                encoding:NSUTF8StringEncoding] UTF8String];
-
-    // Finally, parse the JSON blob into a property tree literal.
-    try {
-      std::stringstream json_stream;
-      json_stream << json_string;
-      pt::read_json(json_stream, tree);
-    } catch (const pt::json_parser::json_parser_error& e) {
-      LOG(ERROR) << "Error reading JSON: " << e.what();
-      return Status(1, e.what());
-    }
-    return Status(0, "OK");
+    return filterPlist(plist_data, tree);
   }
 }
 
 Status parsePlist(const boost::filesystem::path& path, pt::ptree& tree) {
-  std::string file_content;
-  Status s = readFile(path, file_content);
-  if (!s.ok()) {
-    return s;
+  tree.clear();
+  @autoreleasepool {
+    id ns_path = [NSString stringWithUTF8String:path.string().c_str()];
+    id stream = [NSInputStream inputStreamWithFileAtPath:ns_path];
+    if (stream == nil) {
+      return Status(1, "Unable to read plist: " + path.string());
+    }
+
+    // Read file content into a data object, containing potential plist data.
+    NSError* error = nil;
+    [stream open];
+    id plist_data = [NSPropertyListSerialization propertyListWithStream:stream
+                                                                options:0
+                                                                 format:NULL
+                                                                  error:&error];
+    if (plist_data == nil) {
+      std::string error_message([[error localizedFailureReason] UTF8String]);
+      VLOG(1) << error_message;
+      return Status(1, error_message);
+    }
+    // Parse the plist data into a core foundation dictionary-literal.
+    return filterPlist(plist_data, tree);
   }
-  return parsePlistContent(file_content, tree);
 }
 }

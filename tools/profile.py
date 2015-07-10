@@ -119,10 +119,10 @@ def profile_leaks(shell, queries, count=1, rounds=1, supp_file=None):
             if output is not None and output[0] != "0":
                 # Add some fun colored output if leaking.
                 if key == "definitely":
-                    output = red(output)
+                    output = utils.red(output)
                     report[name] = "LEAKING"
                 if key == "indirectly":
-                    output = yellow(output)
+                    output = utils.yellow(output)
                     report[name] = "WARNING"
             else:
                 report[name] = "SAFE"

@@ -138,7 +138,7 @@ void Flag::printFlags(bool shell, bool external, bool cli) {
       const auto& detail = details.at(flag.name);
       if ((shell && !detail.shell) || (!shell && detail.shell) ||
           (external && !detail.external) || (!external && detail.external) ||
-          (cli && !detail.cli) || (!cli && detail.cli)) {
+          (cli && !detail.cli) || (!cli && detail.cli) || detail.hidden) {
         continue;
       }
     } else if (aliases.count(flag.name) > 0) {

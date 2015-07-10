@@ -21,7 +21,7 @@
 #include "osquery/events/linux/inotify.h"
 #endif
 
-#include "osquery/tables/utils/yara_utils.h"
+#include "osquery/tables/other/yara_utils.h"
 
 #ifdef CONCAT
 #undef CONCAT
@@ -84,8 +84,8 @@ Status YARAEventSubscriber::init() {
   for (const auto& yara_path_element : yara_paths) {
     // Subscribe to each file for the given key (category).
     if (file_map.count(yara_path_element.first) == 0) {
-      LOG(WARNING) << "Key in yara.file_paths not found in file_paths: " <<
-        yara_path_element.first;
+      VLOG(1) << "Key in yara.file_paths not found in file_paths: "
+              << yara_path_element.first;
       continue;
     }
 
@@ -112,7 +112,6 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
 
   Row r;
   r["action"] = ec->action;
-  r["time"] = ec->time_string;
   r["target_path"] = ec->path;
   r["category"] = *(std::string*)user_data;
 

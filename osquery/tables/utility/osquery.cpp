@@ -182,7 +182,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
 
   Row r;
   r["pid"] = INTEGER(getpid());
-  r["version"] = TEXT(OSQUERY_VERSION);
+  r["version"] = kVersion;
 
   std::string hash_string;
   auto s = Config::getMD5(hash_string);
@@ -221,7 +221,7 @@ QueryData genOsquerySchedule(QueryContext& context) {
     r["wall_time"] = BIGINT(query.second.wall_time);
     r["user_time"] = BIGINT(query.second.user_time);
     r["system_time"] = BIGINT(query.second.system_time);
-    r["average_memory"] = BIGINT(query.second.memory);
+    r["average_memory"] = BIGINT(query.second.average_memory);
     results.push_back(r);
   }
 

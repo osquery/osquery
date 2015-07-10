@@ -1,0 +1,12 @@
+table_name("app_schemes")
+description("OS X application schemes and handlers (e.g., http, file, mailto.")
+schema([
+    Column("scheme", TEXT, "Name of the scheme/protocol"),
+    Column("handler", TEXT, "Application label for the handler"),
+    Column("enabled", INTEGER, "1 if this handler is the OS default, else 0"),
+    Column("external", INTEGER,
+        "1 if this handler does NOT exist on OS X by default, else 0"),
+    Column("protected", INTEGER,
+        "1 if this handler is protected (reserved) by OS X, else 0"),
+])
+implementation("apps@genAppSchemes")

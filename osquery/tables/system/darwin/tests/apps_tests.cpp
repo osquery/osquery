@@ -16,15 +16,17 @@
 
 #include "osquery/core/test_util.h"
 
+namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
 
-std::vector<std::string> getSystemApplications();
-std::string getNameFromInfoPlistPath(const std::string& path);
-std::string getPathFromInfoPlistPath(const std::string& path);
-Row parseInfoPlist(const std::string& path, const pt::ptree& tree);
+void genApplication(const pt::ptree& tree,
+                    const fs::path& path,
+                    QueryData& results);
+void genApplicationsFromPath(const fs::path& path,
+                             std::vector<std::string>& apps);
 
 pt::ptree getInfoPlistTree() {
   std::string content;
@@ -37,38 +39,14 @@ pt::ptree getInfoPlistTree() {
 
 class AppsTests : public testing::Test {};
 
-TEST_F(AppsTests, get_name_from_info_plist_path) {
-  EXPECT_EQ(
-      "Foo.app",
-      getNameFromInfoPlistPath("/Applications/Foo.app/Contents/Info.plist"));
-  EXPECT_EQ("Foo Bar.app",
-            getNameFromInfoPlistPath(
-                "/Applications/Foo Bar.app/Contents/Info.plist"));
-  EXPECT_EQ("Foo.app",
-            getNameFromInfoPlistPath(
-                "/Users/marpaia/Applications/Foo.app/Contents/Info.plist"));
-  EXPECT_EQ("Foo Bar.app",
-            getNameFromInfoPlistPath(
-                "/Users/marpaia/Applications/Foo Bar.app/Contents/Info.plist"));
-}
-
-TEST_F(AppsTests, get_path_from_info_plist_path) {
-  EXPECT_EQ(
-      "/Applications/Foo.app",
-      getPathFromInfoPlistPath("/Applications/Foo.app/Contents/Info.plist"));
-  EXPECT_EQ("/Applications/Foo Bar.app",
-            getPathFromInfoPlistPath(
-                "/Applications/Foo Bar.app/Contents/Info.plist"));
-  EXPECT_EQ("/Users/marpaia/Applications/Foo.app",
-            getPathFromInfoPlistPath(
-                "/Users/marpaia/Applications/Foo.app/Contents/Info.plist"));
-  EXPECT_EQ("/Users/marpaia/Applications/Foo Bar.app",
-            getPathFromInfoPlistPath(
-                "/Users/marpaia/Applications/Foo Bar.app/Contents/Info.plist"));
-}
-
 TEST_F(AppsTests, test_parse_info_plist) {
+  QueryData results;
+  // Generate a set of results/single row using an example tree.
   auto tree = getInfoPlistTree();
+  genApplication(tree, "/Applications/Foobar.app/Contents/Info.plist", results);
+  ASSERT_EQ(results.size(), 1);
+  ASSERT_EQ(results[0].count("name"), 1);
+
   Row expected = {
       {"name", "Foobar.app"},
       {"path", "/Applications/Foobar.app"},
@@ -89,24 +67,39 @@ TEST_F(AppsTests, test_parse_info_plist) {
       {"applescript_enabled", ""},
       {"copyright", ""},
   };
-  EXPECT_EQ(
-      parseInfoPlist("/Applications/Foobar.app/Contents/Info.plist", tree),
-      expected);
+
+  // We could compare the entire map, but iterating the columns will produce
+  // better error text as most likely parsing for a certain column/type changed.
+  for (const auto& column : expected) {
+    EXPECT_EQ(results[0][column.first], column.second);
+  }
 }
 
 TEST_F(AppsTests, test_sanity_check) {
-  int result = 0;
-  pt::ptree tree;
-  for (const auto& path : getSystemApplications()) {
+  // Test beyond units, that there's at least 1 application on the built host.
+  std::vector<std::string> apps;
+  genApplicationsFromPath("/Applications", apps);
+  ASSERT_GT(apps.size(), 0);
+
+  // Parse each application searching for a parsed Safari.
+  bool found_safari = false;
+  for (const auto& path : apps) {
+    pt::ptree tree;
     if (osquery::parsePlist(path, tree).ok()) {
-      if (parseInfoPlist(path, tree)["bundle_identifier"] ==
-          "com.apple.Safari") {
-        result++;
+      QueryData results;
+      genApplication(tree, path, results);
+
+      // No asserts about individual Application parsing, expect edge cases.
+      if (results.size() > 0 && results[0].count("bundle_identifier") > 0 &&
+          results[0].at("bundle_identifier") == "com.apple.Safari") {
+        // Assume Safari is installed on the build host.
+        found_safari = true;
         break;
       }
     }
   }
-  EXPECT_GE(result, 1);
+
+  EXPECT_TRUE(found_safari);
 }
 }
 }

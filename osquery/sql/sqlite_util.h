@@ -21,6 +21,8 @@
 
 #include <osquery/sql.h>
 
+#define SQLITE_SOFT_HEAP_LIMIT (5 * 1024 * 1024)
+
 namespace osquery {
 
 /**
@@ -107,6 +109,7 @@ class SQLiteDBManager : private boost::noncopyable {
 
  protected:
   SQLiteDBManager() : db_(nullptr), lock_(mutex_, boost::defer_lock) {
+    sqlite3_soft_heap_limit64(SQLITE_SOFT_HEAP_LIMIT);
     disabled_tables_ = parseDisableTablesFlag(Flag::getValue("disable_tables"));
   }
   SQLiteDBManager(SQLiteDBManager const&);
@@ -184,7 +187,11 @@ class SQLiteSQLPlugin : SQLPlugin {
  */
 std::string getStringForSQLiteReturnCode(int code);
 
-// the callback for populating a std::vector<row> set of results. "argument"
-// should be a non-const reference to a std::vector<row>
+/**
+ * @brief Accumulate rows from an SQLite exec into a QueryData struct.
+ *
+ * The callback for populating a std::vector<Row> set of results. "argument"
+ * should be a non-const reference to a std::vector<Row>.
+ */
 int queryDataCallback(void* argument, int argc, char* argv[], char* column[]);
 }

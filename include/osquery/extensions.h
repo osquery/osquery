@@ -23,7 +23,7 @@ DECLARE_string(extensions_timeout);
 DECLARE_bool(disable_extensions);
 
 /// A millisecond internal applied to extension initialization.
-extern const int kExtensionInitializeMLatency;
+extern const size_t kExtensionInitializeLatencyUS;
 
 /**
  * @brief Helper struct for managing extenion metadata.

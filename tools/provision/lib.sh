@@ -63,8 +63,8 @@ function install_gcc() {
     [ -L /usr/bin/g++ ] && sudo unlink /usr/bin/g++
     sudo ln -sf $TARGET/bin/gcc4.8.4 /usr/bin/gcc
     sudo ln -sf $TARGET/bin/g++4.8.4 /usr/bin/g++
-    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.19
-    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib64/libstdc++.so.6.0.19
+    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib64/libstdc++.so.6
     popd
   fi
 }
@@ -142,22 +142,21 @@ function install_snappy() {
   URL=$DEPS_URL/snappy-1.1.1.tar.gz
   SOURCE=snappy-1.1.1
 
-  if provision snappy /usr/local/lib/libsnappy.a; then
-    if [[ ! -f snappy-1.1.1/.libs/libsnappy.a ]]; then
-      pushd $SOURCE
-      CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static
+  if provision snappy /usr/local/include/snappy.h; then
+    pushd $SOURCE
+    CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static
+    if [[ ! -f .libs/libsnappy.a ]]; then
       make -j $THREADS
-      popd
     fi
-    # We do not need the snappy include headers, just static library.
-    sudo cp snappy-1.1.1/.libs/libsnappy.a /usr/local/lib
+    sudo make install
+    popd
   fi
 }
 
 function install_yara() {
-  TARBALL=yara-3.3.0.tar.gz
-  URL=$DEPS_URL/yara-3.3.0.tar.gz
-  SOURCE=yara-3.3.0
+  TARBALL=yara-3.4.0.tar.gz
+  URL=$DEPS_URL/yara-3.4.0.tar.gz
+  SOURCE=yara-3.4.0
 
   if provision yara /usr/local/lib/libyara.a; then
     pushd $SOURCE
@@ -265,7 +264,8 @@ function install_automake() {
     pushd $SOURCE
     ./bootstrap.sh
     ./configure --prefix=/usr
-    CC="$CC" CXX="$CXX" make -j $THREADS
+    # Version 1.14 of automake fails to build with more than one thread
+    CC="$CC" CXX="$CXX" make -j 1
     sudo make install
     popd
   fi
@@ -352,11 +352,15 @@ function install_libaptpkg() {
   SOURCE=apt-0.8.16-12.10.22
   if provision libaptpkg /usr/local/lib/libapt-pkg.a; then
     pushd $SOURCE
-    mkdir build
+    mkdir -p build
     pushd build
     ../configure --prefix=/usr/local
-    make -j $THREADS
-    sudo make install
+    make -j $THREADS STATICLIBS=1 library
+    sudo cp bin/libapt-pkg.so.4.12.0 /usr/local/lib/
+    sudo ln -sf /usr/local/lib/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
+    sudo cp bin/libapt-pkg.a /usr/local/lib/
+    sudo mkdir -p /usr/local/include/apt-pkg/
+    sudo cp include/apt-pkg/*.h /usr/local/include/apt-pkg/
     popd
     popd
   fi
@@ -382,7 +386,14 @@ function package() {
       log "$1 is already installed. skipping."
     else
       log "installing $1"
-      brew install --build-bottle --build-from-source $1 || brew upgrade --build-from-source $@
+      export HOMEBREW_MAKE_JOBS=$THREADS
+      export HOMEBREW_NO_EMOJI=1
+      if [[ $1 = "rocksdb" ]]; then
+        # Build RocksDB from source in brew
+        export HOMEBREW_BUILD_FROM_SOURCE=1
+        HOMEBREW_ARGS=--build-bottle
+      fi
+      brew install -v $HOMEBREW_ARGS $1 || brew upgrade -v $HOMEBREW_ARGS $@
     fi
   elif [[ $OS = "freebsd" ]]; then
     if pkg info -q $1; then

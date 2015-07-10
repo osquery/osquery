@@ -4,10 +4,12 @@ if(APPLE)
   ADD_OSQUERY_LINK(FALSE "-framework CoreServices")
   ADD_OSQUERY_LINK(FALSE "-framework SystemConfiguration")
   ADD_OSQUERY_LINK(FALSE "-framework IOKit")
+  ADD_OSQUERY_LINK(FALSE "-framework DiskArbitration")
 
   ADD_OSQUERY_LIBRARY(FALSE osquery_events_darwin
     darwin/fsevents.cpp
     darwin/iokit_hid.cpp
+    darwin/diskarbitration.cpp
     darwin/scnetwork.cpp
   )
 elseif(FREEBSD)

@@ -62,7 +62,7 @@ DEFAULT_CONFIG = {
         "config_path": "%s.conf" % CONFIG_NAME,
         "extensions_socket": "%s.em" % CONFIG_NAME,
         "extensions_interval": "1",
-        "extensions_timeout": "1",
+        "extensions_timeout": "0",
         "watchdog_level": "3",
         "disable_logging": "true",
         "force": "true",
@@ -147,7 +147,8 @@ class ProcRunner(object):
     The subprocess is opened in a new thread and state is tracked using
     this class wrapper.
     '''
-    def __init__(self, name, path, _args=[], interval=0.2, silent=False):
+    def __init__(self, name, path, _args=[], interval=0.02, silent=False):
+        self.started = False
         self.proc = None
         self.name = name
         self.path = path
@@ -159,46 +160,63 @@ class ProcRunner(object):
         thread.start()
 
     def run(self):
+        pid = 0
+        code = -1
         try:
             if self.silent:
                 self.proc = subprocess.Popen([self.path] + self.args,
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             else:
                 self.proc = subprocess.Popen([self.path] + self.args)
+            pid = self.proc.pid
+            self.started = True
         except Exception as e:
             print (utils.red("Process start failed:") + " %s" % self.name)
             print (str(e))
             sys.exit(1)
         try:
             while self.proc.poll() is None:
+                self.started = True
                 time.sleep(self.interval)
+            self.started = True
+            code = -1 if self.proc is None else self.proc.poll()
             self.proc = None
-        except:
+        except Exception as e:
             return
-        print ("Process %s ended" % self.name)
 
-    def getChildren(self, max_interval=1):
+    def requireStarted(self, timeout=2):
+        delay = 0
+        while delay < timeout:
+            if self.started is True:
+                break
+            time.sleep(self.interval * 10)
+            delay += self.interval * 10
+
+    def getChildren(self, timeout=1):
         '''Get the child pids.'''
+        self.requireStarted()
         if not self.proc:
             return []
         try:
             proc = psutil.Process(pid=self.proc.pid)
             delay = 0
-            while len(proc.get_children()) == 0:
-                if delay > max_interval:
+            while len(proc.children()) == 0:
+                if delay > timeout:
                     return []
                 time.sleep(self.interval)
                 delay += self.interval
-            return [p.pid for p in proc.get_children()]
+            return [p.pid for p in proc.children()]
         except:
             pass
         return []
 
     @property
     def pid(self):
+        self.requireStarted()
         return self.proc.pid if self.proc is not None else None
 
     def kill(self, children=False):
+        self.requireStarted()
         if children:
             for child in self.getChildren():
                 try:
@@ -207,12 +225,13 @@ class ProcRunner(object):
                     pass
         if self.proc:
             try:
-                self.proc.kill()
+                os.kill(self.pid, 9)
             except:
                 pass
         self.proc = None
 
     def isAlive(self, timeout=3):
+        self.requireStarted()
         '''Check if the process is alive.'''
         delay = 0
         while self.proc is None:
@@ -225,6 +244,7 @@ class ProcRunner(object):
         return self.proc.poll() is None
 
     def isDead(self, pid, timeout=5):
+        self.requireStarted()
         '''Check if the process was killed.
 
         This is different than `isAlive` in that the timeout is an expectation
@@ -280,14 +300,15 @@ class ProcessGenerator(object):
         config = copy.deepcopy(CONFIG)
         config["options"]["extensions_socket"] += str(random.randint(1000, 9999))
         binary = os.path.join(ARGS.build, "osquery", "example_extension.ext")
-        path = path if path else config["options"]["extensions_socket"]
+        if path is not None:
+            config["options"]["extensions_socket"] = path
         extension = ProcRunner("extension",
             binary,
             [
-                "--socket=%s" % path,
-                "--verbose" if ARGS.verbose else "",
+                "--socket=%s" % config["options"]["extensions_socket"],
+                "--verbose" if not silent else "",
                 "--timeout=%d" % timeout,
-                "--interval=%d" % 1,
+                "--interval=%d" % 0,
             ],
             silent=silent)
         self.generators.append(extension)
@@ -295,7 +316,7 @@ class ProcessGenerator(object):
         return extension
 
     def tearDown(self):
-        '''When the unittest stops, clean up child-generated processes.
+        '''When the unit test stops, clean up child-generated processes.
 
         Iterate through the generated daemons and extensions, and kill -9 them.
         Unittest should stop processes they generate, but on failure the
@@ -341,13 +362,18 @@ class EXClient:
         if self.transport:
             self.transport.close()
 
-    def open(self):
+    def open(self, timeout=0.1, interval=0.01):
         '''Attempt to open the UNIX domain socket.'''
-        try:
-            self.transport.open()
-        except Exception as e:
-            return False
-        return True
+        delay = 0
+        while delay < timeout:
+            try:
+                self.transport.open()
+                return True
+            except Exception as e:
+                pass
+            delay += interval
+            time.sleep(interval)
+        return False
 
     def getEM(self):
         '''Return an extension manager (osquery core) client.'''
@@ -430,22 +456,25 @@ class Tester(object):
 
     def run(self):
         os.setpgrp()
-
         unittest_args = [sys.argv[0]]
         if ARGS.verbose:
             unittest_args += ["-v"]
         unittest.main(argv=unittest_args)
 
 
-def expect(functional, expected, interval=0.2, timeout=2):
+def expect(functional, expected, interval=0.01, timeout=4):
     """Helper function to run a function with expected latency"""
     delay = 0
     result = None
     while result is None or len(result) != expected:
         try:
             result = functional()
-            if len(result) == expected: break
-        except: pass
+            if len(result) == expected:
+                break
+        except Exception as e:
+            print ("Expect exception (%s): %s not %s" % (
+                str(e), str(functional), expected))
+            return None
         if delay >= timeout:
             return None
         time.sleep(interval)
@@ -453,7 +482,7 @@ def expect(functional, expected, interval=0.2, timeout=2):
     return result
 
 
-def expectTrue(functional, interval=0.2, timeout=2):
+def expectTrue(functional, interval=0.01, timeout=8):
     """Helper function to run a function with expected latency"""
     delay = 0
     while delay < timeout:

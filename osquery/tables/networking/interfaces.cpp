@@ -63,13 +63,20 @@ void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
 
 void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
   Row r;
-  r["interface"] = std::string(addr->ifa_name);
+  if (addr->ifa_name != nullptr) {
+    r["interface"] = std::string(addr->ifa_name);
+  } else {
+    r["interface"] = "";
+  }
   r["mac"] = macAsString(addr);
 
   if (addr->ifa_data != nullptr) {
 #ifdef __linux__
     // Linux/Netlink interface details parsing.
     auto ifd = (struct rtnl_link_stats *)addr->ifa_data;
+    r["mtu"] = "0";
+    r["metric"] = "0";
+    r["type"] = "0";
     r["ipackets"] = BIGINT_FROM_UINT32(ifd->rx_packets);
     r["opackets"] = BIGINT_FROM_UINT32(ifd->tx_packets);
     r["ibytes"] = BIGINT_FROM_UINT32(ifd->rx_bytes);
@@ -95,6 +102,7 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
       }
     }
 
+    // Last change is not implemented in Linux.
     r["last_change"] = "-1";
 #else
     // Apple and FreeBSD interface details parsing.
@@ -118,9 +126,8 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
 QueryData genInterfaceAddresses(QueryContext &context) {
   QueryData results;
 
-  struct ifaddrs *if_addrs, *if_addr;
-
-  if (getifaddrs(&if_addrs) != 0) {
+  struct ifaddrs *if_addrs = nullptr, *if_addr = nullptr;
+  if (getifaddrs(&if_addrs) != 0 || if_addrs == nullptr) {
     return {};
   }
 
@@ -138,9 +145,8 @@ QueryData genInterfaceAddresses(QueryContext &context) {
 QueryData genInterfaceDetails(QueryContext &context) {
   QueryData results;
 
-  struct ifaddrs *if_addrs, *if_addr;
-
-  if (getifaddrs(&if_addrs) != 0) {
+  struct ifaddrs *if_addrs = nullptr, *if_addr = nullptr;
+  if (getifaddrs(&if_addrs) != 0 || if_addrs == nullptr) {
     return {};
   }
 

@@ -28,7 +28,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 // Millisecond latency between initalizing manager pings.
-const int kExtensionInitializeMLatency = 200;
+const size_t kExtensionInitializeLatencyUS = 20000;
 
 #ifdef __APPLE__
 const std::string kModuleExtension = ".dylib";
@@ -114,17 +114,26 @@ void ExtensionManagerWatcher::watch() {
   for (const auto& uuid : uuids) {
     try {
       auto client = EXClient(getExtensionSocket(uuid));
-
       // Ping the extension until it goes down.
       client.get()->ping(status);
     } catch (const std::exception& e) {
-      LOG(INFO) << "Extension UUID " << uuid << " has gone away";
-      Registry::removeBroadcast(uuid);
+      failures_[uuid] += 1;
       continue;
     }
 
-    if (status.code != ExtensionCode::EXT_SUCCESS && fatal_) {
-      Registry::removeBroadcast(uuid);
+    if (status.code != ExtensionCode::EXT_SUCCESS) {
+      LOG(INFO) << "Extension UUID " << uuid << " ping failed";
+      failures_[uuid] += 1;
+    } else {
+      failures_[uuid] = 0;
+    }
+  }
+
+  for (const auto& uuid : failures_) {
+    if (uuid.second >= 3) {
+      LOG(INFO) << "Extension UUID " << uuid.first << " has gone away";
+      Registry::removeBroadcast(uuid.first);
+      failures_[uuid.first] = 0;
     }
   }
 }
@@ -218,7 +227,11 @@ Status loadModules(const std::string& loadfile) {
 Status extensionPathActive(const std::string& path, bool use_timeout = false) {
   // Make sure the extension manager path exists, and is writable.
   size_t delay = 0;
-  size_t timeout = atoi(FLAGS_extensions_timeout.c_str());
+  // The timeout is given in seconds, but checked interval is microseconds.
+  size_t timeout = atoi(FLAGS_extensions_timeout.c_str()) * 1000000;
+  if (timeout < kExtensionInitializeLatencyUS * 10) {
+    timeout = kExtensionInitializeLatencyUS * 10;
+  }
   do {
     if (pathExists(path) && isWritable(path)) {
       try {
@@ -233,9 +246,9 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
       break;
     }
     // Increase the total wait detail.
-    delay += kExtensionInitializeMLatency;
-    ::usleep(kExtensionInitializeMLatency * 1000);
-  } while (delay < timeout * 1000);
+    delay += kExtensionInitializeLatencyUS;
+    ::usleep(kExtensionInitializeLatencyUS);
+  } while (delay < timeout);
   return Status(1, "Extension socket not available: " + path);
 }
 
@@ -247,6 +260,7 @@ Status startExtension(const std::string& name,
                       const std::string& version,
                       const std::string& min_sdk_version) {
   Registry::setExternal();
+  // Latency converted to milliseconds, used as a thread interruptible.
   auto latency = atoi(FLAGS_extensions_interval.c_str()) * 1000;
   auto status = startExtensionWatcher(FLAGS_extensions_socket, latency, true);
   if (!status.ok()) {
@@ -442,7 +456,7 @@ Status getExtensions(const std::string& manager_path,
   }
 
   // Add the extension manager to the list called (core).
-  extensions[0] = {"core", OSQUERY_VERSION, "0.0.0", OSQUERY_SDK_VERSION};
+  extensions[0] = {"core", kVersion, "0.0.0", kSDKVersion};
 
   // Convert from Thrift-internal list type to RouteUUID/ExtenionInfo type.
   for (const auto& ext : ext_list) {
@@ -525,6 +539,7 @@ Status startExtensionManager(const std::string& manager_path) {
     return status;
   }
 
+  // Seconds converted to milliseconds, used as a thread interruptible.
   auto latency = atoi(FLAGS_extensions_interval.c_str()) * 1000;
   // Start a extension manager watcher, if the manager dies, so should we.
   Dispatcher::addService(

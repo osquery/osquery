@@ -108,7 +108,8 @@ TEST_F(QueryTests, test_query_name_not_found_in_db) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("not_a_real_query", query);
   auto status = cf.getPreviousQueryResults(previous_qd, db_);
-  EXPECT_FALSE(status.ok());
+  EXPECT_TRUE(status.toString() == "Query name not found in database");
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(QueryTests, test_is_query_name_in_database) {

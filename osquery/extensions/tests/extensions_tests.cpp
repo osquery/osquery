@@ -22,8 +22,8 @@ using namespace osquery::extensions;
 
 namespace osquery {
 
-const int kDelayUS = 200;
-const int kTimeoutUS = 10000;
+const int kDelayUS = 2000;
+const int kTimeoutUS = 1000000;
 const std::string kTestManagerSocket = kTestWorkingDirectory + "test.em";
 
 class ExtensionsTest : public testing::Test {
@@ -236,7 +236,7 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
 
 TEST_F(ExtensionsTest, test_extension_module_search) {
   createMockFileStructure();
-  EXPECT_TRUE(loadModules(kFakeDirectory));
+  EXPECT_FALSE(loadModules(kFakeDirectory + "/root.txt"));
   EXPECT_FALSE(loadModules("/dir/does/not/exist"));
   tearDownMockFileStructure();
 }

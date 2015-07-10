@@ -23,13 +23,12 @@ namespace osquery {
 extern std::map<int, std::string> kMaskActions;
 
 /**
- * @brief Subscriptioning details for INotifyEventPublisher events.
+ * @brief Subscription details for INotifyEventPublisher events.
  *
  * This context is specific to INotifyEventPublisher. It allows the
- *subscriptioning
- * EventSubscriber to set a path (file or directory) and a limited action mask.
- * Events are passed to the subscriptioning EventSubscriber if they match the
- *context
+ * subscribing EventSubscriber to set a path (file or directory) and a
+ * limited action mask.
+ * Events are passed to the EventSubscriber if they match the context
  * path (or anything within a directory if the path is a directory) and if the
  * event action is part of the mask. If the mask is 0 then all actions are
  * passed to the EventSubscriber.
@@ -37,12 +36,13 @@ extern std::map<int, std::string> kMaskActions;
 struct INotifySubscriptionContext : public SubscriptionContext {
   /// Subscription the following filesystem path.
   std::string path;
-  /// Limit the `inotify` actions to the subscriptioned mask (if not 0).
+  /// Limit the `inotify` actions to the subscription mask (if not 0).
   uint32_t mask;
   /// Treat this path as a directory and subscription recursively.
   bool recursive;
 
-  INotifySubscriptionContext() : mask(0), recursive(false) {}
+  INotifySubscriptionContext()
+      : mask(0), recursive(false), recursive_match(false) {}
 
   /**
    * @brief Helper method to map a string action to `inotify` action mask bit.
@@ -58,6 +58,15 @@ struct INotifySubscriptionContext : public SubscriptionContext {
       }
     }
   }
+
+ private:
+  /// During configure the INotify publisher may modify/optimize the paths.
+  std::string discovered_;
+  /// A configure-time pattern was expanded to match absolute paths.
+  bool recursive_match;
+
+ private:
+  friend class INotifyEventPublisher;
 };
 
 /**

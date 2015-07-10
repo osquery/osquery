@@ -26,6 +26,7 @@ import unittest
 # osquery-specific testing utils
 import test_base
 
+EXTENSION_TIMEOUT = 10
 
 class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_1_daemon_without_extensions(self):
@@ -48,8 +49,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client
         client = test_base.EXClient(daemon.options["extensions_socket"])
-        test_base.expectTrue(client.open)
-        self.assertTrue(client.open())
+        self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
 
         # List the number of extensions
@@ -80,8 +80,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client
         client = test_base.EXClient(daemon.options["extensions_socket"])
-        test_base.expectTrue(client.open)
-        self.assertTrue(client.open())
+        self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
 
         # Make sure there are no extensions registered
@@ -90,7 +89,9 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Make sure the extension process starts
         extension = self._run_extension(
-            path=daemon.options["extensions_socket"])
+            path=daemon.options["extensions_socket"],
+            timeout=EXTENSION_TIMEOUT,
+        )
         self.assertTrue(extension.isAlive())
 
         # Now that an extension has started, check extension list
@@ -105,7 +106,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         # Get a python-based thrift client to the extension's service
         client2 = test_base.EXClient(daemon.options["extensions_socket"],
             uuid=ex_uuid)
-        client2.open()
+        self.assertTrue(client2.open(timeout=EXTENSION_TIMEOUT))
         ex = client2.getEX()
         self.assertEqual(ex.ping().code, 0)
 
@@ -138,13 +139,16 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     def test_4_extension_dies(self):
-        daemon = self._run_daemon({"disable_watchdog": True})
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "extensions_interval": "0",
+            "verbose": True,
+        })
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
         client = test_base.EXClient(daemon.options["extensions_socket"])
-        test_base.expectTrue(client.open)
-        self.assertTrue(client.open())
+        self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
 
         # Make sure there are no extensions registered
@@ -153,7 +157,8 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Make sure the extension process starts
         extension = self._run_extension(
-            path=daemon.options["extensions_socket"])
+            path=daemon.options["extensions_socket"],
+            timeout=EXTENSION_TIMEOUT)
         self.assertTrue(extension.isAlive())
 
         # Now that an extension has started, check extension list
@@ -164,12 +169,14 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         extension.kill()
 
         # Make sure the daemon detects the change
-        result = test_base.expect(em.extensions, 0, timeout=5)
+        result = test_base.expect(em.extensions, 0, timeout=EXTENSION_TIMEOUT)
         self.assertEqual(len(result), 0)
 
         # Make sure the extension restarts
         extension = self._run_extension(
-            path=daemon.options["extensions_socket"])
+            path=daemon.options["extensions_socket"],
+            timeout=EXTENSION_TIMEOUT,
+        )
         self.assertTrue(extension.isAlive())
 
         # With the reset there should be 1 extension again
@@ -186,20 +193,20 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
     def test_5_extension_timeout(self):
         # Start an extension without a daemon, with a timeout.
-        extension = self._run_extension(timeout=3)
+        extension = self._run_extension(timeout=EXTENSION_TIMEOUT)
         self.assertTrue(extension.isAlive())
 
         # Now start a daemon
         daemon = self._run_daemon({
             "disable_watchdog": True,
             "extensions_socket": extension.options["extensions_socket"],
+            "verbose": True,
         })
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
         client = test_base.EXClient(extension.options["extensions_socket"])
-        test_base.expectTrue(client.open)
-        self.assertTrue(client.open())
+        self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
 
         # The waiting extension should have connected to the daemon.
@@ -215,14 +222,14 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
             [test_base.ARGS.build + "/osquery/example_extension.ext"])
         daemon = self._run_daemon({
             "disable_watchdog": True,
+            "extensions_timeout": EXTENSION_TIMEOUT,
             "extensions_autoload": loader.path,
         })
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
         client = test_base.EXClient(daemon.options["extensions_socket"])
-        test_base.expectTrue(client.open)
-        self.assertTrue(client.open())
+        self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
 
         # The waiting extension should have connected to the daemon.
@@ -235,13 +242,15 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_7_extensions_autoload_watchdog(self):
         loader = test_base.Autoloader(
             [test_base.ARGS.build + "/osquery/example_extension.ext"])
-        daemon = self._run_daemon({"extensions_autoload": loader.path})
+        daemon = self._run_daemon({
+            "extensions_timeout": EXTENSION_TIMEOUT,
+            "extensions_autoload": loader.path,
+        })
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client
         client = test_base.EXClient(daemon.options["extensions_socket"])
-        test_base.expectTrue(client.open)
-        self.assertTrue(client.open())
+        self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
 
         # The waiting extension should have connected to the daemon.
@@ -256,6 +265,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
             [test_base.ARGS.build + "/osquery/example_extension.ext"])
         daemon = self._run_daemon({
             "extensions_autoload": loader.path,
+            "extensions_timeout": EXTENSION_TIMEOUT,
             "config_plugin": "example",
             "verbose": True,
         })
@@ -263,8 +273,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client
         client = test_base.EXClient(daemon.options["extensions_socket"])
-        test_base.expectTrue(client.open)
-        self.assertTrue(client.open())
+        self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
 
         # The waiting extension should have connected to the daemon.
@@ -277,27 +286,29 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
     def test_9_external_config_update(self):
         # Start an extension without a daemon, with a timeout.
-        extension = self._run_extension(timeout=3)
+        extension = self._run_extension(timeout=EXTENSION_TIMEOUT)
         self.assertTrue(extension.isAlive())
 
         # Now start a daemon
         daemon = self._run_daemon({
             "disable_watchdog": True,
+            "extensions_timeout": EXTENSION_TIMEOUT,
             "extensions_socket": extension.options["extensions_socket"],
         })
         self.assertTrue(daemon.isAlive())
 
         # Get a python-based thrift client to the manager and extension.
         client = test_base.EXClient(extension.options["extensions_socket"])
-        client.open()
+        self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
+
         # Need the manager to request the extension's UUID.
         result = test_base.expect(em.extensions, 1)
         self.assertTrue(result is not None)
         ex_uuid = result.keys()[0]
         client2 = test_base.EXClient(extension.options["extensions_socket"],
             uuid=ex_uuid)
-        client2.open()
+        self.assertTrue(client2.open(timeout=EXTENSION_TIMEOUT))
         ex = client2.getEX()
 
         # Trigger an async update from the extension.

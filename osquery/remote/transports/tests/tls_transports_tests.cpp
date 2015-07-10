@@ -89,6 +89,7 @@ class TLSTransportsTests : public testing::Test {
     // Sometimes the best we can test is the call workflow.
     if (status.getCode() == 1) {
       // The socket bind failed or encountered a connection error in the test.
+      LOG(ERROR) << "Not failing TLS-based transport tests.";
       return false;
     }
     return true;
@@ -158,12 +159,13 @@ TEST_F(TLSTransportsTests, test_call_verify_peer) {
   // to verify the fake server, CA, commonName.
   Status status;
   ASSERT_NO_THROW(status = r.call());
-
-  EXPECT_FALSE(status.ok());
-  // A non-1 exit code means the request failed, but not because of a socket
-  // error or request-connection problem.
-  EXPECT_EQ(status.getCode(), 2);
-  EXPECT_EQ(status.getMessage(), "Request error: certificate verify failed");
+  if (verify(status)) {
+    EXPECT_FALSE(status.ok());
+    // A non-1 exit code means the request failed, but not because of a socket
+    // error or request-connection problem.
+    EXPECT_EQ(status.getCode(), 2);
+    EXPECT_EQ(status.getMessage(), "Request error: certificate verify failed");
+  }
 }
 
 TEST_F(TLSTransportsTests, test_call_server_cert_pinning) {

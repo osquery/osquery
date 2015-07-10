@@ -55,11 +55,9 @@ const std::vector<RouteType> kArpTypes = {
 InterfaceMap genInterfaceMap() {
   InterfaceMap ifmap;
 
-  struct ifaddrs *if_addrs, *if_addr;
-  struct sockaddr_dl *sdl;
+  struct ifaddrs *if_addrs = nullptr, *if_addr = nullptr;
 
-  if (getifaddrs(&if_addrs) != 0) {
-    LOG(ERROR) << "Failed to create interface map, getifaddrs() failed.";
+  if (getifaddrs(&if_addrs) != 0 || if_addrs == nullptr) {
     return ifmap;
   }
 
@@ -67,8 +65,8 @@ InterfaceMap genInterfaceMap() {
   for (if_addr = if_addrs; if_addr != nullptr; if_addr = if_addr->ifa_next) {
     if (if_addr->ifa_addr != nullptr &&
         if_addr->ifa_addr->sa_family == AF_LINK) {
-      std::string route_type = std::string(if_addr->ifa_name);
-      sdl = (struct sockaddr_dl *)if_addr->ifa_addr;
+      auto route_type = std::string(if_addr->ifa_name);
+      auto sdl = (struct sockaddr_dl *)if_addr->ifa_addr;
       ifmap.insert(it, std::make_pair(sdl->sdl_index, route_type));
     }
   }
@@ -141,24 +139,20 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
   size_t table_size;
   int mib[] = {CTL_NET, PF_ROUTE, 0, AF_UNSPEC, NET_RT_FLAGS, type.first};
   if (sysctl(mib, sizeof(mib) / sizeof(int), nullptr, &table_size, nullptr, 0) <
-      0) {
+          0 ||
+      table_size == 0) {
     return;
   }
 
-  if (table_size == 0) {
-    return;
-  }
-
-  char *table, *p;
-  table = (char *)malloc(table_size);
+  auto table = (char *)malloc(table_size);
   if (sysctl(mib, sizeof(mib) / sizeof(int), table, &table_size, nullptr, 0) <
       0) {
     free(table);
     return;
   }
 
-  struct rt_msghdr *route;
-  for (p = table; p < table + table_size; p += route->rtm_msglen) {
+  auto route = (struct rt_msghdr *)table;
+  for (char *p = table; p < table + table_size; p += route->rtm_msglen) {
     route = (struct rt_msghdr *)p;
     auto sa = (struct sockaddr *)(route + 1);
 

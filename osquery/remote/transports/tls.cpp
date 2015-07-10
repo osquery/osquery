@@ -29,7 +29,7 @@ namespace osquery {
 const std::string kTLSCiphers =
     "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:"
     "DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5";
-const std::string kTLSUserAgent = "osquery/" STR(OSQUERY_BUILD_VERSION);
+const std::string kTLSUserAgent = "osquery/" + kVersion;
 
 /// TLS server hostname.
 CLI_FLAG(string,
@@ -116,6 +116,13 @@ http::client TLSTransport::getClient() {
   return client;
 }
 
+inline bool tlsFailure(const std::string& what) {
+  if (what.find("Error") == 0 || what.find("refused") != std::string::npos) {
+    return false;
+  }
+  return true;
+}
+
 Status TLSTransport::sendRequest() {
   if (destination_.find("https://") == std::string::npos) {
     return Status(1, "Cannot create TLS request for non-HTTPS protocol URI");
@@ -131,7 +138,7 @@ Status TLSTransport::sendRequest() {
     response_status_ =
         serializer_->deserialize(body(response_), response_params_);
   } catch (const std::exception& e) {
-    return Status(((std::string(e.what()).find("Error") == 0) ? 1 : 2),
+    return Status((tlsFailure(e.what())) ? 2 : 1,
                   std::string("Request error: ") + e.what());
   }
   return response_status_;
@@ -152,7 +159,7 @@ Status TLSTransport::sendRequest(const std::string& params) {
     response_status_ =
         serializer_->deserialize(body(response_), response_params_);
   } catch (const std::exception& e) {
-    return Status(((std::string(e.what()).find("Error") == 0) ? 1 : 2),
+    return Status((tlsFailure(e.what())) ? 2 : 1,
                   std::string("Request error: ") + e.what());
   }
   return response_status_;

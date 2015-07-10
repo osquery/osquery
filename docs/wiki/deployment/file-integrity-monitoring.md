@@ -1,16 +1,28 @@
 As of osquery version 1.4.2, file integrity monitoring support was introduced
-for linux and darwin variants.  This module reads a list of directories to
+for the Linux (using inotify) and Darwin (using FSEvents) platforms.  This module reads a list of directories to
 monitor from the osquery config and details changes and hashes to those
 selected files in the [`file_events`](https://osquery.io/docs/tables/#file_events) table.
 
 To get started with FIM (file integrity monitoring), you must first identify
-which files and directories you wish to monitor.
-Following the [wildcard rules](../development/wildcard-rules.md), you can specify
-a directory or filename filter to limit the selection of files to monitor.
+which files and directories you wish to monitor. Then use *fnmatch*-style, or filesystem globbing, patterns to represent the target paths. You may use standard wildcards "*\**" or SQL-style wildcards "*%*":
 
-For example, you may want to monitor `/etc` along with other files on a linux
-system.  After you identify your target files and directories you wish to monitor,
-add them to a new section in the config *file_paths*.
+**Matching wildcard rules**
+
+* `%`: Match all files and folders for one level.
+* `%%`: Match all files and folders recursively.
+* `%abc`: Match all within-level ending in "abc".
+* `abc%`: Match all within-level starting with "abc".
+
+**Matching examples**
+
+* `/Users/%/Library`: Monitor for changes to every user's Library folder.
+* `/Users/%/Library/`: Monitor for changes to files within each Library folder.
+* `/Users/%/Library/%`: Same, changes to files within each Library folder.
+* `/Users/%/Library/%%`: Monitor changes recursively within each Library.
+* `/bin/%sh`: Monitor the *bin* directory for changes ending in *sh*.
+
+For example, you may want to monitor `/etc` along with other files on a Linux
+system. After you identify your target files and directories you wish to monitor, add them to a new section in the config *file_paths*.
 
 ## Example FIM Config
 
@@ -23,13 +35,14 @@ add them to a new section in the config *file_paths*.
     },
     "file_events": {
       "query": "select * from file_events;",
+      "removed": false,
       "interval": 300
     }
   },
   "file_paths": {
     "homes": [
-      "/root/%%",
-      "/home/%/%%"
+      "/root/.ssh/%%",
+      "/home/%/.ssh/%%"
     ],
     "etc": [
       "/etc/%%"
@@ -62,7 +75,7 @@ if possible.  A sample event looks like this:
 
 ## Tuning Linux inotify limits
 
-For linux, osquery uses inotify to subscribe to file changes at the kernel
+For Linux, osquery uses inotify to subscribe to file changes at the kernel
 level for performance.  This introduces some limitations on the number of files
 that can be monitored since each inotify watch takes up memory in kernel space
 (non-swappable memory).  Adjusting your limits accordingly can help increase

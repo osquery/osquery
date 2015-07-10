@@ -36,7 +36,7 @@ void genHashForFile(const std::string& path,
 QueryData genHash(QueryContext& context) {
   QueryData results;
 
-  // The query must provide a predicate with constratins including path or
+  // The query must provide a predicate with constraints including path or
   // directory. We search for the parsed predicate constraints with the equals
   // operator.
   auto paths = context.constraints["path"].getAll(EQUALS);

@@ -5,13 +5,13 @@ schema([
     Column("path", TEXT, "Local device path assigned (optional)"),
     Column("type", TEXT, "Type of hardware and hardware event"),
     Column("driver", TEXT, "Driver claiming the device"),
-    Column("model", TEXT, "Hadware device model"),
+    Column("model", TEXT, "Hardware device model"),
     Column("model_id", INTEGER),
     Column("vendor", TEXT, "hardware device vendor"),
     Column("vendor_id", INTEGER),
     Column("serial", TEXT, "Device serial (optional)"),
     Column("revision", INTEGER, "Device revision (optional)"),
-    Column("time", INTEGER, "Time of hardware event"),
+    Column("time", BIGINT, "Time of hardware event"),
 ])
 attributes(event_subscriber=True)
 implementation("events/hardware_events@hardware_events::genTable")
