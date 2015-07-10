@@ -17,4 +17,7 @@ If you're interested in **using osquery's functionality in your own tool**, chec
 ## Getting help
 
 If you any part of osquery isn't working as expected, please create a [GitHub Issue](https://github.com/facebook/osquery/issues).
+
 Keep in touch with osquery developers and users in **#osquery** on **freenode**.
+
+If you have long-form questions, please email [osquery@googlegroups.com](mailto:osquery@googlegroups.com).
