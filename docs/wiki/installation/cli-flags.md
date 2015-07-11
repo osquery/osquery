@@ -58,10 +58,10 @@ the "worker" process will be restarted.
 
 `--watchdog_level=1`
 
-### Backing storage control flags
-
 Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug). The default watchdog process uses a "level" to configure performance limits.
 The higher the level the more strict the limits become.
+
+### Backing storage control flags
 
 `--database_in_memory=false`
 
@@ -71,13 +71,13 @@ For the default backing-store, RocksDB, this option is not supported.
 
 `--database_path=/var/osquery/osquery.db`
 
-### Extensions control flags
-
 If using a disk-based backing store, specify a path.
 osquery will keep state using a "backing store" using RocksDB by default.
 This state holds event information such that it may be queried later according
 to a schedule. It holds the results of the most recent query for each query within
 the schedule. This last-queried result allows query-differential logging.
+
+### Extensions control flags
 
 `--disable_extensions=false`
 
@@ -248,6 +248,6 @@ Maximum returned row value size.
 
 ## Shell-only flags
 
-Most of the shell flags are self-explainitory and are adapted from the SQLite shell. Refer the shell's ".help" command for details and explainations.
+Most of the shell flags are self-explanatory and are adapted from the SQLite shell. Refer to the shell's ".help" command for details and explanations.
 
-We have added a `--json` switch to output rows as a JSON list.
+We have added the `--json` switch to output rows as a JSON list.

@@ -43,7 +43,7 @@ REGISTER(FilesystemConfigPlugin, "config", "filesystem");
 }
 ```
 
-There are 5 parts of a config plugin.
+There are 5 parts of a config plugin:
 
 - Include the plugin macros as well as command line argument macros.
 - If your config requires customization expose it as arguments.

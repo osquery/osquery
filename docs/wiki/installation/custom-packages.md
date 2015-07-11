@@ -2,7 +2,7 @@ We support building custom deployment packages (pkg/deb/rpm) for less common use
 
 - Slipstreaming additional tools into osquery's existing packages
 - Proprietary modifications to "core" features that aren't simple additional plugins
-- Custom dependency modifications (patched versions of glog, thrift, etc)
+- Custom dependency modifications (patched versions of glog, thrift, etc.)
 
 The first step to creating custom packages is having [built](../development/building.md) and tested osquery. This means reading the development guides and in most cases having a dedicated "build host".
 
@@ -51,7 +51,7 @@ $ ./tools/deployment/make_osx_package.sh -c ~/Desktop/osquery.conf
 
 The distributable package can be found at `./build/darwin/osquery-VERSION.pkg`.
 
-You can now use your existing package distribution system ([JAMF](http://www.jamfsoftware.com/), [Chef](https://www.getchef.com/chef/), etc) to push this package to your infrastructure.
+You can now use your existing package distribution system ([JAMF](http://www.jamfsoftware.com/), [Chef](https://www.getchef.com/chef/), etc.) to push this package to your infrastructure.
 
 ### Custom LaunchDaemon
 
@@ -66,10 +66,10 @@ $ ./tools/deployment/make_osx_package.sh -c /internal/osquery/osquery.conf \
 
 ### Removing the LaunchDaemon
 
-Perhaps you just want to deploy the osquery binaries via a pkg and you'd like to manage the scheduling of osqueryd via some other mechanism. To do this, when you run `make_osx_package.sh`, include a `-n`/`--no-launchd` flag.
-
-This will make the package just lay the binaries down. The LaunchDaemon won't be included and no LaunchDaemon will be unloaded or loaded by the post-install script of the package. For example:
+Perhaps you just want to deploy the osquery binaries via a pkg and you'd like to manage the scheduling of osqueryd via some other mechanism. To do this, when you run `make_osx_package.sh`, include a `-n`/`--no-launchd` flag. For example:
 
 ```sh
 $ ./tools/deployment/make_osx_package.sh -n
 ```
+
+This will make the package just lay the binaries down. The LaunchDaemon won't be included and no LaunchDaemon will be unloaded or loaded by the post-install script of the package.

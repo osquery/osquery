@@ -40,7 +40,7 @@ The above code is very simple. If you're unfamiliar with the syntax/concepts of 
 
 ## Building a test
 
-Whatever component of osquery you're working on has it's own "CMakeLists.txt" file. For example, the _tables_ component (folder) has it's own "CMakeLists.txt"`" file at [osquery/tables/CMakeLists.txt](https://github.com/facebook/osquery/blob/master/osquery/tables/CMakeLists.txt). The file that we're going to be modifying today is [osquery/CMakeLists.txt](https://github.com/facebook/osquery/tree/master/osquery/CMakeLists.txt). Edit that file to include the following contents:
+Each component of osquery you're working on has its own "CMakeLists.txt" file. For example, the _tables_ component (folder) has its own "CMakeLists.txt" file at [osquery/tables/CMakeLists.txt](https://github.com/facebook/osquery/blob/master/osquery/tables/CMakeLists.txt). The file that we're going to be modifying today is [osquery/CMakeLists.txt](https://github.com/facebook/osquery/tree/master/osquery/CMakeLists.txt). Edit that file to include the following content:
 
 ```CMake
 ADD_OSQUERY_TEST(example_test example_test.cpp)
@@ -50,7 +50,7 @@ After you specify the test sources, add whatever libraries you have to link agai
 
 ## Running a test
 
-From the root of the repository run `make`. If you're code compiles properly, run `make test`. Ensure that your test has passed.
+From the root of the repository run `make`. If your code compiles properly, run `make test`. Ensure that your test has passed.
 
 **Extending the test**
 

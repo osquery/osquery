@@ -41,7 +41,7 @@ For example, when a file in */usr/bin/* and */usr/sbin/* is changed it will be s
 
 # yara_events table
 
-Using the configuration above you can see it in action. While osquery is running I executed `touch /Users/wxs/tmp/foo` in another terminal. Here is the relevant queries to show what happened:
+Using the configuration above you can see it in action. While osquery was running I executed `touch /Users/wxs/tmp/foo` in another terminal. Here is the relevant queries to show what happened:
 
 ```bash
 osquery> select * from file_events;
@@ -74,15 +74,15 @@ osquery> select * from yara_events;
 osquery>
 ```
 
-As you can see, even though no matches were found an row is still created and stored.
+As you can see, even though no matches were found a row is still created and stored.
 
 ## On-demand YARA scanning
 
-The [**yara**](https://osquery.io/docs/tables/#yara) table is used for on-demand scanning. With this table you can arbitrarily YARA scan any available file on the filesystem with any available signature files or signature group from the configuration. In order to scan the table must be given a constraint which says where to scan and what to scan with.
+The [**yara**](https://osquery.io/docs/tables/#yara) table is used for on-demand scanning. With this table you can arbitrarily YARA scan any available file on the filesystem with any available signature files or signature group from the configuration. In order to scan, the table must be given a constraint which says where to scan and what to scan with.
 
-In order to determine where to scan the table accepts either a *path* or a *pattern* constraint. The *path* constraint must be a full path to a single file. There is no expansion or recursion with this constraint. The *pattern* constraint follows the same wildcard rules mentioned before.
+In order to determine where to scan, the table accepts either a *path* or a *pattern* constraint. The *path* constraint must be a full path to a single file. There is no expansion or recursion with this constraint. The *pattern* constraint follows the same wildcard rules mentioned before.
 
-Once the "where" is out of the way you must specify the "what" part. This is done through either the *sigfile* or *sig_group* constraints. The *sigfile* constraint can be either an absolute path to a signature file on disk or a path relative to */var/osquery/*. The signature file will be compiled only for the execution of this one query and removed afterwards. The *sig_group* constraint must consist of a named signature grouping from your configuration file.
+Once the "where" is out of the way, you must specify the "what" part. This is done through either the *sigfile* or *sig_group* constraints. The *sigfile* constraint can be either an absolute path to a signature file on disk or a path relative to */var/osquery/*. The signature file will be compiled only for the execution of this one query and removed afterwards. The *sig_group* constraint must consist of a named signature grouping from your configuration file.
 
 Here are some examples of the **yara** table in action:
 

@@ -71,7 +71,7 @@ service Extension {
   ExtensionStatus ping(),
   /// Call an extension (or core) registry plugin.
   ExtensionResponse call(
-    /// The registry name (e.g., config, logger, table, etc).
+    /// The registry name (e.g., config, logger, table, etc.).
     1:string registry,
     /// The registry item name (plugin name).
     2:string item,

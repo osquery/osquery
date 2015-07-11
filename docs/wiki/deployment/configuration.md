@@ -13,9 +13,9 @@ a query schedule from a configuration.
 ## Configuration components
 
 The osquery "configuration" is read from a config plugin. This plugin is a data retrieval method and is set to **filesystem** by default.
-Other retrieval and run-time updating methods may include a HTTP/TLS request using the **tls** config plugin. In all cases the response data must be JSON-formatted.
+Other retrieval and run-time updating methods may include an HTTP/TLS request using the **tls** config plugin. In all cases the response data must be JSON-formatted.
 
-There are several components to a configuration:
+There are several components contributing to a configuration:
 
 * Daemon options and feature settings
 * Query Schedule: the set of SQL queries and intervals
@@ -32,7 +32,7 @@ The default config plugin, **filesystem**, reads from a file and optional direct
 * Linux: **/etc/osquery/osquery.conf** and **/etc/osquery/osquery.conf.d/**
 * Mac OS X: **/var/osquery/osquery.conf** and **/var/osquery/osquery.conf.d/**
 
-You may override the **filesystem** plugin's path using `--config_path=/path/to/osquery.conf`. And you may use the ".d/" directory search path based on that custom location.
+You may override the **filesystem** plugin's path using `--config_path=/path/to/osquery.conf`. You may also use the ".d/" directory search path based on that custom location.
 
 Here is an example config that includes options and the query schedule:
 
@@ -58,21 +58,21 @@ Here is an example config that includes options and the query schedule:
 This config tells osqueryd to schedule two queries, **macosx_kextstat** and **foobar**:
 
 * the schedule keys must be unique
-* the "interval" specifies query frequency, in seconds
+* the "interval" specifies query frequency (in seconds)
 
-The first query will document changes to an OS X host's kernel extensions, with a query interval of 10 seconds. Consider using osquery's [performance tooling](performance-safety.md) to understand the performance impact for each query.
+The first query will document changes to the OS X host's kernel extensions, with a query interval of 10 seconds. Consider using osquery's [performance tooling](performance-safety.md) to understand the performance impact for each query.
 
-The results of your query are cached on disk via [RocksDB](http://rocksdb.org/). On first query run, all of the results are stored in RocksDB. On subsequent runs, only result-set changes are logged to RocksDB.
+The results of your query are cached on disk using [RocksDB](http://rocksdb.org/). On the first query run, all of the results are stored in RocksDB. On subsequent runs, only result-set changes are logged to RocksDB.
 
-Scheduled queries can also set: `"removed":false` and `"snapshot":true`. See the next section on [logging](logging.md) for how query options affect output.
+Scheduled queries can also set: `"removed":false` and `"snapshot":true`. See the next section on [logging](logging.md) to learn how query options affect the output.
 
 ## Chef Configuration
 
 Here are example chef cookbook recipes and files for OS X and Linux deployments.
 Consider improving the recipes using node attributes to further control what
-nodes and clients enable osquery. It helps to create a canary or testing set
-that implement a separate "testing" configuration. These recipes assume you
-are deploying the OS X package or Linux package separately.
+nodes and clients enable osquery. It helps to create a canary or a testing set
+that implements a separate "testing" configuration. These recipes assume you
+are deploying the OS X package or the Linux package separately.
 
 ### Chef OS X
 
@@ -190,7 +190,7 @@ And the same configuration file from the OS X example is appropriate.
 
 Configuration supports sets, called packs, of queries that help define your schedule. Packs are distributed with osquery and labeled based on broad categories of information and visibility. For example, a "compliance" pack will include queries that check for changes in locked down operating system features and user settings. A "vulnerability management" pack may perform general asset management queries that build event logs around package and software install changes.
 
-In an osquery configuration JSON, packs are defined as a top-level-key and consist of (pack name to pack location JSON) pairs.
+In an osquery configuration JSON, packs are defined as a top-level-key and consist of _pack name to pack location JSON_ pairs.
 
 ```json
 {
@@ -203,7 +203,7 @@ In an osquery configuration JSON, packs are defined as a top-level-key and consi
 }
 ```
 
-Most packs are cross-platform concepts that may include platform-specific tables/queries. The pack content is slightly different and more descriptive that a normal osquery schedule.
+Most packs are cross-platform concepts that may include platform-specific tables/queries. The pack content is slightly different and more descriptive than a normal osquery schedule.
 
 Here is an example "compliance" pack:
 
@@ -237,7 +237,7 @@ A query pack may make wider limitations about how the queries apply too:
 
 Then every query within will only be added to a schedule if the osqueryd process is running on a Ubuntu distro with a minimum osquery version of 1.4.5.
 
-We plan to release (and bundle alongside RPMs/DEBs/PKGs/etc) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts.
+We plan to release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc.). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts.
 
 ## osqueryctl helper
 

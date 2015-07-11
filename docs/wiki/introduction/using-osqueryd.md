@@ -33,7 +33,7 @@ Each query represents a monitored view of your operating system. The first time 
 ]
 ```
 
-If there are no USB devices added or removed to the laptop this query would never log a result again. The query would still run every 60 seconds but the results would match the previous run and thus no state change would be detected. If a USB memory stick was inserted and left in the laptop for 60 seconds the daemon would log:
+If there are no USB devices added or removed to the laptop, this query would never log a result again. The query would still run every 60 seconds but the results would match the previous run and thus no state change would be detected. If a USB memory stick was inserted and left in the laptop for 60 seconds the daemon would log:
 
 ```
 [

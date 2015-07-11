@@ -74,7 +74,7 @@ sourcetype = osquery_warning
 
 ### Rsyslog
 
-[rsyslog](http://www.rsyslog.com/) is a tried and testing unix log forwarding service. If you're deploying osqueryd in a production linux environment where you don't have to worry about lossy network connections, this may be your best option.
+[rsyslog](http://www.rsyslog.com/) is a tried and testing unix log forwarding service. If you're deploying osqueryd in a production Linux environment where you don't have to worry about lossy network connections, this may be your best option.
 
 ## Analyzing logs
 
@@ -100,8 +100,8 @@ Splunk will automatically extract the relevant fields for analytics, as shown be
 
 ![](https://i.imgur.com/tWCPx51.png)
 
-### Rsyslog, Fluentd, Scribe, etc
+### Rsyslog, Fluentd, Scribe, etc.
 
-If you're using a log forwarder which has less requirements on how data is stored (ie: Splunk Forwarders require the use of Splunk, etc), then you have many options on how you can interact with osqueryd data. It is recommended that you use whatever log analytics platform that you're comfortable with.
+If you're using a log forwarder which has less requirements on how data is stored (for example, Splunk Forwarders require the use of Splunk, etc.), then you have many options on how you can interact with osqueryd data. It is recommended that you use whatever log analytics platform that you're comfortable with.
 
 Many people are very comfortable with [Logstash](http://logstash.net/). If you already have an existing Logstash/Elasticsearch deployment, that is a great option to exercise. If your organization uses a different backend log management solution, osquery should tie into that with minimal effort.
