@@ -1,6 +1,6 @@
 ## Dependencies
 
-We include a `make deps` command to make it easier for developers to get started with the osquery project. `make deps` uses homebrew for OS X and traditional package managers for various distributions of Linux.
+We include a `make deps` command to make it easier for developers to get started with the osquery project. `make deps` uses Homebrew for OS X and traditional package managers for various distributions of Linux.
 
 WARNING: This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
 
@@ -11,7 +11,7 @@ WARNING: This will install or build various dependencies on the build host that 
 To build osquery on OS X, you need `pip` and `brew` installed. `make deps` will take care of installing the appropriate library dependencies, but it's recommended to take take a look at the Makefile, just in case
 something conflicts with your environment.
 
-Anything that does not have a homebrew package is built from source from _https://github.com/osquery/third-party_, which is a git submodule of this repository and is set up by `make deps`.
+Anything that does not have a Homebrew package is built from source from _https://github.com/osquery/third-party_, which is a git submodule of this repository and is set up by `make deps`.
 
 The complete installation/build steps are as follows:
 
@@ -47,7 +47,7 @@ $ vagrant up ubuntu14
 $ vagrant ssh ubuntu14
 ```
 
-By default vagrant will allocate 2 virtual CPUs to the virtual machine instance. You can override this by setting `OSQUERY_BUILD_CPUS` environment variable before spinning up an instance. To allocate the maximum number of CPUs `OSQUERY_BUILD_CPUS` can be set as:
+By default vagrant will allocate 2 virtual CPUs to the virtual machine instance. You can override this by setting `OSQUERY_BUILD_CPUS` environment variable before spinning up an instance. To allocate the maximum number of CPUs, `OSQUERY_BUILD_CPUS` can be set as:
 
 ```sh
 OSQUERY_BUILD_CPUS=`nproc`             # for Linux
@@ -172,7 +172,7 @@ You must run `make deps` to make sure you are pulling in the most-recent depende
 
 `make deps` will take care of installing everything you need to compile osquery. However, to properly develop and contribute code, you'll need to install some additional programs. If you write C++ often, you likely already have these programs installed. We don't bundle these tools with osquery because many programmers are quite fond of their personal installations of LLVM utilities, debuggers, etc.
 
-- clang-format: we use clang-format to format all code in osquery. After staging your commit changes, run `make format`. (requires clang-format)
+- clang-format: we use clang-format to format all code in osquery. After staging your commit changes, run `make format` (requires clang-format).
 - valgrind: performance is a top priority for osquery, so all code should be thoroughly tested with valgrind or instruments. After building your code use `./tools/profile.py --leaks` to run all queries and test for memory leaks.
 
 ## Build Performance

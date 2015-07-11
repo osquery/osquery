@@ -2,7 +2,7 @@ SQL tables are used to represent abstract operating system concepts, such as run
 
 A table can be used in conjunction with other tables via operations like sub-queries and joins. This allows for a rich data exploration experience. While osquery ships with a default set of tables, osquery provides an API that allows you to create new tables.
 
-You can explore current tables: [https://osquery.io/tables](https://osquery.io/tables). Tables that are up for grabs in terms of development can be found on Github issues using the "virtual tables" + "[up for grabs tag](https://github.com/facebook/osquery/issues?q=is%3Aopen+is%3Aissue+label%3A%22virtual+tables%22)".
+You can explore current tables here: [https://osquery.io/tables](https://osquery.io/tables). Tables that are up for grabs in terms of development can be found on Github issues using the "virtual tables" + "[up for grabs tag](https://github.com/facebook/osquery/issues?q=is%3Aopen+is%3Aissue+label%3A%22virtual+tables%22)".
 
 ## New Table Walkthrough
 
@@ -92,7 +92,7 @@ QueryData genTime(QueryContext &context) {
 Key points to remember:
 
 - Your implementation function should be in the `osquery::tables` namespace.
-- Your implementation function should accept on `QueryContext&` parameter and return an instance of `QueryData`
+- Your implementation function should accept on `QueryContext&` parameter and return an instance of `QueryData`.
 
 ## Using where clauses
 
@@ -126,11 +126,11 @@ Examples:
 
 Data types like `QueryData`, `Row`, `DiffResults`, etc. are osquery's built-in data result types. They're all defined in [include/osquery/database/results.h](https://github.com/facebook/osquery/blob/master/include/osquery/database/results.h).
 
-`Row` is just a `typedef` for a `std::map<std::string, std::string>`. That's it. A row of data is just a mapping of strings that represent column names to strings that represent column values. Note that, currently, even if your SQL table type is an `int` and not a `std::string`, we need to cast the ints as strings to comply with the type definition of the `Row` object. They'll be casted back to `int`'s later. This is all handled transparently by osquery's supporting infrastructure as long as you use the macros like `TEXT`, `INTEGER`, `BIGINT`, etc when inserting columns into your row.
+`Row` is just a `typedef` for a `std::map<std::string, std::string>`. That's it. A row of data is just a mapping of strings that represent column names to strings that represent column values. Note that, currently, even if your SQL table type is an `int` and not a `std::string`, we need to cast the ints as strings to comply with the type definition of the `Row` object. They'll be casted back to `int`s later. This is all handled transparently by osquery's supporting infrastructure as long as you use the macros like `TEXT`, `INTEGER`, `BIGINT`, etc. when inserting columns into your row.
 
 `QueryData` is just a `typedef` for a `std::vector<Row>`. Query data is just a list of rows. Simple enough.
 
-To populate the data that will be returned to the user at runtime, your implementation function must generate the data that you'd like to display and populate a `QueryData` map with the appropriate `Rows`. Then, just return the `QueryData`.
+To populate the data that will be returned to the user at runtime, your implementation function must generate the data that you'd like to display and populate a `QueryData` map with the appropriate `Row`s. Then, just return the `QueryData`.
 
 In our case, we used system APIs to create a struct of type `tm` which has fields such as `tm_hour`, `tm_min` and `tm_sec` which represent the current time. We can then create our three entries in our `Row` variable: hour, minutes and seconds. Then we push that single row onto the `QueryData` variable and return it. Note that if we wanted our table to have many rows (a more common use-case), we would just push back more `Row` maps onto `results`.
 

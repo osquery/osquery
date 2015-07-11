@@ -37,7 +37,7 @@ The same dependency check is applied to the logger plugin setting after a valid 
 
 ## More Options
 
-Extensions are most useful when used to expose config or logger plugins. Along with autoloading extensions you can start osqueryd services with non-default plugins using `--flagfile=PATH`. The osqueryd init service on Linux searches for a `/etc/osquery/osquery.flags` path containing flags. This is a great place to add non-default extensions options or for replacing plugins
+Extensions are most useful when used to expose config or logger plugins. Along with autoloading extensions you can start osqueryd services with non-default plugins using `--flagfile=PATH`. The osqueryd init service on Linux searches for a `/etc/osquery/osquery.flags` path containing flags. This is a great place to add non-default extensions options or for replacing plugins:
 
 ```sh
 $ cat /etc/osquery/osquery.flags

@@ -1,8 +1,8 @@
 ## Downloads
 
 Distro-specific packages are built for each supported operating system.
-These packages contain the osquery daemon, shell, and example configuration and startup scripts.
-This means a `/etc/init.d/osqueryd` script that does not automatically start until a configuration file is created*.
+These packages contain the osquery daemon, shell, example configuration and startup scripts.
+Note that the `/etc/init.d/osqueryd` script does not automatically start the daemon until a configuration file is created*.
 
 Supported distributions are:
 
@@ -45,7 +45,7 @@ $ sudo yum install osquery
 
 ## dpkg-based Distros
 
-We publish that same two packages, osquery and osquery-unstable, in an apt repository for Ubuntu 12.04 (precise) and 14.04 (trusty):
+We publish the same two packages, osquery and osquery-unstable, in an apt repository for Ubuntu 12.04 (precise) and 14.04 (trusty):
 
 **Ubuntu Trusty 14.04 LTS**
 

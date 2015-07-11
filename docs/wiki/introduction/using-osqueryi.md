@@ -27,7 +27,7 @@ osquery> SELECT DISTINCT
 osquery>
 ```
 
-The shell accepts a single positional argument and several output modes. If you wanted to script the output and act on JSON or CSV values try:
+The shell accepts a single positional argument and one of the several output modes. If you want to output JSON or CSV values, try:
 
 ```
 $ osqueryi --json "select * from routes where destination = '::1'"
@@ -103,5 +103,5 @@ osquery> .exit
 $
 ```
 
-The shell does not keep much state or connect to a osqueryd daemon.
-If you would like to run queries and log changes to the output or log operating system events consider deploying a query **schedule** using [osqueryd](using-osqueryd.md).
+The shell does not keep much state or connect to the osqueryd daemon.
+If you would like to run queries and log changes to the output or log operating system events, consider deploying a query **schedule** using [osqueryd](using-osqueryd.md).

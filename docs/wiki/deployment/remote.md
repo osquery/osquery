@@ -90,7 +90,7 @@ We include a very basic example python TLS/HTTPS server: [./tools/tests/test_htt
 
 The TLS clients built into osquery use the system-provided OpenSSL libraries. The clients use boost's ASIO header-libraries through the [cpp-netlib](http://cpp-netlib.org/) HTTPS library. OpenSSL is very outdated on OS X (deprecated since OS X 10.7), but still salvageable. 
 
-On Linux and FreeBSD the TLS client prefers the TLS 1.2 protocol, but includes TLS 1.1 and TLS 1.0-- and the following cipher suites:
+On Linux and FreeBSD the TLS client prefers the TLS 1.2 protocol, but includes TLS 1.1/1.0 as well as the following cipher suites:
 
 ```
 ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:\
