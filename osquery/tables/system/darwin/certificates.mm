@@ -12,53 +12,57 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
-#include <osquery/tables.h>
 
 #include "osquery/tables/system/darwin/keychain.h"
 
 namespace osquery {
 namespace tables {
 
-const std::map<std::string, CertProperty> kCertificateProperties = {
-    {"common_name", {kSecOIDCommonName, genCommonNameProperty}},
-    {"ca", {kSecOIDBasicConstraints, genCAProperty}},
-    {"not_valid_before", {kSecOIDX509V1ValidityNotBefore, stringFromCFAbsoluteTime}},
-    {"not_valid_after", {kSecOIDX509V1ValidityNotAfter, stringFromCFAbsoluteTime}},
-    {"key_algorithm", {kSecOIDX509V1SubjectPublicKeyAlgorithm, genAlgProperty}},
-    {"key_usage", {kSecOIDKeyUsage, stringFromCFNumber}},
-    {"subject_key_id", {kSecOIDSubjectKeyIdentifier, genKIDProperty}},
-    {"authority_key_id", {kSecOIDAuthorityKeyIdentifier, genKIDProperty}},
-};
-
-void genCertificate(const SecCertificateRef& cert, QueryData& results) {
+void genCertificate(const SecCertificateRef& SecCert, QueryData& results) {
   Row r;
 
-  // Iterate through each selected certificate property.
-  for (const auto &detail : kCertificateProperties) {
-    auto property = CreatePropertyFromCertificate(cert, detail.second.type);
-    if (property == nullptr) {
-      r[detail.first] = "";
-      continue;
-    }
-    // Each property may be stored differently, apply a generator function.
-    r[detail.first] = detail.second.generate(property);
-    CFRelease(property);
+  auto der_encoded_data = SecCertificateCopyData(SecCert);
+  if (der_encoded_data == nullptr) {
+    return;
   }
 
-  // Fix missing basic constraints to indicate CA:false.
-  if (r["ca"] == "") {
-    r["ca"] = "0";
+  auto der_bytes = CFDataGetBytePtr(der_encoded_data);
+  auto length = CFDataGetLength(der_encoded_data);
+  auto cert = d2i_X509(nullptr, &der_bytes, length);
+
+  if (cert == nullptr) {
+    VLOG(1) << "Error decoding DER encoded certificate";
+    CFRelease(der_encoded_data);
+    return;
   }
+
+  r["common_name"] = genCommonName(cert);
+  r["not_valid_before"] = INTEGER(genEpoch(X509_get_notBefore(cert)));
+  r["not_valid_after"] = INTEGER(genEpoch(X509_get_notAfter(cert)));
+  r["key_algorithm"] = genAlgProperty(cert);
 
   // Get the keychain for the certificate.
-  r["path"] = getKeychainPath((SecKeychainItemRef)cert);
-
+  r["path"] = getKeychainPath((SecKeychainItemRef)SecCert);
   // Hash is not a certificate property, calculate using raw data.
-  r["sha1"] = genSHA1ForCertificate(cert);
+  r["sha1"] = genSHA1ForCertificate(der_encoded_data);
+
+  // X509_check_ca() populates key_usage, {authority,subject}_key_id
+  // so it should be called before others.
+  r["ca"] = (CertificateIsCA(cert)) ? INTEGER(1) : INTEGER(0);
+  r["key_usage"] = genKeyUsage(cert->ex_kusage);
+  r["authority_key_id"] =
+      (cert->akid && cert->akid->keyid)
+          ? genKIDProperty(cert->akid->keyid->data, cert->akid->keyid->length)
+          : "";
+  r["subject_key_id"] =
+      (cert->skid) ? genKIDProperty(cert->skid->data, cert->skid->length) : "";
+
   results.push_back(r);
+  X509_free(cert);
+  CFRelease(der_encoded_data);
 }
 
-QueryData genCerts(QueryContext &context) {
+QueryData genCerts(QueryContext& context) {
   QueryData results;
 
   // Allow the caller to set an explicit certificate (keychain) search path.
