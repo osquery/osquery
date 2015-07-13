@@ -1,22 +1,12 @@
 # make package
 if(APPLE)
-  if(DEFINED ENV{PACKAGE_KERNEL})
-    add_custom_target(
-      packages
-      COMMAND "${CMAKE_SOURCE_DIR}/tools/deployment/make_osx_package.sh" -k
-      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-      COMMENT "Building default OS X package (no custom config)" VERBATIM
-      DEPENDS daemon shell kernel-build
-    )
-  else()
-    add_custom_target(
-      packages
-      COMMAND "${CMAKE_SOURCE_DIR}/tools/deployment/make_osx_package.sh"
-      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-      COMMENT "Building default OS X package (no custom config)" VERBATIM
-      DEPENDS daemon shell
-    )
-  endif()
+  add_custom_target(
+    packages
+    COMMAND "${CMAKE_SOURCE_DIR}/tools/deployment/make_osx_package.sh"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Building default OS X package (no custom config)" VERBATIM
+    DEPENDS daemon shell
+  )
 elseif(LINUX)
   if(DEBIAN_BASED)
     set(PACKAGE_TYPE "deb")

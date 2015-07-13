@@ -392,6 +392,8 @@ function package() {
         # Build RocksDB from source in brew
         export HOMEBREW_BUILD_FROM_SOURCE=1
         HOMEBREW_ARGS=--build-bottle
+      else
+        unset HOMEBREW_BUILD_FROM_SOURCE
       fi
       brew install -v $HOMEBREW_ARGS $1 || brew upgrade -v $HOMEBREW_ARGS $@
     fi

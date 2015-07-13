@@ -19,9 +19,11 @@ source $SCRIPT_DIR/../lib.sh
 # Binary identifiers
 APP_VERSION=`git describe --tags HEAD`
 APP_IDENTIFIER="com.facebook.osquery"
+KERNEL_APP_IDENTIFIER="com.facebook.osquery.kernel"
 LD_IDENTIFIER="com.facebook.osqueryd"
 LD_INSTALL="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
 OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$APP_VERSION.pkg"
+KERNEL_OUTPUT_PKG_PATH="$BUILD_DIR/osquery-kernel-$APP_VERSION.pkg"
 AUTOSTART=false
 CLEAN=false
 
@@ -37,22 +39,25 @@ OSQUERY_CONFIG_DST="/private/var/osquery/osquery.conf"
 OSQUERY_DB_LOCATION="/private/var/osquery/osquery.db/"
 OSQUERY_LOG_DIR="/private/var/log/osquery/"
 
-# Kernel extension identifiers and config files
-KERNEL_INLINE=false
-KERNEL_UNLOAD_SCRIPT="$SOURCE_DIR/kernel/tools/unload_with_retry.sh"
-KERNEL_EXTENSION_IDENTIFIER="com.facebook.security.osquery"
-KERNEL_EXTENSION_SRC="$BUILD_DIR/kernel/osquery.kext"
-KERNEL_EXTENSION_DST="/private/var/osquery/osquery.kext"
-KERNEL_EXTENSION_INSTALL="/Library/Extensions/osquery.kext"
-
-WORKING_DIR=/tmp/osquery_kernel_packaging
-
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX=$WORKING_DIR/prefix
 SCRIPT_ROOT=$WORKING_DIR/scripts
 PREINSTALL=$SCRIPT_ROOT/preinstall
 POSTINSTALL=$SCRIPT_ROOT/postinstall
 OSQUERYCTL_PATH="$SOURCE_DIR/tools/deployment/osqueryctl"
+
+# Kernel extension identifiers and config files
+KERNEL_INLINE=false
+KERNEL_UNLOAD_SCRIPT="$SOURCE_DIR/kernel/tools/unload_with_retry.sh"
+KERNEL_EXTENSION_IDENTIFIER="com.facebook.security.osquery"
+KERNEL_EXTENSION_SRC="$BUILD_DIR/kernel/osquery.kext"
+KERNEL_EXTENSION_DST="/Library/Extensions/osquery.kext"
+
+KERNEL_WORKING_DIR=/tmp/osquery_kernel_packaging
+KERNEL_INSTALL_PREFIX=$KERNEL_WORKING_DIR/prefix
+KERNEL_SCRIPT_ROOT=$KERNEL_WORKING_DIR/scripts
+KERNEL_PREINSTALL=$KERNEL_SCRIPT_ROOT/preinstall
+KERNEL_POSTINSTALL=$KERNEL_SCRIPT_ROOT/postinstall
 
 SCRIPT_PREFIX_TEXT="#!/usr/bin/env bash
 
@@ -64,16 +69,18 @@ if launchctl list | grep -qcm1 $LD_IDENTIFIER; then
   launchctl unload $LD_INSTALL
 fi
 "
+
 POSTINSTALL_AUTOSTART_TEXT="
 cp $LAUNCHD_DST $LD_INSTALL
 launchctl load $LD_INSTALL
 "
-POSTINSTALL_UNLOAD_KERNEL_TEXT="
+
+KERNEL_POSTINSTALL_UNLOAD_TEXT="
 ./unload_with_retry.sh
 "
-POSTINSTALL_AUTOSTART_KERNEL_TEXT="
-cp -R $KERNEL_EXTENSION_DST/ $KERNEL_EXTENSION_INSTALL
-kextload $KERNEL_EXTENSION_INSTALL
+
+KERNEL_POSTINSTALL_AUTOSTART_TEXT="
+kextload $KERNEL_EXTENSION_DST
 "
 
 POSTINSTALL_CLEAN_TEXT="
@@ -87,8 +94,6 @@ function usage() {
     -o PATH override the output path.
     -a start the daemon when the package is installed
     -x force the daemon to start fresh, removing any results previously stored in the database
-    -k Bundle kernel extension inline with osquery-VERSION.pkg
-
   This will generate an OSX package with:
   (1) An example config /var/osquery/osquery.example.config
   (2) An optional config /var/osquery/osquery.config if [-c] is used
@@ -115,8 +120,6 @@ function parse_args() {
       -a | --autostart )      AUTOSTART=true
                               ;;
       -x | --clean )          CLEAN=true
-                              ;;
-      -k | --kernel-inline )  KERNEL_INLINE=true
                               ;;
       -h | --help )           usage
                               ;;
@@ -149,6 +152,7 @@ function main() {
   if [[ ! "$OS" = "darwin" ]]; then
     fatal "This script must be ran on OS X"
   fi
+
   rm -rf $WORKING_DIR
   rm -f $OUTPUT_PKG_PATH
   mkdir -p $INSTALL_PREFIX
@@ -187,21 +191,6 @@ function main() {
     if [ $CLEAN == true ]; then
         echo "$POSTINSTALL_CLEAN_TEXT" >> $POSTINSTALL
     fi
-    if [ $AUTOSTART == true ]; then
-        echo "$POSTINSTALL_UNLOAD_TEXT" >> $POSTINSTALL
-        if [ $KERNEL_INLINE == true ]; then
-          cp $KERNEL_UNLOAD_SCRIPT $SCRIPT_ROOT
-          echo "$POSTINSTALL_UNLOAD_KERNEL_TEXT" >> $POSTINSTALL
-          echo "$POSTINSTALL_AUTOSTART_KERNEL_TEXT" >> $POSTINSTALL
-        fi
-        echo "$POSTINSTALL_AUTOSTART_TEXT" >> $POSTINSTALL
-    fi
-  fi
-
-  # Check if a kernel extension should be included inline.
-  if [ $KERNEL_INLINE == true ]; then
-    mkdir -p $INSTALL_PREFIX$KERNEL_EXTENSION_DST
-    cp -R $KERNEL_EXTENSION_SRC/ $INSTALL_PREFIX$KERNEL_EXTENSION_DST
   fi
 
   log "creating package"
@@ -211,6 +200,41 @@ function main() {
            --version $APP_VERSION       \
            $OUTPUT_PKG_PATH 2>&1  1>/dev/null
   log "package created at $OUTPUT_PKG_PATH"
+
+  # Check if a kernel extension should be built alongside.
+  if [[ -d "$KERNEL_EXTENSION_SRC" ]]; then
+    rm -rf $KERNEL_WORKING_DIR
+    rm -f $KERNEL_OUTPUT_PKG_PATH
+    mkdir -p $KERNEL_INSTALL_PREFIX
+    mkdir -p $KERNEL_SCRIPT_ROOT
+
+    log "copying osquery kernel bundles"
+    mkdir -p $KERNEL_INSTALL_PREFIX$KERNEL_EXTENSION_DST
+    cp -R $KERNEL_EXTENSION_SRC/ $KERNEL_INSTALL_PREFIX$KERNEL_EXTENSION_DST
+
+    log "finalizing kernel preinstall and postinstall scripts"
+    if [ $AUTOSTART == true ]; then
+      echo "$SCRIPT_PREFIX_TEXT" > $KERNEL_POSTINSTALL
+      chmod +x $KERNEL_POSTINSTALL
+      # Install the normal post install unload to unload the daemons.
+      echo "$POSTINSTALL_UNLOAD_TEXT" >> $KERNEL_POSTINSTALL
+      # Handler kernel extension unloading/reloading.
+      cp $KERNEL_UNLOAD_SCRIPT $KERNEL_SCRIPT_ROOT
+      echo "$KERNEL_POSTINSTALL_UNLOAD_TEXT" >> $KERNEL_POSTINSTALL
+      echo "$KERNEL_POSTINSTALL_AUTOSTART_TEXT" >> $KERNEL_POSTINSTALL
+      # Install the normal post install reload to reload daemons.
+      echo "$POSTINSTALL_AUTOSTART_TEXT" >> $KERNEL_POSTINSTALL
+    fi
+
+    log "creating kernel package"
+    pkgbuild --root $KERNEL_INSTALL_PREFIX       \
+             --scripts $KERNEL_SCRIPT_ROOT       \
+             --identifier $KERNEL_APP_IDENTIFIER \
+             --version $APP_VERSION              \
+             $KERNEL_OUTPUT_PKG_PATH 2>&1  1>/dev/null
+    log "kernel package created at $KERNEL_OUTPUT_PKG_PATH"
+  fi
+
 }
 
 main $@
