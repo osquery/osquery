@@ -27,6 +27,7 @@ CQueue::CQueue(size_t size) {
   osquery_buf_allocate_args_t alloc;
   alloc.size = size;
   alloc.buffer = NULL;
+  alloc.version = OSQUERY_KERNEL_COMM_VERSION;
 
   fd_ = open(filename, O_RDWR);
   if (fd_ < 0) {
@@ -50,10 +51,11 @@ CQueue::~CQueue() {
   }
 }
 
-void CQueue::subscribe(osquery_event_t event) {
+void CQueue::subscribe(osquery_event_t event, void *udata) {
   osquery_subscription_args_t sub;
   sub.event = event;
   sub.subscribe = 1;
+  sub.udata = udata;
 
   if (ioctl(fd_, OSQUERY_IOCTL_SUBSCRIPTION, &sub)) {
     throw CQueueException("Could not subscribe to event.");

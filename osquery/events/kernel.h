@@ -23,6 +23,9 @@ namespace osquery {
 struct KernelSubscriptionContext : public SubscriptionContext {
   /// The kernel event subscription type.
   osquery_event_t event_type;
+
+  /// Data to pass to the kernel.
+  void *udata;
 };
 
 /**

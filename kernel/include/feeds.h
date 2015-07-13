@@ -23,6 +23,19 @@
 #include <sys/param.h>
 #endif
 
+/** @brief Communication version between kernel and daemon.
+ *
+ *  A daemon may only connect to a kernel with the same communication version.
+ *  Bump this number when changing or adding any event structs.
+ */
+#define OSQUERY_KERNEL_COMMUNICATION_VERSION 1UL
+#ifdef KERNEL_TEST
+#define OSQUERY_KERNEL_COMM_VERSION \
+  (OSQUERY_KERNEL_COMMUNICATION_VERSION | (1UL << 63))
+#else
+#define OSQUERY_KERNEL_COMM_VERSION OSQUERY_KERNEL_COMMUNICATION_VERSION
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,7 +48,6 @@ extern "C" {
  * the character device can be opened multiple times, which allows the use of
  * a reentrant testing IOCTL call that adds test events to the cqueue structure.
  */
-
 
 //
 // Event feed types
@@ -51,7 +63,7 @@ typedef enum {
   OSQUERY_TEST_EVENT_1,
 #endif // KERNEL_TEST
 
-  OSQUERY_EVENT_NUM_EVENTS // Number of different event types.
+  OSQUERY_NUM_EVENTS // Number of different event types.
 } osquery_event_t;
 
 typedef struct {
@@ -122,6 +134,7 @@ typedef struct {
 typedef struct {
   osquery_event_t event;
   int subscribe;
+  void *udata;
 } osquery_subscription_args_t;
 
 // Flags for buffer sync options.
@@ -138,6 +151,7 @@ typedef struct {
 typedef struct {
   size_t size;      // Size of shared user kernel buffer.
   void *buffer;     // (Output) Pointer to buffer location.
+  uint64_t version; // osquery kernel communication version.
 } osquery_buf_allocate_args_t;
 
 // TODO: Choose a proper IOCTL num.

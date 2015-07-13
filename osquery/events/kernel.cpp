@@ -40,7 +40,7 @@ void KernelEventPublisher::configure() {
   for (const auto &sub : subscriptions_) {
     if (queue_ != nullptr) {
       auto sc = getSubscriptionContext(sub->context);
-      queue_->subscribe(sc->event_type);
+      queue_->subscribe(sc->event_type, sc->udata);
     }
   }
 }

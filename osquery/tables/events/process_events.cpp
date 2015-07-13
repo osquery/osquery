@@ -28,6 +28,7 @@ REGISTER(ProcessEventSubscriber, "event_subscriber", "process_events");
 Status ProcessEventSubscriber::init() {
   auto sc = createSubscriptionContext();
   sc->event_type = OSQUERY_PROCESS_EVENT;
+  sc->udata = NULL;
   subscribe(&ProcessEventSubscriber::Callback, sc, NULL);
 
   return Status(0, "OK");

@@ -55,8 +55,9 @@ class CQueue {
    * This sets up the event callbacks so we start hearing about the given event.
    *
    * @param event The event we are interested in.
+   * @param udata Pointer to udata for the event.  This is for additional info.
    */
-  void subscribe(osquery_event_t event);
+  void subscribe(osquery_event_t event, void *udata);
 
   /**
    * @brief Dequeue's an event from the shared buffer.
