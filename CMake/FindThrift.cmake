@@ -23,10 +23,9 @@ set(THRIFT_LIB_PATHS
   /usr/local/lib
   /opt/local/lib)
 
-find_path(THRIFT_STATIC_LIB_PATH libthrift.a PATHS ${THRIFT_LIB_PATHS})
-
 # prefer the thrift version supplied in THRIFT_HOME
-find_library(THRIFT_LIB NAMES thrift HINTS ${THRIFT_LIB_PATHS})
+find_library(THRIFT_LIBRARY NAMES thrift HINTS ${THRIFT_LIB_PATHS})
+#find_library(THRIFT_STATIC_LIBRARY NAMES libthrift.a HINTS ${THRIFT_LIB_PATHS})
 
 find_program(THRIFT_COMPILER thrift
   $ENV{THRIFT_HOME}/bin
@@ -35,27 +34,17 @@ find_program(THRIFT_COMPILER thrift
   NO_DEFAULT_PATH
 )
 
-if (THRIFT_LIB)
+if (THRIFT_LIBRARY)
   set(THRIFT_FOUND TRUE)
-  set(THRIFT_LIBS ${THRIFT_LIB})
-  set(THRIFT_STATIC_LIBRARY ${THRIFT_STATIC_LIB_PATH}/libthrift.a)
+  LOG_LIBRARY(thrift "${THRIFT_LIBRARY}")
   exec_program(${THRIFT_COMPILER}
     ARGS -version OUTPUT_VARIABLE THRIFT_VERSION RETURN_VALUE THRIFT_RETURN)
-else ()
-  set(THRIFT_FOUND FALSE)
-endif ()
-
-if (THRIFT_FOUND)
-  if (NOT THRIFT_FIND_QUIETLY)
-    LOG_LIBRARY(thrift "${THRIFT_STATIC_LIBRARY}")
-  endif ()
-else ()
+else()
   message(FATAL_ERROR "Thrift compiler/libraries NOT found.")
-endif ()
-
+endif()
 
 mark_as_advanced(
-  THRIFT_LIB
+  THRIFT_LIBRARY
   THRIFT_COMPILER
   THRIFT_INCLUDE_DIR
 )

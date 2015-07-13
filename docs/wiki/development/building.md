@@ -148,6 +148,20 @@ make sdk # Build only the osquery SDK (libosquery.a)
 make sync # Create a tarball for building the SDK externally
 ```
 
+Finally, subtle changes to the build are mostly controlled through environment
+variables. When making these changes it is best to removed your build cache
+by removing the `./build/` or `./build/{platform}/` directory.
+
+```sh
+OSQUERY_PLATFORM=custom_linux;1.0 # Set a wacky platform/distro name
+OSQUERY_BUILD_VERSION=9.9.9 # Set a wacky version string
+BUILD_LINK_SHARED=True # Set CMake library discovery to prefer shared libraries
+SDK_VERSION=9.9.9 # Set a wacky SDK-version string
+SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
+OPTIMIZED=True # Disable generic CPU optimizations
+SKIP_TESTS=True # Skip unit test building (very very not recommended!)
+```
+
 ## Custom Packages
 
 Building osquery on OS X or Linux requires a significant number of dependencies, which are not needed when deploying. It does not make sense to install osquery on your build hosts. See the [Custom Packages](../installation/custom-packages) guide for generating pkgs, debs or rpms.

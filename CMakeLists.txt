@@ -229,8 +229,6 @@ add_definitions(
   -D${OSQUERY_BUILD_PLATFORM_DEFINE}_${OSQUERY_BUILD_DISTRO_DEFINE}
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
-  # There are platform incompatibilities on OS X with lite and construction.
-  #-DROCKSDB_LITE=1
 )
 
 if(APPLE)
@@ -303,9 +301,13 @@ find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(Gtest REQUIRED)
 find_package(RocksDB REQUIRED)
-find_package(Snappy REQUIRED)
 find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.1 REQUIRED)
+
+# If using the RocksDB LITE version our code must also define ROCKSDB_LITE=1
+if(ROCKSDB_LITE_FOUND)
+  add_definitions(-DROCKSDB_LITE=1)
+endif()
 
 # Python is used for table spec generation and formating.
 if(PYTHON_VERSION_MAJOR STREQUAL "2" AND PYTHON_VERSION_MINOR STREQUAL "4")
