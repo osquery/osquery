@@ -26,6 +26,7 @@ if(APPLE)
 
   # Set OS X platform-specific include paths.
   include_directories("${CMAKE_SOURCE_DIR}/kernel/include")
+  include_directories("${CMAKE_SOURCE_DIR}/kernel/src")
   include_directories("/System/Library/Frameworks/Kernel.framework/Headers")
   include_directories("/Applications/Xcode.app/Contents/Developer/Platforms/\
 MacOSX.platform/Developer/SDKs/MacOSX${APPLE_MIN_ABI}.sdk\
@@ -59,16 +60,20 @@ endif()
 
 # The set of platform-agnostic implementations.
 set(BASE_KERNEL_SOURCES
-  src/osquery.cpp
   src/circular_queue_kern.c
 )
 
-# TODO: Add a set of platform-specific files.
+file(GLOB APPLE_KERNEL_PUBLISHER_SOURCES "src/publishers/darwin/*.c")
+# Add a set of platform-specific files.
+set(APPLE_KERNEL_SOURCES
+  src/osquery.cpp
+  ${APPLE_KERNEL_PUBLISHER_SOURCES}
+)
 
 # Define kernel targets, each should be an extension/module.
 if(APPLE)
   # TODO: Remove the OS X requirement.
-  add_executable(base_kernel ${BASE_KERNEL_SOURCES})
+  add_executable(base_kernel ${APPLE_KERNEL_SOURCES} ${BASE_KERNEL_SOURCES})
   set_target_properties(base_kernel PROPERTIES COMPILE_FLAGS ${KERNEL_C_FLAGS} ${KERNEL_CXX_FLAGS})
   set_target_properties(base_kernel PROPERTIES LINK_FLAGS ${KERNEL_LINKER_FLAGS})
   set_target_properties(base_kernel PROPERTIES EXCLUDE_FROM_ALL true)
