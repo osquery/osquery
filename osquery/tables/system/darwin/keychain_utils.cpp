@@ -82,12 +82,16 @@ std::string genKIDProperty(const unsigned char* data, int len) {
 }
 
 std::string genAlgProperty(const X509* cert) {
-  int pub_key_alg_nid = OBJ_obj2nid(cert->cert_info->key->algor->algorithm);
-  if (pub_key_alg_nid == NID_undef) {
+  int nid = 0;
+  OSX_OPENSSL(nid = OBJ_obj2nid(cert->cert_info->key->algor->algorithm));
+  if (nid == NID_undef) {
     // Unknown algorithm OID.
     return "";
   }
-  return std::string(OBJ_nid2ln(pub_key_alg_nid));
+
+  std::string property;
+  OSX_OPENSSL(property = std::string(OBJ_nid2ln(nid)));
+  return property;
 }
 
 std::string genSHA1ForCertificate(const CFDataRef& raw_cert) {
@@ -96,7 +100,9 @@ std::string genSHA1ForCertificate(const CFDataRef& raw_cert) {
 }
 
 bool CertificateIsCA(X509* cert) {
-  return (X509_check_ca(cert) > 0);
+  int ca = 0;
+  OSX_OPENSSL(ca = X509_check_ca(cert));
+  return (ca > 0);
 }
 
 std::string genCommonName(X509* cert) {
@@ -104,29 +110,38 @@ std::string genCommonName(X509* cert) {
     return "";
   }
 
-  auto subject_name = X509_get_subject_name(cert);
+  X509_NAME* subject_name = nullptr;
+  OSX_OPENSSL(subject_name = X509_get_subject_name(cert));
   if (subject_name == nullptr) {
     return "";
   }
 
-  auto nid = OBJ_txt2nid("CN");
-  auto index = X509_NAME_get_index_by_NID(subject_name, nid, -1);
+  int nid = 0;
+  OSX_OPENSSL(nid = OBJ_txt2nid("CN"));
+
+  int index = 0;
+  OSX_OPENSSL(index = X509_NAME_get_index_by_NID(subject_name, nid, -1));
   if (index == -1) {
     return "";
   }
 
-  auto commonNameEntry = X509_NAME_get_entry(subject_name, index);
+  X509_NAME_ENTRY* commonNameEntry = nullptr;
+  OSX_OPENSSL(commonNameEntry = X509_NAME_get_entry(subject_name, index));
   if (commonNameEntry == nullptr) {
     return "";
   }
 
-  auto commonNameData = X509_NAME_ENTRY_get_data(commonNameEntry);
-  auto data = ASN1_STRING_data(commonNameData);
+  ASN1_STRING* commonNameData = nullptr;
+  OSX_OPENSSL(commonNameData = X509_NAME_ENTRY_get_data(commonNameEntry));
+
+  unsigned char* data = nullptr;
+  OSX_OPENSSL(data = ASN1_STRING_data(commonNameData));
   return std::string(reinterpret_cast<char*>(data));
 }
 
 std::string genHumanReadableDateTime(ASN1_TIME* time) {
-  BIO* bio_stream = BIO_new(BIO_s_mem());
+  BIO* bio_stream = nullptr;
+  OSX_OPENSSL(bio_stream = BIO_new(BIO_s_mem()));
   if (bio_stream == nullptr) {
     return "";
   }
@@ -135,19 +150,20 @@ std::string genHumanReadableDateTime(ASN1_TIME* time) {
   // e.g. Jan 1 00:00:00 1970 GMT (always GMT)
   auto buffer_size = 32;
   char buffer[32] = {0};
-  if (!ASN1_TIME_print(bio_stream, time)) {
+  OSX_OPENSSL(if (!ASN1_TIME_print(bio_stream, time)) {
     BIO_free(bio_stream);
     return "";
-  }
+  });
 
   // BIO_gets() returns amount of data successfully read or written
   // (if the return value is positive) or that no data was successfully
   // read or written if the result is 0 or -1.
-  if (BIO_gets(bio_stream, buffer, buffer_size) <= 0) {
+  OSX_OPENSSL(if (BIO_gets(bio_stream, buffer, buffer_size) <= 0) {
     BIO_free(bio_stream);
     return "";
-  }
-  BIO_free(bio_stream);
+  });
+
+  OSX_OPENSSL(BIO_free(bio_stream));
   return std::string(buffer);
 }
 

@@ -23,7 +23,16 @@
 #include <openssl/pem.h>
 #include <openssl/bio.h>
 
+#include <osquery/tables.h>
+
 #include "osquery/core/conversions.h"
+
+// If using the system-provided OpenSSL on 10.10, mark x509 methods deprecated.
+#ifdef SSL_TXT_TLSV1_2
+#define OSX_OPENSSL(x) (x)
+#else
+#define OSX_OPENSSL(x) OSQUERY_USE_DEPRECATED(x)
+#endif
 
 namespace osquery {
 namespace tables {
