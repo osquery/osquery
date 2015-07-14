@@ -62,9 +62,9 @@ Status writeTextFile(const fs::path& path,
   return Status(0, "OK");
 }
 
-Status readFile(const fs::path& path, std::string& content) {
+Status readFile(const fs::path& path, std::string& content, bool dry_run) {
   struct stat file;
-  if (lstat(path.string().c_str(), &file) == 0) {
+  if (lstat(path.string().c_str(), &file) == 0 && S_ISLNK(file.st_mode)) {
     if (file.st_uid != 0 && !FLAGS_read_user_links) {
       return Status(1, "User link reads disabled");
     }
@@ -92,6 +92,12 @@ Status readFile(const fs::path& path, std::string& content) {
     return Status(1, "File exceeds read limits");
   }
 
+  if (dry_run) {
+    // The caller is only interested in performing file read checks.
+    boost::system::error_code ec;
+    return Status(0, fs::canonical(path, ec).string());
+  }
+
   if (size == -1 || size == 0) {
     // Size could not be determined. This may be a special device.
     std::stringstream buffer;
@@ -105,6 +111,11 @@ Status readFile(const fs::path& path, std::string& content) {
     is.read(&content[0], size);
   }
   return Status(0, "OK");
+}
+
+Status readFile(const fs::path& path) {
+  std::string blank;
+  return readFile(path, blank, true);
 }
 
 Status isWritable(const fs::path& path) {

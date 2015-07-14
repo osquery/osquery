@@ -73,12 +73,18 @@ TEST_F(FilesystemTests, test_read_limit) {
     FLAGS_read_user_max = user_max;
 
     // Test that user symlinks aren't followed if configured.
+    // 'root2.txt' is a symlink in this case.
     FLAGS_read_user_links = false;
     content.erase();
     status = readFile(kFakeDirectory + "/root2.txt", content);
     EXPECT_FALSE(status.ok());
 
-    // But they are read if enabled.
+    // Make sure non-link files are still readable.
+    content.erase();
+    status = readFile(kFakeDirectory + "/root.txt", content);
+    EXPECT_TRUE(status.ok());
+
+    // Any the links are readable if enabled.
     FLAGS_read_user_links = true;
     status = readFile(kFakeDirectory + "/root2.txt", content);
     EXPECT_TRUE(status.ok());
