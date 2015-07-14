@@ -13,7 +13,6 @@
 #include <sys/kauth.h>
 #include <sys/vnode.h>
 #include <sys/imgact.h>
-#include <sys/proc.h>
 #include <security/mac_framework.h>
 #include <security/mac.h>
 #include <security/mac_policy.h>

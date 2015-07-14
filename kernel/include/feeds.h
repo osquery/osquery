@@ -28,12 +28,12 @@
  *  A daemon may only connect to a kernel with the same communication version.
  *  Bump this number when changing or adding any event structs.
  */
-#define OSQUERY_KERNEL_COMMUNICATION_VERSION 3UL
+#define OSQUERY_KERNEL_COMMUNICATION_VERSION 4
 #ifdef KERNEL_TEST
 #define OSQUERY_KERNEL_COMM_VERSION \
   (OSQUERY_KERNEL_COMMUNICATION_VERSION | (1UL << 63))
 #else
-#define OSQUERY_KERNEL_COMM_VERSION OSQUERY_KERNEL_COMMUNICATION_VERSION
+#define OSQUERY_KERNEL_COMM_VERSION (OSQUERY_KERNEL_COMMUNICATION_VERSION | 0UL)
 #endif
 
 #ifdef __cplusplus
@@ -57,6 +57,7 @@ typedef enum {
   END_OF_BUFFER_EVENT = 0, // Null event used to signal the end of the buffer.
   OSQUERY_NULL_EVENT = 0,
   OSQUERY_PROCESS_EVENT,
+  OSQUERY_FILE_EVENT,
 
 #ifdef KERNEL_TEST
   OSQUERY_TEST_EVENT_0,
@@ -91,6 +92,36 @@ typedef struct {
   size_t env_length;
   char flexible_data[0]; // Flexible array space.
 } osquery_process_event_t;
+
+typedef enum {
+  OSQUERY_FILE_ACTION_NONE = 0,
+  OSQUERY_FILE_ACTION_OPEN = 1,
+  OSQUERY_FILE_ACTION_CLOSE = 1 << 1,
+  OSQUERY_FILE_ACTION_CLOSE_MODIFIED = 1 << 2
+} osquery_file_action_t;
+
+typedef struct {
+  osquery_file_action_t action;
+  uint64_t pid;
+  uint64_t ppid;
+  uint64_t uid;
+  uint64_t euid;
+  uint64_t gid;
+  uint64_t egid;
+  uint64_t owner_uid;
+  uint64_t owner_gid;
+  uint64_t create_time;
+  uint64_t access_time;
+  uint64_t modify_time;
+  uint64_t change_time;
+  int mode;
+  char path[MAXPATHLEN];
+} osquery_file_event_t;
+
+typedef struct {
+  osquery_file_action_t actions;
+  char path[MAXPATHLEN];
+} osquery_file_event_subscription_t;
 
 #ifdef KERNEL_TEST
 typedef struct {

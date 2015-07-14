@@ -45,10 +45,12 @@ typedef struct {
 // Event publisher structs defined in implementations.
 //
 extern osquery_kernel_event_publisher_t process_events_publisher;
+extern osquery_kernel_event_publisher_t kernel_file_events_publisher;
 
 /** @brief List of the kernel event publishers.
  */
 static osquery_kernel_event_publisher_t
     *osquery_publishers[OSQUERY_NUM_EVENTS] = {
-  [OSQUERY_PROCESS_EVENT] = &process_events_publisher
+  [OSQUERY_PROCESS_EVENT] = &process_events_publisher,
+  [OSQUERY_FILE_EVENT] = &kernel_file_events_publisher
 };

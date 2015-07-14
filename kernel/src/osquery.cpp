@@ -31,6 +31,11 @@
 #define dbg_printf(...) do{ } while(0)
 #endif
 
+#ifndef STR
+#define STR_OF(x) #x
+#define STR(x) STR_OF(x)
+#endif
+
 // Let the major number be decided for us.
 #define OSQUERY_MAJOR -1
 #define MAX_KMEM (20 * (1 << 20))
@@ -417,7 +422,8 @@ extern kern_return_t _start(kmod_info_t *ki, void *data);
 extern kern_return_t _stop(kmod_info_t *ki, void *data);
 }
 
-KMOD_EXPLICIT_DECL(com.facebook.security.osquery, OSQUERY_KERNEL_VERSION, _start, _stop)
+KMOD_EXPLICIT_DECL(com.facebook.security.osquery,
+    STR(OSQUERY_KERNEL_COMMUNICATION_VERSION), _start, _stop)
 __private_extern__ kmod_start_func_t *_realmain = OsqueryStart;
 __private_extern__ kmod_stop_func_t *_antimain = OsqueryStop;
 __private_extern__ int _kext_apple_cc = __APPLE_CC__;

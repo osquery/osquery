@@ -1,0 +1,26 @@
+table_name("file_access_events")
+description("File access events (open and close) from kernel extension.")
+schema([
+    Column("action", TEXT,
+      "The action taken on the file (OPEN, CLOSED, or CLOSED_MODIFIED)"),
+    Column("pid", BIGINT, "Process ID of the process using the file"),
+    Column("parent", BIGINT, "Parent process ID of the process using the file"),
+    Column("uid", BIGINT, "Real user ID of the user process using the file"),
+    Column("euid", BIGINT, "Effective user ID of the process using the file"),
+    Column("gid", BIGINT, "Real group ID of the process using the file"),
+    Column("egid", BIGINT, "Effective group ID of the processs using the file"),
+    Column("owner_uid", BIGINT, "User ID of the owner of the file"),
+    Column("owner_gid", BIGINT, "Group ID of the owner of the file"),
+    Column("mode", BIGINT, "Indicates the mode of the file"),
+    Column("path", TEXT, "Path of file"),
+    Column("create_time", BIGINT, "Time of creation in UNIX epoch time"),
+    Column("access_time", BIGINT, "Time of last access in UNIX epoch time"),
+    Column("modify_time", BIGINT,
+      "Time of last modification in UNIX epoch time"),
+    Column("change_time", BIGINT,
+      "Time of last metadata change in UNIX epoch time"),
+    Column("time", BIGINT, "Time of event in UNIX epoch time"),
+    Column("uptime", BIGINT, "Time of event in system uptime"),
+])
+attributes(event_subscriber=True)
+implementation("file_acess_events@file_access_events::genTable")
