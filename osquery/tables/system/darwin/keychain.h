@@ -29,9 +29,12 @@
 
 // If using the system-provided OpenSSL on 10.10, mark x509 methods deprecated.
 #ifdef SSL_TXT_TLSV1_2
-#define OSX_OPENSSL(x) (x)
+#define OSX_OPENSSL(expr) \
+  do {                    \
+    expr;                 \
+  } while (0)
 #else
-#define OSX_OPENSSL(x) OSQUERY_USE_DEPRECATED(x)
+#define OSX_OPENSSL(expr) OSQUERY_USE_DEPRECATED(expr)
 #endif
 
 namespace osquery {

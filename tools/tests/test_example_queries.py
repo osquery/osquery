@@ -27,10 +27,12 @@ class ExampleQueryTests(test_base.ProcessGenerator, unittest.TestCase):
         self.daemon = self._run_daemon({
             # The set of queries will hammer the daemon process.
             "disable_watchdog": True,
+            # Enable the 'hidden' flag "registry_exceptions" to prevent catching.
+            "registry_exceptions": True,
         })
         self.assertTrue(self.daemon.isAlive())
 
-        # The sets of example tests will use the extensions API.s
+        # The sets of example tests will use the extensions APIs.
         self.client = test_base.EXClient(self.daemon.options["extensions_socket"])
         test_base.expectTrue(self.client.open)
         self.assertTrue(self.client.open())

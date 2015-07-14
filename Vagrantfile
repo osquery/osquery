@@ -2,8 +2,8 @@ targets = {
   "centos6.5" => {
     "box" => "chef/centos-6.5"
   },
-  "centos7"   => {
-    "box" => "chef/centos-7.0"
+  "centos7.1"   => {
+    "box" => "chef/centos-7.1"
   },
   "ubuntu14"  => {
     "box" => "ubuntu/trusty64"

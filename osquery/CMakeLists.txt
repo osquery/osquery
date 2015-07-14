@@ -12,9 +12,9 @@ set(OSQUERY_TABLES_TESTS "")
 
 # The core set of osquery libraries most discovered with find_package.
 set(OSQUERY_LIBS
-  ${THRIFT_STATIC_LIBRARY}
-  ${ROCKSDB_STATIC_LIBRARY}
-  ${ROCKSDB_SNAPPY_LIBRARY}
+  # This includes librocksdb[_lite] and libsnappy.
+  ${ROCKSDB_LIBRARIES}
+  ${THRIFT_LIBRARY}
   ${GLOG_LIBRARY}
   ${GFLAGS_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}

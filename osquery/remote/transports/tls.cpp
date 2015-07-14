@@ -80,7 +80,7 @@ http::client TLSTransport::getClient() {
 
   std::string ciphers = kTLSCiphers;
   // Some Ubuntu 12.04 clients exhaust their cipher suites without SHA.
-#if defined(SSL_TXT_TLSV1_2) && !defined(UBUNTU_PRECISE)
+#if defined(SSL_TXT_TLSV1_2) && !defined(UBUNTU_PRECISE) && !defined(DARWIN)
   // Otherwise we prefer GCM and SHA256+
   ciphers += ":!CBC:!SHA";
 #endif

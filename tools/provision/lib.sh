@@ -114,8 +114,8 @@ function install_rocksdb() {
   URL=$DEPS_URL/rocksdb-3.10.2.tar.gz
   SOURCE=rocksdb-rocksdb-3.10.2
 
-  if provision rocksdb /usr/local/lib/librocksdb.a; then
-    if [[ ! -f rocksdb-rocksdb-3.10.2/librocksdb.a ]]; then
+  if provision rocksdb /usr/local/lib/librocksdb_lite.a; then
+    if [[ ! -f rocksdb-rocksdb-3.10.2/librocksdb_lite.a ]]; then
       if [[ $FAMILY = "debian" ]]; then
         CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
       elif [[ $FAMILY = "redhat" ]]; then
@@ -124,15 +124,17 @@ function install_rocksdb() {
       fi
       pushd $SOURCE
       if [[ $OS = "freebsd" ]]; then
-        PORTABLE=1 CC=cc CXX=c++ gmake -j $THREADS static_lib \
-          CFLAGS="$CLANG_INCLUDE $CFLAGS"
+        CC=cc
+        CXX=c++
+        MAKE=gmake
       else
-        PORTABLE=1 CC="$CC" CXX="$CXX" make -j $THREADS static_lib \
-          CFLAGS="$CLANG_INCLUDE $CFLAGS"
+        MAKE=make
       fi
+      PORTABLE=1 OPT="-DROCKSDB_LITE=1" LIBNAME=librocksdb_lite CC="$CC" CXX="$CXX" \
+        $MAKE -j $THREADS static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
       popd
     fi
-    sudo cp rocksdb-rocksdb-3.10.2/librocksdb.a /usr/local/lib
+    sudo cp rocksdb-rocksdb-3.10.2/librocksdb_lite.a /usr/local/lib
     sudo cp -R rocksdb-rocksdb-3.10.2/include/rocksdb /usr/local/include
   fi
 }
@@ -390,9 +392,11 @@ function package() {
       export HOMEBREW_NO_EMOJI=1
       if [[ $1 = "rocksdb" ]]; then
         # Build RocksDB from source in brew
+        export LIBNAME=librocksdb_lite
         export HOMEBREW_BUILD_FROM_SOURCE=1
-        HOMEBREW_ARGS=--build-bottle
+        HOMEBREW_ARGS="--build-bottle --with-lite"
       else
+        unset LIBNAME
         unset HOMEBREW_BUILD_FROM_SOURCE
       fi
       brew install -v $HOMEBREW_ARGS $1 || brew upgrade -v $HOMEBREW_ARGS $@
