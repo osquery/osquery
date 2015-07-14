@@ -16,6 +16,11 @@ threads THREADS
 
 cd $SCRIPT_DIR/../
 
+function cleanUp() {
+  # Cleanup kernel
+  make kernel-unload || sudo reboot
+}
+
 # Builds dependencies
 make deps
 make clean
@@ -23,5 +28,17 @@ make clean
 # Build osquery
 make -j$THREADS
 
+# Build osquery kernel
+make kernel-build
+
+# Setup cleanup code for test failures.
+trap cleanUp EXIT INT TERM
+
+make kernel-load
+
 # Run code unit and integration tests
 make test
+
+make kernel-test
+
+exit 0

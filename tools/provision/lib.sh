@@ -392,6 +392,8 @@ function package() {
         # Build RocksDB from source in brew
         export HOMEBREW_BUILD_FROM_SOURCE=1
         HOMEBREW_ARGS=--build-bottle
+      else
+        unset HOMEBREW_BUILD_FROM_SOURCE
       fi
       brew install -v $HOMEBREW_ARGS $1 || brew upgrade -v $HOMEBREW_ARGS $@
     fi
@@ -471,11 +473,11 @@ function check() {
   platform OS
 
   if [[ $OS = "darwin" ]]; then
-    HASH=`shasum $0 | awk '{print $1}'`
+    HASH=`shasum "$0" | awk '{print $1}'`
   elif [[ $OS = "freebsd" ]]; then
-    HASH=`sha1 -q $0`
+    HASH=`sha1 -q "$0"`
   else
-    HASH=`sha1sum $0 | awk '{print $1}'`
+    HASH=`sha1sum "$0" | awk '{print $1}'`
   fi
 
   if [[ "$1" = "build" ]]; then

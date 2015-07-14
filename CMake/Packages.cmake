@@ -2,7 +2,7 @@
 if(APPLE)
   add_custom_target(
     packages
-    "${CMAKE_SOURCE_DIR}/tools/deployment/make_osx_package.sh"
+    COMMAND "${CMAKE_SOURCE_DIR}/tools/deployment/make_osx_package.sh"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Building default OS X package (no custom config)" VERBATIM
     DEPENDS daemon shell

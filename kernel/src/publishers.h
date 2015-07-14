@@ -1,0 +1,54 @@
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+#include <feeds.h>
+#include "circular_queue_kern.h"
+
+/** @brief Subscribe function type.
+ *
+ *  This function type is called when someone subscribes to a publisher.  It
+ *  should initialize all event callbacks and start publishing events to the
+ *  queue.
+ *
+ *  @param queue The queue to publish to.  A subscriber will only publish to the
+ *         last queue (not an issue as there should only be one queue).
+ *  @param udata Pointer to user data.  This is in user space and must be
+ *         copied down to kernel space before use.  A publisher may use this for
+ *         any additional data it wants from user space.
+ *  @return 0 on success, negative on failure.
+ */
+typedef int (*osquery_subscriber_t)(osquery_cqueue_t *queue, void *udata);
+/** @brief Unsubscribe function type.
+ *
+ *  Functions of this type stop a publisher from publishing events to the queue
+ *  as soon as possible.
+ *
+ *  @return Void.
+ */
+typedef void (*osquery_unsubscriber_t)();
+
+/** @brief A kernel publisher must provide the following function pointers.
+ */
+typedef struct {
+  osquery_subscriber_t subscribe;
+  osquery_unsubscriber_t unsubscribe;
+} osquery_kernel_event_publisher_t;
+
+//
+// Event publisher structs defined in implementations.
+//
+extern osquery_kernel_event_publisher_t process_events_publisher;
+
+/** @brief List of the kernel event publishers.
+ */
+static osquery_kernel_event_publisher_t
+    *osquery_publishers[OSQUERY_NUM_EVENTS] = {
+  [OSQUERY_PROCESS_EVENT] = &process_events_publisher
+};

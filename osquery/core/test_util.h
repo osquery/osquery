@@ -32,14 +32,16 @@ extern std::string kTestDataPath;
 
 /// Tests should limit intermediate input/output to a working directory.
 /// Config data, logging results, and intermediate database/caching usage.
+
 #ifdef DARWIN
-const std::string kTestWorkingDirectory = "/private/tmp/osquery-tests/";
+const std::string kTestWorkingDirectory = "/private/tmp/osquery-tests";
 #else
-const std::string kTestWorkingDirectory = "/tmp/osquery-tests/";
+const std::string kTestWorkingDirectory = "/tmp/osquery-tests";
 #endif
 
 /// A fake directory tree should be used for filesystem iterator testing.
-const std::string kFakeDirectory = kTestWorkingDirectory + "fstree";
+const std::string kFakeDirectoryName = "fstree";
+extern std::string kFakeDirectory;
 
 ScheduledQuery getOsqueryScheduledQuery();
 
