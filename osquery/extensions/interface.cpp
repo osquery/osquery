@@ -186,8 +186,8 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
   auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());
   auto protocol_fac = TProtocolFactoryRef(new TBinaryProtocolFactory());
 
-  auto thread_manager_ =
-      ThreadManager::newSimpleThreadManager((size_t)FLAGS_worker_threads, 0);
+  size_t client_size = std::max((int)FLAGS_worker_threads, 2);
+  auto thread_manager_ = ThreadManager::newSimpleThreadManager(client_size, 0);
   auto thread_fac = ThriftThreadFactory(new PosixThreadFactory());
   thread_manager_->threadFactory(thread_fac);
   thread_manager_->start();

@@ -148,12 +148,12 @@ endmacro(ADD_OSQUERY_LIBRARY TARGET)
 
 # Add sources to libosquery.a (the core library)
 macro(ADD_OSQUERY_OBJCXX_LIBRARY_CORE TARGET)
-  ADD_OSQUERY_OBJCXX_LIBRARY(TRUE TARGET ${ARGN})
+  ADD_OSQUERY_OBJCXX_LIBRARY(TRUE ${TARGET} ${ARGN})
 endmacro(ADD_OSQUERY_OBJCXX_LIBRARY_CORE)
 
 # Add sources to libosquery_additional.a (the non-sdk library)
 macro(ADD_OSQUERY_OBJCXX_LIBRARY_ADDITIONAL TARGET)
-  ADD_OSQUERY_OBJCXX_LIBRARY(FALSE TARGET ${ARGN})
+  ADD_OSQUERY_OBJCXX_LIBRARY(FALSE ${TARGET} ${ARGN})
 endmacro(ADD_OSQUERY_OBJCXX_LIBRARY_ADDITIONAL)
 
 # Core/non core lists of target source files compiled as ObjC++.
