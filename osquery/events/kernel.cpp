@@ -25,9 +25,10 @@ Status KernelEventPublisher::setUp() {
     queue_ = new CQueue(shared_buffer_size_bytes);
   } catch (const CQueueException &e) {
     if (kToolType == OSQUERY_TOOL_DAEMON) {
-      LOG(WARNING) << "Cannot connect to kernel. " << e.what();
+      LOG(INFO) << "Cannot connect to kernel. " << e.what();
     }
-    return Status(1, e.what());
+    queue_ = nullptr;
+    return Status(0, e.what());
   }
   if (queue_ == nullptr) {
     return Status(1, "Could not allocate CQueue object.");
@@ -52,11 +53,14 @@ void KernelEventPublisher::tearDown() {
 }
 
 Status KernelEventPublisher::run() {
+  if (queue_ == nullptr) {
+    return Status(1, "No kernel communication.");
+  }
   try {
     int drops = 0;
     if ((drops = queue_->kernelSync(OSQUERY_DEFAULT)) > 0 &&
         kToolType == OSQUERY_TOOL_DAEMON) {
-      LOG(WARNING) << "Dropping " << drops << " kernel events.";
+      LOG(INFO) << "Dropping " << drops << " kernel events.";
     }
   } catch (const CQueueException &e) {
     LOG(WARNING) << e.what();
