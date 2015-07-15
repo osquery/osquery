@@ -82,7 +82,12 @@ Status serializeRowJSON(const Row& r, std::string& json) {
   }
 
   std::ostringstream output;
-  pt::write_json(output, tree, false);
+  try {
+    pt::write_json(output, tree, false);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    // The content could not be represented as JSON.
+    return Status(1, e.what());
+  }
   json = output.str();
   return Status(0, "OK");
 }
@@ -133,7 +138,12 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
   }
 
   std::ostringstream output;
-  pt::write_json(output, tree, false);
+  try {
+    pt::write_json(output, tree, false);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    // The content could not be represented as JSON.
+    return Status(1, e.what());
+  }
   json = output.str();
   return Status(0, "OK");
 }
@@ -210,7 +220,12 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
   }
 
   std::ostringstream output;
-  pt::write_json(output, tree, false);
+  try {
+    pt::write_json(output, tree, false);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    // The content could not be represented as JSON.
+    return Status(1, e.what());
+  }
   json = output.str();
   return Status(0, "OK");
 }
@@ -274,7 +289,12 @@ Status serializeQueryLogItemJSON(const QueryLogItem& i, std::string& json) {
   }
 
   std::ostringstream output;
-  pt::write_json(output, tree, false);
+  try {
+    pt::write_json(output, tree, false);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    // The content could not be represented as JSON.
+    return Status(1, e.what());
+  }
   json = output.str();
   return Status(0, "OK");
 }
@@ -360,7 +380,11 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
 
   std::ostringstream output;
   for (auto& event : tree) {
-    pt::write_json(output, event.second, false);
+    try {
+      pt::write_json(output, event.second, false);
+    } catch (const pt::json_parser::json_parser_error& e) {
+      return Status(1, e.what());
+    }
   }
   json = output.str();
   return Status(0, "OK");

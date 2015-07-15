@@ -19,7 +19,11 @@ namespace osquery {
 Status JSONSerializer::serialize(const pt::ptree& params,
                                  std::string& serialized) {
   std::ostringstream output;
-  pt::write_json(output, params, false);
+  try {
+    pt::write_json(output, params, false);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1, e.what());
+  }
   serialized = output.str();
   return Status(0, "OK");
 }

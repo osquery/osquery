@@ -89,8 +89,7 @@ Status DistributedQueryHandler::serializeResults(
         return s;
       }
     }
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     return Status(1, std::string("Error serializing results: ") + e.what());
   }
   return Status();
@@ -139,8 +138,7 @@ Status DistributedQueryHandler::doQueries() {
     std::ostringstream ss;
     pt::write_json(ss, serialized_results, false);
     json = ss.str();
-  }
-  catch (const std::exception& e) {
+  } catch (const pt::json_parser::json_parser_error& e) {
     return Status(1, e.what());
   }
 

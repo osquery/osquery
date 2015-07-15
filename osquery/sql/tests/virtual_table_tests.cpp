@@ -64,4 +64,17 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   EXPECT_EQ("CREATE VIRTUAL TABLE sample USING sample(foo INTEGER, bar TEXT)",
             results[0]["sql"]);
 }
+
+TEST_F(VirtualTableTests, test_sqlite3_table_joins) {
+  // Get a database connection.
+  auto dbc = SQLiteDBManager::get();
+
+  QueryData results;
+  // Run a query with a join within.
+  std::string statement =
+      "SELECT p.pid FROM osquery_info oi, processes p WHERE oi.pid=p.pid";
+  auto status = queryInternal(statement, results, dbc.db());
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 1);
+}
 }

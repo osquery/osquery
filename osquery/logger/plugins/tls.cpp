@@ -150,9 +150,15 @@ Status TLSLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
     buffer.put("filename", item.filename);
     buffer.put("line", item.line);
     buffer.put("message", item.message);
+
     // Convert to JSON, for storing a string-representation in the database.
     std::stringstream json_output;
-    write_json(json_output, buffer, false);
+    try {
+      pt::write_json(json_output, buffer, false);
+    } catch (const pt::json_parser::json_parser_error& e) {
+      // The log could not be represented as JSON.
+      return Status(1, e.what());
+    }
 
     // Store the status line in a backing store.
     auto index = genLogIndex(false, log_index_);
