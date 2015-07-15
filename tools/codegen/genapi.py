@@ -19,6 +19,7 @@ import logging
 import os
 import sys
 import uuid
+import subprocess
 
 from gentable import *
 
@@ -227,6 +228,14 @@ def main(argc, argv):
         "--diff", default=False, action="store_true",
         help="Compare API changes API_PREVIOUS API_CURRENT"
     )
+    parser.add_argument(
+        "--output", default=False, action="store_true",
+        help="Create output file as the version tagged."
+    )
+    parser.add_argument(
+        "--directory", default=".",
+        help="Directory to use for the output file."
+    )
     parser.add_argument("vars", nargs="*")
     args = parser.parse_args()
 
@@ -260,7 +269,24 @@ def main(argc, argv):
 
     # Read in the optional list of blacklisted tables, then generate categories.
     api = gen_api(args.tables, profile)
-    print(gen_api_json(api))
+
+    # Output file will be the version with json extension, otherwise stdout
+    if args.output:
+      cmd = ['git', 'describe', '--tags', 'HEAD']
+      proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+      )
+      out, err = proc.communicate()
+      output_file = out.split("-")[0] + ".json"
+      if args.directory[-1:] == '/':
+        output_path = args.directory + output_file
+      else:
+        output_path = args.directory + '/' + output_file
+
+      with open(output_path, 'w') as f:
+        print(gen_api_json(api), file=f)
+    else:
+      print(gen_api_json(api))
 
 
 if __name__ == "__main__":
