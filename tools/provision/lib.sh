@@ -388,6 +388,8 @@ function package() {
       log "$1 is already installed. skipping."
     else
       log "installing $1"
+      unset LIBNAME
+      unset HOMEBREW_BUILD_FROM_SOURCE
       export HOMEBREW_MAKE_JOBS=$THREADS
       export HOMEBREW_NO_EMOJI=1
       if [[ $1 = "rocksdb" ]]; then
@@ -395,9 +397,8 @@ function package() {
         export LIBNAME=librocksdb_lite
         export HOMEBREW_BUILD_FROM_SOURCE=1
         HOMEBREW_ARGS="--build-bottle --with-lite"
-      else
-        unset LIBNAME
-        unset HOMEBREW_BUILD_FROM_SOURCE
+      elif [[ $1 = "gflags" ]]; then
+        HOMEBREW_ARGS="--build-bottle --with-static"
       fi
       brew install -v $HOMEBREW_ARGS $1 || brew upgrade -v $HOMEBREW_ARGS $@
     fi
