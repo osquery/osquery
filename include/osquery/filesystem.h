@@ -42,10 +42,23 @@ const std::string kSQLGlobRecursive = kSQLGlobWildcard + kSQLGlobWildcard;
  * @param path the path of the file that you would like to read.
  * @param content a reference to a string which will be populated with the
  * contents of the path indicated by the path parameter.
+ * @param dry_run do not actually read the file content.
  *
  * @return an instance of Status, indicating success or failure.
  */
-Status readFile(const boost::filesystem::path& path, std::string& content);
+Status readFile(const boost::filesystem::path& path,
+                std::string& content,
+                bool dry_run = false);
+
+/**
+ * @brief Return the status of an attempted file read.
+ *
+ * @param path the path of the file that you would like to read.
+ *
+ * @return success iff the file would have been read. On success the status
+ * message is the complete/absolute path.
+ */
+Status readFile(const boost::filesystem::path& path);
 
 /**
  * @brief Write text to disk.

@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <sstream>
 
+#include <osquery/filesystem.h>
 #include <osquery/hash.h>
 #include <osquery/logger.h>
 
@@ -91,9 +92,15 @@ std::string hashFromBuffer(HashType hash_type, const void* buffer, size_t size) 
 }
 
 std::string hashFromFile(HashType hash_type, const std::string& path) {
-  Hash hash(hash_type);
+  // Perform a dry-run of a file read without filling in any content.
+  auto status = readFile(path);
+  if (!status.ok()) {
+    return "";
+  }
 
-  FILE* file = fopen(path.c_str(), "rb");
+  Hash hash(hash_type);
+  // Use the canonicalized path returned from a successful readFile dry-run.
+  FILE* file = fopen(status.what().c_str(), "rb");
   if (file == nullptr) {
     VLOG(1) << "Cannot hash/open file " << path;
     return "";
