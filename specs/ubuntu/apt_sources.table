@@ -1,13 +1,13 @@
 table_name("apt_sources")
 description("Current list of APT repositories or software channels.")
 schema([
-    Column("name", TEXT),
-    Column("base_uri", TEXT),
-    Column("package_cache_file", TEXT),
-    Column("release", TEXT),
-    Column("component", TEXT),
-    Column("version", TEXT),
-    Column("maintainer", TEXT),
-    Column("site", TEXT),
+    Column("name", TEXT, "Repository name"),
+    Column("base_uri", TEXT, "Repository base URI"),
+    Column("package_cache_file", TEXT, "Repository cache file"),
+    Column("release", TEXT, "Release name"),
+    Column("component", TEXT, "Repository component"),
+    Column("version", TEXT, "Repository source version"),
+    Column("maintainer", TEXT, "Repository maintainer"),
+    Column("site", TEXT, "Repository site"),
 ])
 implementation("system/apt_sources@genAptSrcs")

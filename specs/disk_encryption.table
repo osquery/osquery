@@ -1,9 +1,9 @@
 table_name("disk_encryption")
 description("Disk Encryption")
 schema([
-    Column("name", TEXT),
-    Column("uuid", TEXT),
-    Column("encrypted", INTEGER, "1 if encrypted: true (disk is encrypted), else 0"),
+    Column("name", TEXT, "Disk name"),
+    Column("uuid", TEXT, "Disk Universally Unique Identifier"),
+    Column("encrypted", INTEGER, "1 If encrypted: true (disk is encrypted), else 0"),
     Column("type", TEXT, "Description of cipher type and mode if available"),
     ForeignKey(column="name", table="block_devices"),
     ForeignKey(column="uuid", table="block_devices"),

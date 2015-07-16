@@ -1,12 +1,12 @@
 table_name("alf")
 description("OS X application layer firewall (ALF) service details.")
 schema([
-    Column("allow_signed_enabled", INTEGER),
-    Column("firewall_unload", INTEGER),
-    Column("global_state", INTEGER),
-    Column("logging_enabled", INTEGER),
-    Column("logging_option", INTEGER),
-    Column("stealth_enabled", INTEGER),
-    Column("version", TEXT),
+    Column("allow_signed_enabled", INTEGER, "1 If allow signed mode is enabled else 0"),
+    Column("firewall_unload", INTEGER, "1 If firewall unloading enabled else 0"),
+    Column("global_state", INTEGER, "1 If the firewall start by default else 0"),
+    Column("logging_enabled", INTEGER, "1 If logging mode is enabled else 0"),
+    Column("logging_option", INTEGER, "Firewall logging option"),
+    Column("stealth_enabled", INTEGER, "1 If stealth mode is enabled else 0"),
+    Column("version", TEXT, "Application Layer Firewall version"),
 ])
 implementation("firewall@genALF")

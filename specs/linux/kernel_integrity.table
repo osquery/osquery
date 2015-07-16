@@ -1,8 +1,10 @@
 table_name("kernel_integrity")
 description("Various Linux kernel integrity checked attributes.")
 schema([
-    Column("sycall_addr_modified", INTEGER),
-    Column("text_segment_hash", TEXT),
+    Column("sycall_addr_modified", INTEGER,
+        "0 or 1, for whether a syscall table pointer is modified"),
+    Column("text_segment_hash", TEXT,
+        "Hash value for the kernel's .text memory segment"),
 ])
 attributes(kernel_required=True)
 implementation("kernel_integrity@genKernelIntegrity")

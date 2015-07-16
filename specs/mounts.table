@@ -1,16 +1,16 @@
 table_name("mounts")
 description("System mounted devices and filesystems (not process specific).")
 schema([
-	Column("device", TEXT),
-	Column("device_alias", TEXT),
-	Column("path", TEXT),
-	Column("type", TEXT),
-	Column("blocks_size", BIGINT),
-	Column("blocks", BIGINT),
-	Column("blocks_free", BIGINT),
-	Column("blocks_available", BIGINT),
-	Column("inodes", BIGINT),
-	Column("inodes_free", BIGINT),
-	Column("flags", TEXT),
+	Column("device", TEXT, "Mounted device"),
+	Column("device_alias", TEXT, "Mounted device alias"),
+	Column("path", TEXT, "Mounted device path"),
+	Column("type", TEXT, "Mounted device type"),
+	Column("blocks_size", BIGINT, "Block size in bytes"),
+	Column("blocks", BIGINT, "Mounted device used blocks"),
+	Column("blocks_free", BIGINT, "Mounted device free blocks"),
+	Column("blocks_available", BIGINT, "Mounted device available blocks"),
+	Column("inodes", BIGINT, "Mounted device used inodes"),
+	Column("inodes_free", BIGINT, "Mounted device free inodes"),
+	Column("flags", TEXT, "Mounted device flags"),
 ])
 implementation("mounts@genMounts")

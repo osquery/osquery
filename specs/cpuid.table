@@ -1,7 +1,7 @@
 table_name("cpuid")
 description("Useful CPU features from the cpuid ASM call.")
 schema([
-    Column("feature", TEXT),
+    Column("feature", TEXT, "Present feature flags"),
     Column("value", TEXT, "Bit value or string"),
     Column("output_register", TEXT, "Register used to for feature value"),
     Column("output_bit", INTEGER, "Bit in register value for feature value"),

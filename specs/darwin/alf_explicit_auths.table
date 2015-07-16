@@ -1,6 +1,6 @@
 table_name("alf_explicit_auths")
 description("ALF services explicitly allowed to perform networking.")
 schema([
-    Column("process", TEXT),
+    Column("process", TEXT, "Process name explicitly allowed"),
 ])
 implementation("firewall@genALFExplicitAuths")
