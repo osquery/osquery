@@ -21,25 +21,31 @@
 namespace osquery {
 namespace tables {
 
-QueryData genAuthorizationMechanisms(QueryContext& context) {
+QueryData genAuthorizationMechanisms(QueryContext &context) {
   @autoreleasepool {
 
     QueryData results;
     NSMutableArray *labelsNS;
-    
+
     // Grab all labels
     if (context.constraints["label"].exists(EQUALS)) {
       labelsNS = [[NSMutableArray alloc] init];
       auto labels = context.constraints["label"].getAll(EQUALS);
-      for(const auto& label: labels){
-        [labelsNS addObject:[NSString stringWithCString:label.c_str() encoding:[NSString defaultCStringEncoding]]];
+      for (const auto &label : labels) {
+        [labelsNS
+            addObject:[NSString
+                          stringWithCString:label.c_str()
+                                   encoding:[NSString defaultCStringEncoding]]];
       }
-    } 
-    
+    }
+
     if (!labelsNS) {
-      NSString *authorizationPlistPath = @"/System/Library/Security/authorization.plist";
-      NSDictionary *authorizationDict = [NSDictionary dictionaryWithContentsOfFile:authorizationPlistPath];
-      labelsNS = [[NSMutableArray alloc] initWithArray:[authorizationDict[@"rights"] allKeys]];
+      NSString *authorizationPlistPath =
+          @"/System/Library/Security/authorization.plist";
+      NSDictionary *authorizationDict =
+          [NSDictionary dictionaryWithContentsOfFile:authorizationPlistPath];
+      labelsNS = [[NSMutableArray alloc]
+          initWithArray:[authorizationDict[@"rights"] allKeys]];
       [labelsNS addObjectsFromArray:[authorizationDict[@"rules"] allKeys]];
     }
 
@@ -47,34 +53,41 @@ QueryData genAuthorizationMechanisms(QueryContext& context) {
       Row r;
       CFDictionaryRef rightSet = nullptr;
       AuthorizationRightGet([label UTF8String], &rightSet);
-      
+
       if (rightSet == nullptr) {
         continue;
       }
-      
-      NSDictionary *rightSetNS = (__bridge NSDictionary*)rightSet;
+
+      NSDictionary *rightSetNS = (__bridge NSDictionary *)rightSet;
       NSArray *mechArrayNS = [rightSetNS objectForKey:@"mechanisms"];
       if (mechArrayNS) {
         for (NSString *mechNS in mechArrayNS) {
           r["label"] = TEXT([label UTF8String]);
-          r["privileged"] = ([mechNS rangeOfString:@"privileged"].location != NSNotFound) ? "true" : "false";
+          r["privileged"] =
+              ([mechNS rangeOfString:@"privileged"].location != NSNotFound)
+                  ? "true"
+                  : "false";
           r["entry"] = TEXT([mechNS UTF8String]);
           NSRange colonRange = [mechNS rangeOfString:@":"];
           NSRange pluginRange = NSMakeRange(0, colonRange.location);
-          NSRange mechRange = NSMakeRange(colonRange.location + 1, [mechNS length] - (colonRange.location + 1));
-          r["plugin"] = TEXT([[mechNS substringWithRange:pluginRange] UTF8String]);
-          r["mechanism"] = TEXT([[[mechNS substringWithRange:mechRange] stringByReplacingOccurrencesOfString:@",privileged" withString:@""] UTF8String]);
+          NSRange mechRange =
+              NSMakeRange(colonRange.location + 1,
+                          [mechNS length] - (colonRange.location + 1));
+          r["plugin"] =
+              TEXT([[mechNS substringWithRange:pluginRange] UTF8String]);
+          r["mechanism"] = TEXT([[[mechNS substringWithRange:mechRange]
+              stringByReplacingOccurrencesOfString:@",privileged"
+                                        withString:@""] UTF8String]);
           results.push_back(r);
         }
       }
-      
+
       if (rightSet != nullptr) {
         CFRelease(rightSet);
       }
     }
 
     return results;
-  
   }
 }
 }

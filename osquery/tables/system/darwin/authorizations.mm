@@ -21,24 +21,30 @@
 namespace osquery {
 namespace tables {
 
-QueryData genAuthorizations(QueryContext& context) {
+QueryData genAuthorizations(QueryContext &context) {
   @autoreleasepool {
 
     QueryData results;
     NSMutableArray *labelsNS;
-    
+
     if (context.constraints["label"].exists(EQUALS)) {
       labelsNS = [[NSMutableArray alloc] init];
       auto labels = context.constraints["label"].getAll(EQUALS);
-      for(const auto& label: labels){
-        [labelsNS addObject:[NSString stringWithCString:label.c_str() encoding:[NSString defaultCStringEncoding]]];
+      for (const auto &label : labels) {
+        [labelsNS
+            addObject:[NSString
+                          stringWithCString:label.c_str()
+                                   encoding:[NSString defaultCStringEncoding]]];
       }
-    } 
+    }
 
     if (!labelsNS) {
-      NSString *authorizationPlistPath = @"/System/Library/Security/authorization.plist";
-      NSDictionary *authorizationDict = [NSDictionary dictionaryWithContentsOfFile:authorizationPlistPath];
-      labelsNS = [[NSMutableArray alloc] initWithArray:[authorizationDict[@"rights"] allKeys]];
+      NSString *authorizationPlistPath =
+          @"/System/Library/Security/authorization.plist";
+      NSDictionary *authorizationDict =
+          [NSDictionary dictionaryWithContentsOfFile:authorizationPlistPath];
+      labelsNS = [[NSMutableArray alloc]
+          initWithArray:[authorizationDict[@"rights"] allKeys]];
       [labelsNS addObjectsFromArray:[authorizationDict[@"rules"] allKeys]];
     }
 
@@ -49,7 +55,7 @@ QueryData genAuthorizations(QueryContext& context) {
       if (rightSet == nullptr) {
         continue;
       }
-      
+
       CFIndex count = CFDictionaryGetCount(rightSet);
       const void *keys[count];
       const void *values[count];
@@ -57,26 +63,31 @@ QueryData genAuthorizations(QueryContext& context) {
 
       for (CFIndex i = 0; i < count; i++) {
         r["label"] = TEXT([label UTF8String]);
-        NSString *keyNS = (__bridge NSString*)keys[i];
+        NSString *keyNS = (__bridge NSString *)keys[i];
         id valueNS = (__bridge id)values[i];
         if (CFGetTypeID(values[i]) == CFNumberGetTypeID()) {
-            r[[[keyNS stringByReplacingOccurrencesOfString:@"-" withString:@"_"] UTF8String]] = TEXT([valueNS intValue]);
+          r[[[keyNS stringByReplacingOccurrencesOfString:@"-"
+                                              withString:@"_"] UTF8String]] =
+              TEXT([valueNS intValue]);
         } else if (CFGetTypeID(values[i]) == CFStringGetTypeID()) {
-            r[[[keyNS stringByReplacingOccurrencesOfString:@"-" withString:@"_"] UTF8String]] = TEXT([valueNS UTF8String]);
+          r[[[keyNS stringByReplacingOccurrencesOfString:@"-"
+                                              withString:@"_"] UTF8String]] =
+              TEXT([valueNS UTF8String]);
         } else if (CFGetTypeID(values[i]) == CFBooleanGetTypeID()) {
-            r[[[keyNS stringByReplacingOccurrencesOfString:@"-" withString:@"_"] UTF8String]] = TEXT(([valueNS boolValue]) ? "true" : "false");
+          r[[[keyNS stringByReplacingOccurrencesOfString:@"-"
+                                              withString:@"_"] UTF8String]] =
+              TEXT(([valueNS boolValue]) ? "true" : "false");
         }
       }
-	
+
       results.push_back(r);
 
       if (rightSet != nullptr) {
-      	CFRelease(rightSet);
+        CFRelease(rightSet);
       }
     }
-      
+
     return results;
-  
   }
 }
 }
