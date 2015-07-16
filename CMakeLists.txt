@@ -342,7 +342,9 @@ find_package(Doxygen)
 if(DOXYGEN_FOUND)
   add_custom_target(
     docs
-    echo "PROJECT_NUMBER=${OSQUERY_BUILD_VERSION}" |
+    COMMAND "${CMAKE_SOURCE_DIR}/tools/codegen/genapi.py" "${CMAKE_SOURCE_DIR}"
+      "--output" "--directory" "${CMAKE_SOURCE_DIR}/build/docs"
+    COMMAND echo "PROJECT_NUMBER=${OSQUERY_BUILD_VERSION}" |
       cat ${CMAKE_SOURCE_DIR}/Doxyfile - |
       "${DOXYGEN_EXECUTABLE}" -;
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

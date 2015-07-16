@@ -272,6 +272,7 @@ def main(argc, argv):
 
     # Output file will be the version with json extension, otherwise stdout
     if args.output:
+      print('[+] creating tables json')
       cmd = ['git', 'describe', '--tags', 'HEAD']
       proc = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -285,6 +286,7 @@ def main(argc, argv):
 
       with open(output_path, 'w') as f:
         print(gen_api_json(api), file=f)
+      print('[+] tables json file created at %s' % (output_path))
     else:
       print(gen_api_json(api))
 

@@ -3,6 +3,8 @@ if(APPLE)
   add_custom_target(
     packages
     COMMAND "${CMAKE_SOURCE_DIR}/tools/deployment/make_osx_package.sh"
+    COMMAND "${CMAKE_SOURCE_DIR}/tools/codegen/genapi.py" "${CMAKE_SOURCE_DIR}"
+      "--output" "--directory" "${CMAKE_BINARY_DIR}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Building default OS X package (no custom config)" VERBATIM
     DEPENDS daemon shell
@@ -95,9 +97,11 @@ elseif(LINUX)
 
   add_custom_target(
     packages
-    "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
+    COMMAND "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
       -t ${PACKAGE_TYPE} -i "${PACKAGE_ITERATION}"
       -d "${PACKAGE_DEPENDENCIES}"
+    COMMAND "${CMAKE_SOURCE_DIR}/tools/codegen/genapi.py" "${CMAKE_SOURCE_DIR}"
+      "--output" "--directory" "${CMAKE_BINARY_DIR}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Building linux packages (no custom config)" VERBATIM
     DEPENDS daemon shell
