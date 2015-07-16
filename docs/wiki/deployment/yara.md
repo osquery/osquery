@@ -61,7 +61,7 @@ osquery>
 
 The [**file_events**](https://osquery.io/docs/tables/#file_events) table recorded that a file named */Users/wxs/tmp/foo* was created with the corresponding hashes and a timestamp.
 
-The [**yara_events**](https://osquery.io/docs/tables/#yara_events) table recorded that 1 matching rule (*always_true*) was found when the file was created. In this example every file will always have at least one match because I am using a rule which always evaluates to true. In this next example I'll issue the same command to create a file in a monitored directory but have removed the *always_true* rule from my signature files.
+The [**yara_events**](https://osquery.io/docs/tables/#yara_events) table recorded that 1 matching rule (*always_true*) was found when the file was created. In this example every file will always have at least one match because I am using a rule which always evaluates to true. In the next example I'll issue the same command to create a file in a monitored directory but have removed the *always_true* rule from my signature files.
 
 ```bash
 osquery> select * from yara_events;
