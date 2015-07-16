@@ -278,7 +278,7 @@ def main(argc, argv):
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
       )
       out, err = proc.communicate()
-      output_file = out.split("-")[0] + ".json"
+      output_file = out.split("\n")[0] + ".json"
       if args.directory[-1:] == '/':
         output_path = args.directory + output_file
       else:
