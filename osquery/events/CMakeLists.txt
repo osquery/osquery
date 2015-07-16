@@ -1,11 +1,3 @@
-# We will introduce a "kernel-test" mode that builds for pull requests and
-# merges into master and includes additional unit-test facilities.
-if(NOT OSQUERY_BUILD_RELEASE)
-  add_definitions(-DKERNEL_TEST=1)
-endif()
-
-SET(OSQUERY_EVENTS_SOURCES "")
-
 if(APPLE)
   ADD_OSQUERY_LINK(FALSE "-framework CoreServices")
   ADD_OSQUERY_LINK(FALSE "-framework SystemConfiguration")
@@ -37,15 +29,20 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_events
 file(GLOB OSQUERY_EVENTS_TESTS "tests/*.cpp")
 ADD_OSQUERY_TEST(TRUE ${OSQUERY_EVENTS_TESTS})
 
-
-file(GLOB OSQUERY_KERNEL_QUEUE "kernel/*.cpp")
-ADD_OSQUERY_LIBRARY(FALSE osquery_additional_events
+# Kernel-related userland code.
+file(GLOB OSQUERY_EVENTS_KERNEL "kernel/*.cpp")
+ADD_OSQUERY_LIBRARY(FALSE osquery_events_kernel
   kernel.cpp
-  ${OSQUERY_KERNEL_QUEUE}
+  ${OSQUERY_EVENTS_KERNEL}
 )
 
-file(GLOB OSQUERY_KERNEL_QUEUE_TESTS "kernel/tests/*.cpp")
-ADD_OSQUERY_KERNEL_TEST(${OSQUERY_KERNEL_QUEUE_TESTS})
+if(NOT OSQUERY_BUILD_RELEASE)
+  set_target_properties(osquery_events_kernel
+    PROPERTIES COMPILE_DEFINITIONS "KERNEL_TEST=1")
+endif()
+
+file(GLOB OSQUERY_EVENTS_KERNEL_TESTS "kernel/tests/*.cpp")
+ADD_OSQUERY_KERNEL_TEST(${OSQUERY_EVENTS_KERNEL_TESTS})
 
 if(APPLE)
   file(GLOB OSQUERY_DARWIN_EVENTS_TESTS "darwin/tests/*.cpp")

@@ -21,24 +21,28 @@ function cleanUp() {
   make kernel-unload || sudo reboot
 }
 
-# Builds dependencies
+# Run build host provisions and install library dependencies.
 make deps
+
+# Clean previous build artifacts.
 make clean
 
-# Build osquery
+# Build osquery.
 make -j$THREADS
 
-# Build osquery kernel
+# Build osquery kernel (optional).
 make kernel-build
 
-# Setup cleanup code for test failures.
+# Setup cleanup code for catastrophic test failures.
 trap cleanUp EXIT INT TERM
 
+# Load osquery kernel (optional).
 make kernel-load
 
-# Run code unit and integration tests
+# Run code unit and integration tests.
 make test
 
+# Run kernel unit and integration tests (optional).
 make kernel-test
 
 exit 0

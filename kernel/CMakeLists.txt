@@ -3,8 +3,13 @@
 set(CMAKE_C_FLAGS "")
 set(CMAKE_CXX_FLAGS "")
 
+# Set kernel-exported variables/paths/settings.
+set(KERNEL_BINARY_DIR "" PARENT_SCOPE)
+set(KERNEL_BINARY "" PARENT_SCOPE)
+set(KERNEL_TYPE "unknown" PARENT_SCOPE)
+
 if(APPLE)
-  set(KERNEL_BINARY_DIR "osquery.kext/Contents/MacOS/")
+  set(KERNEL_BINARY_DIR "osquery.kext/Contents/MacOS")
   set(KERNEL_BINARY "${KERNEL_BINARY_DIR}/osquery")
 
   # Set OS X platform-specific compiler flags.
