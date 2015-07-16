@@ -124,7 +124,7 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
   // Attempt to cast each xFilter-populated row/column to the SQLite type.
   auto &value = pVtab->content->data[column_name][pCur->row];
   if (type == "TEXT") {
-    sqlite3_result_text(ctx, value.c_str(), value.size(), SQLITE_TRANSIENT);
+    sqlite3_result_text(ctx, value.c_str(), value.size(), SQLITE_STATIC);
   } else if (type == "INTEGER") {
     int afinite;
     try {
@@ -156,8 +156,6 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
     }
     sqlite3_result_double(ctx, afinite);
   }
-  // Instead of moving the content it was casted, so clear the container.
-  value.clear();
 
   return SQLITE_OK;
 }

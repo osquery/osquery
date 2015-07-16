@@ -74,7 +74,13 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
     auto status = makeTLSConfigRequest(uri, recv);
     if (status.ok()) {
       std::stringstream ss;
-      write_json(ss, recv);
+      try {
+        pt::write_json(ss, recv, false);
+      } catch (const pt::json_parser::json_parser_error& e) {
+        // The response content could not be represented as JSON.
+        continue;
+      }
+
       config["tls_plugin"] = ss.str();
       return Status(0, "OK");
     } else if (i == CONFIG_TLS_MAX_ATTEMPTS) {

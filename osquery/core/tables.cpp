@@ -53,7 +53,11 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
 
   // Write the property tree as a JSON string into the PluginRequest.
   std::ostringstream output;
-  pt::write_json(output, tree, false);
+  try {
+    pt::write_json(output, tree, false);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    // The content could not be represented as JSON.
+  }
   request["context"] = output.str();
 }
 
@@ -165,7 +169,7 @@ bool ConstraintList::matches(const std::string& expr) const {
     UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
     return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
   } else {
-    // Unsupprted affinity type.
+    // Unsupported affinity type.
     return false;
   }
 }

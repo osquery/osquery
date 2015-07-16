@@ -292,7 +292,11 @@ Status Config::getMD5(std::string& hash_string) {
   ConfigDataInstance config;
 
   std::stringstream out;
-  pt::write_json(out, config.data());
+  try {
+    pt::write_json(out, config.data(), false);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1, e.what());
+  }
 
   hash_string = osquery::hashFromBuffer(
       HASH_TYPE_MD5, (void*)out.str().c_str(), out.str().length());
