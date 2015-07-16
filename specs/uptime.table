@@ -1,10 +1,10 @@
 table_name("uptime")
 description("Track time passed since last boot.")
 schema([
-    Column("days", INTEGER),
-    Column("hours", INTEGER),
-    Column("minutes", INTEGER),
-    Column("seconds", INTEGER),
-    Column("total_seconds", BIGINT),
+    Column("days", INTEGER, "Days of uptime"),
+    Column("hours", INTEGER, "Hours of uptime"),
+    Column("minutes", INTEGER, "Minutes of uptime"),
+    Column("seconds", INTEGER, "Seconds of uptime"),
+    Column("total_seconds", BIGINT, "Total uptime seconds"),
 ])
 implementation("system/uptime@genUptime")

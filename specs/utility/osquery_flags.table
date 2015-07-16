@@ -1,12 +1,12 @@
 table_name("osquery_flags")
 description("Configurable flags that modify osquery's behavior.")
 schema([
-    Column("name", TEXT),
-    Column("type", TEXT),
-    Column("description", TEXT),
-    Column("default_value", TEXT),
-    Column("value", TEXT),
-    Column("shell_only", INTEGER),
+    Column("name", TEXT, "Flag name"),
+    Column("type", TEXT, "Flag type"),
+    Column("description", TEXT, "Flag description"),
+    Column("default_value", TEXT, "Flag default value"),
+    Column("value", TEXT, "Flag value"),
+    Column("shell_only", INTEGER, "Is the flag shell only?"),
 ])
 attributes(utility=True)
 implementation("osquery@genOsqueryFlags")

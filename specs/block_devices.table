@@ -1,13 +1,13 @@
 table_name("block_devices")
 description("Block (buffered access) device file nodes: disks, ramdisks, and DMG containers.")
 schema([
-	Column("name", TEXT),
-	Column("parent", TEXT),
-	Column("vendor", TEXT),
-	Column("model", TEXT),
-	Column("size", BIGINT),
-	Column("uuid", TEXT),
-	Column("type", TEXT),
-	Column("label", TEXT),
+	Column("name", TEXT, "Block device name"),
+	Column("parent", TEXT, "Block device parent name"),
+	Column("vendor", TEXT, "Block device vendor string"),
+	Column("model", TEXT, "Block device model string identifier"),
+	Column("size", BIGINT, "Block device size in bytes"),
+	Column("uuid", TEXT, "Block device Universally Unique Identifier"),
+	Column("type", TEXT, "Block device type string"),
+	Column("label", TEXT, "Block device label string"),
 ])
 implementation("block_devices@genBlockDevs")

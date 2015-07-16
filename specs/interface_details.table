@@ -5,7 +5,7 @@ schema([
     Column("mac", TEXT, "MAC of interface (optional)"),
     Column("type", INTEGER, "Interface type (includes virtual)"),
     Column("mtu", INTEGER, "Network MTU"),
-    Column("metric", INTEGER),
+    Column("metric", INTEGER, "Metric based on the speed of the interface"),
     Column("ipackets", BIGINT, "Input packets"),
     Column("opackets", BIGINT, "Output packets"),
     Column("ibytes", BIGINT, "Input bytes"),

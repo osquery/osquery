@@ -15,11 +15,11 @@ schema([
     Column("mtime", BIGINT, "Last modification time"),
     Column("ctime", BIGINT, "Creation time"),
     Column("hard_links", INTEGER, "Number of hard links"),
-    Column("is_file", INTEGER, "1 if a file node else 0"),
-    Column("is_dir", INTEGER, "1 if a directory (not file) else 0"),
-    Column("is_link", INTEGER, "1 if a symlink else 0"),
-    Column("is_char", INTEGER, "1 if a character special device else 0"),
-    Column("is_block", INTEGER, "1 if a block special device else 0"),
+    Column("is_file", INTEGER, "1 If a file node else 0"),
+    Column("is_dir", INTEGER, "1 If a directory (not file) else 0"),
+    Column("is_link", INTEGER, "1 If a symlink else 0"),
+    Column("is_char", INTEGER, "1 If a character special device else 0"),
+    Column("is_block", INTEGER, "1 If a block special device else 0"),
     Column("pattern", TEXT, "A pattern which can be used to match file paths"),
 ])
 attributes(utility=True)

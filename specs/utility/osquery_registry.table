@@ -4,8 +4,8 @@ schema([
     Column("registry", TEXT, "Name of the osquery registry"),
     Column("name", TEXT, "Name of the plugin item"),
     Column("owner_uuid", INTEGER, "Extension route UUID (0 for core)"),
-    Column("internal", INTEGER, "1 if the plugin is internal else 0"),
-    Column("active", INTEGER, "1 if this plugin is active else 0"),
+    Column("internal", INTEGER, "1 If the plugin is internal else 0"),
+    Column("active", INTEGER, "1 If this plugin is active else 0"),
 ])
 attributes(utility=True)
 implementation("osquery@genOsqueryRegistry")

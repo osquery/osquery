@@ -1,13 +1,13 @@
 table_name("usb_devices")
 description("USB devices that are actively plugged into the host system.")
 schema([
-    Column("usb_address", INTEGER),
-    Column("usb_port", INTEGER),
-    Column("vendor", TEXT),
-    Column("vendor_id", TEXT),
-    Column("model", TEXT),
-    Column("model_id", TEXT),
-    Column("serial", TEXT),
-    Column("removable", INTEGER),
+    Column("usb_address", INTEGER, "USB Device used address"),
+    Column("usb_port", INTEGER, "USB Device used port"),
+    Column("vendor", TEXT, "USB Device vendor string"),
+    Column("vendor_id", TEXT, "USB Device vendor identifier"),
+    Column("model", TEXT, "USB Device model string"),
+    Column("model_id", TEXT, "USB Device model identifier"),
+    Column("serial", TEXT, "USB Device serial connection"),
+    Column("removable", INTEGER, "1 If USB device is removable else 0"),
 ])
 implementation("usb_devices@genUSBDevices")

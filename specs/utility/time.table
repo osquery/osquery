@@ -1,16 +1,16 @@
 table_name("time")
 description("Track current date and time in the system.")
 schema([
-    Column("weekday", TEXT),
-    Column("year", INTEGER),
-    Column("month", INTEGER),
-    Column("day", INTEGER),
-    Column("hour", INTEGER),
-    Column("minutes", INTEGER),
-    Column("seconds", INTEGER),
-    Column("unix_time", INTEGER),
-    Column("timestamp", TEXT),
-    Column("iso_8601", TEXT),
+    Column("weekday", TEXT, "Current weekday in the system"),
+    Column("year", INTEGER, "Current year in the system"),
+    Column("month", INTEGER, "Current month in the system"),
+    Column("day", INTEGER, "Current day in the system"),
+    Column("hour", INTEGER, "Current hour in the system"),
+    Column("minutes", INTEGER, "Current minutes in the system"),
+    Column("seconds", INTEGER, "Current seconds in the system"),
+    Column("unix_time", INTEGER, "Current unix time in the system"),
+    Column("timestamp", TEXT, "Current timestamp in the system"),
+    Column("iso_8601", TEXT, "Current time (iso format) in the system"),
 ])
 attributes(utility=True)
 implementation("time@genTime")

@@ -1,9 +1,9 @@
 table_name("suid_bin")
 description("suid binaries in common locations.")
 schema([
-    Column("path", TEXT),
-    Column("username", TEXT),
-    Column("groupname", TEXT),
-    Column("permissions", TEXT),
+    Column("path", TEXT, "Binary path"),
+    Column("username", TEXT, "Binary owner username"),
+    Column("groupname", TEXT, "Binary owner group"),
+    Column("permissions", TEXT, "Binary permissions"),
 ])
 implementation("suid_bin@genSuidBin")

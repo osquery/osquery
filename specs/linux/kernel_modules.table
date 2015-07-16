@@ -4,7 +4,7 @@ schema([
     Column("name", TEXT, "Module name"),
     Column("size", TEXT, "Size of module content"),
     Column("used_by", TEXT, "Module reverse dependencies"),
-    Column("status", TEXT),
-    Column("address", TEXT),
+    Column("status", TEXT, "Kernel module status"),
+    Column("address", TEXT, "Kernel module address"),
 ])
 implementation("kernel_modules@genKernelModules")

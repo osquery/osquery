@@ -1,18 +1,18 @@
 table_name("pci_devices")
 description("PCI devices active on the host system.")
 schema([
-    Column("pci_slot", TEXT),
-    Column("pci_class", TEXT),
-    Column("driver", TEXT),
-    Column("vendor", TEXT),
-    Column("vendor_id", TEXT),
-    Column("model", TEXT),
-    Column("model_id", TEXT),
+    Column("pci_slot", TEXT, "PCI Device used slot"),
+    Column("pci_class", TEXT, "PCI Device class"),
+    Column("driver", TEXT, "PCI Device used driver"),
+    Column("vendor", TEXT, "PCI Device vendor"),
+    Column("vendor_id", TEXT, "PCI Device vendor identifier"),
+    Column("model", TEXT, "PCI Device model"),
+    Column("model_id", TEXT, "PCI Device model identifier"),
 
     # Optional columns
-    #Column("subsystem", TEXT),
-    #Column("express", INTEGER),
-    #Column("thunderbolt", INTEGER),
-    #Column("removable", INTEGER),
+    #Column("subsystem", TEXT, "PCI Device subsystem"),
+    #Column("express", INTEGER, "1 If PCI device is express else 0"),
+    #Column("thunderbolt", INTEGER, "1 If PCI device is thunderbolt else 0"),
+    #Column("removable", INTEGER, "1 If PCI device is removable else 0"),
 ])
 implementation("pci_devices@genPCIDevices")

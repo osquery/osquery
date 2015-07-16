@@ -2,6 +2,6 @@ table_name("alf_exceptions")
 description("OS X application layer firewall (ALF) service exceptions.")
 schema([
     Column("path", TEXT, "Path to the executable that is excepted"),
-    Column("state", INTEGER),
+    Column("state", INTEGER, "Firewall exception state"),
 ])
 implementation("firewall@genALFExceptions")

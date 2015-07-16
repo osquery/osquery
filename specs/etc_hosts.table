@@ -1,7 +1,7 @@
 table_name("etc_hosts")
 description("Line-parsed /etc/hosts.")
 schema([
-    Column("address", TEXT),
+    Column("address", TEXT, "IP address mapping"),
     Column("hostnames", TEXT, "Raw hosts mapping"),
 ])
 implementation("etc_hosts@genEtcHosts")

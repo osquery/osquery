@@ -1,12 +1,12 @@
 table_name("smbios_tables")
 description("BIOS (DMI) structure common details and content.")
 schema([
-    Column("number", INTEGER),
-    Column("type", INTEGER),
-    Column("description", TEXT),
-    Column("handle", INTEGER),
-    Column("header_size", INTEGER),
-    Column("size", INTEGER),
-    Column("md5", TEXT),
+    Column("number", INTEGER, "Table entry number"),
+    Column("type", INTEGER, "Table entry type"),
+    Column("description", TEXT, "Table entry description"),
+    Column("handle", INTEGER, "Table entry handle"),
+    Column("header_size", INTEGER, "Header size in bytes"),
+    Column("size", INTEGER, "Table entry size in bytes"),
+    Column("md5", TEXT, "MD5 hash of table entry"),
 ])
 implementation("system/smbios_tables@genSMBIOSTables")
