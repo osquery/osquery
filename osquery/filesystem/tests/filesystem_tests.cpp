@@ -56,6 +56,13 @@ TEST_F(FilesystemTests, test_read_file) {
   remove(kTestWorkingDirectory + "fstests-file");
 }
 
+TEST_F(FilesystemTests, test_read_symlink) {
+  std::string content;
+  auto status = readFile(kFakeDirectory + "/root2.txt", content);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(content, "root");
+}
+
 TEST_F(FilesystemTests, test_read_limit) {
   auto max = FLAGS_read_max;
   auto user_max = FLAGS_read_user_max;

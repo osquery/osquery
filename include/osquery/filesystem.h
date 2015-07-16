@@ -146,7 +146,7 @@ Status resolveFilePattern(const boost::filesystem::path& pattern,
  * @brief Given a filesystem globbing patten, resolve all matching paths.
  *
  * See resolveFilePattern, but supply a limitation to request only directories
- * or files that patch the path.
+ * or files that match the path.
  *
  * @param pattern filesystem globbing pattern.
  * @param results output vector of matching paths.

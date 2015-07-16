@@ -68,7 +68,9 @@ Status readFile(const fs::path& path, std::string& content, bool dry_run) {
     if (file.st_uid != 0 && !FLAGS_read_user_links) {
       return Status(1, "User link reads disabled");
     }
-  } else if (stat(path.string().c_str(), &file) < 0) {
+  }
+
+  if (stat(path.string().c_str(), &file) < 0) {
     return Status(1, "Cannot access path: " + path.string());
   }
 
@@ -225,9 +227,9 @@ inline void replaceGlobWildcards(std::string& pattern) {
     auto canonicalized = fs::canonical(base, ec).string();
     if (canonicalized.size() > 0 && canonicalized != base) {
       if (isDirectory(canonicalized)) {
-        // Canonicalized directory paths will no include a trailing '/'.
-        // But if the wildcards applied to files within a directory then a the
-        // missing '/' changes the wildcard meaning.
+        // Canonicalized directory paths will not include a trailing '/'.
+        // However, if the wildcards are applied to files within a directory
+        // then the missing '/' changes the wildcard meaning.
         canonicalized += '/';
       }
       // We are unable to canonicalize the meaning of post-wildcard limiters.
