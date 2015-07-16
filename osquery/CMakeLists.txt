@@ -160,6 +160,8 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   # make install (executables)
   install(TARGETS shell RUNTIME DESTINATION bin COMPONENT main)
   install(TARGETS daemon RUNTIME DESTINATION bin COMPONENT main)
+  install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryctl"
+    DESTINATION bin COMPONENT main)
 
   # make install (config files)
   install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf"
