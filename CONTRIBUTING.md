@@ -82,11 +82,11 @@ The pattern here should be pretty obvious. Please put the appropriate effort int
 
 ## Unit Test expectations
 
-All code that you submit to osquery should include automated tests. See the [unit testing guide](https://osquery.readthedocs.org/development/unit-tests/) for instructions on how to create tests.
+All code that you submit to osquery should include automated tests. See the [unit testing guide](https://osquery.readthedocs.org/en/latest/development/unit-tests/) for instructions on how to create tests.
 
 ## Memory leak expectations
 
-osquery runs in the context of long running processes. It's critical that there are no memory leaks in osquery code. All code should be thoroughly tested for leaks. See the [memory leak testing guide](https://osquery.readthedocs.org/deployment/performance-safety/) for more information on how to test your code for memory leaks.
+osquery runs in the context of long running processes. It's critical that there are no memory leaks in osquery code. All code should be thoroughly tested for leaks. See the [memory leak testing guide](https://osquery.readthedocs.org/en/latest/deployment/performance-safety/) for more information on how to test your code for memory leaks.
 
 When you submit a Pull Request, please consider including the output of a valgrind analysis.
 

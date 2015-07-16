@@ -51,7 +51,7 @@ By adding an outer join of `time` and using `time.minutes` as a counter this que
 
 Snapshot logs are an alternate form of query result logging. A snapshot is an 'exact point in time' set of results, no differentials. If you always want a list of mounts, not the added and removed mounts, use a snapshot. In the mounts case, where differential results are seldom emitted (assuming hosts do not often mount and unmount), a complete snapshot will log after every query execution. This *will* be a lot of data amortized across your fleet.
 
-Data snapshots may generate _a large amount_ of output. For log collection safety, output is written to a dedicated sink. The **filesystem** logger plugins writes snapshot results to **/var/log/osquery/osqueryd.snapshots.log**.
+Data snapshots may generate _a large amount_ of output. For log collection safety, output is written to a dedicated sink. The **filesystem** logger plugin writes snapshot results to **/var/log/osquery/osqueryd.snapshots.log**.
 
 To schedule a snapshot query, use:
 ```json
