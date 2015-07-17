@@ -36,7 +36,8 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_events_kernel
   ${OSQUERY_EVENTS_KERNEL}
 )
 
-if(NOT OSQUERY_BUILD_RELEASE)
+# Special kernel test define when building non-SDK and non-Release.
+if(NOT OSQUERY_BUILD_RELEASE AND NOT OSQUERY_BUILD_SDK_ONLY)
   set_target_properties(osquery_events_kernel
     PROPERTIES COMPILE_DEFINITIONS "KERNEL_TEST=1")
 endif()

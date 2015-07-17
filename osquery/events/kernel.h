@@ -35,7 +35,6 @@ struct KernelEventContext : public EventContext {
   /// The event type.
   osquery_event_t event_type;
 
-  uint32_t time;
   uint32_t uptime;
 };
 

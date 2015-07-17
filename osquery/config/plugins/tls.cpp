@@ -18,6 +18,7 @@
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
+#include "osquery/dispatcher/dispatcher.h"
 #include "osquery/remote/requests.h"
 #include "osquery/remote/transports/tls.h"
 #include "osquery/remote/serializers/json.h"
@@ -34,12 +35,36 @@ CLI_FLAG(string,
          "",
          "TLS/HTTPS endpoint for config retrieval");
 
+/// Config polling/updating, only applies to TLS configurations.
+FLAG(uint64,
+     config_tls_refresh,
+     0,
+     "Optional interval in seconds to re-read configuration (min=10)");
+
 class TLSConfigPlugin : public ConfigPlugin {
  public:
+  Status setUp();
   Status genConfig(std::map<std::string, std::string>& config);
 };
 
+class TLSConfigRefreshRunner : public InternalRunnable {
+ public:
+  TLSConfigRefreshRunner() {}
+
+  /// A simple wait/interruptible lock.
+  void start();
+};
+
 REGISTER(TLSConfigPlugin, "config", "tls");
+
+Status TLSConfigPlugin::setUp() {
+  // If the initial configuration includes a non-0 refresh, start an additional
+  // service that sleeps and periodically regenerates the configuration.
+  if (FLAGS_config_tls_refresh >= 10) {
+    Dispatcher::addService(std::make_shared<TLSConfigRefreshRunner>());
+  }
+  return Status(0, "OK");
+}
 
 Status makeTLSConfigRequest(const std::string& uri, pt::ptree& output) {
   // Make a request to the config endpoint, providing the node secret.
@@ -93,5 +118,16 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
   }
 
   return Status(1, "TLSConfigPlugin failed");
+}
+
+void TLSConfigRefreshRunner::start() {
+  while (true) {
+    // Cool off and time wait the configured period.
+    // Apply this interruption initially as at t=0 the config was read.
+    osquery::interruptableSleep(FLAGS_config_tls_refresh * 1000);
+
+    // The config instance knows the TLS plugin is selected.
+    Config::load();
+  }
 }
 }

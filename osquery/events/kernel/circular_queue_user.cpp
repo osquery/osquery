@@ -8,25 +8,25 @@
  *
  */
 
-#include "osquery/events/kernel/circular_queue_user.h"
-
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "osquery/events/kernel/circular_queue_user.h"
+
 namespace osquery {
 
 CQueue::CQueue(size_t size) {
-  buffer_ = NULL;
+  buffer_ = nullptr;
   size_ = 0;
-  max_read_ = NULL;
-  read_ = NULL;
+  max_read_ = nullptr;
+  read_ = nullptr;
   fd_ = -1;
 
   const char *filename = "/dev/osquery";
   osquery_buf_allocate_args_t alloc;
   alloc.size = size;
-  alloc.buffer = NULL;
+  alloc.buffer = nullptr;
   alloc.version = OSQUERY_KERNEL_COMM_VERSION;
 
   fd_ = open(filename, O_RDWR);
@@ -85,7 +85,7 @@ osquery_event_t CQueue::dequeue(CQueue::event **event) {
   return header->event;
 }
 
-// return positive idicates drop, 0 is all good in the hood.
+// return positive indicates drop, 0 is all good in the hood.
 // options are listed in kernel feeds.  primarily OSQUERY_NO_BLOCK.
 int CQueue::kernelSync(int options) {
   osquery_buf_sync_args_t sync;
