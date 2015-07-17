@@ -30,9 +30,9 @@ OUTPUT_PKG_PATH="$BUILD_DIR/$PACKAGE_NAME-$PACKAGE_VERSION."
 # Config files
 INITD_SRC="$SCRIPT_DIR/osqueryd.initd"
 INITD_DST="/etc/init.d/osqueryd"
-
 CTL_SRC="$SCRIPT_DIR/osqueryctl"
-
+PACKS_SRC="$SOURCE_DIR/packs"
+PACKS_DST="/usr/share/osquery/packs/"
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/usr/share/osquery/osquery.example.conf"
 OSQUERY_LOG_DIR="/var/log/osquery/"
@@ -101,8 +101,10 @@ function main() {
   mkdir -p $INSTALL_PREFIX/$OSQUERY_VAR_DIR
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
   mkdir -p $INSTALL_PREFIX/$OSQUERY_ETC_DIR
+  mkdir -p $INSTALL_PREFIX/$PACKS_DST
   mkdir -p `dirname $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST`
   cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
+  cp $PACKS_SRC/* $INSTALL_PREFIX/$PACKS_DST
 
   mkdir -p `dirname $INSTALL_PREFIX$INITD_DST`
   cp $INITD_SRC $INSTALL_PREFIX$INITD_DST

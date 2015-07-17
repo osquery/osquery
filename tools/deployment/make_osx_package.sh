@@ -32,6 +32,8 @@ LAUNCHD_SRC="$SCRIPT_DIR/$LD_IDENTIFIER.plist"
 LAUNCHD_DST="/private/var/osquery/$LD_IDENTIFIER.plist"
 NEWSYSLOG_SRC="$SCRIPT_DIR/$LD_IDENTIFIER.conf"
 NEWSYSLOG_DST="/private/var/osquery/$LD_IDENTIFIER.conf"
+PACKS_SRC="$SOURCE_DIR/packs"
+PACKS_DST="/private/var/osquery/packs/"
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/private/var/osquery/osquery.example.conf"
 OSQUERY_CONFIG_SRC=""
@@ -179,9 +181,11 @@ function main() {
   # Move configurations into the packaging root.
   log "copying osquery configurations"
   mkdir -p `dirname $INSTALL_PREFIX$LAUNCHD_DST`
+  mkdir -p $INSTALL_PREFIX$PACKS_DST
   cp $LAUNCHD_SRC $INSTALL_PREFIX$LAUNCHD_DST
   cp $NEWSYSLOG_SRC $INSTALL_PREFIX$NEWSYSLOG_DST
   cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
+  cp $PACKS_SRC/* $INSTALL_PREFIX$PACKS_DST
 
   # Move/install pre/post install scripts within the packaging root.
   log "finalizing preinstall and postinstall scripts"
