@@ -22,11 +22,11 @@ namespace xp = boost::xpressive;
 namespace osquery {
 namespace tables {
 
-#if defined(CENTOS) || defined(RHEL)
+#if defined(REDHAT_BASED)
 const std::string kLinuxOSRelease = "/etc/redhat-release";
 const std::string kLinuxOSRegex =
     "(?P<name>\\w+) .* "
-    "(?P<major>[0-9]+).(?P<minor>[0-9]+)[\\.]{0,1}(?P<patch>[0-9]+)";
+    "(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)[\\.]{0,1}(?P<patch>[0-9]+).*";
 #else
 const std::string kLinuxOSRelease = "/etc/os-release";
 const std::string kLinuxOSRegex =

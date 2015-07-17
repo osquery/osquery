@@ -78,19 +78,19 @@ Status readFile(const fs::path& path, std::string& content, bool dry_run) {
   size_t read_max = (file.st_uid == 0)
                         ? FLAGS_read_max
                         : std::min(FLAGS_read_max, FLAGS_read_user_max);
-  std::ifstream is(path.string(), std::ifstream::binary);
+  std::ifstream is(path.string(), std::ifstream::binary | std::ios::ate);
   if (!is) {
     return Status(1, "Error reading file: " + path.string());
   }
 
   // Attempt to read the file size.
-  ssize_t size = file.st_size;
+  ssize_t size = is.tellg();
 
   // Erase/clear provided string buffer.
   content.erase();
-  if (file.st_size > read_max) {
-    VLOG(1) << "Cannot read " << path
-            << " size exceeds limit: " << file.st_size << " > " << read_max;
+  if (size > read_max) {
+    VLOG(1) << "Cannot read " << path << " size exceeds limit: " << size
+            << " > " << read_max;
     return Status(1, "File exceeds read limits");
   }
 
@@ -100,6 +100,8 @@ Status readFile(const fs::path& path, std::string& content, bool dry_run) {
     return Status(0, fs::canonical(path, ec).string());
   }
 
+  // Reset seek to the start of the stream.
+  is.seekg(0);
   if (size == -1 || size == 0) {
     // Size could not be determined. This may be a special device.
     std::stringstream buffer;
