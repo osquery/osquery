@@ -10,8 +10,9 @@
 
 #pragma once
 
-#include "kernel/include/feeds.h"
 #include <stdexcept>
+
+#include "kernel/include/feeds.h"
 
 namespace osquery {
 
@@ -62,7 +63,7 @@ class CQueue {
   /**
    * @brief Dequeue's an event from the shared buffer.
    *
-   * @param event (ouput) A pointer to the event dequeue if any.
+   * @param event (output) A pointer to the event dequeue if any.
    * @return Returns 0 if queue is empty, otherwise the number of the event put
    * into event.
    */

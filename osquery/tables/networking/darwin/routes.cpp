@@ -151,10 +151,11 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
     return;
   }
 
-  auto route = (struct rt_msghdr *)table;
-  for (char *p = table; p < table + table_size; p += route->rtm_msglen) {
-    route = (struct rt_msghdr *)p;
+  size_t message_length = 0;
+  for (char *p = table; p < table + table_size; p += message_length) {
+    auto route = (struct rt_msghdr *)p;
     auto sa = (struct sockaddr *)(route + 1);
+    message_length = route->rtm_msglen;
 
     // Populate route's sockaddr table (dest, gw, mask).
     AddressMap addr_map;
