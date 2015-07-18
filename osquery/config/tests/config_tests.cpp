@@ -154,6 +154,7 @@ TEST_F(ConfigTests, test_bad_config_update) {
 class TestConfigParserPlugin : public ConfigParserPlugin {
  public:
   std::vector<std::string> keys() {
+    // This config parser requests the follow top-level-config keys.
     return {"dictionary", "dictionary2", "list"};
   }
 
@@ -166,10 +167,13 @@ class TestConfigParserPlugin : public ConfigParserPlugin {
     }
 
     // Set parser-rendered additional data.
+    // Other plugins may request this "rendered/derived" data using a
+    // ConfigDataInstance and the getParsedData method.
     data_.put("dictionary3.key2", "value2");
     return Status(0, "OK");
   }
 
+  // Flag tracking that the update method was called.
   static bool update_called;
 
  private:
@@ -180,7 +184,7 @@ class TestConfigParserPlugin : public ConfigParserPlugin {
 bool TestConfigParserPlugin::update_called = false;
 
 TEST_F(ConfigTests, test_config_parser) {
-  // Register a config parser plugin.
+  // Register a config parser plugin, and call setup.
   Registry::add<TestConfigParserPlugin>("config_parser", "test");
   Registry::get("config_parser", "test")->setUp();
 
@@ -232,6 +236,50 @@ TEST_F(ConfigTests, test_config_parser) {
     EXPECT_EQ(test_data.get("dictionary.key3", ""), "value3");
     EXPECT_EQ(test_data.count("list"), 1);
     EXPECT_EQ(test_data.get_child("list").count(""), 2);
+  }
+}
+
+class TestConfigMutationParserPlugin : public ConfigParserPlugin {
+ public:
+  std::vector<std::string> keys() {
+    // This config parser wants access to the well-known schedule key.
+    return {"schedule"};
+  }
+
+  Status update(const std::map<std::string, ConfigTree>& config) {
+    // The merged raw schedule is available as a property tree.
+    auto& schedule_data = config.at("schedule");
+    (void)schedule_data;
+
+    {
+      // But we want access to the parsed schedule structure.
+      ConfigDataInstance _config;
+      auto& data = mutableConfigData(_config);
+
+      ScheduledQuery query;
+      query.query = "new query";
+      query.interval = 1;
+      data.schedule["test_config_mutation"] = query;
+    }
+
+    return Status(0, "OK");
+  }
+
+ private:
+  FRIEND_TEST(ConfigTests, test_config_mutaion_parser);
+};
+
+TEST_F(ConfigTests, test_config_mutaion_parser) {
+  Registry::add<TestConfigMutationParserPlugin>("config_parser", "mutable");
+  Registry::get("config_parser", "mutable")->setUp();
+
+  // Update or load the config, expect the parser to be called.
+  Config::update({{"source1", "{\"schedule\": {}}"}});
+
+  {
+    ConfigDataInstance config;
+    // The config schedule should have been mutated.
+    EXPECT_EQ(config.schedule().count("test_config_mutation"), 1);
   }
 }
 
