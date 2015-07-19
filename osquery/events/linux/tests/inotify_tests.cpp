@@ -202,6 +202,12 @@ class TestINotifyEventSubscriber
  public:
   int callback_count_;
   std::vector<std::string> actions_;
+
+ private:
+  FRIEND_TEST(INotifyTests, test_inotify_fire_event);
+  FRIEND_TEST(INotifyTests, test_inotify_event_action);
+  FRIEND_TEST(INotifyTests, test_inotify_optimization);
+  FRIEND_TEST(INotifyTests, test_inotify_recursion);
 };
 
 TEST_F(INotifyTests, test_inotify_run) {

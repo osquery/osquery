@@ -126,28 +126,43 @@ class INotifyEventPublisher
 
  private:
   INotifyEventContextRef createEventContextFrom(struct inotify_event* event);
+
   /// Check all added Subscription%s for a path.
   bool isPathMonitored(const std::string& path);
+
   /// Add an INotify watch (monitor) on this path.
   bool addMonitor(const std::string& path, bool recursive);
+
   /// Remove an INotify watch (monitor) from our tracking.
   bool removeMonitor(const std::string& path, bool force = false);
   bool removeMonitor(int watch, bool force = false);
+
   /// Given a SubscriptionContext and INotifyEventContext match path and action.
   bool shouldFire(const INotifySubscriptionContextRef& mc,
                   const INotifyEventContextRef& ec) const;
+
   /// Get the INotify file descriptor.
   int getHandle() { return inotify_handle_; }
+
   /// Get the number of actual INotify active descriptors.
   int numDescriptors() { return descriptors_.size(); }
+
   /// If we overflow, try and restart the monitor
   Status restartMonitoring();
 
   // Consider an event queue if separating buffering from firing/servicing.
   DescriptorVector descriptors_;
+
+  /// Map of watched path string to inotify watch file descriptor.
   PathDescriptorMap path_descriptors_;
+
+  /// Map of inotify watch file descriptor to watched path string.
   DescriptorPathMap descriptor_paths_;
+
+  /// The inotify file descriptor handle.
   int inotify_handle_;
+
+  /// Time in seconds of the last inotify restart.
   int last_restart_;
 
  public:

@@ -137,16 +137,29 @@ class Plugin : private boost::noncopyable {
  public:
   /// The plugin may perform some initialization, not required.
   virtual Status setUp() { return Status(0, "Not used"); }
+
   /// The plugin may perform some tear down, release, not required.
   virtual void tearDown() {}
+
   /// The plugin may publish route info (other than registry type and name).
   virtual PluginResponse routeInfo() const {
     PluginResponse info;
     return info;
   }
-  /// The plugin will act on a serialized request, and if a response is needed
-  /// (response is set to true) then response should be a reference to a
-  /// string ready for a serialized response.
+
+  /**
+   * @brief Plugins act by being called, using a request, returning a response.
+   *
+   * The plugin request is a thrift-serializable object. A response is optional
+   * but the API for using a plugin's call is defined by the registry. In most
+   * cases there are multiple supported call 'actions'. A registry type, or
+   * the plugin class, will define the action key and supported actions.
+   *
+   * @param request A plugin request input, including optional action.
+   * @param response A plugin response output.
+   *
+   * @return Status of the call, if the action was handled corrected.
+   */
   virtual Status call(const PluginRequest& request, PluginResponse& response) {
     return Status(0, "Not used");
   }
