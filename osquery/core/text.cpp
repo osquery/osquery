@@ -21,8 +21,10 @@ namespace osquery {
 std::vector<std::string> split(const std::string& s, const std::string& delim) {
   std::vector<std::string> elems;
   boost::split(elems, s, boost::is_any_of(delim));
-  auto start = std::remove_if(
-      elems.begin(), elems.end(), [](const std::string& s) { return s == ""; });
+  auto start =
+      std::remove_if(elems.begin(), elems.end(), [](const std::string& s) {
+        return s.size() == 0;
+      });
   elems.erase(start, elems.end());
   for (auto& each : elems) {
     boost::algorithm::trim(each);
@@ -35,7 +37,7 @@ std::vector<std::string> split(const std::string& s,
                                size_t occurences) {
   // Split the string normally with the required delimiter.
   auto content = split(s, delim);
-  // While the result split exceeds the number of requested occurences, join.
+  // While the result split exceeds the number of requested occurrences, join.
   std::vector<std::string> accumulator;
   std::vector<std::string> elems;
   for (size_t i = 0; i < content.size(); i++) {

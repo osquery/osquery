@@ -61,7 +61,11 @@ void genProcessEnvironment(const std::string& pid, QueryData& results) {
 
   std::string content;
   readFile(attr, content);
-  for (const auto& buf : osquery::split(content, "\n")) {
+  const char* variable = content.c_str();
+
+  // Stop at the end of nul-delimited string content.
+  while (*variable > 0) {
+    auto buf = std::string(variable);
     size_t idx = buf.find_first_of("=");
 
     Row r;
@@ -69,6 +73,7 @@ void genProcessEnvironment(const std::string& pid, QueryData& results) {
     r["key"] = buf.substr(0, idx);
     r["value"] = buf.substr(idx + 1);
     results.push_back(r);
+    variable += buf.size() + 1;
   }
 }
 
