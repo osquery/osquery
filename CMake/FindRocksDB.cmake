@@ -117,7 +117,7 @@ endif()
 # If shared libraries are not found, fall back to static.
 # If not explicitly building using shared libraries, prefer static libraries.
 if(${ROCKSDB_LIBRARIES} STREQUAL "ROCKSDB_LIBRARIES-NOTFOUND"
-    OR NOT DEFINED $ENV{BUILD_LINK_SHARED})
+    OR NOT DEFINED ENV{BUILD_LINK_SHARED})
   set(ROCKSDB_LIBRARIES ${ROCKSDB_STATIC_LIBRARY} ${ROCKSDB_SNAPPY_LIBRARY})
   LOG_LIBRARY(rocksdb "${ROCKSDB_STATIC_LIBRARY}")
   LOG_LIBRARY(snappy "${ROCKSDB_SNAPPY_LIBRARY}")
