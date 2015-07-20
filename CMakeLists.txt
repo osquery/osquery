@@ -293,7 +293,7 @@ else()
 endif()
 
 # Most dependent packages/libs we want static.
-if(NOT DEFINED $ENV{BUILD_LINK_SHARED})
+if(NOT DEFINED ENV{BUILD_LINK_SHARED})
   set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
 endif()
 find_package(CppNetlib 0.11.0 REQUIRED)
