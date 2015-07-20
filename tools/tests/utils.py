@@ -4,7 +4,7 @@
 #  All rights reserved.
 #
 #  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant 
+#  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 from __future__ import absolute_import
@@ -15,6 +15,7 @@ from __future__ import unicode_literals
 import json
 import os
 import sys
+
 
 def red(msg):
     return "\033[41m\033[1;30m %s \033[0m" % str(msg)
@@ -90,7 +91,7 @@ def queries_from_tables(path, restrict):
                 continue
             spec_platform = os.path.basename(base)
             table_name = spec.split(".table", 1)[0]
-            if spec_platform not in ["specs", platform]:
+            if spec_platform not in ["specs", platform()]:
                 continue
             # Generate all tables to select from, with abandon.
             tables.append("%s.%s" % (spec_platform, table_name))
@@ -101,4 +102,3 @@ def queries_from_tables(path, restrict):
     for table in tables:
         queries[table] = "SELECT * FROM %s;" % table.split(".", 1)[1]
     return queries
-
