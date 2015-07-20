@@ -209,7 +209,19 @@ class Config : private boost::noncopyable {
   bool force_merge_success_;
 
  private:
+  /**
+   * @brief A ConfigDataInstance requests read-only access to ConfigParser data.
+   *
+   * A ConfigParser plugin will receive several top-level-config keys and
+   * optionally parse and store information. That information is a property tree
+   * called ConfigParser::data_. Use ConfigDataInstance::getParsedData to
+   * retrieve read-only access to this data.
+   *
+   * @param parser The name of the config parser.
+   */
   static const pt::ptree& getParsedData(const std::string& parser);
+
+  /// See getParsedData but request access to the parser plugin.
   static const ConfigPluginRef getParser(const std::string& parser);
 
   /// A default, empty property tree used when a missing parser is requested.
@@ -265,8 +277,26 @@ class ConfigDataInstance {
   const pt::ptree& data() const { return Config::getInstance().data_.all_data; }
 
  private:
+  /**
+   * @brief ConfigParser plugin's may update the internal config representation.
+   *
+   * If the config parser reads and calculates new information it should store
+   * that derived data itself and rely on ConfigDataInstance::getParsedData.
+   * This means another plugin is aware of the ConfigParser and knowns to make
+   * getParsedData calls. If the parser is augmenting/changing internal state,
+   * such as modifying the osquery schedule or options, then it must write
+   * changed back into the default data.
+   *
+   * Note that this returns the ConfigData instance, not the raw property tree.
+   */
+  ConfigData& mutableConfigData() { return Config::getInstance().data_; }
+
+ private:
   /// A read lock on the reader/writer config data accessor/update mutex.
   boost::shared_lock<boost::shared_mutex> lock_;
+
+ private:
+  friend class ConfigParserPlugin;
 };
 
 /**
@@ -364,6 +394,12 @@ class ConfigParserPlugin : public Plugin {
    * @return Failure if the parser should no longer receive updates.
    */
   virtual Status update(const ConfigTreeMap& config) = 0;
+
+ protected:
+  /// Mutable config data accessor for ConfigParser%s.
+  ConfigData& mutableConfigData(ConfigDataInstance& cdi) {
+    return cdi.mutableConfigData();
+  }
 
  protected:
   /// Allow the config parser to keep some global state.

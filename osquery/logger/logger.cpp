@@ -27,6 +27,7 @@ FLAG(bool, verbose, false, "Enable verbose informational messages");
 FLAG_ALIAS(bool, verbose_debug, verbose);
 FLAG_ALIAS(bool, debug, verbose);
 
+/// Despite being a configurable option, this is only read/used at load.
 FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
 FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
@@ -171,14 +172,14 @@ void setVerboseLevel() {
     // Turn verbosity up to 1.
     // Do log DEBUG, INFO, WARNING, ERROR to their log files.
     // Do log the above and verbose=1 to stderr.
-    FLAGS_minloglevel = 0; // WARNING
-    FLAGS_stderrthreshold = 0;
+    FLAGS_minloglevel = 0; // INFO
+    FLAGS_stderrthreshold = 0; // INFO
     FLAGS_v = 1;
   } else {
     // Do NOT log INFO, WARNING, ERROR to stderr.
     // Do log only WARNING, ERROR to log sinks.
     FLAGS_minloglevel = 1; // WARNING
-    FLAGS_stderrthreshold = 1;
+    FLAGS_stderrthreshold = 1; // WARNING
   }
 
   if (FLAGS_disable_logging) {
@@ -186,7 +187,7 @@ void setVerboseLevel() {
     // Do NOT log INFO, WARNING, ERROR to their log files.
     FLAGS_logtostderr = true;
     if (!FLAGS_verbose) {
-      // verbose flag still will still emit logs to stderr.
+      // verbose flag will still emit logs to stderr.
       FLAGS_minloglevel = 2; // ERROR
     }
   }

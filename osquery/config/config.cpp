@@ -29,6 +29,7 @@ typedef pt::ptree::value_type tree_node;
 typedef std::map<std::string, std::vector<std::string> > EventFileMap_t;
 typedef std::chrono::high_resolution_clock chrono_clock;
 
+/// The config plugin must be known before reading options.
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
 FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
@@ -61,28 +62,31 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   }
 
   // Request a unique write lock when updating config.
-  boost::unique_lock<boost::shared_mutex> unique_lock(getInstance().mutex_);
+  {
+    boost::unique_lock<boost::shared_mutex> unique_lock(getInstance().mutex_);
 
-  ConfigData conf;
-  for (const auto& source : config) {
-    if (Registry::external()) {
-      VLOG(1) << "Updating extension config with source: " << source.first;
-    } else {
-      VLOG(1) << "Updating config with source: " << source.first;
+    for (const auto& source : config) {
+      if (Registry::external()) {
+        VLOG(1) << "Updating extension config with source: " << source.first;
+      } else {
+        VLOG(1) << "Updating config with source: " << source.first;
+      }
+      getInstance().raw_[source.first] = source.second;
     }
-    getInstance().raw_[source.first] = source.second;
+
+    // Now merge all sources together.
+    ConfigData conf;
+    for (const auto& source : getInstance().raw_) {
+      auto status = mergeConfig(source.second, conf);
+      if (getInstance().force_merge_success_ && !status.ok()) {
+        return Status(1, status.what());
+      }
+    }
+
+    // Call each parser with the optionally-empty, requested, top level keys.
+    getInstance().data_ = std::move(conf);
   }
 
-  // Now merge all sources together.
-  for (const auto& source : getInstance().raw_) {
-    auto status = mergeConfig(source.second, conf);
-    if (getInstance().force_merge_success_ && !status.ok()) {
-      return Status(1, status.what());
-    }
-  }
-
-  // Call each parser with the optionally-empty, requested, top level keys.
-  getInstance().data_ = conf;
   for (const auto& plugin : Registry::all("config_parser")) {
     auto parser = std::static_pointer_cast<ConfigParserPlugin>(plugin.second);
     if (parser == nullptr || parser.get() == nullptr) {
@@ -92,12 +96,16 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     // For each key requested by the parser, add a property tree reference.
     std::map<std::string, ConfigTree> parser_config;
     for (const auto& key : parser->keys()) {
-      if (conf.all_data.count(key) > 0) {
-        parser_config[key] = conf.all_data.get_child(key);
+      if (getInstance().data_.all_data.count(key) > 0) {
+        parser_config[key] = getInstance().data_.all_data.get_child(key);
       } else {
         parser_config[key] = pt::ptree();
       }
     }
+
+    // The config parser plugin will receive a copy of each property tree for
+    // each top-level-config key. The parser may choose to update the config's
+    // internal state by requesting and modifying a ConfigDataInstance.
     parser->update(parser_config);
   }
 
