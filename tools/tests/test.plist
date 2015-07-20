@@ -32,5 +32,7 @@
     <key>Wait</key>
     <false/>
   </dict>
+  <key>com.apple.Sync</key>
+  <string>TestDotStringAsKey</string>
 </dict>
 </plist>

@@ -20,6 +20,8 @@
 
 namespace pt = boost::property_tree;
 
+typedef pt::ptree::value_type ptvalue;
+
 namespace osquery {
 
 /**
@@ -53,33 +55,34 @@ Status filterDictionary(id plist, const std::string& root, pt::ptree& tree) {
         continue;
       }
 
+      auto path_node = std::string([key UTF8String]);
       if ([value isKindOfClass:[NSString class]]) {
-        tree.add(root + [key UTF8String], [value UTF8String]);
+        tree.push_back(ptvalue(path_node, pt::ptree([value UTF8String])));
       } else if ([value isKindOfClass:[NSNumber class]]) {
-        tree.add(root + [key UTF8String], [[value stringValue] UTF8String]);
+        tree.push_back(ptvalue(path_node, pt::ptree([[value stringValue] UTF8String])));
       } else if ([value isKindOfClass:[NSArray class]]) {
-        auto child = root + [key UTF8String];
-        auto status = filterArray(value, child, tree);
+        auto status = filterArray(value, path_node, tree);
         if (!status.ok()) {
           total_status = status;
         }
       } else if ([value isKindOfClass:[NSDictionary class]]) {
-        auto child = root + [key UTF8String] + ".";
-        auto status = filterDictionary(value, child, tree);
+        pt::ptree child;
+        auto status = filterDictionary(value, "", child);
         if (!status.ok()) {
           total_status = status;
         }
+        tree.push_back(ptvalue(path_node, child));
       } else if ([value isKindOfClass:[NSData class]]) {
         NSString* dataString = [value base64EncodedStringWithOptions:0];
-        tree.add(root + [key UTF8String], [dataString UTF8String]);
+        tree.push_back(ptvalue(path_node, pt::ptree([dataString UTF8String])));
       } else if ([value isKindOfClass:[NSDate class]]) {
         NSNumber* seconds =
             [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
-        tree.add(root + [key UTF8String], [[seconds stringValue] UTF8String]);
+        tree.push_back(ptvalue(path_node, pt::ptree([[seconds stringValue] UTF8String])));
       } else if ([value isEqual:@(YES)]) {
-        tree.add(root + [key UTF8String], "true");
+        tree.push_back(ptvalue(path_node, pt::ptree("true")));
       } else if ([value isEqual:@(NO)]) {
-        tree.add(root + [key UTF8String], "false");
+        tree.push_back(ptvalue(path_node, pt::ptree("false")));
       }
     }
   }
@@ -101,12 +104,9 @@ Status filterArray(id plist, const std::string& root, pt::ptree& tree) {
       } else if ([value isKindOfClass:[NSNumber class]]) {
         child.put_value([[value stringValue] UTF8String]);
       } else if ([value isKindOfClass:[NSArray class]]) {
-        auto status = filterArray(value, "root", child);
+        auto status = filterArray(value, "", child);
         if (!status.ok()) {
           total_status = status;
-        }
-        if (child.count("root") > 0) {
-          child = child.get_child("root");
         }
       } else if ([value isKindOfClass:[NSDictionary class]]) {
         auto status = filterDictionary(value, "", child);
@@ -128,11 +128,11 @@ Status filterArray(id plist, const std::string& root, pt::ptree& tree) {
       child_tree.push_back(std::make_pair("", child));
     }
   }
-  tree.add_child(root, child_tree);
+  tree.push_back(pt::ptree::value_type(root, child_tree));
   return total_status;
 }
 
-Status filterPlist(NSData* plist, pt::ptree& tree) {
+static inline Status filterPlist(NSData* plist, pt::ptree& tree) {
   @autoreleasepool {
     if ([plist isKindOfClass:[NSDictionary class]]) {
       return filterDictionary((NSMutableDictionary*)plist, "", tree);
