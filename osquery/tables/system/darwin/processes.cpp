@@ -33,21 +33,44 @@ namespace tables {
 // The maximum number of expected memory regions per process.
 #define MAX_MEMORY_MAPS 512
 
-std::set<int> getProcList(const QueryContext &context) {
-  std::set<int> pidlist;
-  if (context.constraints.count("pid") > 0 &&
-      context.constraints.at("pid").exists(EQUALS)) {
-    pidlist = context.constraints.at("pid").getAll<int>(EQUALS);
+bool isPidRunning(pid_t pid) {
+  struct kinfo_proc process;
+  size_t proc_buffer_size = sizeof(process);
+
+  const u_int path_length = 4;
+  int path[path_length] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
+  int sysctl_result =
+      sysctl(path, path_length, &process, &proc_buffer_size, NULL, 0);
+
+  if ((sysctl_result == 0) && (proc_buffer_size != 0)) {
+    return true;
   }
 
-  // No equality matches, get all pids.
-  if (!pidlist.empty()) {
-    return pidlist;
-  }
+  return false;
+}
+
+std::set<int> getProcList(const QueryContext &context) {
+  std::set<int> pidlist;
 
   int bufsize = proc_listpids(PROC_ALL_PIDS, 0, nullptr, 0);
   if (bufsize <= 0) {
     VLOG(1) << "An error occurred retrieving the process list";
+    return pidlist;
+  }
+
+  if (context.constraints.count("pid") > 0 &&
+      context.constraints.at("pid").exists(EQUALS) &&
+      context.constraints.at("pid").getAll<int>(EQUALS).size() <
+          (bufsize / sizeof(pid_t))) {
+    for (const auto &pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
+      if (isPidRunning(pid)) {
+        pidlist.insert(pid);
+      }
+    }
+  }
+
+  // No equality matches, get all pids.
+  if (!pidlist.empty()) {
     return pidlist;
   }
 

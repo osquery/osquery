@@ -56,6 +56,26 @@ inline std::string readProcLink(const std::string& attr, const std::string& pid)
   return result;
 }
 
+Status getPidsForContext(QueryContext& context, std::set<std::string>& pids) {
+  auto s = osquery::procProcesses(pids);
+  if (!s.ok()) {
+    return s;
+  }
+
+  if (context.constraints.count("pid") > 0 &&
+      context.constraints["pid"].exists(EQUALS) &&
+      context.constraints.at("pid").getAll(EQUALS).size() < pids.size()) {
+    pids.clear();
+    for (const auto& pid :
+         context.constraints["pid"].getAll<std::string>(EQUALS)) {
+      if (isDirectory("/proc/" + pid).ok()) {
+        pids.insert(pid);
+      }
+    }
+  }
+  return Status(0, "OK");
+}
+
 void genProcessEnvironment(const std::string& pid, QueryData& results) {
   auto attr = getProcAttr("environ", pid);
 
@@ -225,10 +245,9 @@ QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
   std::set<std::string> pids;
-  if (context.constraints["pid"].exists(EQUALS)) {
-    pids = context.constraints["pid"].getAll(EQUALS);
-  } else {
-    osquery::procProcesses(pids);
+  auto s = getPidsForContext(context, pids);
+  if (!s.ok()) {
+    return results;
   }
 
   // Generate data for all pids in the vector.
@@ -245,10 +264,9 @@ QueryData genProcessEnvs(QueryContext& context) {
   QueryData results;
 
   std::set<std::string> pids;
-  if (context.constraints["pid"].exists(EQUALS)) {
-    pids = context.constraints["pid"].getAll(EQUALS);
-  } else {
-    osquery::procProcesses(pids);
+  auto s = getPidsForContext(context, pids);
+  if (!s.ok()) {
+    return results;
   }
 
   for (const auto& pid : pids) {
@@ -262,10 +280,9 @@ QueryData genProcessMemoryMap(QueryContext& context) {
   QueryData results;
 
   std::set<std::string> pids;
-  if (context.constraints["pid"].exists(EQUALS)) {
-    pids = context.constraints["pid"].getAll(EQUALS);
-  } else {
-    osquery::procProcesses(pids);
+  auto s = getPidsForContext(context, pids);
+  if (!s.ok()) {
+    return results;
   }
 
   for (const auto& pid : pids) {
