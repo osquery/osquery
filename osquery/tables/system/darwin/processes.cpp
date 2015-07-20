@@ -37,11 +37,11 @@ std::set<int> getProcList(const QueryContext &context) {
   std::set<int> pidlist;
   if (context.constraints.count("pid") > 0 &&
       context.constraints.at("pid").exists(EQUALS)) {
-    pidlist = context.constraints.at("pid").getAll<int>(EQUALS);
-  }
-
-  // No equality matches, get all pids.
-  if (!pidlist.empty()) {
+    for (const auto &pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
+      if (pid > 0) {
+        pidlist.insert(pid);
+      }
+    }
     return pidlist;
   }
 
@@ -98,7 +98,7 @@ std::map<int, int> getParentMap(const std::set<int> &pidlist) {
 }
 
 inline std::string getProcPath(int pid) {
-  char path[PROC_PIDPATHINFO_MAXSIZE] = "\0";
+  char path[PROC_PIDPATHINFO_MAXSIZE] = {0};
   int bufsize = proc_pidpath(pid, path, sizeof(path));
   if (bufsize <= 0) {
     path[0] = '\0';
@@ -130,15 +130,16 @@ inline bool getProcCred(int pid, proc_cred &cred) {
 
 // Get the max args space
 static int genMaxArgs() {
-  int mib[2] = {CTL_KERN, KERN_ARGMAX};
+  static int argmax = 0;
 
-  int argmax = 0;
-  size_t size = sizeof(argmax);
-  if (sysctl(mib, 2, &argmax, &size, nullptr, 0) == -1) {
-    VLOG(1) << "An error occurred retrieving the max arg size";
-    return 0;
+  if (argmax == 0) {
+    int mib[2] = {CTL_KERN, KERN_ARGMAX};
+    size_t size = sizeof(argmax);
+    if (sysctl(mib, 2, &argmax, &size, nullptr, 0) == -1) {
+      VLOG(1) << "An error occurred retrieving the max arg size";
+      return 0;
+    }
   }
-
   return argmax;
 }
 
@@ -222,6 +223,16 @@ QueryData genProcesses(QueryContext &context) {
   for (auto &pid : pidlist) {
     Row r;
     r["pid"] = INTEGER(pid);
+
+    // Find the parent process.
+    const auto parent_it = parent_pid.find(pid);
+    if (parent_it != parent_pid.end()) {
+      r["parent"] = INTEGER(parent_it->second);
+    } else {
+      // On OS X a missing parent path means the pid did not exist.
+      continue;
+    }
+
     r["path"] = getProcPath(pid);
     // OS X proc_name only returns 16 bytes, use the basename of the path.
     r["name"] = fs::path(r["path"]).filename().string();
@@ -247,14 +258,6 @@ QueryData genProcesses(QueryContext &context) {
       r["gid"] = "-1";
       r["euid"] = "-1";
       r["egid"] = "-1";
-    }
-
-    // Find the parent process.
-    const auto parent_it = parent_pid.find(pid);
-    if (parent_it != parent_pid.end()) {
-      r["parent"] = INTEGER(parent_it->second);
-    } else {
-      r["parent"] = "-1";
     }
 
     // If the path of the executable that started the process is available and

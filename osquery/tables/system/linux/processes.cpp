@@ -56,6 +56,22 @@ inline std::string readProcLink(const std::string& attr, const std::string& pid)
   return result;
 }
 
+std::set<std::string> getProcList(const QueryContext& context) {
+  std::set<std::string> pidlist;
+  if (context.constraints.count("pid") > 0 &&
+      context.constraints.at("pid").exists(EQUALS)) {
+    for (const auto& pid : context.constraints.at("pid").getAll(EQUALS)) {
+      if (isDirectory("/proc/" + pid)) {
+        pidlist.insert(pid);
+      }
+    }
+  } else {
+    osquery::procProcesses(pidlist);
+  }
+
+  return pidlist;
+}
+
 void genProcessEnvironment(const std::string& pid, QueryData& results) {
   auto attr = getProcAttr("environ", pid);
 
@@ -229,17 +245,8 @@ void genProcess(const std::string& pid, QueryData& results) {
 QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
-  std::set<std::string> pids;
-  if (context.constraints["pid"].exists(EQUALS)) {
-    pids = context.constraints["pid"].getAll(EQUALS);
-  } else {
-    osquery::procProcesses(pids);
-  }
-
-  // Generate data for all pids in the vector.
-  // If there are comparison constraints this could apply the operator
-  // before generating the process structure.
-  for (const auto& pid : pids) {
+  auto pidlist = getProcList(context);
+  for (const auto& pid : pidlist) {
     genProcess(pid, results);
   }
 
@@ -249,14 +256,8 @@ QueryData genProcesses(QueryContext& context) {
 QueryData genProcessEnvs(QueryContext& context) {
   QueryData results;
 
-  std::set<std::string> pids;
-  if (context.constraints["pid"].exists(EQUALS)) {
-    pids = context.constraints["pid"].getAll(EQUALS);
-  } else {
-    osquery::procProcesses(pids);
-  }
-
-  for (const auto& pid : pids) {
+  auto pidlist = getProcList(context);
+  for (const auto& pid : pidlist) {
     genProcessEnvironment(pid, results);
   }
 
@@ -266,14 +267,8 @@ QueryData genProcessEnvs(QueryContext& context) {
 QueryData genProcessMemoryMap(QueryContext& context) {
   QueryData results;
 
-  std::set<std::string> pids;
-  if (context.constraints["pid"].exists(EQUALS)) {
-    pids = context.constraints["pid"].getAll(EQUALS);
-  } else {
-    osquery::procProcesses(pids);
-  }
-
-  for (const auto& pid : pids) {
+  auto pidlist = getProcList(context);
+  for (const auto& pid : pidlist) {
     genProcessMap(pid, results);
   }
 

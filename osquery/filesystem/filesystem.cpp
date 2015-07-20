@@ -79,8 +79,12 @@ Status readFile(const fs::path& path, std::string& content, bool dry_run) {
                         ? FLAGS_read_max
                         : std::min(FLAGS_read_max, FLAGS_read_user_max);
   std::ifstream is(path.string(), std::ifstream::binary | std::ios::ate);
-  if (!is) {
-    return Status(1, "Error reading file: " + path.string());
+  if (!is.is_open()) {
+    // Attempt to read without seeking to the end.
+    is.open(path.string(), std::ifstream::binary);
+    if (!is) {
+      return Status(1, "Error reading file: " + path.string());
+    }
   }
 
   // Attempt to read the file size.
