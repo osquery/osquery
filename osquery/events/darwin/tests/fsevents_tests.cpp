@@ -202,6 +202,10 @@ class TestFSEventsEventSubscriber
  public:
   int callback_count_;
   std::vector<std::string> actions_;
+
+ private:
+  FRIEND_TEST(FSEventsTests, test_fsevents_fire_event);
+  FRIEND_TEST(FSEventsTests, test_fsevents_event_action);
 };
 
 TEST_F(FSEventsTests, test_fsevents_run) {

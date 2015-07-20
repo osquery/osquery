@@ -103,7 +103,7 @@ class IOKitHIDEventPublisher
                                  IOHIDValueRef value);
 
  private:
-  /// Helper fire fuction to parse properties/actions.
+  /// Helper fire function to parse properties/actions.
   static void fire(const IOHIDDeviceRef &device, const std::string &action);
 
  public:

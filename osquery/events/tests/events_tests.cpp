@@ -51,7 +51,7 @@ struct FakeEventContext : EventContext {
   int required_value;
 };
 
-// Typdef the shared_ptr accessors.
+// Typedef the shared_ptr accessors.
 typedef std::shared_ptr<FakeSubscriptionContext> FakeSubscriptionContextRef;
 typedef std::shared_ptr<FakeEventContext> FakeEventContextRef;
 
@@ -318,7 +318,7 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
 
 TEST_F(EventsTests, test_event_sub) {
   auto sub = std::make_shared<FakeEventSubscriber>();
-  EXPECT_EQ(sub->type(), "FakePublisher");
+  EXPECT_EQ(sub->getType(), "FakePublisher");
   EXPECT_EQ(sub->getName(), "FakeSubscriber");
 }
 

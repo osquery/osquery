@@ -47,7 +47,7 @@ typedef std::pair<EventID, EventTime> EventRecord;
  * EventPublisher will use to register OS API callbacks, create
  * subscriptioning/listening handles, etc.
  *
- * Linux `inotify` should implement a SubscriptionContext that subscriptions
+ * Linux `inotify` should implement a SubscriptionContext that subscribes
  * filesystem events based on a filesystem path. `libpcap` will subscribe on
  * networking protocols at various stacks. Process creation may subscribe on
  * process name, parent pid, etc.
@@ -65,7 +65,7 @@ struct SubscriptionContext {};
 struct EventContext {
   /// An unique counting ID specific to the EventPublisher%'s fired events.
   EventContextID id;
-  /// The time the event occurred.
+  /// The time the event occurred, as determined by the publisher.
   EventTime time;
 
   EventContext() : id(0), time(0) {}
@@ -91,8 +91,7 @@ typedef std::shared_ptr<EventSubscriber<BaseEventPublisher>> EventSubscriberRef;
  * The supported states are:
  * - None: The default state, uninitialized.
  * - Running: Subscriber is ready for events.
- * - Paused: Subscriber was successfully initialized but not currently accepting
- *          events.
+ * - Paused: Subscriber was initialized but is not currently accepting events.
  * - Failed: Subscriber failed to initialize or is otherwise offline.
  */
 enum EventSubscriberState {
@@ -228,8 +227,7 @@ class EventPublisherPlugin : public Plugin {
   virtual void end() {}
 
   /**
-   * @brief A new EventSubscriber is subscriptioning events of this
-   * EventPublisher.
+   * @brief A new EventSubscriber is subscribing events of this publisher type.
    *
    * @param subscription The Subscription context information and optional
    * EventCallback.
@@ -241,17 +239,15 @@ class EventPublisherPlugin : public Plugin {
     return Status(0, "OK");
   }
 
-  /**
-   * @brief The generic check loop to call SubscriptionContext callback methods.
-   *
-   * It is NOT recommended to override `fire`. The simple logic of enumerating
-   * the Subscription%s and using `shouldFire` is more appropriate.
-   *
-   * @param ec The EventContext created and fired by the EventPublisher.
-   * @param time The most accurate time associated with the event.
-   */
-  void fire(const EventContextRef& ec, EventTime time = 0);
+ public:
+  /// Overriding the EventPublisher constructor is not recommended.
+  EventPublisherPlugin() : next_ec_id_(0), ending_(false), started_(false){};
+  virtual ~EventPublisherPlugin() {}
 
+  /// Return a string identifier associated with this EventPublisher.
+  virtual EventPublisherID type() const { return "publisher"; }
+
+ public:
   /// Number of Subscription%s watching this EventPublisher.
   size_t numSubscriptions() const { return subscriptions_.size(); }
 
@@ -261,13 +257,6 @@ class EventPublisherPlugin : public Plugin {
    * @return The number of events.
    */
   size_t numEvents() const { return next_ec_id_; }
-
-  /// Overriding the EventPublisher constructor is not recommended.
-  EventPublisherPlugin() : next_ec_id_(0), ending_(false), started_(false) {};
-  virtual ~EventPublisherPlugin() {}
-
-  /// Return a string identifier associated with this EventPublisher.
-  virtual EventPublisherID type() const { return "publisher"; }
 
   /// Check if the EventFactory is ending all publisher threads.
   bool isEnding() const { return ending_; }
@@ -282,6 +271,17 @@ class EventPublisherPlugin : public Plugin {
   void hasStarted(bool started) { started_ = started; }
 
  protected:
+  /**
+   * @brief The generic check loop to call SubscriptionContext callback methods.
+   *
+   * It is NOT recommended to override `fire`. The simple logic of enumerating
+   * the Subscription%s and using `shouldFire` is more appropriate.
+   *
+   * @param ec The EventContext created and fired by the EventPublisher.
+   * @param time The most accurate time associated with the event.
+   */
+  virtual void fire(const EventContextRef& ec, EventTime time = 0) final;
+
   /// The internal fire method used by the typed EventPublisher.
   virtual void fireCallback(const SubscriptionRef& sub,
                             const EventContextRef& ec) const = 0;
@@ -308,6 +308,10 @@ class EventPublisherPlugin : public Plugin {
   boost::mutex ec_id_lock_;
 
  private:
+  /// Enable event factory "callins" through static publisher callbacks.
+  friend class EventFactory;
+
+ private:
   FRIEND_TEST(EventsTests, test_event_pub);
   FRIEND_TEST(EventsTests, test_fire_event);
 };
@@ -318,7 +322,7 @@ class EventPublisherPlugin : public Plugin {
  * A 'class' of OS events is abstracted into an EventPublisher responsible for
  * remaining as agile as possible given a known-set of subscriptions.
  *
- * The lifecycle of an EventPublisher may include, `setUp`, `configure`, `run`,
+ * The life cycle of an EventPublisher may include, `setUp`, `configure`, `run`,
  * `tearDown`, and `fire`. `setUp` and `tearDown` happen when osquery starts and
  * stops either as a daemon or interactive shell. `configure` is a pseudo-start
  * called every time a Subscription is added. EventPublisher%s can adjust their
@@ -338,7 +342,7 @@ class EventPublisherPlugin : public Plugin {
  *   Status run() { return Status(1, "Not Implemented"); }
  * @endcode
  *
- * The final lifecycle component, `fire` will iterate over the EventPublisher
+ * The final life cycle component, `fire` will iterate over the EventPublisher
  * Subscription%s and call `shouldFire` for each, using the EventContext fired.
  * The `shouldFire` method should check the subscription-specific selectors and
  * only call the Subscription%'s callback function if the EventContext
@@ -369,13 +373,6 @@ class EventPublisher : public EventPublisherPlugin {
   /// Create a SubscriptionContext based on the templated type.
   static SCRef createSubscriptionContext() { return std::make_shared<SC>(); }
 
-  /// A simple EventPublisher type accessor.
-  template <class PUB>
-  static EventPublisherID getType() {
-    auto pub = std::make_shared<PUB>();
-    return pub->type();
-  }
-
  protected:
   /**
    * @brief The internal `fire` phase of publishing.
@@ -400,7 +397,7 @@ class EventPublisher : public EventPublisherPlugin {
   /**
    * @brief The generic `fire` will call `shouldFire` for each Subscription.
    *
-   * @param mc A SubscriptionContext with optional specifications for events
+   * @param sc A SubscriptionContext with optional specifications for events
    * details.
    * @param ec The event fired with event details.
    *
@@ -465,9 +462,9 @@ class EventSubscriberPlugin : public Plugin {
    *
    * An EventID is an index/element-identifier for the backing store.
    * Each EventPublisher maintains a fired EventContextID to identify the many
-   * events that may or may not be fired to 'subscriptioning' criteria for this
+   * events that may or may not be fired based on subscription criteria for this
    * EventSubscriber. This EventContextID is NOT the same as an EventID.
-   * EventSubscriber development should not require use of EventID%s, if this
+   * EventSubscriber development should not require use of EventID%s. If this
    * indexing is required within-EventCallback consider an
    * EventSubscriber%-unique indexing, counting mechanic.
    *
@@ -535,7 +532,7 @@ class EventSubscriberPlugin : public Plugin {
    * @brief Suggested entrypoint for table generation.
    *
    * The EventSubscriber is a convention that removes a lot of boilerplate event
-   * 'subscriptioning' and acting. The `genTable` static entrypoint is the
+   * 'subscribing' and acting. The `genTable` static entrypoint is the
    * suggested method for table specs.
    *
    * @return The query-time table data, retrieved from a backing store.
@@ -543,11 +540,15 @@ class EventSubscriberPlugin : public Plugin {
   virtual QueryData genTable(QueryContext& context) __attribute__((used));
 
  protected:
-  /// Backing storage indexing namespace definition methods.
-  EventPublisherID dbNamespace() const { return type() + "." + getName(); }
-
-  /// The string EventPublisher identifying this EventSubscriber.
-  virtual EventPublisherID type() const = 0;
+  /**
+   * @brief Backing storage indexing namespace.
+   *
+   * The backing storage will accumulate events for this subscriber. A namespace
+   * is provided to prevent event indexing collisions between subscribers and
+   * publishers. The namespace is a combination of the publisher and subscriber
+   * registry plugin names.
+   */
+  virtual EventPublisherID& dbNamespace() const = 0;
 
   /// Disable event expiration for this subscriber.
   void doNotExpire() { expire_events_ = false; }
@@ -649,7 +650,7 @@ class EventFactory : private boost::noncopyable {
    * and add that Subscription to the EventPublisher associated identifier.
    *
    * @param type_id The string for an EventPublisher receiving the Subscription.
-   * @param mc A SubscriptionContext related to the EventPublisher.
+   * @param sc A SubscriptionContext related to the EventPublisher.
    * @param cb When the EventPublisher fires an event the SubscriptionContext
    * will be evaluated, if the event matches optional specifics in the context
    * this callback function will be called. It should belong to an
@@ -659,17 +660,9 @@ class EventFactory : private boost::noncopyable {
    */
   static Status addSubscription(EventPublisherID& type_id,
                                 EventSubscriberID& name_id,
-                                const SubscriptionContextRef& mc,
+                                const SubscriptionContextRef& sc,
                                 EventCallback cb = 0,
                                 void* user_data = nullptr);
-
-  /// Add a Subscription by templating the EventPublisher, using a
-  /// SubscriptionContext.
-  template <typename PUB>
-  static Status addSubscription(const SubscriptionContextRef& mc,
-                                EventCallback cb = 0) {
-    return addSubscription(BaseEventPublisher::getType<PUB>(), mc, cb);
-  }
 
   /// Add a Subscription using a caller Subscription instance.
   static Status addSubscription(EventPublisherID& type_id,
@@ -711,7 +704,10 @@ class EventFactory : private boost::noncopyable {
   /// Check if an event subscriber exists.
   static bool exists(EventSubscriberID& sub);
 
+  /// Return a list of publisher types, these are their registry names.
   static std::vector<std::string> publisherTypes();
+
+  /// Return a list of subscriber registry names,
   static std::vector<std::string> subscriberNames();
 
  public:
@@ -724,8 +720,21 @@ class EventFactory : private boost::noncopyable {
   /// If a static EventPublisher callback wants to fire
   template <typename PUB>
   static void fire(const EventContextRef& ec) {
-    auto event_pub = getEventPublisher(BaseEventPublisher::getType<PUB>());
+    auto event_pub = getEventPublisher(getType<PUB>());
     event_pub->fire(ec);
+  }
+
+  /**
+   * @brief Return the publisher registry name given a type.
+   *
+   * Subscriber initialization and runtime static callbacks can lookup the
+   * publisher type name, which is the registry plugin name. This allows static
+   * callbacks to fire into subscribers.
+   */
+  template <class PUB>
+  static EventPublisherID getType() {
+    auto pub = std::make_shared<PUB>();
+    return pub->type();
   }
 
   /**
@@ -786,6 +795,7 @@ class EventSubscriber : public EventSubscriberPlugin {
    */
   virtual Status init() { return Status(0, "OK"); }
 
+ protected:
   /// Helper function to call the publisher's templated subscription generator.
   SCRef createSubscriptionContext() const {
     return PUB::createSubscriptionContext();
@@ -801,22 +811,38 @@ class EventSubscriber : public EventSubscriberPlugin {
   void subscribe(Status (T::*entry)(const std::shared_ptr<C>&, const void*),
                  const SubscriptionContextRef& sc,
                  void* user_data) {
-    // Up-cast the CRTP-style EventSubscriber to the caller.
-    auto self = dynamic_cast<T*>(this);
+    // Up-cast the EventSubscriber to the caller.
+    auto sub = dynamic_cast<T*>(this);
     // Down-cast the pointer to the member function.
     auto base_entry =
         reinterpret_cast<Status (T::*)(const EventContextRef&, void const*)>(
             entry);
     // Create a callable through the member function using the instance of the
     // EventSubscriber and a single parameter placeholder (the EventContext).
-    auto cb = std::bind(base_entry, self, _1, _2);
+    auto cb = std::bind(base_entry, sub, _1, _2);
     // Add a subscription using the callable and SubscriptionContext.
-    EventFactory::addSubscription(type(), self->getName(), sc, cb, user_data);
+    EventFactory::addSubscription(getType(), sub->getName(), sc, cb, user_data);
   }
 
-  /// Helper EventPublisher string type accessor.
-  EventPublisherID type() const { return BaseEventPublisher::getType<PUB>(); }
+  /**
+   * @brief The registry plugin name for the subscriber's publisher.
+   *
+   * During event factory initialization the subscribers 'peek' at the registry
+   * plugin name assigned to publishers. The corresponding publisher name is
+   * interpreted as the subscriber's event 'type'.
+   */
+  EventPublisherID& getType() const {
+    static EventPublisherID type = EventFactory::getType<PUB>();
+    return type;
+  }
 
+  /// See getType for lookup rational.
+  EventPublisherID& dbNamespace() const {
+    static EventPublisherID _ns = getType() + '.' + getName();
+    return _ns;
+  }
+
+ public:
   /**
    * @brief Request the subscriber's initialization state.
    *
@@ -829,7 +855,6 @@ class EventSubscriber : public EventSubscriberPlugin {
   /// Set the subscriber state.
   void state(EventSubscriberState state) { state_ = state; }
 
- public:
   EventSubscriber() : EventSubscriberPlugin(), state_(SUBSCRIBER_NONE) {}
 
  private:
