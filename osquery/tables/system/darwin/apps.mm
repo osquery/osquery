@@ -8,6 +8,8 @@
  *
  */
 
+#import <Foundation/Foundation.h>
+
 #include <CoreServices/CoreServices.h>
 
 #include <boost/algorithm/string/join.hpp>
@@ -49,6 +51,12 @@ const std::map<std::string, std::string> kAppsInfoPlistTopLevelStringKeys = {
 
 const std::vector<std::string> kHomeDirSearchPaths = {
     "Applications", "Desktop", "Downloads",
+};
+
+const std::vector<std::string> kSystemSearchPaths = {
+    "/Applications",
+    "/System/Library/Core Services/Applications",
+    "/Users/Shared/Applications",
 };
 
 enum AppSchemeFlags {
@@ -156,7 +164,7 @@ const std::map<std::string, unsigned short> kApplicationSchemes = {
 };
 
 void genApplicationsFromPath(const fs::path& path,
-                             std::vector<std::string>& apps) {
+                             std::set<std::string>& apps) {
   std::vector<std::string> new_apps;
   if (!osquery::listDirectoriesInDirectory(path.string(), new_apps).ok()) {
     return;
@@ -164,7 +172,7 @@ void genApplicationsFromPath(const fs::path& path,
 
   for (const auto& app : new_apps) {
     if (fs::exists(app + "/Contents/Info.plist")) {
-      apps.push_back(app + "/Contents/Info.plist");
+      apps.insert(app + "/Contents/Info.plist");
     }
   }
 }
@@ -196,24 +204,59 @@ void genApplication(const pt::ptree& tree,
   results.push_back(r);
 }
 
+Status genAppsFromLaunchServices(std::set<std::string>& apps) {
+  // Resolve the protected/private symbol safely.
+  CFBundleRef ls_bundle =
+      CFBundleGetBundleWithIdentifier(CFSTR("com.apple.LaunchServices"));
+  auto LSCopyAllApplicationURLs = (OSStatus (*)(NSArray* __autoreleasing*))
+      CFBundleGetFunctionPointerForName(ls_bundle,
+                                        CFSTR("_LSCopyAllApplicationURLs"));
+  // If the symbol did not exist we will not have a handle.
+  if (LSCopyAllApplicationURLs == nullptr) {
+    return Status(1, "LaunchServices list missing");
+  }
+
+  @autoreleasepool {
+    NSMutableArray* ls_apps = [[NSMutableArray alloc] init];
+    if (LSCopyAllApplicationURLs(&ls_apps) != noErr) {
+      return Status(1, "Could not list LaunchServices applications");
+    }
+    for (id app in ls_apps) {
+      if (app != nil && [app isKindOfClass:[NSURL class]]) {
+        apps.insert(std::string([[app path] UTF8String]) +
+                    "/Contents/Info.plist");
+      }
+    }
+  }
+  return Status(0, "OK");
+}
+
 QueryData genApps(QueryContext& context) {
   QueryData results;
 
-  // Walk through several groups of common search paths that may contain apps.
-  std::vector<std::string> apps;
-  if (context.constraints["path"].exists(EQUALS)) {
-    auto app_constraints = context.constraints["path"].getAll(EQUALS);
-    for (const auto& app : app_constraints) {
-      apps.push_back((fs::path(app) / "Contents/Info.plist").string());
-    }
-  } else {
-    genApplicationsFromPath("/Applications", apps);
+  // Application path accumulator.
+  std::set<std::string> apps;
 
-    // List all users on the system, and walk common search paths with homes.
-    auto homes = osquery::getHomeDirectories();
-    for (const auto& home : homes) {
-      for (const auto& path : kHomeDirSearchPaths) {
-        genApplicationsFromPath(home / path, apps);
+  // Try to use the OS X LaunchServices API.
+  if (!genAppsFromLaunchServices(apps).ok()) {
+    // Otherwise, the LaunchServices API failed, 'manually' search for apps.
+    // Walk through several groups of common search paths that may contain apps.
+    if (context.constraints["path"].exists(EQUALS)) {
+      auto app_constraints = context.constraints["path"].getAll(EQUALS);
+      for (const auto& app : app_constraints) {
+        apps.insert(app + "/Contents/Info.plist");
+      }
+    } else {
+      for (const auto& path : kSystemSearchPaths) {
+        genApplicationsFromPath(path, apps);
+      }
+
+      // List all users on the system, and walk common search paths with homes.
+      auto homes = osquery::getHomeDirectories();
+      for (const auto& home : homes) {
+        for (const auto& path : kHomeDirSearchPaths) {
+          genApplicationsFromPath(home / path, apps);
+        }
       }
     }
   }
