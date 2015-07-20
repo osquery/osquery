@@ -25,8 +25,7 @@ namespace tables {
 void genApplication(const pt::ptree& tree,
                     const fs::path& path,
                     QueryData& results);
-void genApplicationsFromPath(const fs::path& path,
-                             std::vector<std::string>& apps);
+void genApplicationsFromPath(const fs::path& path, std::set<std::string>& apps);
 
 pt::ptree getInfoPlistTree() {
   std::string content;
@@ -77,7 +76,7 @@ TEST_F(AppsTests, test_parse_info_plist) {
 
 TEST_F(AppsTests, test_sanity_check) {
   // Test beyond units, that there's at least 1 application on the built host.
-  std::vector<std::string> apps;
+  std::set<std::string> apps;
   genApplicationsFromPath("/Applications", apps);
   ASSERT_GT(apps.size(), 0);
 
