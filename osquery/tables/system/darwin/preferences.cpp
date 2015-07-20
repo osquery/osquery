@@ -157,7 +157,7 @@ void genOSXDomainPrefs(const CFStringRef& domain, QueryData& results) {
 }
 
 void genOSXDefaultPreferences(QueryContext& context, QueryData& results) {
-  CFArrayRef app_map;
+  CFArrayRef app_map = nullptr;
 
   if (context.constraints["domain"].exists(EQUALS)) {
     // If a specific domain is requested, speed up the set of type conversions.

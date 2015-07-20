@@ -208,26 +208,33 @@ Status genAppsFromLaunchServices(std::set<std::string>& apps) {
   // Resolve the protected/private symbol safely.
   CFBundleRef ls_bundle =
       CFBundleGetBundleWithIdentifier(CFSTR("com.apple.LaunchServices"));
-  auto LSCopyAllApplicationURLs = (OSStatus (*)(NSArray* __autoreleasing*))
-      CFBundleGetFunctionPointerForName(ls_bundle,
-                                        CFSTR("_LSCopyAllApplicationURLs"));
+  if (ls_bundle == nullptr) {
+    return Status(1, "LaunchServices list missing");
+  }
+
+  auto LSCopyAllApplicationURLs =
+      (OSStatus (*)(CFArrayRef*))CFBundleGetFunctionPointerForName(
+          ls_bundle, CFSTR("_LSCopyAllApplicationURLs"));
   // If the symbol did not exist we will not have a handle.
   if (LSCopyAllApplicationURLs == nullptr) {
     return Status(1, "LaunchServices list missing");
   }
 
+  CFArrayRef ls_apps = nullptr;
+  if (LSCopyAllApplicationURLs(&ls_apps) != noErr || ls_apps == nullptr) {
+    return Status(1, "Could not list LaunchServices applications");
+  }
+
   @autoreleasepool {
-    NSMutableArray* ls_apps = [[NSMutableArray alloc] init];
-    if (LSCopyAllApplicationURLs(&ls_apps) != noErr) {
-      return Status(1, "Could not list LaunchServices applications");
-    }
-    for (id app in ls_apps) {
+    for (id app in (__bridge NSArray*)ls_apps) {
       if (app != nil && [app isKindOfClass:[NSURL class]]) {
         apps.insert(std::string([[app path] UTF8String]) +
                     "/Contents/Info.plist");
       }
     }
   }
+
+  CFRelease(ls_apps);
   return Status(0, "OK");
 }
 
