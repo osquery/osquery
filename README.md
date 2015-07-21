@@ -25,7 +25,7 @@ osquery exposes an operating system as a high-performance relational database. T
 SQL tables are implemented via a simple plugin and extensions API. A variety of tables already exist and more are being written: [https://osquery.io/tables](https://osquery.io/tables). To best understand the expressiveness that is afforded to you by osquery, consider the following SQL queries:
 
 
-List the the users:
+List the users:
 ```sql
 SELECT * FROM users;
 ```
