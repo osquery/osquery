@@ -93,10 +93,14 @@ ifeq ($(DISTRO),unknown_version)
 	false
 endif
 	@mkdir -p build/$(BUILD_DIR)
-	@mkdir -p build/debug_$(BUILD_DIR)
+	@ln -snf $(BUILD_DIR) build/current
+	@mkdir -p debug_$(BUILD_DIR)
+	@ln -snf build/debug_$(BUILD_DIR) build/debug_current
 ifeq ($(PLATFORM),Linux)
 		@ln -snf $(BUILD_DIR) build/linux
+		@ln -snf $(BUILD_DIR) build/current
 		@ln -snf debug_$(BUILD_DIR) build/debug_linux
+		@ln -snf debug_$(BUILD_DIR) build/debug_current
 endif
 
 package: .setup
