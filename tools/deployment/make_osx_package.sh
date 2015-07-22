@@ -195,6 +195,9 @@ function main() {
     if [ $CLEAN == true ]; then
         echo "$POSTINSTALL_CLEAN_TEXT" >> $POSTINSTALL
     fi
+    if [ $AUTOSTART == true ]; then
+        echo "$POSTINSTALL_AUTOSTART_TEXT" >> $POSTINSTALL
+    fi
   fi
 
   log "creating package"
