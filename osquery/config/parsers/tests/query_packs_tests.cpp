@@ -57,6 +57,7 @@ class QueryPacksConfigTests : public testing::Test {};
 TEST_F(QueryPacksConfigTests, version_comparisons) {
   EXPECT_TRUE(versionChecker("1.0.0", "1.0.0"));
   EXPECT_TRUE(versionChecker("1.0.0", "1.2.0"));
+  EXPECT_TRUE(versionChecker("1.4.5", "1.5.0"));
   EXPECT_TRUE(versionChecker("1.0", "1.2.0"));
   EXPECT_TRUE(versionChecker("1.0", "1.0.2"));
   EXPECT_TRUE(versionChecker("1.0.0", "1.0.2-r1"));

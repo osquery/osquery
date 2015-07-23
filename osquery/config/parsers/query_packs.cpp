@@ -48,6 +48,8 @@ bool versionChecker(const std::string& pack, const std::string& version) {
     try {
       if (std::stoi(chunk) < std::stoi(required_version[index])) {
         return false;
+      } else if (std::stoi(chunk) > std::stoi(required_version[index])) {
+        return true;
       }
     } catch (const std::invalid_argument& e) {
       if (chunk.compare(required_version[index]) < 0) {
