@@ -166,6 +166,7 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   # make install (config files)
   install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf"
     DESTINATION "${CMAKE_INSTALL_PREFIX}/share/osquery/" COMPONENT main)
+  install(DIRECTORY DESTINATION "${CMAKE_INSTALL_PREFIX}/var/osquery")
 
   install(DIRECTORY "${CMAKE_SOURCE_DIR}/packs/"
     DESTINATION "${CMAKE_INSTALL_PREFIX}/share/osquery/packs" COMPONENT main)

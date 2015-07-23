@@ -34,6 +34,9 @@ FLAG(uint64, read_max, 50 * 1024 * 1024, "Maximum file read size");
 FLAG(uint64, read_user_max, 10 * 1024 * 1024, "Maximum non-su read size");
 FLAG(bool, read_user_links, true, "Read user-owned filesystem links");
 
+// See reference #1382 for reasons why someone would allow unsafe.
+HIDDEN_FLAG(bool, allow_unsafe, false, "Allow unsafe executable permissions");
+
 Status writeTextFile(const fs::path& path,
                      const std::string& content,
                      int permissions,
@@ -317,7 +320,9 @@ bool safePermissions(const std::string& dir,
     return false;
   }
 
-  if (dir_stat.st_mode & (1 << 9)) {
+  if (FLAGS_allow_unsafe) {
+    return true;
+  } else if (dir_stat.st_mode & (1 << 9)) {
     // Do not load modules from /tmp-like directories.
     return false;
   } else if (S_ISDIR(file_stat.st_mode)) {
