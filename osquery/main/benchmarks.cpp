@@ -8,14 +8,15 @@
  *
  */
 
-#include <gtest/gtest.h>
+#include <benchmark/benchmark.h>
 
 #include "osquery/core/test_util.h"
 
-int main(int argc, char* argv[]) {
+int main(int argc, const char* argv[]) {
   osquery::initTesting();
-  testing::InitGoogleTest(&argc, argv);
+  ::benchmark::Initialize(&argc, argv);
+  ::benchmark::RunSpecifiedBenchmarks();
   // Optionally enable Goggle Logging
   // google::InitGoogleLogging(argv[0]);
-  return RUN_ALL_TESTS();
+  return 0;
 }

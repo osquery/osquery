@@ -300,6 +300,7 @@ find_package(CppNetlib 0.11.0 REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(Gtest REQUIRED)
+find_package(Benchmark REQUIRED)
 find_package(RocksDB REQUIRED)
 find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.1 REQUIRED)
@@ -376,4 +377,11 @@ add_custom_target(
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Generating sdk sync: ${CMAKE_BINARY_DIR}/sync"
   DEPENDS osquery_extensions osquery_amalgamation
+)
+
+# make benchmark
+add_custom_target(
+  run-benchmark
+  COMMAND sudo bash -c "$<TARGET_FILE:osquery_benchmarks> $ENV{BENCHMARK_TO_FILE}"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )

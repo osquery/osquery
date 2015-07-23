@@ -28,7 +28,7 @@
  *  A daemon may only connect to a kernel with the same communication version.
  *  Bump this number when changing or adding any event structs.
  */
-#define OSQUERY_KERNEL_COMMUNICATION_VERSION 1UL
+#define OSQUERY_KERNEL_COMMUNICATION_VERSION 2UL
 #ifdef KERNEL_TEST
 #define OSQUERY_KERNEL_COMM_VERSION \
   (OSQUERY_KERNEL_COMMUNICATION_VERSION | (1UL << 63))
@@ -86,7 +86,7 @@ typedef struct {
 #ifdef KERNEL_TEST
 typedef struct {
   uint32_t my_num;
-  char my_str[64];
+  char my_str[4096];
 } test_event_0_data_t;
 
 typedef struct {

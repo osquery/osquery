@@ -237,13 +237,16 @@ static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
     }
     test_counter++;
 
+    size_t length = 0;
     void *e = NULL;
     switch (*(int *)data) {
       case 0:
         e = osquery_cqueue_reserve(&osquery.cqueue, OSQUERY_TEST_EVENT_0);
+        length = 4096;
         break;
       case 1:
         e = osquery_cqueue_reserve(&osquery.cqueue, OSQUERY_TEST_EVENT_1);
+        length = 33;
         break;
       default:
         return -ENOTTY;
@@ -254,13 +257,7 @@ static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
 
     *(int *)e = test_counter;
     char *s = (char *)((int *)e + 1);
-    s[0] = 'H';
-    s[1] = 'E';
-    s[2] = 'L';
-    s[3] = 'L';
-    s[4] = 'O';
-    s[5] = '!';
-    s[6] = '\0';
+    memset(s, 'H', length);
 
     osquery_cqueue_commit(&osquery.cqueue, e);
 

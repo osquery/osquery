@@ -10,6 +10,9 @@
 
 #include <deque>
 #include <sstream>
+#include <chrono>
+
+#include <time.h>
 
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -18,10 +21,53 @@
 #include <osquery/logger.h>
 
 #include "osquery/core/test_util.h"
+#include "osquery/database/db_handle.h"
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
+std::string kFakeDirectory = "";
+
+DECLARE_string(database_path);
+DECLARE_string(extensions_socket);
+DECLARE_string(modules_autoload);
+DECLARE_string(extensions_autoload);
+DECLARE_bool(disable_logging);
+
+typedef std::chrono::high_resolution_clock chrono_clock;
+
+void initTesting() {
+  // Allow unit test execution from anywhere in the osquery source/build tree.
+  while (osquery::kTestDataPath != "/") {
+    if (!fs::exists(osquery::kTestDataPath)) {
+      osquery::kTestDataPath =
+          osquery::kTestDataPath.substr(3, osquery::kTestDataPath.size());
+    } else {
+      break;
+    }
+  }
+
+  // Seed the random number generator, some tests generate temporary files
+  // ports, sockets, etc using random numbers.
+  std::srand(chrono_clock::now().time_since_epoch().count());
+
+  // Set safe default values for path-based flags.
+  // Specific unittests may edit flags temporarily.
+  std::string testWorkingDirectory =
+      kTestWorkingDirectory + std::to_string(getuid()) + "/";
+  kFakeDirectory = testWorkingDirectory + kFakeDirectoryName;
+
+  fs::remove_all(testWorkingDirectory);
+  fs::create_directories(testWorkingDirectory);
+  FLAGS_database_path = testWorkingDirectory + "unittests.db";
+  FLAGS_extensions_socket = testWorkingDirectory + "unittests.em";
+  FLAGS_extensions_autoload = testWorkingDirectory + "unittests-ext.load";
+  FLAGS_modules_autoload = testWorkingDirectory + "unittests-mod.load";
+  FLAGS_disable_logging = true;
+
+  // Create a default DBHandle instance before unittests.
+  (void)DBHandle::getInstance();
+}
 
 /// Most tests will use binary or disk-backed content for parsing tests.
 #ifndef OSQUERY_BUILD_SDK
