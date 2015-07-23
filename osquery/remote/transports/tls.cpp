@@ -29,7 +29,7 @@ namespace osquery {
 const std::string kTLSCiphers =
     "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:"
     "DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5";
-const std::string kTLSUserAgent = "osquery/" + kVersion;
+const std::string kTLSUserAgentBase = "osquery/";
 
 /// TLS server hostname.
 CLI_FLAG(string,
@@ -71,7 +71,7 @@ void TLSTransport::decorateRequest(http::client::request& r) {
   r << boost::network::header("Content-Type", serializer_->getContentType());
   r << boost::network::header("Accept", serializer_->getContentType());
   r << boost::network::header("Host", FLAGS_tls_hostname);
-  r << boost::network::header("User-Agent", kTLSUserAgent);
+  r << boost::network::header("User-Agent", kTLSUserAgentBase + kVersion);
 }
 
 http::client TLSTransport::getClient() {
