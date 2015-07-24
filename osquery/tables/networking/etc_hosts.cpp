@@ -54,7 +54,6 @@ QueryData genEtcHosts(QueryContext& context) {
   if (s.ok()) {
     return parseEtcHostsContent(content);
   } else {
-    LOG(ERROR) << "Error reading /etc/hosts: " << s.toString();
     return {};
   }
 }

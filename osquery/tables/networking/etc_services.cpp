@@ -44,16 +44,12 @@ QueryData parseEtcServicesContent(const std::string& content) {
     // [n]: [aliasesn]
     auto service_info = split(service_info_comment[0]);
     if (service_info.size() < 2) {
-      LOG(WARNING) << "Line of /etc/services wasn't properly formatted. "
-                   << "Expected at least 2, got " << service_info.size();
       continue;
     }
 
     // [0]: port [1]: protocol
     auto service_port_protocol = split(service_info[1], "/");
     if (service_port_protocol.size() != 2) {
-      LOG(WARNING) << "Line of /etc/services wasn't properly formatted. "
-                   << "Expected 2, got " << service_port_protocol.size();
       continue;
     }
 
@@ -69,7 +65,8 @@ QueryData parseEtcServicesContent(const std::string& content) {
     // If there is a comment for the service.
     if (service_info_comment.size() > 1) {
       // Removes everything except the comment (parts of the comment).
-      service_info_comment.erase(service_info_comment.begin(), service_info_comment.begin() + 1);
+      service_info_comment.erase(service_info_comment.begin(),
+                                 service_info_comment.begin() + 1);
       r["comment"] = TEXT(boost::algorithm::join(service_info_comment, " # "));
     }
     results.push_back(r);
@@ -83,7 +80,6 @@ QueryData genEtcServices(QueryContext& context) {
   if (s.ok()) {
     return parseEtcServicesContent(content);
   } else {
-    LOG(ERROR) << "Error reading /etc/services: " << s.toString();
     return {};
   }
 }

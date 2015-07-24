@@ -85,8 +85,8 @@ void genOSXPrefValues(const CFTypeRef& value,
 
   // Since we recurse when parsing Arrays/Dicts, monitor stack limits.
   if (++depth > kPreferenceDepthLimit) {
-    LOG(WARNING) << "OS X Preference: " << base.at("domain")
-                 << " exceeded subkey depth limit: " << kPreferenceDepthLimit;
+    TLOG << "OS X Preference: " << base.at("domain")
+         << " exceeded subkey depth limit: " << kPreferenceDepthLimit;
     return;
   }
 

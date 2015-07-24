@@ -103,7 +103,7 @@ void getModelSpecificRegisterData(QueryData &results, int cpu_number) {
     TLOG << "Could not open msr file " << msr_filename
          << " check the msr kernel module is enabled.";
     if (err == EACCES) {
-      LOG(WARNING) << "Could not access msr device.  Run osquery as root.";
+      TLOG << "Could not access msr device.  Run osquery as root.";
     }
     return;
   }
@@ -144,7 +144,7 @@ QueryData genModelSpecificRegister(QueryContext &context) {
   struct dirent **entries = nullptr;
   int num_entries = scandir("/dev/cpu", &entries, msrScandirFilter, 0);
   if (num_entries < 1) {
-    LOG(WARNING) << "No msr information check msr kernel module is enabled.";
+    TLOG << "No msr information check msr kernel module is enabled.";
     return results;
   }
   while (num_entries--) {
