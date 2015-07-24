@@ -58,39 +58,23 @@ const std::map<std::string, std::string> kTopLevelStringKeys = {
 };
 
 Status genALFTreeFromFilesystem(pt::ptree& tree) {
-  try {
-    Status s = osquery::parsePlist(kALFPlistPath, tree);
-    if (!s.ok()) {
-      LOG(ERROR) << "Error parsing " << kALFPlistPath << ": " << s.toString();
-      return s;
-    }
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
+  Status s = osquery::parsePlist(kALFPlistPath, tree);
+  if (!s.ok()) {
+    TLOG << "Error parsing " << kALFPlistPath << ": " << s.toString();
   }
-  return Status(0, "OK");
+  return s;
 }
 
 QueryData parseALFTree(const pt::ptree& tree) {
   Row r;
-
   for (const auto& it : kTopLevelIntKeys) {
-    try {
-      int val = tree.get<int>(it.first);
-      r[it.second] = INTEGER(val);
-    } catch (const pt::ptree_error& e) {
-      LOG(ERROR) << "Error retrieving " << it.second
-                 << " from com.apple.alf: " << e.what();
-    }
+    int val = tree.get(it.first, -1);
+    r[it.second] = INTEGER(val);
   }
 
   for (const auto& it : kTopLevelStringKeys) {
-    try {
-      std::string val = tree.get<std::string>(it.second);
-      r[it.first] = val;
-    } catch (const pt::ptree_error& e) {
-      LOG(ERROR) << "Error retrieving " << it.second
-                 << " from com.apple.alf: " << e.what();
-    }
+    std::string val = tree.get(it.second, "");
+    r[it.first] = val;
   }
 
   return {r};
@@ -107,30 +91,16 @@ QueryData genALF(QueryContext& context) {
 
 QueryData parseALFExceptionsTree(const pt::ptree& tree) {
   QueryData results;
-
-  pt::ptree exceptions_tree;
-  try {
-    exceptions_tree = tree.get_child("exceptions");
-  } catch (const pt::ptree_error& e) {
-    LOG(ERROR) << "Error retrieving exceptions key: " << e.what();
+  if (tree.count("exceptions") == 0) {
     return {};
   }
 
+  auto exceptions_tree = tree.get_child("exceptions");
   for (const auto& it : exceptions_tree) {
-    std::string path;
-    int state;
-    try {
-      path = it.second.get<std::string>("path");
-      state = it.second.get<int>("state");
-      Row r;
-      r["path"] = path;
-      r["state"] = INTEGER(state);
-      results.push_back(r);
-    } catch (const pt::ptree_error& e) {
-      LOG(ERROR) << "Error retrieving firewall exception keys: " << e.what();
-    } catch (const boost::bad_lexical_cast& e) {
-      LOG(ERROR) << "Error casting state (" << state << "): " << e.what();
-    }
+    Row r;
+    r["path"] = it.second.get("path", "");
+    r["state"] = INTEGER(it.second.get("state", -1));
+    results.push_back(r);
   }
 
   return results;
@@ -147,24 +117,15 @@ QueryData genALFExceptions(QueryContext& context) {
 
 QueryData parseALFExplicitAuthsTree(const pt::ptree& tree) {
   QueryData results;
-
-  pt::ptree auths_tree;
-  try {
-    auths_tree = tree.get_child("explicitauths");
-  } catch (const pt::ptree_error& e) {
-    LOG(ERROR) << "Error retrieving explicitauths key: " << e.what();
+  if (tree.count("explicitauths") == 0) {
+    return {};
   }
 
+  auto auths_tree = tree.get_child("explicitauths");
   for (const auto& it : auths_tree) {
-    std::string process;
-    try {
-      process = it.second.get<std::string>("id");
-      Row r;
-      r["process"] = process;
-      results.push_back(r);
-    } catch (const pt::ptree_error& e) {
-      LOG(ERROR) << "Error retrieving firewall exception keys: " << e.what();
-    }
+    Row r;
+    r["process"] = it.second.get("id", "");
+    results.push_back(r);
   }
 
   return results;
@@ -181,31 +142,18 @@ QueryData genALFExplicitAuths(QueryContext& context) {
 
 QueryData parseALFServicesTree(const pt::ptree& tree) {
   QueryData results;
-  pt::ptree firewall_tree;
-  try {
-    firewall_tree = tree.get_child("firewall");
-  } catch (const pt::ptree_error& e) {
-    LOG(ERROR) << "Error retrieving firewall key: " << e.what();
+  if (tree.count("firewall") == 0) {
+    return {};
   }
 
+  auto firewall_tree = tree.get_child("firewall");
   for (const auto& it : kFirewallTreeKeys) {
-    std::string proc;
-    int state;
-    pt::ptree subtree;
-    try {
-      subtree = firewall_tree.get_child(it.first);
-      proc = subtree.get<std::string>("proc");
-      state = subtree.get<int>("state");
-      Row r;
-      r["service"] = it.second;
-      r["process"] = proc;
-      r["state"] = INTEGER(state);
-      results.push_back(r);
-    } catch (const pt::ptree_error& e) {
-      LOG(ERROR) << "Error retrieving " << it.first << " keys: " << e.what();
-    } catch (const boost::bad_lexical_cast& e) {
-      LOG(ERROR) << "Error casting state (" << state << "): " << e.what();
-    }
+    Row r;
+    auto subtree = firewall_tree.get_child(it.first);
+    r["service"] = it.second;
+    r["process"] = subtree.get("proc", "");
+    r["state"] = INTEGER(subtree.get("state", -1));
+    results.push_back(r);
   }
   return results;
 }
