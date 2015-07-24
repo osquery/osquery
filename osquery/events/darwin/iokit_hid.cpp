@@ -95,6 +95,13 @@ void IOKitHIDEventPublisher::MatchingCallback(void *context,
   fire(device, "add");
 }
 
+void IOKitHIDEventPublisher::RemovalCallback(void *context,
+                                             IOReturn result,
+                                             void *sender,
+                                             IOHIDDeviceRef device) {
+  fire(device, "remove");
+}
+
 void IOKitHIDEventPublisher::fire(const IOHIDDeviceRef &device,
                                   const std::string &action) {
   auto ec = createEventContext();
@@ -116,14 +123,10 @@ void IOKitHIDEventPublisher::fire(const IOHIDDeviceRef &device,
   ec->serial = getProperty(device, CFSTR(kIOHIDSerialNumberKey));
   ec->country_code = getProperty(device, CFSTR(kIOHIDCountryCodeKey));
 
-  EventFactory::fire<IOKitHIDEventPublisher>(ec);
-}
-
-void IOKitHIDEventPublisher::RemovalCallback(void *context,
-                                             IOReturn result,
-                                             void *sender,
-                                             IOHIDDeviceRef device) {
-  fire(device, "remove");
+  if (ec->location.size() > 0 || ec->model_id.size() > 0) {
+    // Only emit results that contain an location or model_id.
+    EventFactory::fire<IOKitHIDEventPublisher>(ec);
+  }
 }
 
 void IOKitHIDEventPublisher::InputValueCallback(void *context,
