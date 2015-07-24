@@ -165,6 +165,14 @@ if(APPLE)
     COMMAND echo "Running kernel tests requires root."
     COMMAND sudo $<TARGET_FILE:osquery_kernel_tests>
   )
+
+  add_custom_target(
+    run-kernel-benchmark
+    COMMAND echo ""
+    COMMAND echo "Running kernel benchmarks requires root."
+    COMMAND sudo bash -c "$<TARGET_FILE:osquery_kernel_benchmarks> $ENV{BENCHMARK_TO_FILE}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  )
 elseif(LINUX)
   add_custom_target(
     base_kernel
@@ -195,6 +203,11 @@ elseif(LINUX)
     kernel-test
     COMMAND echo "-- No kernel test is run for Linux"
   )
+
+  add_custom_target(
+    run-kernel-benchmark
+    COMMAND echo "-- No kernel benchmark is run for Linux"
+  )
 else()
   add_custom_target(
     base_kernel
@@ -224,6 +237,11 @@ else()
   add_custom_target(
     kernel-test
     COMMAND echo "-- No kernel test is run for unsupported platform"
+  )
+
+  add_custom_target(
+    run-kernel-benchmark
+    COMMAND echo "-- No kernel benchmark is run for unsupported platform"
   )
 endif()
 

@@ -4,6 +4,10 @@ set(OSQUERY_LINKS "")
 set(OSQUERY_TESTS "")
 set(OSQUERY_KERNEL_TESTS "")
 
+# osquery benchmarking sources
+set(OSQUERY_BENCHMARKS "")
+set(OSQUERY_KERNEL_BENCHMARKS "")
+
 # osquery core additional sources files not included with SDK (libosquery_additional).
 set(OSQUERY_ADDITIONAL_SOURCES "")
 set(OSQUERY_ADDITIONAL_LINKS "")
@@ -198,6 +202,20 @@ if(NOT DEFINED ENV{SKIP_TESTS})
   TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery_additional)
   target_link_libraries(osquery_kernel_tests gtest libosquery_testing)
   SET_OSQUERY_COMPILE(osquery_kernel_tests "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1 -DGTEST_HAS_TR1_TUPLE=0")
+
+  # osquery benchmarks.
+  add_executable(osquery_benchmarks main/benchmarks.cpp ${OSQUERY_BENCHMARKS})
+  TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery)
+  TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery_additional)
+  target_link_libraries(osquery_benchmarks benchmark libosquery_testing)
+  SET_OSQUERY_COMPILE(osquery_benchmarks "${CXX_COMPILE_FLAGS}")
+  
+  # osquery kernel benchmarks.
+  add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
+  TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_benchmarks libosquery)
+  TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_benchmarks libosquery_additional)
+  target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing)
+  SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
 
   if(NOT OSQUERY_BUILD_SDK_ONLY)
     # osquery core (additional) set of unit tests built outside of SDK.
