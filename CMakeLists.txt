@@ -378,10 +378,3 @@ add_custom_target(
   COMMENT "Generating sdk sync: ${CMAKE_BINARY_DIR}/sync"
   DEPENDS osquery_extensions osquery_amalgamation
 )
-
-# make benchmark
-add_custom_target(
-  run-benchmark
-  COMMAND sudo bash -c "$<TARGET_FILE:osquery_benchmarks> $ENV{BENCHMARK_TO_FILE}"
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-)

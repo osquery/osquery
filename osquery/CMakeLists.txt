@@ -218,6 +218,13 @@ if(NOT DEFINED ENV{SKIP_TESTS})
   target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing)
   SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
 
+  # make benchmark
+  add_custom_target(
+    run-benchmark
+    COMMAND sudo bash -c "$<TARGET_FILE:osquery_benchmarks> $ENV{BENCHMARK_TO_FILE}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  )
+
   if(NOT OSQUERY_BUILD_SDK_ONLY)
     # osquery core (additional) set of unit tests built outside of SDK.
     add_executable(osquery_additional_tests main/tests.cpp ${OSQUERY_ADDITIONAL_TESTS})
