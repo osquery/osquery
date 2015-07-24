@@ -71,10 +71,6 @@ QueryData genFile(QueryContext& context) {
 
   auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
-    if (!isReadable(path_string)) {
-      continue;
-    }
-
     fs::path path = path_string;
     genFileInfo(path_string,
                 path.filename().string(),
@@ -120,9 +116,6 @@ QueryData genFile(QueryContext& context) {
     }
 
     for (const auto& resolved : expanded_patterns) {
-      if (!isReadable(resolved)) {
-        continue;
-      }
       fs::path path = resolved;
       genFileInfo(resolved,
                   path.filename().string(),

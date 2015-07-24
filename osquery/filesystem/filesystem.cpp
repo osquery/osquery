@@ -75,6 +75,8 @@ Status readFile(const fs::path& path, std::string& content, bool dry_run) {
 
   if (stat(path.string().c_str(), &file) < 0) {
     return Status(1, "Cannot access path: " + path.string());
+  } else if (file.st_uid != 0 && S_ISFIFO(file.st_mode)) {
+    return Status(1, "User FIFO reads are disabled");
   }
 
   // Apply the max byte-read based on file/link target ownership.
