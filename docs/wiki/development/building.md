@@ -164,7 +164,7 @@ SKIP_TESTS=True # Skip unit test building (very very not recommended!)
 
 ## Custom Packages
 
-Building osquery on OS X or Linux requires a significant number of dependencies, which are not needed when deploying. It does not make sense to install osquery on your build hosts. See the [Custom Packages](../installation/custom-packages) guide for generating pkgs, debs or rpms.
+Building osquery on OS X or Linux requires a significant number of dependencies, which are not needed when deploying. It does not make sense to install osquery on your build hosts. See the [Custom Packages](../installation/custom-packages.md) guide for generating pkgs, debs or rpms.
 
 Debug and from-source package building is not recommended but supported. You may generate several packages including devel, debuginfo, and additional sets of tools:
 
