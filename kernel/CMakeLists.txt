@@ -1,4 +1,3 @@
-
 # Set includes/compile options for kernel modules/extensions.
 set(CMAKE_C_FLAGS "")
 set(CMAKE_CXX_FLAGS "")
@@ -159,20 +158,22 @@ if(APPLE)
     COMMENT "Generating symbols and launching a debugger with kernel target..."
   )
 
-  add_custom_target(
-    kernel-test
-    COMMAND echo ""
-    COMMAND echo "Running kernel tests requires root."
-    COMMAND sudo $<TARGET_FILE:osquery_kernel_tests>
-  )
+  if(NOT DEFINED ENV{SKIP_TESTS})
+    add_custom_target(
+      kernel-test
+      COMMAND echo ""
+      COMMAND echo "Running kernel tests requires root."
+      COMMAND sudo $<TARGET_FILE:osquery_kernel_tests>
+    )
 
-  add_custom_target(
-    run-kernel-benchmark
-    COMMAND echo ""
-    COMMAND echo "Running kernel benchmarks requires root."
-    COMMAND sudo bash -c "$<TARGET_FILE:osquery_kernel_benchmarks> $ENV{BENCHMARK_TO_FILE}"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  )
+    add_custom_target(
+      run-kernel-benchmark
+      COMMAND echo ""
+      COMMAND echo "Running kernel benchmarks requires root."
+      COMMAND sudo bash -c "$<TARGET_FILE:osquery_kernel_benchmarks> $ENV{BENCHMARK_TO_FILE}"
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+  endif()
 elseif(LINUX)
   add_custom_target(
     base_kernel
@@ -199,15 +200,17 @@ elseif(LINUX)
     COMMAND echo "-- No kernel unload for Linux"
   )
 
-  add_custom_target(
-    kernel-test
-    COMMAND echo "-- No kernel test is run for Linux"
-  )
+  if(NOT DEFINED ENV{SKIP_TESTS})
+    add_custom_target(
+      kernel-test
+      COMMAND echo "-- No kernel test is run for Linux"
+    )
 
-  add_custom_target(
-    run-kernel-benchmark
-    COMMAND echo "-- No kernel benchmark is run for Linux"
-  )
+    add_custom_target(
+      run-kernel-benchmark
+      COMMAND echo "-- No kernel benchmark is run for Linux"
+    )
+  endif()
 else()
   add_custom_target(
     base_kernel
@@ -234,15 +237,17 @@ else()
     COMMAND echo "-- No kernel unload for unsupported platform"
   )
 
-  add_custom_target(
-    kernel-test
-    COMMAND echo "-- No kernel test is run for unsupported platform"
-  )
+  if(NOT DEFINED ENV{SKIP_TESTS})
+    add_custom_target(
+      kernel-test
+      COMMAND echo "-- No kernel test is run for unsupported platform"
+    )
 
-  add_custom_target(
-    run-kernel-benchmark
-    COMMAND echo "-- No kernel benchmark is run for unsupported platform"
-  )
+    add_custom_target(
+      run-kernel-benchmark
+      COMMAND echo "-- No kernel benchmark is run for unsupported platform"
+    )
+  endif()
 endif()
 
 # make kernel-build
