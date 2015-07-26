@@ -65,8 +65,7 @@ Status PasswdChangesEventSubscriber::Callback(const INotifyEventContextRef& ec,
   r["transaction_id"] = INTEGER(ec->event->cookie);
   if (ec->action != "" && ec->action != "OPENED") {
     // A callback is somewhat useless unless it changes the EventSubscriber
-    // state
-    // or calls `add` to store a marked up event.
+    // state or calls `add` to store a marked up event.
     add(r, ec->time);
   }
   return Status(0, "OK");

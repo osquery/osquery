@@ -178,7 +178,7 @@ class Plugin : private boost::noncopyable {
   /// Allow the plugin to introspect into the registered name (for logging).
   void setName(const std::string& name) { name_ = name; }
 
-  const std::string& getName() const { return name_; }
+  virtual const std::string& getName() const { return name_; }
 
   /// Allow a specialized plugin type to act when an external plugin is
   /// registered (e.g., a TablePlugin will attach the table name).
@@ -267,7 +267,7 @@ class RegistryHelperCore : private boost::noncopyable {
   void setName(const std::string& name);
 
   /// Allow others to introspect into the registered name (for reporting).
-  const std::string& getName() const { return name_; }
+  virtual const std::string& getName() const { return name_; }
 
   /// Check if a given plugin name is considered internal.
   bool isInternal(const std::string& item_name) const;

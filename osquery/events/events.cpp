@@ -439,12 +439,7 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
   // Get and increment the EID for this module.
   EventID eid = getEventID();
   // Without encouraging a missing event time, do not support a 0-time.
-  auto index_time = getUnixTime();
-  if (event_time == 0) {
-    r["time"] = std::to_string(index_time);
-  } else {
-    r["time"] = std::to_string(event_time);
-  }
+  r["time"] = std::to_string((event_time == 0) ? getUnixTime() : event_time);
 
   // Serialize and store the row data, for query-time retrieval.
   std::string data;
