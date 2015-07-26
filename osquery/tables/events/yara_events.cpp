@@ -110,6 +110,10 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
     return Status(1, "No YARA category string provided");
   }
 
+  if (ec->action != "UPDATED" && ec->action != "CREATED") {
+    return Status(1, "Invalid action");
+  }
+
   Row r;
   r["action"] = ec->action;
   r["target_path"] = ec->path;
@@ -121,6 +125,8 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   // These are default values, to be updated in YARACallback.
   r["count"] = INTEGER(0);
   r["matches"] = std::string("");
+  r["strings"] = std::string("");
+  r["tags"] = std::string("");
 
   ConfigDataInstance config;
   const auto& parser = config.getParser("yara");

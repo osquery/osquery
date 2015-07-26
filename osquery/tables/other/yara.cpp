@@ -36,6 +36,8 @@ Status doYARAScan(YR_RULES* rules,
   // These are default values, to be updated in YARACallback.
   r["count"] = INTEGER(0);
   r["matches"] = std::string("");
+  r["strings"] = std::string("");
+  r["tags"] = std::string("");
 
   // XXX: use target_path instead to be consistent with yara_events?
   r["path"] = path;

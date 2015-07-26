@@ -8,6 +8,8 @@ schema([
     Column("matches", TEXT, "List of YARA matches"),
     Column("count", INTEGER, "Number of YARA matches"),
     Column("time", BIGINT, "Time of the scan"),
+    Column("strings", TEXT, "Matching strings"),
+    Column("tags", TEXT, "Matching tags"),
 ])
 attributes(event_subscriber=True)
 implementation("yara@yara_events::genTable")
