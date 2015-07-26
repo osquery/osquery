@@ -1155,7 +1155,7 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     } else {
       fprintf(stderr,
               "Error: mode should be one of: "
-              "column csv html insert line list tabs tcl pretty\n");
+              "column csv line list pretty\n");
       rc = 1;
     }
   } else if (c == 'n' && strncmp(azArg[0], "nullvalue", n) == 0 && nArg == 2) {
