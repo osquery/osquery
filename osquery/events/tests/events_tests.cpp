@@ -314,6 +314,9 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
     sub_ctx->require_this_value = 42;
     subscribe(&FakeEventSubscriber::SpecialCallback, sub_ctx, nullptr);
   }
+
+ private:
+  FRIEND_TEST(EventsTests, test_subscriber_names);
 };
 
 TEST_F(EventsTests, test_event_sub) {
@@ -381,5 +384,27 @@ TEST_F(EventsTests, test_fire_event) {
   second_subscription->callback = TestTheeCallback;
   pub->fire(ec, 0);
   EXPECT_EQ(kBellHathTolled, 4);
+}
+
+class SubFakeEventSubscriber : public FakeEventSubscriber {
+ public:
+  SubFakeEventSubscriber() { setName("SubFakeSubscriber"); }
+
+ private:
+  FRIEND_TEST(EventsTests, test_subscriber_names);
+};
+
+TEST_F(EventsTests, test_subscriber_names) {
+  auto pub = std::make_shared<BasicEventPublisher>();
+  EventFactory::registerEventPublisher(pub);
+
+  auto subsub = std::make_shared<SubFakeEventSubscriber>();
+  EXPECT_EQ(subsub->getType(), "FakePublisher");
+  EXPECT_EQ(subsub->getName(), "SubFakeSubscriber");
+  EXPECT_EQ(subsub->dbNamespace(), "FakePublisher.SubFakeSubscriber");
+
+  auto sub = std::make_shared<FakeEventSubscriber>();
+  EXPECT_EQ(sub->getName(), "FakeSubscriber");
+  EXPECT_EQ(sub->dbNamespace(), "FakePublisher.FakeSubscriber");
 }
 }

@@ -548,7 +548,7 @@ class EventSubscriberPlugin : public Plugin {
    * publishers. The namespace is a combination of the publisher and subscriber
    * registry plugin names.
    */
-  virtual EventPublisherID& dbNamespace() const = 0;
+  virtual EventPublisherID dbNamespace() const = 0;
 
   /// Disable event expiration for this subscriber.
   void doNotExpire() { expire_events_ = false; }
@@ -831,15 +831,14 @@ class EventSubscriber : public EventSubscriberPlugin {
    * plugin name assigned to publishers. The corresponding publisher name is
    * interpreted as the subscriber's event 'type'.
    */
-  EventPublisherID& getType() const {
+  virtual EventPublisherID& getType() const {
     static EventPublisherID type = EventFactory::getType<PUB>();
     return type;
   }
 
   /// See getType for lookup rational.
-  EventPublisherID& dbNamespace() const {
-    static EventPublisherID _ns = getType() + '.' + getName();
-    return _ns;
+  virtual EventPublisherID dbNamespace() const {
+    return getType() + '.' + getName();
   }
 
  public:

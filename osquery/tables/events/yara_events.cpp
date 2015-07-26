@@ -149,7 +149,7 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
     }
   }
 
-  if (ec->action != "") {
+  if (ec->action != "" && r.at("matches").size() > 0) {
     add(r, ec->time);
   }
 
