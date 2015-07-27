@@ -142,9 +142,7 @@ void launchQuery(const std::string& name, const ScheduledQuery& query) {
 }
 
 void SchedulerRunner::start() {
-  time_t t = std::time(nullptr);
-  struct tm* local = std::localtime(&t);
-  unsigned long int i = local->tm_sec;
+  unsigned long int i = getUnixTime();
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
     {
       ConfigDataInstance config;
