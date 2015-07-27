@@ -27,6 +27,7 @@ class CQueue {
    * @brief Structure to hold event metadata and pointer to an event.
    */
   struct event {
+    size_t size;
     osquery_event_time_t time;
     char buf[];
   };

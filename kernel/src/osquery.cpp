@@ -241,11 +241,13 @@ static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
     void *e = NULL;
     switch (*(int *)data) {
       case 0:
-        e = osquery_cqueue_reserve(&osquery.cqueue, OSQUERY_TEST_EVENT_0);
+        e = osquery_cqueue_reserve(&osquery.cqueue, OSQUERY_TEST_EVENT_0,
+                                   sizeof(test_event_0_data_t));
         length = 4096;
         break;
       case 1:
-        e = osquery_cqueue_reserve(&osquery.cqueue, OSQUERY_TEST_EVENT_1);
+        e = osquery_cqueue_reserve(&osquery.cqueue, OSQUERY_TEST_EVENT_1,
+                                   sizeof(test_event_1_data_t));
         length = 33;
         break;
       default:

@@ -215,23 +215,20 @@ error_exit:
   return drops;
 }
 
-void *osquery_cqueue_reserve(osquery_cqueue_t *queue, osquery_event_t event) {
+void *osquery_cqueue_reserve(osquery_cqueue_t *queue,
+                             osquery_event_t event,
+                             size_t size) {
   void *ret = NULL;
   lck_spin_lock(queue->lck);
   if (!queue->initialized) {
     ret = NULL;
     goto error_exit;
   }
-  
+
   osquery_data_header_t *header = NULL;
 
-  ssize_t event_size = osquery_sizeof_event(event);
-  size_t size = event_size;
-  if (event_size >= 0) {
-    // Event exist.  If the event doesnt exist we will try to allocate
-    // a too large amount of space and the allocation will fail.
-    size += sizeof(osquery_data_header_t);
-  }
+  size_t contents_size = size;
+  size += sizeof(osquery_data_header_t);
 
   // We do not want the write pointer to ever equal the read pointer unless
   // everything is empty.  Otherwise we need to track the empty states for the
@@ -260,6 +257,7 @@ void *osquery_cqueue_reserve(osquery_cqueue_t *queue, osquery_event_t event) {
 
   if (header) {
     header->event = event;
+    header->size = contents_size;
     header->finished = 0;
 
     // Give them the pointer to the space not the header.
@@ -299,10 +297,9 @@ static inline void coalesce_readable(osquery_cqueue_t *queue) {
       break;
     }
 
-    queue->max_read = (uint8_t *)advance_pointer(queue, queue->max_read,
-                                      osquery_sizeof_event(header->event)
-                                      + sizeof(osquery_data_header_t));
-  
+    queue->max_read = (uint8_t *)advance_pointer(
+        queue, queue->max_read, header->size + sizeof(osquery_data_header_t));
+
     header = (osquery_data_header_t *)queue->max_read;
     wakeup(&queue->max_read);
 

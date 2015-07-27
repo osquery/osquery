@@ -28,7 +28,7 @@
  *  A daemon may only connect to a kernel with the same communication version.
  *  Bump this number when changing or adding any event structs.
  */
-#define OSQUERY_KERNEL_COMMUNICATION_VERSION 2UL
+#define OSQUERY_KERNEL_COMMUNICATION_VERSION 3UL
 #ifdef KERNEL_TEST
 #define OSQUERY_KERNEL_COMM_VERSION \
   (OSQUERY_KERNEL_COMMUNICATION_VERSION | (1UL << 63))
@@ -81,6 +81,15 @@ typedef struct {
   uint64_t change_time;
   int mode;
   char path[MAXPATHLEN];
+  size_t argv_offset;
+  int argc;
+  int actual_argc;
+  size_t arg_length;
+  size_t envv_offset;
+  int envc;
+  int actual_envc;
+  size_t env_length;
+  char flexible_data[0]; // Flexible array space.
 } osquery_process_event_t;
 
 #ifdef KERNEL_TEST
@@ -94,21 +103,6 @@ typedef struct {
   char my_str[33];
 } test_event_1_data_t;
 #endif // KERNEL_TEST
-
-static inline ssize_t osquery_sizeof_event(osquery_event_t e) {
-  switch (e) {
-  case OSQUERY_PROCESS_EVENT:
-    return sizeof(osquery_process_event_t);
-#ifdef KERNEL_TEST
-  case OSQUERY_TEST_EVENT_0:
-    return sizeof(test_event_0_data_t);
-  case OSQUERY_TEST_EVENT_1:
-    return sizeof(test_event_1_data_t);
-#endif // KERNEL_TEST
-  default:
-    return -1;
-  }
-}
 
 //
 // Header for event data.
@@ -124,6 +118,7 @@ typedef struct {
 typedef struct {
   osquery_event_t event;
   int finished;
+  size_t size; // Should be second to last member of header.
   osquery_event_time_t time; // Should be last member of header.
 } osquery_data_header_t;
 

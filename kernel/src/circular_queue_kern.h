@@ -134,10 +134,12 @@ int osquery_cqueue_dropped_data(osquery_cqueue_t *queue);
  *
  *  @param queue The queue to reserve space in.
  *  @param event The event type to reserve space for.
+ *  @param size The size of the event data.
  *  @return Pointer to the space.  NULL if no space could be arranged.
  */
-void *osquery_cqueue_reserve(osquery_cqueue_t *queue, osquery_event_t event);
-
+void *osquery_cqueue_reserve(osquery_cqueue_t *queue,
+                             osquery_event_t event,
+                             size_t size);
 
 /** @brief Commit a write to a previously reserved space.
  *
