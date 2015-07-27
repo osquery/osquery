@@ -208,11 +208,38 @@ int YARACallback(int message, void *message_data, void *user_data) {
   if (message == CALLBACK_MSG_RULE_MATCHING) {
     Row *r = (Row *) user_data;
     YR_RULE *rule = (YR_RULE *) message_data;
+
     if ((*r)["matches"].length() > 0) {
       (*r)["matches"] += "," + std::string(rule->identifier);
     } else {
       (*r)["matches"] = std::string(rule->identifier);
     }
+
+    YR_STRING *string = nullptr;
+    yr_rule_strings_foreach(rule, string) {
+      YR_MATCH *match = nullptr;
+      yr_string_matches_foreach(string, match) {
+        if ((*r)["strings"].length() > 0) {
+          (*r)["strings"] += "," + std::string(string->identifier);
+        } else {
+          (*r)["strings"] = std::string(string->identifier);
+        }
+
+        std::stringstream ss;
+        ss << std::hex << (match->base + match->offset);
+        (*r)["strings"] += ":" + ss.str();
+      }
+    }
+
+    const char *tag = nullptr;
+    yr_rule_tags_foreach(rule, tag) {
+      if ((*r)["tags"].length() > 0) {
+        (*r)["tags"] += "," + std::string(tag);
+      } else {
+        (*r)["tags"] = std::string(tag);
+      }
+    }
+
     (*r)["count"] = INTEGER(std::stoi((*r)["count"]) + 1);
   }
 
