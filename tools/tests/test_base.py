@@ -330,7 +330,7 @@ class ProcessGenerator(object):
                     pass
 
 
-class EXClient:
+class EXClient(object):
     '''An osquery Thrift/extensions python client generator.'''
     transport = None
     '''The instance transport object.'''
@@ -480,6 +480,50 @@ def expect(functional, expected, interval=0.01, timeout=4):
         time.sleep(interval)
         delay += interval
     return result
+
+
+class QueryTester(ProcessGenerator, unittest.TestCase):
+    def setUp(self):
+        self.binary = os.path.join(ARGS.build, "osquery", "osqueryi")
+        self.daemon = self._run_daemon({
+            # The set of queries will hammer the daemon process.
+            "disable_watchdog": True,
+            # Enable the 'hidden' flag "registry_exceptions" to prevent catching.
+            "registry_exceptions": True,
+        })
+        self.assertTrue(self.daemon.isAlive())
+
+        # The sets of example tests will use the extensions APIs.
+        self.client = EXClient(self.daemon.options["extensions_socket"])
+        expectTrue(self.client.open)
+        self.assertTrue(self.client.open())
+        self.em = self.client.getEM()
+
+    def tearDown(self):
+        self.client.close()
+        self.daemon.kill()
+
+    def _execute(self, query):
+        try:
+            result = self.em.query(query)
+            self.assertEqual(result.status.code, 0)
+            return result.response
+        except Exception as e:
+            print("General exception executing query: %s" % (
+                utils.lightred(query)))
+            raise e
+
+    def _execute_set(self, queries):
+        for example in queries:
+            start_time = time.time()
+            result = self._execute(example)
+            end_time = time.time()
+            duration_ms = int((end_time - start_time) * 1000)
+            if duration_ms > 2000:
+                # Query took longer than 2 seconds.
+                duration_ms = utils.lightred(duration_ms)
+            print("Query (%sms): %s, rows: %d" % (
+                duration_ms, example, len(result)))
 
 
 def expectTrue(functional, interval=0.01, timeout=8):

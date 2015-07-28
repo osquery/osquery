@@ -46,10 +46,10 @@ NODE=$(echo $NODE_LABELS | awk '{print $NF}')
 mkdir -p $OUTDIR
 
 export BENCHMARK_TO_FILE="--benchmark_format=csv :>$OUTDIR/$NODE-benchmark.csv"
-make run-benchmark
+make run-benchmark/fast
 
 export BENCHMARK_TO_FILE="--benchmark_format=csv :>$OUTDIR/$NODE-kernel-benchmark.csv"
-make run-kernel-benchmark
+make run-kernel-benchmark/fast
 
 
 exit 0

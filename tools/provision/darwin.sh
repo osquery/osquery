@@ -23,6 +23,8 @@ function main_darwin() {
   package makedepend
   package boost
   package gflags
+  package lz4
+  package snappy
   package rocksdb
   package thrift
   package yara

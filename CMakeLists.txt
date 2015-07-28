@@ -149,7 +149,7 @@ else()
 endif()
 
 if(NOT DEFINED ENV{OPTIMIZED})
-  add_compile_options(-march=x86-64 -mtune=generic)
+  add_compile_options(-march=x86-64 -mtune=i386 -mno-avx)
 endif()
 
 # make analyze (environment variable from Makefile)
