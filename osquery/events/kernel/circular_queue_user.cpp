@@ -63,7 +63,7 @@ void CQueue::subscribe(osquery_event_t event, void *udata) {
 }
 
 osquery_event_t CQueue::dequeue(CQueue::event **event) {
-  if (read_ == max_read_) {
+  if (read_ == max_read_ || event == nullptr) {
     return (osquery_event_t)0;
   }
   osquery_data_header_t *header = (osquery_data_header_t *)read_;
@@ -76,12 +76,11 @@ osquery_event_t CQueue::dequeue(CQueue::event **event) {
   }
   header = (osquery_data_header_t *)read_;
   if (header->event != END_OF_BUFFER_EVENT) {
-    size_t size = osquery_sizeof_event(header->event)
-      + sizeof(osquery_data_header_t);
+    size_t size = header->size + sizeof(osquery_data_header_t);
     read_ = (read_ + size - buffer_) % size_ + buffer_;
   }
 
-  *event = (CQueue::event *)&(header->time);
+  *event = (CQueue::event *)&(header->size);
   return header->event;
 }
 

@@ -32,6 +32,8 @@
 		<string>14.0</string>
 		<key>com.apple.kpi.mach</key>
 		<string>14.0</string>
+		<key>com.apple.kpi.dsep</key>
+		<string>14.0</string>
 	</dict>
 </dict>
 </plist>

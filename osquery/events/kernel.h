@@ -15,6 +15,8 @@
 #include <osquery/events.h>
 #include <osquery/status.h>
 
+#include <vector>
+
 namespace osquery {
 
 /**
@@ -41,6 +43,7 @@ struct KernelEventContext : public EventContext {
 template <typename EventType>
 struct TypedKernelEventContext : public KernelEventContext {
   EventType event;
+  std::vector<char> flexible_data;
 };
 
 typedef std::shared_ptr<KernelSubscriptionContext> KernelSubscriptionContextRef;

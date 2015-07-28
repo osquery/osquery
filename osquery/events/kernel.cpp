@@ -15,7 +15,7 @@
 
 namespace osquery {
 
-static const size_t shared_buffer_size_bytes = (8 * (1 << 20));
+static const size_t shared_buffer_size_bytes = (20 * (1 << 20));
 static const int max_events_before_sync = 1000;
 
 REGISTER(KernelEventPublisher, "event_publisher", "kernel");
@@ -60,7 +60,7 @@ Status KernelEventPublisher::run() {
     int drops = 0;
     if ((drops = queue_->kernelSync(OSQUERY_DEFAULT)) > 0 &&
         kToolType == OSQUERY_TOOL_DAEMON) {
-      LOG(INFO) << "Dropping " << drops << " kernel events.";
+      LOG(WARNING) << "Dropping " << drops << " kernel events.";
     }
   } catch (const CQueueException &e) {
     LOG(WARNING) << e.what();
@@ -96,6 +96,9 @@ KernelEventContextRef KernelEventPublisher::createEventContextFrom(
   ec->time = event->time.time;
   ec->uptime = event->time.uptime;
   memcpy(&(ec->event), event->buf, sizeof(EventType));
+  ec->flexible_data.insert(ec->flexible_data.begin(),
+                           event->buf + sizeof(EventType),
+                           event->buf + event->size);
 
   return std::static_pointer_cast<KernelEventContext>(ec);
 }
