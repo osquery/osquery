@@ -39,10 +39,13 @@ trap cleanUp EXIT INT TERM
 # Load osquery kernel (optional).
 make kernel-load
 
+# Request that tests include addition 'release' or 'package' units.
+export RUN_RELEASE_TESTS=1
+
 # Run code unit and integration tests.
-make test
+make test/fast
 
 # Run kernel unit and integration tests (optional).
-make kernel-test
+make kernel-test/fast
 
 exit 0

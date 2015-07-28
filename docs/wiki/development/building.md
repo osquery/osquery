@@ -173,6 +173,18 @@ make package # Generate an osquery package for the build target
 make packages # Generate optional/additional packages
 ```
 
+These targets set the environment variable `PACKAGE=1` and the CMake variable `OSQUERY_BUILD_RELEASE` that enables allows build and CMake logic to make compile and linking decisions. This may enable additional compile defines or remove sources from targets.
+
+The osquery package build hosts run a series of additional unit and integration tests. This involves building targets with debug routines, testing, building the same targets ready for packaging, testing, and running a final set of "sanity" and deployment tests.
+
+To mimic and follow the same build/release testing workflow use:
+
+```
+./tools/build.sh
+```
+
+Pay attention to the environment variable `RUN_RELEASE_TESTS=1`, which enables the deployment sanity tests. If you are building an optimized or distribution package manager target this will most likely fail.
+
 ## Notes and FAQ
 
 
