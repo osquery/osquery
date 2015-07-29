@@ -9,9 +9,11 @@ if(APPLE)
     darwin/iokit_hid.cpp
     darwin/diskarbitration.cpp
     darwin/scnetwork.cpp
+    darwin/kernel_util.cpp
   )
 elseif(FREEBSD)
   ADD_OSQUERY_LIBRARY(FALSE osquery_events_freebsd
+    freebsd/kernel_util.cpp
   )
 else()
   ADD_OSQUERY_LINK(FALSE "udev")
@@ -19,6 +21,7 @@ else()
   ADD_OSQUERY_LIBRARY(FALSE osquery_events_linux
     linux/inotify.cpp
     linux/udev.cpp
+    linux/kernel_util.cpp
   )
 endif()
 

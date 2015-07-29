@@ -11,9 +11,10 @@
 #include "osquery/events/kernel.h"
 
 #include <osquery/logger.h>
-#include <osquery/core.h>
 
 namespace osquery {
+
+FLAG(bool, disable_kernel, false, "Disable osquery kernel extension");
 
 static const size_t shared_buffer_size_bytes = (20 * (1 << 20));
 static const int max_events_before_sync = 1000;
@@ -21,6 +22,10 @@ static const int max_events_before_sync = 1000;
 REGISTER(KernelEventPublisher, "event_publisher", "kernel");
 
 Status KernelEventPublisher::setUp() {
+  if (kToolType == OSQUERY_TOOL_DAEMON) {
+    loadKernelExtension();
+  }
+
   try {
     queue_ = new CQueue(shared_buffer_size_bytes);
   } catch (const CQueueException &e) {
