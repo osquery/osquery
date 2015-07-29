@@ -28,6 +28,19 @@ namespace fs = boost::filesystem;
 namespace osquery {
 std::string kFakeDirectory = "";
 
+#ifdef DARWIN
+std::string kTestWorkingDirectory = "/private/tmp/osquery-tests";
+#else
+std::string kTestWorkingDirectory = "/tmp/osquery-tests";
+#endif
+
+/// Most tests will use binary or disk-backed content for parsing tests.
+#ifndef OSQUERY_BUILD_SDK
+std::string kTestDataPath = "../../../tools/tests/";
+#else
+std::string kTestDataPath = "../../../../tools/tests/";
+#endif
+
 DECLARE_string(database_path);
 DECLARE_string(extensions_socket);
 DECLARE_string(modules_autoload);
@@ -53,28 +66,20 @@ void initTesting() {
 
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
-  std::string testWorkingDirectory =
-      kTestWorkingDirectory + std::to_string(getuid()) + "/";
-  kFakeDirectory = testWorkingDirectory + kFakeDirectoryName;
+  kTestWorkingDirectory += std::to_string(getuid()) + "/";
+  kFakeDirectory = kTestWorkingDirectory + kFakeDirectoryName;
 
-  fs::remove_all(testWorkingDirectory);
-  fs::create_directories(testWorkingDirectory);
-  FLAGS_database_path = testWorkingDirectory + "unittests.db";
-  FLAGS_extensions_socket = testWorkingDirectory + "unittests.em";
-  FLAGS_extensions_autoload = testWorkingDirectory + "unittests-ext.load";
-  FLAGS_modules_autoload = testWorkingDirectory + "unittests-mod.load";
+  fs::remove_all(kTestWorkingDirectory);
+  fs::create_directories(kTestWorkingDirectory);
+  FLAGS_database_path = kTestWorkingDirectory + "unittests.db";
+  FLAGS_extensions_socket = kTestWorkingDirectory + "unittests.em";
+  FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
+  FLAGS_modules_autoload = kTestWorkingDirectory + "unittests-mod.load";
   FLAGS_disable_logging = true;
 
   // Create a default DBHandle instance before unittests.
   (void)DBHandle::getInstance();
 }
-
-/// Most tests will use binary or disk-backed content for parsing tests.
-#ifndef OSQUERY_BUILD_SDK
-std::string kTestDataPath = "../../../tools/tests/";
-#else
-std::string kTestDataPath = "../../../../tools/tests/";
-#endif
 
 QueryData getTestDBExpectedResults() {
   QueryData d;

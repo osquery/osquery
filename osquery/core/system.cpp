@@ -26,6 +26,7 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include <osquery/core.h>
+#include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
@@ -45,6 +46,11 @@ CLI_FLAG(bool,
          force,
          false,
          "Force osqueryd to kill previously-running daemons");
+
+FLAG(string,
+     host_identifier,
+     "hostname",
+     "Field used to identify the host running osquery (hostname, uuid)");
 
 std::string getHostname() {
   char hostname[256] = {0}; // Linux max should be 64.
@@ -79,6 +85,27 @@ std::string generateHostUuid() {
 #else
   return generateNewUuid();
 #endif
+}
+
+std::string getHostIdentifier() {
+  if (FLAGS_host_identifier != "uuid") {
+    // use the hostname as the default machine identifier
+    return osquery::getHostname();
+  }
+
+  // Generate a identifier/UUID for this application launch, and persist.
+  static std::string ident;
+  if (ident.size() == 0) {
+    // Lookup the host identifier (UUID) previously generated and stored.
+    getDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
+    if (ident.size() == 0) {
+      ident = osquery::generateHostUuid();
+      VLOG(1) << "Using uuid " << ident << " as host identifier";
+      setDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
+    }
+  }
+
+  return ident;
 }
 
 std::string getAsciiTime() {

@@ -38,16 +38,24 @@ DECLARE_string(tls_client_cert);
 DECLARE_string(tls_hostname);
 
 /**
+ * @brief HTTP verb selections.
+ */
+enum HTTPVerb {
+  HTTP_POST = 0,
+  HTTP_PUT,
+};
+
+/**
  * @brief HTTPS (TLS) transport.
  */
 class TLSTransport : public Transport {
  public:
-
   /**
    * @brief Send a simple request to the destination with no parameters
    *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return A status indicating socket, network, or transport success/error.
+   * Return code (1) for general connectivity problems, return code (2) for TLS
+   * specific errors.
    */
   Status sendRequest();
 
@@ -56,8 +64,9 @@ class TLSTransport : public Transport {
    *
    * @param params A string representing the serialized parameters
    *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return A status indicating socket, network, or transport success/error.
+   * Return code (1) for general connectivity problems, return code (2) for TLS
+   * specific errors.
    */
   Status sendRequest(const std::string& params);
 

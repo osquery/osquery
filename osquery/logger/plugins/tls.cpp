@@ -30,10 +30,15 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 FLAG(string, logger_tls_endpoint, "", "TLS/HTTPS endpoint for results logging");
+
 FLAG(int32,
      logger_tls_period,
      4,
      "Seconds between flushing logs over TLS/HTTPS");
+
+DECLARE_bool(tls_secret_always);
+DECLARE_string(tls_enroll_override);
+DECLARE_bool(tls_node_api);
 
 /**
  * @brief Control the number of backing-store buffered logs.
@@ -227,7 +232,20 @@ inline void clearLogs(bool results, const std::vector<std::string>& indexes) {
 }
 
 void TLSLogForwarderRunner::start() {
-  auto uri = "https://" + FLAGS_tls_hostname + FLAGS_logger_tls_endpoint;
+  auto uri = "https://" + FLAGS_tls_hostname;
+  if (FLAGS_tls_node_api) {
+    // The TLS API should treat clients as nodes.
+    // In this case the node_key acts as an identifier (node) and the endpoints
+    // (if provided) are treated as edges from the nodes.
+    uri += "/" + node_key_;
+  }
+  uri += FLAGS_logger_tls_endpoint;
+
+  // Some APIs may require persistent identification.
+  if (FLAGS_tls_secret_always) {
+    uri += ((uri.find("?") != std::string::npos) ? "&" : "?") +
+           FLAGS_tls_enroll_override + "=" + getEnrollSecret();
+  }
 
   while (true) {
     // Get a list of all the buffered log items.

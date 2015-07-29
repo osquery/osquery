@@ -61,11 +61,11 @@ std::string getNodeKey(const std::string& enroll_plugin, bool force) {
   return node_key;
 }
 
-std::string getEnrollSecret() {
+const std::string& getEnrollSecret() {
   static std::string enrollment_secret;
 
   if (enrollment_secret.size() == 0) {
-    // Secret has not been read
+    // Secret has not been read yet.
     if (FLAGS_enroll_secret_path != "") {
       osquery::readFile(FLAGS_enroll_secret_path, enrollment_secret);
       boost::trim(enrollment_secret);

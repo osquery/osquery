@@ -22,39 +22,9 @@
 
 namespace osquery {
 
-FLAG(string,
-     host_identifier,
-     "hostname",
-     "Field used to identify the host running osquery (hostname, uuid)");
-
 FLAG(bool, enable_monitor, false, "Enable the schedule monitor");
 
 FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
-
-Status getHostIdentifier(std::string& ident) {
-  if (FLAGS_host_identifier != "uuid") {
-    // use the hostname as the default machine identifier
-    ident = osquery::getHostname();
-    return Status(0, "OK");
-  }
-
-  // Lookup the host identifier (UUID) previously generated and stored.
-  auto status = getDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
-  if (!status.ok()) {
-    // The lookup failed, there is a problem accessing the database.
-    VLOG(1) << "Could not access database; using hostname as host identifier";
-    ident = osquery::getHostname();
-    return Status(0, "OK");
-  }
-
-  if (ident.size() == 0) {
-    // There was no uuid stored in the database, generate one and store it.
-    ident = osquery::generateHostUuid();
-    VLOG(1) << "Using uuid " << ident << " as host identifier";
-    return setDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
-  }
-  return status;
-}
 
 inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
   // Snapshot the performance and times for the worker before running.
@@ -91,11 +61,7 @@ void launchQuery(const std::string& name, const ScheduledQuery& query) {
   }
 
   // Fill in a host identifier fields based on configuration or availability.
-  std::string ident;
-  auto status = getHostIdentifier(ident);
-  if (!status.ok() || ident.empty()) {
-    ident = "<unknown>";
-  }
+  std::string ident = getHostIdentifier();
 
   // A query log item contains an optional set of differential results or
   // a copy of the most-recent execution alongside some query metadata.
@@ -118,7 +84,7 @@ void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Add this execution's set of results to the database-tracked named query.
   // We can then ask for a differential from the last time this named query
   // was executed by exact matching each row.
-  status = dbQuery.addNewResults(sql.rows(), diff_results);
+  auto status = dbQuery.addNewResults(sql.rows(), diff_results);
   if (!status.ok()) {
     LOG(ERROR) << "Error adding new results to database: " << status.what();
     return;

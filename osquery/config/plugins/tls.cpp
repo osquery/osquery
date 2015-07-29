@@ -41,6 +41,10 @@ FLAG(uint64,
      0,
      "Optional interval in seconds to re-read configuration (min=10)");
 
+DECLARE_bool(tls_secret_always);
+DECLARE_string(tls_enroll_override);
+DECLARE_bool(tls_node_api);
+
 class TLSConfigPlugin : public ConfigPlugin {
  public:
   Status setUp();
@@ -66,13 +70,24 @@ Status TLSConfigPlugin::setUp() {
   return Status(0, "OK");
 }
 
-Status makeTLSConfigRequest(const std::string& uri, pt::ptree& output) {
+Status makeTLSConfigRequest(const std::string& uri,
+                            const std::string& node_key,
+                            pt::ptree& output) {
   // Make a request to the config endpoint, providing the node secret.
   pt::ptree params;
-  params.put<std::string>("node_key", getNodeKey("tls"));
 
-  auto request = Request<TLSTransport, JSONSerializer>(uri);
-  auto status = request.call(params);
+  // If using a GET request, append the node_key to the URI variables.
+  std::string uri_suffix;
+  if (FLAGS_tls_node_api) {
+    uri_suffix = "&node_key=" + node_key;
+  } else {
+    params.put<std::string>("node_key", node_key);
+  }
+
+  // Again check for GET to call with/without parameters.
+  auto request = Request<TLSTransport, JSONSerializer>(uri + uri_suffix);
+  auto status = (FLAGS_tls_node_api) ? request.call() : request.call(params);
+
   if (!status.ok()) {
     return status;
   }
@@ -84,19 +99,32 @@ Status makeTLSConfigRequest(const std::string& uri, pt::ptree& output) {
   }
 
   // Receive config or key rejection
-  if (output.count("node_invalid") > 0) {
+  if (output.count("node_invalid") > 0 || output.count("error") > 0) {
     return Status(1, "Config retrieval failed: Invalid node key");
   }
   return Status(0, "OK");
 }
 
 Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
-  auto uri = "https://" + FLAGS_tls_hostname + FLAGS_config_tls_endpoint;
-  VLOG(1) << "TLSConfigPlugin requesting a config from: " << uri;
+  auto node_key = getNodeKey("tls");
+  auto uri = "https://" + FLAGS_tls_hostname;
+  if (FLAGS_tls_node_api) {
+    // The TLS API should treat clients as nodes.
+    // In this case the node_key acts as an identifier (node) and the endpoints
+    // (if provided) are treated as edges from the nodes.
+    uri += "/" + node_key;
+  }
+  uri += FLAGS_config_tls_endpoint;
+
+  // Some APIs may require persistent identification.
+  if (FLAGS_tls_secret_always) {
+    uri += ((uri.find("?") != std::string::npos) ? "&" : "?") +
+           FLAGS_tls_enroll_override + "=" + getEnrollSecret();
+  }
 
   pt::ptree recv;
   for (size_t i = 1; i <= CONFIG_TLS_MAX_ATTEMPTS; i++) {
-    auto status = makeTLSConfigRequest(uri, recv);
+    auto status = makeTLSConfigRequest(uri, node_key, recv);
     if (status.ok()) {
       std::stringstream ss;
       try {

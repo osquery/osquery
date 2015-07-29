@@ -27,19 +27,19 @@ namespace osquery {
 /// Init function for tests and benchmarks.
 void initTesting();
 
+/// Cleanup/stop function for tests and benchmarks.
+void cleanupTesting();
+
 /// Any SQL-dependent tests should use kTestQuery for a pre-populated example.
 const std::string kTestQuery = "SELECT * FROM test_table";
 
+/// Tests can be run from within the source or build directory.
+/// The test initializer will attempt to discovery the current working path.
 extern std::string kTestDataPath;
 
 /// Tests should limit intermediate input/output to a working directory.
 /// Config data, logging results, and intermediate database/caching usage.
-
-#ifdef DARWIN
-const std::string kTestWorkingDirectory = "/private/tmp/osquery-tests";
-#else
-const std::string kTestWorkingDirectory = "/tmp/osquery-tests";
-#endif
+extern std::string kTestWorkingDirectory;
 
 /// A fake directory tree should be used for filesystem iterator testing.
 const std::string kFakeDirectoryName = "fstree";
