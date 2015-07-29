@@ -48,11 +48,13 @@ mkdir -p $OUTDIR
 export BENCHMARK_TO_FILE="--benchmark_format=csv :>$OUTDIR/$NODE-benchmark.csv"
 make run-benchmark/fast
 
-du $SCRIPT_DIR/../build/*/*/osqueryi | awk '{print "\"EXECUTABLE_osqueryi_size\","$1",,,,,"}' >>$OUTDIR/$NODE-benchmark.csv
-du $SCRIPT_DIR/../build/*/*/osqueryd | awk '{print "\"EXECUTABLE_osqueryd_size\","$1",,,,,"}' >>$OUTDIR/$NODE-benchmark.csv
-
 export BENCHMARK_TO_FILE="--benchmark_format=csv :>$OUTDIR/$NODE-kernel-benchmark.csv"
 make run-kernel-benchmark/fast
+
+strip $SCRIPT_DIR/../build/*/*/osqueryi
+strip $SCRIPT_DIR/../build/*/*/osqueryd
+ls -l $SCRIPT_DIR/../build/*/*/osqueryi | awk '{print "\"EXECUTABLE_osqueryi_size\","$6",,,,,"}' >>$OUTDIR/$NODE-benchmark.csv
+ls -l $SCRIPT_DIR/../build/*/*/osqueryd | awk '{print "\"EXECUTABLE_osqueryd_size\","$6",,,,,"}' >>$OUTDIR/$NODE-benchmark.csv
 
 
 exit 0
