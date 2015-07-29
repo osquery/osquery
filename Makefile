@@ -7,10 +7,15 @@ ifeq ($(PLATFORM),FreeBSD)
 	MAKE = gmake
 endif
 
+DARWIN_LATEST=10.9
 DISTRO := $(shell . ./tools/lib.sh; _platform)
 DISTRO_VERSION := $(shell . ./tools/lib.sh; _distro $(DISTRO))
 ifeq ($(DISTRO),darwin)
-	BUILD_DIR = darwin
+	ifeq ($(DISTRO_VERSION),$(DARWIN_LATEST))
+		BUILD_DIR = darwin
+	else
+		BUILD_DIR = darwin$(DISTRO_VERSION)
+	endif
 else
 	BUILD_DIR = $(DISTRO_VERSION)
 endif
