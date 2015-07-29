@@ -58,6 +58,12 @@ class BenchmarkEventSubscriber
     add(r, t);
   }
 
+  void clearRows() {
+    expire_events_ = true;
+    expire_time_ = -1;
+    getIndexes(0, 0);
+  }
+
   void benchmarkGet(int low, int high) { auto results = get(low, high); }
 };
 
@@ -90,12 +96,17 @@ static void EVENTS_add_events(benchmark::State& state) {
   while (state.KeepRunning()) {
     sub->benchmarkAdd(i++);
   }
+  sub->clearRows();
 }
 
 BENCHMARK(EVENTS_add_events);
 
 static void EVENTS_retrieve_events(benchmark::State& state) {
   auto sub = std::make_shared<BenchmarkEventSubscriber>();
+
+  for (int i = 0; i < 10000; i++) {
+    sub->benchmarkAdd(i);
+  }
 
   // Trigger RocksDB compaction.
   for (int i = 0; i < 4; ++i) {
@@ -105,6 +116,8 @@ static void EVENTS_retrieve_events(benchmark::State& state) {
   while (state.KeepRunning()) {
     sub->benchmarkGet(state.range_x(), state.range_y());
   }
+
+  sub->clearRows();
 }
 
 BENCHMARK(EVENTS_retrieve_events)

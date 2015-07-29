@@ -45,10 +45,12 @@ OUTDIR="$SCRIPT_DIR/../build/benchmarks"
 NODE=$(echo $NODE_LABELS | awk '{print $NF}')
 mkdir -p $OUTDIR
 
-export BENCHMARK_TO_FILE="--benchmark_format=csv :>$OUTDIR/$NODE-benchmark.csv"
+REPETITIONS=5
+
+export BENCHMARK_TO_FILE="--benchmark_format=csv --benchmark_repetitions=$REPETITIONS :>$OUTDIR/$NODE-benchmark.csv"
 make run-benchmark/fast
 
-export BENCHMARK_TO_FILE="--benchmark_format=csv :>$OUTDIR/$NODE-kernel-benchmark.csv"
+export BENCHMARK_TO_FILE="--benchmark_format=csv --benchmark_repetitions=$REPETITIONS :>$OUTDIR/$NODE-kernel-benchmark.csv"
 make run-kernel-benchmark/fast
 
 strip $SCRIPT_DIR/../build/*/*/osqueryi
