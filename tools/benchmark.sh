@@ -53,10 +53,9 @@ make run-benchmark/fast
 export BENCHMARK_TO_FILE="--benchmark_format=csv --benchmark_repetitions=$REPETITIONS :>$OUTDIR/$NODE-kernel-benchmark.csv"
 make run-kernel-benchmark/fast
 
-strip $SCRIPT_DIR/../build/*/*/osqueryi
-strip $SCRIPT_DIR/../build/*/*/osqueryd
-wc -c $SCRIPT_DIR/../build/*/*/osqueryi | awk '{print "\"EXECUTABLE_osqueryi_size\","$1",,,,,"}' >>$OUTDIR/$NODE-benchmark.csv
-wc -c $SCRIPT_DIR/../build/*/*/osqueryd | awk '{print "\"EXECUTABLE_osqueryd_size\","$1",,,,,"}' >>$OUTDIR/$NODE-benchmark.csv
-
+strip $(find $SCRIPT_DIR/../build -name "osqueryi" | xargs)
+strip $(find $SCRIPT_DIR/../build -name "osqueryd" | xargs)
+wc -c $(find $SCRIPT_DIR/../build -name "osqueryi" | xargs) | head -n 1 | awk '{print "\"EXECUTABLE_osqueryi_size\","$1",,,,,\""$2"\""}' >>$OUTDIR/$NODE-benchmark.csv
+wc -c $(find $SCRIPT_DIR/../build -name "osqueryd" | xargs) | head -n 1 | awk '{print "\"EXECUTABLE_osqueryd_size\","$1",,,,,\""$2"\""}' >>$OUTDIR/$NODE-benchmark.csv
 
 exit 0
