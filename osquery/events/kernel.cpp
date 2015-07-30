@@ -56,6 +56,8 @@ Status KernelEventPublisher::run() {
   if (queue_ == nullptr) {
     return Status(1, "No kernel communication.");
   }
+
+  // Perform queue read min/max synchronization.
   try {
     int drops = 0;
     if ((drops = queue_->kernelSync(OSQUERY_DEFAULT)) > 0 &&
@@ -66,11 +68,13 @@ Status KernelEventPublisher::run() {
     LOG(WARNING) << e.what();
   }
 
+  // Iterate over each event type in the queue and appropriately fire each.
   int max_before_sync = max_events_before_sync;
   KernelEventContextRef ec;
   osquery_event_t event_type = OSQUERY_NULL_EVENT;
   CQueue::event *event = nullptr;
   while (max_before_sync > 0 && (event_type = queue_->dequeue(&event))) {
+    // Each event type may use a specific event type structure.
     switch (event_type) {
       case OSQUERY_PROCESS_EVENT:
         ec = createEventContextFrom<osquery_process_event_t>(event_type, event);
@@ -107,5 +111,4 @@ bool KernelEventPublisher::shouldFire(const KernelSubscriptionContextRef &sc,
                                       const KernelEventContextRef &ec) const {
   return ec->event_type == sc->event_type;
 }
-
 }  // namespace osquery
