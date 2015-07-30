@@ -14,12 +14,18 @@ elseif(LINUX)
     set(PACKAGE_TYPE "deb")
     set(PACKAGE_ITERATION "1.ubuntu")
     set(PACKAGE_DEPENDENCIES
-      "libc6 (>=2.15)"
       "zlib1g"
       "libbz2-1.0"
-      "libapt-pkg4.12"
       "libreadline6"
     )
+    if(NOT OSQUERY_BUILD_DISTRO STREQUAL "lucid")
+      set(PACKAGE_ITERATION "1.ubuntu10")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libc6 (>=2.15)"
+        "libapt-pkg4.12"
+      )
+    endif()
     if(OSQUERY_BUILD_DISTRO STREQUAL "precise")
       set(PACKAGE_ITERATION "1.ubuntu12")
       set(PACKAGE_DEPENDENCIES
