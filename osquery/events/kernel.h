@@ -20,6 +20,11 @@
 namespace osquery {
 
 /**
+ * @brief Load kernel extension if applicable.
+ */
+void loadKernelExtension();
+
+/**
  * @brief Subscription details for KernelEventPublisher events.
  */
 struct KernelSubscriptionContext : public SubscriptionContext {
