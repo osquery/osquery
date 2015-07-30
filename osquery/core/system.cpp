@@ -120,7 +120,8 @@ Status checkStalePid(const std::string& content) {
       // If the process really is osqueryd, return an "error" status.
       if (FLAGS_force) {
         // The caller may choose to abort the existing daemon with --force.
-        status = kill(pid, SIGQUIT);
+        // Do not use SIGQUIT as it will cause a crash on OS X.
+        status = kill(pid, SIGKILL);
         ::sleep(1);
 
         return Status(status, "Tried to force remove the existing osqueryd");
