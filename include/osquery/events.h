@@ -587,6 +587,7 @@ class EventSubscriberPlugin : public Plugin {
   FRIEND_TEST(EventsDatabaseTests, test_record_indexing);
   FRIEND_TEST(EventsDatabaseTests, test_record_range);
   FRIEND_TEST(EventsDatabaseTests, test_record_expiration);
+  friend class BenchmarkEventSubscriber;
 };
 
 /**
