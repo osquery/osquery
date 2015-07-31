@@ -1,12 +1,11 @@
 table_name("authorization_mechanisms")
-description("OS X Authorization Mechanisms Database. Reserved for Mechanisms only. For rights see the authorizations table")
+description("OS X Authorization mechanisms database.")
 schema([
-    Column("label", TEXT, "Label of the right.",
-      index=True),
-    Column("plugin", TEXT, "Authorization Plugin Name. Plugins shiped from Apple: /System/Library/CoreServices/SecurityAgentPlugins. Third Party Plugins: /Library/Security/SecurityAgentPlugins."),
-    Column("mechanism", TEXT, "Name of the mechanism that will be called. Defined within the plugin. Many mechanisms can be apart of one plugin."),
-    Column("privileged", TEXT, "Defines what contex the mechanism runs under. If privileged it will run as root. Privileged mechanisms can not display a GUI. If non-privileged it will run as an anonymous user."),
-    Column("entry", TEXT, "Shows the whole string entry."),
+    Column("label", TEXT, "Label of the authorization right", index=True),
+    Column("plugin", TEXT, "Authorization plugin name"),
+    Column("mechanism", TEXT, "Name of the mechanism that will be called"),
+    Column("privileged", TEXT, "If privileged it will run as root, else as an anonymous user"),
+    Column("entry", TEXT, "The whole string entry"),
 ])
 implementation("system/darwin/authorization_mechanisms@genAuthorizationMechanisms")
 examples([

@@ -1,7 +1,8 @@
 table_name("authorizations")
-description("OS X Authorization Rights Database. Mechanisms that are used in mechanism-evaluate are held in the authorization_mechanisms table")
+description("OS X Authorization rights database.")
 schema([
-    Column("label", TEXT, "Right label usually in com.name.product format", index=True),
+    Column("label", TEXT, "Item name, usually in reverse domain format",
+      index=True),
     Column("modified", TEXT, "Label top-level key"),
     Column("allow_root", TEXT, "Label top-level key"),
     Column("timeout", TEXT, "Label top-level key"),
