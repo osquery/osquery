@@ -313,8 +313,10 @@ QueryData genAppSchemes(QueryContext& context) {
     }
 
     // Check the default handler assigned to the protocol scheme.
+#if !defined(DARWIN_10_9)
     auto default_app =
         LSCopyDefaultApplicationURLForURL(url, kLSRolesAll, nullptr);
+#endif
     CFRelease(url);
     for (CFIndex i = 0; i < CFArrayGetCount(apps); i++) {
       Row r;
@@ -334,21 +336,24 @@ QueryData genAppSchemes(QueryContext& context) {
       r["handler"] = stringFromCFString(path);
       CFRelease(path);
       // Check if the handler is set (in the OS) as the default.
+#if !defined(DARWIN_10_9)
       if (default_app != nullptr &&
           CFEqual((CFTypeRef)app, (CFTypeRef)default_app)) {
         r["enabled"] = "1";
       } else {
         r["enabled"] = "0";
       }
+#endif
       r["external"] = (scheme.second & kSchemeSystemDefault) ? "0" : "1";
       r["protected"] = (scheme.second & kSchemeProtected) ? "1" : "0";
       results.push_back(r);
     }
 
+#if !defined(DARWIN_10_9)
     if (default_app != nullptr) {
       CFRelease(default_app);
     }
-
+#endif
     CFRelease(apps);
   }
 
