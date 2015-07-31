@@ -85,6 +85,10 @@ Status KernelEventPublisher::run() {
         ec = createEventContextFrom<osquery_process_event_t>(event_type, event);
         fire(ec);
         break;
+      case OSQUERY_FILE_EVENT:
+        ec = createEventContextFrom<osquery_file_event_t>(event_type, event);
+        fire(ec);
+        break;
       default:
         LOG(WARNING) << "Unknown kernel event received: " << event_type;
         break;
