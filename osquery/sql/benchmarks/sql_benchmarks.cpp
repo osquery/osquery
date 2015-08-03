@@ -27,8 +27,10 @@ class BenchmarkTablePlugin : public TablePlugin {
 
   QueryData generate(QueryContext& ctx) {
     QueryData results;
-    results.push_back({{"test_int", INTEGER(9001)}});
-    results.push_back({{"test_text", "hello"}});
+    results.push_back({{"test_int", "0"}});
+    results.push_back({
+        {"test_int", "0"}, {"test_text", "hello"},
+    });
     return results;
   }
 };
@@ -39,11 +41,22 @@ static void SQL_virtual_table_registry(benchmark::State& state) {
   Registry::add<BenchmarkTablePlugin>("table", "benchmark");
   while (state.KeepRunning()) {
     PluginResponse res;
-    Registry::call("table", "benchmark", {{"action", "columns"}}, res);
+    Registry::call("table", "benchmark", {{"action", "generate"}}, res);
   }
 }
 
 BENCHMARK(SQL_virtual_table_registry);
+
+static void SQL_select_metadata(benchmark::State& state) {
+  auto dbc = SQLiteDBManager::get();
+  while (state.KeepRunning()) {
+    QueryData results;
+    queryInternal("select count(*) from sqlite_temp_master;", results,
+                  dbc.db());
+  }
+}
+
+BENCHMARK(SQL_select_metadata);
 
 static void SQL_virtual_table_internal(benchmark::State& state) {
   Registry::add<BenchmarkTablePlugin>("table", "benchmark");
@@ -52,11 +65,11 @@ static void SQL_virtual_table_internal(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::get();
-  attachTableInternal("sample", columnDefinition(res), dbc.db());
+  attachTableInternal("benchmark", columnDefinition(res), dbc.db());
 
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal("select * from sample", results, dbc.db());
+    queryInternal("select * from benchmark", results, dbc.db());
   }
 }
 
@@ -65,7 +78,7 @@ BENCHMARK(SQL_virtual_table_internal);
 static void SQL_select_basic(benchmark::State& state) {
   // Profile executing a query against an internal, already attached table.
   while (state.KeepRunning()) {
-    auto results = SQL::SQL("select * from time");
+    auto results = SQLInternal("select * from benchmark");
   }
 }
 

@@ -27,7 +27,9 @@ void interruptableSleep(size_t milli) {
   boost::this_thread::sleep(boost::posix_time::milliseconds(milli));
 }
 
-Dispatcher::Dispatcher() {
+Dispatcher::~Dispatcher() { join(); }
+
+void Dispatcher::init() {
   thread_manager_ = InternalThreadManager::newSimpleThreadManager(
           (size_t)FLAGS_worker_threads, 0);
   auto thread_factory = ThriftThreadFactory(new PosixThreadFactory());
@@ -35,10 +37,13 @@ Dispatcher::Dispatcher() {
   thread_manager_->start();
 }
 
-Dispatcher::~Dispatcher() { join(); }
-
 Status Dispatcher::add(ThriftInternalRunnableRef task) {
   auto& self = instance();
+  if (self.thread_manager_ == nullptr) {
+    // The dispatcher's thread pool is not initialized.
+    self.init();
+  }
+
   try {
     if (self.state() != InternalThreadManager::STARTED) {
       self.thread_manager_->start();
@@ -68,9 +73,10 @@ InternalThreadManagerRef Dispatcher::getThreadManager() const {
 }
 
 void Dispatcher::join() {
-  if (instance().thread_manager_ != nullptr) {
-    instance().thread_manager_->stop();
-    instance().thread_manager_->join();
+  auto& self = instance();
+  if (self.thread_manager_ != nullptr) {
+    self.thread_manager_->stop();
+    self.thread_manager_->join();
   }
 }
 

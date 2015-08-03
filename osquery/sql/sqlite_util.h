@@ -183,6 +183,22 @@ class SQLiteSQLPlugin : SQLPlugin {
 };
 
 /**
+ * @brief SQLInternal: SQL, but backed by internal calls.
+ */
+class SQLInternal : public SQL {
+ public:
+  /**
+   * @brief Instantiate an instance of the class with an internal query
+   *
+   * @param q An osquery SQL query
+   */
+  explicit SQLInternal(const std::string& q) {
+    auto dbc = SQLiteDBManager::get();
+    status_ = queryInternal(q, results_, dbc.db());
+  }
+};
+
+/**
  * @brief Get a string representation of a SQLite return code
  */
 std::string getStringForSQLiteReturnCode(int code);
