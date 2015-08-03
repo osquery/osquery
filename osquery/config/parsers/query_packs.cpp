@@ -114,13 +114,8 @@ Status parsePack(const std::string& name, const pt::ptree& data) {
       continue;
     }
 
-    // Hope there is a supplied/non-0 query interval to apply this query pack
-    // query to the osquery schedule.
-    auto query_interval = query.second.get("interval", 0);
-    if (query_interval > 0) {
-      auto query_name = "pack_" + name + "_" + query.first;
-      Config::addScheduledQuery(query_name, query_string, query_interval);
-    }
+    auto query_name = "pack_" + name + "_" + query.first;
+    Config::addScheduledQuery(query_name, query);
   }
 
   return Status(0, "OK");

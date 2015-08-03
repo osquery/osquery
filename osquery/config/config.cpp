@@ -145,7 +145,7 @@ inline void mergeOption(const tree_node& option, ConfigData& conf) {
   conf.all_data.add_child("options." + key, option.second);
 }
 
-inline void additionalScheduledQuery(const std::string& name,
+static void additionalScheduledQuery(const std::string& name,
                                      const tree_node& node,
                                      ConfigData& conf) {
   // Read tree/JSON into a query structure.
@@ -312,15 +312,7 @@ Status Config::getMD5(std::string& hash_string) {
   return Status(0, "OK");
 }
 
-void Config::addScheduledQuery(const std::string& name,
-                               const std::string& query,
-                               const int interval) {
-  // Create structure to add to the schedule.
-  tree_node node;
-  node.second.put("query", query);
-  node.second.put("interval", interval);
-
-  // Call to the inline function.
+void Config::addScheduledQuery(const std::string& name, const tree_node& node) {
   additionalScheduledQuery(name, node, getInstance().data_);
 }
 

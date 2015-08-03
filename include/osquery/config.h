@@ -115,10 +115,11 @@ class Config : private boost::noncopyable {
   /**
    * @brief Adds a new query to the scheduled queries.
    *
+   * @param name Canonicalized name of scheduled query.
+   * @param node The JSON-tree node containing query, interval, and options.
    */
   static void addScheduledQuery(const std::string& name,
-                                const std::string& query,
-                                int interval);
+                                const boost::property_tree::ptree::value_type&);
 
   /**
    * @brief Checks if a query exists in the query schedule.
