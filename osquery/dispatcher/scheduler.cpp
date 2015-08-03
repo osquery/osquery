@@ -15,10 +15,10 @@
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/sql.h>
 
 #include "osquery/database/query.h"
 #include "osquery/dispatcher/scheduler.h"
+#include "osquery/sql/sqlite_util.h"
 
 namespace osquery {
 
@@ -61,7 +61,7 @@ inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
   auto pid = std::to_string(getpid());
   auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
   auto t0 = time(nullptr);
-  auto sql = SQL(query.query);
+  auto sql = SQLInternal(query.query);
   // Snapshot the performance after, and compare.
   auto t1 = time(nullptr);
   auto r1 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
@@ -81,7 +81,8 @@ inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
 void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
   VLOG(1) << "Executing query: " << query.query;
-  auto sql = (FLAGS_enable_monitor) ? monitor(name, query) : SQL(query.query);
+  auto sql =
+      (FLAGS_enable_monitor) ? monitor(name, query) : SQLInternal(query.query);
 
   if (!sql.ok()) {
     LOG(ERROR) << "Error executing query (" << query.query

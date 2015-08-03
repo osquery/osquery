@@ -220,9 +220,8 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
         pVtab->content->constraints[i].second);
   }
 
-  PluginRequest request;
+  PluginRequest request = {{"action", "generate"}};
   PluginResponse response;
-  request["action"] = "generate";
   TablePlugin::setRequestFromContext(context, request);
   Registry::call("table", pVtab->content->name, request, response);
 
@@ -278,13 +277,6 @@ Status attachTableInternal(const std::string &name,
       tables::xEof,
       tables::xColumn,
       tables::xRowid,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
   };
   // clang-format on
 

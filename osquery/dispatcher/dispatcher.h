@@ -48,8 +48,8 @@ extern const int kDefaultThreadPoolSize;
 
 class InternalRunnable : public Runnable {
  public:
-  virtual ~InternalRunnable() {}
   InternalRunnable() : run_(false) {}
+  virtual ~InternalRunnable() {}
 
  public:
   /// The boost::thread entrypoint.
@@ -252,10 +252,13 @@ class Dispatcher : private boost::noncopyable {
    * Since instances of Dispatcher should only be created via instance(),
    * Dispatcher's constructor is private.
    */
-  Dispatcher();
+  Dispatcher() {}
   Dispatcher(Dispatcher const&);
   void operator=(Dispatcher const&);
   virtual ~Dispatcher();
+
+  /// Initialize the thread poll when the first dispatcher thread is needed.
+  void init();
 
  private:
   /**
@@ -268,7 +271,7 @@ class Dispatcher : private boost::noncopyable {
    *
    * @see getThreadManager
    */
-  InternalThreadManagerRef thread_manager_;
+  InternalThreadManagerRef thread_manager_{nullptr};
 
   /// The set of shared osquery service threads.
   std::vector<InternalThreadRef> service_threads_;

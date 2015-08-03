@@ -44,12 +44,12 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
 {% if class_name != "" %}\
     if (EventFactory::exists("{{class_name}}")) {
       auto subscriber = EventFactory::getEventSubscriber("{{class_name}}");
-      return subscriber->{{function}}(request);
+      return std::move(subscriber->{{function}}(request));
     } else {
       throw std::runtime_error("Subscriber table: {{class_name}} missing.");
     }
 {% else %}\
-    return tables::{{function}}(request);
+    return std::move(tables::{{function}}(request));
 {% endif %}\
   }
 };

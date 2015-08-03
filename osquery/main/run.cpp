@@ -14,7 +14,8 @@
 #include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/sql.h>
+
+#include "osquery/sql/sqlite_util.h"
 
 DEFINE_string(query, "", "query to execute");
 DEFINE_int32(iterations, 1, "times to run the query in question");
@@ -51,7 +52,8 @@ int main(int argc, char* argv[]) {
   osquery::QueryData results;
   osquery::Status status;
   for (int i = 0; i < FLAGS_iterations; ++i) {
-    status = osquery::query(FLAGS_query, results);
+    auto dbc = osquery::SQLiteDBManager::get();
+    status = osquery::queryInternal(FLAGS_query, results, dbc.db());
     if (!status.ok()) {
       fprintf(stderr, "Query failed: %d\n", status.getCode());
       break;
