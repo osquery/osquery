@@ -52,7 +52,7 @@ void genKeychainItem(const SecKeychainItemRef& item, QueryData& results) {
   info.tag = tags;
   info.format = nullptr;
 
-  SecItemClass item_class = 0;
+  SecItemClass item_class;
   SecKeychainAttributeList* attr_list = nullptr;
 
   // Any tag that does not exist for the item will prevent the entire result.

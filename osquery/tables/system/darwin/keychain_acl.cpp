@@ -174,7 +174,7 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
   KeychainItemMetadata item_metadata;
   item_metadata.keychain_path = path;
 
-  SecItemClass item_class = 0;
+  SecItemClass item_class;
   SecKeychainItemCopyAttributesAndData(
       item, nullptr, &item_class, nullptr, nullptr, nullptr);
 
@@ -271,7 +271,6 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
 Status genKeychainACLApps(const std::string &path, QueryData &results) {
   SecKeychainRef keychain = nullptr;
   OSStatus os_status = 0;
-
   os_status = SecKeychainOpen(path.c_str(), &keychain);
   if (os_status != noErr || keychain == nullptr) {
     if (keychain != nullptr) {
@@ -282,7 +281,7 @@ Status genKeychainACLApps(const std::string &path, QueryData &results) {
 
   SecKeychainSearchRef search = nullptr;
   OSQUERY_USE_DEPRECATED(os_status = SecKeychainSearchCreateFromAttributes(
-                             keychain, CSSM_DL_DB_RECORD_ANY, NULL, &search););
+      keychain, (SecItemClass) CSSM_DL_DB_RECORD_ANY, NULL, &search););
   if (os_status != noErr || search == nullptr) {
     if (search != nullptr) {
       CFRelease(search);
