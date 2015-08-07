@@ -29,6 +29,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 
+#include "osquery/extensions/interface.h"
 #include "osquery/devtools/devtools.h"
 #include "osquery/sql/virtual_table.h"
 
@@ -56,6 +57,8 @@ static char zHelp[] =
     "\n"
     ".all [TABLE]       Select all from a table\n"
     ".bail ON|OFF       Stop after hitting an error; default OFF\n"
+    ".daemonconnect     Daemon executes queries on behalf of the shell.\n"
+    ".disconnect        Disconnect from the daemon.\n"
     ".echo ON|OFF       Turn command echo on or off\n"
     ".exit              Exit this program\n"
     ".header(s) ON|OFF  Turn display of headers on or off\n"
@@ -78,6 +81,8 @@ static char zHelp[] =
 
 static char zTimerHelp[] =
     ".timer ON|OFF      Turn the CPU timer measurement on or off\n";
+
+#define DAEMON_SOCKET_LOCATION "/var/osquery/osquery.em"
 
 /*
 ** These are the allowed modes.
@@ -170,6 +175,12 @@ static void endTimer(void) {
 ** at an error if we are not interactive.
 */
 static int bail_on_error = 0;
+
+/*
+** The daemon client for sending sql statments to be executed bye
+** the daemon for execution.
+*/
+static osquery::EXManagerClient *daemon_client = nullptr;
 
 /*
 ** Threat stdin as an interactive input if the following variable
@@ -724,119 +735,161 @@ static int shell_exec(
     struct callback_data *pArg, /* Pointer to struct callback_data */
     char **pzErrMsg /* Error msg written here */
     ) {
-  // Grab a lock on the managed DB instance.
-  auto dbc = osquery::SQLiteDBManager::get();
-  auto db = dbc.db();
-
-  sqlite3_stmt *pStmt = nullptr; /* Statement to execute. */
   int rc = SQLITE_OK; /* Return Code */
-  int rc2;
-  const char *zLeftover; /* Tail of unprocessed SQL */
 
   if (pzErrMsg) {
     *pzErrMsg = nullptr;
   }
 
-  while (zSql[0] && (SQLITE_OK == rc)) {
-    rc = sqlite3_prepare_v2(db, zSql, -1, &pStmt, &zLeftover);
-    if (SQLITE_OK != rc) {
-      if (pzErrMsg) {
-        *pzErrMsg = save_err_msg(db);
-      }
-    } else {
-      if (!pStmt) {
-        /* this happens for a comment or white-space */
-        zSql = zLeftover;
-        while (IsSpace(zSql[0]))
-          zSql++;
-        continue;
-      }
+  if (daemon_client) {
+    if (pArg) {
+      pArg->cnt = 0;
+    }
 
-      /* save off the prepared statment handle and reset row count */
-      if (pArg) {
-        pArg->pStmt = pStmt;
-        pArg->cnt = 0;
-      }
-
-      /* echo the sql statement if echo on */
-      if (pArg && pArg->echoOn) {
-        const char *zStmtSql = sqlite3_sql(pStmt);
-        fprintf(pArg->out, "%s\n", zStmtSql ? zStmtSql : zSql);
-      }
-
-      /* perform the first step.  this will tell us if we
-      ** have a result set or not and how wide it is.
-      */
-      rc = sqlite3_step(pStmt);
-      /* if we have a result set... */
-      if (SQLITE_ROW == rc) {
-        /* if we have a callback... */
-        if (xCallback) {
-          /* allocate space for col name ptr, value ptr, and type */
-          int nCol = sqlite3_column_count(pStmt);
-          void *pData = sqlite3_malloc(3 * nCol * sizeof(const char *) + 1);
-          if (!pData) {
-            rc = SQLITE_NOMEM;
-          } else {
-            char **azCols = (char **)pData; /* Names of result columns */
-            char **azVals = &azCols[nCol]; /* Results */
-            int *aiTypes = (int *)&azVals[nCol]; /* Result types */
-            int i, x;
-            assert(sizeof(int) <= sizeof(char *));
-            /* save off ptrs to column names */
-            for (i = 0; i < nCol; i++) {
-              azCols[i] = (char *)sqlite3_column_name(pStmt, i);
-            }
-            do {
-              /* extract the data and data types */
-              for (i = 0; i < nCol; i++) {
-                aiTypes[i] = x = sqlite3_column_type(pStmt, i);
-                azVals[i] = (char *)sqlite3_column_text(pStmt, i);
-                if (!azVals[i] && (aiTypes[i] != SQLITE_NULL)) {
-                  rc = SQLITE_NOMEM;
-                  break; /* from for */
-                }
-              } /* end for */
-
-              /* if data and types extracted successfully... */
-              if (SQLITE_ROW == rc) {
-                /* call the supplied callback with the result row data */
-                if (xCallback(pArg, nCol, azVals, azCols, aiTypes)) {
-                  rc = SQLITE_ABORT;
-                } else {
-                  rc = sqlite3_step(pStmt);
-                }
-              }
-            } while (SQLITE_ROW == rc);
-            sqlite3_free(pData);
-          }
-        } else {
-          do {
-            rc = sqlite3_step(pStmt);
-          } while (rc == SQLITE_ROW);
+    /* echo the sql statement if echo on */
+    if (pArg && pArg->echoOn) {
+      fprintf(pArg->out, "%s\n", zSql);
+    }
+    osquery::extensions::ExtensionResponse response;
+    try {
+      daemon_client->get()->query(response, std::string(zSql));
+    } catch (const std::exception& e) {
+      delete daemon_client;
+      daemon_client = new osquery::EXManagerClient(
+          std::string(DAEMON_SOCKET_LOCATION));
+      rc = SQLITE_ERROR;
+    }
+    if (rc == SQLITE_OK && response.status.code == 0) {
+      for (const auto& row : response.response) {
+        int nCol = row.size();
+        char *azCols[nCol]; /* Names of result columns */
+        char *azVals[nCol]; /* Results */
+        int aiTypes[nCol]; /* Result types */
+        int i = 0;
+        for (const auto &row_column : row) {
+          assert(i < nCol);
+          // Dropping the const qualifier.  As they are not modified anyways.
+          azCols[i] = (char *)row_column.first.c_str();
+          azVals[i] = (char *)row_column.second.c_str();
+          aiTypes[i] = 0;  // Don't know what to set. Its unused anyways.
+          i++;
+        }
+        if (xCallback(pArg, nCol, azVals, azCols, aiTypes)) {
+          rc = SQLITE_ABORT;
+          break;
         }
       }
-
-      /* Finalize the statement just executed. If this fails, save a
-      ** copy of the error message. Otherwise, set zSql to point to the
-      ** next statement to execute. */
-      rc2 = sqlite3_finalize(pStmt);
-      if (rc != SQLITE_NOMEM)
-        rc = rc2;
-      if (rc == SQLITE_OK) {
-        zSql = zLeftover;
-        while (IsSpace(zSql[0]))
-          zSql++;
-      } else if (pzErrMsg) {
-        *pzErrMsg = save_err_msg(db);
-      }
-
-      /* clear saved stmt handle */
-      if (pArg) {
-        pArg->pStmt = nullptr;
-      }
     }
-  } /* end while */
+  } else {
+    // Grab a lock on the managed DB instance.
+    auto dbc = osquery::SQLiteDBManager::get();
+    auto db = dbc.db();
+
+    sqlite3_stmt *pStmt = nullptr; /* Statement to execute. */
+    int rc2;
+    const char *zLeftover; /* Tail of unprocessed SQL */
+
+    while (zSql[0] && (SQLITE_OK == rc)) {
+      rc = sqlite3_prepare_v2(db, zSql, -1, &pStmt, &zLeftover);
+      if (SQLITE_OK != rc) {
+        if (pzErrMsg) {
+          *pzErrMsg = save_err_msg(db);
+        }
+      } else {
+        if (!pStmt) {
+          /* this happens for a comment or white-space */
+          zSql = zLeftover;
+          while (IsSpace(zSql[0]))
+            zSql++;
+          continue;
+        }
+
+        /* save off the prepared statment handle and reset row count */
+        if (pArg) {
+          pArg->pStmt = pStmt;
+          pArg->cnt = 0;
+        }
+
+        /* echo the sql statement if echo on */
+        if (pArg && pArg->echoOn) {
+          const char *zStmtSql = sqlite3_sql(pStmt);
+          fprintf(pArg->out, "%s\n", zStmtSql ? zStmtSql : zSql);
+        }
+
+        /* perform the first step.  this will tell us if we
+        ** have a result set or not and how wide it is.
+        */
+        rc = sqlite3_step(pStmt);
+        /* if we have a result set... */
+        if (SQLITE_ROW == rc) {
+          /* if we have a callback... */
+          if (xCallback) {
+            /* allocate space for col name ptr, value ptr, and type */
+            int nCol = sqlite3_column_count(pStmt);
+            void *pData = sqlite3_malloc(3 * nCol * sizeof(const char *) + 1);
+            if (!pData) {
+              rc = SQLITE_NOMEM;
+            } else {
+              char **azCols = (char **)pData; /* Names of result columns */
+              char **azVals = &azCols[nCol]; /* Results */
+              int *aiTypes = (int *)&azVals[nCol]; /* Result types */
+              int i, x;
+              assert(sizeof(int) <= sizeof(char *));
+              /* save off ptrs to column names */
+              for (i = 0; i < nCol; i++) {
+                azCols[i] = (char *)sqlite3_column_name(pStmt, i);
+              }
+              do {
+                /* extract the data and data types */
+                for (i = 0; i < nCol; i++) {
+                  aiTypes[i] = x = sqlite3_column_type(pStmt, i);
+                  azVals[i] = (char *)sqlite3_column_text(pStmt, i);
+                  if (!azVals[i] && (aiTypes[i] != SQLITE_NULL)) {
+                    rc = SQLITE_NOMEM;
+                    break; /* from for */
+                  }
+                } /* end for */
+
+                /* if data and types extracted successfully... */
+                if (SQLITE_ROW == rc) {
+                  /* call the supplied callback with the result row data */
+                  if (xCallback(pArg, nCol, azVals, azCols, aiTypes)) {
+                    rc = SQLITE_ABORT;
+                  } else {
+                    rc = sqlite3_step(pStmt);
+                  }
+                }
+              } while (SQLITE_ROW == rc);
+              sqlite3_free(pData);
+            }
+          } else {
+            do {
+              rc = sqlite3_step(pStmt);
+            } while (rc == SQLITE_ROW);
+          }
+        }
+
+        /* Finalize the statement just executed. If this fails, save a
+        ** copy of the error message. Otherwise, set zSql to point to the
+        ** next statement to execute. */
+        rc2 = sqlite3_finalize(pStmt);
+        if (rc != SQLITE_NOMEM)
+          rc = rc2;
+        if (rc == SQLITE_OK) {
+          zSql = zLeftover;
+          while (IsSpace(zSql[0]))
+            zSql++;
+        } else if (pzErrMsg) {
+          *pzErrMsg = save_err_msg(db);
+        }
+
+        /* clear saved stmt handle */
+        if (pArg) {
+          pArg->pStmt = nullptr;
+        }
+      }
+    } /* end while */
+  }
 
   if (pArg && pArg->mode == MODE_Pretty) {
     if (osquery::FLAGS_json) {
@@ -1223,6 +1276,18 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     for (j = 1; j < nArg && j < ArraySize(p->colWidth); j++) {
       p->colWidth[j - 1] = (int)integerValue(azArg[j]);
     }
+  } else if (c == 'd' && nArg == 1 &&
+      strncmp(azArg[0], "daemonconnect", n) == 0) {
+    if (daemon_client) {
+      delete daemon_client;
+    }
+    daemon_client = new osquery::EXManagerClient(
+        std::string(DAEMON_SOCKET_LOCATION));
+  } else if (c == 'd' && nArg == 1 && strncmp(azArg[0], "disconnect", n) == 0) {
+    if (daemon_client) {
+      delete daemon_client;
+    }
+    daemon_client = nullptr;
   } else {
     fprintf(stderr,
             "Error: unknown command or invalid arguments: "
@@ -1560,6 +1625,11 @@ int launchIntoShell(int argc, char **argv) {
 
   set_table_name(&data, 0);
   sqlite3_free(data.zFreeOnClose);
+
+  if (daemon_client) {
+    delete daemon_client;
+    daemon_client = nullptr;
+  }
 
   if (data.prettyPrint != nullptr) {
     delete data.prettyPrint;

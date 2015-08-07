@@ -342,6 +342,10 @@ class EXManagerClient : public EXInternal {
     return client_;
   }
 
+  const TSocketRef getSocket() {
+    return socket_;
+  }
+
  private:
   std::shared_ptr<extensions::ExtensionManagerClient> client_;
 };
