@@ -126,20 +126,24 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
   if (type == "TEXT") {
     sqlite3_result_text(ctx, value.c_str(), value.size(), SQLITE_STATIC);
   } else if (type == "INTEGER") {
+    char *end;
     int afinite;
-    try {
-      afinite = boost::lexical_cast<int>(value);
-    } catch (const boost::bad_lexical_cast &e) {
+    long int val = strtol(value.c_str(), &end, 10);
+    if (end == value.c_str() || *end != '\0' ||
+        ((val == LONG_MIN || val == LONG_MAX) && errno == ERANGE) ||
+        val < INT_MIN || val > INT_MAX) {
       afinite = -1;
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to INTEGER";
+    } else {
+      afinite = (int)val;
     }
     sqlite3_result_int(ctx, afinite);
   } else if (type == "BIGINT") {
-    long long int afinite;
-    try {
-      afinite = boost::lexical_cast<long long int>(value);
-    } catch (const boost::bad_lexical_cast &e) {
+    char *end;
+    long long int afinite = strtoll(value.c_str(), &end, 10);
+    if (end == value.c_str() || *end != '\0' ||
+        ((afinite == LLONG_MIN || afinite == LLONG_MAX) && errno == ERANGE)) {
       afinite = -1;
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to BIGINT";
