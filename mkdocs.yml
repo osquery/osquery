@@ -36,4 +36,4 @@ pages:
   - Writing Tests: development/unit-tests.md
   - Adding CLI Arguments: development/options-arguments.md
   - Reading/Writing Files: development/reading-files.md
-  - Kernel OS X: development/kernel.md
+  - Kernel: development/kernel.md

@@ -17,7 +17,8 @@ The default packages create the following structure:
 
 ```sh
 /etc/osquery/
-/var/osquery/osquery.example.conf
+/usr/share/osquery/osquery.example.conf
+/usr/share/osquery/packs/
 /var/log/osquery/
 /usr/lib/osquery/
 /usr/bin/osqueryctl
@@ -69,3 +70,15 @@ $ sudo apt-get install osquery
 \* You may also set a different config plugin using `/etc/osquery/osquery.flags`.<br />
 \** We do not recommend using the latest/unstable package as it is built
 from our master branch and does not guarentee safety.
+
+## Running osquery
+
+To start a standalone osquery use: `$ osqueryi`. This does not need a server or service. All the table implementations are included!
+
+After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to the `osqueryd`, the daemon, tool. To start the daemon:
+
+- `sudo cp /usr/share/osquery/osquery.example.conf /etc/osquery/osquery.conf`
+- `sudo service osquery start`
+- `sudo service osquery status`
+
+Note: The interactive shell and daemon do NOT communicate!

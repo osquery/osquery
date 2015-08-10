@@ -31,6 +31,7 @@ The default package creates the following structure:
 /private/var/osquery/com.facebook.osqueryd.plist
 /private/var/osquery/osquery.example.conf
 /private/var/log/osquery/
+/private/var/osquery/packs/
 /usr/local/lib/osquery/
 /usr/local/bin/osqueryctl
 /usr/local/bin/osqueryd
@@ -38,3 +39,15 @@ The default package creates the following structure:
 ```
 
 This package does NOT install a LaunchDaemon to start osqueryd. You may use the `osqueryctl` script to install the sample launch daemon script.
+
+## Running osquery
+
+To start a standalone osquery use: `$ osqueryi`. This does not need a server or service. All the table implementations are included!
+
+After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to the `osqueryd`, the daemon, tool. To start the daemon as a LaunchDaemon:
+
+- `sudo cp /var/osquery/osquery.example.conf /var/osquery/osquery.conf`
+- `sudo cp /var/osquery/com.facebook.osqueryd.plist /Library/LaunchDaemons`
+- `sudo launchctl load /Library/LaunchDaemons/com.facebook.osqueryd.plist`
+
+Note: The interactive shell and daemon do NOT communicate!

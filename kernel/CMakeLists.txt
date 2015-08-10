@@ -119,8 +119,8 @@ if(APPLE)
     COMMAND sudo cp -R "${CMAKE_BINARY_DIR}/kernel/osquery.kext" "/tmp/"
     COMMAND sudo chown -R root:wheel "/tmp/osquery.kext"
     COMMAND sudo chmod -R 0644 "/tmp/osquery.kext"
-    COMMAND sudo kextload -v "/tmp/osquery.kext"
     COMMAND echo "Wrote unsigned extension bundle: /tmp/osquery.kext"
+    COMMAND sudo kextload -v "/tmp/osquery.kext"
   )
 
   # make kernel-unload

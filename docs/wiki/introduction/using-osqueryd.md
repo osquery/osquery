@@ -17,7 +17,6 @@ The primary daemon feature is executing a query schedule. This schedule is defin
 
 This simple **usb_devices** query will run approximately every 60 seconds on the host running osqueryd.
 
-
 ## Logging and reporting
 
 Each query represents a monitored view of your operating system. The first time a scheduled query runs it logs every row in the resulting table with the "added" action. In this example, on an OS X laptop, after the first 60 seconds it would log:

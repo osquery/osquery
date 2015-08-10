@@ -2,13 +2,13 @@ osquery may optionally use a kernel extension (on OS X)/module (Linux) to intros
 
 Currently an kernel extension is under development for OS X. Once the OS X implementation is finished a Linux module will be considered. There are several options for retrieving real time process and socket events. User-land implementation are preferred to having kernel presence.
 
-WARNING: This is currently under heavy development.
+**WARNING**: This is currently under heavy development.
 
 The osquery kernel introspection architecture is designed with simplicity and portability. It uses a small ring buffer, backed by shared memory, filled by kernel callback registrations to maintain simple structures. A process creation structure may contain a path to the program image, assigned pid, and ownership information. When the ring buffer fills, osquery drops information. The user-land process, osqueryd, will periodically request a minimum and maximum read into the ring buffer and pass structures to an event subscriber.
 
-This code is mostly shared between BSD-based kernels and Linux. The ring buffer uses spin locks to reserve structure blocks and synchronize simple writes. The minimum and maximum block reads are synchronized and reserved using an `ioctl` API. Each platform uses respective APIs to register callback methods that implement the ring buffer reserve, copy, and write.
+This code is mostly shared between BSD-based kernels and Linux. The ring buffer uses spin locks to reserve structure blocks and synchronize simple writes. The minimum and maximum block reads are synchronized and reserved using an `ioctl` API and `/dev/osquery` device node. Each platform uses respective APIs to register callback methods that implement the ring buffer reserve, copy, and write.
 
-The kernel applies calling-process ownership limitations to super users. Only 1 process should issues IOCTL commands, if another pid interrupts the queue and buffer are consider invalid and all pointers reset. Clear tear down assures deregistration of callback functions and will result in maximum performance. Improper tear down may trigger timeouts and in the worst scenario continue to track callbacks.
+The kernel applies calling-process ownership limitations to super users. Only 1 process should issues IOCTL commands, if another process (pid) uses the device node the queue and buffer are considered invalid and all pointers are reset. Clean tear down assures deregistration of callback functions and will result in maximum performance. Improper tear down may trigger timeouts and in the worst scenario continue to track callbacks.
 
 # Apple OS X Kernel Extensions
 
