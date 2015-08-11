@@ -39,11 +39,15 @@ QueryData genOSVersion(QueryContext& context) {
     }
   }
 
+  r["patch"] = "0";
   auto version = osquery::split(version_string, ".");
-  if (version.size() == 3) {
-    r["major"] = INTEGER(version[0]);
-    r["minor"] = INTEGER(version[1]);
+  switch (version.size()) {
+  case 3:
     r["patch"] = INTEGER(version[2]);
+  case 2:
+    r["minor"] = INTEGER(version[1]);
+    r["major"] = INTEGER(version[0]);
+    break;
   }
   return {r};
 }
