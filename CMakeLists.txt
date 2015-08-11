@@ -64,7 +64,7 @@ endif()
 
 if(PLATFORM STREQUAL "")
   WARNING_LOG("Unable to detect osquery platform: ./tools/provision.sh failed")
-  message(FATAL "Cannot proceed without knowing the build platform")
+  message(FATAL_ERROR "Cannot proceed without knowing the build platform")
 endif()
 list(GET PLATFORM 0 OSQUERY_BUILD_PLATFORM)
 list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO)
@@ -296,7 +296,7 @@ elseif(OPENSSL_TLSV11)
 elseif(OPENSSL_TLSV10)
   add_definitions(-DSSL_TXT_TLSV1)
 else()
-  message(FATAL "Cannot find any TLS client methods")
+  message(FATAL_ERROR "Cannot find any TLS client methods")
 endif()
 
 
