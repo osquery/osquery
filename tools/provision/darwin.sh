@@ -18,6 +18,7 @@ function main_darwin() {
 
   brew update
 
+  package openssl
   package wget
   package cmake
   package makedepend
