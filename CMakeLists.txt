@@ -64,7 +64,7 @@ endif()
 
 if(PLATFORM STREQUAL "")
   WARNING_LOG("Unable to detect osquery platform: ./tools/provision.sh failed")
-  message(FATAL "Cannot proceed without knowing the build platform")
+  message(FATAL_ERROR "Cannot proceed without knowing the build platform")
 endif()
 list(GET PLATFORM 0 OSQUERY_BUILD_PLATFORM)
 list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO)
@@ -267,16 +267,23 @@ endif()
 # Make sure the generated paths exist
 execute_process(COMMAND mkdir -p "${CMAKE_BINARY_DIR}/generated")
 
-# We need to link some packages as dynamic/dependent.
-set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
-find_package(OpenSSL REQUIRED)
-find_package(BZip2 REQUIRED)
-find_package(Dl REQUIRED)
-find_package(Readline REQUIRED)
+# Apple has deprecated OpenSSL, static link with brew installed Openssl
+if(APPLE)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  execute_process(COMMAND brew --prefix OUTPUT_VARIABLE BREW_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set(OPENSSL_ROOT_DIR "${BREW_PREFIX}/opt/openssl")
+  find_package(OpenSSL REQUIRED)
+  include_directories("${OPENSSL_INCLUDE_DIR}")
+else()
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
+  find_package(OpenSSL REQUIRED)
+endif()
 
 # Make sure the OpenSSL/ssl library has a TLS client method.
 # Prefer the highest version of TLS, but accept 1.2, 1.1, or 1.0.
 include(CheckLibraryExists)
+set(CMAKE_REQUIRED_INCLUDES ${OPENSSL_INCLUDE_DIR})
+set(CMAKE_REQUIRED_LIBRARIES ${OPENSSL_LIBRARIES})
 CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_2_client_method" "" OPENSSL_TLSV12)
 CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_1_client_method" "" OPENSSL_TLSV11)
 CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_client_method" "" OPENSSL_TLSV10)
@@ -289,8 +296,16 @@ elseif(OPENSSL_TLSV11)
 elseif(OPENSSL_TLSV10)
   add_definitions(-DSSL_TXT_TLSV1)
 else()
-  message(FATAL "Cannot find any TLS client methods")
+  message(FATAL_ERROR "Cannot find any TLS client methods")
 endif()
+
+
+# We need to link some packages as dynamic/dependent.
+set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
+find_package(BZip2 REQUIRED)
+find_package(Dl REQUIRED)
+find_package(Readline REQUIRED)
+
 
 # Most dependent packages/libs we want static.
 if(NOT DEFINED ENV{BUILD_LINK_SHARED})
