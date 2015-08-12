@@ -47,7 +47,7 @@ std::vector<std::string> getHomebrewVersionsFromInfoPlistPath(
   auto status = osquery::listDirectoriesInDirectory(path, app_versions);
   if (status.ok()) {
     for (const auto& version : app_versions) {
-      results.push_back(fs::path(version).filename().string());
+      results.push_back(fs::path(version).parent_path().filename().string());
     }
   } else {
     TLOG << "Error listing " << path << ": " << status.toString();
