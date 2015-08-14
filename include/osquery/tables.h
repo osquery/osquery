@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <deque>
 #include <map>
 #include <memory>
 #include <vector>
@@ -77,7 +78,7 @@ namespace osquery {
 /// Helper alias for TablePlugin names.
 typedef std::string TableName;
 typedef std::vector<std::pair<std::string, std::string> > TableColumns;
-typedef std::map<std::string, std::vector<std::string> > TableData;
+typedef std::map<std::string, std::deque<std::string> > TableData;
 
 /**
  * @brief A ConstraintOperator is applied in an query predicate.

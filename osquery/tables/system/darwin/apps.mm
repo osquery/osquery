@@ -313,10 +313,22 @@ QueryData genAppSchemes(QueryContext& context) {
     }
 
     // Check the default handler assigned to the protocol scheme.
-#if !defined(DARWIN_10_9)
-    auto default_app =
-        LSCopyDefaultApplicationURLForURL(url, kLSRolesAll, nullptr);
-#endif
+    // This only applies to 10.10, so resolve the symbol at runtime.
+    CFBundleRef ls_bundle =
+        CFBundleGetBundleWithIdentifier(CFSTR("com.apple.LaunchServices"));
+    CFURLRef default_app = nullptr;
+    if (ls_bundle != nullptr) {
+      auto _LSCopyDefaultApplicationURLForURL =
+          (CFURLRef (*)(CFURLRef, LSRolesMask, CFErrorRef*))
+          CFBundleGetFunctionPointerForName(
+              ls_bundle, CFSTR("LSCopyDefaultApplicationURLForURL"));
+      // If the symbol did not exist we will not have a handle.
+      if (_LSCopyDefaultApplicationURLForURL != nullptr) {
+        default_app =
+            _LSCopyDefaultApplicationURLForURL(url, kLSRolesAll, nullptr);
+      }
+    }
+
     CFRelease(url);
     for (CFIndex i = 0; i < CFArrayGetCount(apps); i++) {
       Row r;
@@ -336,24 +348,21 @@ QueryData genAppSchemes(QueryContext& context) {
       r["handler"] = stringFromCFString(path);
       CFRelease(path);
       // Check if the handler is set (in the OS) as the default.
-#if !defined(DARWIN_10_9)
       if (default_app != nullptr &&
           CFEqual((CFTypeRef)app, (CFTypeRef)default_app)) {
         r["enabled"] = "1";
       } else {
         r["enabled"] = "0";
       }
-#endif
+
       r["external"] = (scheme.second & kSchemeSystemDefault) ? "0" : "1";
       r["protected"] = (scheme.second & kSchemeProtected) ? "1" : "0";
       results.push_back(r);
     }
 
-#if !defined(DARWIN_10_9)
     if (default_app != nullptr) {
       CFRelease(default_app);
     }
-#endif
     CFRelease(apps);
   }
 

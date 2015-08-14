@@ -28,7 +28,7 @@ Status compileSingleFile(const std::string& file, YR_RULES** rule);
 
 Status handleRuleFiles(const std::string& category,
                        const pt::ptree& rule_files,
-                       std::map<std::string, YR_RULES *>* rules);
+                       std::map<std::string, YR_RULES*>& rules);
 
 int YARACallback(int message, void *message_data, void *user_data);
 
@@ -48,7 +48,7 @@ class YARAConfigParserPlugin : public ConfigParserPlugin {
   std::vector<std::string> keys() { return {"yara"}; }
 
   // Retrieve compiled rules.
-  std::map<std::string, YR_RULES *> rules() { return rules_; }
+  std::map<std::string, YR_RULES*>& rules() { return rules_; }
 
   Status setUp();
 

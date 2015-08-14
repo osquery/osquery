@@ -17,7 +17,7 @@ namespace tables {
 
 int xOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
   int rc = SQLITE_NOMEM;
-  BaseCursor *pCur;
+  BaseCursor *pCur = nullptr;
 
   pCur = new BaseCursor;
 
@@ -126,30 +126,30 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
   if (type == "TEXT") {
     sqlite3_result_text(ctx, value.c_str(), value.size(), SQLITE_STATIC);
   } else if (type == "INTEGER") {
-    int afinite;
-    try {
-      afinite = boost::lexical_cast<int>(value);
-    } catch (const boost::bad_lexical_cast &e) {
+    char *end = nullptr;
+    long int afinite = strtol(value.c_str(), &end, 10);
+    if (end == nullptr || end == value.c_str() || *end != '\0' ||
+        ((afinite == LONG_MIN || afinite == LONG_MAX) && errno == ERANGE) ||
+        afinite < INT_MIN || afinite > INT_MAX) {
       afinite = -1;
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to INTEGER";
     }
-    sqlite3_result_int(ctx, afinite);
+    sqlite3_result_int(ctx, (int)afinite);
   } else if (type == "BIGINT") {
-    long long int afinite;
-    try {
-      afinite = boost::lexical_cast<long long int>(value);
-    } catch (const boost::bad_lexical_cast &e) {
+    char *end = nullptr;
+    long long int afinite = strtoll(value.c_str(), &end, 10);
+    if (end == nullptr || end == value.c_str() || *end != '\0' ||
+        ((afinite == LLONG_MIN || afinite == LLONG_MAX) && errno == ERANGE)) {
       afinite = -1;
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to BIGINT";
     }
     sqlite3_result_int64(ctx, afinite);
   } else if (type == "DOUBLE") {
-    double afinite;
-    try {
-      afinite = boost::lexical_cast<double>(value);
-    } catch (const boost::bad_lexical_cast &e) {
+    char *end = nullptr;
+    double afinite = strtod(value.c_str(), &end);
+    if (end == nullptr || end == value.c_str() || *end != '\0') {
       afinite = 0;
       VLOG(1) << "Error casting" << column_name << " (" << value
               << ") to DOUBLE";
@@ -227,25 +227,28 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
 
   // Now organize the response rows by column instead of row.
   auto &data = pVtab->content->data;
-  for (auto &row : response) {
+  auto row = response.rbegin();
+  while (row != response.rend()) {
     for (const auto &column : pVtab->content->columns) {
-      if (row.count(column.first) == 0) {
+      if (row->count(column.first) == 0) {
         VLOG(1) << "Table " << pVtab->content->name << " row "
                 << pVtab->content->n << " did not include column "
                 << column.first;
-        data[column.first].push_back("");
+        data[column.first].push_front("");
         continue;
       }
 
-      auto &value = row.at(column.first);
+      auto &value = row->at(column.first);
       if (value.size() > FLAGS_value_max) {
-        data[column.first].push_back(value.substr(0, FLAGS_value_max));
+        data[column.first].push_front(value.substr(0, FLAGS_value_max));
         value.clear();
       } else {
-        data[column.first].push_back(std::move(value));
+        data[column.first].push_front(std::move(value));
       }
     }
 
+    response.erase((row + 1).base());
+    row = response.rbegin();
     pVtab->content->n++;
   }
 
