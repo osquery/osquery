@@ -28,8 +28,7 @@ void YARACompilerCallback(int error_level,
                           void* user_data) {
   if (error_level == YARA_ERROR_LEVEL_ERROR) {
     VLOG(1) << file_name << "(" << line_number << "): error: " << message;
-  }
-  else {
+  } else {
     VLOG(1) << file_name << "(" << line_number << "): warning: " << message;
   }
 }
@@ -108,29 +107,24 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
  * Given a vector of strings, attempt to compile them and store the result
  * in the map under the given category.
  */
-Status handleRuleFiles(const std::string& category,
-                       const pt::ptree& rule_files,
-                       std::map<std::string, YR_RULES*>* rules) {
+Status handleRuleFiles(const std::string &category,
+                       const pt::ptree &rule_files,
+                       std::map<std::string, YR_RULES *> &rules) {
   YR_COMPILER *compiler = nullptr;
   int result = yr_compiler_create(&compiler);
   if (result != ERROR_SUCCESS) {
-    VLOG(1) << "Could not create compiler: " + std::to_string(result);
-    return Status(1, "Could not create compiler: " + std::to_string(result));
+    VLOG(1) << "Could not create compiler: error " + std::to_string(result);
+    return Status(1, "YARA compile error " + std::to_string(result));
   }
 
   yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
 
   bool compiled = false;
   for (const auto& item : rule_files) {
-    YR_RULES *tmp_rules;
-    const auto rule = item.second.get("", "");
-    VLOG(1) << "Loading " << rule;
-
-    std::string full_path;
+    YR_RULES *tmp_rules = nullptr;
+    auto rule = item.second.get("", "");
     if (rule[0] != '/') {
-      full_path = std::string("/etc/osquery/yara/") + rule;
-    } else {
-      full_path = rule;
+      rule = std::string("/etc/osquery/yara/") + rule;
     }
 
     // First attempt to load the file, in case it is saved (pre-compiled)
@@ -148,28 +142,29 @@ Status handleRuleFiles(const std::string& category,
     //
     // If you want to use saved rule files you must have them all in a single
     // file. This is easy to accomplish with yarac(1).
-    result = yr_rules_load(full_path.c_str(), &tmp_rules);
+    result = yr_rules_load(rule.c_str(), &tmp_rules);
     if (result != ERROR_SUCCESS && result != ERROR_INVALID_FILE) {
       yr_compiler_destroy(compiler);
-      return Status(1, "Error loading YARA rules: " + std::to_string(result));
+      return Status(1, "YARA load error " + std::to_string(result));
     } else if (result == ERROR_SUCCESS) {
       // If there are already rules there, destroy them and put new ones in.
-      if (rules->count(category) > 0) {
-        yr_rules_destroy((*rules)[category]);
+      if (rules.count(category) > 0) {
+        yr_rules_destroy(rules[category]);
       }
-      (*rules)[category] = tmp_rules;
+
+      rules[category] = tmp_rules;
     } else {
       compiled = true;
       // Try to compile the rules.
-      FILE *rule_file = fopen(full_path.c_str(), "r");
+      FILE *rule_file = fopen(rule.c_str(), "r");
 
       if (rule_file == nullptr) {
         yr_compiler_destroy(compiler);
-        return Status(1, "Could not open file: " + full_path);
+        return Status(1, "Could not open file: " + rule);
       }
 
       int errors =
-          yr_compiler_add_file(compiler, rule_file, nullptr, full_path.c_str());
+          yr_compiler_add_file(compiler, rule_file, nullptr, rule.c_str());
 
       fclose(rule_file);
       rule_file = nullptr;
@@ -184,7 +179,7 @@ Status handleRuleFiles(const std::string& category,
 
   if (compiled) {
     // All the rules for this category have been compiled, save them in the map.
-    result = yr_compiler_get_rules(compiler, &((*rules)[category]));
+    result = yr_compiler_get_rules(compiler, &rules[category]);
 
     if (result != ERROR_SUCCESS) {
       yr_compiler_destroy(compiler);
@@ -256,21 +251,27 @@ Status YARAConfigParserPlugin::setUp() {
   return Status(0, "OK");
 }
 
-Status YARAConfigParserPlugin::update(const std::map<std::string, ConfigTree>& config) {
-  Status status;
+Status YARAConfigParserPlugin::update(
+    const std::map<std::string, ConfigTree> &config) {
+  // The YARA config parser requested the "yara" top-level key in the config.
   const auto& yara_config = config.at("yara");
+
+  // Look for a "signatures" key with the group/file content.
   if (yara_config.count("signatures") > 0) {
     const auto& signatures = yara_config.get_child("signatures");
     data_.add_child("signatures", signatures);
     for (const auto& element : signatures) {
       VLOG(1) << "Compiling YARA signature group: " << element.first;
-      status = handleRuleFiles(element.first, element.second, &rules_);
+      auto status = handleRuleFiles(element.first, element.second, rules_);
       if (!status.ok()) {
         VLOG(1) << "YARA rule compile error: " << status.getMessage();
         return status;
       }
     }
   }
+
+  // The "file_paths" set maps the rule groups to the "file_paths" top level
+  // configuration key. That similar key keeps the groups of file paths.
   if (yara_config.count("file_paths") > 0) {
     const auto& file_paths = yara_config.get_child("file_paths");
     data_.add_child("file_paths", file_paths);

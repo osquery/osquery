@@ -64,7 +64,6 @@ Status doYARAScan(YR_RULES* rules,
 
 QueryData genYara(QueryContext& context) {
   QueryData results;
-  Status status;
 
   auto paths = context.constraints["path"].getAll(EQUALS);
   auto patterns = context.constraints["pattern"].getAll(EQUALS);
@@ -82,11 +81,13 @@ QueryData genYara(QueryContext& context) {
   if (parser == nullptr) {
     return results;
   }
+
   const auto& yaraParser = std::static_pointer_cast<YARAConfigParserPlugin>(parser);
   if (yaraParser == nullptr) {
     return results;
   }
-  auto rules = yaraParser->rules();
+
+  auto& rules = yaraParser->rules();
 
   // Store resolved paths in a vector of pairs.
   // Each pair has the first element as the path to scan and the second
@@ -119,22 +120,20 @@ QueryData genYara(QueryContext& context) {
   }
 
   // Compile all sigfiles into a map.
-  std::map<std::string, YR_RULES*> compiled_rules;
   for (const auto& file : sigfiles) {
-    YR_RULES *rules = nullptr;
+    // Check if this on-demand sigfile has not been used/compiled.
+    if (rules.count(file) == 0) {
+      auto path = (file[0] != '/') ? std::string("/etc/osquery/yara/") : "";
+      path += file;
 
-    std::string full_path;
-    if (file[0] != '/') {
-      full_path = std::string("/etc/osquery/yara/") + file;
-    } else {
-      full_path = file;
-    }
-
-    status = compileSingleFile(full_path, &rules);
-    if (!status.ok()) {
-      VLOG(1) << "YARA error: " << status.toString();
-    } else {
-      compiled_rules[file] = rules;
+      YR_RULES* tmp_rules = nullptr;
+      auto status = compileSingleFile(path, &tmp_rules);
+      if (!status.ok()) {
+        VLOG(1) << "YARA error: " << status.toString();
+      } else {
+        rules[file] = tmp_rules;
+        groups.insert(file);
+      }
     }
   }
 
@@ -147,35 +146,16 @@ QueryData genYara(QueryContext& context) {
       }
 
       VLOG(1) << "Scanning with group: " << group;
-      status = doYARAScan(rules[group],
-                          path_pair.first.c_str(),
-                          path_pair.second,
-                          results,
-                          group,
-                          "");
+      auto status = doYARAScan(rules[group],
+                               path_pair.first.c_str(),
+                               path_pair.second,
+                               results,
+                               group,
+                               group);
       if (!status.ok()) {
         VLOG(1) << "YARA error: " << status.toString();
       }
     }
-
-    // Scan using files.
-    for (const auto& element : compiled_rules) {
-      VLOG(1) << "Scanning with file: " << element.first;
-      status = doYARAScan(element.second,
-                          path_pair.first.c_str(),
-                          path_pair.second,
-                          results,
-                          "",
-                          element.first);
-      if (!status.ok()) {
-        VLOG(1) << "YARA error: " << status.toString();
-      }
-    }
-  }
-
-  // Cleanup compiled rules
-  for (const auto& element : compiled_rules) {
-    yr_rules_destroy(element.second);
   }
 
   return results;

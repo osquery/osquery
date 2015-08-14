@@ -14,10 +14,12 @@
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include <osquery/logger.h>
-#include <osquery/tables.h>
 #include <osquery/filesystem.h>
-#include <osquery/core/conversions.h>
+#include <osquery/logger.h>
+#include <osquery/sql.h>
+#include <osquery/tables.h>
+
+#include "osquery/core/conversions.h"
 
 namespace osquery {
 namespace tables {
@@ -166,29 +168,11 @@ void parseQuarantineFile(QueryData &results, const std::string &path) {
     return;
   }
 
-  CFTypeRef quarantine_properties;
-#if defined(DARWIN_10_9)
-  FSRef fs_url;
-  if (!CFURLGetFSRef(url, &fs_url)) {
-    VLOG(1) << "Error obtaining FSRef for " << path;
-    VLOG(1) << "Unable to fetch quarantine data";
-    CFRelease(url);
-    return;
-  }
-  if (LSCopyItemAttribute(&fs_url, kLSRolesAll, kLSItemQuarantineProperties,
-                          &quarantine_properties) != noErr) {
-    VLOG(1) << "Error retrieving quarantine properties for " << path;
-    CFRelease(url);
-    return;
-  }
-#else
-  if (!CFURLCopyResourcePropertyForKey(url, kCFURLQuarantinePropertiesKey,
-                                       &quarantine_properties, nullptr)) {
-    VLOG(1) << "Error retrieving quarantine properties for " << path;
-    CFRelease(url);
-    return;
-  }
-#endif
+  CFTypeRef quarantine_properties = nullptr;
+  // This is the non-10.10-symbolic version of kCFURLQuarantinePropertiesKey.
+  CFStringRef qp_key = CFSTR("NSURLQuarantinePropertiesKey");
+  CFURLCopyResourcePropertyForKey(url, qp_key, &quarantine_properties, nullptr);
+  CFRelease(qp_key);
 
   if (quarantine_properties == nullptr) {
     VLOG(1) << "Error retrieving quarantine properties for " << path;
@@ -196,16 +180,17 @@ void parseQuarantineFile(QueryData &results, const std::string &path) {
     return;
   }
 
-  CFTypeRef property;
+  CFTypeRef property = nullptr;
   for (const auto &kv : kQuarantineKeys) {
     CFStringRef key = CFStringCreateWithCString(
         kCFAllocatorDefault, kv.second.c_str(), kCFStringEncodingUTF8);
-
-    if (CFDictionaryGetValueIfPresent((CFDictionaryRef)quarantine_properties,
-                                      key, &property)) {
-      extractQuarantineProperty(kv.first, property, path, results);
+    if (key != nullptr) {
+      if (CFDictionaryGetValueIfPresent(
+              (CFDictionaryRef)quarantine_properties, key, &property)) {
+        extractQuarantineProperty(kv.first, property, path, results);
+      }
+      CFRelease(key);
     }
-    CFRelease(key);
   }
 
   CFRelease(quarantine_properties);
