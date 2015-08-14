@@ -69,6 +69,10 @@ function main() {
     log "detected freebsd ($DISTRO)"
     source "$SCRIPT_DIR/provision/freebsd.sh"
     main_freebsd
+  elif [[ $OS = "debian" ]]; then
+    log "detected debian ($DISTRO)"
+    source "$SCRIPT_DIR/provision/debian.sh"
+    main_debian
   else
     fatal "could not detect the current operating system. exiting."
   fi
