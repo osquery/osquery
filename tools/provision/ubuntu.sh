@@ -122,12 +122,14 @@ function main_ubuntu() {
   if [[ $DISTRO = "lucid" ]]; then
     install_snappy
     install_libaptpkg
+    gem_install --no-user-install fpm -v 1.3.3
   else
     # No clang++ on lucid
     set_cc clang
     set_cxx clang++
     package libsnappy-dev
     package libapt-pkg-dev
+    gem_install fpm
   fi
 
   install_thrift
@@ -140,5 +142,4 @@ function main_ubuntu() {
 
   install_libcryptsetup
 
-  gem_install fpm
 }

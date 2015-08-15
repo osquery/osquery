@@ -118,7 +118,14 @@ function main() {
     PACKAGE_DEPENDENCIES="$PACKAGE_DEPENDENCIES -d \"$element\""
   done
 
-  CMD="fpm -s dir -t $PACKAGE_TYPE \
+  platform OS
+  distro $OS DISTRO
+  FPM="fpm"
+  if [[ $DISTRO == "lucid" ]]; then
+    FPM="/var/lib/gems/1.8/bin/fpm"
+  fi
+
+  CMD="$FPM -s dir -t $PACKAGE_TYPE \
     -n $PACKAGE_NAME -v $PACKAGE_VERSION \
     --iteration $PACKAGE_ITERATION \
     -a $PACKAGE_ARCH               \
