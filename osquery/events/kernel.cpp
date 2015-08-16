@@ -8,16 +8,21 @@
  *
  */
 
-#include "osquery/events/kernel.h"
-
 #include <osquery/logger.h>
+
+#include "osquery/events/kernel.h"
 
 namespace osquery {
 
 FLAG(bool, disable_kernel, false, "Disable osquery kernel extension");
 
-static const size_t shared_buffer_size_bytes = (20 * (1 << 20));
-static const int max_events_before_sync = 1000;
+const std::string kKernelDevice = "/dev/osquery";
+
+/// Kernel shared buffer size in bytes.
+static const size_t kKernelQueueSize = (20 * (1 << 20));
+
+/// Handle a maximum of 1000 events before requesting a resync.
+static const int kKernelEventsSyncMax = 1000;
 
 REGISTER(KernelEventPublisher, "event_publisher", "kernel");
 
@@ -27,16 +32,14 @@ Status KernelEventPublisher::setUp() {
   }
 
   try {
-    queue_ = new CQueue(shared_buffer_size_bytes);
+    queue_ = new CQueue(kKernelDevice, kKernelQueueSize);
   } catch (const CQueueException &e) {
-    if (kToolType == OSQUERY_TOOL_DAEMON) {
-      LOG(INFO) << "Cannot connect to kernel. " << e.what();
-    }
     queue_ = nullptr;
-    return Status(0, e.what());
+    return Status(1, e.what());
   }
+
   if (queue_ == nullptr) {
-    return Status(1, "Could not allocate CQueue object.");
+    return Status(1, "Could not allocate CQueue object");
   }
 
   return Status(0, "OK");
@@ -59,7 +62,7 @@ void KernelEventPublisher::tearDown() {
 
 Status KernelEventPublisher::run() {
   if (queue_ == nullptr) {
-    return Status(1, "No kernel communication.");
+    return Status(1, "No kernel communication");
   }
 
   // Perform queue read min/max synchronization.
@@ -70,11 +73,11 @@ Status KernelEventPublisher::run() {
       LOG(WARNING) << "Dropping " << drops << " kernel events";
     }
   } catch (const CQueueException &e) {
-    LOG(WARNING) << e.what();
+    LOG(WARNING) << "Queue synchronization error: " << e.what();
   }
 
   // Iterate over each event type in the queue and appropriately fire each.
-  int max_before_sync = max_events_before_sync;
+  int max_before_sync = kKernelEventsSyncMax;
   KernelEventContextRef ec;
   osquery_event_t event_type = OSQUERY_NULL_EVENT;
   CQueue::event *event = nullptr;

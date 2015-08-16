@@ -71,5 +71,8 @@ function main_amazon() {
   install_cppnetlib
   install_google_benchmark
 
+  package audit-libs-devel
+  package audit-libs-static
+
   gem_install fpm
 }

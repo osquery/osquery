@@ -8,15 +8,16 @@
  *
  */
 
-#include "osquery/dispatcher/dispatcher.h"
-#include "osquery/events/kernel/circular_queue_user.h"
-
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <gtest/gtest.h>
 
 #include <boost/make_shared.hpp>
+
+#include <gtest/gtest.h>
+
+#include "osquery/dispatcher/dispatcher.h"
+#include "osquery/events/kernel.h"
 
 namespace osquery {
 
@@ -28,9 +29,9 @@ class KernelProducerRunnable : public InternalRunnable {
   explicit KernelProducerRunnable(int events_to_produce, int event_type)
     : events_to_produce_(events_to_produce),
       event_type_(event_type) {}
+
   virtual void start() {
-    const char *filename = "/dev/osquery";
-    int fd = open(filename, O_RDWR);
+    int fd = open(kKernelDevice.c_str(), O_RDWR);
     if (fd >= 0) {
       for (uint32_t i = 0; i < events_to_produce_; i ++) {
         ioctl(fd, OSQUERY_IOCTL_TEST, &event_type_);
@@ -51,7 +52,7 @@ TEST_F(KernelCommunicationTests, test_communication) {
   int drops = 0;
   int reads = 0;
 
-  CQueue queue(8 * (1 << 20));
+  CQueue queue(kKernelDevice, 8 * (1 << 20));
 
   auto& dispatcher = Dispatcher::instance();
 
@@ -77,7 +78,7 @@ TEST_F(KernelCommunicationTests, test_communication) {
         default:
           throw std::runtime_error("Uh oh. Unknown event.");
       }
-      max_before_sync --;
+      max_before_sync--;
     }
   } while (tasks > 0);
 

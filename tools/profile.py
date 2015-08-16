@@ -20,7 +20,6 @@ except ImportError:
 
 import json
 import os
-import psutil
 import subprocess
 import sys
 import time
@@ -38,18 +37,6 @@ RANGES = {
     "fds": (10, 20, 50),
     "duration": (0.8, 1, 3),
 }
-
-
-def get_stats(p, interval=1):
-    """Run psutil and downselect the information."""
-    utilization = p.cpu_percent(interval=interval)
-    return {
-        "utilization": utilization,
-        "counters": p.io_counters() if utils.platform() != "darwin" else None,
-        "fds": p.num_fds(),
-        "cpu_times": p.cpu_times(),
-        "memory": p.memory_info_ex(),
-    }
 
 
 def check_leaks_linux(shell, query, count=1, supp_file=None):
@@ -138,46 +125,15 @@ def run_query(shell, query, timeout=0, count=1):
         [shell, "--query", query, "--iterations", str(count),
             "--delay", "1"],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    p = psutil.Process(pid=proc.pid)
-
-    delay = 0
-    step = 0.5
-
-    percents = []
-    # Calculate the CPU utilization in intervals of 1 second.
-    stats = {}
-    while p.is_running() and p.status() != psutil.STATUS_ZOMBIE:
-        try:
-            current_stats = get_stats(p, step)
-            if (current_stats["memory"].rss == 0):
-                break
-            stats = current_stats
-            percents.append(stats["utilization"])
-        except psutil.AccessDenied:
-            break
-        delay += step
-        if timeout > 0 and delay >= timeout + 2:
-            proc.kill()
-            break
-    duration = time.time() - start_time - 2
-
-    utilization = [percent for percent in percents if percent != 0]
-    if len(utilization) == 0:
-        avg_utilization = 0
-    else:
-        avg_utilization = sum(utilization) / len(utilization)
-
-    return {
-        "utilization": avg_utilization,
-        "duration": duration,
-        "memory": stats["memory"].rss,
-        "user_time": stats["cpu_times"].user,
-        "system_time": stats["cpu_times"].system,
-        "cpu_time": stats["cpu_times"].user + stats["cpu_times"].system,
-        "fds": stats["fds"],
-        "exit": p.wait(),
-    }
+    return utils.profile_cmd([
+        shell,
+        "--query",
+        query,
+        "--iterations",
+        str(count),
+        "--delay",
+        "1"
+    ])
 
 
 def summary_line(name, result):
@@ -242,6 +198,7 @@ def profile(shell, queries, timeout=0, count=1, rounds=1):
         if rounds > 1:
             summary({"%s   avg" % name: report[name]}, display=True)
     return report
+
 
 def compare(profile1, profile2):
     """Compare two jSON profile outputs."""

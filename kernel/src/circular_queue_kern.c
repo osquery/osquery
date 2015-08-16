@@ -14,10 +14,9 @@
 
 #include <kern/assert.h>
 
-
 #include "circular_queue_kern.h"
 
-static inline void setup_locks(osquery_cqueue_t *queue) {
+static inline void setup_queue_locks(osquery_cqueue_t *queue) {
   /* Create locks.  Cannot be done on the stack. */
   queue->lck_grp_attr = lck_grp_attr_alloc_init();
   lck_grp_attr_setstat(queue->lck_grp_attr);
@@ -29,7 +28,7 @@ static inline void setup_locks(osquery_cqueue_t *queue) {
   queue->lck = lck_spin_alloc_init(queue->lck_grp, queue->lck_attr);
 }
 
-static inline void teardown_locks(osquery_cqueue_t *queue) {
+static inline void teardown_queue_locks(osquery_cqueue_t *queue) {
   lck_spin_free(queue->lck, queue->lck_grp);
 
   lck_attr_free(queue->lck_attr);
@@ -88,7 +87,7 @@ static inline osquery_between_t is_between(osquery_cqueue_t *queue, void *ptr,
 void osquery_cqueue_setup(osquery_cqueue_t *queue) {
   queue->last_destruction_time = 0;
   queue->initialized = 0;
-  setup_locks(queue);
+  setup_queue_locks(queue);
 }
 
 int osquery_cqueue_teardown(osquery_cqueue_t *queue) {
@@ -107,7 +106,7 @@ int osquery_cqueue_teardown(osquery_cqueue_t *queue) {
   clock_get_system_microtime(&seconds, &micro_sec);
   if (!queue->initialized && seconds > 2 + queue->last_destruction_time) {
     lck_spin_unlock(queue->lck);
-    teardown_locks(queue);
+    teardown_queue_locks(queue);
     return 0;
   } else {
     lck_spin_unlock(queue->lck);

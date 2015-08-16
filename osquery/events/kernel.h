@@ -10,14 +10,22 @@
 
 #pragma once
 
-#include "osquery/events/kernel/circular_queue_user.h"
+#include <vector>
 
 #include <osquery/events.h>
 #include <osquery/status.h>
 
-#include <vector>
+#include "osquery/events/kernel/circular_queue_user.h"
 
 namespace osquery {
+
+/**
+ * @brief Name of the kernel communication device node.
+ *
+ * The kernel component creates an ioctl API for synchronizing kernel-based
+ * subscriptions and userland access to regions of shared memory.
+ */
+extern const std::string kKernelDevice;
 
 /**
  * @brief Load kernel extension if applicable.

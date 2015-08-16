@@ -106,5 +106,8 @@ function main_centos() {
   package gettext-devel
   install_libcryptsetup
 
+  package audit-libs-devel
+  package audit-libs-static
+
   gem_install fpm
 }

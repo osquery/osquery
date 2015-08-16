@@ -16,26 +16,25 @@
 
 namespace osquery {
 
-CQueue::CQueue(size_t size) {
+CQueue::CQueue(const std::string &device, size_t size) {
   buffer_ = nullptr;
   size_ = 0;
   max_read_ = nullptr;
   read_ = nullptr;
   fd_ = -1;
 
-  const char *filename = "/dev/osquery";
   osquery_buf_allocate_args_t alloc;
   alloc.size = size;
   alloc.buffer = nullptr;
   alloc.version = OSQUERY_KERNEL_COMM_VERSION;
 
-  fd_ = open(filename, O_RDWR);
+  fd_ = open(device.c_str(), O_RDWR);
   if (fd_ < 0) {
-    throw CQueueException("Could not open character device.");
+    throw CQueueException("Could not open character device");
   }
 
   if (ioctl(fd_, OSQUERY_IOCTL_BUF_ALLOCATE, &alloc)) {
-    throw CQueueException("Could not allocate shared buffer.");
+    throw CQueueException("Could not allocate shared buffer");
   }
 
   buffer_ = (uint8_t *)alloc.buffer;
@@ -58,7 +57,7 @@ void CQueue::subscribe(osquery_event_t event, void *udata) {
   sub.udata = udata;
 
   if (ioctl(fd_, OSQUERY_IOCTL_SUBSCRIPTION, &sub)) {
-    throw CQueueException("Could not subscribe to event.");
+    throw CQueueException("Could not subscribe to event");
   }
 }
 
@@ -84,9 +83,9 @@ osquery_event_t CQueue::dequeue(CQueue::event **event) {
   return header->event;
 }
 
-// return positive indicates drop, 0 is all good in the hood.
-// options are listed in kernel feeds.  primarily OSQUERY_NO_BLOCK.
 int CQueue::kernelSync(int options) {
+  // A positive return indicates drops, 0 is all good in the hood.
+  // Options are listed in kernel feeds; primarily OSQUERY_NO_BLOCK.
   osquery_buf_sync_args_t sync;
   sync.read_offset = read_ - buffer_;
   sync.options = options;
@@ -97,7 +96,7 @@ int CQueue::kernelSync(int options) {
   max_read_ = new_max_read;
   if (err) {
     read_ = max_read_;
-    throw CQueueException("Could not sync buffer with kernel properly.");
+    throw CQueueException("Could not sync buffer with kernel properly");
   }
 
   return sync.drops;

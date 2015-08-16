@@ -42,18 +42,27 @@
 #define MIN_KMEM (8 * (1 << 10))
 
 static struct {
+  /// The shared (user/kernel space) circular queue holding event results.
   osquery_cqueue_t cqueue;
+
+  /// The contiguous memory backing the circular queue.
   void *buffer;
+
+  /// Configured size of the circular queue buffer.
   size_t buf_size;
+
   IOMemoryDescriptor *md;
   IOMemoryMap *mm;
   void *devfs;
   int major_number;
   int open_count;
 
+  /// IOCTL API handling lock/mutex data.
   lck_grp_attr_t *lck_grp_attr;
   lck_grp_t *lck_grp;
   lck_attr_t *lck_attr;
+
+  /// IOCTL API handling mutex.
   lck_mtx_t *mtx;
 } osquery = {
   .open_count = 0,
@@ -66,24 +75,23 @@ static struct {
 };
 
 static inline void setup_locks() {
-  /* Create locks.  Cannot be done on the stack. */
+  // Create locks. Cannot be done on the stack.
   osquery.lck_grp_attr = lck_grp_attr_alloc_init();
   lck_grp_attr_setstat(osquery.lck_grp_attr);
-
   osquery.lck_grp = lck_grp_alloc_init("osquery", osquery.lck_grp_attr);
-
   osquery.lck_attr = lck_attr_alloc_init();
 
+  // MTX is the IOCTL API handling lock.
+  // This assures only one daemon will use the kernel API simultaneously.
   osquery.mtx = lck_mtx_alloc_init(osquery.lck_grp, osquery.lck_attr);
 }
 
 static inline void teardown_locks() {
+  // Release locks and their heap memory.
   lck_mtx_free(osquery.mtx, osquery.lck_grp);
 
   lck_attr_free(osquery.lck_attr);
-
   lck_grp_free(osquery.lck_grp);
-
   lck_grp_attr_free(osquery.lck_grp_attr);
 }
 
@@ -162,19 +170,27 @@ static void cleanup_user_kernel_buffer() {
 static int allocate_user_kernel_buffer(size_t size, void **buf) {
   int err = 0;
 
+  // The user space daemon is requesting a new circular queue.
+  // Make sure the requested size is within sane size bounds.
   if (size > MAX_KMEM || size < MIN_KMEM) {
     err = -EINVAL;
     goto error_exit;
   }
 
+  // Record the requested buffer size.
   osquery.buf_size = size;
+  // Allocate a contiguous region of memory.
   osquery.buffer = IOMallocAligned(osquery.buf_size, PAGE_SIZE);
+  // Cannot proceed if no memory to back the circular queue is available.
   if (osquery.buffer == NULL) {
     err = -EINVAL;
     goto error_exit;
   }
-  bzero(osquery.buffer, osquery.buf_size);  // Zero memory for safety.
 
+  // Zero memory for safety, this memory will be shared with user space.
+  bzero(osquery.buffer, osquery.buf_size);
+
+  // This buffer will be shared, create a descriptor.
   osquery.md
     = IOMemoryDescriptor::withAddressRange((mach_vm_address_t)osquery.buffer,
                                            osquery.buf_size,
@@ -183,25 +199,30 @@ static int allocate_user_kernel_buffer(size_t size, void **buf) {
     err = -EINVAL;
     goto error_exit;
   }
+
+  // Now map the buffer into the user space process as read only.
   osquery.mm = osquery.md->createMappingInTask(current_task(), NULL,
                                                kIOMapAnywhere | kIOMapReadOnly);
   if (osquery.mm == NULL) {
     err = -EINVAL;
     goto error_exit;
   }
-  *buf = (void *)osquery.mm->getAddress();
 
+  // The virtual address will be shared back to the user space queue manager.
+  *buf = (void *)osquery.mm->getAddress();
+  // Initialize the kernel space queue manager with the new buffer.
   osquery_cqueue_init(&osquery.cqueue, osquery.buffer, osquery.buf_size);
 
   return 0;
 error_exit:
+  // A drop-through error handler will clean up any intermediate allocations.
   cleanup_user_kernel_buffer();
 
   return err;
 }
 
 static int osquery_open(dev_t dev, int oflags, int devtype, struct proc *p) {
-  // Close isnt working so leave these out for now.
+  // Close is not working so leave these out for now.
   int err = 0;
   lck_mtx_lock(osquery.mtx);
   if (osquery.open_count == 0) {
@@ -218,6 +239,7 @@ static int osquery_open(dev_t dev, int oflags, int devtype, struct proc *p) {
 }
 
 static int osquery_close(dev_t dev, int flag, int fmt, struct proc *p) {
+  // Only one daemon should request a close.
   lck_mtx_lock(osquery.mtx);
   if (osquery.open_count == 1) {
     unsubscribe_all_events();
@@ -230,11 +252,11 @@ static int osquery_close(dev_t dev, int flag, int fmt, struct proc *p) {
 }
 
 
-// All control should be from a single consumer, so we wrap all these calls
-// in locks to guarantee proper use.
 static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
                          int flag, struct proc *p) {
-#ifdef KERNEL_TEST  // Reentrant code used for testing the queue functionality.
+#ifdef KERNEL_TEST
+  // Reentrant code used for testing the queue functionality.
+  // This test-only code allows benchmarks to stress test queue handling.
   static unsigned int test_counter = 0;
   if (cmd == OSQUERY_IOCTL_TEST) {
     if (osquery.buffer == NULL) {
@@ -272,27 +294,34 @@ static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
   }
 #endif // KERNEL_TEST
 
-  lck_mtx_lock(osquery.mtx);
-
   int err = 0;
   osquery_subscription_args_t *sub = NULL;
   osquery_buf_sync_args_t *sync = NULL;
   osquery_buf_allocate_args_t *alloc = NULL;
 
+  // All control should be from a single daemon.
+  // Wrap all IOCTL API handling in locks to guarantee proper use.
+  lck_mtx_lock(osquery.mtx);
   switch (cmd) {
+  // Daemon is requesting a new subscription (e.g., monitored path).
     case OSQUERY_IOCTL_SUBSCRIPTION:
       sub = (osquery_subscription_args_t *)data;
       if ((err = subscribe_to_event(sub->event, sub->subscribe, sub->udata))) {
         goto error_exit;
       }
       break;
+
+    // Daemon is requesting a synchronization of readable queue space.
     case OSQUERY_IOCTL_BUF_SYNC:
-      sync = (osquery_buf_sync_args_t *)data;
+      // The queue buffer cannot be synchronized if it has not been allocated.
       if (osquery.buffer == NULL) {
         err = -EINVAL;
         goto error_exit;
       }
+
+      // Unlock while applying update logic, re-lock on error and success.
       lck_mtx_unlock(osquery.mtx);
+      sync = (osquery_buf_sync_args_t *)data;
       if ((err = update_user_kernel_buffer(sync->options,
                                            sync->read_offset,
                                            &(sync->max_read_offset),
@@ -302,21 +331,25 @@ static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
       }
       lck_mtx_lock(osquery.mtx);
       break;
+
+    // Daemon is requesting an allocation for the queue, and shared region.
     case OSQUERY_IOCTL_BUF_ALLOCATE:
       alloc = (osquery_buf_allocate_args_t *)data;
-
       if (alloc->version != OSQUERY_KERNEL_COMM_VERSION) {
         // Daemon tried connecting with incorrect version number.
+        // The structure types and sizes are bound to the COMMs version.
+        // Any non-matching daemon may not handle these structures correctly.
         err = -EINVAL;
         goto error_exit;
       }
 
       if (osquery.buffer != NULL) {
-        // We don't want to allocate a second buffer.
+        // There is only a single shared buffer.
         err = -EINVAL;
         goto error_exit;
       }
 
+      // Attempt to allocation and set up the circular queue.
       if ((err = allocate_user_kernel_buffer(alloc->size, &(alloc->buffer)))) {
         goto error_exit;
       }
@@ -329,7 +362,9 @@ static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
       goto error_exit;
       break;
   }
+
 error_exit:
+  // Unlock and return a status to the daemon.
   lck_mtx_unlock(osquery.mtx);
   return err;
 }
@@ -355,14 +390,18 @@ static struct cdevsw osquery_cdevsw = {
 kern_return_t OsqueryStart(kmod_info_t *ki, void *d) {
   dbg_printf("Kernel module starting!\n");
 
+  // Restart the queue and setup queue locks.
+  // This does not allocate, share, or set the queue buffer or buffer values.
   osquery_cqueue_setup(&osquery.cqueue);
 
+  // Initialize the IOCTL (and more) device node.
   osquery.major_number = cdevsw_add(osquery.major_number, &osquery_cdevsw);
   if (osquery.major_number < 0) {
     dbg_printf("Could not get a major number!\n");
     goto error_exit;
   }
 
+  // Create the IOCTL (and more) device node.
   osquery.devfs = devfs_make_node(makedev(osquery.major_number, 0),
                                           DEVFS_CHAR, UID_ROOT, GID_WHEEL,
                                           0644, "osquery", 0);
@@ -371,21 +410,25 @@ kern_return_t OsqueryStart(kmod_info_t *ki, void *d) {
     goto error_exit;
   }
 
+  // Set up the IOCTL and kernel API locks (not queue locks).
   setup_locks();
 
   return KERN_SUCCESS;
 error_exit:
+  // Upon error, remove the device node if it was allocated.
   if (osquery.devfs != NULL) {
     devfs_remove(osquery.devfs);
     osquery.devfs = NULL;
   }
 
+  // Tear down device node data.
   if (!(osquery.major_number < 0)) {
     if (cdevsw_remove(osquery.major_number, &osquery_cdevsw) < 0) {
       panic("osquery kext: Cannot remove osquery from cdevsw");
     }
   }
 
+  // Reset the queue and remove the queue locks.
   osquery_cqueue_teardown(&osquery.cqueue);
   return KERN_FAILURE;
 }
@@ -393,24 +436,31 @@ error_exit:
 kern_return_t OsqueryStop(kmod_info_t *ki, void *d) {
   dbg_printf("Kernel module stoping!\n");
 
+  // Only stop if there are no connected daemons.
   lck_mtx_lock(osquery.mtx);
   if (osquery.open_count > 0) {
     lck_mtx_unlock(osquery.mtx);
     return KERN_FAILURE;
   }
 
+  // Stop sharing the queue and remove queue locks.
+  // This will potentially block as heuristics are applied to make sure the
+  // queue is no longer is use.
   if (osquery_cqueue_teardown(&osquery.cqueue)) {
     lck_mtx_unlock(osquery.mtx);
     return KERN_FAILURE;
   }
 
+  // Remove the device node.
   devfs_remove(osquery.devfs);
   osquery.devfs = NULL;
 
+  // Tear down the device node data.
   if (cdevsw_remove(osquery.major_number, &osquery_cdevsw) < 0) {
     panic("osquery kext: Cannot remove osquery from cdevsw");
   }
 
+  // Deallocate the IOCTL and kernel API locks.
   lck_mtx_unlock(osquery.mtx);
   teardown_locks();
 
