@@ -94,10 +94,14 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   options_.log_file_time_to_roll = 0;
   options_.keep_log_file_num = 10;
   options_.max_log_file_size = 1024 * 1024 * 1;
+
+  // Performance and optimization settings.
   options_.compaction_style = rocksdb::kCompactionStyleLevel;
-  options_.write_buffer_size = 1 * 1024 * 1024;
+  options_.write_buffer_size = (4 * 1024) * 100; // 100 blocks.
   options_.max_write_buffer_number = 2;
+  options_.min_write_buffer_number_to_merge = 2;
   options_.max_background_compactions = 1;
+  options_.max_background_flushes = 1;
 
   if (in_memory) {
     // Remove when MemEnv is included in librocksdb
@@ -120,7 +124,13 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   VLOG(1) << "Opening RocksDB handle: " << path;
   auto s = rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
   if (!s.ok()) {
-    throw std::runtime_error(s.ToString());
+    // Try to open the database in a ReadOnly mode.
+    s = rocksdb::DB::OpenForReadOnly(
+        options_, path, column_families_, &handles_, &db_);
+    if (!s.ok()) {
+      throw std::runtime_error(s.ToString());
+    }
+    read_only_ = true;
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.
@@ -204,6 +214,10 @@ Status DBHandle::Get(const std::string& domain,
 Status DBHandle::Put(const std::string& domain,
                      const std::string& key,
                      const std::string& value) {
+  if (read_only_) {
+    return Status(0, "Database in readonly mode");
+  }
+
   auto cfh = getHandleForColumnFamily(domain);
   if (cfh == nullptr) {
     return Status(1, "Could not get column family for " + domain);
@@ -213,12 +227,19 @@ Status DBHandle::Put(const std::string& domain,
 }
 
 Status DBHandle::Delete(const std::string& domain, const std::string& key) {
+  if (read_only_) {
+    return Status(0, "Database in readonly mode");
+  }
+
   auto cfh = getHandleForColumnFamily(domain);
   if (cfh == nullptr) {
     return Status(1, "Could not get column family for " + domain);
   }
   auto options = rocksdb::WriteOptions();
-  options.sync = true;
+
+  // We could sync here, but large deletes will cause multi-syncs.
+  // For example: event record expirations found in an expired index.
+  // options.sync = true;
   auto s = getDB()->Delete(options, cfh, key);
   return Status(s.code(), s.ToString());
 }

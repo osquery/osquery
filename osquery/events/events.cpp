@@ -46,17 +46,23 @@ void publisherSleep(size_t milli) {
   boost::this_thread::sleep(boost::posix_time::milliseconds(milli));
 }
 
+static inline EventTime timeFromRecord(const std::string& record) {
+  // Convert a stored index "as string bytes" to a time value.
+  char* end = nullptr;
+  long long int afinite = strtoll(record.c_str(), &end, 10);
+  if (end == nullptr || end == record.c_str() || *end != '\0' ||
+      ((afinite == LLONG_MIN || afinite == LLONG_MAX) && errno == ERANGE)) {
+    return 0;
+  }
+  return afinite;
+}
+
 QueryData EventSubscriberPlugin::genTable(QueryContext& context) {
   EventTime start = 0, stop = -1;
   if (context.constraints["time"].getAll().size() > 0) {
     // Use the 'time' constraint to optimize backing-store lookups.
     for (const auto& constraint : context.constraints["time"].getAll()) {
-      EventTime expr = 0;
-      try {
-        expr = boost::lexical_cast<EventTime>(constraint.expr);
-      } catch (const boost::bad_lexical_cast& e) {
-        expr = 0;
-      }
+      EventTime expr = timeFromRecord(constraint.expr);
       if (constraint.op == EQUALS) {
         stop = start = expr;
         break;
@@ -172,7 +178,7 @@ std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
     boost::split(all_bins, time_list, boost::is_any_of(","));
     for (const auto& bin : all_bins) {
       // Bins are identified by the binning size step.
-      auto step = boost::lexical_cast<EventTime>(bin);
+      auto step = timeFromRecord(bin);
       // Check if size * step -> size * (step + 1) is within a range.
       int bin_start = size * step, bin_stop = size * (step + 1);
       if (expire_events_ && expire_time_ > 0) {
@@ -197,9 +203,9 @@ std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
 
     if (bins.size() != 0) {
       // If more precision was achieved though this list's binning.
-      local_start = boost::lexical_cast<EventTime>(bins.front()) * size;
+      local_start = timeFromRecord(bins.front()) * size;
       start_max = (local_start < start_max) ? local_start : start_max;
-      local_stop = (boost::lexical_cast<EventTime>(bins.back()) + 1) * size;
+      local_stop = (timeFromRecord(bins.back()) + 1) * size;
       stop_min = (local_stop < stop_min) ? local_stop : stop_min;
     }
 
@@ -274,28 +280,32 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
 
   std::vector<EventRecord> records;
   for (const auto& index : indexes) {
-    std::string record_value;
-    if (!db->Get(kEvents, record_key + "." + index, record_value).ok()) {
-      return records;
-    }
-
-    if (record_value.length() == 0) {
-      // There are actually no events in this bin, interesting error case.
-      continue;
-    }
-
-    // Each list is tokenized into a record=event_id:time.
     std::vector<std::string> bin_records;
-    boost::split(bin_records, record_value, boost::is_any_of(",:"));
+    {
+      std::string record_value;
+      if (!db->Get(kEvents, record_key + "." + index, record_value).ok()) {
+        return records;
+      }
+
+      if (record_value.length() == 0) {
+        // There are actually no events in this bin, interesting error case.
+        continue;
+      }
+
+      // Each list is tokenized into a record=event_id:time.
+      boost::split(bin_records, record_value, boost::is_any_of(",:"));
+    }
+
     auto bin_it = bin_records.begin();
+    // Iterate over every 2 items: EID:TIME.
     for (; bin_it != bin_records.end(); bin_it++) {
-      std::string eid = *bin_it;
-      EventTime time = boost::lexical_cast<EventTime>(*(++bin_it));
+      const auto& eid = *bin_it;
+      EventTime time = timeFromRecord(*(++bin_it));
       records.push_back(std::make_pair(eid, time));
     }
   }
 
-  return records;
+  return std::move(records);
 }
 
 Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
@@ -385,7 +395,7 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
   QueryData results;
   Status status;
 
-  std::shared_ptr<DBHandle> db;
+  std::shared_ptr<DBHandle> db = nullptr;
   try {
     db = DBHandle::getInstance();
   } catch (const std::runtime_error& e) {
@@ -396,36 +406,37 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
   // Get the records for this time range.
   auto indexes = getIndexes(start, stop);
   auto records = getRecords(indexes);
+  std::string events_key = "data." + dbNamespace();
 
-  std::vector<EventRecord> mapped_records;
+  std::vector<std::string> mapped_records;
   for (const auto& record : records) {
     if (record.second >= start && (record.second <= stop || stop == 0)) {
-      mapped_records.push_back(record);
+      mapped_records.push_back(events_key + "." + record.first);
     }
-  }
-
-  std::string events_key = "data." + dbNamespace();
-  if (FLAGS_events_expiry > 0) {
-    // Set the expire time to NOW - "configured lifetime".
-    // Index retrieval will apply the constraints checking and auto-expire.
-    expire_time_ = getUnixTime() - FLAGS_events_expiry;
   }
 
   // Select mapped_records using event_ids as keys.
   std::string data_value;
   for (const auto& record : mapped_records) {
     Row r;
-    status = db->Get(kEvents, events_key + "." + record.first, data_value);
+    status = db->Get(kEvents, record, data_value);
     if (data_value.length() == 0) {
-      // THere is no record here, interesting error case.
+      // There is no record here, interesting error case.
       continue;
     }
     status = deserializeRowJSON(data_value, r);
+    data_value.clear();
     if (status.ok()) {
-      results.push_back(r);
+      results.push_back(std::move(r));
     }
   }
-  return results;
+
+  if (FLAGS_events_expiry > 0) {
+    // Set the expire time to NOW - "configured lifetime".
+    // Index retrieval will apply the constraints checking and auto-expire.
+    expire_time_ = getUnixTime() - FLAGS_events_expiry;
+  }
+  return std::move(results);
 }
 
 Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {

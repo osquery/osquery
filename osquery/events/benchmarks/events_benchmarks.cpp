@@ -68,15 +68,20 @@ class BenchmarkEventSubscriber
 };
 
 static void EVENTS_subscribe_fire(benchmark::State& state) {
+  // Register a publisher.
   auto pub = std::make_shared<BenchmarkEventPublisher>();
   EventFactory::registerEventPublisher(pub);
 
+  // Register a subscriber.
   auto sub = std::make_shared<BenchmarkEventSubscriber>();
   EventFactory::registerEventSubscriber(sub);
+
   // Simulate the event factory initialization.
+  // This creates a subscription and adds it and a callback.
   sub->benchmarkInit();
 
   while (state.KeepRunning()) {
+    // Fire an event from the publisher, and let the subscriber handle.
     pub->benchmarkFire();
   }
 }
@@ -89,6 +94,7 @@ static void EVENTS_add_events(benchmark::State& state) {
 
   auto sub = std::make_shared<BenchmarkEventSubscriber>();
   EventFactory::registerEventSubscriber(sub);
+
   // Simulate the event factory initialization.
   sub->benchmarkInit();
 
@@ -105,12 +111,7 @@ static void EVENTS_retrieve_events(benchmark::State& state) {
   auto sub = std::make_shared<BenchmarkEventSubscriber>();
 
   for (int i = 0; i < 10000; i++) {
-    sub->benchmarkAdd(i);
-  }
-
-  // Trigger RocksDB compaction.
-  for (int i = 0; i < 4; ++i) {
-    sub->benchmarkGet(0, 1);
+    sub->benchmarkAdd(i++);
   }
 
   while (state.KeepRunning()) {

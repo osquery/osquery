@@ -210,7 +210,7 @@ class DBHandle {
   /////////////////////////////////////////////////////////////////////////////
 
   /// The database handle
-  rocksdb::DB* db_;
+  rocksdb::DB* db_{nullptr};
 
   /// Column family descriptors which are used to connect to RocksDB
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families_;
@@ -220,6 +220,9 @@ class DBHandle {
 
   /// The RocksDB connection options that are used to connect to RocksDB
   rocksdb::Options options_;
+
+  /// The database was opened in a ReadOnly mode.
+  bool read_only_{false};
 
  private:
   friend class RocksDatabasePlugin;

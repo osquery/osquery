@@ -70,7 +70,7 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
   }
   r["mac"] = macAsString(addr);
 
-  if (addr->ifa_data != nullptr) {
+  if (addr->ifa_data != nullptr && addr->ifa_name != nullptr) {
 #ifdef __linux__
     // Linux/Netlink interface details parsing.
     auto ifd = (struct rtnl_link_stats *)addr->ifa_data;
