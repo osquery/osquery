@@ -448,7 +448,7 @@ function gem_install() {
   if [[ -n "$(gem list | grep $1)" ]]; then
     log "$1 is already installed. skipping."
   else
-    sudo gem install $1
+    sudo gem install $@
   fi
 }
 
