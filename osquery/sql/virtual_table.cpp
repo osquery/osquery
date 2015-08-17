@@ -17,9 +17,7 @@ namespace tables {
 
 int xOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
   int rc = SQLITE_NOMEM;
-  BaseCursor *pCur = nullptr;
-
-  pCur = new BaseCursor;
+  BaseCursor *pCur = new BaseCursor;
 
   if (pCur) {
     memset(pCur, 0, sizeof(BaseCursor));
@@ -40,7 +38,14 @@ int xClose(sqlite3_vtab_cursor *cur) {
 int xEof(sqlite3_vtab_cursor *cur) {
   BaseCursor *pCur = (BaseCursor *)cur;
   auto *pVtab = (VirtualTable *)cur->pVtab;
-  return pCur->row >= pVtab->content->n;
+
+  if (pCur->row >= pVtab->content->n) {
+    // If the requested row exceeds the size of the row set then all rows
+    // have been visited, clear the data container.
+    pVtab->content->data.clear();
+    return true;
+  }
+  return false;
 }
 
 int xDestroy(sqlite3_vtab *p) {
@@ -57,7 +62,7 @@ int xNext(sqlite3_vtab_cursor *cur) {
 }
 
 int xRowid(sqlite3_vtab_cursor *cur, sqlite_int64 *pRowid) {
-  BaseCursor *pCur = (BaseCursor *)cur;
+  const BaseCursor *pCur = (BaseCursor *)cur;
   *pRowid = pCur->row;
   return SQLITE_OK;
 }
@@ -108,21 +113,23 @@ int xCreate(sqlite3 *db,
 }
 
 int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
-  BaseCursor *pCur = (BaseCursor *)cur;
-  auto *pVtab = (VirtualTable *)cur->pVtab;
+  const BaseCursor *pCur = (BaseCursor *)cur;
+  const auto *pVtab = (VirtualTable *)cur->pVtab;
 
   if (col >= pVtab->content->columns.size()) {
+    // Requested column index greater than column set size.
     return SQLITE_ERROR;
   }
 
-  auto &column_name = pVtab->content->columns[col].first;
-  auto &type = pVtab->content->columns[col].second;
-  if (pCur->row >= pVtab->content->data[column_name].size()) {
+  const auto &column_name = pVtab->content->columns[col].first;
+  const auto &type = pVtab->content->columns[col].second;
+  if (pCur->row >= pVtab->content->data.size()) {
+    // Request row index greater than row set size.
     return SQLITE_ERROR;
   }
 
   // Attempt to cast each xFilter-populated row/column to the SQLite type.
-  auto &value = pVtab->content->data[column_name][pCur->row];
+  const auto &value = pVtab->content->data[pCur->row][column_name];
   if (type == "TEXT") {
     sqlite3_result_text(ctx, value.c_str(), value.size(), SQLITE_STATIC);
   } else if (type == "INTEGER") {
@@ -198,8 +205,6 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   QueryContext context;
 
   for (size_t i = 0; i < pVtab->content->columns.size(); ++i) {
-    // Clear any data, this is the result container for each column + row.
-    pVtab->content->data[pVtab->content->columns[i].first].clear();
     // Set the column affinity for each optional constraint list.
     // There is a separate list for each column name.
     context.constraints[pVtab->content->columns[i].first].affinity =
@@ -220,37 +225,16 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
         pVtab->content->constraints[i].second);
   }
 
+  // Reset the virtual table contents.
+  pVtab->content->data.clear();
+
+  // Generate the row data set.
   PluginRequest request = {{"action", "generate"}};
-  PluginResponse response;
   TablePlugin::setRequestFromContext(context, request);
-  Registry::call("table", pVtab->content->name, request, response);
+  Registry::call("table", pVtab->content->name, request, pVtab->content->data);
 
-  // Now organize the response rows by column instead of row.
-  auto &data = pVtab->content->data;
-  auto row = response.rbegin();
-  while (row != response.rend()) {
-    for (const auto &column : pVtab->content->columns) {
-      if (row->count(column.first) == 0) {
-        VLOG(1) << "Table " << pVtab->content->name << " row "
-                << pVtab->content->n << " did not include column "
-                << column.first;
-        data[column.first].push_front("");
-        continue;
-      }
-
-      auto &value = row->at(column.first);
-      if (value.size() > FLAGS_value_max) {
-        data[column.first].push_front(value.substr(0, FLAGS_value_max));
-        value.clear();
-      } else {
-        data[column.first].push_front(std::move(value));
-      }
-    }
-
-    response.erase((row + 1).base());
-    row = response.rbegin();
-    pVtab->content->n++;
-  }
+  // Set the number of rows.
+  pVtab->content->n = pVtab->content->data.size();
 
   return SQLITE_OK;
 }

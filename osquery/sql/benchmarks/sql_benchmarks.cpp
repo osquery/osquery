@@ -94,6 +94,46 @@ static void SQL_virtual_table_internal_long(benchmark::State& state) {
 
 BENCHMARK(SQL_virtual_table_internal_long);
 
+class BenchmarkWideTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const {
+    TableColumns cols;
+    for (int i = 0; i < 20; i++) {
+      cols.push_back({"test_" + std::to_string(i), "INTEGER"});
+    }
+    return cols;
+  }
+
+  QueryData generate(QueryContext& ctx) {
+    QueryData results;
+    for (int k = 0; k < 50; k++) {
+      Row r;
+      for (int i = 0; i < 20; i++) {
+        r["test_" + std::to_string(i)] = "0";
+      }
+      results.push_back(r);
+    }
+    return results;
+  }
+};
+
+static void SQL_virtual_table_internal_wide(benchmark::State& state) {
+  Registry::add<BenchmarkWideTablePlugin>("table", "wide_benchmark");
+  PluginResponse res;
+  Registry::call("table", "wide_benchmark", {{"action", "columns"}}, res);
+
+  // Attach a sample virtual table.
+  auto dbc = SQLiteDBManager::get();
+  attachTableInternal("wide_benchmark", columnDefinition(res), dbc.db());
+
+  while (state.KeepRunning()) {
+    QueryData results;
+    queryInternal("select * from wide_benchmark", results, dbc.db());
+  }
+}
+
+BENCHMARK(SQL_virtual_table_internal_wide);
+
 static void SQL_select_metadata(benchmark::State& state) {
   auto dbc = SQLiteDBManager::get();
   while (state.KeepRunning()) {

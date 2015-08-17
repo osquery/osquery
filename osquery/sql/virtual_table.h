@@ -31,7 +31,7 @@ struct BaseCursor {
 struct VirtualTableContent {
   TableName name;
   TableColumns columns;
-  TableData data;
+  QueryData data;
   ConstraintSet constraints;
   size_t n;
 };
