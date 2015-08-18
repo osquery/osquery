@@ -399,6 +399,8 @@ function package() {
         HOMEBREW_ARGS="--build-bottle --with-lite"
       elif [[ $1 = "gflags" ]]; then
         HOMEBREW_ARGS="--build-bottle --with-static"
+      elif [[ $1 = "libressl" ]]; then
+        HOMEBREW_ARGS="--build-bottle"
       fi
       brew install -v $HOMEBREW_ARGS $1 || brew upgrade -v $HOMEBREW_ARGS $@
     fi
