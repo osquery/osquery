@@ -267,21 +267,22 @@ endif()
 # Make sure the generated paths exist
 execute_process(COMMAND mkdir -p "${CMAKE_BINARY_DIR}/generated")
 
+# We need to link some packages as dynamic/dependent.
+set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
+find_package(BZip2 REQUIRED)
+find_package(Dl REQUIRED)
+find_package(Readline REQUIRED)
+
 # Apple has deprecated OpenSSL, static link with brew bottled libressl
-if(APPLE)
+if(APPLE AND (DEFINED ENV{BUILD_USE_LIBRESSL} OR ${OSQUERY_BUILD_DISTRO} STREQUAL "10.11"))
   if(NOT DEFINED ENV{BUILD_LINK_SHARED})
     set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
-  else()
-    set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
   endif()
   execute_process(COMMAND brew --prefix OUTPUT_VARIABLE BREW_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
   set(OPENSSL_ROOT_DIR "${BREW_PREFIX}/opt/libressl")
-  find_package(OpenSSL REQUIRED)
-  include_directories("${OPENSSL_INCLUDE_DIR}")
-else()
-  set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
-  find_package(OpenSSL REQUIRED)
 endif()
+find_package(OpenSSL REQUIRED)
+include_directories("${OPENSSL_INCLUDE_DIR}")
 
 # Make sure the OpenSSL/ssl library has a TLS client method.
 # Prefer the highest version of TLS, but accept 1.2, 1.1, or 1.0.
@@ -302,14 +303,6 @@ elseif(OPENSSL_TLSV10)
 else()
   message(FATAL_ERROR "Cannot find any TLS client methods")
 endif()
-
-
-# We need to link some packages as dynamic/dependent.
-set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
-find_package(BZip2 REQUIRED)
-find_package(Dl REQUIRED)
-find_package(Readline REQUIRED)
-
 
 # Most dependent packages/libs we want static.
 if(NOT DEFINED ENV{BUILD_LINK_SHARED})
