@@ -43,47 +43,47 @@ Status filterArray(id plist, const std::string& root, pt::ptree& tree);
 
 Status filterDictionary(id plist, const std::string& root, pt::ptree& tree) {
   Status total_status = Status(0, "OK");
-  @autoreleasepool {
-    for (id key in [plist allKeys]) {
-      if (key == nil || ![key isKindOfClass:[NSString class]]) {
-        // Unknown type as dictionary key, most likely a malformed plist.
-        continue;
-      }
+  for (id key in [plist allKeys]) {
+    if (key == nil || ![key isKindOfClass:[NSString class]]) {
+      // Unknown type as dictionary key, most likely a malformed plist.
+      continue;
+    }
 
-      id value = [plist objectForKey:key];
-      if (value == nil) {
-        continue;
-      }
+    id value = [plist objectForKey:key];
+    if (value == nil) {
+      continue;
+    }
 
-      auto path_node = std::string([key UTF8String]);
-      if ([value isKindOfClass:[NSString class]]) {
-        tree.push_back(ptvalue(path_node, pt::ptree([value UTF8String])));
-      } else if ([value isKindOfClass:[NSNumber class]]) {
-        tree.push_back(ptvalue(path_node, pt::ptree([[value stringValue] UTF8String])));
-      } else if ([value isKindOfClass:[NSArray class]]) {
-        auto status = filterArray(value, path_node, tree);
-        if (!status.ok()) {
-          total_status = status;
-        }
-      } else if ([value isKindOfClass:[NSDictionary class]]) {
-        pt::ptree child;
-        auto status = filterDictionary(value, "", child);
-        if (!status.ok()) {
-          total_status = status;
-        }
-        tree.push_back(ptvalue(path_node, child));
-      } else if ([value isKindOfClass:[NSData class]]) {
-        NSString* dataString = [value base64EncodedStringWithOptions:0];
-        tree.push_back(ptvalue(path_node, pt::ptree([dataString UTF8String])));
-      } else if ([value isKindOfClass:[NSDate class]]) {
-        NSNumber* seconds =
-            [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
-        tree.push_back(ptvalue(path_node, pt::ptree([[seconds stringValue] UTF8String])));
-      } else if ([value isEqual:@(YES)]) {
-        tree.push_back(ptvalue(path_node, pt::ptree("true")));
-      } else if ([value isEqual:@(NO)]) {
-        tree.push_back(ptvalue(path_node, pt::ptree("false")));
+    auto path_node = std::string([key UTF8String]);
+    if ([value isKindOfClass:[NSString class]]) {
+      tree.push_back(ptvalue(path_node, pt::ptree([value UTF8String])));
+    } else if ([value isKindOfClass:[NSNumber class]]) {
+      tree.push_back(
+          ptvalue(path_node, pt::ptree([[value stringValue] UTF8String])));
+    } else if ([value isKindOfClass:[NSArray class]]) {
+      auto status = filterArray(value, path_node, tree);
+      if (!status.ok()) {
+        total_status = status;
       }
+    } else if ([value isKindOfClass:[NSDictionary class]]) {
+      pt::ptree child;
+      auto status = filterDictionary(value, "", child);
+      if (!status.ok()) {
+        total_status = status;
+      }
+      tree.push_back(ptvalue(path_node, child));
+    } else if ([value isKindOfClass:[NSData class]]) {
+      NSString* dataString = [value base64EncodedStringWithOptions:0];
+      tree.push_back(ptvalue(path_node, pt::ptree([dataString UTF8String])));
+    } else if ([value isKindOfClass:[NSDate class]]) {
+      NSNumber* seconds =
+          [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
+      tree.push_back(
+          ptvalue(path_node, pt::ptree([[seconds stringValue] UTF8String])));
+    } else if ([value isEqual:@(YES)]) {
+      tree.push_back(ptvalue(path_node, pt::ptree("true")));
+    } else if ([value isEqual:@(NO)]) {
+      tree.push_back(ptvalue(path_node, pt::ptree("false")));
     }
   }
   return total_status;
@@ -92,53 +92,49 @@ Status filterDictionary(id plist, const std::string& root, pt::ptree& tree) {
 Status filterArray(id plist, const std::string& root, pt::ptree& tree) {
   Status total_status = Status(0, "OK");
   pt::ptree child_tree;
-  @autoreleasepool {
-    for (id value in plist) {
-      if (value == nil) {
-        continue;
-      }
-
-      pt::ptree child;
-      if ([value isKindOfClass:[NSString class]]) {
-        child.put_value([value UTF8String]);
-      } else if ([value isKindOfClass:[NSNumber class]]) {
-        child.put_value([[value stringValue] UTF8String]);
-      } else if ([value isKindOfClass:[NSArray class]]) {
-        auto status = filterArray(value, "", child);
-        if (!status.ok()) {
-          total_status = status;
-        }
-      } else if ([value isKindOfClass:[NSDictionary class]]) {
-        auto status = filterDictionary(value, "", child);
-        if (!status.ok()) {
-          total_status = status;
-        }
-      } else if ([value isKindOfClass:[NSData class]]) {
-        NSString* dataString = [value base64EncodedStringWithOptions:0];
-        child.put_value([dataString UTF8String]);
-      } else if ([value isKindOfClass:[NSDate class]]) {
-        NSNumber* seconds =
-            [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
-        child.put_value([[seconds stringValue] UTF8String]);
-      } else if ([value isEqual:@(YES)]) {
-        child.put_value("true");
-      } else if ([value isEqual:@(NO)]) {
-        child.put_value("false");
-      }
-      child_tree.push_back(std::make_pair("", child));
+  for (id value in plist) {
+    if (value == nil) {
+      continue;
     }
+
+    pt::ptree child;
+    if ([value isKindOfClass:[NSString class]]) {
+      child.put_value([value UTF8String]);
+    } else if ([value isKindOfClass:[NSNumber class]]) {
+      child.put_value([[value stringValue] UTF8String]);
+    } else if ([value isKindOfClass:[NSArray class]]) {
+      auto status = filterArray(value, "", child);
+      if (!status.ok()) {
+        total_status = status;
+      }
+    } else if ([value isKindOfClass:[NSDictionary class]]) {
+      auto status = filterDictionary(value, "", child);
+      if (!status.ok()) {
+        total_status = status;
+      }
+    } else if ([value isKindOfClass:[NSData class]]) {
+      NSString* dataString = [value base64EncodedStringWithOptions:0];
+      child.put_value([dataString UTF8String]);
+    } else if ([value isKindOfClass:[NSDate class]]) {
+      NSNumber* seconds =
+          [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
+      child.put_value([[seconds stringValue] UTF8String]);
+    } else if ([value isEqual:@(YES)]) {
+      child.put_value("true");
+    } else if ([value isEqual:@(NO)]) {
+      child.put_value("false");
+    }
+    child_tree.push_back(std::make_pair("", child));
   }
   tree.push_back(pt::ptree::value_type(root, child_tree));
   return total_status;
 }
 
 static inline Status filterPlist(NSData* plist, pt::ptree& tree) {
-  @autoreleasepool {
-    if ([plist isKindOfClass:[NSDictionary class]]) {
-      return filterDictionary((NSMutableDictionary*)plist, "", tree);
-    } else {
-      return filterArray((NSMutableArray*)plist, "root", tree);
-    }
+  if ([plist isKindOfClass:[NSDictionary class]]) {
+    return filterDictionary((NSMutableDictionary*)plist, "", tree);
+  } else {
+    return filterArray((NSMutableArray*)plist, "root", tree);
   }
   return Status(0, "OK");
 }
@@ -170,6 +166,7 @@ Status parsePlistContent(const std::string& content, pt::ptree& tree) {
 
 Status parsePlist(const boost::filesystem::path& path, pt::ptree& tree) {
   tree.clear();
+  Status status;
   @autoreleasepool {
     id ns_path = [NSString stringWithUTF8String:path.string().c_str()];
     id stream = [NSInputStream inputStreamWithFileAtPath:ns_path];
@@ -185,12 +182,16 @@ Status parsePlist(const boost::filesystem::path& path, pt::ptree& tree) {
                                                                  format:NULL
                                                                   error:&error];
     if (plist_data == nil) {
+      // The most common error is lack of read permissions.
       std::string error_message([[error localizedFailureReason] UTF8String]);
       VLOG(1) << error_message;
+      [stream close];
       return Status(1, error_message);
     }
     // Parse the plist data into a core foundation dictionary-literal.
-    return filterPlist(plist_data, tree);
+    status = filterPlist(plist_data, tree);
+    [stream close];
   }
+  return status;
 }
 }

@@ -42,7 +42,7 @@ int xEof(sqlite3_vtab_cursor *cur) {
   if (pCur->row >= pVtab->content->n) {
     // If the requested row exceeds the size of the row set then all rows
     // have been visited, clear the data container.
-    pVtab->content->data.clear();
+    QueryData().swap(pVtab->content->data);
     return true;
   }
   return false;
@@ -158,7 +158,7 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
     double afinite = strtod(value.c_str(), &end);
     if (end == nullptr || end == value.c_str() || *end != '\0') {
       afinite = 0;
-      VLOG(1) << "Error casting" << column_name << " (" << value
+      VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to DOUBLE";
     }
     sqlite3_result_double(ctx, afinite);
@@ -169,7 +169,7 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
 
 static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   auto *pVtab = (VirtualTable *)tab;
-  pVtab->content->constraints.clear();
+  ConstraintSet().swap(pVtab->content->constraints);
 
   int expr_index = 0;
   int cost = 0;

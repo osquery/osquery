@@ -201,7 +201,7 @@ void genApplication(const pt::ptree& tree,
       r[item.second] = "";
     }
   }
-  results.push_back(r);
+  results.push_back(std::move(r));
 }
 
 Status genAppsFromLaunchServices(std::set<std::string>& apps) {
@@ -284,7 +284,7 @@ QueryData genApps(QueryContext& context) {
     genApplication(tree, path, results);
   }
 
-  return results;
+  return std::move(results);
 }
 
 QueryData genAppSchemes(QueryContext& context) {
