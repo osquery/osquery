@@ -88,7 +88,7 @@ void genLaunchdItem(const pt::ptree& tree,
     r[it.second] = boost::algorithm::join(arguments, " ");
   }
 
-  results.push_back(r);
+  results.push_back(std::move(r));
 }
 
 QueryData genLaunchd(QueryContext& context) {
@@ -128,7 +128,7 @@ QueryData genLaunchd(QueryContext& context) {
     genLaunchdItem(tree, path, results);
   }
 
-  return results;
+  return std::move(results);
 }
 
 void genLaunchdOverride(const fs::path& path, QueryData& results) {
