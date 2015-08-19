@@ -182,6 +182,19 @@ It is often not the intention of the schedule author to run these queries togeth
 at that interval. But rather, each query should run at about the interval.
 A default schedule splay of 10% is applied to each query when the configuration is loaded.
 
+`--pack_refresh_interval=3600`
+
+Query Packs may optionally include one or more discovery queries, which allow
+you to use osquery queries to manage which packs should be loaded at runtime.
+Osquery will natively re-run the discovery queries from time to time, to make
+sure that all of the correct packs are executing. This flag allows you to
+specify that interval.
+
+`--schedule_default_interval=3600`
+
+Optionally set the default interval value. This is used if you schedule a query
+which does not define an interval.
+
 `--worker_threads=4`
 
 Number of work dispatch threads.
@@ -204,7 +217,7 @@ This allows osquery to be launched without certain tables.
 
 `--disable_events=false`
 
-Disable osquery Operating System [eventing publish subscribe](../development/pubsub-framework.md) APIs. This will implicitly disable several tables that report based on logged events. 
+Disable osquery Operating System [eventing publish subscribe](../development/pubsub-framework.md) APIs. This will implicitly disable several tables that report based on logged events.
 
 `--events_expiry=86000`
 

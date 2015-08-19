@@ -550,8 +550,7 @@ def loadThriftFromBuild(build_dir):
     '''Find and import the thrift-generated python interface.'''
     thrift_path = build_dir + "/generated/gen-py"
     try:
-        sys.path.append(thrift_path)
-        sys.path.append(thrift_path + "/osquery")
+        sys.path = [thrift_path, thrift_path + "/osquery"] + sys.path
         from osquery import ExtensionManager, Extension
         EXClient.setUp(ExtensionManager, Extension)
     except ImportError as e:

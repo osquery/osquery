@@ -20,7 +20,7 @@ class ExampleConfigPlugin : public ConfigPlugin {
   }
 
   Status genConfig(std::map<std::string, std::string>& config) {
-    config["data"] = "{\"options\": [], \"scheduledQueries\": []}";
+    config["data"] = "{\"queries\":{}}";
     return Status(0, "OK");
   }
 };

@@ -21,69 +21,20 @@
 namespace osquery {
 namespace tables {
 
-typedef pt::ptree::value_type tree_node;
-
-void genQueryPack(const tree_node& pack, QueryData& results) {
-  Row r;
-  // Packs are stored by name and contain configuration data.
-  r["name"] = pack.first;
-  r["path"] = pack.second.get("path", "");
-
-  // There are optional restrictions on the set of queries applied pack-wide.
-  auto pack_wide_version = pack.second.get("version", "");
-  auto pack_wide_platform = pack.second.get("platform", "");
-
-  // Iterate through each query in the pack.
-  for (auto const& query : pack.second.get_child("queries")) {
-    r["query_name"] = query.first;
-    r["query"] = query.second.get("query", "");
-    r["interval"] = INTEGER(query.second.get("interval", 0));
-    r["description"] = query.second.get("description", "");
-    r["value"] = query.second.get("value", "");
-
-    // Set the version requirement based on the query-specific or pack-wide.
-    if (query.second.count("version") > 0) {
-      r["version"] = query.second.get("version", "");
-    } else {
-      r["version"] = pack_wide_platform;
-    }
-
-    // Set the platform requirement based on the query-specific or pack-wide.
-    if (query.second.count("platform") > 0) {
-      r["platform"] = query.second.get("platform", "");
-    } else {
-      r["platform"] = pack_wide_platform;
-    }
-
-    // Adding a prefix to the pack queries to differentiate packs from schedule.
-    r["scheduled_name"] = "pack_" + r.at("name") + "_" + r.at("query_name");
-    if (Config::checkScheduledQueryName(r.at("scheduled_name"))) {
-      r["scheduled"] = INTEGER(1);
-    } else {
-      r["scheduled"] = INTEGER(0);
-    }
-
-    results.push_back(r);
-  }
-}
-
 QueryData genOsqueryPacks(QueryContext& context) {
   QueryData results;
 
-  // Get a lock on the config instance.
-  ConfigDataInstance config;
+  Config::getInstance().packs([&results](Pack& pack) {
+    Row r;
+    r["name"] = pack.getName();
+    r["version"] = pack.getVersion();
+    r["platform"] = pack.getPlatform();
 
-  // Get the loaded data tree from global JSON configuration.
-  const auto& packs_parsed_data = config.getParsedData("packs");
-
-  // Iterate through all the packs to get each configuration and set of queries.
-  for (auto const& pack : packs_parsed_data) {
-    // Make sure the pack data contains queries.
-    if (pack.second.count("queries") == 0) {
-      continue;
-    }
-    genQueryPack(pack, results);
-  }
+    auto stats = pack.getStats();
+    r["discovery_cache_hits"] = INTEGER(stats.hits);
+    r["discovery_executions"] = INTEGER(stats.misses);
+    results.push_back(r);
+  });
 
   return results;
 }
@@ -185,7 +136,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["version"] = kVersion;
 
   std::string hash_string;
-  auto s = Config::getMD5(hash_string);
+  auto s = Config::getInstance().getMD5(hash_string);
   if (s.ok()) {
     r["config_md5"] = TEXT(hash_string);
   } else {
@@ -208,23 +159,27 @@ QueryData genOsqueryInfo(QueryContext& context) {
 QueryData genOsquerySchedule(QueryContext& context) {
   QueryData results;
 
-  ConfigDataInstance config;
-  for (const auto& query : config.schedule()) {
-    Row r;
-    r["name"] = TEXT(query.first);
-    r["query"] = TEXT(query.second.query);
-    r["interval"] = INTEGER(query.second.interval);
+  Config::getInstance().scheduledQueries(
+      [&results](const std::string& name, const ScheduledQuery& query) {
+        Row r;
+        r["name"] = TEXT(name);
+        r["query"] = TEXT(query.query);
+        r["interval"] = INTEGER(query.interval);
 
-    // Report optional performance information.
-    r["executions"] = BIGINT(query.second.executions);
-    r["output_size"] = BIGINT(query.second.output_size);
-    r["wall_time"] = BIGINT(query.second.wall_time);
-    r["user_time"] = BIGINT(query.second.user_time);
-    r["system_time"] = BIGINT(query.second.system_time);
-    r["average_memory"] = BIGINT(query.second.average_memory);
-    results.push_back(r);
-  }
+        // Report optional performance information.
+        Config::getInstance().getPerformanceStats(
+            name,
+            [&r](const QueryPerformance& perf) {
+              r["executions"] = BIGINT(perf.executions);
+              r["output_size"] = BIGINT(perf.output_size);
+              r["wall_time"] = BIGINT(perf.wall_time);
+              r["user_time"] = BIGINT(perf.user_time);
+              r["system_time"] = BIGINT(perf.system_time);
+              r["average_memory"] = BIGINT(perf.average_memory);
+            });
 
+        results.push_back(r);
+      });
   return results;
 }
 

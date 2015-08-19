@@ -76,14 +76,21 @@ QueryData genYara(QueryContext& context) {
   }
 
   // XXX: Abstract this into a common "get rules for group" function.
-  ConfigDataInstance config;
-  const auto& parser = config.getParser("yara");
-  if (parser == nullptr) {
+  auto parser = Config::getParser("yara");
+  if (parser == nullptr || parser.get() == nullptr) {
+    LOG(ERROR) << "YARA config parser plugin has no pointer";
     return results;
   }
 
-  const auto& yaraParser = std::static_pointer_cast<YARAConfigParserPlugin>(parser);
-  if (yaraParser == nullptr) {
+  std::shared_ptr<YARAConfigParserPlugin> yaraParser;
+  try {
+    yaraParser = std::dynamic_pointer_cast<YARAConfigParserPlugin>(parser);
+  } catch (const std::bad_cast& e) {
+    LOG(ERROR) << "Error casting yara config parser plugin";
+    return results;
+  }
+  if (yaraParser == nullptr || yaraParser.get() == nullptr) {
+    LOG(ERROR) << "YARA config parser plugin has no pointer";
     return results;
   }
 

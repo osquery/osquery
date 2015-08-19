@@ -155,7 +155,7 @@ void TLSConfigRefreshRunner::start() {
     osquery::interruptableSleep(FLAGS_config_tls_refresh * 1000);
 
     // The config instance knows the TLS plugin is selected.
-    Config::load();
+    Config::getInstance().load();
   }
 }
 }

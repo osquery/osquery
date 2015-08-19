@@ -13,6 +13,8 @@
 
 #include "osquery/events/kernel.h"
 
+namespace pt = boost::property_tree;
+
 namespace osquery {
 
 class ProcessEventSubscriber
@@ -72,14 +74,14 @@ Status ProcessEventSubscriber::Callback(
     bool use_whitelist = false;
     pt::ptree whitelist;
 
-    // Check if an events whitelist exists.
-    ConfigDataInstance config;
-    if (config.data().count("events")) {
-      // Only apply a whitelist search if the events and environment_variables
-      // keys are included. Otherwise, optimize by adding all.
-      if (config.data().get_child("events").count("environment_variables")) {
+    auto plugin = Config::getInstance().getParser("events");
+    if (plugin == nullptr || plugin.get() == nullptr) {
+      LOG(ERROR) << "Could not load events config parser";
+    } else {
+      auto data = plugin->getData();
+      if (data.get_child("events").count("environment_variables") > 0) {
         use_whitelist = true;
-        whitelist = config.data().get_child("events.environment_variables");
+        whitelist = data.get_child("events.environment_variables");
       }
     }
 

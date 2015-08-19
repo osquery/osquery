@@ -29,6 +29,9 @@ CLI_FLAG(string,
 class FilesystemConfigPlugin : public ConfigPlugin {
  public:
   Status genConfig(std::map<std::string, std::string>& config);
+  Status genPack(const std::string& name,
+                 const std::string& value,
+                 std::string& pack);
 };
 
 REGISTER(FilesystemConfigPlugin, "config", "filesystem");
@@ -51,5 +54,14 @@ Status FilesystemConfigPlugin::genConfig(
     }
   }
   return Status(0, "OK");
+}
+
+Status FilesystemConfigPlugin::genPack(const std::string& name,
+                                       const std::string& value,
+                                       std::string& pack) {
+  if (!fs::is_regular_file(value)) {
+    return Status(1, value + " is not a valid path");
+  }
+  return readFile(value, pack);
 }
 }

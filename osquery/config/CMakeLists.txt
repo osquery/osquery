@@ -1,5 +1,6 @@
 ADD_OSQUERY_LIBRARY(TRUE osquery_config
   config.cpp
+  packs.cpp
 )
 
 set(OSQUERY_CONFIG_PLUGINS

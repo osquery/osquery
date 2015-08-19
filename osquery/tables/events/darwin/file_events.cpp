@@ -52,16 +52,15 @@ class FileEventSubscriber
 REGISTER(FileEventSubscriber, "event_subscriber", "file_events");
 
 Status FileEventSubscriber::init() {
-  ConfigDataInstance config;
-  for (const auto& element_kv : config.files()) {
-    for (const auto& file : element_kv.second) {
+  Config::getInstance().files([this](const std::string& category,
+                                     const std::vector<std::string>& files) {
+    for (const auto& file : files) {
       VLOG(1) << "Added listener to: " << file;
       auto mc = createSubscriptionContext();
       mc->path = file;
-      subscribe(&FileEventSubscriber::Callback, mc,
-                (void*)(&element_kv.first));
+      subscribe(&FileEventSubscriber::Callback, mc, (void*)(&category));
     }
-  }
+  });
 
   return Status(0, "OK");
 }
