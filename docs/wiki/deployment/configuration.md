@@ -242,5 +242,5 @@ We plan to release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that e
 ## osqueryctl helper
 
 To test a deploy or configuration we include a short helper script called osqueryctl.
-There are several actions including "start", "stop", and "check-config" that apply
+There are several actions including "start", "stop", and "config-check" that apply
 to both OS X and Linux.
