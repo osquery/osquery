@@ -268,7 +268,7 @@ endif()
 execute_process(COMMAND mkdir -p "${CMAKE_BINARY_DIR}/generated")
 
 # We need to link some packages as dynamic/dependent.
-set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so)
+set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so .a)
 find_package(BZip2 REQUIRED)
 find_package(Dl REQUIRED)
 find_package(Readline REQUIRED)
