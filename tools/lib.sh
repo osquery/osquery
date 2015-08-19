@@ -29,6 +29,9 @@ function platform() {
   elif [[ -f "$LSB_RELEASE" ]] && grep -q 'DISTRIB_ID=Ubuntu' $LSB_RELEASE; then
     FAMILY="debian"
     eval $__out="ubuntu"
+  elif [[ -n `grep -o "Fedora" $SYSTEM_RELEASE 2>/dev/null` ]]; then
+    FAMILY="redhat"
+    eval $__out="fedora"
   elif [[ -f "$DEBIAN_VERSION" ]]; then
     FAMILY="debian"
     eval $__out="debian"
@@ -56,10 +59,12 @@ function distro() {
     eval $__out=`awk -F= '/DISTRIB_CODENAME/ { print $2 }' $LSB_RELEASE`
   elif [[ $1 = "darwin" ]]; then
     eval $__out=`sw_vers -productVersion | awk -F '.' '{print $1 "." $2}'`
-  elif [[ $1 = "freebsd" ]]; then
-    eval $__out=`uname -r | awk -F '-' '{print $1}'` 
+  elif [[ $1 = "fedora" ]]; then
+    eval $__out=`cat /etc/system-release | cut -d" " -f3`
   elif [[ $1 = "debian" ]]; then
     eval $__out="`lsb_release -cs`"
+  elif [[ $1 = "freebsd" ]]; then
+    eval $__out=`uname -r | awk -F '-' '{print $1}'` 
   else
     eval $__out="unknown_version"
   fi
