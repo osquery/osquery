@@ -9,7 +9,7 @@ The most important differentiator to the **filesystem** suite of plugins is an a
 The initial step is called an "enroll step" and in the case of **tls** plugins, uses an implicit *enroll* plugin, also called **tls**. If you enable either config or logger **tls** plugins the enrollment plugin will turn on automatically. Enrollment provides an initial secret to the remote server in order to negotiate a private node secret used for future identification. The process is simple:
 
 1. Configure a target `tls_hostname`, `enroll_tls_endpoint`.
-2. Submit either a `enroll_secret_path`, or use TLS-client authentication, to the enroll endpoint.
+2. Submit an `enroll_secret_path`, an `enroll_secret_env`, or use TLS-client authentication, to the enroll endpoint.
 3. Receive a `node_key` and store within RocksDB.
 4. Make config/logger requests while providing `node_key` as identification/authentication.
 
@@ -17,9 +17,12 @@ The validity of a `node_key` is determined and implemented in the TLS server. Th
 
 ### Simple shared secret enrollment
 
-A deployment key, called an enrollment shared secret, is the simplest **tls** plugin enrollment authentication method. A protected shared secret is written to disk and osquery reads then posts the content to `enroll_tls_endpoint` once during enrollment. The TLS server may implement an enrollment request approval process that requires manual intervention/approval for each new enrollment request. 
+A deployment key, called an enrollment shared secret, is the simplest **tls** plugin enrollment authentication method. A protected shared secret is written to disk and osquery reads then posts the content to `enroll_tls_endpoint` once during enrollment. The TLS server may implement an enrollment request approval process that requires manual intervention/approval for each new enrollment request.
 
 After enrollment a client maintains the response `node_key` for authenticated requests to config and logger TLS endpoints.
+
+The shared secret can be stored in a plain-text file which is specified at runtime with the flag `--enroll_secret_path=/path/to/file.ext`.
+The shared secret can alternatively be kept in an environment variable which is specified with the flag `--enroll_secret_env=NAME_OF_VARIABLE`.
 
 ### TLS client-auth enrollment
 
@@ -88,7 +91,7 @@ In most cases the client plugins default to 3-strikes-you're-out when attempting
 
 We include a very basic example python TLS/HTTPS server: [./tools/tests/test_http_server.py](https://github.com/facebook/osquery/blob/master/tools/tests/test_http_server.py). And a set of unit/integration tests: [./osquery/remote/transports/tests/tls_transports_tests.cpp](https://github.com/facebook/osquery/blob/master/osquery/remote/transports/tests/tls_transports_tests.cpp) for a reference server implementation.
 
-The TLS clients built into osquery use the system-provided OpenSSL libraries. The clients use boost's ASIO header-libraries through the [cpp-netlib](http://cpp-netlib.org/) HTTPS library. OpenSSL is very outdated on OS X (deprecated since OS X 10.7), but still salvageable. 
+The TLS clients built into osquery use the system-provided OpenSSL libraries. The clients use boost's ASIO header-libraries through the [cpp-netlib](http://cpp-netlib.org/) HTTPS library. OpenSSL is very outdated on OS X (deprecated since OS X 10.7), but still salvageable.
 
 On Linux and FreeBSD the TLS client prefers the TLS 1.2 protocol, but includes TLS 1.1/1.0 as well as the following cipher suites:
 
@@ -98,7 +101,6 @@ DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:\
 !aNULL:!MD5:!CBC:!SHA
 ```
 
-On OS X, the client only includes a TLS 1.0 protocol and allows `CBC:SHA` algorithms within cipher suites. 
+On OS X, the client only includes a TLS 1.0 protocol and allows `CBC:SHA` algorithms within cipher suites.
 
 Additionally, the osquery TLS clients use a `osquery/X.Y.Z` UserAgent, where "X.Y.Z" is the client build version.
-
