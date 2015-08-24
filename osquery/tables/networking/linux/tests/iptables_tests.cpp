@@ -32,9 +32,10 @@ ipt_ip* getIpEntryContent() {
   inet_aton("45.45.45.45", &ip_entry.dst);
   inet_aton("250.251.252.253", &ip_entry.smsk);
   inet_aton("253.252.251.250", &ip_entry.dmsk);
-  memset(ip_entry.iniface_mask, 0xfe, IFNAMSIZ );
-  memset(ip_entry.outiface_mask, 0xfa, IFNAMSIZ );
-
+  memset(ip_entry.iniface_mask, 0xfe, IFNAMSIZ);
+  memset(ip_entry.outiface_mask, 0xfa, IFNAMSIZ);
+  ip_entry.iniface_mask[IFNAMSIZ-1] = 0x00;
+  ip_entry.outiface_mask[IFNAMSIZ-1] = 0x00;
   return &ip_entry;
 }
 
@@ -48,8 +49,8 @@ Row getIpEntryExpectedResults() {
   row["dst_ip"] = "45.45.45.45";
   row["src_mask"] = "250.251.252.253";
   row["dst_mask"] = "253.252.251.250";
-  row["iniface_mask"] = "FEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFE";
-  row["outiface_mask"] = "FAFAFAFAFAFAFAFAFAFAFAFAFAFAFAFA";
+  row["iniface_mask"] = "FEFEFEFEFEFEFEFEFEFEFEFEFEFEFE";
+  row["outiface_mask"] = "FAFAFAFAFAFAFAFAFAFAFAFAFAFAFA";
 
   return row;
 }

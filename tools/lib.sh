@@ -10,6 +10,7 @@
 ORACLE_RELEASE=/etc/oracle-release
 SYSTEM_RELEASE=/etc/system-release
 LSB_RELEASE=/etc/lsb-release
+DEBIAN_VERSION=/etc/debian_version
 
 function platform() {
   local  __out=$1
@@ -28,6 +29,9 @@ function platform() {
   elif [[ -f "$LSB_RELEASE" ]] && grep -q 'DISTRIB_ID=Ubuntu' $LSB_RELEASE; then
     FAMILY="debian"
     eval $__out="ubuntu"
+  elif [[ -f "$DEBIAN_VERSION" ]]; then
+    FAMILY="debian"
+    eval $__out="debian"
   else
     eval $__out=`uname -s | tr '[:upper:]' '[:lower:]'`
   fi
@@ -53,7 +57,9 @@ function distro() {
   elif [[ $1 = "darwin" ]]; then
     eval $__out=`sw_vers -productVersion | awk -F '.' '{print $1 "." $2}'`
   elif [[ $1 = "freebsd" ]]; then
-    eval $__out=`uname -r | awk -F '-' '{print $1}'`
+    eval $__out=`uname -r | awk -F '-' '{print $1}'` 
+  elif [[ $1 = "debian" ]]; then
+    eval $__out="`lsb_release -cs`"
   else
     eval $__out="unknown_version"
   fi

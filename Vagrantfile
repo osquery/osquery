@@ -1,4 +1,11 @@
 targets = {
+  "debian7" => {
+    "box" => "deb/wheezy-amd64"
+  },
+  "debian8" => {
+    "box" => "deb/jessie-amd64"
+  },
+
   "centos6.5" => {
     "box" => "chef/centos-6.5"
   },
