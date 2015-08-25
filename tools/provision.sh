@@ -69,6 +69,10 @@ function main() {
     log "detected freebsd ($DISTRO)"
     source "$SCRIPT_DIR/provision/freebsd.sh"
     main_freebsd
+  elif [[ $OS = "fedora" ]]; then
+    log "detected fedora ($DISTRO)"
+    source "$SCRIPT_DIR/provision/fedora.sh"
+    main_fedora
   elif [[ $OS = "debian" ]]; then
     log "detected debian ($DISTRO)"
     source "$SCRIPT_DIR/provision/debian.sh"
