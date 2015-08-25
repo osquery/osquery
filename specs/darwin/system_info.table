@@ -1,0 +1,8 @@
+table_name("system_info")
+description("System information for identification.")
+schema([
+    Column("hostname", TEXT, "Network hostname including domain"),
+    Column("uuid", TEXT, "Unique ID provided by the system"),
+    Column("cpu_serial", TEXT, "System serial number frequently used for asset tracking"),
+])
+implementation("system/system_info@genSystemInfo")

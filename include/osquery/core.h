@@ -209,6 +209,13 @@ std::string join(const std::vector<std::string>& s, const std::string& tok);
 std::string getHostname();
 
 /**
+ * @brief Getter for a host's uuid.
+ *
+ * @return ok on success and ident is set to the host's uuid, otherwise failure.
+ */
+Status getHostUUID(std::string& ident);
+
+/**
  * @brief generate a uuid to uniquely identify this machine
  *
  * @return uuid string to identify this machine
