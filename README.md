@@ -36,11 +36,11 @@ Check the processes that have a deleted executable:
 SELECT * FROM processes WHERE on_disk = 0;
 ```
 
-Get the process name, port, and PID, which are listening on all interfaces:
+Get the process name, port, and PID, for processes listening on all interfaces:
 ```sql
 SELECT DISTINCT process.name, listening.port, process.pid
-FROM processes AS process
-JOIN listening_ports AS listening ON process.pid = listening.pid
+FROM listening_ports AS listening
+JOIN processes AS process ON listening.pid = process.pid
 WHERE listening.address = '0.0.0.0';
 ```
 
