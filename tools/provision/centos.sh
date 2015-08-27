@@ -104,6 +104,7 @@ function main_centos() {
   package libgcrypt-devel
   package gettext-devel
   install_libcryptsetup
+  package file-libs
 
   gem_install fpm
 }

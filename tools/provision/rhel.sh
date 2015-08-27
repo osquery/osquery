@@ -142,6 +142,7 @@ function main_rhel() {
   package libgcrypt-devel
   package gettext-devel
   install_libcryptsetup
+  package file-libs
 
   gem_install fpm
 }
