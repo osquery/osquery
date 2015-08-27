@@ -141,5 +141,5 @@ function main_ubuntu() {
   package libdevmapper-dev
 
   install_libcryptsetup
-
+  package libmagic-dev
 }

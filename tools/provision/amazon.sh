@@ -48,7 +48,7 @@ function main_amazon() {
 
   package libudev-devel
   package cryptsetup-luks-devel
-  
+
   install_gflags
   install_iptables_dev
 
@@ -56,6 +56,7 @@ function main_amazon() {
   package byacc
   package flex
   package bison
+  package file-libs
 
   remove_package libunwind-devel
 
