@@ -85,10 +85,14 @@ function main_centos() {
     install_autoconf
     install_automake
     install_libtool
+
+    package file-libs
   elif [[ $DISTRO = "centos7" ]]; then
     package autoconf
     package automake
     package libtool
+
+    package file-devel
   fi
 
   install_snappy
@@ -100,6 +104,7 @@ function main_centos() {
   package libgcrypt-devel
   package gettext-devel
   install_libcryptsetup
+  package file-libs
 
   gem_install fpm
 }

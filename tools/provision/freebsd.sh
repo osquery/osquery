@@ -17,4 +17,5 @@ function main_freebsd() {
   package thrift
   package thrift-cpp
   package yara
+  package libmagic
 }
