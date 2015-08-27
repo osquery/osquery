@@ -85,10 +85,14 @@ function main_centos() {
     install_autoconf
     install_automake
     install_libtool
+
+    package file-libs
   elif [[ $DISTRO = "centos7" ]]; then
     package autoconf
     package automake
     package libtool
+
+    package file-devel
   fi
 
   install_snappy

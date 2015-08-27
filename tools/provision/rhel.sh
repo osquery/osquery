@@ -123,10 +123,14 @@ function main_rhel() {
     install_autoconf
     install_automake
     install_libtool
+
+    package file-libs
   elif [[ $DISTRO = "rhel7" ]]; then
     package autoconf
     package automake
     package libtool
+
+    package file-devel
   fi
 
   install_snappy
