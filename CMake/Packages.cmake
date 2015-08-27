@@ -17,6 +17,7 @@ elseif(LINUX)
       "zlib1g"
       "libbz2-1.0"
       "libreadline6"
+      "libgcrypt11"
     )
     if(NOT OSQUERY_BUILD_DISTRO STREQUAL "lucid")
       set(PACKAGE_ITERATION "1.ubuntu10")
