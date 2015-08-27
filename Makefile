@@ -96,6 +96,7 @@ ifeq ($(DISTRO),unknown_version)
 	@echo Unknown, non-Redhat, non-Ubuntu based Linux distro
 	false
 endif
+	@mkdir -p build/docs
 	@mkdir -p build/$(BUILD_DIR)
 	@mkdir -p build/debug_$(BUILD_DIR)
 ifeq ($(PLATFORM),Linux)
