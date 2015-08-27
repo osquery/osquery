@@ -17,53 +17,42 @@
 namespace osquery {
 namespace tables {
 
-static int getMagicData(const int magic_flag, const std::string file_path, std::string &magic_data) {
+QueryData genMagicData(QueryContext& context) {
+  QueryData results;
   magic_t magic_cookie;
 
-  magic_cookie = magic_open(magic_flag);
+  // No default flags
+  magic_cookie = magic_open(MAGIC_NONE);
 
   if (!magic_cookie) {
     VLOG(1) << "Unable to initialize magic library.";
-    return 1;
+    return results;
   }
   if (magic_load(magic_cookie, nullptr) != 0) {
     VLOG(1) << "Unable to load magic database - " << magic_error(magic_cookie);
     magic_close(magic_cookie);
-    return 1;
+    return results;
   }
-  magic_data = magic_file(magic_cookie, file_path.c_str());
-  magic_close(magic_cookie);
-
-  return 0;
-}
-
-QueryData genMagicData(QueryContext& context) {
-  QueryData results;
 
   // Iterate through all the provided paths
   auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
     Row r;
     r["path"] = path_string;
-
-    // Retrieve data with no flags
-    if (getMagicData(MAGIC_NONE, path_string, r["data"]) != 0) {
-      return results;
-    }
+    r["data"] = magic_file(magic_cookie, path_string.c_str());
 
     // Retrieve MIME type
-    if (getMagicData(MAGIC_MIME_TYPE, path_string, r["mime_type"]) != 0) {
-      return results;
-    }
+    magic_setflags(magic_cookie, MAGIC_MIME_TYPE);
+    r["mime_type"] = magic_file(magic_cookie, path_string.c_str());
 
     // Retrieve MIME encoding
-    if (getMagicData(MAGIC_MIME_ENCODING, path_string, r["mime_encoding"]) != 0) {
-      return results;
-    }
+    magic_setflags(magic_cookie, MAGIC_MIME_ENCODING);
+    r["mime_encoding"] = magic_file(magic_cookie, path_string.c_str());
 
     results.push_back(r);
   }
 
+  magic_close(magic_cookie);
   return results;
 }
 }

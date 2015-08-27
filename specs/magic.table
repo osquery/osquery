@@ -1,5 +1,5 @@
 table_name("magic")
-description("Magic Number Recognition Library table.")
+description("Magic number recognition library table.")
 schema([
     Column("path", TEXT, "Absolute path to target file", required=True),
     Column("data", TEXT, "Magic number data from libmagic"),
