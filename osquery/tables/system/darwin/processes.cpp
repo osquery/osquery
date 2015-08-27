@@ -13,6 +13,7 @@
 
 #include <libproc.h>
 #include <mach/mach.h>
+#include <mach/mach_time.h>
 #include <sys/sysctl.h>
 
 #include <mach-o/dyld_images.h>
@@ -32,6 +33,9 @@ namespace tables {
 
 // The maximum number of expected memory regions per process.
 #define MAX_MEMORY_MAPS 512
+
+#define CPU_TIME_RATIO 1000000
+#define START_TIME_RATIO 1000000000
 
 std::set<int> getProcList(const QueryContext &context) {
   std::set<int> pidlist;
@@ -216,6 +220,12 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
 QueryData genProcesses(QueryContext &context) {
   QueryData results;
 
+  // Initialize time conversions.
+  static mach_timebase_info_data_t time_base;
+  if (time_base.denom == 0) {
+    mach_timebase_info(&time_base);
+  }
+
   auto pidlist = getProcList(context);
   auto parent_pid = getParentMap(pidlist);
   int argmax = genMaxArgs();
@@ -279,9 +289,13 @@ QueryData genProcesses(QueryContext &context) {
       r["phys_footprint"] = TEXT(rusage_info_data.ri_phys_footprint);
 
       // time information
-      r["user_time"] = TEXT(rusage_info_data.ri_user_time / 1000000);
-      r["system_time"] = TEXT(rusage_info_data.ri_system_time / 1000000);
-      r["start_time"] = TEXT(rusage_info_data.ri_proc_start_abstime);
+      r["user_time"] = TEXT(rusage_info_data.ri_user_time / CPU_TIME_RATIO);
+      r["system_time"] = TEXT(rusage_info_data.ri_system_time / CPU_TIME_RATIO);
+      // Convert the time in CPU ticks since boot to seconds.
+      // This is relative to time not-sleeping since boot.
+      r["start_time"] =
+          TEXT((rusage_info_data.ri_proc_start_abstime / START_TIME_RATIO) *
+               time_base.numer / time_base.denom);
     } else {
       r["wired_size"] = "-1";
       r["resident_size"] = "-1";
