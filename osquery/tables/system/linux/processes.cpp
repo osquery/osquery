@@ -160,7 +160,7 @@ SimpleProcStat getProcStat(const std::string& pid) {
     stat.parent = details.at(1);
     stat.user_time = details.at(11);
     stat.system_time = details.at(12);
-    stat.start_time = details.at(19);
+    stat.start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
   }
 
   if (readFile(getProcAttr("status", pid), content).ok()) {
