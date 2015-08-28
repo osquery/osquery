@@ -90,7 +90,7 @@ QueryData genBrowserPlugins(QueryContext& context) {
   return results;
 }
 
-void genSafariExtension(const std::string& path, QueryData& results) {
+inline void genSafariExtension(const std::string& path, QueryData& results) {
   Row r;
   r["name"] = fs::path(path).stem().string();
   r["path"] = path;
