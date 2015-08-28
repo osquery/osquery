@@ -15,7 +15,7 @@ using namespace osquery;
 class ExampleConfigPlugin : public ConfigPlugin {
  public:
   Status setUp() {
-    LOG(WARNING) << "ExampleConfigPlugin setting up.";
+    LOG(WARNING) << "ExampleConfigPlugin setting up";
     return Status(0, "OK");
   }
 

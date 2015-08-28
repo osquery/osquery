@@ -77,7 +77,7 @@ QueryData genFDEStatus(QueryContext &context) {
   QueryData results;
 
   if (getuid() || geteuid()) {
-    VLOG(1) << "Not running as root, disk encryption status not available.";
+    VLOG(1) << "Not running as root, disk encryption status not available";
     return results;
   }
 

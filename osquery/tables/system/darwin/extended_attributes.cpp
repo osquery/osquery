@@ -114,7 +114,7 @@ void parseWhereFrom(QueryData &results, const std::string &path) {
   CFRelease(CFPath);
 
   if (metadata == nullptr) {
-    VLOG(1) << "Metadata for " << path << " is null.";
+    VLOG(1) << "Metadata for " << path << " is null";
     return;
   }
 

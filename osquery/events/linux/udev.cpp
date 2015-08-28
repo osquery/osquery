@@ -67,7 +67,7 @@ Status UdevEventPublisher::run() {
 
   struct udev_device *device = udev_monitor_receive_device(monitor_);
   if (device == nullptr) {
-    LOG(ERROR) << "udev monitor returned invalid device.";
+    LOG(ERROR) << "udev monitor returned invalid device";
     return Status(1, "udev monitor failed.");
   }
 

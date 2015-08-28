@@ -52,7 +52,7 @@ void loadKernelExtension() {
       auto rx = xp::sregex::compile(kKernelBundleRegex);
       xp::smatch matches;
       if (xp::regex_search(panic_content, matches, rx)) {
-        LOG(ERROR) << "Panic was caused by osquery kernel extension.";
+        LOG(ERROR) << "Panic was caused by osquery kernel extension";
         writeTextFile(kBlockingFile, "");
       }
     }
@@ -62,9 +62,9 @@ void loadKernelExtension() {
       SQL::selectAllFrom("file", "path", EQUALS, "/var/osquery/.gtfo");
 
   if (FLAGS_disable_kernel) {
-    LOG(INFO) << "Kernel extension is disabled.";
+    LOG(INFO) << "Kernel extension is disabled";
   } else if (results.size() > 0) {
-    LOG(WARNING) << "Kernel extension disabled by file.";
+    LOG(WARNING) << "Kernel extension disabled by file";
   } else {
     CFURLRef urls[1];
     CFArrayRef directoryArray;

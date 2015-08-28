@@ -157,7 +157,7 @@ TEST_F(FilesystemTests, test_simple_globs) {
   results.clear();
   resolveFilePattern("~", results);
   if (results.size() == 0) {
-    LOG(WARNING) << "Tilde expansion failed.";
+    LOG(WARNING) << "Tilde expansion failed";
   }
 }
 

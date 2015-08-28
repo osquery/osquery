@@ -67,7 +67,7 @@ Status KernelEventPublisher::run() {
     int drops = 0;
     if ((drops = queue_->kernelSync(OSQUERY_DEFAULT)) > 0 &&
         kToolType == OSQUERY_TOOL_DAEMON) {
-      LOG(WARNING) << "Dropping " << drops << " kernel events.";
+      LOG(WARNING) << "Dropping " << drops << " kernel events";
     }
   } catch (const CQueueException &e) {
     LOG(WARNING) << e.what();
@@ -95,7 +95,7 @@ Status KernelEventPublisher::run() {
     }
     max_before_sync--;
   }
-  
+
   return Status(0, "Continue");
 }
 

@@ -27,7 +27,7 @@ QueryData genArpCache(QueryContext& context) {
 
   boost::filesystem::path arp_path = kLinuxArpTable;
   if (!osquery::isReadable(arp_path).ok()) {
-    VLOG(1) << "Cannot read arp table.";
+    VLOG(1) << "Cannot read arp table";
     return results;
   }
 
@@ -35,7 +35,7 @@ QueryData genArpCache(QueryContext& context) {
   std::string line;
 
   if (fd.fail() || fd.eof()) {
-    VLOG(1) << "Empty or failed arp table.";
+    VLOG(1) << "Empty or failed arp table";
     return results;
   }
 
