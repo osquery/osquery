@@ -30,4 +30,5 @@ function main_darwin() {
   package thrift
   package yara
   package doxygen
+  package libmagic
 }

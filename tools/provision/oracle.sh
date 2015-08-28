@@ -124,5 +124,7 @@ function main_oracle() {
     package rubygems
   fi
 
+  package file-libs
+
   gem_install fpm
 }

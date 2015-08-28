@@ -142,4 +142,5 @@ function main_ubuntu() {
 
   install_libcryptsetup
 
+  package libmagic-dev
 }
