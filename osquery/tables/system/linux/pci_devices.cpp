@@ -32,7 +32,7 @@ QueryData genPCIDevices(QueryContext &context) {
 
   auto udev_handle = udev_new();
   if (udev_handle == nullptr) {
-    VLOG(1) << "Could not get udev handle.";
+    VLOG(1) << "Could not get udev handle";
     return results;
   }
 

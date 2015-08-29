@@ -177,7 +177,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}"
 include(CMakeLibs)
 
 if(NOT IS_DIRECTORY ${CMAKE_SOURCE_DIR}/third-party/sqlite3)
-  WARNING_LOG("Cannot find git submodule third-party/sqlite3 directory.")
+  WARNING_LOG("Cannot find git submodule third-party/sqlite3 directory")
   WARNING_LOG("Please run: make deps or git submodule update --init")
   message(FATAL_ERROR "No sqlite3 directory")
 endif()

@@ -89,7 +89,7 @@ class TLSTransportsTests : public testing::Test {
     // Sometimes the best we can test is the call workflow.
     if (status.getCode() == 1) {
       // The socket bind failed or encountered a connection error in the test.
-      LOG(ERROR) << "Not failing TLS-based transport tests.";
+      LOG(ERROR) << "Not failing TLS-based transport tests";
       return false;
     }
     return true;
