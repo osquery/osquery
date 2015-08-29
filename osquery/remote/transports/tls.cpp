@@ -55,6 +55,16 @@ CLI_FLAG(string,
          "",
          "Optional path to a TLS client-auth PEM private key");
 
+#if defined(DEBUG)
+HIDDEN_FLAG(bool,
+            tls_allow_unsafe,
+            false,
+            "Allow TLS server certificate trust failures");
+#endif
+
+/// Undocumented feature to override TLS endpoints.
+HIDDEN_FLAG(bool, tls_node_api, false, "Use node key as TLS endpoints");
+
 TLSTransport::TLSTransport() : verify_peer_(true) {
   if (FLAGS_tls_server_certs.size() > 0) {
     server_certificate_file_ = FLAGS_tls_server_certs;
@@ -83,6 +93,13 @@ http::client TLSTransport::getClient() {
 #if defined(SSL_TXT_TLSV1_2) && !defined(UBUNTU_PRECISE) && !defined(DARWIN)
   // Otherwise we prefer GCM and SHA256+
   ciphers += ":!CBC:!SHA";
+#endif
+
+#if defined(DEBUG)
+  // Configuration may allow unsafe TLS testing if compiled as a debug target.
+  if (FLAGS_tls_allow_unsafe) {
+    options.always_verify_peer(false);
+  }
 #endif
 
   options.openssl_ciphers(ciphers);
@@ -153,9 +170,20 @@ Status TLSTransport::sendRequest(const std::string& params) {
   http::client::request r(destination_);
   decorateRequest(r);
 
+  // Allow request calls to override the default HTTP POST verb.
+  HTTPVerb verb = HTTP_POST;
+  if (options_.count("verb") > 0) {
+    verb = (HTTPVerb)options_.get<int>("verb", HTTP_POST);
+  }
+
   try {
-    VLOG(1) << "TLS/HTTPS POST request to URI: " << destination_;
-    response_ = client.post(r, params);
+    VLOG(1) << "TLS/HTTPS " << ((verb == HTTP_POST) ? "POST" : "PUT")
+            << " request to URI: " << destination_;
+    if (verb == HTTP_POST) {
+      response_ = client.post(r, params);
+    } else {
+      response_ = client.put(r, params);
+    }
     response_status_ =
         serializer_->deserialize(body(response_), response_params_);
   } catch (const std::exception& e) {

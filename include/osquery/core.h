@@ -211,6 +211,13 @@ std::string getHostname();
 std::string generateHostUuid();
 
 /**
+ * @brief Get a configured UUID/name that uniquely identify this machine
+ *
+ * @return string to identify this machine
+ */
+std::string getHostIdentifier();
+
+/**
  * @brief Getter for the current time, in a human-readable format.
  *
  * @return the current date/time in the format: "Wed Sep 21 10:27:52 2011"

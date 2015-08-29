@@ -89,6 +89,11 @@ class Transport {
     return response_params_;
   }
 
+  template <typename T>
+  void setOption(const std::string& name, const T& value) {
+    options_.put(name, value);
+  }
+
   /**
    * @brief Virtual destructor
    */
@@ -106,6 +111,9 @@ class Transport {
 
   /// storage for response parameters
   boost::property_tree::ptree response_params_;
+
+  /// options from request call (use defined by specific transport)
+  boost::property_tree::ptree options_;
 };
 
 /**
@@ -250,6 +258,11 @@ class Request {
   Status getResponse(boost::property_tree::ptree& params) {
     params = transport_->getResponseParams();
     return transport_->getResponseStatus();
+  }
+
+  template <typename T>
+  void setOption(const std::string& name, const T& value) {
+    transport_->setOption(name, value);
   }
 
  private:

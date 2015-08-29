@@ -83,6 +83,14 @@ The posted logger data is exactly the same as logged to disk by the **filesystem
 {}
 ```
 
+**Customizations**
+
+There are several unlisted flags to further control the remote settings. These controls are helpful if using a somewhat opaque API.
+
+`--tls_secret_always=True` will always send the enrollment secret. This will not perform an enrollment request with every config/logger attempt but rather "also" include the secret. If this is enabled, the secret is appended as a URI variable.
+
+`--tls_enroll_override=enroll_secret` this allows one to rename the enrollment key request body or URI variable.
+
 ## Remote logging buffering
 
 In most cases the client plugins default to 3-strikes-you're-out when attempting to POST to the configured endpoints. If a configuration cannot be retrieved the client will exit non-0 but a non-responsive logger endpoint will cause logs to buffer in RocksDB. The logging buffer size can be controlled by a [CLI flag](../installation/cli-flags.md), and if the size overflows logs will drop.

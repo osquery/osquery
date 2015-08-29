@@ -24,12 +24,11 @@ namespace osquery {
 
 const int kDelayUS = 2000;
 const int kTimeoutUS = 1000000;
-const std::string kTestManagerSocket = kTestWorkingDirectory + "test.em";
 
 class ExtensionsTest : public testing::Test {
  protected:
   void SetUp() {
-    socket_path = kTestManagerSocket + std::to_string(rand());
+    socket_path = kTestWorkingDirectory + "test.em" + std::to_string(rand());
     remove(socket_path);
     if (pathExists(socket_path).ok()) {
       throw std::domain_error("Cannot test sockets: " + socket_path);

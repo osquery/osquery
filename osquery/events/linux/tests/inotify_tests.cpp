@@ -25,26 +25,28 @@
 
 namespace osquery {
 
-const std::string kRealTestPath = kTestWorkingDirectory + "inotify-trigger";
-const std::string kRealTestDir = kTestWorkingDirectory + "inotify-triggers";
-const std::string kRealTestDirPath = kRealTestDir + "/1";
-const std::string kRealTestSubDir = kRealTestDir + "/2";
-const std::string kRealTestSubDirPath = kRealTestSubDir + "/1";
-
-int kMaxEventLatency = 3000;
+const int kMaxEventLatency = 3000;
 
 class INotifyTests : public testing::Test {
  protected:
+  void SetUp() {
+    real_test_path = kTestWorkingDirectory + "inotify-trigger";
+    real_test_dir = kTestWorkingDirectory + "inotify-triggers";
+    real_test_dir_path = real_test_dir + "/1";
+    real_test_sub_dir = real_test_dir + "/2";
+    real_test_sub_dir_path = real_test_sub_dir + "/1";
+  }
+
   void TearDown() {
     // End the event loops, and join on the threads.
-    boost::filesystem::remove_all(kRealTestPath);
-    boost::filesystem::remove_all(kRealTestDir);
+    boost::filesystem::remove_all(real_test_path);
+    boost::filesystem::remove_all(real_test_dir);
   }
 
   void StartEventLoop() {
     event_pub_ = std::make_shared<INotifyEventPublisher>();
     auto status = EventFactory::registerEventPublisher(event_pub_);
-    FILE* fd = fopen(kRealTestPath.c_str(), "w");
+    FILE* fd = fopen(real_test_path.c_str(), "w");
     fclose(fd);
     temp_thread_ = boost::thread(EventFactory::run, "inotify");
   }
@@ -88,8 +90,17 @@ class INotifyTests : public testing::Test {
     fclose(fd);
   }
 
+ protected:
+  // Internal state managers.
   std::shared_ptr<INotifyEventPublisher> event_pub_;
   boost::thread temp_thread_;
+
+  // Transient paths.
+  std::string real_test_path;
+  std::string real_test_dir;
+  std::string real_test_dir_path;
+  std::string real_test_sub_dir;
+  std::string real_test_sub_dir_path;
 };
 
 TEST_F(INotifyTests, test_register_event_pub) {
@@ -217,7 +228,7 @@ TEST_F(INotifyTests, test_inotify_run) {
   EXPECT_TRUE(status.ok());
 
   // Create a temporary file to watch, open writeable
-  FILE* fd = fopen(kRealTestPath.c_str(), "w");
+  FILE* fd = fopen(real_test_path.c_str(), "w");
 
   // Create a subscriber.
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
@@ -225,7 +236,7 @@ TEST_F(INotifyTests, test_inotify_run) {
 
   // Create a subscriptioning context
   auto mc = std::make_shared<INotifySubscriptionContext>();
-  mc->path = kRealTestPath;
+  mc->path = real_test_path;
   status = EventFactory::addSubscription(
       "inotify", Subscription::create("TestINotifyEventSubscriber", mc));
   EXPECT_TRUE(status.ok());
@@ -252,10 +263,10 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
   sub->init();
 
   // Create a subscriptioning context, note the added Event to the symbol
-  auto sc = sub->GetSubscription(kRealTestPath, 0);
+  auto sc = sub->GetSubscription(real_test_path, 0);
   sub->subscribe(&TestINotifyEventSubscriber::SimpleCallback, sc, nullptr);
 
-  TriggerEvent(kRealTestPath);
+  TriggerEvent(real_test_path);
   sub->WaitForEvents(kMaxEventLatency);
 
   // Make sure our expected event fired (aka subscription callback was called).
@@ -269,10 +280,10 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
   sub->init();
 
-  auto sc = sub->GetSubscription(kRealTestPath, 0);
+  auto sc = sub->GetSubscription(real_test_path, 0);
   sub->subscribe(&TestINotifyEventSubscriber::Callback, sc, nullptr);
 
-  TriggerEvent(kRealTestPath);
+  TriggerEvent(real_test_path);
   sub->WaitForEvents(kMaxEventLatency, 4);
 
   // Make sure the inotify action was expected.
@@ -287,15 +298,15 @@ TEST_F(INotifyTests, test_inotify_event_action) {
 TEST_F(INotifyTests, test_inotify_optimization) {
   // Assume event type is registered.
   StartEventLoop();
-  boost::filesystem::create_directory(kRealTestDir);
+  boost::filesystem::create_directory(real_test_dir);
 
   // Adding a descriptor to a directory will monitor files within.
-  SubscriptionAction(kRealTestDir);
-  EXPECT_TRUE(event_pub_->isPathMonitored(kRealTestDirPath));
+  SubscriptionAction(real_test_dir);
+  EXPECT_TRUE(event_pub_->isPathMonitored(real_test_dir_path));
 
   // Adding a subscription to a file within a monitored directory is fine
   // but this will NOT cause an additional INotify watch.
-  SubscriptionAction(kRealTestDirPath);
+  SubscriptionAction(real_test_dir_path);
   EXPECT_EQ(event_pub_->numDescriptors(), 1);
   StopEventLoop();
 }
@@ -306,17 +317,17 @@ TEST_F(INotifyTests, test_inotify_recursion) {
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
   sub->init();
 
-  boost::filesystem::create_directory(kRealTestDir);
-  boost::filesystem::create_directory(kRealTestSubDir);
+  boost::filesystem::create_directory(real_test_dir);
+  boost::filesystem::create_directory(real_test_sub_dir);
 
   // Subscribe to the directory inode
   auto mc = sub->createSubscriptionContext();
-  mc->path = kRealTestDir;
+  mc->path = real_test_dir;
   mc->recursive = true;
   sub->subscribe(&TestINotifyEventSubscriber::Callback, mc, nullptr);
 
   // Trigger on a subdirectory's file.
-  TriggerEvent(kRealTestSubDirPath);
+  TriggerEvent(real_test_sub_dir_path);
 
   sub->WaitForEvents(kMaxEventLatency, 1);
   EXPECT_TRUE(sub->count() > 0);

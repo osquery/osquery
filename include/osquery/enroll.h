@@ -83,7 +83,7 @@ std::string getNodeKey(const std::string& enroll_plugin, bool force = false);
  *
  * @return enroll_secret The trimmed content read from FLAGS_enroll_secret_path.
  */
-std::string getEnrollSecret();
+const std::string& getEnrollSecret();
 
 /**
  * @brief Enroll plugin registry.
