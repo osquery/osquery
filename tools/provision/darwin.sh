@@ -18,10 +18,10 @@ function main_darwin() {
 
   brew update
 
-  package libressl
   package wget
   package cmake
   package makedepend
+  package doxygen
   package boost
   package gflags
   package lz4
@@ -29,6 +29,7 @@ function main_darwin() {
   package rocksdb
   package thrift
   package yara
-  package doxygen
+  package libressl
+  package cpp-netlib
   package libmagic
 }

@@ -135,6 +135,7 @@ function main_ubuntu() {
   install_thrift
   install_rocksdb
   install_yara
+  install_cppnetlib
 
   # Need headers and PC macros
   package libgcrypt-dev

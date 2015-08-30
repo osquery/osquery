@@ -24,6 +24,22 @@
 
 namespace http = boost::network::http;
 
+/// Apple's 0.9.8 OpenSSL will lack TLS protocols.
+extern "C" {
+#if !defined(SSL_TXT_TLSV1_1)
+SSL_CTX* TLSv1_1_client_method(void) { return nullptr; }
+SSL_CTX* TLSv1_1_method(void) { return nullptr; }
+SSL_CTX* TLSv1_1_server_method(void) { return nullptr; }
+#endif
+#if !defined(SSL_TXT_TLSV1_2)
+struct CRYPTO_THREADID;
+void ERR_remove_thread_state(const CRYPTO_THREADID *tid) {}
+SSL_CTX* TLSv1_2_client_method(void) { return nullptr; }
+SSL_CTX* TLSv1_2_method(void) { return nullptr; }
+SSL_CTX* TLSv1_2_server_method(void) { return nullptr; }
+#endif
+}
+
 namespace osquery {
 
 const std::string kTLSCiphers =

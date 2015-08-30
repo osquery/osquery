@@ -8,9 +8,9 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 function install_gcc() {
-  TARBALL=gcc-4.8.4.tar.gz
-  URL=$DEPS_URL/gcc-4.8.4.tar.gz
   SOURCE=gcc-4.8.4
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
   TARGET=/opt/osquery/gcc
 
   if provision gcc $TARGET/bin/gcc4.8.4; then
@@ -19,7 +19,7 @@ function install_gcc() {
 
     # GCC-dependency: GMP
     TARBALL=gmp-6.0.0a.tar.gz
-    URL=$DEPS_URL/gmp-6.0.0a.tar.gz
+    URL=$DEPS_URL/$TARBALL
     SOURCE=gmp-6.0.0
     if provision gmp $WORKING_DIR/$TARGET_SOURCE/gmp/README; then
       log "Moving gmp sources into $TARGET_SOURCE"
@@ -28,7 +28,7 @@ function install_gcc() {
 
     # GCC-dependency: MPFR
     TARBALL=mpfr-3.1.2.tar.gz
-    URL=$DEPS_URL/mpfr-3.1.2.tar.gz
+    URL=$DEPS_URL/$TARBALL
     SOURCE=mpfr-3.1.2
     if provision mpfr $WORKING_DIR/$TARGET_SOURCE/mpfr/README; then
       log "Moving mpfr sources into $TARGET_SOURCE"
@@ -37,7 +37,7 @@ function install_gcc() {
 
     # GCC-dependency: MPC
     TARBALL=mpc-1.0.3.tar.gz
-    URL=$DEPS_URL/mpc-1.0.3.tar.gz
+    URL=$DEPS_URL/$TARBALL
     SOURCE=mpc-1.0.3
     if provision mpc $WORKING_DIR/$TARGET_SOURCE/mpc/README; then
       log "Moving mpc sources into $TARGET_SOURCE"
@@ -70,9 +70,9 @@ function install_gcc() {
 }
 
 function install_cmake() {
-  TARBALL=cmake-3.2.1.tar.gz
-  URL=$DEPS_URL/cmake-3.2.1.tar.gz
   SOURCE=cmake-3.2.1
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision cmake /usr/local/bin/cmake; then
     pushd $SOURCE
@@ -87,7 +87,7 @@ function install_cmake() {
 
 function install_thrift() {
   TARBALL=0.9.1.tar.gz
-  URL=$DEPS_URL/0.9.1.tar.gz
+  URL=$DEPS_URL/$TARBALL
   SOURCE=thrift-0.9.1
 
   if provision thrift /usr/local/lib/libthrift.a; then
@@ -111,7 +111,7 @@ function install_thrift() {
 
 function install_rocksdb() {
   TARBALL=rocksdb-3.10.2.tar.gz
-  URL=$DEPS_URL/rocksdb-3.10.2.tar.gz
+  URL=$DEPS_URL/$TARBALL
   SOURCE=rocksdb-rocksdb-3.10.2
 
   if provision rocksdb /usr/local/lib/librocksdb_lite.a; then
@@ -140,9 +140,9 @@ function install_rocksdb() {
 }
 
 function install_snappy() {
-  TARBALL=snappy-1.1.1.tar.gz
-  URL=$DEPS_URL/snappy-1.1.1.tar.gz
   SOURCE=snappy-1.1.1
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision snappy /usr/local/include/snappy.h; then
     pushd $SOURCE
@@ -155,10 +155,28 @@ function install_snappy() {
   fi
 }
 
+function install_cppnetlib() {
+  SOURCE=cpp-netlib-0.11.2
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
+
+  if provision cppnetlib /usr/local/lib/libcppnetlib-uri.a; then
+    pushd $SOURCE
+    mkdir -p build
+    pushd build
+    CC="$CC" CXX="$CXX" cmake -DCMAKE_CXX_FLAGS="$CFLAGS" \
+      -DCPP-NETLIB_BUILD_EXAMPLES=False -DCPP-NETLIB_BUILD_TESTS=False  ..
+    make -j $THREADS
+    sudo make install
+    popd
+    popd
+  fi
+}
+
 function install_yara() {
-  TARBALL=yara-3.4.0.tar.gz
-  URL=$DEPS_URL/yara-3.4.0.tar.gz
   SOURCE=yara-3.4.0
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision yara /usr/local/lib/libyara.a; then
     pushd $SOURCE
@@ -171,9 +189,9 @@ function install_yara() {
 }
 
 function install_boost() {
-  TARBALL=boost_1_55_0.tar.gz
-  URL=$DEPS_URL/boost_1_55_0.tar.gz
   SOURCE=boost_1_55_0
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision boost /usr/local/lib/libboost_thread.a; then
     pushd $SOURCE
@@ -186,7 +204,7 @@ function install_boost() {
 
 function install_gflags() {
   TARBALL=v2.1.1.tar.gz
-  URL=$DEPS_URL/v2.1.1.tar.gz
+  URL=$DEPS_URL/$TARBALL
   SOURCE=gflags-2.1.1
 
   if provision gflags /usr/local/lib/libgflags.a; then
@@ -199,9 +217,9 @@ function install_gflags() {
 }
 
 function install_iptables_dev() {
-  TARBALL=iptables-1.4.21.tar.gz
-  URL=$DEPS_URL/iptables-1.4.21.tar.gz
   SOURCE=iptables-1.4.21
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision iptables_dev /usr/local/lib/libip4tc.a; then
     pushd $SOURCE
@@ -218,9 +236,9 @@ function install_iptables_dev() {
 }
 
 function install_libcryptsetup() {
-  TARBALL=cryptsetup-1.6.7.tar.gz
-  URL=$DEPS_URL/cryptsetup-1.6.7.tar.gz
   SOURCE=cryptsetup-1.6.7
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision libcryptsetup /usr/local/lib/libcryptsetup.a; then
     pushd $SOURCE
@@ -235,9 +253,9 @@ function install_libcryptsetup() {
 }
 
 function install_autoconf() {
-  TARBALL=autoconf-2.69.tar.gz
-  URL=$DEPS_URL/autoconf-2.69.tar.gz
   SOURCE=autoconf-2.69
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   # Two methods for provisioning autoconf (1) install, (2) upgrade
   PROVISION_AUTOCONF=false
@@ -258,9 +276,9 @@ function install_autoconf() {
 }
 
 function install_automake() {
-  TARBALL=automake-1.14.tar.gz
-  URL=$DEPS_URL/automake-1.14.tar.gz
   SOURCE=automake-1.14
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision automake /usr/bin/automake; then
     pushd $SOURCE
@@ -274,9 +292,9 @@ function install_automake() {
 }
 
 function install_libtool() {
-  TARBALL=libtool-2.4.5.tar.gz
-  URL=$DEPS_URL/libtool-2.4.5.tar.gz
   SOURCE=libtool-2.4.5
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision libtool /usr/bin/libtool; then
     pushd $SOURCE
@@ -288,9 +306,9 @@ function install_libtool() {
 }
 
 function install_pkgconfig() {
-  TARBALL=pkg-config-0.28.tar.gz
-  URL=$DEPS_URL/pkg-config-0.28.tar.gz
   SOURCE=pkg-config-0.28
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision pkg-config /usr/bin/pkg-config; then
     pushd $SOURCE
@@ -303,9 +321,9 @@ function install_pkgconfig() {
 }
 
 function install_udev_devel_095() {
-  TARBALL=udev-095.tar.gz
-  URL=$DEPS_URL/udev-095.tar.gz
   SOURCE=udev-095
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision udev-095 /usr/local/lib/libudev.a; then
     pushd $SOURCE
@@ -325,9 +343,9 @@ function install_pip() {
 }
 
 function install_ruby() {
-  TARBALL=ruby-1.8.7-p370.tar.gz
-  URL=$DEPS_URL/ruby-1.8.7-p370.tar.gz
   SOURCE=ruby-1.8.7-p370
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision ruby-1.8.7 /usr/local/bin/ruby; then
     pushd $SOURCE
@@ -337,9 +355,9 @@ function install_ruby() {
     popd
   fi
 
-  TARBALL=rubygems-1.8.24.tar.gz
-  URL=$DEPS_URL/rubygems-1.8.24.tar.gz
   SOURCE=rubygems-1.8.24
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
 
   if provision rubygems-1.8.24 /usr/local/bin/gem; then
     pushd $SOURCE
@@ -349,9 +367,10 @@ function install_ruby() {
 }
 
 function install_libaptpkg() {
-  TARBALL=apt-0.8.16-12.10.22.tar.gz
-  URL=$DEPS_URL/apt-0.8.16-12.10.22.tar.gz
   SOURCE=apt-0.8.16-12.10.22
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
+
   if provision libaptpkg /usr/local/lib/libapt-pkg.a; then
     pushd $SOURCE
     mkdir -p build

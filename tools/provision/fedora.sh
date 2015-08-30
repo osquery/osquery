@@ -56,6 +56,7 @@ function main_fedora() {
   install_rocksdb
   install_thrift
   install_yara
+  install_cppnetlib
 
   package device-mapper-devel
   package libgcrypt-devel
