@@ -94,6 +94,7 @@ function main_debian() {
   install_rocksdb 
   install_yara
   install_cppnetlib
+  install_google_benchmark
   
   # Need headers and PC macros
   package libgcrypt-dev

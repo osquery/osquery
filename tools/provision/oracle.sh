@@ -110,6 +110,7 @@ function main_oracle() {
   install_thrift
   install_yara
   install_cppnetlib
+  install_google_benchmark
 
   if [[ $DISTRO = "oracle5" ]]; then
     # Install python26 and pip from PyPA.

@@ -31,5 +31,6 @@ function main_darwin() {
   package yara
   package libressl
   package cpp-netlib
+  package google-benchmark
   package libmagic
 }
