@@ -68,6 +68,7 @@ function main_amazon() {
   install_rocksdb
   install_thrift
   install_yara
+  install_cppnetlib
 
   gem_install fpm
 }

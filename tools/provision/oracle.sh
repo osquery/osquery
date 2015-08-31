@@ -109,6 +109,7 @@ function main_oracle() {
   install_rocksdb
   install_thrift
   install_yara
+  install_cppnetlib
 
   if [[ $DISTRO = "oracle5" ]]; then
     # Install python26 and pip from PyPA.

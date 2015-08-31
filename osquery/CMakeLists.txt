@@ -62,6 +62,10 @@ ADD_OSQUERY_LINK_CORE("boost_filesystem")
 ADD_OSQUERY_LINK_CORE("boost_regex")
 ADD_OSQUERY_LINK_CORE("yara")
 
+# Remaining additional development libraries.
+ADD_OSQUERY_LINK_ADDITIONAL("libcppnetlib-uri.a")
+ADD_OSQUERY_LINK_ADDITIONAL("libcppnetlib-client-connections.a")
+
 if(DEFINED ENV{SANITIZE})
   if(DEFINED ENV{SANITIZE_THREAD})
     ADD_OSQUERY_LINK_CORE(-fsanitize=thread)

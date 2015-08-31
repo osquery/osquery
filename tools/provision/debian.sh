@@ -93,6 +93,7 @@ function main_debian() {
   install_thrift
   install_rocksdb 
   install_yara
+  install_cppnetlib
   
   # Need headers and PC macros
   package libgcrypt-dev
