@@ -68,7 +68,7 @@ void genMatches(const pt::ptree& entry, std::vector<Row>& results) {
   }
 }
 
-void genXProtectEntry(const pt::ptree &entry, QueryData& results) {
+inline void genXProtectEntry(const pt::ptree& entry, QueryData& results) {
   // Entry is an XProtect dictionary of meta data about the item.
   auto name = entry.get("Description", "");
   auto launch_type = entry.get("LaunchServices.LSItemContentType", "");
@@ -84,7 +84,8 @@ void genXProtectEntry(const pt::ptree &entry, QueryData& results) {
   }
 }
 
-std::vector<std::string> getXProtectReportFiles(const std::string& home_dir) {
+inline std::vector<std::string> getXProtectReportFiles(
+    const std::string& home_dir) {
   std::vector<std::string> reports;
   std::vector<std::string> all_logs;
 
@@ -103,7 +104,7 @@ std::vector<std::string> getXProtectReportFiles(const std::string& home_dir) {
   return reports;
 }
 
-void genXProtectReport(const std::string& path, QueryData& results) {
+inline void genXProtectReport(const std::string& path, QueryData& results) {
   pt::ptree report;
 
   if (!osquery::parsePlist(path, report).ok()) {
@@ -158,16 +159,62 @@ QueryData genXProtectEntries(QueryContext& context) {
     return results;
   }
 
-  if (tree.count("root") == 0) {
-    // Empty plist.
+  if (tree.count("root") != 0) {
+    for (const auto& it : tree.get_child("root")) {
+      genXProtectEntry(it.second, results);
+    }
+  }
+
+  return std::move(results);
+}
+
+QueryData genXProtectMeta(QueryContext& context) {
+  QueryData results;
+  pt::ptree tree;
+
+  auto xprotect_meta = fs::path(kXProtectPath) / "XProtect.meta.plist";
+  if (!osquery::pathExists(xprotect_meta).ok()) {
+    VLOG(1) << "XProtect.meta.plist is missing";
     return results;
   }
 
-  for (const auto& it : tree.get_child("root")) {
-    genXProtectEntry(it.second, results);
+  if (!osquery::parsePlist(xprotect_meta, tree).ok()) {
+    VLOG(1) << "Could not parse the XProtect.meta.plist";
+    return results;
   }
 
-  return results;
+  for (const auto& it : tree) {
+    if (it.first == "JavaWebComponentVersionMinimum") {
+      Row r;
+      r["identifier"] = "java";
+      r["min_version"] = it.second.data();
+      r["type"] = "plugin";
+      results.push_back(std::move(r));
+    } else if (it.first == "ExtensionBlacklist") {
+      for (const auto& ext : it.second.get_child("Extensions")) {
+        Row r;
+        r["identifier"] = ext.second.get("CFBundleIdentifier", "");
+        r["developer_id"] = ext.second.get("Developer Identifier", "");
+        r["type"] = "extension";
+        r["min_version"] = "any";
+        results.push_back(std::move(r));
+      }
+    } else if (it.first == "PlugInBlacklist") {
+      for (const auto& cat : it.second) {
+        // Not sure why there's a category-like sub-dictionary, default="10".
+        for (const auto& plug : cat.second) {
+          Row r;
+          r["identifier"] = plug.first;
+          r["min_version"] = plug.second.get("MinimumPlugInBundleVersion", "");
+          r["type"] = "plugin";
+          r["developer_id"] = "";
+          results.push_back(std::move(r));
+        }
+      }
+    }
+  }
+
+  return std::move(results);
 }
 }
 }

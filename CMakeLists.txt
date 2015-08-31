@@ -340,8 +340,10 @@ include_directories("/usr/local/include")
 link_directories("/usr/local/lib")
 
 # Add sysroot overrides for each platform/distro.
-if(LINUX)
-  include_directories("${CMAKE_SOURCE_DIR}/sysroots/linux")
+if(APPLE)
+  include_directories("${CMAKE_SOURCE_DIR}/third-party/sysroots/darwin")
+elseif(LINUX)
+  include_directories("${CMAKE_SOURCE_DIR}/third-party/sysroots/linux")
 endif()
 
 add_subdirectory(osquery)
