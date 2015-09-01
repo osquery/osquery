@@ -216,6 +216,23 @@ function install_gflags() {
   fi
 }
 
+function install_google_benchmark() {
+  SOURCE=benchmark-0.1.0
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
+
+  if provision benchmark /usr/local/lib/libbenchmark.a; then
+    pushd $SOURCE
+    mkdir -p build
+    pushd build
+    cmake -DCMAKE_CXX_FLAGS="$CFLAGS" ..
+    CC="$CC" CXX="$CXX" make -j $THREADS
+    sudo make install
+    popd
+    popd
+  fi
+}
+
 function install_iptables_dev() {
   SOURCE=iptables-1.4.21
   TARBALL=$SOURCE.tar.gz

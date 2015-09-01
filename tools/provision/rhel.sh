@@ -137,6 +137,7 @@ function main_rhel() {
   install_thrift
   install_yara
   install_cppnetlib
+  install_google_benchmark
 
   package device-mapper-devel
   package libgcrypt-devel

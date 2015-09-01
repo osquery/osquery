@@ -69,6 +69,7 @@ function main_amazon() {
   install_thrift
   install_yara
   install_cppnetlib
+  install_google_benchmark
 
   gem_install fpm
 }

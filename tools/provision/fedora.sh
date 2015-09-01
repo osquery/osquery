@@ -57,6 +57,7 @@ function main_fedora() {
   install_thrift
   install_yara
   install_cppnetlib
+  install_google_benchmark
 
   package device-mapper-devel
   package libgcrypt-devel
