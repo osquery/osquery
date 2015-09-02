@@ -239,7 +239,7 @@ class ExtensionManagerWatcher : public ExtensionWatcher {
 class ExtensionRunnerCore : public InternalRunnable {
  public:
   virtual ~ExtensionRunnerCore();
-  ExtensionRunnerCore(const std::string& path)
+  explicit ExtensionRunnerCore(const std::string& path)
       : path_(path), server_(nullptr) {}
 
  public:
@@ -318,8 +318,10 @@ class EXInternal {
 /// Internal accessor for a client to an extension (from an extension manager).
 class EXClient : public EXInternal {
  public:
-  explicit EXClient(const std::string& path) : EXInternal(path) {
-    client_ = std::make_shared<extensions::ExtensionClient>(protocol_);
+  explicit EXClient(const std::string& path)
+      : EXInternal(path),
+        client_(std::make_shared<extensions::ExtensionClient>(protocol_)) {
+
     (void)transport_->open();
   }
 
@@ -333,8 +335,9 @@ class EXClient : public EXInternal {
 class EXManagerClient : public EXInternal {
  public:
   explicit EXManagerClient(const std::string& manager_path)
-      : EXInternal(manager_path) {
-    client_ = std::make_shared<extensions::ExtensionManagerClient>(protocol_);
+      : EXInternal(manager_path),
+        client_(
+            std::make_shared<extensions::ExtensionManagerClient>(protocol_)) {
     (void)transport_->open();
   }
 

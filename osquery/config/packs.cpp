@@ -8,6 +8,8 @@
  *
  */
 
+#include <random>
+
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core.h>
@@ -19,7 +21,6 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-int splayValue(int original, int splayPercent);
 DECLARE_int32(schedule_splay_percent);
 
 FLAG(int32,
@@ -50,7 +51,7 @@ Pack::Pack(const std::string& name, const std::string& json) {
     pt::read_json(stream, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
     LOG(ERROR) << "Error parsing pack JSON. Re-throwing the exception.";
-    throw e;
+    throw;
   }
   initialize(name, "", tree);
 }
@@ -65,9 +66,30 @@ Pack::Pack(const std::string& name,
     pt::read_json(stream, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
     LOG(ERROR) << "Error parsing pack JSON. Re-throwing the exception.";
-    throw e;
+    throw;
   }
   initialize(name, source, tree);
+}
+
+int splayValue(int original, int splayPercent) {
+  if (splayPercent <= 0 || splayPercent > 100) {
+    return original;
+  }
+
+  float percent_to_modify_by = (float)splayPercent / 100;
+  int possible_difference = original * percent_to_modify_by;
+  int max_value = original + possible_difference;
+  int min_value = original - possible_difference;
+
+  if (max_value == min_value) {
+    return max_value;
+  }
+
+  std::default_random_engine generator;
+  generator.seed(
+      std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  std::uniform_int_distribution<int> distribution(min_value, max_value);
+  return distribution(generator);
 }
 
 void Pack::initialize(const std::string& name,
@@ -113,7 +135,8 @@ void Pack::initialize(const std::string& name,
       ScheduledQuery query;
       query.interval =
           q.second.get<int>("interval", FLAGS_schedule_default_interval);
-      query.splayed_interval = splayValue(query.interval, FLAGS_schedule_splay_percent);
+      query.splayed_interval =
+          splayValue(query.interval, FLAGS_schedule_splay_percent);
       query.query = q.second.get<std::string>("query");
       query.options["snapshot"] = q.second.get<bool>("snapshot", false);
       query.options["removed"] = q.second.get<bool>("removed", true);

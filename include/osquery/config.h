@@ -91,7 +91,7 @@ class Schedule {
  */
 class Config {
  private:
-  Config() { schedule_ = Schedule(); };
+  Config() : schedule_(Schedule()){};
 
  protected:
   typedef boost::unique_lock<boost::shared_mutex> WriteLock;
@@ -440,19 +440,6 @@ class ConfigParserPlugin : public Plugin {
   /// Allow the config parser to keep some global state.
   boost::property_tree::ptree data_;
 };
-
-/**
- * @brief Calculate a splayed integer based on a variable splay percentage
- *
- * The value of splayPercent must be between 1 and 100. If it's not, the
- * value of original will be returned.
- *
- * @param original The original value to be modified
- * @param splayPercent The percent in which to splay the original value by
- *
- * @return The modified version of original
- */
-int splayValue(int original, int splayPercent);
 
 /**
  * @brief Config plugin registry.

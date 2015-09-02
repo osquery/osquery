@@ -19,6 +19,8 @@ namespace osquery {
 
 class PacksTests : public testing::Test {};
 
+extern int splayValue(int original, int splayPercent);
+
 pt::ptree getExamplePacksConfig() {
   std::string content;
   auto s = readFile(kTestDataPath + "test_inline_pack.conf", content);
@@ -130,5 +132,25 @@ TEST_F(PacksTests, test_discovery_zero_state) {
   EXPECT_EQ(stats.total, 0);
   EXPECT_EQ(stats.hits, 0);
   EXPECT_EQ(stats.misses, 0);
+}
+
+TEST_F(PacksTests, test_splay) {
+  auto val1 = splayValue(100, 10);
+  EXPECT_GE(val1, 90);
+  EXPECT_LE(val1, 110);
+
+  auto val2 = splayValue(100, 10);
+  EXPECT_GE(val2, 90);
+  EXPECT_LE(val2, 110);
+
+  auto val3 = splayValue(10, 0);
+  EXPECT_EQ(val3, 10);
+
+  auto val4 = splayValue(100, 1);
+  EXPECT_GE(val4, 99);
+  EXPECT_LE(val4, 101);
+
+  auto val5 = splayValue(1, 10);
+  EXPECT_EQ(val5, 1);
 }
 }
