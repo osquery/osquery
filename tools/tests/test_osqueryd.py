@@ -13,6 +13,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
+import signal
 import shutil
 import time
 import unittest
@@ -65,6 +66,29 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         # This will take a few moments to make sure the client process
         # dies when the watcher goes away
         self.assertTrue(daemon.isDead(children[0]))
+
+    def test_4_daemon_sighup(self):
+        # A hangup signal should not do anything to the daemon.
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+        })
+        self.assertTrue(daemon.isAlive())
+
+        # Send a SIGHUP
+        os.kill(daemon.proc.pid, signal.SIGHUP)
+        self.assertTrue(daemon.isAlive())
+
+    def test_5_daemon_sigint(self):
+        # An interrupt signal will cause the daemon to stop.
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+        })
+        self.assertTrue(daemon.isAlive())
+
+        # Send a SIGINT
+        os.kill(daemon.pid, signal.SIGINT)
+        self.assertTrue(daemon.isDead(daemon.pid, 10))
+        self.assertEqual(daemon.retcode, -1 * signal.SIGINT)
 
 if __name__ == '__main__':
     test_base.Tester().run()

@@ -65,6 +65,7 @@ DEFAULT_CONFIG = {
         "extensions_timeout": "0",
         "watchdog_level": "3",
         "disable_logging": "true",
+        "disable_events": "true",
         "force": "true",
     },
     "schedule": {},
@@ -155,13 +156,13 @@ class ProcRunner(object):
         self.args = _args
         self.interval = interval
         self.silent = silent
+        self.retcode = -1
         thread = threading.Thread(target=self.run, args=())
         thread.daemon = True
         thread.start()
 
     def run(self):
         pid = 0
-        code = -1
         try:
             if self.silent:
                 self.proc = subprocess.Popen([self.path] + self.args,
@@ -179,7 +180,7 @@ class ProcRunner(object):
                 self.started = True
                 time.sleep(self.interval)
             self.started = True
-            code = -1 if self.proc is None else self.proc.poll()
+            self.retcode = -1 if self.proc is None else self.proc.poll()
             self.proc = None
         except Exception as e:
             return
@@ -209,6 +210,12 @@ class ProcRunner(object):
         except:
             pass
         return []
+
+    @property
+    def code(self):
+        self.requireStarted()
+        return self.retcode
+
 
     @property
     def pid(self):

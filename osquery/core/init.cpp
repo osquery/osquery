@@ -9,6 +9,7 @@
  */
 
 #include <chrono>
+#include <csignal>
 #include <random>
 
 #include <syslog.h>
@@ -63,10 +64,6 @@ enum {
 };
 #endif
 
-namespace fs = boost::filesystem;
-
-namespace osquery {
-
 #define DESCRIPTION \
   "osquery %s, your OS as a high-performance relational database\n"
 #define EPILOG "\nosquery project page <https://osquery.io>.\n"
@@ -86,6 +83,61 @@ namespace osquery {
   "path. Additionally, review the \"using osqueryd\" wiki page:\n"            \
   " - https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/" \
   "\n\n";
+
+namespace fs = boost::filesystem;
+
+namespace {
+extern "C" {
+static inline bool hasWorkerVariable() {
+  return (getenv("OSQUERY_WORKER") != nullptr);
+}
+
+volatile std::sig_atomic_t kHandledSignal{0};
+
+void signalHandler(int signal) {
+  // Inform exit status of main threads blocked by service joins.
+  kHandledSignal = signal;
+  // Handle signals based on a tri-state (worker, watcher, neither).
+  pid_t worker_pid = osquery::Watcher::getWorker();
+  bool is_watcher = worker_pid > 0;
+  if (signal == SIGHUP) {
+    if (!is_watcher || hasWorkerVariable()) {
+      // Reload configuration.
+    }
+  } else if (signal == SIGTERM || signal == SIGINT || signal == SIGABRT) {
+    // Time to stop, set an upper bound time constraint on how long threads
+    // have to terminate (join). Publishers may be in 20ms or similar sleeps.
+    alarm(10);
+
+    // Restore the default signal handler.
+    std::signal(signal, SIG_DFL);
+
+    // The watcher waits for the worker to die.
+    if (is_watcher) {
+      // Bind the fate of the worker to this watcher.
+      osquery::Watcher::bindFates();
+    } else {
+      // Otherwise the worker or non-watched process joins.
+      osquery::EventFactory::end(true);
+      // Re-raise the handled signal, which has since been restored to default.
+      raise(signal);
+    }
+  } else if (signal == SIGALRM) {
+    // Took too long to stop.
+    VLOG(1) << "Cannot stop event publisher threads";
+    raise(SIGSTOP);
+  }
+
+  if (is_watcher) {
+    // The signal should be proliferated through the process group.
+    // Otherwise the watcher could 'forward' the signal to workers and
+    // managed extension processes.
+  }
+}
+}
+}
+
+namespace osquery {
 
 typedef std::chrono::high_resolution_clock chrono_clock;
 
@@ -185,6 +237,14 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     }
   }
 
+  // All tools handle the same set of signals.
+  // If a daemon process is a watchdog the signal is passed to the worker,
+  // unless the worker has not yet started.
+  std::signal(SIGTERM, signalHandler);
+  std::signal(SIGABRT, signalHandler);
+  std::signal(SIGINT, signalHandler);
+  std::signal(SIGHUP, signalHandler);
+
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check) {
     FLAGS_disable_watchdog = true;
@@ -226,7 +286,7 @@ void Initializer::initDaemon() {
   // Check if /var/osquery exists
   if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
       !isDirectory("/var/osquery")) {
-    std::cerr << CONFIG_ERROR
+    std::cerr << CONFIG_ERROR;
   }
 
   // Create a process mutex around the daemon.
@@ -268,8 +328,9 @@ void Initializer::initWatcher() {
   // the extensions and worker process.
   if (!FLAGS_disable_watchdog) {
     Dispatcher::joinServices();
-    // Execution should never reach this point.
-    ::exit(EXIT_FAILURE);
+    // Execution should only reach this point if a signal was handled by the
+    // worker and watcher.
+    ::exit((kHandledSignal > 0) ? 128 + kHandledSignal : EXIT_FAILURE);
   }
 }
 
@@ -305,7 +366,7 @@ void Initializer::initWorkerWatcher(const std::string& name) {
   }
 }
 
-bool Initializer::isWorker() { return (getenv("OSQUERY_WORKER") != nullptr); }
+bool Initializer::isWorker() { return hasWorkerVariable(); }
 
 void Initializer::initActivePlugin(const std::string& type,
                                    const std::string& name) {
