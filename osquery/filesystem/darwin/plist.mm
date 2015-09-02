@@ -36,12 +36,36 @@ namespace osquery {
  * NSString, NSDate, NSNumber, YES, NO, NSArray, and NSDictionary.
  * For NSData the result will be base64 encoded as a string type.
  */
-Status filterDictionary(id plist, const std::string& root, pt::ptree& tree);
+static Status filterDictionary(id plist,
+                               const std::string& root,
+                               pt::ptree& tree);
 
 /// See filterDictionary, the mimicked logic with a anonymous key more or less.
-Status filterArray(id plist, const std::string& root, pt::ptree& tree);
+static Status filterArray(id plist, const std::string& root, pt::ptree& tree);
 
-Status filterDictionary(id plist, const std::string& root, pt::ptree& tree) {
+static inline std::string getValue(id value) {
+  if ([value isKindOfClass:[NSString class]]) {
+    return [value UTF8String];
+  } else if ([value isKindOfClass:[NSNumber class]]) {
+    return [[value stringValue] UTF8String];
+  } else if ([value isKindOfClass:[NSData class]]) {
+    NSString* dataString = [value base64EncodedStringWithOptions:0];
+    return [dataString UTF8String];
+  } else if ([value isKindOfClass:[NSDate class]]) {
+    NSNumber* seconds =
+        [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
+    return [[seconds stringValue] UTF8String];
+  } else if ([value isEqual:@(YES)]) {
+    return "true";
+  } else if ([value isEqual:@(NO)]) {
+    return "false";
+  }
+  return "";
+}
+
+static Status filterDictionary(id plist,
+                               const std::string& root,
+                               pt::ptree& tree) {
   Status total_status = Status(0, "OK");
   for (id key in [plist allKeys]) {
     if (key == nil || ![key isKindOfClass:[NSString class]]) {
@@ -55,12 +79,7 @@ Status filterDictionary(id plist, const std::string& root, pt::ptree& tree) {
     }
 
     auto path_node = std::string([key UTF8String]);
-    if ([value isKindOfClass:[NSString class]]) {
-      tree.push_back(ptvalue(path_node, pt::ptree([value UTF8String])));
-    } else if ([value isKindOfClass:[NSNumber class]]) {
-      tree.push_back(
-          ptvalue(path_node, pt::ptree([[value stringValue] UTF8String])));
-    } else if ([value isKindOfClass:[NSArray class]]) {
+    if ([value isKindOfClass:[NSArray class]]) {
       auto status = filterArray(value, path_node, tree);
       if (!status.ok()) {
         total_status = status;
@@ -71,25 +90,15 @@ Status filterDictionary(id plist, const std::string& root, pt::ptree& tree) {
       if (!status.ok()) {
         total_status = status;
       }
-      tree.push_back(ptvalue(path_node, child));
-    } else if ([value isKindOfClass:[NSData class]]) {
-      NSString* dataString = [value base64EncodedStringWithOptions:0];
-      tree.push_back(ptvalue(path_node, pt::ptree([dataString UTF8String])));
-    } else if ([value isKindOfClass:[NSDate class]]) {
-      NSNumber* seconds =
-          [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
-      tree.push_back(
-          ptvalue(path_node, pt::ptree([[seconds stringValue] UTF8String])));
-    } else if ([value isEqual:@(YES)]) {
-      tree.push_back(ptvalue(path_node, pt::ptree("true")));
-    } else if ([value isEqual:@(NO)]) {
-      tree.push_back(ptvalue(path_node, pt::ptree("false")));
+      tree.push_back(ptvalue(path_node, std::move(child)));
+    } else {
+      tree.push_back(ptvalue(path_node, pt::ptree(getValue(value))));
     }
   }
   return total_status;
 }
 
-Status filterArray(id plist, const std::string& root, pt::ptree& tree) {
+static Status filterArray(id plist, const std::string& root, pt::ptree& tree) {
   Status total_status = Status(0, "OK");
   pt::ptree child_tree;
   for (id value in plist) {
@@ -98,11 +107,7 @@ Status filterArray(id plist, const std::string& root, pt::ptree& tree) {
     }
 
     pt::ptree child;
-    if ([value isKindOfClass:[NSString class]]) {
-      child.put_value([value UTF8String]);
-    } else if ([value isKindOfClass:[NSNumber class]]) {
-      child.put_value([[value stringValue] UTF8String]);
-    } else if ([value isKindOfClass:[NSArray class]]) {
+    if ([value isKindOfClass:[NSArray class]]) {
       auto status = filterArray(value, "", child);
       if (!status.ok()) {
         total_status = status;
@@ -112,21 +117,12 @@ Status filterArray(id plist, const std::string& root, pt::ptree& tree) {
       if (!status.ok()) {
         total_status = status;
       }
-    } else if ([value isKindOfClass:[NSData class]]) {
-      NSString* dataString = [value base64EncodedStringWithOptions:0];
-      child.put_value([dataString UTF8String]);
-    } else if ([value isKindOfClass:[NSDate class]]) {
-      NSNumber* seconds =
-          [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
-      child.put_value([[seconds stringValue] UTF8String]);
-    } else if ([value isEqual:@(YES)]) {
-      child.put_value("true");
-    } else if ([value isEqual:@(NO)]) {
-      child.put_value("false");
+    } else {
+      child.put_value(getValue(value));
     }
-    child_tree.push_back(std::make_pair("", child));
+    child_tree.push_back(std::make_pair("", std::move(child)));
   }
-  tree.push_back(pt::ptree::value_type(root, child_tree));
+  tree.push_back(ptvalue(root, std::move(child_tree)));
   return total_status;
 }
 
