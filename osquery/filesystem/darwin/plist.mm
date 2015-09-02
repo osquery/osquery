@@ -20,8 +20,6 @@
 
 namespace pt = boost::property_tree;
 
-typedef pt::ptree::value_type ptvalue;
-
 namespace osquery {
 
 /**
@@ -90,9 +88,10 @@ static Status filterDictionary(id plist,
       if (!status.ok()) {
         total_status = status;
       }
-      tree.push_back(ptvalue(path_node, std::move(child)));
+      tree.push_back(pt::ptree::value_type(path_node, std::move(child)));
     } else {
-      tree.push_back(ptvalue(path_node, pt::ptree(getValue(value))));
+      tree.push_back(
+          pt::ptree::value_type(path_node, pt::ptree(getValue(value))));
     }
   }
   return total_status;
@@ -122,7 +121,7 @@ static Status filterArray(id plist, const std::string& root, pt::ptree& tree) {
     }
     child_tree.push_back(std::make_pair("", std::move(child)));
   }
-  tree.push_back(ptvalue(root, std::move(child_tree)));
+  tree.push_back(pt::ptree::value_type(root, std::move(child_tree)));
   return total_status;
 }
 
