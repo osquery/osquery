@@ -252,7 +252,7 @@ Status YARAConfigParserPlugin::setUp() {
 }
 
 Status YARAConfigParserPlugin::update(
-    const std::map<std::string, ConfigTree> &config) {
+    const std::map<std::string, pt::ptree> &config) {
   // The YARA config parser requested the "yara" top-level key in the config.
   const auto& yara_config = config.at("yara");
 

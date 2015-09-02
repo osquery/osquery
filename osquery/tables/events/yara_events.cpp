@@ -75,12 +75,21 @@ REGISTER(YARAEventSubscriber, "event_subscriber", "yara_events");
 Status YARAEventSubscriber::init() {
   Status status;
 
-  ConfigDataInstance config;
-  const auto& yara_config = config.getParsedData("yara");
-  if (yara_config.count("file_paths") == 0)
+  auto plugin = Config::getParser("yara");
+  if (plugin == nullptr || plugin.get() == nullptr) {
+    return Status(1, "Could not get yara config parser");
+  }
+  const auto& yara_config = plugin->getData();
+  if (yara_config.count("file_paths") == 0) {
     return Status(0, "OK");
+  }
   const auto& yara_paths = yara_config.get_child("file_paths");
-  const auto& file_map = config.files();
+  std::map<std::string, std::vector<std::string> > file_map;
+  Config::getInstance().files([&file_map](
+      const std::string& category, const std::vector<std::string>& files) {
+    file_map[category] = files;
+  });
+
   for (const auto& yara_path_element : yara_paths) {
     // Subscribe to each file for the given key (category).
     if (file_map.count(yara_path_element.first) == 0) {
@@ -128,17 +137,28 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   r["strings"] = std::string("");
   r["tags"] = std::string("");
 
-  ConfigDataInstance config;
-  const auto& parser = config.getParser("yara");
-  if (parser == nullptr)
+  auto parser = Config::getParser("yara");
+  if (parser == nullptr || parser.get() == nullptr) {
     return Status(1, "ConfigParser unknown.");
-  const auto& yaraParser = std::static_pointer_cast<YARAConfigParserPlugin>(parser);
+  }
+
+  std::shared_ptr<YARAConfigParserPlugin> yaraParser;
+  try {
+    yaraParser = std::dynamic_pointer_cast<YARAConfigParserPlugin>(parser);
+  } catch (const std::bad_cast& e) {
+    return Status(1, "Error casting yara config parser plugin");
+  }
+  if (yaraParser == nullptr || yaraParser.get() == nullptr) {
+    return Status(1, "Yara parser unknown.");
+  }
+
   auto rules = yaraParser->rules();
 
   // Use the category as a lookup into the yara file_paths. The value will be
   // a list of signature groups to scan with.
   auto category = r.at("category");
-  const auto& yara_config = config.getParsedData("yara");
+  pt::ptree yara_config;
+  yara_config = parser->getData();
   const auto& yara_paths = yara_config.get_child("file_paths");
   const auto& sig_groups = yara_paths.find(category);
   for (const auto& rule : sig_groups->second) {

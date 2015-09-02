@@ -2,16 +2,10 @@ table_name("osquery_packs")
 description("Information about the current query packs that are loaded in osquery.")
 schema([
     Column("name", TEXT, "The given name for this query pack"),
-    Column("path", TEXT, "Path where the pack configuration is found"),
-    Column("query_name", TEXT, "The given name for this query"),
-    Column("query", TEXT, "The exact query to run"),
-    Column("interval", INTEGER, "The interval in seconds to run this query, not an exact interval"),
     Column("platform", TEXT, "Platforms this query is supported on"),
     Column("version", TEXT, "Minimum osquery version that this query will run on"),
-    Column("description", TEXT, "Description of the data retrieved by this query"),
-    Column("value", TEXT, "Value of the data retrieved by this query"),
-    Column("scheduled", INTEGER, "Status if query is scheduled to run. If query is scheduled 1, else 0"),
-    Column("scheduled_name", TEXT, "Name of the query in the scheduled table")
+    Column("discovery_cache_hits", INTEGER, "The number of times that the discovery query used cached values since the last time the config was reloaded"),
+    Column("discovery_executions", INTEGER, "The number of times that the discovery queries have been executed since the last time the config was reloaded"),
 ])
 attributes(utility=True)
 implementation("osquery@genOsqueryPacks")

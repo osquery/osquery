@@ -28,25 +28,25 @@ class FileAccessEventSubscriber
 REGISTER(FileAccessEventSubscriber, "event_subscriber", "file_access_events");
 
 Status FileAccessEventSubscriber::init() {
-  ConfigDataInstance config;
-  for (const auto& element_kv : config.files()) {
-    for (const auto& file : element_kv.second) {
-      auto sc = createSubscriptionContext();
-      sc->event_type = OSQUERY_FILE_EVENT;
-      osquery_file_event_subscription_t sub = {
-        .actions = (osquery_file_action_t)(OSQUERY_FILE_ACTION_OPEN |
-            OSQUERY_FILE_ACTION_CLOSE | OSQUERY_FILE_ACTION_CLOSE_MODIFIED)
-      };
-      auto path = file;
-      replaceGlobWildcards(path);
-      path = path.substr(0, path.find("*"));
-      strncpy(sub.path, path.c_str(), MAXPATHLEN);
-      sc->udata = &sub;
-      VLOG(1) << "Added kernel listener to: " << path;
+  Config::getInstance().files(
+      [this](const std::string &, const std::vector<std::string> &files) {
+        for (const auto &file : files) {
+          auto sc = createSubscriptionContext();
+          sc->event_type = OSQUERY_FILE_EVENT;
+          osquery_file_event_subscription_t sub = {
+              .actions = (osquery_file_action_t)(
+                  OSQUERY_FILE_ACTION_OPEN | OSQUERY_FILE_ACTION_CLOSE |
+                  OSQUERY_FILE_ACTION_CLOSE_MODIFIED)};
+          auto path = file;
+          replaceGlobWildcards(path);
+          path = path.substr(0, path.find("*"));
+          strncpy(sub.path, path.c_str(), MAXPATHLEN);
+          sc->udata = &sub;
+          VLOG(1) << "Added kernel listener to: " << path;
 
-      subscribe(&FileAccessEventSubscriber::Callback, sc, NULL);
-    }
-  }
+          subscribe(&FileAccessEventSubscriber::Callback, sc, NULL);
+        }
+      });
 
   return Status(0, "OK");
 }

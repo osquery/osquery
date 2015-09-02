@@ -11,6 +11,7 @@
 #include <boost/thread.hpp>
 
 #include <osquery/core.h>
+#include <osquery/logger.h>
 
 #include "osquery/dispatcher/scheduler.h"
 
@@ -31,7 +32,10 @@ int main(int argc, char* argv[]) {
   runner.start();
 
   // Begin the schedule runloop.
-  osquery::startScheduler();
+  auto s = osquery::startScheduler();
+  if (!s.ok()) {
+    LOG(ERROR) << "Error starting scheduler: " << s.toString();
+  }
 
   // Finally shutdown.
   runner.shutdown();

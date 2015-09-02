@@ -356,7 +356,7 @@ void Initializer::start() {
 
   if (FLAGS_config_check) {
     // The initiator requested an initialization and config check.
-    auto s = Config::checkConfig();
+    auto s = Config::getInstance().load();
     if (!s.ok()) {
       std::cerr << "Error reading config: " << s.toString() << "\n";
     }
@@ -365,7 +365,7 @@ void Initializer::start() {
   }
 
   // Load the osquery config using the default/active config plugin.
-  Config::load();
+  Config::getInstance().load();
 
   // Initialize the status and result plugin logger.
   initActivePlugin("logger", FLAGS_logger_plugin);

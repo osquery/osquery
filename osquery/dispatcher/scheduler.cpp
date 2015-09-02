@@ -43,7 +43,8 @@ inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
         size += column.second.size();
       }
     }
-    Config::recordQueryPerformance(name, t1 - t0, size, r0[0], r1[0]);
+    Config::getInstance().recordQueryPerformance(
+        name, t1 - t0, size, r0[0], r1[0]);
   }
   return sql;
 }
@@ -113,14 +114,12 @@ void SchedulerRunner::start() {
   struct tm* local = std::localtime(&t);
   unsigned long int i = local->tm_sec;
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
-    {
-      ConfigDataInstance config;
-      for (const auto& query : config.schedule()) {
-        if (i % query.second.splayed_interval == 0) {
-          launchQuery(query.first, query.second);
-        }
-      }
-    }
+    Config::getInstance().scheduledQueries(
+        ([&i](const std::string& name, const ScheduledQuery& query) {
+          if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
+            launchQuery(name, query);
+          }
+        }));
     // Put the thread into an interruptible sleep without a config instance.
     osquery::interruptableSleep(interval_ * 1000);
   }

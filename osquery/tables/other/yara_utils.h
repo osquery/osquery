@@ -16,6 +16,8 @@
 #endif
 #include <yara.h>
 
+namespace pt = boost::property_tree;
+
 namespace osquery {
 
 void YARACompilerCallback(int error_level,
@@ -57,6 +59,6 @@ class YARAConfigParserPlugin : public ConfigParserPlugin {
   std::map<std::string, YR_RULES *> rules_;
 
   /// Store the signatures and file_paths and compile the rules.
-  Status update(const std::map<std::string, ConfigTree>& config);
+  Status update(const std::map<std::string, pt::ptree>& config);
 };
 }
