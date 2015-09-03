@@ -1,0 +1,16 @@
+table_name("osquery_events")
+description("Information about the event publishers and subscribers.")
+schema([
+    Column("name", TEXT, "Event publisher or subscriber name"),
+    Column("publisher", TEXT, "Name of the associated publisher"),
+    Column("type", TEXT, "Either publisher or subscriber"),
+    Column("subscriptions", INTEGER,
+      "Number of subscriptions the publisher received or subscriber used"),
+    Column("events", INTEGER,
+      "Number of events emitted or received since osquery started"),
+    Column("restarts", INTEGER, "Publisher only: number of runloop restarts"),
+    Column("active", INTEGER,
+      "1 if the publisher or subscriber is active else 0"),
+])
+attributes(utility=True)
+implementation("osquery@genOsqueryEvents")

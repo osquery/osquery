@@ -10,6 +10,8 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/logger.h>
+
 #include "osquery/core/test_util.h"
 
 int main(int argc, char* argv[]) {

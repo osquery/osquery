@@ -11,6 +11,7 @@
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/extensions.h>
+#include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
@@ -20,6 +21,49 @@
 
 namespace osquery {
 namespace tables {
+
+QueryData genOsqueryEvents(QueryContext& context) {
+  QueryData results;
+
+  auto publishers = EventFactory::publisherTypes();
+  for (const auto& publisher : publishers) {
+    Row r;
+    r["name"] = publisher;
+    r["publisher"] = publisher;
+    r["type"] = "publisher";
+
+    auto pubref = EventFactory::getEventPublisher(publisher);
+    if (pubref != nullptr) {
+      r["subscriptions"] = INTEGER(pubref->numSubscriptions());
+      r["events"] = INTEGER(pubref->numEvents());
+      r["restarts"] = INTEGER(pubref->restartCount());
+      r["active"] = (pubref->hasStarted() && !pubref->isEnding()) ? "1" : "0";
+    }
+    results.push_back(r);
+  }
+
+  auto subscribers = EventFactory::subscriberNames();
+  for (const auto& subscriber : subscribers) {
+    Row r;
+    r["name"] = subscriber;
+    r["type"] = "subscriber";
+
+    auto subref = EventFactory::getEventSubscriber(subscriber);
+    if (subref != nullptr) {
+      r["publisher"] = subref->getType();
+      r["subscriptions"] = INTEGER(subref->numSubscriptions());
+      r["events"] = INTEGER(subref->numEvents());
+
+      // Subscribers will never 'restart'.
+      r["restarts"] = "0";
+      // Subscribers are always active, even if their publisher is not.
+      r["active"] = (subref->state() == SUBSCRIBER_RUNNING) ? "1" : "0";
+    }
+    results.push_back(r);
+  }
+
+  return results;
+}
 
 QueryData genOsqueryPacks(QueryContext& context) {
   QueryData results;

@@ -113,7 +113,8 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
 
   for (const auto& subscription : subscriptions_) {
     auto es = EventFactory::getEventSubscriber(subscription->subscriber_name);
-    if (es->state() == SUBSCRIBER_RUNNING) {
+    if (es != nullptr && es->state() == SUBSCRIBER_RUNNING) {
+      es->event_count_++;
       fireCallback(subscription, ec);
     }
   }
@@ -476,9 +477,12 @@ void EventFactory::delay() {
   // Create a thread for each event publisher.
   auto& ef = EventFactory::getInstance();
   for (const auto& publisher : EventFactory::getInstance().event_pubs_) {
-    auto thread_ = std::make_shared<boost::thread>(
-        boost::bind(&EventFactory::run, publisher.first));
-    ef.threads_.push_back(thread_);
+    // Publishers that did not set up correctly are put into an ending state.
+    if (!publisher.second->isEnding()) {
+      auto thread_ = std::make_shared<boost::thread>(
+          boost::bind(&EventFactory::run, publisher.first));
+      ef.threads_.push_back(thread_);
+    }
   }
 }
 
@@ -493,12 +497,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
   // Assume it can either make use of an entrypoint poller/selector or
   // take care of async callback registrations in setUp/configure/run
   // only once and handle event queuing/firing in callbacks.
-  EventPublisherRef publisher = nullptr;
-  try {
-    publisher = ef.getEventPublisher(type_id);
-  } catch (std::out_of_range& e) {
-    return Status(1, "No event type found");
-  }
+  EventPublisherRef publisher = ef.getEventPublisher(type_id);
 
   if (publisher == nullptr) {
     return Status(1, "Event publisher is missing");
@@ -512,6 +511,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
   while (!publisher->isEnding() && status.ok()) {
     // Can optionally implement a global cooloff latency here.
     status = publisher->run();
+    publisher->restart_count_++;
     osquery::publisherSleep(EVENTS_COOLOFF);
   }
   // The runloop status is not reflective of the event type's.
@@ -519,7 +519,12 @@ Status EventFactory::run(EventPublisherID& type_id) {
           << " run loop terminated for reason: " << status.getMessage();
   // Publishers auto tear down when their run loop stops.
   publisher->tearDown();
-  ef.event_pubs_.erase(type_id);
+
+  // Do not remove the publisher from the event factory.
+  // If the event factory's `end` method was called these publishers will be
+  // cleaned up after their thread context is removed; otherwise, a removed
+  // thread context and failed publisher will remain available for stats.
+  // ef.event_pubs_.erase(type_id);
   return Status(0, "OK");
 }
 
@@ -551,17 +556,18 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
   }
 
   // Do not set up event publisher if events are disabled.
+  ef.event_pubs_[type_id] = specialized_pub;
   if (!FLAGS_disable_events) {
     auto status = specialized_pub->setUp();
     if (!status.ok()) {
       // Only start event loop if setUp succeeds.
       LOG(INFO) << "Event publisher failed setup: " << type_id << ": "
                 << status.what();
+      specialized_pub->isEnding(true);
       return status;
     }
   }
 
-  ef.event_pubs_[type_id] = specialized_pub;
   return Status(0, "OK");
 }
 
@@ -659,10 +665,8 @@ Status EventFactory::deregisterEventPublisher(const EventPublisherRef& pub) {
 
 Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
   auto& ef = EventFactory::getInstance();
-  EventPublisherRef publisher;
-  try {
-    publisher = ef.getEventPublisher(type_id);
-  } catch (std::out_of_range& e) {
+  EventPublisherRef publisher = ef.getEventPublisher(type_id);
+  if (publisher == nullptr) {
     return Status(1, "No event publisher to deregister");
   }
 
@@ -673,8 +677,7 @@ Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
       // the setUp happened at publisher registration time.
       publisher->tearDown();
       // If the run loop did run the tear down and erase will happen in the
-      // event
-      // thread wrapper when isEnding is next checked.
+      // event thread wrapper when isEnding is next checked.
       ef.event_pubs_.erase(type_id);
     } else {
       publisher->end();
@@ -721,6 +724,9 @@ void EventFactory::end(bool join) {
     ::usleep(400);
     ef.threads_.clear();
   }
+
+  // Threads may still be executing, when they finish, release publishers.
+  ef.event_pubs_.clear();
 }
 
 void attachEvents() {
