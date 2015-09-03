@@ -34,6 +34,7 @@ boost::shared_mutex config_schedule_mutex_;
 boost::shared_mutex config_performance_mutex_;
 boost::shared_mutex config_files_mutex_;
 boost::shared_mutex config_hash_mutex_;
+boost::shared_mutex config_valid_mutex_;
 
 void Config::addPack(const Pack& pack) {
   WriteLock wlock(config_schedule_mutex_);
@@ -78,7 +79,7 @@ void Config::clearSchedule() {
 
 void Config::clearHash() {
   WriteLock wlock(config_hash_mutex_);
-  std::string().swap(hash_);
+  hash_.erase(hash_.begin(), hash_.end());
 }
 
 void Config::clearFiles() {
@@ -86,7 +87,13 @@ void Config::clearFiles() {
   files_.erase(files_.begin(), files_.end());
 }
 
+bool Config::isValid() {
+  ReadLock rlock(config_valid_mutex_);
+  return valid_;
+}
+
 Status Config::load() {
+  valid_ = false;
   auto& config_plugin = Registry::getActive("config");
   if (!Registry::exists("config", config_plugin)) {
     return Status(1, "Missing config plugin " + config_plugin);
@@ -102,6 +109,7 @@ Status Config::load() {
   clearSchedule();
   clearHash();
   clearFiles();
+  valid_ = true;
 
   // if there was a response, parse it and update internal state
   if (response.size() > 0) {
@@ -130,6 +138,8 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   }
 
   for (const auto& source : config) {
+    hashSource(source.first, source.second);
+
     // load the config (source.second) into a pt::ptree
     std::stringstream json;
     json << source.second;
@@ -270,53 +280,30 @@ void Config::getPerformanceStats(
   }
 }
 
+void Config::hashSource(const std::string& source, const std::string& content) {
+  WriteLock wlock(config_hash_mutex_);
+  hash_[source] =
+      hashFromBuffer(HASH_TYPE_MD5, &(content.c_str())[0], content.size());
+}
+
 Status Config::getMD5(std::string& hash) {
-  if (hash_.empty()) {
-    std::vector<char> buffer;
-    auto add = [&buffer](const std::string& text) {
-      for (const auto& c : text) {
-        buffer.push_back(c);
-      }
-    };
-    scheduledQueries(
-        [&add, &buffer](const std::string& name, const ScheduledQuery& query) {
-          add(name);
-          add(query.query);
-          add(std::to_string(query.interval));
-          for (const auto& it : query.options) {
-            add(it.first);
-            add(it.second ? "true" : "false");
-          }
-        });
-
-    auto parsers = Registry::all("config_parser");
-    for (const auto& parser : parsers) {
-      add(parser.first);
-      try {
-        if (parser.second == nullptr || parser.second.get() == nullptr) {
-          continue;
-        }
-        auto plugin =
-            std::static_pointer_cast<ConfigParserPlugin>(parser.second);
-        if (plugin == nullptr || plugin.get() == nullptr) {
-          continue;
-        }
-        std::stringstream ss;
-        pt::write_json(ss, plugin->getData());
-        add(ss.str());
-      } catch (const std::bad_cast& e) {
-        LOG(ERROR) << "Error casting config parser plugin: " << e.what();
-      } catch (const pt::ptree_error& e) {
-        LOG(ERROR)
-            << "Error writing config parser content to JSON: " << e.what();
-      }
-    }
-
-    std::sort(buffer.begin(), buffer.end());
-    hash_ = hashFromBuffer(HASH_TYPE_MD5, &buffer[0], buffer.size());
+  if (valid_) {
+    return Status(1, "Current config is not valid");
   }
 
-  hash = hash_;
+  ReadLock rlock(config_hash_mutex_);
+  std::vector<char> buffer;
+  buffer.reserve(hash_.size() * 32);
+  auto add = [&buffer](const std::string& text) {
+    for (const auto& c : text) {
+      buffer.push_back(c);
+    }
+  };
+  for (const auto it : hash_) {
+    add(it.second);
+  }
+
+  hash = hashFromBuffer(HASH_TYPE_MD5, &buffer[0], buffer.size());
   return Status(0, "OK");
 }
 

@@ -144,6 +144,8 @@ QueryData genOsqueryInfo(QueryContext& context) {
     VLOG(1) << "Could not retrieve config hash: " << s.toString();
   }
 
+  r["config_valid"] = Config::getInstance().isValid() ? INTEGER(1) : INTEGER(0);
+
   r["config_path"] = Flag::getValue("config_path");
   r["extensions"] =
       (pingExtension(FLAGS_extensions_socket).ok()) ? "active" : "inactive";
