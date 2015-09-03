@@ -17,8 +17,7 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-class ProcessEventSubscriber
-  : public EventSubscriber<KernelEventPublisher> {
+class ProcessEventSubscriber : public EventSubscriber<KernelEventPublisher> {
  public:
   /// The process event subscriber declares a kernel event type subscription.
   Status init();
@@ -44,13 +43,11 @@ Status ProcessEventSubscriber::Callback(
     const void *user_data) {
   Row r;
   r["overflows"] = "";
-  r["cmdline_count"] = BIGINT(ec->event.actual_argc);
   r["cmdline_size"] = BIGINT(ec->event.arg_length);
   if (ec->event.argc != ec->event.actual_argc) {
     r["overflows"] = "cmdline";
   }
 
-  r["envc"] = BIGINT(ec->event.envc);
   r["environment_count"] = BIGINT(ec->event.actual_envc);
   r["environment_size"] = BIGINT(ec->event.env_length);
   if (ec->event.envc != ec->event.actual_envc) {
@@ -124,6 +121,4 @@ Status ProcessEventSubscriber::Callback(
 
   return Status(0, "OK");
 }
-
-
-}  // namespace osquery
+} // namespace osquery

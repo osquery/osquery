@@ -144,5 +144,10 @@ function main_rhel() {
   package gettext-devel
   install_libcryptsetup
 
+  if [[ $DISTRO = "rhel7" ]]; then
+    package audit-libs-devel
+    package audit-libs-static
+  fi
+
   gem_install fpm
 }

@@ -9,6 +9,7 @@
  */
 
 #include <feeds.h>
+
 #include "circular_queue_kern.h"
 
 /** @brief Subscribe function type.

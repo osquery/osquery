@@ -4,25 +4,18 @@ if(APPLE)
   ADD_OSQUERY_LINK(FALSE "-framework IOKit")
   ADD_OSQUERY_LINK(FALSE "-framework DiskArbitration")
 
-  ADD_OSQUERY_LIBRARY(FALSE osquery_events_darwin
-    darwin/fsevents.cpp
-    darwin/iokit_hid.cpp
-    darwin/diskarbitration.cpp
-    darwin/scnetwork.cpp
-    darwin/kernel_util.cpp
-  )
+
+  file(GLOB OSQUERY_EVENTS_DARWIN "darwin/*.cpp")
+  ADD_OSQUERY_LIBRARY(FALSE osquery_events_darwin ${OSQUERY_EVENTS_DARWIN})
 elseif(FREEBSD)
-  ADD_OSQUERY_LIBRARY(FALSE osquery_events_freebsd
-    freebsd/kernel_util.cpp
-  )
+  file(GLOB OSQUERY_EVENTS_FREEBSD "freebsd/*.cpp")
+  ADD_OSQUERY_LIBRARY(FALSE osquery_events_freebsd ${OSQUERY_EVENTS_FREEBSD})
 else()
   ADD_OSQUERY_LINK(FALSE "udev")
+  ADD_OSQUERY_LINK(FALSE "audit")
 
-  ADD_OSQUERY_LIBRARY(FALSE osquery_events_linux
-    linux/inotify.cpp
-    linux/udev.cpp
-    linux/kernel_util.cpp
-  )
+  file(GLOB OSQUERY_EVENTS_LINUX "linux/*.cpp")
+  ADD_OSQUERY_LIBRARY(FALSE osquery_events_linux ${OSQUERY_EVENTS_LINUX})
 endif()
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_events

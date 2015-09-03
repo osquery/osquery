@@ -15,6 +15,9 @@ from __future__ import unicode_literals
 import json
 import os
 import sys
+import psutil
+import time
+import subprocess
 
 
 def red(msg):
@@ -102,3 +105,65 @@ def queries_from_tables(path, restrict):
     for table in tables:
         queries[table] = "SELECT * FROM %s;" % table.split(".", 1)[1]
     return queries
+
+
+def get_stats(p, interval=1):
+    """Run psutil and downselect the information."""
+    utilization = p.cpu_percent(interval=interval)
+    return {
+        "utilization": utilization,
+        "counters": p.io_counters() if platform() != "darwin" else None,
+        "fds": p.num_fds(),
+        "cpu_times": p.cpu_times(),
+        "memory": p.memory_info_ex(),
+    }
+
+
+def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
+    start_time = time.time()
+    if proc is None:
+        proc = subprocess.Popen(cmd,
+                                shell=shell,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+
+    p = psutil.Process(pid=proc.pid)
+
+    delay = 0
+    step = 0.5
+
+    percents = []
+    # Calculate the CPU utilization in intervals of 1 second.
+    stats = {}
+    while p.is_running() and p.status() != psutil.STATUS_ZOMBIE:
+        try:
+            current_stats = get_stats(p, step)
+            if (current_stats["memory"].rss == 0):
+                break
+            stats = current_stats
+            percents.append(stats["utilization"])
+        except psutil.AccessDenied:
+            break
+        delay += step
+        if timeout > 0 and delay >= timeout + 2:
+            proc.kill()
+            break
+    duration = time.time() - start_time - 2
+
+    utilization = [percent for percent in percents if percent != 0]
+    if len(utilization) == 0:
+        avg_utilization = 0
+    else:
+        avg_utilization = sum(utilization) / len(utilization)
+
+    return {
+        "utilization": avg_utilization,
+        "duration": duration,
+        "memory": stats["memory"].rss,
+        "user_time": stats["cpu_times"].user,
+        "system_time": stats["cpu_times"].system,
+        "cpu_time": stats["cpu_times"].user + stats["cpu_times"].system,
+        "fds": stats["fds"],
+        "exit": p.wait(),
+    }
+

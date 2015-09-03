@@ -8,17 +8,18 @@
  *
  */
 
-#include "osquery/events/kernel.h"
-
 #include <boost/regex.hpp>
 #include <boost/xpressive/xpressive.hpp>
 
+// This must come after the boost expressive headers.
 #include <IOKit/kext/KextManager.h>
 
 #include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
+
+#include "osquery/events/kernel.h"
 
 namespace xp = boost::xpressive;
 

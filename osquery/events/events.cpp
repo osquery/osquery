@@ -552,9 +552,12 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
 
   // Do not set up event publisher if events are disabled.
   if (!FLAGS_disable_events) {
-    if (!specialized_pub->setUp().ok()) {
+    auto status = specialized_pub->setUp();
+    if (!status.ok()) {
       // Only start event loop if setUp succeeds.
-      return Status(1, "Event publisher setup failed");
+      LOG(INFO) << "Event publisher failed setup: " << type_id << ": "
+                << status.what();
+      return status;
     }
   }
 
@@ -631,7 +634,7 @@ size_t EventFactory::numSubscriptions(EventPublisherID& type_id) {
 
 EventPublisherRef EventFactory::getEventPublisher(EventPublisherID& type_id) {
   if (getInstance().event_pubs_.count(type_id) == 0) {
-    LOG(ERROR) << "Requested unknown event publisher: " + type_id;
+    LOG(ERROR) << "Requested unknown/failed event publisher: " + type_id;
     return nullptr;
   }
   return getInstance().event_pubs_.at(type_id);
