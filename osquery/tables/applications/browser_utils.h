@@ -20,5 +20,13 @@ namespace tables {
 
 QueryData genChromeBasedExtensions(QueryContext& context, const fs::path sub_dir);
 
+/// A helper check to rename bool-type values as 1 or 0.
+inline void jsonBoolAsInt(std::string& s) {
+  if (s == "true" || s == "YES" || s == "Yes") {
+    s = "1";
+  } else if (s == "false" || s == "NO" || s == "No") {
+    s = "0";
+  }
+}
 }
 }

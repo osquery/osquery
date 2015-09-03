@@ -14,6 +14,8 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/tables/applications/browser_utils.h"
+
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
@@ -61,24 +63,16 @@ void genFirefoxAddonsFromExtensions(const std::string& path,
     Row r;
     // Most of the keys are in the top-level JSON dictionary.
     for (const auto& it : kFirefoxAddonKeys) {
-      if (addon.second.count(it.first)) {
-        r[it.second] = addon.second.get<std::string>(it.first, "");
-      }
+      r[it.second] = addon.second.get(it.first, "");
 
       // Convert bool-types to an integer.
-      if (r[it.second] == "true" || r[it.second] == "YES" ||
-          r[it.first] == "Yes") {
-        r[it.second] = INTEGER(1);
-      } else if (r[it.second] == "false" || r[it.second] == "NO" ||
-                 r[it.second] == "No") {
-        r[it.second] = INTEGER(0);
-      }
+      jsonBoolAsInt(r[it.second]);
     }
 
     // There are several ways to disabled the addon, check each.
-    if (addon.second.get<std::string>("softDisable", "false") == "true" ||
-        addon.second.get<std::string>("appDisabled", "false") == "true" ||
-        addon.second.get<std::string>("userDisabled", "false") == "true") {
+    if (addon.second.get("softDisable", "false") == "true" ||
+        addon.second.get("appDisabled", "false") == "true" ||
+        addon.second.get("userDisabled", "false") == "true") {
       r["disabled"] = INTEGER(1);
     } else {
       r["disabled"] = INTEGER(0);
