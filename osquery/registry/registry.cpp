@@ -304,7 +304,7 @@ Status RegistryFactory::call(const std::string& registry_name,
     LOG(ERROR) << registry_name << " registry " << item_name
                << " plugin caused exception: " << e.what();
     if (FLAGS_registry_exceptions) {
-      throw e;
+      throw;
     }
     return Status(1, e.what());
   } catch (...) {

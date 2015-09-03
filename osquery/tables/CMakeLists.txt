@@ -18,6 +18,7 @@ if(APPLE)
   ADD_OSQUERY_LINK_ADDITIONAL("-framework DiskArbitration")
 
   ADD_OSQUERY_LINK_ADDITIONAL("archive")
+  ADD_OSQUERY_LINK_ADDITIONAL("magic")
 elseif(FREEBSD)
   file(GLOB OSQUERY_FREEBSD_TABLES "*/freebsd/*.cpp")
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_freebsd
@@ -62,9 +63,9 @@ else()
   ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup libdevmapper.so libgcrypt.so")
   ADD_OSQUERY_LINK_ADDITIONAL("libuuid.so")
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
+  ADD_OSQUERY_LINK_ADDITIONAL("libmagic.so")
 endif()
 
-ADD_OSQUERY_LINK_ADDITIONAL("magic")
 
 file(GLOB OSQUERY_CROSS_APPLICATIONS_TABLES "applications/*.cpp")
 file(GLOB OSQUERY_CROSS_SYSTEM_TABLES "system/*.cpp")

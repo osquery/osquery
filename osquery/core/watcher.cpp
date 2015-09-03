@@ -233,13 +233,14 @@ bool WatcherRunner::isChildSane(pid_t child) {
   // Get the performance state for the worker or extension.
   size_t sustained_latency = 0;
   // Compare CPU utilization since last check.
-  BIGINT_LITERAL footprint = 0, user_time = 0, system_time = 0, parent = 0;
+  BIGINT_LITERAL footprint = 0, parent = 0;
   // IV is the check interval in seconds, and utilization is set per-second.
   auto iv = std::max(getWorkerLimit(INTERVAL), (size_t)1);
 
   {
     WatcherLocker locker;
     auto& state = Watcher::getState(child);
+    BIGINT_LITERAL user_time = 0, system_time = 0;
     try {
       parent = AS_LITERAL(BIGINT_LITERAL, rows[0].at("parent"));
       user_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("user_time")) / iv;

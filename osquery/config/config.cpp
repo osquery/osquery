@@ -386,25 +386,4 @@ Status ConfigParserPlugin::setUp() {
   }
   return Status(0, "OK");
 }
-
-int splayValue(int original, int splayPercent) {
-  if (splayPercent <= 0 || splayPercent > 100) {
-    return original;
-  }
-
-  float percent_to_modify_by = (float)splayPercent / 100;
-  int possible_difference = original * percent_to_modify_by;
-  int max_value = original + possible_difference;
-  int min_value = original - possible_difference;
-
-  if (max_value == min_value) {
-    return max_value;
-  }
-
-  std::default_random_engine generator;
-  generator.seed(
-      std::chrono::high_resolution_clock::now().time_since_epoch().count());
-  std::uniform_int_distribution<int> distribution(min_value, max_value);
-  return distribution(generator);
-}
 }

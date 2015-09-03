@@ -194,7 +194,7 @@ class Request {
    *
    * @param destination A string of the remote URI destination
    */
-  Request(const std::string& destination)
+  explicit Request(const std::string& destination)
       : destination_(destination),
         serializer_(new TSerializer),
         transport_(new TTransport) {

@@ -41,7 +41,7 @@ class CQueue {
    *
    * @param size The size of the shared buffer used for communication.
    */
-  CQueue(size_t size);
+  explicit CQueue(size_t size);
 
   /**
    * @brief Cleanup a cqueue.

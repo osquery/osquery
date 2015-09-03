@@ -51,7 +51,7 @@ void parseIpEntry(ipt_ip *ip, Row &r) {
 
   char aux_char[2] = {0};
   std::string iniface_mask;
-  for (int i = 0; ip->iniface_mask[i] != 0x00 && i<IFNAMSIZ; i++) {
+  for (int i = 0; i < IFNAMSIZ && ip->iniface_mask[i] != 0x00; i++) {
     aux_char[0] = MAP[(int) ip->iniface_mask[i] >> HIGH_BITS];
     aux_char[1] = MAP[(int) ip->iniface_mask[i] & LOW_BITS];
     iniface_mask += aux_char[0];
@@ -60,7 +60,7 @@ void parseIpEntry(ipt_ip *ip, Row &r) {
 
   r["iniface_mask"] = TEXT(iniface_mask);
   std::string outiface_mask = "";
-  for (int i = 0; ip->outiface_mask[i] != 0x00 && i<IFNAMSIZ; i++) {
+  for (int i = 0; i < IFNAMSIZ && ip->outiface_mask[i] != 0x00; i++) {
     aux_char[0] = MAP[(int) ip->outiface_mask[i] >> HIGH_BITS];
     aux_char[1] = MAP[(int) ip->outiface_mask[i] & LOW_BITS];
     outiface_mask += aux_char[0];

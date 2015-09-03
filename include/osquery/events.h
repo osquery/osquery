@@ -294,7 +294,7 @@ class EventPublisherPlugin : public Plugin {
   EventContextID next_ec_id_;
 
  private:
-  EventPublisherPlugin(EventPublisherPlugin const&);
+  explicit EventPublisherPlugin(EventPublisherPlugin const&);
   EventPublisherPlugin& operator=(EventPublisherPlugin const&);
 
  private:
@@ -554,7 +554,7 @@ class EventSubscriberPlugin : public Plugin {
   void doNotExpire() { expire_events_ = false; }
 
  private:
-  EventSubscriberPlugin(EventSubscriberPlugin const&);
+  explicit EventSubscriberPlugin(EventSubscriberPlugin const&);
   EventSubscriberPlugin& operator=(EventSubscriberPlugin const&);
 
  private:
