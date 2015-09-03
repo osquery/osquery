@@ -15,6 +15,8 @@
 #include <archive.h>
 #include <archive_entry.h>
 
+#include "osquery/tables/applications/browser_utils.h"
+
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
@@ -57,14 +59,8 @@ void genBrowserPlugin(const std::string& path, QueryData& results) {
     for (const auto& it : kBrowserPluginKeys) {
       r[it.second] = tree.get(it.first, "");
 
-      // Convert Plist bool-types to an integer.
-      if (r.at(it.second) == "true" || r.at(it.second) == "YES" ||
-          r.at(it.second) == "Yes") {
-        r[it.second] = "1";
-      } else if (r.at(it.second) == "false" || r.at(it.second) == "NO" ||
-                 r.at(it.second) == "No") {
-        r[it.second] = "0";
-      }
+      // Convert bool-types to an integer.
+      jsonBoolAsInt(r[it.second]);
     }
   }
 

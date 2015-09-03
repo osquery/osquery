@@ -3,7 +3,7 @@ description("Firefox browser extensions, webapps, and addons.")
 schema([
     Column("name", TEXT, "Addon display name"),
     Column("identifier", TEXT, "Addon identifier"),
-    Column("creator", TEXT< "Addon-supported creator string"),
+    Column("creator", TEXT, "Addon-supported creator string"),
     Column("type", TEXT, "Extension, addon, webapp"),
     Column("version", TEXT, "Addon-supplied version string"),
     Column("description", TEXT, "Addon-supplied description string"),
