@@ -91,7 +91,7 @@ class Schedule {
  */
 class Config {
  private:
-  Config() : schedule_(Schedule()){};
+  Config() : schedule_(Schedule()), valid_(false){};
 
  protected:
   typedef boost::unique_lock<boost::shared_mutex> WriteLock;
@@ -171,6 +171,17 @@ class Config {
    * @return The MD5 of the osquery config
    */
   Status getMD5(std::string& hash);
+
+  /**
+   * @brief Hash a source's config data
+   *
+   * @param source is the place where the config content came from
+   * @param content is the content of the config data for a given source
+   */
+  void hashSource(const std::string& source, const std::string& content);
+
+  /// Whether or not the last loaded config was valid
+  bool isValid();
 
   /**
    * @brief Add a pack to the osquery schedule
@@ -270,7 +281,8 @@ class Config {
   Schedule schedule_;
   std::map<std::string, QueryPerformance> performance_;
   std::map<std::string, std::vector<std::string> > files_;
-  std::string hash_;
+  std::map<std::string, std::string> hash_;
+  bool valid_;
 
  private:
   friend class ConfigTests;

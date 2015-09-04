@@ -365,7 +365,10 @@ void Initializer::start() {
   }
 
   // Load the osquery config using the default/active config plugin.
-  Config::getInstance().load();
+  auto s = Config::getInstance().load();
+  if (!s.ok()) {
+    LOG(ERROR) << "Error reading config: " << s.toString();
+  }
 
   // Initialize the status and result plugin logger.
   initActivePlugin("logger", FLAGS_logger_plugin);
