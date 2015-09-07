@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include <boost/noncopyable.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/config.h>
@@ -108,4 +109,31 @@ std::vector<SplitStringTestData> generateSplitStringTestData();
 void createMockFileStructure();
 // remove the small directory structure used for testing
 void tearDownMockFileStructure();
+
+class TLSServerRunner : private boost::noncopyable {
+ public:
+  /// Create a singleton TLS server runner.
+  static TLSServerRunner& instance() {
+    static TLSServerRunner instance;
+    return instance;
+  }
+
+  /// TCP port accessor.
+  static const std::string& port() { return instance().port_; }
+  /// Start the server if it hasn't started already.
+  static void start();
+  /// Stop the service when the process exits.
+  static void stop();
+
+ private:
+  TLSServerRunner()
+      : server_(0), port_(std::to_string(rand() % 10000 + 20000)){};
+  TLSServerRunner(TLSServerRunner const&);
+  void operator=(TLSServerRunner const&);
+  virtual ~TLSServerRunner() { stop(); }
+
+ private:
+  pid_t server_;
+  std::string port_;
+};
 }

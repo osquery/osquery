@@ -4,7 +4,7 @@
 #  All rights reserved.
 #
 #  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant 
+#  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 from __future__ import absolute_import
@@ -26,6 +26,13 @@ from urlparse import parse_qs
 EXAMPLE_CONFIG = {
     "schedule": {
         "tls_proc": {"query": "select * from processes", "interval": 0},
+    }
+}
+
+EXAMPLE_DISTRIBUTED = {
+    "queries": {
+        "info": "select * from osquery_info",
+        "flags": "select * from osquery_flags",
     }
 }
 
@@ -54,16 +61,16 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
- 
+
     def do_GET(self):
         debug("RealSimpleHandler::get %s" % self.path)
         self._set_headers()
         self._reply(TEST_RESPONSE)
- 
+
     def do_HEAD(self):
         debug("RealSimpleHandler::head %s" % self.path)
         self._set_headers()
-        
+
     def do_POST(self):
         debug("RealSimpleHandler::post %s" % self.path)
         self._set_headers()
@@ -77,6 +84,10 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             self.config(request)
         elif self.path == '/log':
             self.log(request)
+        elif self.path == '/distributed_read':
+            self.distributed_read(request)
+        elif self.path == '/distributed_write':
+            self.distributed_write(request)
         else:
             self._reply(TEST_RESPONSE)
 
@@ -114,6 +125,17 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             return
         self._reply(EXAMPLE_CONFIG)
 
+    def distributed_read(self, request):
+        '''A basic distributed read endpoint'''
+        if "node_key" not in request or request["node_key"] not in NODE_KEYS:
+            self._reply(FAILED_ENROLL_RESPONSE)
+            return
+        self._reply(EXAMPLE_DISTRIBUTED)
+
+    def distributed_write(self, request):
+        '''A basic distributed write endpoint'''
+        self._reply({})
+
     def log(self, request):
         self._reply({})
 
@@ -141,7 +163,7 @@ if __name__ == '__main__':
         help="Wrap the HTTP server socket in TLS."
     )
     parser.add_argument(
-        "--timeout", default=5, type=int,
+        "--timeout", default=10, type=int,
         help="If not persisting, exit after a number of seconds"
     )
 

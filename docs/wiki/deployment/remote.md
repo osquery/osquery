@@ -83,6 +83,61 @@ The posted logger data is exactly the same as logged to disk by the **filesystem
 {}
 ```
 
+**Distributed** read request POST body:
+
+```json
+{
+  "node_key": "..."
+}
+```
+
+**Distributed** read responde POST body:
+
+```json
+{
+    "queries": {
+        "id1": "select * from osquery_info;",
+        "id2": "select * from osquery_schedule;"
+    }
+}
+```
+
+**Distributed** write request POST body:
+
+```json
+{
+    "node_key": "...",
+    "queries": {
+        "id1": [
+            {
+                "column1": "value1",
+                "column2": "value2"
+            },
+            {
+                "column1": "value1",
+                "column2": "value2"
+            }
+        ],
+        "id2": [
+            {
+                "column1": "value1",
+                "column2": "value2"
+            },
+            {
+                "column1": "value1",
+                "column2": "value2"
+            }
+        ]
+    }
+}
+```
+
+**Distributed** write request POST body:
+
+```json
+{}
+```
+
 **Customizations**
 
 There are several unlisted flags to further control the remote settings. These controls are helpful if using a somewhat opaque API.

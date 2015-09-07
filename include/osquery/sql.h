@@ -54,7 +54,7 @@ class SQL {
    *
    * @return A QueryData object of the query results
    */
-  const QueryData& rows();
+  const QueryData& rows() const;
 
   /**
    * @brief Accessor to switch off of when checking the success of a query
@@ -68,7 +68,7 @@ class SQL {
    *
    * @return The query status
    */
-  Status getStatus();
+  const Status& getStatus() const;
 
   /**
    * @brief Accessor for the message string indicating the status of the query
@@ -76,15 +76,6 @@ class SQL {
    * @return The message string indicating the status of the query
    */
   std::string getMessageString();
-
-  /**
-   * @brief Add host info columns onto existing QueryData
-   *
-   * Use this to add columns providing host info to the query results.
-   * Distributed queries use this to add host information before returning
-   * results to the aggregator.
-   */
-  void annotateHostInfo();
 
   /**
    * @brief Accessor for the list of queryable tables

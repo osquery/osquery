@@ -98,6 +98,9 @@ CLI_FLAG(bool,
 CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 #endif
 
+DECLARE_string(distributed_plugin);
+DECLARE_bool(distributed_enabled);
+
 ToolType kToolType = OSQUERY_TOOL_UNKNOWN;
 
 void printUsage(const std::string& binary, int tool) {
@@ -373,6 +376,13 @@ void Initializer::start() {
   // Initialize the status and result plugin logger.
   initActivePlugin("logger", FLAGS_logger_plugin);
   initLogger(binary_);
+
+  // Initialize the distributed plugin, if necessary
+  if (FLAGS_distributed_enabled) {
+    if (Registry::exists("distributed", FLAGS_distributed_plugin)) {
+      initActivePlugin("distributed", FLAGS_distributed_plugin);
+    }
+  }
 
   // Start event threads.
   osquery::attachEvents();

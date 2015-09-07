@@ -8,14 +8,9 @@
  *
  */
 
-#include <random>
 #include <thread>
 
-#include <signal.h>
-
 #include <gtest/gtest.h>
-
-#include <boost/noncopyable.hpp>
 
 #include <osquery/logger.h>
 
@@ -28,55 +23,6 @@
 namespace pt = boost::property_tree;
 
 namespace osquery {
-
-class TLSServerRunner : private boost::noncopyable {
- public:
-  /// Create a singleton TLS server runner.
-  static TLSServerRunner& instance() {
-    static TLSServerRunner instance;
-    return instance;
-  }
-
-  /// TCP port accessor.
-  static const std::string& port() { return instance().port_; }
-  /// Start the server if it hasn't started already.
-  static void start();
-  /// Stop the service when the process exits.
-  static void stop();
-
- private:
-  TLSServerRunner()
-      : server_(0), port_(std::to_string(rand() % 10000 + 20000)){};
-  TLSServerRunner(TLSServerRunner const&);
-  void operator=(TLSServerRunner const&);
-  virtual ~TLSServerRunner() { stop(); }
-
- private:
-  pid_t server_;
-  std::string port_;
-};
-
-void TLSServerRunner::start() {
-  auto& self = instance();
-  if (self.server_ != 0) {
-    return;
-  }
-
-  // Fork then exec a shell.
-  self.server_ = fork();
-  if (self.server_ == 0) {
-    // Start a python TLS/HTTPS or HTTP server.
-    auto script = kTestDataPath + "/test_http_server.py --tls " + self.port_;
-    execlp("sh", "sh", "-c", script.c_str(), nullptr);
-    ::exit(0);
-  }
-  ::sleep(1);
-}
-
-void TLSServerRunner::stop() {
-  auto& self = instance();
-  kill(self.server_, SIGTERM);
-}
 
 class TLSTransportsTests : public testing::Test {
  public:

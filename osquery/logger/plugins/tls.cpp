@@ -24,6 +24,7 @@
 #include "osquery/remote/requests.h"
 #include "osquery/remote/transports/tls.h"
 #include "osquery/remote/serializers/json.h"
+#include "osquery/remote/utility.h"
 
 namespace pt = boost::property_tree;
 
@@ -112,19 +113,22 @@ bool TLSLoggerPlugin::stop_buffering = false;
 class TLSLogForwarderRunner : public InternalRunnable {
  public:
   explicit TLSLogForwarderRunner(const std::string& node_key)
-      : node_key_(node_key) {}
+      : node_key_(node_key) {
+    uri_ = TLSRequestHelper::makeURI(FLAGS_logger_tls_endpoint);
+  }
 
   /// A simple wait lock, and flush based on settings.
   void start();
 
- private:
+ protected:
   /// Send labeled result logs.
-  Status send(const std::string& uri,
-              const std::string& log_data,
-              const std::string& log_type);
+  Status send(const std::string& log_data, const std::string& log_type);
 
   /// Receive an enrollment/node key from the backing store cache.
   std::string node_key_;
+
+  /// Endpoint URI
+  std::string uri_;
 };
 
 REGISTER(TLSLoggerPlugin, "logger", "tls");
@@ -194,8 +198,7 @@ Status TLSLoggerPlugin::init(const std::string& name,
   return logStatus(log);
 }
 
-Status TLSLogForwarderRunner::send(const std::string& uri,
-                                   const std::string& log_data,
+Status TLSLogForwarderRunner::send(const std::string& log_data,
                                    const std::string& log_type) {
   pt::ptree params;
   params.put<std::string>("node_key", node_key_);
@@ -217,7 +220,7 @@ Status TLSLogForwarderRunner::send(const std::string& uri,
     params.put("data", log_data);
   }
 
-  auto request = Request<TLSTransport, JSONSerializer>(uri);
+  auto request = Request<TLSTransport, JSONSerializer>(uri_);
   return request.call(params);
 }
 
@@ -232,21 +235,6 @@ inline void clearLogs(bool results, const std::vector<std::string>& indexes) {
 }
 
 void TLSLogForwarderRunner::start() {
-  auto uri = "https://" + FLAGS_tls_hostname;
-  if (FLAGS_tls_node_api) {
-    // The TLS API should treat clients as nodes.
-    // In this case the node_key acts as an identifier (node) and the endpoints
-    // (if provided) are treated as edges from the nodes.
-    uri += "/" + node_key_;
-  }
-  uri += FLAGS_logger_tls_endpoint;
-
-  // Some APIs may require persistent identification.
-  if (FLAGS_tls_secret_always) {
-    uri += ((uri.find("?") != std::string::npos) ? "&" : "?") +
-           FLAGS_tls_enroll_override + "=" + getEnrollSecret();
-  }
-
   while (true) {
     // Get a list of all the buffered log items.
     std::vector<std::string> indexes;
@@ -271,16 +259,16 @@ void TLSLogForwarderRunner::start() {
 
     // If any results/statuses were found in the flushed buffer, send.
     if (results.size() > 0) {
-      if (!send(uri, results, "result")) {
-        VLOG(1) << "Could not send results to logger URI: " << uri;
+      if (!send(results, "result")) {
+        VLOG(1) << "Could not send results to logger URI: " << uri_;
       } else {
         // Clear the results logs once they were sent.
         clearLogs(true, indexes);
       }
     }
     if (statuses.size() > 0) {
-      if (!send(uri, statuses, "status")) {
-        VLOG(1) << "Could not send status logs to logger URI: " << uri;
+      if (!send(statuses, "status")) {
+        VLOG(1) << "Could not send status logs to logger URI: " << uri_;
       } else {
         // Clear the status logs once they were sent.
         clearLogs(false, indexes);
