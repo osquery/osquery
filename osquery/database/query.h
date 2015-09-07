@@ -81,7 +81,6 @@ class Query {
    *
    * @return the success or failure of the operation
    */
-  // Status getHistoricalQueryResults(HistoricalQueryResults& hQR);
   Status getPreviousQueryResults(QueryData& results);
 
  private:
@@ -99,8 +98,6 @@ class Query {
    * @return the success or failure of the operation
    * @see getHistoricalQueryResults
    */
-  // Status getHistoricalQueryResults(HistoricalQueryResults& hQR,
-  //                                 std::shared_ptr<DBHandle> db);
   Status getPreviousQueryResults(QueryData& results, DBHandleRef db);
 
  public:
