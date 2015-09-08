@@ -8,10 +8,12 @@
  *
  */
 
-#include <deque>
-#include <sstream>
 #include <chrono>
+#include <deque>
+#include <random>
+#include <sstream>
 
+#include <signal.h>
 #include <time.h>
 
 #include <boost/property_tree/json_parser.hpp>
@@ -328,5 +330,27 @@ void createMockFileStructure() {
 
 void tearDownMockFileStructure() {
   boost::filesystem::remove_all(kFakeDirectory);
+}
+
+void TLSServerRunner::start() {
+  auto& self = instance();
+  if (self.server_ != 0) {
+    return;
+  }
+
+  // Fork then exec a shell.
+  self.server_ = fork();
+  if (self.server_ == 0) {
+    // Start a python TLS/HTTPS or HTTP server.
+    auto script = kTestDataPath + "/test_http_server.py --tls " + self.port_;
+    execlp("sh", "sh", "-c", script.c_str(), nullptr);
+    ::exit(0);
+  }
+  ::sleep(1);
+}
+
+void TLSServerRunner::stop() {
+  auto& self = instance();
+  kill(self.server_, SIGTERM);
 }
 }

@@ -281,5 +281,7 @@ class Request {
   FRIEND_TEST(TLSTransportsTests, test_call_verify_peer);
   FRIEND_TEST(TLSTransportsTests, test_call_server_cert_pinning);
   FRIEND_TEST(TLSTransportsTests, test_call_client_auth);
+
+  friend class TestDistributedPlugin;
 };
 }

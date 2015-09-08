@@ -387,6 +387,142 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item,
 Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
                                          std::string& json);
 
+/////////////////////////////////////////////////////////////////////////////
+// DistributedQueryRequest
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Small struct containing the query and ID information for a
+ * distributed query
+ */
+struct DistributedQueryRequest {
+ public:
+  explicit DistributedQueryRequest() {}
+  explicit DistributedQueryRequest(const std::string& q, const std::string& i)
+      : query(q), id(i) {}
+
+  /// equals operator
+  bool operator==(const DistributedQueryRequest& comp) const {
+    return (comp.query == query) && (comp.id == id);
+  }
+
+  std::string query;
+  std::string id;
+};
+
+/**
+ * @brief Serialize a DistributedQueryRequest into a property tree
+ *
+ * @param r the DistributedQueryRequest to serialize
+ * @param tree the output property tree
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
+                                        boost::property_tree::ptree& tree);
+
+/**
+ * @brief Serialize a DistributedQueryRequest object into a JSON string
+ *
+ * @param r the DistributedQueryRequest to serialize
+ * @param json the output JSON string
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
+                                            std::string& json);
+
+/**
+ * @brief Deserialize a DistributedQueryRequest object from a property tree
+ *
+ * @param tree the input property tree
+ * @param r the output DistributedQueryRequest structure
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status deserializeDistributedQueryRequest(
+    const boost::property_tree::ptree& tree, DistributedQueryRequest& r);
+
+/**
+ * @brief Deserialize a DistributedQueryRequest object from a JSON string
+ *
+ * @param json the input JSON string
+ * @param r the output DistributedQueryRequest structure
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status deserializeDistributedQueryRequestJSON(const std::string& json,
+                                              DistributedQueryRequest& r);
+
+/////////////////////////////////////////////////////////////////////////////
+// DistributedQueryResult
+/////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Small struct containing the results of a distributed query
+ */
+struct DistributedQueryResult {
+ public:
+  explicit DistributedQueryResult() {}
+  explicit DistributedQueryResult(const DistributedQueryRequest& req,
+                                  const QueryData& res)
+      : request(req), results(res) {}
+
+  /// equals operator
+  bool operator==(const DistributedQueryResult& comp) const {
+    return (comp.request == request) && (comp.results == results);
+  }
+
+  DistributedQueryRequest request;
+  QueryData results;
+};
+
+/**
+ * @brief Serialize a DistributedQueryResult into a property tree
+ *
+ * @param r the DistributedQueryResult to serialize
+ * @param tree the output property tree
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status serializeDistributedQueryResult(const DistributedQueryResult& r,
+                                       boost::property_tree::ptree& tree);
+
+/**
+ * @brief Serialize a DistributedQueryResult object into a JSON string
+ *
+ * @param r the DistributedQueryResult to serialize
+ * @param json the output JSON string
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
+                                           std::string& json);
+
+/**
+ * @brief Deserialize a DistributedQueryResult object from a property tree
+ *
+ * @param tree the input property tree
+ * @param r the output DistributedQueryResult structure
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status deserializeDistributedQueryResult(
+    const boost::property_tree::ptree& tree, DistributedQueryResult& r);
+
+/**
+ * @brief Deserialize a DistributedQueryResult object from a JSON string
+ *
+ * @param json the input JSON string
+ * @param r the output DistributedQueryResult structure
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status deserializeDistributedQueryResultJSON(const std::string& json,
+                                             DistributedQueryResult& r);
+
+/////////////////////////////////////////////////////////////////////////////
+
 /**
  * @brief An osquery backing storage (database) type that persists executions.
  *

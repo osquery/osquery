@@ -2,8 +2,9 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_dispatcher
   dispatcher.cpp
 )
 
-ADD_OSQUERY_LIBRARY(FALSE osquery_dispatch_scheduler
+ADD_OSQUERY_LIBRARY(FALSE osquery_dispatcher_runners
   scheduler.cpp
+  distributed.cpp
 )
 
 # Note: if there are ever scheduler tests this needs to set the

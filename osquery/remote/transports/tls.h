@@ -129,5 +129,7 @@ class TLSTransport : public Transport {
   FRIEND_TEST(TLSTransportsTests, test_call_server_cert_pinning);
   FRIEND_TEST(TLSTransportsTests, test_call_client_auth);
   FRIEND_TEST(TLSTransportsTests, test_call_http);
+
+  friend class TestDistributedPlugin;
 };
 }

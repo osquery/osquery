@@ -20,6 +20,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
+#include <osquery/core.h>
 #include <osquery/config/packs.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
@@ -92,10 +93,6 @@ class Schedule {
 class Config {
  private:
   Config() : schedule_(Schedule()), valid_(false){};
-
- protected:
-  typedef boost::unique_lock<boost::shared_mutex> WriteLock;
-  typedef boost::shared_lock<boost::shared_mutex> ReadLock;
 
  public:
   /// Get a singleton instance of the Config class

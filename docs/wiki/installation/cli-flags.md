@@ -15,6 +15,7 @@ Include line-delimited switches to be interpreted and used as CLI-flags:
 ```
 --config_plugin=custom_plugin
 --logger_plugin=custom_plugin
+--distributed_plugin=custom_plugin
 --watchlog_level=2
 ```
 
@@ -107,9 +108,9 @@ Extensions are loaded as processes. They are expected to start a thrift service 
 
 Optional path to a list of autoloaded library module-based extensions. Modules are similar to extensions but are loaded as shared libraries. They are less flexible and should be built using the same GCC runtime and developer dependency library versions as osqueryd. See the extensions [deployment](../deployment/extensions.md) page for more details on extension module autoloading.
 
-### Remote settings (optional for config/logger) flags
+### Remote settings (optional for config/logger/distributed) flags
 
-When using non-default [remote](../deployment/remote.md) plugins such as the **tls** config and logger plugins, there are process-wide settings applied to every plugin.
+When using non-default [remote](../deployment/remote.md) plugins such as the **tls** config, logger and distributed plugins, there are process-wide settings applied to every plugin.
 
 `--tls_hostname=""`
 
@@ -143,6 +144,11 @@ The **tls** endpoint path, e.g.: **/api/v1/config** when using the **tls** confi
 
 The configuration **tls** endpoint refresh interval. By default a configuration is fetched only at osquery load. If the configuration should be auto-updated set a "refresh" time to a value in seconds. This option enforces a minimum of 10 seconds. If the configuration endpoint cannot be reached during run, during an attempted refresh, the normal retry approach is applied.
 
+
+`--config_tls_max_attempts=3`
+
+The total number of attempts that will be made to the remote config server if a request fails.
+
 `--logger_tls_endpoint=""`
 
 The **tls** endpoint path, e.g.: **/api/v1/logger** when using the **tls** logger plugin. See the other **tls_** related CLI flags.
@@ -154,6 +160,18 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. An enrol
 `--logger_tls_period=3`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. This is a number of seconds before checking for buffered logs. Results are sent to the TLS endpoint in intervals, not on demand (unless the period=0).
+
+`--distributed_tls_read_endpoint=/foobar`
+
+The URI path which will be used, in conjunction with `tls_hostname`, to create the remote URI for retrieving distributed queries when using the **tls** distributed plugin.
+
+`--distributed_tls_write_endpoint=/foobar`
+
+The URI path which will be used, in conjunction with `tls_hostname`, to create the remote URI for submitting the results of distributed queries when using the **tls** distributed plugin.
+
+`--distributed_tls_max_attempts=3`
+
+The total number of attempts that will be made to the remote distributed query server if a request fails when using the **tls** distributed plugin.
 
 ## Runtime flags
 
@@ -203,10 +221,6 @@ Number of work dispatch threads.
 
 Limit the schedule, 0 for no limit. Optionally limit the osqueryd's life by adding a schedule limit in seconds.
 This should only be used for testing.
-
-`--distributed_retries=3`
-
-(Unsupported) Times to retry retrieving distributed queries.
 
 `--disable_tables=table_name1,table_name2`
 
@@ -262,6 +276,20 @@ Directory path for ERROR/WARN/INFO and results logging.
 `--value_max=512`
 
 Maximum returned row value size.
+
+## Distributed Flags
+
+`--distributed_plugin=tls`
+
+Distributed plugin name. The default distributed plugin is not set. You must set `--distributed_enabled=true --distributed_plugin=tls` (or whatever plugin you'd rather use instead of TLS) to use the distributed feature.
+
+`--distributed_enabled=false`
+
+Main killswitch for distributed queries functionality. By default, this is turned off.
+
+`--distributed_poll_interval=60`
+
+In seconds, the amount of time that osqueryd will wait between periodically checking in with a distributed query server to see if there are any queries to execute.
 
 ## Shell-only flags
 

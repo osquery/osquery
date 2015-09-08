@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/thread/shared_mutex.hpp>
+
 #include <osquery/status.h>
 
 // clang-format off
@@ -63,6 +65,9 @@ enum ToolType {
   OSQUERY_TOOL_TEST,
   OSQUERY_EXTENSION,
 };
+
+typedef boost::unique_lock<boost::shared_mutex> WriteLock;
+typedef boost::shared_lock<boost::shared_mutex> ReadLock;
 
 /// The osquery tool type for runtime decisions.
 extern ToolType kToolType;
