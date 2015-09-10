@@ -8,24 +8,32 @@
  *
  */
 
+#include <IOKit/IOKitLib.h>
+#include <mach/mach.h>
+
 #include <osquery/database.h>
 #include <osquery/tables.h>
-#include "osquery/core/conversions.h"
+#include <osquery/logger.h>
 
-#include <CoreFoundation/CoreFoundation.h>
-#include <IOKit/IOKitLib.h>
+#include "osquery/core/conversions.h"
+#include "osquery/tables/system/sysctl_utils.h"
+
+#define kIOPlatformClassName_ "IOPlatformExpertDevice"
 
 namespace osquery {
 namespace tables {
 
-Status getCpuSerial(std::string& cpu_serial) {
+const std::string kMachCpuBrandStringKey = "machdep.cpu.brand_string";
+const std::string kHardwareModelNameKey = "hw.model";
+
+Status getCpuSerial(std::string &cpu_serial) {
   static std::string serial_cache;
   if (!serial_cache.empty()) {
     cpu_serial = serial_cache;
     return Status(0, "OK");
   }
 
-  auto matching = IOServiceMatching("IOPlatformExpertDevice");
+  auto matching = IOServiceMatching(kIOPlatformClassName_);
   if (matching == nullptr) {
     return Status(1, "Could not get service matching IOPlatformExpertDevice");
   }
@@ -44,10 +52,10 @@ Status getCpuSerial(std::string& cpu_serial) {
   }
 
   CFStringRef serialNumber = (CFStringRef)IORegistryEntryCreateCFProperty(
-    service,
-    CFSTR("IOPlatformSerialNumber"),
-    kCFAllocatorDefault,
-    kNilOptions);
+      service,
+      CFSTR("IOPlatformSerialNumber"),
+      kCFAllocatorDefault,
+      kNilOptions);
   IOObjectRelease(service);
   if (serialNumber == nullptr) {
     return Status(1, "Could not read serial number property");
@@ -62,8 +70,32 @@ Status getCpuSerial(std::string& cpu_serial) {
   return Status(0, "OK");
 }
 
-QueryData genSystemInfo(QueryContext& context) {
+void genHostInfo(Row &r) {
+  auto host = mach_host_self();
+  host_basic_info_data_t host_data;
+  mach_msg_type_number_t count = HOST_BASIC_INFO_COUNT;
 
+  if (host_info(host, HOST_BASIC_INFO, (host_info_t)&host_data, &count) !=
+      KERN_SUCCESS) {
+    VLOG(1) << "Error retrieving host info";
+    return;
+  }
+
+  char *cpu_type;
+  char *cpu_subtype;
+  // Get human readable strings
+  slot_name(host_data.cpu_type, host_data.cpu_subtype, &cpu_type, &cpu_subtype);
+
+  r["cpu_type"] = (cpu_type != nullptr) ? std::string(cpu_type) : "";
+  r["cpu_subtype"] = (cpu_subtype != nullptr) ? std::string(cpu_subtype) : "";
+
+  r["cpu_physical_cores"] = INTEGER(host_data.physical_cpu_max);
+  r["cpu_logical_cores"] = INTEGER(host_data.logical_cpu_max);
+  r["physical_memory"] = BIGINT(host_data.max_mem);
+}
+
+QueryData genSystemInfo(QueryContext &context) {
+  QueryData results;
   Row r;
   r["hostname"] = TEXT(osquery::getHostname());
 
@@ -81,7 +113,33 @@ QueryData genSystemInfo(QueryContext& context) {
   }
   r["cpu_serial"] = TEXT(cpu_serial);
 
-  return {r};
+  genHostInfo(r);
+
+  QueryData sysctl_results;
+  // Empty config since we don't want to read sysctl.conf files
+  std::map<std::string, std::string> config;
+  genControlInfoFromName(kMachCpuBrandStringKey, sysctl_results, config);
+  genControlInfoFromName(kHardwareModelNameKey, sysctl_results, config);
+
+  if (!sysctl_results.empty()) {
+    // If genControlInfoForName() for cpu_brand and hw_model succeeds,
+    // there should be exactly two elements in sysctl_results
+    const auto &cpu_brand = sysctl_results.front();
+    const auto &hw_model = sysctl_results.back();
+
+    if (cpu_brand.count("name") > 0 &&
+        cpu_brand.at("name") == kMachCpuBrandStringKey) {
+      r["cpu_brand"] = cpu_brand.at("current_value");
+    }
+
+    if (hw_model.count("name") > 0 &&
+        hw_model.at("name") == kHardwareModelNameKey) {
+      r["hardware_model"] = hw_model.at("current_value");
+    }
+  }
+
+  results.push_back(r);
+  return results;
 }
 }
 }
