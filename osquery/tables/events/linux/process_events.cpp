@@ -52,7 +52,7 @@ inline std::string decodeAuditValue(const std::string& s) {
   }
 }
 
-inline Status validAuditState(int type, AuditProcessEventState& state) {
+Status validAuditState(int type, AuditProcessEventState& state) {
   // Define some acceptable transitions outside of the default state.
   bool acceptable = (type == STATE_PATH && state == STATE_EXECVE);
   acceptable |= (type == STATE_PATH && state == STATE_CWD);
