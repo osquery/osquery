@@ -27,9 +27,12 @@ namespace osquery {
 
 int kMaxEventLatency = 3000;
 
+DECLARE_bool(verbose);
+
 class FSEventsTests : public testing::Test {
  protected:
   void SetUp() {
+    FLAGS_verbose = true;
     trigger_path = kTestWorkingDirectory + "fsevents" +
                    std::to_string(rand() % 10000 + 10000);
   }

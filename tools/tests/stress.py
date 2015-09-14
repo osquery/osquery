@@ -86,7 +86,7 @@ def audit(args):
 
 def single(args):
     start_time = time.time()
-    proc = subprocess.Popen(test,
+    proc = subprocess.Popen(args,
                             shell=True,
                             stderr=subprocess.PIPE,
                             stdout=subprocess.PIPE)
@@ -107,7 +107,7 @@ def stress(args):
         if args["audit"]:
             times.append(audit(args))
         else:
-            times.append(single(args))
+            times.append(single(test))
         if args["stat"]:
             print ("%6.4f" % (times[-1]))
         else:

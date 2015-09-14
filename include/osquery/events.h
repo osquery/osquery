@@ -34,7 +34,7 @@ class EventFactory;
 typedef const std::string EventPublisherID;
 typedef const std::string EventSubscriberID;
 typedef const std::string EventID;
-typedef uint32_t EventContextID;
+typedef uint64_t EventContextID;
 typedef uint32_t EventTime;
 typedef std::pair<EventID, EventTime> EventRecord;
 
@@ -256,7 +256,7 @@ class EventPublisherPlugin : public Plugin {
    *
    * @return The number of events.
    */
-  size_t numEvents() const { return next_ec_id_; }
+  EventContextID numEvents() const { return next_ec_id_; }
 
   /// Check if the EventFactory is ending all publisher threads.
   bool isEnding() const { return ending_; }
@@ -269,6 +269,9 @@ class EventPublisherPlugin : public Plugin {
 
   /// Set the run or started status for this publisher.
   void hasStarted(bool started) { started_ = started; }
+
+  /// Get the number of publisher restarts.
+  size_t restartCount() { return restart_count_; }
 
  protected:
   /**
@@ -291,7 +294,7 @@ class EventPublisherPlugin : public Plugin {
 
   /// An Event ID is assigned by the EventPublisher within the EventContext.
   /// This is not used to store event date in the backing store.
-  EventContextID next_ec_id_;
+  EventContextID next_ec_id_{0};
 
  private:
   explicit EventPublisherPlugin(EventPublisherPlugin const&);
@@ -299,13 +302,16 @@ class EventPublisherPlugin : public Plugin {
 
  private:
   /// Set ending to True to cause event type run loops to finish.
-  bool ending_;
+  bool ending_{false};
 
   /// Set to indicate whether the event run loop ever started.
-  bool started_;
+  bool started_{false};
 
   /// A lock for incrementing the next EventContextID.
   boost::mutex ec_id_lock_;
+
+  /// A helper count of event publisher runloop iterations.
+  size_t restart_count_{0};
 
  private:
   /// Enable event factory "callins" through static publisher callbacks.
@@ -313,103 +319,6 @@ class EventPublisherPlugin : public Plugin {
 
  private:
   FRIEND_TEST(EventsTests, test_event_pub);
-  FRIEND_TEST(EventsTests, test_fire_event);
-};
-
-/**
- * @brief Generate OS events of a type (FS, Network, Syscall, ioctl).
- *
- * A 'class' of OS events is abstracted into an EventPublisher responsible for
- * remaining as agile as possible given a known-set of subscriptions.
- *
- * The life cycle of an EventPublisher may include, `setUp`, `configure`, `run`,
- * `tearDown`, and `fire`. `setUp` and `tearDown` happen when osquery starts and
- * stops either as a daemon or interactive shell. `configure` is a pseudo-start
- * called every time a Subscription is added. EventPublisher%s can adjust their
- * scope/agility specific to each added subscription by overriding
- *`addSubscription`, and/or globally in `configure`.
- *
- * Not all EventPublisher%s leverage pure async OS APIs, and most will require a
- * run loop either polling with a timeout on a descriptor or for a change. When
- * osquery initializes the EventFactory will optionally create a thread for each
- * EventPublisher using `run` as the thread's entrypoint. `run` is called in a
- * within-thread loop where returning a FAILED status ends the run loop and
- * shuts down the thread.
- *
- * To opt-out of polling in a thread, consider the following run implementation:
- *
- * @code{.cpp}
- *   Status run() { return Status(1, "Not Implemented"); }
- * @endcode
- *
- * The final life cycle component, `fire` will iterate over the EventPublisher
- * Subscription%s and call `shouldFire` for each, using the EventContext fired.
- * The `shouldFire` method should check the subscription-specific selectors and
- * only call the Subscription%'s callback function if the EventContext
- * (thus event) matches.
- */
-template <typename SC, typename EC>
-class EventPublisher : public EventPublisherPlugin {
- public:
-  /// A nested helper typename for the templated SubscriptionContextRef.
-  typedef typename std::shared_ptr<SC> SCRef;
-  /// A nested helper typename for the templated EventContextRef.
-  typedef typename std::shared_ptr<EC> ECRef;
-
- public:
-  /// Up-cast a base EventContext reference to the templated ECRef.
-  static ECRef getEventContext(const EventContextRef& ec) {
-    return std::static_pointer_cast<EC>(ec);
-  }
-
-  /// Up-cast a base SubscriptionContext reference to the templated SCRef.
-  static SCRef getSubscriptionContext(const SubscriptionContextRef& sc) {
-    return std::static_pointer_cast<SC>(sc);
-  }
-
-  /// Create a EventContext based on the templated type.
-  static ECRef createEventContext() { return std::make_shared<EC>(); }
-
-  /// Create a SubscriptionContext based on the templated type.
-  static SCRef createSubscriptionContext() { return std::make_shared<SC>(); }
-
- protected:
-  /**
-   * @brief The internal `fire` phase of publishing.
-   *
-   * This is a template-generated method that up-casts the generic fired
-   * event/subscription contexts, and calls the callback if the event should
-   * fire given a subscription.
-   *
-   * @param sub The SubscriptionContext and optional EventCallback.
-   * @param ec The event that was fired.
-   */
-  void fireCallback(const SubscriptionRef& sub,
-                    const EventContextRef& ec) const {
-    auto pub_sc = getSubscriptionContext(sub->context);
-    auto pub_ec = getEventContext(ec);
-    if (shouldFire(pub_sc, pub_ec) && sub->callback != nullptr) {
-      sub->callback(pub_ec, sub->user_data);
-    }
-  }
-
- protected:
-  /**
-   * @brief The generic `fire` will call `shouldFire` for each Subscription.
-   *
-   * @param sc A SubscriptionContext with optional specifications for events
-   * details.
-   * @param ec The event fired with event details.
-   *
-   * @return should the Subscription%'s EventCallback be called for this event.
-   */
-  virtual bool shouldFire(const SCRef& sc, const ECRef& ec) const {
-    return true;
-  }
-
- private:
-  FRIEND_TEST(EventsTests, test_event_sub_subscribe);
-  FRIEND_TEST(EventsTests, test_event_sub_context);
   FRIEND_TEST(EventsTests, test_fire_event);
 };
 
@@ -539,6 +448,12 @@ class EventSubscriberPlugin : public Plugin {
    */
   virtual QueryData genTable(QueryContext& context) __attribute__((used));
 
+  /// Number of Subscription%s this EventSubscriber has used.
+  size_t numSubscriptions() const { return subscription_count_; }
+
+  /// The number of events this EventSubscriber has received.
+  EventContextID numEvents() const { return event_count_; }
+
  protected:
   /**
    * @brief Backing storage indexing namespace.
@@ -553,6 +468,12 @@ class EventSubscriberPlugin : public Plugin {
   /// Disable event expiration for this subscriber.
   void doNotExpire() { expire_events_ = false; }
 
+  /// A helper value counting the number of fired events tracked by publishers.
+  EventContextID event_count_{0};
+
+  /// A helper value counting the number of subscriptions created.
+  size_t subscription_count_{0};
+
  private:
   explicit EventSubscriberPlugin(EventSubscriberPlugin const&);
   EventSubscriberPlugin& operator=(EventSubscriberPlugin const&);
@@ -562,10 +483,10 @@ class EventSubscriberPlugin : public Plugin {
 
  private:
   /// Do not respond to periodic/scheduled/triggered event expiration requests.
-  bool expire_events_;
+  bool expire_events_{false};
 
   /// Events before the expire_time_ are invalid and will be purged.
-  EventTime expire_time_;
+  EventTime expire_time_{0};
 
   /**
    * @brief Optimize subscriber selects by tracking the last select time.
@@ -581,6 +502,10 @@ class EventSubscriberPlugin : public Plugin {
 
   /// Lock used when recording an EventID and time into search bins.
   boost::mutex event_record_lock_;
+
+ private:
+  friend class EventFactory;
+  friend class EventPublisherPlugin;
 
  private:
   FRIEND_TEST(EventsDatabaseTests, test_event_module_id);
@@ -796,6 +721,18 @@ class EventSubscriber : public EventSubscriberPlugin {
    */
   virtual Status init() { return Status(0, "OK"); }
 
+  /**
+   * @brief The registry plugin name for the subscriber's publisher.
+   *
+   * During event factory initialization the subscribers 'peek' at the registry
+   * plugin name assigned to publishers. The corresponding publisher name is
+   * interpreted as the subscriber's event 'type'.
+   */
+  virtual EventPublisherID& getType() const {
+    static EventPublisherID type = EventFactory::getType<PUB>();
+    return type;
+  }
+
  protected:
   /// Helper function to call the publisher's templated subscription generator.
   SCRef createSubscriptionContext() const {
@@ -823,18 +760,7 @@ class EventSubscriber : public EventSubscriberPlugin {
     auto cb = std::bind(base_entry, sub, _1, _2);
     // Add a subscription using the callable and SubscriptionContext.
     EventFactory::addSubscription(getType(), sub->getName(), sc, cb, user_data);
-  }
-
-  /**
-   * @brief The registry plugin name for the subscriber's publisher.
-   *
-   * During event factory initialization the subscribers 'peek' at the registry
-   * plugin name assigned to publishers. The corresponding publisher name is
-   * interpreted as the subscriber's event 'type'.
-   */
-  virtual EventPublisherID& getType() const {
-    static EventPublisherID type = EventFactory::getType<PUB>();
-    return type;
+    subscription_count_++;
   }
 
   /// See getType for lookup rational.
@@ -865,6 +791,103 @@ class EventSubscriber : public EventSubscriberPlugin {
   FRIEND_TEST(EventsTests, test_event_sub);
   FRIEND_TEST(EventsTests, test_event_sub_subscribe);
   FRIEND_TEST(EventsTests, test_event_sub_context);
+};
+
+/**
+ * @brief Generate OS events of a type (FS, Network, Syscall, ioctl).
+ *
+ * A 'class' of OS events is abstracted into an EventPublisher responsible for
+ * remaining as agile as possible given a known-set of subscriptions.
+ *
+ * The life cycle of an EventPublisher may include, `setUp`, `configure`, `run`,
+ * `tearDown`, and `fire`. `setUp` and `tearDown` happen when osquery starts and
+ * stops either as a daemon or interactive shell. `configure` is a pseudo-start
+ * called every time a Subscription is added. EventPublisher%s can adjust their
+ * scope/agility specific to each added subscription by overriding
+ *`addSubscription`, and/or globally in `configure`.
+ *
+ * Not all EventPublisher%s leverage pure async OS APIs, and most will require a
+ * run loop either polling with a timeout on a descriptor or for a change. When
+ * osquery initializes the EventFactory will optionally create a thread for each
+ * EventPublisher using `run` as the thread's entrypoint. `run` is called in a
+ * within-thread loop where returning a FAILED status ends the run loop and
+ * shuts down the thread.
+ *
+ * To opt-out of polling in a thread, consider the following run implementation:
+ *
+ * @code{.cpp}
+ *   Status run() { return Status(1, "Not Implemented"); }
+ * @endcode
+ *
+ * The final life cycle component, `fire` will iterate over the EventPublisher
+ * Subscription%s and call `shouldFire` for each, using the EventContext fired.
+ * The `shouldFire` method should check the subscription-specific selectors and
+ * only call the Subscription%'s callback function if the EventContext
+ * (thus event) matches.
+ */
+template <typename SC, typename EC>
+class EventPublisher : public EventPublisherPlugin {
+ public:
+  /// A nested helper typename for the templated SubscriptionContextRef.
+  typedef typename std::shared_ptr<SC> SCRef;
+  /// A nested helper typename for the templated EventContextRef.
+  typedef typename std::shared_ptr<EC> ECRef;
+
+ public:
+  /// Up-cast a base EventContext reference to the templated ECRef.
+  static ECRef getEventContext(const EventContextRef& ec) {
+    return std::static_pointer_cast<EC>(ec);
+  }
+
+  /// Up-cast a base SubscriptionContext reference to the templated SCRef.
+  static SCRef getSubscriptionContext(const SubscriptionContextRef& sc) {
+    return std::static_pointer_cast<SC>(sc);
+  }
+
+  /// Create a EventContext based on the templated type.
+  static ECRef createEventContext() { return std::make_shared<EC>(); }
+
+  /// Create a SubscriptionContext based on the templated type.
+  static SCRef createSubscriptionContext() { return std::make_shared<SC>(); }
+
+ protected:
+  /**
+   * @brief The internal `fire` phase of publishing.
+   *
+   * This is a template-generated method that up-casts the generic fired
+   * event/subscription contexts, and calls the callback if the event should
+   * fire given a subscription.
+   *
+   * @param sub The SubscriptionContext and optional EventCallback.
+   * @param ec The event that was fired.
+   */
+  void fireCallback(const SubscriptionRef& sub,
+                    const EventContextRef& ec) const {
+    auto pub_sc = getSubscriptionContext(sub->context);
+    auto pub_ec = getEventContext(ec);
+    if (shouldFire(pub_sc, pub_ec) && sub->callback != nullptr) {
+      sub->callback(pub_ec, sub->user_data);
+    }
+  }
+
+ protected:
+  /**
+   * @brief The generic `fire` will call `shouldFire` for each Subscription.
+   *
+   * @param sc A SubscriptionContext with optional specifications for events
+   * details.
+   * @param ec The event fired with event details.
+   *
+   * @return should the Subscription%'s EventCallback be called for this event.
+   */
+  virtual bool shouldFire(const SCRef& sc, const ECRef& ec) const {
+    return true;
+  }
+
+ private:
+  FRIEND_TEST(EventsTests, test_event_sub_subscribe);
+  FRIEND_TEST(EventsTests, test_event_sub_context);
+  FRIEND_TEST(EventsTests, test_fire_event);
 };
 
 /// Iterate the event publisher registry and create run loops for each using
