@@ -36,7 +36,7 @@ namespace tables {
 #define MAX_CONTROLS 1024
 
 const std::vector<std::string> kControlNames{
-    "", "kern", "vm", "vfs", "net", "debug", "hw", "macdep", "user"};
+    "", "kern", "vm", "vfs", "net", "debug", "hw", "machdep", "user"};
 
 const std::vector<std::string> kControlTypes{
     "", "node", "int", "string", "quad", "opaque", "struct"};
