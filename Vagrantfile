@@ -5,12 +5,11 @@ targets = {
   "debian8" => {
     "box" => "deb/jessie-amd64"
   },
-
   "centos6.5" => {
-    "box" => "chef/centos-6.5"
+    "box" => "bento/centos-6.7"
   },
   "centos7.1"   => {
-    "box" => "chef/centos-7.1"
+    "box" => "bento/centos-7.1"
   },
   "ubuntu14"  => {
     "box" => "ubuntu/trusty64"
@@ -19,7 +18,7 @@ targets = {
     "box" => "ubuntu/precise64"
   },
   "freebsd10" => {
-    "box" => "chef/freebsd-10.0"
+    "box" => "bento/freebsd-10.2"
   },
   "aws-amazon2015.03" => {
     "box" => "andytson/aws-dummy",
