@@ -180,6 +180,9 @@ void WatcherRunner::start() {
   // Enter the watch loop.
   do {
     if (use_worker_ && !watch(Watcher::getWorker())) {
+      if (Watcher::fatesBound()) {
+        break;
+      }
       // The watcher failed, create a worker.
       createWorker();
     }

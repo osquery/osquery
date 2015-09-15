@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <csignal>
 #include <string>
 
 #include <unistd.h>
@@ -146,6 +147,12 @@ class Watcher : private boost::noncopyable {
   /// Count the number of worker restarts.
   static size_t workerRestartCount() { return instance().worker_restarts_; }
 
+  /// Become responsible for the worker's fate, but do not guarantee its safety.
+  static void bindFates() { instance().restart_worker_ = false; }
+
+  /// Check if the worker and watcher's fates are bound.
+  static bool fatesBound() { return !instance().restart_worker_; }
+
   /**
    * @brief Return the state of autoloadable extensions.
    *
@@ -175,13 +182,15 @@ class Watcher : private boost::noncopyable {
 
  private:
   /// Keep the single worker process/thread ID for inspection.
-  pid_t worker_;
+  std::sig_atomic_t worker_{-1};
   /// Number of worker restarts NOT induced by a watchdog process.
-  size_t worker_restarts_;
+  size_t worker_restarts_{0};
   /// Keep a list of resolved extension paths and their managed pids.
   std::map<std::string, pid_t> extensions_;
   /// Paths to autoload extensions.
   std::vector<std::string> extensions_paths_;
+  /// Bind the fate of the watcher to the worker.
+  bool restart_worker_{true};
 
  private:
   /// Mutex and lock around extensions access.
@@ -249,11 +258,11 @@ class WatcherRunner : public InternalRunnable {
 
  private:
   /// Keep the invocation daemon's argc to iterate through argv.
-  int argc_;
+  int argc_{0};
   /// When a worker child is spawned the argv will be scrubbed.
-  char** argv_;
+  char** argv_{nullptr};
   /// Spawn/monitor a worker process.
-  bool use_worker_;
+  bool use_worker_{false};
 };
 
 /// The WatcherWatcher is spawned within the worker and watches the watcher.
@@ -266,7 +275,7 @@ class WatcherWatcherRunner : public InternalRunnable {
 
  private:
   /// Parent, or watchdog, process ID.
-  pid_t watcher_;
+  pid_t watcher_{-1};
 };
 
 /// Get a performance limit by name and optional level.
