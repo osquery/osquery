@@ -36,6 +36,14 @@
 #define STR(x) STR_OF(x)
 #endif
 
+// Borrowed from VirtualBox
+#if !defined(RT_GCC_SUPPORTS_VISIBILITY_HIDDEN) || \
+    defined(RT_NO_VISIBILITY_HIDDEN)
+#define DECLHIDDEN(type) type
+#else
+#define DECLHIDDEN(type) __attribute__((visibility("hidden"))) type
+#endif
+
 // Let the major number be decided for us.
 #define OSQUERY_MAJOR -1
 #define MAX_KMEM (20 * (1 << 20))
@@ -403,8 +411,12 @@ kern_return_t OsqueryStart(kmod_info_t *ki, void *d) {
 
   // Create the IOCTL (and more) device node.
   osquery.devfs = devfs_make_node(makedev(osquery.major_number, 0),
-                                          DEVFS_CHAR, UID_ROOT, GID_WHEEL,
-                                          0644, "osquery", 0);
+                                  DEVFS_CHAR,
+                                  UID_ROOT,
+                                  GID_WHEEL,
+                                  0600,
+                                  "osquery",
+                                  0);
   if (osquery.devfs == NULL) {
     dbg_printf("Could not get a devfs entry!\n");
     goto error_exit;
@@ -474,6 +486,6 @@ extern kern_return_t _stop(kmod_info_t *ki, void *data);
 
 KMOD_EXPLICIT_DECL(com.facebook.security.osquery,
     STR(OSQUERY_KERNEL_COMMUNICATION_VERSION), _start, _stop)
-__private_extern__ kmod_start_func_t *_realmain = OsqueryStart;
-__private_extern__ kmod_stop_func_t *_antimain = OsqueryStop;
-__private_extern__ int _kext_apple_cc = __APPLE_CC__;
+DECLHIDDEN(kmod_start_func_t *) _realmain = OsqueryStart;
+DECLHIDDEN(kmod_stop_func_t *) _antimain = OsqueryStop;
+DECLHIDDEN(int) _kext_apple_cc = __APPLE_CC__;

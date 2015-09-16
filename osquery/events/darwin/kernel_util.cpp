@@ -35,23 +35,32 @@ static const std::string kKernelBundleRegex =
     ".*Kernel Extensions in "
     "backtrace:.*com\\.facebook\\.security\\.osquery.*Kernel version:";
 static const std::string kBlockingFile = "/var/osquery/.gtfo";
+static const std::string kKernelPackageFile = "com.facebook.osquery.kernel.pkg";
 
 void loadKernelExtension() {
-  // Find the panic log file for the last panic if we are just booting out of
-  // panic.
-  auto results =
+  // Check if the kernel extension package is installed.
+  auto results = SQL::selectAllFrom(
+      "packages", "package_filename", EQUALS, kKernelPackageFile);
+  if (results.size() == 0) {
+    // The kernel package is not installed.
+    return;
+  }
+
+  // Find the panic log file for the last panic if we are booting out of panic.
+  results =
       SQL::SQL(
           "SELECT f.path AS path FROM (SELECT * FROM nvram WHERE name like "
           "'%panic%') AS nv JOIN (SELECT * FROM file WHERE "
           "directory='/Library/Logs/DiagnosticReports/' AND path like "
-          "'%/Kernel%' ORDER BY ctime DESC LIMIT 1) as f;")
-          .rows();
+          "'%/Kernel%' ORDER BY ctime DESC LIMIT 1) as f;").rows();
 
+  // If a panic exists, check if it was caused by the osquery extension.
   if (results.size() == 1) {
     std::string panic_content;
     if (readFile(results[0]["path"], panic_content).ok()) {
       auto rx = xp::sregex::compile(kKernelBundleRegex);
       xp::smatch matches;
+      // If so, write a blacklist file that prevents future load attempts.
       if (xp::regex_search(panic_content, matches, rx)) {
         LOG(ERROR) << "Panic was caused by osquery kernel extension";
         writeTextFile(kBlockingFile, "");
@@ -59,26 +68,28 @@ void loadKernelExtension() {
     }
   }
 
-  results =
-      SQL::selectAllFrom("file", "path", EQUALS, "/var/osquery/.gtfo");
-
+  // Check if the kernel extension is manually (or set from crash) blocked.
+  results = SQL::selectAllFrom("file", "path", EQUALS, kBlockingFile);
   if (FLAGS_disable_kernel) {
     LOG(INFO) << "Kernel extension is disabled";
+    return;
   } else if (results.size() > 0) {
     LOG(WARNING) << "Kernel extension disabled by file";
-  } else {
-    CFURLRef urls[1];
-    CFArrayRef directoryArray;
-
-    urls[0] = CFURLCreateWithString(NULL, kKernelExtensionDirectory, NULL);
-
-    directoryArray =
-        CFArrayCreate(NULL, (const void **)urls, 1, &kCFTypeArrayCallBacks);
-    if (KextManagerLoadKextWithIdentifier(kKernelBundleId, directoryArray) !=
-        kOSReturnSuccess) {
-    }
-    CFRelease(directoryArray);
+    return;
   }
+
+  CFURLRef urls[1];
+  CFArrayRef directoryArray;
+
+  urls[0] = CFURLCreateWithString(NULL, kKernelExtensionDirectory, NULL);
+
+  directoryArray =
+      CFArrayCreate(NULL, (const void **)urls, 1, &kCFTypeArrayCallBacks);
+  if (KextManagerLoadKextWithIdentifier(kKernelBundleId, directoryArray) !=
+      kOSReturnSuccess) {
+    LOG(INFO) << "Could not autoload kernel extension";
+  }
+  CFRelease(directoryArray);
 }
 
 } // namespace osquery

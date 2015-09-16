@@ -284,6 +284,18 @@ QueryData genPackageReceipts(QueryContext& context) {
       genPackageReceipt(path, results);
     }
     return results;
+  } else if (context.constraints["package_filename"].exists(EQUALS)) {
+    auto files = context.constraints["package_filename"].getAll(EQUALS);
+    for (const auto& file : files) {
+      // Assume the filename can be within any of the system or user paths.
+      for (const auto& search_path : kPkgReceiptPaths) {
+        genPackageReceipt((fs::path(search_path) / file).string(), results);
+      }
+      for (const auto& search_path : kPkgReceiptUserPaths) {
+        genPackageReceipt((fs::path(search_path) / file).string(), results);
+      }
+    }
+    return results;
   }
 
   // Iterate over each well-known system absolute directory of receipts.

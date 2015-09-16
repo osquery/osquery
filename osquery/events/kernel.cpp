@@ -8,6 +8,7 @@
  *
  */
 
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
 #include "osquery/events/kernel.h"
@@ -27,10 +28,21 @@ static const int kKernelEventsSyncMax = 1000;
 REGISTER(KernelEventPublisher, "event_publisher", "kernel");
 
 Status KernelEventPublisher::setUp() {
+  // A daemon should attempt to autoload kernel extensions/modules.
   if (kToolType == OSQUERY_TOOL_DAEMON) {
     loadKernelExtension();
   }
 
+  // Regardless of the status of the kernel extension, if the device node does
+  // not exist then the kernel publisher will silently shutdown.
+  // This is not considered an error, and does not emit an error log.
+  if (!isWritable(kKernelDevice)) {
+    return Status(2, "Cannot access " + kKernelDevice);
+  }
+
+  // Assume the kernel extension is loaded, initialize the queue.
+  // This will open the extension descriptor and synchronize queue data.
+  // If any other daemons or osquery processes are using the queue this fails.
   try {
     queue_ = new CQueue(kKernelDevice, kKernelQueueSize);
   } catch (const CQueueException &e) {
