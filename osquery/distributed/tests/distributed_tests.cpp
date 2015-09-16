@@ -16,6 +16,7 @@
 
 #include <osquery/core.h>
 #include <osquery/distributed.h>
+#include <osquery/enroll.h>
 #include <osquery/sql.h>
 
 #include "osquery/core/test_util.h"
@@ -27,90 +28,65 @@
 
 namespace pt = boost::property_tree;
 
+DECLARE_string(distributed_tls_read_endpoint);
+DECLARE_string(distributed_tls_write_endpoint);
+DECLARE_string(enroll_tls_endpoint);
+
 namespace osquery {
 
-class TestDistributedPlugin : public DistributedPlugin {
- public:
-  Status setUp() {
+class DistributedTests : public testing::Test {
+ protected:
+  void SetUp() {
     TLSServerRunner::start();
-    host = "https://localhost:" + TLSServerRunner::port();
-    return Status(0, "OK");
+    clearNodeKey();
+
+    tls_hostname_ = Flag::getValue("tls_hostname");
+    Flag::updateValue("tls_hostname", "localhost:" + TLSServerRunner::port());
+
+    enroll_tls_endpoint_ = Flag::getValue("enroll_tls_endpoint");
+    Flag::updateValue("enroll_tls_endpoint", "/enroll");
+
+    distributed_tls_read_endpoint_ =
+        Flag::getValue("distributed_tls_read_endpoint");
+    Flag::updateValue("distributed_tls_read_endpoint", "/distributed_read");
+
+    distributed_tls_write_endpoint_ =
+        Flag::getValue("distributed_tls_write_endpoint");
+    Flag::updateValue("distributed_tls_write_endpoint", "/distributed_write");
+
+    tls_server_certs_ = Flag::getValue("tls_server_certs");
+    Flag::updateValue("tls_server_certs",
+                      kTestDataPath + "/test_server_ca.pem");
+
+    enroll_secret_path_ = Flag::getValue("enroll_secret_path");
+    Flag::updateValue("enroll_secret_path",
+                      kTestDataPath + "/test_enroll_secret.txt");
+
+    Registry::setActive("distributed", "tls");
   }
 
-  void tearDown() { TLSServerRunner::stop(); }
-
-  Status getQueries(std::string& json) {
-    auto t = std::make_shared<TLSTransport>();
-    t->disableVerifyPeer();
-    auto url = host + "/distributed_read";
-    auto r = Request<TLSTransport, JSONSerializer>(url, t);
-
-    pt::ptree params;
-    params.put<std::string>("node_key", "this_is_a_node_secret");
-    auto s = r.call(params);
-    if (!s.ok()) {
-      throw std::runtime_error(s.toString());
-    }
-
-    pt::ptree recv;
-    s = r.getResponse(recv);
-    if (!s.ok()) {
-      throw std::runtime_error(s.toString());
-    }
-
-    auto serial = JSONSerializer();
-    return serial.serialize(recv, json);
+  void TearDown() {
+    TLSServerRunner::stop();
+    clearNodeKey();
+    Flag::updateValue("tls_hostname", tls_hostname_);
+    Flag::updateValue("enroll_tls_endpoint", enroll_tls_endpoint_);
+    Flag::updateValue("distributed_tls_read_endpoint",
+                      distributed_tls_read_endpoint_);
+    Flag::updateValue("distributed_tls_write_endpoint",
+                      distributed_tls_write_endpoint_);
+    Flag::updateValue("tls_server_certs", tls_server_certs_);
+    Flag::updateValue("enroll_secret_path", enroll_secret_path_);
   }
 
-  Status writeResults(const std::string& json) {
-    pt::ptree tree;
-    std::stringstream ss(json);
-    pt::read_json(ss, tree);
-
-    auto& queries = tree.get_child("queries");
-    for (const auto& result : queries) {
-      if (result.first.empty()) {
-        throw std::runtime_error("result ID is empty");
-      }
-
-      QueryData qd;
-      auto s = deserializeQueryData(result.second, qd);
-      if (!s.ok()) {
-        throw std::runtime_error(s.toString());
-      }
-      writeCount++;
-    }
-
-    auto t = std::make_shared<TLSTransport>();
-    t->disableVerifyPeer();
-    auto url = host + "/distributed_write";
-    auto r = Request<TLSTransport, JSONSerializer>(url, t);
-
-    tree.put<std::string>("node_key", "this_is_a_node_secret");
-    auto s = r.call(tree);
-    if (!s.ok()) {
-      throw std::runtime_error(s.toString());
-    }
-
-    pt::ptree recv;
-    s = r.getResponse(recv);
-    if (!s.ok()) {
-      throw std::runtime_error(s.toString());
-    }
-
-    return Status(0, "OK");
-  }
-
-  int writeCount;
-  std::string host;
+  std::string tls_hostname_;
+  std::string enroll_tls_endpoint_;
+  std::string distributed_tls_read_endpoint_;
+  std::string distributed_tls_write_endpoint_;
+  std::string tls_server_certs_;
+  std::string enroll_secret_path_;
 };
 
-class DistributedTests : public testing::Test {};
-
 TEST_F(DistributedTests, test_workflow) {
-  Registry::add<TestDistributedPlugin>("distributed", "test");
-  Registry::setActive("distributed", "test");
-
   auto dist = Distributed();
   auto s = dist.pullUpdates();
   EXPECT_TRUE(s.ok());
@@ -121,11 +97,8 @@ TEST_F(DistributedTests, test_workflow) {
   s = dist.runQueries();
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
+
   EXPECT_EQ(dist.getPendingQueryCount(), 0);
   EXPECT_EQ(dist.results_.size(), 2);
-
-  const auto& plugin = std::dynamic_pointer_cast<TestDistributedPlugin>(
-      Registry::get("distributed", "test"));
-  EXPECT_EQ(plugin->writeCount, 2);
 }
 }

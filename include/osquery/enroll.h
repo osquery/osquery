@@ -75,6 +75,13 @@ class EnrollPlugin : public Plugin {
 std::string getNodeKey(const std::string& enroll_plugin, bool force = false);
 
 /**
+ * @brief Delete the existing node key from the persistant storage
+ *
+ * @return a Status indicating the success or failure of the operation
+ */
+Status clearNodeKey();
+
+/**
  * @brief Read the enrollment secret from disk.
  *
  * We suspect multiple enrollment types may require an apriori, and enterprise
@@ -83,7 +90,7 @@ std::string getNodeKey(const std::string& enroll_plugin, bool force = false);
  *
  * @return enroll_secret The trimmed content read from FLAGS_enroll_secret_path.
  */
-const std::string& getEnrollSecret();
+const std::string getEnrollSecret();
 
 /**
  * @brief Enroll plugin registry.

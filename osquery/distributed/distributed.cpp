@@ -23,7 +23,7 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-CLI_FLAG(string, distributed_plugin, "", "Distributed plugin name")
+FLAG(string, distributed_plugin, "tls", "Distributed plugin name");
 
 FLAG(bool,
      distributed_enabled,
@@ -58,7 +58,7 @@ Status DistributedPlugin::call(const PluginRequest& request,
 Status Distributed::pullUpdates() {
   auto& distributed_plugin = Registry::getActive("distributed");
   if (!Registry::exists("distributed", distributed_plugin)) {
-    return Status(1, "Missing distributed plugin " + distributed_plugin);
+    return Status(1, "Missing distributed plugin: " + distributed_plugin);
   }
 
   PluginResponse response;
@@ -161,20 +161,21 @@ Status Distributed::acceptWork(const std::string& work) {
   std::stringstream ss(work);
   try {
     pt::read_json(ss, tree);
+
+    auto& queries = tree.get_child("queries");
+    for (const auto& node : queries) {
+      DistributedQueryRequest request;
+      request.id = node.first;
+      request.query = queries.get<std::string>(node.first, "");
+      if (request.query.empty() || request.id.empty()) {
+        return Status(1,
+                      "Distributed query does not have complete attributes.");
+      }
+      WriteLock wlock(distributed_queries_mutex_);
+      queries_.push_back(request);
+    }
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error parsing JSON: " + std::string(e.what()));
-  }
-
-  auto& queries = tree.get_child("queries");
-  for (const auto& node : queries) {
-    DistributedQueryRequest request;
-    request.id = node.first;
-    request.query = queries.get<std::string>(node.first, "");
-    if (request.query.empty() || request.id.empty()) {
-      return Status(1, "Distributed query does not have complete attributes.");
-    }
-    WriteLock wlock(distributed_queries_mutex_);
-    queries_.push_back(request);
   }
 
   return Status(0, "OK");

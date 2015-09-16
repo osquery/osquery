@@ -35,6 +35,20 @@ CLI_FLAG(string,
          "",
          "Name of environment variable holding enrollment-auth secret");
 
+Status clearNodeKey() {
+  std::string node_key;
+  auto s = getDatabaseValue(kPersistentSettings, "nodeKey", node_key);
+  if (!s.ok()) {
+    return s;
+  }
+
+  if (node_key.size() > 0) {
+    return deleteDatabaseValue(kPersistentSettings, "nodeKey");
+  }
+
+  return Status(0, "OK");
+}
+
 std::string getNodeKey(const std::string& enroll_plugin, bool force) {
   std::string node_key;
   getDatabaseValue(kPersistentSettings, "nodeKey", node_key);
@@ -61,19 +75,16 @@ std::string getNodeKey(const std::string& enroll_plugin, bool force) {
   return node_key;
 }
 
-const std::string& getEnrollSecret() {
-  static std::string enrollment_secret;
+const std::string getEnrollSecret() {
+  std::string enrollment_secret;
 
-  if (enrollment_secret.size() == 0) {
-    // Secret has not been read yet.
-    if (FLAGS_enroll_secret_path != "") {
-      osquery::readFile(FLAGS_enroll_secret_path, enrollment_secret);
-      boost::trim(enrollment_secret);
-    } else {
-      const char* env_secret = std::getenv(FLAGS_enroll_secret_env.c_str());
-      if (env_secret != nullptr) {
-        enrollment_secret = std::string(env_secret);
-      }
+  if (FLAGS_enroll_secret_path != "") {
+    osquery::readFile(FLAGS_enroll_secret_path, enrollment_secret);
+    boost::trim(enrollment_secret);
+  } else {
+    const char* env_secret = std::getenv(FLAGS_enroll_secret_env.c_str());
+    if (env_secret != nullptr) {
+      enrollment_secret = std::string(env_secret);
     }
   }
 
