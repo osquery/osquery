@@ -59,14 +59,6 @@ TEST_F(EnrollTests, test_enroll_secret_retrieval) {
   // Make sure the file content was read and trimmed.
   auto secret = getEnrollSecret();
   EXPECT_EQ(secret, "test_secret");
-
-  // Now change the file path.
-  FLAGS_enroll_secret_path = kTestWorkingDirectory + "not_a_secret.txt";
-  // And for good measure, write some content.
-  writeTextFile(FLAGS_enroll_secret_path, "test_not_a_secret", 0600, false);
-  // The enrollment key should not update.
-  secret = getEnrollSecret();
-  EXPECT_EQ(secret, "test_secret");
 }
 
 TEST_F(EnrollTests, test_enroll_key_retrieval) {
