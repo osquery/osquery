@@ -431,7 +431,12 @@ void Initializer::start() {
   // Load the osquery config using the default/active config plugin.
   auto s = Config::getInstance().load();
   if (!s.ok()) {
-    LOG(ERROR) << "Error reading config: " << s.toString();
+    auto message = "Error reading config: " + s.toString();
+    auto severity = google::GLOG_INFO;
+    if (tool_ == OSQUERY_TOOL_DAEMON) {
+      severity = google::GLOG_WARNING;
+    }
+    google::LogMessage(__FILE__, __LINE__, severity, &message);
   }
 
   // Initialize the status and result plugin logger.
