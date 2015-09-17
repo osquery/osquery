@@ -9,9 +9,9 @@
  */
 #include <gtest/gtest.h>
 
-#include <osquery/config/packs.h>
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
+#include <osquery/packs.h>
 
 #include "osquery/core/test_util.h"
 

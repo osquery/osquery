@@ -21,9 +21,9 @@
 #include <boost/thread/shared_mutex.hpp>
 
 #include <osquery/core.h>
-#include <osquery/config/packs.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
+#include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 
