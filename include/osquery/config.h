@@ -35,6 +35,15 @@ DECLARE_string(config_plugin);
 class ConfigParserPlugin;
 
 /**
+ * @brief The backing store key name for the executing query.
+ *
+ * The config maintains schedule statistics and tracks failed executions.
+ * On process or worker resume an initializer or config may check if the
+ * resume was the result of a failure during an executing query.
+ */
+extern const std::string kExecutingQuery;
+
+/**
  * The schedule is an iterable collection of Packs. When you iterate through
  * a schedule, you only get the packs that should be running on the host that
  * you're currently operating on.
@@ -161,6 +170,19 @@ class Config {
                               size_t size,
                               const Row& r0,
                               const Row& r1);
+
+  /**
+   * @brief Record a query 'initialization', meaning the query will run.
+   *
+   * Recording initializations if queries helps to identify when queries do not
+   * complete. The Config::recordQueryPerformance method will clear a dirty
+   * status set by this method. This status is saved in the backing database
+   * store. On process start, or worker state, if any dirty bit is set then
+   * it is assumed that the current start is a result of a previous abort.
+   *
+   * @param name THe unique name of the scheduled item
+   */
+  void recordQueryStart(const std::string& name);
 
   /**
    * @brief Calculate the hash of the osquery config
