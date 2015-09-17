@@ -432,11 +432,19 @@ void Initializer::start() {
   auto s = Config::getInstance().load();
   if (!s.ok()) {
     auto message = "Error reading config: " + s.toString();
-    auto severity = google::GLOG_INFO;
     if (tool_ == OSQUERY_TOOL_DAEMON) {
-      severity = google::GLOG_WARNING;
+      LOG(WARNING) << message;
+    } else {
+      LOG(INFO) << message;
     }
-    google::LogMessage(__FILE__, __LINE__, severity, &message);
+  }
+
+  // Check if any queries were executing when the tool last stopped.
+  std::string failed_query;
+  getDatabaseValue(kPersistentSettings, kExecutingQuery, failed_query);
+  if (!failed_query.empty()) {
+    LOG(WARNING) << "Scheduled query may have failed: " << failed_query;
+    setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
   }
 
   // Initialize the status and result plugin logger.

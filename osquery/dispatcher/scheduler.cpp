@@ -26,11 +26,13 @@ FLAG(bool, enable_monitor, false, "Enable the schedule monitor");
 
 FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
 
-inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
+static inline SQL monitor(const std::string& name,
+                          const ScheduledQuery& query) {
   // Snapshot the performance and times for the worker before running.
   auto pid = std::to_string(getpid());
   auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
   auto t0 = time(nullptr);
+  Config::getInstance().recordQueryStart(name);
   auto sql = SQLInternal(query.query);
   // Snapshot the performance after, and compare.
   auto t1 = time(nullptr);

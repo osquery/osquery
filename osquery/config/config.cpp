@@ -14,6 +14,7 @@
 #include <sstream>
 
 #include <osquery/config.h>
+#include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/hash.h>
 #include <osquery/filesystem.h>
@@ -30,6 +31,9 @@ CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
 FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
 
+const std::string kExecutingQuery = "executing_query";
+
+// The config may be accessed and updated asynchronously; use mutexes.
 boost::shared_mutex config_schedule_mutex_;
 boost::shared_mutex config_performance_mutex_;
 boost::shared_mutex config_files_mutex_;
@@ -269,6 +273,14 @@ void Config::recordQueryPerformance(const std::string& name,
   query.wall_time += delay;
   query.output_size += size;
   query.executions += 1;
+
+  // Clear the executing query (remove the dirty bit).
+  setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
+}
+
+void Config::recordQueryStart(const std::string& name) {
+  // There should only ever be a single executing query in the schedule.
+  setDatabaseValue(kPersistentSettings, kExecutingQuery, name);
 }
 
 void Config::getPerformanceStats(
