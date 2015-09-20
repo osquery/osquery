@@ -106,11 +106,11 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   if (in_memory) {
     // Remove when MemEnv is included in librocksdb
     // options_.env = rocksdb::NewMemEnv(rocksdb::Env::Default());
-    throw std::runtime_error("Requires MemEnv");
+    throw std::runtime_error("Cannot start in-memory RocksDB: Requires MemEnv");
   }
 
-  if (pathExists(path).ok() && !isWritable(path).ok()) {
-    throw std::runtime_error("Cannot write to RocksDB path: " + path);
+  if (pathExists(path).ok() && !isReadable(path).ok()) {
+    throw std::runtime_error("Cannot read RocksDB path: " + path);
   }
 
   column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
@@ -124,6 +124,8 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   VLOG(1) << "Opening RocksDB handle: " << path;
   auto s = rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
   if (!s.ok()) {
+    // The database was readable but could not be opened, either (1) it is not
+    // writable or (2) it is already opened by another process.
     // Try to open the database in a ReadOnly mode.
     s = rocksdb::DB::OpenForReadOnly(
         options_, path, column_families_, &handles_, &db_);
@@ -158,6 +160,7 @@ bool DBHandle::checkDB() {
   try {
     auto handle = DBHandle(FLAGS_database_path, FLAGS_database_in_memory);
   } catch (const std::exception& e) {
+    VLOG(1) << e.what();
     return false;
   }
   return true;
