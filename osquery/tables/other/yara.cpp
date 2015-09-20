@@ -25,12 +25,12 @@
 namespace osquery {
 namespace tables {
 
-Status doYARAScan(YR_RULES* rules,
-                  const std::string& path,
-                  const std::string& pattern,
-                  QueryData& results,
-                  const std::string& group,
-                  const std::string& sigfile) {
+void doYARAScan(YR_RULES* rules,
+                const std::string& path,
+                const std::string& pattern,
+                QueryData& results,
+                const std::string& group,
+                const std::string& sigfile) {
   Row r;
 
   // These are default values, to be updated in YARACallback.
@@ -39,50 +39,42 @@ Status doYARAScan(YR_RULES* rules,
   r["strings"] = std::string("");
   r["tags"] = std::string("");
 
-  // XXX: use target_path instead to be consistent with yara_events?
+  // This could use target_path instead to be consistent with yara_events.
   r["path"] = path;
-
   r["pattern"] = pattern;
-
   r["sig_group"] = std::string(group);
   r["sigfile"] = std::string(sigfile);
 
+  // Perform the scan, using the static YARA subscriber callback.
   int result = yr_rules_scan_file(rules,
                                   path.c_str(),
                                   SCAN_FLAGS_FAST_MODE,
                                   YARACallback,
                                   (void*)&r,
                                   0);
-
-  if (result != ERROR_SUCCESS) {
-    return Status(1, "Scan error (" + std::to_string(result) + ")");
+  if (result == ERROR_SUCCESS) {
+    results.push_back(std::move(r));
   }
-
-  results.push_back(r);
-  return Status(0, "OK");
 }
 
 QueryData genYara(QueryContext& context) {
   QueryData results;
 
-  auto paths = context.constraints["path"].getAll(EQUALS);
-  auto patterns = context.constraints["pattern"].getAll(EQUALS);
+  // Must specify a path constraint and at least one of sig_group or sigfile.
   auto groups = context.constraints["sig_group"].getAll(EQUALS);
   auto sigfiles = context.constraints["sigfile"].getAll(EQUALS);
-
-  // Must specify a path constraint and at least one of sig_group or sigfile.
   if (groups.size() == 0 && sigfiles.size() == 0) {
     return results;
   }
 
-  // XXX: Abstract this into a common "get rules for group" function.
+  // This could be abstracted into a common "get rules for group" function.
   auto parser = Config::getParser("yara");
   if (parser == nullptr || parser.get() == nullptr) {
     LOG(ERROR) << "YARA config parser plugin has no pointer";
     return results;
   }
 
-  std::shared_ptr<YARAConfigParserPlugin> yaraParser;
+  std::shared_ptr<YARAConfigParserPlugin> yaraParser = nullptr;
   try {
     yaraParser = std::dynamic_pointer_cast<YARAConfigParserPlugin>(parser);
   } catch (const std::bad_cast& e) {
@@ -102,70 +94,67 @@ QueryData genYara(QueryContext& context) {
   std::vector<std::pair<std::string, std::string> > path_pairs;
 
   // Expand patterns and push onto path_pairs.
+  auto patterns = context.constraints["pattern"].getAll(EQUALS);
   for (const auto& pattern : patterns) {
     std::vector<std::string> expanded_patterns;
-    auto status = resolveFilePattern(pattern, expanded_patterns);
-    if (!status.ok()) {
-      VLOG(1) << "Could not expand pattern properly: " << status.toString();
-      return results;
+    if (!resolveFilePattern(pattern, expanded_patterns).ok()) {
+      continue;
     }
-
+    // Check that each resolved path is readable.
     for (const auto& resolved : expanded_patterns) {
-      if (!isReadable(resolved)) {
-        continue;
+      if (isReadable(resolved)) {
+        path_pairs.push_back(make_pair(resolved, pattern));
       }
-      path_pairs.push_back(make_pair(resolved, pattern));
     }
   }
 
   // Collect all paths specified too.
+  auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
-    if (!isReadable(path_string)) {
-      continue;
+    if (isReadable(path_string)) {
+      path_pairs.push_back(make_pair(path_string, ""));
     }
-    path_pairs.push_back(make_pair(path_string, ""));
   }
 
   // Compile all sigfiles into a map.
   for (const auto& file : sigfiles) {
-    // Check if this on-demand sigfile has not been used/compiled.
+    // Check if this "ad-hoc" signature file has not been used/compiled.
     if (rules.count(file) == 0) {
+      // If this is a relative path append the default yara search path.
       auto path = (file[0] != '/') ? std::string("/etc/osquery/yara/") : "";
       path += file;
 
       YR_RULES* tmp_rules = nullptr;
       auto status = compileSingleFile(path, &tmp_rules);
       if (!status.ok()) {
-        VLOG(1) << "YARA error: " << status.toString();
-      } else {
-        rules[file] = tmp_rules;
-        groups.insert(file);
+        VLOG(1) << "YARA compile error: " << status.toString();
+        continue;
       }
+      // Cache the compiled rules by setting the unique signature file path
+      // as the lookup name. Additional signature file uses will skip the
+      // compile step and be added as rule groups.
+      rules[file] = tmp_rules;
     }
+    // Assemble an "ad-hoc" group using the signature file path as the name.
+    groups.insert(file);
   }
 
   // Scan every path pair.
   for (const auto& path_pair : path_pairs) {
-    // Scan using siggroups.
+    // Scan using the signature groups.
     for (const auto& group : groups) {
-      if (rules.count(group) == 0) {
-        continue;
-      }
-
-      VLOG(1) << "Scanning with group: " << group;
-      auto status = doYARAScan(rules[group],
-                               path_pair.first.c_str(),
-                               path_pair.second,
-                               results,
-                               group,
-                               group);
-      if (!status.ok()) {
-        VLOG(1) << "YARA error: " << status.toString();
+      if (rules.count(group) > 0) {
+        doYARAScan(rules[group],
+                   path_pair.first.c_str(),
+                   path_pair.second,
+                   results,
+                   group,
+                   group);
       }
     }
   }
 
-  return results;
+  return std::move(results);
 }
 }
 }
