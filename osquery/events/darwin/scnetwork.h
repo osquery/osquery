@@ -62,6 +62,9 @@ class SCNetworkEventPublisher
   // Entrypoint to the run loop
   Status run();
 
+  // The event factory may end, stopping the SCNetwork runloop.
+  void end() { stop(); }
+
  public:
   /// SCNetwork registers a client callback instead of using a select/poll loop.
   static void Callback(const SCNetworkReachabilityRef target,

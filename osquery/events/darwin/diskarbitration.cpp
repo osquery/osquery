@@ -246,7 +246,7 @@ void DiskArbitrationEventPublisher::stop() {
     session_ = nullptr;
   }
 
-  if (run_loop_ == nullptr) {
+  if (run_loop_ != nullptr) {
     CFRunLoopStop(run_loop_);
   }
 }

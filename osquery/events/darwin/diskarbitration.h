@@ -75,13 +75,13 @@ class DiskArbitrationEventPublisher
                   const DiskArbitrationEventContextRef &ec) const;
   Status run();
 
+  // Callin for stopping the streams/run loop.
+  void end() { stop(); }
+
   static void DiskAppearedCallback(DADiskRef disk, void *context);
   static void DiskDisappearedCallback(DADiskRef disk, void *context);
 
  private:
-  DASessionRef session_;
-  CFRunLoopRef run_loop_;
-
   void restart();
   void stop();
   static std::string getProperty(const CFStringRef &property,
@@ -90,5 +90,9 @@ class DiskArbitrationEventPublisher
   static void fire(const std::string &action,
                    const DiskArbitrationEventContextRef &ec,
                    const CFDictionaryRef &dict);
+
+ private:
+  DASessionRef session_{nullptr};
+  CFRunLoopRef run_loop_{nullptr};
 };
 }
