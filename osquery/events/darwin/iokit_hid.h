@@ -83,6 +83,9 @@ class IOKitHIDEventPublisher
   // Entrypoint to the run loop
   Status run();
 
+  // The event factory may end, stopping the IOKit runloop.
+  void end() { stop(); }
+
  public:
   /// IOKit HID hotplugged event.
   static void MatchingCallback(void *context,

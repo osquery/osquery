@@ -84,6 +84,9 @@ enum {
   " - https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/" \
   "\n\n";
 
+/// Seconds to alarm and quit for non-responsive event loops.
+#define SIGNAL_ALARM_TIMEOUT 4
+
 namespace fs = boost::filesystem;
 
 namespace {
@@ -96,7 +99,10 @@ volatile std::sig_atomic_t kHandledSignal{0};
 
 void signalHandler(int signal) {
   // Inform exit status of main threads blocked by service joins.
-  kHandledSignal = signal;
+  if (kHandledSignal == 0) {
+    kHandledSignal = signal;
+  }
+
   // Handle signals based on a tri-state (worker, watcher, neither).
   pid_t worker_pid = osquery::Watcher::getWorker();
   bool is_watcher = worker_pid > 0;
@@ -107,7 +113,7 @@ void signalHandler(int signal) {
   } else if (signal == SIGTERM || signal == SIGINT || signal == SIGABRT) {
     // Time to stop, set an upper bound time constraint on how long threads
     // have to terminate (join). Publishers may be in 20ms or similar sleeps.
-    alarm(10);
+    alarm(SIGNAL_ALARM_TIMEOUT);
 
     // Restore the default signal handler.
     std::signal(signal, SIG_DFL);
@@ -123,9 +129,12 @@ void signalHandler(int signal) {
       raise(signal);
     }
   } else if (signal == SIGALRM) {
+    // Restore the default signal handler for SIGALRM.
+    std::signal(SIGALRM, SIG_DFL);
+
     // Took too long to stop.
     VLOG(1) << "Cannot stop event publisher threads";
-    raise(SIGSTOP);
+    raise((kHandledSignal != 0) ? kHandledSignal : SIGALRM);
   }
 
   if (is_watcher) {
@@ -247,6 +256,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   std::signal(SIGABRT, signalHandler);
   std::signal(SIGINT, signalHandler);
   std::signal(SIGHUP, signalHandler);
+  std::signal(SIGALRM, signalHandler);
 
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check) {
