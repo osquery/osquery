@@ -25,8 +25,9 @@ namespace tables {
 #if defined(REDHAT_BASED)
 const std::string kLinuxOSRelease = "/etc/redhat-release";
 const std::string kLinuxOSRegex =
-    "(?P<name>\\w+) .* "
-    "(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)[\\.]{0,1}(?P<patch>[0-9]+).*";
+    "(?P<name>[\\w+\\s]+) .* "
+    "(?P<major>[0-9]+)\\.(?P<minor>[0-9]+) "
+    "(?P<patch>\\(\\w+\\))";
 #else
 const std::string kLinuxOSRelease = "/etc/os-release";
 const std::string kLinuxOSRegex =
