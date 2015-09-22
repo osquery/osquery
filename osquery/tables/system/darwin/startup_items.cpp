@@ -32,7 +32,9 @@ const std::string kLoginItemsPlistPath =
     "Library/Preferences/com.apple.loginitems.plist";
 
 // Key to the array within the Login Items plist containing the items
-const std::string kLoginItemsKeyPath = "SessionItems.CustomListItems";
+const std::vector<std::string> kLoginItemsKeyPaths = {
+    "SessionItems.CustomListItems", "privilegedlist.CustomListItems",
+};
 
 void genLibraryStartupItems(const std::string& sysdir, QueryData& results) {
   try {
@@ -110,24 +112,34 @@ void genLoginItems(const fs::path& homedir, QueryData& results) {
   }
 
   // Enumerate Login Items if we successfully opened the plist.
-  for (const auto& entry : tree.get_child(kLoginItemsKeyPath)) {
-    Row r;
-    r["name"] = entry.second.get<std::string>("Name");
-    r["type"] = "Login Item";
-    r["source"] = sipath.string();
+  for (const auto& plist_path : kLoginItemsKeyPaths) {
+    try {
+      for (const auto& entry : tree.get_child(plist_path)) {
+        Row r;
+        r["name"] = entry.second.get<std::string>("Name");
+        r["type"] = "Login Item";
+        r["source"] = sipath.string();
 
-    auto alias_data = entry.second.get<std::string>("Alias");
-    std::string bin_path;
-    if (!parseAliasData(alias_data, bin_path).ok()) {
-      VLOG(1) << "No valid path found for " << r["name"] << " in " << sipath;
+        auto alias_data = entry.second.get<std::string>("Alias");
+        std::string bin_path;
+        if (!parseAliasData(alias_data, bin_path).ok()) {
+          VLOG(1) << "No valid path found for " << r["name"] << " in "
+                  << sipath;
+        }
+        r["path"] = bin_path;
+        results.push_back(r);
+      }
+    } catch (const pt::ptree_error& e) {
+      continue;
     }
-    r["path"] = bin_path;
-    results.push_back(r);
   }
 }
 
 QueryData genStartupItems(QueryContext& context) {
   QueryData results;
+
+  // Get the login items available for all users
+  genLoginItems("/", results);
 
   // Get the login items available in System Preferences for each user.
   for (const auto& dir : getHomeDirectories()) {
