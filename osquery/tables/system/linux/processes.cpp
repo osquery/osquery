@@ -134,7 +134,6 @@ void genProcessMap(const std::string& pid, QueryData& results) {
 
 struct SimpleProcStat {
   // Output from string parsing /proc/<pid>/status.
-  std::string parent; // PPid:
   std::string name; // Name:
   std::string real_uid; // Uid: * - - -
   std::string real_gid; // Gid: * - - -
@@ -145,6 +144,11 @@ struct SimpleProcStat {
   std::string phys_footprint;  // VmSize:
 
   // Output from sring parsing /proc/<pid>/stat.
+  std::string state;
+  std::string parent;
+  std::string group;
+  std::string nice;
+
   std::string user_time;
   std::string system_time;
   std::string start_time;
@@ -157,9 +161,12 @@ SimpleProcStat getProcStat(const std::string& pid) {
     auto detail_start = content.find_last_of(")");
     // Start parsing stats from ") <MODE>..."
     auto details = osquery::split(content.substr(detail_start + 2), " ");
+    stat.state = details.at(0);
     stat.parent = details.at(1);
+    stat.group = details.at(2);
     stat.user_time = details.at(11);
     stat.system_time = details.at(12);
+    stat.nice = details.at(16);
     stat.start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
   }
 
@@ -211,6 +218,9 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["parent"] = proc_stat.parent;
   r["path"] = readProcLink("exe", pid);
   r["name"] = proc_stat.name;
+  r["group"] = proc_stat.group;
+  r["state"] = proc_stat.state;
+  r["nice"] = proc_stat.nice;
 
   // Read/parse cmdline arguments.
   r["cmdline"] = readProcCMDLine(pid);

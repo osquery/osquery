@@ -1,14 +1,15 @@
 table_name("processes")
 description("All running processes on the host system.")
 schema([
-    Column("pid", INTEGER, "Process (or thread) ID", index=True),
+    Column("pid", BIGINT, "Process (or thread) ID", index=True),
     Column("name", TEXT, "The process path or shorthand argv[0]"),
     Column("path", TEXT, "Path to executed binary"),
     Column("cmdline", TEXT, "Complete argv"),
+    Column("state", TEXT, "Process state"),
     Column("cwd", TEXT, "Process current working directory"),
     Column("root", TEXT, "Process virtual root directory"),
     Column("uid", BIGINT, "Unsigned user ID"),
-    Column("gid", BIGINT, "Unsgiend groud ID"),
+    Column("gid", BIGINT, "Unsigned group ID"),
     Column("euid", BIGINT, "Unsigned effective user ID"),
     Column("egid", BIGINT, "Unsigned effective group ID"),
     Column("on_disk", INTEGER,
@@ -20,7 +21,9 @@ schema([
     Column("system_time", BIGINT, "CPU time spent in kernel space"),
     Column("start_time", BIGINT,
         "Process start in seconds since boot (non-sleeping)"),
-    Column("parent", INTEGER, "Process parent's PID"),
+    Column("parent", BIGINT, "Process parent's PID"),
+    Column("group", BIGINT, "Process group"),
+    Column("nice", INTEGER, "Process nice level (-20 to 20, default 0)"),
 ])
 implementation("system/processes@genProcesses")
 examples([

@@ -139,7 +139,7 @@ PluginResponse TablePlugin::routeInfo() const {
 std::string columnDefinition(const TableColumns& columns) {
   std::string statement = "(";
   for (size_t i = 0; i < columns.size(); ++i) {
-    statement += columns.at(i).first + " " + columns.at(i).second;
+    statement += "`" + columns.at(i).first + "` " + columns.at(i).second;
     if (i < columns.size() - 1) {
       statement += ", ";
     }

@@ -38,6 +38,11 @@ QueryData genOsqueryEvents(QueryContext& context) {
       r["events"] = INTEGER(pubref->numEvents());
       r["restarts"] = INTEGER(pubref->restartCount());
       r["active"] = (pubref->hasStarted() && !pubref->isEnding()) ? "1" : "0";
+    } else {
+      r["subscriptions"] = "0";
+      r["events"] = "0";
+      r["restarts"] = "0";
+      r["active"] = "-1";
     }
     results.push_back(r);
   }
@@ -47,6 +52,8 @@ QueryData genOsqueryEvents(QueryContext& context) {
     Row r;
     r["name"] = subscriber;
     r["type"] = "subscriber";
+    // Subscribers will never 'restart'.
+    r["restarts"] = "0";
 
     auto subref = EventFactory::getEventSubscriber(subscriber);
     if (subref != nullptr) {
@@ -54,10 +61,12 @@ QueryData genOsqueryEvents(QueryContext& context) {
       r["subscriptions"] = INTEGER(subref->numSubscriptions());
       r["events"] = INTEGER(subref->numEvents());
 
-      // Subscribers will never 'restart'.
-      r["restarts"] = "0";
       // Subscribers are always active, even if their publisher is not.
       r["active"] = (subref->state() == SUBSCRIBER_RUNNING) ? "1" : "0";
+    } else {
+      r["subscriptions"] = "0";
+      r["events"] = "0";
+      r["active"] = "-1";
     }
     results.push_back(r);
   }
@@ -211,6 +220,13 @@ QueryData genOsquerySchedule(QueryContext& context) {
         r["name"] = TEXT(name);
         r["query"] = TEXT(query.query);
         r["interval"] = INTEGER(query.interval);
+        // Set default (0) values for each query if it has not yet executed.
+        r["executions"] = "0";
+        r["output_size"] = "0";
+        r["wall_time"] = "0";
+        r["user_time"] = "0";
+        r["system_time"] = "0";
+        r["average_memory"] = "0";
 
         // Report optional performance information.
         Config::getInstance().getPerformanceStats(

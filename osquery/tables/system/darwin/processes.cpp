@@ -81,26 +81,6 @@ std::set<int> getProcList(const QueryContext &context) {
   return pidlist;
 }
 
-std::map<int, int> getParentMap(const std::set<int> &pidlist) {
-  std::map<int, int> pidmap;
-
-  struct kinfo_proc proc;
-  size_t size = sizeof(proc);
-
-  for (const auto &pid : pidlist) {
-    int name[] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
-    if (sysctl((int *)name, 4, &proc, &size, nullptr, 0) == -1) {
-      break;
-    }
-
-    if (size > 0) {
-      pidmap[pid] = (int)proc.kp_eproc.e_ppid;
-    }
-  }
-
-  return pidmap;
-}
-
 inline std::string getProcPath(int pid) {
   char path[PROC_PIDPATHINFO_MAXSIZE] = {0};
   int bufsize = proc_pidpath(pid, path, sizeof(path));
@@ -112,21 +92,44 @@ inline std::string getProcPath(int pid) {
 }
 
 struct proc_cred {
+  uint32_t parent{0};
+  uint32_t group{0};
+  uint32_t status{0};
+  uint32_t nice{0};
   struct {
-    uid_t uid;
-    gid_t gid;
+    uid_t uid{0};
+    gid_t gid{0};
   } real, effective;
 };
 
 inline bool getProcCred(int pid, proc_cred &cred) {
-  struct proc_bsdshortinfo bsdinfo;
+  struct proc_bsdinfo bsdinfo;
+  struct proc_bsdshortinfo bsdinfo_short;
 
-  if (proc_pidinfo(pid, PROC_PIDT_SHORTBSDINFO, 0, &bsdinfo, sizeof(bsdinfo)) ==
-      sizeof(bsdinfo)) {
-    cred.real.uid = bsdinfo.pbsi_ruid;
-    cred.real.gid = bsdinfo.pbsi_rgid;
-    cred.effective.uid = bsdinfo.pbsi_uid;
-    cred.effective.gid = bsdinfo.pbsi_gid;
+  if (proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &bsdinfo, PROC_PIDTBSDINFO_SIZE) ==
+      PROC_PIDTBSDINFO_SIZE) {
+    cred.parent = bsdinfo.pbi_ppid;
+    cred.group = bsdinfo.pbi_pgid;
+    cred.status = bsdinfo.pbi_status;
+    cred.nice = bsdinfo.pbi_nice;
+    cred.real.uid = bsdinfo.pbi_ruid;
+    cred.real.gid = bsdinfo.pbi_rgid;
+    cred.effective.uid = bsdinfo.pbi_uid;
+    cred.effective.gid = bsdinfo.pbi_gid;
+    return true;
+  } else if (proc_pidinfo(pid,
+                          PROC_PIDT_SHORTBSDINFO,
+                          0,
+                          &bsdinfo_short,
+                          PROC_PIDT_SHORTBSDINFO_SIZE) ==
+             PROC_PIDT_SHORTBSDINFO_SIZE) {
+    cred.parent = bsdinfo_short.pbsi_ppid;
+    cred.group = bsdinfo_short.pbsi_pgid;
+    cred.status = bsdinfo_short.pbsi_status;
+    cred.real.uid = bsdinfo_short.pbsi_ruid;
+    cred.real.gid = bsdinfo_short.pbsi_rgid;
+    cred.effective.uid = bsdinfo_short.pbsi_uid;
+    cred.effective.gid = bsdinfo_short.pbsi_gid;
     return true;
   }
   return false;
@@ -227,22 +230,11 @@ QueryData genProcesses(QueryContext &context) {
   }
 
   auto pidlist = getProcList(context);
-  auto parent_pid = getParentMap(pidlist);
   int argmax = genMaxArgs();
 
   for (auto &pid : pidlist) {
     Row r;
     r["pid"] = INTEGER(pid);
-
-    // Find the parent process.
-    const auto parent_it = parent_pid.find(pid);
-    if (parent_it != parent_pid.end()) {
-      r["parent"] = INTEGER(parent_it->second);
-    } else {
-      // On OS X a missing parent path means the pid did not exist.
-      continue;
-    }
-
     r["path"] = getProcPath(pid);
     // OS X proc_name only returns 16 bytes, use the basename of the path.
     r["name"] = fs::path(r["path"]).filename().string();
@@ -259,11 +251,20 @@ QueryData genProcesses(QueryContext &context) {
 
     proc_cred cred;
     if (getProcCred(pid, cred)) {
+      r["parent"] = BIGINT(cred.parent);
+      r["group"] = BIGINT(cred.group);
+      // Use Linux diction for process status/state.
+      r["state"] = INTEGER(cred.status);
+      r["nice"] = INTEGER(cred.nice);
       r["uid"] = BIGINT(cred.real.uid);
       r["gid"] = BIGINT(cred.real.gid);
       r["euid"] = BIGINT(cred.effective.uid);
       r["egid"] = BIGINT(cred.effective.gid);
     } else {
+      r["parent"] = "0";
+      r["group"] = "0";
+      r["state"] = "0";
+      r["nice"] = "0";
       r["uid"] = "-1";
       r["gid"] = "-1";
       r["euid"] = "-1";
