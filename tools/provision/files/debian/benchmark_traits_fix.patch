@@ -1,0 +1,12 @@
+--- src/walltime.cc	2015-09-23 09:43:27.000000000 +0000
++++ src/walltime.cc	2015-09-23 09:43:45.000000000 +0000
+@@ -65,7 +65,7 @@
+   static WallTimeImp& GetWallTimeImp() {
+     static WallTimeImp imp;
+ #if __cplusplus >= 201103L
+-    static_assert(std::is_trivially_destructible<WallTimeImp>::value,
++    static_assert(std::has_trivial_destructor<WallTimeImp>::value,
+                   "WallTimeImp must be trivially destructible to prevent "
+                   "issues with static destruction");
+ #endif
+
