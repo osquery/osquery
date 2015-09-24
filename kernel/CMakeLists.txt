@@ -4,7 +4,7 @@ set(CMAKE_CXX_FLAGS "")
 
 # Set kernel-exported variables/paths/settings.
 set(KERNEL_BINARY_DIR "" PARENT_SCOPE)
-set(KERNEL_BINARY "" PARENT_SCOPE)
+set(KERNEL_BINARY "unknown" PARENT_SCOPE)
 set(KERNEL_TYPE "unknown" PARENT_SCOPE)
 
 if(APPLE)

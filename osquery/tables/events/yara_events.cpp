@@ -17,7 +17,7 @@
 /// The file change event publishers are slightly different in OS X and Linux.
 #ifdef __APPLE__
 #include "osquery/events/darwin/fsevents.h"
-#else
+#elif __linux__
 #include "osquery/events/linux/inotify.h"
 #endif
 
@@ -37,7 +37,7 @@ typedef EventSubscriber<FSEventsEventPublisher> FileEventSubscriber;
 typedef FSEventsEventContextRef FileEventContextRef;
 #define FILE_CHANGE_MASK \
   kFSEventStreamEventFlagItemCreated | kFSEventStreamEventFlagItemModified
-#else
+#elif __linux__
 typedef EventSubscriber<INotifyEventPublisher> FileEventSubscriber;
 typedef INotifyEventContextRef FileEventContextRef;
 #define FILE_CHANGE_MASK \

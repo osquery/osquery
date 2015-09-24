@@ -117,7 +117,8 @@ endif()
 
 # Add dependencies and additional package data based on optional components.
 
-if(EXISTS "${CMAKE_BINARY_DIR}/kernel/${KERNEL_BINARY}")
+if(NOT ${KERNEL_BINARY} STREQUAL "" AND
+    EXISTS "${CMAKE_BINARY_DIR}/kernel/${KERNEL_BINARY}")
   # The osquery kernel was built
   add_dependencies(packages kernel-build)
 endif()
