@@ -32,7 +32,7 @@ class sampleTablePlugin : public TablePlugin {
 
 TEST_F(VirtualTableTests, test_tableplugin_columndefinition) {
   auto table = std::make_shared<sampleTablePlugin>();
-  EXPECT_EQ("(foo INTEGER, bar TEXT)", table->columnDefinition());
+  EXPECT_EQ("(`foo` INTEGER, `bar` TEXT)", table->columnDefinition());
 }
 
 TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
@@ -61,8 +61,9 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   std::string q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
   QueryData results;
   status = queryInternal(q, results, dbc.db());
-  EXPECT_EQ("CREATE VIRTUAL TABLE sample USING sample(foo INTEGER, bar TEXT)",
-            results[0]["sql"]);
+  EXPECT_EQ(
+      "CREATE VIRTUAL TABLE sample USING sample(`foo` INTEGER, `bar` TEXT)",
+      results[0]["sql"]);
 }
 
 TEST_F(VirtualTableTests, test_sqlite3_table_joins) {

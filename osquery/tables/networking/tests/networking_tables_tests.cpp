@@ -18,12 +18,18 @@ namespace osquery {
 namespace tables {
 
 osquery::QueryData parseEtcHostsContent(const std::string& content);
+osquery::QueryData parseEtcProtocolsContent(const std::string& content);
 
-class EtcHostsTests : public testing::Test {};
+class NetworkingTablesTests : public testing::Test {};
 
-TEST_F(EtcHostsTests, test_parse_etc_hosts_content) {
+TEST_F(NetworkingTablesTests, test_parse_etc_hosts_content) {
   EXPECT_EQ(parseEtcHostsContent(getEtcHostsContent()),
             getEtcHostsExpectedResults());
+}
+
+TEST_F(NetworkingTablesTests, test_parse_etc_protocols_content) {
+  EXPECT_EQ(parseEtcProtocolsContent(getEtcProtocolsContent()),
+            getEtcProtocolsExpectedResults());
 }
 }
 }
