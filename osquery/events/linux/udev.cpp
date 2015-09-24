@@ -16,7 +16,7 @@
 
 namespace osquery {
 
-int kUdevMLatency = 200;
+static const int kUdevMLatency = 200;
 
 REGISTER(UdevEventPublisher, "event_publisher", "udev");
 
@@ -53,7 +53,7 @@ Status UdevEventPublisher::run() {
   FD_ZERO(&set);
   FD_SET(fd, &set);
 
-  struct timeval timeout = {3, 3000};
+  struct timeval timeout = {1, 0};
   int selector = ::select(fd + 1, &set, nullptr, nullptr, &timeout);
   if (selector == -1) {
     LOG(ERROR) << "Could not read udev monitor";
@@ -62,7 +62,7 @@ Status UdevEventPublisher::run() {
 
   if (selector == 0 || !FD_ISSET(fd, &set)) {
     // Read timeout.
-    return Status(0, "Timeout");
+    return Status(0, "Finished");
   }
 
   struct udev_device *device = udev_monitor_receive_device(monitor_);
@@ -77,7 +77,7 @@ Status UdevEventPublisher::run() {
   udev_device_unref(device);
 
   osquery::publisherSleep(kUdevMLatency);
-  return Status(0, "Continue");
+  return Status(0, "OK");
 }
 
 std::string UdevEventPublisher::getValue(struct udev_device* device,

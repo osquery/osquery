@@ -43,6 +43,8 @@ enum AuditStatus {
   AUDIT_IMMUTABLE = 2,
 };
 
+static const int kAuditMLatency = 1000;
+
 Status AuditEventPublisher::setUp() {
   handle_ = audit_open();
   if (handle_ <= 0) {
@@ -293,8 +295,8 @@ Status AuditEventPublisher::run() {
   }
 
   // Only apply a cool down if the reply request failed.
-  osquery::publisherSleep(200);
-  return Status(0, "Continue");
+  osquery::publisherSleep(kAuditMLatency);
+  return Status(0, "OK");
 }
 
 bool AuditEventPublisher::shouldFire(const AuditSubscriptionContextRef& sc,

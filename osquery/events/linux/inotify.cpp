@@ -24,9 +24,8 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-int kINotifyMLatency = 200;
-
-static const uint32_t BUFFER_SIZE =
+static const int kINotifyMLatency = 200;
+static const uint32_t kINotifyBufferSize =
     (10 * ((sizeof(struct inotify_event)) + NAME_MAX + 1));
 
 std::map<int, std::string> kMaskActions = {
@@ -115,13 +114,13 @@ Status INotifyEventPublisher::restartMonitoring(){
 
 Status INotifyEventPublisher::run() {
   // Get a while wrapper for free.
-  char buffer[BUFFER_SIZE];
+  char buffer[kINotifyBufferSize];
   fd_set set;
 
   FD_ZERO(&set);
   FD_SET(getHandle(), &set);
 
-  struct timeval timeout = {3, 3000};
+  struct timeval timeout = {1, 0};
   int selector = ::select(getHandle() + 1, &set, nullptr, nullptr, &timeout);
   if (selector == -1) {
     LOG(ERROR) << "Could not read inotify handle";
@@ -132,7 +131,7 @@ Status INotifyEventPublisher::run() {
     // Read timeout.
     return Status(0, "Continue");
   }
-  ssize_t record_num = ::read(getHandle(), buffer, BUFFER_SIZE);
+  ssize_t record_num = ::read(getHandle(), buffer, kINotifyBufferSize);
   if (record_num == 0 || record_num == -1) {
     return Status(1, "INotify read failed");
   }
@@ -166,7 +165,7 @@ Status INotifyEventPublisher::run() {
   }
 
   osquery::publisherSleep(kINotifyMLatency);
-  return Status(0, "Continue");
+  return Status(0, "OK");
 }
 
 INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(

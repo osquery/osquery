@@ -89,7 +89,16 @@ stop() {
     RETVAL=0
   else
     PID=$(cat $PIDFILE)
-    pkill -P $PID && kill -9 $PID
+    # Terminate the daemon and watchers
+    pkill -g $PID
+    # Allow the event threads to tear down
+    ( while kill -0 $PID >/dev/null 2>&1; do sleep 0.2; done ) & DPID=$!
+    # If the event threads are still running after 5 seconds, kill them
+    ( sleep 5 && pkill -9 -g $PID && kill -9 $DPID ) 2>/dev/null & WPID=$!
+    if wait $DPID 2>/dev/null; then
+      pkill -9 -P $WPID
+      wait $WPID
+    fi
     rm -f $PIDFILE
   fi
 }
