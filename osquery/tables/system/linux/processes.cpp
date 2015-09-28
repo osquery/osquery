@@ -19,6 +19,7 @@
 #include <osquery/core.h>
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 namespace osquery {
 namespace tables {
@@ -116,7 +117,8 @@ void genProcessMap(const std::string& pid, QueryData& results) {
     }
 
     r["permissions"] = fields[1];
-    r["offset"] = BIGINT(std::stoll(fields[2], nullptr, 16));
+    auto offset = std::stoll(fields[2], nullptr, 16);
+    r["offset"] = (offset != 0) ? BIGINT(offset) : r["start"];
     r["device"] = fields[3];
     r["inode"] = fields[4];
 
@@ -154,20 +156,32 @@ struct SimpleProcStat {
   std::string start_time;
 };
 
-SimpleProcStat getProcStat(const std::string& pid) {
+static inline SimpleProcStat getProcStat(const std::string& pid) {
   SimpleProcStat stat;
   std::string content;
+
   if (readFile(getProcAttr("stat", pid), content).ok()) {
-    auto detail_start = content.find_last_of(")");
+    auto start = content.find_last_of(")");
     // Start parsing stats from ") <MODE>..."
-    auto details = osquery::split(content.substr(detail_start + 2), " ");
+    if (start == std::string::npos || content.size() <= start + 2) {
+      return stat;
+    }
+    auto details = osquery::split(content.substr(start + 2), " ");
+    if (details.size() <= 19) {
+      return stat;
+    }
+
     stat.state = details.at(0);
     stat.parent = details.at(1);
     stat.group = details.at(2);
     stat.user_time = details.at(11);
     stat.system_time = details.at(12);
     stat.nice = details.at(16);
-    stat.start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
+    try {
+      stat.start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
+    } catch (const boost::bad_lexical_cast& e) {
+      stat.start_time = "-1";
+    }
   }
 
   if (readFile(getProcAttr("status", pid), content).ok()) {
@@ -221,12 +235,10 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["group"] = proc_stat.group;
   r["state"] = proc_stat.state;
   r["nice"] = proc_stat.nice;
-
   // Read/parse cmdline arguments.
   r["cmdline"] = readProcCMDLine(pid);
   r["cwd"] = readProcLink("cwd", pid);
   r["root"] = readProcLink("root", pid);
-
   r["uid"] = proc_stat.real_uid;
   r["euid"] = proc_stat.effective_uid;
   r["gid"] = proc_stat.real_gid;

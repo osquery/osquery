@@ -567,8 +567,6 @@ Status getDatabaseValue(const std::string& domain,
   PluginResponse response;
   auto status = Registry::call("database", "rocks", request, response);
   if (!status.ok()) {
-    VLOG(1) << "Cannot get database " << domain << "/" << key << ": "
-            << status.getMessage();
     return status;
   }
 
