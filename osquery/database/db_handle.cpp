@@ -124,6 +124,11 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   VLOG(1) << "Opening RocksDB handle: " << path;
   auto s = rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
   if (!s.ok()) {
+#if defined(ROCKSDB_LITE)
+    // RocksDB LITE does not support readonly mode.
+    VLOG(1) << "Opening RocksDB failed: Continuing without storage support";
+#else
+    VLOG(1) << "Opening RocksDB failed: Continuing with read-only support";
     // The database was readable but could not be opened, either (1) it is not
     // writable or (2) it is already opened by another process.
     // Try to open the database in a ReadOnly mode.
@@ -132,6 +137,9 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
     if (!s.ok()) {
       throw std::runtime_error(s.ToString());
     }
+#endif
+    // Also disable event publishers.
+    Flag::updateValue("disable_events", "true");
     read_only_ = true;
   }
 
@@ -206,6 +214,9 @@ rocksdb::ColumnFamilyHandle* DBHandle::getHandleForColumnFamily(
 Status DBHandle::Get(const std::string& domain,
                      const std::string& key,
                      std::string& value) {
+  if (getDB() == nullptr) {
+    return Status(1, "Database not opened");
+  }
   auto cfh = getHandleForColumnFamily(domain);
   if (cfh == nullptr) {
     return Status(1, "Could not get column family for " + domain);
@@ -249,6 +260,10 @@ Status DBHandle::Delete(const std::string& domain, const std::string& key) {
 
 Status DBHandle::Scan(const std::string& domain,
                       std::vector<std::string>& results) {
+  if (getDB() == nullptr) {
+    return Status(1, "Database not opened");
+  }
+
   auto cfh = getHandleForColumnFamily(domain);
   if (cfh == nullptr) {
     return Status(1, "Could not get column family for " + domain);

@@ -376,7 +376,7 @@ EventID EventSubscriberPlugin::getEventID() {
   {
     boost::lock_guard<boost::mutex> lock(event_id_lock_);
     status = db->Get(kEvents, eid_key, last_eid_value);
-    if (!status.ok()) {
+    if (!status.ok() || last_eid_value.empty()) {
       last_eid_value = "0";
     }
 
