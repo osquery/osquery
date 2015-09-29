@@ -109,7 +109,7 @@ inline void genSafariExtension(const std::string& path, QueryData& results) {
   // Use open_file, instead of the preferred open_filename for OS X 10.9.
   archive_read_support_format_xar(ext);
   if (archive_read_open_file(ext, path.c_str(), 10240) != ARCHIVE_OK) {
-    archive_read_close(ext);
+    archive_read_finish(ext);
     return;
   }
 
@@ -143,6 +143,7 @@ inline void genSafariExtension(const std::string& path, QueryData& results) {
   }
 
   archive_read_close(ext);
+  archive_read_finish(ext);
   results.push_back(std::move(r));
 }
 
