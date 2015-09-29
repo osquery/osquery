@@ -37,6 +37,8 @@ FLAG(bool, read_user_links, true, "Read user-owned filesystem links");
 // See reference #1382 for reasons why someone would allow unsafe.
 HIDDEN_FLAG(bool, allow_unsafe, false, "Allow unsafe executable permissions");
 
+static const size_t kMaxRecursiveGlobs = 64;
+
 Status writeTextFile(const fs::path& path,
                      const std::string& content,
                      int permissions,
@@ -183,7 +185,8 @@ static void genGlobs(std::string path,
   replaceGlobWildcards(path);
 
   // Generate a glob set and recurse for double star.
-  while (true) {
+  size_t glob_index = 0;
+  while (++glob_index < kMaxRecursiveGlobs) {
     glob_t data;
     glob(path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, &data);
     size_t count = data.gl_pathc;
