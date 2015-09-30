@@ -57,7 +57,7 @@ class Pack {
    *
    * @return A bool indicating whether or not the pack has a discovery query
    */
-  std::vector<std::string>& getDiscoveryQueries();
+  const std::vector<std::string>& getDiscoveryQueries() const;
 
   /// Utility for identifying whether or not the pack should be scheduled
   bool shouldPackExecute();
@@ -78,24 +78,24 @@ class Pack {
   const std::string& getVersion() const;
 
   /// Returns the schedule dictated by the pack
-  const std::map<std::string, ScheduledQuery>& getSchedule();
+  const std::map<std::string, ScheduledQuery>& getSchedule() const;
 
   /// Verify that the platform is compatible
-  bool checkPlatform();
+  bool checkPlatform() const;
 
   /// Verify that a given platform string is compatible
-  bool checkPlatform(const std::string& platform);
+  bool checkPlatform(const std::string& platform) const;
 
   /// Verify that the version of osquery is compatible
-  bool checkVersion();
+  bool checkVersion() const;
 
   /// Verify that a given version string is compatible
-  bool checkVersion(const std::string& version);
+  bool checkVersion(const std::string& version) const;
 
   /// Verify that a given discovery query returns the appropriate results
   bool checkDiscovery();
 
-  const PackStats& getStats();
+  const PackStats& getStats() const;
 
  protected:
   std::vector<std::string> discovery_queries_;
