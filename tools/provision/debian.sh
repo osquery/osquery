@@ -19,6 +19,27 @@ function patch_condition_variable() {
   
   popd
 }
+
+# As long as https://github.com/google/benchmark/issues/134 isn't resolved, we need this: 
+function install_google_benchmark_with_patch() {
+  SOURCE=benchmark-0.1.0
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
+
+  if provision benchmark /usr/local/lib/libbenchmark.a; then
+    pushd $SOURCE
+    # function deviates from install_google_benchmark starting here 
+    patch -p0 < $FILES_DIR/debian/benchmark_traits_fix.patch
+    # end change 
+    mkdir -p build
+    pushd build
+    cmake -DCMAKE_CXX_FLAGS="$CFLAGS" ..
+    CC="$CC" CXX="$CXX" make -j $THREADS
+    sudo make install
+    popd
+    popd
+  fi
+}
   
 function main_debian() {
   sudo apt-get update -y
@@ -79,14 +100,19 @@ function main_debian() {
   package libsnappy-dev
   package libgflags-dev
 
+  package libaudit-dev
+  package libmagic-dev
+  
   if [[ $DISTRO == "wheezy" ]]; then 
     patch_condition_variable
     
     install_cmake
-    install_boost   
+    install_boost
+    install_google_benchmark_with_patch   
   elif [[ $DISTRO == "jessie" ]]; then 
     package cmake
     package libboost-all-dev
+    install_google_benchmark
   fi 
   
 
@@ -94,7 +120,7 @@ function main_debian() {
   install_rocksdb 
   install_yara
   install_cppnetlib
-  install_google_benchmark
+  install_gflags
   
   # Need headers and PC macros
   package libgcrypt-dev
