@@ -299,7 +299,7 @@ void Config::hashSource(const std::string& source, const std::string& content) {
 }
 
 Status Config::getMD5(std::string& hash) {
-  if (valid_) {
+  if (!valid_) {
     return Status(1, "Current config is not valid");
   }
 
