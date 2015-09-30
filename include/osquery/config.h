@@ -61,7 +61,7 @@ class Schedule {
    * next iterator element or skipped.
    */
   struct Step {
-    bool operator()(Pack pack) { return pack.shouldPackExecute(); }
+    bool operator()(Pack& pack) { return pack.shouldPackExecute(); }
   };
 
   /// Boost gives us a nice template for maintaining the state of the iterator
@@ -77,7 +77,7 @@ class Schedule {
   void remove(const std::string& pack) { remove(pack, ""); }
 
   void remove(const std::string& pack, const std::string& source) {
-    packs_.remove_if([pack, source](Pack p) {
+    packs_.remove_if([pack, source](Pack& p) {
       return (p.getName() == pack) && (p.getSource() == source);
     });
   }
@@ -304,19 +304,15 @@ class Config {
   bool valid_;
 
  private:
-  friend class ConfigTests;
   FRIEND_TEST(ConfigTests, test_parse);
   FRIEND_TEST(ConfigTests, test_remove);
   FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
   FRIEND_TEST(ConfigTests, test_get_parser);
   FRIEND_TEST(ConfigTests, test_add_remove_pack);
   FRIEND_TEST(ConfigTests, test_noninline_pack);
-
-  friend class OptionsConfigParserPluginTests;
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
-
-  friend class FilePathsConfigParserPluginTests;
   FRIEND_TEST(FilePathsConfigParserPluginTests, test_get_files);
+  FRIEND_TEST(PacksTests, test_discovery_cache);
 };
 
 /**

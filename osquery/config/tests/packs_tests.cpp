@@ -46,6 +46,13 @@ pt::ptree getPackWithDiscovery() {
   return packs.get_child("foobar");
 }
 
+/// 1 discovery query which will always pass
+pt::ptree getPackWithValidDiscovery() {
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  return packs.get_child("baz");
+}
+
 /// no discovery queries, no platform restriction, fake version string
 pt::ptree getPackWithFakeVersion() {
   auto tree = getExamplePacksConfig();
@@ -116,14 +123,32 @@ TEST_F(PacksTests, test_schedule) {
 }
 
 TEST_F(PacksTests, test_discovery_cache) {
-  auto pack = Pack("foobar", getPackWithDiscovery());
+  auto pack = Pack("kernel", getPackWithValidDiscovery());
+  auto& stats = pack.getStats();
+  EXPECT_EQ(stats.total, 0);
+  EXPECT_EQ(stats.hits, 0);
+  EXPECT_EQ(stats.misses, 0);
+
+  auto c = Config();
+  c.addPack(pack);
+  int query_count = 0;
   for (int i = 0; i < 5; i++) {
-    pack.checkDiscovery();
+    c.scheduledQueries(
+        ([&query_count](const std::string& name, const ScheduledQuery& query) {
+          query_count++;
+         }));
   }
-  auto stats = pack.getStats();
-  EXPECT_EQ(stats.total, 5);
-  EXPECT_EQ(stats.hits, 4);
-  EXPECT_EQ(stats.misses, 1);
+  EXPECT_EQ(query_count, 5);
+
+  int pack_count = 0;
+  c.packs(([&pack_count](Pack& p) {
+    pack_count++;
+    EXPECT_EQ(p.getStats().total, 5);
+    EXPECT_EQ(p.getStats().hits, 4);
+    EXPECT_EQ(p.getStats().misses, 1);
+  }));
+
+  EXPECT_EQ(pack_count, 1);
 }
 
 TEST_F(PacksTests, test_discovery_zero_state) {

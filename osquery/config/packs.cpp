@@ -145,15 +145,15 @@ void Pack::initialize(const std::string& name,
   }
 }
 
-const std::map<std::string, ScheduledQuery>& Pack::getSchedule() {
+const std::map<std::string, ScheduledQuery>& Pack::getSchedule() const {
   return schedule_;
 }
 
-std::vector<std::string>& Pack::getDiscoveryQueries() {
+const std::vector<std::string>& Pack::getDiscoveryQueries() const {
   return discovery_queries_;
 }
 
-const PackStats& Pack::getStats() { return stats_; }
+const PackStats& Pack::getStats() const { return stats_; }
 
 const std::string& Pack::getPlatform() const { return platform_; }
 
@@ -169,9 +169,9 @@ const std::string& Pack::getSource() const { return source_; }
 
 void Pack::setName(const std::string& name) { name_ = name; }
 
-bool Pack::checkPlatform() { return checkPlatform(platform_); }
+bool Pack::checkPlatform() const { return checkPlatform(platform_); }
 
-bool Pack::checkPlatform(const std::string& platform) {
+bool Pack::checkPlatform(const std::string& platform) const {
   if (platform == "") {
     return true;
   }
@@ -189,9 +189,9 @@ bool Pack::checkPlatform(const std::string& platform) {
   return (platform.find(kSDKPlatform) != std::string::npos);
 }
 
-bool Pack::checkVersion() { return checkVersion(version_); }
+bool Pack::checkVersion() const { return checkVersion(version_); }
 
-bool Pack::checkVersion(const std::string& version) {
+bool Pack::checkVersion(const std::string& version) const {
   if (version == "") {
     return true;
   }
@@ -234,7 +234,8 @@ bool Pack::checkDiscovery() {
   for (const auto& q : discovery_queries_) {
     auto sql = SQL(q);
     if (!sql.ok()) {
-      LOG(WARNING) << "Discovery query failed: " << q;
+      LOG(WARNING) << "Discovery query failed (" << q
+                   << "): " << sql.getMessageString();
       discovery_cache_.second = false;
       break;
     }
