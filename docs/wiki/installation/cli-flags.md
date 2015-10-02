@@ -283,11 +283,11 @@ Maximum returned row value size.
 
 Distributed plugin name. The default distributed plugin is not set. You must set `--distributed_enabled=true --distributed_plugin=tls` (or whatever plugin you'd rather use instead of TLS) to use the distributed feature.
 
-`--distributed_enabled=false`
+`--disable_distributed=true`
 
 Main killswitch for distributed queries functionality. By default, this is turned off.
 
-`--distributed_poll_interval=60`
+`--distributed_interval=60`
 
 In seconds, the amount of time that osqueryd will wait between periodically checking in with a distributed query server to see if there are any queries to execute.
 

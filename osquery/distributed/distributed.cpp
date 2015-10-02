@@ -26,9 +26,9 @@ namespace osquery {
 FLAG(string, distributed_plugin, "tls", "Distributed plugin name");
 
 FLAG(bool,
-     distributed_enabled,
-     false,
-     "Main killswitch for distributed queries. (default false");
+     disable_distributed,
+     true,
+     "Disable distributed queries (default true)");
 
 boost::shared_mutex distributed_queries_mutex_;
 boost::shared_mutex distributed_results_mutex_;

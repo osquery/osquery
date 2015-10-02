@@ -160,7 +160,7 @@ CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 #endif
 
 DECLARE_string(distributed_plugin);
-DECLARE_bool(distributed_enabled);
+DECLARE_bool(disable_distributed);
 
 ToolType kToolType = OSQUERY_TOOL_UNKNOWN;
 
@@ -462,7 +462,7 @@ void Initializer::start() {
   initLogger(binary_);
 
   // Initialize the distributed plugin, if necessary
-  if (FLAGS_distributed_enabled) {
+  if (!FLAGS_disable_distributed) {
     if (Registry::exists("distributed", FLAGS_distributed_plugin)) {
       initActivePlugin("distributed", FLAGS_distributed_plugin);
     }

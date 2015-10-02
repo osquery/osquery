@@ -14,11 +14,11 @@
 namespace osquery {
 
 FLAG(uint64,
-     distributed_poll_interval,
+     distributed_interval,
      60,
-     "Seconds in between polling the server for new queries (default 60)")
+     "Seconds between polling for new queries (default 60)")
 
-DECLARE_bool(distributed_enabled);
+DECLARE_bool(disable_distributed);
 DECLARE_string(distributed_plugin);
 
 void DistributedRunner::start() {
@@ -28,12 +28,12 @@ void DistributedRunner::start() {
     if (dist.getPendingQueryCount() > 0) {
       dist.runQueries();
     }
-    ::sleep(FLAGS_distributed_poll_interval);
+    ::sleep(FLAGS_distributed_interval);
   }
 }
 
 Status startDistributed() {
-  if (FLAGS_distributed_enabled && !FLAGS_distributed_plugin.empty() &&
+  if (!FLAGS_disable_distributed && !FLAGS_distributed_plugin.empty() &&
       Registry::getActive("distributed") == FLAGS_distributed_plugin) {
     Dispatcher::addService(std::make_shared<DistributedRunner>());
     return Status(0, "OK");
