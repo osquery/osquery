@@ -78,7 +78,7 @@ To start a standalone osquery use: `$ osqueryi`. This does not need a server or 
 After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to the `osqueryd`, the daemon, tool. To start the daemon:
 
 - `sudo cp /usr/share/osquery/osquery.example.conf /etc/osquery/osquery.conf`
-- `sudo service osquery start`
-- `sudo service osquery status`
+- `sudo service osqueryd start`
+- `sudo service osqueryd status`
 
 Note: The interactive shell and daemon do NOT communicate!
