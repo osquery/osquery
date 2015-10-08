@@ -7,6 +7,10 @@ add_custom_command(
   OUTPUT ${OSQUERY_THRIFT_GENERATED_FILES}
 )
 
+add_compile_options(
+  -Wno-macro-redefined
+)
+
 ADD_OSQUERY_LIBRARY(TRUE osquery_extensions
   ${OSQUERY_THRIFT_GENERATED_FILES}
   extensions.cpp

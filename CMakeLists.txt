@@ -31,6 +31,8 @@ add_compile_options(
   -Wno-unused-result
   -Wno-missing-field-initializers
   -Wno-sign-compare
+  -Wno-unused-local-typedef
+  -Wno-deprecated-register
   -Wnon-virtual-dtor
   -Wchar-subscripts
   -Wpointer-arith
@@ -300,11 +302,11 @@ CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_client_method" "" OPENSSL_TLS
 
 # Add a define based on the highest TLS version found. Fatal if no TLS client.
 if(OPENSSL_TLSV12)
-  add_definitions(-DSSL_TXT_TLSV1_2)
+  add_definitions(-DHAS_SSL_TXT_TLSV1_2)
 elseif(OPENSSL_TLSV11)
-  add_definitions(-DSSL_TXT_TLSV1_1)
+  add_definitions(-DHAS_SSL_TXT_TLSV1_1)
 elseif(OPENSSL_TLSV10)
-  add_definitions(-DSSL_TXT_TLSV1)
+  add_definitions(-DHAS_SSL_TXT_TLSV1)
 else()
   message(FATAL_ERROR "Cannot find any TLS client methods")
 endif()
