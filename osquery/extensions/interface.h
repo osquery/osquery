@@ -292,6 +292,7 @@ class ExtensionRunner : public ExtensionRunnerCore {
  */
 class ExtensionManagerRunner : public ExtensionRunnerCore {
  public:
+  virtual ~ExtensionManagerRunner();
   explicit ExtensionManagerRunner(const std::string& manager_path)
       : ExtensionRunnerCore(manager_path) {}
 
