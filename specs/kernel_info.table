@@ -5,6 +5,5 @@ schema([
   Column("arguments", TEXT, "Kernel arguments"),
   Column("path", TEXT, "Kernel path"),
   Column("device", TEXT, "Kernel device identifier"),
-  Column("md5", TEXT, "MD5 hash of Kernel"),
 ])
 implementation("system/kernel_info@genKernelInfo")

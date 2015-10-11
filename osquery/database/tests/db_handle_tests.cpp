@@ -14,31 +14,43 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/filesystem.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/tables.h>
 
 #include "osquery/database/db_handle.h"
-
-const std::string kTestingDBHandlePath = "/tmp/rocksdb-osquery-dbhandletests";
+#include "osquery/core/test_util.h"
 
 namespace osquery {
 
 class DBHandleTests : public testing::Test {
  public:
   void SetUp() {
-    // Setup a testing DB instance
-    db = DBHandle::getInstanceAtPath(kTestingDBHandlePath);
-    cfh_queries = DBHandle::getInstance()->getHandleForColumnFamily(kQueries);
-    cfh_foobar =
+    // A database instance is setup during testing initialize (initTesting).
+    // We need to reset that instance to test unordered expectations.
+    path_ = kTestWorkingDirectory + std::to_string(rand() % 10000 + 20000);
+    DBHandle::getInstance()->resetInstance(path_, false);
+
+    cfh_queries_ = DBHandle::getInstance()->getHandleForColumnFamily(kQueries);
+    cfh_foobar_ =
         DBHandle::getInstance()->getHandleForColumnFamily("foobartest");
+    db_ = DBHandle::getInstance();
   }
 
-  void TearDown() { boost::filesystem::remove_all(kTestingDBHandlePath); }
+  void TearDown() {
+    // Clean the transient instance and reset to the testing instance.
+    boost::filesystem::remove_all(path_);
+    auto path = Flag::getValue("database_path");
+    DBHandle::getInstance()->resetInstance(path, false);
+  }
 
  public:
-  rocksdb::ColumnFamilyHandle* cfh_queries;
-  rocksdb::ColumnFamilyHandle* cfh_foobar;
-  std::shared_ptr<DBHandle> db;
+  std::string path_;
+  rocksdb::ColumnFamilyHandle* cfh_queries_;
+  rocksdb::ColumnFamilyHandle* cfh_foobar_;
+  std::shared_ptr<DBHandle> db_;
 };
 
 TEST_F(DBHandleTests, test_singleton_on_disk) {
@@ -48,46 +60,59 @@ TEST_F(DBHandleTests, test_singleton_on_disk) {
 }
 
 TEST_F(DBHandleTests, test_get_handle_for_column_family) {
-  ASSERT_TRUE(cfh_queries != nullptr);
-  ASSERT_TRUE(cfh_foobar == nullptr);
+  ASSERT_TRUE(cfh_queries_ != nullptr);
+  ASSERT_TRUE(cfh_foobar_ == nullptr);
 }
 
 TEST_F(DBHandleTests, test_get) {
-  db->getDB()->Put(
-      rocksdb::WriteOptions(), cfh_queries, "test_query_123", "{}");
+  db_->getDB()->Put(
+      rocksdb::WriteOptions(), cfh_queries_, "test_query_123", "{}");
   std::string r;
   std::string key = "test_query_123";
-  auto s = db->Get(kQueries, key, r);
+  auto s = db_->Get(kQueries, key, r);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(r, "{}");
 }
 
 TEST_F(DBHandleTests, test_put) {
-  auto s = db->Put(kQueries, "test_put", "bar");
+  auto s = db_->Put(kQueries, "test_put", "bar");
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 }
 
 TEST_F(DBHandleTests, test_delete) {
-  db->Put(kQueries, "test_delete", "baz");
-  auto s = db->Delete(kQueries, "test_delete");
+  db_->Put(kQueries, "test_delete", "baz");
+  auto s = db_->Delete(kQueries, "test_delete");
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 }
 
 TEST_F(DBHandleTests, test_scan) {
-  db->Put(kQueries, "test_scan_foo1", "baz");
-  db->Put(kQueries, "test_scan_foo2", "baz");
-  db->Put(kQueries, "test_scan_foo3", "baz");
+  db_->Put(kQueries, "test_scan_foo1", "baz");
+  db_->Put(kQueries, "test_scan_foo2", "baz");
+  db_->Put(kQueries, "test_scan_foo3", "baz");
+
   std::vector<std::string> keys;
   std::vector<std::string> expected = {
       "test_scan_foo1", "test_scan_foo2", "test_scan_foo3"};
-  auto s = db->Scan(kQueries, keys);
+  auto s = db_->Scan(kQueries, keys);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   for (const auto& i : expected) {
     EXPECT_NE(std::find(keys.begin(), keys.end(), i), keys.end());
   }
+}
+
+TEST_F(DBHandleTests, test_rocksdb_loglevel) {
+  // Make sure a log file was created.
+  EXPECT_TRUE(pathExists(path_ + "/LOG"));
+
+  // Make sure the log file did not include info (only error) logs.
+  auto details = SQL::selectAllFrom("file", "path", EQUALS, path_ + "/LOG");
+  ASSERT_EQ(details.size(), 1);
+  // If the log level was set incorrectly the file will include summary data.
+  auto log_size = boost::lexical_cast<int>(details[0]["size"]);
+  EXPECT_LT(log_size, 1 * 1024);
 }
 }

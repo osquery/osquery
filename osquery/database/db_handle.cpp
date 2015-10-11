@@ -87,10 +87,14 @@ FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
 // constructors and destructors
 /////////////////////////////////////////////////////////////////////////////
 
-DBHandle::DBHandle(const std::string& path, bool in_memory) {
+/// A queryable mutex around database sanity checking.
+static bool kCheckingDB = false;
+
+DBHandle::DBHandle(const std::string& path, bool in_memory)
+    : path_(path), in_memory_(in_memory) {
   options_.create_if_missing = true;
   options_.create_missing_column_families = true;
-  options_.info_log_level = rocksdb::WARN_LEVEL;
+  options_.info_log_level = rocksdb::ERROR_LEVEL;
   options_.log_file_time_to_roll = 0;
   options_.keep_log_file_num = 10;
   options_.max_log_file_size = 1024 * 1024 * 1;
@@ -103,16 +107,6 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   options_.max_background_compactions = 1;
   options_.max_background_flushes = 1;
 
-  if (in_memory) {
-    // Remove when MemEnv is included in librocksdb
-    // options_.env = rocksdb::NewMemEnv(rocksdb::Env::Default());
-    throw std::runtime_error("Cannot start in-memory RocksDB: Requires MemEnv");
-  }
-
-  if (pathExists(path).ok() && !isReadable(path).ok()) {
-    throw std::runtime_error("Cannot read RocksDB path: " + path);
-  }
-
   column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
       rocksdb::kDefaultColumnFamilyName, rocksdb::ColumnFamilyOptions()));
 
@@ -121,9 +115,27 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
         cf_name, rocksdb::ColumnFamilyOptions()));
   }
 
-  VLOG(1) << "Opening RocksDB handle: " << path;
-  auto s = rocksdb::DB::Open(options_, path, column_families_, &handles_, &db_);
-  if (!s.ok()) {
+  // Make the magic happen.
+  open();
+}
+
+void DBHandle::open() {
+  if (in_memory_) {
+    // Remove when MemEnv is included in librocksdb
+    // options_.env = rocksdb::NewMemEnv(rocksdb::Env::Default());
+    throw std::runtime_error("Cannot start in-memory RocksDB: Requires MemEnv");
+  }
+
+  if (pathExists(path_).ok() && !isReadable(path_).ok()) {
+    throw std::runtime_error("Cannot read RocksDB path: " + path_);
+  }
+
+  if (!kCheckingDB) {
+    VLOG(1) << "Opening RocksDB handle: " << path_;
+  }
+  auto s =
+      rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+  if (!s.ok() || db_ == nullptr) {
 #if defined(ROCKSDB_LITE)
     // RocksDB LITE does not support readonly mode.
     VLOG(1) << "Opening RocksDB failed: Continuing without storage support";
@@ -133,7 +145,7 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
     // writable or (2) it is already opened by another process.
     // Try to open the database in a ReadOnly mode.
     s = rocksdb::DB::OpenForReadOnly(
-        options_, path, column_families_, &handles_, &db_);
+        options_, path_, column_families_, &handles_, &db_);
     if (!s.ok()) {
       throw std::runtime_error(s.ToString());
     }
@@ -144,16 +156,22 @@ DBHandle::DBHandle(const std::string& path, bool in_memory) {
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.
-  if (chmod(path.c_str(), S_IRWXU) != 0) {
-    throw std::runtime_error("Cannot set permissions on RocksDB path: " + path);
+  if (!read_only_ && chmod(path_.c_str(), S_IRWXU) != 0) {
+    throw std::runtime_error("Cannot set permissions on RocksDB path: " +
+                             path_);
   }
 }
 
-DBHandle::~DBHandle() {
+DBHandle::~DBHandle() { close(); }
+
+void DBHandle::close() {
   for (auto handle : handles_) {
     delete handle;
   }
-  delete db_;
+
+  if (db_ != nullptr) {
+    delete db_;
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -165,12 +183,16 @@ DBHandleRef DBHandle::getInstance() {
 }
 
 bool DBHandle::checkDB() {
+  // Allow database instances to check if a status/sanity check was requested.
+  kCheckingDB = true;
   try {
     auto handle = DBHandle(FLAGS_database_path, FLAGS_database_in_memory);
   } catch (const std::exception& e) {
+    kCheckingDB = false;
     VLOG(1) << e.what();
     return false;
   }
+  kCheckingDB = false;
   return true;
 }
 
@@ -187,14 +209,22 @@ DBHandleRef DBHandle::getInstance(const std::string& path, bool in_memory) {
   return db_handle;
 }
 
+void DBHandle::resetInstance(const std::string& path, bool in_memory) {
+  close();
+
+  path_ = path;
+  in_memory_ = in_memory;
+  open();
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // getters and setters
 /////////////////////////////////////////////////////////////////////////////
 
-rocksdb::DB* DBHandle::getDB() { return db_; }
+rocksdb::DB* DBHandle::getDB() const { return db_; }
 
 rocksdb::ColumnFamilyHandle* DBHandle::getHandleForColumnFamily(
-    const std::string& cf) {
+    const std::string& cf) const {
   try {
     for (int i = 0; i < kDomains.size(); i++) {
       if (kDomains[i] == cf) {
@@ -213,7 +243,7 @@ rocksdb::ColumnFamilyHandle* DBHandle::getHandleForColumnFamily(
 
 Status DBHandle::Get(const std::string& domain,
                      const std::string& key,
-                     std::string& value) {
+                     std::string& value) const {
   if (getDB() == nullptr) {
     return Status(1, "Database not opened");
   }
@@ -227,7 +257,7 @@ Status DBHandle::Get(const std::string& domain,
 
 Status DBHandle::Put(const std::string& domain,
                      const std::string& key,
-                     const std::string& value) {
+                     const std::string& value) const {
   if (read_only_) {
     return Status(0, "Database in readonly mode");
   }
@@ -240,7 +270,8 @@ Status DBHandle::Put(const std::string& domain,
   return Status(s.code(), s.ToString());
 }
 
-Status DBHandle::Delete(const std::string& domain, const std::string& key) {
+Status DBHandle::Delete(const std::string& domain,
+                        const std::string& key) const {
   if (read_only_) {
     return Status(0, "Database in readonly mode");
   }
@@ -259,7 +290,7 @@ Status DBHandle::Delete(const std::string& domain, const std::string& key) {
 }
 
 Status DBHandle::Scan(const std::string& domain,
-                      std::vector<std::string>& results) {
+                      std::vector<std::string>& results) const {
   if (getDB() == nullptr) {
     return Status(1, "Database not opened");
   }

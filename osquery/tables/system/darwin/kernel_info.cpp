@@ -118,7 +118,11 @@ QueryData genKernelInfo(QueryContext& context) {
   if (CFDictionaryGetValueIfPresent(
           properties, CFSTR("boot-file"), &property)) {
     r["path"] = stringFromCFData((CFDataRef)property);
+    std::replace(r["path"].begin(), r["path"].end(), '\\', '/');
     boost::trim(r["path"]);
+    if (!r["path"].empty() && r["path"][0] != '/') {
+      r["path"] = "/" + r["path"];
+    }
   }
   // No longer need chosen properties.
   CFRelease(properties);
@@ -136,12 +140,6 @@ QueryData genKernelInfo(QueryContext& context) {
 
       r["version"] = signature.substr(22, signature.find(":") - 22);
     }
-  }
-
-  // With the path and device, try to locate the on-disk kernel
-  if (r.count("path") > 0) {
-    // This does not use the device path, potential invalidation.
-    r["md5"] = hashFromFile(HASH_TYPE_MD5, "/" + r["path"]);
   }
 
   results.push_back(r);

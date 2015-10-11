@@ -26,12 +26,12 @@ namespace http = boost::network::http;
 
 /// Apple's 0.9.8 OpenSSL will lack TLS protocols.
 extern "C" {
-#if !defined(SSL_TXT_TLSV1_1)
+#if !defined(HAS_SSL_TXT_TLSV1_1) and !defined(HAS_SSL_TXT_TLSV1_2)
 SSL_CTX* TLSv1_1_client_method(void) { return nullptr; }
 SSL_CTX* TLSv1_1_method(void) { return nullptr; }
 SSL_CTX* TLSv1_1_server_method(void) { return nullptr; }
 #endif
-#if !defined(SSL_TXT_TLSV1_2)
+#if !defined(HAS_SSL_TXT_TLSV1_2)
 struct CRYPTO_THREADID;
 void ERR_remove_thread_state(const CRYPTO_THREADID *tid) {}
 SSL_CTX* TLSv1_2_client_method(void) { return nullptr; }
@@ -106,7 +106,7 @@ http::client TLSTransport::getClient() {
 
   std::string ciphers = kTLSCiphers;
   // Some Ubuntu 12.04 clients exhaust their cipher suites without SHA.
-#if defined(SSL_TXT_TLSV1_2) && !defined(UBUNTU_PRECISE) && !defined(DARWIN)
+#if defined(HAS_SSL_TXT_TLSV1_2) && !defined(UBUNTU_PRECISE) && !defined(DARWIN)
   // Otherwise we prefer GCM and SHA256+
   ciphers += ":!CBC:!SHA";
 #endif

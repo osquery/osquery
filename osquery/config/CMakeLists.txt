@@ -3,18 +3,13 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_config
   packs.cpp
 )
 
-set(OSQUERY_CONFIG_PLUGINS
-  plugins/filesystem.cpp
-  plugins/tls.cpp
+file(GLOB OSQUERY_CONFIG_PLUGINS "plugins/*.cpp")
+ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
+  ${OSQUERY_CONFIG_PLUGINS}
   update.cpp
 )
 
 file(GLOB OSQUERY_CONFIG_PARSERS "parsers/*.cpp")
-
-ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
-  ${OSQUERY_CONFIG_PLUGINS}
-)
-
 ADD_OSQUERY_LIBRARY(TRUE osquery_config_parsers
   ${OSQUERY_CONFIG_PARSERS}
 )

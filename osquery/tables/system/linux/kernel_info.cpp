@@ -67,11 +67,6 @@ QueryData genKernelInfo(QueryContext& context) {
     VLOG(1) << "Cannot find kernel signature file: " << kKernelSignaturePath;
   }
 
-  // Using the path of the boot image, attempt to calculate a hash.
-  if (r.count("path") > 0) {
-    r["md5"] = hashFromFile(HASH_TYPE_MD5, r.at("path"));
-  }
-
   results.push_back(r);
   return results;
 }
