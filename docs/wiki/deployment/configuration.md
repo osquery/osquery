@@ -3,12 +3,12 @@ An osquery deployment consists of:
 * Installing the tools for [OS X](../installation/install-osx.md) or
 	[Linux](../installation/install-linux.md)
 * Reviewing the [osqueryd](../introduction/using-osqueryd.md) introduction
-* Configuring and starting the osqueryd service (this page)
+* Configuring and starting the **osqueryd** service (this page)
 * Managing and [collecting](log-aggregation.md) the query results
 
 In the future, osquery tools may allow for **ad-hoc** or distributed queries
 that are not part of the configured query schedule and return results
-from several selected hosts. Currently, the osqueryd service only accepts
+from several selected hosts. Currently, the **osqueryd** service only accepts
 a query schedule from a configuration.
 
 ## Configuration components
@@ -240,28 +240,26 @@ consist of pack name to pack content JSON data structures.
 
 ### Discovery queries
 
-Discovery queries are a feature of query packs that make it much easier to
-scalably monitor services. Consider that there are some groups of scheduled
+Discovery queries are a feature of query packs that make it much easier to monitor services at scale. Consider that there are some groups of scheduled
 queries which should only be run on a host when a condition is true. For
 example, perhaps you want to write some queries to monitor MySQL. You've made a
 pack called "mysql" and now you only want the queries in that pack to execute
-if the `mysqld` program is running on the host which osquery is running on.
+if the `mysqld` program is running on the host.
 
 Without discovery queries, you could have your configuration management write a
 different configuration file for your MySQL tier. Unfortunately, however, this
 requires you to know the complete set of hosts in your environment which are
 running MySQL. This is problematic, especially if engineers in your environment
 can install arbitrary software on arbitrary hosts. If MySQL is installed on a
-non-standard host, you have no way to know. Therefore, you can't schedule your
-MySQL pack on those hosts.
+non-standard host, you have no way to know. Therefore, you cannot schedule your MySQL pack on those hosts through configuration management logic.
 
-The solution to this problem is discovery queries.
+One solution to this problem is discovery queries.
 
 Query packs allow you to define a set of osquery queries which control whether
 or not the pack will execute. Discovery queries are represented by the
 top-level "discovery" key-word in a pack. The value should be a list of osquery
 queries. If all of the queries return more than zero rows, then the queries are
-added to the query schedule. This allows you to distirbute configurations for
+added to the query schedule. This allows you to distribute configurations for
 many services and programs, while ensuring that only relevant queries will be
 executing on your host.
 
@@ -274,19 +272,19 @@ Discovery queries look like:
 {
   "discovery": [
     "select pid from processes where name = 'foobar';",
-    "select pid from processes where name = 'baz';"
+    "select count(*) from users where username like 'www%';"
   ],
 	"queries": {}
 }
 ```
 
 In the above example, the pack will only execute on hosts which are running
-processes called `foobar` and `baz`.
+processes called "foobar" or has users that start with "www".
 
 Discovery queries are refreshed for all packs every 60 minutes. You can
 change this value via the `pack_refresh_interval` configuration option.
 
-### Where do packs go?
+**Where do packs go?**
 
 The default way to define a query pack is in the main configuration file.
 Consider the following example:
@@ -323,24 +321,12 @@ string. Consider the following example:
 ```
 
 In the above example, the packs are defined using a local filesystem path.
-When osquery notices that you've defined the value of your pack via a string
-rather than an inline dictionary, the active config plugin is called to resolve
-what should be done to go from `/tmp/foo.json` to the actual content of the
-pack.
-
-To accomplish this, the config plugin in question must implement the virtual
-method `Status genPack(const std::string& name, const std::string& value,
-std::string& pack);`, which is defined by the base `ConfigPlugin` class.
-
-If you're using the filesystem config plugin, which is the default option, this
-method is defined already and will read string paths from the filesystem. If
-you use a custom config plugin and would like to use the packs shorthand
-syntax, then be sure to implement the `genPack` method in your config plugin.
+When osquery's config parser is provided a string instead of inline dictionary the active config plugin is called to resolve what should be done to go from `/tmp/foo.json` to the actual content of the pack. See [configuration plugin](../development/config-plugins.md) development for more information on packs.
 
 ### Options
 
-In addition to discovery and queries, a pack may contain a `platform` key
-and a `version` key. Specifying platform allows you to specify that the pack
+In addition to discovery and queries, a pack may contain a **platform** key
+and a **version** key. Specifying platform allows you to specify that the pack
 should only be executed on "linux", "darwin", etc.
 
 In practice, this looks like:
@@ -374,23 +360,15 @@ a pack. For example:
 }
 ```
 
-In this example, the `info` query will run on osquery version 1.5.0 and above
-since the minimum version defined for the global pack is 1.5.0. The `packs`
-query, however, defines an additional version contrainst, therefore the `packs`
-query will only run on osquery version 1.5.2 and above.
+In this example, the **info** query will run on osquery version 1.5.0 and above
+since the minimum version defined for the global pack is 1.5.0. The **packs**
+query, however, defines an additional version constraint, therefore the **packs** query will only run on osquery version 1.5.2 and above.
 
-### Where can I get more existing packs?
+**Where can I get more existing packs?**
 
-We release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that emit
-high signal events as well as event data that is worth storing in the case of
-future incidents and security events. The queries within each pack will be
-performance tested and well-formed (JOIN, select-limited, etc.). But it is
-always an exercise for the user to make sure queries are useful and are not
-impacting performance critical hosts. You can find the query packs that are
-released by the osquery team in the top-level `packs` directory in the osquery
-repository.
+We release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc.). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts. You can find the query packs that are released by the osquery team documented at [https://osquery.io/docs/packs] and the content in [**/packs**](https://github.com/facebook/osquery/blob/master/packs) within the osquery repository.
 
-### How do I modify the default options in the provided packs?
+**How do I modify the default options in the provided packs?**
 
 We don't offer a built-in way to modify the default intervals / options in the
 supplied query packs. Fortunately, however, packs are just JSON. Therefore, it
@@ -399,6 +377,4 @@ in some way, then re-writes the JSON.
 
 ## osqueryctl helper
 
-To test a deploy or configuration we include a short helper script called osqueryctl.
-There are several actions including "start", "stop", and "config-check" that apply
-to both OS X and Linux.
+To test a deploy or configuration we include a short helper script called **osqueryctl**. There are several actions including "start", "stop", and "config-check" that apply to both OS X and Linux.
