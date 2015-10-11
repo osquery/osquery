@@ -166,13 +166,15 @@ if(APPLE)
       COMMAND sudo $<TARGET_FILE:osquery_kernel_tests>
     )
 
-    add_custom_target(
-      run-kernel-benchmark
-      COMMAND echo ""
-      COMMAND echo "Running kernel benchmarks requires root."
-      COMMAND sudo bash -c "$<TARGET_FILE:osquery_kernel_benchmarks> $ENV{BENCHMARK_TO_FILE}"
-      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    )
+    if(NOT DEFINED ENV{SKIP_BENCHMARKS})
+      add_custom_target(
+        run-kernel-benchmark
+        COMMAND echo ""
+        COMMAND echo "Running kernel benchmarks requires root."
+        COMMAND sudo bash -c "$<TARGET_FILE:osquery_kernel_benchmarks> $ENV{BENCHMARK_TO_FILE}"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+      )
+    endif()
   endif()
 elseif(LINUX)
   add_custom_target(
@@ -206,10 +208,12 @@ elseif(LINUX)
       COMMAND echo "-- No kernel test is run for Linux"
     )
 
-    add_custom_target(
-      run-kernel-benchmark
-      COMMAND echo "-- No kernel benchmark is run for Linux"
-    )
+    if(NOT DEFINED ENV{SKIP_BENCHMARKS})
+      add_custom_target(
+        run-kernel-benchmark
+        COMMAND echo "-- No kernel benchmark is run for Linux"
+      )
+    endif()
   endif()
 else()
   add_custom_target(
@@ -243,10 +247,12 @@ else()
       COMMAND echo "-- No kernel test is run for unsupported platform"
     )
 
-    add_custom_target(
-      run-kernel-benchmark
-      COMMAND echo "-- No kernel benchmark is run for unsupported platform"
-    )
+    if(NOT DEFINED ENV{SKIP_BENCHMARKS})
+      add_custom_target(
+        run-kernel-benchmark
+        COMMAND echo "-- No kernel benchmark is run for unsupported platform"
+      )
+    endif()
   endif()
 endif()
 

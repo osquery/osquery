@@ -209,27 +209,29 @@ if(NOT DEFINED ENV{SKIP_TESTS})
   SET_OSQUERY_COMPILE(osquery_kernel_tests "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1 -DGTEST_HAS_TR1_TUPLE=0")
 
   # osquery benchmarks.
-  add_executable(osquery_benchmarks main/benchmarks.cpp ${OSQUERY_BENCHMARKS})
-  TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery)
-  TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery_additional)
-  target_link_libraries(osquery_benchmarks benchmark libosquery_testing)
-  SET_OSQUERY_COMPILE(osquery_benchmarks "${CXX_COMPILE_FLAGS}")
-  set(BENCHMARK_TARGET "$<TARGET_FILE:osquery_benchmarks>")
-  
-  # osquery kernel benchmarks.
-  add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
-  TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_benchmarks libosquery)
-  TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_benchmarks libosquery_additional)
-  target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing)
-  SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
+  if(NOT DEFINED ENV{SKIP_BENCHMARKS})
+    add_executable(osquery_benchmarks main/benchmarks.cpp ${OSQUERY_BENCHMARKS})
+    TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery)
+    TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery_additional)
+    target_link_libraries(osquery_benchmarks benchmark libosquery_testing)
+    SET_OSQUERY_COMPILE(osquery_benchmarks "${CXX_COMPILE_FLAGS}")
+    set(BENCHMARK_TARGET "$<TARGET_FILE:osquery_benchmarks>")
 
-  # make benchmark
-  add_custom_target(
-    run-benchmark
-    COMMAND bash -c "${BENCHMARK_TARGET} $ENV{BENCHMARK_TO_FILE}"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    DEPENDS osquery_benchmarks
-  )
+    # osquery kernel benchmarks.
+    add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
+    TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_benchmarks libosquery)
+    TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_benchmarks libosquery_additional)
+    target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing)
+    SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
+
+    # make benchmark
+    add_custom_target(
+      run-benchmark
+      COMMAND bash -c "${BENCHMARK_TARGET} $ENV{BENCHMARK_TO_FILE}"
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+      DEPENDS osquery_benchmarks
+    )
+  endif()
 
   if(NOT OSQUERY_BUILD_SDK_ONLY)
     # osquery core (additional) set of unit tests built outside of SDK.

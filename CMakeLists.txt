@@ -80,13 +80,16 @@ list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO_DEFINE)
 # late-loading modules and SQLite introspection utilities.
 if(APPLE)
   set(APPLE_MIN_ABI "10.10")
+  add_compile_options(
+    -mmacosx-version-min=${APPLE_MIN_ABI}
+  )
+
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -mmacosx-version-min=${APPLE_MIN_ABI}")
   set(OS_WHOLELINK_PRE "-Wl,-force_load")
   set(OS_WHOLELINK_POST "")
   # Special compile flags for Objective-C++
   set(OBJCXX_COMPILE_FLAGS
-    "-x objective-c++ -fobjc-arc -Wno-c++11-extensions -mmacosx-version-min=${APPLE_MIN_ABI}")
+    "-x objective-c++ -fobjc-arc -Wno-c++11-extensions")
 else()
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
   set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
