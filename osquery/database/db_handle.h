@@ -88,7 +88,7 @@ class DBHandle {
    */
   Status Get(const std::string& domain,
              const std::string& key,
-             std::string& value);
+             std::string& value) const;
 
   /**
    * @brief Put data into the database
@@ -103,7 +103,7 @@ class DBHandle {
    */
   Status Put(const std::string& domain,
              const std::string& key,
-             const std::string& value);
+             const std::string& value) const;
 
   /**
    * @brief Delete data from the database
@@ -115,7 +115,7 @@ class DBHandle {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation.
    */
-  Status Delete(const std::string& domain, const std::string& key);
+  Status Delete(const std::string& domain, const std::string& key) const;
 
   /**
    * @brief List the data in a "domain"
@@ -128,7 +128,8 @@ class DBHandle {
    * @return an instance of osquery::Status indicating the success or failure
    * of the operation.
    */
-  Status Scan(const std::string& domain, std::vector<std::string>& results);
+  Status Scan(const std::string& domain,
+              std::vector<std::string>& results) const;
 
  private:
   /**
@@ -187,11 +188,21 @@ class DBHandle {
    */
   static DBHandleRef getInstance(const std::string& path, bool in_memory);
 
+  /// Allow friend classes, such as unit tests, to reset the instance.
+  void resetInstance(const std::string& path, bool in_memory);
+
+  /// Perform the DB open work.
+  void open();
+
+  /// Perform the DB close work.
+  void close();
+
   /**
    * @brief Private helper around accessing the column family handle for a
    * specific column family, based on it's name
    */
-  rocksdb::ColumnFamilyHandle* getHandleForColumnFamily(const std::string& cf);
+  rocksdb::ColumnFamilyHandle* getHandleForColumnFamily(
+      const std::string& cf) const;
 
   /**
    * @brief Helper method which can be used to get a raw pointer to the
@@ -202,7 +213,7 @@ class DBHandle {
    *
    * @return a pointer to the underlying RocksDB database handle
    */
-  rocksdb::DB* getDB();
+  rocksdb::DB* getDB() const;
 
  private:
   /////////////////////////////////////////////////////////////////////////////
@@ -223,6 +234,12 @@ class DBHandle {
 
   /// The database was opened in a ReadOnly mode.
   bool read_only_{false};
+
+  /// Location of RocksDB on disk, blank if in-memory is true.
+  std::string path_;
+
+  /// True if the database was started in an in-memory only mode.
+  bool in_memory_{false};
 
  private:
   friend class RocksDatabasePlugin;
