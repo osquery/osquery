@@ -181,13 +181,26 @@ void ExtensionRunnerCore::stop() {
   }
 }
 
+inline void removeStalePaths(const std::string& manager) {
+  std::vector<std::string> paths;
+  // Attempt to remove all stale extension sockets.
+  resolveFilePattern(manager + ".*", paths);
+  for (const auto& path : paths) {
+    remove(path);
+  }
+}
+
 void ExtensionRunnerCore::startServer(TProcessorRef processor) {
   auto transport = TServerTransportRef(new TServerSocket(path_));
+  // Before starting and after stopping the manager, remove stale sockets.
+  removeStalePaths(path_);
+
   auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());
   auto protocol_fac = TProtocolFactoryRef(new TBinaryProtocolFactory());
 
-  auto thread_manager_ =
-      ThreadManager::newSimpleThreadManager((size_t)FLAGS_worker_threads, 0);
+  // The minimum number of worker threads is 1.
+  size_t threads = (FLAGS_worker_threads > 0) ? FLAGS_worker_threads : 1;
+  auto thread_manager_ = ThreadManager::newSimpleThreadManager(threads, 0);
   auto thread_fac = ThriftThreadFactory(new PosixThreadFactory());
   thread_manager_->threadFactory(thread_fac);
   thread_manager_->start();
@@ -209,6 +222,12 @@ void ExtensionRunner::start() {
   } catch (const std::exception& e) {
     LOG(ERROR) << "Cannot start extension handler: " << path_ << " ("
                << e.what() << ")";
+  }
+}
+
+ExtensionManagerRunner::~ExtensionManagerRunner() {
+  if (server_ != nullptr) {
+    removeStalePaths(path_);
   }
 }
 
