@@ -100,6 +100,8 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
       if (ioctl(fd, SIOCGIFHWADDR, &ifr) >= 0) {
         r["type"] = INTEGER_FROM_UCHAR(ifr.ifr_hwaddr.sa_family);
       }
+
+      close(fd);
     }
 
     // Last change is not implemented in Linux.
