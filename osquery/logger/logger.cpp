@@ -195,6 +195,7 @@ void setVerboseLevel() {
 
 void initStatusLogger(const std::string& name) {
   FLAGS_alsologtostderr = false;
+  FLAGS_colorlogtostderr = true;
   FLAGS_logbufsecs = 0; // flush the log buffer immediately
   FLAGS_stop_logging_if_full_disk = true;
   FLAGS_max_log_size = 10; // max size for individual log file is 10MB
