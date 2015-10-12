@@ -51,7 +51,7 @@ We publish the same two packages, osquery and osquery-unstable, in an apt reposi
 **Ubuntu Trusty 14.04 LTS**
 
 ```sh
-$ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C9D8B80B
+$ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1484120AC4E9F8A1A577AEEE97A80C63C9D8B80B
 $ sudo add-apt-repository "deb [arch=amd64] https://osquery-packages.s3.amazonaws.com/trusty trusty main"
 $ sudo apt-get update
 $ sudo apt-get install osquery
@@ -60,7 +60,7 @@ $ sudo apt-get install osquery
 **Ubuntu Precise 12.04 LTS**
 
 ```sh
-$ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C9D8B80B
+$ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1484120AC4E9F8A1A577AEEE97A80C63C9D8B80B
 $ sudo add-apt-repository "deb [arch=amd64] https://osquery-packages.s3.amazonaws.com/precise precise main"
 $ sudo apt-get update
 $ sudo apt-get install osquery
