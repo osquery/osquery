@@ -13,6 +13,7 @@
 */
 
 #include <osquery/events.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 namespace osquery {
@@ -46,7 +47,7 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
       auto subscriber = EventFactory::getEventSubscriber("{{class_name}}");
       return std::move(subscriber->{{function}}(request));
     } else {
-      throw std::runtime_error("Subscriber table: {{class_name}} missing.");
+      LOG(ERROR) << "Subscriber table: {{class_name}} missing.";
     }
 {% else %}\
     return std::move(tables::{{function}}(request));
