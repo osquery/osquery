@@ -48,6 +48,7 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
       return std::move(subscriber->{{function}}(request));
     } else {
       LOG(ERROR) << "Subscriber table: {{class_name}} missing.";
+      return QueryData();
     }
 {% else %}\
     return std::move(tables::{{function}}(request));
