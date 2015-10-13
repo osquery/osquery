@@ -33,6 +33,7 @@ add_compile_options(
   -Wno-sign-compare
   -Wno-unused-local-typedef
   -Wno-deprecated-register
+  -Wno-unknown-warning-option
   -Wnon-virtual-dtor
   -Wchar-subscripts
   -Wpointer-arith

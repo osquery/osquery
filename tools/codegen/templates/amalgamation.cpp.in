@@ -13,6 +13,7 @@
 */
 
 #include <osquery/events.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 

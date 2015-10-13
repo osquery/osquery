@@ -91,13 +91,14 @@ def single(args):
                             stderr=subprocess.PIPE,
                             stdout=subprocess.PIPE)
     stdout, stderr = proc.communicate()
+    end_time = time.time() - start_time
     if proc.returncode is not 0:
         print (stdout)
         print (stderr)
-        print ("%s Test %d failed. (total %6.4fs)" % (
-            red("FAILED"), i + 1, sum(times)))
+        print ("%s Test failed. (total %6.4fs)" % (
+            red("FAILED"), end_time))
         sys.exit(proc.returncode)
-    return time.time() - start_time
+    return end_time
 
 def stress(args):
     """Small utility to run unittests several times."""

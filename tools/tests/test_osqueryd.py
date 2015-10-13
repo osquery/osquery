@@ -88,7 +88,9 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         # Send a SIGINT
         os.kill(daemon.pid, signal.SIGINT)
         self.assertTrue(daemon.isDead(daemon.pid, 10))
-        self.assertEqual(daemon.retcode, -1 * signal.SIGINT)
+
+        acceptable_retcodes = [-1, -2, -1 * signal.SIGINT]
+        self.assertTrue(daemon.retcode in acceptable_retcodes)
 
 if __name__ == '__main__':
     test_base.Tester().run()
