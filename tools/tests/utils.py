@@ -18,7 +18,7 @@ import sys
 import psutil
 import time
 import subprocess
-
+import re
 
 def red(msg):
     return "\033[41m\033[1;30m %s \033[0m" % str(msg)
@@ -63,9 +63,12 @@ def platform():
 
 def queries_from_config(config_path):
     config = {}
+    rmcomment = re.compile('\/\*[\*A-Za-z0-9\n\s\.\{\}\'\/\\\:]+\*/|//.*')
     try:
         with open(config_path, "r") as fh:
-            config = json.loads(fh.read())
+            configcontent = fh.read()
+            content = rmcomment.sub('',configcontent)
+            config = json.loads(content)
     except Exception as e:
         print ("Cannot open/parse config: %s" % str(e))
         exit(1)
@@ -76,6 +79,17 @@ def queries_from_config(config_path):
     if "schedule" in config:
         for name, details in config["schedule"].iteritems():
             queries[name] = details["query"]
+    if "packs" in config:
+        for keys,values in config["packs"].iteritems():
+            with open(values) as fp:
+                packfile = fp.read()
+                packcontent = rmcomment.sub('',packfile)
+                packqueries = json.loads(packcontent)
+                for queryname,query in packqueries["queries"].iteritems():
+                    queries["pack_"+queryname] = query["query"]
+
+
+        pass
     if len(queries) == 0:
         print ("Could not find a schedule/queries in config: %s" % config_path)
         exit(0)
