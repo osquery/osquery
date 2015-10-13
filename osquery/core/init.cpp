@@ -200,6 +200,14 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       binary_(fs::path(std::string(argv[0])).filename().string()) {
   std::srand(chrono_clock::now().time_since_epoch().count());
 
+  // Handled boost filesystem locale problems fixes in 1.56.
+  // See issue #1559 for the discussion and upstream boost patch.
+  try {
+    boost::filesystem::path::codecvt();
+  } catch(std::runtime_error &e) {
+    setenv("LC_ALL", "C", 1);
+  }
+
   // osquery implements a custom help/usage output.
   for (int i = 1; i < *argc_; i++) {
     auto help = std::string((*argv_)[i]);
