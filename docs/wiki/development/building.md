@@ -1,6 +1,6 @@
 ## Dependencies
 
-We include a `make deps` command to make it easier for developers to get started with the osquery project. `make deps` uses Homebrew for OS X and traditional package managers for various distributions of Linux.
+We include a `make deps` command to make it easier for developers to get started with the osquery project. `make deps` uses Homebrew for OS X and traditional package managers for various distributions of Linux. Please have sudo installed before running `make deps`.
 
 WARNING: This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
 
