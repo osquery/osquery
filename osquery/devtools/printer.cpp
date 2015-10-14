@@ -29,7 +29,7 @@ std::string generateToken(const std::map<std::string, size_t>& lengths,
         std::string e = "\xF0\x9F\x90\x8C";
         e[2] += kOffset[1];
         e[3] += kOffset[0];
-        for (int i = 0; i < lengths.at(col) + 2; i++) {
+        for (size_t i = 0; i < lengths.at(col) + 2; i++) {
           e[3] = '\x8c' + kOffset[0]++;
           if (e[3] == '\xbf') {
             e[3] = '\x80';
@@ -123,7 +123,7 @@ void prettyPrint(const QueryData& results,
 
 void jsonPrint(const QueryData& q) {
   printf("[\n");
-  for (int i = 0; i < q.size(); ++i) {
+  for (size_t i = 0; i < q.size(); ++i) {
     std::string row_string;
     if (serializeRowJSON(q[i], row_string).ok()) {
       row_string.pop_back();
