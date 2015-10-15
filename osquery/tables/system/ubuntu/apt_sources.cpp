@@ -86,15 +86,21 @@ QueryData genAptSrcs(QueryContext& context) {
   pkgCacheFile cache_file;
   pkgCache* cache = cache_file.GetPkgCache();
   pkgSourceList* src_list = cache_file.GetSourceList();
+  if (cache == nullptr || src_list == nullptr) {
+    cache_file.Close();
+    closeConfig();
+    return results;
+  }
 
   // For each apt cache file that contains packages
-  for (pkgCache::PkgFileIterator file = cache->FileBegin(); !file.end();
+  for (pkgCache::PkgFileIterator file = cache->FileBegin(); file && !file.end();
        ++file) {
 
     // Locate the associated index files to ensure the repository is installed
     pkgIndexFile* pkgIndex;
-    if (!src_list->FindIndex(file, pkgIndex))
+    if (!src_list->FindIndex(file, pkgIndex)) {
       continue;
+    }
 
     extractAptSourceInfo(file, pkgIndex, results);
   }

@@ -65,11 +65,13 @@ int pkg_sorter(const void *a, const void *b) {
   int res;
 
   res = strcmp(pa->set->name, pb->set->name);
-  if (res)
+  if (res) {
     return res;
+  }
 
-  if (pa->installed.arch == pb->installed.arch)
+  if (pa->installed.arch == pb->installed.arch) {
     return 0;
+  }
 
   return strcmp(arch_a, arch_b);
 }
