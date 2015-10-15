@@ -43,21 +43,21 @@ TEST_F(RegistryTests, test_registry) {
 
   /// Add a CatRegistry item (a plugin) called "house".
   cats.add<HouseCat>("house");
-  EXPECT_EQ(cats.count(), 1);
+  EXPECT_EQ(cats.count(), 1U);
 
   /// Try to add the same plugin with the same name, this is meaningless.
   cats.add<HouseCat>("house");
   /// Now add the same plugin with a different name, a new plugin instance
   /// will be created and registered.
   cats.add<HouseCat>("house2");
-  EXPECT_EQ(cats.count(), 2);
+  EXPECT_EQ(cats.count(), 2U);
 
   /// Request a plugin to call an API method.
   auto cat = cats.get("house");
   cats.setUp();
 
   /// Now let's iterate over every registered Cat plugin.
-  EXPECT_EQ(cats.all().size(), 2);
+  EXPECT_EQ(cats.all().size(), 2U);
 }
 
 /// Normally we have "Registry" that dictates the set of possible API methods
@@ -81,8 +81,8 @@ TEST_F(RegistryTests, test_auto_factory) {
   /// When acting on registries by name we can check the broadcasted
   /// registry name of other plugin processes (via Thrift) as well as
   /// internally registered plugins like HouseCat.
-  EXPECT_EQ(TestCoreRegistry::registry("cat")->count(), 2);
-  EXPECT_EQ(TestCoreRegistry::count("cat"), 2);
+  EXPECT_EQ(TestCoreRegistry::registry("cat")->count(), 2U);
+  EXPECT_EQ(TestCoreRegistry::count("cat"), 2U);
 
   /// And we can call an API method, since we guarantee CatPlugins conform
   /// to the "TestCoreRegistry"'s "TestPluginAPI".
@@ -115,11 +115,11 @@ TEST_F(RegistryTests, test_auto_registries) {
   TestCoreRegistry::add<Doge>("dog", "doge");
   TestCoreRegistry::registry("dog")->setUp();
 
-  EXPECT_EQ(TestCoreRegistry::count("dog"), 1);
+  EXPECT_EQ(TestCoreRegistry::count("dog"), 1U);
 }
 
 TEST_F(RegistryTests, test_persistant_registries) {
-  EXPECT_EQ(TestCoreRegistry::count("cat"), 2);
+  EXPECT_EQ(TestCoreRegistry::count("cat"), 2U);
 }
 
 TEST_F(RegistryTests, test_registry_exceptions) {
