@@ -115,14 +115,15 @@ int xCreate(sqlite3 *db,
 int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
   const BaseCursor *pCur = (BaseCursor *)cur;
   const auto *pVtab = (VirtualTable *)cur->pVtab;
+  size_t ucol = (size_t)col;
 
-  if (col >= pVtab->content->columns.size()) {
+  if (ucol >= pVtab->content->columns.size()) {
     // Requested column index greater than column set size.
     return SQLITE_ERROR;
   }
 
-  const auto &column_name = pVtab->content->columns[col].first;
-  const auto &type = pVtab->content->columns[col].second;
+  const auto &column_name = pVtab->content->columns[ucol].first;
+  const auto &type = pVtab->content->columns[ucol].second;
   if (pCur->row >= pVtab->content->data.size()) {
     // Request row index greater than row set size.
     return SQLITE_ERROR;
@@ -173,7 +174,7 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
 
   int expr_index = 0;
   int cost = 0;
-  for (size_t i = 0; i < pIdxInfo->nConstraint; ++i) {
+  for (int i = 0; i < pIdxInfo->nConstraint; ++i) {
     if (!pIdxInfo->aConstraint[i].usable) {
       // A higher cost less priority, prefer more usable query constraints.
       cost += 10;
@@ -212,7 +213,7 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   }
 
   // Iterate over every argument to xFilter, filling in constraint values.
-  for (size_t i = 0; i < argc; ++i) {
+  for (int i = 0; i < argc; ++i) {
     auto expr = (const char *)sqlite3_value_text(argv[i]);
     if (expr == nullptr) {
       // SQLite did not expose the expression value.
