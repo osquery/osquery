@@ -101,24 +101,33 @@ void genProcessMap(const std::string& pid, QueryData& results) {
   readFile(map, content);
   for (auto& line : osquery::split(content, "\n")) {
     auto fields = osquery::split(line, " ");
-
-    Row r;
-    r["pid"] = pid;
-
     // If can't read address, not sure.
     if (fields.size() < 5) {
       continue;
     }
 
-    if (fields[0].size() > 0) {
+    Row r;
+    r["pid"] = pid;
+    if (!fields[0].empty()) {
       auto addresses = osquery::split(fields[0], "-");
-      r["start"] = "0x" + addresses[0];
-      r["end"] = "0x" + addresses[1];
+      if (addresses.size() >= 2) {
+        r["start"] = "0x" + addresses[0];
+        r["end"] = "0x" + addresses[1];
+      } else {
+        // Problem with the address format.
+        continue;
+      }
     }
 
     r["permissions"] = fields[1];
-    auto offset = std::stoll(fields[2], nullptr, 16);
-    r["offset"] = (offset != 0) ? BIGINT(offset) : r["start"];
+    try {
+      auto offset = std::stoll(fields[2], nullptr, 16);
+      r["offset"] = (offset != 0) ? BIGINT(offset) : r["start"];
+
+    } catch (const std::exception& e) {
+      // Value was out of range or could not be interpreted as a hex long long.
+      r["offset"] = "-1";
+    }
     r["device"] = fields[3];
     r["inode"] = fields[4];
 
@@ -129,7 +138,7 @@ void genProcessMap(const std::string& pid, QueryData& results) {
     }
 
     // BSS with name in pathname.
-    r["pseudo"] = (fields[4] == "0" && r["path"].size() > 0) ? "1" : "0";
+    r["pseudo"] = (fields[4] == "0" && !r["path"].empty()) ? "1" : "0";
     results.push_back(r);
   }
 }
