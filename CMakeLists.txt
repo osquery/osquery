@@ -28,12 +28,7 @@ add_compile_options(
   -Wextra
   -Wstrict-aliasing
   -Wno-unused-parameter
-  -Wno-unused-result
   -Wno-missing-field-initializers
-  -Wno-sign-compare
-  -Wno-unused-local-typedef
-  -Wno-deprecated-register
-  -Wno-unknown-warning-option
   -Wnon-virtual-dtor
   -Wchar-subscripts
   -Wpointer-arith
@@ -137,7 +132,7 @@ if(DEFINED ENV{DEBUG})
   WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
   # make sanitize (cannot make debug sanitize)
-  add_compile_options(-g -O0 -fno-omit-frame-pointer)
+  add_compile_options(-g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
   add_definitions(-DNDEBUG)
   if(DEFINED ENV{SANITIZE_THREAD})
     add_compile_options(-fsanitize=thread)

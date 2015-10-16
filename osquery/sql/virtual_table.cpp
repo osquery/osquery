@@ -76,7 +76,7 @@ int xCreate(sqlite3 *db,
   auto *pVtab = new VirtualTable;
 
   if (!pVtab || argc == 0 || argv[0] == nullptr) {
-    return SQLITE_NOMEM;
+    //  return SQLITE_NOMEM;  // memory leak
   }
 
   memset(pVtab, 0, sizeof(VirtualTable));
@@ -89,18 +89,18 @@ int xCreate(sqlite3 *db,
   auto status = Registry::call(
       "table", pVtab->content->name, {{"action", "columns"}}, response);
   if (!status.ok() || response.size() == 0) {
-    return SQLITE_ERROR;
+    // return SQLITE_ERROR;  // memory leak
   }
 
   auto statement =
       "CREATE TABLE " + pVtab->content->name + columnDefinition(response);
   int rc = sqlite3_declare_vtab(db, statement.c_str());
   if (rc != SQLITE_OK) {
-    return rc;
+    // return rc;  // memory leaks
   }
 
   if (!status.ok() || response.size() == 0) {
-    return SQLITE_ERROR;
+    // return SQLITE_ERROR;  // memory leak
   }
 
   for (const auto &column : response) {
@@ -115,15 +115,14 @@ int xCreate(sqlite3 *db,
 int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
   const BaseCursor *pCur = (BaseCursor *)cur;
   const auto *pVtab = (VirtualTable *)cur->pVtab;
-  size_t ucol = (size_t)col;
 
-  if (ucol >= pVtab->content->columns.size()) {
+  if (col >= pVtab->content->columns.size()) {
     // Requested column index greater than column set size.
     return SQLITE_ERROR;
   }
 
-  const auto &column_name = pVtab->content->columns[ucol].first;
-  const auto &type = pVtab->content->columns[ucol].second;
+  const auto &column_name = pVtab->content->columns[col].first;
+  const auto &type = pVtab->content->columns[col].second;
   if (pCur->row >= pVtab->content->data.size()) {
     // Request row index greater than row set size.
     return SQLITE_ERROR;
@@ -174,7 +173,7 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
 
   int expr_index = 0;
   int cost = 0;
-  for (int i = 0; i < pIdxInfo->nConstraint; ++i) {
+  for (size_t i = 0; i < pIdxInfo->nConstraint; ++i) {
     if (!pIdxInfo->aConstraint[i].usable) {
       // A higher cost less priority, prefer more usable query constraints.
       cost += 10;
@@ -213,7 +212,7 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   }
 
   // Iterate over every argument to xFilter, filling in constraint values.
-  for (int i = 0; i < argc; ++i) {
+  for (size_t i = 0; i < argc; ++i) {
     auto expr = (const char *)sqlite3_value_text(argv[i]);
     if (expr == nullptr) {
       // SQLite did not expose the expression value.

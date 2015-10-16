@@ -78,7 +78,7 @@ std::string Hash::digest() {
 
   // The hash value is only relevant as a hex digest.
   std::stringstream digest;
-  for (int i = 0; i < length_; i++) {
+  for (size_t i = 0; i < length_; i++) {
     digest << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
   }
 

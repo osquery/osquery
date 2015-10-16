@@ -181,7 +181,8 @@ std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
       // Bins are identified by the binning size step.
       auto step = timeFromRecord(bin);
       // Check if size * step -> size * (step + 1) is within a range.
-      int bin_start = size * step, bin_stop = size * (step + 1);
+      size_t bin_start = size * step;
+      size_t bin_stop = size * (step + 1);
       if (expire_events_ && expire_time_ > 0) {
         if (bin_stop <= expire_time_) {
           expirations.push_back(bin);
