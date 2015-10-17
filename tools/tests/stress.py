@@ -23,12 +23,13 @@ from threading import Thread
 try:
     from utils import *
 except ImportError:
-    print ("Cannot import osquery testing utils from ./tools/tests")
+    print("Cannot import osquery testing utils from ./tools/tests")
     exit(1)
 
 
 def run_daemon(proc, output):
     output[proc.pid] = profile_cmd("", proc=proc)
+
 
 def audit(args):
     def _run_procs(start):
@@ -40,7 +41,7 @@ def audit(args):
                                               stderr=subprocess.PIPE,
                                               stdout=subprocess.PIPE))
         if not args["stat"]:
-            print ("Finished launching processes: duration %6.4fs" % (
+            print("Finished launching processes: duration %6.4fs" % (
                 time.time() - start))
         for p in procs:
             p.communicate()
@@ -93,12 +94,13 @@ def single(args):
     stdout, stderr = proc.communicate()
     end_time = time.time() - start_time
     if proc.returncode is not 0:
-        print (stdout)
-        print (stderr)
-        print ("%s Test failed. (total %6.4fs)" % (
+        print(stdout)
+        print(stderr)
+        print("%s Test failed. (total %6.4fs)" % (
             red("FAILED"), end_time))
         sys.exit(proc.returncode)
     return end_time
+
 
 def stress(args):
     """Small utility to run unittests several times."""
@@ -110,9 +112,9 @@ def stress(args):
         else:
             times.append(single(test))
         if args["stat"]:
-            print ("%6.4f" % (times[-1]))
+            print("%6.4f" % (times[-1]))
         else:
-            print ("%s Tests passed (%d/%d) rounds. (average %6.4fs) " % (
+            print("%s Tests passed (%d/%d) rounds. (average %6.4fs) " % (
                 green("PASSED"), i + 1, args["num"], sum(times) / len(times)))
 
 if __name__ == "__main__":

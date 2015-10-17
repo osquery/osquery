@@ -23,6 +23,7 @@ import sys
 import test_base
 import utils
 
+
 class ExampleQueryTests(test_base.QueryTester):
     @test_base.flaky
     def test_cross_platform_queries(self):

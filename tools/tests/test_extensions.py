@@ -28,7 +28,9 @@ import test_base
 
 EXTENSION_TIMEOUT = 10
 
+
 class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
+
     def test_1_daemon_without_extensions(self):
         # Start the daemon without thrift, prefer no watchdog because the tests
         # kill the daemon very quickly.
@@ -54,7 +56,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         em = client.getEM()
 
         # List the number of extensions
-        print (em.ping())
+        print(em.ping())
         result = test_base.expect(em.extensions, 0)
         self.assertEqual(len(result), 0)
 
@@ -107,7 +109,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client to the extension's service
         client2 = test_base.EXClient(daemon.options["extensions_socket"],
-            uuid=ex_uuid)
+                                     uuid=ex_uuid)
         self.assertTrue(client2.open(timeout=EXTENSION_TIMEOUT))
         ex = client2.getEX()
         self.assertEqual(ex.ping().code, 0)
@@ -115,8 +117,8 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         # Make sure the extension can receive a call
         em_time = em.call("table", "time", {"action": "columns"})
         ex_time = ex.call("table", "time", {"action": "columns"})
-        print (em_time)
-        print (ex_time)
+        print(em_time)
+        print(ex_time)
         self.assertEqual(ex_time.status.code, 0)
         self.assertTrue(len(ex_time.response) > 0)
         self.assertTrue("name" in ex_time.response[0])
@@ -124,7 +126,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Make sure the extension includes a custom registry plugin
         result = ex.call("table", "example", {"action": "generate"})
-        print (result)
+        print(result)
         self.assertEqual(result.status.code, 0)
         self.assertEqual(len(result.response), 1)
         self.assertTrue("example_text" in result.response[0])
@@ -133,7 +135,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Make sure the core can route to the extension
         result = em.call("table", "example", {"action": "generate"})
-        print (result)
+        print(result)
 
         client2.close()
         client.close()
@@ -185,7 +187,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         # With the reset there should be 1 extension again
         result = test_base.expect(em.extensions, 1)
         self.assertEqual(len(result), 1)
-        print (em.query("select * from example"))
+        print(em.query("select * from example"))
 
         # Now tear down the daemon
         client.close()

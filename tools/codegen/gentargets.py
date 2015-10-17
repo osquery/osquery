@@ -11,6 +11,7 @@ logging.basicConfig(level=logging.INFO, format=logging_format)
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 REPO_ROOT_DIR = os.path.realpath(os.path.join(SCRIPT_DIR, "../.."))
 
+
 def get_files_to_compile(json_data):
     files_to_compile = []
     for element in json_data:

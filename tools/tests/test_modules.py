@@ -4,14 +4,14 @@
 #  All rights reserved.
 #
 #  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant 
+#  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 # pyexpect.replwrap will not work with unicode_literals
-#from __future__ import unicode_literals
+# from __future__ import unicode_literals
 
 import os
 import sys
@@ -21,14 +21,16 @@ import unittest
 import test_base
 import utils
 
+
 class ModuleTests(test_base.ProcessGenerator, unittest.TestCase):
+
     def setUp(self):
         self.binary = os.path.join(test_base.ARGS.build, "osquery", "osqueryi")
         ext = "dylib" if sys.platform == "darwin" else "so"
         self.modules_loader = test_base.Autoloader(
             [test_base.ARGS.build + "/osquery/libmodexample.%s" % ext])
         self.osqueryi = test_base.OsqueryWrapper(self.binary,
-            {"modules_autoload": self.modules_loader.path})
+                                                 {"modules_autoload": self.modules_loader.path})
 
     def test_1_shell_with_module(self):
         '''Test the shell loads the compiled shared library.'''
@@ -50,7 +52,7 @@ class ModuleTests(test_base.ProcessGenerator, unittest.TestCase):
         module built as part of the default SDK build.
         '''
         self.osqueryi = test_base.OsqueryWrapper(self.binary,
-            {"modules_autoload": self.modules_loader.path}, {"TESTFAIL1": "1"})
+                                                 {"modules_autoload": self.modules_loader.path}, {"TESTFAIL1": "1"})
         result = self.osqueryi.run_query(
             'SELECT * from time;')
         # Make sure the environment variable did not introduce any unexpected
@@ -58,16 +60,16 @@ class ModuleTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertEqual(len(result), 1)
         # The environment variable should have prevented the module load.
         self.assertRaises(test_base.OsqueryException,
-            self.osqueryi.run_query, 'SELECT * from example;')
+                          self.osqueryi.run_query, 'SELECT * from example;')
 
     def test_4_module_prevent_initialize(self):
         '''Test a failed module initialize (we interrupt the registry call).
         '''
         self.osqueryi = test_base.OsqueryWrapper(self.binary,
-            {"modules_autoload": self.modules_loader.path}, {"TESTFAIL2": "1"})
+                                                 {"modules_autoload": self.modules_loader.path}, {"TESTFAIL2": "1"})
         # The environment variable should have prevented the module load.
         self.assertRaises(test_base.OsqueryException,
-            self.osqueryi.run_query, 'SELECT * from example;')
+                          self.osqueryi.run_query, 'SELECT * from example;')
 
 
 if __name__ == "__main__":
