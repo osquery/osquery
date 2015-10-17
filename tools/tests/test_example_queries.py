@@ -23,6 +23,7 @@ import sys
 import test_base
 import utils
 
+
 class ExampleQueryTests(test_base.QueryTester):
     def test_cross_platform_queries(self):
         self._execute_set(PLATFORM_EXAMPLES["specs"])

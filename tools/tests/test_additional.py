@@ -21,6 +21,7 @@ import unittest
 import test_base
 import utils
 
+
 class AdditionalFeatureTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_query_packs(self):
         query_pack_path = test_base.CONFIG_DIR + "/test_pack.conf"
