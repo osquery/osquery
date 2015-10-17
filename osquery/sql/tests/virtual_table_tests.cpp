@@ -76,6 +76,6 @@ TEST_F(VirtualTableTests, test_sqlite3_table_joins) {
       "SELECT p.pid FROM osquery_info oi, processes p WHERE oi.pid=p.pid";
   auto status = queryInternal(statement, results, dbc.db());
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(results.size(), 1U);
 }
 }

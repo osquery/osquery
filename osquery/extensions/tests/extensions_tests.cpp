@@ -199,8 +199,8 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
   // Make sure the EM registered the extension (called in start extension).
   auto extensions = registeredExtensions();
   // Expect two, since `getExtensions` includes the core.
-  ASSERT_EQ(extensions.size(), 2);
-  EXPECT_EQ(extensions.count(uuid), 1);
+  ASSERT_EQ(extensions.size(), 2U);
+  EXPECT_EQ(extensions.count(uuid), 1U);
   EXPECT_EQ(extensions.at(uuid).name, "test");
   EXPECT_EQ(extensions.at(uuid).version, "0.1");
   EXPECT_EQ(extensions.at(uuid).sdk_version, "0.0.1");
@@ -226,7 +226,7 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
                          {{"test_key", "test_value"}},
                          response);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(response.size(), 1);
+  EXPECT_EQ(response.size(), 1U);
   EXPECT_EQ(response[0]["test_key"], "test_value");
 
   Registry::removeBroadcast(uuid);

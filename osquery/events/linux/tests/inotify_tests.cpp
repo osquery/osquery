@@ -109,7 +109,7 @@ TEST_F(INotifyTests, test_register_event_pub) {
   EXPECT_TRUE(status.ok());
 
   // Make sure only one event type exists
-  EXPECT_EQ(EventFactory::numEventPublishers(), 1);
+  EXPECT_EQ(EventFactory::numEventPublishers(), 1U);
   // And deregister
   status = EventFactory::deregisterEventPublisher("inotify");
   EXPECT_TRUE(status.ok());

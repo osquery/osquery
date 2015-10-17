@@ -104,23 +104,23 @@ TEST_F(EventsDatabaseTests, test_record_range) {
   // Search within a specific record range.
   auto indexes = sub->getIndexes(0, 10);
   auto records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 2); // 1, 2
+  EXPECT_EQ(records.size(), 2U); // 1, 2
 
   // Search within a large bound.
   indexes = sub->getIndexes(3, 3601);
   // This will include the 0-10 bucket meaning 1, 2 will show up.
   records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 5); // 1, 2, 11, 61, 3601
+  EXPECT_EQ(records.size(), 5U); // 1, 2, 11, 61, 3601
 
   // Get all of the records.
   indexes = sub->getIndexes(0, 3 * 3600);
   records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 8); // 1, 2, 11, 61, 3601, 7201, 7211, 7261
+  EXPECT_EQ(records.size(), 8U); // 1, 2, 11, 61, 3601, 7201, 7211, 7261
 
   // stop = 0 is an alias for everything.
   indexes = sub->getIndexes(0, 0);
   records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 8);
+  EXPECT_EQ(records.size(), 8U);
 }
 
 TEST_F(EventsDatabaseTests, test_record_expiration) {
@@ -129,30 +129,30 @@ TEST_F(EventsDatabaseTests, test_record_expiration) {
   // No expiration
   auto indexes = sub->getIndexes(0, 5000);
   auto records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 5); // 1, 2, 11, 61, 3601
+  EXPECT_EQ(records.size(), 5U); // 1, 2, 11, 61, 3601
 
   sub->expire_events_ = true;
   sub->expire_time_ = 10;
   indexes = sub->getIndexes(0, 5000);
   records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 3); // 11, 61, 3601
+  EXPECT_EQ(records.size(), 3U); // 11, 61, 3601
 
   indexes = sub->getIndexes(0, 5000, 0);
   records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 3); // 11, 61, 3601
+  EXPECT_EQ(records.size(), 3U); // 11, 61, 3601
 
   indexes = sub->getIndexes(0, 5000, 1);
   records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 3); // 11, 61, 3601
+  EXPECT_EQ(records.size(), 3U); // 11, 61, 3601
 
   indexes = sub->getIndexes(0, 5000, 2);
   records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 3); // 11, 61, 3601
+  EXPECT_EQ(records.size(), 3U); // 11, 61, 3601
 
   // Check that get/deletes did not act on cache.
   sub->expire_time_ = 0;
   indexes = sub->getIndexes(0, 5000);
   records = sub->getRecords(indexes);
-  EXPECT_EQ(records.size(), 3); // 11, 61, 3601
+  EXPECT_EQ(records.size(), 3U); // 11, 61, 3601
 }
 }

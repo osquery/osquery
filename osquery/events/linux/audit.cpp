@@ -280,7 +280,7 @@ Status AuditEventPublisher::run() {
     }
   }
 
-  if (status_.pid != getpid()) {
+  if (static_cast<pid_t>(status_.pid) != getpid()) {
     if (control_ && status_.pid != 0) {
       VLOG(1) << "Audit control lost to pid: " << status_.pid;
       // This process has lost control of audit.

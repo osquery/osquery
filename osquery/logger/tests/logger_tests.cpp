@@ -125,7 +125,7 @@ TEST_F(LoggerTests, test_logger_init) {
 
   // The warning message will have been buffered and sent to the active logger
   // which is test.
-  EXPECT_EQ(LoggerTests::status_messages.size(), 1);
+  EXPECT_EQ(LoggerTests::status_messages.size(), 1U);
 
   // The logStatus API should NOT have been called. It will only be used if
   // (1) The active logger's init returns success within initLogger and

@@ -23,7 +23,7 @@ TEST_F(SQLTests, test_raw_access) {
   // Access to the table plugins (no SQL parsing required) works in both
   // extensions and core, though with limitations on available tables.
   auto results = SQL::selectAllFrom("time");
-  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(results.size(), 1U);
 }
 
 class TestTablePlugin : public TablePlugin {

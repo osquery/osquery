@@ -129,9 +129,9 @@ TEST_F(RegistryTests, test_registry_exceptions) {
   TestCoreRegistry::registry("dog")->setUp();
   // Make sure bad dog does not exist.
   EXPECT_FALSE(TestCoreRegistry::exists("dog", "bad_doge"));
-  EXPECT_EQ(TestCoreRegistry::count("dog"), 2);
+  EXPECT_EQ(TestCoreRegistry::count("dog"), 2U);
 
-  int exception_count = 0;
+  unsigned int exception_count = 0;
   try {
     TestCoreRegistry::registry("does_not_exist");
   } catch (const std::out_of_range& e) {
@@ -144,7 +144,7 @@ TEST_F(RegistryTests, test_registry_exceptions) {
     exception_count++;
   }
 
-  EXPECT_EQ(exception_count, 2);
+  EXPECT_EQ(exception_count, 2U);
 }
 
 class WidgetPlugin : public Plugin {
@@ -217,7 +217,7 @@ TEST_F(RegistryTests, test_registry_api) {
 }
 
 TEST_F(RegistryTests, test_real_registry) {
-  EXPECT_TRUE(Registry::count() > 0);
+  EXPECT_TRUE(Registry::count() > 0U);
 
   bool has_one_registered = false;
   for (const auto& registry : Registry::all()) {

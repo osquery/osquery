@@ -200,7 +200,7 @@ TEST_F(ConfigTests, test_get_parser) {
       std::dynamic_pointer_cast<TestConfigParserPlugin>(plugin);
   auto data = parser->getData();
 
-  EXPECT_EQ(data.count("list"), 1);
+  EXPECT_EQ(data.count("list"), 1U);
   EXPECT_EQ(data.count("dictionary"), 1);
 }
 

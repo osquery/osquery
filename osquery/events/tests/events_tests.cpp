@@ -110,7 +110,7 @@ TEST_F(EventsTests, test_create_event_pub) {
   EXPECT_TRUE(status.ok());
 
   // Make sure only the first event type was recorded.
-  EXPECT_EQ(EventFactory::numEventPublishers(), 1);
+  EXPECT_EQ(EventFactory::numEventPublishers(), 1U);
 }
 
 class UniqueEventPublisher
