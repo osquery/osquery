@@ -8,19 +8,11 @@
  *
  */
 
+#include "osquery/remote/transports/tls.h"
+
 #include <boost/asio/ssl/context_base.hpp>
 
-#ifndef OPENSSL_NO_SSL2
-#define OPENSSL_NO_SSL2 1
-#endif
-
-#define OPENSSL_NO_SSL3 1
-#define OPENSSL_NO_MD5 1
-#define OPENSSL_NO_DEPRECATED 1
-
 #include <osquery/filesystem.h>
-
-#include "osquery/remote/transports/tls.h"
 
 namespace http = boost::network::http;
 
@@ -37,6 +29,11 @@ void ERR_remove_thread_state(const CRYPTO_THREADID *tid) {}
 SSL_CTX* TLSv1_2_client_method(void) { return nullptr; }
 SSL_CTX* TLSv1_2_method(void) { return nullptr; }
 SSL_CTX* TLSv1_2_server_method(void) { return nullptr; }
+#endif
+#if defined(NO_SSL_TXT_SSLV3)
+SSL_METHOD* SSLv3_server_method(void) { return nullptr; }
+SSL_METHOD* SSLv3_client_method(void) { return nullptr; }
+SSL_METHOD* SSLv3_method(void) { return nullptr; }
 #endif
 }
 

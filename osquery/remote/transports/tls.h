@@ -10,6 +10,30 @@
 
 #pragma once
 
+#include <openssl/ssl.h>
+#include <openssl/crypto.h>
+
+#ifndef OPENSSL_NO_SSL2
+#define OPENSSL_NO_SSL2 1
+#endif
+
+#ifndef OPENSSL_NO_SSL3
+#define OPENSSL_NO_SSL3 1
+#endif
+
+#define OPENSSL_NO_MD5 1
+#define OPENSSL_NO_DEPRECATED 1
+
+/// Newer versions of LibreSSL will lack SSL methods.
+extern "C" {
+#if defined(NO_SSL_TXT_SSLV3)
+SSL_METHOD* SSLv3_server_method(void);
+SSL_METHOD* SSLv3_client_method(void);
+SSL_METHOD* SSLv3_method(void);
+#endif
+void ERR_remove_state(unsigned long);
+}
+
 // Our third-party version of cpp-netlib uses OpenSSL APIs.
 // On OS X these symbols are marked deprecated and clang will warn against
 // us including them. We are squashing the noise for OS X's OpenSSL only.
