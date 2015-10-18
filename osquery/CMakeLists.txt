@@ -47,7 +47,7 @@ endforeach()
 
 # The platform-specific SDK + core libraries.
 if(APPLE)
-  ADD_OSQUERY_LINK_CORE("-mmacosx-version-min=${APPLE_MIN_ABI}")
+  ADD_OSQUERY_LINK_CORE("-mmacosx-version-min=${OSX_VERSION_MIN}")
   ADD_OSQUERY_LINK_CORE("boost_thread-mt")
   ADD_OSQUERY_LINK_CORE("lz4")
 else()

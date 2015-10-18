@@ -160,6 +160,8 @@ SDK_VERSION=9.9.9 # Set a wacky SDK-version string
 SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
 OPTIMIZED=True # Disable generic CPU optimizations
 SKIP_TESTS=True # Skip unit test building (very very not recommended!)
+SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets
+OSX_VERSION_MIN=10.11 # Override the native minimum OS X version ABI
 ```
 
 ## Custom Packages

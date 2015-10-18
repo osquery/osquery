@@ -80,9 +80,13 @@ list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO_DEFINE)
 # osquery needs ALL symbols in the libraries it includes for relaxed ctors
 # late-loading modules and SQLite introspection utilities.
 if(APPLE)
-  set(APPLE_MIN_ABI "10.10")
+  if(DEFINED ENV{OSX_VERSION_MIN})
+    set(OSX_VERSION_MIN ENV{OSX_VERSION_MIN})
+  else()
+    set(OSX_VERSION_MIN "${OSQUERY_BUILD_DISTRO}")
+  endif()
   add_compile_options(
-    -mmacosx-version-min=${APPLE_MIN_ABI}
+    -mmacosx-version-min=${OSX_VERSION_MIN}
   )
 
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")

@@ -8,7 +8,7 @@ set(GLOG_SOURCE_DIR "${CMAKE_SOURCE_DIR}/third-party/glog")
 
 set(GLOG_C_FLAGS "${CMAKE_C_FLAGS} ${C_COMPILE_FLAGS}")
 if(APPLE)
-  set(GLOG_C_FLAGS "${GLOG_C_FLAGS} -mmacosx-version-min=${APPLE_MIN_ABI}")
+  set(GLOG_C_FLAGS "${GLOG_C_FLAGS} -mmacosx-version-min=${OSX_VERSION_MIN}")
 endif()
 set(GLOG_CXX_FLAGS "${GLOG_C_FLAGS} ${CMAKE_CXX_FLAGS} ${CXX_COMPILE_FLAGS}")
 set(GLOG_CXX_FLAGS "${GLOG_CXX_FLAGS} -Wno-deprecated-register -Wno-unnamed-type-template-args -Wno-deprecated -Wno-error")
