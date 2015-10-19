@@ -11,6 +11,9 @@ targets = {
   "centos7.1"   => {
     "box" => "bento/centos-7.1"
   },
+	"ubuntu15.04"  => {
+    "box" => "ubuntu/vivid64"
+  },
   "ubuntu14"  => {
     "box" => "ubuntu/trusty64"
   },

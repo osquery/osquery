@@ -17,34 +17,54 @@
 extern "C" {
 #include <dpkg/dpkg-db.h>
 
+#if LIBDPKG_VERSION < 1017010
 // copy pasted from dpkg-db.h
-// these enums are inside struct pkginfo and are not visible for other headers
+// Prior to libdpkg 1.7.10 these enums are inside struct pkginfo and are not
+// visible for other headers
 enum pkgwant {
-  want_unknown,
-  want_install,
-  want_hold,
-  want_deinstall,
-  want_purge,
-  // Not allowed except as special sentinel value in some places.
-  want_sentinel,
-} want;
+	PKG_WANT_UNKNOWN,
+	PKG_WANT_INSTALL,
+	PKG_WANT_HOLD,
+	PKG_WANT_DEINSTALL,
+	PKG_WANT_PURGE,
+	/** Not allowed except as special sentinel value in some places. */
+	PKG_WANT_SENTINEL,
+};
 
-// The error flag bitmask.
 enum pkgeflag {
-  eflag_ok = 0,
-  eflag_reinstreq = 1,
-} eflag;
+	PKG_EFLAG_OK		= 0,
+	PKG_EFLAG_REINSTREQ	= 1,
+};
 
 enum pkgstatus {
-  stat_notinstalled,
-  stat_configfiles,
-  stat_halfinstalled,
-  stat_unpacked,
-  stat_halfconfigured,
-  stat_triggersawaited,
-  stat_triggerspending,
-  stat_installed
-} status;
+	PKG_STAT_NOTINSTALLED,
+	PKG_STAT_CONFIGFILES,
+	PKG_STAT_HALFINSTALLED,
+	PKG_STAT_UNPACKED,
+	PKG_STAT_HALFCONFIGURED,
+	PKG_STAT_TRIGGERSAWAITED,
+	PKG_STAT_TRIGGERSPENDING,
+	PKG_STAT_INSTALLED,
+};
+
+enum pkgpriority {
+	PKG_PRIO_REQUIRED,
+	PKG_PRIO_IMPORTANT,
+	PKG_PRIO_STANDARD,
+	PKG_PRIO_OPTIONAL,
+	PKG_PRIO_EXTRA,
+	PKG_PRIO_OTHER,
+	PKG_PRIO_UNKNOWN,
+	PKG_PRIO_UNSET = -1,
+};
+#endif
+
+#if LIBDPKG_VERSION < 1017023
+// libdpkg versions 1.17.23 and newer defines a size_t for fieldinfo which is
+// automatically expanded using the FIELD macro found in dpkg/parsedump.h. For
+// versions prior we just need the name
+#define FIELD(name) name
+#endif
 
 #include <dpkg/dpkg.h>
 #include <dpkg/pkg-array.h>
@@ -137,12 +157,12 @@ const std::map<std::string, std::string> kFieldMappings = {
 * as needed.
 */
 const struct fieldinfo fieldinfos[] = {
-    {"Package", f_name, w_name},
-    {"Installed-Size", f_charfield, w_charfield, PKGIFPOFF(installedsize)},
-    {"Architecture", f_architecture, w_architecture},
-    {"Source", f_charfield, w_charfield, PKGIFPOFF(source)},
-    {"Version", f_version, w_version, PKGIFPOFF(version)},
-    {"Revision", f_revision, w_revision},
+    {FIELD("Package"), f_name, w_name},
+    {FIELD("Installed-Size"), f_charfield, w_charfield, PKGIFPOFF(installedsize)},
+    {FIELD("Architecture"), f_architecture, w_architecture},
+    {FIELD("Source"), f_charfield, w_charfield, PKGIFPOFF(source)},
+    {FIELD("Version"), f_version, w_version, PKGIFPOFF(version)},
+    {FIELD("Revision"), f_revision, w_revision},
     {NULL}};
 
 void extractDebPackageInfo(const struct pkginfo *pkg, QueryData &results) {
@@ -181,7 +201,9 @@ QueryData genDebs(QueryContext &context) {
   dpkg_setup(&packages);
   for (int i = 0; i < packages.n_pkgs; i++) {
     struct pkginfo *pkg = packages.pkgs[i];
-    if (pkg->status == pkg->stat_notinstalled) {
+	// Casted to int to allow the older enums that were embeded in the packages
+	// struct to be compared
+	if (static_cast<int>(pkg->status) == static_cast<int>(PKG_STAT_NOTINSTALLED)) {
       continue;
     }
 
