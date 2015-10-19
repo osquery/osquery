@@ -25,7 +25,7 @@ struct BaseCursor {
   /// SQLite virtual table cursor.
   sqlite3_vtab_cursor base;
   /// Current cursor position.
-  int row;
+  size_t row;
 };
 
 struct VirtualTableContent {

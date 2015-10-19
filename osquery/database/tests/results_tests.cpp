@@ -285,14 +285,14 @@ TEST_F(ResultsTests, test_adding_duplicate_rows_to_query_data) {
 
   s = addUniqueRowToQueryData(q, r1);
   EXPECT_TRUE(s);
-  EXPECT_EQ(q.size(), 1);
+  EXPECT_EQ(q.size(), 1U);
 
   s = addUniqueRowToQueryData(q, r2);
   EXPECT_TRUE(s);
-  EXPECT_EQ(q.size(), 2);
+  EXPECT_EQ(q.size(), 2U);
 
   s = addUniqueRowToQueryData(q, r3);
   EXPECT_FALSE(s);
-  EXPECT_EQ(q.size(), 2);
+  EXPECT_EQ(q.size(), 2U);
 }
 }

@@ -109,7 +109,7 @@ TEST_F(INotifyTests, test_register_event_pub) {
   EXPECT_TRUE(status.ok());
 
   // Make sure only one event type exists
-  EXPECT_EQ(EventFactory::numEventPublishers(), 1);
+  EXPECT_EQ(EventFactory::numEventPublishers(), 1U);
   // And deregister
   status = EventFactory::deregisterEventPublisher("inotify");
   EXPECT_TRUE(status.ok());
@@ -287,7 +287,7 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   sub->WaitForEvents(kMaxEventLatency, 4);
 
   // Make sure the inotify action was expected.
-  EXPECT_EQ(sub->actions().size(), 4);
+  EXPECT_EQ(sub->actions().size(), 4U);
   EXPECT_EQ(sub->actions()[0], "UPDATED");
   EXPECT_EQ(sub->actions()[1], "OPENED");
   EXPECT_EQ(sub->actions()[2], "UPDATED");

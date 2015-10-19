@@ -76,7 +76,7 @@ int xCreate(sqlite3 *db,
   auto *pVtab = new VirtualTable;
 
   if (!pVtab || argc == 0 || argv[0] == nullptr) {
-    return SQLITE_NOMEM;
+    //  return SQLITE_NOMEM;  // memory leak
   }
 
   memset(pVtab, 0, sizeof(VirtualTable));
@@ -89,18 +89,18 @@ int xCreate(sqlite3 *db,
   auto status = Registry::call(
       "table", pVtab->content->name, {{"action", "columns"}}, response);
   if (!status.ok() || response.size() == 0) {
-    return SQLITE_ERROR;
+    // return SQLITE_ERROR;  // memory leak
   }
 
   auto statement =
       "CREATE TABLE " + pVtab->content->name + columnDefinition(response);
   int rc = sqlite3_declare_vtab(db, statement.c_str());
   if (rc != SQLITE_OK) {
-    return rc;
+    // return rc;  // memory leaks
   }
 
   if (!status.ok() || response.size() == 0) {
-    return SQLITE_ERROR;
+    // return SQLITE_ERROR;  // memory leak
   }
 
   for (const auto &column : response) {

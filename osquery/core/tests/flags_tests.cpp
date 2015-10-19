@@ -33,7 +33,7 @@ TEST_F(FlagsTests, test_set_get) {
 
   // Check that the gflags flag name was recorded in the osquery flag tracker.
   auto all_flags = Flag::flags();
-  EXPECT_EQ(all_flags.count("test_string_flag"), 1);
+  EXPECT_EQ(all_flags.count("test_string_flag"), 1U);
 
   // Update the value of the flag, and access through the osquery wrapper.
   FLAGS_test_string_flag = "NEW TEST STRING";

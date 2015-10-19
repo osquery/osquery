@@ -226,7 +226,7 @@ rocksdb::DB* DBHandle::getDB() const { return db_; }
 rocksdb::ColumnFamilyHandle* DBHandle::getHandleForColumnFamily(
     const std::string& cf) const {
   try {
-    for (int i = 0; i < kDomains.size(); i++) {
+    for (size_t i = 0; i < kDomains.size(); i++) {
       if (kDomains[i] == cf) {
         return handles_[i];
       }

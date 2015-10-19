@@ -73,7 +73,7 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
     if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) {
       break;
     }
-  } while (nl_hdr->nlmsg_seq != seq || nl_hdr->nlmsg_pid != getpid());
+  } while (static_cast<pid_t>(nl_hdr->nlmsg_seq) != seq || static_cast<pid_t>(nl_hdr->nlmsg_pid) != getpid());
 
   *size = message_size;
   return Status(0, "OK");

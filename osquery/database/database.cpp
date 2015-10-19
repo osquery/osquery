@@ -41,7 +41,7 @@ std::string escapeNonPrintableBytes(const std::string& data) {
     'A', 'B', 'C', 'D', 'E', 'F',
   };
   // clang-format on
-  for (int i = 0; i < data.length(); i++) {
+  for (size_t i = 0; i < data.length(); i++) {
     if (((byte)data[i]) < 0x20 || ((byte)data[i]) >= 0x80) {
       escaped += "\\x";
       escaped += hex_chars[(((byte)data[i])) >> 4];

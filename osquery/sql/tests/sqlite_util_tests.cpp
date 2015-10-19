@@ -45,13 +45,13 @@ TEST_F(SQLiteUtilTests, test_simple_query_execution) {
   // Access to the internal SQL implementation is only available in core.
   auto sql = SQL("SELECT * FROM time");
   EXPECT_TRUE(sql.ok());
-  EXPECT_EQ(sql.rows().size(), 1);
+  EXPECT_EQ(sql.rows().size(), 1U);
 }
 
 TEST_F(SQLiteUtilTests, test_get_tables) {
   // Access to the internal SQL implementation is only available in core.
   auto tables = SQL::getTableNames();
-  EXPECT_TRUE(tables.size() > 0);
+  EXPECT_TRUE(tables.size() > 0U);
 }
 
 TEST_F(SQLiteUtilTests, test_sqlite_instance_manager) {
@@ -121,7 +121,7 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   std::string query = "SELECT seconds, version FROM time JOIN osquery_info";
   auto status = getQueryColumnsInternal(query, results, dbc.db());
   ASSERT_TRUE(status.ok());
-  ASSERT_EQ(2, results.size());
+  ASSERT_EQ(2U, results.size());
   EXPECT_EQ(std::make_pair(std::string("seconds"), std::string("INTEGER")),
             results[0]);
   EXPECT_EQ(std::make_pair(std::string("version"), std::string("TEXT")),
@@ -130,7 +130,7 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   query = "SELECT hour + 1 AS hour1, minutes + 1 FROM time";
   status = getQueryColumnsInternal(query, results, dbc.db());
   ASSERT_TRUE(status.ok());
-  ASSERT_EQ(2, results.size());
+  ASSERT_EQ(2U, results.size());
   EXPECT_EQ(std::make_pair(std::string("hour1"), std::string("UNKNOWN")),
             results[0]);
   EXPECT_EQ(std::make_pair(std::string("minutes + 1"), std::string("UNKNOWN")),

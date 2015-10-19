@@ -57,8 +57,8 @@ Status writeTextFile(const fs::path& path,
     return Status(1, "Failed to change permissions for file: " + path.string());
   }
 
-  auto bytes = write(output_fd, content.c_str(), content.size());
-  if (bytes != content.size()) {
+  ssize_t bytes = write(output_fd, content.c_str(), content.size());
+  if (static_cast<size_t>(bytes) != content.size()) {
     close(output_fd);
     return Status(1, "Failed to write contents to file: " + path.string());
   }
@@ -95,7 +95,7 @@ Status readFile(const fs::path& path, std::string& content, bool dry_run) {
   }
 
   // Attempt to read the file size.
-  ssize_t size = is.tellg();
+  std::streampos size = is.tellg();
 
   // Erase/clear provided string buffer.
   content.erase();
