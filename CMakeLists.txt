@@ -76,9 +76,13 @@ list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO_DEFINE)
 # osquery needs ALL symbols in the libraries it includes for relaxed ctors
 # late-loading modules and SQLite introspection utilities.
 if(APPLE)
-  set(APPLE_MIN_ABI "10.10")
+  if(DEFINED ENV{OSX_VERSION_MIN})
+    set(OSX_VERSION_MIN ENV{OSX_VERSION_MIN})
+  else()
+    set(OSX_VERSION_MIN "${OSQUERY_BUILD_DISTRO}")
+  endif()
   add_compile_options(
-    -mmacosx-version-min=${APPLE_MIN_ABI}
+    -mmacosx-version-min=${OSX_VERSION_MIN}
   )
 
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
@@ -296,6 +300,7 @@ include_directories("${OPENSSL_INCLUDE_DIR}")
 include(CheckLibraryExists)
 set(CMAKE_REQUIRED_INCLUDES ${OPENSSL_INCLUDE_DIR})
 set(CMAKE_REQUIRED_LIBRARIES ${OPENSSL_LIBRARIES})
+CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "SSLv3_client_method" "" OPENSSL_SSL3)
 CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_2_client_method" "" OPENSSL_TLSV12)
 CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_1_client_method" "" OPENSSL_TLSV11)
 CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_client_method" "" OPENSSL_TLSV10)
@@ -309,6 +314,9 @@ elseif(OPENSSL_TLSV10)
   add_definitions(-DHAS_SSL_TXT_TLSV1)
 else()
   message(FATAL_ERROR "Cannot find any TLS client methods")
+endif()
+if(NOT OPENSSL_SSL3)
+  add_definitions(-DNO_SSL_TXT_SSLV3)
 endif()
 
 # Most dependent packages/libs we want static.
