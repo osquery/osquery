@@ -21,23 +21,38 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-void genFileInfo(const std::string& path,
+const std::map<fs::file_type, std::string> kTypeNames{
+    {fs::regular_file, "regular"},
+    {fs::directory_file, "directory"},
+    {fs::symlink_file, "symlink"},
+    {fs::block_file, "block"},
+    {fs::character_file, "character"},
+    {fs::fifo_file, "fifo"},
+    {fs::socket_file, "socket"},
+    {fs::type_unknown, "unknown"},
+    {fs::status_error, "error"},
+};
+
+void genFileInfo(/*const std::string& path,
                  const std::string& filename,
-                 const std::string& dir,
+                 const std::string& dir,*/
+                 const fs::path& path,
+                 const fs::path& parent,
                  const std::string& pattern,
                  QueryData& results) {
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
   struct stat file_stat, link_stat;
-  if (lstat(path.c_str(), &link_stat) < 0 || stat(path.c_str(), &file_stat)) {
+  if (lstat(path.string().c_str(), &link_stat) < 0 ||
+      stat(path.string().c_str(), &file_stat)) {
     // Path was not real, had too may links, or could not be accessed.
     return;
   }
 
   Row r;
-  r["path"] = path;
-  r["filename"] = filename;
-  r["directory"] = dir;
+  r["path"] = path.string();
+  r["filename"] = path.filename().string();
+  r["directory"] = parent.string();
 
   r["inode"] = BIGINT(file_stat.st_ino);
   r["uid"] = BIGINT(file_stat.st_uid);
@@ -54,6 +69,14 @@ void genFileInfo(const std::string& path,
   r["ctime"] = BIGINT(file_stat.st_ctime);
 
   // Type booleans
+  boost::system::error_code ec;
+  auto status = fs::status(path, ec);
+  if (kTypeNames.count(status.type())) {
+    r["type"] = kTypeNames.at(status.type());
+  } else {
+    r["type"] = "unknown";
+  }
+
   r["is_file"] = (!S_ISDIR(file_stat.st_mode)) ? "1" : "0";
   r["is_dir"] = (S_ISDIR(file_stat.st_mode)) ? "1" : "0";
   r["is_link"] = (S_ISLNK(link_stat.st_mode)) ? "1" : "0";
@@ -72,11 +95,7 @@ QueryData genFile(QueryContext& context) {
   auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
     fs::path path = path_string;
-    genFileInfo(path_string,
-                path.filename().string(),
-                path.parent_path().string(),
-                "",
-                results);
+    genFileInfo(path, path.parent_path(), "", results);
   }
 
   // Now loop through constraints using the directory column constraint.
@@ -90,11 +109,7 @@ QueryData genFile(QueryContext& context) {
       // Iterate over the directory and generate info for each regular file.
       fs::directory_iterator begin(directory_string), end;
       for (; begin != end; ++begin) {
-        genFileInfo(begin->path().string(),
-                    begin->path().filename().string(),
-                    directory_string,
-                    "",
-                    results);
+        genFileInfo(begin->path(), directory_string, "", results);
       }
     } catch (const fs::filesystem_error& e) {
       continue;
@@ -117,12 +132,7 @@ QueryData genFile(QueryContext& context) {
 
     for (const auto& resolved : expanded_patterns) {
       fs::path path = resolved;
-      genFileInfo(resolved,
-                  path.filename().string(),
-                  path.parent_path().string(),
-                  pattern,
-                  results);
-
+      genFileInfo(path, path.parent_path(), pattern, results);
     }
   }
 
