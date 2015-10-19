@@ -62,7 +62,7 @@ pt::ptree getPackWithFakeVersion() {
 
 TEST_F(PacksTests, test_parse) {
   auto tree = getExamplePacksConfig();
-  EXPECT_EQ(tree.count("packs"), 1);
+  EXPECT_EQ(tree.count("packs"), 1U);
 }
 
 TEST_F(PacksTests, test_should_pack_execute) {
@@ -119,7 +119,7 @@ TEST_F(PacksTests, test_check_version) {
 
 TEST_F(PacksTests, test_schedule) {
   auto fpack = Pack("foobar", getPackWithDiscovery());
-  EXPECT_EQ(fpack.getSchedule().size(), 1);
+  EXPECT_EQ(fpack.getSchedule().size(), 1U);
 }
 
 TEST_F(PacksTests, test_discovery_cache) {
@@ -131,16 +131,16 @@ TEST_F(PacksTests, test_discovery_cache) {
 
   auto c = Config();
   c.addPack(pack);
-  int query_count = 0;
-  for (int i = 0; i < 5; i++) {
+  size_t query_count = 0;
+  for (size_t i = 0; i < 5; i++) {
     c.scheduledQueries(
         ([&query_count](const std::string& name, const ScheduledQuery& query) {
           query_count++;
          }));
   }
-  EXPECT_EQ(query_count, 5);
+  EXPECT_EQ(query_count, 5U);
 
-  int pack_count = 0;
+  size_t pack_count = 0U;
   c.packs(([&pack_count](Pack& p) {
     pack_count++;
     EXPECT_EQ(p.getStats().total, 5);
@@ -148,7 +148,7 @@ TEST_F(PacksTests, test_discovery_cache) {
     EXPECT_EQ(p.getStats().misses, 1);
   }));
 
-  EXPECT_EQ(pack_count, 1);
+  EXPECT_EQ(pack_count, 1U);
 }
 
 TEST_F(PacksTests, test_discovery_zero_state) {
