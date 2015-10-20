@@ -51,7 +51,7 @@ TEST_F(SQLiteUtilTests, test_simple_query_execution) {
 TEST_F(SQLiteUtilTests, test_get_tables) {
   // Access to the internal SQL implementation is only available in core.
   auto tables = SQL::getTableNames();
-  EXPECT_TRUE(tables.size() > 0);
+  EXPECT_TRUE(tables.size() > 0U);
 }
 
 TEST_F(SQLiteUtilTests, test_sqlite_instance_manager) {
@@ -130,7 +130,7 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   query = "SELECT hour + 1 AS hour1, minutes + 1 FROM time";
   status = getQueryColumnsInternal(query, results, dbc.db());
   ASSERT_TRUE(status.ok());
-  ASSERT_EQ(2, results.size());
+  ASSERT_EQ(2U, results.size());
   EXPECT_EQ(std::make_pair(std::string("hour1"), std::string("UNKNOWN")),
             results[0]);
   EXPECT_EQ(std::make_pair(std::string("minutes + 1"), std::string("UNKNOWN")),

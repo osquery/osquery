@@ -163,7 +163,7 @@ class WidgetPlugin : public Plugin {
   /// Plugin types should contain generic request/response formatters and
   /// decorators.
   std::string secretPower(const PluginRequest& request) const {
-    if (request.count("secret_power") > 0) {
+    if (request.count("secret_power") > 0U) {
       return request.at("secret_power");
     }
     return "no_secret_power";
@@ -195,12 +195,12 @@ TEST_F(RegistryTests, test_registry_api) {
   auto ri = TestCoreRegistry::get("widgets", "special")->routeInfo();
   EXPECT_EQ(ri[0].at("name"), "special");
   auto rr = TestCoreRegistry::registry("widgets")->getRoutes();
-  EXPECT_EQ(rr.size(), 1);
+  EXPECT_EQ(rr.size(), 1U);
   EXPECT_EQ(rr.at("special")[0].at("name"), "special");
 
   // Broadcast will include all registries, and all their items.
   auto broadcast_info = TestCoreRegistry::getBroadcast();
-  EXPECT_TRUE(broadcast_info.size() >= 3);
+  EXPECT_TRUE(broadcast_info.size() >= 3U);
   EXPECT_EQ(broadcast_info.at("widgets").at("special")[0].at("name"),
             "special");
 
@@ -244,7 +244,7 @@ TEST_F(RegistryTests, test_registry_modules) {
   EXPECT_TRUE(RegistryFactory::locked());
   // The 'is the registry using a module' is not set during module ctors.
   EXPECT_FALSE(RegistryFactory::usingModule());
-  EXPECT_EQ(RegistryFactory::getModules().size(), 1);
+  EXPECT_EQ(RegistryFactory::getModules().size(), 1U);
   // The unittest can introspect into the current module.
   auto& module = RegistryFactory::getModules().at(RegistryFactory::getModule());
   EXPECT_EQ(module.path, "/my/test/module");

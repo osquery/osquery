@@ -57,7 +57,7 @@ TEST_F(AuditTests, test_handle_reply) {
 
   EXPECT_EQ(reply.type, ec->type);
   EXPECT_EQ(ec->fields.size(), 4U);
-  EXPECT_EQ(ec->fields.count("argc"), 1);
+  EXPECT_EQ(ec->fields.count("argc"), 1U);
   EXPECT_EQ(ec->fields["argc"], "3");
   EXPECT_EQ(ec->fields["a0"], "\"/bin/sh\"");
 }
