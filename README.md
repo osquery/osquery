@@ -12,8 +12,8 @@ The tools make low-level operating system analytics and monitoring both performa
 |----------|---------------|---|---|---|
 RHEL 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL6/) | |  |
 RHEL 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL7/) | | **Homepage:** | https://osquery.io
-CentOS 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6Package/) | | **Downloads:** | https://osquery.io/downloads
-CentOS 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7Package/) | | **Tables:** | https://osquery.io/tables
+CentOS 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Downloads:** | https://osquery.io/downloads
+CentOS 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Tables:** | https://osquery.io/tables
 Ubuntu 12.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/) | | **Packs:** | https://osquery.io/packs
 Ubuntu 14.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | **Guide:** | https://osquery.readthedocs.org
 OS X 10.9   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/) | | |
