@@ -29,6 +29,7 @@ add_compile_options(
   -Wstrict-aliasing
   -Wno-unused-parameter
   -Wno-missing-field-initializers
+  -Wno-unused-local-typedef
   -Wnon-virtual-dtor
   -Wchar-subscripts
   -Wpointer-arith
