@@ -9,7 +9,6 @@ add_custom_command(
 
 add_compile_options(
   -Wno-macro-redefined
-  -fsanitize=address
 )
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_extensions
