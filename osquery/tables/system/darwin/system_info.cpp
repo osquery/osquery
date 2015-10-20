@@ -9,6 +9,8 @@
  */
 
 #include <IOKit/IOKitLib.h>
+#include <SystemConfiguration/SystemConfiguration.h>
+
 #include <mach/mach.h>
 
 #include <osquery/database.h>
@@ -98,6 +100,13 @@ QueryData genSystemInfo(QueryContext &context) {
   QueryData results;
   Row r;
   r["hostname"] = TEXT(osquery::getHostname());
+
+  // OS X also defines a friendly ComputerName.
+  auto cn = SCDynamicStoreCopyComputerName(nullptr, nullptr);
+  if (cn != nullptr) {
+    r["computer_name"] = stringFromCFString(cn);
+    CFRelease(cn);
+  }
 
   std::string uuid;
   auto status = osquery::getHostUUID(uuid);
