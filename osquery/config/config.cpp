@@ -210,7 +210,7 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     for (const auto& plugin : Registry::all("config_parser")) {
       std::shared_ptr<ConfigParserPlugin> parser;
       try {
-        parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
+	parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
       } catch (const std::bad_cast& e) {
         LOG(ERROR) << "Error casting config parser plugin: " << plugin.first;
       }

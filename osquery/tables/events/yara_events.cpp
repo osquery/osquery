@@ -41,7 +41,7 @@ typedef FSEventsEventContextRef FileEventContextRef;
 typedef EventSubscriber<INotifyEventPublisher> FileEventSubscriber;
 typedef INotifyEventContextRef FileEventContextRef;
 #define FILE_CHANGE_MASK \
-  IN_CREATE | IN_CLOSE_WRITE | IN_MODIFY
+  ( (IN_CREATE) | (IN_CLOSE_WRITE) | (IN_MODIFY) )
 #endif
 
 /**

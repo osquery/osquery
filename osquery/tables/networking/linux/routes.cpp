@@ -44,7 +44,7 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
   size_t message_size = 0;
   do {
     int latency = 0;
-    int bytes = 0;
+    ssize_t bytes = 0;
     while (bytes == 0) {
       bytes = recv(socket_fd, output, MAX_NETLINK_SIZE - message_size, 0);
       if (bytes < 0) {
@@ -58,7 +58,7 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
     }
 
     // Assure valid header response, and not an error type.
-    nl_hdr = (struct nlmsghdr*)output;
+    nl_hdr = (struct nlmsghdr *)output;
     if (NLMSG_OK(nl_hdr, bytes) == 0 || nl_hdr->nlmsg_type == NLMSG_ERROR) {
       return Status(1, "Read invalid NETLINK message");
     }
@@ -84,9 +84,9 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
   int mask = 0;
   char interface[IF_NAMESIZE];
 
-  struct rtmsg* message = (struct rtmsg*)NLMSG_DATA(netlink_msg);
-  struct rtattr* attr = (struct rtattr*)RTM_RTA(message);
-  int attr_size = RTM_PAYLOAD(netlink_msg);
+  struct rtmsg* message = static_cast<struct rtmsg *>(NLMSG_DATA(netlink_msg));
+  struct rtattr* attr = static_cast<struct rtattr*>(RTM_RTA(message));
+  uint32_t attr_size = RTM_PAYLOAD(netlink_msg);
 
   Row r;
 

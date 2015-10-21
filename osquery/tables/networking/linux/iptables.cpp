@@ -30,7 +30,7 @@ const char MAP[] = {'0','1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', '
 const int HIGH_BITS = 4;
 const int LOW_BITS = 15;
 
-void parseIpEntry(ipt_ip *ip, Row &r) {
+void parseIpEntry(const ipt_ip *ip, Row &r) {
   r["protocol"] = INTEGER(ip->proto);
   if (strlen(ip->iniface)) {
     r["iniface"] = TEXT(ip->iniface);
@@ -44,10 +44,10 @@ void parseIpEntry(ipt_ip *ip, Row &r) {
    r["outiface"] = "all";
   }
 
-  r["src_ip"] = ipAsString((struct in_addr *)&ip->src);
-  r["dst_ip"] = ipAsString((struct in_addr *)&ip->dst);
-  r["src_mask"] = ipAsString((struct in_addr *)&ip->smsk);
-  r["dst_mask"] = ipAsString((struct in_addr *)&ip->dmsk);
+  r["src_ip"] = ipAsString(&ip->src);
+  r["dst_ip"] = ipAsString(&ip->dst);
+  r["src_mask"] = ipAsString(&ip->smsk);
+  r["dst_mask"] = ipAsString(&ip->dmsk);
 
   char aux_char[2] = {0};
   std::string iniface_mask;
@@ -97,11 +97,11 @@ void genIPTablesRules(const std::string &filter, QueryData &results) {
       r["bytes"] = "0";
     }
 
-    struct ipt_entry *prev_rule = nullptr;
+    const struct ipt_entry * prev_rule = nullptr;
     // Iterating through all the rules per chain
-    for (auto chain_rule = iptc_first_rule(chain, handle); chain_rule;
+    for (const struct ipt_entry * chain_rule = iptc_first_rule(chain, handle); chain_rule;
          chain_rule = iptc_next_rule(prev_rule, handle)) {
-      prev_rule = (struct ipt_entry *)chain_rule;
+      prev_rule = chain_rule; 
 
       auto target = iptc_get_target(chain_rule, handle);
       if (target != nullptr) {
@@ -116,13 +116,13 @@ void genIPTablesRules(const std::string &filter, QueryData &results) {
         r["match"] = "no";
       }
 
-      struct ipt_ip *ip = (struct ipt_ip *)&chain_rule->ip;
+      const struct ipt_ip *ip = &chain_rule->ip;
       parseIpEntry(ip, r);
 
       results.push_back(r);
     } // Rule iteration
     results.push_back(r);
-  } // Chain iteration
+  } // Chain iteration 
 
   iptc_free(handle);
 }
