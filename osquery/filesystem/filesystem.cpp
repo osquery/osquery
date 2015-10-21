@@ -120,7 +120,7 @@ Status readFile(const fs::path& path, std::string& content, bool dry_run) {
     if (is.bad()) {
       return Status(1, "Error reading special file: " + path.string());
     }
-    content.assign(std::move(buffer.str()));
+    content.assign(buffer.str());
   } else {
     content = std::string(size, '\0');
     is.read(&content[0], size);

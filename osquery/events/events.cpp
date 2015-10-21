@@ -307,7 +307,7 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
     }
   }
 
-  return std::move(records);
+  return records;
 }
 
 Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
@@ -438,7 +438,7 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
     // Index retrieval will apply the constraints checking and auto-expire.
     expire_time_ = getUnixTime() - FLAGS_events_expiry;
   }
-  return std::move(results);
+  return results;
 }
 
 Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {

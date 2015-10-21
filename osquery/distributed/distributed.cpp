@@ -185,6 +185,6 @@ DistributedQueryRequest Distributed::popRequest() {
   WriteLock wlock_queries(distributed_queries_mutex_);
   auto q = queries_[0];
   queries_.erase(queries_.begin());
-  return std::move(q);
+  return q;
 }
 }
