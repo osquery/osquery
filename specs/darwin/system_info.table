@@ -11,5 +11,6 @@ schema([
     Column("cpu_logical_cores", INTEGER, "Max number of CPU logical cores"),
     Column("physical_memory", BIGINT, "Total physical memory in bytes"),
     Column("hardware_model", TEXT, "Hardware model string"),
+    Column("computer_name", TEXT, "Friendly computer name (optional)"),
 ])
 implementation("system/system_info@genSystemInfo")
