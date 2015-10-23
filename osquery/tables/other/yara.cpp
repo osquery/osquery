@@ -154,7 +154,7 @@ QueryData genYara(QueryContext& context) {
     }
   }
 
-  return std::move(results);
+  return results;
 }
 }
 }

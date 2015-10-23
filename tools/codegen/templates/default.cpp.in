@@ -45,13 +45,13 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
 {% if class_name != "" %}\
     if (EventFactory::exists("{{class_name}}")) {
       auto subscriber = EventFactory::getEventSubscriber("{{class_name}}");
-      return std::move(subscriber->{{function}}(request));
+      return subscriber->{{function}}(request);
     } else {
       LOG(ERROR) << "Subscriber table: {{class_name}} missing.";
       return QueryData();
     }
 {% else %}\
-    return std::move(tables::{{function}}(request));
+    return tables::{{function}}(request);
 {% endif %}\
   }
 };

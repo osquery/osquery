@@ -23,7 +23,7 @@ const std::map<std::string, std::string> kExtensionKeys = {
     {"default_locale", "locale"},
     {"update_url", "update_url"},
     {"author", "author"},
-    {"background.persistent", "persistent"},
+    {"background.persistent", "persistent"}
 };
 
 void genExtension(const std::string& path, QueryData& results) {

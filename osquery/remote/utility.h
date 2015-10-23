@@ -56,7 +56,7 @@ class TLSRequestHelper {
       uri += ((uri.find("?") != std::string::npos) ? "&" : "?") +
              FLAGS_tls_enroll_override + "=" + getEnrollSecret();
     }
-    return std::move(uri);
+    return uri;
   }
 
   /**
