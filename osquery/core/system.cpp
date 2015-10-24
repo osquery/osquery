@@ -55,9 +55,14 @@ FLAG(string,
      "Field used to identify the host running osquery (hostname, uuid)");
 
 std::string getHostname() {
-  char hostname[256] = {0}; // Linux max should be 64.
-  gethostname(hostname, sizeof(hostname) - 1);
+  static long max_hostname = sysconf(_SC_HOST_NAME_MAX);
+  long size = (max_hostname > 255) ? max_hostname + 1 : 256;
+  char* hostname = (char*)malloc(size);
+  memset((void*)hostname, 0, size);
+  gethostname(hostname, size - 1);
   std::string hostname_string = std::string(hostname);
+  free(hostname);
+
   boost::algorithm::trim(hostname_string);
   return hostname_string;
 }

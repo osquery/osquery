@@ -9,11 +9,11 @@
  */
 
 #include <IOKit/IOKitLib.h>
+#include <SystemConfiguration/SystemConfiguration.h>
+
 #include <mach/mach.h>
 
-#include <osquery/database.h>
 #include <osquery/tables.h>
-#include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/sysctl_utils.h"
@@ -26,10 +26,10 @@ namespace tables {
 const std::string kMachCpuBrandStringKey = "machdep.cpu.brand_string";
 const std::string kHardwareModelNameKey = "hw.model";
 
-Status getCpuSerial(std::string &cpu_serial) {
+Status getHardwareSerial(std::string &serial) {
   static std::string serial_cache;
   if (!serial_cache.empty()) {
-    cpu_serial = serial_cache;
+    serial = serial_cache;
     return Status(0, "OK");
   }
 
@@ -61,12 +61,8 @@ Status getCpuSerial(std::string &cpu_serial) {
     return Status(1, "Could not read serial number property");
   }
 
-  cpu_serial = serial_cache = stringFromCFString(serialNumber);
+  serial = serial_cache = stringFromCFString(serialNumber);
   CFRelease(serialNumber);
-  if (cpu_serial.empty()) {
-    return Status(1, "cpu_serial was empty");
-  }
-
   return Status(0, "OK");
 }
 
@@ -77,7 +73,6 @@ void genHostInfo(Row &r) {
 
   if (host_info(host, HOST_BASIC_INFO, (host_info_t)&host_data, &count) !=
       KERN_SUCCESS) {
-    VLOG(1) << "Error retrieving host info";
     return;
   }
 
@@ -97,22 +92,21 @@ void genHostInfo(Row &r) {
 QueryData genSystemInfo(QueryContext &context) {
   QueryData results;
   Row r;
-  r["hostname"] = TEXT(osquery::getHostname());
+  r["hostname"] = osquery::getHostname();
+
+  // OS X also defines a friendly ComputerName.
+  auto cn = SCDynamicStoreCopyComputerName(nullptr, nullptr);
+  if (cn != nullptr) {
+    r["computer_name"] = stringFromCFString(cn);
+    CFRelease(cn);
+  } else {
+    r["computer_name"] = r["hostname"];
+  }
 
   std::string uuid;
-  auto status = osquery::getHostUUID(uuid);
-  if (!status.ok()) {
-    uuid = "";
-  }
-  r["uuid"] = TEXT(uuid);
-
-  std::string cpu_serial;
-  status = getCpuSerial(cpu_serial);
-  if (!status.ok()) {
-    cpu_serial = "";
-  }
-  r["cpu_serial"] = TEXT(cpu_serial);
-
+  r["uuid"] = (osquery::getHostUUID(uuid)) ? uuid : "";
+  std::string serial;
+  r["hardware_serial"] = (getHardwareSerial(serial)) ? serial : "";
   genHostInfo(r);
 
   QueryData sysctl_results;

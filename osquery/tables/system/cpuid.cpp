@@ -45,23 +45,23 @@ std::map<int, std::vector<FeatureDef_t> > kCPUFeatures = {
      }},
 };
 
-void cpuid(unsigned int eax, unsigned int ecx, int regs[4]) {
+static inline void cpuid(unsigned int eax, unsigned int ecx, int regs[4]) {
   asm volatile("cpuid"
                : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
                : "a"(eax), "c"(ecx));
 }
 
-void registerToString(int reg, std::stringstream& stream) {
+static inline void registerToString(int reg, std::stringstream& stream) {
   for (size_t i = 0; i < 4; i++) {
     stream << ((char*)&reg)[i];
   }
 }
 
-bool isBitSet(size_t bit, unsigned int reg) {
+static inline bool isBitSet(size_t bit, unsigned int reg) {
   return ((reg & (1 << bit)) != 0);
 }
 
-Status genVendorString(QueryData& results) {
+inline Status genStrings(QueryData& results) {
   int regs[4] = {-1};
 
   cpuid(0, 0, regs);
@@ -73,7 +73,7 @@ Status genVendorString(QueryData& results) {
   std::stringstream vendor_string;
   registerToString(regs[1], vendor_string);
   registerToString(regs[3], vendor_string);
-  registerToString(regs[2], vendor_string);
+  registerToString(regs[2], vendor_string);  
 
   Row r;
   r["feature"] = "vendor";
@@ -83,10 +83,59 @@ Status genVendorString(QueryData& results) {
   r["input_eax"] = "0";
   results.push_back(r);
 
+  // The CPU canonicalized name can also be accessed via cpuid accesses.
+  // Subsequent accesses allow a 32-character CPU name.
+  std::stringstream product_name;
+  for (size_t i = 0; i < 3; i++) {
+    cpuid(0x80000002 + i, 0, regs);
+    registerToString(regs[0], product_name);
+    registerToString(regs[1], product_name);
+    registerToString(regs[2], product_name);
+    registerToString(regs[3], product_name);
+  }
+
+  r["feature"] = "product_name";
+  r["value"] = product_name.str();
+  r["output_register"] = "eax,ebx,ecx,edx";
+  r["output_bit"] = "0";
+  r["input_eax"] = "0x80000002";
+  results.push_back(r);
+
+  // Do the same to grab the optional hypervisor ID.
+  cpuid(0x40000000, 0, regs);
+  if (regs[0] && 0xFF000000 != 0) {
+    std::stringstream hypervisor_string;
+    registerToString(regs[1], hypervisor_string);
+    registerToString(regs[2], hypervisor_string);
+    registerToString(regs[3], hypervisor_string);
+
+    r["feature"] = "hypervisor_id";
+    r["value"] = hypervisor_string.str();
+    r["output_register"] = "ebx,ecx,edx";
+    r["output_bit"] = "0";
+    r["input_eax"] = "0x40000000";
+    results.push_back(r);
+  }
+
+  // Finally, check the processor serial number.
+  std::stringstream serial;
+  cpuid(1, 0, regs);
+  serial << std::hex << std::setw(8) << std::setfill('0') << (int)regs[0];
+  cpuid(3, 0, regs);
+  serial << std::hex << std::setw(8) << std::setfill('0') << (int)regs[0];
+  serial << std::hex << std::setw(8) << std::setfill('0') << (int)regs[3];
+
+  r["feature"] = "serial";
+  r["value"] = serial.str();
+  r["output_register"] = "eax,ebx,ecx,edx";
+  r["output_bit"] = "0";
+  r["input_eax"] = "1,3";
+  results.push_back(r);
+
   return Status(0, "OK");
 }
 
-void genFamily(QueryData& results) {
+inline void genFamily(QueryData& results) {
   int regs[4] = {-1};
 
   cpuid(1, 0, regs);
@@ -108,7 +157,7 @@ void genFamily(QueryData& results) {
 QueryData genCPUID(QueryContext& context) {
   QueryData results;
 
-  if (!genVendorString(results).ok()) {
+  if (!genStrings(results).ok()) {
     return results;
   }
 
