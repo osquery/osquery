@@ -30,6 +30,7 @@ add_compile_options(
   -Wno-unused-parameter
   -Wno-missing-field-initializers
   -Wno-unused-local-typedef
+  -Wno-unknown-warning-option
   -Wnon-virtual-dtor
   -Wchar-subscripts
   -Wpointer-arith

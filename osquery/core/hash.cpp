@@ -102,7 +102,7 @@ std::string hashFromFile(HashType hash_type, const std::string& path) {
   // Use the canonicalized path returned from a successful readFile dry-run.
   FILE* file = fopen(status.what().c_str(), "rb");
   if (file == nullptr) {
-    VLOG(1) << "Cannot hash/open file " << path;
+    VLOG(1) << "Cannot hash/open file: " << path;
     return "";
   }
 
