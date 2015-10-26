@@ -11,7 +11,9 @@
 #include <chrono>
 #include <mutex>
 #include <random>
-#include <sstream>
+
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 #include <osquery/config.h>
 #include <osquery/database.h>
@@ -40,9 +42,15 @@ boost::shared_mutex config_files_mutex_;
 boost::shared_mutex config_hash_mutex_;
 boost::shared_mutex config_valid_mutex_;
 
-void Config::addPack(const Pack& pack) {
+void Config::addPack(const std::string& name,
+                     const std::string& source,
+                     const pt::ptree& tree) {
   WriteLock wlock(config_schedule_mutex_);
-  return schedule_.add(pack);
+  try {
+    schedule_.add(Pack(name, source, tree));
+  } catch (const std::exception& e) {
+    LOG(WARNING) << "Error adding pack: " << name << ": " << e.what();
+  }
 }
 
 void Config::removePack(const std::string& pack) {
@@ -123,6 +131,99 @@ Status Config::load() {
   return Status(0, "OK");
 }
 
+Status Config::updateSource(const std::string& name, const std::string& json) {
+  hashSource(name, json);
+
+  // load the config (source.second) into a pt::ptree
+  std::stringstream json_stream;
+  json_stream << json;
+  pt::ptree tree;
+  try {
+    pt::read_json(json_stream, tree);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1, "Error parsing the config JSON");
+  }
+
+  // extract the "schedule" key and store it as the main pack
+  if (tree.count("schedule") > 0) {
+    auto& schedule = tree.get_child("schedule");
+    pt::ptree main_pack;
+    main_pack.add_child("queries", schedule);
+    addPack("main", name, main_pack);
+  }
+
+  if (tree.count("scheduledQueries") > 0) {
+    auto& scheduled_queries = tree.get_child("scheduledQueries");
+    pt::ptree queries;
+    for (const std::pair<std::string, pt::ptree>& query : scheduled_queries) {
+      auto query_name = query.second.get<std::string>("name", "");
+      if (query_name.empty()) {
+        return Status(1, "Error getting name from legacy scheduled query");
+      }
+      queries.add_child(query_name, query.second);
+    }
+    pt::ptree legacy_pack;
+    legacy_pack.add_child("queries", queries);
+    addPack("legacy_main", name, legacy_pack);
+  }
+
+  // extract the "packs" key into additional pack objects
+  if (tree.count("packs") > 0) {
+    auto& packs = tree.get_child("packs");
+    for (const auto& pack : packs) {
+      auto value = packs.get<std::string>(pack.first, "");
+      if (value.empty()) {
+        addPack(pack.first, name, pack.second);
+      } else {
+        PluginResponse response;
+        PluginRequest request = {
+            {"action", "genPack"}, {"name", pack.first}, {"value", value}};
+        Registry::call("config", request, response);
+
+        if (response.size() > 0 && response[0].count(pack.first) > 0) {
+          std::stringstream pack_stream;
+          pack_stream << response[0][pack.first];
+          pt::ptree pack_tree;
+          try {
+            pt::read_json(pack_stream, pack_tree);
+            addPack(pack.first, name, pack_tree);
+          } catch (const pt::json_parser::json_parser_error& e) {
+            LOG(WARNING) << "Error parsing the pack JSON: " << pack.first;
+          }
+        }
+      }
+    }
+  }
+
+  for (const auto& plugin : Registry::all("config_parser")) {
+    std::shared_ptr<ConfigParserPlugin> parser;
+    try {
+      parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
+    } catch (const std::bad_cast& e) {
+      LOG(ERROR) << "Error casting config parser plugin: " << plugin.first;
+    }
+    if (parser == nullptr || parser.get() == nullptr) {
+      continue;
+    }
+
+    // For each key requested by the parser, add a property tree reference.
+    std::map<std::string, pt::ptree> parser_config;
+    for (const auto& key : parser->keys()) {
+      if (tree.count(key) > 0) {
+        parser_config[key] = tree.get_child(key);
+      } else {
+        parser_config[key] = pt::ptree();
+      }
+    }
+
+    // The config parser plugin will receive a copy of each property tree for
+    // each top-level-config key. The parser may choose to update the config's
+    // internal state
+    parser->update(parser_config);
+  }
+  return Status(0, "OK");
+}
+
 Status Config::update(const std::map<std::string, std::string>& config) {
   // A config plugin may call update from an extension. This will update
   // the config instance within the extension process and the update must be
@@ -142,96 +243,9 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   }
 
   for (const auto& source : config) {
-    hashSource(source.first, source.second);
-
-    // load the config (source.second) into a pt::ptree
-    std::stringstream json;
-    json << source.second;
-    pt::ptree tree;
-    try {
-      pt::read_json(json, tree);
-    } catch (const pt::json_parser::json_parser_error& e) {
-      return Status(1, "Error parsing the config JSON. Check the syntax.");
-    }
-
-    // extract the "schedule" key and store it as the main pack
-    if (tree.count("schedule") > 0) {
-      auto& schedule = tree.get_child("schedule");
-      pt::ptree main_pack;
-      main_pack.add_child("queries", schedule);
-      addPack(Pack("main", source.first, main_pack));
-    }
-
-    if (tree.count("scheduledQueries") > 0) {
-      auto& scheduled_queries = tree.get_child("scheduledQueries");
-      pt::ptree queries;
-      for (const std::pair<std::string, pt::ptree>& query : scheduled_queries) {
-        auto query_name = query.second.get<std::string>("name", "");
-        if (query_name.empty()) {
-          return Status(1, "Error getting name from legacy scheduled query");
-        }
-        queries.add_child(query_name, query.second);
-      }
-      pt::ptree legacy_pack;
-      legacy_pack.add_child("queries", queries);
-      addPack(Pack("legacy_main", source.first, legacy_pack));
-    }
-
-    // extract the "packs" key into additional pack objects
-    if (tree.count("packs") > 0) {
-      auto& packs = tree.get_child("packs");
-      for (const auto& pack : packs) {
-        auto value = packs.get<std::string>(pack.first, "");
-        if (value.empty()) {
-          addPack(Pack(pack.first, source.first, pack.second));
-        } else {
-          PluginResponse response;
-          auto status = Registry::call(
-              "config",
-              {{"action", "genPack"}, {"name", pack.first}, {"value", value}},
-              response);
-          if (!status.ok()) {
-            return status;
-          }
-
-          if (response.size() > 0) {
-            try {
-              addPack(Pack(pack.first, source.first, response[0][pack.first]));
-            } catch (const std::exception& e) {
-              return Status(1,
-                            "Error accessing pack plugin response: " +
-                                std::string(e.what()));
-            }
-          }
-        }
-      }
-    }
-
-    for (const auto& plugin : Registry::all("config_parser")) {
-      std::shared_ptr<ConfigParserPlugin> parser;
-      try {
-	parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
-      } catch (const std::bad_cast& e) {
-        LOG(ERROR) << "Error casting config parser plugin: " << plugin.first;
-      }
-      if (parser == nullptr || parser.get() == nullptr) {
-        continue;
-      }
-
-      // For each key requested by the parser, add a property tree reference.
-      std::map<std::string, pt::ptree> parser_config;
-      for (const auto& key : parser->keys()) {
-        if (tree.count(key) > 0) {
-          parser_config[key] = tree.get_child(key);
-        } else {
-          parser_config[key] = pt::ptree();
-        }
-      }
-
-      // The config parser plugin will receive a copy of each property tree for
-      // each top-level-config key. The parser may choose to update the config's
-      // internal state
-      parser->update(parser_config);
+    auto status = updateSource(source.first, source.second);
+    if (!status.ok()) {
+      return status;
     }
   }
 

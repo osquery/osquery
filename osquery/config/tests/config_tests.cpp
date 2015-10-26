@@ -10,6 +10,8 @@
 #include <memory>
 #include <vector>
 
+#include <boost/property_tree/json_parser.hpp>
+
 #include <gtest/gtest.h>
 
 #include <osquery/config.h>
@@ -139,7 +141,7 @@ TEST_F(ConfigTests, test_parse) {
   auto tree = getExamplePacksConfig();
   auto packs = tree.get_child("packs");
   for (const auto& pack : packs) {
-    c.addPack(Pack(pack.first, pack.second));
+    c.addPack(pack.first, "", pack.second);
   }
   for (Pack& p : c.schedule_) {
     EXPECT_TRUE(p.shouldPackExecute());
@@ -148,7 +150,7 @@ TEST_F(ConfigTests, test_parse) {
 
 TEST_F(ConfigTests, test_remove) {
   auto c = Config();
-  c.addPack(Pack("kernel", getUnrestrictedPack()));
+  c.addPack("kernel", "", getUnrestrictedPack());
   c.removePack("kernel");
   for (Pack& pack : c.schedule_) {
     EXPECT_NE("kernel", pack.getName());
@@ -161,7 +163,7 @@ TEST_F(ConfigTests, test_add_remove_pack) {
   auto last = c.schedule_.end();
   EXPECT_EQ(std::distance(first, last), 0);
 
-  c.addPack(Pack("kernel", getUnrestrictedPack()));
+  c.addPack("kernel", "", getUnrestrictedPack());
   first = c.schedule_.begin();
   last = c.schedule_.end();
   EXPECT_EQ(std::distance(first, last), 1);
@@ -175,7 +177,7 @@ TEST_F(ConfigTests, test_add_remove_pack) {
 TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<ScheduledQuery> queries;
   auto c = Config();
-  c.addPack(Pack("kernel", getUnrestrictedPack()));
+  c.addPack("kernel", "", getUnrestrictedPack());
   c.scheduledQueries(
       ([&queries](const std::string&, const ScheduledQuery& query) {
         queries.push_back(query);
@@ -198,7 +200,7 @@ TEST_F(ConfigTests, test_get_parser) {
 
   const auto& parser =
       std::dynamic_pointer_cast<TestConfigParserPlugin>(plugin);
-  auto data = parser->getData();
+  const auto& data = parser->getData();
 
   EXPECT_EQ(data.count("list"), 1U);
   EXPECT_EQ(data.count("dictionary"), 1U);

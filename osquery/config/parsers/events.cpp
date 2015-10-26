@@ -21,10 +21,7 @@ class EventsConfigParserPlugin : public ConfigParserPlugin {
  public:
   std::vector<std::string> keys() { return {"events"}; }
 
-  Status setUp() {
-    data_.put_child("events", pt::ptree());
-    return Status(0, "OK");
-  }
+  EventsConfigParserPlugin() { data_.put_child("events", pt::ptree()); }
 
   Status update(const std::map<std::string, pt::ptree>& config) {
     if (config.count("events") > 0) {
