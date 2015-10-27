@@ -14,6 +14,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
@@ -586,21 +587,49 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
     return Status(1, "Invalid subscriber");
   }
 
+  // The config may use an "events" key to explicitly enabled or disable
+  // event subscribers. See EventSubscriber::disable.
+  auto name = specialized_sub->getName();
+  auto plugin = Config::getInstance().getParser("events");
+  if (plugin != nullptr && plugin.get() != nullptr) {
+    const auto& data = plugin->getData();
+    // First perform explicit enabling.
+    if (data.get_child("events").count("enable_subscribers") > 0) {
+      for (const auto& item : data.get_child("events.enable_subscribers")) {
+        if (item.second.data() == name) {
+          VLOG(1) << "Enabling event subscriber: " << name;
+          specialized_sub->disabled = false;
+        }
+      }
+    }
+    // Then use explicit disabling as an ultimate override.
+    if (data.get_child("events").count("disable_subscribers") > 0) {
+      for (const auto& item : data.get_child("events.disable_subscribers")) {
+        if (item.second.data() == name) {
+          VLOG(1) << "Disabling event subscriber: " << name;
+          specialized_sub->disabled = true;
+        }
+      }
+    }
+  }
+
   // Let the module initialize any Subscriptions.
   auto status = Status(0, "OK");
-  if (!FLAGS_disable_events) {
+  if (!FLAGS_disable_events && !specialized_sub->disabled) {
     status = specialized_sub->init();
+    specialized_sub->state(SUBSCRIBER_RUNNING);
+  } else {
+    specialized_sub->state(SUBSCRIBER_PAUSED);
   }
 
   auto& ef = EventFactory::getInstance();
-  ef.event_subs_[specialized_sub->getName()] = specialized_sub;
+  ef.event_subs_[name] = specialized_sub;
 
   // Set state of subscriber.
   if (!status.ok()) {
     specialized_sub->state(SUBSCRIBER_FAILED);
     return Status(1, status.getMessage());
   } else {
-    specialized_sub->state(SUBSCRIBER_RUNNING);
     return Status(0, "OK");
   }
 }
@@ -728,6 +757,7 @@ void EventFactory::end(bool join) {
 
   // Threads may still be executing, when they finish, release publishers.
   ef.event_pubs_.clear();
+  ef.event_subs_.clear();
 }
 
 void attachEvents() {
@@ -740,7 +770,7 @@ void attachEvents() {
   for (const auto& subscriber : subscribers) {
     auto status = EventFactory::registerEventSubscriber(subscriber.second);
     if (!status.ok()) {
-      LOG(ERROR) << "Error registering subscriber: " << status.getMessage();
+      LOG(WARNING) << "Error registering subscriber: " << status.getMessage();
     }
   }
 }

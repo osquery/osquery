@@ -260,7 +260,7 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
   // Assume event type is registered.
   StartEventLoop();
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
-  sub->init();
+  EventFactory::registerEventSubscriber(sub);
 
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(real_test_path, 0);
@@ -278,7 +278,7 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   // Assume event type is registered.
   StartEventLoop();
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
-  sub->init();
+  EventFactory::registerEventSubscriber(sub);
 
   auto sc = sub->GetSubscription(real_test_path, 0);
   sub->subscribe(&TestINotifyEventSubscriber::Callback, sc, nullptr);
@@ -315,7 +315,7 @@ TEST_F(INotifyTests, test_inotify_recursion) {
   StartEventLoop();
 
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
-  sub->init();
+  EventFactory::registerEventSubscriber(sub);
 
   boost::filesystem::create_directory(real_test_dir);
   boost::filesystem::create_directory(real_test_sub_dir);

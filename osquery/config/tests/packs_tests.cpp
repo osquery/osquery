@@ -7,6 +7,9 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+
+#include <boost/property_tree/json_parser.hpp>
+
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
@@ -123,14 +126,8 @@ TEST_F(PacksTests, test_schedule) {
 }
 
 TEST_F(PacksTests, test_discovery_cache) {
-  auto pack = Pack("kernel", getPackWithValidDiscovery());
-  auto& stats = pack.getStats();
-  EXPECT_EQ(stats.total, 0);
-  EXPECT_EQ(stats.hits, 0);
-  EXPECT_EQ(stats.misses, 0);
-
   auto c = Config();
-  c.addPack(pack);
+  c.addPack("kernel", "", getPackWithValidDiscovery());
   size_t query_count = 0;
   for (size_t i = 0; i < 5; i++) {
     c.scheduledQueries(

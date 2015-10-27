@@ -8,8 +8,6 @@
  *
  */
 
-#include <typeinfo>
-
 #include <boost/filesystem/operations.hpp>
 
 #include <gtest/gtest.h>
@@ -17,22 +15,12 @@
 #include <osquery/events.h>
 #include <osquery/tables.h>
 
-#include "osquery/database/db_handle.h"
-
 namespace osquery {
-
-const std::string kTestingEventsDBPath = "/tmp/rocksdb-osquery-testevents";
 
 class EventsTests : public ::testing::Test {
  public:
-  void SetUp() {
-    // Setup a testing DB instance
-    DBHandle::getInstanceAtPath(kTestingEventsDBPath);
-  }
-
   void TearDown() {
-    EventFactory::end();
-    boost::filesystem::remove_all(osquery::kTestingEventsDBPath);
+    EventFactory::end(true);
   }
 };
 
@@ -364,6 +352,8 @@ TEST_F(EventsTests, test_fire_event) {
   status = EventFactory::registerEventPublisher(pub);
 
   auto sub = std::make_shared<FakeEventSubscriber>();
+  EventFactory::registerEventSubscriber(sub);
+
   auto subscription = Subscription::create("FakeSubscriber");
   subscription->callback = TestTheeCallback;
   status = EventFactory::addSubscription("publisher", subscription);
@@ -406,5 +396,24 @@ TEST_F(EventsTests, test_subscriber_names) {
   auto sub = std::make_shared<FakeEventSubscriber>();
   EXPECT_EQ(sub->getName(), "FakeSubscriber");
   EXPECT_EQ(sub->dbNamespace(), "FakePublisher.FakeSubscriber");
+}
+
+class DisabledEventSubscriber : public EventSubscriber<FakeEventPublisher> {
+ public:
+  DisabledEventSubscriber() : EventSubscriber(false) {}
+};
+
+TEST_F(EventsTests, test_event_toggle_subscribers) {
+  // Make sure subscribers can disable themselves using the event subscriber
+  // constructor parameter.
+  auto sub = std::make_shared<DisabledEventSubscriber>();
+  EXPECT_TRUE(sub->disabled);
+  // Normal subscribers will be enabled.
+  auto sub2 = std::make_shared<SubFakeEventSubscriber>();
+  EXPECT_FALSE(sub2->disabled);
+
+  // Registering a disabled subscriber will put it into a paused state.
+  EventFactory::registerEventSubscriber(sub);
+  EXPECT_EQ(sub->state(), SUBSCRIBER_PAUSED);
 }
 }

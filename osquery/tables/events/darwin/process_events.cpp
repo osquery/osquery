@@ -75,7 +75,7 @@ Status ProcessEventSubscriber::Callback(
     if (plugin == nullptr || plugin.get() == nullptr) {
       LOG(ERROR) << "Could not load events config parser";
     } else {
-      auto data = plugin->getData();
+      const auto &data = plugin->getData();
       if (data.get_child("events").count("environment_variables") > 0) {
         use_whitelist = true;
         whitelist = data.get_child("events.environment_variables");

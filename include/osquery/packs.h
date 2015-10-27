@@ -12,7 +12,6 @@
 
 #include <map>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include <boost/property_tree/ptree.hpp>
@@ -36,14 +35,13 @@ typedef struct {
  */
 class Pack {
  public:
-  Pack(const std::string& name, const boost::property_tree::ptree& tree);
-  Pack(const std::string& name, const std::string& json);
+  Pack(const std::string& name, const boost::property_tree::ptree& tree)
+      : Pack(name, "", tree) {}
   Pack(const std::string& name,
        const std::string& source,
-       const boost::property_tree::ptree& tree);
-  Pack(const std::string& name,
-       const std::string& source,
-       const std::string& json);
+       const boost::property_tree::ptree& tree) {
+    initialize(name, source, tree);
+  }
 
   void initialize(const std::string& name,
                   const std::string& source,
