@@ -287,11 +287,9 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   sub->WaitForEvents(kMaxEventLatency, 4);
 
   // Make sure the inotify action was expected.
-  EXPECT_EQ(sub->actions().size(), 4U);
+  EXPECT_EQ(sub->actions().size(), 2U);
   EXPECT_EQ(sub->actions()[0], "UPDATED");
-  EXPECT_EQ(sub->actions()[1], "OPENED");
-  EXPECT_EQ(sub->actions()[2], "UPDATED");
-  EXPECT_EQ(sub->actions()[3], "UPDATED");
+  EXPECT_EQ(sub->actions()[1], "UPDATED");
   StopEventLoop();
 }
 
