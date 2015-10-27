@@ -1,10 +1,6 @@
-As of osquery version 1.4.2, file integrity monitoring support was introduced
-for the Linux (using inotify) and Darwin (using FSEvents) platforms.  This module reads a list of directories to
-monitor from the osquery config and details changes and hashes to those
-selected files in the [`file_events`](https://osquery.io/docs/tables/#file_events) table.
+As of osquery version 1.4.2, file integrity monitoring support was introduced for Linux (using inotify) and Darwin (using FSEvents) platforms.  This module reads a list of files/directories to monitor for changes from the osquery config and details changes and hashes to those selected files in the [`file_events`](https://osquery.io/docs/tables/#file_events) table.
 
-To get started with FIM (file integrity monitoring), you must first identify
-which files and directories you wish to monitor. Then use *fnmatch*-style, or filesystem globbing, patterns to represent the target paths. You may use standard wildcards "*\**" or SQL-style wildcards "*%*":
+To get started with FIM (file integrity monitoring), you must first identify which files and directories you wish to monitor. Then use *fnmatch*-style, or filesystem globbing, patterns to represent the target paths. You may use standard wildcards "*\**" or SQL-style wildcards "*%*":
 
 **Matching wildcard rules**
 
@@ -21,8 +17,7 @@ which files and directories you wish to monitor. Then use *fnmatch*-style, or fi
 * `/Users/%/Library/%%`: Monitor changes recursively within each Library.
 * `/bin/%sh`: Monitor the *bin* directory for changes ending in *sh*.
 
-For example, you may want to monitor `/etc` along with other files on a Linux
-system. After you identify your target files and directories you wish to monitor, add them to a new section in the config *file_paths*.
+For example, you may want to monitor `/etc` along with other files on a Linux system. After you identify your target files and directories you wish to monitor, add them to a new section in the config *file_paths*.
 
 ## Example FIM Config
 
@@ -56,9 +51,7 @@ system. After you identify your target files and directories you wish to monitor
 
 ## Sample Event Output
 
-As file changes happen, events will appear in the [**file_events**](https://osquery.io/docs/tables/#file_events) table.  During
-a file change event, the md5, sha1, and sha256 for the file will be calculated
-if possible.  A sample event looks like this:
+As file changes happen, events will appear in the [**file_events**](https://osquery.io/docs/tables/#file_events) table.  During a file change event, the md5, sha1, and sha256 for the file will be calculated if possible.  A sample event looks like this:
 
 ```json
 {
@@ -75,11 +68,7 @@ if possible.  A sample event looks like this:
 
 ## Tuning Linux inotify limits
 
-For Linux, osquery uses inotify to subscribe to file changes at the kernel
-level for performance.  This introduces some limitations on the number of files
-that can be monitored since each inotify watch takes up memory in kernel space
-(non-swappable memory).  Adjusting your limits accordingly can help increase
-the file limit at a cost of kernel memory.
+For Linux, osquery uses inotify to subscribe to file changes at the kernel level for performance.  This introduces some limitations on the number of files that can be monitored since each inotify watch takes up memory in kernel space (non-swappable memory).  Adjusting your limits accordingly can help increase the file limit at a cost of kernel memory.
 
 ### Example sysctl.conf modifications
 
@@ -93,3 +82,9 @@ fs.inotify.max_user_instances = 256
 #/proc/sys/fs/inotify/max_queued_events = 16384
 fs.inotify.max_queued_events = 32768
 ```
+
+## File Accesses
+
+It is possible to monitor for file accesses using the osquery OS X kernel module. File accesses induce a LOT of stress on the system and are more or less useless giving the context from userland monitoring systems (aka, not having the process that caused the modification).
+
+If the kernel extension is running, the `file_access_events` table will be populated using the same **file_paths** key in the osquery config. This implementation of access monitoring includes process PIDs and should not cause CPU or memory latency outside of the normal kernel extension/module guarantees. See [../development/kernel.md](Kernel) for more information.

@@ -220,7 +220,11 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
 bool INotifyEventPublisher::addMonitor(const std::string& path,
                                        bool recursive) {
   if (!isPathMonitored(path)) {
-    int watch = ::inotify_add_watch(getHandle(), path.c_str(), IN_ALL_EVENTS);
+    int watch =
+        ::inotify_add_watch(getHandle(),
+                            path.c_str(),
+                            (IN_MODIFY | IN_ATTRIB | IN_MOVE | IN_CREATE |
+                             IN_DELETE | IN_DELETE_SELF | IN_MOVE_SELF));
     if (watch == -1) {
       LOG(WARNING) << "Could not add inotify watch on: " << path;
       return false;
