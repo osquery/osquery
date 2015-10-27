@@ -418,13 +418,16 @@ void Initializer::start() {
   }
 
   // Check the backing store by allocating and exiting on error.
-  if (!DBHandle::checkDB()) {
+  if (!DBHandle::checkDB(tool_ == OSQUERY_TOOL_DAEMON)) {
     LOG(ERROR) << binary_ << " initialize failed: Could not open RocksDB";
     if (isWorker()) {
       ::exit(EXIT_CATASTROPHIC);
     } else {
       ::exit(EXIT_FAILURE);
     }
+  } else if (tool_ == OSQUERY_TOOL_DAEMON) {
+    // A daemon must always have R/W access to the database.
+    DBHandle::requireWrite();
   }
 
   // Bind to an extensions socket and wait for registry additions.

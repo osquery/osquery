@@ -67,7 +67,10 @@ class DBHandle {
    *
    * @return Success if a handle was created without error.
    */
-  static bool checkDB();
+  static bool checkDB(bool require_write = false);
+
+  /// Require all DBHandle accesses to open a read and write handle.
+  static void requireWrite() { getInstance()->require_write_ = true; }
 
  private:
   /////////////////////////////////////////////////////////////////////////////
@@ -234,6 +237,9 @@ class DBHandle {
 
   /// The database was opened in a ReadOnly mode.
   bool read_only_{false};
+
+  // The database must be opened in a R/W mode.
+  bool require_write_{false};
 
   /// Location of RocksDB on disk, blank if in-memory is true.
   std::string path_;

@@ -160,7 +160,7 @@ function install_cppnetlib() {
   TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
 
-  if provision cppnetlib /usr/local/lib/libcppnetlib-uri.a; then
+  if provision cppnetlib /usr/local/include/boost/network.hpp; then
     pushd $SOURCE
     mkdir -p build
     pushd build
