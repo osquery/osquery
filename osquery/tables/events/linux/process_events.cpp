@@ -156,6 +156,10 @@ Status ProcessEventSubscriber::Callback(const AuditEventContextRef& ec,
                                         const void* user_data) {
   // Check and set the valid state change.
   // If this is an unacceptable change reset the state and clear row data.
+  if (ec->fields.count("success") && ec->fields.at("success") == "no") {
+    return Status(0, "OK");
+  }
+
   if (!validAuditState(ec->type, state_).ok()) {
     state_ = STATE_SYSCALL;
     Row().swap(row_);
