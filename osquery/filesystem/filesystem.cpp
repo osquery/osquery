@@ -99,14 +99,8 @@ Status readFile(const fs::path& path,
   struct stat file;
   if (fstat(handle.fd, &file) < 0) {
     return Status(1, "Cannot access path: " + path.string());
-  } else if (file.st_uid != 0 && S_ISFIFO(file.st_mode)) {
-    return Status(1, "User FIFO reads are disabled");
   }
 
-  // Apply the max byte-read based on file/link target ownership.
-  off_t read_max = (file.st_uid == 0)
-                       ? FLAGS_read_max
-                       : std::min(FLAGS_read_max, FLAGS_read_user_max);
   off_t file_size = file.st_size;
   if (file_size == 0 && size > 0) {
     file_size = static_cast<off_t>(size);
@@ -114,6 +108,10 @@ Status readFile(const fs::path& path,
 
   // Erase/clear provided string buffer.
   content.erase();
+  // Apply the max byte-read based on file/link target ownership.
+  off_t read_max = (file.st_uid == 0)
+                       ? FLAGS_read_max
+                       : std::min(FLAGS_read_max, FLAGS_read_user_max);
   if (file_size > read_max) {
     VLOG(1) << "Cannot read " << path << " size exceeds limit: " << file_size
             << " > " << read_max;
@@ -126,8 +124,24 @@ Status readFile(const fs::path& path,
     return Status(0, fs::canonical(path, ec).string());
   }
 
-  content = std::string(file_size, '\0');
-  read(handle.fd, &content[0], file_size);
+  if (file_size == 0) {
+    off_t total_bytes = 0;
+    ssize_t part_bytes = 0;
+    do {
+      auto part = std::string(4096, '\0');
+      part_bytes = read(handle.fd, &part[0], 4096);
+      if (part_bytes > 0) {
+        total_bytes += part_bytes;
+        if (total_bytes >= read_max) {
+          return Status(1, "File exceeds read limits");
+        }
+        content += part.substr(0, part_bytes);
+      }
+    } while (part_bytes > 0);
+  } else {
+    content = std::string(file_size, '\0');
+    read(handle.fd, &content[0], file_size);
+  }
   return Status(0, "OK");
 }
 
