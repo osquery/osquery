@@ -8,8 +8,6 @@
  *
  */
 
-#include <typeinfo>
-
 #include <boost/filesystem/operations.hpp>
 
 #include <gtest/gtest.h>
@@ -17,22 +15,12 @@
 #include <osquery/events.h>
 #include <osquery/tables.h>
 
-#include "osquery/database/db_handle.h"
-
 namespace osquery {
-
-const std::string kTestingEventsDBPath = "/tmp/rocksdb-osquery-testevents";
 
 class EventsTests : public ::testing::Test {
  public:
-  void SetUp() {
-    // Setup a testing DB instance
-    DBHandle::getInstanceAtPath(kTestingEventsDBPath);
-  }
-
   void TearDown() {
-    EventFactory::end();
-    boost::filesystem::remove_all(osquery::kTestingEventsDBPath);
+    EventFactory::end(true);
   }
 };
 
@@ -110,7 +98,7 @@ TEST_F(EventsTests, test_create_event_pub) {
   EXPECT_TRUE(status.ok());
 
   // Make sure only the first event type was recorded.
-  EXPECT_EQ(EventFactory::numEventPublishers(), 1);
+  EXPECT_EQ(EventFactory::numEventPublishers(), 1U);
 }
 
 class UniqueEventPublisher
@@ -121,11 +109,11 @@ class UniqueEventPublisher
 TEST_F(EventsTests, test_create_using_registry) {
   // The events API uses attachEvents to move registry event publishers and
   // subscribers into the events factory.
-  EXPECT_EQ(EventFactory::numEventPublishers(), 0);
+  EXPECT_EQ(EventFactory::numEventPublishers(), 0U);
   attachEvents();
 
   // Store the number of default event publishers (in core).
-  int default_publisher_count = EventFactory::numEventPublishers();
+  size_t default_publisher_count = EventFactory::numEventPublishers();
 
   // Now add another registry item, but do not yet attach it.
   auto UniqueEventPublisherRegistryItem =
@@ -134,7 +122,7 @@ TEST_F(EventsTests, test_create_using_registry) {
 
   // Now attach and make sure it was added.
   attachEvents();
-  EXPECT_EQ(EventFactory::numEventPublishers(), default_publisher_count + 1);
+  EXPECT_EQ(EventFactory::numEventPublishers(), default_publisher_count + 1U);
 }
 
 TEST_F(EventsTests, test_create_subscription) {
@@ -153,7 +141,7 @@ TEST_F(EventsTests, test_create_subscription) {
   EXPECT_TRUE(status.ok());
 
   // Make sure the subscription is added.
-  EXPECT_EQ(EventFactory::numSubscriptions("publisher"), 1);
+  EXPECT_EQ(EventFactory::numSubscriptions("publisher"), 1U);
 }
 
 TEST_F(EventsTests, test_multiple_subscriptions) {
@@ -166,7 +154,7 @@ TEST_F(EventsTests, test_multiple_subscriptions) {
   status = EventFactory::addSubscription("publisher", subscription);
   status = EventFactory::addSubscription("publisher", subscription);
 
-  EXPECT_EQ(EventFactory::numSubscriptions("publisher"), 2);
+  EXPECT_EQ(EventFactory::numSubscriptions("publisher"), 2U);
 }
 
 struct TestSubscriptionContext : public SubscriptionContext {
@@ -222,7 +210,7 @@ TEST_F(EventsTests, test_create_custom_event_pub) {
 
   // These event types have unique event type IDs
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(EventFactory::numEventPublishers(), 2);
+  EXPECT_EQ(EventFactory::numEventPublishers(), 2U);
 
   // Make sure the setUp function was called.
   EXPECT_EQ(pub->getTestValue(), 1);
@@ -240,7 +228,7 @@ TEST_F(EventsTests, test_custom_subscription) {
   // Step 3, add the subscription to the event type
   status = EventFactory::addSubscription("TestPublisher", "TestSubscriber", sc);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(pub->numSubscriptions(), 1);
+  EXPECT_EQ(pub->numSubscriptions(), 1U);
 
   // The event type must run configure for each added subscription.
   EXPECT_TRUE(pub->configure_run);
@@ -267,7 +255,7 @@ TEST_F(EventsTests, test_tear_down) {
   EXPECT_EQ(pub->getTestValue(), 4);
 
   // Make sure the factory state represented.
-  EXPECT_EQ(EventFactory::numEventPublishers(), 0);
+  EXPECT_EQ(EventFactory::numEventPublishers(), 0U);
 }
 
 static int kBellHathTolled = 0;
@@ -334,7 +322,7 @@ TEST_F(EventsTests, test_event_sub_subscribe) {
 
   // Don't overload the normal `init` Subscription member.
   sub->lateInit();
-  EXPECT_EQ(pub->numSubscriptions(), 1);
+  EXPECT_EQ(pub->numSubscriptions(), 1U);
 
   auto ec = pub->createEventContext();
   pub->fire(ec, 0);
@@ -364,6 +352,8 @@ TEST_F(EventsTests, test_fire_event) {
   status = EventFactory::registerEventPublisher(pub);
 
   auto sub = std::make_shared<FakeEventSubscriber>();
+  EventFactory::registerEventSubscriber(sub);
+
   auto subscription = Subscription::create("FakeSubscriber");
   subscription->callback = TestTheeCallback;
   status = EventFactory::addSubscription("publisher", subscription);
@@ -406,5 +396,24 @@ TEST_F(EventsTests, test_subscriber_names) {
   auto sub = std::make_shared<FakeEventSubscriber>();
   EXPECT_EQ(sub->getName(), "FakeSubscriber");
   EXPECT_EQ(sub->dbNamespace(), "FakePublisher.FakeSubscriber");
+}
+
+class DisabledEventSubscriber : public EventSubscriber<FakeEventPublisher> {
+ public:
+  DisabledEventSubscriber() : EventSubscriber(false) {}
+};
+
+TEST_F(EventsTests, test_event_toggle_subscribers) {
+  // Make sure subscribers can disable themselves using the event subscriber
+  // constructor parameter.
+  auto sub = std::make_shared<DisabledEventSubscriber>();
+  EXPECT_TRUE(sub->disabled);
+  // Normal subscribers will be enabled.
+  auto sub2 = std::make_shared<SubFakeEventSubscriber>();
+  EXPECT_FALSE(sub2->disabled);
+
+  // Registering a disabled subscriber will put it into a paused state.
+  EventFactory::registerEventSubscriber(sub);
+  EXPECT_EQ(sub->state(), SUBSCRIBER_PAUSED);
 }
 }

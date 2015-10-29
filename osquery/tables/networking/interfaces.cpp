@@ -30,9 +30,14 @@
 namespace osquery {
 namespace tables {
 
-// Macros for safe sign-extension
-#define INTEGER_FROM_UCHAR(x) INTEGER((uint16_t)x);
-#define BIGINT_FROM_UINT32(x) BIGINT((uint64_t)x);
+// Functions for safe sign-extension
+  std::basic_string<char> INTEGER_FROM_UCHAR(unsigned char x) {
+    return INTEGER(static_cast<uint16_t>(x));
+  }
+
+  std::basic_string<char> BIGINT_FROM_UINT32(uint32_t x) {
+    return BIGINT(static_cast<uint64_t>(x));
+  }
 
 void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
   std::string dest_address;
@@ -41,16 +46,16 @@ void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
 
   // Address and mask will appear every time.
   if (addr->ifa_addr != nullptr) {
-    r["address"] = ipAsString((struct sockaddr *)addr->ifa_addr);
+    r["address"] = ipAsString(static_cast<struct sockaddr *>(addr->ifa_addr));
   }
 
   if (addr->ifa_netmask != nullptr) {
-    r["mask"] = ipAsString((struct sockaddr *)addr->ifa_netmask);
+    r["mask"] = ipAsString(static_cast<struct sockaddr *>(addr->ifa_netmask));
   }
 
   // The destination address is used for either a broadcast or PtP address.
   if (addr->ifa_dstaddr != nullptr) {
-    dest_address = ipAsString((struct sockaddr *)addr->ifa_dstaddr);
+    dest_address = ipAsString(static_cast<struct sockaddr *>(addr->ifa_dstaddr));
     if ((addr->ifa_flags & IFF_BROADCAST) == IFF_BROADCAST) {
       r["broadcast"] = dest_address;
     } else {
@@ -73,7 +78,7 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
   if (addr->ifa_data != nullptr && addr->ifa_name != nullptr) {
 #ifdef __linux__
     // Linux/Netlink interface details parsing.
-    auto ifd = (struct rtnl_link_stats *)addr->ifa_data;
+    auto ifd = static_cast<struct rtnl_link_stats *>(addr->ifa_data);
     r["mtu"] = "0";
     r["metric"] = "0";
     r["type"] = "0";
@@ -128,12 +133,16 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
 QueryData genInterfaceAddresses(QueryContext &context) {
   QueryData results;
 
-  struct ifaddrs *if_addrs = nullptr, *if_addr = nullptr;
+  struct ifaddrs *if_addrs = nullptr;
+  struct ifaddrs *if_addr = nullptr;
   if (getifaddrs(&if_addrs) != 0 || if_addrs == nullptr) {
     return {};
   }
 
   for (if_addr = if_addrs; if_addr != nullptr; if_addr = if_addr->ifa_next) {
+    if (if_addr->ifa_addr == nullptr) {
+      continue;
+    }
     if (if_addr->ifa_addr->sa_family == AF_INET ||
         if_addr->ifa_addr->sa_family == AF_INET6) {
       genAddressesFromAddr(if_addr, results);
@@ -147,13 +156,15 @@ QueryData genInterfaceAddresses(QueryContext &context) {
 QueryData genInterfaceDetails(QueryContext &context) {
   QueryData results;
 
-  struct ifaddrs *if_addrs = nullptr, *if_addr = nullptr;
+  struct ifaddrs *if_addrs = nullptr;
+  struct ifaddrs *if_addr = nullptr;
   if (getifaddrs(&if_addrs) != 0 || if_addrs == nullptr) {
     return {};
   }
 
   for (if_addr = if_addrs; if_addr != nullptr; if_addr = if_addr->ifa_next) {
-    if (if_addr->ifa_addr->sa_family != AF_INTERFACE) {
+    if (if_addr->ifa_addr != nullptr &&
+        if_addr->ifa_addr->sa_family != AF_INTERFACE) {
       // This interface entry does not describe the link details.
       continue;
     }

@@ -169,22 +169,51 @@ inline bool handleAuditReply(const struct audit_reply& reply,
 
   // Tokenize the message.
   auto message = std::string(reply.message, reply.len);
-  std::vector<std::string> fields;
-  boost::split(fields, message, boost::is_any_of(" ="));
-  std::string().swap(message);
+  auto preamble_end = message.find("): ");
+  if (preamble_end == std::string::npos) {
+    return false;
+  } else {
+    ec->preamble = message.substr(0, preamble_end + 1);
+    message = message.substr(preamble_end + 3);
+  }
 
-  // Iterate over each field=value pair.
-  auto field_it = fields.begin();
-  ec->preamble = std::move(*field_it);
-  for (++field_it; field_it != fields.end(); field_it++) {
-    const auto& key = *field_it;
-    if (++field_it == fields.end()) {
-      // A malformed message will have had an odd number of fields=value
-      // pairs, discard the event.
-      return false;
+  // The linear search will construct series of key value pairs.
+  std::string key, value;
+  // There are several ways of representing value data (enclosed strings, etc).
+  bool found_assignment{false}, found_enclose{false};
+  for (const auto& c : message) {
+    // Iterate over each character in the audit message.
+    if ((found_enclose && c == '"') || (!found_enclose && c == ' ')) {
+      if (c == '"') {
+        value += c;
+      }
+      // This is a terminating sequence, the end of an enclosure or space tok.
+      if (!key.empty()) {
+        // Multiple space tokens are supported.
+        ec->fields[key] = value;
+      }
+      found_enclose = false;
+      found_assignment = false;
+      key.clear();
+      value.clear();
+    } else if (!found_assignment && c == ' ') {
+      // A field tokenizer.
+    } else if (found_assignment) {
+      // Enclosure sequences appear immediately following assignment.
+      if (c == '"') {
+        found_enclose = true;
+      }
+      value += c;
+    } else if (c == '=') {
+      found_assignment = true;
+    } else {
+      key += c;
     }
-    // Assign the key/value pair.
-    ec->fields[key] = std::move(*field_it);
+  }
+
+  // Last step, if there was no trailing tokenizer.
+  if (!key.empty()) {
+    ec->fields[key] = value;
   }
 
   // There is a special field for syscalls.
@@ -280,7 +309,7 @@ Status AuditEventPublisher::run() {
     }
   }
 
-  if (status_.pid != getpid()) {
+  if (static_cast<pid_t>(status_.pid) != getpid()) {
     if (control_ && status_.pid != 0) {
       VLOG(1) << "Audit control lost to pid: " << status_.pid;
       // This process has lost control of audit.

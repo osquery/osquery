@@ -109,7 +109,7 @@ TEST_F(INotifyTests, test_register_event_pub) {
   EXPECT_TRUE(status.ok());
 
   // Make sure only one event type exists
-  EXPECT_EQ(EventFactory::numEventPublishers(), 1);
+  EXPECT_EQ(EventFactory::numEventPublishers(), 1U);
   // And deregister
   status = EventFactory::deregisterEventPublisher("inotify");
   EXPECT_TRUE(status.ok());
@@ -260,7 +260,7 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
   // Assume event type is registered.
   StartEventLoop();
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
-  sub->init();
+  EventFactory::registerEventSubscriber(sub);
 
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(real_test_path, 0);
@@ -278,7 +278,7 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   // Assume event type is registered.
   StartEventLoop();
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
-  sub->init();
+  EventFactory::registerEventSubscriber(sub);
 
   auto sc = sub->GetSubscription(real_test_path, 0);
   sub->subscribe(&TestINotifyEventSubscriber::Callback, sc, nullptr);
@@ -287,11 +287,9 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   sub->WaitForEvents(kMaxEventLatency, 4);
 
   // Make sure the inotify action was expected.
-  EXPECT_EQ(sub->actions().size(), 4);
+  EXPECT_EQ(sub->actions().size(), 2U);
   EXPECT_EQ(sub->actions()[0], "UPDATED");
-  EXPECT_EQ(sub->actions()[1], "OPENED");
-  EXPECT_EQ(sub->actions()[2], "UPDATED");
-  EXPECT_EQ(sub->actions()[3], "UPDATED");
+  EXPECT_EQ(sub->actions()[1], "UPDATED");
   StopEventLoop();
 }
 
@@ -315,7 +313,7 @@ TEST_F(INotifyTests, test_inotify_recursion) {
   StartEventLoop();
 
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
-  sub->init();
+  EventFactory::registerEventSubscriber(sub);
 
   boost::filesystem::create_directory(real_test_dir);
   boost::filesystem::create_directory(real_test_sub_dir);

@@ -33,44 +33,6 @@ FLAG(int32,
      3600,
      "Query interval to use if none is provided");
 
-Pack::Pack(const std::string& name, const pt::ptree& tree) {
-  initialize(name, "", tree);
-}
-
-Pack::Pack(const std::string& name,
-           const std::string& source,
-           const pt::ptree& tree) {
-  initialize(name, source, tree);
-}
-
-Pack::Pack(const std::string& name, const std::string& json) {
-  std::stringstream stream;
-  stream << json;
-  pt::ptree tree;
-  try {
-    pt::read_json(stream, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    LOG(ERROR) << "Error parsing pack JSON. Re-throwing the exception.";
-    throw;
-  }
-  initialize(name, "", tree);
-}
-
-Pack::Pack(const std::string& name,
-           const std::string& source,
-           const std::string& json) {
-  std::stringstream stream;
-  stream << json;
-  pt::ptree tree;
-  try {
-    pt::read_json(stream, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    LOG(ERROR) << "Error parsing pack JSON. Re-throwing the exception.";
-    throw;
-  }
-  initialize(name, source, tree);
-}
-
 int splayValue(int original, int splayPercent) {
   if (splayPercent <= 0 || splayPercent > 100) {
     return original;
@@ -109,39 +71,46 @@ void Pack::initialize(const std::string& name,
 
   platform_.clear();
   if (tree.count("platform") > 0) {
-    platform_ = tree.get<std::string>("platform");
+    platform_ = tree.get<std::string>("platform", "");
   }
 
   version_.clear();
   if (tree.count("version") > 0) {
-    version_ = tree.get<std::string>("version");
+    version_ = tree.get<std::string>("version", "");
   }
 
   schedule_.clear();
-  if (tree.count("queries") > 0) {
-    for (const auto& q : tree.get_child("queries")) {
-      if (q.second.count("platform")) {
-        if (!checkPlatform(q.second.get<std::string>("platform"))) {
-          continue;
-        }
-      }
+  if (tree.count("queries") == 0) {
+    // This pack contained no queries.
+    return;
+  }
 
-      if (q.second.count("version")) {
-        if (!checkVersion(q.second.get<std::string>("version"))) {
-          continue;
-        }
+  for (const auto& q : tree.get_child("queries")) {
+    if (q.second.count("platform")) {
+      if (!checkPlatform(q.second.get<std::string>("platform", ""))) {
+        continue;
       }
-
-      ScheduledQuery query;
-      query.interval =
-          q.second.get<int>("interval", FLAGS_schedule_default_interval);
-      query.splayed_interval =
-          splayValue(query.interval, FLAGS_schedule_splay_percent);
-      query.query = q.second.get<std::string>("query");
-      query.options["snapshot"] = q.second.get<bool>("snapshot", false);
-      query.options["removed"] = q.second.get<bool>("removed", true);
-      schedule_[q.first] = query;
     }
+
+    if (q.second.count("version")) {
+      if (!checkVersion(q.second.get<std::string>("version", ""))) {
+        continue;
+      }
+    }
+
+    ScheduledQuery query;
+    query.interval = q.second.get("interval", FLAGS_schedule_default_interval);
+    query.query = q.second.get<std::string>("query", "");
+    if (query.interval == 0 || query.query.empty()) {
+      // Invalid pack query.
+      continue;
+    }
+
+    query.splayed_interval =
+        splayValue(query.interval, FLAGS_schedule_splay_percent);
+    query.options["snapshot"] = q.second.get<bool>("snapshot", false);
+    query.options["removed"] = q.second.get<bool>("removed", true);
+    schedule_[q.first] = query;
   }
 }
 

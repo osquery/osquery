@@ -33,7 +33,7 @@ std::string base64Decode(const std::string& encoded) {
   is = encoded;
   boost::replace_all(is, "\r\n", "");
   boost::replace_all(is, "\n", "");
-  uint32_t size = is.size();
+  size_t size = is.size();
 
   // Remove the padding characters
   if (size && is[size - 1] == '=') {
@@ -61,7 +61,7 @@ std::string base64Encode(const std::string& unencoded) {
     return std::string();
   }
 
-  unsigned int writePaddChars = (3-unencoded.length()%3)%3;
+  size_t writePaddChars = (3U-unencoded.length()%3U)%3U;
   std::string base64(it_base64(unencoded.begin()), it_base64(unencoded.end()));
   base64.append(writePaddChars,'=');
   os << base64;

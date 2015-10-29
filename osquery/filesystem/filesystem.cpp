@@ -32,7 +32,6 @@ namespace osquery {
 
 FLAG(uint64, read_max, 50 * 1024 * 1024, "Maximum file read size");
 FLAG(uint64, read_user_max, 10 * 1024 * 1024, "Maximum non-su read size");
-FLAG(bool, read_user_links, true, "Read user-owned filesystem links");
 
 // See reference #1382 for reasons why someone would allow unsafe.
 HIDDEN_FLAG(bool, allow_unsafe, false, "Allow unsafe executable permissions");
@@ -57,8 +56,8 @@ Status writeTextFile(const fs::path& path,
     return Status(1, "Failed to change permissions for file: " + path.string());
   }
 
-  auto bytes = write(output_fd, content.c_str(), content.size());
-  if (bytes != content.size()) {
+  ssize_t bytes = write(output_fd, content.c_str(), content.size());
+  if (static_cast<size_t>(bytes) != content.size()) {
     close(output_fd);
     return Status(1, "Failed to write contents to file: " + path.string());
   }
@@ -67,40 +66,75 @@ Status writeTextFile(const fs::path& path,
   return Status(0, "OK");
 }
 
-Status readFile(const fs::path& path, std::string& content, bool dry_run) {
-  struct stat file;
-  if (lstat(path.string().c_str(), &file) == 0 && S_ISLNK(file.st_mode)) {
-    if (file.st_uid != 0 && !FLAGS_read_user_links) {
-      return Status(1, "User link reads disabled");
+struct OpenReadableFile {
+ public:
+  OpenReadableFile(const fs::path& path) {
+    // Obtain a file descriptor for the requested file read.
+    int pfd = open(path.parent_path().string().c_str(), O_RDONLY | O_NONBLOCK);
+    if (pfd < 0) {
+      fd = -1;
+      return;
+    }
+
+    struct stat file;
+    // If the process is running as root, drop privileges before reading.
+    // The process may have already dropped (if within a table), so act on E.
+    if (geteuid() == 0 && fstat(pfd, &file) >= 0 && file.st_uid != 0) {
+      dropped = true;
+      seteuid(file.st_uid);
+      setegid(file.st_gid);
+    }
+    close(pfd);
+
+    // Open the file descriptor and allow caller to perform error checking.
+    fd = open(path.string().c_str(), O_RDONLY | O_NONBLOCK);
+  }
+
+  ~OpenReadableFile() {
+    if (fd > 0) {
+      close(fd);
+    }
+
+    // If privileges were dropped for this file read, restore effective to real.
+    if (dropped) {
+      seteuid(getuid());
+      setegid(getgid());
     }
   }
 
-  if (stat(path.string().c_str(), &file) < 0) {
+  int fd{0};
+  bool dropped{false};
+};
+
+Status readFile(const fs::path& path,
+                std::string& content,
+                size_t size,
+                bool dry_run) {
+  auto handle = OpenReadableFile(path);
+  if (handle.fd < 0) {
+    return Status(1, "Cannot open file for reading: " + path.string());
+  }
+
+  struct stat file;
+  if (fstat(handle.fd, &file) < 0) {
     return Status(1, "Cannot access path: " + path.string());
   } else if (file.st_uid != 0 && S_ISFIFO(file.st_mode)) {
     return Status(1, "User FIFO reads are disabled");
   }
 
   // Apply the max byte-read based on file/link target ownership.
-  size_t read_max = (file.st_uid == 0)
-                        ? FLAGS_read_max
-                        : std::min(FLAGS_read_max, FLAGS_read_user_max);
-  std::ifstream is(path.string(), std::ifstream::binary | std::ios::ate);
-  if (!is.is_open()) {
-    // Attempt to read without seeking to the end.
-    is.open(path.string(), std::ifstream::binary);
-    if (!is) {
-      return Status(1, "Error reading file: " + path.string());
-    }
+  off_t read_max = (file.st_uid == 0)
+                       ? FLAGS_read_max
+                       : std::min(FLAGS_read_max, FLAGS_read_user_max);
+  off_t file_size = file.st_size;
+  if (file_size == 0 && size > 0) {
+    file_size = static_cast<off_t>(size);
   }
-
-  // Attempt to read the file size.
-  ssize_t size = is.tellg();
 
   // Erase/clear provided string buffer.
   content.erase();
-  if (size > read_max) {
-    VLOG(1) << "Cannot read " << path << " size exceeds limit: " << size
+  if (file_size > read_max) {
+    VLOG(1) << "Cannot read " << path << " size exceeds limit: " << file_size
             << " > " << read_max;
     return Status(1, "File exceeds read limits");
   }
@@ -111,26 +145,14 @@ Status readFile(const fs::path& path, std::string& content, bool dry_run) {
     return Status(0, fs::canonical(path, ec).string());
   }
 
-  // Reset seek to the start of the stream.
-  is.seekg(0);
-  if (size == -1 || size == 0) {
-    // Size could not be determined. This may be a special device.
-    std::stringstream buffer;
-    buffer << is.rdbuf();
-    if (is.bad()) {
-      return Status(1, "Error reading special file: " + path.string());
-    }
-    content.assign(std::move(buffer.str()));
-  } else {
-    content = std::string(size, '\0');
-    is.read(&content[0], size);
-  }
+  content = std::string(file_size, '\0');
+  read(handle.fd, &content[0], file_size);
   return Status(0, "OK");
 }
 
 Status readFile(const fs::path& path) {
   std::string blank;
-  return readFile(path, blank, true);
+  return readFile(path, blank, 0, true);
 }
 
 Status isWritable(const fs::path& path) {

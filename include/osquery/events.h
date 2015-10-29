@@ -781,16 +781,35 @@ class EventSubscriber : public EventSubscriberPlugin {
   /// Set the subscriber state.
   void state(EventSubscriberState state) { state_ = state; }
 
-  EventSubscriber() : EventSubscriberPlugin(), state_(SUBSCRIBER_NONE) {}
+  EventSubscriber(bool enabled = true)
+      : EventSubscriberPlugin(), disabled(!enabled), state_(SUBSCRIBER_NONE) {}
+
+ protected:
+  /**
+   * @brief Allow subscriber implementations to default disable themselves.
+   *
+   * A subscriber may induce latency on a system within the callback routines.
+   * Before the initialization and set up is performed the EventFactory can
+   * choose to exclude a subscriber if it is not explicitly enabled within
+   * the config.
+   *
+   * EventSubscriber%s that should be default-disabled should set this flag
+   * in their constructor or worst case before EventSubsciber::init.
+   */
+  bool disabled{false};
 
  private:
   /// The event subscriber's run state.
   EventSubscriberState state_;
 
  private:
+  friend class EventFactory;
+
+ private:
   FRIEND_TEST(EventsTests, test_event_sub);
   FRIEND_TEST(EventsTests, test_event_sub_subscribe);
   FRIEND_TEST(EventsTests, test_event_sub_context);
+  FRIEND_TEST(EventsTests, test_event_toggle_subscribers);
 };
 
 /**

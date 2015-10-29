@@ -14,7 +14,6 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
-#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 namespace osquery {
@@ -28,6 +27,9 @@ const std::map<int, std::string> kLinuxProtocolNames = {
     {IPPROTO_UDPLITE, "udplite"},
     {IPPROTO_RAW, "raw"},
 };
+
+// A map of socket handles (inodes) to their pid and file descriptor.
+typedef std::map<std::string, std::pair<std::string, std::string> > InodeMap;
 
 std::string addressFromHex(const std::string &encoded_address, int family) {
   char addr_buffer[INET6_ADDRSTRLEN] = {0};
@@ -50,7 +52,7 @@ std::string addressFromHex(const std::string &encoded_address, int family) {
     }
   }
 
-  return TEXT(addr_buffer);
+  return std::string(addr_buffer);
 }
 
 unsigned short portFromHex(const std::string &encoded_port) {
@@ -61,7 +63,7 @@ unsigned short portFromHex(const std::string &encoded_port) {
   return decoded;
 }
 
-void genSocketsFromProc(const std::map<std::string, std::string> &inodes,
+void genSocketsFromProc(const InodeMap &inodes,
                         int protocol,
                         int family,
                         QueryData &results) {
@@ -133,9 +135,11 @@ void genSocketsFromProc(const std::map<std::string, std::string> &inodes,
     }
 
     if (inodes.count(r["socket"]) > 0) {
-      r["pid"] = inodes.at(r["socket"]);
+      r["pid"] = inodes.at(r["socket"]).second;
+      r["fd"] = inodes.at(r["socket"]).first;
     } else {
       r["pid"] = "-1";
+      r["fd"] = "-1";
     }
 
     results.push_back(r);
@@ -154,7 +158,7 @@ QueryData genOpenSockets(QueryContext &context) {
   }
 
   // Generate a map of socket inode to process tid.
-  std::map<std::string, std::string> socket_inodes;
+  InodeMap socket_inodes;
   for (const auto &process : pids) {
     std::map<std::string, std::string> descriptors;
     if (osquery::procDescriptors(process, descriptors).ok()) {
@@ -162,7 +166,8 @@ QueryData genOpenSockets(QueryContext &context) {
         if (fd.second.find("socket:[") == 0) {
           // See #792: std::regex is incomplete until GCC 4.9 (skip 8 chars)
           auto inode = fd.second.substr(8);
-          socket_inodes[inode.substr(0, inode.size() - 1)] = process;
+          socket_inodes[inode.substr(0, inode.size() - 1)] =
+              std::make_pair(fd.first, process);
         }
       }
     }

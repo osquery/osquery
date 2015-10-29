@@ -1,6 +1,6 @@
 ## Dependencies
 
-We include a `make deps` command to make it easier for developers to get started with the osquery project. `make deps` uses Homebrew for OS X and traditional package managers for various distributions of Linux.
+We include a `make deps` command to make it easier for developers to get started with the osquery project. `make deps` uses Homebrew for OS X and traditional package managers for various distributions of Linux. Please have sudo installed before running `make deps`.
 
 WARNING: This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
 
@@ -160,6 +160,8 @@ SDK_VERSION=9.9.9 # Set a wacky SDK-version string
 SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
 OPTIMIZED=True # Disable generic CPU optimizations
 SKIP_TESTS=True # Skip unit test building (very very not recommended!)
+SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets
+OSX_VERSION_MIN=10.11 # Override the native minimum OS X version ABI
 ```
 
 ## Custom Packages

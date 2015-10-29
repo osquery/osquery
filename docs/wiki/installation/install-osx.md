@@ -6,10 +6,10 @@ Each tagged release of osquery may be installed on all versions of OS X.
 
 ## Package Installation
 
-If you plan to manage an enterprise osquery deployment, the easiest installation method is an OS X package installer. You would have to manage and deploy updates, but there are no libraries required or other dependencies.
+If you plan to manage an enterprise osquery deployment, the easiest installation method is an OS X package installer. You will have to manage and deploy updates.
 
 Each osquery tag (release) builds an OS X package:
-[osquery.io/downloads](https://osquery.io/downloads/).
+[osquery.io/downloads](https://osquery.io/downloads/). There are no package or library dependencies.
 
 The default package creates the following structure:
 
@@ -17,14 +17,14 @@ The default package creates the following structure:
 /private/var/osquery/com.facebook.osqueryd.plist
 /private/var/osquery/osquery.example.conf
 /private/var/log/osquery/
-/private/var/osquery/packs/
+/private/var/osquery/packs/{*}.conf
 /usr/local/lib/osquery/
 /usr/local/bin/osqueryctl
 /usr/local/bin/osqueryd
 /usr/local/bin/osqueryi
 ```
 
-This package does NOT install a LaunchDaemon to start osqueryd. You may use the `osqueryctl` script to copy the sample launch daemon job plist and associated configuration into place.
+This package does NOT install a LaunchDaemon to start **osqueryd**. You may use the `osqueryctl start` script to copy the sample launch daemon job plist and associated configuration into place.
 
 ## Homebrew Installation
 
@@ -46,12 +46,14 @@ $ brew upgrade osquery
 
 ## Running osquery
 
-To start a standalone osquery use: `$ osqueryi`. This does not need a server or service. All the table implementations are included!
+To start a standalone osquery use: `osqueryi`. This does not need a server or service. All the table implementations are included!
 
-After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to the `osqueryd`, the daemon, tool. To start the daemon as a LaunchDaemon:
+After exploring the rest of the documentation you should understand the basics of configuration and logging. These and most other concepts apply to **osqueryd**, the daemon, tool. To start the daemon as a LaunchDaemon:
 
-- `sudo cp /var/osquery/osquery.example.conf /var/osquery/osquery.conf`
-- `sudo cp /var/osquery/com.facebook.osqueryd.plist /Library/LaunchDaemons`
-- `sudo launchctl load /Library/LaunchDaemons/com.facebook.osqueryd.plist`
+```
+$ sudo cp /var/osquery/osquery.example.conf /var/osquery/osquery.conf
+$ sudo cp /var/osquery/com.facebook.osqueryd.plist /Library/LaunchDaemons/
+$ sudo launchctl load /Library/LaunchDaemons/com.facebook.osqueryd.plist
+```
 
 Note: The interactive shell and daemon do NOT communicate!

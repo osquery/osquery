@@ -20,7 +20,7 @@
 namespace osquery {
 namespace tables {
 
-void parseIpEntry(ipt_ip *ip, Row &row);
+void parseIpEntry(const ipt_ip *ip, Row &row);
 
 ipt_ip* getIpEntryContent() {
   static ipt_ip ip_entry;

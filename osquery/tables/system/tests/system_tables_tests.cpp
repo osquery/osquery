@@ -25,7 +25,7 @@ class SystemsTablesTests : public testing::Test {};
 TEST_F(SystemsTablesTests, test_os_version) {
   QueryContext context;
   auto result = genOSVersion(context);
-  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.size(), 1U);
 
   // Make sure major and minor contain data (a missing value of -1 is an error).
   EXPECT_FALSE(result[0]["major"].empty());

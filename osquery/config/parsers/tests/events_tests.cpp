@@ -35,10 +35,10 @@ TEST_F(EventsConfigParserPluginTests, test_get_event) {
 
   auto plugin = Config::getInstance().getParser("events");
   EXPECT_TRUE(plugin != nullptr);
-  auto data = plugin->getData();
+  const auto& data = plugin->getData();
 
-  EXPECT_EQ(data.count("events"), 1);
-  EXPECT_GT(data.get_child("events").count("environment_variables"), 0);
+  EXPECT_EQ(data.count("events"), 1U);
+  EXPECT_GT(data.get_child("events").count("environment_variables"), 0U);
   for (const auto& var : data.get_child("events.environment_variables")) {
     EXPECT_TRUE(var.second.data() == "foo" || var.second.data() == "bar");
   }

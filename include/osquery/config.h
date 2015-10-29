@@ -17,11 +17,8 @@
 
 #include <boost/iterator/filter_iterator.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/thread/shared_mutex.hpp>
 
 #include <osquery/core.h>
-#include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
@@ -205,7 +202,9 @@ class Config {
   /**
    * @brief Add a pack to the osquery schedule
    */
-  void addPack(const Pack& pack);
+  void addPack(const std::string& name,
+               const std::string& source,
+               const boost::property_tree::ptree& tree);
 
   /**
    * @brief Remove a pack from the osquery schedule
@@ -297,11 +296,15 @@ class Config {
       const std::string& parser);
 
  protected:
+  /// A step method for Config::update.
+  Status updateSource(const std::string& name, const std::string& json);
+
+ protected:
   Schedule schedule_;
   std::map<std::string, QueryPerformance> performance_;
   std::map<std::string, std::vector<std::string> > files_;
   std::map<std::string, std::string> hash_;
-  bool valid_;
+  bool valid_{false};
 
  private:
   FRIEND_TEST(ConfigTests, test_parse);
@@ -461,7 +464,7 @@ class ConfigParserPlugin : public Plugin {
 
   Status setUp();
 
-  boost::property_tree::ptree getData() { return data_; }
+  const boost::property_tree::ptree& getData() const { return data_; }
 
  protected:
   /// Allow the config parser to keep some global state.

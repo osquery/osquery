@@ -27,7 +27,6 @@ namespace osquery {
 
 DECLARE_uint64(read_max);
 DECLARE_uint64(read_user_max);
-DECLARE_bool(read_user_links);
 
 class FilesystemTests : public testing::Test {
 
@@ -63,6 +62,23 @@ TEST_F(FilesystemTests, test_read_symlink) {
   EXPECT_EQ(content, "root");
 }
 
+TEST_F(FilesystemTests, test_read_zero) {
+  std::string content;
+  auto status = readFile("/dev/zero", content, 10);
+  EXPECT_EQ(content.size(), 10);
+  for (size_t i = 0; i < 10; i++) {
+    EXPECT_EQ(content[i], 0);
+  }
+}
+
+TEST_F(FilesystemTests, test_read_urandom) {
+  std::string first, second;
+  auto status = readFile("/dev/urandom", first, 10);
+  EXPECT_TRUE(status.ok());
+  status = readFile("/dev/urandom", second, 10);
+  EXPECT_NE(first, second);
+}
+
 TEST_F(FilesystemTests, test_read_limit) {
   auto max = FLAGS_read_max;
   auto user_max = FLAGS_read_user_max;
@@ -79,20 +95,12 @@ TEST_F(FilesystemTests, test_read_limit) {
     EXPECT_FALSE(status.ok());
     FLAGS_read_user_max = user_max;
 
-    // Test that user symlinks aren't followed if configured.
-    // 'root2.txt' is a symlink in this case.
-    FLAGS_read_user_links = false;
-    content.erase();
-    status = readFile(kFakeDirectory + "/root2.txt", content);
-    EXPECT_FALSE(status.ok());
-
     // Make sure non-link files are still readable.
     content.erase();
     status = readFile(kFakeDirectory + "/root.txt", content);
     EXPECT_TRUE(status.ok());
 
-    // Any the links are readable if enabled.
-    FLAGS_read_user_links = true;
+    // Any the links are readable too.
     status = readFile(kFakeDirectory + "/root2.txt", content);
     EXPECT_TRUE(status.ok());
   }
@@ -146,17 +154,17 @@ TEST_F(FilesystemTests, test_simple_globs) {
   // Test the shell '*', we will support SQL's '%' too.
   auto status = resolveFilePattern(kFakeDirectory + "/*", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 6);
+  EXPECT_EQ(results.size(), 6U);
 
   // Test the csh-style bracket syntax: {}.
   results.clear();
   resolveFilePattern(kFakeDirectory + "/{root,door}*", results);
-  EXPECT_EQ(results.size(), 3);
+  EXPECT_EQ(results.size(), 3U);
 
   // Test a tilde, home directory expansion, make no asserts about contents.
   results.clear();
   resolveFilePattern("~", results);
-  if (results.size() == 0) {
+  if (results.size() == 0U) {
     LOG(WARNING) << "Tilde expansion failed";
   }
 }
@@ -166,7 +174,7 @@ TEST_F(FilesystemTests, test_wildcard_single_all) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(kFakeDirectory + "/%", results, GLOB_ALL);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 6);
+  EXPECT_EQ(results.size(), 6U);
   EXPECT_TRUE(contains(results, kFakeDirectory + "/roto.txt"));
   EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/"));
 }
@@ -175,14 +183,14 @@ TEST_F(FilesystemTests, test_wildcard_single_files) {
   // Now list again with a restriction to only files.
   std::vector<std::string> results;
   resolveFilePattern(kFakeDirectory + "/%", results, GLOB_FILES);
-  EXPECT_EQ(results.size(), 4);
+  EXPECT_EQ(results.size(), 4U);
   EXPECT_TRUE(contains(results, kFakeDirectory + "/roto.txt"));
 }
 
 TEST_F(FilesystemTests, test_wildcard_single_folders) {
   std::vector<std::string> results;
   resolveFilePattern(kFakeDirectory + "/%", results, GLOB_FOLDERS);
-  EXPECT_EQ(results.size(), 2);
+  EXPECT_EQ(results.size(), 2U);
   EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/"));
 }
 
@@ -199,14 +207,14 @@ TEST_F(FilesystemTests, test_wildcard_double) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(kFakeDirectory + "/%%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 15);
+  EXPECT_EQ(results.size(), 15U);
   EXPECT_TRUE(contains(results, kFakeDirectory + "/deep1/deep2/level2.txt"));
 }
 
 TEST_F(FilesystemTests, test_wildcard_double_folders) {
   std::vector<std::string> results;
   resolveFilePattern(kFakeDirectory + "/%%", results, GLOB_FOLDERS);
-  EXPECT_EQ(results.size(), 5);
+  EXPECT_EQ(results.size(), 5U);
   EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/deep2/deep3/"));
 }
 
@@ -221,7 +229,7 @@ TEST_F(FilesystemTests, test_wildcard_middle_component) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(kFakeDirectory + "/deep1%/%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 5);
+  EXPECT_EQ(results.size(), 5U);
   EXPECT_TRUE(contains(results, kFakeDirectory + "/deep1/level1.txt"));
   EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/level1.txt"));
 }
@@ -238,7 +246,7 @@ TEST_F(FilesystemTests, test_wildcard_invalid_path) {
   std::vector<std::string> results;
   auto status = resolveFilePattern("/not_ther_abcdefz/%%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 0);
+  EXPECT_EQ(results.size(), 0U);
 }
 
 TEST_F(FilesystemTests, test_wildcard_dotdot_files) {
@@ -246,7 +254,7 @@ TEST_F(FilesystemTests, test_wildcard_dotdot_files) {
   auto status = resolveFilePattern(
       kFakeDirectory + "/deep11/deep2/../../%", results, GLOB_FILES);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 4);
+  EXPECT_EQ(results.size(), 4U);
   // The response list will contain canonicalized versions: /tmp/<tests>/...
   std::string door_path = kFakeDirectory + "/deep11/deep2/../../door.txt";
   replaceGlobWildcards(door_path);
@@ -273,7 +281,7 @@ TEST_F(FilesystemTests, test_no_wild) {
   auto status =
       resolveFilePattern(kFakeDirectory + "/roto.txt", results, GLOB_FILES);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(results.size(), 1U);
   EXPECT_TRUE(contains(results, kFakeDirectory + "/roto.txt"));
 }
 

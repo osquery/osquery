@@ -25,6 +25,11 @@ function main() {
   distro $OS DISTRO
   threads THREADS
 
+  if [[ ! -f /usr/bin/sudo ]]; then
+   echo "Please install sudo in this machine"
+   exit 0
+  fi
+
   if [[ $1 = "get_platform" ]]; then
     echo "$OS;$DISTRO"
     return 0

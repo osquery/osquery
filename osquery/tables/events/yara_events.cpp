@@ -41,7 +41,7 @@ typedef FSEventsEventContextRef FileEventContextRef;
 typedef EventSubscriber<INotifyEventPublisher> FileEventSubscriber;
 typedef INotifyEventContextRef FileEventContextRef;
 #define FILE_CHANGE_MASK \
-  IN_CREATE | IN_CLOSE_WRITE | IN_MODIFY
+  ( (IN_CREATE) | (IN_CLOSE_WRITE) | (IN_MODIFY) )
 #endif
 
 /**
@@ -157,8 +157,7 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   // Use the category as a lookup into the yara file_paths. The value will be
   // a list of signature groups to scan with.
   auto category = r.at("category");
-  pt::ptree yara_config;
-  yara_config = parser->getData();
+  const auto& yara_config = parser->getData();
   const auto& yara_paths = yara_config.get_child("file_paths");
   const auto& sig_groups = yara_paths.find(category);
   for (const auto& rule : sig_groups->second) {

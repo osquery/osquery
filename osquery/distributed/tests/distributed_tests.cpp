@@ -92,13 +92,13 @@ TEST_F(DistributedTests, test_workflow) {
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 
-  EXPECT_EQ(dist.getPendingQueryCount(), 2);
-  EXPECT_EQ(dist.results_.size(), 0);
+  EXPECT_EQ(dist.getPendingQueryCount(), 2U);
+  EXPECT_EQ(dist.results_.size(), 0U);
   s = dist.runQueries();
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 
-  EXPECT_EQ(dist.getPendingQueryCount(), 0);
-  EXPECT_EQ(dist.results_.size(), 2);
+  EXPECT_EQ(dist.getPendingQueryCount(), 0U);
+  EXPECT_EQ(dist.results_.size(), 2U);
 }
 }

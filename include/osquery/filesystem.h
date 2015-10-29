@@ -48,6 +48,7 @@ const std::string kSQLGlobRecursive = kSQLGlobWildcard + kSQLGlobWildcard;
  */
 Status readFile(const boost::filesystem::path& path,
                 std::string& content,
+                size_t size = 0,
                 bool dry_run = false);
 
 /**

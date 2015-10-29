@@ -2,7 +2,8 @@ table_name("process_open_sockets")
 description("Processes which have open network sockets on the system.")
 schema([
     Column("pid", INTEGER, "Process (or thread) ID", index=True),
-    Column("socket", INTEGER, "Socket descriptor number"),
+    Column("fd", BIGINT, "Socket file descriptor number"),
+    Column("socket", BIGINT, "Socket handle or inode number"),
     Column("family", INTEGER, "Network protocol (IPv4, IPv6)"),
     Column("protocol", INTEGER, "Transport protocol (TCP/UDP)"),
     Column("local_address", TEXT, "Socket local address"),

@@ -136,19 +136,19 @@ void DBHandle::open() {
   auto s =
       rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
   if (!s.ok() || db_ == nullptr) {
-#if defined(ROCKSDB_LITE)
-    // RocksDB LITE does not support readonly mode.
-    VLOG(1) << "Opening RocksDB failed: Continuing without storage support";
-#else
+    if (require_write_) {
+      // A failed open in R/W mode is a runtime error.
+      throw std::runtime_error(s.ToString());
+    }
+
     VLOG(1) << "Opening RocksDB failed: Continuing with read-only support";
+#if !defined(ROCKSDB_LITE)
+    // RocksDB LITE does not support readonly mode.
     // The database was readable but could not be opened, either (1) it is not
     // writable or (2) it is already opened by another process.
     // Try to open the database in a ReadOnly mode.
-    s = rocksdb::DB::OpenForReadOnly(
+    rocksdb::DB::OpenForReadOnly(
         options_, path_, column_families_, &handles_, &db_);
-    if (!s.ok()) {
-      throw std::runtime_error(s.ToString());
-    }
 #endif
     // Also disable event publishers.
     Flag::updateValue("disable_events", "true");
@@ -182,17 +182,20 @@ DBHandleRef DBHandle::getInstance() {
   return getInstance(FLAGS_database_path, FLAGS_database_in_memory);
 }
 
-bool DBHandle::checkDB() {
+bool DBHandle::checkDB(bool require_write) {
   // Allow database instances to check if a status/sanity check was requested.
   kCheckingDB = true;
   try {
     auto handle = DBHandle(FLAGS_database_path, FLAGS_database_in_memory);
+    kCheckingDB = false;
+    if (require_write && handle.read_only_) {
+      return false;
+    }
   } catch (const std::exception& e) {
     kCheckingDB = false;
     VLOG(1) << e.what();
     return false;
   }
-  kCheckingDB = false;
   return true;
 }
 
@@ -226,7 +229,7 @@ rocksdb::DB* DBHandle::getDB() const { return db_; }
 rocksdb::ColumnFamilyHandle* DBHandle::getHandleForColumnFamily(
     const std::string& cf) const {
   try {
-    for (int i = 0; i < kDomains.size(); i++) {
+    for (size_t i = 0; i < kDomains.size(); i++) {
       if (kDomains[i] == cf) {
         return handles_[i];
       }

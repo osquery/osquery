@@ -123,7 +123,7 @@ Status INotifyEventPublisher::run() {
   struct timeval timeout = {1, 0};
   int selector = ::select(getHandle() + 1, &set, nullptr, nullptr, &timeout);
   if (selector == -1) {
-    LOG(ERROR) << "Could not read inotify handle";
+    LOG(WARNING) << "Could not read inotify handle";
     return Status(1, "INotify handle failed");
   }
 
@@ -220,9 +220,13 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
 bool INotifyEventPublisher::addMonitor(const std::string& path,
                                        bool recursive) {
   if (!isPathMonitored(path)) {
-    int watch = ::inotify_add_watch(getHandle(), path.c_str(), IN_ALL_EVENTS);
+    int watch =
+        ::inotify_add_watch(getHandle(),
+                            path.c_str(),
+                            (IN_MODIFY | IN_ATTRIB | IN_MOVE | IN_CREATE |
+                             IN_DELETE | IN_DELETE_SELF | IN_MOVE_SELF));
     if (watch == -1) {
-      LOG(ERROR) << "Could not add inotify watch on: " << path;
+      LOG(WARNING) << "Could not add inotify watch on: " << path;
       return false;
     }
 

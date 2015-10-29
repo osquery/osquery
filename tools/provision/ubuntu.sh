@@ -97,13 +97,14 @@ function main_ubuntu() {
     install_libtool
     install_boost
   else
-    package clang-3.5
-    package clang-format-3.5
+    package clang-3.6
+    package clang-format-3.6
 
-    sudo ln -sf /usr/bin/clang-3.5 /usr/bin/clang
-    sudo ln -sf /usr/bin/clang++-3.5 /usr/bin/clang++
-    sudo ln -sf /usr/bin/clang-format-3.5 /usr/bin/clang-format
-    sudo ln -sf /usr/bin/llvm-config-3.5 /usr/bin/llvm-config
+    sudo ln -sf /usr/bin/clang-3.6 /usr/bin/clang
+    sudo ln -sf /usr/bin/clang++-3.6 /usr/bin/clang++
+    sudo ln -sf /usr/bin/clang-format-3.6 /usr/bin/clang-format
+    sudo ln -sf /usr/bin/llvm-config-3.6 /usr/bin/llvm-config
+    sudo ln -sf /usr/bin/llvm-symbolizer-3.6 /usr/bin/llvm-symbolizer
 
     package pkg-config
     package autoconf

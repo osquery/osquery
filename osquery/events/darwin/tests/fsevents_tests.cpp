@@ -252,7 +252,7 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
 
   // Simulate registering an event subscriber.
   auto sub = std::make_shared<TestFSEventsEventSubscriber>();
-  auto status = sub->init();
+  EventFactory::registerEventSubscriber(sub);
 
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(0);
@@ -277,6 +277,7 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
 
   auto sc = sub->GetSubscription(0);
   EventFactory::registerEventSubscriber(sub);
+
   sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc, nullptr);
   CreateEvents();
   sub->WaitForEvents(kMaxEventLatency, 1);

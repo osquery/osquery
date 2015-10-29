@@ -52,7 +52,7 @@ QueryData genMounts(QueryContext &context) {
   }
   endmntent(mounts);
 
-  return std::move(results);
+  return results;
 }
 }
 }

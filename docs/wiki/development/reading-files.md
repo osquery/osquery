@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
 }
 ```
 
-In order to internalize the main API, consider the same example without error checking:
+To internalize the main API, consider the same example without error checking:
 
 ```cpp
 #include <iostream>
@@ -39,7 +39,7 @@ In order to internalize the main API, consider the same example without error ch
 int main(int argc, char* argv[]) {
   std::string content;
   osquery::readFile("/foo/bar.txt", content);
-  std::cout << "Contents of " << kPath << ":\n" << content;
+  std::cout << "Contents of " << "/foo/bar.txt" << ":\n" << content;
   return 0;
 }
 ```

@@ -43,7 +43,7 @@ TEST_F(AuditTests, test_handle_reply) {
 
   // A 'fake' audit message.
   std::string message =
-      "audit(1440542781.644:403030): argc=3 a0=\"/bin/sh\" a1=\"-c\" a2=\"h\"";
+      "audit(1440542781.644:403030): argc=3 a0=\"H=1 \" a1=\"/bin/sh\" a2=c";
 
   reply.type = 1;
   reply.len = message.size();
@@ -56,10 +56,13 @@ TEST_F(AuditTests, test_handle_reply) {
   free((char*)reply.message);
 
   EXPECT_EQ(reply.type, ec->type);
-  EXPECT_EQ(ec->fields.size(), 4);
-  EXPECT_EQ(ec->fields.count("argc"), 1);
+  EXPECT_EQ(ec->preamble, "audit(1440542781.644:403030)");
+  EXPECT_EQ(ec->fields.size(), 4U);
+  EXPECT_EQ(ec->fields.count("argc"), 1U);
   EXPECT_EQ(ec->fields["argc"], "3");
-  EXPECT_EQ(ec->fields["a0"], "\"/bin/sh\"");
+  EXPECT_EQ(ec->fields["a0"], "\"H=1 \"");
+  EXPECT_EQ(ec->fields["a1"], "\"/bin/sh\"");
+  EXPECT_EQ(ec->fields["a2"], "c");
 }
 
 TEST_F(AuditTests, test_audit_value_decode) {

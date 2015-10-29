@@ -32,7 +32,7 @@ TEST_F(TablesTests, test_constraint_list) {
 
   // The constraint list is a simple struct.
   cl.add(constraint);
-  EXPECT_EQ(cl.constraints_.size(), 1);
+  EXPECT_EQ(cl.constraints_.size(), 1U);
 
   constraint = Constraint(EQUALS);
   constraint.expr = "some_other";
@@ -41,10 +41,10 @@ TEST_F(TablesTests, test_constraint_list) {
   constraint = Constraint(GREATER_THAN);
   constraint.expr = "more_than";
   cl.add(constraint);
-  EXPECT_EQ(cl.constraints_.size(), 3);
+  EXPECT_EQ(cl.constraints_.size(), 3U);
 
   auto all_equals = cl.getAll(EQUALS);
-  EXPECT_EQ(all_equals.size(), 2);
+  EXPECT_EQ(all_equals.size(), 2U);
 }
 
 TEST_F(TablesTests, test_constraint_matching) {

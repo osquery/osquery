@@ -108,7 +108,8 @@ void genSocketDescriptor(int pid, int descriptor, QueryData &results) {
     Row r;
 
     r["pid"] = INTEGER(pid);
-    r["socket"] = INTEGER(descriptor);
+    r["fd"] = BIGINT(descriptor);
+    r["socket"] = BIGINT(si.psi.soi_so);
     r["path"] = "";
 
     // Darwin/OSX SOCKINFO_TCP is not IPPROTO_TCP
