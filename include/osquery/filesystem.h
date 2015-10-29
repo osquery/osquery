@@ -123,6 +123,20 @@ Status listDirectoriesInDirectory(const boost::filesystem::path& path,
                                   bool ignore_error = 1);
 
 /**
+ * @brief List all of the directories in a specific directory, recursively.
+ *
+ * @param path the path which you would like to list
+ * @param results a non-const reference to a vector which will be populated
+ * with the directory listing of the path param, assuming that all operations
+ * completed successfully.
+ *
+ * @return an instance of Status, indicating success or failure.
+ */
+Status listDirectoriesInDirectoryRecursively(const boost::filesystem::path& path,
+                                  std::vector<std::string>& results,
+                                  bool ignore_error = 1);
+
+/**
  * @brief Given a filesystem globbing patten, resolve all matching paths.
  *
  * @code{.cpp}

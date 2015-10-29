@@ -304,6 +304,12 @@ Status listDirectoriesInDirectory(const fs::path& path,
   return listInAbsoluteDirectory((path / "*"), results, GLOB_FOLDERS);
 }
 
+Status listDirectoriesInDirectoryRecursively(const fs::path& path,
+                                  std::vector<std::string>& results,
+                                  bool ignore_error) {
+  return listInAbsoluteDirectory((path / "**"), results, GLOB_FOLDERS);
+}
+
 Status getDirectory(const fs::path& path, fs::path& dirpath) {
   if (!isDirectory(path).ok()) {
     dirpath = fs::path(path).parent_path().string();
