@@ -23,7 +23,7 @@ namespace osquery {
 namespace tables {
 
 const std::vector<std::string> kShellHistoryFiles = {
-    ".bash_history", ".zsh_history", ".zhistory", ".history",
+    ".bash_history", ".zsh_history", ".zhistory", ".history",".sh_history",
 };
 
 void genShellHistoryForUser(const std::string& username,
