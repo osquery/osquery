@@ -11,45 +11,46 @@
 #include <string>
 #include <vector>
 
-#include <pwd.h>
-
+#include <regex>
 #include <osquery/core.h>
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
-#include <osquery/logger.h>
 #include <osquery/sql.h>
 
 namespace osquery {
 namespace tables {
 
-const std::vector<std::string> kShellHistoryFiles = {
-    ".bash_history", ".zsh_history", ".zhistory", ".history",".sh_history",
+const std::vector<std::string> kSSHAuthorizedkeys = {
+    ".ssh/authorized_keys",".ssh/authorized_keys2"
 };
 
-void genShellHistoryForUser(const std::string& username,
+void genSSHkeysForUser(const std::string& username,
                             const std::string& directory,
                             QueryData& results) {
-  for (const auto& hfile : kShellHistoryFiles) {
-    boost::filesystem::path history_file = directory;
-    history_file /= hfile;
+  for (const auto& kfile : kSSHAuthorizedkeys) {
+    boost::filesystem::path keys_file = directory;
+    keys_file /= kfile;
 
-    std::string history_content;
-    if (!readFile(history_file, history_content).ok()) {
-      // Cannot read a specific history file.
+    std::string keys_content;
+    if (!readFile(keys_file, keys_content).ok()) {
+      // Cannot read a specific keys file.
       continue;
     }
-
-    for (const auto& line : split(history_content, "\n")) {
-      Row r;
-      r["username"] = username;
-      r["command"] = line;
-      r["history_file"] = history_file.string();
-      results.push_back(r);
+    //Protocol 1 public key consist of: options, bits, exponent, modulus, comment
+    //Protocol 2 public key consist of: options, keytype, base64-encoded key, comment.
+    for (const auto& line : split(keys_content, "\n")) {
+      if (line[0] != '#') {
+        Row r;
+        r["username"] = username;
+        r["key"] = line;
+        r["key_file"] = keys_file.string();
+        results.push_back(r);
+      }
     }
   }
 }
 
-QueryData genShellHistory(QueryContext& context) {
+QueryData getAuthorizedKeys(QueryContext& context) {
   QueryData results;
 
   // Select only the home directory for this user.
@@ -69,7 +70,7 @@ QueryData genShellHistory(QueryContext& context) {
   // Iterate over each user
   for (const auto& row : users) {
     if (row.count("username") > 0 && row.count("directory") > 0) {
-      genShellHistoryForUser(row.at("username"), row.at("directory"), results);
+       genSSHkeysForUser(row.at("username"), row.at("directory"), results);
     }
   }
 
