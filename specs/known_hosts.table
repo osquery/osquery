@@ -1,0 +1,10 @@
+table_name("known_hosts")
+description("A line-delimited known_hosts table of per-user")
+schema([
+    Column("username", TEXT, "authorized_keys of owner",
+      additional=True),
+    Column("key", TEXT, "parsed authorized keys line"),
+    Column("key_file", TEXT, "Path to the authorized_keys for this user"),
+    ForeignKey(column="username", table="users"),
+])
+implementation("known_hosts@getKnownHostsKeys")
