@@ -95,18 +95,19 @@ Status isReadable(const boost::filesystem::path& path);
 Status pathExists(const boost::filesystem::path& path);
 
 /**
- * @brief List all of the files in a specific directory, non-recursively.
+ * @brief List all of the files in a specific directory.
  *
  * @param path the path which you would like to list.
  * @param results a non-const reference to a vector which will be populated
  * with the directory listing of the path param, assuming that all operations
  * completed successfully.
+ * @param recursive should the listing descend recursively into the directory.
  *
  * @return an instance of Status, indicating success or failure.
  */
 Status listFilesInDirectory(const boost::filesystem::path& path,
                             std::vector<std::string>& results,
-                            bool ignore_error = 1);
+                            bool recursive = false);
 
 /**
  * @brief List all of the directories in a specific directory, non-recursively.
@@ -115,12 +116,13 @@ Status listFilesInDirectory(const boost::filesystem::path& path,
  * @param results a non-const reference to a vector which will be populated
  * with the directory listing of the path param, assuming that all operations
  * completed successfully.
+ * @param recursive should the listing descend recursively into the directory.
  *
  * @return an instance of Status, indicating success or failure.
  */
 Status listDirectoriesInDirectory(const boost::filesystem::path& path,
                                   std::vector<std::string>& results,
-                                  bool ignore_error = 1);
+                                  bool recursive = false);
 
 /**
  * @brief Given a filesystem globbing patten, resolve all matching paths.
