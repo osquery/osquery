@@ -98,6 +98,12 @@ std::string hashFromFile(HashType hash_type, const std::string& path) {
     return "";
   }
 
+  // Drop privileges to the user controlling the file.
+  auto dropper = DropPrivileges::get();
+  if (!dropper->dropToParent(path)) {
+    return "";
+  }
+
   Hash hash(hash_type);
   // Use the canonicalized path returned from a successful readFile dry-run.
   FILE* file = fopen(status.what().c_str(), "rb");

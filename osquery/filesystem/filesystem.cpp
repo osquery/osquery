@@ -13,7 +13,6 @@
 #include <fcntl.h>
 #include <glob.h>
 #include <pwd.h>
-#include <sys/stat.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -69,41 +68,23 @@ Status writeTextFile(const fs::path& path,
 struct OpenReadableFile {
  public:
   OpenReadableFile(const fs::path& path) {
-    // Obtain a file descriptor for the requested file read.
-    int pfd = open(path.parent_path().string().c_str(), O_RDONLY | O_NONBLOCK);
-    if (pfd < 0) {
-      fd = -1;
-      return;
+    dropper_ = DropPrivileges::get();
+    if (dropper_->dropToParent(path)) {
+      // Open the file descriptor and allow caller to perform error checking.
+      fd = open(path.string().c_str(), O_RDONLY | O_NONBLOCK);
     }
-
-    struct stat file;
-    // If the process is running as root, drop privileges before reading.
-    // The process may have already dropped (if within a table), so act on E.
-    if (geteuid() == 0 && fstat(pfd, &file) >= 0 && file.st_uid != 0) {
-      dropped = true;
-      seteuid(file.st_uid);
-      setegid(file.st_gid);
-    }
-    close(pfd);
-
-    // Open the file descriptor and allow caller to perform error checking.
-    fd = open(path.string().c_str(), O_RDONLY | O_NONBLOCK);
   }
 
   ~OpenReadableFile() {
     if (fd > 0) {
       close(fd);
     }
-
-    // If privileges were dropped for this file read, restore effective to real.
-    if (dropped) {
-      seteuid(getuid());
-      setegid(getgid());
-    }
   }
 
   int fd{0};
-  bool dropped{false};
+
+ private:
+  DropPrivilegesRef dropper_{nullptr};
 };
 
 Status readFile(const fs::path& path,
