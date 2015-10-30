@@ -241,10 +241,12 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
   if (recursive && isDirectory(path).ok()) {
     std::vector<std::string> children;
     // Get a list of children of this directory (requested recursive watches).
-    listDirectoriesInDirectory(path, children);
+    listDirectoriesInDirectory(path, children, true);
 
+    boost::system::error_code ec;
     for (const auto& child : children) {
-      addMonitor(child, recursive);
+      auto canonicalized = fs::canonical(child, ec).string() + '/';
+      addMonitor(canonicalized, false);
     }
   }
 

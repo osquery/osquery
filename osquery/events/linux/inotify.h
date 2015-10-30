@@ -166,6 +166,8 @@ class INotifyEventPublisher
   int last_restart_;
 
  public:
+  friend class INotifyTests;
   FRIEND_TEST(INotifyTests, test_inotify_optimization);
+  FRIEND_TEST(INotifyTests, test_inotify_recursion);
 };
 }

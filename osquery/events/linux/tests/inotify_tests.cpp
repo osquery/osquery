@@ -23,6 +23,8 @@
 #include "osquery/events/linux/inotify.h"
 #include "osquery/core/test_util.h"
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 
 const int kMaxEventLatency = 3000;
@@ -39,8 +41,8 @@ class INotifyTests : public testing::Test {
 
   void TearDown() {
     // End the event loops, and join on the threads.
-    boost::filesystem::remove_all(real_test_path);
-    boost::filesystem::remove_all(real_test_dir);
+    fs::remove_all(real_test_path);
+    fs::remove_all(real_test_dir);
   }
 
   void StartEventLoop() {
@@ -88,6 +90,18 @@ class INotifyTests : public testing::Test {
     FILE* fd = fopen(path.c_str(), "w");
     fputs("inotify", fd);
     fclose(fd);
+  }
+
+  void RemoveAll(std::shared_ptr<INotifyEventPublisher>& pub) {
+    pub->subscriptions_.clear();
+    // Reset monitors.
+    std::vector<std::string> monitors;
+    for (const auto& path : pub->path_descriptors_) {
+      monitors.push_back(path.first);
+    }
+    for (const auto& path : monitors) {
+      pub->removeMonitor(path, true);
+    }
   }
 
  protected:
@@ -218,6 +232,7 @@ class TestINotifyEventSubscriber
   FRIEND_TEST(INotifyTests, test_inotify_fire_event);
   FRIEND_TEST(INotifyTests, test_inotify_event_action);
   FRIEND_TEST(INotifyTests, test_inotify_optimization);
+  FRIEND_TEST(INotifyTests, test_inotify_directory_watch);
   FRIEND_TEST(INotifyTests, test_inotify_recursion);
 };
 
@@ -296,7 +311,7 @@ TEST_F(INotifyTests, test_inotify_event_action) {
 TEST_F(INotifyTests, test_inotify_optimization) {
   // Assume event type is registered.
   StartEventLoop();
-  boost::filesystem::create_directory(real_test_dir);
+  fs::create_directory(real_test_dir);
 
   // Adding a descriptor to a directory will monitor files within.
   SubscriptionAction(real_test_dir);
@@ -309,14 +324,14 @@ TEST_F(INotifyTests, test_inotify_optimization) {
   StopEventLoop();
 }
 
-TEST_F(INotifyTests, test_inotify_recursion) {
+TEST_F(INotifyTests, test_inotify_directory_watch) {
   StartEventLoop();
 
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
   EventFactory::registerEventSubscriber(sub);
 
-  boost::filesystem::create_directory(real_test_dir);
-  boost::filesystem::create_directory(real_test_sub_dir);
+  fs::create_directory(real_test_dir);
+  fs::create_directory(real_test_sub_dir);
 
   // Subscribe to the directory inode
   auto mc = sub->createSubscriptionContext();
@@ -330,5 +345,54 @@ TEST_F(INotifyTests, test_inotify_recursion) {
   sub->WaitForEvents(kMaxEventLatency, 1);
   EXPECT_TRUE(sub->count() > 0);
   StopEventLoop();
+}
+
+TEST_F(INotifyTests, test_inotify_recursion) {
+  // Create a non-registered publisher and subscriber.
+  auto pub = std::make_shared<INotifyEventPublisher>();
+  EventFactory::registerEventPublisher(pub);
+  auto sub = std::make_shared<TestINotifyEventSubscriber>();
+
+  // Create a mock directory structure.
+  createMockFileStructure();
+
+  // Create and test several subscriptions.
+  auto sc = sub->createSubscriptionContext();
+
+  sc->path = kFakeDirectory + "/*";
+  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc, nullptr);
+  // Trigger a configure step manually.
+  pub->configure();
+  // Expect a single monitor on the root of the fake tree.
+  EXPECT_EQ(pub->path_descriptors_.size(), 1U);
+  EXPECT_EQ(pub->path_descriptors_.count(kFakeDirectory), 1U);
+  RemoveAll(pub);
+
+  // Make sure monitors are empty.
+  EXPECT_EQ(pub->numDescriptors(), 0);
+
+  auto sc2 = sub->createSubscriptionContext();
+  sc2->path = kFakeDirectory + "/**";
+  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc2, nullptr);
+  pub->configure();
+  // Expect only the directories to be monitored.
+  EXPECT_EQ(pub->path_descriptors_.size(), 6U);
+  RemoveAll(pub);
+
+  // Use a directory structure that includes a loop.
+  boost::system::error_code ec;
+  fs::create_symlink(kFakeDirectory, kFakeDirectory + "/link", ec);
+
+  auto sc3 = sub->createSubscriptionContext();
+  sc3->path = kFakeDirectory + "/**";
+  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc3, nullptr);
+  pub->configure();
+  // Also expect canonicalized resolution (to prevent loops).
+  EXPECT_EQ(pub->path_descriptors_.size(), 6U);
+  RemoveAll(pub);
+
+  // Remove mock directory structure.
+  tearDownMockFileStructure();
+  EventFactory::deregisterEventPublisher("inotify");
 }
 }

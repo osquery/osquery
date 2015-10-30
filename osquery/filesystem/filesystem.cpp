@@ -294,14 +294,16 @@ inline Status listInAbsoluteDirectory(const fs::path& path,
 
 Status listFilesInDirectory(const fs::path& path,
                             std::vector<std::string>& results,
-                            bool ignore_error) {
-  return listInAbsoluteDirectory((path / "*"), results, GLOB_FILES);
+                            bool recursive) {
+  return listInAbsoluteDirectory(
+      (path / ((recursive) ? "**" : "*")), results, GLOB_FILES);
 }
 
 Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
-                                  bool ignore_error) {
-  return listInAbsoluteDirectory((path / "*"), results, GLOB_FOLDERS);
+                                  bool recursive) {
+  return listInAbsoluteDirectory(
+      (path / ((recursive) ? "**" : "*")), results, GLOB_FOLDERS);
 }
 
 Status getDirectory(const fs::path& path, fs::path& dirpath) {
