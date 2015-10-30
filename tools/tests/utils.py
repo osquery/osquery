@@ -70,7 +70,7 @@ def queries_from_config(config_path):
             content = rmcomment.sub('',configcontent)
             config = json.loads(content)
     except Exception as e:
-        print ("Cannot open/parse config: %s" % str(e))
+        print("Cannot open/parse config: %s" % str(e))
         exit(1)
     queries = {}
     if "scheduledQueries" in config:
@@ -91,7 +91,7 @@ def queries_from_config(config_path):
 
         pass
     if len(queries) == 0:
-        print ("Could not find a schedule/queries in config: %s" % config_path)
+        print("Could not find a schedule/queries in config: %s" % config_path)
         exit(0)
     return queries
 
@@ -180,4 +180,3 @@ def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
         "fds": stats["fds"],
         "exit": p.wait(),
     }
-

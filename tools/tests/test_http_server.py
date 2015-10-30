@@ -53,10 +53,13 @@ ENROLL_RESPONSE = {
     "node_key": "this_is_a_node_secret"
 }
 
+
 def debug(response):
     print("-- [DEBUG] %s" % str(response))
 
+
 class RealSimpleHandler(BaseHTTPRequestHandler):
+
     def _set_headers(self):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
@@ -143,9 +146,10 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         debug("Replying: %s" % (str(response)))
         self.wfile.write(json.dumps(response))
 
+
 def handler(signum, frame):
     print("[DEBUG] Shutting down HTTP server via timeout (%d) seconds."
-        % (ARGS.timeout))
+          % (ARGS.timeout))
     sys.exit(0)
 
 if __name__ == '__main__':
@@ -220,15 +224,15 @@ if __name__ == '__main__':
             ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
             ctx.load_cert_chain(ARGS.cert, keyfile=ARGS.key)
             ctx.load_verify_locations(capath=ARGS.ca)
-            ctx.options ^=  ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3
+            ctx.options ^= ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3
             httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
         else:
             httpd.socket = ssl.wrap_socket(httpd.socket,
-                ca_certs=ARGS.ca,
-                ssl_version=ssl.PROTOCOL_SSLv23,
-                certfile=ARGS.cert,
-                keyfile=ARGS.key,
-                server_side=True)
+                                           ca_certs=ARGS.ca,
+                                           ssl_version=ssl.PROTOCOL_SSLv23,
+                                           certfile=ARGS.cert,
+                                           keyfile=ARGS.key,
+                                           server_side=True)
         debug("Starting TLS/HTTPS server on TCP port: %d" % ARGS.port)
     else:
         debug("Starting HTTP server on TCP port: %d" % ARGS.port)
