@@ -12,6 +12,8 @@
 #include <sstream>
 
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <signal.h>
 
 #if !defined(__FreeBSD__)
@@ -207,5 +209,76 @@ Status createPidFile() {
   LOG(INFO) << "Writing osqueryd pid (" << pid << ") to " << FLAGS_pidfile;
   auto status = writeTextFile(FLAGS_pidfile, pid, 0644);
   return status;
+}
+
+bool DropPrivileges::dropToParent(const fs::path& path) {
+  uid_t to_user{0};
+  gid_t to_group{0};
+  // Open the parent path of the requested file to operate on.
+  int pfd = open(path.parent_path().string().c_str(), O_RDONLY | O_NONBLOCK);
+  if (pfd >= 0) {
+    struct stat file;
+    if (geteuid() == 0 && fstat(pfd, &file) >= 0 &&
+        (file.st_uid != 0 || file.st_gid != 0)) {
+      // A drop is required if this process is executed as a superuser and
+      // the folder can be altered by non-super users.
+      to_user = file.st_uid;
+      to_group = file.st_gid;
+    }
+    close(pfd);
+  }
+
+  if (to_user == 0 && to_group == 0) {
+    // No drop required.
+    return true;
+  } else if (dropped() && to_user == to_user_ && to_group == to_group_) {
+    // They are already dropped to the correct user/group.
+    return true;
+  } else if (!dropped()) {
+    // Privileges should be dropped.
+    if (seteuid(to_user) != 0) {
+      // Privileges are not dropped and could not be set for the user.
+      return false;
+    }
+
+    setegid(to_group);
+    // Privileges are now dropped to the requested user/group.
+    to_user_ = to_user;
+    to_group_ = to_group;
+    dropped_ = true;
+    return true;
+  }
+
+  // Privileges are dropped but not to the requested user/group.
+  // Proceed with extreme caution.
+  return false;
+}
+
+bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
+  if (dropped() && uid == to_user_ && gid == to_group_) {
+    // Privileges are already dropped to the requested user and group.
+    return true;
+  } else if (dropped()) {
+    return false;
+  }
+
+  if (seteuid(uid) != 0) {
+    return false;
+  }
+
+  setegid(gid);
+  // Privileges are now dropped to the requested user/group.
+  to_user_ = uid;
+  to_group_ = gid;
+  dropped_ = true;
+  return true;
+}
+
+DropPrivileges::~DropPrivileges() {
+  if (dropped_) {
+    seteuid(getuid());
+    setegid(getgid());
+    dropped_ = false;
+  }
 }
 }

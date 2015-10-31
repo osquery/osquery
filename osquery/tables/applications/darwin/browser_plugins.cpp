@@ -106,9 +106,20 @@ inline void genSafariExtension(const std::string& path, QueryData& results) {
     return;
   }
 
+  // Perform a dry run of the file read.
+  if (!readFile(path).ok()) {
+    return;
+  }
+
+  // Finally drop privileges to the user controlling the extension.
+  auto dropper = DropPrivileges::get();
+  if (!dropper->dropToParent(path)) {
+    return;
+  }
+
   // Use open_file, instead of the preferred open_filename for OS X 10.9.
   archive_read_support_format_xar(ext);
-  if (archive_read_open_file(ext, path.c_str(), 10240) != ARCHIVE_OK) {
+  if (archive_read_open_filename(ext, path.c_str(), 10240) != ARCHIVE_OK) {
     archive_read_finish(ext);
     return;
   }
