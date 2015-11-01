@@ -38,10 +38,9 @@ class Transport {
    *
    * @param A string representing the destination
    *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return success or failure of the operation
   */
-  virtual void setDestination(std::string destination) {
+  virtual void setDestination(const std::string& destination) {
     destination_ = destination;
   }
 
@@ -50,15 +49,14 @@ class Transport {
    *
    * @param A serializer object
    */
-  virtual void setSerializer(std::shared_ptr<Serializer> serializer) {
+  virtual void setSerializer(const std::shared_ptr<Serializer>& serializer) {
     serializer_ = serializer;
   }
 
   /**
    * @brief Send a simple request to the destination with no parameters
    *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return success or failure of the operation
    */
   virtual Status sendRequest() = 0;
 
@@ -67,16 +65,14 @@ class Transport {
    *
    * @param params A string representing the serialized parameters
    *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return success or failure of the operation
    */
   virtual Status sendRequest(const std::string& params) = 0;
 
   /**
    * @brief Get the status of the response
    *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return success or failure of the operation
    */
   Status getResponseStatus() const { return response_status_; }
 
@@ -104,7 +100,7 @@ class Transport {
   std::string destination_;
 
   /// storage for the serializer reference
-  std::shared_ptr<Serializer> serializer_;
+  std::shared_ptr<Serializer> serializer_{nullptr};
 
   /// storage for response status
   Status response_status_;
@@ -127,19 +123,10 @@ class Transport {
 class Serializer {
  public:
   /**
-   * @brief Set the transport
-   *
-   * @param A transport object
-   */
-  virtual void setTransport(std::shared_ptr<Transport> transport) {
-    transport_ = transport;
-  }
-
-  /**
    * @brief Returns the HTTP content type, for HTTP/TLS transport
    *
    * If a serializer is going to be used for HTTP/TLS, it probably needs to
-   * set it's own content type. Return a string with the appropriate content
+   * set its own content type. Return a string with the appropriate content
    * type for serializer.
    *
    * @return The content type
@@ -150,11 +137,8 @@ class Serializer {
    * @brief Serialize a property tree into a string
    *
    * @param params A property tree of parameters
-   *
-   * @param serialized The string to populate the final serialized params into
-   *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @param serialized the output serialized params
+   * @return success or failure of the operation
    */
   virtual Status serialize(const boost::property_tree::ptree& params,
                            std::string& serialized) = 0;
@@ -163,12 +147,8 @@ class Serializer {
    * @brief Deserialize a property tree into a property tree
    *
    * @param params A string of serialized parameters
-   *
-   * @param serialized The property tree to populate the final serialized
-   * params into
-   *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @param serialized the output deserialized parameters
+   * @return success or failure of the operation
    */
   virtual Status deserialize(const std::string& serialized,
                              boost::property_tree::ptree& params) = 0;
@@ -177,10 +157,6 @@ class Serializer {
    * @brief Virtual destructor
    */
   virtual ~Serializer() {}
-
- protected:
-  /// storage for the transport reference
-  std::shared_ptr<Transport> transport_;
 };
 
 /**
@@ -196,11 +172,10 @@ class Request {
    */
   explicit Request(const std::string& destination)
       : destination_(destination),
-        serializer_(new TSerializer),
-        transport_(new TTransport) {
+        serializer_(std::make_shared<TSerializer>()),
+        transport_(std::make_shared<TTransport>()) {
     transport_->setDestination(destination_);
     transport_->setSerializer(serializer_);
-    serializer_->setTransport(transport_);
   }
 
  private:
@@ -210,13 +185,12 @@ class Request {
    * @param destination A string of the remote URI destination
    * @param t A transport shared pointer.
    */
-  Request(const std::string& destination, std::shared_ptr<TTransport>& t)
+  Request(const std::string& destination, const std::shared_ptr<TTransport>& t)
       : destination_(destination),
-        serializer_(new TSerializer),
-        transport_(std::move(t)) {
+        serializer_(std::make_shared<TSerializer>()),
+        transport_(t) {
     transport_->setDestination(destination_);
     transport_->setSerializer(serializer_);
-    serializer_->setTransport(transport_);
   }
 
  public:
@@ -228,8 +202,7 @@ class Request {
   /**
    * @brief Send a simple request to the destination with no parameters
    *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return success or failure of the operation
    */
   Status call() { return transport_->sendRequest(); }
 
@@ -238,8 +211,7 @@ class Request {
    *
    * @param params A property tree representing the parameters
    *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return success or failure of the operation
    */
   Status call(const boost::property_tree::ptree& params) {
     std::string serialized;
@@ -270,10 +242,10 @@ class Request {
   std::string destination_;
 
   /// storage for the serializer to be used
-  std::shared_ptr<TSerializer> serializer_;
+  std::shared_ptr<TSerializer> serializer_{nullptr};
 
   /// storage for the transport to be used
-  std::shared_ptr<TTransport> transport_;
+  std::shared_ptr<TTransport> transport_{nullptr};
 
  private:
   FRIEND_TEST(TLSTransportsTests, test_call);

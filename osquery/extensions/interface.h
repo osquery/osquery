@@ -47,6 +47,7 @@ typedef SHARED_PTR_IMPL<TProcessor> TProcessorRef;
 typedef SHARED_PTR_IMPL<TServerTransport> TServerTransportRef;
 typedef SHARED_PTR_IMPL<TTransportFactory> TTransportFactoryRef;
 typedef SHARED_PTR_IMPL<TProtocolFactory> TProtocolFactoryRef;
+typedef SHARED_PTR_IMPL<ThreadManager> TThreadManagerRef;
 typedef SHARED_PTR_IMPL<PosixThreadFactory> PosixThreadFactoryRef;
 typedef std::shared_ptr<TThreadPoolServer> TThreadPoolServerRef;
 
@@ -254,7 +255,8 @@ class ExtensionRunnerCore : public InternalRunnable {
   std::string path_;
 
   /// Server instance, will be stopped if thread service is removed.
-  TThreadPoolServerRef server_;
+  TThreadPoolServerRef server_{nullptr};
+  TThreadManagerRef manager_{nullptr};
 };
 
 /**

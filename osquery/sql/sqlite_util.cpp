@@ -193,31 +193,30 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
 Status getQueryColumnsInternal(const std::string& q,
                                TableColumns& columns,
                                sqlite3* db) {
-  int rc;
-
-  // Will automatically handle calling sqlite3_finalize on the prepared stmt
-  // (Note that sqlite3_finalize is explicitly a nop for nullptr)
-  std::unique_ptr<sqlite3_stmt, decltype(sqlite3_finalize)*> stmt_managed(
-      nullptr, sqlite3_finalize);
-  sqlite3_stmt* stmt = stmt_managed.get();
-
   // Turn the query into a prepared statement
-  rc = sqlite3_prepare_v2(db, q.c_str(), q.length() + 1, &stmt, nullptr);
-  if (rc != SQLITE_OK) {
+  sqlite3_stmt *stmt{nullptr};
+  auto rc = sqlite3_prepare_v2(db, q.c_str(), q.length() + 1, &stmt, nullptr);
+
+  if (rc != SQLITE_OK || stmt == nullptr) {
+    if (stmt != nullptr) {
+      sqlite3_finalize(stmt);
+    }
     return Status(1, sqlite3_errmsg(db));
   }
 
   // Get column count
-  int num_columns = sqlite3_column_count(stmt);
+  auto num_columns = sqlite3_column_count(stmt);
   TableColumns results;
   results.reserve(num_columns);
 
   // Get column names and types
+  Status status = Status();
   for (int i = 0; i < num_columns; ++i) {
-    const char* col_name = sqlite3_column_name(stmt, i);
-    const char* col_type = sqlite3_column_decltype(stmt, i);
+    auto col_name = sqlite3_column_name(stmt, i);
+    auto col_type = sqlite3_column_decltype(stmt, i);
     if (col_name == nullptr) {
-      return Status(1, "Got nullptr for column name");
+      status = Status(1, "Could not get column type");
+      break;
     }
     if (col_type == nullptr) {
       // Types are only returned for table columns (not expressions or
@@ -228,8 +227,11 @@ Status getQueryColumnsInternal(const std::string& q,
     results.push_back({col_name, col_type});
   }
 
-  columns = std::move(results);
+  if (status.ok()) {
+    columns = std::move(results);
+  }
 
-  return Status(0, "OK");
+  sqlite3_finalize(stmt);
+  return status;
 }
 }
