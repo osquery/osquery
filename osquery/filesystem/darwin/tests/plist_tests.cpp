@@ -68,8 +68,8 @@ TEST_F(PlistTests, test_parse_plist_from_file) {
   EXPECT_EQ(s.toString(), "OK");
 
   // The tree has a key with ".", the plist level delimiter.
-  EXPECT_EQ(tree.size(), 8);
-  EXPECT_EQ(tree.count("com"), 0);
+  EXPECT_EQ(tree.size(), 8U);
+  EXPECT_EQ(tree.count("com"), 0U);
 
   // Make sure "." iteration still works.
   EXPECT_EQ(tree.get("inetdCompatibility.Wait", ""), "0");
