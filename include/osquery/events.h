@@ -392,7 +392,7 @@ class EventSubscriberPlugin : public Plugin {
    */
   std::set<std::string> getIndexes(EventTime start,
                                    EventTime stop,
-                                   int list_key = 0);
+                                   size_t list_key = 0);
 
   /**
    * @brief Expire indexes and eventually records.

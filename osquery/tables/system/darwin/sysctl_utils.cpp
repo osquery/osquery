@@ -62,7 +62,7 @@ void genControlInfo(int* oid,
   }
 
   r["name"] = std::string(response);
-  if (oid[0] < kControlNames.size()) {
+  if (oid[0] > 0 && oid[0] < static_cast<int>(kControlNames.size())) {
     r["subsystem"] = kControlNames[oid[0]];
   }
 

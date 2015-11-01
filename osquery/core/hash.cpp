@@ -68,6 +68,7 @@ void Hash::update(const void* buffer, size_t size) {
 std::string Hash::digest() {
   unsigned char hash[length_];
 
+  memset(hash, 0, length_);
   if (algorithm_ == HASH_TYPE_MD5) {
     __HASH_API(MD5_Final)(hash, (__HASH_API(MD5_CTX)*)ctx_);
   } else if (algorithm_ == HASH_TYPE_SHA1) {

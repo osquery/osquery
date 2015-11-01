@@ -123,7 +123,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
 
 std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
                                                         EventTime stop,
-                                                        int list_key) {
+                                                        size_t list_key) {
   auto db = DBHandle::getInstance();
   auto index_key = "indexes." + dbNamespace();
   std::set<std::string> indexes;

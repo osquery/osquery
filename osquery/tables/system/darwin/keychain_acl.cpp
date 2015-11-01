@@ -75,7 +75,7 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
     return Status(os_status, "Could not get ACL authorizations");
   }
 
-  for (int tag_index = 0; tag_index < acl_tag_size; ++tag_index) {
+  for (size_t tag_index = 0; tag_index < acl_tag_size; ++tag_index) {
     CSSM_ACL_AUTHORIZATION_TAG tag = tags[tag_index];
     if (kACLAuthorizationTags.find(tag) != kACLAuthorizationTags.end()) {
       acl_data.authorizations.push_back(kACLAuthorizationTags.at(tag));
@@ -236,7 +236,7 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
     return Status(1, "Info and attributes do not match");
   }
 
-  for (int i = 0; i < info->count; ++i) {
+  for (size_t i = 0; i < info->count; ++i) {
     SecKeychainAttribute *attribute = &attr_list->attr[i];
     if (attribute->length == 0) {
       continue;

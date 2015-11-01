@@ -76,7 +76,8 @@ int xCreate(sqlite3 *db,
   auto *pVtab = new VirtualTable;
 
   if (!pVtab || argc == 0 || argv[0] == nullptr) {
-    //  return SQLITE_NOMEM;  // memory leak
+    delete pVtab;
+    return SQLITE_NOMEM;
   }
 
   memset(pVtab, 0, sizeof(VirtualTable));
@@ -89,18 +90,18 @@ int xCreate(sqlite3 *db,
   auto status = Registry::call(
       "table", pVtab->content->name, {{"action", "columns"}}, response);
   if (!status.ok() || response.size() == 0) {
-    // return SQLITE_ERROR;  // memory leak
+    delete pVtab->content;
+    delete pVtab;
+    return SQLITE_ERROR;
   }
 
   auto statement =
       "CREATE TABLE " + pVtab->content->name + columnDefinition(response);
   int rc = sqlite3_declare_vtab(db, statement.c_str());
-  if (rc != SQLITE_OK) {
-    // return rc;  // memory leaks
-  }
-
-  if (!status.ok() || response.size() == 0) {
-    // return SQLITE_ERROR;  // memory leak
+  if (rc != SQLITE_OK || !status.ok() || response.size() == 0) {
+    delete pVtab->content;
+    delete pVtab;
+    return (rc != SQLITE_OK) ? rc : SQLITE_ERROR;
   }
 
   for (const auto &column : response) {
@@ -116,7 +117,7 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
   const BaseCursor *pCur = (BaseCursor *)cur;
   const auto *pVtab = (VirtualTable *)cur->pVtab;
 
-  if (col >= pVtab->content->columns.size()) {
+  if (col >= static_cast<int>(pVtab->content->columns.size())) {
     // Requested column index greater than column set size.
     return SQLITE_ERROR;
   }
@@ -173,19 +174,21 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
 
   int expr_index = 0;
   int cost = 0;
-  for (size_t i = 0; i < pIdxInfo->nConstraint; ++i) {
-    if (!pIdxInfo->aConstraint[i].usable) {
-      // A higher cost less priority, prefer more usable query constraints.
-      cost += 10;
-      // TODO: OR is not usable.
-      continue;
-    }
+  if (pIdxInfo->nConstraint > 0) {
+    for (size_t i = 0; i < static_cast<size_t>(pIdxInfo->nConstraint); ++i) {
+      if (!pIdxInfo->aConstraint[i].usable) {
+        // A higher cost less priority, prefer more usable query constraints.
+        cost += 10;
+        // TODO: OR is not usable.
+        continue;
+      }
 
-    const auto &name =
-        pVtab->content->columns[pIdxInfo->aConstraint[i].iColumn].first;
-    pVtab->content->constraints.push_back(
-        std::make_pair(name, Constraint(pIdxInfo->aConstraint[i].op)));
-    pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
+      const auto &name =
+          pVtab->content->columns[pIdxInfo->aConstraint[i].iColumn].first;
+      pVtab->content->constraints.push_back(
+          std::make_pair(name, Constraint(pIdxInfo->aConstraint[i].op)));
+      pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
+    }
   }
 
   pIdxInfo->estimatedCost = cost;
@@ -212,17 +215,19 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   }
 
   // Iterate over every argument to xFilter, filling in constraint values.
-  for (size_t i = 0; i < argc; ++i) {
-    auto expr = (const char *)sqlite3_value_text(argv[i]);
-    if (expr == nullptr) {
-      // SQLite did not expose the expression value.
-      continue;
+  if (argc > 0) {
+    for (size_t i = 0; i < static_cast<size_t>(argc); ++i) {
+      auto expr = (const char *)sqlite3_value_text(argv[i]);
+      if (expr == nullptr) {
+        // SQLite did not expose the expression value.
+        continue;
+      }
+      // Set the expression from SQLite's now-populated argv.
+      pVtab->content->constraints[i].second.expr = std::string(expr);
+      // Add the constraint to the column-sorted query request map.
+      context.constraints[pVtab->content->constraints[i].first].add(
+          pVtab->content->constraints[i].second);
     }
-    // Set the expression from SQLite's now-populated argv.
-    pVtab->content->constraints[i].second.expr = std::string(expr);
-    // Add the constraint to the column-sorted query request map.
-    context.constraints[pVtab->content->constraints[i].first].add(
-        pVtab->content->constraints[i].second);
   }
 
   // Reset the virtual table contents.

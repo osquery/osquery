@@ -72,8 +72,8 @@ class INotifyTests : public testing::Test {
     EventFactory::addSubscription("inotify", "TestSubscriber", mc, ec);
   }
 
-  bool WaitForEvents(int max, int num_events = 0) {
-    int delay = 0;
+  bool WaitForEvents(size_t max, size_t num_events = 0) {
+    size_t delay = 0;
     while (delay <= max * 1000) {
       if (num_events > 0 && event_pub_->numEvents() >= num_events) {
         return true;
@@ -299,12 +299,14 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   sub->subscribe(&TestINotifyEventSubscriber::Callback, sc, nullptr);
 
   TriggerEvent(real_test_path);
-  sub->WaitForEvents(kMaxEventLatency, 4);
+  sub->WaitForEvents(kMaxEventLatency, 3);
 
   // Make sure the inotify action was expected.
   EXPECT_EQ(sub->actions().size(), 2U);
-  EXPECT_EQ(sub->actions()[0], "UPDATED");
-  EXPECT_EQ(sub->actions()[1], "UPDATED");
+  if (sub->actions().size() >= 2) {
+    EXPECT_EQ(sub->actions()[0], "UPDATED");
+    EXPECT_EQ(sub->actions()[1], "UPDATED");
+  }
   StopEventLoop();
 }
 

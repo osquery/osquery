@@ -63,7 +63,7 @@ void genKeychainItem(const SecKeychainItemRef& item, QueryData& results) {
 
     if (attr_list != nullptr) {
       // Expect each specific tag to return string data.
-      for (int i = 0; i < attr_list->count; ++i) {
+      for (size_t i = 0; i < attr_list->count; ++i) {
         SecKeychainAttribute* attr = &attr_list->attr[i];
         if (attr->length > 0) {
           r[attr_tag.second] = std::string((char*)attr->data, attr->length);

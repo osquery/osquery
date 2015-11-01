@@ -68,8 +68,8 @@ class FSEventsTests : public testing::Test {
     }
   }
 
-  bool WaitForEvents(int max, int num_events = 0) {
-    int delay = 0;
+  bool WaitForEvents(size_t max, size_t num_events = 0) {
+    size_t delay = 0;
     while (delay <= max * 1000) {
       if (num_events > 0 && event_pub_->numEvents() >= num_events) {
         return true;
@@ -107,7 +107,7 @@ TEST_F(FSEventsTests, test_register_event_pub) {
   EXPECT_TRUE(status.ok());
 
   // Make sure only one event type exists
-  EXPECT_EQ(EventFactory::numEventPublishers(), 1);
+  EXPECT_EQ(EventFactory::numEventPublishers(), 1U);
   status = EventFactory::deregisterEventPublisher("fsevents");
   EXPECT_TRUE(status.ok());
 }
@@ -140,7 +140,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
 
   // Make sure configure was called.
   size_t num_paths = event_pub->numSubscriptionedPaths();
-  EXPECT_EQ(num_paths, 1);
+  EXPECT_EQ(num_paths, 1U);
 
   // A duplicate subscription will work.
   auto mc_dup = std::make_shared<FSEventsSubscriptionContext>();
@@ -151,7 +151,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
 
   // But the paths with be deduped when the event type reconfigures.
   num_paths = event_pub->numSubscriptionedPaths();
-  EXPECT_EQ(num_paths, 1);
+  EXPECT_EQ(num_paths, 1U);
   EventFactory::deregisterEventPublisher("fsevents");
 }
 

@@ -241,7 +241,7 @@ bool DropPrivileges::dropToParent(const fs::path& path) {
       return false;
     }
 
-    setegid(to_group);
+    (void)setegid(to_group);
     // Privileges are now dropped to the requested user/group.
     to_user_ = to_user;
     to_group_ = to_group;
@@ -266,7 +266,7 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
     return false;
   }
 
-  setegid(gid);
+  (void)setegid(gid);
   // Privileges are now dropped to the requested user/group.
   to_user_ = uid;
   to_group_ = gid;
@@ -276,8 +276,8 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
 
 DropPrivileges::~DropPrivileges() {
   if (dropped_) {
-    seteuid(getuid());
-    setegid(getgid());
+    (void)seteuid(getuid());
+    (void)setegid(getgid());
     dropped_ = false;
   }
 }

@@ -33,7 +33,7 @@ std::string getCanonicalEfiDevicePath(const CFDataRef& data) {
 
   // Iterate through the EFI_DEVICE_PATH_PROTOCOL stacked structs.
   auto bytes = CFDataGetBytePtr((CFDataRef)data);
-  auto length = CFDataGetLength((CFDataRef)data);
+  size_t length = CFDataGetLength((CFDataRef)data);
   size_t search_offset = 0;
 
   while ((search_offset + sizeof(EFI_DEVICE_PATH_PROTOCOL)) < length) {
@@ -51,7 +51,7 @@ std::string getCanonicalEfiDevicePath(const CFDataRef& data) {
     // Only support paths and hard drive partitions.
     if (EfiDevicePathType(node) == MEDIA_DEVICE_PATH) {
       if (node->SubType == MEDIA_FILEPATH_DP) {
-        for (size_t i = 0; i < EfiDevicePathNodeLength(node); i += 2) {
+        for (int i = 0; i < EfiDevicePathNodeLength(node); i += 2) {
           // Strip UTF16 characters to UTF8.
           path += (((char*)(node)) + sizeof(EFI_DEVICE_PATH_PROTOCOL))[i];
         }

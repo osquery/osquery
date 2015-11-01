@@ -47,7 +47,7 @@ TEST_F(QueryTests, test_get_query) {
 TEST_F(QueryTests, test_get_interval) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
-  EXPECT_EQ(cf.getInterval(), query.interval);
+  EXPECT_EQ(cf.getInterval(), static_cast<int>(query.interval));
 }
 
 TEST_F(QueryTests, test_private_members) {

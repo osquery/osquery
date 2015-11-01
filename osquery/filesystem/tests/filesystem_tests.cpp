@@ -65,7 +65,7 @@ TEST_F(FilesystemTests, test_read_symlink) {
 TEST_F(FilesystemTests, test_read_zero) {
   std::string content;
   auto status = readFile("/dev/zero", content, 10);
-  EXPECT_EQ(content.size(), 10);
+  EXPECT_EQ(content.size(), 10U);
   for (size_t i = 0; i < 10; i++) {
     EXPECT_EQ(content[i], 0);
   }

@@ -1398,11 +1398,12 @@ static int process_input(struct callback_data *p, FILE *in) {
 ** Initialize the state information in data
 */
 static void main_init(struct callback_data *data) {
-  memset(data, 0, sizeof(*data));
+  memset(data, 0, sizeof(struct callback_data));
   data->prettyPrint = new struct prettyprint_data();
   data->mode = MODE_Pretty;
-  memcpy(data->separator, "|", 2);
   data->showHeader = 1;
+  data->separator[0] = '|';
+
   sqlite3_config(SQLITE_CONFIG_URI, 1);
   sqlite3_config(SQLITE_CONFIG_LOG, shellLog, data);
   sqlite3_snprintf(sizeof(mainPrompt), mainPrompt, "osquery> ");
@@ -1443,7 +1444,7 @@ int launchIntoShell(int argc, char **argv) {
     data.mode = MODE_Line;
   } else if (FLAGS_csv) {
     data.mode = MODE_Csv;
-    memcpy(data.separator, ",", 2);
+    data.separator[0] = ',';
   } else {
     data.mode = MODE_Pretty;
   }
