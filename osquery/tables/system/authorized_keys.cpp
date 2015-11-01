@@ -49,7 +49,7 @@ void genSSHkeysForUser(const std::string& username,
   }
 }
 
-QueryData genSSHkeys(QueryContext& context) {
+QueryData getAuthorizedKeys(QueryContext& context) {
   QueryData results;
 
   // Select only the home directory for this user.
