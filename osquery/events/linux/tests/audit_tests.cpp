@@ -28,6 +28,9 @@ extern bool handleAuditReply(const struct audit_reply& reply,
 extern std::string decodeAuditValue(const std::string& e);
 extern Status validAuditState(int type, AuditProcessEventState& state);
 
+/// Internal audit subscriber (socket events) testable methods.
+extern void parseSockAddr(const std::string& saddr, Row& r, bool local);
+
 class AuditTests : public testing::Test {
  protected:
   void SetUp() { Row().swap(row_); }
@@ -132,5 +135,38 @@ TEST_F(AuditTests, test_valid_audit_state_failues) {
   validAuditState(STATE_SYSCALL, state);
   validAuditState(STATE_EXECVE, state);
   EXPECT_FALSE(validAuditState(STATE_EXECVE, state));
+}
+
+TEST_F(AuditTests, test_parse_sock_addr) {
+  Row r;
+  std::string msg = "02001F907F0000010000000000000000";
+  parseSockAddr(msg, r, true);
+  ASSERT_FALSE(r["local_address"].empty());
+  EXPECT_EQ(r["local_address"], "127.0.0.1");
+  EXPECT_EQ(r["family"], "2");
+  EXPECT_EQ(r["local_port"], "8080");
+
+  Row r2;
+  parseSockAddr(msg, r2, false);
+  ASSERT_FALSE(r2["remote_address"].empty());
+  EXPECT_EQ(r2["remote_address"], "127.0.0.1");
+  EXPECT_EQ(r2["remote_port"], "8080");
+
+  Row r3;
+  std::string msg2 = "0A001F9100000000FE80000000000000022522FFFEB03684000000";
+  parseSockAddr(msg2, r3, false);
+  ASSERT_FALSE(r3["remote_address"].empty());
+  EXPECT_EQ(r3["remote_address"], "fe80:0000:0000:0000:0225:22ff:feb0:3684");
+  EXPECT_EQ(r3["remote_port"], "8081");
+
+  Row r4;
+  std::string msg3 = "01002F746D702F6F7371756572792E656D0000";
+  parseSockAddr(msg3, r4, true);
+  ASSERT_FALSE(r4["socket"].empty());
+  EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
+
+  msg3 = "0100002F746D702F6F7371756572792E656D";
+  parseSockAddr(msg3, r4, true);
+  EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
 }
 }

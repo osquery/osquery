@@ -10,10 +10,15 @@
 
 #pragma once
 
+#include <limits.h>
+
 #include <memory>
+#include <string>
 
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
+
+#include <osquery/status.h>
 
 #ifdef DARWIN
 #include <CoreFoundation/CoreFoundation.h>
@@ -68,6 +73,28 @@ std::string base64Encode(const std::string& unencoded);
  * @return If the string is printable.
  */
 bool isPrintable(const std::string& check);
+
+/// Safely convert a string representation of an integer base.
+inline Status safeStrtol(const std::string& rep, size_t base, long int& out) {
+  char* end{nullptr};
+  out = strtol(rep.c_str(), &end, base);
+  if (end == nullptr || end == rep.c_str() || *end != '\0' ||
+      ((out == LONG_MIN || out == LONG_MAX) && errno == ERANGE)) {
+    return Status(1);
+  }
+  return Status(0);
+}
+
+/// Safely convert a string representation of an integer base.
+inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
+  char* end{nullptr};
+  out = strtoll(rep.c_str(), &end, base);
+  if (end == nullptr || end == rep.c_str() || *end != '\0' ||
+      ((out == LLONG_MIN || out == LLONG_MAX) && errno == ERANGE)) {
+    return Status(1);
+  }
+  return Status(0);
+}
 
 #ifdef DARWIN
 /**

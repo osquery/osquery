@@ -49,10 +49,8 @@ void publisherSleep(size_t milli) {
 
 static inline EventTime timeFromRecord(const std::string& record) {
   // Convert a stored index "as string bytes" to a time value.
-  char* end = nullptr;
-  long long int afinite = strtoll(record.c_str(), &end, 10);
-  if (end == nullptr || end == record.c_str() || *end != '\0' ||
-      ((afinite == LLONG_MIN || afinite == LLONG_MAX) && errno == ERANGE)) {
+  long long afinite;
+  if (!safeStrtoll(record, 10, afinite)) {
     return 0;
   }
   return afinite;

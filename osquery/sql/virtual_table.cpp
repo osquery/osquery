@@ -134,24 +134,20 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
   if (type == "TEXT") {
     sqlite3_result_text(ctx, value.c_str(), value.size(), SQLITE_STATIC);
   } else if (type == "INTEGER") {
-    char *end = nullptr;
-    long int afinite = strtol(value.c_str(), &end, 10);
-    if (end == nullptr || end == value.c_str() || *end != '\0' ||
-        ((afinite == LONG_MIN || afinite == LONG_MAX) && errno == ERANGE) ||
-        afinite < INT_MIN || afinite > INT_MAX) {
-      afinite = -1;
+    long afinite;
+    if (!safeStrtol(value, 10, afinite) || afinite < INT_MIN ||
+        afinite > INT_MAX) {
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to INTEGER";
+      afinite = -1;
     }
     sqlite3_result_int(ctx, (int)afinite);
   } else if (type == "BIGINT") {
-    char *end = nullptr;
-    long long int afinite = strtoll(value.c_str(), &end, 10);
-    if (end == nullptr || end == value.c_str() || *end != '\0' ||
-        ((afinite == LLONG_MIN || afinite == LLONG_MAX) && errno == ERANGE)) {
-      afinite = -1;
+    long long afinite;
+    if (!safeStrtoll(value, 10, afinite)) {
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to BIGINT";
+      afinite = -1;
     }
     sqlite3_result_int64(ctx, afinite);
   } else if (type == "DOUBLE") {
