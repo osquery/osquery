@@ -32,15 +32,6 @@ DECLARE_string(config_plugin);
 class ConfigParserPlugin;
 
 /**
- * @brief The backing store key name for the executing query.
- *
- * The config maintains schedule statistics and tracks failed executions.
- * On process or worker resume an initializer or config may check if the
- * resume was the result of a failure during an executing query.
- */
-extern const std::string kExecutingQuery;
-
-/**
  * The schedule is an iterable collection of Packs. When you iterate through
  * a schedule, you only get the packs that should be running on the host that
  * you're currently operating on.
@@ -49,6 +40,15 @@ class Schedule {
  public:
   /// Under the hood, the schedule is just a list of the Pack objects
   typedef std::list<Pack> container;
+
+  /**
+   * @brief Create a schedule maintained by the configuration.
+   *
+   * This will check for previously executing queries. If any query was
+   * executing it is considered in a 'dirty' state and should generate logs.
+   * The schedule may also choose to blacklist this query.
+   */
+  Schedule();
 
   /**
    * @brief this class' iteration function
@@ -85,6 +85,15 @@ class Schedule {
  private:
   /// Underlying storage for the packs
   container packs_;
+
+  /**
+   * @brief The schedule will check and record previously executing queries.
+   *
+   * If a query is found on initialization, the name will be recorded, it is
+   * possible to skip previously failed queries.
+   */
+  std::string failed_query_;
+
   friend class Config;
 };
 
@@ -98,7 +107,7 @@ class Schedule {
  */
 class Config {
  private:
-  Config() : schedule_(Schedule()), valid_(false){};
+  Config() : schedule_(Schedule()), valid_(false), start_time_(time(nullptr)){};
 
  public:
   /// Get a singleton instance of the Config class
@@ -196,8 +205,11 @@ class Config {
    */
   void hashSource(const std::string& source, const std::string& content);
 
-  /// Whether or not the last loaded config was valid
+  /// Whether or not the last loaded config was valid.
   bool isValid();
+
+  /// Get start time of config.
+  size_t getStartTime() const { return start_time_; }
 
   /**
    * @brief Add a pack to the osquery schedule
@@ -301,10 +313,16 @@ class Config {
 
  protected:
   Schedule schedule_;
+
+  /// A set of performance stats for each query in the schedule.
   std::map<std::string, QueryPerformance> performance_;
+  /// A set of named categories filled with filesystem globbing paths.
   std::map<std::string, std::vector<std::string> > files_;
+  /// A set of hashes for each source of the config.
   std::map<std::string, std::string> hash_;
   bool valid_{false};
+  /// A UNIX timestamp recorded when the config started.
+  size_t start_time_{0};
 
  private:
   FRIEND_TEST(ConfigTests, test_parse);

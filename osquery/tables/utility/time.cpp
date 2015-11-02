@@ -18,7 +18,7 @@ namespace tables {
 
 QueryData genTime(QueryContext& context) {
   Row r;
-  time_t _time = time(0);
+  time_t _time = time(nullptr);
   struct tm* now = localtime(&_time);
   struct tm* gmt = gmtime(&_time);
 

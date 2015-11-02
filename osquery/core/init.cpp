@@ -275,8 +275,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   initStatusLogger(binary_);
   if (tool != OSQUERY_EXTENSION) {
     if (isWorker()) {
-      VLOG(1) << "osquery worker initialized [watcher="
-              << getenv("OSQUERY_WORKER") << "]";
+      VLOG(1) << "osquery worker initialized [watcher=" << getppid() << "]";
     } else {
       VLOG(1) << "osquery initialized [version=" << kVersion << "]";
     }
@@ -458,14 +457,6 @@ void Initializer::start() {
     } else {
       LOG(INFO) << message;
     }
-  }
-
-  // Check if any queries were executing when the tool last stopped.
-  std::string failed_query;
-  getDatabaseValue(kPersistentSettings, kExecutingQuery, failed_query);
-  if (!failed_query.empty()) {
-    LOG(WARNING) << "Scheduled query may have failed: " << failed_query;
-    setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
   }
 
   // Initialize the status and result plugin logger.
