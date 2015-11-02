@@ -138,7 +138,7 @@ void ExtensionManagerWatcher::watch() {
   }
 }
 
-inline Status socketWritable(const fs::path& path) {
+Status socketWritable(const fs::path& path) {
   if (pathExists(path).ok()) {
     if (!isWritable(path).ok()) {
       return Status(1, "Cannot write extension socket: " + path.string());
@@ -153,7 +153,7 @@ inline Status socketWritable(const fs::path& path) {
     }
 
     if (!isWritable(path.parent_path()).ok()) {
-      return Status(1, "Cannot write extension socket: " + path.string());
+      return Status(1, "Cannot create extension socket: " + path.string());
     }
   }
   return Status(0, "OK");

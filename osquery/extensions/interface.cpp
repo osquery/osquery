@@ -178,7 +178,6 @@ ExtensionRunnerCore::~ExtensionRunnerCore() { remove(path_); }
 void ExtensionRunnerCore::stop() {
   if (server_ != nullptr) {
     server_->stop();
-    manager_->stop();
   }
 }
 
@@ -229,7 +228,6 @@ void ExtensionRunner::start() {
 ExtensionManagerRunner::~ExtensionManagerRunner() {
   if (server_ != nullptr) {
     server_->stop();
-    manager_->stop();
     removeStalePaths(path_);
   }
 }

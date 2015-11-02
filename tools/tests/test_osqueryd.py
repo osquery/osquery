@@ -12,6 +12,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import flaky
 import os
 import signal
 import shutil
@@ -52,6 +53,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(os.path.exists(info_path))
         daemon.kill()
     
+    @flaky.flaky(max_runs=3)
     def test_3_daemon_with_watchdog(self):
         daemon = self._run_daemon({
             "disable_watchdog": False,
