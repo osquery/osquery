@@ -115,9 +115,8 @@ void launchQuery(const std::string& name, const ScheduledQuery& query) {
 }
 
 void SchedulerRunner::start() {
-  time_t t = std::time(nullptr);
-  struct tm* local = std::localtime(&t);
-  unsigned long int i = local->tm_sec;
+  // Start the counter at the second.
+  auto i = (size_t)std::time(nullptr);
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
     Config::getInstance().scheduledQueries(
         ([&i](const std::string& name, const ScheduledQuery& query) {

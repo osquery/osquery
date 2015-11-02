@@ -14,6 +14,7 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
+#include <osquery/flags.h>
 #include <osquery/packs.h>
 
 #include "osquery/core/test_util.h"
@@ -22,89 +23,49 @@ namespace osquery {
 
 class PacksTests : public testing::Test {};
 
-extern int splayValue(int original, int splayPercent);
-
-pt::ptree getExamplePacksConfig() {
-  std::string content;
-  auto s = readFile(kTestDataPath + "test_inline_pack.conf", content);
-  assert(s.ok());
-  std::stringstream json;
-  json << content;
-  pt::ptree tree;
-  pt::read_json(json, tree);
-  return tree;
-}
-
-/// no discovery queries, no platform restriction
-pt::ptree getUnrestrictedPack() {
-  auto tree = getExamplePacksConfig();
-  auto packs = tree.get_child("packs");
-  return packs.get_child("kernel");
-}
-
-/// 1 discovery query, darwin platform restriction
-pt::ptree getPackWithDiscovery() {
-  auto tree = getExamplePacksConfig();
-  auto packs = tree.get_child("packs");
-  return packs.get_child("foobar");
-}
-
-/// 1 discovery query which will always pass
-pt::ptree getPackWithValidDiscovery() {
-  auto tree = getExamplePacksConfig();
-  auto packs = tree.get_child("packs");
-  return packs.get_child("baz");
-}
-
-/// no discovery queries, no platform restriction, fake version string
-pt::ptree getPackWithFakeVersion() {
-  auto tree = getExamplePacksConfig();
-  auto packs = tree.get_child("packs");
-  return packs.get_child("foobaz");
-}
-
 TEST_F(PacksTests, test_parse) {
   auto tree = getExamplePacksConfig();
   EXPECT_EQ(tree.count("packs"), 1U);
 }
 
 TEST_F(PacksTests, test_should_pack_execute) {
-  auto kpack = Pack("kernel", getUnrestrictedPack());
+  auto kpack = Pack("unrestricted_pack", getUnrestrictedPack());
   EXPECT_TRUE(kpack.shouldPackExecute());
 
-  auto fpack = Pack("foobar", getPackWithDiscovery());
+  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
   EXPECT_FALSE(fpack.shouldPackExecute());
 }
 
 TEST_F(PacksTests, test_get_discovery_queries) {
   std::vector<std::string> expected;
 
-  auto kpack = Pack("kernel", getUnrestrictedPack());
+  auto kpack = Pack("unrestricted_pack", getUnrestrictedPack());
   EXPECT_EQ(kpack.getDiscoveryQueries(), expected);
 
   expected = {"select pid from processes where name = 'foobar';"};
-  auto fpack = Pack("foobar", getPackWithDiscovery());
+  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
   EXPECT_EQ(fpack.getDiscoveryQueries(), expected);
 }
 
 TEST_F(PacksTests, test_platform) {
-  auto fpack = Pack("foobar", getPackWithDiscovery());
+  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
   EXPECT_EQ(fpack.getPlatform(), "darwin");
 }
 
 TEST_F(PacksTests, test_version) {
-  auto fpack = Pack("foobar", getPackWithDiscovery());
+  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
   EXPECT_EQ(fpack.getVersion(), "1.5.0");
 }
 
 TEST_F(PacksTests, test_name) {
-  auto fpack = Pack("foobar", getPackWithDiscovery());
-  fpack.setName("foobar");
-  EXPECT_EQ(fpack.getName(), "foobar");
+  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  fpack.setName("also_discovery_pack");
+  EXPECT_EQ(fpack.getName(), "also_discovery_pack");
 }
 
 TEST_F(PacksTests, test_check_platform) {
-  auto fpack = Pack("foobar", getPackWithDiscovery());
+  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  // Depending on the current build platform, this check will be true or false.
   if (kSDKPlatform == "darwin") {
     EXPECT_TRUE(fpack.checkPlatform());
   } else {
@@ -113,66 +74,88 @@ TEST_F(PacksTests, test_check_platform) {
 }
 
 TEST_F(PacksTests, test_check_version) {
-  auto fpack = Pack("foobar", getPackWithDiscovery());
+  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
   EXPECT_TRUE(fpack.checkVersion());
 
-  auto zpack = Pack("foobaz", getPackWithFakeVersion());
+  auto zpack = Pack("fake_version_pack", getPackWithFakeVersion());
   EXPECT_FALSE(zpack.checkVersion());
 }
 
 TEST_F(PacksTests, test_schedule) {
-  auto fpack = Pack("foobar", getPackWithDiscovery());
+  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  // Expect a single query in the schedule since one query has an explicit
+  // invalid/fake platform requirement.
   EXPECT_EQ(fpack.getSchedule().size(), 1U);
 }
 
 TEST_F(PacksTests, test_discovery_cache) {
   auto c = Config();
-  c.addPack("kernel", "", getPackWithValidDiscovery());
-  size_t query_count = 0;
-  for (size_t i = 0; i < 5; i++) {
+  // This pack and discovery query are valid, expect the SQL to execute.
+  c.addPack("valid_discovery_pack", "", getPackWithValidDiscovery());
+  size_t query_count = 0U;
+  size_t query_attemts = 5U;
+  for (size_t i = 0; i < query_attemts; i++) {
     c.scheduledQueries(
         ([&query_count](const std::string& name, const ScheduledQuery& query) {
           query_count++;
          }));
   }
-  EXPECT_EQ(query_count, 5U);
+  EXPECT_EQ(query_count, query_attemts);
 
   size_t pack_count = 0U;
-  c.packs(([&pack_count](Pack& p) {
+  c.packs(([&pack_count, query_attemts](Pack& p) {
     pack_count++;
-    EXPECT_EQ(p.getStats().total, 5);
-    EXPECT_EQ(p.getStats().hits, 4);
-    EXPECT_EQ(p.getStats().misses, 1);
+    EXPECT_EQ(p.getStats().total, query_attemts);
+    EXPECT_EQ(p.getStats().hits, query_attemts - 1);
+    EXPECT_EQ(p.getStats().misses, 1U);
   }));
 
   EXPECT_EQ(pack_count, 1U);
 }
 
 TEST_F(PacksTests, test_discovery_zero_state) {
-  auto pack = Pack("foobar", getPackWithDiscovery());
+  auto pack = Pack("discovery_pack", getPackWithDiscovery());
   auto stats = pack.getStats();
-  EXPECT_EQ(stats.total, 0);
-  EXPECT_EQ(stats.hits, 0);
-  EXPECT_EQ(stats.misses, 0);
+  EXPECT_EQ(stats.total, 0U);
+  EXPECT_EQ(stats.hits, 0U);
+  EXPECT_EQ(stats.misses, 0U);
 }
 
 TEST_F(PacksTests, test_splay) {
   auto val1 = splayValue(100, 10);
-  EXPECT_GE(val1, 90);
-  EXPECT_LE(val1, 110);
+  EXPECT_GE(val1, 90U);
+  EXPECT_LE(val1, 110U);
 
   auto val2 = splayValue(100, 10);
-  EXPECT_GE(val2, 90);
-  EXPECT_LE(val2, 110);
+  EXPECT_GE(val2, 90U);
+  EXPECT_LE(val2, 110U);
 
   auto val3 = splayValue(10, 0);
-  EXPECT_EQ(val3, 10);
+  EXPECT_EQ(val3, 10U);
 
   auto val4 = splayValue(100, 1);
-  EXPECT_GE(val4, 99);
-  EXPECT_LE(val4, 101);
+  EXPECT_GE(val4, 99U);
+  EXPECT_LE(val4, 101U);
 
   auto val5 = splayValue(1, 10);
-  EXPECT_EQ(val5, 1);
+  EXPECT_EQ(val5, 1U);
+}
+
+TEST_F(PacksTests, test_restore_splay) {
+  auto splay = restoreSplayedValue("pack_test_query_name", 3600);
+  EXPECT_GE(splay, 3600U - 360);
+  EXPECT_LE(splay, 3600U + 360);
+  
+  // If we restore, the splay should always be equal.
+  for (size_t i = 0; i < 10; i++) {
+    auto splay2 = restoreSplayedValue("pack_test_query_name", 3600);
+    EXPECT_EQ(splay, splay2);
+  }
+
+  // If we modify the input interval the splay will change.
+  auto splay3 = restoreSplayedValue("pack_test_query_name", 3600 * 10);
+  EXPECT_GE(splay3, 3600U * 10 - (360 * 10));
+  EXPECT_LE(splay3, 3600U * 10 + (360 * 10));
+  EXPECT_NE(splay, splay3);
 }
 }

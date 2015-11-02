@@ -83,6 +83,53 @@ void initTesting() {
   (void)DBHandle::getInstance();
 }
 
+std::map<std::string, std::string> getTestConfigMap() {
+  std::string content;
+  readFile(kTestDataPath + "test_parse_items.conf", content);
+  std::map<std::string, std::string> config;
+  config["awesome"] = content;
+  return config;
+}
+
+pt::ptree getExamplePacksConfig() {
+  std::string content;
+  auto s = readFile(kTestDataPath + "test_inline_pack.conf", content);
+  assert(s.ok());
+  std::stringstream json;
+  json << content;
+  pt::ptree tree;
+  pt::read_json(json, tree);
+  return tree;
+}
+
+/// no discovery queries, no platform restriction
+pt::ptree getUnrestrictedPack() {
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  return packs.get_child("unrestricted_pack");
+}
+
+/// 1 discovery query, darwin platform restriction
+pt::ptree getPackWithDiscovery() {
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  return packs.get_child("discovery_pack");
+}
+
+/// 1 discovery query which will always pass
+pt::ptree getPackWithValidDiscovery() {
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  return packs.get_child("valid_discovery_pack");
+}
+
+/// no discovery queries, no platform restriction, fake version string
+pt::ptree getPackWithFakeVersion() {
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  return packs.get_child("fake_version_pack");
+}
+
 QueryData getTestDBExpectedResults() {
   QueryData d;
   Row row1;

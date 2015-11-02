@@ -27,35 +27,9 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-pt::ptree getExamplePacksConfig();
-pt::ptree getUnrestrictedPack();
-pt::ptree getPackWithDiscovery();
-pt::ptree getPackWithFakeVersion();
-
-// The config_path flag is defined in the filesystem config plugin.
-DECLARE_string(config_path);
-
-std::map<std::string, std::string> getTestConfigMap() {
-  std::string content;
-  readFile(kTestDataPath + "test_parse_items.conf", content);
-  std::map<std::string, std::string> config;
-  config["awesome"] = content;
-  return config;
-}
-
 class ConfigTests : public testing::Test {
- public:
-  ConfigTests() {
-    Registry::setActive("config", "filesystem");
-    FLAGS_config_path = kTestDataPath + "test.config";
-  }
-
  protected:
-  void SetUp() {
-    createMockFileStructure();
-    Registry::setUp();
-    Config::getInstance().load();
-  }
+  void SetUp() { createMockFileStructure(); }
 
   void TearDown() { tearDownMockFileStructure(); }
 };
@@ -151,10 +125,10 @@ TEST_F(ConfigTests, test_parse) {
 
 TEST_F(ConfigTests, test_remove) {
   auto c = Config();
-  c.addPack("kernel", "", getUnrestrictedPack());
-  c.removePack("kernel");
+  c.addPack("unrestricted_pack", "", getUnrestrictedPack());
+  c.removePack("unrestricted_pack");
   for (Pack& pack : c.schedule_) {
-    EXPECT_NE("kernel", pack.getName());
+    EXPECT_NE("unrestricted_pack", pack.getName());
   }
 }
 
@@ -164,12 +138,12 @@ TEST_F(ConfigTests, test_add_remove_pack) {
   auto last = c.schedule_.end();
   EXPECT_EQ(std::distance(first, last), 0);
 
-  c.addPack("kernel", "", getUnrestrictedPack());
+  c.addPack("unrestricted_pack", "", getUnrestrictedPack());
   first = c.schedule_.begin();
   last = c.schedule_.end();
   EXPECT_EQ(std::distance(first, last), 1);
 
-  c.removePack("kernel");
+  c.removePack("unrestricted_pack");
   first = c.schedule_.begin();
   last = c.schedule_.end();
   EXPECT_EQ(std::distance(first, last), 0);
@@ -178,7 +152,7 @@ TEST_F(ConfigTests, test_add_remove_pack) {
 TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<ScheduledQuery> queries;
   auto c = Config();
-  c.addPack("kernel", "", getUnrestrictedPack());
+  c.addPack("unrestricted_pack", "", getUnrestrictedPack());
   c.scheduledQueries(
       ([&queries](const std::string&, const ScheduledQuery& query) {
         queries.push_back(query);

@@ -31,8 +31,6 @@ namespace osquery {
 /// The config plugin must be known before reading options.
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
-FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
-
 /**
  * @brief The backing store key name for the executing query.
  *
@@ -303,6 +301,7 @@ void Config::recordQueryPerformance(const std::string& name,
   query.wall_time += delay;
   query.output_size += size;
   query.executions += 1;
+  query.last_executed = getUnixTime();
 
   // Clear the executing query (remove the dirty bit).
   setDatabaseValue(kPersistentSettings, kExecutingQuery, "");

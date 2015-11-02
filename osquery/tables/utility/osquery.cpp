@@ -224,6 +224,7 @@ QueryData genOsquerySchedule(QueryContext& context) {
             name,
             [&r](const QueryPerformance& perf) {
               r["executions"] = BIGINT(perf.executions);
+              r["last_executed"] = BIGINT(perf.last_executed);
               r["output_size"] = BIGINT(perf.output_size);
               r["wall_time"] = BIGINT(perf.wall_time);
               r["user_time"] = BIGINT(perf.user_time);

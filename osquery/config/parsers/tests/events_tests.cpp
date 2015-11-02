@@ -21,18 +21,23 @@ namespace osquery {
 class EventsConfigParserPluginTests : public testing::Test {};
 
 TEST_F(EventsConfigParserPluginTests, test_get_event) {
-  EXPECT_TRUE(Registry::setActive("config_parser", "test").ok());
+  // Reset the schedule in case other tests were modifying.
+  auto c = Config::getInstance();
+  c.clearSchedule();
 
+  // Generate content to update/add to the config.
   std::string content;
   auto s = readFile(kTestDataPath + "test_parse_items.conf", content);
   EXPECT_TRUE(s.ok());
   std::map<std::string, std::string> config;
   config["awesome"] = content;
-  auto c = Config::getInstance();
+
+  // Send our synthetic config.
   s = c.update(config);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 
+  // Retrieve a basic events parser.
   auto plugin = Config::getInstance().getParser("events");
   EXPECT_TRUE(plugin != nullptr);
   const auto& data = plugin->getData();
