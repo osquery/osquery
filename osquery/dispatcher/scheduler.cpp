@@ -83,6 +83,9 @@ void launchQuery(const std::string& name, const ScheduledQuery& query) {
 
   // Create a database-backed set of query results.
   auto dbQuery = Query(name, query);
+  // Comparisons and stores must include escaped data.
+  sql.escapeResults();
+
   DiffResults diff_results;
   // Add this execution's set of results to the database-tracked named query.
   // We can then ask for a differential from the last time this named query

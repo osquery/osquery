@@ -100,6 +100,8 @@ DBHandle::DBHandle(const std::string& path, bool in_memory)
   options_.max_log_file_size = 1024 * 1024 * 1;
 
   // Performance and optimization settings.
+  options_.num_levels = 1;
+  options_.compression = rocksdb::kNoCompression;
   options_.compaction_style = rocksdb::kCompactionStyleLevel;
   options_.write_buffer_size = (4 * 1024) * 100; // 100 blocks.
   options_.max_write_buffer_number = 2;

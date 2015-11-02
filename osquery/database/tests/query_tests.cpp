@@ -32,24 +32,6 @@ class QueryTests : public testing::Test {
   std::shared_ptr<DBHandle> db_;
 };
 
-TEST_F(QueryTests, test_get_column_family_name) {
-  auto query = getOsqueryScheduledQuery();
-  auto cf = Query("foobar", query);
-  EXPECT_EQ(cf.getQueryName(), "foobar");
-}
-
-TEST_F(QueryTests, test_get_query) {
-  auto query = getOsqueryScheduledQuery();
-  auto cf = Query("foobar", query);
-  EXPECT_EQ(cf.getQuery(), query.query);
-}
-
-TEST_F(QueryTests, test_get_interval) {
-  auto query = getOsqueryScheduledQuery();
-  auto cf = Query("foobar", query);
-  EXPECT_EQ(cf.getInterval(), static_cast<int>(query.interval));
-}
-
 TEST_F(QueryTests, test_private_members) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);

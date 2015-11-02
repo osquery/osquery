@@ -48,12 +48,6 @@ TEST_F(SQLiteUtilTests, test_simple_query_execution) {
   EXPECT_EQ(sql.rows().size(), 1U);
 }
 
-TEST_F(SQLiteUtilTests, test_get_tables) {
-  // Access to the internal SQL implementation is only available in core.
-  auto tables = SQL::getTableNames();
-  EXPECT_TRUE(tables.size() > 0U);
-}
-
 TEST_F(SQLiteUtilTests, test_sqlite_instance_manager) {
   auto dbc1 = SQLiteDBManager::get();
   auto dbc2 = SQLiteDBManager::get();

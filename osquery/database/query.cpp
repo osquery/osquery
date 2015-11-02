@@ -15,16 +15,6 @@
 namespace osquery {
 
 /////////////////////////////////////////////////////////////////////////////
-// Getters and setters
-/////////////////////////////////////////////////////////////////////////////
-
-std::string Query::getQuery() { return query_.query; }
-
-std::string Query::getQueryName() { return name_; }
-
-int Query::getInterval() { return query_.interval; }
-
-/////////////////////////////////////////////////////////////////////////////
 // Data access methods
 /////////////////////////////////////////////////////////////////////////////
 
@@ -93,24 +83,24 @@ Status Query::addNewResults(const QueryData& current_qd,
     return status;
   }
 
-  // Sanitize all non-ASCII characters from the query data values.
-  QueryData escaped_current_qd;
-  escapeQueryData(current_qd, escaped_current_qd);
   // Calculate the differential between previous and current query results.
   if (calculate_diff) {
-    dr = diff(previous_qd, escaped_current_qd);
+    dr = diff(previous_qd, current_qd);
   }
 
-  // Replace the "previous" query data with the current.
-  std::string json;
-  status = serializeQueryDataJSON(escaped_current_qd, json);
-  if (!status.ok()) {
-    return status;
-  }
+  if (previous_qd.size() == 0 || dr.added.size() != 0 ||
+      dr.removed.size() != 0) {
+    // Replace the "previous" query data with the current.
+    std::string json;
+    status = serializeQueryDataJSON(current_qd, json);
+    if (!status.ok()) {
+      return status;
+    }
 
-  status = db->Put(kQueries, name_, json);
-  if (!status.ok()) {
-    return status;
+    status = db->Put(kQueries, name_, json);
+    if (!status.ok()) {
+      return status;
+    }
   }
   return Status(0, "OK");
 }
