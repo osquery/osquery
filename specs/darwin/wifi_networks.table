@@ -1,0 +1,17 @@
+table_name("wifi_networks")
+description("OS X known/remembered Wi-Fi networks list.")
+schema([
+    Column("ssid", TEXT, "SSID octets of the network"),
+    Column("network_name", TEXT, "Name of the network"),
+    Column("security_type", TEXT, "Type of security on this network"),
+    Column("last_connected", INTEGER, "Last time this netword was connected to as a unix_time"),
+    Column("passpoint", INTEGER, "1 if Passpoint is supported, 0 otherwise"),
+    Column("possibly_hidden", INTEGER, "1 if network is possibly a hidden network, 0 otherwise"),
+    Column("roaming", INTEGER, "1 if roaming is supported, 0 otherwise"),
+    Column("roaming_profile", TEXT, "Describe the roaming profile, usually one of Single, Dual  or Multi"),
+    Column("captive_portal", INTEGER, "1 if this network has a captive portal, 0 otherwise"),
+    Column("auto_login", INTEGER, "1 if auto login is enabled, 0 otherwise"),
+    Column("temporarily_disabled", INTEGER, "1 if this network is temporarily disabled, 0 otherwise"),
+    Column("disabled", INTEGER, "1 if this network is disabled, 0 otherwise"),
+])
+implementation("networking/wifi@genKnownWifiNetworks")
