@@ -86,9 +86,9 @@ function install_cmake() {
 }
 
 function install_thrift() {
-  TARBALL=0.9.1.tar.gz
+  TARBALL=thrift-0.9.3.tar.gz
   URL=$DEPS_URL/$TARBALL
-  SOURCE=thrift-0.9.1
+  SOURCE=thrift-0.9.3
 
   if provision thrift /usr/local/lib/libthrift.a; then
     pushd $SOURCE
