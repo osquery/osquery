@@ -12,6 +12,7 @@
 
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/sql/sqlite_util.h"
 
 namespace osquery {

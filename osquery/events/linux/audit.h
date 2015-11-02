@@ -20,6 +20,9 @@
 
 namespace osquery {
 
+#define AUDIT_TYPE_SYSCALL 1300
+#define AUDIT_TYPE_SOCKADDR 1306
+
 /**
  * @brief A simple audit rule description that can be populated via a config.
  *

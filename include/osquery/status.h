@@ -37,7 +37,7 @@ class Status {
    * Note that the default constructor initialized an osquery::Status instance
    * to a state such that a successful operation is indicated.
    */
-  Status() : code_(0), message_("OK") {}
+  explicit Status(int c = 0) : code_(c), message_("OK") {}
 
   /**
    * @brief A constructor which can be used to concisely express the status of

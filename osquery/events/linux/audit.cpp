@@ -16,6 +16,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/events/linux/audit.h"
 
 namespace osquery {
@@ -219,10 +220,8 @@ inline bool handleAuditReply(const struct audit_reply& reply,
   // There is a special field for syscalls.
   if (ec->fields.count("syscall") == 1) {
     const auto& syscall_string = ec->fields.at("syscall").c_str();
-    char* end = nullptr;
-    long long int syscall = strtoll(syscall_string, &end, 10);
-    if (end == nullptr || end == syscall_string || *end != '\0' ||
-        ((syscall == LLONG_MIN || syscall == LLONG_MAX) && errno == ERANGE)) {
+    long long syscall{0};
+    if (!safeStrtoll(syscall_string, 10, syscall)) {
       syscall = 0;
     }
     ec->syscall = syscall;
