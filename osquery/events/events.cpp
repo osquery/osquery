@@ -356,8 +356,7 @@ Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
       status = db->Put(
           kEvents, record_key + "." + list_key + "." + list_id, record_value);
       if (!status.ok()) {
-        LOG(ERROR) << "Could not put Event Record key: " << record_key << "."
-                   << list_key << "." << list_id;
+        LOG(ERROR) << "Could not put Event Record key: " << record_key;
       }
     }
   }
