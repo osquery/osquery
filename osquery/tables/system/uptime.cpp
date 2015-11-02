@@ -22,7 +22,7 @@ namespace osquery {
 namespace tables {
 
 long getUptime() {
-  #if defined(__APPLE__)
+  #if defined(DARWIN)
     struct timeval boot_time;
     size_t len = sizeof(boot_time);
     int mib[2] = {
@@ -47,6 +47,8 @@ long getUptime() {
 
     return sys_info.uptime;
   #endif
+
+  return -1;
 }
 
 QueryData genUptime(QueryContext& context) {

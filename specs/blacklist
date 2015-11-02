@@ -14,7 +14,6 @@ freebsd:hardware_events
 freebsd:kernel_info
 freebsd:last
 freebsd:opera_extensions
-freebsd:os_version
 freebsd:passwd_changes
 freebsd:pci_devices
 freebsd:routes
