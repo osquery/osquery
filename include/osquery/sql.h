@@ -77,13 +77,10 @@ class SQL {
    */
   std::string getMessageString();
 
-  /**
-   * @brief Accessor for the list of queryable tables
-   *
-   * @return A vector of table names
-   */
-  static std::vector<std::string> getTableNames();
+  /// ASCII escape the results of the query.
+  void escapeResults();
 
+ public:
   /**
    * @brief Get all, 'SELECT * ...', results given a virtual table name.
    *
@@ -114,9 +111,6 @@ class SQL {
    * The osquery::SQL class should only ever be instantiated with a query
    */
   SQL(){};
-
-  // The key used to store hostname for annotateHostInfo
-  static const std::string kHostColumnName;
 
   /// the internal member which holds the results of the query
   QueryData results_;

@@ -50,7 +50,7 @@ const std::string kExtensionExtension = ".ext";
 
 CLI_FLAG(int32,
          watchdog_level,
-         1,
+         0,
          "Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug)");
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");

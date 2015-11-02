@@ -25,43 +25,11 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-typedef unsigned char byte;
-
 /////////////////////////////////////////////////////////////////////////////
 // Row - the representation of a row in a set of database results. Row is a
 // simple map where individual column names are keys, which map to the Row's
 // respective value
 /////////////////////////////////////////////////////////////////////////////
-
-std::string escapeNonPrintableBytes(const std::string& data) {
-  std::string escaped;
-  // clang-format off
-  char const hex_chars[16] = {
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-    'A', 'B', 'C', 'D', 'E', 'F',
-  };
-  // clang-format on
-  for (size_t i = 0; i < data.length(); i++) {
-    if (((byte)data[i]) < 0x20 || ((byte)data[i]) >= 0x80) {
-      escaped += "\\x";
-      escaped += hex_chars[(((byte)data[i])) >> 4];
-      escaped += hex_chars[((byte)data[i] & 0x0F) >> 0];
-    } else {
-      escaped += data[i];
-    }
-  }
-  return escaped;
-}
-
-void escapeQueryData(const QueryData& oldData, QueryData& newData) {
-  for (const auto& r : oldData) {
-    Row newRow;
-    for (auto& i : r) {
-      newRow[i.first] = escapeNonPrintableBytes(i.second);
-    }
-    newData.push_back(newRow);
-  }
-}
 
 Status serializeRow(const Row& r, pt::ptree& tree) {
   try {

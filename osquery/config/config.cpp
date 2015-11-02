@@ -31,8 +31,13 @@ namespace osquery {
 /// The config plugin must be known before reading options.
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
-FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
-
+/**
+ * @brief The backing store key name for the executing query.
+ *
+ * The config maintains schedule statistics and tracks failed executions.
+ * On process or worker resume an initializer or config may check if the
+ * resume was the result of a failure during an executing query.
+ */
 const std::string kExecutingQuery = "executing_query";
 
 // The config may be accessed and updated asynchronously; use mutexes.
@@ -41,6 +46,15 @@ boost::shared_mutex config_performance_mutex_;
 boost::shared_mutex config_files_mutex_;
 boost::shared_mutex config_hash_mutex_;
 boost::shared_mutex config_valid_mutex_;
+
+Schedule::Schedule() {
+  // Check if any queries were executing when the tool last stopped.
+  getDatabaseValue(kPersistentSettings, kExecutingQuery, failed_query_);
+  if (!failed_query_.empty()) {
+    LOG(WARNING) << "Scheduled query may have failed: " << failed_query_;
+    setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
+  }
+}
 
 void Config::addPack(const std::string& name,
                      const std::string& source,
@@ -287,6 +301,7 @@ void Config::recordQueryPerformance(const std::string& name,
   query.wall_time += delay;
   query.output_size += size;
   query.executions += 1;
+  query.last_executed = getUnixTime();
 
   // Clear the executing query (remove the dirty bit).
   setDatabaseValue(kPersistentSettings, kExecutingQuery, "");

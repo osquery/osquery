@@ -42,31 +42,6 @@ class Query {
       : query_(q), name_(name) {}
 
   /////////////////////////////////////////////////////////////////////////////
-  // Getters and setters
-  /////////////////////////////////////////////////////////////////////////////
-
-  /**
-   * @brief Getter for the name of a given scheduled query
-   *
-   * @return the name of the scheduled query which is being operated on
-   */
-  std::string getQueryName();
-
-  /**
-   * @brief Getter for the SQL query of a scheduled query
-   *
-   * @return the SQL of the scheduled query which is being operated on
-   */
-  std::string getQuery();
-
-  /**
-   * @brief Getter for the interval of a scheduled query
-   *
-   * @return the interval of the scheduled query which is being operated on
-   */
-  int getInterval();
-
-  /////////////////////////////////////////////////////////////////////////////
   // Data access methods
   /////////////////////////////////////////////////////////////////////////////
 

@@ -17,18 +17,18 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/database.h>
-#include <osquery/status.h>
 
 namespace osquery {
 
+/// Statistics about Pack discovery query actions.
 typedef struct {
-  int total;
-  int hits;
-  int misses;
+  size_t total;
+  size_t hits;
+  size_t misses;
 } PackStats;
 
 /**
- * @brief The programatic representation of a query pack
+ * @brief The programmatic representation of a query pack
  *
  * Instantiating a new Pack object parses JSON and may throw a
  * boost::property_tree::json_parser::json_parser_error exception
@@ -114,4 +114,33 @@ class Pack {
    */
   Pack(){};
 };
+
+/**
+ * @brief Generate a splayed interval.
+ *
+ * The osquery schedule and packs take an approximate interval for each query.
+ * The config option "schedule_splay_percent" is used to adjust the interval,
+ * the result "splayed_interval" could be adjusted to be sooner or later.
+ *
+ * @param original the original positive interval in seconds.
+ * @param splay_percent a positive percent (1-100) to splay.
+ * @return the result splayed value.
+ */
+size_t splayValue(size_t original, size_t splay_percent);
+
+/**
+ * @brief Retrieve a previously-calculated splay for a name/interval pair.
+ *
+ * To provide consistency and determinism to schedule executions, splays can
+ * be cached in the database. If a query name (or pack-generated name) and its
+ * interval remain the same then a cached splay can be used.
+ *
+ * If a "cache miss" occurs, a new splay for the name and interval pair is
+ * generated and saved.
+ *
+ * @param name the generated query name.
+ * @param interval the requested pre-splayed interval.
+ * @return either the restored previous calculated splay, or a new splay.
+ */
+size_t restoreSplayedValue(const std::string& name, size_t interval);
 }

@@ -8,6 +8,7 @@
  *
  */
 
+#include <algorithm>
 #include <random>
 
 #include <boost/property_tree/json_parser.hpp>
@@ -17,31 +18,33 @@
 #include <osquery/packs.h>
 #include <osquery/sql.h>
 
+#include "osquery/core/conversions.h"
+
 namespace pt = boost::property_tree;
 
 namespace osquery {
-
-DECLARE_int32(schedule_splay_percent);
 
 FLAG(int32,
      pack_refresh_interval,
      3600,
      "Cache expiration for a packs discovery queries");
 
+FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
+
 FLAG(int32,
      schedule_default_interval,
      3600,
      "Query interval to use if none is provided");
 
-int splayValue(int original, int splayPercent) {
+size_t splayValue(size_t original, size_t splayPercent) {
   if (splayPercent <= 0 || splayPercent > 100) {
     return original;
   }
 
   float percent_to_modify_by = (float)splayPercent / 100;
-  int possible_difference = original * percent_to_modify_by;
-  int max_value = original + possible_difference;
-  int min_value = original - possible_difference;
+  size_t possible_difference = original * percent_to_modify_by;
+  size_t max_value = original + possible_difference;
+  size_t min_value = std::max((size_t)1, original - possible_difference);
 
   if (max_value == min_value) {
     return max_value;
@@ -50,8 +53,34 @@ int splayValue(int original, int splayPercent) {
   std::default_random_engine generator;
   generator.seed(
       std::chrono::high_resolution_clock::now().time_since_epoch().count());
-  std::uniform_int_distribution<int> distribution(min_value, max_value);
+  std::uniform_int_distribution<size_t> distribution(min_value, max_value);
   return distribution(generator);
+}
+
+size_t restoreSplayedValue(const std::string& name, size_t interval) {
+  // Attempt to restore a previously-calculated splay.
+  std::string content;
+  getDatabaseValue(kPersistentSettings, "interval." + name, content);
+  if (!content.empty()) {
+    // This query name existed before, check the last requested interval.
+    auto details = osquery::split(content, ":");
+    if (details.size() == 2) {
+      long last_interval, last_splay;
+      if (safeStrtol(details[0], 10, last_interval) &&
+          safeStrtol(details[1], 10, last_splay)) {
+        if (last_interval == static_cast<long>(interval) && last_splay > 0) {
+          // This is a matching interval, use the previous splay.
+          return static_cast<size_t>(last_splay);
+        }
+      }
+    }
+  }
+
+  // If the splayed interval was not restored from the database.
+  auto splay = splayValue(interval, FLAGS_schedule_splay_percent);
+  content = std::to_string(interval) + ":" + std::to_string(splay);
+  setDatabaseValue(kPersistentSettings, "interval." + name, content);
+  return splay;
 }
 
 void Pack::initialize(const std::string& name,
@@ -85,6 +114,12 @@ void Pack::initialize(const std::string& name,
     return;
   }
 
+  // If the splay percent is less than 1 reset to a sane estimate.
+  if (FLAGS_schedule_splay_percent <= 1) {
+    FLAGS_schedule_splay_percent = 10;
+  }
+
+  // Iterate the queries (or schedule) and check platform/version/sanity.
   for (const auto& q : tree.get_child("queries")) {
     if (q.second.count("platform")) {
       if (!checkPlatform(q.second.get<std::string>("platform", ""))) {
@@ -99,15 +134,14 @@ void Pack::initialize(const std::string& name,
     }
 
     ScheduledQuery query;
-    query.interval = q.second.get("interval", FLAGS_schedule_default_interval);
     query.query = q.second.get<std::string>("query", "");
-    if (query.interval == 0 || query.query.empty()) {
+    query.interval = q.second.get("interval", FLAGS_schedule_default_interval);
+    if (query.interval <= 0 || query.query.empty()) {
       // Invalid pack query.
       continue;
     }
 
-    query.splayed_interval =
-        splayValue(query.interval, FLAGS_schedule_splay_percent);
+    query.splayed_interval = restoreSplayedValue(q.first, query.interval);
     query.options["snapshot"] = q.second.get<bool>("snapshot", false);
     query.options["removed"] = q.second.get<bool>("removed", true);
     schedule_[q.first] = query;

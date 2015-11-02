@@ -178,7 +178,6 @@ ExtensionRunnerCore::~ExtensionRunnerCore() { remove(path_); }
 void ExtensionRunnerCore::stop() {
   if (server_ != nullptr) {
     server_->stop();
-    manager_->stop();
   }
 }
 
@@ -228,8 +227,13 @@ void ExtensionRunner::start() {
 
 ExtensionManagerRunner::~ExtensionManagerRunner() {
   if (server_ != nullptr) {
-    server_->stop();
-    manager_->stop();
+    // Eventually this extension manager should be stopped.
+    // This involves a lock around assuring the thread context for destruction
+    // matches and the server has begun serving (potentially opaque to our 
+    // our use of ThreadPollServer API).
+    // In newer (forks) version of thrift this server implementation has been
+    // deprecated.
+    // server_->stop();
     removeStalePaths(path_);
   }
 }

@@ -3,12 +3,12 @@ description("Top level information about the running version of osquery.")
 schema([
     Column("pid", INTEGER, "Process (or thread) ID"),
     Column("version", TEXT, "osquery toolkit version"),
-    Column("config_md5", TEXT, "md5 hash of the working configuration state"),
+    Column("config_hash", TEXT, "Hash of the working configuration state"),
     Column("config_valid", INTEGER, "1 if the config was loaded and considered valid, else 0"),
-    Column("config_path", TEXT, "Optional: path to filesystem config plugin content"),
     Column("extensions", TEXT, "osquery extensions status"),
     Column("build_platform", TEXT, "osquery toolkit build platform"),
     Column("build_distro", TEXT, "osquery toolkit platform distribution name (os version)"),
+    Column("start_time", INTEGER, "UNIX time in seconds when the process started"),
 ])
 attributes(utility=True)
 implementation("osquery@genOsqueryInfo")

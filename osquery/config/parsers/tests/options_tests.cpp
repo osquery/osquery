@@ -19,8 +19,6 @@ namespace osquery {
 
 class OptionsConfigParserPluginTests : public testing::Test {};
 
-std::map<std::string, std::string> getTestConfigMap();
-
 TEST_F(OptionsConfigParserPluginTests, test_get_option) {
   auto c = Config();
   auto s = c.update(getTestConfigMap());
