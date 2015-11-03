@@ -9,7 +9,7 @@ if(APPLE)
     ${OSQUERY_DARWIN_TABLES}
   )
 
-  file(GLOB OSQUERY_DARWIN_TABLES_TESTS "*/darwin/tests/*.cpp")
+  file(GLOB OSQUERY_DARWIN_TABLES_TESTS "*/darwin/tests/*.cpp" "*/darwin/tests/*.mm")
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_DARWIN_TABLES_TESTS})
 
   ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreFoundation")
