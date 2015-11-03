@@ -272,6 +272,15 @@ Status DBHandle::Put(const std::string& domain,
     return Status(1, "Could not get column family for " + domain);
   }
   auto s = getDB()->Put(rocksdb::WriteOptions(), cfh, key, value);
+  if (s.code() != 0 && s.IsIOError()) {
+    // An error occurred, check if it is an IO error and remove the offending
+    // specific filename or log name.
+    std::string error_string = s.ToString();
+    size_t error_pos = error_string.find_last_of(":");
+    if (error_pos != std::string::npos) {
+      return Status(s.code(), "IOError: " + error_string.substr(error_pos + 2));
+    }
+  }
   return Status(s.code(), s.ToString());
 }
 
