@@ -225,7 +225,7 @@ bool Pack::checkVersion(const std::string& version) const {
 
 bool Pack::checkDiscovery() {
   stats_.total++;
-  auto current = getUnixTime();
+  int current = (int)getUnixTime();
   if ((current - discovery_cache_.first) < FLAGS_pack_refresh_interval) {
     stats_.hits++;
     return discovery_cache_.second;

@@ -24,6 +24,8 @@
 #include <osquery/registry.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
+
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -39,6 +41,7 @@ CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
  * resume was the result of a failure during an executing query.
  */
 const std::string kExecutingQuery = "executing_query";
+const std::string kFailedQueries = "failed_queries";
 
 // The config may be accessed and updated asynchronously; use mutexes.
 boost::shared_mutex config_schedule_mutex_;
@@ -47,12 +50,49 @@ boost::shared_mutex config_files_mutex_;
 boost::shared_mutex config_hash_mutex_;
 boost::shared_mutex config_valid_mutex_;
 
+void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist) {
+  std::string content;
+  getDatabaseValue(kPersistentSettings, kFailedQueries, content);
+  auto blacklist_pairs = osquery::split(content, ":");
+  if (blacklist_pairs.size() == 0 || blacklist_pairs.size() % 2 != 0) {
+    // Nothing in the blacklist, or malformed data.
+    return;
+  }
+
+  size_t current_time = getUnixTime();
+  for (size_t i = 0; i < blacklist_pairs.size() / 2; i++) {
+    // Fill in a mapping of query name to time the blacklist expires.
+    long int expire = 0;
+    safeStrtol(blacklist_pairs[(i * 2) + 1], 10, expire);
+    if (expire > 0 && current_time < (size_t)expire) {
+      blacklist[blacklist_pairs[(i * 2)]] = (size_t)expire;
+    }
+  }
+}
+
+void saveScheduleBlacklist(const std::map<std::string, size_t>& blacklist) {
+  std::string content;
+  for (const auto& query : blacklist) {
+    if (!content.empty()) {
+      content += ":";
+    }
+    content += query.first + ":" + std::to_string(query.second);
+  }
+  setDatabaseValue(kPersistentSettings, kFailedQueries, content);
+}
+
 Schedule::Schedule() {
+  // Parse the schedule's query blacklist from backing storage.
+  restoreScheduleBlacklist(blacklist_);
+
   // Check if any queries were executing when the tool last stopped.
   getDatabaseValue(kPersistentSettings, kExecutingQuery, failed_query_);
   if (!failed_query_.empty()) {
     LOG(WARNING) << "Scheduled query may have failed: " << failed_query_;
     setDatabaseValue(kPersistentSettings, kExecutingQuery, "");
+    // Add this query name to the blacklist and save the blacklist.
+    blacklist_[failed_query_] = getUnixTime() + 86400;
+    saveScheduleBlacklist(blacklist_);
   }
 }
 
@@ -83,9 +123,23 @@ void Config::scheduledQueries(std::function<
   for (Pack& pack : schedule_) {
     for (const auto& it : pack.getSchedule()) {
       std::string name = it.first;
+      // The query name may be synthetic.
       if (pack.getName() != "main" && pack.getName() != "legacy_main") {
         name = "pack_" + pack.getName() + "_" + it.first;
       }
+      // They query may have failed and been added to the schedule's blacklist.
+      if (schedule_.blacklist_.count(name) > 0) {
+        auto blacklisted_query = schedule_.blacklist_.find(name);
+        if (getUnixTime() > blacklisted_query->second) {
+          // The blacklisted query passed the expiration time (remove).
+          schedule_.blacklist_.erase(blacklisted_query);
+          saveScheduleBlacklist(schedule_.blacklist_);
+        } else {
+          // The query is still blacklisted.
+          continue;
+        }
+      }
+      // Call the predicate.
       predicate(name, it.second);
     }
   }
@@ -278,24 +332,31 @@ void Config::recordQueryPerformance(const std::string& name,
 
   // Grab access to the non-const schedule item.
   auto& query = performance_.at(name);
-  auto diff = AS_LITERAL(BIGINT_LITERAL, r1.at("user_time")) -
-              AS_LITERAL(BIGINT_LITERAL, r0.at("user_time"));
-  if (diff > 0) {
-    query.user_time += diff;
+  BIGINT_LITERAL diff = 0;
+  if (!r1.at("user_time").empty() && !r0.at("user_time").empty()) {
+    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("user_time")) -
+           AS_LITERAL(BIGINT_LITERAL, r0.at("user_time"));
+    if (diff > 0) {
+      query.user_time += diff;
+    }
   }
 
-  diff = AS_LITERAL(BIGINT_LITERAL, r1.at("system_time")) -
-         AS_LITERAL(BIGINT_LITERAL, r0.at("system_time"));
-  if (diff > 0) {
-    query.system_time += diff;
+  if (!r1.at("system_time").empty() && !r0.at("system_time").empty()) {
+    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("system_time")) -
+           AS_LITERAL(BIGINT_LITERAL, r0.at("system_time"));
+    if (diff > 0) {
+      query.system_time += diff;
+    }
   }
 
-  diff = AS_LITERAL(BIGINT_LITERAL, r1.at("resident_size")) -
-         AS_LITERAL(BIGINT_LITERAL, r0.at("resident_size"));
-  if (diff > 0) {
-    // Memory is stored as an average of RSS changes between query executions.
-    query.average_memory = (query.average_memory * query.executions) + diff;
-    query.average_memory = (query.average_memory / (query.executions + 1));
+  if (!r1.at("resident_size").empty() && !r0.at("resident_size").empty()) {
+    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("resident_size")) -
+           AS_LITERAL(BIGINT_LITERAL, r0.at("resident_size"));
+    if (diff > 0) {
+      // Memory is stored as an average of RSS changes between query executions.
+      query.average_memory = (query.average_memory * query.executions) + diff;
+      query.average_memory = (query.average_memory / (query.executions + 1));
+    }
   }
 
   query.wall_time += delay;
