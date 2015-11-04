@@ -47,11 +47,7 @@ void genExtension(const std::string& path, QueryData& results) {
   Row r;
   // Most of the keys are in the top-level JSON dictionary.
   for (const auto& it : kExtensionKeys) {
-    try {
-      r[it.second] = tree.get<std::string>(it.first);
-    } catch (const pt::ptree_error& e) {
-      r[it.second] = "";
-    }
+    r[it.second] = tree.get<std::string>(it.first, "");
 
     // Convert JSON bool-types to an integer.
     if (r[it.second] == "true") {
