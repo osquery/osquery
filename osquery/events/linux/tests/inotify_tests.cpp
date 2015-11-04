@@ -172,6 +172,44 @@ TEST_F(INotifyTests, test_inotify_add_subscription_success) {
   EventFactory::deregisterEventPublisher("inotify");
 }
 
+TEST_F(INotifyTests, test_inotify_match_subscription) {
+  auto pub = std::make_shared<INotifyEventPublisher>();
+  pub->addMonitor("/etc", false, false);
+  EXPECT_EQ(pub->path_descriptors_.count("/etc"), 1U);
+  // This will fail because there is no trailing "/" at the end.
+  // The configure component should take care of these paths.
+  EXPECT_FALSE(pub->isPathMonitored("/etc/passwd"));
+  pub->path_descriptors_.clear();
+
+  // Calling addMonitor the correct way.
+  pub->addMonitor("/etc/", false, false);
+  EXPECT_TRUE(pub->isPathMonitored("/etc/passwd"));
+  pub->path_descriptors_.clear();
+
+  // Test the matching capability.
+  {
+    auto sc = pub->createSubscriptionContext();
+    sc->path = "/etc";
+    pub->monitorSubscription(sc, false);
+    EXPECT_EQ(sc->path, "/etc/");
+    EXPECT_TRUE(pub->isPathMonitored("/etc/"));
+    EXPECT_TRUE(pub->isPathMonitored("/etc/passwd"));
+  }
+
+  std::vector<std::string> valid_dirs = {"/etc", "/etc/", "/etc/*"};
+  for (const auto& dir : valid_dirs) {
+    pub->path_descriptors_.clear();
+    auto sc = pub->createSubscriptionContext();
+    sc->path = dir;
+    pub->monitorSubscription(sc, false);
+    auto ec = pub->createEventContext();
+    ec->path = "/etc/";
+    EXPECT_TRUE(pub->shouldFire(sc, ec));
+    ec->path = "/etc/passwd";
+    EXPECT_TRUE(pub->shouldFire(sc, ec));
+  }
+}
+
 class TestINotifyEventSubscriber
     : public EventSubscriber<INotifyEventPublisher> {
  public:
@@ -299,7 +337,7 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   sub->subscribe(&TestINotifyEventSubscriber::Callback, sc, nullptr);
 
   TriggerEvent(real_test_path);
-  sub->WaitForEvents(kMaxEventLatency, 3);
+  sub->WaitForEvents(kMaxEventLatency, 2);
 
   // Make sure the inotify action was expected.
   EXPECT_GT(sub->actions().size(), 0U);
@@ -322,7 +360,7 @@ TEST_F(INotifyTests, test_inotify_optimization) {
   // Adding a subscription to a file within a monitored directory is fine
   // but this will NOT cause an additional INotify watch.
   SubscriptionAction(real_test_dir_path);
-  EXPECT_EQ(event_pub_->numDescriptors(), 1);
+  EXPECT_EQ(event_pub_->numDescriptors(), 1U);
   StopEventLoop();
 }
 
@@ -367,11 +405,11 @@ TEST_F(INotifyTests, test_inotify_recursion) {
   pub->configure();
   // Expect a single monitor on the root of the fake tree.
   EXPECT_EQ(pub->path_descriptors_.size(), 1U);
-  EXPECT_EQ(pub->path_descriptors_.count(kFakeDirectory), 1U);
+  EXPECT_EQ(pub->path_descriptors_.count(kFakeDirectory + "/"), 1U);
   RemoveAll(pub);
 
   // Make sure monitors are empty.
-  EXPECT_EQ(pub->numDescriptors(), 0);
+  EXPECT_EQ(pub->numDescriptors(), 0U);
 
   auto sc2 = sub->createSubscriptionContext();
   sc2->path = kFakeDirectory + "/**";
