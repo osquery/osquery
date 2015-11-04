@@ -295,4 +295,12 @@ TEST_F(FilesystemTests, test_safe_permissions) {
   // A root-owned file is appropriate
   EXPECT_TRUE(safePermissions("/", "/dev/zero"));
 }
+
+#ifdef __linux__
+TEST_F(FilesystemTests, test_read_proc) {
+  std::string content;
+  EXPECT_TRUE(readFile("/proc/" + std::to_string(getpid()) + "/stat", content));
+  EXPECT_GT(content.size(), 0U);
+}
+#endif
 }
