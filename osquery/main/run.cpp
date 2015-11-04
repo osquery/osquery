@@ -15,6 +15,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
+#include "osquery/database/db_handle.h"
 #include "osquery/sql/sqlite_util.h"
 
 DEFINE_string(query, "", "query to execute");
@@ -40,6 +41,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  osquery::DBHandle::setAllowOpen(true);
+  osquery::FLAGS_database_path = "/dev/null";
   osquery::Registry::setUp();
   osquery::FLAGS_disable_events = true;
   osquery::FLAGS_registry_exceptions = true;
