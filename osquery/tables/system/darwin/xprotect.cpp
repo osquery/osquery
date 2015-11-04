@@ -57,7 +57,7 @@ void genMatches(const pt::ptree& entry, std::vector<Row>& results) {
     // This can contain any of Foundation/Classes/NSURL_Class keys.
     auto fileinfo = match.second.get_child("MatchFile");
     if (fileinfo.count("LSDownloadContentTypeKey") > 0) {
-      r["filetype"] = fileinfo.get<std::string>("LSDownloadContentTypeKey");
+      r["filetype"] = fileinfo.get<std::string>("LSDownloadContentTypeKey", "");
     } else {
       r["filetype"] = fileinfo.get("NSURLTypeIdentifierKey", "");
     }
