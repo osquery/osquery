@@ -130,7 +130,7 @@ std::string getAsciiTime() {
   return time_str + " UTC";
 }
 
-int getUnixTime() {
+size_t getUnixTime() {
   auto result = std::time(nullptr);
   return result;
 }

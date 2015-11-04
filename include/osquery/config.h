@@ -94,6 +94,16 @@ class Schedule {
    */
   std::string failed_query_;
 
+  /**
+   * @brief List of blacklisted queries.
+   *
+   * A list of queries that are blacklisted from executing due to prior
+   * failures. If a query caused a worker to fail it will be recorded during
+   * the next execution and saved to the blacklist.
+   */
+  std::map<std::string, size_t> blacklist_;
+
+ private:
   friend class Config;
 };
 

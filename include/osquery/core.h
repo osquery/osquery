@@ -243,7 +243,7 @@ std::string getAsciiTime();
  *
  * @return an int representing the amount of seconds since the UNIX epoch
  */
-int getUnixTime();
+size_t getUnixTime();
 
 /**
  * @brief In-line helper function for use with utf8StringSize

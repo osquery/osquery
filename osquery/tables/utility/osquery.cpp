@@ -183,7 +183,6 @@ QueryData genOsqueryExtensions(QueryContext& context) {
 
 QueryData genOsqueryInfo(QueryContext& context) {
   QueryData results;
-
   Row r;
   r["pid"] = INTEGER(getpid());
   r["version"] = kVersion;

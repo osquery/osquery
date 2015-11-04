@@ -27,6 +27,10 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+// Blacklist testing methods, internal to config implementations.
+extern void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist);
+extern void saveScheduleBlacklist(const std::map<std::string, size_t>& blacklist);
+
 class ConfigTests : public testing::Test {
  protected:
   void SetUp() { createMockFileStructure(); }
@@ -197,5 +201,33 @@ TEST_F(ConfigTests, test_noninline_pack) {
   int total_packs = 0;
   c.packs([&total_packs](const Pack& pack) { total_packs++; });
   EXPECT_EQ(total_packs, 2);
+}
+
+TEST_F(ConfigTests, test_blacklist) {
+  auto current_time = getUnixTime();
+  std::map<std::string, size_t> blacklist;
+  saveScheduleBlacklist(blacklist);
+  restoreScheduleBlacklist(blacklist);
+  EXPECT_EQ(blacklist.size(), 0U);
+
+  // Create some entries.
+  blacklist["test_1"] = current_time * 2;
+  blacklist["test_2"] = current_time * 3;
+  saveScheduleBlacklist(blacklist);
+  blacklist.clear();
+  restoreScheduleBlacklist(blacklist);
+  ASSERT_EQ(blacklist.count("test_1"), 1U);
+  ASSERT_EQ(blacklist.count("test_2"), 1U);
+  EXPECT_EQ(blacklist.at("test_1"), current_time * 2);
+  EXPECT_EQ(blacklist.at("test_2"), current_time * 3);
+
+  // Now save an expired query.
+  blacklist["test_1"] = 1;
+  saveScheduleBlacklist(blacklist);
+  blacklist.clear();
+
+  // When restoring, the values below the current time will not be included.
+  restoreScheduleBlacklist(blacklist);
+  EXPECT_EQ(blacklist.size(), 1U);
 }
 }

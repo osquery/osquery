@@ -54,6 +54,9 @@ REGISTER_INTERNAL(RocksDatabasePlugin, "database", "rocks");
 // Constants
 /////////////////////////////////////////////////////////////////////////////
 
+bool DBHandle::kDBHandleOptionAllowOpen = false;
+bool DBHandle::kDBHandleOptionRequireWrite = false;
+
 const std::string kPersistentSettings = "configurations";
 const std::string kQueries = "queries";
 const std::string kEvents = "events";
@@ -92,6 +95,10 @@ static bool kCheckingDB = false;
 
 DBHandle::DBHandle(const std::string& path, bool in_memory)
     : path_(path), in_memory_(in_memory) {
+  if (!kDBHandleOptionAllowOpen) {
+    LOG(WARNING) << RLOG(1629) << "Not allowed to create DBHandle instance";
+  }
+
   options_.create_if_missing = true;
   options_.create_missing_column_families = true;
   options_.info_log_level = rocksdb::ERROR_LEVEL;
@@ -138,7 +145,7 @@ void DBHandle::open() {
   auto s =
       rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
   if (!s.ok() || db_ == nullptr) {
-    if (require_write_) {
+    if (kDBHandleOptionRequireWrite) {
       // A failed open in R/W mode is a runtime error.
       throw std::runtime_error(s.ToString());
     }
@@ -184,13 +191,13 @@ DBHandleRef DBHandle::getInstance() {
   return getInstance(FLAGS_database_path, FLAGS_database_in_memory);
 }
 
-bool DBHandle::checkDB(bool require_write) {
+bool DBHandle::checkDB() {
   // Allow database instances to check if a status/sanity check was requested.
   kCheckingDB = true;
   try {
     auto handle = DBHandle(FLAGS_database_path, FLAGS_database_in_memory);
     kCheckingDB = false;
-    if (require_write && handle.read_only_) {
+    if (kDBHandleOptionRequireWrite && handle.read_only_) {
       return false;
     }
   } catch (const std::exception& e) {
