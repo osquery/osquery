@@ -197,6 +197,10 @@ Osquery will natively re-run the discovery queries from time to time, to make
 sure that all of the correct packs are executing. This flag allows you to
 specify that interval.
 
+`--pack_delimiter=_`
+
+Control the delimiter between pack name and pack query names. When queries are added to the daemon's schedule they inherit the name of the pack. A query named "info" within the "general_info" pack will become "pack_general_info_info". Changing the delimiter to "/" turned the scheduled name into: "pack/general_info/info".
+
 `--schedule_default_interval=3600`
 
 Optionally set the default interval value. This is used if you schedule a query

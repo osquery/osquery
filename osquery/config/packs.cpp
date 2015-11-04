@@ -29,6 +29,8 @@ FLAG(int32,
      3600,
      "Cache expiration for a packs discovery queries");
 
+FLAG(string, pack_delimiter, "_", "Delimiter for pack and query names");
+
 FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
 
 FLAG(int32,

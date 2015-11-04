@@ -33,6 +33,8 @@ namespace osquery {
 /// The config plugin must be known before reading options.
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
+DECLARE_string(pack_delimiter);
+
 /**
  * @brief The backing store key name for the executing query.
  *
@@ -125,7 +127,8 @@ void Config::scheduledQueries(std::function<
       std::string name = it.first;
       // The query name may be synthetic.
       if (pack.getName() != "main" && pack.getName() != "legacy_main") {
-        name = "pack_" + pack.getName() + "_" + it.first;
+        name = "pack" + FLAGS_pack_delimiter + pack.getName() +
+               FLAGS_pack_delimiter + it.first;
       }
       // They query may have failed and been added to the schedule's blacklist.
       if (schedule_.blacklist_.count(name) > 0) {

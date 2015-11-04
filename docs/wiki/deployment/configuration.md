@@ -238,6 +238,23 @@ consist of pack name to pack content JSON data structures.
 }
 ```
 
+The pack value may also be a string, such as:
+
+```json
+{
+  "packs": {
+    "external_pack": "/path/to/external_pack.conf",
+    "internal_stuff": {
+      [...]
+    }
+  }
+}
+```
+
+If using a string instead of an inline JSON dictionary the configuration plugin will be asked to "generate" that resource. In the case of the default **filesystem** plugin, these strings are considered paths.
+
+Queries added to the schedule from packs inherit the pack name as part of the scheduled query name identifier. For example, consider the embedded `active_directory` query above, it is in the `internal_stuff` pack so the scheduled query name becomes: `pack_internal_stuff_active_directory`. The delimiter can be changed using the `--pack_delimiter=_`, see the [CLI Options](../installation/cli-flags.md) for more details.
+
 ### Discovery queries
 
 Discovery queries are a feature of query packs that make it much easier to monitor services at scale. Consider that there are some groups of scheduled
