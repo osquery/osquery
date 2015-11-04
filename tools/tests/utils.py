@@ -140,7 +140,6 @@ def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
                                 shell=shell,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-
     p = psutil.Process(pid=proc.pid)
 
     delay = 0
@@ -170,6 +169,8 @@ def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
     else:
         avg_utilization = sum(utilization) / len(utilization)
 
+    if len(stats.keys()) == 0:
+        raise Exception("No stats recorded, perhaps binary returns -1?")
     return {
         "utilization": avg_utilization,
         "duration": duration,

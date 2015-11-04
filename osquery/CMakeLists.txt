@@ -78,7 +78,6 @@ endif()
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
 set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
-add_compile_options(-Werror)
 
 # Add subdirectories
 add_subdirectory(config)
