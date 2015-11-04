@@ -301,15 +301,6 @@ Status listDirectoriesInDirectory(const fs::path& path,
       (path / ((recursive) ? "**" : "*")), results, GLOB_FOLDERS);
 }
 
-Status getDirectory(const fs::path& path, fs::path& dirpath) {
-  if (!isDirectory(path).ok()) {
-    dirpath = fs::path(path).parent_path().string();
-    return Status(0, "OK");
-  }
-  dirpath = path;
-  return Status(1, "Path is a directory: " + path.string());
-}
-
 Status isDirectory(const fs::path& path) {
   boost::system::error_code ec;
   if (fs::is_directory(path, ec)) {

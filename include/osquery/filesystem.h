@@ -175,18 +175,6 @@ Status resolveFilePattern(const boost::filesystem::path& pattern,
  */
 void replaceGlobWildcards(std::string& pattern);
 
-/**
- * @brief Get directory portion of a path.
- *
- * @param path input path, either a filename or directory.
- * @param dirpath output path set to the directory-only path.
- *
- * @return If the input path was a directory this will indicate failure. One
- * should use `isDirectory` before.
- */
-Status getDirectory(const boost::filesystem::path& path,
-                    boost::filesystem::path& dirpath);
-
 /// Attempt to remove a directory path.
 Status remove(const boost::filesystem::path& path);
 
