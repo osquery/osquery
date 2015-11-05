@@ -334,6 +334,19 @@ class DropPrivileges : private boost::noncopyable {
   uid_t to_user_;
   /// The group this instance dropped privileges to.
   gid_t to_group_;
+  /// If this was a filesystem-prompted privilege drop.
+  bool fs_drop_{false};
+
+  /**
+   * @brief If dropping explicitly to a user and group also drop groups.
+   *
+   * Original process groups before explicitly dropping privileges.
+   * On restore, if there are any groups in this list, they will be added
+   * to the processes group list.
+   */
+  gid_t* original_groups_{nullptr};
+  /// The size of the original groups to backup when restoring privileges.
+  size_t group_size_{0};
 
  private:
   FRIEND_TEST(PermissionsTests, test_explicit_drop);

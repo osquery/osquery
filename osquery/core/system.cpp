@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <grp.h>
 #include <signal.h>
 
 #if !defined(__FreeBSD__)
@@ -216,6 +217,15 @@ Status createPidFile() {
   return status;
 }
 
+#if defined(__linux__)
+#include <sys/fsuid.h>
+static inline int _fs_set_group(gid_t gid) { return setfsgid(gid) * 0; }
+static inline int _fs_set_user(uid_t uid) { return setfsuid(uid) * 0; }
+#else
+static inline int _fs_set_group(gid_t gid) { return setegid(gid); }
+static inline int _fs_set_user(uid_t uid) { return seteuid(uid); }
+#endif
+
 bool DropPrivileges::dropToParent(const fs::path& path) {
   uid_t to_user{0};
   gid_t to_group{0};
@@ -241,16 +251,20 @@ bool DropPrivileges::dropToParent(const fs::path& path) {
     return true;
   } else if (!dropped()) {
     // Privileges should be dropped.
-    if (seteuid(to_user) != 0) {
+    if (_fs_set_group(to_group) != 0) {
+      return false;
+    } else if (_fs_set_user(to_user) != 0) {
       // Privileges are not dropped and could not be set for the user.
+      // Restore the group and fail.
+      (void)_fs_set_group(getgid());
       return false;
     }
 
-    (void)setegid(to_group);
     // Privileges are now dropped to the requested user/group.
     to_user_ = to_user;
     to_group_ = to_group;
     dropped_ = true;
+    fs_drop_ = true;
     return true;
   }
 
@@ -266,12 +280,17 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
   } else if (dropped()) {
     return false;
   }
-
-  if (seteuid(uid) != 0) {
+  /// Drop process groups.
+  original_groups_ = (gid_t*)malloc(NGROUPS_MAX * sizeof(gid_t));
+  group_size_ = getgroups(NGROUPS_MAX, original_groups_);
+  setgroups(1, &gid);
+  if (setegid(gid) != 0) {
+    return false;
+  } else if (seteuid(uid) != 0) {
+    (void)setegid(getgid());
     return false;
   }
 
-  (void)setegid(gid);
   // Privileges are now dropped to the requested user/group.
   to_user_ = uid;
   to_group_ = gid;
@@ -281,9 +300,25 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
 
 DropPrivileges::~DropPrivileges() {
   if (dropped_) {
-    (void)seteuid(getuid());
-    (void)setegid(getgid());
+    // 1. On Linux/BSD we do not need to differentiate between FS/E since FS
+    // is set implicitly by seteuid.
+    // 2. We are elevating privileges, there is no security vulnerability if
+    // either privilege change fails.
+    if (fs_drop_) {
+      (void)_fs_set_user(getuid());
+      (void)_fs_set_group(getgid());
+    } else {
+      (void)seteuid(getuid());
+      (void)setegid(getgid());
+    }
     dropped_ = false;
+  }
+
+  if (original_groups_ != nullptr) {
+    setgroups(group_size_, original_groups_);
+    group_size_ = 0;
+    free(original_groups_);
+    original_groups_ = nullptr;
   }
 }
 }

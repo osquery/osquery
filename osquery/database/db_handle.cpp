@@ -150,7 +150,9 @@ void DBHandle::open() {
       throw std::runtime_error(s.ToString());
     }
 
-    VLOG(1) << "Opening RocksDB failed: Continuing with read-only support";
+    if (!kCheckingDB) {
+      VLOG(1) << "Opening RocksDB failed: Continuing with read-only support";
+    }
 #if !defined(ROCKSDB_LITE)
     // RocksDB LITE does not support readonly mode.
     // The database was readable but could not be opened, either (1) it is not
