@@ -84,6 +84,10 @@ void saveScheduleBlacklist(const std::map<std::string, size_t>& blacklist) {
 }
 
 Schedule::Schedule() {
+  if (Registry::external()) {
+    // Extensions should not restore or save schedule details.
+    return;
+  }
   // Parse the schedule's query blacklist from backing storage.
   restoreScheduleBlacklist(blacklist_);
 
@@ -216,14 +220,14 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
   }
 
   // extract the "schedule" key and store it as the main pack
-  if (tree.count("schedule") > 0) {
+  if (tree.count("schedule") > 0 && !Registry::external()) {
     auto& schedule = tree.get_child("schedule");
     pt::ptree main_pack;
     main_pack.add_child("queries", schedule);
     addPack("main", name, main_pack);
   }
 
-  if (tree.count("scheduledQueries") > 0) {
+  if (tree.count("scheduledQueries") > 0 && !Registry::external()) {
     auto& scheduled_queries = tree.get_child("scheduledQueries");
     pt::ptree queries;
     for (const std::pair<std::string, pt::ptree>& query : scheduled_queries) {
@@ -239,7 +243,7 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
   }
 
   // extract the "packs" key into additional pack objects
-  if (tree.count("packs") > 0) {
+  if (tree.count("packs") > 0 && !Registry::external()) {
     auto& packs = tree.get_child("packs");
     for (const auto& pack : packs) {
       auto value = packs.get<std::string>(pack.first, "");
