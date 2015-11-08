@@ -12,7 +12,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import flaky
 import os
 import shutil
 import time
@@ -23,7 +22,7 @@ import test_base
 import utils
 
 class AdditionalFeatureTests(test_base.ProcessGenerator, unittest.TestCase):
-    @flaky.flaky(max_runs=3)
+    @test_base.flaky
     def test_query_packs(self):
         query_pack_path = test_base.CONFIG_DIR + "/test_pack.conf"
         utils.write_config({
