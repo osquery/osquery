@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <glob.h>
 #include <pwd.h>
+#include <sys/stat.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/fstream.hpp>
