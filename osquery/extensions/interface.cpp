@@ -138,8 +138,8 @@ void ExtensionManagerHandler::getQueryColumns(ExtensionResponse& _return,
   _return.status.uuid = uuid_;
 
   if (status.ok()) {
-    for (const auto& column : columns) {
-      _return.response.push_back({{column.first, column.second}});
+    for (const auto& col : columns) {
+      _return.response.push_back({{col.first, columnTypeName(col.second)}});
     }
   }
 }

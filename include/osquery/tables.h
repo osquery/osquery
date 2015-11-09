@@ -75,10 +75,22 @@ namespace osquery {
 /// Cast an SQLite affinity type to the literal type.
 #define AS_LITERAL(literal, value) boost::lexical_cast<literal>(value)
 
+enum ColumnType {
+  UNKNOWN_TYPE = 0,
+  TEXT_TYPE,
+  INTEGER_TYPE,
+  BIGINT_TYPE,
+  UNSIGNED_BIGINT_TYPE,
+  DOUBLE_TYPE,
+  BLOB_TYPE,
+};
+
+/// Map of type constant to the SQLite string-name representation.
+extern const std::map<ColumnType, std::string> kColumnTypeNames;
+
 /// Helper alias for TablePlugin names.
 typedef std::string TableName;
-typedef std::vector<std::pair<std::string, std::string> > TableColumns;
-typedef std::map<std::string, std::deque<std::string> > TableData;
+typedef std::vector<std::pair<std::string, ColumnType> > TableColumns;
 
 /**
  * @brief A ConstraintOperator is applied in an query predicate.
@@ -128,7 +140,7 @@ struct Constraint {
  */
 struct ConstraintList {
   /// The SQLite affinity type.
-  std::string affinity;
+  ColumnType affinity;
 
   /**
    * @brief Check if an expression matches the query constraints.
@@ -170,18 +182,7 @@ struct ConstraintList {
    * @param ops (Optional: default ANY_OP) The operators types to look for.
    * @return true if any constraint exists.
    */
-  bool exists(const ConstraintOperatorFlag ops = ANY_OP) const {
-    if (ops == ANY_OP) {
-      return (constraints_.size() > 0);
-    } else {
-      for (const struct Constraint &c : constraints_) {
-        if (c.op & ops) {
-          return true;
-        }
-      }
-      return false;
-    }
-  }
+  bool exists(const ConstraintOperatorFlag ops = ANY_OP) const;
 
   /**
    * @brief Check if a constraint exist AND matches the type expression.
@@ -267,7 +268,7 @@ struct ConstraintList {
   /// See ConstraintList::unserialize.
   void unserialize(const boost::property_tree::ptree& tree);
 
-  ConstraintList() : affinity("TEXT") {}
+  ConstraintList() : affinity(TEXT_TYPE) {}
 
  private:
   /// List of constraint operator/expressions.
@@ -445,6 +446,14 @@ std::string columnDefinition(const TableColumns& columns);
 
 /// Helper method to generate the virtual table CREATE statement.
 std::string columnDefinition(const PluginResponse& response);
+
+/// Get the string representation for an SQLite column type.
+inline const std::string& columnTypeName(ColumnType type) {
+  return kColumnTypeNames.at(type);
+}
+
+/// Get the column type from the string representation.
+ColumnType columnTypeName(const std::string& type);
 
 CREATE_LAZY_REGISTRY(TablePlugin, "table");
 }

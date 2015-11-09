@@ -35,7 +35,7 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
   TableColumns columns() const {
     return {
 {% for column in schema %}\
-      {"{{column.name}}", "{{column.type.affinity}}"}\
+      {"{{column.name}}", {{column.type.affinity}}}\
 {% if not loop.last %}, {% endif %}
 {% endfor %}\
     };

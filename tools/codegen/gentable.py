@@ -37,7 +37,6 @@ PLATFORM = platform()
 
 # Supported SQL types for spec
 class DataType(object):
-
     def __init__(self, affinity, cpp_type="std::string"):
         '''A column datatype is a pair of a SQL affinity to C++ type.'''
         self.affinity = affinity
@@ -47,13 +46,14 @@ class DataType(object):
         return self.affinity
 
 # Define column-type MACROs for the table specs
-TEXT = DataType("TEXT")
-DATE = DataType("TEXT")
-DATETIME = DataType("TEXT")
-INTEGER = DataType("INTEGER", "int")
-BIGINT = DataType("BIGINT", "long long int")
-UNSIGNED_BIGINT = DataType("UNSIGNED_BIGINT", "long long unsigned int")
-DOUBLE = DataType("DOUBLE", "double")
+TEXT = DataType("TEXT_TYPE")
+DATE = DataType("TEXT_TYPE")
+DATETIME = DataType("TEXT_TYPE")
+INTEGER = DataType("INTEGER_TYPE", "int")
+BIGINT = DataType("BIGINT_TYPE", "long long int")
+UNSIGNED_BIGINT = DataType("UNSIGNED_BIGINT_TYPE", "long long unsigned int")
+DOUBLE = DataType("DOUBLE_TYPE", "double")
+BLOB = DataType("BLOB_TYPE", "Blob")
 
 # Define table-category MACROS from the table specs
 UNKNOWN = "UNKNOWN"

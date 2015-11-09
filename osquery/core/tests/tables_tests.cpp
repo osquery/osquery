@@ -69,7 +69,7 @@ TEST_F(TablesTests, test_constraint_matching) {
   EXPECT_FALSE(cl.notExistsOrMatches("not_some"));
 
   struct ConstraintList cl2;
-  cl2.affinity = "INTEGER";
+  cl2.affinity = INTEGER_TYPE;
   constraint = Constraint(LESS_THAN);
   constraint.expr = "1000";
   cl2.add(constraint);

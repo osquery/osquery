@@ -24,6 +24,16 @@ FLAG(bool, disable_caching, false, "Disable scheduled query caching");
 size_t TablePlugin::kCacheInterval = 0;
 size_t TablePlugin::kCacheStep = 0;
 
+const std::map<ColumnType, std::string> kColumnTypeNames = {
+    {UNKNOWN_TYPE, "UNKNOWN"},
+    {TEXT_TYPE, "TEXT"},
+    {INTEGER_TYPE, "INTEGER"},
+    {BIGINT_TYPE, "BIGINT"},
+    {UNSIGNED_BIGINT_TYPE, "UNSIGNED BIGINT"},
+    {DOUBLE_TYPE, "DOUBLE"},
+    {BLOB_TYPE, "BLOB"},
+};
+
 Status TablePlugin::addExternal(const std::string& name,
                                 const PluginResponse& response) {
   // Attach the table.
@@ -114,7 +124,8 @@ Status TablePlugin::call(const PluginRequest& request,
     // such as name and type.
     const auto& column_list = columns();
     for (const auto& column : column_list) {
-      response.push_back({{"name", column.first}, {"type", column.second}});
+      response.push_back(
+          {{"name", column.first}, {"type", columnTypeName(column.second)}});
     }
   } else if (request.at("action") == "definition") {
     response.push_back({{"definition", columnDefinition()}});
@@ -133,7 +144,8 @@ PluginResponse TablePlugin::routeInfo() const {
   // Route info consists of only the serialized column information.
   PluginResponse response;
   for (const auto& column : columns()) {
-    response.push_back({{"name", column.first}, {"type", column.second}});
+    response.push_back(
+        {{"name", column.first}, {"type", columnTypeName(column.second)}});
   }
   return response;
 }
@@ -167,7 +179,8 @@ void TablePlugin::setCache(size_t step,
 std::string columnDefinition(const TableColumns& columns) {
   std::string statement = "(";
   for (size_t i = 0; i < columns.size(); ++i) {
-    statement += "`" + columns.at(i).first + "` " + columns.at(i).second;
+    statement +=
+        "`" + columns.at(i).first + "` " + columnTypeName(columns.at(i).second);
     if (i < columns.size() - 1) {
       statement += ", ";
     }
@@ -178,22 +191,45 @@ std::string columnDefinition(const TableColumns& columns) {
 std::string columnDefinition(const PluginResponse& response) {
   TableColumns columns;
   for (const auto& column : response) {
-    columns.push_back(make_pair(column.at("name"), column.at("type")));
+    columns.push_back(
+        make_pair(column.at("name"), columnTypeName(column.at("type"))));
   }
   return columnDefinition(columns);
 }
 
+ColumnType columnTypeName(const std::string& type) {
+  for (const auto& col : kColumnTypeNames) {
+    if (col.second == type) {
+      return col.first;
+    }
+  }
+  return UNKNOWN_TYPE;
+}
+
+bool ConstraintList::exists(const ConstraintOperatorFlag ops) const {
+  if (ops == ANY_OP) {
+    return (constraints_.size() > 0);
+  } else {
+    for (const struct Constraint& c : constraints_) {
+      if (c.op & ops) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
 bool ConstraintList::matches(const std::string& expr) const {
   // Support each SQL affinity type casting.
-  if (affinity == "TEXT") {
+  if (affinity == TEXT_TYPE) {
     return literal_matches<TEXT_LITERAL>(expr);
-  } else if (affinity == "INTEGER") {
+  } else if (affinity == INTEGER_TYPE) {
     INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
     return literal_matches<INTEGER_LITERAL>(lexpr);
-  } else if (affinity == "BIGINT") {
+  } else if (affinity == BIGINT_TYPE) {
     BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
     return literal_matches<BIGINT_LITERAL>(lexpr);
-  } else if (affinity == "UNSIGNED_BIGINT") {
+  } else if (affinity == UNSIGNED_BIGINT_TYPE) {
     UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
     return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
   } else {
@@ -249,7 +285,7 @@ void ConstraintList::serialize(boost::property_tree::ptree& tree) const {
     expressions.push_back(std::make_pair("", child));
   }
   tree.add_child("list", expressions);
-  tree.put("affinity", affinity);
+  tree.put("affinity", columnTypeName(affinity));
 }
 
 void ConstraintList::unserialize(const boost::property_tree::ptree& tree) {
@@ -260,6 +296,6 @@ void ConstraintList::unserialize(const boost::property_tree::ptree& tree) {
     constraint.expr = list.second.get<std::string>("expr");
     constraints_.push_back(constraint);
   }
-  affinity = tree.get<std::string>("affinity");
+  affinity = columnTypeName(tree.get<std::string>("affinity", "UNKNOWN"));
 }
 }

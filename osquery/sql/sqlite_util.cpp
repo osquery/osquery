@@ -224,7 +224,7 @@ Status getQueryColumnsInternal(const std::string& q,
       // (https://www.sqlite.org/c3ref/column_decltype.html).
       col_type = "UNKNOWN";
     }
-    results.push_back({col_name, col_type});
+    results.push_back({col_name, columnTypeName(col_type)});
   }
 
   if (status.ok()) {
