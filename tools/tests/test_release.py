@@ -30,6 +30,7 @@ def allowed_platform(qp):
 
 
 class ReleaseTests(test_base.QueryTester):
+    @test_base.flaky
     def test_pack_queries(self):
         packs = {}
         PACKS_DIR = SOURCE_DIR + "/packs"

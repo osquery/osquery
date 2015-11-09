@@ -29,7 +29,7 @@ namespace osquery {
   #define SHA1_CTX SHA_CTX
 #endif
 
-#define HASH_CHUNK_SIZE 1024
+#define HASH_CHUNK_SIZE 4096
 
 Hash::~Hash() {
   if (ctx_ != nullptr) {
