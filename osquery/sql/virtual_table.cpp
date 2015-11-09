@@ -245,7 +245,7 @@ Status attachTableInternal(const std::string &name,
                            const std::string &statement,
                            sqlite3 *db) {
   if (SQLiteDBManager::isDisabled(name)) {
-    VLOG(0) << "Table " << name << " is disabled, not attaching";
+    VLOG(1) << "Table " << name << " is disabled, not attaching";
     return Status(0, getStringForSQLiteReturnCode(0));
   }
 

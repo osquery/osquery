@@ -20,4 +20,5 @@ schema([
     Column("path", TEXT, "Path to plugin bundle"),
 
 ])
+attributes(cachable=True)
 implementation("applications/browser_firefox@genFirefoxAddons")

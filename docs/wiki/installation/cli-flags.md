@@ -201,6 +201,13 @@ specify that interval.
 
 Control the delimiter between pack name and pack query names. When queries are added to the daemon's schedule they inherit the name of the pack. A query named "info" within the "general_info" pack will become "pack_general_info_info". Changing the delimiter to "/" turned the scheduled name into: "pack/general_info/info".
 
+`--disable_caching=false`
+
+"Caching" refers to short cutting the table implementation and returning the same results from the previous query against the table.
+This is not related to differential results from scheduled queries, but does affect the performance of the schedule.
+Results are cached when different scheduled queries in a schedule use the same table, without providing query constraints.
+Caching should NOT affect data freshness since the cache life is determined as the minimum interval of all queries against a table.
+
 `--schedule_default_interval=3600`
 
 Optionally set the default interval value. This is used if you schedule a query

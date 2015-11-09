@@ -179,8 +179,16 @@ class TableState(Singleton):
             examples=self.examples,
         )
 
+        column_options = []
+        for column in self.columns():
+            column_options += column.options
+        non_cachable = ["index", "required", "additional", "superuser"]
+        if "cachable" in self.attributes:
+            if len(set(column_options).intersection(non_cachable)) > 0:
+                print(lightred("Table cannot be marked cachable: %s" % (path)))
+                exit(1)
         if self.table_name == "" or self.function == "":
-            print (lightred("Invalid table spec: %s" % (path)))
+            print(lightred("Invalid table spec: %s" % (path)))
             exit(1)
 
         # Check for reserved column names

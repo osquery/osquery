@@ -43,15 +43,24 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
 
   QueryData generate(QueryContext& request) {
 {% if class_name != "" %}\
-    if (EventFactory::exists("{{class_name}}")) {
-      auto subscriber = EventFactory::getEventSubscriber("{{class_name}}");
+    if (EventFactory::exists(getName())) {
+      auto subscriber = EventFactory::getEventSubscriber(getName());
       return subscriber->{{function}}(request);
     } else {
-      LOG(ERROR) << "Subscriber table: {{class_name}} missing.";
+      LOG(ERROR) << "Subscriber table missing: " << getName();
       return QueryData();
     }
 {% else %}\
-    return tables::{{function}}(request);
+{% if attributes.cachable %}\
+    if (isCached(kCacheStep)) {
+      return getCache();
+    }
+{% endif %}\
+    auto results = tables::{{function}}(request);
+{% if attributes.cachable %}\
+    setCache(kCacheStep, kCacheInterval, results);
+{% endif %}
+    return results;
 {% endif %}\
   }
 };

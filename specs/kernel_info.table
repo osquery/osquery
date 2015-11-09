@@ -6,4 +6,5 @@ schema([
   Column("path", TEXT, "Kernel path"),
   Column("device", TEXT, "Kernel device identifier"),
 ])
+attributes(cachable=True)
 implementation("system/kernel_info@genKernelInfo")

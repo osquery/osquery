@@ -10,12 +10,19 @@
 
 #include <boost/property_tree/json_parser.hpp>
 
+#include <osquery/database.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 namespace pt = boost::property_tree;
 
 namespace osquery {
+
+FLAG(bool, disable_caching, false, "Disable scheduled query caching");
+
+size_t TablePlugin::kCacheInterval = 0;
+size_t TablePlugin::kCacheStep = 0;
 
 Status TablePlugin::addExternal(const std::string& name,
                                 const PluginResponse& response) {
@@ -61,11 +68,6 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
   request["context"] = output.str();
 }
 
-void TablePlugin::setResponseFromQueryData(const QueryData& data,
-                                           PluginResponse& response) {
-  response = std::move(data);
-}
-
 void TablePlugin::setContextFromRequest(const PluginRequest& request,
                                         QueryContext& context) {
   if (request.count("context") == 0) {
@@ -83,7 +85,7 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
   }
 
   // Set the context limit and deserialize each column constraint list.
-  context.limit = tree.get<int>("limit");
+  context.limit = tree.get<int>("limit", 0);
   for (const auto& constraint : tree.get_child("constraints")) {
     auto column_name = constraint.second.get<std::string>("name");
     context.constraints[column_name].unserialize(constraint.second);
@@ -106,7 +108,7 @@ Status TablePlugin::call(const PluginRequest& request,
     if (request.count("context") > 0) {
       setContextFromRequest(request, context);
     }
-    setResponseFromQueryData(generate(context), response);
+    response = generate(context);
   } else if (request.at("action") == "columns") {
     // "columns" returns a PluginRequest filled with column information
     // such as name and type.
@@ -134,6 +136,32 @@ PluginResponse TablePlugin::routeInfo() const {
     response.push_back({{"name", column.first}, {"type", column.second}});
   }
   return response;
+}
+
+bool TablePlugin::isCached(size_t step) {
+  return (!FLAGS_disable_caching && step < last_cached_ + last_interval_);
+}
+
+QueryData TablePlugin::getCache() const {
+  VLOG(1) << "Retrieving results from cache for table: " << getName();
+  // Lookup results from database and deserialize.
+  std::string content;
+  getDatabaseValue(kQueries, "cache." + getName(), content);
+  QueryData results;
+  deserializeQueryDataJSON(content, results);
+  return results;
+}
+
+void TablePlugin::setCache(size_t step,
+                           size_t interval,
+                           const QueryData& results) {
+  // Serialize QueryData and save to database.
+  std::string content;
+  if (!FLAGS_disable_caching && serializeQueryDataJSON(results, content)) {
+    last_cached_ = step;
+    last_interval_ = interval;
+    setDatabaseValue(kQueries, "cache." + getName(), content);
+  }
 }
 
 std::string columnDefinition(const TableColumns& columns) {

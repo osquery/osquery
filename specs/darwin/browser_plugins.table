@@ -10,4 +10,5 @@ schema([
     Column("native", INTEGER, "Plugin requires native execution"),
     Column("path", TEXT, "Path to plugin bundle"),
 ])
+attributes(cachable=True)
 implementation("applications/browser_plugins@genBrowserPlugins")

@@ -14,4 +14,5 @@ schema([
     Column("temporarily_disabled", INTEGER, "1 if this network is temporarily disabled, 0 otherwise"),
     Column("disabled", INTEGER, "1 if this network is disabled, 0 otherwise"),
 ])
+attributes(cachable=True)
 implementation("networking/wifi@genKnownWifiNetworks")

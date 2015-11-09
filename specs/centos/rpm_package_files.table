@@ -1,7 +1,7 @@
 table_name("rpm_package_files")
 description("RPM packages that are currently installed on the host system.")
 schema([
-    Column("package", TEXT, "RPM package name"),
+    Column("package", TEXT, "RPM package name", index=True),
     Column("path", TEXT, "Path name"),
     Column("username", TEXT, "File default username from info DB"),
     Column("groupname", TEXT, "File default groupname from info DB"),
