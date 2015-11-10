@@ -8,6 +8,7 @@ schema([
     Column("hour", INTEGER, "Current hour in the system"),
     Column("minutes", INTEGER, "Current minutes in the system"),
     Column("seconds", INTEGER, "Current seconds in the system"),
+    Column("timezone", TEXT, "Current timezone in the system"),
     Column("unix_time", INTEGER, "Current UNIX time in the system"),
     Column("timestamp", TEXT, "Current timestamp in the system"),
     Column("iso_8601", TEXT, "Current time (iso format) in the system"),
