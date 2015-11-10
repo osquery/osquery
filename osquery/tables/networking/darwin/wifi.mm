@@ -8,15 +8,15 @@
  *
  */
 
-#include <CoreFoundation/CoreFoundation.h>
-#include <Foundation/Foundation.h>
 #include <iomanip>
 
-#include <osquery/core.h>
-#include <osquery/tables.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <Foundation/Foundation.h>
+
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
+#include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 
@@ -26,6 +26,7 @@ namespace tables {
 static const std::string kAirPortPreferencesPath =
     "/Library/Preferences/SystemConfiguration/"
     "com.apple.airport.preferences.plist";
+
 const std::map<std::string, std::string> kKnownWifiNetworkKeys = {
     {"ssid", "SSID"},
     {"network_name", "SSIDString"},
@@ -42,15 +43,12 @@ const std::map<std::string, std::string> kKnownWifiNetworkKeys = {
 
 // Check if we are running on OS X 10.9, where the key in plist is different
 Status getKnownNetworksKey(std::string& key) {
-  auto query_data = SQL::selectAllFrom("os_version");
-  if (query_data.empty()) {
+  auto qd = SQL::selectAllFrom("os_version");
+  if (qd.size() != 1) {
     return Status(-1, "Couldn't determine OS X version");
   }
-  auto os_version = query_data.front();
-  if (os_version.empty()) {
-    return Status(-1, "Couldn't determine OS X version");
-  }
-  key = (os_version.at("major") == "10" && os_version.at("minor") == "9")
+
+  key = (qd.front().at("major") == "10" && qd.front().at("minor") == "9")
             ? "RememberedNetworks"
             : "KnownNetworks";
   return Status(0, "ok");
@@ -99,10 +97,12 @@ void parseNetworks(const CFDictionaryRef& network, QueryData& results) {
     auto key = CFStringCreateWithCString(kCFAllocatorDefault, kv.second.c_str(),
                                          kCFStringEncodingUTF8);
     CFTypeRef value = nullptr;
-    if (key != nullptr && CFDictionaryGetValueIfPresent(network, key, &value)) {
-      r[kv.first] = extractNetworkProperties(value);
+    if (key != nullptr) {
+      if (CFDictionaryGetValueIfPresent(network, key, &value)) {
+        r[kv.first] = extractNetworkProperties(value);
+      }
+      CFRelease(key);
     }
-    CFRelease(key);
   }
   results.push_back(r);
 }
