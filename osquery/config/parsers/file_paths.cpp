@@ -34,16 +34,9 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
       data_.put_child("file_paths", config.at("file_paths"));
     }
 
-    const auto& file_paths = data_.get_child("file_paths");
-    for (const std::pair<std::string, pt::ptree>& category : file_paths) {
-      for (const std::pair<std::string, pt::ptree>& path : category.second) {
-        std::string pattern;
-        try {
-          pattern = path.second.get_value<std::string>();
-        } catch (const pt::ptree_error& e) {
-          LOG(ERROR) << "Error reading the file_paths list: " << e.what();
-          continue;
-        }
+    for (const auto& category : data_.get_child("file_paths")) {
+      for (const auto& path : category.second) {
+        auto pattern = path.second.get_value<std::string>("");
         if (pattern.empty()) {
           continue;
         }
