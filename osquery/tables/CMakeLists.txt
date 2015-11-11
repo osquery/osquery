@@ -12,7 +12,6 @@ if(APPLE)
   file(GLOB OSQUERY_DARWIN_TABLES_TESTS "*/darwin/tests/*.cpp" "*/darwin/tests/*.mm")
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_DARWIN_TABLES_TESTS})
 
-  ADD_OSQUERY_LINK_ADDITIONAL("-framework Cocoa")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreFoundation")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework Security")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework OpenDirectory")
