@@ -9,7 +9,6 @@
  */
 
 #include <boost/filesystem.hpp>
-#include <Cocoa/Cocoa.h>                /* For NSAppKitVersionNumber */
 #include <Foundation/Foundation.h>
 #include <Security/CodeSigning.h>
 
@@ -23,6 +22,38 @@
 namespace osquery {
 namespace tables {
 
+// Get the flags to pass to SecStaticCodeCheckValidityWithErrors, depending on
+// the OS version.
+Status getVerifyFlags(SecCSFlags& flags) {
+  using boost::lexical_cast;
+  using boost::bad_lexical_cast;
+
+  static SecCSFlags sFlags;
+
+  if (sFlags == 0) {
+    auto qd = SQL::selectAllFrom("os_version");
+    if (qd.size() != 1) {
+      return Status(-1, "Couldn't determine OS X version");
+    }
+
+    int minorVersion;
+    try {
+      minorVersion = lexical_cast<int>(qd.front().at("minor"));
+    } catch (const bad_lexical_cast& e) {
+      return Status(-1, "Couldn't determine OS X version");
+    }
+
+    sFlags = kSecCSDefaultFlags |  kSecCSCheckAllArchitectures;
+    if (minorVersion > 8) {
+      sFlags |= kSecCSCheckNestedCode;
+    }
+  }
+
+  flags = sFlags;
+  return Status(0, "ok");
+}
+
+// Generate a signature for a single file.
 void genSignatureForFile(const std::string& path,
                          QueryData& results) {
   Row r;
@@ -32,6 +63,13 @@ void genSignatureForFile(const std::string& path,
   r["path"] = path;
   r["signed"] = INTEGER(0);
   r["identifier"] = "";
+
+  // Get flags for the file.
+  SecCSFlags flags;
+  if (!getVerifyFlags(flags).ok()) {
+    VLOG(1) << "Could not get verify flags";
+    return;
+  }
 
   // Create a URL that points to this file.
   auto url = (__bridge CFURLRef)[NSURL fileURLWithPath:@(path.c_str())];
@@ -48,16 +86,8 @@ void genSignatureForFile(const std::string& path,
     return;
   }
 
-  // Set up the flags - some of them aren't present on 10.8.
-  SecCSFlags csFlags;
-  if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_8) {
-    csFlags = kSecCSDefaultFlags | kSecCSCheckNestedCode;
-  } else {
-    csFlags = kSecCSBasicValidateOnly;
-  }
-
   // Actually validate.
-  result = SecStaticCodeCheckValidityWithErrors(staticCode, csFlags, NULL, NULL);
+  result = SecStaticCodeCheckValidityWithErrors(staticCode, flags, NULL, NULL);
   if (result == 0) {
     CFDictionaryRef codeInfo;
 
