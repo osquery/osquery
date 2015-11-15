@@ -106,7 +106,7 @@ int xCreate(sqlite3 *db,
 
   for (const auto &column : response) {
     pVtab->content->columns.push_back(
-        std::make_pair(column.at("name"), column.at("type")));
+        std::make_pair(column.at("name"), columnTypeName(column.at("type"))));
   }
 
   *ppVtab = (sqlite3_vtab *)pVtab;
@@ -131,9 +131,9 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
 
   // Attempt to cast each xFilter-populated row/column to the SQLite type.
   const auto &value = pVtab->content->data[pCur->row][column_name];
-  if (type == "TEXT") {
+  if (type == TEXT_TYPE) {
     sqlite3_result_text(ctx, value.c_str(), value.size(), SQLITE_STATIC);
-  } else if (type == "INTEGER") {
+  } else if (type == INTEGER_TYPE) {
     long afinite;
     if (!safeStrtol(value, 10, afinite) || afinite < INT_MIN ||
         afinite > INT_MAX) {
@@ -142,7 +142,7 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
       afinite = -1;
     }
     sqlite3_result_int(ctx, (int)afinite);
-  } else if (type == "BIGINT") {
+  } else if (type == BIGINT_TYPE || UNSIGNED_BIGINT_TYPE) {
     long long afinite;
     if (!safeStrtoll(value, 10, afinite)) {
       VLOG(1) << "Error casting " << column_name << " (" << value
@@ -150,7 +150,7 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
       afinite = -1;
     }
     sqlite3_result_int64(ctx, afinite);
-  } else if (type == "DOUBLE") {
+  } else if (type == DOUBLE_TYPE) {
     char *end = nullptr;
     double afinite = strtod(value.c_str(), &end);
     if (end == nullptr || end == value.c_str() || *end != '\0') {
@@ -245,7 +245,7 @@ Status attachTableInternal(const std::string &name,
                            const std::string &statement,
                            sqlite3 *db) {
   if (SQLiteDBManager::isDisabled(name)) {
-    VLOG(0) << "Table " << name << " is disabled, not attaching";
+    VLOG(1) << "Table " << name << " is disabled, not attaching";
     return Status(0, getStringForSQLiteReturnCode(0));
   }
 

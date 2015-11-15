@@ -123,7 +123,8 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
     auto status = this->getQueryColumns(request.at("query"), columns);
     // Convert columns to response
     for (const auto& column : columns) {
-      response.push_back({{"n", column.first}, {"t", column.second}});
+      response.push_back(
+          {{"n", column.first}, {"t", columnTypeName(column.second)}});
     }
     return status;
   } else if (request.at("action") == "attach") {
@@ -148,7 +149,7 @@ Status getQueryColumns(const std::string& q, TableColumns& columns) {
 
   // Convert response to columns
   for (const auto& item : response) {
-    columns.push_back(make_pair(item.at("n"), item.at("t")));
+    columns.push_back(make_pair(item.at("n"), columnTypeName(item.at("t"))));
   }
   return status;
 }

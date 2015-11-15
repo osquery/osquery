@@ -116,18 +116,15 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   auto status = getQueryColumnsInternal(query, results, dbc.db());
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(2U, results.size());
-  EXPECT_EQ(std::make_pair(std::string("seconds"), std::string("INTEGER")),
-            results[0]);
-  EXPECT_EQ(std::make_pair(std::string("version"), std::string("TEXT")),
-            results[1]);
+  EXPECT_EQ(std::make_pair(std::string("seconds"), INTEGER_TYPE), results[0]);
+  EXPECT_EQ(std::make_pair(std::string("version"), TEXT_TYPE), results[1]);
 
   query = "SELECT hour + 1 AS hour1, minutes + 1 FROM time";
   status = getQueryColumnsInternal(query, results, dbc.db());
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(2U, results.size());
-  EXPECT_EQ(std::make_pair(std::string("hour1"), std::string("UNKNOWN")),
-            results[0]);
-  EXPECT_EQ(std::make_pair(std::string("minutes + 1"), std::string("UNKNOWN")),
+  EXPECT_EQ(std::make_pair(std::string("hour1"), UNKNOWN_TYPE), results[0]);
+  EXPECT_EQ(std::make_pair(std::string("minutes + 1"), UNKNOWN_TYPE),
             results[1]);
 
   query = "SELECT * FROM foo";

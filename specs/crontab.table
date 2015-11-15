@@ -10,4 +10,5 @@ schema([
     Column("command", TEXT, "Raw command string"),
     Column("path", TEXT, "File parsed"),
 ])
+attributes(cachable=True)
 implementation("crontab@genCronTab")

@@ -15,7 +15,7 @@ using namespace osquery;
 class ExampleTable : public TablePlugin {
  private:
   TableColumns columns() const {
-    return {{"example_text", "TEXT"}, {"example_integer", "INTEGER"}};
+    return {{"example_text", TEXT_TYPE}, {"example_integer", INTEGER_TYPE}};
   }
 
   QueryData generate(QueryContext& request) {

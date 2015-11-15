@@ -5,4 +5,5 @@ schema([
     Column("path", TEXT, "Package install path"),
     Column("version", TEXT, "Current 'linked' version"),
 ])
+attributes(cachable=True)
 implementation("system/homebrew_packages@genHomebrewPackages")

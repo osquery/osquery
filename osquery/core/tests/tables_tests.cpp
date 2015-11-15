@@ -69,7 +69,7 @@ TEST_F(TablesTests, test_constraint_matching) {
   EXPECT_FALSE(cl.notExistsOrMatches("not_some"));
 
   struct ConstraintList cl2;
-  cl2.affinity = "INTEGER";
+  cl2.affinity = INTEGER_TYPE;
   constraint = Constraint(LESS_THAN);
   constraint.expr = "1000";
   cl2.add(constraint);
@@ -129,5 +129,41 @@ TEST_F(TablesTests, test_constraint_map) {
   EXPECT_FALSE(cm["path"].notExistsOrMatches("not_some"));
   EXPECT_TRUE(cm["path"].exists());
   EXPECT_TRUE(cm["path"].existsAndMatches("some"));
+}
+
+class TestTablePlugin : public TablePlugin {
+ public:
+  void testSetCache(size_t step, size_t interval) {
+    QueryData r;
+    setCache(step, interval, r);
+  }
+
+  bool testIsCached(size_t interval) { return isCached(interval); }
+};
+
+TEST_F(TablesTests, test_caching) {
+  TestTablePlugin test;
+  // By default the interval and step is 0, so a step of 5 will not be cached.
+  EXPECT_FALSE(test.testIsCached(5));
+
+  TablePlugin::kCacheInterval = 5;
+  TablePlugin::kCacheStep = 1;
+  EXPECT_FALSE(test.testIsCached(5));
+  // Set the current time to 1, and the interval at 5.
+  test.testSetCache(TablePlugin::kCacheStep, TablePlugin::kCacheInterval);
+  // Time at 1 is cached for an interval of 5, so at time 5 the cache is fresh.
+  EXPECT_TRUE(test.testIsCached(5));
+  // 6 is the end of the cache, it is not fresh.
+  EXPECT_FALSE(test.testIsCached(6));
+  // 7 is past the cache, it is not fresh.
+  EXPECT_FALSE(test.testIsCached(7));
+
+  // Set the time at now to 2.
+  TablePlugin::kCacheStep = 2;
+  test.testSetCache(TablePlugin::kCacheStep, TablePlugin::kCacheInterval);
+  EXPECT_TRUE(test.testIsCached(5));
+  // Now 6 is within the freshness of 2 + 5.
+  EXPECT_TRUE(test.testIsCached(6));
+  EXPECT_FALSE(test.testIsCached(7));
 }
 }

@@ -22,7 +22,7 @@ namespace osquery {
 class BenchmarkTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const {
-    return {{"test_int", "INTEGER"}, {"test_text", "TEXT"}};
+    return {{"test_int", INTEGER_TYPE}, {"test_text", TEXT_TYPE}};
   }
 
   QueryData generate(QueryContext& ctx) {
@@ -65,7 +65,7 @@ BENCHMARK(SQL_virtual_table_internal);
 class BenchmarkLongTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const {
-    return {{"test_int", "INTEGER"}, {"test_text", "TEXT"}};
+    return {{"test_int", INTEGER_TYPE}, {"test_text", TEXT_TYPE}};
   }
 
   QueryData generate(QueryContext& ctx) {
@@ -99,7 +99,7 @@ class BenchmarkWideTablePlugin : public TablePlugin {
   TableColumns columns() const {
     TableColumns cols;
     for (int i = 0; i < 20; i++) {
-      cols.push_back({"test_" + std::to_string(i), "INTEGER"});
+      cols.push_back({"test_" + std::to_string(i), INTEGER_TYPE});
     }
     return cols;
   }

@@ -8,4 +8,5 @@ schema([
     Column("bundle_path", TEXT, "Application bundle used by the sandbox"),
     Column("path", TEXT, "Path to sandbox container directory"),
 ])
+attributes(cachable=True)
 implementation("sandboxes@genSandboxContainers")

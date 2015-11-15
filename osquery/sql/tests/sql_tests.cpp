@@ -31,7 +31,7 @@ TEST_F(SQLTests, test_raw_access) {
 class TestTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const {
-    return {{"test_int", "INTEGER"}, {"test_text", "TEXT"}};
+    return {{"test_int", INTEGER_TYPE}, {"test_text", TEXT_TYPE}};
   }
 
   QueryData generate(QueryContext& ctx) {

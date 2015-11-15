@@ -12,4 +12,5 @@ schema([
     "1 If extension is persistent across all tabs else 0"),
   Column("path", TEXT, "Path to extension folder"),
 ])
+attributes(cachable=True)
 implementation("applications/browser_opera@genOperaExtensions")

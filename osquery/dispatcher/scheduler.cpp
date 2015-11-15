@@ -121,6 +121,8 @@ void SchedulerRunner::start() {
     Config::getInstance().scheduledQueries(
         ([&i](const std::string& name, const ScheduledQuery& query) {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
+            TablePlugin::kCacheInterval = query.splayed_interval;
+            TablePlugin::kCacheStep = i;
             launchQuery(name, query);
           }
         }));
