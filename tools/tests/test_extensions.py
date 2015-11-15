@@ -43,6 +43,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertFalse(client.open())
         daemon.kill()
 
+    @test_base.flaky
     def test_2_daemon_api(self):
         daemon = self._run_daemon({"disable_watchdog": True})
         self.assertTrue(daemon.isAlive())
@@ -74,6 +75,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         client.close()
         daemon.kill()
 
+    @test_base.flaky
     def test_3_example_extension(self):
         daemon = self._run_daemon({"disable_watchdog": True})
         self.assertTrue(daemon.isAlive())
@@ -138,6 +140,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         extension.kill()
         daemon.kill()
 
+    @test_base.flaky
     def test_4_extension_dies(self):
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -191,6 +194,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         # The extension should tear down as well
         self.assertTrue(extension.isDead(extension.pid))
 
+    @test_base.flaky
     def test_5_extension_timeout(self):
         # Start an extension without a daemon, with a timeout.
         extension = self._run_extension(timeout=EXTENSION_TIMEOUT)
@@ -217,6 +221,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill(True)
         extension.kill()
 
+    @test_base.flaky
     def test_6_extensions_autoload(self):
         loader = test_base.Autoloader(
             [test_base.ARGS.build + "/osquery/example_extension.ext"])
