@@ -5,12 +5,12 @@ schema([
     Column("path", TEXT, "Local device path assigned (optional)"),
     Column("type", TEXT, "Type of hardware and hardware event"),
     Column("driver", TEXT, "Driver claiming the device"),
-    Column("model", TEXT, "Hardware device model"),
-    Column("model_id", INTEGER, "Hardware model identifier"),
     Column("vendor", TEXT, "Hardware device vendor"),
-    Column("vendor_id", INTEGER, "Hardware vendor identifier"),
+    Column("vendor_id", TEXT, "Hex encoded Hardware vendor identifier"),
+    Column("model", TEXT, "Hardware device model"),
+    Column("model_id", TEXT, "Hex encoded Hardware model identifier"),
     Column("serial", TEXT, "Device serial (optional)"),
-    Column("revision", INTEGER, "Device revision (optional)"),
+    Column("revision", TEXT, "Device revision (optional)"),
     Column("time", BIGINT, "Time of hardware event"),
 ])
 attributes(event_subscriber=True)

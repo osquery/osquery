@@ -8,44 +8,14 @@
  *
  */
 
-#include <iomanip>
-#include <sstream>
-
-#include <IOKit/IOKitLib.h>
 #include <IOKit/usb/IOUSBLib.h>
 
-#include <osquery/core.h>
 #include <osquery/tables.h>
-#include <osquery/filesystem.h>
 
-#include "osquery/core/conversions.h"
+#include "osquery/tables/system/darwin/iokit_utils.h"
 
 namespace osquery {
 namespace tables {
-
-std::string getUSBProperty(const CFMutableDictionaryRef& details,
-                           const std::string& key) {
-  // Get a property from the device.
-  auto cfkey = CFStringCreateWithCString(kCFAllocatorDefault, key.c_str(),
-    kCFStringEncodingUTF8);
-  auto property = CFDictionaryGetValue(details, cfkey);
-  CFRelease(cfkey);
-  if (property) {
-    if (CFGetTypeID(property) == CFNumberGetTypeID()) {
-      return stringFromCFNumber((CFDataRef)property);
-    } else if (CFGetTypeID(property) == CFStringGetTypeID()) {
-      return stringFromCFString((CFStringRef)property);
-    }
-  }
-  return "";
-}
-
-inline void idToHex(std::string& id) {
-  int base = AS_LITERAL(int, id);
-  std::stringstream hex_id;
-  hex_id << std::hex << std::setw(4) << std::setfill('0') << (base & 0xFFFF);
-  id = hex_id.str();
-}
 
 void genUSBDevice(const io_service_t& device, QueryData& results) {
   Row r;
@@ -55,10 +25,10 @@ void genUSBDevice(const io_service_t& device, QueryData& results) {
   IORegistryEntryCreateCFProperties(
       device, &details, kCFAllocatorDefault, kNilOptions);
 
-  r["usb_address"] = getUSBProperty(details, "USB Address");
-  r["usb_port"] = getUSBProperty(details, "PortNum");
+  r["usb_address"] = getIOKitProperty(details, "USB Address");
+  r["usb_port"] = getIOKitProperty(details, "PortNum");
 
-  r["model"] = getUSBProperty(details, "USB Product Name");
+  r["model"] = getIOKitProperty(details, "USB Product Name");
   if (r.at("model").size() == 0) {
     // Could not find the model name from IOKit, use the label.
     io_name_t name;
@@ -67,16 +37,16 @@ void genUSBDevice(const io_service_t& device, QueryData& results) {
     }
   }
 
-  r["model_id"] = getUSBProperty(details, "idProduct");
-  r["vendor"] = getUSBProperty(details, "USB Vendor Name");
-  r["vendor_id"] = getUSBProperty(details, "idVendor");
+  r["model_id"] = getIOKitProperty(details, "idProduct");
+  r["vendor"] = getIOKitProperty(details, "USB Vendor Name");
+  r["vendor_id"] = getIOKitProperty(details, "idVendor");
 
-  r["serial"] = getUSBProperty(details, "USB Serial Number");
+  r["serial"] = getIOKitProperty(details, "USB Serial Number");
   if (r.at("serial").size() == 0) {
-    r["serial"] = getUSBProperty(details, "iSerialNumber");
+    r["serial"] = getIOKitProperty(details, "iSerialNumber");
   }
 
-  auto non_removable = getUSBProperty(details, "non-removable");
+  auto non_removable = getIOKitProperty(details, "non-removable");
   r["removable"] = (non_removable == "yes") ? "0" : "1";
 
   if (r.at("vendor_id").size() > 0 && r.at("model_id").size() > 0) {
