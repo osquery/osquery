@@ -99,7 +99,7 @@ struct proc_cred {
   struct {
     uid_t uid{0};
     gid_t gid{0};
-  } real, effective;
+  } real, effective, saved;
 };
 
 inline bool getProcCred(int pid, proc_cred &cred) {
@@ -116,6 +116,8 @@ inline bool getProcCred(int pid, proc_cred &cred) {
     cred.real.gid = bsdinfo.pbi_rgid;
     cred.effective.uid = bsdinfo.pbi_uid;
     cred.effective.gid = bsdinfo.pbi_gid;
+    cred.saved.uid = bsdinfo.pbi_svuid;
+    cred.saved.gid = bsdinfo.pbi_svgid;
     return true;
   } else if (proc_pidinfo(pid,
                           PROC_PIDT_SHORTBSDINFO,
@@ -130,6 +132,8 @@ inline bool getProcCred(int pid, proc_cred &cred) {
     cred.real.gid = bsdinfo_short.pbsi_rgid;
     cred.effective.uid = bsdinfo_short.pbsi_uid;
     cred.effective.gid = bsdinfo_short.pbsi_gid;
+    cred.saved.uid = bsdinfo_short.pbsi_svuid;
+    cred.saved.gid = bsdinfo_short.pbsi_svgid;
     return true;
   }
   return false;
@@ -260,6 +264,8 @@ QueryData genProcesses(QueryContext &context) {
       r["gid"] = BIGINT(cred.real.gid);
       r["euid"] = BIGINT(cred.effective.uid);
       r["egid"] = BIGINT(cred.effective.gid);
+      r["suid"] = BIGINT(cred.saved.uid);
+      r["sgid"] = BIGINT(cred.saved.gid);
     } else {
       r["parent"] = "0";
       r["group"] = "0";
@@ -269,6 +275,8 @@ QueryData genProcesses(QueryContext &context) {
       r["gid"] = "-1";
       r["euid"] = "-1";
       r["egid"] = "-1";
+      r["suid"] = "-1";
+      r["sgid"] = "-1";
     }
 
     // If the path of the executable that started the process is available and
