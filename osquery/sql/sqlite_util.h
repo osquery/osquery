@@ -130,6 +130,72 @@ class SQLiteDBManager : private boost::noncopyable {
 };
 
 /**
+ * @brief A barebones query planner based on SQLite explain statement results.
+ *
+ * The query planner issues two EXPLAIN queries to the internal SQLite instance
+ * to determine a table scan plan and execution program.
+ *
+ * It is mildly expensive to run a query planner since most data is TEXT type
+ * and requires string tokenization and lexical casting. Only run a planner
+ * once per new query and only when needed (aka an unusable expression).
+ */
+class QueryPlanner {
+ public:
+  explicit QueryPlanner(const std::string& query)
+      : QueryPlanner(query, SQLiteDBManager::get().db()) {}
+  QueryPlanner(const std::string& query, sqlite3* db);
+  ~QueryPlanner() {}
+
+ public:
+  /**
+   * @brief Scan the plan and program for opcodes that infer types.
+   *
+   * This allows column type inference based on column expressions. The query
+   * column introspection may use a QueryPlanner to apply types to the unknown
+   * columns (which are usually expressions).
+   *
+   * @param column an ordered set of columns to fill in type information.
+   * @return success if all columns types were found, otherwise false.
+   */
+  Status applyTypes(TableColumns& columns);
+
+  /**
+   * @brief A helper structure to represent an opcode's result and type.
+   *
+   * An opcode can be defined by a register and type, for the sake of the
+   * only known use case of resultant type determination.
+   */
+  struct Opcode {
+    enum Register {
+      P1 = 0,
+      P2,
+      P3,
+    };
+
+    Register reg;
+    ColumnType type;
+
+   public:
+    Opcode(Register r, ColumnType t) : reg(r), type(t) {}
+
+    /// Return a register as its column string name.
+    static std::string regString(Register r) {
+      static std::vector<std::string> regs = {"p1", "p2", "p3"};
+      return regs[r];
+    }
+  };
+
+ private:
+  /// The results of EXPLAIN q.
+  QueryData program_;
+  /// The order of tables scanned.
+  std::vector<std::string> tables_;
+};
+
+/// Specific SQLite opcodes that change column/expression type.
+extern const std::map<std::string, QueryPlanner::Opcode> kSQLOpcodes;
+
+/**
  * @brief SQLite Internal: Execute a query on a specific database
  *
  * If you need to use a different database, other than the osquery default,

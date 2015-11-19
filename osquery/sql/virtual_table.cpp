@@ -14,6 +14,7 @@
 
 namespace osquery {
 namespace tables {
+namespace sqlite {
 
 int xOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
   int rc = SQLITE_NOMEM;
@@ -240,6 +241,7 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   return SQLITE_OK;
 }
 }
+}
 
 Status attachTableInternal(const std::string &name,
                            const std::string &statement,
@@ -253,18 +255,18 @@ Status attachTableInternal(const std::string &name,
   // clang-format off
   static sqlite3_module module = {
       0,
-      tables::xCreate,
-      tables::xCreate,
-      tables::xBestIndex,
-      tables::xDestroy,
-      tables::xDestroy,
-      tables::xOpen,
-      tables::xClose,
-      tables::xFilter,
-      tables::xNext,
-      tables::xEof,
-      tables::xColumn,
-      tables::xRowid,
+      tables::sqlite::xCreate,
+      tables::sqlite::xCreate,
+      tables::sqlite::xBestIndex,
+      tables::sqlite::xDestroy,
+      tables::sqlite::xDestroy,
+      tables::sqlite::xOpen,
+      tables::sqlite::xClose,
+      tables::sqlite::xFilter,
+      tables::sqlite::xNext,
+      tables::sqlite::xEof,
+      tables::sqlite::xColumn,
+      tables::sqlite::xRowid,
   };
   // clang-format on
 
