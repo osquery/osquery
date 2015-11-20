@@ -12,6 +12,8 @@ schema([
     Column("gid", BIGINT, "Unsigned group ID"),
     Column("euid", BIGINT, "Unsigned effective user ID"),
     Column("egid", BIGINT, "Unsigned effective group ID"),
+    Column("suid", BIGINT, "Unsigned saved user ID"),
+    Column("sgid", BIGINT, "Unsigned saved group ID"),
     Column("on_disk", INTEGER,
         "The process path exists yes=1, no=0, unknown=-1"),
     Column("wired_size", BIGINT, "Bytes of unpagable memory used by process"),

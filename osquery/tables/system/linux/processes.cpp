@@ -150,6 +150,8 @@ struct SimpleProcStat {
   std::string real_gid; // Gid: * - - -
   std::string effective_uid; // Uid: - * - -
   std::string effective_gid; // Gid: - * - -
+  std::string saved_uid; // Uid: - - * -
+  std::string saved_gid; // Gid: - - * -
 
   std::string resident_size; // VmRSS:
   std::string phys_footprint;  // VmSize:
@@ -218,12 +220,14 @@ static inline SimpleProcStat getProcStat(const std::string& pid) {
         if (gid_detail.size() == 4) {
           stat.real_gid = gid_detail.at(0);
           stat.effective_gid = gid_detail.at(1);
+          stat.saved_gid = gid_detail.at(2);
         }
       } else if (detail.at(0) == "Uid") {
         auto uid_detail = osquery::split(detail.at(1), "\t");
         if (uid_detail.size() == 4) {
           stat.real_uid = uid_detail.at(0);
           stat.effective_uid = uid_detail.at(1);
+          stat.saved_uid = uid_detail.at(2);
         }
       }
     }
