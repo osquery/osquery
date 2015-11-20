@@ -35,6 +35,7 @@ void genHashForFile(const std::string& path,
 
 QueryData genHash(QueryContext& context) {
   QueryData results;
+  boost::system::error_code ec;
 
   // The query must provide a predicate with constraints including path or
   // directory. We search for the parsed predicate constraints with the equals
@@ -42,7 +43,7 @@ QueryData genHash(QueryContext& context) {
   auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
-    if (!boost::filesystem::is_regular_file(path)) {
+    if (!boost::filesystem::is_regular_file(path, ec)) {
       continue;
     }
 
@@ -53,14 +54,14 @@ QueryData genHash(QueryContext& context) {
   auto directories = context.constraints["directory"].getAll(EQUALS);
   for (const auto& directory_string : directories) {
     boost::filesystem::path directory = directory_string;
-    if (!boost::filesystem::is_directory(directory)) {
+    if (!boost::filesystem::is_directory(directory, ec)) {
       continue;
     }
 
     // Iterate over the directory and generate a hash for each regular file.
     boost::filesystem::directory_iterator begin(directory), end;
     for (; begin != end; ++begin) {
-      if (boost::filesystem::is_regular_file(begin->status())) {
+      if (boost::filesystem::is_regular_file(begin->path(), ec)) {
         genHashForFile(begin->path().string(), directory_string, results);
       }
     }

@@ -27,6 +27,7 @@
 
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
+namespace errc = boost::system::errc;
 
 namespace osquery {
 
@@ -176,17 +177,14 @@ Status isReadable(const fs::path& path) {
 }
 
 Status pathExists(const fs::path& path) {
+  boost::system::error_code ec;
   if (path.empty()) {
     return Status(1, "-1");
   }
 
   // A tri-state determination of presence
-  try {
-    if (!fs::exists(path)) {
-      return Status(1, "0");
-    }
-  } catch (const fs::filesystem_error& e) {
-    return Status(1, e.what());
+  if (!fs::exists(path, ec) || ec.value() != errc::success) {
+    return Status(1, ec.message());
   }
   return Status(0, "1");
 }
@@ -273,17 +271,14 @@ inline void replaceGlobWildcards(std::string& pattern) {
 inline Status listInAbsoluteDirectory(const fs::path& path,
                                       std::vector<std::string>& results,
                                       GlobLimits limits) {
-  try {
-    if (path.filename() == "*" && !fs::exists(path.parent_path())) {
-      return Status(1, "Directory not found: " + path.parent_path().string());
-    }
-
-    if (path.filename() == "*" && !fs::is_directory(path.parent_path())) {
-      return Status(1, "Path not a directory: " + path.parent_path().string());
-    }
-  } catch (const fs::filesystem_error& e) {
-    return Status(1, e.what());
+  if (path.filename() == "*" && !pathExists(path.parent_path())) {
+    return Status(1, "Directory not found: " + path.parent_path().string());
   }
+
+  if (path.filename() == "*" && !isDirectory(path.parent_path())) {
+    return Status(1, "Path not a directory: " + path.parent_path().string());
+  }
+
   genGlobs(path.string(), results, limits);
   return Status(0, "OK");
 }
@@ -307,7 +302,11 @@ Status isDirectory(const fs::path& path) {
   if (fs::is_directory(path, ec)) {
     return Status(0, "OK");
   }
-  if (ec.value() == 0) {
+
+  // The success error code is returned for as a failure (undefined error)
+  // We need to flip that into an error, a success would have falling through
+  // in the above conditional.
+  if (ec.value() == errc::success) {
     return Status(1, "Path is not a directory: " + path.string());
   }
   return Status(ec.value(), ec.message());
