@@ -18,6 +18,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -159,9 +160,17 @@ Status parsePlistContent(const std::string& content, pt::ptree& tree) {
   }
 }
 
-Status parsePlist(const boost::filesystem::path& path, pt::ptree& tree) {
+Status parsePlist(const fs::path& path, pt::ptree& tree) {
   tree.clear();
-  Status status;
+  // Drop privileges, if needed, before parsing plist data.
+  auto dropper = DropPrivileges::get();
+  dropper->dropToParent(path);
+
+  auto status = readFile(path);
+  if (!status.ok()) {
+    return status;
+  }
+
   @autoreleasepool {
     id ns_path = [NSString stringWithUTF8String:path.string().c_str()];
     id stream = [NSInputStream inputStreamWithFileAtPath:ns_path];

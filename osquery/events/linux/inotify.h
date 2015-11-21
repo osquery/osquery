@@ -130,8 +130,28 @@ class INotifyEventPublisher
   /// Check all added Subscription%s for a path.
   bool isPathMonitored(const std::string& path);
 
-  /// Add an INotify watch (monitor) on this path.
-  bool addMonitor(const std::string& path, bool recursive);
+  /**
+   * @brief Add an INotify watch (monitor) on this path.
+   *
+   * Check if a given path is already monitored (perhaps the parent path) has
+   * and existing monitor and this is a non-directory leaf? On success the
+   * file descriptor is stored for lookup when events fire.
+   *
+   * A recursive flag will tell addMonitor to enumerate all subdirectories
+   * recursively and add monitors to them.
+   *
+   * @param path complete (non-glob) canonical path to monitor.
+   * @param recursive perform a single recursive search of subdirectories.
+   * @param add_watch (testing only) should an inotify watch be created.
+   * @return success if the inotify watch was created.
+   */
+  bool addMonitor(const std::string& path,
+                  bool recursive,
+                  bool add_watch = true);
+
+  /// Helper method to parse a subscription and add an equivalent monitor.
+  bool monitorSubscription(INotifySubscriptionContextRef& sc,
+                           bool add_watch = true);
 
   /// Remove an INotify watch (monitor) from our tracking.
   bool removeMonitor(const std::string& path, bool force = false);
@@ -145,7 +165,7 @@ class INotifyEventPublisher
   int getHandle() { return inotify_handle_; }
 
   /// Get the number of actual INotify active descriptors.
-  int numDescriptors() { return descriptors_.size(); }
+  size_t numDescriptors() { return descriptors_.size(); }
 
   /// If we overflow, try and restart the monitor
   Status restartMonitoring();
@@ -166,6 +186,9 @@ class INotifyEventPublisher
   int last_restart_;
 
  public:
+  friend class INotifyTests;
   FRIEND_TEST(INotifyTests, test_inotify_optimization);
+  FRIEND_TEST(INotifyTests, test_inotify_recursion);
+  FRIEND_TEST(INotifyTests, test_inotify_match_subscription);
 };
 }

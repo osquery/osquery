@@ -138,7 +138,7 @@ void ExtensionManagerWatcher::watch() {
   }
 }
 
-inline Status socketWritable(const fs::path& path) {
+Status socketWritable(const fs::path& path) {
   if (pathExists(path).ok()) {
     if (!isWritable(path).ok()) {
       return Status(1, "Cannot write extension socket: " + path.string());
@@ -153,7 +153,7 @@ inline Status socketWritable(const fs::path& path) {
     }
 
     if (!isWritable(path.parent_path()).ok()) {
-      return Status(1, "Cannot write extension socket: " + path.string());
+      return Status(1, "Cannot create extension socket: " + path.string());
     }
   }
   return Status(0, "OK");
@@ -397,8 +397,8 @@ Status getQueryColumnsExternal(const std::string& manager_path,
 
   // Translate response map: {string: string} to a vector: pair(name, type).
   for (const auto& column : response.response) {
-    for (const auto& column_detail : column) {
-      columns.push_back(make_pair(column_detail.first, column_detail.second));
+    for (const auto& col : column) {
+      columns.push_back(make_pair(col.first, columnTypeName(col.second)));
     }
   }
 

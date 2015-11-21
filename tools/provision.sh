@@ -25,7 +25,7 @@ function main() {
   distro $OS DISTRO
   threads THREADS
 
-  if [[ ! -f /usr/bin/sudo ]]; then
+  if ! hash sudo 2>/dev/null; then
    echo "Please install sudo in this machine"
    exit 0
   fi

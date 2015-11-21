@@ -31,4 +31,5 @@ schema([
     Column("process_type", TEXT,
         "Key describes the intended purpose of the job"),
 ])
+attributes(cachable=True)
 implementation("launchd@genLaunchd")

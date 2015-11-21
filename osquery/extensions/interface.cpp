@@ -138,8 +138,8 @@ void ExtensionManagerHandler::getQueryColumns(ExtensionResponse& _return,
   _return.status.uuid = uuid_;
 
   if (status.ok()) {
-    for (const auto& column : columns) {
-      _return.response.push_back({{column.first, column.second}});
+    for (const auto& col : columns) {
+      _return.response.push_back({{col.first, columnTypeName(col.second)}});
     }
   }
 }
@@ -200,14 +200,14 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
 
   // The minimum number of worker threads is 1.
   size_t threads = (FLAGS_worker_threads > 0) ? FLAGS_worker_threads : 1;
-  auto thread_manager_ = ThreadManager::newSimpleThreadManager(threads, 0);
+  manager_ = ThreadManager::newSimpleThreadManager(threads, 0);
   auto thread_fac = ThriftThreadFactory(new PosixThreadFactory());
-  thread_manager_->threadFactory(thread_fac);
-  thread_manager_->start();
+  manager_->threadFactory(thread_fac);
+  manager_->start();
 
   // Start the Thrift server's run loop.
   server_ = TThreadPoolServerRef(new TThreadPoolServer(
-      processor, transport, transport_fac, protocol_fac, thread_manager_));
+      processor, transport, transport_fac, protocol_fac, manager_));
   server_->serve();
 }
 
@@ -227,6 +227,13 @@ void ExtensionRunner::start() {
 
 ExtensionManagerRunner::~ExtensionManagerRunner() {
   if (server_ != nullptr) {
+    // Eventually this extension manager should be stopped.
+    // This involves a lock around assuring the thread context for destruction
+    // matches and the server has begun serving (potentially opaque to our 
+    // our use of ThreadPollServer API).
+    // In newer (forks) version of thrift this server implementation has been
+    // deprecated.
+    // server_->stop();
     removeStalePaths(path_);
   }
 }

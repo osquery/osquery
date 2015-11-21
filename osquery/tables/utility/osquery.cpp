@@ -183,31 +183,21 @@ QueryData genOsqueryExtensions(QueryContext& context) {
 
 QueryData genOsqueryInfo(QueryContext& context) {
   QueryData results;
-
   Row r;
   r["pid"] = INTEGER(getpid());
   r["version"] = kVersion;
 
   std::string hash_string;
   auto s = Config::getInstance().getMD5(hash_string);
-  if (s.ok()) {
-    r["config_md5"] = TEXT(hash_string);
-  } else {
-    r["config_md5"] = "";
-    VLOG(1) << "Could not retrieve config hash: " << s.toString();
-  }
-
+  r["config_hash"] = (s.ok()) ? hash_string : "";
   r["config_valid"] = Config::getInstance().isValid() ? INTEGER(1) : INTEGER(0);
-
-  r["config_path"] = Flag::getValue("config_path");
   r["extensions"] =
       (pingExtension(FLAGS_extensions_socket).ok()) ? "active" : "inactive";
-
   r["build_platform"] = STR(OSQUERY_BUILD_PLATFORM);
   r["build_distro"] = STR(OSQUERY_BUILD_DISTRO);
+  r["start_time"] = INTEGER(Config::getInstance().getStartTime());
 
   results.push_back(r);
-
   return results;
 }
 
@@ -233,6 +223,7 @@ QueryData genOsquerySchedule(QueryContext& context) {
             name,
             [&r](const QueryPerformance& perf) {
               r["executions"] = BIGINT(perf.executions);
+              r["last_executed"] = BIGINT(perf.last_executed);
               r["output_size"] = BIGINT(perf.output_size);
               r["wall_time"] = BIGINT(perf.wall_time);
               r["user_time"] = BIGINT(perf.user_time);

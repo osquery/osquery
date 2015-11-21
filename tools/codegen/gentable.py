@@ -37,7 +37,6 @@ PLATFORM = platform()
 
 # Supported SQL types for spec
 class DataType(object):
-
     def __init__(self, affinity, cpp_type="std::string"):
         '''A column datatype is a pair of a SQL affinity to C++ type.'''
         self.affinity = affinity
@@ -47,13 +46,14 @@ class DataType(object):
         return self.affinity
 
 # Define column-type MACROs for the table specs
-TEXT = DataType("TEXT")
-DATE = DataType("TEXT")
-DATETIME = DataType("TEXT")
-INTEGER = DataType("INTEGER", "int")
-BIGINT = DataType("BIGINT", "long long int")
-UNSIGNED_BIGINT = DataType("UNSIGNED_BIGINT", "long long unsigned int")
-DOUBLE = DataType("DOUBLE", "double")
+TEXT = DataType("TEXT_TYPE")
+DATE = DataType("TEXT_TYPE")
+DATETIME = DataType("TEXT_TYPE")
+INTEGER = DataType("INTEGER_TYPE", "int")
+BIGINT = DataType("BIGINT_TYPE", "long long int")
+UNSIGNED_BIGINT = DataType("UNSIGNED_BIGINT_TYPE", "long long unsigned int")
+DOUBLE = DataType("DOUBLE_TYPE", "double")
+BLOB = DataType("BLOB_TYPE", "Blob")
 
 # Define table-category MACROS from the table specs
 UNKNOWN = "UNKNOWN"
@@ -179,8 +179,16 @@ class TableState(Singleton):
             examples=self.examples,
         )
 
+        column_options = []
+        for column in self.columns():
+            column_options += column.options
+        non_cachable = ["index", "required", "additional", "superuser"]
+        if "cachable" in self.attributes:
+            if len(set(column_options).intersection(non_cachable)) > 0:
+                print(lightred("Table cannot be marked cachable: %s" % (path)))
+                exit(1)
         if self.table_name == "" or self.function == "":
-            print (lightred("Invalid table spec: %s" % (path)))
+            print(lightred("Invalid table spec: %s" % (path)))
             exit(1)
 
         # Check for reserved column names

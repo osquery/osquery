@@ -54,6 +54,9 @@ REGISTER_INTERNAL(RocksDatabasePlugin, "database", "rocks");
 // Constants
 /////////////////////////////////////////////////////////////////////////////
 
+bool DBHandle::kDBHandleOptionAllowOpen = false;
+bool DBHandle::kDBHandleOptionRequireWrite = false;
+
 const std::string kPersistentSettings = "configurations";
 const std::string kQueries = "queries";
 const std::string kEvents = "events";
@@ -92,6 +95,10 @@ static bool kCheckingDB = false;
 
 DBHandle::DBHandle(const std::string& path, bool in_memory)
     : path_(path), in_memory_(in_memory) {
+  if (!kDBHandleOptionAllowOpen) {
+    LOG(WARNING) << RLOG(1629) << "Not allowed to create DBHandle instance";
+  }
+
   options_.create_if_missing = true;
   options_.create_missing_column_families = true;
   options_.info_log_level = rocksdb::ERROR_LEVEL;
@@ -100,6 +107,8 @@ DBHandle::DBHandle(const std::string& path, bool in_memory)
   options_.max_log_file_size = 1024 * 1024 * 1;
 
   // Performance and optimization settings.
+  options_.num_levels = 1;
+  options_.compression = rocksdb::kNoCompression;
   options_.compaction_style = rocksdb::kCompactionStyleLevel;
   options_.write_buffer_size = (4 * 1024) * 100; // 100 blocks.
   options_.max_write_buffer_number = 2;
@@ -136,12 +145,14 @@ void DBHandle::open() {
   auto s =
       rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
   if (!s.ok() || db_ == nullptr) {
-    if (require_write_) {
+    if (kDBHandleOptionRequireWrite) {
       // A failed open in R/W mode is a runtime error.
       throw std::runtime_error(s.ToString());
     }
 
-    VLOG(1) << "Opening RocksDB failed: Continuing with read-only support";
+    if (!kCheckingDB) {
+      VLOG(1) << "Opening RocksDB failed: Continuing with read-only support";
+    }
 #if !defined(ROCKSDB_LITE)
     // RocksDB LITE does not support readonly mode.
     // The database was readable but could not be opened, either (1) it is not
@@ -182,13 +193,13 @@ DBHandleRef DBHandle::getInstance() {
   return getInstance(FLAGS_database_path, FLAGS_database_in_memory);
 }
 
-bool DBHandle::checkDB(bool require_write) {
+bool DBHandle::checkDB() {
   // Allow database instances to check if a status/sanity check was requested.
   kCheckingDB = true;
   try {
     auto handle = DBHandle(FLAGS_database_path, FLAGS_database_in_memory);
     kCheckingDB = false;
-    if (require_write && handle.read_only_) {
+    if (kDBHandleOptionRequireWrite && handle.read_only_) {
       return false;
     }
   } catch (const std::exception& e) {
@@ -270,6 +281,15 @@ Status DBHandle::Put(const std::string& domain,
     return Status(1, "Could not get column family for " + domain);
   }
   auto s = getDB()->Put(rocksdb::WriteOptions(), cfh, key, value);
+  if (s.code() != 0 && s.IsIOError()) {
+    // An error occurred, check if it is an IO error and remove the offending
+    // specific filename or log name.
+    std::string error_string = s.ToString();
+    size_t error_pos = error_string.find_last_of(":");
+    if (error_pos != std::string::npos) {
+      return Status(s.code(), "IOError: " + error_string.substr(error_pos + 2));
+    }
+  }
   return Status(s.code(), s.ToString());
 }
 

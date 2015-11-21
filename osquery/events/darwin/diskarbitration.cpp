@@ -167,7 +167,7 @@ std::string DiskArbitrationEventPublisher::extractUdifChecksum(
     dmg_file.read((char *)u_buffer, checksum_size);
     // we don't want to byte swap checksum as disk utility/hdiutil doesn't
     std::stringstream checksum;
-    for (int i = 0; i < checksum_size; i++) {
+    for (size_t i = 0; i < checksum_size; i++) {
       if (u_buffer[i] != 0) {
         checksum << std::setw(2) << std::hex << std::uppercase
                  << (unsigned int)u_buffer[i];

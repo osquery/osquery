@@ -24,42 +24,47 @@ if [[ "$PLATFORM" = "darwin" ]]; then
   fi
 fi
 
+MAKE=make
+if [[ "$PLATFORM" = "freebsd" ]]; then
+  MAKE=gmake
+fi
+
 cd $SCRIPT_DIR/../
 
 function cleanUp() {
   # Cleanup kernel
-  make kernel-unload || sudo reboot
+  $MAKE kernel-unload || sudo reboot
 }
 
 # Run build host provisions and install library dependencies.
-make deps
+$MAKE deps
 
 # Clean previous build artifacts.
-make clean
+$MAKE clean
 
 # Build osquery.
-make -j$THREADS
+$MAKE -j$THREADS
 
 if [[ $BUILD_KERNEL = 1 ]]; then
   # Build osquery kernel (optional).
-  make kernel-build
+  $MAKE kernel-build
 
   # Setup cleanup code for catastrophic test failures.
   trap cleanUp EXIT INT TERM
 
   # Load osquery kernel (optional).
-  make kernel-load
+  $MAKE kernel-load
 fi
 
 # Request that tests include addition 'release' or 'package' units.
 export RUN_RELEASE_TESTS=1
 
 # Run code unit and integration tests.
-make test/fast
+$MAKE test/fast
 
 if [[ $BUILD_KERNEL = 1 ]]; then
   # Run kernel unit and integration tests (optional).
-  make kernel-test/fast
+  $MAKE kernel-test/fast
 fi
 
 exit 0

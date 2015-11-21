@@ -29,7 +29,7 @@ namespace osquery {
   #define SHA1_CTX SHA_CTX
 #endif
 
-#define HASH_CHUNK_SIZE 1024
+#define HASH_CHUNK_SIZE 4096
 
 Hash::~Hash() {
   if (ctx_ != nullptr) {
@@ -68,6 +68,7 @@ void Hash::update(const void* buffer, size_t size) {
 std::string Hash::digest() {
   unsigned char hash[length_];
 
+  memset(hash, 0, length_);
   if (algorithm_ == HASH_TYPE_MD5) {
     __HASH_API(MD5_Final)(hash, (__HASH_API(MD5_CTX)*)ctx_);
   } else if (algorithm_ == HASH_TYPE_SHA1) {
@@ -95,6 +96,12 @@ std::string hashFromFile(HashType hash_type, const std::string& path) {
   // Perform a dry-run of a file read without filling in any content.
   auto status = readFile(path);
   if (!status.ok()) {
+    return "";
+  }
+
+  // Drop privileges to the user controlling the file.
+  auto dropper = DropPrivileges::get();
+  if (!dropper->dropToParent(path)) {
     return "";
   }
 

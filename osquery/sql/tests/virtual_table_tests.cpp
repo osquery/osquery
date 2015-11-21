@@ -25,7 +25,7 @@ class sampleTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const {
     return {
-        {"foo", "INTEGER"}, {"bar", "TEXT"},
+        {"foo", INTEGER_TYPE}, {"bar", TEXT_TYPE},
     };
   }
 };

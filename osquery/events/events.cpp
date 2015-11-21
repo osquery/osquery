@@ -49,10 +49,8 @@ void publisherSleep(size_t milli) {
 
 static inline EventTime timeFromRecord(const std::string& record) {
   // Convert a stored index "as string bytes" to a time value.
-  char* end = nullptr;
-  long long int afinite = strtoll(record.c_str(), &end, 10);
-  if (end == nullptr || end == record.c_str() || *end != '\0' ||
-      ((afinite == LLONG_MIN || afinite == LLONG_MAX) && errno == ERANGE)) {
+  long long afinite;
+  if (!safeStrtoll(record, 10, afinite)) {
     return 0;
   }
   return afinite;
@@ -123,7 +121,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
 
 std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
                                                         EventTime stop,
-                                                        int list_key) {
+                                                        size_t list_key) {
   auto db = DBHandle::getInstance();
   auto index_key = "indexes." + dbNamespace();
   std::set<std::string> indexes;
@@ -358,8 +356,7 @@ Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
       status = db->Put(
           kEvents, record_key + "." + list_key + "." + list_id, record_value);
       if (!status.ok()) {
-        LOG(ERROR) << "Could not put Event Record key: " << record_key << "."
-                   << list_key << "." << list_id;
+        LOG(ERROR) << "Could not put Event Record key: " << record_key;
       }
     }
   }

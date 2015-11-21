@@ -10,4 +10,5 @@ schema([
     Column("description", TEXT, "Optional extension description text"),
     Column("path", TEXT, "Path to extension XAR bundle"),
 ])
+attributes(cachable=True)
 implementation("applications/browser_plugins@genSafariExtensions")

@@ -14,6 +14,7 @@
 
 namespace osquery {
 namespace tables {
+namespace sqlite {
 
 int xOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor) {
   int rc = SQLITE_NOMEM;
@@ -76,7 +77,8 @@ int xCreate(sqlite3 *db,
   auto *pVtab = new VirtualTable;
 
   if (!pVtab || argc == 0 || argv[0] == nullptr) {
-    //  return SQLITE_NOMEM;  // memory leak
+    delete pVtab;
+    return SQLITE_NOMEM;
   }
 
   memset(pVtab, 0, sizeof(VirtualTable));
@@ -89,23 +91,23 @@ int xCreate(sqlite3 *db,
   auto status = Registry::call(
       "table", pVtab->content->name, {{"action", "columns"}}, response);
   if (!status.ok() || response.size() == 0) {
-    // return SQLITE_ERROR;  // memory leak
+    delete pVtab->content;
+    delete pVtab;
+    return SQLITE_ERROR;
   }
 
   auto statement =
       "CREATE TABLE " + pVtab->content->name + columnDefinition(response);
   int rc = sqlite3_declare_vtab(db, statement.c_str());
-  if (rc != SQLITE_OK) {
-    // return rc;  // memory leaks
-  }
-
-  if (!status.ok() || response.size() == 0) {
-    // return SQLITE_ERROR;  // memory leak
+  if (rc != SQLITE_OK || !status.ok() || response.size() == 0) {
+    delete pVtab->content;
+    delete pVtab;
+    return (rc != SQLITE_OK) ? rc : SQLITE_ERROR;
   }
 
   for (const auto &column : response) {
     pVtab->content->columns.push_back(
-        std::make_pair(column.at("name"), column.at("type")));
+        std::make_pair(column.at("name"), columnTypeName(column.at("type"))));
   }
 
   *ppVtab = (sqlite3_vtab *)pVtab;
@@ -116,7 +118,7 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
   const BaseCursor *pCur = (BaseCursor *)cur;
   const auto *pVtab = (VirtualTable *)cur->pVtab;
 
-  if (col >= pVtab->content->columns.size()) {
+  if (col >= static_cast<int>(pVtab->content->columns.size())) {
     // Requested column index greater than column set size.
     return SQLITE_ERROR;
   }
@@ -130,30 +132,26 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
 
   // Attempt to cast each xFilter-populated row/column to the SQLite type.
   const auto &value = pVtab->content->data[pCur->row][column_name];
-  if (type == "TEXT") {
+  if (type == TEXT_TYPE) {
     sqlite3_result_text(ctx, value.c_str(), value.size(), SQLITE_STATIC);
-  } else if (type == "INTEGER") {
-    char *end = nullptr;
-    long int afinite = strtol(value.c_str(), &end, 10);
-    if (end == nullptr || end == value.c_str() || *end != '\0' ||
-        ((afinite == LONG_MIN || afinite == LONG_MAX) && errno == ERANGE) ||
-        afinite < INT_MIN || afinite > INT_MAX) {
-      afinite = -1;
+  } else if (type == INTEGER_TYPE) {
+    long afinite;
+    if (!safeStrtol(value, 10, afinite) || afinite < INT_MIN ||
+        afinite > INT_MAX) {
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to INTEGER";
+      afinite = -1;
     }
     sqlite3_result_int(ctx, (int)afinite);
-  } else if (type == "BIGINT") {
-    char *end = nullptr;
-    long long int afinite = strtoll(value.c_str(), &end, 10);
-    if (end == nullptr || end == value.c_str() || *end != '\0' ||
-        ((afinite == LLONG_MIN || afinite == LLONG_MAX) && errno == ERANGE)) {
-      afinite = -1;
+  } else if (type == BIGINT_TYPE || UNSIGNED_BIGINT_TYPE) {
+    long long afinite;
+    if (!safeStrtoll(value, 10, afinite)) {
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to BIGINT";
+      afinite = -1;
     }
     sqlite3_result_int64(ctx, afinite);
-  } else if (type == "DOUBLE") {
+  } else if (type == DOUBLE_TYPE) {
     char *end = nullptr;
     double afinite = strtod(value.c_str(), &end);
     if (end == nullptr || end == value.c_str() || *end != '\0') {
@@ -173,19 +171,21 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
 
   int expr_index = 0;
   int cost = 0;
-  for (size_t i = 0; i < pIdxInfo->nConstraint; ++i) {
-    if (!pIdxInfo->aConstraint[i].usable) {
-      // A higher cost less priority, prefer more usable query constraints.
-      cost += 10;
-      // TODO: OR is not usable.
-      continue;
-    }
+  if (pIdxInfo->nConstraint > 0) {
+    for (size_t i = 0; i < static_cast<size_t>(pIdxInfo->nConstraint); ++i) {
+      if (!pIdxInfo->aConstraint[i].usable) {
+        // A higher cost less priority, prefer more usable query constraints.
+        cost += 10;
+        // TODO: OR is not usable.
+        continue;
+      }
 
-    const auto &name =
-        pVtab->content->columns[pIdxInfo->aConstraint[i].iColumn].first;
-    pVtab->content->constraints.push_back(
-        std::make_pair(name, Constraint(pIdxInfo->aConstraint[i].op)));
-    pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
+      const auto &name =
+          pVtab->content->columns[pIdxInfo->aConstraint[i].iColumn].first;
+      pVtab->content->constraints.push_back(
+          std::make_pair(name, Constraint(pIdxInfo->aConstraint[i].op)));
+      pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
+    }
   }
 
   pIdxInfo->estimatedCost = cost;
@@ -212,17 +212,19 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   }
 
   // Iterate over every argument to xFilter, filling in constraint values.
-  for (size_t i = 0; i < argc; ++i) {
-    auto expr = (const char *)sqlite3_value_text(argv[i]);
-    if (expr == nullptr) {
-      // SQLite did not expose the expression value.
-      continue;
+  if (argc > 0) {
+    for (size_t i = 0; i < static_cast<size_t>(argc); ++i) {
+      auto expr = (const char *)sqlite3_value_text(argv[i]);
+      if (expr == nullptr) {
+        // SQLite did not expose the expression value.
+        continue;
+      }
+      // Set the expression from SQLite's now-populated argv.
+      pVtab->content->constraints[i].second.expr = std::string(expr);
+      // Add the constraint to the column-sorted query request map.
+      context.constraints[pVtab->content->constraints[i].first].add(
+          pVtab->content->constraints[i].second);
     }
-    // Set the expression from SQLite's now-populated argv.
-    pVtab->content->constraints[i].second.expr = std::string(expr);
-    // Add the constraint to the column-sorted query request map.
-    context.constraints[pVtab->content->constraints[i].first].add(
-        pVtab->content->constraints[i].second);
   }
 
   // Reset the virtual table contents.
@@ -239,12 +241,13 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   return SQLITE_OK;
 }
 }
+}
 
 Status attachTableInternal(const std::string &name,
                            const std::string &statement,
                            sqlite3 *db) {
   if (SQLiteDBManager::isDisabled(name)) {
-    VLOG(0) << "Table " << name << " is disabled, not attaching";
+    VLOG(1) << "Table " << name << " is disabled, not attaching";
     return Status(0, getStringForSQLiteReturnCode(0));
   }
 
@@ -252,18 +255,18 @@ Status attachTableInternal(const std::string &name,
   // clang-format off
   static sqlite3_module module = {
       0,
-      tables::xCreate,
-      tables::xCreate,
-      tables::xBestIndex,
-      tables::xDestroy,
-      tables::xDestroy,
-      tables::xOpen,
-      tables::xClose,
-      tables::xFilter,
-      tables::xNext,
-      tables::xEof,
-      tables::xColumn,
-      tables::xRowid,
+      tables::sqlite::xCreate,
+      tables::sqlite::xCreate,
+      tables::sqlite::xBestIndex,
+      tables::sqlite::xDestroy,
+      tables::sqlite::xDestroy,
+      tables::sqlite::xOpen,
+      tables::sqlite::xClose,
+      tables::sqlite::xFilter,
+      tables::sqlite::xNext,
+      tables::sqlite::xEof,
+      tables::sqlite::xColumn,
+      tables::sqlite::xRowid,
   };
   // clang-format on
 

@@ -116,11 +116,11 @@ void genLoginItems(const fs::path& homedir, QueryData& results) {
     try {
       for (const auto& entry : tree.get_child(plist_path)) {
         Row r;
-        r["name"] = entry.second.get<std::string>("Name");
+        r["name"] = entry.second.get<std::string>("Name", "");
         r["type"] = "Login Item";
         r["source"] = sipath.string();
 
-        auto alias_data = entry.second.get<std::string>("Alias");
+        auto alias_data = entry.second.get<std::string>("Alias", "");
         std::string bin_path;
         if (!parseAliasData(alias_data, bin_path).ok()) {
           VLOG(1) << "No valid path found for " << r["name"] << " in "

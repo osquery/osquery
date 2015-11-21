@@ -10,12 +10,29 @@
 
 #include <boost/property_tree/json_parser.hpp>
 
+#include <osquery/database.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 namespace pt = boost::property_tree;
 
 namespace osquery {
+
+FLAG(bool, disable_caching, false, "Disable scheduled query caching");
+
+size_t TablePlugin::kCacheInterval = 0;
+size_t TablePlugin::kCacheStep = 0;
+
+const std::map<ColumnType, std::string> kColumnTypeNames = {
+    {UNKNOWN_TYPE, "UNKNOWN"},
+    {TEXT_TYPE, "TEXT"},
+    {INTEGER_TYPE, "INTEGER"},
+    {BIGINT_TYPE, "BIGINT"},
+    {UNSIGNED_BIGINT_TYPE, "UNSIGNED BIGINT"},
+    {DOUBLE_TYPE, "DOUBLE"},
+    {BLOB_TYPE, "BLOB"},
+};
 
 Status TablePlugin::addExternal(const std::string& name,
                                 const PluginResponse& response) {
@@ -61,11 +78,6 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
   request["context"] = output.str();
 }
 
-void TablePlugin::setResponseFromQueryData(const QueryData& data,
-                                           PluginResponse& response) {
-  response = std::move(data);
-}
-
 void TablePlugin::setContextFromRequest(const PluginRequest& request,
                                         QueryContext& context) {
   if (request.count("context") == 0) {
@@ -83,7 +95,7 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
   }
 
   // Set the context limit and deserialize each column constraint list.
-  context.limit = tree.get<int>("limit");
+  context.limit = tree.get<int>("limit", 0);
   for (const auto& constraint : tree.get_child("constraints")) {
     auto column_name = constraint.second.get<std::string>("name");
     context.constraints[column_name].unserialize(constraint.second);
@@ -106,13 +118,14 @@ Status TablePlugin::call(const PluginRequest& request,
     if (request.count("context") > 0) {
       setContextFromRequest(request, context);
     }
-    setResponseFromQueryData(generate(context), response);
+    response = generate(context);
   } else if (request.at("action") == "columns") {
     // "columns" returns a PluginRequest filled with column information
     // such as name and type.
     const auto& column_list = columns();
     for (const auto& column : column_list) {
-      response.push_back({{"name", column.first}, {"type", column.second}});
+      response.push_back(
+          {{"name", column.first}, {"type", columnTypeName(column.second)}});
     }
   } else if (request.at("action") == "definition") {
     response.push_back({{"definition", columnDefinition()}});
@@ -131,15 +144,43 @@ PluginResponse TablePlugin::routeInfo() const {
   // Route info consists of only the serialized column information.
   PluginResponse response;
   for (const auto& column : columns()) {
-    response.push_back({{"name", column.first}, {"type", column.second}});
+    response.push_back(
+        {{"name", column.first}, {"type", columnTypeName(column.second)}});
   }
   return response;
+}
+
+bool TablePlugin::isCached(size_t step) {
+  return (!FLAGS_disable_caching && step < last_cached_ + last_interval_);
+}
+
+QueryData TablePlugin::getCache() const {
+  VLOG(1) << "Retrieving results from cache for table: " << getName();
+  // Lookup results from database and deserialize.
+  std::string content;
+  getDatabaseValue(kQueries, "cache." + getName(), content);
+  QueryData results;
+  deserializeQueryDataJSON(content, results);
+  return results;
+}
+
+void TablePlugin::setCache(size_t step,
+                           size_t interval,
+                           const QueryData& results) {
+  // Serialize QueryData and save to database.
+  std::string content;
+  if (!FLAGS_disable_caching && serializeQueryDataJSON(results, content)) {
+    last_cached_ = step;
+    last_interval_ = interval;
+    setDatabaseValue(kQueries, "cache." + getName(), content);
+  }
 }
 
 std::string columnDefinition(const TableColumns& columns) {
   std::string statement = "(";
   for (size_t i = 0; i < columns.size(); ++i) {
-    statement += "`" + columns.at(i).first + "` " + columns.at(i).second;
+    statement +=
+        "`" + columns.at(i).first + "` " + columnTypeName(columns.at(i).second);
     if (i < columns.size() - 1) {
       statement += ", ";
     }
@@ -150,22 +191,45 @@ std::string columnDefinition(const TableColumns& columns) {
 std::string columnDefinition(const PluginResponse& response) {
   TableColumns columns;
   for (const auto& column : response) {
-    columns.push_back(make_pair(column.at("name"), column.at("type")));
+    columns.push_back(
+        make_pair(column.at("name"), columnTypeName(column.at("type"))));
   }
   return columnDefinition(columns);
 }
 
+ColumnType columnTypeName(const std::string& type) {
+  for (const auto& col : kColumnTypeNames) {
+    if (col.second == type) {
+      return col.first;
+    }
+  }
+  return UNKNOWN_TYPE;
+}
+
+bool ConstraintList::exists(const ConstraintOperatorFlag ops) const {
+  if (ops == ANY_OP) {
+    return (constraints_.size() > 0);
+  } else {
+    for (const struct Constraint& c : constraints_) {
+      if (c.op & ops) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
 bool ConstraintList::matches(const std::string& expr) const {
   // Support each SQL affinity type casting.
-  if (affinity == "TEXT") {
+  if (affinity == TEXT_TYPE) {
     return literal_matches<TEXT_LITERAL>(expr);
-  } else if (affinity == "INTEGER") {
+  } else if (affinity == INTEGER_TYPE) {
     INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
     return literal_matches<INTEGER_LITERAL>(lexpr);
-  } else if (affinity == "BIGINT") {
+  } else if (affinity == BIGINT_TYPE) {
     BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
     return literal_matches<BIGINT_LITERAL>(lexpr);
-  } else if (affinity == "UNSIGNED_BIGINT") {
+  } else if (affinity == UNSIGNED_BIGINT_TYPE) {
     UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
     return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
   } else {
@@ -221,7 +285,7 @@ void ConstraintList::serialize(boost::property_tree::ptree& tree) const {
     expressions.push_back(std::make_pair("", child));
   }
   tree.add_child("list", expressions);
-  tree.put("affinity", affinity);
+  tree.put("affinity", columnTypeName(affinity));
 }
 
 void ConstraintList::unserialize(const boost::property_tree::ptree& tree) {
@@ -232,6 +296,6 @@ void ConstraintList::unserialize(const boost::property_tree::ptree& tree) {
     constraint.expr = list.second.get<std::string>("expr");
     constraints_.push_back(constraint);
   }
-  affinity = tree.get<std::string>("affinity");
+  affinity = columnTypeName(tree.get<std::string>("affinity", "UNKNOWN"));
 }
 }

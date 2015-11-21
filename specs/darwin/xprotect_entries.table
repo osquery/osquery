@@ -9,4 +9,5 @@ schema([
     Column("optional", INTEGER, "Match any of the identities/patterns for this XProtect name"),
     Column("uses_pattern", INTEGER, "Uses a match pattern instead of identity"),
 ])
+attributes(cachable=True)
 implementation("xprotect@genXProtectEntries")

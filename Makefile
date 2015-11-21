@@ -15,6 +15,8 @@ ifeq ($(DISTRO),darwin)
   else
     BUILD_DIR = darwin$(DISTRO_VERSION)
   endif
+else ifeq ($(DISTRO),freebsd)
+	BUILD_DIR = freebsd$(DISTRO_VERSION)
 else
 	BUILD_DIR = $(DISTRO_VERSION)
 endif

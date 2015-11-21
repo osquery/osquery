@@ -18,12 +18,15 @@ namespace tables {
 
 QueryData genTime(QueryContext& context) {
   Row r;
-  time_t _time = time(0);
+  time_t _time = time(nullptr);
   struct tm* now = localtime(&_time);
   struct tm* gmt = gmtime(&_time);
 
   char weekday[10] = {0};
   strftime(weekday, sizeof(weekday), "%A", now);
+
+  char timezone[5] = {0};
+  strftime(timezone, sizeof(timezone), "%Z", now);
 
   std::string timestamp;
   timestamp = asctime(gmt);
@@ -40,6 +43,7 @@ QueryData genTime(QueryContext& context) {
   r["hour"] = INTEGER(now->tm_hour);
   r["minutes"] = INTEGER(now->tm_min);
   r["seconds"] = INTEGER(now->tm_sec);
+  r["timezone"] = TEXT(timezone);
   r["unix_time"] = INTEGER(_time);
   r["timestamp"] = TEXT(timestamp);
   r["iso_8601"] = TEXT(iso_8601);

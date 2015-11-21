@@ -43,8 +43,8 @@ TEST_F(AppsTests, test_parse_info_plist) {
   // Generate a set of results/single row using an example tree.
   auto tree = getInfoPlistTree();
   genApplication(tree, "/Applications/Foobar.app/Contents/Info.plist", results);
-  ASSERT_EQ(results.size(), 1);
-  ASSERT_EQ(results[0].count("name"), 1);
+  ASSERT_EQ(results.size(), 1U);
+  ASSERT_EQ(results[0].count("name"), 1U);
 
   Row expected = {
       {"name", "Foobar.app"},
@@ -78,7 +78,7 @@ TEST_F(AppsTests, test_sanity_check) {
   // Test beyond units, that there's at least 1 application on the built host.
   std::set<std::string> apps;
   genApplicationsFromPath("/Applications", apps);
-  ASSERT_GT(apps.size(), 0);
+  ASSERT_GT(apps.size(), 0U);
 
   // Parse each application searching for a parsed Safari.
   bool found_safari = false;

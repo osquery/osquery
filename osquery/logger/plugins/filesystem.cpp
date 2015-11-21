@@ -18,12 +18,22 @@
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
 
+// This is the mode that glog uses for logfiles.  Must be at the top level
+// (i.e. outside of the `osquery` namespace).
+DECLARE_int32(logfile_mode);
+
 namespace osquery {
 
 FLAG(string,
      logger_path,
      "/var/log/osquery/",
      "Directory path for ERROR/WARN/INFO and results logging");
+
+FLAG(int32,
+     logger_mode,
+     0640,
+     "Mode for log files (default '0640')");
+
 /// Legacy, backward compatible "osquery_log_dir" CLI option.
 FLAG_ALIAS(std::string, osquery_log_dir, logger_path);
 
@@ -51,6 +61,16 @@ REGISTER(FilesystemLoggerPlugin, "logger", "filesystem");
 
 Status FilesystemLoggerPlugin::setUp() {
   log_path_ = fs::path(FLAGS_logger_path);
+
+  // Ensure that the glog status logs use the same mode as our results log.
+  FLAGS_logfile_mode = FLAGS_logger_mode;
+
+  // Ensure that we create the results log here.
+  auto status = logString("");
+  if (!status.ok()) {
+    return status;
+  }
+
   return Status(0, "OK");
 }
 
@@ -62,8 +82,7 @@ Status FilesystemLoggerPlugin::logStringToFile(const std::string& s,
                                                const std::string& filename) {
   std::lock_guard<std::mutex> lock(filesystemLoggerPluginMutex);
   try {
-    // The results log may contain sensitive information if run as root.
-    auto status = writeTextFile((log_path_ / filename).string(), s, 0640, true);
+    auto status = writeTextFile((log_path_ / filename).string(), s, FLAGS_logger_mode, true);
     if (!status.ok()) {
       return status;
     }

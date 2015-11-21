@@ -46,6 +46,15 @@ extern std::string kTestWorkingDirectory;
 const std::string kFakeDirectoryName = "fstree";
 extern std::string kFakeDirectory;
 
+// Get an example generate config with one static source name to JSON content.
+std::map<std::string, std::string> getTestConfigMap();
+
+pt::ptree getExamplePacksConfig();
+pt::ptree getUnrestrictedPack();
+pt::ptree getPackWithDiscovery();
+pt::ptree getPackWithValidDiscovery();
+pt::ptree getPackWithFakeVersion();
+
 ScheduledQuery getOsqueryScheduledQuery();
 
 // getTestDBExpectedResults returns the results of kTestQuery of the table that

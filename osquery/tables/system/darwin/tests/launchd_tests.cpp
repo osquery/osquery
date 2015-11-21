@@ -38,7 +38,7 @@ TEST_F(LaunchdTests, test_parse_launchd_item) {
   // Parse the contents into a launchd table row.
   QueryData results;
   genLaunchdItem(tree, launchd_path, results);
-  ASSERT_EQ(results.size(), 1);
+  ASSERT_EQ(results.size(), 1U);
 
   Row expected = {
       {"path", kTestDataPath + "test_launchd.plist"},

@@ -27,6 +27,7 @@
 
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
+namespace errc = boost::system::errc;
 
 namespace osquery {
 
@@ -69,41 +70,23 @@ Status writeTextFile(const fs::path& path,
 struct OpenReadableFile {
  public:
   OpenReadableFile(const fs::path& path) {
-    // Obtain a file descriptor for the requested file read.
-    int pfd = open(path.parent_path().string().c_str(), O_RDONLY | O_NONBLOCK);
-    if (pfd < 0) {
-      fd = -1;
-      return;
+    dropper_ = DropPrivileges::get();
+    if (dropper_->dropToParent(path)) {
+      // Open the file descriptor and allow caller to perform error checking.
+      fd = open(path.string().c_str(), O_RDONLY | O_NONBLOCK);
     }
-
-    struct stat file;
-    // If the process is running as root, drop privileges before reading.
-    // The process may have already dropped (if within a table), so act on E.
-    if (geteuid() == 0 && fstat(pfd, &file) >= 0 && file.st_uid != 0) {
-      dropped = true;
-      seteuid(file.st_uid);
-      setegid(file.st_gid);
-    }
-    close(pfd);
-
-    // Open the file descriptor and allow caller to perform error checking.
-    fd = open(path.string().c_str(), O_RDONLY | O_NONBLOCK);
   }
 
   ~OpenReadableFile() {
     if (fd > 0) {
       close(fd);
     }
-
-    // If privileges were dropped for this file read, restore effective to real.
-    if (dropped) {
-      seteuid(getuid());
-      setegid(getgid());
-    }
   }
 
   int fd{0};
-  bool dropped{false};
+
+ private:
+  DropPrivilegesRef dropper_{nullptr};
 };
 
 Status readFile(const fs::path& path,
@@ -118,14 +101,8 @@ Status readFile(const fs::path& path,
   struct stat file;
   if (fstat(handle.fd, &file) < 0) {
     return Status(1, "Cannot access path: " + path.string());
-  } else if (file.st_uid != 0 && S_ISFIFO(file.st_mode)) {
-    return Status(1, "User FIFO reads are disabled");
   }
 
-  // Apply the max byte-read based on file/link target ownership.
-  off_t read_max = (file.st_uid == 0)
-                       ? FLAGS_read_max
-                       : std::min(FLAGS_read_max, FLAGS_read_user_max);
   off_t file_size = file.st_size;
   if (file_size == 0 && size > 0) {
     file_size = static_cast<off_t>(size);
@@ -133,6 +110,10 @@ Status readFile(const fs::path& path,
 
   // Erase/clear provided string buffer.
   content.erase();
+  // Apply the max byte-read based on file/link target ownership.
+  off_t read_max = (file.st_uid == 0)
+                       ? FLAGS_read_max
+                       : std::min(FLAGS_read_max, FLAGS_read_user_max);
   if (file_size > read_max) {
     VLOG(1) << "Cannot read " << path << " size exceeds limit: " << file_size
             << " > " << read_max;
@@ -145,8 +126,24 @@ Status readFile(const fs::path& path,
     return Status(0, fs::canonical(path, ec).string());
   }
 
-  content = std::string(file_size, '\0');
-  read(handle.fd, &content[0], file_size);
+  if (file_size == 0) {
+    off_t total_bytes = 0;
+    ssize_t part_bytes = 0;
+    do {
+      auto part = std::string(4096, '\0');
+      part_bytes = read(handle.fd, &part[0], 4096);
+      if (part_bytes > 0) {
+        total_bytes += part_bytes;
+        if (total_bytes >= read_max) {
+          return Status(1, "File exceeds read limits");
+        }
+        content += part.substr(0, part_bytes);
+      }
+    } while (part_bytes > 0);
+  } else {
+    content = std::string(file_size, '\0');
+    read(handle.fd, &content[0], file_size);
+  }
   return Status(0, "OK");
 }
 
@@ -180,17 +177,14 @@ Status isReadable(const fs::path& path) {
 }
 
 Status pathExists(const fs::path& path) {
+  boost::system::error_code ec;
   if (path.empty()) {
     return Status(1, "-1");
   }
 
   // A tri-state determination of presence
-  try {
-    if (!fs::exists(path)) {
-      return Status(1, "0");
-    }
-  } catch (const fs::filesystem_error& e) {
-    return Status(1, e.what());
+  if (!fs::exists(path, ec) || ec.value() != errc::success) {
+    return Status(1, ec.message());
   }
   return Status(0, "1");
 }
@@ -277,40 +271,30 @@ inline void replaceGlobWildcards(std::string& pattern) {
 inline Status listInAbsoluteDirectory(const fs::path& path,
                                       std::vector<std::string>& results,
                                       GlobLimits limits) {
-  try {
-    if (path.filename() == "*" && !fs::exists(path.parent_path())) {
-      return Status(1, "Directory not found: " + path.parent_path().string());
-    }
-
-    if (path.filename() == "*" && !fs::is_directory(path.parent_path())) {
-      return Status(1, "Path not a directory: " + path.parent_path().string());
-    }
-  } catch (const fs::filesystem_error& e) {
-    return Status(1, e.what());
+  if (path.filename() == "*" && !pathExists(path.parent_path())) {
+    return Status(1, "Directory not found: " + path.parent_path().string());
   }
+
+  if (path.filename() == "*" && !isDirectory(path.parent_path())) {
+    return Status(1, "Path not a directory: " + path.parent_path().string());
+  }
+
   genGlobs(path.string(), results, limits);
   return Status(0, "OK");
 }
 
 Status listFilesInDirectory(const fs::path& path,
                             std::vector<std::string>& results,
-                            bool ignore_error) {
-  return listInAbsoluteDirectory((path / "*"), results, GLOB_FILES);
+                            bool recursive) {
+  return listInAbsoluteDirectory(
+      (path / ((recursive) ? "**" : "*")), results, GLOB_FILES);
 }
 
 Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
-                                  bool ignore_error) {
-  return listInAbsoluteDirectory((path / "*"), results, GLOB_FOLDERS);
-}
-
-Status getDirectory(const fs::path& path, fs::path& dirpath) {
-  if (!isDirectory(path).ok()) {
-    dirpath = fs::path(path).parent_path().string();
-    return Status(0, "OK");
-  }
-  dirpath = path;
-  return Status(1, "Path is a directory: " + path.string());
+                                  bool recursive) {
+  return listInAbsoluteDirectory(
+      (path / ((recursive) ? "**" : "*")), results, GLOB_FOLDERS);
 }
 
 Status isDirectory(const fs::path& path) {
@@ -318,7 +302,11 @@ Status isDirectory(const fs::path& path) {
   if (fs::is_directory(path, ec)) {
     return Status(0, "OK");
   }
-  if (ec.value() == 0) {
+
+  // The success error code is returned for as a failure (undefined error)
+  // We need to flip that into an error, a success would have falling through
+  // in the above conditional.
+  if (ec.value() == errc::success) {
     return Status(1, "Path is not a directory: " + path.string());
   }
   return Status(ec.value(), ec.message());

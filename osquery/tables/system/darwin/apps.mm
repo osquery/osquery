@@ -186,8 +186,7 @@ void genApplication(const pt::ptree& tree,
 
   // Loop through each column and its mapped Info.plist key name.
   for (const auto& item : kAppsInfoPlistTopLevelStringKeys) {
-    try {
-      r[item.second] = tree.get<std::string>(item.first);
+    r[item.second] = tree.get<std::string>(item.first, "");
       // Change boolean values into integer 1, 0.
       if (r[item.second] == "true" || r[item.second] == "YES" ||
           r[item.second] == "Yes") {
@@ -196,10 +195,6 @@ void genApplication(const pt::ptree& tree,
                  r[item.second] == "No") {
         r[item.second] = INTEGER(0);
       }
-    } catch (const pt::ptree_error& e) {
-      // Expect that most of the selected keys are missing.
-      r[item.second] = "";
-    }
   }
   results.push_back(std::move(r));
 }

@@ -3,7 +3,6 @@ description("System information for identification.")
 schema([
     Column("hostname", TEXT, "Network hostname including domain"),
     Column("uuid", TEXT, "Unique ID provided by the system"),
-    Column("cpu_serial", TEXT, "System serial number frequently used for asset tracking"),
     Column("cpu_type", TEXT, "CPU type"),
     Column("cpu_subtype", TEXT, "CPU subtype"),
     Column("cpu_brand", TEXT, "CPU brand string"),
@@ -11,5 +10,8 @@ schema([
     Column("cpu_logical_cores", INTEGER, "Max number of CPU logical cores"),
     Column("physical_memory", BIGINT, "Total physical memory in bytes"),
     Column("hardware_model", TEXT, "Hardware model string"),
+    Column("hardware_serial", TEXT,
+        "System serial number frequently used for asset tracking"),
+    Column("computer_name", TEXT, "Friendly computer name (optional)"),
 ])
 implementation("system/system_info@genSystemInfo")

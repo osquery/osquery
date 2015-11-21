@@ -5,4 +5,3 @@ argparse
 # needed for integration tests
 pexpect
 thrift
-flaky

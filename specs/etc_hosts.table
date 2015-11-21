@@ -4,4 +4,5 @@ schema([
     Column("address", TEXT, "IP address mapping"),
     Column("hostnames", TEXT, "Raw hosts mapping"),
 ])
+attributes(cachable=True)
 implementation("etc_hosts@genEtcHosts")

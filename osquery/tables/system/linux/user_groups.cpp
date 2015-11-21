@@ -8,6 +8,7 @@
  *
  */
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/system/user_groups.h"
 
 namespace osquery {
@@ -22,8 +23,8 @@ QueryData genUserGroups(QueryContext &context) {
   if (context.constraints["uid"].exists(EQUALS)) {
     std::set<std::string> uids = context.constraints["uid"].getAll(EQUALS);
     for (const auto &uid : uids) {
-      pwd = getpwuid(std::strtol(uid.c_str(), NULL, 10));
-      if (pwd != nullptr) {
+      long auid{0};
+      if (safeStrtol(uid, 10, auid) && (pwd = getpwuid(auid)) != nullptr) {
         user_t<uid_t, gid_t> user;
         user.name = pwd->pw_name;
         user.uid = pwd->pw_uid;

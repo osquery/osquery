@@ -27,35 +27,13 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-pt::ptree getExamplePacksConfig();
-pt::ptree getUnrestrictedPack();
-pt::ptree getPackWithDiscovery();
-pt::ptree getPackWithFakeVersion();
-
-// The config_path flag is defined in the filesystem config plugin.
-DECLARE_string(config_path);
-
-std::map<std::string, std::string> getTestConfigMap() {
-  std::string content;
-  readFile(kTestDataPath + "test_parse_items.conf", content);
-  std::map<std::string, std::string> config;
-  config["awesome"] = content;
-  return config;
-}
+// Blacklist testing methods, internal to config implementations.
+extern void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist);
+extern void saveScheduleBlacklist(const std::map<std::string, size_t>& blacklist);
 
 class ConfigTests : public testing::Test {
- public:
-  ConfigTests() {
-    Registry::setActive("config", "filesystem");
-    FLAGS_config_path = kTestDataPath + "test.config";
-  }
-
  protected:
-  void SetUp() {
-    createMockFileStructure();
-    Registry::setUp();
-    Config::getInstance().load();
-  }
+  void SetUp() { createMockFileStructure(); }
 
   void TearDown() { tearDownMockFileStructure(); }
 };
@@ -151,10 +129,10 @@ TEST_F(ConfigTests, test_parse) {
 
 TEST_F(ConfigTests, test_remove) {
   auto c = Config();
-  c.addPack("kernel", "", getUnrestrictedPack());
-  c.removePack("kernel");
+  c.addPack("unrestricted_pack", "", getUnrestrictedPack());
+  c.removePack("unrestricted_pack");
   for (Pack& pack : c.schedule_) {
-    EXPECT_NE("kernel", pack.getName());
+    EXPECT_NE("unrestricted_pack", pack.getName());
   }
 }
 
@@ -164,12 +142,12 @@ TEST_F(ConfigTests, test_add_remove_pack) {
   auto last = c.schedule_.end();
   EXPECT_EQ(std::distance(first, last), 0);
 
-  c.addPack("kernel", "", getUnrestrictedPack());
+  c.addPack("unrestricted_pack", "", getUnrestrictedPack());
   first = c.schedule_.begin();
   last = c.schedule_.end();
   EXPECT_EQ(std::distance(first, last), 1);
 
-  c.removePack("kernel");
+  c.removePack("unrestricted_pack");
   first = c.schedule_.begin();
   last = c.schedule_.end();
   EXPECT_EQ(std::distance(first, last), 0);
@@ -178,7 +156,7 @@ TEST_F(ConfigTests, test_add_remove_pack) {
 TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<ScheduledQuery> queries;
   auto c = Config();
-  c.addPack("kernel", "", getUnrestrictedPack());
+  c.addPack("unrestricted_pack", "", getUnrestrictedPack());
   c.scheduledQueries(
       ([&queries](const std::string&, const ScheduledQuery& query) {
         queries.push_back(query);
@@ -223,5 +201,33 @@ TEST_F(ConfigTests, test_noninline_pack) {
   int total_packs = 0;
   c.packs([&total_packs](const Pack& pack) { total_packs++; });
   EXPECT_EQ(total_packs, 2);
+}
+
+TEST_F(ConfigTests, test_blacklist) {
+  auto current_time = getUnixTime();
+  std::map<std::string, size_t> blacklist;
+  saveScheduleBlacklist(blacklist);
+  restoreScheduleBlacklist(blacklist);
+  EXPECT_EQ(blacklist.size(), 0U);
+
+  // Create some entries.
+  blacklist["test_1"] = current_time * 2;
+  blacklist["test_2"] = current_time * 3;
+  saveScheduleBlacklist(blacklist);
+  blacklist.clear();
+  restoreScheduleBlacklist(blacklist);
+  ASSERT_EQ(blacklist.count("test_1"), 1U);
+  ASSERT_EQ(blacklist.count("test_2"), 1U);
+  EXPECT_EQ(blacklist.at("test_1"), current_time * 2);
+  EXPECT_EQ(blacklist.at("test_2"), current_time * 3);
+
+  // Now save an expired query.
+  blacklist["test_1"] = 1;
+  saveScheduleBlacklist(blacklist);
+  blacklist.clear();
+
+  // When restoring, the values below the current time will not be included.
+  restoreScheduleBlacklist(blacklist);
+  EXPECT_EQ(blacklist.size(), 1U);
 }
 }

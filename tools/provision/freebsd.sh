@@ -8,6 +8,10 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 function main_freebsd() {
+  sudo pkg update
+  sudo pkg upgrade -y
+
+  package gmake
   package cmake
   package git
   package python
@@ -17,6 +21,7 @@ function main_freebsd() {
   package thrift
   package thrift-cpp
   package yara
+  package boost-libs
   package cpp-netlib
-  package libmagic
+  package magic
 }
