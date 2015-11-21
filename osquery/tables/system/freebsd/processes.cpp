@@ -124,9 +124,9 @@ void genProcess(struct procstat* pstat,
   r["parent"] = INTEGER(proc->ki_ppid);
   r["name"] = TEXT(proc->ki_comm);
   r["uid"] = INTEGER(proc->ki_ruid);
-  r["euid"] = INTEGER(proc->ki_svuid);
+  r["euid"] = INTEGER(proc->ki_uid);
   r["gid"] = INTEGER(proc->ki_rgid);
-  r["egid"] = INTEGER(proc->ki_svgid);
+  r["egid"] = INTEGER(proc->ki_groups[0]);
 
   if (procstat_getpathname(pstat, proc, path, sizeof(path)) == 0) {
     r["path"] = TEXT(path);
