@@ -8,7 +8,6 @@
  *
  */
 
-#include <boost/filesystem.hpp>
 #include <Foundation/Foundation.h>
 #include <Security/CodeSigning.h>
 
@@ -65,7 +64,7 @@ void genSignatureForFile(const std::string& path,
   r["identifier"] = "";
 
   // Get flags for the file.
-  SecCSFlags flags;
+  SecCSFlags flags = 0;
   if (!getVerifyFlags(flags).ok()) {
     VLOG(1) << "Could not get verify flags";
     return;
@@ -79,28 +78,30 @@ void genSignatureForFile(const std::string& path,
   }
 
   // Create the static code object.
-  SecStaticCodeRef staticCode;
+  SecStaticCodeRef staticCode = nullptr;
   result = SecStaticCodeCreateWithPath(url, kSecCSDefaultFlags, &staticCode);
-  if (result != 0) {
+  if (result != errSecSuccess || staticCode == nullptr) {
     VLOG(1) << "Could not create static code object for file: " << path;
     return;
   }
 
   // Actually validate.
-  result = SecStaticCodeCheckValidityWithErrors(staticCode, flags, NULL, NULL);
-  if (result == 0) {
-    CFDictionaryRef codeInfo;
+  result =
+      SecStaticCodeCheckValidityWithErrors(staticCode, flags, nullptr, nullptr);
+  if (result == errSecSuccess) {
+    CFDictionaryRef codeInfo = nullptr;
 
     result = SecCodeCopySigningInformation(
       staticCode,
       kSecCSSigningInformation | kSecCSRequirementInformation,
       &codeInfo);
-    if (result == 0) {
+    if (result == errSecSuccess) {
       // If we don't get an identifier for this file, then it's not signed.
-      CFStringRef ident = (CFStringRef)CFDictionaryGetValue(codeInfo, kSecCodeInfoIdentifier);
+      CFStringRef ident =
+          (CFStringRef)CFDictionaryGetValue(codeInfo, kSecCodeInfoIdentifier);
       if (ident != nullptr) {
-        // We have an identifier - this indicates that the file is signed, and, since
-        // it didn't error above, it's *also* a valid signature.
+        // We have an identifier - this indicates that the file is signed,
+        // and, since it didn't error above, it's *also* a valid signature.
         r["signed"] = INTEGER(1);
         r["identifier"] = stringFromCFString(ident);
 
@@ -130,12 +131,10 @@ QueryData genSignature(QueryContext& context) {
   // operator.
   auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
-    boost::filesystem::path path = path_string;
-
     // Note: we are explicitly *not* using is_regular_file here, since you can
     // pass a directory path to the verification functions (e.g. for app
     // bundles, etc.)
-    if (!pathExists(path).ok()) {
+    if (!pathExists(path_string).ok()) {
       continue;
     }
 
