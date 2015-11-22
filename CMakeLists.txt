@@ -44,6 +44,8 @@ add_compile_options(
   -fPIC
   -fpic
   -pipe
+  -fdata-sections
+  -ffunction-sections
 )
 
 # osquery additional compiler flags added by CMake.

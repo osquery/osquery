@@ -47,11 +47,16 @@ endforeach()
 
 # The platform-specific SDK + core libraries.
 if(APPLE)
+  ADD_OSQUERY_LINK_CORE("-Wl,-dead_strip")
   ADD_OSQUERY_LINK_CORE("-mmacosx-version-min=${OSX_VERSION_MIN}")
   ADD_OSQUERY_LINK_CORE("boost_thread-mt")
   ADD_OSQUERY_LINK_CORE("lz4")
 else()
   ADD_OSQUERY_LINK_CORE("-Wl,-zrelro -Wl,-znow")
+  if(NOT ${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6" AND
+     NOT ${OSQUERY_BUILD_DISTRO} STREQUAL "centos6")
+    ADD_OSQUERY_LINK_CORE("-Wl,--gc-sections")
+  endif()
   ADD_OSQUERY_LINK_CORE("boost_thread")
   ADD_OSQUERY_LINK_CORE("librt.so")
 endif()
@@ -248,13 +253,6 @@ if(NOT DEFINED ENV{SKIP_TESTS})
     target_link_libraries(osquery_tables_tests gtest libosquery_testing)
     SET_OSQUERY_COMPILE(osquery_tables_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=0")
     add_test(osquery_tables_tests osquery_tables_tests)
-
-    # osquery table run profiler built outside of SDK.
-    add_executable(run main/run.cpp)
-    TARGET_OSQUERY_LINK_WHOLE(run libosquery)
-    TARGET_OSQUERY_LINK_WHOLE(run libosquery_additional)
-    SET_OSQUERY_COMPILE(run "${CXX_COMPILE_FLAGS}")
-    set_target_properties(run PROPERTIES OUTPUT_NAME run)
   endif()
 
   # Build the example extension with the SDK.

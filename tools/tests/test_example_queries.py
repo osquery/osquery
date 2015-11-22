@@ -24,12 +24,15 @@ import test_base
 import utils
 
 class ExampleQueryTests(test_base.QueryTester):
+    @test_base.flaky
     def test_cross_platform_queries(self):
         self._execute_set(PLATFORM_EXAMPLES["specs"])
 
+    @test_base.flaky
     def test_platform_specific_queries(self):
         self._execute_set(PLATFORM_EXAMPLES[utils.platform()])
 
+    @test_base.flaky
     def test_utility_queries(self):
         self._execute_set(PLATFORM_EXAMPLES["utility"])
 
