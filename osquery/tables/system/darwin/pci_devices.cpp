@@ -8,22 +8,12 @@
  *
  */
 
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/trim.hpp>
-
-#include <IOKit/usb/IOUSBLib.h>
-
-#include <osquery/core.h>
-#include <osquery/logger.h>
 #include <osquery/tables.h>
-#include <osquery/filesystem.h>
 
 #include "osquery/tables/system/darwin/iokit_utils.h"
 
 namespace osquery {
 namespace tables {
-
-#define kIOPCIDeviceClassName_ "IOPCIDevice"
 
 void genPCIDevice(const io_service_t& device, QueryData& results) {
   Row r;
@@ -35,39 +25,12 @@ void genPCIDevice(const io_service_t& device, QueryData& results) {
 
   r["pci_slot"] = getIOKitProperty(details, "pcidebug");
 
-  std::vector<std::string> properties;
   auto compatible = getIOKitProperty(details, "compatible");
-  boost::trim(compatible);
-  boost::split(properties, compatible, boost::is_any_of(" "));
-
-  if (properties.size() < 2) {
-    VLOG(1) << "Error parsing IOKit compatible properties";
-    return;
-  }
-
-  size_t prop_index = 0;
-  if (properties[1].find("pci") == 0 && properties[1].find("pciclass") != 0) {
-    // There are two sets of PCI definitions.
-    prop_index = 1;
-  } else if (properties[0].find("pci") != 0) {
-    VLOG(1) << "No vendor/model found";
-    return;
-  }
-
-  std::vector<std::string> vendor;
-  boost::split(vendor, properties[prop_index++], boost::is_any_of(","));
-  r["vendor_id"] = vendor[0].substr(3);
-  r["model_id"] = (vendor[1].size() == 3) ? "0" + vendor[1] : vendor[1];
-
-  if (properties[prop_index].find("pciclass") == 0) {
-    // There is a class definition.
-    r["pci_class"] = properties[prop_index++].substr(9);
-  }
-
-  if (properties.size() > prop_index) {
-    // There is a driver/ID.
-    r["driver"] = properties[prop_index];
-  }
+  auto properties = IOKitPCIProperties(compatible);
+  r["vendor_id"] = properties.vendor_id;
+  r["model_id"] = properties.model_id;
+  r["pci_class"] = properties.pci_class;
+  r["driver"] = properties.driver;
 
   results.push_back(r);
   CFRelease(details);
@@ -76,7 +39,7 @@ void genPCIDevice(const io_service_t& device, QueryData& results) {
 QueryData genPCIDevices(QueryContext& context) {
   QueryData results;
 
-  auto matching = IOServiceMatching(kIOPCIDeviceClassName_);
+  auto matching = IOServiceMatching(kIOPCIDeviceClassName_.c_str());
   if (matching == nullptr) {
     // No devices matched PCI, very odd.
     return results;
