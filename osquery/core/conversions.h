@@ -96,6 +96,30 @@ inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
   return Status(0);
 }
 
+/// Safely convert unicode escaped ASCII.
+inline std::string unescapeUnicode(const std::string& escaped) {
+  if (escaped.size() < 6) {
+    return escaped;
+  }
+
+  std::string unescaped;
+  unescaped.reserve(escaped.size());
+  for (size_t i = 0; i < escaped.size(); ++i) {
+    if (i < escaped.size() - 5 && '\\' == escaped[i] && 'u' == escaped[i + 1]) {
+      // Assume 2-byte wide unicode.
+      long value{0};
+      safeStrtol(escaped.substr(i + 2, i + 6), 16, value);
+      if (value < 255) {
+        unescaped += static_cast<char>(value);
+        i += 5;
+        continue;
+      }
+    }
+    unescaped += escaped[i];
+  }
+  return unescaped;
+}
+
 #ifdef DARWIN
 /**
  * @brief Convert a CFStringRef to a std::string.
