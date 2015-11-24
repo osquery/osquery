@@ -287,11 +287,11 @@ Maximum returned row value size.
 
 `--distributed_plugin=tls`
 
-Distributed plugin name. The default distributed plugin is not set. You must set `--distributed_enabled=true --distributed_plugin=tls` (or whatever plugin you'd rather use instead of TLS) to use the distributed feature.
+Distributed plugin name. The default distributed plugin is not set. You must set `--disable_distributed=false --distributed_plugin=tls` (or whatever plugin you'd rather use instead of TLS) to enable the distributed feature.
 
 `--disable_distributed=true`
 
-Main killswitch for distributed queries functionality. By default, this is turned off.
+Disable distributed queries functionality. By default, this is set to `true` (the distributed feature is disabled). Set this to `false` to enable distributed queries.
 
 `--distributed_interval=60`
 
