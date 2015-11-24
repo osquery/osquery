@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
+#include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 
@@ -73,9 +74,125 @@ TEST_F(VirtualTableTests, test_sqlite3_table_joins) {
   QueryData results;
   // Run a query with a join within.
   std::string statement =
-      "SELECT p.pid FROM osquery_info oi, processes p WHERE oi.pid=p.pid";
+      "SELECT p.pid FROM osquery_info oi, processes p WHERE oi.pid = p.pid";
   auto status = queryInternal(statement, results, dbc.db());
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 1U);
+}
+
+class pTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const {
+    return {
+        {"x", INTEGER_TYPE}, {"y", INTEGER_TYPE},
+    };
+  }
+
+ public:
+  QueryData generate(QueryContext&) {
+    return {
+        {{"x", "1"}, {"y", "2"}}, {{"x", "2"}, {"y", "1"}},
+    };
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_constraints_stacking);
+};
+
+class kTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const {
+    return {
+        {"x", INTEGER_TYPE}, {"z", INTEGER_TYPE},
+    };
+  }
+
+ public:
+  QueryData generate(QueryContext&) {
+    return {
+        {{"x", "1"}, {"z", "2"}}, {{"x", "2"}, {"z", "1"}},
+    };
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_constraints_stacking);
+};
+
+TEST_F(VirtualTableTests, test_constraints_stacking) {
+  // Add two testing tables to the registry.
+  Registry::add<pTablePlugin>("table", "p");
+  Registry::add<kTablePlugin>("table", "k");
+  auto dbc = SQLiteDBManager::get();
+
+  {
+    // To simplify the attach, just access the column definition directly.
+    auto p = std::make_shared<pTablePlugin>();
+    attachTableInternal("p", p->columnDefinition(), dbc.db());
+    auto k = std::make_shared<kTablePlugin>();
+    attachTableInternal("k", k->columnDefinition(), dbc.db());
+  }
+
+  QueryData results;
+  std::string statement;
+  std::map<std::string, std::string> expected;
+
+  statement = "select k.x from (select * from k) k2, p, k where k.x = p.x";
+  expected = {{"k.x", "1"}};
+  queryInternal(statement, results, dbc.db());
+  EXPECT_EQ(results[0], expected);
+  results.clear();
+
+  statement =
+      "select k.x from (select * from k where z = 1) k2, p, k where k.x = p.x";
+  expected = {{"k.x", "1"}};
+  queryInternal(statement, results, dbc.db());
+  EXPECT_EQ(results[0], expected);
+  results.clear();
+
+  statement = "select k.x from k k1, (select * from p) p1, k where k.x = p1.x";
+  expected = {{"k.x", "1"}};
+  queryInternal(statement, results, dbc.db());
+  EXPECT_EQ(results[0], expected);
+
+  statement =
+      "select k.x from (select * from p) p1, k, (select * from k) k2 where k.x "
+      "= p1.x";
+  expected = {{"k.x", "1"}};
+  queryInternal(statement, results, dbc.db());
+  EXPECT_EQ(results[0], expected);
+  results.clear();
+
+  statement =
+      "select k.x from (select * from p) p1, k, (select * from k where z = 2) "
+      "k2 where k.x = p1.x";
+  expected = {{"k.x", "1"}};
+  queryInternal(statement, results, dbc.db());
+  EXPECT_EQ(results[0], expected);
+  results.clear();
+
+  statement =
+      "select k.x from k, (select * from p) p1, k k2, (select * from k where z "
+      "= 1) k3 where k.x = p1.x";
+  expected = {{"k.x", "1"}};
+  queryInternal(statement, results, dbc.db());
+  EXPECT_EQ(results[0], expected);
+  results.clear();
+
+  statement =
+      "select p.x from (select * from k where z = 1) k1, (select * from k "
+      "where z != 1) k2, p where p.x = k2.x";
+  expected = {{"p.x", "1"}};
+  queryInternal(statement, results, dbc.db());
+  EXPECT_EQ(results[0], expected);
+  results.clear();
+
+  statement =
+      "select p.x from (select * from k, (select x as xx from k where x = 1) "
+      "k2 where z = 1) k1, (select * from k where z != 1) k2, p, k as k3 where "
+      "p.x = k2.x";
+  expected = {{"p.x", "1"}};
+  queryInternal(statement, results, dbc.db());
+  EXPECT_EQ(results[0], expected);
+  results.clear();
 }
 }

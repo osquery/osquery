@@ -432,7 +432,7 @@ def flaky(gen):
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            exceptions.append((str(e), fname, exc_tb.tb_lineno))
+            exceptions.append((e, fname, exc_tb.tb_lineno))
         return False
     def wrapper(this):
         for i in range(3):
@@ -443,9 +443,9 @@ def flaky(gen):
             print("Test (attempt %d) %s::%s failed: %s (%s:%d)" % (
                 i,
                 this.__class__.__name__,
-                gen.__name__,  exc[0], exc[1], exc[2]))
+                gen.__name__,  str(exc[0]), exc[1], exc[2]))
             i += 1
-        return False
+        raise exceptions[0][0]
     return wrapper
 
 class Tester(object):

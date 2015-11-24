@@ -42,10 +42,13 @@ class AdditionalFeatureTests(test_base.ProcessGenerator, unittest.TestCase):
         # Get a daemon process, loaded with the default test configuration.
         # We'll add a config override (overwrite) for the "packs" key.
         # THis will point a single pack at the config written above.
-        daemon = self._run_daemon(overwrite={
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            },
+            overwrite={
             "packs": {
                 "test_pack": query_pack_path
-            }
+            },
         })
         self.assertTrue(daemon.isAlive())
 
