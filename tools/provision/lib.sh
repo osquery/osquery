@@ -188,6 +188,34 @@ function install_yara() {
   fi
 }
 
+function install_openssl() {
+  SOURCE=openssl-1.0.2d
+  TARBALL=$SOURCE.tar.gz
+  URL=http://openssl.org/source/$TARBALL
+
+  if provision openssl /usr/local/lib/libssl.so.1.0.0; then
+    pushd $SOURCE
+    CC="$CC" CXX="$CXX" ./config --prefix=/usr/local --openssldir=/etc/ssl --libdir=lib shared zlib-dynamic enable-shared
+    make -j $THREADS
+    sudo make install
+    popd
+  fi
+}
+
+function install_bison() {
+  SOURCE=bison-2.5
+  TARBALL=$SOURCE.tar.gz
+  URL=http://ftp.gnu.org/gnu/bison/$TARBALL
+
+  if provision bison /usr/local/bin/bison; then
+    pushd $SOURCE
+    CC="$CC" CXX="$CXX" ./configure --prefix=/usr/local --with-libiconv-prefix=/usr/local/libiconv/
+    make -j $THREADS
+    sudo make install
+    popd
+  fi
+}
+
 function install_boost() {
   SOURCE=boost_1_55_0
   TARBALL=$SOURCE.tar.gz

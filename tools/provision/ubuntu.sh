@@ -36,7 +36,6 @@ function main_ubuntu() {
   package wget
   package unzip
   package build-essential
-  package bison
   package flex
   package devscripts
   package debhelper
@@ -133,6 +132,13 @@ function main_ubuntu() {
     gem_install fpm
   fi
 
+  if [[ $DISTRO = "lucid" ]]; then
+    install_openssl
+    install_bison
+  else
+    package bison
+  fi
+
   install_thrift
   install_rocksdb
   install_yara
@@ -148,4 +154,9 @@ function main_ubuntu() {
 
   # Audit facility (kautitd) and netlink APIs
   package libaudit-dev
+  if [[ $DISTRO = "lucid" ]]; then
+    package python-argparse
+    package python-jinja2
+    package python-psutil
+  fi
 }
