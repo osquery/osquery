@@ -177,7 +177,7 @@ void Pack::setName(const std::string& name) { name_ = name; }
 bool Pack::checkPlatform() const { return checkPlatform(platform_); }
 
 bool Pack::checkPlatform(const std::string& platform) const {
-  if (platform == "") {
+  if (platform == "" || platform == "null") {
     return true;
   }
 
@@ -197,7 +197,7 @@ bool Pack::checkPlatform(const std::string& platform) const {
 bool Pack::checkVersion() const { return checkVersion(version_); }
 
 bool Pack::checkVersion(const std::string& version) const {
-  if (version == "") {
+  if (version == "" || version == "null") {
     return true;
   }
 
