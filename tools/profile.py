@@ -65,7 +65,7 @@ def check_leaks_linux(shell, query, count=1, supp_file=None):
 def check_leaks_darwin(shell, query, count=1):
     # Run the shell with a --delay flag such that leaks can attach before exit.
     proc = subprocess.Popen(
-        [shell, "--query", query, "--iterations", str(count), "--delay", "1"],
+        [shell, "--profile", str(count), "--profile_delay", "1", query],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     leak_checks = None
     while proc.poll() is None:
@@ -119,20 +119,15 @@ def profile_leaks(shell, queries, count=1, rounds=1, supp_file=None):
 
 
 def run_query(shell, query, timeout=0, count=1):
-    """Execute the osquery run testing wrapper with a setup/teardown delay."""
+    """Execute the osqueryi shell in profile mode with a setup/teardown delay."""
     start_time = time.time()
-    proc = subprocess.Popen(
-        [shell, "--query", query, "--iterations", str(count),
-            "--delay", "1"],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return utils.profile_cmd([
         shell,
-        "--query",
-        query,
-        "--iterations",
+        "--profile",
         str(count),
-        "--delay",
-        "1"
+        "--profile_delay",
+        "1",
+        query
     ])
 
 
@@ -272,9 +267,9 @@ if __name__ == "__main__":
         help="Run the profile for N rounds and use the average."
     )
     group.add_argument(
-        "--shell", metavar="PATH", default="./build/%s/osquery/run" % (
+        "--shell", metavar="PATH", default="./build/%s/osquery/osqueryi" % (
             utils.platform()),
-        help="Path to osquery run wrapper (./build/<sys>/osquery/run)."
+        help="Path to osqueryi shell (./build/<sys>/osquery/osqueryi)."
     )
 
     group = parser.add_argument_group("Performance Options:")
