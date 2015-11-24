@@ -94,6 +94,9 @@ struct AuditSubscriptionContext : public SubscriptionContext {
    */
   std::set<int> types;
 
+  /// Macro for all types related to user messages.
+  bool user_types{false};
+
  private:
   friend class AuditEventPublisher;
 };
