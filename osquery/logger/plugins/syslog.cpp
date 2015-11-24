@@ -49,9 +49,9 @@ Status SyslogLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
       severity = LOG_CRIT;
     }
 
-    std::string line = "severity=" + std::to_string(item.severity)
-                    + " location=" + item.filename + ":" + std::to_string(item.line) +
-                      " message=" + item.message;
+    std::string line = "severity=" + std::to_string(item.severity) +
+                       " location=" + item.filename + ":" +
+                       std::to_string(item.line) + " message=" + item.message;
 
     syslog(severity, "%s", line.c_str());
   }
@@ -63,8 +63,7 @@ Status SyslogLoggerPlugin::init(const std::string& name,
   closelog();
 
   // Define the syslog/target's application name.
-  if (FLAGS_logger_syslog_facility < 0 ||
-      FLAGS_logger_syslog_facility > 23) {
+  if (FLAGS_logger_syslog_facility < 0 || FLAGS_logger_syslog_facility > 23) {
     FLAGS_logger_syslog_facility = LOG_LOCAL3 >> 3;
   }
   openlog(name.c_str(), LOG_PID | LOG_CONS, FLAGS_logger_syslog_facility << 3);
