@@ -55,7 +55,7 @@ size_t splayValue(size_t original, size_t splayPercent) {
   std::default_random_engine generator;
   generator.seed(
       std::chrono::high_resolution_clock::now().time_since_epoch().count());
-  std::uniform_int_distribution<size_t> distribution(min_value, max_value);
+  std::uniform_int_distribution<uint32_t> distribution(min_value, max_value);
   return distribution(generator);
 }
 
