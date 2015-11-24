@@ -1,10 +1,11 @@
 table_name("known_hosts")
-description("A line-delimited known_hosts table of per-user")
+description("A line-delimited known_hosts table.")
 schema([
-    Column("username", TEXT, "authorized_keys of owner",
+    Column("uid", BIGINT, "The local user that owns the known_hosts file",
       additional=True),
     Column("key", TEXT, "parsed authorized keys line"),
-    Column("key_file", TEXT, "Path to the authorized_keys for this user"),
-    ForeignKey(column="username", table="users"),
+    Column("key_file", TEXT, "Path to known_hosts file"),
+    ForeignKey(column="uid", table="users"),
 ])
+attributes(user_data=True)
 implementation("known_hosts@getKnownHostsKeys")

@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/filesystem.h>
@@ -18,7 +19,8 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-QueryData genChromeBasedExtensions(QueryContext& context, const fs::path sub_dir);
+QueryData genChromeBasedExtensions(QueryContext& context,
+                                   const fs::path& sub_dir);
 
 /// A helper check to rename bool-type values as 1 or 0.
 inline void jsonBoolAsInt(std::string& s) {

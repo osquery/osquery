@@ -298,4 +298,12 @@ void ConstraintList::unserialize(const boost::property_tree::ptree& tree) {
   }
   affinity = columnTypeName(tree.get<std::string>("affinity", "UNKNOWN"));
 }
+
+bool QueryContext::hasConstraint(const std::string& column,
+                                 ConstraintOperator op) const {
+  if (constraints.count(column) == 0) {
+    return false;
+  }
+  return constraints.at(column).exists(op);
+}
 }

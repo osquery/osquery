@@ -1,6 +1,8 @@
 table_name("safari_extensions")
 description("Safari browser extension details for all users.")
 schema([
+    Column("uid", BIGINT, "The local user that owns the extension",
+      additional=True),
     Column("name", TEXT, "Extension display name"),
     Column("identifier", TEXT, "Extension identifier"),
     Column("version", TEXT, "Extension long version"),
@@ -9,6 +11,10 @@ schema([
     Column("author", TEXT, "Optional extension author"),
     Column("description", TEXT, "Optional extension description text"),
     Column("path", TEXT, "Path to extension XAR bundle"),
+    ForeignKey(column="uid", table="users")
 ])
-attributes(cachable=True)
+attributes(user_data=True)
 implementation("applications/browser_plugins@genSafariExtensions")
+examples([
+  "select count(*) from users JOIN safari_extensions using (uid)",
+])

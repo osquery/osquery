@@ -1,6 +1,8 @@
 table_name("chrome_extensions")
 description("Chrome browser extensions.")
 schema([
+  Column("uid", BIGINT, "The local user that owns the extension",
+    additional=True),
   Column("name", TEXT, "Extension display name"),
   Column("identifier", TEXT, "Extension identifier"),
   Column("version", TEXT, "Extension-supplied version"),
@@ -11,6 +13,7 @@ schema([
   Column("persistent", INTEGER,
     "1 If extension is persistent across all tabs else 0"),
   Column("path", TEXT, "Path to extension folder"),
+  ForeignKey(column="uid", table="users"),
 ])
-attributes(cachable=True)
+attributes(user_data=True)
 implementation("applications/browser_chrome@genChromeExtensions")

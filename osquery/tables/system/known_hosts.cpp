@@ -14,7 +14,8 @@
 #include <osquery/core.h>
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
-#include <osquery/sql.h>
+
+#include "osquery/tables/system/system_utils.h"
 
 namespace osquery {
 namespace tables {
@@ -23,9 +24,9 @@ const std::vector<std::string> kSSHKnownHostskeys = {
     ".ssh/known_hosts"
 };
 
-void genSSHkeysForHosts(const std::string& username,
-                            const std::string& directory,
-                            QueryData& results) {
+void genSSHkeysForHosts(const std::string& uid,
+                        const std::string& directory,
+                        QueryData& results) {
   for (const auto& kfile : kSSHKnownHostskeys) {
     boost::filesystem::path keys_file = directory;
     keys_file /= kfile;
@@ -39,7 +40,7 @@ void genSSHkeysForHosts(const std::string& username,
     for (const auto& line : split(keys_content, "\n")) {
       if (!line.empty() && line[0] != '#') {
         Row r;
-        r["username"] = username;
+        r["uid"] = uid;
         r["key"] = line;
         r["key_file"] = keys_file.string();
         results.push_back(r);
@@ -51,24 +52,11 @@ void genSSHkeysForHosts(const std::string& username,
 QueryData getKnownHostsKeys(QueryContext& context) {
   QueryData results;
 
-  // Select only the home directory for this user.
-  QueryData users;
-  if (!context.constraints["username"].exists(EQUALS)) {
-    users =
-        SQL::selectAllFrom("users", "uid", EQUALS, std::to_string(getuid()));
-  } else {
-    auto usernames = context.constraints["username"].getAll(EQUALS);
-    for (const auto& username : usernames) {
-      // Use a predicated select all for each user.
-      auto user = SQL::selectAllFrom("users", "username", EQUALS, username);
-      users.insert(users.end(), user.begin(), user.end());
-    }
-  }
-
   // Iterate over each user
+  auto users = usersFromContext(context);
   for (const auto& row : users) {
-    if (row.count("username") > 0 && row.count("directory") > 0) {
-       genSSHkeysForHosts(row.at("username"), row.at("directory"), results);
+    if (row.count("uid") > 0 && row.count("directory") > 0) {
+      genSSHkeysForHosts(row.at("uid"), row.at("directory"), results);
     }
   }
 
