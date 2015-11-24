@@ -91,6 +91,7 @@ extern const std::map<ColumnType, std::string> kColumnTypeNames;
 /// Helper alias for TablePlugin names.
 typedef std::string TableName;
 typedef std::vector<std::pair<std::string, ColumnType> > TableColumns;
+struct QueryContext;
 
 /**
  * @brief A ConstraintOperator is applied in an query predicate.
@@ -185,7 +186,7 @@ struct ConstraintList {
   bool exists(const ConstraintOperatorFlag ops = ANY_OP) const;
 
   /**
-   * @brief Check if a constraint exist AND matches the type expression.
+   * @brief Check if a constraint exists AND matches the type expression.
    *
    * See ConstraintList::exists and ConstraintList::matches.
    *
@@ -241,7 +242,7 @@ struct ConstraintList {
   }
 
   /// Constraint list accessor, types and operator.
-  const std::vector<struct Constraint> getAll() const { return constraints_; }
+  const std::vector<struct Constraint>& getAll() const { return constraints_; }
 
   /**
    * @brief Add a new Constraint to the list of constraints.
@@ -275,6 +276,9 @@ struct ConstraintList {
   std::vector<struct Constraint> constraints_;
 
  private:
+  friend struct QueryContext;
+
+ private:
   FRIEND_TEST(TablesTests, test_constraint_list);
 };
 
@@ -288,11 +292,69 @@ typedef std::vector<std::pair<std::string, struct Constraint> > ConstraintSet;
  * on query components like predicate constraints and limits.
  */
 struct QueryContext {
+  /**
+   * @brief Check if a constraint exists for a given column operator pair.
+   *
+   * Operator and expression existence and matching occurs on the constraint
+   * list for a given column name. The query context maintains a map of columns
+   * to potentially empty constraint lists. Check if a constraint exists with
+   * any operator or for a specific operator, usually equality (EQUALS).
+   *
+   * @param column The name of a column within this table.
+   * @param optional op Check for a specific constraint operator.
+   * @return true if a constraint exists, false if empty or no operator match.
+   */
+  bool hasConstraint(const std::string& column,
+                     ConstraintOperator op = EQUALS) const;
+
+  /**
+   * @brief Apply a predicate function to each expression in a constraint list.
+   *
+   * Most constraint sets are use to extract expressions or perform a row
+   * generation for each expressions (given an operator).
+   *
+   * This prevents the caller (table implementation) from extracting the set
+   * and iterating separately on potentially duplicate and copied data. The
+   * predicate function is provided two arguments:
+   *  - An iterating reference to each expression for the given operator.
+   *
+   * @param column The name of a column within this table.
+   * @param op The comparison or expression operator (e.g., EQUALS).
+   * @param predicate A predicate receiving each expression.
+   */
+  template <typename T>
+  void forEachConstraint(const std::string& column,
+                         ConstraintOperator op,
+                         std::function<void(const T& expr)> predicate) const {
+    if (constraints.count(column) > 0) {
+      const auto& list = constraints.at(column);
+      if (list.affinity == TEXT_TYPE) {
+        for (const auto& constraint : list.constraints_) {
+          if (constraint.op == op) {
+            predicate(constraint.expr);
+          }
+        }
+      } else {
+        auto constraint_set = list.getAll<T>(op);
+        for (const auto& constraint : constraint_set) {
+          predicate(constraint);
+        }
+      }
+    }
+  }
+
+  void forEachConstraint(
+      const std::string& column,
+      ConstraintOperator op,
+      std::function<void(const std::string& expr)> predicate) const {
+    return forEachConstraint<std::string>(column, op, predicate);
+  }
+
   ConstraintMap constraints;
   /// Support a limit to the number of results.
-  int limit;
-
-  QueryContext() : limit(0) {}
+  int limit{0};
+  /// Is the table allowed to "traverse" directories.
+  bool traverse{false};
 };
 
 typedef struct QueryContext QueryContext;

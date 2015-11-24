@@ -15,6 +15,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/tables/applications/browser_utils.h"
+#include "osquery/tables/system/system_utils.h"
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -51,7 +52,8 @@ const std::map<std::string, std::string> kFirefoxAddonKeys = {
     {"descriptor", "path"},
 };
 
-void genFirefoxAddonsFromExtensions(const std::string& path,
+void genFirefoxAddonsFromExtensions(const std::string& uid,
+                                    const std::string& path,
                                     QueryData& results) {
   pt::ptree tree;
   if (!osquery::parseJSON(path + kFirefoxExtensionsFile, tree).ok()) {
@@ -61,6 +63,7 @@ void genFirefoxAddonsFromExtensions(const std::string& path,
 
   for (const auto& addon : tree.get_child("addons")) {
     Row r;
+    r["uid"] = uid;
     // Most of the keys are in the top-level JSON dictionary.
     for (const auto& it : kFirefoxAddonKeys) {
       r[it.second] = addon.second.get(it.first, "");
@@ -84,17 +87,21 @@ void genFirefoxAddonsFromExtensions(const std::string& path,
 QueryData genFirefoxAddons(QueryContext& context) {
   QueryData results;
 
-  auto homes = osquery::getHomeDirectories();
-  for (const auto& home : homes) {
-    // For each user, enumerate all of their Firefox profiles.
-    std::vector<std::string> profiles;
-    if (!listDirectoriesInDirectory(home / kFirefoxPath, profiles).ok()) {
-      continue;
-    }
+  // Iterate over each user
+  QueryData users = usersFromContext(context);
+  for (const auto& row : users) {
+    if (row.count("uid") > 0 && row.count("directory") > 0) {
+      // For each user, enumerate all of their Firefox profiles.
+      std::vector<std::string> profiles;
+      auto directory = fs::path(row.at("directory")) / kFirefoxPath;
+      if (!listDirectoriesInDirectory(directory, profiles).ok()) {
+        continue;
+      }
 
-    // Generate an addons list from their extensions JSON.
-    for (const auto& profile : profiles) {
-      genFirefoxAddonsFromExtensions(profile, results);
+      // Generate an addons list from their extensions JSON.
+      for (const auto& profile : profiles) {
+        genFirefoxAddonsFromExtensions(row.at("uid"), profile, results);
+      }
     }
   }
 

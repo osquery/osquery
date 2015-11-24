@@ -1,6 +1,8 @@
 table_name("firefox_addons")
 description("Firefox browser extensions, webapps, and addons.")
 schema([
+    Column("uid", BIGINT, "The local user that owns the addon",
+        additional=True),
     Column("name", TEXT, "Addon display name"),
     Column("identifier", TEXT, "Addon identifier"),
     Column("creator", TEXT, "Addon-supported creator string"),
@@ -18,7 +20,7 @@ schema([
       "1 If the addon includes binary components else 0"),
     Column("location", TEXT, "Global, profile location"),
     Column("path", TEXT, "Path to plugin bundle"),
-
+    ForeignKey(column="uid", table="users"),
 ])
-attributes(cachable=True)
+attributes(user_data=True)
 implementation("applications/browser_firefox@genFirefoxAddons")

@@ -1,11 +1,12 @@
 table_name("authorized_keys")
-description("A line-delimited authorized_keys table of per-user")
+description("A line-delimited authorized_keys table.")
 schema([
-    Column("username", TEXT, "authorized_keys of owner",
+    Column("uid", BIGINT, "The local owner of authorized_keys file",
       additional=True),
     Column("algorithm",TEXT,"algorithim of key"),
     Column("key", TEXT, "parsed authorized keys line"),
-    Column("key_file", TEXT, "Path to the authorized_keys for this user"),
-    ForeignKey(column="username", table="users"),
+    Column("key_file", TEXT, "Path to the authorized_keys file"),
+    ForeignKey(column="uid", table="users"),
 ])
+attributes(user_data=True)
 implementation("authorized_keys@getAuthorizedKeys")

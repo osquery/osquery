@@ -1,10 +1,10 @@
 table_name("shell_history")
 description("A line-delimited (command) table of per-user .*_history data.")
 schema([
-    Column("username", TEXT, "Shell history owner",
-      additional=True),
+    Column("uid", BIGINT, "Shell history owner", additional=True),
     Column("command", TEXT, "Unparsed date/line/command history line"),
     Column("history_file", TEXT, "Path to the .*_history for this user"),
-    ForeignKey(column="username", table="users"),
+    ForeignKey(column="uid", table="users"),
 ])
+attributes(user_data=True)
 implementation("shell_history@genShellHistory")

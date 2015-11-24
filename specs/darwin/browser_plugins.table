@@ -1,6 +1,8 @@
 table_name("browser_plugins")
 description("All C/NPAPI browser plugin details for all users.")
 schema([
+    Column("uid", BIGINT, "The local user that owns the plugin",
+      additional=True),
     Column("name", TEXT, "Plugin display name"),
     Column("identifier", TEXT, "Plugin identifier"),
     Column("version", TEXT, "Plugin short version"),
@@ -9,6 +11,7 @@ schema([
     Column("development_region", TEXT, "Plugin language-localization"),
     Column("native", INTEGER, "Plugin requires native execution"),
     Column("path", TEXT, "Path to plugin bundle"),
+    ForeignKey(column="uid", table="users")
 ])
-attributes(cachable=True)
+attributes(user_data=True)
 implementation("applications/browser_plugins@genBrowserPlugins")

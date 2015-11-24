@@ -16,6 +16,7 @@
 #include <archive_entry.h>
 
 #include "osquery/tables/applications/browser_utils.h"
+#include "osquery/tables/system/system_utils.h"
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -51,9 +52,13 @@ const std::map<std::string, std::string> kSafariExtensionKeys = {
     {"Update Manifest URL", "update_url"},
 };
 
-void genBrowserPlugin(const std::string& path, QueryData& results) {
+void genBrowserPlugin(const std::string& uid,
+                      const std::string& path,
+                      QueryData& results) {
   Row r;
   pt::ptree tree;
+
+  r["uid"] = uid;
   if (osquery::parsePlist(path + "/Contents/Info.plist", tree).ok()) {
     // Plugin did not include an Info.plist, or it was invalid
     for (const auto& it : kBrowserPluginKeys) {
@@ -75,20 +80,30 @@ void genBrowserPlugin(const std::string& path, QueryData& results) {
 
 QueryData genBrowserPlugins(QueryContext& context) {
   QueryData results;
-
   std::vector<std::string> bundles;
-  if (listDirectoriesInDirectory(kBrowserPluginsPath, bundles).ok()) {
-    for (const auto& dir : bundles) {
-      genBrowserPlugin(dir, results);
+
+  // The caller is not requesting a JOIN against users.
+  // This is "special" logic for user data-based tables since there is a concept
+  // of system-available browser extensions.
+  if (context.constraints["uid"].notExistsOrMatches("0")) {
+    std::vector<std::string> bundles;
+    if (listDirectoriesInDirectory(kBrowserPluginsPath, bundles).ok()) {
+      for (const auto& dir : bundles) {
+        genBrowserPlugin("0", dir, results);
+      }
     }
   }
 
-  auto homes = osquery::getHomeDirectories();
-  for (const auto& home : homes) {
-    bundles.clear();
-    if (listDirectoriesInDirectory(home / kBrowserPluginsPath, bundles).ok()) {
-      for (const auto& dir : bundles) {
-        genBrowserPlugin(dir, results);
+  // Iterate over each user
+  auto users = usersFromContext(context);
+  for (const auto& row : users) {
+    if (row.count("uid") > 0 && row.count("directory") > 0) {
+      std::vector<std::string> bundles;
+      auto dir = fs::path(row.at("directory")) / kBrowserPluginsPath;
+      if (listDirectoriesInDirectory(dir, bundles).ok()) {
+        for (const auto& dir : bundles) {
+          genBrowserPlugin(row.at("uid"), dir, results);
+        }
       }
     }
   }
@@ -96,8 +111,11 @@ QueryData genBrowserPlugins(QueryContext& context) {
   return results;
 }
 
-inline void genSafariExtension(const std::string& path, QueryData& results) {
+inline void genSafariExtension(const std::string& uid,
+                               const std::string& path,
+                               QueryData& results) {
   Row r;
+  r["uid"] = uid;
   r["path"] = path;
 
   // Loop through (Plist key -> table column name) in kSafariExtensionKeys.
@@ -161,22 +179,25 @@ inline void genSafariExtension(const std::string& path, QueryData& results) {
 QueryData genSafariExtensions(QueryContext& context) {
   QueryData results;
 
-  auto homes = osquery::getHomeDirectories();
-  for (const auto& home : homes) {
-    auto dir = home / kSafariExtensionsPath;
-    // Check that an extensions directory exists.
-    if (!pathExists(dir).ok()) {
-      continue;
-    }
+  // Iterate over each user
+  auto users = usersFromContext(context);
+  for (const auto& row : users) {
+    if (row.count("uid") > 0 && row.count("directory") > 0) {
+      auto dir = fs::path(row.at("directory")) / kSafariExtensionsPath;
+      // Check that an extensions directory exists.
+      if (!pathExists(dir).ok()) {
+        continue;
+      }
 
-    // Glob the extension files.
-    std::vector<std::string> paths;
-    if (!resolveFilePattern(dir / kSafariExtensionsPattern, paths).ok()) {
-      continue;
-    }
+      // Glob the extension files.
+      std::vector<std::string> paths;
+      if (!resolveFilePattern(dir / kSafariExtensionsPattern, paths).ok()) {
+        continue;
+      }
 
-    for (const auto& extension_path : paths) {
-      genSafariExtension(extension_path, results);
+      for (const auto& extension_path : paths) {
+        genSafariExtension(row.at("uid"), extension_path, results);
+      }
     }
   }
 
