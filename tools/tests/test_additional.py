@@ -59,6 +59,11 @@ class AdditionalFeatureTests(test_base.ProcessGenerator, unittest.TestCase):
         em = client.getEM()
 
         # Every query from the pack(s) is added to the packs table.
+        def get_packs():
+            result = em.query("select * from osquery_packs")
+            return len(result.response) == 2
+        # Allow the daemon some lag to parse the pack content.
+        test_base.expectTrue(get_packs)
         result = em.query("select * from osquery_packs")
         self.assertEqual(len(result.response), 2)
 
