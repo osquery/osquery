@@ -148,7 +148,7 @@ void signalHandler(int signal) {
 
 namespace osquery {
 
-typedef std::chrono::high_resolution_clock chrono_clock;
+using chrono_clock = std::chrono::high_resolution_clock;
 
 CLI_FLAG(bool,
          config_check,
@@ -197,14 +197,14 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     : argc_(&argc),
       argv_(&argv),
       tool_(tool),
-      binary_(fs::path(std::string(argv[0])).filename().string()) {
+      binary_((tool == OSQUERY_TOOL_DAEMON) ? "osqueryd" : "osqueryi") {
   std::srand(chrono_clock::now().time_since_epoch().count());
 
   // Handled boost filesystem locale problems fixes in 1.56.
   // See issue #1559 for the discussion and upstream boost patch.
   try {
     boost::filesystem::path::codecvt();
-  } catch(std::runtime_error &e) {
+  } catch (const std::runtime_error& e) {
     setenv("LC_ALL", "C", 1);
   }
 
