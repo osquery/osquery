@@ -19,8 +19,8 @@ namespace sqlite {
 int xOpen(sqlite3_vtab *p, sqlite3_vtab_cursor **ppCursor) {
   int rc = SQLITE_NOMEM;
   BaseCursor *pCur = new BaseCursor;
-  if (pCur) {
-    memset(pCur, 0, sizeof(BaseCursor));
+  if (pCur != nullptr) {
+    pCur->base.pVtab = nullptr;
     *ppCursor = (sqlite3_vtab_cursor *)pCur;
     rc = SQLITE_OK;
   }

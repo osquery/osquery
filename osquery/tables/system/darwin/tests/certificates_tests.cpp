@@ -60,7 +60,9 @@ TEST_F(CACertsTests, test_certificate_sha1) {
 }
 
 TEST_F(CACertsTests, test_certificate_properties) {
-  EXPECT_EQ("localhost.localdomain", genCommonName(x_cert));
+  std::string subject, common_name;
+  genCommonName(x_cert, subject, common_name);
+  EXPECT_EQ("localhost.localdomain", common_name);
 
   OSX_OPENSSL(X509_check_ca(x_cert));
   auto skid = genKIDProperty(x_cert->skid->data, x_cert->skid->length);

@@ -64,8 +64,14 @@ std::string getKeychainPath(const SecKeychainItemRef& item);
 
 /// Certificate property parsing functions.
 std::string genKIDProperty(const unsigned char* data, int len);
-std::string genAlgProperty(const X509* cert);
-std::string genCommonName(X509* cert);
+
+/// Generate the public key algorithm and signing algorithm.
+void genAlgorithmProperties(const X509* cert,
+                            std::string& key,
+                            std::string& sig);
+
+/// Generate common name and subject.
+void genCommonName(X509* cert, std::string& subject, std::string& common_name);
 time_t genEpoch(ASN1_TIME* time);
 
 std::string genSHA1ForCertificate(const CFDataRef& raw_cert);
