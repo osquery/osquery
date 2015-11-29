@@ -278,7 +278,9 @@ int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
 Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
   char* err = nullptr;
   sqlite3_exec(db, q.c_str(), queryDataCallback, &results, &err);
+#if SQLITE_VERSION_NUMBER >= 3007010
   sqlite3_db_release_memory(db);
+#endif
   if (err != nullptr) {
     auto error_string = std::string(err);
     sqlite3_free(err);
