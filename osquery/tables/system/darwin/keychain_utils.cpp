@@ -81,17 +81,19 @@ std::string genKIDProperty(const unsigned char* data, int len) {
   return key_id.str();
 }
 
-std::string genAlgProperty(const X509* cert) {
+void genAlgorithmProperties(const X509* cert,
+                            std::string& key,
+                            std::string& sig) {
   int nid = 0;
   OSX_OPENSSL(nid = OBJ_obj2nid(cert->cert_info->key->algor->algorithm));
-  if (nid == NID_undef) {
-    // Unknown algorithm OID.
-    return "";
+  if (nid != NID_undef) {
+    OSX_OPENSSL(key = std::string(OBJ_nid2ln(nid)));
   }
 
-  std::string property;
-  OSX_OPENSSL(property = std::string(OBJ_nid2ln(nid)));
-  return property;
+  OSX_OPENSSL(nid = OBJ_obj2nid(cert->cert_info->signature->algorithm));
+  if (nid != NID_undef) {
+    OSX_OPENSSL(sig = std::string(OBJ_nid2ln(nid)));
+  }
 }
 
 std::string genSHA1ForCertificate(const CFDataRef& raw_cert) {
@@ -105,30 +107,38 @@ bool CertificateIsCA(X509* cert) {
   return (ca > 0);
 }
 
-std::string genCommonName(X509* cert) {
+void genCommonName(X509* cert, std::string& subject, std::string& common_name) {
   if (cert == nullptr) {
-    return "";
+    return;
   }
 
-  X509_NAME* subject_name = nullptr;
-  OSX_OPENSSL(subject_name = X509_get_subject_name(cert));
-  if (subject_name == nullptr) {
-    return "";
+  X509_NAME* subjectName = nullptr;
+  OSX_OPENSSL(subjectName = X509_get_subject_name(cert));
+  if (subjectName == nullptr) {
+    return;
+  }
+
+  // Generate the string representation of the subject.
+  char* subjectBytes = nullptr;
+  OSX_OPENSSL(subjectBytes = X509_NAME_oneline(subjectName, nullptr, 0));
+  if (subjectBytes != nullptr) {
+    subject = std::string(subjectBytes);
+    OSX_OPENSSL(OPENSSL_free(subjectBytes));
   }
 
   int nid = 0;
   OSX_OPENSSL(nid = OBJ_txt2nid("CN"));
 
   int index = 0;
-  OSX_OPENSSL(index = X509_NAME_get_index_by_NID(subject_name, nid, -1));
+  OSX_OPENSSL(index = X509_NAME_get_index_by_NID(subjectName, nid, -1));
   if (index == -1) {
-    return "";
+    return;
   }
 
   X509_NAME_ENTRY* commonNameEntry = nullptr;
-  OSX_OPENSSL(commonNameEntry = X509_NAME_get_entry(subject_name, index));
+  OSX_OPENSSL(commonNameEntry = X509_NAME_get_entry(subjectName, index));
   if (commonNameEntry == nullptr) {
-    return "";
+    return;
   }
 
   ASN1_STRING* commonNameData = nullptr;
@@ -136,7 +146,7 @@ std::string genCommonName(X509* cert) {
 
   unsigned char* data = nullptr;
   OSX_OPENSSL(data = ASN1_STRING_data(commonNameData));
-  return std::string(reinterpret_cast<char*>(data));
+  common_name = std::string(reinterpret_cast<char*>(data));
 }
 
 std::string genHumanReadableDateTime(ASN1_TIME* time) {

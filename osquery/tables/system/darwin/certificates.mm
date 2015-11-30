@@ -36,10 +36,16 @@ void genCertificate(const SecCertificateRef& SecCert, QueryData& results) {
     return;
   }
 
-  r["common_name"] = genCommonName(cert);
+  // Generate the common name and subject.
+  // They are very similar OpenSSL API accessors so save some logic and
+  // generate them using output parameters.
+  genCommonName(cert, r["subject"], r["common_name"]);
+  // Same with algorithm strings.
+  genAlgorithmProperties(cert, r["key_algorithm"], r["signing_algorithm"]);
+
+  // Most certificate field accessors return strings.
   r["not_valid_before"] = INTEGER(genEpoch(X509_get_notBefore(cert)));
   r["not_valid_after"] = INTEGER(genEpoch(X509_get_notAfter(cert)));
-  r["key_algorithm"] = genAlgProperty(cert);
 
   // Get the keychain for the certificate.
   r["path"] = getKeychainPath((SecKeychainItemRef)SecCert);
