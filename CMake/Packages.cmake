@@ -18,6 +18,7 @@ elseif(LINUX)
       "libbz2-1.0"
       "libreadline6"
       "libgcrypt11"
+      "libsqlite3-0"
     )
     if(NOT OSQUERY_BUILD_DISTRO STREQUAL "lucid")
       set(PACKAGE_ITERATION "1.ubuntu10")
@@ -52,6 +53,7 @@ elseif(LINUX)
       "readline"
       "zlib"
       "rpm-libs"
+      "sqlite"
     )
     if(OSQUERY_BUILD_DISTRO STREQUAL "centos6")
       set(PACKAGE_ITERATION "1.el6")

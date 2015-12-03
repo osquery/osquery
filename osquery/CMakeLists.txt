@@ -61,13 +61,18 @@ else()
   ADD_OSQUERY_LINK_CORE("librt.so")
 endif()
 
-# The remaining boost libraries are discovered with find_library.
+# The remaining sqlite and boost libraries are discovered with find_library.
 ADD_OSQUERY_LINK_CORE("boost_system")
 ADD_OSQUERY_LINK_CORE("boost_filesystem")
 ADD_OSQUERY_LINK_CORE("boost_regex")
 ADD_OSQUERY_LINK_CORE("yara")
 
 # Remaining additional development libraries.
+if(APPLE)
+  ADD_OSQUERY_LINK_ADDITIONAL("libsqlite3.dylib")
+else()
+  ADD_OSQUERY_LINK_ADDITIONAL("libsqlite3.so")
+endif()
 ADD_OSQUERY_LINK_ADDITIONAL("libcppnetlib-uri.a")
 ADD_OSQUERY_LINK_ADDITIONAL("libcppnetlib-client-connections.a")
 
@@ -82,7 +87,7 @@ endif()
 
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
-set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
+set(OSQUERY_OBJECTS "")
 
 # Add subdirectories
 add_subdirectory(config)

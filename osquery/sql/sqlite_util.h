@@ -109,7 +109,9 @@ class SQLiteDBManager : private boost::noncopyable {
 
  protected:
   SQLiteDBManager() : db_(nullptr), lock_(mutex_, boost::defer_lock) {
+#if SQLITE_VERSION_NUMBER >= 3007009
     sqlite3_soft_heap_limit64(SQLITE_SOFT_HEAP_LIMIT);
+#endif
     disabled_tables_ = parseDisableTablesFlag(Flag::getValue("disable_tables"));
   }
   SQLiteDBManager(SQLiteDBManager const&);

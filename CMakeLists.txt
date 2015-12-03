@@ -52,6 +52,11 @@ add_compile_options(
 set(C_COMPILE_FLAGS "")
 set(CXX_COMPILE_FLAGS "")
 
+find_program(GIT_EXECUTABLE git)
+if(${GIT_EXECUTABLE} STREQUAL "GIT_EXECUTABLE-NOTFOUND")
+  WARNING_LOG("Cannot find 'git' executable in path")
+endif()
+
 # Use osquery language to set platform/os
 if(DEFINED ENV{OSQUERY_PLATFORM})
   set(PLATFORM ENV{OSQUERY_PLATFORM})
@@ -185,12 +190,6 @@ project(OSQUERY)
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
 include(CMakeLibs)
-
-if(NOT IS_DIRECTORY ${CMAKE_SOURCE_DIR}/third-party/sqlite3)
-  WARNING_LOG("Cannot find git submodule third-party/sqlite3 directory")
-  WARNING_LOG("Please run: make deps or git submodule update --init")
-  message(FATAL_ERROR "No sqlite3 directory")
-endif()
 
 # Make sure deps were built before compiling (else show warning).
 execute_process(
@@ -331,7 +330,6 @@ find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(Gtest REQUIRED)
 find_package(RocksDB REQUIRED)
-find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.1 REQUIRED)
 
 # If using the RocksDB LITE version our code must also define ROCKSDB_LITE=1
