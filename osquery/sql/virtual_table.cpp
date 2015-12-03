@@ -8,19 +8,51 @@
  *
  */
 
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 
 #include "osquery/sql/virtual_table.h"
 
 namespace osquery {
+
+SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
+
 namespace tables {
 namespace sqlite {
 
-int xOpen(sqlite3_vtab *p, sqlite3_vtab_cursor **ppCursor) {
+static size_t kPlannerCursorID = 0;
+
+static std::string opString(unsigned char op) {
+  switch (op) {
+  case EQUALS:
+    return "=";
+  case GREATER_THAN:
+    return ">";
+  case LESS_THAN_OR_EQUALS:
+    return "<=";
+  case LESS_THAN:
+    return "<";
+  case GREATER_THAN_OR_EQUALS:
+    return ">=";
+  }
+  return "?";
+}
+
+static void plan(const std::string &output) {
+  if (FLAGS_planner) {
+    fprintf(stderr, "osquery planner: %s\n", output.c_str());
+  }
+}
+
+int xOpen(sqlite3_vtab *tab, sqlite3_vtab_cursor **ppCursor) {
   int rc = SQLITE_NOMEM;
-  BaseCursor *pCur = new BaseCursor;
+  auto *pCur = new BaseCursor;
+  auto *pVtab = (VirtualTable *)tab;
   if (pCur != nullptr) {
-    pCur->base.pVtab = nullptr;
+    plan("Opening cursor (" + std::to_string(kPlannerCursorID) +
+         ") for table: " + pVtab->content->name);
+    pCur->id = kPlannerCursorID++;
+    pCur->base.pVtab = tab;
     *ppCursor = (sqlite3_vtab_cursor *)pCur;
     rc = SQLITE_OK;
   }
@@ -31,6 +63,7 @@ int xOpen(sqlite3_vtab *p, sqlite3_vtab_cursor **ppCursor) {
 int xClose(sqlite3_vtab_cursor *cur) {
   BaseCursor *pCur = (BaseCursor *)cur;
   const auto *pVtab = (VirtualTable *)cur->pVtab;
+  plan("Closing cursor (" + std::to_string(pCur->id) + ")");
   if (pVtab != nullptr) {
     // Reset all constraints for the virtual table content.
     if (pVtab->content->constraints.size() > 0) {
@@ -211,23 +244,14 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   if (cost == 0 && term != -1) {
     // This set of constraints is 100% usable.
     // Add the constraint set to the table's tracked constraints.
-    if (term != pVtab->content->current_term ||
-        pVtab->content->constraints.size() == 0) {
-      pVtab->content->constraints.push_back(constraints);
-    } else {
-      // It is possible this strategy is successful after a set of failures.
-      // If there was a previous failure, replace the constraints.
-      pVtab->content->constraints.back() = constraints;
-    }
+    pVtab->content->constraints.push_back(constraints);
+    pVtab->content->current_term = term;
   } else {
     // Failed.
     if (term != -1 && term != pVtab->content->current_term) {
-      // If this failure is on another set of terms, add empty constraints.
-      pVtab->content->constraints.push_back(ConstraintSet());
+      pVtab->content->current_term = term;
     }
   }
-
-  pVtab->content->current_term = term;
   return SQLITE_OK;
 }
 
@@ -276,6 +300,9 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
         // Set the expression from SQLite's now-populated argv.
         auto &constraint = constraints[i];
         constraint.second.expr = std::string(expr);
+        plan("Adding constraint to cursor (" + std::to_string(pCur->id) +
+             "): " + constraint.first + " " + opString(constraint.second.op) +
+             " " + constraint.second.expr);
         // Add the constraint to the column-sorted query request map.
         context.constraints[constraint.first].add(constraint.second);
       }
@@ -283,11 +310,11 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
       // Constraints failed.
     }
   }
-
   // Reset the virtual table contents.
   pCur->data.clear();
   // Generate the row data set.
   PluginRequest request = {{"action", "generate"}};
+  plan("Scanning rows for cursor (" + std::to_string(pCur->id) + ")");
   TablePlugin::setRequestFromContext(context, request);
   Registry::call("table", pVtab->content->name, request, pCur->data);
 

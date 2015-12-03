@@ -15,10 +15,12 @@ def get_files_to_compile(json_data):
     files_to_compile = []
     for element in json_data:
         filename = element["file"]
-        if not filename.endswith("_tests.cpp") and \
+        if not filename.endswith("tests.cpp") and \
+                not filename.endswith("benchmarks.cpp") and \
                 "third-party" not in filename and \
                 "example" not in filename and \
-                "generated/gen" not in filename:
+                "generated/gen" not in filename and \
+                "test_util" not in filename:
             base = filename.rfind("osquery/")
             filename = filename[base + len("osquery/"):]
             base_generated = filename.rfind("generated/")
@@ -48,7 +50,7 @@ cpp_library(
 
 TARGETS_POSTSCRIPT = """  ],
   deps=[
-    "@/thrift/lib/cpp/concurrency",
+    "@/thrift/lib/cpp/concurrency:concurrency",
     ":if-cpp",
   ],
   external_deps=[

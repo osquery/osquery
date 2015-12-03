@@ -118,6 +118,19 @@ class kTablePlugin : public TablePlugin {
   FRIEND_TEST(VirtualTableTests, test_constraints_stacking);
 };
 
+static QueryData makeResult(const std::string& col,
+                            const std::vector<std::string>& values) {
+  QueryData results;
+  for (const auto& value : values) {
+    Row r;
+    r[col] = value;
+    results.push_back(r);
+  }
+  return results;
+}
+
+#define MP std::make_pair
+
 TEST_F(VirtualTableTests, test_constraints_stacking) {
   // Add two testing tables to the registry.
   Registry::add<pTablePlugin>("table", "p");
@@ -136,63 +149,56 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   std::string statement;
   std::map<std::string, std::string> expected;
 
-  statement = "select k.x from (select * from k) k2, p, k where k.x = p.x";
-  expected = {{"k.x", "1"}};
-  queryInternal(statement, results, dbc.db());
-  EXPECT_EQ(results[0], expected);
-  results.clear();
+  std::vector<std::pair<std::string, QueryData> > constraint_tests = {
+      MP("select k.x from p, k", makeResult("x", {"1", "2", "1", "2"})),
+      MP("select k.x from (select * from k) k2, p, k where k.x = p.x",
+         makeResult("k.x", {"1", "1", "2", "2"})),
+      MP("select k.x from (select * from k where z = 1) k2, p, k where k.x = "
+         "p.x",
+         makeResult("k.x", {"1", "2"})),
+      MP("select k.x from k k1, (select * from p) p1, k where k.x = p1.x",
+         makeResult("k.x", {"1", "1", "2", "2"})),
+      MP("select k.x from (select * from p) p1, k, (select * from k) k2 where "
+         "k.x = p1.x",
+         makeResult("k.x", {"1", "1", "2", "2"})),
+      MP("select k.x from (select * from p) p1, k, (select * from k where z = "
+         "2) k2 where k.x = p1.x",
+         makeResult("k.x", {"1", "2"})),
+      MP("select k.x from k, (select * from p) p1, k k2, (select * from k "
+         "where z = 1) k3 where k.x = p1.x",
+         makeResult("k.x", {"1", "1", "2", "2"})),
+      MP("select p.x from (select * from k where z = 1) k1, (select * from k "
+         "where z != 1) k2, p where p.x = k2.x",
+         makeResult("p.x", {"1"})),
+      MP("select p.x from (select * from k, (select x as xx from k where x = "
+         "1) k2 where z = 1) k1, (select * from k where z != 1) k2, p, k as k3 "
+         "where p.x = k2.x",
+         makeResult("p.x", {"1", "1"})),
+  };
 
-  statement =
-      "select k.x from (select * from k where z = 1) k2, p, k where k.x = p.x";
-  expected = {{"k.x", "1"}};
-  queryInternal(statement, results, dbc.db());
-  EXPECT_EQ(results[0], expected);
-  results.clear();
+  for (const auto& test : constraint_tests) {
+    QueryData results;
+    queryInternal(test.first, results, dbc.db());
+    EXPECT_EQ(results, test.second);
+  }
 
-  statement = "select k.x from k k1, (select * from p) p1, k where k.x = p1.x";
-  expected = {{"k.x", "1"}};
-  queryInternal(statement, results, dbc.db());
-  EXPECT_EQ(results[0], expected);
+  std::vector<QueryData> union_results = {
+      makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}),
+      makeResult("p.x", {"1"}),
+      makeResult("p.x", {"1"}),
+  };
 
-  statement =
-      "select k.x from (select * from p) p1, k, (select * from k) k2 where k.x "
-      "= p1.x";
-  expected = {{"k.x", "1"}};
-  queryInternal(statement, results, dbc.db());
-  EXPECT_EQ(results[0], expected);
-  results.clear();
-
-  statement =
-      "select k.x from (select * from p) p1, k, (select * from k where z = 2) "
-      "k2 where k.x = p1.x";
-  expected = {{"k.x", "1"}};
-  queryInternal(statement, results, dbc.db());
-  EXPECT_EQ(results[0], expected);
-  results.clear();
-
-  statement =
-      "select k.x from k, (select * from p) p1, k k2, (select * from k where z "
-      "= 1) k3 where k.x = p1.x";
-  expected = {{"k.x", "1"}};
-  queryInternal(statement, results, dbc.db());
-  EXPECT_EQ(results[0], expected);
-  results.clear();
-
-  statement =
-      "select p.x from (select * from k where z = 1) k1, (select * from k "
-      "where z != 1) k2, p where p.x = k2.x";
-  expected = {{"p.x", "1"}};
-  queryInternal(statement, results, dbc.db());
-  EXPECT_EQ(results[0], expected);
-  results.clear();
-
-  statement =
-      "select p.x from (select * from k, (select x as xx from k where x = 1) "
-      "k2 where z = 1) k1, (select * from k where z != 1) k2, p, k as k3 where "
-      "p.x = k2.x";
-  expected = {{"p.x", "1"}};
-  queryInternal(statement, results, dbc.db());
-  EXPECT_EQ(results[0], expected);
-  results.clear();
+  size_t index = 0;
+  for (const auto& test : constraint_tests) {
+    QueryData results;
+    queryInternal(test.first + " union " + test.first, results, dbc.db());
+    EXPECT_EQ(results, union_results[index++]);
+  }
 }
 }
