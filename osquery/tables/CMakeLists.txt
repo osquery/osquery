@@ -72,7 +72,6 @@ else()
   ADD_OSQUERY_LINK_ADDITIONAL("libmagic.so")
 endif()
 
-
 file(GLOB OSQUERY_CROSS_APPLICATIONS_TABLES "applications/*.cpp")
 file(GLOB OSQUERY_CROSS_SYSTEM_TABLES "system/*.cpp")
 file(GLOB OSQUERY_CROSS_NETWORKING_TABLES "networking/*.cpp")
