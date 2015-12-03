@@ -75,7 +75,6 @@ function main_centos() {
   package doxygen
   package byacc
   package flex
-  package bison
 
   if [[ $DISTRO = "centos6" ]]; then
     remove_package autoconf
@@ -86,12 +85,16 @@ function main_centos() {
     install_automake
     install_libtool
 
+    install_bison
+
     package file-libs
   elif [[ $DISTRO = "centos7" ]]; then
     package autoconf
     package automake
     package libtool
     package file-devel
+
+    package bison
   fi
 
   install_snappy
