@@ -25,7 +25,7 @@ namespace osquery {
 namespace tables {
 
 #define MAX_NETLINK_SIZE 8192
-#define MAX_NETLINK_LATENCY 2000
+#define MAX_NETLINK_ATTEMPTS 8
 
 std::string getNetlinkIP(int family, const char* buffer) {
   char dst[INET6_ADDRSTRLEN];
@@ -43,22 +43,35 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
 
   size_t message_size = 0;
   do {
-    int latency = 0;
+    size_t latency = 0;
+    size_t total_bytes = 0;
     ssize_t bytes = 0;
     while (bytes == 0) {
       bytes = recv(socket_fd, output, MAX_NETLINK_SIZE - message_size, 0);
       if (bytes < 0) {
+        // Unrecoverable NETLINK error, bail.
         return Status(1, "Could not read from NETLINK");
-      } else if (latency >= MAX_NETLINK_LATENCY) {
+      }
+
+      // Bytes were returned by we might need to read more.
+      total_bytes += bytes;
+      if (latency >= MAX_NETLINK_ATTEMPTS) {
+        // Too many attempts to read bytes have occurred.
+        // Prevent the NETLINK socket from handing and bail.
         return Status(1, "Netlink timeout");
       } else if (bytes == 0) {
+        if (total_bytes > 0) {
+          // Bytes were read, but now no more are available, attempt to parse
+          // the received NETLINK message.
+          break;
+        }
         ::usleep(20);
-        latency += 20;
+        latency += 1;
       }
     }
 
     // Assure valid header response, and not an error type.
-    nl_hdr = (struct nlmsghdr *)output;
+    nl_hdr = (struct nlmsghdr*)output;
     if (NLMSG_OK(nl_hdr, bytes) == 0 || nl_hdr->nlmsg_type == NLMSG_ERROR) {
       return Status(1, "Read invalid NETLINK message");
     }
@@ -73,7 +86,8 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
     if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) {
       break;
     }
-  } while (static_cast<pid_t>(nl_hdr->nlmsg_seq) != seq || static_cast<pid_t>(nl_hdr->nlmsg_pid) != getpid());
+  } while (static_cast<pid_t>(nl_hdr->nlmsg_seq) != seq ||
+           static_cast<pid_t>(nl_hdr->nlmsg_pid) != getpid());
 
   *size = message_size;
   return Status(0, "OK");
@@ -84,7 +98,7 @@ void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
   int mask = 0;
   char interface[IF_NAMESIZE];
 
-  struct rtmsg* message = static_cast<struct rtmsg *>(NLMSG_DATA(netlink_msg));
+  struct rtmsg* message = static_cast<struct rtmsg*>(NLMSG_DATA(netlink_msg));
   struct rtattr* attr = static_cast<struct rtattr*>(RTM_RTA(message));
   uint32_t attr_size = RTM_PAYLOAD(netlink_msg);
 

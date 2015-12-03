@@ -88,6 +88,7 @@ function main() {
 
   cd "$SCRIPT_DIR/../"
 
+  sudo pip install --upgrade pip
   sudo pip install -r requirements.txt
 
   # Reset any work or artifacts from build tests in TP.
