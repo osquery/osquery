@@ -29,7 +29,10 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-FLAG(uint64, config_tls_max_attempts, 3, "Number of times to attempt a request")
+CLI_FLAG(uint64,
+         config_tls_max_attempts,
+         3,
+         "Number of attempts to retry a TLS config/enroll request");
 
 /// Config retrieval TLS endpoint (path) using TLS hostname.
 CLI_FLAG(string,
@@ -38,30 +41,39 @@ CLI_FLAG(string,
          "TLS/HTTPS endpoint for config retrieval");
 
 /// Config polling/updating, only applies to TLS configurations.
-FLAG(uint64,
-     config_tls_refresh,
-     0,
-     "Optional interval in seconds to re-read configuration (min=10)");
+CLI_FLAG(uint64,
+         config_tls_refresh,
+         0,
+         "Optional interval in seconds to re-read configuration");
 
 DECLARE_bool(tls_secret_always);
 DECLARE_string(tls_enroll_override);
 DECLARE_bool(tls_node_api);
 
-class TLSConfigPlugin : public ConfigPlugin {
+class TLSConfigPlugin;
+
+class TLSConfigPlugin : public ConfigPlugin,
+                        std::enable_shared_from_this<TLSConfigPlugin> {
  public:
-  Status setUp();
-  Status genConfig(std::map<std::string, std::string>& config);
+  Status setUp() override;
+  Status genConfig(std::map<std::string, std::string>& config) override;
 
  protected:
+  /// Calculate the URL once and cache the result.
   std::string uri_;
 };
 
 class TLSConfigRefreshRunner : public InternalRunnable {
  public:
-  TLSConfigRefreshRunner() {}
+  explicit TLSConfigRefreshRunner(
+      const std::shared_ptr<TLSConfigPlugin>& plugin)
+      : plugin_(plugin) {}
 
   /// A simple wait/interruptible lock.
   void start();
+
+ private:
+  std::shared_ptr<TLSConfigPlugin> plugin_{nullptr};
 };
 
 REGISTER(TLSConfigPlugin, "config", "tls");
@@ -69,8 +81,9 @@ REGISTER(TLSConfigPlugin, "config", "tls");
 Status TLSConfigPlugin::setUp() {
   // If the initial configuration includes a non-0 refresh, start an additional
   // service that sleeps and periodically regenerates the configuration.
-  if (FLAGS_config_tls_refresh >= 10) {
-    Dispatcher::addService(std::make_shared<TLSConfigRefreshRunner>());
+  if (FLAGS_config_tls_refresh >= 1) {
+    Dispatcher::addService(
+        std::make_shared<TLSConfigRefreshRunner>(shared_from_this()));
   }
 
   uri_ = TLSRequestHelper::makeURI(FLAGS_config_tls_endpoint);
@@ -82,23 +95,25 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
 
   auto s = TLSRequestHelper::go<JSONSerializer>(
       uri_, json, FLAGS_config_tls_max_attempts);
-  if (s.ok()) {
-    if (FLAGS_tls_node_api) {
-      // The node API embeds configuration data (JSON escaped).
-      pt::ptree tree;
-      try {
-        std::stringstream input;
-        input << json;
-        pt::read_json(input, tree);
-      } catch (const pt::json_parser::json_parser_error& e) {
-        VLOG(1) << "Could not parse JSON from TLS node API";
-      }
+  if (!s.ok()) {
+    return s;
+  }
 
-      // Re-encode the config key into JSON.
-      config["tls_plugin"] = unescapeUnicode(tree.get("config", ""));
-    } else {
-      config["tls_plugin"] = json;
+  if (FLAGS_tls_node_api) {
+    // The node API embeds configuration data (JSON escaped).
+    pt::ptree tree;
+    try {
+      std::stringstream input;
+      input << json;
+      pt::read_json(input, tree);
+    } catch (const pt::json_parser::json_parser_error& e) {
+      VLOG(1) << "Could not parse JSON from TLS node API";
     }
+
+    // Re-encode the config key into JSON.
+    config["tls_plugin"] = unescapeUnicode(tree.get("config", ""));
+  } else {
+    config["tls_plugin"] = json;
   }
   return s;
 }
@@ -110,7 +125,10 @@ void TLSConfigRefreshRunner::start() {
     osquery::interruptableSleep(FLAGS_config_tls_refresh * 1000);
 
     // The config instance knows the TLS plugin is selected.
-    Config::getInstance().load();
+    std::map<std::string, std::string> config;
+    if (plugin_->genConfig(config)) {
+      Config::getInstance().update(config);
+    }
   }
 }
 }

@@ -20,7 +20,7 @@ namespace osquery {
 class OptionsConfigParserPluginTests : public testing::Test {};
 
 TEST_F(OptionsConfigParserPluginTests, test_get_option) {
-  auto c = Config();
+  Config c;
   auto s = c.update(getTestConfigMap());
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");

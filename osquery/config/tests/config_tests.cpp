@@ -47,7 +47,7 @@ class TestConfigPlugin : public ConfigPlugin {
     genPackCount = 0;
   }
 
-  Status genConfig(std::map<std::string, std::string>& config) {
+  Status genConfig(std::map<std::string, std::string>& config) override {
     genConfigCount++;
     std::string content;
     auto s = readFile(kTestDataPath + "test_noninline_packs.conf", content);
@@ -57,7 +57,7 @@ class TestConfigPlugin : public ConfigPlugin {
 
   Status genPack(const std::string& name,
                  const std::string& value,
-                 std::string& pack) {
+                 std::string& pack) override {
     genPackCount++;
     std::stringstream ss;
     pt::write_json(ss, getUnrestrictedPack(), false);
@@ -65,8 +65,8 @@ class TestConfigPlugin : public ConfigPlugin {
     return Status(0, "OK");
   }
 
-  int genConfigCount;
-  int genPackCount;
+  int genConfigCount{0};
+  int genPackCount{0};
 };
 
 TEST_F(ConfigTests, test_plugin) {
@@ -103,12 +103,12 @@ TEST_F(ConfigTests, test_strip_comments) {
 
 class TestConfigParserPlugin : public ConfigParserPlugin {
  public:
-  std::vector<std::string> keys() {
+  std::vector<std::string> keys() override {
     // This config parser requests the follow top-level-config keys.
     return {"dictionary", "dictionary2", "list"};
   }
 
-  Status update(const std::map<std::string, pt::ptree>& config) {
+  Status update(const std::map<std::string, pt::ptree>& config) override {
     // Set a simple boolean indicating the update callin occurred.
     update_called = true;
     // Copy all expected keys into the parser's data.
@@ -132,7 +132,7 @@ class TestConfigParserPlugin : public ConfigParserPlugin {
 bool TestConfigParserPlugin::update_called = false;
 
 TEST_F(ConfigTests, test_parse) {
-  auto c = Config();
+  Config c;
   auto tree = getExamplePacksConfig();
   auto packs = tree.get_child("packs");
   for (const auto& pack : packs) {
@@ -144,7 +144,7 @@ TEST_F(ConfigTests, test_parse) {
 }
 
 TEST_F(ConfigTests, test_remove) {
-  auto c = Config();
+  Config c;
   c.addPack("unrestricted_pack", "", getUnrestrictedPack());
   c.removePack("unrestricted_pack");
   for (Pack& pack : c.schedule_) {
@@ -153,7 +153,7 @@ TEST_F(ConfigTests, test_remove) {
 }
 
 TEST_F(ConfigTests, test_add_remove_pack) {
-  auto c = Config();
+  Config c;
   auto first = c.schedule_.begin();
   auto last = c.schedule_.end();
   EXPECT_EQ(std::distance(first, last), 0);
@@ -170,8 +170,8 @@ TEST_F(ConfigTests, test_add_remove_pack) {
 }
 
 TEST_F(ConfigTests, test_get_scheduled_queries) {
+  Config c;
   std::vector<ScheduledQuery> queries;
-  auto c = Config();
   c.addPack("unrestricted_pack", "", getUnrestrictedPack());
   c.scheduledQueries(
       ([&queries](const std::string&,
@@ -183,7 +183,7 @@ TEST_F(ConfigTests, test_get_parser) {
   Registry::add<TestConfigParserPlugin>("config_parser", "test");
   EXPECT_TRUE(Registry::setActive("config_parser", "test").ok());
 
-  auto c = Config();
+  Config c;
   auto s = c.update(getTestConfigMap());
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
@@ -209,7 +209,7 @@ TEST_F(ConfigTests, test_noninline_pack) {
   const auto& plugin = std::dynamic_pointer_cast<TestConfigPlugin>(
       Registry::get("config", "test"));
 
-  auto c = Config();
+  Config c;
   c.load();
   EXPECT_EQ(plugin->genPackCount, 1);
 

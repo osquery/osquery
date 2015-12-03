@@ -64,7 +64,8 @@ Configuration responses should be exactly the same JSON/format as read by the **
       "query": "...",
       "interval": 10
     }
-  }
+  },
+  "node_invalid": false // Optional, return true to indicate re-enrollment.
 }
 ```
 
@@ -83,7 +84,9 @@ The POSTed logger data is exactly the same as logged to disk by the **filesystem
 
 **Logger** response POST body:
 ```
-{}
+{
+  "node_invalid": false // Optional, return true to indicate re-enrollment.
+}
 ```
 
 **Distributed queries**
@@ -105,7 +108,8 @@ The read request sends the enrollment **node_key** for identification. The distr
   "queries": {
     "id1": "select * from osquery_info;",
     "id2": "select * from osquery_schedule;"
-  }
+  },
+  "node_invalid": false // Optional, return true to indicate re-enrollment.
 }
 ```
 
@@ -128,7 +132,9 @@ The read request sends the enrollment **node_key** for identification. The distr
 
 **Distributed write** response POST body:
 ```json
-{}
+{
+  "node_invalid": false // Optional, return true to indicate re-enrollment.
+}
 ```
 
 

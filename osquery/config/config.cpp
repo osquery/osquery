@@ -160,26 +160,6 @@ void Config::packs(std::function<void(Pack& pack)> predicate) {
   }
 }
 
-void Config::clearSchedule() {
-  WriteLock wlock(config_schedule_mutex_);
-  schedule_ = Schedule();
-}
-
-void Config::clearHash() {
-  WriteLock wlock(config_hash_mutex_);
-  hash_.erase(hash_.begin(), hash_.end());
-}
-
-void Config::clearFiles() {
-  WriteLock wlock(config_files_mutex_);
-  files_.erase(files_.begin(), files_.end());
-}
-
-bool Config::isValid() {
-  ReadLock rlock(config_valid_mutex_);
-  return valid_;
-}
-
 Status Config::load() {
   valid_ = false;
   auto& config_plugin = Registry::getActive("config");
@@ -193,13 +173,8 @@ Status Config::load() {
     return status;
   }
 
-  // clear existing state
-  clearSchedule();
-  clearHash();
-  clearFiles();
-  valid_ = true;
-
   // if there was a response, parse it and update internal state
+  valid_ = true;
   if (response.size() > 0) {
     return update(response[0]);
   }

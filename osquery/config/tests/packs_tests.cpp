@@ -89,16 +89,15 @@ TEST_F(PacksTests, test_schedule) {
 }
 
 TEST_F(PacksTests, test_discovery_cache) {
-  auto c = Config();
+  Config c;
   // This pack and discovery query are valid, expect the SQL to execute.
   c.addPack("valid_discovery_pack", "", getPackWithValidDiscovery());
   size_t query_count = 0U;
   size_t query_attemts = 5U;
   for (size_t i = 0; i < query_attemts; i++) {
     c.scheduledQueries(
-        ([&query_count](const std::string& name, const ScheduledQuery& query) {
-          query_count++;
-         }));
+        ([&query_count](const std::string& name,
+                        const ScheduledQuery& query) { query_count++; }));
   }
   EXPECT_EQ(query_count, query_attemts);
 
@@ -145,7 +144,7 @@ TEST_F(PacksTests, test_restore_splay) {
   auto splay = restoreSplayedValue("pack_test_query_name", 3600);
   EXPECT_GE(splay, 3600U - 360);
   EXPECT_LE(splay, 3600U + 360);
-  
+
   // If we restore, the splay should always be equal.
   for (size_t i = 0; i < 10; i++) {
     auto splay2 = restoreSplayedValue("pack_test_query_name", 3600);

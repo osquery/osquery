@@ -31,15 +31,15 @@ FLAG(int32,
 
 FLAG(string, pack_delimiter, "_", "Delimiter for pack and query names");
 
-FLAG(int32, schedule_splay_percent, 10, "Percent to splay config times");
+FLAG(uint64, schedule_splay_percent, 10, "Percent to splay config times");
 
-FLAG(int32,
+FLAG(uint64,
      schedule_default_interval,
      3600,
      "Query interval to use if none is provided");
 
 size_t splayValue(size_t original, size_t splayPercent) {
-  if (splayPercent <= 0 || splayPercent > 100) {
+  if (splayPercent == 0 || splayPercent > 100) {
     return original;
   }
 

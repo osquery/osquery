@@ -20,12 +20,16 @@ namespace osquery {
 class FilePathsConfigParserPluginTests : public testing::Test {};
 
 TEST_F(FilePathsConfigParserPluginTests, test_get_files) {
+  // Read config content manually.
   std::string content;
   auto s = readFile(kTestDataPath + "test_parse_items.conf", content);
   EXPECT_TRUE(s.ok());
+
+  // Construct a config map, the typical output from `Config::genConfig`.
   std::map<std::string, std::string> config;
   config["awesome"] = content;
-  auto c = Config();
+
+  Config c;
   s = c.update(config);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");

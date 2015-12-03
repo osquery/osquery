@@ -155,10 +155,4 @@ TEST_F(TLSTransportsTests, test_call_client_auth) {
     EXPECT_TRUE(status.ok());
   }
 }
-
-TEST_F(TLSTransportsTests, test_request_http_client_internals) {
-  auto url = "https://localhost:" + port_;
-  auto r = Request<TLSTransport, JSONSerializer>(url);
-  auto r2 = Request<TLSTransport, JSONSerializer>(url);
-}
 }

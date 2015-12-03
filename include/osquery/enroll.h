@@ -54,7 +54,7 @@ class EnrollPlugin : public Plugin {
    * @param force An optionally-supported/used request to force re-enrollment.
    * @return An enrollment secret or key material or identifier.
    */
-  virtual std::string enroll(bool force) = 0;
+  virtual std::string enroll() = 0;
 };
 
 /**
@@ -72,10 +72,10 @@ class EnrollPlugin : public Plugin {
  * @param force Optionally bypass cache and force call the enroll plugin.
  * @return node_key A unique, often private, node secret key.
  */
-std::string getNodeKey(const std::string& enroll_plugin, bool force = false);
+std::string getNodeKey(const std::string& enroll_plugin);
 
 /**
- * @brief Delete the existing node key from the persistant storage
+ * @brief Delete the existing node key from the persistent storage
  *
  * @return a Status indicating the success or failure of the operation
  */
