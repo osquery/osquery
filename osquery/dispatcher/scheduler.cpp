@@ -53,7 +53,7 @@ inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
   return sql;
 }
 
-void launchQuery(const std::string& name, const ScheduledQuery& query) {
+inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
   VLOG(1) << "Executing query: " << query.query;
   auto sql =

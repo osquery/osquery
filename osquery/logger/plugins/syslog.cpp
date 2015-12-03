@@ -30,9 +30,7 @@ class SyslogLoggerPlugin : public LoggerPlugin {
 REGISTER(SyslogLoggerPlugin, "logger", "syslog");
 
 Status SyslogLoggerPlugin::logString(const std::string& s) {
-  for (const auto& line : osquery::split(s, "\n")) {
-    syslog(LOG_INFO, "%s", line.c_str());
-  }
+  syslog(LOG_INFO, "%s", s.c_str());
   return Status(0, "OK");
 }
 

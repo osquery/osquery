@@ -341,22 +341,22 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& i, pt::ptree& tree) {
 }
 
 Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
-                                         std::string& json) {
+                                         std::vector<std::string>& items) {
   pt::ptree tree;
   auto status = serializeQueryLogItemAsEvents(i, tree);
   if (!status.ok()) {
     return status;
   }
 
-  std::ostringstream output;
   for (auto& event : tree) {
+    std::ostringstream output;
     try {
       pt::write_json(output, event.second, false);
     } catch (const pt::json_parser::json_parser_error& e) {
       return Status(1, e.what());
     }
+    items.push_back(output.str());
   }
-  json = output.str();
   return Status(0, "OK");
 }
 

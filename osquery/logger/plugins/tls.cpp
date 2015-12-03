@@ -122,7 +122,8 @@ class TLSLogForwarderRunner : public InternalRunnable {
 
  protected:
   /// Send labeled result logs.
-  Status send(const std::string& log_data, const std::string& log_type);
+  Status send(const std::vector<std::string>& log_data,
+              const std::string& log_type);
 
   /// Receive an enrollment/node key from the backing store cache.
   std::string node_key_;
@@ -161,17 +162,22 @@ Status TLSLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
     buffer.put("message", item.message);
 
     // Convert to JSON, for storing a string-representation in the database.
-    std::stringstream json_output;
+    std::string json;
     try {
+      std::stringstream json_output;
       pt::write_json(json_output, buffer, false);
+      json = json_output.str();
     } catch (const pt::json_parser::json_parser_error& e) {
       // The log could not be represented as JSON.
       return Status(1, e.what());
     }
 
     // Store the status line in a backing store.
+    if (!json.empty()) {
+      json.pop_back();
+    }
     auto index = genLogIndex(false, log_index_);
-    auto status = setDatabaseValue(kLogs, index, json_output.str());
+    auto status = setDatabaseValue(kLogs, index, json);
     if (!status.ok()) {
       // Do not continue if any line fails.
       return status;
@@ -198,26 +204,13 @@ Status TLSLoggerPlugin::init(const std::string& name,
   return logStatus(log);
 }
 
-Status TLSLogForwarderRunner::send(const std::string& log_data,
+Status TLSLogForwarderRunner::send(const std::vector<std::string>& log_data,
                                    const std::string& log_type) {
   pt::ptree params;
   params.put<std::string>("node_key", node_key_);
   params.put<std::string>("log_type", log_type);
-
-  // Handle single log requests that were delimited with newlines (event-based).
-  auto log_data_items = osquery::split(log_data, "\n");
-  // Then re-tokenize with comma to json-decode.
-  auto log_data_string = osquery::join(log_data_items, ",");
-  try {
-    std::stringstream json_input;
-    json_input << "[" + log_data_string + "]";
-
-    pt::ptree tree;
-    pt::read_json(json_input, tree);
-    params.put_child("data", tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    // If the tokenization failed, add the log data (most likely string JSON).
-    params.put("data", log_data);
+  for (const auto& item : log_data) {
+    params.put("data", item);
   }
 
   auto request = Request<TLSTransport, JSONSerializer>(uri_);
@@ -247,13 +240,13 @@ void TLSLogForwarderRunner::start() {
       TLSLoggerPlugin::stop_buffering = false;
     }
 
-    std::string results, statuses;
+    std::vector<std::string> results, statuses;
     for (const auto& index : indexes) {
       std::string value;
       auto& target = ((index.at(0) == 'r') ? results : statuses);
       if (getDatabaseValue(kLogs, index, value)) {
         // Resist failure, only append delimiters if the value get succeeded.
-        target += value;
+        target.push_back(value);
       }
     }
 
