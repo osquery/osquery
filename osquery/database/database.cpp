@@ -25,6 +25,8 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+CLI_FLAG(bool, database_dump, false, "Dump the contents of the backing store");
+
 /////////////////////////////////////////////////////////////////////////////
 // Row - the representation of a row in a set of database results. Row is a
 // simple map where individual column names are keys, which map to the Row's
@@ -571,5 +573,22 @@ Status scanDatabaseKeys(const std::string& domain,
     }
   }
   return status;
+}
+
+void dumpDatabase() {
+  for (const auto& domain : kDomains) {
+    std::vector<std::string> keys;
+    if (!scanDatabaseKeys(domain, keys)) {
+      continue;
+    }
+    for (const auto& key : keys) {
+      std::string value;
+      if (!getDatabaseValue(domain, key, value)) {
+        continue;
+      }
+      fprintf(
+          stdout, "%s[%s]: %s\n", domain.c_str(), key.c_str(), value.c_str());
+    }
+  }
 }
 }

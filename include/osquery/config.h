@@ -26,9 +26,6 @@
 
 namespace osquery {
 
-/// The builder or invoker may change the default config plugin.
-DECLARE_string(config_plugin);
-
 class ConfigParserPlugin;
 
 /**
