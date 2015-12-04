@@ -149,11 +149,12 @@ function main_ubuntu() {
   package libgcrypt-dev
   package libdevmapper-dev
   install_libcryptsetup
-
   package libmagic-dev
+  install_sleuthkit
 
   # Audit facility (kautitd) and netlink APIs
   package libaudit-dev
+
   if [[ $DISTRO = "lucid" ]]; then
     package python-argparse
     package python-jinja2

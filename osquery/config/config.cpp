@@ -12,6 +12,7 @@
 #include <mutex>
 #include <random>
 
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
@@ -206,14 +207,39 @@ Status Config::load() {
   return Status(0, "OK");
 }
 
+/**
+ * @brief Boost's 1.59 property tree based JSON parser does not accept comments.
+ *
+ * For semi-compatibility with existing configurations we will attempt to strip
+ * hash and C++ style comments. It is OK for the config update to be latent
+ * as it is a single event. But some configuration plugins may update running
+ * configurations.
+ */
+inline void stripConfigComments(std::string& json) {
+  std::string sink;
+  for (auto& line : osquery::split(json, "\n")) {
+    boost::trim(line);
+    if (line.size() > 0 && line[0] == '#') {
+      continue;
+    }
+    if (line.size() > 1 && line[0] == '/' && line[1] == '/') {
+      continue;
+    }
+    sink += line + '\n';
+  }
+  json = sink;
+}
+
 Status Config::updateSource(const std::string& name, const std::string& json) {
   hashSource(name, json);
 
   // load the config (source.second) into a pt::ptree
-  std::stringstream json_stream;
-  json_stream << json;
   pt::ptree tree;
   try {
+    auto clone = json;
+    stripConfigComments(clone);
+    std::stringstream json_stream;
+    json_stream << clone;
     pt::read_json(json_stream, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
     return Status(1, "Error parsing the config JSON");

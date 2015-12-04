@@ -70,6 +70,7 @@ function main_amazon() {
   install_yara
   install_cppnetlib
   install_google_benchmark
+  install_sleuthkit
 
   package audit-libs-devel
   package audit-libs-static

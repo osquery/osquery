@@ -63,6 +63,7 @@ function main_fedora() {
   package libgcrypt-devel
   package gettext-devel
   install_libcryptsetup
+  install_sleuthkit
 
   gem_install fpm
 }
