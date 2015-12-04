@@ -1,0 +1,14 @@
+table_name("device_partitions")
+description("Use TSK to enumerate details about partitions on a disk device.")
+schema([
+    Column("device", TEXT, "Absolute file path to device node", required=True),
+    Column("partition", INTEGER, "A partition number or description"),
+    Column("label", TEXT, ""),
+    Column("type", TEXT, ""),
+    Column("offset", BIGINT, ""),
+    Column("blocks_size", BIGINT, "Byte size of each block"),
+    Column("blocks", BIGINT, "Number of blocks"),
+    Column("inodes", BIGINT, "Number of meta nodes"),
+    Column("flags", INTEGER, ""),
+])
+implementation("forensic/sleuthkit@genDevicePartitions")

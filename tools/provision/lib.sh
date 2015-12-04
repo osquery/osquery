@@ -85,6 +85,25 @@ function install_cmake() {
   fi
 }
 
+function install_sleuthkit() {
+  SOURCE=sleuthkit-sleuthkit-4.1.3
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
+
+  if provision sleuthkid /usr/local/lib/libtsk.a; then
+    pushd $SOURCE
+    ./bootstrap
+    ./configure --prefix=/usr/local --without-afflib \
+      --disable-dependency-tracking --disable-java CFLAGS="$CFLAGS"
+    pushd tsk
+    CC="$CC" CXX="$CXX" make -j $THREADS
+    sudo make install
+    popd
+    sudo make install-nobase_includeHEADERS
+    popd
+  fi
+}
+
 function install_thrift() {
   TARBALL=thrift-0.9.3.tar.gz
   URL=$DEPS_URL/$TARBALL
@@ -189,13 +208,14 @@ function install_yara() {
 }
 
 function install_openssl() {
-  SOURCE=openssl-1.0.2d
+  SOURCE=openssl-1.0.2e
   TARBALL=$SOURCE.tar.gz
-  URL=http://openssl.org/source/$TARBALL
+  URL=$DEPS_URL/$TARBALL
 
   if provision openssl /usr/local/lib/libssl.so.1.0.0; then
     pushd $SOURCE
-    CC="$CC" CXX="$CXX" ./config --prefix=/usr/local --openssldir=/etc/ssl --libdir=lib shared zlib-dynamic enable-shared
+    CC="$CC" CXX="$CXX" ./config --prefix=/usr/local --openssldir=/etc/ssl \
+      --libdir=lib shared zlib-dynamic enable-shared
     make -j $THREADS
     sudo make install
     popd
@@ -205,11 +225,12 @@ function install_openssl() {
 function install_bison() {
   SOURCE=bison-2.5
   TARBALL=$SOURCE.tar.gz
-  URL=http://ftp.gnu.org/gnu/bison/$TARBALL
+  URL=$DEPS_URL/$TARBALL
 
   if provision bison /usr/local/bin/bison; then
     pushd $SOURCE
-    CC="$CC" CXX="$CXX" ./configure --prefix=/usr/local --with-libiconv-prefix=/usr/local/libiconv/
+    CC="$CC" CXX="$CXX" ./configure --prefix=/usr/local \
+      --with-libiconv-prefix=/usr/local/libiconv/
     make -j $THREADS
     sudo make install
     popd

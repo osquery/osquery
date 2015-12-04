@@ -33,4 +33,5 @@ function main_darwin() {
   package cpp-netlib
   package google-benchmark
   package libmagic
+  package sleuthkit
 }

@@ -127,6 +127,8 @@ function main_oracle() {
   fi
 
   package file-libs
+  install_sleuthkit
+
   package audit-libs-devel
   package audit-libs-static
 

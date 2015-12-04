@@ -105,6 +105,7 @@ function main_centos() {
   package libgcrypt-devel
   package gettext-devel
   install_libcryptsetup
+  install_sleuthkit
 
   package audit-libs-devel
   package audit-libs-static

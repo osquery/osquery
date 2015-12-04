@@ -143,6 +143,7 @@ function main_rhel() {
   package libgcrypt-devel
   package gettext-devel
   install_libcryptsetup
+  install_sleuthkit
 
   if [[ $DISTRO = "rhel7" ]]; then
     package audit-libs-devel
