@@ -25,8 +25,7 @@ const std::map<std::string, std::string> kExtensionKeys = {
     {"default_locale", "locale"},
     {"update_url", "update_url"},
     {"author", "author"},
-    {"background.persistent", "persistent"}
-};
+    {"background.persistent", "persistent"}};
 
 void genExtension(const std::string& uid,
                   const std::string& path,
@@ -67,7 +66,7 @@ void genExtension(const std::string& uid,
     r["persistent"] = INTEGER(0);
   }
 
-  r["identifier"] = fs::path(path).parent_path().leaf().string();
+  r["identifier"] = fs::path(path).parent_path().parent_path().leaf().string();
   r["path"] = path;
   results.push_back(r);
 }
