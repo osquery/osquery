@@ -29,7 +29,9 @@ namespace osquery {
 
 // Blacklist testing methods, internal to config implementations.
 extern void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist);
-extern void saveScheduleBlacklist(const std::map<std::string, size_t>& blacklist);
+extern void saveScheduleBlacklist(
+    const std::map<std::string, size_t>& blacklist);
+extern void stripConfigComments(std::string& json);
 
 class ConfigTests : public testing::Test {
  protected:
@@ -83,6 +85,20 @@ TEST_F(ConfigTests, test_plugin) {
 TEST_F(ConfigTests, test_bad_config_update) {
   std::string bad_json = "{\"options\": {},}";
   ASSERT_NO_THROW(Config::getInstance().update({{"bad_source", bad_json}}));
+}
+
+TEST_F(ConfigTests, test_strip_comments) {
+  std::string json_comments =
+      "// Comment\n // Comment //\n  # Comment\n# Comment\n{\"options\":{}}";
+
+  // Test support for stripping C++ and hash style comments from config JSON.
+  auto actual = json_comments;
+  stripConfigComments(actual);
+  std::string expected = "{\"options\":{}}\n";
+  EXPECT_EQ(actual, expected);
+
+  // Make sure the config update source logic applies the stripping.
+  EXPECT_TRUE(Config::getInstance().update({{"data", json_comments}}));
 }
 
 class TestConfigParserPlugin : public ConfigParserPlugin {
@@ -158,9 +174,8 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
   auto c = Config();
   c.addPack("unrestricted_pack", "", getUnrestrictedPack());
   c.scheduledQueries(
-      ([&queries](const std::string&, const ScheduledQuery& query) {
-        queries.push_back(query);
-      }));
+      ([&queries](const std::string&,
+                  const ScheduledQuery& query) { queries.push_back(query); }));
   EXPECT_EQ(queries.size(), getUnrestrictedPack().get_child("queries").size());
 }
 

@@ -477,6 +477,7 @@ function package() {
       unset HOMEBREW_BUILD_FROM_SOURCE
       export HOMEBREW_MAKE_JOBS=$THREADS
       export HOMEBREW_NO_EMOJI=1
+      HOMEBREW_ARGS=""
       if [[ $1 = "rocksdb" ]]; then
         # Build RocksDB from source in brew
         export LIBNAME=librocksdb_lite
