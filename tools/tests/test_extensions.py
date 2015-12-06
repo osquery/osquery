@@ -210,6 +210,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client
         client = test_base.EXClient(extension.options["extensions_socket"])
+        test_base.expectTrue(client.open)
         self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
 
@@ -307,6 +308,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client to the manager and extension.
         client = test_base.EXClient(extension.options["extensions_socket"])
+        test_base.expectTrue(client.open)
         self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
 
@@ -316,6 +318,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         ex_uuid = result.keys()[0]
         client2 = test_base.EXClient(extension.options["extensions_socket"],
             uuid=ex_uuid)
+        test_base.expectTrue(client2.open)
         self.assertTrue(client2.open(timeout=EXTENSION_TIMEOUT))
         ex = client2.getEX()
 

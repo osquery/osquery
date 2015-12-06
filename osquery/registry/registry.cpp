@@ -53,14 +53,19 @@ bool RegistryHelperCore::isInternal(const std::string& item_name) const {
 }
 
 Status RegistryHelperCore::setActive(const std::string& item_name) {
-  if (items_.count(item_name) == 0 && external_.count(item_name) == 0) {
-    return Status(1, "Unknown registry item");
+  // Default support multiple active plugins.
+  for (const auto& item : osquery::split(item_name, ",")) {
+    if (items_.count(item) == 0 && external_.count(item) == 0) {
+      return Status(1, "Unknown registry plugin: " + item);
+    }
   }
 
   active_ = item_name;
   // The active plugin is setup when initialized.
-  if (exists(item_name, true)) {
-    Registry::get(name_, item_name)->setUp();
+  for (const auto& item : osquery::split(item_name, ",")) {
+    if (exists(item, true)) {
+      Registry::get(name_, item)->setUp();
+    }
   }
   return Status(0, "OK");
 }
@@ -95,10 +100,12 @@ RegistryRoutes RegistryHelperCore::getRoutes() const {
 Status RegistryHelperCore::call(const std::string& item_name,
                                 const PluginRequest& request,
                                 PluginResponse& response) {
+  // Search local plugins (items) for the plugin.
   if (items_.count(item_name) > 0) {
     return items_.at(item_name)->call(request, response);
   }
 
+  // Check if the item was broadcasted as a plugin within an extension.
   if (external_.count(item_name) > 0) {
     // The item is a registered extension, call the extension by UUID.
     return callExtension(external_.at(item_name), name_, item_name, request,
@@ -299,6 +306,14 @@ Status RegistryFactory::call(const std::string& registry_name,
                              PluginResponse& response) {
   // Forward factory call to the registry.
   try {
+    if (item_name.find(",") != std::string::npos) {
+      // Call is multiplexing plugins (usually for multiple loggers).
+      for (const auto& item : osquery::split(item_name, ",")) {
+        registry(registry_name)->call(item, request, response);
+      }
+      // All multiplexed items are called without regard for statuses.
+      return Status(0);
+    }
     return registry(registry_name)->call(item_name, request, response);
   } catch (const std::exception& e) {
     LOG(ERROR) << registry_name << " registry " << item_name
@@ -340,9 +355,6 @@ Status RegistryFactory::call(const std::string& registry_name,
 
 Status RegistryFactory::setActive(const std::string& registry_name,
                                   const std::string& item_name) {
-  if (!exists(registry_name, item_name)) {
-    return Status(1, "Registry plugin does not exist");
-  }
   return registry(registry_name)->setActive(item_name);
 }
 

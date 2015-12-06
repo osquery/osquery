@@ -67,6 +67,7 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
             const char* message,
             size_t message_len);
 
+ public:
   /// Accessor/mutator to dump all of the buffered logs.
   static std::vector<StatusLogLine>& dump() { return instance().logs_; }
 
@@ -89,6 +90,29 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
     }
   }
 
+  /**
+   * @brief Add a logger plugin that should receive status updates.
+   *
+   * Since the logger may support multiple active logger plugins the sink
+   * will keep track of those plugins that returned success after ::init.
+   * This list of plugins will received forwarded messages from the sink.
+   *
+   * This list is important because sending logs to plugins that also use
+   * and active Glog Sink (supports multiple) will create a logging loop.
+   */
+  static void addPlugin(const std::string& name) {
+    instance().sinks_.push_back(name);
+  }
+
+  /// Retrieve the list of enabled plugins that should have logs forwarded.
+  static const std::vector<std::string>& enabledPlugins() {
+    return instance().sinks_;
+  }
+
+ public:
+  BufferedLogSink(BufferedLogSink const&) = delete;
+  void operator=(BufferedLogSink const&) = delete;
+
  private:
   /// Create the log sink as buffering or forwarding.
   BufferedLogSink() : forward_(false), enabled_(false) {}
@@ -96,14 +120,16 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /// Remove the log sink.
   ~BufferedLogSink() { disable(); }
 
-  BufferedLogSink(BufferedLogSink const&);
-  void operator=(BufferedLogSink const&);
-
  private:
   /// Intermediate log storage until an osquery logger is initialized.
   std::vector<StatusLogLine> logs_;
-  bool forward_;
-  bool enabled_;
+
+  /// Should the sending act in a forwarding mode.
+  bool forward_{false};
+  bool enabled_{false};
+
+  /// Track multiple loggers that should receive sinks from the send forwarder.
+  std::vector<std::string> sinks_;
 };
 
 /// Scoped helper to perform logging actions without races.
@@ -221,21 +247,27 @@ void initLogger(const std::string& name, bool forward_all) {
   // Stop the buffering sink and store the intermediate logs.
   BufferedLogSink::disable();
   auto intermediate_logs = std::move(BufferedLogSink::dump());
-  auto& logger_plugin = Registry::getActive("logger");
-  if (!Registry::exists("logger", logger_plugin)) {
-    return;
-  }
+  const auto& logger_plugin = Registry::getActive("logger");
+  // Allow multiple loggers, make sure each is accessible.
+  for (const auto& logger : osquery::split(logger_plugin, ",")) {
+    if (!Registry::exists("logger", logger)) {
+      continue;
+    }
 
-  // Start the custom status logging facilities, which may instruct Glog as is
-  // the case with filesystem logging.
-  PluginRequest request = {{"init", name}};
-  serializeIntermediateLog(intermediate_logs, request);
-  auto status = Registry::call("logger", request);
-  if (status.ok() || forward_all) {
-    // When LoggerPlugin::init returns success we enable the log sink in
-    // forwarding mode. Then Glog status logs are forwarded to logStatus.
-    BufferedLogSink::forward(true);
-    BufferedLogSink::enable();
+    // Start the custom status logging facilities, which may instruct Glog as
+    // is the case with filesystem logging.
+    PluginRequest request = {{"init", name}};
+    serializeIntermediateLog(intermediate_logs, request);
+    auto status = Registry::call("logger", logger, request);
+    if (status.ok() || forward_all) {
+      // When LoggerPlugin::init returns success we enable the log sink in
+      // forwarding mode. Then Glog status logs are forwarded to logStatus.
+      BufferedLogSink::forward(true);
+      BufferedLogSink::enable();
+      // To support multiple plugins we only add the names of plugins that
+      // return a success status after initialization.
+      BufferedLogSink::addPlugin(logger);
+    }
   }
 }
 
@@ -248,15 +280,21 @@ void BufferedLogSink::send(google::LogSeverity severity,
                            size_t message_len) {
   // Either forward the log to an enabled logger or buffer until one exists.
   if (forward_) {
-    // May use the logs_ storage to buffer/delay sending logs.
-    std::vector<StatusLogLine> log;
-    log.push_back({(StatusLogSeverity)severity,
-                   std::string(base_filename),
-                   line,
-                   std::string(message, message_len)});
-    PluginRequest request = {{"status", "true"}};
-    serializeIntermediateLog(log, request);
-    Registry::call("logger", request);
+    const auto& logger_plugin = Registry::getActive("logger");
+    for (const auto& logger : osquery::split(logger_plugin, ",")) {
+      auto& enabled = BufferedLogSink::enabledPlugins();
+      if (std::find(enabled.begin(), enabled.end(), logger) != enabled.end()) {
+        // May use the logs_ storage to buffer/delay sending logs.
+        std::vector<StatusLogLine> log;
+        log.push_back({(StatusLogSeverity)severity,
+                       std::string(base_filename),
+                       line,
+                       std::string(message, message_len)});
+        PluginRequest request = {{"status", "true"}};
+        serializeIntermediateLog(log, request);
+        Registry::call("logger", logger, request);
+      }
+    }
   } else {
     logs_.push_back({(StatusLogSeverity)severity,
                      std::string(base_filename),
@@ -293,11 +331,6 @@ Status logString(const std::string& message, const std::string& category) {
 Status logString(const std::string& message,
                  const std::string& category,
                  const std::string& receiver) {
-  if (!Registry::exists("logger", receiver)) {
-    LOG(ERROR) << "Logger receiver " << receiver << " not found";
-    return Status(1, "Logger receiver not found");
-  }
-
   auto status = Registry::call(
       "logger", receiver, {{"string", message}, {"category", category}});
   return Status(0, "OK");
@@ -339,7 +372,7 @@ Status logHealthStatus(const QueryLogItem& item) {
 }
 
 void relayStatusLogs() {
-  // Prevent out dumping and registry calling from producing additional logs.
+  // Prevent our dumping and registry calling from producing additional logs.
   LoggerDisabler disabler;
 
   // Construct a status log plugin request.
@@ -352,8 +385,7 @@ void relayStatusLogs() {
   // Skip the registry's logic, and send directly to the core's logger.
   PluginResponse resp;
   serializeIntermediateLog(status_logs, req);
-  auto status = callExtension(0, "logger", FLAGS_logger_plugin, req, resp);
-  if (status.ok()) {
+  if (!Registry::call("logger", req, resp)) {
     // Flush the buffered status logs.
     // Otherwise the extension call failed and the buffering should continue.
     status_logs.clear();

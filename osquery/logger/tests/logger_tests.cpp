@@ -174,4 +174,29 @@ TEST_F(LoggerTests, test_logger_snapshots) {
   logHealthStatus(item);
   EXPECT_EQ(LoggerTests::health_status_rows, 1);
 }
+
+class SecondTestLoggerPlugin : public TestLoggerPlugin {};
+
+TEST_F(LoggerTests, test_multiple_loggers) {
+  Registry::add<SecondTestLoggerPlugin>("logger", "second_test");
+  EXPECT_TRUE(Registry::setActive("logger", "test,second_test").ok());
+
+  // With two active loggers, the string should be added twice.
+  logString("this is a test", "added");
+  EXPECT_EQ(LoggerTests::log_lines.size(), 2U);
+
+  LOG(WARNING) << "Logger test is generating a warning status (4)";
+  // Refer to the above notes about status logs not emitting until the logger
+  // it initialized. We do a 0-test to check for dead locks around attempting
+  // to forward Glog-based sinks recursively into our sinks.
+  EXPECT_EQ(LoggerTests::statuses_logged, 0);
+
+  // Now try to initialize multiple loggers (1) forwards, (2) does not.
+  Registry::setActive("logger", "test,filesystem");
+  initLogger("logger_test");
+  LOG(WARNING) << "Logger test is generating a warning status (5)";
+  // Now that the "test" logger is initialized, the status log will be
+  // forwarded.
+  EXPECT_EQ(LoggerTests::statuses_logged, 1);
+}
 }
