@@ -20,7 +20,7 @@ For our time exercise, a spec file would look like the following:
 
 ```python
 # This .table file is called a "spec" and is written in Python
-# This syntax (several definitions) is defined in /tools/codegen/gentable/py.
+# This syntax (several definitions) is defined in /tools/codegen/gentable.py.
 table_name("time")
 
 # Provide a short "one line" description, please use punctuation!
@@ -58,7 +58,7 @@ Note: the CMake build provides custom defines for each platform and platform ver
 
 **Creating your implementation**
 
-As indicated in the spec file, our implementation will be in a function called `genTime`. Since this is a very general table and should compile on all supported operating systems we can place it in *osquery/tables/utility/time.cpp*. The directory *osquery/table/* contains the set of *specs* and implementation categories. Place implementations in the corresponding category using your best judgement.
+As indicated in the spec file, our implementation will be in a function called `genTime`. Since this is a very general table and should compile on all supported operating systems we can place it in *osquery/tables/utility/time.cpp*. The directory *osquery/table/* contains the set of implementation categories. Each category *may* contain a platform-restricted directory. If a table requires a different implementation on different platform, use these subdirectories. Place implementations in the corresponding category using your best judgment. CMake will discover all files within the platform-related directory at build time.
 
 Here is that code for *osquery/tables/utility/time.cpp*:
 
@@ -136,11 +136,32 @@ In our case, we used system APIs to create a struct of type `tm` which has field
 
 ## Building new tables
 
-If you've created a new file, you'll need to make sure that CMake properly builds your code. Open [osquery/tables/CMakeLists.txt](https://github.com/facebook/osquery/blob/master/osquery/tables/CMakeLists.txt). Find the line that defines the library `osquery_tables` and add your file, "utility/time.cpp" to the sources which are compiled by that library.
+If you've created a new **.{c,cpp,mm}** file in the correct folder within *osquery/tables*, CMake will discover and attempt to compile your implementation.
 
-If your table only works on OS X, find the target called `osquery_tables_darwin` and add your file to that list of sources instead. If your table only works on Linux, find the target called `osquery_tables_linux` and add your implementation file to that list of sources.
+Return to the root of the repository and execute `make`. This will generate the appropriate code and link everything properly. If you need to add additional linking it gets a tad more complicated. Consider the following code within the table's [CMakeLists.txt](https://github.com/facebook/osquery/blob/master/osquery/tables/CMakeLists.txt):
 
-Return to the root of the repository and execute `make`. This will generate the appropriate code and link everything properly.
+```cmake
+
+if(APPLE)
+  # Add "-framework CoreFoundation" to the linker flags.
+  ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreFoundation")
+  # Search for any library named magic
+  ADD_OSQUERY_LINK_ADDITIONAL("magic")
+elseif(FREEBSD)
+  # Search for any library named magic
+  ADD_OSQUERY_LINK_ADDITIONAL("magic")
+else()
+  # Search for any library named blkid
+  ADD_OSQUERY_LINK_ADDITIONAL("blkid")
+  # Search for the exact library name: libmagic.so
+  ADD_OSQUERY_LINK_ADDITIONAL("libmagic.so")
+endif()
+
+```
+
+This is a bit confusing but allows the table implementations to track three types of linking requests. The first is verbatim the linking flags needed for some tables; the second is a default search for static or shared library names; the final is the exact name of a library within the system's/build's configuration.
+
+When supplying the "second type", a search name, CMake will decide to link using static or shared libraries based on environment settings. The cases where a shared library is ONLY allowed are usually related to that library being available by default on the operating system or platform.
 
 ### Testing your table
 

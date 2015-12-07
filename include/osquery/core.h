@@ -74,7 +74,7 @@ typedef boost::shared_lock<boost::shared_mutex> ReadLock;
 /// The osquery tool type for runtime decisions.
 extern ToolType kToolType;
 
-class Initializer {
+class Initializer : private boost::noncopyable {
  public:
   /**
    * @brief Sets up various aspects of osquery execution state.
@@ -140,9 +140,9 @@ class Initializer {
   void initActivePlugin(const std::string& type, const std::string& name);
 
  private:
-  int* argc_;
-  char*** argv_;
-  int tool_;
+  int* argc_{nullptr};
+  char*** argv_{nullptr};
+  ToolType tool_;
   std::string binary_;
 };
 

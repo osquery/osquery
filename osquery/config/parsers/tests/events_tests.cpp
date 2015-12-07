@@ -22,8 +22,8 @@ class EventsConfigParserPluginTests : public testing::Test {};
 
 TEST_F(EventsConfigParserPluginTests, test_get_event) {
   // Reset the schedule in case other tests were modifying.
-  auto c = Config::getInstance();
-  c.clearSchedule();
+  auto& c = Config::getInstance();
+  // TODO: might need a reset.
 
   // Generate content to update/add to the config.
   std::string content;

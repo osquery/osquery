@@ -35,6 +35,12 @@ CLI_FLAG(string,
          "",
          "Name of environment variable holding enrollment-auth secret");
 
+/// Allow users to disable reenrollment if a config/logger endpoint fails.
+CLI_FLAG(bool,
+         disable_reenrollment,
+         false,
+         "Disable re-enrollment attempts if related plugins return invalid");
+
 Status clearNodeKey() {
   std::string node_key;
   auto s = getDatabaseValue(kPersistentSettings, "nodeKey", node_key);
@@ -49,7 +55,7 @@ Status clearNodeKey() {
   return Status(0, "OK");
 }
 
-std::string getNodeKey(const std::string& enroll_plugin, bool force) {
+std::string getNodeKey(const std::string& enroll_plugin) {
   std::string node_key;
   getDatabaseValue(kPersistentSettings, "nodeKey", node_key);
   if (node_key.size() > 0) {
@@ -57,19 +63,16 @@ std::string getNodeKey(const std::string& enroll_plugin, bool force) {
     return node_key;
   }
 
-  // Request the enroll plugin's node secret.
-  PluginRequest request = {{"action", "enroll"}};
-  if (force) {
-    request["force"] = "1";
-  }
+  // The node key request time is recorded before the enroll request occurs.
+  auto request_time = std::to_string(std::time(nullptr));
 
+  // Request the enroll plugin's node secret.
   PluginResponse response;
-  auto request_time = std::to_string(::time(nullptr));
-  Registry::call("enroll", enroll_plugin, request, response);
+  Registry::call("enroll", enroll_plugin, {{"action", "enroll"}}, response);
   if (response.size() > 0 && response[0].count("node_key") != 0) {
     node_key = response[0].at("node_key");
     setDatabaseValue(kPersistentSettings, "nodeKey", node_key);
-    // Set the last time a nodeKey was retrieved from an enrollment endpoint.
+    // Set the last time a nodeKey was requested from an enrollment endpoint.
     setDatabaseValue(kPersistentSettings, "nodeKeyTime", request_time);
   }
   return node_key;
@@ -102,14 +105,8 @@ Status EnrollPlugin::call(const PluginRequest& request,
     return Status(1, "Enroll plugins require an action");
   }
 
-  // The caller may ask the enroll action to force getKey.
-  bool force_enroll = false;
-  if (request.count("force") > 0 && request.at("force") == "1") {
-    force_enroll = true;
-  }
-
   // The 'enroll' API should return a string and implement caching.
-  auto node_key = this->enroll(force_enroll);
+  auto node_key = this->enroll();
   response.push_back({{"node_key", node_key}});
   if (node_key.size() == 0) {
     return Status(1, "No enrollment key found/retrieved");

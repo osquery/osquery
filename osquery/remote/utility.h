@@ -22,6 +22,7 @@ DECLARE_string(tls_enroll_override);
 DECLARE_string(tls_hostname);
 DECLARE_bool(tls_node_api);
 DECLARE_bool(tls_secret_always);
+DECLARE_bool(disable_reenrollment);
 
 /**
  * @brief Helper class for allowing TLS plugins to easily kick off requests
@@ -31,7 +32,7 @@ DECLARE_bool(tls_secret_always);
  * parameters, some don't require them. Some have built-in retry logic, some
  * don't. Some return results in a ptree, some return results in JSON, etc.
  */
-class TLSRequestHelper {
+class TLSRequestHelper : private boost::noncopyable {
  public:
   /**
    * @brief Using the `tls_hostname` flag and an endpoint, construct a URI
@@ -99,8 +100,13 @@ class TLSRequestHelper {
     }
 
     // Receive config or key rejection
-    if (output.count("node_invalid") > 0 || output.count("error") > 0) {
+    if (output.count("node_invalid") > 0) {
+      if (!FLAGS_disable_reenrollment) {
+        clearNodeKey();
+      }
       return Status(1, "Request failed: Invalid node key");
+    } else if (output.count("error") > 0) {
+      return Status(1, "Request failed: " + output.get("error", "<unknown>"));
     }
     return Status(0, "OK");
   }

@@ -31,22 +31,8 @@ class EnrollTests : public testing::Test {
 };
 
 class SimpleEnrollPlugin : public EnrollPlugin {
- public:
-  SimpleEnrollPlugin() : times_forced_(0) {}
-
  protected:
-  std::string enroll(bool force) {
-    if (force) {
-      forced_response_ = std::to_string(times_forced_);
-      times_forced_++;
-      return forced_response_;
-    }
-    return "fetched_a_node_key";
-  }
-
- private:
-  std::string forced_response_;
-  size_t times_forced_;
+  std::string enroll() { return "fetched_a_node_key"; }
 };
 
 // Register our simple enroll plugin.
@@ -64,7 +50,7 @@ TEST_F(EnrollTests, test_enroll_secret_retrieval) {
 TEST_F(EnrollTests, test_enroll_key_retrieval) {
   FLAGS_disable_enrollment = true;
   // Without enrollment, and with an empty nodeKey storage value, no node key
-  // will be fetched or returned from cached.
+  // will be fetched or returned from cache.
   EXPECT_EQ(getNodeKey("test_simple"), "");
 
   // Turn the enrollment features back on and expect a key.

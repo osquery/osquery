@@ -15,8 +15,6 @@
 #include "osquery/remote/transports/tls.h"
 #include "osquery/remote/serializers/json.h"
 
-#define ENROLL_TLS_MAX_ATTEMPTS 3
-
 namespace osquery {
 
 DECLARE_string(enroll_secret_path);
@@ -40,10 +38,12 @@ HIDDEN_FLAG(string,
             "enroll_secret",
             "Override the TLS enroll secret key name");
 
+DECLARE_uint64(config_tls_max_attempts);
+
 class TLSEnrollPlugin : public EnrollPlugin {
  private:
   /// Enroll called, return cached key or if no key cached, call requestKey.
-  std::string enroll(bool force);
+  std::string enroll() override;
 
  private:
   /// Request an enrollment key response from the TLS endpoint.
@@ -56,7 +56,7 @@ class TLSEnrollPlugin : public EnrollPlugin {
 
 REGISTER(TLSEnrollPlugin, "enroll", "tls");
 
-std::string TLSEnrollPlugin::enroll(bool force) {
+std::string TLSEnrollPlugin::enroll() {
   // If no node secret has been negotiated, try a TLS request.
   auto uri = "https://" + FLAGS_tls_hostname + FLAGS_enroll_tls_endpoint;
   if (FLAGS_tls_secret_always) {
@@ -64,11 +64,11 @@ std::string TLSEnrollPlugin::enroll(bool force) {
            FLAGS_tls_enroll_override + "=" + getEnrollSecret();
   }
 
-  if (node_secret_key_.size() == 0 || force) {
+  if (node_secret_key_.size() == 0) {
     VLOG(1) << "TLSEnrollPlugin requesting a node enroll key from: " << uri;
-    for (size_t i = 1; i <= ENROLL_TLS_MAX_ATTEMPTS; i++) {
+    for (size_t i = 1; i <= FLAGS_config_tls_max_attempts; i++) {
       auto status = requestKey(uri);
-      if (status.ok() || i == ENROLL_TLS_MAX_ATTEMPTS) {
+      if (status.ok() || i == FLAGS_config_tls_max_attempts) {
         break;
       }
 

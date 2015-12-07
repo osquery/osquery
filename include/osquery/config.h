@@ -39,7 +39,7 @@ class ConfigParserPlugin;
 class Schedule {
  public:
   /// Under the hood, the schedule is just a list of the Pack objects
-  typedef std::list<Pack> container;
+  using container = std::list<Pack>;
 
   /**
    * @brief Create a schedule maintained by the configuration.
@@ -51,7 +51,7 @@ class Schedule {
   Schedule();
 
   /**
-   * @brief this class' iteration function
+   * @brief This class' iteration function
    *
    * Our step operation will be called on each element in packs_. It is
    * responsible for determining if that element should be returned as the
@@ -60,9 +60,6 @@ class Schedule {
   struct Step {
     bool operator()(Pack& pack) { return pack.shouldPackExecute(); }
   };
-
-  /// Boost gives us a nice template for maintaining the state of the iterator
-  typedef boost::filter_iterator<Step, container::iterator> iterator;
 
   /// Add a pack to the schedule
   void add(const Pack& pack) {
@@ -75,9 +72,13 @@ class Schedule {
 
   void remove(const std::string& pack, const std::string& source) {
     packs_.remove_if([pack, source](Pack& p) {
-      return (p.getName() == pack) && (p.getSource() == source);
+      return (p.getName() == pack) &&
+             ((p.getSource() == source || source == ""));
     });
   }
+
+  /// Boost gives us a nice template for maintaining the state of the iterator
+  using iterator = boost::filter_iterator<Step, container::iterator>;
 
   iterator begin() { return iterator(packs_.begin(), packs_.end()); }
   iterator end() { return iterator(packs_.end(), packs_.end()); }
@@ -115,7 +116,7 @@ class Schedule {
  *   // use methods in osquery::Config on `c`
  * @endcode
  */
-class Config {
+class Config : private boost::noncopyable {
  private:
   Config() : schedule_(Schedule()), valid_(false), start_time_(time(nullptr)){};
 
@@ -127,40 +128,12 @@ class Config {
   };
 
   /**
-   * @brief Call the genConfig method of the config retriever plugin.
-   *
-   * This may perform a resource load such as TCP request or filesystem read.
-   */
-  Status load();
-
-  /**
    * @brief Update the internal config data.
    *
    * @param config A map of domain or namespace to config data.
    * @return If the config changes were applied.
    */
   Status update(const std::map<std::string, std::string>& config);
-
-  /**
-   * @brief Drain the entire schedule
-   *
-   * This is called whenever the config is re-loaded
-   */
-  void clearSchedule();
-
-  /**
-   * @brief Drain the file data
-   *
-   * This is called whenever the config is re-loaded
-   */
-  void clearFiles();
-
-  /**
-   * @brief Expire the string cache of the hash
-   *
-   * This is called whenever the config is re-loaded
-   */
-  void clearHash();
 
   /**
    * @brief Record performance (monitoring) information about a scheduled query.
@@ -216,7 +189,7 @@ class Config {
   void hashSource(const std::string& source, const std::string& content);
 
   /// Whether or not the last loaded config was valid.
-  bool isValid();
+  bool isValid() const { return valid_; }
 
   /// Get start time of config.
   size_t getStartTime() const { return start_time_; }
@@ -318,6 +291,13 @@ class Config {
       const std::string& parser);
 
  protected:
+  /**
+   * @brief Call the genConfig method of the config retriever plugin.
+   *
+   * This may perform a resource load such as TCP request or filesystem read.
+   */
+  Status load();
+
   /// A step method for Config::update.
   Status updateSource(const std::string& name, const std::string& json);
 
@@ -333,6 +313,9 @@ class Config {
   bool valid_{false};
   /// A UNIX timestamp recorded when the config started.
   size_t start_time_{0};
+
+ private:
+  friend class Initializer;
 
  private:
   FRIEND_TEST(ConfigTests, test_parse);
