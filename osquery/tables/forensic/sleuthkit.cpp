@@ -17,6 +17,7 @@
 #include <tsk/libtsk.h>
 
 #include <osquery/filesystem.h>
+#include <osquery/hash.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -58,6 +59,12 @@ class DeviceHelper : private boost::noncopyable {
     }
   }
 
+  void inodes(
+      const std::set<std::string>& inodes,
+      TskFsInfo* fs,
+      std::function<void(const std::string&, TskFsFile*, const std::string&)>
+          predicate);
+
   /// Provide a partition description for context and iterate from path.
   void generateFiles(const std::string& partition,
                      TskFsInfo* fs,
@@ -68,6 +75,7 @@ class DeviceHelper : private boost::noncopyable {
   /// Similar to generateFiles but only yield a row to results.
   void generateFile(const std::string& partition,
                     TskFsFile* file,
+                    TskFsInfo* fs,
                     const std::string& path,
                     QueryData& results);
 
@@ -82,24 +90,7 @@ class DeviceHelper : private boost::noncopyable {
 
  private:
   /// Attempt to open the provided device image and volume.
-  bool open() {
-    if (opened_) {
-      return opened_result_;
-    }
-
-    // Attempt to open the device image.
-    opened_ = true;
-    auto status = image_->open(device_path_.c_str(), TSK_IMG_TYPE_DETECT, 0);
-    if (status) {
-      opened_result_ = false;
-      return opened_result_;
-    }
-
-    // Attempt to open the device image volumn.
-    status = volume_->open(&*image_, 0, TSK_VS_TYPE_DETECT);
-    opened_result_ = (status == 0);
-    return opened_result_;
-  }
+  bool open();
 
  private:
   /// Has the device open been attempted.
@@ -121,59 +112,56 @@ class DeviceHelper : private boost::noncopyable {
   std::set<std::string> loops_;
 };
 
-QueryData genDevicePartitions(QueryContext& context) {
-  QueryData results;
-
-  auto devices = context.constraints["device"].getAll(EQUALS);
-  for (const auto& dev : devices) {
-    DeviceHelper dh(dev);
-    dh.partitions(([&results, &dev, &dh](const TskVsPartInfo* part) {
-      Row r;
-      r["device"] = dev;
-      r["partition"] = std::to_string(part->getAddr());
-
-      const auto* desc = part->getDesc();
-      if (desc != nullptr) {
-        r["label"] = desc;
-      }
-
-      r["flags"] = "0";
-      if (part->getFlags() & TSK_VS_PART_FLAG_META) {
-        r["type"] = "meta";
-      } else if (part->getFlags() & TSK_VS_PART_FLAG_UNALLOC) {
-        r["type"] = "unallocated";
-      } else {
-        r["type"] = "normal";
-      }
-
-      auto* fs = new TskFsInfo();
-      auto status = fs->open(part, TSK_FS_TYPE_DETECT);
-      if (status) {
-        r["offset"] = BIGINT(part->getStart() * dh.getVolume()->getBlockSize());
-        r["blocks_size"] = BIGINT(dh.getVolume()->getBlockSize());
-        r["blocks"] = BIGINT(part->getLen());
-        r["inodes"] = "-1";
-        r["flags"] = INTEGER(part->getFlags());
-      } else {
-        // If there is a filesystem in this partition we can use the name/type
-        // of the filesystem as the "type".
-        r["type"] = TskFsInfo::typeToName(fs->getFsType());
-        r["flags"] = INTEGER(fs->getFlags());
-        r["offset"] = BIGINT(fs->getOffset());
-        r["blocks_size"] = BIGINT(fs->getBlockSize());
-        r["blocks"] = BIGINT(fs->getBlockCount());
-        r["inodes"] = BIGINT(fs->getINumCount());
-      }
-      delete fs;
-      results.push_back(r);
-    }));
+bool DeviceHelper::open() {
+  if (opened_) {
+    return opened_result_;
   }
 
-  return results;
+  // Attempt to open the device image.
+  opened_ = true;
+  auto status = image_->open(device_path_.c_str(), TSK_IMG_TYPE_DETECT, 0);
+  if (status) {
+    opened_result_ = false;
+    return opened_result_;
+  }
+
+  // Attempt to open the device image volumn.
+  status = volume_->open(&*image_, 0, TSK_VS_TYPE_DETECT);
+  opened_result_ = (status == 0);
+  return opened_result_;
+}
+
+void DeviceHelper::inodes(
+    const std::set<std::string>& inodes,
+    TskFsInfo* fs,
+    std::function<void(const std::string&, TskFsFile*, const std::string&)>
+        predicate) {
+  // Given a set of constraint inodes, convert each to an INUM.
+  for (const auto& inode : inodes) {
+    long int meta = 0;
+    safeStrtol(inode, 10, meta);
+    auto* file = new TskFsFile();
+    if (file->open(fs, file, static_cast<TSK_INUM_T>(meta)) == 0) {
+      // Attempt to get the meta and filesystem name for the inode.
+      // If this inode is a file a valid meta/name structures are parsed.
+      auto* meta = file->getMeta();
+      if (meta != nullptr) {
+        const auto* name = meta->getName2(0);
+        if (name != nullptr) {
+          auto path = std::string(name->getName());
+          predicate(inode, file, path);
+          delete name;
+        }
+        delete meta;
+      }
+    }
+    delete file;
+  }
 }
 
 void DeviceHelper::generateFile(const std::string& partition,
                                 TskFsFile* file,
+                                TskFsInfo* fs,
                                 const std::string& path,
                                 QueryData& results) {
   Row r;
@@ -182,10 +170,8 @@ void DeviceHelper::generateFile(const std::string& partition,
   r["path"] = path;
   r["filename"] = fs::path(path).leaf().string();
 
-  const auto* fs = file->getFsInfo();
   if (fs != nullptr) {
     r["block_size"] = BIGINT(fs->getBlockSize());
-    delete fs;
   }
 
   const auto* meta = file->getMeta();
@@ -246,7 +232,7 @@ void DeviceHelper::generateFiles(const std::string& partition,
     }
 
     if (meta->getType() == TSK_FS_META_TYPE_REG) {
-      generateFile(partition, file, leaf, results);
+      generateFile(partition, file, fs, leaf, results);
     } else if (meta->getType() == TSK_FS_META_TYPE_DIR) {
       if (name != nullptr && !TSK_FS_ISDOT(name->getName())) {
         additional[meta->getAddr()] = leaf;
@@ -268,6 +254,111 @@ void DeviceHelper::generateFiles(const std::string& partition,
       loops_.insert(dir.second);
     }
   }
+}
+
+struct DeviceHashes {
+  std::string md5;
+  std::string sha1;
+  std::string sha256;
+};
+
+DeviceHashes hashInode(TskFsFile* file) {
+  Hash md5(HASH_TYPE_MD5);
+  Hash sha1(HASH_TYPE_SHA1);
+  Hash sha256(HASH_TYPE_SHA256);
+
+  // We are guaranteed by the expected callsite to have a valid meta.
+  auto* meta = file->getMeta();
+  if (meta == nullptr) {
+    return DeviceHashes();
+  }
+
+  // Set a maximum 'chunk' or block size to 1 page or the file size.
+  TSK_OFF_T size = meta->getSize();
+  auto buffer_size = (size < 4096) ? size : 4096;
+
+  // Allocate some heap memory and iterate over reading a chunk and updating.
+  auto* buffer = (char*)malloc(buffer_size * sizeof(char*));
+  if (buffer != nullptr) {
+    ssize_t chunk_size = 0;
+    for (ssize_t offset = 0; offset < size; offset += chunk_size) {
+      // Here max represents the local max requested bytes.
+      auto max = (size - offset < buffer_size) ? (size - offset) : buffer_size;
+      chunk_size =
+          file->read(offset, buffer, max, (TSK_FS_FILE_READ_FLAG_ENUM)0U);
+      if (chunk_size == -1 || chunk_size != max) {
+        // Huge problem, either a read failed or didn't read the max size.
+        free(buffer);
+        delete meta;
+        return DeviceHashes();
+      }
+
+      md5.update(buffer, chunk_size);
+      sha1.update(buffer, chunk_size);
+      sha256.update(buffer, chunk_size);
+    }
+    free(buffer);
+  }
+  delete meta;
+
+  // Convert the set of hashes into a device hashes transport.
+  DeviceHashes dhs;
+  dhs.md5 = md5.digest();
+  dhs.sha1 = sha1.digest();
+  dhs.sha256 = sha256.digest();
+  return dhs;
+}
+
+QueryData genDeviceHash(QueryContext& context) {
+  QueryData results;
+
+  auto devices = context.constraints["device"].getAll(EQUALS);
+  // This table requires three columns to determine an action.
+  auto parts = context.constraints["partition"].getAll(EQUALS);
+  auto inodes = context.constraints["inode"].getAll(EQUALS);
+
+  for (const auto& dev : devices) {
+    // For each require device path, open a device helper that checks the
+    // image, checks the volume, and allows partition iteration.
+    DeviceHelper dh(dev);
+    dh.partitions(([&results, &dev, &dh, &parts, &inodes](
+        const TskVsPartInfo* part) {
+      // The table also requires a partition for searching.
+      auto address = std::to_string(part->getAddr());
+      if (address != *parts.begin()) {
+        // If this partition does not match the requested, continue.
+        return;
+      }
+
+      auto* fs = new TskFsInfo();
+      auto status = fs->open(part, TSK_FS_TYPE_DETECT);
+      // Cannot retrieve file information without accessing the filesystem.
+      if (status) {
+        delete fs;
+        return;
+      }
+
+      dh.inodes(inodes,
+                fs,
+                ([&results, &address, &dev, &dh, &fs](const std::string& inode,
+                                                      TskFsFile* file,
+                                                      const std::string& path) {
+                  Row r;
+                  r["device"] = dev;
+                  r["partition"] = address;
+                  r["inode"] = inode;
+
+                  auto hashes = hashInode(file);
+                  r["md5"] = std::move(hashes.md5);
+                  r["sha1"] = std::move(hashes.sha1);
+                  r["sha256"] = std::move(hashes.sha256);
+                  results.push_back(r);
+                }));
+      delete fs;
+    }));
+  }
+
+  return results;
 }
 
 QueryData genDeviceFile(QueryContext& context) {
@@ -300,7 +391,7 @@ QueryData genDeviceFile(QueryContext& context) {
 
       auto* fs = new TskFsInfo();
       auto status = fs->open(part, TSK_FS_TYPE_DETECT);
-      // Cannot retrieve fail information without accessing the filesystem.
+      // Cannot retrieve file information without accessing the filesystem.
       if (status) {
         delete fs;
         return;
@@ -317,27 +408,70 @@ QueryData genDeviceFile(QueryContext& context) {
       for (const auto& path : paths) {
         auto* file = new TskFsFile();
         if (file->open(fs, file, path.c_str()) == 0) {
-          dh.generateFile(address, file, path, results);
+          dh.generateFile(address, file, fs, path, results);
         }
         delete file;
       }
 
-      for (const auto& inode : inodes) {
-        long int meta = 0;
-        safeStrtol(inode, 10, meta);
-        auto* file = new TskFsFile();
-        if (file->open(fs, file, static_cast<TSK_INUM_T>(meta)) == 0) {
-          std::string path;
-          auto* meta = file->getMeta();
-          if (meta != nullptr) {
-            path = std::string(meta->getName2(0)->getName());
-          }
-          delete meta;
-          dh.generateFile(address, file, path, results);
-        }
-        delete file;
+      dh.inodes(inodes,
+                fs,
+                ([&results, &address, &dh, &fs](const std::string& inode,
+                                                TskFsFile* file,
+                                                const std::string& path) {
+                  dh.generateFile(address, file, fs, path, results);
+                }));
+      delete fs;
+    }));
+  }
+
+  return results;
+}
+
+QueryData genDevicePartitions(QueryContext& context) {
+  QueryData results;
+
+  auto devices = context.constraints["device"].getAll(EQUALS);
+  for (const auto& dev : devices) {
+    DeviceHelper dh(dev);
+    dh.partitions(([&results, &dev, &dh](const TskVsPartInfo* part) {
+      Row r;
+      r["device"] = dev;
+      r["partition"] = std::to_string(part->getAddr());
+
+      const auto* desc = part->getDesc();
+      if (desc != nullptr) {
+        r["label"] = desc;
+      }
+
+      r["flags"] = "0";
+      if (part->getFlags() & TSK_VS_PART_FLAG_META) {
+        r["type"] = "meta";
+      } else if (part->getFlags() & TSK_VS_PART_FLAG_UNALLOC) {
+        r["type"] = "unallocated";
+      } else {
+        r["type"] = "normal";
+      }
+
+      auto* fs = new TskFsInfo();
+      auto status = fs->open(part, TSK_FS_TYPE_DETECT);
+      if (status) {
+        r["offset"] = BIGINT(part->getStart() * dh.getVolume()->getBlockSize());
+        r["blocks_size"] = BIGINT(dh.getVolume()->getBlockSize());
+        r["blocks"] = BIGINT(part->getLen());
+        r["inodes"] = "-1";
+        r["flags"] = INTEGER(part->getFlags());
+      } else {
+        // If there is a filesystem in this partition we can use the name/type
+        // of the filesystem as the "type".
+        r["type"] = TskFsInfo::typeToName(fs->getFsType());
+        r["flags"] = INTEGER(fs->getFlags());
+        r["offset"] = BIGINT(fs->getOffset());
+        r["blocks_size"] = BIGINT(fs->getBlockSize());
+        r["blocks"] = BIGINT(fs->getBlockCount());
+        r["inodes"] = BIGINT(fs->getINumCount());
       }
       delete fs;
+      results.push_back(r);
     }));
   }
 

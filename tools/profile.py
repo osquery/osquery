@@ -17,7 +17,6 @@ import os
 import subprocess
 import sys
 import time
-import utils
 
 try:
     import argparse
@@ -27,6 +26,8 @@ except ImportError:
 
 # Import the testing utils
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/tests/")
+
+import utils
 
 KB = 1024 * 1024
 RANGES = {
@@ -306,7 +307,7 @@ if __name__ == "__main__":
             profile1 = json.loads(fh.read())
 
     if not os.path.exists(args.shell):
-        print("Cannot find --daemon: %s" % (args.shell))
+        print("Cannot find --shell: %s" % (args.shell))
         exit(1)
     if args.config is None and not os.path.exists(args.tables):
         print("Cannot find --tables: %s" % (args.tables))
