@@ -339,6 +339,12 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     }
   }
 
+  // Iterate though each source and overwrite config data.
+  // This will add/overwrite pack data, append to the schedule, change watched
+  // files, set options, etc.
+  // Before this occurs, take an opportunity to purge stale state.
+  purge();
+
   for (const auto& source : config) {
     auto status = updateSource(source.first, source.second);
     if (!status.ok()) {
@@ -347,6 +353,60 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   }
 
   return Status(0, "OK");
+}
+
+void Config::purge() {
+  // The first use of purge is removing expired query results.
+  std::vector<std::string> saved_queries;
+  scanDatabaseKeys(kQueries, saved_queries);
+
+  const auto& schedule = this->schedule_;
+  auto queryExists = [&schedule](const std::string& query_name) {
+    for (const auto& pack : schedule.packs_) {
+      const auto& pack_queries = pack.getSchedule();
+      if (pack_queries.count(query_name)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  ReadLock rlock(config_schedule_mutex_);
+  // Iterate over each result set in the database.
+  for (const auto& saved_query : saved_queries) {
+    if (queryExists(saved_query)) {
+      continue;
+    }
+
+    std::string content;
+    getDatabaseValue(kPersistentSettings, "timestamp." + saved_query, content);
+    if (content.empty()) {
+      // No timestamp is set for this query, perhaps this is the first time
+      // query results expiration is applied.
+      setDatabaseValue(kPersistentSettings,
+                       "timestamp." + saved_query,
+                       std::to_string(getUnixTime()));
+      continue;
+    }
+
+    // Parse the timestamp and compare.
+    size_t last_executed = 0;
+    try {
+      last_executed = boost::lexical_cast<size_t>(content);
+    } catch (const boost::bad_lexical_cast& e) {
+      // Erase the timestamp as is it potentially corrupt.
+      deleteDatabaseValue(kPersistentSettings, "timestamp." + saved_query);
+      continue;
+    }
+
+    if (last_executed < getUnixTime() - 592200) {
+      // Query has not run in the last week, expire results and interval.
+      deleteDatabaseValue(kQueries, saved_query);
+      deleteDatabaseValue(kPersistentSettings, "interval." + saved_query);
+      deleteDatabaseValue(kPersistentSettings, "timestamp." + saved_query);
+      VLOG(1) << "Expiring results for scheduled query: " << saved_query;
+    }
+  }
 }
 
 void Config::recordQueryPerformance(const std::string& name,
@@ -400,6 +460,12 @@ void Config::recordQueryPerformance(const std::string& name,
 void Config::recordQueryStart(const std::string& name) {
   // There should only ever be a single executing query in the schedule.
   setDatabaseValue(kPersistentSettings, kExecutingQuery, name);
+  // Store the time this query name last executed for later results eviction.
+  // When configuration updates occur the previous schedule is searched for
+  // 'stale' query names, aka those that have week-old or longer last execute
+  // timestamps. Offending queries have their database results purged.
+  setDatabaseValue(
+      kPersistentSettings, "timestamp." + name, std::to_string(getUnixTime()));
 }
 
 void Config::getPerformanceStats(
@@ -430,7 +496,7 @@ Status Config::getMD5(std::string& hash) {
       buffer.push_back(c);
     }
   };
-  for (const auto it : hash_) {
+  for (const auto& it : hash_) {
     add(it.second);
   }
 

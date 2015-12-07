@@ -59,10 +59,13 @@ std::string getHostname() {
   static long max_hostname = sysconf(_SC_HOST_NAME_MAX);
   long size = (max_hostname > 255) ? max_hostname + 1 : 256;
   char* hostname = (char*)malloc(size);
-  memset((void*)hostname, 0, size);
-  gethostname(hostname, size - 1);
-  std::string hostname_string = std::string(hostname);
-  free(hostname);
+  std::string hostname_string;
+  if (hostname != nullptr) {
+    memset((void*)hostname, 0, size);
+    gethostname(hostname, size - 1);
+    hostname_string = std::string(hostname);
+    free(hostname);
+  }
 
   boost::algorithm::trim(hostname_string);
   return hostname_string;
@@ -74,16 +77,16 @@ std::string generateNewUuid() {
 }
 
 Status getHostUUID(std::string& ident) {
-    // Lookup the host identifier (UUID) previously generated and stored.
-    auto status = getDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
-    if (ident.size() == 0) {
-      // There was no uuid stored in the database, generate one and store it.
-      ident = osquery::generateHostUuid();
-      VLOG(1) << "Using uuid " << ident << " as host identifier";
-      return setDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
-    }
+  // Lookup the host identifier (UUID) previously generated and stored.
+  auto status = getDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
+  if (ident.size() == 0) {
+    // There was no uuid stored in the database, generate one and store it.
+    ident = osquery::generateHostUuid();
+    VLOG(1) << "Using uuid " << ident << " as host identifier";
+    return setDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
+  }
 
-    return status;
+  return status;
 }
 
 std::string generateHostUuid() {
@@ -205,7 +208,7 @@ Status createPidFile() {
   // Now the pidfile is either the wrong pid or the pid is not running.
   try {
     boost::filesystem::remove(FLAGS_pidfile);
-  } catch (boost::filesystem::filesystem_error& e) {
+  } catch (const boost::filesystem::filesystem_error& e) {
     // Unable to remove old pidfile.
     LOG(WARNING) << "Unable to remove the osqueryd pidfile";
   }

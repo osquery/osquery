@@ -103,7 +103,7 @@ class Pack {
   std::string name_;
   std::string source_;
   bool should_execute_;
-  std::pair<int, bool> discovery_cache_;
+  std::pair<size_t, bool> discovery_cache_;
   PackStats stats_;
 
  private:
