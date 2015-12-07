@@ -46,6 +46,9 @@ extern const std::string kEvents;
  */
 extern const std::string kLogs;
 
+/// An ordered list of column type names.
+extern const std::vector<std::string> kDomains;
+
 /////////////////////////////////////////////////////////////////////////////
 // Row
 /////////////////////////////////////////////////////////////////////////////
@@ -625,6 +628,9 @@ Status deleteDatabaseValue(const std::string& domain, const std::string& key);
 /// Get a list of keys for a given domain.
 Status scanDatabaseKeys(const std::string& domain,
                         std::vector<std::string>& keys);
+
+/// Allow callers to scan each column family and print each value.
+void dumpDatabase();
 
 /// Generate a specific-use registry for database access abstraction.
 CREATE_REGISTRY(DatabasePlugin, "database");

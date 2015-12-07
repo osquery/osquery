@@ -52,6 +52,21 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
+    def test_config_dump(self):
+        '''Test that config raw output is dumped when requested'''
+        config = "%s/test_noninline_packs.conf" % test_base.SCRIPT_DIR
+        proc = test_base.TimeoutRunner([
+                self.binary,
+                "--config_dump",
+                "--config_path=%s" % config
+            ],
+            SHELL_TIMEOUT)
+        content = ""
+        with open(config, 'r') as fh: content = fh.read()
+        self.assertEqual(proc.stdout, "{\"%s\": %s}\n" % (config, content))
+        print (proc.stderr)
+        self.assertEqual(proc.proc.poll(), 0)
+
     def test_config_check_failure(self):
         '''Test that a missing config fails'''
         proc = test_base.TimeoutRunner([

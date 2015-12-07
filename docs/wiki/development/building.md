@@ -161,6 +161,7 @@ SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
 OPTIMIZED=True # Disable generic CPU optimizations
 SKIP_TESTS=True # Skip unit test building (very very not recommended!)
 SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets
+SKIP_TABLES=True # Build platform without any table implementations or specs
 OSX_VERSION_MIN=10.11 # Override the native minimum OS X version ABI
 ```
 

@@ -55,7 +55,7 @@ enum {
 /*
  * 8 best effort priority levels are supported
  */
-#define IOPRIO_BE_NR  (8)
+#define IOPRIO_BE_NR (8)
 
 enum {
   IOPRIO_WHO_PROCESS = 1,
@@ -150,17 +150,15 @@ namespace osquery {
 
 using chrono_clock = std::chrono::high_resolution_clock;
 
-CLI_FLAG(bool,
-         config_check,
-         false,
-         "Check the format of an osquery config and exit");
-
 #ifndef __APPLE__
 CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 #endif
 
 DECLARE_string(distributed_plugin);
 DECLARE_bool(disable_distributed);
+DECLARE_string(config_plugin);
+DECLARE_bool(config_check);
+DECLARE_bool(database_dump);
 
 ToolType kToolType = OSQUERY_TOOL_UNKNOWN;
 
@@ -446,6 +444,11 @@ void Initializer::start() {
     }
     // A configuration check exits the application.
     ::exit(s.getCode());
+  }
+
+  if (FLAGS_database_dump) {
+    dumpDatabase();
+    ::exit(EXIT_SUCCESS);
   }
 
   // Load the osquery config using the default/active config plugin.

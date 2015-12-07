@@ -34,6 +34,14 @@ namespace osquery {
 /// The config plugin must be known before reading options.
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");
 
+CLI_FLAG(bool,
+         config_check,
+         false,
+         "Check the format of an osquery config and exit");
+
+CLI_FLAG(bool, config_dump, false, "Dump the contents of the configuration");
+
+DECLARE_string(config_plugin);
 DECLARE_string(pack_delimiter);
 
 /**
@@ -176,6 +184,16 @@ Status Config::load() {
   // if there was a response, parse it and update internal state
   valid_ = true;
   if (response.size() > 0) {
+    if (FLAGS_config_dump) {
+      // If config checking is enabled, debug-write the raw config data.
+      for (const auto& content : response[0]) {
+        fprintf(stdout,
+                "{\"%s\": %s}\n",
+                content.first.c_str(),
+                content.second.c_str());
+      }
+      ::exit(EXIT_SUCCESS);
+    }
     return update(response[0]);
   }
 
@@ -206,6 +224,7 @@ inline void stripConfigComments(std::string& json) {
 }
 
 Status Config::updateSource(const std::string& name, const std::string& json) {
+  // Compute a 'synthesized' hash using the content before it is parsed.
   hashSource(name, json);
 
   // load the config (source.second) into a pt::ptree
@@ -256,23 +275,25 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
             {"action", "genPack"}, {"name", pack.first}, {"value", value}};
         Registry::call("config", request, response);
 
-        if (response.size() > 0 && response[0].count(pack.first) > 0) {
+        if (response.size() == 0 || response[0].count(pack.first) == 0) {
+          continue;
+        }
+
+        try {
+          pt::ptree pack_tree;
           std::stringstream pack_stream;
           pack_stream << response[0][pack.first];
-          pt::ptree pack_tree;
-          try {
-            pt::read_json(pack_stream, pack_tree);
-            addPack(pack.first, name, pack_tree);
-          } catch (const pt::json_parser::json_parser_error& e) {
-            LOG(WARNING) << "Error parsing the pack JSON: " << pack.first;
-          }
+          pt::read_json(pack_stream, pack_tree);
+          addPack(pack.first, name, pack_tree);
+        } catch (const pt::json_parser::json_parser_error& e) {
+          LOG(WARNING) << "Error parsing the pack JSON: " << pack.first;
         }
       }
     }
   }
 
   for (const auto& plugin : Registry::all("config_parser")) {
-    std::shared_ptr<ConfigParserPlugin> parser;
+    std::shared_ptr<ConfigParserPlugin> parser = nullptr;
     try {
       parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
     } catch (const std::bad_cast& e) {
