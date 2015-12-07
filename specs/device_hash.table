@@ -1,0 +1,11 @@
+table_name("device_hash")
+description("Similar to the hash table, but use TSK and allow block address access.")
+schema([
+    Column("device", TEXT, "Absolute file path to device node", required=True),
+    Column("partition", TEXT, "A partition number", required=True),
+    Column("inode", BIGINT, "Filesystem inode number", required=True),
+    Column("md5", TEXT, "MD5 hash of provided inode data"),
+    Column("sha1", TEXT, "SHA1 hash of provided inode data"),
+    Column("sha256", TEXT, "SHA256 hash of provided inode data"),
+])
+implementation("forensic/sleuthkit@genDeviceHash")
