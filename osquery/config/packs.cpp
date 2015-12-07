@@ -24,7 +24,7 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-FLAG(int32,
+FLAG(uint64,
      pack_refresh_interval,
      3600,
      "Cache expiration for a packs discovery queries");
@@ -97,7 +97,7 @@ void Pack::initialize(const std::string& name,
     }
   }
 
-  discovery_cache_ = std::make_pair<int, bool>(0, false);
+  discovery_cache_ = std::make_pair<size_t, bool>(0, false);
   stats_ = {0, 0, 0};
 
   platform_.clear();
@@ -138,8 +138,10 @@ void Pack::initialize(const std::string& name,
     ScheduledQuery query;
     query.query = q.second.get<std::string>("query", "");
     query.interval = q.second.get("interval", FLAGS_schedule_default_interval);
-    if (query.interval <= 0 || query.query.empty()) {
+    if (query.interval <= 0 || query.query.empty() || query.interval > 592200) {
       // Invalid pack query.
+      VLOG(1) << "Query has invalid interval: " << q.first << ": "
+              << query.interval;
       continue;
     }
 
@@ -227,7 +229,7 @@ bool Pack::checkVersion(const std::string& version) const {
 
 bool Pack::checkDiscovery() {
   stats_.total++;
-  int current = (int)getUnixTime();
+  size_t current = osquery::getUnixTime();
   if ((current - discovery_cache_.first) < FLAGS_pack_refresh_interval) {
     stats_.hits++;
     return discovery_cache_.second;

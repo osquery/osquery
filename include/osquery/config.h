@@ -33,7 +33,7 @@ class ConfigParserPlugin;
  * a schedule, you only get the packs that should be running on the host that
  * you're currently operating on.
  */
-class Schedule {
+class Schedule : private boost::noncopyable {
  public:
   /// Under the hood, the schedule is just a list of the Pack objects
   using container = std::list<Pack>;
@@ -115,7 +115,7 @@ class Schedule {
  */
 class Config : private boost::noncopyable {
  private:
-  Config() : schedule_(Schedule()), valid_(false), start_time_(time(nullptr)){};
+  Config() : valid_(false), start_time_(std::time(nullptr)){};
 
  public:
   /// Get a singleton instance of the Config class
@@ -298,6 +298,17 @@ class Config : private boost::noncopyable {
   /// A step method for Config::update.
   Status updateSource(const std::string& name, const std::string& json);
 
+  /**
+   * @brief When config sources are updated the config will 'purge'.
+   *
+   * The general 'purge' action applies to searching for outdated query results,
+   * timestamps, saved intervals, etc. This event only occurs before a source
+   * is updated. Since updating the configuration may have expected side effects
+   * such as changing watched files or overwriting (modifying) pack content,
+   * this 'purge' action is assumed to be destructive and potentially expensive.
+   */
+  void purge();
+
  protected:
   Schedule schedule_;
 
@@ -321,9 +332,12 @@ class Config : private boost::noncopyable {
   FRIEND_TEST(ConfigTests, test_get_parser);
   FRIEND_TEST(ConfigTests, test_add_remove_pack);
   FRIEND_TEST(ConfigTests, test_noninline_pack);
+
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
   FRIEND_TEST(FilePathsConfigParserPluginTests, test_get_files);
   FRIEND_TEST(PacksTests, test_discovery_cache);
+  FRIEND_TEST(SchedulerTests, test_monitor);
+  FRIEND_TEST(SchedulerTests, test_config_results_purge);
 };
 
 /**
@@ -417,7 +431,7 @@ class ConfigPlugin : public Plugin {
                          std::string& pack);
 
   /// Main entrypoint for config plugin requests
-  Status call(const PluginRequest& request, PluginResponse& response);
+  Status call(const PluginRequest& request, PluginResponse& response) override;
 };
 
 /**
@@ -470,7 +484,7 @@ class ConfigParserPlugin : public Plugin {
   virtual Status update(
       const std::map<std::string, boost::property_tree::ptree>& config) = 0;
 
-  Status setUp();
+  Status setUp() override;
 
   const boost::property_tree::ptree& getData() const { return data_; }
 

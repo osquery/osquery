@@ -10,6 +10,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
+#include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
@@ -64,7 +65,7 @@ std::string getNodeKey(const std::string& enroll_plugin) {
   }
 
   // The node key request time is recorded before the enroll request occurs.
-  auto request_time = std::to_string(std::time(nullptr));
+  auto request_time = std::to_string(getUnixTime());
 
   // Request the enroll plugin's node secret.
   PluginResponse response;
