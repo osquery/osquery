@@ -21,6 +21,7 @@ import unittest
 import test_base
 import utils
 
+
 class AdditionalFeatureTests(test_base.ProcessGenerator, unittest.TestCase):
     @test_base.flaky
     def test_query_packs(self):

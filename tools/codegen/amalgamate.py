@@ -25,7 +25,7 @@ END_LINE = "/// END[GENTABLE]"
 def usage(progname):
     """ print program usage """
     print(("Usage: %s /path/to/tables "
-        "/path/to/generated output[_amalgamation.cpp]") % progname)
+           "/path/to/generated output[_amalgamation.cpp]") % progname)
     return 1
 
 
@@ -60,7 +60,7 @@ def main(argc, argv):
         template_data = fh.read()
 
     for base, _, filenames in os.walk(os.path.join(directory,
-            "tables_%s" % (name))):
+                                                   "tables_%s" % (name))):
         for filename in filenames:
             if filename == name:
                 continue

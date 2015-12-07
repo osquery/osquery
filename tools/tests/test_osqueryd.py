@@ -21,7 +21,9 @@ import unittest
 # osquery-specific testing utils
 import test_base
 
+
 class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
+
     def test_1_daemon_without_watchdog(self):
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -38,7 +40,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
             "disable_extensions": True,
             "disable_logging": False,
         },
-        options_only={
+            options_only={
             "logger_path": logger_path,
             "verbose": True,
         })

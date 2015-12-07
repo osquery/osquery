@@ -22,10 +22,10 @@ import uuid
 import subprocess
 
 from gentable import *
+from utils import platform
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(SCRIPT_DIR + "/../tests")
-from utils import platform
 
 # the log format for the logging module
 LOG_FORMAT = "%(levelname)s [Line %(lineno)d]: %(message)s"
@@ -147,7 +147,7 @@ def gen_diff(api_old_path, api_new_path):
             old_columns = [c["name"] for c in old_tables[name]["columns"]]
             if column["name"] not in old_columns:
                 columns_added.append("%s:%s:%s:%s" % (category["name"],
-                    table["name"], column["name"], column["type"]))
+                                                      table["name"], column["name"], column["type"]))
 
     for name, table in old_tables.iteritems():
         if name not in new_tables:
@@ -157,25 +157,25 @@ def gen_diff(api_old_path, api_new_path):
             new_columns = [c["name"] for c in new_tables[name]["columns"]]
             if column["name"] not in new_columns:
                 columns_removed.append("%s:%s:%s:%s" % (category["name"],
-                    table["name"], column["name"], column["type"]))
+                                                        table["name"], column["name"], column["type"]))
 
     # Sort then pretty print (md) the changes.
     tables_added.sort()
     for name in tables_added:
-        print ("Added table `%s` to %s" % tuple(name.split(":")[::-1]))
+        print("Added table `%s` to %s" % tuple(name.split(":")[::-1]))
     columns_added.sort()
     for name in columns_added:
         column = name.split(":")
-        print ("Added column `%s` (`%s`) to table `%s`" % (column[2], column[3],
-            column[1]))
+        print("Added column `%s` (`%s`) to table `%s`" % (column[2], column[3],
+                                                          column[1]))
     tables_removed.sort()
     for name in tables_removed:
-        print ("Removed table `%s` from %s" % tuple(name.split(":")[::-1]))
+        print("Removed table `%s` from %s" % tuple(name.split(":")[::-1]))
     columns_removed.sort()
     for name in columns_removed:
         column = name.split(":")
-        print ("Removed column `%s` (`%s`) from table `%s`" % (column[2],
-            column[3], column[1]))
+        print("Removed column `%s` (`%s`) from table `%s`" % (column[2],
+                                                              column[3], column[1]))
 
 
 def gen_api(tables_path, profile={}):
@@ -209,6 +209,7 @@ def gen_api(tables_path, profile={}):
     categories = [{"key": k, "name": v["name"], "tables": v["tables"]}
                   for k, v in categories.iteritems()]
     return categories
+
 
 def main(argc, argv):
     parser = argparse.ArgumentParser("Generate API documentation.")
@@ -267,28 +268,29 @@ def main(argc, argv):
                 logging.error("Cannot parse profile data: %s" % (str(e)))
                 exit(2)
 
-    # Read in the optional list of blacklisted tables, then generate categories.
+    # Read in the optional list of blacklisted tables, then generate
+    # categories.
     api = gen_api(args.tables, profile)
 
     # Output file will be the version with json extension, otherwise stdout
     if args.output:
-      print('[+] creating tables json')
-      cmd = ['git', 'describe', '--tags', 'HEAD']
-      proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-      )
-      out, err = proc.communicate()
-      output_file = out.split("\n")[0] + ".json"
-      if args.directory[-1:] == '/':
-        output_path = args.directory + output_file
-      else:
-        output_path = args.directory + '/' + output_file
+        print('[+] creating tables json')
+        cmd = ['git', 'describe', '--tags', 'HEAD']
+        proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        out, err = proc.communicate()
+        output_file = out.split("\n")[0] + ".json"
+        if args.directory[-1:] == '/':
+            output_path = args.directory + output_file
+        else:
+            output_path = args.directory + '/' + output_file
 
-      with open(output_path, 'w') as f:
-        print(gen_api_json(api), file=f)
-      print('[+] tables json file created at %s' % (output_path))
+        with open(output_path, 'w') as f:
+            print(gen_api_json(api), file=f)
+        print('[+] tables json file created at %s' % (output_path))
     else:
-      print(gen_api_json(api))
+        print(gen_api_json(api))
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(SCRIPT_DIR + "/../tests")
+
 from utils import platform
 
 # the log format for the logging module
@@ -36,6 +37,8 @@ RESERVED = ["n", "index"]
 PLATFORM = platform()
 
 # Supported SQL types for spec
+
+
 class DataType(object):
     def __init__(self, affinity, cpp_type="std::string"):
         '''A column datatype is a pair of a SQL affinity to C++ type.'''
@@ -62,6 +65,7 @@ SYSTEM = "SYSTEM"
 NETWORK = "NETWORK"
 EVENTS = "EVENTS"
 APPLICATION = "APPLICATION"
+
 
 def usage():
     """ print program usage """
@@ -114,13 +118,14 @@ def is_blacklisted(table_name, path=None, blacklist=None):
 
 def setup_templates(templates_path):
     if not os.path.exists(templates_path):
-        templates_path = os.path.join(os.path.dirname(tables_path), "templates")
+        templates_path = os.path.join(
+            os.path.dirname(tables_path), "templates")
         if not os.path.exists(templates_path):
-            print ("Cannot read templates path: %s" % (templates_path))
+            print("Cannot read templates path: %s" % (templates_path))
             exit(1)
     for template in os.listdir(templates_path):
         template_name = template.split(".", 1)[0]
-        with open(os.path.join(templates_path, template), "rb") as fh:
+        with open(os.path.join(templates_path, template), "r") as fh:
             TEMPLATES[template_name] = fh.read().replace("\\\n", "")
 
 
@@ -194,9 +199,9 @@ class TableState(Singleton):
         # Check for reserved column names
         for column in self.columns():
             if column.name in RESERVED:
-                print (lightred(("Cannot use column name: %s in table: %s "
-                                 "(the column name is reserved)" % (
-                                     column.name, self.table_name))))
+                print(lightred(("Cannot use column name: %s in table: %s "
+                                "(the column name is reserved)" % (
+                                    column.name, self.table_name))))
                 exit(1)
 
         path_bits = path.split("/")
@@ -215,7 +220,7 @@ class TableState(Singleton):
             file_h.write(self.impl_content)
 
     def blacklist(self, path):
-        print (lightred("Blacklisting generated %s" % path))
+        print(lightred("Blacklisting generated %s" % path))
         logging.debug("blacklisting %s" % path)
         self.generate(path, template="blacklist")
 
@@ -278,7 +283,7 @@ def description(text):
 
 
 def select_all(name=None):
-    if name == None:
+    if name is None:
         name = table.table_name
     return "select count(*) from %s;" % (name)
 
@@ -333,13 +338,14 @@ def implementation(impl_string):
 
 
 def main(argc, argv):
-    parser = argparse.ArgumentParser("Generate C++ Table Plugin from specfile.")
+    parser = argparse.ArgumentParser(
+        "Generate C++ Table Plugin from specfile.")
     parser.add_argument(
         "--debug", default=False, action="store_true",
         help="Output debug messages (when developing)"
     )
     parser.add_argument("--templates", default=SCRIPT_DIR + "/templates",
-        help="Path to codegen output .cpp.in templates")
+                        help="Path to codegen output .cpp.in templates")
     parser.add_argument("spec_file", help="Path to input .table spec file")
     parser.add_argument("output", help="Path to output .cpp file")
     args = parser.parse_args()
