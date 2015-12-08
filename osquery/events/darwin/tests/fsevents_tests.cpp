@@ -165,7 +165,7 @@ class TestFSEventsEventSubscriber
     return Status(0, "OK");
   }
 
-  Status SimpleCallback(const FSEventsEventContextRef& ec) {
+  Status SimpleCallback(const ECRef& ec, const SCRef& sc) {
     callback_count_ += 1;
     return Status(0, "OK");
   }
@@ -177,7 +177,7 @@ class TestFSEventsEventSubscriber
     return sc;
   }
 
-  Status Callback(const FSEventsEventContextRef& ec) {
+  Status Callback(const ECRef& ec, const SCRef& sc) {
     // The following comments are an example Callback routine.
     // Row r;
     // r["action"] = ec->action;

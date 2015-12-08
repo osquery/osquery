@@ -39,8 +39,8 @@ struct KernelSubscriptionContext : public SubscriptionContext {
   /// The kernel event subscription type.
   osquery_event_t event_type;
 
-  /// Data to pass to the kernel.
-  void *udata{nullptr};
+  /// Optional category passed to the callback.
+  std::string category;
 };
 
 /**
@@ -50,6 +50,7 @@ struct KernelEventContext : public EventContext {
   /// The event type.
   osquery_event_t event_type;
 
+  /// The observed uptime of the system at event time.
   uint32_t uptime{0};
 };
 

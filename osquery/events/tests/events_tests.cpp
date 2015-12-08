@@ -33,6 +33,7 @@ class AnotherBasicEventPublisher
 struct FakeSubscriptionContext : SubscriptionContext {
   int require_this_value;
 };
+
 struct FakeEventContext : EventContext {
   int required_value;
 };
@@ -253,7 +254,8 @@ TEST_F(EventsTests, test_tear_down) {
 
 static int kBellHathTolled = 0;
 
-Status TestTheeCallback(EventContextRef context) {
+Status TestTheeCallback(const EventContextRef& ec,
+                        const SubscriptionContextRef& sc) {
   kBellHathTolled += 1;
   return Status(0, "OK");
 }
@@ -266,13 +268,13 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
 
   FakeEventSubscriber() { setName("FakeSubscriber"); }
 
-  Status Callback(const EventContextRef& ec) {
+  Status Callback(const ECRef& ec, const SCRef& sc) {
     // We don't care about the subscription or the event contexts.
     bellHathTolled = true;
     return Status(0, "OK");
   }
 
-  Status SpecialCallback(const FakeEventContextRef& ec) {
+  Status SpecialCallback(const ECRef& ec, const SCRef& sc) {
     // Now we care that the event context is corrected passed.
     if (ec->required_value == 42) {
       contextBellHathTolled = true;

@@ -43,7 +43,7 @@ class BenchmarkEventSubscriber
  public:
   BenchmarkEventSubscriber() { setName("benchmark"); }
 
-  Status Callback(const EventContextRef& ec) { return Status(0, "OK"); }
+  Status Callback(const ECRef& ec, const SCRef& sc) { return Status(0, "OK"); }
 
   void benchmarkInit() {
     auto sub_ctx = createSubscriptionContext();

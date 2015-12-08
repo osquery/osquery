@@ -34,6 +34,10 @@ struct FSEventsSubscriptionContext : public SubscriptionContext {
   /// A pattern with a recursive match was provided.
   bool recursive{false};
 
+  /// Save the category this path originated form within the config.
+  std::string category;
+
+  /// Append an action.
   void requireAction(const std::string& action);
 
  private:

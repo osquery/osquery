@@ -22,7 +22,7 @@ class DiskEventSubscriber
  public:
   Status init() override;
 
-  Status Callback(const DiskArbitrationEventContextRef& ec);
+  Status Callback(const ECRef& ec, const SCRef& sc);
 };
 
 REGISTER(DiskEventSubscriber, "event_subscriber", "disk_events");
@@ -36,7 +36,7 @@ Status DiskEventSubscriber::init() {
   return Status(0, "OK");
 }
 
-Status DiskEventSubscriber::Callback(const DiskArbitrationEventContextRef& ec) {
+Status DiskEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r;
   r["action"] = ec->action;
   r["path"] = ec->path;

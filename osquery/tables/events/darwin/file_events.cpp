@@ -38,7 +38,8 @@ class FileEventSubscriber : public EventSubscriber<FSEventsEventPublisher> {
    *
    * @return Was the callback successful.
    */
-  Status Callback(const FSEventsEventContextRef& ec);
+  Status Callback(const FSEventsEventContextRef& ec,
+                  const FSEventsSubscriptionContextRef& sc);
 };
 
 /**
@@ -55,20 +56,22 @@ Status FileEventSubscriber::init() {
                                      const std::vector<std::string>& files) {
     for (const auto& file : files) {
       VLOG(1) << "Added listener to: " << file;
-      auto mc = createSubscriptionContext();
-      mc->path = file;
-      subscribe(&FileEventSubscriber::Callback, mc);
+      auto sc = createSubscriptionContext();
+      sc->path = file;
+      sc->category = category;
+      subscribe(&FileEventSubscriber::Callback, sc);
     }
   });
 
   return Status(0, "OK");
 }
 
-Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec) {
+Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec,
+                                     const FSEventsSubscriptionContextRef& sc) {
   Row r;
   r["action"] = ec->action;
   r["target_path"] = ec->path;
-  r["category"] = "" /* TODOTODOTODOTODO*/;
+  r["category"] = sc->category;
   r["transaction_id"] = INTEGER(ec->transaction_id);
 
   // Only hash if the file content could have been modified.

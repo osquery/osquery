@@ -220,12 +220,12 @@ class TestINotifyEventSubscriber
     return Status(0, "OK");
   }
 
-  Status SimpleCallback(const INotifyEventContextRef& ec) {
+  Status SimpleCallback(const ECRef& ec, const SCRef& sc) {
     callback_count_ += 1;
     return Status(0, "OK");
   }
 
-  Status Callback(const INotifyEventContextRef& ec) {
+  Status Callback(const ECRef& ec, const SCRef& sc) {
     // The following comments are an example Callback routine.
     // Row r;
     // r["action"] = ec->action;

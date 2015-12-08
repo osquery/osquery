@@ -23,7 +23,8 @@ class HardwareEventSubscriber : public EventSubscriber<IOKitEventPublisher> {
  public:
   Status init() override;
 
-  Status Callback(const IOKitEventContextRef& ec);
+  Status Callback(const IOKitEventContextRef& ec,
+                  const IOKitSubscriptionContextRef& sc);
 };
 
 REGISTER(HardwareEventSubscriber, "event_subscriber", "hardware_events");
@@ -35,7 +36,8 @@ Status HardwareEventSubscriber::init() {
   return Status(0, "OK");
 }
 
-Status HardwareEventSubscriber::Callback(const IOKitEventContextRef& ec) {
+Status HardwareEventSubscriber::Callback(
+    const IOKitEventContextRef& ec, const IOKitSubscriptionContextRef& sc) {
   Row r;
   if (ec->action == IOKitEventContext::Action::DEVICE_ATTACH) {
     r["action"] = "attach";

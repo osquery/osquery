@@ -38,7 +38,7 @@ class FileEventSubscriber : public EventSubscriber<INotifyEventPublisher> {
    *
    * @return Was the callback successful.
    */
-  Status Callback(const INotifyEventContextRef& ec);
+  Status Callback(const ECRef& ec, const SCRef& sc);
 };
 
 /**
@@ -55,23 +55,24 @@ Status FileEventSubscriber::init() {
                                      const std::vector<std::string>& files) {
     for (const auto& file : files) {
       VLOG(1) << "Added listener to: " << file;
-      auto mc = createSubscriptionContext();
+      auto sc = createSubscriptionContext();
       // Use the filesystem globbing pattern to determine recursiveness.
-      mc->recursive = 0;
-      mc->path = file;
-      mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
-      subscribe(&FileEventSubscriber::Callback, mc);
+      sc->recursive = 0;
+      sc->path = file;
+      sc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
+      sc->category = category;
+      subscribe(&FileEventSubscriber::Callback, sc);
     }
   });
 
   return Status(0, "OK");
 }
 
-Status FileEventSubscriber::Callback(const INotifyEventContextRef& ec) {
+Status FileEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r;
   r["action"] = ec->action;
   r["target_path"] = ec->path;
-  r["category"] = "" /*TODOTODOTODO*/;
+  r["category"] = sc->category;
   r["transaction_id"] = INTEGER(ec->event->cookie);
 
   if (ec->action == "CREATED" || ec->action == "UPDATED") {

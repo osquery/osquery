@@ -43,8 +43,8 @@ struct INotifySubscriptionContext : public SubscriptionContext {
   /// Treat this path as a directory and subscription recursively.
   bool recursive{false};
 
-  INotifySubscriptionContext()
-      : mask(0), recursive(false), recursive_match(false){};
+  /// Save the category this path originated form within the config.
+  std::string category;
 
   /**
    * @brief Helper method to map a string action to `inotify` action mask bit.

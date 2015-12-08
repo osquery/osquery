@@ -29,7 +29,7 @@ class UserEventSubscriber : public EventSubscriber<AuditEventPublisher> {
   /// The user event subscriber declares an audit event type subscription.
   Status init() override;
 
-  Status Callback(const AuditEventContextRef& ec);
+  Status Callback(const ECRef& ec, const SCRef& sc);
 };
 
 REGISTER(UserEventSubscriber, "event_subscriber", "user_events");
@@ -44,7 +44,7 @@ Status UserEventSubscriber::init() {
   return Status(0, "OK");
 }
 
-Status UserEventSubscriber::Callback(const AuditEventContextRef& ec) {
+Status UserEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r;
   r["uid"] = ec->fields["uid"];
   r["pid"] = ec->fields["pid"];

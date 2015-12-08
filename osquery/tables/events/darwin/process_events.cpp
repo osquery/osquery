@@ -23,8 +23,8 @@ class ProcessEventSubscriber : public EventSubscriber<KernelEventPublisher> {
   Status init() override;
 
   /// Kernel events matching the event type will fire.
-  Status Callback(
-      const TypedKernelEventContextRef<osquery_process_event_t> &ec);
+  Status Callback(const TypedKernelEventContextRef<osquery_process_event_t> &ec,
+                  const KernelSubscriptionContextRef &sc);
 };
 
 REGISTER(ProcessEventSubscriber, "event_subscriber", "process_events");
@@ -38,7 +38,8 @@ Status ProcessEventSubscriber::init() {
 }
 
 Status ProcessEventSubscriber::Callback(
-    const TypedKernelEventContextRef<osquery_process_event_t> &ec) {
+    const TypedKernelEventContextRef<osquery_process_event_t> &ec,
+    const KernelSubscriptionContextRef &sc) {
   Row r;
   r["overflows"] = "";
   r["cmdline_size"] = BIGINT(ec->event.arg_length);

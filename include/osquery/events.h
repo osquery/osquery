@@ -104,7 +104,8 @@ enum EventSubscriberState {
 };
 
 /// Use a single placeholder for the EventContextRef passed to EventCallback.
-using EventCallback = std::function<Status(const EventContextRef&)>;
+using EventCallback = std::function<
+    Status(const EventContextRef&, const SubscriptionContextRef&)>;
 
 /// An EventPublisher must track every subscription added.
 using SubscriptionVector = std::vector<SubscriptionRef>;
@@ -235,7 +236,7 @@ class EventPublisherPlugin : public Plugin {
 
  public:
   /// Overriding the EventPublisher constructor is not recommended.
-  EventPublisherPlugin() : next_ec_id_(0), ending_(false), started_(false){};
+  EventPublisherPlugin() {}
   virtual ~EventPublisherPlugin() {}
 
   /// Return a string identifier associated with this EventPublisher.
@@ -690,126 +691,6 @@ class EventFactory : private boost::noncopyable {
 };
 
 /**
- * @brief An interface binding Subscriptions, event response, and table
- *generation.
- *
- * Use the EventSubscriber interface when adding event subscriptions and
- * defining callin functions. The EventCallback is usually a member function
- * for an EventSubscriber. The EventSubscriber interface includes a very
- * important `add` method that abstracts the needed event to backing store
- * interaction.
- *
- * Storing event data in the backing store must match a table spec for queries.
- * Small overheads exist that help query-time indexing and lookups.
- */
-template <class PUB>
-class EventSubscriber : public EventSubscriberPlugin {
- protected:
-  using SCRef = typename PUB::SCRef;
-  using ECRef = typename PUB::ECRef;
-
- public:
-  /**
-   * @brief Add Subscription%s to the EventPublisher this module will act on.
-   *
-   * When the EventSubscriber%'s `init` method is called you are assured the
-   * EventPublisher has `setUp` and is ready to subscription for events.
-   */
-  virtual Status init() { return Status(0, "OK"); }
-
-  /**
-   * @brief The registry plugin name for the subscriber's publisher.
-   *
-   * During event factory initialization the subscribers 'peek' at the registry
-   * plugin name assigned to publishers. The corresponding publisher name is
-   * interpreted as the subscriber's event 'type'.
-   */
-  virtual EventPublisherID& getType() const {
-    static EventPublisherID type = EventFactory::getType<PUB>();
-    return type;
-  };
-
- protected:
-  /// Helper function to call the publisher's templated subscription generator.
-  SCRef createSubscriptionContext() const {
-    return PUB::createSubscriptionContext();
-  }
-
-  /**
-   * @brief Bind a registered EventSubscriber member function to a Subscription.
-   *
-   * @param entry A templated EventSubscriber member function.
-   * @param sc The subscription context.
-   */
-  template <class T, typename C>
-  void subscribe(Status (T::*entry)(const std::shared_ptr<C>&),
-                 const SubscriptionContextRef& sc) {
-    using std::placeholders::_1;
-    using std::placeholders::_2;
-    using CallbackFunc = Status (T::*)(const EventContextRef&);
-
-    // Up-cast the EventSubscriber to the caller.
-    auto sub = dynamic_cast<T*>(this);
-    // Down-cast the pointer to the member function.
-    auto base_entry = reinterpret_cast<CallbackFunc>(entry);
-    // Create a callable through the member function using the instance of the
-    // EventSubscriber and a single parameter placeholder (the EventContext).
-    auto cb = std::bind(base_entry, sub, _1);
-    // Add a subscription using the callable and SubscriptionContext.
-    EventFactory::addSubscription(getType(), sub->getName(), sc, cb);
-    subscription_count_++;
-  }
-
-  /// See getType for lookup rational.
-  virtual EventPublisherID dbNamespace() const {
-    return getType() + '.' + getName();
-  }
-
- public:
-  /**
-   * @brief Request the subscriber's initialization state.
-   *
-   * When event subscribers are created (initialized) they are expected to emit
-   * a set of subscriptions to their publisher "type". If the subscriber fails
-   * to initialize then the publisher may remove any intermediate subscriptions.
-   */
-  EventSubscriberState state() const { return state_; }
-
-  /// Set the subscriber state.
-  void state(EventSubscriberState state) { state_ = state; }
-
-  explicit EventSubscriber(bool enabled = true)
-      : EventSubscriberPlugin(), disabled(!enabled), state_(SUBSCRIBER_NONE) {}
-
- protected:
-  /**
-   * @brief Allow subscriber implementations to default disable themselves.
-   *
-   * A subscriber may induce latency on a system within the callback routines.
-   * Before the initialization and set up is performed the EventFactory can
-   * choose to exclude a subscriber if it is not explicitly enabled within
-   * the config.
-   *
-   * EventSubscriber%s that should be default-disabled should set this flag
-   * in their constructor or worst case before EventSubsciber::init.
-   */
-  bool disabled{false};
-
- private:
-  /// The event subscriber's run state.
-  EventSubscriberState state_;
-
- private:
-  friend class EventFactory;
-
- private:
-  FRIEND_TEST(EventsTests, test_event_sub);
-  FRIEND_TEST(EventsTests, test_event_sub_subscribe);
-  FRIEND_TEST(EventsTests, test_event_sub_context);
-  FRIEND_TEST(EventsTests, test_event_toggle_subscribers);
-};
-
-/**
  * @brief Generate OS events of a type (FS, Network, Syscall, ioctl).
  *
  * A 'class' of OS events is abstracted into an EventPublisher responsible for
@@ -885,7 +766,7 @@ class EventPublisher : public EventPublisherPlugin {
     auto pub_sc = getSubscriptionContext(sub->context);
     auto pub_ec = getEventContext(ec);
     if (shouldFire(pub_sc, pub_ec) && sub->callback != nullptr) {
-      sub->callback(pub_ec);
+      sub->callback(pub_ec, pub_sc);
     }
   }
 
@@ -907,6 +788,127 @@ class EventPublisher : public EventPublisherPlugin {
   FRIEND_TEST(EventsTests, test_event_sub_subscribe);
   FRIEND_TEST(EventsTests, test_event_sub_context);
   FRIEND_TEST(EventsTests, test_fire_event);
+};
+
+/**
+ * @brief An interface binding Subscriptions, event response, and table
+ *generation.
+ *
+ * Use the EventSubscriber interface when adding event subscriptions and
+ * defining callin functions. The EventCallback is usually a member function
+ * for an EventSubscriber. The EventSubscriber interface includes a very
+ * important `add` method that abstracts the needed event to backing store
+ * interaction.
+ *
+ * Storing event data in the backing store must match a table spec for queries.
+ * Small overheads exist that help query-time indexing and lookups.
+ */
+template <class PUB>
+class EventSubscriber : public EventSubscriberPlugin {
+ protected:
+  using SCRef = typename PUB::SCRef;
+  using ECRef = typename PUB::ECRef;
+
+ public:
+  /**
+   * @brief Add Subscription%s to the EventPublisher this module will act on.
+   *
+   * When the EventSubscriber%'s `init` method is called you are assured the
+   * EventPublisher has `setUp` and is ready to subscription for events.
+   */
+  virtual Status init() { return Status(0, "OK"); }
+
+  /**
+   * @brief The registry plugin name for the subscriber's publisher.
+   *
+   * During event factory initialization the subscribers 'peek' at the registry
+   * plugin name assigned to publishers. The corresponding publisher name is
+   * interpreted as the subscriber's event 'type'.
+   */
+  virtual EventPublisherID& getType() const {
+    static EventPublisherID type = EventFactory::getType<PUB>();
+    return type;
+  };
+
+ protected:
+  /// Helper function to call the publisher's templated subscription generator.
+  SCRef createSubscriptionContext() const {
+    return PUB::createSubscriptionContext();
+  }
+
+  /**
+   * @brief Bind a registered EventSubscriber member function to a Subscription.
+   *
+   * @param entry A templated EventSubscriber member function.
+   * @param sc The subscription context.
+   */
+  template <class T, typename E>
+  void subscribe(Status (T::*entry)(const std::shared_ptr<E>&, const SCRef&),
+                 const SCRef& sc) {
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+    using CallbackFunc =
+        Status (T::*)(const EventContextRef&, const SubscriptionContextRef&);
+
+    // Down-cast the pointer to the member function.
+    auto base_entry = reinterpret_cast<CallbackFunc>(entry);
+    // Up-cast the EventSubscriber to the caller.
+    auto sub = dynamic_cast<T*>(this);
+    // Create a callable through the member function using the instance of the
+    // EventSubscriber and a single parameter placeholder (the EventContext).
+    auto cb = std::bind(base_entry, sub, _1, _2);
+    // Add a subscription using the callable and SubscriptionContext.
+    EventFactory::addSubscription(getType(), this->getName(), sc, cb);
+    subscription_count_++;
+  }
+
+  /// See getType for lookup rational.
+  virtual EventPublisherID dbNamespace() const {
+    return getType() + '.' + getName();
+  }
+
+ public:
+  /**
+   * @brief Request the subscriber's initialization state.
+   *
+   * When event subscribers are created (initialized) they are expected to emit
+   * a set of subscriptions to their publisher "type". If the subscriber fails
+   * to initialize then the publisher may remove any intermediate subscriptions.
+   */
+  EventSubscriberState state() const { return state_; }
+
+  /// Set the subscriber state.
+  void state(EventSubscriberState state) { state_ = state; }
+
+  explicit EventSubscriber(bool enabled = true)
+      : EventSubscriberPlugin(), disabled(!enabled), state_(SUBSCRIBER_NONE) {}
+
+ protected:
+  /**
+   * @brief Allow subscriber implementations to default disable themselves.
+   *
+   * A subscriber may induce latency on a system within the callback routines.
+   * Before the initialization and set up is performed the EventFactory can
+   * choose to exclude a subscriber if it is not explicitly enabled within
+   * the config.
+   *
+   * EventSubscriber%s that should be default-disabled should set this flag
+   * in their constructor or worst case before EventSubsciber::init.
+   */
+  bool disabled{false};
+
+ private:
+  /// The event subscriber's run state.
+  EventSubscriberState state_;
+
+ private:
+  friend class EventFactory;
+
+ private:
+  FRIEND_TEST(EventsTests, test_event_sub);
+  FRIEND_TEST(EventsTests, test_event_sub_subscribe);
+  FRIEND_TEST(EventsTests, test_event_sub_context);
+  FRIEND_TEST(EventsTests, test_event_toggle_subscribers);
 };
 
 /// Iterate the event publisher registry and create run loops for each using

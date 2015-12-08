@@ -26,7 +26,7 @@ class HardwareEventSubscriber : public EventSubscriber<UdevEventPublisher> {
  public:
   Status init() override;
 
-  Status Callback(const UdevEventContextRef& ec);
+  Status Callback(const ECRef& ec, const SCRef& sc);
 };
 
 REGISTER(HardwareEventSubscriber, "event_subscriber", "hardware_events");
@@ -39,7 +39,7 @@ Status HardwareEventSubscriber::init() {
   return Status(0, "OK");
 }
 
-Status HardwareEventSubscriber::Callback(const UdevEventContextRef& ec) {
+Status HardwareEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r;
 
   if (ec->devtype.empty()) {

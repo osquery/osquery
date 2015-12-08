@@ -35,11 +35,13 @@ namespace tables {
 #ifdef __APPLE__
 using FileEventSubscriber = EventSubscriber<FSEventsEventPublisher>;
 using FileEventContextRef = FSEventsEventContextRef;
+using FileSubscriptionContextRef = FSEventsSubscriptionContextRef;
 #define FILE_CHANGE_MASK \
   kFSEventStreamEventFlagItemCreated | kFSEventStreamEventFlagItemModified
 #elif __linux__
 using FileEventSubscriber = EventSubscriber<INotifyEventPublisher>;
 using FileEventContextRef = INotifyEventContextRef;
+using FileSubscriptionContextRef = INotifySubscriptionContextRef;
 #define FILE_CHANGE_MASK ((IN_CREATE) | (IN_CLOSE_WRITE) | (IN_MODIFY))
 #endif
 
@@ -59,7 +61,8 @@ class YARAEventSubscriber : public FileEventSubscriber {
    *
    * @return Status
    */
-  Status Callback(const FileEventContextRef& ec);
+  Status Callback(const FileEventContextRef& ec,
+                  const FileSubscriptionContextRef& sc);
 };
 
 /**
@@ -91,25 +94,27 @@ Status YARAEventSubscriber::init() {
   for (const auto& yara_path_element : yara_paths) {
     // Subscribe to each file for the given key (category).
     if (file_map.count(yara_path_element.first) == 0) {
-      VLOG(1) << "Key in yara.file_paths not found in file_paths: "
+      VLOG(1) << "Key in yara::file_paths not found in file_paths: "
               << yara_path_element.first;
       continue;
     }
 
     for (const auto& file : file_map.at(yara_path_element.first)) {
       VLOG(1) << "Added YARA listener to: " << file;
-      auto mc = createSubscriptionContext();
-      mc->path = file;
-      mc->mask = FILE_CHANGE_MASK;
-      mc->recursive = true;
-      subscribe(&YARAEventSubscriber::Callback, mc);
+      auto sc = createSubscriptionContext();
+      sc->path = file;
+      sc->mask = FILE_CHANGE_MASK;
+      sc->recursive = true;
+      sc->category = yara_path_element.first;
+      subscribe(&YARAEventSubscriber::Callback, sc);
     }
   }
 
   return Status(0, "OK");
 }
 
-Status YARAEventSubscriber::Callback(const FileEventContextRef& ec) {
+Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
+                                     const FileSubscriptionContextRef& sc) {
   if (ec->action != "UPDATED" && ec->action != "CREATED") {
     return Status(1, "Invalid action");
   }
@@ -117,7 +122,7 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec) {
   Row r;
   r["action"] = ec->action;
   r["target_path"] = ec->path;
-  r["category"] = "" /*TODOTODOTODO*/;
+  r["category"] = sc->category;
 
   // Only FSEvents transactions updates (inotify is a no-op).
   r["transaction_id"] = INTEGER(ec->transaction_id);
