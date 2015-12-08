@@ -66,7 +66,8 @@ static int process_cred_label_update_execvew(kauth_cred_t old_cred,
 
   osquery_process_event_t *e =
       (osquery_process_event_t *)osquery_cqueue_reserve(
-          cqueue, OSQUERY_PROCESS_EVENT,
+          cqueue,
+          OSQUERY_PROCESS_EVENT,
           sizeof(osquery_process_event_t) + arg_length + env_length);
 
   if (!e) {
@@ -138,9 +139,8 @@ error_exit:
 
 static mac_policy_handle_t handle = 0;
 
-static struct mac_policy_ops exec_ops = {
-  .mpo_cred_label_update_execve = process_cred_label_update_execvew
-};
+static struct mac_policy_ops exec_ops = {.mpo_cred_label_update_execve =
+                                             process_cred_label_update_execvew};
 
 static struct mac_policy_conf policy_conf = {
     .mpc_name = "osquery_process_events",
@@ -150,10 +150,9 @@ static struct mac_policy_conf policy_conf = {
     .mpc_ops = &exec_ops,
     .mpc_loadtime_flags = MPC_LOADTIME_FLAG_UNLOADOK,
     .mpc_field_off = NULL,
-    .mpc_runtime_flags = 0
-};
+    .mpc_runtime_flags = 0};
 
-static int subscribe(osquery_cqueue_t *queue, void *udata) {
+static int subscribe(osquery_cqueue_t *queue) {
   cqueue = queue;
   if (handle != 0) {
     return -1;
@@ -172,6 +171,4 @@ static void unsubscribe() {
 }
 
 osquery_kernel_event_publisher_t process_events_publisher = {
-  .subscribe = &subscribe,
-  .unsubscribe = &unsubscribe
-};
+    .subscribe = &subscribe, .unsubscribe = &unsubscribe};

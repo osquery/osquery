@@ -26,14 +26,14 @@ class KernelCommunicationTests : public testing::Test {};
 #ifdef KERNEL_TEST
 class KernelProducerRunnable : public InternalRunnable {
  public:
-  explicit KernelProducerRunnable(unsigned int events_to_produce, unsigned int event_type)
-    : events_to_produce_(events_to_produce),
-      event_type_(event_type) {}
+  explicit KernelProducerRunnable(unsigned int events_to_produce,
+                                  unsigned int event_type)
+      : events_to_produce_(events_to_produce), event_type_(event_type) {}
 
   virtual void start() {
     int fd = open(kKernelDevice.c_str(), O_RDWR);
     if (fd >= 0) {
-      for (unsigned int i = 0; i < events_to_produce_; i ++) {
+      for (unsigned int i = 0; i < events_to_produce_; i++) {
         ioctl(fd, OSQUERY_IOCTL_TEST, &event_type_);
       }
 
@@ -57,13 +57,12 @@ TEST_F(KernelCommunicationTests, test_communication) {
   auto& dispatcher = Dispatcher::instance();
 
   for (unsigned int c = 0; c < num_threads; ++c) {
-    dispatcher.add(
-        OSQUERY_THRIFT_POINTER::make_shared<KernelProducerRunnable>(
-          events_per_thread, c % 2));
+    dispatcher.add(OSQUERY_THRIFT_POINTER::make_shared<KernelProducerRunnable>(
+        events_per_thread, c % 2));
   }
 
   osquery_event_t event;
-  osquery::CQueue::event *event_buf = nullptr;
+  osquery::CQueue::event* event_buf = nullptr;
   unsigned int tasks = 0;
   do {
     tasks = dispatcher.totalTaskCount();
@@ -71,12 +70,12 @@ TEST_F(KernelCommunicationTests, test_communication) {
     unsigned int max_before_sync = 2000;
     while (max_before_sync > 0 && (event = queue.dequeue(&event_buf))) {
       switch (event) {
-        case OSQUERY_TEST_EVENT_0:
-        case OSQUERY_TEST_EVENT_1:
-          reads++;
-          break;
-        default:
-          throw std::runtime_error("Uh oh. Unknown event.");
+      case OSQUERY_TEST_EVENT_0:
+      case OSQUERY_TEST_EVENT_1:
+        reads++;
+        break;
+      default:
+        throw std::runtime_error("Uh oh. Unknown event.");
       }
       max_before_sync--;
     }

@@ -32,7 +32,7 @@ Status handleRuleFiles(const std::string& category,
                        const pt::ptree& rule_files,
                        std::map<std::string, YR_RULES*>& rules);
 
-int YARACallback(int message, void *message_data, void *user_data);
+int YARACallback(int message, void* message_data, void* user_data);
 
 /**
  * @brief A simple ConfigParserPlugin for a "yara" dictionary key.
@@ -47,18 +47,18 @@ int YARACallback(int message, void *message_data, void *user_data);
 class YARAConfigParserPlugin : public ConfigParserPlugin {
  public:
   /// Request a single "yara" top level key.
-  std::vector<std::string> keys() { return {"yara"}; }
+  std::vector<std::string> keys() const override { return {"yara"}; }
 
   // Retrieve compiled rules.
   std::map<std::string, YR_RULES*>& rules() { return rules_; }
 
-  Status setUp();
+  Status setUp() override;
 
  private:
   // Store compiled rules in a map (group => rules).
-  std::map<std::string, YR_RULES *> rules_;
+  std::map<std::string, YR_RULES*> rules_;
 
   /// Store the signatures and file_paths and compile the rules.
-  Status update(const std::map<std::string, pt::ptree>& config);
+  Status update(const std::string& source, const ParserConfig& config) override;
 };
 }

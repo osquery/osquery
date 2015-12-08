@@ -37,10 +37,13 @@ struct UdevSubscriptionContext : public SubscriptionContext {
 
   /// Restrict to a specific subsystem.
   std::string subsystem;
+
   /// Restrict to a specific devnode.
   std::string devnode;
+
   /// Restrict to a specific devtype.
   std::string devtype;
+
   /// Limit to a specific driver name.
   std::string driver;
 };
@@ -50,9 +53,11 @@ struct UdevSubscriptionContext : public SubscriptionContext {
  */
 struct UdevEventContext : public EventContext {
   /// A pointer to the device object, most subscribers will only use device.
-  struct udev_device* device;
+  struct udev_device* device{nullptr};
+
   /// The udev_event_action identifier.
   udev_event_action action;
+
   /// Action as a string (as given by udev).
   std::string action_string;
 
@@ -62,8 +67,8 @@ struct UdevEventContext : public EventContext {
   std::string driver;
 };
 
-typedef std::shared_ptr<UdevEventContext> UdevEventContextRef;
-typedef std::shared_ptr<UdevSubscriptionContext> UdevSubscriptionContextRef;
+using UdevEventContextRef = std::shared_ptr<UdevEventContext>;
+using UdevSubscriptionContextRef = std::shared_ptr<UdevSubscriptionContext>;
 
 /**
  * @brief A Linux `udev` EventPublisher.
@@ -74,16 +79,15 @@ class UdevEventPublisher
   DECLARE_PUBLISHER("udev");
 
  public:
-  Status setUp();
-  void configure();
-  void tearDown();
+  Status setUp() override;
 
-  Status run();
+  void configure() override;
 
-  UdevEventPublisher() : EventPublisher() {
-    handle_ = nullptr;
-    monitor_ = nullptr;
-  }
+  void tearDown() override;
+
+  Status run() override;
+
+  UdevEventPublisher() : EventPublisher(){};
 
   /**
    * @brief Return a string representation of a udev property.
@@ -107,13 +111,14 @@ class UdevEventPublisher
 
  private:
   /// udev handle (socket descriptor contained within).
-  struct udev *handle_;
-  struct udev_monitor *monitor_;
+  struct udev* handle_{nullptr};
+  struct udev_monitor* monitor_{nullptr};
 
  private:
   /// Check subscription details.
   bool shouldFire(const UdevSubscriptionContextRef& mc,
-                  const UdevEventContextRef& ec) const;
+                  const UdevEventContextRef& ec) const override;
+
   /// Helper function to create an EventContext using a udev_device pointer.
   UdevEventContextRef createEventContextFrom(struct udev_device* device);
 };

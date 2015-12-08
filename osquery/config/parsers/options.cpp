@@ -21,40 +21,45 @@ namespace osquery {
  */
 class OptionsConfigParserPlugin : public ConfigParserPlugin {
  public:
-  std::vector<std::string> keys() { return {"options"}; }
+  std::vector<std::string> keys() const override { return {"options"}; }
 
-  Status setUp() {
-    data_.put_child("options", pt::ptree());
-    return Status(0, "OK");
-  }
+  Status setUp() override;
 
-  Status update(const std::map<std::string, pt::ptree>& config) {
-    if (config.count("options") > 0) {
-      data_ = pt::ptree();
-      data_.put_child("options", config.at("options"));
-    }
-
-    const auto& options = data_.get_child("options");
-    for (const auto& option : options) {
-      std::string value = options.get<std::string>(option.first, "");
-      if (value.empty()) {
-        continue;
-      }
-
-      Flag::updateValue(option.first, value);
-      // There is a special case for supported Gflags-reserved switches.
-      if (option.first == "verbose" || option.first == "verbose_debug" ||
-          option.first == "debug") {
-        setVerboseLevel();
-        if (Flag::getValue("verbose") == "true") {
-          VLOG(1) << "Verbose logging enabled by config option";
-        }
-      }
-    }
-
-    return Status(0, "OK");
-  }
+  Status update(const std::string& source, const ParserConfig& config) override;
 };
+
+Status OptionsConfigParserPlugin::setUp() {
+  data_.put_child("options", pt::ptree());
+  return Status(0, "OK");
+}
+
+Status OptionsConfigParserPlugin::update(const std::string& source,
+                                         const ParserConfig& config) {
+  if (config.count("options") > 0) {
+    data_ = pt::ptree();
+    data_.put_child("options", config.at("options"));
+  }
+
+  const auto& options = data_.get_child("options");
+  for (const auto& option : options) {
+    std::string value = options.get<std::string>(option.first, "");
+    if (value.empty()) {
+      continue;
+    }
+
+    Flag::updateValue(option.first, value);
+    // There is a special case for supported Gflags-reserved switches.
+    if (option.first == "verbose" || option.first == "verbose_debug" ||
+        option.first == "debug") {
+      setVerboseLevel();
+      if (Flag::getValue("verbose") == "true") {
+        VLOG(1) << "Verbose logging enabled by config option";
+      }
+    }
+  }
+
+  return Status(0, "OK");
+}
 
 REGISTER_INTERNAL(OptionsConfigParserPlugin, "config_parser", "options");
 }

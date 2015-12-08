@@ -33,7 +33,7 @@ extern void parseSockAddr(const std::string& saddr, Row& r, bool local);
 
 class AuditTests : public testing::Test {
  protected:
-  void SetUp() { Row().swap(row_); }
+  void SetUp() override { Row().swap(row_); }
 
  protected:
   Row row_;

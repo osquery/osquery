@@ -8,8 +8,6 @@
  *
  */
 
-#include <stdio.h>
-
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
@@ -31,13 +29,13 @@ DECLARE_bool(verbose);
 
 class FSEventsTests : public testing::Test {
  protected:
-  void SetUp() {
+  void SetUp() override {
     FLAGS_verbose = true;
     trigger_path = kTestWorkingDirectory + "fsevents" +
                    std::to_string(rand() % 10000 + 10000);
   }
 
-  void TearDown() { remove(trigger_path); }
+  void TearDown() override { remove(trigger_path); }
 
   void StartEventLoop() {
     event_pub_ = std::make_shared<FSEventsEventPublisher>();
@@ -91,7 +89,7 @@ class FSEventsTests : public testing::Test {
     }
   }
 
-  std::shared_ptr<FSEventsEventPublisher> event_pub_;
+  std::shared_ptr<FSEventsEventPublisher> event_pub_{nullptr};
   boost::thread temp_thread_;
 
  public:
@@ -137,6 +135,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   auto subscription = Subscription::create("TestSubscriber", mc);
   auto status = EventFactory::addSubscription("fsevents", subscription);
   EXPECT_TRUE(status.ok());
+  event_pub->configure();
 
   // Make sure configure was called.
   size_t num_paths = event_pub->numSubscriptionedPaths();
@@ -148,6 +147,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   auto subscription_dup = Subscription::create("TestSubscriber", mc_dup);
   status = EventFactory::addSubscription("fsevents", subscription_dup);
   EXPECT_TRUE(status.ok());
+  event_pub->configure();
 
   // But the paths with be deduped when the event type reconfigures.
   num_paths = event_pub->numSubscriptionedPaths();
@@ -162,12 +162,12 @@ class TestFSEventsEventSubscriber
     setName("TestFSEventsEventSubscriber");
   }
 
-  Status init() {
+  Status init() override {
     callback_count_ = 0;
     return Status(0, "OK");
   }
-  Status SimpleCallback(const FSEventsEventContextRef& ec,
-                        const void* user_data) {
+
+  Status SimpleCallback(const ECRef& ec, const SCRef& sc) {
     callback_count_ += 1;
     return Status(0, "OK");
   }
@@ -179,7 +179,7 @@ class TestFSEventsEventSubscriber
     return sc;
   }
 
-  Status Callback(const FSEventsEventContextRef& ec, const void* user_data) {
+  Status Callback(const ECRef& ec, const SCRef& sc) {
     // The following comments are an example Callback routine.
     // Row r;
     // r["action"] = ec->action;
@@ -203,7 +203,7 @@ class TestFSEventsEventSubscriber
   }
 
  public:
-  int callback_count_;
+  int callback_count_{0};
   std::vector<std::string> actions_;
 
  private:
@@ -225,6 +225,7 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   mc->path = trigger_path;
   EventFactory::addSubscription(
       "fsevents", Subscription::create("TestFSEventsEventSubscriber", mc));
+  event_pub_->configure();
 
   // Create an event loop thread (similar to main)
   temp_thread_ = boost::thread(EventFactory::run, "fsevents");
@@ -256,7 +257,8 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
 
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(0);
-  sub->subscribe(&TestFSEventsEventSubscriber::SimpleCallback, sc, nullptr);
+  sub->subscribe(&TestFSEventsEventSubscriber::SimpleCallback, sc);
+  event_pub_->configure();
   CreateEvents();
 
   // This time wait for the callback.
@@ -278,7 +280,9 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   auto sc = sub->GetSubscription(0);
   EventFactory::registerEventSubscriber(sub);
 
-  sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc, nullptr);
+  sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc);
+  event_pub_->configure();
+
   CreateEvents();
   sub->WaitForEvents(kMaxEventLatency, 1);
 

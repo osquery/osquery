@@ -121,8 +121,8 @@ struct AuditEventContext : public EventContext {
   std::string preamble;
 };
 
-typedef std::shared_ptr<AuditEventContext> AuditEventContextRef;
-typedef std::shared_ptr<AuditSubscriptionContext> AuditSubscriptionContextRef;
+using AuditEventContextRef = std::shared_ptr<AuditEventContext>;
+using AuditSubscriptionContextRef = std::shared_ptr<AuditSubscriptionContext>;
 
 class AuditEventPublisher
     : public EventPublisher<AuditSubscriptionContext, AuditEventContext> {
@@ -147,18 +147,19 @@ class AuditEventPublisher
    *
    * See the `--audit-persist` command line option.
    */
-  Status setUp();
+  Status setUp() override;
 
   /// Fill in audit rules based on syscall/filter combinations.
-  void configure();
+  void configure() override;
 
   /// Remove audit rules and close the handle.
-  void tearDown();
+  void tearDown() override;
 
   /// Poll for replies to the netlink handle in a non-blocking mode.
-  Status run();
+  Status run() override;
 
-  AuditEventPublisher() : EventPublisher() {}
+ public:
+  AuditEventPublisher() : EventPublisher(){};
 
  private:
   /// Maintain a list of audit rule data for displaying or deleting.
@@ -166,7 +167,7 @@ class AuditEventPublisher
 
   /// Apply normal subscription to event matching logic.
   bool shouldFire(const AuditSubscriptionContextRef& mc,
-                  const AuditEventContextRef& ec) const;
+                  const AuditEventContextRef& ec) const override;
 
  private:
   /// Audit subsystem (netlink) socket descriptor.

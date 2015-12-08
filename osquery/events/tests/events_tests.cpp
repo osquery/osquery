@@ -19,9 +19,7 @@ namespace osquery {
 
 class EventsTests : public ::testing::Test {
  public:
-  void TearDown() {
-    EventFactory::end(true);
-  }
+  void TearDown() override { EventFactory::end(true); }
 };
 
 // The most basic event publisher uses useless Subscription/Event.
@@ -35,13 +33,14 @@ class AnotherBasicEventPublisher
 struct FakeSubscriptionContext : SubscriptionContext {
   int require_this_value;
 };
+
 struct FakeEventContext : EventContext {
   int required_value;
 };
 
 // Typedef the shared_ptr accessors.
-typedef std::shared_ptr<FakeSubscriptionContext> FakeSubscriptionContextRef;
-typedef std::shared_ptr<FakeEventContext> FakeEventContextRef;
+using FakeSubscriptionContextRef = std::shared_ptr<FakeSubscriptionContext>;
+using FakeEventContextRef = std::shared_ptr<FakeEventContext>;
 
 // Now a publisher with a type.
 class FakeEventPublisher
@@ -166,12 +165,12 @@ class TestEventPublisher
   DECLARE_PUBLISHER("TestPublisher");
 
  public:
-  Status setUp() {
+  Status setUp() override {
     smallest_ever_ += 1;
     return Status(0, "OK");
   }
 
-  void configure() {
+  void configure() override {
     int smallest_subscription = smallest_ever_;
 
     configure_run = true;
@@ -185,21 +184,16 @@ class TestEventPublisher
     smallest_ever_ = smallest_subscription;
   }
 
-  void tearDown() { smallest_ever_ += 1; }
-
-  TestEventPublisher() : EventPublisher() {
-    smallest_ever_ = 0;
-    configure_run = false;
-  }
+  void tearDown() override { smallest_ever_ += 1; }
 
   // Custom methods do not make sense, but for testing it exists.
   int getTestValue() { return smallest_ever_; }
 
  public:
-  bool configure_run;
+  bool configure_run{false};
 
  private:
-  int smallest_ever_;
+  int smallest_ever_{0};
 };
 
 TEST_F(EventsTests, test_create_custom_event_pub) {
@@ -229,6 +223,8 @@ TEST_F(EventsTests, test_custom_subscription) {
   status = EventFactory::addSubscription("TestPublisher", "TestSubscriber", sc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(pub->numSubscriptions(), 1U);
+  // Run configure on this publisher.
+  pub->configure();
 
   // The event type must run configure for each added subscription.
   EXPECT_TRUE(pub->configure_run);
@@ -260,31 +256,27 @@ TEST_F(EventsTests, test_tear_down) {
 
 static int kBellHathTolled = 0;
 
-Status TestTheeCallback(EventContextRef context, const void* user_data) {
+Status TestTheeCallback(const EventContextRef& ec,
+                        const SubscriptionContextRef& sc) {
   kBellHathTolled += 1;
   return Status(0, "OK");
 }
 
 class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
  public:
-  bool bellHathTolled;
-  bool contextBellHathTolled;
-  bool shouldFireBethHathTolled;
+  bool bellHathTolled{false};
+  bool contextBellHathTolled{false};
+  bool shouldFireBethHathTolled{false};
 
-  FakeEventSubscriber() {
-    setName("FakeSubscriber");
-    bellHathTolled = false;
-    contextBellHathTolled = false;
-    shouldFireBethHathTolled = false;
-  }
+  FakeEventSubscriber() { setName("FakeSubscriber"); }
 
-  Status Callback(const EventContextRef& ec, const void* user_data) {
+  Status Callback(const ECRef& ec, const SCRef& sc) {
     // We don't care about the subscription or the event contexts.
     bellHathTolled = true;
     return Status(0, "OK");
   }
 
-  Status SpecialCallback(const FakeEventContextRef& ec, const void* user_data) {
+  Status SpecialCallback(const ECRef& ec, const SCRef& sc) {
     // Now we care that the event context is corrected passed.
     if (ec->required_value == 42) {
       contextBellHathTolled = true;
@@ -294,13 +286,13 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
 
   void lateInit() {
     auto sub_ctx = createSubscriptionContext();
-    subscribe(&FakeEventSubscriber::Callback, sub_ctx, nullptr);
+    subscribe(&FakeEventSubscriber::Callback, sub_ctx);
   }
 
   void laterInit() {
     auto sub_ctx = createSubscriptionContext();
     sub_ctx->require_this_value = 42;
-    subscribe(&FakeEventSubscriber::SpecialCallback, sub_ctx, nullptr);
+    subscribe(&FakeEventSubscriber::SpecialCallback, sub_ctx);
   }
 
  private:
@@ -322,6 +314,7 @@ TEST_F(EventsTests, test_event_sub_subscribe) {
 
   // Don't overload the normal `init` Subscription member.
   sub->lateInit();
+  pub->configure();
   EXPECT_EQ(pub->numSubscriptions(), 1U);
 
   auto ec = pub->createEventContext();
@@ -338,6 +331,7 @@ TEST_F(EventsTests, test_event_sub_context) {
   EventFactory::registerEventSubscriber(sub);
 
   sub->laterInit();
+  pub->configure();
   auto ec = pub->createEventContext();
   ec->required_value = 42;
   pub->fire(ec, 0);
@@ -357,6 +351,7 @@ TEST_F(EventsTests, test_fire_event) {
   auto subscription = Subscription::create("FakeSubscriber");
   subscription->callback = TestTheeCallback;
   status = EventFactory::addSubscription("publisher", subscription);
+  pub->configure();
 
   // The event context creation would normally happen in the event type.
   auto ec = pub->createEventContext();
@@ -365,6 +360,7 @@ TEST_F(EventsTests, test_fire_event) {
 
   auto second_subscription = Subscription::create("FakeSubscriber");
   status = EventFactory::addSubscription("publisher", second_subscription);
+  pub->configure();
 
   // Now there are two subscriptions (one sans callback).
   pub->fire(ec, 0);

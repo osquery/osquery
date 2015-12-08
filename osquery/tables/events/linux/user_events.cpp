@@ -27,9 +27,9 @@ extern std::string decodeAuditValue(const std::string& s);
 class UserEventSubscriber : public EventSubscriber<AuditEventPublisher> {
  public:
   /// The user event subscriber declares an audit event type subscription.
-  Status init();
+  Status init() override;
 
-  Status Callback(const AuditEventContextRef& ec, const void* user_data);
+  Status Callback(const ECRef& ec, const SCRef& sc);
 };
 
 REGISTER(UserEventSubscriber, "event_subscriber", "user_events");
@@ -39,13 +39,12 @@ Status UserEventSubscriber::init() {
 
   // Request call backs for all user-related auditd events.
   sc->user_types = true;
-  subscribe(&UserEventSubscriber::Callback, sc, nullptr);
+  subscribe(&UserEventSubscriber::Callback, sc);
 
   return Status(0, "OK");
 }
 
-Status UserEventSubscriber::Callback(const AuditEventContextRef& ec,
-                                     const void* user_data) {
+Status UserEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r;
   r["uid"] = ec->fields["uid"];
   r["pid"] = ec->fields["pid"];

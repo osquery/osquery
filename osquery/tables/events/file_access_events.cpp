@@ -16,59 +16,59 @@
 
 namespace osquery {
 
-class FileAccessEventSubscriber
-  : public EventSubscriber<KernelEventPublisher> {
+class FileAccessEventSubscriber : public EventSubscriber<KernelEventPublisher> {
  public:
-  Status init();
+  Status init() override;
 
   Status Callback(const TypedKernelEventContextRef<osquery_file_event_t> &ec,
-                  const void *user_data);
+                  const KernelSubscriptionContextRef &sc);
 };
 
 REGISTER(FileAccessEventSubscriber, "event_subscriber", "file_access_events");
 
 Status FileAccessEventSubscriber::init() {
-  Config::getInstance().files(
-      [this](const std::string &, const std::vector<std::string> &files) {
-        for (const auto &file : files) {
-          auto sc = createSubscriptionContext();
-          sc->event_type = OSQUERY_FILE_EVENT;
-          osquery_file_event_subscription_t sub = {
-              .actions = (osquery_file_action_t)(
-                  OSQUERY_FILE_ACTION_OPEN | OSQUERY_FILE_ACTION_CLOSE |
-                  OSQUERY_FILE_ACTION_CLOSE_MODIFIED)};
-          auto path = file;
-          replaceGlobWildcards(path);
-          path = path.substr(0, path.find("*"));
-          strncpy(sub.path, path.c_str(), MAXPATHLEN);
-          sc->udata = &sub;
-          VLOG(1) << "Added kernel listener to: " << path;
+  Config::getInstance().files([this](const std::string &category,
+                                     const std::vector<std::string> &files) {
+    for (const auto &file : files) {
+      auto sc = createSubscriptionContext();
+      sc->event_type = OSQUERY_FILE_EVENT;
+      osquery_file_event_subscription_t sub = {
+          .actions = (osquery_file_action_t)(
+              OSQUERY_FILE_ACTION_OPEN | OSQUERY_FILE_ACTION_CLOSE |
+              OSQUERY_FILE_ACTION_CLOSE_MODIFIED)};
+      auto path = file;
+      replaceGlobWildcards(path);
+      path = path.substr(0, path.find("*"));
+      strncpy(sub.path, path.c_str(), MAXPATHLEN);
+      sc->category = category;
+      VLOG(1) << "Added kernel listener to: " << path;
 
-          subscribe(&FileAccessEventSubscriber::Callback, sc, NULL);
-        }
-      });
+      subscribe(&FileAccessEventSubscriber::Callback, sc);
+    }
+  });
 
   return Status(0, "OK");
 }
 
 Status FileAccessEventSubscriber::Callback(
     const TypedKernelEventContextRef<osquery_file_event_t> &ec,
-    const void *user_data) {
+    const KernelSubscriptionContextRef &sc) {
   Row r;
   switch (ec->event.action) {
-    case OSQUERY_FILE_ACTION_OPEN:
-      r["action"] = "OPEN";
-      break;
-    case OSQUERY_FILE_ACTION_CLOSE:
-      r["action"] = "CLOSE";
-      break;
-    case OSQUERY_FILE_ACTION_CLOSE_MODIFIED:
-      r["action"] = "CLOSE MODIFIED";
-      break;
-    default:
-      r["action"] = "UNKNOWN";
-      break;
+  case OSQUERY_FILE_ACTION_OPEN:
+    r["action"] = "OPEN";
+    break;
+  case OSQUERY_FILE_ACTION_CLOSE:
+    r["action"] = "CLOSE";
+    break;
+  case OSQUERY_FILE_ACTION_CLOSE_MODIFIED:
+    r["action"] = "CLOSE MODIFIED";
+    break;
+  default:
+    r["action"] = "UNKNOWN";
+    break;
   }
+
   r["pid"] = BIGINT(ec->event.pid);
   r["parent"] = BIGINT(ec->event.ppid);
   r["uid"] = BIGINT(ec->event.uid);
@@ -90,5 +90,4 @@ Status FileAccessEventSubscriber::Callback(
   return Status(0, "OK");
 }
 
-
-}  // namespace osquery
+} // namespace osquery

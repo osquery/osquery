@@ -17,12 +17,6 @@
 namespace osquery {
 
 CQueue::CQueue(const std::string &device, size_t size) {
-  buffer_ = nullptr;
-  size_ = 0;
-  max_read_ = nullptr;
-  read_ = nullptr;
-  fd_ = -1;
-
   osquery_buf_allocate_args_t alloc;
   alloc.size = size;
   alloc.buffer = nullptr;
@@ -50,11 +44,10 @@ CQueue::~CQueue() {
   }
 }
 
-void CQueue::subscribe(osquery_event_t event, void *udata) {
+void CQueue::subscribe(osquery_event_t event) {
   osquery_subscription_args_t sub;
   sub.event = event;
   sub.subscribe = 1;
-  sub.udata = udata;
 
   if (ioctl(fd_, OSQUERY_IOCTL_SUBSCRIPTION, &sub)) {
     throw CQueueException("Could not subscribe to event");
@@ -92,7 +85,7 @@ int CQueue::kernelSync(int options) {
 
   int err = 0;
   err = ioctl(fd_, OSQUERY_IOCTL_BUF_SYNC, &sync);
-  uint8_t *new_max_read =  sync.max_read_offset + buffer_;
+  uint8_t *new_max_read = sync.max_read_offset + buffer_;
   max_read_ = new_max_read;
   if (err) {
     read_ = max_read_;
@@ -102,4 +95,4 @@ int CQueue::kernelSync(int options) {
   return sync.drops;
 }
 
-}  // namespace osquery
+} // namespace osquery

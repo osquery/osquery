@@ -28,10 +28,10 @@ extern long getUptime();
 class ProcessEventSubscriber : public EventSubscriber<AuditEventPublisher> {
  public:
   /// The process event subscriber declares an audit event type subscription.
-  Status init();
+  Status init() override;
 
   /// Kernel events matching the event type will fire.
-  Status Callback(const AuditEventContextRef& ec, const void* user_data);
+  Status Callback(const ECRef& ec, const SCRef& sc);
 
  private:
   /// The next expected process event state.
@@ -147,13 +147,12 @@ Status ProcessEventSubscriber::init() {
   // Request call backs for all parts of the process execution state.
   // Drop events if they are encountered outside of the expected state.
   sc->types = {AUDIT_SYSCALL, AUDIT_EXECVE, AUDIT_CWD, AUDIT_PATH};
-  subscribe(&ProcessEventSubscriber::Callback, sc, nullptr);
+  subscribe(&ProcessEventSubscriber::Callback, sc);
 
   return Status(0, "OK");
 }
 
-Status ProcessEventSubscriber::Callback(const AuditEventContextRef& ec,
-                                        const void* user_data) {
+Status ProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   // Check and set the valid state change.
   // If this is an unacceptable change reset the state and clear row data.
   if (ec->fields.count("success") && ec->fields.at("success") == "no") {

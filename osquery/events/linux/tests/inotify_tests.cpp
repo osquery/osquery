@@ -31,7 +31,7 @@ const int kMaxEventLatency = 3000;
 
 class INotifyTests : public testing::Test {
  protected:
-  void SetUp() {
+  void SetUp() override {
     real_test_path = kTestWorkingDirectory + "inotify-trigger";
     real_test_dir = kTestWorkingDirectory + "inotify-triggers";
     real_test_dir_path = real_test_dir + "/1";
@@ -39,7 +39,7 @@ class INotifyTests : public testing::Test {
     real_test_sub_dir_path = real_test_sub_dir + "/1";
   }
 
-  void TearDown() {
+  void TearDown() override {
     // End the event loops, and join on the threads.
     fs::remove_all(real_test_path);
     fs::remove_all(real_test_dir);
@@ -64,12 +64,13 @@ class INotifyTests : public testing::Test {
 
   void SubscriptionAction(const std::string& path,
                           uint32_t mask = 0,
-                          EventCallback ec = 0) {
-    auto mc = std::make_shared<INotifySubscriptionContext>();
-    mc->path = path;
-    mc->mask = mask;
+                          EventCallback ec = nullptr) {
+    auto sc = std::make_shared<INotifySubscriptionContext>();
+    sc->path = path;
+    sc->mask = mask;
 
-    EventFactory::addSubscription("inotify", "TestSubscriber", mc, ec);
+    EventFactory::addSubscription("inotify", "TestSubscriber", sc, ec);
+    event_pub_->configure();
   }
 
   bool WaitForEvents(size_t max, size_t num_events = 0) {
@@ -106,7 +107,7 @@ class INotifyTests : public testing::Test {
 
  protected:
   // Internal state managers.
-  std::shared_ptr<INotifyEventPublisher> event_pub_;
+  std::shared_ptr<INotifyEventPublisher> event_pub_{nullptr};
   boost::thread temp_thread_;
 
   // Transient paths.
@@ -213,22 +214,19 @@ TEST_F(INotifyTests, test_inotify_match_subscription) {
 class TestINotifyEventSubscriber
     : public EventSubscriber<INotifyEventPublisher> {
  public:
-  TestINotifyEventSubscriber() : callback_count_(0) {
-    setName("TestINotifyEventSubscriber");
-  }
+  TestINotifyEventSubscriber() { setName("TestINotifyEventSubscriber"); }
 
-  Status init() {
+  Status init() override {
     callback_count_ = 0;
     return Status(0, "OK");
   }
 
-  Status SimpleCallback(const INotifyEventContextRef& ec,
-                        const void* user_data) {
+  Status SimpleCallback(const ECRef& ec, const SCRef& sc) {
     callback_count_ += 1;
     return Status(0, "OK");
   }
 
-  Status Callback(const INotifyEventContextRef& ec, const void* user_data) {
+  Status Callback(const ECRef& ec, const SCRef& sc) {
     // The following comments are an example Callback routine.
     // Row r;
     // r["action"] = ec->action;
@@ -263,7 +261,7 @@ class TestINotifyEventSubscriber
   int count() { return callback_count_; }
 
  public:
-  int callback_count_;
+  int callback_count_{0};
   std::vector<std::string> actions_;
 
  private:
@@ -293,6 +291,7 @@ TEST_F(INotifyTests, test_inotify_run) {
   status = EventFactory::addSubscription(
       "inotify", Subscription::create("TestINotifyEventSubscriber", mc));
   EXPECT_TRUE(status.ok());
+  event_pub_->configure();
 
   // Create an event loop thread (similar to main)
   boost::thread temp_thread(EventFactory::run, "inotify");
@@ -317,7 +316,8 @@ TEST_F(INotifyTests, test_inotify_fire_event) {
 
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(real_test_path, 0);
-  sub->subscribe(&TestINotifyEventSubscriber::SimpleCallback, sc, nullptr);
+  sub->subscribe(&TestINotifyEventSubscriber::SimpleCallback, sc);
+  event_pub_->configure();
 
   TriggerEvent(real_test_path);
   sub->WaitForEvents(kMaxEventLatency);
@@ -334,7 +334,8 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   EventFactory::registerEventSubscriber(sub);
 
   auto sc = sub->GetSubscription(real_test_path, 0);
-  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc, nullptr);
+  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc);
+  event_pub_->configure();
 
   TriggerEvent(real_test_path);
   sub->WaitForEvents(kMaxEventLatency, 2);
@@ -377,7 +378,8 @@ TEST_F(INotifyTests, test_inotify_directory_watch) {
   auto mc = sub->createSubscriptionContext();
   mc->path = real_test_dir;
   mc->recursive = true;
-  sub->subscribe(&TestINotifyEventSubscriber::Callback, mc, nullptr);
+  sub->subscribe(&TestINotifyEventSubscriber::Callback, mc);
+  event_pub_->configure();
 
   // Trigger on a subdirectory's file.
   TriggerEvent(real_test_sub_dir_path);
@@ -400,9 +402,10 @@ TEST_F(INotifyTests, test_inotify_recursion) {
   auto sc = sub->createSubscriptionContext();
 
   sc->path = kFakeDirectory + "/*";
-  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc, nullptr);
+  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc);
   // Trigger a configure step manually.
   pub->configure();
+
   // Expect a single monitor on the root of the fake tree.
   EXPECT_EQ(pub->path_descriptors_.size(), 1U);
   EXPECT_EQ(pub->path_descriptors_.count(kFakeDirectory + "/"), 1U);
@@ -413,8 +416,9 @@ TEST_F(INotifyTests, test_inotify_recursion) {
 
   auto sc2 = sub->createSubscriptionContext();
   sc2->path = kFakeDirectory + "/**";
-  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc2, nullptr);
+  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc2);
   pub->configure();
+
   // Expect only the directories to be monitored.
   EXPECT_EQ(pub->path_descriptors_.size(), 6U);
   RemoveAll(pub);
@@ -425,8 +429,9 @@ TEST_F(INotifyTests, test_inotify_recursion) {
 
   auto sc3 = sub->createSubscriptionContext();
   sc3->path = kFakeDirectory + "/**";
-  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc3, nullptr);
+  sub->subscribe(&TestINotifyEventSubscriber::Callback, sc3);
   pub->configure();
+
   // Also expect canonicalized resolution (to prevent loops).
   EXPECT_EQ(pub->path_descriptors_.size(), 6U);
   RemoveAll(pub);

@@ -29,8 +29,6 @@ struct DeviceTracker : private boost::noncopyable {
   explicit DeviceTracker(IOKitEventPublisher* p) : publisher(p) {}
 };
 
-void IOKitEventPublisher::configure() {}
-
 void IOKitEventPublisher::restart() {
   if (run_loop_ == nullptr) {
     // There is no run loop to restart.

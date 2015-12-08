@@ -26,10 +26,15 @@ namespace osquery {
  *
  * This is mostly an example EventSubscriber implementation.
  */
-class FileEventSubscriber
-    : public EventSubscriber<INotifyEventPublisher> {
+class FileEventSubscriber : public EventSubscriber<INotifyEventPublisher> {
  public:
-  Status init();
+  Status init() override {
+    configure();
+    return Status(0);
+  }
+
+  /// Walk the configuration's file paths, create subscriptions.
+  void configure() override;
 
   /**
    * @brief This exports a single Callback for INotifyEventPublisher events.
@@ -39,7 +44,7 @@ class FileEventSubscriber
    *
    * @return Was the callback successful.
    */
-  Status Callback(const INotifyEventContextRef& ec, const void* user_data);
+  Status Callback(const ECRef& ec, const SCRef& sc);
 };
 
 /**
@@ -51,33 +56,32 @@ class FileEventSubscriber
  */
 REGISTER(FileEventSubscriber, "event_subscriber", "file_events");
 
-Status FileEventSubscriber::init() {
+void FileEventSubscriber::configure() {
+  // Clear all monitors from INotify.
+  // There may be a better way to find the set intersection/difference.
+  auto pub = getPublisher();
+  pub->removeSubscriptions();
+
   Config::getInstance().files([this](const std::string& category,
                                      const std::vector<std::string>& files) {
     for (const auto& file : files) {
       VLOG(1) << "Added listener to: " << file;
-      auto mc = createSubscriptionContext();
+      auto sc = createSubscriptionContext();
       // Use the filesystem globbing pattern to determine recursiveness.
-      mc->recursive = 0;
-      mc->path = file;
-      mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
-      subscribe(&FileEventSubscriber::Callback, mc, (void*)(&category));
+      sc->recursive = 0;
+      sc->path = file;
+      sc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
+      sc->category = category;
+      subscribe(&FileEventSubscriber::Callback, sc);
     }
   });
-
-  return Status(0, "OK");
 }
 
-Status FileEventSubscriber::Callback(const INotifyEventContextRef& ec,
-                                            const void* user_data) {
+Status FileEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r;
   r["action"] = ec->action;
   r["target_path"] = ec->path;
-  if (user_data != nullptr) {
-    r["category"] = *(std::string*)user_data;
-  } else {
-    r["category"] = "Undefined";
-  }
+  r["category"] = sc->category;
   r["transaction_id"] = INTEGER(ec->event->cookie);
 
   if (ec->action == "CREATED" || ec->action == "UPDATED") {

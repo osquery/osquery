@@ -39,8 +39,8 @@ struct KernelSubscriptionContext : public SubscriptionContext {
   /// The kernel event subscription type.
   osquery_event_t event_type;
 
-  /// Data to pass to the kernel.
-  void *udata;
+  /// Optional category passed to the callback.
+  std::string category;
 };
 
 /**
@@ -50,44 +50,50 @@ struct KernelEventContext : public EventContext {
   /// The event type.
   osquery_event_t event_type;
 
-  uint32_t uptime;
+  /// The observed uptime of the system at event time.
+  uint32_t uptime{0};
 };
 
 template <typename EventType>
 struct TypedKernelEventContext : public KernelEventContext {
   EventType event;
+
+  // The flexible data must remain as the last member.
   std::vector<char> flexible_data;
 };
 
-typedef std::shared_ptr<KernelSubscriptionContext> KernelSubscriptionContextRef;
-typedef std::shared_ptr<KernelEventContext> KernelEventContextRef;
+using KernelSubscriptionContextRef = std::shared_ptr<KernelSubscriptionContext>;
+using KernelEventContextRef = std::shared_ptr<KernelEventContext>;
+
 template <typename EventType>
 using TypedKernelEventContextRef =
-  std::shared_ptr<TypedKernelEventContext<EventType> >;
+    std::shared_ptr<TypedKernelEventContext<EventType> >;
 
 class KernelEventPublisher
     : public EventPublisher<KernelSubscriptionContext, KernelEventContext> {
   DECLARE_PUBLISHER("kernel");
 
  public:
-  KernelEventPublisher() : EventPublisher(), queue_(nullptr) {}
+  KernelEventPublisher() : EventPublisher(), queue_(nullptr){};
 
-  Status setUp();
-  void configure();
-  void tearDown();
+  Status setUp() override;
 
-  Status run();
+  void configure() override;
+
+  void tearDown() override;
+
+  Status run() override;
 
  private:
-  CQueue *queue_;
+  CQueue *queue_{nullptr};
 
   /// Check whether the subscription matches the event.
   bool shouldFire(const KernelSubscriptionContextRef &sc,
-                  const KernelEventContextRef &ec) const;
+                  const KernelEventContextRef &ec) const override;
 
   template <typename EventType>
   KernelEventContextRef createEventContextFrom(osquery_event_t event_type,
                                                CQueue::event *event) const;
 };
 
-}  // namespace osquery
+} // namespace osquery

@@ -32,10 +32,10 @@ class SocketEventSubscriber : public EventSubscriber<AuditEventPublisher> {
   SocketEventSubscriber() : EventSubscriber(false) {}
 
   /// The process event subscriber declares an audit event type subscription.
-  Status init();
+  Status init() override;
 
   /// Kernel events matching the event type will fire.
-  Status Callback(const AuditEventContextRef& ec, const void* user_data);
+  Status Callback(const ECRef& ec, const SCRef& sc);
 
  private:
   /// Socket events come in pairs, first the syscall then the structure.
@@ -58,7 +58,7 @@ Status SocketEventSubscriber::init() {
 
   // Drop events if they are encountered outside of the expected state.
   // sc->types = {AUDIT_SYSCALL};
-  subscribe(&SocketEventSubscriber::Callback, sc, nullptr);
+  subscribe(&SocketEventSubscriber::Callback, sc);
 
   return Status(0, "OK");
 }
@@ -113,8 +113,7 @@ void parseSockAddr(const std::string& saddr, Row& r, bool local) {
   }
 }
 
-Status SocketEventSubscriber::Callback(const AuditEventContextRef& ec,
-                                       const void* user_data) {
+Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
   if (waiting_for_saddr_) {
     if (ec->type == AUDIT_TYPE_SOCKADDR) {
       auto& saddr = ec->fields["saddr"];

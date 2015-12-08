@@ -46,6 +46,14 @@ std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
 
 REGISTER(FSEventsEventPublisher, "event_publisher", "fsevents");
 
+void FSEventsSubscriptionContext::requireAction(const std::string& action) {
+  for (const auto& bit : kMaskActions) {
+    if (action == bit.second) {
+      mask = mask & bit.first;
+    }
+  }
+}
+
 void FSEventsEventPublisher::restart() {
   if (paths_.empty()) {
     // There are no paths to watch.
@@ -259,6 +267,11 @@ bool FSEventsEventPublisher::shouldFire(
   return true;
 }
 
+void FSEventsEventPublisher::removeSubscriptions() {
+  std::set<std::string>().swap(paths_);
+  EventPublisherPlugin::removeSubscriptions();
+}
+
 void FSEventsEventPublisher::flush(bool async) {
   if (stream_ != nullptr && stream_started_) {
     if (async) {
@@ -274,11 +287,7 @@ size_t FSEventsEventPublisher::numSubscriptionedPaths() {
 }
 
 bool FSEventsEventPublisher::isStreamRunning() {
-  if (stream_ == nullptr || !stream_started_) {
-    return false;
-  }
-
-  if (run_loop_ == nullptr) {
+  if (stream_ == nullptr || !stream_started_ || run_loop_ == nullptr) {
     return false;
   }
 

@@ -20,10 +20,9 @@ namespace osquery {
 class DiskEventSubscriber
     : public EventSubscriber<DiskArbitrationEventPublisher> {
  public:
-  Status init();
+  Status init() override;
 
-  Status Callback(const DiskArbitrationEventContextRef& ec,
-                  const void* user_data);
+  Status Callback(const ECRef& ec, const SCRef& sc);
 };
 
 REGISTER(DiskEventSubscriber, "event_subscriber", "disk_events");
@@ -33,12 +32,11 @@ Status DiskEventSubscriber::init() {
   // Don't want physical disk events
   subscription->physical_disks = false;
 
-  subscribe(&DiskEventSubscriber::Callback, subscription, nullptr);
+  subscribe(&DiskEventSubscriber::Callback, subscription);
   return Status(0, "OK");
 }
 
-Status DiskEventSubscriber::Callback(const DiskArbitrationEventContextRef& ec,
-                                     const void* user_data) {
+Status DiskEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r;
   r["action"] = ec->action;
   r["path"] = ec->path;

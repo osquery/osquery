@@ -28,7 +28,9 @@
 #ifdef DEBUG
 #define dbg_printf(...) printf("osquery kext: " __VA_ARGS__)
 #else
-#define dbg_printf(...) do{ } while(0)
+#define dbg_printf(...) \
+  do {                  \
+  } while (0)
 #endif
 
 #ifndef STR
@@ -72,15 +74,13 @@ static struct {
 
   /// IOCTL API handling mutex.
   lck_mtx_t *mtx;
-} osquery = {
-  .open_count = 0,
-  .buffer = NULL,
-  .buf_size = 0,
-  .md = NULL,
-  .mm = NULL,
-  .devfs = NULL,
-  .major_number = OSQUERY_MAJOR
-};
+} osquery = {.open_count = 0,
+             .buffer = NULL,
+             .buf_size = 0,
+             .md = NULL,
+             .mm = NULL,
+             .devfs = NULL,
+             .major_number = OSQUERY_MAJOR};
 
 static inline void setup_locks() {
   // Create locks. Cannot be done on the stack.
@@ -111,9 +111,7 @@ static void unsubscribe_all_events() {
   }
 }
 
-static int subscribe_to_event(osquery_event_t event,
-                              int subscribe,
-                              void *udata) {
+static int subscribe_to_event(osquery_event_t event, int subscribe) {
   if (osquery.buffer == NULL) {
     return -EINVAL;
   }
@@ -125,7 +123,7 @@ static int subscribe_to_event(osquery_event_t event,
   }
 
   if (subscribe) {
-    if (osquery_publishers[event]->subscribe(&osquery.cqueue, udata)) {
+    if (osquery_publishers[event]->subscribe(&osquery.cqueue)) {
       return -EINVAL;
     }
   } else {
@@ -139,9 +137,8 @@ static int update_user_kernel_buffer(int options,
                                      size_t read_offset,
                                      size_t *max_read_offset,
                                      int *drops) {
-  if (osquery_cqueue_advance_read(&osquery.cqueue,
-                                  read_offset,
-                                  max_read_offset)) {
+  if (osquery_cqueue_advance_read(
+          &osquery.cqueue, read_offset, max_read_offset)) {
     return -EINVAL;
   }
   if (!(options & OSQUERY_NO_BLOCK)) {
@@ -199,18 +196,19 @@ static int allocate_user_kernel_buffer(size_t size, void **buf) {
   bzero(osquery.buffer, osquery.buf_size);
 
   // This buffer will be shared, create a descriptor.
-  osquery.md
-    = IOMemoryDescriptor::withAddressRange((mach_vm_address_t)osquery.buffer,
+  osquery.md =
+      IOMemoryDescriptor::withAddressRange((mach_vm_address_t)osquery.buffer,
                                            osquery.buf_size,
-                                           kIODirectionInOut, kernel_task);
+                                           kIODirectionInOut,
+                                           kernel_task);
   if (osquery.md == NULL) {
     err = -EINVAL;
     goto error_exit;
   }
 
   // Now map the buffer into the user space process as read only.
-  osquery.mm = osquery.md->createMappingInTask(current_task(), NULL,
-                                               kIOMapAnywhere | kIOMapReadOnly);
+  osquery.mm = osquery.md->createMappingInTask(
+      current_task(), NULL, kIOMapAnywhere | kIOMapReadOnly);
   if (osquery.mm == NULL) {
     err = -EINVAL;
     goto error_exit;
@@ -234,7 +232,7 @@ static int osquery_open(dev_t dev, int oflags, int devtype, struct proc *p) {
   int err = 0;
   lck_mtx_lock(osquery.mtx);
   if (osquery.open_count == 0) {
-    osquery.open_count ++;
+    osquery.open_count++;
   }
 #ifndef KERNEL_TEST
   else {
@@ -259,9 +257,8 @@ static int osquery_close(dev_t dev, int flag, int fmt, struct proc *p) {
   return 0;
 }
 
-
-static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
-                         int flag, struct proc *p) {
+static int osquery_ioctl(
+    dev_t dev, u_long cmd, caddr_t data, int flag, struct proc *p) {
 #ifdef KERNEL_TEST
   // Reentrant code used for testing the queue functionality.
   // This test-only code allows benchmarks to stress test queue handling.
@@ -275,18 +272,18 @@ static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
     size_t length = 0;
     void *e = NULL;
     switch (*(int *)data) {
-      case 0:
-        e = osquery_cqueue_reserve(&osquery.cqueue, OSQUERY_TEST_EVENT_0,
-                                   sizeof(test_event_0_data_t));
-        length = 4096;
-        break;
-      case 1:
-        e = osquery_cqueue_reserve(&osquery.cqueue, OSQUERY_TEST_EVENT_1,
-                                   sizeof(test_event_1_data_t));
-        length = 33;
-        break;
-      default:
-        return -ENOTTY;
+    case 0:
+      e = osquery_cqueue_reserve(
+          &osquery.cqueue, OSQUERY_TEST_EVENT_0, sizeof(test_event_0_data_t));
+      length = 4096;
+      break;
+    case 1:
+      e = osquery_cqueue_reserve(
+          &osquery.cqueue, OSQUERY_TEST_EVENT_1, sizeof(test_event_1_data_t));
+      length = 33;
+      break;
+    default:
+      return -ENOTTY;
     }
     if (!e) {
       return -EINVAL;
@@ -312,63 +309,63 @@ static int osquery_ioctl(dev_t dev, u_long cmd, caddr_t data,
   lck_mtx_lock(osquery.mtx);
   switch (cmd) {
   // Daemon is requesting a new subscription (e.g., monitored path).
-    case OSQUERY_IOCTL_SUBSCRIPTION:
-      sub = (osquery_subscription_args_t *)data;
-      if ((err = subscribe_to_event(sub->event, sub->subscribe, sub->udata))) {
-        goto error_exit;
-      }
-      break;
-
-    // Daemon is requesting a synchronization of readable queue space.
-    case OSQUERY_IOCTL_BUF_SYNC:
-      // The queue buffer cannot be synchronized if it has not been allocated.
-      if (osquery.buffer == NULL) {
-        err = -EINVAL;
-        goto error_exit;
-      }
-
-      // Unlock while applying update logic, re-lock on error and success.
-      lck_mtx_unlock(osquery.mtx);
-      sync = (osquery_buf_sync_args_t *)data;
-      if ((err = update_user_kernel_buffer(sync->options,
-                                           sync->read_offset,
-                                           &(sync->max_read_offset),
-                                           &(sync->drops)))) {
-        lck_mtx_lock(osquery.mtx);
-        goto error_exit;
-      }
-      lck_mtx_lock(osquery.mtx);
-      break;
-
-    // Daemon is requesting an allocation for the queue, and shared region.
-    case OSQUERY_IOCTL_BUF_ALLOCATE:
-      alloc = (osquery_buf_allocate_args_t *)data;
-      if (alloc->version != OSQUERY_KERNEL_COMM_VERSION) {
-        // Daemon tried connecting with incorrect version number.
-        // The structure types and sizes are bound to the COMMs version.
-        // Any non-matching daemon may not handle these structures correctly.
-        err = -EINVAL;
-        goto error_exit;
-      }
-
-      if (osquery.buffer != NULL) {
-        // There is only a single shared buffer.
-        err = -EINVAL;
-        goto error_exit;
-      }
-
-      // Attempt to allocation and set up the circular queue.
-      if ((err = allocate_user_kernel_buffer(alloc->size, &(alloc->buffer)))) {
-        goto error_exit;
-      }
-
-      dbg_printf("IOCTL alloc: size %lu, location %p\n",
-                 alloc->size, alloc->buffer);
-      break;
-    default:
-      err = -ENOTTY;
+  case OSQUERY_IOCTL_SUBSCRIPTION:
+    sub = (osquery_subscription_args_t *)data;
+    if ((err = subscribe_to_event(sub->event, sub->subscribe))) {
       goto error_exit;
-      break;
+    }
+    break;
+
+  // Daemon is requesting a synchronization of readable queue space.
+  case OSQUERY_IOCTL_BUF_SYNC:
+    // The queue buffer cannot be synchronized if it has not been allocated.
+    if (osquery.buffer == NULL) {
+      err = -EINVAL;
+      goto error_exit;
+    }
+
+    // Unlock while applying update logic, re-lock on error and success.
+    lck_mtx_unlock(osquery.mtx);
+    sync = (osquery_buf_sync_args_t *)data;
+    if ((err = update_user_kernel_buffer(sync->options,
+                                         sync->read_offset,
+                                         &(sync->max_read_offset),
+                                         &(sync->drops)))) {
+      lck_mtx_lock(osquery.mtx);
+      goto error_exit;
+    }
+    lck_mtx_lock(osquery.mtx);
+    break;
+
+  // Daemon is requesting an allocation for the queue, and shared region.
+  case OSQUERY_IOCTL_BUF_ALLOCATE:
+    alloc = (osquery_buf_allocate_args_t *)data;
+    if (alloc->version != OSQUERY_KERNEL_COMM_VERSION) {
+      // Daemon tried connecting with incorrect version number.
+      // The structure types and sizes are bound to the COMMs version.
+      // Any non-matching daemon may not handle these structures correctly.
+      err = -EINVAL;
+      goto error_exit;
+    }
+
+    if (osquery.buffer != NULL) {
+      // There is only a single shared buffer.
+      err = -EINVAL;
+      goto error_exit;
+    }
+
+    // Attempt to allocation and set up the circular queue.
+    if ((err = allocate_user_kernel_buffer(alloc->size, &(alloc->buffer)))) {
+      goto error_exit;
+    }
+
+    dbg_printf(
+        "IOCTL alloc: size %lu, location %p\n", alloc->size, alloc->buffer);
+    break;
+  default:
+    err = -ENOTTY;
+    goto error_exit;
+    break;
   }
 
 error_exit:
@@ -379,20 +376,20 @@ error_exit:
 
 // OSQuery character device switch structure.
 static struct cdevsw osquery_cdevsw = {
-    osquery_open,    // open_close_fcn_t *d_open;
-    osquery_close,   // open_close_fcn_t *d_close;
-    eno_rdwrt,       // read_write_fcn_t *d_read;
-    eno_rdwrt,       // read_write_fcn_t *d_write;
-    &osquery_ioctl,  // ioctl_fcn_t      *d_ioctl;
-    eno_stop,        // stop_fcn_t       *d_stop;
-    eno_reset,       // reset_fcn_t      *d_reset;
-    NULL,            // struct tty      **d_ttys;
-    eno_select,      // select_fcn_t     *d_select;
-    eno_mmap,        // mmap_fcn_t       *d_mmap;
-    eno_strat,       // strategy_fcn_t   *d_strategy;
-    eno_getc,        // getc_fcn_t       *d_getc;
-    eno_putc,        // putc_fcn_t       *d_putc;
-    0                // int               d_type;
+    osquery_open, // open_close_fcn_t *d_open;
+    osquery_close, // open_close_fcn_t *d_close;
+    eno_rdwrt, // read_write_fcn_t *d_read;
+    eno_rdwrt, // read_write_fcn_t *d_write;
+    &osquery_ioctl, // ioctl_fcn_t      *d_ioctl;
+    eno_stop, // stop_fcn_t       *d_stop;
+    eno_reset, // reset_fcn_t      *d_reset;
+    NULL, // struct tty      **d_ttys;
+    eno_select, // select_fcn_t     *d_select;
+    eno_mmap, // mmap_fcn_t       *d_mmap;
+    eno_strat, // strategy_fcn_t   *d_strategy;
+    eno_getc, // getc_fcn_t       *d_getc;
+    eno_putc, // putc_fcn_t       *d_putc;
+    0 // int               d_type;
 };
 
 kern_return_t OsqueryStart(kmod_info_t *ki, void *d) {
@@ -485,7 +482,9 @@ extern kern_return_t _stop(kmod_info_t *ki, void *data);
 }
 
 KMOD_EXPLICIT_DECL(com.facebook.security.osquery,
-    STR(OSQUERY_KERNEL_COMMUNICATION_VERSION), _start, _stop)
+                   STR(OSQUERY_KERNEL_COMMUNICATION_VERSION),
+                   _start,
+                   _stop)
 DECLHIDDEN(kmod_start_func_t *) _realmain = OsqueryStart;
 DECLHIDDEN(kmod_stop_func_t *) _antimain = OsqueryStop;
 DECLHIDDEN(int) _kext_apple_cc = __APPLE_CC__;

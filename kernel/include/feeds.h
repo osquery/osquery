@@ -54,7 +54,8 @@ extern "C" {
 //
 
 typedef enum {
-  END_OF_BUFFER_EVENT = 0, // Null event used to signal the end of the buffer.
+  // Null event used to signal the end of the buffer.
+  END_OF_BUFFER_EVENT = 0,
   OSQUERY_NULL_EVENT = 0,
   OSQUERY_PROCESS_EVENT,
   OSQUERY_FILE_EVENT,
@@ -64,7 +65,8 @@ typedef enum {
   OSQUERY_TEST_EVENT_1,
 #endif // KERNEL_TEST
 
-  OSQUERY_NUM_EVENTS // Number of different event types.
+  // Number of different event types.
+  OSQUERY_NUM_EVENTS,
 } osquery_event_t;
 
 typedef struct {
@@ -90,7 +92,9 @@ typedef struct {
   int envc;
   int actual_envc;
   size_t env_length;
-  char flexible_data[0]; // Flexible array space.
+
+  // Flexible array space.
+  char flexible_data[0];
 } osquery_process_event_t;
 
 typedef enum {
@@ -149,8 +153,12 @@ typedef struct {
 typedef struct {
   osquery_event_t event;
   int finished;
-  size_t size; // Should be second to last member of header.
-  osquery_event_time_t time; // Should be last member of header.
+
+  // Should be second to last member of header.
+  size_t size;
+
+  // Should be last member of header.
+  osquery_event_time_t time;
 } osquery_data_header_t;
 
 //
@@ -160,7 +168,6 @@ typedef struct {
 typedef struct {
   osquery_event_t event;
   int subscribe;
-  void *udata;
 } osquery_subscription_args_t;
 
 // Flags for buffer sync options.
@@ -168,16 +175,26 @@ typedef struct {
 #define OSQUERY_NO_BLOCK 1
 
 typedef struct {
-  int options;             // Option such as OSQUERY_NO_BLOCK.
-  size_t read_offset;      // Offset of daemon read pointer.
-  size_t max_read_offset;  // (Output) Offset of max_read pointer.
-  int drops;               // (Output) Number of drops or negative on overflow.
+  // Option such as OSQUERY_NO_BLOCK.
+  int options;
+
+  // Offset of daemon read pointer.
+  size_t read_offset;
+
+  // (Output) Offset of max_read pointer.
+  size_t max_read_offset;
+
+  // (Output) Number of drops or negative on overflow.
+  int drops;
 } osquery_buf_sync_args_t;
 
 typedef struct {
-  size_t size;      // Size of shared user kernel buffer.
-  void *buffer;     // (Output) Pointer to buffer location.
-  uint64_t version; // osquery kernel communication version.
+  // Size of shared user kernel buffer.
+  size_t size;
+  // (Output) Pointer to buffer location.
+  void *buffer;
+  // osquery kernel communication version.
+  uint64_t version;
 } osquery_buf_allocate_args_t;
 
 // TODO: Choose a proper IOCTL num.
@@ -190,10 +207,9 @@ typedef struct {
   _IOWR(OSQUERY_IOCTL_NUM, 0x3, osquery_buf_allocate_args_t)
 
 #ifdef KERNEL_TEST
-#define OSQUERY_IOCTL_TEST \
-  _IOW(OSQUERY_IOCTL_NUM, 0x4, int)
+#define OSQUERY_IOCTL_TEST _IOW(OSQUERY_IOCTL_NUM, 0x4, int)
 #endif // KERNEL_TEST
 
 #ifdef __cplusplus
-}  // end extern "c"
+} // end extern "c"
 #endif

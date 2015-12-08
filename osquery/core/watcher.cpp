@@ -16,7 +16,6 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/events.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
@@ -416,8 +415,8 @@ bool WatcherRunner::createExtension(const std::string& extension) {
 
   Watcher::setExtension(extension, ext_pid);
   Watcher::resetExtensionCounters(extension, getUnixTime());
-  VLOG(1) << "Created and monitoring extension child (" << ext_pid << "): "
-          << extension;
+  VLOG(1) << "Created and monitoring extension child (" << ext_pid
+          << "): " << extension;
   return true;
 }
 
