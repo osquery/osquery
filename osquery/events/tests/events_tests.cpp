@@ -19,9 +19,7 @@ namespace osquery {
 
 class EventsTests : public ::testing::Test {
  public:
-  void TearDown() {
-    EventFactory::end(true);
-  }
+  void TearDown() override { EventFactory::end(true); }
 };
 
 // The most basic event publisher uses useless Subscription/Event.
@@ -40,8 +38,8 @@ struct FakeEventContext : EventContext {
 };
 
 // Typedef the shared_ptr accessors.
-typedef std::shared_ptr<FakeSubscriptionContext> FakeSubscriptionContextRef;
-typedef std::shared_ptr<FakeEventContext> FakeEventContextRef;
+using FakeSubscriptionContextRef = std::shared_ptr<FakeSubscriptionContext>;
+using FakeEventContextRef = std::shared_ptr<FakeEventContext>;
 
 // Now a publisher with a type.
 class FakeEventPublisher
@@ -166,12 +164,12 @@ class TestEventPublisher
   DECLARE_PUBLISHER("TestPublisher");
 
  public:
-  Status setUp() {
+  Status setUp() override {
     smallest_ever_ += 1;
     return Status(0, "OK");
   }
 
-  void configure() {
+  void configure() override {
     int smallest_subscription = smallest_ever_;
 
     configure_run = true;
@@ -185,21 +183,16 @@ class TestEventPublisher
     smallest_ever_ = smallest_subscription;
   }
 
-  void tearDown() { smallest_ever_ += 1; }
-
-  TestEventPublisher() : EventPublisher() {
-    smallest_ever_ = 0;
-    configure_run = false;
-  }
+  void tearDown() override { smallest_ever_ += 1; }
 
   // Custom methods do not make sense, but for testing it exists.
   int getTestValue() { return smallest_ever_; }
 
  public:
-  bool configure_run;
+  bool configure_run{false};
 
  private:
-  int smallest_ever_;
+  int smallest_ever_{0};
 };
 
 TEST_F(EventsTests, test_create_custom_event_pub) {
@@ -260,31 +253,26 @@ TEST_F(EventsTests, test_tear_down) {
 
 static int kBellHathTolled = 0;
 
-Status TestTheeCallback(EventContextRef context, const void* user_data) {
+Status TestTheeCallback(EventContextRef context) {
   kBellHathTolled += 1;
   return Status(0, "OK");
 }
 
 class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
  public:
-  bool bellHathTolled;
-  bool contextBellHathTolled;
-  bool shouldFireBethHathTolled;
+  bool bellHathTolled{false};
+  bool contextBellHathTolled{false};
+  bool shouldFireBethHathTolled{false};
 
-  FakeEventSubscriber() {
-    setName("FakeSubscriber");
-    bellHathTolled = false;
-    contextBellHathTolled = false;
-    shouldFireBethHathTolled = false;
-  }
+  FakeEventSubscriber() { setName("FakeSubscriber"); }
 
-  Status Callback(const EventContextRef& ec, const void* user_data) {
+  Status Callback(const EventContextRef& ec) {
     // We don't care about the subscription or the event contexts.
     bellHathTolled = true;
     return Status(0, "OK");
   }
 
-  Status SpecialCallback(const FakeEventContextRef& ec, const void* user_data) {
+  Status SpecialCallback(const FakeEventContextRef& ec) {
     // Now we care that the event context is corrected passed.
     if (ec->required_value == 42) {
       contextBellHathTolled = true;
@@ -294,13 +282,13 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
 
   void lateInit() {
     auto sub_ctx = createSubscriptionContext();
-    subscribe(&FakeEventSubscriber::Callback, sub_ctx, nullptr);
+    subscribe(&FakeEventSubscriber::Callback, sub_ctx);
   }
 
   void laterInit() {
     auto sub_ctx = createSubscriptionContext();
     sub_ctx->require_this_value = 42;
-    subscribe(&FakeEventSubscriber::SpecialCallback, sub_ctx, nullptr);
+    subscribe(&FakeEventSubscriber::SpecialCallback, sub_ctx);
   }
 
  private:

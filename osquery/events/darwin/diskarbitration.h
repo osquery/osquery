@@ -33,9 +33,7 @@ const std::string kIOHIDXClassPath_ =
 
 struct DiskArbitrationSubscriptionContext : public SubscriptionContext {
   // Limit events for this subscription to virtual disks (DMG files)
-  bool physical_disks;
-
-  DiskArbitrationSubscriptionContext() : physical_disks(false) {}
+  bool physical_disks{false};
 };
 
 struct DiskArbitrationEventContext : public EventContext {
@@ -68,25 +66,32 @@ class DiskArbitrationEventPublisher
   DECLARE_PUBLISHER("diskarbitration");
 
  public:
-  void configure() {}
-  void tearDown();
+  void configure() override{};
+
+  void tearDown() override;
 
   bool shouldFire(const DiskArbitrationSubscriptionContextRef &sc,
-                  const DiskArbitrationEventContextRef &ec) const;
-  Status run();
+                  const DiskArbitrationEventContextRef &ec) const override;
+
+  Status run() override;
 
   // Callin for stopping the streams/run loop.
-  void end() { stop(); }
+  void end() override { stop(); }
 
   static void DiskAppearedCallback(DADiskRef disk, void *context);
+
   static void DiskDisappearedCallback(DADiskRef disk, void *context);
 
  private:
   void restart();
+
   void stop();
+
   static std::string getProperty(const CFStringRef &property,
                                  const CFDictionaryRef &dict);
+
   static std::string extractUdifChecksum(const std::string &path);
+
   static void fire(const std::string &action,
                    const DiskArbitrationEventContextRef &ec,
                    const CFDictionaryRef &dict);

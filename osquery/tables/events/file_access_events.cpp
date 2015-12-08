@@ -16,13 +16,11 @@
 
 namespace osquery {
 
-class FileAccessEventSubscriber
-  : public EventSubscriber<KernelEventPublisher> {
+class FileAccessEventSubscriber : public EventSubscriber<KernelEventPublisher> {
  public:
-  Status init();
+  Status init() override;
 
-  Status Callback(const TypedKernelEventContextRef<osquery_file_event_t> &ec,
-                  const void *user_data);
+  Status Callback(const TypedKernelEventContextRef<osquery_file_event_t> &ec);
 };
 
 REGISTER(FileAccessEventSubscriber, "event_subscriber", "file_access_events");
@@ -44,7 +42,7 @@ Status FileAccessEventSubscriber::init() {
           sc->udata = &sub;
           VLOG(1) << "Added kernel listener to: " << path;
 
-          subscribe(&FileAccessEventSubscriber::Callback, sc, NULL);
+          subscribe(&FileAccessEventSubscriber::Callback, sc);
         }
       });
 
@@ -52,23 +50,23 @@ Status FileAccessEventSubscriber::init() {
 }
 
 Status FileAccessEventSubscriber::Callback(
-    const TypedKernelEventContextRef<osquery_file_event_t> &ec,
-    const void *user_data) {
+    const TypedKernelEventContextRef<osquery_file_event_t> &ec) {
   Row r;
   switch (ec->event.action) {
-    case OSQUERY_FILE_ACTION_OPEN:
-      r["action"] = "OPEN";
-      break;
-    case OSQUERY_FILE_ACTION_CLOSE:
-      r["action"] = "CLOSE";
-      break;
-    case OSQUERY_FILE_ACTION_CLOSE_MODIFIED:
-      r["action"] = "CLOSE MODIFIED";
-      break;
-    default:
-      r["action"] = "UNKNOWN";
-      break;
+  case OSQUERY_FILE_ACTION_OPEN:
+    r["action"] = "OPEN";
+    break;
+  case OSQUERY_FILE_ACTION_CLOSE:
+    r["action"] = "CLOSE";
+    break;
+  case OSQUERY_FILE_ACTION_CLOSE_MODIFIED:
+    r["action"] = "CLOSE MODIFIED";
+    break;
+  default:
+    r["action"] = "UNKNOWN";
+    break;
   }
+
   r["pid"] = BIGINT(ec->event.pid);
   r["parent"] = BIGINT(ec->event.ppid);
   r["uid"] = BIGINT(ec->event.uid);
@@ -90,5 +88,4 @@ Status FileAccessEventSubscriber::Callback(
   return Status(0, "OK");
 }
 
-
-}  // namespace osquery
+} // namespace osquery

@@ -35,7 +35,10 @@ FLAG(bool,
      true,
      "Optimize subscriber select queries (scheduler only)");
 
-FLAG(int32, events_expiry, 86000, "Timeout to expire event subscriber results");
+FLAG(uint64,
+     events_expiry,
+     86000,
+     "Timeout to expire event subscriber results");
 
 const std::vector<size_t> kEventTimeLists = {
     1 * 60 * 60, // 1 hour
@@ -57,6 +60,7 @@ static inline EventTime timeFromRecord(const std::string& record) {
 }
 
 QueryData EventSubscriberPlugin::genTable(QueryContext& context) {
+  // Stop is an unsigned (-1), our end of time equivalent.
   EventTime start = 0, stop = -1;
   if (context.constraints["time"].getAll().size() > 0) {
     // Use the 'time' constraint to optimize backing-store lookups.
@@ -86,13 +90,12 @@ QueryData EventSubscriberPlugin::genTable(QueryContext& context) {
 }
 
 void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
-  EventContextID ec_id;
-
   if (isEnding()) {
     // Cannot emit/fire while ending
     return;
   }
 
+  EventContextID ec_id = 0;
   {
     boost::lock_guard<boost::mutex> lock(ec_id_lock_);
     ec_id = next_ec_id_++;
@@ -105,7 +108,6 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
       if (time == 0) {
         time = getUnixTime();
       }
-      // Todo: add a check to assure normalized (seconds) time.
       ec->time = time;
     }
   }
@@ -321,7 +323,7 @@ Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
   std::string list_key;
   std::string list_id;
 
-  for (auto time_list : kEventTimeLists) {
+  for (const auto& time_list : kEventTimeLists) {
     // The list_id is the MOST-Specific key ID, the bin for this list.
     // If the event time was 13 and the time_list is 5 seconds, lid = 2.
     list_id = boost::lexical_cast<std::string>(time / time_list);
@@ -634,9 +636,8 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
 Status EventFactory::addSubscription(EventPublisherID& type_id,
                                      EventSubscriberID& name_id,
                                      const SubscriptionContextRef& mc,
-                                     EventCallback cb,
-                                     void* user_data) {
-  auto subscription = Subscription::create(name_id, mc, cb, user_data);
+                                     EventCallback cb) {
+  auto subscription = Subscription::create(name_id, mc, cb);
   return EventFactory::addSubscription(type_id, subscription);
 }
 

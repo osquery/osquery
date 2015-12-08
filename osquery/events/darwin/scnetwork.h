@@ -27,22 +27,25 @@ enum SCNetworkSubscriptionType {
 struct SCNetworkSubscriptionContext : public SubscriptionContext {
   // Target type.
   SCNetworkSubscriptionType type;
+
   // The hostname or address target for reachability monitoring.
   std::string target;
-  short family;
+
+  short family{0};
+
   // Limit this target subscription to the set of flags.
-  SCNetworkReachabilityFlags mask;
+  SCNetworkReachabilityFlags mask{0};
 };
 
-typedef std::shared_ptr<SCNetworkSubscriptionContext>
-    SCNetworkSubscriptionContextRef;
+using SCNetworkSubscriptionContextRef =
+    std::shared_ptr<SCNetworkSubscriptionContext>;
 
 struct SCNetworkEventContext : public EventContext {
   SCNetworkSubscriptionContextRef subscription;
   SCNetworkReachabilityFlags flags;
 };
 
-typedef std::shared_ptr<SCNetworkEventContext> SCNetworkEventContextRef;
+using SCNetworkEventContextRef = std::shared_ptr<SCNetworkEventContext>;
 
 /**
  * @brief An osquery EventPublisher for the Apple SCNetwork Reachability API.
@@ -56,14 +59,15 @@ class SCNetworkEventPublisher
   DECLARE_PUBLISHER("scnetwork");
 
  public:
-  void configure();
-  void tearDown();
+  void configure() override;
+
+  void tearDown() override;
 
   // Entrypoint to the run loop
-  Status run();
+  Status run() override;
 
   // The event factory may end, stopping the SCNetwork runloop.
-  void end() { stop(); }
+  void end() override { stop(); }
 
  public:
   /// SCNetwork registers a client callback instead of using a select/poll loop.
@@ -72,13 +76,13 @@ class SCNetworkEventPublisher
                        void* info);
 
  public:
-  SCNetworkEventPublisher() : EventPublisher(), run_loop_(nullptr) {}
   bool shouldFire(const SCNetworkSubscriptionContextRef& sc,
-                  const SCNetworkEventContextRef& ec) const;
+                  const SCNetworkEventContextRef& ec) const override;
 
  private:
   // Restart the run loop by calling configure.
   void restart();
+
   // Stop the run loop.
   void stop();
 
@@ -93,6 +97,6 @@ class SCNetworkEventPublisher
   std::vector<std::string> target_addresses_;
   std::vector<SCNetworkReachabilityRef> targets_;
   std::vector<SCNetworkReachabilityContext*> contexts_;
-  CFRunLoopRef run_loop_;
+  CFRunLoopRef run_loop_{nullptr};
 };
 }

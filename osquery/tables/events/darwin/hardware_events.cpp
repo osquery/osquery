@@ -21,22 +21,21 @@ namespace osquery {
  */
 class HardwareEventSubscriber : public EventSubscriber<IOKitEventPublisher> {
  public:
-  Status init();
+  Status init() override;
 
-  Status Callback(const IOKitEventContextRef& ec, const void* user_data);
+  Status Callback(const IOKitEventContextRef& ec);
 };
 
 REGISTER(HardwareEventSubscriber, "event_subscriber", "hardware_events");
 
 Status HardwareEventSubscriber::init() {
   auto subscription = createSubscriptionContext();
-  subscribe(&HardwareEventSubscriber::Callback, subscription, nullptr);
+  subscribe(&HardwareEventSubscriber::Callback, subscription);
 
   return Status(0, "OK");
 }
 
-Status HardwareEventSubscriber::Callback(const IOKitEventContextRef& ec,
-                                         const void* user_data) {
+Status HardwareEventSubscriber::Callback(const IOKitEventContextRef& ec) {
   Row r;
   if (ec->action == IOKitEventContext::Action::DEVICE_ATTACH) {
     r["action"] = "attach";

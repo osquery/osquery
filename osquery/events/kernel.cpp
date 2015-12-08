@@ -61,7 +61,7 @@ void KernelEventPublisher::configure() {
   for (const auto &sub : subscriptions_) {
     if (queue_ != nullptr) {
       auto sc = getSubscriptionContext(sub->context);
-      queue_->subscribe(sc->event_type, sc->udata);
+      queue_->subscribe(sc->event_type);
     }
   }
 }
@@ -96,17 +96,17 @@ Status KernelEventPublisher::run() {
   while (max_before_sync > 0 && (event_type = queue_->dequeue(&event))) {
     // Each event type may use a specific event type structure.
     switch (event_type) {
-      case OSQUERY_PROCESS_EVENT:
-        ec = createEventContextFrom<osquery_process_event_t>(event_type, event);
-        fire(ec);
-        break;
-      case OSQUERY_FILE_EVENT:
-        ec = createEventContextFrom<osquery_file_event_t>(event_type, event);
-        fire(ec);
-        break;
-      default:
-        LOG(WARNING) << "Unknown kernel event received: " << event_type;
-        break;
+    case OSQUERY_PROCESS_EVENT:
+      ec = createEventContextFrom<osquery_process_event_t>(event_type, event);
+      fire(ec);
+      break;
+    case OSQUERY_FILE_EVENT:
+      ec = createEventContextFrom<osquery_file_event_t>(event_type, event);
+      fire(ec);
+      break;
+    default:
+      LOG(WARNING) << "Unknown kernel event received: " << event_type;
+      break;
     }
     max_before_sync--;
   }
@@ -117,7 +117,7 @@ Status KernelEventPublisher::run() {
 template <typename EventType>
 KernelEventContextRef KernelEventPublisher::createEventContextFrom(
     osquery_event_t event_type, CQueue::event *event) const {
-  TypedKernelEventContextRef<EventType> ec;
+  TypedKernelEventContextRef<EventType> ec = nullptr;
 
   ec = std::make_shared<TypedKernelEventContext<EventType> >();
   ec->event_type = event_type;
@@ -135,4 +135,4 @@ bool KernelEventPublisher::shouldFire(const KernelSubscriptionContextRef &sc,
                                       const KernelEventContextRef &ec) const {
   return ec->event_type == sc->event_type;
 }
-}  // namespace osquery
+} // namespace osquery

@@ -108,8 +108,8 @@ Status RegistryHelperCore::call(const std::string& item_name,
   // Check if the item was broadcasted as a plugin within an extension.
   if (external_.count(item_name) > 0) {
     // The item is a registered extension, call the extension by UUID.
-    return callExtension(external_.at(item_name), name_, item_name, request,
-                         response);
+    return callExtension(
+        external_.at(item_name), name_, item_name, request, response);
   } else if (routes_.count(item_name) > 0) {
     // The item has a route, but no extension, pass in the route info.
     response = routes_.at(item_name);

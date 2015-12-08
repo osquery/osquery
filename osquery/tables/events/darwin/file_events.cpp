@@ -26,10 +26,9 @@ namespace osquery {
  *
  * This is mostly an example EventSubscriber implementation.
  */
-class FileEventSubscriber
-    : public EventSubscriber<FSEventsEventPublisher> {
+class FileEventSubscriber : public EventSubscriber<FSEventsEventPublisher> {
  public:
-  Status init();
+  Status init() override;
 
   /**
    * @brief This exports a single Callback for INotifyEventPublisher events.
@@ -39,7 +38,7 @@ class FileEventSubscriber
    *
    * @return Was the callback successful.
    */
-  Status Callback(const FSEventsEventContextRef& ec, const void* user_data);
+  Status Callback(const FSEventsEventContextRef& ec);
 };
 
 /**
@@ -58,23 +57,18 @@ Status FileEventSubscriber::init() {
       VLOG(1) << "Added listener to: " << file;
       auto mc = createSubscriptionContext();
       mc->path = file;
-      subscribe(&FileEventSubscriber::Callback, mc, (void*)(&category));
+      subscribe(&FileEventSubscriber::Callback, mc);
     }
   });
 
   return Status(0, "OK");
 }
 
-Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec,
-                                            const void* user_data) {
+Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec) {
   Row r;
   r["action"] = ec->action;
   r["target_path"] = ec->path;
-  if (user_data != nullptr) {
-    r["category"] = *(std::string*)user_data;
-  } else {
-    r["category"] = "Undefined";
-  }
+  r["category"] = "" /* TODOTODOTODOTODO*/;
   r["transaction_id"] = INTEGER(ec->transaction_id);
 
   // Only hash if the file content could have been modified.

@@ -24,9 +24,9 @@ namespace osquery {
  */
 class HardwareEventSubscriber : public EventSubscriber<UdevEventPublisher> {
  public:
-  Status init();
+  Status init() override;
 
-  Status Callback(const UdevEventContextRef& ec, const void* user_data);
+  Status Callback(const UdevEventContextRef& ec);
 };
 
 REGISTER(HardwareEventSubscriber, "event_subscriber", "hardware_events");
@@ -35,12 +35,11 @@ Status HardwareEventSubscriber::init() {
   auto subscription = createSubscriptionContext();
   subscription->action = UDEV_EVENT_ACTION_ALL;
 
-  subscribe(&HardwareEventSubscriber::Callback, subscription, nullptr);
+  subscribe(&HardwareEventSubscriber::Callback, subscription);
   return Status(0, "OK");
 }
 
-Status HardwareEventSubscriber::Callback(const UdevEventContextRef& ec,
-                                         const void* user_data) {
+Status HardwareEventSubscriber::Callback(const UdevEventContextRef& ec) {
   Row r;
 
   if (ec->devtype.empty()) {
@@ -50,7 +49,7 @@ Status HardwareEventSubscriber::Callback(const UdevEventContextRef& ec,
     return Status(0, "Missing node and driver.");
   }
 
-  struct udev_device *device = ec->device;
+  struct udev_device* device = ec->device;
   r["action"] = ec->action_string;
   r["path"] = ec->devnode;
   r["type"] = ec->devtype;

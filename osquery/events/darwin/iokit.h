@@ -44,8 +44,8 @@ struct IOKitEventContext : public EventContext {
   std::string serial;
 };
 
-typedef std::shared_ptr<IOKitEventContext> IOKitEventContextRef;
-typedef std::shared_ptr<IOKitSubscriptionContext> IOKitSubscriptionContextRef;
+using IOKitEventContextRef = std::shared_ptr<IOKitEventContext>;
+using IOKitSubscriptionContextRef = std::shared_ptr<IOKitSubscriptionContext>;
 
 struct DeviceTracker;
 
@@ -54,15 +54,14 @@ class IOKitEventPublisher
   DECLARE_PUBLISHER("iokit");
 
  public:
-  void configure();
-  void tearDown();
+  void tearDown() override;
 
-  Status run();
+  Status run() override;
 
-  void end() { stop(); }
+  void end() override { stop(); }
 
   bool shouldFire(const IOKitSubscriptionContextRef& sc,
-                  const IOKitEventContextRef& ec) const;
+                  const IOKitEventContextRef& ec) const override;
 
  public:
   // Callbacks
@@ -80,10 +79,10 @@ class IOKitEventPublisher
 
  private:
   // The publisher state machine will start, restart, and stop the run loop.
-  CFRunLoopRef run_loop_;
+  CFRunLoopRef run_loop_{nullptr};
 
   // Notification port, should close.
-  IONotificationPortRef port_;
+  IONotificationPortRef port_{nullptr};
 
   // Device attach iterator.
   io_iterator_t iterator_;

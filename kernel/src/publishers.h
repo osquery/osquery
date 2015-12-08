@@ -20,12 +20,9 @@
  *
  *  @param queue The queue to publish to.  A subscriber will only publish to the
  *         last queue (not an issue as there should only be one queue).
- *  @param udata Pointer to user data.  This is in user space and must be
- *         copied down to kernel space before use.  A publisher may use this for
- *         any additional data it wants from user space.
  *  @return 0 on success, negative on failure.
  */
-typedef int (*osquery_subscriber_t)(osquery_cqueue_t *queue, void *udata);
+typedef int (*osquery_subscriber_t)(osquery_cqueue_t *queue);
 /** @brief Unsubscribe function type.
  *
  *  Functions of this type stop a publisher from publishing events to the queue
@@ -50,8 +47,7 @@ extern osquery_kernel_event_publisher_t kernel_file_events_publisher;
 
 /** @brief List of the kernel event publishers.
  */
-static osquery_kernel_event_publisher_t
-    *osquery_publishers[OSQUERY_NUM_EVENTS] = {
-  [OSQUERY_PROCESS_EVENT] = &process_events_publisher,
-  [OSQUERY_FILE_EVENT] = &kernel_file_events_publisher
-};
+static osquery_kernel_event_publisher_t *
+    osquery_publishers[OSQUERY_NUM_EVENTS] =
+        {[OSQUERY_PROCESS_EVENT] = &process_events_publisher,
+         [OSQUERY_FILE_EVENT] = &kernel_file_events_publisher};

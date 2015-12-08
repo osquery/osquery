@@ -60,8 +60,8 @@ static int fileop_scope_callback(kauth_cred_t credential,
     int subscribed_to_event = 0;
     subscription_t *sub = NULL;
     SLIST_FOREACH(sub, &sub_list, next) {
-      if (sub->subscription.actions & file_action
-          && strncmp(path, sub->subscription.path, sub->pathlen) == 0) {
+      if (sub->subscription.actions & file_action &&
+          strncmp(path, sub->subscription.path, sub->pathlen) == 0) {
         subscribed_to_event = 1;
         break;
       }
@@ -70,9 +70,8 @@ static int fileop_scope_callback(kauth_cred_t credential,
       // Someone is using a file in a way that we are subscribed to.
       int path_len = MAXPATHLEN;
 
-      osquery_file_event_t *e =
-          (osquery_file_event_t *)osquery_cqueue_reserve(
-              cqueue, OSQUERY_FILE_EVENT, sizeof(osquery_file_event_t));
+      osquery_file_event_t *e = (osquery_file_event_t *)osquery_cqueue_reserve(
+          cqueue, OSQUERY_FILE_EVENT, sizeof(osquery_file_event_t));
       if (e == NULL) {
         // Failed to reserve space for the event.
         return KAUTH_RESULT_DEFER;
@@ -131,7 +130,7 @@ static int fileop_scope_callback(kauth_cred_t credential,
   return KAUTH_RESULT_DEFER;
 }
 
-static int subscribe(osquery_cqueue_t *queue, void *udata) {
+static int subscribe(osquery_cqueue_t *queue) {
   if (malloc_tag == NULL) {
     malloc_tag = OSMalloc_Tagalloc(TAGNAME, OSMT_DEFAULT);
     if (malloc_tag == NULL) {
@@ -143,11 +142,6 @@ static int subscribe(osquery_cqueue_t *queue, void *udata) {
   subscription_t *sub = OSMalloc(sizeof(subscription_t), malloc_tag);
   if (sub == NULL) {
     return -1;
-  }
-  if (copyin((user_addr_t)udata, &(sub->subscription),
-      sizeof(osquery_file_event_subscription_t))) {
-    err = -1;
-    goto error_exit;
   }
 
   cqueue = queue;
@@ -165,9 +159,10 @@ static int subscribe(osquery_cqueue_t *queue, void *udata) {
   // Check if we are already subscribed to this event.
   subscription_t *sub_entry = NULL;
   SLIST_FOREACH(sub_entry, &sub_list, next) {
-    if (sub_entry->subscription.actions == sub->subscription.actions
-        && strncmp(sub_entry->subscription.path, sub->subscription.path,
-          MAXPATHLEN) == 0) {
+    if (sub_entry->subscription.actions == sub->subscription.actions &&
+        strncmp(sub_entry->subscription.path,
+                sub->subscription.path,
+                MAXPATHLEN) == 0) {
       // Already subscribed.
       err = 0;
       goto error_exit;
@@ -199,11 +194,9 @@ static void unsubscribe() {
     OSMalloc_Tagfree(malloc_tag);
     malloc_tag = NULL;
   }
-  
+
   sub_actions = OSQUERY_FILE_ACTION_NONE;
 }
 
 osquery_kernel_event_publisher_t kernel_file_events_publisher = {
-  .subscribe = &subscribe,
-  .unsubscribe = &unsubscribe
-};
+    .subscribe = &subscribe, .unsubscribe = &unsubscribe};

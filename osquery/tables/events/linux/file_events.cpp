@@ -26,10 +26,9 @@ namespace osquery {
  *
  * This is mostly an example EventSubscriber implementation.
  */
-class FileEventSubscriber
-    : public EventSubscriber<INotifyEventPublisher> {
+class FileEventSubscriber : public EventSubscriber<INotifyEventPublisher> {
  public:
-  Status init();
+  Status init() override;
 
   /**
    * @brief This exports a single Callback for INotifyEventPublisher events.
@@ -39,7 +38,7 @@ class FileEventSubscriber
    *
    * @return Was the callback successful.
    */
-  Status Callback(const INotifyEventContextRef& ec, const void* user_data);
+  Status Callback(const INotifyEventContextRef& ec);
 };
 
 /**
@@ -61,23 +60,18 @@ Status FileEventSubscriber::init() {
       mc->recursive = 0;
       mc->path = file;
       mc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
-      subscribe(&FileEventSubscriber::Callback, mc, (void*)(&category));
+      subscribe(&FileEventSubscriber::Callback, mc);
     }
   });
 
   return Status(0, "OK");
 }
 
-Status FileEventSubscriber::Callback(const INotifyEventContextRef& ec,
-                                            const void* user_data) {
+Status FileEventSubscriber::Callback(const INotifyEventContextRef& ec) {
   Row r;
   r["action"] = ec->action;
   r["target_path"] = ec->path;
-  if (user_data != nullptr) {
-    r["category"] = *(std::string*)user_data;
-  } else {
-    r["category"] = "Undefined";
-  }
+  r["category"] = "" /*TODOTODOTODO*/;
   r["transaction_id"] = INTEGER(ec->event->cookie);
 
   if (ec->action == "CREATED" || ec->action == "UPDATED") {

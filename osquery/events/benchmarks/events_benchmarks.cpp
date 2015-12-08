@@ -43,13 +43,11 @@ class BenchmarkEventSubscriber
  public:
   BenchmarkEventSubscriber() { setName("benchmark"); }
 
-  Status Callback(const EventContextRef& ec, const void* user_data) {
-    return Status(0, "OK");
-  }
+  Status Callback(const EventContextRef& ec) { return Status(0, "OK"); }
 
   void benchmarkInit() {
     auto sub_ctx = createSubscriptionContext();
-    subscribe(&BenchmarkEventSubscriber::Callback, sub_ctx, nullptr);
+    subscribe(&BenchmarkEventSubscriber::Callback, sub_ctx);
   }
 
   void benchmarkAdd(int t) {

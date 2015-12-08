@@ -20,11 +20,11 @@ namespace osquery {
 class ProcessEventSubscriber : public EventSubscriber<KernelEventPublisher> {
  public:
   /// The process event subscriber declares a kernel event type subscription.
-  Status init();
+  Status init() override;
 
   /// Kernel events matching the event type will fire.
-  Status Callback(const TypedKernelEventContextRef<osquery_process_event_t> &ec,
-                  const void *user_data);
+  Status Callback(
+      const TypedKernelEventContextRef<osquery_process_event_t> &ec);
 };
 
 REGISTER(ProcessEventSubscriber, "event_subscriber", "process_events");
@@ -32,15 +32,13 @@ REGISTER(ProcessEventSubscriber, "event_subscriber", "process_events");
 Status ProcessEventSubscriber::init() {
   auto sc = createSubscriptionContext();
   sc->event_type = OSQUERY_PROCESS_EVENT;
-  sc->udata = nullptr;
-  subscribe(&ProcessEventSubscriber::Callback, sc, nullptr);
+  subscribe(&ProcessEventSubscriber::Callback, sc);
 
   return Status(0, "OK");
 }
 
 Status ProcessEventSubscriber::Callback(
-    const TypedKernelEventContextRef<osquery_process_event_t> &ec,
-    const void *user_data) {
+    const TypedKernelEventContextRef<osquery_process_event_t> &ec) {
   Row r;
   r["overflows"] = "";
   r["cmdline_size"] = BIGINT(ec->event.arg_length);

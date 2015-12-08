@@ -33,15 +33,14 @@ namespace tables {
 
 /// The file change event publishers are slightly different in OS X and Linux.
 #ifdef __APPLE__
-typedef EventSubscriber<FSEventsEventPublisher> FileEventSubscriber;
-typedef FSEventsEventContextRef FileEventContextRef;
+using FileEventSubscriber = EventSubscriber<FSEventsEventPublisher>;
+using FileEventContextRef = FSEventsEventContextRef;
 #define FILE_CHANGE_MASK \
   kFSEventStreamEventFlagItemCreated | kFSEventStreamEventFlagItemModified
 #elif __linux__
-typedef EventSubscriber<INotifyEventPublisher> FileEventSubscriber;
-typedef INotifyEventContextRef FileEventContextRef;
-#define FILE_CHANGE_MASK \
-  ( (IN_CREATE) | (IN_CLOSE_WRITE) | (IN_MODIFY) )
+using FileEventSubscriber = EventSubscriber<INotifyEventPublisher>;
+using FileEventContextRef = INotifyEventContextRef;
+#define FILE_CHANGE_MASK ((IN_CREATE) | (IN_CLOSE_WRITE) | (IN_MODIFY))
 #endif
 
 /**
@@ -49,7 +48,7 @@ typedef INotifyEventContextRef FileEventContextRef;
  */
 class YARAEventSubscriber : public FileEventSubscriber {
  public:
-  Status init();
+  Status init() override;
 
  private:
   /**
@@ -60,7 +59,7 @@ class YARAEventSubscriber : public FileEventSubscriber {
    *
    * @return Status
    */
-  Status Callback(const FileEventContextRef& ec, const void* user_data);
+  Status Callback(const FileEventContextRef& ec);
 };
 
 /**
@@ -86,9 +85,8 @@ Status YARAEventSubscriber::init() {
   const auto& yara_paths = yara_config.get_child("file_paths");
   std::map<std::string, std::vector<std::string> > file_map;
   Config::getInstance().files([&file_map](
-      const std::string& category, const std::vector<std::string>& files) {
-    file_map[category] = files;
-  });
+      const std::string& category,
+      const std::vector<std::string>& files) { file_map[category] = files; });
 
   for (const auto& yara_path_element : yara_paths) {
     // Subscribe to each file for the given key (category).
@@ -104,21 +102,14 @@ Status YARAEventSubscriber::init() {
       mc->path = file;
       mc->mask = FILE_CHANGE_MASK;
       mc->recursive = true;
-      subscribe(&YARAEventSubscriber::Callback,
-                mc,
-                (void*)(&yara_path_element.first));
+      subscribe(&YARAEventSubscriber::Callback, mc);
     }
   }
 
   return Status(0, "OK");
 }
 
-Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
-                                     const void* user_data) {
-  if (user_data == nullptr) {
-    return Status(1, "No YARA category string provided");
-  }
-
+Status YARAEventSubscriber::Callback(const FileEventContextRef& ec) {
   if (ec->action != "UPDATED" && ec->action != "CREATED") {
     return Status(1, "Invalid action");
   }
@@ -126,7 +117,7 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   Row r;
   r["action"] = ec->action;
   r["target_path"] = ec->path;
-  r["category"] = *(std::string*)user_data;
+  r["category"] = "" /*TODOTODOTODO*/;
 
   // Only FSEvents transactions updates (inotify is a no-op).
   r["transaction_id"] = INTEGER(ec->transaction_id);

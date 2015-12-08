@@ -13,6 +13,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <boost/noncopyable.hpp>
+
 #include "kernel/include/feeds.h"
 
 namespace osquery {
@@ -22,7 +24,7 @@ class CQueueException : public std::runtime_error {
   explicit CQueueException(const std::string &s) : std::runtime_error(s){};
 };
 
-class CQueue {
+class CQueue : private boost::noncopyable {
  public:
   /**
    * @brief Structure to hold event metadata and pointer to an event.
@@ -30,6 +32,8 @@ class CQueue {
   struct event {
     size_t size;
     osquery_event_time_t time;
+
+    // The flexible data must remain as the last member.
     char buf[];
   };
 
@@ -59,9 +63,8 @@ class CQueue {
    * This sets up the event callbacks so we start hearing about the given event.
    *
    * @param event The event we are interested in.
-   * @param udata Pointer to udata for the event.  This is for additional info.
    */
-  void subscribe(osquery_event_t event, void *udata);
+  void subscribe(osquery_event_t event);
 
   /**
    * @brief Dequeue's an event from the shared buffer.
@@ -77,18 +80,18 @@ class CQueue {
    *
    * This allow the two view of the buffer to maintain consistency.
    *
-   * @param options Options to be passed to the kernel.  Primarily used for 
+   * @param options Options to be passed to the kernel.  Primarily used for
    *   OSQUERY_NO_BLOCK, which allows the sync to not block if there is no data.
    * @return Returns the number of dropped events, or negative if too many.
    */
   int kernelSync(int options);
 
  private:
-  uint8_t *buffer_;
-  size_t size_;
-  uint8_t *max_read_;
-  uint8_t *read_;
-  int fd_;
+  uint8_t *buffer_{nullptr};
+  size_t size_{0};
+  uint8_t *max_read_{nullptr};
+  uint8_t *read_{nullptr};
+  int fd_{-1};
 };
 
-}  // namespace osquery
+} // namespace osquery
