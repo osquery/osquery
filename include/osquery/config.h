@@ -106,7 +106,7 @@ class Schedule : private boost::noncopyable {
 };
 
 /**
- * @brief The programatic representation of osquery's configuration
+ * @brief The programmatic representation of osquery's configuration
  *
  * @code{.cpp}
  *   auto c = Config::getInstance();
@@ -214,7 +214,12 @@ class Config : private boost::noncopyable {
    * @param category is the category which the file exists in
    * @param path is the file path to add
    */
-  void addFile(const std::string& category, const std::string& path);
+  void addFile(const std::string& source,
+               const std::string& category,
+               const std::string& path);
+
+  /// Remove files by source.
+  void removeFiles(const std::string& source);
 
   /**
    * @brief Map a function across the set of scheduled queries
@@ -314,11 +319,21 @@ class Config : private boost::noncopyable {
 
   /// A set of performance stats for each query in the schedule.
   std::map<std::string, QueryPerformance> performance_;
+
   /// A set of named categories filled with filesystem globbing paths.
-  std::map<std::string, std::vector<std::string> > files_;
+  using FileCategories = std::map<std::string, std::vector<std::string> >;
+  std::map<std::string, FileCategories> files_;
+
   /// A set of hashes for each source of the config.
   std::map<std::string, std::string> hash_;
+
+  /// Check if the config received valid/parsable content from a config plugin.
   bool valid_{false};
+
+  /// Check if the config is updating sources in response to an async update
+  /// or the initialization load step.
+  bool loaded_{false};
+
   /// A UNIX timestamp recorded when the config started.
   size_t start_time_{0};
 
@@ -326,6 +341,7 @@ class Config : private boost::noncopyable {
   friend class Initializer;
 
  private:
+  FRIEND_TEST(ConfigTests, test_plugin_reconfigure);
   FRIEND_TEST(ConfigTests, test_parse);
   FRIEND_TEST(ConfigTests, test_remove);
   FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
@@ -460,6 +476,9 @@ class ConfigPlugin : public Plugin {
  */
 class ConfigParserPlugin : public Plugin {
  public:
+  using ParserConfig = std::map<std::string, boost::property_tree::ptree>;
+
+ public:
   /**
    * @brief Return a list of top-level config keys to receive in updates.
    *
@@ -468,7 +487,7 @@ class ConfigParserPlugin : public Plugin {
    *
    * @return A list of string top-level JSON keys.
    */
-  virtual std::vector<std::string> keys() = 0;
+  virtual std::vector<std::string> keys() const = 0;
 
   /**
    * @brief Receive a merged property tree for each top-level config key.
@@ -481,8 +500,8 @@ class ConfigParserPlugin : public Plugin {
    * @param config A JSON-parsed property tree map.
    * @return Failure if the parser should no longer receive updates.
    */
-  virtual Status update(
-      const std::map<std::string, boost::property_tree::ptree>& config) = 0;
+  virtual Status update(const std::string& source,
+                        const ParserConfig& config) = 0;
 
   Status setUp() override;
 

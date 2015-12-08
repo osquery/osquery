@@ -87,6 +87,34 @@ TEST_F(ConfigTests, test_bad_config_update) {
   ASSERT_NO_THROW(Config::getInstance().update({{"bad_source", bad_json}}));
 }
 
+class PlaceboConfigParserPlugin : public ConfigParserPlugin {
+ public:
+  std::vector<std::string> keys() const override { return {}; }
+  Status update(const std::string&, const ParserConfig&) override {
+    return Status(0);
+  }
+
+  /// Make sure configure is called.
+  void configure() override { configures++; }
+
+  size_t configures{0};
+};
+
+TEST_F(ConfigTests, test_plugin_reconfigure) {
+  // Add a configuration plugin (could be any plugin) that will react to
+  // config updates.
+  Registry::add<PlaceboConfigParserPlugin>("config_parser", "placebo");
+
+  // Create a config that has been loaded.
+  Config c;
+  c.loaded_ = true;
+  c.update({{"data", "{}"}});
+  // Get the placebo.
+  auto placebo = std::static_pointer_cast<PlaceboConfigParserPlugin>(
+      Registry::get("config_parser", "placebo"));
+  EXPECT_EQ(placebo->configures, 1U);
+}
+
 TEST_F(ConfigTests, test_strip_comments) {
   std::string json_comments =
       "// Comment\n // Comment //\n  # Comment\n# Comment\n{\"options\":{}}";
@@ -103,12 +131,13 @@ TEST_F(ConfigTests, test_strip_comments) {
 
 class TestConfigParserPlugin : public ConfigParserPlugin {
  public:
-  std::vector<std::string> keys() override {
+  std::vector<std::string> keys() const override {
     // This config parser requests the follow top-level-config keys.
     return {"dictionary", "dictionary2", "list"};
   }
 
-  Status update(const std::map<std::string, pt::ptree>& config) override {
+  Status update(const std::string& source,
+                const ParserConfig& config) override {
     // Set a simple boolean indicating the update callin occurred.
     update_called = true;
     // Copy all expected keys into the parser's data.

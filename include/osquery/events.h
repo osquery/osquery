@@ -54,7 +54,7 @@ using EventRecord = std::pair<EventID, EventTime>;
  * networking protocols at various stacks. Process creation may subscribe on
  * process name, parent pid, etc.
  */
-struct SubscriptionContext {};
+struct SubscriptionContext : private boost::noncopyable {};
 
 /**
  * @brief An EventSubscriber EventCallback method will receive an EventContext.
@@ -183,7 +183,7 @@ class EventPublisherPlugin : public Plugin {
    * config changes. Since Linux `inotify` has a subscription limit, `configure`
    * can dedup paths.
    */
-  virtual void configure(){};
+  virtual void configure() override{};
 
   /**
    * @brief Perform handle opening, OS API callback registration.
@@ -231,7 +231,12 @@ class EventPublisherPlugin : public Plugin {
    */
   virtual Status addSubscription(const SubscriptionRef& subscription) {
     subscriptions_.push_back(subscription);
-    return Status(0, "OK");
+    return Status(0);
+  }
+
+  /// Remove all subscriptions.
+  virtual void removeSubscriptions() {
+    SubscriptionVector().swap(subscriptions_);
   }
 
  public:
@@ -816,7 +821,7 @@ class EventSubscriber : public EventSubscriberPlugin {
    * When the EventSubscriber%'s `init` method is called you are assured the
    * EventPublisher has `setUp` and is ready to subscription for events.
    */
-  virtual Status init() { return Status(0, "OK"); }
+  virtual Status init() { return Status(0); }
 
   /**
    * @brief The registry plugin name for the subscriber's publisher.
@@ -854,17 +859,24 @@ class EventSubscriber : public EventSubscriberPlugin {
     auto base_entry = reinterpret_cast<CallbackFunc>(entry);
     // Up-cast the EventSubscriber to the caller.
     auto sub = dynamic_cast<T*>(this);
-    // Create a callable through the member function using the instance of the
-    // EventSubscriber and a single parameter placeholder (the EventContext).
-    auto cb = std::bind(base_entry, sub, _1, _2);
-    // Add a subscription using the callable and SubscriptionContext.
-    EventFactory::addSubscription(getType(), this->getName(), sc, cb);
-    subscription_count_++;
+    if (base_entry != nullptr && sub != nullptr) {
+      // Create a callable through the member function using the instance of the
+      // EventSubscriber and a single parameter placeholder (the EventContext).
+      auto cb = std::bind(base_entry, sub, _1, _2);
+      // Add a subscription using the callable and SubscriptionContext.
+      EventFactory::addSubscription(sub->getType(), sub->getName(), sc, cb);
+      subscription_count_++;
+    }
   }
 
   /// See getType for lookup rational.
   virtual EventPublisherID dbNamespace() const {
     return getType() + '.' + getName();
+  }
+
+  /// Get a handle to the EventPublisher.
+  EventPublisherRef getPublisher() {
+    return EventFactory::getEventPublisher(getType());
   }
 
  public:
@@ -882,6 +894,7 @@ class EventSubscriber : public EventSubscriberPlugin {
 
   explicit EventSubscriber(bool enabled = true)
       : EventSubscriberPlugin(), disabled(!enabled), state_(SUBSCRIBER_NONE) {}
+  virtual ~EventSubscriber() {}
 
  protected:
   /**

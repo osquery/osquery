@@ -223,6 +223,8 @@ TEST_F(EventsTests, test_custom_subscription) {
   status = EventFactory::addSubscription("TestPublisher", "TestSubscriber", sc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(pub->numSubscriptions(), 1U);
+  // Run configure on this publisher.
+  pub->configure();
 
   // The event type must run configure for each added subscription.
   EXPECT_TRUE(pub->configure_run);
@@ -312,6 +314,7 @@ TEST_F(EventsTests, test_event_sub_subscribe) {
 
   // Don't overload the normal `init` Subscription member.
   sub->lateInit();
+  pub->configure();
   EXPECT_EQ(pub->numSubscriptions(), 1U);
 
   auto ec = pub->createEventContext();
@@ -328,6 +331,7 @@ TEST_F(EventsTests, test_event_sub_context) {
   EventFactory::registerEventSubscriber(sub);
 
   sub->laterInit();
+  pub->configure();
   auto ec = pub->createEventContext();
   ec->required_value = 42;
   pub->fire(ec, 0);
@@ -347,6 +351,7 @@ TEST_F(EventsTests, test_fire_event) {
   auto subscription = Subscription::create("FakeSubscriber");
   subscription->callback = TestTheeCallback;
   status = EventFactory::addSubscription("publisher", subscription);
+  pub->configure();
 
   // The event context creation would normally happen in the event type.
   auto ec = pub->createEventContext();
@@ -355,6 +360,7 @@ TEST_F(EventsTests, test_fire_event) {
 
   auto second_subscription = Subscription::create("FakeSubscriber");
   status = EventFactory::addSubscription("publisher", second_subscription);
+  pub->configure();
 
   // Now there are two subscriptions (one sans callback).
   pub->fire(ec, 0);

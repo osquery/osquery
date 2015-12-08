@@ -649,11 +649,7 @@ Status EventFactory::addSubscription(EventPublisherID& type_id,
   }
 
   // The event factory is responsible for configuring the event types.
-  auto status = publisher->addSubscription(subscription);
-  if (!FLAGS_disable_events) {
-    publisher->configure();
-  }
-  return status;
+  return publisher->addSubscription(subscription);
 }
 
 size_t EventFactory::numSubscriptions(EventPublisherID& type_id) {
@@ -770,6 +766,13 @@ void attachEvents() {
     if (!status.ok()) {
       LOG(WARNING) << "Error registering subscriber: " << status.getMessage();
     }
+  }
+
+  // Configure the event publishers the first time they load.
+  // Subsequent configuration updates will update the subscribers followed
+  // by the publishers.
+  if (!FLAGS_disable_events) {
+    Registry::registry("event_publisher")->configure();
   }
 }
 }

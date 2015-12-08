@@ -22,10 +22,10 @@ namespace osquery {
  * The callback used when there are compilation problems in the rules.
  */
 void YARACompilerCallback(int error_level,
-                          const char* file_name,
+                          const char *file_name,
                           int line_number,
-                          const char* message,
-                          void* user_data) {
+                          const char *message,
+                          void *user_data) {
   if (error_level == YARA_ERROR_LEVEL_ERROR) {
     VLOG(1) << file_name << "(" << line_number << "): error: " << message;
   } else {
@@ -36,7 +36,7 @@ void YARACompilerCallback(int error_level,
 /**
  * Compile a single rule file and load it into rule pointer.
  */
-Status compileSingleFile(const std::string& file, YR_RULES** rules) {
+Status compileSingleFile(const std::string &file, YR_RULES **rules) {
   YR_COMPILER *compiler = nullptr;
   int result = yr_compiler_create(&compiler);
   if (result != ERROR_SUCCESS) {
@@ -102,7 +102,6 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
   return Status(0, "OK");
 }
 
-
 /**
  * Given a vector of strings, attempt to compile them and store the result
  * in the map under the given category.
@@ -120,7 +119,7 @@ Status handleRuleFiles(const std::string &category,
   yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
 
   bool compiled = false;
-  for (const auto& item : rule_files) {
+  for (const auto &item : rule_files) {
     YR_RULES *tmp_rules = nullptr;
     auto rule = item.second.get("", "");
     if (rule[0] != '/') {
@@ -201,8 +200,8 @@ Status handleRuleFiles(const std::string &category,
  */
 int YARACallback(int message, void *message_data, void *user_data) {
   if (message == CALLBACK_MSG_RULE_MATCHING) {
-    Row *r = (Row *) user_data;
-    YR_RULE *rule = (YR_RULE *) message_data;
+    Row *r = (Row *)user_data;
+    YR_RULE *rule = (YR_RULE *)message_data;
 
     if ((*r)["matches"].length() > 0) {
       (*r)["matches"] += "," + std::string(rule->identifier);
@@ -251,16 +250,16 @@ Status YARAConfigParserPlugin::setUp() {
   return Status(0, "OK");
 }
 
-Status YARAConfigParserPlugin::update(
-    const std::map<std::string, pt::ptree> &config) {
+Status YARAConfigParserPlugin::update(const std::string &source,
+                                      const ParserConfig &config) {
   // The YARA config parser requested the "yara" top-level key in the config.
-  const auto& yara_config = config.at("yara");
+  const auto &yara_config = config.at("yara");
 
   // Look for a "signatures" key with the group/file content.
   if (yara_config.count("signatures") > 0) {
-    const auto& signatures = yara_config.get_child("signatures");
+    const auto &signatures = yara_config.get_child("signatures");
     data_.add_child("signatures", signatures);
-    for (const auto& element : signatures) {
+    for (const auto &element : signatures) {
       VLOG(1) << "Compiling YARA signature group: " << element.first;
       auto status = handleRuleFiles(element.first, element.second, rules_);
       if (!status.ok()) {
@@ -273,7 +272,7 @@ Status YARAConfigParserPlugin::update(
   // The "file_paths" set maps the rule groups to the "file_paths" top level
   // configuration key. That similar key keeps the groups of file paths.
   if (yara_config.count("file_paths") > 0) {
-    const auto& file_paths = yara_config.get_child("file_paths");
+    const auto &file_paths = yara_config.get_child("file_paths");
     data_.add_child("file_paths", file_paths);
   }
   return Status(0, "OK");

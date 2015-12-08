@@ -13,9 +13,9 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <osquery/config.h>
+#include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/filesystem.h>
 
 namespace fs = boost::filesystem;
 
@@ -53,6 +53,7 @@ Status FilesystemConfigPlugin::genConfig(
       config[path] = content;
     }
   }
+
   return Status(0, "OK");
 }
 

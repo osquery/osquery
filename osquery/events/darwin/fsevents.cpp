@@ -267,6 +267,11 @@ bool FSEventsEventPublisher::shouldFire(
   return true;
 }
 
+void FSEventsEventPublisher::removeSubscriptions() {
+  std::set<std::string>().swap(paths_);
+  EventPublisherPlugin::removeSubscriptions();
+}
+
 void FSEventsEventPublisher::flush(bool async) {
   if (stream_ != nullptr && stream_started_) {
     if (async) {

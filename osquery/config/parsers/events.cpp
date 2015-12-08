@@ -19,18 +19,26 @@ namespace osquery {
  */
 class EventsConfigParserPlugin : public ConfigParserPlugin {
  public:
-  std::vector<std::string> keys() { return {"events"}; }
+  std::vector<std::string> keys() const override { return {"events"}; }
 
-  EventsConfigParserPlugin() { data_.put_child("events", pt::ptree()); }
+  Status setUp() override;
 
-  Status update(const std::map<std::string, pt::ptree>& config) {
-    if (config.count("events") > 0) {
-      data_ = pt::ptree();
-      data_.put_child("events", config.at("events"));
-    }
-    return Status(0, "OK");
-  }
+  Status update(const std::string& source, const ParserConfig& config) override;
 };
+
+Status EventsConfigParserPlugin::setUp() {
+  data_.put_child("events", pt::ptree());
+  return Status(0, "OK");
+}
+
+Status EventsConfigParserPlugin::update(const std::string& source,
+                                        const ParserConfig& config) {
+  if (config.count("events") > 0) {
+    data_ = pt::ptree();
+    data_.put_child("events", config.at("events"));
+  }
+  return Status(0, "OK");
+}
 
 REGISTER_INTERNAL(EventsConfigParserPlugin, "config_parser", "events");
 }

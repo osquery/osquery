@@ -21,33 +21,39 @@ namespace osquery {
  */
 class FilePathsConfigParserPlugin : public ConfigParserPlugin {
  public:
-  std::vector<std::string> keys() { return {"file_paths"}; }
+  std::vector<std::string> keys() const override { return {"file_paths"}; }
 
-  Status setUp() {
-    data_.put_child("file_paths", pt::ptree());
-    return Status(0, "OK");
-  }
+  Status setUp() override;
 
-  Status update(const std::map<std::string, pt::ptree>& config) {
-    if (config.count("file_paths") > 0) {
-      data_ = pt::ptree();
-      data_.put_child("file_paths", config.at("file_paths"));
-    }
-
-    for (const auto& category : data_.get_child("file_paths")) {
-      for (const auto& path : category.second) {
-        auto pattern = path.second.get_value<std::string>("");
-        if (pattern.empty()) {
-          continue;
-        }
-        replaceGlobWildcards(pattern);
-        Config::getInstance().addFile(category.first, pattern);
-      }
-    }
-
-    return Status(0, "OK");
-  }
+  Status update(const std::string& source, const ParserConfig& config) override;
 };
+
+Status FilePathsConfigParserPlugin::setUp() {
+  data_.put_child("file_paths", pt::ptree());
+  return Status(0, "OK");
+}
+
+Status FilePathsConfigParserPlugin::update(const std::string& source,
+                                           const ParserConfig& config) {
+  if (config.count("file_paths") > 0) {
+    data_ = pt::ptree();
+    data_.put_child("file_paths", config.at("file_paths"));
+  }
+
+  Config::getInstance().removeFiles(source);
+  for (const auto& category : data_.get_child("file_paths")) {
+    for (const auto& path : category.second) {
+      auto pattern = path.second.get_value<std::string>("");
+      if (pattern.empty()) {
+        continue;
+      }
+      replaceGlobWildcards(pattern);
+      Config::getInstance().addFile(source, category.first, pattern);
+    }
+  }
+
+  return Status(0, "OK");
+}
 
 REGISTER_INTERNAL(FilePathsConfigParserPlugin, "config_parser", "file_paths");
 }

@@ -166,6 +166,16 @@ void RegistryHelperCore::setUp() {
   }
 }
 
+void RegistryHelperCore::configure() {
+  if (active_.size() != 0 && exists(active_, true)) {
+    items_.at(active_)->configure();
+  } else {
+    for (auto& item : items_) {
+      item.second->configure();
+    }
+  }
+}
+
 /// Facility method to check if a registry item exists.
 bool RegistryHelperCore::exists(const std::string& item_name,
                                 bool local) const {

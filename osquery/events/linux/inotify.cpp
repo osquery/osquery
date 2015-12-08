@@ -105,15 +105,17 @@ void INotifyEventPublisher::tearDown() {
   inotify_handle_ = -1;
 }
 
-Status INotifyEventPublisher::restartMonitoring(){
+Status INotifyEventPublisher::restartMonitoring() {
   if (last_restart_ != 0 && getUnixTime() - last_restart_ < 10) {
     return Status(1, "Overflow");
   }
+
   last_restart_ = getUnixTime();
   VLOG(1) << "inotify was overflown, attempting to restart handle";
-  for(const auto& desc : descriptors_){
-    removeMonitor(desc, 1);
+  for (const auto& desc : descriptors_) {
+    removeMonitor(desc, true);
   }
+
   path_descriptors_.clear();
   descriptor_paths_.clear();
   configure();
@@ -150,7 +152,7 @@ Status INotifyEventPublisher::run() {
     if (event->mask & IN_Q_OVERFLOW) {
       // The inotify queue was overflown (remove all paths).
       Status stat = restartMonitoring();
-      if(!stat.ok()){
+      if (!stat.ok()) {
         return stat;
       }
     }
@@ -220,7 +222,7 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
   }
 
   // inotify will not monitor recursively, new directories need watches.
-  if(sc->recursive && ec->action == "CREATED" && isDirectory(ec->path)){
+  if (sc->recursive && ec->action == "CREATED" && isDirectory(ec->path)) {
     const_cast<INotifyEventPublisher*>(this)->addMonitor(ec->path + '/', true);
   }
 
@@ -290,6 +292,14 @@ bool INotifyEventPublisher::removeMonitor(int watch, bool force) {
 
   auto path = descriptor_paths_[watch];
   return removeMonitor(path, force);
+}
+
+void INotifyEventPublisher::removeSubscriptions() {
+  auto paths = descriptor_paths_;
+  for (const auto& path : paths) {
+    removeMonitor(path.first, true);
+  }
+  EventPublisherPlugin::removeSubscriptions();
 }
 
 bool INotifyEventPublisher::isPathMonitored(const std::string& path) {

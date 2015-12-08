@@ -141,6 +141,9 @@ class Plugin : private boost::noncopyable {
   /// The plugin may perform some tear down, release, not required.
   virtual void tearDown() {}
 
+  /// The plugin may react to configuration updates.
+  virtual void configure() {}
+
   /// The plugin may publish route info (other than registry type and name).
   virtual PluginResponse routeInfo() const { return PluginResponse(); }
 
@@ -265,6 +268,9 @@ class RegistryHelperCore : private boost::noncopyable {
    * their setup unless the registry is lazy (see CREATE_REGISTRY).
    */
   virtual void setUp();
+
+  /// Allow a registry type to react to configuration updates.
+  virtual void configure();
 
   /// Facility method to check if a registry item exists.
   bool exists(const std::string& item_name, bool local = false) const;

@@ -135,6 +135,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   auto subscription = Subscription::create("TestSubscriber", mc);
   auto status = EventFactory::addSubscription("fsevents", subscription);
   EXPECT_TRUE(status.ok());
+  event_pub->configure();
 
   // Make sure configure was called.
   size_t num_paths = event_pub->numSubscriptionedPaths();
@@ -146,6 +147,7 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   auto subscription_dup = Subscription::create("TestSubscriber", mc_dup);
   status = EventFactory::addSubscription("fsevents", subscription_dup);
   EXPECT_TRUE(status.ok());
+  event_pub->configure();
 
   // But the paths with be deduped when the event type reconfigures.
   num_paths = event_pub->numSubscriptionedPaths();
@@ -223,6 +225,7 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   mc->path = trigger_path;
   EventFactory::addSubscription(
       "fsevents", Subscription::create("TestFSEventsEventSubscriber", mc));
+  event_pub_->configure();
 
   // Create an event loop thread (similar to main)
   temp_thread_ = boost::thread(EventFactory::run, "fsevents");
@@ -255,6 +258,7 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
   // Create a subscriptioning context, note the added Event to the symbol
   auto sc = sub->GetSubscription(0);
   sub->subscribe(&TestFSEventsEventSubscriber::SimpleCallback, sc);
+  event_pub_->configure();
   CreateEvents();
 
   // This time wait for the callback.
@@ -277,6 +281,8 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   EventFactory::registerEventSubscriber(sub);
 
   sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc);
+  event_pub_->configure();
+
   CreateEvents();
   sub->WaitForEvents(kMaxEventLatency, 1);
 

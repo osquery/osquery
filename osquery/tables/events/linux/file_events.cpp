@@ -28,7 +28,13 @@ namespace osquery {
  */
 class FileEventSubscriber : public EventSubscriber<INotifyEventPublisher> {
  public:
-  Status init() override;
+  Status init() override {
+    configure();
+    return Status(0);
+  }
+
+  /// Walk the configuration's file paths, create subscriptions.
+  void configure() override;
 
   /**
    * @brief This exports a single Callback for INotifyEventPublisher events.
@@ -50,7 +56,12 @@ class FileEventSubscriber : public EventSubscriber<INotifyEventPublisher> {
  */
 REGISTER(FileEventSubscriber, "event_subscriber", "file_events");
 
-Status FileEventSubscriber::init() {
+void FileEventSubscriber::configure() {
+  // Clear all monitors from INotify.
+  // There may be a better way to find the set intersection/difference.
+  auto pub = getPublisher();
+  pub->removeSubscriptions();
+
   Config::getInstance().files([this](const std::string& category,
                                      const std::vector<std::string>& files) {
     for (const auto& file : files) {
@@ -64,8 +75,6 @@ Status FileEventSubscriber::init() {
       subscribe(&FileEventSubscriber::Callback, sc);
     }
   });
-
-  return Status(0, "OK");
 }
 
 Status FileEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {

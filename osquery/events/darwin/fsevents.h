@@ -89,15 +89,20 @@ class FSEventsEventPublisher
   DECLARE_PUBLISHER("fsevents");
 
  public:
+  /// Called when configuration is loaded or updates occur.
   void configure() override;
 
+  /// Another alias for `::end` or `::stop`.
   void tearDown() override;
 
-  // Entrypoint to the run loop
+  /// Entrypoint to the run loop
   Status run() override;
 
-  // Callin for stopping the streams/run loop.
+  /// Callin for stopping the streams/run loop.
   void end() override { stop(); }
+
+  /// Delete all paths from prior configuration.
+  void removeSubscriptions() override;
 
  public:
   /// FSEvents registers a client callback instead of using a select/poll loop.
@@ -130,11 +135,15 @@ class FSEventsEventPublisher
   size_t numSubscriptionedPaths();
 
  private:
+  /// Local reference to the start, stop, restart event stream.
   FSEventStreamRef stream_{nullptr};
+
+  /// Has the FSEvents run loop and stream been started.
   bool stream_started_{false};
+
+  /// Set of paths to monitor, determined by a configure step.
   std::set<std::string> paths_;
 
- private:
   CFRunLoopRef run_loop_{nullptr};
 
  private:

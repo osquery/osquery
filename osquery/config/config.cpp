@@ -43,6 +43,7 @@ CLI_FLAG(bool, config_dump, false, "Dump the contents of the configuration");
 
 DECLARE_string(config_plugin);
 DECLARE_string(pack_delimiter);
+DECLARE_bool(disable_events);
 
 /**
  * @brief The backing store key name for the executing query.
@@ -127,9 +128,18 @@ void Config::removePack(const std::string& pack) {
   return schedule_.remove(pack);
 }
 
-void Config::addFile(const std::string& category, const std::string& path) {
+void Config::addFile(const std::string& source,
+                     const std::string& category,
+                     const std::string& path) {
   WriteLock wlock(config_files_mutex_);
-  files_[category].push_back(path);
+  files_[source][category].push_back(path);
+}
+
+void Config::removeFiles(const std::string& source) {
+  WriteLock wlock(config_files_mutex_);
+  if (files_.count(source)) {
+    FileCategories().swap(files_[source]);
+  }
 }
 
 void Config::scheduledQueries(std::function<
@@ -194,10 +204,11 @@ Status Config::load() {
       }
       ::exit(EXIT_SUCCESS);
     }
-    return update(response[0]);
+    status = update(response[0]);
   }
 
-  return Status(0, "OK");
+  loaded_ = true;
+  return status;
 }
 
 /**
@@ -292,6 +303,7 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
     }
   }
 
+  // Iterate each parser.
   for (const auto& plugin : Registry::all("config_parser")) {
     std::shared_ptr<ConfigParserPlugin> parser = nullptr;
     try {
@@ -316,7 +328,7 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
     // The config parser plugin will receive a copy of each property tree for
     // each top-level-config key. The parser may choose to update the config's
     // internal state
-    parser->update(parser_config);
+    parser->update(name, parser_config);
   }
   return Status(0, "OK");
 }
@@ -349,6 +361,25 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     auto status = updateSource(source.first, source.second);
     if (!status.ok()) {
       return status;
+    }
+  }
+
+  if (loaded_) {
+    // The config has since been loaded.
+    // This update call is most likely a response to an async update request
+    // from a config plugin. This request should request all plugins to update.
+    for (const auto& registry : Registry::all()) {
+      if (registry.first == "event_publisher" ||
+          registry.first == "event_subscriber") {
+        continue;
+      }
+      registry.second->configure();
+    }
+
+    // If events are enabled configure the subscribers before publishers.
+    if (!FLAGS_disable_events) {
+      Registry::registry("event_subscriber")->configure();
+      Registry::registry("event_publisher")->configure();
     }
   }
 
@@ -525,7 +556,9 @@ void Config::files(
                        const std::vector<std::string>& files)> predicate) {
   ReadLock rlock(config_files_mutex_);
   for (const auto& it : files_) {
-    predicate(it.first, it.second);
+    for (const auto& category : it.second) {
+      predicate(category.first, category.second);
+    }
   }
 }
 
