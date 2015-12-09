@@ -65,28 +65,21 @@ class TLSConfigPlugin : public ConfigPlugin,
 
 class TLSConfigRefreshRunner : public InternalRunnable {
  public:
-  explicit TLSConfigRefreshRunner(
-      const std::shared_ptr<TLSConfigPlugin>& plugin)
-      : plugin_(plugin) {}
-
   /// A simple wait/interruptible lock.
   void start();
-
- private:
-  std::shared_ptr<TLSConfigPlugin> plugin_{nullptr};
 };
 
 REGISTER(TLSConfigPlugin, "config", "tls");
 
 Status TLSConfigPlugin::setUp() {
+  uri_ = TLSRequestHelper::makeURI(FLAGS_config_tls_endpoint);
+
   // If the initial configuration includes a non-0 refresh, start an additional
   // service that sleeps and periodically regenerates the configuration.
   if (FLAGS_config_tls_refresh >= 1) {
-    Dispatcher::addService(
-        std::make_shared<TLSConfigRefreshRunner>(shared_from_this()));
+    Dispatcher::addService(std::make_shared<TLSConfigRefreshRunner>());
   }
 
-  uri_ = TLSRequestHelper::makeURI(FLAGS_config_tls_endpoint);
   return Status(0, "OK");
 }
 
@@ -124,10 +117,16 @@ void TLSConfigRefreshRunner::start() {
     // Apply this interruption initially as at t=0 the config was read.
     osquery::interruptableSleep(FLAGS_config_tls_refresh * 1000);
 
-    // The config instance knows the TLS plugin is selected.
-    std::map<std::string, std::string> config;
-    if (plugin_->genConfig(config)) {
-      Config::getInstance().update(config);
+    // Access the configuration.
+    auto plugin = Registry::get("config", "tls");
+    if (plugin != nullptr) {
+      auto config_plugin = std::dynamic_pointer_cast<ConfigPlugin>(plugin);
+
+      // The config instance knows the TLS plugin is selected.
+      std::map<std::string, std::string> config;
+      if (config_plugin->genConfig(config)) {
+        Config::getInstance().update(config);
+      }
     }
   }
 }
