@@ -82,6 +82,7 @@ const std::map<int, std::string> kSQLiteReturnCodes = {
 const std::map<std::string, QueryPlanner::Opcode> kSQLOpcodes = {
     {"Concat", QueryPlanner::Opcode(OpReg::P3, TEXT_TYPE)},
     {"AggStep", QueryPlanner::Opcode(OpReg::P3, BIGINT_TYPE)},
+    {"AggStep0", QueryPlanner::Opcode(OpReg::P3, BIGINT_TYPE)},
     {"Integer", QueryPlanner::Opcode(OpReg::P2, INTEGER_TYPE)},
     {"Int64", QueryPlanner::Opcode(OpReg::P2, BIGINT_TYPE)},
     {"String", QueryPlanner::Opcode(OpReg::P2, TEXT_TYPE)},
