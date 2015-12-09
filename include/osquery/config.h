@@ -19,91 +19,15 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core.h>
-#include <osquery/flags.h>
-#include <osquery/packs.h>
+#include <osquery/database.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 
 namespace osquery {
 
+class Pack;
+class Schedule;
 class ConfigParserPlugin;
-
-/**
- * The schedule is an iterable collection of Packs. When you iterate through
- * a schedule, you only get the packs that should be running on the host that
- * you're currently operating on.
- */
-class Schedule : private boost::noncopyable {
- public:
-  /// Under the hood, the schedule is just a list of the Pack objects
-  using container = std::list<Pack>;
-
-  /**
-   * @brief Create a schedule maintained by the configuration.
-   *
-   * This will check for previously executing queries. If any query was
-   * executing it is considered in a 'dirty' state and should generate logs.
-   * The schedule may also choose to blacklist this query.
-   */
-  Schedule();
-
-  /**
-   * @brief This class' iteration function
-   *
-   * Our step operation will be called on each element in packs_. It is
-   * responsible for determining if that element should be returned as the
-   * next iterator element or skipped.
-   */
-  struct Step {
-    bool operator()(Pack& pack) { return pack.shouldPackExecute(); }
-  };
-
-  /// Add a pack to the schedule
-  void add(const Pack& pack) {
-    remove(pack.getName(), pack.getSource());
-    packs_.push_back(pack);
-  }
-
-  /// Remove a pack, by name.
-  void remove(const std::string& pack) { remove(pack, ""); }
-
-  void remove(const std::string& pack, const std::string& source) {
-    packs_.remove_if([pack, source](Pack& p) {
-      return (p.getName() == pack) &&
-             ((p.getSource() == source || source == ""));
-    });
-  }
-
-  /// Boost gives us a nice template for maintaining the state of the iterator
-  using iterator = boost::filter_iterator<Step, container::iterator>;
-
-  iterator begin() { return iterator(packs_.begin(), packs_.end()); }
-  iterator end() { return iterator(packs_.end(), packs_.end()); }
-
- private:
-  /// Underlying storage for the packs
-  container packs_;
-
-  /**
-   * @brief The schedule will check and record previously executing queries.
-   *
-   * If a query is found on initialization, the name will be recorded, it is
-   * possible to skip previously failed queries.
-   */
-  std::string failed_query_;
-
-  /**
-   * @brief List of blacklisted queries.
-   *
-   * A list of queries that are blacklisted from executing due to prior
-   * failures. If a query caused a worker to fail it will be recorded during
-   * the next execution and saved to the blacklist.
-   */
-  std::map<std::string, size_t> blacklist_;
-
- private:
-  friend class Config;
-};
 
 /**
  * @brief The programmatic representation of osquery's configuration
@@ -115,7 +39,7 @@ class Schedule : private boost::noncopyable {
  */
 class Config : private boost::noncopyable {
  private:
-  Config() : valid_(false), start_time_(std::time(nullptr)){};
+  Config();
 
  public:
   /// Get a singleton instance of the Config class
@@ -315,7 +239,8 @@ class Config : private boost::noncopyable {
   void purge();
 
  protected:
-  Schedule schedule_;
+  /// Schedule of packs and their queries.
+  std::shared_ptr<Schedule> schedule_;
 
   /// A set of performance stats for each query in the schedule.
   std::map<std::string, QueryPerformance> performance_;

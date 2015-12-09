@@ -21,11 +21,11 @@
 namespace osquery {
 
 /// Statistics about Pack discovery query actions.
-typedef struct {
-  size_t total;
-  size_t hits;
-  size_t misses;
-} PackStats;
+struct PackStats {
+  size_t total{0};
+  size_t hits{0};
+  size_t misses{0};
+};
 
 /**
  * @brief The programmatic representation of a query pack
@@ -75,6 +75,8 @@ class Pack {
   /// Returns the minimum version that the pack is configured to run on
   const std::string& getVersion() const;
 
+  size_t getShard() const { return shard_; }
+
   /// Returns the schedule dictated by the pack
   const std::map<std::string, ScheduledQuery>& getSchedule() const;
 
@@ -96,14 +98,31 @@ class Pack {
   const PackStats& getStats() const;
 
  protected:
+  /// List of query strings.
   std::vector<std::string> discovery_queries_;
+
+  /// Map of query names to the scheduled query details.
   std::map<std::string, ScheduledQuery> schedule_;
+
+  /// Platform requirement for pack.
   std::string platform_;
+
+  /// Minimum version requirement for pack.
   std::string version_;
+
+  /// Optional shard requirement for pack.
+  size_t shard_{0};
+
+  /// Pack canonicalized name.
   std::string name_;
+
+  /// Name of config source that created/added this pack.
   std::string source_;
-  bool should_execute_;
+
+  /// Cached time and result from previous discovery step.
   std::pair<size_t, bool> discovery_cache_;
+
+  /// Pack discovery statistics.
   PackStats stats_;
 
  private:
@@ -113,6 +132,9 @@ class Pack {
    * Initialization must include pack content
    */
   Pack(){};
+
+ private:
+  FRIEND_TEST(PacksTests, test_check_platform);
 };
 
 /**

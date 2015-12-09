@@ -22,6 +22,7 @@
 #include <osquery/hash.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/tables.h>
 
@@ -61,6 +62,83 @@ boost::shared_mutex config_performance_mutex_;
 boost::shared_mutex config_files_mutex_;
 boost::shared_mutex config_hash_mutex_;
 boost::shared_mutex config_valid_mutex_;
+
+/**
+ * The schedule is an iterable collection of Packs. When you iterate through
+ * a schedule, you only get the packs that should be running on the host that
+ * you're currently operating on.
+ */
+class Schedule : private boost::noncopyable {
+ public:
+  /// Under the hood, the schedule is just a list of the Pack objects
+  using container = std::list<Pack>;
+
+  /**
+   * @brief Create a schedule maintained by the configuration.
+   *
+   * This will check for previously executing queries. If any query was
+   * executing it is considered in a 'dirty' state and should generate logs.
+   * The schedule may also choose to blacklist this query.
+   */
+  Schedule();
+
+  /**
+   * @brief This class' iteration function
+   *
+   * Our step operation will be called on each element in packs_. It is
+   * responsible for determining if that element should be returned as the
+   * next iterator element or skipped.
+   */
+  struct Step {
+    bool operator()(Pack& pack) { return pack.shouldPackExecute(); }
+  };
+
+  /// Add a pack to the schedule
+  void add(const Pack& pack) {
+    remove(pack.getName(), pack.getSource());
+    packs_.push_back(pack);
+  }
+
+  /// Remove a pack, by name.
+  void remove(const std::string& pack) { remove(pack, ""); }
+
+  void remove(const std::string& pack, const std::string& source) {
+    packs_.remove_if([pack, source](Pack& p) {
+      return (p.getName() == pack) &&
+             ((p.getSource() == source || source == ""));
+    });
+  }
+
+  /// Boost gives us a nice template for maintaining the state of the iterator
+  using iterator = boost::filter_iterator<Step, container::iterator>;
+
+  iterator begin() { return iterator(packs_.begin(), packs_.end()); }
+  iterator end() { return iterator(packs_.end(), packs_.end()); }
+
+ private:
+  /// Underlying storage for the packs
+  container packs_;
+
+  /**
+   * @brief The schedule will check and record previously executing queries.
+   *
+   * If a query is found on initialization, the name will be recorded, it is
+   * possible to skip previously failed queries.
+   */
+  std::string failed_query_;
+
+  /**
+   * @brief List of blacklisted queries.
+   *
+   * A list of queries that are blacklisted from executing due to prior
+   * failures. If a query caused a worker to fail it will be recorded during
+   * the next execution and saved to the blacklist.
+   */
+  std::map<std::string, size_t> blacklist_;
+
+ private:
+  friend class Config;
+};
 
 void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist) {
   std::string content;
@@ -112,12 +190,17 @@ Schedule::Schedule() {
   }
 }
 
+Config::Config()
+    : schedule_(std::make_shared<Schedule>()),
+      valid_(false),
+      start_time_(std::time(nullptr)) {}
+
 void Config::addPack(const std::string& name,
                      const std::string& source,
                      const pt::ptree& tree) {
   WriteLock wlock(config_schedule_mutex_);
   try {
-    schedule_.add(Pack(name, source, tree));
+    schedule_->add(Pack(name, source, tree));
   } catch (const std::exception& e) {
     LOG(WARNING) << "Error adding pack: " << name << ": " << e.what();
   }
@@ -125,7 +208,7 @@ void Config::addPack(const std::string& name,
 
 void Config::removePack(const std::string& pack) {
   WriteLock wlock(config_schedule_mutex_);
-  return schedule_.remove(pack);
+  return schedule_->remove(pack);
 }
 
 void Config::addFile(const std::string& source,
@@ -145,7 +228,7 @@ void Config::removeFiles(const std::string& source) {
 void Config::scheduledQueries(std::function<
     void(const std::string& name, const ScheduledQuery& query)> predicate) {
   ReadLock rlock(config_schedule_mutex_);
-  for (Pack& pack : schedule_) {
+  for (Pack& pack : *schedule_) {
     for (const auto& it : pack.getSchedule()) {
       std::string name = it.first;
       // The query name may be synthetic.
@@ -154,12 +237,12 @@ void Config::scheduledQueries(std::function<
                FLAGS_pack_delimiter + it.first;
       }
       // They query may have failed and been added to the schedule's blacklist.
-      if (schedule_.blacklist_.count(name) > 0) {
-        auto blacklisted_query = schedule_.blacklist_.find(name);
+      if (schedule_->blacklist_.count(name) > 0) {
+        auto blacklisted_query = schedule_->blacklist_.find(name);
         if (getUnixTime() > blacklisted_query->second) {
           // The blacklisted query passed the expiration time (remove).
-          schedule_.blacklist_.erase(blacklisted_query);
-          saveScheduleBlacklist(schedule_.blacklist_);
+          schedule_->blacklist_.erase(blacklisted_query);
+          saveScheduleBlacklist(schedule_->blacklist_);
         } else {
           // The query is still blacklisted.
           continue;
@@ -173,7 +256,7 @@ void Config::scheduledQueries(std::function<
 
 void Config::packs(std::function<void(Pack& pack)> predicate) {
   ReadLock rlock(config_schedule_mutex_);
-  for (Pack& pack : schedule_.packs_) {
+  for (Pack& pack : schedule_->packs_) {
     predicate(pack);
   }
 }
@@ -393,7 +476,7 @@ void Config::purge() {
 
   const auto& schedule = this->schedule_;
   auto queryExists = [&schedule](const std::string& query_name) {
-    for (const auto& pack : schedule.packs_) {
+    for (const auto& pack : schedule->packs_) {
       const auto& pack_queries = pack.getSchedule();
       if (pack_queries.count(query_name)) {
         return true;

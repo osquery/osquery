@@ -233,6 +233,15 @@ consist of pack name to pack content JSON data structures.
           "description": "Check each user's active directory cached settings."
         }
       }
+    },
+    "testing": {
+      "shard": "10",
+      "queries": {
+        "suid_bins": {
+          "query": "select * from suid_bins;",
+          "interval": "3600",
+        }
+      }
     }
   }
 }
@@ -342,17 +351,16 @@ When osquery's config parser is provided a string instead of inline dictionary t
 
 ### Options
 
-In addition to discovery and queries, a pack may contain a **platform** key
-and a **version** key. Specifying platform allows you to specify that the pack
-should only be executed on "linux", "darwin", etc.
+In addition to discovery and queries, a pack may contain a **platform**, **shard**, or **version** key. Specifying platform allows you to specify that the pack should only be executed on "linux", "darwin", etc. The shard key applies Chef-style percentage sharding. Appropriate values range from 1 - 100 and represent a percentage of hosts that should use this pack. Values over 100 are equivalent to 100%, 0 discounts the shard option. The hosts that fall into the range are a deterministic 10%. The version key can set a minimum supported version for this query.
 
 In practice, this looks like:
 
 ```json
 {
-	"platform": "any",
-	"version": "1.5.0",
-	"queries": {}
+  "platform": "any",
+  "version": "1.5.0",
+  "shard": "10",
+  "queries": {}
 }
 ```
 

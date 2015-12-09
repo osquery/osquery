@@ -15,6 +15,7 @@
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
+#include <osquery/hash.h>
 #include <osquery/packs.h>
 #include <osquery/sql.h>
 
@@ -59,6 +60,24 @@ size_t splayValue(size_t original, size_t splayPercent) {
   return distribution(generator);
 }
 
+size_t getMachineShard(const std::string& hostname = "", bool force = false) {
+  static size_t shard = 0;
+  if (shard > 0 && !force) {
+    return shard;
+  }
+
+  // An optional input hostname may override hostname detection for testing.
+  auto hn = (hostname.empty()) ? getHostname() : hostname;
+  auto hn_hash = hashFromBuffer(HASH_TYPE_MD5, hn.c_str(), hn.size());
+  if (hn_hash.size() >= 2) {
+    long hn_char;
+    if (safeStrtol(hn_hash.substr(0, 2), 16, hn_char)) {
+      shard = (hn_char * 100) / 255;
+    }
+  }
+  return shard;
+}
+
 size_t restoreSplayedValue(const std::string& name, size_t interval) {
   // Attempt to restore a previously-calculated splay.
   std::string content;
@@ -90,15 +109,9 @@ void Pack::initialize(const std::string& name,
                       const pt::ptree& tree) {
   name_ = name;
   source_ = source;
-  discovery_queries_.clear();
-  if (tree.count("discovery") > 0) {
-    for (const auto& item : tree.get_child("discovery")) {
-      discovery_queries_.push_back(item.second.get_value<std::string>());
-    }
+  if (tree.count("shard") > 0) {
+    shard_ = tree.get<size_t>("shard", 0);
   }
-
-  discovery_cache_ = std::make_pair<size_t, bool>(0, false);
-  stats_ = {0, 0, 0};
 
   platform_.clear();
   if (tree.count("platform") > 0) {
@@ -110,11 +123,26 @@ void Pack::initialize(const std::string& name,
     version_ = tree.get<std::string>("version", "");
   }
 
+  if ((shard_ > 0 && shard_ < getMachineShard()) || !checkPlatform() ||
+      !checkVersion()) {
+    return;
+  }
+
   schedule_.clear();
   if (tree.count("queries") == 0) {
     // This pack contained no queries.
     return;
   }
+
+  discovery_queries_.clear();
+  if (tree.count("discovery") > 0) {
+    for (const auto& item : tree.get_child("discovery")) {
+      discovery_queries_.push_back(item.second.get_value<std::string>());
+    }
+  }
+
+  // Initialize a discovery cache at time 0.
+  discovery_cache_ = std::make_pair<size_t, bool>(0, false);
 
   // If the splay percent is less than 1 reset to a sane estimate.
   if (FLAGS_schedule_splay_percent <= 1) {
@@ -123,6 +151,13 @@ void Pack::initialize(const std::string& name,
 
   // Iterate the queries (or schedule) and check platform/version/sanity.
   for (const auto& q : tree.get_child("queries")) {
+    if (q.second.count("shard") > 0) {
+      auto shard = q.second.get<size_t>("shard", 0);
+      if (shard > 0 && shard < getMachineShard()) {
+        continue;
+      }
+    }
+
     if (q.second.count("platform")) {
       if (!checkPlatform(q.second.get<std::string>("platform", ""))) {
         continue;
@@ -166,9 +201,7 @@ const std::string& Pack::getPlatform() const { return platform_; }
 
 const std::string& Pack::getVersion() const { return version_; }
 
-bool Pack::shouldPackExecute() {
-  return checkVersion() && checkPlatform() && checkDiscovery();
-}
+bool Pack::shouldPackExecute() { return checkDiscovery(); }
 
 const std::string& Pack::getName() const { return name_; }
 
@@ -179,7 +212,7 @@ void Pack::setName(const std::string& name) { name_ = name; }
 bool Pack::checkPlatform() const { return checkPlatform(platform_); }
 
 bool Pack::checkPlatform(const std::string& platform) const {
-  if (platform == "" || platform == "null") {
+  if (platform.empty() || platform == "null") {
     return true;
   }
 
@@ -199,7 +232,7 @@ bool Pack::checkPlatform(const std::string& platform) const {
 bool Pack::checkVersion() const { return checkVersion(version_); }
 
 bool Pack::checkVersion(const std::string& version) const {
-  if (version == "" || version == "null") {
+  if (version.empty() || version == "null") {
     return true;
   }
 
