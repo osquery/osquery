@@ -183,7 +183,7 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
       afinite = -1;
     }
     sqlite3_result_int(ctx, (int)afinite);
-  } else if (type == BIGINT_TYPE || UNSIGNED_BIGINT_TYPE) {
+  } else if (type == BIGINT_TYPE || type == UNSIGNED_BIGINT_TYPE) {
     long long afinite;
     if (!safeStrtoll(value, 10, afinite)) {
       VLOG(1) << "Error casting " << column_name << " (" << value
@@ -200,6 +200,8 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
               << ") to DOUBLE";
     }
     sqlite3_result_double(ctx, afinite);
+  } else {
+    LOG(ERROR) << "Error unknown column type " << column_name;
   }
 
   return SQLITE_OK;
