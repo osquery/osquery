@@ -98,6 +98,9 @@ Consider the default recipe:
 ```ruby
 # Domain used by the OS X LaunchDaemon.
 domain = 'com.facebook.osquery.osqueryd'
+config_path = '/var/osquery/osquery.conf'
+pid_path = '/var/osquery/osquery.pid'
+flagfile = '/var/osquery/osquery.flags'
 
 directory '/var/osquery' do
   recursive true
@@ -109,6 +112,11 @@ template "/Library/LaunchDaemons/#{domain}.plist" do
   mode '0444'
   owner 'root'
   group 'wheel'
+  variables(domain: domain,
+            config_path: config_path,
+            pid_path: pid_path,
+            flagfile: flagfile
+           )
   notifies :restart, "service[#{domain}]"
 end
 
@@ -119,12 +127,14 @@ cookbook_file "/etc/newsyslog.d/#{domain}.conf" do
   group 'wheel'
 end
 
-cookbook_file '/var/osquery/osquery.conf' do
-  source 'osquery.conf'
-  mode 0444
-  owner 'root'
-  group 'wheel'
-  notifies :restart, "service[#{domain}]"
+['osquery.flags', 'osquery.conf'].each do |file|
+  cookbook_file "/var/osquery/#{file}" do
+    source file
+    mode 0444
+    owner 'root'
+    group 'wheel'
+    notifies :restart, "service[#{domain}]"
+  end
 end
 
 service domain do
@@ -140,18 +150,24 @@ And the following files/templates used by the recipe:
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <key>Label</key>
+  <string><%= @domain %></string>
+  <key>ProgramArguments</key>
+  <array>
+      <string>/usr/local/bin/osqueryd</string>
+      <string>--config_path</string>
+      <string><%= @config_path %></string>
+      <string>--pidfile</string>
+      <string><%= @pid_path %></string>
+      <string>--flagfile</string>
+      <string><%= @flagfile %></string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
   <key>KeepAlive</key>
   <true/>
   <key>Disabled</key>
   <false/>
-  <key>OnDemand</key>
-  <false/>
-  <key>Label</key>
-  <string><%= domain %></string>
-  <key>Program</key>
-        <string>/usr/local/bin/osqueryd</string>
-  <key>RunAtLoad</key>
-  <true/>
   <key>ThrottleInterval</key>
   <integer>60</integer>
 </dict>
