@@ -70,7 +70,7 @@ void FileEventSubscriber::configure() {
       // Use the filesystem globbing pattern to determine recursiveness.
       sc->recursive = 0;
       sc->path = file;
-      sc->mask = IN_ATTRIB | IN_MODIFY | IN_DELETE | IN_CREATE;
+      sc->mask = IN_ALL_EVENTS;
       sc->category = category;
       subscribe(&FileEventSubscriber::Callback, sc);
     }
