@@ -14,6 +14,7 @@
 #include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
@@ -82,6 +83,7 @@ QueryData genOsqueryPacks(QueryContext& context) {
     r["name"] = pack.getName();
     r["version"] = pack.getVersion();
     r["platform"] = pack.getPlatform();
+    r["shard"] = INTEGER(pack.getShard());
 
     auto stats = pack.getStats();
     r["discovery_cache_hits"] = INTEGER(stats.hits);
@@ -217,11 +219,11 @@ QueryData genOsquerySchedule(QueryContext& context) {
         r["user_time"] = "0";
         r["system_time"] = "0";
         r["average_memory"] = "0";
+        r["last_executed"] = "0";
 
         // Report optional performance information.
         Config::getInstance().getPerformanceStats(
-            name,
-            [&r](const QueryPerformance& perf) {
+            name, [&r](const QueryPerformance& perf) {
               r["executions"] = BIGINT(perf.executions);
               r["last_executed"] = BIGINT(perf.last_executed);
               r["output_size"] = BIGINT(perf.output_size);
@@ -235,6 +237,5 @@ QueryData genOsquerySchedule(QueryContext& context) {
       });
   return results;
 }
-
 }
 }

@@ -4,6 +4,7 @@ schema([
     Column("name", TEXT, "The given name for this query pack"),
     Column("platform", TEXT, "Platforms this query is supported on"),
     Column("version", TEXT, "Minimum osquery version that this query will run on"),
+    Column("shard", INTEGER, "Shard restriction limit, 1-100, 0 meaning no restriction"),
     Column("discovery_cache_hits", INTEGER, "The number of times that the discovery query used cached values since the last time the config was reloaded"),
     Column("discovery_executions", INTEGER, "The number of times that the discovery queries have been executed since the last time the config was reloaded"),
 ])

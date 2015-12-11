@@ -18,6 +18,7 @@
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/flags.h>
+#include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 
@@ -167,35 +168,49 @@ TEST_F(ConfigTests, test_parse) {
   for (const auto& pack : packs) {
     c.addPack(pack.first, "", pack.second);
   }
-  for (Pack& p : c.schedule_) {
-    EXPECT_TRUE(p.shouldPackExecute());
-  }
+
+  std::map<std::string, bool> results = {
+      {"unrestricted_pack", true},
+      {"discovery_pack", false},
+      {"fake_version_pack", true},
+      // Although this is a valid discovery query, there is no SQL plugin in
+      // the core tests.
+      {"valid_discovery_pack", false},
+  };
+
+  c.packs(([&results](Pack& pack) {
+    if (results[pack.getName()]) {
+      EXPECT_TRUE(pack.shouldPackExecute());
+    } else {
+      EXPECT_FALSE(pack.shouldPackExecute());
+    }
+  }));
 }
 
 TEST_F(ConfigTests, test_remove) {
   Config c;
   c.addPack("unrestricted_pack", "", getUnrestrictedPack());
   c.removePack("unrestricted_pack");
-  for (Pack& pack : c.schedule_) {
-    EXPECT_NE("unrestricted_pack", pack.getName());
-  }
+
+  c.packs(([](Pack& pack) { EXPECT_NE("unrestricted_pack", pack.getName()); }));
 }
 
 TEST_F(ConfigTests, test_add_remove_pack) {
   Config c;
-  auto first = c.schedule_.begin();
-  auto last = c.schedule_.end();
-  EXPECT_EQ(std::distance(first, last), 0);
 
+  size_t pack_count = 0;
+  c.packs(([&pack_count](Pack& pack) { pack_count++; }));
+  EXPECT_EQ(pack_count, 0U);
+
+  pack_count = 0;
   c.addPack("unrestricted_pack", "", getUnrestrictedPack());
-  first = c.schedule_.begin();
-  last = c.schedule_.end();
-  EXPECT_EQ(std::distance(first, last), 1);
+  c.packs(([&pack_count](Pack& pack) { pack_count++; }));
+  EXPECT_EQ(pack_count, 1U);
 
+  pack_count = 0;
   c.removePack("unrestricted_pack");
-  first = c.schedule_.begin();
-  last = c.schedule_.end();
-  EXPECT_EQ(std::distance(first, last), 0);
+  c.packs(([&pack_count](Pack& pack) { pack_count++; }));
+  EXPECT_EQ(pack_count, 0U);
 }
 
 TEST_F(ConfigTests, test_get_scheduled_queries) {

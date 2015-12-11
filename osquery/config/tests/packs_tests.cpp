@@ -21,6 +21,9 @@
 
 namespace osquery {
 
+extern size_t getMachineShard(const std::string& hostname = "",
+                              bool force = false);
+
 class PacksTests : public testing::Test {};
 
 TEST_F(PacksTests, test_parse) {
@@ -49,7 +52,7 @@ TEST_F(PacksTests, test_get_discovery_queries) {
 
 TEST_F(PacksTests, test_platform) {
   auto fpack = Pack("discovery_pack", getPackWithDiscovery());
-  EXPECT_EQ(fpack.getPlatform(), "darwin");
+  EXPECT_EQ(fpack.getPlatform(), "all");
 }
 
 TEST_F(PacksTests, test_version) {
@@ -63,22 +66,44 @@ TEST_F(PacksTests, test_name) {
   EXPECT_EQ(fpack.getName(), "also_discovery_pack");
 }
 
+TEST_F(PacksTests, test_sharding) {
+  auto shard1 = getMachineShard("localhost.localdomain");
+  auto shard2 = getMachineShard("not.localhost.localdomain");
+  // Expect some static caching.
+  EXPECT_EQ(shard1, shard2);
+
+  // Bypass the caching.
+  shard2 = getMachineShard("not.localhost.localdomain", true);
+  EXPECT_NE(shard1, shard2);
+}
+
 TEST_F(PacksTests, test_check_platform) {
   auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  EXPECT_TRUE(fpack.checkPlatform());
+
   // Depending on the current build platform, this check will be true or false.
-  if (kSDKPlatform == "darwin") {
-    EXPECT_TRUE(fpack.checkPlatform());
-  } else {
-    EXPECT_FALSE(fpack.checkPlatform());
-  }
+  fpack.platform_ = kSDKPlatform;
+  EXPECT_TRUE(fpack.checkPlatform());
+
+  fpack.platform_ = (kSDKPlatform == "darwin") ? "linux" : "darwin";
+  EXPECT_FALSE(fpack.checkPlatform());
+
+  fpack.platform_ = "null";
+  EXPECT_TRUE(fpack.checkPlatform());
+
+  fpack.platform_ = "";
+  EXPECT_TRUE(fpack.checkPlatform());
+
+  fpack.platform_ = "bad_value";
+  EXPECT_FALSE(fpack.checkPlatform());
 }
 
 TEST_F(PacksTests, test_check_version) {
-  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
-  EXPECT_TRUE(fpack.checkVersion());
-
   auto zpack = Pack("fake_version_pack", getPackWithFakeVersion());
   EXPECT_FALSE(zpack.checkVersion());
+
+  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  EXPECT_TRUE(fpack.checkVersion());
 }
 
 TEST_F(PacksTests, test_schedule) {
