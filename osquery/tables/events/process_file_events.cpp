@@ -11,22 +11,40 @@
 #include "osquery/events/kernel.h"
 
 #include <osquery/config.h>
+#include <osquery/events.h>
 #include <osquery/logger.h>
 #include <osquery/filesystem.h>
 
 namespace osquery {
 
-class FileAccessEventSubscriber : public EventSubscriber<KernelEventPublisher> {
+class ProcessFileEventSubscriber
+    : public EventSubscriber<KernelEventPublisher> {
  public:
-  Status init() override;
+  Status init() override {
+    auto pubref = EventFactory::getEventPublisher("kernel");
+    if (pubref == nullptr || !pubref->hasStarted() || pubref->isEnding()) {
+      return Status(1);
+    }
+
+    configure();
+    return Status(0);
+  }
+
+  /// Walk the configuration's file paths, create subscriptions.
+  void configure() override;
 
   Status Callback(const TypedKernelEventContextRef<osquery_file_event_t> &ec,
                   const KernelSubscriptionContextRef &sc);
 };
 
-REGISTER(FileAccessEventSubscriber, "event_subscriber", "file_access_events");
+REGISTER(ProcessFileEventSubscriber, "event_subscriber", "process_file_events");
 
-Status FileAccessEventSubscriber::init() {
+void ProcessFileEventSubscriber::configure() {
+
+  // There may be a better way to find the set intersection/difference.
+  auto pub = getPublisher();
+  pub->removeSubscriptions();
+
   Config::getInstance().files([this](const std::string &category,
                                      const std::vector<std::string> &files) {
     for (const auto &file : files) {
@@ -41,16 +59,13 @@ Status FileAccessEventSubscriber::init() {
       path = path.substr(0, path.find("*"));
       strncpy(sub.path, path.c_str(), MAXPATHLEN);
       sc->category = category;
-      VLOG(1) << "Added kernel listener to: " << path;
-
-      subscribe(&FileAccessEventSubscriber::Callback, sc);
+      VLOG(1) << "Added process file event listener to: " << path;
+      subscribe(&ProcessFileEventSubscriber::Callback, sc);
     }
   });
-
-  return Status(0, "OK");
 }
 
-Status FileAccessEventSubscriber::Callback(
+Status ProcessFileEventSubscriber::Callback(
     const TypedKernelEventContextRef<osquery_file_event_t> &ec,
     const KernelSubscriptionContextRef &sc) {
   Row r;
@@ -77,10 +92,9 @@ Status FileAccessEventSubscriber::Callback(
   r["egid"] = BIGINT(ec->event.egid);
   r["owner_uid"] = BIGINT(ec->event.owner_uid);
   r["owner_gid"] = BIGINT(ec->event.owner_gid);
-  r["create_time"] = BIGINT(ec->event.create_time);
-  r["access_time"] = BIGINT(ec->event.access_time);
-  r["modify_time"] = BIGINT(ec->event.modify_time);
-  r["change_time"] = BIGINT(ec->event.change_time);
+  r["ctime"] = BIGINT(ec->event.create_time);
+  r["atime"] = BIGINT(ec->event.access_time);
+  r["mtime"] = BIGINT(ec->event.modify_time);
   r["mode"] = BIGINT(ec->event.mode);
   r["path"] = ec->event.path;
   r["uptime"] = BIGINT(ec->uptime);

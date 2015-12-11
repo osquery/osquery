@@ -66,7 +66,7 @@ void FileEventSubscriber::configure() {
   Config::getInstance().files([this](const std::string& category,
                                      const std::vector<std::string>& files) {
     for (const auto& file : files) {
-      VLOG(1) << "Added listener to: " << file;
+      VLOG(1) << "Added file event listener to: " << file;
       auto sc = createSubscriptionContext();
       sc->path = file;
       sc->category = category;

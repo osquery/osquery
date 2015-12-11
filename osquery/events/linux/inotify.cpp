@@ -74,7 +74,7 @@ bool INotifyEventPublisher::monitorSubscription(
       std::vector<std::string> paths;
       resolveFilePattern(sc->discovered_, paths);
       for (const auto& _path : paths) {
-        addMonitor(_path, sc->recursive, add_watch);
+        addMonitor(_path, sc->mask, sc->recursive, add_watch);
       }
       sc->recursive_match = sc->recursive;
       return true;
@@ -84,7 +84,7 @@ bool INotifyEventPublisher::monitorSubscription(
     sc->path += '/';
     sc->discovered_ += '/';
   }
-  return addMonitor(sc->discovered_, sc->recursive, add_watch);
+  return addMonitor(sc->discovered_, sc->mask, sc->recursive, add_watch);
 }
 
 void INotifyEventPublisher::configure() {
@@ -223,21 +223,22 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
 
   // inotify will not monitor recursively, new directories need watches.
   if (sc->recursive && ec->action == "CREATED" && isDirectory(ec->path)) {
-    const_cast<INotifyEventPublisher*>(this)->addMonitor(ec->path + '/', true);
+    const_cast<INotifyEventPublisher*>(this)
+        ->addMonitor(ec->path + '/', sc->mask, true);
   }
 
   return true;
 }
 
 bool INotifyEventPublisher::addMonitor(const std::string& path,
+                                       uint32_t mask,
                                        bool recursive,
                                        bool add_watch) {
   if (!isPathMonitored(path)) {
     int watch =
         ::inotify_add_watch(getHandle(),
                             path.c_str(),
-                            (IN_MODIFY | IN_ATTRIB | IN_MOVE | IN_CREATE |
-                             IN_DELETE | IN_DELETE_SELF | IN_MOVE_SELF));
+                            ((mask == 0) ? IN_ALL_EVENTS ^ IN_ACCESS : mask));
     if (add_watch && watch == -1) {
       LOG(WARNING) << "Could not add inotify watch on: " << path;
       return false;
@@ -259,7 +260,7 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
     boost::system::error_code ec;
     for (const auto& child : children) {
       auto canonicalized = fs::canonical(child, ec).string() + '/';
-      addMonitor(canonicalized, false);
+      addMonitor(canonicalized, mask, false);
     }
   }
 

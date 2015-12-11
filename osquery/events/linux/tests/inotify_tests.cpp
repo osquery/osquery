@@ -63,7 +63,7 @@ class INotifyTests : public testing::Test {
   }
 
   void SubscriptionAction(const std::string& path,
-                          uint32_t mask = 0,
+                          uint32_t mask = IN_ALL_EVENTS,
                           EventCallback ec = nullptr) {
     auto sc = std::make_shared<INotifySubscriptionContext>();
     sc->path = path;
@@ -166,6 +166,7 @@ TEST_F(INotifyTests, test_inotify_add_subscription_success) {
   // This subscription path *should* be real.
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = "/";
+  mc->mask = IN_ALL_EVENTS;
 
   auto subscription = Subscription::create("TestSubscriber", mc);
   auto status = EventFactory::addSubscription("inotify", subscription);
@@ -175,7 +176,7 @@ TEST_F(INotifyTests, test_inotify_add_subscription_success) {
 
 TEST_F(INotifyTests, test_inotify_match_subscription) {
   auto pub = std::make_shared<INotifyEventPublisher>();
-  pub->addMonitor("/etc", false, false);
+  pub->addMonitor("/etc", IN_ALL_EVENTS, false, false);
   EXPECT_EQ(pub->path_descriptors_.count("/etc"), 1U);
   // This will fail because there is no trailing "/" at the end.
   // The configure component should take care of these paths.
@@ -183,7 +184,7 @@ TEST_F(INotifyTests, test_inotify_match_subscription) {
   pub->path_descriptors_.clear();
 
   // Calling addMonitor the correct way.
-  pub->addMonitor("/etc/", false, false);
+  pub->addMonitor("/etc/", IN_ALL_EVENTS, false, false);
   EXPECT_TRUE(pub->isPathMonitored("/etc/passwd"));
   pub->path_descriptors_.clear();
 
@@ -238,7 +239,8 @@ class TestINotifyEventSubscriber
     return Status(0, "OK");
   }
 
-  SCRef GetSubscription(const std::string& path, uint32_t mask = 0) {
+  SCRef GetSubscription(const std::string& path,
+                        uint32_t mask = IN_ALL_EVENTS) {
     auto mc = createSubscriptionContext();
     mc->path = path;
     mc->mask = mask;
@@ -288,6 +290,7 @@ TEST_F(INotifyTests, test_inotify_run) {
   // Create a subscriptioning context
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = real_test_path;
+  mc->mask = IN_ALL_EVENTS;
   status = EventFactory::addSubscription(
       "inotify", Subscription::create("TestINotifyEventSubscriber", mc));
   EXPECT_TRUE(status.ok());
@@ -333,7 +336,7 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
   EventFactory::registerEventSubscriber(sub);
 
-  auto sc = sub->GetSubscription(real_test_path, 0);
+  auto sc = sub->GetSubscription(real_test_path, IN_ALL_EVENTS);
   sub->subscribe(&TestINotifyEventSubscriber::Callback, sc);
   event_pub_->configure();
 
@@ -344,8 +347,8 @@ TEST_F(INotifyTests, test_inotify_event_action) {
   EXPECT_GT(sub->actions().size(), 0U);
   if (sub->actions().size() >= 2) {
     EXPECT_EQ(sub->actions()[0], "UPDATED");
-    EXPECT_EQ(sub->actions()[1], "UPDATED");
   }
+
   StopEventLoop();
 }
 
