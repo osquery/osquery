@@ -33,10 +33,7 @@ const std::map<fs::file_type, std::string> kTypeNames{
     {fs::status_error, "error"},
 };
 
-void genFileInfo(/*const std::string& path,
-                 const std::string& filename,
-                 const std::string& dir,*/
-                 const fs::path& path,
+void genFileInfo(const fs::path& path,
                  const fs::path& parent,
                  const std::string& pattern,
                  QueryData& results) {

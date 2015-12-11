@@ -15,11 +15,13 @@
 #include <osquery/config.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-#include <osquery/hash.h>
 
 #include "osquery/events/darwin/fsevents.h"
+#include "osquery/tables/events/event_utils.h"
 
 namespace osquery {
+
+extern const std::set<std::string> kCommonFileColumns;
 
 /**
  * @brief Track time, action changes to /etc/passwd
@@ -77,24 +79,21 @@ void FileEventSubscriber::configure() {
 
 Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec,
                                      const FSEventsSubscriptionContextRef& sc) {
+  if (ec->action.empty()) {
+    return Status(0);
+  }
+
   Row r;
   r["action"] = ec->action;
   r["target_path"] = ec->path;
   r["category"] = sc->category;
   r["transaction_id"] = INTEGER(ec->transaction_id);
 
-  // Only hash if the file content could have been modified.
-  if (ec->action == "CREATED" || ec->action == "UPDATED") {
-    auto hashes = hashMultiFromFile(
-        HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, ec->path);
-    r["md5"] = std::move(hashes.md5);
-    r["sha1"] = std::move(hashes.sha1);
-    r["sha256"] = std::move(hashes.sha256);
-  }
+  // Add hashing and 'join' against the file table for stat-information.
+  decorateFileEvent(
+      ec->path, (ec->action == "CREATED" || ec->action == "UPDATED"), r);
 
-  if (ec->action != "") {
-    add(r, ec->time);
-  }
+  add(r, ec->time);
   return Status(0, "OK");
 }
 }
