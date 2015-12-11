@@ -171,7 +171,7 @@ void genApplicationsFromPath(const fs::path& path,
   }
 
   for (const auto& app : new_apps) {
-    if (fs::exists(app + "/Contents/Info.plist")) {
+    if (pathExists(app + "/Contents/Info.plist")) {
       apps.insert(app + "/Contents/Info.plist");
     }
   }
@@ -187,14 +187,14 @@ void genApplication(const pt::ptree& tree,
   // Loop through each column and its mapped Info.plist key name.
   for (const auto& item : kAppsInfoPlistTopLevelStringKeys) {
     r[item.second] = tree.get<std::string>(item.first, "");
-      // Change boolean values into integer 1, 0.
-      if (r[item.second] == "true" || r[item.second] == "YES" ||
-          r[item.second] == "Yes") {
-        r[item.second] = INTEGER(1);
-      } else if (r[item.second] == "false" || r[item.second] == "NO" ||
-                 r[item.second] == "No") {
-        r[item.second] = INTEGER(0);
-      }
+    // Change boolean values into integer 1, 0.
+    if (r[item.second] == "true" || r[item.second] == "YES" ||
+        r[item.second] == "Yes") {
+      r[item.second] = INTEGER(1);
+    } else if (r[item.second] == "false" || r[item.second] == "NO" ||
+               r[item.second] == "No") {
+      r[item.second] = INTEGER(0);
+    }
   }
   results.push_back(std::move(r));
 }
@@ -221,7 +221,7 @@ Status genAppsFromLaunchServices(std::set<std::string>& apps) {
   }
 
   @autoreleasepool {
-    for (id app in (__bridge NSArray*)ls_apps) {
+    for (id app in(__bridge NSArray*)ls_apps) {
       if (app != nil && [app isKindOfClass:[NSURL class]]) {
         apps.insert(std::string([[app path] UTF8String]) +
                     "/Contents/Info.plist");
