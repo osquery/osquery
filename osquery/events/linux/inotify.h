@@ -156,6 +156,7 @@ class INotifyEventPublisher
    * @return success if the inotify watch was created.
    */
   bool addMonitor(const std::string& path,
+                  uint32_t mask,
                   bool recursive,
                   bool add_watch = true);
 

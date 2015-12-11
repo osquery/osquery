@@ -1,5 +1,5 @@
-table_name("file_access_events")
-description("File access events (open and close) from kernel extension.")
+table_name("process_file_events")
+description("Process file events (open and close) from kernel extension.")
 schema([
     Column("action", TEXT,
       "The action taken on the file (OPEN, CLOSED, or CLOSED_MODIFIED)"),
@@ -13,14 +13,12 @@ schema([
     Column("owner_gid", BIGINT, "Group ID of the owner of the file"),
     Column("mode", BIGINT, "Indicates the mode of the file"),
     Column("path", TEXT, "Path of file"),
-    Column("create_time", BIGINT, "Time of creation in UNIX epoch time"),
-    Column("access_time", BIGINT, "Time of last access in UNIX epoch time"),
-    Column("modify_time", BIGINT,
+    Column("ctime", BIGINT, "Time of creation in UNIX epoch time"),
+    Column("atime", BIGINT, "Time of last access in UNIX epoch time"),
+    Column("mtime", BIGINT,
       "Time of last modification in UNIX epoch time"),
-    Column("change_time", BIGINT,
-      "Time of last metadata change in UNIX epoch time"),
     Column("time", BIGINT, "Time of event in UNIX epoch time"),
     Column("uptime", BIGINT, "Time of event in system uptime"),
 ])
 attributes(event_subscriber=True)
-implementation("file_acess_events@file_access_events::genTable")
+implementation("process_file_events@process_file_events::genTable")

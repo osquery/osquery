@@ -85,6 +85,16 @@ fs.inotify.max_queued_events = 32768
 
 ## File Accesses
 
-It is possible to monitor for file accesses using the osquery OS X kernel module. File accesses induce a LOT of stress on the system and are more or less useless giving the context from userland monitoring systems (aka, not having the process that caused the modification).
+File accesses on Linux using inotify may induce unexpected and unwanted performance reduction. To prevent 'flooding' of access events alongside FIM, access events for `file_path` categories is an explicit opt-in. Add the following list of categories:
 
-If the kernel extension is running, the `file_access_events` table will be populated using the same **file_paths** key in the osquery config. This implementation of access monitoring includes process PIDs and should not cause CPU or memory latency outside of the normal kernel extension/module guarantees. See [../development/kernel.md](Kernel) for more information.
+```json
+{
+  "file_accesses": ["homes", "etc"]
+}
+```
+
+To enable access monitoring for the above set of directories in 'homes' and the single 'etc'.
+
+It is possible to monitor for file accesses by process using the osquery OS X kernel module. File accesses induce a LOT of stress on the system and are more or less useless giving the context from userland monitoring systems (aka, not having the process that caused the modification).
+
+If the kernel extension is running, the `process_file_events` table will be populated using the same **file_paths** key in the osquery config. This implementation of access monitoring includes process PIDs and should not cause CPU or memory latency outside of the normal kernel extension/module guarantees. See [../development/kernel.md](Kernel) for more information.

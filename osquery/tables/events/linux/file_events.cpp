@@ -62,15 +62,18 @@ void FileEventSubscriber::configure() {
   auto pub = getPublisher();
   pub->removeSubscriptions();
 
-  Config::getInstance().files([this](const std::string& category,
-                                     const std::vector<std::string>& files) {
+  auto parser = Config::getParser("file_paths");
+  auto& accesses = parser->getData().get_child("file_accesses");
+  Config::getInstance().files([this, &accesses](
+      const std::string& category, const std::vector<std::string>& files) {
     for (const auto& file : files) {
-      VLOG(1) << "Added listener to: " << file;
+      VLOG(1) << "Added file event listener to: " << file;
       auto sc = createSubscriptionContext();
       // Use the filesystem globbing pattern to determine recursiveness.
       sc->recursive = 0;
       sc->path = file;
-      sc->mask = IN_ALL_EVENTS;
+      sc->mask = (accesses.count(category) > 0) ? IN_ALL_EVENTS
+                                                : (IN_ALL_EVENTS ^ IN_ACCESS);
       sc->category = category;
       subscribe(&FileEventSubscriber::Callback, sc);
     }
