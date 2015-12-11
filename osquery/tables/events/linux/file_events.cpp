@@ -88,9 +88,11 @@ Status FileEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   r["transaction_id"] = INTEGER(ec->event->cookie);
 
   if (ec->action == "CREATED" || ec->action == "UPDATED") {
-    r["md5"] = hashFromFile(HASH_TYPE_MD5, ec->path);
-    r["sha1"] = hashFromFile(HASH_TYPE_SHA1, ec->path);
-    r["sha256"] = hashFromFile(HASH_TYPE_SHA256, ec->path);
+    auto hashes = hashMultiFromFile(
+        HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, ec->path);
+    r["md5"] = std::move(hashes.md5);
+    r["sha1"] = std::move(hashes.sha1);
+    r["sha256"] = std::move(hashes.sha256);
   }
 
   if (ec->action != "" && ec->action != "OPENED") {

@@ -8,6 +8,8 @@
  *
  */
 
+#include <boost/noncopyable.hpp>
+
 #include <string>
 
 namespace osquery {
@@ -23,6 +25,14 @@ enum HashType {
   HASH_TYPE_SHA256 = 8,
 };
 
+/// A result structure for multiple hash requests.
+struct MultiHashes {
+  int mask;
+  std::string md5;
+  std::string sha1;
+  std::string sha256;
+};
+
 /**
  * @brief Hash is a general utility class for hashing content
  *
@@ -33,7 +43,7 @@ enum HashType {
  * @endcode
  *
  */
-class Hash {
+class Hash : private boost::noncopyable {
  public:
   /**
    * @brief Hash constructor
@@ -108,4 +118,7 @@ std::string hashFromBuffer(HashType hash_type, const void* buffer, size_t size);
  * @return A string (hex) representation of the hash digest.
  */
 std::string hashFromFile(HashType hash_type, const std::string& path);
+
+/// Get multiple hashes from a file simultaneously.
+MultiHashes hashMultiFromFile(int mask, const std::string& path);
 }
