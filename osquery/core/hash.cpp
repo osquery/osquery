@@ -94,35 +94,69 @@ std::string hashFromBuffer(HashType hash_type,
   return hash.digest();
 }
 
-std::string hashFromFile(HashType hash_type, const std::string& path) {
+MultiHashes hashMultiFromFile(int mask, const std::string& path) {
   // Perform a dry-run of a file read without filling in any content.
   auto status = readFile(path);
   if (!status.ok()) {
-    return "";
+    return MultiHashes();
   }
 
-  // Drop privileges to the user controlling the file.
-  auto dropper = DropPrivileges::get();
-  if (!dropper->dropToParent(path)) {
-    return "";
+  std::map<HashType, std::shared_ptr<Hash> > hashes = {
+      {HASH_TYPE_MD5, std::make_shared<Hash>(HASH_TYPE_MD5)},
+      {HASH_TYPE_SHA1, std::make_shared<Hash>(HASH_TYPE_SHA1)},
+      {HASH_TYPE_SHA256, std::make_shared<Hash>(HASH_TYPE_SHA256)},
+  };
+
+  {
+    // Drop privileges to the user controlling the file.
+    auto dropper = DropPrivileges::get();
+    if (!dropper->dropToParent(path)) {
+      return MultiHashes();
+    }
+
+    // Use the canonicalized path returned from a successful readFile dry-run.
+    FILE* file = fopen(status.what().c_str(), "rb");
+    if (file == nullptr) {
+      VLOG(1) << "Cannot hash/open file: " << path;
+      return MultiHashes();
+    }
+
+    // Then call updates with read chunks.
+    size_t bytes_read = 0;
+    unsigned char buffer[HASH_CHUNK_SIZE];
+    while ((bytes_read = fread(buffer, 1, HASH_CHUNK_SIZE, file))) {
+      for (auto& hash : hashes) {
+        if (mask & hash.first) {
+          hash.second->update(buffer, bytes_read);
+        }
+      }
+    }
+
+    fclose(file);
   }
 
-  Hash hash(hash_type);
-  // Use the canonicalized path returned from a successful readFile dry-run.
-  FILE* file = fopen(status.what().c_str(), "rb");
-  if (file == nullptr) {
-    VLOG(1) << "Cannot hash/open file: " << path;
-    return "";
+  MultiHashes mh;
+  mh.mask = mask;
+  if (mask & HASH_TYPE_MD5) {
+    mh.md5 = hashes.at(HASH_TYPE_MD5)->digest();
   }
-
-  // Then call updates with read chunks.
-  size_t bytes_read = 0;
-  unsigned char buffer[HASH_CHUNK_SIZE];
-  while ((bytes_read = fread(buffer, 1, HASH_CHUNK_SIZE, file))) {
-    hash.update(buffer, bytes_read);
+  if (mask & HASH_TYPE_SHA1) {
+    mh.sha1 = hashes.at(HASH_TYPE_SHA1)->digest();
   }
+  if (mask & HASH_TYPE_SHA256) {
+    mh.sha256 = hashes.at(HASH_TYPE_SHA256)->digest();
+  }
+  return mh;
+}
 
-  fclose(file);
-  return hash.digest();
+std::string hashFromFile(HashType hash_type, const std::string& path) {
+  auto hashes = hashMultiFromFile(hash_type, path);
+  if (hash_type == HASH_TYPE_MD5) {
+    return hashes.md5;
+  } else if (hash_type == HASH_TYPE_SHA1) {
+    return hashes.sha1;
+  } else {
+    return hashes.sha256;
+  }
 }
 }

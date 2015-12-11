@@ -256,13 +256,7 @@ void DeviceHelper::generateFiles(const std::string& partition,
   }
 }
 
-struct DeviceHashes {
-  std::string md5;
-  std::string sha1;
-  std::string sha256;
-};
-
-DeviceHashes hashInode(TskFsFile* file) {
+MultiHashes hashInode(TskFsFile* file) {
   Hash md5(HASH_TYPE_MD5);
   Hash sha1(HASH_TYPE_SHA1);
   Hash sha256(HASH_TYPE_SHA256);
@@ -270,7 +264,7 @@ DeviceHashes hashInode(TskFsFile* file) {
   // We are guaranteed by the expected callsite to have a valid meta.
   auto* meta = file->getMeta();
   if (meta == nullptr) {
-    return DeviceHashes();
+    return MultiHashes();
   }
 
   // Set a maximum 'chunk' or block size to 1 page or the file size.
@@ -290,7 +284,7 @@ DeviceHashes hashInode(TskFsFile* file) {
         // Huge problem, either a read failed or didn't read the max size.
         free(buffer);
         delete meta;
-        return DeviceHashes();
+        return MultiHashes();
       }
 
       md5.update(buffer, chunk_size);
@@ -302,7 +296,7 @@ DeviceHashes hashInode(TskFsFile* file) {
   delete meta;
 
   // Convert the set of hashes into a device hashes transport.
-  DeviceHashes dhs;
+  MultiHashes dhs;
   dhs.md5 = md5.digest();
   dhs.sha1 = sha1.digest();
   dhs.sha256 = sha256.digest();

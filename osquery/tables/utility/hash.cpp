@@ -27,9 +27,11 @@ void genHashForFile(const std::string& path,
   Row r;
   r["path"] = path;
   r["directory"] = dir;
-  r["md5"] = osquery::hashFromFile(HASH_TYPE_MD5, path);
-  r["sha1"] = osquery::hashFromFile(HASH_TYPE_SHA1, path);
-  r["sha256"] = osquery::hashFromFile(HASH_TYPE_SHA256, path);
+  auto hashes = hashMultiFromFile(
+      HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
+  r["md5"] = std::move(hashes.md5);
+  r["sha1"] = std::move(hashes.sha1);
+  r["sha256"] = std::move(hashes.sha256);
   results.push_back(r);
 }
 
