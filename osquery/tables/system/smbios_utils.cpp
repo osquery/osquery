@@ -85,6 +85,8 @@ void genSMBIOSTables(const uint8_t* tables, size_t length, QueryData& results) {
     r["type"] = INTEGER((unsigned short)header->type);
     if (kSMBIOSTypeDescriptions.count(header->type) > 0) {
       r["description"] = kSMBIOSTypeDescriptions.at(header->type);
+    } else {
+      r["description"] = "Unknown";
     }
 
     r["handle"] = BIGINT((unsigned long long)header->handle);

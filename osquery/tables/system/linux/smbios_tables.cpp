@@ -14,6 +14,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/tables/system/smbios_utils.h"
+#include "osquery/core/conversions.h"
 
 namespace osquery {
 namespace tables {
@@ -22,15 +23,14 @@ namespace tables {
 #define kLinuxSMBIOSRawLength_ 0x10000
 
 const std::string kLinuxEFISystabPath = "/sys/firmware/efi/systab";
-const std::string kLinuxLegacyEFISystabPath = "/proc/efi/systab";
 
 void genSMBIOSFromDMI(size_t base, size_t length, QueryData& results) {
   // Linux will expose the SMBIOS/DMI entry point structures, which contain
   // a member variable with the DMI tables start address and size.
   // This applies to both the EFI-variable and physical memory search.
-  uint8_t* data;
+  uint8_t* data = nullptr;
   auto status = osquery::readRawMem(base, length, (void**)&data);
-  if (!status.ok()) {
+  if (!status.ok() || data == nullptr) {
     VLOG(1) << "Could not read DMI tables memory";
     return;
   }
@@ -40,16 +40,10 @@ void genSMBIOSFromDMI(size_t base, size_t length, QueryData& results) {
   free(data);
 }
 
-void genEFISystabTables(QueryData& results) {
-  // Not yet supported.
-  return;
-}
-
-void genRawSMBIOSTables(QueryData& results) {
-  uint8_t* data;
-  auto status = osquery::readRawMem(
-      kLinuxSMBIOSRawAddress_, kLinuxSMBIOSRawLength_, (void**)&data);
-  if (!status.ok()) {
+void genRawSMBIOSTables(size_t address, size_t length, QueryData& results) {
+  uint8_t* data = nullptr;
+  auto status = osquery::readRawMem(address, length, (void**)&data);
+  if (!status.ok() || data == nullptr) {
     VLOG(1) << "Could not read SMBIOS memory";
     return;
   }
@@ -64,18 +58,35 @@ void genRawSMBIOSTables(QueryData& results) {
       genSMBIOSFromDMI(dmi_data->tableAddress, dmi_data->tableLength, results);
     }
   }
-
   free(data);
+}
+
+void genEFISystabTables(QueryData& results) {
+  std::string systab;
+  if (!readFile(kLinuxEFISystabPath, systab).ok()) {
+    return;
+  }
+
+  for (const auto& line : osquery::split(systab, "\n")) {
+    if (line.find("SMBIOS") == 0) {
+      auto details = osquery::split(line, "=");
+      if (details.size() == 2 && details[1].size() > 2) {
+        long long int address;
+        safeStrtoll(details[1], 16, address);
+        genRawSMBIOSTables(address, kLinuxSMBIOSRawLength_, results);
+      }
+    }
+  }
 }
 
 QueryData genSMBIOSTables(QueryContext& context) {
   QueryData results;
 
-  if (osquery::isReadable(kLinuxEFISystabPath).ok() ||
-      osquery::isReadable(kLinuxLegacyEFISystabPath).ok()) {
+  if (osquery::isReadable(kLinuxEFISystabPath).ok()) {
     genEFISystabTables(results);
   } else {
-    genRawSMBIOSTables(results);
+    genRawSMBIOSTables(kLinuxSMBIOSRawAddress_, kLinuxSMBIOSRawLength_,
+                       results);
   }
 
   return results;
