@@ -22,12 +22,6 @@ void genIOKitDevice(const io_service_t& device,
                     int depth,
                     QueryData& results) {
   Row r;
-
-  // Get the device details
-  CFMutableDictionaryRef details;
-  IORegistryEntryCreateCFProperties(
-      device, &details, kCFAllocatorDefault, kNilOptions);
-
   io_name_t name, device_class;
   auto kr = IORegistryEntryGetName(device, name);
   if (kr == KERN_SUCCESS) {
@@ -86,7 +80,6 @@ void genIOKitDevice(const io_service_t& device,
   r["retain_count"] = INTEGER(retain_count);
 
   results.push_back(r);
-  CFRelease(details);
 }
 
 void genIOKitDeviceChildren(const io_registry_entry_t& service,
