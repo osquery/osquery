@@ -8,12 +8,18 @@
  *
  */
 
+#include <iomanip>
+#include <sstream>
+
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
+
+#include <boost/algorithm/string.hpp>
 
 #include <osquery/tables.h>
 
 #include "osquery/tables/system/smbios_utils.h"
+#include "osquery/tables/system/darwin/iokit_utils.h"
 
 namespace osquery {
 namespace tables {
@@ -21,6 +27,14 @@ namespace tables {
 #define kIOSMBIOSClassName_ "AppleSMBIOS"
 #define kIOSMBIOSPropertyName_ "SMBIOS"
 #define kIOSMBIOSEPSPropertyName_ "SMBIOS-EPS"
+
+class DarwinSMBIOSParser : public SMBIOSParser {
+ public:
+  void setData(uint8_t* tables, size_t length) {
+    table_data_ = tables;
+    table_size_ = length;
+  }
+};
 
 QueryData genSMBIOSTables(QueryContext& context) {
   QueryData results;
@@ -58,10 +72,72 @@ QueryData genSMBIOSTables(QueryContext& context) {
   }
 
   // Parse structures.
-  genSMBIOSTables(smbios_data, length, results);
+  DarwinSMBIOSParser parser;
+  parser.setData(const_cast<uint8_t*>(smbios_data), length);
+  parser.tables(([&results](
+      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+    genSMBIOSTable(index, hdr, address, size, results);
+  }));
 
   CFRelease(smbios);
   IOObjectRelease(service);
+  return results;
+}
+
+QueryData genPlatformInfo(QueryContext& context) {
+  auto entry =
+      IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/rom@0");
+  if (entry == MACH_PORT_NULL) {
+    return {};
+  }
+
+  // Get the device details
+  CFMutableDictionaryRef details = nullptr;
+  IORegistryEntryCreateCFProperties(
+      entry, &details, kCFAllocatorDefault, kNilOptions);
+
+  QueryData results;
+  if (details != nullptr) {
+    Row r;
+    r["vendor"] = getIOKitProperty(details, "vendor");
+    r["volume_size"] = getIOKitProperty(details, "fv-main-size");
+    r["size"] = getIOKitProperty(details, "rom-size");
+    r["date"] = getIOKitProperty(details, "release-date");
+    r["version"] = getIOKitProperty(details, "version");
+
+    {
+      auto address = getIOKitProperty(details, "fv-main-address");
+      auto value = boost::lexical_cast<size_t>(address);
+
+      std::stringstream hex_id;
+      hex_id << std::hex << std::setw(8) << std::setfill('0') << value;
+      r["address"] = "0x" + hex_id.str();
+    }
+
+    {
+      std::vector<std::string> extra_items;
+      auto info = getIOKitProperty(details, "apple-rom-info");
+      std::vector<std::string> info_lines;
+      iter_split(info_lines, info, boost::algorithm::first_finder("%0a"));
+      for (const auto& line : info_lines) {
+        std::vector<std::string> details;
+        iter_split(details, line, boost::algorithm::first_finder(": "));
+        if (details.size() > 1) {
+          boost::trim(details[1]);
+          if (details[0].find("Revision") != std::string::npos) {
+            r["revision"] = details[1];
+          }
+          extra_items.push_back(details[1]);
+        }
+      }
+      r["extra"] = osquery::join(extra_items, "; ");
+    }
+
+    results.push_back(r);
+    CFRelease(details);
+  }
+
+  IOObjectRelease(entry);
   return results;
 }
 }
