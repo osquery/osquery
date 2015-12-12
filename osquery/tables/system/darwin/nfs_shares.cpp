@@ -59,7 +59,7 @@ QueryData genNFSShares(QueryContext& context) {
   QueryData results;
 
   std::string content;
-  auto status = osquery::readFile("/etc/exports", content);
+  auto status = osquery::forensicReadFile("/etc/exports", content);
   if (!status.ok()) {
     VLOG(1) << "Error reading /etc/exports: " << status.toString();
     return {};

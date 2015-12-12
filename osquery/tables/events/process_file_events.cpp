@@ -92,7 +92,7 @@ Status ProcessFileEventSubscriber::Callback(
   r["egid"] = BIGINT(ec->event.egid);
   r["owner_uid"] = BIGINT(ec->event.owner_uid);
   r["owner_gid"] = BIGINT(ec->event.owner_gid);
-  r["ctime"] = BIGINT(ec->event.create_time);
+  r["ctime"] = BIGINT(ec->event.change_time);
   r["atime"] = BIGINT(ec->event.access_time);
   r["mtime"] = BIGINT(ec->event.modify_time);
   r["mode"] = BIGINT(ec->event.mode);

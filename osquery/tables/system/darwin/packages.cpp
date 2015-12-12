@@ -201,7 +201,7 @@ void genBOMPaths(const std::string& path,
 void genPackageBOM(const std::string& path, QueryData& results) {
   std::string content;
   // Read entire BOM file.
-  if (!readFile(path, content).ok()) {
+  if (!forensicReadFile(path, content).ok()) {
     return;
   }
 
@@ -221,7 +221,8 @@ void genPackageBOM(const std::string& path, QueryData& results) {
 
     size_t var_size;
     const char* var_data = bom.getPointer(var->index, &var_size);
-    if (var_data == nullptr || var_size < sizeof(BOMTree) || var_size < var->length) {
+    if (var_data == nullptr || var_size < sizeof(BOMTree) ||
+        var_size < var->length) {
       break;
     }
 

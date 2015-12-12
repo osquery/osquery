@@ -50,7 +50,7 @@ QueryData parseEtcHostsContent(const std::string& content) {
 
 QueryData genEtcHosts(QueryContext& context) {
   std::string content;
-  auto s = osquery::readFile("/etc/hosts", content);
+  auto s = osquery::forensicReadFile("/etc/hosts", content);
   if (s.ok()) {
     return parseEtcHostsContent(content);
   } else {

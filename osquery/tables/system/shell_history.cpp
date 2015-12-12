@@ -32,7 +32,7 @@ void genShellHistoryForUser(const std::string& uid,
     history_file /= hfile;
 
     std::string history_content;
-    if (!readFile(history_file, history_content).ok()) {
+    if (!forensicReadFile(history_file, history_content).ok()) {
       // Cannot read a specific history file.
       continue;
     }

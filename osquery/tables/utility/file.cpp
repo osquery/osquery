@@ -64,6 +64,12 @@ void genFileInfo(const fs::path& path,
   r["atime"] = BIGINT(file_stat.st_atime);
   r["mtime"] = BIGINT(file_stat.st_mtime);
   r["ctime"] = BIGINT(file_stat.st_ctime);
+#if defined(__linux__)
+  // No 'birth' or create time in Linux.
+  r["btime"] = "0";
+#else
+  r["btime"] = BIGINT(file_stat.st_birthtimespec.tv_sec);
+#endif
 
   // Type booleans
   boost::system::error_code ec;

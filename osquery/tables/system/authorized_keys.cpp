@@ -31,12 +31,13 @@ void genSSHkeysForUser(const std::string& uid,
     keys_file /= kfile;
 
     std::string keys_content;
-    if (!readFile(keys_file, keys_content).ok()) {
+    if (!osquery::forensicReadFile(keys_file, keys_content).ok()) {
       // Cannot read a specific keys file.
       continue;
     }
-    //Protocol 1 public key consist of: options, bits, exponent, modulus, comment
-    //Protocol 2 public key consist of: options, keytype, base64-encoded key, comment.
+    // Protocol 1 public key consist of: options, bits, exponent, modulus,
+    // comment; Protocol 2 public key consist of: options, keytype,
+    // base64-encoded key, comment.
     for (const auto& line : split(keys_content, "\n")) {
       if (!line.empty() && line[0] != '#') {
         Row r;

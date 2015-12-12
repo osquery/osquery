@@ -33,7 +33,7 @@ std::vector<std::string> cronFromFile(const std::string& path) {
     return cron_lines;
   }
 
-  if (!readFile(path, content).ok()) {
+  if (!forensicReadFile(path, content).ok()) {
     return cron_lines;
   }
 
