@@ -1,0 +1,13 @@
+table_name("platform_info")
+description("Information about EFI/UEFI/ROM and platform/boot.")
+schema([
+    Column("vendor", TEXT, "Platform code vendor"),
+    Column("version", TEXT, "Platform code version"),
+    Column("date", TEXT, "Self-reported platform code update date"),
+    Column("revision", TEXT, "BIOS major and minor revision"),
+    Column("address", TEXT, "Relative address of firmware mapping"),
+    Column("size", TEXT, "Size in bytes of firmware"),
+    Column("volume_size", INTEGER, "(Optional) size of firmware volume"),
+    Column("extra", TEXT, "Platform-specific additional information"),
+])
+implementation("system@genPlatformInfo")

@@ -22,6 +22,14 @@ namespace tables {
 #define kIOSMBIOSPropertyName_ "SMBIOS"
 #define kIOSMBIOSEPSPropertyName_ "SMBIOS-EPS"
 
+class DarwinSMBIOSParser : public SMBIOSParser {
+ public:
+  void setData(uint8_t* tables, size_t length) {
+    table_data_ = tables;
+    table_size_ = length;
+  }
+};
+
 QueryData genSMBIOSTables(QueryContext& context) {
   QueryData results;
 
@@ -58,11 +66,18 @@ QueryData genSMBIOSTables(QueryContext& context) {
   }
 
   // Parse structures.
-  genSMBIOSTables(smbios_data, length, results);
+  DarwinSMBIOSParser parser;
+  parser.setData(smbios_data, length);
+  parser.tables(([&results](size_t index, const SMBStructHeader* hdr,
+                            uint8_t* address, size_t size) {
+    genSMBIOSTable(index, hdr, address, size, results);
+  }));
 
   CFRelease(smbios);
   IOObjectRelease(service);
   return results;
 }
+
+QueryData genPlatformInfo(QueryContext& context) { return {}; }
 }
 }

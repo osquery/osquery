@@ -28,8 +28,40 @@ typedef struct DMIEntryPoint {
   uint8_t bcdRevision;
 } __attribute__((packed)) DMIEntryPoint;
 
-extern const std::map<int, std::string> kSMBIOSTypeDescriptions;
+/// Get friendly names for each SMBIOS table/section type.
+extern const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions;
 
-void genSMBIOSTables(const uint8_t* tables, size_t length, QueryData& results);
+constexpr uint8_t kSMBIOSTypeBIOS = 0;
+
+/**
+ * @brief A generic parser for SMBIOS tables.
+ *
+ * This generic class does not provide interfaces for finding tables only
+ * parsing data once it has been provided.
+ */
+class SMBIOSParser : private boost::noncopyable {
+ public:
+  /// Walk the tables and apply a predicate.
+  virtual void tables(std::function<void(
+      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size)>
+                          predicate);
+
+ public:
+  virtual ~SMBIOSParser() {}
+
+ protected:
+  /// This protected data member is used during table parsing and must be set.
+  uint8_t* table_data_{nullptr};
+
+  /// Table size discovered from SMBIOS.
+  size_t table_size_{0};
+};
+
+/// Helper, cross platform, table row generator.
+void genSMBIOSTable(size_t index,
+                    const SMBStructHeader* hdr,
+                    uint8_t* address,
+                    size_t size,
+                    QueryData& results);
 }
 }

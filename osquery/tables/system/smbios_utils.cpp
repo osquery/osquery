@@ -15,7 +15,7 @@
 namespace osquery {
 namespace tables {
 
-const std::map<int, std::string> kSMBIOSTypeDescriptions = {
+const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions = {
     {0, "BIOS Information"},
     {1, "System Information"},
     {2, "Base Board or Module Information"},
@@ -65,10 +65,16 @@ const std::map<int, std::string> kSMBIOSTypeDescriptions = {
     {132, "OEM Processor Bus Speed"},
 };
 
-void genSMBIOSTables(const uint8_t* tables, size_t length, QueryData& results) {
+void SMBIOSParser::tables(std::function<void(
+    size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size)>
+                              predicate) {
+  if (table_data_ == nullptr) {
+    return;
+  }
+
   // Keep a pointer to the end of the SMBIOS data for comparison.
-  auto tables_end = tables + length;
-  auto table = tables;
+  auto tables_end = table_data_ + table_size_;
+  auto table = table_data_;
 
   // Iterate through table structures within SMBIOS data range.
   size_t index = 0;
@@ -79,21 +85,8 @@ void genSMBIOSTables(const uint8_t* tables, size_t length, QueryData& results) {
       break;
     }
 
-    Row r;
-    // The index is a supliment that keeps track of table order.
-    r["number"] = INTEGER(index++);
-    r["type"] = INTEGER((unsigned short)header->type);
-    if (kSMBIOSTypeDescriptions.count(header->type) > 0) {
-      r["description"] = kSMBIOSTypeDescriptions.at(header->type);
-    } else {
-      r["description"] = "Unknown";
-    }
-
-    r["handle"] = BIGINT((unsigned long long)header->handle);
-    r["header_size"] = INTEGER((unsigned short)header->length);
-
-    // The SMBIOS structure may have unformatted, double-NULL delimited trailing
-    // data, which are usually strings.
+    // The SMBIOS structure may have unformatted, double-NULL delimited
+    // trailing data, which are usually strings.
     auto next_table = table + header->length;
     for (; next_table + sizeof(SMBStructHeader) <= tables_end; next_table++) {
       if (next_table[0] == 0 && next_table[1] == 0) {
@@ -103,12 +96,32 @@ void genSMBIOSTables(const uint8_t* tables, size_t length, QueryData& results) {
     }
 
     auto table_length = next_table - table;
-    r["size"] = INTEGER(table_length);
-    r["md5"] = hashFromBuffer(HASH_TYPE_MD5, table, table_length);
-
+    predicate(index, header, table, table_length);
     table = next_table;
-    results.push_back(r);
   }
+}
+
+void genSMBIOSTable(size_t index,
+                    const SMBStructHeader* hdr,
+                    uint8_t* address,
+                    size_t size,
+                    QueryData& results) {
+  Row r;
+  // The index is a supliment that keeps track of table order.
+  r["number"] = INTEGER(index++);
+  r["type"] = INTEGER((unsigned short)hdr->type);
+  if (kSMBIOSTypeDescriptions.count(hdr->type) > 0) {
+    r["description"] = kSMBIOSTypeDescriptions.at(hdr->type);
+  } else {
+    r["description"] = "Unknown";
+  }
+
+  r["handle"] = BIGINT((unsigned long long)hdr->handle);
+  r["header_size"] = INTEGER((unsigned short)hdr->length);
+
+  r["size"] = INTEGER(size);
+  r["md5"] = hashFromBuffer(HASH_TYPE_MD5, address, size);
+  results.push_back(r);
 }
 }
 }
