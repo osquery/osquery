@@ -34,8 +34,11 @@ namespace osquery {
 FLAG(uint64, read_max, 50 * 1024 * 1024, "Maximum file read size");
 FLAG(uint64, read_user_max, 10 * 1024 * 1024, "Maximum non-su read size");
 
-// See reference #1382 for reasons why someone would allow unsafe.
+/// See reference #1382 for reasons why someone would allow unsafe.
 HIDDEN_FLAG(bool, allow_unsafe, false, "Allow unsafe executable permissions");
+
+/// Disable forensics (atime/mtime preserving) file reads.
+HIDDEN_FLAG(bool, disable_forensic, false, "Disable atime/mtime preservation");
 
 static const size_t kMaxRecursiveGlobs = 64;
 
@@ -89,10 +92,13 @@ struct OpenReadableFile {
   DropPrivilegesRef dropper_{nullptr};
 };
 
-Status readFile(const fs::path& path,
-                std::string& content,
-                size_t size,
-                bool dry_run) {
+Status readFile(
+    const fs::path& path,
+    size_t size,
+    size_t block_size,
+    bool dry_run,
+    bool preserve_time,
+    std::function<void(std::string& buffer, size_t size)> predicate) {
   auto handle = OpenReadableFile(path);
   if (handle.fd < 0) {
     return Status(1, "Cannot open file for reading: " + path.string());
@@ -108,8 +114,6 @@ Status readFile(const fs::path& path,
     file_size = static_cast<off_t>(size);
   }
 
-  // Erase/clear provided string buffer.
-  content.erase();
   // Apply the max byte-read based on file/link target ownership.
   off_t read_max = (file.st_uid == 0)
                        ? FLAGS_read_max
@@ -126,30 +130,69 @@ Status readFile(const fs::path& path,
     return Status(0, fs::canonical(path, ec).string());
   }
 
+  struct timeval times[2];
+#if defined(__linux__)
+  TIMESPEC_TO_TIMEVAL(&times[0], &file.st_atim);
+  TIMESPEC_TO_TIMEVAL(&times[1], &file.st_mtim);
+#else
+  TIMESPEC_TO_TIMEVAL(&times[0], &file.st_atimespec);
+  TIMESPEC_TO_TIMEVAL(&times[1], &file.st_mtimespec);
+#endif
+
   if (file_size == 0) {
     off_t total_bytes = 0;
     ssize_t part_bytes = 0;
     do {
       auto part = std::string(4096, '\0');
-      part_bytes = read(handle.fd, &part[0], 4096);
+      part_bytes = read(handle.fd, &part[0], block_size);
       if (part_bytes > 0) {
         total_bytes += part_bytes;
         if (total_bytes >= read_max) {
           return Status(1, "File exceeds read limits");
         }
-        content += part.substr(0, part_bytes);
+        //        content += part.substr(0, part_bytes);
+        predicate(part, part_bytes);
       }
     } while (part_bytes > 0);
   } else {
-    content = std::string(file_size, '\0');
+    auto content = std::string(file_size, '\0');
     read(handle.fd, &content[0], file_size);
+    predicate(content, file_size);
+  }
+
+  // Attempt to restore the atime and mtime before the file read.
+  if (preserve_time && !FLAGS_disable_forensic) {
+    futimes(handle.fd, times);
   }
   return Status(0, "OK");
 }
 
+Status readFile(const fs::path& path,
+                std::string& content,
+                size_t size,
+                bool dry_run,
+                bool preserve_time) {
+  return readFile(path,
+                  size,
+                  4096,
+                  dry_run,
+                  preserve_time,
+                  ([&content](std::string& buffer, size_t size) {
+                    if (buffer.size() == size) {
+                      content += std::move(buffer);
+                    } else {
+                      content += std::move(std::string(buffer, size));
+                    }
+                  }));
+}
+
 Status readFile(const fs::path& path) {
   std::string blank;
-  return readFile(path, blank, 0, true);
+  return readFile(path, blank, 0, true, false);
+}
+
+Status forensicReadFile(const fs::path& path, std::string& content) {
+  return readFile(path, content, 0, false, true);
 }
 
 Status isWritable(const fs::path& path) {

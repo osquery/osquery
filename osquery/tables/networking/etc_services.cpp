@@ -76,7 +76,7 @@ QueryData parseEtcServicesContent(const std::string& content) {
 
 QueryData genEtcServices(QueryContext& context) {
   std::string content;
-  auto s = osquery::readFile("/etc/services", content);
+  auto s = osquery::forensicReadFile("/etc/services", content);
   if (s.ok()) {
     return parseEtcServicesContent(content);
   } else {

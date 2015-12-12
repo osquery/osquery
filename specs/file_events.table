@@ -12,7 +12,7 @@ schema([
     Column("size", BIGINT, "Size of file in bytes"),
     Column("atime", BIGINT, "Last access time"),
     Column("mtime", BIGINT, "Last modification time"),
-    Column("ctime", BIGINT, "Creation time"),
+    Column("ctime", BIGINT, "Last status change time"),
     Column("md5", TEXT, "The MD5 of the file after change"),
     Column("sha1", TEXT, "The SHA1 of the file after change"),
     Column("sha256", TEXT, "The SHA256 of the file after change"),

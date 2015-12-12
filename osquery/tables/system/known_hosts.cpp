@@ -20,9 +20,7 @@
 namespace osquery {
 namespace tables {
 
-const std::vector<std::string> kSSHKnownHostskeys = {
-    ".ssh/known_hosts"
-};
+const std::vector<std::string> kSSHKnownHostskeys = {".ssh/known_hosts"};
 
 void genSSHkeysForHosts(const std::string& uid,
                         const std::string& directory,
@@ -32,11 +30,11 @@ void genSSHkeysForHosts(const std::string& uid,
     keys_file /= kfile;
 
     std::string keys_content;
-    if (!readFile(keys_file, keys_content).ok()) {
+    if (!forensicReadFile(keys_file, keys_content).ok()) {
       // Cannot read a specific keys file.
       continue;
     }
-    
+
     for (const auto& line : split(keys_content, "\n")) {
       if (!line.empty() && line[0] != '#') {
         Row r;

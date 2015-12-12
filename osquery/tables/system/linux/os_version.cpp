@@ -36,7 +36,7 @@ const std::string kLinuxOSRegex =
 
 QueryData genOSVersion(QueryContext& context) {
   std::string content;
-  if (!readFile(kLinuxOSRelease, content).ok()) {
+  if (!forensicReadFile(kLinuxOSRelease, content).ok()) {
     return {};
   }
 

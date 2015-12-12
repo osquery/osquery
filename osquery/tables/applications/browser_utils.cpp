@@ -31,16 +31,16 @@ void genExtension(const std::string& uid,
                   const std::string& path,
                   QueryData& results) {
   std::string json_data;
-  if (!readFile(path + kManifestFile, json_data).ok()) {
+  if (!forensicReadFile(path + kManifestFile, json_data).ok()) {
     VLOG(1) << "Could not read file: " << path + kManifestFile;
     return;
   }
 
   // Read the extensions data into a JSON blob, then property tree.
   pt::ptree tree;
-  std::stringstream json_stream;
-  json_stream << json_data;
   try {
+    std::stringstream json_stream;
+    json_stream << json_data;
     pt::read_json(json_stream, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
     VLOG(1) << "Could not parse JSON from: " << path + kManifestFile;
