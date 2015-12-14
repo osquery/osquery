@@ -90,7 +90,7 @@ function install_sleuthkit() {
   TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
 
-  if provision sleuthkid /usr/local/lib/libtsk.a; then
+  if provision sleuthkit /usr/local/lib/libtsk.a; then
     pushd $SOURCE
     ./bootstrap
     ./configure --prefix=/usr/local --without-afflib \
