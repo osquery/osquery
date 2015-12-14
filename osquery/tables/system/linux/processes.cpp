@@ -24,7 +24,8 @@
 namespace osquery {
 namespace tables {
 
-inline std::string getProcAttr(const std::string& attr, const std::string& pid) {
+inline std::string getProcAttr(const std::string& attr,
+                               const std::string& pid) {
   return "/proc/" + pid + "/" + attr;
 }
 
@@ -43,7 +44,8 @@ inline std::string readProcCMDLine(const std::string& pid) {
   return content;
 }
 
-inline std::string readProcLink(const std::string& attr, const std::string& pid) {
+inline std::string readProcLink(const std::string& attr,
+                                const std::string& pid) {
   // The exe is a symlink to the binary on-disk.
   auto attr_path = getProcAttr(attr, pid);
 
@@ -154,7 +156,7 @@ struct SimpleProcStat {
   std::string saved_gid; // Gid: - - * -
 
   std::string resident_size; // VmRSS:
-  std::string phys_footprint;  // VmSize:
+  std::string phys_footprint; // VmSize:
 
   // Output from sring parsing /proc/<pid>/stat.
   std::string state;
@@ -254,8 +256,10 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["root"] = readProcLink("root", pid);
   r["uid"] = proc_stat.real_uid;
   r["euid"] = proc_stat.effective_uid;
+  r["suid"] = proc_stat.saved_uid;
   r["gid"] = proc_stat.real_gid;
   r["egid"] = proc_stat.effective_gid;
+  r["sgid"] = proc_stat.saved_gid;
 
   // If the path of the executable that started the process is available and
   // the path exists on disk, set on_disk to 1. If the path is not

@@ -4,3 +4,9 @@
 # ASIO 0-lookups
 fun:*get_io_service*
 src:*asio/impl/*
+
+# GFlags
+fun:*SetArgv*
+
+# RocksDB
+fun:*ColumnFamilyOptions*

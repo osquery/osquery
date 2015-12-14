@@ -25,7 +25,6 @@ SET(_rocksdb_LIBRARIES_SEARCH_DIRS
   /opt/rocksdb
 )
 
-##
 if( "${ROCKSDB_HOME}" STREQUAL "")
   if("" MATCHES "$ENV{ROCKSDB_HOME}")
     set (ROCKSDB_HOME ${_rocksdb_HOME})
@@ -35,7 +34,6 @@ if( "${ROCKSDB_HOME}" STREQUAL "")
 else( "${ROCKSDB_HOME}" STREQUAL "")
   message(STATUS "ROCKSDB_HOME is not empty: \"${ROCKSDB_HOME}\"")
 endif( "${ROCKSDB_HOME}" STREQUAL "")
-##
 
 IF( NOT ${ROCKSDB_HOME} STREQUAL "" )
   SET(_rocksdb_INCLUDE_SEARCH_DIRS ${ROCKSDB_HOME}/include ${_rocksdb_INCLUDE_SEARCH_DIRS})
@@ -100,7 +98,7 @@ if (NOT DEFINED ROCKSDB_FOUND)
     HINTS ${_rocksdb_LIBRARIES_SEARCH_DIRS}
   )
 
-  find_library(ROCKSDB_SNAPPY_LIBRARY NAMES libsnappy.a
+  find_library(ROCKSDB_SNAPPY_LIBRARY NAMES snappy
     HINTS ${_rocksdb_LIBRARIES_SEARCH_DIRS}
   )
 

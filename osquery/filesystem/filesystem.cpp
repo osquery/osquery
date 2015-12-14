@@ -181,7 +181,7 @@ Status readFile(const fs::path& path,
                     if (buffer.size() == size) {
                       content += std::move(buffer);
                     } else {
-                      content += std::move(std::string(buffer, size));
+                      content += buffer.substr(0, size);
                     }
                   }));
 }
