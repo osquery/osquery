@@ -27,6 +27,12 @@ const std::string kLinuxOSRelease = "/etc/redhat-release";
 const std::string kLinuxOSRegex =
     "(?P<name>[\\w+\\s]+) .* "
     "(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.?(?P<patch>\\w+)?";
+#elif defined(DEBIAN)
+const std::string kLinuxOSRelease = "/etc/os-release";
+const std::string kLinuxOSRegex =
+    "PRETTY_NAME=\"(?P<name>[\\w \\/]*) "
+    "(?P<major>[0-9]+)[\\.]{0,1}(?P<minor>[0-9]*)[\\.]{0,1}(?P<patch>[0-9]*).*"
+    "\"";
 #else
 const std::string kLinuxOSRelease = "/etc/os-release";
 const std::string kLinuxOSRegex =
