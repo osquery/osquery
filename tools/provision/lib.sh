@@ -129,12 +129,13 @@ function install_thrift() {
 }
 
 function install_rocksdb() {
-  TARBALL=rocksdb-3.10.2.tar.gz
+  VERSION=4.1
+  TARBALL=rocksdb-$VERSION.tar.gz
   URL=$DEPS_URL/$TARBALL
-  SOURCE=rocksdb-rocksdb-3.10.2
+  SOURCE=rocksdb-rocksdb-$VERSION
 
   if provision rocksdb /usr/local/lib/librocksdb_lite.a; then
-    if [[ ! -f rocksdb-rocksdb-3.10.2/librocksdb_lite.a ]]; then
+    if [[ ! -f rocksdb-rocksdb-$VERSION/librocksdb_lite.a ]]; then
       if [[ $FAMILY = "debian" ]]; then
         CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
       elif [[ $FAMILY = "redhat" ]]; then
@@ -153,8 +154,8 @@ function install_rocksdb() {
         $MAKE -j $THREADS static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
       popd
     fi
-    sudo cp rocksdb-rocksdb-3.10.2/librocksdb_lite.a /usr/local/lib
-    sudo cp -R rocksdb-rocksdb-3.10.2/include/rocksdb /usr/local/include
+    sudo cp rocksdb-rocksdb-$VERSION/librocksdb_lite.a /usr/local/lib
+    sudo cp -R rocksdb-rocksdb-$VERSION/include/rocksdb /usr/local/include
   fi
 }
 
@@ -466,7 +467,11 @@ function package() {
       log "$1 is already installed. skipping."
     else
       log "installing $1"
-      sudo yum install $1 -y
+      if [[ $OS = "fedora" ]]; then
+        sudo dnf install $1 -y
+      else
+        sudo yum install $1 -y
+      fi
     fi
   elif [[ $OS = "darwin" ]]; then
     if [[ -n "$(brew list | grep $1)" ]]; then

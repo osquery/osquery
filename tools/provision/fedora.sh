@@ -8,7 +8,7 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 function main_fedora() {
-  sudo yum update -y
+  sudo dnf update -y
 
   package texinfo
   package wget
@@ -34,15 +34,22 @@ function main_fedora() {
   package clang
   package clang-devel
 
-  install_cmake
-
   set_cc clang
   set_cxx clang++
 
-  install_boost
-
-  install_gflags
-  install_iptables_dev
+  if [[ $DISTRO -lt "22" ]]; then
+    install_cmake
+    install_boost
+    install_gflags
+    install_iptables_dev
+  else
+    package cmake
+    package boost-devel
+    package boost-static
+    package gflags
+    package gflags-devel
+    package iptables-devel
+  fi
 
   package doxygen
   package byacc
@@ -52,9 +59,17 @@ function main_fedora() {
   package automake
   package libtool
 
-  install_snappy
+  if [[ $DISTRO -lt "22" ]]; then
+    install_snappy
+    install_thrift
+  else
+    package snappy
+    package snappy-devel
+    package thrift
+    package thrift-devel
+  fi
+
   install_rocksdb
-  install_thrift
   install_yara
   install_cppnetlib
   install_google_benchmark
@@ -62,6 +77,7 @@ function main_fedora() {
   package device-mapper-devel
   package libgcrypt-devel
   package gettext-devel
+
   install_libcryptsetup
   install_sleuthkit
 
