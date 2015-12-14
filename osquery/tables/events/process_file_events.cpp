@@ -23,7 +23,7 @@ class ProcessFileEventSubscriber
   Status init() override {
     auto pubref = EventFactory::getEventPublisher("kernel");
     if (pubref == nullptr || !pubref->hasStarted() || pubref->isEnding()) {
-      return Status(1);
+      return Status(1, "No kernel event publisher");
     }
 
     configure();

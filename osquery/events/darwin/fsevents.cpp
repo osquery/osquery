@@ -57,7 +57,7 @@ void FSEventsSubscriptionContext::requireAction(const std::string& action) {
 void FSEventsEventPublisher::restart() {
   if (paths_.empty()) {
     // There are no paths to watch.
-    paths_.insert("/dev/null/");
+    paths_.insert("/dev/null");
   }
 
   if (run_loop_ == nullptr) {
