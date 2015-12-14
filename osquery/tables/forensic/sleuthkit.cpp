@@ -85,6 +85,7 @@ class DeviceHelper : private boost::noncopyable {
   /// Reset stack counting for directory iteration.
   void resetStack() {
     stack_ = 0;
+    count_ = 0;
     std::set<std::string>().swap(loops_);
   }
 
@@ -109,6 +110,7 @@ class DeviceHelper : private boost::noncopyable {
   std::string device_path_;
 
   size_t stack_{0};
+  size_t count_{0};
   std::set<std::string> loops_;
 };
 
@@ -213,6 +215,10 @@ void DeviceHelper::generateFiles(const std::string& partition,
   // Iterate through the directory.
   std::map<TSK_INUM_T, std::string> additional;
   for (size_t i = 0; i < dir->getSize(); i++) {
+    if (count_++ > 1024 * 10) {
+      break;
+    }
+
     auto* file = dir->getFile(i);
     if (file == nullptr) {
       continue;
@@ -269,10 +275,13 @@ MultiHashes hashInode(TskFsFile* file) {
 
   // Set a maximum 'chunk' or block size to 1 page or the file size.
   TSK_OFF_T size = meta->getSize();
-  auto buffer_size = (size < 4096) ? size : 4096;
+  if (size == 0) {
+    return MultiHashes();
+  }
 
   // Allocate some heap memory and iterate over reading a chunk and updating.
-  auto* buffer = (char*)malloc(buffer_size * sizeof(char*));
+  auto buffer_size = (size < 4096) ? size : 4096;
+  auto* buffer = (char*)malloc(buffer_size * sizeof(char));
   if (buffer != nullptr) {
     ssize_t chunk_size = 0;
     for (ssize_t offset = 0; offset < size; offset += chunk_size) {
