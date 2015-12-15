@@ -86,7 +86,7 @@ function install_cmake() {
 }
 
 function install_sleuthkit() {
-  SOURCE=sleuthkit-sleuthkit-4.1.3
+  SOURCE=sleuthkit-sleuthkit-4.2.0
   TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
 
