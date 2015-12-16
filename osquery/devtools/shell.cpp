@@ -41,6 +41,7 @@ SHELL_FLAG(bool, line, false, "Set output mode to 'line'");
 SHELL_FLAG(bool, list, false, "Set output mode to 'list'");
 SHELL_FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
 SHELL_FLAG(string, separator, "|", "Set output field separator, default '|'");
+SHELL_FLAG(bool, header, true, "Toggle column headers true/false");
 
 /// Define short-hand shell switches.
 SHELL_FLAG(bool, L, false, "List all table names");
@@ -361,17 +362,262 @@ static void output_c_string(FILE *out, const char *z) {
 */
 // clang-format off
 static const char needCsvQuote[] = {
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  1, 1, 1, 1, 1, 1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
 };
 // clang-format on
 
@@ -898,16 +1144,16 @@ static sqlite3_int64 integerValue(const char *zArg) {
     char *zSuffix;
     int iMult;
   } aMult[] = {
-      {(char *)"KiB", 1024},
-      {(char *)"MiB", 1024 * 1024},
-      {(char *)"GiB", 1024 * 1024 * 1024},
-      {(char *)"KB", 1000},
-      {(char *)"MB", 1000000},
-      {(char *)"GB", 1000000000},
-      {(char *)"K", 1000},
-      {(char *)"M", 1000000},
-      {(char *)"G", 1000000000},
-  };
+        {(char *)"KiB", 1024},
+        {(char *)"MiB", 1024 * 1024},
+        {(char *)"GiB", 1024 * 1024 * 1024},
+        {(char *)"KB", 1000},
+        {(char *)"MB", 1000000},
+        {(char *)"GB", 1000000000},
+        {(char *)"K", 1000},
+        {(char *)"M", 1000000},
+        {(char *)"G", 1000000000},
+    };
   int i;
   int isNeg = 0;
   if (zArg[0] == '-') {
@@ -960,8 +1206,8 @@ static int booleanValue(char *zArg) {
   if (sqlite3_stricmp(zArg, "off") == 0 || sqlite3_stricmp(zArg, "no") == 0) {
     return 0;
   }
-  fprintf(stderr, "ERROR: Not a boolean value: \"%s\". Assuming \"no\".\n",
-          zArg);
+  fprintf(
+      stderr, "ERROR: Not a boolean value: \"%s\". Assuming \"no\".\n", zArg);
   return 0;
 }
 
@@ -1364,8 +1610,8 @@ static int process_input(struct callback_data *p, FILE *in) {
       if (rc || zErrMsg) {
         char zPrefix[100];
         if (in != 0 || !stdin_is_interactive) {
-          sqlite3_snprintf(sizeof(zPrefix), zPrefix, "Error: near line %d:",
-                           startline);
+          sqlite3_snprintf(
+              sizeof(zPrefix), zPrefix, "Error: near line %d:", startline);
         } else {
           sqlite3_snprintf(sizeof(zPrefix), zPrefix, "Error:");
         }
@@ -1426,8 +1672,8 @@ int launchIntoShell(int argc, char **argv) {
     // Hold the manager connection instance again in callbacks.
     auto dbc = SQLiteDBManager::get();
     // Add some shell-specific functions to the instance.
-    sqlite3_create_function(dbc.db(), "shellstatic", 0, SQLITE_UTF8, 0,
-                            shellstaticFunc, 0, 0);
+    sqlite3_create_function(
+        dbc.db(), "shellstatic", 0, SQLITE_UTF8, 0, shellstaticFunc, 0, 0);
   }
 
   stdin_is_interactive = isatty(0);
@@ -1438,6 +1684,7 @@ int launchIntoShell(int argc, char **argv) {
   data.out = stdout;
 
   // Set modes and settings from CLI flags.
+  data.showHeader = FLAGS_header;
   if (FLAGS_list) {
     data.mode = MODE_List;
   } else if (FLAGS_line) {
@@ -1449,10 +1696,10 @@ int launchIntoShell(int argc, char **argv) {
     data.mode = MODE_Pretty;
   }
 
-  sqlite3_snprintf(sizeof(data.separator), data.separator, "%s",
-                   FLAGS_separator.c_str());
-  sqlite3_snprintf(sizeof(data.nullvalue), data.nullvalue, "%s",
-                   FLAGS_nullvalue.c_str());
+  sqlite3_snprintf(
+      sizeof(data.separator), data.separator, "%s", FLAGS_separator.c_str());
+  sqlite3_snprintf(
+      sizeof(data.nullvalue), data.nullvalue, "%s", FLAGS_nullvalue.c_str());
 
   int rc = 0;
   if (FLAGS_L || FLAGS_A.size() > 0) {

@@ -15,6 +15,8 @@
 #include <vector>
 
 #include <rocksdb/db.h>
+#include <rocksdb/env.h>
+#include <rocksdb/options.h>
 
 #include <boost/noncopyable.hpp>
 
@@ -27,6 +29,11 @@ DECLARE_string(database_path);
 
 class DBHandle;
 typedef std::shared_ptr<DBHandle> DBHandleRef;
+
+class GlogRocksDBLogger : public rocksdb::Logger {
+ public:
+  virtual void Logv(const char* format, va_list ap);
+};
 
 /**
  * @brief RAII singleton around RocksDB database access.
@@ -234,6 +241,9 @@ class DBHandle {
 
   /// The database handle
   rocksdb::DB* db_{nullptr};
+
+  /// RocksDB logger instance.
+  std::shared_ptr<GlogRocksDBLogger> logger_{nullptr};
 
   /// Column family descriptors which are used to connect to RocksDB
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families_;

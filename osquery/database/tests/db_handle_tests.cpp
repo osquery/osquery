@@ -106,13 +106,11 @@ TEST_F(DBHandleTests, test_scan) {
 
 TEST_F(DBHandleTests, test_rocksdb_loglevel) {
   // Make sure a log file was created.
-  EXPECT_TRUE(pathExists(path_ + "/LOG"));
+  EXPECT_FALSE(pathExists(path_ + "/LOG"));
 
-  // Make sure the log file did not include info (only error) logs.
+  // Make sure no log file is created.
+  // RocksDB logs are intercepted and forwarded to the GLog sink.
   auto details = SQL::selectAllFrom("file", "path", EQUALS, path_ + "/LOG");
-  ASSERT_EQ(details.size(), 1U);
-  // If the log level was set incorrectly the file will include summary data.
-  auto log_size = boost::lexical_cast<int>(details[0]["size"]);
-  EXPECT_LT(log_size, 1 * 1024);
+  ASSERT_EQ(details.size(), 0U);
 }
 }

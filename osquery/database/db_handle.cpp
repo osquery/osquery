@@ -14,9 +14,10 @@
 
 #include <sys/stat.h>
 
+#include <snappy.h>
+
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
-#include <snappy.h>
 
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
@@ -71,8 +72,7 @@ const std::string kLogs = "logs";
  * database.
  */
 const std::vector<std::string> kDomains = {
-    kPersistentSettings, kQueries, kEvents, kLogs
-};
+    kPersistentSettings, kQueries, kEvents, kLogs};
 
 CLI_FLAG(string,
          database_path,
@@ -93,35 +93,60 @@ FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
 /// A queryable mutex around database sanity checking.
 static bool kCheckingDB = false;
 
+void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
+  // Convert RocksDB log to string and check if header or level-ed log.
+  char buffer[501] = {0};
+  vsnprintf(buffer, 500, format, ap);
+  va_end(ap);
+  if (buffer[0] != '[') {
+    return;
+  }
+
+  if (buffer[1] == 'E') {
+    LOG(ERROR) << "RocksDB: " << buffer;
+  } else if (buffer[1] == 'W') {
+    LOG(WARNING) << "RocksDB: " << buffer;
+  }
+}
+
 DBHandle::DBHandle(const std::string& path, bool in_memory)
     : path_(path), in_memory_(in_memory) {
   if (!kDBHandleOptionAllowOpen) {
     LOG(WARNING) << RLOG(1629) << "Not allowed to create DBHandle instance";
   }
 
+  // Set meta-data (mostly) handling options.
   options_.create_if_missing = true;
   options_.create_missing_column_families = true;
   options_.info_log_level = rocksdb::ERROR_LEVEL;
   options_.log_file_time_to_roll = 0;
   options_.keep_log_file_num = 10;
   options_.max_log_file_size = 1024 * 1024 * 1;
+  options_.stats_dump_period_sec = 0;
 
   // Performance and optimization settings.
   options_.num_levels = 1;
   options_.compression = rocksdb::kNoCompression;
   options_.compaction_style = rocksdb::kCompactionStyleLevel;
+  options_.arena_block_size = (4 * 1024);
   options_.write_buffer_size = (4 * 1024) * 100; // 100 blocks.
   options_.max_write_buffer_number = 2;
   options_.min_write_buffer_number_to_merge = 2;
   options_.max_background_compactions = 1;
   options_.max_background_flushes = 1;
 
+  // Create an environment to replace the default logger.
+  if (logger_ == nullptr) {
+    logger_ = std::make_shared<GlogRocksDBLogger>();
+  }
+  options_.info_log = logger_;
+
   column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
-      rocksdb::kDefaultColumnFamilyName, rocksdb::ColumnFamilyOptions()));
+      rocksdb::kDefaultColumnFamilyName, options_));
 
   for (const auto& cf_name : kDomains) {
-    column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
-        cf_name, rocksdb::ColumnFamilyOptions()));
+    column_families_.push_back(
+        rocksdb::ColumnFamilyDescriptor(cf_name, options_));
   }
 
   // Make the magic happen.
@@ -142,6 +167,7 @@ void DBHandle::open() {
   if (!kCheckingDB) {
     VLOG(1) << "Opening RocksDB handle: " << path_;
   }
+
   auto s =
       rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
   if (!s.ok() || db_ == nullptr) {
@@ -210,9 +236,7 @@ bool DBHandle::checkDB() {
   return true;
 }
 
-DBHandleRef DBHandle::getInstanceInMemory() {
-  return getInstance("", true);
-}
+DBHandleRef DBHandle::getInstanceInMemory() { return getInstance("", true); }
 
 DBHandleRef DBHandle::getInstanceAtPath(const std::string& path) {
   return getInstance(path, false);
