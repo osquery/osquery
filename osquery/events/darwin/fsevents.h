@@ -144,7 +144,15 @@ class FSEventsEventPublisher
   /// Set of paths to monitor, determined by a configure step.
   std::set<std::string> paths_;
 
+  /// Reference to the run loop for this thread.
   CFRunLoopRef run_loop_{nullptr};
+
+ private:
+  /// For testing only, ask the event stream to publish events immediately.
+  bool no_defer_{false};
+
+  /// For testing only, allow the event stream to publish its own events.
+  bool no_self_{true};
 
  private:
   friend class FSEventsTests;

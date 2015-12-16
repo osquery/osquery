@@ -40,6 +40,8 @@ class FSEventsTests : public testing::Test {
 
   void StartEventLoop() {
     event_pub_ = std::make_shared<FSEventsEventPublisher>();
+    event_pub_->no_defer_ = true;
+    event_pub_->no_self_ = false;
     EventFactory::registerEventPublisher(event_pub_);
     FILE* fd = fopen(trigger_path.c_str(), "w");
     fclose(fd);
