@@ -55,6 +55,7 @@ class DeviceHelper : private boost::noncopyable {
           continue;
         }
         predicate(part);
+        delete part;
       }
     }
   }

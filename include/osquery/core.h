@@ -327,6 +327,9 @@ class DropPrivileges : private boost::noncopyable {
  private:
   DropPrivileges() : dropped_(false), to_user_(0), to_group_(0) {}
 
+  /// Restore groups if dropping consecutively.
+  void restoreGroups();
+
  private:
   /// Boolean to track if this instance needs to restore privileges.
   bool dropped_;

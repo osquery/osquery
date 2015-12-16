@@ -283,9 +283,15 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
   } else if (dropped()) {
     return false;
   }
+
   /// Drop process groups.
-  original_groups_ = (gid_t*)malloc(NGROUPS_MAX * sizeof(gid_t));
-  group_size_ = getgroups(NGROUPS_MAX, original_groups_);
+  if (original_groups_ != nullptr) {
+    restoreGroups();
+  }
+
+  group_size_ = getgroups(0, nullptr);
+  original_groups_ = (gid_t*)malloc(group_size_ * sizeof(gid_t));
+  group_size_ = getgroups(group_size_, original_groups_);
   setgroups(1, &gid);
   if (setegid(gid) != 0) {
     return false;
@@ -299,6 +305,13 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
   to_group_ = gid;
   dropped_ = true;
   return true;
+}
+
+void DropPrivileges::restoreGroups() {
+  setgroups(group_size_, original_groups_);
+  group_size_ = 0;
+  free(original_groups_);
+  original_groups_ = nullptr;
 }
 
 DropPrivileges::~DropPrivileges() {
@@ -318,10 +331,7 @@ DropPrivileges::~DropPrivileges() {
   }
 
   if (original_groups_ != nullptr) {
-    setgroups(group_size_, original_groups_);
-    group_size_ = 0;
-    free(original_groups_);
-    original_groups_ = nullptr;
+    restoreGroups();
   }
 }
 }

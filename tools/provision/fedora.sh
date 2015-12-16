@@ -40,14 +40,11 @@ function main_fedora() {
   if [[ $DISTRO -lt "22" ]]; then
     install_cmake
     install_boost
-    install_gflags
     install_iptables_dev
   else
     package cmake
     package boost-devel
     package boost-static
-    package gflags
-    package gflags-devel
     package iptables-devel
   fi
 
@@ -69,6 +66,7 @@ function main_fedora() {
     package thrift-devel
   fi
 
+  install_gflags
   install_rocksdb
   install_yara
   install_cppnetlib

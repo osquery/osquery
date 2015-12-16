@@ -60,9 +60,14 @@ void childHandler(int signum) {
   // Make sure WNOWAIT is used to the wait information is not removed.
   // Watcher::watch implements a thread to poll for this information.
   waitid(P_ALL, 0, &info, WEXITED | WSTOPPED | WNOHANG | WNOWAIT);
-  if (info.si_code == CLD_EXITED && info.si_status == EXIT_CATASTROPHIC) {
-    // A child process had a catastrophic error, abort the watcher.
-    ::exit(EXIT_FAILURE);
+  if (info.si_code == CLD_EXITED) {
+    if (info.si_status == EXIT_CATASTROPHIC) {
+      // A child process had a catastrophic error, abort the watcher.
+      ::exit(EXIT_FAILURE);
+    } else if (info.si_status == EXIT_SUCCESS) {
+      // Child process is finished.
+      ::exit(EXIT_SUCCESS);
+    }
   }
 }
 
