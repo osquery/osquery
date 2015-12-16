@@ -82,16 +82,24 @@ void FSEventsEventPublisher::restart() {
   // Remove any existing stream.
   stop();
 
-  // Create the FSEvent stream
+  // Set stream flags.
+  auto flags =
+      kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagWatchRoot;
+  if (no_defer_) {
+    flags |= kFSEventStreamCreateFlagNoDefer;
+  }
+  if (no_self_) {
+    flags |= kFSEventStreamCreateFlagIgnoreSelf;
+  }
+
+  // Create the FSEvent stream.
   stream_ = FSEventStreamCreate(nullptr,
                                 &FSEventsEventPublisher::Callback,
                                 nullptr,
                                 watch_list,
                                 kFSEventStreamEventIdSinceNow,
                                 1,
-                                kFSEventStreamCreateFlagFileEvents |
-                                    kFSEventStreamCreateFlagNoDefer |
-                                    kFSEventStreamCreateFlagWatchRoot);
+                                flags);
   if (stream_ != nullptr) {
     // Schedule the stream on the run loop.
     FSEventStreamScheduleWithRunLoop(stream_, run_loop_, kCFRunLoopDefaultMode);
