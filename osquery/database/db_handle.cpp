@@ -102,10 +102,8 @@ void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
     return;
   }
 
-  if (buffer[1] == 'E') {
-    LOG(ERROR) << "RocksDB: " << buffer;
-  } else if (buffer[1] == 'W') {
-    LOG(WARNING) << "RocksDB: " << buffer;
+  if (buffer[1] == 'E' || buffer[1] == 'W') {
+    LOG(INFO) << "RocksDB: " << buffer;
   }
 }
 
