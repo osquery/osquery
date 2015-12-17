@@ -40,6 +40,11 @@ std::map<int, std::string> kMaskActions = {
     {IN_OPEN, "OPENED"},
 };
 
+const int kFileDefaultMasks = IN_MOVED_TO | IN_MOVED_FROM | IN_MODIFY |
+                              IN_DELETE | IN_CREATE | IN_CLOSE_WRITE |
+                              IN_ATTRIB;
+const int kFileAccessMasks = IN_OPEN | IN_ACCESS;
+
 REGISTER(INotifyEventPublisher, "event_publisher", "inotify");
 
 Status INotifyEventPublisher::setUp() {
@@ -168,7 +173,9 @@ Status INotifyEventPublisher::run() {
       removeMonitor(event->wd, false);
     } else {
       auto ec = createEventContextFrom(event);
-      fire(ec);
+      if (!ec->action.empty()) {
+        fire(ec);
+      }
     }
     // Continue to iterate
     p += (sizeof(struct inotify_event)) + event->len;
@@ -201,6 +208,11 @@ INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
 
 bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
                                        const INotifyEventContextRef& ec) const {
+  // The subscription may supply a required event mask.
+  if (sc->mask != 0 && !(ec->event->mask & sc->mask)) {
+    return false;
+  }
+
   if (sc->recursive && !sc->recursive_match) {
     ssize_t found = ec->path.find(sc->path);
     if (found != 0) {
@@ -214,10 +226,6 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
                          ((sc->recursive_match) ? FNM_LEADING_DIR : 0)) != 0) {
     // Only apply a leading-dir match if this is a recursive watch with a
     // match requirement (an inline wildcard with ending recursive wildcard).
-    return false;
-  }
-  // The subscription may supply a required event mask.
-  if (sc->mask != 0 && !(ec->event->mask & sc->mask)) {
     return false;
   }
 
@@ -235,10 +243,8 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
                                        bool recursive,
                                        bool add_watch) {
   if (!isPathMonitored(path)) {
-    int watch =
-        ::inotify_add_watch(getHandle(),
-                            path.c_str(),
-                            ((mask == 0) ? IN_ALL_EVENTS ^ IN_ACCESS : mask));
+    int watch = ::inotify_add_watch(
+        getHandle(), path.c_str(), ((mask == 0) ? kFileDefaultMasks : mask));
     if (add_watch && watch == -1) {
       LOG(WARNING) << "Could not add inotify watch on: " << path;
       return false;
