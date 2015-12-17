@@ -141,8 +141,8 @@ std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
 
     std::string time_list;
     auto list_type = boost::lexical_cast<std::string>(size);
-    auto status = db->Get(kEvents, index_key + "." + list_type, time_list);
-    if (time_list.length() == 0) {
+    db->Get(kEvents, index_key + "." + list_type, time_list);
+    if (time_list.empty()) {
       // No events in this binning size.
       return indexes;
     }
@@ -186,6 +186,7 @@ std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
       size_t bin_stop = size * (step + 1);
       if (expire_events_ && expire_time_ > 0) {
         if (bin_stop <= expire_time_) {
+          // This entire bin will be expired.
           expirations.push_back(bin);
         } else if (bin_start < expire_time_) {
           expireRecords(list_type, bin, false);
@@ -200,11 +201,11 @@ std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
     }
 
     // Rewrite the index lists and delete each expired item.
-    if (expirations.size() > 0) {
+    if (!expirations.empty()) {
       expireIndexes(list_type, all_bins, expirations);
     }
 
-    if (bins.size() != 0) {
+    if (!bins.empty()) {
       // If more precision was achieved though this list's binning.
       local_start = timeFromRecord(bins.front()) * size;
       start_max = (local_start < start_max) ? local_start : start_max;
@@ -286,11 +287,8 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
     std::vector<std::string> bin_records;
     {
       std::string record_value;
-      if (!db->Get(kEvents, record_key + "." + index, record_value).ok()) {
-        return records;
-      }
-
-      if (record_value.length() == 0) {
+      db->Get(kEvents, record_key + "." + index, record_value);
+      if (record_value.empty()) {
         // There are actually no events in this bin, interesting error case.
         continue;
       }
@@ -395,17 +393,9 @@ EventID EventSubscriberPlugin::getEventID() {
 
 QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
   QueryData results;
-  Status status;
-
-  std::shared_ptr<DBHandle> db = nullptr;
-  try {
-    db = DBHandle::getInstance();
-  } catch (const std::runtime_error& e) {
-    LOG(ERROR) << "Cannot retrieve subscriber results database is locked";
-    return results;
-  }
 
   // Get the records for this time range.
+  auto db = DBHandle::getInstance();
   auto indexes = getIndexes(start, stop);
   auto records = getRecords(indexes);
   std::string events_key = "data." + dbNamespace();
@@ -421,7 +411,7 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
   std::string data_value;
   for (const auto& record : mapped_records) {
     Row r;
-    status = db->Get(kEvents, record, data_value);
+    auto status = db->Get(kEvents, record, data_value);
     if (data_value.length() == 0) {
       // There is no record here, interesting error case.
       continue;

@@ -13,12 +13,17 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/core.h>
+#include <osquery/database.h>
 #include <osquery/events.h>
+#include <osquery/flags.h>
 #include <osquery/tables.h>
 
 #include "osquery/database/db_handle.h"
 
 namespace osquery {
+
+DECLARE_uint64(events_expiry);
 
 class EventsDatabaseTests : public ::testing::Test {};
 
@@ -68,9 +73,10 @@ TEST_F(EventsDatabaseTests, test_record_indexing) {
   auto output = boost::algorithm::join(indexes, ", ");
   EXPECT_EQ(output, "3600.0, 3600.1, 3600.2");
 
-  // Restrict range to "most specific".
+  // Restrict range to "most specific", which is an index by 10.
   indexes = sub->getIndexes(0, 5);
   output = boost::algorithm::join(indexes, ", ");
+  // The order 10, 0th index include results with t = [0, 10).
   EXPECT_EQ(output, "10.0");
 
   // Get a mix of indexes for the lower bounding.
@@ -79,6 +85,7 @@ TEST_F(EventsDatabaseTests, test_record_indexing) {
   EXPECT_EQ(output, "10.0, 10.1, 3600.1, 3600.2, 60.1");
 
   // Rare, but test ONLY intermediate indexes.
+  // Provide an optional third parameter to getIndexes: 1 = 10,(60),3600.
   indexes = sub->getIndexes(2, (3 * 3600), 1);
   output = boost::algorithm::join(indexes, ", ");
   EXPECT_EQ(output, "60.0, 60.1, 60.120, 60.60");
@@ -148,9 +155,46 @@ TEST_F(EventsDatabaseTests, test_record_expiration) {
   EXPECT_EQ(records.size(), 3U); // 11, 61, 3601
 
   // Check that get/deletes did not act on cache.
+  // This implies that RocksDB is flushing the requested delete records.
   sub->expire_time_ = 0;
   indexes = sub->getIndexes(0, 5000);
   records = sub->getRecords(indexes);
   EXPECT_EQ(records.size(), 3U); // 11, 61, 3601
+}
+
+TEST_F(EventsDatabaseTests, test_gentable) {
+  auto sub = std::make_shared<DBFakeEventSubscriber>();
+  ASSERT_EQ(sub->optimize_time_, 0U);
+  ASSERT_EQ(sub->expire_time_, 0U);
+
+  sub->testAdd(getUnixTime() - 1);
+  sub->testAdd(getUnixTime());
+  sub->testAdd(getUnixTime() + 1);
+
+  // Test the expire workflow by creating a short expiration time.
+  FLAGS_events_expiry = 10;
+
+  std::vector<std::string> keys;
+  scanDatabaseKeys("events", keys);
+  EXPECT_GT(keys.size(), 10U);
+
+  // Perform a "select" equivalent.
+  QueryContext context;
+  auto results = sub->genTable(context);
+  // Expect all non-expired results: 11, +
+  EXPECT_EQ(results.size(), 9U);
+  // The expiration time is now - events_expiry.
+  EXPECT_GT(sub->expire_time_, getUnixTime() - (FLAGS_events_expiry * 2));
+  EXPECT_LT(sub->expire_time_, getUnixTime());
+
+  results = sub->genTable(context);
+  EXPECT_EQ(results.size(), 3U);
+
+  results = sub->genTable(context);
+  EXPECT_EQ(results.size(), 3U);
+
+  keys.clear();
+  scanDatabaseKeys("events", keys);
+  EXPECT_LT(keys.size(), 30U);
 }
 }
