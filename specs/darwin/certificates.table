@@ -3,7 +3,9 @@ description("Certificate Authorities installed in Keychains/ca-bundles.")
 schema([
     Column("common_name", TEXT, "Certificate CommonName"),
     Column("subject", TEXT, "Certificate distinguished name"),
+    Column("issuer", TEXT, "Certificate issuer distinguished name"),
     Column("ca", INTEGER, "1 if CA: true (certificate is an authority) else 0"),
+    Column("self_signed", INTEGER, "1 if self-signed, else 0"),
     Column("not_valid_before", DATETIME, "Lower bound of valid date"),
     Column("not_valid_after", DATETIME, "Certificate expiration data"),
     Column("signing_algorithm", TEXT, "Signing algorithm used"),
