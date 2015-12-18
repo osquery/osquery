@@ -107,9 +107,32 @@ bool CertificateIsCA(X509* cert) {
   return (ca > 0);
 }
 
-void genCommonName(X509* cert, std::string& subject, std::string& common_name) {
+bool CertificateIsSelfSigned(X509* cert) {
+  bool self_signed = false;
+  OSX_OPENSSL(self_signed = (X509_check_issued(cert, cert) == X509_V_OK));
+  return self_signed;
+}
+
+void genCommonName(X509* cert,
+                   std::string& subject,
+                   std::string& common_name,
+                   std::string& issuer) {
   if (cert == nullptr) {
     return;
+  }
+
+  {
+    X509_NAME* issuerName = nullptr;
+    OSX_OPENSSL(issuerName = X509_get_issuer_name(cert));
+    if (issuerName != nullptr) {
+      // Generate the string representation of the issuer.
+      char* issuerBytes = nullptr;
+      OSX_OPENSSL(issuerBytes = X509_NAME_oneline(issuerName, nullptr, 0));
+      if (issuerBytes != nullptr) {
+        issuer = std::string(issuerBytes);
+        OSX_OPENSSL(OPENSSL_free(issuerBytes));
+      }
+    }
   }
 
   X509_NAME* subjectName = nullptr;
@@ -118,12 +141,14 @@ void genCommonName(X509* cert, std::string& subject, std::string& common_name) {
     return;
   }
 
-  // Generate the string representation of the subject.
-  char* subjectBytes = nullptr;
-  OSX_OPENSSL(subjectBytes = X509_NAME_oneline(subjectName, nullptr, 0));
-  if (subjectBytes != nullptr) {
-    subject = std::string(subjectBytes);
-    OSX_OPENSSL(OPENSSL_free(subjectBytes));
+  {
+    // Generate the string representation of the subject.
+    char* subjectBytes = nullptr;
+    OSX_OPENSSL(subjectBytes = X509_NAME_oneline(subjectName, nullptr, 0));
+    if (subjectBytes != nullptr) {
+      subject = std::string(subjectBytes);
+      OSX_OPENSSL(OPENSSL_free(subjectBytes));
+    }
   }
 
   int nid = 0;

@@ -39,7 +39,7 @@ void genCertificate(const SecCertificateRef& SecCert, QueryData& results) {
   // Generate the common name and subject.
   // They are very similar OpenSSL API accessors so save some logic and
   // generate them using output parameters.
-  genCommonName(cert, r["subject"], r["common_name"]);
+  genCommonName(cert, r["subject"], r["common_name"], r["issuer"]);
   // Same with algorithm strings.
   genAlgorithmProperties(cert, r["key_algorithm"], r["signing_algorithm"]);
 
@@ -55,6 +55,7 @@ void genCertificate(const SecCertificateRef& SecCert, QueryData& results) {
   // X509_check_ca() populates key_usage, {authority,subject}_key_id
   // so it should be called before others.
   r["ca"] = (CertificateIsCA(cert)) ? INTEGER(1) : INTEGER(0);
+  r["self_signed"] = (CertificateIsSelfSigned(cert)) ? INTEGER(1) : INTEGER(0);
   r["key_usage"] = genKeyUsage(cert->ex_kusage);
   r["authority_key_id"] =
       (cert->akid && cert->akid->keyid)
