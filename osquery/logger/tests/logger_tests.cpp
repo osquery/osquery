@@ -199,4 +199,19 @@ TEST_F(LoggerTests, test_multiple_loggers) {
   // forwarded.
   EXPECT_EQ(LoggerTests::statuses_logged, 1);
 }
+
+TEST_F(LoggerTests, test_logger_scheduled_query) {
+  QueryLogItem item;
+  item.name = "test_query";
+  item.identifier = "unknown_test_host";
+  item.time = 0;
+  item.calendar_time = "no_time";
+  item.results.added.push_back({{"test_column", "test_value"}});
+  logQueryLogItem(item);
+  EXPECT_EQ(LoggerTests::log_lines.size(), 1U);
+
+  item.results.removed.push_back({{"test_column", "test_new_value\n"}});
+  logQueryLogItem(item);
+  EXPECT_EQ(LoggerTests::log_lines.size(), 3U);
+}
 }

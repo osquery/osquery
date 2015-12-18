@@ -56,7 +56,7 @@ extern const std::vector<std::string> kDomains;
 /**
  * @brief A variant type for the SQLite type affinities.
  */
-typedef std::string RowData;
+using RowData = std::string;
 
 /**
  * @brief A single row from a database query
@@ -64,7 +64,7 @@ typedef std::string RowData;
  * Row is a simple map where individual column names are keys, which map to
  * the Row's respective value
  */
-typedef std::map<std::string, RowData> Row;
+using Row = std::map<std::string, RowData>;
 
 /**
  * @brief Serialize a Row into a property tree
@@ -116,7 +116,7 @@ Status deserializeRowJSON(const std::string& json, Row& r);
  * QueryData is the canonical way to represent the results of SQL queries in
  * osquery. It's just a vector of Row's.
  */
-typedef std::vector<Row> QueryData;
+using QueryData = std::vector<Row>;
 
 /**
  * @brief Serialize a QueryData object into a property tree
@@ -392,7 +392,7 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item,
  * @return Status indicating the success or failure of the operation
  */
 Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
-                                         std::string& json);
+                                         std::vector<std::string>& items);
 
 /////////////////////////////////////////////////////////////////////////////
 // DistributedQueryRequest

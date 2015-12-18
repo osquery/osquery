@@ -247,6 +247,14 @@ void initLogger(const std::string& name, bool forward_all) {
   // Stop the buffering sink and store the intermediate logs.
   BufferedLogSink::disable();
   auto intermediate_logs = std::move(BufferedLogSink::dump());
+  // Start the custom status logging facilities, which may instruct Glog as is
+  // the case with filesystem logging.
+  PluginRequest request = {{"init", name}};
+  serializeIntermediateLog(intermediate_logs, request);
+  if (!request["log"].empty()) {
+    request["log"].pop_back();
+  }
+
   const auto& logger_plugin = Registry::getActive("logger");
   // Allow multiple loggers, make sure each is accessible.
   for (const auto& logger : osquery::split(logger_plugin, ",")) {
@@ -254,10 +262,6 @@ void initLogger(const std::string& name, bool forward_all) {
       continue;
     }
 
-    // Start the custom status logging facilities, which may instruct Glog as
-    // is the case with filesystem logging.
-    PluginRequest request = {{"init", name}};
-    serializeIntermediateLog(intermediate_logs, request);
     auto status = Registry::call("logger", logger, request);
     if (status.ok() || forward_all) {
       // When LoggerPlugin::init returns success we enable the log sink in
@@ -292,6 +296,9 @@ void BufferedLogSink::send(google::LogSeverity severity,
                        std::string(message, message_len)});
         PluginRequest request = {{"status", "true"}};
         serializeIntermediateLog(log, request);
+        if (!request["log"].empty()) {
+          request["log"].pop_back();
+        }
         Registry::call("logger", logger, request);
       }
     }
@@ -342,23 +349,35 @@ Status logQueryLogItem(const QueryLogItem& results) {
 
 Status logQueryLogItem(const QueryLogItem& results,
                        const std::string& receiver) {
-  std::string json;
+  std::vector<std::string> json_items;
   Status status;
   if (FLAGS_log_result_events) {
-    status = serializeQueryLogItemAsEventsJSON(results, json);
+    status = serializeQueryLogItemAsEventsJSON(results, json_items);
   } else {
+    std::string json;
     status = serializeQueryLogItemJSON(results, json);
+    json_items.push_back(json);
   }
   if (!status.ok()) {
     return status;
   }
-  return logString(json, "event", receiver);
+
+  for (auto& json : json_items) {
+    if (!json.empty()) {
+      json.pop_back();
+      status = logString(json, "event", receiver);
+    }
+  }
+  return status;
 }
 
 Status logSnapshotQuery(const QueryLogItem& item) {
   std::string json;
   if (!serializeQueryLogItemJSON(item, json)) {
     return Status(1, "Could not serialize snapshot");
+  }
+  if (!json.empty()) {
+    json.pop_back();
   }
   return Registry::call("logger", {{"snapshot", json}});
 }
@@ -368,6 +387,9 @@ Status logHealthStatus(const QueryLogItem& item) {
   if (!serializeQueryLogItemJSON(item, json)) {
     return Status(1, "Could not serialize health");
   }
+  if (!json.empty()) {
+    json.pop_back();
+  }
   return Registry::call("logger", {{"health", json}});
 }
 
@@ -376,16 +398,19 @@ void relayStatusLogs() {
   LoggerDisabler disabler;
 
   // Construct a status log plugin request.
-  PluginRequest req = {{"status", "true"}};
+  PluginRequest request = {{"status", "true"}};
   auto& status_logs = BufferedLogSink::dump();
   if (status_logs.size() == 0) {
     return;
   }
+  serializeIntermediateLog(status_logs, request);
+  if (!request["log"].empty()) {
+    request["log"].pop_back();
+  }
 
   // Skip the registry's logic, and send directly to the core's logger.
-  PluginResponse resp;
-  serializeIntermediateLog(status_logs, req);
-  if (!Registry::call("logger", req, resp)) {
+  PluginResponse response;
+  if (!Registry::call("logger", request, response)) {
     // Flush the buffered status logs.
     // Otherwise the extension call failed and the buffering should continue.
     status_logs.clear();

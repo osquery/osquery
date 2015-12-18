@@ -29,10 +29,7 @@ FLAG(string,
      "/var/log/osquery/",
      "Directory path for ERROR/WARN/INFO and results logging");
 
-FLAG(int32,
-     logger_mode,
-     0640,
-     "Mode for log files (default '0640')");
+FLAG(int32, logger_mode, 0640, "Mode for log files (default '0640')");
 
 /// Legacy, backward compatible "osquery_log_dir" CLI option.
 FLAG_ALIAS(std::string, osquery_log_dir, logger_path);
@@ -75,14 +72,15 @@ Status FilesystemLoggerPlugin::setUp() {
 }
 
 Status FilesystemLoggerPlugin::logString(const std::string& s) {
-  return logStringToFile(s, kFilesystemLoggerFilename);
+  return logStringToFile(s + "\n", kFilesystemLoggerFilename);
 }
 
 Status FilesystemLoggerPlugin::logStringToFile(const std::string& s,
                                                const std::string& filename) {
   std::lock_guard<std::mutex> lock(filesystemLoggerPluginMutex);
   try {
-    auto status = writeTextFile((log_path_ / filename).string(), s, FLAGS_logger_mode, true);
+    auto status = writeTextFile(
+        (log_path_ / filename).string(), s, FLAGS_logger_mode, true);
     if (!status.ok()) {
       return status;
     }
