@@ -72,8 +72,10 @@ void FileEventSubscriber::configure() {
       // Use the filesystem globbing pattern to determine recursiveness.
       sc->recursive = 0;
       sc->path = file;
-      sc->mask = (accesses.count(category) > 0) ? IN_ALL_EVENTS
-                                                : (IN_ALL_EVENTS ^ IN_ACCESS);
+      sc->mask = kFileDefaultMasks;
+      if (accesses.count(category) > 0) {
+        sc->mask |= kFileAccessMasks;
+      }
       sc->category = category;
       subscribe(&FileEventSubscriber::Callback, sc);
     }
