@@ -26,6 +26,11 @@
 
 /// Newer versions of LibreSSL will lack SSL methods.
 extern "C" {
+#if defined(NO_SSL_TXT_SSLV2)
+SSL_METHOD* SSLv2_server_method(void);
+SSL_METHOD* SSLv2_client_method(void);
+SSL_METHOD* SSLv2_method(void);
+#endif
 #if defined(NO_SSL_TXT_SSLV3)
 SSL_METHOD* SSLv3_server_method(void);
 SSL_METHOD* SSLv3_client_method(void);
