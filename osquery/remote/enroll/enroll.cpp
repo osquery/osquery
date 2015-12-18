@@ -43,17 +43,7 @@ CLI_FLAG(bool,
          "Disable re-enrollment attempts if related plugins return invalid");
 
 Status clearNodeKey() {
-  std::string node_key;
-  auto s = getDatabaseValue(kPersistentSettings, "nodeKey", node_key);
-  if (!s.ok()) {
-    return s;
-  }
-
-  if (node_key.size() > 0) {
-    return deleteDatabaseValue(kPersistentSettings, "nodeKey");
-  }
-
-  return Status(0, "OK");
+  return deleteDatabaseValue(kPersistentSettings, "nodeKey");
 }
 
 std::string getNodeKey(const std::string& enroll_plugin) {

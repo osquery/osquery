@@ -47,11 +47,7 @@ class TLSEnrollPlugin : public EnrollPlugin {
 
  private:
   /// Request an enrollment key response from the TLS endpoint.
-  Status requestKey(const std::string& uri);
-
- private:
-  /// The cached enrollment key.
-  std::string node_secret_key_;
+  Status requestKey(const std::string& uri, std::string& node_key);
 };
 
 REGISTER(TLSEnrollPlugin, "enroll", "tls");
@@ -64,24 +60,24 @@ std::string TLSEnrollPlugin::enroll() {
            FLAGS_tls_enroll_override + "=" + getEnrollSecret();
   }
 
-  if (node_secret_key_.size() == 0) {
-    VLOG(1) << "TLSEnrollPlugin requesting a node enroll key from: " << uri;
-    for (size_t i = 1; i <= FLAGS_config_tls_max_attempts; i++) {
-      auto status = requestKey(uri);
-      if (status.ok() || i == FLAGS_config_tls_max_attempts) {
-        break;
-      }
-
-      LOG(WARNING) << "Failed enrollment request to " << uri << " ("
-                   << status.what() << ") retrying...";
-      ::sleep(i * i);
+  std::string node_key;
+  VLOG(1) << "TLSEnrollPlugin requesting a node enroll key from: " << uri;
+  for (size_t i = 1; i <= FLAGS_config_tls_max_attempts; i++) {
+    auto status = requestKey(uri, node_key);
+    if (status.ok() || i == FLAGS_config_tls_max_attempts) {
+      break;
     }
+
+    LOG(WARNING) << "Failed enrollment request to " << uri << " ("
+                 << status.what() << ") retrying...";
+    ::sleep(i * i);
   }
 
-  return node_secret_key_;
+  return node_key;
 }
 
-Status TLSEnrollPlugin::requestKey(const std::string& uri) {
+Status TLSEnrollPlugin::requestKey(const std::string& uri,
+                                   std::string& node_key) {
   // Read the optional enrollment secret data (sent with an enrollment request).
   boost::property_tree::ptree params;
   params.put<std::string>(FLAGS_tls_enroll_override, getEnrollSecret());
@@ -102,13 +98,13 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri) {
 
   // Support multiple response keys as a node key (identifier).
   if (recv.count("node_key") > 0) {
-    node_secret_key_ = recv.get("node_key", "");
+    node_key = recv.get("node_key", "");
   } else if (recv.count("id") > 0) {
-    node_secret_key_ = recv.get("id", "");
+    node_key = recv.get("id", "");
   }
 
-  if (node_secret_key_.size() == 0) {
-    return Status(1, "No enrollment key returned from TLS enroll plugin");
+  if (node_key.size() == 0) {
+    return Status(1, "No node key returned from TLS enroll plugin");
   }
   return Status(0, "OK");
 }

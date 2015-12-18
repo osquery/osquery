@@ -26,7 +26,8 @@ from urlparse import parse_qs
 EXAMPLE_CONFIG = {
     "schedule": {
         "tls_proc": {"query": "select * from processes", "interval": 0},
-    }
+    },
+    "node_invalid": False,
 }
 
 EXAMPLE_DISTRIBUTED = {
@@ -58,8 +59,12 @@ def debug(response):
     print("-- [DEBUG] %s" % str(response))
 
 
-class RealSimpleHandler(BaseHTTPRequestHandler):
+ENROLL_RESET = {
+    "count": 1,
+    "max": 3,
+}
 
+class RealSimpleHandler(BaseHTTPRequestHandler):
     def _set_headers(self):
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
@@ -124,6 +129,14 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # The osquery TLS config plugin calls the TLS enroll plugin to retrieve
         # a node_key, then submits that key alongside config/logger requests.
         if "node_key" not in request or request["node_key"] not in NODE_KEYS:
+            self._reply(FAILED_ENROLL_RESPONSE)
+            return
+
+        # This endpoint will also invalidate the node secret key (node_key)
+        # after several attempts to test re-enrollment.
+        ENROLL_RESET["count"] += 1
+        if ENROLL_RESET["count"] % ENROLL_RESET["max"] == 0:
+            ENROLL_RESET["first"] = 0
             self._reply(FAILED_ENROLL_RESPONSE)
             return
         self._reply(EXAMPLE_CONFIG)
