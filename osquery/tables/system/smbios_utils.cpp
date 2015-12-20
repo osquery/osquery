@@ -96,7 +96,7 @@ void SMBIOSParser::tables(std::function<void(
     }
 
     auto table_length = next_table - table;
-    predicate(index, header, table, table_length);
+    predicate(index++, header, table, table_length);
     table = next_table;
   }
 }
