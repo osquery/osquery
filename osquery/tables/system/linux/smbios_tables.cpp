@@ -54,7 +54,7 @@ class LinuxSMBIOSParser : public SMBIOSParser {
   }
 
  private:
-  void discoverTables(size_t address, size_t length);
+  bool discoverTables(size_t address, size_t length);
 
   /// Hold the raw SMBIOS memory read.
   uint8_t* data_{nullptr};
@@ -73,7 +73,9 @@ void LinuxSMBIOSParser::readFromAddress(size_t address, size_t length) {
     // in both SMBIOS and the legacy DMI spec.
     if (memcmp(data_ + offset, "_DMI_", 5) == 0) {
       auto dmi_data = (DMIEntryPoint*)(data_ + offset);
-      discoverTables(dmi_data->tableAddress, dmi_data->tableLength);
+      if (discoverTables(dmi_data->tableAddress, dmi_data->tableLength)) {
+        break;
+      }
     }
   }
 }
@@ -96,17 +98,18 @@ void LinuxSMBIOSParser::readFromSystab(const std::string& systab) {
   }
 }
 
-void LinuxSMBIOSParser::discoverTables(size_t address, size_t length) {
+bool LinuxSMBIOSParser::discoverTables(size_t address, size_t length) {
   // Linux will expose the SMBIOS/DMI entry point structures, which contain
   // a member variable with the DMI tables start address and size.
   // This applies to both the EFI-variable and physical memory search.
   auto status = osquery::readRawMem(address, length, (void**)&table_data_);
   if (!status.ok() || table_data_ == nullptr) {
-    return;
+    return false;
   }
 
   // The read was successful, save the size and wait for requests to parse.
   table_size_ = length;
+  return true;
 }
 
 bool LinuxSMBIOSParser::discover() {
@@ -126,8 +129,8 @@ QueryData genSMBIOSTables(QueryContext& context) {
   }
 
   QueryData results;
-  parser.tables(([&results](size_t index, const SMBStructHeader* hdr,
-                            uint8_t* address, size_t size) {
+  parser.tables(([&results](
+      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
     genSMBIOSTable(index, hdr, address, size, results);
   }));
 
@@ -157,8 +160,8 @@ QueryData genPlatformInfo(QueryContext& context) {
   }
 
   QueryData results;
-  parser.tables(([&results](size_t index, const SMBStructHeader* hdr,
-                            uint8_t* address, size_t size) {
+  parser.tables(([&results](
+      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
     if (hdr->type != kSMBIOSTypeBIOS || size < 0x12) {
       return;
     }
