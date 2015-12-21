@@ -123,7 +123,6 @@ DBHandle::DBHandle(const std::string& path, bool in_memory)
   options_.stats_dump_period_sec = 0;
 
   // Performance and optimization settings.
-  options_.num_levels = 1;
   options_.compression = rocksdb::kNoCompression;
   options_.compaction_style = rocksdb::kCompactionStyleLevel;
   options_.arena_block_size = (4 * 1024);
