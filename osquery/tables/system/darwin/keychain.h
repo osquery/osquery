@@ -65,9 +65,10 @@ std::string getKeychainPath(const SecKeychainItemRef& item);
 std::string genKIDProperty(const unsigned char* data, int len);
 
 /// Generate the public key algorithm and signing algorithm.
-void genAlgorithmProperties(const X509* cert,
+void genAlgorithmProperties(X509* cert,
                             std::string& key,
-                            std::string& sig);
+                            std::string& sig,
+                            std::string& size);
 
 /// Generate common name and subject.
 void genCommonName(X509* cert,
