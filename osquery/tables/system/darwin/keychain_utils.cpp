@@ -81,13 +81,23 @@ std::string genKIDProperty(const unsigned char* data, int len) {
   return key_id.str();
 }
 
-void genAlgorithmProperties(const X509* cert,
+void genAlgorithmProperties(X509* cert,
                             std::string& key,
-                            std::string& sig) {
+                            std::string& sig,
+                            std::string& size) {
   int nid = 0;
   OSX_OPENSSL(nid = OBJ_obj2nid(cert->cert_info->key->algor->algorithm));
   if (nid != NID_undef) {
     OSX_OPENSSL(key = std::string(OBJ_nid2ln(nid)));
+
+    // Get EVP public key, to determine public key size.
+    EVP_PKEY* pkey = nullptr;
+    OSX_OPENSSL(pkey = X509_get_pubkey(cert));
+    if (pkey != nullptr) {
+      size_t key_size = 0;
+      OSX_OPENSSL(key_size = EVP_PKEY_size(pkey));
+      size = std::to_string(key_size * 8);
+    }
   }
 
   OSX_OPENSSL(nid = OBJ_obj2nid(cert->cert_info->signature->algorithm));
