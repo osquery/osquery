@@ -94,9 +94,24 @@ void genAlgorithmProperties(X509* cert,
     EVP_PKEY* pkey = nullptr;
     OSX_OPENSSL(pkey = X509_get_pubkey(cert));
     if (pkey != nullptr) {
-      size_t key_size = 0;
-      OSX_OPENSSL(key_size = EVP_PKEY_size(pkey));
-      size = std::to_string(key_size * 8);
+      if (nid == NID_rsaEncryption || nid == NID_dsa) {
+        size_t key_size = 0;
+        OSX_OPENSSL(key_size = EVP_PKEY_size(pkey));
+        size = std::to_string(key_size * 8);
+      }
+
+      // The EVP_size for EC keys returns the maximum buffer for storing the
+      // key data, it does not indicate the size/strength of the curve.
+      if (nid == NID_X9_62_id_ecPublicKey) {
+        const EC_KEY* ec_pkey = pkey->pkey.ec;
+        const EC_GROUP* ec_pkey_group = nullptr;
+        OSX_OPENSSL(ec_pkey_group = EC_KEY_get0_group(ec_pkey));
+        int curve_nid = 0;
+        OSX_OPENSSL(curve_nid = EC_GROUP_get_curve_name(ec_pkey_group));
+        if (curve_nid != NID_undef) {
+          OSX_OPENSSL(size = std::string(OBJ_nid2ln(curve_nid)));
+        }
+      }
     }
   }
 

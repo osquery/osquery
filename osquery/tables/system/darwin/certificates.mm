@@ -42,7 +42,7 @@ void genCertificate(const SecCertificateRef& SecCert, QueryData& results) {
   genCommonName(cert, r["subject"], r["common_name"], r["issuer"]);
   // Same with algorithm strings.
   genAlgorithmProperties(
-      cert, r["key_algorithm"], r["signing_algorithm"], r["key_size"]);
+      cert, r["key_algorithm"], r["signing_algorithm"], r["key_strength"]);
 
   // Most certificate field accessors return strings.
   r["not_valid_before"] = INTEGER(genEpoch(X509_get_notBefore(cert)));
