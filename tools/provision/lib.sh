@@ -63,6 +63,8 @@ function install_gcc() {
     [ -L /usr/bin/g++ ] && sudo unlink /usr/bin/g++
     sudo ln -sf $TARGET/bin/gcc4.8.4 /usr/bin/gcc
     sudo ln -sf $TARGET/bin/g++4.8.4 /usr/bin/g++
+
+    sudo mkdir -p /usr/lib64
     sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib64/libstdc++.so.6.0.19
     sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib64/libstdc++.so.6
     popd
@@ -460,7 +462,7 @@ function package() {
       log "$1 is already installed. skipping."
     else
       log "installing $1"
-      sudo DEBIAN_FRONTEND=noninteractive apt-get install $1 -y
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install $1 -y --no-install-recommends
     fi
   elif [[ $FAMILY = "redhat" ]]; then
     if [[ ! -n "$(rpm -V $1)" ]]; then
