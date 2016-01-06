@@ -68,8 +68,12 @@ function main_debian() {
     package libboost-all-dev
     package automake
   fi 
-  
+
   install_google_benchmark
+
+  package rubygems
+  gem_install fpm
+
   install_thrift
   install_rocksdb 
   install_yara
