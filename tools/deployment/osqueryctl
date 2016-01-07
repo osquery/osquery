@@ -9,10 +9,14 @@ ensure_root() {
 ensure_root
 
 check_config() {
-  if [ ! -e $REAL_CONFIG_PATH ] ; then
-      echo "No osquery config file found at $REAL_CONFIG_PATH."
-      echo "See '$EXAMPLE_CONFIG_PATH' for an example config."
-      exit 4
+  if [ -e $REAL_CONFIG_PATH ]; then
+    $EXEC --config_path=$REAL_CONFIG_PATH --config_check
+  elif [ -e $FLAGS_FILE_PATH ]; then
+    :
+  else
+    echo "No osquery config file found at $REAL_CONFIG_PATH"
+    echo "See '$EXAMPLE_CONFIG_PATH' for an example config."
+    exit 4
   fi
 }
 
@@ -33,6 +37,8 @@ platform OS
 
 if [ $OS = "darwin" ]; then
   REAL_CONFIG_PATH="/var/osquery/osquery.conf"
+  FLAGS_FILE_PATH="/var/osquery/osquery.flags"
+  SECRETS_FILE_PATH="/var/osquery/osquery.secret"
   EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
   PIDFILE="/var/osquery/osquery.pid"
   LOCKFILE="/var/osquery/osquery.lock"
@@ -128,7 +134,7 @@ case "$1" in
     $1
     ;;
   config-check)
-    $EXEC --config_path=$REAL_CONFIG_PATH --config_check
+    check_config
     ;;
   *)
     echo $"Usage: $0 {clean|config-check|start|stop|status|restart}"
