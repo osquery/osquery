@@ -42,7 +42,7 @@ Status getVerifyFlags(SecCSFlags& flags) {
       return Status(-1, "Couldn't determine OS X version");
     }
 
-    sFlags = kSecCSDefaultFlags |  kSecCSCheckAllArchitectures;
+    sFlags = kSecCSStrictValidate |  kSecCSCheckAllArchitectures;
     if (minorVersion > 8) {
       sFlags |= kSecCSCheckNestedCode;
     }
