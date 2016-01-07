@@ -122,6 +122,11 @@ if(${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6")
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
 endif()
 
+# Help Debian Wheezy find BZip2
+if(${OSQUERY_BUILD_DISTRO} STREQUAL "wheezy")
+  set (CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu")
+endif()
+
 # Provisioning installs non-default C++11 runtimes on build hosts.
 # List those distros that include a non-system-default runtime.
 set(OSQUERY_REQUIRE_RUNTIMES
@@ -130,6 +135,7 @@ set(OSQUERY_REQUIRE_RUNTIMES
   "centos6"
   "rhel6"
   "oracle6"
+  "wheezy"
 )
 
 # make debug (environment variable from Makefile)
