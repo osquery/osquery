@@ -249,6 +249,10 @@ add_definitions(
 
 if(APPLE)
   LOG_PLATFORM("OS X")
+elseif(OSQUERY_BUILD_PLATFORM STREQUAL "debian")
+  set(DEBIAN_BASED TRUE)
+  set(DEBIAN TRUE)
+  LOG_PLATFORM("Debian")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "ubuntu")
   set(DEBIAN_BASED TRUE)
   set(UBUNTU TRUE)

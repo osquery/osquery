@@ -32,7 +32,9 @@ typedef std::shared_ptr<DBHandle> DBHandleRef;
 
 class GlogRocksDBLogger : public rocksdb::Logger {
  public:
-  virtual void Logv(const char* format, va_list ap);
+  // We intend to override a virtual method that is overloaded.
+  using rocksdb::Logger::Logv;
+  void Logv(const char* format, va_list ap) override;
 };
 
 /**

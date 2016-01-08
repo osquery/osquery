@@ -11,14 +11,29 @@ if(APPLE)
   )
 elseif(LINUX)
   if(DEBIAN_BASED)
+    # Set basic catch-alls for debian-based systems.
     set(PACKAGE_TYPE "deb")
-    set(PACKAGE_ITERATION "1.ubuntu")
+    set(PACKAGE_ITERATION "1.debian")
     set(PACKAGE_DEPENDENCIES
       "zlib1g"
       "libbz2-1.0"
       "libreadline6"
-      "libgcrypt11"
     )
+
+    # Improve catch-alls for debian or ubuntu.
+    if(OSQUERY_BUILD_PLATFORM STREQUAL "ubuntu")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libgcrypt11"
+      )
+    elseif(OSQUERY_BUILD_PLATFORM STREQUAL "debian")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libgcrypt20"
+      )
+    endif()
+
+    # Improve package and iterations for each specific distribution.
     if(NOT OSQUERY_BUILD_DISTRO STREQUAL "lucid")
       set(PACKAGE_ITERATION "1.ubuntu10")
       set(PACKAGE_DEPENDENCIES
@@ -27,6 +42,7 @@ elseif(LINUX)
         "libapt-pkg4.12"
       )
     endif()
+
     if(OSQUERY_BUILD_DISTRO STREQUAL "precise")
       set(PACKAGE_ITERATION "1.ubuntu12")
       set(PACKAGE_DEPENDENCIES
@@ -34,8 +50,22 @@ elseif(LINUX)
         "libstdc++6"
         "libudev0"
       )
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "wheezy")
+      set(PACKAGE_ITERATION "1.debian7")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libstdc++6"
+        "libudev0"
+      )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "trusty")
       set(PACKAGE_ITERATION "1.ubuntu14")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libstdc++6 (>= 4.8)"
+        "libudev1"
+      )
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "jessie")
+      set(PACKAGE_ITERATION "1.debian8")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6 (>= 4.8)"
