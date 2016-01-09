@@ -176,6 +176,7 @@ TEST_F(ConfigTests, test_parse) {
       // Although this is a valid discovery query, there is no SQL plugin in
       // the core tests.
       {"valid_discovery_pack", false},
+      {"restricted_pack", true},
   };
 
   c.packs(([&results](Pack& pack) {
@@ -211,6 +212,31 @@ TEST_F(ConfigTests, test_add_remove_pack) {
   c.removePack("unrestricted_pack");
   c.packs(([&pack_count](Pack& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 0U);
+}
+
+TEST_F(ConfigTests, test_update_clear) {
+  // Read config content manually.
+  std::string content;
+  readFile(kTestDataPath + "test_parse_items.conf", content);
+
+  // Create the output of a `genConfig`.
+  std::map<std::string, std::string> config_data;
+  config_data["awesome"] = content;
+
+  // Update, then clear, packs should have been cleared.
+  Config c;
+  c.update(config_data);
+  size_t count = 0;
+  auto packCounter = [&count](Pack& pack) { count++; };
+  c.packs(packCounter);
+  EXPECT_GT(count, 0U);
+
+  // Now clear.
+  config_data["awesome"] = "";
+  c.update(config_data);
+  count = 0;
+  c.packs(packCounter);
+  EXPECT_EQ(count, 0U);
 }
 
 TEST_F(ConfigTests, test_get_scheduled_queries) {

@@ -22,6 +22,7 @@ namespace osquery {
 class FilePathsConfigParserPlugin : public ConfigParserPlugin {
  public:
   FilePathsConfigParserPlugin();
+  virtual ~FilePathsConfigParserPlugin() {}
 
   std::vector<std::string> keys() const override {
     return {"file_paths", "file_accesses"};
@@ -30,6 +31,10 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
   Status setUp() override { return Status(0); };
 
   Status update(const std::string& source, const ParserConfig& config) override;
+
+ private:
+  /// The access map binds source to category.
+  std::map<std::string, std::vector<std::string> > access_map_;
 };
 
 FilePathsConfigParserPlugin::FilePathsConfigParserPlugin() {
@@ -45,9 +50,19 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
 
   auto& accesses = data_.get_child("file_accesses");
   if (config.count("file_accesses") > 0) {
+    if (access_map_.count(source) > 0) {
+      access_map_.erase(source);
+    }
+
     for (const auto& category : config.at("file_accesses")) {
       auto path = category.second.get_value<std::string>("");
-      accesses.put(path, source);
+      access_map_[source].push_back(path);
+    }
+    // Regenerate the access:
+    for (const auto& source : access_map_) {
+      for (const auto& category : source.second) {
+        accesses.put(category, source.first);
+      }
     }
   }
 
