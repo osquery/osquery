@@ -38,7 +38,6 @@ platform OS
 if [ $OS = "darwin" ]; then
   REAL_CONFIG_PATH="/var/osquery/osquery.conf"
   FLAGS_FILE_PATH="/var/osquery/osquery.flags"
-  SECRETS_FILE_PATH="/var/osquery/osquery.secret"
   EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
   PIDFILE="/var/osquery/osquery.pid"
   LOCKFILE="/var/osquery/osquery.lock"
