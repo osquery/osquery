@@ -1,0 +1,13 @@
+table_name("smc_keys")
+description("Apple's system management controller keys.")
+schema([
+    Column("key", TEXT, "4-character key", additional=True),
+    Column("type", TEXT, "SMC-reported type literal type"),
+    Column("size", INTEGER, "Reported size of data in bytes"),
+    Column("value", TEXT, "A type-encoded representation of the key value"),
+    Column("hidden", INTEGER, "1 if this key is normally hidden, otherwise 0"),
+])
+implementation("smc_keys@genSMCKeys")
+examples([
+  "select * from smc_keys where key = 'MOJO'",
+])
