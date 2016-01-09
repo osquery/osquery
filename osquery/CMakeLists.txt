@@ -23,7 +23,6 @@ set(OSQUERY_LIBS
   ${GFLAGS_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
   ${OPENSSL_SSL_LIBRARY}
-  ${CPP-NETLIB_LIBRARY}
   ${READLINE_LIBRARIES}
 
   pthread
@@ -68,8 +67,8 @@ ADD_OSQUERY_LINK_CORE("boost_regex")
 ADD_OSQUERY_LINK_CORE("yara")
 
 # Remaining additional development libraries.
-ADD_OSQUERY_LINK_ADDITIONAL("libcppnetlib-uri.a")
-ADD_OSQUERY_LINK_ADDITIONAL("libcppnetlib-client-connections.a")
+ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-uri")
+ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-client-connections")
 
 if(DEFINED ENV{SANITIZE})
   if(DEFINED ENV{SANITIZE_THREAD})
