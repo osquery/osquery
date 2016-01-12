@@ -109,20 +109,26 @@ void Pack::initialize(const std::string& name,
                       const pt::ptree& tree) {
   name_ = name;
   source_ = source;
+  // Check the shard limitation, shards falling below this value are included.
   if (tree.count("shard") > 0) {
     shard_ = tree.get<size_t>("shard", 0);
   }
 
+  // Check for a platform restriction.
   platform_.clear();
   if (tree.count("platform") > 0) {
     platform_ = tree.get<std::string>("platform", "");
   }
 
+  // Check for a version restriction.
   version_.clear();
   if (tree.count("version") > 0) {
     version_ = tree.get<std::string>("version", "");
   }
 
+  // Apply the shard, platform, and version checking.
+  // It is important to set each value such that the packs meta-table can report
+  // each of the restrictions.
   if ((shard_ > 0 && shard_ < getMachineShard()) || !checkPlatform() ||
       !checkVersion()) {
     return;

@@ -102,11 +102,28 @@ class Schedule : private boost::noncopyable {
   /// Remove a pack, by name.
   void remove(const std::string& pack) { remove(pack, ""); }
 
+  /// Remove a pack by name and source.
   void remove(const std::string& pack, const std::string& source) {
     packs_.remove_if([pack, source](Pack& p) {
-      return (p.getName() == pack) &&
-             ((p.getSource() == source || source == ""));
+      if (p.getName() == pack && (p.getSource() == source || source == "")) {
+        Config::getInstance().removeFiles(source + FLAGS_pack_delimiter +
+                                          p.getName());
+        return true;
+      }
+      return false;
     });
+  }
+
+  /// Remove all packs by source.
+  void removeAll(const std::string& source) {
+    packs_.remove_if(([source](Pack& p) {
+      if (p.getSource() == source) {
+        Config::getInstance().removeFiles(source + FLAGS_pack_delimiter +
+                                          p.getName());
+        return true;
+      }
+      return false;
+    }));
   }
 
   /// Boost gives us a nice template for maintaining the state of the iterator
@@ -201,6 +218,7 @@ void Config::addPack(const std::string& name,
   WriteLock wlock(config_schedule_mutex_);
   try {
     schedule_->add(Pack(name, source, tree));
+    applyParsers(source + FLAGS_pack_delimiter + name, tree, true);
   } catch (const std::exception& e) {
     LOG(WARNING) << "Error adding pack: " << name << ": " << e.what();
   }
@@ -228,7 +246,7 @@ void Config::removeFiles(const std::string& source) {
 void Config::scheduledQueries(std::function<
     void(const std::string& name, const ScheduledQuery& query)> predicate) {
   ReadLock rlock(config_schedule_mutex_);
-  for (Pack& pack : *schedule_) {
+  for (const Pack& pack : *schedule_) {
     for (const auto& it : pack.getSchedule()) {
       std::string name = it.first;
       // The query name may be synthetic.
@@ -321,6 +339,11 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
   // Compute a 'synthesized' hash using the content before it is parsed.
   hashSource(name, json);
 
+  // Remove all packs from this source.
+  schedule_->removeAll(name);
+  // Remove all files from this source.
+  removeFiles(name);
+
   // load the config (source.second) into a pt::ptree
   pt::ptree tree;
   try {
@@ -362,8 +385,11 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
     for (const auto& pack : packs) {
       auto value = packs.get<std::string>(pack.first, "");
       if (value.empty()) {
+        // The pack is a JSON object, treat the content as pack data.
         addPack(pack.first, name, pack.second);
       } else {
+        // If the pack value is a string (and not a JSON object) then it is a
+        // resource to be handled by the config plugin.
         PluginResponse response;
         PluginRequest request = {
             {"action", "genPack"}, {"name", pack.first}, {"value", value}};
@@ -386,6 +412,13 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
     }
   }
 
+  applyParsers(name, tree, false);
+  return Status(0, "OK");
+}
+
+void Config::applyParsers(const std::string& source,
+                          const pt::ptree& tree,
+                          bool pack) {
   // Iterate each parser.
   for (const auto& plugin : Registry::all("config_parser")) {
     std::shared_ptr<ConfigParserPlugin> parser = nullptr;
@@ -407,13 +440,11 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
         parser_config[key] = pt::ptree();
       }
     }
-
     // The config parser plugin will receive a copy of each property tree for
     // each top-level-config key. The parser may choose to update the config's
     // internal state
-    parser->update(name, parser_config);
+    parser->update(source, parser_config);
   }
-  return Status(0, "OK");
 }
 
 Status Config::update(const std::map<std::string, std::string>& config) {

@@ -216,6 +216,25 @@ class Config : private boost::noncopyable {
   static const std::shared_ptr<ConfigParserPlugin> getParser(
       const std::string& parser);
 
+  /**
+   * @brief Apply each ConfigParser to an input property tree.
+   *
+   * This iterates each discovered ConfigParser Plugin and the plugin's keys
+   * to match keys within the input property tree. If a key matches then the
+   * associated value is passed to the parser.
+   *
+   * Use this utility method for both the top-level configuration tree and
+   * the content of each configuration pack. There is an optional black list
+   * parameter to differentiate pack content.
+   *
+   * @param source The input configuration source name.
+   * @param tree The input configuration tree.
+   * @param pack True if the tree was built from pack data, otherwise false.
+   */
+  static void applyParsers(const std::string& source,
+                           const boost::property_tree::ptree& tree,
+                           bool pack = false);
+
  protected:
   /**
    * @brief Call the genConfig method of the config retriever plugin.
@@ -272,10 +291,11 @@ class Config : private boost::noncopyable {
   FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
   FRIEND_TEST(ConfigTests, test_get_parser);
   FRIEND_TEST(ConfigTests, test_add_remove_pack);
+  FRIEND_TEST(ConfigTests, test_update_clear);
   FRIEND_TEST(ConfigTests, test_noninline_pack);
 
+  friend class FilePathsConfigParserPluginTests;
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
-  FRIEND_TEST(FilePathsConfigParserPluginTests, test_get_files);
   FRIEND_TEST(PacksTests, test_discovery_cache);
   FRIEND_TEST(SchedulerTests, test_monitor);
   FRIEND_TEST(SchedulerTests, test_config_results_purge);

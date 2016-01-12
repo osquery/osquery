@@ -106,6 +106,17 @@ TEST_F(PacksTests, test_check_version) {
   EXPECT_TRUE(fpack.checkVersion());
 }
 
+TEST_F(PacksTests, test_restriction_population) {
+  // Require that all potential restrictions are populated before being checked.
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  auto fpack = Pack("fake_pack", packs.get_child("restricted_pack"));
+
+  ASSERT_FALSE(fpack.getPlatform().empty());
+  ASSERT_FALSE(fpack.getVersion().empty());
+  ASSERT_EQ(fpack.getShard(), 1U);
+}
+
 TEST_F(PacksTests, test_schedule) {
   auto fpack = Pack("discovery_pack", getPackWithDiscovery());
   // Expect a single query in the schedule since one query has an explicit
