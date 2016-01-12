@@ -1,4 +1,6 @@
 PLATFORM := $(shell uname -s)
+GIT_EXISTS := $(shell which git)
+BASH_EXISTS := $(shell which bash)
 VERSION := $(shell git describe --tags HEAD --always)
 SHELL := $(shell which bash)
 
@@ -10,11 +12,11 @@ endif
 DISTRO := $(shell . ./tools/lib.sh; _platform)
 DISTRO_VERSION := $(shell . ./tools/lib.sh; _distro $(DISTRO))
 ifeq ($(DISTRO),darwin)
-  ifeq ($(DISTRO_VERSION), 10.10)
-    BUILD_DIR = darwin
-  else
-    BUILD_DIR = darwin$(DISTRO_VERSION)
-  endif
+	ifeq ($(DISTRO_VERSION), 10.10)
+		BUILD_DIR = darwin
+	else
+		BUILD_DIR = darwin$(DISTRO_VERSION)
+	endif
 else ifeq ($(DISTRO),freebsd)
 	BUILD_DIR = freebsd$(DISTRO_VERSION)
 else
@@ -34,7 +36,7 @@ docs: .setup
 
 debug: .setup
 	cd build/debug_$(BUILD_DIR) && DEBUG=True cmake ../../ && \
-	  $(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
+		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_debug: .setup
 	cd build/debug_$(BUILD_DIR) && DEBUG=True cmake ../../ && \
@@ -94,6 +96,15 @@ ifeq ($(PLATFORM),Linux)
 endif
 
 .setup:
+ifeq ($(GIT_EXISTS),)
+	@echo "Problem: cannot find 'git'"
+	false
+endif
+ifeq ($(BASH_EXISTS),)
+	@echo "Problem: cannot find 'bash'"
+	false
+endif
+
 ifeq ($(DISTRO),unknown_version)
 	@echo Unknown, non-Redhat, non-Ubuntu based Linux distro
 	false
@@ -102,8 +113,8 @@ endif
 	@mkdir -p build/$(BUILD_DIR)
 	@mkdir -p build/debug_$(BUILD_DIR)
 ifeq ($(PLATFORM),Linux)
-		@ln -snf $(BUILD_DIR) build/linux
-		@ln -snf debug_$(BUILD_DIR) build/debug_linux
+	@ln -snf $(BUILD_DIR) build/linux
+	@ln -snf debug_$(BUILD_DIR) build/debug_linux
 endif
 
 package: .setup
