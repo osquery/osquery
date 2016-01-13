@@ -1,0 +1,23 @@
+[Unit]
+Description=The osquery Daemon
+After=network.service syslog.service
+
+[Service]
+Type=forking
+TimeoutStartSec=0
+PIDFile=/var/run/osqueryd.pid
+EnvironmentFile=/etc/sysconfig/osqueryd
+ExecStartPre=/bin/sh -c "if [[ ! -f $FLAG_FILE ]]; then touch $FLAG_FILE; fi"
+ExecStart=/usr/bin/osqueryd \
+  --force \
+  --daemonize \
+  --pidfile /var/run/osqueryd.pid \
+  --flagfile $FLAG_FILE \
+  --config_path $CONFIG_FILE
+Restart=on-abort
+KillMode=process
+KillSignal=SIGTERM
+SendSIGKILL=yes
+
+[Install]
+WantedBy=multi-user.target
