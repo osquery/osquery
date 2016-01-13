@@ -30,6 +30,10 @@ OUTPUT_PKG_PATH="$BUILD_DIR/$PACKAGE_NAME-$PACKAGE_VERSION."
 # Config files
 INITD_SRC="$SCRIPT_DIR/osqueryd.initd"
 INITD_DST="/etc/init.d/osqueryd"
+SYSTEMD_SERVICE_SRC="$SCRIPT_DIR/osqueryd.service"
+SYSTEMD_SERVICE_DST="/usr/lib/systemd/system/osqueryd.service"
+SYSTEMD_SYSCONFIG_SRC="$SCRIPT_DIR/osqueryd.sysconfig"
+SYSTEMD_SYSCONFIG_DST="/etc/sysconfig/osqueryd"
 CTL_SRC="$SCRIPT_DIR/osqueryctl"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/usr/share/osquery/packs/"
@@ -83,6 +87,7 @@ function main() {
   check_parsed_args
 
   platform OS
+  distro $OS DISTRO
 
   rm -rf $WORKING_DIR
   rm -f $OUTPUT_PKG_PATH
@@ -106,8 +111,16 @@ function main() {
   cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
   cp $PACKS_SRC/* $INSTALL_PREFIX/$PACKS_DST
 
-  mkdir -p `dirname $INSTALL_PREFIX$INITD_DST`
-  cp $INITD_SRC $INSTALL_PREFIX$INITD_DST
+  if [[ $OS = "centos" && $DISTRO = "centos7" ]]; then
+    # Install the systemd service and sysconfig
+    mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
+    mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST`
+    cp $SYSTEMD_SERVICE_SRC $INSTALL_PREFIX$SYSTEMD_SERVICE_DST
+    cp $SYSTEMD_SYSCONFIG_SRC $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST
+  else
+    mkdir -p `dirname $INSTALL_PREFIX$INITD_DST`
+    cp $INITD_SRC $INSTALL_PREFIX$INITD_DST
+  fi
 
   log "creating package"
   IFS=',' read -a deps <<< "$PACKAGE_DEPENDENCIES"
