@@ -10,14 +10,12 @@ The tools make low-level operating system analytics and monitoring both performa
 
 | Platform | Build status  | | | |
 |----------|---------------|---|---|---|
-RHEL 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL6/) | | **Homepage:** | https://osquery.io
-RHEL 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildRHEL7/) | | **Downloads:** | https://osquery.io/downloads
+OS X 10.9    | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/) | | **Homepage:** | https://osquery.io
+OS X 10.10/11| [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX/) | | **Downloads:** | https://osquery.io/downloads
 CentOS 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Tables:** | https://osquery.io/tables
 CentOS 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Packs:** | https://osquery.io/packs
 Ubuntu 12.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/) | | **Guide:** | https://osquery.readthedocs.org
 Ubuntu 14.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com) | https://osquery.slack.com
-OS X 10.9   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/) | | |
-OS X 10.10  | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX/) | | |
 
 #### What is osquery?
 
@@ -98,4 +96,4 @@ Facebook has a [bug bounty](https://www.facebook.com/whitehat/) program that inc
 #### Learn more
 
 Read the [launch blog post](https://code.facebook.com/posts/844436395567983/introducing-osquery/) for background on the project.
-If you're interested in learning more about osquery, visit the [users guide](https://osquery.readthedocs.org/) and browse our RFC-labeled Github issues.
+If you're interested in learning more about osquery, visit the [users guide](https://osquery.readthedocs.org/) and browse our RFC-labeled Github issues. Development and usage discussion is happing in the osquery Slack, grab an invite automatically: [https://osquery-slack.herokuapp.com/](https://osquery-slack.herokuapp.com/badge.sv)!
