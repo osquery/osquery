@@ -10,6 +10,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include <osquery/config.h>
 #include <osquery/events.h>
 #include <osquery/tables.h>
 
@@ -66,6 +67,10 @@ class BenchmarkEventSubscriber
 };
 
 static void EVENTS_subscribe_fire(benchmark::State& state) {
+  // Setup the event config parser plugin.
+  auto plugin = Config::getInstance().getParser("events");
+  plugin->setUp();
+
   // Register a publisher.
   auto pub = std::make_shared<BenchmarkEventPublisher>();
   EventFactory::registerEventPublisher(pub);

@@ -22,7 +22,12 @@ namespace osquery {
 #ifdef KERNEL_TEST
 
 static inline void producerThread(benchmark::State &state) {
-  CQueue queue(kKernelDevice, 8 * (1 << 20));
+  std::unique_ptr<CQueue> queue = nullptr;
+  try {
+    queue = std::unique_ptr<CQueue>(new CQueue(kKernelDevice, 8 * (1 << 20)));
+  } catch (const CQueueException &e) {
+    // The device interface cannot be found or cannot be opened.
+  }
 
   osquery_event_t event;
   osquery::CQueue::event *event_buf = nullptr;
@@ -32,10 +37,13 @@ static inline void producerThread(benchmark::State &state) {
   size_t syncs = 0;
   int max_before_sync = 0;
   while (state.KeepRunning()) {
-    drops += queue.kernelSync(OSQUERY_NO_BLOCK);
+    if (queue == nullptr) {
+      continue;
+    }
+    drops += queue->kernelSync(OSQUERY_NO_BLOCK);
     syncs++;
     max_before_sync = 2000;
-    while (max_before_sync > 0 && (event = queue.dequeue(&event_buf))) {
+    while (max_before_sync > 0 && (event = queue->dequeue(&event_buf))) {
       switch (event) {
       case OSQUERY_TEST_EVENT_0:
         reads0++;
