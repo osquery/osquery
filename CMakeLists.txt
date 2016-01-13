@@ -24,10 +24,7 @@ elseif(CLANGXX_EXISTS)
 endif()
 
 add_compile_options(
-  -Wall
-  -Wextra
   -Wstrict-aliasing
-  -Wno-unused-parameter
   -Wno-missing-field-initializers
   -Wno-unused-local-typedef
   -Wno-unknown-warning-option

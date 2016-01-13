@@ -30,6 +30,13 @@ set(OSQUERY_LIBS
   z
 )
 
+# Add all and extra for osquery code.
+add_compile_options(
+  -Wall
+  -Wextra
+  -Wno-unused-parameter
+)
+
 if(NOT FREEBSD)
   set(OSQUERY_LIBS ${OSQUERY_LIBS} dl)
 else()
