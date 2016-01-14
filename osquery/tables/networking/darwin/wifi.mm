@@ -88,7 +88,8 @@ std::string extractNetworkProperties(const CFTypeRef& property) {
 }
 
 void parseNetworks(const CFDictionaryRef& network, QueryData& results) {
-  if (network == nullptr || CFDictionaryGetCount(network) == 0) {
+  if (network == nullptr || CFGetTypeID(network) != CFDictionaryGetTypeID() ||
+      CFDictionaryGetCount(network) == 0) {
     return;
   }
 
@@ -136,10 +137,9 @@ QueryData genKnownWifiNetworks(QueryContext& context) {
   if (plist == nullptr || CFDictionaryGetCount(plist) == 0) {
     return {};
   }
-
   auto cfkey = CFStringCreateWithCString(kCFAllocatorDefault, key.c_str(),
                                          kCFStringEncodingUTF8);
-  auto networks = (CFDictionaryRef)CFDictionaryGetValue(plist, cfkey);
+  CFTypeRef networks = CFDictionaryGetValue(plist, cfkey);
   CFRelease(cfkey);
   if (networks == nullptr) {
     VLOG(1) << "Key not found : " << key;
@@ -147,15 +147,23 @@ QueryData genKnownWifiNetworks(QueryContext& context) {
   }
 
   QueryData results;
-  auto count = CFDictionaryGetCount(networks);
-  const void* keys[count];
-  const void* values[count];
-  CFDictionaryGetKeysAndValues(networks, keys, values);
+  if (CFGetTypeID(networks) == CFArrayGetTypeID()) {
+    auto count = CFArrayGetCount((CFArrayRef)networks);
+    for (CFIndex i = 0; i < count; i++) {
+      parseNetworks(
+          (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)networks, i),
+          results);
+    }
+  } else if (CFGetTypeID(networks) == CFDictionaryGetTypeID()) {
+    auto count = CFDictionaryGetCount((CFDictionaryRef)networks);
+    const void* keys[count];
+    const void* values[count];
+    CFDictionaryGetKeysAndValues((CFDictionaryRef)networks, keys, values);
 
-  for (CFIndex i = 0; i < count; i++) {
-    parseNetworks((CFDictionaryRef)values[i], results);
+    for (CFIndex i = 0; i < count; i++) {
+      parseNetworks((CFDictionaryRef)values[i], results);
+    }
   }
-
   return results;
 }
 }
