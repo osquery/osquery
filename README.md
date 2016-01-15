@@ -11,7 +11,8 @@ The tools make low-level operating system analytics and monitoring both performa
 | Platform | Build status  | | | |
 |----------|---------------|---|---|---|
 OS X 10.9    | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/) | | **Homepage:** | https://osquery.io
-OS X 10.10/11| [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX/) | | **Downloads:** | https://osquery.io/downloads
+OS X 10.10   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.10/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.10/) | | **Downloads:** | https://osquery.io/downloads
+OS X 10.11   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.11/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.11/) | | **Downloads:** | https://osquery.io/downloads
 CentOS 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Tables:** | https://osquery.io/tables
 CentOS 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Packs:** | https://osquery.io/packs
 Ubuntu 12.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/) | | **Guide:** | https://osquery.readthedocs.org
@@ -81,13 +82,13 @@ For latest stable and nightly builds for OS X and Linux (deb/rpm), as well as yu
 
 #### File Integrity Monitoring (FIM)
 
-osquery provides several [FIM features](http://osquery.readthedocs.org/en/stable/deployment/file-integrity-monitoring/) too! Just as OS concepts are represented in tabular form, the daemon can track OS events and later expose them in a table. Tables like [`file_events`](https://osquery.io/docs/tables/#file_events) or [`yara_events`](https://osquery.io/docs/tables/#yara_events) can be selected to retrieve buffered events. 
+osquery provides several [FIM features](http://osquery.readthedocs.org/en/stable/deployment/file-integrity-monitoring/) too! Just as OS concepts are represented in tabular form, the daemon can track OS events and later expose them in a table. Tables like [`file_events`](https://osquery.io/docs/tables/#file_events) or [`yara_events`](https://osquery.io/docs/tables/#yara_events) can be selected to retrieve buffered events.
 
 The configuration allows you to organize files and directories for monitoring. Those sets can be paired with lists of YARA signatures or configured for additional monitoring such as access events.
 
 ##### Process and socket auditing
 
-There are several forms of [eventing](http://osquery.readthedocs.org/en/stable/development/pubsub-framework/) in osquery along with file modifications and accesses. These range from disk mounts, network reconfigurations, hardware attach and detaching, and process starting. For a complete set review the table documentation and look for names with the `_events` suffix. 
+There are several forms of [eventing](http://osquery.readthedocs.org/en/stable/development/pubsub-framework/) in osquery along with file modifications and accesses. These range from disk mounts, network reconfigurations, hardware attach and detaching, and process starting. For a complete set review the table documentation and look for names with the `_events` suffix.
 
 #### Vulnerabilities
 
