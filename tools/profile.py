@@ -129,7 +129,7 @@ def run_query(shell, query, timeout=0, count=1):
         "--profile_delay",
         "1",
         query
-    ])
+    ], timeout=timeout, count=count)
 
 
 def summary_line(name, result):
@@ -177,10 +177,16 @@ def summary(results, display=False):
 def profile(shell, queries, timeout=0, count=1, rounds=1):
     report = {}
     for name, query in queries.iteritems():
-        print("Profiling query: %s" % query)
+        forced = True if name == "force" else False
+        if not forced:
+            print("Profiling query: %s" % query)
         results = {}
         for i in range(rounds):
-            result = run_query(shell, query, timeout=timeout, count=count)
+            if forced:
+                result = utils.profile_cmd(shell, shell=True,
+                    timeout=timeout, count=count)
+            else:
+                result = run_query(shell, query, timeout=timeout, count=count)
             summary(
                 {"%s (%d/%d)" % (name, i + 1, rounds): result}, display=True)
             # Store each result round to return an average.
@@ -272,6 +278,10 @@ if __name__ == "__main__":
             utils.platform()),
         help="Path to osqueryi shell (./build/<sys>/osquery/osqueryi)."
     )
+    group.add_argument(
+        "--force", action="store_true", default=False,
+        help="Force run the target of shell",
+    )
 
     group = parser.add_argument_group("Performance Options:")
     group.add_argument(
@@ -306,7 +316,7 @@ if __name__ == "__main__":
         with open(args.check[0]) as fh:
             profile1 = json.loads(fh.read())
 
-    if not os.path.exists(args.shell):
+    if not args.force and not os.path.exists(args.shell):
         print("Cannot find --shell: %s" % (args.shell))
         exit(1)
     if args.config is None and not os.path.exists(args.tables):
@@ -321,6 +331,8 @@ if __name__ == "__main__":
         queries = utils.queries_from_config(args.config)
     elif args.query is not None:
         queries["manual"] = args.query
+    elif args.force:
+        queries["force"] = True
     else:
         queries = utils.queries_from_tables(args.tables, args.restrict)
 

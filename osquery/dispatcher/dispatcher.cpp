@@ -8,7 +8,7 @@
  *
  */
 
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/chrono.hpp>
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -24,14 +24,14 @@ namespace osquery {
 FLAG(int32, worker_threads, 4, "Number of work dispatch threads");
 
 void interruptableSleep(size_t milli) {
-  boost::this_thread::sleep(boost::posix_time::milliseconds(milli));
+  boost::this_thread::sleep_for(boost::chrono::milliseconds(milli));
 }
 
 Dispatcher::~Dispatcher() { join(); }
 
 void Dispatcher::init() {
   thread_manager_ = InternalThreadManager::newSimpleThreadManager(
-          (size_t)FLAGS_worker_threads, 0);
+      (size_t)FLAGS_worker_threads, 0);
   auto thread_factory = ThriftThreadFactory(new PosixThreadFactory());
   thread_manager_->threadFactory(thread_factory);
   thread_manager_->start();
