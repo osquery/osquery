@@ -49,7 +49,7 @@ DECLARE_bool(tls_node_api);
  * kTLSLoggerBufferMax the thread will set TLSLoggerPlugin::stop_buffering.
  * Then the logger plugin stops buffering, and new logs will drop.
  */
-const size_t kTLSLoggerBufferMax = 1024;
+const size_t kTLSLoggerBufferMax = 1024 * 1024;
 
 class TLSLogForwarderRunner;
 
@@ -121,9 +121,14 @@ class TLSLogForwarderRunner : public InternalRunnable {
   void start();
 
  protected:
-  /// Send labeled result logs.
-  Status send(const std::vector<std::string>& log_data,
-              const std::string& log_type);
+  /**
+   * @brief Send labeled result logs.
+   *
+   * The log_data provided to send must be mutable.
+   * To optimize for smaller memory, this will be moved into place within the
+   * constructed property tree before sending.
+   */
+  Status send(std::vector<std::string>& log_data, const std::string& log_type);
 
   /// Receive an enrollment/node key from the backing store cache.
   std::string node_key_;
@@ -204,13 +209,15 @@ Status TLSLoggerPlugin::init(const std::string& name,
   return logStatus(log);
 }
 
-Status TLSLogForwarderRunner::send(const std::vector<std::string>& log_data,
+Status TLSLogForwarderRunner::send(std::vector<std::string>& log_data,
                                    const std::string& log_type) {
   pt::ptree params;
   params.put<std::string>("node_key", node_key_);
   params.put<std::string>("log_type", log_type);
-  for (const auto& item : log_data) {
-    params.put("data", item);
+  for (auto& item : log_data) {
+    pt::ptree child;
+    child.put_value(std::move(item));
+    params.push_back(pt::ptree::value_type("data", std::move(child)));
   }
 
   auto request = Request<TLSTransport, JSONSerializer>(uri_);
@@ -246,7 +253,7 @@ void TLSLogForwarderRunner::start() {
       auto& target = ((index.at(0) == 'r') ? results : statuses);
       if (getDatabaseValue(kLogs, index, value)) {
         // Resist failure, only append delimiters if the value get succeeded.
-        target.push_back(value);
+        target.push_back(std::move(value));
       }
     }
 
