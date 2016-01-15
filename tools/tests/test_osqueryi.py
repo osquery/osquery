@@ -24,7 +24,6 @@ SHELL_TIMEOUT = 10
 
 
 class OsqueryiTest(unittest.TestCase):
-
     def setUp(self):
         self.binary = os.path.join(test_base.ARGS.build, "osquery", "osqueryi")
         self.osqueryi = test_base.OsqueryWrapper(self.binary)
@@ -38,6 +37,7 @@ class OsqueryiTest(unittest.TestCase):
         self.assertRaises(test_base.OsqueryException,
                           self.osqueryi.run_query, 'foo')
 
+    @test_base.flaky
     def test_config_check_success(self):
         '''Test that a 0-config passes'''
         proc = test_base.TimeoutRunner([
@@ -52,6 +52,7 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
+    @test_base.flaky
     def test_config_dump(self):
         '''Test that config raw output is dumped when requested'''
         config = "%s/test_noninline_packs.conf" % test_base.SCRIPT_DIR
@@ -67,6 +68,7 @@ class OsqueryiTest(unittest.TestCase):
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
+    @test_base.flaky
     def test_config_check_failure(self):
         '''Test that a missing config fails'''
         proc = test_base.TimeoutRunner([
@@ -103,6 +105,7 @@ class OsqueryiTest(unittest.TestCase):
         self.assertNotEqual(proc.stderr, "")
         self.assertNotEqual(proc.proc.poll(), 0)
 
+    @test_base.flaky
     def test_config_check_example(self):
         '''Test that the example config passes'''
         example_path = "deployment/osquery.example.conf"

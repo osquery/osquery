@@ -12,7 +12,7 @@ endif
 DISTRO := $(shell . ./tools/lib.sh; _platform)
 DISTRO_VERSION := $(shell . ./tools/lib.sh; _distro $(DISTRO))
 ifeq ($(DISTRO),darwin)
-	ifeq ($(DISTRO_VERSION), 10.10)
+	ifeq ($(DISTRO_VERSION), 10.11)
 		BUILD_DIR = darwin
 	else
 		BUILD_DIR = darwin$(DISTRO_VERSION)

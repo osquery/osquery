@@ -351,6 +351,13 @@ Status attachTableInternal(const std::string &name,
       tables::sqlite::xEof,
       tables::sqlite::xColumn,
       tables::sqlite::xRowid,
+      nullptr, /* Update */
+      nullptr, /* Begin */
+      nullptr, /* Sync */
+      nullptr, /* Commit */
+      nullptr, /* Rollback */
+      nullptr, /* FindFunction */
+      nullptr, /* Rename */
   };
   // clang-format on
 
