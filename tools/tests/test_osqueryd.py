@@ -23,7 +23,7 @@ import test_base
 
 
 class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
-
+    @test_base.flaky
     def test_1_daemon_without_watchdog(self):
         daemon = self._run_daemon({
             "disable_watchdog": True,
@@ -32,6 +32,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isAlive())
         daemon.kill()
 
+    @test_base.flaky
     def test_2_daemon_with_option(self):
         logger_path = os.path.join(test_base.CONFIG_DIR, "logger-tests")
         os.makedirs(logger_path)
