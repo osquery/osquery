@@ -13,7 +13,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SOURCE_DIR="$SCRIPT_DIR/../.."
 source $SOURCE_DIR/tools/lib.sh
 distro "darwin" BUILD_VERSION
-if [[ "$BUILD_VERSION" == "10.10" ]]; then
+if [[ "$BUILD_VERSION" == "10.11" ]]; then
   BUILD_DIR="$SOURCE_DIR/build/darwin"
 else
   BUILD_DIR="$SOURCE_DIR/build/darwin$BUILD_VERSION"
