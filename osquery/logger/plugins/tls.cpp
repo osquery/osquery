@@ -214,12 +214,23 @@ Status TLSLogForwarderRunner::send(std::vector<std::string>& log_data,
   pt::ptree params;
   params.put<std::string>("node_key", node_key_);
   params.put<std::string>("log_type", log_type);
+
+  // Read each logged line into JSON and populate a list of lines.
+  // The result list will use the 'data' key.
+  pt::ptree children;
   for (auto& item : log_data) {
     pt::ptree child;
-    child.put_value(std::move(item));
-    params.push_back(pt::ptree::value_type("data", std::move(child)));
+    try {
+      std::stringstream input;
+      input << item;
+      pt::read_json(input, child);
+    } catch (const pt::json_parser::json_parser_error& e) {
+      // The log line entered was not valid JSON, skip it.
+    }
+    children.push_back(std::make_pair("", std::move(child)));
   }
 
+  params.add_child("data", std::move(children));
   auto request = Request<TLSTransport, JSONSerializer>(uri_);
   return request.call(params);
 }

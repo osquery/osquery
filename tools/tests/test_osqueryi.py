@@ -165,6 +165,7 @@ class OsqueryiTest(unittest.TestCase):
             result = self.osqueryi.run_command(command)
         pass
 
+    @test_base.flaky
     def test_time(self):
         '''Demonstrating basic usage of OsqueryWrapper with the time table'''
         self.osqueryi.run_command(' ')  # flush error output
@@ -176,6 +177,7 @@ class OsqueryiTest(unittest.TestCase):
         self.assertTrue(0 <= int(row['minutes']) <= 60)
         self.assertTrue(0 <= int(row['seconds']) <= 60)
 
+    @test_base.flaky
     def test_config_bad_json(self):
         self.osqueryi = test_base.OsqueryWrapper(self.binary,
                                                  args={"config_path": "/"})
