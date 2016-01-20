@@ -58,13 +58,13 @@ Visit https://github.com/facebook/osquery and use the web UI to create a Pull Re
 
 ## Pull Request workflow
 
-In most cases your PR should represent a single body of work. It is find to change unrelated small-things like nits or code-format issues but make every effort to submit isolated changes. This makes documentation, references, regression tracking and if needed, a revert, easier.
+In most cases your PR should represent a single body of work. It is fine to change unrelated small-things like nits or code-format issues but make every effort to submit isolated changes. This makes documentation, references, regression tracking and if needed, a revert, easier.
 
 ## Updating Pull Requests
 
-Pull requests will often need revision most likely after the required code review from the friendly core development team. :D
+Pull requests will often need revision, most likely after the required code review from the friendly core development team. :D
 
-Our preference is to minimize the number of commits in a pull request and represent each body of change as a single, concise, commit. To do this we ask you to [squash](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History) your git commits before we merge changes. There are two basic workflows for squashing, let's run through some examples of each.
+Our preference is to minimize the number of commits in a pull request and represent each body of change as a single, concise, commit. To do this we ask you to [squash](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History) your git commits before we merge changes. There are two basic workflows for squashing, let's run through examples of each.
 
 **You create a pull request with several commits**
 
