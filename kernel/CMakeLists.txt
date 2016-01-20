@@ -33,7 +33,7 @@ if(APPLE)
   include_directories("${CMAKE_SOURCE_DIR}/kernel/src")
   include_directories("/System/Library/Frameworks/Kernel.framework/Headers")
   include_directories("/Applications/Xcode.app/Contents/Developer/Platforms/\
-MacOSX.platform/Developer/SDKs/MacOSX${APPLE_MIN_ABI}.sdk\
+MacOSX.platform/Developer/SDKs/MacOSX${OSQUERY_BUILD_DISTRO}.sdk\
 /System/Library/Frameworks/Kernel.framework/Headers")
   set(KERNEL_TYPE "darwin")
 elseif(LINUX)
