@@ -13,6 +13,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SOURCE_DIR="$SCRIPT_DIR/../.."
 source $SOURCE_DIR/tools/lib.sh
 distro "darwin" BUILD_VERSION
+
 if [[ "$BUILD_VERSION" == "10.11" ]]; then
   BUILD_DIR="$SOURCE_DIR/build/darwin"
 else
@@ -29,7 +30,7 @@ KERNEL_APP_IDENTIFIER="com.facebook.osquery.kernel"
 LD_IDENTIFIER="com.facebook.osqueryd"
 LD_INSTALL="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
 OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$APP_VERSION.pkg"
-KERNEL_OUTPUT_PKG_PATH="$BUILD_DIR/osquery-kernel-$APP_VERSION.pkg"
+KERNEL_OUTPUT_PKG_PATH="$BUILD_DIR/osquery-kernel-${BUILD_VERSION}-${APP_VERSION}.pkg"
 AUTOSTART=false
 CLEAN=false
 
@@ -240,10 +241,10 @@ function main() {
     fi
 
     log "creating kernel package"
-    pkgbuild --root $KERNEL_INSTALL_PREFIX       \
-             --scripts $KERNEL_SCRIPT_ROOT       \
-             --identifier $KERNEL_APP_IDENTIFIER \
-             --version $APP_VERSION              \
+    pkgbuild --root $KERNEL_INSTALL_PREFIX             \
+             --scripts $KERNEL_SCRIPT_ROOT             \
+             --identifier $KERNEL_APP_IDENTIFIER       \
+             --version ${BUILD_VERSION}-${APP_VERSION} \
              $KERNEL_OUTPUT_PKG_PATH 2>&1  1>/dev/null
     log "kernel package created at $KERNEL_OUTPUT_PKG_PATH"
   fi
