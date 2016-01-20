@@ -123,5 +123,19 @@ void genSMBIOSTable(size_t index,
   r["md5"] = hashFromBuffer(HASH_TYPE_MD5, address, size);
   results.push_back(r);
 }
+
+std::string dmiString(uint8_t* data, uint8_t* address, size_t offset) {
+  auto index = (uint8_t)(*(address + offset));
+  auto bp = (char*)data;
+  while (index > 1) {
+    while (*bp != 0) {
+      bp++;
+    }
+    bp++;
+    index--;
+  }
+
+  return std::string(bp);
+}
 }
 }

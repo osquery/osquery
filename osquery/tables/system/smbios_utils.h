@@ -32,6 +32,7 @@ typedef struct DMIEntryPoint {
 extern const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions;
 
 constexpr uint8_t kSMBIOSTypeBIOS = 0;
+constexpr uint8_t kSMBIOSTypeSystem = 1;
 
 /**
  * @brief A generic parser for SMBIOS tables.
@@ -63,5 +64,19 @@ void genSMBIOSTable(size_t index,
                     uint8_t* address,
                     size_t size,
                     QueryData& results);
+
+/**
+ * @brief Return a 0-terminated strings from an SMBIOS address and handle.
+ *
+ * SMBIOS strings are 0-terminated and 'stacked' at the end of the type
+ * structure. Each structure identifies (loosely) the type of data within.
+ * Using the structure field 'handle' or offset, the stacked data can be parsed
+ * and a string returned.
+ *
+ * @param data A pointer to the SMBIOS structure.
+ * @param address A pointer to the stacked data following the structure.
+ * @Param offset The field index into address.
+ */
+std::string dmiString(uint8_t* data, uint8_t* address, size_t offset);
 }
 }
