@@ -71,6 +71,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         # dies when the watcher goes away
         self.assertTrue(daemon.isDead(children[0]))
 
+    @test_base.flaky
     def test_4_daemon_sighup(self):
         # A hangup signal should not do anything to the daemon.
         daemon = self._run_daemon({
@@ -82,6 +83,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         os.kill(daemon.proc.pid, signal.SIGHUP)
         self.assertTrue(daemon.isAlive())
 
+    @test_base.flaky
     def test_5_daemon_sigint(self):
         # An interrupt signal will cause the daemon to stop.
         daemon = self._run_daemon({
@@ -96,6 +98,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         acceptable_retcodes = [-1, -2, -1 * signal.SIGINT]
         self.assertTrue(daemon.retcode in acceptable_retcodes)
 
+    @test_base.flaky
     def test_6_logger_mode(self):
         logger_path = os.path.join(test_base.CONFIG_DIR, "logger-mode-tests")
         os.makedirs(logger_path)
