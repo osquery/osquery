@@ -31,6 +31,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 constexpr size_t kTLSMaxLogLines = 1024;
+constexpr size_t kTLSMaxLogLineSize = 1 * 1024 * 1024;
 
 FLAG(string, logger_tls_endpoint, "", "TLS/HTTPS endpoint for results logging");
 
@@ -173,9 +174,12 @@ void TLSLogForwarderRunner::check() {
             std::string value;
             auto& target = ((index.at(0) == 'r') ? results : statuses);
             if (handle->Get(kLogs, index, value)) {
-              // Resist failure, only append delimiters if the value get
-              // succeeded.
-              target.push_back(std::move(value));
+              // Enforce a max log line size for TLS logging.
+              if (value.size() > kTLSMaxLogLineSize) {
+                LOG(WARNING) << "Line exceeds TLS logger max: " << value.size();
+              } else {
+                target.push_back(std::move(value));
+              }
             }
           }));
 
