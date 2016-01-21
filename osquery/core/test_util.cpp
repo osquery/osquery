@@ -47,6 +47,7 @@ DECLARE_string(database_path);
 DECLARE_string(extensions_socket);
 DECLARE_string(modules_autoload);
 DECLARE_string(extensions_autoload);
+DECLARE_string(enroll_tls_endpoint);
 DECLARE_bool(disable_logging);
 
 typedef std::chrono::high_resolution_clock chrono_clock;
@@ -385,6 +386,9 @@ void TLSServerRunner::start() {
     return;
   }
 
+  // Pick a port in an ephemeral range at random.
+  self.port_ = std::to_string(rand() % 10000 + 20000);
+
   // Fork then exec a shell.
   self.server_ = fork();
   if (self.server_ == 0) {
@@ -396,8 +400,34 @@ void TLSServerRunner::start() {
   ::sleep(1);
 }
 
+void TLSServerRunner::setClientConfig() {
+  auto& self = instance();
+
+  self.tls_hostname_ = Flag::getValue("tls_hostname");
+  Flag::updateValue("tls_hostname", "localhost:" + port());
+
+  self.enroll_tls_endpoint_ = Flag::getValue("enroll_tls_endpoint");
+  Flag::updateValue("enroll_tls_endpoint", "/enroll");
+
+  self.tls_server_certs_ = Flag::getValue("tls_server_certs");
+  Flag::updateValue("tls_server_certs", kTestDataPath + "/test_server_ca.pem");
+
+  self.enroll_secret_path_ = Flag::getValue("enroll_secret_path");
+  Flag::updateValue("enroll_secret_path",
+                    kTestDataPath + "/test_enroll_secret.txt");
+}
+
+void TLSServerRunner::unsetClientConfig() {
+  auto& self = instance();
+  Flag::updateValue("tls_hostname", self.tls_hostname_);
+  Flag::updateValue("enroll_tls_endpoint", self.enroll_tls_endpoint_);
+  Flag::updateValue("tls_server_certs", self.tls_server_certs_);
+  Flag::updateValue("enroll_secret_path", self.enroll_secret_path_);
+}
+
 void TLSServerRunner::stop() {
   auto& self = instance();
   kill(self.server_, SIGTERM);
+  self.server_ = 0;
 }
 }

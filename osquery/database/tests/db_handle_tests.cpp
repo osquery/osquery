@@ -99,9 +99,22 @@ TEST_F(DBHandleTests, test_scan) {
   auto s = db_->Scan(kQueries, keys);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
+  EXPECT_EQ(keys.size(), 3U);
   for (const auto& i : expected) {
     EXPECT_NE(std::find(keys.begin(), keys.end(), i), keys.end());
   }
+}
+
+TEST_F(DBHandleTests, test_scan_limit) {
+  db_->Put(kQueries, "test_scan_foo1", "baz");
+  db_->Put(kQueries, "test_scan_foo2", "baz");
+  db_->Put(kQueries, "test_scan_foo3", "baz");
+
+  std::vector<std::string> keys;
+  auto s = db_->Scan(kQueries, keys, 2);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.toString(), "OK");
+  EXPECT_EQ(keys.size(), 2U);
 }
 
 TEST_F(DBHandleTests, test_rocksdb_loglevel) {

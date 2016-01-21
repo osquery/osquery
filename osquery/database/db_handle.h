@@ -84,7 +84,7 @@ class DBHandle {
   /// Allow DBHandle creations.
   static void setAllowOpen(bool ao) { kDBHandleOptionAllowOpen = ao; }
 
- private:
+ public:
   /////////////////////////////////////////////////////////////////////////////
   // Data access methods
   /////////////////////////////////////////////////////////////////////////////
@@ -144,7 +144,8 @@ class DBHandle {
    * of the operation.
    */
   Status Scan(const std::string& domain,
-              std::vector<std::string>& results) const;
+              std::vector<std::string>& results,
+              size_t max = 0) const;
 
  private:
   /**
