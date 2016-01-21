@@ -519,8 +519,14 @@ Status DatabasePlugin::call(const PluginRequest& request,
   } else if (request.at("action") == "remove") {
     return this->remove(domain, key);
   } else if (request.at("action") == "scan") {
+    // Accumulate scanned keys into a vector.
     std::vector<std::string> keys;
-    auto status = this->scan(domain, keys);
+    // Optionally allow the caller to request a max number of keys.
+    size_t max = 0;
+    if (request.count("max") > 0) {
+      max = std::stoul(request.at("max"));
+    }
+    auto status = this->scan(domain, keys, max);
     for (const auto& key : keys) {
       response.push_back({{"k", key}});
     }
@@ -562,8 +568,10 @@ Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
 }
 
 Status scanDatabaseKeys(const std::string& domain,
-                        std::vector<std::string>& keys) {
-  PluginRequest request = {{"action", "scan"}, {"domain", domain}};
+                        std::vector<std::string>& keys,
+                        size_t max) {
+  PluginRequest request = {
+      {"action", "scan"}, {"domain", domain}, {"max", std::to_string(max)}};
   PluginResponse response;
   auto status = Registry::call("database", "rocks", request, response);
 

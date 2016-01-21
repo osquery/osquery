@@ -582,7 +582,8 @@ class DatabasePlugin : public Plugin {
 
   /// Key/index lookup method.
   virtual Status scan(const std::string& domain,
-                      std::vector<std::string>& results) const {
+                      std::vector<std::string>& results,
+                      size_t max = 0) const {
     return Status(0, "Not used");
   }
 
@@ -627,7 +628,8 @@ Status deleteDatabaseValue(const std::string& domain, const std::string& key);
 
 /// Get a list of keys for a given domain.
 Status scanDatabaseKeys(const std::string& domain,
-                        std::vector<std::string>& keys);
+                        std::vector<std::string>& keys,
+                        size_t max = 0);
 
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();

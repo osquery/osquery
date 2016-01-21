@@ -33,19 +33,20 @@ class RocksDatabasePlugin : public DatabasePlugin {
   /// Data retrieval method.
   Status get(const std::string& domain,
              const std::string& key,
-             std::string& value) const;
+             std::string& value) const override;
 
   /// Data storage method.
   Status put(const std::string& domain,
              const std::string& key,
-             const std::string& value);
+             const std::string& value) override;
 
   /// Data removal method.
-  Status remove(const std::string& domain, const std::string& k);
+  Status remove(const std::string& domain, const std::string& k) override;
 
   /// Key/index lookup method.
   Status scan(const std::string& domain,
-              std::vector<std::string>& results) const;
+              std::vector<std::string>& results,
+              size_t max = 0) const override;
 };
 
 /// Backing-storage provider for osquery internal/core.
@@ -334,7 +335,8 @@ Status DBHandle::Delete(const std::string& domain,
 }
 
 Status DBHandle::Scan(const std::string& domain,
-                      std::vector<std::string>& results) const {
+                      std::vector<std::string>& results,
+                      size_t max) const {
   if (getDB() == nullptr) {
     return Status(1, "Database not opened");
   }
@@ -347,8 +349,13 @@ Status DBHandle::Scan(const std::string& domain,
   if (it == nullptr) {
     return Status(1, "Could not get iterator for " + domain);
   }
+
+  size_t count = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     results.push_back(it->key().ToString());
+    if (max > 0 && ++count >= max) {
+      break;
+    }
   }
   delete it;
   return Status(0, "OK");
@@ -372,7 +379,8 @@ Status RocksDatabasePlugin::remove(const std::string& domain,
 }
 
 Status RocksDatabasePlugin::scan(const std::string& domain,
-                                 std::vector<std::string>& results) const {
-  return DBHandle::getInstance()->Scan(domain, results);
+                                 std::vector<std::string>& results,
+                                 size_t max) const {
+  return DBHandle::getInstance()->Scan(domain, results, max);
 }
 }

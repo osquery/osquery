@@ -9,6 +9,9 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_logger_plugins
   plugins/syslog.cpp
 )
 
+# Kepp the logger testing in the additional to test filesystem logging.
+# There is a significant difference between the Glog-backed filesystem plugin
+# and other, which use a Glog sink. They must be tested in tandem.
 file(GLOB OSQUERY_LOGGER_TESTS "tests/*.cpp")
 ADD_OSQUERY_TEST(FALSE ${OSQUERY_LOGGER_TESTS})
 
