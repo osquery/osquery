@@ -183,10 +183,12 @@ The osquery package build hosts run a series of additional unit and integration 
 To mimic and follow the same build/release testing workflow use:
 
 ```
+export RUN_BUILD_DEPS=1
+export RUN_RELEASE_TESTS=1
 ./tools/build.sh
 ```
 
-Pay attention to the environment variable `RUN_RELEASE_TESTS=1`, which enables the deployment sanity tests. If you are building an optimized or distribution package manager target this will most likely fail.
+Pay attention to the environment variable `RUN_RELEASE_TESTS=1`, which enables the deployment sanity tests. If you are building an optimized or distribution package manager target this will most likely fail. The `RUN_BUILD_DEPS` variable tells the build to begin with a `make deps`.
 
 ## Notes and FAQ
 
