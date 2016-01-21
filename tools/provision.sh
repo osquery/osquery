@@ -91,13 +91,7 @@ function main() {
   sudo pip install --upgrade pip
   sudo pip install -r requirements.txt
 
-  # Reset any work or artifacts from build tests in TP.
-  (cd third-party && git reset --hard HEAD)
-  git submodule init
-  git submodule update
-
-  # Remove any previously-cached variables
-  rm build/$OS/CMakeCache.txt >/dev/null 2>&1 || true
+  initialize $OS
 }
 
 check $1 $2

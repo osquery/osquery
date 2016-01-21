@@ -132,6 +132,18 @@ function build_kernel_cleanup() {
   $MAKE kernel-unload || sudo reboot
 }
 
+function initialize() {
+  DISTRO=$1
+
+  # Reset any work or artifacts from build tests in TP.
+  (cd third-party && git reset --hard HEAD)
+  git submodule init
+  git submodule update
+
+  # Remove any previously-cached variables
+  rm build/$DISTRO/CMakeCache.txt >/dev/null 2>&1 || true
+}
+
 function build() {
   threads THREADS
   platform PLATFORM
@@ -155,7 +167,11 @@ function build() {
   cd $SCRIPT_DIR/../
 
   # Run build host provisions and install library dependencies.
-  $MAKE deps
+  if [[ ! -z $RUN_BUILD_DEPS ]]; then
+    $MAKE deps
+  else
+    initialize $DISTRO
+  fi
 
   # Clean previous build artifacts.
   $MAKE clean
@@ -175,9 +191,6 @@ function build() {
   fi
 
   if [[ $RUN_TESTS = true ]]; then
-    # Request that tests include addition 'release' or 'package' units.
-    export RUN_RELEASE_TESTS=1
-
     # Run code unit and integration tests.
     $MAKE test/fast
 
