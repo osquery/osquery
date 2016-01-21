@@ -8,16 +8,18 @@
  *
  */
 
-#include <stdio.h>
+#include <boost/algorithm/string.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 #include <osquery/sql.h>
 
+#include "osquery/tables/system/linux/smbios_utils.h"
+
 namespace osquery {
 namespace tables {
 
-QueryData genSystemInfo(QueryContext &context) {
+QueryData genSystemInfo(QueryContext& context) {
   Row r;
   r["hostname"] = osquery::getHostname();
   r["computer_name"] = r["hostname"];
@@ -29,6 +31,7 @@ QueryData genSystemInfo(QueryContext &context) {
   for (const auto& row : qd) {
     if (row.at("feature") == "product_name") {
       r["cpu_brand"] = row.at("value");
+      boost::trim(r["cpu_brand"]);
     }
   }
 
@@ -53,6 +56,7 @@ QueryData genSystemInfo(QueryContext &context) {
 
   r["cpu_type"] = "0";
   r["cpu_subtype"] = "0";
+
   // Read the types from CPU info within proc.
   std::string content;
   if (readFile("/proc/cpuinfo", content)) {
@@ -68,9 +72,28 @@ QueryData genSystemInfo(QueryContext &context) {
     }
   }
 
-  // Will require parsing DMI/SMBIOS data.
-  r["hardware_model"] = "";
-  r["hardware_serial"] = "";
+  {
+    LinuxSMBIOSParser parser;
+    if (!parser.discover()) {
+      r["hardware_model"] = "";
+    } else {
+      parser.tables(([&r](size_t index,
+                          const SMBStructHeader* hdr,
+                          uint8_t* address,
+                          size_t size) {
+        if (hdr->type != kSMBIOSTypeSystem || size < 0x12) {
+          return;
+        }
+
+        uint8_t* data = address + hdr->length;
+        r["hardware_vendor"] = dmiString(data, address, 0x04);
+        r["hardware_model"] = dmiString(data, address, 0x05);
+        r["hardware_version"] = dmiString(data, address, 0x06);
+        r["hardware_serial"] = dmiString(data, address, 0x07);
+      }));
+    }
+  }
+
   return {r};
 }
 }

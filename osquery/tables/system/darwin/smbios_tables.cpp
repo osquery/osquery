@@ -34,20 +34,29 @@ class DarwinSMBIOSParser : public SMBIOSParser {
     table_data_ = tables;
     table_size_ = length;
   }
+
+  bool discover();
+
+  ~DarwinSMBIOSParser() {
+    if (smbios_data_ != nullptr) {
+      free(smbios_data_);
+    }
+  }
+
+ private:
+  uint8_t* smbios_data_{nullptr};
 };
 
-QueryData genSMBIOSTables(QueryContext& context) {
-  QueryData results;
-
+bool DarwinSMBIOSParser::discover() {
   auto matching = IOServiceMatching(kIOSMBIOSClassName_);
   if (matching == nullptr) {
     // No ACPI platform expert service found.
-    return {};
+    return false;
   }
 
   auto service = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
   if (service == 0) {
-    return {};
+    return false;
   }
 
   // Unlike ACPI the SMBIOS property will return several structures
@@ -57,7 +66,7 @@ QueryData genSMBIOSTables(QueryContext& context) {
       service, CFSTR(kIOSMBIOSPropertyName_), kCFAllocatorDefault, 0);
   if (smbios == nullptr) {
     IOObjectRelease(service);
-    return {};
+    return false;
   }
 
   // Check the first few SMBIOS structures before iterating through tables.
@@ -68,19 +77,34 @@ QueryData genSMBIOSTables(QueryContext& context) {
     // Problem creating SMBIOS property.
     CFRelease(smbios);
     IOObjectRelease(service);
-    return {};
+    return false;
   }
+
+  smbios_data_ = (uint8_t*)malloc(length);
+  if (smbios_data_ != nullptr) {
+    memcpy(smbios_data_, smbios_data, length);
+  }
+  IOObjectRelease(service);
+  CFRelease(smbios);
+
+  // The property and service exist.
+  setData(const_cast<uint8_t*>(smbios_data_), length);
+  return (smbios_data_ != nullptr);
+}
+
+QueryData genSMBIOSTables(QueryContext& context) {
+  QueryData results;
 
   // Parse structures.
   DarwinSMBIOSParser parser;
-  parser.setData(const_cast<uint8_t*>(smbios_data), length);
-  parser.tables(([&results](
-      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
-    genSMBIOSTable(index, hdr, address, size, results);
-  }));
-
-  CFRelease(smbios);
-  IOObjectRelease(service);
+  if (parser.discover()) {
+    parser.tables(([&results](size_t index,
+                              const SMBStructHeader* hdr,
+                              uint8_t* address,
+                              size_t size) {
+      genSMBIOSTable(index, hdr, address, size, results);
+    }));
+  }
   return results;
 }
 

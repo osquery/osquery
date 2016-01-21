@@ -11,15 +11,13 @@
 #include <iomanip>
 #include <sstream>
 
-#include <boost/noncopyable.hpp>
-
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/tables/system/smbios_utils.h"
 #include "osquery/core/conversions.h"
+#include "osquery/tables/system/linux/smbios_utils.h"
 
 namespace osquery {
 namespace tables {
@@ -28,37 +26,6 @@ namespace tables {
 #define kLinuxSMBIOSRawLength_ 0x10000
 
 const std::string kLinuxEFISystabPath = "/sys/firmware/efi/systab";
-
-class LinuxSMBIOSParser : public SMBIOSParser {
- public:
-  /// Attempt to read the system table and SMBIOS from an address.
-  void readFromAddress(size_t address, size_t length);
-
-  /// Parse the SMBIOS address from an EFI systab file.
-  void readFromSystab(const std::string& systab);
-
-  /// Cross version/boot read initializer.
-  bool discover();
-
-  /// Check if the read was successful.
-  bool valid() { return (data_ != nullptr && table_data_ != nullptr); }
-
- public:
-  virtual ~LinuxSMBIOSParser() {
-    if (data_ != nullptr) {
-      free(data_);
-    }
-    if (table_data_ != nullptr) {
-      free(table_data_);
-    }
-  }
-
- private:
-  bool discoverTables(size_t address, size_t length);
-
-  /// Hold the raw SMBIOS memory read.
-  uint8_t* data_{nullptr};
-};
 
 void LinuxSMBIOSParser::readFromAddress(size_t address, size_t length) {
   auto status = osquery::readRawMem(address, length, (void**)&data_);
@@ -137,21 +104,6 @@ QueryData genSMBIOSTables(QueryContext& context) {
   return results;
 }
 
-/// Read a string using the index that is offset-bytes within address.
-std::string dmi_string(uint8_t* data, uint8_t* address, size_t offset) {
-  auto index = (uint8_t)(*(address + offset));
-  auto bp = (char*)data;
-  while (index > 1) {
-    while (*bp != 0) {
-      bp++;
-    }
-    bp++;
-    index--;
-  }
-
-  return std::string(bp);
-}
-
 QueryData genPlatformInfo(QueryContext& context) {
   LinuxSMBIOSParser parser;
   if (!parser.discover()) {
@@ -170,9 +122,9 @@ QueryData genPlatformInfo(QueryContext& context) {
     // The DMI string data uses offsets (indexes) into a data section that
     // trails the header and structure offsets.
     uint8_t* data = address + hdr->length;
-    r["vendor"] = dmi_string(data, address, 0x04);
-    r["version"] = dmi_string(data, address, 0x05);
-    r["date"] = dmi_string(data, address, 0x08);
+    r["vendor"] = dmiString(data, address, 0x04);
+    r["version"] = dmiString(data, address, 0x05);
+    r["date"] = dmiString(data, address, 0x08);
 
     // Firmware load address as a WORD.
     size_t firmware_address = (address[0x07] << 8) + address[0x06];
