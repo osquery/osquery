@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <deque>
+#include <unordered_map>
 
 #include <osquery/tables.h>
 
@@ -39,12 +39,7 @@ struct VirtualTableContent {
   /// Table column structure, retrieved once via the TablePlugin call API.
   TableColumns columns;
   /// Transient set of virtual table access constraints.
-  std::deque<ConstraintSet> constraints;
-  /// Index into the list of constraints.
-  sqlite3_vtab_cursor *constraints_cursor{nullptr};
-  size_t constraints_index{0};
-  /// Last term successfully parsed by xBestIndex.
-  int current_term{-1};
+  std::unordered_map<size_t, ConstraintSet> constraints;
 };
 
 /**
