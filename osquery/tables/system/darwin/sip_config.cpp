@@ -52,7 +52,7 @@ int csr_get_active_config(csr_config_t* config) __attribute__((weak_import));
 };
 #endif
 
-Status genCsrConfigFromEfi(uint32_t& config) {
+Status genCsrConfigFromNvram(uint32_t& config) {
   auto chosen =
       IORegistryEntryFromPath(kIOMasterPortDefault, kIODeviceTreeChosenPath_);
   if (chosen == MACH_PORT_NULL) {
@@ -86,9 +86,10 @@ Status genCsrConfigFromEfi(uint32_t& config) {
     CFRelease(properties);
     memcpy(&config, buffer, sizeof(uint32_t));
     return Status(0, "ok");
+  } else {
+    // the default case, csr-active-config is cleared or not set is not an error
+    return Status(0, "csr-active-config key not found");
   }
-
-  return Status(1, "Could not get csr-active-config");
 }
 
 QueryData genSIPConfig(QueryContext& context) {
@@ -135,14 +136,14 @@ QueryData genSIPConfig(QueryContext& context) {
   }
   results.push_back(r);
 
-  uint32_t efi_config = 0;
-  auto efi_status = genCsrConfigFromEfi(efi_config);
+  uint32_t nvram_config = 0;
+  auto nvram_status = genCsrConfigFromNvram(nvram_config);
   for (const auto& kv : kRootlessConfigFlags) {
     r["config_flag"] = kv.first;
     // csr_check returns zero if the config flag is allowed
     r["enabled"] = (csr_check(kv.second) == 0) ? INTEGER(1) : INTEGER(0);
-    if (efi_status.ok()) {
-      r["enabled_nvram"] = (efi_config & kv.second) ? INTEGER(1) : INTEGER(0);
+    if (nvram_status.ok()) {
+      r["enabled_nvram"] = (nvram_config & kv.second) ? INTEGER(1) : INTEGER(0);
     }
     results.push_back(r);
   }
