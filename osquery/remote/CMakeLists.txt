@@ -2,6 +2,7 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_remote
   enroll/enroll.cpp
   serializers/json.cpp
   transports/tls.cpp
+  remote.cpp
 )
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
