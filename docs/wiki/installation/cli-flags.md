@@ -168,6 +168,16 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. An enrol
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. This is a number of seconds before checking for buffered logs. Results are sent to the TLS endpoint in intervals, not on demand (unless the period=0).
 
+`--logger_tls_compress=false`
+
+Optionally enable GZIP compression for request bodies when sending. This is optional, and disabled by default, as the deployment must explicitly know that the logging endpoint supports GZIP for content encoding.
+
+`--logger_tls_max=1048576`
+
+It is common for TLS/HTTPS servers to enforce a maximum request body size. The default behavior in osquery is to enforce each log line be under 1M bytes. This means each result line from a query's results cannot exceed 1M, this is very unlikely. Each log attempt will try to forward up to 1024 lines. If your service is limited request bodies, configure the client to limit the log line size.
+
+Use this only in emergency situations as size violations are dropped. It is extremely uncommon for this to occur, as the `value_max` for each column would need to be drastically larger, or the offending table would have to implement several hundred columns.
+
 `--distributed_tls_read_endpoint=/foobar`
 
 The URI path which will be used, in conjunction with `tls_hostname`, to create the remote URI for retrieving distributed queries when using the **tls** distributed plugin.

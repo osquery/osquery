@@ -75,8 +75,12 @@ HIDDEN_FLAG(bool,
             "Allow TLS server certificate trust failures");
 #endif
 
+HIDDEN_FLAG(bool, tls_dump, false, "Print remote requests and responses");
+
 /// Undocumented feature to override TLS endpoints.
 HIDDEN_FLAG(bool, tls_node_api, false, "Use node key as TLS endpoints");
+
+DECLARE_bool(verbose);
 
 TLSTransport::TLSTransport() : verify_peer_(true) {
   if (FLAGS_tls_server_certs.size() > 0) {
@@ -165,8 +169,12 @@ Status TLSTransport::sendRequest() {
   try {
     VLOG(1) << "TLS/HTTPS GET request to URI: " << destination_;
     response_ = client.get(r);
+    const auto& response_body = body(response_);
+    if (FLAGS_verbose && FLAGS_tls_dump) {
+      fprintf(stdout, "%s\n", std::string(response_body).c_str());
+    }
     response_status_ =
-        serializer_->deserialize(body(response_), response_params_);
+        serializer_->deserialize(response_body, response_params_);
   } catch (const std::exception& e) {
     return Status((tlsFailure(e.what())) ? 2 : 1,
                   std::string("Request error: ") + e.what());
@@ -192,13 +200,21 @@ Status TLSTransport::sendRequest(const std::string& params) {
   try {
     VLOG(1) << "TLS/HTTPS " << ((verb == HTTP_POST) ? "POST" : "PUT")
             << " request to URI: " << destination_;
+    if (FLAGS_verbose && FLAGS_tls_dump) {
+      fprintf(stdout, "%s\n", params.c_str());
+    }
     if (verb == HTTP_POST) {
       response_ = client.post(r, params);
     } else {
       response_ = client.put(r, params);
     }
+
+    const auto& response_body = body(response_);
+    if (FLAGS_verbose && FLAGS_tls_dump) {
+      fprintf(stdout, "%s\n", std::string(response_body).c_str());
+    }
     response_status_ =
-        serializer_->deserialize(body(response_), response_params_);
+        serializer_->deserialize(response_body, response_params_);
   } catch (const std::exception& e) {
     return Status((tlsFailure(e.what())) ? 2 : 1,
                   std::string("Request error: ") + e.what());

@@ -24,6 +24,17 @@ namespace osquery {
 class Serializer;
 
 /**
+ * @brief Compress data using GZip.
+ *
+ * Requests API callers may request data be compressed before sending.
+ * The compression step occurs after serialization, immediately before the
+ * transport call.
+ *
+ * @param data The input/output mutable container.
+ */
+void compress(std::string& data);
+
+/**
  * @brief Abstract base class for remote transport implementations
  *
  * To define a new transport mechanism (HTTP, WebSockets, etc) for use with
@@ -219,6 +230,10 @@ class Request {
     if (!s.ok()) {
       return s;
     }
+
+    if (options_.get("compress", false)) {
+      compress(serialized);
+    }
     return transport_->sendRequest(serialized);
   }
 
@@ -234,6 +249,7 @@ class Request {
 
   template <typename T>
   void setOption(const std::string& name, const T& value) {
+    options_.put(name, value);
     transport_->setOption(name, value);
   }
 
@@ -246,6 +262,9 @@ class Request {
 
   /// storage for the transport to be used
   std::shared_ptr<TTransport> transport_{nullptr};
+
+  /// options from request call (duplicated in transport)
+  boost::property_tree::ptree options_;
 
  private:
   FRIEND_TEST(TLSTransportsTests, test_call);

@@ -31,14 +31,20 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 constexpr size_t kTLSMaxLogLines = 1024;
-constexpr size_t kTLSMaxLogLineSize = 1 * 1024 * 1024;
 
 FLAG(string, logger_tls_endpoint, "", "TLS/HTTPS endpoint for results logging");
 
-FLAG(int32,
+FLAG(uint64,
      logger_tls_period,
      4,
      "Seconds between flushing logs over TLS/HTTPS");
+
+FLAG(uint64,
+     logger_tls_max,
+     1 * 1024 * 1024,
+     "Max size in bytes allowed per log line");
+
+FLAG(bool, logger_tls_compress, false, "GZip compress TLS/HTTPS request body");
 
 DECLARE_bool(tls_secret_always);
 DECLARE_string(tls_enroll_override);
@@ -155,6 +161,9 @@ Status TLSLogForwarderRunner::send(std::vector<std::string>& log_data,
   }
 
   auto request = Request<TLSTransport, JSONSerializer>(uri_);
+  if (FLAGS_logger_tls_compress) {
+    request.setOption("compress", true);
+  }
   return request.call(params);
 }
 
@@ -175,7 +184,7 @@ void TLSLogForwarderRunner::check() {
             auto& target = ((index.at(0) == 'r') ? results : statuses);
             if (handle->Get(kLogs, index, value)) {
               // Enforce a max log line size for TLS logging.
-              if (value.size() > kTLSMaxLogLineSize) {
+              if (value.size() > FLAGS_logger_tls_max) {
                 LOG(WARNING) << "Line exceeds TLS logger max: " << value.size();
               } else {
                 target.push_back(std::move(value));
@@ -185,8 +194,10 @@ void TLSLogForwarderRunner::check() {
 
   // If any results/statuses were found in the flushed buffer, send.
   if (results.size() > 0) {
-    if (!send(results, "result")) {
-      VLOG(1) << "Could not send results to logger URI: " << uri_;
+    status = send(results, "result");
+    if (!status.ok()) {
+      VLOG(1) << "Could not send results to logger URI: " << uri_ << " ("
+              << status.getMessage() << ")";
     } else {
       // Clear the results logs once they were sent.
       iterate(indexes,
@@ -200,8 +211,10 @@ void TLSLogForwarderRunner::check() {
   }
 
   if (statuses.size() > 0) {
-    if (!send(statuses, "status")) {
-      VLOG(1) << "Could not send status logs to logger URI: " << uri_;
+    status = send(statuses, "status");
+    if (!status.ok()) {
+      VLOG(1) << "Could not send status logs to logger URI: " << uri_ << " ("
+              << status.getMessage() << ")";
     } else {
       // Clear the status logs once they were sent.
       iterate(indexes,

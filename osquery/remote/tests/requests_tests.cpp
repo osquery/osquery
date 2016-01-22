@@ -77,4 +77,65 @@ TEST_F(RequestsTests, test_call_with_params) {
   expected.put<std::string>("foo", "baz");
   EXPECT_EQ(recv, expected);
 }
+
+class CopyTransport : public Transport {
+ public:
+  Status sendRequest() {
+    response_status_ = Status(0, "OK");
+    return response_status_;
+  }
+
+  Status sendRequest(const std::string& params) {
+    response_status_ = Status(0, params);
+    return response_status_;
+  }
+};
+
+class CopySerializer : public Serializer {
+ public:
+  std::string getContentType() const { return "copy"; }
+
+  Status serialize(const boost::property_tree::ptree& params,
+                   std::string& serialized) {
+    serialized = params.get("copy", "");
+    return Status(0, "OK");
+  }
+
+  Status deserialize(const std::string& serialized,
+                     boost::property_tree::ptree& params) {
+    return Status(0, "OK");
+  }
+};
+
+TEST_F(RequestsTests, test_compression) {
+  auto req = Request<CopyTransport, CopySerializer>("foobar");
+
+  // Ask the request to compress the output from serialization.
+  req.setOption("compress", true);
+
+  std::string uncompressed = "stringstringstringstring";
+  for (size_t i = 0; i < 10; i++) {
+    uncompressed += uncompressed;
+  }
+
+  // Our special 'copy' serializer copies input from the 'copy' key in params.
+  boost::property_tree::ptree params;
+  params.put<std::string>("copy", uncompressed);
+
+  // Similarly, the 'copy' transport copies the request params into the
+  // response status.
+  req.call(params);
+  auto status = req.getResponse(params);
+
+  auto compressed = status.getMessage();
+  auto expected = std::string(
+      "\x1F\x8B\b\0\0\0\0\0\x2\x3\xED\xC4\xB1\r\0\0\x4\0\xB0s\xC5"
+      "b\xC0\xFFq\x84\xB5\x1D:"
+      "\xDBY1\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB"
+      "\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xFB\xF1\x1"
+      "1j\xA0\xA8\0`\0\0",
+      78);
+  EXPECT_EQ(compressed, expected);
+  EXPECT_LT(compressed.size(), uncompressed.size());
+}
 }
