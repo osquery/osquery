@@ -21,6 +21,7 @@ namespace tables {
 namespace sqlite {
 
 static size_t kPlannerCursorID = 0;
+static size_t kConstraintIndexID = 0;
 
 static std::string opString(unsigned char op) {
   switch (op) {
@@ -66,14 +67,7 @@ int xClose(sqlite3_vtab_cursor *cur) {
   plan("Closing cursor (" + std::to_string(pCur->id) + ")");
   if (pVtab != nullptr) {
     // Reset all constraints for the virtual table content.
-    if (pVtab->content->constraints.size() > 0) {
-      // As each cursor is closed remove the potential constraints it used.
-      // Cursors without constraints (full scans) are kept open.
-      pVtab->content->constraints.pop_front();
-    }
-    pVtab->content->constraints_cursor = nullptr;
-    pVtab->content->constraints_index = 0;
-    pVtab->content->current_term = -1;
+    pVtab->content->constraints.clear();
   }
   delete pCur;
   return SQLITE_OK;
@@ -214,7 +208,7 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   // Expect this index to correspond with argv within xFilter.
   size_t expr_index = 0;
   // If any constraints are unusable increment the cost of the index.
-  size_t cost = 0;
+  size_t cost = 1;
   // Expressions operating on the same virtual table are loosely identified by
   // the consecutive sets of terms each of the constraint sets are applied onto.
   // Subsequent attempts from failed (unusable) constraints replace the set,
@@ -224,11 +218,19 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
     for (size_t i = 0; i < static_cast<size_t>(pIdxInfo->nConstraint); ++i) {
       // Record the term index (this index exists across all expressions).
       term = pIdxInfo->aConstraint[i].iTermOffset;
+#if defined(DEBUG)
+      plan("Evaluating constraints for table: " + pVtab->content->name +
+           " [index=" + std::to_string(i) + " column=" +
+           std::to_string(pIdxInfo->aConstraint[i].iColumn) + " term=" +
+           std::to_string((int)term) + " usable=" +
+           std::to_string((int)pIdxInfo->aConstraint[i].usable) + "]");
+#endif
       if (!pIdxInfo->aConstraint[i].usable) {
         // A higher cost less priority, prefer more usable query constraints.
         cost += 10;
         continue;
       }
+
       // Lookup the column name given an index into the table column set.
       const auto &name =
           pVtab->content->columns[pIdxInfo->aConstraint[i].iColumn].first;
@@ -238,22 +240,24 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
       constraints.push_back(
           std::make_pair(name, Constraint(pIdxInfo->aConstraint[i].op)));
       pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
+#if defined(DEBUG)
+      plan("Adding constraint for table: " + pVtab->content->name +
+           " [column=" + name + " arg_index=" + std::to_string(expr_index) +
+           "]");
+#endif
     }
   }
 
-  // Set the estimated cost based on the number of unusable terms.
+  pIdxInfo->idxNum = kConstraintIndexID++;
+// Add the constraint set to the table's tracked constraints.
+#if defined(DEBUG)
+  plan("Recording constraint set for table: " + pVtab->content->name +
+       " [cost=" + std::to_string(cost) + " size=" +
+       std::to_string(constraints.size()) + " idx=" +
+       std::to_string(pIdxInfo->idxNum) + "]");
+#endif
+  pVtab->content->constraints[pIdxInfo->idxNum] = std::move(constraints);
   pIdxInfo->estimatedCost = cost;
-  if (cost == 0 && term != -1) {
-    // This set of constraints is 100% usable.
-    // Add the constraint set to the table's tracked constraints.
-    pVtab->content->constraints.push_back(constraints);
-    pVtab->content->current_term = term;
-  } else {
-    // Failed.
-    if (term != -1 && term != pVtab->content->current_term) {
-      pVtab->content->current_term = term;
-    }
-  }
   return SQLITE_OK;
 }
 
@@ -277,21 +281,17 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
         content->columns[i].second;
   }
 
-  // Filtering between cursors happens iteratively, not consecutively.
-  // If there are multiple sets of constraints, they apply to each cursor.
-  if (content->constraints_cursor == nullptr) {
-    content->constraints_cursor = pVtabCursor;
-  } else if (content->constraints_cursor != pVtabCursor) {
-    content->constraints_index += 1;
-    if (content->constraints_index >= content->constraints.size()) {
-      content->constraints_index = 0;
-    }
-    content->constraints_cursor = pVtabCursor;
-  }
+// Filtering between cursors happens iteratively, not consecutively.
+// If there are multiple sets of constraints, they apply to each cursor.
+#if defined(DEBUG)
+  plan("Filtering called for table: " + content->name + " [constraint_count=" +
+       std::to_string(content->constraints.size()) + " argc=" +
+       std::to_string(argc) + " idx=" + std::to_string(idxNum) + "]");
+#endif
 
   // Iterate over every argument to xFilter, filling in constraint values.
   if (content->constraints.size() > 0) {
-    auto &constraints = content->constraints[content->constraints_index];
+    auto &constraints = content->constraints[idxNum];
     if (argc > 0) {
       for (size_t i = 0; i < static_cast<size_t>(argc); ++i) {
         auto expr = (const char *)sqlite3_value_text(argv[i]);
@@ -312,6 +312,7 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
       // Constraints failed.
     }
   }
+
   // Reset the virtual table contents.
   pCur->data.clear();
   // Generate the row data set.
