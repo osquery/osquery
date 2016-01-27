@@ -217,28 +217,34 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   if (pIdxInfo->nConstraint > 0) {
     for (size_t i = 0; i < static_cast<size_t>(pIdxInfo->nConstraint); ++i) {
       // Record the term index (this index exists across all expressions).
-      term = pIdxInfo->aConstraint[i].iTermOffset;
+      const auto &constraint_info = pIdxInfo->aConstraint[i];
+      term = constraint_info.iTermOffset;
 #if defined(DEBUG)
       plan("Evaluating constraints for table: " + pVtab->content->name +
            " [index=" + std::to_string(i) + " column=" +
-           std::to_string(pIdxInfo->aConstraint[i].iColumn) + " term=" +
+           std::to_string(constraint_info.iColumn) + " term=" +
            std::to_string((int)term) + " usable=" +
-           std::to_string((int)pIdxInfo->aConstraint[i].usable) + "]");
+           std::to_string((int)constraint_info.usable) + "]");
 #endif
-      if (!pIdxInfo->aConstraint[i].usable) {
+      if (!constraint_info.usable) {
         // A higher cost less priority, prefer more usable query constraints.
         cost += 10;
         continue;
       }
 
       // Lookup the column name given an index into the table column set.
-      const auto &name =
-          pVtab->content->columns[pIdxInfo->aConstraint[i].iColumn].first;
+      if (constraint_info.iColumn < 0 ||
+          static_cast<size_t>(constraint_info.iColumn) >=
+              pVtab->content->columns.size()) {
+        cost += 10;
+        continue;
+      }
+      const auto &name = pVtab->content->columns[constraint_info.iColumn].first;
       // Save a pair of the name and the constraint operator.
       // Use this constraint during xFilter by performing a scan and column
       // name lookup through out all cursor constraint lists.
       constraints.push_back(
-          std::make_pair(name, Constraint(pIdxInfo->aConstraint[i].op)));
+          std::make_pair(name, Constraint(constraint_info.op)));
       pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
 #if defined(DEBUG)
       plan("Adding constraint for table: " + pVtab->content->name +
