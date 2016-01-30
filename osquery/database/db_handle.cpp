@@ -337,6 +337,14 @@ Status DBHandle::Delete(const std::string& domain,
 Status DBHandle::Scan(const std::string& domain,
                       std::vector<std::string>& results,
                       size_t max) const {
+  // Trampoline into scan prefix with an empty prefix requirement.
+  return ScanPrefix(domain, results, "", max);
+}
+
+Status DBHandle::ScanPrefix(const std::string& domain,
+                            std::vector<std::string>& results,
+                            const std::string& prefix,
+                            size_t max) const {
   if (getDB() == nullptr) {
     return Status(1, "Database not opened");
   }
@@ -345,6 +353,9 @@ Status DBHandle::Scan(const std::string& domain,
   if (cfh == nullptr) {
     return Status(1, "Could not get column family for " + domain);
   }
+  auto options = rocksdb::ReadOptions();
+  options.verify_checksums = false;
+  options.fill_cache = false;
   auto it = getDB()->NewIterator(rocksdb::ReadOptions(), cfh);
   if (it == nullptr) {
     return Status(1, "Could not get iterator for " + domain);
@@ -352,9 +363,12 @@ Status DBHandle::Scan(const std::string& domain,
 
   size_t count = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
-    results.push_back(it->key().ToString());
-    if (max > 0 && ++count >= max) {
-      break;
+    auto key = it->key().ToString();
+    if (key.find(prefix) == 0) {
+      results.push_back(std::move(key));
+      if (max > 0 && ++count >= max) {
+        break;
+      }
     }
   }
   delete it;

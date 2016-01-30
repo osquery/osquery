@@ -24,8 +24,11 @@
 namespace osquery {
 
 DECLARE_uint64(events_expiry);
+DECLARE_uint64(events_max);
 
-class EventsDatabaseTests : public ::testing::Test {};
+class EventsDatabaseTests : public ::testing::Test {
+  void SetUp() override { Registry::registry("config_parser")->setUp(); }
+};
 
 class DBFakeEventPublisher
     : public EventPublisher<SubscriptionContext, EventContext> {
@@ -39,6 +42,8 @@ class DBFakeEventSubscriber : public EventSubscriber<DBFakeEventPublisher> {
   Status testAdd(int t) {
     Row r;
     r["testing"] = "hello from space";
+    r["time"] = INTEGER(t);
+    r["uptime"] = INTEGER(10);
     return add(r, t);
   }
 };
@@ -196,5 +201,32 @@ TEST_F(EventsDatabaseTests, test_gentable) {
   keys.clear();
   scanDatabaseKeys("events", keys);
   EXPECT_LT(keys.size(), 30U);
+}
+
+TEST_F(EventsDatabaseTests, test_expire_check) {
+  auto sub = std::make_shared<DBFakeEventSubscriber>();
+  // Set the max number of buffered events to something reasonably small.
+  FLAGS_events_max = 10;
+  auto t = getUnixTime() - (10 * 1000);
+
+  // We are still at the mercy of the opaque EVENTS_CHECKPOINT define.
+  for (size_t x = 0; x < 3; x++) {
+    size_t num_events = 256 * x;
+    for (size_t i = 0; i < num_events; i++) {
+      sub->testAdd(t + i);
+    }
+
+    // Since events tests are dependent, expect 257 + 3 events.
+    QueryContext context;
+    auto results = sub->genTable(context);
+    if (x == 0) {
+      // The first iteration is dependent on previous test state.
+      continue;
+    }
+
+    // The number of events should remain constant.
+    // In practice there may be an event still in the write queue.
+    EXPECT_LT(results.size(), 60U);
+  }
 }
 }

@@ -411,6 +411,18 @@ class EventSubscriberPlugin : public Plugin {
                      bool all);
 
   /**
+   * @brief Inspect the number of events, expire those overflowing events_max.
+   *
+   * When the event manager starts, or after a checkpoint number of events,
+   * the EventFactory will call expireCheck for each subscriber.
+   *
+   * The subscriber must count the number of buffered records and check if
+   * that count exceeds the configured `events_max` limit. If an overflow
+   * occurs the subscriber will expire N-events_max from the end of the queue.
+   */
+  void expireCheck();
+
+  /**
    * @brief Add an EventID, EventTime pair to all matching list types.
    *
    * The list types are defined by time size. Based on the EventTime this pair
@@ -489,6 +501,9 @@ class EventSubscriberPlugin : public Plugin {
   /// Events before the expire_time_ are invalid and will be purged.
   EventTime expire_time_{0};
 
+  /// Cached value of last generated EventID.
+  size_t last_eid_{0};
+
   /**
    * @brief Optimize subscriber selects by tracking the last select time.
    *
@@ -496,7 +511,7 @@ class EventSubscriberPlugin : public Plugin {
    * requiring an event 'time' constraint and otherwise applying a minimum time
    * as the last time the scheduled query ran.
    */
-  EventTime optimize_time_;
+  EventTime optimize_time_{0};
 
   /// Lock used when incrementing the EventID database index.
   boost::mutex event_id_lock_;
@@ -514,6 +529,7 @@ class EventSubscriberPlugin : public Plugin {
   FRIEND_TEST(EventsDatabaseTests, test_record_range);
   FRIEND_TEST(EventsDatabaseTests, test_record_expiration);
   FRIEND_TEST(EventsDatabaseTests, test_gentable);
+  FRIEND_TEST(EventsDatabaseTests, test_expire_check);
   friend class BenchmarkEventSubscriber;
 };
 
