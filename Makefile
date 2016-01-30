@@ -1,8 +1,10 @@
 PLATFORM := $(shell uname -s)
-GIT_EXISTS := $(shell which git)
 BASH_EXISTS := $(shell which bash)
-VERSION := $(shell git describe --tags HEAD --always)
 SHELL := $(shell which bash)
+
+ifneq ($(MAKECMDGOALS),deps)
+GIT_EXISTS := $(shell which git)
+endif
 
 MAKE = make
 ifeq ($(PLATFORM),FreeBSD)
@@ -96,18 +98,20 @@ ifeq ($(PLATFORM),Linux)
 endif
 
 .setup:
+ifneq ($(MAKECMDGOALS),deps)
 ifeq ($(GIT_EXISTS),)
 	@echo "Problem: cannot find 'git'"
-	false
+	@false
+endif
 endif
 ifeq ($(BASH_EXISTS),)
 	@echo "Problem: cannot find 'bash'"
-	false
+	@false
 endif
 
 ifeq ($(DISTRO),unknown_version)
 	@echo Unknown, non-Redhat, non-Ubuntu based Linux distro
-	false
+	@false
 endif
 	@mkdir -p build/docs
 	@mkdir -p build/$(BUILD_DIR)
