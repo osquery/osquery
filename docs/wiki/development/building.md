@@ -4,7 +4,9 @@ We include a `make deps` command to make it easier for developers to get started
 
 WARNING: This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
 
- If you're trying to run our automatic tool on a machine that is extremely customized and configured, `make deps` may try to install software that conflicts with software you have installed. If this happens, please create an issue and/or submit a pull request with a fix. We'd like to support as many operating systems as possible.
+If you're trying to run our automatic tool on a machine that is extremely customized and configured, `make deps` may try to install software that conflicts with software you have installed. If this happens, please create an issue and/or submit a pull request with a fix. We'd like to support as many operating systems as possible.
+
+In almost all cases `git`, GNU `make`, and `bash` are required for the build. In some cases the dependencies target will attempt to pull them in.
 
 ## Building on OS X
 
