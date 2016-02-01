@@ -29,7 +29,7 @@ FLAG(string,
      "/var/log/osquery/",
      "Directory path for ERROR/WARN/INFO and results logging");
 
-FLAG(int32, logger_mode, 0640, "Mode for log files (default '0640')");
+FLAG(int32, logger_mode, 0640, "Decimal mode for log files (default '0640')");
 
 /// Legacy, backward compatible "osquery_log_dir" CLI option.
 FLAG_ALIAS(std::string, osquery_log_dir, logger_path);

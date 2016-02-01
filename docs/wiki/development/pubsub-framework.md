@@ -26,7 +26,7 @@ The pubsub runflow is exposed as a publisher `setUp()`, a series of `addSubscrip
 
 Filesystem events are the simplest example, let's consider Linux's inotify framework. [osquery/events/linux/inotify.cpp](https://github.com/facebook/osquery/blob/master/osquery/events/linux/inotify.cpp) is exposed as an osquery publisher.
 
-There's an array of yet-to-be-implemented uses of the inotify publisher, but a simple example includes querying for every change to "/etc/passwd". The [osquery/tables/events/linux/passwd_changes.cpp](https://github.com/facebook/osquery/blob/master/osquery/tables/events/linux/passwd_changes.cpp) table uses a pubsub subscription and implements a subscriber.
+There's an array of yet-to-be-implemented uses of the inotify publisher, but a simple example includes querying for every change to "/etc/passwd". The [osquery/tables/events/linux/file_events.cpp](https://github.com/facebook/osquery/blob/master/osquery/tables/events/linux/file_events.cpp) table uses a pubsub subscription and implements a subscriber. The subscriptions are constructed from the configuration. See the file [integrity monitoring deployment](../deployment/file-integrity-monitoring.md) guide for details.
 
 ## Event Subscribers
 
