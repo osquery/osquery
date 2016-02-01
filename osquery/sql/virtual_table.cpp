@@ -213,17 +213,15 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   // the consecutive sets of terms each of the constraint sets are applied onto.
   // Subsequent attempts from failed (unusable) constraints replace the set,
   // while new sets of terms append.
-  int term = -1;
   if (pIdxInfo->nConstraint > 0) {
     for (size_t i = 0; i < static_cast<size_t>(pIdxInfo->nConstraint); ++i) {
       // Record the term index (this index exists across all expressions).
       const auto &constraint_info = pIdxInfo->aConstraint[i];
-      term = constraint_info.iTermOffset;
 #if defined(DEBUG)
       plan("Evaluating constraints for table: " + pVtab->content->name +
            " [index=" + std::to_string(i) + " column=" +
            std::to_string(constraint_info.iColumn) + " term=" +
-           std::to_string((int)term) + " usable=" +
+           std::to_string((int)constraint_info.iTermOffset) + " usable=" +
            std::to_string((int)constraint_info.usable) + "]");
 #endif
       if (!constraint_info.usable) {

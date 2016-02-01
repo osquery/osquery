@@ -90,62 +90,68 @@ class DBHandle {
   /////////////////////////////////////////////////////////////////////////////
 
   /**
-   * @brief Get data from the database
+   * @brief Get data from the database for a given domain and key.
    *
-   * @param domain the "domain" or "column family" that you'd like to retrieve
-   * the data from
-   * @param key the string key that you'd like to get
-   * @param value a non-const string reference where the result of the
-   * operation will be stored
+   * @param domain the "domain" or "column family"
+   * @param key the string key
+   * @param value the output string container, will be populated with data
    *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation.
+   * @return operation success or failure
    */
   Status Get(const std::string& domain,
              const std::string& key,
              std::string& value) const;
 
   /**
-   * @brief Put data into the database
+   * @brief Put data into the database identified by a domain and key.
    *
-   * @param domain the "domain" or "column family" that you'd like to insert
-   * data into
-   * @param key the string key that you'd like to put
-   * @param value the data that you'd like to put into RocksDB
+   * @param domain the "domain" or "column family"
+   * @param key the string key
+   * @param value the data in a string container
    *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation.
+   * @return operation success or failure
    */
   Status Put(const std::string& domain,
              const std::string& key,
              const std::string& value) const;
 
   /**
-   * @brief Delete data from the database
+   * @brief Delete data from the database given a domain and key.
    *
-   * @param domain the "domain" or "column family" that you'd like to delete
-   * data from
-   * @param key the string key that you'd like to delete
+   * @param domain the "domain" or "column family"
+   * @param key the string key
    *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation.
+   * @return operation success or failure
    */
   Status Delete(const std::string& domain, const std::string& key) const;
 
   /**
-   * @brief List the data in a "domain"
+   * @brief List the keys in a "domain"
    *
-   * @param domain the "domain" or "column family" that you'd like to list
-   * data from
-   * @param results a non-const reference to a vector which will be populated
-   * with all of the keys from the supplied domain.
+   * @param domain the "domain" or "column family"
+   * @param results an output list of all keys within the domain
+   * @param optional max limit the number of result keys to a max
    *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation.
+   * @return operation success or failure
    */
   Status Scan(const std::string& domain,
               std::vector<std::string>& results,
               size_t max = 0) const;
+
+  /**
+   * @brief List the data in a "domain"
+   *
+   * @param domain the "domain" or "column family"
+   * @param results an output list of all keys with the given prefix
+   * @param prefix require each key to contain this string prefix
+   * @param optional max limit the number of result keys to a max
+   *
+   * @return operation success or failure
+   */
+  Status ScanPrefix(const std::string& domain,
+                    std::vector<std::string>& results,
+                    const std::string& prefix,
+                    size_t max = 0) const;
 
  private:
   /**
@@ -215,7 +221,7 @@ class DBHandle {
 
   /**
    * @brief Private helper around accessing the column family handle for a
-   * specific column family, based on it's name
+   * specific column family, based on its name
    */
   rocksdb::ColumnFamilyHandle* getHandleForColumnFamily(
       const std::string& cf) const;

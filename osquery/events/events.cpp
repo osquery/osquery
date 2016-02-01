@@ -28,6 +28,9 @@ namespace osquery {
 /// Helper cooloff (ms) macro to prevent thread failure thrashing.
 #define EVENTS_COOLOFF 20
 
+/// Checkpoint interval to inspect max event buffering.
+#define EVENTS_CHECKPOINT 256
+
 FLAG(bool, disable_events, false, "Disable osquery publish/subscribe system");
 
 FLAG(bool,
@@ -39,6 +42,8 @@ FLAG(uint64,
      events_expiry,
      86000,
      "Timeout to expire event subscriber results");
+
+FLAG(uint64, events_max, 1000, "Maximum number of events per type to buffer");
 
 const std::vector<size_t> kEventTimeLists = {
     1 * 60 * 60, // 1 hour
@@ -277,6 +282,48 @@ void EventSubscriberPlugin::expireIndexes(
   db->Put(kEvents, index_key + "." + list_type, new_indexes);
 }
 
+void EventSubscriberPlugin::expireCheck() {
+  auto db = DBHandle::getInstance();
+  auto data_key = "data." + dbNamespace();
+  auto eid_key = "eid." + dbNamespace();
+
+  std::vector<std::string> keys;
+  db->ScanPrefix(kEvents, keys, data_key);
+  if (keys.size() <= FLAGS_events_max) {
+    return;
+  }
+
+  // There is an overflow of events buffered for this subscriber.
+  LOG(WARNING) << "Expiring events for subscriber: " << getName() << " limit ("
+               << FLAGS_events_max << ") exceeded: " << keys.size();
+  // Inspect the N-FLAGS_events_max -th event's value and expire before the
+  // time within the content.
+  std::string last_key;
+  db->Get(kEvents, eid_key, last_key);
+  // The EID is the next-index.
+  size_t max_key = boost::lexical_cast<size_t>(last_key) - FLAGS_events_max - 1;
+
+  // Convert the key index into a time using the content.
+  std::string content;
+  db->Get(kEvents, data_key + "." + std::to_string(max_key), content);
+
+  // Decode the value into a row structure to extract the time.
+  Row r;
+  if (!deserializeRowJSON(content, r) || r.count("time") == 0) {
+    return;
+  }
+
+  // The last time will become the implicit expiration time.
+  size_t last_time = boost::lexical_cast<size_t>(r.at("time"));
+  if (last_time > 0) {
+    expire_time_ = last_time;
+  }
+
+  // Finally, attempt an index query to trigger expirations.
+  // In this case the result set is not used.
+  getIndexes(expire_time_ - 1, -1);
+}
+
 std::vector<EventRecord> EventSubscriberPlugin::getRecords(
     const std::set<std::string>& indexes) {
   auto db = DBHandle::getInstance();
@@ -379,8 +426,8 @@ EventID EventSubscriberPlugin::getEventID() {
       last_eid_value = "0";
     }
 
-    size_t eid = boost::lexical_cast<size_t>(last_eid_value) + 1;
-    eid_value = boost::lexical_cast<std::string>(eid);
+    last_eid_ = boost::lexical_cast<size_t>(last_eid_value) + 1;
+    eid_value = boost::lexical_cast<std::string>(last_eid_);
     status = db->Put(kEvents, eid_key, eid_value);
   }
 
@@ -449,6 +496,12 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
   auto status = serializeRowJSON(r, data);
   if (!status.ok()) {
     return status;
+  }
+
+  // Use the last EventID and a checkpoint bucket size to periodically apply
+  // buffer eviction. Eviction occurs if the total count exceeds events_max.
+  if (last_eid_ % EVENTS_CHECKPOINT == 0) {
+    expireCheck();
   }
 
   // Store the event data.
@@ -605,6 +658,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
   // Let the module initialize any Subscriptions.
   auto status = Status(0, "OK");
   if (!FLAGS_disable_events && !specialized_sub->disabled) {
+    specialized_sub->expireCheck();
     status = specialized_sub->init();
     specialized_sub->state(SUBSCRIBER_RUNNING);
   } else {

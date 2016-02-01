@@ -269,6 +269,10 @@ Timeout to expire [eventing publish subscribe](../development/pubsub-framework.m
 
 Since event rows are only "added" it does not make sense to emit "removed" results. An optimization can occur within the osquery daemon's query schedule. Every time the select query runs on a subscriber the current time is saved. Subsequent selects will use the previously saved time as the lower bound. This optimization is removed if any constraints on the "time" column are included.
 
+`--events_max=1000`
+
+Maximum number of events to buffer in the backing store while waiting for a query to 'drain' or trigger an expiration. If the expiration (`events_expiry`) is set to 1 day, this max value indicates that only 1000 events will be stored before dropping each day. In this case the limiting time is almost always the scheduled query. If a scheduled query that select from events-based tables occurs sooner than the expiration time that interval becomes the limit.
+
 ### Logging/results flags
 
 `--logger_plugin=filesystem`
