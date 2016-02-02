@@ -1,0 +1,9 @@
+table_name("temps")
+description("Temperature sensors.")
+schema([
+    Column("smc_key", TEXT, "SMC key"),
+    Column("name", TEXT, "Name of temperature source"),
+    Column("celsius", TEXT, "Temperature in Celsius"),
+    Column("fahrenheit", TEXT, "Temperature in Fahrenheit"),
+])
+implementation("smc_keys@getTemperatures")
