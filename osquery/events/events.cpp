@@ -808,8 +808,8 @@ void attachEvents() {
   for (const auto& subscriber : subscribers) {
     auto status = EventFactory::registerEventSubscriber(subscriber.second);
     if (!status.ok()) {
-      LOG(WARNING) << "Error registering subscriber: " << subscriber.first
-                   << ": " << status.getMessage();
+      LOG(INFO) << "Error registering subscriber: " << subscriber.first << ": "
+                << status.getMessage();
     }
   }
 
