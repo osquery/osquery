@@ -14,10 +14,15 @@ SOURCE_DIR="$SCRIPT_DIR/../.."
 source $SOURCE_DIR/tools/lib.sh
 distro "darwin" BUILD_VERSION
 
+BUILD_DIR="$SOURCE_DIR/build/"
+if [[ ! -z "$DEBUG" ]]; then
+  BUILD_DIR="${BUILD_DIR}debug_"
+fi
+
 if [[ "$BUILD_VERSION" == "10.11" ]]; then
-  BUILD_DIR="$SOURCE_DIR/build/darwin"
+  BUILD_DIR="${BUILD_DIR}darwin"
 else
-  BUILD_DIR="$SOURCE_DIR/build/darwin$BUILD_VERSION"
+  BUILD_DIR="${BUILD_DIR}darwin$BUILD_VERSION"
 fi
 export PATH="$PATH:/usr/local/bin"
 
