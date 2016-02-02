@@ -21,7 +21,11 @@
 
 namespace osquery {
 
+#ifdef DEBUG
+const std::string kVersion = CONCAT(OSQUERY_BUILD_VERSION, -debug);
+#else
 const std::string kVersion = STR(OSQUERY_BUILD_VERSION);
+#endif
 const std::string kSDKVersion = OSQUERY_SDK_VERSION;
 const std::string kSDKPlatform = OSQUERY_PLATFORM;
 }

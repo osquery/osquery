@@ -126,8 +126,16 @@ package: .setup
 	cd build/$(BUILD_DIR) && PACKAGE=True cmake ../../ && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
+debug_package: .setup
+	cd build/debug_$(BUILD_DIR) && DEBUG=True PACKAGE=True cmake ../../ && \
+		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
+
 packages: .setup
 	cd build/$(BUILD_DIR) && PACKAGE=True cmake ../../ && \
+		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
+
+debug_packages:
+	cd build/debug_$(BUILD_DIR) && DEBUG=True PACKAGE=True cmake ../../ && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
 sync: .setup
