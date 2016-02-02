@@ -109,60 +109,78 @@ QueryData genSMBIOSTables(QueryContext& context) {
 }
 
 QueryData genPlatformInfo(QueryContext& context) {
-  auto entry =
-      IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/rom@0");
-  if (entry == MACH_PORT_NULL) {
+  auto root = IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/");
+  if (root == 0) {
     return {};
   }
 
-  // Get the device details
-  CFMutableDictionaryRef details = nullptr;
-  IORegistryEntryCreateCFProperties(
-      entry, &details, kCFAllocatorDefault, kNilOptions);
-
-  QueryData results;
-  if (details != nullptr) {
-    Row r;
-    r["vendor"] = getIOKitProperty(details, "vendor");
-    r["volume_size"] = getIOKitProperty(details, "fv-main-size");
-    r["size"] = getIOKitProperty(details, "rom-size");
-    r["date"] = getIOKitProperty(details, "release-date");
-    r["version"] = getIOKitProperty(details, "version");
-
-    {
-      auto address = getIOKitProperty(details, "fv-main-address");
-      auto value = boost::lexical_cast<size_t>(address);
-
-      std::stringstream hex_id;
-      hex_id << std::hex << std::setw(8) << std::setfill('0') << value;
-      r["address"] = "0x" + hex_id.str();
-    }
-
-    {
-      std::vector<std::string> extra_items;
-      auto info = getIOKitProperty(details, "apple-rom-info");
-      std::vector<std::string> info_lines;
-      iter_split(info_lines, info, boost::algorithm::first_finder("%0a"));
-      for (const auto& line : info_lines) {
-        std::vector<std::string> details;
-        iter_split(details, line, boost::algorithm::first_finder(": "));
-        if (details.size() > 1) {
-          boost::trim(details[1]);
-          if (details[0].find("Revision") != std::string::npos) {
-            r["revision"] = details[1];
-          }
-          extra_items.push_back(details[1]);
-        }
-      }
-      r["extra"] = osquery::join(extra_items, "; ");
-    }
-
-    results.push_back(r);
-    CFRelease(details);
+  io_iterator_t it = 0;
+  auto kr = IORegistryEntryGetChildIterator(root, kIODeviceTreePlane, &it);
+  if (kr != KERN_SUCCESS || it == 0) {
+    IOObjectRelease(root);
+    return {};
   }
 
-  IOObjectRelease(entry);
-  return results;
+  io_service_t entry = 0;
+  CFMutableDictionaryRef details = nullptr;
+  while ((entry = IOIteratorNext(it))) {
+    io_name_t name;
+    if (IORegistryEntryGetName(entry, name) == KERN_SUCCESS) {
+      // Assume the ROM entry begins with a canonicalized 'rom' string.
+      if (std::string(name).find("rom") == 0) {
+        IORegistryEntryCreateCFProperties(
+            entry, &details, kCFAllocatorDefault, kNilOptions);
+        IOObjectRelease(entry);
+        break;
+      }
+    }
+    IOObjectRelease(entry);
+  }
+
+  // Success is determined by the details dictionary existence.
+  IOObjectRelease(it);
+  IOObjectRelease(root);
+  if (details == nullptr) {
+    return {};
+  }
+
+  Row r;
+  r["vendor"] = getIOKitProperty(details, "vendor");
+  r["volume_size"] = getIOKitProperty(details, "fv-main-size");
+  r["size"] = getIOKitProperty(details, "rom-size");
+  r["date"] = getIOKitProperty(details, "release-date");
+  r["version"] = getIOKitProperty(details, "version");
+
+  {
+    auto address = getIOKitProperty(details, "fv-main-address");
+    auto value = boost::lexical_cast<size_t>(address);
+
+    std::stringstream hex_id;
+    hex_id << std::hex << std::setw(8) << std::setfill('0') << value;
+    r["address"] = "0x" + hex_id.str();
+  }
+
+  {
+    std::vector<std::string> extra_items;
+    auto info = getIOKitProperty(details, "apple-rom-info");
+    std::vector<std::string> info_lines;
+    iter_split(info_lines, info, boost::algorithm::first_finder("%0a"));
+    for (const auto& line : info_lines) {
+      std::vector<std::string> details;
+      iter_split(details, line, boost::algorithm::first_finder(": "));
+      if (details.size() > 1) {
+        boost::trim(details[1]);
+        if (details[0].find("Revision") != std::string::npos) {
+          r["revision"] = details[1];
+        }
+        extra_items.push_back(details[1]);
+      }
+    }
+    r["extra"] = osquery::join(extra_items, "; ");
+  }
+
+  CFRelease(details);
+  return {r};
 }
 }
 }
