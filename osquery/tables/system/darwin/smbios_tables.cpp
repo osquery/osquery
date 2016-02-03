@@ -109,37 +109,17 @@ QueryData genSMBIOSTables(QueryContext& context) {
 }
 
 QueryData genPlatformInfo(QueryContext& context) {
-  auto root = IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/");
-  if (root == 0) {
+  auto rom = IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/rom");
+  if (rom == 0) {
     return {};
   }
 
-  io_iterator_t it = 0;
-  auto kr = IORegistryEntryGetChildIterator(root, kIODeviceTreePlane, &it);
-  if (kr != KERN_SUCCESS || it == 0) {
-    IOObjectRelease(root);
-    return {};
-  }
-
-  io_service_t entry = 0;
   CFMutableDictionaryRef details = nullptr;
-  while ((entry = IOIteratorNext(it))) {
-    io_name_t name;
-    if (IORegistryEntryGetName(entry, name) == KERN_SUCCESS) {
-      // Assume the ROM entry begins with a canonicalized 'rom' string.
-      if (std::string(name).find("rom") == 0) {
-        IORegistryEntryCreateCFProperties(
-            entry, &details, kCFAllocatorDefault, kNilOptions);
-        IOObjectRelease(entry);
-        break;
-      }
-    }
-    IOObjectRelease(entry);
-  }
+  IORegistryEntryCreateCFProperties(
+      rom, &details, kCFAllocatorDefault, kNilOptions);
+  IOObjectRelease(rom);
 
   // Success is determined by the details dictionary existence.
-  IOObjectRelease(it);
-  IOObjectRelease(root);
   if (details == nullptr) {
     return {};
   }
