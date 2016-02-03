@@ -1,9 +1,10 @@
-table_name("temps")
+table_name("temperatures")
 description("Temperature sensors.")
 schema([
-    Column("smc_key", TEXT, "SMC key"),
+    Column("key", TEXT, "The SMC key on OS X", index=True),
     Column("name", TEXT, "Name of temperature source"),
     Column("celsius", TEXT, "Temperature in Celsius"),
     Column("fahrenheit", TEXT, "Temperature in Fahrenheit"),
+    ForeignKey(column="key", table="smc_keys"),
 ])
 implementation("smc_keys@getTemperatures")
