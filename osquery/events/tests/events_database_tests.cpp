@@ -169,6 +169,9 @@ TEST_F(EventsDatabaseTests, test_record_expiration) {
 
 TEST_F(EventsDatabaseTests, test_gentable) {
   auto sub = std::make_shared<DBFakeEventSubscriber>();
+  // Lie about the tool type to enable optimizations.
+  auto default_type = kToolType;
+  kToolType = OSQUERY_TOOL_DAEMON;
   ASSERT_EQ(sub->optimize_time_, 0U);
   ASSERT_EQ(sub->expire_time_, 0U);
 
@@ -186,17 +189,29 @@ TEST_F(EventsDatabaseTests, test_gentable) {
   // Perform a "select" equivalent.
   QueryContext context;
   auto results = sub->genTable(context);
+
   // Expect all non-expired results: 11, +
   EXPECT_EQ(results.size(), 9U);
   // The expiration time is now - events_expiry.
   EXPECT_GT(sub->expire_time_, getUnixTime() - (FLAGS_events_expiry * 2));
   EXPECT_LT(sub->expire_time_, getUnixTime());
+  // The optimize time will be changed too.
+  ASSERT_GT(sub->optimize_time_, 0U);
+  // Restore the tool type.
+  kToolType = default_type;
 
   results = sub->genTable(context);
   EXPECT_EQ(results.size(), 3U);
 
   results = sub->genTable(context);
   EXPECT_EQ(results.size(), 3U);
+
+  // The optimize time should have been written to the database.
+  // It should be the same as the current (relative) optimize time.
+  std::string content;
+  getDatabaseValue(
+      "events", "optimize.DBFakePublisher.DBFakeSubscriber", content);
+  EXPECT_EQ(std::to_string(sub->optimize_time_), content);
 
   keys.clear();
   scanDatabaseKeys("events", keys);

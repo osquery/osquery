@@ -89,6 +89,12 @@ QueryData EventSubscriberPlugin::genTable(QueryContext& context) {
     // allows optimization, only emit events since the last query.
     start = optimize_time_;
     optimize_time_ = getUnixTime() - 1;
+
+    // Store the optimize time such that it can be restored if the daemon is
+    // restarted.
+    auto db = DBHandle::getInstance();
+    auto index_key = "optimize." + dbNamespace();
+    db->Put(kEvents, index_key, std::to_string(optimize_time_));
   }
 
   return get(start, stop);
@@ -667,6 +673,18 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
 
   auto& ef = EventFactory::getInstance();
   ef.event_subs_[name] = specialized_sub;
+
+  // Restore optimize times for a daemon.
+  if (kToolType == OSQUERY_TOOL_DAEMON && FLAGS_events_optimize) {
+    auto db = DBHandle::getInstance();
+    auto index_key = "optimize." + specialized_sub->dbNamespace();
+    std::string content;
+    if (db->Get(kEvents, index_key, content)) {
+      long long optimize_time = 0;
+      safeStrtoll(content, 10, optimize_time);
+      specialized_sub->optimize_time_ = static_cast<EventTime>(optimize_time);
+    }
+  }
 
   // Set state of subscriber.
   if (!status.ok()) {
