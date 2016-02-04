@@ -243,8 +243,9 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     FLAGS_disable_logging = true;
     // Get the caller's home dir for temporary storage/state management.
     auto homedir = osqueryHomeDirectory();
+    boost::system::error_code ec;
     if (osquery::pathExists(homedir).ok() ||
-        boost::filesystem::create_directory(homedir)) {
+        boost::filesystem::create_directory(homedir, ec)) {
       // Only apply user/shell-specific paths if not overridden by CLI flag.
       if (Flag::isDefault("database_path")) {
         osquery::FLAGS_database_path = homedir + "/shell.db";
@@ -252,6 +253,10 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       if (Flag::isDefault("extensions_socket")) {
         osquery::FLAGS_extensions_socket = homedir + "/shell.em";
       }
+    } else {
+      LOG(INFO) << "Cannot access or create osquery home directory";
+      FLAGS_disable_extensions = true;
+      FLAGS_database_path = "/dev/null";
     }
   }
 
