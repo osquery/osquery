@@ -14,6 +14,7 @@
 #include <IOKit/IOKitLib.h>
 
 #include <boost/algorithm/hex.hpp>
+#include <boost/format.hpp>
 #include <boost/noncopyable.hpp>
 
 #include <osquery/tables.h>
@@ -94,6 +95,13 @@ std::set<std::string> kSMCTemperatureKeys = {
     "Tp0C", "Tp1P", "Tp1C", "Tp2P", "Tp3P", "Tp4P", "Tp5P", "TS0C", "TA0S",
     "TA1S", "TA2S", "TA3S",
 };
+
+std::map<std::string, std::string> kSMCFanSpeeds = {
+    {"F%dAc", "actual"},
+    {"F%dMn", "min"},
+    {"F%dMx", "max"},
+    {"F%dTg", "target"}};
+
 // clang-format on
 
 // http://superuser.com/a/967056
@@ -488,5 +496,71 @@ QueryData getTemperatures(QueryContext &context) {
 
   return results;
 }
+
+QueryData getFanSpeeds(QueryContext &context) {
+  QueryData results;
+
+  SMCHelper smc;
+  if (!smc.open()) {
+    return {};
+  }
+
+  // Get number of fans.
+  QueryData key_data;
+  genSMCKey("FNum", smc, key_data);
+  if (key_data.empty()) {
+    // The SMC search for key information failed.
+    return results;
+  }
+
+  auto &smcRow = key_data.back();
+  if (smcRow["value"].empty()) {
+    return results;
+  }
+
+  // Get attributes for each fan.
+  int numFans = std::stoi(smcRow["value"]);
+  for (int fanIdx = 0; fanIdx < numFans; fanIdx++) {
+    Row r;
+    r["fan"] = std::to_string(fanIdx);
+
+    for (const auto &smcFanSpeedKey : kSMCFanSpeeds) {
+      r[smcFanSpeedKey.second] = INTEGER(0);
+
+      std::stringstream key;
+      key << boost::format(smcFanSpeedKey.first) % fanIdx;
+
+      QueryData key_data;
+      genSMCKey(key.str(), smc, key_data);
+      if (key_data.empty()) {
+        continue;
+      }
+
+      auto &smcRow = key_data.back();
+      if (smcRow["value"].empty()) {
+        continue;
+      }
+
+      std::string val;
+      try {
+        val = boost::algorithm::unhex(smcRow["value"]);
+      } catch (const boost::algorithm::hex_decode_error &e) {
+        continue;
+      }
+
+      if (val.size() != 2) {
+        continue;
+      }
+
+      int fanSpeed = (int(val[0]) << 6) + (int(val[1]) >> 2);
+      r[smcFanSpeedKey.second] = INTEGER(fanSpeed);
+    }
+
+    results.push_back(r);
+  }
+
+  return results;
+}
+
 }
 }

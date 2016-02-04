@@ -1,0 +1,10 @@
+table_name("fan_speeds")
+description("Fan speeds.")
+schema([
+    Column("fan", TEXT, "Fan number"),
+    Column("actual", INTEGER, "Actual speed"),
+    Column("min", INTEGER, "Minimum speed"),
+    Column("max", INTEGER, "Maximum speed"),
+    Column("target", INTEGER, "Target speed"),
+])
+implementation("smc_keys@getFanSpeeds")
