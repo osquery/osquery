@@ -40,10 +40,10 @@ std::map<int, std::string> kMaskActions = {
     {IN_OPEN, "OPENED"},
 };
 
-const int kFileDefaultMasks = IN_MOVED_TO | IN_MOVED_FROM | IN_MODIFY |
-                              IN_DELETE | IN_CREATE | IN_CLOSE_WRITE |
-                              IN_ATTRIB;
-const int kFileAccessMasks = IN_OPEN | IN_ACCESS;
+const uint32_t kFileDefaultMasks = IN_MOVED_TO | IN_MOVED_FROM | IN_MODIFY |
+                                   IN_DELETE | IN_CREATE | IN_CLOSE_WRITE |
+                                   IN_ATTRIB;
+const uint32_t kFileAccessMasks = IN_OPEN | IN_ACCESS;
 
 REGISTER(INotifyEventPublisher, "event_publisher", "inotify");
 

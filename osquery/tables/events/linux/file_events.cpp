@@ -93,9 +93,17 @@ Status FileEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   r["category"] = sc->category;
   r["transaction_id"] = INTEGER(ec->event->cookie);
 
-  // Add hashing and 'join' against the file table for stat-information.
-  decorateFileEvent(
-      ec->path, (ec->action == "CREATED" || ec->action == "UPDATED"), r);
+  if ((sc->mask & kFileAccessMasks) != kFileAccessMasks) {
+    // Add hashing and 'join' against the file table for stat-information.
+    decorateFileEvent(
+        ec->path, (ec->action == "CREATED" || ec->action == "UPDATED"), r);
+  } else {
+    // The access event on Linux would generate additional events if stated.
+    for (const auto& column : kCommonFileColumns) {
+      r[column] = "0";
+    }
+    r["hashed"] = "0";
+  }
 
   // A callback is somewhat useless unless it changes the EventSubscriber
   // state or calls `add` to store a marked up event.

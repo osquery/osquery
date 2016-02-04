@@ -12,6 +12,8 @@
 #include <osquery/hash.h>
 #include <osquery/sql.h>
 
+#include "osquery/tables/events/event_utils.h"
+
 namespace osquery {
 
 const std::set<std::string> kCommonFileColumns = {

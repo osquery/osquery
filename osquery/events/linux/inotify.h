@@ -22,8 +22,8 @@ namespace osquery {
 
 extern std::map<int, std::string> kMaskActions;
 
-extern const int kFileDefaultMasks;
-extern const int kFileAccessMasks;
+extern const uint32_t kFileDefaultMasks;
+extern const uint32_t kFileAccessMasks;
 
 /**
  * @brief Subscription details for INotifyEventPublisher events.
