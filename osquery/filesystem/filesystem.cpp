@@ -38,7 +38,7 @@ FLAG(uint64, read_user_max, 10 * 1024 * 1024, "Maximum non-su read size");
 HIDDEN_FLAG(bool, allow_unsafe, false, "Allow unsafe executable permissions");
 
 /// Disable forensics (atime/mtime preserving) file reads.
-HIDDEN_FLAG(bool, disable_forensic, false, "Disable atime/mtime preservation");
+HIDDEN_FLAG(bool, disable_forensic, true, "Disable atime/mtime preservation");
 
 static const size_t kMaxRecursiveGlobs = 64;
 
