@@ -50,6 +50,7 @@ const std::map<std::string, std::string> kSafariExtensionKeys = {
     {"CFBundleInfoDictionaryVersion", "sdk"},
     {"Description", "description"},
     {"Update Manifest URL", "update_url"},
+    {"DeveloperIdentifier", "developer_id"},
 };
 
 void genBrowserPlugin(const std::string& uid,

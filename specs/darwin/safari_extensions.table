@@ -9,6 +9,7 @@ schema([
     Column("sdk", TEXT, "Bundle SDK used to compile extension"),
     Column("update_url", TEXT, "Extension-supplied update URI"),
     Column("author", TEXT, "Optional extension author"),
+    Column("developer_id", TEXT, "Optional developer identifier"),
     Column("description", TEXT, "Optional extension description text"),
     Column("path", TEXT, "Path to extension XAR bundle"),
     ForeignKey(column="uid", table="users")
