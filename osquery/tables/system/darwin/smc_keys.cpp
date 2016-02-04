@@ -96,9 +96,7 @@ std::set<std::string> kSMCTemperatureKeys = {
 };
 // clang-format on
 
-// Two sources considered:
-// * http://superuser.com/a/967056
-// * https://goo.gl/9kv6Ny
+// http://superuser.com/a/967056
 const std::map<std::string, std::string> kSMCKeyDescriptions = {
     {"TCXC", "PECI CPU"},
     {"TCXc", "PECI CPU"},
@@ -433,7 +431,7 @@ void genTemperature(const std::string &key,
   }
 
   auto &smcRow = key_data.back();
-  if (smcRow["value"].empty() /*|| smcRow["type"].compare("sp78") != 0*/) {
+  if (smcRow["value"].empty()) {
     return;
   }
 
