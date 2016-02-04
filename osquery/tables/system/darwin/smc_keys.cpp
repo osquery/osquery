@@ -78,111 +78,112 @@ typedef struct {
 
 /// Warning: OSK0, OSK1 are removed from this list.
 std::set<std::string> kSMCHiddenKeys = {
-  "CRDP", "FPOR", "KPPW", "KPST", "MOJO", "MSSN", "zCRS",
+    "CRDP", "FPOR", "KPPW", "KPST", "MOJO", "MSSN", "zCRS",
 };
 
+// clang-format off
 std::set<std::string> kSMCTemperatureKeys = {
-  "TCXC", "TCXc", "TC0P", "TC0H", "TC0D", "TC0E", "TC0F", "TC1C", "TC2C",
-  "TC3C", "TC4C", "TC5C", "TC6C", "TC7C", "TC8C", "TCAH", "TCAD", "TC1P",
-  "TC1H", "TC1D", "TC1E", "TC1F", "TCBH", "TCBD", "TCSC", "TCSc", "TCSA",
-  "TCGC", "TCGc", "TG0P", "TG0D", "TG1D", "TG0H", "TG1H", "Ts0S", "TM0P",
-  "TM1P", "TM8P", "TM9P", "TM0S", "TM1S", "TM8S", "TM9S", "TN0D", "TN0P",
-  "TN1P", "TN0C", "TN0H", "TP0D", "TPCD", "TP0P", "TA0P", "TA1P", "Th0H",
-  "Th1H", "Th2H", "Tm0P", "Tp0P", "Ts0P", "Tb0P", "TL0P", "TW0P", "TH0P",
-  "TH1P", "TH2P", "TH3P", "TO0P", "TB0T", "TB1T", "TB2T", "TB3T", "Tp0P",
-  "Tp0C", "Tp1P", "Tp1C", "Tp2P", "Tp3P", "Tp4P", "Tp5P", "TS0C", "TA0S",
-  "TA1S", "TA2S", "TA3S",
+    "TCXC", "TCXc", "TC0P", "TC0H", "TC0D", "TC0E", "TC0F", "TC1C", "TC2C",
+    "TC3C", "TC4C", "TC5C", "TC6C", "TC7C", "TC8C", "TCAH", "TCAD", "TC1P",
+    "TC1H", "TC1D", "TC1E", "TC1F", "TCBH", "TCBD", "TCSC", "TCSc", "TCSA",
+    "TCGC", "TCGc", "TG0P", "TG0D", "TG1D", "TG0H", "TG1H", "Ts0S", "TM0P",
+    "TM1P", "TM8P", "TM9P", "TM0S", "TM1S", "TM8S", "TM9S", "TN0D", "TN0P",
+    "TN1P", "TN0C", "TN0H", "TP0D", "TPCD", "TP0P", "TA0P", "TA1P", "Th0H",
+    "Th1H", "Th2H", "Tm0P", "Tp0P", "Ts0P", "Tb0P", "TL0P", "TW0P", "TH0P",
+    "TH1P", "TH2P", "TH3P", "TO0P", "TB0T", "TB1T", "TB2T", "TB3T", "Tp0P",
+    "Tp0C", "Tp1P", "Tp1C", "Tp2P", "Tp3P", "Tp4P", "Tp5P", "TS0C", "TA0S",
+    "TA1S", "TA2S", "TA3S",
 };
+// clang-format on
 
 // Two sources considered:
 // * http://superuser.com/a/967056
 // * https://goo.gl/9kv6Ny
 const std::map<std::string, std::string> kSMCKeyDescriptions = {
-  {"TCXC", "PECI CPU"},
-  {"TCXc", "PECI CPU"},
-  {"TC0P", "CPU 1 Proximity"},
-  {"TC0H", "CPU 1 Heatsink"},
-  {"TC0D", "CPU 1 Package"},
-  {"TC0E", "CPU 1"},
-  {"TC0F", "CPU 1"},
-  {"TC1C", "CPU Core 1"},
-  {"TC2C", "CPU Core 2"},
-  {"TC3C", "CPU Core 3"},
-  {"TC4C", "CPU Core 4"},
-  {"TC5C", "CPU Core 5"},
-  {"TC6C", "CPU Core 6"},
-  {"TC7C", "CPU Core 7"},
-  {"TC8C", "CPU Core 8"},
-  {"TCAH", "CPU 1 Heatsink Alt."},
-  {"TCAD", "CPU 1 Package Alt."},
-  {"TC1P", "CPU 2 Proximity"},
-  {"TC1H", "CPU 2 Heatsink"},
-  {"TC1D", "CPU 2 Package"},
-  {"TC1E", "CPU 2"},
-  {"TC1F", "CPU 2"},
-  {"TCBH", "CPU 2 Heatsink Alt."},
-  {"TCBD", "CPU 2 Package Alt."},
-  {"TCSC", "PECI SA"},
-  {"TCSc", "PECI SA"},
-  {"TCSA", "PECI SA"},
-  {"TCGC", "PECI GPU"},
-  {"TCGc", "PECI GPU"},
-  {"TG0P", "GPU Proximity"},
-  {"TG0D", "GPU Die"},
-  {"TG1D", "GPU Die"},
-  {"TG0H", "GPU Heatsink"},
-  {"TG1H", "GPU Heatsink"},
-  {"Ts0S", "Memory Proximity"},
-  {"TM0P", "Mem Bank A1"},
-  {"TM1P", "Mem Bank A2"},
-  {"TM8P", "Mem Bank B1"},
-  {"TM9P", "Mem Bank B2"},
-  {"TM0S", "Mem Module A1"},
-  {"TM1S", "Mem Module A2"},
-  {"TM8S", "Mem Module B1"},
-  {"TM9S", "Mem Module B2"},
-  {"TN0D", "Northbridge Die"},
-  {"TN0P", "Northbridge Proximity 1"},
-  {"TN1P", "Northbridge Proximity 2"},
-  {"TN0C", "MCH Die"},
-  {"TN0H", "MCH Heatsink"},
-  {"TP0D", "PCH Die"},
-  {"TPCD", "PCH Die"},
-  {"TP0P", "PCH Proximity"},
-  {"TA0P", "Airflow 1"},
-  {"TA1P", "Airflow 2"},
-  {"Th0H", "Heatpipe 1"},
-  {"Th1H", "Heatpipe 2"},
-  {"Th2H", "Heatpipe 3"},
-  {"Tm0P", "Mainboard Proximity"},
-  {"Tp0P", "Powerboard Proximity"},
-  {"Ts0P", "Palm Rest"},
-  {"Tb0P", "BLC Proximity"},
-  {"TL0P", "LCD Proximity"},
-  {"TW0P", "Airport Proximity"},
-  {"TH0P", "HDD Bay 1"},
-  {"TH1P", "HDD Bay 2"},
-  {"TH2P", "HDD Bay 3"},
-  {"TH3P", "HDD Bay 4"},
-  {"TO0P", "Optical Drive"},
-  {"TB0T", "Battery TS_MAX"},
-  {"TB1T", "Battery 1"},
-  {"TB2T", "Battery 2"},
-  {"TB3T", "Battery"},
-  {"Tp0P", "Power Supply 1"},
-  {"Tp0C", "Power Supply 1 Alt."},
-  {"Tp1P", "Power Supply 2"},
-  {"Tp1C", "Power Supply 2 Alt."},
-  {"Tp2P", "Power Supply 3"},
-  {"Tp3P", "Power Supply 4"},
-  {"Tp4P", "Power Supply 5"},
-  {"Tp5P", "Power Supply 6"},
-  {"TS0C", "Expansion Slots"},
-  {"TA0S", "PCI Slot 1 Pos 1"},
-  {"TA1S", "PCI Slot 1 Pos 2"},
-  {"TA2S", "PCI Slot 2 Pos 1"},
-  {"TA3S", "PCI Slot 2 Pos 2"}
-};
+    {"TCXC", "PECI CPU"},
+    {"TCXc", "PECI CPU"},
+    {"TC0P", "CPU 1 Proximity"},
+    {"TC0H", "CPU 1 Heatsink"},
+    {"TC0D", "CPU 1 Package"},
+    {"TC0E", "CPU 1"},
+    {"TC0F", "CPU 1"},
+    {"TC1C", "CPU Core 1"},
+    {"TC2C", "CPU Core 2"},
+    {"TC3C", "CPU Core 3"},
+    {"TC4C", "CPU Core 4"},
+    {"TC5C", "CPU Core 5"},
+    {"TC6C", "CPU Core 6"},
+    {"TC7C", "CPU Core 7"},
+    {"TC8C", "CPU Core 8"},
+    {"TCAH", "CPU 1 Heatsink Alt."},
+    {"TCAD", "CPU 1 Package Alt."},
+    {"TC1P", "CPU 2 Proximity"},
+    {"TC1H", "CPU 2 Heatsink"},
+    {"TC1D", "CPU 2 Package"},
+    {"TC1E", "CPU 2"},
+    {"TC1F", "CPU 2"},
+    {"TCBH", "CPU 2 Heatsink Alt."},
+    {"TCBD", "CPU 2 Package Alt."},
+    {"TCSC", "PECI SA"},
+    {"TCSc", "PECI SA"},
+    {"TCSA", "PECI SA"},
+    {"TCGC", "PECI GPU"},
+    {"TCGc", "PECI GPU"},
+    {"TG0P", "GPU Proximity"},
+    {"TG0D", "GPU Die"},
+    {"TG1D", "GPU Die"},
+    {"TG0H", "GPU Heatsink"},
+    {"TG1H", "GPU Heatsink"},
+    {"Ts0S", "Memory Proximity"},
+    {"TM0P", "Mem Bank A1"},
+    {"TM1P", "Mem Bank A2"},
+    {"TM8P", "Mem Bank B1"},
+    {"TM9P", "Mem Bank B2"},
+    {"TM0S", "Mem Module A1"},
+    {"TM1S", "Mem Module A2"},
+    {"TM8S", "Mem Module B1"},
+    {"TM9S", "Mem Module B2"},
+    {"TN0D", "Northbridge Die"},
+    {"TN0P", "Northbridge Proximity 1"},
+    {"TN1P", "Northbridge Proximity 2"},
+    {"TN0C", "MCH Die"},
+    {"TN0H", "MCH Heatsink"},
+    {"TP0D", "PCH Die"},
+    {"TPCD", "PCH Die"},
+    {"TP0P", "PCH Proximity"},
+    {"TA0P", "Airflow 1"},
+    {"TA1P", "Airflow 2"},
+    {"Th0H", "Heatpipe 1"},
+    {"Th1H", "Heatpipe 2"},
+    {"Th2H", "Heatpipe 3"},
+    {"Tm0P", "Mainboard Proximity"},
+    {"Tp0P", "Powerboard Proximity"},
+    {"Ts0P", "Palm Rest"},
+    {"Tb0P", "BLC Proximity"},
+    {"TL0P", "LCD Proximity"},
+    {"TW0P", "Airport Proximity"},
+    {"TH0P", "HDD Bay 1"},
+    {"TH1P", "HDD Bay 2"},
+    {"TH2P", "HDD Bay 3"},
+    {"TH3P", "HDD Bay 4"},
+    {"TO0P", "Optical Drive"},
+    {"TB0T", "Battery TS_MAX"},
+    {"TB1T", "Battery 1"},
+    {"TB2T", "Battery 2"},
+    {"TB3T", "Battery"},
+    {"Tp0P", "Power Supply 1"},
+    {"Tp0C", "Power Supply 1 Alt."},
+    {"Tp1P", "Power Supply 2"},
+    {"Tp1C", "Power Supply 2 Alt."},
+    {"Tp2P", "Power Supply 3"},
+    {"Tp3P", "Power Supply 4"},
+    {"Tp4P", "Power Supply 5"},
+    {"Tp5P", "Power Supply 6"},
+    {"TS0C", "Expansion Slots"},
+    {"TA0S", "PCI Slot 1 Pos 1"},
+    {"TA1S", "PCI Slot 1 Pos 2"},
+    {"TA2S", "PCI Slot 2 Pos 1"},
+    {"TA3S", "PCI Slot 2 Pos 2"}};
 
 class SMCHelper : private boost::noncopyable {
  public:
@@ -420,6 +421,52 @@ QueryData genSMCKeys(QueryContext &context) {
   return results;
 }
 
+void genTemperature(const std::string &key,
+                    const SMCHelper &smc,
+                    QueryData &results) {
+  QueryData key_data;
+  genSMCKey(key, smc, key_data);
+
+  if (key_data.empty()) {
+    // The SMC search for key information failed.
+    return;
+  }
+
+  auto &smcRow = key_data.back();
+  if (smcRow["value"].empty() /*|| smcRow["type"].compare("sp78") != 0*/) {
+    return;
+  }
+
+  Row r;
+  r["key"] = smcRow["key"];
+  r["name"] = kSMCKeyDescriptions.at(smcRow["key"]);
+
+  // Convert hex string to decimal.
+  std::string val;
+  try {
+    val = boost::algorithm::unhex(smcRow["value"]);
+  } catch (const boost::algorithm::hex_decode_error &e) {
+    return;
+  }
+
+  if (val.size() < 2) {
+    return;
+  }
+
+  int intValue = (val[0] * 256 + val[1]) >> 2;
+  float floatValueCelsius = intValue / 64.0;
+  float floatValueFahrenheit = (floatValueCelsius * (9 / 5)) + 32;
+
+  std::stringstream buff1;
+  std::stringstream buff2;
+  buff1 << std::fixed << std::setprecision(1) << floatValueCelsius;
+  buff2 << std::fixed << std::setprecision(1) << floatValueFahrenheit;
+  r["celsius"] = buff1.str();
+  r["fahrenheit"] = buff2.str();
+
+  results.push_back(r);
+}
+
 QueryData getTemperatures(QueryContext &context) {
   QueryData results;
 
@@ -428,51 +475,22 @@ QueryData getTemperatures(QueryContext &context) {
     return {};
   }
 
-  for (const auto& smcTempKey : kSMCTemperatureKeys) {
-    QueryData key_data;
-    genSMCKey(smcTempKey, smc, key_data);
-
-    if (key_data.empty()) {
-      continue;
+  if (context.hasConstraint("key", EQUALS)) {
+    context.forEachConstraint("key",
+                              EQUALS,
+                              ([&smc, &results](const std::string &expr) {
+                                if (kSMCKeyDescriptions.count(expr) > 0) {
+                                  genTemperature(expr, smc, results);
+                                }
+                              }));
+  } else {
+    // Perform a full scan of temperature keys.
+    for (const auto &smcTempKey : kSMCKeyDescriptions) {
+      genTemperature(smcTempKey.first, smc, results);
     }
-
-    auto& smcRow = key_data.back();
-    if (smcRow["value"].empty() /*|| smcRow["type"].compare("sp78") != 0*/) {
-      continue;
-    }
-
-    Row r;
-    r["smc_key"] = smcRow["key"];
-    r["name"] = kSMCKeyDescriptions.at(smcRow["key"]);
-
-    // Convert hex string to decimal.
-    std::string val;
-    try {
-      val = boost::algorithm::unhex(smcRow["value"]);
-    } catch (const boost::algorithm::hex_decode_error& e) {
-      continue;
-    }
-
-    if (val.size() < 2) {
-      continue;
-    }
-
-    int intValue = (val[0] * 256 + val[1]) >> 2;
-    float floatValueCelsius = intValue / 64.0;
-    float floatValueFahrenheit = (floatValueCelsius * (9/5)) + 32;
-
-    std::stringstream buff1;
-    std::stringstream buff2;
-    buff1 << std::fixed << std::setprecision(1) << floatValueCelsius;
-    buff2 << std::fixed << std::setprecision(1) << floatValueFahrenheit;
-    r["celsius"] = buff1.str();
-    r["fahrenheit"] = buff2.str();
-
-    results.push_back(r);
   }
 
   return results;
 }
-
 }
 }
