@@ -479,14 +479,14 @@ QueryData getTemperatures(QueryContext &context) {
     context.forEachConstraint("key",
                               EQUALS,
                               ([&smc, &results](const std::string &expr) {
-                                if (kSMCKeyDescriptions.count(expr) > 0) {
+                                if (kSMCTemperatureKeys.count(expr) > 0) {
                                   genTemperature(expr, smc, results);
                                 }
                               }));
   } else {
     // Perform a full scan of temperature keys.
-    for (const auto &smcTempKey : kSMCKeyDescriptions) {
-      genTemperature(smcTempKey.first, smc, results);
+    for (const auto &smcTempKey : kSMCTemperatureKeys) {
+      genTemperature(smcTempKey, smc, results);
     }
   }
 
