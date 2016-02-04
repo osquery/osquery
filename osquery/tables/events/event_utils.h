@@ -8,11 +8,15 @@
  *
  */
 
+#include <set>
 #include <string>
 
 #include <osquery/tables.h>
 
 namespace osquery {
+
+/// List of columns decorated for file events.
+extern const std::set<std::string> kCommonFileColumns;
 
 /**
  * @brief A helper function for each platform's implementation of file_events.
