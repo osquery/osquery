@@ -451,8 +451,8 @@ void genTemperature(const std::string &key,
     return;
   }
 
-  int intValue = (val[0] * 256 + val[1]) >> 2;
-  float floatValueCelsius = intValue / 64.0;
+  int intValue = (val[0] * 256 + val[1]);
+  float floatValueCelsius = intValue / 256.0;
   float floatValueFahrenheit = (floatValueCelsius * (9 / 5)) + 32;
 
   std::stringstream buff1;
