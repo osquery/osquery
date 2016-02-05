@@ -428,6 +428,7 @@ class TimeoutRunner(object):
         self.stdout, self.stderr = self.proc.communicate()
         timer.cancel()
 
+
 def flaky(gen):
     exceptions = []
     def attempt(this):
@@ -452,6 +453,7 @@ def flaky(gen):
             i += 1
         raise exceptions[0][0]
     return wrapper
+
 
 class Tester(object):
 

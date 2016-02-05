@@ -176,8 +176,18 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
 ExtensionRunnerCore::~ExtensionRunnerCore() { remove(path_); }
 
 void ExtensionRunnerCore::stop() {
-  if (server_ != nullptr) {
-    server_->stop();
+  boost::lock_guard<boost::mutex> lock(service_start_);
+  service_stopping_ = true;
+  if (transport_ != nullptr) {
+    transport_->interrupt();
+  }
+
+  {
+    // In most cases the service thread has started before the stop request.
+    boost::lock_guard<boost::mutex> lock(service_run_);
+    if (server_ != nullptr) {
+      server_->stop();
+    }
   }
 }
 
@@ -191,24 +201,30 @@ inline void removeStalePaths(const std::string& manager) {
 }
 
 void ExtensionRunnerCore::startServer(TProcessorRef processor) {
-  auto transport = TServerTransportRef(new TServerSocket(path_));
-  // Before starting and after stopping the manager, remove stale sockets.
-  removeStalePaths(path_);
+  {
+    boost::lock_guard<boost::mutex> lock(service_start_);
+    // A request to stop the service may occur before the thread starts.
+    if (service_stopping_) {
+      return;
+    }
 
-  auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());
-  auto protocol_fac = TProtocolFactoryRef(new TBinaryProtocolFactory());
+    transport_ = TServerTransportRef(new TServerSocket(path_));
+    // Before starting and after stopping the manager, remove stale sockets.
+    removeStalePaths(path_);
 
-  // The minimum number of worker threads is 1.
-  size_t threads = (FLAGS_worker_threads > 0) ? FLAGS_worker_threads : 1;
-  manager_ = ThreadManager::newSimpleThreadManager(threads, 0);
-  auto thread_fac = ThriftThreadFactory(new PosixThreadFactory());
-  manager_->threadFactory(thread_fac);
-  manager_->start();
+    // Construct the service's transport, protocol, thread pool.
+    auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());
+    auto protocol_fac = TProtocolFactoryRef(new TBinaryProtocolFactory());
 
-  // Start the Thrift server's run loop.
-  server_ = TThreadPoolServerRef(new TThreadPoolServer(
-      processor, transport, transport_fac, protocol_fac, manager_));
-  server_->serve();
+    // Start the Thrift server's run loop.
+    server_ = TThreadedServerRef(new TThreadedServer(
+        processor, transport_, transport_fac, protocol_fac));
+  }
+
+  {
+    boost::lock_guard<boost::mutex> lock(service_run_);
+    server_->serve();
+  }
 }
 
 void ExtensionRunner::start() {
@@ -226,14 +242,9 @@ void ExtensionRunner::start() {
 }
 
 ExtensionManagerRunner::~ExtensionManagerRunner() {
+  // Only attempt to remove stale paths if the server was started.
+  boost::lock_guard<boost::mutex> lock(service_start_);
   if (server_ != nullptr) {
-    // Eventually this extension manager should be stopped.
-    // This involves a lock around assuring the thread context for destruction
-    // matches and the server has begun serving (potentially opaque to our 
-    // our use of ThreadPollServer API).
-    // In newer (forks) version of thrift this server implementation has been
-    // deprecated.
-    // server_->stop();
     removeStalePaths(path_);
   }
 }

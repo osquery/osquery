@@ -10,13 +10,13 @@
 
 #pragma once
 
+#include <atomic>
 #include <map>
 #include <mutex>
 #include <unordered_set>
 
 #include <sqlite3.h>
 
-#include <boost/thread/mutex.hpp>
 #include <boost/noncopyable.hpp>
 
 #include <osquery/sql.h>
@@ -36,24 +36,30 @@ namespace osquery {
  * abstraction layer), then the SQLiteDBManager will provide a transient
  * SQLiteDBInstance.
  */
-class SQLiteDBInstance {
+class SQLiteDBInstance : private boost::noncopyable {
  public:
   SQLiteDBInstance();
-  explicit SQLiteDBInstance(sqlite3*& db);
+  SQLiteDBInstance(sqlite3*& db, std::mutex& mtx);
   ~SQLiteDBInstance();
 
   /// Check if the instance is the osquery primary.
-  bool isPrimary() { return primary_; }
+  bool isPrimary() const { return primary_; }
 
   /**
    * @brief Accessor to the internal `sqlite3` object, do not store references
    * to the object within osquery code.
    */
-  sqlite3* db() { return db_; }
+  sqlite3* db() const { return db_; }
 
  private:
-  bool primary_;
-  sqlite3* db_;
+  /// Introspection into the database pointer, primary means managed.
+  bool primary_{false};
+
+  /// Either the managed primary database or an ephemeral instance.
+  sqlite3* db_{nullptr};
+
+  /// An attempted unique lock on the manager's primary database access mutex.
+  std::unique_lock<std::mutex> lock_;
 };
 
 /**
@@ -88,10 +94,10 @@ class SQLiteDBManager : private boost::noncopyable {
    *
    * @return a SQLiteDBInstance with all virtual tables attached.
    */
-  static SQLiteDBInstance get();
+  static std::shared_ptr<SQLiteDBInstance> get();
 
   /// See `get` but always return a transient DB connection (for testing).
-  static SQLiteDBInstance getUnique();
+  static std::shared_ptr<SQLiteDBInstance> getUnique();
 
   /**
    * @brief Check if `table_name` is disabled.
@@ -108,7 +114,7 @@ class SQLiteDBManager : private boost::noncopyable {
   static void unlock();
 
  protected:
-  SQLiteDBManager() : db_(nullptr), lock_(mutex_, boost::defer_lock) {
+  SQLiteDBManager() : db_(nullptr) {
     sqlite3_soft_heap_limit64(SQLITE_SOFT_HEAP_LIMIT);
     disabled_tables_ = parseDisableTablesFlag(Flag::getValue("disable_tables"));
   }
@@ -118,13 +124,17 @@ class SQLiteDBManager : private boost::noncopyable {
 
  private:
   /// Primary (managed) sqlite3 database.
-  sqlite3* db_;
+  sqlite3* db_{nullptr};
+
   /// Mutex and lock around sqlite3 access.
-  boost::mutex mutex_;
-  /// Mutex and lock around sqlite3 access.
-  boost::unique_lock<boost::mutex> lock_;
+  std::mutex mutex_;
+
+  /// A write mutex for initializing the primary database.
+  std::mutex create_mutex_;
+
   /// Member variable to hold set of disabled tables.
   std::unordered_set<std::string> disabled_tables_;
+
   /// Parse a comma-delimited set of tables names, passed in as a flag.
   std::unordered_set<std::string> parseDisableTablesFlag(const std::string& s);
 };
@@ -139,10 +149,10 @@ class SQLiteDBManager : private boost::noncopyable {
  * and requires string tokenization and lexical casting. Only run a planner
  * once per new query and only when needed (aka an unusable expression).
  */
-class QueryPlanner {
+class QueryPlanner : private boost::noncopyable {
  public:
   explicit QueryPlanner(const std::string& query)
-      : QueryPlanner(query, SQLiteDBManager::get().db()) {}
+      : QueryPlanner(query, SQLiteDBManager::get()->db()) {}
   QueryPlanner(const std::string& query, sqlite3* db);
   ~QueryPlanner() {}
 
@@ -234,12 +244,12 @@ class SQLiteSQLPlugin : SQLPlugin {
  public:
   Status query(const std::string& q, QueryData& results) const {
     auto dbc = SQLiteDBManager::get();
-    return queryInternal(q, results, dbc.db());
+    return queryInternal(q, results, dbc->db());
   }
 
   Status getQueryColumns(const std::string& q, TableColumns& columns) const {
     auto dbc = SQLiteDBManager::get();
-    return getQueryColumnsInternal(q, columns, dbc.db());
+    return getQueryColumnsInternal(q, columns, dbc->db());
   }
 
   /// Create a SQLite module and attach (CREATE).
@@ -260,7 +270,7 @@ class SQLInternal : public SQL {
    */
   explicit SQLInternal(const std::string& q) {
     auto dbc = SQLiteDBManager::get();
-    status_ = queryInternal(q, results_, dbc.db());
+    status_ = queryInternal(q, results_, dbc->db());
   }
 };
 

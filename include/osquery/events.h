@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <map>
@@ -20,6 +21,7 @@
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 
+#include <osquery/core.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>
@@ -302,16 +304,16 @@ class EventPublisherPlugin : public Plugin {
 
  private:
   /// Set ending to True to cause event type run loops to finish.
-  bool ending_{false};
+  std::atomic<bool> ending_{false};
 
   /// Set to indicate whether the event run loop ever started.
-  bool started_{false};
+  std::atomic<bool> started_{false};
 
   /// A lock for incrementing the next EventContextID.
   boost::mutex ec_id_lock_;
 
   /// A helper count of event publisher runloop iterations.
-  size_t restart_count_{0};
+  std::atomic<size_t> restart_count_{0};
 
  private:
   /// Enable event factory "callins" through static publisher callbacks.
@@ -692,6 +694,16 @@ class EventFactory : private boost::noncopyable {
    */
   static void end(bool join = false);
 
+  /// Request a write lock to make publisher registrations/deregistrations.
+  static WriteLock requestWrite() {
+    return WriteLock(getInstance().factory_lock_);
+  }
+
+  /// Request a read lock to access publisher data.
+  static ReadLock requestRead() {
+    return ReadLock(getInstance().factory_lock_);
+  }
+
  public:
   EventFactory(EventFactory const&) = delete;
   EventFactory& operator=(EventFactory const&) = delete;
@@ -710,6 +722,9 @@ class EventFactory : private boost::noncopyable {
 
   /// Set of running EventPublisher run loop threads.
   std::vector<std::shared_ptr<boost::thread> > threads_;
+
+  /// Factory publisher state manipulation.
+  boost::shared_mutex factory_lock_;
 };
 
 /**

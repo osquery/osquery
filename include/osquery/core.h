@@ -46,11 +46,13 @@
 
 namespace osquery {
 
-/**
- * @brief The version of osquery
- */
+/// The version of osquery, includes the git revision if not tagged.
 extern const std::string kVersion;
+
+/// The SDK version removes any git revision hash (1.6.1-g0000 becomes 1.6.1).
 extern const std::string kSDKVersion;
+
+/// Identifies the build platform of either the core extension.
 extern const std::string kSDKPlatform;
 
 /// Use a macro for the sdk/platform literal, symbols available in lib.cpp.
@@ -68,8 +70,10 @@ enum ToolType {
   OSQUERY_EXTENSION,
 };
 
-typedef boost::unique_lock<boost::shared_mutex> WriteLock;
-typedef boost::shared_lock<boost::shared_mutex> ReadLock;
+/// Helper alias for write locking a mutex.
+using WriteLock = boost::unique_lock<boost::shared_mutex>;
+/// Helper alias for read locking a mutex.
+using ReadLock = boost::shared_lock<boost::shared_mutex>;
 
 /// The osquery tool type for runtime decisions.
 extern ToolType kToolType;
@@ -95,7 +99,7 @@ class Initializer : private boost::noncopyable {
    * A daemon has additional constraints, it can use a process mutex, check
    * for sane/non-default configurations, etc.
    */
-  void initDaemon();
+  void initDaemon() const;
 
   /**
    * @brief Daemon tools may want to continually spawn worker processes
@@ -113,12 +117,13 @@ class Initializer : private boost::noncopyable {
    *
    * @param name The name of the worker process.
    */
-  void initWorkerWatcher(const std::string& name);
+  void initWorkerWatcher(const std::string& name) const;
 
   /// Assume initialization finished, start work.
-  void start();
+  void start() const;
+
   /// Turns off various aspects of osquery such as event loops.
-  void shutdown();
+  void shutdown() const;
 
   /**
    * @brief Check if a process is an osquery worker.
@@ -133,11 +138,13 @@ class Initializer : private boost::noncopyable {
 
  private:
   /// Initialize this process as an osquery daemon worker.
-  void initWorker(const std::string& name);
+  void initWorker(const std::string& name) const;
+
   /// Initialize the osquery watcher, optionally spawn a worker.
-  void initWatcher();
+  void initWatcher() const;
+
   /// Set and wait for an active plugin optionally broadcasted.
-  void initActivePlugin(const std::string& type, const std::string& name);
+  void initActivePlugin(const std::string& type, const std::string& name) const;
 
  private:
   int* argc_{nullptr};
@@ -288,6 +295,17 @@ inline size_t utf8StringSize(const std::string& str) {
  * @return A status object indicating the success or failure of the operation
  */
 Status createPidFile();
+
+/**
+ * @brief Forcefully request the application stop.
+ *
+ * Since all osquery tools may implement various 'dispatched' services in the
+ * form of event handler threads or thrift service and client pools, a stop
+ * request should behave nicely and request these services stop.
+ *
+ * Use shutdown whenever you would normally call ::exit.
+ */
+void shutdown(int recode, bool wait = false);
 
 class DropPrivileges;
 typedef std::shared_ptr<DropPrivileges> DropPrivilegesRef;

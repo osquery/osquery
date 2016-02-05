@@ -46,7 +46,8 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   auto dbc = SQLiteDBManager::get();
 
   // Virtual tables require the registry/plugin API to query tables.
-  auto status = attachTableInternal("failed_sample", "(foo INTEGER)", dbc.db());
+  auto status =
+      attachTableInternal("failed_sample", "(foo INTEGER)", dbc->db());
   EXPECT_EQ(status.getCode(), SQLITE_ERROR);
 
   // The table attach will complete only when the table name is registered.
@@ -56,12 +57,12 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   EXPECT_TRUE(status.ok());
 
   // Use the table name, plugin-generated schema to attach.
-  status = attachTableInternal("sample", columnDefinition(response), dbc.db());
+  status = attachTableInternal("sample", columnDefinition(response), dbc->db());
   EXPECT_EQ(status.getCode(), SQLITE_OK);
 
   std::string q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
   QueryData results;
-  status = queryInternal(q, results, dbc.db());
+  status = queryInternal(q, results, dbc->db());
   EXPECT_EQ(
       "CREATE VIRTUAL TABLE sample USING sample(`foo` INTEGER, `bar` TEXT)",
       results[0]["sql"]);
@@ -75,7 +76,7 @@ TEST_F(VirtualTableTests, test_sqlite3_table_joins) {
   // Run a query with a join within.
   std::string statement =
       "SELECT p.pid FROM osquery_info oi, processes p WHERE oi.pid = p.pid";
-  auto status = queryInternal(statement, results, dbc.db());
+  auto status = queryInternal(statement, results, dbc->db());
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 1U);
 }
@@ -140,9 +141,9 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   {
     // To simplify the attach, just access the column definition directly.
     auto p = std::make_shared<pTablePlugin>();
-    attachTableInternal("p", p->columnDefinition(), dbc.db());
+    attachTableInternal("p", p->columnDefinition(), dbc->db());
     auto k = std::make_shared<kTablePlugin>();
-    attachTableInternal("k", k->columnDefinition(), dbc.db());
+    attachTableInternal("k", k->columnDefinition(), dbc->db());
   }
 
   QueryData results;
@@ -178,7 +179,7 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
 
   for (const auto& test : constraint_tests) {
     QueryData results;
-    queryInternal(test.first, results, dbc.db());
+    queryInternal(test.first, results, dbc->db());
     EXPECT_EQ(results, test.second);
   }
 
@@ -197,7 +198,7 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   size_t index = 0;
   for (const auto& test : constraint_tests) {
     QueryData results;
-    queryInternal(test.first + " union " + test.first, results, dbc.db());
+    queryInternal(test.first + " union " + test.first, results, dbc->db());
     EXPECT_EQ(results, union_results[index++]);
   }
 }

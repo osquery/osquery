@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <csignal>
+#include <atomic>
 #include <string>
 
 #include <unistd.h>
@@ -162,11 +162,15 @@ class Watcher : private boost::noncopyable {
    */
   static bool hasManagedExtensions();
 
+  /// Check the status of the last worker.
+  static int getWorkerStatus() { return instance().worker_status_; }
+
  private:
   /// Do not request the lock until extensions are used.
   Watcher()
       : worker_(-1), worker_restarts_(0), lock_(mutex_, boost::defer_lock) {}
   Watcher(Watcher const&);
+
   void operator=(Watcher const&);
   virtual ~Watcher() {}
 
@@ -177,24 +181,33 @@ class Watcher : private boost::noncopyable {
  private:
   /// Performance state for the worker process.
   PerformanceState state_;
+
   /// Performance states for each autoloadable extension binary.
   std::map<std::string, PerformanceState> extension_states_;
 
  private:
   /// Keep the single worker process/thread ID for inspection.
-  std::sig_atomic_t worker_{-1};
+  std::atomic<int> worker_{-1};
+
   /// Number of worker restarts NOT induced by a watchdog process.
   size_t worker_restarts_{0};
+
   /// Keep a list of resolved extension paths and their managed pids.
   std::map<std::string, pid_t> extensions_;
+
   /// Paths to autoload extensions.
   std::vector<std::string> extensions_paths_;
+
   /// Bind the fate of the watcher to the worker.
   bool restart_worker_{true};
+
+  /// Record the exit status of the most recent worker.
+  std::atomic<int> worker_status_{-1};
 
  private:
   /// Mutex and lock around extensions access.
   boost::mutex mutex_;
+
   /// Mutex and lock around extensions access.
   boost::unique_lock<boost::mutex> lock_;
 

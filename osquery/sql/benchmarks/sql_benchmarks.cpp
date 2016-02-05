@@ -52,11 +52,11 @@ static void SQL_virtual_table_internal(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::get();
-  attachTableInternal("benchmark", columnDefinition(res), dbc.db());
+  attachTableInternal("benchmark", columnDefinition(res), dbc->db());
 
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal("select * from benchmark", results, dbc.db());
+    queryInternal("select * from benchmark", results, dbc->db());
   }
 }
 
@@ -84,11 +84,11 @@ static void SQL_virtual_table_internal_long(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::get();
-  attachTableInternal("long_benchmark", columnDefinition(res), dbc.db());
+  attachTableInternal("long_benchmark", columnDefinition(res), dbc->db());
 
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal("select * from long_benchmark", results, dbc.db());
+    queryInternal("select * from long_benchmark", results, dbc->db());
   }
 }
 
@@ -124,11 +124,11 @@ static void SQL_virtual_table_internal_wide(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::get();
-  attachTableInternal("wide_benchmark", columnDefinition(res), dbc.db());
+  attachTableInternal("wide_benchmark", columnDefinition(res), dbc->db());
 
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal("select * from wide_benchmark", results, dbc.db());
+    queryInternal("select * from wide_benchmark", results, dbc->db());
   }
 }
 
@@ -138,8 +138,8 @@ static void SQL_select_metadata(benchmark::State& state) {
   auto dbc = SQLiteDBManager::get();
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal(
-        "select count(*) from sqlite_temp_master;", results, dbc.db());
+    queryInternal("select count(*) from sqlite_temp_master;", results,
+                  dbc->db());
   }
 }
 

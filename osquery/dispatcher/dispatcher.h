@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <set>
 #include <string>
@@ -47,8 +48,8 @@ using namespace apache::thrift::concurrency;
 
 /// Create easier to reference typedefs for Thrift layer implementations.
 #define SHARED_PTR_IMPL OSQUERY_THRIFT_POINTER::shared_ptr
-typedef apache::thrift::concurrency::ThreadManager InternalThreadManager;
-typedef SHARED_PTR_IMPL<InternalThreadManager> InternalThreadManagerRef;
+using InternalThreadManager = apache::thrift::concurrency::ThreadManager;
+using InternalThreadManagerRef = SHARED_PTR_IMPL<InternalThreadManager>;
 
 /**
  * @brief Default number of threads in the thread pool.
@@ -83,15 +84,15 @@ class InternalRunnable : public Runnable {
   virtual void start() = 0;
 
  private:
-  bool run_;
+  std::atomic<bool> run_{false};
 };
 
 /// An internal runnable used throughout osquery as dispatcher services.
-typedef std::shared_ptr<InternalRunnable> InternalRunnableRef;
-typedef std::shared_ptr<boost::thread> InternalThreadRef;
+using InternalRunnableRef = std::shared_ptr<InternalRunnable>;
+using InternalThreadRef = std::shared_ptr<boost::thread>;
 /// A thrift internal runnable with variable pointer wrapping.
-typedef SHARED_PTR_IMPL<InternalRunnable> ThriftInternalRunnableRef;
-typedef SHARED_PTR_IMPL<PosixThreadFactory> ThriftThreadFactory;
+using ThriftInternalRunnableRef = SHARED_PTR_IMPL<InternalRunnable>;
+using ThriftThreadFactory = SHARED_PTR_IMPL<PosixThreadFactory>;
 
 /**
  * @brief Singleton for queuing asynchronous tasks to be executed in parallel
