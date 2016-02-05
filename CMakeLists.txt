@@ -160,6 +160,8 @@ else()
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
 endif()
+# Generate a compile_commands.json for static analyzer input.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT DEFINED ENV{OPTIMIZED})
   add_compile_options(-march=x86-64 -mno-avx)
