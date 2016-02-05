@@ -340,7 +340,7 @@ find_package(Gflags REQUIRED)
 find_package(Gtest REQUIRED)
 find_package(RocksDB REQUIRED)
 find_package(Sqlite3 REQUIRED)
-find_package(Thrift 0.9.1 REQUIRED)
+find_package(Thrift 0.9.3 REQUIRED)
 
 # If using the RocksDB LITE version our code must also define ROCKSDB_LITE=1
 if(ROCKSDB_LITE_FOUND)

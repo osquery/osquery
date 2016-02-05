@@ -50,3 +50,8 @@ if(NOT DEFINED THRIFT_FOUND)
     THRIFT_INCLUDE_DIR
   )
 endif()
+
+if (NOT "${THRIFT_VERSION}" STREQUAL "Thrift version 0.9.3")
+  WARNING_LOG("[Ref #1830] Cannot use thrift versions <0.9.3 (found ${THRIFT_VERSION})")
+  message(FATAL_ERROR "[Ref #1830] Need thrift version 0.9.3")
+endif()
