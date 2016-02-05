@@ -303,7 +303,7 @@ Status Config::load() {
                 content.first.c_str(),
                 content.second.c_str());
       }
-      ::exit(EXIT_SUCCESS);
+      osquery::shutdown(EXIT_SUCCESS);
     }
     status = update(response[0]);
   }

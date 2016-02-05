@@ -30,6 +30,7 @@
 #include <osquery/registry.h>
 
 #include "osquery/core/watcher.h"
+#include "osquery/dispatcher/dispatcher.h"
 #include "osquery/database/db_handle.h"
 
 #if defined(__linux__) || defined(__FreeBSD__)
@@ -213,7 +214,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
          help == "-h") &&
         tool != OSQUERY_TOOL_TEST) {
       printUsage(binary_, tool_);
-      ::exit(0);
+      ::exit(EXIT_SUCCESS);
     }
   }
 
@@ -282,7 +283,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   }
 }
 
-void Initializer::initDaemon() {
+void Initializer::initDaemon() const {
   if (FLAGS_config_check) {
     // No need to daemonize, emit log lines, or create process mutexes.
     return;
@@ -329,7 +330,7 @@ void Initializer::initDaemon() {
   }
 }
 
-void Initializer::initWatcher() {
+void Initializer::initWatcher() const {
   // The watcher takes a list of paths to autoload extensions from.
   osquery::loadExtensions();
 
@@ -348,11 +349,19 @@ void Initializer::initWatcher() {
     Dispatcher::joinServices();
     // Execution should only reach this point if a signal was handled by the
     // worker and watcher.
-    ::exit((kHandledSignal > 0) ? 128 + kHandledSignal : EXIT_FAILURE);
+    auto retcode = 0;
+    if (kHandledSignal > 0) {
+      retcode = 128 + kHandledSignal;
+    } else if (Watcher::getWorkerStatus() >= 0) {
+      retcode = Watcher::getWorkerStatus();
+    } else {
+      retcode = EXIT_FAILURE;
+    }
+    osquery::shutdown(retcode, true);
   }
 }
 
-void Initializer::initWorker(const std::string& name) {
+void Initializer::initWorker(const std::string& name) const {
   // Clear worker's arguments.
   size_t name_size = strlen((*argv_)[0]);
   auto original_name = std::string((*argv_)[0]);
@@ -375,7 +384,7 @@ void Initializer::initWorker(const std::string& name) {
   Dispatcher::addService(std::make_shared<WatcherWatcherRunner>(getppid()));
 }
 
-void Initializer::initWorkerWatcher(const std::string& name) {
+void Initializer::initWorkerWatcher(const std::string& name) const {
   if (isWorker()) {
     initWorker(name);
   } else {
@@ -387,7 +396,7 @@ void Initializer::initWorkerWatcher(const std::string& name) {
 bool Initializer::isWorker() { return hasWorkerVariable(); }
 
 void Initializer::initActivePlugin(const std::string& type,
-                                   const std::string& name) {
+                                   const std::string& name) const {
   // Use a delay, meaning the amount of milliseconds waited for extensions.
   size_t delay = 0;
   // The timeout is the maximum microseconds in seconds to wait for extensions.
@@ -398,14 +407,14 @@ void Initializer::initActivePlugin(const std::string& type,
   while (!Registry::setActive(type, name)) {
     if (!Watcher::hasManagedExtensions() || delay > timeout) {
       LOG(ERROR) << "Active " << type << " plugin not found: " << name;
-      ::exit(EXIT_CATASTROPHIC);
+      osquery::shutdown(EXIT_CATASTROPHIC);
     }
     delay += kExtensionInitializeLatencyUS;
     ::usleep(kExtensionInitializeLatencyUS);
   }
 }
 
-void Initializer::start() {
+void Initializer::start() const {
   // Load registry/extension modules before extensions.
   osquery::loadModules();
 
@@ -420,14 +429,13 @@ void Initializer::start() {
   if (!DBHandle::checkDB()) {
     LOG(ERROR) << RLOG(1629) << binary_
                << " initialize failed: Could not open RocksDB";
-    if (isWorker()) {
-      ::exit(EXIT_CATASTROPHIC);
-    } else {
-      ::exit(EXIT_FAILURE);
-    }
+    auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
+    ::exit(retcode);
   }
 
   // Bind to an extensions socket and wait for registry additions.
+  // After starting the extension manager, osquery MUST shutdown using the
+  // internal 'shutdown' method.
   osquery::startExtensionManager();
 
   // Then set the config plugin, which uses a single/active plugin.
@@ -443,12 +451,12 @@ void Initializer::start() {
       std::cerr << "Error reading config: " << s.toString() << "\n";
     }
     // A configuration check exits the application.
-    ::exit(s.getCode());
+    osquery::shutdown(s.getCode());
   }
 
   if (FLAGS_database_dump) {
     dumpDatabase();
-    ::exit(EXIT_SUCCESS);
+    osquery::shutdown(EXIT_SUCCESS);
   }
 
   // Load the osquery config using the default/active config plugin.
@@ -478,11 +486,17 @@ void Initializer::start() {
   EventFactory::delay();
 }
 
-void Initializer::shutdown() {
+void Initializer::shutdown() const { osquery::shutdown(EXIT_SUCCESS, false); }
+
+void shutdown(int retcode, bool wait) {
   // End any event type run loops.
-  EventFactory::end();
+  EventFactory::end(wait);
+  // Stop thrift services/clients/and their thread pools.
+  Dispatcher::stopServices();
+  Dispatcher::joinServices();
 
   // Hopefully release memory used by global string constructors in gflags.
   GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
+  ::exit(retcode);
 }
 }

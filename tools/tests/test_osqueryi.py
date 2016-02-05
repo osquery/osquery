@@ -104,6 +104,9 @@ class OsqueryiTest(unittest.TestCase):
             SHELL_TIMEOUT)
         self.assertNotEqual(proc.stderr, "")
         self.assertNotEqual(proc.proc.poll(), 0)
+        # Also do not accept a SIGSEG
+        # It should exit EX_CONFIG = 78
+        self.assertEqual(proc.proc.poll(), 78)
 
     @test_base.flaky
     def test_config_check_example(self):

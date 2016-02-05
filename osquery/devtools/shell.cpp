@@ -943,7 +943,7 @@ static int shell_exec(
     ) {
   // Grab a lock on the managed DB instance.
   auto dbc = osquery::SQLiteDBManager::get();
-  auto db = dbc.db();
+  auto db = dbc->db();
 
   sqlite3_stmt *pStmt = nullptr; /* Statement to execute. */
   int rc = SQLITE_OK; /* Return Code */
@@ -1144,16 +1144,16 @@ static sqlite3_int64 integerValue(const char *zArg) {
     char *zSuffix;
     int iMult;
   } aMult[] = {
-        {(char *)"KiB", 1024},
-        {(char *)"MiB", 1024 * 1024},
-        {(char *)"GiB", 1024 * 1024 * 1024},
-        {(char *)"KB", 1000},
-        {(char *)"MB", 1000000},
-        {(char *)"GB", 1000000000},
-        {(char *)"K", 1000},
-        {(char *)"M", 1000000},
-        {(char *)"G", 1000000000},
-    };
+      {(char *)"KiB", 1024},
+      {(char *)"MiB", 1024 * 1024},
+      {(char *)"GiB", 1024 * 1024 * 1024},
+      {(char *)"KB", 1000},
+      {(char *)"MB", 1000000},
+      {(char *)"GB", 1000000000},
+      {(char *)"K", 1000},
+      {(char *)"M", 1000000},
+      {(char *)"G", 1000000000},
+  };
   int i;
   int isNeg = 0;
   if (zArg[0] == '-') {
@@ -1288,7 +1288,7 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
 
   // A meta command may act on the database, grab a lock and instance.
   auto dbc = osquery::SQLiteDBManager::get();
-  auto db = dbc.db();
+  auto db = dbc->db();
 
   /* Parse the input line into tokens.
   */
@@ -1673,7 +1673,7 @@ int launchIntoShell(int argc, char **argv) {
     auto dbc = SQLiteDBManager::get();
     // Add some shell-specific functions to the instance.
     sqlite3_create_function(
-        dbc.db(), "shellstatic", 0, SQLITE_UTF8, 0, shellstaticFunc, 0, 0);
+        dbc->db(), "shellstatic", 0, SQLITE_UTF8, 0, shellstaticFunc, 0, 0);
   }
 
   stdin_is_interactive = isatty(0);

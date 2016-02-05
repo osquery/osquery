@@ -28,6 +28,8 @@ FLAG(string,
      "Not Specified",
      "Comma-delimited list of table names to be disabled");
 
+using SQLiteDBInstanceRef = std::shared_ptr<SQLiteDBInstance>;
+
 /**
  * @brief A map of SQLite status codes to their corresponding message string
  *
@@ -129,7 +131,7 @@ std::string getStringForSQLiteReturnCode(int code) {
 Status SQLiteSQLPlugin::attach(const std::string& name) {
   // This may be the managed DB, or a transient.
   auto dbc = SQLiteDBManager::get();
-  if (!dbc.isPrimary()) {
+  if (!dbc->isPrimary()) {
     // Do not "reattach" to transient instance.
     return Status(0, "OK");
   }
@@ -142,15 +144,15 @@ Status SQLiteSQLPlugin::attach(const std::string& name) {
   }
 
   auto statement = columnDefinition(response);
-  return attachTableInternal(name, statement, dbc.db());
+  return attachTableInternal(name, statement, dbc->db());
 }
 
 void SQLiteSQLPlugin::detach(const std::string& name) {
   auto dbc = SQLiteDBManager::get();
-  if (!dbc.isPrimary()) {
+  if (!dbc->isPrimary()) {
     return;
   }
-  detachTableInternal(name, dbc.db());
+  detachTableInternal(name, dbc->db());
 }
 
 SQLiteDBInstance::SQLiteDBInstance() {
@@ -159,21 +161,24 @@ SQLiteDBInstance::SQLiteDBInstance() {
   attachVirtualTables(db_);
 }
 
-SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db) {
-  primary_ = true;
-  db_ = db;
+SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, std::mutex& mtx)
+    : db_(db), lock_(mtx, std::try_to_lock) {
+  if (lock_.owns_lock()) {
+    primary_ = true;
+  } else {
+    db_ = nullptr;
+    VLOG(1) << "DBManager contention: opening transient SQLite database";
+    SQLiteDBInstance();
+  }
 }
 
 SQLiteDBInstance::~SQLiteDBInstance() {
   if (!primary_) {
     sqlite3_close(db_);
   } else {
-    SQLiteDBManager::unlock();
     db_ = nullptr;
   }
 }
-
-void SQLiteDBManager::unlock() { instance().lock_.unlock(); }
 
 bool SQLiteDBManager::isDisabled(const std::string& table_name) {
   const auto& element = instance().disabled_tables_.find(table_name);
@@ -186,23 +191,21 @@ std::unordered_set<std::string> SQLiteDBManager::parseDisableTablesFlag(
   return std::unordered_set<std::string>(tables.begin(), tables.end());
 }
 
-SQLiteDBInstance SQLiteDBManager::getUnique() { return SQLiteDBInstance(); }
+SQLiteDBInstanceRef SQLiteDBManager::getUnique() {
+  return std::make_shared<SQLiteDBInstance>();
+}
 
-SQLiteDBInstance SQLiteDBManager::get() {
+SQLiteDBInstanceRef SQLiteDBManager::get() {
   auto& self = instance();
+  std::unique_lock<std::mutex> lock(self.create_mutex_);
 
-  if (!self.lock_.owns_lock() && self.lock_.try_lock()) {
-    if (self.db_ == nullptr) {
-      // Create primary SQLite DB instance.
-      sqlite3_open(":memory:", &self.db_);
-      attachVirtualTables(self.db_);
-    }
-    return SQLiteDBInstance(self.db_);
-  } else {
-    // If this thread or another has the lock, return a transient db.
-    VLOG(1) << "DBManager contention: opening transient SQLite database";
-    return SQLiteDBInstance();
+  if (self.db_ == nullptr) {
+    // Create primary SQLite DB instance.
+    sqlite3_open(":memory:", &self.db_);
+    attachVirtualTables(self.db_);
   }
+
+  return std::make_shared<SQLiteDBInstance>(self.db_, self.mutex_);
 }
 
 SQLiteDBManager::~SQLiteDBManager() {
@@ -293,7 +296,7 @@ Status getQueryColumnsInternal(const std::string& q,
                                TableColumns& columns,
                                sqlite3* db) {
   // Turn the query into a prepared statement
-  sqlite3_stmt *stmt{nullptr};
+  sqlite3_stmt* stmt{nullptr};
   auto rc = sqlite3_prepare_v2(db, q.c_str(), q.length() + 1, &stmt, nullptr);
   if (rc != SQLITE_OK || stmt == nullptr) {
     if (stmt != nullptr) {

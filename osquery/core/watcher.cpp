@@ -54,23 +54,6 @@ CLI_FLAG(int32,
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
-/// If the worker exits the watcher will inspect the return code.
-void childHandler(int signum) {
-  siginfo_t info;
-  // Make sure WNOWAIT is used to the wait information is not removed.
-  // Watcher::watch implements a thread to poll for this information.
-  waitid(P_ALL, 0, &info, WEXITED | WSTOPPED | WNOHANG | WNOWAIT);
-  if (info.si_code == CLD_EXITED) {
-    if (info.si_status == EXIT_CATASTROPHIC) {
-      // A child process had a catastrophic error, abort the watcher.
-      ::exit(EXIT_FAILURE);
-    } else if (info.si_status == EXIT_SUCCESS) {
-      // Child process is finished.
-      ::exit(EXIT_SUCCESS);
-    }
-  }
-}
-
 void Watcher::resetWorkerCounters(size_t respawn_time) {
   // Reset the monitoring counters for the watcher.
   auto& state = instance().state_;
@@ -172,6 +155,11 @@ bool Watcher::hasManagedExtensions() {
 
 bool WatcherRunner::ok() {
   interruptableSleep(getWorkerLimit(INTERVAL) * 1000);
+  // Inspect the exit code, on success or catastrophic, end the watcher.
+  auto status = Watcher::getWorkerStatus();
+  if (status == EXIT_SUCCESS || status == EXIT_CATASTROPHIC) {
+    return false;
+  }
   // Watcher is OK to run if a worker or at least one extension exists.
   return (Watcher::getWorker() >= 0 || Watcher::hasManagedExtensions());
 }
@@ -179,12 +167,12 @@ bool WatcherRunner::ok() {
 void WatcherRunner::start() {
   // Set worker performance counters to an initial state.
   Watcher::resetWorkerCounters(0);
-  signal(SIGCHLD, childHandler);
 
   // Enter the watch loop.
   do {
     if (use_worker_ && !watch(Watcher::getWorker())) {
       if (Watcher::fatesBound()) {
+        // A signal has interrupted the watcher.
         break;
       }
       // The watcher failed, create a worker.
@@ -208,9 +196,14 @@ void WatcherRunner::start() {
 }
 
 bool WatcherRunner::watch(pid_t child) {
-  int status;
+  int status = 0;
   pid_t result = waitpid(child, &status, WNOHANG);
-  if (child == 0 || result == child) {
+  if (Watcher::fatesBound()) {
+    // A signal was handled while the watcher was watching.
+    return false;
+  }
+
+  if (child == 0 || result < 0) {
     // Worker does not exist or never existed.
     return false;
   } else if (result == 0) {
@@ -219,6 +212,12 @@ bool WatcherRunner::watch(pid_t child) {
       stopChild(child);
       return false;
     }
+    return true;
+  }
+
+  if (WIFEXITED(status)) {
+    // If the worker process existed, store the exit code.
+    Watcher::instance().worker_status_ = WEXITSTATUS(status);
   }
   return true;
 }
@@ -333,7 +332,7 @@ void WatcherRunner::createWorker() {
   auto qd = SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(getpid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
     LOG(ERROR) << "osquery watcher cannot determine process path for worker";
-    ::exit(EXIT_FAILURE);
+    osquery::shutdown(EXIT_FAILURE);
   }
 
   // Set an environment signaling to potential plugin-dependent workers to wait
@@ -349,21 +348,21 @@ void WatcherRunner::createWorker() {
     // osqueryd binary has become unsafe.
     LOG(ERROR) << RLOG(1382)
                << "osqueryd has unsafe permissions: " << exec_path.string();
-    ::exit(EXIT_FAILURE);
+    osquery::shutdown(EXIT_FAILURE);
   }
 
   auto worker_pid = fork();
   if (worker_pid < 0) {
     // Unrecoverable error, cannot create a worker process.
     LOG(ERROR) << "osqueryd could not create a worker process";
-    ::exit(EXIT_FAILURE);
+    osquery::shutdown(EXIT_FAILURE);
   } else if (worker_pid == 0) {
     // This is the new worker process, no watching needed.
     setenv("OSQUERY_WORKER", std::to_string(getpid()).c_str(), 1);
     execve(exec_path.string().c_str(), argv_, environ);
     // Code should never reach this point.
     LOG(ERROR) << "osqueryd could not start worker process";
-    ::exit(EXIT_CATASTROPHIC);
+    osquery::shutdown(EXIT_CATASTROPHIC);
   }
 
   Watcher::setWorker(worker_pid);
@@ -397,7 +396,7 @@ bool WatcherRunner::createExtension(const std::string& extension) {
   if (ext_pid < 0) {
     // Unrecoverable error, cannot create an extension process.
     LOG(ERROR) << "Cannot create extension process: " << extension;
-    ::exit(EXIT_FAILURE);
+    osquery::shutdown(EXIT_FAILURE);
   } else if (ext_pid == 0) {
     // Pass the current extension socket and a set timeout to the extension.
     setenv("OSQUERY_EXTENSION", std::to_string(getpid()).c_str(), 1);
@@ -415,7 +414,7 @@ bool WatcherRunner::createExtension(const std::string& extension) {
            environ);
     // Code should never reach this point.
     VLOG(1) << "Could not start extension process: " << extension;
-    ::exit(EXIT_FAILURE);
+    osquery::shutdown(EXIT_FAILURE);
   }
 
   Watcher::setExtension(extension, ext_pid);
@@ -431,9 +430,8 @@ void WatcherWatcherRunner::start() {
       // Watcher died, the worker must follow.
       VLOG(1) << "osqueryd worker (" << getpid()
               << ") detected killed watcher (" << watcher_ << ")";
-      Dispatcher::stopServices();
       // The watcher watcher is a thread. Do not join services after removing.
-      ::exit(EXIT_SUCCESS);
+      ::exit(EXIT_FAILURE);
     }
     interruptableSleep(getWorkerLimit(INTERVAL) * 1000);
   }

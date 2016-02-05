@@ -485,13 +485,7 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
 }
 
 Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
-  std::shared_ptr<DBHandle> db = nullptr;
-  try {
-    db = DBHandle::getInstance();
-  } catch (const std::runtime_error& e) {
-    return Status(1, e.what());
-  }
-
+  auto db = DBHandle::getInstance();
   // Get and increment the EID for this module.
   EventID eid = getEventID();
   // Without encouraging a missing event time, do not support a 0-time.
@@ -537,7 +531,6 @@ void EventFactory::delay() {
 }
 
 Status EventFactory::run(EventPublisherID& type_id) {
-  auto& ef = EventFactory::getInstance();
   if (FLAGS_disable_events) {
     return Status(0, "Events disabled");
   }
@@ -547,7 +540,12 @@ Status EventFactory::run(EventPublisherID& type_id) {
   // Assume it can either make use of an entrypoint poller/selector or
   // take care of async callback registrations in setUp/configure/run
   // only once and handle event queuing/firing in callbacks.
-  EventPublisherRef publisher = ef.getEventPublisher(type_id);
+  EventPublisherRef publisher = nullptr;
+  {
+    auto& ef = EventFactory::getInstance();
+    auto read_lock = ef.requestRead();
+    publisher = ef.getEventPublisher(type_id);
+  }
 
   if (publisher == nullptr) {
     return Status(1, "Event publisher is missing");
@@ -574,7 +572,6 @@ Status EventFactory::run(EventPublisherID& type_id) {
   // If the event factory's `end` method was called these publishers will be
   // cleaned up after their thread context is removed; otherwise, a removed
   // thread context and failed publisher will remain available for stats.
-  // ef.event_pubs_.erase(type_id);
   return Status(0, "OK");
 }
 
@@ -791,9 +788,12 @@ std::vector<std::string> EventFactory::subscriberNames() {
 void EventFactory::end(bool join) {
   auto& ef = EventFactory::getInstance();
 
-  // Call deregister on each publisher.
-  for (const auto& publisher : ef.publisherTypes()) {
-    deregisterEventPublisher(publisher);
+  {
+    auto write_lock = ef.requestWrite();
+    // Call deregister on each publisher.
+    for (const auto& publisher : ef.publisherTypes()) {
+      deregisterEventPublisher(publisher);
+    }
   }
 
   // Stop handling exceptions for the publisher threads.
@@ -805,15 +805,17 @@ void EventFactory::end(bool join) {
     }
   }
 
-  // A small cool off helps OS API event publisher flushing.
-  if (!FLAGS_disable_events) {
-    ::usleep(400);
-    ef.threads_.clear();
-  }
+  {
+    auto write_lock = ef.requestWrite();
+    // A small cool off helps OS API event publisher flushing.
+    if (!FLAGS_disable_events) {
+      ef.threads_.clear();
+    }
 
-  // Threads may still be executing, when they finish, release publishers.
-  ef.event_pubs_.clear();
-  ef.event_subs_.clear();
+    // Threads may still be executing, when they finish, release publishers.
+    ef.event_pubs_.clear();
+    ef.event_subs_.clear();
+  }
 }
 
 void attachEvents() {

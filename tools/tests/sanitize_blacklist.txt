@@ -8,5 +8,13 @@ src:*asio/impl/*
 # GFlags
 fun:*SetArgv*
 
+# GLog
+# This is a confirmed race, but deemed low pri
+fun:*RawLog__SetLastTime*
+
+# Thrift
+fun:*TServerSocket*
+src:*thrift/transport/TServerSocket.cpp
+
 # RocksDB
 fun:*ColumnFamilyOptions*
