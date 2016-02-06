@@ -62,7 +62,7 @@ function distro() {
   elif [[ $1 = "fedora" ]]; then
     eval $__out=`cat /etc/system-release | cut -d" " -f3`
   elif [[ $1 = "debian" ]]; then
-    eval $__out="`lsb_release -cs`"
+    eval $__out="`cat $DEBIAN_VERSION`"
   elif [[ $1 = "freebsd" ]]; then
     eval $__out=`uname -r | awk -F '-' '{print $1}'` 
   else
