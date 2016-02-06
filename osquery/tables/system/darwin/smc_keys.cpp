@@ -373,8 +373,6 @@ void genSMCKey(const std::string &key,
   r["size"] = INTEGER(value.dataSize);
   if (r["type"] == "ui8" || r["type"] == "ui16" || r["type"] == "ui32") {
     r["value"] = std::to_string(strtoul(value.bytes.bytes, value.dataSize, 10));
-  } else if (r["type"] == "fpe2") {
-    r["value"] = std::to_string(strtof(value.bytes.bytes, value.dataSize, 10));
   } else {
     std::stringstream hex;
     for (size_t i = 0; i < value.dataSize; i++) {
