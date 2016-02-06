@@ -110,6 +110,13 @@ pt::ptree getUnrestrictedPack() {
   return packs.get_child("unrestricted_pack");
 }
 
+// several restrictions (version, platform, shard)
+pt::ptree getRestrictedPack() {
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  return packs.get_child("restricted_pack");
+}
+
 /// 1 discovery query, darwin platform restriction
 pt::ptree getPackWithDiscovery() {
   auto tree = getExamplePacksConfig();

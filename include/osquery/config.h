@@ -130,7 +130,7 @@ class Config : private boost::noncopyable {
   /**
    * @brief Iterate through all packs
    */
-  void packs(std::function<void(Pack& pack)> predicate);
+  void packs(std::function<void(std::shared_ptr<Pack>& pack)> predicate);
 
   /**
    * @brief Add a file
@@ -292,6 +292,7 @@ class Config : private boost::noncopyable {
   FRIEND_TEST(ConfigTests, test_get_parser);
   FRIEND_TEST(ConfigTests, test_add_remove_pack);
   FRIEND_TEST(ConfigTests, test_update_clear);
+  FRIEND_TEST(ConfigTests, test_pack_file_paths);
   FRIEND_TEST(ConfigTests, test_noninline_pack);
 
   friend class FilePathsConfigParserPluginTests;

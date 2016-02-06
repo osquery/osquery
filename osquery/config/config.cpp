@@ -63,6 +63,8 @@ boost::shared_mutex config_files_mutex_;
 boost::shared_mutex config_hash_mutex_;
 boost::shared_mutex config_valid_mutex_;
 
+using PackRef = std::shared_ptr<Pack>;
+
 /**
  * The schedule is an iterable collection of Packs. When you iterate through
  * a schedule, you only get the packs that should be running on the host that
@@ -71,7 +73,7 @@ boost::shared_mutex config_valid_mutex_;
 class Schedule : private boost::noncopyable {
  public:
   /// Under the hood, the schedule is just a list of the Pack objects
-  using container = std::list<Pack>;
+  using container = std::list<PackRef>;
 
   /**
    * @brief Create a schedule maintained by the configuration.
@@ -90,12 +92,12 @@ class Schedule : private boost::noncopyable {
    * next iterator element or skipped.
    */
   struct Step {
-    bool operator()(Pack& pack) { return pack.shouldPackExecute(); }
+    bool operator()(PackRef& pack) { return pack->shouldPackExecute(); }
   };
 
   /// Add a pack to the schedule
-  void add(const Pack& pack) {
-    remove(pack.getName(), pack.getSource());
+  void add(PackRef&& pack) {
+    remove(pack->getName(), pack->getSource());
     packs_.push_back(pack);
   }
 
@@ -104,10 +106,10 @@ class Schedule : private boost::noncopyable {
 
   /// Remove a pack by name and source.
   void remove(const std::string& pack, const std::string& source) {
-    packs_.remove_if([pack, source](Pack& p) {
-      if (p.getName() == pack && (p.getSource() == source || source == "")) {
+    packs_.remove_if([pack, source](PackRef& p) {
+      if (p->getName() == pack && (p->getSource() == source || source == "")) {
         Config::getInstance().removeFiles(source + FLAGS_pack_delimiter +
-                                          p.getName());
+                                          p->getName());
         return true;
       }
       return false;
@@ -116,10 +118,10 @@ class Schedule : private boost::noncopyable {
 
   /// Remove all packs by source.
   void removeAll(const std::string& source) {
-    packs_.remove_if(([source](Pack& p) {
-      if (p.getSource() == source) {
+    packs_.remove_if(([source](PackRef& p) {
+      if (p->getSource() == source) {
         Config::getInstance().removeFiles(source + FLAGS_pack_delimiter +
-                                          p.getName());
+                                          p->getName());
         return true;
       }
       return false;
@@ -131,6 +133,8 @@ class Schedule : private boost::noncopyable {
 
   iterator begin() { return iterator(packs_.begin(), packs_.end()); }
   iterator end() { return iterator(packs_.end(), packs_.end()); }
+
+  PackRef& last() { return packs_.back(); }
 
  private:
   /// Underlying storage for the packs
@@ -217,8 +221,10 @@ void Config::addPack(const std::string& name,
                      const pt::ptree& tree) {
   WriteLock wlock(config_schedule_mutex_);
   try {
-    schedule_->add(Pack(name, source, tree));
-    applyParsers(source + FLAGS_pack_delimiter + name, tree, true);
+    schedule_->add(std::make_shared<Pack>(name, source, tree));
+    if (schedule_->last()->shouldPackExecute()) {
+      applyParsers(source + FLAGS_pack_delimiter + name, tree, true);
+    }
   } catch (const std::exception& e) {
     LOG(WARNING) << "Error adding pack: " << name << ": " << e.what();
   }
@@ -246,12 +252,12 @@ void Config::removeFiles(const std::string& source) {
 void Config::scheduledQueries(std::function<
     void(const std::string& name, const ScheduledQuery& query)> predicate) {
   ReadLock rlock(config_schedule_mutex_);
-  for (const Pack& pack : *schedule_) {
-    for (const auto& it : pack.getSchedule()) {
+  for (const PackRef& pack : *schedule_) {
+    for (const auto& it : pack->getSchedule()) {
       std::string name = it.first;
       // The query name may be synthetic.
-      if (pack.getName() != "main" && pack.getName() != "legacy_main") {
-        name = "pack" + FLAGS_pack_delimiter + pack.getName() +
+      if (pack->getName() != "main" && pack->getName() != "legacy_main") {
+        name = "pack" + FLAGS_pack_delimiter + pack->getName() +
                FLAGS_pack_delimiter + it.first;
       }
       // They query may have failed and been added to the schedule's blacklist.
@@ -272,9 +278,9 @@ void Config::scheduledQueries(std::function<
   }
 }
 
-void Config::packs(std::function<void(Pack& pack)> predicate) {
+void Config::packs(std::function<void(PackRef& pack)> predicate) {
   ReadLock rlock(config_schedule_mutex_);
-  for (Pack& pack : schedule_->packs_) {
+  for (PackRef& pack : schedule_->packs_) {
     predicate(pack);
   }
 }
@@ -508,7 +514,7 @@ void Config::purge() {
   const auto& schedule = this->schedule_;
   auto queryExists = [&schedule](const std::string& query_name) {
     for (const auto& pack : schedule->packs_) {
-      const auto& pack_queries = pack.getSchedule();
+      const auto& pack_queries = pack->getSchedule();
       if (pack_queries.count(query_name)) {
         return true;
       }

@@ -32,36 +32,36 @@ TEST_F(PacksTests, test_parse) {
 }
 
 TEST_F(PacksTests, test_should_pack_execute) {
-  auto kpack = Pack("unrestricted_pack", getUnrestrictedPack());
+  Pack kpack("unrestricted_pack", getUnrestrictedPack());
   EXPECT_TRUE(kpack.shouldPackExecute());
 
-  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  Pack fpack("discovery_pack", getPackWithDiscovery());
   EXPECT_FALSE(fpack.shouldPackExecute());
 }
 
 TEST_F(PacksTests, test_get_discovery_queries) {
   std::vector<std::string> expected;
 
-  auto kpack = Pack("unrestricted_pack", getUnrestrictedPack());
+  Pack kpack("unrestricted_pack", getUnrestrictedPack());
   EXPECT_EQ(kpack.getDiscoveryQueries(), expected);
 
   expected = {"select pid from processes where name = 'foobar';"};
-  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  Pack fpack("discovery_pack", getPackWithDiscovery());
   EXPECT_EQ(fpack.getDiscoveryQueries(), expected);
 }
 
 TEST_F(PacksTests, test_platform) {
-  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  Pack fpack("discovery_pack", getPackWithDiscovery());
   EXPECT_EQ(fpack.getPlatform(), "all");
 }
 
 TEST_F(PacksTests, test_version) {
-  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  Pack fpack("discovery_pack", getPackWithDiscovery());
   EXPECT_EQ(fpack.getVersion(), "1.5.0");
 }
 
 TEST_F(PacksTests, test_name) {
-  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  Pack fpack("discovery_pack", getPackWithDiscovery());
   fpack.setName("also_discovery_pack");
   EXPECT_EQ(fpack.getName(), "also_discovery_pack");
 }
@@ -78,7 +78,7 @@ TEST_F(PacksTests, test_sharding) {
 }
 
 TEST_F(PacksTests, test_check_platform) {
-  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  Pack fpack("discovery_pack", getPackWithDiscovery());
   EXPECT_TRUE(fpack.checkPlatform());
 
   // Depending on the current build platform, this check will be true or false.
@@ -99,10 +99,10 @@ TEST_F(PacksTests, test_check_platform) {
 }
 
 TEST_F(PacksTests, test_check_version) {
-  auto zpack = Pack("fake_version_pack", getPackWithFakeVersion());
+  Pack zpack("fake_version_pack", getPackWithFakeVersion());
   EXPECT_FALSE(zpack.checkVersion());
 
-  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  Pack fpack("discovery_pack", getPackWithDiscovery());
   EXPECT_TRUE(fpack.checkVersion());
 }
 
@@ -110,7 +110,7 @@ TEST_F(PacksTests, test_restriction_population) {
   // Require that all potential restrictions are populated before being checked.
   auto tree = getExamplePacksConfig();
   auto packs = tree.get_child("packs");
-  auto fpack = Pack("fake_pack", packs.get_child("restricted_pack"));
+  Pack fpack("fake_pack", packs.get_child("restricted_pack"));
 
   ASSERT_FALSE(fpack.getPlatform().empty());
   ASSERT_FALSE(fpack.getVersion().empty());
@@ -118,7 +118,7 @@ TEST_F(PacksTests, test_restriction_population) {
 }
 
 TEST_F(PacksTests, test_schedule) {
-  auto fpack = Pack("discovery_pack", getPackWithDiscovery());
+  Pack fpack("discovery_pack", getPackWithDiscovery());
   // Expect a single query in the schedule since one query has an explicit
   // invalid/fake platform requirement.
   EXPECT_EQ(fpack.getSchedule().size(), 1U);
@@ -132,24 +132,26 @@ TEST_F(PacksTests, test_discovery_cache) {
   size_t query_attemts = 5U;
   for (size_t i = 0; i < query_attemts; i++) {
     c.scheduledQueries(
-        ([&query_count](const std::string& name,
-                        const ScheduledQuery& query) { query_count++; }));
+        ([&query_count](const std::string& name, const ScheduledQuery& query) {
+          query_count++;
+        }));
   }
   EXPECT_EQ(query_count, query_attemts);
 
   size_t pack_count = 0U;
-  c.packs(([&pack_count, query_attemts](Pack& p) {
+  c.packs(([&pack_count, query_attemts](std::shared_ptr<Pack>& p) {
     pack_count++;
-    EXPECT_EQ(p.getStats().total, query_attemts);
-    EXPECT_EQ(p.getStats().hits, query_attemts - 1);
-    EXPECT_EQ(p.getStats().misses, 1U);
+    // There is one pack without a discovery query.
+    EXPECT_EQ(p->getStats().total, query_attemts + 1);
+    EXPECT_EQ(p->getStats().hits, query_attemts);
+    EXPECT_EQ(p->getStats().misses, 1U);
   }));
 
   EXPECT_EQ(pack_count, 1U);
 }
 
 TEST_F(PacksTests, test_discovery_zero_state) {
-  auto pack = Pack("discovery_pack", getPackWithDiscovery());
+  Pack pack("discovery_pack", getPackWithDiscovery());
   auto stats = pack.getStats();
   EXPECT_EQ(stats.total, 0U);
   EXPECT_EQ(stats.hits, 0U);

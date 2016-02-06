@@ -172,18 +172,18 @@ TEST_F(ConfigTests, test_parse) {
   std::map<std::string, bool> results = {
       {"unrestricted_pack", true},
       {"discovery_pack", false},
-      {"fake_version_pack", true},
+      {"fake_version_pack", false},
       // Although this is a valid discovery query, there is no SQL plugin in
       // the core tests.
       {"valid_discovery_pack", false},
-      {"restricted_pack", true},
+      {"restricted_pack", false},
   };
 
-  c.packs(([&results](Pack& pack) {
-    if (results[pack.getName()]) {
-      EXPECT_TRUE(pack.shouldPackExecute());
+  c.packs(([&results](std::shared_ptr<Pack>& pack) {
+    if (results[pack->getName()]) {
+      EXPECT_TRUE(pack->shouldPackExecute());
     } else {
-      EXPECT_FALSE(pack.shouldPackExecute());
+      EXPECT_FALSE(pack->shouldPackExecute());
     }
   }));
 }
@@ -193,24 +193,26 @@ TEST_F(ConfigTests, test_remove) {
   c.addPack("unrestricted_pack", "", getUnrestrictedPack());
   c.removePack("unrestricted_pack");
 
-  c.packs(([](Pack& pack) { EXPECT_NE("unrestricted_pack", pack.getName()); }));
+  c.packs(([](std::shared_ptr<Pack>& pack) {
+    EXPECT_NE("unrestricted_pack", pack->getName());
+  }));
 }
 
 TEST_F(ConfigTests, test_add_remove_pack) {
   Config c;
 
   size_t pack_count = 0;
-  c.packs(([&pack_count](Pack& pack) { pack_count++; }));
+  c.packs(([&pack_count](std::shared_ptr<Pack>& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 0U);
 
   pack_count = 0;
   c.addPack("unrestricted_pack", "", getUnrestrictedPack());
-  c.packs(([&pack_count](Pack& pack) { pack_count++; }));
+  c.packs(([&pack_count](std::shared_ptr<Pack>& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 1U);
 
   pack_count = 0;
   c.removePack("unrestricted_pack");
-  c.packs(([&pack_count](Pack& pack) { pack_count++; }));
+  c.packs(([&pack_count](std::shared_ptr<Pack>& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 0U);
 }
 
@@ -227,7 +229,7 @@ TEST_F(ConfigTests, test_update_clear) {
   Config c;
   c.update(config_data);
   size_t count = 0;
-  auto packCounter = [&count](Pack& pack) { count++; };
+  auto packCounter = [&count](std::shared_ptr<Pack>& pack) { count++; };
   c.packs(packCounter);
   EXPECT_GT(count, 0U);
 
@@ -244,8 +246,9 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<ScheduledQuery> queries;
   c.addPack("unrestricted_pack", "", getUnrestrictedPack());
   c.scheduledQueries(
-      ([&queries](const std::string&,
-                  const ScheduledQuery& query) { queries.push_back(query); }));
+      ([&queries](const std::string&, const ScheduledQuery& query) {
+        queries.push_back(query);
+      }));
   EXPECT_EQ(queries.size(), getUnrestrictedPack().get_child("queries").size());
 }
 
@@ -270,6 +273,30 @@ TEST_F(ConfigTests, test_get_parser) {
   EXPECT_EQ(data.count("dictionary"), 1U);
 }
 
+TEST_F(ConfigTests, test_pack_file_paths) {
+  Config c;
+
+  size_t count = 0;
+  auto fileCounter =
+      [&count](const std::string& c, const std::vector<std::string>& files) {
+        count += files.size();
+      };
+
+  c.addPack("unrestricted_pack", "", getUnrestrictedPack());
+  Config::getInstance().files(fileCounter);
+  EXPECT_EQ(count, 7U);
+
+  c.removePack("unrestricted_pack");
+  count = 0;
+  Config::getInstance().files(fileCounter);
+  EXPECT_EQ(count, 5U);
+
+  c.addPack("restricted_pack", "", getRestrictedPack());
+  count = 0;
+  Config::getInstance().files(fileCounter);
+  EXPECT_EQ(count, 5U);
+}
+
 TEST_F(ConfigTests, test_noninline_pack) {
   Registry::add<TestConfigPlugin>("config", "test");
 
@@ -284,7 +311,7 @@ TEST_F(ConfigTests, test_noninline_pack) {
   EXPECT_EQ(plugin->genPackCount, 1);
 
   int total_packs = 0;
-  c.packs([&total_packs](const Pack& pack) { total_packs++; });
+  c.packs([&total_packs](const std::shared_ptr<Pack>& pack) { total_packs++; });
   EXPECT_EQ(total_packs, 2);
 }
 

@@ -78,14 +78,14 @@ QueryData genOsqueryEvents(QueryContext& context) {
 QueryData genOsqueryPacks(QueryContext& context) {
   QueryData results;
 
-  Config::getInstance().packs([&results](Pack& pack) {
+  Config::getInstance().packs([&results](std::shared_ptr<Pack>& pack) {
     Row r;
-    r["name"] = pack.getName();
-    r["version"] = pack.getVersion();
-    r["platform"] = pack.getPlatform();
-    r["shard"] = INTEGER(pack.getShard());
+    r["name"] = pack->getName();
+    r["version"] = pack->getVersion();
+    r["platform"] = pack->getPlatform();
+    r["shard"] = INTEGER(pack->getShard());
 
-    auto stats = pack.getStats();
+    auto stats = pack->getStats();
     r["discovery_cache_hits"] = INTEGER(stats.hits);
     r["discovery_executions"] = INTEGER(stats.misses);
     results.push_back(r);
