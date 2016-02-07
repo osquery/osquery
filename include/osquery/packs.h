@@ -10,11 +10,13 @@
 
 #pragma once
 
+#include <atomic>
 #include <map>
 #include <string>
 #include <vector>
 
 #include <boost/property_tree/ptree.hpp>
+#include <boost/noncopyable.hpp>
 
 #include <osquery/database.h>
 
@@ -33,7 +35,7 @@ struct PackStats {
  * Instantiating a new Pack object parses JSON and may throw a
  * boost::property_tree::json_parser::json_parser_error exception
  */
-class Pack {
+class Pack : private boost::noncopyable {
  public:
   Pack(const std::string& name, const boost::property_tree::ptree& tree)
       : Pack(name, "", tree) {}
@@ -121,6 +123,9 @@ class Pack {
 
   /// Cached time and result from previous discovery step.
   std::pair<size_t, bool> discovery_cache_;
+
+  /// Aggregate appropriateness of pack for this host.
+  std::atomic<bool> valid_{false};
 
   /// Pack discovery statistics.
   PackStats stats_;

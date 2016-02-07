@@ -134,12 +134,6 @@ void Pack::initialize(const std::string& name,
     return;
   }
 
-  schedule_.clear();
-  if (tree.count("queries") == 0) {
-    // This pack contained no queries.
-    return;
-  }
-
   discovery_queries_.clear();
   if (tree.count("discovery") > 0) {
     for (const auto& item : tree.get_child("discovery")) {
@@ -149,10 +143,17 @@ void Pack::initialize(const std::string& name,
 
   // Initialize a discovery cache at time 0.
   discovery_cache_ = std::make_pair<size_t, bool>(0, false);
+  valid_ = true;
 
   // If the splay percent is less than 1 reset to a sane estimate.
   if (FLAGS_schedule_splay_percent <= 1) {
     FLAGS_schedule_splay_percent = 10;
+  }
+
+  schedule_.clear();
+  if (tree.count("queries") == 0) {
+    // This pack contained no queries.
+    return;
   }
 
   // Iterate the queries (or schedule) and check platform/version/sanity.
@@ -207,7 +208,7 @@ const std::string& Pack::getPlatform() const { return platform_; }
 
 const std::string& Pack::getVersion() const { return version_; }
 
-bool Pack::shouldPackExecute() { return checkDiscovery(); }
+bool Pack::shouldPackExecute() { return (valid_ && checkDiscovery()); }
 
 const std::string& Pack::getName() const { return name_; }
 

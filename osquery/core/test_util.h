@@ -51,6 +51,7 @@ std::map<std::string, std::string> getTestConfigMap();
 
 pt::ptree getExamplePacksConfig();
 pt::ptree getUnrestrictedPack();
+pt::ptree getRestrictedPack();
 pt::ptree getPackWithDiscovery();
 pt::ptree getPackWithValidDiscovery();
 pt::ptree getPackWithFakeVersion();
