@@ -38,12 +38,15 @@ namespace osquery {
  */
 class SQLiteDBInstance : private boost::noncopyable {
  public:
-  SQLiteDBInstance();
+  SQLiteDBInstance() { init(); }
   SQLiteDBInstance(sqlite3*& db, std::mutex& mtx);
   ~SQLiteDBInstance();
 
   /// Check if the instance is the osquery primary.
   bool isPrimary() const { return primary_; }
+
+  /// Generate a new 'transient' connection.
+  void init();
 
   /**
    * @brief Accessor to the internal `sqlite3` object, do not store references

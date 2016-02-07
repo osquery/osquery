@@ -363,6 +363,9 @@ Status attachTableInternal(const std::string &name,
       nullptr, /* Rollback */
       nullptr, /* FindFunction */
       nullptr, /* Rename */
+      nullptr, /* Savepoint */
+      nullptr, /* Release */
+      nullptr, /* RollbackTo */
   };
   // clang-format on
 

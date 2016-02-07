@@ -155,12 +155,6 @@ void SQLiteSQLPlugin::detach(const std::string& name) {
   detachTableInternal(name, dbc->db());
 }
 
-SQLiteDBInstance::SQLiteDBInstance() {
-  primary_ = false;
-  sqlite3_open(":memory:", &db_);
-  attachVirtualTables(db_);
-}
-
 SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, std::mutex& mtx)
     : db_(db), lock_(mtx, std::try_to_lock) {
   if (lock_.owns_lock()) {
@@ -168,8 +162,14 @@ SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, std::mutex& mtx)
   } else {
     db_ = nullptr;
     VLOG(1) << "DBManager contention: opening transient SQLite database";
-    SQLiteDBInstance();
+    init();
   }
+}
+
+void SQLiteDBInstance::init() {
+  primary_ = false;
+  sqlite3_open(":memory:", &db_);
+  attachVirtualTables(db_);
 }
 
 SQLiteDBInstance::~SQLiteDBInstance() {
