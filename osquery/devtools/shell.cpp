@@ -941,6 +941,7 @@ static int shell_exec(
     struct callback_data *pArg, /* Pointer to struct callback_data */
     char **pzErrMsg /* Error msg written here */
     ) {
+
   // Grab a lock on the managed DB instance.
   auto dbc = osquery::SQLiteDBManager::get();
   auto db = dbc->db();
@@ -1286,10 +1287,6 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
   int rc = 0;
   char *azArg[50];
 
-  // A meta command may act on the database, grab a lock and instance.
-  auto dbc = osquery::SQLiteDBManager::get();
-  auto db = dbc->db();
-
   /* Parse the input line into tokens.
   */
   while (zLine[i] && nArg < ArraySize(azArg)) {
@@ -1341,8 +1338,15 @@ static int do_meta_command(char *zLine, struct callback_data *p) {
     if (rc != SQLITE_OK) {
       fprintf(stderr, "Error querying table: %s\n", azArg[1]);
     }
-  } else if (c == 'b' && n >= 3 && strncmp(azArg[0], "bail", n) == 0 &&
-             nArg > 1 && nArg < 3) {
+    return rc;
+  }
+
+  // A meta command may act on the database, grab a lock and instance.
+  auto dbc = osquery::SQLiteDBManager::get();
+  auto db = dbc->db();
+
+  if (c == 'b' && n >= 3 && strncmp(azArg[0], "bail", n) == 0 && nArg > 1 &&
+      nArg < 3) {
     bail_on_error = booleanValue(azArg[1]);
   } else if (c == 'e' && strncmp(azArg[0], "echo", n) == 0 && nArg > 1 &&
              nArg < 3) {

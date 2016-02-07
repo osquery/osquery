@@ -181,6 +181,12 @@ class OsqueryiTest(unittest.TestCase):
         self.assertTrue(0 <= int(row['seconds']) <= 60)
 
     @test_base.flaky
+    def test_time_using_all(self):
+        self.osqueryi.run_command(' ')
+        result = self.osqueryi.run_command('.all time')
+        self.assertNotEqual(result.rstrip(), "Error querying table: time")
+
+    @test_base.flaky
     def test_config_bad_json(self):
         self.osqueryi = test_base.OsqueryWrapper(self.binary,
                                                  args={"config_path": "/"})
