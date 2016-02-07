@@ -1,0 +1,75 @@
+/*
+ *  Copyright (c) 2014, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+#include <resolv.h>
+
+#include <osquery/core.h>
+#include <osquery/tables.h>
+#include <osquery/logger.h>
+
+#include "osquery/tables/networking/utils.h"
+
+namespace osquery {
+namespace tables {
+
+QueryData genDNSResolvers(QueryContext& context) {
+  QueryData results;
+
+  // libresolv will populate a global structure with resolver information.
+  if (res_init() == -1) {
+    return {};
+  }
+
+  // The global structure is called "_res" and is of the semi-opaque type
+  // struct __res_state from the same resolv.h. An application many communicate
+  // with the resolver discovery, but we are interested in the default state.
+  struct __res_state& rr = _res;
+  if (rr.nscount > 0) {
+    for (size_t i = 0; i < static_cast<size_t>(_res.nscount); i++) {
+      Row r;
+      r["id"] = INTEGER(i);
+      r["type"] = "nameserver";
+      r["address"] = ipAsString((const struct sockaddr*)&_res.nsaddr_list[i]);
+      r["netmask"] = "32";
+      // Options applies to every resolver.
+      r["options"] = BIGINT(_res.options);
+      results.push_back(r);
+    }
+  }
+
+  if (_res.nsort > 0) {
+    for (size_t i = 0; i < static_cast<size_t>(_res.nsort); i++) {
+      Row r;
+      r["id"] = INTEGER(i);
+      r["type"] = "sortlist";
+      r["address"] =
+          ipAsString((const struct sockaddr*)&_res.sort_list[i].addr);
+      r["netmask"] = INTEGER(_res.sort_list[i].mask);
+      r["options"] = BIGINT(_res.options);
+      results.push_back(r);
+    }
+  }
+
+  for (size_t i = 0; i < MAXDNSRCH; i++) {
+    if (_res.dnsrch[i] != nullptr) {
+      Row r;
+      r["id"] = INTEGER(i);
+      r["type"] = "search";
+      r["address"] = std::string(_res.dnsrch[0]);
+      r["options"] = BIGINT(_res.options);
+      results.push_back(r);
+    }
+  }
+
+  res_close();
+  return results;
+}
+}
+}

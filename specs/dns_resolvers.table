@@ -1,0 +1,10 @@
+table_name("dns_resolvers")
+description("Resolvers used by this host")
+schema([
+    Column("id", INTEGER, "Address type index or order"),
+    Column("type", TEXT, "Address type: sortlist, nameserver, search"),
+    Column("address", TEXT, "Resolver IP/IPv6 address"),
+    Column("netmask", TEXT, "Address (sortlist) netmask length"),
+    Column("options", BIGINT, "Resolver options"),
+])
+implementation("dns_resolvers@genDNSResolvers")
