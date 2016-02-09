@@ -272,6 +272,44 @@ class RegistryHelperCore : private boost::noncopyable {
   /// Allow a registry type to react to configuration updates.
   virtual void configure();
 
+  /**
+   * @brief Add a set of item names broadcasted by an extension uuid.
+   *
+   * When an extension is registered the RegistryFactory will receive a
+   * RegistryBroadcast containing a all of the extension's registry names and
+   * the set of items with their optional route info. The factory depends on
+   * each registry to manage calls/requests to these external plugins.
+   *
+   * @param uuid The uuid chosen for the extension.
+   * @param routes The plugin name and optional route info list.
+   * @return Success if all routes were added, failure if any failed.
+   */
+  Status addExternal(const RouteUUID& uuid, const RegistryRoutes& routes);
+
+  /**
+   * @brief Each RegistryType will include a trampoline into the PluginType.
+   *
+   * A PluginType may act on registry modifications. Each specialized registry
+   * will include a trampoline method to call the plugin type's addExternal.
+   *
+   * @param name Plugin name (not the extension UUID).
+   * @param info The route information broadcasted.
+   */
+  virtual Status addExternalPlugin(const std::string& name,
+                                   const PluginResponse& info) const = 0;
+
+  /// Remove all the routes for a given uuid.
+  void removeExternal(const RouteUUID& uuid);
+
+  /**
+   * @brief Each RegistryType will include a trampoline into the PluginType.
+   *
+   * A PluginType may act on registry modifications. Each specialized registry
+   * will include a trampoline method to call the plugin type's removeExternal.
+   * @param name Plugin name (not the extension UUID).
+   */
+  virtual void removeExternalPlugin(const std::string& name) const = 0;
+
   /// Facility method to check if a registry item exists.
   bool exists(const std::string& item_name, bool local = false) const;
 
@@ -359,49 +397,6 @@ class RegistryHelper : public RegistryHelperCore {
   virtual ~RegistryHelper() {}
 
   /**
-   * @brief Add a set of item names broadcasted by an extension uuid.
-   *
-   * When an extension is registered the RegistryFactory will receive a
-   * RegistryBroadcast containing a all of the extension's registry names and
-   * the set of items with their optional route info. The factory depends on
-   * each registry to manage calls/requests to these external plugins.
-   *
-   * @param uuid The uuid chosen for the extension.
-   * @param routes The plugin name and optional route info list.
-   * @return Success if all routes were added, failure if any failed.
-   */
-  Status addExternal(const RouteUUID& uuid, const RegistryRoutes& routes) {
-    // Add each route name (item name) to the tracking.
-    for (const auto& route : routes) {
-      // Keep the routes info assigned to the registry.
-      routes_[route.first] = route.second;
-      auto status = add_(route.first, route.second);
-      external_[route.first] = uuid;
-      if (!status.ok()) {
-        return status;
-      }
-    }
-    return Status(0, "OK");
-  }
-
-  /// Remove all the routes for a given uuid.
-  void removeExternal(const RouteUUID& uuid) {
-    std::vector<std::string> removed_items;
-    for (const auto& item : external_) {
-      if (item.second == uuid) {
-        remove_(item.first);
-        removed_items.push_back(item.first);
-      }
-    }
-
-    // Remove items belonging to the external uuid.
-    for (const auto& item : removed_items) {
-      external_.erase(item);
-      routes_.erase(item);
-    }
-  }
-
-  /**
    * @brief Add a plugin to this registry by allocating and indexing
    * a type Item and a key identifier.
    *
@@ -440,6 +435,18 @@ class RegistryHelper : public RegistryHelperCore {
     return std::dynamic_pointer_cast<RegistryType>(items_.at(item_name));
   }
 
+  /// Trampoline function for calling the PluginType's addExternal.
+  Status addExternalPlugin(const std::string& name,
+                           const PluginResponse& info) const override {
+    return add_(name, info);
+  }
+
+  /// Trampoline function for calling the PluginType's removeExternal.
+  void removeExternalPlugin(const std::string& name) const override {
+    remove_(name);
+  }
+
+  /// Construct and return a map of plugin names to their implementation.
   const std::map<std::string, RegistryTypeRef> all() const {
     std::map<std::string, RegistryTypeRef> ditems;
     for (const auto& item : items_) {
@@ -458,10 +465,12 @@ class RegistryHelper : public RegistryHelperCore {
   RemoveExternalCallback remove_;
 };
 
-/// Helper defintion for a shared pointer to a Plugin.
+/// Helper definition for a shared pointer to a Plugin.
 using PluginRef = std::shared_ptr<Plugin>;
+
 /// Helper definition for a basic-templated Registry type using a base Plugin.
 using PluginRegistryHelper = RegistryHelper<Plugin>;
+
 /// Helper definitions for a shared pointer to the basic Registry type.
 using PluginRegistryHelperRef = std::shared_ptr<PluginRegistryHelper>;
 

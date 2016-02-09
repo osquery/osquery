@@ -156,14 +156,14 @@ QueryData genOsqueryExtensions(QueryContext& context) {
 
   ExtensionList extensions;
   if (getExtensions(extensions).ok()) {
-    for (const auto& extenion : extensions) {
+    for (const auto& extension : extensions) {
       Row r;
-      r["uuid"] = TEXT(extenion.first);
-      r["name"] = extenion.second.name;
-      r["version"] = extenion.second.version;
-      r["sdk_version"] = extenion.second.sdk_version;
-      r["path"] = getExtensionSocket(extenion.first);
-      r["type"] = "extension";
+      r["uuid"] = TEXT(extension.first);
+      r["name"] = extension.second.name;
+      r["version"] = extension.second.version;
+      r["sdk_version"] = extension.second.sdk_version;
+      r["path"] = getExtensionSocket(extension.first);
+      r["type"] = (extension.first == 0) ? "core" : "extension";
       results.push_back(r);
     }
   }

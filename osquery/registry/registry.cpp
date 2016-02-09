@@ -60,14 +60,21 @@ Status RegistryHelperCore::setActive(const std::string& item_name) {
     }
   }
 
+  Status status(0, "OK");
   active_ = item_name;
   // The active plugin is setup when initialized.
   for (const auto& item : osquery::split(item_name, ",")) {
     if (exists(item, true)) {
-      Registry::get(name_, item)->setUp();
+      status = Registry::get(name_, item)->setUp();
+    } else if (exists(item, false) && !Registry::external()) {
+      // If the active plugin is within an extension we must wait.
+      // An extension will first broadcast the registry, then receive the list
+      // of active plugins, active them if they are extension-local, and finally
+      // start their extension socket.
+      status = pingExtension(getExtensionSocket(external_.at(item_name)));
     }
   }
-  return Status(0, "OK");
+  return status;
 }
 
 const std::string& RegistryHelperCore::getActive() const { return active_; }
@@ -139,6 +146,20 @@ const std::string& RegistryHelperCore::getAlias(
   return aliases_.at(alias);
 }
 
+Status RegistryHelperCore::add(const std::string& item_name, bool internal) {
+  // The item can be listed as internal, meaning it does not broadcast.
+  if (internal) {
+    internal_.push_back(item_name);
+  }
+
+  // The item may belong to a module.
+  if (RegistryFactory::usingModule()) {
+    modules_[item_name] = RegistryFactory::getModule();
+  }
+
+  return Status(0, "OK");
+}
+
 void RegistryHelperCore::setUp() {
   // If this registry does not auto-setup do NOT setup the registry items.
   if (!auto_setup_) {
@@ -173,6 +194,38 @@ void RegistryHelperCore::configure() {
     for (auto& item : items_) {
       item.second->configure();
     }
+  }
+}
+
+Status RegistryHelperCore::addExternal(const RouteUUID& uuid,
+                                       const RegistryRoutes& routes) {
+  // Add each route name (item name) to the tracking.
+  for (const auto& route : routes) {
+    // Keep the routes info assigned to the registry.
+    routes_[route.first] = route.second;
+    auto status = addExternalPlugin(route.first, route.second);
+    external_[route.first] = uuid;
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  return Status(0, "OK");
+}
+
+/// Remove all the routes for a given uuid.
+void RegistryHelperCore::removeExternal(const RouteUUID& uuid) {
+  std::vector<std::string> removed_items;
+  for (const auto& item : external_) {
+    if (item.second == uuid) {
+      removeExternalPlugin(item.first);
+      removed_items.push_back(item.first);
+    }
+  }
+
+  // Remove items belonging to the external uuid.
+  for (const auto& item : removed_items) {
+    external_.erase(item);
+    routes_.erase(item);
   }
 }
 
@@ -422,20 +475,6 @@ size_t RegistryFactory::count(const std::string& registry_name) {
     return 0;
   }
   return instance().registry(registry_name)->count();
-}
-
-Status RegistryHelperCore::add(const std::string& item_name, bool internal) {
-  // The item can be listed as internal, meaning it does not broadcast.
-  if (internal) {
-    internal_.push_back(item_name);
-  }
-
-  // The item may belong to a module.
-  if (RegistryFactory::usingModule()) {
-    modules_[item_name] = RegistryFactory::getModule();
-  }
-
-  return Status(0, "OK");
 }
 
 const std::map<RouteUUID, ModuleInfo>& RegistryFactory::getModules() {
