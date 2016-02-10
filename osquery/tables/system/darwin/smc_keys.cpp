@@ -96,6 +96,13 @@ std::set<std::string> kSMCTemperatureKeys = {
     "TA1S", "TA2S", "TA3S",
 };
 
+std::set<std::string> kSMCVoltageKeys = {
+    "VC0C", "VC1C", "VC2C", "VC3C", "VC4C", "VC5C", "VC6C", "VC7C", "VV1R",
+    "VG0C", "VM0R", "VN1R", "VN0C", "VD0R", "VD5R", "VP0R", "Vp0C", "VV2S",
+    "VR3R", "VV1S", "VH05", "VV9S", "VD2R", "VV7S", "VV3S", "VV8S", "VeES",
+    "VBAT", "Vb0R",
+};
+
 std::map<std::string, std::string> kSMCFanSpeeds = {
     {"F%dAc", "actual"},
     {"F%dMn", "min"},
@@ -189,7 +196,36 @@ const std::map<std::string, std::string> kSMCKeyDescriptions = {
     {"TA0S", "PCI Slot 1 Pos 1"},
     {"TA1S", "PCI Slot 1 Pos 2"},
     {"TA2S", "PCI Slot 2 Pos 1"},
-    {"TA3S", "PCI Slot 2 Pos 2"}};
+    {"TA3S", "PCI Slot 2 Pos 2"},
+    {"VC0C", "CPU Core 1"},
+    {"VC1C", "CPU Core 2"},
+    {"VC2C", "CPU Core 3"},
+    {"VC3C", "CPU Core 4"},
+    {"VC4C", "CPU Core 5"},
+    {"VC5C", "CPU Core 6"},
+    {"VC6C", "CPU Core 7"},
+    {"VC7C", "CPU Core 8"},
+    {"VV1R", "CPU VTT"},
+    {"VG0C", "GPU Core"},
+    {"VM0R", "Memory"},
+    {"VN1R", "PCH"},
+    {"VN0C", "MCH"},
+    {"VD0R", "Mainboard S0 Rail"},
+    {"VD5R", "Mainboard S5 Rail"},
+    {"VP0R", "12V Rail"},
+    {"Vp0C", "12V Vcc"},
+    {"VV2S", "Main 3V"},
+    {"VR3R", "Main 3.3V"},
+    {"VV1S", "Main 5V"},
+    {"VH05", "Main 5V"},
+    {"VV9S", "Main 12V"},
+    {"VD2R", "Main 12V"},
+    {"VV7S", "Auxiliary 3V"},
+    {"VV3S", "Standby 3V"},
+    {"VV8S", "Standby 5V"},
+    {"VeES", "PCIe 12V"},
+    {"VBAT", "Battery"},
+    {"Vb0R", "CMOS Battery"}};
 
 class SMCHelper : private boost::noncopyable {
  public:
@@ -491,6 +527,74 @@ QueryData getTemperatures(QueryContext &context) {
     // Perform a full scan of temperature keys.
     for (const auto &smcTempKey : kSMCTemperatureKeys) {
       genTemperature(smcTempKey, smc, results);
+    }
+  }
+
+  return results;
+}
+
+void genVoltage(const std::string &key,
+                    const SMCHelper &smc,
+                    QueryData &results) {
+  QueryData key_data;
+  genSMCKey(key, smc, key_data);
+
+  if (key_data.empty()) {
+    // The SMC search for key information failed.
+    return;
+  }
+
+  auto &smcRow = key_data.back();
+  if (smcRow["value"].empty()) {
+    return;
+  }
+
+  Row r;
+  r["key"] = smcRow["key"];
+  r["name"] = kSMCKeyDescriptions.at(smcRow["key"]);
+
+  // Convert hex string to decimal.
+  std::string val;
+  try {
+    val = boost::algorithm::unhex(smcRow["value"]);
+  } catch (const boost::algorithm::hex_decode_error &e) {
+    return;
+  }
+
+  if (val.size() < 2) {
+    return;
+  }
+
+  int intValue = (val[0] * 256 + val[1]);
+  float value = intValue / 1024.0;
+
+  std::stringstream buff;
+  buff << std::fixed << std::setprecision(2) << value;
+  r["value"] = buff.str();
+
+  results.push_back(r);
+}
+
+QueryData getVoltages(QueryContext &context) {
+  QueryData results;
+
+  SMCHelper smc;
+  if (!smc.open()) {
+    return {};
+  }
+
+  if (context.hasConstraint("key", EQUALS)) {
+    context.forEachConstraint("key",
+                              EQUALS,
+                              ([&smc, &results](const std::string &expr) {
+                                if (kSMCVoltageKeys.count(expr) > 0) {
+                                  genVoltage(expr, smc, results);
+                                }
+                              }));
+  } else {
+    // Perform a full scan of voltage keys.
+    for (const auto &smcVoltageKey : kSMCVoltageKeys) {
+      genVoltage(smcVoltageKey, smc, results);
     }
   }
 
