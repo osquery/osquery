@@ -65,6 +65,12 @@ enum {
 };
 #endif
 
+#ifdef __linux__
+#define OSQUERY_HOME "/etc/osquery"
+#else
+#define OSQUERY_HOME "/var/osquery"
+#endif
+
 #define DESCRIPTION \
   "osquery %s, your OS as a high-performance relational database\n"
 #define EPILOG "\nosquery project page <https://osquery.io>.\n"
@@ -77,7 +83,8 @@ enum {
   "You are using default configurations for osqueryd for one or more of the " \
   "following\n"                                                               \
   "flags: pidfile, db_path.\n\n"                                              \
-  "These options create files in /var/osquery but it looks like that path "   \
+  "These options create files in " OSQUERY_HOME                               \
+  " but it looks like that path "                                             \
   "has not\n"                                                                 \
   "been created. Please consider explicitly defining those "                  \
   "options as a different \n"                                                 \
@@ -242,6 +249,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   if (tool == OSQUERY_TOOL_SHELL) {
     // The shell is transient, rewrite config-loaded paths.
     FLAGS_disable_logging = true;
+    // The shell never will not fork a worker.
+    FLAGS_disable_watchdog = true;
     // Get the caller's home dir for temporary storage/state management.
     auto homedir = osqueryHomeDirectory();
     boost::system::error_code ec;
@@ -309,7 +318,7 @@ void Initializer::initDaemon() const {
 
   // Check if /var/osquery exists
   if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
-      !isDirectory("/var/osquery")) {
+      !isDirectory(OSQUERY_HOME)) {
     std::cerr << CONFIG_ERROR;
   }
 
@@ -337,10 +346,11 @@ void Initializer::initDaemon() const {
 
 void Initializer::initWatcher() const {
   // The watcher takes a list of paths to autoload extensions from.
+  // The loadExtensions call will populate the watcher's list of extensions.
   osquery::loadExtensions();
 
-  // Add a watcher service thread to start/watch an optional worker and set
-  // of optional extensions in the autoload paths.
+  // Add a watcher service thread to start/watch an optional worker and list
+  // of optional extensions from the autoload paths.
   if (Watcher::hasManagedExtensions() || !FLAGS_disable_watchdog) {
     Dispatcher::addService(std::make_shared<WatcherRunner>(
         *argc_, *argv_, !FLAGS_disable_watchdog));
@@ -385,7 +395,8 @@ void Initializer::initWorker(const std::string& name) const {
     (*argv_)[0][original_name.size()] = '\0';
   }
 
-  // Start a watcher watcher thread to exit the process if the watcher exits.
+  // Start a 'watcher watcher' thread to exit the process if the watcher exits.
+  // In this case the parent process is called the 'watcher' process.
   Dispatcher::addService(std::make_shared<WatcherWatcherRunner>(getppid()));
 }
 
@@ -409,6 +420,7 @@ void Initializer::initActivePlugin(const std::string& type,
   if (timeout < kExtensionInitializeLatencyUS * 10) {
     timeout = kExtensionInitializeLatencyUS * 10;
   }
+
   while (!Registry::setActive(type, name)) {
     if (!Watcher::hasManagedExtensions() || delay > timeout) {
       LOG(ERROR) << "Active " << type << " plugin not found: " << name;
@@ -476,7 +488,9 @@ void Initializer::start() const {
   }
 
   // Initialize the status and result plugin logger.
-  initActivePlugin("logger", FLAGS_logger_plugin);
+  if (!FLAGS_disable_logging) {
+    initActivePlugin("logger", FLAGS_logger_plugin);
+  }
   initLogger(binary_);
 
   // Initialize the distributed plugin, if necessary

@@ -117,7 +117,7 @@ class Initializer : private boost::noncopyable {
    *
    * @param name The name of the worker process.
    */
-  void initWorkerWatcher(const std::string& name) const;
+  void initWorkerWatcher(const std::string& name = "") const;
 
   /// Assume initialization finished, start work.
   void start() const;

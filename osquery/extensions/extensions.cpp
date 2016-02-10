@@ -77,6 +77,8 @@ EXTENSION_FLAG_ALIAS(interval, extensions_interval);
 
 void ExtensionWatcher::start() {
   // Watch the manager, if the socket is removed then the extension will die.
+  // A check for sane paths and activity is applied before the watcher
+  // service is added and started.
   while (true) {
     watch();
     interruptableSleep(interval_);
@@ -89,17 +91,30 @@ void ExtensionWatcher::exitFatal(int return_code) {
 }
 
 void ExtensionWatcher::watch() {
+  // Attempt to ping the extension core.
+  // This does NOT use pingExtension to avoid the latency checks applied.
   ExtensionStatus status;
-  try {
-    auto client = EXManagerClient(path_);
-    // Ping the extension manager until it goes down.
-    client.get()->ping(status);
-  } catch (const std::exception& e) {
-    LOG(WARNING) << "Extension watcher ending: osquery core has gone away";
+  bool core_sane = true;
+  if (isWritable(path_)) {
+    try {
+      auto client = EXManagerClient(path_);
+      // Ping the extension manager until it goes down.
+      client.get()->ping(status);
+    } catch (const std::exception& e) {
+      core_sane = false;
+    }
+  } else {
+    // The previously-writable extension socket is not usable.
+    core_sane = false;
+  }
+
+  if (!core_sane) {
+    LOG(INFO) << "Extension watcher ending: osquery core has gone away";
     exitFatal(0);
   }
 
   if (status.code != ExtensionCode::EXT_SUCCESS && fatal_) {
+    // The core may be healthy but return a failed ping status.
     exitFatal();
   }
 }
@@ -164,7 +179,8 @@ void loadExtensions() {
     return;
   }
 
-  // Optionally autoload extensions
+  // Optionally autoload extensions, sanitize the binary path and inform
+  // the osquery watcher to execute the extension when started.
   auto status = loadExtensions(FLAGS_extensions_autoload);
   if (!status.ok()) {
     VLOG(1) << "Could not autoload extensions: " << status.what();
@@ -184,6 +200,8 @@ Status loadExtensions(const std::string& loadfile) {
     for (auto& path : osquery::split(autoload_paths, "\n")) {
       boost::trim(path);
       if (path.size() > 0 && path[0] != '#' && path[0] != ';') {
+        // After the path is sanitized the watcher becomes responsible for
+        // forking and executing the extension binary.
         Watcher::addExtensionPath(path);
       }
     }

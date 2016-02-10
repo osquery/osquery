@@ -69,6 +69,12 @@ int profile(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.
   osquery::Initializer runner(argc, argv, osquery::OSQUERY_TOOL_SHELL);
+
+  // The shell will not use a worker process.
+  // It will initialize a watcher thread for potential auto-loaded extensions.
+  runner.initWorkerWatcher();
+
+  // Check for shell-specific switches and positional arguments.
   if (argc > 1 || !isatty(fileno(stdin)) || osquery::FLAGS_A.size() > 0 ||
       osquery::FLAGS_L || osquery::FLAGS_profile > 0) {
     // A query was set as a positional argument, via stdin, or profiling is on.

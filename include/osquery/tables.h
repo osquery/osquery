@@ -231,7 +231,7 @@ struct ConstraintList {
   std::set<std::string> getAll(ConstraintOperator op) const;
 
   /// See ConstraintList::getAll, but as a selected literal type.
-  template<typename T>
+  template <typename T>
   std::set<T> getAll(ConstraintOperator op) const {
     std::set<T> literal_matches;
     auto matches = getAll(op);
@@ -399,7 +399,7 @@ class TablePlugin : public Plugin {
   std::string columnDefinition() const;
 
   /// Return the name and column pairs for attaching virtual tables.
-  PluginResponse routeInfo() const;
+  PluginResponse routeInfo() const override;
 
   /**
    * @brief Check if there are fresh cache results for this table.
@@ -471,7 +471,7 @@ class TablePlugin : public Plugin {
    * @param request The plugin request, must include an action key.
    * @param response A plugin response, for generation this contains the rows.
    */
-  Status call(const PluginRequest& request, PluginResponse& response);
+  Status call(const PluginRequest& request, PluginResponse& response) override;
 
  public:
   /// Helper data structure transformation methods.

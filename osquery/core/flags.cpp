@@ -132,6 +132,15 @@ void Flag::printFlags(bool shell, bool external, bool cli) {
   // Additional index for flag values.
   max += 6;
 
+  // Show a reference to the flags documentation.
+
+  // Show the Gflags-specific 'flagfile'.
+  if (!shell && cli) {
+    fprintf(stdout, "    --flagfile PATH");
+    fprintf(stdout, "%s", std::string(max - 8 - 5, ' ').c_str());
+    fprintf(stdout, "  Line-delimited file of additional flags\n");
+  }
+
   auto& aliases = instance().aliases_;
   for (const auto& flag : info) {
     if (details.count(flag.name) > 0) {
