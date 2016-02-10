@@ -9,6 +9,7 @@
  */
 
 #import <OpenDirectory/OpenDirectory.h>
+#include <membership.h>
 
 #include "osquery/tables/system/user_groups.h"
 
@@ -85,6 +86,26 @@ QueryData genGroups(QueryContext &context) {
   return results;
 }
 
+void setRow(Row &r, passwd *pwd) {
+  r["gid"] = BIGINT(pwd->pw_gid);
+  r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
+  r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
+  r["description"] = TEXT(pwd->pw_gecos);
+  r["directory"] = TEXT(pwd->pw_dir);
+  r["shell"] = TEXT(pwd->pw_shell);
+
+  uuid_t uuid = {0};
+  uuid_string_t uuid_string = {0};
+
+  // From the docs: mbr_uid_to_uuid will always succeed and may return a
+  // synthesized UUID with the prefix FFFFEEEE-DDDD-CCCC-BBBB-AAAAxxxxxxxx,
+  // where 'xxxxxxxx' is a hex conversion of the UID.
+  mbr_uid_to_uuid(pwd->pw_uid, uuid);
+
+  uuid_unparse(uuid, uuid_string);
+  r["uuid"] = TEXT(uuid_string);
+}
+
 QueryData genUsers(QueryContext &context) {
   QueryData results;
   if (context.constraints["uid"].exists(EQUALS)) {
@@ -98,12 +119,7 @@ QueryData genUsers(QueryContext &context) {
       Row r;
       r["uid"] = BIGINT(uid);
       r["username"] = std::string(pwd->pw_name);
-      r["gid"] = BIGINT(pwd->pw_gid);
-      r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
-      r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
-      r["description"] = TEXT(pwd->pw_gecos);
-      r["directory"] = TEXT(pwd->pw_dir);
-      r["shell"] = TEXT(pwd->pw_shell);
+      setRow(r, pwd);
       results.push_back(r);
     }
   } else {
@@ -116,14 +132,9 @@ QueryData genUsers(QueryContext &context) {
       }
 
       Row r;
-      r["username"] = username;
       r["uid"] = BIGINT(pwd->pw_uid);
-      r["gid"] = BIGINT(pwd->pw_gid);
-      r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
-      r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
-      r["description"] = TEXT(pwd->pw_gecos);
-      r["directory"] = TEXT(pwd->pw_dir);
-      r["shell"] = TEXT(pwd->pw_shell);
+      r["username"] = username;
+      setRow(r, pwd);
       results.push_back(r);
     }
   }

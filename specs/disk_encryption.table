@@ -5,7 +5,8 @@ schema([
     Column("uuid", TEXT, "Disk Universally Unique Identifier"),
     Column("encrypted", INTEGER, "1 If encrypted: true (disk is encrypted), else 0"),
     Column("type", TEXT, "Description of cipher type and mode if available"),
-    Column("uid", TEXT, "Currently authenticated user if available"),
+    Column("uid", TEXT, "Currently authenticated user if available (Apple)"),
+    Column("user_uuid", TEXT, "UUID of authenticated user if available (Apple)"),
     ForeignKey(column="name", table="block_devices"),
     ForeignKey(column="uuid", table="block_devices"),
 ])
