@@ -279,7 +279,9 @@ Maximum number of events to buffer in the backing store while waiting for a quer
 
 Logger plugin name. The default logger is **filesystem**. This writes the various log types as JSON to specific file paths.
 
-Built-in options include: **filesystem**, **tls**
+Multiple logger plugins may be used simultaneously, effectively copying logs to each interface. Separate plugin names with a comma when specifying the configuration (`--logger_plugin=filesystem,syslog`).
+
+Built-in options include: **filesystem**, **tls**, **syslog**
 
 `--disable_logging=false`
 
