@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014, Facebook, Inc.
+ *  Copyright (c) 2014-present, Facebook, Inc.
  *  Copyright (c) 2004, Intel Corporation
  *  All rights reserved.
  *

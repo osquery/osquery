@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014, Facebook, Inc.
+ *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -73,7 +73,7 @@ inline Status genStrings(QueryData& results) {
   std::stringstream vendor_string;
   registerToString(regs[1], vendor_string);
   registerToString(regs[3], vendor_string);
-  registerToString(regs[2], vendor_string);  
+  registerToString(regs[2], vendor_string);
 
   Row r;
   r["feature"] = "vendor";
