@@ -67,17 +67,15 @@ Status genUnlockIdent(CFDataRef& uuid) {
   return Status(1, "Could not get unlock ident");
 }
 
-Status genUid(id_t& uid) {
+Status genUid(id_t& uid, uuid_string_t& uuid_str) {
   CFDataRef uuid = nullptr;
   if (!genUnlockIdent(uuid).ok()) {
     return Status(1, "Could not get unlock ident");
   }
 
-  char buffer[37] = {0};
-  CFDataGetBytes(uuid, CFRangeMake(0, CFDataGetLength(uuid)), (UInt8*)buffer);
-
-  uuid_t uuidT;
-  if (uuid_parse(buffer, uuidT) != 0) {
+  CFDataGetBytes(uuid, CFRangeMake(0, CFDataGetLength(uuid)), (UInt8*)uuid_str);
+  uuid_t uuidT = {0};
+  if (uuid_parse(uuid_str, uuidT) != 0) {
     return Status(1, "Could not parse UUID");
   }
 
@@ -124,8 +122,10 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
   } else {
     r["encrypted"] = encrypted;
     id_t uid;
-    if (genUid(uid).ok()) {
+    uuid_string_t uuid_string = {0};
+    if (genUid(uid, uuid_string).ok()) {
       r["uid"] = BIGINT(uid);
+      r["user_uuid"] = TEXT(uuid_string);
     }
   }
   r["type"] = (r.at("encrypted") == "1") ? kEncryptionType : std::string();
