@@ -102,7 +102,7 @@ class FSEventsEventPublisher
   void end() override { stop(); }
 
   /// Delete all paths from prior configuration.
-  void removeSubscriptions() override;
+  void removeSubscriptions(const std::string& subscriber) override;
 
  public:
   /// FSEvents registers a client callback instead of using a select/poll loop.
@@ -114,32 +114,46 @@ class FSEventsEventPublisher
                        const FSEventStreamEventId fsevent_ids[]);
 
  public:
-  bool shouldFire(const FSEventsSubscriptionContextRef& mc,
+  bool shouldFire(const FSEventsSubscriptionContextRef& sc,
                   const FSEventsEventContextRef& ec) const override;
 
  private:
-  // Restart the run loop.
+  /// Restart the run loop.
   void restart();
 
-  // Stop the stream and the run loop.
+  /// Stop the stream and the run loop.
   void stop();
 
-  // Cause the FSEvents to flush kernel-buffered events.
+  /// Cause the FSEvents to flush kernel-buffered events.
   void flush(bool async = false);
 
- private:
-  // Check if the stream (and run loop) are running.
-  bool isStreamRunning();
+  /**
+   * @brief Each subscription is 'parsed' during configuration.
+   *
+   * For each subscription, FSEvents will 'parse' the requested path and
+   * options. Requests for recursion or path globbing will be resolved.
+   * The input subscription will be modified such that 'fire'-matching can
+   * backtrace event paths to requested subscriptions.
+   *
+   * @params subscription The mutable subscription.
+   * @return A set of output paths to monitor.
+   */
+  std::set<std::string> transformSubscription(
+      FSEventsSubscriptionContextRef& sc) const;
 
-  // Count the number of subscriptioned paths.
-  size_t numSubscriptionedPaths();
+ private:
+  /// Check if the stream (and run loop) are running.
+  bool isStreamRunning() const;
+
+  /// Count the number of subscriptioned paths.
+  size_t numSubscriptionedPaths() const;
 
  private:
   /// Local reference to the start, stop, restart event stream.
   FSEventStreamRef stream_{nullptr};
 
   /// Has the FSEvents run loop and stream been started.
-  bool stream_started_{false};
+  std::atomic<bool> stream_started_{false};
 
   /// Set of paths to monitor, determined by a configure step.
   std::set<std::string> paths_;
@@ -153,6 +167,9 @@ class FSEventsEventPublisher
 
   /// For testing only, allow the event stream to publish its own events.
   bool no_self_{true};
+
+  /// Access to watched path set.
+  mutable boost::shared_mutex mutex_;
 
  private:
   friend class FSEventsTests;

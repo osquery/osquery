@@ -512,6 +512,15 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
   return status;
 }
 
+EventPublisherRef EventSubscriberPlugin::getPublisher() const {
+  return EventFactory::getEventPublisher(getType());
+}
+
+void EventSubscriberPlugin::removeSubscriptions() {
+  subscription_count_ = 0;
+  getPublisher()->removeSubscriptions(getName());
+}
+
 void EventFactory::delay() {
   // Caller may disable event publisher threads.
   if (FLAGS_disable_events) {
@@ -528,6 +537,16 @@ void EventFactory::delay() {
       ef.threads_.push_back(thread_);
     }
   }
+}
+
+void EventPublisherPlugin::removeSubscriptions(const std::string& subscriber) {
+  auto end =
+      std::remove_if(subscriptions_.begin(),
+                     subscriptions_.end(),
+                     [&subscriber](const SubscriptionRef& subscription) {
+                       return (subscription->subscriber_name == subscriber);
+                     });
+  subscriptions_.erase(end, subscriptions_.end());
 }
 
 Status EventFactory::run(EventPublisherID& type_id) {

@@ -106,8 +106,8 @@ enum EventSubscriberState {
 };
 
 /// Use a single placeholder for the EventContextRef passed to EventCallback.
-using EventCallback = std::function<
-    Status(const EventContextRef&, const SubscriptionContextRef&)>;
+using EventCallback = std::function<Status(const EventContextRef&,
+                                           const SubscriptionContextRef&)>;
 
 /// An EventPublisher must track every subscription added.
 using SubscriptionVector = std::vector<SubscriptionRef>;
@@ -171,6 +171,9 @@ struct Subscription : private boost::noncopyable {
     subscription->callback = ec;
     return subscription;
   }
+
+ public:
+  Subscription() = delete;
 };
 
 class EventPublisherPlugin : public Plugin {
@@ -236,10 +239,8 @@ class EventPublisherPlugin : public Plugin {
     return Status(0);
   }
 
-  /// Remove all subscriptions.
-  virtual void removeSubscriptions() {
-    SubscriptionVector().swap(subscriptions_);
-  }
+  /// Remove all subscriptions from a named subscriber.
+  virtual void removeSubscriptions(const std::string& subscriber);
 
  public:
   /// Overriding the EventPublisher constructor is not recommended.
@@ -273,7 +274,7 @@ class EventPublisherPlugin : public Plugin {
   void hasStarted(bool started) { started_ = started; }
 
   /// Get the number of publisher restarts.
-  size_t restartCount() { return restart_count_; }
+  size_t restartCount() const { return restart_count_; }
 
  public:
   explicit EventPublisherPlugin(EventPublisherPlugin const&) = delete;
@@ -320,11 +321,20 @@ class EventPublisherPlugin : public Plugin {
   friend class EventFactory;
 
  private:
-  FRIEND_TEST(EventsTests, test_event_pub);
+  FRIEND_TEST(EventsTests, test_event_publisher);
   FRIEND_TEST(EventsTests, test_fire_event);
 };
 
 class EventSubscriberPlugin : public Plugin {
+ public:
+  /**
+   * @brief Add Subscription%s to the EventPublisher this module will act on.
+   *
+   * When the EventSubscriber%'s `init` method is called you are assured the
+   * EventPublisher has `setUp` and is ready to subscription for events.
+   */
+  virtual Status init() { return Status(0); }
+
  protected:
   /**
    * @brief Store parsed event data from an EventCallback in a backing store.
@@ -482,11 +492,24 @@ class EventSubscriberPlugin : public Plugin {
    * publishers. The namespace is a combination of the publisher and subscriber
    * registry plugin names.
    */
-  virtual EventPublisherID dbNamespace() const = 0;
+  /// See getType for lookup rational.
+  virtual EventPublisherID dbNamespace() const {
+    return getType() + '.' + getName();
+  }
 
   /// Disable event expiration for this subscriber.
   void doNotExpire() { expire_events_ = false; }
 
+  /// Trampoline into the EventFactory and lookup the name of the publisher.
+  virtual EventPublisherID& getType() const = 0;
+
+  /// Get a handle to the EventPublisher.
+  EventPublisherRef getPublisher() const;
+
+  /// Remove all subscriptions from this subscriber.
+  void removeSubscriptions();
+
+ protected:
   /// A helper value counting the number of fired events tracked by publishers.
   EventContextID event_count_{0};
 
@@ -494,7 +517,7 @@ class EventSubscriberPlugin : public Plugin {
   size_t subscription_count_{0};
 
  private:
-  Status setUp() { return Status(0, "Setup never used"); }
+  Status setUp() override { return Status(0, "Setup never used"); }
 
  private:
   /// Do not respond to periodic/scheduled/triggered event expiration requests.
@@ -799,7 +822,7 @@ class EventPublisher : public EventPublisherPlugin {
    * @param ec The event that was fired.
    */
   void fireCallback(const SubscriptionRef& sub,
-                    const EventContextRef& ec) const {
+                    const EventContextRef& ec) const override {
     auto pub_sc = getSubscriptionContext(sub->context);
     auto pub_ec = getEventContext(ec);
     if (shouldFire(pub_sc, pub_ec) && sub->callback != nullptr) {
@@ -822,8 +845,8 @@ class EventPublisher : public EventPublisherPlugin {
   }
 
  private:
-  FRIEND_TEST(EventsTests, test_event_sub_subscribe);
-  FRIEND_TEST(EventsTests, test_event_sub_context);
+  FRIEND_TEST(EventsTests, test_event_subscriber_subscribe);
+  FRIEND_TEST(EventsTests, test_event_subscriber_context);
   FRIEND_TEST(EventsTests, test_fire_event);
 };
 
@@ -848,21 +871,13 @@ class EventSubscriber : public EventSubscriberPlugin {
 
  public:
   /**
-   * @brief Add Subscription%s to the EventPublisher this module will act on.
-   *
-   * When the EventSubscriber%'s `init` method is called you are assured the
-   * EventPublisher has `setUp` and is ready to subscription for events.
-   */
-  virtual Status init() { return Status(0); }
-
-  /**
    * @brief The registry plugin name for the subscriber's publisher.
    *
    * During event factory initialization the subscribers 'peek' at the registry
    * plugin name assigned to publishers. The corresponding publisher name is
    * interpreted as the subscriber's event 'type'.
    */
-  virtual EventPublisherID& getType() const {
+  virtual EventPublisherID& getType() const override {
     static EventPublisherID type = EventFactory::getType<PUB>();
     return type;
   };
@@ -899,16 +914,6 @@ class EventSubscriber : public EventSubscriberPlugin {
       EventFactory::addSubscription(sub->getType(), sub->getName(), sc, cb);
       subscription_count_++;
     }
-  }
-
-  /// See getType for lookup rational.
-  virtual EventPublisherID dbNamespace() const {
-    return getType() + '.' + getName();
-  }
-
-  /// Get a handle to the EventPublisher.
-  EventPublisherRef getPublisher() {
-    return EventFactory::getEventPublisher(getType());
   }
 
  public:

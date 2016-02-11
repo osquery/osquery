@@ -32,6 +32,9 @@ const int kMaxEventLatency = 3000;
 class INotifyTests : public testing::Test {
  protected:
   void SetUp() override {
+    // INotify will use data from the config and config parsers.
+    Registry::registry("config_parser")->setUp();
+
     real_test_path = kTestWorkingDirectory + "inotify-trigger";
     real_test_dir = kTestWorkingDirectory + "inotify-triggers";
     real_test_dir_path = real_test_dir + "/1";
@@ -287,7 +290,7 @@ TEST_F(INotifyTests, test_inotify_run) {
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
   EventFactory::registerEventSubscriber(sub);
 
-  // Create a subscriptioning context
+  // Create a subscription context
   auto mc = std::make_shared<INotifySubscriptionContext>();
   mc->path = real_test_path;
   mc->mask = IN_ALL_EVENTS;

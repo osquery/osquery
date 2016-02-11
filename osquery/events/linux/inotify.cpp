@@ -85,6 +85,7 @@ bool INotifyEventPublisher::monitorSubscription(
       return true;
     }
   }
+
   if (isDirectory(sc->discovered_) && sc->discovered_.back() != '/') {
     sc->path += '/';
     sc->discovered_ += '/';
@@ -117,12 +118,21 @@ Status INotifyEventPublisher::restartMonitoring() {
 
   last_restart_ = getUnixTime();
   VLOG(1) << "inotify was overflown, attempting to restart handle";
-  for (const auto& desc : descriptors_) {
+
+  // Create a copy of the descriptors, then remove each.
+  auto descriptors = descriptors_;
+  for (const auto& desc : descriptors) {
     removeMonitor(desc, true);
   }
 
-  path_descriptors_.clear();
-  descriptor_paths_.clear();
+  {
+    // Then remove all path/descriptor mappings.
+    WriteLock lock(mutex_);
+    path_descriptors_.clear();
+    descriptor_paths_.clear();
+  }
+
+  // Reconfigure ourself, the subscribers will not reconfigure.
   configure();
   return Status(0, "OK");
 }
@@ -186,13 +196,13 @@ Status INotifyEventPublisher::run() {
 }
 
 INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
-    struct inotify_event* event) {
+    struct inotify_event* event) const {
   auto shared_event = std::make_shared<struct inotify_event>(*event);
   auto ec = createEventContext();
   ec->event = shared_event;
 
   // Get the pathname the watch fired on.
-  ec->path = descriptor_paths_[event->wd];
+  ec->path = descriptor_paths_.at(event->wd);
   if (event->len > 1) {
     ec->path += event->name;
   }
@@ -250,12 +260,15 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
       return false;
     }
 
-    // Keep a list of the watch descriptors
-    descriptors_.push_back(watch);
-    // Keep a map of the path -> watch descriptor
-    path_descriptors_[path] = watch;
-    // Keep a map of the opposite (descriptor -> path)
-    descriptor_paths_[watch] = path;
+    {
+      WriteLock lock(mutex_);
+      // Keep a list of the watch descriptors
+      descriptors_.push_back(watch);
+      // Keep a map of the path -> watch descriptor
+      path_descriptors_[path] = watch;
+      // Keep a map of the opposite (descriptor -> path)
+      descriptor_paths_[watch] = path;
+    }
   }
 
   if (recursive && isDirectory(path).ok()) {
@@ -274,17 +287,24 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
 }
 
 bool INotifyEventPublisher::removeMonitor(const std::string& path, bool force) {
-  // If force then remove from INotify, otherwise cleanup file descriptors.
-  if (path_descriptors_.find(path) == path_descriptors_.end()) {
-    return false;
+  {
+    ReadLock lock(mutex_);
+    // If force then remove from INotify, otherwise cleanup file descriptors.
+    if (path_descriptors_.find(path) == path_descriptors_.end()) {
+      return false;
+    }
   }
 
-  int watch = path_descriptors_[path];
-  path_descriptors_.erase(path);
-  descriptor_paths_.erase(watch);
+  int watch = 0;
+  {
+    WriteLock lock(mutex_);
+    watch = path_descriptors_[path];
+    path_descriptors_.erase(path);
+    descriptor_paths_.erase(watch);
 
-  auto position = std::find(descriptors_.begin(), descriptors_.end(), watch);
-  descriptors_.erase(position);
+    auto position = std::find(descriptors_.begin(), descriptors_.end(), watch);
+    descriptors_.erase(position);
+  }
 
   if (force) {
     ::inotify_rm_watch(getHandle(), watch);
@@ -293,23 +313,27 @@ bool INotifyEventPublisher::removeMonitor(const std::string& path, bool force) {
 }
 
 bool INotifyEventPublisher::removeMonitor(int watch, bool force) {
-  if (descriptor_paths_.find(watch) == descriptor_paths_.end()) {
-    return false;
+  std::string path;
+  {
+    ReadLock lock(mutex_);
+    if (descriptor_paths_.find(watch) == descriptor_paths_.end()) {
+      return false;
+    }
+    path = descriptor_paths_[watch];
   }
-
-  auto path = descriptor_paths_[watch];
   return removeMonitor(path, force);
 }
 
-void INotifyEventPublisher::removeSubscriptions() {
+void INotifyEventPublisher::removeSubscriptions(const std::string& subscriber) {
   auto paths = descriptor_paths_;
   for (const auto& path : paths) {
     removeMonitor(path.first, true);
   }
-  EventPublisherPlugin::removeSubscriptions();
+  EventPublisherPlugin::removeSubscriptions(subscriber);
 }
 
-bool INotifyEventPublisher::isPathMonitored(const std::string& path) {
+bool INotifyEventPublisher::isPathMonitored(const std::string& path) const {
+  ReadLock lock(mutex_);
   std::string parent_path;
   if (!isDirectory(path).ok()) {
     if (path_descriptors_.find(path) != path_descriptors_.end()) {

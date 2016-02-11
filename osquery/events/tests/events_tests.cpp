@@ -12,6 +12,7 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/config.h>
 #include <osquery/events.h>
 #include <osquery/tables.h>
 
@@ -19,6 +20,7 @@ namespace osquery {
 
 class EventsTests : public ::testing::Test {
  public:
+  void SetUp() override { Registry::registry("config_parser")->setUp(); }
   void TearDown() override { EventFactory::end(true); }
 };
 
@@ -53,7 +55,7 @@ class AnotherFakeEventPublisher
   DECLARE_PUBLISHER("AnotherFakePublisher");
 };
 
-TEST_F(EventsTests, test_event_pub) {
+TEST_F(EventsTests, test_event_publisher) {
   auto pub = std::make_shared<FakeEventPublisher>();
   EXPECT_EQ(pub->type(), "FakePublisher");
 
@@ -62,7 +64,7 @@ TEST_F(EventsTests, test_event_pub) {
   EXPECT_EQ(typeid(FakeSubscriptionContext), typeid(*pub_sub));
 }
 
-TEST_F(EventsTests, test_register_event_pub) {
+TEST_F(EventsTests, test_register_event_publisher) {
   auto basic_pub = std::make_shared<BasicEventPublisher>();
   auto status = EventFactory::registerEventPublisher(basic_pub);
 
@@ -82,7 +84,7 @@ TEST_F(EventsTests, test_register_event_pub) {
   EXPECT_TRUE(status.ok());
 }
 
-TEST_F(EventsTests, test_event_pub_types) {
+TEST_F(EventsTests, test_event_publisher_types) {
   auto pub = std::make_shared<FakeEventPublisher>();
   EXPECT_EQ(pub->type(), "FakePublisher");
 
@@ -91,7 +93,7 @@ TEST_F(EventsTests, test_event_pub_types) {
   EXPECT_EQ(pub->type(), pub2->type());
 }
 
-TEST_F(EventsTests, test_create_event_pub) {
+TEST_F(EventsTests, test_duplicate_event_publisher) {
   auto pub = std::make_shared<BasicEventPublisher>();
   auto status = EventFactory::registerEventPublisher(pub);
   EXPECT_TRUE(status.ok());
@@ -196,7 +198,7 @@ class TestEventPublisher
   int smallest_ever_{0};
 };
 
-TEST_F(EventsTests, test_create_custom_event_pub) {
+TEST_F(EventsTests, test_create_custom_event_publisher) {
   auto basic_pub = std::make_shared<BasicEventPublisher>();
   EventFactory::registerEventPublisher(basic_pub);
   auto pub = std::make_shared<TestEventPublisher>();
@@ -267,8 +269,11 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
   bool bellHathTolled{false};
   bool contextBellHathTolled{false};
   bool shouldFireBethHathTolled{false};
+  size_t timesConfigured{0};
 
   FakeEventSubscriber() { setName("FakeSubscriber"); }
+
+  void configure() override { timesConfigured++; }
 
   Status Callback(const ECRef& ec, const SCRef& sc) {
     // We don't care about the subscription or the event contexts.
@@ -299,13 +304,13 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
   FRIEND_TEST(EventsTests, test_subscriber_names);
 };
 
-TEST_F(EventsTests, test_event_sub) {
+TEST_F(EventsTests, test_event_subscriber) {
   auto sub = std::make_shared<FakeEventSubscriber>();
   EXPECT_EQ(sub->getType(), "FakePublisher");
   EXPECT_EQ(sub->getName(), "FakeSubscriber");
 }
 
-TEST_F(EventsTests, test_event_sub_subscribe) {
+TEST_F(EventsTests, test_event_subscriber_subscribe) {
   auto pub = std::make_shared<FakeEventPublisher>();
   EventFactory::registerEventPublisher(pub);
 
@@ -323,7 +328,7 @@ TEST_F(EventsTests, test_event_sub_subscribe) {
   EXPECT_TRUE(sub->bellHathTolled);
 }
 
-TEST_F(EventsTests, test_event_sub_context) {
+TEST_F(EventsTests, test_event_subscriber_context) {
   auto pub = std::make_shared<FakeEventPublisher>();
   EventFactory::registerEventPublisher(pub);
 
@@ -337,6 +342,26 @@ TEST_F(EventsTests, test_event_sub_context) {
   pub->fire(ec, 0);
 
   EXPECT_TRUE(sub->contextBellHathTolled);
+}
+
+TEST_F(EventsTests, test_event_subscriber_configure) {
+  auto sub = std::make_shared<FakeEventSubscriber>();
+  EventFactory::registerEventSubscriber(sub);
+  // Register this subscriber (within the RegistryFactory), so it receives
+  // configure/reconfigure events.
+  auto registry = Registry::registry("event_subscriber");
+  registry->add(sub);
+
+  // Assure we start from a base state.
+  EXPECT_EQ(sub->timesConfigured, 0U);
+  // Force the config into a loaded state.
+  Config::getInstance().loaded_ = true;
+  Config::getInstance().update({{"data", "{}"}});
+  EXPECT_EQ(sub->timesConfigured, 1U);
+
+  registry->remove(sub->getName());
+  Config::getInstance().update({{"data", "{}"}});
+  EXPECT_EQ(sub->timesConfigured, 1U);
 }
 
 TEST_F(EventsTests, test_fire_event) {

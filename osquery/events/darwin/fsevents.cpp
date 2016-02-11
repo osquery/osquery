@@ -55,22 +55,25 @@ void FSEventsSubscriptionContext::requireAction(const std::string& action) {
 }
 
 void FSEventsEventPublisher::restart() {
-  if (paths_.empty()) {
-    // There are no paths to watch.
-    paths_.insert("/dev/null");
-  }
-
-  if (run_loop_ == nullptr) {
-    // There is no run loop to restart.
-    return;
-  }
-
   // Build paths as CFStrings
   std::vector<CFStringRef> cf_paths;
-  for (const auto& path : paths_) {
-    auto cf_path =
-        CFStringCreateWithCString(nullptr, path.c_str(), kCFStringEncodingUTF8);
-    cf_paths.push_back(cf_path);
+  {
+    ReadLock lock(mutex_);
+    if (paths_.empty()) {
+      // There are no paths to watch.
+      paths_.insert("/dev/null");
+    }
+
+    if (run_loop_ == nullptr) {
+      // There is no run loop to restart.
+      return;
+    }
+
+    for (const auto& path : paths_) {
+      auto cf_path = CFStringCreateWithCString(
+          nullptr, path.c_str(), kCFStringEncodingUTF8);
+      cf_paths.push_back(cf_path);
+    }
   }
 
   // The FSEvents watch takes a CFArrayRef
@@ -144,44 +147,54 @@ void FSEventsEventPublisher::tearDown() {
   run_loop_ = nullptr;
 }
 
+std::set<std::string> FSEventsEventPublisher::transformSubscription(
+    FSEventsSubscriptionContextRef& sc) const {
+  std::set<std::string> paths;
+  sc->discovered_ = sc->path;
+  if (sc->path.find("**") != std::string::npos) {
+    // Double star will indicate recursive matches, restricted to endings.
+    sc->recursive = true;
+    sc->discovered_ = sc->path.substr(0, sc->path.find("**"));
+    // Remove '**' from the subscription path (used to match later).
+    sc->path = sc->discovered_;
+  }
+
+  // If the path 'still' OR 'either' contains a single wildcard.
+  if (sc->path.find('*') != std::string::npos) {
+    // First check if the wildcard is applied to the end.
+    auto fullpath = fs::path(sc->path);
+    if (fullpath.filename().string().find('*') != std::string::npos) {
+      sc->discovered_ = fullpath.parent_path().string();
+    }
+
+    // FSEvents needs a real path, if the wildcard is within the path then
+    // a configure-time resolve is required.
+    if (sc->discovered_.find('*') != std::string::npos) {
+      std::vector<std::string> exploded_paths;
+      resolveFilePattern(sc->discovered_, exploded_paths);
+      for (const auto& path : exploded_paths) {
+        paths.insert(path);
+      }
+      sc->recursive_match = sc->recursive;
+      return paths;
+    }
+  }
+  paths.insert(sc->discovered_);
+  return paths;
+}
+
 void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
-  for (auto& sub : subscriptions_) {
-    auto sc = getSubscriptionContext(sub->context);
-    if (sc->discovered_.size() > 0) {
-      continue;
-    }
-
-    sc->discovered_ = sc->path;
-    if (sc->path.find("**") != std::string::npos) {
-      // Double star will indicate recursive matches, restricted to endings.
-      sc->recursive = true;
-      sc->discovered_ = sc->path.substr(0, sc->path.find("**"));
-      // Remove '**' from the subscription path (used to match later).
-      sc->path = sc->discovered_;
-    }
-
-    // If the path 'still' OR 'either' contains a single wildcard.
-    if (sc->path.find('*') != std::string::npos) {
-      // First check if the wildcard is applied to the end.
-      auto fullpath = fs::path(sc->path);
-      if (fullpath.filename().string().find('*') != std::string::npos) {
-        sc->discovered_ = fullpath.parent_path().string();
-      }
-
-      // FSEvents needs a real path, if the wildcard is within the path then
-      // a configure-time resolve is required.
-      if (sc->discovered_.find('*') != std::string::npos) {
-        std::vector<std::string> paths;
-        resolveFilePattern(sc->discovered_, paths);
-        for (const auto& path : paths) {
-          paths_.insert(path);
-        }
-        sc->recursive_match = sc->recursive;
+  {
+    WriteLock lock(mutex_);
+    for (auto& sub : subscriptions_) {
+      auto sc = getSubscriptionContext(sub->context);
+      if (sc->discovered_.size() > 0) {
         continue;
       }
+      auto paths = transformSubscription(sc);
+      paths_.insert(paths.begin(), paths.end());
     }
-    paths_.insert(sc->discovered_);
   }
 
   restart();
@@ -270,9 +283,13 @@ bool FSEventsEventPublisher::shouldFire(
   return true;
 }
 
-void FSEventsEventPublisher::removeSubscriptions() {
-  std::set<std::string>().swap(paths_);
-  EventPublisherPlugin::removeSubscriptions();
+void FSEventsEventPublisher::removeSubscriptions(
+    const std::string& subscription) {
+  {
+    WriteLock lock(mutex_);
+    std::set<std::string>().swap(paths_);
+  }
+  EventPublisherPlugin::removeSubscriptions(subscription);
 }
 
 void FSEventsEventPublisher::flush(bool async) {
@@ -285,11 +302,11 @@ void FSEventsEventPublisher::flush(bool async) {
   }
 }
 
-size_t FSEventsEventPublisher::numSubscriptionedPaths() {
+size_t FSEventsEventPublisher::numSubscriptionedPaths() const {
   return paths_.size();
 }
 
-bool FSEventsEventPublisher::isStreamRunning() {
+bool FSEventsEventPublisher::isStreamRunning() const {
   if (stream_ == nullptr || !stream_started_ || run_loop_ == nullptr) {
     return false;
   }
