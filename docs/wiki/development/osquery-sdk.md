@@ -57,13 +57,66 @@ Extensions use osquery's [thrift API](https://github.com/facebook/osquery/blob/m
 
 The osqueryi or osqueryd processes start an "extension manager" thrift service thread that listens for extension register calls on a UNIX domain socket. Extensions may only communicate if the processes can read/write to this socket. An extension process running as a non-privileged user cannot register plugins to an osqueryd process running as root. Both osqueryi/osqueryd and C++ extensions using `startExtension` will deregister plugins if the communication becomes latent. Both are configurable using gflags or config options.
 
+### Using the example extension
+
+Please see the deployment [guide on extensions](../deployment/extensions.md) for a more-complete overview of how and why extensions are used.
+
+If you [build from source](../development/building.md), you will build an example extension. The code can be found in the [`osquery/examples`](https://github.com/facebook/osquery/blob/master/osquery/examples/example_extension.cpp) folder; it adds a config plugin called "example" and additional table called "example". There are two ways to run an extension: load the extension at an arbitrary time after shell or daemon execution, or request an "autoload" of extensions. The auto-loading method has several advantages such as dependencies on external config plugins, and the same management and process monitoring applied to osquery worker processes.
+
+To load the example extension in the shell try:
+```
+$ ./build/darwin/osquery/osqueryi
+osquery> select path from osquery_extensions;
++-------------------------------------+
+| path                                |
++-------------------------------------+
+| /Users/USERNAME/.osquery/shell.em   |
++-------------------------------------+
+osquery> ^Z
+[1]  + 98777 suspended  ./build/darwin/osquery/osqueryi
+```
+
+Here we have started a shell process, inspected the UNIX domain socket path used for extensions, and suspended the process temporarily.
+
+```
+$ ./build/darwin/osquery/example_extension.ext --help
+osquery 1.7.0, your OS as a high-performance relational database
+Usage: osqueryi [OPTION]...
+
+osquery extension command line flags:
+
+    --interval VALUE  Seconds delay between connectivity checks
+    --socket VALUE    Path to the extensions UNIX domain socket
+    --timeout VALUE   Seconds to wait for autoloaded extensions
+
+osquery project page <https://osquery.io>.
+$ ./build/darwin/osquery/example_extension.ext --socket /Users/USERNAME/.osquery/shell.em &
+```
+
+Before executing the extension we've inspected the potential CLI flags, which are a subset of the shell or daemon's [CLI flags](../installation/cli-flags.md). The example extension is executed in the background so we can resume the shell and use the provided 'example' table.
+
+```
+[2] 98795
+$ fg
+[1]  - 98777 continued  ./build/darwin/osquery/osqueryi
+osquery> select * from example;
++--------------+-----------------+
+| example_text | example_integer |
++--------------+-----------------+
+| example      | 1               |
++--------------+-----------------+
+osquery>
+```
+
+If the responsible shell or daemon process ends the extension will soon after detect the loss of communication and also shutdown. Read more about the lifecycle of extensions in the deployment guide.
+
 ## Thrift API
 
 [Thrift](https://thrift.apache.org/) is a code-generation/cross-language service development framework. osquery uses thrift to allow plugin extensions for config retrieval, log export, table implementations, event subscribers, and event publishers. We also use thrift to wrap our SQL implementation using SQLite.
 
 **Extension API**
 
-An extension process should implement the following API. During an extension's set up it will "broadcast" all the registered plugins to an osqueryi or osqueryd process. Then the extension will be asked to start a UNIX domain socket and thrift service thread implementing the `ping` and `call` methods.
+An extension process should implement the following API. During an extension's set up it will "broadcast" all the registered plugins to a shell or daemon process. Then the extension will be asked to start a UNIX domain socket and thrift service thread implementing the `ping` and `call` methods.
 
 ```thrift
 service Extension {
@@ -80,7 +133,7 @@ service Extension {
 }
 ```
 
-When an extension becomes unavailable, the osqueryi or osqueryd process will automatically deregister those plugins.
+When an extension becomes unavailable, the shell or daemon process will automatically deregister those plugins.
 
 **Extension Manager API (osqueryi/osqueryd)**
 
