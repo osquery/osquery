@@ -40,10 +40,8 @@ class ProcessFileEventSubscriber
 REGISTER(ProcessFileEventSubscriber, "event_subscriber", "process_file_events");
 
 void ProcessFileEventSubscriber::configure() {
-
   // There may be a better way to find the set intersection/difference.
-  auto pub = getPublisher();
-  pub->removeSubscriptions();
+  removeSubscriptions();
 
   Config::getInstance().files([this](const std::string &category,
                                      const std::vector<std::string> &files) {

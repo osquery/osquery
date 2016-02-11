@@ -188,7 +188,7 @@ void RegistryHelperCore::setUp() {
 }
 
 void RegistryHelperCore::configure() {
-  if (active_.size() != 0 && exists(active_, true)) {
+  if (!active_.empty() && exists(active_, true)) {
     items_.at(active_)->configure();
   } else {
     for (auto& item : items_) {

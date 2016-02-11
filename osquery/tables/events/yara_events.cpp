@@ -50,7 +50,12 @@ using FileSubscriptionContextRef = INotifySubscriptionContextRef;
  */
 class YARAEventSubscriber : public FileEventSubscriber {
  public:
-  Status init() override;
+  Status init() override {
+    configure();
+    return Status(0);
+  }
+
+  void configure() override;
 
  private:
   /**
@@ -74,23 +79,33 @@ class YARAEventSubscriber : public FileEventSubscriber {
  */
 REGISTER(YARAEventSubscriber, "event_subscriber", "yara_events");
 
-Status YARAEventSubscriber::init() {
-  Status status;
+void YARAEventSubscriber::configure() {
+  removeSubscriptions();
 
+  // There is a special yara parser that tracks the related top-level keys.
   auto plugin = Config::getParser("yara");
   if (plugin == nullptr || plugin.get() == nullptr) {
-    return Status(1, "Could not get yara config parser");
+    return;
   }
+
+  // Bail if there is no configured set of opt-in paths for yara.
   const auto& yara_config = plugin->getData();
   if (yara_config.count("file_paths") == 0) {
-    return Status(0, "OK");
+    return;
   }
-  const auto& yara_paths = yara_config.get_child("file_paths");
+
+  // Collect the set of paths, we are mostly concerned with the categories.
+  // But the subscriber must duplicate the set of subscriptions such that the
+  // publisher's 'fire'-matching logic routes related events to our callback.
   std::map<std::string, std::vector<std::string> > file_map;
   Config::getInstance().files([&file_map](
-      const std::string& category,
-      const std::vector<std::string>& files) { file_map[category] = files; });
+      const std::string& category, const std::vector<std::string>& files) {
+    file_map[category] = files;
+  });
 
+  // For each category within yara's file_paths, add a subscription to the
+  // corresponding set of paths.
+  const auto& yara_paths = yara_config.get_child("file_paths");
   for (const auto& yara_path_element : yara_paths) {
     // Subscribe to each file for the given key (category).
     if (file_map.count(yara_path_element.first) == 0) {
@@ -102,15 +117,13 @@ Status YARAEventSubscriber::init() {
     for (const auto& file : file_map.at(yara_path_element.first)) {
       VLOG(1) << "Added YARA listener to: " << file;
       auto sc = createSubscriptionContext();
+      sc->recursive = 0;
       sc->path = file;
       sc->mask = FILE_CHANGE_MASK;
-      sc->recursive = true;
       sc->category = yara_path_element.first;
       subscribe(&YARAEventSubscriber::Callback, sc);
     }
   }
-
-  return Status(0, "OK");
 }
 
 Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,

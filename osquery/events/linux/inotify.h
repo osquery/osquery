@@ -131,17 +131,18 @@ class INotifyEventPublisher
   Status run() override;
 
   /// Remove all monitors and subscriptions.
-  void removeSubscriptions() override;
+  void removeSubscriptions(const std::string& subscriber) override;
 
  private:
   /// Helper/specialized event context creation.
-  INotifyEventContextRef createEventContextFrom(struct inotify_event* event);
+  INotifyEventContextRef createEventContextFrom(
+      struct inotify_event* event) const;
 
   /// Check if the application-global `inotify` handle is alive.
-  bool isHandleOpen() { return inotify_handle_ > 0; }
+  bool isHandleOpen() const { return inotify_handle_ > 0; }
 
   /// Check all added Subscription%s for a path.
-  bool isPathMonitored(const std::string& path);
+  bool isPathMonitored(const std::string& path) const;
 
   /**
    * @brief Add an INotify watch (monitor) on this path.
@@ -176,10 +177,10 @@ class INotifyEventPublisher
                   const INotifyEventContextRef& ec) const override;
 
   /// Get the INotify file descriptor.
-  int getHandle() { return inotify_handle_; }
+  int getHandle() const { return inotify_handle_; }
 
   /// Get the number of actual INotify active descriptors.
-  size_t numDescriptors() { return descriptors_.size(); }
+  size_t numDescriptors() const { return descriptors_.size(); }
 
   /// If we overflow, try and restart the monitor
   Status restartMonitoring();
@@ -194,10 +195,13 @@ class INotifyEventPublisher
   DescriptorPathMap descriptor_paths_;
 
   /// The inotify file descriptor handle.
-  int inotify_handle_{-1};
+  std::atomic<int> inotify_handle_{-1};
 
   /// Time in seconds of the last inotify restart.
-  int last_restart_{-1};
+  std::atomic<int> last_restart_{-1};
+
+  /// Access to path and descriptor mappings.
+  mutable boost::shared_mutex mutex_;
 
  public:
   friend class INotifyTests;

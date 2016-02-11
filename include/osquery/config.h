@@ -216,6 +216,36 @@ class Config : private boost::noncopyable {
   static const std::shared_ptr<ConfigParserPlugin> getParser(
       const std::string& parser);
 
+ protected:
+  /**
+   * @brief Call the genConfig method of the config retriever plugin.
+   *
+   * This may perform a resource load such as TCP request or filesystem read.
+   */
+  Status load();
+
+  /// A step method for Config::update.
+  Status updateSource(const std::string& source, const std::string& json);
+
+  /**
+   * @brief Generate pack content from a resource handled by the Plugin.
+   *
+   * Configuration content may set pack values to JSON strings instead of an
+   * embedded dictionary representing the pack content. When a string is
+   * encountered the config assumes this is a 'resource' handled by the Plugin.
+   *
+   * The value, or target, is sent to the ConfigPlugin via a registry request.
+   * The plugin response is assumed, and used, as the pack content.
+   *
+   * @param name A pack name provided and handled by the ConfigPlugin.
+   * @param source The config content source identifier.
+   * @param target A resource (path, URL, etc) handled by the ConfigPlugin.
+   * @return status On success the response will be JSON parsed.
+   */
+  Status genPack(const std::string& name,
+                 const std::string& source,
+                 const std::string& target);
+
   /**
    * @brief Apply each ConfigParser to an input property tree.
    *
@@ -231,20 +261,9 @@ class Config : private boost::noncopyable {
    * @param tree The input configuration tree.
    * @param pack True if the tree was built from pack data, otherwise false.
    */
-  static void applyParsers(const std::string& source,
-                           const boost::property_tree::ptree& tree,
-                           bool pack = false);
-
- protected:
-  /**
-   * @brief Call the genConfig method of the config retriever plugin.
-   *
-   * This may perform a resource load such as TCP request or filesystem read.
-   */
-  Status load();
-
-  /// A step method for Config::update.
-  Status updateSource(const std::string& name, const std::string& json);
+  void applyParsers(const std::string& source,
+                    const boost::property_tree::ptree& tree,
+                    bool pack = false);
 
   /**
    * @brief When config sources are updated the config will 'purge'.
@@ -256,6 +275,11 @@ class Config : private boost::noncopyable {
    * this 'purge' action is assumed to be destructive and potentially expensive.
    */
   void purge();
+
+  /**
+   * @brief Reset the configuration state, reserved for testing only.
+   */
+  void reset();
 
  protected:
   /// Schedule of packs and their queries.
@@ -285,21 +309,14 @@ class Config : private boost::noncopyable {
   friend class Initializer;
 
  private:
-  FRIEND_TEST(ConfigTests, test_plugin_reconfigure);
-  FRIEND_TEST(ConfigTests, test_parse);
-  FRIEND_TEST(ConfigTests, test_remove);
-  FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
-  FRIEND_TEST(ConfigTests, test_get_parser);
-  FRIEND_TEST(ConfigTests, test_add_remove_pack);
-  FRIEND_TEST(ConfigTests, test_update_clear);
-  FRIEND_TEST(ConfigTests, test_pack_file_paths);
-  FRIEND_TEST(ConfigTests, test_noninline_pack);
-
+  friend class ConfigTests;
   friend class FilePathsConfigParserPluginTests;
+  friend class FileEventsTableTests;
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
   FRIEND_TEST(PacksTests, test_discovery_cache);
   FRIEND_TEST(SchedulerTests, test_monitor);
   FRIEND_TEST(SchedulerTests, test_config_results_purge);
+  FRIEND_TEST(EventsTests, test_event_subscriber_configure);
 };
 
 /**

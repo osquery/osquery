@@ -456,6 +456,19 @@ class RegistryHelper : public RegistryHelperCore {
     return ditems;
   }
 
+ protected:
+  /**
+   * @brief Add an existing plugin to this registry, used for testing only.
+   *
+   * @param item A PluginType-cased registry item.
+   * @param item_name An identifier for this registry plugin.
+   * @return A success/failure status.
+   */
+  Status add(const std::shared_ptr<RegistryType>& item) {
+    items_[item->getName()] = item;
+    return RegistryHelperCore::add(item->getName(), true);
+  }
+
  public:
   RegistryHelper(RegistryHelper const&) = delete;
   void operator=(RegistryHelper const&) = delete;
@@ -463,6 +476,9 @@ class RegistryHelper : public RegistryHelperCore {
  private:
   AddExternalCallback add_;
   RemoveExternalCallback remove_;
+
+ private:
+  FRIEND_TEST(EventsTests, test_event_subscriber_configure);
 };
 
 /// Helper definition for a shared pointer to a Plugin.
@@ -782,5 +798,5 @@ class RegistryFactory : private boost::noncopyable {
  * The actual plugins must add themselves to a registry type and should
  * implement the Plugin and RegistryType interfaces.
  */
-class Registry : public RegistryFactory {};
+using Registry = RegistryFactory;
 }

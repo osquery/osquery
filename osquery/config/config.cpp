@@ -341,14 +341,15 @@ inline void stripConfigComments(std::string& json) {
   json = sink;
 }
 
-Status Config::updateSource(const std::string& name, const std::string& json) {
+Status Config::updateSource(const std::string& source,
+                            const std::string& json) {
   // Compute a 'synthesized' hash using the content before it is parsed.
-  hashSource(name, json);
+  hashSource(source, json);
 
   // Remove all packs from this source.
-  schedule_->removeAll(name);
+  schedule_->removeAll(source);
   // Remove all files from this source.
-  removeFiles(name);
+  removeFiles(source);
 
   // load the config (source.second) into a pt::ptree
   pt::ptree tree;
@@ -367,7 +368,7 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
     auto& schedule = tree.get_child("schedule");
     pt::ptree main_pack;
     main_pack.add_child("queries", schedule);
-    addPack("main", name, main_pack);
+    addPack("main", source, main_pack);
   }
 
   if (tree.count("scheduledQueries") > 0 && !Registry::external()) {
@@ -382,7 +383,7 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
     }
     pt::ptree legacy_pack;
     legacy_pack.add_child("queries", queries);
-    addPack("legacy_main", name, legacy_pack);
+    addPack("legacy_main", source, legacy_pack);
   }
 
   // extract the "packs" key into additional pack objects
@@ -392,34 +393,41 @@ Status Config::updateSource(const std::string& name, const std::string& json) {
       auto value = packs.get<std::string>(pack.first, "");
       if (value.empty()) {
         // The pack is a JSON object, treat the content as pack data.
-        addPack(pack.first, name, pack.second);
+        addPack(pack.first, source, pack.second);
       } else {
-        // If the pack value is a string (and not a JSON object) then it is a
-        // resource to be handled by the config plugin.
-        PluginResponse response;
-        PluginRequest request = {
-            {"action", "genPack"}, {"name", pack.first}, {"value", value}};
-        Registry::call("config", request, response);
-
-        if (response.size() == 0 || response[0].count(pack.first) == 0) {
-          continue;
-        }
-
-        try {
-          pt::ptree pack_tree;
-          std::stringstream pack_stream;
-          pack_stream << response[0][pack.first];
-          pt::read_json(pack_stream, pack_tree);
-          addPack(pack.first, name, pack_tree);
-        } catch (const pt::json_parser::json_parser_error& e) {
-          LOG(WARNING) << "Error parsing the pack JSON: " << pack.first;
-        }
+        genPack(pack.first, source, value);
       }
     }
   }
 
-  applyParsers(name, tree, false);
+  applyParsers(source, tree, false);
   return Status(0, "OK");
+}
+
+Status Config::genPack(const std::string& name,
+                       const std::string& source,
+                       const std::string& target) {
+  // If the pack value is a string (and not a JSON object) then it is a
+  // resource to be handled by the config plugin.
+  PluginResponse response;
+  PluginRequest request = {
+      {"action", "genPack"}, {"name", name}, {"value", target}};
+  Registry::call("config", request, response);
+
+  if (response.size() == 0 || response[0].count(name) == 0) {
+    return Status(1, "Invalid plugin response");
+  }
+
+  try {
+    pt::ptree pack_tree;
+    std::stringstream pack_stream;
+    pack_stream << response[0][name];
+    pt::read_json(pack_stream, pack_tree);
+    addPack(name, source, pack_tree);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    LOG(WARNING) << "Error parsing the pack JSON: " << name;
+  }
+  return Status(0);
 }
 
 void Config::applyParsers(const std::string& source,
@@ -558,6 +566,16 @@ void Config::purge() {
       VLOG(1) << "Expiring results for scheduled query: " << saved_query;
     }
   }
+}
+
+void Config::reset() {
+  schedule_ = std::make_shared<Schedule>();
+  std::map<std::string, QueryPerformance>().swap(performance_);
+  std::map<std::string, FileCategories>().swap(files_);
+  std::map<std::string, std::string>().swap(hash_);
+  valid_ = false;
+  loaded_ = false;
+  start_time_ = 0;
 }
 
 void Config::recordQueryPerformance(const std::string& name,

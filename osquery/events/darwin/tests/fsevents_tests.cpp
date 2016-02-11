@@ -31,6 +31,9 @@ DECLARE_bool(verbose);
 class FSEventsTests : public testing::Test {
  protected:
   void SetUp() override {
+    // FSEvents will use data from the config and config parsers.
+    Registry::registry("config_parser")->setUp();
+
     FLAGS_verbose = true;
     trigger_path = kTestWorkingDirectory + "fsevents" +
                    std::to_string(rand() % 10000 + 10000);
