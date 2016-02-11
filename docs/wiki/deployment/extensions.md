@@ -4,7 +4,7 @@ If you are interested in writing extensions please read the [SDK and Extensions]
 
 ## Autoloading Extensions
 
-The following [CLI flags](../installation/cli-flags.md) control extension autoloading:
+The following [CLI flags](../installation/cli-flags.md) control extension auto-loading:
 
 ```sh
 --extensions_autoload=/etc/osquery/extensions.load
@@ -12,7 +12,7 @@ The following [CLI flags](../installation/cli-flags.md) control extension autolo
 --extensions_interval=3
 ```
 
-`extensions_autoload` points to a line-delimited set of paths to executables. When osquery launches, each path is evaluated for "safe permissions" and executed as a monitored child process. Each executable receives 3 argument switches: `socket`, `timeout`, `interval`. An extension process may use these to find the osquery process's Thrift socket and have hint on retry/backoff configuration if any latency or errors occur. 
+`extensions_autoload` points to a line-delimited set of paths to executables. When osquery launches, each path is evaluated for "safe permissions" and executed as a monitored child process. Each executable receives 3 argument switches: `socket`, `timeout`, `interval`. An extension process may use these to find the osquery process's Thrift socket, as well as hints on retry/backoff configuration if any latency or errors occur.
 
 The simplest `extensions.load` file contains a single extension path:
 ```sh
@@ -22,28 +22,30 @@ $ file /usr/lib/osquery/extensions/fb_osquery.ext
 /usr/lib/osquery/extensions/fb_osquery.ext: ELF 64-bit LSB executable
 ```
 
-The autoload workflow is similar to:
+The *autoload* workflow is similar to:
 
 - Check if extensions are enabled.
 - Read `--extensions_autoload` and check permissions/ownership of each path.
-- Fork and exec each path with a few well-known switches.
-- Treat each child process as a "worker" and enforce memory/cycle usage.
+- Fork and execute each path with the switches described above.
+- Treat each child process as a "worker" and enforce sane memory/cycle usage.
 - Read set config plugin from `--config_plugin`.
 - If the config plugin does not exist and at least 1 extension was autoload:
-- Wait `--extensions_timeout` * `--extensions_interval` for the extension to register the config plugin.
+- Wait `--extensions_timeout * --extensions_interval` for the extension to register the config plugin.
 - Fail if the plugin is not registered or the plugin returns a failed status.
 
-The same dependency check is applied to the logger plugin setting after a valid config is read. Every registered plugin is available throughout the run of osqueryd or osqueryi. 
+The same dependency check is applied to the logger plugin setting after a valid config is read. Every registered plugin is available throughout the run of the shell or daemon. 
 
 ## More Options
 
-Extensions are most useful when used to expose config or logger plugins. Along with autoloading extensions you can start osqueryd services with non-default plugins using `--flagfile=PATH`. The osqueryd init service on Linux searches for a `/etc/osquery/osquery.flags` path containing flags. This is a great place to add non-default extensions options or for replacing plugins:
+Extensions are most useful when used to expose config or logger plugins. Along with auto-loading extensions, you can start daemon services with non-default plugins using `--flagfile=PATH`. The `osqueryd` initscript or SystemV service on Linux searches for a `/etc/osquery/osquery.flags` path containing flags. This is a great place to add non-default extensions options or for replacing plugins:
 
 ```sh
 $ cat /etc/osquery/osquery.flags
---config_plugin=configerator
+--config_plugin=custom_plugin
 --logger_plugin=scribe
 ```
+
+## Modules
 
 The osquery extensions concept builds on the platform's concept of a "registry" of plugin types and plugins therein. The registry maintains a lookup of each plugin and its origin, internal or a transient UUID assigned to an extension. osquery supports extensions as dynamic loadable objects too. 
 
@@ -53,6 +55,6 @@ The CLI flag(s):
 --modules_autoload=/etc/osquery/modules.load
 ```
 
-work the same as extensions, each path is evaluated for safe permission and ownership, and `dlopen`ed when an osquery process starts. There is example code for writing a loaded module in the *./examples* folder. If you are building extensions using the osquery build process a module may be a better option.
+work the same as extensions, each path is evaluated for safe permission and ownership, and `dlopen`ed when an osquery process starts. There is example code for writing a loaded module in the [`osquery/examples`](https://github.com/facebook/osquery/tree/master/osquery/examples) folder. If you are building extensions using the osquery build process a module may be a better option.
 
 
