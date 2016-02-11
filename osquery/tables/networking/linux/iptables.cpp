@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014, Facebook, Inc.
+ *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -101,7 +101,7 @@ void genIPTablesRules(const std::string &filter, QueryData &results) {
     // Iterating through all the rules per chain
     for (const struct ipt_entry * chain_rule = iptc_first_rule(chain, handle); chain_rule;
          chain_rule = iptc_next_rule(prev_rule, handle)) {
-      prev_rule = chain_rule; 
+      prev_rule = chain_rule;
 
       auto target = iptc_get_target(chain_rule, handle);
       if (target != nullptr) {
@@ -122,7 +122,7 @@ void genIPTablesRules(const std::string &filter, QueryData &results) {
       results.push_back(r);
     } // Rule iteration
     results.push_back(r);
-  } // Chain iteration 
+  } // Chain iteration
 
   iptc_free(handle);
 }

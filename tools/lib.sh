@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#  Copyright (c) 2014, Facebook, Inc.
+#  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
 #  This source code is licensed under the BSD-style license found in the
@@ -64,7 +64,7 @@ function distro() {
   elif [[ $1 = "debian" ]]; then
     eval $__out="`lsb_release -cs`"
   elif [[ $1 = "freebsd" ]]; then
-    eval $__out=`uname -r | awk -F '-' '{print $1}'` 
+    eval $__out=`uname -r | awk -F '-' '{print $1}'`
   else
     eval $__out="unknown_version"
   fi

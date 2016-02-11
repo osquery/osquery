@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#  Copyright (c) 2014, Facebook, Inc.
+#  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
 #  This source code is licensed under the BSD-style license found in the
@@ -54,7 +54,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         test_base.expectTrue(info_exists)
         self.assertTrue(os.path.exists(info_path))
         daemon.kill()
-    
+
     @test_base.flaky
     def test_3_daemon_with_watchdog(self):
         daemon = self._run_daemon({
