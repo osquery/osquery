@@ -1,0 +1,9 @@
+table_name("currents")
+description("Current sensors.")
+schema([
+    Column("key", TEXT, "The SMC key on OS X", index=True),
+    Column("name", TEXT, "Name of current source"),
+    Column("value", TEXT, "Current in Amps"),
+    ForeignKey(column="key", table="smc_keys"),
+])
+implementation("smc_keys@getCurrents")
