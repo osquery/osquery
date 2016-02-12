@@ -15,6 +15,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/system/sysctl_utils.h"
 
 namespace fs = boost::filesystem;
@@ -24,7 +25,8 @@ namespace tables {
 
 const std::string kSystemControlPath = "/proc/sys/";
 
-void genControlInfo(const std::string& mib_path, QueryData& results,
+void genControlInfo(const std::string& mib_path,
+                    QueryData& results,
                     const std::map<std::string, std::string>& config) {
   if (isDirectory(mib_path).ok()) {
     // Iterate through the subitems and items.
@@ -72,12 +74,12 @@ void genControlInfo(int* oid,
   // Get control size
   size_t response_size = CTL_MAX_VALUE;
   char response[CTL_MAX_VALUE + 1] = {0};
-    if (sysctl(oid, oid_size, response, &response_size, 0, 0) != 0) {
-      // Cannot request MIB data.
-      return;
-    }
+  if (sysctl(oid, oid_size, response, &response_size, 0, 0) != 0) {
+    // Cannot request MIB data.
+    return;
+  }
 
-    // Data is output, but no way to determine type (long, int, string, struct).
+  // Data is output, but no way to determine type (long, int, string, struct).
   Row r;
   r["oid"] = stringFromMIB(oid, oid_size);
   r["current_value"] = std::string(response);
@@ -104,8 +106,9 @@ void genAllControls(QueryData& results,
   }
 }
 
-void genControlInfoFromName(const std::string& name, QueryData& results,
-                    const std::map<std::string, std::string>& config) {
+void genControlInfoFromName(const std::string& name,
+                            QueryData& results,
+                            const std::map<std::string, std::string>& config) {
   // Convert '.'-tokenized name to path.
   std::string name_path = name;
   std::replace(name_path.begin(), name_path.end(), '.', '/');

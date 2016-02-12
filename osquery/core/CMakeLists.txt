@@ -12,7 +12,6 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_core
   system.cpp
   ${OS_CORE_SOURCE}
   tables.cpp
-  text.cpp
   flags.cpp
   hash.cpp
   watcher.cpp

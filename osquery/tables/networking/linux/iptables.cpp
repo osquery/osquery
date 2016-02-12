@@ -20,15 +20,17 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/networking/utils.h"
 
 namespace osquery {
 namespace tables {
 
-const std::string kLinuxIpTablesNames = "/proc/net/ip_tables_names";
-const char MAP[] = {'0','1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-const int HIGH_BITS = 4;
-const int LOW_BITS = 15;
+static const std::string kLinuxIpTablesNames = "/proc/net/ip_tables_names";
+static const std::string kHexMap = "0123456789ABCDEF";
+
+static const int kMaskHighBits = 4;
+static const int kMaskLowBits = 15;
 
 void parseIpEntry(const ipt_ip *ip, Row &r) {
   r["protocol"] = INTEGER(ip->proto);
@@ -41,7 +43,7 @@ void parseIpEntry(const ipt_ip *ip, Row &r) {
   if (strlen(ip->outiface)) {
     r["outiface"] = TEXT(ip->outiface);
   } else {
-   r["outiface"] = "all";
+    r["outiface"] = "all";
   }
 
   r["src_ip"] = ipAsString(&ip->src);
@@ -52,8 +54,8 @@ void parseIpEntry(const ipt_ip *ip, Row &r) {
   char aux_char[2] = {0};
   std::string iniface_mask;
   for (int i = 0; i < IFNAMSIZ && ip->iniface_mask[i] != 0x00; i++) {
-    aux_char[0] = MAP[(int) ip->iniface_mask[i] >> HIGH_BITS];
-    aux_char[1] = MAP[(int) ip->iniface_mask[i] & LOW_BITS];
+    aux_char[0] = kHexMap[(int)ip->iniface_mask[i] >> kMaskHighBits];
+    aux_char[1] = kHexMap[(int)ip->iniface_mask[i] & kMaskLowBits];
     iniface_mask += aux_char[0];
     iniface_mask += aux_char[1];
   }
@@ -61,8 +63,8 @@ void parseIpEntry(const ipt_ip *ip, Row &r) {
   r["iniface_mask"] = TEXT(iniface_mask);
   std::string outiface_mask = "";
   for (int i = 0; i < IFNAMSIZ && ip->outiface_mask[i] != 0x00; i++) {
-    aux_char[0] = MAP[(int) ip->outiface_mask[i] >> HIGH_BITS];
-    aux_char[1] = MAP[(int) ip->outiface_mask[i] & LOW_BITS];
+    aux_char[0] = kHexMap[(int)ip->outiface_mask[i] >> kMaskHighBits];
+    aux_char[1] = kHexMap[(int)ip->outiface_mask[i] & kMaskLowBits];
     outiface_mask += aux_char[0];
     outiface_mask += aux_char[1];
   }
@@ -97,9 +99,10 @@ void genIPTablesRules(const std::string &filter, QueryData &results) {
       r["bytes"] = "0";
     }
 
-    const struct ipt_entry * prev_rule = nullptr;
+    const struct ipt_entry *prev_rule = nullptr;
     // Iterating through all the rules per chain
-    for (const struct ipt_entry * chain_rule = iptc_first_rule(chain, handle); chain_rule;
+    for (const struct ipt_entry *chain_rule = iptc_first_rule(chain, handle);
+         chain_rule;
          chain_rule = iptc_next_rule(prev_rule, handle)) {
       prev_rule = chain_rule;
 
@@ -127,7 +130,7 @@ void genIPTablesRules(const std::string &filter, QueryData &results) {
   iptc_free(handle);
 }
 
-QueryData genIptables(QueryContext& context) {
+QueryData genIptables(QueryContext &context) {
   QueryData results;
 
   // Read in table names

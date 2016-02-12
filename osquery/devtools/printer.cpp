@@ -13,6 +13,7 @@
 
 #include <osquery/core.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/devtools/devtools.h"
 
 namespace osquery {

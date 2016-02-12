@@ -17,6 +17,7 @@
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/extensions/interface.h"
 #include "osquery/core/watcher.h"
 

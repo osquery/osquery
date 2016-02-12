@@ -10,11 +10,11 @@
 
 #include <arpa/inet.h>
 
-#include <boost/algorithm/string/split.hpp>
-
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
+
+#include "osquery/core/conversions.h"
 
 namespace osquery {
 namespace tables {
@@ -103,7 +103,6 @@ void genSocketsFromProc(const InodeMap &inodes,
       continue;
     }
 
-
     Row r;
     if (family == AF_UNIX) {
       r["socket"] = fields[6];
@@ -162,7 +161,7 @@ QueryData genOpenSockets(QueryContext &context) {
   for (const auto &process : pids) {
     std::map<std::string, std::string> descriptors;
     if (osquery::procDescriptors(process, descriptors).ok()) {
-      for (const auto& fd : descriptors) {
+      for (const auto &fd : descriptors) {
         if (fd.second.find("socket:[") == 0) {
           // See #792: std::regex is incomplete until GCC 4.9 (skip 8 chars)
           auto inode = fd.second.substr(8);

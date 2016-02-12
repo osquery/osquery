@@ -21,6 +21,8 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/conversions.h"
+
 namespace osquery {
 namespace tables {
 

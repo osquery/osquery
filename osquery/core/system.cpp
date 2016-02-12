@@ -71,7 +71,7 @@ std::string getHostname() {
   return hostname_string;
 }
 
-std::string generateNewUuid() {
+std::string generateNewUUID() {
   boost::uuids::uuid uuid = boost::uuids::random_generator()();
   return boost::uuids::to_string(uuid);
 }
@@ -81,7 +81,7 @@ Status getHostUUID(std::string& ident) {
   auto status = getDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
   if (ident.size() == 0) {
     // There was no uuid stored in the database, generate one and store it.
-    ident = osquery::generateHostUuid();
+    ident = osquery::generateHostUUID();
     VLOG(1) << "Using uuid " << ident << " as host identifier";
     return setDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
   }
@@ -89,7 +89,7 @@ Status getHostUUID(std::string& ident) {
   return status;
 }
 
-std::string generateHostUuid() {
+std::string generateHostUUID() {
 #ifdef __APPLE__
   // Use the hardware uuid available on OSX to identify this machine
   uuid_t id;
@@ -104,10 +104,10 @@ std::string generateHostUuid() {
     return uuid_string;
   } else {
     // unable to get the hardware uuid, just return a new uuid
-    return generateNewUuid();
+    return generateNewUUID();
   }
 #else
-  return generateNewUuid();
+  return generateNewUUID();
 #endif
 }
 
@@ -123,7 +123,7 @@ std::string getHostIdentifier() {
     // Lookup the host identifier (UUID) previously generated and stored.
     getDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
     if (ident.size() == 0) {
-      ident = osquery::generateHostUuid();
+      ident = osquery::generateHostUUID();
       VLOG(1) << "Using uuid " << ident << " as host identifier";
       setDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
     }

@@ -19,13 +19,15 @@
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 
+#include "osquery/core/conversions.h"
+
 namespace osquery {
 namespace tables {
 
 QueryData parseEtcServicesContent(const std::string& content) {
   QueryData results;
 
-  for (const auto& line : split(content, "\n")) {
+  for (const auto& line : osquery::split(content, "\n")) {
     // Empty line or comment.
     if (line.size() == 0 || boost::starts_with(line, "#")) {
       continue;
@@ -35,20 +37,20 @@ QueryData parseEtcServicesContent(const std::string& content) {
     // [1]: [comment part1]
     // [2]: [comment part2]
     // [n]: [comment partn]
-    auto service_info_comment = split(line, "#");
+    auto service_info_comment = osquery::split(line, "#");
 
     // [0]: name
     // [1]: port/protocol
     // [2]: [aliases0]
     // [3]: [aliases1]
     // [n]: [aliasesn]
-    auto service_info = split(service_info_comment[0]);
+    auto service_info = osquery::split(service_info_comment[0]);
     if (service_info.size() < 2) {
       continue;
     }
 
     // [0]: port [1]: protocol
-    auto service_port_protocol = split(service_info[1], "/");
+    auto service_port_protocol = osquery::split(service_info[1], "/");
     if (service_port_protocol.size() != 2) {
       continue;
     }
@@ -76,7 +78,7 @@ QueryData parseEtcServicesContent(const std::string& content) {
 
 QueryData genEtcServices(QueryContext& context) {
   std::string content;
-  auto s = osquery::forensicReadFile("/etc/services", content);
+  auto s = readFile("/etc/services", content);
   if (s.ok()) {
     return parseEtcServicesContent(content);
   } else {

@@ -13,6 +13,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/system/sysctl_utils.h"
 
 namespace osquery {
@@ -65,14 +66,14 @@ void genControlConfigFromPath(const std::string& path,
     return;
   }
 
-  for (auto& line : split(content, "\n")) {
+  for (auto& line : osquery::split(content, "\n")) {
     boost::trim(line);
     if (line[0] == '#' || line[0] == ';') {
       continue;
     }
 
     // Try to tokenize the config line using '='.
-    auto detail = split(line, "=");
+    auto detail = osquery::split(line, "=");
     if (detail.size() == 2) {
       boost::trim(detail[0]);
       boost::trim(detail[1]);

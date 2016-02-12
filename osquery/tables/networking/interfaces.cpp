@@ -31,13 +31,13 @@ namespace osquery {
 namespace tables {
 
 // Functions for safe sign-extension
-  std::basic_string<char> INTEGER_FROM_UCHAR(unsigned char x) {
-    return INTEGER(static_cast<uint16_t>(x));
-  }
+std::basic_string<char> INTEGER_FROM_UCHAR(unsigned char x) {
+  return INTEGER(static_cast<uint16_t>(x));
+}
 
-  std::basic_string<char> BIGINT_FROM_UINT32(uint32_t x) {
-    return BIGINT(static_cast<uint64_t>(x));
-  }
+std::basic_string<char> BIGINT_FROM_UINT32(uint32_t x) {
+  return BIGINT(static_cast<uint64_t>(x));
+}
 
 void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
   std::string dest_address;
@@ -55,7 +55,8 @@ void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
 
   // The destination address is used for either a broadcast or PtP address.
   if (addr->ifa_dstaddr != nullptr) {
-    dest_address = ipAsString(static_cast<struct sockaddr *>(addr->ifa_dstaddr));
+    dest_address =
+        ipAsString(static_cast<struct sockaddr *>(addr->ifa_dstaddr));
     if ((addr->ifa_flags & IFF_BROADCAST) == IFF_BROADCAST) {
       r["broadcast"] = dest_address;
     } else {
@@ -99,7 +100,7 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
       }
 
       if (ioctl(fd, SIOCGIFMETRIC, &ifr) >= 0) {
-       r["metric"] = BIGINT_FROM_UINT32(ifr.ifr_metric);
+        r["metric"] = BIGINT_FROM_UINT32(ifr.ifr_metric);
       }
 
       if (ioctl(fd, SIOCGIFHWADDR, &ifr) >= 0) {
