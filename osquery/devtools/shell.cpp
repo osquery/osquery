@@ -663,8 +663,10 @@ static void output_csv(struct callback_data *p, const char *z, int bSep) {
 /*
 ** This routine runs when the user presses Ctrl-C
 */
-static void interrupt_handler(int NotUsed) {
-  UNUSED_PARAMETER(NotUsed);
+static void interrupt_handler(int signal) {
+  if (signal == SIGINT) {
+    osquery::shutdown(130);
+  }
   seenInterrupt = 1;
 }
 #endif
@@ -1145,16 +1147,16 @@ static sqlite3_int64 integerValue(const char *zArg) {
     char *zSuffix;
     int iMult;
   } aMult[] = {
-      {(char *)"KiB", 1024},
-      {(char *)"MiB", 1024 * 1024},
-      {(char *)"GiB", 1024 * 1024 * 1024},
-      {(char *)"KB", 1000},
-      {(char *)"MB", 1000000},
-      {(char *)"GB", 1000000000},
-      {(char *)"K", 1000},
-      {(char *)"M", 1000000},
-      {(char *)"G", 1000000000},
-  };
+        {(char *)"KiB", 1024},
+        {(char *)"MiB", 1024 * 1024},
+        {(char *)"GiB", 1024 * 1024 * 1024},
+        {(char *)"KB", 1000},
+        {(char *)"MB", 1000000},
+        {(char *)"GB", 1000000000},
+        {(char *)"K", 1000},
+        {(char *)"M", 1000000},
+        {(char *)"G", 1000000000},
+    };
   int i;
   int isNeg = 0;
   if (zArg[0] == '-') {
