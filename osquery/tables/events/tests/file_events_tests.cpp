@@ -91,7 +91,7 @@ TEST_F(FileEventsTableTests, test_configure_subscriptions) {
   Registry::registry("event_subscriber")->configure();
 
   std::string q = "select * from osquery_events where name = 'file_events'";
-  auto results = SQL::SQL(q);
+  auto results = SQL(q);
   ASSERT_EQ(results.rows().size(), 1U);
   auto& row = results.rows()[0];
   // Expect the paths within "unrestricted_pack" to be created as subscriptions.
@@ -99,7 +99,7 @@ TEST_F(FileEventsTableTests, test_configure_subscriptions) {
 
   // The most important part, make sure a reconfigure removes the subscriptions.
   Config::getInstance().update({{"data", "{}"}});
-  results = SQL::SQL(q);
+  results = SQL(q);
   auto& row2 = results.rows()[0];
   EXPECT_EQ(row2.at("subscriptions"), "0");
 }
