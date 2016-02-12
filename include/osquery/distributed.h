@@ -14,11 +14,8 @@
 #include <vector>
 
 #include <osquery/database.h>
-#include <osquery/flags.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
-
-#include <osquery/dispatcher/dispatcher.h>
 
 namespace osquery {
 
