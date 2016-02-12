@@ -8,8 +8,10 @@
  *
  */
 
+#include <osquery/flags.h>
+#include <osquery/distributed.h>
+
 #include "osquery/dispatcher/distributed.h"
-#include "osquery/distributed.h"
 
 namespace osquery {
 
