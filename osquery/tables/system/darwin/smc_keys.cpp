@@ -321,6 +321,44 @@ inline uint32_t strtoul(const char *str, size_t size, size_t base) {
   return total;
 }
 
+inline float strtof(const char *str, size_t size, size_t e) {
+  float total = 0;
+  for (size_t i = 0; i < size; i++) {
+    if (i == (size - 1)) {
+      total += (str[i] & 0xff) >> e;
+    } else {
+      total += str[i] << (size - 1 - i) * (8 - e);
+    }
+  }
+  return total;
+}
+
+float getConvertedValue(const std::string &smcType,
+                        const std::string &smcVal) {
+  // Convert hex string to decimal.
+  std::string val;
+  try {
+    val = boost::algorithm::unhex(smcVal);
+  } catch (const boost::algorithm::hex_decode_error &e) {
+    return -1.0;
+  }
+
+  if (val.size() < 2) {
+    return -1.0;
+  }
+
+  float convertedVal = -1.0;
+  if (smcType == "sp78") {
+    convertedVal = (val[0] * 256 + val[1]) / 256.0;
+  } else if (smcType == "fpe2") {
+    convertedVal = (int(val[0]) << 6) + (int(val[1]) >> 2);
+  } else if (smcType == "sp5a") {
+    convertedVal = (val[0] * 256 + val[1]) / 1024.0;
+  }
+
+  return convertedVal;
+}
+
 bool SMCHelper::read(const std::string &key, SMCValue_t *val) const {
   SMCKeyData_t in;
   SMCKeyData_t out;
@@ -388,18 +426,6 @@ std::vector<std::string> SMCHelper::getKeys() const {
     keys.push_back(key.bytes);
   }
   return keys;
-}
-
-inline float strtof(const char *str, size_t size, size_t e) {
-  float total = 0;
-  for (size_t i = 0; i < size; i++) {
-    if (i == (size - 1)) {
-      total += (str[i] & 0xff) >> e;
-    } else {
-      total += str[i] << (size - 1 - i) * (8 - e);
-    }
-  }
-  return total;
 }
 
 void genSMCKey(const std::string &key,
@@ -481,27 +507,14 @@ void genTemperature(const std::string &key,
   r["key"] = smcRow["key"];
   r["name"] = kSMCKeyDescriptions.at(smcRow["key"]);
 
-  // Convert hex string to decimal.
-  std::string val;
-  try {
-    val = boost::algorithm::unhex(smcRow["value"]);
-  } catch (const boost::algorithm::hex_decode_error &e) {
-    return;
-  }
+  float celsiusValue = getConvertedValue(smcRow["type"], smcRow["value"]);
+  float fahrenheitValue = (celsiusValue * (9 / 5)) + 32;
 
-  if (val.size() < 2) {
-    return;
-  }
-
-  int intValue = (val[0] * 256 + val[1]);
-  float floatValueCelsius = intValue / 256.0;
-  float floatValueFahrenheit = (floatValueCelsius * (9 / 5)) + 32;
-
-  std::stringstream buff1;
+  std::stringstream buff;
   std::stringstream buff2;
-  buff1 << std::fixed << std::setprecision(1) << floatValueCelsius;
-  buff2 << std::fixed << std::setprecision(1) << floatValueFahrenheit;
-  r["celsius"] = buff1.str();
+  buff << std::fixed << std::setprecision(1) << celsiusValue;
+  buff2 << std::fixed << std::setprecision(1) << fahrenheitValue;
+  r["celsius"] = buff.str();
   r["fahrenheit"] = buff2.str();
 
   results.push_back(r);
@@ -553,20 +566,7 @@ void genVoltage(const std::string &key,
   r["key"] = smcRow["key"];
   r["name"] = kSMCKeyDescriptions.at(smcRow["key"]);
 
-  // Convert hex string to decimal.
-  std::string val;
-  try {
-    val = boost::algorithm::unhex(smcRow["value"]);
-  } catch (const boost::algorithm::hex_decode_error &e) {
-    return;
-  }
-
-  if (val.size() < 2) {
-    return;
-  }
-
-  int intValue = (val[0] * 256 + val[1]);
-  float value = intValue / 1024.0;
+  float value = getConvertedValue(smcRow["type"], smcRow["value"]);
 
   std::stringstream buff;
   buff << std::fixed << std::setprecision(2) << value;
@@ -645,18 +645,7 @@ QueryData getFanSpeeds(QueryContext &context) {
         continue;
       }
 
-      std::string val;
-      try {
-        val = boost::algorithm::unhex(smcRow["value"]);
-      } catch (const boost::algorithm::hex_decode_error &e) {
-        continue;
-      }
-
-      if (val.size() != 2) {
-        continue;
-      }
-
-      int fanSpeed = (int(val[0]) << 6) + (int(val[1]) >> 2);
+      float fanSpeed = getConvertedValue(smcRow["type"], smcRow["value"]);
       r[smcFanSpeedKey.second] = INTEGER(fanSpeed);
     }
 
