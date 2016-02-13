@@ -19,13 +19,15 @@
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 
+#include "osquery/core/conversions.h"
+
 namespace osquery {
 namespace tables {
 
 QueryData parseEtcProtocolsContent(const std::string& content) {
   QueryData results;
 
-  for (const auto& line : split(content, "\n")) {
+  for (const auto& line : osquery::split(content, "\n")) {
     // Empty line or comment.
     if (line.size() == 0 || boost::starts_with(line, "#")) {
       continue;
@@ -35,12 +37,12 @@ QueryData parseEtcProtocolsContent(const std::string& content) {
     // [1]: [comment part1]
     // [2]: [comment part2]
     // [n]: [comment partn]
-    auto protocol_comment = split(line, "#");
+    auto protocol_comment = osquery::split(line, "#");
 
     // [0]: name
     // [1]: protocol_number
     // [2]: alias
-    auto protocol_fields = split(protocol_comment[0]);
+    auto protocol_fields = osquery::split(protocol_comment[0]);
     if (protocol_fields.size() < 2) {
       continue;
     }
@@ -66,7 +68,7 @@ QueryData parseEtcProtocolsContent(const std::string& content) {
 
 QueryData genEtcProtocols(QueryContext& context) {
   std::string content;
-  auto s = osquery::forensicReadFile("/etc/protocols", content);
+  auto s = readFile("/etc/protocols", content);
   if (s.ok()) {
     return parseEtcProtocolsContent(content);
   } else {

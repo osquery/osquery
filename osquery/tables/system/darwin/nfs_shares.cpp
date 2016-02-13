@@ -11,11 +11,13 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
+
 namespace osquery {
 namespace tables {
 
 void genNFSShare(const std::string& share_line, QueryData& results) {
-  auto line = split(share_line);
+  auto line = osquery::split(share_line);
   if (line.size() == 0 || boost::starts_with(line[0], "#")) {
     return;
   }
@@ -59,13 +61,13 @@ QueryData genNFSShares(QueryContext& context) {
   QueryData results;
 
   std::string content;
-  auto status = osquery::forensicReadFile("/etc/exports", content);
+  auto status = readFile("/etc/exports", content);
   if (!status.ok()) {
     VLOG(1) << "Error reading /etc/exports: " << status.toString();
     return {};
   }
 
-  for (const auto& share_line : split(content, "\n")) {
+  for (const auto& share_line : osquery::split(content, "\n")) {
     genNFSShare(share_line, results);
   }
   return results;

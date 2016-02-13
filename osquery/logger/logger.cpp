@@ -19,6 +19,8 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/conversions.h"
+
 namespace pt = boost::property_tree;
 
 namespace osquery {

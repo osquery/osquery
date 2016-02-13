@@ -15,6 +15,7 @@
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/system/system_utils.h"
 
 namespace osquery {

@@ -8,19 +8,18 @@
  *
  */
 
-#include <boost/algorithm/string/split.hpp>
-
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
-#include <osquery/hash.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include "osquery/core/conversions.h"
 
 namespace osquery {
 namespace tables {
 
-const std::string kKernelArgumentsPath = "/proc/cmdline";
-const std::string kKernelSignaturePath = "/proc/version";
+static const std::string kKernelArgumentsPath = "/proc/cmdline";
+static const std::string kKernelSignaturePath = "/proc/version";
 
 QueryData genKernelInfo(QueryContext& context) {
   QueryData results;
@@ -49,7 +48,7 @@ QueryData genKernelInfo(QueryContext& context) {
       r["arguments"] = additional_arguments;
     }
   } else {
-    VLOG(1) << "Cannot find kernel arguments file: " << kKernelArgumentsPath;
+    TLOG << "Cannot find kernel arguments file: " << kKernelArgumentsPath;
   }
 
   if (pathExists(kKernelSignaturePath).ok()) {
@@ -64,7 +63,7 @@ QueryData genKernelInfo(QueryContext& context) {
       }
     }
   } else {
-    VLOG(1) << "Cannot find kernel signature file: " << kKernelSignaturePath;
+    TLOG << "Cannot find kernel signature file: " << kKernelSignaturePath;
   }
 
   results.push_back(r);

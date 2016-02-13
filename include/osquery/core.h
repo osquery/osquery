@@ -154,63 +154,6 @@ class Initializer : private boost::noncopyable {
 };
 
 /**
- * @brief Split a given string based on an optional delimiter.
- *
- * If no delimiter is supplied, the string will be split based on whitespace.
- *
- * @param s the string that you'd like to split
- * @param delim the delimiter which you'd like to split the string by
- *
- * @return a vector of strings split by delim.
- */
-std::vector<std::string> split(const std::string& s,
-                               const std::string& delim = "\t ");
-
-/**
- * @brief Split a given string based on an delimiter.
- *
- * @param s the string that you'd like to split.
- * @param delim the delimiter which you'd like to split the string by.
- * @param occurrences the number of times to split by delim.
- *
- * @return a vector of strings split by delim for occurrences.
- */
-std::vector<std::string> split(const std::string& s,
-                               const std::string& delim,
-                               size_t occurences);
-
-/**
- * @brief In-line replace all instances of from with to.
- *
- * @param str The input/output mutable string.
- * @param from Search string
- * @param to Replace string
- */
-inline void replaceAll(std::string& str,
-                       const std::string& from,
-                       const std::string& to) {
-  if (from.empty()) {
-    return;
-  }
-
-  size_t start_pos = 0;
-  while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-    str.replace(start_pos, from.length(), to);
-    start_pos += to.length();
-  }
-}
-
-/**
- * @brief Join a vector of strings using a tokenizer.
- *
- * @param s the string that you'd like to split.
- * @param tok a token glue.
- *
- * @return a joined string.
- */
-std::string join(const std::vector<std::string>& s, const std::string& tok);
-
-/**
  * @brief Getter for a host's current hostname
  *
  * @return a string representing the host's current hostname
@@ -229,7 +172,7 @@ Status getHostUUID(std::string& ident);
  *
  * @return uuid string to identify this machine
  */
-std::string generateHostUuid();
+std::string generateHostUUID();
 
 /**
  * @brief Get a configured UUID/name that uniquely identify this machine
@@ -251,43 +194,6 @@ std::string getAsciiTime();
  * @return an int representing the amount of seconds since the UNIX epoch
  */
 size_t getUnixTime();
-
-/**
- * @brief In-line helper function for use with utf8StringSize
- */
-template <typename _Iterator1, typename _Iterator2>
-inline size_t incUtf8StringIterator(_Iterator1& it, const _Iterator2& last) {
-  if (it == last) {
-    return 0;
-  }
-
-  size_t res = 1;
-  for (++it; last != it; ++it, ++res) {
-    unsigned char c = *it;
-    if (!(c & 0x80) || ((c & 0xC0) == 0xC0)) {
-      break;
-    }
-  }
-
-  return res;
-}
-
-/**
- * @brief Get the length of a UTF-8 string
- *
- * @param str The UTF-8 string
- *
- * @return the length of the string
- */
-inline size_t utf8StringSize(const std::string& str) {
-  size_t res = 0;
-  std::string::const_iterator it = str.begin();
-  for (; it != str.end(); incUtf8StringIterator(it, str.end())) {
-    res++;
-  }
-
-  return res;
-}
 
 /**
  * @brief Create a pid file

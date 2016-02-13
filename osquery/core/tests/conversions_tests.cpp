@@ -15,6 +15,8 @@
 
 #include "osquery/core/conversions.h"
 
+#include "osquery/core/test_util.h"
+
 namespace osquery {
 
 class ConversionsTests : public testing::Test {};
@@ -64,5 +66,26 @@ TEST_F(ConversionsTests, test_unicode_unescape) {
   for (const auto& test : conversions) {
     EXPECT_EQ(unescapeUnicode(test.first), test.second);
   }
+}
+
+TEST_F(ConversionsTests, test_split) {
+  for (const auto& i : generateSplitStringTestData()) {
+    EXPECT_EQ(split(i.test_string), i.test_vector);
+  }
+}
+
+TEST_F(ConversionsTests, test_join) {
+  std::vector<std::string> content = {
+      "one", "two", "three",
+  };
+  EXPECT_EQ(join(content, ", "), "one, two, three");
+}
+
+TEST_F(ConversionsTests, test_split_occurences) {
+  std::string content = "T: 'S:S'";
+  std::vector<std::string> expected = {
+      "T", "'S:S'",
+  };
+  EXPECT_EQ(split(content, ":", 1), expected);
 }
 }

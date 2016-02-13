@@ -10,12 +10,13 @@
 
 #include <string>
 
-#include <boost/regex.hpp>
 #include <boost/xpressive/xpressive.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
+
+#include "osquery/core/conversions.h"
 
 namespace xp = boost::xpressive;
 

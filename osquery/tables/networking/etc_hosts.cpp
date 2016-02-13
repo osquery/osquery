@@ -19,13 +19,15 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
+
 namespace osquery {
 namespace tables {
 
 QueryData parseEtcHostsContent(const std::string& content) {
   QueryData results;
 
-  for (const auto& i : split(content, "\n")) {
+  for (const auto& i : osquery::split(content, "\n")) {
     auto line = split(i);
     if (line.size() == 0 || boost::starts_with(line[0], "#")) {
       continue;
@@ -50,7 +52,7 @@ QueryData parseEtcHostsContent(const std::string& content) {
 
 QueryData genEtcHosts(QueryContext& context) {
   std::string content;
-  auto s = osquery::forensicReadFile("/etc/hosts", content);
+  auto s = readFile("/etc/hosts", content);
   if (s.ok()) {
     return parseEtcHostsContent(content);
   } else {
