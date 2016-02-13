@@ -487,28 +487,19 @@ QueryData genSMCKeys(QueryContext &context) {
   return results;
 }
 
-void genTemperature(const std::string &key,
-                    const SMCHelper &smc,
+void genTemperature(const Row &row,
                     QueryData &results) {
-  QueryData key_data;
-  genSMCKey(key, smc, key_data);
-
-  if (key_data.empty()) {
-    // The SMC search for key information failed.
-    return;
-  }
-
-  auto &smcRow = key_data.back();
-  if (smcRow["value"].empty()) {
+  auto &smcRow = row;
+  if (smcRow.at("value").empty()) {
     return;
   }
 
   Row r;
-  r["key"] = smcRow["key"];
-  r["name"] = kSMCKeyDescriptions.at(smcRow["key"]);
+  r["key"] = smcRow.at("key");
+  r["name"] = kSMCKeyDescriptions.at(smcRow.at("key"));
 
-  float celsiusValue = getConvertedValue(smcRow["type"], smcRow["value"]);
-  float fahrenheitValue = (celsiusValue * (9 / 5)) + 32;
+  float celsiusValue = getConvertedValue(smcRow.at("type"), smcRow.at("value"));
+  float fahrenheitValue = (celsiusValue * (9.0 / 5.0)) + 32;
 
   std::stringstream buff;
   std::stringstream buff2;
@@ -533,40 +524,39 @@ QueryData getTemperatures(QueryContext &context) {
                               EQUALS,
                               ([&smc, &results](const std::string &expr) {
                                 if (kSMCTemperatureKeys.count(expr) > 0) {
-                                  genTemperature(expr, smc, results);
+                                  QueryData key_data;
+                                  genSMCKey(expr, smc, key_data);
+                                  if (!key_data.empty()) {
+                                    genTemperature(key_data.back(), results);
+                                  }
                                 }
                               }));
   } else {
     // Perform a full scan of temperature keys.
     for (const auto &smcTempKey : kSMCTemperatureKeys) {
-      genTemperature(smcTempKey, smc, results);
+      QueryData key_data;
+      genSMCKey(smcTempKey, smc, key_data);
+      if (!key_data.empty()) {
+        genTemperature(key_data.back(), results);
+      }
     }
   }
 
   return results;
 }
 
-void genVoltage(const std::string &key,
-                    const SMCHelper &smc,
-                    QueryData &results) {
-  QueryData key_data;
-  genSMCKey(key, smc, key_data);
-
-  if (key_data.empty()) {
-    // The SMC search for key information failed.
-    return;
-  }
-
-  auto &smcRow = key_data.back();
-  if (smcRow["value"].empty()) {
+void genVoltage(const Row &row,
+                QueryData &results) {
+  auto &smcRow = row;
+  if (smcRow.at("value").empty()) {
     return;
   }
 
   Row r;
-  r["key"] = smcRow["key"];
-  r["name"] = kSMCKeyDescriptions.at(smcRow["key"]);
+  r["key"] = smcRow.at("key");
+  r["name"] = kSMCKeyDescriptions.at(smcRow.at("key"));
 
-  float value = getConvertedValue(smcRow["type"], smcRow["value"]);
+  float value = getConvertedValue(smcRow.at("type"), smcRow.at("value"));
 
   std::stringstream buff;
   buff << std::fixed << std::setprecision(2) << value;
@@ -588,13 +578,21 @@ QueryData getVoltages(QueryContext &context) {
                               EQUALS,
                               ([&smc, &results](const std::string &expr) {
                                 if (kSMCVoltageKeys.count(expr) > 0) {
-                                  genVoltage(expr, smc, results);
+                                  QueryData key_data;
+                                  genSMCKey(expr, smc, key_data);
+                                  if (!key_data.empty()) {
+                                    genVoltage(key_data.back(), results);
+                                  }
                                 }
                               }));
   } else {
     // Perform a full scan of voltage keys.
     for (const auto &smcVoltageKey : kSMCVoltageKeys) {
-      genVoltage(smcVoltageKey, smc, results);
+      QueryData key_data;
+      genSMCKey(smcVoltageKey, smc, key_data);
+      if (!key_data.empty()) {
+        genVoltage(key_data.back(), results);
+      }
     }
   }
 
