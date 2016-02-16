@@ -51,7 +51,7 @@ set(CXX_COMPILE_FLAGS "")
 
 # Use osquery language to set platform/os
 if(DEFINED ENV{OSQUERY_PLATFORM})
-  set(PLATFORM ENV{OSQUERY_PLATFORM})
+  set(PLATFORM "$ENV{OSQUERY_PLATFORM}")
 else()
   execute_process(
     COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" get_platform
@@ -77,7 +77,7 @@ list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO_DEFINE)
 # late-loading modules and SQLite introspection utilities.
 if(APPLE)
   if(DEFINED ENV{OSX_VERSION_MIN})
-    set(OSX_VERSION_MIN ENV{OSX_VERSION_MIN})
+    set(OSX_VERSION_MIN "$ENV{OSX_VERSION_MIN}")
   else()
     set(OSX_VERSION_MIN "${OSQUERY_BUILD_DISTRO}")
   endif()
