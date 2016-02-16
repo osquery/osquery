@@ -161,6 +161,7 @@ Status TLSLogForwarderRunner::send(std::vector<std::string>& log_data,
   }
 
   auto request = Request<TLSTransport, JSONSerializer>(uri_);
+  request.setOption("hostname", FLAGS_tls_hostname);
   if (FLAGS_logger_tls_compress) {
     request.setOption("compress", true);
   }

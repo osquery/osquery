@@ -114,7 +114,7 @@ function install_thrift() {
   if provision thrift /usr/local/lib/libthrift.a; then
     pushd $SOURCE
     ./bootstrap.sh
-    ./configure CFLAGS="$CFLAGS" \
+    ./configure PREFIX="/usr/local" CFLAGS="$CFLAGS" \
       --with-cpp=yes \
       --with-python=yes \
       --with-ruby=no \
@@ -187,7 +187,8 @@ function install_cppnetlib() {
     mkdir -p build
     pushd build
     CC="$CC" CXX="$CXX" cmake -DCMAKE_CXX_FLAGS="$CFLAGS" \
-      -DCPP-NETLIB_BUILD_EXAMPLES=False -DCPP-NETLIB_BUILD_TESTS=False  ..
+      -DCPP-NETLIB_BUILD_EXAMPLES=False -DCPP-NETLIB_BUILD_TESTS=False \
+      -DCPP-NETLIB_ENABLE_HTTPS=True ..
     make -j $THREADS
     sudo make install
     popd

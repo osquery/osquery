@@ -87,6 +87,7 @@ class TLSRequestHelper : private boost::noncopyable {
 
     // Again check for GET to call with/without parameters.
     auto request = Request<TLSTransport, TSerializer>(uri + uri_suffix);
+    request.setOption("hostname", FLAGS_tls_hostname);
     auto status = (FLAGS_tls_node_api) ? request.call() : request.call(params);
 
     if (!status.ok()) {
