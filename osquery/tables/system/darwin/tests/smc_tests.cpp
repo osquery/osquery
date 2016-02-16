@@ -22,6 +22,8 @@ void genTemperature(const Row &row,
                     QueryData &results);
 void genVoltage(const Row &row,
                 QueryData &results);
+void genCurrent(const Row &row,
+                QueryData &results);
 
 class SmcTests : public testing::Test {};
 
@@ -67,6 +69,31 @@ TEST_F(SmcTests, test_gen_voltage) {
       {"key", "VC0C"},
       {"name", "CPU Core 1"},
       {"value", "0.84"},
+  };
+
+  // We could compare the entire map, but iterating the columns will produce
+  // better error text as most likely parsing for a certain column/type changed.
+  for (const auto& column : expected) {
+    EXPECT_EQ(results[0][column.first], column.second);
+  }
+}
+
+TEST_F(SmcTests, test_gen_current) {
+  QueryData results;
+  // Generate a set of results/single row using an example smc current key.
+  Row param = {
+    {"key", "IC0C"},
+    {"type", "sp78"},
+    {"size", "2"},
+    {"value", "026a"},
+    {"hidden", "0"},
+  };
+  genCurrent(param, results);
+
+  Row expected = {
+      {"key", "IC0C"},
+      {"name", "CPU Core"},
+      {"value", "2.41"},
   };
 
   // We could compare the entire map, but iterating the columns will produce

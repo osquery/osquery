@@ -103,6 +103,11 @@ std::set<std::string> kSMCVoltageKeys = {
     "VBAT", "Vb0R",
 };
 
+std::set<std::string> kSMCCurrentKeys = {
+    "IC0C", "IC1C", "IC2C", "IC0R", "IC5R", "IC8R", "IC0G", "IC0M", "IG0C",
+    "IM0C", "IM0R", "IN0C", "ID0R", "ID5R", "IO0R", "IB0R", "IPBR",
+};
+
 std::map<std::string, std::string> kSMCFanSpeeds = {
     {"F%dAc", "actual"},
     {"F%dMn", "min"},
@@ -225,7 +230,24 @@ const std::map<std::string, std::string> kSMCKeyDescriptions = {
     {"VV8S", "Standby 5V"},
     {"VeES", "PCIe 12V"},
     {"VBAT", "Battery"},
-    {"Vb0R", "CMOS Battery"}};
+    {"Vb0R", "CMOS Battery"},
+    {"IC0C", "CPU Core"},
+    {"IC1C", "CPU VccIO"},
+    {"IC2C", "CPU VccSA"},
+    {"IC0R", "CPU Rail"},
+    {"IC5R", "CPU DRAM"},
+    {"IC8R", "CPU PLL"},
+    {"IC0G", "CPU GFX"},
+    {"IC0M", "CPU Memory"},
+    {"IG0C", "GPU Rail"},
+    {"IM0C", "Memory Controller"},
+    {"IM0R", "Memory Rail"},
+    {"IN0C", "MCH"},
+    {"ID0R", "Mainboard S0 Rail"},
+    {"ID5R", "Mainboard S5 Rail"},
+    {"IO0R", "Misc. Rail"},
+    {"IB0R", "Battery Rail"},
+    {"IPBR", "Charger BMON"}};
 
 class SMCHelper : private boost::noncopyable {
  public:
@@ -592,6 +614,60 @@ QueryData getVoltages(QueryContext &context) {
       genSMCKey(smcVoltageKey, smc, key_data);
       if (!key_data.empty()) {
         genVoltage(key_data.back(), results);
+      }
+    }
+  }
+
+  return results;
+}
+
+void genCurrent(const Row &row,
+                QueryData &results) {
+  auto &smcRow = row;
+  if (smcRow.at("value").empty()) {
+    return;
+  }
+
+  Row r;
+  r["key"] = smcRow.at("key");
+  r["name"] = kSMCKeyDescriptions.at(smcRow.at("key"));
+
+  float value = getConvertedValue(smcRow.at("type"), smcRow.at("value"));
+
+  std::stringstream buff;
+  buff << std::fixed << std::setprecision(2) << value;
+  r["value"] = buff.str();
+
+  results.push_back(r);
+}
+
+QueryData getCurrents(QueryContext &context) {
+  QueryData results;
+
+  SMCHelper smc;
+  if (!smc.open()) {
+    return {};
+  }
+
+  if (context.hasConstraint("key", EQUALS)) {
+    context.forEachConstraint("key",
+                              EQUALS,
+                              ([&smc, &results](const std::string &expr) {
+                                if (kSMCCurrentKeys.count(expr) > 0) {
+                                  QueryData key_data;
+                                  genSMCKey(expr, smc, key_data);
+                                  if (!key_data.empty()) {
+                                    genCurrent(key_data.back(), results);
+                                  }
+                                }
+                              }));
+  } else {
+    // Perform a full scan of current keys.
+    for (const auto &smcCurrentKey : kSMCCurrentKeys) {
+      QueryData key_data;
+      genSMCKey(smcCurrentKey, smc, key_data);
+      if (!key_data.empty()) {
+        genCurrent(key_data.back(), results);
       }
     }
   }
