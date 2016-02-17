@@ -1,4 +1,4 @@
-table_name("currents")
+table_name("sensor_currents")
 description("Current sensors.")
 schema([
     Column("key", TEXT, "The SMC key on OS X", index=True),

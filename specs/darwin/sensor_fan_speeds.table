@@ -1,4 +1,4 @@
-table_name("fan_speeds")
+table_name("sensor_fan_speeds")
 description("Fan speeds.")
 schema([
     Column("fan", TEXT, "Fan number"),
