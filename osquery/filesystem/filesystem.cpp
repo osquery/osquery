@@ -241,7 +241,7 @@ static void genGlobs(std::string path,
                      std::vector<std::string>& results,
                      GlobLimits limits) {
   // Use our helped escape/replace for wildcards.
-  replaceGlobWildcards(path);
+  replaceGlobWildcards(path, limits);
 
   // Generate a glob set and recurse for double star.
   size_t glob_index = 0;
@@ -264,7 +264,9 @@ static void genGlobs(std::string path,
 
   // Prune results based on settings/requested glob limitations.
   auto end = std::remove_if(
-      results.begin(), results.end(), [limits](const std::string& found) {
+      results.begin(),
+      results.end(),
+      [limits](const std::string& found) {
         return !((found[found.length() - 1] == '/' && limits & GLOB_FOLDERS) ||
                  (found[found.length() - 1] != '/' && limits & GLOB_FILES));
       });
@@ -283,7 +285,7 @@ Status resolveFilePattern(const fs::path& fs_path,
   return Status(0, "OK");
 }
 
-inline void replaceGlobWildcards(std::string& pattern) {
+inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
   // Replace SQL-wildcard '%' with globbing wildcard '*'.
   if (pattern.find("%") != std::string::npos) {
     boost::replace_all(pattern, "%", "*");
@@ -297,7 +299,9 @@ inline void replaceGlobWildcards(std::string& pattern) {
   auto base = pattern.substr(0, pattern.find('*'));
   if (base.size() > 0) {
     boost::system::error_code ec;
-    auto canonicalized = fs::canonical(base, ec).string();
+    auto canonicalized = ((limits & GLOB_NO_CANON) == 0)
+                             ? fs::canonical(base, ec).string()
+                             : base;
     if (canonicalized.size() > 0 && canonicalized != base) {
       if (isDirectory(canonicalized)) {
         // Canonicalized directory paths will not include a trailing '/'.

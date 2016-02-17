@@ -27,7 +27,6 @@ namespace tables {
 
 void doYARAScan(YR_RULES* rules,
                 const std::string& path,
-                const std::string& pattern,
                 QueryData& results,
                 const std::string& group,
                 const std::string& sigfile) {
@@ -41,17 +40,12 @@ void doYARAScan(YR_RULES* rules,
 
   // This could use target_path instead to be consistent with yara_events.
   r["path"] = path;
-  r["pattern"] = pattern;
   r["sig_group"] = std::string(group);
   r["sigfile"] = std::string(sigfile);
 
   // Perform the scan, using the static YARA subscriber callback.
-  int result = yr_rules_scan_file(rules,
-                                  path.c_str(),
-                                  SCAN_FLAGS_FAST_MODE,
-                                  YARACallback,
-                                  (void*)&r,
-                                  0);
+  int result = yr_rules_scan_file(
+      rules, path.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
   if (result == ERROR_SUCCESS) {
     results.push_back(std::move(r));
   }
@@ -85,36 +79,28 @@ QueryData genYara(QueryContext& context) {
     LOG(ERROR) << "YARA config parser plugin has no pointer";
     return results;
   }
-
   auto& rules = yaraParser->rules();
-
-  // Store resolved paths in a vector of pairs.
-  // Each pair has the first element as the path to scan and the second
-  // element as the pattern which generated it.
-  std::vector<std::pair<std::string, std::string> > path_pairs;
-
-  // Expand patterns and push onto path_pairs.
-  auto patterns = context.constraints["pattern"].getAll(EQUALS);
-  for (const auto& pattern : patterns) {
-    std::vector<std::string> expanded_patterns;
-    if (!resolveFilePattern(pattern, expanded_patterns).ok()) {
-      continue;
-    }
-    // Check that each resolved path is readable.
-    for (const auto& resolved : expanded_patterns) {
-      if (isReadable(resolved)) {
-        path_pairs.push_back(make_pair(resolved, pattern));
-      }
-    }
-  }
 
   // Collect all paths specified too.
   auto paths = context.constraints["path"].getAll(EQUALS);
-  for (const auto& path_string : paths) {
-    if (isReadable(path_string)) {
-      path_pairs.push_back(make_pair(path_string, ""));
-    }
-  }
+  context.expandConstraints(
+      "path",
+      LIKE,
+      paths,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_FILES | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            // Check that each resolved path is readable.
+            if (isReadable(resolved)) {
+              paths.insert(resolved);
+            }
+          }
+        }
+        return status;
+      }));
 
   // Compile all sigfiles into a map.
   for (const auto& file : sigfiles) {
@@ -140,16 +126,11 @@ QueryData genYara(QueryContext& context) {
   }
 
   // Scan every path pair.
-  for (const auto& path_pair : path_pairs) {
+  for (const auto& path : paths) {
     // Scan using the signature groups.
     for (const auto& group : groups) {
       if (rules.count(group) > 0) {
-        doYARAScan(rules[group],
-                   path_pair.first.c_str(),
-                   path_pair.second,
-                   results,
-                   group,
-                   group);
+        doYARAScan(rules[group], path.c_str(), results, group, group);
       }
     }
   }
