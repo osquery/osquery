@@ -108,6 +108,13 @@ std::set<std::string> kSMCCurrentKeys = {
     "IM0C", "IM0R", "IN0C", "ID0R", "ID5R", "IO0R", "IB0R", "IPBR",
 };
 
+std::set<std::string> kSMCPowerKeys = {
+    "PC0C", "PC1C", "PC2C", "PC3C", "PC4C", "PC5C", "PC6C", "PC7C", "PCPC",
+    "PCPG", "PCPD", "PCTR", "PCPL", "PC1R", "PC5R", "PGTR", "PG0R", "PM0R",
+    "PN0C", "PN1R", "PC0R", "PD0R", "PD5R", "PH02", "PH05", "Pp0R", "PD2R",
+    "PO0R", "PBLC", "PB0R", "PDTR", "PSTR",
+};
+
 std::map<std::string, std::string> kSMCFanSpeeds = {
     {"F%dAc", "actual"},
     {"F%dMn", "min"},
@@ -247,7 +254,39 @@ const std::map<std::string, std::string> kSMCKeyDescriptions = {
     {"ID5R", "Mainboard S5 Rail"},
     {"IO0R", "Misc. Rail"},
     {"IB0R", "Battery Rail"},
-    {"IPBR", "Charger BMON"}};
+    {"IPBR", "Charger BMON"},
+    {"PC0C", "CPU Core 1"},
+    {"PC1C", "CPU Core 2"},
+    {"PC2C", "CPU Core 3"},
+    {"PC3C", "CPU Core 4"},
+    {"PC4C", "CPU Core 5"},
+    {"PC5C", "CPU Core 6"},
+    {"PC6C", "CPU Core 7"},
+    {"PC7C", "CPU Core 8"},
+    {"PCPC", "CPU Cores"},
+    {"PCPG", "CPU GFX"},
+    {"PCPD", "CPU DRAM"},
+    {"PCTR", "CPU Total"},
+    {"PCPL", "CPU Total"},
+    {"PC1R", "CPU Rail"},
+    {"PC5R", "CPU S0 Rail"},
+    {"PGTR", "GPU Total"},
+    {"PG0R", "GPU Rail"},
+    {"PM0R", "Memory Rail"},
+    {"PN0C", "MCH"},
+    {"PN1R", "PCH Rail"},
+    {"PC0R", "Mainboard S0 Rail"},
+    {"PD0R", "Mainboard S0 Rail"},
+    {"PD5R", "Mainboard S5 Rail"},
+    {"PH02", "Main 3.3V Rail"},
+    {"PH05", "Main 5V Rail"},
+    {"Pp0R", "12V Rail"},
+    {"PD2R", "Main 12V Rail"},
+    {"PO0R", "Misc. Rail"},
+    {"PBLC", "Battery Rail"},
+    {"PB0R", "Battery Rail"},
+    {"PDTR", "DC In Total"},
+    {"PSTR", "System Total"}};
 
 class SMCHelper : private boost::noncopyable {
  public:
@@ -668,6 +707,60 @@ QueryData getCurrents(QueryContext &context) {
       genSMCKey(smcCurrentKey, smc, key_data);
       if (!key_data.empty()) {
         genCurrent(key_data.back(), results);
+      }
+    }
+  }
+
+  return results;
+}
+
+void genPower(const Row &row,
+              QueryData &results) {
+  auto &smcRow = row;
+  if (smcRow.at("value").empty()) {
+    return;
+  }
+
+  Row r;
+  r["key"] = smcRow.at("key");
+  r["name"] = kSMCKeyDescriptions.at(smcRow.at("key"));
+
+  float value = getConvertedValue(smcRow.at("type"), smcRow.at("value"));
+
+  std::stringstream buff;
+  buff << std::fixed << std::setprecision(2) << value;
+  r["value"] = buff.str();
+
+  results.push_back(r);
+}
+
+QueryData getPowers(QueryContext &context) {
+  QueryData results;
+
+  SMCHelper smc;
+  if (!smc.open()) {
+    return {};
+  }
+
+  if (context.hasConstraint("key", EQUALS)) {
+    context.forEachConstraint("key",
+                              EQUALS,
+                              ([&smc, &results](const std::string &expr) {
+                                if (kSMCPowerKeys.count(expr) > 0) {
+                                  QueryData key_data;
+                                  genSMCKey(expr, smc, key_data);
+                                  if (!key_data.empty()) {
+                                    genPower(key_data.back(), results);
+                                  }
+                                }
+                              }));
+  } else {
+    // Perform a full scan of power keys.
+    for (const auto &smcPowerKey : kSMCPowerKeys) {
+      QueryData key_data;
+      genSMCKey(smcPowerKey, smc, key_data);
+      if (!key_data.empty()) {
+        genPower(key_data.back(), results);
       }
     }
   }

@@ -1,0 +1,9 @@
+table_name("sensor_powers")
+description("Power sensors.")
+schema([
+    Column("key", TEXT, "The SMC key on OS X", index=True),
+    Column("name", TEXT, "Name of power source"),
+    Column("value", TEXT, "Power in Watts"),
+    ForeignKey(column="key", table="smc_keys"),
+])
+implementation("smc_keys@getPowers")
