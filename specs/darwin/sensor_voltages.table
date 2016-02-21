@@ -1,4 +1,4 @@
-table_name("voltages")
+table_name("sensor_voltages")
 description("Voltage sensors.")
 schema([
     Column("key", TEXT, "The SMC key on OS X", index=True),
