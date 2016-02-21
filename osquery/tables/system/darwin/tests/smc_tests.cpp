@@ -18,14 +18,8 @@
 namespace osquery {
 namespace tables {
 
-void genTemperature(const Row &row,
-                    QueryData &results);
-void genVoltage(const Row &row,
-                QueryData &results);
-void genCurrent(const Row &row,
-                QueryData &results);
-void genPower(const Row &row,
-              QueryData &results);
+void genTemperature(const Row &row, QueryData &results);
+void genPower(const Row &row, QueryData &results);
 
 class SmcTests : public testing::Test {};
 
@@ -33,11 +27,8 @@ TEST_F(SmcTests, test_gen_temperature) {
   QueryData results;
   // Generate a set of results/single row using an example smc temperature key.
   Row param = {
-    {"key", "TC0E"},
-    {"type", "sp78"},
-    {"size", "2"},
-    {"value", "3dd0"},
-    {"hidden", "0"},
+      {"key", "TC0E"},   {"type", "sp78"}, {"size", "2"},
+      {"value", "3dd0"}, {"hidden", "0"},
   };
   genTemperature(param, results);
 
@@ -50,57 +41,7 @@ TEST_F(SmcTests, test_gen_temperature) {
 
   // We could compare the entire map, but iterating the columns will produce
   // better error text as most likely parsing for a certain column/type changed.
-  for (const auto& column : expected) {
-    EXPECT_EQ(results[0][column.first], column.second);
-  }
-}
-
-TEST_F(SmcTests, test_gen_voltage) {
-  QueryData results;
-  // Generate a set of results/single row using an example smc voltage key.
-  Row param = {
-    {"key", "VC0C"},
-    {"type", "sp5a"},
-    {"size", "2"},
-    {"value", "035b"},
-    {"hidden", "0"},
-  };
-  genVoltage(param, results);
-
-  Row expected = {
-      {"key", "VC0C"},
-      {"name", "CPU Core 1"},
-      {"value", "0.84"},
-  };
-
-  // We could compare the entire map, but iterating the columns will produce
-  // better error text as most likely parsing for a certain column/type changed.
-  for (const auto& column : expected) {
-    EXPECT_EQ(results[0][column.first], column.second);
-  }
-}
-
-TEST_F(SmcTests, test_gen_current) {
-  QueryData results;
-  // Generate a set of results/single row using an example smc current key.
-  Row param = {
-    {"key", "IC0C"},
-    {"type", "sp78"},
-    {"size", "2"},
-    {"value", "026a"},
-    {"hidden", "0"},
-  };
-  genCurrent(param, results);
-
-  Row expected = {
-      {"key", "IC0C"},
-      {"name", "CPU Core"},
-      {"value", "2.41"},
-  };
-
-  // We could compare the entire map, but iterating the columns will produce
-  // better error text as most likely parsing for a certain column/type changed.
-  for (const auto& column : expected) {
+  for (const auto &column : expected) {
     EXPECT_EQ(results[0][column.first], column.second);
   }
 }
@@ -109,26 +50,20 @@ TEST_F(SmcTests, test_gen_power) {
   QueryData results;
   // Generate a set of results/single row using an example smc power key.
   Row param = {
-    {"key", "PC1R"},
-    {"type", "sp78"},
-    {"size", "2"},
-    {"value", "05a9"},
-    {"hidden", "0"},
+      {"key", "PC1R"},   {"type", "sp78"}, {"size", "2"},
+      {"value", "05a9"}, {"hidden", "0"},
   };
   genPower(param, results);
 
   Row expected = {
-      {"key", "PC1R"},
-      {"name", "CPU Rail"},
-      {"value", "4.66"},
+      {"key", "PC1R"}, {"name", "CPU Rail"}, {"value", "4.66"},
   };
 
   // We could compare the entire map, but iterating the columns will produce
   // better error text as most likely parsing for a certain column/type changed.
-  for (const auto& column : expected) {
+  for (const auto &column : expected) {
     EXPECT_EQ(results[0][column.first], column.second);
   }
 }
-
 }
 }

@@ -1,9 +1,0 @@
-table_name("sensor_voltages")
-description("Voltage sensors.")
-schema([
-    Column("key", TEXT, "The SMC key on OS X", index=True),
-    Column("name", TEXT, "Name of voltage source"),
-    Column("value", TEXT, "Voltage in Volts"),
-    ForeignKey(column="key", table="smc_keys"),
-])
-implementation("smc_keys@getVoltages")

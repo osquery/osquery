@@ -1,5 +1,5 @@
 table_name("signature")
-description("File signature status.  Note: verifying a signature can be an expensive operation!")
+description("File (executable, bundle, installer, disk) code signing status.")
 schema([
     Column("path", TEXT, "Must provide a path or directory", required=True),
     Column("signed", INTEGER, "1 If the file is signed else 0"),
