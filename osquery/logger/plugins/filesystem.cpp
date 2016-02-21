@@ -72,7 +72,7 @@ Status FilesystemLoggerPlugin::setUp() {
 }
 
 Status FilesystemLoggerPlugin::logString(const std::string& s) {
-  return logStringToFile(s + "\n", kFilesystemLoggerFilename);
+  return logStringToFile(s, kFilesystemLoggerFilename);
 }
 
 Status FilesystemLoggerPlugin::logStringToFile(const std::string& s,
@@ -80,7 +80,7 @@ Status FilesystemLoggerPlugin::logStringToFile(const std::string& s,
   std::lock_guard<std::mutex> lock(filesystemLoggerPluginMutex);
   try {
     auto status = writeTextFile(
-        (log_path_ / filename).string(), s, FLAGS_logger_mode, true);
+        (log_path_ / filename).string(), s + '\n', FLAGS_logger_mode, true);
     if (!status.ok()) {
       return status;
     }
