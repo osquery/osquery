@@ -34,6 +34,9 @@ SSL_CTX* TLSv1_2_server_method(void) { return nullptr; }
 SSL_METHOD* SSLv3_server_method(void) { return nullptr; }
 SSL_METHOD* SSLv3_client_method(void) { return nullptr; }
 SSL_METHOD* SSLv3_method(void) { return nullptr; }
+SSL_METHOD* SSLv2_server_method(void) { return nullptr; }
+SSL_METHOD* SSLv2_client_method(void) { return nullptr; }
+SSL_METHOD* SSLv2_method(void) { return nullptr; }
 #endif
 }
 
@@ -135,15 +138,24 @@ http::client TLSTransport::getClient() {
 
   if (client_certificate_file_.size() > 0) {
     if (!osquery::isReadable(client_certificate_file_).ok()) {
-      LOG(WARNING)
-          << "Cannot read TLS client certificate: " << client_certificate_file_;
+      LOG(WARNING) << "Cannot read TLS client certificate: "
+                   << client_certificate_file_;
     } else if (!osquery::isReadable(client_private_key_file_).ok()) {
-      LOG(WARNING)
-          << "Cannot read TLS client private key: " << client_private_key_file_;
+      LOG(WARNING) << "Cannot read TLS client private key: "
+                   << client_private_key_file_;
     } else {
       options.openssl_certificate_file(client_certificate_file_);
       options.openssl_private_key_file(client_private_key_file_);
     }
+  }
+
+  // 'Optionally', though all TLS plugins should set a hostname, supply an SNI
+  // hostname. This will reveal the requested domain.
+  if (options_.count("hostname")) {
+#if BOOST_NETLIB_VERSION_MINOR >= 12
+    // Boost cpp-netlib will only support SNI in versions >= 0.12
+    options.openssl_sni_hostname(options_.get<std::string>("hostname"));
+#endif
   }
 
   http::client client(options);

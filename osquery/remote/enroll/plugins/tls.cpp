@@ -84,6 +84,7 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
   params.put<std::string>("host_identifier", getHostIdentifier());
 
   auto request = Request<TLSTransport, JSONSerializer>(uri);
+  request.setOption("hostname", FLAGS_tls_hostname);
   auto status = request.call(params);
   if (!status.ok()) {
     return status;
