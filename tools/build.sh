@@ -20,6 +20,10 @@ source $SCRIPT_DIR/lib.sh
 # Define or uncomment the following control variable: RUN_RELEASE_TESTS
 # $ export RUN_RELEASE_TESTS=1
 
+# To request a non-default build target.
+# Define or uncomment the following control variable: RUN_TARGET
+# $ export RUN_TARGET=target
+
 # Run the build function and the tests
 build true
 

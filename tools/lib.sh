@@ -177,7 +177,11 @@ function build() {
   $MAKE clean
 
   # Build osquery.
-  $MAKE -j$THREADS
+  if [[ -z "$RUN_TARGET" ]]; then
+    $MAKE -j$THREADS
+  else
+    $MAKE $RUN_TARGET -j$THREADS
+  fi
 
   if [[ $BUILD_KERNEL = 1 ]]; then
     # Build osquery kernel (optional).
