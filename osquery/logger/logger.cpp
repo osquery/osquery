@@ -365,7 +365,7 @@ Status logQueryLogItem(const QueryLogItem& results,
   }
 
   for (auto& json : json_items) {
-    if (!json.empty()) {
+    if (!json.empty() && json.back() == '\n') {
       json.pop_back();
       status = logString(json, "event", receiver);
     }
@@ -378,7 +378,7 @@ Status logSnapshotQuery(const QueryLogItem& item) {
   if (!serializeQueryLogItemJSON(item, json)) {
     return Status(1, "Could not serialize snapshot");
   }
-  if (!json.empty()) {
+  if (!json.empty() && json.back() == '\n') {
     json.pop_back();
   }
   return Registry::call("logger", {{"snapshot", json}});
@@ -389,7 +389,7 @@ Status logHealthStatus(const QueryLogItem& item) {
   if (!serializeQueryLogItemJSON(item, json)) {
     return Status(1, "Could not serialize health");
   }
-  if (!json.empty()) {
+  if (!json.empty() && json.back() == '\n') {
     json.pop_back();
   }
   return Registry::call("logger", {{"health", json}});
