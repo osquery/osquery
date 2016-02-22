@@ -120,10 +120,9 @@ std::map<std::string, std::string> kSMCFanSpeeds = {
     {"F%dMn", "min"},
     {"F%dMx", "max"},
     {"F%dTg", "target"}};
-
 // clang-format on
 
-// http://superuser.com/a/967056
+/// See the following article for reference: http://superuser.com/a/967056
 const std::map<std::string, std::string> kSMCKeyDescriptions = {
     {"TCXC", "PECI CPU"},
     {"TCXc", "PECI CPU"},
@@ -303,6 +302,8 @@ class SMCHelper : private boost::noncopyable {
    * It will remain open until the helper is deleted.
    */
   bool open();
+
+  /// Shutdown the IOKit connection.
   void close() { IOServiceClose(connection_); }
 
   /// Read a given SMC key into an output parameter value.
@@ -394,8 +395,7 @@ inline float strtof(const char *str, size_t size, size_t e) {
   return total;
 }
 
-float getConvertedValue(const std::string &smcType,
-                        const std::string &smcVal) {
+float getConvertedValue(const std::string &smcType, const std::string &smcVal) {
   // Convert hex string to decimal.
   std::string val;
   try {
@@ -534,13 +534,14 @@ QueryData genSMCKeys(QueryContext &context) {
     return results;
   }
 
-  // Otherwise the default scan will enumerate all keys then attempt a static
-  // list if 'hidden' keys.
+  // Otherwise the default scan will enumerate all keys (maybe 'hidden' keys).
+  // 'Maybe' because the hidden keys are only reported in the SMC is unlocked.
   auto keys = smc.getKeys();
   for (const auto &key : keys) {
     genSMCKey(key, smc, results);
   }
 
+  // Potentially report duplicated 'hidden' keys.
   for (const auto &hidden_key : kSMCHiddenKeys) {
     genSMCKey(hidden_key, smc, results, true);
   }
@@ -548,8 +549,43 @@ QueryData genSMCKeys(QueryContext &context) {
   return results;
 }
 
-void genTemperature(const Row &row,
-                    QueryData &results) {
+inline QueryData getSMCKeysUsingPredicate(
+    const QueryContext &context,
+    const std::set<std::string> &keys,
+    std::function<void(const Row &r, QueryData &results)> predicate) {
+  SMCHelper smc;
+  if (!smc.open()) {
+    return {};
+  }
+
+  QueryData results;
+  auto wrapped = ([&smc, &keys, &results, &predicate](const std::string &expr) {
+    // Check if the expression key is within the category of 'keys'.
+    if (keys.count(expr) > 0) {
+      QueryData key_data;
+      // Generate the basic SMC key data for this input expression.
+      genSMCKey(expr, smc, key_data);
+      if (!key_data.empty()) {
+        // If data was found, apply the predicate parser.
+        // This will 'transform' the SMC key data into a parsed row.
+        predicate(key_data.back(), results);
+      }
+    }
+  });
+
+  if (context.hasConstraint("key", EQUALS)) {
+    context.forEachConstraint("key", EQUALS, wrapped);
+  } else {
+    // Perform a full scan of the keys category.
+    for (const auto &key : keys) {
+      wrapped(key);
+    }
+  }
+
+  return results;
+}
+
+void genTemperature(const Row &row, QueryData &results) {
   auto &smcRow = row;
   if (smcRow.at("value").empty()) {
     return;
@@ -572,42 +608,11 @@ void genTemperature(const Row &row,
   results.push_back(r);
 }
 
-QueryData getTemperatures(QueryContext &context) {
-  QueryData results;
-
-  SMCHelper smc;
-  if (!smc.open()) {
-    return {};
-  }
-
-  if (context.hasConstraint("key", EQUALS)) {
-    context.forEachConstraint("key",
-                              EQUALS,
-                              ([&smc, &results](const std::string &expr) {
-                                if (kSMCTemperatureKeys.count(expr) > 0) {
-                                  QueryData key_data;
-                                  genSMCKey(expr, smc, key_data);
-                                  if (!key_data.empty()) {
-                                    genTemperature(key_data.back(), results);
-                                  }
-                                }
-                              }));
-  } else {
-    // Perform a full scan of temperature keys.
-    for (const auto &smcTempKey : kSMCTemperatureKeys) {
-      QueryData key_data;
-      genSMCKey(smcTempKey, smc, key_data);
-      if (!key_data.empty()) {
-        genTemperature(key_data.back(), results);
-      }
-    }
-  }
-
-  return results;
+QueryData genTemperatureSensors(QueryContext &context) {
+  return getSMCKeysUsingPredicate(context, kSMCTemperatureKeys, genTemperature);
 }
 
-void genVoltage(const Row &row,
-                QueryData &results) {
+void genPower(const Row &row, QueryData &results) {
   auto &smcRow = row;
   if (smcRow.at("value").empty()) {
     return;
@@ -626,149 +631,35 @@ void genVoltage(const Row &row,
   results.push_back(r);
 }
 
-QueryData getVoltages(QueryContext &context) {
-  QueryData results;
+QueryData genPowerSensors(QueryContext &context) {
+  // Define a 'category' for sets of keys.
+  std::string category = "";
 
-  SMCHelper smc;
-  if (!smc.open()) {
-    return {};
-  }
-
-  if (context.hasConstraint("key", EQUALS)) {
-    context.forEachConstraint("key",
-                              EQUALS,
-                              ([&smc, &results](const std::string &expr) {
-                                if (kSMCVoltageKeys.count(expr) > 0) {
-                                  QueryData key_data;
-                                  genSMCKey(expr, smc, key_data);
-                                  if (!key_data.empty()) {
-                                    genVoltage(key_data.back(), results);
-                                  }
-                                }
-                              }));
-  } else {
-    // Perform a full scan of voltage keys.
-    for (const auto &smcVoltageKey : kSMCVoltageKeys) {
-      QueryData key_data;
-      genSMCKey(smcVoltageKey, smc, key_data);
-      if (!key_data.empty()) {
-        genVoltage(key_data.back(), results);
-      }
+  // Create a predicate wrapper that injects a category.
+  auto wrapper = ([&category](const Row &row, QueryData &results) {
+    genPower(row, results);
+    if (results.size() > 0) {
+      // This column does not normally exist from SMC, we intercept and append.
+      results.back()["category"] = category;
     }
-  }
+  });
 
-  return results;
+  category = "power";
+  auto power = getSMCKeysUsingPredicate(context, kSMCPowerKeys, wrapper);
+
+  category = "current";
+  auto current = getSMCKeysUsingPredicate(context, kSMCCurrentKeys, wrapper);
+
+  category = "voltage";
+  auto voltage = getSMCKeysUsingPredicate(context, kSMCVoltageKeys, wrapper);
+
+  // Add them together:
+  power.insert(power.end(), current.begin(), current.end());
+  power.insert(power.end(), voltage.begin(), voltage.end());
+  return power;
 }
 
-void genCurrent(const Row &row,
-                QueryData &results) {
-  auto &smcRow = row;
-  if (smcRow.at("value").empty()) {
-    return;
-  }
-
-  Row r;
-  r["key"] = smcRow.at("key");
-  r["name"] = kSMCKeyDescriptions.at(smcRow.at("key"));
-
-  float value = getConvertedValue(smcRow.at("type"), smcRow.at("value"));
-
-  std::stringstream buff;
-  buff << std::fixed << std::setprecision(2) << value;
-  r["value"] = buff.str();
-
-  results.push_back(r);
-}
-
-QueryData getCurrents(QueryContext &context) {
-  QueryData results;
-
-  SMCHelper smc;
-  if (!smc.open()) {
-    return {};
-  }
-
-  if (context.hasConstraint("key", EQUALS)) {
-    context.forEachConstraint("key",
-                              EQUALS,
-                              ([&smc, &results](const std::string &expr) {
-                                if (kSMCCurrentKeys.count(expr) > 0) {
-                                  QueryData key_data;
-                                  genSMCKey(expr, smc, key_data);
-                                  if (!key_data.empty()) {
-                                    genCurrent(key_data.back(), results);
-                                  }
-                                }
-                              }));
-  } else {
-    // Perform a full scan of current keys.
-    for (const auto &smcCurrentKey : kSMCCurrentKeys) {
-      QueryData key_data;
-      genSMCKey(smcCurrentKey, smc, key_data);
-      if (!key_data.empty()) {
-        genCurrent(key_data.back(), results);
-      }
-    }
-  }
-
-  return results;
-}
-
-void genPower(const Row &row,
-              QueryData &results) {
-  auto &smcRow = row;
-  if (smcRow.at("value").empty()) {
-    return;
-  }
-
-  Row r;
-  r["key"] = smcRow.at("key");
-  r["name"] = kSMCKeyDescriptions.at(smcRow.at("key"));
-
-  float value = getConvertedValue(smcRow.at("type"), smcRow.at("value"));
-
-  std::stringstream buff;
-  buff << std::fixed << std::setprecision(2) << value;
-  r["value"] = buff.str();
-
-  results.push_back(r);
-}
-
-QueryData getPowers(QueryContext &context) {
-  QueryData results;
-
-  SMCHelper smc;
-  if (!smc.open()) {
-    return {};
-  }
-
-  if (context.hasConstraint("key", EQUALS)) {
-    context.forEachConstraint("key",
-                              EQUALS,
-                              ([&smc, &results](const std::string &expr) {
-                                if (kSMCPowerKeys.count(expr) > 0) {
-                                  QueryData key_data;
-                                  genSMCKey(expr, smc, key_data);
-                                  if (!key_data.empty()) {
-                                    genPower(key_data.back(), results);
-                                  }
-                                }
-                              }));
-  } else {
-    // Perform a full scan of power keys.
-    for (const auto &smcPowerKey : kSMCPowerKeys) {
-      QueryData key_data;
-      genSMCKey(smcPowerKey, smc, key_data);
-      if (!key_data.empty()) {
-        genPower(key_data.back(), results);
-      }
-    }
-  }
-
-  return results;
-}
-
-QueryData getFanSpeeds(QueryContext &context) {
+QueryData genFanSpeedSensors(QueryContext &context) {
   QueryData results;
 
   SMCHelper smc;
@@ -821,6 +712,5 @@ QueryData getFanSpeeds(QueryContext &context) {
 
   return results;
 }
-
 }
 }

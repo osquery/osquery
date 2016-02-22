@@ -1,4 +1,4 @@
-table_name("sensor_fan_speeds")
+table_name("fan_speed_sensors")
 description("Fan speeds.")
 schema([
     Column("fan", TEXT, "Fan number"),
@@ -7,4 +7,4 @@ schema([
     Column("max", INTEGER, "Maximum speed"),
     Column("target", INTEGER, "Target speed"),
 ])
-implementation("smc_keys@getFanSpeeds")
+implementation("smc_keys@genFanSpeedSensors")

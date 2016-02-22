@@ -1,0 +1,13 @@
+table_name("power_sensors")
+description("Machine power (currents, voltages, wattages, etc) sensors.")
+schema([
+    Column("key", TEXT, "The SMC key on OS X", index=True),
+    Column("category", TEXT, "The sensor category: currents, voltage, wattage"),
+    Column("name", TEXT, "Name of power source"),
+    Column("value", TEXT, "Power in Watts"),
+    ForeignKey(column="key", table="smc_keys"),
+])
+examples([
+  "select * from power_sensors where category = 'voltage'"
+])
+implementation("smc_keys@genPowerSensors")
