@@ -38,20 +38,33 @@ const std::string kFilesystemLoggerFilename = "osqueryd.results.log";
 const std::string kFilesystemLoggerSnapshots = "osqueryd.snapshots.log";
 const std::string kFilesystemLoggerHealth = "osqueryd.health.log";
 
-std::mutex filesystemLoggerPluginMutex;
+std::mutex kFilesystemLoggerPluginMutex;
 
 class FilesystemLoggerPlugin : public LoggerPlugin {
  public:
-  Status setUp();
-  Status logString(const std::string& s);
-  Status logStringToFile(const std::string& s, const std::string& filename);
-  Status logSnapshot(const std::string& s);
-  Status logHealth(const std::string& s);
-  Status init(const std::string& name, const std::vector<StatusLogLine>& log);
-  Status logStatus(const std::vector<StatusLogLine>& log);
+  Status setUp() override;
+
+  Status logString(const std::string& s) override;
+
+  Status logSnapshot(const std::string& s) override;
+
+  Status logHealth(const std::string& s) override;
+
+  Status init(const std::string& name,
+              const std::vector<StatusLogLine>& log) override;
+
+  Status logStatus(const std::vector<StatusLogLine>& log) override;
+
+ private:
+  Status logStringToFile(const std::string& s,
+                         const std::string& filename,
+                         bool empty = false);
 
  private:
   fs::path log_path_;
+
+ private:
+  FRIEND_TEST(FilesystemLoggerTests, test_filesystem_init);
 };
 
 REGISTER(FilesystemLoggerPlugin, "logger", "filesystem");
@@ -63,12 +76,7 @@ Status FilesystemLoggerPlugin::setUp() {
   FLAGS_logfile_mode = FLAGS_logger_mode;
 
   // Ensure that we create the results log here.
-  auto status = logString("");
-  if (!status.ok()) {
-    return status;
-  }
-
-  return Status(0, "OK");
+  return logStringToFile("", kFilesystemLoggerFilename, true);
 }
 
 Status FilesystemLoggerPlugin::logString(const std::string& s) {
@@ -76,11 +84,14 @@ Status FilesystemLoggerPlugin::logString(const std::string& s) {
 }
 
 Status FilesystemLoggerPlugin::logStringToFile(const std::string& s,
-                                               const std::string& filename) {
-  std::lock_guard<std::mutex> lock(filesystemLoggerPluginMutex);
+                                               const std::string& filename,
+                                               bool empty) {
+  std::lock_guard<std::mutex> lock(kFilesystemLoggerPluginMutex);
   try {
-    auto status = writeTextFile(
-        (log_path_ / filename).string(), s + '\n', FLAGS_logger_mode, true);
+    auto status = writeTextFile((log_path_ / filename).string(),
+                                (empty) ? "" : s + '\n',
+                                FLAGS_logger_mode,
+                                true);
     if (!status.ok()) {
       return status;
     }
@@ -94,9 +105,9 @@ Status FilesystemLoggerPlugin::logStatus(
     const std::vector<StatusLogLine>& log) {
   for (const auto& item : log) {
     // Emit this intermediate log to the Glog filesystem logger.
-    google::LogMessage(item.filename.c_str(),
-                       item.line,
-                       (google::LogSeverity)item.severity).stream()
+    google::LogMessage(
+        item.filename.c_str(), item.line, (google::LogSeverity)item.severity)
+            .stream()
         << item.message;
   }
 

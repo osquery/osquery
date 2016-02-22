@@ -189,8 +189,7 @@ static void deserializeIntermediateLog(const PluginRequest& request,
     log.push_back({
         (StatusLogSeverity)item.second.get<int>("s", O_INFO),
         item.second.get<std::string>("f", "<unknown>"),
-        item.second.get<int>("i", 0),
-        item.second.get<std::string>("m", ""),
+        item.second.get<int>("i", 0), item.second.get<std::string>("m", ""),
     });
   }
 }
@@ -292,10 +291,8 @@ void BufferedLogSink::send(google::LogSeverity severity,
       if (std::find(enabled.begin(), enabled.end(), logger) != enabled.end()) {
         // May use the logs_ storage to buffer/delay sending logs.
         std::vector<StatusLogLine> log;
-        log.push_back({(StatusLogSeverity)severity,
-                       std::string(base_filename),
-                       line,
-                       std::string(message, message_len)});
+        log.push_back({(StatusLogSeverity)severity, std::string(base_filename),
+                       line, std::string(message, message_len)});
         PluginRequest request = {{"status", "true"}};
         serializeIntermediateLog(log, request);
         if (!request["log"].empty()) {
@@ -305,10 +302,8 @@ void BufferedLogSink::send(google::LogSeverity severity,
       }
     }
   } else {
-    logs_.push_back({(StatusLogSeverity)severity,
-                     std::string(base_filename),
-                     line,
-                     std::string(message, message_len)});
+    logs_.push_back({(StatusLogSeverity)severity, std::string(base_filename),
+                     line, std::string(message, message_len)});
   }
 }
 
@@ -340,9 +335,8 @@ Status logString(const std::string& message, const std::string& category) {
 Status logString(const std::string& message,
                  const std::string& category,
                  const std::string& receiver) {
-  auto status = Registry::call(
+  return Registry::call(
       "logger", receiver, {{"string", message}, {"category", category}});
-  return Status(0, "OK");
 }
 
 Status logQueryLogItem(const QueryLogItem& results) {

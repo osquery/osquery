@@ -11,19 +11,18 @@
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
-#include <osquery/flags.h>
 #include <osquery/logger.h>
 
 namespace osquery {
 
-DECLARE_string(logger_plugin);
-
 class LoggerTests : public testing::Test {
  public:
   void SetUp() {
+    // Backup the logging status, then disable.
     logging_status_ = FLAGS_disable_logging;
     FLAGS_disable_logging = false;
 
+    // Setup / initialize static members.
     log_lines.clear();
     status_messages.clear();
     statuses_logged = 0;
@@ -49,7 +48,7 @@ class LoggerTests : public testing::Test {
 
  private:
   /// Save the status of logging before running tests, restore afterward.
-  bool logging_status_;
+  bool logging_status_{true};
 };
 
 std::vector<std::string> LoggerTests::log_lines;
@@ -62,8 +61,6 @@ int LoggerTests::health_status_rows = 0;
 
 class TestLoggerPlugin : public LoggerPlugin {
  public:
-  TestLoggerPlugin() {}
-
   Status logString(const std::string& s) {
     LoggerTests::log_lines.push_back(s);
     return Status(0, s);
@@ -100,8 +97,6 @@ class TestLoggerPlugin : public LoggerPlugin {
     LoggerTests::health_status_rows += 1;
     return Status(0, "OK");
   }
-
-  virtual ~TestLoggerPlugin() {}
 };
 
 TEST_F(LoggerTests, test_plugin) {
@@ -131,6 +126,23 @@ TEST_F(LoggerTests, test_logger_init) {
   // (1) The active logger's init returns success within initLogger and
   // (2) for status logs generated after initLogger is called.
   EXPECT_EQ(LoggerTests::statuses_logged, 0);
+}
+
+TEST_F(LoggerTests, test_log_string) {
+  // So far, tests have only used the logger registry/plugin API.
+  EXPECT_TRUE(logString("{\"json\": true}", "event"));
+  ASSERT_EQ(LoggerTests::log_lines.size(), 1U);
+  EXPECT_EQ(LoggerTests::log_lines.back(), "{\"json\": true}");
+
+  // Expect the logString method to fail if we explicitly request a logger
+  // plugin that has not been added to the registry.
+  EXPECT_FALSE(logString("{\"json\": true}", "event", "does_not_exist"));
+
+  // Expect the plugin to receive logs if status logging is disabled.
+  FLAGS_disable_logging = true;
+  EXPECT_TRUE(logString("test", "event"));
+  EXPECT_EQ(LoggerTests::log_lines.size(), 2U);
+  FLAGS_disable_logging = false;
 }
 
 TEST_F(LoggerTests, test_logger_log_status) {
@@ -175,15 +187,19 @@ TEST_F(LoggerTests, test_logger_snapshots) {
   EXPECT_EQ(LoggerTests::health_status_rows, 1);
 }
 
-class SecondTestLoggerPlugin : public TestLoggerPlugin {};
+class SecondTestLoggerPlugin : public LoggerPlugin {
+ public:
+  Status logString(const std::string& s) override { return Status(0); }
+};
 
 TEST_F(LoggerTests, test_multiple_loggers) {
   Registry::add<SecondTestLoggerPlugin>("logger", "second_test");
   EXPECT_TRUE(Registry::setActive("logger", "test,second_test").ok());
 
   // With two active loggers, the string should be added twice.
+  // But the 'test' logger is the only item incrementing the log_lines counter.
   logString("this is a test", "added");
-  EXPECT_EQ(LoggerTests::log_lines.size(), 2U);
+  EXPECT_EQ(LoggerTests::log_lines.size(), 1U);
 
   LOG(WARNING) << "Logger test is generating a warning status (4)";
   // Refer to the above notes about status logs not emitting until the logger
@@ -192,7 +208,7 @@ TEST_F(LoggerTests, test_multiple_loggers) {
   EXPECT_EQ(LoggerTests::statuses_logged, 0);
 
   // Now try to initialize multiple loggers (1) forwards, (2) does not.
-  Registry::setActive("logger", "test,filesystem");
+  Registry::setActive("logger", "test,second_test");
   initLogger("logger_test");
   LOG(WARNING) << "Logger test is generating a warning status (5)";
   // Now that the "test" logger is initialized, the status log will be
@@ -212,6 +228,13 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
 
   item.results.removed.push_back({{"test_column", "test_new_value\n"}});
   logQueryLogItem(item);
-  EXPECT_EQ(LoggerTests::log_lines.size(), 3U);
+  ASSERT_EQ(LoggerTests::log_lines.size(), 3U);
+
+  // Make sure the JSON output does not have a newline.
+  std::string expected =
+      "{\"name\":\"test_query\",\"hostIdentifier\":\"unknown_test_host\","
+      "\"calendarTime\":\"no_time\",\"unixTime\":\"0\",\"columns\":{\"test_"
+      "column\":\"test_new_value\\n\"},\"action\":\"removed\"}";
+  EXPECT_EQ(LoggerTests::log_lines.back(), expected);
 }
 }

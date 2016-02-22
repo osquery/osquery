@@ -103,7 +103,7 @@ struct StatusLogLine {
 class LoggerPlugin : public Plugin {
  public:
   /// The LoggerPlugin PluginRequest action router.
-  Status call(const PluginRequest& request, PluginResponse& response);
+  Status call(const PluginRequest& request, PluginResponse& response) override;
 
  protected:
   /** @brief Virtual method which should implement custom logging.
