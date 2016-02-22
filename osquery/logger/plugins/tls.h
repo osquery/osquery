@@ -63,8 +63,6 @@ class TLSLogForwarderRunner : public InternalRunnable {
 
 class TLSLoggerPlugin : public LoggerPlugin {
  public:
-  TLSLoggerPlugin() : log_index_(0) {}
-
   /**
    * @brief The osquery logger initialization method.
    *
@@ -93,7 +91,7 @@ class TLSLoggerPlugin : public LoggerPlugin {
    * second precision for indexing and ordering. log_index_ helps prevent
    * collisions by appending an auto-increment counter.
    */
-  size_t log_index_;
+  size_t log_index_{0};
 
  private:
   /// Allow the TLSLogForwardRunner thread to disable log buffering.

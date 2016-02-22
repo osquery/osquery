@@ -22,9 +22,10 @@ FLAG(int32,
 
 class SyslogLoggerPlugin : public LoggerPlugin {
  public:
-  Status logString(const std::string& s);
-  Status init(const std::string& name, const std::vector<StatusLogLine>& log);
-  Status logStatus(const std::vector<StatusLogLine>& log);
+  Status logString(const std::string& s) override;
+  Status init(const std::string& name,
+              const std::vector<StatusLogLine>& log) override;
+  Status logStatus(const std::vector<StatusLogLine>& log) override;
 };
 
 REGISTER(SyslogLoggerPlugin, "logger", "syslog");
