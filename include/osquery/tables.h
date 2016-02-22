@@ -29,7 +29,7 @@
   do {                                                                    \
     _Pragma("clang diagnostic push")                                      \
         _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"") \
-        expr;                                                             \
+            expr;                                                         \
     _Pragma("clang diagnostic pop")                                       \
   } while (0)
 
@@ -89,8 +89,8 @@ enum ColumnType {
 extern const std::map<ColumnType, std::string> kColumnTypeNames;
 
 /// Helper alias for TablePlugin names.
-typedef std::string TableName;
-typedef std::vector<std::pair<std::string, ColumnType> > TableColumns;
+using TableName = std::string;
+using TableColumns = std::vector<std::pair<std::string, ColumnType> >;
 struct QueryContext;
 
 /**
@@ -104,7 +104,12 @@ enum ConstraintOperator : unsigned char {
   GREATER_THAN = 4,
   LESS_THAN_OR_EQUALS = 8,
   LESS_THAN = 16,
-  GREATER_THAN_OR_EQUALS = 32
+  GREATER_THAN_OR_EQUALS = 32,
+  MATCH = 64,
+  LIKE = 65,
+  GLOB = 66,
+  REGEXP = 67,
+  UNIQUE = 1,
 };
 
 /// Type for flags for what constraint operators are admissible.
@@ -139,7 +144,7 @@ struct Constraint {
  *
  * A constraint list supports all AS_LITERAL types, and all ConstraintOperators.
  */
-struct ConstraintList {
+struct ConstraintList : private boost::noncopyable {
   /// The SQLite affinity type.
   ColumnType affinity;
 
@@ -283,15 +288,15 @@ struct ConstraintList {
 };
 
 /// Pass a constraint map to the query request.
-typedef std::map<std::string, struct ConstraintList> ConstraintMap;
+using ConstraintMap = std::map<std::string, struct ConstraintList>;
 /// Populate a constraint list from a query's parsed predicate.
-typedef std::vector<std::pair<std::string, struct Constraint> > ConstraintSet;
+using ConstraintSet = std::vector<std::pair<std::string, struct Constraint> >;
 
 /**
  * @brief A QueryContext is provided to every table generator for optimization
  * on query components like predicate constraints and limits.
  */
-struct QueryContext {
+struct QueryContext : private boost::noncopyable {
   /**
    * @brief Check if a constraint exists for a given column operator pair.
    *
@@ -343,6 +348,7 @@ struct QueryContext {
     }
   }
 
+  /// Helper for string type (most all types are TEXT/VARCHAR).
   void forEachConstraint(
       const std::string& column,
       ConstraintOperator op,
@@ -350,6 +356,31 @@ struct QueryContext {
     return forEachConstraint<std::string>(column, op, predicate);
   }
 
+  /**
+   * @brief Expand a list of constraints into a set of values.
+   *
+   * This is most (perhaps only) helpful with filesystem globbing inputs.
+   * The requirement is a constraint column that takes an expandable input.
+   * This method will accept an expand predicate and return the aggregate set of
+   * expanded items.
+   *
+   * In the future this will be a templated type that restricts the predicate
+   * to act on the column's affinite type and returns a similar-typed set.
+   *
+   * @param column The name of a column within this table.
+   * @param op An operator to retrieve from the constraint list.
+   * @param output The output parameter, a set of expanded values.
+   * @param predicate A predicate lambda to apply to each constraint.
+   * @return An aggregate status, if any predicate fails the operation fails.
+   */
+  Status expandConstraints(
+      const std::string& column,
+      ConstraintOperator op,
+      std::set<std::string>& output,
+      std::function<Status(const std::string& constraint,
+                           std::set<std::string>& output)> predicate);
+
+  /// The map of column name to constraint list.
   ConstraintMap constraints;
   /// Support a limit to the number of results.
   int limit{0};

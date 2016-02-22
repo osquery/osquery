@@ -306,4 +306,19 @@ bool QueryContext::hasConstraint(const std::string& column,
   }
   return constraints.at(column).exists(op);
 }
+
+Status QueryContext::expandConstraints(
+    const std::string& column,
+    ConstraintOperator op,
+    std::set<std::string>& output,
+    std::function<Status(const std::string& constraint,
+                         std::set<std::string>& output)> predicate) {
+  for (const auto& constraint : constraints[column].getAll(op)) {
+    auto status = predicate(constraint, output);
+    if (!status) {
+      return status;
+    }
+  }
+  return Status(0);
+}
 }

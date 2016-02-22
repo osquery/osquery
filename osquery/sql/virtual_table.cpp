@@ -35,6 +35,16 @@ static std::string opString(unsigned char op) {
     return "<";
   case GREATER_THAN_OR_EQUALS:
     return ">=";
+  case LIKE:
+    return "LIKE";
+  case MATCH:
+    return "MATCH";
+  case GLOB:
+    return "GLOB";
+  case REGEXP:
+    return "REGEX";
+  case UNIQUE:
+    return "UNIQUE";
   }
   return "?";
 }

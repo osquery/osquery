@@ -6,8 +6,12 @@ schema([
     Column("count", INTEGER, "Number of YARA matches"),
     Column("sig_group", TEXT, "Signature group used"),
     Column("sigfile", TEXT, "Signature file used"),
-    Column("pattern", TEXT, "A pattern which can be used to match file paths"),
     Column("strings", TEXT, "Matching strings"),
     Column("tags", TEXT, "Matching tags"),
 ])
 implementation("yara@genYara")
+examples([
+  "select * from yara where path = '/etc/passwd'",
+  "select * from yara where path LIKE '/etc/%'",
+  "select * from yara where path = '/etc/passwd' and sigfile = '/etc/osquery/yara/test.yara'",
+])

@@ -85,24 +85,55 @@ void genFileInfo(const fs::path& path,
   r["is_link"] = (S_ISLNK(link_stat.st_mode)) ? "1" : "0";
   r["is_char"] = (S_ISCHR(file_stat.st_mode)) ? "1" : "0";
   r["is_block"] = (S_ISBLK(file_stat.st_mode)) ? "1" : "0";
-
-  // pattern
-  r["pattern"] = pattern;
-
   results.push_back(r);
 }
 
 QueryData genFile(QueryContext& context) {
   QueryData results;
 
+  // Resolve file paths for EQUALS and LIKE operations.
   auto paths = context.constraints["path"].getAll(EQUALS);
+  context.expandConstraints(
+      "path",
+      LIKE,
+      paths,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
+        }
+        return status;
+      }));
+
+  // Iterate through each of the resolved/supplied paths.
   for (const auto& path_string : paths) {
     fs::path path = path_string;
     genFileInfo(path, path.parent_path(), "", results);
   }
 
-  // Now loop through constraints using the directory column constraint.
+  // Resolve directories for EQUALS and LIKE operations.
   auto directories = context.constraints["directory"].getAll(EQUALS);
+  context.expandConstraints(
+      "directory",
+      LIKE,
+      directories,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_FOLDERS | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
+        }
+        return status;
+      }));
+
+  // Now loop through constraints using the directory column constraint.
   for (const auto& directory_string : directories) {
     if (!isReadable(directory_string) || !isDirectory(directory_string)) {
       continue;
@@ -116,26 +147,6 @@ QueryData genFile(QueryContext& context) {
       }
     } catch (const fs::filesystem_error& e) {
       continue;
-    }
-  }
-
-  // Now loop through constraints using the pattern column constraint.
-  auto patterns = context.constraints["pattern"].getAll(EQUALS);
-  if (patterns.size() != 1) {
-    return results;
-  }
-
-  for (const auto& pattern : patterns) {
-    std::vector<std::string> expanded_patterns;
-    auto status = resolveFilePattern(pattern, expanded_patterns);
-    if (!status.ok()) {
-      VLOG(1) << "Could not expand pattern properly: " << status.toString();
-      return results;
-    }
-
-    for (const auto& resolved : expanded_patterns) {
-      fs::path path = resolved;
-      genFileInfo(path, path.parent_path(), pattern, results);
     }
   }
 

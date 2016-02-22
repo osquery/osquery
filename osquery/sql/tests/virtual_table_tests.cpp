@@ -184,14 +184,10 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   }
 
   std::vector<QueryData> union_results = {
-      makeResult("k.x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("p.x", {"1"}),
+      makeResult("x", {"1", "2"}),   makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}), makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}), makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}), makeResult("p.x", {"1"}),
       makeResult("p.x", {"1"}),
   };
 

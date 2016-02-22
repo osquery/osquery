@@ -17,12 +17,11 @@ schema([
     Column("btime", BIGINT, "(B)irth or (cr)eate time"),
     Column("hard_links", INTEGER, "Number of hard links"),
     Column("type", TEXT, "File status"),
-    Column("pattern", TEXT, "A pattern which can be used to match file paths"),
 ])
 attributes(utility=True)
 implementation("utility/file@genFile")
 examples([
   "select * from file where path = '/etc/passwd'",
   "select * from file where directory = '/etc/'",
-  "select * from file where pattern = '/etc/%'",
+  "select * from file where path LIKE '/etc/%'",
 ])
