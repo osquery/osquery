@@ -366,6 +366,13 @@ include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("/usr/local/include")
 link_directories("/usr/local/lib")
 
+# Add custom homebrew paths
+if(APPLE)
+  execute_process(COMMAND brew --prefix OUTPUT_VARIABLE BREW_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
+  include_directories("${BREW_PREFIX}/include")
+  link_directories("${BREW_PREFIX}/lib")
+endif()
+
 # Add sysroot overrides for each platform/distro.
 if(APPLE)
   include_directories("${CMAKE_SOURCE_DIR}/third-party/sysroots/darwin")

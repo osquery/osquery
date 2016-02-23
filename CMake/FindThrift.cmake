@@ -6,6 +6,11 @@
 #  THRIFT_LIBS, THRIFT libraries
 #  THRIFT_FOUND, If false, do not try to use ant
 
+if(APPLE AND NOT DEFINED $ENV{THRIFT_HOME})
+  execute_process(COMMAND brew --prefix OUTPUT_VARIABLE BREW_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set(ENV{THRIFT_HOME} ${BREW_PREFIX})
+endif()
+
 # prefer the thrift version supplied in THRIFT_HOME
 find_path(THRIFT_INCLUDE_DIR thrift/Thrift.h HINTS
   $ENV{THRIFT_HOME}/include/
