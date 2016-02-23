@@ -19,8 +19,12 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-// This is also the max supported number for OS X right now.
 #define EXPECTED_GROUPS_MAX 64
+
+#ifdef __APPLE__
+// This symbol is exported from libSystem.B and has been since 10.6.
+extern "C" int getgroupcount(const char *name, gid_t basegid);
+#endif
 
 namespace osquery {
 namespace tables {
@@ -50,6 +54,16 @@ struct user_t {
 template <typename uid_type, typename gid_type>
 static void getGroupsForUser(QueryData &results,
                              const user_t<uid_type, gid_type> &user) {
+#ifdef __APPLE__
+  int ngroups = getgroupcount(user.name, user.gid);
+  gid_type *groups = new gid_type[ngroups];
+  if (getgrouplist(user.name, user.gid, groups, &ngroups) < 0) {
+    TLOG << "Could not get users group list";
+  } else {
+    addGroupsToResults(results, user.uid, groups, ngroups);
+  }
+  delete[] groups;
+#else
   gid_type groups_buf[EXPECTED_GROUPS_MAX];
   gid_type *groups = groups_buf;
   int ngroups = EXPECTED_GROUPS_MAX;
@@ -59,8 +73,6 @@ static void getGroupsForUser(QueryData &results,
   if (getgrouplist(user.name, user.gid, groups, &ngroups) < 0) {
     // EXPECTED_GROUPS_MAX was probably not large enough.
     // Try a larger size buffer.
-    // Darwin appears to not resize ngroups correctly.  We can hope
-    // we had enough space to start with.
     groups = new gid_type[ngroups];
     if (groups == nullptr) {
       TLOG << "Could not allocate memory to get user groups";
@@ -77,6 +89,8 @@ static void getGroupsForUser(QueryData &results,
   } else {
     addGroupsToResults(results, user.uid, groups, ngroups);
   }
+#endif
+
   return;
 }
 }
