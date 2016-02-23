@@ -10,6 +10,7 @@
 set -e
 
 CFLAGS="-fPIE -fPIC -O2 -DNDEBUG -march=x86-64 -mno-avx"
+CXXFLAGS="$CFLAGS"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="$SCRIPT_DIR/../build"
 WORKING_DIR="/tmp/osquery-provisioning"
