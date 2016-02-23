@@ -47,6 +47,11 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
       continue;
     }
 
+    if (Flag::getType(option.first).empty()) {
+      LOG(WARNING) << "Cannot set unknown or invalid flag: " << option.first;
+      return Status(1, "Unknown flag");
+    }
+
     Flag::updateValue(option.first, value);
     // There is a special case for supported Gflags-reserved switches.
     if (option.first == "verbose" || option.first == "verbose_debug" ||
