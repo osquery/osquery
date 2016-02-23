@@ -17,7 +17,7 @@ lrwxr-xr-x   1 root  wheel    77 Sep 30 17:37 osqueryd.INFO -> osqueryd.INFO.201
 
 ### Logger Plugins
 
-osquery includes logger plugins that support configurable logging to a variety of interfaces. The built in logger plugins are **filesystem** (default), **tls** and **syslog**. Multiple logger plugins may be used simultaneously, effectively copying logs to each interface.
+osquery includes logger plugins that support configurable logging to a variety of interfaces. The built in logger plugins are **filesystem** (default), **tls** and **syslog**. Multiple logger plugins may be used simultaneously, effectively copying logs to each interface. To enable multiple loggers set the `--logger_plugin` option to a comma separated list of the requested plugins.
 
 For information on configuring logger plugins, see [logging/results flags](../installation/cli-flags.md#loggingresults-flags). Developing new logger plugins is explored in the [development docs](../development/logger-plugins.md).
 
