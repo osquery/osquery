@@ -12,8 +12,8 @@
 #include <csignal>
 #include <random>
 
-#include <syslog.h>
 #include <stdio.h>
+#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -24,14 +24,14 @@
 #include <osquery/core.h>
 #include <osquery/events.h>
 #include <osquery/extensions.h>
-#include <osquery/flags.h>
 #include <osquery/filesystem.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 
 #include "osquery/core/watcher.h"
-#include "osquery/dispatcher/dispatcher.h"
 #include "osquery/database/db_handle.h"
+#include "osquery/dispatcher/dispatcher.h"
 
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <sys/resource.h>

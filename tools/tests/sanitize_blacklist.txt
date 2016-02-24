@@ -10,10 +10,11 @@ fun:*SetArgv*
 
 # GLog
 # This is a confirmed race, but deemed low pri
-fun:*RawLog__SetLastTime*
+fun:google::RawLog__SetLastTime
 
 # Thrift
-fun:*TServerSocket*
+fun:apache::thrift::transport::TServerSocket::listen
+fun:apache::thrift::transport::TServerSocket::notify
 src:*thrift/transport/TServerSocket.cpp
 
 # RocksDB

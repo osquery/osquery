@@ -96,7 +96,8 @@ function install_sleuthkit() {
     pushd $SOURCE
     ./bootstrap
     ./configure --prefix=/usr/local --without-afflib \
-      --disable-dependency-tracking --disable-java CFLAGS="$CFLAGS"
+      --disable-dependency-tracking --disable-java \
+      CXXFLAGS="$CXXFLAGS" CFLAGS="$CFLAGS"
     pushd tsk
     CC="$CC" CXX="$CXX" make -j $THREADS
     sudo make install
@@ -114,7 +115,7 @@ function install_thrift() {
   if provision thrift /usr/local/lib/libthrift.a; then
     pushd $SOURCE
     ./bootstrap.sh
-    ./configure PREFIX="/usr/local" CFLAGS="$CFLAGS" \
+    ./configure PREFIX="/usr/local" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" \
       --with-cpp=yes \
       --with-python=yes \
       --with-ruby=no \
@@ -152,8 +153,9 @@ function install_rocksdb() {
       else
         MAKE=make
       fi
-      PORTABLE=1 OPT="-DROCKSDB_LITE=1" LIBNAME=librocksdb_lite CC="$CC" CXX="$CXX" \
-        $MAKE -j $THREADS static_lib CFLAGS="$CLANG_INCLUDE $CFLAGS"
+      PORTABLE=1 OPT="-DROCKSDB_LITE=1" LIBNAME=librocksdb_lite \
+        CC="$CC" CXX="$CXX" CFLAGS="$CLANG_INCLUDE $CFLAGS" CXXFLAGS="$CXXFLAGS" \
+        $MAKE -j $THREADS static_lib
       popd
     fi
     sudo cp rocksdb-rocksdb-$VERSION/librocksdb_lite.a /usr/local/lib
@@ -168,7 +170,8 @@ function install_snappy() {
 
   if provision snappy /usr/local/include/snappy.h; then
     pushd $SOURCE
-    CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static
+    CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static \
+      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
     if [[ ! -f .libs/libsnappy.a ]]; then
       make -j $THREADS
     fi
@@ -186,7 +189,8 @@ function install_cppnetlib() {
     pushd $SOURCE
     mkdir -p build
     pushd build
-    CC="$CC" CXX="$CXX" cmake -DCMAKE_CXX_FLAGS="$CFLAGS" \
+    CC="$CC" CXX="$CXX" cmake -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+      -DCMAKE_C_FLAGS="$CFLAGS" \
       -DCPP-NETLIB_BUILD_EXAMPLES=False -DCPP-NETLIB_BUILD_TESTS=False \
       -DCPP-NETLIB_ENABLE_HTTPS=True ..
     make -j $THREADS
@@ -204,7 +208,8 @@ function install_yara() {
   if provision yara /usr/local/lib/libyara.a; then
     pushd $SOURCE
     ./bootstrap.sh
-    CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static
+    CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static \
+      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
     make -j $THREADS
     sudo make install
     popd
@@ -219,7 +224,8 @@ function install_openssl() {
   if provision openssl /usr/local/lib/libssl.so.1.0.0; then
     pushd $SOURCE
     CC="$CC" CXX="$CXX" ./config --prefix=/usr/local --openssldir=/etc/ssl \
-      --libdir=lib shared zlib-dynamic enable-shared
+      --libdir=lib shared zlib-dynamic enable-shared \
+      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
     make -j $THREADS
     sudo make install
     popd
@@ -249,7 +255,8 @@ function install_boost() {
   if provision boost /usr/local/lib/libboost_thread.a; then
     pushd $SOURCE
     ./bootstrap.sh
-    sudo ./b2 --with=all -j $THREADS toolset="gcc" install || true
+    sudo ./b2 --with=all -j $THREADS toolset="gcc" \
+      cxxflags="$CXXFLAGS" install || true
     sudo ldconfig
     popd
   fi
@@ -262,7 +269,7 @@ function install_gflags() {
 
   if provision gflags /usr/local/lib/libgflags.a; then
     pushd $SOURCE
-    cmake -DCMAKE_CXX_FLAGS="$CFLAGS" -DGFLAGS_NAMESPACE:STRING=google .
+    cmake -DCMAKE_CXX_FLAGS="$CXXFLAGS" -DGFLAGS_NAMESPACE:STRING=google .
     CC="$CC" CXX="$CXX" make -j $THREADS
     sudo make install
     popd
@@ -278,7 +285,7 @@ function install_google_benchmark() {
     pushd $SOURCE
     mkdir -p build
     pushd build
-    cmake -DCMAKE_CXX_FLAGS="$CFLAGS" ..
+    cmake -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS" ..
     CC="$CC" CXX="$CXX" make -j $THREADS
     sudo make install
     popd
@@ -293,7 +300,8 @@ function install_iptables_dev() {
 
   if provision iptables_dev /usr/local/lib/libip4tc.a; then
     pushd $SOURCE
-    ./configure --disable-shared --prefix=/usr/local
+    ./configure --disable-shared --prefix=/usr/local \
+      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
     pushd libiptc
     CC="$CC" CXX="$CXX" make -j $THREADS
     sudo make install
@@ -313,7 +321,8 @@ function install_libcryptsetup() {
   if provision libcryptsetup /usr/local/lib/libcryptsetup.a; then
     pushd $SOURCE
     ./autogen.sh --prefix=/usr/local --enable-static --disable-kernel_crypto
-    ./configure --prefix=/usr/local --enable-static --disable-kernel_crypto
+    ./configure --prefix=/usr/local --enable-static --disable-kernel_crypto \
+      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
     pushd lib
     make -j $THREADS
     sudo make install
@@ -397,7 +406,7 @@ function install_udev_devel_095() {
 
   if provision udev-095 /usr/local/lib/libudev.a; then
     pushd $SOURCE
-    CC="$CC" CXX="$CXX" make libudev.a
+    CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" make libudev.a
     sudo cp libudev.a /usr/local/lib/
     popd
   fi
@@ -445,7 +454,8 @@ function install_libaptpkg() {
     pushd $SOURCE
     mkdir -p build
     pushd build
-    ../configure --prefix=/usr/local
+    ../configure --prefix=/usr/local \
+      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
     make -j $THREADS STATICLIBS=1 library
     sudo cp bin/libapt-pkg.so.4.12.0 /usr/local/lib/
     sudo ln -sf /usr/local/lib/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
