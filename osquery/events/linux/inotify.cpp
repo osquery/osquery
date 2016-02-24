@@ -29,14 +29,10 @@ static const uint32_t kINotifyBufferSize =
     (10 * ((sizeof(struct inotify_event)) + NAME_MAX + 1));
 
 std::map<int, std::string> kMaskActions = {
-    {IN_ACCESS, "ACCESSED"},
-    {IN_ATTRIB, "ATTRIBUTES_MODIFIED"},
-    {IN_CLOSE_WRITE, "UPDATED"},
-    {IN_CREATE, "CREATED"},
-    {IN_DELETE, "DELETED"},
-    {IN_MODIFY, "UPDATED"},
-    {IN_MOVED_FROM, "MOVED_FROM"},
-    {IN_MOVED_TO, "MOVED_TO"},
+    {IN_ACCESS, "ACCESSED"},       {IN_ATTRIB, "ATTRIBUTES_MODIFIED"},
+    {IN_CLOSE_WRITE, "UPDATED"},   {IN_CREATE, "CREATED"},
+    {IN_DELETE, "DELETED"},        {IN_MODIFY, "UPDATED"},
+    {IN_MOVED_FROM, "MOVED_FROM"}, {IN_MOVED_TO, "MOVED_TO"},
     {IN_OPEN, "OPENED"},
 };
 

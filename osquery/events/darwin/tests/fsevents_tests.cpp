@@ -22,6 +22,8 @@
 #include "osquery/events/darwin/fsevents.h"
 #include "osquery/core/test_util.h"
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 
 int kMaxEventLatency = 3000;
@@ -35,18 +37,24 @@ class FSEventsTests : public testing::Test {
     Registry::registry("config_parser")->setUp();
 
     FLAGS_verbose = true;
-    trigger_path = kTestWorkingDirectory + "fsevents" +
-                   std::to_string(rand() % 10000 + 10000);
+    real_test_path = kTestWorkingDirectory + "fsevents-triggers" +
+                     std::to_string(rand() % 10000 + 10000);
+    // Create a similar directory for embedded paths and directories.
+    real_test_dir = kTestWorkingDirectory + "fsevents-triggers" +
+                    std::to_string(rand() % 10000 + 10000);
   }
 
-  void TearDown() override { remove(trigger_path); }
+  void TearDown() override {
+    remove(real_test_path);
+    fs::remove_all(real_test_dir);
+  }
 
   void StartEventLoop() {
     event_pub_ = std::make_shared<FSEventsEventPublisher>();
     event_pub_->no_defer_ = true;
     event_pub_->no_self_ = false;
     EventFactory::registerEventPublisher(event_pub_);
-    FILE* fd = fopen(trigger_path.c_str(), "w");
+    FILE* fd = fopen(real_test_path.c_str(), "w");
     fclose(fd);
 
     temp_thread_ = boost::thread(EventFactory::run, "fsevents");
@@ -89,7 +97,7 @@ class FSEventsTests : public testing::Test {
   void CreateEvents(int num = 1) {
     WaitForStream(kMaxEventLatency);
     for (int i = 0; i < num; ++i) {
-      FILE* fd = fopen(trigger_path.c_str(), "a");
+      FILE* fd = fopen(real_test_path.c_str(), "a");
       fputs("fsevents", fd);
       fclose(fd);
     }
@@ -100,10 +108,9 @@ class FSEventsTests : public testing::Test {
 
  public:
   /// Trigger path is the current test's eventing sink (accessed anywhere).
-  static std::string trigger_path;
+  std::string real_test_path;
+  std::string real_test_dir;
 };
-
-std::string FSEventsTests::trigger_path = kTestWorkingDirectory + "fsevents";
 
 TEST_F(FSEventsTests, test_register_event_pub) {
   auto pub = std::make_shared<FSEventsEventPublisher>();
@@ -178,9 +185,9 @@ class TestFSEventsEventSubscriber
     return Status(0, "OK");
   }
 
-  SCRef GetSubscription(uint32_t mask = 0) {
+  SCRef GetSubscription(const std::string& path, uint32_t mask = 0) {
     auto sc = createSubscriptionContext();
-    sc->path = FSEventsTests::trigger_path;
+    sc->path = path;
     sc->mask = mask;
     return sc;
   }
@@ -215,6 +222,7 @@ class TestFSEventsEventSubscriber
  private:
   FRIEND_TEST(FSEventsTests, test_fsevents_fire_event);
   FRIEND_TEST(FSEventsTests, test_fsevents_event_action);
+  FRIEND_TEST(FSEventsTests, test_fsevents_embedded_wildcards);
 };
 
 TEST_F(FSEventsTests, test_fsevents_run) {
@@ -228,7 +236,7 @@ TEST_F(FSEventsTests, test_fsevents_run) {
 
   // Create a subscriptioning context
   auto mc = std::make_shared<FSEventsSubscriptionContext>();
-  mc->path = trigger_path;
+  mc->path = real_test_path;
   EventFactory::addSubscription(
       "fsevents", Subscription::create("TestFSEventsEventSubscriber", mc));
   event_pub_->configure();
@@ -262,7 +270,7 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
   EventFactory::registerEventSubscriber(sub);
 
   // Create a subscriptioning context, note the added Event to the symbol
-  auto sc = sub->GetSubscription(0);
+  auto sc = sub->GetSubscription(real_test_path, 0);
   sub->subscribe(&TestFSEventsEventSubscriber::SimpleCallback, sc);
   event_pub_->configure();
   CreateEvents();
@@ -283,7 +291,7 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   auto sub = std::make_shared<TestFSEventsEventSubscriber>();
   auto status = sub->init();
 
-  auto sc = sub->GetSubscription(0);
+  auto sc = sub->GetSubscription(real_test_path, 0);
   EventFactory::registerEventSubscriber(sub);
 
   sub->subscribe(&TestFSEventsEventSubscriber::Callback, sc);
@@ -319,5 +327,30 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   EXPECT_TRUE(has_updated);
 
   EndEventLoop();
+}
+
+TEST_F(FSEventsTests, test_fsevents_embedded_wildcards) {
+  // Assume event type is not registered.
+  event_pub_ = std::make_shared<FSEventsEventPublisher>();
+  EventFactory::registerEventPublisher(event_pub_);
+
+  auto sub = std::make_shared<TestFSEventsEventSubscriber>();
+  EventFactory::registerEventSubscriber(sub);
+
+  // Create ./fsevents/2/1/
+  fs::create_directories(real_test_dir + "/2/1");
+
+  auto sc = sub->createSubscriptionContext();
+  sc->path = real_test_dir + "/*/1";
+  sub->subscribe(&TestFSEventsEventSubscriber::SimpleCallback, sc);
+
+  // Now the publisher must be configured.
+  event_pub_->configure();
+
+  // The existing wild-card matched directory should be included.
+  // This is populated via filesystem wildcard globbing.
+  ASSERT_EQ(event_pub_->numSubscriptionedPaths(), 1U);
+  std::set<std::string> expected = {real_test_dir + "/2/1/"};
+  EXPECT_EQ(event_pub_->paths_, expected);
 }
 }
