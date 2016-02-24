@@ -35,8 +35,14 @@ class INotifyTests : public testing::Test {
     // INotify will use data from the config and config parsers.
     Registry::registry("config_parser")->setUp();
 
-    real_test_path = kTestWorkingDirectory + "inotify-trigger";
-    real_test_dir = kTestWorkingDirectory + "inotify-triggers";
+    // Create a basic path trigger, this is a file path.
+    real_test_path = kTestWorkingDirectory + "inotify-trigger" +
+                     std::to_string(rand() % 10000 + 10000);
+    // Create a similar directory for embedded paths and directories.
+    real_test_dir = kTestWorkingDirectory + "inotify-triggers" +
+                    std::to_string(rand() % 10000 + 10000);
+
+    // Create the embedded paths.
     real_test_dir_path = real_test_dir + "/1";
     real_test_sub_dir = real_test_dir + "/2";
     real_test_sub_dir_path = real_test_sub_dir + "/1";
@@ -44,7 +50,7 @@ class INotifyTests : public testing::Test {
 
   void TearDown() override {
     // End the event loops, and join on the threads.
-    fs::remove_all(real_test_path);
+    remove(real_test_path);
     fs::remove_all(real_test_dir);
   }
 
@@ -109,15 +115,25 @@ class INotifyTests : public testing::Test {
   }
 
  protected:
-  // Internal state managers.
+  /// Internal state managers: publisher reference.
   std::shared_ptr<INotifyEventPublisher> event_pub_{nullptr};
+
+  /// Internal state managers: event publisher thread.
   boost::thread temp_thread_;
 
-  // Transient paths.
+  /// Transient paths ./inotify-trigger.
   std::string real_test_path;
+
+  /// Transient paths ./inotify-triggers/.
   std::string real_test_dir;
+
+  /// Transient paths ./inotify-triggers/1.
   std::string real_test_dir_path;
+
+  /// Transient paths ./inotify-triggers/2/.
   std::string real_test_sub_dir;
+
+  /// Transient paths ./inotify-triggers/2/1.
   std::string real_test_sub_dir_path;
 };
 
@@ -275,6 +291,7 @@ class TestINotifyEventSubscriber
   FRIEND_TEST(INotifyTests, test_inotify_optimization);
   FRIEND_TEST(INotifyTests, test_inotify_directory_watch);
   FRIEND_TEST(INotifyTests, test_inotify_recursion);
+  FRIEND_TEST(INotifyTests, test_inotify_embedded_wildcards);
 };
 
 TEST_F(INotifyTests, test_inotify_run) {
@@ -445,5 +462,32 @@ TEST_F(INotifyTests, test_inotify_recursion) {
   // Remove mock directory structure.
   tearDownMockFileStructure();
   EventFactory::deregisterEventPublisher("inotify");
+}
+
+TEST_F(INotifyTests, test_inotify_embedded_wildcards) {
+  // Assume event type is not registered.
+  event_pub_ = std::make_shared<INotifyEventPublisher>();
+  EventFactory::registerEventPublisher(event_pub_);
+
+  auto sub = std::make_shared<TestINotifyEventSubscriber>();
+  EventFactory::registerEventSubscriber(sub);
+
+  // Create ./inotify-triggers/2/1/.
+  fs::create_directories(real_test_dir + "/2/1");
+
+  // Create a subscription to match an embedded wildcard: "*"
+  // The assumption is a watch will be created on the 'most-specific' directory
+  // before the wildcard request.
+  auto mc = sub->createSubscriptionContext();
+  mc->path = real_test_dir + "/*/1";
+  mc->recursive = true;
+  sub->subscribe(&TestINotifyEventSubscriber::Callback, mc);
+
+  // Now the publisher must be configured.
+  event_pub_->configure();
+
+  // Assume there is one watched path: real_test_dir.
+  ASSERT_EQ(event_pub_->numDescriptors(), 1U);
+  EXPECT_EQ(event_pub_->path_descriptors_.count(real_test_dir + "/2/1/"), 1U);
 }
 }

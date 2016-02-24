@@ -341,7 +341,6 @@ find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(Gtest REQUIRED)
 find_package(RocksDB REQUIRED)
-find_package(Sqlite3 REQUIRED)
 find_package(Thrift 0.9.3 REQUIRED)
 
 # If using the RocksDB LITE version our code must also define ROCKSDB_LITE=1
@@ -361,6 +360,7 @@ include(Packages)
 include(Thrift)
 
 include_directories("${GLOG_INCLUDE_DIRS}")
+include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("/usr/local/include")
@@ -373,6 +373,7 @@ elseif(LINUX)
   include_directories("${CMAKE_SOURCE_DIR}/third-party/sysroots/linux")
 endif()
 
+add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)
 

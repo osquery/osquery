@@ -198,4 +198,43 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
     EXPECT_EQ(results, union_results[index++]);
   }
 }
+
+class jsonTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const {
+    return {
+        {"data", TEXT_TYPE},
+    };
+  }
+
+ public:
+  QueryData generate(QueryContext&) {
+    return {
+        {{"data", "{\"test\": 1}"}},
+    };
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_json_extract);
+};
+
+TEST_F(VirtualTableTests, test_json_extract) {
+  // Get a database connection.
+  Registry::add<jsonTablePlugin>("table", "json");
+  auto dbc = SQLiteDBManager::get();
+
+  {
+    auto json = std::make_shared<jsonTablePlugin>();
+    attachTableInternal("json", json->columnDefinition(), dbc->db());
+  }
+
+  QueryData results;
+  // Run a query with a join within.
+  std::string statement =
+      "SELECT JSON_EXTRACT(data, '$.test') AS test FROM json;";
+  auto status = queryInternal(statement, results, dbc->db());
+  EXPECT_TRUE(status.ok());
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["test"], "1");
+}
 }

@@ -54,7 +54,7 @@ except ImportError:
 
 '''Defaults that should be used in integration tests.'''
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-CONFIG_DIR = "/tmp/osquery-tests/"
+CONFIG_DIR = "/tmp/osquery-tests-python%d/" % (os.getuid())
 CONFIG_NAME = CONFIG_DIR + "tests"
 DEFAULT_CONFIG = {
     "options": {
