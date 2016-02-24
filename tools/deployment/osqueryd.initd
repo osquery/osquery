@@ -14,8 +14,8 @@
 # Provides: osquery osqueryd
 # Required-Start: $local_fs $syslog
 # Required-Stop: $local_fs $syslog
-# Default-Start:  345
-# Default-Stop: 90
+# Default-Start:  3 4 5
+# Default-Stop: 0 1 6
 # Short-Description: run osqueryd daemon
 # Description:
 #   With osquery, you can use SQL to query low-level
