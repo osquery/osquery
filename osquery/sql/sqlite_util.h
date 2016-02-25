@@ -25,6 +25,8 @@
 
 namespace osquery {
 
+class SQLiteDBManager;
+
 /**
  * @brief An RAII wrapper around an `sqlite3` object.
  *
@@ -54,16 +56,40 @@ class SQLiteDBInstance : private boost::noncopyable {
    */
   sqlite3* db() const { return db_; }
 
+  /// Allow a virtual table implementation to record use/access of a table.
+  void addAffectedTable(VirtualTableContent* table);
+
+  /// Clear per-query state of a table affected by the use of this instance.
+  void clearAffectedTables();
+
+ private:
+  /// An opaque constructor only used by the DBManager.
+  SQLiteDBInstance(sqlite3* db) : primary_(true), managed_(true), db_(db) {}
+
  private:
   /// Introspection into the database pointer, primary means managed.
   bool primary_{false};
+
+  /// Track whether this instance is managed internally by the DB manager.
+  bool managed_{false};
 
   /// Either the managed primary database or an ephemeral instance.
   sqlite3* db_{nullptr};
 
   /// An attempted unique lock on the manager's primary database access mutex.
   std::unique_lock<std::mutex> lock_;
+
+  /// Vector of tables that need their constraints cleared after execution.
+  std::map<std::string, VirtualTableContent*> affected_tables_;
+
+ private:
+  friend class SQLiteDBManager;
+
+ private:
+  FRIEND_TEST(SQLiteUtilTests, test_affected_tables);
 };
+
+using SQLiteDBInstanceRef = std::shared_ptr<SQLiteDBInstance>;
 
 /**
  * @brief osquery internal SQLite DB abstraction resource management.
@@ -97,10 +123,10 @@ class SQLiteDBManager : private boost::noncopyable {
    *
    * @return a SQLiteDBInstance with all virtual tables attached.
    */
-  static std::shared_ptr<SQLiteDBInstance> get();
+  static SQLiteDBInstanceRef get() { return getConnection(); }
 
   /// See `get` but always return a transient DB connection (for testing).
-  static std::shared_ptr<SQLiteDBInstance> getUnique();
+  static SQLiteDBInstanceRef getUnique();
 
   /**
    * @brief Check if `table_name` is disabled.
@@ -113,21 +139,20 @@ class SQLiteDBManager : private boost::noncopyable {
    */
   static bool isDisabled(const std::string& table_name);
 
-  /// When the primary SQLiteDBInstance is destructed it will unlock.
-  static void unlock();
-
  protected:
-  SQLiteDBManager() : db_(nullptr) {
-    sqlite3_soft_heap_limit64(SQLITE_SOFT_HEAP_LIMIT);
-    disabled_tables_ = parseDisableTablesFlag(Flag::getValue("disable_tables"));
-  }
-  SQLiteDBManager(SQLiteDBManager const&);
-  SQLiteDBManager& operator=(SQLiteDBManager const&);
+  SQLiteDBManager();
   virtual ~SQLiteDBManager();
+
+ public:
+  SQLiteDBManager(SQLiteDBManager const&) = delete;
+  SQLiteDBManager& operator=(SQLiteDBManager const&) = delete;
 
  private:
   /// Primary (managed) sqlite3 database.
   sqlite3* db_{nullptr};
+
+  /// The primary connection maintains an opaque instance.
+  SQLiteDBInstanceRef connection_{nullptr};
 
   /// Mutex and lock around sqlite3 access.
   std::mutex mutex_;
@@ -139,7 +164,14 @@ class SQLiteDBManager : private boost::noncopyable {
   std::unordered_set<std::string> disabled_tables_;
 
   /// Parse a comma-delimited set of tables names, passed in as a flag.
-  std::unordered_set<std::string> parseDisableTablesFlag(const std::string& s);
+  void setDisabledTables(const std::string& s);
+
+  /// Request a connection, optionally request the primary connection.
+  static SQLiteDBInstanceRef getConnection(bool primary = false);
+
+ private:
+  friend class SQLiteDBInstance;
+  friend class SQLiteSQLPlugin;
 };
 
 /**
@@ -247,7 +279,9 @@ class SQLiteSQLPlugin : SQLPlugin {
  public:
   Status query(const std::string& q, QueryData& results) const {
     auto dbc = SQLiteDBManager::get();
-    return queryInternal(q, results, dbc->db());
+    auto result = queryInternal(q, results, dbc->db());
+    dbc->clearAffectedTables();
+    return result;
   }
 
   Status getQueryColumns(const std::string& q, TableColumns& columns) const {
@@ -274,6 +308,7 @@ class SQLInternal : public SQL {
   explicit SQLInternal(const std::string& q) {
     auto dbc = SQLiteDBManager::get();
     status_ = queryInternal(q, results_, dbc->db());
+    dbc->clearAffectedTables();
   }
 };
 

@@ -8,6 +8,8 @@
  *
  */
 
+#include <atomic>
+
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
@@ -20,10 +22,18 @@ SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 namespace tables {
 namespace sqlite {
 
-static size_t kPlannerCursorID = 0;
-static size_t kConstraintIndexID = 0;
+/// For planner and debugging an incrementing cursor ID is used.
+static std::atomic<size_t> kPlannerCursorID{0};
 
-static std::string opString(unsigned char op) {
+/**
+ * @brief A next-ID for within-query constraints stacking.
+ *
+ * As constraints are evaluated within xBestIndex, an IDX is assigned for
+ * operator and operand retrieval during xFilter/scanning.
+ */
+static std::atomic<size_t> kConstraintIndexID{0};
+
+static inline std::string opString(unsigned char op) {
   switch (op) {
   case EQUALS:
     return "=";
@@ -73,12 +83,7 @@ int xOpen(sqlite3_vtab *tab, sqlite3_vtab_cursor **ppCursor) {
 
 int xClose(sqlite3_vtab_cursor *cur) {
   BaseCursor *pCur = (BaseCursor *)cur;
-  const auto *pVtab = (VirtualTable *)cur->pVtab;
   plan("Closing cursor (" + std::to_string(pCur->id) + ")");
-  if (pVtab != nullptr) {
-    // Reset all constraints for the virtual table content.
-    pVtab->content->constraints.clear();
-  }
   delete pCur;
   return SQLITE_OK;
 }
@@ -126,6 +131,7 @@ int xCreate(sqlite3 *db,
 
   memset(pVtab, 0, sizeof(VirtualTable));
   pVtab->content = new VirtualTableContent;
+  pVtab->instance = (SQLiteDBInstance *)pAux;
 
   // Create a TablePlugin Registry call, expect column details as the response.
   PluginResponse response;
@@ -283,6 +289,7 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   BaseCursor *pCur = (BaseCursor *)pVtabCursor;
   auto *pVtab = (VirtualTable *)pVtabCursor->pVtab;
   auto *content = pVtab->content;
+  pVtab->instance->addAffectedTable(content);
 
   pCur->row = 0;
   pCur->n = 0;
@@ -344,7 +351,7 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
 
 Status attachTableInternal(const std::string &name,
                            const std::string &statement,
-                           sqlite3 *db) {
+                           const SQLiteDBInstanceRef &instance) {
   if (SQLiteDBManager::isDisabled(name)) {
     VLOG(1) << "Table " << name << " is disabled, not attaching";
     return Status(0, getStringForSQLiteReturnCode(0));
@@ -381,11 +388,12 @@ Status attachTableInternal(const std::string &name,
 
   // Note, if the clientData API is used then this will save a registry call
   // within xCreate.
-  int rc = sqlite3_create_module(db, name.c_str(), &module, 0);
+  int rc = sqlite3_create_module(
+      instance->db(), name.c_str(), &module, (void *)&(*instance));
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
     auto format =
         "CREATE VIRTUAL TABLE temp." + name + " USING " + name + statement;
-    rc = sqlite3_exec(db, format.c_str(), nullptr, nullptr, 0);
+    rc = sqlite3_exec(instance->db(), format.c_str(), nullptr, nullptr, 0);
   } else {
     LOG(ERROR) << "Error attaching table: " << name << " (" << rc << ")";
   }
@@ -402,7 +410,7 @@ Status detachTableInternal(const std::string &name, sqlite3 *db) {
   return Status(rc, getStringForSQLiteReturnCode(rc));
 }
 
-void attachVirtualTables(sqlite3 *db) {
+void attachVirtualTables(const SQLiteDBInstanceRef &instance) {
   PluginResponse response;
   for (const auto &name : Registry::names("table")) {
     // Column information is nice for virtual table create call.
@@ -410,7 +418,7 @@ void attachVirtualTables(sqlite3 *db) {
         Registry::call("table", name, {{"action", "columns"}}, response);
     if (status.ok()) {
       auto statement = columnDefinition(response);
-      attachTableInternal(name, statement, db);
+      attachTableInternal(name, statement, instance);
     }
   }
 }

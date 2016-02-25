@@ -1060,6 +1060,7 @@ static int shell_exec(
       }
     }
   } /* end while */
+  dbc->clearAffectedTables();
 
   if (pArg && pArg->mode == MODE_Pretty) {
     if (osquery::FLAGS_json) {
@@ -1147,16 +1148,16 @@ static sqlite3_int64 integerValue(const char *zArg) {
     char *zSuffix;
     int iMult;
   } aMult[] = {
-        {(char *)"KiB", 1024},
-        {(char *)"MiB", 1024 * 1024},
-        {(char *)"GiB", 1024 * 1024 * 1024},
-        {(char *)"KB", 1000},
-        {(char *)"MB", 1000000},
-        {(char *)"GB", 1000000000},
-        {(char *)"K", 1000},
-        {(char *)"M", 1000000},
-        {(char *)"G", 1000000000},
-    };
+      {(char *)"KiB", 1024},
+      {(char *)"MiB", 1024 * 1024},
+      {(char *)"GiB", 1024 * 1024 * 1024},
+      {(char *)"KB", 1000},
+      {(char *)"MB", 1000000},
+      {(char *)"GB", 1000000000},
+      {(char *)"K", 1000},
+      {(char *)"M", 1000000},
+      {(char *)"G", 1000000000},
+  };
   int i;
   int isNeg = 0;
   if (zArg[0] == '-') {

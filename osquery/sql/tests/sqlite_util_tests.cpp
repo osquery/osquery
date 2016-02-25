@@ -108,6 +108,17 @@ TEST_F(SQLiteUtilTests, test_get_test_db_result_stream) {
   }
 }
 
+TEST_F(SQLiteUtilTests, test_affected_tables) {
+  auto dbc = getTestDBC();
+  QueryData results;
+  auto status = queryInternal("SELECT * FROM time", results, dbc->db());
+
+  // Since the table scanned from "time", it should be recorded as affected.
+  EXPECT_EQ(dbc->affected_tables_.count("time"), 1U);
+  dbc->clearAffectedTables();
+  EXPECT_EQ(dbc->affected_tables_.size(), 0U);
+}
+
 TEST_F(SQLiteUtilTests, test_get_query_columns) {
   auto dbc = getTestDBC();
   TableColumns results;

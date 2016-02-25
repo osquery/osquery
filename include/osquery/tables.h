@@ -15,6 +15,7 @@
 #include <memory>
 #include <vector>
 #include <set>
+#include <unordered_map>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -390,6 +391,29 @@ struct QueryContext : private boost::noncopyable {
 
 typedef struct QueryContext QueryContext;
 typedef struct Constraint Constraint;
+
+/**
+ * @brief osquery table content descriptor.
+ *
+ * This object is the abstracted SQLite database's virtual table descriptor.
+ * When the virtual table is created/connected the name and columns are
+ * retrieved via the TablePlugin call API. The details are kept in this context
+ * so column parsing and row walking does not require additional Registry calls.
+ *
+ * When tables are accessed as the result of an SQL statement a QueryContext is
+ * created to represent metadata that can be used by the virtual table
+ * implementation code. Thus the code that generates rows can choose to emit
+ * additional data, restrict based on constraints, or potentially yield from
+ * a cache or choose not to generate certain columns.
+ */
+struct VirtualTableContent {
+  /// Friendly name for the table.
+  TableName name;
+  /// Table column structure, retrieved once via the TablePlugin call API.
+  TableColumns columns;
+  /// Transient set of virtual table access constraints.
+  std::unordered_map<size_t, ConstraintSet> constraints;
+};
 
 /**
  * @brief The TablePlugin defines the name, types, and column information.

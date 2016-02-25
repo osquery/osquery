@@ -46,8 +46,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   auto dbc = SQLiteDBManager::get();
 
   // Virtual tables require the registry/plugin API to query tables.
-  auto status =
-      attachTableInternal("failed_sample", "(foo INTEGER)", dbc->db());
+  auto status = attachTableInternal("failed_sample", "(foo INTEGER)", dbc);
   EXPECT_EQ(status.getCode(), SQLITE_ERROR);
 
   // The table attach will complete only when the table name is registered.
@@ -57,7 +56,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   EXPECT_TRUE(status.ok());
 
   // Use the table name, plugin-generated schema to attach.
-  status = attachTableInternal("sample", columnDefinition(response), dbc->db());
+  status = attachTableInternal("sample", columnDefinition(response), dbc);
   EXPECT_EQ(status.getCode(), SQLITE_OK);
 
   std::string q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
@@ -141,9 +140,9 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   {
     // To simplify the attach, just access the column definition directly.
     auto p = std::make_shared<pTablePlugin>();
-    attachTableInternal("p", p->columnDefinition(), dbc->db());
+    attachTableInternal("p", p->columnDefinition(), dbc);
     auto k = std::make_shared<kTablePlugin>();
-    attachTableInternal("k", k->columnDefinition(), dbc->db());
+    attachTableInternal("k", k->columnDefinition(), dbc);
   }
 
   QueryData results;
@@ -225,7 +224,7 @@ TEST_F(VirtualTableTests, test_json_extract) {
 
   {
     auto json = std::make_shared<jsonTablePlugin>();
-    attachTableInternal("json", json->columnDefinition(), dbc->db());
+    attachTableInternal("json", json->columnDefinition(), dbc);
   }
 
   QueryData results;
