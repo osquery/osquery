@@ -1,0 +1,20 @@
+table_name("interface_bonds")
+description("Displays information about network interfaces used for bonding")
+schema([
+      Column("bond", TEXT, "Name of the master bond"),
+      Column("primary", TEXT, "Name of the primary interface"),
+      Column("interfaces", TEXT, "Name of the network interfaces used for the bonding"),
+      Column("mode", TEXT, "Indicates the Bonding mode"),
+      Column("type", BIGINT, "Type of bond"),
+      Column("mii_status", TEXT, "Check the status of the network interfaces"),
+      Column("speed", BIGINT, "Check the link speed of bonding"),
+      Column("duplex", TEXT, "Check if network interfaces are capable of carrying signals in both directions"),
+      Column("tx_errors", BIGINT, "Errors in bond transmition"),
+      Column("rx_errors", BIGINT, "Errors in bond reception"),
+      Column("tx_bytes", BIGINT, "Bytes transmitted by the bond"),
+      Column("rx_bytes", BIGINT, "Bytes received by the bond"),
+      Column("queue_id", TEXT, "The queue id for the slaves of the bond"),
+      Column("active_slave", TEXT, "Name of the active slave interface of the bond"),
+      Column("miimon", BIGINT, "The frequency in milliseconds of MII (Media Independent Interface) link monitoring"),
+])
+implementation("linux/interface_bonds@genInterfaceBonds")
