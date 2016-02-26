@@ -50,6 +50,7 @@ int profile(int argc, char *argv[]) {
   for (size_t i = 0; i < static_cast<size_t>(osquery::FLAGS_profile); ++i) {
     osquery::QueryData results;
     auto status = osquery::queryInternal(query, results, dbc->db());
+    dbc->clearAffectedTables();
     if (!status) {
       fprintf(stderr,
               "Query failed (%d): %s\n",

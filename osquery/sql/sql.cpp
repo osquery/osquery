@@ -20,16 +20,6 @@ namespace osquery {
 
 FLAG(int32, value_max, 512, "Maximum returned row value size");
 
-const std::map<ConstraintOperator, std::string> kSQLOperatorRepr = {
-    {EQUALS, "="},
-    {GREATER_THAN, ">"},
-    {LESS_THAN_OR_EQUALS, "<="},
-    {LESS_THAN, "<"},
-    {GREATER_THAN_OR_EQUALS, ">="},
-};
-
-typedef unsigned char byte;
-
 SQL::SQL(const std::string& q) { status_ = query(q, results_); }
 
 const QueryData& SQL::rows() const { return results_; }
@@ -40,7 +30,7 @@ const Status& SQL::getStatus() const { return status_; }
 
 std::string SQL::getMessageString() { return status_.toString(); }
 
-void escapeNonPrintableBytes(std::string& data) {
+static inline void escapeNonPrintableBytes(std::string& data) {
   std::string escaped;
   // clang-format off
   char const hex_chars[16] = {
@@ -65,11 +55,11 @@ void escapeNonPrintableBytes(std::string& data) {
 
   bool needs_replacement = false;
   for (size_t i = 0; i < data.length(); i++) {
-    if (((byte)data[i]) < 0x20 || ((byte)data[i]) >= 0x80) {
+    if (((unsigned char)data[i]) < 0x20 || ((unsigned char)data[i]) >= 0x80) {
       needs_replacement = true;
       escaped += "\\x";
-      escaped += hex_chars[(((byte)data[i])) >> 4];
-      escaped += hex_chars[((byte)data[i] & 0x0F) >> 0];
+      escaped += hex_chars[(((unsigned char)data[i])) >> 4];
+      escaped += hex_chars[((unsigned char)data[i] & 0x0F) >> 0];
     } else {
       escaped += data[i];
     }
@@ -77,8 +67,12 @@ void escapeNonPrintableBytes(std::string& data) {
 
   // Only replace if any escapes were made.
   if (needs_replacement) {
-    data = escaped;
+    data = std::move(escaped);
   }
+}
+
+void escapeNonPrintableBytesEx(std::string& data) {
+  return escapeNonPrintableBytes(data);
 }
 
 void SQL::escapeResults() {
@@ -91,8 +85,7 @@ void SQL::escapeResults() {
 
 QueryData SQL::selectAllFrom(const std::string& table) {
   PluginResponse response;
-  PluginRequest request = {{"action", "generate"}};
-  Registry::call("table", table, request, response);
+  Registry::call("table", table, {{"action", "generate"}}, response);
   return response;
 }
 
@@ -100,12 +93,14 @@ QueryData SQL::selectAllFrom(const std::string& table,
                              const std::string& column,
                              ConstraintOperator op,
                              const std::string& expr) {
-  PluginResponse response;
   PluginRequest request = {{"action", "generate"}};
-  QueryContext ctx;
-  ctx.constraints[column].add(Constraint(op, expr));
+  {
+    QueryContext ctx;
+    ctx.constraints[column].add(Constraint(op, expr));
+    TablePlugin::setRequestFromContext(ctx, request);
+  }
 
-  TablePlugin::setRequestFromContext(ctx, request);
+  PluginResponse response;
   Registry::call("table", table, request, response);
   return response;
 }

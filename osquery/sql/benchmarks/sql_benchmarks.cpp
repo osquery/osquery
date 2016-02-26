@@ -52,7 +52,7 @@ static void SQL_virtual_table_internal(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::get();
-  attachTableInternal("benchmark", columnDefinition(res), dbc->db());
+  attachTableInternal("benchmark", columnDefinition(res), dbc);
 
   while (state.KeepRunning()) {
     QueryData results;
@@ -84,7 +84,7 @@ static void SQL_virtual_table_internal_long(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::get();
-  attachTableInternal("long_benchmark", columnDefinition(res), dbc->db());
+  attachTableInternal("long_benchmark", columnDefinition(res), dbc);
 
   while (state.KeepRunning()) {
     QueryData results;
@@ -124,7 +124,7 @@ static void SQL_virtual_table_internal_wide(benchmark::State& state) {
 
   // Attach a sample virtual table.
   auto dbc = SQLiteDBManager::get();
-  attachTableInternal("wide_benchmark", columnDefinition(res), dbc->db());
+  attachTableInternal("wide_benchmark", columnDefinition(res), dbc);
 
   while (state.KeepRunning()) {
     QueryData results;

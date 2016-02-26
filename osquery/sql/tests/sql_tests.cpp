@@ -17,7 +17,7 @@
 
 namespace osquery {
 
-extern void escapeNonPrintableBytes(std::string& data);
+extern void escapeNonPrintableBytesEx(std::string& data);
 
 class SQLTests : public testing::Test {};
 
@@ -68,25 +68,25 @@ TEST_F(SQLTests, test_raw_access_context) {
 
 TEST_F(SQLTests, test_sql_escape) {
   std::string input = "しかたがない";
-  escapeNonPrintableBytes(input);
+  escapeNonPrintableBytesEx(input);
   EXPECT_EQ(input,
             "\\xE3\\x81\\x97\\xE3\\x81\\x8B\\xE3\\x81\\x9F\\xE3\\x81\\x8C\\xE3"
             "\\x81\\xAA\\xE3\\x81\\x84");
 
   input = "悪因悪果";
-  escapeNonPrintableBytes(input);
+  escapeNonPrintableBytesEx(input);
   EXPECT_EQ(input,
             "\\xE6\\x82\\xAA\\xE5\\x9B\\xA0\\xE6\\x82\\xAA\\xE6\\x9E\\x9C");
 
   input = "モンスターハンター";
-  escapeNonPrintableBytes(input);
+  escapeNonPrintableBytesEx(input);
   EXPECT_EQ(input,
             "\\xE3\\x83\\xA2\\xE3\\x83\\xB3\\xE3\\x82\\xB9\\xE3\\x82\\xBF\\xE3"
             "\\x83\\xBC\\xE3\\x83\\x8F\\xE3\\x83\\xB3\\xE3\\x82\\xBF\\xE3\\x83"
             "\\xBC");
 
   input = "съешь же ещё этих мягких французских булок, да выпей чаю";
-  escapeNonPrintableBytes(input);
+  escapeNonPrintableBytesEx(input);
   EXPECT_EQ(
       input,
       "\\xD1\\x81\\xD1\\x8A\\xD0\\xB5\\xD1\\x88\\xD1\\x8C \\xD0\\xB6\\xD0\\xB5 "
@@ -99,7 +99,7 @@ TEST_F(SQLTests, test_sql_escape) {
       "\\xD1\\x87\\xD0\\xB0\\xD1\\x8E");
 
   input = "The quick brown fox jumps over the lazy dog.";
-  escapeNonPrintableBytes(input);
+  escapeNonPrintableBytesEx(input);
   EXPECT_EQ(input, "The quick brown fox jumps over the lazy dog.");
 }
 }
