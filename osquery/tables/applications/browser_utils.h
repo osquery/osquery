@@ -8,6 +8,8 @@
  *
  */
 
+#pragma once
+
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/filesystem.h>

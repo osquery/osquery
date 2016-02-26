@@ -72,7 +72,7 @@ Status writeTextFile(const fs::path& path,
 
 struct OpenReadableFile {
  public:
-  OpenReadableFile(const fs::path& path) {
+  explicit OpenReadableFile(const fs::path& path) {
     dropper_ = DropPrivileges::get();
     if (dropper_->dropToParent(path)) {
       // Open the file descriptor and allow caller to perform error checking.

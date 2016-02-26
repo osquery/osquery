@@ -9,6 +9,8 @@
  *
  */
 
+#pragma once
+
 /**
  * @brief EFI DevicePath GUIDs, structs, and macros.
  */

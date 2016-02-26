@@ -8,6 +8,8 @@
  *
  */
 
+#pragma once
+
 #include <iomanip>
 #include <sstream>
 
@@ -34,7 +36,7 @@ struct IOKitPCIProperties {
   std::string driver;
 
   /// Populate IOKit PCI device properties from the "compatible" property.
-  IOKitPCIProperties(const std::string& compatible);
+  explicit IOKitPCIProperties(const std::string& compatible);
 };
 
 inline void idToHex(std::string& id) {

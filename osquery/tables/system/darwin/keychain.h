@@ -8,6 +8,8 @@
  *
  */
 
+#pragma once
+
 #include <map>
 #include <set>
 #include <vector>

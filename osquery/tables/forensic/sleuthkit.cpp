@@ -29,18 +29,15 @@ namespace osquery {
 namespace tables {
 
 const std::map<TSK_FS_META_TYPE_ENUM, std::string> kTSKTypeNames{
-    {TSK_FS_META_TYPE_REG, "regular"},
-    {TSK_FS_META_TYPE_DIR, "directory"},
-    {TSK_FS_META_TYPE_LNK, "symlink"},
-    {TSK_FS_META_TYPE_BLK, "block"},
-    {TSK_FS_META_TYPE_CHR, "character"},
-    {TSK_FS_META_TYPE_FIFO, "fifo"},
+    {TSK_FS_META_TYPE_REG, "regular"},   {TSK_FS_META_TYPE_DIR, "directory"},
+    {TSK_FS_META_TYPE_LNK, "symlink"},   {TSK_FS_META_TYPE_BLK, "block"},
+    {TSK_FS_META_TYPE_CHR, "character"}, {TSK_FS_META_TYPE_FIFO, "fifo"},
     {TSK_FS_META_TYPE_SOCK, "socket"},
 };
 
 class DeviceHelper : private boost::noncopyable {
  public:
-  DeviceHelper(const std::string& device_path)
+  explicit DeviceHelper(const std::string& device_path)
       : image_(std::make_shared<TskImgInfo>()),
         volume_(std::make_shared<TskVsInfo>()),
         device_path_(device_path) {}

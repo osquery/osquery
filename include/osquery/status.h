@@ -105,7 +105,7 @@ class Status {
    *   }
    * @endcode
    */
-  operator bool() const { return ok(); }
+  /* explicit */ operator bool() const { return ok(); }
 
   // Below operator implementations useful for testing with gtest
 
