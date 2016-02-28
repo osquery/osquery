@@ -70,10 +70,17 @@ Status genUnlockIdent(CFDataRef& uuid) {
 Status genUid(id_t& uid, uuid_string_t& uuid_str) {
   CFDataRef uuid = nullptr;
   if (!genUnlockIdent(uuid).ok()) {
+    if (uuid != nullptr) {
+      CFRelease(uuid);
+    }
     return Status(1, "Could not get unlock ident");
   }
 
   CFDataGetBytes(uuid, CFRangeMake(0, CFDataGetLength(uuid)), (UInt8*)uuid_str);
+  if (uuid != nullptr) {
+    CFRelease(uuid);
+  }
+  
   uuid_t uuidT = {0};
   if (uuid_parse(uuid_str, uuidT) != 0) {
     return Status(1, "Could not parse UUID");
