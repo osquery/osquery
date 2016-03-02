@@ -224,7 +224,7 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   // Expect this index to correspond with argv within xFilter.
   size_t expr_index = 0;
   // If any constraints are unusable increment the cost of the index.
-  size_t cost = 1;
+  double cost = 1;
   // Expressions operating on the same virtual table are loosely identified by
   // the consecutive sets of terms each of the constraint sets are applied onto.
   // Subsequent attempts from failed (unusable) constraints replace the set,
@@ -260,6 +260,7 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
       constraints.push_back(
           std::make_pair(name, Constraint(constraint_info.op)));
       pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
+      pIdxInfo->estimatedRows++;
 #if defined(DEBUG)
       plan("Adding constraint for table: " + pVtab->content->name +
            " [column=" + name + " arg_index=" + std::to_string(expr_index) +
