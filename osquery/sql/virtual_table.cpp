@@ -260,7 +260,6 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
       constraints.push_back(
           std::make_pair(name, Constraint(constraint_info.op)));
       pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
-      pIdxInfo->estimatedRows++;
 #if defined(DEBUG)
       plan("Adding constraint for table: " + pVtab->content->name +
            " [column=" + name + " arg_index=" + std::to_string(expr_index) +
