@@ -49,5 +49,17 @@ TEST_F(SystemsTablesTests, test_process_info) {
   EXPECT_NE(results.rows()[0].at("uid"), "-1");
   EXPECT_NE(results.rows()[0].at("parent"), "-1");
 }
+
+TEST_F(SystemsTablesTests, test_processes) {
+  auto results = SQL("select pid, name from processes limit 1");
+  ASSERT_EQ(results.rows().size(), 1U);
+
+  EXPECT_FALSE(results.rows()[0].at("pid").empty());
+  EXPECT_FALSE(results.rows()[0].at("name").empty());
+
+  // Make sure an invalid pid within the query constraint returns no rows.
+  results = SQL("select pid, name from processes where pid = -1");
+  EXPECT_EQ(results.rows().size(), 0U);
+}
 }
 }

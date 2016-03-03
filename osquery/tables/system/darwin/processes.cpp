@@ -106,7 +106,7 @@ inline bool getProcCred(int pid, proc_cred &cred) {
   struct proc_bsdinfo bsdinfo;
   struct proc_bsdshortinfo bsdinfo_short;
 
-  if (proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &bsdinfo, PROC_PIDTBSDINFO_SIZE) ==
+  if (proc_pidinfo(pid, PROC_PIDTBSDINFO, 1, &bsdinfo, PROC_PIDTBSDINFO_SIZE) ==
       PROC_PIDTBSDINFO_SIZE) {
     cred.parent = bsdinfo.pbi_ppid;
     cred.group = bsdinfo.pbi_pgid;
@@ -121,7 +121,7 @@ inline bool getProcCred(int pid, proc_cred &cred) {
     return true;
   } else if (proc_pidinfo(pid,
                           PROC_PIDT_SHORTBSDINFO,
-                          0,
+                          1,
                           &bsdinfo_short,
                           PROC_PIDT_SHORTBSDINFO_SIZE) ==
              PROC_PIDT_SHORTBSDINFO_SIZE) {
@@ -267,16 +267,7 @@ QueryData genProcesses(QueryContext &context) {
       r["suid"] = BIGINT(cred.saved.uid);
       r["sgid"] = BIGINT(cred.saved.gid);
     } else {
-      r["parent"] = "0";
-      r["group"] = "0";
-      r["state"] = "0";
-      r["nice"] = "0";
-      r["uid"] = "-1";
-      r["gid"] = "-1";
-      r["euid"] = "-1";
-      r["egid"] = "-1";
-      r["suid"] = "-1";
-      r["sgid"] = "-1";
+      continue;
     }
 
     // If the path of the executable that started the process is available and
