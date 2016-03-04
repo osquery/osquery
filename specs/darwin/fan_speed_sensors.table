@@ -2,6 +2,7 @@ table_name("fan_speed_sensors")
 description("Fan speeds.")
 schema([
     Column("fan", TEXT, "Fan number"),
+    Column("name", TEXT, "Fan name"),
     Column("actual", INTEGER, "Actual speed"),
     Column("min", INTEGER, "Minimum speed"),
     Column("max", INTEGER, "Maximum speed"),
