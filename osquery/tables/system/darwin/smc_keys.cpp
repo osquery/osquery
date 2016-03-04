@@ -116,6 +116,7 @@ std::set<std::string> kSMCPowerKeys = {
 };
 
 std::map<std::string, std::string> kSMCFanSpeeds = {
+    {"F%dID", "name"},
     {"F%dAc", "actual"},
     {"F%dMn", "min"},
     {"F%dMx", "max"},
@@ -659,6 +660,24 @@ QueryData genPowerSensors(QueryContext &context) {
   return power;
 }
 
+std::string getFanName(const std::string &smcVal) {
+  // Ensure smc value is 32 char string (16 bytes).
+  if (smcVal.size() != 32) {
+    return "";
+  }
+
+  // The last 12 bytes (24 chars) contains the fan name.
+  // See https://github.com/beltex/SMCKit/blob/master/SMCKit/SMC.swift#L674-L698
+  std::string val;
+  try {
+    val = boost::algorithm::unhex(smcVal.substr(8, 24));
+  } catch (const boost::algorithm::hex_decode_error &e) {
+    return "";
+  }
+
+  return val;
+}
+
 QueryData genFanSpeedSensors(QueryContext &context) {
   QueryData results;
 
@@ -703,8 +722,12 @@ QueryData genFanSpeedSensors(QueryContext &context) {
         continue;
       }
 
-      float fanSpeed = getConvertedValue(smcRow["type"], smcRow["value"]);
-      r[smcFanSpeedKey.second] = INTEGER(fanSpeed);
+      if (smcFanSpeedKey.second == "name") {
+        r[smcFanSpeedKey.second] = getFanName(smcRow["value"]);
+      } else {
+        float fanSpeed = getConvertedValue(smcRow["type"], smcRow["value"]);
+        r[smcFanSpeedKey.second] = INTEGER(fanSpeed);
+      }
     }
 
     results.push_back(r);
