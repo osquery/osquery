@@ -313,6 +313,57 @@ function install_iptables_dev() {
   fi
 }
 
+function install_device_mapper() {
+  SOURCE=LVM2.2.02.145
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
+
+  if provision libdevmapper /usr/local/lib/libdevmapper.a; then
+    pushd $SOURCE
+    ./configure --with-lvm1=none --prefix=/usr/local --enable-static_link \
+      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
+    make libdm.device-mapper -j $THREADS
+    sudo cp libdm/ioctl/libdevmapper.a /usr/local/lib/
+    sudo cp libdm/libdevmapper.h /usr/local/include/
+    popd
+  fi
+}
+
+function install_udev_devel_095() {
+  SOURCE=udev-095
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
+
+  if provision udev-095 /usr/local/lib/libudev.a; then
+    pushd $SOURCE
+    CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" make libudev.a
+    sudo cp libudev.a /usr/local/lib/
+    popd
+  fi
+}
+
+function install_libaptpkg() {
+  SOURCE=apt-0.8.16-12.10.22
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
+
+  if provision libaptpkg /usr/local/lib/libapt-pkg.a; then
+    pushd $SOURCE
+    mkdir -p build
+    pushd build
+    ../configure --prefix=/usr/local \
+      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
+    make -j $THREADS STATICLIBS=1 library
+    sudo cp bin/libapt-pkg.so.4.12.0 /usr/local/lib/
+    sudo ln -sf /usr/local/lib/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
+    sudo cp bin/libapt-pkg.a /usr/local/lib/
+    sudo mkdir -p /usr/local/include/apt-pkg/
+    sudo cp include/apt-pkg/*.h /usr/local/include/apt-pkg/
+    popd
+    popd
+  fi
+}
+
 function install_libcryptsetup() {
   SOURCE=cryptsetup-1.6.7
   TARBALL=$SOURCE.tar.gz
@@ -320,8 +371,9 @@ function install_libcryptsetup() {
 
   if provision libcryptsetup /usr/local/lib/libcryptsetup.a; then
     pushd $SOURCE
-    ./autogen.sh --prefix=/usr/local --enable-static --disable-kernel_crypto
-    ./configure --prefix=/usr/local --enable-static --disable-kernel_crypto \
+    ./autogen.sh
+    ./configure --prefix=/usr/local --enable-static --disable-shared \
+      --disable-selinux --disable-udev --disable-veritysetup  --disable-nls \
       CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
     pushd lib
     make -j $THREADS
@@ -330,6 +382,10 @@ function install_libcryptsetup() {
     popd
   fi
 }
+
+#############################################################################
+## The following package installs are utilities not statically linked.
+#############################################################################
 
 function install_autoconf() {
   SOURCE=autoconf-2.69
@@ -399,19 +455,6 @@ function install_pkgconfig() {
   fi
 }
 
-function install_udev_devel_095() {
-  SOURCE=udev-095
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision udev-095 /usr/local/lib/libudev.a; then
-    pushd $SOURCE
-    CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" make libudev.a
-    sudo cp libudev.a /usr/local/lib/
-    popd
-  fi
-}
-
 function install_pip() {
   PYTHON_EXECUTABLE=$1
   URL=$DEPS_URL/get-pip.py
@@ -441,28 +484,6 @@ function install_ruby() {
   if provision rubygems-1.8.24 /usr/local/bin/gem; then
     pushd $SOURCE
     sudo ruby setup.rb
-    popd
-  fi
-}
-
-function install_libaptpkg() {
-  SOURCE=apt-0.8.16-12.10.22
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision libaptpkg /usr/local/lib/libapt-pkg.a; then
-    pushd $SOURCE
-    mkdir -p build
-    pushd build
-    ../configure --prefix=/usr/local \
-      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
-    make -j $THREADS STATICLIBS=1 library
-    sudo cp bin/libapt-pkg.so.4.12.0 /usr/local/lib/
-    sudo ln -sf /usr/local/lib/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
-    sudo cp bin/libapt-pkg.a /usr/local/lib/
-    sudo mkdir -p /usr/local/include/apt-pkg/
-    sudo cp include/apt-pkg/*.h /usr/local/include/apt-pkg/
-    popd
     popd
   fi
 }

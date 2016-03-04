@@ -88,45 +88,38 @@ elseif(LINUX)
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libudev"
-        "device-mapper >= 1.02.90"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "rhel6")
       set(PACKAGE_ITERATION "1.rhel6")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libudev"
-        "device-mapper >= 1.02.90"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "oracle6")
       set(PACKAGE_ITERATION "1.oel6")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libudev"
-        "device-mapper >= 1.02.90"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "centos7")
       set(PACKAGE_ITERATION "1.el7")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "device-mapper >= 7:1.02.90"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "rhel7")
       set(PACKAGE_ITERATION "1.rhel7")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "device-mapper >= 7:1.02.90"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "oracle7")
       set(PACKAGE_ITERATION "1.oel7")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "device-mapper >= 7:1.02.90"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "amazon2015.03")
       set(PACKAGE_ITERATION "1.amazon2015")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "device-mapper >= 7:1.02.90"
       )
     endif()
   endif()

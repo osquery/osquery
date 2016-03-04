@@ -72,7 +72,11 @@ function main_fedora() {
   install_cppnetlib
   install_google_benchmark
 
-  package device-mapper-devel
+  # Device mapper uses the exact version as the ABI.
+  # We will build and install a static version.
+  remove_package device-mapper-devel
+  install_device_mapper
+
   package libgcrypt-devel
   package gettext-devel
 
