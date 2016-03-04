@@ -54,7 +54,7 @@ class CACertsTests : public ::testing::Test {
 
 TEST_F(CACertsTests, test_certificate_sha1) {
   std::string sha1;
-  sha1 = genSHA1ForCertificate(cert_der_data);
+  sha1 = genSHA1ForCertificate(x_cert);
 
   EXPECT_EQ("f149bae28e3c754ff4bb062b2c1b8bac81b8783e", sha1);
 }
