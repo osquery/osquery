@@ -1,0 +1,16 @@
+table_name("cpu_usage")
+description("Displays information about cpu cores usage.")
+schema([
+Column("cpu", BIGINT, "Name of the CPU Cores"),
+Column("user", BIGINT, "Time spent in user mode"),
+Column("nice", BIGINT, "Time spent in user mode with low priority (nice)"),
+Column("system", BIGINT, "Time spent in system mode"),
+Column("idle", BIGINT, "Time spent in the idle task"),
+Column("iowait", BIGINT, "Since Linux 2.5.41 the time waiting for I/O to complete"),
+Column("irq", BIGINT, "Since Linux 2.6.0-test4 the time servicing interrupts"),
+Column("softirq", BIGINT, "Since Linux 2.6.0-test4 the time servicing softirqs"),
+Column("steal", BIGINT, "Since Linux 2.6.11 time spent in other operating systems when running in a virtualized environment"),
+Column("guest", BIGINT, "Since Linux 2.6.24 time spent running a virtual CPU for guest OS under the control of the Linux kernel"),
+Column("guest_nice", BIGINT, "Since Linux 2.6.33 the time spent running a niced guest "),
+])
+implementation("linux/cpu_usage@genCpuUsage")
