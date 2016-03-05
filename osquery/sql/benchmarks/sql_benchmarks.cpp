@@ -62,6 +62,40 @@ static void SQL_virtual_table_internal(benchmark::State& state) {
 
 BENCHMARK(SQL_virtual_table_internal);
 
+static void SQL_virtual_table_internal_global(benchmark::State& state) {
+  Registry::add<BenchmarkTablePlugin>("table", "benchmark");
+  PluginResponse res;
+  Registry::call("table", "benchmark", {{"action", "columns"}}, res);
+
+  while (state.KeepRunning()) {
+    // Get a connection to the persistent database.
+    auto dbc = SQLiteDBManager::get();
+    attachTableInternal("benchmark", columnDefinition(res), dbc);
+
+    QueryData results;
+    queryInternal("select * from benchmark", results, dbc->db());
+  }
+}
+
+BENCHMARK(SQL_virtual_table_internal_global);
+
+static void SQL_virtual_table_internal_unique(benchmark::State& state) {
+  Registry::add<BenchmarkTablePlugin>("table", "benchmark");
+  PluginResponse res;
+  Registry::call("table", "benchmark", {{"action", "columns"}}, res);
+
+  while (state.KeepRunning()) {
+    // Get a new database connection (to a unique database).
+    auto dbc = SQLiteDBManager::getUnique();
+    attachTableInternal("benchmark", columnDefinition(res), dbc);
+
+    QueryData results;
+    queryInternal("select * from benchmark", results, dbc->db());
+  }
+}
+
+BENCHMARK(SQL_virtual_table_internal_unique);
+
 class BenchmarkLongTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const {
@@ -83,7 +117,7 @@ static void SQL_virtual_table_internal_long(benchmark::State& state) {
   Registry::call("table", "long_benchmark", {{"action", "columns"}}, res);
 
   // Attach a sample virtual table.
-  auto dbc = SQLiteDBManager::get();
+  auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal("long_benchmark", columnDefinition(res), dbc);
 
   while (state.KeepRunning()) {
@@ -123,7 +157,7 @@ static void SQL_virtual_table_internal_wide(benchmark::State& state) {
   Registry::call("table", "wide_benchmark", {{"action", "columns"}}, res);
 
   // Attach a sample virtual table.
-  auto dbc = SQLiteDBManager::get();
+  auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal("wide_benchmark", columnDefinition(res), dbc);
 
   while (state.KeepRunning()) {

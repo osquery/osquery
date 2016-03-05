@@ -11,8 +11,8 @@
 #include <cstring>
 
 #include <math.h>
-#include <sys/wait.h>
 #include <signal.h>
+#include <sys/wait.h>
 
 #include <boost/filesystem.hpp>
 
@@ -431,7 +431,7 @@ void WatcherWatcherRunner::start() {
       VLOG(1) << "osqueryd worker (" << getpid()
               << ") detected killed watcher (" << watcher_ << ")";
       // The watcher watcher is a thread. Do not join services after removing.
-      ::exit(EXIT_FAILURE);
+      raise(SIGKILL);
     }
     interruptableSleep(getWorkerLimit(INTERVAL) * 1000);
   }

@@ -19,8 +19,6 @@
 #include <osquery/flags.h>
 #include <osquery/tables.h>
 
-#include "osquery/database/db_handle.h"
-
 namespace osquery {
 
 DECLARE_uint64(events_expiry);
@@ -209,8 +207,8 @@ TEST_F(EventsDatabaseTests, test_gentable) {
   // The optimize time should have been written to the database.
   // It should be the same as the current (relative) optimize time.
   std::string content;
-  getDatabaseValue(
-      "events", "optimize.DBFakePublisher.DBFakeSubscriber", content);
+  getDatabaseValue("events", "optimize.DBFakePublisher.DBFakeSubscriber",
+                   content);
   EXPECT_EQ(std::to_string(sub->optimize_time_), content);
 
   keys.clear();

@@ -14,10 +14,16 @@ set(OSQUERY_ADDITIONAL_LINKS "")
 set(OSQUERY_ADDITIONAL_TESTS "")
 set(OSQUERY_TABLES_TESTS "")
 
+# Add all and extra for osquery code.
+add_compile_options(
+  -Wall
+  -Wextra
+  -Wno-unused-parameter
+)
+
 # The core set of osquery libraries most discovered with find_package.
 set(OSQUERY_LIBS
   # This includes librocksdb[_lite] and libsnappy.
-  ${ROCKSDB_LIBRARIES}
   ${THRIFT_LIBRARY}
   ${GLOG_LIBRARY}
   ${GFLAGS_LIBRARY}
@@ -30,12 +36,10 @@ set(OSQUERY_LIBS
   z
 )
 
-# Add all and extra for osquery code.
-add_compile_options(
-  -Wall
-  -Wextra
-  -Wno-unused-parameter
-)
+# If building with RocksDB (default) append associated libraries.
+if(ROCKSDB)
+  set(OSQUERY_LIBS ${OSQUERY_LIBS} ${ROCKSDB_LIBRARIES})
+endif()
 
 if(NOT FREEBSD)
   set(OSQUERY_LIBS ${OSQUERY_LIBS} dl)

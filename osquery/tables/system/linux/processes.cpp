@@ -8,8 +8,8 @@
  *
  */
 
-#include <string>
 #include <map>
+#include <string>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -17,9 +17,9 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
-#include <osquery/tables.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 
@@ -143,7 +143,7 @@ void genProcessMap(const std::string& pid, QueryData& results) {
 
     // BSS with name in pathname.
     r["pseudo"] = (fields[4] == "0" && !r["path"].empty()) ? "1" : "0";
-    results.push_back(r);
+    results.push_back(std::move(r));
   }
 }
 

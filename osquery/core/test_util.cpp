@@ -16,18 +16,20 @@
 #include <signal.h>
 #include <time.h>
 
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
+#include <osquery/core.h>
+#include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
 #include "osquery/core/test_util.h"
-#include "osquery/database/db_handle.h"
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
 std::string kFakeDirectory = "";
 
 #ifdef DARWIN
@@ -80,9 +82,13 @@ void initTesting() {
   FLAGS_modules_autoload = kTestWorkingDirectory + "unittests-mod.load";
   FLAGS_disable_logging = true;
 
-  // Create a default DBHandle instance before unittests.
-  (void)DBHandle::getInstance();
+  // Tests need a database plugin.
+  // Set up the database instance for the unittests.
+  DatabasePlugin::setAllowOpen(true);
+  Registry::setActive("database", "ephemeral");
 }
+
+void shutdownTesting() { DatabasePlugin::shutdown(); }
 
 std::map<std::string, std::string> getTestConfigMap() {
   std::string content;

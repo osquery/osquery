@@ -18,9 +18,9 @@
 
 #include <osquery/config.h>
 #include <osquery/database.h>
+#include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/hash.h>
-#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
@@ -249,8 +249,9 @@ void Config::removeFiles(const std::string& source) {
   }
 }
 
-void Config::scheduledQueries(std::function<
-    void(const std::string& name, const ScheduledQuery& query)> predicate) {
+void Config::scheduledQueries(
+    std::function<void(const std::string& name, const ScheduledQuery& query)>
+        predicate) {
   ReadLock rlock(config_schedule_mutex_);
   for (const PackRef& pack : *schedule_) {
     for (const auto& it : pack->getSchedule()) {
@@ -675,18 +676,12 @@ Status Config::getMD5(std::string& hash) {
 
 const std::shared_ptr<ConfigParserPlugin> Config::getParser(
     const std::string& parser) {
-  std::shared_ptr<ConfigParserPlugin> config_parser = nullptr;
-  try {
-    auto plugin = Registry::get("config_parser", parser);
-    config_parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin);
-  } catch (const std::out_of_range& e) {
-    LOG(ERROR) << "Error getting config parser plugin " << parser << ": "
-               << e.what();
-  } catch (const std::bad_cast& e) {
-    LOG(ERROR) << "Error casting " << parser
-               << " as a ConfigParserPlugin: " << e.what();
+  if (!Registry::exists("config_parser", parser, true)) {
+    return nullptr;
   }
-  return config_parser;
+
+  auto plugin = Registry::get("config_parser", parser);
+  return std::dynamic_pointer_cast<ConfigParserPlugin>(plugin);
 }
 
 void Config::files(
