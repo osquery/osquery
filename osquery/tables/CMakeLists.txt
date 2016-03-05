@@ -52,6 +52,8 @@ else()
     )
 
     ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio")
+    ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper")
+    ADD_OSQUERY_LINK_ADDITIONAL("libselinux.so")
   elseif(UBUNTU)
     # Ubuntu specific tables
     file(GLOB OSQUERY_UBUNTU_TABLES "*/ubuntu/*.cpp")
@@ -65,11 +67,12 @@ else()
 	add_definitions(-DLIBDPKG_VERSION=${LIBDPKG_VERSION_NUMBER})
 
     ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg")
+    ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup libdevmapper.so")
   endif()
 
+  ADD_OSQUERY_LINK_ADDITIONAL("libgcrypt.so")
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.so")
   ADD_OSQUERY_LINK_ADDITIONAL("blkid")
-  ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup libdevmapper.so libgcrypt.so")
   ADD_OSQUERY_LINK_ADDITIONAL("libuuid.so")
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
   ADD_OSQUERY_LINK_ADDITIONAL("libmagic.so")

@@ -126,6 +126,11 @@ function main_oracle() {
     package rubygems
   fi
 
+  # Device mapper uses the exact version as the ABI.
+  # We will build and install a static version.
+  remove_package device-mapper-devel
+  install_device_mapper
+
   package file-libs
   install_sleuthkit
 
