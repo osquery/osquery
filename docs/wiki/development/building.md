@@ -159,12 +159,14 @@ OSQUERY_PLATFORM=custom_linux;1.0 # Set a wacky platform/distro name
 OSQUERY_BUILD_VERSION=9.9.9 # Set a wacky version string
 BUILD_LINK_SHARED=True # Set CMake library discovery to prefer shared libraries
 SDK_VERSION=9.9.9 # Set a wacky SDK-version string
+OSX_VERSION_MIN=10.11 # Override the native minimum OS X version ABI
+
 SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
-OPTIMIZED=True # Disable generic CPU optimizations
+OPTIMIZED=True # Enable specific CPU optimizations (not recommended)
 SKIP_TESTS=True # Skip unit test building (very very not recommended!)
 SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets
 SKIP_TABLES=True # Build platform without any table implementations or specs
-OSX_VERSION_MIN=10.11 # Override the native minimum OS X version ABI
+SQLITE_DEBUG=True # Enable SQLite query debugging (very verbose!)
 ```
 
 ## Custom Packages
@@ -194,9 +196,7 @@ Pay attention to the environment variable `RUN_RELEASE_TESTS=1`, which enables t
 
 ## Notes and FAQ
 
-
 When trying to make, if you encounter:
-
 ```
 Requested dependencies may have changed, run: make deps
 ```

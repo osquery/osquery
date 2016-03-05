@@ -91,6 +91,9 @@ clean: .setup
 	cd build/$(BUILD_DIR) && cmake ../../ && \
 		$(DEFINES) $(MAKE) clean --no-print-directory $(MAKEFLAGS)
 
+strip: .setup
+	cd build/$(BUILD_DIR) && find ./osquery -executable -type f | xargs strip
+
 distclean:
 	rm -rf .sources build/$(BUILD_DIR) build/debug_$(BUILD_DIR) build/docs
 ifeq ($(PLATFORM),Linux)

@@ -247,6 +247,13 @@ add_definitions(
   -DBOOST_NO_CXX11_VARIADIC_TEMPLATES
 )
 
+if(DEFINED ENV{SQLITE_DEBUG})
+  add_definitions(
+    -DSQLITE_DEBUG=1
+    -DSQLITE_ENABLE_WHERETRACE=1
+  )
+endif()
+
 if(APPLE)
   LOG_PLATFORM("OS X")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "debian")
