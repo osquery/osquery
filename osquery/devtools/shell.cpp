@@ -32,6 +32,10 @@
 #include "osquery/devtools/devtools.h"
 #include "osquery/sql/virtual_table.h"
 
+#if defined(SQLITE_ENABLE_WHERETRACE)
+extern int sqlite3WhereTrace;
+#endif
+
 namespace osquery {
 
 /// Define flags used by the shell. They are parsed by the drop-in shell.
@@ -1674,6 +1678,10 @@ namespace osquery {
 int launchIntoShell(int argc, char **argv) {
   struct callback_data data;
   main_init(&data);
+
+#if defined(SQLITE_ENABLE_WHERETRACE)
+  sqlite3WhereTrace = 0xffffffff;
+#endif
 
   {
     // Hold the manager connection instance again in callbacks.
