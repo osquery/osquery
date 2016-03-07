@@ -44,15 +44,9 @@ function main_debian() {
   package libdpkg-dev
   package libudev-dev
   package libblkid-dev
-
   package libbz2-dev
   package libreadline-dev
-  
   package iptables-dev
-
-  package libsnappy-dev
-  package libgflags-dev
-
   package libaudit-dev
   package libmagic-dev
   
@@ -74,11 +68,13 @@ function main_debian() {
   package rubygems
   gem_install fpm
 
-  install_thrift
+  install_gflags
+  install_glog
+  install_snappy
   install_rocksdb 
+  install_thrift
   install_yara
   install_cppnetlib
-  install_gflags
   install_sleuthkit
   
   # Need headers and PC macros

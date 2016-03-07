@@ -24,6 +24,7 @@ function main_darwin() {
   package doxygen
   package boost
   package gflags
+  package glog
   package lz4
   package snappy
   package rocksdb

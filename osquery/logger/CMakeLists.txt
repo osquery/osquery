@@ -1,8 +1,6 @@
 file(GLOB OSQUERY_LOGGER "*.cpp")
 ADD_OSQUERY_LIBRARY(TRUE osquery_logger ${OSQUERY_LOGGER})
 
-add_dependencies(osquery_logger libglog)
-
 file(GLOB OSQUERY_LOGGER_PLUGINS "plugins/*.cpp")
 ADD_OSQUERY_LIBRARY(FALSE osquery_logger_plugins ${OSQUERY_LOGGER_PLUGINS})
 

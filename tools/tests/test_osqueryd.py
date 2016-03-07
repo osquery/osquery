@@ -122,14 +122,16 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         # Wait for the daemon to flush to GLOG.
         test_base.expectTrue(info_exists)
 
-        # Both log files should exist and have the given mode.
+        # Both log files should exist, the results should have the given mode.
         for fname in ['osqueryd.INFO', 'osqueryd.results.log']:
             pth = os.path.join(logger_path, fname)
             self.assertTrue(os.path.exists(pth))
 
-            rpath = os.path.realpath(info_path)
-            mode = os.stat(rpath).st_mode & 0777
-            self.assertEqual(mode, test_mode)
+            # Only apply the mode checks to .log files.
+            if fname.find('.log') > 0:
+                rpath = os.path.realpath(pth)
+                mode = os.stat(rpath).st_mode & 0777
+                self.assertEqual(mode, test_mode)
 
         daemon.kill()
 

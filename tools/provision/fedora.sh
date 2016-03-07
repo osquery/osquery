@@ -67,6 +67,7 @@ function main_fedora() {
   fi
 
   install_gflags
+  install_glog
   install_rocksdb
   install_yara
   install_cppnetlib

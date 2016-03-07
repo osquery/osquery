@@ -50,6 +50,7 @@ function main_amazon() {
   package cryptsetup-luks-devel
 
   install_gflags
+  install_glog
   install_iptables_dev
 
   package doxygen
