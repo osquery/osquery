@@ -262,6 +262,21 @@ function install_boost() {
   fi
 }
 
+function install_glog() {
+  SOURCE=glog-0.3.4
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
+
+  if provision glog /usr/local/lib/libglog.a; then
+    pushd $SOURCE
+    ./configure --disable-shared --prefix=/usr/local \
+      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
+    CC="$CC" CXX="$CXX" make -j $THREADS
+    sudo make install
+    popd
+  fi
+}
+
 function install_gflags() {
   TARBALL=v2.1.1.tar.gz
   URL=$DEPS_URL/$TARBALL

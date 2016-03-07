@@ -16,6 +16,7 @@ function main_freebsd() {
   package git
   package python
   package py27-pip
+  package glog
   package snappy
   package rocksdb
   package thrift
