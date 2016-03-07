@@ -1,7 +1,8 @@
 Jinja2
-psutil
 argparse
-
-# needed for integration tests
-pexpect
 thrift
+
+# The pip / setup tools for Windows will not include psutil
+# Needed for integration tests
+psutil
+pexpect
