@@ -19,5 +19,8 @@ int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
   // Optionally enable Goggle Logging
   // google::InitGoogleLogging(argv[0]);
-  return RUN_ALL_TESTS();
+  auto result = RUN_ALL_TESTS();
+
+  osquery::shutdownTesting();
+  return result;
 }

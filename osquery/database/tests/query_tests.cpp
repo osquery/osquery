@@ -19,18 +19,9 @@
 #include "osquery/core/test_util.h"
 #include "osquery/database/query.h"
 
-const std::string kTestingQueryDBPath = "/tmp/rocksdb-osquery-querytests";
-
 namespace osquery {
 
-class QueryTests : public testing::Test {
- public:
-  void SetUp() { db_ = DBHandle::getInstanceAtPath(kTestingQueryDBPath); }
-  void TearDown() { boost::filesystem::remove_all(kTestingQueryDBPath); }
-
- public:
-  std::shared_ptr<DBHandle> db_;
-};
+class QueryTests : public testing::Test {};
 
 TEST_F(QueryTests, test_private_members) {
   auto query = getOsqueryScheduledQuery();
@@ -42,21 +33,21 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
   // Test adding a "current" set of results to a scheduled query instance.
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
-  auto status = cf.addNewResults(getTestDBExpectedResults(), db_);
+  auto status = cf.addNewResults(getTestDBExpectedResults());
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(status.toString(), "OK");
 
   // Simulate results from several schedule runs, calculate differentials.
   for (auto result : getTestDBResultStream()) {
-    // Get the results from the previous query execution (from RocksDB).
+    // Get the results from the previous query execution (from the DB).
     QueryData previous_qd;
-    auto status = cf.getPreviousQueryResults(previous_qd, db_);
+    auto status = cf.getPreviousQueryResults(previous_qd);
     EXPECT_TRUE(status.ok());
     EXPECT_EQ(status.toString(), "OK");
 
     // Add the "current" results and output the differentials.
     DiffResults dr;
-    auto s = cf.addNewResults(result.second, dr, true, db_);
+    auto s = cf.addNewResults(result.second, dr, true);
     EXPECT_TRUE(s.ok());
 
     // Call the diffing utility directly.
@@ -65,7 +56,7 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
 
     // After Query::addNewResults the previous results are now current.
     QueryData qd;
-    cf.getPreviousQueryResults(qd, db_);
+    cf.getPreviousQueryResults(qd);
     EXPECT_EQ(qd, result.second);
   }
 }
@@ -74,13 +65,13 @@ TEST_F(QueryTests, test_get_query_results) {
   // Grab an expected set of query data and add it as the previous result.
   auto encoded_qd = getSerializedQueryDataJSON();
   auto query = getOsqueryScheduledQuery();
-  auto status = db_->Put(kQueries, "foobar", encoded_qd.first);
+  auto status = setDatabaseValue(kQueries, "foobar", encoded_qd.first);
   EXPECT_TRUE(status.ok());
 
   // Use the Query retrieval API to check the now "previous" result.
   QueryData previous_qd;
   auto cf = Query("foobar", query);
-  status = cf.getPreviousQueryResults(previous_qd, db_);
+  status = cf.getPreviousQueryResults(previous_qd);
   EXPECT_TRUE(status.ok());
 }
 
@@ -89,31 +80,31 @@ TEST_F(QueryTests, test_query_name_not_found_in_db) {
   QueryData previous_qd;
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("not_a_real_query", query);
-  auto status = cf.getPreviousQueryResults(previous_qd, db_);
-  EXPECT_TRUE(status.toString() == "Query name not found in database");
+  auto status = cf.getPreviousQueryResults(previous_qd);
   EXPECT_TRUE(status.ok());
+  EXPECT_EQ(status.toString(), "Query name not found in database");
 }
 
 TEST_F(QueryTests, test_is_query_name_in_database) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
   auto encoded_qd = getSerializedQueryDataJSON();
-  auto status = db_->Put(kQueries, "foobar", encoded_qd.first);
+  auto status = setDatabaseValue(kQueries, "foobar", encoded_qd.first);
   EXPECT_TRUE(status.ok());
   // Now test that the query name exists.
-  EXPECT_TRUE(cf.isQueryNameInDatabase(db_));
+  EXPECT_TRUE(cf.isQueryNameInDatabase());
 }
 
 TEST_F(QueryTests, test_get_stored_query_names) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
   auto encoded_qd = getSerializedQueryDataJSON();
-  auto status = db_->Put(kQueries, "foobar", encoded_qd.first);
+  auto status = setDatabaseValue(kQueries, "foobar", encoded_qd.first);
   EXPECT_TRUE(status.ok());
 
   // Stored query names is a factory method included alongside every query.
   // It will include the set of query names with existing "previous" results.
-  auto names = cf.getStoredQueryNames(db_);
+  auto names = cf.getStoredQueryNames();
   auto in_vector = std::find(names.begin(), names.end(), "foobar");
   EXPECT_NE(in_vector, names.end());
 }

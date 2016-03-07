@@ -69,7 +69,7 @@ class OsqueryiTest(unittest.TestCase):
         self.assertEqual(proc.proc.poll(), 0)
 
     @test_base.flaky
-    def test_config_check_failure(self):
+    def test_config_check_failure_invalid_path(self):
         '''Test that a missing config fails'''
         proc = test_base.TimeoutRunner([
             self.binary,
@@ -83,6 +83,8 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 1)
 
+    @test_base.flaky
+    def test_config_check_failure_valid_path(self):
         # Now with a valid path, but invalid content.
         proc = test_base.TimeoutRunner([
             self.binary,
@@ -94,6 +96,8 @@ class OsqueryiTest(unittest.TestCase):
         self.assertEqual(proc.proc.poll(), 1)
         self.assertNotEqual(proc.stderr, "")
 
+    @test_base.flaky
+    def test_config_check_failure_missing_plugin(self):
         # Finally with a missing config plugin
         proc = test_base.TimeoutRunner([
             self.binary,

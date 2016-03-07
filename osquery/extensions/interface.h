@@ -261,11 +261,7 @@ class ExtensionRunnerCore : public InternalRunnable {
   TThreadedServerRef server_{nullptr};
 
   /// Protect the service start and stop, this mutex protects server creation.
-  boost::mutex service_start_;
-
- private:
-  /// Protect the service start and stop, this mutex protects the transport.
-  boost::mutex service_run_;
+  std::mutex service_start_;
 
   /// Record a dispatcher's request to stop the service.
   bool service_stopping_{false};

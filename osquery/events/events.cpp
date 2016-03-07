@@ -21,7 +21,6 @@
 #include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/database/db_handle.h"
 
 namespace osquery {
 
@@ -92,9 +91,8 @@ QueryData EventSubscriberPlugin::genTable(QueryContext& context) {
 
     // Store the optimize time such that it can be restored if the daemon is
     // restarted.
-    auto db = DBHandle::getInstance();
     auto index_key = "optimize." + dbNamespace();
-    db->Put(kEvents, index_key, std::to_string(optimize_time_));
+    setDatabaseValue(kEvents, index_key, std::to_string(optimize_time_));
   }
 
   return get(start, stop);
@@ -135,7 +133,6 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
 std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
                                                         EventTime stop,
                                                         size_t list_key) {
-  auto db = DBHandle::getInstance();
   auto index_key = "indexes." + dbNamespace();
   std::set<std::string> indexes;
 
@@ -152,7 +149,7 @@ std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
 
     std::string time_list;
     auto list_type = boost::lexical_cast<std::string>(size);
-    db->Get(kEvents, index_key + "." + list_type, time_list);
+    getDatabaseValue(kEvents, index_key + "." + list_type, time_list);
     if (time_list.empty()) {
       // No events in this binning size.
       return indexes;
@@ -240,7 +237,6 @@ std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
 void EventSubscriberPlugin::expireRecords(const std::string& list_type,
                                           const std::string& index,
                                           bool all) {
-  auto db = DBHandle::getInstance();
   auto record_key = "records." + dbNamespace();
   auto data_key = "data." + dbNamespace();
 
@@ -250,7 +246,7 @@ void EventSubscriberPlugin::expireRecords(const std::string& list_type,
   auto expired_records = getRecords({list_type + "." + index});
   for (const auto& record : expired_records) {
     if (all) {
-      db->Delete(kEvents, data_key + "." + record.first);
+      deleteDatabaseValue(kEvents, data_key + "." + record.first);
     } else if (record.second > expire_time_) {
       persisting_records.push_back(record.first + ":" +
                                    std::to_string(record.second));
@@ -259,10 +255,11 @@ void EventSubscriberPlugin::expireRecords(const std::string& list_type,
 
   // Either drop or overwrite the record list.
   if (all) {
-    db->Delete(kEvents, record_key + "." + list_type + "." + index);
+    deleteDatabaseValue(kEvents, record_key + "." + list_type + "." + index);
   } else {
     auto new_records = boost::algorithm::join(persisting_records, ",");
-    db->Put(kEvents, record_key + "." + list_type + "." + index, new_records);
+    setDatabaseValue(
+        kEvents, record_key + "." + list_type + "." + index, new_records);
   }
 }
 
@@ -270,7 +267,6 @@ void EventSubscriberPlugin::expireIndexes(
     const std::string& list_type,
     const std::vector<std::string>& indexes,
     const std::vector<std::string>& expirations) {
-  auto db = DBHandle::getInstance();
   auto index_key = "indexes." + dbNamespace();
 
   // Construct a mutable list of persisting indexes to rewrite as records.
@@ -285,16 +281,15 @@ void EventSubscriberPlugin::expireIndexes(
 
   // Update the list of indexes with the non-expired indexes.
   auto new_indexes = boost::algorithm::join(persisting_indexes, ",");
-  db->Put(kEvents, index_key + "." + list_type, new_indexes);
+  setDatabaseValue(kEvents, index_key + "." + list_type, new_indexes);
 }
 
 void EventSubscriberPlugin::expireCheck() {
-  auto db = DBHandle::getInstance();
   auto data_key = "data." + dbNamespace();
   auto eid_key = "eid." + dbNamespace();
 
   std::vector<std::string> keys;
-  db->ScanPrefix(kEvents, keys, data_key);
+  scanDatabaseKeys(kEvents, keys, data_key);
   if (keys.size() <= FLAGS_events_max) {
     return;
   }
@@ -305,13 +300,13 @@ void EventSubscriberPlugin::expireCheck() {
   // Inspect the N-FLAGS_events_max -th event's value and expire before the
   // time within the content.
   std::string last_key;
-  db->Get(kEvents, eid_key, last_key);
+  getDatabaseValue(kEvents, eid_key, last_key);
   // The EID is the next-index.
   size_t max_key = boost::lexical_cast<size_t>(last_key) - FLAGS_events_max - 1;
 
   // Convert the key index into a time using the content.
   std::string content;
-  db->Get(kEvents, data_key + "." + std::to_string(max_key), content);
+  getDatabaseValue(kEvents, data_key + "." + std::to_string(max_key), content);
 
   // Decode the value into a row structure to extract the time.
   Row r;
@@ -332,7 +327,6 @@ void EventSubscriberPlugin::expireCheck() {
 
 std::vector<EventRecord> EventSubscriberPlugin::getRecords(
     const std::set<std::string>& indexes) {
-  auto db = DBHandle::getInstance();
   auto record_key = "records." + dbNamespace();
 
   std::vector<EventRecord> records;
@@ -340,7 +334,7 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
     std::vector<std::string> bin_records;
     {
       std::string record_value;
-      db->Get(kEvents, record_key + "." + index, record_value);
+      getDatabaseValue(kEvents, record_key + "." + index, record_value);
       if (record_value.empty()) {
         // There are actually no events in this bin, interesting error case.
         continue;
@@ -364,7 +358,6 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
 
 Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
   Status status;
-  auto db = DBHandle::getInstance();
   std::string time_value = boost::lexical_cast<std::string>(time);
 
   // The record is identified by the event type then module name.
@@ -386,27 +379,29 @@ Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
       boost::lock_guard<boost::mutex> lock(event_record_lock_);
       // Append the record (eid, unix_time) to the list bin.
       std::string record_value;
-      status = db->Get(
+      status = getDatabaseValue(
           kEvents, record_key + "." + list_key + "." + list_id, record_value);
 
       if (record_value.length() == 0) {
         // This is a new list_id for list_key, append the ID to the indirect
         // lookup for this list_key.
         std::string index_value;
-        status = db->Get(kEvents, index_key + "." + list_key, index_value);
+        status =
+            getDatabaseValue(kEvents, index_key + "." + list_key, index_value);
         if (index_value.length() == 0) {
           // A new index.
           index_value = list_id;
         } else {
           index_value += "," + list_id;
         }
-        status = db->Put(kEvents, index_key + "." + list_key, index_value);
+        status =
+            setDatabaseValue(kEvents, index_key + "." + list_key, index_value);
         record_value = eid + ":" + time_value;
       } else {
         // Tokenize a record using ',' and the EID/time using ':'.
         record_value += "," + eid + ":" + time_value;
       }
-      status = db->Put(
+      status = setDatabaseValue(
           kEvents, record_key + "." + list_key + "." + list_id, record_value);
       if (!status.ok()) {
         LOG(ERROR) << "Could not put Event Record key: " << record_key;
@@ -419,7 +414,6 @@ Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
 
 EventID EventSubscriberPlugin::getEventID() {
   Status status;
-  auto db = DBHandle::getInstance();
   // First get an event ID from the meta key.
   std::string eid_key = "eid." + dbNamespace();
   std::string last_eid_value;
@@ -427,14 +421,14 @@ EventID EventSubscriberPlugin::getEventID() {
 
   {
     boost::lock_guard<boost::mutex> lock(event_id_lock_);
-    status = db->Get(kEvents, eid_key, last_eid_value);
+    status = getDatabaseValue(kEvents, eid_key, last_eid_value);
     if (!status.ok() || last_eid_value.empty()) {
       last_eid_value = "0";
     }
 
     last_eid_ = boost::lexical_cast<size_t>(last_eid_value) + 1;
     eid_value = boost::lexical_cast<std::string>(last_eid_);
-    status = db->Put(kEvents, eid_key, eid_value);
+    status = setDatabaseValue(kEvents, eid_key, eid_value);
   }
 
   if (!status.ok()) {
@@ -448,7 +442,6 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
   QueryData results;
 
   // Get the records for this time range.
-  auto db = DBHandle::getInstance();
   auto indexes = getIndexes(start, stop);
   auto records = getRecords(indexes);
   std::string events_key = "data." + dbNamespace();
@@ -464,7 +457,7 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
   std::string data_value;
   for (const auto& record : mapped_records) {
     Row r;
-    auto status = db->Get(kEvents, record, data_value);
+    auto status = getDatabaseValue(kEvents, record, data_value);
     if (data_value.length() == 0) {
       // There is no record here, interesting error case.
       continue;
@@ -485,7 +478,6 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
 }
 
 Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
-  auto db = DBHandle::getInstance();
   // Get and increment the EID for this module.
   EventID eid = getEventID();
   // Without encouraging a missing event time, do not support a 0-time.
@@ -506,7 +498,7 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
 
   // Store the event data.
   std::string event_key = "data." + dbNamespace() + "." + eid;
-  status = db->Put(kEvents, event_key, data);
+  status = setDatabaseValue(kEvents, event_key, data);
   // Record the event in the indexing bins, using the index time.
   recordEvent(eid, event_time);
   return status;
@@ -692,10 +684,9 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
 
   // Restore optimize times for a daemon.
   if (kToolType == OSQUERY_TOOL_DAEMON && FLAGS_events_optimize) {
-    auto db = DBHandle::getInstance();
     auto index_key = "optimize." + specialized_sub->dbNamespace();
     std::string content;
-    if (db->Get(kEvents, index_key, content)) {
+    if (getDatabaseValue(kEvents, index_key, content)) {
       long long optimize_time = 0;
       safeStrtoll(content, 10, optimize_time);
       specialized_sub->optimize_time_ = static_cast<EventTime>(optimize_time);

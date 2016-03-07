@@ -16,7 +16,6 @@
 
 namespace osquery {
 
-DECLARE_int32(worker_threads);
 DECLARE_string(extensions_socket);
 DECLARE_string(extensions_autoload);
 DECLARE_string(extensions_timeout);
@@ -41,11 +40,7 @@ typedef std::map<RouteUUID, ExtensionInfo> ExtensionList;
 
 inline std::string getExtensionSocket(
     RouteUUID uuid, const std::string& path = FLAGS_extensions_socket) {
-  if (uuid == 0) {
-    return path;
-  } else {
-    return path + "." + std::to_string(uuid);
-  }
+  return (uuid == 0) ? path : path + "." + std::to_string(uuid);
 }
 
 /// External (extensions) SQL implementation of the osquery query API.

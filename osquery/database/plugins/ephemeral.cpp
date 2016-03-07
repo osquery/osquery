@@ -1,0 +1,101 @@
+/*
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+#include <osquery/database.h>
+#include <osquery/logger.h>
+
+namespace osquery {
+
+DECLARE_string(database_path);
+DECLARE_bool(database_in_memory);
+
+class EphemeralDatabasePlugin : public DatabasePlugin {
+  using DBType = std::map<std::string, std::map<std::string, std::string> >;
+
+ public:
+  /// Data retrieval method.
+  Status get(const std::string& domain,
+             const std::string& key,
+             std::string& value) const override;
+
+  /// Data storage method.
+  Status put(const std::string& domain,
+             const std::string& key,
+             const std::string& value) override;
+
+  /// Data removal method.
+  Status remove(const std::string& domain, const std::string& k) override;
+
+  /// Key/index lookup method.
+  Status scan(const std::string& domain,
+              std::vector<std::string>& results,
+              const std::string& prefix,
+              size_t max = 0) const override;
+
+ public:
+  /// Database workflow: open and setup.
+  Status setUp() override {
+    DBType().swap(db_);
+    return Status(0);
+  }
+
+ private:
+  DBType db_;
+};
+
+/// Backing-storage provider for osquery internal/core.
+REGISTER_INTERNAL(EphemeralDatabasePlugin, "database", "ephemeral");
+
+Status EphemeralDatabasePlugin::get(const std::string& domain,
+                                    const std::string& key,
+                                    std::string& value) const {
+  if (db_.count(domain) > 0 && db_.at(domain).count(key) > 0) {
+    value = db_.at(domain).at(key);
+    return Status(0);
+  } else {
+    return Status(1);
+  }
+}
+
+Status EphemeralDatabasePlugin::put(const std::string& domain,
+                                    const std::string& key,
+                                    const std::string& value) {
+  db_[domain][key] = value;
+  return Status(0);
+}
+
+Status EphemeralDatabasePlugin::remove(const std::string& domain,
+                                       const std::string& k) {
+  db_[domain].erase(k);
+  return Status(0);
+}
+
+Status EphemeralDatabasePlugin::scan(const std::string& domain,
+                                     std::vector<std::string>& results,
+                                     const std::string& prefix,
+                                     size_t max) const {
+  if (db_.count(domain) == 0) {
+    return Status(0);
+  }
+
+  for (const auto& key : db_.at(domain)) {
+    if (!prefix.empty() &&
+        !(std::mismatch(prefix.begin(), prefix.end(), key.first.begin())
+              .first == prefix.end())) {
+      continue;
+    }
+    results.push_back(key.first);
+    if (max > 0 && results.size() >= max) {
+      break;
+    }
+  }
+  return Status(0);
+}
+}

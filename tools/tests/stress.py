@@ -87,15 +87,21 @@ def audit(args):
 
 def single(args):
     start_time = time.time()
-    proc = subprocess.Popen(args,
-                            shell=True,
-                            stderr=subprocess.PIPE,
-                            stdout=subprocess.PIPE)
+    if ARGS.verbose:
+        proc = subprocess.Popen(args, shell=True)
+    else:
+        proc = subprocess.Popen(args,
+                                shell=True,
+                                stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE)
+    if ARGS.verbose:
+        print("PID: %d" % (proc.pid))
     stdout, stderr = proc.communicate()
     end_time = time.time() - start_time
     if proc.returncode is not 0:
-        print(stdout)
-        print(stderr)
+        if not ARGS.verbose:
+            print(stdout)
+            print(stderr)
         print("%s Test failed. (total %6.4fs)" % (
             red("FAILED"), end_time))
         sys.exit(proc.returncode)
@@ -129,14 +135,16 @@ if __name__ == "__main__":
                         help="Arguments to pass to test binary")
     parser.add_argument("--stat", action="store_true", default=False,
                         help="Only print numerical values")
+    parser.add_argument("--verbose", action="store_true", default=False,
+                        help="Do not consume stderr/stdout")
     parser.add_argument("run", nargs="?", help="Run specific test binary")
-    args = parser.parse_args()
+    ARGS = parser.parse_args()
 
     # A baseline was requested, first run baselines then normal.
-    if args.baseline:
+    if ARGS.baseline:
         print("Running baseline tests...")
-        stress(vars(args))
-        args.baseline = False
+        stress(vars(ARGS))
+        ARGS.baseline = False
         print("Finished. Running tests...")
 
-    stress(vars(args))
+    stress(vars(ARGS))

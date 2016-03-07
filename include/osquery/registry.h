@@ -12,8 +12,8 @@
 
 #include <map>
 #include <mutex>
-#include <vector>
 #include <set>
+#include <vector>
 
 #include <boost/noncopyable.hpp>
 #include <boost/property_tree/ptree.hpp>

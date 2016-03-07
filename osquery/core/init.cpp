@@ -30,7 +30,6 @@
 #include <osquery/registry.h>
 
 #include "osquery/core/watcher.h"
-#include "osquery/database/db_handle.h"
 #include "osquery/dispatcher/dispatcher.h"
 
 #if defined(__linux__) || defined(__FreeBSD__)
@@ -105,6 +104,8 @@ static inline bool hasWorkerVariable() {
 
 volatile std::sig_atomic_t kHandledSignal{0};
 
+static inline bool isWatcher() { return (osquery::Watcher::getWorker() > 0); }
+
 void signalHandler(int signal) {
   // Inform exit status of main threads blocked by service joins.
   if (kHandledSignal == 0) {
@@ -112,10 +113,8 @@ void signalHandler(int signal) {
   }
 
   // Handle signals based on a tri-state (worker, watcher, neither).
-  pid_t worker_pid = osquery::Watcher::getWorker();
-  bool is_watcher = worker_pid > 0;
   if (signal == SIGHUP) {
-    if (!is_watcher || hasWorkerVariable()) {
+    if (!isWatcher() || hasWorkerVariable()) {
       // Reload configuration.
     }
   } else if (signal == SIGTERM || signal == SIGINT || signal == SIGABRT) {
@@ -127,7 +126,7 @@ void signalHandler(int signal) {
     std::signal(signal, SIG_DFL);
 
     // The watcher waits for the worker to die.
-    if (is_watcher) {
+    if (isWatcher()) {
       // Bind the fate of the worker to this watcher.
       osquery::Watcher::bindFates();
     } else {
@@ -145,7 +144,7 @@ void signalHandler(int signal) {
     raise((kHandledSignal != 0) ? kHandledSignal : SIGALRM);
   }
 
-  if (is_watcher) {
+  if (isWatcher()) {
     // The signal should be proliferated through the process group.
     // Otherwise the watcher could 'forward' the signal to workers and
     // managed extension processes.
@@ -166,7 +165,9 @@ DECLARE_string(distributed_plugin);
 DECLARE_bool(disable_distributed);
 DECLARE_string(config_plugin);
 DECLARE_bool(config_check);
+DECLARE_bool(config_dump);
 DECLARE_bool(database_dump);
+DECLARE_string(database_path);
 
 ToolType kToolType = OSQUERY_TOOL_UNKNOWN;
 
@@ -421,14 +422,27 @@ void Initializer::initActivePlugin(const std::string& type,
     timeout = kExtensionInitializeLatencyUS * 10;
   }
 
-  while (!Registry::setActive(type, name)) {
-    if (!Watcher::hasManagedExtensions() || delay > timeout) {
-      LOG(ERROR) << "Active " << type << " plugin not found: " << name;
-      osquery::shutdown(EXIT_CATASTROPHIC);
+  // Attempt to set the request plugin as active.
+  Status status;
+  do {
+    status = Registry::setActive(type, name);
+    if (status.ok()) {
+      // The plugin was found, and is not active.
+      return;
     }
+
+    if (!Watcher::hasManagedExtensions()) {
+      // The plugin was found locally, and is not active, problem.
+      break;
+    }
+    // The plugin is not local and is not active, wait and retry.
     delay += kExtensionInitializeLatencyUS;
     ::usleep(kExtensionInitializeLatencyUS);
-  }
+  } while (delay < timeout);
+
+  LOG(ERROR) << "Cannot activate " << name << " " << type
+             << " plugin: " << status.getMessage();
+  osquery::shutdown(EXIT_CATASTROPHIC);
 }
 
 void Initializer::start() const {
@@ -436,18 +450,26 @@ void Initializer::start() const {
   osquery::loadModules();
 
   // Pre-extension manager initialization options checking.
-  if (FLAGS_config_check && !Watcher::hasManagedExtensions()) {
+  // If the shell or daemon does not need extensions and it will exit quickly,
+  // prefer to disable the extension manager.
+  if ((FLAGS_config_check || FLAGS_config_dump) &&
+      !Watcher::hasManagedExtensions()) {
     FLAGS_disable_extensions = true;
   }
 
-  // A daemon must always have R/W access to the database.
-  DBHandle::setAllowOpen(true);
-  DBHandle::setRequireWrite(tool_ == OSQUERY_TOOL_DAEMON);
-  if (!DBHandle::checkDB()) {
-    LOG(ERROR) << RLOG(1629) << binary_
-               << " initialize failed: Could not open RocksDB";
-    auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
-    ::exit(retcode);
+  // A watcher should not need access to the backing store.
+  // If there are spurious access then warning logs will be emitted since the
+  // set-allow-open will never be called.
+  if (!isWatcher()) {
+    DatabasePlugin::setAllowOpen(true);
+    // A daemon must always have R/W access to the database.
+    DatabasePlugin::setRequireWrite(tool_ == OSQUERY_TOOL_DAEMON);
+    if (!DatabasePlugin::initPlugin()) {
+      LOG(ERROR) << RLOG(1629) << binary_
+                 << " initialize failed: Could not initialize database";
+      auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
+      ::exit(retcode);
+    }
   }
 
   // Bind to an extensions socket and wait for registry additions.
@@ -516,6 +538,7 @@ void shutdown(int retcode, bool wait) {
 
   // Hopefully release memory used by global string constructors in gflags.
   GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
+  DatabasePlugin::shutdown();
   ::exit(retcode);
 }
 }

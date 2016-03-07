@@ -14,10 +14,8 @@
 #include <string>
 #include <vector>
 
-#include <osquery/status.h>
 #include <osquery/database.h>
-
-#include "osquery/database/db_handle.h"
+#include <osquery/status.h>
 
 namespace osquery {
 
@@ -58,23 +56,6 @@ class Query {
    */
   Status getPreviousQueryResults(QueryData& results);
 
- private:
-  /**
-   * @brief Serialize the data in RocksDB into a useful data structure using a
-   * custom database handle
-   *
-   * This method is the same as getHistoricalQueryResults, but with the
-   * addition of a parameter which allows you to pass a custom RocksDB
-   * database handle.
-   *
-   * @param hQR the output HistoricalQueryResults struct
-   * @param db a shared pointer to a custom DBHandle
-   *
-   * @return the success or failure of the operation
-   * @see getHistoricalQueryResults
-   */
-  Status getPreviousQueryResults(QueryData& results, DBHandleRef db);
-
  public:
   /**
    * @brief Get the names of all historical queries that are stored in RocksDB
@@ -88,22 +69,6 @@ class Query {
    */
   static std::vector<std::string> getStoredQueryNames();
 
- private:
-  /**
-   * @brief Get the names of all historical queries that are stored in RocksDB
-   * using a custom database handle
-   *
-   * This method is the same as getStoredQueryNames(), but with the addition
-   * of a parameter which allows you to pass a custom RocksDB database handle.
-   *
-   * @param db a custom RocksDB database handle
-   *
-   * @return a vector containing the string names of all scheduled queries
-   *
-   * @see getStoredQueryNames()
-   */
-  static std::vector<std::string> getStoredQueryNames(DBHandleRef db);
-
  public:
   /**
    * @brief Accessor method for checking if a given scheduled query exists in
@@ -112,20 +77,6 @@ class Query {
    * @return does the scheduled query which is already exists in the database
    */
   bool isQueryNameInDatabase();
-
- private:
-  /**
-   * @brief Accessor method for checking if a given scheduled query exists in
-   * the database, using a custom database handle
-   *
-   * This method is the same as isQueryNameInDatabase(), but with the addition
-   * of a parameter which allows you to pass a custom RocksDB database handle
-   *
-   * @param db a custom RocksDB database handle
-   *
-   * @return does the scheduled query which is already exists in the database
-   */
-  bool isQueryNameInDatabase(DBHandleRef db);
 
  public:
   /**
@@ -142,24 +93,6 @@ class Query {
    * of the operation
    */
   Status addNewResults(const QueryData& qd);
-
- private:
-  /**
-   * @brief Add a new set of results to the persistant storage using a custom
-   * database handle
-   *
-   * This method is the same as addNewResults(), but with the addition of a
-   * parameter which allows you to pass a custom RocksDB database handle
-   *
-   * @param qd the QueryData object, which has the results of the query which
-   * you would like to store
-   * @param unix_time the time that the query was executed
-   * @param db a custom RocksDB database handle
-   *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation
-   */
-  Status addNewResults(const QueryData& qd, DBHandleRef db);
 
  public:
   /**
@@ -192,8 +125,7 @@ class Query {
    */
   Status addNewResults(const QueryData& qd,
                        DiffResults& dr,
-                       bool calculate_diff,
-                       DBHandleRef db);
+                       bool calculate_diff);
 
  public:
   /**
@@ -206,28 +138,13 @@ class Query {
   Status getCurrentResults(QueryData& qd);
 
  private:
-  /**
-   * @brief A getter for the most recent result set for a scheduled query,
-   * but with the addition of a parameter which allows you to pass a custom
-   * RocksDB database handle.
-   *
-   * This method is the same as Query::getCurrentResults, but with addition of a
-   * parameter which allows you to pass a custom RocksDB database handle.
-   *
-   * @param qd the output QueryData object
-   * @param db a custom RocksDB database handle
-   *
-   * @return the success or failure of the operation
-   */
-  Status getCurrentResults(QueryData& qd, DBHandleRef db);
-
- private:
   /////////////////////////////////////////////////////////////////////////////
   // Private members
   /////////////////////////////////////////////////////////////////////////////
 
   /// The scheduled query and internal
   ScheduledQuery query_;
+
   /// The scheduled query name.
   std::string name_;
 

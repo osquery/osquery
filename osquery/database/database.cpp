@@ -8,12 +8,7 @@
  *
  */
 
-#include <algorithm>
-#include <iostream>
-#include <sstream>
 #include <set>
-#include <string>
-#include <vector>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -26,6 +21,37 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 CLI_FLAG(bool, database_dump, false, "Dump the contents of the backing store");
+
+CLI_FLAG(string,
+         database_path,
+         "/var/osquery/osquery.db",
+         "If using a disk-based backing store, specify a path");
+FLAG_ALIAS(std::string, db_path, database_path);
+
+CLI_FLAG(bool,
+         database_in_memory,
+         false,
+         "Keep osquery backing-store in memory");
+FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
+
+#if defined(SKIP_ROCKSDB)
+#define DATABASE_PLUGIN "sqlite"
+#else
+#define DATABASE_PLUGIN "rocksdb"
+#endif
+const std::string kInternalDatabase = DATABASE_PLUGIN;
+
+const std::string kPersistentSettings = "configurations";
+const std::string kQueries = "queries";
+const std::string kEvents = "events";
+const std::string kLogs = "logs";
+
+const std::vector<std::string> kDomains = {kPersistentSettings, kQueries,
+                                           kEvents, kLogs};
+
+bool DatabasePlugin::kDBHandleOptionAllowOpen(false);
+bool DatabasePlugin::kDBHandleOptionRequireWrite(false);
+std::atomic<bool> DatabasePlugin::kCheckingDB(false);
 
 /////////////////////////////////////////////////////////////////////////////
 // Row - the representation of a row in a set of database results. Row is a
@@ -360,139 +386,47 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
   return Status(0, "OK");
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// DistributedQueryRequest - small struct containing the query and ID
-// information for a distributed query
-/////////////////////////////////////////////////////////////////////////////
-
-Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
-                                        pt::ptree& tree) {
-  tree.put("query", r.query);
-  tree.put("id", r.id);
-  return Status(0, "OK");
-}
-
-Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
-                                            std::string& json) {
-  pt::ptree tree;
-  auto s = serializeDistributedQueryRequest(r, tree);
-  if (!s.ok()) {
-    return s;
-  }
-  std::stringstream ss;
-  try {
-    pt::write_json(ss, tree, false);
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
-  }
-  json = ss.str();
-
-  return Status(0, "OK");
-}
-
-Status deserializeDistributedQueryRequest(const pt::ptree& tree,
-                                          DistributedQueryRequest& r) {
-  r.query = tree.get<std::string>("query", "");
-  r.id = tree.get<std::string>("id", "");
-  return Status(0, "OK");
-}
-
-Status deserializeDistributedQueryRequestJSON(const std::string& json,
-                                              DistributedQueryRequest& r) {
-  std::stringstream ss(json);
-  pt::ptree tree;
-  try {
-    pt::read_json(ss, tree);
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
-  }
-  return deserializeDistributedQueryRequest(tree, r);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// DistributedQueryResult - small struct containing the results of a
-// distributed query
-/////////////////////////////////////////////////////////////////////////////
-
-Status serializeDistributedQueryResult(const DistributedQueryResult& r,
-                                       pt::ptree& tree) {
-  pt::ptree request;
-  auto s = serializeDistributedQueryRequest(r.request, request);
-  if (!s.ok()) {
-    return s;
-  }
-
-  pt::ptree results;
-  s = serializeQueryData(r.results, results);
-  if (!s.ok()) {
-    return s;
-  }
-
-  tree.add_child("request", request);
-  tree.add_child("results", results);
-
-  return Status(0, "OK");
-}
-
-Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
-                                           std::string& json) {
-  pt::ptree tree;
-  auto s = serializeDistributedQueryResult(r, tree);
-  if (!s.ok()) {
-    return s;
-  }
-  std::stringstream ss;
-  try {
-    pt::write_json(ss, tree, false);
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
-  }
-  json = ss.str();
-
-  return Status(0, "OK");
-}
-
-Status deserializeDistributedQueryResult(const pt::ptree& tree,
-                                         DistributedQueryResult& r) {
-  DistributedQueryRequest request;
-  auto s =
-      deserializeDistributedQueryRequest(tree.get_child("request"), request);
-  if (!s.ok()) {
-    return s;
-  }
-
-  QueryData results;
-  s = deserializeQueryData(tree.get_child("results"), results);
-  if (!s.ok()) {
-    return s;
-  }
-
-  r.request = request;
-  r.results = results;
-
-  return Status(0, "OK");
-}
-
-Status deserializeDistributedQueryResultJSON(const std::string& json,
-                                             DistributedQueryResult& r) {
-  std::stringstream ss(json);
-  pt::ptree tree;
-  try {
-    pt::read_json(ss, tree);
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
-  }
-  return deserializeDistributedQueryResult(tree, r);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
 bool addUniqueRowToQueryData(QueryData& q, const Row& r) {
   if (std::find(q.begin(), q.end(), r) != q.end()) {
     return false;
   }
   q.push_back(r);
   return true;
+}
+
+bool DatabasePlugin::initPlugin() {
+  // Initialize the database plugin using the flag.
+  return Registry::setActive("database", kInternalDatabase).ok();
+}
+
+void DatabasePlugin::shutdown() {
+  auto datbase_registry = Registry::registry("database");
+  for (auto& plugin : datbase_registry->names()) {
+    datbase_registry->remove(plugin);
+  }
+}
+
+Status DatabasePlugin::reset() {
+  tearDown();
+  return setUp();
+}
+
+bool DatabasePlugin::checkDB() {
+  kCheckingDB = true;
+  bool result = true;
+  try {
+    auto status = setUp();
+    if (kDBHandleOptionRequireWrite && read_only_) {
+      result = false;
+    }
+    tearDown();
+    result = status.ok();
+  } catch (const std::exception& e) {
+    VLOG(1) << "Database plugin check failed: " << e.what();
+    result = false;
+  }
+  kCheckingDB = false;
+  return result;
 }
 
 Status DatabasePlugin::call(const PluginRequest& request,
@@ -526,7 +460,7 @@ Status DatabasePlugin::call(const PluginRequest& request,
     if (request.count("max") > 0) {
       max = std::stoul(request.at("max"));
     }
-    auto status = this->scan(domain, keys, max);
+    auto status = this->scan(domain, keys, request.at("prefix"), max);
     for (const auto& key : keys) {
       response.push_back({{"k", key}});
     }
@@ -536,51 +470,97 @@ Status DatabasePlugin::call(const PluginRequest& request,
   return Status(1, "Unknown database plugin action");
 }
 
+static inline std::shared_ptr<DatabasePlugin> getDatabasePlugin() {
+  if (!Registry::exists("database", Registry::getActive("database"), true)) {
+    return nullptr;
+  }
+
+  auto plugin = Registry::get("database", Registry::getActive("database"));
+  return std::dynamic_pointer_cast<DatabasePlugin>(plugin);
+}
+
 Status getDatabaseValue(const std::string& domain,
                         const std::string& key,
                         std::string& value) {
-  PluginRequest request = {{"action", "get"}, {"domain", domain}, {"key", key}};
-  PluginResponse response;
-  auto status = Registry::call("database", "rocks", request, response);
-  if (!status.ok()) {
+  if (Registry::external()) {
+    // External registries (extensions) do not have databases active.
+    // It is not possible to use an extension-based database.
+    PluginRequest request = {
+        {"action", "get"}, {"domain", domain}, {"key", key}};
+    PluginResponse response;
+    auto status = Registry::call("database", request, response);
+    if (status.ok()) {
+      // Set value from the internally-known "v" key.
+      if (response.size() > 0 && response[0].count("v") > 0) {
+        value = response[0].at("v");
+      }
+    }
     return status;
+  } else {
+    auto plugin = getDatabasePlugin();
+    return plugin->get(domain, key, value);
   }
-
-  // Set value from the internally-known "v" key.
-  if (response.size() > 0 && response[0].count("v") > 0) {
-    value = response[0].at("v");
-  }
-  return status;
 }
 
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
                         const std::string& value) {
-  PluginRequest request = {
-      {"action", "put"}, {"domain", domain}, {"key", key}, {"value", value}};
-  return Registry::call("database", "rocks", request);
+  if (Registry::external()) {
+    // External registries (extensions) do not have databases active.
+    // It is not possible to use an extension-based database.
+    PluginRequest request = {
+        {"action", "put"}, {"domain", domain}, {"key", key}, {"value", value}};
+    return Registry::call("database", request);
+  } else {
+    auto plugin = getDatabasePlugin();
+    return plugin->put(domain, key, value);
+  }
 }
 
 Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
-  PluginRequest request = {
-      {"action", "remove"}, {"domain", domain}, {"key", key}};
-  return Registry::call("database", "rocks", request);
+  if (Registry::external()) {
+    // External registries (extensions) do not have databases active.
+    // It is not possible to use an extension-based database.
+    PluginRequest request = {
+        {"action", "remove"}, {"domain", domain}, {"key", key}};
+    return Registry::call("database", request);
+  } else {
+    auto plugin = getDatabasePlugin();
+    return plugin->remove(domain, key);
+  }
 }
 
 Status scanDatabaseKeys(const std::string& domain,
                         std::vector<std::string>& keys,
                         size_t max) {
-  PluginRequest request = {
-      {"action", "scan"}, {"domain", domain}, {"max", std::to_string(max)}};
-  PluginResponse response;
-  auto status = Registry::call("database", "rocks", request, response);
+  return scanDatabaseKeys(domain, keys, "", max);
+}
 
-  for (const auto& item : response) {
-    if (item.count("k") > 0) {
-      keys.push_back(item.at("k"));
+/// Get a list of keys for a given domain.
+Status scanDatabaseKeys(const std::string& domain,
+                        std::vector<std::string>& keys,
+                        const std::string& prefix,
+                        size_t max) {
+  if (Registry::external()) {
+    // External registries (extensions) do not have databases active.
+    // It is not possible to use an extension-based database.
+    PluginRequest request = {{"action", "scan"},
+                             {"domain", domain},
+                             {"prefix", prefix},
+                             {"max", std::to_string(max)}};
+    PluginResponse response;
+    auto status = Registry::call("database", request, response);
+
+    for (const auto& item : response) {
+      if (item.count("k") > 0) {
+        keys.push_back(item.at("k"));
+      }
     }
+    return status;
+  } else {
+    auto plugin = getDatabasePlugin();
+    return plugin->scan(domain, keys, prefix, max);
   }
-  return status;
 }
 
 void dumpDatabase() {

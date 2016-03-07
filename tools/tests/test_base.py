@@ -165,8 +165,10 @@ class ProcRunner(object):
         pid = 0
         try:
             if self.silent:
-                self.proc = subprocess.Popen([self.path] + self.args,
-                                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                self.proc = subprocess.Popen(
+                    [self.path] + self.args,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
             else:
                 self.proc = subprocess.Popen([self.path] + self.args)
             pid = self.proc.pid

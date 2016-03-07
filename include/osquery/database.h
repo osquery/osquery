@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <map>
 #include <string>
 #include <vector>
@@ -20,6 +21,18 @@
 #include <osquery/status.h>
 
 namespace osquery {
+
+/**
+ * @brief A list of supported backing storage categories: called domains.
+ *
+ * RocksDB has a concept of "column families" which are kind of like tables
+ * in other databases. kDomainds is populated with a list of all column
+ * families. If a string exists in kDomains, it's a column family in the
+ * database.
+ *
+ * For SQLite-backed storage these are tables using a keyed index.
+ */
+extern const std::vector<std::string> kDomains;
 
 /**
  * @brief A backing storage domain name, used for key/value based storage.
@@ -45,9 +58,6 @@ extern const std::string kEvents;
  * logs until the logger plugin-specific thread decided to flush.
  */
 extern const std::string kLogs;
-
-/// An ordered list of column type names.
-extern const std::vector<std::string> kDomains;
 
 /////////////////////////////////////////////////////////////////////////////
 // Row
@@ -394,142 +404,6 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item,
 Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
                                          std::vector<std::string>& items);
 
-/////////////////////////////////////////////////////////////////////////////
-// DistributedQueryRequest
-/////////////////////////////////////////////////////////////////////////////
-
-/**
- * @brief Small struct containing the query and ID information for a
- * distributed query
- */
-struct DistributedQueryRequest {
- public:
-  explicit DistributedQueryRequest() {}
-  explicit DistributedQueryRequest(const std::string& q, const std::string& i)
-      : query(q), id(i) {}
-
-  /// equals operator
-  bool operator==(const DistributedQueryRequest& comp) const {
-    return (comp.query == query) && (comp.id == id);
-  }
-
-  std::string query;
-  std::string id;
-};
-
-/**
- * @brief Serialize a DistributedQueryRequest into a property tree
- *
- * @param r the DistributedQueryRequest to serialize
- * @param tree the output property tree
- *
- * @return Status indicating the success or failure of the operation
- */
-Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
-                                        boost::property_tree::ptree& tree);
-
-/**
- * @brief Serialize a DistributedQueryRequest object into a JSON string
- *
- * @param r the DistributedQueryRequest to serialize
- * @param json the output JSON string
- *
- * @return Status indicating the success or failure of the operation
- */
-Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
-                                            std::string& json);
-
-/**
- * @brief Deserialize a DistributedQueryRequest object from a property tree
- *
- * @param tree the input property tree
- * @param r the output DistributedQueryRequest structure
- *
- * @return Status indicating the success or failure of the operation
- */
-Status deserializeDistributedQueryRequest(
-    const boost::property_tree::ptree& tree, DistributedQueryRequest& r);
-
-/**
- * @brief Deserialize a DistributedQueryRequest object from a JSON string
- *
- * @param json the input JSON string
- * @param r the output DistributedQueryRequest structure
- *
- * @return Status indicating the success or failure of the operation
- */
-Status deserializeDistributedQueryRequestJSON(const std::string& json,
-                                              DistributedQueryRequest& r);
-
-/////////////////////////////////////////////////////////////////////////////
-// DistributedQueryResult
-/////////////////////////////////////////////////////////////////////////////
-
-/**
- * @brief Small struct containing the results of a distributed query
- */
-struct DistributedQueryResult {
- public:
-  explicit DistributedQueryResult() {}
-  explicit DistributedQueryResult(const DistributedQueryRequest& req,
-                                  const QueryData& res)
-      : request(req), results(res) {}
-
-  /// equals operator
-  bool operator==(const DistributedQueryResult& comp) const {
-    return (comp.request == request) && (comp.results == results);
-  }
-
-  DistributedQueryRequest request;
-  QueryData results;
-};
-
-/**
- * @brief Serialize a DistributedQueryResult into a property tree
- *
- * @param r the DistributedQueryResult to serialize
- * @param tree the output property tree
- *
- * @return Status indicating the success or failure of the operation
- */
-Status serializeDistributedQueryResult(const DistributedQueryResult& r,
-                                       boost::property_tree::ptree& tree);
-
-/**
- * @brief Serialize a DistributedQueryResult object into a JSON string
- *
- * @param r the DistributedQueryResult to serialize
- * @param json the output JSON string
- *
- * @return Status indicating the success or failure of the operation
- */
-Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
-                                           std::string& json);
-
-/**
- * @brief Deserialize a DistributedQueryResult object from a property tree
- *
- * @param tree the input property tree
- * @param r the output DistributedQueryResult structure
- *
- * @return Status indicating the success or failure of the operation
- */
-Status deserializeDistributedQueryResult(
-    const boost::property_tree::ptree& tree, DistributedQueryResult& r);
-
-/**
- * @brief Deserialize a DistributedQueryResult object from a JSON string
- *
- * @param json the input JSON string
- * @param r the output DistributedQueryResult structure
- *
- * @return Status indicating the success or failure of the operation
- */
-Status deserializeDistributedQueryResultJSON(const std::string& json,
-                                             DistributedQueryResult& r);
-
-/////////////////////////////////////////////////////////////////////////////
-
 /**
  * @brief An osquery backing storage (database) type that persists executions.
  *
@@ -543,7 +417,7 @@ Status deserializeDistributedQueryResultJSON(const std::string& json,
  * to removing RocksDB as a dependency for the osquery SDK.
  */
 class DatabasePlugin : public Plugin {
- protected:
+ public:
   /**
    * @brief Perform a domain and key lookup from the backing store.
    *
@@ -580,15 +454,79 @@ class DatabasePlugin : public Plugin {
   /// Data removal method.
   virtual Status remove(const std::string& domain, const std::string& k) = 0;
 
-  /// Key/index lookup method.
   virtual Status scan(const std::string& domain,
                       std::vector<std::string>& results,
+                      const std::string& prefix,
                       size_t max = 0) const {
     return Status(0, "Not used");
   }
 
+  /**
+   * @brief Shutdown the database and release initialization resources.
+   *
+   * Assume that a plugin may override ::tearDown and choose to close resources
+   * when the registry is stopping. Most plugins will implement a mutex around
+   * initialization and destruction and assume ::setUp and ::tearDown will
+   * dictate the flow in most situations.
+   */
+  virtual ~DatabasePlugin() {}
+
+  /**
+   * @brief Support the registry calling API for extensions.
+   *
+   * The database plugin "fast-calls" directly to local plugins.
+   * Extensions cannot use an extension-local backing store so their requests
+   * are routed like all other plugins.
+   */
+  Status call(const PluginRequest& request, PluginResponse& response) override;
+
  public:
-  Status call(const PluginRequest& request, PluginResponse& response);
+  /// Database-specific workflow: reset the originally request instance.
+  virtual Status reset() final;
+
+  /// Database-specific workflow: perform an initialize, then reset.
+  bool checkDB();
+
+  /// Require all DBHandle accesses to open a read and write handle.
+  static void setRequireWrite(bool rw) { kDBHandleOptionRequireWrite = rw; }
+
+  /// Allow DBHandle creations.
+  static void setAllowOpen(bool ao) { kDBHandleOptionAllowOpen = ao; }
+
+ public:
+  /// Control availability of the RocksDB handle (default false).
+  static bool kDBHandleOptionAllowOpen;
+
+  /// The database must be opened in a R/W mode (default false).
+  static bool kDBHandleOptionRequireWrite;
+
+  /// A queryable mutex around database sanity checking.
+  static std::atomic<bool> kCheckingDB;
+
+ public:
+  /**
+   * @brief Allow the initializer to check the active database plugin.
+   *
+   * Unlink the initializer's ::initActivePlugin helper method, the database
+   * plugin should always be within the core. There is no need to discover
+   * the active plugin via the registry or extensions API.
+   *
+   * The database should setUp in preparation for accesses.
+   */
+  static bool initPlugin();
+
+  /// Allow shutdown before exit.
+  static void shutdown();
+
+ protected:
+  /// The database was opened in a ReadOnly mode.
+  bool read_only_{false};
+
+  /// True if the database was started in an in-memory mode.
+  bool in_memory_{false};
+
+  /// Original requested path on disk.
+  std::string path_;
 };
 
 /**
@@ -629,6 +567,12 @@ Status deleteDatabaseValue(const std::string& domain, const std::string& key);
 /// Get a list of keys for a given domain.
 Status scanDatabaseKeys(const std::string& domain,
                         std::vector<std::string>& keys,
+                        size_t max = 0);
+
+/// Get a list of keys for a given domain.
+Status scanDatabaseKeys(const std::string& domain,
+                        std::vector<std::string>& keys,
+                        const std::string& prefix,
                         size_t max = 0);
 
 /// Allow callers to scan each column family and print each value.
