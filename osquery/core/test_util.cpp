@@ -12,6 +12,7 @@
 #include <deque>
 #include <random>
 #include <sstream>
+#include <thread>
 
 #include <signal.h>
 #include <time.h>
@@ -23,6 +24,7 @@
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 
 #include "osquery/core/test_util.h"
 
@@ -410,7 +412,18 @@ void TLSServerRunner::start() {
     execlp("sh", "sh", "-c", script.c_str(), nullptr);
     ::exit(0);
   }
-  ::sleep(1);
+
+  size_t delay = 0;
+  std::string query =
+      "select pid from listening_ports where port = '" + self.port_ + "'";
+  while (delay < 2 * 1000) {
+    auto results = SQL(query);
+    if (results.rows().size() > 0) {
+      break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    delay += 100;
+  }
 }
 
 void TLSServerRunner::setClientConfig() {
@@ -440,7 +453,7 @@ void TLSServerRunner::unsetClientConfig() {
 
 void TLSServerRunner::stop() {
   auto& self = instance();
-  kill(self.server_, SIGTERM);
+  kill(self.server_, SIGKILL);
   self.server_ = 0;
 }
 }

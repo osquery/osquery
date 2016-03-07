@@ -590,6 +590,16 @@ def assertPermissions():
         exit(1)
 
 
+def getTestDirectory(base):
+    path = os.path.join(base, "test-dir" + str(random.randint(1000, 9999)))
+    try:
+        shutil.rmtree(path)
+    except:
+        pass
+    os.makedirs(path)
+    return path
+
+
 def loadThriftFromBuild(build_dir):
     '''Find and import the thrift-generated python interface.'''
     thrift_path = build_dir + "/generated/gen-py"

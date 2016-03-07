@@ -41,10 +41,12 @@ class TLSTransportsTests : public testing::Test {
     return true;
   }
 
-  void SetUp() {
+  void SetUp() override {
     TLSServerRunner::start();
     port_ = TLSServerRunner::port();
   }
+
+  void TearDown() override { TLSServerRunner::stop(); }
 
  protected:
   std::string port_;
