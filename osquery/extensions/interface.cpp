@@ -32,6 +32,10 @@ void ExtensionHandler::call(ExtensionResponse& _return,
   // internal registry call. It is the ONLY actor that resolves registry
   // item aliases.
   auto local_item = Registry::getAlias(registry, item);
+  if (local_item.empty()) {
+    // Extensions may not know about active (non-option based registries).
+    local_item = Registry::getActive(registry);
+  }
 
   PluginResponse response;
   PluginRequest plugin_request;
