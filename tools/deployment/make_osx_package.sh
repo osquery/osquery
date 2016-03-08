@@ -208,6 +208,7 @@ function main() {
         echo "$POSTINSTALL_CLEAN_TEXT" >> $POSTINSTALL
     fi
     if [ $AUTOSTART == true ]; then
+        echo "$POSTINSTALL_UNLOAD_TEXT" >> $POSTINSTALL
         echo "$POSTINSTALL_AUTOSTART_TEXT" >> $POSTINSTALL
     fi
   fi
