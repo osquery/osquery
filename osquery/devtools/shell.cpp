@@ -15,11 +15,11 @@
 
 #include <signal.h>
 #include <stdio.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
-#include <readline/readline.h>
 #include <readline/history.h>
+#include <readline/readline.h>
 
 #include <sqlite3.h>
 

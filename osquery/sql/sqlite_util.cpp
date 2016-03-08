@@ -9,8 +9,8 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/logger.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 #include <osquery/sql.h>
 
 #include "osquery/sql/sqlite_util.h"
@@ -47,6 +47,13 @@ const std::map<int, std::string> kSQLiteReturnCodes = {
     {24, "SQLITE_FORMAT"},   {25, "SQLITE_RANGE"},      {26, "SQLITE_NOTADB"},
     {27, "SQLITE_NOTICE"},   {28, "SQLITE_WARNING"},    {100, "SQLITE_ROW"},
     {101, "SQLITE_DONE"},
+};
+
+const std::map<std::string, std::string> kMemoryDBSettings = {
+    {"synchronous", "OFF"},      {"count_changes", "OFF"},
+    {"default_temp_store", "0"}, {"auto_vacuum", "FULL"},
+    {"journal_mode", "OFF"},     {"cache_size", "0"},
+    {"page_count", "0"},
 };
 
 #define OpComparator(x) \
@@ -140,9 +147,19 @@ SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, std::mutex& mtx)
   }
 }
 
+static inline void openOptimized(sqlite3*& db) {
+  sqlite3_open(":memory:", &db);
+
+  std::string settings;
+  for (const auto& setting : kMemoryDBSettings) {
+    settings += "PRAGMA " + setting.first + "=" + setting.second + "; ";
+  }
+  sqlite3_exec(db, settings.c_str(), nullptr, nullptr, nullptr);
+}
+
 void SQLiteDBInstance::init() {
   primary_ = false;
-  sqlite3_open(":memory:", &db_);
+  openOptimized(db_);
 }
 
 void SQLiteDBInstance::addAffectedTable(VirtualTableContent* table) {
@@ -175,7 +192,7 @@ SQLiteDBInstance::~SQLiteDBInstance() {
 }
 
 SQLiteDBManager::SQLiteDBManager() : db_(nullptr) {
-  sqlite3_soft_heap_limit64(SQLITE_SOFT_HEAP_LIMIT);
+  sqlite3_soft_heap_limit64(1);
   setDisabledTables(Flag::getValue("disable_tables"));
 }
 
@@ -202,7 +219,7 @@ SQLiteDBInstanceRef SQLiteDBManager::getConnection(bool primary) {
 
   if (self.db_ == nullptr) {
     // Create primary SQLite DB instance.
-    sqlite3_open(":memory:", &self.db_);
+    openOptimized(self.db_);
     self.connection_ = SQLiteDBInstanceRef(new SQLiteDBInstance(self.db_));
     attachVirtualTables(self.connection_);
   }
@@ -301,7 +318,6 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
     sqlite3_free(err);
     return Status(1, "Error running query: " + error_string);
   }
-
   return Status(0, "OK");
 }
 

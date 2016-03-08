@@ -14,21 +14,13 @@
 
 namespace osquery {
 
-/////////////////////////////////////////////////////////////////////////////
-// Data access methods
-/////////////////////////////////////////////////////////////////////////////
-
 Status Query::getPreviousQueryResults(QueryData& results) {
-  return getPreviousQueryResults(results, DBHandle::getInstance());
-}
-
-Status Query::getPreviousQueryResults(QueryData& results, DBHandleRef db) {
   if (!isQueryNameInDatabase()) {
     return Status(0, "Query name not found in database");
   }
 
   std::string raw;
-  auto status = db->Get(kQueries, name_, raw);
+  auto status = getDatabaseValue(kQueries, name_, raw);
   if (!status.ok()) {
     return status;
   }
@@ -41,41 +33,28 @@ Status Query::getPreviousQueryResults(QueryData& results, DBHandleRef db) {
 }
 
 std::vector<std::string> Query::getStoredQueryNames() {
-  return getStoredQueryNames(DBHandle::getInstance());
-}
-
-std::vector<std::string> Query::getStoredQueryNames(DBHandleRef db) {
   std::vector<std::string> results;
-  db->Scan(kQueries, results);
+  scanDatabaseKeys(kQueries, results);
   return results;
 }
 
 bool Query::isQueryNameInDatabase() {
-  return isQueryNameInDatabase(DBHandle::getInstance());
-}
-
-bool Query::isQueryNameInDatabase(DBHandleRef db) {
-  auto names = Query::getStoredQueryNames(db);
+  auto names = Query::getStoredQueryNames();
   return std::find(names.begin(), names.end(), name_) != names.end();
 }
 
-Status Query::addNewResults(const osquery::QueryData& qd) {
-  return addNewResults(qd, DBHandle::getInstance());
-}
-
-Status Query::addNewResults(const QueryData& qd, DBHandleRef db) {
+Status Query::addNewResults(const QueryData& qd) {
   DiffResults dr;
-  return addNewResults(qd, dr, false, db);
+  return addNewResults(qd, dr, false);
 }
 
 Status Query::addNewResults(const QueryData& qd, DiffResults& dr) {
-  return addNewResults(qd, dr, true, DBHandle::getInstance());
+  return addNewResults(qd, dr, true);
 }
 
 Status Query::addNewResults(const QueryData& current_qd,
                             DiffResults& dr,
-                            bool calculate_diff,
-                            DBHandleRef db) {
+                            bool calculate_diff) {
   // Get the rows from the last run of this query name.
   QueryData previous_qd;
   auto status = getPreviousQueryResults(previous_qd);
@@ -97,7 +76,7 @@ Status Query::addNewResults(const QueryData& current_qd,
       return status;
     }
 
-    status = db->Put(kQueries, name_, json);
+    status = setDatabaseValue(kQueries, name_, json);
     if (!status.ok()) {
       return status;
     }

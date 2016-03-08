@@ -29,7 +29,7 @@ namespace osquery {
 void initTesting();
 
 /// Cleanup/stop function for tests and benchmarks.
-void cleanupTesting();
+void shutdownTesting();
 
 /// Any SQL-dependent tests should use kTestQuery for a pre-populated example.
 const std::string kTestQuery = "SELECT * FROM test_table";

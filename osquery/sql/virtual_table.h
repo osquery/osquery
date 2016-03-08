@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <boost/noncopyable.hpp>
+
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -22,7 +24,7 @@ namespace osquery {
  *
  * Only used in the SQLite virtual table module methods.
  */
-struct BaseCursor {
+struct BaseCursor : private boost::noncopyable {
   /// SQLite virtual table cursor.
   sqlite3_vtab_cursor base;
   /// Track cursors for optional planner output.
@@ -41,7 +43,7 @@ struct BaseCursor {
  * Only used in the SQLite virtual table module methods.
  * This adds each table plugin class to the state tracking in SQLite.
  */
-struct VirtualTable {
+struct VirtualTable : private boost::noncopyable {
   /// The SQLite-provided virtual table structure.
   sqlite3_vtab base;
 

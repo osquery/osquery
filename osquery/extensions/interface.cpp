@@ -44,7 +44,6 @@ void ExtensionHandler::call(ExtensionResponse& _return,
   _return.status.code = status.getCode();
   _return.status.message = status.getMessage();
   _return.status.uuid = uuid_;
-
   if (status.ok()) {
     for (const auto& response_item : response) {
       // Translate a PluginResponse to an ExtensionPluginResponse.
@@ -176,18 +175,18 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
 ExtensionRunnerCore::~ExtensionRunnerCore() { remove(path_); }
 
 void ExtensionRunnerCore::stop() {
-  boost::lock_guard<boost::mutex> lock(service_start_);
-  service_stopping_ = true;
-  if (transport_ != nullptr) {
-    transport_->interrupt();
+  {
+    std::unique_lock<std::mutex> lock(service_start_);
+    service_stopping_ = true;
+    if (transport_ != nullptr) {
+      transport_->interrupt();
+      transport_->interruptChildren();
+    }
   }
 
-  {
-    // In most cases the service thread has started before the stop request.
-    boost::lock_guard<boost::mutex> lock(service_run_);
-    if (server_ != nullptr) {
-      server_->stop();
-    }
+  // In most cases the service thread has started before the stop request.
+  if (server_ != nullptr) {
+    server_->stop();
   }
 }
 
@@ -202,7 +201,7 @@ inline void removeStalePaths(const std::string& manager) {
 
 void ExtensionRunnerCore::startServer(TProcessorRef processor) {
   {
-    boost::lock_guard<boost::mutex> lock(service_start_);
+    std::unique_lock<std::mutex> lock(service_start_);
     // A request to stop the service may occur before the thread starts.
     if (service_stopping_) {
       return;
@@ -221,10 +220,7 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
         processor, transport_, transport_fac, protocol_fac));
   }
 
-  {
-    boost::lock_guard<boost::mutex> lock(service_run_);
-    server_->serve();
-  }
+  server_->serve();
 }
 
 void ExtensionRunner::start() {
@@ -243,7 +239,7 @@ void ExtensionRunner::start() {
 
 ExtensionManagerRunner::~ExtensionManagerRunner() {
   // Only attempt to remove stale paths if the server was started.
-  boost::lock_guard<boost::mutex> lock(service_start_);
+  std::unique_lock<std::mutex> lock(service_start_);
   if (server_ != nullptr) {
     removeStalePaths(path_);
   }

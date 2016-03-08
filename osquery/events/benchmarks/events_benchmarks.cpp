@@ -58,9 +58,13 @@ class BenchmarkEventSubscriber
   }
 
   void clearRows() {
+    auto ee = expire_events_;
+    auto et = expire_time_;
     expire_events_ = true;
     expire_time_ = -1;
     getIndexes(0, 0);
+    expire_events_ = ee;
+    expire_time_ = et;
   }
 
   void benchmarkGet(int low, int high) { auto results = get(low, high); }
@@ -113,7 +117,7 @@ BENCHMARK(EVENTS_add_events);
 static void EVENTS_retrieve_events(benchmark::State& state) {
   auto sub = std::make_shared<BenchmarkEventSubscriber>();
 
-  for (int i = 0; i < 10000; i++) {
+  for (int i = 0; i < 1000; i++) {
     sub->benchmarkAdd(i++);
   }
 
@@ -125,8 +129,8 @@ static void EVENTS_retrieve_events(benchmark::State& state) {
 }
 
 BENCHMARK(EVENTS_retrieve_events)
+    ->ArgPair(0, 10)
+    ->ArgPair(0, 50)
     ->ArgPair(0, 100)
-    ->ArgPair(0, 500)
-    ->ArgPair(0, 1000)
-    ->ArgPair(0, 10000);
+    ->ArgPair(0, 1000);
 }

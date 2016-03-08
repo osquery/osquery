@@ -303,6 +303,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         # Now start a daemon
         daemon = self._run_daemon({
             "disable_watchdog": True,
+            "verbose": True,
             "extensions_timeout": EXTENSION_TIMEOUT,
             "extensions_socket": extension.options["extensions_socket"],
         })

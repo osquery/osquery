@@ -139,12 +139,22 @@ set(OSQUERY_REQUIRE_RUNTIMES
 if(DEFINED ENV{DEBUG})
   set(DEBUG TRUE)
   set(CMAKE_BUILD_TYPE "Debug")
-  add_compile_options(-g -O0)
+  add_compile_options(
+    -g
+    -O0
+    -fstandalone-debug
+  )
   add_definitions(-DDEBUG)
   WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
   # make sanitize (cannot make debug sanitize)
-  add_compile_options(-g -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+  add_compile_options(
+    -g
+    -O1
+    -fstandalone-debug
+    -fno-omit-frame-pointer
+    -fno-optimize-sibling-calls
+  )
   add_definitions(-DNDEBUG)
   if(DEFINED ENV{SANITIZE_THREAD})
     add_compile_options(-fsanitize=thread)
@@ -344,15 +354,14 @@ endif()
 if(NOT DEFINED ENV{BUILD_LINK_SHARED})
   set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
 endif()
-find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(Gtest REQUIRED)
-find_package(RocksDB REQUIRED)
 find_package(Thrift 0.9.3 REQUIRED)
 
 # If using the RocksDB LITE version our code must also define ROCKSDB_LITE=1
-if(ROCKSDB_LITE_FOUND)
-  add_definitions(-DROCKSDB_LITE=1)
+if(NOT DEFINED ENV{SKIP_ROCKSDB})
+  set(ROCKSDB TRUE)
+  find_package(RocksDB REQUIRED)
 endif()
 
 # Python is used for table spec generation and formating.
@@ -366,7 +375,6 @@ enable_testing()
 include(Packages)
 include(Thrift)
 
-include_directories("${GLOG_INCLUDE_DIRS}")
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")

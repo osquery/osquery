@@ -84,6 +84,7 @@ function main_oracle() {
   fi
 
   install_gflags
+  install_glog
   install_iptables_dev
 
   package doxygen

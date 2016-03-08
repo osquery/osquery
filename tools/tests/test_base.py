@@ -165,8 +165,10 @@ class ProcRunner(object):
         pid = 0
         try:
             if self.silent:
-                self.proc = subprocess.Popen([self.path] + self.args,
-                                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                self.proc = subprocess.Popen(
+                    [self.path] + self.args,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
             else:
                 self.proc = subprocess.Popen([self.path] + self.args)
             pid = self.proc.pid
@@ -586,6 +588,16 @@ def assertPermissions():
         print(utils.lightred("Repository owner (%d) executer (%d) mismatch" % (
             stat_info.st_uid, os.getuid())))
         exit(1)
+
+
+def getTestDirectory(base):
+    path = os.path.join(base, "test-dir" + str(random.randint(1000, 9999)))
+    try:
+        shutil.rmtree(path)
+    except:
+        pass
+    os.makedirs(path)
+    return path
 
 
 def loadThriftFromBuild(build_dir):

@@ -8,21 +8,20 @@
  *
  */
 
-#include <vector>
 #include <string>
+#include <vector>
 
-#include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
 #include "osquery/remote/requests.h"
-#include "osquery/remote/transports/tls.h"
 #include "osquery/remote/serializers/json.h"
+#include "osquery/remote/transports/tls.h"
 #include "osquery/remote/utility.h"
-#include "osquery/database/db_handle.h"
 
 #include "osquery/logger/plugins/tls.h"
 
@@ -144,8 +143,7 @@ Status TLSLogForwarderRunner::send(std::vector<std::string>& log_data,
     // Read each logged line into JSON and populate a list of lines.
     // The result list will use the 'data' key.
     pt::ptree children;
-    iterate(log_data,
-            ([&children](std::string& item) {
+    iterate(log_data, ([&children](std::string& item) {
               pt::ptree child;
               try {
                 std::stringstream input;
@@ -169,21 +167,16 @@ Status TLSLogForwarderRunner::send(std::vector<std::string>& log_data,
 }
 
 void TLSLogForwarderRunner::check() {
-  // Instead of using the 'help' database API, prefer to interact with the
-  // DBHandle directly for additional performance.
-  auto handle = DBHandle::getInstance();
-
   // Get a list of all the buffered log items, with a max of 1024 lines.
   std::vector<std::string> indexes;
-  auto status = handle->Scan(kLogs, indexes, kTLSMaxLogLines);
+  auto status = scanDatabaseKeys(kLogs, indexes, kTLSMaxLogLines);
 
   // For each index, accumulate the log line into the result or status set.
   std::vector<std::string> results, statuses;
-  iterate(indexes,
-          ([&handle, &results, &statuses](std::string& index) {
+  iterate(indexes, ([&results, &statuses](std::string& index) {
             std::string value;
             auto& target = ((index.at(0) == 'r') ? results : statuses);
-            if (handle->Get(kLogs, index, value)) {
+            if (getDatabaseValue(kLogs, index, value)) {
               // Enforce a max log line size for TLS logging.
               if (value.size() > FLAGS_logger_tls_max) {
                 LOG(WARNING) << "Line exceeds TLS logger max: " << value.size();
@@ -201,8 +194,7 @@ void TLSLogForwarderRunner::check() {
               << status.getMessage() << ")";
     } else {
       // Clear the results logs once they were sent.
-      iterate(indexes,
-              ([&results](std::string& index) {
+      iterate(indexes, ([&results](std::string& index) {
                 if (index.at(0) != 'r') {
                   return;
                 }
@@ -218,8 +210,7 @@ void TLSLogForwarderRunner::check() {
               << status.getMessage() << ")";
     } else {
       // Clear the status logs once they were sent.
-      iterate(indexes,
-              ([&results](std::string& index) {
+      iterate(indexes, ([&results](std::string& index) {
                 if (index.at(0) != 's') {
                   return;
                 }

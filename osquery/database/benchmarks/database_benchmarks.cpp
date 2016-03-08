@@ -10,11 +10,10 @@
 
 #include <benchmark/benchmark.h>
 
-#include <osquery/filesystem.h>
 #include <osquery/database.h>
+#include <osquery/filesystem.h>
 
 #include "osquery/core/test_util.h"
-#include "osquery/database/db_handle.h"
 #include "osquery/database/query.h"
 
 namespace osquery {
@@ -76,8 +75,22 @@ static void DATABASE_query_results(benchmark::State& state) {
   }
 }
 
-BENCHMARK(DATABASE_query_results)->ArgPair(1, 1)->ArgPair(10, 10)->ArgPair(10,
-                                                                           100);
+BENCHMARK(DATABASE_query_results)
+    ->ArgPair(1, 1)
+    ->ArgPair(10, 10)
+    ->ArgPair(10, 100);
+
+static void DATABASE_get(benchmark::State& state) {
+  setDatabaseValue(kPersistentSettings, "benchmark", "1");
+  while (state.KeepRunning()) {
+    std::string value;
+    getDatabaseValue(kPersistentSettings, "benchmark", value);
+  }
+  // All benchmarks will share a single database handle.
+  deleteDatabaseValue(kPersistentSettings, "benchmark");
+}
+
+BENCHMARK(DATABASE_get);
 
 static void DATABASE_store(benchmark::State& state) {
   while (state.KeepRunning()) {
@@ -112,12 +125,14 @@ static void DATABASE_store_append(benchmark::State& state) {
 
   size_t k = 0;
   while (state.KeepRunning()) {
-    setDatabaseValue(kPersistentSettings, "key" + std::to_string(k++), content);
+    setDatabaseValue(kPersistentSettings, "key" + std::to_string(k), content);
+    deleteDatabaseValue(kPersistentSettings, "key" + std::to_string(k));
+    k++;
   }
 
   // All benchmarks will share a single database handle.
   for (size_t i = 0; i < k; ++i) {
-    deleteDatabaseValue(kPersistentSettings, "key" + std::to_string(i));
+    // deleteDatabaseValue(kPersistentSettings, "key" + std::to_string(i));
   }
 }
 
