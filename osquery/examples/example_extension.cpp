@@ -43,8 +43,48 @@ class ExampleTable : public TablePlugin {
   }
 };
 
+/**
+ * @brief A more 'complex' example table is provided to assist with tests.
+ *
+ * This table will access options and flags known to the extension.
+ * An extension should not assume access to any CLI flags- rather, access is
+ * provided via the osquery-meta table: osquery_flags.
+ *
+ * There is no API/C++ wrapper to provide seemless use of flags yet.
+ * We can force an implicit query to the manager though.
+ *
+ * Database access should be mediated by the *Database functions.
+ * Direct use of the "database" registry will lead to undefined behavior.
+ */
+class ComplexExampleTable : public TablePlugin {
+ private:
+  TableColumns columns() const {
+    return {{"flag_test", TEXT_TYPE}, {"database_test", TEXT_TYPE}};
+  }
+
+  QueryData generate(QueryContext& request) {
+    Row r;
+
+    // Use the basic 'force' flag to check implicit SQL usage.
+    auto flags =
+        SQL("select default_value from osquery_flags where name = 'force'");
+    if (flags.rows().size() > 0) {
+      r["flag_test"] = flags.rows().back().at("default_value");
+    }
+
+    std::string content;
+    setDatabaseValue(kPersistentSettings, "complex_example", "1");
+    if (getDatabaseValue(kPersistentSettings, "complex_example", content)) {
+      r["database_test"] = content;
+    }
+
+    return {r};
+  }
+};
+
 REGISTER_EXTERNAL(ExampleConfigPlugin, "config", "example");
 REGISTER_EXTERNAL(ExampleTable, "table", "example");
+REGISTER_EXTERNAL(ComplexExampleTable, "table", "complex_example");
 
 int main(int argc, char* argv[]) {
   osquery::Initializer runner(argc, argv, OSQUERY_EXTENSION);
