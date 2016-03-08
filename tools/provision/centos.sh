@@ -70,6 +70,7 @@ function main_centos() {
   fi
 
   install_gflags
+  install_glog
   install_iptables_dev
 
   package doxygen
