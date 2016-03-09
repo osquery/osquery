@@ -91,6 +91,9 @@ if(APPLE)
   # Special compile flags for Objective-C++
   set(OBJCXX_COMPILE_FLAGS
     "-x objective-c++ -fobjc-arc -Wno-c++11-extensions")
+elseif(WIN32)
+  # Windows
+  # C++11 features should be on by default in 2012 and beyond.
 else()
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
   set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
@@ -293,6 +296,9 @@ elseif(OSQUERY_BUILD_PLATFORM STREQUAL "oracle")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "freebsd")
   set(FREEBSD TRUE)
   LOG_PLATFORM("FreeBSD")
+elseif(OSQUERY_BUILD_PLATFORM STREQUAL "windows")
+  set(WINDOWS TRUE)
+  LOG_PLATFORM("Windows")
 endif()
 
 if(REDHAT_BASED)
@@ -305,7 +311,7 @@ endif()
 execute_process(COMMAND mkdir -p "${CMAKE_BINARY_DIR}/generated")
 
 # We need to link some packages as dynamic/dependent.
-set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .so .a)
+set(CMAKE_FIND_LIBRARY_SUFFIXES .dll .dylib .so .a)
 find_package(BZip2 REQUIRED)
 find_package(Dl REQUIRED)
 find_package(Readline REQUIRED)
@@ -354,6 +360,12 @@ endif()
 if(NOT DEFINED ENV{BUILD_LINK_SHARED})
   set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
 endif()
+
+if(DEFINED ENV{BOOST_ROOT})
+  set(BOOST_ROOT "$ENV{BOOST_ROOT}")
+  include_directories("${BOOST_ROOT}")
+endif()
+
 find_package(Gflags REQUIRED)
 find_package(Gtest REQUIRED)
 find_package(Thrift 0.9.3 REQUIRED)

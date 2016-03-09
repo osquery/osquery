@@ -35,6 +35,9 @@ function platform() {
   elif [[ -f "$DEBIAN_VERSION" ]]; then
     FAMILY="debian"
     eval $__out="debian"
+  elif [[ -n `uname | grep "CYGWIN"` ]]; then
+    FAMILY="windows"
+    eval $__out="windows"
   else
     eval $__out=`uname -s | tr '[:upper:]' '[:lower:]'`
   fi
@@ -65,6 +68,8 @@ function distro() {
     eval $__out="`lsb_release -cs`"
   elif [[ $1 = "freebsd" ]]; then
     eval $__out=`uname -r | awk -F '-' '{print $1}'`
+  elif [[ $1 = "windows" ]]; then
+    eval $__out="windows`uname | awk -F '-' '{print $2}'`"
   else
     eval $__out="unknown_version"
   fi
@@ -85,7 +90,7 @@ function threads() {
   elif [[ $OS = "freebsd" ]]; then
     eval $__out=`sysctl -n kern.smp.cpus`
   else
-    eval $__out=1
+    eval $__out=`nproc`
   fi
 }
 

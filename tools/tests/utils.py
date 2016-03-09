@@ -15,7 +15,6 @@ from __future__ import unicode_literals
 import json
 import os
 import sys
-import psutil
 import time
 import subprocess
 import re
@@ -134,6 +133,7 @@ def get_stats(p, interval=1):
 
 
 def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
+    import psutil
     start_time = time.time()
     if proc is None:
         proc = subprocess.Popen(cmd,
