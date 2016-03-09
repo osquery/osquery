@@ -182,7 +182,11 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
 
   // Attempt to cast each xFilter-populated row/column to the SQLite type.
   const auto &value = pCur->data[pCur->row][column_name];
-  if (type == TEXT_TYPE) {
+  if (pCur->data[pCur->row].count(column_name) == 0) {
+    // Missing content.
+    VLOG(1) << "Error " << column_name << " is empty";
+    sqlite3_result_null(ctx);
+  } else if (type == TEXT_TYPE) {
     sqlite3_result_text(ctx, value.c_str(), value.size(), SQLITE_STATIC);
   } else if (type == INTEGER_TYPE) {
     long afinite;
@@ -190,17 +194,19 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
         afinite > INT_MAX) {
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to INTEGER";
-      afinite = -1;
+      sqlite3_result_null(ctx);
+    } else {
+      sqlite3_result_int(ctx, (int)afinite);
     }
-    sqlite3_result_int(ctx, (int)afinite);
   } else if (type == BIGINT_TYPE || type == UNSIGNED_BIGINT_TYPE) {
     long long afinite;
     if (!safeStrtoll(value, 10, afinite)) {
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to BIGINT";
-      afinite = -1;
+      sqlite3_result_null(ctx);
+    } else {
+      sqlite3_result_int64(ctx, afinite);
     }
-    sqlite3_result_int64(ctx, afinite);
   } else if (type == DOUBLE_TYPE) {
     char *end = nullptr;
     double afinite = strtod(value.c_str(), &end);
@@ -208,8 +214,10 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
       afinite = 0;
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to DOUBLE";
+      sqlite3_result_null(ctx);
+    } else {
+      sqlite3_result_double(ctx, afinite);
     }
-    sqlite3_result_double(ctx, afinite);
   } else {
     LOG(ERROR) << "Error unknown column type " << column_name;
   }

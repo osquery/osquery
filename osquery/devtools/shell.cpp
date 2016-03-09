@@ -43,13 +43,14 @@ SHELL_FLAG(bool, csv, false, "Set output mode to 'csv'");
 SHELL_FLAG(bool, json, false, "Set output mode to 'json'");
 SHELL_FLAG(bool, line, false, "Set output mode to 'line'");
 SHELL_FLAG(bool, list, false, "Set output mode to 'list'");
-SHELL_FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
 SHELL_FLAG(string, separator, "|", "Set output field separator, default '|'");
 SHELL_FLAG(bool, header, true, "Toggle column headers true/false");
 
 /// Define short-hand shell switches.
 SHELL_FLAG(bool, L, false, "List all table names");
 SHELL_FLAG(string, A, "", "Select all from a table");
+
+DECLARE_string(nullvalue);
 }
 
 static char zHelp[] =
@@ -694,8 +695,10 @@ static int shell_callback(
 
     osquery::Row r;
     for (i = 0; i < nArg; ++i) {
-      if (azCol[i] != nullptr && azArg[i] != nullptr) {
-        r[std::string(azCol[i])] = std::string(azArg[i]);
+      if (azCol[i] != nullptr) {
+        r[std::string(azCol[i])] = (azArg[i] == nullptr)
+                                       ? osquery::FLAGS_nullvalue
+                                       : std::string(azArg[i]);
       }
     }
     osquery::computeRowLengths(r, p->prettyPrint->lengths);
