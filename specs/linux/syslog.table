@@ -1,0 +1,11 @@
+table_name("syslog")
+schema([
+    Column("time", BIGINT),
+    Column("host", TEXT),
+    Column("severity", INTEGER),
+    Column("facility", TEXT),
+    Column("tag", TEXT),
+    Column("message", TEXT),
+])
+attributes(event_subscriber=True)
+implementation("syslog_events@SyslogEventSubscriber::genTable")

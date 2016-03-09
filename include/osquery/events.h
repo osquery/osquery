@@ -448,6 +448,28 @@ class EventSubscriberPlugin : public Plugin {
    */
   Status recordEvent(EventID& eid, EventTime time);
 
+  /**
+   * @brief Get the expiration timeout for this event type
+   *
+   * The default implementation retrieves this value from FLAGS_events_expiry.
+   * This method can be overridden to allow custom event expiration timeouts in
+   * subclasses of EventSubscriberPlugin.
+   *
+   * @return The events expiration timeout for this event type
+   */
+  virtual size_t getEventsExpiry();
+
+  /**
+   * @brief Get the max number of events for this event type
+   *
+   * The default implementation retrieves this value from FLAGS_events_max.
+   * This method can be overridden to allow custom max event numbers in
+   * subclasses of EventSubscriberPlugin.
+   *
+   * @return The max number of events for this event type
+   */
+  virtual size_t getEventsMax();
+
  public:
   /**
    * @brief A single instance requirement for static callback facilities.

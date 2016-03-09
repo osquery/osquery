@@ -36,11 +36,15 @@ FLAG(bool,
      true,
      "Optimize subscriber select queries (scheduler only)");
 
+// Access this flag through EventSubscriberPlugin::getEventsExpiry to allow for
+// overriding in subclasses
 FLAG(uint64,
      events_expiry,
      86000,
      "Timeout to expire event subscriber results");
 
+// Access this flag through EventSubscriberPlugin::getEventsMax to allow for
+// overriding in subclasses
 FLAG(uint64, events_max, 1000, "Maximum number of events per type to buffer");
 
 const std::vector<size_t> kEventTimeLists = {
@@ -288,13 +292,13 @@ void EventSubscriberPlugin::expireCheck(bool cleanup) {
   {
     std::vector<std::string> keys;
     scanDatabaseKeys(kEvents, keys, data_key);
-    if (keys.size() <= FLAGS_events_max) {
+    if (keys.size() <= getEventsMax()) {
       return;
     }
 
     // There is an overflow of events buffered for this subscriber.
     LOG(WARNING) << "Expiring events for subscriber: " << getName()
-                 << " limit (" << FLAGS_events_max
+                 << " limit (" << getEventsMax()
                  << ") exceeded: " << keys.size();
     // Inspect the N-FLAGS_events_max -th event's value and expire before the
     // time within the content.
@@ -302,7 +306,7 @@ void EventSubscriberPlugin::expireCheck(bool cleanup) {
     getDatabaseValue(kEvents, eid_key, last_key);
     // The EID is the next-index.
     // EID - events_max is the most last-recent event to keep.
-    min_key = boost::lexical_cast<size_t>(last_key) - FLAGS_events_max;
+    min_key = boost::lexical_cast<size_t>(last_key) - getEventsMax();
 
     if (cleanup) {
       // Scan each of the keys in keys, if their ID portion is < min_key.
@@ -425,6 +429,10 @@ Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
   return Status(0, "OK");
 }
 
+size_t EventSubscriberPlugin::getEventsExpiry() { return FLAGS_events_expiry; }
+
+size_t EventSubscriberPlugin::getEventsMax() { return FLAGS_events_max; }
+
 EventID EventSubscriberPlugin::getEventID() {
   Status status;
   // First get an event ID from the meta key.
@@ -482,10 +490,10 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
     }
   }
 
-  if (FLAGS_events_expiry > 0) {
+  if (getEventsExpiry() > 0) {
     // Set the expire time to NOW - "configured lifetime".
     // Index retrieval will apply the constraints checking and auto-expire.
-    expire_time_ = getUnixTime() - FLAGS_events_expiry;
+    expire_time_ = getUnixTime() - getEventsExpiry();
   }
   return results;
 }
