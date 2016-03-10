@@ -52,6 +52,7 @@ OSQUERY_CONFIG_SRC=""
 OSQUERY_CONFIG_DST="/private/var/osquery/osquery.conf"
 OSQUERY_DB_LOCATION="/private/var/osquery/osquery.db/"
 OSQUERY_LOG_DIR="/private/var/log/osquery/"
+TLS_CERT_CHAIN_DST="/private/var/osquery/tls-server-certs.pem"
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX=$WORKING_DIR/prefix
@@ -105,6 +106,7 @@ function usage() {
   fatal "Usage: $0 [-c path/to/your/osquery.conf] [-l path/to/osqueryd.plist]
     -c PATH embed an osqueryd config.
     -l PATH override the default launchd plist.
+    -t PATH to embed a certificate chain file for TLS server validation
     -o PATH override the output path.
     -a start the daemon when the package is installed
     -x force the daemon to start fresh, removing any results previously stored in the database
@@ -127,6 +129,9 @@ function parse_args() {
                               ;;
       -l | --launchd )        shift
                               LAUNCHD_SRC=$1
+                              ;;
+      -t | --cert-chain )     shift
+                              TLS_CERT_CHAIN_SRC=$1
                               ;;
       -o | --output )         shift
                               OUTPUT_PKG_PATH=$1
@@ -198,7 +203,10 @@ function main() {
   cp $NEWSYSLOG_SRC $INSTALL_PREFIX$NEWSYSLOG_DST
   cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
   cp $PACKS_SRC/* $INSTALL_PREFIX$PACKS_DST
-
+  if [[ "$TLS_CERT_CHAIN_SRC" != "" && -f "$TLS_CERT_CHAIN_SRC" ]]; then
+    cp $TLS_CERT_CHAIN_SRC $INSTALL_PREFIX$TLS_CERT_CHAIN_DST
+  fi
+ 
   # Move/install pre/post install scripts within the packaging root.
   log "finalizing preinstall and postinstall scripts"
   if [ $AUTOSTART == true ]  || [ $CLEAN == true ]; then
@@ -208,6 +216,7 @@ function main() {
         echo "$POSTINSTALL_CLEAN_TEXT" >> $POSTINSTALL
     fi
     if [ $AUTOSTART == true ]; then
+        echo "$POSTINSTALL_UNLOAD_TEXT" >> $POSTINSTALL
         echo "$POSTINSTALL_AUTOSTART_TEXT" >> $POSTINSTALL
     fi
   fi
