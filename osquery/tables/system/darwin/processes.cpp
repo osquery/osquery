@@ -545,7 +545,7 @@ void genProcessMemoryMap(int pid, QueryData &results) {
   }
 }
 
-QueryData genProcessMemoryMap(QueryContext& context) {
+QueryData genProcessMemoryMap(QueryContext &context) {
   QueryData results;
 
   auto pidlist = getProcList(context);

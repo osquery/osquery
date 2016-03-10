@@ -236,4 +236,40 @@ TEST_F(VirtualTableTests, test_json_extract) {
   ASSERT_EQ(results.size(), 1U);
   EXPECT_EQ(results[0]["test"], "1");
 }
+
+TEST_F(VirtualTableTests, test_null_values) {
+  auto dbc = SQLiteDBManager::get();
+
+  std::string statement = "SELECT NULL as null_value;";
+  {
+    QueryData results;
+    auto status = queryInternal(statement, results, dbc->db());
+    EXPECT_TRUE(status.ok());
+    EXPECT_EQ(results[0]["null_value"], "");
+  }
+
+  // Try INTEGER.
+  {
+    QueryData results;
+    statement = "SELECT CAST(NULL as INTEGER) as null_value;";
+    queryInternal(statement, results, dbc->db());
+    EXPECT_EQ(results[0]["null_value"], "");
+  }
+
+  // BIGINT.
+  {
+    QueryData results;
+    statement = "SELECT CAST(NULL as BIGINT) as null_value;";
+    queryInternal(statement, results, dbc->db());
+    EXPECT_EQ(results[0]["null_value"], "");
+  }
+
+  // Try DOUBLE.
+  {
+    QueryData results;
+    statement = "SELECT CAST(NULL as DOUBLE) as null_value;";
+    queryInternal(statement, results, dbc->db());
+    EXPECT_EQ(results[0]["null_value"], "");
+  }
+}
 }

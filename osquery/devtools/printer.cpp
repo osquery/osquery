@@ -11,12 +11,15 @@
 #include <iostream>
 #include <sstream>
 
+#include <osquery/flags.h>
 #include <osquery/core.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/devtools/devtools.h"
 
 namespace osquery {
+
+SHELL_FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
 
 static std::vector<size_t> kOffset = {0, 0};
 static std::string kToken = "|";
@@ -25,27 +28,26 @@ std::string generateToken(const std::map<std::string, size_t>& lengths,
                           const std::vector<std::string>& columns) {
   std::string out = "+";
   for (const auto& col : columns) {
-    if (lengths.count(col) > 0) {
-      if (getenv("ENHANCE") != nullptr) {
-        std::string e = "\xF0\x9F\x90\x8C";
-        e[2] += kOffset[1];
-        e[3] += kOffset[0];
-        for (size_t i = 0; i < lengths.at(col) + 2; i++) {
-          e[3] = '\x8c' + kOffset[0]++;
-          if (e[3] == '\xbf') {
-            e[3] = '\x80';
-            kOffset[1] = (kOffset[1] > 3 && kOffset[1] < 8) ? 9 : kOffset[1];
-            e[2] = '\x90' + ++kOffset[1];
-            kOffset[0] = 0;
-          }
-          if (kOffset[1] == ('\x97' - '\x8d')) {
-            kOffset = {0, 0};
-          }
-          out += e.c_str();
+    size_t size = ((lengths.count(col) > 0) ? lengths.at(col) : col.size()) + 2;
+    if (getenv("ENHANCE") != nullptr) {
+      std::string e = "\xF0\x9F\x90\x8C";
+      e[2] += kOffset[1];
+      e[3] += kOffset[0];
+      for (size_t i = 0; i < size; i++) {
+        e[3] = '\x8c' + kOffset[0]++;
+        if (e[3] == '\xbf') {
+          e[3] = '\x80';
+          kOffset[1] = (kOffset[1] > 3 && kOffset[1] < 8) ? 9 : kOffset[1];
+          e[2] = '\x90' + ++kOffset[1];
+          kOffset[0] = 0;
         }
-      } else {
-        out += std::string(lengths.at(col) + 2, '-');
+        if (kOffset[1] == ('\x97' - '\x8d')) {
+          kOffset = {0, 0};
+        }
+        out += e.c_str();
       }
+    } else {
+      out += std::string(size, '-');
     }
     out += "+";
   }
@@ -63,13 +65,12 @@ std::string generateHeader(const std::map<std::string, size_t>& lengths,
   for (const auto& col : columns) {
     out += " " + col;
     if (lengths.count(col) > 0) {
-      int buffer_size = lengths.at(col) - utf8StringSize(col) + 1;
+      int buffer_size = lengths.at(col) - utf8StringSize(col);
       if (buffer_size > 0) {
         out += std::string(buffer_size, ' ');
-      } else {
-        out += ' ';
       }
     }
+    out += ' ';
     out += kToken;
   }
   out += "\n";
@@ -81,15 +82,21 @@ std::string generateRow(const Row& r,
                         const std::vector<std::string>& order) {
   std::string out;
   for (const auto& column : order) {
-    if (r.count(column) == 0 || lengths.count(column) == 0) {
-      continue;
-    }
-    // Print a terminator for the previous value or lhs, followed by spaces.
+    size_t size = 0;
 
-    int buffer_size = lengths.at(column) - utf8StringSize(r.at(column)) + 1;
-    if (buffer_size > 0) {
-      out += kToken + " " + r.at(column) + std::string(buffer_size, ' ');
+    // Print a terminator for the previous value or lhs, followed by spaces.
+    out += kToken + ' ';
+    if (r.count(column) == 0 || lengths.count(column) == 0) {
+      size = column.size() - utf8StringSize(FLAGS_nullvalue);
+      out += FLAGS_nullvalue;
+    } else {
+      int buffer_size = lengths.at(column) - utf8StringSize(r.at(column));
+      if (buffer_size >= 0) {
+        size = static_cast<size_t>(buffer_size);
+        out += r.at(column);
+      }
     }
+    out += std::string(size + 1, ' ');
   }
 
   if (out.size() > 0) {
@@ -126,6 +133,7 @@ void jsonPrint(const QueryData& q) {
   printf("[\n");
   for (size_t i = 0; i < q.size(); ++i) {
     std::string row_string;
+
     if (serializeRowJSON(q[i], row_string).ok()) {
       row_string.pop_back();
       printf("  %s", row_string.c_str());
