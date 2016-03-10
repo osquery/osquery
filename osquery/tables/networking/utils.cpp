@@ -11,20 +11,19 @@
 #include <iomanip>
 #include <sstream>
 
+#if defined(__linux__) || defined(__FreeBSD__)
+#include <net/if.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#endif
+
+#if defined(__APPLE__) || defined(__FreeBSD__)
+#include <net/if_dl.h>
+#endif
+
 #if defined(__linux__)
-#include <net/if.h>
-#include <netinet/in.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
 #define AF_LINK AF_PACKET
-#elif defined(__FreeBSD__)
-#include <net/if.h>
-#include <netinet/in.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <net/if_dl.h>
-#elif defined(__APPLE__)
-#include <net/if_dl.h>
 #endif
 
 #include <boost/algorithm/string/trim.hpp>

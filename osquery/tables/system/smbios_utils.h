@@ -8,6 +8,8 @@
  *
  */
 
+#pragma once
+
 #include <osquery/tables.h>
 
 namespace osquery {
@@ -43,9 +45,10 @@ constexpr uint8_t kSMBIOSTypeSystem = 1;
 class SMBIOSParser : private boost::noncopyable {
  public:
   /// Walk the tables and apply a predicate.
-  virtual void tables(std::function<void(
-      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size)>
-                          predicate);
+  virtual void tables(std::function<void(size_t index,
+                                         const SMBStructHeader* hdr,
+                                         uint8_t* address,
+                                         size_t size)> predicate);
 
  public:
   virtual ~SMBIOSParser() {}

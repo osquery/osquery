@@ -8,6 +8,8 @@
  *
  */
 
+#pragma once
+
 #include <osquery/tables.h>
 
 namespace osquery {

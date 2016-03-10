@@ -64,7 +64,8 @@ class SQLiteDBInstance : private boost::noncopyable {
 
  private:
   /// An opaque constructor only used by the DBManager.
-  SQLiteDBInstance(sqlite3* db) : primary_(true), managed_(true), db_(db) {}
+  explicit SQLiteDBInstance(sqlite3* db)
+      : primary_(true), managed_(true), db_(db) {}
 
  private:
   /// Introspection into the database pointer, primary means managed.
