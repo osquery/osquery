@@ -1,0 +1,18 @@
+table_name("get_file")
+description("File contents extraction table.")
+schema([
+    Column("path", TEXT, "Absolute file path", required=True),
+    Column("filename", TEXT, "Name portion of file path"),
+    Column("directory", TEXT, "Directory of file(s)", required=True),
+    Column("size", BIGINT, "Size of file in bytes"),
+    Column("offset", BIGINT, "Size of file in bytes"),
+    Column("token", TEXT, ""),
+    Column("type", TEXT, "File status"),
+])
+attributes(utility=True)
+implementation("utility/get_file@genGetFile")
+examples([
+  "select * from get_file where path = '/etc/passwd'",
+  "select * from get_file where directory = '/etc/'",
+  "select * from get_file where path LIKE '/etc/%'",
+])
