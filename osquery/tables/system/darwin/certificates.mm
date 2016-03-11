@@ -18,23 +18,8 @@
 namespace osquery {
 namespace tables {
 
-void genCertificate(const SecCertificateRef& SecCert, QueryData& results) {
+void genCertificate(X509* cert, const std::string& path, QueryData& results) {
   Row r;
-
-  auto der_encoded_data = SecCertificateCopyData(SecCert);
-  if (der_encoded_data == nullptr) {
-    return;
-  }
-
-  auto der_bytes = CFDataGetBytePtr(der_encoded_data);
-  auto length = CFDataGetLength(der_encoded_data);
-  auto cert = d2i_X509(nullptr, &der_bytes, length);
-
-  if (cert == nullptr) {
-    VLOG(1) << "Error decoding DER encoded certificate";
-    CFRelease(der_encoded_data);
-    return;
-  }
 
   // Generate the common name and subject.
   // They are very similar OpenSSL API accessors so save some logic and
@@ -49,9 +34,9 @@ void genCertificate(const SecCertificateRef& SecCert, QueryData& results) {
   r["not_valid_after"] = INTEGER(genEpoch(X509_get_notAfter(cert)));
 
   // Get the keychain for the certificate.
-  r["path"] = getKeychainPath((SecKeychainItemRef)SecCert);
+  r["path"] = path;
   // Hash is not a certificate property, calculate using raw data.
-  r["sha1"] = genSHA1ForCertificate(der_encoded_data);
+  r["sha1"] = genSHA1ForCertificate(cert);
 
   // X509_check_ca() populates key_usage, {authority,subject}_key_id
   // so it should be called before others.
@@ -66,17 +51,97 @@ void genCertificate(const SecCertificateRef& SecCert, QueryData& results) {
       (cert->skid) ? genKIDProperty(cert->skid->data, cert->skid->length) : "";
 
   results.push_back(r);
-  X509_free(cert);
+}
+
+void genKeychainCertificate(const SecCertificateRef& SecCert,
+                            QueryData& results) {
+  auto der_encoded_data = SecCertificateCopyData(SecCert);
+  if (der_encoded_data == nullptr) {
+    return;
+  }
+
+  const unsigned char* der_bytes = CFDataGetBytePtr(der_encoded_data);
+  auto length = CFDataGetLength(der_encoded_data);
+  auto cert = d2i_X509(nullptr, &der_bytes, length);
+
+  if (cert != nullptr) {
+    auto path = getKeychainPath((SecKeychainItemRef)SecCert);
+    genCertificate(cert, path, results);
+    X509_free(cert);
+  }
+
   CFRelease(der_encoded_data);
+}
+
+void genFileCertificate(const std::string& path, QueryData& results) {
+  std::string content;
+  auto s = readFile(path, content);
+  if (!s.ok()) {
+    return;
+  }
+  const unsigned char* bytes = (const unsigned char*)content.c_str();
+  X509* cert = d2i_X509(nullptr, &bytes, content.size());
+
+  if (cert != nullptr) {
+    genCertificate(cert, path, results);
+    X509_free(cert);
+  } else {
+    // If cert couldn't be read as DER, attempt
+    // to read it as a PEM.
+    BIO* bio = BIO_new_mem_buf((void*)bytes, content.size());
+
+    // There might be multiple certificates in the PEM.
+    while (PEM_read_bio_X509(bio, &cert, nullptr, nullptr) != nullptr) {
+      genCertificate(cert, path, results);
+      X509_free(cert);
+      cert = nullptr;
+    }
+
+    BIO_free(bio);
+  }
 }
 
 QueryData genCerts(QueryContext& context) {
   QueryData results;
 
-  // Allow the caller to set an explicit certificate (keychain) search path.
+  // Allow the caller to set both an explicit keychain search path
+  // and certificate files on disk.
   std::set<std::string> keychain_paths;
-  if (context.constraints["path"].exists(EQUALS)) {
-    keychain_paths = context.constraints["path"].getAll(EQUALS);
+
+  // Expand paths
+  auto paths = context.constraints["path"].getAll(EQUALS);
+  context.expandConstraints(
+      "path",
+      LIKE,
+      paths,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
+        }
+        return status;
+      }));
+
+  if (!paths.empty()) {
+    for (const auto& path : paths) {
+      SecKeychainRef keychain = nullptr;
+      SecKeychainStatus keychain_status;
+      auto status = SecKeychainOpen(path.c_str(), &keychain);
+      if (status != errSecSuccess || keychain == nullptr ||
+          SecKeychainGetStatus(keychain, &keychain_status) != errSecSuccess) {
+        if (keychain != nullptr) {
+          CFRelease(keychain);
+        }
+        genFileCertificate(path, results);
+      } else {
+        keychain_paths.insert(path);
+        CFRelease(keychain);
+      }
+    }
   } else {
     for (const auto& path : kSystemKeychainPaths) {
       keychain_paths.insert(path);
@@ -92,22 +157,17 @@ QueryData genCerts(QueryContext& context) {
   // Keychains/certificate stores belonging to the OS.
   CFArrayRef certs = CreateKeychainItems(keychain_paths, kSecClassCertificate);
   // Must have returned an array of matching certificates.
-  if (certs == nullptr) {
-    VLOG(1) << "Could not find OS X Keychain";
-    return {};
-  } else if (CFGetTypeID(certs) != CFArrayGetTypeID()) {
+  if (certs != nullptr) {
+    if (CFGetTypeID(certs) == CFArrayGetTypeID()) {
+      auto certificate_count = CFArrayGetCount(certs);
+      for (CFIndex i = 0; i < certificate_count; i++) {
+        auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
+        genKeychainCertificate(cert, results);
+      }
+    }
     CFRelease(certs);
-    return {};
   }
 
-  // Evaluate the certificate data, check for CA in Basic constraints.
-  auto certificate_count = CFArrayGetCount(certs);
-  for (CFIndex i = 0; i < certificate_count; i++) {
-    auto cert = (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
-    genCertificate(cert, results);
-  }
-
-  CFRelease(certs);
   return results;
 }
 }

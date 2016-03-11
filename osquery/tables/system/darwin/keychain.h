@@ -79,7 +79,7 @@ void genCommonName(X509* cert,
                    std::string& issuer);
 time_t genEpoch(ASN1_TIME* time);
 
-std::string genSHA1ForCertificate(const CFDataRef& raw_cert);
+std::string genSHA1ForCertificate(X509* cert);
 bool CertificateIsCA(X509* cert);
 bool CertificateIsSelfSigned(X509* cert);
 

@@ -121,9 +121,15 @@ void genAlgorithmProperties(X509* cert,
   }
 }
 
-std::string genSHA1ForCertificate(const CFDataRef& raw_cert) {
-  return hashFromBuffer(
-      HASH_TYPE_SHA1, CFDataGetBytePtr(raw_cert), CFDataGetLength(raw_cert));
+std::string genSHA1ForCertificate(X509* cert) {
+  const EVP_MD* fprint_type = EVP_sha1();
+  unsigned char fprint[EVP_MAX_MD_SIZE] = {0};
+  unsigned int fprint_size = 0;
+
+  if (X509_digest(cert, fprint_type, fprint, &fprint_size)) {
+    return genKIDProperty(fprint, fprint_size);
+  }
+  return "";
 }
 
 bool CertificateIsCA(X509* cert) {
