@@ -201,7 +201,7 @@ class INotifyEventPublisher
   std::atomic<int> last_restart_{-1};
 
   /// Access to path and descriptor mappings.
-  mutable boost::shared_mutex mutex_;
+  mutable Mutex mutex_;
 
  public:
   friend class INotifyTests;

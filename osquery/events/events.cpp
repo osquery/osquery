@@ -8,7 +8,9 @@
  *
  */
 
+#include <chrono>
 #include <exception>
+#include <thread>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -51,7 +53,7 @@ const std::vector<size_t> kEventTimeLists = {
 };
 
 void publisherSleep(size_t milli) {
-  boost::this_thread::sleep(boost::posix_time::milliseconds(milli));
+  std::this_thread::sleep_for(std::chrono::milliseconds(milli));
 }
 
 static inline EventTime timeFromRecord(const std::string& record) {
@@ -106,7 +108,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
 
   EventContextID ec_id = 0;
   {
-    boost::lock_guard<boost::mutex> lock(ec_id_lock_);
+    WriteLock lock(ec_id_lock_);
     ec_id = next_ec_id_++;
   }
 
@@ -376,7 +378,7 @@ Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
     // list_key = list_key + "." + list_id;
 
     {
-      boost::lock_guard<boost::mutex> lock(event_record_lock_);
+      WriteLock lock(event_record_lock_);
       // Append the record (eid, unix_time) to the list bin.
       std::string record_value;
       status = getDatabaseValue(
@@ -420,7 +422,7 @@ EventID EventSubscriberPlugin::getEventID() {
   std::string eid_value;
 
   {
-    boost::lock_guard<boost::mutex> lock(event_id_lock_);
+    WriteLock lock(event_id_lock_);
     status = getDatabaseValue(kEvents, eid_key, last_eid_value);
     if (!status.ok() || last_eid_value.empty()) {
       last_eid_value = "0";
@@ -524,7 +526,7 @@ void EventFactory::delay() {
   for (const auto& publisher : EventFactory::getInstance().event_pubs_) {
     // Publishers that did not set up correctly are put into an ending state.
     if (!publisher.second->isEnding()) {
-      auto thread_ = std::make_shared<boost::thread>(
+      auto thread_ = std::make_shared<std::thread>(
           boost::bind(&EventFactory::run, publisher.first));
       ef.threads_.push_back(thread_);
     }
@@ -554,7 +556,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
   EventPublisherRef publisher = nullptr;
   {
     auto& ef = EventFactory::getInstance();
-    auto read_lock = ef.requestRead();
+    WriteLock lock(getInstance().factory_lock_);
     publisher = ef.getEventPublisher(type_id);
   }
 
@@ -799,7 +801,7 @@ void EventFactory::end(bool join) {
   auto& ef = EventFactory::getInstance();
 
   {
-    auto write_lock = ef.requestWrite();
+    WriteLock lock(getInstance().factory_lock_);
     // Call deregister on each publisher.
     for (const auto& publisher : ef.publisherTypes()) {
       deregisterEventPublisher(publisher);
@@ -816,7 +818,7 @@ void EventFactory::end(bool join) {
   }
 
   {
-    auto write_lock = ef.requestWrite();
+    WriteLock lock(getInstance().factory_lock_);
     // A small cool off helps OS API event publisher flushing.
     if (!FLAGS_disable_events) {
       ef.threads_.clear();

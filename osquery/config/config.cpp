@@ -14,7 +14,6 @@
 
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <boost/thread/shared_mutex.hpp>
 
 #include <osquery/config.h>
 #include <osquery/database.h>
@@ -57,11 +56,11 @@ const std::string kExecutingQuery = "executing_query";
 const std::string kFailedQueries = "failed_queries";
 
 // The config may be accessed and updated asynchronously; use mutexes.
-boost::shared_mutex config_schedule_mutex_;
-boost::shared_mutex config_performance_mutex_;
-boost::shared_mutex config_files_mutex_;
-boost::shared_mutex config_hash_mutex_;
-boost::shared_mutex config_valid_mutex_;
+Mutex config_schedule_mutex_;
+Mutex config_performance_mutex_;
+Mutex config_files_mutex_;
+Mutex config_hash_mutex_;
+Mutex config_valid_mutex_;
 
 using PackRef = std::shared_ptr<Pack>;
 
@@ -252,7 +251,7 @@ void Config::removeFiles(const std::string& source) {
 void Config::scheduledQueries(
     std::function<void(const std::string& name, const ScheduledQuery& query)>
         predicate) {
-  ReadLock rlock(config_schedule_mutex_);
+  WriteLock lock(config_schedule_mutex_);
   for (const PackRef& pack : *schedule_) {
     for (const auto& it : pack->getSchedule()) {
       std::string name = it.first;
@@ -280,7 +279,7 @@ void Config::scheduledQueries(
 }
 
 void Config::packs(std::function<void(PackRef& pack)> predicate) {
-  ReadLock rlock(config_schedule_mutex_);
+  WriteLock lock(config_schedule_mutex_);
   for (PackRef& pack : schedule_->packs_) {
     predicate(pack);
   }
@@ -531,7 +530,7 @@ void Config::purge() {
     return false;
   };
 
-  ReadLock rlock(config_schedule_mutex_);
+  WriteLock lock(config_schedule_mutex_);
   // Iterate over each result set in the database.
   for (const auto& saved_query : saved_queries) {
     if (queryExists(saved_query)) {
@@ -584,7 +583,7 @@ void Config::recordQueryPerformance(const std::string& name,
                                     size_t size,
                                     const Row& r0,
                                     const Row& r1) {
-  WriteLock wlock(config_performance_mutex_);
+  WriteLock lock(config_performance_mutex_);
   if (performance_.count(name) == 0) {
     performance_[name] = QueryPerformance();
   }
@@ -642,7 +641,7 @@ void Config::getPerformanceStats(
     const std::string& name,
     std::function<void(const QueryPerformance& query)> predicate) {
   if (performance_.count(name) > 0) {
-    ReadLock rlock(config_performance_mutex_);
+    WriteLock lock(config_performance_mutex_);
     predicate(performance_.at(name));
   }
 }
@@ -658,7 +657,7 @@ Status Config::getMD5(std::string& hash) {
     return Status(1, "Current config is not valid");
   }
 
-  ReadLock rlock(config_hash_mutex_);
+  WriteLock lock(config_hash_mutex_);
   std::vector<char> buffer;
   buffer.reserve(hash_.size() * 32);
   auto add = [&buffer](const std::string& text) {
@@ -687,7 +686,7 @@ const std::shared_ptr<ConfigParserPlugin> Config::getParser(
 void Config::files(
     std::function<void(const std::string& category,
                        const std::vector<std::string>& files)> predicate) {
-  ReadLock rlock(config_files_mutex_);
+  WriteLock lock(config_files_mutex_);
   for (const auto& it : files_) {
     for (const auto& category : it.second) {
       predicate(category.first, category.second);

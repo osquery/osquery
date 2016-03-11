@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <csignal>
+#include <iostream>
 #include <random>
 
 #include <stdio.h>

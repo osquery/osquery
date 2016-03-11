@@ -169,7 +169,7 @@ class FSEventsEventPublisher
   bool no_self_{true};
 
   /// Access to watched path set.
-  mutable boost::shared_mutex mutex_;
+  mutable Mutex mutex_;
 
  private:
   friend class FSEventsTests;
