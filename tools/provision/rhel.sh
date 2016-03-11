@@ -137,6 +137,7 @@ function main_rhel() {
   install_rocksdb
   install_thrift
   install_yara
+  install_asio
   install_cppnetlib
   install_google_benchmark
 

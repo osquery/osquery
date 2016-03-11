@@ -94,7 +94,6 @@ function main_ubuntu() {
     install_autoconf
     install_automake
     install_libtool
-    install_boost
   else
     package clang-3.6
     package clang-format-3.6
@@ -109,29 +108,29 @@ function main_ubuntu() {
     package autoconf
     package automake
     package libtool
-    package libboost1.55-all-dev
   fi
 
   set_cc gcc #-4.8
   set_cxx g++ #-4.8
 
   install_cmake
+  install_boost
+
   install_gflags
   install_glog
   install_iptables_dev
 
   if [[ $DISTRO = "lucid" ]]; then
-    install_snappy
-    install_libaptpkg
     gem_install --no-user-install fpm -v 1.3.3
   else
     # No clang++ on lucid
     set_cc clang
     set_cxx clang++
-    package libsnappy-dev
-    package libapt-pkg-dev
     gem_install fpm
   fi
+
+  install_snappy
+  install_libaptpkg
 
   if [[ $DISTRO = "lucid" ]]; then
     install_openssl
@@ -143,6 +142,7 @@ function main_ubuntu() {
   install_thrift
   install_rocksdb
   install_yara
+  install_asio
   install_cppnetlib
   install_google_benchmark
 

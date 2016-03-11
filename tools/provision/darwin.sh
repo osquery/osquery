@@ -31,7 +31,8 @@ function main_darwin() {
   package thrift
   package yara
   package libressl
-  package cpp-netlib
+  package asio
+  package cpp-netlib devel
   package google-benchmark
   package libmagic
   package sleuthkit

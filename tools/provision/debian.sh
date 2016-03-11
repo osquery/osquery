@@ -52,17 +52,15 @@ function main_debian() {
   
   if [[ $DISTRO == "wheezy" ]]; then
     install_cmake
-    install_boost
-
     # thrift requires automate 1.13 or later
     remove_package automake
     install_automake
   elif [[ $DISTRO == "jessie" ]]; then 
     package cmake
-    package libboost-all-dev
     package automake
   fi 
 
+  install_boost
   install_google_benchmark
 
   package rubygems
@@ -74,6 +72,7 @@ function main_debian() {
   install_rocksdb 
   install_thrift
   install_yara
+  install_asio
   install_cppnetlib
   install_sleuthkit
   

@@ -102,6 +102,7 @@ function main_centos() {
   install_rocksdb
   install_thrift
   install_yara
+  install_asio
   install_cppnetlib
   install_google_benchmark
 

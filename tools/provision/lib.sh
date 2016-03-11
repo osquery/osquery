@@ -132,13 +132,12 @@ function install_thrift() {
 }
 
 function install_rocksdb() {
-  VERSION=4.1
-  TARBALL=rocksdb-$VERSION.tar.gz
+  SOURCE=rocksdb-4.4
+  TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
-  SOURCE=rocksdb-rocksdb-$VERSION
 
   if provision rocksdb /usr/local/lib/librocksdb_lite.a; then
-    if [[ ! -f rocksdb-rocksdb-$VERSION/librocksdb_lite.a ]]; then
+    if [[ ! -f $SOURCE/librocksdb_lite.a ]]; then
       if [[ $FAMILY = "debian" ]]; then
         CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
       elif [[ $FAMILY = "redhat" ]]; then
@@ -158,18 +157,19 @@ function install_rocksdb() {
         $MAKE -j $THREADS static_lib
       popd
     fi
-    sudo cp rocksdb-rocksdb-$VERSION/librocksdb_lite.a /usr/local/lib
-    sudo cp -R rocksdb-rocksdb-$VERSION/include/rocksdb /usr/local/include
+    sudo cp $SOURCE/librocksdb_lite.a /usr/local/lib
+    sudo cp -R $SOURCE/include/rocksdb /usr/local/include
   fi
 }
 
 function install_snappy() {
-  SOURCE=snappy-1.1.1
+  SOURCE=snappy-1.1.3
   TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
 
   if provision snappy /usr/local/include/snappy.h; then
     pushd $SOURCE
+    ./autogen.sh
     CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static \
       CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
     if [[ ! -f .libs/libsnappy.a ]]; then
@@ -180,11 +180,27 @@ function install_snappy() {
   fi
 }
 
-function install_cppnetlib() {
-  SOURCE=cpp-netlib-0.11.2
+function install_asio() {
+  SOURCE=asio-1.11.0
   TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
 
+  if provision cppnetlib /usr/local/include/asio/ip/tcp.hpp; then
+    pushd $SOURCE/asio
+    ./autogen.sh
+    CC="$CC" CXX="$CXX" ./configure CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
+    make -j $THREADS
+    sudo make install
+    popd
+  fi
+}
+
+function install_cppnetlib() {
+  SOURCE=cpp-netlib-0.12.0-rc1
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
+
+  SOURCE=cpp-netlib-$SOURCE
   if provision cppnetlib /usr/local/include/boost/network.hpp; then
     pushd $SOURCE
     mkdir -p build
@@ -248,7 +264,7 @@ function install_bison() {
 }
 
 function install_boost() {
-  SOURCE=boost_1_55_0
+  SOURCE=boost_1_60_0
   TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
 
@@ -358,23 +374,21 @@ function install_udev_devel_095() {
 }
 
 function install_libaptpkg() {
-  SOURCE=apt-0.8.16-12.10.22
+  SOURCE=apt-1.2.6
   TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
 
   if provision libaptpkg /usr/local/lib/libapt-pkg.a; then
     pushd $SOURCE
-    mkdir -p build
-    pushd build
-    ../configure --prefix=/usr/local \
-      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
+    make clean
+    ./configure --prefix=/usr/local CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
     make -j $THREADS STATICLIBS=1 library
-    sudo cp bin/libapt-pkg.so.4.12.0 /usr/local/lib/
-    sudo ln -sf /usr/local/lib/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
+    # No need to install the shared libraries.
+    # sudo cp bin/libapt-pkg.so.4.12.0 /usr/local/lib/
+    # sudo ln -sf /usr/local/lib/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
     sudo cp bin/libapt-pkg.a /usr/local/lib/
     sudo mkdir -p /usr/local/include/apt-pkg/
     sudo cp include/apt-pkg/*.h /usr/local/include/apt-pkg/
-    popd
     popd
   fi
 }
@@ -542,7 +556,10 @@ function package() {
       elif [[ $1 = "libressl" ]]; then
         HOMEBREW_ARGS="--build-bottle"
       fi
-      brew install -v $HOMEBREW_ARGS $1 || brew upgrade -v $HOMEBREW_ARGS $@
+      if [[ "$2" = "devel" ]]; then
+        HOMEBREW_ARGS="${HOMEBREW_ARGS} --devel"
+      fi
+      brew install -v $HOMEBREW_ARGS $1 || brew upgrade -v $HOMEBREW_ARGS $1
     fi
   elif [[ $OS = "freebsd" ]]; then
     if pkg info -q $1; then

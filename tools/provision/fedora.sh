@@ -39,13 +39,8 @@ function main_fedora() {
 
   if [[ $DISTRO -lt "22" ]]; then
     install_cmake
-    install_boost
-    install_iptables_dev
   else
     package cmake
-    package boost-devel
-    package boost-static
-    package iptables-devel
   fi
 
   package doxygen
@@ -56,20 +51,15 @@ function main_fedora() {
   package automake
   package libtool
 
-  if [[ $DISTRO -lt "22" ]]; then
-    install_snappy
-    install_thrift
-  else
-    package snappy
-    package snappy-devel
-    package thrift
-    package thrift-devel
-  fi
-
+  install_boost
+  install_iptables_dev
+  install_snappy
+  install_thrift
   install_gflags
   install_glog
   install_rocksdb
   install_yara
+  install_asio
   install_cppnetlib
   install_google_benchmark
 
