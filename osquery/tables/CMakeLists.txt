@@ -66,7 +66,7 @@ else()
 	find_package(Libdpkg REQUIRED)
 	add_definitions(-DLIBDPKG_VERSION=${LIBDPKG_VERSION_NUMBER})
 
-    ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg")
+    ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg liblzma.so")
     ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup libdevmapper.so")
   endif()
 

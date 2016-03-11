@@ -69,6 +69,7 @@ function main_amazon() {
   install_rocksdb
   install_thrift
   install_yara
+  install_asio
   install_cppnetlib
   install_google_benchmark
   install_sleuthkit
