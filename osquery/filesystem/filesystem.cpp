@@ -14,6 +14,7 @@
 #include <glob.h>
 #include <pwd.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -264,9 +265,7 @@ static void genGlobs(std::string path,
 
   // Prune results based on settings/requested glob limitations.
   auto end = std::remove_if(
-      results.begin(),
-      results.end(),
-      [limits](const std::string& found) {
+      results.begin(), results.end(), [limits](const std::string& found) {
         return !((found[found.length() - 1] == '/' && limits & GLOB_FOLDERS) ||
                  (found[found.length() - 1] != '/' && limits & GLOB_FILES));
       });

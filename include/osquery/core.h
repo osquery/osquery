@@ -11,10 +11,10 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
-#include <boost/thread/shared_mutex.hpp>
 #include <boost/filesystem/path.hpp>
 
 #include <osquery/status.h>
@@ -70,10 +70,14 @@ enum ToolType {
   OSQUERY_EXTENSION,
 };
 
+/// Helper alias for defining mutexes throughout the codebase.
+using Mutex = std::mutex;
+
 /// Helper alias for write locking a mutex.
-using WriteLock = boost::unique_lock<boost::shared_mutex>;
-/// Helper alias for read locking a mutex.
-using ReadLock = boost::shared_lock<boost::shared_mutex>;
+using WriteLock = std::lock_guard<Mutex>;
+
+/// Helper alias for read locking a mutex (do not support a ReadMutex).
+// using ReadLock = std::shared_lock<std::shared_mutex>;
 
 /// The osquery tool type for runtime decisions.
 extern ToolType kToolType;

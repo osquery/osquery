@@ -8,7 +8,7 @@
  *
  */
 
-#include <boost/chrono.hpp>
+#include <chrono>
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -16,7 +16,7 @@
 #include "osquery/core/conversions.h"
 #include "osquery/dispatcher/dispatcher.h"
 
-using namespace apache::thrift::concurrency;
+namespace concurrency = apache::thrift::concurrency;
 
 namespace osquery {
 
@@ -24,7 +24,7 @@ namespace osquery {
 FLAG(int32, worker_threads, 4, "Number of work dispatch threads");
 
 void interruptableSleep(size_t milli) {
-  boost::this_thread::sleep_for(boost::chrono::milliseconds(milli));
+  std::this_thread::sleep_for(std::chrono::milliseconds(milli));
 }
 
 Dispatcher::~Dispatcher() { join(); }
@@ -32,7 +32,8 @@ Dispatcher::~Dispatcher() { join(); }
 void Dispatcher::init() {
   thread_manager_ = InternalThreadManager::newSimpleThreadManager(
       (size_t)FLAGS_worker_threads, 0);
-  auto thread_factory = ThriftThreadFactory(new PosixThreadFactory());
+  auto thread_factory =
+      ThriftThreadFactory(new concurrency::PosixThreadFactory());
   thread_manager_->threadFactory(thread_factory);
   thread_manager_->start();
 }
@@ -61,8 +62,8 @@ Status Dispatcher::addService(InternalRunnableRef service) {
   }
 
   auto& self = instance();
-  auto thread = std::make_shared<boost::thread>(
-      boost::bind(&InternalRunnable::run, &*service));
+  auto thread = std::make_shared<std::thread>(
+      std::bind(&InternalRunnable::run, &*service));
   self.service_threads_.push_back(thread);
   self.services_.push_back(std::move(service));
   return Status(0, "OK");
@@ -91,19 +92,20 @@ void Dispatcher::stopServices() {
   for (const auto& service : self.services_) {
     while (true) {
       // Wait for each thread's entry point (start) meaning the thread context
-      // was allocated and (run) was called by boost::thread started.
+      // was allocated and (run) was called by std::thread started.
       if (service->hasRun()) {
         break;
       }
       // We only need to check if std::terminate is called very quickly after
-      // the boost::thread is created.
+      // the std::thread is created.
       ::usleep(200);
     }
     service->stop();
   }
 
   for (auto& thread : self.service_threads_) {
-    thread->interrupt();
+    // Boost threads will interrupt.
+    pthread_cancel(thread->native_handle());
   }
 }
 

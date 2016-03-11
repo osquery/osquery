@@ -8,10 +8,8 @@
  *
  */
 
-#include <boost/thread.hpp>
-
-#include <osquery/flags.h>
 #include <osquery/core.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 
 #include "osquery/dispatcher/distributed.h"

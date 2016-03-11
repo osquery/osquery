@@ -8,11 +8,9 @@
  *
  */
 
-#include "osquery/remote/transports/tls.h"
-
-#include <boost/asio/ssl/context_base.hpp>
-
 #include <osquery/filesystem.h>
+
+#include "osquery/remote/transports/tls.h"
 
 namespace http = boost::network::http;
 

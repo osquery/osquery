@@ -57,6 +57,7 @@ function main_ubuntu() {
 
   package libbz2-dev
   package libreadline-dev
+  package libcurl4-openssl-dev
 
   if [[ $DISTRO = "lucid" ]]; then
     package libopenssl-ruby
@@ -89,7 +90,6 @@ function main_ubuntu() {
 
     #install_pkgconfig
     package pkg-config
-    package libcurl4-openssl-dev
 
     install_autoconf
     install_automake

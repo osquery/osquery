@@ -237,8 +237,8 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
 
   // inotify will not monitor recursively, new directories need watches.
   if (sc->recursive && ec->action == "CREATED" && isDirectory(ec->path)) {
-    const_cast<INotifyEventPublisher*>(this)
-        ->addMonitor(ec->path + '/', sc->mask, true);
+    const_cast<INotifyEventPublisher*>(this)->addMonitor(
+        ec->path + '/', sc->mask, true);
   }
 
   return true;
@@ -284,7 +284,7 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
 
 bool INotifyEventPublisher::removeMonitor(const std::string& path, bool force) {
   {
-    ReadLock lock(mutex_);
+    WriteLock lock(mutex_);
     // If force then remove from INotify, otherwise cleanup file descriptors.
     if (path_descriptors_.find(path) == path_descriptors_.end()) {
       return false;
@@ -311,7 +311,7 @@ bool INotifyEventPublisher::removeMonitor(const std::string& path, bool force) {
 bool INotifyEventPublisher::removeMonitor(int watch, bool force) {
   std::string path;
   {
-    ReadLock lock(mutex_);
+    WriteLock lock(mutex_);
     if (descriptor_paths_.find(watch) == descriptor_paths_.end()) {
       return false;
     }
@@ -329,7 +329,7 @@ void INotifyEventPublisher::removeSubscriptions(const std::string& subscriber) {
 }
 
 bool INotifyEventPublisher::isPathMonitored(const std::string& path) const {
-  ReadLock lock(mutex_);
+  WriteLock lock(mutex_);
   std::string parent_path;
   if (!isDirectory(path).ok()) {
     if (path_descriptors_.find(path) != path_descriptors_.end()) {

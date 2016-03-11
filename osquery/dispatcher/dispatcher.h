@@ -14,10 +14,10 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <boost/noncopyable.hpp>
-#include <boost/thread.hpp>
 
 #include <osquery/core.h>
 
@@ -44,8 +44,6 @@
 
 namespace osquery {
 
-using namespace apache::thrift::concurrency;
-
 /// Create easier to reference typedefs for Thrift layer implementations.
 #define SHARED_PTR_IMPL OSQUERY_THRIFT_POINTER::shared_ptr
 using InternalThreadManager = apache::thrift::concurrency::ThreadManager;
@@ -59,13 +57,13 @@ using InternalThreadManagerRef = SHARED_PTR_IMPL<InternalThreadManager>;
  */
 extern const int kDefaultThreadPoolSize;
 
-class InternalRunnable : public Runnable {
+class InternalRunnable : public apache::thrift::concurrency::Runnable {
  public:
   InternalRunnable() : run_(false) {}
   virtual ~InternalRunnable() {}
 
  public:
-  /// The boost::thread entrypoint.
+  /// The std::thread entrypoint.
   void run() {
     run_ = true;
     start();
@@ -85,14 +83,16 @@ class InternalRunnable : public Runnable {
 
  private:
   std::atomic<bool> run_{false};
+  std::atomic<bool> interrupted_{false};
 };
 
 /// An internal runnable used throughout osquery as dispatcher services.
 using InternalRunnableRef = std::shared_ptr<InternalRunnable>;
-using InternalThreadRef = std::shared_ptr<boost::thread>;
+using InternalThreadRef = std::shared_ptr<std::thread>;
 /// A thrift internal runnable with variable pointer wrapping.
 using ThriftInternalRunnableRef = SHARED_PTR_IMPL<InternalRunnable>;
-using ThriftThreadFactory = SHARED_PTR_IMPL<PosixThreadFactory>;
+using ThriftThreadFactory =
+    SHARED_PTR_IMPL<apache::thrift::concurrency::PosixThreadFactory>;
 
 /**
  * @brief Singleton for queuing asynchronous tasks to be executed in parallel

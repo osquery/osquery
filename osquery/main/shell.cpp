@@ -10,6 +10,8 @@
 
 #include <stdio.h>
 
+#include <iostream>
+
 #include <osquery/core.h>
 #include <osquery/extensions.h>
 #include <osquery/flags.h>

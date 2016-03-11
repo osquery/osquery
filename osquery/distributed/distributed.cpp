@@ -29,8 +29,8 @@ FLAG(bool,
      true,
      "Disable distributed queries (default true)");
 
-boost::shared_mutex distributed_queries_mutex_;
-boost::shared_mutex distributed_results_mutex_;
+Mutex distributed_queries_mutex_;
+Mutex distributed_results_mutex_;
 
 Status DistributedPlugin::call(const PluginRequest& request,
                                PluginResponse& response) {
@@ -75,26 +75,28 @@ Status Distributed::pullUpdates() {
 }
 
 size_t Distributed::getPendingQueryCount() {
-  ReadLock rlock(distributed_queries_mutex_);
+  WriteLock lock(distributed_queries_mutex_);
   return queries_.size();
 }
 
 size_t Distributed::getCompletedCount() {
-  ReadLock rlock(distributed_results_mutex_);
+  WriteLock lock(distributed_results_mutex_);
   return results_.size();
 }
 
 Status Distributed::serializeResults(std::string& json) {
-  WriteLock wlock(distributed_results_mutex_);
-
   pt::ptree tree;
-  for (const auto& result : results_) {
-    pt::ptree qd;
-    auto s = serializeQueryData(result.results, qd);
-    if (!s.ok()) {
-      return s;
+
+  {
+    WriteLock lock(distributed_results_mutex_);
+    for (const auto& result : results_) {
+      pt::ptree qd;
+      auto s = serializeQueryData(result.results, qd);
+      if (!s.ok()) {
+        return s;
+      }
+      tree.add_child(result.request.id, qd);
     }
-    tree.add_child(result.request.id, qd);
   }
 
   pt::ptree results;

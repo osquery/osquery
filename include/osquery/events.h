@@ -12,14 +12,11 @@
 
 #include <atomic>
 #include <functional>
-#include <memory>
 #include <map>
+#include <memory>
+#include <mutex>
+#include <thread>
 #include <vector>
-
-#include <boost/make_shared.hpp>
-#include <boost/thread.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 
 #include <osquery/core.h>
 #include <osquery/registry.h>
@@ -311,7 +308,7 @@ class EventPublisherPlugin : public Plugin {
   std::atomic<bool> started_{false};
 
   /// A lock for incrementing the next EventContextID.
-  boost::mutex ec_id_lock_;
+  std::mutex ec_id_lock_;
 
   /// A helper count of event publisher runloop iterations.
   std::atomic<size_t> restart_count_{0};
@@ -539,10 +536,10 @@ class EventSubscriberPlugin : public Plugin {
   EventTime optimize_time_{0};
 
   /// Lock used when incrementing the EventID database index.
-  boost::mutex event_id_lock_;
+  std::mutex event_id_lock_;
 
   /// Lock used when recording an EventID and time into search bins.
-  boost::mutex event_record_lock_;
+  std::mutex event_record_lock_;
 
  private:
   friend class EventFactory;
@@ -717,16 +714,6 @@ class EventFactory : private boost::noncopyable {
    */
   static void end(bool join = false);
 
-  /// Request a write lock to make publisher registrations/deregistrations.
-  static WriteLock requestWrite() {
-    return WriteLock(getInstance().factory_lock_);
-  }
-
-  /// Request a read lock to access publisher data.
-  static ReadLock requestRead() {
-    return ReadLock(getInstance().factory_lock_);
-  }
-
  public:
   EventFactory(EventFactory const&) = delete;
   EventFactory& operator=(EventFactory const&) = delete;
@@ -744,10 +731,10 @@ class EventFactory : private boost::noncopyable {
   std::map<EventSubscriberID, EventSubscriberRef> event_subs_;
 
   /// Set of running EventPublisher run loop threads.
-  std::vector<std::shared_ptr<boost::thread> > threads_;
+  std::vector<std::shared_ptr<std::thread> > threads_;
 
   /// Factory publisher state manipulation.
-  boost::shared_mutex factory_lock_;
+  Mutex factory_lock_;
 };
 
 /**
@@ -965,7 +952,7 @@ class EventSubscriber : public EventSubscriberPlugin {
 /// the event factory.
 void attachEvents();
 
-/// Sleep in a boost::thread interruptible state.
+/// Sleep in a std::thread interruptible state.
 void publisherSleep(size_t milli);
 
 CREATE_REGISTRY(EventPublisherPlugin, "event_publisher");

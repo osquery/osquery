@@ -16,7 +16,6 @@
 #include <unistd.h>
 
 #include <boost/noncopyable.hpp>
-#include <boost/thread/mutex.hpp>
 
 #include <osquery/flags.h>
 
@@ -168,7 +167,7 @@ class Watcher : private boost::noncopyable {
  private:
   /// Do not request the lock until extensions are used.
   Watcher()
-      : worker_(-1), worker_restarts_(0), lock_(mutex_, boost::defer_lock) {}
+      : worker_(-1), worker_restarts_(0), lock_(mutex_, std::defer_lock) {}
   Watcher(Watcher const&);
 
   void operator=(Watcher const&);
@@ -206,10 +205,10 @@ class Watcher : private boost::noncopyable {
 
  private:
   /// Mutex and lock around extensions access.
-  boost::mutex mutex_;
+  Mutex mutex_;
 
   /// Mutex and lock around extensions access.
-  boost::unique_lock<boost::mutex> lock_;
+  std::unique_lock<Mutex> lock_;
 
  private:
   friend class WatcherRunner;

@@ -185,7 +185,7 @@ function install_asio() {
   TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
 
-  if provision cppnetlib /usr/local/include/asio/ip/tcp.hpp; then
+  if provision asio /usr/local/include/asio/ip/tcp.hpp; then
     pushd $SOURCE/asio
     ./autogen.sh
     CC="$CC" CXX="$CXX" ./configure CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
@@ -201,7 +201,7 @@ function install_cppnetlib() {
   URL=$DEPS_URL/$TARBALL
 
   SOURCE=cpp-netlib-$SOURCE
-  if provision cppnetlib /usr/local/include/boost/network.hpp; then
+  if provision cppnetlib /usr/local/lib/libcppnetlib-client-connections.a; then
     pushd $SOURCE
     mkdir -p build
     pushd build
@@ -268,11 +268,13 @@ function install_boost() {
   TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
 
-  if provision boost /usr/local/lib/libboost_thread.a; then
+  if provision boost /usr/local/lib/libboost_filesystem.a; then
     pushd $SOURCE
     ./bootstrap.sh
-    sudo ./b2 --with=all -j $THREADS toolset="gcc" \
-      cxxflags="$CXXFLAGS" install || true
+    sudo ./b2 --with-regex --with-filesystem --with-system \
+      link=static optimization=space variant=release \
+      cflags="$CFLAGS" cxxflags="$CXXFLAGS" toolset="gcc" \
+      -j $THREADS install || true
     sudo ldconfig
     popd
   fi
