@@ -12,7 +12,6 @@
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/thread.hpp>
 
 #include <gtest/gtest.h>
 
@@ -20,8 +19,8 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
-#include "osquery/events/linux/inotify.h"
 #include "osquery/core/test_util.h"
+#include "osquery/events/linux/inotify.h"
 
 namespace fs = boost::filesystem;
 
@@ -59,7 +58,7 @@ class INotifyTests : public testing::Test {
     auto status = EventFactory::registerEventPublisher(event_pub_);
     FILE* fd = fopen(real_test_path.c_str(), "w");
     fclose(fd);
-    temp_thread_ = boost::thread(EventFactory::run, "inotify");
+    temp_thread_ = std::thread(EventFactory::run, "inotify");
   }
 
   void StopEventLoop() {
@@ -119,7 +118,7 @@ class INotifyTests : public testing::Test {
   std::shared_ptr<INotifyEventPublisher> event_pub_{nullptr};
 
   /// Internal state managers: event publisher thread.
-  boost::thread temp_thread_;
+  std::thread temp_thread_;
 
   /// Transient paths ./inotify-trigger.
   std::string real_test_path;
@@ -317,7 +316,7 @@ TEST_F(INotifyTests, test_inotify_run) {
   event_pub_->configure();
 
   // Create an event loop thread (similar to main)
-  boost::thread temp_thread(EventFactory::run, "inotify");
+  std::thread temp_thread(EventFactory::run, "inotify");
   EXPECT_TRUE(event_pub_->numEvents() == 0);
 
   // Cause an inotify event by writing to the watched path.
