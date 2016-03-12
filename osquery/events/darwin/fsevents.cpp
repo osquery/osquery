@@ -124,6 +124,7 @@ void FSEventsEventPublisher::restart() {
 
 void FSEventsEventPublisher::stop() {
   // Stop the stream.
+  WriteLock lock(mutex_);
   if (stream_ != nullptr) {
     FSEventStreamStop(stream_);
     stream_started_ = false;

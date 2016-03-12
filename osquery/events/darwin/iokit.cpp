@@ -198,9 +198,6 @@ Status IOKitEventPublisher::run() {
 
   // Start the run loop, it may be removed with a tearDown.
   CFRunLoopRun();
-
-  // Add artificial latency to run loop.
-  osquery::publisherSleep(1000);
   return Status(0, "OK");
 }
 

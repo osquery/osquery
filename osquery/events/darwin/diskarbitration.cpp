@@ -239,8 +239,6 @@ Status DiskArbitrationEventPublisher::run() {
   }
 
   CFRunLoopRun();
-
-  osquery::publisherSleep(1000);
   return Status(0, "OK");
 }
 

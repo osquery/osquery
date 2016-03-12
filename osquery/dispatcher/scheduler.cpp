@@ -129,7 +129,10 @@ void SchedulerRunner::start() {
           }
         }));
     // Put the thread into an interruptible sleep without a config instance.
-    osquery::interruptableSleep(interval_ * 1000);
+    pauseMilli(interval_ * 1000);
+    if (interrupted()) {
+      break;
+    }
   }
 }
 

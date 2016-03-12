@@ -221,7 +221,7 @@ class EventPublisherPlugin : public Plugin {
    * run loop manager will exit the stepping loop and fall through to a call
    * to tearDown followed by a removal of the publisher.
    */
-  virtual void end() {}
+  virtual void stop() {}
 
   /**
    * @brief A new EventSubscriber is subscribing events of this publisher type.
@@ -298,7 +298,7 @@ class EventPublisherPlugin : public Plugin {
 
   /// An Event ID is assigned by the EventPublisher within the EventContext.
   /// This is not used to store event date in the backing store.
-  EventContextID next_ec_id_{0};
+  std::atomic<EventContextID> next_ec_id_{0};
 
  private:
   /// Set ending to True to cause event type run loops to finish.

@@ -8,8 +8,8 @@
  *
  */
 
-#include <sys/ioctl.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 
 #include <boost/make_shared.hpp>
@@ -21,7 +21,12 @@
 
 namespace osquery {
 
-class KernelCommunicationTests : public testing::Test {};
+class KernelCommunicationTests : public testing::Test {
+  void TearDown() override {
+    Dispatcher::stopServices();
+    Dispatcher::joinServices();
+  }
+};
 
 #ifdef KERNEL_TEST
 class KernelProducerRunnable : public InternalRunnable {
@@ -57,15 +62,15 @@ TEST_F(KernelCommunicationTests, test_communication) {
   auto& dispatcher = Dispatcher::instance();
 
   for (unsigned int c = 0; c < num_threads; ++c) {
-    dispatcher.add(OSQUERY_THRIFT_POINTER::make_shared<KernelProducerRunnable>(
-        events_per_thread, c % 2));
+    dispatcher.addService(
+        std::make_shared<KernelProducerRunnable>(events_per_thread, c % 2));
   }
 
   osquery_event_t event;
   osquery::CQueue::event* event_buf = nullptr;
   unsigned int tasks = 0;
   do {
-    tasks = dispatcher.totalTaskCount();
+    tasks = dispatcher.serviceCount();
     drops += queue.kernelSync(OSQUERY_NO_BLOCK);
     unsigned int max_before_sync = 2000;
     while (max_before_sync > 0 && (event = queue.dequeue(&event_buf))) {
