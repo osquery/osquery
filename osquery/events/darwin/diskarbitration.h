@@ -11,12 +11,8 @@
 #pragma once
 
 #include <CoreServices/CoreServices.h>
-#include <IOKit/IOKitLib.h>
 #include <DiskArbitration/DiskArbitration.h>
-
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/make_shared.hpp>
+#include <IOKit/IOKitLib.h>
 
 #include <osquery/events.h>
 #include <osquery/status.h>
@@ -27,9 +23,6 @@ namespace osquery {
 #define kVirtualInterfaceLocation_ "Virtual Interface Location Path"
 
 #define kDAAppearanceTime_ "DAAppearanceTime"
-
-const std::string kIOHIDXClassPath_ =
-    "IOService:/IOResources/IOHDIXController/";
 
 struct DiskArbitrationSubscriptionContext : public SubscriptionContext {
   // Limit events for this subscription to virtual disks (DMG files)
@@ -55,10 +48,10 @@ struct DiskArbitrationEventContext : public EventContext {
   std::string checksum;
 };
 
-typedef std::shared_ptr<DiskArbitrationEventContext>
-    DiskArbitrationEventContextRef;
-typedef std::shared_ptr<DiskArbitrationSubscriptionContext>
-    DiskArbitrationSubscriptionContextRef;
+using DiskArbitrationEventContextRef =
+    std::shared_ptr<DiskArbitrationEventContext>;
+using DiskArbitrationSubscriptionContextRef =
+    std::shared_ptr<DiskArbitrationSubscriptionContext>;
 
 class DiskArbitrationEventPublisher
     : public EventPublisher<DiskArbitrationSubscriptionContext,
@@ -66,7 +59,7 @@ class DiskArbitrationEventPublisher
   DECLARE_PUBLISHER("diskarbitration");
 
  public:
-  void configure() override{};
+  void configure() override {}
 
   void tearDown() override;
 

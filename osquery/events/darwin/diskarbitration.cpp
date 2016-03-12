@@ -8,13 +8,15 @@
  *
  */
 
+#include <fstream>
+#include <iomanip>
+
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-#include <osquery/filesystem.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
-#include <fstream>
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/darwin/diskarbitration.h"
@@ -22,6 +24,8 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
+const std::string kIOHIDXClassPath = "IOService:/IOResources/IOHDIXController/";
 
 REGISTER(DiskArbitrationEventPublisher, "event_publisher", "diskarbitration");
 
@@ -118,7 +122,7 @@ bool DiskArbitrationEventPublisher::shouldFire(
     // We want only virtual disk (DMG) events
     if (ec->action == "add") {
       // Filter events by matching on Virtual Interface based on IO device path
-      return (boost::starts_with(ec->device_path, kIOHIDXClassPath_));
+      return (boost::starts_with(ec->device_path, kIOHIDXClassPath));
     } else {
       return true;
     }

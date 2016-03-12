@@ -10,7 +10,6 @@
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/thread.hpp>
 
 #include <gtest/gtest.h>
 
@@ -19,8 +18,8 @@
 #include <osquery/flags.h>
 #include <osquery/tables.h>
 
-#include "osquery/events/darwin/fsevents.h"
 #include "osquery/core/test_util.h"
+#include "osquery/events/darwin/fsevents.h"
 
 namespace fs = boost::filesystem;
 
@@ -57,7 +56,7 @@ class FSEventsTests : public testing::Test {
     FILE* fd = fopen(real_test_path.c_str(), "w");
     fclose(fd);
 
-    temp_thread_ = boost::thread(EventFactory::run, "fsevents");
+    temp_thread_ = std::thread(EventFactory::run, "fsevents");
     // Wait for the publisher thread and FSEvent run loop to start.
   }
 
@@ -104,7 +103,7 @@ class FSEventsTests : public testing::Test {
   }
 
   std::shared_ptr<FSEventsEventPublisher> event_pub_{nullptr};
-  boost::thread temp_thread_;
+  std::thread temp_thread_;
 
  public:
   /// Trigger path is the current test's eventing sink (accessed anywhere).
@@ -242,7 +241,7 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   event_pub_->configure();
 
   // Create an event loop thread (similar to main)
-  temp_thread_ = boost::thread(EventFactory::run, "fsevents");
+  temp_thread_ = std::thread(EventFactory::run, "fsevents");
   EXPECT_TRUE(event_pub_->numEvents() == 0);
 
   // Wait for the thread to start and the FSEvents stream to turn on.
