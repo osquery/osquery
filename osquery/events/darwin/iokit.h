@@ -58,8 +58,6 @@ class IOKitEventPublisher
 
   Status run() override;
 
-  void end() override { stop(); }
-
   bool shouldFire(const IOKitSubscriptionContextRef& sc,
                   const IOKitEventContextRef& ec) const override;
 
@@ -75,7 +73,7 @@ class IOKitEventPublisher
 
  private:
   void restart();
-  void stop();
+  void stop() override;
 
  private:
   // The publisher state machine will start, restart, and stop the run loop.

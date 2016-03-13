@@ -16,12 +16,14 @@
 
 namespace osquery {
 
-class DispatcherTests : public testing::Test {};
+class DispatcherTests : public testing::Test {
+  void TearDown() override {}
+};
 
 TEST_F(DispatcherTests, test_singleton) {
   auto& one = Dispatcher::instance();
   auto& two = Dispatcher::instance();
-  EXPECT_EQ(one.getThreadManager().get(), two.getThreadManager().get());
+  EXPECT_EQ(&one, &two);
 }
 
 class TestRunnable : public InternalRunnable {
@@ -30,19 +32,4 @@ class TestRunnable : public InternalRunnable {
   explicit TestRunnable(int* i) : i(i) {}
   virtual void start() { ++*i; }
 };
-
-TEST_F(DispatcherTests, test_add_work) {
-  auto& dispatcher = Dispatcher::instance();
-  int base = 5;
-  int repetitions = 1;
-
-  int i = base;
-  for (int c = 0; c < repetitions; ++c) {
-    dispatcher.add(OSQUERY_THRIFT_POINTER::make_shared<TestRunnable>(&i));
-  }
-  while (dispatcher.totalTaskCount() > 0) {
-  }
-
-  EXPECT_EQ(i, base + repetitions);
-}
 }

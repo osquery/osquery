@@ -98,9 +98,6 @@ class FSEventsEventPublisher
   /// Entrypoint to the run loop
   Status run() override;
 
-  /// Callin for stopping the streams/run loop.
-  void end() override { stop(); }
-
   /// Delete all paths from prior configuration.
   void removeSubscriptions(const std::string& subscriber) override;
 
@@ -122,7 +119,7 @@ class FSEventsEventPublisher
   void restart();
 
   /// Stop the stream and the run loop.
-  void stop();
+  void stop() override;
 
   /// Cause the FSEvents to flush kernel-buffered events.
   void flush(bool async = false);

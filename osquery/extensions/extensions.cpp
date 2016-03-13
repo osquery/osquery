@@ -18,8 +18,8 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/extensions/interface.h"
 #include "osquery/core/watcher.h"
+#include "osquery/extensions/interface.h"
 
 using namespace osquery::extensions;
 
@@ -80,9 +80,9 @@ void ExtensionWatcher::start() {
   // Watch the manager, if the socket is removed then the extension will die.
   // A check for sane paths and activity is applied before the watcher
   // service is added and started.
-  while (true) {
+  while (!interrupted()) {
     watch();
-    interruptableSleep(interval_);
+    pauseMilli(interval_);
   }
 }
 
@@ -478,8 +478,7 @@ Status getExtensions(const std::string& manager_path,
 
   // Convert from Thrift-internal list type to RouteUUID/ExtenionInfo type.
   for (const auto& ext : ext_list) {
-    extensions[ext.first] = {ext.second.name,
-                             ext.second.version,
+    extensions[ext.first] = {ext.second.name, ext.second.version,
                              ext.second.min_sdk_version,
                              ext.second.sdk_version};
   }

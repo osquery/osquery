@@ -569,9 +569,12 @@ Status EventFactory::run(EventPublisherID& type_id) {
   publisher->hasStarted(true);
 
   auto status = Status(0, "OK");
-  while (!publisher->isEnding() && status.ok()) {
+  while (!publisher->isEnding()) {
     // Can optionally implement a global cooloff latency here.
     status = publisher->run();
+    if (!status.ok()) {
+      break;
+    }
     publisher->restart_count_++;
     osquery::publisherSleep(EVENTS_COOLOFF);
   }
@@ -775,7 +778,7 @@ Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
       // event thread wrapper when isEnding is next checked.
       ef.event_pubs_.erase(type_id);
     } else {
-      publisher->end();
+      publisher->stop();
     }
   }
   return Status(0, "OK");

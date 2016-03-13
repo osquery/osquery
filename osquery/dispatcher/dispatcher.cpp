@@ -16,44 +16,35 @@
 #include "osquery/core/conversions.h"
 #include "osquery/dispatcher/dispatcher.h"
 
-namespace concurrency = apache::thrift::concurrency;
-
 namespace osquery {
 
 /// The worker_threads define the default thread pool size.
 FLAG(int32, worker_threads, 4, "Number of work dispatch threads");
 
-void interruptableSleep(size_t milli) {
-  std::this_thread::sleep_for(std::chrono::milliseconds(milli));
+/// Cancel the pause request.
+void RunnerInterruptPoint::cancel() {
+  WriteLock lock(mutex_);
+  stop_ = true;
+  condition_.notify_all();
 }
 
-Dispatcher::~Dispatcher() { join(); }
-
-void Dispatcher::init() {
-  thread_manager_ = InternalThreadManager::newSimpleThreadManager(
-      (size_t)FLAGS_worker_threads, 0);
-  auto thread_factory =
-      ThriftThreadFactory(new concurrency::PosixThreadFactory());
-  thread_manager_->threadFactory(thread_factory);
-  thread_manager_->start();
-}
-
-Status Dispatcher::add(ThriftInternalRunnableRef task) {
-  auto& self = instance();
-  if (self.thread_manager_ == nullptr) {
-    // The dispatcher's thread pool is not initialized.
-    self.init();
+/// Pause until the requested millisecond delay has elapsed or a cancel.
+void RunnerInterruptPoint::pause(size_t milli) {
+  std::unique_lock<std::mutex> lock(mutex_);
+  if (stop_ ||
+      condition_.wait_for(lock, std::chrono::milliseconds(milli)) ==
+          std::cv_status::no_timeout) {
+    stop_ = false;
+    throw RunnerInterruptError();
   }
+}
 
+void InternalRunnable::pauseMilli(size_t milli) {
   try {
-    if (self.state() != InternalThreadManager::STARTED) {
-      self.thread_manager_->start();
-    }
-    instance().thread_manager_->add(task, 0, 0);
-  } catch (std::exception& e) {
-    return Status(1, e.what());
+    point_.pause(milli);
+  } catch (const RunnerInterruptError&) {
+    // The pause request was canceled.
   }
-  return Status(0, "OK");
 }
 
 Status Dispatcher::addService(InternalRunnableRef service) {
@@ -69,22 +60,15 @@ Status Dispatcher::addService(InternalRunnableRef service) {
   return Status(0, "OK");
 }
 
-InternalThreadManagerRef Dispatcher::getThreadManager() const {
-  return instance().thread_manager_;
-}
-
-void Dispatcher::join() {
-  auto& self = instance();
-  if (self.thread_manager_ != nullptr) {
-    self.thread_manager_->stop();
-    self.thread_manager_->join();
-  }
-}
-
 void Dispatcher::joinServices() {
   for (auto& thread : instance().service_threads_) {
+    // Boost threads would have been interrupted, and joined using the
+    // provided thread instance.
     thread->join();
   }
+
+  instance().services_.clear();
+  instance().service_threads_.clear();
 }
 
 void Dispatcher::stopServices() {
@@ -100,48 +84,7 @@ void Dispatcher::stopServices() {
       // the std::thread is created.
       ::usleep(200);
     }
-    service->stop();
+    service->interrupt();
   }
-
-  for (auto& thread : self.service_threads_) {
-    // Boost threads will interrupt.
-    pthread_cancel(thread->native_handle());
-  }
-}
-
-InternalThreadManager::STATE Dispatcher::state() const {
-  return instance().thread_manager_->state();
-}
-
-void Dispatcher::addWorker(size_t value) {
-  instance().thread_manager_->addWorker(value);
-}
-
-void Dispatcher::removeWorker(size_t value) {
-  instance().thread_manager_->removeWorker(value);
-}
-
-size_t Dispatcher::idleWorkerCount() const {
-  return instance().thread_manager_->idleWorkerCount();
-}
-
-size_t Dispatcher::workerCount() const {
-  return instance().thread_manager_->workerCount();
-}
-
-size_t Dispatcher::pendingTaskCount() const {
-  return instance().thread_manager_->pendingTaskCount();
-}
-
-size_t Dispatcher::totalTaskCount() const {
-  return instance().thread_manager_->totalTaskCount();
-}
-
-size_t Dispatcher::pendingTaskCountMax() const {
-  return instance().thread_manager_->pendingTaskCountMax();
-}
-
-size_t Dispatcher::expiredTaskCount() const {
-  return instance().thread_manager_->expiredTaskCount();
 }
 }

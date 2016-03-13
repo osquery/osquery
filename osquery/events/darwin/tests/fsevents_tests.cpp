@@ -179,16 +179,17 @@ class TestFSEventsEventSubscriber
     return Status(0, "OK");
   }
 
-  Status SimpleCallback(const ECRef& ec, const SCRef& sc) {
-    callback_count_ += 1;
-    return Status(0, "OK");
-  }
-
   SCRef GetSubscription(const std::string& path, uint32_t mask = 0) {
     auto sc = createSubscriptionContext();
     sc->path = path;
     sc->mask = mask;
     return sc;
+  }
+
+  Status SimpleCallback(const ECRef& ec, const SCRef& sc) {
+    WriteLock lock(mutex_);
+    callback_count_ += 1;
+    return Status(0, "OK");
   }
 
   Status Callback(const ECRef& ec, const SCRef& sc) {
@@ -198,6 +199,7 @@ class TestFSEventsEventSubscriber
     // r["path"] = ec->path;
 
     // Normally would call Add here.
+    WriteLock lock(mutex_);
     actions_.push_back(ec->action);
     callback_count_ += 1;
     return Status(0, "OK");
@@ -206,8 +208,11 @@ class TestFSEventsEventSubscriber
   void WaitForEvents(int max, int initial = 0) {
     int delay = 0;
     while (delay < max * 1000) {
-      if (callback_count_ >= initial) {
-        return;
+      {
+        WriteLock lock(mutex_);
+        if (callback_count_ >= initial) {
+          return;
+        }
       }
       delay += 100;
       ::usleep(100);
@@ -217,6 +222,9 @@ class TestFSEventsEventSubscriber
  public:
   int callback_count_{0};
   std::vector<std::string> actions_;
+
+ public:
+  mutable Mutex mutex_;
 
  private:
   FRIEND_TEST(FSEventsTests, test_fsevents_fire_event);
@@ -254,7 +262,6 @@ TEST_F(FSEventsTests, test_fsevents_run) {
   WaitForEvents(kMaxEventLatency);
 
   EXPECT_TRUE(event_pub_->numEvents() > 0);
-
   // We are managing the thread ourselves, so no join needed.
   EventFactory::end(false);
   temp_thread_.join();
@@ -303,13 +310,16 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   ASSERT_TRUE(sub->actions_.size() > 0);
   bool has_created = false;
   bool has_unknown = false;
-  for (const auto& action : sub->actions_) {
-    // Expect either a created event or attributes modified event.
-    if (action == "CREATED" || action == "ATTRIBUTES_MODIFIED") {
-      has_created = true;
-    } else if (action == "UNKNOWN" || action == "") {
-      // Allow an undetermined but existing FSevent on our target to pass.
-      has_unknown = true;
+  {
+    WriteLock lock(sub->mutex_);
+    for (const auto& action : sub->actions_) {
+      // Expect either a created event or attributes modified event.
+      if (action == "CREATED" || action == "ATTRIBUTES_MODIFIED") {
+        has_created = true;
+      } else if (action == "UNKNOWN" || action == "") {
+        // Allow an undetermined but existing FSevent on our target to pass.
+        has_unknown = true;
+      }
     }
   }
   EXPECT_TRUE(has_created || has_unknown);
@@ -317,10 +327,13 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   CreateEvents();
   sub->WaitForEvents(kMaxEventLatency, 2);
   bool has_updated = false;
-  // We may have triggered several updated events.
-  for (const auto& action : sub->actions_) {
-    if (action == "UPDATED") {
-      has_updated = true;
+  {
+    WriteLock lock(sub->mutex_);
+    // We may have triggered several updated events.
+    for (const auto& action : sub->actions_) {
+      if (action == "UPDATED") {
+        has_updated = true;
+      }
     }
   }
   EXPECT_TRUE(has_updated);

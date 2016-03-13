@@ -20,6 +20,7 @@ namespace osquery {
 REGISTER(SCNetworkEventPublisher, "event_publisher", "scnetwork");
 
 void SCNetworkEventPublisher::tearDown() {
+  stop();
   for (auto target : targets_) {
     CFRelease(target);
   }
@@ -110,6 +111,14 @@ void SCNetworkEventPublisher::configure() {
     }
   }
 
+  // Make sure at least one target exists.
+  if (targets_.empty()) {
+    auto sc = createSubscriptionContext();
+    sc->type = NAME_TARGET;
+    sc->target = "localhost";
+    addHostname(sc);
+  }
+
   restart();
 }
 
@@ -149,9 +158,6 @@ Status SCNetworkEventPublisher::run() {
 
   // Start the run loop, it may be removed with a tearDown.
   CFRunLoopRun();
-
-  // Do not expect the run loop to exit often, if so, add artificial latency.
-  osquery::publisherSleep(1000);
   return Status(0, "OK");
 }
 };

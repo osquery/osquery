@@ -27,6 +27,9 @@ namespace osquery {
 
 HIDDEN_FLAG(bool, registry_exceptions, false, "Allow plugin exceptions");
 
+/// Mutex to control access to registry extensions and their UUIDs.
+Mutex gRegistryExtensionsMutex;
+
 void RegistryHelperCore::remove(const std::string& item_name) {
   if (items_.count(item_name) > 0) {
     items_[item_name]->tearDown();
@@ -334,6 +337,7 @@ Status RegistryFactory::addBroadcast(const RouteUUID& uuid,
 }
 
 Status RegistryFactory::removeBroadcast(const RouteUUID& uuid) {
+  WriteLock lock(gRegistryExtensionsMutex);
   if (instance().extensions_.count(uuid) == 0) {
     return Status(1, "Unknown extension UUID: " + std::to_string(uuid));
   }
@@ -463,6 +467,7 @@ std::vector<std::string> RegistryFactory::names(
 }
 
 std::vector<RouteUUID> RegistryFactory::routeUUIDs() {
+  WriteLock lock(gRegistryExtensionsMutex);
   std::vector<RouteUUID> uuids;
   for (const auto& extension : instance().extensions_) {
     uuids.push_back(extension);

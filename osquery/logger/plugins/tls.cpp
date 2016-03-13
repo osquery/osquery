@@ -8,7 +8,9 @@
  *
  */
 
+#include <chrono>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <boost/property_tree/json_parser.hpp>
@@ -66,7 +68,7 @@ static inline void iterate(std::vector<std::string>& input,
     // It may choose to clear/move the data.
     predicate(item);
     if (++count % 100 == 0) {
-      osquery::interruptableSleep(20);
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
   }
 }
@@ -221,11 +223,11 @@ void TLSLogForwarderRunner::check() {
 }
 
 void TLSLogForwarderRunner::start() {
-  while (true) {
+  while (!interrupted()) {
     check();
 
     // Cool off and time wait the configured period.
-    osquery::interruptableSleep(FLAGS_logger_tls_period * 1000);
+    pauseMilli(FLAGS_logger_tls_period * 1000);
   }
 }
 }

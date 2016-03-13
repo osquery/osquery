@@ -8,22 +8,22 @@
  *
  */
 
-#include <vector>
 #include <sstream>
+#include <vector>
 
-#include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/config.h>
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/dispatcher/dispatcher.h"
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/utility.h"
-#include "osquery/core/conversions.h"
 
 namespace pt = boost::property_tree;
 
@@ -112,10 +112,10 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
 }
 
 void TLSConfigRefreshRunner::start() {
-  while (true) {
+  while (!interrupted()) {
     // Cool off and time wait the configured period.
     // Apply this interruption initially as at t=0 the config was read.
-    osquery::interruptableSleep(FLAGS_config_tls_refresh * 1000);
+    pauseMilli(FLAGS_config_tls_refresh * 1000);
 
     // Access the configuration.
     auto plugin = Registry::get("config", "tls");

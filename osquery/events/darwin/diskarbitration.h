@@ -68,9 +68,6 @@ class DiskArbitrationEventPublisher
 
   Status run() override;
 
-  // Callin for stopping the streams/run loop.
-  void end() override { stop(); }
-
   static void DiskAppearedCallback(DADiskRef disk, void *context);
 
   static void DiskDisappearedCallback(DADiskRef disk, void *context);
@@ -78,7 +75,7 @@ class DiskArbitrationEventPublisher
  private:
   void restart();
 
-  void stop();
+  void stop() override;
 
   static std::string getProperty(const CFStringRef &property,
                                  const CFDictionaryRef &dict);

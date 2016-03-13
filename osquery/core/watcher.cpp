@@ -154,7 +154,6 @@ bool Watcher::hasManagedExtensions() {
 }
 
 bool WatcherRunner::ok() {
-  interruptableSleep(getWorkerLimit(INTERVAL) * 1000);
   // Inspect the exit code, on success or catastrophic, end the watcher.
   auto status = Watcher::getWorkerStatus();
   if (status == EXIT_SUCCESS || status == EXIT_CATASTROPHIC) {
@@ -192,7 +191,8 @@ void WatcherRunner::start() {
     for (const auto& failed_extension : failing_extensions) {
       Watcher::removeExtensionPath(failed_extension);
     }
-  } while (ok());
+    pauseMilli(getWorkerLimit(INTERVAL) * 1000);
+  } while (!interrupted() && ok());
 }
 
 bool WatcherRunner::watch(pid_t child) {
@@ -322,9 +322,11 @@ void WatcherRunner::createWorker() {
       LOG(WARNING) << "osqueryd worker respawning too quickly: "
                    << Watcher::workerRestartCount() << " times";
       Watcher::workerRestarted();
-      interruptableSleep(getWorkerLimit(RESPAWN_DELAY) * 1000);
+      // The configured automatic delay.
+      size_t delay = getWorkerLimit(RESPAWN_DELAY) * 1000;
       // Exponential back off for quickly-respawning clients.
-      interruptableSleep(pow(2, Watcher::workerRestartCount()) * 1000);
+      delay += pow(2, Watcher::workerRestartCount()) * 1000;
+      pauseMilli(delay);
     }
   }
 
@@ -425,7 +427,7 @@ bool WatcherRunner::createExtension(const std::string& extension) {
 }
 
 void WatcherWatcherRunner::start() {
-  while (true) {
+  while (!interrupted()) {
     if (getppid() != watcher_) {
       // Watcher died, the worker must follow.
       VLOG(1) << "osqueryd worker (" << getpid()
@@ -433,7 +435,7 @@ void WatcherWatcherRunner::start() {
       // The watcher watcher is a thread. Do not join services after removing.
       raise(SIGKILL);
     }
-    interruptableSleep(getWorkerLimit(INTERVAL) * 1000);
+    pauseMilli(getWorkerLimit(INTERVAL) * 1000);
   }
 }
 

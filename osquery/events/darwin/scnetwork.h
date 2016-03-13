@@ -14,8 +14,8 @@
 
 #include <SystemConfiguration/SCNetworkReachability.h>
 
-#include <osquery/status.h>
 #include <osquery/events.h>
+#include <osquery/status.h>
 
 namespace osquery {
 
@@ -66,9 +66,6 @@ class SCNetworkEventPublisher
   // Entrypoint to the run loop
   Status run() override;
 
-  // The event factory may end, stopping the SCNetwork runloop.
-  void end() override { stop(); }
-
  public:
   /// SCNetwork registers a client callback instead of using a select/poll loop.
   static void Callback(const SCNetworkReachabilityRef target,
@@ -84,7 +81,7 @@ class SCNetworkEventPublisher
   void restart();
 
   // Stop the run loop.
-  void stop();
+  void stop() override;
 
  private:
   void addHostname(const SCNetworkSubscriptionContextRef& sc);

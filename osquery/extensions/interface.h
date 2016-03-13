@@ -23,6 +23,7 @@
 #include CONCAT(OSQUERY_THRIFT_LIB,/transport/TServerSocket.h)
 #include CONCAT(OSQUERY_THRIFT_LIB,/transport/TBufferTransports.h)
 #include CONCAT(OSQUERY_THRIFT_LIB,/transport/TSocket.h)
+#include CONCAT(OSQUERY_THRIFT_LIB,/concurrency/ThreadManager.h)
 
 // Include intermediate Thrift-generated interface definitions.
 #include CONCAT(OSQUERY_THRIFT,Extension.h)
