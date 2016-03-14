@@ -1,0 +1,24 @@
+table_name("asl")
+description("Queries the Apple System Log data structure for system events")
+
+# Columns pulled from asl.h
+# Descriptions mostly as retrieved from asl.h, some with clarifications
+schema([
+    Column("time", INTEGER, "Unix timestamp.  Set automatically"),
+    Column("time_nano_sec", INTEGER, "Nanosecond time."),
+    Column("host", TEXT, "Sender's address (set by the server)."),
+    Column("sender", TEXT, "Sender's identification string.  Default is process name."),
+    Column("facility", TEXT, "Sender's facility.  Default is 'user'."),
+    Column("pid", INTEGER, "Sending process ID encoded as a string.  Set automatically."),
+    # UID and GID of 4294967294 have been encountered
+    Column("gid", BIGINT, "GID that sent the log message (set by the server)."),
+    Column("uid", BIGINT, "UID that sent the log message (set by the server)."),
+    Column("level", INTEGER, "Log level number.  See levels in asl.h."),
+    Column("message", TEXT, "Message text."),
+    Column("ref_pid", INTEGER, "Reference PID for messages proxied by launchd"),
+    Column("ref_proc", TEXT, "Reference process for messages proxied by launchd"),
+    # Gather anything extra into the "extra" column
+    Column("extra", TEXT, "Extra columns, in JSON format. Queries against this column are performed entirely in SQLite, so do not benefit from efficient querying via asl.h."),
+])
+
+implementation("asl@genAsl")
