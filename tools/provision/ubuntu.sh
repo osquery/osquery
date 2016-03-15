@@ -54,7 +54,6 @@ function main_ubuntu() {
   package libdpkg-dev
   package libudev-dev
   package libblkid-dev
-
   package libbz2-dev
   package libreadline-dev
   package libcurl4-openssl-dev
@@ -118,43 +117,37 @@ function main_ubuntu() {
 
   install_gflags
   install_glog
-  install_iptables_dev
+  install_google_benchmark
 
   if [[ $DISTRO = "lucid" ]]; then
-    gem_install --no-user-install fpm -v 1.3.3
+    gem_install fpm -v 1.3.3
+    install_openssl
+    install_bison
   else
     # No clang++ on lucid
     set_cc clang
     set_cxx clang++
     gem_install fpm
-  fi
-
-  install_snappy
-  install_libaptpkg
-
-  if [[ $DISTRO = "lucid" ]]; then
-    install_openssl
-    install_bison
-  else
     package bison
   fi
 
+  install_snappy
   install_thrift
   install_rocksdb
   install_yara
   install_asio
   install_cppnetlib
-  install_google_benchmark
+  install_sleuthkit
 
   # Need headers and PC macros
   package libgcrypt-dev
   package libdevmapper-dev
-  install_libcryptsetup
-  package libmagic-dev
-  install_sleuthkit
-
-  # Audit facility (kautitd) and netlink APIs
   package libaudit-dev
+  package libmagic-dev
+
+  install_libaptpkg
+  install_iptables_dev
+  install_libcryptsetup
 
   if [[ $DISTRO = "lucid" ]]; then
     package python-argparse

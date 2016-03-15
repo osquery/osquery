@@ -151,7 +151,7 @@ add_custom_target(devel
 )
 add_dependencies(devel libosquery)
 
-if(NOT OSQUERY_BUILD_SDK_ONLY)
+if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   # Generate the osquery additional tables (the non-util).
   GENERATE_TABLES("${CMAKE_SOURCE_DIR}")
   AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
@@ -219,14 +219,16 @@ if(NOT DEFINED ENV{SKIP_TESTS})
   add_test(osquery_tests osquery_tests)
 
   # osquery kernel tests.
-  add_executable(osquery_kernel_tests main/tests.cpp ${OSQUERY_KERNEL_TESTS})
-  TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery)
-  TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery_additional)
-  target_link_libraries(osquery_kernel_tests gtest libosquery_testing)
-  SET_OSQUERY_COMPILE(osquery_kernel_tests "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1 -DGTEST_HAS_TR1_TUPLE=0")
+  if(NOT ${OSQUERY_BUILD_SDK_ONLY})
+    add_executable(osquery_kernel_tests main/tests.cpp ${OSQUERY_KERNEL_TESTS})
+    TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery)
+    TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery_additional)
+    target_link_libraries(osquery_kernel_tests gtest libosquery_testing)
+    SET_OSQUERY_COMPILE(osquery_kernel_tests "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1 -DGTEST_HAS_TR1_TUPLE=0")
+  endif()
 
   # osquery benchmarks.
-  if(NOT DEFINED ENV{SKIP_BENCHMARKS})
+  if(NOT DEFINED ENV{SKIP_BENCHMARKS} AND NOT ${OSQUERY_BUILD_SDK_ONLY})
     add_executable(osquery_benchmarks main/benchmarks.cpp ${OSQUERY_BENCHMARKS})
     TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery)
     TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery_additional)
@@ -250,7 +252,7 @@ if(NOT DEFINED ENV{SKIP_TESTS})
     )
   endif()
 
-  if(NOT OSQUERY_BUILD_SDK_ONLY)
+  if(NOT ${OSQUERY_BUILD_SDK_ONLY})
     # osquery core (additional) set of unit tests built outside of SDK.
     add_executable(osquery_additional_tests main/tests.cpp ${OSQUERY_ADDITIONAL_TESTS})
     TARGET_OSQUERY_LINK_WHOLE(osquery_additional_tests libosquery)

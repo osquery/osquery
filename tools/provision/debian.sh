@@ -21,18 +21,13 @@ function main_debian() {
   
   package unzip
   package build-essential
-  package libtool
-  package autoconf
-  package pkg-config
-  
-  package bison
   package flex
   package devscripts
   package debhelper
   package python-pip
   package python-dev
-
   package ruby-dev
+  package rubygems
   package gcc
   package doxygen
 
@@ -46,10 +41,14 @@ function main_debian() {
   package libblkid-dev
   package libbz2-dev
   package libreadline-dev
-  package iptables-dev
-  package libaudit-dev
-  package libmagic-dev
-  
+  package libcurl4-openssl-dev
+
+  package libtool
+  package autoconf
+  package pkg-config
+  package bison
+  package clang
+
   if [[ $DISTRO == "wheezy" ]]; then
     install_cmake
     # thrift requires automate 1.13 or later
@@ -61,13 +60,19 @@ function main_debian() {
   fi 
 
   install_boost
-  install_google_benchmark
-
-  package rubygems
-  gem_install fpm
 
   install_gflags
   install_glog
+  install_google_benchmark
+
+  if [[ $DISTRO == "wheezy" ]]; then
+    gem_install fpm -v 1.3.3
+  else
+    set_cc clang
+    set_cxx clang++
+    gem_install fpm
+  fi
+
   install_snappy
   install_rocksdb 
   install_thrift
@@ -75,12 +80,16 @@ function main_debian() {
   install_asio
   install_cppnetlib
   install_sleuthkit
-  
+
   # Need headers and PC macros
   package libgcrypt-dev
   package libdevmapper-dev
+  package libaudit-dev
+  package libmagic-dev
 
-  package libcryptsetup-dev
+  install_libaptpkg
+  install_iptables_dev
+  install_libcryptsetup
 
   if [[ $DISTRO == "wheezy" ]]; then
     # psutil and other things depending on gcc aren't

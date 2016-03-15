@@ -54,7 +54,7 @@ else()
     ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio")
     ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper")
     ADD_OSQUERY_LINK_ADDITIONAL("libselinux.so")
-  elseif(UBUNTU)
+  elseif(UBUNTU OR DEBIAN)
     # Ubuntu specific tables
     file(GLOB OSQUERY_UBUNTU_TABLES "*/ubuntu/*.cpp")
     ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_ubuntu

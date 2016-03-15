@@ -329,7 +329,7 @@ Status RocksDBDatabasePlugin::scan(const std::string& domain,
   auto options = rocksdb::ReadOptions();
   options.verify_checksums = false;
   options.fill_cache = false;
-  auto it = getDB()->NewIterator(rocksdb::ReadOptions(), cfh);
+  auto it = getDB()->NewIterator(options, cfh);
   if (it == nullptr) {
     return Status(1, "Could not get iterator for " + domain);
   }

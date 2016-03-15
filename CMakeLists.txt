@@ -188,6 +188,8 @@ endif()
 # make sdk (tests building SDK-based extensions)
 if(DEFINED ENV{SDK})
   set(OSQUERY_BUILD_SDK_ONLY TRUE)
+else()
+  set(OSQUERY_BUILD_SDK_ONLY FALSE)
 endif()
 
 # make packages will set release to true and blacklist development features,
@@ -417,7 +419,9 @@ add_subdirectory(osquery)
 add_subdirectory(tools/tests)
 
 # Include the kernel building targets/macros
-add_subdirectory(kernel)
+if(NOT ${OSQUERY_BUILD_SDK_ONLY})
+  add_subdirectory(kernel)
+endif()
 
 # make docs
 find_package(Doxygen)
