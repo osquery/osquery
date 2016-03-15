@@ -68,6 +68,11 @@ elseif(LINUX OR FREEBSD)
   ADD_OSQUERY_LINK_CORE("librt.so")
 endif()
 
+if(LINUX)
+  # For Ubuntu/CentOS packages add the build SHA1.
+  ADD_OSQUERY_LINK_CORE("-Wl,--build-id")
+endif()
+
 # The remaining boost libraries are discovered with find_library.
 ADD_OSQUERY_LINK_CORE("glog")
 ADD_OSQUERY_LINK_CORE("boost_system")

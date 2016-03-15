@@ -45,6 +45,7 @@ OSQUERY_ETC_DIR="/etc/osquery"
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX=$WORKING_DIR/prefix
+DEBUG_PREFIX=$WORKING_DIR/debug
 
 function usage() {
   fatal "Usage: $0 -t deb|rpm -i REVISION -d DEPENDENCY_LIST
@@ -138,20 +139,80 @@ function main() {
     FPM="/var/lib/gems/1.8/bin/fpm"
   fi
 
+  EPILOG="--url https://osquery.io \
+    -m osquery@osquery.io          \
+    --vendor Facebook              \
+    --license BSD                  \
+    --description \"$DESCRIPTION\""
+
   CMD="$FPM -s dir -t $PACKAGE_TYPE \
     -n $PACKAGE_NAME -v $PACKAGE_VERSION \
     --iteration $PACKAGE_ITERATION \
     -a $PACKAGE_ARCH               \
     $PACKAGE_DEPENDENCIES          \
     -p $OUTPUT_PKG_PATH            \
-    --url https://osquery.io       \
-    -m osquery@osquery.io          \
-    --vendor Facebook              \
-    --license BSD                  \
-    --description \"$DESCRIPTION\" \
-    \"$INSTALL_PREFIX/=/\""
+    $EPILOG \"$INSTALL_PREFIX/=/\""
   eval "$CMD"
   log "package created at $OUTPUT_PKG_PATH"
+
+  # Generate debug packages for Linux or CentOS
+  BUILD_DEBUG_PKG=false
+  if [[ $OS = "ubuntu" || $OS = "debian" ]]; then
+    BUILD_DEBUG_PKG=true
+    PACKAGE_DEBUG_NAME="$PACKAGE_NAME-dbg"
+    PACKAGE_DEBUG_DEPENDENCIES="osquery (= $PACKAGE_VERSION)"
+
+    # Debian only needs the non-stripped binaries.
+    BINARY_DEBUG_DIR=$DEBUG_PREFIX/usr/share/lib/debug/usr/bin
+    mkdir -p $BINARY_DEBUG_DIR
+    cp "$BUILD_DIR/osquery/osqueryi" $BINARY_DEBUG_DIR
+    cp "$BUILD_DIR/osquery/osqueryd" $BINARY_DEBUG_DIR
+  elif [[ $OS = "rhel" || $OS = "centos" || $OS = "fedora" ]]; then
+    BUILD_DEBUG_PKG=true
+    PACKAGE_DEBUG_NAME="$PACKAGE_NAME-debuginfo"
+    PACKAGE_DEBUG_DEPENDENCIES="osquery = $PACKAGE_VERSION"
+
+    # Create Build-ID links for executables and Dwarfs.
+    BUILD_ID_SHELL=`readelf -n "$BUILD_DIR/osquery/osqueryi" | grep "Build ID" | awk '{print $3}'`
+    BUILD_ID_DAEMON=`readelf -n "$BUILD_DIR/osquery/osqueryd" | grep "Build ID" | awk '{print $3}'`
+    BUILDLINK_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/.build-id/64
+    mkdir -p $BUILDLINK_DEBUG_DIR
+    ln -s ../../../../bin/osqueryi $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL
+    ln -s ../../bin/osqueryi.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL.debug
+    ln -s ../../../../bin/osqueryd $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON
+    ln -s ../../bin/osqueryd.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON.debug
+
+    # Install the non-stripped binaries.
+    BINARY_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/usr/bin/
+    mkdir -p $BINARY_DEBUG_DIR
+    cp "$BUILD_DIR/osquery/osqueryi" "$BINARY_DEBUG_DIR/osqueryi.debug"
+    cp "$BUILD_DIR/osquery/osqueryd" "$BINARY_DEBUG_DIR/osqueryd.debug"
+
+    # Finally install the source.
+    SOURCE_DEBUG_DIR=$DEBUG_PREFIX/usr/src/debug/osquery-$PACKAGE_VERSION
+    BUILD_DIR=`realpath "$BUILD_DIR"`
+    SOURCE_DIR=`realpath "$SOURCE_DIR"`
+    for file in `"$SCRIPT_DIR/getfiles.py" --build "$BUILD_DIR/" --base "$SOURCE_DIR/"`
+    do
+      mkdir -p `dirname "$SOURCE_DEBUG_DIR/$file"`
+      cp "$SOURCE_DIR/$file" "$SOURCE_DEBUG_DIR/$file"
+    done
+  fi
+
+  PACKAGE_DEBUG_DEPENDENCIES=`echo "$PACKAGE_DEBUG_DEPENDENCIES"|tr '-' '_'`
+  OUTPUT_DEBUG_PKG_PATH="$BUILD_DIR/$PACKAGE_DEBUG_NAME-$PACKAGE_VERSION.$PACKAGE_TYPE"
+  if [[ $BUILD_DEBUG_PKG ]]; then
+    rm $OUTPUT_DEBUG_PKG_PATH
+    CMD="$FPM -s dir -t $PACKAGE_TYPE \
+      -n $PACKAGE_DEBUG_NAME -v $PACKAGE_VERSION \
+      --iteration $PACKAGE_ITERATION \
+      -a $PACKAGE_ARCH \
+      -d \"$PACKAGE_DEBUG_DEPENDENCIES\" \
+      -p $OUTPUT_DEBUG_PKG_PATH \
+      $EPILOG \"$DEBUG_PREFIX/=/\""
+    eval "$CMD"
+    log "debug created at $OUTPUT_DEBUG_PKG_PATH"
+  fi
 }
 
 main $@
