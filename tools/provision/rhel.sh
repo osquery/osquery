@@ -131,6 +131,7 @@ function main_rhel() {
     package automake
     package libtool
     package file-devel
+    package systemd-devel
   fi
 
   install_snappy

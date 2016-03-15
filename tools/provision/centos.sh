@@ -94,7 +94,7 @@ function main_centos() {
     package automake
     package libtool
     package file-devel
-
+    package systemd-devel
     package bison
   fi
 

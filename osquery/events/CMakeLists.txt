@@ -1,8 +1,8 @@
 if(APPLE)
-  ADD_OSQUERY_LINK(FALSE "-framework CoreServices")
-  ADD_OSQUERY_LINK(FALSE "-framework SystemConfiguration")
-  ADD_OSQUERY_LINK(FALSE "-framework IOKit")
-  ADD_OSQUERY_LINK(FALSE "-framework DiskArbitration")
+  ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreServices")
+  ADD_OSQUERY_LINK_ADDITIONAL("-framework SystemConfiguration")
+  ADD_OSQUERY_LINK_ADDITIONAL("-framework IOKit")
+  ADD_OSQUERY_LINK_ADDITIONAL("-framework DiskArbitration")
 
 
   file(GLOB OSQUERY_EVENTS_DARWIN "darwin/*.cpp")
@@ -11,8 +11,10 @@ elseif(FREEBSD)
   file(GLOB OSQUERY_EVENTS_FREEBSD "freebsd/*.cpp")
   ADD_OSQUERY_LIBRARY(FALSE osquery_events_freebsd ${OSQUERY_EVENTS_FREEBSD})
 else()
-  ADD_OSQUERY_LINK(FALSE "udev")
-  ADD_OSQUERY_LINK(FALSE "audit")
+  # See the root CMakeLists for SYSTEMD detection.
+  # The udev library link is not available without systemd-devel.
+  ADD_OSQUERY_LINK_ADDITIONAL("udev")
+  ADD_OSQUERY_LINK_ADDITIONAL("audit")
 
   file(GLOB OSQUERY_EVENTS_LINUX "linux/*.cpp")
   ADD_OSQUERY_LIBRARY(FALSE osquery_events_linux ${OSQUERY_EVENTS_LINUX})

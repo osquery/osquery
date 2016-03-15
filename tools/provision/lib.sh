@@ -201,7 +201,8 @@ function install_cppnetlib() {
   URL=$DEPS_URL/$TARBALL
 
   SOURCE=cpp-netlib-$SOURCE
-  if provision cppnetlib /usr/local/lib/libcppnetlib-client-connections.a; then
+  # Note: use the header install since libdir was uncontrolled for a while.
+  if provision cppnetlib /usr/local/include/boost/network/version.hpp; then
     pushd $SOURCE
     mkdir -p build
     pushd build
@@ -358,6 +359,9 @@ function install_device_mapper() {
     make libdm.device-mapper -j $THREADS
     sudo cp libdm/ioctl/libdevmapper.a /usr/local/lib/
     sudo cp libdm/libdevmapper.h /usr/local/include/
+    pushd libdm
+    sudo make install_pkgconfig
+    popd
     popd
   fi
 }
@@ -402,10 +406,10 @@ function install_libcryptsetup() {
 
   if provision libcryptsetup /usr/local/lib/libcryptsetup.a; then
     pushd $SOURCE
-    ./autogen.sh
-    ./configure --prefix=/usr/local --enable-static --disable-shared \
-      --disable-selinux --disable-udev --disable-veritysetup  --disable-nls \
-      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
+    PKG_CONFIG_PATH=/usr/local/lib/pkgconfig/ \
+      ./autogen.sh --prefix=/usr/local --enable-static --disable-shared \
+        --disable-selinux --disable-udev --disable-veritysetup  --disable-nls \
+        CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
     pushd lib
     make -j $THREADS
     sudo make install
