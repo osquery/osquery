@@ -8,6 +8,10 @@
  *
  */
 
+#include <iomanip>
+#include <sstream>
+
+#include <CommonCrypto/CommonDigest.h>
 #include <Foundation/Foundation.h>
 #include <Security/CodeSigning.h>
 
@@ -17,6 +21,8 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
+
+#include "osquery/tables/system/darwin/keychain.h"
 
 namespace osquery {
 namespace tables {
@@ -42,7 +48,7 @@ Status getVerifyFlags(SecCSFlags& flags) {
       return Status(-1, "Couldn't determine OS X version");
     }
 
-    sFlags = kSecCSStrictValidate |  kSecCSCheckAllArchitectures;
+    sFlags = kSecCSStrictValidate | kSecCSCheckAllArchitectures;
     if (minorVersion > 8) {
       sFlags |= kSecCSCheckNestedCode;
     }
@@ -53,8 +59,7 @@ Status getVerifyFlags(SecCSFlags& flags) {
 }
 
 // Generate a signature for a single file.
-void genSignatureForFile(const std::string& path,
-                         QueryData& results) {
+void genSignatureForFile(const std::string& path, QueryData& results) {
   Row r;
   OSStatus result;
 
@@ -92,9 +97,8 @@ void genSignatureForFile(const std::string& path,
     CFDictionaryRef codeInfo = nullptr;
 
     result = SecCodeCopySigningInformation(
-      staticCode,
-      kSecCSSigningInformation | kSecCSRequirementInformation,
-      &codeInfo);
+        staticCode, kSecCSSigningInformation | kSecCSRequirementInformation,
+        &codeInfo);
     if (result == errSecSuccess) {
       // If we don't get an identifier for this file, then it's not signed.
       CFStringRef ident =
@@ -105,11 +109,67 @@ void genSignatureForFile(const std::string& path,
         r["signed"] = INTEGER(1);
         r["identifier"] = stringFromCFString(ident);
 
-        // TODO(andrew-d): can get more information from the signature here?
+        // Get CDHash
+        r["cdhash"] = "";
+        CFTypeRef hashInfo = CFDictionaryGetValue(codeInfo, kSecCodeInfoUnique);
+        if (hashInfo != nullptr) {
+          r["cdhash"].reserve(CC_SHA1_DIGEST_LENGTH);
+          // Get the SHA-1 bytes
+          std::stringstream ss;
+          auto bytes = CFDataGetBytePtr((CFDataRef)hashInfo);
+          if (bytes != nullptr) {
+            // Write bytes as hex strings
+            for (unsigned n = 0; n < CC_SHA1_DIGEST_LENGTH; n++) {
+              ss << std::hex << std::setfill('0') << std::setw(2);
+              ss << (unsigned int)bytes[n];
+            }
+            r["cdhash"] = ss.str();
+          }
+          if (r["cdhash"].length() != CC_SHA1_DIGEST_LENGTH * 2) {
+            VLOG(1) << "Error extracting code directory hash";
+            r["cdhash"] = "";
+          }
+        }
+
+        // Team Identifier
+        r["team_identifier"] = "";
+        CFTypeRef teamIdent = nullptr;
+        if (CFDictionaryGetValueIfPresent(codeInfo, kSecCodeInfoTeamIdentifier,
+                                          &teamIdent)) {
+          r["team_identifier"] = stringFromCFString((CFStringRef)teamIdent);
+        }
+
+        // Get common name
+        r["authority"] = "";
+        CFArrayRef certChain = (CFArrayRef)CFDictionaryGetValue(
+            codeInfo, kSecCodeInfoCertificates);
+        if (certChain != nullptr) {
+          CFIndex count = CFArrayGetCount(certChain);
+          // Only look at the first cert, which is the developer's cert
+          if (count > 0) {
+            auto cert = SecCertificateRef(CFArrayGetValueAtIndex(certChain, 0));
+            auto der_encoded_data = SecCertificateCopyData(cert);
+            if (der_encoded_data != nullptr) {
+              auto der_bytes = CFDataGetBytePtr(der_encoded_data);
+              auto length = CFDataGetLength(der_encoded_data);
+              auto x509_cert = d2i_X509(nullptr, &der_bytes, length);
+              if (x509_cert != nullptr) {
+                std::string subject;
+                std::string issuer;
+                std::string commonName;
+                genCommonName(x509_cert, subject, commonName, issuer);
+                r["authority"] = commonName;
+                X509_free(x509_cert);
+              } else {
+                VLOG(1) << "Error decoding DER encoded certificate";
+              }
+              CFRelease(der_encoded_data);
+            }
+          }
+        }
       } else {
         VLOG(1) << "No identifier found for file: " << path;
       }
-
       CFRelease(codeInfo);
     } else {
       VLOG(1) << "Could not get signing information for file: " << path;
