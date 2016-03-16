@@ -143,6 +143,8 @@ function install_rocksdb() {
       elif [[ $FAMILY = "redhat" ]]; then
         CLANG_VERSION=`clang --version | grep version | cut -d" " -f3`
         CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
+        CC=clang
+        CXX=clang++
       fi
       pushd $SOURCE
       if [[ $OS = "freebsd" ]]; then
@@ -152,6 +154,7 @@ function install_rocksdb() {
       else
         MAKE=make
       fi
+      CXXFLAGS="-DROCKSDB_LITE=1 $CXXFLAGS"
       PORTABLE=1 OPT="-DROCKSDB_LITE=1" LIBNAME=librocksdb_lite \
         CC="$CC" CXX="$CXX" CFLAGS="$CLANG_INCLUDE $CFLAGS" CXXFLAGS="$CXXFLAGS" \
         $MAKE -j $THREADS static_lib
@@ -240,9 +243,9 @@ function install_openssl() {
 
   if provision openssl /usr/local/lib/libssl.so.1.0.0; then
     pushd $SOURCE
-    CC="$CC" CXX="$CXX" ./config --prefix=/usr/local --openssldir=/etc/ssl \
-      --libdir=lib shared zlib-dynamic enable-shared \
-      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
+    CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" CC="$CC" CXX="$CXX" ./config \
+      --prefix=/usr/local --openssldir=/etc/ssl \
+      --libdir=lib shared zlib-dynamic enable-shared
     make -j $THREADS
     sudo make install
     popd
@@ -409,6 +412,7 @@ function install_libcryptsetup() {
     PKG_CONFIG_PATH=/usr/local/lib/pkgconfig/ \
       ./autogen.sh --prefix=/usr/local --enable-static --disable-shared \
         --disable-selinux --disable-udev --disable-veritysetup  --disable-nls \
+        --disable-kernel_crypto \
         CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
     pushd lib
     make -j $THREADS

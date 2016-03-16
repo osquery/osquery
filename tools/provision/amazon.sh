@@ -58,6 +58,7 @@ function main_amazon() {
   package flex
   package bison
   package file-libs
+  package file-devel
 
   remove_package libunwind-devel
 

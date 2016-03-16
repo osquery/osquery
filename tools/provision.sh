@@ -89,8 +89,10 @@ function main() {
 
   cd "$SCRIPT_DIR/../"
 
-  sudo pip install --upgrade pip
-  sudo pip install -r requirements.txt
+  # Pip may have just been installed.
+  PIP=`which pip`
+  sudo $PIP install --upgrade pip
+  sudo $PIP install -r requirements.txt
 
   initialize $OS
 }

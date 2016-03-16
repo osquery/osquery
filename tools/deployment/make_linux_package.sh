@@ -160,10 +160,10 @@ function main() {
   if [[ $OS = "ubuntu" || $OS = "debian" ]]; then
     BUILD_DEBUG_PKG=true
     PACKAGE_DEBUG_NAME="$PACKAGE_NAME-dbg"
-    PACKAGE_DEBUG_DEPENDENCIES="osquery (= $PACKAGE_VERSION)"
+    PACKAGE_DEBUG_DEPENDENCIES="osquery (= $PACKAGE_VERSION-$PACKAGE_ITERATION)"
 
     # Debian only needs the non-stripped binaries.
-    BINARY_DEBUG_DIR=$DEBUG_PREFIX/usr/share/lib/debug/usr/bin
+    BINARY_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/usr/bin
     mkdir -p $BINARY_DEBUG_DIR
     cp "$BUILD_DIR/osquery/osqueryi" $BINARY_DEBUG_DIR
     cp "$BUILD_DIR/osquery/osqueryd" $BINARY_DEBUG_DIR
@@ -202,7 +202,7 @@ function main() {
   PACKAGE_DEBUG_DEPENDENCIES=`echo "$PACKAGE_DEBUG_DEPENDENCIES"|tr '-' '_'`
   OUTPUT_DEBUG_PKG_PATH="$BUILD_DIR/$PACKAGE_DEBUG_NAME-$PACKAGE_VERSION.$PACKAGE_TYPE"
   if [[ $BUILD_DEBUG_PKG ]]; then
-    rm $OUTPUT_DEBUG_PKG_PATH
+    rm -f $OUTPUT_DEBUG_PKG_PATH
     CMD="$FPM -s dir -t $PACKAGE_TYPE \
       -n $PACKAGE_DEBUG_NAME -v $PACKAGE_VERSION \
       --iteration $PACKAGE_ITERATION \
