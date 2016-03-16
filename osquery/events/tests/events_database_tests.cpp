@@ -220,13 +220,13 @@ TEST_F(EventsDatabaseTests, test_expire_check) {
   auto sub = std::make_shared<DBFakeEventSubscriber>();
   // Set the max number of buffered events to something reasonably small.
   FLAGS_events_max = 10;
-  auto t = getUnixTime() - (10 * 1000);
+  auto t = 10000;
 
   // We are still at the mercy of the opaque EVENTS_CHECKPOINT define.
   for (size_t x = 0; x < 3; x++) {
     size_t num_events = 256 * x;
     for (size_t i = 0; i < num_events; i++) {
-      sub->testAdd(t + i);
+      sub->testAdd(t++);
     }
 
     // Since events tests are dependent, expect 257 + 3 events.
@@ -240,6 +240,28 @@ TEST_F(EventsDatabaseTests, test_expire_check) {
     // The number of events should remain constant.
     // In practice there may be an event still in the write queue.
     EXPECT_LT(results.size(), 60U);
+  }
+
+  // Try again, this time with a scan
+  for (size_t k = 0; k < 3; k++) {
+    for (size_t x = 0; x < 3; x++) {
+      size_t num_events = 256 * x;
+      for (size_t i = 0; i < num_events; i++) {
+        sub->testAdd(t++);
+      }
+
+      // Records hold the event_id + time indexes.
+      // Data hosts the event_id + JSON content.
+      auto record_key = "records." + sub->dbNamespace();
+      auto data_key = "data." + sub->dbNamespace();
+
+      std::vector<std::string> records, datas;
+      scanDatabaseKeys(kEvents, records, record_key);
+      scanDatabaseKeys(kEvents, datas, data_key);
+
+      EXPECT_LT(records.size(), 20U);
+      EXPECT_LT(datas.size(), 60U);
+    }
   }
 }
 }
