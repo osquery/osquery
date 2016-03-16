@@ -247,9 +247,9 @@ void EventSubscriberPlugin::expireRecords(const std::string& list_type,
   // Request all records within this list-size + bin offset.
   auto expired_records = getRecords({list_type + "." + index});
   for (const auto& record : expired_records) {
-    if (all) {
+    if (all || record.second <= expire_time_) {
       deleteDatabaseValue(kEvents, data_key + "." + record.first);
-    } else if (record.second > expire_time_) {
+    } else {
       persisting_records.push_back(record.first + ":" +
                                    std::to_string(record.second));
     }
@@ -258,7 +258,7 @@ void EventSubscriberPlugin::expireRecords(const std::string& list_type,
   // Either drop or overwrite the record list.
   if (all) {
     deleteDatabaseValue(kEvents, record_key + "." + list_type + "." + index);
-  } else {
+  } else if (persisting_records.size() < expired_records.size()) {
     auto new_records = boost::algorithm::join(persisting_records, ",");
     setDatabaseValue(
         kEvents, record_key + "." + list_type + "." + index, new_records);
@@ -304,9 +304,12 @@ void EventSubscriberPlugin::expireCheck() {
   std::string last_key;
   getDatabaseValue(kEvents, eid_key, last_key);
   // The EID is the next-index.
+  // EID - events_max is the most last-recent event to keep.
   size_t max_key = boost::lexical_cast<size_t>(last_key) - FLAGS_events_max - 1;
 
   // Convert the key index into a time using the content.
+  // The last-recent event is fetched and the corresponding time is used as
+  // the expiration time for the subscriber.
   std::string content;
   getDatabaseValue(kEvents, data_key + "." + std::to_string(max_key), content);
 
@@ -324,7 +327,7 @@ void EventSubscriberPlugin::expireCheck() {
 
   // Finally, attempt an index query to trigger expirations.
   // In this case the result set is not used.
-  getIndexes(expire_time_ - 1, -1);
+  getIndexes(expire_time_ - 1, 0);
 }
 
 std::vector<EventRecord> EventSubscriberPlugin::getRecords(
@@ -484,7 +487,6 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
   EventID eid = getEventID();
   // Without encouraging a missing event time, do not support a 0-time.
   r["time"] = std::to_string((event_time == 0) ? getUnixTime() : event_time);
-
   // Serialize and store the row data, for query-time retrieval.
   std::string data;
   auto status = serializeRowJSON(r, data);
