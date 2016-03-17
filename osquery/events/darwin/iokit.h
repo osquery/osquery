@@ -14,7 +14,7 @@
 #include <osquery/status.h>
 
 #include <CoreServices/CoreServices.h>
-#include <IOKit/IOKitlib.h>
+#include <IOKit/IOKitLib.h>
 
 namespace osquery {
 
