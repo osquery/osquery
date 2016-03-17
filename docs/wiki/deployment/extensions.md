@@ -26,6 +26,7 @@ The *autoload* workflow is similar to:
 
 - Check if extensions are enabled.
 - Read `--extensions_autoload` and check permissions/ownership of each path.
+- Checks if the file name extension of the path is .ext. Filename extension must be .ext.
 - Fork and execute each path with the switches described above.
 - Treat each child process as a "worker" and enforce sane memory/cycle usage.
 - Read set config plugin from `--config_plugin`.
