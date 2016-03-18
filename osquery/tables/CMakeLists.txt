@@ -44,7 +44,7 @@ else()
   file(GLOB OSQUERY_LINUX_TABLES_TESTS "*/linux/tests/*.cpp")
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_LINUX_TABLES_TESTS})
 
-  if(CENTOS OR RHEL OR AMAZON)
+  if(REDHAT_BASED)
     # CentOS specific tables
     file(GLOB OSQUERY_REDHAT_TABLES "*/centos/*.cpp")
     ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_redhat
@@ -54,17 +54,17 @@ else()
     ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio")
     ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper")
     ADD_OSQUERY_LINK_ADDITIONAL("libselinux.so")
-  elseif(UBUNTU OR DEBIAN)
+  elseif(DEBIAN_BASED)
     # Ubuntu specific tables
     file(GLOB OSQUERY_UBUNTU_TABLES "*/ubuntu/*.cpp")
     ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_ubuntu
       ${OSQUERY_UBUNTU_TABLES}
     )
 
-	# libdpkg API is volitile and suffers breaking changes. We need to find and pass in the libdpkg
-	# version via pkg-config
-	find_package(Libdpkg REQUIRED)
-	add_definitions(-DLIBDPKG_VERSION=${LIBDPKG_VERSION_NUMBER})
+    # libdpkg API is volitile and suffers breaking changes.
+    # We need to find and pass in the libdpkg version via pkg-config
+    find_package(Libdpkg REQUIRED)
+    add_definitions(-DLIBDPKG_VERSION=${LIBDPKG_VERSION_NUMBER})
 
     ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg liblzma.so")
     ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup libdevmapper.so")
