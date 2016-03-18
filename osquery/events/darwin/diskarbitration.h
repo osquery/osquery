@@ -87,7 +87,12 @@ class DiskArbitrationEventPublisher
                    const CFDictionaryRef &dict);
 
  private:
+  /// Disk arbitration session.
   DASessionRef session_{nullptr};
+
+  /// Publisher's run loop.
   CFRunLoopRef run_loop_{nullptr};
+
+  mutable Mutex mutex_;
 };
 }

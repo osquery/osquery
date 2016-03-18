@@ -70,7 +70,7 @@ class FSEventsTests : public testing::Test {
 
   void WaitForStream(int max) {
     int delay = 0;
-    while (delay < max * 1000) {
+    while (delay < max * 1000 * 2) {
       if (event_pub_->isStreamRunning()) {
         return;
       }
@@ -100,8 +100,10 @@ class FSEventsTests : public testing::Test {
       fputs("fsevents", fd);
       fclose(fd);
     }
+    event_pub_->flush();
   }
 
+  size_t count{0};
   std::shared_ptr<FSEventsEventPublisher> event_pub_{nullptr};
   std::thread temp_thread_;
 
@@ -282,7 +284,8 @@ TEST_F(FSEventsTests, test_fsevents_fire_event) {
   CreateEvents();
 
   // This time wait for the callback.
-  sub->WaitForEvents(kMaxEventLatency, 1);
+  sub->WaitForEvents(kMaxEventLatency, count + 1);
+  count = event_pub_->numEvents();
 
   // Make sure our expected event fired (aka subscription callback was called).
   EXPECT_TRUE(sub->callback_count_ > 0);
@@ -304,7 +307,8 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
   event_pub_->configure();
 
   CreateEvents();
-  sub->WaitForEvents(kMaxEventLatency, 1);
+  sub->WaitForEvents(kMaxEventLatency, count + 1);
+  count = event_pub_->numEvents();
 
   // Make sure the fsevents action was expected.
   ASSERT_TRUE(sub->actions_.size() > 0);
@@ -323,9 +327,16 @@ TEST_F(FSEventsTests, test_fsevents_event_action) {
     }
   }
   EXPECT_TRUE(has_created || has_unknown);
+  {
+    WriteLock lock(sub->mutex_);
+    sub->actions_.clear();
+  }
 
+  // Generate more events.
   CreateEvents();
-  sub->WaitForEvents(kMaxEventLatency, 2);
+  sub->WaitForEvents(kMaxEventLatency, count + 2);
+  count = event_pub_->numEvents();
+
   bool has_updated = false;
   {
     WriteLock lock(sub->mutex_);

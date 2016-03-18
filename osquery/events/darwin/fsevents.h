@@ -98,9 +98,6 @@ class FSEventsEventPublisher
   /// Entrypoint to the run loop
   Status run() override;
 
-  /// Delete all paths from prior configuration.
-  void removeSubscriptions(const std::string& subscriber) override;
-
  public:
   /// FSEvents registers a client callback instead of using a select/poll loop.
   static void Callback(ConstFSEventStreamRef fsevent_stream,

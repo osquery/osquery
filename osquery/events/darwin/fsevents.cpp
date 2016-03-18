@@ -55,8 +55,14 @@ void FSEventsSubscriptionContext::requireAction(const std::string& action) {
 }
 
 void FSEventsEventPublisher::restart() {
+  if (run_loop_ == nullptr) {
+    return;
+  }
+
+  // Remove any existing stream.
+  stop();
+
   // Build paths as CFStrings
-  std::vector<CFStringRef> cf_paths;
   {
     WriteLock lock(mutex_);
     if (paths_.empty()) {
@@ -64,67 +70,67 @@ void FSEventsEventPublisher::restart() {
       paths_.insert("/dev/null");
     }
 
-    if (run_loop_ == nullptr) {
-      // There is no run loop to restart.
-      return;
-    }
-
+    std::vector<CFStringRef> cf_paths;
     for (const auto& path : paths_) {
       auto cf_path = CFStringCreateWithCString(
           nullptr, path.c_str(), kCFStringEncodingUTF8);
       cf_paths.push_back(cf_path);
     }
-  }
 
-  // The FSEvents watch takes a CFArrayRef
-  auto watch_list = CFArrayCreate(nullptr,
-                                  reinterpret_cast<const void**>(&cf_paths[0]),
-                                  cf_paths.size(),
-                                  &kCFTypeArrayCallBacks);
+    // The FSEvents watch takes a CFArrayRef
+    auto watch_list =
+        CFArrayCreate(nullptr,
+                      reinterpret_cast<const void**>(&cf_paths[0]),
+                      cf_paths.size(),
+                      &kCFTypeArrayCallBacks);
 
-  // Remove any existing stream.
-  stop();
-
-  // Set stream flags.
-  auto flags =
-      kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagWatchRoot;
-  if (no_defer_) {
-    flags |= kFSEventStreamCreateFlagNoDefer;
-  }
-  if (no_self_) {
-    flags |= kFSEventStreamCreateFlagIgnoreSelf;
-  }
-
-  // Create the FSEvent stream.
-  stream_ = FSEventStreamCreate(nullptr,
-                                &FSEventsEventPublisher::Callback,
-                                nullptr,
-                                watch_list,
-                                kFSEventStreamEventIdSinceNow,
-                                1,
-                                flags);
-  if (stream_ != nullptr) {
-    // Schedule the stream on the run loop.
-    FSEventStreamScheduleWithRunLoop(stream_, run_loop_, kCFRunLoopDefaultMode);
-    if (FSEventStreamStart(stream_)) {
-      stream_started_ = true;
-    } else {
-      LOG(ERROR) << "Cannot start FSEvent stream: FSEventStreamStart failed";
+    // Set stream flags.
+    auto flags =
+        kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagWatchRoot;
+    if (no_defer_) {
+      flags |= kFSEventStreamCreateFlagNoDefer;
     }
-  } else {
-    LOG(ERROR) << "Cannot create FSEvent stream: FSEventStreamCreate failed";
-  }
+    if (no_self_) {
+      flags |= kFSEventStreamCreateFlagIgnoreSelf;
+    }
 
-  // Clean up strings, watch list, and context.
-  CFRelease(watch_list);
-  for (auto& cf_path : cf_paths) {
-    CFRelease(cf_path);
+    // Create the FSEvent stream.
+    stream_ = FSEventStreamCreate(nullptr,
+                                  &FSEventsEventPublisher::Callback,
+                                  nullptr,
+                                  watch_list,
+                                  kFSEventStreamEventIdSinceNow,
+                                  1,
+                                  flags);
+    if (stream_ != nullptr) {
+      // Schedule the stream on the run loop.
+      FSEventStreamScheduleWithRunLoop(
+          stream_, run_loop_, kCFRunLoopDefaultMode);
+      if (FSEventStreamStart(stream_)) {
+        stream_started_ = true;
+      } else {
+        LOG(ERROR) << "Cannot start FSEvent stream: FSEventStreamStart failed";
+      }
+    } else {
+      LOG(ERROR) << "Cannot create FSEvent stream: FSEventStreamCreate failed";
+    }
+
+    // Clean up strings, watch list, and context.
+    CFRelease(watch_list);
+    for (auto& cf_path : cf_paths) {
+      CFRelease(cf_path);
+    }
   }
 }
 
 void FSEventsEventPublisher::stop() {
   // Stop the stream.
   WriteLock lock(mutex_);
+  if (run_loop_ == nullptr) {
+    // No need to stop if there is not run loop.
+    return;
+  }
+
   if (stream_ != nullptr) {
     FSEventStreamStop(stream_);
     stream_started_ = false;
@@ -136,9 +142,7 @@ void FSEventsEventPublisher::stop() {
   }
 
   // Stop the run loop.
-  if (run_loop_ != nullptr) {
-    CFRunLoopStop(run_loop_);
-  }
+  CFRunLoopStop(run_loop_);
 }
 
 void FSEventsEventPublisher::tearDown() {
@@ -186,8 +190,11 @@ std::set<std::string> FSEventsEventPublisher::transformSubscription(
 
 void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
+  stop();
+
   {
     WriteLock lock(mutex_);
+    paths_.clear();
     for (auto& sub : subscriptions_) {
       auto sc = getSubscriptionContext(sub->context);
       if (sc->discovered_.size() > 0) {
@@ -282,15 +289,6 @@ bool FSEventsEventPublisher::shouldFire(
     return false;
   }
   return true;
-}
-
-void FSEventsEventPublisher::removeSubscriptions(
-    const std::string& subscription) {
-  {
-    WriteLock lock(mutex_);
-    std::set<std::string>().swap(paths_);
-  }
-  EventPublisherPlugin::removeSubscriptions(subscription);
 }
 
 void FSEventsEventPublisher::flush(bool async) {
