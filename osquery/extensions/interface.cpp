@@ -183,8 +183,7 @@ void ExtensionRunnerCore::stop() {
     std::unique_lock<std::mutex> lock(service_start_);
     service_stopping_ = true;
     if (transport_ != nullptr) {
-      transport_->interrupt();
-      transport_->interruptChildren();
+      // This is an opportunity to interrupt the transport listens.
     }
   }
 
