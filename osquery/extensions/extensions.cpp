@@ -35,6 +35,7 @@ const std::string kModuleExtension = ".dylib";
 #else
 const std::string kModuleExtension = ".so";
 #endif
+const std::string kExtensionExtension = ".ext";
 
 CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
 
@@ -195,12 +196,47 @@ void loadModules() {
   }
 }
 
+static bool isFileSafe(std::string& path, const std::string& type) {
+  boost::trim(path);
+  if (path.size() == 0 || path[0] == '#' || path[0] == ';') {
+    return false;
+  }
+
+  // Resolve acceptable extension binaries from autoload paths.
+  if (isDirectory(path).ok()) {
+    VLOG(1) << "Cannot autoload " << type << " from directory: " << path;
+    return false;
+  }
+  // The extendables will force an appropriate file path extension.
+  auto& ext = (type == "extension") ? kExtensionExtension : kModuleExtension;
+
+  // Only autoload file which were safe at the time of discovery.
+  // If the binary later becomes unsafe (permissions change) then it will fail
+  // to reload if a reload is ever needed.
+  fs::path extendable(path);
+  // Set the output sanitized path.
+  path = extendable.string();
+  if (!safePermissions(extendable.parent_path().string(), path, true)) {
+    LOG(WARNING) << "Will not autoload " << type
+                 << " with unsafe permissions: " << path;
+    return false;
+  }
+
+  if (extendable.extension().string() != ext) {
+    LOG(WARNING) << "Will not autoload " << type << " not ending in '" << ext
+                 << "': " << path;
+    return false;
+  }
+
+  VLOG(1) << "Found autoloadable " << type << ": " << path;
+  return true;
+}
+
 Status loadExtensions(const std::string& loadfile) {
   std::string autoload_paths;
   if (readFile(loadfile, autoload_paths).ok()) {
     for (auto& path : osquery::split(autoload_paths, "\n")) {
-      boost::trim(path);
-      if (path.size() > 0 && path[0] != '#' && path[0] != ';') {
+      if (isFileSafe(path, "extension")) {
         // After the path is sanitized the watcher becomes responsible for
         // forking and executing the extension binary.
         Watcher::addExtensionPath(path);
@@ -211,33 +247,21 @@ Status loadExtensions(const std::string& loadfile) {
   return Status(1, "Failed reading: " + loadfile);
 }
 
-Status loadModuleFile(const std::string& path) {
-  fs::path module(path);
-  if (safePermissions(module.parent_path().string(), path)) {
-    if (module.extension().string() == kModuleExtension) {
-      // Silently allow module load failures to drop.
-      RegistryModuleLoader loader(module.string());
-      loader.init();
-      return Status(0, "OK");
-    }
-  }
-  return Status(1, "Module check failed");
-}
-
 Status loadModules(const std::string& loadfile) {
   // Split the search path for modules using a ':' delimiter.
+  bool all_loaded = true;
   std::string autoload_paths;
   if (readFile(loadfile, autoload_paths).ok()) {
-    auto status = Status(0, "OK");
-    for (auto& module_path : osquery::split(autoload_paths, "\n")) {
-      boost::trim(module_path);
-      auto path_status = loadModuleFile(module_path);
-      if (!path_status.ok()) {
-        status = path_status;
+    for (auto& path : osquery::split(autoload_paths, "\n")) {
+      if (isFileSafe(path, "module")) {
+        RegistryModuleLoader loader(path);
+        loader.init();
+      } else {
+        all_loaded = false;
       }
     }
     // Return an aggregate failure if any load fails (invalid search path).
-    return status;
+    return Status((all_loaded) ? 0 : 1);
   }
   return Status(1, "Failed reading: " + loadfile);
 }

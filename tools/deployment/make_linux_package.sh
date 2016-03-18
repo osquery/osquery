@@ -173,14 +173,16 @@ function main() {
     PACKAGE_DEBUG_DEPENDENCIES="osquery = $PACKAGE_VERSION"
 
     # Create Build-ID links for executables and Dwarfs.
-    BUILD_ID_SHELL=`readelf -n "$BUILD_DIR/osquery/osqueryi" | grep "Build ID" | awk '{print $3}'`
-    BUILD_ID_DAEMON=`readelf -n "$BUILD_DIR/osquery/osqueryd" | grep "Build ID" | awk '{print $3}'`
+    BUILD_ID_SHELL=`eu-readelf -n "$BUILD_DIR/osquery/osqueryi" | grep "Build ID" | awk '{print $3}'`
+    BUILD_ID_DAEMON=`eu-readelf -n "$BUILD_DIR/osquery/osqueryd" | grep "Build ID" | awk '{print $3}'`
     BUILDLINK_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/.build-id/64
-    mkdir -p $BUILDLINK_DEBUG_DIR
-    ln -s ../../../../bin/osqueryi $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL
-    ln -s ../../bin/osqueryi.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL.debug
-    ln -s ../../../../bin/osqueryd $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON
-    ln -s ../../bin/osqueryd.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON.debug
+    if [[ ! "$BUILD_ID_SHELL" = "" ]]; then
+      mkdir -p $BUILDLINK_DEBUG_DIR
+      ln -s ../../../../bin/osqueryi $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL
+      ln -s ../../bin/osqueryi.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL.debug
+      ln -s ../../../../bin/osqueryd $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON
+      ln -s ../../bin/osqueryd.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON.debug
+    fi
 
     # Install the non-stripped binaries.
     BINARY_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/usr/bin/
@@ -190,8 +192,8 @@ function main() {
 
     # Finally install the source.
     SOURCE_DEBUG_DIR=$DEBUG_PREFIX/usr/src/debug/osquery-$PACKAGE_VERSION
-    BUILD_DIR=`realpath "$BUILD_DIR"`
-    SOURCE_DIR=`realpath "$SOURCE_DIR"`
+    BUILD_DIR=`readlink --canonicalize "$BUILD_DIR"`
+    SOURCE_DIR=`readlink --canonicalize "$SOURCE_DIR"`
     for file in `"$SCRIPT_DIR/getfiles.py" --build "$BUILD_DIR/" --base "$SOURCE_DIR/"`
     do
       mkdir -p `dirname "$SOURCE_DEBUG_DIR/$file"`

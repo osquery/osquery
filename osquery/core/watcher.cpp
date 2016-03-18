@@ -29,7 +29,7 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
+const std::map<WatchdogLimitType, std::vector<size_t>> kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
     {MEMORY_LIMIT, {80, 50, 30, 1000}},
     // Percent of user or system CPU worker can utilize for LATENCY_LIMIT
@@ -44,8 +44,6 @@ const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
     // How often to poll for performance limit violations.
     {INTERVAL, {3, 3, 3, 1}},
 };
-
-const std::string kExtensionExtension = ".ext";
 
 CLI_FLAG(int32,
          watchdog_level,
@@ -122,23 +120,8 @@ void Watcher::reset(pid_t child) {
 }
 
 void Watcher::addExtensionPath(const std::string& path) {
-  // Resolve acceptable extension binaries from autoload paths.
-  if (isDirectory(path).ok()) {
-    VLOG(1) << "Cannot autoload extension from directory: " << path;
-    return;
-  }
-
-  // Only autoload extensions which were safe at the time of discovery.
-  // If the extension binary later becomes unsafe (permissions change) then
-  // it will fail to reload if a reload is ever needed.
-  fs::path extension(path);
-  if (safePermissions(extension.parent_path().string(), path, true)) {
-    if (extension.extension().string() == kExtensionExtension) {
-      setExtension(extension.string(), 0);
-      resetExtensionCounters(extension.string(), 0);
-      VLOG(1) << "Found autoloadable extension: " << extension.string();
-    }
-  }
+  setExtension(path, 0);
+  resetExtensionCounters(path, 0);
 }
 
 bool Watcher::hasManagedExtensions() {

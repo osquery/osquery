@@ -167,6 +167,7 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
   SET_OSQUERY_COMPILE(shell "${CXX_COMPILE_FLAGS}")
   set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
+  add_dependencies(shell osquery_tools)
 
   add_executable(daemon main/daemon.cpp)
   TARGET_OSQUERY_LINK_WHOLE(daemon libosquery)
@@ -180,6 +181,13 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
     DESTINATION include
     COMPONENT devel OPTIONAL
     PATTERN ".*" EXCLUDE
+  )
+
+  # A friendly echo printed after the library is built.
+  add_custom_target(osquery_tools ALL
+    COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
+      "-- Building osqueryi: ${CMAKE_BINARY_DIR}/osqueryi"
+      "-- Building osqueryd: ${CMAKE_BINARY_DIR}/osqueryd"
   )
 
   # make install (executables)

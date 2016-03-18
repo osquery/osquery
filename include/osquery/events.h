@@ -77,8 +77,7 @@ using EventPublisherRef = std::shared_ptr<BaseEventPublisher>;
 using SubscriptionContextRef = std::shared_ptr<SubscriptionContext>;
 using EventContextRef = std::shared_ptr<EventContext>;
 using BaseEventSubscriber = EventSubscriber<BaseEventPublisher>;
-using EventSubscriberRef =
-    std::shared_ptr<EventSubscriber<BaseEventPublisher> >;
+using EventSubscriberRef = std::shared_ptr<EventSubscriber<BaseEventPublisher>>;
 
 /**
  * @brief EventSubscriber%s may exist in various states.
@@ -428,8 +427,10 @@ class EventSubscriberPlugin : public Plugin {
    * The subscriber must count the number of buffered records and check if
    * that count exceeds the configured `events_max` limit. If an overflow
    * occurs the subscriber will expire N-events_max from the end of the queue.
+   *
+   * @param cleanup Perform an intense scan of zombie event IDs.
    */
-  void expireCheck();
+  void expireCheck(bool cleanup = false);
 
   /**
    * @brief Add an EventID, EventTime pair to all matching list types.
@@ -731,7 +732,7 @@ class EventFactory : private boost::noncopyable {
   std::map<EventSubscriberID, EventSubscriberRef> event_subs_;
 
   /// Set of running EventPublisher run loop threads.
-  std::vector<std::shared_ptr<std::thread> > threads_;
+  std::vector<std::shared_ptr<std::thread>> threads_;
 
   /// Factory publisher state manipulation.
   Mutex factory_lock_;
