@@ -61,6 +61,7 @@ class SCNetworkEventPublisher
  public:
   void configure() override;
 
+  Status setUp() override { return Status(1, "Publisher not used"); }
   void tearDown() override;
 
   // Entrypoint to the run loop
@@ -88,6 +89,9 @@ class SCNetworkEventPublisher
   void addAddress(const SCNetworkSubscriptionContextRef& sc);
   void addTarget(const SCNetworkSubscriptionContextRef& sc,
                  const SCNetworkReachabilityRef& target);
+
+  /// Helper method to clear all targets.
+  void clearAll();
 
  private:
   /// Configured hostname targets.

@@ -21,15 +21,10 @@ REGISTER(SCNetworkEventPublisher, "event_publisher", "scnetwork");
 
 void SCNetworkEventPublisher::tearDown() {
   stop();
-  for (auto target : targets_) {
-    CFRelease(target);
-  }
-  targets_.clear();
 
-  for (auto context : contexts_) {
-    CFRelease(context);
-  }
-  contexts_.clear();
+  WriteLock lock(mutex_);
+  clearAll();
+  run_loop_ = nullptr;
 }
 
 void SCNetworkEventPublisher::Callback(const SCNetworkReachabilityRef target,
@@ -91,6 +86,21 @@ void SCNetworkEventPublisher::addAddress(
   addTarget(sc, target);
 }
 
+void SCNetworkEventPublisher::clearAll() {
+  for (auto& target : targets_) {
+    CFRelease(target);
+  }
+  targets_.clear();
+
+  for (auto& context : contexts_) {
+    delete context;
+  }
+  contexts_.clear();
+
+  target_names_.clear();
+  target_addresses_.clear();
+}
+
 void SCNetworkEventPublisher::configure() {
   // Must stop before clearing contexts.
   stop();
@@ -98,10 +108,7 @@ void SCNetworkEventPublisher::configure() {
   {
     WriteLock lock(mutex_);
     // Clear all targets.
-    targets_.clear();
-    contexts_.clear();
-    target_names_.clear();
-    target_addresses_.clear();
+    clearAll();
 
     for (const auto& sub : subscriptions_) {
       auto sc = getSubscriptionContext(sub->context);

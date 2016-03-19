@@ -41,8 +41,8 @@ class SchedulerRunner : public InternalRunnable {
 };
 
 /// Start querying according to the config's schedule
-Status startScheduler();
+void startScheduler();
 
 /// Helper scheduler start with variable settings for testing.
-Status startScheduler(unsigned long int timeout, size_t interval);
+void startScheduler(unsigned long int timeout, size_t interval);
 }

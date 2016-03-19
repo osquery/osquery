@@ -136,16 +136,9 @@ void SchedulerRunner::start() {
   }
 }
 
-Status startScheduler() {
-  if (startScheduler(FLAGS_schedule_timeout, 1).ok()) {
-    Dispatcher::joinServices();
-    return Status(0, "OK");
-  }
-  return Status(1, "Could not start scheduler");
-}
+void startScheduler() { startScheduler(FLAGS_schedule_timeout, 1); }
 
-Status startScheduler(unsigned long int timeout, size_t interval) {
+void startScheduler(unsigned long int timeout, size_t interval) {
   Dispatcher::addService(std::make_shared<SchedulerRunner>(timeout, interval));
-  return Status(0, "OK");
 }
 }

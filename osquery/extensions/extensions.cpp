@@ -12,6 +12,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
+#include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
@@ -89,7 +90,9 @@ void ExtensionWatcher::start() {
 
 void ExtensionWatcher::exitFatal(int return_code) {
   // Exit the extension.
-  ::exit(return_code);
+  // We will save the wanted return code and raise an interrupt.
+  // This interrupt will be handled by the main thread then join the watchers.
+  Initializer::requestShutdown(return_code);
 }
 
 void ExtensionWatcher::watch() {
@@ -316,18 +319,7 @@ Status startExtension(const std::string& name,
     // If the extension failed to start then the EM is most likely unavailable.
     return status;
   }
-
-  try {
-    // The extension does nothing but serve the thrift API.
-    // Join on both the thrift and extension manager watcher services.
-    Dispatcher::joinServices();
-  } catch (const std::exception& e) {
-    // The extension manager may shutdown without notifying the extension.
-    return Status(0, e.what());
-  }
-
-  // An extension will only return on failure.
-  return Status(0, "Extension was shutdown");
+  return Status(0);
 }
 
 Status startExtension(const std::string& manager_path,

@@ -55,24 +55,29 @@ Status Dispatcher::addService(InternalRunnableRef service) {
   auto& self = instance();
   auto thread = std::make_shared<std::thread>(
       std::bind(&InternalRunnable::run, &*service));
+  WriteLock lock(self.mutex_);
   self.service_threads_.push_back(thread);
   self.services_.push_back(std::move(service));
   return Status(0, "OK");
 }
 
 void Dispatcher::joinServices() {
-  for (auto& thread : instance().service_threads_) {
+  auto& self = instance();
+  WriteLock join_lock(self.join_mutex_);
+  for (auto& thread : self.service_threads_) {
     // Boost threads would have been interrupted, and joined using the
     // provided thread instance.
     thread->join();
   }
 
-  instance().services_.clear();
-  instance().service_threads_.clear();
+  WriteLock lock(self.mutex_);
+  self.services_.clear();
+  self.service_threads_.clear();
 }
 
 void Dispatcher::stopServices() {
   auto& self = instance();
+  WriteLock lock(self.mutex_);
   for (const auto& service : self.services_) {
     while (true) {
       // Wait for each thread's entry point (start) meaning the thread context
@@ -82,7 +87,7 @@ void Dispatcher::stopServices() {
       }
       // We only need to check if std::terminate is called very quickly after
       // the std::thread is created.
-      ::usleep(200);
+      ::usleep(20);
     }
     service->interrupt();
   }

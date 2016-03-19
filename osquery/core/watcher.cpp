@@ -317,7 +317,8 @@ void WatcherRunner::createWorker() {
   auto qd = SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(getpid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
     LOG(ERROR) << "osquery watcher cannot determine process path for worker";
-    osquery::shutdown(EXIT_FAILURE);
+    Initializer::requestShutdown(EXIT_FAILURE);
+    return;
   }
 
   // Set an environment signaling to potential plugin-dependent workers to wait
@@ -333,21 +334,24 @@ void WatcherRunner::createWorker() {
     // osqueryd binary has become unsafe.
     LOG(ERROR) << RLOG(1382)
                << "osqueryd has unsafe permissions: " << exec_path.string();
-    osquery::shutdown(EXIT_FAILURE);
+    Initializer::requestShutdown(EXIT_FAILURE);
+    return;
   }
 
   auto worker_pid = fork();
   if (worker_pid < 0) {
     // Unrecoverable error, cannot create a worker process.
     LOG(ERROR) << "osqueryd could not create a worker process";
-    osquery::shutdown(EXIT_FAILURE);
+    Initializer::shutdown(EXIT_FAILURE);
+    return;
   } else if (worker_pid == 0) {
     // This is the new worker process, no watching needed.
     setenv("OSQUERY_WORKER", std::to_string(getpid()).c_str(), 1);
     execve(exec_path.string().c_str(), argv_, environ);
     // Code should never reach this point.
     LOG(ERROR) << "osqueryd could not start worker process";
-    osquery::shutdown(EXIT_CATASTROPHIC);
+    Initializer::shutdown(EXIT_CATASTROPHIC);
+    return;
   }
 
   Watcher::setWorker(worker_pid);
@@ -381,7 +385,7 @@ bool WatcherRunner::createExtension(const std::string& extension) {
   if (ext_pid < 0) {
     // Unrecoverable error, cannot create an extension process.
     LOG(ERROR) << "Cannot create extension process: " << extension;
-    osquery::shutdown(EXIT_FAILURE);
+    Initializer::shutdown(EXIT_FAILURE);
   } else if (ext_pid == 0) {
     // Pass the current extension socket and a set timeout to the extension.
     setenv("OSQUERY_EXTENSION", std::to_string(getpid()).c_str(), 1);
@@ -399,7 +403,7 @@ bool WatcherRunner::createExtension(const std::string& extension) {
            environ);
     // Code should never reach this point.
     VLOG(1) << "Could not start extension process: " << extension;
-    osquery::shutdown(EXIT_FAILURE);
+    Initializer::shutdown(EXIT_FAILURE);
   }
 
   Watcher::setExtension(extension, ext_pid);
@@ -416,7 +420,8 @@ void WatcherWatcherRunner::start() {
       VLOG(1) << "osqueryd worker (" << getpid()
               << ") detected killed watcher (" << watcher_ << ")";
       // The watcher watcher is a thread. Do not join services after removing.
-      raise(SIGKILL);
+      Initializer::requestShutdown();
+      break;
     }
     pauseMilli(getWorkerLimit(INTERVAL) * 1000);
   }
