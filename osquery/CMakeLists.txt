@@ -186,8 +186,8 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   # A friendly echo printed after the library is built.
   add_custom_target(osquery_tools ALL
     COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-      "-- Building osqueryi: ${CMAKE_BINARY_DIR}/osqueryi"
-      "-- Building osqueryd: ${CMAKE_BINARY_DIR}/osqueryd"
+      "-- Building osqueryi: ${CMAKE_BINARY_DIR}/osquery/osqueryi"
+      "-- Building osqueryd: ${CMAKE_BINARY_DIR}/osquery/osqueryd"
   )
 
   # make install (executables)

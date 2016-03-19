@@ -529,7 +529,7 @@ function install_ruby() {
 
 function package() {
   if [[ $FAMILY = "debian" ]]; then
-    if [[ -n "$(dpkg --get-selections | grep $1)" ]]; then
+    if [[ -n "$(dpkg-query -W -f='${Status} ${Version}\n' $1)" ]]; then
       log "$1 is already installed. skipping."
     else
       log "installing $1"
