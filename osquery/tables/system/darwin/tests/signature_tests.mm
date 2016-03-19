@@ -76,11 +76,14 @@ TEST_F(SignatureTest, test_get_valid_signature) {
       {"path", path},
       {"signed", "1"},
       {"identifier", "com.apple.ls"},
+      {"authority", "Software Signing"},
   };
 
   for (const auto& column : expected) {
     EXPECT_EQ(results.front()[column.first], column.second);
   }
+  ASSERT_TRUE(results.front()["team_identifier"].length() >= 0);
+  ASSERT_TRUE(results.front()["cdhash"].length() > 0);
 }
 
 /*
@@ -99,6 +102,9 @@ TEST_F(SignatureTest, test_get_unsigned) {
       {"path", path},
       {"signed", "0"},
       {"identifier", ""},
+      {"cdhash", ""},
+      {"team_identifier", ""},
+      {"authority", ""},
   };
 
   for (const auto& column : expected) {
@@ -149,12 +155,15 @@ TEST_F(SignatureTest, test_get_invalid_signature) {
   Row expected = {
       {"path", newPath},
       {"signed", "0"},
-      {"identifier", ""},
+      {"identifier", "com.apple.ls"},
+      {"authority", "Software Signing"},
   };
 
   for (const auto& column : expected) {
     EXPECT_EQ(results.front()[column.first], column.second);
   }
+  ASSERT_TRUE(results.front()["team_identifier"].length() >= 0);
+  ASSERT_TRUE(results.front()["cdhash"].length() > 0);
 }
 
 }
