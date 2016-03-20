@@ -354,7 +354,7 @@ class RegistryHelperCore : private boost::noncopyable {
 
  protected:
   /// A map of registered plugin instances to their registered identifier.
-  std::map<std::string, std::shared_ptr<Plugin> > items_;
+  std::map<std::string, std::shared_ptr<Plugin>> items_;
 
   /// If aliases are used, a map of alias to item name.
   std::map<std::string, std::string> aliases_;
@@ -781,6 +781,9 @@ class RegistryFactory : private boost::noncopyable {
   /// Calling startExtension should declare the registry external.
   /// This will cause extension-internal events to forward to osquery core.
   bool external_{false};
+
+  /// Protector for broadcast lookups and external registry mutations.
+  mutable Mutex mutex_;
 
  private:
   friend class RegistryHelperCore;

@@ -105,7 +105,6 @@ volatile std::sig_atomic_t kHandledSignal{0};
 static inline bool isWatcher() { return (osquery::Watcher::getWorker() > 0); }
 
 void signalHandler(int num) {
-
   // Inform exit status of main threads blocked by service joins.
   if (kHandledSignal == 0) {
     kHandledSignal = num;

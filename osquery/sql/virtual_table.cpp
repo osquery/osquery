@@ -19,6 +19,16 @@ namespace osquery {
 
 SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
+/**
+ * @brief A protection around concurrent table attach requests.
+ *
+ * Table attaching is not concurrent. Attaching is the only unprotected SQLite
+ * operation from osquery's usage perspective. The extensions API allows for
+ * concurrent access of non-thread-safe database resources for attaching table
+ * schema and filter routing instructions.
+ */
+Mutex kAttachMutex;
+
 namespace tables {
 namespace sqlite {
 
@@ -396,6 +406,7 @@ Status attachTableInternal(const std::string &name,
 
   // Note, if the clientData API is used then this will save a registry call
   // within xCreate.
+  WriteLock lock(kAttachMutex);
   int rc = sqlite3_create_module(
       instance->db(), name.c_str(), &module, (void *)&(*instance));
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
@@ -409,6 +420,7 @@ Status attachTableInternal(const std::string &name,
 }
 
 Status detachTableInternal(const std::string &name, sqlite3 *db) {
+  WriteLock lock(kAttachMutex);
   auto format = "DROP TABLE IF EXISTS temp." + name;
   int rc = sqlite3_exec(db, format.c_str(), nullptr, nullptr, 0);
   if (rc != SQLITE_OK) {
@@ -416,6 +428,26 @@ Status detachTableInternal(const std::string &name, sqlite3 *db) {
   }
 
   return Status(rc, getStringForSQLiteReturnCode(rc));
+}
+
+Status attachFunctionInternal(
+    const std::string &name,
+    std::function<
+        void(sqlite3_context *context, int argc, sqlite3_value **argv)> func) {
+  // Hold the manager connection instance again in callbacks.
+  auto dbc = SQLiteDBManager::get();
+  // Add some shell-specific functions to the instance.
+  WriteLock lock(kAttachMutex);
+  int rc = sqlite3_create_function(
+      dbc->db(),
+      name.c_str(),
+      0,
+      SQLITE_UTF8,
+      nullptr,
+      *func.target<void (*)(sqlite3_context *, int, sqlite3_value **)>(),
+      nullptr,
+      nullptr);
+  return Status(rc);
 }
 
 void attachVirtualTables(const SQLiteDBInstanceRef &instance) {

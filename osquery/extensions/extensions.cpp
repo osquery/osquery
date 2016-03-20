@@ -131,12 +131,19 @@ void ExtensionManagerWatcher::watch() {
 
   ExtensionStatus status;
   for (const auto& uuid : uuids) {
-    try {
-      auto client = EXClient(getExtensionSocket(uuid));
-      // Ping the extension until it goes down.
-      client.get()->ping(status);
-    } catch (const std::exception& e) {
-      failures_[uuid] += 1;
+    auto path = getExtensionSocket(uuid);
+    if (isWritable(path)) {
+      try {
+        auto client = EXClient(path);
+        // Ping the extension until it goes down.
+        client.get()->ping(status);
+      } catch (const std::exception& e) {
+        failures_[uuid] += 1;
+        continue;
+      }
+    } else {
+      // Immediate fail non-writable paths.
+      failures_[uuid] = 3;
       continue;
     }
 

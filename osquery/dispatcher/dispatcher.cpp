@@ -16,6 +16,13 @@
 #include "osquery/core/conversions.h"
 #include "osquery/dispatcher/dispatcher.h"
 
+#if 0
+#ifdef DLOG
+#undef DLOG
+#define DLOG(v) LOG(v)
+#endif
+#endif
+
 namespace osquery {
 
 /// The worker_threads define the default thread pool size.
@@ -56,6 +63,8 @@ Status Dispatcher::addService(InternalRunnableRef service) {
   auto thread = std::make_shared<std::thread>(
       std::bind(&InternalRunnable::run, &*service));
   WriteLock lock(self.mutex_);
+  DLOG(INFO) << "Adding new service: " << &*service
+             << " to thread: " << &*thread;
   self.service_threads_.push_back(thread);
   self.services_.push_back(std::move(service));
   return Status(0, "OK");
@@ -63,21 +72,27 @@ Status Dispatcher::addService(InternalRunnableRef service) {
 
 void Dispatcher::joinServices() {
   auto& self = instance();
+  DLOG(INFO) << "Thread: " << std::this_thread::get_id()
+             << " requesting a join";
   WriteLock join_lock(self.join_mutex_);
   for (auto& thread : self.service_threads_) {
     // Boost threads would have been interrupted, and joined using the
     // provided thread instance.
     thread->join();
+    DLOG(INFO) << "Service thread: " << &*thread << " has joined";
   }
 
   WriteLock lock(self.mutex_);
   self.services_.clear();
   self.service_threads_.clear();
+  DLOG(INFO) << "Services and threads have been cleared";
 }
 
 void Dispatcher::stopServices() {
   auto& self = instance();
   WriteLock lock(self.mutex_);
+  DLOG(INFO) << "Thread: " << std::this_thread::get_id()
+             << " requesting a stop";
   for (const auto& service : self.services_) {
     while (true) {
       // Wait for each thread's entry point (start) meaning the thread context
@@ -90,6 +105,7 @@ void Dispatcher::stopServices() {
       ::usleep(20);
     }
     service->interrupt();
+    DLOG(INFO) << "Service: " << &*service << " has been interrupted";
   }
 }
 }
