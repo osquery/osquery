@@ -99,6 +99,6 @@ int main(int argc, char *argv[]) {
   }
 
   // Finally shutdown.
-  runner.shutdown();
+  runner.requestShutdown();
   return retcode;
 }

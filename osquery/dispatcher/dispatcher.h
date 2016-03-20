@@ -179,6 +179,12 @@ class Dispatcher : private boost::noncopyable {
   /// The set of shared osquery services.
   std::vector<InternalRunnableRef> services_;
 
+  // Protection around service access.
+  mutable Mutex mutex_;
+
+  // Protection around double joins.
+  mutable Mutex join_mutex_;
+
  private:
   friend class ExtensionsTest;
 };

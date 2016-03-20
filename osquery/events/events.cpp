@@ -599,10 +599,12 @@ Status EventFactory::run(EventPublisherID& type_id) {
     publisher->restart_count_++;
     osquery::publisherSleep(EVENTS_COOLOFF);
   }
-  // The runloop status is not reflective of the event type's.
-  VLOG(1) << "Event publisher " << publisher->type()
-          << " run loop terminated for reason: " << status.getMessage();
-  // Publishers auto tear down when their run loop stops.
+  if (!status.ok()) {
+    // The runloop status is not reflective of the event type's.
+    VLOG(1) << "Event publisher " << publisher->type()
+            << " run loop terminated for reason: " << status.getMessage();
+    // Publishers auto tear down when their run loop stops.
+  }
   publisher->tearDown();
 
   // Do not remove the publisher from the event factory.

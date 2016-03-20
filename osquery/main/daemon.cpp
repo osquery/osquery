@@ -38,13 +38,9 @@ int main(int argc, char* argv[]) {
   }
 
   // Begin the schedule runloop.
-  s = osquery::startScheduler();
-  if (!s.ok()) {
-    LOG(ERROR) << "Error starting scheduler: " << s.toString();
-  }
+  osquery::startScheduler();
 
-  // Finally shutdown.
-  runner.shutdown();
-
+  // Finally wait for a signal / interrupt to shutdown.
+  runner.waitForShutdown();
   return 0;
 }
