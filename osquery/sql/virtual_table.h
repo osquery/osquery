@@ -62,6 +62,11 @@ Status attachTableInternal(const std::string &name,
 /// Detach (drop) a table.
 Status detachTableInternal(const std::string &name, sqlite3 *db);
 
+Status attachFunctionInternal(
+    const std::string &name,
+    std::function<
+        void(sqlite3_context *context, int argc, sqlite3_value **argv)> func);
+
 /// Attach all table plugins to an in-memory SQLite database.
 void attachVirtualTables(const SQLiteDBInstanceRef &instance);
 }

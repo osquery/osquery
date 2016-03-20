@@ -179,9 +179,7 @@ static char continuePrompt[20]; // Continuation prompt. default: "   ...> "
 // since the shell is built around the callback paradigm it would be a lot
 // of work. Instead just use this hack, which is quite harmless.
 static const char *zShellStatic = 0;
-static void shellstaticFunc(sqlite3_context *context,
-                            int argc,
-                            sqlite3_value **argv) {
+void shellstaticFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
   assert(0 == argc);
   assert(zShellStatic);
   UNUSED_PARAMETER(argc);
@@ -670,9 +668,8 @@ static void output_csv(struct callback_data *p, const char *z, int bSep) {
 */
 static void interrupt_handler(int signal) {
   if (signal == SIGINT) {
-    osquery::Initializer::requestShutdown(130);
+    seenInterrupt = 1;
   }
-  seenInterrupt = 1;
 }
 #endif
 
@@ -1686,14 +1683,9 @@ int launchIntoShell(int argc, char **argv) {
   sqlite3WhereTrace = 0xffffffff;
 #endif
 
-  {
-    // Hold the manager connection instance again in callbacks.
-    auto dbc = SQLiteDBManager::get();
-    // Add some shell-specific functions to the instance.
-    sqlite3_create_function(
-        dbc->db(), "shellstatic", 0, SQLITE_UTF8, 0, shellstaticFunc, 0, 0);
-  }
-
+  // Move the attach function method into the osquery SQL implementation.
+  // This allow simple/straightforward control of concurrent DB access.
+  osquery::attachFunctionInternal("shellstatic", shellstaticFunc);
   stdin_is_interactive = isatty(0);
 
   // SQLite: Make sure we have a valid signal handler early

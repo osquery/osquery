@@ -124,6 +124,9 @@ Status SQLiteSQLPlugin::attach(const std::string& name) {
   }
 
   auto statement = columnDefinition(response);
+  // Attach requests occurring via the plugin/registry APIs must act on the
+  // primary database. To allow this, getConnection can explicitly request the
+  // primary instance and avoid the contention decisions.
   auto dbc = SQLiteDBManager::getConnection(true);
   return attachTableInternal(name, statement, dbc);
 }

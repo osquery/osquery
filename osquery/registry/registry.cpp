@@ -27,9 +27,6 @@ namespace osquery {
 
 HIDDEN_FLAG(bool, registry_exceptions, false, "Allow plugin exceptions");
 
-/// Mutex to control access to registry extensions and their UUIDs.
-Mutex gRegistryExtensionsMutex;
-
 void RegistryHelperCore::remove(const std::string& item_name) {
   if (items_.count(item_name) > 0) {
     items_[item_name]->tearDown();
@@ -292,7 +289,9 @@ RegistryBroadcast RegistryFactory::getBroadcast() {
 
 Status RegistryFactory::addBroadcast(const RouteUUID& uuid,
                                      const RegistryBroadcast& broadcast) {
-  if (instance().extensions_.count(uuid) > 0) {
+  auto& self = instance();
+  WriteLock lock(self.mutex_);
+  if (self.extensions_.count(uuid) > 0) {
     return Status(1, "Duplicate extension UUID: " + std::to_string(uuid));
   }
 
@@ -332,12 +331,13 @@ Status RegistryFactory::addBroadcast(const RouteUUID& uuid,
       Registry::registry(registry.first)->removeExternal(uuid);
     }
   }
-  instance().extensions_.insert(uuid);
+  self.extensions_.insert(uuid);
   return status;
 }
 
 Status RegistryFactory::removeBroadcast(const RouteUUID& uuid) {
-  WriteLock lock(gRegistryExtensionsMutex);
+  auto& self = instance();
+  WriteLock lock(self.mutex_);
   if (instance().extensions_.count(uuid) == 0) {
     return Status(1, "Unknown extension UUID: " + std::to_string(uuid));
   }
@@ -467,9 +467,10 @@ std::vector<std::string> RegistryFactory::names(
 }
 
 std::vector<RouteUUID> RegistryFactory::routeUUIDs() {
-  WriteLock lock(gRegistryExtensionsMutex);
+  auto& self = instance();
+  WriteLock lock(self.mutex_);
   std::vector<RouteUUID> uuids;
-  for (const auto& extension : instance().extensions_) {
+  for (const auto& extension : self.extensions_) {
     uuids.push_back(extension);
   }
   return uuids;
