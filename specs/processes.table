@@ -24,7 +24,7 @@ schema([
     Column("start_time", BIGINT,
         "Process start in seconds since boot (non-sleeping)"),
     Column("parent", BIGINT, "Process parent's PID"),
-    Column("group", BIGINT, "Process group"),
+    Column("pgroup", BIGINT, "Process group"),
     Column("nice", INTEGER, "Process nice level (-20 to 20, default 0)"),
 ])
 implementation("system/processes@genProcesses")

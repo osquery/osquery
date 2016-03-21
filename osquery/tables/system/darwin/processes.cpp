@@ -263,7 +263,7 @@ QueryData genProcesses(QueryContext &context) {
     proc_cred cred;
     if (getProcCred(pid, cred)) {
       r["parent"] = BIGINT(cred.parent);
-      r["group"] = BIGINT(cred.group);
+      r["pgroup"] = BIGINT(cred.group);
       // check if process state is one of the expected ones
       r["state"] = (1 <= cred.status && cred.status <= 5)
                        ? TEXT(kProcessStateMapping[cred.status])
