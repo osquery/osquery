@@ -59,12 +59,6 @@ function main_debian() {
     package automake
   fi 
 
-  install_boost
-
-  install_gflags
-  install_glog
-  install_google_benchmark
-
   if [[ $DISTRO == "wheezy" ]]; then
     gem_install fpm -v 1.3.3
   else
@@ -72,6 +66,11 @@ function main_debian() {
     set_cxx clang++
     gem_install fpm
   fi
+
+  install_boost
+  install_gflags
+  install_glog
+  install_google_benchmark
 
   install_snappy
   install_rocksdb 

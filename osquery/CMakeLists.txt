@@ -25,7 +25,6 @@ add_compile_options(
 set(OSQUERY_LIBS
   # This includes librocksdb[_lite] and libsnappy.
   ${THRIFT_LIBRARY}
-  ${GFLAGS_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
   ${OPENSSL_SSL_LIBRARY}
   ${READLINE_LIBRARIES}
@@ -74,6 +73,7 @@ if(LINUX)
 endif()
 
 # The remaining boost libraries are discovered with find_library.
+ADD_OSQUERY_LINK_CORE("gflags")
 ADD_OSQUERY_LINK_CORE("glog")
 ADD_OSQUERY_LINK_CORE("boost_system")
 ADD_OSQUERY_LINK_CORE("boost_filesystem")

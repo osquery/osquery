@@ -12,7 +12,10 @@ targets = {
     "box" => "bento/centos-7.1"
   },
   "ubuntu15.04"  => {
-    "box" => "ubuntu/vivid64"
+    "box" => "bento/ubuntu-15.04"
+  },
+  "ubuntu15.10"  => {
+    "box" => "bento/ubuntu-15.10"
   },
   "ubuntu14"  => {
     "box" => "ubuntu/trusty64"

@@ -27,6 +27,8 @@ std::string lexical_cast<std::string, bool>(const bool& b) {
 }
 }
 
+namespace flags = GFLAGS_NAMESPACE;
+
 namespace osquery {
 
 int Flag::create(const std::string& name, const FlagDetail& flag) {
@@ -40,8 +42,8 @@ int Flag::createAlias(const std::string& alias, const FlagDetail& flag) {
 }
 
 Status Flag::getDefaultValue(const std::string& name, std::string& value) {
-  GFLAGS_NAMESPACE::CommandLineFlagInfo info;
-  if (!GFLAGS_NAMESPACE::GetCommandLineFlagInfo(name.c_str(), &info)) {
+  flags::CommandLineFlagInfo info;
+  if (!flags::GetCommandLineFlagInfo(name.c_str(), &info)) {
     return Status(1, "Flags name not found.");
   }
 
@@ -50,8 +52,8 @@ Status Flag::getDefaultValue(const std::string& name, std::string& value) {
 }
 
 bool Flag::isDefault(const std::string& name) {
-  GFLAGS_NAMESPACE::CommandLineFlagInfo info;
-  if (!GFLAGS_NAMESPACE::GetCommandLineFlagInfo(name.c_str(), &info)) {
+  flags::CommandLineFlagInfo info;
+  if (!flags::GetCommandLineFlagInfo(name.c_str(), &info)) {
     return false;
   }
 
@@ -60,13 +62,13 @@ bool Flag::isDefault(const std::string& name) {
 
 std::string Flag::getValue(const std::string& name) {
   std::string current_value;
-  GFLAGS_NAMESPACE::GetCommandLineOption(name.c_str(), &current_value);
+  flags::GetCommandLineOption(name.c_str(), &current_value);
   return current_value;
 }
 
 std::string Flag::getType(const std::string& name) {
-  GFLAGS_NAMESPACE::CommandLineFlagInfo info;
-  if (!GFLAGS_NAMESPACE::GetCommandLineFlagInfo(name.c_str(), &info)) {
+  flags::CommandLineFlagInfo info;
+  if (!flags::GetCommandLineFlagInfo(name.c_str(), &info)) {
     return "";
   }
   return info.type;
@@ -85,20 +87,20 @@ std::string Flag::getDescription(const std::string& name) {
 
 Status Flag::updateValue(const std::string& name, const std::string& value) {
   if (instance().flags_.count(name) > 0) {
-    GFLAGS_NAMESPACE::SetCommandLineOption(name.c_str(), value.c_str());
+    flags::SetCommandLineOption(name.c_str(), value.c_str());
     return Status(0, "OK");
   } else if (instance().aliases_.count(name) > 0) {
     // Updating a flag by an alias name.
     auto& real_name = instance().aliases_.at(name).description;
-    GFLAGS_NAMESPACE::SetCommandLineOption(real_name.c_str(), value.c_str());
+    flags::SetCommandLineOption(real_name.c_str(), value.c_str());
     return Status(0, "OK");
   }
   return Status(1, "Flag not found");
 }
 
 std::map<std::string, FlagInfo> Flag::flags() {
-  std::vector<GFLAGS_NAMESPACE::CommandLineFlagInfo> info;
-  GFLAGS_NAMESPACE::GetAllFlags(&info);
+  std::vector<flags::CommandLineFlagInfo> info;
+  flags::GetAllFlags(&info);
 
   std::map<std::string, FlagInfo> flags;
   for (const auto& flag : info) {
@@ -110,18 +112,16 @@ std::map<std::string, FlagInfo> Flag::flags() {
     // Set the flag info from the internal info kept by Gflags, except for
     // the stored description. Gflag keeps an "unknown" value if the flag
     // was declared without a definition.
-    flags[flag.name] = {flag.type,
-                        instance().flags_.at(flag.name).description,
-                        flag.default_value,
-                        flag.current_value,
+    flags[flag.name] = {flag.type, instance().flags_.at(flag.name).description,
+                        flag.default_value, flag.current_value,
                         instance().flags_.at(flag.name)};
   }
   return flags;
 }
 
 void Flag::printFlags(bool shell, bool external, bool cli) {
-  std::vector<GFLAGS_NAMESPACE::CommandLineFlagInfo> info;
-  GFLAGS_NAMESPACE::GetAllFlags(&info);
+  std::vector<flags::CommandLineFlagInfo> info;
+  flags::GetAllFlags(&info);
   auto& details = instance().flags_;
 
   // Determine max indent needed for all flag names.

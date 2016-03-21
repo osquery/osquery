@@ -113,11 +113,6 @@ function main_ubuntu() {
   set_cxx g++ #-4.8
 
   install_cmake
-  install_boost
-
-  install_gflags
-  install_glog
-  install_google_benchmark
 
   if [[ $DISTRO = "lucid" ]]; then
     gem_install fpm -v 1.3.3
@@ -131,16 +126,26 @@ function main_ubuntu() {
     package bison
   fi
 
+  install_boost
+  install_gflags
+  install_glog
+  install_google_benchmark
+
   install_snappy
-  install_thrift
   install_rocksdb
+  install_thrift
   install_yara
   install_asio
   install_cppnetlib
   install_sleuthkit
 
   # Need headers and PC macros
-  package libgcrypt-dev
+  if [[ $DISTRO = "vivid" || $DISTRO = "wily" || $DISRO = "xenial" ]]; then
+    package libgcrypt20-dev
+  else
+    package libgcrypt-dev
+  fi
+
   package libdevmapper-dev
   package libaudit-dev
   package libmagic-dev
