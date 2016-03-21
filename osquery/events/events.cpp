@@ -26,9 +26,6 @@
 
 namespace osquery {
 
-/// Helper cooloff (ms) macro to prevent thread failure thrashing.
-#define EVENTS_COOLOFF 20
-
 /// Checkpoint interval to inspect max event buffering.
 #define EVENTS_CHECKPOINT 256
 
@@ -51,10 +48,6 @@ const std::vector<size_t> kEventTimeLists = {
     1 * 60, // 1 minute
     10, // 10 seconds
 };
-
-void publisherSleep(size_t milli) {
-  std::this_thread::sleep_for(std::chrono::milliseconds(milli));
-}
 
 static inline EventTime timeFromRecord(const std::string& record) {
   // Convert a stored index "as string bytes" to a time value.
@@ -597,7 +590,10 @@ Status EventFactory::run(EventPublisherID& type_id) {
       break;
     }
     publisher->restart_count_++;
-    osquery::publisherSleep(EVENTS_COOLOFF);
+    // This is a 'default' cool-off implemented in InterruptableRunnable.
+    // If a publisher fails to perform some sort of interruption point, this
+    // prevents the thread from thrashing through exiting checks.
+    publisher->pause();
   }
   if (!status.ok()) {
     // The runloop status is not reflective of the event type's.

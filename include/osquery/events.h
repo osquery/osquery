@@ -19,6 +19,7 @@
 #include <vector>
 
 #include <osquery/core.h>
+#include <osquery/dispatcher.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>
@@ -172,7 +173,7 @@ struct Subscription : private boost::noncopyable {
   Subscription() = delete;
 };
 
-class EventPublisherPlugin : public Plugin {
+class EventPublisherPlugin : public Plugin, public InterruptableRunnable {
  public:
   /**
    * @brief A new Subscription was added, potentially change state based on all
@@ -220,7 +221,7 @@ class EventPublisherPlugin : public Plugin {
    * run loop manager will exit the stepping loop and fall through to a call
    * to tearDown followed by a removal of the publisher.
    */
-  virtual void stop() {}
+  virtual void stop() override {}
 
   /**
    * @brief A new EventSubscriber is subscribing events of this publisher type.
@@ -952,9 +953,6 @@ class EventSubscriber : public EventSubscriberPlugin {
 /// Iterate the event publisher registry and create run loops for each using
 /// the event factory.
 void attachEvents();
-
-/// Sleep in a std::thread interruptible state.
-void publisherSleep(size_t milli);
 
 CREATE_REGISTRY(EventPublisherPlugin, "event_publisher");
 CREATE_REGISTRY(EventSubscriberPlugin, "event_subscriber");

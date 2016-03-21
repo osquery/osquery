@@ -10,9 +10,8 @@
 
 #pragma once
 
+#include <osquery/dispatcher.h>
 #include <osquery/extensions.h>
-
-#include "osquery/dispatcher/dispatcher.h"
 
 // osquery is built with various versions of thrift that use different search
 // paths for their includes. Unfortunately, changing include paths is not

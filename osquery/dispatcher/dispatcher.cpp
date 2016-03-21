@@ -10,11 +10,11 @@
 
 #include <chrono>
 
+#include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/dispatcher/dispatcher.h"
 
 #if 0
 #ifdef DLOG
@@ -46,7 +46,23 @@ void RunnerInterruptPoint::pause(size_t milli) {
   }
 }
 
-void InternalRunnable::pauseMilli(size_t milli) {
+void InterruptableRunnable::interrupt() {
+  WriteLock lock(stopping_);
+  // Set the service as interrupted.
+  interrupted_ = true;
+  // Tear down the service's resources such that exiting the expected run
+  // loop within ::start does not need to.
+  stop();
+  // Cancel the run loop's pause request.
+  point_.cancel();
+}
+
+bool InterruptableRunnable::interrupted() {
+  WriteLock lock(stopping_);
+  return interrupted_;
+}
+
+void InterruptableRunnable::pauseMilli(size_t milli) {
   try {
     point_.pause(milli);
   } catch (const RunnerInterruptError&) {

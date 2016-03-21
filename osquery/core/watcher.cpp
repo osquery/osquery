@@ -21,7 +21,6 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/watcher.h"
-#include "osquery/dispatcher/dispatcher.h"
 
 extern char** environ;
 
