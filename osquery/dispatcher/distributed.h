@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "osquery/dispatcher/dispatcher.h"
+#include <osquery/dispatcher.h>
 
 namespace osquery {
 

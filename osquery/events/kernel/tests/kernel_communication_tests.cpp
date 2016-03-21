@@ -16,7 +16,8 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/dispatcher/dispatcher.h"
+#include <osquery/dispatcher.h>
+
 #include "osquery/events/kernel.h"
 
 namespace osquery {

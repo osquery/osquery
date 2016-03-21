@@ -46,7 +46,47 @@ class RunnerInterruptPoint : private boost::noncopyable {
   std::condition_variable condition_;
 };
 
-class InternalRunnable : private boost::noncopyable {
+class InterruptableRunnable {
+ public:
+  virtual ~InterruptableRunnable() {}
+
+  /**
+   * @brief The std::thread's interruption point.
+   */
+  virtual void interrupt() final;
+
+ protected:
+  /// Allow the runnable to check interruption.
+  bool interrupted();
+
+  /// Require the runnable thread to define a stop/interrupt point.
+  virtual void stop() = 0;
+
+  /// Put the runnable into an interruptible sleep.
+  virtual void pause() { pauseMilli(100); }
+
+  /// Put the runnable into an interruptible sleep.
+  virtual void pauseMilli(size_t milli);
+
+ private:
+  /**
+   * @brief Protect interruption checking and resource tear down.
+   *
+   * A tearDown mutex protects the runnable service's resources.
+   * Interruption means resources have been stopped.
+   * Non-interruption means no attempt to affect resources has been started.
+   */
+  std::mutex stopping_;
+
+  /// If a service includes a run loop it should check for interrupted.
+  std::atomic<bool> interrupted_{false};
+
+  /// Use an interruption point to exit a pause if the thread was interrupted.
+  RunnerInterruptPoint point_;
+};
+
+class InternalRunnable : private boost::noncopyable,
+                         public InterruptableRunnable {
  public:
   InternalRunnable() : run_(false) {}
   virtual ~InternalRunnable() {}
@@ -71,56 +111,15 @@ class InternalRunnable : private boost::noncopyable {
    */
   bool hasRun() { return run_; }
 
-  /**
-   * @brief The std::thread's interruption point.
-   */
-  virtual void interrupt() final {
-    WriteLock lock(stopping_);
-    // Set the service as interrupted.
-    interrupted_ = true;
-    // Tear down the service's resources such that exiting the expected run
-    // loop within ::start does not need to.
-    stop();
-    // Cancel the run loop's pause request.
-    point_.cancel();
-  }
-
  protected:
-  /// Allow the runnable to check interruption.
-  bool interrupted() {
-    WriteLock lock(stopping_);
-    return interrupted_;
-  }
-
   /// Require the runnable thread define an entrypoint.
   virtual void start() = 0;
 
   /// Require the runnable thread to define a stop/interrupt point.
   virtual void stop() {}
 
-  /// Put the runnable into an interruptible sleep.
-  virtual void pause() { pauseMilli(100); }
-
-  /// Put the runnable into an interruptible sleep.
-  virtual void pauseMilli(size_t milli);
-
  private:
   std::atomic<bool> run_{false};
-
-  /// If a service includes a run loop it should check for interrupted.
-  std::atomic<bool> interrupted_{false};
-
-  /**
-   * @brief Protect interruption checking and resource tear down.
-   *
-   * A tearDown mutex protects the runnable service's resources.
-   * Interruption means resources have been stopped.
-   * Non-interruption means no attempt to affect resources has been started.
-   */
-  std::mutex stopping_;
-
-  /// Use an interruption point to exit a pause if the thread was interrupted.
-  RunnerInterruptPoint point_;
 };
 
 /// An internal runnable used throughout osquery as dispatcher services.

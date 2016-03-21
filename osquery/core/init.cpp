@@ -22,6 +22,7 @@
 
 #include <osquery/config.h>
 #include <osquery/core.h>
+#include <osquery/dispatcher.h>
 #include <osquery/events.h>
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
@@ -30,7 +31,6 @@
 #include <osquery/registry.h>
 
 #include "osquery/core/watcher.h"
-#include "osquery/dispatcher/dispatcher.h"
 
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <sys/resource.h>

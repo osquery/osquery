@@ -328,7 +328,7 @@ Status AuditEventPublisher::run() {
   }
 
   // Only apply a cool down if the reply request failed.
-  osquery::publisherSleep(kAuditMLatency);
+  pauseMilli(kAuditMLatency);
   return Status(0, "OK");
 }
 

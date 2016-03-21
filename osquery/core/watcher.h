@@ -17,9 +17,8 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/dispatcher.h>
 #include <osquery/flags.h>
-
-#include "osquery/dispatcher/dispatcher.h"
 
 /// Define a special debug/testing watchdog level.
 #define WATCHDOG_LEVEL_DEBUG 3
