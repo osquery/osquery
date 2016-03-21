@@ -98,7 +98,6 @@ function main_rhel() {
   set_cxx g++
 
   install_cmake
-  install_boost
 
   if [[ $DISTRO = "rhel6" ]]; then
     package libudev-devel
@@ -106,10 +105,6 @@ function main_rhel() {
   elif [[ $DISTRO = "rhel7" ]]; then
     package cryptsetup-devel
   fi
-
-  install_gflags
-  install_glog
-  install_iptables_dev
 
   package doxygen
   package byacc
@@ -134,13 +129,18 @@ function main_rhel() {
     package systemd-devel
   fi
 
+  install_boost
+  install_gflags
+  install_glog
+  install_google_benchmark
+
   install_snappy
   install_rocksdb
   install_thrift
   install_yara
   install_asio
   install_cppnetlib
-  install_google_benchmark
+  install_sleuthkit
 
   # Device mapper uses the exact version as the ABI.
   # We will build and install a static version.
@@ -149,8 +149,9 @@ function main_rhel() {
 
   package libgcrypt-devel
   package gettext-devel
+
+  install_iptables_dev
   install_libcryptsetup
-  install_sleuthkit
 
   if [[ $DISTRO = "rhel7" ]]; then
     package audit-libs-devel

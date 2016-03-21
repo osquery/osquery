@@ -35,6 +35,7 @@ add_compile_options(
   -Wformat
   -Wformat-security
   -Werror=format-security
+  -Wabi-tag
   -fstack-protector-all
   -fPIE
   -fpie
