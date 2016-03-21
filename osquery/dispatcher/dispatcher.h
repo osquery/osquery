@@ -185,6 +185,19 @@ class Dispatcher : private boost::noncopyable {
   // Protection around double joins.
   mutable Mutex join_mutex_;
 
+  /**
+   * @brief Signal to the Dispatcher that no services should be created.
+   *
+   * The Dispatcher will not add services if it is shutting down until
+   * a join has completed of existing services.
+   *
+   * This prevents a very strange race where the dispatcher is signaled to
+   * abort or interrupt and serviced are sill waiting to be added.
+   * A future join will be requested AFTER all services were expected to have
+   * been interrupted.
+   */
+  std::atomic<bool> stopping_{false};
+
  private:
   friend class ExtensionsTest;
 };
