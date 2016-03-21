@@ -21,34 +21,54 @@ static const int kUdevMLatency = 200;
 REGISTER(UdevEventPublisher, "event_publisher", "udev");
 
 Status UdevEventPublisher::setUp() {
+  // The Setup and Teardown workflows should be protected against races.
+  // Just in case let's protect the publisher's resources.
+  WriteLock lock(mutex_);
+
   // Create the udev object.
   handle_ = udev_new();
-  if (!handle_) {
+  if (handle_ == nullptr) {
     return Status(1, "Could not create udev object.");
   }
 
   // Set up the udev monitor before scanning/polling.
   monitor_ = udev_monitor_new_from_netlink(handle_, "udev");
-  udev_monitor_enable_receiving(monitor_);
+  if (monitor_ == nullptr) {
+    udev_unref(handle_);
+    handle_ = nullptr;
+    return Status(1, "Could not create udev monitor.");
+  }
 
+  udev_monitor_enable_receiving(monitor_);
   return Status(0, "OK");
 }
 
 void UdevEventPublisher::configure() {}
 
 void UdevEventPublisher::tearDown() {
+  WriteLock lock(mutex_);
   if (monitor_ != nullptr) {
     udev_monitor_unref(monitor_);
+    monitor_ = nullptr;
   }
 
   if (handle_ != nullptr) {
     udev_unref(handle_);
+    handle_ = nullptr;
   }
 }
 
 Status UdevEventPublisher::run() {
-  int fd = udev_monitor_get_fd(monitor_);
+  int fd = 0;
   fd_set set;
+
+  {
+    WriteLock lock(mutex_);
+    if (monitor_ == nullptr) {
+      return Status(1);
+    }
+    fd = udev_monitor_get_fd(monitor_);
+  }
 
   FD_ZERO(&set);
   FD_SET(fd, &set);
@@ -65,7 +85,7 @@ Status UdevEventPublisher::run() {
     return Status(0, "Finished");
   }
 
-  struct udev_device *device = udev_monitor_receive_device(monitor_);
+  struct udev_device* device = udev_monitor_receive_device(monitor_);
   if (device == nullptr) {
     LOG(ERROR) << "udev monitor returned invalid device";
     return Status(1, "udev monitor failed.");

@@ -112,7 +112,12 @@ class UdevEventPublisher
  private:
   /// udev handle (socket descriptor contained within).
   struct udev* handle_{nullptr};
+
+  /// udev monitor.
   struct udev_monitor* monitor_{nullptr};
+
+  /// Protection around udev resources.
+  Mutex mutex_;
 
  private:
   /// Check subscription details.

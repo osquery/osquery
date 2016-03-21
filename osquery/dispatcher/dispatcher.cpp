@@ -60,6 +60,12 @@ Status Dispatcher::addService(InternalRunnableRef service) {
   }
 
   auto& self = instance();
+  if (self.stopping_) {
+    // Cannot add a service while the dispatcher is stopping and no joins
+    // have been requested.
+    return Status(1, "Cannot add service, dispatcher is stopping");
+  }
+
   auto thread = std::make_shared<std::thread>(
       std::bind(&InternalRunnable::run, &*service));
   WriteLock lock(self.mutex_);
@@ -85,11 +91,14 @@ void Dispatcher::joinServices() {
   WriteLock lock(self.mutex_);
   self.services_.clear();
   self.service_threads_.clear();
+  self.stopping_ = false;
   DLOG(INFO) << "Services and threads have been cleared";
 }
 
 void Dispatcher::stopServices() {
   auto& self = instance();
+  self.stopping_ = true;
+
   WriteLock lock(self.mutex_);
   DLOG(INFO) << "Thread: " << std::this_thread::get_id()
              << " requesting a stop";
