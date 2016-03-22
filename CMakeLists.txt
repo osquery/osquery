@@ -54,7 +54,7 @@ if(DEFINED ENV{OSQUERY_PLATFORM})
   set(PLATFORM "$ENV{OSQUERY_PLATFORM}")
 else()
   execute_process(
-    COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" get_platform
+    COMMAND python "${CMAKE_SOURCE_DIR}/tools/get_platform.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE PLATFORM
     OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -314,13 +314,60 @@ elseif(DEBIAN_BASED)
   add_definitions(-DDEBIAN_BASED=1)
 endif()
 
-# Make sure the generated paths exist
-execute_process(COMMAND mkdir -p "${CMAKE_BINARY_DIR}/generated")
+if(NOT OSQUERY_BUILD_PLATFORM STREQUAL "windows")
+  set(MKDIR_OPTS "-p")
+else()
+  set(MKDIR_OPTS "")
+  
+  # Win64 does not have a kernel build component-specific
+  set(OSQUERY_BUILD_SDK_ONLY TRUE)
+  
+  # Win64 specific BZIP2 variables
+  set(BZIP2_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third-party/bzip2-1.0.6")
+  set(BZIP2_LIBRARIES "${CMAKE_SOURCE_DIR}/third-party/bzip2-1.0.6/libbz2.lib")
+  
+  # Win64 specific OpenSSL variables
+  set(OPENSSL_ROOT_DIR "${CMAKE_SOURCE_DIR}/third-party/openssl/out32dll")
+  set(OPENSSL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third-party/openssl/inc32")
+  set(OPENSSL_CRYPTO_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/openssl/out32dll/libeay32.lib")
+  set(OPENSSL_SSL_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/openssl/out32dll/ssleay32.lib")
+  set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  
+  # Win64 specific Gflags
+  set(GFLAGS_ROOT_DIR "${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build")
+  set(GFLAGS_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build/include")
+  set(GFLAGS_LIBRARY_RELEASE "${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build/lib/Release/gflags_static.lib")
+  # TODO(WIN64): Think about actually building a debug library
+  set(GFLAGS_LIBRARY_DEBUG "${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build/lib/Release/gflags_static.lib")
+  set(GFLAGS_LIBRARY optimized ${GFLAGS_LIBRARY_RELEASE} debug ${GFLAGS_LIBRARY_DEBUG})
+  set(GFLAGS_LIBRARIES ${GFLAGS_LIBRARY})
+  
+  # Win64 specific Thrift
+  set(THRIFT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third-party/thrift/cmake-build")
+  set(THRIFT_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/thrift/cmake-build/lib/Release/thriftmd.lib")
+  set(THRIFT_COMPILER "${CMAKE_SOURCE_DIR}/third-party/thrift-compiler/thrift-0.9.3.exe")
+  
+  # Win64 specific rocksdb
+  set(ROCKSDB_STATIC_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/rocksdb/build/Release/rocksdb.lib")
+  set(ROCKSDB_SNAPPY_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/snappy-windows-1.1.1.8/native/snappy64.lib")
+  
+  # Win64 specific doxygen
+  set(DOXYGEN_EXECUTABLE "${CMAKE_SOURCE_DIR}/third-party/doxygen-1.8.11.windows.x64.bin/doxygen.exe")
+endif()
+
+# Make sure the generated paths exist 
+execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
 
 # We need to link some packages as dynamic/dependent.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .dll .dylib .so .a)
+
 find_package(BZip2 REQUIRED)
-find_package(Dl REQUIRED)
+
+if(NOT OSQUERY_BUILD_PLATFORM STREQUAL "windows")
+	find_package(Dl REQUIRED)
+endif()
+
 find_package(Readline REQUIRED)
 
 # Apple has deprecated OpenSSL, static link with brew bottled libressl
@@ -336,6 +383,7 @@ if(APPLE)
     set(OPENSSL_ROOT_DIR "/usr")
   endif()
 endif()
+
 find_package(OpenSSL REQUIRED)
 include_directories("${OPENSSL_INCLUDE_DIR}")
 
