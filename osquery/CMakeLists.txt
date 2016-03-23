@@ -15,11 +15,18 @@ set(OSQUERY_ADDITIONAL_TESTS "")
 set(OSQUERY_TABLES_TESTS "")
 
 # Add all and extra for osquery code.
-add_compile_options(
-  -Wall
-  -Wextra
-  -Wno-unused-parameter
-)
+# TODO(WIN64): Changes for Win64 CMake
+if(WIN32)
+  add_compile_options(
+    /Wall
+  )
+else()
+  add_compile_options(
+    -Wall
+    -Wextra
+    -Wno-unused-parameter
+  )
+endif()
 
 # The core set of osquery libraries most discovered with find_package.
 set(OSQUERY_LIBS

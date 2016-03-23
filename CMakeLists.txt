@@ -23,28 +23,32 @@ elseif(CLANGXX_EXISTS)
   set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
-add_compile_options(
-  -Wstrict-aliasing
-  -Wno-missing-field-initializers
-  -Wno-unused-local-typedef
-  -Wno-unknown-warning-option
-  -Wnon-virtual-dtor
-  -Wchar-subscripts
-  -Wpointer-arith
-  -Woverloaded-virtual
-  -Wformat
-  -Wformat-security
-  -Werror=format-security
-  -Wabi-tag
-  -fstack-protector-all
-  -fPIE
-  -fpie
-  -fPIC
-  -fpic
-  -pipe
-  -fdata-sections
-  -ffunction-sections
-)
+if(WIN32)
+  # Ich weiss nicht
+else()
+  add_compile_options(
+    -Wstrict-aliasing
+    -Wno-missing-field-initializers
+    -Wno-unused-local-typedef
+    -Wno-unknown-warning-option
+    -Wnon-virtual-dtor
+    -Wchar-subscripts
+    -Wpointer-arith
+    -Woverloaded-virtual
+    -Wformat
+    -Wformat-security
+    -Werror=format-security
+    -Wabi-tag
+    -fstack-protector-all
+    -fPIE
+    -fpie
+    -fPIC
+    -fpic
+    -pipe
+    -fdata-sections
+    -ffunction-sections
+  )
+endif()
 
 # osquery additional compiler flags added by CMake.
 set(C_COMPILE_FLAGS "")
@@ -143,14 +147,23 @@ set(OSQUERY_REQUIRE_RUNTIMES
 if(DEFINED ENV{DEBUG})
   set(DEBUG TRUE)
   set(CMAKE_BUILD_TYPE "Debug")
-  add_compile_options(
-    -g
-    -O0
-    -fstandalone-debug
-  )
+  if(WIN32)
+    # TODO(WIN64): any other compile options to add?
+    add_compile_options(
+      /Zi
+      /Od   
+    )
+  else()
+    add_compile_options(
+      -g
+      -O0
+      -fstandalone-debug
+    )
+  endif()
   add_definitions(-DDEBUG)
   WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
+  # TODO(WIN64): need to deal with these compile options...
   # make sanitize (cannot make debug sanitize)
   add_compile_options(
     -g
@@ -172,7 +185,12 @@ elseif(DEFINED ENV{SANITIZE})
   add_definitions(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
 else()
   set(DEBUG FALSE)
-  add_compile_options(-Os)
+  # TODO(WIN64): more options to change for windows
+  if(WIN32)
+    add_compile_options(/Ot)
+  else()
+    add_compile_options(-Os)
+  endif()
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
@@ -181,12 +199,22 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT DEFINED ENV{OPTIMIZED})
-  add_compile_options(-march=x86-64 -mno-avx)
+  # TODO(WIN64): I think by default no-avx is implied if not added as /arch:AVX
+  if(WIN32)
+    add_compile_options(/favor:AMD64)
+  else()
+    add_compile_options(-march=x86-64 -mno-avx)
+  endif()
 endif()
 
 # make analyze (environment variable from Makefile)
 if(DEFINED ENV{ANALYZE})
-  set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
+  # TODO(WIN64): ignore the analyzer option for now
+  if(WIN32)
+    message(FATAL_ERROR "Cannot analyze on Win64 right now." )
+  else()
+    set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
+  endif()
 endif()
 
 # make sdk (tests building SDK-based extensions)
@@ -318,9 +346,7 @@ elseif(DEBIAN_BASED)
   add_definitions(-DDEBIAN_BASED=1)
 endif()
 
-if(NOT OSQUERY_BUILD_PLATFORM STREQUAL "windows")
-  set(MKDIR_OPTS "-p")
-else()
+if(WIN32)
   set(MKDIR_OPTS "")
   
   # Win64 does not have a kernel build component-specific
@@ -339,7 +365,7 @@ else()
   set(OPENSSL_USE_STATIC_LIBS TRUE)
   
   # Win64 specific Thrift
-  set(THRIFT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third-party/thrift/cmake-build")
+  set(THRIFT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third-party/thrift/lib/cpp/src")
   set(THRIFT_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/thrift/cmake-build/lib/Release/thriftmd.lib")
   set(THRIFT_COMPILER "${CMAKE_SOURCE_DIR}/third-party/thrift-compiler/thrift-0.9.3.exe")
   
@@ -363,6 +389,8 @@ else()
   
   # Win64 specific yara
   set(yara_library "${CMAKE_SOURCE_DIR}/third-party/yara-3.4.0/windows/libyara/Release/libyara64.lib")
+else()
+  set(MKDIR_OPTS "-p")
 endif()
 
 # Make sure the generated paths exist 
@@ -373,7 +401,7 @@ set(CMAKE_FIND_LIBRARY_SUFFIXES .dll .dylib .so .a)
 
 find_package(BZip2 REQUIRED)
 
-if(NOT OSQUERY_BUILD_PLATFORM STREQUAL "windows")
+if(NOT WIN32)
 	find_package(Dl REQUIRED)
 endif()
 
@@ -453,8 +481,20 @@ include(Thrift)
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
-include_directories("/usr/local/include")
-link_directories("/usr/local/lib")
+
+# TODO(WIN64): Unix specific things
+if(WIN32)
+  # We might have to provide include directories by hand...
+  include_directories("${THRIFT_INCLUDE_DIR}")
+  include_directories("${CMAKE_SOURCE_DIR}/third-party/boost_1_59_0")
+  include_directories("${CMAKE_SOURCE_DIR}/third-party/glog-w64/src/windows")
+  include_directories("${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build/include")
+  
+  # TODO(WIN64): For the future, we probably need to add link_directories...
+else()
+  include_directories("/usr/local/include")
+  link_directories("/usr/local/lib")
+endif()
 
 # Add custom homebrew paths
 if(APPLE)
@@ -494,6 +534,7 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 
+# TODO(WIN64): NEed to windows-ify this
 # make format-all
 add_custom_target(
   format-all
@@ -511,6 +552,7 @@ add_custom_target(
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
 
+# TODO(WIN64): need to deal with sync.sh bash script...
 # make sync
 add_custom_target(
   sync
