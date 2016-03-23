@@ -24,7 +24,7 @@ elseif(CLANGXX_EXISTS)
 endif()
 
 if(WIN32)
-  # Ich weiss nicht
+  # TODO(WIN64): Put customized compiler options here
 else()
   add_compile_options(
     -Wstrict-aliasing
