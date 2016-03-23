@@ -249,7 +249,7 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["parent"] = proc_stat.parent;
   r["path"] = readProcLink("exe", pid);
   r["name"] = proc_stat.name;
-  r["group"] = proc_stat.group;
+  r["pgroup"] = proc_stat.group;
   r["state"] = proc_stat.state;
   r["nice"] = proc_stat.nice;
   // Read/parse cmdline arguments.

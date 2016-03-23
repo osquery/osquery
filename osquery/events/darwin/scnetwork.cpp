@@ -21,15 +21,10 @@ REGISTER(SCNetworkEventPublisher, "event_publisher", "scnetwork");
 
 void SCNetworkEventPublisher::tearDown() {
   stop();
-  for (auto target : targets_) {
-    CFRelease(target);
-  }
-  targets_.clear();
 
-  for (auto context : contexts_) {
-    CFRelease(context);
-  }
-  contexts_.clear();
+  WriteLock lock(mutex_);
+  clearAll();
+  run_loop_ = nullptr;
 }
 
 void SCNetworkEventPublisher::Callback(const SCNetworkReachabilityRef target,
@@ -91,45 +86,69 @@ void SCNetworkEventPublisher::addAddress(
   addTarget(sc, target);
 }
 
+void SCNetworkEventPublisher::clearAll() {
+  for (auto& target : targets_) {
+    CFRelease(target);
+  }
+  targets_.clear();
+
+  for (auto& context : contexts_) {
+    delete context;
+  }
+  contexts_.clear();
+
+  target_names_.clear();
+  target_addresses_.clear();
+}
+
 void SCNetworkEventPublisher::configure() {
-  for (const auto& sub : subscriptions_) {
-    auto sc = getSubscriptionContext(sub->context);
-    if (sc->type == ADDRESS_TARGET) {
-      auto existing_address = std::find(
-          target_addresses_.begin(), target_addresses_.end(), sc->target);
-      if (existing_address != target_addresses_.end()) {
-        // Add the address target.
-        addAddress(sc);
-      }
-    } else {
-      auto existing_hostname =
-          std::find(target_names_.begin(), target_names_.end(), sc->target);
-      if (existing_hostname != target_names_.end()) {
-        // Add the hostname target.
-        addHostname(sc);
+  // Must stop before clearing contexts.
+  stop();
+
+  {
+    WriteLock lock(mutex_);
+    // Clear all targets.
+    clearAll();
+
+    for (const auto& sub : subscriptions_) {
+      auto sc = getSubscriptionContext(sub->context);
+      if (sc->type == ADDRESS_TARGET) {
+        auto existing_address = std::find(
+            target_addresses_.begin(), target_addresses_.end(), sc->target);
+        if (existing_address != target_addresses_.end()) {
+          // Add the address target.
+          addAddress(sc);
+        }
+      } else {
+        auto existing_hostname =
+            std::find(target_names_.begin(), target_names_.end(), sc->target);
+        if (existing_hostname != target_names_.end()) {
+          // Add the hostname target.
+          addHostname(sc);
+        }
       }
     }
-  }
 
-  // Make sure at least one target exists.
-  if (targets_.empty()) {
-    auto sc = createSubscriptionContext();
-    sc->type = NAME_TARGET;
-    sc->target = "localhost";
-    addHostname(sc);
+    // Make sure at least one target exists.
+    if (targets_.empty()) {
+      auto sc = createSubscriptionContext();
+      sc->type = NAME_TARGET;
+      sc->target = "localhost";
+      addHostname(sc);
+    }
   }
 
   restart();
 }
 
 void SCNetworkEventPublisher::restart() {
-  stop();
-
   if (run_loop_ == nullptr) {
-    // Cannot schedule.
     return;
   }
 
+  stop();
+
+  WriteLock lock(mutex_);
   for (const auto& target : targets_) {
     SCNetworkReachabilityScheduleWithRunLoop(
         target, run_loop_, kCFRunLoopDefaultMode);
@@ -142,11 +161,13 @@ void SCNetworkEventPublisher::stop() {
     return;
   }
 
+  WriteLock lock(mutex_);
   for (const auto& target : targets_) {
     SCNetworkReachabilityUnscheduleFromRunLoop(
         target, run_loop_, kCFRunLoopDefaultMode);
   }
 
+  // Stop the run loop.
   CFRunLoopStop(run_loop_);
 }
 

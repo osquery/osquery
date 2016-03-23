@@ -63,15 +63,9 @@ function main_centos() {
   set_cc clang
   set_cxx clang++
 
-  install_boost
-
   if [[ $DISTRO = "centos6" ]]; then
     package libudev-devel
   fi
-
-  install_gflags
-  install_glog
-  install_iptables_dev
 
   package doxygen
   package byacc
@@ -98,13 +92,18 @@ function main_centos() {
     package bison
   fi
 
+  install_boost
+  install_gflags
+  install_glog
+  install_google_benchmark
+
   install_snappy
   install_rocksdb
   install_thrift
   install_yara
   install_asio
   install_cppnetlib
-  install_google_benchmark
+  install_sleuthkit
 
   # Device mapper uses the exact version as the ABI.
   # We will build and install a static version.
@@ -114,7 +113,7 @@ function main_centos() {
   package libgcrypt-devel
   package gettext-devel
   install_libcryptsetup
-  install_sleuthkit
+  install_iptables_dev
 
   package audit-libs-devel
   package audit-libs-static

@@ -9,16 +9,15 @@
  */
 
 #include <chrono>
-#include <csignal>
 #include <iostream>
 #include <random>
+#include <thread>
 
 #include <stdio.h>
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
 
 #include <osquery/config.h>
@@ -95,8 +94,6 @@ enum {
 /// Seconds to alarm and quit for non-responsive event loops.
 #define SIGNAL_ALARM_TIMEOUT 4
 
-namespace fs = boost::filesystem;
-
 namespace {
 extern "C" {
 static inline bool hasWorkerVariable() {
@@ -107,41 +104,50 @@ volatile std::sig_atomic_t kHandledSignal{0};
 
 static inline bool isWatcher() { return (osquery::Watcher::getWorker() > 0); }
 
-void signalHandler(int signal) {
+void signalHandler(int num) {
   // Inform exit status of main threads blocked by service joins.
   if (kHandledSignal == 0) {
-    kHandledSignal = signal;
+    kHandledSignal = num;
+    // If no part of osquery requested an interruption then the exit 'wanted'
+    // code becomes the signal number.
+    if (num != SIGUSR1 && osquery::kExitCode == 0) {
+      // The only exception is SIGUSR1 which is used to signal the main thread
+      // to interrupt dispatched services.
+      osquery::kExitCode = 128 + num;
+    }
+
+    // Handle signals based on a tri-state (worker, watcher, neither).
+    if (num == SIGHUP) {
+      if (!isWatcher() || hasWorkerVariable()) {
+        // Reload configuration.
+      }
+    } else if (num == SIGTERM || num == SIGINT || num == SIGABRT ||
+               num == SIGUSR1) {
+      // Time to stop, set an upper bound time constraint on how long threads
+      // have to terminate (join). Publishers may be in 20ms or similar sleeps.
+      alarm(SIGNAL_ALARM_TIMEOUT);
+
+      // Restore the default signal handler.
+      std::signal(num, SIG_DFL);
+
+      // The watcher waits for the worker to die.
+      if (isWatcher()) {
+        // Bind the fate of the worker to this watcher.
+        osquery::Watcher::bindFates();
+      } else {
+        // Otherwise the worker or non-watched process joins.
+        // Stop thrift services/clients/and their thread pools.
+        osquery::Dispatcher::stopServices();
+      }
+    }
   }
 
-  // Handle signals based on a tri-state (worker, watcher, neither).
-  if (signal == SIGHUP) {
-    if (!isWatcher() || hasWorkerVariable()) {
-      // Reload configuration.
-    }
-  } else if (signal == SIGTERM || signal == SIGINT || signal == SIGABRT) {
-    // Time to stop, set an upper bound time constraint on how long threads
-    // have to terminate (join). Publishers may be in 20ms or similar sleeps.
-    alarm(SIGNAL_ALARM_TIMEOUT);
-
-    // Restore the default signal handler.
-    std::signal(signal, SIG_DFL);
-
-    // The watcher waits for the worker to die.
-    if (isWatcher()) {
-      // Bind the fate of the worker to this watcher.
-      osquery::Watcher::bindFates();
-    } else {
-      // Otherwise the worker or non-watched process joins.
-      osquery::EventFactory::end(true);
-      // Re-raise the handled signal, which has since been restored to default.
-      raise(signal);
-    }
-  } else if (signal == SIGALRM) {
+  if (num == SIGALRM) {
     // Restore the default signal handler for SIGALRM.
     std::signal(SIGALRM, SIG_DFL);
 
     // Took too long to stop.
-    VLOG(1) << "Cannot stop event publisher threads";
+    VLOG(1) << "Cannot stop event publisher threads or services";
     raise((kHandledSignal != 0) ? kHandledSignal : SIGALRM);
   }
 
@@ -171,6 +177,11 @@ DECLARE_bool(database_dump);
 DECLARE_string(database_path);
 
 ToolType kToolType = OSQUERY_TOOL_UNKNOWN;
+
+volatile std::sig_atomic_t kExitCode{0};
+
+/// The saved thread ID for shutdown to short-circuit raising a signal.
+static std::thread::id kMainThreadId;
 
 void printUsage(const std::string& binary, int tool) {
   // Parse help options before gflags. Only display osquery-related options.
@@ -207,6 +218,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       tool_(tool),
       binary_((tool == OSQUERY_TOOL_DAEMON) ? "osqueryd" : "osqueryi") {
   std::srand(chrono_clock::now().time_since_epoch().count());
+  // The 'main' thread is that which executes the initializer.
+  kMainThreadId = std::this_thread::get_id();
 
   // Handled boost filesystem locale problems fixes in 1.56.
   // See issue #1559 for the discussion and upstream boost patch.
@@ -223,7 +236,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
          help == "-h") &&
         tool != OSQUERY_TOOL_TEST) {
       printUsage(binary_, tool_);
-      ::exit(EXIT_SUCCESS);
+      shutdown();
     }
   }
 
@@ -280,6 +293,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   std::signal(SIGINT, signalHandler);
   std::signal(SIGHUP, signalHandler);
   std::signal(SIGALRM, signalHandler);
+  std::signal(SIGUSR1, signalHandler);
 
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check) {
@@ -309,7 +323,7 @@ void Initializer::initDaemon() const {
   // OS X uses launchd to daemonize.
   if (osquery::FLAGS_daemonize) {
     if (daemon(0, 0) == -1) {
-      ::exit(EXIT_FAILURE);
+      shutdown(EXIT_FAILURE);
     }
   }
 #endif
@@ -328,7 +342,7 @@ void Initializer::initDaemon() const {
   auto pid_status = createPidFile();
   if (!pid_status.ok()) {
     LOG(ERROR) << binary_ << " initialize failed: " << pid_status.toString();
-    ::exit(EXIT_FAILURE);
+    shutdown(EXIT_FAILURE);
   }
 
   // Nice ourselves if using a watchdog and the level is not too permissive.
@@ -374,7 +388,7 @@ void Initializer::initWatcher() const {
     } else {
       retcode = EXIT_FAILURE;
     }
-    osquery::shutdown(retcode, true);
+    requestShutdown(retcode);
   }
 }
 
@@ -443,7 +457,7 @@ void Initializer::initActivePlugin(const std::string& type,
 
   LOG(ERROR) << "Cannot activate " << name << " " << type
              << " plugin: " << status.getMessage();
-  osquery::shutdown(EXIT_CATASTROPHIC);
+  requestShutdown(EXIT_CATASTROPHIC);
 }
 
 void Initializer::start() const {
@@ -469,7 +483,7 @@ void Initializer::start() const {
       LOG(ERROR) << RLOG(1629) << binary_
                  << " initialize failed: Could not initialize database";
       auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
-      ::exit(retcode);
+      requestShutdown(retcode);
     }
   }
 
@@ -491,12 +505,13 @@ void Initializer::start() const {
       std::cerr << "Error reading config: " << s.toString() << "\n";
     }
     // A configuration check exits the application.
-    osquery::shutdown(s.getCode());
+    // Make sure to request a shutdown as plugins may have created services.
+    requestShutdown(s.getCode());
   }
 
   if (FLAGS_database_dump) {
     dumpDatabase();
-    osquery::shutdown(EXIT_SUCCESS);
+    requestShutdown();
   }
 
   // Load the osquery config using the default/active config plugin.
@@ -528,18 +543,32 @@ void Initializer::start() const {
   EventFactory::delay();
 }
 
-void Initializer::shutdown() const { osquery::shutdown(EXIT_SUCCESS, false); }
-
-void shutdown(int retcode, bool wait) {
-  // End any event type run loops.
-  EventFactory::end(wait);
-  // Stop thrift services/clients/and their thread pools.
-  Dispatcher::stopServices();
+void Initializer::waitForShutdown() {
+  // Attempt to be the only place in code where a join is attempted.
   Dispatcher::joinServices();
+  // End any event type run loops.
+  EventFactory::end(true);
 
   // Hopefully release memory used by global string constructors in gflags.
   GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
   DatabasePlugin::shutdown();
-  ::exit(retcode);
+  ::exit((kExitCode != 0) ? kExitCode : EXIT_SUCCESS);
 }
+
+void Initializer::requestShutdown(int retcode) {
+  // Stop thrift services/clients/and their thread pools.
+  kExitCode = retcode;
+  if (std::this_thread::get_id() != kMainThreadId) {
+    raise(SIGUSR1);
+  } else {
+    // The main thread is requesting a shutdown, meaning in almost every case
+    // it is NOT waiting for a shutdown.
+    // Exceptions include: tight request / wait in an exception handler or
+    // custom signal handling.
+    Dispatcher::stopServices();
+    waitForShutdown();
+  }
+}
+
+void Initializer::shutdown(int retcode) { ::exit(retcode); }
 }

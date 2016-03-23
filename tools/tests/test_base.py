@@ -420,8 +420,7 @@ class TimeoutRunner(object):
     def __init__(self, cmd=[], timeout_sec=1):
         self.stdout = None
         self.stderr = None
-        self.proc = subprocess.Popen(" ".join(cmd),
-                                     shell=True,
+        self.proc = subprocess.Popen(cmd,
                                      stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE)
         kill_proc = lambda p: p.kill()

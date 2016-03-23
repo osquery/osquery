@@ -52,27 +52,27 @@ function main_fedora() {
   package libtool
 
   install_boost
-  install_iptables_dev
-  install_snappy
-  install_thrift
   install_gflags
   install_glog
+  install_google_benchmark
+
+  install_snappy
   install_rocksdb
+  install_thrift
   install_yara
   install_asio
   install_cppnetlib
-  install_google_benchmark
+  install_sleuthkit
 
   # Device mapper uses the exact version as the ABI.
   # We will build and install a static version.
   remove_package device-mapper-devel
-  install_device_mapper
-
   package libgcrypt-devel
   package gettext-devel
 
+  install_device_mapper
+  install_iptables_dev
   install_libcryptsetup
-  install_sleuthkit
 
   gem_install fpm
 }

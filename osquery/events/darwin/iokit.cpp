@@ -23,33 +23,36 @@ REGISTER(IOKitEventPublisher, "event_publisher", "iokit");
 
 struct DeviceTracker : private boost::noncopyable {
  public:
+  explicit DeviceTracker(IOKitEventPublisher* p) : publisher(p) {}
+
+ public:
   IOKitEventPublisher* publisher{nullptr};
   io_object_t notification{0};
-
-  explicit DeviceTracker(IOKitEventPublisher* p) : publisher(p) {}
 };
 
 void IOKitEventPublisher::restart() {
-  if (run_loop_ == nullptr) {
-    // There is no run loop to restart.
-    return;
-  }
-
-  // Remove any existing stream.
-  stop();
-
-  port_ = IONotificationPortCreate(kIOMasterPortDefault);
-  // Get a run loop source from the created IOKit notification port.
-  auto run_loop_source = IONotificationPortGetRunLoopSource(port_);
-  CFRunLoopAddSource(run_loop_, run_loop_source, kCFRunLoopDefaultMode);
-
-  std::vector<const std::string*> device_classes = {
+  static std::vector<const std::string*> device_classes = {
       &tables::kIOUSBDeviceClassName_,
       &tables::kIOPCIDeviceClassName_,
       &tables::kIOPlatformExpertDeviceClassName_,
       &tables::kIOACPIPlatformDeviceClassName_,
       &tables::kIOPlatformDeviceClassname_,
   };
+
+  if (run_loop_ == nullptr) {
+    return;
+  }
+
+  // Remove any existing stream.
+  stop();
+
+  {
+    WriteLock lock(mutex_);
+    port_ = IONotificationPortCreate(kIOMasterPortDefault);
+    // Get a run loop source from the created IOKit notification port.
+    auto run_loop_source = IONotificationPortGetRunLoopSource(port_);
+    CFRunLoopAddSource(run_loop_, run_loop_source, kCFRunLoopDefaultMode);
+  }
 
   publisher_started_ = false;
   for (const auto& class_name : device_classes) {
@@ -59,13 +62,17 @@ void IOKitEventPublisher::restart() {
 
     // Register attach/detaches (could use kIOPublishNotification).
     // Notification types are defined in IOKitKeys.
-    IOReturn result = IOServiceAddMatchingNotification(
-        port_,
-        kIOFirstMatchNotification,
-        matches,
-        (IOServiceMatchingCallback)deviceAttach,
-        this,
-        &iterator_);
+    IOReturn result = kIOReturnSuccess + 1;
+    {
+      WriteLock lock(mutex_);
+      result = IOServiceAddMatchingNotification(
+          port_,
+          kIOFirstMatchNotification,
+          matches,
+          (IOServiceMatchingCallback)deviceAttach,
+          this,
+          &iterator_);
+    }
     if (result == kIOReturnSuccess) {
       deviceAttach(this, iterator_);
     }
@@ -140,7 +147,7 @@ void IOKitEventPublisher::deviceAttach(void* refcon, io_iterator_t iterator) {
   while ((device = IOIteratorNext(iterator))) {
     // Create a notification tracker.
     {
-      std::lock_guard<std::mutex> lock(self->notification_mutex_);
+      WriteLock lock(self->mutex_);
       auto tracker = std::make_shared<struct DeviceTracker>(self);
       self->devices_.push_back(tracker);
       IOServiceAddInterestNotification(self->port_,
@@ -174,14 +181,15 @@ void IOKitEventPublisher::deviceDetach(void* refcon,
   IOObjectRelease(device);
 
   {
-    std::lock_guard<std::mutex> lock(self->notification_mutex_);
+    WriteLock lock(self->mutex_);
     // Remove the device tracker.
     IOObjectRelease(tracker->notification);
     auto it = self->devices_.begin();
     while (it != self->devices_.end()) {
       if ((*it)->notification == tracker->notification) {
+        IOObjectRelease((*it)->notification);
         self->devices_.erase(it);
-        return;
+        break;
       }
       it++;
     }
@@ -215,10 +223,32 @@ bool IOKitEventPublisher::shouldFire(const IOKitSubscriptionContextRef& sc,
 }
 
 void IOKitEventPublisher::stop() {
-  // Stop the run loop.
-  if (run_loop_ != nullptr) {
-    CFRunLoopStop(run_loop_);
+  if (run_loop_ == nullptr) {
+    // If there is no run loop then the publisher thread has not started.
+    return;
   }
+
+  // Stop the run loop.
+  WriteLock lock(mutex_);
+  CFRunLoopStop(run_loop_);
+
+  // Stop the run loop before operating on containers.
+  // Destroy the IOPort.
+  if (port_ != nullptr) {
+    auto source = IONotificationPortGetRunLoopSource(port_);
+    if (CFRunLoopContainsSource(run_loop_, source, kCFRunLoopDefaultMode)) {
+      CFRunLoopRemoveSource(run_loop_, source, kCFRunLoopDefaultMode);
+    }
+    // And destroy the port.
+    IONotificationPortDestroy(port_);
+    port_ = nullptr;
+  }
+
+  // Clear all devices and their notifications.
+  for (const auto& device : devices_) {
+    IOObjectRelease(device->notification);
+  }
+  devices_.clear();
 }
 
 void IOKitEventPublisher::tearDown() {

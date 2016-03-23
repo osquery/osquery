@@ -12,6 +12,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
+#include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
@@ -35,6 +36,7 @@ const std::string kModuleExtension = ".dylib";
 #else
 const std::string kModuleExtension = ".so";
 #endif
+const std::string kExtensionExtension = ".ext";
 
 CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
 
@@ -88,7 +90,9 @@ void ExtensionWatcher::start() {
 
 void ExtensionWatcher::exitFatal(int return_code) {
   // Exit the extension.
-  ::exit(return_code);
+  // We will save the wanted return code and raise an interrupt.
+  // This interrupt will be handled by the main thread then join the watchers.
+  Initializer::requestShutdown(return_code);
 }
 
 void ExtensionWatcher::watch() {
@@ -127,12 +131,19 @@ void ExtensionManagerWatcher::watch() {
 
   ExtensionStatus status;
   for (const auto& uuid : uuids) {
-    try {
-      auto client = EXClient(getExtensionSocket(uuid));
-      // Ping the extension until it goes down.
-      client.get()->ping(status);
-    } catch (const std::exception& e) {
-      failures_[uuid] += 1;
+    auto path = getExtensionSocket(uuid);
+    if (isWritable(path)) {
+      try {
+        auto client = EXClient(path);
+        // Ping the extension until it goes down.
+        client.get()->ping(status);
+      } catch (const std::exception& e) {
+        failures_[uuid] += 1;
+        continue;
+      }
+    } else {
+      // Immediate fail non-writable paths.
+      failures_[uuid] = 3;
       continue;
     }
 
@@ -195,12 +206,47 @@ void loadModules() {
   }
 }
 
+static bool isFileSafe(std::string& path, const std::string& type) {
+  boost::trim(path);
+  if (path.size() == 0 || path[0] == '#' || path[0] == ';') {
+    return false;
+  }
+
+  // Resolve acceptable extension binaries from autoload paths.
+  if (isDirectory(path).ok()) {
+    VLOG(1) << "Cannot autoload " << type << " from directory: " << path;
+    return false;
+  }
+  // The extendables will force an appropriate file path extension.
+  auto& ext = (type == "extension") ? kExtensionExtension : kModuleExtension;
+
+  // Only autoload file which were safe at the time of discovery.
+  // If the binary later becomes unsafe (permissions change) then it will fail
+  // to reload if a reload is ever needed.
+  fs::path extendable(path);
+  // Set the output sanitized path.
+  path = extendable.string();
+  if (!safePermissions(extendable.parent_path().string(), path, true)) {
+    LOG(WARNING) << "Will not autoload " << type
+                 << " with unsafe permissions: " << path;
+    return false;
+  }
+
+  if (extendable.extension().string() != ext) {
+    LOG(WARNING) << "Will not autoload " << type << " not ending in '" << ext
+                 << "': " << path;
+    return false;
+  }
+
+  VLOG(1) << "Found autoloadable " << type << ": " << path;
+  return true;
+}
+
 Status loadExtensions(const std::string& loadfile) {
   std::string autoload_paths;
   if (readFile(loadfile, autoload_paths).ok()) {
     for (auto& path : osquery::split(autoload_paths, "\n")) {
-      boost::trim(path);
-      if (path.size() > 0 && path[0] != '#' && path[0] != ';') {
+      if (isFileSafe(path, "extension")) {
         // After the path is sanitized the watcher becomes responsible for
         // forking and executing the extension binary.
         Watcher::addExtensionPath(path);
@@ -211,33 +257,21 @@ Status loadExtensions(const std::string& loadfile) {
   return Status(1, "Failed reading: " + loadfile);
 }
 
-Status loadModuleFile(const std::string& path) {
-  fs::path module(path);
-  if (safePermissions(module.parent_path().string(), path)) {
-    if (module.extension().string() == kModuleExtension) {
-      // Silently allow module load failures to drop.
-      RegistryModuleLoader loader(module.string());
-      loader.init();
-      return Status(0, "OK");
-    }
-  }
-  return Status(1, "Module check failed");
-}
-
 Status loadModules(const std::string& loadfile) {
   // Split the search path for modules using a ':' delimiter.
+  bool all_loaded = true;
   std::string autoload_paths;
   if (readFile(loadfile, autoload_paths).ok()) {
-    auto status = Status(0, "OK");
-    for (auto& module_path : osquery::split(autoload_paths, "\n")) {
-      boost::trim(module_path);
-      auto path_status = loadModuleFile(module_path);
-      if (!path_status.ok()) {
-        status = path_status;
+    for (auto& path : osquery::split(autoload_paths, "\n")) {
+      if (isFileSafe(path, "module")) {
+        RegistryModuleLoader loader(path);
+        loader.init();
+      } else {
+        all_loaded = false;
       }
     }
     // Return an aggregate failure if any load fails (invalid search path).
-    return status;
+    return Status((all_loaded) ? 0 : 1);
   }
   return Status(1, "Failed reading: " + loadfile);
 }
@@ -292,18 +326,7 @@ Status startExtension(const std::string& name,
     // If the extension failed to start then the EM is most likely unavailable.
     return status;
   }
-
-  try {
-    // The extension does nothing but serve the thrift API.
-    // Join on both the thrift and extension manager watcher services.
-    Dispatcher::joinServices();
-  } catch (const std::exception& e) {
-    // The extension manager may shutdown without notifying the extension.
-    return Status(0, e.what());
-  }
-
-  // An extension will only return on failure.
-  return Status(0, "Extension was shutdown");
+  return Status(0);
 }
 
 Status startExtension(const std::string& manager_path,

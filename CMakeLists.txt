@@ -35,6 +35,7 @@ add_compile_options(
   -Wformat
   -Wformat-security
   -Werror=format-security
+  -Wabi-tag
   -fstack-protector-all
   -fPIE
   -fpie
@@ -162,7 +163,10 @@ elseif(DEFINED ENV{SANITIZE})
   if(DEFINED ENV{SANITIZE_THREAD})
     add_compile_options(-fsanitize=thread)
   else()
-    add_compile_options(-fsanitize=leak -fsanitize=address)
+    add_compile_options(-fsanitize=address)
+    if (NOT APPLE)
+      add_compile_options(-fsanitize=leak)
+    endif()
   endif()
   set(SANITIZE_BLACKLIST "${CMAKE_SOURCE_DIR}/tools/tests/sanitize_blacklist.txt")
   add_definitions(-fsanitize-blacklist=${SANITIZE_BLACKLIST})

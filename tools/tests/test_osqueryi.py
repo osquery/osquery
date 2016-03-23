@@ -21,7 +21,7 @@ import unittest
 import test_base
 
 SHELL_TIMEOUT = 10
-
+EXIT_CATASTROPHIC = 78
 
 class OsqueryiTest(unittest.TestCase):
     def setUp(self):
@@ -109,8 +109,7 @@ class OsqueryiTest(unittest.TestCase):
         self.assertNotEqual(proc.stderr, "")
         self.assertNotEqual(proc.proc.poll(), 0)
         # Also do not accept a SIGSEG
-        # It should exit EX_CONFIG = 78
-        self.assertEqual(proc.proc.poll(), 78)
+        self.assertEqual(proc.proc.poll(), EXIT_CATASTROPHIC)
 
     @test_base.flaky
     def test_config_check_example(self):

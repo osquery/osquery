@@ -286,32 +286,47 @@ void EventSubscriberPlugin::expireIndexes(
   setDatabaseValue(kEvents, index_key + "." + list_type, new_indexes);
 }
 
-void EventSubscriberPlugin::expireCheck() {
+void EventSubscriberPlugin::expireCheck(bool cleanup) {
   auto data_key = "data." + dbNamespace();
   auto eid_key = "eid." + dbNamespace();
+  // Min key will be the last surviving key.
+  size_t min_key = 0;
 
-  std::vector<std::string> keys;
-  scanDatabaseKeys(kEvents, keys, data_key);
-  if (keys.size() <= FLAGS_events_max) {
-    return;
+  {
+    std::vector<std::string> keys;
+    scanDatabaseKeys(kEvents, keys, data_key);
+    if (keys.size() <= FLAGS_events_max) {
+      return;
+    }
+
+    // There is an overflow of events buffered for this subscriber.
+    LOG(WARNING) << "Expiring events for subscriber: " << getName()
+                 << " limit (" << FLAGS_events_max
+                 << ") exceeded: " << keys.size();
+    // Inspect the N-FLAGS_events_max -th event's value and expire before the
+    // time within the content.
+    std::string last_key;
+    getDatabaseValue(kEvents, eid_key, last_key);
+    // The EID is the next-index.
+    // EID - events_max is the most last-recent event to keep.
+    min_key = boost::lexical_cast<size_t>(last_key) - FLAGS_events_max;
+
+    if (cleanup) {
+      // Scan each of the keys in keys, if their ID portion is < min_key.
+      // Nix them, this requires lots of conversions, use with care.
+      for (const auto& key : keys) {
+        if (std::stoul(key.substr(key.rfind('.') + 1)) < min_key) {
+          deleteDatabaseValue(kEvents, key);
+        }
+      }
+    }
   }
-
-  // There is an overflow of events buffered for this subscriber.
-  LOG(WARNING) << "Expiring events for subscriber: " << getName() << " limit ("
-               << FLAGS_events_max << ") exceeded: " << keys.size();
-  // Inspect the N-FLAGS_events_max -th event's value and expire before the
-  // time within the content.
-  std::string last_key;
-  getDatabaseValue(kEvents, eid_key, last_key);
-  // The EID is the next-index.
-  // EID - events_max is the most last-recent event to keep.
-  size_t max_key = boost::lexical_cast<size_t>(last_key) - FLAGS_events_max - 1;
 
   // Convert the key index into a time using the content.
   // The last-recent event is fetched and the corresponding time is used as
   // the expiration time for the subscriber.
   std::string content;
-  getDatabaseValue(kEvents, data_key + "." + std::to_string(max_key), content);
+  getDatabaseValue(kEvents, data_key + "." + std::to_string(min_key), content);
 
   // Decode the value into a row structure to extract the time.
   Row r;
@@ -327,7 +342,7 @@ void EventSubscriberPlugin::expireCheck() {
 
   // Finally, attempt an index query to trigger expirations.
   // In this case the result set is not used.
-  getIndexes(expire_time_ - 1, 0);
+  getIndexes(expire_time_, 0);
 }
 
 std::vector<EventRecord> EventSubscriberPlugin::getRecords(
@@ -493,6 +508,10 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
   if (!status.ok()) {
     return status;
   }
+  // Then remove the newline.
+  if (data.size() > 0 && data.back() == '\n') {
+    data.pop_back();
+  }
 
   // Use the last EventID and a checkpoint bucket size to periodically apply
   // buffer eviction. Eviction occurs if the total count exceeds events_max.
@@ -580,10 +599,12 @@ Status EventFactory::run(EventPublisherID& type_id) {
     publisher->restart_count_++;
     osquery::publisherSleep(EVENTS_COOLOFF);
   }
-  // The runloop status is not reflective of the event type's.
-  VLOG(1) << "Event publisher " << publisher->type()
-          << " run loop terminated for reason: " << status.getMessage();
-  // Publishers auto tear down when their run loop stops.
+  if (!status.ok()) {
+    // The runloop status is not reflective of the event type's.
+    VLOG(1) << "Event publisher " << publisher->type()
+            << " run loop terminated for reason: " << status.getMessage();
+    // Publishers auto tear down when their run loop stops.
+  }
   publisher->tearDown();
 
   // Do not remove the publisher from the event factory.
@@ -679,7 +700,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
   // Let the module initialize any Subscriptions.
   auto status = Status(0, "OK");
   if (!FLAGS_disable_events && !specialized_sub->disabled) {
-    specialized_sub->expireCheck();
+    specialized_sub->expireCheck(true);
     status = specialized_sub->init();
     specialized_sub->state(SUBSCRIBER_RUNNING);
   } else {

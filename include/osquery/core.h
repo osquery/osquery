@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <csignal>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -82,6 +83,16 @@ using WriteLock = std::lock_guard<Mutex>;
 /// The osquery tool type for runtime decisions.
 extern ToolType kToolType;
 
+/**
+ * @brief The requested exit code.
+ *
+ * Use Initializer::shutdown to request shutdown in most cases.
+ * This will raise a signal to the main thread requesting the dispatcher to
+ * interrupt all services. There is a thread requesting a join of all services
+ * that will continue the shutdown process.
+ */
+extern volatile std::sig_atomic_t kExitCode;
+
 class Initializer : private boost::noncopyable {
  public:
   /**
@@ -126,9 +137,31 @@ class Initializer : private boost::noncopyable {
   /// Assume initialization finished, start work.
   void start() const;
 
-  /// Turns off various aspects of osquery such as event loops.
-  void shutdown() const;
+  /**
+   * @brief Forcefully request the application stop.
+   *
+   * Since all osquery tools may implement various 'dispatched' services in the
+   * form of event handler threads or thrift service and client pools, a stop
+   * request should behave nicely and request these services stop.
+   *
+   * Use shutdown whenever you would normally call ::exit.
+   *
+   * @param retcode the requested return code for the process.
+   */
+  static void requestShutdown(int retcode = EXIT_SUCCESS);
 
+  /// Exit immediately without requesting the dispatcher to stop.
+  static void shutdown(int retcode = EXIT_SUCCESS);
+
+  /**
+   * @brief Cleanly wait for all services and components to shutdown.
+   *
+   * Enter a join of all services followed by a sync wait for event loops.
+   * If the main thread is out of actions it can call ::waitForShutdown.
+   */
+  static void waitForShutdown();
+
+ public:
   /**
    * @brief Check if a process is an osquery worker.
    *
@@ -151,9 +184,16 @@ class Initializer : private boost::noncopyable {
   void initActivePlugin(const std::string& type, const std::string& name) const;
 
  private:
+  /// A saved, mutable, reference to the process's argc.
   int* argc_{nullptr};
+
+  /// A saved, mutable, reference to the process's argv.
   char*** argv_{nullptr};
+
+  /// The deduced tool type, determined by initializer construction.
   ToolType tool_;
+
+  /// The deduced program name determined by executing path.
   std::string binary_;
 };
 
@@ -205,17 +245,6 @@ size_t getUnixTime();
  * @return A status object indicating the success or failure of the operation
  */
 Status createPidFile();
-
-/**
- * @brief Forcefully request the application stop.
- *
- * Since all osquery tools may implement various 'dispatched' services in the
- * form of event handler threads or thrift service and client pools, a stop
- * request should behave nicely and request these services stop.
- *
- * Use shutdown whenever you would normally call ::exit.
- */
-void shutdown(int recode, bool wait = false);
 
 class DropPrivileges;
 typedef std::shared_ptr<DropPrivileges> DropPrivilegesRef;

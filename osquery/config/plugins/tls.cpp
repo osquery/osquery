@@ -116,6 +116,11 @@ void TLSConfigRefreshRunner::start() {
     // Cool off and time wait the configured period.
     // Apply this interruption initially as at t=0 the config was read.
     pauseMilli(FLAGS_config_tls_refresh * 1000);
+    // Since the pause occurs before the logic, we need to check for an
+    // interruption request.
+    if (interrupted()) {
+      return;
+    }
 
     // Access the configuration.
     auto plugin = Registry::get("config", "tls");

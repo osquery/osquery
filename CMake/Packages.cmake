@@ -24,21 +24,23 @@ elseif(LINUX)
     if(OSQUERY_BUILD_PLATFORM STREQUAL "ubuntu")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "libgcrypt11"
       )
     elseif(OSQUERY_BUILD_PLATFORM STREQUAL "debian")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "libgcrypt20"
       )
     endif()
+
+    # Ubuntu versions 2015+ will require libgcrypt20.
+    # Ubuntu versions 2014+ will require libudev1.
+    # Debian versions 8+ will require libgcrypt20 and libudev1.
 
     # Improve package and iterations for each specific distribution.
     if(NOT OSQUERY_BUILD_DISTRO STREQUAL "lucid")
       set(PACKAGE_ITERATION "1.ubuntu10")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
-        "libc6 (>=2.15)"
+        "libc6 (>=2.13)"
         "libapt-pkg4.12"
       )
     endif()
@@ -48,6 +50,7 @@ elseif(LINUX)
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6"
+        "libgcrypt11"
         "libudev0"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "wheezy")
@@ -55,6 +58,7 @@ elseif(LINUX)
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6"
+        "libgcrypt11"
         "libudev0"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "trusty")
@@ -62,6 +66,7 @@ elseif(LINUX)
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6 (>= 4.8)"
+        "libgcrypt11"
         "libudev1"
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "jessie")
@@ -69,6 +74,7 @@ elseif(LINUX)
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libstdc++6 (>= 4.8)"
+        "libgcrypt20"
         "libudev1"
       )
     endif()

@@ -61,6 +61,7 @@ class SCNetworkEventPublisher
  public:
   void configure() override;
 
+  Status setUp() override { return Status(1, "Publisher not used"); }
   void tearDown() override;
 
   // Entrypoint to the run loop
@@ -89,11 +90,26 @@ class SCNetworkEventPublisher
   void addTarget(const SCNetworkSubscriptionContextRef& sc,
                  const SCNetworkReachabilityRef& target);
 
+  /// Helper method to clear all targets.
+  void clearAll();
+
  private:
+  /// Configured hostname targets.
   std::vector<std::string> target_names_;
+
+  /// Configured host address targets.
   std::vector<std::string> target_addresses_;
+
+  /// A container for all reachability targets.
   std::vector<SCNetworkReachabilityRef> targets_;
+
+  /// A target-association context sortage.
   std::vector<SCNetworkReachabilityContext*> contexts_;
+
+  /// This publisher thread's runloop.
   CFRunLoopRef run_loop_{nullptr};
+
+  /// Storage/container operations protection mutex.
+  mutable Mutex mutex_;
 };
 }

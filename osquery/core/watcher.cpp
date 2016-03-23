@@ -29,7 +29,7 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
+const std::map<WatchdogLimitType, std::vector<size_t>> kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
     {MEMORY_LIMIT, {80, 50, 30, 1000}},
     // Percent of user or system CPU worker can utilize for LATENCY_LIMIT
@@ -44,8 +44,6 @@ const std::map<WatchdogLimitType, std::vector<size_t> > kWatchdogLimits = {
     // How often to poll for performance limit violations.
     {INTERVAL, {3, 3, 3, 1}},
 };
-
-const std::string kExtensionExtension = ".ext";
 
 CLI_FLAG(int32,
          watchdog_level,
@@ -122,23 +120,8 @@ void Watcher::reset(pid_t child) {
 }
 
 void Watcher::addExtensionPath(const std::string& path) {
-  // Resolve acceptable extension binaries from autoload paths.
-  if (isDirectory(path).ok()) {
-    VLOG(1) << "Cannot autoload extension from directory: " << path;
-    return;
-  }
-
-  // Only autoload extensions which were safe at the time of discovery.
-  // If the extension binary later becomes unsafe (permissions change) then
-  // it will fail to reload if a reload is ever needed.
-  fs::path extension(path);
-  if (safePermissions(extension.parent_path().string(), path, true)) {
-    if (extension.extension().string() == kExtensionExtension) {
-      setExtension(extension.string(), 0);
-      resetExtensionCounters(extension.string(), 0);
-      VLOG(1) << "Found autoloadable extension: " << extension.string();
-    }
-  }
+  setExtension(path, 0);
+  resetExtensionCounters(path, 0);
 }
 
 bool Watcher::hasManagedExtensions() {
@@ -334,7 +317,8 @@ void WatcherRunner::createWorker() {
   auto qd = SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(getpid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
     LOG(ERROR) << "osquery watcher cannot determine process path for worker";
-    osquery::shutdown(EXIT_FAILURE);
+    Initializer::requestShutdown(EXIT_FAILURE);
+    return;
   }
 
   // Set an environment signaling to potential plugin-dependent workers to wait
@@ -350,21 +334,24 @@ void WatcherRunner::createWorker() {
     // osqueryd binary has become unsafe.
     LOG(ERROR) << RLOG(1382)
                << "osqueryd has unsafe permissions: " << exec_path.string();
-    osquery::shutdown(EXIT_FAILURE);
+    Initializer::requestShutdown(EXIT_FAILURE);
+    return;
   }
 
   auto worker_pid = fork();
   if (worker_pid < 0) {
     // Unrecoverable error, cannot create a worker process.
     LOG(ERROR) << "osqueryd could not create a worker process";
-    osquery::shutdown(EXIT_FAILURE);
+    Initializer::shutdown(EXIT_FAILURE);
+    return;
   } else if (worker_pid == 0) {
     // This is the new worker process, no watching needed.
     setenv("OSQUERY_WORKER", std::to_string(getpid()).c_str(), 1);
     execve(exec_path.string().c_str(), argv_, environ);
     // Code should never reach this point.
     LOG(ERROR) << "osqueryd could not start worker process";
-    osquery::shutdown(EXIT_CATASTROPHIC);
+    Initializer::shutdown(EXIT_CATASTROPHIC);
+    return;
   }
 
   Watcher::setWorker(worker_pid);
@@ -398,7 +385,7 @@ bool WatcherRunner::createExtension(const std::string& extension) {
   if (ext_pid < 0) {
     // Unrecoverable error, cannot create an extension process.
     LOG(ERROR) << "Cannot create extension process: " << extension;
-    osquery::shutdown(EXIT_FAILURE);
+    Initializer::shutdown(EXIT_FAILURE);
   } else if (ext_pid == 0) {
     // Pass the current extension socket and a set timeout to the extension.
     setenv("OSQUERY_EXTENSION", std::to_string(getpid()).c_str(), 1);
@@ -416,7 +403,7 @@ bool WatcherRunner::createExtension(const std::string& extension) {
            environ);
     // Code should never reach this point.
     VLOG(1) << "Could not start extension process: " << extension;
-    osquery::shutdown(EXIT_FAILURE);
+    Initializer::shutdown(EXIT_FAILURE);
   }
 
   Watcher::setExtension(extension, ext_pid);
@@ -433,7 +420,8 @@ void WatcherWatcherRunner::start() {
       VLOG(1) << "osqueryd worker (" << getpid()
               << ") detected killed watcher (" << watcher_ << ")";
       // The watcher watcher is a thread. Do not join services after removing.
-      raise(SIGKILL);
+      Initializer::requestShutdown();
+      break;
     }
     pauseMilli(getWorkerLimit(INTERVAL) * 1000);
   }

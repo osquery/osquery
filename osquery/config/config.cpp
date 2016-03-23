@@ -309,7 +309,9 @@ Status Config::load() {
                 content.first.c_str(),
                 content.second.c_str());
       }
-      osquery::shutdown(EXIT_SUCCESS);
+      // Instead of forcing the shutdown, request one since the config plugin
+      // may have started services.
+      Initializer::requestShutdown();
     }
     status = update(response[0]);
   }

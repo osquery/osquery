@@ -25,7 +25,6 @@ add_compile_options(
 set(OSQUERY_LIBS
   # This includes librocksdb[_lite] and libsnappy.
   ${THRIFT_LIBRARY}
-  ${GFLAGS_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
   ${OPENSSL_SSL_LIBRARY}
   ${READLINE_LIBRARIES}
@@ -74,6 +73,7 @@ if(LINUX)
 endif()
 
 # The remaining boost libraries are discovered with find_library.
+ADD_OSQUERY_LINK_CORE("gflags")
 ADD_OSQUERY_LINK_CORE("glog")
 ADD_OSQUERY_LINK_CORE("boost_system")
 ADD_OSQUERY_LINK_CORE("boost_filesystem")
@@ -167,6 +167,7 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
   SET_OSQUERY_COMPILE(shell "${CXX_COMPILE_FLAGS}")
   set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
+  add_dependencies(shell osquery_tools)
 
   add_executable(daemon main/daemon.cpp)
   TARGET_OSQUERY_LINK_WHOLE(daemon libosquery)
@@ -180,6 +181,13 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
     DESTINATION include
     COMPONENT devel OPTIONAL
     PATTERN ".*" EXCLUDE
+  )
+
+  # A friendly echo printed after the library is built.
+  add_custom_target(osquery_tools ALL
+    COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
+      "-- Building osqueryi: ${CMAKE_BINARY_DIR}/osquery/osqueryi"
+      "-- Building osqueryd: ${CMAKE_BINARY_DIR}/osquery/osqueryd"
   )
 
   # make install (executables)
