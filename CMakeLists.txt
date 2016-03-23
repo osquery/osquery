@@ -338,15 +338,6 @@ else()
   set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
   set(OPENSSL_USE_STATIC_LIBS TRUE)
   
-  # Win64 specific Gflags
-  set(GFLAGS_ROOT_DIR "${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build")
-  set(GFLAGS_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build/include")
-  set(GFLAGS_LIBRARY_RELEASE "${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build/lib/Release/gflags_static.lib")
-  # TODO(WIN64): Think about actually building a debug library
-  set(GFLAGS_LIBRARY_DEBUG "${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build/lib/Release/gflags_static.lib")
-  set(GFLAGS_LIBRARY optimized ${GFLAGS_LIBRARY_RELEASE} debug ${GFLAGS_LIBRARY_DEBUG})
-  set(GFLAGS_LIBRARIES ${GFLAGS_LIBRARY})
-  
   # Win64 specific Thrift
   set(THRIFT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third-party/thrift/cmake-build")
   set(THRIFT_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/thrift/cmake-build/lib/Release/thriftmd.lib")
@@ -364,6 +355,9 @@ else()
   set(boost_system_library "${CMAKE_SOURCE_DIR}/third-party/boost_1_59_0/lib64-msvc-14.0/boost_system-vc140-mt-1_59.lib")
   set(boost_regex_library "${CMAKE_SOURCE_DIR}/third-party/boost_1_59_0/lib64-msvc-14.0/boost_regex-vc140-mt-1_59.lib")
 
+  # Win64 specific gflags
+  set(gflags_library "${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build/lib/Release/gflags_static.lib")
+  
   # Win64 specific glog
   set(glog_library "${CMAKE_SOURCE_DIR}/third-party/glog-w64/build/Release/glog.lib")
   
@@ -436,7 +430,6 @@ if(DEFINED ENV{BOOST_ROOT})
   include_directories("${BOOST_ROOT}")
 endif()
 
-find_package(Gflags REQUIRED)
 find_package(Gtest REQUIRED)
 find_package(Thrift 0.9.3 REQUIRED)
 
