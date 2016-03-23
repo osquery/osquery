@@ -354,6 +354,17 @@ else()
   
   # Win64 specific doxygen
   set(DOXYGEN_EXECUTABLE "${CMAKE_SOURCE_DIR}/third-party/doxygen-1.8.11.windows.x64.bin/doxygen.exe")
+
+  # Win64 specific boost
+  set(boost_filesystem_library "${CMAKE_SOURCE_DIR}/third-party/boost_1_59_0/lib64-msvc-14.0/boost_filesystem-vc140-mt-1_59.lib")
+  set(boost_system_library "${CMAKE_SOURCE_DIR}/third-party/boost_1_59_0/lib64-msvc-14.0/boost_system-vc140-mt-1_59.lib")
+  set(boost_regex_library "${CMAKE_SOURCE_DIR}/third-party/boost_1_59_0/lib64-msvc-14.0/boost_regex-vc140-mt-1_59.lib")
+
+  # Win64 specific glog
+  set(glog_library "${CMAKE_SOURCE_DIR}/third-party/glog-w64/build/Release/glog.lib")
+  
+  # Win64 specific yara
+  set(yara_library "${CMAKE_SOURCE_DIR}/third-party/yara-3.4.0/windows/libyara/Release/libyara64.lib")
 endif()
 
 # Make sure the generated paths exist 
