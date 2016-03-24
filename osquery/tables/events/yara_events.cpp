@@ -36,13 +36,15 @@ namespace tables {
 using FileEventSubscriber = EventSubscriber<FSEventsEventPublisher>;
 using FileEventContextRef = FSEventsEventContextRef;
 using FileSubscriptionContextRef = FSEventsSubscriptionContextRef;
-#define FILE_CHANGE_MASK \
-  kFSEventStreamEventFlagItemCreated | kFSEventStreamEventFlagItemModified
+#define FILE_CHANGE_MASK                                                     \
+  kFSEventStreamEventFlagItemCreated | kFSEventStreamEventFlagItemModified | \
+      kFSEventStreamEventFlagItemRenamed
 #elif __linux__
 using FileEventSubscriber = EventSubscriber<INotifyEventPublisher>;
 using FileEventContextRef = INotifyEventContextRef;
 using FileSubscriptionContextRef = INotifySubscriptionContextRef;
-#define FILE_CHANGE_MASK ((IN_CREATE) | (IN_CLOSE_WRITE) | (IN_MODIFY))
+#define FILE_CHANGE_MASK \
+  ((IN_CREATE) | (IN_CLOSE_WRITE) | (IN_MODIFY) | (IN_MOVED_TO))
 #endif
 
 /**
@@ -97,7 +99,7 @@ void YARAEventSubscriber::configure() {
   // Collect the set of paths, we are mostly concerned with the categories.
   // But the subscriber must duplicate the set of subscriptions such that the
   // publisher's 'fire'-matching logic routes related events to our callback.
-  std::map<std::string, std::vector<std::string> > file_map;
+  std::map<std::string, std::vector<std::string>> file_map;
   Config::getInstance().files([&file_map](
       const std::string& category, const std::vector<std::string>& files) {
     file_map[category] = files;
