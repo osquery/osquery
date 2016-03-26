@@ -67,7 +67,7 @@ else()
 endif()
 
 if(PLATFORM STREQUAL "")
-  WARNING_LOG("Unable to detect osquery platform: ./tools/provision.sh failed")
+  WARNING_LOG("Unable to detect osquery platform: ./tools/get_platform.py failed")
   message(FATAL_ERROR "Cannot proceed without knowing the build platform")
 endif()
 list(GET PLATFORM 0 OSQUERY_BUILD_PLATFORM)
