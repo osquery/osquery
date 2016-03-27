@@ -3,9 +3,7 @@ Description=The osquery Daemon
 After=network.service syslog.service
 
 [Service]
-Type=forking
 TimeoutStartSec=0
-PIDFile=/var/run/osqueryd.pid
 EnvironmentFile=/etc/sysconfig/osqueryd
 ExecStartPre=/bin/sh -c "if [[ ! -f $FLAG_FILE ]]; then touch $FLAG_FILE; fi"
 ExecStart=/usr/bin/osqueryd \
