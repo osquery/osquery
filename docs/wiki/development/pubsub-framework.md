@@ -53,7 +53,7 @@ namespace tables {
 class NewETCFilesEventSubscriber : public EventSubscriber<INotifyEventPublisher> {
  public:
   // Implement the pure virtual init interface.
-  void init();
+  Status init() override;
 };
 ```
 
@@ -62,7 +62,7 @@ Done! Well, not exactly. This subscriber will do nothing since it hasn't given t
 Let's implement `NewETCFilesEventSubscriber::init()` to add the subscription:
 
 ```cpp
-void NewETCFilesEventSubscriber::init() {
+Status NewETCFilesEventSubscriber::init() {
   // We templated our subscriber to create an inotify publisher-specific
   // subscription context.
   auto sc = createSubscriptionContext();
@@ -79,8 +79,8 @@ The final line in `init()` binds the subscription context to a callback, which w
 ```cpp
 class NewETCFilesEventSubscriber : public EventSubscriber<INotifyEventPublisher> {
  public:
-  void init();
-  Status Callback(const INotifyEventContextRef& ec);
+  Status init() override;
+  Status Callback(const ECRef& ec, const SCRef& sc);
 };
 
 REGISTER(NewETCFilesEventSubscriber, "event_subscriber", "new_etc_files");
@@ -91,7 +91,7 @@ Now the call to `subscribe` is meaningful: If the publisher generates an event a
 Finally, we must implement the callback. The callback is responsible for turning the event information into an osquery `Row` data structure and saving that to the backing store (RocksDB). Such that, at query time the rows can be fetched and returned to the caller.
 
 ```cpp
-Status NewETCFilesEventSubscriber::Callback(const INotifyEventContextRef ec) {
+Status NewETCFilesEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r;
   r["path"] = ec->path;
   r["time"] = ec->time_string;
@@ -100,4 +100,4 @@ Status NewETCFilesEventSubscriber::Callback(const INotifyEventContextRef ec) {
 }
 ```
 
-Simple. Notice that `ec->time_string` provides a string-formatted time to remove casting too.
+Simple. Notice that `ec->time_string` provides a string-formatted time that eliminates the need for casting.
