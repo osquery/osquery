@@ -161,22 +161,20 @@ TEST_F(AslTests, test_convert_like_regex) {
   EXPECT_EQ(".*foo..*", convertLikeRegex("%foo_%"));
 }
 
-TEST_F(AslTests, test_actual_query) {
+TEST_F(AslTests, test_actual_query_with_facility) {
   // Not actually a unit test, but it's a decent assumption that any machine
   // running this test has some entries in ASL, and we'd like to ensure that
   // actual queries are successful
-  auto results = SQL("select * from asl limit 10");
-  ASSERT_GT(results.rows().size(), (size_t)0);
-
-  // Assumes there is something written to the console
-  results =
-      SQL("select * from asl where facility = 'com.apple.console' limit 10");
-  ASSERT_GT(results.rows().size(), (size_t)0);
+  auto results = SQL("select * from asl where facility = 'auth' limit 10");
+  ASSERT_GT(results.rows().size(), 0U);
   ASSERT_EQ("com.apple.console", results.rows()[0].at("facility"));
-  results = SQL(
-      "select * from asl where facility = 'com.apple.console' "
+}
+
+TEST_F(AslTests, test_actual_query_with_pid) {
+  auto results = SQL(
+      "select * from asl where facility = 'auto' "
       "and pid <= 99999 limit 10");
-  ASSERT_GT(results.rows().size(), (size_t)0);
+  ASSERT_GT(results.rows().size(), 0U);
   ASSERT_EQ("com.apple.console", results.rows()[0].at("facility"));
   ASSERT_LT(AS_LITERAL(BIGINT_LITERAL, results.rows()[0].at("pid")), 99999);
 }
