@@ -138,11 +138,15 @@ TEST_F(LoggerTests, test_log_string) {
   // plugin that has not been added to the registry.
   EXPECT_FALSE(logString("{\"json\": true}", "event", "does_not_exist"));
 
-  // Expect the plugin to receive logs if status logging is disabled.
+  // Expect the plugin not to receive logs if status logging is disabled.
   FLAGS_disable_logging = true;
   EXPECT_TRUE(logString("test", "event"));
-  EXPECT_EQ(LoggerTests::log_lines.size(), 2U);
+  EXPECT_EQ(LoggerTests::log_lines.size(), 1U);
   FLAGS_disable_logging = false;
+
+  // If logging is re-enabled, logs should send as usual.
+  EXPECT_TRUE(logString("test", "event"));
+  EXPECT_EQ(LoggerTests::log_lines.size(), 2U);
 }
 
 TEST_F(LoggerTests, test_logger_log_status) {
