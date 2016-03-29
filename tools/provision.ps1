@@ -17,7 +17,8 @@ function Install-Chocolatey {
 function Install-ChocoPackage {
 param(
   [string] $packageName = '',
-  [string] $packageVersion = ''
+  [string] $packageVersion = '',
+  [string] $packageOptions = ''
 )
   if ($packageName -eq '') {
     return $false
@@ -50,25 +51,26 @@ param(
     $requiresInstall = $true
   }
   
-  # Merely for output formatting...
-  if ($packageVersion -eq '') {
-    $chocoOpts = ''
-    $packageVersion = ''
-  } else {
-    $chocoOpts = " --version $packageVersion"
-    $packageVersion = " $packageVersion"
-  }
-  
   if ($requiresInstall) {
-    Write-Host "    => Did not find. Installing $packageName$packageVersion" -foregroundcolor Cyan
-    choco install -y $packageName$chocoOpts
+    Write-Host "    => Did not find. Installing $packageName $packageVersion" -foregroundcolor Cyan
+    
+    if ($packageOptions -ne '') {
+      Write-Host "       Options: $packageOptions" --foregroundcolor Cyan
+    }
+    
+    if ($packageVersion -eq '') {
+      choco install -y $packageName $packageOptions
+    } else {
+      choco install -y $packageName --version $packageVersion $packageOptions
+    }
   } else {
-    Write-Host "    => $packageName$packageVersion already installed." -foregroundcolor Green
+    Write-Host "    => $packageName $packageVersion already installed." -foregroundcolor Green
   }
   
   return $true
 }
 
+# TODO: We might need to hardcode paths to Python from chocolatey install...
 function Install-PipPackages {
   Write-Host "  Attempting to install Python packages" -foregroundcolor DarkYellow
   
@@ -113,7 +115,10 @@ function Main {
   Write-Host "Provisioning a Win64 build environment for osquery" -foregroundcolor Yellow
 
   Install-Chocolatey
-  Install-ChocoPackage 'visualstudio2015community'
+  
+  $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
+  Install-ChocoPackage 'visualstudio2015community' '' '-packageParameters "--AdminFile $deploymentFile"'
+  
   Install-ChocoPackage '7zip.commandline'
   Install-ChocoPackage 'cmake.portable' '3.5.0'
   Install-ChocoPackage 'python2' '2.7.11'
