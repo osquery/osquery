@@ -66,10 +66,11 @@ param(
       Write-Host "       Options: $packageOptions" -foregroundcolor Cyan
     }
     
+    # TODO(remove me!): debug flags
     if ($packageVersion -eq '') {
-      choco install -y $packageName $packageOptions
+      Invoke-Expression "choco install -d -y $packageName $packageOptions"
     } else {
-      choco install -y $packageName --version $packageVersion $packageOptions
+      Invoke-Expression "choco install -d -y $packageName --version $packageVersion $packageOptions"
     }
   } else {
     Write-Host "    => $packageName $packageVersion already installed." -foregroundcolor Green
@@ -81,7 +82,14 @@ param(
 function Install-PipPackages {
   Write-Host "  Attempting to install Python packages" -foregroundcolor DarkYellow
   
-  $env:Path = "$env:Path;$env:HOMEDRIVE\tools\python2\Scripts"
+  $env:Path = "$env:Path;$env:HOMEDRIVE\tools\python2;$env:HOMEDRIVE\tools\python2\Scripts"
+  
+  if ((Get-Command 'python.exe' -ErrorAction SilentlyContinue) -eq $null) {
+    Write-Host "    => ERROR: failed to find python" -foregroundcolor Red
+    return $false
+  } else {
+    Write-Host "    => Found python, continuing on..." -foregroundcolor Green
+  }
   
   if ((Get-Command 'pip.exe' -ErrorAction SilentlyContinue) -eq $null) {
     Write-Host "    => ERROR: failed to find pip" -foregroundcolor Red
@@ -92,8 +100,8 @@ function Install-PipPackages {
   
   $requirements = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'requirements.txt'))
   
-  # Write-Host "  Upgrading pip..." -foregroundcolor DarkYellow
-  # pip install --upgrade pip
+  Write-Host "  Upgrading pip..." -foregroundcolor DarkYellow
+  python -m pip install --upgrade pip
   
   Write-Host "  Installing from requirements.txt" -foregroundcolor DarkYellow
   pip install -r $requirements.path
@@ -113,6 +121,12 @@ function Install-ThirdPartyPackages {
   # Extract the downloaded zip into the third-party directory in osquery root directory
   $thirdPartyRoot = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'third-party'))
   Write-Host "  Extracting archive into $thirdPartyRoot" -foregroundcolor DarkYellow
+  
+  # XXX: For now, we need to remove gtest-1.7.0 because it interferes with the extraction process
+  $gtestPath = [System.IO.Path]::Combine($thirdPartyRoot, 'gtest-1.7.0')
+  if (Test-Path -PathType Leaf $gtestPath) {
+    Remove-Item $gtestPath
+  }
   
   # We have the -y flag because our gtest folder needs to override the one already in third-party
   Invoke-Expression "7z x $thirdPartyArchive -y -o$thirdPartyRoot"
@@ -140,9 +154,10 @@ function Main {
   Install-ThirdPartyPackages
   
   $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
-  Install-ChocoPackage 'visualstudio2015community' '' "-packageParameters `"--AdminFile $deploymentFile`""
+  Install-ChocoPackage 'visualstudio2015community' '' "-packageParameters `\`"--AdminFile $deploymentFile`\`""
   
   Write-Host "Done." -foregroundcolor Yellow
 }
 
-$null = Main
+# $null = Main
+Main
