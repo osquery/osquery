@@ -7,7 +7,7 @@
     <SelectableItemCustomization Id="MicroUpdateV1.3" Selected="yes" FriendlyName="Update for Microsoft Visual Studio 2015 (KB3110221)" />
     <SelectableItemCustomization Id="NativeLanguageSupport_VCV1" Hidden="no" Selected="yes" FriendlyName="Common Tools for Visual C++ 2015" />
     <SelectableItemCustomization Id="NativeLanguageSupport_MFCV1" Hidden="no" Selected="yes" FriendlyName="Microsoft Foundation Classes for C++" />
-    <SelectableItemCustomization Id="NativeLanguageSupport_XPV1" Hidden="no" Selected="yes" FriendlyName="Windows XP Support for C++" />
+    <SelectableItemCustomization Id="NativeLanguageSupport_XPV1" Hidden="no" Selected="no" FriendlyName="Windows XP Support for C++" />
     <SelectableItemCustomization Id="JavaScript_HiddenV1" Selected="yes" FriendlyName="JavaScript Project System for Visual Studio" />
     <SelectableItemCustomization Id="MDDJSDependencyHiddenV1" Selected="yes" FriendlyName="MDDJSDependencyHidden" />
     <SelectableItemCustomization Id="AppInsightsToolsVisualStudioHiddenRTMV1" Selected="yes" FriendlyName="Application Insights Tools" />

@@ -63,7 +63,7 @@ param(
     Write-Host "    => Did not find. Installing $packageName $packageVersion" -foregroundcolor Cyan
     
     if ($packageOptions -ne '') {
-      Write-Host "       Options: $packageOptions" --foregroundcolor Cyan
+      Write-Host "       Options: $packageOptions" -foregroundcolor Cyan
     }
     
     if ($packageVersion -eq '') {
@@ -136,11 +136,11 @@ function Main {
   Install-ChocoPackage 'cmake.portable' '3.5.0'
   Install-ChocoPackage 'python2' '2.7.11'
   
-  $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
-  Install-ChocoPackage 'visualstudio2015community' '' '-packageParameters "--AdminFile $deploymentFile"'
-  
-  Install-ThirdPartyPackages
   Install-PipPackages
+  Install-ThirdPartyPackages
+  
+  $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
+  Install-ChocoPackage 'visualstudio2015community' '' "-packageParameters `"--AdminFile $deploymentFile`""
   
   Write-Host "Done." -foregroundcolor Yellow
 }
