@@ -270,6 +270,15 @@ Status serializeQueryLogItem(const QueryLogItem& i, pt::ptree& tree) {
     tree.add_child("snapshot", results_tree);
   }
 
+  // Check if the config has added decorations.
+  if (i.decorations.size() > 0) {
+    tree.add_child("decorations", pt::ptree());
+    auto& decorations = tree.get_child("decorations");
+    for (const auto& name : i.decorations) {
+      decorations.put<std::string>(name.first, name.second);
+    }
+  }
+
   tree.put<std::string>("name", i.name);
   tree.put<std::string>("hostIdentifier", i.identifier);
   tree.put<std::string>("calendarTime", i.calendar_time);
@@ -307,6 +316,13 @@ Status deserializeQueryLogItem(const pt::ptree& tree, QueryLogItem& item) {
         deserializeQueryData(tree.get_child("snapshot"), item.snapshot_results);
     if (!status.ok()) {
       return status;
+    }
+  }
+
+  if (tree.count("decorations") > 0) {
+    auto& decorations = tree.get_child("decorations");
+    for (const auto& i : decorations) {
+      item.decorations[i.first] = i.second.data();
     }
   }
 
