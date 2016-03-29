@@ -99,12 +99,12 @@ inline void replaceAll(std::string& str,
 }
 
 /**
- * @brief Join a vector of strings inserting a token string between elements
+ * @brief Join a vector of strings using a tokenizer.
  *
- * @param s the vector of strings to be joined.
- * @param tok a token glue string to be inserted between elements.
+ * @param s the string that you'd like to split.
+ * @param tok a token glue.
  *
- * @return the joined string.
+ * @return a joined string.
  */
 std::string join(const std::vector<std::string>& s, const std::string& tok);
 

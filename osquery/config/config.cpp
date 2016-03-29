@@ -56,16 +56,11 @@ const std::string kExecutingQuery = "executing_query";
 const std::string kFailedQueries = "failed_queries";
 
 // The config may be accessed and updated asynchronously; use mutexes.
+Mutex config_schedule_mutex_;
+Mutex config_performance_mutex_;
+Mutex config_files_mutex_;
 Mutex config_hash_mutex_;
 Mutex config_valid_mutex_;
-
-using RecursiveMutex = std::recursive_mutex;
-using RecursiveLock = std::lock_guard<std::recursive_mutex>;
-
-/// Several config methods require enumeration via predicate lambdas.
-RecursiveMutex config_schedule_mutex_;
-RecursiveMutex config_files_mutex_;
-RecursiveMutex config_performance_mutex_;
 
 using PackRef = std::shared_ptr<Pack>;
 
@@ -223,7 +218,7 @@ Config::Config()
 void Config::addPack(const std::string& name,
                      const std::string& source,
                      const pt::ptree& tree) {
-  RecursiveLock wlock(config_schedule_mutex_);
+  WriteLock wlock(config_schedule_mutex_);
   try {
     schedule_->add(std::make_shared<Pack>(name, source, tree));
     if (schedule_->last()->shouldPackExecute()) {
@@ -235,19 +230,19 @@ void Config::addPack(const std::string& name,
 }
 
 void Config::removePack(const std::string& pack) {
-  RecursiveLock wlock(config_schedule_mutex_);
+  WriteLock wlock(config_schedule_mutex_);
   return schedule_->remove(pack);
 }
 
 void Config::addFile(const std::string& source,
                      const std::string& category,
                      const std::string& path) {
-  RecursiveLock wlock(config_files_mutex_);
+  WriteLock wlock(config_files_mutex_);
   files_[source][category].push_back(path);
 }
 
 void Config::removeFiles(const std::string& source) {
-  RecursiveLock wlock(config_files_mutex_);
+  WriteLock wlock(config_files_mutex_);
   if (files_.count(source)) {
     FileCategories().swap(files_[source]);
   }
@@ -256,7 +251,7 @@ void Config::removeFiles(const std::string& source) {
 void Config::scheduledQueries(
     std::function<void(const std::string& name, const ScheduledQuery& query)>
         predicate) {
-  RecursiveLock lock(config_schedule_mutex_);
+  WriteLock lock(config_schedule_mutex_);
   for (const PackRef& pack : *schedule_) {
     for (const auto& it : pack->getSchedule()) {
       std::string name = it.first;
@@ -284,7 +279,7 @@ void Config::scheduledQueries(
 }
 
 void Config::packs(std::function<void(PackRef& pack)> predicate) {
-  RecursiveLock lock(config_schedule_mutex_);
+  WriteLock lock(config_schedule_mutex_);
   for (PackRef& pack : schedule_->packs_) {
     predicate(pack);
   }
@@ -537,7 +532,7 @@ void Config::purge() {
     return false;
   };
 
-  RecursiveLock lock(config_schedule_mutex_);
+  WriteLock lock(config_schedule_mutex_);
   // Iterate over each result set in the database.
   for (const auto& saved_query : saved_queries) {
     if (queryExists(saved_query)) {
@@ -590,7 +585,7 @@ void Config::recordQueryPerformance(const std::string& name,
                                     size_t size,
                                     const Row& r0,
                                     const Row& r1) {
-  RecursiveLock lock(config_performance_mutex_);
+  WriteLock lock(config_performance_mutex_);
   if (performance_.count(name) == 0) {
     performance_[name] = QueryPerformance();
   }
@@ -648,7 +643,7 @@ void Config::getPerformanceStats(
     const std::string& name,
     std::function<void(const QueryPerformance& query)> predicate) {
   if (performance_.count(name) > 0) {
-    RecursiveLock lock(config_performance_mutex_);
+    WriteLock lock(config_performance_mutex_);
     predicate(performance_.at(name));
   }
 }
@@ -693,7 +688,7 @@ const std::shared_ptr<ConfigParserPlugin> Config::getParser(
 void Config::files(
     std::function<void(const std::string& category,
                        const std::vector<std::string>& files)> predicate) {
-  RecursiveLock lock(config_files_mutex_);
+  WriteLock lock(config_files_mutex_);
   for (const auto& it : files_) {
     for (const auto& category : it.second) {
       predicate(category.first, category.second);
