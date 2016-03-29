@@ -26,7 +26,7 @@ function Install-ChocoPackage {
 param(
   [string] $packageName = '',
   [string] $packageVersion = '',
-  [string] $packageOptions = ''
+  [array] $packageOptions = @()
 )
   if ($packageName -eq '') {
     return $false
@@ -62,16 +62,18 @@ param(
   if ($requiresInstall) {
     Write-Host "    => Did not find. Installing $packageName $packageVersion" -foregroundcolor Cyan
     
-    if ($packageOptions -ne '') {
-      Write-Host "       Options: $packageOptions" -foregroundcolor Cyan
-    }
-    
     # TODO(remove me!): debug flags
-    if ($packageVersion -eq '') {
-      Invoke-Expression "choco install -d -y $packageName $packageOptions"
-    } else {
-      Invoke-Expression "choco install -d -y $packageName --version $packageVersion $packageOptions"
+    $args = @("install", "-d", "-y", "${packageName}")
+    if ($packageVersion -ne '') {
+      $args += @("--version", "${packageVersion}")
     }
+    if ($packageOptions.count -gt 0) {
+      Write-Host "       Options: $packageOptions" -foregroundcolor Cyan
+      $args += ${packageOptions}
+    }
+
+    choco ${args}
+
   } else {
     Write-Host "    => $packageName $packageVersion already installed." -foregroundcolor Green
   }
@@ -154,10 +156,12 @@ function Main {
   Install-ThirdPartyPackages
   
   $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
-  Install-ChocoPackage 'visualstudio2015community' '' "-packageParameters `\`"--AdminFile $deploymentFile`\`""
+  $chocoParams = @("-packageParameters", "--AdminFile ${deploymentFile}")
+  Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
   
   Write-Host "Done." -foregroundcolor Yellow
 }
 
+# TODO(remove me!): debug for now...
 # $null = Main
 Main
