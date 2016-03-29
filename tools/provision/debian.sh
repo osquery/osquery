@@ -95,9 +95,6 @@ function main_debian() {
   if [[ $DISTRO == "wheezy" ]]; then
     #pip has to be installed via easy_install
     easy_install pip
-  fi
-  
-  if [[ $DISTRO == "wheezy" ]]; then
     # psutil and other things depending on gcc aren't
     # aware of Debian's multiarch and expect /usr/lib64
     sudo mkdir -p /usr/lib64
