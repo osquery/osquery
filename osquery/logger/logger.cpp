@@ -36,8 +36,6 @@ FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 
 FLAG(bool, log_result_events, true, "Log scheduled results as events");
 
-class LoggerDisabler;
-
 /**
  * @brief A custom Glog log sink for forwarding or buffering status logs.
  *
@@ -134,32 +132,23 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 
   /// Track multiple loggers that should receive sinks from the send forwarder.
   std::vector<std::string> sinks_;
-
- private:
-  friend class LoggerDisabler;
 };
 
 /// Scoped helper to perform logging actions without races.
 class LoggerDisabler {
  public:
-  LoggerDisabler()
-      : stderr_status_(FLAGS_logtostderr),
-        enabled_(BufferedLogSink::instance().enabled_) {
+  LoggerDisabler() : stderr_status_(FLAGS_logtostderr) {
     BufferedLogSink::disable();
     FLAGS_logtostderr = true;
   }
 
   ~LoggerDisabler() {
-    // Only enable if the sink was enabled when the disabler was requested.
-    if (enabled_) {
-      BufferedLogSink::enable();
-    }
+    BufferedLogSink::enable();
     FLAGS_logtostderr = stderr_status_;
   }
 
  private:
   bool stderr_status_;
-  bool enabled_;
 };
 
 static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
@@ -346,10 +335,6 @@ Status logString(const std::string& message, const std::string& category) {
 Status logString(const std::string& message,
                  const std::string& category,
                  const std::string& receiver) {
-  if (FLAGS_disable_logging) {
-    return Status(0, "Logging disabled");
-  }
-
   return Registry::call(
       "logger", receiver, {{"string", message}, {"category", category}});
 }
@@ -360,10 +345,6 @@ Status logQueryLogItem(const QueryLogItem& results) {
 
 Status logQueryLogItem(const QueryLogItem& results,
                        const std::string& receiver) {
-  if (FLAGS_disable_logging) {
-    return Status(0, "Logging disabled");
-  }
-
   std::vector<std::string> json_items;
   Status status;
   if (FLAGS_log_result_events) {
@@ -387,10 +368,6 @@ Status logQueryLogItem(const QueryLogItem& results,
 }
 
 Status logSnapshotQuery(const QueryLogItem& item) {
-  if (FLAGS_disable_logging) {
-    return Status(0, "Logging disabled");
-  }
-
   std::string json;
   if (!serializeQueryLogItemJSON(item, json)) {
     return Status(1, "Could not serialize snapshot");
@@ -402,10 +379,6 @@ Status logSnapshotQuery(const QueryLogItem& item) {
 }
 
 Status logHealthStatus(const QueryLogItem& item) {
-  if (FLAGS_disable_logging) {
-    return Status(0, "Logging disabled");
-  }
-
   std::string json;
   if (!serializeQueryLogItemJSON(item, json)) {
     return Status(1, "Could not serialize health");
@@ -417,10 +390,6 @@ Status logHealthStatus(const QueryLogItem& item) {
 }
 
 void relayStatusLogs() {
-  if (FLAGS_disable_logging) {
-    return;
-  }
-
   // Prevent our dumping and registry calling from producing additional logs.
   LoggerDisabler disabler;
 
@@ -437,12 +406,10 @@ void relayStatusLogs() {
 
   // Skip the registry's logic, and send directly to the core's logger.
   PluginResponse response;
-  Registry::call("logger", request, response);
-
-  // Flush the buffered status logs.
-  // If the logger called failed then the logger is experiencing a catastrophic
-  // failure, since it is missing from the registry. The logger plugin may
-  // return failure, but it should have buffered independently of the failure.
-  status_logs.clear();
+  if (!Registry::call("logger", request, response)) {
+    // Flush the buffered status logs.
+    // Otherwise the extension call failed and the buffering should continue.
+    status_logs.clear();
+  }
 }
 }

@@ -33,8 +33,7 @@ flags](../installation/cli-flags.md) overview for a complete list of these
 parameters.
 
 The default config plugin, **filesystem**, reads from a file and optional
-directory ".d" based on the filename. The included init scripts set the default
-config path as follows:
+directory ".d" based on the filename.
 
 * Linux: **/etc/osquery/osquery.conf** and **/etc/osquery/osquery.conf.d/**
 * Mac OS X: **/var/osquery/osquery.conf** and **/var/osquery/osquery.conf.d/**
@@ -408,7 +407,7 @@ query, however, defines an additional version constraint, therefore the **packs*
 
 **Where can I get more existing packs?**
 
-We release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc.). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts. You can find the query packs that are released by the osquery team documented at [https://osquery.io/docs/packs](https://osquery.io/docs/packs) and the content in [**/packs**](https://github.com/facebook/osquery/blob/master/packs) within the osquery repository.
+We release (and bundle alongside RPMs/DEBs/PKGs/etc.) query packs that emit high signal events as well as event data that is worth storing in the case of future incidents and security events. The queries within each pack will be performance tested and well-formed (JOIN, select-limited, etc.). But it is always an exercise for the user to make sure queries are useful and are not impacting performance critical hosts. You can find the query packs that are released by the osquery team documented at [https://osquery.io/docs/packs] and the content in [**/packs**](https://github.com/facebook/osquery/blob/master/packs) within the osquery repository.
 
 **How do I modify the default options in the provided packs?**
 

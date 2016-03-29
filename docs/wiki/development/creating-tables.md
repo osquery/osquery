@@ -37,7 +37,7 @@ schema([
 ])
 
 # Use the "@gen{TableName}" to communicate the C++ symbol name.
-implementation("time@genTime")
+implementation("genTime")
 ```
 
 You can leave the comments out in your production spec. Shoot for simplicity, do NOT go "hard in the paint" and do things like inheritance for Column objects, loops in your table spec, etc.
