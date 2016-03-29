@@ -92,8 +92,8 @@ function Install-PipPackages {
   
   $requirements = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'requirements.txt'))
   
-  Write-Host "  Upgrading pip..." -foregroundcolor DarkYellow
-  pip install --upgrade pip
+  # Write-Host "  Upgrading pip..." -foregroundcolor DarkYellow
+  # pip install --upgrade pip
   
   Write-Host "  Installing from requirements.txt" -foregroundcolor DarkYellow
   pip install -r $requirements.path
