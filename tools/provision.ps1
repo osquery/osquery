@@ -1,12 +1,20 @@
 # URL of where our pre-compiled third-party dependenices are archived
 $THIRD_PARTY_ARCHIVE_URL = 'https://s3.amazonaws.com/osquery-pkgs/third-party.zip'
 
+# Adapted from http://www.jonathanmedd.net/2014/01/testing-for-admin-privileges-in-powershell.html
+function Test-IsAdmin {
+  return ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole] "Administrator"
+  )
+}
+
 # Attempts to install chocolatey if not already
 function Install-Chocolatey {
   Write-Host "  Attemping to detect presence of chocolatey..." -foregroundcolor DarkYellow
   if ((Get-Command 'choco.exe' -ErrorAction SilentlyContinue) -eq $null) {
     Write-Host "    => Did not find. Installing chocolatey..." -foregroundcolor Cyan
     iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
+    $env:Path = "$env:Path;$env:ALLUSERSPROFILE\chocolatey\bin"
   } else {
     Write-Host "    => Chocolatey is already installed." -foregroundcolor Green
   }
@@ -70,9 +78,10 @@ param(
   return $true
 }
 
-# TODO: We might need to hardcode paths to Python from chocolatey install...
 function Install-PipPackages {
   Write-Host "  Attempting to install Python packages" -foregroundcolor DarkYellow
+  
+  $env:Path = "$env:Path;$env:HOMEDRIVE\tools\python2\Scripts"
   
   if ((Get-Command 'pip.exe' -ErrorAction SilentlyContinue) -eq $null) {
     Write-Host "    => ERROR: failed to find pip" -foregroundcolor Red
@@ -113,15 +122,22 @@ function Install-ThirdPartyPackages {
 
 function Main {
   Write-Host "Provisioning a Win64 build environment for osquery" -foregroundcolor Yellow
-
+  Write-Host "  Verifying script is running with Admin privileges" -foregroundcolor Yellow
+  
+  if (-not (Test-IsAdmin)) {
+    throw "Please run this script with Admin privileges"
+  }
+  
+  Write-Host "    => Success!" -foregroundcolor Green
+  
   Install-Chocolatey
-  
-  $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
-  Install-ChocoPackage 'visualstudio2015community' '' '-packageParameters "--AdminFile $deploymentFile"'
-  
+
   Install-ChocoPackage '7zip.commandline'
   Install-ChocoPackage 'cmake.portable' '3.5.0'
   Install-ChocoPackage 'python2' '2.7.11'
+  
+  $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
+  Install-ChocoPackage 'visualstudio2015community' '' '-packageParameters "--AdminFile $deploymentFile"'
   
   Install-ThirdPartyPackages
   Install-PipPackages
