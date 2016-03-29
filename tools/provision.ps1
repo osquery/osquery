@@ -115,7 +115,7 @@ function Install-ThirdPartyPackages {
   Write-Host "  Extracting archive into $thirdPartyRoot" -foregroundcolor DarkYellow
   
   # We have the -y flag because our gtest folder needs to override the one already in third-party
-  7z x $thirdPartyArchive -y -o$thirdPartyRoot
+  Invoke-Expression "7z x $thirdPartyArchive -y -o$thirdPartyRoot"
   
   Remove-Item $thirdPartyArchive
 }
