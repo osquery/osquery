@@ -62,8 +62,7 @@ param(
   if ($requiresInstall) {
     Write-Host "    => Did not find. Installing $packageName $packageVersion" -foregroundcolor Cyan
     
-    # TODO(remove me!): debug flags
-    $args = @("install", "-d", "-y", "${packageName}")
+    $args = @("install", "-y", "${packageName}")
     if ($packageVersion -ne '') {
       $args += @("--version", "${packageVersion}")
     }
@@ -162,6 +161,4 @@ function Main {
   Write-Host "Done." -foregroundcolor Yellow
 }
 
-# TODO(remove me!): debug for now...
-# $null = Main
-Main
+$null = Main
