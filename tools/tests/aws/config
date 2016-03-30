@@ -1,0 +1,7 @@
+[default]
+output = json
+region = us-west-2
+
+[profile test]
+output = json
+region = eu-central-1

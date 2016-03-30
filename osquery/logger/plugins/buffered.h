@@ -82,6 +82,9 @@ class BufferedLogForwarder : public InternalRunnable {
   /// A simple wait lock, and flush based on settings.
   void start() override;
 
+  /// Set up the forwarder. May be used to initialize remote clients, etc.
+  virtual Status setUp() { return Status(0); }
+
   /**
    * @brief Log a results string
    *
