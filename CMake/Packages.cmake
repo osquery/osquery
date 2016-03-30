@@ -101,6 +101,12 @@ elseif(LINUX)
         "${PACKAGE_DEPENDENCIES}"
         "libudev"
       )
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "scientific6")
+      set(PACKAGE_ITERATION "1.el6")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+        "libudev"
+      )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "oracle6")
       set(PACKAGE_ITERATION "1.oel6")
       set(PACKAGE_DEPENDENCIES
@@ -114,6 +120,11 @@ elseif(LINUX)
       )
     elseif(OSQUERY_BUILD_DISTRO STREQUAL "rhel7")
       set(PACKAGE_ITERATION "1.rhel7")
+      set(PACKAGE_DEPENDENCIES
+        "${PACKAGE_DEPENDENCIES}"
+      )
+    elseif(OSQUERY_BUILD_DISTRO STREQUAL "scientific7")
+      set(PACKAGE_ITERATION "1.el7")
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
       )

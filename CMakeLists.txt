@@ -134,6 +134,7 @@ set(OSQUERY_REQUIRE_RUNTIMES
   "lucid"
   "precise"
   "centos6"
+  "scientific6"
   "rhel6"
   "oracle6"
   "wheezy"
@@ -287,6 +288,10 @@ elseif(OSQUERY_BUILD_PLATFORM STREQUAL "centos")
   set(REDHAT_BASED TRUE)
   set(CENTOS TRUE)
   LOG_PLATFORM("CentOS")
+elseif(OSQUERY_BUILD_PLATFORM STREQUAL "scientific")
+  set(REDHAT_BASED TRUE)
+  set(SCIENTIFIC TRUE)
+  LOG_PLATFORM("Scientific Linux")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "rhel")
   set(REDHAT_BASED TRUE)
   set(RHEL TRUE)
@@ -307,7 +312,7 @@ elseif(OSQUERY_BUILD_PLATFORM STREQUAL "windows")
   LOG_PLATFORM("Windows")
 endif()
 
-if("${OSQUERY_BUILD_DISTRO}" MATCHES "^(centos|rhel|oracle)7$")
+if("${OSQUERY_BUILD_DISTRO}" MATCHES "^(centos|rhel|scientific|oracle)7$")
   # Useful for libudev version detection.
   set(SYSTEMD TRUE)
 endif()
