@@ -61,7 +61,8 @@ if(APPLE)
 elseif(LINUX OR FREEBSD)
   ADD_OSQUERY_LINK_CORE("-Wl,-zrelro -Wl,-znow")
   if(NOT ${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6" AND
-     NOT ${OSQUERY_BUILD_DISTRO} STREQUAL "centos6")
+     NOT ${OSQUERY_BUILD_DISTRO} STREQUAL "centos6" AND
+     NOT ${OSQUERY_BUILD_DISTRO} STREQUAL "scientific6")
     ADD_OSQUERY_LINK_CORE("-Wl,--gc-sections")
   endif()
   ADD_OSQUERY_LINK_CORE("librt.so")

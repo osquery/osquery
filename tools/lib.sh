@@ -20,6 +20,9 @@ function platform() {
   elif [[ -n `grep -o "CentOS" $SYSTEM_RELEASE 2>/dev/null` ]]; then
     FAMILY="redhat"
     eval $__out="centos"
+  elif [[ -n `grep -o "Scientific Linux" $SYSTEM_RELEASE 2>/dev/null` ]]; then
+    FAMILY="redhat"
+    eval $__out="scientific"
   elif [[ -n `grep -o "Red Hat Enterprise" $SYSTEM_RELEASE 2>/dev/null` ]]; then
     FAMILY="redhat"
     eval $__out="rhel"
@@ -54,6 +57,8 @@ function distro() {
     eval $__out=`grep -o "release [5-7]" $SYSTEM_RELEASE | sed 's/release /oracle/g'`
   elif [[ $1 = "centos" ]]; then
     eval $__out=`grep -o "release [6-7]" $SYSTEM_RELEASE | sed 's/release /centos/g'`
+  elif [[ $1 = "scientific" ]]; then
+    eval $__out=`grep -o "release [6-7]" $SYSTEM_RELEASE | sed 's/release /scientific/g'`
   elif [[ $1 = "rhel" ]]; then
     eval $__out=`grep -o "release [6-7]" $SYSTEM_RELEASE | sed 's/release /rhel/g'`
   elif [[ $1 = "amazon" ]]; then
