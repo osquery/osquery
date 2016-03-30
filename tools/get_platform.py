@@ -81,9 +81,17 @@ def _distro(osType):
     if result is not None:
       return result
   elif osType == "ubuntu":
-    pass # TODO: ignoring for now
+    with open(LSB_RELEASE, "r") as fd:
+      contents = fd.read()
+      results = re.findall(r'DISTRIB_CODENAME=(.*)', contents)
+      if len(results) == 1:
+        return results[0]
   elif osType == "darwin":
-    pass # TODO: ignoring for now
+    rawResult = commandOutput(["sw_vers", "-productVersion"])
+    if rawResult is not None:
+      results = re.findall(r'[0-9]+\.[0-9]+', rawResult)
+      if len(results) == 1:
+        return results[0]
   elif osType == "fedora":
     pass # TODO: ignoring for now
   elif osType == "debian":
