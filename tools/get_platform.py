@@ -93,13 +93,19 @@ def _distro(osType):
             if len(results) == 1:
                 return results[0]
     elif osType == "fedora":
-        pass # TODO: ignoring for now
+        with open(SYSTEM_RELEASE, "r") as fd:
+          contents = fd.read()
+          results = contents.split()
+          if len(results) > 2:
+            return results[2]
     elif osType == "debian":
         result = commandOutput(["lsb_release", "-cs"])
         if result is not None:
             return result
     elif osType == "freebsd":
-        pass # TODO: ignoring for now
+        results = commandOutput(["uname", "-r"])
+        if len(results) > 0:
+          return results[0]
     elif osType == "windows":
         return "windows%s" % osVersion
     
