@@ -2,6 +2,8 @@
 
 import os
 import re
+import sys
+import argparse
 import platform
 import subprocess
 
@@ -111,9 +113,32 @@ def _distro(osType):
         return "windows%s" % osVersion
     
     return "unknown_version"
+
+def platformAction():
+    family, osType = _platform()
+    print osType
     
-if __name__ == "__main__":
+def distroAction():
+    family, osType = _platform()
+    print _distro(osType)
+    
+def defaultAction():
     family, osType = _platform()
     distro = _distro(osType)
     print "%s;%s" % (osType, distro)
     
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Platform detection script for osquery")
+    parser.add_argument("--platform", action="store_true", help="Outputs the detected platform")
+    parser.add_argument("--distro", action="store_true", help="Outputs the detected distribution")
+    
+    args = parser.parse_args()
+    
+    if args.platform and not args.distro:
+      platformAction()
+    elif not args.platform and args.distro:
+      distroAction()
+    else:
+      defaultAction()
+      
+    sys.exit(0)
