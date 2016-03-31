@@ -338,10 +338,13 @@ struct QueryLogItem {
   std::string identifier;
 
   /// The time that the query was executed, seconds as UNIX time.
-  int time;
+  size_t time{0};
 
   /// The time that the query was executed, an ASCII string.
   std::string calendar_time;
+
+  /// A set of additional fields to emit with the log line.
+  std::map<std::string, std::string> decorations;
 
   /// equals operator
   bool operator==(const QueryLogItem& comp) const {
