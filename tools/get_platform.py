@@ -103,7 +103,8 @@ def _distro(osType):
         if result is not None:
             return result
     elif osType == "freebsd":
-        results = commandOutput(["uname", "-r"])
+        rawResult = commandOutput(["uname", "-r"])
+        results = rawResult.split("-")
         if len(results) > 0:
           return results[0]
     elif osType == "windows":
