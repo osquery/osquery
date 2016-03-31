@@ -31,11 +31,6 @@ function main() {
    exit 0
   fi
 
-  if [[ $1 = "get_platform" ]]; then
-    echo "$OS;$DISTRO"
-    return 0
-  fi
-
   mkdir -p "$WORKING_DIR"
   if [[ ! -z "$SUDO_USER" ]]; then
     echo "chown -h $SUDO_USER $BUILD_DIR/*"
