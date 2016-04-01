@@ -17,6 +17,12 @@
 // Package BOM structure headers
 #include "osquery/tables/system/darwin/packages.h"
 
+namespace fs = boost::filesystem;
+namespace pt = boost::property_tree;
+
+namespace osquery {
+namespace tables {
+
 const std::vector<std::string> kPkgReceiptPaths = {
     "/private/var/db/receipts/", "/Library/Receipts/",
 };
@@ -24,6 +30,9 @@ const std::vector<std::string> kPkgReceiptPaths = {
 const std::vector<std::string> kPkgReceiptUserPaths = {
     "/Library/Receipts/",
 };
+
+const std::string kPkgInstallHistoryPath =
+    "/Library/Receipts/InstallHistory.plist";
 
 const std::map<std::string, std::string> kPkgReceiptKeys = {
     {"PackageIdentifier", "package_id"},
@@ -34,10 +43,13 @@ const std::map<std::string, std::string> kPkgReceiptKeys = {
     {"InstallProcessName", "installer_name"},
 };
 
-namespace fs = boost::filesystem;
-
-namespace osquery {
-namespace tables {
+const std::map<std::string, std::string> kPkgInstallHistoryKeys = {
+    {"date", "time"},
+    {"displayName", "name"},
+    {"displayVersion", "version"},
+    {"processName", "source"},
+    {"contentType", "content_type"},
+};
 
 BOM::BOM(const char* data, size_t size)
     : data_(data), size_(size), valid_(false) {
@@ -324,7 +336,40 @@ QueryData genPackageReceipts(QueryContext& context) {
     }
   }
 
-  return std::move(results);
+  return results;
+}
+
+void genPkgInstallHistoryEntry(const pt::ptree& entry, QueryData& results) {
+  Row r;
+  for (const auto& it : kPkgInstallHistoryKeys) {
+    r[it.second] = entry.get(it.first, "");
+  }
+
+  for (const auto& package_identifier : entry.get_child("packageIdentifiers")) {
+    r["package_id"] = package_identifier.second.get<std::string>("");
+    results.push_back(r);
+  }
+}
+
+QueryData genPackageInstallHistory(QueryContext& context) {
+  QueryData results;
+  pt::ptree tree;
+
+  // The osquery::parsePlist method will reset/clear a property tree.
+  // Keeping the data structure in a larger scope preserves allocations
+  // between similar-sized trees.
+  if (!osquery::parsePlist(kPkgInstallHistoryPath, tree).ok()) {
+    TLOG << "Error parsing install history plist: " << kPkgInstallHistoryPath;
+    return results;
+  }
+
+  if (tree.count("root") != 0) {
+    for (const auto& it : tree.get_child("root")) {
+      genPkgInstallHistoryEntry(it.second, results);
+    }
+  }
+
+  return results;
 }
 }
 }
