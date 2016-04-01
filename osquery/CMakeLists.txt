@@ -266,8 +266,8 @@ if(NOT DEFINED ENV{SKIP_TESTS})
     add_executable(osquery_additional_tests main/tests.cpp ${OSQUERY_ADDITIONAL_TESTS})
     TARGET_OSQUERY_LINK_WHOLE(osquery_additional_tests libosquery)
     TARGET_OSQUERY_LINK_WHOLE(osquery_additional_tests libosquery_additional)
-    target_link_libraries(osquery_additional_tests gtest libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_additional_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=0")
+    target_link_libraries(osquery_additional_tests gtest gmock libosquery_testing)
+    SET_OSQUERY_COMPILE(osquery_additional_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=1")
     add_test(osquery_additional_tests osquery_additional_tests)
 
     # osquery tables set of unit tests (extracted for organization).
