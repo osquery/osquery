@@ -8,6 +8,11 @@ macro(LOG MESSAGE)
   message("-- ${MESSAGE}")
 endmacro(LOG)
 
+# TODO(#1985): What should be the correct course of action if CMAKE_SIZEOF_VOID_P is 4 (aka 32 bit)?
+if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(WIN64 TRUE)
+endif()
+
 # If no explicit compiler override and clang++ exists, prefer clang.
 find_file(CLANGXX_EXISTS "clang++")
 if(DEFINED ENV{CC})
@@ -24,7 +29,7 @@ elseif(CLANGXX_EXISTS)
 endif()
 
 if(WIN32)
-  # TODO(WIN64): Put customized compiler options here
+  # TODO(#1985): We need to find the MSVC equivalents to the flags listed in the else section.
 else()
   add_compile_options(
     -Wstrict-aliasing
@@ -148,7 +153,7 @@ if(DEFINED ENV{DEBUG})
   set(DEBUG TRUE)
   set(CMAKE_BUILD_TYPE "Debug")
   if(WIN32)
-    # TODO(WIN64): any other compile options to add?
+    # TODO(#1985): Is there a MSVC flag congruent to -fstandalone-debug?
     add_compile_options(
       /Zi
       /Od   
@@ -163,7 +168,9 @@ if(DEFINED ENV{DEBUG})
   add_definitions(-DDEBUG)
   WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
-  # TODO(WIN64): need to deal with these compile options...
+  # TODO(#1985): In the future, we need to find the MSVC equivalent flags for the following 
+  #              compiler flags.
+  
   # make sanitize (cannot make debug sanitize)
   add_compile_options(
     -g
@@ -185,7 +192,6 @@ elseif(DEFINED ENV{SANITIZE})
   add_definitions(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
 else()
   set(DEBUG FALSE)
-  # TODO(WIN64): more options to change for windows
   if(WIN32)
     add_compile_options(/Ot)
   else()
@@ -199,8 +205,9 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT DEFINED ENV{OPTIMIZED})
-  # TODO(WIN64): I think by default no-avx is implied if not added as /arch:AVX
-  if(WIN32)
+  # TODO(#1985): Is there a congruent flag in MSVC for -mno-avx flag? I think it is implicit that the default
+  #              does not use avx. 
+  if(WIN64)
     add_compile_options(/favor:AMD64)
   else()
     add_compile_options(-march=x86-64 -mno-avx)
@@ -209,9 +216,9 @@ endif()
 
 # make analyze (environment variable from Makefile)
 if(DEFINED ENV{ANALYZE})
-  # TODO(WIN64): ignore the analyzer option for now
+  # TODO(#1985): How do we support clang-analyze on Windows?
   if(WIN32)
-    message(FATAL_ERROR "Cannot analyze on Win64 right now." )
+    message(FATAL_ERROR "Cannot analyze on Windows right now." )
   else()
     set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
   endif()
@@ -346,49 +353,53 @@ elseif(DEBIAN_BASED)
   add_definitions(-DDEBIAN_BASED=1)
 endif()
 
-if(WIN32)
-  set(MKDIR_OPTS "")
-  
+set(MKDIR_OPTS "")
+set(WINDOWS_DEPS_DIR "${CMAKE_SOURCE_DIR}/third-party")
+
+if(WIN64)
   # Win64 does not have a kernel build component-specific
   set(OSQUERY_BUILD_SDK_ONLY TRUE)
   
+  # TODO(#1988): All the paths used here are within third-party\. However, after chocolateyfication, these
+  #              paths are subject to change.
+
   # Win64 specific BZIP2 variables
-  set(BZIP2_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third-party/bzip2-1.0.6")
-  set(BZIP2_LIBRARIES "${CMAKE_SOURCE_DIR}/third-party/bzip2-1.0.6/libbz2.lib")
+  set(BZIP2_INCLUDE_DIR "${WINDOWS_DEP_DIR}/bzip2-1.0.6")
+  set(BZIP2_LIBRARIES "${WINDOWS_DEP_DIR}/bzip2-1.0.6/libbz2.lib")
   
   # Win64 specific OpenSSL variables
-  set(OPENSSL_ROOT_DIR "${CMAKE_SOURCE_DIR}/third-party/openssl/out32dll")
-  set(OPENSSL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third-party/openssl/inc32")
-  set(OPENSSL_CRYPTO_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/openssl/out32dll/libeay32.lib")
-  set(OPENSSL_SSL_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/openssl/out32dll/ssleay32.lib")
+  set(OPENSSL_ROOT_DIR "${WINDOWS_DEP_DIR}/openssl/out32dll")
+  set(OPENSSL_INCLUDE_DIR "${WINDOWS_DEP_DIR}/openssl/inc32")
+  set(OPENSSL_CRYPTO_LIBRARY "${WINDOWS_DEP_DIR}/openssl/out32dll/libeay32.lib")
+  set(OPENSSL_SSL_LIBRARY "${WINDOWS_DEP_DIR}/openssl/out32dll/ssleay32.lib")
   set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
   set(OPENSSL_USE_STATIC_LIBS TRUE)
   
   # Win64 specific Thrift
-  set(THRIFT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third-party/thrift/lib/cpp/src")
-  set(THRIFT_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/thrift/cmake-build/lib/Release/thriftmd.lib")
-  set(THRIFT_COMPILER "${CMAKE_SOURCE_DIR}/third-party/thrift-compiler/thrift-0.9.3.exe")
+  set(THRIFT_INCLUDE_DIR "${WINDOWS_DEP_DIR}/thrift/lib/cpp/src")
+  set(THRIFT_LIBRARY "${WINDOWS_DEP_DIR}/thrift/cmake-build/lib/Release/thriftmd.lib")
+  set(THRIFT_COMPILER "${WINDOWS_DEP_DIR}/thrift-compiler/thrift-0.9.3.exe")
   
   # Win64 specific rocksdb
-  set(ROCKSDB_STATIC_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/rocksdb/build/Release/rocksdb.lib")
-  set(ROCKSDB_SNAPPY_LIBRARY "${CMAKE_SOURCE_DIR}/third-party/snappy-windows-1.1.1.8/native/snappy64.lib")
+  set(ROCKSDB_STATIC_LIBRARY "${WINDOWS_DEP_DIR}/rocksdb/build/Release/rocksdb.lib")
+  set(ROCKSDB_SNAPPY_LIBRARY "${WINDOWS_DEP_DIR}/snappy-windows-1.1.1.8/native/snappy64.lib")
   
   # Win64 specific doxygen
-  set(DOXYGEN_EXECUTABLE "${CMAKE_SOURCE_DIR}/third-party/doxygen-1.8.11.windows.x64.bin/doxygen.exe")
+  set(DOXYGEN_EXECUTABLE "${WINDOWS_DEP_DIR}/doxygen-1.8.11.windows.x64.bin/doxygen.exe")
 
   # Win64 specific boost
-  set(boost_filesystem_library "${CMAKE_SOURCE_DIR}/third-party/boost_1_59_0/lib64-msvc-14.0/boost_filesystem-vc140-mt-1_59.lib")
-  set(boost_system_library "${CMAKE_SOURCE_DIR}/third-party/boost_1_59_0/lib64-msvc-14.0/boost_system-vc140-mt-1_59.lib")
-  set(boost_regex_library "${CMAKE_SOURCE_DIR}/third-party/boost_1_59_0/lib64-msvc-14.0/boost_regex-vc140-mt-1_59.lib")
+  set(boost_filesystem_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/boost_filesystem-vc140-mt-1_59.lib")
+  set(boost_system_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/boost_system-vc140-mt-1_59.lib")
+  set(boost_regex_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/boost_regex-vc140-mt-1_59.lib")
 
   # Win64 specific gflags
-  set(gflags_library "${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build/lib/Release/gflags_static.lib")
+  set(gflags_library "${WINDOWS_DEP_DIR}/gflags/cmake-build/lib/Release/gflags_static.lib")
   
   # Win64 specific glog
-  set(glog_library "${CMAKE_SOURCE_DIR}/third-party/glog-w64/build/Release/glog.lib")
+  set(glog_library "${WINDOWS_DEP_DIR}/glog-w64/build/Release/glog.lib")
   
   # Win64 specific yara
-  set(yara_library "${CMAKE_SOURCE_DIR}/third-party/yara-3.4.0/windows/libyara/Release/libyara64.lib")
+  set(yara_library "${WINDOWS_DEP_DIR}/yara-3.4.0/windows/libyara/Release/libyara64.lib")
 else()
   set(MKDIR_OPTS "-p")
 endif()
@@ -402,7 +413,7 @@ set(CMAKE_FIND_LIBRARY_SUFFIXES .dll .dylib .so .a)
 find_package(BZip2 REQUIRED)
 
 if(NOT WIN32)
-	find_package(Dl REQUIRED)
+  find_package(Dl REQUIRED)
 endif()
 
 find_package(Readline REQUIRED)
@@ -482,15 +493,15 @@ include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 
-# TODO(WIN64): Unix specific things
-if(WIN32)
-  # We might have to provide include directories by hand...
+if(WIN64)
+  # TODO(#1988): The paths used here might need to be modified in the future once third party dependencies
+  #              are made into chocolatey packages.
   include_directories("${THRIFT_INCLUDE_DIR}")
-  include_directories("${CMAKE_SOURCE_DIR}/third-party/boost_1_59_0")
-  include_directories("${CMAKE_SOURCE_DIR}/third-party/glog-w64/src/windows")
-  include_directories("${CMAKE_SOURCE_DIR}/third-party/gflags/cmake-build/include")
+  include_directories("${WINDOWS_DEP_DIR}/boost_1_59_0")
+  include_directories("${WINDOWS_DEP_DIR}/glog-w64/src/windows")
+  include_directories("${WINDOWS_DEP_DIR}/gflags/cmake-build/include")
   
-  # TODO(WIN64): For the future, we probably need to add link_directories...
+  # TODO(#1990): We probably need to add our third-party link directories here
 else()
   include_directories("/usr/local/include")
   link_directories("/usr/local/lib")
@@ -534,7 +545,9 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 
-# TODO(WIN64): NEed to windows-ify this
+# TODO(#1985): We either need to find an equivalent command on Windows or write a Python script
+#              in tools/ that accomplishes the same task in a platform agnostic manner.
+
 # make format-all
 add_custom_target(
   format-all
@@ -552,7 +565,8 @@ add_custom_target(
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
 
-# TODO(WIN64): need to deal with sync.sh bash script...
+# TODO(#1985): We need to figure out if we can platform agnosticize the sync.sh shell script
+
 # make sync
 add_custom_target(
   sync

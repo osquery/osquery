@@ -163,7 +163,7 @@ macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
   if(${IS_CORE} OR NOT OSQUERY_BUILD_SDK_ONLY)
     add_library(${TARGET} OBJECT ${ARGN})
     add_dependencies(${TARGET} osquery_extensions)
-    # TODO(WIN64): For Win64, ignore the whole "static" thing for now
+    # TODO(#1985): For Windows, ignore the -static compiler flag
     if(WIN32)
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS}")
     else()
@@ -194,7 +194,7 @@ macro(ADD_OSQUERY_OBJCXX_LIBRARY IS_CORE TARGET)
   if(${IS_CORE} OR NOT OSQUERY_BUILD_SDK_ONLY)
     add_library(${TARGET} OBJECT ${ARGN})
     add_dependencies(${TARGET} osquery_extensions)
-    # TODO(WIN64): For Win64, ignore the whole "static" thing for now
+    # TODO(#1985): For Windows, ignore the -static compiler flag
     if(WIN32)
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS}")
     else()
