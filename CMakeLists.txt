@@ -8,11 +8,6 @@ macro(LOG MESSAGE)
   message("-- ${MESSAGE}")
 endmacro(LOG)
 
-# TODO(#1985): What should be the correct course of action if CMAKE_SIZEOF_VOID_P is 4 (aka 32 bit)?
-if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(WIN64 TRUE)
-endif()
-
 # If no explicit compiler override and clang++ exists, prefer clang.
 find_file(CLANGXX_EXISTS "clang++")
 if(DEFINED ENV{CC})
@@ -206,8 +201,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT DEFINED ENV{OPTIMIZED})
   # TODO(#1985): Is there a congruent flag in MSVC for -mno-avx flag? I think it is implicit that the default
-  #              does not use avx. 
-  if(WIN64)
+  #              does not use avx. Ideally, this should be kept WIN64 only but we are having trouble determining
+  #              the target architecture
+  if(WIN32)
     add_compile_options(/favor:AMD64)
   else()
     add_compile_options(-march=x86-64 -mno-avx)
@@ -354,9 +350,9 @@ elseif(DEBIAN_BASED)
 endif()
 
 set(MKDIR_OPTS "")
-set(WINDOWS_DEPS_DIR "${CMAKE_SOURCE_DIR}/third-party")
+set(WINDOWS_DEP_DIR "${CMAKE_SOURCE_DIR}/third-party")
 
-if(WIN64)
+if(WIN32)
   # Win64 does not have a kernel build component-specific
   set(OSQUERY_BUILD_SDK_ONLY TRUE)
   
@@ -366,7 +362,7 @@ if(WIN64)
   # Win64 specific BZIP2 variables
   set(BZIP2_INCLUDE_DIR "${WINDOWS_DEP_DIR}/bzip2-1.0.6")
   set(BZIP2_LIBRARIES "${WINDOWS_DEP_DIR}/bzip2-1.0.6/libbz2.lib")
-  
+  message("BZIP=" ${BZIP2_INCLUDE_DIR})
   # Win64 specific OpenSSL variables
   set(OPENSSL_ROOT_DIR "${WINDOWS_DEP_DIR}/openssl/out32dll")
   set(OPENSSL_INCLUDE_DIR "${WINDOWS_DEP_DIR}/openssl/inc32")
@@ -493,7 +489,7 @@ include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 
-if(WIN64)
+if(WIN32)
   # TODO(#1988): The paths used here might need to be modified in the future once third party dependencies
   #              are made into chocolatey packages.
   include_directories("${THRIFT_INCLUDE_DIR}")
