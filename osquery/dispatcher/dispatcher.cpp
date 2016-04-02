@@ -36,11 +36,9 @@ void RunnerInterruptPoint::cancel() {
 }
 
 /// Pause until the requested millisecond delay has elapsed or a cancel.
-void RunnerInterruptPoint::pause(size_t milli) {
+void RunnerInterruptPoint::pause(std::chrono::milliseconds milli) {
   std::unique_lock<std::mutex> lock(mutex_);
-  if (stop_ ||
-      condition_.wait_for(lock, std::chrono::milliseconds(milli)) ==
-          std::cv_status::no_timeout) {
+  if (stop_ || condition_.wait_for(lock, milli) == std::cv_status::no_timeout) {
     stop_ = false;
     throw RunnerInterruptError();
   }
@@ -62,7 +60,7 @@ bool InterruptableRunnable::interrupted() {
   return interrupted_;
 }
 
-void InterruptableRunnable::pauseMilli(size_t milli) {
+void InterruptableRunnable::pauseMilli(std::chrono::milliseconds milli) {
   try {
     point_.pause(milli);
   } catch (const RunnerInterruptError&) {

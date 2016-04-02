@@ -11,6 +11,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <memory>
 #include <thread>
@@ -33,7 +34,10 @@ class RunnerInterruptPoint : private boost::noncopyable {
   void cancel();
 
   /// Pause until the requested millisecond delay has elapsed or a cancel.
-  void pause(size_t milli);
+  void pause(size_t milli) { pause(std::chrono::milliseconds(milli)); }
+
+  /// Pause until the requested millisecond delay has elapsed or a cancel.
+  void pause(std::chrono::milliseconds milli);
 
  private:
   /// Communicate between the pause and cancel event.
@@ -63,10 +67,15 @@ class InterruptableRunnable {
   virtual void stop() = 0;
 
   /// Put the runnable into an interruptible sleep.
-  virtual void pause() { pauseMilli(100); }
+  virtual void pause() { pauseMilli(std::chrono::milliseconds(100)); }
 
   /// Put the runnable into an interruptible sleep.
-  virtual void pauseMilli(size_t milli);
+  virtual void pauseMilli(size_t milli) {
+    pauseMilli(std::chrono::milliseconds(milli));
+  }
+
+  /// Put the runnable into an interruptible sleep.
+  virtual void pauseMilli(std::chrono::milliseconds milli);
 
  private:
   /**
