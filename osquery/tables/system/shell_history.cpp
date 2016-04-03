@@ -11,12 +11,16 @@
 #include <string>
 #include <vector>
 
+#include <boost/xpressive/xpressive.hpp>
+
 #include <osquery/core.h>
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/system_utils.h"
+
+namespace xp = boost::xpressive;
 
 namespace osquery {
 namespace tables {
@@ -28,6 +32,9 @@ const std::vector<std::string> kShellHistoryFiles = {
 void genShellHistoryForUser(const std::string& uid,
                             const std::string& directory,
                             QueryData& results) {
+  auto timestamp_rx = xp::sregex::compile("^#(?P<timestamp>[0-9]+)$");
+  xp::smatch timestamp_matches;
+
   for (const auto& hfile : kShellHistoryFiles) {
     boost::filesystem::path history_file = directory;
     history_file /= hfile;
@@ -38,8 +45,21 @@ void genShellHistoryForUser(const std::string& uid,
       continue;
     }
 
+    std::string prev_timestamp;
     for (const auto& line : split(history_content, "\n")) {
+      if (prev_timestamp.empty() &&
+          xp::regex_search(line, timestamp_matches, timestamp_rx)) {
+        prev_timestamp = timestamp_matches["timestamp"];
+        continue;
+      }
+
       Row r;
+
+      if (!prev_timestamp.empty()) {
+        r["time"] = INTEGER(prev_timestamp);
+        prev_timestamp.clear();
+      }
+
       r["uid"] = uid;
       r["command"] = line;
       r["history_file"] = history_file.string();
