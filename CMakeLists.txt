@@ -362,7 +362,7 @@ if(WIN32)
   # Win64 specific BZIP2 variables
   set(BZIP2_INCLUDE_DIR "${WINDOWS_DEP_DIR}/bzip2-1.0.6")
   set(BZIP2_LIBRARIES "${WINDOWS_DEP_DIR}/bzip2-1.0.6/libbz2.lib")
-  message("BZIP=" ${BZIP2_INCLUDE_DIR})
+
   # Win64 specific OpenSSL variables
   set(OPENSSL_ROOT_DIR "${WINDOWS_DEP_DIR}/openssl/out32dll")
   set(OPENSSL_INCLUDE_DIR "${WINDOWS_DEP_DIR}/openssl/inc32")
@@ -377,16 +377,16 @@ if(WIN32)
   set(THRIFT_COMPILER "${WINDOWS_DEP_DIR}/thrift-compiler/thrift-0.9.3.exe")
   
   # Win64 specific rocksdb
-  set(ROCKSDB_STATIC_LIBRARY "${WINDOWS_DEP_DIR}/rocksdb/build/Release/rocksdb.lib")
+  set(ROCKSDB_STATIC_LIBRARY "${WINDOWS_DEP_DIR}/rocksdb/build/Release/rocksdblib.lib")
   set(ROCKSDB_SNAPPY_LIBRARY "${WINDOWS_DEP_DIR}/snappy-windows-1.1.1.8/native/snappy64.lib")
   
   # Win64 specific doxygen
   set(DOXYGEN_EXECUTABLE "${WINDOWS_DEP_DIR}/doxygen-1.8.11.windows.x64.bin/doxygen.exe")
 
   # Win64 specific boost
-  set(boost_filesystem_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/boost_filesystem-vc140-mt-1_59.lib")
-  set(boost_system_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/boost_system-vc140-mt-1_59.lib")
-  set(boost_regex_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/boost_regex-vc140-mt-1_59.lib")
+  set(boost_filesystem_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/libboost_filesystem-vc140-mt-1_59.lib")
+  set(boost_system_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/libboost_system-vc140-mt-1_59.lib")
+  set(boost_regex_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/libboost_regex-vc140-mt-1_59.lib")
 
   # Win64 specific gflags
   set(gflags_library "${WINDOWS_DEP_DIR}/gflags/cmake-build/lib/Release/gflags_static.lib")
