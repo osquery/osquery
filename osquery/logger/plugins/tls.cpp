@@ -134,8 +134,9 @@ Status TLSLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
 Status TLSLoggerPlugin::init(const std::string& name,
                              const std::vector<StatusLogLine>& log) {
   auto node_key = getNodeKey("tls");
-  if (node_key.size() == 0) {
-    // Could not generate an enrollment key, continue logging to stderr.
+  if (!FLAGS_disable_enrollment && node_key.size() == 0) {
+    // Could not generate a node key, continue logging to stderr.
+    LOG(WARNING) << "No node key, TLS logging disabled.";
     FLAGS_logtostderr = true;
   } else {
     // Start the log forwarding/flushing thread.
