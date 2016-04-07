@@ -85,7 +85,11 @@ ADD_OSQUERY_LINK_CORE("glog")
 ADD_OSQUERY_LINK_CORE("boost_system")
 ADD_OSQUERY_LINK_CORE("boost_filesystem")
 ADD_OSQUERY_LINK_CORE("boost_regex")
-ADD_OSQUERY_LINK_CORE("yara")
+
+# TODO(#1956): Ignoring on WIN32 for now
+if(NOT WIN32)
+  ADD_OSQUERY_LINK_CORE("yara")
+endif()
 
 # Remaining additional development libraries.
 ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-uri")

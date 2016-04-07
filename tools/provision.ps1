@@ -6,7 +6,7 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 # URL of where our pre-compiled third-party dependenices are archived
-$THIRD_PARTY_ARCHIVE_URL = 'https://s3.amazonaws.com/osquery-pkgs/third-party.zip'
+$THIRD_PARTY_ARCHIVE_URL = 'https://s3.amazonaws.com/osquery-pkgs/chocolatey'
 
 # Adapted from http://www.jonathanmedd.net/2014/01/testing-for-admin-privileges-in-powershell.html
 function Test-IsAdmin {
@@ -120,26 +120,44 @@ function Install-PipPackages {
 function Install-ThirdPartyPackages {
   Write-Host "  Retrieving third-party dependencies" -foregroundcolor DarkYellow
   
-  $thirdPartyArchive = [System.IO.Path]::GetTempFileName()
+  # XXX: The code below exists because our chocolatey packages are not currently in the chocolatey
+  #      repository. For now, we will download our packages locally and install from a local source.
+  #      We also include the official source since thrift-dev depends on the chocolatey thrift package.
+  #     
+  #      Once our chocolatey packages are added to the official repository, installing the third-party
+  #      dependencies will be as easy as Install-ChocoPackage '<package-name>'.
+  $packages = @(
+    "boost-msvc14.1.59.0", 
+    "bzip2.1.0.6",
+    "doxygen.1.8.11",
+    "gflags-dev.1.2.1",
+    "glog.0.3.4",
+    "openssl.1.0.2",
+    "rocksdb.4.4",
+    "snappy-msvc.1.1.1.8",
+    "thrift-dev.0.9.3"
+  )
+  $tmpDir = Join-Path $env:TEMP 'osquery-packages'
+  Remove-Item $tmpDir -Recurse -ErrorAction Ignore
+  mkdir $tmpDir
   
-  # Download our pre-compiled third-party dependencies
-  Write-Host "  Downloading archive of third-party dependencies from $THIRD_PARTY_ARCHIVE_URL" -foregroundcolor DarkYellow
-  (New-Object net.webclient).DownloadFile($THIRD_PARTY_ARCHIVE_URL, $thirdPartyArchive)
- 
-  # Extract the downloaded zip into the third-party directory in osquery root directory
-  $thirdPartyRoot = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'third-party'))
-  Write-Host "  Extracting archive into $thirdPartyRoot" -foregroundcolor DarkYellow
-  
-  # XXX: For now, we need to remove gtest-1.7.0 because it interferes with the extraction process
-  $gtestPath = [System.IO.Path]::Combine($thirdPartyRoot, 'gtest-1.7.0')
-  if (Test-Path -PathType Leaf $gtestPath) {
-    Remove-Item $gtestPath
+  Try {
+    foreach ($package in $packages) {
+      $downloadUrl = "$THIRD_PARTY_ARCHIVE_URL/$package.nupkg"
+      $tmpFilePath = Join-Path $tmpDir "$package.nupkg"
+      $packageName = ($package -Split '\.')[0]
+      
+      Write-Host "  Downloading $downloadUrl" -foregroundcolor DarkCyan
+      (New-Object net.webclient).DownloadFile($downloadUrl, $tmpFilePath)
+      
+      Write-Host "    Installing $package" -foregroundcolor Cyan
+      choco install -y $packageName -source "$tmpDir;http://chocolatey.org/api/v2"
+    }
   }
-  
-  # We have the -y flag because our gtest folder needs to override the one already in third-party
-  Invoke-Expression "7z x $thirdPartyArchive -y -o$thirdPartyRoot"
-  
-  Remove-Item $thirdPartyArchive
+  Finally
+  {
+    Remove-Item $tmpDir -Recurse
+  }
 }
 
 function Main {

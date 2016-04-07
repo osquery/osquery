@@ -350,52 +350,52 @@ elseif(DEBIAN_BASED)
 endif()
 
 set(MKDIR_OPTS "")
-set(WINDOWS_DEP_DIR "${CMAKE_SOURCE_DIR}/third-party")
 
 if(WIN32)
   # Win64 does not have a kernel build component-specific
   set(OSQUERY_BUILD_SDK_ONLY TRUE)
+
+  set(WINDOWS_DEP_DIR "$ENV{ChocolateyInstall}/lib")
+  string(REGEX REPLACE "\\\\" "/" WINDOWS_DEP_DIR ${WINDOWS_DEP_DIR})
+  set(BOOST_DEP_DIR "$ENV{HOMEDRIVE}/local/boost-msvc14")
   
   # TODO(#1988): All the paths used here are within third-party\. However, after chocolateyfication, these
   #              paths are subject to change.
 
   # Win64 specific BZIP2 variables
-  set(BZIP2_INCLUDE_DIR "${WINDOWS_DEP_DIR}/bzip2-1.0.6")
-  set(BZIP2_LIBRARIES "${WINDOWS_DEP_DIR}/bzip2-1.0.6/libbz2.lib")
+  set(BZIP2_INCLUDE_DIR "${WINDOWS_DEP_DIR}/bzip2/local/include")
+  set(BZIP2_LIBRARIES "${WINDOWS_DEP_DIR}/bzip2/local/lib/libbz2.lib")
 
   # Win64 specific OpenSSL variables
-  set(OPENSSL_ROOT_DIR "${WINDOWS_DEP_DIR}/openssl/out32dll")
-  set(OPENSSL_INCLUDE_DIR "${WINDOWS_DEP_DIR}/openssl/inc32")
-  set(OPENSSL_CRYPTO_LIBRARY "${WINDOWS_DEP_DIR}/openssl/out32dll/libeay32.lib")
-  set(OPENSSL_SSL_LIBRARY "${WINDOWS_DEP_DIR}/openssl/out32dll/ssleay32.lib")
+  set(OPENSSL_ROOT_DIR "${WINDOWS_DEP_DIR}/openssl/local/lib")
+  set(OPENSSL_INCLUDE_DIR "${WINDOWS_DEP_DIR}/openssl/local/include")
+  set(OPENSSL_CRYPTO_LIBRARY "${WINDOWS_DEP_DIR}/openssl/local/lib/libeay32.lib")
+  set(OPENSSL_SSL_LIBRARY "${WINDOWS_DEP_DIR}/openssl/local/lib/ssleay32.lib")
   set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
   set(OPENSSL_USE_STATIC_LIBS TRUE)
   
   # Win64 specific Thrift
-  set(THRIFT_INCLUDE_DIR "${WINDOWS_DEP_DIR}/thrift/lib/cpp/src")
-  set(THRIFT_LIBRARY "${WINDOWS_DEP_DIR}/thrift/cmake-build/lib/Release/thriftmd.lib")
-  set(THRIFT_COMPILER "${WINDOWS_DEP_DIR}/thrift-compiler/thrift-0.9.3.exe")
+  set(THRIFT_INCLUDE_DIR "${WINDOWS_DEP_DIR}/thrift-dev/local/include")
+  set(THRIFT_LIBRARY "${WINDOWS_DEP_DIR}/thrift-dev/local/lib/thriftmd.lib")
+  set(THRIFT_COMPILER "${WINDOWS_DEP_DIR}/thrift/tools/thrift.exe")
   
   # Win64 specific rocksdb
-  set(ROCKSDB_STATIC_LIBRARY "${WINDOWS_DEP_DIR}/rocksdb/build/Release/rocksdblib.lib")
-  set(ROCKSDB_SNAPPY_LIBRARY "${WINDOWS_DEP_DIR}/snappy-windows-1.1.1.8/native/snappy64.lib")
+  set(ROCKSDB_STATIC_LIBRARY "${WINDOWS_DEP_DIR}/rocksdb/local/lib/rocksdblib.lib")
+  set(ROCKSDB_SNAPPY_LIBRARY "${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/native/snappy64.lib")
   
   # Win64 specific doxygen
-  set(DOXYGEN_EXECUTABLE "${WINDOWS_DEP_DIR}/doxygen-1.8.11.windows.x64.bin/doxygen.exe")
+  set(DOXYGEN_EXECUTABLE "${WINDOWS_DEP_DIR}/doxygen/tools/doxygen.exe")
 
   # Win64 specific boost
-  set(boost_filesystem_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/libboost_filesystem-vc140-mt-1_59.lib")
-  set(boost_system_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/libboost_system-vc140-mt-1_59.lib")
-  set(boost_regex_library "${WINDOWS_DEP_DIR}/boost_1_59_0/lib64-msvc-14.0/libboost_regex-vc140-mt-1_59.lib")
+  set(boost_filesystem_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_filesystem-vc140-mt-1_59.lib")
+  set(boost_system_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_system-vc140-mt-1_59.lib")
+  set(boost_regex_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_regex-vc140-mt-1_59.lib")
 
   # Win64 specific gflags
-  set(gflags_library "${WINDOWS_DEP_DIR}/gflags/cmake-build/lib/Release/gflags_static.lib")
+  set(gflags_library "${WINDOWS_DEP_DIR}/gflags-dev/local/lib/gflags_static.lib")
   
   # Win64 specific glog
-  set(glog_library "${WINDOWS_DEP_DIR}/glog-w64/build/Release/glog.lib")
-  
-  # Win64 specific yara
-  set(yara_library "${WINDOWS_DEP_DIR}/yara-3.4.0/windows/libyara/Release/libyara64.lib")
+  set(glog_library "${WINDOWS_DEP_DIR}/glog/local/lib/glog.lib")
 else()
   set(MKDIR_OPTS "-p")
 endif()
@@ -493,9 +493,9 @@ if(WIN32)
   # TODO(#1988): The paths used here might need to be modified in the future once third party dependencies
   #              are made into chocolatey packages.
   include_directories("${THRIFT_INCLUDE_DIR}")
-  include_directories("${WINDOWS_DEP_DIR}/boost_1_59_0")
-  include_directories("${WINDOWS_DEP_DIR}/glog-w64/src/windows")
-  include_directories("${WINDOWS_DEP_DIR}/gflags/cmake-build/include")
+  include_directories("${BOOST_DEP_DIR}")
+  include_directories("${WINDOWS_DEP_DIR}/glog/local/include")
+  include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
   
   # TODO(#1990): We probably need to add our third-party link directories here
 else()
