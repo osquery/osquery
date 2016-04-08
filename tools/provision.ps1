@@ -94,6 +94,7 @@ function Install-PipPackages {
   
   if ((Get-Command 'python.exe' -ErrorAction SilentlyContinue) -eq $null) {
     Write-Host "    => ERROR: failed to find python" -foregroundcolor Red
+    Exit -1
   }
     
   Write-Host "    => Found python, continuing on..." -foregroundcolor Green
@@ -180,6 +181,23 @@ function Install-ThirdPartyPackages {
   }
 }
 
+function Update-GitSubmodule {
+  if ((Get-Command 'git.exe' -ErrorAction SilentlyContinue) -eq $null) {
+    Write-Host "  FAILED to find git" -foregroundcolor Red
+    Exit -1
+  }
+  
+  $thirdPartyPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'third-party'))
+  
+  Write-Host "  Updating git submodules in $thirdPartyPath ..." -foregroundcolor Yellow
+  
+  pushd $thirdPartyPath
+  git submodule update --init
+  popd
+  
+  Write-Host "  Submodules updated!" -foregroundcolor Yellow
+}
+
 function Main {
   Write-Host "Provisioning a Win64 build environment for osquery" -foregroundcolor Yellow
   Write-Host "  Verifying script is running with Admin privileges" -foregroundcolor Yellow
@@ -199,6 +217,7 @@ function Main {
   
   Install-PipPackages
   Install-ThirdPartyPackages
+  Update-GitSubmodule
   
   $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
   $chocoParams = @("-packageParameters", "--AdminFile ${deploymentFile}")
