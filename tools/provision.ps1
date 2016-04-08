@@ -79,9 +79,9 @@ param(
     if ($LastExitCode -ne 0) {
       Write-Host "      [!] $packageName $packageVersion failed to install!" -foregroundcolor Red
       Exit -1
-    } else {
-      Write-Host "      [*] Done." -foregroundcolor Green
     }
+    
+    Write-Host "      [*] Done." -foregroundcolor Green
   } else {
     Write-Host "    => $packageName $packageVersion already installed." -foregroundcolor Green
   }
@@ -94,25 +94,34 @@ function Install-PipPackages {
   
   if ((Get-Command 'python.exe' -ErrorAction SilentlyContinue) -eq $null) {
     Write-Host "    => ERROR: failed to find python" -foregroundcolor Red
-    Exit -1
-  } else {
-    Write-Host "    => Found python, continuing on..." -foregroundcolor Green
   }
+    
+  Write-Host "    => Found python, continuing on..." -foregroundcolor Green
   
   if ((Get-Command 'pip.exe' -ErrorAction SilentlyContinue) -eq $null) {
     Write-Host "    => ERROR: failed to find pip" -foregroundcolor Red
     Exit -1
-  } else {
-    Write-Host "    => Found pip, continuing on..." -foregroundcolor Green
   }
+  
+  Write-Host "    => Found pip, continuing on..." -foregroundcolor Green
   
   $requirements = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'requirements.txt'))
   
   Write-Host "  Upgrading pip..." -foregroundcolor DarkYellow
   python -m pip install --upgrade pip
   
+  if ($LastExitCode -ne 0) {
+    Write-Host "    pip upgrade FAILED" -foregroundcolor Red
+    Exit -1
+  }
+  
   Write-Host "  Installing from requirements.txt" -foregroundcolor DarkYellow
   pip install -r $requirements.path
+  
+  if ($LastExitCode -ne 0) {
+    Write-Host "    FAILED to install packages from requirements" -foregroundcolor Red
+    Exit -1
+  }
 }
 
 function Install-ThirdPartyPackages {
@@ -146,7 +155,13 @@ function Install-ThirdPartyPackages {
       $packageName = ($package -Split '\.')[0]
       
       Write-Host "  Downloading $downloadUrl" -foregroundcolor DarkCyan
-      (New-Object net.webclient).DownloadFile($downloadUrl, $tmpFilePath)
+      
+      Try {
+        (New-Object net.webclient).DownloadFile($downloadUrl, $tmpFilePath)
+      } catch [Net.WebException] {
+        Write-Host "    Failed to download $package. Check connection?" -foregroundcolor Red
+        Exit -1
+      }
       
       Write-Host "    Installing $package" -foregroundcolor Cyan
       choco install -y $packageName -source "$tmpDir;http://chocolatey.org/api/v2"
@@ -154,9 +169,9 @@ function Install-ThirdPartyPackages {
       if ($LastExitCode -ne 0) {
         Write-Host "      FAILED to install $package" -foregroundcolor Red
         Exit -1
-      } else {
-        Write-Host "      DONE" -foregroundcolor Green
       }
+       
+      Write-Host "      DONE" -foregroundcolor Green
     }
   }
   Finally
