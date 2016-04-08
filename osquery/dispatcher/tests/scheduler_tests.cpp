@@ -10,15 +10,29 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/logger.h>
+
 #include "osquery/core/test_util.h"
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/dispatcher/scheduler.h"
 
 namespace osquery {
 
+DECLARE_bool(disable_logging);
+
 extern SQL monitor(const std::string& name, const ScheduledQuery& query);
 
-class SchedulerTests : public testing::Test {};
+class SchedulerTests : public testing::Test {
+  void SetUp() override {
+    logging_ = FLAGS_disable_logging;
+    FLAGS_disable_logging = true;
+  }
+
+  void TearDown() override { FLAGS_disable_logging = logging_; }
+
+ private:
+  bool logging_{false};
+};
 
 TEST_F(SchedulerTests, test_monitor) {
   std::string name = "pack_test_test_query";
@@ -61,8 +75,8 @@ TEST_F(SchedulerTests, test_monitor) {
 TEST_F(SchedulerTests, test_config_results_purge) {
   // Set a query time for now (time is only important relative to a week ago).
   auto query_time = osquery::getUnixTime();
-  setDatabaseValue(
-      kPersistentSettings, "timestamp.test_query", std::to_string(query_time));
+  setDatabaseValue(kPersistentSettings, "timestamp.test_query",
+                   std::to_string(query_time));
   // Store a meaningless saved query interval splay.
   setDatabaseValue(kPersistentSettings, "interval.test_query", "11");
   // Store meaningless query differential results.
@@ -94,8 +108,8 @@ TEST_F(SchedulerTests, test_config_results_purge) {
 
   // Update the timestamp to have run a week and a day ago.
   query_time -= (84600 * (7 + 1));
-  setDatabaseValue(
-      kPersistentSettings, "timestamp.test_query", std::to_string(query_time));
+  setDatabaseValue(kPersistentSettings, "timestamp.test_query",
+                   std::to_string(query_time));
 
   // Trigger another purge.
   Config::getInstance().purge();
@@ -117,5 +131,34 @@ TEST_F(SchedulerTests, test_config_results_purge) {
     getDatabaseValue(kQueries, "test_query", content);
     EXPECT_TRUE(content.empty());
   }
+}
+
+TEST_F(SchedulerTests, test_scheduler) {
+  // Start the scheduler now.
+  auto now = osquery::getUnixTime();
+  TablePlugin::kCacheStep = now;
+
+  // Update the config with a pack/schedule that contains several queries.
+  std::string config =
+      "{"
+      "\"packs\": {"
+      "\"scheduler\": {"
+      "\"queries\": {"
+      "\"1\": {\"query\": \"select * from osquery_schedule\", \"interval\": 1},"
+      "\"2\": {\"query\": \"select * from osquery_info\", \"interval\": 1},"
+      "\"3\": {\"query\": \"select * from processes\", \"interval\": 1},"
+      "\"4\": {\"query\": \"select * from osquery_packs\", \"interval\": 1}"
+      "}"
+      "}"
+      "}"
+      "}";
+  Config::getInstance().update({{"data", config}});
+
+  // Run the scheduler for 1 second with a second interval.
+  SchedulerRunner runner(now + 1, 1);
+  runner.start();
+
+  // If a query was executed the cache step will have been advanced.
+  EXPECT_GT(TablePlugin::kCacheStep, now);
 }
 }

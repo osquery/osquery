@@ -55,12 +55,18 @@ const std::map<std::string, std::string> kSafariExtensionKeys = {
 
 void genBrowserPlugin(const std::string& uid,
                       const std::string& path,
-                      QueryData& results) {
+                      QueryData& results,
+                      bool is_disabled = false) {
   Row r;
   pt::ptree tree;
 
   r["uid"] = uid;
-  if (osquery::parsePlist(path + "/Contents/Info.plist", tree).ok()) {
+  auto info_path = path + "/Contents/Info.plist";
+  // Ensure that what we're processing is actually a plug-in.
+  if (!pathExists(info_path)) {
+    return;
+  }
+  if (osquery::parsePlist(info_path, tree).ok()) {
     // Plugin did not include an Info.plist, or it was invalid
     for (const auto& it : kBrowserPluginKeys) {
       r[it.second] = tree.get(it.first, "");
@@ -74,8 +80,8 @@ void genBrowserPlugin(const std::string& uid,
     // The default case for native execution is false.
     r["native"] = "0";
   }
-
   r["path"] = path;
+  r["disabled"] = (is_disabled) ? "1" : "0";
   results.push_back(std::move(r));
 }
 
@@ -83,32 +89,41 @@ QueryData genBrowserPlugins(QueryContext& context) {
   QueryData results;
   std::vector<std::string> bundles;
 
-  // The caller is not requesting a JOIN against users.
-  // This is "special" logic for user data-based tables since there is a concept
-  // of system-available browser extensions.
-  if (context.constraints["uid"].notExistsOrMatches("0")) {
+  // Lambda to walk through each browser plugin and process the plist file.
+  auto enum_browser_plugins = [&results](const fs::path& path,
+                                         const std::string& uid) {
     std::vector<std::string> bundles;
-    if (listDirectoriesInDirectory(kBrowserPluginsPath, bundles).ok()) {
+    if (listDirectoriesInDirectory(path, bundles).ok()) {
       for (const auto& dir : bundles) {
-        genBrowserPlugin("0", dir, results);
+        genBrowserPlugin(uid, dir, results, false);
       }
     }
+
+    // Check if the plugin is the 'Disabled' folder.
+    std::vector<std::string> disabled_bundles;
+    auto dis_path = path / "Disabled Plug-Ins";
+    if (listDirectoriesInDirectory(dis_path, disabled_bundles).ok()) {
+      for (const auto& disabled_dir : disabled_bundles) {
+        genBrowserPlugin(uid, disabled_dir, results, true);
+      }
+    }
+  };
+
+  // The caller is not requesting a JOIN against users. This is "special" logic
+  // for user data-based tables since there is a concept of system-available
+  // browser extensions.
+  if (context.constraints["uid"].notExistsOrMatches("0")) {
+    enum_browser_plugins(kBrowserPluginsPath, "0");
   }
 
   // Iterate over each user
   auto users = usersFromContext(context);
   for (const auto& row : users) {
     if (row.count("uid") > 0 && row.count("directory") > 0) {
-      std::vector<std::string> bundles;
       auto dir = fs::path(row.at("directory")) / kBrowserPluginsPath;
-      if (listDirectoriesInDirectory(dir, bundles).ok()) {
-        for (const auto& dir : bundles) {
-          genBrowserPlugin(row.at("uid"), dir, results);
-        }
-      }
+      enum_browser_plugins(dir, row.at("uid"));
     }
   }
-
   return results;
 }
 

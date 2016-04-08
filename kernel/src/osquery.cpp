@@ -443,7 +443,7 @@ error_exit:
 }
 
 kern_return_t OsqueryStop(kmod_info_t *ki, void *d) {
-  dbg_printf("Kernel module stoping!\n");
+  dbg_printf("Kernel module stopping!\n");
 
   // Only stop if there are no connected daemons.
   lck_mtx_lock(osquery.mtx);

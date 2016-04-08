@@ -8,6 +8,12 @@
  *
  */
 
+#include <chrono>
+#include <cstdlib>
+#include <ctime>
+#include <string>
+#include <thread>
+
 #include <gtest/gtest.h>
 
 #include <osquery/filesystem.h>
@@ -162,23 +168,24 @@ TEST_F(AslTests, test_convert_like_regex) {
 }
 
 TEST_F(AslTests, test_actual_query) {
-  // Not actually a unit test, but it's a decent assumption that any machine
-  // running this test has some entries in ASL, and we'd like to ensure that
-  // actual queries are successful
-  auto results = SQL("select * from asl limit 10");
-  ASSERT_GT(results.rows().size(), (size_t)0);
+  // An integration test, this test writes to ASL, and then verifies that we
+  // can query for the written log
+  std::string time_str = std::to_string(std::time(nullptr));
+  std::string command =
+      "logger -p user.notice -t osquery_test 'osquery_test: "
+      "test_actual_query " +
+      time_str + "'";
+  std::system(command.c_str());
+  std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  // Assumes there is something written to the console
-  results =
-      SQL("select * from asl where facility = 'com.apple.console' limit 10");
+  // Check for our written log
+  auto results =
+      SQL("select * from asl where facility = 'user' and level = 5 and sender "
+          "= 'osquery_test' and message like '%" +
+          time_str + "' and time >= " + time_str);
   ASSERT_GT(results.rows().size(), (size_t)0);
-  ASSERT_EQ("com.apple.console", results.rows()[0].at("facility"));
-  results = SQL(
-      "select * from asl where facility = 'com.apple.console' "
-      "and pid <= 99999 limit 10");
-  ASSERT_GT(results.rows().size(), (size_t)0);
-  ASSERT_EQ("com.apple.console", results.rows()[0].at("facility"));
-  ASSERT_LT(AS_LITERAL(BIGINT_LITERAL, results.rows()[0].at("pid")), 99999);
+  ASSERT_EQ("osquery_test", results.rows()[0].at("sender"));
+  ASSERT_EQ("user", results.rows()[0].at("facility"));
 }
 }
 }

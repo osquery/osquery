@@ -16,6 +16,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
+#include "osquery/config/parsers/decorators.h"
 #include "osquery/database/query.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/sql/sqlite_util.h"
@@ -56,6 +57,7 @@ inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
 inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
   VLOG(1) << "Executing query: " << query.query;
+  runDecorators(DECORATE_ALWAYS);
   auto sql =
       (FLAGS_enable_monitor) ? monitor(name, query) : SQLInternal(query.query);
 
@@ -75,6 +77,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   item.identifier = ident;
   item.time = osquery::getUnixTime();
   item.calendar_time = osquery::getAsciiTime();
+  getDecorations(item.decorations);
 
   if (query.options.count("snapshot") && query.options.at("snapshot")) {
     // This is a snapshot query, emit results with a differential or state.
@@ -128,6 +131,10 @@ void SchedulerRunner::start() {
             launchQuery(name, query);
           }
         }));
+    // Configuration decorators run on 60 second intervals only.
+    if (i % 60 == 0) {
+      runDecorators(DECORATE_INTERVAL, i);
+    }
     // Put the thread into an interruptible sleep without a config instance.
     pauseMilli(interval_ * 1000);
     if (interrupted()) {

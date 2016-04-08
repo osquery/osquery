@@ -21,7 +21,6 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/watcher.h"
-#include "osquery/dispatcher/dispatcher.h"
 
 extern char** environ;
 
@@ -293,7 +292,9 @@ bool WatcherRunner::isChildSane(pid_t child) {
 
   // The worker is sane, no action needed.
   // Attempt to flush status logs to the well-behaved worker.
-  relayStatusLogs();
+  if (use_worker_) {
+    relayStatusLogs();
+  }
   return true;
 }
 

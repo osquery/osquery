@@ -96,7 +96,7 @@ Status UdevEventPublisher::run() {
 
   udev_device_unref(device);
 
-  osquery::publisherSleep(kUdevMLatency);
+  pauseMilli(kUdevMLatency);
   return Status(0, "OK");
 }
 

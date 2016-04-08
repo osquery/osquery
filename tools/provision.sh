@@ -50,6 +50,10 @@ function main() {
     log "detected centos ($DISTRO)"
     source "$SCRIPT_DIR/provision/centos.sh"
     main_centos
+  elif [[ $OS = "scientific" ]]; then
+    log "detected scientific linux ($DISTRO)"
+    source "$SCRIPT_DIR/provision/scientific.sh"
+    main_scientific
   elif [[ $OS = "rhel" ]]; then
     log "detected rhel ($DISTRO)"
     source "$SCRIPT_DIR/provision/rhel.sh"

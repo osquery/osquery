@@ -187,7 +187,7 @@ Status INotifyEventPublisher::run() {
     p += (sizeof(struct inotify_event)) + event->len;
   }
 
-  osquery::publisherSleep(kINotifyMLatency);
+  pauseMilli(kINotifyMLatency);
   return Status(0, "OK");
 }
 
@@ -237,8 +237,8 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
 
   // inotify will not monitor recursively, new directories need watches.
   if (sc->recursive && ec->action == "CREATED" && isDirectory(ec->path)) {
-    const_cast<INotifyEventPublisher*>(this)->addMonitor(
-        ec->path + '/', sc->mask, true);
+    const_cast<INotifyEventPublisher*>(this)
+        ->addMonitor(ec->path + '/', sc->mask, true);
   }
 
   return true;

@@ -25,6 +25,7 @@ pages:
   - File Integrity Monitoring: deployment/file-integrity-monitoring.md
   - YARA Scanning: deployment/yara.md
   - Remote settings: deployment/remote.md
+  - Syslog: deployment/syslog.md
   - Debugging: deployment/debugging.md
 - Development:
   - Building osquery: development/building.md

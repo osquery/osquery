@@ -25,6 +25,7 @@
 #include "osquery/remote/transports/tls.h"
 #include "osquery/remote/utility.h"
 
+#include "osquery/config/parsers/decorators.h"
 #include "osquery/logger/plugins/tls.h"
 
 namespace pt = boost::property_tree;
@@ -84,6 +85,15 @@ Status TLSLoggerPlugin::logString(const std::string& s) {
 }
 
 Status TLSLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
+  // Append decorations to status (unique to TLS logger).
+  // Assemble a decorations tree to append to each status buffer line.
+  pt::ptree dtree;
+  std::map<std::string, std::string> decorations;
+  getDecorations(decorations);
+  for (const auto& decoration : decorations) {
+    dtree.put(decoration.first, decoration.second);
+  }
+
   for (const auto& item : log) {
     // Convert the StatusLogLine into ptree format, to convert to JSON.
     pt::ptree buffer;
@@ -91,6 +101,9 @@ Status TLSLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
     buffer.put("filename", item.filename);
     buffer.put("line", item.line);
     buffer.put("message", item.message);
+    if (decorations.size() > 0) {
+      buffer.put_child("decorations", dtree);
+    }
 
     // Convert to JSON, for storing a string-representation in the database.
     std::string json;
@@ -121,8 +134,9 @@ Status TLSLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
 Status TLSLoggerPlugin::init(const std::string& name,
                              const std::vector<StatusLogLine>& log) {
   auto node_key = getNodeKey("tls");
-  if (node_key.size() == 0) {
-    // Could not generate an enrollment key, continue logging to stderr.
+  if (!FLAGS_disable_enrollment && node_key.size() == 0) {
+    // Could not generate a node key, continue logging to stderr.
+    LOG(WARNING) << "No node key, TLS logging disabled.";
     FLAGS_logtostderr = true;
   } else {
     // Start the log forwarding/flushing thread.
@@ -145,7 +159,8 @@ Status TLSLogForwarderRunner::send(std::vector<std::string>& log_data,
     // Read each logged line into JSON and populate a list of lines.
     // The result list will use the 'data' key.
     pt::ptree children;
-    iterate(log_data, ([&children](std::string& item) {
+    iterate(log_data,
+            ([&children](std::string& item) {
               pt::ptree child;
               try {
                 std::stringstream input;
@@ -175,7 +190,8 @@ void TLSLogForwarderRunner::check() {
 
   // For each index, accumulate the log line into the result or status set.
   std::vector<std::string> results, statuses;
-  iterate(indexes, ([&results, &statuses](std::string& index) {
+  iterate(indexes,
+          ([&results, &statuses](std::string& index) {
             std::string value;
             auto& target = ((index.at(0) == 'r') ? results : statuses);
             if (getDatabaseValue(kLogs, index, value)) {
@@ -196,7 +212,8 @@ void TLSLogForwarderRunner::check() {
               << status.getMessage() << ")";
     } else {
       // Clear the results logs once they were sent.
-      iterate(indexes, ([&results](std::string& index) {
+      iterate(indexes,
+              ([&results](std::string& index) {
                 if (index.at(0) != 'r') {
                   return;
                 }
@@ -212,7 +229,8 @@ void TLSLogForwarderRunner::check() {
               << status.getMessage() << ")";
     } else {
       // Clear the status logs once they were sent.
-      iterate(indexes, ([&results](std::string& index) {
+      iterate(indexes,
+              ([&results](std::string& index) {
                 if (index.at(0) != 's') {
                   return;
                 }

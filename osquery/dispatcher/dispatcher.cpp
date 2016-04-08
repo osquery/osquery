@@ -10,11 +10,11 @@
 
 #include <chrono>
 
+#include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/dispatcher/dispatcher.h"
 
 #if 0
 #ifdef DLOG
@@ -36,17 +36,31 @@ void RunnerInterruptPoint::cancel() {
 }
 
 /// Pause until the requested millisecond delay has elapsed or a cancel.
-void RunnerInterruptPoint::pause(size_t milli) {
+void RunnerInterruptPoint::pause(std::chrono::milliseconds milli) {
   std::unique_lock<std::mutex> lock(mutex_);
-  if (stop_ ||
-      condition_.wait_for(lock, std::chrono::milliseconds(milli)) ==
-          std::cv_status::no_timeout) {
+  if (stop_ || condition_.wait_for(lock, milli) == std::cv_status::no_timeout) {
     stop_ = false;
     throw RunnerInterruptError();
   }
 }
 
-void InternalRunnable::pauseMilli(size_t milli) {
+void InterruptableRunnable::interrupt() {
+  WriteLock lock(stopping_);
+  // Set the service as interrupted.
+  interrupted_ = true;
+  // Tear down the service's resources such that exiting the expected run
+  // loop within ::start does not need to.
+  stop();
+  // Cancel the run loop's pause request.
+  point_.cancel();
+}
+
+bool InterruptableRunnable::interrupted() {
+  WriteLock lock(stopping_);
+  return interrupted_;
+}
+
+void InterruptableRunnable::pauseMilli(std::chrono::milliseconds milli) {
   try {
     point_.pause(milli);
   } catch (const RunnerInterruptError&) {

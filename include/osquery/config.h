@@ -160,8 +160,9 @@ class Config : private boost::noncopyable {
    *      }));
    * @endcode
    */
-  void scheduledQueries(std::function<
-      void(const std::string& name, const ScheduledQuery& query)> predicate);
+  void scheduledQueries(
+      std::function<void(const std::string& name, const ScheduledQuery& query)>
+          predicate);
 
   /**
    * @brief Map a function across the set of configured files
@@ -289,7 +290,7 @@ class Config : private boost::noncopyable {
   std::map<std::string, QueryPerformance> performance_;
 
   /// A set of named categories filled with filesystem globbing paths.
-  using FileCategories = std::map<std::string, std::vector<std::string> >;
+  using FileCategories = std::map<std::string, std::vector<std::string>>;
   std::map<std::string, FileCategories> files_;
 
   /// A set of hashes for each source of the config.
@@ -312,6 +313,7 @@ class Config : private boost::noncopyable {
   friend class ConfigTests;
   friend class FilePathsConfigParserPluginTests;
   friend class FileEventsTableTests;
+  friend class DecoratorsConfigParserPluginTests;
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
   FRIEND_TEST(PacksTests, test_discovery_cache);
   FRIEND_TEST(SchedulerTests, test_monitor);

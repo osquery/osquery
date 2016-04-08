@@ -19,6 +19,7 @@
 #include <vector>
 
 #include <osquery/core.h>
+#include <osquery/dispatcher.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>
@@ -172,7 +173,7 @@ struct Subscription : private boost::noncopyable {
   Subscription() = delete;
 };
 
-class EventPublisherPlugin : public Plugin {
+class EventPublisherPlugin : public Plugin, public InterruptableRunnable {
  public:
   /**
    * @brief A new Subscription was added, potentially change state based on all
@@ -220,7 +221,7 @@ class EventPublisherPlugin : public Plugin {
    * run loop manager will exit the stepping loop and fall through to a call
    * to tearDown followed by a removal of the publisher.
    */
-  virtual void stop() {}
+  virtual void stop() override {}
 
   /**
    * @brief A new EventSubscriber is subscribing events of this publisher type.
@@ -446,6 +447,28 @@ class EventSubscriberPlugin : public Plugin {
    * @return Were the indexes recorded.
    */
   Status recordEvent(EventID& eid, EventTime time);
+
+  /**
+   * @brief Get the expiration timeout for this event type
+   *
+   * The default implementation retrieves this value from FLAGS_events_expiry.
+   * This method can be overridden to allow custom event expiration timeouts in
+   * subclasses of EventSubscriberPlugin.
+   *
+   * @return The events expiration timeout for this event type
+   */
+  virtual size_t getEventsExpiry();
+
+  /**
+   * @brief Get the max number of events for this event type
+   *
+   * The default implementation retrieves this value from FLAGS_events_max.
+   * This method can be overridden to allow custom max event numbers in
+   * subclasses of EventSubscriberPlugin.
+   *
+   * @return The max number of events for this event type
+   */
+  virtual size_t getEventsMax();
 
  public:
   /**
@@ -952,9 +975,6 @@ class EventSubscriber : public EventSubscriberPlugin {
 /// Iterate the event publisher registry and create run loops for each using
 /// the event factory.
 void attachEvents();
-
-/// Sleep in a std::thread interruptible state.
-void publisherSleep(size_t milli);
 
 CREATE_REGISTRY(EventPublisherPlugin, "event_publisher");
 CREATE_REGISTRY(EventSubscriberPlugin, "event_subscriber");

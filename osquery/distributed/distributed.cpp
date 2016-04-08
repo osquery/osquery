@@ -152,9 +152,13 @@ Status Distributed::flushCompleted() {
   }
 
   PluginResponse response;
-  return Registry::call("distributed",
-                        {{"action", "writeResults"}, {"results", results}},
-                        response);
+  s = Registry::call("distributed",
+                     {{"action", "writeResults"}, {"results", results}},
+                     response);
+  if (s.ok()) {
+    results_.clear();
+  }
+  return s;
 }
 
 Status Distributed::acceptWork(const std::string& work) {

@@ -27,6 +27,8 @@ function main_debian() {
   package python-pip
   package python-dev
   package ruby-dev
+  package ruby1.8-dev
+  package libffi-dev
   package rubygems
   package gcc
   package doxygen
@@ -91,6 +93,8 @@ function main_debian() {
   install_libcryptsetup
 
   if [[ $DISTRO == "wheezy" ]]; then
+    #pip has to be installed via easy_install
+    easy_install pip
     # psutil and other things depending on gcc aren't
     # aware of Debian's multiarch and expect /usr/lib64
     sudo mkdir -p /usr/lib64
