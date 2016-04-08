@@ -34,11 +34,7 @@ param(
   [string] $packageName = '',
   [string] $packageVersion = '',
   [array] $packageOptions = @()
-)
-  if ($packageName -eq '') {
-    return $false
-  }
-  
+) 
   Write-Host "  Determining whether $packageName is already installed..." -foregroundcolor DarkYellow
   
   $requiresInstall = $false
@@ -79,12 +75,16 @@ param(
     }
 
     choco ${args}
-
+    
+    if ($LastExitCode -ne 0) {
+      Write-Host "      [!] $packageName $packageVersion failed to install!" -foregroundcolor Red
+      Exit -1
+    } else {
+      Write-Host "      [*] Done." -foregroundcolor Green
+    }
   } else {
     Write-Host "    => $packageName $packageVersion already installed." -foregroundcolor Green
   }
-  
-  return $true
 }
 
 function Install-PipPackages {
@@ -94,14 +94,14 @@ function Install-PipPackages {
   
   if ((Get-Command 'python.exe' -ErrorAction SilentlyContinue) -eq $null) {
     Write-Host "    => ERROR: failed to find python" -foregroundcolor Red
-    return $false
+    Exit -1
   } else {
     Write-Host "    => Found python, continuing on..." -foregroundcolor Green
   }
   
   if ((Get-Command 'pip.exe' -ErrorAction SilentlyContinue) -eq $null) {
     Write-Host "    => ERROR: failed to find pip" -foregroundcolor Red
-    return $false
+    Exit -1
   } else {
     Write-Host "    => Found pip, continuing on..." -foregroundcolor Green
   }
@@ -113,8 +113,6 @@ function Install-PipPackages {
   
   Write-Host "  Installing from requirements.txt" -foregroundcolor DarkYellow
   pip install -r $requirements.path
-  
-  return $true
 }
 
 function Install-ThirdPartyPackages {
@@ -152,6 +150,13 @@ function Install-ThirdPartyPackages {
       
       Write-Host "    Installing $package" -foregroundcolor Cyan
       choco install -y $packageName -source "$tmpDir;http://chocolatey.org/api/v2"
+      
+      if ($LastExitCode -ne 0) {
+        Write-Host "      FAILED to install $package" -foregroundcolor Red
+        Exit -1
+      } else {
+        Write-Host "      DONE" -foregroundcolor Green
+      }
     }
   }
   Finally
@@ -165,7 +170,8 @@ function Main {
   Write-Host "  Verifying script is running with Admin privileges" -foregroundcolor Yellow
   
   if (-not (Test-IsAdmin)) {
-    throw "Please run this script with Admin privileges"
+    Write-Host "Please run this script with Admin privileges!" -foregroundcolor Red
+    Exit -1
   }
   
   Write-Host "    => Success!" -foregroundcolor Green
