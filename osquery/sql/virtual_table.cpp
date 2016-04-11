@@ -17,6 +17,8 @@
 
 namespace osquery {
 
+FLAG(bool, enable_foreign, false, "Enable noop foreign virtual tables");
+
 SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
 /**
@@ -28,6 +30,16 @@ SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
  * schema and filter routing instructions.
  */
 Mutex kAttachMutex;
+
+/**
+ * A generated foreign amalgamation file includes schema for all tables.
+ *
+ * When the build system generates TablePlugin%s from the .table spec files, it
+ * reads the foreign-platform tables and generates an associated schema plugin.
+ * These plugins are amalgamated into 'foreign_amalgamation' and do not call
+ * their filter generation functions.
+ */
+void registerForeignTables();
 
 namespace tables {
 namespace sqlite {
@@ -451,6 +463,10 @@ Status attachFunctionInternal(
 }
 
 void attachVirtualTables(const SQLiteDBInstanceRef &instance) {
+  if (FLAGS_enable_foreign) {
+    registerForeignTables();
+  }
+
   PluginResponse response;
   for (const auto &name : Registry::names("table")) {
     // Column information is nice for virtual table create call.

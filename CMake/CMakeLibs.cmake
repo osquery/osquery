@@ -242,23 +242,39 @@ endmacro()
 # Find and generate table plugins from .table syntax
 macro(GENERATE_TABLES TABLES_PATH)
   # Get all matching files for all platforms.
-  file(GLOB TABLE_FILES "${TABLES_PATH}/specs/*.table")
-  set(TABLE_FILES_PLATFORM "")
+  set(TABLES_SPECS "${TABLES_PATH}/specs")
+  set(TABLE_CATEGORIES "")
   if(APPLE)
-    file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/darwin/*.table")
+    list(APPEND TABLE_CATEGORIES "darwin")
   elseif(FREEBSD)
-    file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/freebsd/*.table")
+    list(APPEND TABLE_CATEGORIES "freebsd")
   else(LINUX)
-    file(GLOB TABLE_FILES_PLATFORM "${TABLES_PATH}/specs/linux/*.table")
+    list(APPEND TABLE_CATEGORIES "linux")
     if(REDHAT_BASED)
-      file(GLOB TABLE_FILES_PLATFORM_FLAVOR "${TABLES_PATH}/specs/centos/*.table")
+      list(APPEND TABLE_CATEGORIES "centos")
     elseif(DEBIAN_BASED)
-      file(GLOB TABLE_FILES_PLATFORM_FLAVOR "${TABLES_PATH}/specs/ubuntu/*.table")
+      list(APPEND TABLE_CATEGORIES "ubuntu")
     endif()
-    list(APPEND TABLE_FILES_PLATFORM ${TABLE_FILES_PLATFORM_FLAVOR})
   endif()
-  list(APPEND TABLE_FILES ${TABLE_FILES_PLATFORM})
 
+  file(GLOB TABLE_FILES "${TABLES_SPECS}/*.table")
+  set(TABLE_FILES_FOREIGN "")
+  file(GLOB ALL_CATEGORIES RELATIVE "${TABLES_SPECS}" "${TABLES_SPECS}/*")
+  foreach(CATEGORY ${ALL_CATEGORIES})
+    if(IS_DIRECTORY "${TABLES_SPECS}/${CATEGORY}" AND NOT "${CATEGORY}" STREQUAL "utility")
+      file(GLOB TABLE_FILES_PLATFORM "${TABLES_SPECS}/${CATEGORY}/*.table")
+      list(FIND TABLE_CATEGORIES "${CATEGORY}" INDEX)
+      if(${INDEX} EQUAL -1)
+        # Append inner tables to foreign
+        list(APPEND TABLE_FILES_FOREIGN ${TABLE_FILES_PLATFORM})
+      else()
+        # Append inner tables to TABLE_FILES.
+        list(APPEND TABLE_FILES ${TABLE_FILES_PLATFORM})
+      endif()
+    endif()
+  endforeach()
+
+  # Generate a set of targets, comprised of table spec file.
   get_property(TARGETS GLOBAL PROPERTY AMALGAMATE_TARGETS)
   set(NEW_TARGETS "")
   foreach(TABLE_FILE ${TABLE_FILES})
@@ -269,6 +285,7 @@ macro(GENERATE_TABLES TABLES_PATH)
     endif()
   endforeach()
   set_property(GLOBAL PROPERTY AMALGAMATE_TARGETS "${NEW_TARGETS}")
+  set_property(GLOBAL PROPERTY AMALGAMATE_FOREIGN_TARGETS "${TABLE_FILES_FOREIGN}")
 endmacro()
 
 macro(GENERATE_UTILITIES TABLES_PATH)
@@ -276,8 +293,9 @@ macro(GENERATE_UTILITIES TABLES_PATH)
   set_property(GLOBAL APPEND PROPERTY AMALGAMATE_TARGETS "${TABLE_FILES_UTILITY}")
 endmacro(GENERATE_UTILITIES)
 
-macro(GENERATE_TABLE TABLE_FILE NAME BASE_PATH OUTPUT)
-  set(TABLE_FILE_GEN ${TABLE_FILE})
+macro(GENERATE_TABLE TABLE_FILE FOREIGN NAME BASE_PATH OUTPUT)
+  GET_GENERATION_DEPS(${BASE_PATH})
+  set(TABLE_FILE_GEN "${TABLE_FILE}")
   string(REGEX REPLACE
     ".*/specs.*/(.*)\\.table"
     "${CMAKE_BINARY_DIR}/generated/tables_${NAME}/\\1.cpp"
@@ -285,11 +303,14 @@ macro(GENERATE_TABLE TABLE_FILE NAME BASE_PATH OUTPUT)
     ${TABLE_FILE_GEN}
   )
 
-  GET_GENERATION_DEPS(${BASE_PATH})
   add_custom_command(
     OUTPUT "${TABLE_FILE_GEN}"
-    COMMAND ${PYTHON_EXECUTABLE} "${BASE_PATH}/tools/codegen/gentable.py"
-      "${TABLE_FILE}" "${TABLE_FILE_GEN}" "$ENV{DISABLE_BLACKLIST}"
+    COMMAND "${PYTHON_EXECUTABLE}"
+      "${BASE_PATH}/tools/codegen/gentable.py"
+      "${FOREIGN}"
+      "${TABLE_FILE}"
+      "${TABLE_FILE_GEN}"
+      "$ENV{DISABLE_BLACKLIST}"
     DEPENDS ${TABLE_FILE} ${GENERATION_DEPENDENCIES}
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   )
@@ -299,11 +320,16 @@ endmacro(GENERATE_TABLE)
 
 macro(AMALGAMATE BASE_PATH NAME OUTPUT)
   GET_GENERATION_DEPS(${BASE_PATH})
-  get_property(TARGETS GLOBAL PROPERTY AMALGAMATE_TARGETS)
+  if("${NAME}" STREQUAL "foreign")
+    get_property(TARGETS GLOBAL PROPERTY AMALGAMATE_FOREIGN_TARGETS)
+    set(FOREIGN "--foreign")
+  else()
+    get_property(TARGETS GLOBAL PROPERTY AMALGAMATE_TARGETS)
+  endif()
 
   set(GENERATED_TARGETS "")
   foreach(TARGET ${TARGETS})
-    GENERATE_TABLE(${TARGET} ${NAME} ${BASE_PATH} GENERATED_TARGETS)
+    GENERATE_TABLE("${TARGET}" "${FOREIGN}" "${NAME}" "${BASE_PATH}" GENERATED_TARGETS)
   endforeach()
 
   # Include the generated folder in make clean.
@@ -313,8 +339,12 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
   # Append all of the code to a single amalgamation.
   add_custom_command(
     OUTPUT "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp"
-    COMMAND ${PYTHON_EXECUTABLE} "${BASE_PATH}/tools/codegen/amalgamate.py"
-      "${BASE_PATH}/tools/codegen/" "${CMAKE_BINARY_DIR}/generated" "${NAME}"
+    COMMAND "${PYTHON_EXECUTABLE}"
+      "${BASE_PATH}/tools/codegen/amalgamate.py"
+      "${FOREIGN}"
+      "${BASE_PATH}/tools/codegen/"
+      "${CMAKE_BINARY_DIR}/generated"
+      "${NAME}"
     DEPENDS ${GENERATED_TARGETS} ${GENERATION_DEPENDENCIES}
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   )

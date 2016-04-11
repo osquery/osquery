@@ -18,7 +18,13 @@
 
 
 namespace osquery {
+{% if foreign %}
+void registerForeignTables() {
+{% endif %}
 {% for table in tables %}
 {{table}}
 {% endfor %}
+{% if foreign %}
+}
+{% endif %}
 }
