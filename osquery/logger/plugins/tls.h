@@ -13,42 +13,24 @@
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
 
-namespace osquery {
+#include "osquery/logger/plugins/buffered.h"
 
-class TLSLogForwarderRunner;
+namespace osquery {
 
 /**
  * @brief A log forwarder thread flushing database-buffered logs.
  *
- * The TLSLogForwarderRunner flushes buffered result and status logs based
+ * The TLSLogForwarder flushes buffered result and status logs based
  * on CLI/options settings. If an enrollment key is set (and checked) during
  * startup, this Dispatcher service is started.
  */
-class TLSLogForwarderRunner : public InternalRunnable {
+class TLSLogForwarder : public BufferedLogForwarder {
  public:
-  explicit TLSLogForwarderRunner(const std::string& node_key);
-
-  /// A simple wait lock, and flush based on settings.
-  void start() override;
+  explicit TLSLogForwarder(const std::string& node_key);
 
  protected:
-  /**
-   * @brief Send labeled result logs.
-   *
-   * The log_data provided to send must be mutable.
-   * To optimize for smaller memory, this will be moved into place within the
-   * constructed property tree before sending.
-   */
-  Status send(std::vector<std::string>& log_data, const std::string& log_type);
-
-  /**
-   * @brief Check for new logs and send.
-   *
-   * Scan the logs domain for up to 1024 log lines.
-   * Sort those lines into status and request types then forward (send) each
-   * set. On success, clear the data and indexes.
-   */
-  void check();
+  Status send(std::vector<std::string>& log_data,
+              const std::string& log_type) override;
 
   /// Receive an enrollment/node key from the backing store cache.
   std::string node_key_;
@@ -74,6 +56,9 @@ class TLSLoggerPlugin : public LoggerPlugin {
   Status init(const std::string& name,
               const std::vector<StatusLogLine>& log) override;
 
+  /// Setup node key and worker thread for sending logs.
+  Status setUp() override;
+
  public:
   /// Log a result string. This is the basic catch-all for snapshots and events.
   Status logString(const std::string& s) override;
@@ -82,19 +67,10 @@ class TLSLoggerPlugin : public LoggerPlugin {
   Status logStatus(const std::vector<StatusLogLine>& log) override;
 
  private:
-  /**
-   * @brief Hold an auto-incrementing offset for buffered logs.
-   *
-   * Logs are buffered to a backing store until they can be flushed to a TLS
-   * endpoint (based on latency/retry/etc options). Buffering uses a UNIX time
-   * second precision for indexing and ordering. log_index_ helps prevent
-   * collisions by appending an auto-increment counter.
-   */
-  size_t log_index_{0};
+  /// Forwarder that buffers/sends logs. Runs in a Dispatcher thread.
+  std::shared_ptr<TLSLogForwarder> forwarder_{nullptr};
 
  private:
-  /// Allow the TLSLogForwardRunner thread to disable log buffering.
-  friend class TLSLogForwarderRunner;
   friend class TLSLoggerTests;
 };
 }
