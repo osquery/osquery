@@ -344,6 +344,8 @@ def main(argc, argv):
         "--debug", default=False, action="store_true",
         help="Output debug messages (when developing)"
     )
+    parser.add_argument("--foreign", default=False, action="store_true",
+        help="Generate a foreign table")
     parser.add_argument("--templates", default=SCRIPT_DIR + "/templates",
                         help="Path to codegen output .cpp.in templates")
     parser.add_argument("spec_file", help="Path to input .table spec file")
@@ -355,12 +357,8 @@ def main(argc, argv):
     else:
         logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
 
-    if argc < 3:
-        usage()
-        sys.exit(1)
     filename = args.spec_file
     output = args.output
-
     if filename.endswith(".table"):
         # Adding a 3rd parameter will enable the blacklist
         disable_blacklist = argc > 3
@@ -373,7 +371,8 @@ def main(argc, argv):
             if not disable_blacklist and blacklisted:
                 table.blacklist(output)
             else:
-                table.generate(output)
+                template_type = "default" if not args.foreign else "foreign"
+                table.generate(output, template=template_type)
 
 if __name__ == "__main__":
     SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))

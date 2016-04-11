@@ -156,7 +156,10 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   # Generate the osquery additional tables (the non-util).
   GENERATE_TABLES("${CMAKE_SOURCE_DIR}")
   AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
+  AMALGAMATE("${CMAKE_SOURCE_DIR}" "foreign" AMALGAMATION_FOREIGN)
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_additional_amalgamation ${AMALGAMATION})
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_foreign_amalgamation ${AMALGAMATION_FOREIGN})
+
 
   # Create the static libosquery_additional.
   add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})
