@@ -26,9 +26,13 @@ class SchedulerTests : public testing::Test {
   void SetUp() override {
     logging_ = FLAGS_disable_logging;
     FLAGS_disable_logging = true;
+    Config::getInstance().reset();
   }
 
-  void TearDown() override { FLAGS_disable_logging = logging_; }
+  void TearDown() override {
+    FLAGS_disable_logging = logging_;
+    Config::getInstance().reset();
+  }
 
  private:
   bool logging_{false};

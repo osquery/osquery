@@ -25,6 +25,11 @@ class FilePathsConfigParserPluginTests : public testing::Test {
 
     // Construct a config map, the typical output from `Config::genConfig`.
     config_data_["awesome"] = content_;
+    Config::getInstance().reset();
+  }
+
+  void TearDown() override {
+    Config::getInstance().reset();
   }
 
   size_t numFiles() {
@@ -61,14 +66,14 @@ TEST_F(FilePathsConfigParserPluginTests, test_get_files) {
 }
 
 TEST_F(FilePathsConfigParserPluginTests, test_get_file_accesses) {
-  // Assume config data has been added.
+  Config::getInstance().update(config_data_);
   auto parser = Config::getParser("file_paths");
   auto& accesses = parser->getData().get_child("file_accesses");
   EXPECT_EQ(accesses.size(), 2U);
 }
 
 TEST_F(FilePathsConfigParserPluginTests, test_remove_source) {
-  EXPECT_GT(numFiles(), 0U);
+  Config::getInstance().update(config_data_);
   Config::getInstance().removeFiles("awesome");
   // Expect the pack's set to persist.
   // Do not call removeFiles, instead only update the pack/config content.
