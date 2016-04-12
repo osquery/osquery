@@ -37,7 +37,10 @@ class DecoratorsConfigParserPluginTests : public testing::Test {
     FLAGS_disable_decorators = true;
   }
 
-  void TearDown() override { FLAGS_disable_decorators = decorator_status_; }
+  void TearDown() override {
+    Config::getInstance().reset();
+    FLAGS_disable_decorators = decorator_status_;
+  }
 
  protected:
   std::string content_;
