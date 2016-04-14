@@ -15,6 +15,7 @@ SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 function platform() {
   local  __out=$1
+  FAMILY="`python $SCRIPT_DIR/get_platform.py --family`"
   eval $__out=`python $SCRIPT_DIR/get_platform.py --platform`
 }
 

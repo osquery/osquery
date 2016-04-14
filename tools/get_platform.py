@@ -128,7 +128,12 @@ def platformAction():
 def distroAction():
     family, osType = _platform()
     print _distro(osType)
-    
+ 
+def familyAction():
+    family, osType = _platform()
+    if family:
+        print family
+
 def defaultAction():
     family, osType = _platform()
     distro = _distro(osType)
@@ -138,13 +143,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Platform detection script for osquery")
     parser.add_argument("--platform", action="store_true", help="Outputs the detected platform")
     parser.add_argument("--distro", action="store_true", help="Outputs the detected distribution")
-    
+    parser.add_argument("--family", action="store_true", help="Outputs the detected family")
+
     args = parser.parse_args()
     
-    if args.platform and not args.distro:
+    if args.platform and \
+        not args.distro and \
+        not args.family:
       platformAction()
-    elif not args.platform and args.distro:
+    elif not args.platform and \
+        args.distro and \
+        not args.family:
       distroAction()
+    elif not args.platform and \
+        not args.distro and \
+        args.family:
+      familyAction()
     else:
       defaultAction()
       
