@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AdminDeploymentCustomizations xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://schemas.microsoft.com/wix/2011/AdminDeployment">
+  <BundleCustomizations TargetDir="C:\Program Files (x86)\Microsoft Visual Studio 14.0" NoCacheOnlyMode="default" NoWeb="default" NoRefresh="default" SuppressRefreshPrompt="default" Feed="default" />
+  <SelectableItemCustomizations>
+    <SelectableItemCustomization Id="VSUV1" Selected="yes" FriendlyName="Visual Studio 2015 Update 1" />
+    <SelectableItemCustomization Id="MicroUpdateV1" Selected="yes" FriendlyName="MicroUpdate 1 for Visual Studio 2015 Update 1" />
+    <SelectableItemCustomization Id="MicroUpdateV1.3" Selected="yes" FriendlyName="Update for Microsoft Visual Studio 2015 (KB3110221)" />
+    <SelectableItemCustomization Id="NativeLanguageSupport_VCV1" Hidden="no" Selected="yes" FriendlyName="Common Tools for Visual C++ 2015" />
+    <SelectableItemCustomization Id="NativeLanguageSupport_MFCV1" Hidden="no" Selected="yes" FriendlyName="Microsoft Foundation Classes for C++" />
+    <SelectableItemCustomization Id="NativeLanguageSupport_XPV1" Hidden="no" Selected="no" FriendlyName="Windows XP Support for C++" />
+    <SelectableItemCustomization Id="JavaScript_HiddenV1" Selected="yes" FriendlyName="JavaScript Project System for Visual Studio" />
+    <SelectableItemCustomization Id="MDDJSDependencyHiddenV1" Selected="yes" FriendlyName="MDDJSDependencyHidden" />
+    <SelectableItemCustomization Id="AppInsightsToolsVisualStudioHiddenRTMV1" Selected="yes" FriendlyName="Application Insights Tools" />
+    <SelectableItemCustomization Id="AppInsightsToolsVisualStudioHiddenV6" Selected="yes" FriendlyName="Application Insights and HockeyApp Tools for Visual Studio 2015 Update 1 v4.3.0" />
+    <SelectableItemCustomization Id="Silverlight5_DRTHidden" Selected="yes" FriendlyName="Silverlight5_DRTHidden" />
+    <SelectableItemCustomization Id="BlissHidden" Selected="yes" FriendlyName="BlissHidden" />
+    <SelectableItemCustomization Id="HelpHidden" Selected="yes" FriendlyName="HelpHidden" />
+    <SelectableItemCustomization Id="JavaScript" Selected="yes" FriendlyName="JavascriptHidden" />
+    <SelectableItemCustomization Id="NetFX4Hidden" Selected="yes" FriendlyName="NetFX4Hidden" />
+    <SelectableItemCustomization Id="NetFX45Hidden" Selected="yes" FriendlyName="NetFX45Hidden" />
+    <SelectableItemCustomization Id="NetFX451MTPackHidden" Selected="yes" FriendlyName="NetFX451MTPackHidden" />
+    <SelectableItemCustomization Id="NetFX451MTPackCoreHidden" Selected="yes" FriendlyName="NetFX451MTPackCoreHidden" />
+    <SelectableItemCustomization Id="NetFX452MTPackHidden" Selected="yes" FriendlyName="NetFX452MTPackHidden" />
+    <SelectableItemCustomization Id="NetFX46MTPackHidden" Selected="yes" FriendlyName="NetFX46MTPackHidden" />
+    <SelectableItemCustomization Id="PortableDTPHidden" Selected="yes" FriendlyName="PortableDTPHidden" />
+    <SelectableItemCustomization Id="PreEmptiveDotfuscatorHidden" Selected="yes" FriendlyName="PreEmptiveDotfuscatorHidden" />
+    <SelectableItemCustomization Id="PreEmptiveAnalyticsHidden" Selected="yes" FriendlyName="PreEmptiveAnalyticsHidden" />
+    <SelectableItemCustomization Id="RoslynLanguageServicesHidden" Selected="yes" FriendlyName="RoslynLanguageServicesHidden" />
+    <SelectableItemCustomization Id="SDKTools3Hidden" Selected="yes" FriendlyName="SDKTools3Hidden" />
+    <SelectableItemCustomization Id="SDKTools4Hidden" Selected="yes" FriendlyName="SDKTools4Hidden" />
+    <SelectableItemCustomization Id="WCFDataServicesHidden" Selected="yes" FriendlyName="WCFDataServicesHidden" />
+    <SelectableItemCustomization Id="TypeScriptV6" Selected="no" FriendlyName="TypeScript 1.7.6.0 for Visual Studio 2015 Update 1" />
+    <SelectableItemCustomization Id="VSUV1PreReqV1" Selected="no" FriendlyName="Visual Studio 2015 Update 1 Prerequisite" />
+    <SelectableItemCustomization Id="Win81SDK_HiddenV1" Hidden="no" Selected="no" FriendlyName="Windows 8.1 SDK and Universal CRT SDK" />
+    <SelectableItemCustomization Id="FSharpV1" Hidden="no" Selected="no" FriendlyName="Visual F#" />
+    <SelectableItemCustomization Id="PythonToolsForVisualStudioV4" Hidden="no" Selected="no" FriendlyName="Python Tools for Visual Studio (December 2015)" />
+    <SelectableItemCustomization Id="ClickOnceV1" Hidden="no" Selected="no" FriendlyName="ClickOnce Publishing Tools" />
+    <SelectableItemCustomization Id="SQLV1" Hidden="no" Selected="no" FriendlyName="Microsoft SQL Server Data Tools" />
+    <SelectableItemCustomization Id="WebToolsV1" Hidden="no" Selected="no" FriendlyName="Microsoft Web Developer Tools" />
+    <SelectableItemCustomization Id="PowerShellToolsV1" Hidden="no" Selected="no" FriendlyName="PowerShell Tools for Visual Studio" />
+    <SelectableItemCustomization Id="SilverLight_Developer_KitV1" Hidden="no" Selected="no" FriendlyName="Silverlight Development Kit" />
+    <SelectableItemCustomization Id="Windows10_ToolsAndSDKV4" Hidden="no" Selected="no" FriendlyName="Tools (1.2) and Windows 10 SDK (10.0.10586)" />
+    <SelectableItemCustomization Id="Win10_EmulatorV1" Selected="no" FriendlyName="Emulators for Windows 10 Mobile (10.0.10240)" />
+    <SelectableItemCustomization Id="Win10_EmulatorV2" Hidden="no" Selected="no" FriendlyName="Emulators for Windows 10 Mobile (10.0.10586)" />
+    <SelectableItemCustomization Id="XamarinVSCoreV1" Hidden="no" Selected="no" FriendlyName="C#/.NET (Xamarin)" />
+    <SelectableItemCustomization Id="MDDJSCoreV8" Hidden="no" Selected="no" FriendlyName="HTML/JavaScript (Apache Cordova) Update 7" />
+    <SelectableItemCustomization Id="AndroidNDKV1" Hidden="no" Selected="no" FriendlyName="Android Native Development Kit (R10E, 32 bits)" />
+    <SelectableItemCustomization Id="AndroidSDKV1" Hidden="no" Selected="no" FriendlyName="Android SDK" />
+    <SelectableItemCustomization Id="AndroidSDK_API1921V1" Hidden="no" Selected="no" FriendlyName="Android SDK Setup (API Level 19 and 21)" />
+    <SelectableItemCustomization Id="AndroidSDK_API22V1" Hidden="no" Selected="no" FriendlyName="Android SDK Setup (API Level 22)" />
+    <SelectableItemCustomization Id="AndroidSDK_API23V1" Hidden="no" Selected="no" FriendlyName="Android SDK Setup (API Level 23)" />
+    <SelectableItemCustomization Id="AntV1" Hidden="no" Selected="no" FriendlyName="Apache Ant (1.9.3)" />
+    <SelectableItemCustomization Id="L_MDDCPlusPlus_iOS_V4" Hidden="no" Selected="no" FriendlyName="Visual C++ iOS Development (Update 1)" />
+    <SelectableItemCustomization Id="L_MDDCPlusPlus_ClangC2_V2" Hidden="no" Selected="no" FriendlyName="Clang with Microsoft CodeGen (January 2016)" />
+    <SelectableItemCustomization Id="L_MDDCPlusPlus_Android_V4" Hidden="no" Selected="no" FriendlyName="Visual C++ Android Development (Update 1)" />
+    <SelectableItemCustomization Id="L_IncrediBuild_V1" Selected="no" FriendlyName="IncrediBuild" />
+    <SelectableItemCustomization Id="JavaJDKV1" Hidden="no" Selected="no" FriendlyName="Java SE Development Kit (7.0.550.13)" />
+    <SelectableItemCustomization Id="Node.jsV1" Hidden="no" Selected="no" FriendlyName="Joyent Node.js" />
+    <SelectableItemCustomization Id="VSEmu_AndroidV1.0.60106.1" Hidden="no" Selected="no" FriendlyName="Microsoft Visual Studio Emulator for Android (January 2016)" />
+    <SelectableItemCustomization Id="WebSocket4NetV1" Hidden="no" Selected="no" FriendlyName="WebSocket4Net" />
+    <SelectableItemCustomization Id="ToolsForWin81_WP80_WP81V1" Hidden="no" Selected="no" FriendlyName="Tools and Windows SDKs" />
+    <SelectableItemCustomization Id="WindowsPhone81EmulatorsV1" Hidden="no" Selected="no" FriendlyName="Emulators for Windows Phone 8.1" />
+    <SelectableItemCustomization Id="GitForWindowsV4" Hidden="no" Selected="no" FriendlyName="Git for Windows" />
+    <SelectableItemCustomization Id="GitHubVSV1" Hidden="no" Selected="no" FriendlyName="GitHub Extension for Visual Studio" />
+    <SelectableItemCustomization Id="VS_SDK_GroupV3" Hidden="no" Selected="no" FriendlyName="Visual Studio Extensibility Tools Update 1" />
+    <SelectableItemCustomization Id="VS_SDK_Breadcrumb_GroupV3" Selected="no" FriendlyName="Visual Studio Extensibility Tools Update 1" />
+    <SelectableItemCustomization Id="Win10_VSToolsV4" Hidden="no" Selected="no" FriendlyName="Tools for Universal Windows Apps (1.2) and Windows 10 SDK (10.0.10586)" />
+    <SelectableItemCustomization Id="Win10SDK_HiddenV1" Hidden="no" Selected="no" FriendlyName="Windows 10 SDK (10.0.10240)" />
+    <SelectableItemCustomization Id="Win10SDK_HiddenV2" Selected="no" FriendlyName="Windows 10 SDK (10.0.10586)" />
+    <SelectableItemCustomization Id="Win10SDK_VisibleV1" Hidden="no" Selected="no" FriendlyName="Windows 10 SDK 10.0.10240" />
+    <SelectableItemCustomization Id="UWPPatch_KB3073097_HiddenV3" Selected="no" FriendlyName="KB3073097" />
+    <SelectableItemCustomization Id="JavaScript_HiddenV4" Selected="no" FriendlyName="JavaScript Project System for Visual Studio" />
+    <SelectableItemCustomization Id="AppInsightsToolsVSWinExpressHiddenV6" Selected="no" FriendlyName="Application Insights and HockeyApp Tools for Visual Studio 2015 Update 1 v4.3.0" />
+    <SelectableItemCustomization Id="AppInsightsToolsVWDExpressHiddenV6" Selected="no" FriendlyName="Application Insights and HockeyApp Tools for Visual Studio 2015 Update 1 v4.3.0" />
+    <SelectableItemCustomization Id="ProfilerHidden" Selected="no" FriendlyName="ProfilerHidden" />
+  </SelectableItemCustomizations>
+</AdminDeploymentCustomizations>

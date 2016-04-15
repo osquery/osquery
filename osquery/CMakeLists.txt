@@ -15,11 +15,18 @@ set(OSQUERY_ADDITIONAL_TESTS "")
 set(OSQUERY_TABLES_TESTS "")
 
 # Add all and extra for osquery code.
-add_compile_options(
-  -Wall
-  -Wextra
-  -Wno-unused-parameter
-)
+# TODO(WIN64): Changes for Win64 CMake
+if(WIN32)
+  add_compile_options(
+    /Wall
+  )
+else()
+  add_compile_options(
+    -Wall
+    -Wextra
+    -Wno-unused-parameter
+  )
+endif()
 
 # The core set of osquery libraries most discovered with find_package.
 set(OSQUERY_LIBS
@@ -79,7 +86,11 @@ ADD_OSQUERY_LINK_CORE("glog")
 ADD_OSQUERY_LINK_CORE("boost_system")
 ADD_OSQUERY_LINK_CORE("boost_filesystem")
 ADD_OSQUERY_LINK_CORE("boost_regex")
-ADD_OSQUERY_LINK_CORE("yara")
+
+# TODO(#1956): Ignoring on WIN32 for now
+if(NOT WIN32)
+  ADD_OSQUERY_LINK_CORE("yara")
+endif()
 
 # Remaining additional development libraries.
 ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-uri")

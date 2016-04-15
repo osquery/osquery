@@ -23,28 +23,32 @@ elseif(CLANGXX_EXISTS)
   set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
-add_compile_options(
-  -Wstrict-aliasing
-  -Wno-missing-field-initializers
-  -Wno-unused-local-typedef
-  -Wno-unknown-warning-option
-  -Wnon-virtual-dtor
-  -Wchar-subscripts
-  -Wpointer-arith
-  -Woverloaded-virtual
-  -Wformat
-  -Wformat-security
-  -Werror=format-security
-  -Wabi-tag
-  -fstack-protector-all
-  -fPIE
-  -fpie
-  -fPIC
-  -fpic
-  -pipe
-  -fdata-sections
-  -ffunction-sections
-)
+if(WIN32)
+  # TODO(#1985): We need to find the MSVC equivalents to the flags listed in the else section.
+else()
+  add_compile_options(
+    -Wstrict-aliasing
+    -Wno-missing-field-initializers
+    -Wno-unused-local-typedef
+    -Wno-unknown-warning-option
+    -Wnon-virtual-dtor
+    -Wchar-subscripts
+    -Wpointer-arith
+    -Woverloaded-virtual
+    -Wformat
+    -Wformat-security
+    -Werror=format-security
+    -Wabi-tag
+    -fstack-protector-all
+    -fPIE
+    -fpie
+    -fPIC
+    -fpic
+    -pipe
+    -fdata-sections
+    -ffunction-sections
+  )
+endif()
 
 # osquery additional compiler flags added by CMake.
 set(C_COMPILE_FLAGS "")
@@ -55,7 +59,7 @@ if(DEFINED ENV{OSQUERY_PLATFORM})
   set(PLATFORM "$ENV{OSQUERY_PLATFORM}")
 else()
   execute_process(
-    COMMAND "${CMAKE_SOURCE_DIR}/tools/provision.sh" get_platform
+    COMMAND python "${CMAKE_SOURCE_DIR}/tools/get_platform.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE PLATFORM
     OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -63,7 +67,7 @@ else()
 endif()
 
 if(PLATFORM STREQUAL "")
-  WARNING_LOG("Unable to detect osquery platform: ./tools/provision.sh failed")
+  WARNING_LOG("Unable to detect osquery platform: ./tools/get_platform.py failed")
   message(FATAL_ERROR "Cannot proceed without knowing the build platform")
 endif()
 list(GET PLATFORM 0 OSQUERY_BUILD_PLATFORM)
@@ -144,14 +148,25 @@ set(OSQUERY_REQUIRE_RUNTIMES
 if(DEFINED ENV{DEBUG})
   set(DEBUG TRUE)
   set(CMAKE_BUILD_TYPE "Debug")
-  add_compile_options(
-    -g
-    -O0
-    -fstandalone-debug
-  )
+  if(WIN32)
+    # TODO(#1985): Is there a MSVC flag congruent to -fstandalone-debug?
+    add_compile_options(
+      /Zi
+      /Od   
+    )
+  else()
+    add_compile_options(
+      -g
+      -O0
+      -fstandalone-debug
+    )
+  endif()
   add_definitions(-DDEBUG)
   WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
+  # TODO(#1985): In the future, we need to find the MSVC equivalent flags for the following 
+  #              compiler flags.
+  
   # make sanitize (cannot make debug sanitize)
   add_compile_options(
     -g
@@ -173,7 +188,11 @@ elseif(DEFINED ENV{SANITIZE})
   add_definitions(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
 else()
   set(DEBUG FALSE)
-  add_compile_options(-Os)
+  if(WIN32)
+    add_compile_options(/Ot)
+  else()
+    add_compile_options(-Os)
+  endif()
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
@@ -182,12 +201,24 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT DEFINED ENV{OPTIMIZED})
-  add_compile_options(-march=x86-64 -mno-avx)
+  # TODO(#1985): Is there a congruent flag in MSVC for -mno-avx flag? I think it is implicit that the default
+  #              does not use avx. Ideally, this should be kept WIN64 only but we are having trouble determining
+  #              the target architecture
+  if(WIN32)
+    add_compile_options(/favor:AMD64)
+  else()
+    add_compile_options(-march=x86-64 -mno-avx)
+  endif()
 endif()
 
 # make analyze (environment variable from Makefile)
 if(DEFINED ENV{ANALYZE})
-  set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
+  # TODO(#1985): How do we support clang-analyze on Windows?
+  if(WIN32)
+    message(FATAL_ERROR "Cannot analyze on Windows right now." )
+  else()
+    set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
+  endif()
 endif()
 
 # make sdk (tests building SDK-based extensions)
@@ -323,13 +354,69 @@ elseif(DEBIAN_BASED)
   add_definitions(-DDEBIAN_BASED=1)
 endif()
 
-# Make sure the generated paths exist
-execute_process(COMMAND mkdir -p "${CMAKE_BINARY_DIR}/generated")
+set(MKDIR_OPTS "")
+
+if(WIN32)
+  # Win64 does not have a kernel build component-specific
+  set(OSQUERY_BUILD_SDK_ONLY TRUE)
+
+  set(WINDOWS_DEP_DIR "$ENV{ChocolateyInstall}/lib")
+  string(REGEX REPLACE "\\\\" "/" WINDOWS_DEP_DIR ${WINDOWS_DEP_DIR})
+  set(BOOST_DEP_DIR "$ENV{HOMEDRIVE}/local/boost-msvc14")
+  
+  # TODO(#1988): All the paths used here are within third-party\. However, after chocolateyfication, these
+  #              paths are subject to change.
+
+  # Win64 specific BZIP2 variables
+  set(BZIP2_INCLUDE_DIR "${WINDOWS_DEP_DIR}/bzip2/local/include")
+  set(BZIP2_LIBRARIES "${WINDOWS_DEP_DIR}/bzip2/local/lib/libbz2.lib")
+
+  # Win64 specific OpenSSL variables
+  set(OPENSSL_ROOT_DIR "${WINDOWS_DEP_DIR}/openssl/local/lib")
+  set(OPENSSL_INCLUDE_DIR "${WINDOWS_DEP_DIR}/openssl/local/include")
+  set(OPENSSL_CRYPTO_LIBRARY "${WINDOWS_DEP_DIR}/openssl/local/lib/libeay32.lib")
+  set(OPENSSL_SSL_LIBRARY "${WINDOWS_DEP_DIR}/openssl/local/lib/ssleay32.lib")
+  set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  
+  # Win64 specific Thrift
+  set(THRIFT_INCLUDE_DIR "${WINDOWS_DEP_DIR}/thrift-dev/local/include")
+  set(THRIFT_LIBRARY "${WINDOWS_DEP_DIR}/thrift-dev/local/lib/thriftmd.lib")
+  set(THRIFT_COMPILER "${WINDOWS_DEP_DIR}/thrift/tools/thrift.exe")
+  
+  # Win64 specific rocksdb
+  set(ROCKSDB_STATIC_LIBRARY "${WINDOWS_DEP_DIR}/rocksdb/local/lib/rocksdblib.lib")
+  set(ROCKSDB_SNAPPY_LIBRARY "${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/native/snappy64.lib")
+  
+  # Win64 specific doxygen
+  set(DOXYGEN_EXECUTABLE "${WINDOWS_DEP_DIR}/doxygen/tools/doxygen.exe")
+
+  # Win64 specific boost
+  set(boost_filesystem_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_filesystem-vc140-mt-1_59.lib")
+  set(boost_system_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_system-vc140-mt-1_59.lib")
+  set(boost_regex_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_regex-vc140-mt-1_59.lib")
+
+  # Win64 specific gflags
+  set(gflags_library "${WINDOWS_DEP_DIR}/gflags-dev/local/lib/gflags_static.lib")
+  
+  # Win64 specific glog
+  set(glog_library "${WINDOWS_DEP_DIR}/glog/local/lib/glog.lib")
+else()
+  set(MKDIR_OPTS "-p")
+endif()
+
+# Make sure the generated paths exist 
+execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
 
 # We need to link some packages as dynamic/dependent.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .dll .dylib .so .a)
+
 find_package(BZip2 REQUIRED)
-find_package(Dl REQUIRED)
+
+if(NOT WIN32)
+  find_package(Dl REQUIRED)
+endif()
+
 find_package(Readline REQUIRED)
 
 # Apple has deprecated OpenSSL, static link with brew bottled libressl
@@ -345,6 +432,7 @@ if(APPLE)
     set(OPENSSL_ROOT_DIR "/usr")
   endif()
 endif()
+
 find_package(OpenSSL REQUIRED)
 include_directories("${OPENSSL_INCLUDE_DIR}")
 
@@ -382,7 +470,6 @@ if(DEFINED ENV{BOOST_ROOT})
   include_directories("${BOOST_ROOT}")
 endif()
 
-find_package(Gflags REQUIRED)
 find_package(Gtest REQUIRED)
 find_package(Thrift 0.9.3 REQUIRED)
 
@@ -406,8 +493,20 @@ include(Thrift)
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
-include_directories("/usr/local/include")
-link_directories("/usr/local/lib")
+
+if(WIN32)
+  # TODO(#1988): The paths used here might need to be modified in the future once third party dependencies
+  #              are made into chocolatey packages.
+  include_directories("${THRIFT_INCLUDE_DIR}")
+  include_directories("${BOOST_DEP_DIR}")
+  include_directories("${WINDOWS_DEP_DIR}/glog/local/include")
+  include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
+  
+  # TODO(#1990): We probably need to add our third-party link directories here
+else()
+  include_directories("/usr/local/include")
+  link_directories("/usr/local/lib")
+endif()
 
 # Add custom homebrew paths
 if(APPLE)
@@ -447,6 +546,9 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 
+# TODO(#1985): We either need to find an equivalent command on Windows or write a Python script
+#              in tools/ that accomplishes the same task in a platform agnostic manner.
+
 # make format-all
 add_custom_target(
   format-all
@@ -463,6 +565,8 @@ add_custom_target(
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
+
+# TODO(#1985): We need to figure out if we can platform agnosticize the sync.sh shell script
 
 # make sync
 add_custom_target(

@@ -7,9 +7,14 @@ add_custom_command(
   OUTPUT ${OSQUERY_THRIFT_GENERATED_FILES}
 )
 
-add_compile_options(
-  -Wno-macro-redefined
-)
+# TODO(WIN64): don't do anything for windows
+if(WIN32)
+  # Nothing to do here for now
+else()
+  add_compile_options(
+    -Wno-macro-redefined
+  )
+endif()
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_extensions
   ${OSQUERY_THRIFT_GENERATED_FILES}
