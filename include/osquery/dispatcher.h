@@ -124,7 +124,7 @@ class InternalRunnable : private boost::noncopyable,
   /// Require the runnable thread define an entrypoint.
   virtual void start() = 0;
 
-  /// Require the runnable thread to define a stop/interrupt point.
+  /// The runnable thread may optionally define a stop/interrupt point.
   virtual void stop() {}
 
  private:
