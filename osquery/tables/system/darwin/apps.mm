@@ -279,7 +279,7 @@ QueryData genApps(QueryContext& context) {
     genApplication(tree, path, results);
   }
 
-  return std::move(results);
+  return results;
 }
 
 QueryData genAppSchemes(QueryContext& context) {
