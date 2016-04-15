@@ -175,6 +175,7 @@ DECLARE_bool(config_check);
 DECLARE_bool(config_dump);
 DECLARE_bool(database_dump);
 DECLARE_string(database_path);
+DECLARE_string(getfile_path);
 
 ToolType kToolType = OSQUERY_TOOL_UNKNOWN;
 
@@ -275,6 +276,16 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       if (Flag::isDefault("database_path")) {
         osquery::FLAGS_database_path = homedir + "/shell.db";
       }
+      if (Flag::isDefault("getfile_path")) {
+        auto getfiledir = homedir + "/getfiles";
+        if (osquery::pathExists(getfiledir).ok() ||
+            boost::filesystem::create_directory(getfiledir, ec)) {
+          osquery::FLAGS_getfile_path = getfiledir;
+        } else {
+          LOG(INFO) << "Cannot access or create osquery getfile directory";
+          FLAGS_getfile_path = "/tmp";
+        }
+      }
       if (Flag::isDefault("extensions_socket")) {
         osquery::FLAGS_extensions_socket = homedir + "/shell.em";
       }
@@ -282,6 +293,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       LOG(INFO) << "Cannot access or create osquery home directory";
       FLAGS_disable_extensions = true;
       FLAGS_database_path = "/dev/null";
+      FLAGS_getfile_path = "/tmp";
     }
   }
 

@@ -28,6 +28,11 @@ CLI_FLAG(string,
          "If using a disk-based backing store, specify a path");
 FLAG_ALIAS(std::string, db_path, database_path);
 
+CLI_FLAG(string,
+         getfile_path,
+         "/var/osquery/getfiles",
+         "Path to store files from get_file table");
+
 CLI_FLAG(bool,
          database_in_memory,
          false,
