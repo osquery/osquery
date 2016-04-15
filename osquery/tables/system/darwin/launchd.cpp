@@ -130,7 +130,7 @@ QueryData genLaunchd(QueryContext& context) {
     genLaunchdItem(tree, path, results);
   }
 
-  return std::move(results);
+  return results;
 }
 
 void genLaunchdOverride(const fs::path& path, QueryData& results) {

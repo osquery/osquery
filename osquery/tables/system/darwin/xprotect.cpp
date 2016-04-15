@@ -165,7 +165,7 @@ QueryData genXProtectEntries(QueryContext& context) {
     }
   }
 
-  return std::move(results);
+  return results;
 }
 
 QueryData genXProtectMeta(QueryContext& context) {
@@ -214,7 +214,7 @@ QueryData genXProtectMeta(QueryContext& context) {
     }
   }
 
-  return std::move(results);
+  return results;
 }
 }
 }

@@ -254,7 +254,7 @@ QueryData genOSXPreferences(QueryContext& context) {
     genOSXDefaultPreferences(context, results);
   }
 
-  return std::move(results);
+  return results;
 }
 }
 }
