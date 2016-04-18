@@ -65,6 +65,9 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
   /// Clear the decorations created from decorators for the given source.
   void clearSources(const std::string& source);
 
+  /// Clear all decorations.
+  virtual void reset() override;
+
  public:
   /// Set of configuration sources to the set of decorator queries.
   std::map<std::string, std::vector<std::string>> always_;
@@ -110,9 +113,25 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
 void DecoratorsConfigParserPlugin::clearSources(const std::string& source) {
   // Reset the internal data store.
   WriteLock lock(DecoratorsConfigParserPlugin::kDecorationsMutex);
-  intervals_[source].clear();
-  always_[source].clear();
-  load_[source].clear();
+  if (intervals_.count(source) > 0) {
+    intervals_[source].clear();
+  }
+
+  if (always_.count(source) > 0) {
+    always_[source].clear();
+  }
+
+  if (load_.count(source) > 0) {
+    load_[source].clear();
+  }
+}
+
+void DecoratorsConfigParserPlugin::reset() {
+  // Reset the internal data store (for all sources).
+  for (const auto& source : DecoratorsConfigParserPlugin::kDecorations) {
+    clearSources(source.first);
+    clearDecorations(source.first);
+  }
 }
 
 void DecoratorsConfigParserPlugin::updateDecorations(

@@ -148,6 +148,7 @@ TEST_F(PacksTests, test_discovery_cache) {
   }));
 
   EXPECT_EQ(pack_count, 1U);
+  c.reset();
 }
 
 TEST_F(PacksTests, test_discovery_zero_state) {

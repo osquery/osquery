@@ -583,6 +583,27 @@ void Config::reset() {
   valid_ = false;
   loaded_ = false;
   start_time_ = 0;
+
+  // Also request each parse to reset state.
+  for (const auto& plugin : Registry::all("config_parser")) {
+    std::shared_ptr<ConfigParserPlugin> parser = nullptr;
+    try {
+      parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
+    } catch (const std::bad_cast& e) {
+      continue;
+    }
+    if (parser == nullptr || parser.get() == nullptr) {
+      continue;
+    }
+    parser->reset();
+  }
+}
+
+void ConfigParserPlugin::reset() {
+  // Resets will clear all top-level keys from the parser's data store.
+  for (auto& category : data_) {
+    boost::property_tree::ptree().swap(category.second);
+  }
 }
 
 void Config::recordQueryPerformance(const std::string& name,

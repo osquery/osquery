@@ -314,7 +314,9 @@ class Config : private boost::noncopyable {
   friend class FilePathsConfigParserPluginTests;
   friend class FileEventsTableTests;
   friend class DecoratorsConfigParserPluginTests;
+  friend class SchedulerTests;
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
+  FRIEND_TEST(EventsConfigParserPluginTests, test_get_event);
   FRIEND_TEST(PacksTests, test_discovery_cache);
   FRIEND_TEST(SchedulerTests, test_monitor);
   FRIEND_TEST(SchedulerTests, test_config_results_purge);
@@ -468,13 +470,30 @@ class ConfigParserPlugin : public Plugin {
   virtual Status update(const std::string& source,
                         const ParserConfig& config) = 0;
 
+  /// Allow parsers to perform some setup before the configuration is loaded.
   Status setUp() override;
 
+  /**
+   * @brief Accessor for parser-manipulated data.
+   *
+   * Parsers should be used generically, for places within the code base that
+   * request a parser (check for its existence), should only use this ::getData
+   * accessor.
+   *
+   * More complex parsers that require dynamic casting are not recommended.
+   */
   const boost::property_tree::ptree& getData() const { return data_; }
+
+ protected:
+  /// Allow the config to request parser state resets.
+  virtual void reset();
 
  protected:
   /// Allow the config parser to keep some global state.
   boost::property_tree::ptree data_;
+
+ private:
+  friend class Config;
 };
 
 /**

@@ -12,6 +12,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import jinja2
 import os
 import sys
@@ -20,13 +21,6 @@ import sys
 TEMPLATE_NAME = "amalgamation.cpp.in"
 BEGIN_LINE = "/// BEGIN[GENTABLE]"
 END_LINE = "/// END[GENTABLE]"
-
-
-def usage(progname):
-    """ print program usage """
-    print(("Usage: %s /path/to/tables "
-           "/path/to/generated output[_amalgamation.cpp]") % progname)
-    return 1
 
 
 def genTableData(filename):
@@ -47,30 +41,33 @@ def genTableData(filename):
 
 
 def main(argc, argv):
-    if argc < 4:
-        return usage(argv[0])
-    specs = argv[1]
-    directory = argv[2]
-    name = argv[3]
+    parser = argparse.ArgumentParser(
+        "Generate C++ amalgamation from C++ Table Plugin targets")
+    parser.add_argument("--foreign", default=False, action="store_true",
+        help="Generate a foreign table set amalgamation")
+    parser.add_argument("codegen", help="Path to this codegen folder")
+    parser.add_argument("generated", help="Path to generated build folder")
+    parser.add_argument("category", help="Category name of generated tables")
+    args = parser.parse_args()
 
     tables = []
     # Discover the output template, usually a black cpp file with includes.
-    template = os.path.join(specs, "templates", TEMPLATE_NAME)
+    template = os.path.join(args.codegen, "templates", TEMPLATE_NAME)
     with open(template, "rU") as fh:
         template_data = fh.read()
 
-    for base, _, filenames in os.walk(os.path.join(directory,
-                                                   "tables_%s" % (name))):
+    tables_folder = os.path.join(args.generated, "tables_%s" % (args.category))
+    for base, _, filenames in os.walk(tables_folder):
         for filename in filenames:
-            if filename == name:
+            if filename == args.category:
                 continue
             table_data = genTableData(os.path.join(base, filename))
             if table_data is not None:
                 tables.append(table_data)
 
-    amalgamation = jinja2.Template(template_data).render(
-        tables=tables)
-    output = os.path.join(directory, "%s_amalgamation.cpp" % name)
+    amalgamation = jinja2.Template(template_data).render(tables=tables,
+        foreign=args.foreign)
+    output = os.path.join(args.generated, "%s_amalgamation.cpp" % args.category)
     try:
         os.makedirs(os.path.dirname(output))
     except:

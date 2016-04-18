@@ -28,5 +28,6 @@ TEST_F(OptionsConfigParserPluginTests, test_get_option) {
   EXPECT_EQ(c.getParser("options")->getData().get_child("options").get<bool>(
                 "enable_monitor"),
             true);
+  c.reset();
 }
 }

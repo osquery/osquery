@@ -32,7 +32,7 @@ function main_darwin() {
   package yara
   package libressl
   package asio
-  package cpp-netlib devel
+  package cpp-netlib
   package google-benchmark
   package libmagic
   package sleuthkit

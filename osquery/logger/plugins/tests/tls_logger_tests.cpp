@@ -23,39 +23,22 @@ namespace osquery {
 
 class TLSLoggerTests : public testing::Test {
  public:
-  size_t getIndex(const std::shared_ptr<TLSLoggerPlugin>& plugin) {
-    return plugin->log_index_;
-  }
-
-  void runCheck(const std::shared_ptr<TLSLogForwarderRunner>& runner) {
+  void runCheck(const std::shared_ptr<TLSLogForwarder>& runner) {
     runner->check();
   }
 };
 
-TEST_F(TLSLoggerTests, test_log) {
-  auto plugin = std::make_shared<TLSLoggerPlugin>();
-
-  std::vector<StatusLogLine> status;
-  status.push_back({O_INFO, "test.cpp", 0, "test"});
-  auto s = plugin->logStatus(status);
-  EXPECT_TRUE(s.ok());
-  // A single status log should have advanced the index by 1.
-  EXPECT_EQ(getIndex(plugin), 1U);
-
-  s = plugin->logString("{\"json\": true}");
-  EXPECT_TRUE(s.ok());
-  // The index is shared between statuses and strings.
-  EXPECT_EQ(getIndex(plugin), 2U);
-}
-
 TEST_F(TLSLoggerTests, test_database) {
-  auto plugin = std::make_shared<TLSLoggerPlugin>();
+  auto forwarder = std::make_shared<TLSLogForwarder>("fake_key");
   std::string expected = "{\"new_json\": true}";
-  plugin->logString(expected);
+  forwarder->logString(expected);
+  StatusLogLine status;
+  status.message = "{\"status\": \"bar\"}";
+  forwarder->logStatus({status});
 
   std::vector<std::string> indexes;
   scanDatabaseKeys(kLogs, indexes);
-  EXPECT_EQ(indexes.size(), 3U);
+  EXPECT_EQ(2U, indexes.size());
 
   // Iterate using an unordered search, and search for the expected string
   // that was just logged.
@@ -69,19 +52,17 @@ TEST_F(TLSLoggerTests, test_database) {
 }
 
 TEST_F(TLSLoggerTests, test_send) {
-  auto plugin = std::make_shared<TLSLoggerPlugin>();
-  for (size_t i = 0; i < 20; i++) {
-    std::string expected = "{\"more_json\": true}";
-    plugin->logString(expected);
-  }
-
   // Start a server.
   TLSServerRunner::start();
   TLSServerRunner::setClientConfig();
 
-  // The runner should be dispatched as an osquery service.
-  auto runner = std::make_shared<TLSLogForwarderRunner>("fake_key");
-  runCheck(runner);
+  auto forwarder = std::make_shared<TLSLogForwarder>("fake_key");
+  for (size_t i = 0; i < 20; i++) {
+    std::string expected = "{\"more_json\": true}";
+    forwarder->logString(expected);
+  }
+
+  runCheck(forwarder);
 
   // Stop the server.
   TLSServerRunner::unsetClientConfig();
