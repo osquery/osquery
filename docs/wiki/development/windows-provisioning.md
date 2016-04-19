@@ -2,10 +2,21 @@
 The PowerShell script `provision.ps1` is used to prepare a clean Windows 10 64 bit machine into one that is ready of **osquery** development on Windows. However, the script does _not_ automate the generation of the Visual Studio 2015 solution nor performs the build process. 
 
 ## Initial Assumptions
- * `git` for Windows should be already installed in order to `git clone` the *osquery* repository containing the provisioning script.
+ * `git` for Windows should be already installed in order to `git clone` the **osquery** repository containing the provisioning script.
  * The machine is running the Windows 10 64 bit operating system with PowerShell
  * No previous instance of Visual Studio 2015 is already installed.
  * The user is running the script as an **Administrator**
+
+## Generating the Visual Studio 2015 Win64 Solution
+ * Open a new *Command Prompt*
+ * Execute the following command: `git clone https://github.com/facebook/osquery`
+ * **As an _Administrator_:**
+   * Change into the **osquery** root directory: `cd osquery`
+   * Run the batch script to provision a Windows 10 64 bit development environment: `make-win64-dev-env.bat`
+   * After completion, create the build folder: `mkdir build\windows10`
+   * Change into the recently created build folder: `cd build\windows10`
+   * Generate the Visual Studio 2015 solution files: `cmake ..\.. -G "Visual Studio 14 2015 Win64`
+   * There should be a `OSQUERY.sln` in the build folder. Open this with Visual Studio 2015 that is already installed via the provisioning script.
 
 ## Chocolatey Packages Installed (from official sources)
  * **chocolatey** (if applicable)
