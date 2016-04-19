@@ -39,3 +39,4 @@ pages:
   - Adding CLI Arguments: development/options-arguments.md
   - Reading/Writing Files: development/reading-files.md
   - Kernel: development/kernel.md
+  - Windows Provisioning: development/windows-provisioning.md
