@@ -159,4 +159,6 @@ function main_rhel() {
   fi
 
   gem_install fpm
+
+  install_aws_sdk
 }

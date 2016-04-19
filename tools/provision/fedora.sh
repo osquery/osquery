@@ -75,4 +75,6 @@ function main_fedora() {
   install_libcryptsetup
 
   gem_install fpm
+
+  install_aws_sdk
 }
