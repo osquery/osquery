@@ -11,12 +11,12 @@ ORACLE_RELEASE=/etc/oracle-release
 SYSTEM_RELEASE=/etc/system-release
 LSB_RELEASE=/etc/lsb-release
 DEBIAN_VERSION=/etc/debian_version
-SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+LIB_SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 function platform() {
   local  __out=$1
-  FAMILY="`python $SCRIPT_DIR/get_platform.py --family`"
-  eval $__out=`python $SCRIPT_DIR/get_platform.py --platform`
+  FAMILY="`python $LIB_SCRIPT_DIR/get_platform.py --family`"
+  eval $__out=`python $LIB_SCRIPT_DIR/get_platform.py --platform`
 }
 
 function _platform() {
@@ -26,7 +26,7 @@ function _platform() {
 
 function distro() {
   local __out=$2
-  eval $__out=`python $SCRIPT_DIR/get_platform.py --distro`
+  eval $__out=`python $LIB_SCRIPT_DIR/get_platform.py --distro`
 }
 
 function _distro() {
@@ -123,7 +123,7 @@ function build() {
 
   RUN_TESTS=$1
 
-  cd $SCRIPT_DIR/../
+  cd $LIB_SCRIPT_DIR/../
 
   # Run build host provisions and install library dependencies.
   if [[ ! -z $RUN_BUILD_DEPS ]]; then
