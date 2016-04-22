@@ -11,9 +11,6 @@ set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SOURCE_DIR="$SCRIPT_DIR/../.."
-source $SOURCE_DIR/tools/lib.sh
-distro "darwin" BUILD_VERSION
-
 BUILD_DIR="$SOURCE_DIR/build/"
 if [[ ! -z "$DEBUG" ]]; then
   BUILD_DIR="${BUILD_DIR}debug_"
@@ -24,9 +21,10 @@ if [[ "$BUILD_VERSION" == "10.11" ]]; then
 else
   BUILD_DIR="${BUILD_DIR}darwin$BUILD_VERSION"
 fi
-export PATH="$PATH:/usr/local/bin"
 
-source $SCRIPT_DIR/../lib.sh
+export PATH="$PATH:/usr/local/bin"
+source "$SOURCE_DIR/tools/lib.sh"
+distro "darwin" BUILD_VERSION
 
 # Binary identifiers
 APP_VERSION=`git describe --tags HEAD`
@@ -55,11 +53,11 @@ OSQUERY_LOG_DIR="/private/var/log/osquery/"
 TLS_CERT_CHAIN_DST="/private/var/osquery/tls-server-certs.pem"
 
 WORKING_DIR=/tmp/osquery_packaging
-INSTALL_PREFIX=$WORKING_DIR/prefix
-SCRIPT_ROOT=$WORKING_DIR/scripts
-PREINSTALL=$SCRIPT_ROOT/preinstall
-POSTINSTALL=$SCRIPT_ROOT/postinstall
-OSQUERYCTL_PATH="$SOURCE_DIR/tools/deployment/osqueryctl"
+INSTALL_PREFIX="$WORKING_DIR/prefix"
+SCRIPT_ROOT="$WORKING_DIR/scripts"
+PREINSTALL="$SCRIPT_ROOT/preinstall"
+POSTINSTALL="$SCRIPT_ROOT/postinstall"
+OSQUERYCTL_PATH="$SCRIPT_DIR/osqueryctl"
 
 # Kernel extension identifiers and config files
 KERNEL_INLINE=false
@@ -69,10 +67,10 @@ KERNEL_EXTENSION_SRC="$BUILD_DIR/kernel/osquery.kext"
 KERNEL_EXTENSION_DST="/Library/Extensions/osquery.kext"
 
 KERNEL_WORKING_DIR=/tmp/osquery_kernel_packaging
-KERNEL_INSTALL_PREFIX=$KERNEL_WORKING_DIR/prefix
-KERNEL_SCRIPT_ROOT=$KERNEL_WORKING_DIR/scripts
-KERNEL_PREINSTALL=$KERNEL_SCRIPT_ROOT/preinstall
-KERNEL_POSTINSTALL=$KERNEL_SCRIPT_ROOT/postinstall
+KERNEL_INSTALL_PREFIX="$KERNEL_WORKING_DIR/prefix"
+KERNEL_SCRIPT_ROOT="$KERNEL_WORKING_DIR/scripts"
+KERNEL_PREINSTALL="$KERNEL_SCRIPT_ROOT/preinstall"
+KERNEL_POSTINSTALL="$KERNEL_SCRIPT_ROOT/postinstall"
 
 SCRIPT_PREFIX_TEXT="#!/usr/bin/env bash
 

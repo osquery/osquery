@@ -12,9 +12,9 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SOURCE_DIR="$SCRIPT_DIR/../.."
 BUILD_DIR="$SOURCE_DIR/build/linux"
-export PATH="$PATH:/usr/local/bin"
 
-source $SCRIPT_DIR/../lib.sh
+export PATH="$PATH:/usr/local/bin"
+source "$SOURCE_DIR/tools/lib.sh"
 
 PACKAGE_VERSION=`git describe --tags HEAD || echo 'unknown-version'`
 PACKAGE_ARCH=`uname -m`
