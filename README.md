@@ -45,7 +45,7 @@ Find every OS X LaunchDaemon that launches an executable and keeps it running:
 ```sql
 SELECT name, program || program_arguments AS executable
   FROM launchd
-  WHERE (run_at_load = 'true' AND keep_alive = 'true')
+  WHERE (run_at_load = 1 AND keep_alive = 1)
   AND (program != '' OR program_arguments != '');
 ```
 
