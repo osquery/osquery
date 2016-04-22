@@ -22,7 +22,7 @@ Status JSONSerializer::serialize(const pt::ptree& params,
   try {
     pt::write_json(output, params, false);
   } catch (const pt::json_parser::json_parser_error& e) {
-    return Status(1, e.what());
+    return Status(1, std::string("JSON serialize error: ") + e.what());
   }
   serialized = output.str();
   return Status(0, "OK");
@@ -35,7 +35,7 @@ Status JSONSerializer::deserialize(const std::string& serialized,
     input << serialized;
     pt::read_json(input, params);
   } catch (const pt::json_parser::json_parser_error& e) {
-    return Status(1, e.what());
+    return Status(1, std::string("JSON deserialize error: ") + e.what());
   }
   return Status(0, "OK");
 }
