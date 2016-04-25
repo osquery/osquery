@@ -159,4 +159,6 @@ function main_ubuntu() {
     package python-jinja2
     package python-psutil
   fi
+
+  install_aws_sdk
 }

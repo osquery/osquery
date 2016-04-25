@@ -422,6 +422,27 @@ function install_libcryptsetup() {
   fi
 }
 
+function install_aws_sdk() {
+  SOURCE=aws-sdk-cpp-0.10.6
+  TARBALL=$SOURCE.tar.gz
+  URL=$DEPS_URL/$TARBALL
+
+  if provision aws_sdk /usr/local/lib/libaws-cpp-sdk-core.a; then
+    PREFIX=/usr/local
+    mkdir -p ${SOURCE}/build
+    pushd ${SOURCE}/build
+    CMAKE_FLAGS="-Wno-dev -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+               -DCMAKE_BUILD_TYPE=Release \
+               -DBUILD_ONLY=aws-cpp-sdk-kinesis;aws-cpp-sdk-firehose \
+               -DSTATIC_LINKING=1 -DNO_HTTP_CLIENT=1"
+    cmake $CMAKE_FLAGS ..
+    make -j$THREADS
+    sudo make install
+    sudo ln -s ${PREFIX}/lib/linux/intel64/Release/libaws-cpp-sdk-* ${PREFIX}/lib
+    popd
+  fi
+}
+
 #############################################################################
 ## The following package installs are utilities not statically linked.
 #############################################################################
@@ -566,6 +587,8 @@ function package() {
         HOMEBREW_ARGS="--build-bottle --with-static"
       elif [[ $1 = "libressl" ]]; then
         HOMEBREW_ARGS="--build-bottle"
+      elif [[ $1 = "aws-sdk-cpp" ]]; then
+        HOMEBREW_ARGS="--with-static --without-http-client"
       fi
       if [[ "$2" = "devel" ]]; then
         HOMEBREW_ARGS="${HOMEBREW_ARGS} --devel"

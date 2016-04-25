@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-  
+
 function main_debian() {
   sudo apt-get update -y --no-install-recommends
   sudo apt-get upgrade -y --no-install-recommends
@@ -7,7 +7,7 @@ function main_debian() {
   package git-core
   package wget
   package g++-multilib
-  
+
   if [[ $DISTRO == "wheezy" ]]; then
     set_cc gcc
     set_cxx g++
@@ -18,7 +18,7 @@ function main_debian() {
     set_cc gcc
     set_cxx g++
   fi
-  
+
   package unzip
   package build-essential
   package flex
@@ -56,10 +56,10 @@ function main_debian() {
     # thrift requires automate 1.13 or later
     remove_package automake
     install_automake
-  elif [[ $DISTRO == "jessie" ]]; then 
+  elif [[ $DISTRO == "jessie" ]]; then
     package cmake
     package automake
-  fi 
+  fi
 
   if [[ $DISTRO == "wheezy" ]]; then
     gem_install fpm -v 1.3.3
@@ -75,7 +75,7 @@ function main_debian() {
   install_google_benchmark
 
   install_snappy
-  install_rocksdb 
+  install_rocksdb
   install_thrift
   install_yara
   install_asio
@@ -99,10 +99,12 @@ function main_debian() {
     # aware of Debian's multiarch and expect /usr/lib64
     sudo mkdir -p /usr/lib64
     sudo ln -sf /usr/lib/x86_64-linux-gnu/* /usr/lib64
-    
+
     # libgcrpyt gets installed in /lib and cmake can't find
     # symlink it to /usr/local/lib
     sudo ln -sf /lib/x86_64-linux-gnu/libgcrypt.so /usr/local/lib/libgcrypt.so
     sudo ln -sf /lib/x86_64-linux-gnu/libgcrypt.a /usr/local/lib/libgcrypt.a
   fi
+
+  install_aws_sdk
 }

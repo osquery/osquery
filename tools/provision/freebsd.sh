@@ -25,4 +25,5 @@ function main_freebsd() {
   package boost-libs
   package cpp-netlib
   package magic
+  install_aws_sdk
 }
