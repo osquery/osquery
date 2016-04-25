@@ -19,6 +19,7 @@ pages:
   - Configuration: deployment/configuration.md
   - Logging: deployment/logging.md
   - Aggregating Logs: deployment/log-aggregation.md
+  - AWS Logging: deployment/aws-logging.md
   - Performance Safety: deployment/performance-safety.md
   - Anomaly Detection: deployment/anomaly-detection.md
   - Extensions: deployment/extensions.md
