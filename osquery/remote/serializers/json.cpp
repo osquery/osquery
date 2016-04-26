@@ -30,6 +30,13 @@ Status JSONSerializer::serialize(const pt::ptree& params,
 
 Status JSONSerializer::deserialize(const std::string& serialized,
                                    pt::ptree& params) {
+  if (serialized.empty()) {
+    // Prevent errors from being thrown when a TLS endpoint accepts the JSON
+    // payload, but doesn't respond with anything. This has been seen in the
+    // wild, for example with Sumo Logic.
+    params = pt::ptree();
+    return Status(0, "OK");
+  }
   try {
     std::stringstream input;
     input << serialized;
