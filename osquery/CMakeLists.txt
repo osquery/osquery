@@ -36,10 +36,22 @@ set(OSQUERY_LIBS
   ${OPENSSL_SSL_LIBRARY}
   ${READLINE_LIBRARIES}
 
-  pthread
-  bz2
-  z
 )
+
+if(WIN32)
+  set(OSQUERY_LIBS 
+    ${OSQUERY_LIBS} 
+    ${BZIP2_LIBRARIES}
+    ${boost_thread_library}   
+  )
+else()
+  set(OSQUERY_LIBS 
+    ${OSQUERY_LIBS} 
+    z 
+    bz2 
+    pthread
+  )
+endif()
 
 # If building with RocksDB (default) append associated libraries.
 if(ROCKSDB)
@@ -53,12 +65,14 @@ elseif(FREEBSD)
 endif()
 
 # Add default linking details (the first argument means SDK + core).
-ADD_OSQUERY_LINK_CORE("-rdynamic")
-foreach(DISTRO ${OSQUERY_REQUIRE_RUNTIMES})
-  if(${OSQUERY_BUILD_DISTRO} STREQUAL ${DISTRO})
-    ADD_OSQUERY_LINK_ADDITIONAL("-static-libstdc++")
-  endif()
-endforeach()
+if(NOT WIN32)
+  ADD_OSQUERY_LINK_CORE("-rdynamic")
+  foreach(DISTRO ${OSQUERY_REQUIRE_RUNTIMES})
+    if(${OSQUERY_BUILD_DISTRO} STREQUAL ${DISTRO})
+      ADD_OSQUERY_LINK_ADDITIONAL("-static-libstdc++")
+    endif()
+  endforeach()
+endif()
 
 # The platform-specific SDK + core libraries.
 if(APPLE)

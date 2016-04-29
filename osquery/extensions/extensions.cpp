@@ -31,8 +31,10 @@ namespace osquery {
 // Millisecond latency between initalizing manager pings.
 const size_t kExtensionInitializeLatencyUS = 20000;
 
-#ifdef __APPLE__
+#if defined(__APPLE__)
 const std::string kModuleExtension = ".dylib";
+#elif defined(WIN32)
+const std::string kModuleExtension = ".dll";
 #else
 const std::string kModuleExtension = ".so";
 #endif
@@ -299,7 +301,11 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     }
     // Increase the total wait detail.
     delay += kExtensionInitializeLatencyUS;
+#ifdef WIN32
+    Sleep(kExtensionInitializeLatencyUS);
+#else
     ::usleep(kExtensionInitializeLatencyUS);
+#endif
   } while (delay < timeout);
   return Status(1, "Extension socket not available: " + path);
 }

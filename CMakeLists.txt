@@ -394,6 +394,7 @@ if(WIN32)
   # Win64 specific boost
   set(boost_filesystem_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_filesystem-vc140-mt-1_59.lib")
   set(boost_system_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_system-vc140-mt-1_59.lib")
+  set(boost_thread_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_thread-vc140-mt-1_59.lib")
   set(boost_regex_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_regex-vc140-mt-1_59.lib")
 
   # Win64 specific gflags
@@ -480,9 +481,11 @@ if(NOT DEFINED ENV{SKIP_ROCKSDB})
 endif()
 
 # Python is used for table spec generation and formating.
-if(PYTHON_VERSION_MAJOR STREQUAL "2" AND PYTHON_VERSION_MINOR STREQUAL "4")
-  WARNING_LOG("Found python 2.4, overriding to /usr/bin/python2.6")
-  set(PYTHON_EXECUTABLE "/usr/bin/python2.6")
+if(NOT WIN32)
+  if(PYTHON_VERSION_MAJOR STREQUAL "2" AND PYTHON_VERSION_MINOR STREQUAL "4")
+    WARNING_LOG("Found python 2.4, overriding to /usr/bin/python2.6")
+    set(PYTHON_EXECUTABLE "/usr/bin/python2.6")
+  endif()
 endif()
 
 enable_testing()
@@ -503,6 +506,7 @@ if(WIN32)
   include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
   
   # TODO(#1990): We probably need to add our third-party link directories here
+  link_directories("${BOOST_DEP_DIR}/lib64-msvc-14.0")
 else()
   include_directories("/usr/local/include")
   link_directories("/usr/local/lib")

@@ -13,7 +13,9 @@
 #include <atomic>
 #include <string>
 
+#ifndef WIN32
 #include <unistd.h>
+#endif
 
 #include <boost/noncopyable.hpp>
 
@@ -35,8 +37,8 @@ class WatcherRunner;
 /**
  * @brief Categories of process performance limitations.
  *
- * Performance limits are applied by a watcher thread on autoloaded extensions
  * and a optional daemon worker process. The performance types are identified
+ * Performance limits are applied by a watcher thread on autoloaded extensions
  * here, and organized into levels. Such that a caller may enforce rigor or
  * relax the performance expectations of a osquery daemon.
  */
@@ -286,7 +288,7 @@ class WatcherWatcherRunner : public InternalRunnable {
 
  private:
   /// Parent, or watchdog, process ID.
-  pid_t watcher_{-1};
+  pid_t watcher_{(pid_t) -1};
 };
 
 /// Get a performance limit by name and optional level.

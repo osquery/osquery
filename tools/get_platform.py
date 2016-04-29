@@ -128,7 +128,7 @@ def platformAction():
 def distroAction():
     family, osType = _platform()
     print _distro(osType)
- 
+
 def familyAction():
     family, osType = _platform()
     if family:

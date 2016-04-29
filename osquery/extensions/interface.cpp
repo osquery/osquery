@@ -203,6 +203,7 @@ inline void removeStalePaths(const std::string& manager) {
 }
 
 void ExtensionRunnerCore::startServer(TProcessorRef processor) {
+#ifndef WIN32
   {
     std::unique_lock<std::mutex> lock(service_start_);
     // A request to stop the service may occur before the thread starts.
@@ -224,6 +225,7 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
   }
 
   server_->serve();
+#endif
 }
 
 void ExtensionRunner::start() {

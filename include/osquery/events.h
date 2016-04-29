@@ -24,6 +24,12 @@
 #include <osquery/status.h>
 #include <osquery/tables.h>
 
+#ifdef WIN32
+#define USED_SYMBOL
+#else
+#define USED_SYMBOL  __attribute__((used))
+#endif
+
 namespace osquery {
 
 struct Subscription;
@@ -492,7 +498,7 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @return The query-time table data, retrieved from a backing store.
    */
-  virtual QueryData genTable(QueryContext& context) __attribute__((used));
+  virtual QueryData genTable(QueryContext& context) USED_SYMBOL;
 
   /// Number of Subscription%s this EventSubscriber has used.
   size_t numSubscriptions() const { return subscription_count_; }

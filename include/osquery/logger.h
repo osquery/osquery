@@ -13,6 +13,11 @@
 #include <string>
 #include <vector>
 
+#ifdef WIN32
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#define OS_WINDOWS
+#endif
+
 #include <glog/logging.h>
 
 #include <osquery/database.h>

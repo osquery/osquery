@@ -125,7 +125,11 @@ void Dispatcher::stopServices() {
       }
       // We only need to check if std::terminate is called very quickly after
       // the std::thread is created.
+#ifdef WIN32
+      Sleep(20);
+#else
       ::usleep(20);
+#endif
     }
     service->interrupt();
     DLOG(INFO) << "Service: " << &*service << " has been interrupted";

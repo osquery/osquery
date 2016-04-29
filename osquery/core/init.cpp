@@ -14,9 +14,12 @@
 #include <thread>
 
 #include <stdio.h>
-#include <syslog.h>
 #include <time.h>
+
+#ifndef WIN32
+#include <syslog.h>
 #include <unistd.h>
+#endif
 
 #include <boost/filesystem.hpp>
 
@@ -104,6 +107,7 @@ volatile std::sig_atomic_t kHandledSignal{0};
 
 static inline bool isWatcher() { return (osquery::Watcher::getWorker() > 0); }
 
+#ifndef WIN32
 void signalHandler(int num) {
   // Inform exit status of main threads blocked by service joins.
   if (kHandledSignal == 0) {
@@ -157,6 +161,8 @@ void signalHandler(int num) {
     // managed extension processes.
   }
 }
+#endif
+
 }
 }
 
@@ -164,7 +170,7 @@ namespace osquery {
 
 using chrono_clock = std::chrono::high_resolution_clock;
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(WIN32)
 CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 #endif
 
@@ -226,7 +232,11 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   try {
     boost::filesystem::path::codecvt();
   } catch (const std::runtime_error& e) {
+#ifdef WIN32
+    setlocale(LC_ALL, "C");
+#else
     setenv("LC_ALL", "C", 1);
+#endif
   }
 
   // osquery implements a custom help/usage output.
@@ -273,18 +283,22 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
         boost::filesystem::create_directory(homedir, ec)) {
       // Only apply user/shell-specific paths if not overridden by CLI flag.
       if (Flag::isDefault("database_path")) {
+        // TODO(#2001): the path should be built in a more angostic way 
         osquery::FLAGS_database_path = homedir + "/shell.db";
       }
       if (Flag::isDefault("extensions_socket")) {
+        // TODO(#2001): the path should be built in a more angostic way
         osquery::FLAGS_extensions_socket = homedir + "/shell.em";
       }
     } else {
       LOG(INFO) << "Cannot access or create osquery home directory";
       FLAGS_disable_extensions = true;
+      // TODO(#2001): the path should be set in a more angostic way
       FLAGS_database_path = "/dev/null";
     }
   }
 
+#ifndef WIN32
   // All tools handle the same set of signals.
   // If a daemon process is a watchdog the signal is passed to the worker,
   // unless the worker has not yet started.
@@ -294,6 +308,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   std::signal(SIGHUP, signalHandler);
   std::signal(SIGALRM, signalHandler);
   std::signal(SIGUSR1, signalHandler);
+#endif
 
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check) {
@@ -304,7 +319,11 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   initStatusLogger(binary_);
   if (tool != OSQUERY_EXTENSION) {
     if (isWorker()) {
+#ifdef WIN32
+      // TODO: watcher will not be guarranteed to be parent process
+#else
       VLOG(1) << "osquery worker initialized [watcher=" << getppid() << "]";
+#endif
     } else {
       VLOG(1) << "osquery initialized [version=" << kVersion << "]";
     }
@@ -319,7 +338,7 @@ void Initializer::initDaemon() const {
     return;
   }
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(WIN32)
   // OS X uses launchd to daemonize.
   if (osquery::FLAGS_daemonize) {
     if (daemon(0, 0) == -1) {
@@ -328,9 +347,11 @@ void Initializer::initDaemon() const {
   }
 #endif
 
+#ifndef WIN32
   // Print the version to SYSLOG.
   syslog(
       LOG_NOTICE, "%s started [version=%s]", binary_.c_str(), kVersion.c_str());
+#endif
 
   // Check if /var/osquery exists
   if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
@@ -350,7 +371,11 @@ void Initializer::initDaemon() const {
       FLAGS_watchdog_level >= WATCHDOG_LEVEL_DEFAULT &&
       FLAGS_watchdog_level != WATCHDOG_LEVEL_DEBUG) {
     // Set CPU scheduling I/O limits.
+#ifdef WIN32
+    // TODO: What is the equivalent for Windows?
+#else
     setpriority(PRIO_PGRP, 0, 10);
+#endif
 #ifdef __linux__
     // Using: ioprio_set(IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
     syscall(SYS_ioprio_set, IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
@@ -413,7 +438,11 @@ void Initializer::initWorker(const std::string& name) const {
 
   // Start a 'watcher watcher' thread to exit the process if the watcher exits.
   // In this case the parent process is called the 'watcher' process.
+#ifdef WIN32
+  // TODO: How will we deal with this?
+#else
   Dispatcher::addService(std::make_shared<WatcherWatcherRunner>(getppid()));
+#endif
 }
 
 void Initializer::initWorkerWatcher(const std::string& name) const {
@@ -452,7 +481,11 @@ void Initializer::initActivePlugin(const std::string& type,
     }
     // The plugin is not local and is not active, wait and retry.
     delay += kExtensionInitializeLatencyUS;
+#ifdef WIN32
+    Sleep(kExtensionInitializeLatencyUS);
+#else
     ::usleep(kExtensionInitializeLatencyUS);
+#endif
   } while (delay < timeout);
 
   LOG(ERROR) << "Cannot activate " << name << " " << type
@@ -531,12 +564,14 @@ void Initializer::start() const {
   }
   initLogger(binary_);
 
+#ifndef WIN32
   // Initialize the distributed plugin, if necessary
   if (!FLAGS_disable_distributed) {
     if (Registry::exists("distributed", FLAGS_distributed_plugin)) {
       initActivePlugin("distributed", FLAGS_distributed_plugin);
     }
   }
+#endif
 
   // Start event threads.
   osquery::attachEvents();
@@ -559,7 +594,9 @@ void Initializer::requestShutdown(int retcode) {
   // Stop thrift services/clients/and their thread pools.
   kExitCode = retcode;
   if (std::this_thread::get_id() != kMainThreadId) {
+#ifndef WIN32
     raise(SIGUSR1);
+#endif
   } else {
     // The main thread is requesting a shutdown, meaning in almost every case
     // it is NOT waiting for a shutdown.

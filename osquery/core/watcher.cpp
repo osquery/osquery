@@ -12,7 +12,10 @@
 
 #include <math.h>
 #include <signal.h>
+
+#ifndef WIN32
 #include <sys/wait.h>
+#endif
 
 #include <boost/filesystem.hpp>
 
@@ -179,6 +182,9 @@ void WatcherRunner::start() {
 
 bool WatcherRunner::watch(pid_t child) {
   int status = 0;
+
+  // XXX TODO: Stubbed out for now
+#ifndef WIN32
   pid_t result = waitpid(child, &status, WNOHANG);
   if (Watcher::fatesBound()) {
     // A signal was handled while the watcher was watching.
@@ -201,17 +207,24 @@ bool WatcherRunner::watch(pid_t child) {
     // If the worker process existed, store the exit code.
     Watcher::instance().worker_status_ = WEXITSTATUS(status);
   }
+#endif
+
   return true;
 }
 
 void WatcherRunner::stopChild(pid_t child) {
+  // XXX TODO: Ignored for now
+#ifndef WIN32
   kill(child, SIGKILL);
 
   // Clean up the defunct (zombie) process.
   waitpid(-1, 0, WNOHANG);
+#endif
 }
 
 bool WatcherRunner::isChildSane(pid_t child) {
+  // XXX TODO: Stubbed out...
+#ifndef WIN32
   auto rows = SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(child));
   if (rows.size() == 0) {
     // Could not find worker process?
@@ -295,10 +308,14 @@ bool WatcherRunner::isChildSane(pid_t child) {
   if (use_worker_) {
     relayStatusLogs();
   }
+#endif
+
   return true;
 }
 
 void WatcherRunner::createWorker() {
+  // XXX TODO: Stubbed out
+#ifndef WIN32
   {
     WatcherLocker locker;
     if (Watcher::getState(Watcher::getWorker()).last_respawn_time >
@@ -359,6 +376,7 @@ void WatcherRunner::createWorker() {
   Watcher::resetWorkerCounters(getUnixTime());
   VLOG(1) << "osqueryd watcher (" << getpid() << ") executing worker ("
           << worker_pid << ")";
+#endif
 }
 
 bool WatcherRunner::createExtension(const std::string& extension) {
@@ -382,6 +400,8 @@ bool WatcherRunner::createExtension(const std::string& extension) {
     return false;
   }
 
+  // XXX TODO: Stubbed out
+#ifndef WIN32
   auto ext_pid = fork();
   if (ext_pid < 0) {
     // Unrecoverable error, cannot create an extension process.
@@ -411,10 +431,14 @@ bool WatcherRunner::createExtension(const std::string& extension) {
   Watcher::resetExtensionCounters(extension, getUnixTime());
   VLOG(1) << "Created and monitoring extension child (" << ext_pid
           << "): " << extension;
+#endif
+
   return true;
 }
 
 void WatcherWatcherRunner::start() {
+  // XXX TODO: Stubbed out
+#ifndef WIN32
   while (!interrupted()) {
     if (getppid() != watcher_) {
       // Watcher died, the worker must follow.
@@ -426,6 +450,7 @@ void WatcherWatcherRunner::start() {
     }
     pauseMilli(getWorkerLimit(INTERVAL) * 1000);
   }
+#endif
 }
 
 size_t getWorkerLimit(WatchdogLimitType name, int level) {
