@@ -15,8 +15,7 @@
 
 #include <osquery/core.h>
 
-namespace osquery
-{
+namespace osquery {
 
 #ifdef WIN32
 using PlatformPidType = HANDLE;
@@ -26,8 +25,7 @@ using PlatformPidType = pid_t;
 
 const PlatformPidType kInvalidPid = (PlatformPidType) -1;
 
-class PlatformProcess
-{
+class PlatformProcess {
   public:
     PlatformProcess(PlatformPidType id);
     PlatformProcess(PlatformProcess&& src);
@@ -66,6 +64,7 @@ void processSleep(unsigned int msec);
 
 bool isLauncherProcessDead(PlatformProcess& launcher);
 bool setEnvVar(const std::string& name, const std::string& value);
+bool unsetEnvVar(const std::string& name);
 boost::optional<std::string> getEnvVar(const std::string& name);
 
 // TODO(#1991): Missing register signal handlers function

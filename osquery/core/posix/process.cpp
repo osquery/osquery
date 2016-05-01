@@ -17,15 +17,14 @@
 
 extern char **environ;
 
-namespace osquery 
-{
+namespace osquery {
 
-PlatformProcess::PlatformProcess(PlatformPidType id) : id_(id) { }
+PlatformProcess::PlatformProcess(PlatformPidType id)
+  : id_(id) { }
 
-PlatformProcess::~PlatformProcess(){ }
+PlatformProcess::~PlatformProcess() { }
 
-bool PlatformProcess::kill()
-{
+bool PlatformProcess::kill() {
   if (id_ == kInvalidPid) {
     return false;
   }
@@ -34,8 +33,7 @@ bool PlatformProcess::kill()
   return (status == 0);
 }
 
-PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, const std::string& name)
-{
+PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, const std::string& name) {
   auto worker_pid = ::fork();
   if (worker_pid < 0) {
     return PlatformProcess(kInvalidPid);
@@ -56,8 +54,7 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
                                                  const std::string& extensions_socket,
                                                  const std::string& extensions_timeout,
                                                  const std::string& extensions_interval,
-                                                 const std::string& verbose)
-{
+                                                 const std::string& verbose) {
   auto ext_pid = ::fork();
   if (ext_pid < 0) {
     return PlatformProcess(kInvalidPid);
@@ -84,10 +81,8 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
   return PlatformProcess(ext_pid);
 }
 
-PlatformProcess PlatformProcess::fromPlatformPid(PlatformPidType id)
-{
+PlatformProcess PlatformProcess::fromPlatformPid(PlatformPidType id) {
   return PlatformProcess(id);
 }
-
 }
 

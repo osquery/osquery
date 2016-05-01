@@ -15,11 +15,9 @@
 
 #include "osquery/core/process.h"
 
-namespace osquery 
-{
+namespace osquery {
 
-PlatformProcess getCurrentProcess()
-{
+PlatformProcess getCurrentProcess() {
   HANDLE handle = ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, ::GetCurrentProcessId());
   if (handle == NULL) {
     return PlatformProcess(kInvalidPid);
@@ -29,8 +27,7 @@ PlatformProcess getCurrentProcess()
   return process;
 }
 
-PlatformProcess getLauncherProcess()
-{
+PlatformProcess getLauncherProcess() {
   auto launcher_handle = getEnvVar("OSQUERY_LAUNCHER");
   if (!launcher_handle) {
     return PlatformProcess(kInvalidPid);
@@ -51,8 +48,7 @@ PlatformProcess getLauncherProcess()
   return launcher;
 }
 
-bool isLauncherProcessDead(PlatformProcess& launcher)
-{
+bool isLauncherProcessDead(PlatformProcess& launcher) {
   DWORD code = 0 ;
   if (!::GetExitCodeProcess(launcher.nativeHandle(), &code)) {
     // TODO(#1991): If an error occurs with GetExitCodeProcess, do we want to return a Status 
@@ -63,13 +59,15 @@ bool isLauncherProcessDead(PlatformProcess& launcher)
   return (code != STILL_ACTIVE);
 }
 
-bool setEnvVar(const std::string& name, const std::string& value)
-{
+bool setEnvVar(const std::string& name, const std::string& value) {
   return (::SetEnvironmentVariableA(name.c_str(), value.c_str()) == TRUE);
 }
 
-boost::optional<std::string> getEnvVar(const std::string& name)
-{
+bool unsetEnvVar(const std::string& name) {
+  return (::SetEnvironmentVariableA(name.c_str(), NULL) == TRUE);
+}
+
+boost::optional<std::string> getEnvVar(const std::string& name) {
   const int kInitialBufferSize = 1024;
   std::vector<char> buf;
   buf.assign(kInitialBufferSize, '\0');
@@ -96,5 +94,4 @@ boost::optional<std::string> getEnvVar(const std::string& name)
   
   return std::string(&buf[0], value_len);
 }
-
 }

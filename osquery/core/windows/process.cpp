@@ -17,11 +17,9 @@
 
 extern char **environ;
 
-namespace osquery 
-{
+namespace osquery {
 
-PlatformProcess::PlatformProcess(PlatformPidType id)
-{ 
+PlatformProcess::PlatformProcess(PlatformPidType id) { 
   PlatformPidType handle = kInvalidPid;
     
   if (id != kInvalidPid) {
@@ -39,22 +37,19 @@ PlatformProcess::PlatformProcess(PlatformPidType id)
   id_ = handle;
 }
 
-PlatformProcess::PlatformProcess(PlatformProcess&& src)
-{
+PlatformProcess::PlatformProcess(PlatformProcess&& src) {
   id_ = src.id_;
   src.id_ = kInvalidPid;
 }  
 
-PlatformProcess::~PlatformProcess()
-{ 
+PlatformProcess::~PlatformProcess() { 
   if (id_ != kInvalidPid) {
     ::CloseHandle(id_);
     id_ = kInvalidPid;
   }
 }
 
-bool PlatformProcess::kill()
-{
+bool PlatformProcess::kill() {
   if (id_ == kInvalidPid) {
     return false;
   }
@@ -62,8 +57,7 @@ bool PlatformProcess::kill()
   return ::TerminateProcess(id_, 0);
 }
 
-PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, const std::string& name)
-{
+PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, const std::string& name) {
   ::STARTUPINFOA si = { 0 };
   ::PROCESS_INFORMATION pi = { 0 };
   
@@ -100,6 +94,7 @@ PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, cons
   
   std::string args = args_stream.str();
   std::vector<char> argv(args.begin(), args.end());
+  argv.push_back('\0');
   
   BOOL status = ::CreateProcessA(exec_path.c_str(),
                                  &argv[0],
@@ -131,8 +126,7 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
                                                  const std::string& extensions_socket,
                                                  const std::string& extensions_timeout,
                                                  const std::string& extensions_interval,
-                                                 const std::string& verbose)
-{
+                                                 const std::string& verbose) {
   ::STARTUPINFOA si = { 0 };
   ::PROCESS_INFORMATION pi = { 0 };
   
@@ -183,10 +177,8 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
   return process;
 }
 
-PlatformProcess PlatformProcess::fromPlatformPid(PlatformPidType id)
-{
+PlatformProcess PlatformProcess::fromPlatformPid(PlatformPidType id) {
   return PlatformProcess(id);
 }
-
 }
 
