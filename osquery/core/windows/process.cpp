@@ -10,7 +10,6 @@
 
 #include <vector>
 #include <sstream>
-
 #include <signal.h>
 #include <sys/types.h>
 
@@ -21,32 +20,45 @@ extern char **environ;
 namespace osquery 
 {
 
-PlatformProcess::PlatformProcess(PlatformPidType id) : id_(id) 
+PlatformProcess::PlatformProcess(PlatformPidType id)
 { 
   PlatformPidType handle = kInvalidPid;
-  if (!::DuplicateHandle(GetCurrentProcess(), 
-                         id, 
-                         GetCurrentProcess(),
-                         &handle,
-                         0,
-                         FALSE,
-                         DUPLICATE_SAME_ACCESS)) {
-    id_ = kInvalidPid;
-  } else {
-    id_ = handle;
+    
+  if (id != kInvalidPid) {
+    if (!::DuplicateHandle(GetCurrentProcess(), 
+                           id, 
+                           GetCurrentProcess(),
+                           &handle,
+                           0,
+                           FALSE,
+                           DUPLICATE_SAME_ACCESS)) {
+      handle = kInvalidPid;
+    }
   }
+  
+  id_ = handle;
 }
+
+PlatformProcess::PlatformProcess(PlatformProcess&& src)
+{
+  id_ = src.id_;
+  src.id_ = kInvalidPid;
+}  
 
 PlatformProcess::~PlatformProcess()
 { 
   if (id_ != kInvalidPid) {
     ::CloseHandle(id_);
+    id_ = kInvalidPid;
   }
-  id_ = kInvalidPid;
 }
 
 bool PlatformProcess::kill()
 {
+  if (id_ == kInvalidPid) {
+    return false;
+  }
+  
   return ::TerminateProcess(id_, 0);
 }
 
@@ -57,17 +69,22 @@ PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, cons
   
   si.cb = sizeof(si);
   
-  // XXX TODO XXX: We need to make that name does not contain any shell restricted characters.
+  // TODO(#1991): We currently do not sanitize or check for bad characters in for the worker name. Names
+  //              with double quotes have the potential of causing argument parsing issues. However, it
+  //              is not a huge concern for the worker process, for it does not pass any command line 
+  //              arguments.
   std::stringstream args_stream;
   args_stream << "\"" << name << "\"";
   
   std::stringstream handle_stream;
   
-  HANDLE hLauncherProcess = ::OpenProcess(SYNCHRONIZE, TRUE, GetCurrentProcessId());
+  // TODO(#1991): The HANDLE exposed to the child process only has SYNCHRONIZE and 
+  //              PROCESS_QUERY_LIMITED_INFORMATION privileges which is enough to cover the current use 
+  //              cases. This may not be the case in the future...
+  HANDLE hLauncherProcess = ::OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, 
+                                          TRUE, 
+                                          GetCurrentProcessId());
   if (hLauncherProcess == NULL) {
-    // Failed to obtain HANDLE for current process
-    
-    // TODO: return a special error message?
     return PlatformProcess(kInvalidPid);
   }
   
@@ -76,10 +93,8 @@ PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, cons
   
   if (!::SetEnvironmentVariableA("OSQUERY_WORKER", "1") ||
       !::SetEnvironmentVariableA("OSQUERY_LAUNCHER", handle.c_str())) {
-    // Failed to set a crucial environment variable
     ::CloseHandle(hLauncherProcess);
-    
-    // TODO: how do we differentiate error levels?
+
     return PlatformProcess(kInvalidPid);
   }
   
@@ -101,9 +116,6 @@ PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, cons
   ::CloseHandle(hLauncherProcess);
   
   if (!status) {
-    // Failed to create a new process
-    
-    // TODO: how do we differentiate error messages and provide debugging feedback?
     return PlatformProcess(kInvalidPid);
   }
   
@@ -126,6 +138,10 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
   
   si.cb = sizeof(si);
   
+  // TODO(#1991): extension name should be sanitized or checked for invalid characters such as 
+  //              double quotes. An extension name with bad characters has the potential of affecting
+  //              command line argument parsing in the extension process which may lead to a dysfunctional
+  //              extension.
   std::stringstream args_stream;
   args_stream << "\"osquery extension: " << extension << "\" ";
   args_stream << "--socket " << extensions_socket << " ";
@@ -141,9 +157,6 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
   argv.push_back('\0');
 
   if (!::SetEnvironmentVariableA("OSQUERY_EXTENSIONS", "1")) {
-    // Failed to set important environment variable
-    
-    // TODO: differentiate error message
     return PlatformProcess(kInvalidPid);
   }
   
@@ -160,9 +173,6 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
   ::SetEnvironmentVariableA("OSQUERY_EXTENSIONS", NULL);
   
   if (!status) {
-    // Failed to create process
-    
-    // TODO: differentiate error message
     return PlatformProcess(kInvalidPid);
   }
 

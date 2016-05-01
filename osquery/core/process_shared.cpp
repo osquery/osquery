@@ -19,15 +19,10 @@
 namespace osquery 
 {
 
-namespace ProcessOperations
-{
-
-void sleep(unsigned int msec)
+void processSleep(unsigned int msec)
 {
   std::chrono::milliseconds mduration(msec);
   std::this_thread::sleep_for(mduration);
-}
-
 }
 
 }

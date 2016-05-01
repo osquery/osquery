@@ -30,16 +30,19 @@ class PlatformProcess
 {
   public:
     PlatformProcess(PlatformPidType id);
+    PlatformProcess(PlatformProcess&& src);
     ~PlatformProcess();
 
     PlatformPidType nativeHandle() { return id_; }
     
-    bool kill();                 // TODO: consider making kill() return an enumeration that
-                                 //       describes the various states
+    // TODO(#1991): Consider making kill() return an enumeration for more granularity if an
+    //              error happens to occur.
+    // TODO(#1991): Also, consider adding an argument for exit code so that clients can specificy
+    //               the process exit code for the terminating process.
+    bool kill();
     
     bool isValid() { return (id_ != kInvalidPid); }
 
-    PlatformProcess& operator=(PlatformProcess& process);
     bool operator==(const PlatformProcess& process);
     bool operator!=(const PlatformProcess& process);
     
@@ -59,10 +62,12 @@ class PlatformProcess
 PlatformProcess getCurrentProcess();
 PlatformProcess getLauncherProcess();
 
-void sleep(unsigned int msec);
+void processSleep(unsigned int msec);
 
 bool isLauncherProcessDead(PlatformProcess& launcher);
 bool setEnvVar(const std::string& name, const std::string& value);
 boost::optional<std::string> getEnvVar(const std::string& name);
 
+// TODO(#1991): Missing register signal handlers function
+// TODO(#1991): Missing waitpid functionality
 }

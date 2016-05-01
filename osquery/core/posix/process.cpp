@@ -26,6 +26,10 @@ PlatformProcess::~PlatformProcess(){ }
 
 bool PlatformProcess::kill()
 {
+  if (id_ == kInvalidPid) {
+    return false;
+  }
+  
   int status = ::kill(id_, SIGKILL);
   return (status == 0);
 }
@@ -34,18 +38,14 @@ PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, cons
 {
   auto worker_pid = ::fork();
   if (worker_pid < 0) {
-    // Cannot create worker process
-    
-    // TODO: we need to differentiate this error and the error that occurs when exec fails.
-    //       This should return something akin to EXIT_FAILURE
     return PlatformProcess(kInvalidPid);
   } else if (worker_pid == 0) {
     setEnvVar("OSQUERY_WORKER", std::to_string(::getpid()).c_str());
     ::execle(exec_path.c_str(), name.c_str(), nullptr, ::environ);
     
     // Code should never reach this point
-
-    // TODO: if code does happen to reach here, we need to return a message like EXIT_CATASTROPHIC
+    //
+    // TODO(#1991): Consider calling Initializer::shutdown(EXIT_CATASTROPHIC)
     return PlatformProcess(kInvalidPid);
   }
   return PlatformProcess(worker_pid);
@@ -60,10 +60,6 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
 {
   auto ext_pid = ::fork();
   if (ext_pid < 0) {
-    // Cannot create extension process
-    
-    // TODO: What we need here is to differentiate what we return for errors. 
-    //       This should return something akin to EXIT_FAILURE
     return PlatformProcess(kInvalidPid);
   } else if (ext_pid == 0) {
     setEnvVar("OSQUERY_EXTENSIONS", std::to_string(::getpid()).c_str());
@@ -80,8 +76,8 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
              ::environ);
     
     // Code should never reach this point
-
-    // TODO: if it does reach here, we need to return a message like EXIT_FAILURE
+    //
+    // TODO(#1991): Consider calling Initializer::shutdown(EXIT_FAILURE)
     return PlatformProcess(kInvalidPid);
   }
 

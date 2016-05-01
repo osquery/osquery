@@ -31,6 +31,10 @@ PlatformProcess getLauncherProcess()
 
 bool isLauncherProcessDead(PlatformProcess& launcher)
 {
+  if (!launcher.isValid()) {
+    return false;
+  }
+  
   return (::getppid() != launcher.nativeHandle());
 }
 

@@ -2,8 +2,16 @@ if(APPLE)
   set (OS_CORE_SOURCE
     darwin/conversions.cpp
   )
+elseif(WIN32)
+  set (OS_CORE_SOURCE
+    windows/process.cpp
+    windows/process_ops.cpp  
+  )
 else()
-  set (OS_CORE_SOURCE "")
+  set (OS_CORE_SOURCE
+    posix/process.cpp
+    posix/process_ops.cpp
+  )
 endif()
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_core
@@ -15,6 +23,7 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_core
   flags.cpp
   hash.cpp
   watcher.cpp
+  process_shared.cpp
 )
 
 file(GLOB OSQUERY_CORE_TESTS "tests/*.cpp")
