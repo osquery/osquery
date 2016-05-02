@@ -97,19 +97,6 @@ TEST_F(ProcessTests, test_envVar) {
 }
 
 TEST_F(ProcessTests, test_launchExtension) {
-  // We are assuming fasdgasdglhasjldgbaousgd9uasbdf is not a valid process name...
-  {
-    osquery::PlatformProcess process = osquery::PlatformProcess::launchExtension(
-      "fasdgasdglhasjldgbaousgd9uasbdf",
-      "extension-test",
-      "socket-name",
-      "100",
-      "5",
-      "true"
-    );
-    EXPECT_FALSE(process.isValid());
-  }
-
   {
     osquery::PlatformProcess process = osquery::PlatformProcess::launchExtension(
       self_exec_path,
@@ -128,15 +115,6 @@ TEST_F(ProcessTests, test_launchExtension) {
 }
 
 TEST_F(ProcessTests, test_launchWorker) {
-  {
-    // Assuming fasdgasdglhasjldgbaousgd9uasbdf is not a valid process
-    osquery::PlatformProcess process = osquery::PlatformProcess::launchWorker(
-      "fasdgasdglhasjldgbaousgd9uasbdf",
-      "worker-test"
-    );
-    EXPECT_FALSE(process.isValid());
-  }
-
   {
     osquery::PlatformProcess process = osquery::PlatformProcess::launchWorker(
       self_exec_path,
