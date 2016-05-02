@@ -41,8 +41,19 @@ class PlatformProcess {
     
     bool isValid() { return (id_ != kInvalidPid); }
 
-    bool operator==(const PlatformProcess& process);
-    bool operator!=(const PlatformProcess& process);
+    // TODO(#1991): Before we can start substituting code blocks with our abstractions, we need to
+    //              decide on what to do for assignment operators. Integration requires some fields
+    //              in classes to be retyped as PlatformProcess. On the Windows side, we need to 
+    //              actually deal with resources such as HANDLEs. To prevent the leaking or premature
+    //              closing of HANDLEs, we need to decide upon the semantics.
+    //        
+    //              Ideally, I think the way to go about it is on assignment, copy to the new object
+    //              via duplication. This makes things decidably easier since after the operation,
+    //              both HANDLEs are usable.
+
+    // bool operator=(const PlatformProcess&& process);
+    // bool operator==(const PlatformProcess& process);
+    // bool operator!=(const PlatformProcess& process);
     
     static PlatformProcess launchWorker(const std::string& exec_path, const std::string& name);
     static PlatformProcess launchExtension(const std::string& exec_path, 
@@ -67,6 +78,12 @@ bool setEnvVar(const std::string& name, const std::string& value);
 bool unsetEnvVar(const std::string& name);
 boost::optional<std::string> getEnvVar(const std::string& name);
 
-// TODO(#1991): Missing register signal handlers function
+// TODO(#1991): Missing register signal handlers function. Consider using an abstraction layer for 
+//              conforming POSIX and Windows callback functions. We should consider using a lambda
+//              function for a more cleaner design.
+// void registerExitHandlers(<func-ptr-type>);
+
 // TODO(#1991): Missing waitpid functionality
+// bool checkChildProcessStatus(osquery::PlatformProcess& process, int& status); -- watcher.cpp:193
+// void cleanupDefunctProcesses(); -- watcher.cpp:227
 }

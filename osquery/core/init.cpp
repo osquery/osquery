@@ -34,6 +34,7 @@
 #include <osquery/registry.h>
 
 #include "osquery/core/watcher.h"
+#include "osquery/core/process.h"
 
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <sys/resource.h>
@@ -100,7 +101,10 @@ enum {
 namespace {
 extern "C" {
 static inline bool hasWorkerVariable() {
-  return (getenv("OSQUERY_WORKER") != nullptr);
+  if (auto value = ::osquery::getEnvVar("OSQUERY_WORKER")) {
+    return true;
+  }
+  return false;
 }
 
 volatile std::sig_atomic_t kHandledSignal{0};
