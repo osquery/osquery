@@ -107,7 +107,11 @@ TEST_F(ProcessTests, test_assignment) {
 
   process = current;
   EXPECT_EQ(current.nativeHandle(), old_type);
+
+#ifdef WIN32
+  // We make sure that the HANDLE values are not the same
   EXPECT_NE(current.nativeHandle(), process.nativeHandle());
+#endif
 }
 
 TEST_F(ProcessTests, test_envVar) {
