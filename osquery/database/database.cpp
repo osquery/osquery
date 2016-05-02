@@ -268,6 +268,7 @@ Status serializeQueryLogItem(const QueryLogItem& i, pt::ptree& tree) {
       return status;
     }
     tree.add_child("snapshot", results_tree);
+    tree.put<std::string>("action", "snapshot");
   }
 
   // Check if the config has added decorations.
