@@ -37,6 +37,7 @@ void ERR_remove_state(unsigned long);
 // Our third-party version of cpp-netlib uses OpenSSL APIs.
 // On OS X these symbols are marked deprecated and clang will warn against
 // us including them. We are squashing the noise for OS X's OpenSSL only.
+// clang-format off
 #if defined(DARWIN)
 _Pragma("clang diagnostic push")
 _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
@@ -45,6 +46,7 @@ _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
 #if defined(DARWIN)
 _Pragma("clang diagnostic pop")
 #endif
+// clang-format on
 
 #include <osquery/flags.h>
 
@@ -81,7 +83,7 @@ class TLSTransport : public Transport {
    * Return code (1) for general connectivity problems, return code (2) for TLS
    * specific errors.
    */
-  Status sendRequest();
+  Status sendRequest() override;
 
   /**
    * @brief Send a simple request to the destination with parameters
@@ -92,7 +94,7 @@ class TLSTransport : public Transport {
    * Return code (1) for general connectivity problems, return code (2) for TLS
    * specific errors.
    */
-  Status sendRequest(const std::string& params);
+  Status sendRequest(const std::string& params, bool compress = false) override;
 
   /**
    * @brief Class destructor

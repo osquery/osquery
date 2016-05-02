@@ -176,8 +176,8 @@ Status TLSTransport::sendRequest() {
   http::client::request r(destination_);
   decorateRequest(r);
 
+  VLOG(1) << "TLS/HTTPS GET request to URI: " << destination_;
   try {
-    VLOG(1) << "TLS/HTTPS GET request to URI: " << destination_;
     response_ = client.get(r);
     const auto& response_body = body(response_);
     if (FLAGS_verbose && FLAGS_tls_dump) {
@@ -192,7 +192,7 @@ Status TLSTransport::sendRequest() {
   return response_status_;
 }
 
-Status TLSTransport::sendRequest(const std::string& params) {
+Status TLSTransport::sendRequest(const std::string& params, bool compress) {
   if (destination_.find("https://") == std::string::npos) {
     return Status(1, "Cannot create TLS request for non-HTTPS protocol URI");
   }
@@ -200,6 +200,10 @@ Status TLSTransport::sendRequest(const std::string& params) {
   auto client = getClient();
   http::client::request r(destination_);
   decorateRequest(r);
+  if (compress) {
+    // Later, when posting/putting, the data will be optionally compressed.
+    r << boost::network::header("Content-Encoding", "gzip");
+  }
 
   // Allow request calls to override the default HTTP POST verb.
   HTTPVerb verb = HTTP_POST;
@@ -207,16 +211,17 @@ Status TLSTransport::sendRequest(const std::string& params) {
     verb = (HTTPVerb)options_.get<int>("verb", HTTP_POST);
   }
 
+  VLOG(1) << "TLS/HTTPS " << ((verb == HTTP_POST) ? "POST" : "PUT")
+          << " request to URI: " << destination_;
+  if (FLAGS_verbose && FLAGS_tls_dump) {
+    fprintf(stdout, "%s\n", params.c_str());
+  }
+
   try {
-    VLOG(1) << "TLS/HTTPS " << ((verb == HTTP_POST) ? "POST" : "PUT")
-            << " request to URI: " << destination_;
-    if (FLAGS_verbose && FLAGS_tls_dump) {
-      fprintf(stdout, "%s\n", params.c_str());
-    }
     if (verb == HTTP_POST) {
-      response_ = client.post(r, params);
+      response_ = client.post(r, (compress) ? compressString(params) : params);
     } else {
-      response_ = client.put(r, params);
+      response_ = client.put(r, (compress) ? compressString(params) : params);
     }
 
     const auto& response_body = body(response_);

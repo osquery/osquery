@@ -23,12 +23,12 @@ class RequestsTests : public testing::Test {
 
 class MockTransport : public Transport {
  public:
-  Status sendRequest() {
+  Status sendRequest() override {
     response_status_ = Status(0, "OK");
     return response_status_;
   }
 
-  Status sendRequest(const std::string& params) {
+  Status sendRequest(const std::string& params, bool compress) override {
     response_params_.put<std::string>("foo", "baz");
     response_status_ = Status(0, "OK");
     return response_status_;
@@ -80,13 +80,14 @@ TEST_F(RequestsTests, test_call_with_params) {
 
 class CopyTransport : public Transport {
  public:
-  Status sendRequest() {
+  Status sendRequest() override {
     response_status_ = Status(0, "OK");
     return response_status_;
   }
 
-  Status sendRequest(const std::string& params) {
-    response_status_ = Status(0, params);
+  Status sendRequest(const std::string& params, bool compress) override {
+    // Optionally compress.
+    response_status_ = Status(0, (compress) ? compressString(params) : params);
     return response_status_;
   }
 };
