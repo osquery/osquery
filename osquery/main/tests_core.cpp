@@ -47,7 +47,7 @@ bool compareArguments(char *result[],
     return false;
   }
 
-  for (int i = 0; i < expected_nelms; i++) {
+  for (unsigned int i = 0; i < expected_nelms; i++) {
     if (strlen(result[i]) != strlen(expected[i])) {
       return false;
     }
@@ -112,8 +112,7 @@ int extensionMain(int argc, char *argv[]) {
 int main(int argc, char* argv[]) {
   if (auto val = osquery::getEnvVar("OSQUERY_WORKER")) {
     return workerMain(argc, argv);
-  }
-  else if (val = osquery::getEnvVar("OSQUERY_EXTENSIONS")) {
+  } else if ((val = osquery::getEnvVar("OSQUERY_EXTENSIONS"))) {
     return extensionMain(argc, argv);
   }
   self_exec_path = argv[0];
