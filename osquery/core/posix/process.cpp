@@ -31,6 +31,10 @@ PlatformProcess::~PlatformProcess() { }
 
 PlatformProcess& PlatformProcess::operator=(const PlatformProcess& process) = default;
 
+int PlatformProcess::pid() const {
+  return id_;
+}
+
 bool PlatformProcess::kill() {
   if (id_ == kInvalidPid) {
     return false;

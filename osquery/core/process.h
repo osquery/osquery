@@ -32,6 +32,8 @@ class PlatformProcess {
     PlatformProcess(PlatformProcess&& src);
     ~PlatformProcess();
 
+    int pid() const;
+
     PlatformPidType nativeHandle() const { return id_; }
     
     // TODO(#1991): Consider making kill() return an enumeration for more granularity if an
@@ -87,4 +89,9 @@ boost::optional<std::string> getEnvVar(const std::string& name);
 // TODO(#1991): Missing waitpid functionality
 // bool checkChildProcessStatus(osquery::PlatformProcess& process, int& status); -- watcher.cpp:193
 // void cleanupDefunctProcesses(); -- watcher.cpp:227
+
+// TODO(#1991): Missing setpriority functionality
+// void setToBackgroundPriority();
+
+// TODO(#1991): System logging?
 }

@@ -61,6 +61,10 @@ PlatformProcess& PlatformProcess::operator=(const PlatformProcess& process) {
   return *this;
 }
 
+int PlatformProcess::pid() const {
+  return ::GetProcessId(id_);
+}
+
 bool PlatformProcess::kill() {
   if (id_ == kInvalidPid) {
     return false;
