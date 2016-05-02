@@ -81,6 +81,20 @@ TEST_F(ProcessTests, test_constructorPosix) {
 }
 #endif
 
+TEST_F(ProcessTests, test_assignment) {
+  PlatformProcess process(kInvalidPid);
+  EXPECT_FALSE(process.isValid());
+
+  PlatformProcess current = getCurrentProcess();
+  EXPECT_TRUE(current.isValid());
+
+  PlatformPidType old_type = current.nativeHandle();
+
+  process = current;
+  EXPECT_EQ(current.nativeHandle(), old_type);
+  EXPECT_NE(current.nativeHandle(), process.nativeHandle());
+}
+
 TEST_F(ProcessTests, test_envVar) {
   auto val = getEnvVar("GTEST_OSQUERY");
   EXPECT_FALSE(val);

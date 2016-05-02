@@ -17,24 +17,31 @@
 
 extern char **environ;
 
-namespace osquery {
+osquery::PlatformPidType __declspec(nothrow) duplicateHandle(osquery::PlatformPidType src) {
+  osquery::PlatformPidType handle = osquery::kInvalidPid;
 
-PlatformProcess::PlatformProcess(PlatformPidType id) { 
-  PlatformPidType handle = kInvalidPid;
-    
-  if (id != kInvalidPid) {
-    if (!::DuplicateHandle(GetCurrentProcess(), 
-                           id, 
+  if (src != osquery::kInvalidPid) {
+    if (!::DuplicateHandle(GetCurrentProcess(),
+                           src,
                            GetCurrentProcess(),
                            &handle,
                            0,
                            FALSE,
                            DUPLICATE_SAME_ACCESS)) {
-      handle = kInvalidPid;
+      handle = osquery::kInvalidPid;
     }
   }
-  
-  id_ = handle;
+  return handle;
+}
+
+namespace osquery {
+
+PlatformProcess::PlatformProcess(PlatformPidType id) { 
+  id_ = duplicateHandle(id);
+}
+
+PlatformProcess::PlatformProcess(const PlatformProcess& src) {
+  id_ = duplicateHandle(src.nativeHandle());
 }
 
 PlatformProcess::PlatformProcess(PlatformProcess&& src) {
@@ -47,6 +54,11 @@ PlatformProcess::~PlatformProcess() {
     ::CloseHandle(id_);
     id_ = kInvalidPid;
   }
+}
+
+PlatformProcess& PlatformProcess::operator=(const PlatformProcess& process) {
+  id_ = duplicateHandle(process.nativeHandle());
+  return *this;
 }
 
 bool PlatformProcess::kill() {

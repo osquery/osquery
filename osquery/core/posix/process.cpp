@@ -24,7 +24,12 @@ namespace osquery {
 PlatformProcess::PlatformProcess(PlatformPidType id)
   : id_(id) { }
 
+PlatformProcess::PlatformProcess(const PlatformProcess& src) = default;
+PlatformProcess::PlatformProcess(PlatformProcess&& src) = default;
+
 PlatformProcess::~PlatformProcess() { }
+
+PlatformProcess& PlatformProcess::operator=(const PlatformProcess& process) = default;
 
 bool PlatformProcess::kill() {
   if (id_ == kInvalidPid) {

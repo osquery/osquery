@@ -28,10 +28,11 @@ const PlatformPidType kInvalidPid = (PlatformPidType) -1;
 class PlatformProcess {
   public:
     PlatformProcess(PlatformPidType id);
+    PlatformProcess(const PlatformProcess& src);
     PlatformProcess(PlatformProcess&& src);
     ~PlatformProcess();
 
-    PlatformPidType nativeHandle() { return id_; }
+    PlatformPidType nativeHandle() const { return id_; }
     
     // TODO(#1991): Consider making kill() return an enumeration for more granularity if an
     //              error happens to occur.
@@ -39,7 +40,7 @@ class PlatformProcess {
     //               the process exit code for the terminating process.
     bool kill();
     
-    bool isValid() { return (id_ != kInvalidPid); }
+    bool isValid() const { return (id_ != kInvalidPid); }
 
     // TODO(#1991): Before we can start substituting code blocks with our abstractions, we need to
     //              decide on what to do for assignment operators. Integration requires some fields
@@ -51,7 +52,7 @@ class PlatformProcess {
     //              via duplication. This makes things decidably easier since after the operation,
     //              both HANDLEs are usable.
 
-    // bool operator=(const PlatformProcess&& process);
+    PlatformProcess& operator=(const PlatformProcess& process);
     // bool operator==(const PlatformProcess& process);
     // bool operator!=(const PlatformProcess& process);
     

@@ -1,8 +1,4 @@
-if(APPLE)
-  set (OS_CORE_SOURCE
-    darwin/conversions.cpp
-  )
-elseif(WIN32)
+if(WIN32)
   set (OS_CORE_SOURCE
     windows/process.cpp
     windows/process_ops.cpp  
@@ -11,6 +7,13 @@ else()
   set (OS_CORE_SOURCE
     posix/process.cpp
     posix/process_ops.cpp
+  )
+endif()
+
+if(APPLE)
+  set (OS_CORE_SOURCE
+    ${OS_CORE_SOURCE}
+    darwin/conversions.cpp
   )
 endif()
 
