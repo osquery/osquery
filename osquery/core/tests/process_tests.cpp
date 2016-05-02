@@ -66,11 +66,11 @@ TEST_F(ProcessTests, test_constructor) {
 TEST_F(ProcessTests, test_constructorWin) {
   HANDLE handle = ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, ::GetCurrentProcessId());
   EXPECT_NE(handle, reinterpret_cast<HANDLE>(NULL));
-  
+
   auto p = PlatformProcess(handle);
   EXPECT_TRUE(p.isValid());
   EXPECT_NE(p.nativeHandle(), handle);
-  
+
   ::CloseHandle(handle);
 }
 #else
@@ -80,6 +80,21 @@ TEST_F(ProcessTests, test_constructorPosix) {
   EXPECT_EQ(p.nativeHandle(), getpid());
 }
 #endif
+
+TEST_F(ProcessTests, test_getpid) {
+  int pid = -1;
+
+  PlatformProcess process = getCurrentProcess();
+  EXPECT_TRUE(process.isValid());
+
+#ifdef WIN32
+    pid = (int) ::GetCurrentProcessId();
+#else
+    pid = getpid();
+#endif
+
+  EXPECT_EQ(process.pid(), pid);
+}
 
 TEST_F(ProcessTests, test_assignment) {
   PlatformProcess process(kInvalidPid);
