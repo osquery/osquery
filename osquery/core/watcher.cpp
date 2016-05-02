@@ -24,6 +24,7 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/watcher.h"
+#include "osquery/core/process.h"
 
 extern char** environ;
 
@@ -185,6 +186,7 @@ bool WatcherRunner::watch(pid_t child) {
 
   // XXX TODO: Stubbed out for now
 #ifndef WIN32
+  // TODO(#1991): We need to abstract the following
   pid_t result = waitpid(child, &status, WNOHANG);
   if (Watcher::fatesBound()) {
     // A signal was handled while the watcher was watching.
@@ -215,6 +217,7 @@ bool WatcherRunner::watch(pid_t child) {
 void WatcherRunner::stopChild(pid_t child) {
   // XXX TODO: Ignored for now
 #ifndef WIN32
+  // TODO(#1991): We need to abstract the following
   kill(child, SIGKILL);
 
   // Clean up the defunct (zombie) process.

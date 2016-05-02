@@ -249,7 +249,7 @@ if(NOT DEFINED ENV{SKIP_TESTS})
   set_target_properties(libosquery_testing PROPERTIES OUTPUT_NAME osquery_testing)
 
   # osquery core set of unit tests build with SDK.
-  add_executable(osquery_tests main/tests.cpp ${OSQUERY_TESTS})
+  add_executable(osquery_tests main/tests_core.cpp ${OSQUERY_TESTS})
   TARGET_OSQUERY_LINK_WHOLE(osquery_tests libosquery)
   target_link_libraries(osquery_tests gtest libosquery_testing)
   SET_OSQUERY_COMPILE(osquery_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=0")

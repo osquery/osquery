@@ -299,6 +299,9 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   }
 
 #ifndef WIN32
+  // TODO(#1991): Think about making this into registerHandlers() within
+  //              our process abstraction
+  //
   // All tools handle the same set of signals.
   // If a daemon process is a watchdog the signal is passed to the worker,
   // unless the worker has not yet started.

@@ -13,6 +13,8 @@
 #include <signal.h>
 #include <sys/types.h>
 
+#include <osquery/logger.h>
+
 #include "osquery/core/process.h"
 
 extern char **environ;
@@ -42,8 +44,8 @@ PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, cons
     ::execle(exec_path.c_str(), name.c_str(), nullptr, ::environ);
     
     // Code should never reach this point
-    //
-    // TODO(#1991): Consider calling Initializer::shutdown(EXIT_CATASTROPHIC)
+    LOG(ERROR) << "osqueryd could not start worker process";
+    Initializer::shutdown(EXIT_CATASTROPHIC);
     return PlatformProcess(kInvalidPid);
   }
   return PlatformProcess(worker_pid);
@@ -73,8 +75,8 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
              ::environ);
     
     // Code should never reach this point
-    //
-    // TODO(#1991): Consider calling Initializer::shutdown(EXIT_FAILURE)
+    VLOG(1) << "Could not start extension process: " << extension;
+    Initializer::shutdown(EXIT_FAILURE);
     return PlatformProcess(kInvalidPid);
   }
 
