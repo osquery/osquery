@@ -12,7 +12,7 @@
 
 #include "osquery/core/test_util.h"
 
-int main(int argc, const char* argv[]) {
+int main(int argc, char *argv[]) {
   osquery::initTesting();
   ::benchmark::Initialize(&argc, argv);
   ::benchmark::RunSpecifiedBenchmarks();
