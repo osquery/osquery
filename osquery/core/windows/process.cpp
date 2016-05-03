@@ -45,7 +45,8 @@ PlatformProcess::PlatformProcess(const PlatformProcess& src) {
 }
 
 PlatformProcess::PlatformProcess(PlatformProcess&& src) {
-  id_ = duplicateHandle(src.nativeHandle());
+  id_ = kInvalidPid;
+  std::swap(id_, src.id_);
 }  
 
 PlatformProcess::~PlatformProcess() { 
