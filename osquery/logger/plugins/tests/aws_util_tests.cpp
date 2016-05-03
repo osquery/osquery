@@ -35,6 +35,10 @@ TEST_F(AwsUtilTests, test_get_credentials) {
   std::string profile_path = kTestDataPath + "/aws/credentials";
   setenv(kAwsProfileFileEnvVar, profile_path.c_str(), true);
 
+  // Clear any values for the other AWS env vars
+  unsetenv(kAwsAccessKeyEnvVar);
+  unsetenv(kAwsSecretKeyEnvVar);
+
   OsqueryAWSCredentialsProviderChain provider;
   Aws::Auth::AWSCredentials credentials("", "");
 
