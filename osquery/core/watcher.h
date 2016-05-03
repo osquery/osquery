@@ -290,7 +290,7 @@ class WatcherWatcherRunner : public InternalRunnable {
 
  private:
   /// Parent, or watchdog, process ID.
-  PlatformProcess watcher_{kInvalidProcessId};
+  PlatformProcess watcher_{kInvalidPid};
 };
 
 /// Get a performance limit by name and optional level.
