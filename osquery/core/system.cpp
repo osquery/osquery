@@ -14,10 +14,17 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <grp.h>
 #include <signal.h>
 
-#if !defined(__FreeBSD__)
+#ifndef WIN32
+#include <grp.h>
+#endif
+
+#ifdef WIN32
+#include <winsock2.h>
+#endif
+
+#if !defined(__FreeBSD__) && !defined(WIN32)
 #include <uuid/uuid.h>
 #endif
 
@@ -38,6 +45,8 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
+// XXX: pidfile and force do not really apply to the Windows build
+#ifndef WIN32
 /// The path to the pidfile for osqueryd
 CLI_FLAG(string,
          pidfile,
@@ -49,6 +58,7 @@ CLI_FLAG(bool,
          force,
          false,
          "Force osqueryd to kill previously-running daemons");
+#endif
 
 FLAG(string,
      host_identifier,
@@ -58,7 +68,12 @@ FLAG(string,
 FLAG(bool, utc, false, "Convert all UNIX times to UTC");
 
 std::string getHostname() {
+  // TODO: This is temporary for now! Massive technical debt...
+#ifdef WIN32
+  static long max_hostname = 15; // Windows limit
+#else
   static long max_hostname = sysconf(_SC_HOST_NAME_MAX);
+#endif
   long size = (max_hostname > 255) ? max_hostname + 1 : 256;
   char* hostname = (char*)malloc(size);
   std::string hostname_string;
@@ -150,6 +165,8 @@ size_t getUnixTime() {
 }
 
 Status checkStalePid(const std::string& content) {
+  // XXX TODO: Stubbed out for now
+#ifndef WIN32
   int pid;
   try {
     pid = boost::lexical_cast<int>(content);
@@ -189,11 +206,16 @@ Status checkStalePid(const std::string& content) {
                 << ") removing pidfile";
     }
   }
+#endif
 
   return Status(0, "OK");
 }
 
 Status createPidFile() {
+  // XXX TODO: Stubbed out for now
+#ifdef WIN32
+    return Status(0, "OK");
+#else
   // check if pidfile exists
   auto exists = pathExists(FLAGS_pidfile);
   if (exists.ok()) {
@@ -223,7 +245,10 @@ Status createPidFile() {
   LOG(INFO) << "Writing osqueryd pid (" << pid << ") to " << FLAGS_pidfile;
   auto status = writeTextFile(FLAGS_pidfile, pid, 0644);
   return status;
+#endif
 }
+
+#ifndef WIN32
 
 #if defined(__linux__)
 #include <sys/fsuid.h>
@@ -339,4 +364,7 @@ DropPrivileges::~DropPrivileges() {
     restoreGroups();
   }
 }
+
+#endif
+
 }

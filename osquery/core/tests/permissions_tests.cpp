@@ -8,7 +8,9 @@
  *
  */
 
+#ifndef WIN32
 #include <pwd.h>
+#endif
 
 #include <gtest/gtest.h>
 
@@ -25,6 +27,7 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
+#ifndef WIN32
 class PermissionsTests : public testing::Test {
  public:
   PermissionsTests() : perm_path_(kTestWorkingDirectory + "lowperms/") {}
@@ -113,4 +116,6 @@ TEST_F(PermissionsTests, test_nobody_drop) {
   EXPECT_EQ(geteuid(), getuid());
   EXPECT_EQ(getegid(), getgid());
 }
+#endif
+
 }

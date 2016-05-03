@@ -154,6 +154,7 @@ QueryData genOsqueryRegistry(QueryContext& context) {
 QueryData genOsqueryExtensions(QueryContext& context) {
   QueryData results;
 
+#ifndef WIN32
   ExtensionList extensions;
   if (getExtensions(extensions).ok()) {
     for (const auto& extension : extensions) {
@@ -179,12 +180,15 @@ QueryData genOsqueryExtensions(QueryContext& context) {
     r["type"] = "module";
     results.push_back(r);
   }
+#endif
 
   return results;
 }
 
 QueryData genOsqueryInfo(QueryContext& context) {
   QueryData results;
+
+#ifndef WIN32
   Row r;
   r["pid"] = INTEGER(getpid());
   r["version"] = kVersion;
@@ -200,6 +204,8 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["start_time"] = INTEGER(Config::getInstance().getStartTime());
 
   results.push_back(r);
+#endif
+
   return results;
 }
 

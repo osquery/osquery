@@ -13,12 +13,16 @@
 #include <atomic>
 #include <string>
 
+#ifndef WIN32
 #include <unistd.h>
+#endif
 
 #include <boost/noncopyable.hpp>
 
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
+
+#include "osquery/core/process.h"
 
 /// Define a special debug/testing watchdog level.
 #define WATCHDOG_LEVEL_DEBUG 3
@@ -35,8 +39,8 @@ class WatcherRunner;
 /**
  * @brief Categories of process performance limitations.
  *
- * Performance limits are applied by a watcher thread on autoloaded extensions
  * and a optional daemon worker process. The performance types are identified
+ * Performance limits are applied by a watcher thread on autoloaded extensions
  * here, and organized into levels. Such that a caller may enforce rigor or
  * relax the performance expectations of a osquery daemon.
  */
@@ -279,14 +283,14 @@ class WatcherRunner : public InternalRunnable {
 /// The WatcherWatcher is spawned within the worker and watches the watcher.
 class WatcherWatcherRunner : public InternalRunnable {
  public:
-  explicit WatcherWatcherRunner(pid_t watcher) : watcher_(watcher) {}
+  explicit WatcherWatcherRunner(const PlatformProcess& watcher) : watcher_(watcher) {}
 
   /// Runnable thread's entry point.
   void start();
 
  private:
   /// Parent, or watchdog, process ID.
-  pid_t watcher_{-1};
+  PlatformProcess watcher_{kInvalidPid};
 };
 
 /// Get a performance limit by name and optional level.

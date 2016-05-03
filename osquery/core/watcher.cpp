@@ -12,7 +12,10 @@
 
 #include <math.h>
 #include <signal.h>
+
+#ifndef WIN32
 #include <sys/wait.h>
+#endif
 
 #include <boost/filesystem.hpp>
 
@@ -21,6 +24,7 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/watcher.h"
+#include "osquery/core/process.h"
 
 extern char** environ;
 
@@ -132,7 +136,10 @@ bool Watcher::hasManagedExtensions() {
   // Setting this counter to 0 will prevent the worker from waiting for missing
   // dependent config plugins. Otherwise, its existence, will cause a worker to
   // wait for missing plugins to broadcast from managed extensions.
-  return (getenv("OSQUERY_EXTENSIONS") != nullptr);
+  if (auto value = getEnvVar("OSQUERY_EXTENSIONS")) {
+    return true;
+  }
+  return false;
 }
 
 bool WatcherRunner::ok() {
@@ -179,6 +186,10 @@ void WatcherRunner::start() {
 
 bool WatcherRunner::watch(pid_t child) {
   int status = 0;
+
+  // XXX TODO: Stubbed out for now
+#ifndef WIN32
+  // TODO(#1991): We need to abstract the following
   pid_t result = waitpid(child, &status, WNOHANG);
   if (Watcher::fatesBound()) {
     // A signal was handled while the watcher was watching.
@@ -201,17 +212,25 @@ bool WatcherRunner::watch(pid_t child) {
     // If the worker process existed, store the exit code.
     Watcher::instance().worker_status_ = WEXITSTATUS(status);
   }
+#endif
+
   return true;
 }
 
 void WatcherRunner::stopChild(pid_t child) {
+  // XXX TODO: Ignored for now
+#ifndef WIN32
+  // TODO(#1991): We need to abstract the following
   kill(child, SIGKILL);
 
   // Clean up the defunct (zombie) process.
   waitpid(-1, 0, WNOHANG);
+#endif
 }
 
 bool WatcherRunner::isChildSane(pid_t child) {
+  // XXX TODO: Stubbed out...
+#ifndef WIN32
   auto rows = SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(child));
   if (rows.size() == 0) {
     // Could not find worker process?
@@ -295,10 +314,14 @@ bool WatcherRunner::isChildSane(pid_t child) {
   if (use_worker_) {
     relayStatusLogs();
   }
+#endif
+
   return true;
 }
 
 void WatcherRunner::createWorker() {
+  // XXX TODO: Stubbed out
+#ifndef WIN32
   {
     WatcherLocker locker;
     if (Watcher::getState(Watcher::getWorker()).last_respawn_time >
@@ -359,6 +382,7 @@ void WatcherRunner::createWorker() {
   Watcher::resetWorkerCounters(getUnixTime());
   VLOG(1) << "osqueryd watcher (" << getpid() << ") executing worker ("
           << worker_pid << ")";
+#endif
 }
 
 bool WatcherRunner::createExtension(const std::string& extension) {
@@ -382,6 +406,8 @@ bool WatcherRunner::createExtension(const std::string& extension) {
     return false;
   }
 
+  // XXX TODO: Stubbed out
+#ifndef WIN32
   auto ext_pid = fork();
   if (ext_pid < 0) {
     // Unrecoverable error, cannot create an extension process.
@@ -411,21 +437,26 @@ bool WatcherRunner::createExtension(const std::string& extension) {
   Watcher::resetExtensionCounters(extension, getUnixTime());
   VLOG(1) << "Created and monitoring extension child (" << ext_pid
           << "): " << extension;
+#endif
+
   return true;
 }
 
 void WatcherWatcherRunner::start() {
+  // XXX TODO: Stubbed out
+#ifndef WIN32
   while (!interrupted()) {
-    if (getppid() != watcher_) {
+    if (isLauncherProcessDead(watcher_)) {
       // Watcher died, the worker must follow.
-      VLOG(1) << "osqueryd worker (" << getpid()
-              << ") detected killed watcher (" << watcher_ << ")";
+      VLOG(1) << "osqueryd worker (" << getCurrentProcess().pid()
+              << ") detected killed watcher (" << watcher_.pid() << ")";
       // The watcher watcher is a thread. Do not join services after removing.
       Initializer::requestShutdown();
       break;
     }
     pauseMilli(getWorkerLimit(INTERVAL) * 1000);
   }
+#endif
 }
 
 size_t getWorkerLimit(WatchdogLimitType name, int level) {

@@ -48,7 +48,11 @@ typedef SHARED_PTR_IMPL<TServerTransport> TServerTransportRef;
 typedef SHARED_PTR_IMPL<TTransportFactory> TTransportFactoryRef;
 typedef SHARED_PTR_IMPL<TProtocolFactory> TProtocolFactoryRef;
 typedef SHARED_PTR_IMPL<ThreadManager> TThreadManagerRef;
+
+#ifndef WIN32
 typedef SHARED_PTR_IMPL<PosixThreadFactory> PosixThreadFactoryRef;
+#endif
+
 using TThreadedServerRef = std::shared_ptr<TThreadedServer>;
 
 namespace extensions {

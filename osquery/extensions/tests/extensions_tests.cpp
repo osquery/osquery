@@ -50,7 +50,11 @@ class ExtensionsTest : public testing::Test {
         client.get()->ping(status);
         return (status.code == ExtensionCode::EXT_SUCCESS);
       } catch (const std::exception& e) {
+#ifdef WIN32
+        Sleep(kDelayUS);
+#else
         ::usleep(kDelayUS);
+#endif
       }
     }
 
@@ -65,7 +69,11 @@ class ExtensionsTest : public testing::Test {
         EXManagerClient client(socket_path);
         client.get()->query(response, sql);
       } catch (const std::exception& e) {
+#ifdef WIN32
+        Sleep(kDelayUS);
+#else
         ::usleep(kDelayUS);
+#endif
       }
     }
 
@@ -95,7 +103,11 @@ class ExtensionsTest : public testing::Test {
       if (pathExists(socket_path).ok() && isReadable(socket_path).ok()) {
         return true;
       }
+#ifdef WIN32
+      Sleep(kDelayUS);
+#else
       ::usleep(kDelayUS);
+#endif
       delay += kDelayUS;
     }
     return false;

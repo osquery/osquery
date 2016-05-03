@@ -20,6 +20,14 @@
 
 #include <osquery/status.h>
 
+#ifdef WIN32
+#define WINVER  0x0a00
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+using pid_t = DWORD; 
+#endif
+
 // clang-format off
 #ifndef STR
 #define STR_OF(x) #x
@@ -34,12 +42,24 @@
 #endif
 // clang-format on
 
+#ifndef WIN32
+
 #ifndef __constructor__
 #define __registry_constructor__ __attribute__((constructor(101)))
 #define __plugin_constructor__ __attribute__((constructor(102)))
+#define __default_constructor__ __attribute__((constructor))
 #else
 #define __registry_constructor__ __attribute__((__constructor__(101)))
 #define __plugin_constructor__ __attribute__((__constructor__(102)))
+#define __default_constructor__ __attribute__((__constructor__))
+#endif
+
+#else 
+
+#define __registry_constructor__
+#define __plugin_constructor__
+#define __default_constructor__
+
 #endif
 
 /// A configuration error is catastrophic and should exit the watcher.
@@ -246,6 +266,8 @@ std::string getAsciiTime();
  */
 Status createPidFile();
 
+#ifndef WIN32
+
 class DropPrivileges;
 typedef std::shared_ptr<DropPrivileges> DropPrivilegesRef;
 
@@ -321,4 +343,6 @@ class DropPrivileges : private boost::noncopyable {
   FRIEND_TEST(PermissionsTests, test_path_drop);
   FRIEND_TEST(PermissionsTests, test_nobody_drop);
 };
+#endif
+
 }

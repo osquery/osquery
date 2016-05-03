@@ -55,14 +55,14 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
  * use the REGISTER_MODULE call within `initModule`.
  */
 #define REGISTER_EXTERNAL(type, registry, name)                            \
-  __attribute__((constructor)) static void type##ExtensionRegistryItem() { \
+  __default_constructor__ static void type##ExtensionRegistryItem() { \
     Registry::add<type>(registry, name);                                   \
   }
 
 /// Helper macro to write the `initModule` symbol without rewrites.
 #define DECLARE_MODULE(name)        \
   extern "C" void initModule(void); \
-  __attribute__((constructor)) static void declareModule()
+  __default_constructor__ static void declareModule()
 
 /**
  * @brief Create an osquery extension 'module'.

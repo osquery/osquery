@@ -88,6 +88,7 @@ TEST_F(FilesystemTests, test_read_limit) {
   EXPECT_FALSE(status.ok());
   FLAGS_read_max = max;
 
+#ifndef WIN32
   if (getuid() != 0) {
     content.erase();
     FLAGS_read_user_max = 2;
@@ -104,6 +105,7 @@ TEST_F(FilesystemTests, test_read_limit) {
     status = readFile(kFakeDirectory + "/root2.txt", content);
     EXPECT_TRUE(status.ok());
   }
+#endif
 }
 
 TEST_F(FilesystemTests, test_list_files_missing_directory) {

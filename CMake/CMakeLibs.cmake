@@ -165,7 +165,7 @@ macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
     add_dependencies(${TARGET} osquery_extensions)
     # TODO(#1985): For Windows, ignore the -static compiler flag
     if(WIN32)
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS}")
+      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} /EHsc /MD")
     else()
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} -static")
     endif()
@@ -196,7 +196,7 @@ macro(ADD_OSQUERY_OBJCXX_LIBRARY IS_CORE TARGET)
     add_dependencies(${TARGET} osquery_extensions)
     # TODO(#1985): For Windows, ignore the -static compiler flag
     if(WIN32)
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS}")
+      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS} /EHsc /MD")
     else()
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS} -static")
     endif()
@@ -219,7 +219,7 @@ endmacro(ADD_OSQUERY_EXTENSION)
 
 macro(ADD_OSQUERY_MODULE TARGET)
   add_library(${TARGET} SHARED ${ARGN})
-  if(NOT FREEBSD)
+  if(NOT FREEBSD AND NOT WIN32)
     target_link_libraries(${TARGET} dl)
   endif()
   add_dependencies(${TARGET} libosquery)
@@ -242,8 +242,9 @@ macro(GET_GENERATION_DEPS BASE_PATH)
   # Depend on the generation code.
   set(GENERATION_DEPENDENCIES "")
   file(GLOB TABLE_FILES_TEMPLATES "${BASE_PATH}/osquery/tables/templates/*.in")
+  file(GLOB CODEGEN_PYTHON_FILES "${BASE_PATH}/tools/codegen/*.py")
   set(GENERATION_DEPENDENCIES
-    "${BASE_PATH}/tools/codegen/*.py"
+    "${CODEGEN_PYTHON_FILES}"
     "${BASE_PATH}/specs/blacklist"
   )
   list(APPEND GENERATION_DEPENDENCIES ${TABLE_FILES_TEMPLATES})

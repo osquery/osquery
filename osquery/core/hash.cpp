@@ -66,7 +66,11 @@ void Hash::update(const void* buffer, size_t size) {
 }
 
 std::string Hash::digest() {
+#ifdef WIN32
+  unsigned char *hash = (unsigned char *)_alloca(length_);
+#else
   unsigned char hash[length_];
+#endif
 
   memset(hash, 0, length_);
   if (algorithm_ == HASH_TYPE_MD5) {
