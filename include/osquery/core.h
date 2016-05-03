@@ -226,18 +226,18 @@ std::string generateHostUUID();
 std::string getHostIdentifier();
 
 /**
- * @brief Getter for the current time, in a human-readable format.
- *
- * @return the current date/time in the format: "Wed Sep 21 10:27:52 2011"
- */
-std::string getAsciiTime();
-
-/**
  * @brief Getter for the current UNIX time.
  *
  * @return an int representing the amount of seconds since the UNIX epoch
  */
 size_t getUnixTime();
+
+/**
+ * @brief Getter for the current time, in a human-readable format.
+ *
+ * @return the current date/time in the format: "Wed Sep 21 10:27:52 2011"
+ */
+std::string getAsciiTime();
 
 /**
  * @brief Create a pid file
