@@ -55,6 +55,8 @@ FLAG(string,
      "hostname",
      "Field used to identify the host running osquery (hostname, uuid)");
 
+FLAG(bool, utc, false, "Convert all UNIX times to UTC");
+
 std::string getHostname() {
   static long max_hostname = sysconf(_SC_HOST_NAME_MAX);
   long size = (max_hostname > 255) ? max_hostname + 1 : 256;
@@ -141,6 +143,9 @@ std::string getAsciiTime() {
 
 size_t getUnixTime() {
   auto result = std::time(nullptr);
+  if (FLAGS_utc) {
+    result = std::mktime(std::gmtime(&result));
+  }
   return result;
 }
 

@@ -71,6 +71,10 @@ Disable userland watchdog process. **osqueryd** uses a watchdog process to monit
 Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug). The default watchdog process uses a "level" to configure performance limits.
 The higher the level the more strict the limits become. The "debug" level disables the performance limits completely.
 
+`--utc=false`
+
+Attempt to convert all UNIX calendar times to UTC. In version 1.8.0 this will be `true` by default.
+
 ### Backing storage control flags
 
 `--database_in_memory=false`
