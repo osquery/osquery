@@ -60,6 +60,14 @@ PlatformProcess& PlatformProcess::operator=(const PlatformProcess& process) {
   return *this;
 }
 
+bool PlatformProcess::operator==(const PlatformProcess& process) {
+  return (::GetProcessId(nativeHandle()) == ::GetProcessId(process.nativeHandle()));
+}
+
+bool PlatformProcess::operator!=(const PlatformProcess& process) {
+  return (::GetProcessId(nativeHandle()) != ::GetProcessId(process.nativeHandle()));
+}
+
 int PlatformProcess::pid() const {
   return ::GetProcessId(id_);
 }

@@ -55,8 +55,8 @@ class PlatformProcess {
     //              both HANDLEs are usable.
 
     PlatformProcess& operator=(const PlatformProcess& process);
-    // bool operator==(const PlatformProcess& process);
-    // bool operator!=(const PlatformProcess& process);
+    bool operator==(const PlatformProcess& process);
+    bool operator!=(const PlatformProcess& process);
     
     static PlatformProcess launchWorker(const std::string& exec_path, const std::string& name);
     static PlatformProcess launchExtension(const std::string& exec_path, 

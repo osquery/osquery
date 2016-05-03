@@ -71,7 +71,10 @@ TEST_F(ProcessTests, test_constructorWin) {
   EXPECT_TRUE(p.isValid());
   EXPECT_NE(p.nativeHandle(), handle);
 
-  ::CloseHandle(handle);
+
+  if (handle) {
+    ::CloseHandle(handle);
+  }
 }
 #else
 TEST_F(ProcessTests, test_constructorPosix) {
@@ -112,6 +115,9 @@ TEST_F(ProcessTests, test_assignment) {
   // We make sure that the HANDLE values are not the same
   EXPECT_NE(current.nativeHandle(), process.nativeHandle());
 #endif
+
+  EXPECT_TRUE(current == process);
+  EXPECT_FALSE(current != process);
 }
 
 TEST_F(ProcessTests, test_envVar) {
