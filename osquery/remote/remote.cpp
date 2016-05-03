@@ -18,7 +18,7 @@ namespace osquery {
 #define MOD_GZIP_ZLIB_WINDOWSIZE 15
 #define MOD_GZIP_ZLIB_CFACTOR 9
 
-void compress(std::string& data) {
+std::string compressString(const std::string& data) {
   z_stream zs;
   memset(&zs, 0, sizeof(zs));
 
@@ -28,7 +28,7 @@ void compress(std::string& data) {
                    MOD_GZIP_ZLIB_WINDOWSIZE + 16,
                    MOD_GZIP_ZLIB_CFACTOR,
                    Z_DEFAULT_STRATEGY) != Z_OK) {
-    return;
+    return std::string();
   }
 
   zs.next_in = (Bytef*)data.data();
@@ -52,9 +52,9 @@ void compress(std::string& data) {
 
   deflateEnd(&zs);
   if (ret != Z_STREAM_END) {
-    return;
+    return std::string();
   }
 
-  data = std::move(output);
+  return output;
 }
 }

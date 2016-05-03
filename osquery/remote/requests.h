@@ -32,7 +32,7 @@ class Serializer;
  *
  * @param data The input/output mutable container.
  */
-void compress(std::string& data);
+std::string compressString(const std::string& data);
 
 /**
  * @brief Abstract base class for remote transport implementations
@@ -75,10 +75,12 @@ class Transport {
    * @brief Send a simple request to the destination with parameters
    *
    * @param params A string representing the serialized parameters
+   * @param compress True of the request was requested to be compressed
    *
    * @return success or failure of the operation
    */
-  virtual Status sendRequest(const std::string& params) = 0;
+  virtual Status sendRequest(const std::string& params,
+                             bool compress = false) = 0;
 
   /**
    * @brief Get the status of the response
@@ -231,10 +233,7 @@ class Request {
       return s;
     }
 
-    if (options_.get("compress", false)) {
-      compress(serialized);
-    }
-    return transport_->sendRequest(serialized);
+    return transport_->sendRequest(serialized, options_.get("compress", false));
   }
 
   /**
