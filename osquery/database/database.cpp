@@ -254,16 +254,49 @@ DiffResults diff(const QueryData& old, const QueryData& current) {
 // scheduled query yields operating system state change.
 /////////////////////////////////////////////////////////////////////////////
 
-Status serializeQueryLogItem(const QueryLogItem& i, pt::ptree& tree) {
+inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
+                                          pt::ptree& tree) {
+  // Apply legacy fields.
+  tree.put<std::string>("name", item.name);
+  tree.put<std::string>("hostIdentifier", item.identifier);
+  tree.put<std::string>("calendarTime", item.calendar_time);
+  tree.put<int>("unixTime", item.time);
+
+  // Append the decorations.
+  if (item.decorations.size() > 0) {
+    tree.add_child("decorations", pt::ptree());
+    auto& decorations = tree.get_child("decorations");
+    for (const auto& name : item.decorations) {
+      decorations.put<std::string>(name.first, name.second);
+    }
+  }
+}
+
+inline void getLegacyFieldsAndDecorations(const pt::ptree& tree,
+                                          QueryLogItem& item) {
+  if (tree.count("decorations") > 0) {
+    auto& decorations = tree.get_child("decorations");
+    for (const auto& name : decorations) {
+      item.decorations[name.first] = name.second.data();
+    }
+  }
+
+  item.name = tree.get<std::string>("name", "");
+  item.identifier = tree.get<std::string>("hostIdentifier", "");
+  item.calendar_time = tree.get<std::string>("calendarTime", "");
+  item.time = tree.get<int>("unixTime", 0);
+}
+
+Status serializeQueryLogItem(const QueryLogItem& item, pt::ptree& tree) {
   pt::ptree results_tree;
-  if (i.results.added.size() > 0 || i.results.removed.size() > 0) {
-    auto status = serializeDiffResults(i.results, results_tree);
+  if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
+    auto status = serializeDiffResults(item.results, results_tree);
     if (!status.ok()) {
       return status;
     }
     tree.add_child("diffResults", results_tree);
   } else {
-    auto status = serializeQueryData(i.snapshot_results, results_tree);
+    auto status = serializeQueryData(item.snapshot_results, results_tree);
     if (!status.ok()) {
       return status;
     }
@@ -271,19 +304,7 @@ Status serializeQueryLogItem(const QueryLogItem& i, pt::ptree& tree) {
     tree.put<std::string>("action", "snapshot");
   }
 
-  // Check if the config has added decorations.
-  if (i.decorations.size() > 0) {
-    tree.add_child("decorations", pt::ptree());
-    auto& decorations = tree.get_child("decorations");
-    for (const auto& name : i.decorations) {
-      decorations.put<std::string>(name.first, name.second);
-    }
-  }
-
-  tree.put<std::string>("name", i.name);
-  tree.put<std::string>("hostIdentifier", i.identifier);
-  tree.put<std::string>("calendarTime", i.calendar_time);
-  tree.put<int>("unixTime", i.time);
+  addLegacyFieldsAndDecorations(item, tree);
   return Status(0, "OK");
 }
 
@@ -320,17 +341,7 @@ Status deserializeQueryLogItem(const pt::ptree& tree, QueryLogItem& item) {
     }
   }
 
-  if (tree.count("decorations") > 0) {
-    auto& decorations = tree.get_child("decorations");
-    for (const auto& i : decorations) {
-      item.decorations[i.first] = i.second.data();
-    }
-  }
-
-  item.name = tree.get<std::string>("name", "");
-  item.identifier = tree.get<std::string>("hostIdentifier", "");
-  item.calendar_time = tree.get<std::string>("calendarTime", "");
-  item.time = tree.get<int>("unixTime", 0);
+  getLegacyFieldsAndDecorations(tree, item);
   return Status(0, "OK");
 }
 
@@ -350,11 +361,7 @@ Status deserializeQueryLogItemJSON(const std::string& json,
 Status serializeEvent(const QueryLogItem& item,
                       const pt::ptree& event,
                       pt::ptree& tree) {
-  tree.put<std::string>("name", item.name);
-  tree.put<std::string>("hostIdentifier", item.identifier);
-  tree.put<std::string>("calendarTime", item.calendar_time);
-  tree.put<int>("unixTime", item.time);
-
+  addLegacyFieldsAndDecorations(item, tree);
   pt::ptree columns;
   for (auto& i : event) {
     // Yield results as a "columns." map to avoid namespace collisions.
@@ -367,6 +374,10 @@ Status serializeEvent(const QueryLogItem& item,
 
 Status serializeQueryLogItemAsEvents(const QueryLogItem& i, pt::ptree& tree) {
   pt::ptree diff_results;
+  // Note, snapshot query results will bypass the "AsEvents" call, even when
+  // log_result_events is set. This is because the schedule will call an
+  // explicit ::logSnapshotQuery, which does not check for the result_events
+  // configuration.
   auto status = serializeDiffResults(i.results, diff_results);
   if (!status.ok()) {
     return status;
