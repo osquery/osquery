@@ -446,10 +446,10 @@ void WatcherWatcherRunner::start() {
   // XXX TODO: Stubbed out
 #ifndef WIN32
   while (!interrupted()) {
-    if (getppid() != watcher_) {
+    if (isLauncherProcessDead(watcher_)) {
       // Watcher died, the worker must follow.
-      VLOG(1) << "osqueryd worker (" << getpid()
-              << ") detected killed watcher (" << watcher_ << ")";
+      VLOG(1) << "osqueryd worker (" << getCurrentProcess().pid()
+              << ") detected killed watcher (" << watcher_.pid() << ")";
       // The watcher watcher is a thread. Do not join services after removing.
       Initializer::requestShutdown();
       break;

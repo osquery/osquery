@@ -22,6 +22,8 @@
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 
+#include "osquery/core/process.h"
+
 /// Define a special debug/testing watchdog level.
 #define WATCHDOG_LEVEL_DEBUG 3
 /// Define the default watchdog level, level below are considered permissive.
@@ -281,14 +283,14 @@ class WatcherRunner : public InternalRunnable {
 /// The WatcherWatcher is spawned within the worker and watches the watcher.
 class WatcherWatcherRunner : public InternalRunnable {
  public:
-  explicit WatcherWatcherRunner(pid_t watcher) : watcher_(watcher) {}
+  explicit WatcherWatcherRunner(const PlatformProcess& watcher) : watcher_(watcher) {}
 
   /// Runnable thread's entry point.
   void start();
 
  private:
   /// Parent, or watchdog, process ID.
-  pid_t watcher_{(pid_t) -1};
+  PlatformProcess watcher_{kInvalidProcessId};
 };
 
 /// Get a performance limit by name and optional level.

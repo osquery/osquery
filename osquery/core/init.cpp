@@ -448,7 +448,7 @@ void Initializer::initWorker(const std::string& name) const {
 #ifdef WIN32
   // TODO: How will we deal with this?
 #else
-  Dispatcher::addService(std::make_shared<WatcherWatcherRunner>(getppid()));
+  Dispatcher::addService(std::make_shared<WatcherWatcherRunner>(getLauncherProcess()));
 #endif
 }
 
