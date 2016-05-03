@@ -588,7 +588,7 @@ function package() {
       elif [[ $1 = "libressl" ]]; then
         HOMEBREW_ARGS="--build-bottle"
       elif [[ $1 = "aws-sdk-cpp" ]]; then
-        HOMEBREW_ARGS="--with-static --without-http-client"
+        HOMEBREW_ARGS="--build-bottle --with-static --without-http-client"
       fi
       if [[ "$2" = "devel" ]]; then
         HOMEBREW_ARGS="${HOMEBREW_ARGS} --devel"
