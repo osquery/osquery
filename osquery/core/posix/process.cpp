@@ -78,7 +78,7 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
   if (ext_pid < 0) {
     return PlatformProcess(kInvalidPid);
   } else if (ext_pid == 0) {
-    setEnvVar("OSQUERY_EXTENSIONS", std::to_string(::getpid()).c_str());
+    setEnvVar("OSQUERY_EXTENSION", std::to_string(::getpid()).c_str());
     ::execle(exec_path.c_str(),
              ("osquery extension: " + extension).c_str(),
              "--socket",
@@ -98,10 +98,6 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
   }
 
   return PlatformProcess(ext_pid);
-}
-
-PlatformProcess PlatformProcess::fromPlatformPid(PlatformPidType id) {
-  return PlatformProcess(id);
 }
 }
 

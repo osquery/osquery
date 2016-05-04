@@ -17,6 +17,7 @@
 
 extern char **environ;
 
+namespace {
 osquery::PlatformPidType __declspec(nothrow) duplicateHandle(osquery::PlatformPidType src) {
   osquery::PlatformPidType handle = osquery::kInvalidPid;
 
@@ -32,6 +33,7 @@ osquery::PlatformPidType __declspec(nothrow) duplicateHandle(osquery::PlatformPi
     }
   }
   return handle;
+}
 }
 
 namespace osquery {
@@ -91,8 +93,8 @@ PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, cons
   //              with double quotes have the potential of causing argument parsing issues. However, it
   //              is not a huge concern for the worker process, for it does not pass any command line 
   //              arguments.
-  std::stringstream args_stream;
-  args_stream << "\"" << name << "\"";
+  std::stringstream argv_stream;
+  argv_stream << "\"" << name << "\"";
   
   std::stringstream handle_stream;
   
@@ -109,19 +111,29 @@ PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, cons
   handle_stream << hLauncherProcess;
   std::string handle = handle_stream.str();
   
-  if (!::SetEnvironmentVariableA("OSQUERY_WORKER", "1") ||
-      !::SetEnvironmentVariableA("OSQUERY_LAUNCHER", handle.c_str())) {
+  // In the POSIX version, the environment variable OSQUERY_WORKER is set to the string form of the
+  // child process' process ID. However, this is not easily doable on Windows. Since the value does
+  // not appear to be used by the rest of osquery, we currently just set it to '1'.
+  //
+  // For the worker case, we also set another environment variable, OSQUERY_LAUNCHER. OSQUERY_LAUNCHER
+  // stores the string form of a HANDLE to the current process. This is mostly used for detecting the 
+  // death of the launcher process in WatcherWatcherRunner::start
+  if (!setEnvVar("OSQUERY_WORKER", "1") ||
+      !setEnvVar("OSQUERY_LAUNCHER", handle.c_str())) {
     ::CloseHandle(hLauncherProcess);
 
     return PlatformProcess(kInvalidPid);
   }
   
-  std::string args = args_stream.str();
-  std::vector<char> argv(args.begin(), args.end());
-  argv.push_back('\0');
+  // We don't directly use argv.c_str() as the value for lpCommandLine in CreateProcess since
+  // that argument requires a modifiable buffer. So, instead, we off-load the contents of argv
+  // into a vector which will have its backing memory as modifiable.
+  std::string argv = argv_stream.str();
+  std::vector<char> mutable_argv(argv.begin(), argv.end());
+  mutable_argv.push_back('\0');
   
   BOOL status = ::CreateProcessA(exec_path.c_str(),
-                                 &argv[0],
+                                 &mutable_argv[0],
                                  NULL,
                                  NULL,
                                  TRUE,
@@ -130,8 +142,8 @@ PlatformProcess PlatformProcess::launchWorker(const std::string& exec_path, cons
                                  NULL,
                                  &si,
                                  &pi);
-  ::SetEnvironmentVariableA("OSQUERY_WORKER", NULL);
-  ::SetEnvironmentVariableA("OSQUERY_LAUNCHER", NULL);
+  unsetEnvVar("OSQUERY_WORKER");
+  unsetEnvVar("OSQUERY_LAUNCHER");
   ::CloseHandle(hLauncherProcess);
   
   if (!status) {
@@ -160,26 +172,31 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
   //              double quotes. An extension name with bad characters has the potential of affecting
   //              command line argument parsing in the extension process which may lead to a dysfunctional
   //              extension.
-  std::stringstream args_stream;
-  args_stream << "\"osquery extension: " << extension << "\" ";
-  args_stream << "--socket " << extensions_socket << " ";
-  args_stream << "--timeout " << extensions_timeout << " ";
-  args_stream << "--interval " << extensions_interval << " ";
+  std::stringstream argv_stream;
+  argv_stream << "\"osquery extension: " << extension << "\" ";
+  argv_stream << "--socket " << extensions_socket << " ";
+  argv_stream << "--timeout " << extensions_timeout << " ";
+  argv_stream << "--interval " << extensions_interval << " ";
   
   if (verbose == "true") {
-    args_stream << "--verbose";
+    argv_stream << "--verbose";
   }
-  
-  std::string args = args_stream.str();
-  std::vector<char> argv(args.begin(), args.end());
-  argv.push_back('\0');
 
-  if (!::SetEnvironmentVariableA("OSQUERY_EXTENSIONS", "1")) {
+  // We don't directly use argv.c_str() as the value for lpCommandLine in CreateProcess since
+  // that argument requires a modifiable buffer. So, instead, we off-load the contents of argv
+  // into a vector which will have its backing memory as modifiable.
+  std::string argv = argv_stream.str();
+  std::vector<char> mutable_argv(argv.begin(), argv.end());
+  mutable_argv.push_back('\0');
+
+  // In POSIX, this environment variable is set to the child's process ID. But that is not easily
+  // accomplishable on Windows and provides no value since this is never used elsewhere in the core.
+  if (!setEnvVar("OSQUERY_EXTENSION", "1")) {
     return PlatformProcess(kInvalidPid);
   }
   
   BOOL status = ::CreateProcessA(exec_path.c_str(),
-                                 &argv[0],
+                                 &mutable_argv[0],
                                  NULL,
                                  NULL,
                                  TRUE,
@@ -188,7 +205,7 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
                                  NULL,
                                  &si,
                                  &pi);
-  ::SetEnvironmentVariableA("OSQUERY_EXTENSIONS", NULL);
+  unsetEnvVar("OSQUERY_EXTENSION");
   
   if (!status) {
     return PlatformProcess(kInvalidPid);
@@ -199,10 +216,6 @@ PlatformProcess PlatformProcess::launchExtension(const std::string& exec_path,
   ::CloseHandle(pi.hProcess);
   
   return process;
-}
-
-PlatformProcess PlatformProcess::fromPlatformPid(PlatformPidType id) {
-  return PlatformProcess(id);
 }
 }
 

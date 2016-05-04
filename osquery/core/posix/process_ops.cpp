@@ -23,12 +23,12 @@ namespace osquery {
 
 PlatformProcess getCurrentProcess() {
   pid_t pid = ::getpid();
-  return PlatformProcess::fromPlatformPid(pid);
+  return PlatformProcess(pid);
 }
 
 PlatformProcess getLauncherProcess() {
   pid_t ppid = ::getppid();
-  return PlatformProcess::fromPlatformPid(ppid);
+  return PlatformProcess(ppid);
 }
 
 bool isLauncherProcessDead(PlatformProcess& launcher) {

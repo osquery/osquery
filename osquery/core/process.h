@@ -63,10 +63,9 @@ class PlatformProcess {
                                            const std::string& extensions_timeout,
                                            const std::string& extensions_interval,
                                            const std::string& verbose);
-    static PlatformProcess fromPlatformPid(PlatformPidType id);
     
   private:
-    PlatformPidType id_{ kInvalidPid };
+    PlatformPidType id_;
 };
 
 PlatformProcess getCurrentProcess();

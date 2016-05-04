@@ -35,11 +35,7 @@ PlatformProcess getLauncherProcess() {
   
   // Convert the environment variable into a HANDLE (the value from environment variable 
   // should be a hex value). As a precaution, ensure that the HANDLE is valid.
-  //
-  // TODO(#1991): HANDLE in Windows is defined as "void *". As a result, its size depends
-  //              on the underlying processor architecture. Since we don't claim to support
-  //              32 bit, we will be using std::stoull for now.
-  HANDLE handle = reinterpret_cast<HANDLE>(std::stoull(*launcher_handle, nullptr, 16));
+  HANDLE handle = reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(std::stoull(*launcher_handle, nullptr, 16)));
   if (handle == NULL || handle == INVALID_HANDLE_VALUE) {
     return PlatformProcess(kInvalidPid);
   }
