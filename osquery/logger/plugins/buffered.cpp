@@ -107,6 +107,7 @@ Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log) {
     buffer.put("filename", item.filename);
     buffer.put("line", item.line);
     buffer.put("message", item.message);
+    buffer.put("version", kVersion);
     if (decorations.size() > 0) {
       buffer.put_child("decorations", dtree);
     }
