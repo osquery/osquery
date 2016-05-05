@@ -43,9 +43,10 @@ To update osquery:
 $ brew update
 $ brew upgrade osquery
 ```
-Post installation steps to run osqueryd if you have never installed and run osqueryd on this Mac.
+###### Post installation steps
+Only applies if you have never installed and run osqueryd on this Mac.
 
-After completing the brew installation run the following commands. If you are using the chef recipe to install osquery then these steps are not necessary, the recipe has this covered.
+After completing the brew installation run the following commands. If you are using the chef recipe to install osquery then these steps are not necessary, the [recipe](http://osquery.readthedocs.io/en/stable/deployment/configuration/#chef-os-x) has this covered.
 
 ```
 sudo ln -s /usr/local/share/osquery /var/osquery
