@@ -89,9 +89,9 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_interval) {
   std::string log_line;
   serializeQueryLogItemJSON(item, log_line);
   std::string expected =
-      "{\"snapshot\":\"\",\"action\":\"snapshot\",\"decorations\":{\"internal_"
-      "60_test\":\"test\",\"one\":\"1\"},\"name\":\"\",\"hostIdentifier\":\"\","
-      "\"calendarTime\":\"\",\"unixTime\":\"0\"}\n";
+      "{\"snapshot\":\"\",\"action\":\"snapshot\",\"name\":\"\","
+      "\"hostIdentifier\":\"\",\"calendarTime\":\"\",\"unixTime\":\"0\","
+      "\"decorations\":{\"internal_60_test\":\"test\",\"one\":\"1\"}}\n";
   EXPECT_EQ(log_line, expected);
 
   // Now clear and run again.
