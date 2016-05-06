@@ -1,5 +1,5 @@
-table_name("crash_logs")
-description("Application Crash Logs")
+table_name("crashes")
+description("Application and System Crash Logs")
 schema([
     Column("pid", BIGINT, "Process (or thread) ID of the crashed process."),
     Column("path", TEXT, "Path to the crashed process."),
@@ -8,20 +8,13 @@ schema([
     Column("version", TEXT, "Version info of the crashed process."),
     Column("parent", BIGINT, "Parent PID of the crashed process"),
     Column("responsible", TEXT, "Process responsible for the crashed process."),
-    Column("user_id", INTEGER, "User ID of the crashed process."),
-    Column("date_time", TEXT, "Date/Time at which the crash occurred."),
+    Column("uid", INTEGER, "User ID of the crashed process."),
+    Column("datetime", TEXT, "Date/Time at which the crash occurred."),
     Column("crashed_thread", BIGINT, "Thread ID which crashed."),
     Column("stack_trace", TEXT, "Most recent frame from the stack trace."),
     Column("exception_type", TEXT, "Exception type of the crash."),
     Column("exception_codes", TEXT, "Exception codes from the crash."),
     Column("exception_notes", TEXT, "Exception notes from the crash."),
-    Column("rax", TEXT, "The value of the rax register."),
-    Column("rbx", TEXT, "The value of the rbx register."),
-    Column("rcx", TEXT, "The value of the rcx register."),
-    Column("rdx", TEXT, "The value of the rdx register."),
-    Column("rdi", TEXT, "The value of the rdi register."),
-    Column("rsi", TEXT, "The value of the rsi register."),
-    Column("rbp", TEXT, "The value of the rbp register."),
-    Column("rsp", TEXT, "The value of the rsp register."),
+    Column("registers", TEXT, "The value of the system registers.")
 ])
-implementation("crash_logs@genCrashLogs")
+implementation("crashes@genCrashLogs")
