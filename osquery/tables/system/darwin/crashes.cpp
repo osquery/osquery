@@ -38,20 +38,17 @@ const std::map<std::string, std::string> kCrashDumpKeys = {
     {"Version", "version"},
     {"Parent Process", "parent"},
     {"Responsible", "responsible"},
-    {"User ID", "user_id"},
-    {"Date/Time", "date_time"},
+    {"User ID", "uid"},
+    {"Date/Time", "datetime"},
     {"Crashed Thread", "crashed_thread"},
     {"Exception Type", "exception_type"},
     {"Exception Codes", "exception_codes"},
     {"Exception Note", "exception_notes"},
+    // Note: We leave these two in, as they ensure we don't skip over the
+    // register values in our check to ensure the token is a value we care
+    // about.
     {"rax", "rax"},
-    {"rbx", "rbx"},
-    {"rcx", "rcx"},
-    {"rdx", "rdx"},
     {"rdi", "rdi"},
-    {"rsi", "rsi"},
-    {"rbp", "rbp"},
-    {"rsp", "rsp"},
 };
 
 void readCrashDump(const std::string& app_log, Row& r) {
@@ -72,7 +69,7 @@ void readCrashDump(const std::string& app_log, Row& r) {
     // Tokenize first by colons
     auto toks = split(line, ":");
 
-    if (toks.size() == 0 || kCrashDumpKeys.count(toks[0]) == 0) {
+    if (toks.size() == 0) {
       continue;
     }
 
@@ -80,23 +77,22 @@ void readCrashDump(const std::string& app_log, Row& r) {
     if (crashed_thread_seen && toks[0] == crashed_thread_format.str()) {
       r["stack_trace"] = *(++it);
       crashed_thread_seen = false;
+      continue;
+    }
+
+    if (kCrashDumpKeys.count(toks[0]) == 0) {
+      continue;
     }
 
     // Process and grab all register values
-    if (toks[0] == "rax" || toks[0] == "rdi") {
-      toks = split(line, ": ");
-      for (size_t i = 0; i < toks.size(); i += 2) {
-        // Ensure that we don't overflow
-        if ((i + 1) < toks.size()) {
-          r[kCrashDumpKeys.at(toks[i])] = toks[i + 1];
-        }
-      }
+    if (toks[0] == "rax") {
+      r["registers"] = *it + *(++it);
     } else if (toks[0] == "Date/Time" && toks.size() >= 3) {
       // Reconstruct split date/time
       r[kCrashDumpKeys.at(toks[0])] = toks[1] + ":" + toks[2] + ":" + toks[3];
     } else if (toks[0] == "Crashed Thread") {
       // If the token is the Crashed thread, update the format string so
-      // we can later grab all of the stack trace
+      // we can grab the stack trace later.
       auto t = split(toks[1], " ");
       if (t.size() == 0) {
         continue;
@@ -142,8 +138,7 @@ QueryData genCrashLogs(QueryContext& context) {
   auto users = usersFromContext(context);
   for (const auto& user : users) {
     std::vector<std::string> user_logs;
-    auto dir =
-        fs::path("/Users") / user.at("directory") / kDiagnosticReportsPath;
+    auto dir = fs::path(user.at("directory")) / kDiagnosticReportsPath;
     if (listFilesInDirectory(dir, user_logs).ok()) {
       for (const auto& ulf : user_logs) {
         // we only care about the .crash files.
