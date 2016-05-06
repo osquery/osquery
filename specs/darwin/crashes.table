@@ -1,20 +1,21 @@
 table_name("crashes")
 description("Application and System Crash Logs")
 schema([
-    Column("pid", BIGINT, "Process (or thread) ID of the crashed process."),
-    Column("path", TEXT, "Path to the crashed process."),
-    Column("crash_path", TEXT, "Location of log file."),
-    Column("identifier", TEXT, "Identifier of the crashed process."),
-    Column("version", TEXT, "Version info of the crashed process."),
+    Column("type", TEXT, "Type of crash log"),
+    Column("pid", BIGINT, "Process (or thread) ID of the crashed process"),
+    Column("path", TEXT, "Path to the crashed process"),
+    Column("crash_path", TEXT, "Location of log file"),
+    Column("identifier", TEXT, "Identifier of the crashed process"),
+    Column("version", TEXT, "Version info of the crashed process"),
     Column("parent", BIGINT, "Parent PID of the crashed process"),
-    Column("responsible", TEXT, "Process responsible for the crashed process."),
-    Column("uid", INTEGER, "User ID of the crashed process."),
-    Column("datetime", TEXT, "Date/Time at which the crash occurred."),
-    Column("crashed_thread", BIGINT, "Thread ID which crashed."),
-    Column("stack_trace", TEXT, "Most recent frame from the stack trace."),
-    Column("exception_type", TEXT, "Exception type of the crash."),
-    Column("exception_codes", TEXT, "Exception codes from the crash."),
-    Column("exception_notes", TEXT, "Exception notes from the crash."),
-    Column("registers", TEXT, "The value of the system registers.")
+    Column("responsible", TEXT, "Process responsible for the crashed process"),
+    Column("uid", INTEGER, "User ID of the crashed process"),
+    Column("datetime", TEXT, "Date/Time at which the crash occurred"),
+    Column("crashed_thread", BIGINT, "Thread ID which crashed"),
+    Column("stack_trace", TEXT, "Most recent frame from the stack trace"),
+    Column("exception_type", TEXT, "Exception type of the crash"),
+    Column("exception_codes", TEXT, "Exception codes from the crash"),
+    Column("exception_notes", TEXT, "Exception notes from the crash"),
+    Column("registers", TEXT, "The value of the system registers")
 ])
 implementation("crashes@genCrashLogs")

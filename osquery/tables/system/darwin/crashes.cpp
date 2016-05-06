@@ -135,12 +135,14 @@ void readCrashDump(const std::string& app_log, Row& r) {
 QueryData genCrashLogs(QueryContext& context) {
   QueryData results;
 
-  auto process_crash_logs = [&results](const fs::path& path) {
+  auto process_crash_logs = [&results](const fs::path& path,
+                                       const std::string type) {
     std::vector<std::string> files;
     if (listFilesInDirectory(path, files)) {
       for (const auto& lf : files) {
         if (alg::ends_with(lf, ".crash")) {
           Row r;
+          r["type"] = type;
           readCrashDump(lf, r);
           results.push_back(r);
         }
@@ -150,14 +152,14 @@ QueryData genCrashLogs(QueryContext& context) {
 
   // Process system logs
   if (context.constraints["uid"].notExistsOrMatches("0")) {
-    process_crash_logs(kDiagnosticReportsPath);
+    process_crash_logs(kDiagnosticReportsPath, "application");
   }
 
   // Process user logs
   auto users = usersFromContext(context);
   for (const auto& user : users) {
     auto user_home = fs::path(user.at("directory")) / kDiagnosticReportsPath;
-    process_crash_logs(user_home);
+    process_crash_logs(user_home, "application");
 
     // Process mobile crash logs
     auto user_mobile_root =
@@ -165,7 +167,7 @@ QueryData genCrashLogs(QueryContext& context) {
     std::vector<std::string> mobile_paths;
     if (listDirectoriesInDirectory(user_mobile_root, mobile_paths)) {
       for (const auto& mobile_device : mobile_paths) {
-        process_crash_logs(mobile_device);
+        process_crash_logs(mobile_device, "mobile");
       }
     }
   }
