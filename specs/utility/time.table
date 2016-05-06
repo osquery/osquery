@@ -10,10 +10,12 @@ schema([
     Column("seconds", INTEGER, "Current seconds in the system"),
     Column("timezone", TEXT, "Current timezone in the system"),
     Column("local_time", INTEGER, "Current local UNIX time in the system"),
+    Column("local_timezone", TEXT, "Current local timezone in the system"),
     Column("unix_time", INTEGER,
         "Current UNIX time in the system, converted to UTC if --utc enabled"),
-    Column("timestamp", TEXT, "Current timestamp in the system"),
-    Column("iso_8601", TEXT, "Current time (iso format) in the system"),
+    Column("timestamp", TEXT, "Current timestamp (log format) in the system"),
+    Column("datetime", TEXT, "Current date and time (ISO format) in the system"),
+    Column("iso_8601", TEXT, "Current time (ISO format) in the system"),
 ])
 attributes(utility=True)
 implementation("time@genTime")
