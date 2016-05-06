@@ -9,6 +9,7 @@
  */
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/format.hpp>
@@ -27,8 +28,11 @@ namespace alg = boost::algorithm;
 namespace osquery {
 namespace tables {
 
-/// Locationg of the system application crash logs in OS X
+/// Location of the system application crash logs in OS X
 const std::string kDiagnosticReportsPath = "/Library/Logs/DiagnosticReports";
+/// Location of the user mobile devices crash logs in OS X
+const std::string kMobileDiagnosticReportsPath =
+    "/Library/Logs/CrashReporter/MobileDevice";
 /// Map of the values we currently parse out of the log file
 const std::map<std::string, std::string> kCrashDumpKeys = {
     {"Process", "pid"},
@@ -49,6 +53,10 @@ const std::map<std::string, std::string> kCrashDumpKeys = {
     // about.
     {"rax", "rax"},
     {"rdi", "rdi"},
+    // Registers for mobile crashes
+    {"Triggered by Thread", "crashed_thread"},
+    {"x0", "x0"},
+    {"x4", "x4"},
 };
 
 void readCrashDump(const std::string& app_log, Row& r) {
@@ -85,12 +93,18 @@ void readCrashDump(const std::string& app_log, Row& r) {
     }
 
     // Process and grab all register values
-    if (toks[0] == "rax") {
-      r["registers"] = *it + *(++it);
+    if (toks[0] == "rax" || toks[0] == "x0") {
+      std::string reg_str = *it + " " + *(++it);
+
+      alg::replace_all(reg_str, ": ", ":");
+      alg::replace_all(reg_str, "   ", " ");
+
+      r["registers"] = std::move(reg_str);
     } else if (toks[0] == "Date/Time" && toks.size() >= 3) {
       // Reconstruct split date/time
       r[kCrashDumpKeys.at(toks[0])] = toks[1] + ":" + toks[2] + ":" + toks[3];
-    } else if (toks[0] == "Crashed Thread") {
+    } else if (toks[0] == "Crashed Thread" ||
+               toks[0] == "Triggered by Thread") {
       // If the token is the Crashed thread, update the format string so
       // we can grab the stack trace later.
       auto t = split(toks[1], " ");
@@ -121,35 +135,41 @@ void readCrashDump(const std::string& app_log, Row& r) {
 QueryData genCrashLogs(QueryContext& context) {
   QueryData results;
 
-  // Process system logs
-  std::vector<std::string> files;
-  if (listFilesInDirectory(kDiagnosticReportsPath, files).ok()) {
-    for (const auto& slf : files) {
-      // we only care about the .crash files.
-      if (alg::ends_with(slf, ".crash")) {
-        Row r;
-        readCrashDump(slf, r);
-        results.push_back(r);
+  auto process_crash_logs = [&results](const fs::path& path) {
+    std::vector<std::string> files;
+    if (listFilesInDirectory(path, files)) {
+      for (const auto& lf : files) {
+        if (alg::ends_with(lf, ".crash")) {
+          Row r;
+          readCrashDump(lf, r);
+          results.push_back(r);
+        }
       }
     }
+  };
+
+  // Process system logs
+  if (context.constraints["uid"].notExistsOrMatches("0")) {
+    process_crash_logs(kDiagnosticReportsPath);
   }
 
   // Process user logs
   auto users = usersFromContext(context);
   for (const auto& user : users) {
-    std::vector<std::string> user_logs;
-    auto dir = fs::path(user.at("directory")) / kDiagnosticReportsPath;
-    if (listFilesInDirectory(dir, user_logs).ok()) {
-      for (const auto& ulf : user_logs) {
-        // we only care about the .crash files.
-        if (alg::ends_with(ulf, ".crash")) {
-          Row r;
-          readCrashDump(ulf, r);
-          results.push_back(r);
-        }
+    auto user_home = fs::path(user.at("directory")) / kDiagnosticReportsPath;
+    process_crash_logs(user_home);
+
+    // Process mobile crash logs
+    auto user_mobile_root =
+        fs::path(user.at("directory")) / kMobileDiagnosticReportsPath;
+    std::vector<std::string> mobile_paths;
+    if (listDirectoriesInDirectory(user_mobile_root, mobile_paths)) {
+      for (const auto& mobile_device : mobile_paths) {
+        process_crash_logs(mobile_device);
       }
     }
   }
+
   return results;
 }
 }
