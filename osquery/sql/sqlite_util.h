@@ -278,22 +278,18 @@ Status getQueryColumnsInternal(const std::string& q,
 /// The SQLiteSQLPlugin implements the "sql" registry for internal/core.
 class SQLiteSQLPlugin : SQLPlugin {
  public:
-  Status query(const std::string& q, QueryData& results) const {
-    auto dbc = SQLiteDBManager::get();
-    auto result = queryInternal(q, results, dbc->db());
-    dbc->clearAffectedTables();
-    return result;
-  }
+  /// Execute SQL and store results.
+  Status query(const std::string& q, QueryData& results) const override;
 
-  Status getQueryColumns(const std::string& q, TableColumns& columns) const {
-    auto dbc = SQLiteDBManager::get();
-    return getQueryColumnsInternal(q, columns, dbc->db());
-  }
+  /// Introspect, explain, the suspected types selected in an SQL statement.
+  Status getQueryColumns(const std::string& q,
+                         TableColumns& columns) const override;
 
   /// Create a SQLite module and attach (CREATE).
-  Status attach(const std::string& name);
+  Status attach(const std::string& name) override;
+
   /// Detach a virtual table (DROP).
-  void detach(const std::string& name);
+  void detach(const std::string& name) override;
 };
 
 /**
@@ -306,11 +302,7 @@ class SQLInternal : public SQL {
    *
    * @param q An osquery SQL query
    */
-  explicit SQLInternal(const std::string& q) {
-    auto dbc = SQLiteDBManager::get();
-    status_ = queryInternal(q, results_, dbc->db());
-    dbc->clearAffectedTables();
-  }
+  explicit SQLInternal(const std::string& q);
 };
 
 /**

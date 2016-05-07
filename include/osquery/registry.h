@@ -126,6 +126,9 @@ struct ModuleInfo {
 /// The call-in prototype for Registry modules.
 using ModuleInitalizer = void (*)(void);
 
+/// The registry includes a single optimization for table generation.
+struct QueryContext;
+
 template <class PluginItem>
 class PluginFactory {};
 
@@ -375,6 +378,9 @@ class RegistryHelperCore : private boost::noncopyable {
 
   /// If a module was initialized/declared then store lookup information.
   std::map<std::string, RouteUUID> modules_;
+
+ private:
+  friend class RegistryFactory;
 };
 
 /**
@@ -661,6 +667,11 @@ class RegistryFactory : private boost::noncopyable {
   /// A helper call that uses the active plugin (if the registry has one).
   static Status call(const std::string& registry_name,
                      const PluginRequest& request);
+
+  /// A helper call optimized for table data generation.
+  static Status callTable(const std::string& table_name,
+                          QueryContext& context,
+                          PluginResponse& response);
 
   /// Set a registry's active plugin.
   static Status setActive(const std::string& registry_name,

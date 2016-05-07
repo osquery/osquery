@@ -91,7 +91,7 @@ extern const std::map<ColumnType, std::string> kColumnTypeNames;
 
 /// Helper alias for TablePlugin names.
 using TableName = std::string;
-using TableColumns = std::vector<std::pair<std::string, ColumnType> >;
+using TableColumns = std::vector<std::pair<std::string, ColumnType>>;
 struct QueryContext;
 
 /**
@@ -291,13 +291,67 @@ struct ConstraintList : private boost::noncopyable {
 /// Pass a constraint map to the query request.
 using ConstraintMap = std::map<std::string, struct ConstraintList>;
 /// Populate a constraint list from a query's parsed predicate.
-using ConstraintSet = std::vector<std::pair<std::string, struct Constraint> >;
+using ConstraintSet = std::vector<std::pair<std::string, struct Constraint>>;
+
+/**
+ * @brief osquery table content descriptor.
+ *
+ * This object is the abstracted SQLite database's virtual table descriptor.
+ * When the virtual table is created/connected the name and columns are
+ * retrieved via the TablePlugin call API. The details are kept in this context
+ * so column parsing and row walking does not require additional Registry calls.
+ *
+ * When tables are accessed as the result of an SQL statement a QueryContext is
+ * created to represent metadata that can be used by the virtual table
+ * implementation code. Thus the code that generates rows can choose to emit
+ * additional data, restrict based on constraints, or potentially yield from
+ * a cache or choose not to generate certain columns.
+ */
+struct VirtualTableContent {
+  /// Friendly name for the table.
+  TableName name;
+  /// Table column structure, retrieved once via the TablePlugin call API.
+  TableColumns columns;
+  /// Transient set of virtual table access constraints.
+  std::unordered_map<size_t, ConstraintSet> constraints;
+
+  /*
+   * @brief A table implementation specific query result cache.
+   *
+   * Virtual tables may 'cache' information between filter requests. This is
+   * intended to provide optimization for very latent/expensive tables where
+   * complex joins may result in duplicate filter requests.
+   *
+   * The cache is implemented as a map of row data. The cache concept
+   * should utilize a primary key as an index, and may store arbitrary data.
+   * More intense caching may use the backing store though the general database
+   * set and get calls.
+   *
+   * The in-memory, non-backing store, cache is expired after each query run.
+   * This caching does not affect or use the schedule results cache.
+   */
+  std::map<std::string, Row> cache;
+};
 
 /**
  * @brief A QueryContext is provided to every table generator for optimization
  * on query components like predicate constraints and limits.
  */
 struct QueryContext : private boost::noncopyable {
+  /// Construct a context without cache support.
+  QueryContext() : enable_cache_(false), table_(new VirtualTableContent()) {}
+
+  /// If the context was created without content, it is ephemeral.
+  ~QueryContext() {
+    if (!enable_cache_) {
+      free(table_);
+    }
+  }
+
+  /// Construct a context and set the table content for caching.
+  explicit QueryContext(VirtualTableContent* content)
+      : enable_cache_(true), table_(content) {}
+
   /**
    * @brief Check if a constraint exists for a given column operator pair.
    *
@@ -381,39 +435,54 @@ struct QueryContext : private boost::noncopyable {
       std::function<Status(const std::string& constraint,
                            std::set<std::string>& output)> predicate);
 
+  /// Check if a table-defined index exists within the query cache.
+  bool isCached(const std::string& index) {
+    return (table_->cache.count(index) != 0);
+  }
+
+  /// Retrieve an index within the query cache.
+  const Row& getCache(const std::string& index) { return table_->cache[index]; }
+
+  /// Helper to retrieve a keyed element within the query cache.
+  const std::string& getCache(const std::string& index,
+                              const std::string& key) {
+    return table_->cache[index][key];
+  }
+
+  /// Set the entire cache for an index.
+  void setCache(const std::string& index, Row _cache) {
+    table_->cache[index] = std::move(_cache);
+  }
+
+  /// Helper to set a keyed element within the query cache.
+  void setCache(const std::string& index,
+                const std::string& key,
+                std::string _item) {
+    table_->cache[index][key] = std::move(_item);
+  }
+
   /// The map of column name to constraint list.
   ConstraintMap constraints;
+
   /// Support a limit to the number of results.
   int limit{0};
+
   /// Is the table allowed to "traverse" directories.
   bool traverse{false};
+
+ private:
+  /// If false then the context is maintaining a ephemeral cache.
+  bool enable_cache_{false};
+
+  /// Persistent table content for table caching.
+  VirtualTableContent* table_{nullptr};
+
+ private:
+  friend class TablePlugin;
 };
 
 typedef struct QueryContext QueryContext;
 typedef struct Constraint Constraint;
-
-/**
- * @brief osquery table content descriptor.
- *
- * This object is the abstracted SQLite database's virtual table descriptor.
- * When the virtual table is created/connected the name and columns are
- * retrieved via the TablePlugin call API. The details are kept in this context
- * so column parsing and row walking does not require additional Registry calls.
- *
- * When tables are accessed as the result of an SQL statement a QueryContext is
- * created to represent metadata that can be used by the virtual table
- * implementation code. Thus the code that generates rows can choose to emit
- * additional data, restrict based on constraints, or potentially yield from
- * a cache or choose not to generate certain columns.
- */
-struct VirtualTableContent {
-  /// Friendly name for the table.
-  TableName name;
-  /// Table column structure, retrieved once via the TablePlugin call API.
-  TableColumns columns;
-  /// Transient set of virtual table access constraints.
-  std::unordered_map<size_t, ConstraintSet> constraints;
-};
 
 /**
  * @brief The TablePlugin defines the name, types, and column information.
@@ -554,6 +623,7 @@ class TablePlugin : public Plugin {
   static void removeExternal(const std::string& name);
 
  private:
+  friend class RegistryFactory;
   FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
   FRIEND_TEST(VirtualTableTests, test_tableplugin_statement);
 };

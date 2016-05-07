@@ -422,6 +422,23 @@ Status RegistryFactory::call(const std::string& registry_name,
   return call(registry_name, request, response);
 }
 
+Status RegistryFactory::callTable(const std::string& table_name,
+                                  QueryContext& context,
+                                  PluginResponse& response) {
+  auto& tables = registry("table")->items_;
+  // This only works for local tables.
+  if (tables.count(table_name) > 0) {
+    auto plugin = std::dynamic_pointer_cast<TablePlugin>(tables.at(table_name));
+    response = plugin->generate(context);
+    return Status(0);
+  } else {
+    // If the table is not local then it does not benefit from complex contexts.
+    PluginRequest request = {{"action", "generate"}};
+    TablePlugin::setRequestFromContext(context, request);
+    return call("table", table_name, request, response);
+  }
+}
+
 Status RegistryFactory::setActive(const std::string& registry_name,
                                   const std::string& item_name) {
   return registry(registry_name)->setActive(item_name);

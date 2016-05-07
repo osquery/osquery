@@ -115,6 +115,25 @@ std::string getStringForSQLiteReturnCode(int code) {
   }
 }
 
+Status SQLiteSQLPlugin::query(const std::string& q, QueryData& results) const {
+  auto dbc = SQLiteDBManager::get();
+  auto result = queryInternal(q, results, dbc->db());
+  dbc->clearAffectedTables();
+  return result;
+}
+
+Status SQLiteSQLPlugin::getQueryColumns(const std::string& q,
+                                        TableColumns& columns) const {
+  auto dbc = SQLiteDBManager::get();
+  return getQueryColumnsInternal(q, columns, dbc->db());
+}
+
+SQLInternal::SQLInternal(const std::string& q) {
+  auto dbc = SQLiteDBManager::get();
+  status_ = queryInternal(q, results_, dbc->db());
+  dbc->clearAffectedTables();
+}
+
 Status SQLiteSQLPlugin::attach(const std::string& name) {
   PluginResponse response;
   auto status =
@@ -180,6 +199,7 @@ void SQLiteDBInstance::clearAffectedTables() {
 
   for (const auto& table : affected_tables_) {
     table.second->constraints.clear();
+    table.second->cache.clear();
   }
   // Since the affected tables are cleared, there are no more affected tables.
   // There is no concept of compounding tables between queries.

@@ -21,17 +21,24 @@ namespace tables {
 
 void genHashForFile(const std::string& path,
                     const std::string& dir,
+                    QueryContext& context,
                     QueryData& results) {
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
   Row r;
-  r["path"] = path;
-  r["directory"] = dir;
-  auto hashes = hashMultiFromFile(
-      HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
-  r["md5"] = std::move(hashes.md5);
-  r["sha1"] = std::move(hashes.sha1);
-  r["sha256"] = std::move(hashes.sha256);
+  if (context.isCached(path)) {
+    r = context.getCache(path);
+  } else {
+    auto hashes = hashMultiFromFile(
+        HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
+
+    r["path"] = path;
+    r["directory"] = dir;
+    r["md5"] = std::move(hashes.md5);
+    r["sha1"] = std::move(hashes.sha1);
+    r["sha256"] = std::move(hashes.sha256);
+    context.setCache(path, r);
+  }
   results.push_back(r);
 }
 
@@ -49,7 +56,7 @@ QueryData genHash(QueryContext& context) {
       continue;
     }
 
-    genHashForFile(path_string, path.parent_path().string(), results);
+    genHashForFile(path_string, path.parent_path().string(), context, results);
   }
 
   // Now loop through constraints using the directory column constraint.
@@ -64,7 +71,8 @@ QueryData genHash(QueryContext& context) {
     boost::filesystem::directory_iterator begin(directory), end;
     for (; begin != end; ++begin) {
       if (boost::filesystem::is_regular_file(begin->path(), ec)) {
-        genHashForFile(begin->path().string(), directory_string, results);
+        genHashForFile(
+            begin->path().string(), directory_string, context, results);
       }
     }
   }
