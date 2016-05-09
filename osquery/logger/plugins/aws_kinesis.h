@@ -20,7 +20,6 @@
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
 
-#include "osquery/core/test_util.h"
 #include "osquery/logger/plugins/buffered.h"
 
 namespace osquery {
@@ -56,10 +55,9 @@ class KinesisLoggerPlugin : public LoggerPlugin {
 
   Status setUp() override;
 
-  Status init(const std::string& name,
-              const std::vector<StatusLogLine>& log) override {
-    return Status(1, "Does not support status logs");
-  }
+ private:
+  void init(const std::string& name,
+            const std::vector<StatusLogLine>& log) override {}
 
   Status logString(const std::string& s) override;
 

@@ -53,13 +53,15 @@ class TLSLoggerPlugin : public LoggerPlugin {
    * backing store. They will flush to a TLS endpoint under normal conditions
    * in a supporting/asynchronous thread.
    */
-  Status init(const std::string& name,
-              const std::vector<StatusLogLine>& log) override;
+  void init(const std::string& name,
+            const std::vector<StatusLogLine>& log) override;
 
   /// Setup node key and worker thread for sending logs.
   Status setUp() override;
 
- public:
+  bool usesLogStatus() override { return true; }
+
+ protected:
   /// Log a result string. This is the basic catch-all for snapshots and events.
   Status logString(const std::string& s) override;
 

@@ -105,6 +105,17 @@ class LoggerPlugin : public Plugin {
   /// The LoggerPlugin PluginRequest action router.
   Status call(const PluginRequest& request, PluginResponse& response) override;
 
+  /**
+   * @brief A feature method to decide if Glog should stop handling statuses.
+   *
+   * Return true if this logger plugin's ::logStatus method should handle Glog
+   * statuses exclusively. If true then Glog will stop writing status lines
+   * to the configured log path.
+   *
+   * @return false if this logger plugin should NOT handle Glog statuses.
+   */
+  virtual bool usesLogStatus() { return false; }
+
  protected:
   /** @brief Virtual method which should implement custom logging.
    *
@@ -130,29 +141,15 @@ class LoggerPlugin : public Plugin {
    * status logs and a customized log sink buffers them until the active
    * osquery logger's `init` method is called.
    *
-   * The return status of `init` is very important. If a success is returned
-   * then the Glog log sink stays active and now forwards every status log
-   * to the logger's `logStatus` method. If a failure is returned this means
-   * the logger does not support status logging and Glog should continue
-   * as the only status log sink.
-   *
    * @param binary_name The string name of the process (argv[0]).
    * @param log The set of status (INFO, WARNING, ERROR) logs generated before
    * the logger's `init` method was called.
-   * @return Status success if the logger will continue to handle status logs
-   * using `logStatus` or failure if status logging is not supported.
    */
-  virtual Status init(const std::string& binary_name,
-                      const std::vector<StatusLogLine>& log) {
-    return Status(1, "Status logs are not supported by this logger");
-  }
+  virtual void init(const std::string& binary_name,
+                    const std::vector<StatusLogLine>& log) = 0;
 
   /**
-   * @brief If the active logger's `init` method returned success then Glog
-   * log lines will be collected, and forwarded to `logStatus`.
-   *
-   * `logStatus` and `init` are tightly coupled. Glog log lines will ONLY be
-   * forwarded to `logStatus` if the logger's `init` method returned success.
+   * @brief See the usesLogStatus method, log a Glog status.
    *
    * @param log A vector of parsed Glog log lines.
    * @return Status non-op indicating success or failure.
@@ -172,11 +169,6 @@ class LoggerPlugin : public Plugin {
    * @return log status
    */
   virtual Status logSnapshot(const std::string& s) { return logString(s); }
-
-  /// An optional health logging facility.
-  virtual Status logHealth(const std::string& s) {
-    return Status(1, "Not used");
-  }
 };
 
 /// Set the verbose mode, changes Glog's sinking logic and will affect plugins.
@@ -259,16 +251,6 @@ Status logQueryLogItem(const QueryLogItem& item, const std::string& receiver);
  * @return Status indicating the success or failure of the operation
  */
 Status logSnapshotQuery(const QueryLogItem& item);
-
-/**
- * @brief Log the worker's health along with health of each query.
- *
- * @param results the query results from the osquery schedule appended with a
- * row of health from the worker.
- *
- * @return Status indicating the success or failure of the operation
- */
-Status logHealthStatus(const QueryLogItem& item);
 
 /**
  * @brief Sink a set of buffered status logs.

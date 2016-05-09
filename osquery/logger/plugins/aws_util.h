@@ -20,6 +20,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 
+#include <osquery/status.h>
+
 namespace osquery {
 
 /**
@@ -90,7 +92,7 @@ class OsqueryAWSCredentialsProviderChain
  *
  * @return 0 if successful, 1 if the region was not recognized
  */
-Status getAWSRegion(Aws::Region& region);
+Status getAWSRegion(Aws::Region &region);
 
 /**
  * @brief Instantiate an AWS client with the appropriate osquery configs

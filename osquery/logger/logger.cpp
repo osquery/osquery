@@ -328,7 +328,8 @@ Status LoggerPlugin::call(const PluginRequest& request,
     return this->logSnapshot(request.at("snapshot"));
   } else if (request.count("init") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
-    return this->init(request.at("init"), intermediate_logs);
+    this->init(request.at("init"), intermediate_logs);
+    return Status(this->usesLogStatus() ? 0 : 1);
   } else if (request.count("status") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
     return this->logStatus(intermediate_logs);

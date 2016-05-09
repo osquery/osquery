@@ -24,7 +24,7 @@ DECLARE_string(logger_path);
 
 class FilesystemLoggerTests : public testing::Test {
  public:
-  void SetUp() {
+  void SetUp() override {
     auto logger_path = fs::path(kTestWorkingDirectory) / "unittests.logs";
     FLAGS_logger_path = logger_path.string();
     fs::create_directories(FLAGS_logger_path);
@@ -37,7 +37,7 @@ class FilesystemLoggerTests : public testing::Test {
     FLAGS_disable_logging = false;
   }
 
-  void TearDown() { FLAGS_disable_logging = logging_status_; }
+  void TearDown() override { FLAGS_disable_logging = logging_status_; }
 
   std::string getContent() { return std::string(); }
 

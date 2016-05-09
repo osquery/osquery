@@ -22,9 +22,12 @@ FLAG(int32,
 
 class SyslogLoggerPlugin : public LoggerPlugin {
  public:
+  bool usesLogStatus() override { return true; }
+
+ protected:
   Status logString(const std::string& s) override;
-  Status init(const std::string& name,
-              const std::vector<StatusLogLine>& log) override;
+  void init(const std::string& name,
+            const std::vector<StatusLogLine>& log) override;
   Status logStatus(const std::vector<StatusLogLine>& log) override;
 };
 
@@ -57,8 +60,8 @@ Status SyslogLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
   return Status(0, "OK");
 }
 
-Status SyslogLoggerPlugin::init(const std::string& name,
-                                const std::vector<StatusLogLine>& log) {
+void SyslogLoggerPlugin::init(const std::string& name,
+                              const std::vector<StatusLogLine>& log) {
   closelog();
 
   // Define the syslog/target's application name.
@@ -68,6 +71,6 @@ Status SyslogLoggerPlugin::init(const std::string& name,
   openlog(name.c_str(), LOG_PID | LOG_CONS, FLAGS_logger_syslog_facility << 3);
 
   // Now funnel the intermediate status logs provided to `init`.
-  return logStatus(log);
+  logStatus(log);
 }
 }

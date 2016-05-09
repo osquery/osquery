@@ -8,11 +8,6 @@
  *
  */
 
-#include <chrono>
-#include <string>
-#include <thread>
-#include <vector>
-
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -20,9 +15,7 @@
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
-#include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
-#include "osquery/remote/transports/tls.h"
 #include "osquery/remote/utility.h"
 
 #include "osquery/config/parsers/decorators.h"
@@ -78,12 +71,12 @@ Status TLSLoggerPlugin::setUp() {
   return Status(0);
 }
 
-Status TLSLoggerPlugin::init(const std::string& name,
-                             const std::vector<StatusLogLine>& log) {
+void TLSLoggerPlugin::init(const std::string& name,
+                           const std::vector<StatusLogLine>& log) {
   // Restart the glog facilities using the name init was provided.
   google::ShutdownGoogleLogging();
   google::InitGoogleLogging(name.c_str());
-  return logStatus(log);
+  logStatus(log);
 }
 
 Status TLSLogForwarder::send(std::vector<std::string>& log_data,
@@ -126,5 +119,4 @@ Status TLSLogForwarder::send(std::vector<std::string>& log_data,
   }
   return request.call(params);
 }
-
 }
