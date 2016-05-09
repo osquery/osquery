@@ -43,8 +43,6 @@ class LoggerTests : public testing::Test {
   // Count added and removed snapshot rows
   static int snapshot_rows_added;
   static int snapshot_rows_removed;
-  // Count the added health status rows
-  static int health_status_rows;
 
  private:
   /// Save the status of logging before running tests, restore afterward.
@@ -57,7 +55,6 @@ std::vector<std::string> LoggerTests::status_messages;
 int LoggerTests::statuses_logged = 0;
 int LoggerTests::snapshot_rows_added = 0;
 int LoggerTests::snapshot_rows_removed = 0;
-int LoggerTests::health_status_rows = 0;
 
 class TestLoggerPlugin : public LoggerPlugin {
  public:
@@ -90,11 +87,6 @@ class TestLoggerPlugin : public LoggerPlugin {
   Status logSnapshot(const std::string& s) {
     LoggerTests::snapshot_rows_added += 1;
     LoggerTests::snapshot_rows_removed += 0;
-    return Status(0, "OK");
-  }
-
-  Status logHealth(const std::string& s) {
-    LoggerTests::health_status_rows += 1;
     return Status(0, "OK");
   }
 };
@@ -185,10 +177,6 @@ TEST_F(LoggerTests, test_logger_snapshots) {
 
   // Expect the plugin to optionally handle snapshot logging.
   EXPECT_EQ(LoggerTests::snapshot_rows_added, 1);
-
-  // Add the same item as a health status log item.
-  logHealthStatus(item);
-  EXPECT_EQ(LoggerTests::health_status_rows, 1);
 }
 
 class SecondTestLoggerPlugin : public LoggerPlugin {

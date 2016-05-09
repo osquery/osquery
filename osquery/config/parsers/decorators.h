@@ -50,7 +50,7 @@ void runDecorators(DecorationPoint point,
  * set of decoration point results.
  *
  * Decorations are applied to log items before they are sent to the downstream
- * logging APIs: logString, logSnapshot, logHealthStatus, etc.
+ * logging APIs: logString, logSnapshot, etc.
  *
  * @param results the output parameter to write decorations.
  */

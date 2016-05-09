@@ -326,8 +326,6 @@ Status LoggerPlugin::call(const PluginRequest& request,
     return this->logString(request.at("string"));
   } else if (request.count("snapshot") > 0) {
     return this->logSnapshot(request.at("snapshot"));
-  } else if (request.count("health") > 0) {
-    return this->logHealth(request.at("health"));
   } else if (request.count("init") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
     return this->init(request.at("init"), intermediate_logs);
@@ -399,21 +397,6 @@ Status logSnapshotQuery(const QueryLogItem& item) {
     json.pop_back();
   }
   return Registry::call("logger", {{"snapshot", json}});
-}
-
-Status logHealthStatus(const QueryLogItem& item) {
-  if (FLAGS_disable_logging) {
-    return Status(0, "Logging disabled");
-  }
-
-  std::string json;
-  if (!serializeQueryLogItemJSON(item, json)) {
-    return Status(1, "Could not serialize health");
-  }
-  if (!json.empty() && json.back() == '\n') {
-    json.pop_back();
-  }
-  return Registry::call("logger", {{"health", json}});
 }
 
 void relayStatusLogs() {
