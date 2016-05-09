@@ -299,13 +299,13 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   }
 
   pIdxInfo->idxNum = kConstraintIndexID++;
-// Add the constraint set to the table's tracked constraints.
 #if defined(DEBUG)
   plan("Recording constraint set for table: " + pVtab->content->name +
        " [cost=" + std::to_string(cost) + " size=" +
        std::to_string(constraints.size()) + " idx=" +
        std::to_string(pIdxInfo->idxNum) + "]");
 #endif
+  // Add the constraint set to the table's tracked constraints.
   pVtab->content->constraints[pIdxInfo->idxNum] = std::move(constraints);
   pIdxInfo->estimatedCost = cost;
   return SQLITE_OK;
@@ -323,7 +323,7 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
 
   pCur->row = 0;
   pCur->n = 0;
-  QueryContext context;
+  QueryContext context(content);
 
   for (size_t i = 0; i < content->columns.size(); ++i) {
     // Set the column affinity for each optional constraint list.
@@ -367,10 +367,8 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   // Reset the virtual table contents.
   pCur->data.clear();
   // Generate the row data set.
-  PluginRequest request = {{"action", "generate"}};
   plan("Scanning rows for cursor (" + std::to_string(pCur->id) + ")");
-  TablePlugin::setRequestFromContext(context, request);
-  Registry::call("table", pVtab->content->name, request, pCur->data);
+  Registry::callTable(pVtab->content->name, context, pCur->data);
 
   // Set the number of rows.
   pCur->n = pCur->data.size();

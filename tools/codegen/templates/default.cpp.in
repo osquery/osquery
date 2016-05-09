@@ -32,7 +32,7 @@ class {{class_name}} {
 
 class {{table_name_cc}}TablePlugin : public TablePlugin {
  private:
-  TableColumns columns() const {
+  TableColumns columns() const override {
     return {
 {% for column in schema %}\
       {"{{column.name}}", {{column.type.affinity}}}\
@@ -41,7 +41,7 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
     };
   }
 
-  QueryData generate(QueryContext& request) {
+  QueryData generate(QueryContext& request) override {
 {% if class_name != "" %}\
     if (EventFactory::exists(getName())) {
       auto subscriber = EventFactory::getEventSubscriber(getName());

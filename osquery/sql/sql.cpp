@@ -95,6 +95,7 @@ QueryData SQL::selectAllFrom(const std::string& table,
                              const std::string& expr) {
   PluginRequest request = {{"action", "generate"}};
   {
+    // Create a fake content, there will be no caching.
     QueryContext ctx;
     ctx.constraints[column].add(Constraint(op, expr));
     TablePlugin::setRequestFromContext(ctx, request);

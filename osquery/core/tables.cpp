@@ -111,17 +111,19 @@ Status TablePlugin::call(const PluginRequest& request,
   }
 
   if (request.at("action") == "generate") {
-    // "generate" runs the table implementation using a PluginRequest with
-    // optional serialized QueryContext and returns the QueryData results as
-    // the PluginRequest data.
+    // The "generate" action runs the table implementation using a PluginRequest
+    // with optional serialized QueryContext and returns the QueryData results
+    // as the PluginRequest data.
+
+    // Create a fake table implementation for caching.
     QueryContext context;
     if (request.count("context") > 0) {
       setContextFromRequest(request, context);
     }
     response = generate(context);
   } else if (request.at("action") == "columns") {
-    // "columns" returns a PluginRequest filled with column information
-    // such as name and type.
+    // The "columns" action returns a PluginRequest filled with column
+    // information such as name and type.
     const auto& column_list = columns();
     for (const auto& column : column_list) {
       response.push_back(

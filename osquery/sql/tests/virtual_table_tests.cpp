@@ -24,7 +24,7 @@ class VirtualTableTests : public testing::Test {};
 // sample plugin used on tests
 class sampleTablePlugin : public TablePlugin {
  private:
-  TableColumns columns() const {
+  TableColumns columns() const override {
     return {
         {"foo", INTEGER_TYPE}, {"bar", TEXT_TYPE},
     };
@@ -69,7 +69,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
 
 TEST_F(VirtualTableTests, test_sqlite3_table_joins) {
   // Get a database connection.
-  auto dbc = SQLiteDBManager::get();
+  auto dbc = SQLiteDBManager::getUnique();
 
   QueryData results;
   // Run a query with a join within.
@@ -82,14 +82,14 @@ TEST_F(VirtualTableTests, test_sqlite3_table_joins) {
 
 class pTablePlugin : public TablePlugin {
  private:
-  TableColumns columns() const {
+  TableColumns columns() const override {
     return {
         {"x", INTEGER_TYPE}, {"y", INTEGER_TYPE},
     };
   }
 
  public:
-  QueryData generate(QueryContext&) {
+  QueryData generate(QueryContext&) override {
     return {
         {{"x", "1"}, {"y", "2"}}, {{"x", "2"}, {"y", "1"}},
     };
@@ -101,14 +101,14 @@ class pTablePlugin : public TablePlugin {
 
 class kTablePlugin : public TablePlugin {
  private:
-  TableColumns columns() const {
+  TableColumns columns() const override {
     return {
         {"x", INTEGER_TYPE}, {"z", INTEGER_TYPE},
     };
   }
 
  public:
-  QueryData generate(QueryContext&) {
+  QueryData generate(QueryContext&) override {
     return {
         {{"x", "1"}, {"z", "2"}}, {{"x", "2"}, {"z", "1"}},
     };
@@ -135,7 +135,7 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   // Add two testing tables to the registry.
   Registry::add<pTablePlugin>("table", "p");
   Registry::add<kTablePlugin>("table", "k");
-  auto dbc = SQLiteDBManager::get();
+  auto dbc = SQLiteDBManager::getUnique();
 
   {
     // To simplify the attach, just access the column definition directly.
@@ -149,7 +149,7 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   std::string statement;
   std::map<std::string, std::string> expected;
 
-  std::vector<std::pair<std::string, QueryData> > constraint_tests = {
+  std::vector<std::pair<std::string, QueryData>> constraint_tests = {
       MP("select k.x from p, k", makeResult("x", {"1", "2", "1", "2"})),
       MP("select k.x from (select * from k) k2, p, k where k.x = p.x",
          makeResult("k.x", {"1", "1", "2", "2"})),
@@ -200,14 +200,14 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
 
 class jsonTablePlugin : public TablePlugin {
  private:
-  TableColumns columns() const {
+  TableColumns columns() const override {
     return {
         {"data", TEXT_TYPE},
     };
   }
 
  public:
-  QueryData generate(QueryContext&) {
+  QueryData generate(QueryContext&) override {
     return {
         {{"data", "{\"test\": 1}"}},
     };
@@ -220,7 +220,7 @@ class jsonTablePlugin : public TablePlugin {
 TEST_F(VirtualTableTests, test_json_extract) {
   // Get a database connection.
   Registry::add<jsonTablePlugin>("table", "json");
-  auto dbc = SQLiteDBManager::get();
+  auto dbc = SQLiteDBManager::getUnique();
 
   {
     auto json = std::make_shared<jsonTablePlugin>();
@@ -238,7 +238,7 @@ TEST_F(VirtualTableTests, test_json_extract) {
 }
 
 TEST_F(VirtualTableTests, test_null_values) {
-  auto dbc = SQLiteDBManager::get();
+  auto dbc = SQLiteDBManager::getUnique();
 
   std::string statement = "SELECT NULL as null_value;";
   {
@@ -271,5 +271,56 @@ TEST_F(VirtualTableTests, test_null_values) {
     queryInternal(statement, results, dbc->db());
     EXPECT_EQ(results[0]["null_value"], "");
   }
+}
+
+class cacheTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        {"data", TEXT_TYPE},
+    };
+  }
+
+ public:
+  QueryData generate(QueryContext& context) override {
+    if (context.isCached("awesome_data")) {
+      // There is cache entry for awesome data.
+      return {{{"data", "more_awesome_data"}}};
+    } else {
+      Row r = {{"data", "awesome_data"}};
+      context.setCache("awesome_data", r);
+      return {r};
+    }
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_table_cache);
+};
+
+TEST_F(VirtualTableTests, test_table_cache) {
+  // Get a database connection.
+  Registry::add<cacheTablePlugin>("table", "cache");
+  auto dbc = SQLiteDBManager::getUnique();
+
+  {
+    auto cache = std::make_shared<cacheTablePlugin>();
+    attachTableInternal("cache", cache->columnDefinition(), dbc);
+  }
+
+  QueryData results;
+  // Run a query with a join within.
+  std::string statement = "SELECT c2.data as data FROM cache c1, cache c2;";
+  auto status = queryInternal(statement, results, dbc->db());
+  dbc->clearAffectedTables();
+  EXPECT_TRUE(status.ok());
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["data"], "more_awesome_data");
+
+  // Run the query again, the virtual table cache should have been expired.
+  results.clear();
+  statement = "SELECT data from cache c1";
+  queryInternal(statement, results, dbc->db());
+  ASSERT_EQ(results.size(), 1U);
+  ASSERT_EQ(results[0]["data"], "awesome_data");
 }
 }
