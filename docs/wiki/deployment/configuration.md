@@ -399,7 +399,8 @@ Decorator queries exist in osquery versions 1.7.3+ and are used to add additiona
 {
   "decorators": {
     "load": [
-      "SELECT version FROM osquery_info"
+      "SELECT version FROM osquery_info",
+      "SELECT uuid AS host_uuid FROM system_info"
     ],
     "always": [
       "SELECT user AS username FROM logged_in_users WHERE user <> '' ORDER BY time LIMIT 1;"
@@ -423,10 +424,10 @@ Each decorator query should return at most 1 row. A warning will be generated if
 The columns, and their values, will be appended to each log line as follows. Assuming the above set of decorators is used, and the schedule is execution for over an hour (3600 seconds):
 
 ```json
-{"decorators": {"user": "you", "uptime": "10000", "version": "1.7.3"}}
+{"decorations": {"user": "you", "uptime": "10000", "version": "1.7.3"}}
 ```
 
-Expect the normal set of log keys to be included and note that `decorators` is a top-level key in the log line whose value is an embedded map.
+Expect the normal set of log keys to be included and note that `decorations` is a top-level key in the log line whose value is an embedded map.
 
 The `interval` type uses a map of interval 'periods' as keys, and the set of decorator queries for each value. Each of these intervals MUST be minute-intervals. Anything not divisible by 60 will generate a warning, and will not run.
 
