@@ -9,17 +9,17 @@
  */
 
 #include <exception>
-#include <mutex>
 
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
 
-// This is the mode that glog uses for logfiles.  Must be at the top level
-// (i.e. outside of the `osquery` namespace).
+/**
+ * This is the mode that Glog uses for logfiles.
+ * Must be at the top level (i.e. outside of the `osquery` namespace).
+ */
 DECLARE_int32(logfile_mode);
 
 namespace osquery {
@@ -28,40 +28,49 @@ FLAG(string,
      logger_path,
      "/var/log/osquery/",
      "Directory path for ERROR/WARN/INFO and results logging");
-
-FLAG(int32, logger_mode, 0640, "Decimal mode for log files (default '0640')");
-
 /// Legacy, backward compatible "osquery_log_dir" CLI option.
 FLAG_ALIAS(std::string, osquery_log_dir, logger_path);
 
+FLAG(int32, logger_mode, 0640, "Decimal mode for log files (default '0640')");
+
 const std::string kFilesystemLoggerFilename = "osqueryd.results.log";
 const std::string kFilesystemLoggerSnapshots = "osqueryd.snapshots.log";
-const std::string kFilesystemLoggerHealth = "osqueryd.health.log";
-
-std::mutex kFilesystemLoggerPluginMutex;
 
 class FilesystemLoggerPlugin : public LoggerPlugin {
  public:
   Status setUp() override;
 
+  /// Log results (differential) to a distinct path.
   Status logString(const std::string& s) override;
 
+  /// Log snapshot data to a distinct path.
   Status logSnapshot(const std::string& s) override;
 
-  Status logHealth(const std::string& s) override;
-
+  /**
+   * @brief Initialize the logger plugin after osquery has begun.
+   *
+   * The filesystem logger plugin is somewhat unique, it is the only logger
+   * that will return an error during initialization. This allows Glog to
+   * write directly to files.
+   */
   Status init(const std::string& name,
               const std::vector<StatusLogLine>& log) override;
 
+  /// Write a status to Glog.
   Status logStatus(const std::vector<StatusLogLine>& log) override;
 
  private:
+  /// The plugin-internal filesystem writer method.
   Status logStringToFile(const std::string& s,
                          const std::string& filename,
                          bool empty = false);
 
  private:
+  /// The folder where Glog and the result/snapshot files are written.
   fs::path log_path_;
+
+  /// Filesystem writer mutex.
+  Mutex mutex_;
 
  private:
   FRIEND_TEST(FilesystemLoggerTests, test_filesystem_init);
@@ -72,7 +81,7 @@ REGISTER(FilesystemLoggerPlugin, "logger", "filesystem");
 Status FilesystemLoggerPlugin::setUp() {
   log_path_ = fs::path(FLAGS_logger_path);
 
-  // Ensure that the glog status logs use the same mode as our results log.
+  // Ensure that the Glog status logs use the same mode as our results log.
   // Glog 0.3.4 does not support a logfile mode.
   // FLAGS_logfile_mode = FLAGS_logger_mode;
 
@@ -87,19 +96,17 @@ Status FilesystemLoggerPlugin::logString(const std::string& s) {
 Status FilesystemLoggerPlugin::logStringToFile(const std::string& s,
                                                const std::string& filename,
                                                bool empty) {
-  std::lock_guard<std::mutex> lock(kFilesystemLoggerPluginMutex);
+  WriteLock lock(mutex_);
+  Status status;
   try {
-    auto status = writeTextFile((log_path_ / filename).string(),
-                                (empty) ? "" : s + '\n',
-                                FLAGS_logger_mode,
-                                true);
-    if (!status.ok()) {
-      return status;
-    }
+    status = writeTextFile((log_path_ / filename).string(),
+                           (empty) ? "" : s + '\n',
+                           FLAGS_logger_mode,
+                           true);
   } catch (const std::exception& e) {
     return Status(1, e.what());
   }
-  return Status(0, "OK");
+  return status;
 }
 
 Status FilesystemLoggerPlugin::logStatus(
@@ -118,10 +125,6 @@ Status FilesystemLoggerPlugin::logStatus(
 Status FilesystemLoggerPlugin::logSnapshot(const std::string& s) {
   // Send the snapshot data to a separate filename.
   return logStringToFile(s, kFilesystemLoggerSnapshots);
-}
-
-Status FilesystemLoggerPlugin::logHealth(const std::string& s) {
-  return logStringToFile(s, kFilesystemLoggerHealth);
 }
 
 Status FilesystemLoggerPlugin::init(const std::string& name,
