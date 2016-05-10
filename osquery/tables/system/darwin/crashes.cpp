@@ -140,7 +140,8 @@ QueryData genCrashLogs(QueryContext& context) {
     std::vector<std::string> files;
     if (listFilesInDirectory(path, files)) {
       for (const auto& lf : files) {
-        if (alg::ends_with(lf, ".crash")) {
+        if (alg::ends_with(lf, ".crash") &&
+            lf.find("LowBattery") == std::string::npos) {
           Row r;
           r["type"] = type;
           readCrashDump(lf, r);
