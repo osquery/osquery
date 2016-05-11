@@ -42,8 +42,6 @@ endif()
 
 # The core set of osquery libraries most discovered with find_package.
 set(OSQUERY_LIBS
-  # This includes librocksdb[_lite] and libsnappy.
-  ${THRIFT_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
   ${OPENSSL_SSL_LIBRARY}
   ${READLINE_LIBRARIES}
@@ -91,6 +89,7 @@ if(LINUX)
 endif()
 
 # The remaining boost libraries are discovered with find_library.
+ADD_OSQUERY_LINK_CORE("thrift")
 ADD_OSQUERY_LINK_CORE("gflags")
 ADD_OSQUERY_LINK_CORE("glog")
 ADD_OSQUERY_LINK_CORE("boost_system")
