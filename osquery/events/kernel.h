@@ -67,24 +67,57 @@ using KernelEventContextRef = std::shared_ptr<KernelEventContext>;
 
 template <typename EventType>
 using TypedKernelEventContextRef =
-    std::shared_ptr<TypedKernelEventContext<EventType> >;
+    std::shared_ptr<TypedKernelEventContext<EventType>>;
 
 class KernelEventPublisher
     : public EventPublisher<KernelSubscriptionContext, KernelEventContext> {
   DECLARE_PUBLISHER("kernel");
 
  public:
-  KernelEventPublisher() : EventPublisher(), queue_(nullptr){};
+  KernelEventPublisher() : EventPublisher(), queue_(nullptr) {}
 
+  /**
+   * @brief Attempt to load the platform's kernel component.
+   *
+   * This method starts the kernel event publisher. As a convenience, the daemon
+   * will try to start/add/load the kernel component. For example on OS X this
+   * will load the osquery kernel extension if available. Each platform should
+   * include a `osquery::loadKernelExtension` method to perform the load.
+   *
+   * The osquery kernel component expects to make a queue available to the
+   * daemon, so the setup method will attempt to connect and request
+   * initialization of the queue, see the `osquery::CQueue` APIs.
+   *
+   * This should return a failure status if the queue cannot be initialized.
+   */
   Status setUp() override;
 
+  /**
+   * @brief Translate event subscribers into kernel subscriptions.
+   *
+   * The kernel component also uses a subscription abstraction. We expect to
+   * register kernel-based callbacks or start kernel threads that publish into
+   * a circular queue. When the queue is initialized it may communicate to each
+   * of these kernel publishers.
+   */
   void configure() override;
 
-  void tearDown() override;
+  void stop() override;
 
+  /**
+   * @brief Remove the circular queue.
+   */
+  void tearDown() override { stop(); }
+
+  /**
+   * @brief Continue to flush the queue.
+   */
   Status run() override;
 
  private:
+  /// Queue access mutex.
+  Mutex mutex_;
+
   CQueue *queue_{nullptr};
 
   /// Check whether the subscription matches the event.

@@ -25,6 +25,9 @@ static const size_t kKernelQueueSize = (20 * (1 << 20));
 /// Handle a maximum of 1000 events before requesting a resync.
 static const int kKernelEventsSyncMax = 1000;
 
+/// Handle a maximum of 10 events before request another lock.
+static const int kKernelEventsIterate = 10;
+
 REGISTER(KernelEventPublisher, "event_publisher", "kernel");
 
 Status KernelEventPublisher::setUp() {
@@ -44,6 +47,7 @@ Status KernelEventPublisher::setUp() {
   // This will open the extension descriptor and synchronize queue data.
   // If any other daemons or osquery processes are using the queue this fails.
   try {
+    WriteLock lock(mutex_);
     queue_ = new CQueue(kKernelDevice, kKernelQueueSize);
   } catch (const CQueueException &e) {
     queue_ = nullptr;
@@ -58,6 +62,7 @@ Status KernelEventPublisher::setUp() {
 }
 
 void KernelEventPublisher::configure() {
+  WriteLock lock(mutex_);
   for (const auto &sub : subscriptions_) {
     if (queue_ != nullptr) {
       auto sc = getSubscriptionContext(sub->context);
@@ -66,21 +71,27 @@ void KernelEventPublisher::configure() {
   }
 }
 
-void KernelEventPublisher::tearDown() {
+void KernelEventPublisher::stop() {
+  WriteLock lock(mutex_);
   if (queue_ != nullptr) {
     delete queue_;
+    queue_ = nullptr;
   }
 }
 
 Status KernelEventPublisher::run() {
-  if (queue_ == nullptr) {
-    return Status(1, "No kernel communication");
+  {
+    WriteLock lock(mutex_);
+    if (queue_ == nullptr) {
+      return Status(1, "No kernel communication");
+    }
   }
 
   // Perform queue read min/max synchronization.
   try {
     int drops = 0;
-    if ((drops = queue_->kernelSync(OSQUERY_DEFAULT)) > 0 &&
+    WriteLock lock(mutex_);
+    if ((drops = queue_->kernelSync(OSQUERY_OPTIONS_NO_BLOCK)) > 0 &&
         kToolType == OSQUERY_TOOL_DAEMON) {
       LOG(WARNING) << "Dropping " << drops << " kernel events";
     }
@@ -88,29 +99,55 @@ Status KernelEventPublisher::run() {
     LOG(WARNING) << "Queue synchronization error: " << e.what();
   }
 
+  auto dequeueEvents = [this]() {
+    // Dequeue several events while holding the lock.
+    int max_before_lock = kKernelEventsIterate;
+    while (max_before_lock > 0) {
+      // Request an event from the synchronized, safe, portion of the queue.
+      CQueue::event *event = nullptr;
+      auto event_type = queue_->dequeue(&event);
+      if (event_type == OSQUERY_NULL_EVENT) {
+        return false;
+      }
+
+      // Each event type may use a specific event type structure.
+      KernelEventContextRef ec = nullptr;
+      switch (event_type) {
+      case OSQUERY_PROCESS_EVENT:
+        ec = createEventContextFrom<osquery_process_event_t>(event_type, event);
+        fire(ec);
+        break;
+      case OSQUERY_FILE_EVENT:
+        ec = createEventContextFrom<osquery_file_event_t>(event_type, event);
+        fire(ec);
+        break;
+      default:
+        LOG(WARNING) << "Unknown kernel event received: " << event_type;
+        break;
+      }
+      max_before_lock--;
+    }
+    return true;
+  };
+
   // Iterate over each event type in the queue and appropriately fire each.
   int max_before_sync = kKernelEventsSyncMax;
-  KernelEventContextRef ec;
-  osquery_event_t event_type = OSQUERY_NULL_EVENT;
-  CQueue::event *event = nullptr;
-  while (max_before_sync > 0 && (event_type = queue_->dequeue(&event))) {
-    // Each event type may use a specific event type structure.
-    switch (event_type) {
-    case OSQUERY_PROCESS_EVENT:
-      ec = createEventContextFrom<osquery_process_event_t>(event_type, event);
-      fire(ec);
-      break;
-    case OSQUERY_FILE_EVENT:
-      ec = createEventContextFrom<osquery_file_event_t>(event_type, event);
-      fire(ec);
-      break;
-    default:
-      LOG(WARNING) << "Unknown kernel event received: " << event_type;
+  while (max_before_sync > 0) {
+    WriteLock lock(mutex_);
+    // The kernel publisher may have been torn down.
+    if (queue_ == nullptr) {
       break;
     }
-    max_before_sync--;
+    // A NULL event occurred, stop dequeuing.
+    if (!dequeueEvents()) {
+      break;
+    }
+    // Append the number of dequeue events to the synchronization counter.
+    max_before_sync -= kKernelEventsIterate;
   }
 
+  // Pause for a cool-off since we implement comms in a no-blocking mode.
+  pauseMilli(1000);
   return Status(0, "Continue");
 }
 
@@ -119,7 +156,7 @@ KernelEventContextRef KernelEventPublisher::createEventContextFrom(
     osquery_event_t event_type, CQueue::event *event) const {
   TypedKernelEventContextRef<EventType> ec = nullptr;
 
-  ec = std::make_shared<TypedKernelEventContext<EventType> >();
+  ec = std::make_shared<TypedKernelEventContext<EventType>>();
   ec->event_type = event_type;
   ec->time = event->time.time;
   ec->uptime = event->time.uptime;

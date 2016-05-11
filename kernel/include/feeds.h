@@ -171,8 +171,10 @@ typedef struct {
 } osquery_subscription_args_t;
 
 // Flags for buffer sync options.
-#define OSQUERY_DEFAULT 0
-#define OSQUERY_NO_BLOCK 1
+enum osquery_options {
+  OSQUERY_OPTIONS_DEFAULT = 0,
+  OSQUERY_OPTIONS_NO_BLOCK = 1,
+};
 
 typedef struct {
   // Option such as OSQUERY_NO_BLOCK.

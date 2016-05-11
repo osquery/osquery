@@ -72,7 +72,7 @@ TEST_F(KernelCommunicationTests, test_communication) {
   unsigned int tasks = 0;
   do {
     tasks = dispatcher.serviceCount();
-    drops += queue.kernelSync(OSQUERY_NO_BLOCK);
+    drops += queue.kernelSync(OSQUERY_OPTIONS_NO_BLOCK);
     unsigned int max_before_sync = 2000;
     while (max_before_sync > 0 && (event = queue.dequeue(&event_buf))) {
       switch (event) {
