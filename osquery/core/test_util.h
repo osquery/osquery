@@ -22,6 +22,8 @@
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
 
+#include "osquery/core/process.h"
+
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -158,3 +160,4 @@ class TLSServerRunner : private boost::noncopyable {
   std::string enroll_secret_path_;
 };
 }
+

@@ -28,6 +28,18 @@ else()
   )
 endif()
 
+if(WIN32)
+  set(OS_CORE_LIBS "")
+else()
+  set(OS_CORE_LIBS
+    pthread
+  )
+  set(BZIP2_LIBRARIES
+    bz2
+    z
+  )
+endif()
+
 # The core set of osquery libraries most discovered with find_package.
 set(OSQUERY_LIBS
   # This includes librocksdb[_lite] and libsnappy.
@@ -35,10 +47,8 @@ set(OSQUERY_LIBS
   ${OPENSSL_CRYPTO_LIBRARY}
   ${OPENSSL_SSL_LIBRARY}
   ${READLINE_LIBRARIES}
-
-  pthread
-  bz2
-  z
+  ${BZIP2_LIBRARIES}
+  ${OS_CORE_LIBS}
 )
 
 # If building with RocksDB (default) append associated libraries.
