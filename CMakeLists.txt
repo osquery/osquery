@@ -480,9 +480,11 @@ if(NOT DEFINED ENV{SKIP_ROCKSDB})
 endif()
 
 # Python is used for table spec generation and formating.
-if(PYTHON_VERSION_MAJOR STREQUAL "2" AND PYTHON_VERSION_MINOR STREQUAL "4")
-  WARNING_LOG("Found python 2.4, overriding to /usr/bin/python2.6")
-  set(PYTHON_EXECUTABLE "/usr/bin/python2.6")
+if(NOT WIN32)
+  if(PYTHON_VERSION_MAJOR STREQUAL "2" AND PYTHON_VERSION_MINOR STREQUAL "4")
+    WARNING_LOG("Found python 2.4, overriding to /usr/bin/python2.6")
+    set(PYTHON_EXECUTABLE "/usr/bin/python2.6")
+  endif()
 endif()
 
 enable_testing()
@@ -503,6 +505,7 @@ if(WIN32)
   include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
   
   # TODO(#1990): We probably need to add our third-party link directories here
+  link_directories("${BOOST_DEP_DIR}/lib64-msvc-14.0")
 else()
   include_directories("/usr/local/include")
   link_directories("/usr/local/lib")
