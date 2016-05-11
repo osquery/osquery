@@ -57,25 +57,21 @@ int LoggerTests::snapshot_rows_added = 0;
 int LoggerTests::snapshot_rows_removed = 0;
 
 class TestLoggerPlugin : public LoggerPlugin {
- public:
+ protected:
+  bool usesLogStatus() { return shouldLogStatus; }
+
   Status logString(const std::string& s) {
     LoggerTests::log_lines.push_back(s);
     return Status(0, s);
   }
 
-  Status init(const std::string& name, const std::vector<StatusLogLine>& log) {
+  void init(const std::string& name, const std::vector<StatusLogLine>& log) {
     for (const auto& status : log) {
       LoggerTests::status_messages.push_back(status.message);
     }
 
     if (log.size() > 0) {
       LoggerTests::last_status = log.back();
-    }
-
-    if (name == "RETURN_FAILURE") {
-      return Status(1, "OK");
-    } else {
-      return Status(0, "OK");
     }
   }
 
@@ -89,6 +85,10 @@ class TestLoggerPlugin : public LoggerPlugin {
     LoggerTests::snapshot_rows_removed += 0;
     return Status(0, "OK");
   }
+
+ public:
+  /// Allow test methods to change status logging state.
+  bool shouldLogStatus{true};
 };
 
 TEST_F(LoggerTests, test_plugin) {
@@ -150,10 +150,15 @@ TEST_F(LoggerTests, test_logger_log_status) {
 }
 
 TEST_F(LoggerTests, test_logger_variations) {
-  // Init the logger for a second time, this should only be done for testing.
-  // This time we'll trigger the init method to fail and prevent additional
-  // status messages from trigger logStatus.
-  initLogger("RETURN_FAILURE");
+  // Retrieve the test logger plugin.
+  auto plugin = Registry::get("logger", "test");
+  auto logger = std::dynamic_pointer_cast<TestLoggerPlugin>(plugin);
+  // Change the behavior.
+  logger->shouldLogStatus = false;
+
+  // Call the logger initialization again, then reset the behavior.
+  initLogger("duplicate_logger");
+  logger->shouldLogStatus = true;
 
   // This will be printed to stdout.
   LOG(WARNING) << "Logger test is generating a warning status (3)";
@@ -182,6 +187,10 @@ TEST_F(LoggerTests, test_logger_snapshots) {
 class SecondTestLoggerPlugin : public LoggerPlugin {
  public:
   Status logString(const std::string& s) override { return Status(0); }
+
+ protected:
+  void init(const std::string& binary_name,
+            const std::vector<StatusLogLine>& log) override {}
 };
 
 TEST_F(LoggerTests, test_multiple_loggers) {

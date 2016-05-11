@@ -53,8 +53,8 @@ class FilesystemLoggerPlugin : public LoggerPlugin {
    * that will return an error during initialization. This allows Glog to
    * write directly to files.
    */
-  Status init(const std::string& name,
-              const std::vector<StatusLogLine>& log) override;
+  void init(const std::string& name,
+            const std::vector<StatusLogLine>& log) override;
 
   /// Write a status to Glog.
   Status logStatus(const std::vector<StatusLogLine>& log) override;
@@ -127,8 +127,8 @@ Status FilesystemLoggerPlugin::logSnapshot(const std::string& s) {
   return logStringToFile(s, kFilesystemLoggerSnapshots);
 }
 
-Status FilesystemLoggerPlugin::init(const std::string& name,
-                                    const std::vector<StatusLogLine>& log) {
+void FilesystemLoggerPlugin::init(const std::string& name,
+                                  const std::vector<StatusLogLine>& log) {
   // Stop the internal Glog facilities.
   google::ShutdownGoogleLogging();
 
@@ -163,13 +163,11 @@ Status FilesystemLoggerPlugin::init(const std::string& name,
   // Now funnel the intermediate status logs provided to `init`.
   logStatus(log);
 
+  // The filesystem logger cheats and uses Glog to log to the filesystem so
+  // we can return failure here and stop the custom log sink.
   // Restore settings for logging to stderr.
   FLAGS_logtostderr = log_to_stderr;
   FLAGS_alsologtostderr = also_log_to_stderr;
   FLAGS_stderrthreshold = stderr_threshold;
-
-  // The filesystem logger cheats and uses Glog to log to the filesystem so
-  // we can return failure here and stop the custom log sink.
-  return Status(1, "No status logger used for filesystem");
 }
 }
