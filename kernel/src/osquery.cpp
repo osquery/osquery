@@ -141,7 +141,7 @@ static int update_user_kernel_buffer(int options,
           &osquery.cqueue, read_offset, max_read_offset)) {
     return -EINVAL;
   }
-  if (!(options & OSQUERY_NO_BLOCK)) {
+  if (!(options & OSQUERY_OPTIONS_NO_BLOCK)) {
     ssize_t offset = 0;
     if ((offset = osquery_cqueue_wait_for_data(&osquery.cqueue)) < 0) {
       return -EINVAL;

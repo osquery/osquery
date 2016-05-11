@@ -41,7 +41,7 @@ static inline void producerThread(benchmark::State &state) {
     if (queue == nullptr) {
       continue;
     }
-    drops += queue->kernelSync(OSQUERY_NO_BLOCK);
+    drops += queue->kernelSync(OSQUERY_OPTIONS_NO_BLOCK);
     syncs++;
     max_before_sync = 2000;
     while (max_before_sync > 0 && (event = queue->dequeue(&event_buf))) {

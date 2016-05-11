@@ -78,7 +78,7 @@ osquery_event_t CQueue::dequeue(CQueue::event **event) {
 
 int CQueue::kernelSync(int options) {
   // A positive return indicates drops, 0 is all good in the hood.
-  // Options are listed in kernel feeds; primarily OSQUERY_NO_BLOCK.
+  // Options are listed in kernel feeds; primarily OSQUERY_OPTIONS_NO_BLOCK.
   osquery_buf_sync_args_t sync;
   sync.read_offset = read_ - buffer_;
   sync.options = options;
