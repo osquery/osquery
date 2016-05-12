@@ -126,6 +126,10 @@ function main_ubuntu() {
     package bison
   fi
 
+  if [[ $DISTRO = "xenial" ]]; then
+    remove_package libunwind-dev
+  fi
+
   install_boost
   install_gflags
   install_glog
@@ -158,6 +162,8 @@ function main_ubuntu() {
     package python-argparse
     package python-jinja2
     package python-psutil
+  elif [[ $DISTRO = "xenial" ]]; then
+    package python-setuptools
   fi
 
   install_aws_sdk
