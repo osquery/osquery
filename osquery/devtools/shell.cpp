@@ -25,9 +25,11 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
+#include <osquery/config.h>
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/packs.h>
 
 #include "osquery/devtools/devtools.h"
 #include "osquery/sql/virtual_table.h"
@@ -45,6 +47,7 @@ SHELL_FLAG(bool, line, false, "Set output mode to 'line'");
 SHELL_FLAG(bool, list, false, "Set output mode to 'list'");
 SHELL_FLAG(string, separator, "|", "Set output field separator, default '|'");
 SHELL_FLAG(bool, header, true, "Toggle column headers true/false");
+SHELL_FLAG(string, pack, "", "Run all queries in a pack");
 
 /// Define short-hand shell switches.
 SHELL_FLAG(bool, L, false, "List all table names");
@@ -363,266 +366,19 @@ static void output_c_string(FILE *out, const char *z) {
 ** If a field contains any character identified by a 1 in the following
 ** array, then the string must be quoted for CSV.
 */
-// clang-format off
 static const char needCsvQuote[] = {
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    0,
-    1,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 };
-// clang-format on
 
 /*
 ** Output a single term of CSV.  Actually, p->separator is used for
@@ -1711,6 +1467,18 @@ int launchIntoShell(int argc, char **argv) {
   sqlite3_snprintf(
       sizeof(data.nullvalue), data.nullvalue, "%s", FLAGS_nullvalue.c_str());
 
+  auto runQuery = [&data](const char *query) {
+    char *error = 0;
+    int rc = shell_exec(query, shell_callback, &data, &error);
+    if (error != 0) {
+      fprintf(stderr, "Error: %s\n", error);
+      return (rc != 0) ? rc : 1;
+    } else if (rc != 0) {
+      fprintf(stderr, "Error: unable to process SQL \"%s\"\n", query);
+    }
+    return rc;
+  };
+
   int rc = 0;
   if (FLAGS_L || FLAGS_A.size() > 0) {
     // Helper meta commands from shell switches.
@@ -1719,20 +1487,34 @@ int launchIntoShell(int argc, char **argv) {
     memset(cmd, 0, query.size() + 1);
     std::copy(query.begin(), query.end(), cmd);
     rc = do_meta_command(cmd, &data);
+  } else if (FLAGS_pack.size() > 0) {
+    // Check every pack for a name matching the requested --pack flag.
+    Config::getInstance().packs([&runQuery, &rc](std::shared_ptr<Pack> &pack) {
+      if (pack->getName() != FLAGS_pack) {
+        return;
+      }
+
+      for (const auto &query : pack->getSchedule()) {
+        rc = runQuery(query.second.query.c_str());
+        if (rc != 0) {
+          fprintf(stderr, "Could not execute query %s: %s\n",
+                  query.first.c_str(), query.second.query.c_str());
+          return;
+        }
+      }
+    });
+    if (rc != 0) {
+      return rc;
+    }
   } else if (argc > 1 && argv[1] != nullptr) {
     // Run a command or statement from CLI
     char *query = argv[1];
-    char *error = 0;
     if (query[0] == '.') {
       rc = do_meta_command(query, &data);
       rc = (rc == 2) ? 0 : rc;
     } else {
-      rc = shell_exec(query, shell_callback, &data, &error);
-      if (error != 0) {
-        fprintf(stderr, "Error: %s\n", error);
-        return (rc != 0) ? rc : 1;
-      } else if (rc != 0) {
-        fprintf(stderr, "Error: unable to process SQL \"%s\"\n", query);
+      rc = runQuery(query);
+      if (rc != 0) {
         return rc;
       }
     }

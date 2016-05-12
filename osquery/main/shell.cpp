@@ -86,7 +86,8 @@ int main(int argc, char *argv[]) {
 
   // Check for shell-specific switches and positional arguments.
   if (argc > 1 || !isatty(fileno(stdin)) || osquery::FLAGS_A.size() > 0 ||
-      osquery::FLAGS_L || osquery::FLAGS_profile > 0) {
+      osquery::FLAGS_pack.size() > 0 || osquery::FLAGS_L ||
+      osquery::FLAGS_profile > 0) {
     // A query was set as a positional argument, via stdin, or profiling is on.
     osquery::FLAGS_disable_events = true;
     osquery::FLAGS_disable_caching = true;
