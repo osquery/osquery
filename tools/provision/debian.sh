@@ -52,12 +52,10 @@ function main_debian() {
   package clang
 
   if [[ $DISTRO == "wheezy" ]]; then
-    install_cmake
     # thrift requires automate 1.13 or later
     remove_package automake
     install_automake
   elif [[ $DISTRO == "jessie" ]]; then
-    package cmake
     package automake
   fi
 
@@ -69,6 +67,7 @@ function main_debian() {
     gem_install fpm
   fi
 
+  install_cmake
   install_boost
   install_gflags
   install_glog
