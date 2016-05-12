@@ -17,6 +17,9 @@ targets = {
   "ubuntu15.10"  => {
     "box" => "bento/ubuntu-15.10"
   },
+  "ubuntu16.04"  => {
+    "box" => "bento/ubuntu-16.04"
+  },
   "ubuntu14"  => {
     "box" => "ubuntu/trusty64"
   },
