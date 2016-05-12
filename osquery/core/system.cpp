@@ -78,39 +78,39 @@ std::string generateNewUUID() {
   return boost::uuids::to_string(uuid);
 }
 
-Status getHostUUID(std::string& ident) {
-  // Lookup the host identifier (UUID) previously generated and stored.
-  auto status = getDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
-  if (ident.size() == 0) {
-    // There was no uuid stored in the database, generate one and store it.
-    ident = osquery::generateHostUUID();
-    VLOG(1) << "Using uuid " << ident << " as host identifier";
-    return setDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
-  }
-
-  return status;
-}
-
 std::string generateHostUUID() {
 #ifdef __APPLE__
-  // Use the hardware uuid available on OSX to identify this machine
+  // Use the hardware UUID available on OSX to identify this machine
   uuid_t id;
   // wait at most 5 seconds for gethostuuid to return
   const timespec wait = {5, 0};
   int result = gethostuuid(id, &wait);
   if (result == 0) {
-    char out[128];
+    char out[128] = {0};
     uuid_unparse(id, out);
     std::string uuid_string = std::string(out);
     boost::algorithm::trim(uuid_string);
     return uuid_string;
   } else {
-    // unable to get the hardware uuid, just return a new uuid
+    // Unable to get the hardware UUID, just return a new UUID
     return generateNewUUID();
   }
 #else
   return generateNewUUID();
 #endif
+}
+
+Status getHostUUID(std::string& ident) {
+  // Lookup the host identifier (UUID) previously generated and stored.
+  auto status = getDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
+  if (ident.size() == 0) {
+    // There was no UUID stored in the database, generate one and store it.
+    ident = osquery::generateHostUUID();
+    VLOG(1) << "Using UUID " << ident << " as host identifier";
+    return setDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
+  }
+
+  return status;
 }
 
 std::string getHostIdentifier() {
@@ -122,15 +122,8 @@ std::string getHostIdentifier() {
   // Generate a identifier/UUID for this application launch, and persist.
   static std::string ident;
   if (ident.size() == 0) {
-    // Lookup the host identifier (UUID) previously generated and stored.
-    getDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
-    if (ident.size() == 0) {
-      ident = osquery::generateHostUUID();
-      VLOG(1) << "Using uuid " << ident << " as host identifier";
-      setDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
-    }
+    getHostUUID(ident);
   }
-
   return ident;
 }
 
