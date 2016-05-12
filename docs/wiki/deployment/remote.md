@@ -177,6 +177,8 @@ Additionally, the osquery TLS clients use a `osquery/X.Y.Z` UserAgent, where "X.
 
 Heroku maintains a great project called [Windmill](https://github.com/heroku/windmill), which implements the TLS remote settings API. It includes great documentation on compatibility, configuration, authentication, and enrollment. It is also a great place to start if you are considering writing an integration to the osquery remote settings API.
 
+[Doorman](https://github.com/mwielgoszewski/doorman) is another project that implements the TLS remote settings API. Doorman uses "tags", which can be applied to nodes, packs, and queries, in order to dynamically generate configurations for a unique set or all nodes being managed. Doorman also supports the distributed read and write API, allowing an administrator to schedule ad-hoc queries to be run immediately or in the future.
+
 **Remote settings testing**
 
 The most basic example of a server implementing the remote settings API is the [./tools/tests/test_http_server.py](https://github.com/facebook/osquery/blob/master/tools/tests/test_http_server.py) example script. Let's start this server and have **osqueryd** exercise the API:
