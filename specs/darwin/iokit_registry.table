@@ -9,5 +9,5 @@ schema([
     Column("retain_count", INTEGER, "The node reference count"),
     Column("depth", INTEGER, "Node nested depth"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("system/iokit_registry@genIOKitRegistry")

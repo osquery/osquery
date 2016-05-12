@@ -159,8 +159,8 @@ int xCreate(sqlite3 *db,
   PluginResponse response;
   pVtab->content->name = std::string(argv[0]);
   // Get the table column information.
-  auto status = Registry::call(
-      "table", pVtab->content->name, {{"action", "columns"}}, response);
+  auto status = Registry::call("table", pVtab->content->name,
+                               {{"action", "columns"}}, response);
   if (!status.ok() || response.size() == 0) {
     delete pVtab->content;
     delete pVtab;
@@ -180,8 +180,9 @@ int xCreate(sqlite3 *db,
   // Keep a local copy of the column details in the VirtualTableContent struct.
   // This allows introspection into the column type without additional calls.
   for (const auto &column : response) {
-    pVtab->content->columns.push_back(
-        std::make_pair(column.at("name"), columnTypeName(column.at("type"))));
+    pVtab->content->columns.push_back(std::make_tuple(
+        column.at("name"), columnTypeName(column.at("type")),
+        (ColumnOptions)AS_LITERAL(INTEGER_LITERAL, column.at("op"))));
   }
   *ppVtab = (sqlite3_vtab *)pVtab;
   return rc;
@@ -195,8 +196,8 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
     return SQLITE_ERROR;
   }
 
-  const auto &column_name = pVtab->content->columns[col].first;
-  const auto &type = pVtab->content->columns[col].second;
+  const auto &column_name = std::get<0>(pVtab->content->columns[col]);
+  const auto &type = std::get<1>(pVtab->content->columns[col]);
   if (pCur->row >= pCur->data.size()) {
     // Request row index greater than row set size.
     return SQLITE_ERROR;
@@ -283,7 +284,8 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
         cost += 10;
         continue;
       }
-      const auto &name = pVtab->content->columns[constraint_info.iColumn].first;
+      const auto &name =
+          std::get<0>(pVtab->content->columns[constraint_info.iColumn]);
       // Save a pair of the name and the constraint operator.
       // Use this constraint during xFilter by performing a scan and column
       // name lookup through out all cursor constraint lists.
@@ -328,8 +330,8 @@ static int xFilter(sqlite3_vtab_cursor *pVtabCursor,
   for (size_t i = 0; i < content->columns.size(); ++i) {
     // Set the column affinity for each optional constraint list.
     // There is a separate list for each column name.
-    context.constraints[content->columns[i].first].affinity =
-        content->columns[i].second;
+    context.constraints[std::get<0>(content->columns[i])].affinity =
+        std::get<1>(content->columns[i]);
   }
 
 // Filtering between cursors happens iteratively, not consecutively.
@@ -417,8 +419,8 @@ Status attachTableInternal(const std::string &name,
   // Note, if the clientData API is used then this will save a registry call
   // within xCreate.
   WriteLock lock(kAttachMutex);
-  int rc = sqlite3_create_module(
-      instance->db(), name.c_str(), &module, (void *)&(*instance));
+  int rc = sqlite3_create_module(instance->db(), name.c_str(), &module,
+                                 (void *)&(*instance));
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
     auto format =
         "CREATE VIRTUAL TABLE temp." + name + " USING " + name + statement;

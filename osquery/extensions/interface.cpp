@@ -142,7 +142,8 @@ void ExtensionManagerHandler::getQueryColumns(ExtensionResponse& _return,
 
   if (status.ok()) {
     for (const auto& col : columns) {
-      _return.response.push_back({{col.first, columnTypeName(col.second)}});
+      _return.response.push_back(
+          {{std::get<0>(col), columnTypeName(std::get<1>(col))}});
     }
   }
 }

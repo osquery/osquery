@@ -11,5 +11,5 @@ schema([
     Column("metric", INTEGER, "Cost of route. Lowest is preferred"),
     Column("type", TEXT, "Type of route"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("networking/routes@genRoutes")

@@ -127,8 +127,10 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   auto status = getQueryColumnsInternal(query, results, dbc->db());
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(2U, results.size());
-  EXPECT_EQ(std::make_pair(std::string("seconds"), INTEGER_TYPE), results[0]);
-  EXPECT_EQ(std::make_pair(std::string("version"), TEXT_TYPE), results[1]);
+  EXPECT_EQ(std::make_tuple(std::string("seconds"), INTEGER_TYPE, DEFAULT),
+            results[0]);
+  EXPECT_EQ(std::make_tuple(std::string("version"), TEXT_TYPE, DEFAULT),
+            results[1]);
 
   query = "SELECT * FROM foo";
   status = getQueryColumnsInternal(query, results, dbc->db());
@@ -138,7 +140,7 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
 std::vector<ColumnType> getTypes(const TableColumns& columns) {
   std::vector<ColumnType> types;
   for (const auto& col : columns) {
-    types.push_back(col.second);
+    types.push_back(std::get<1>(col));
   }
   return types;
 }

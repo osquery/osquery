@@ -7,5 +7,5 @@ schema([
     Column("uid", BIGINT, "User ID applied to the override, 0 applies to all"),
     Column("path", TEXT, "Path to daemon or agent plist"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("launchd@genLaunchdOverrides")

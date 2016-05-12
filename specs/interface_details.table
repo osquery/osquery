@@ -14,5 +14,5 @@ schema([
     Column("oerrors", BIGINT, "Output errors"),
     Column("last_change", BIGINT, "Time of last device modification (optional)"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("interfaces@genInterfaceDetails")

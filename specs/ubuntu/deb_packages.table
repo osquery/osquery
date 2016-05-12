@@ -8,5 +8,5 @@ schema([
     Column("arch", TEXT, "Package architecture"),
     Column("revision", TEXT, "Package revision")
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("system/deb_packages@genDebs")

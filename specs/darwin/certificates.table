@@ -18,5 +18,5 @@ schema([
     Column("path", TEXT, "Path to Keychain or PEM bundle"),
 
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("certificates@genCerts")

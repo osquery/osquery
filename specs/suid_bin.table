@@ -6,5 +6,5 @@ schema([
     Column("groupname", TEXT, "Binary owner group"),
     Column("permissions", TEXT, "Binary permissions"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("suid_bin@genSuidBin")

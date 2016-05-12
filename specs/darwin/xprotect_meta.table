@@ -6,5 +6,5 @@ schema([
     Column("developer_id", TEXT, "Developer identity (SHA1) of extension"),
     Column("min_version", TEXT, "The minimum allowed plugin version."),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("xprotect@genXProtectMeta")

@@ -9,5 +9,5 @@ schema([
     Column("type", TEXT, "Keychain item type (class)"),
     Column("path", TEXT, "Path to keychain containing item"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("keychain_items@genKeychainItems")

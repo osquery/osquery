@@ -28,7 +28,10 @@ class ExampleConfigPlugin : public ConfigPlugin {
 class ExampleTable : public TablePlugin {
  private:
   TableColumns columns() const {
-    return {{"example_text", TEXT_TYPE}, {"example_integer", INTEGER_TYPE}};
+    return {
+      std::make_tuple("example_text", TEXT_TYPE, DEFAULT),
+      std::make_tuple("example_integer", INTEGER_TYPE, DEFAULT),
+    };
   }
 
   QueryData generate(QueryContext& request) {
@@ -59,7 +62,10 @@ class ExampleTable : public TablePlugin {
 class ComplexExampleTable : public TablePlugin {
  private:
   TableColumns columns() const {
-    return {{"flag_test", TEXT_TYPE}, {"database_test", TEXT_TYPE}};
+    return {
+      std::make_tuple("flag_test", TEXT_TYPE, DEFAULT),
+      std::make_tuple("database_test", TEXT_TYPE, DEFAULT),
+    };
   }
 
   QueryData generate(QueryContext& request) {

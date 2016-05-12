@@ -126,8 +126,9 @@ Status TablePlugin::call(const PluginRequest& request,
     // information such as name and type.
     const auto& column_list = columns();
     for (const auto& column : column_list) {
-      response.push_back(
-          {{"name", column.first}, {"type", columnTypeName(column.second)}});
+      response.push_back({{"name", std::get<0>(column)},
+                          {"type", columnTypeName(std::get<1>(column))},
+                          {"op", INTEGER(std::get<2>(column))}});
     }
   } else if (request.at("action") == "definition") {
     response.push_back({{"definition", columnDefinition()}});
@@ -146,8 +147,9 @@ PluginResponse TablePlugin::routeInfo() const {
   // Route info consists of only the serialized column information.
   PluginResponse response;
   for (const auto& column : columns()) {
-    response.push_back(
-        {{"name", column.first}, {"type", columnTypeName(column.second)}});
+    response.push_back({{"name", std::get<0>(column)},
+                        {"type", columnTypeName(std::get<1>(column))},
+                        {"op", INTEGER(std::get<2>(column))}});
   }
   return response;
 }
@@ -181,8 +183,9 @@ void TablePlugin::setCache(size_t step,
 std::string columnDefinition(const TableColumns& columns) {
   std::string statement = "(";
   for (size_t i = 0; i < columns.size(); ++i) {
+    const auto& column = columns.at(i);
     statement +=
-        "`" + columns.at(i).first + "` " + columnTypeName(columns.at(i).second);
+        "`" + std::get<0>(column) + "` " + columnTypeName(std::get<1>(column));
     if (i < columns.size() - 1) {
       statement += ", ";
     }
@@ -193,8 +196,10 @@ std::string columnDefinition(const TableColumns& columns) {
 std::string columnDefinition(const PluginResponse& response) {
   TableColumns columns;
   for (const auto& column : response) {
-    columns.push_back(
-        make_pair(column.at("name"), columnTypeName(column.at("type"))));
+    columns.push_back(make_tuple(
+        column.at("name"),
+        columnTypeName(column.at("type")),
+        (ColumnOptions)AS_LITERAL(INTEGER_LITERAL, column.at("op"))));
   }
   return columnDefinition(columns);
 }

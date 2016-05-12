@@ -6,6 +6,6 @@ schema([
     Column("alias", TEXT, "Protocol alias"),
     Column("comment", TEXT, "Comment with protocol description"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("etc_protocols@genEtcProtocols")
 

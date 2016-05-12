@@ -23,16 +23,19 @@ auto {{table_name_cc}}Register = []() {
 /// BEGIN[GENTABLE]
   class {{table_name_cc}}TablePlugin : public TablePlugin {
    private:
-    TableColumns columns() const {
+    TableColumns columns() const override {
       return {
 {% for column in schema %}\
-        {"{{column.name}}", {{column.type.affinity}}}\
-{% if not loop.last %}, {% endif %}
+        std::make_tuple("{{column.name}}", {{column.type.affinity}},\
+{% if column.options|length > 0 %} {{column.options_set}}\
+{% else %} DEFAULT\
+{% endif %}\
+),
 {% endfor %}\
       };
     }
 
-    QueryData generate(QueryContext& request) { return QueryData(); }
+    QueryData generate(QueryContext& request) override { return QueryData(); }
   };
 
   Registry::add<{{table_name_cc}}TablePlugin>("table", "{{table_name}}");

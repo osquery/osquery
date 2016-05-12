@@ -35,8 +35,11 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
   TableColumns columns() const override {
     return {
 {% for column in schema %}\
-      {"{{column.name}}", {{column.type.affinity}}}\
-{% if not loop.last %}, {% endif %}
+      std::make_tuple("{{column.name}}", {{column.type.affinity}},\
+{% if column.options|length > 0 %} {{column.options_set}}\
+{% else %} DEFAULT\
+{% endif %}\
+),
 {% endfor %}\
     };
   }
@@ -51,13 +54,13 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
       return QueryData();
     }
 {% else %}\
-{% if attributes.cachable %}\
+{% if attributes.cacheable %}\
     if (isCached(kCacheStep)) {
       return getCache();
     }
 {% endif %}\
     auto results = tables::{{function}}(request);
-{% if attributes.cachable %}\
+{% if attributes.cacheable %}\
     setCache(kCacheStep, kCacheInterval, results);
 {% endif %}
     return results;

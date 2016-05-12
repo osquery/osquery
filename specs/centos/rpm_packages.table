@@ -9,5 +9,5 @@ schema([
     Column("sha1", TEXT, "SHA1 hash of the package contents"),
     Column("arch", TEXT, "Architecture(s) supported"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("@genRpmPackages")
