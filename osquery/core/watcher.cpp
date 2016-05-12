@@ -102,7 +102,7 @@ PerformanceState& Watcher::getState(const std::string& extension) {
 }
 
 void Watcher::setExtension(const std::string& extension,
-                           std::shared_ptr<PlatformProcess> child) {
+                           const std::shared_ptr<PlatformProcess>& child) {
   WatcherLocker locker;
   instance().extensions_[extension] = child;
 }
@@ -117,6 +117,7 @@ void Watcher::reset(const PlatformProcess& child) {
   // If it was not the worker pid then find the extension name to reset.
   for (const auto& extension : extensions()) {
     if (*extension.second == child) {
+      // TODO(#1991): Why is pid_t set to 0?
       setExtension(extension.first, std::shared_ptr<PlatformProcess>());
       resetExtensionCounters(extension.first, 0);
     }
@@ -124,6 +125,7 @@ void Watcher::reset(const PlatformProcess& child) {
 }
 
 void Watcher::addExtensionPath(const std::string& path) {
+  // TODO(#1991): Why is pid_t set to 0?
   setExtension(path, std::shared_ptr<PlatformProcess>());
   resetExtensionCounters(path, 0);
 }
@@ -282,6 +284,11 @@ bool WatcherRunner::isChildSane(const PlatformProcess& child) const {
 
   // Only make a decision about the child sanity if it is still the watcher's
   // child. It's possible for the child to die, and its pid reused.
+  //
+  // TODO(#1991): I'm not sure this is doing what it should be doing on
+  // Windows...
+  //              Additionally, getCurrentProcess() *may* fail under exceptional
+  // cases
   if (parent != PlatformProcess::getCurrentProcess()->pid()) {
     // The child's parent is not the watcher.
     Watcher::reset(child);
@@ -356,9 +363,8 @@ void WatcherRunner::createWorker() {
     return;
   }
 
-  std::shared_ptr<PlatformProcess> worker =
-      PlatformProcess::launchWorker(exec_path.string(), argv_[0]);
-  if (!worker) {
+  auto worker = PlatformProcess::launchWorker(exec_path.string(), argv_[0]);
+  if (worker.get() == nullptr) {
     // Unrecoverable error, cannot create a worker process.
     LOG(ERROR) << "osqueryd could not create a worker process";
     Initializer::shutdown(EXIT_FAILURE);
@@ -392,14 +398,14 @@ bool WatcherRunner::createExtension(const std::string& extension) {
     return false;
   }
 
-  std::shared_ptr<PlatformProcess> ext_process =
+  auto ext_process =
       PlatformProcess::launchExtension(exec_path.string(),
                                        extension,
                                        Flag::getValue("extensions_socket"),
                                        Flag::getValue("extensions_timeout"),
                                        Flag::getValue("extensions_interval"),
                                        Flag::getValue("verbose"));
-  if (!ext_process) {
+  if (ext_process.get() == nullptr) {
     // Unrecoverable error, cannot create an extension process.
     LOG(ERROR) << "Cannot create extension process: " << extension;
     Initializer::shutdown(EXIT_FAILURE);

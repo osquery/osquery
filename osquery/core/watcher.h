@@ -31,6 +31,8 @@
 
 namespace osquery {
 
+using ExtensionMap = std::map<std::string, std::shared_ptr<PlatformProcess>>;
+
 DECLARE_bool(disable_watchdog);
 DECLARE_int32(watchdog_level);
 
@@ -39,8 +41,8 @@ class WatcherRunner;
 /**
  * @brief Categories of process performance limitations.
  *
- * and a optional daemon worker process. The performance types are identified
  * Performance limits are applied by a watcher thread on autoloaded extensions
+ * and a optional daemon worker process. The performance types are identified
  * here, and organized into levels. Such that a caller may enforce rigor or
  * relax the performance expectations of a osquery daemon.
  */
@@ -117,10 +119,7 @@ class Watcher : private boost::noncopyable {
   static void unlock() { instance().lock_.unlock(); }
 
   /// Accessor for autoloadable extension paths.
-  static const std::map<std::string, std::shared_ptr<PlatformProcess>>&
-  extensions() {
-    return instance().extensions_;
-  }
+  static const ExtensionMap& extensions() { return instance().extensions_; }
 
   /// Lookup extension path from pid.
   static std::string getExtensionPath(const PlatformProcess& child);
@@ -139,13 +138,13 @@ class Watcher : private boost::noncopyable {
   static PlatformProcess& getWorker() { return *instance().worker_; }
 
   /// Setter for worker process.
-  static void setWorker(std::shared_ptr<PlatformProcess> child) {
+  static void setWorker(const std::shared_ptr<PlatformProcess>& child) {
     instance().worker_ = child;
   }
 
   /// Setter for an extension process.
   static void setExtension(const std::string& extension,
-                           std::shared_ptr<PlatformProcess> child);
+                           const std::shared_ptr<PlatformProcess>& child);
 
   /// Reset pid and performance counters for a worker or extension process.
   static void reset(const PlatformProcess& child);
@@ -199,7 +198,7 @@ class Watcher : private boost::noncopyable {
   size_t worker_restarts_{0};
 
   /// Keep a list of resolved extension paths and their managed pids.
-  std::map<std::string, std::shared_ptr<PlatformProcess>> extensions_;
+  ExtensionMap extensions_;
 
   /// Paths to autoload extensions.
   std::vector<std::string> extensions_paths_;
@@ -287,7 +286,7 @@ class WatcherRunner : public InternalRunnable {
 /// The WatcherWatcher is spawned within the worker and watches the watcher.
 class WatcherWatcherRunner : public InternalRunnable {
  public:
-  explicit WatcherWatcherRunner(std::shared_ptr<PlatformProcess> watcher)
+  explicit WatcherWatcherRunner(const std::shared_ptr<PlatformProcess>& watcher)
       : watcher_(watcher) {}
 
   /// Runnable thread's entry point.
