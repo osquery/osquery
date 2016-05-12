@@ -520,6 +520,10 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
     expireCheck();
   }
 
+  // Logger plugins may request events to be forwarded directly.
+  // If no active logger is marked 'usesLogEvent' then this is a no-op.
+  EventFactory::forwardEvent(data);
+
   // Store the event data.
   std::string event_key = "data." + dbNamespace() + "." + eid;
   status = setDatabaseValue(kEvents, event_key, data);
@@ -563,6 +567,16 @@ void EventPublisherPlugin::removeSubscriptions(const std::string& subscriber) {
                        return (subscription->subscriber_name == subscriber);
                      });
   subscriptions_.erase(end, subscriptions_.end());
+}
+
+void EventFactory::addForwarder(const std::string& logger) {
+  getInstance().loggers_.push_back(logger);
+}
+
+void EventFactory::forwardEvent(const std::string& event) {
+  for (const auto& logger : getInstance().loggers_) {
+    Registry::call("logger", logger, {{"event", event}});
+  }
 }
 
 Status EventFactory::run(EventPublisherID& type_id) {

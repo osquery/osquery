@@ -48,6 +48,23 @@ struct StatusLogLine {
 };
 
 /**
+ * @brief Logger plugin feature bits for complicated loggers.
+ *
+ * Logger plugins may opt-in to additional features like explicitly handling
+ * Glog status events or requesting event subscribers to forward each event
+ * directly to the logger. This enumeration tracks, and corresponds to, each
+ * of the feature methods defined in a logger plugin.
+ *
+ * A specific registry call action can be used to retrieve an overloaded Status
+ * object containing all of the opt-in features.
+ */
+enum LoggerFeatures {
+  LOGGER_FEATURE_BLANK = 0,
+  LOGGER_FEATURE_LOGSTATUS = 1,
+  LOGGER_FEATURE_LOGEVENT = 2,
+};
+
+/**
  * @brief Helper logging macro for table-generated verbose log lines.
  *
  * Since logging in tables does not always mean a critical warning or error
@@ -116,6 +133,15 @@ class LoggerPlugin : public Plugin {
    */
   virtual bool usesLogStatus() { return false; }
 
+  /**
+   * @brief A feature method to decide if events should be forwarded.
+   *
+   * See the optional logEvent method.
+   *
+   * @return false if this logger plugin should NOT handle events directly.
+   */
+  virtual bool usesLogEvent() { return false; }
+
  protected:
   /** @brief Virtual method which should implement custom logging.
    *
@@ -169,6 +195,16 @@ class LoggerPlugin : public Plugin {
    * @return log status
    */
   virtual Status logSnapshot(const std::string& s) { return logString(s); }
+
+  /**
+   * @brief Optionally handle each published event via the logger.
+   *
+   * It is possible to skip the database representation of event subscribers
+   * and instead forward each added event to the active logger plugin.
+   */
+  virtual Status logEvent(const std::string& s) {
+    return Status(1, "Not enabled");
+  }
 };
 
 /// Set the verbose mode, changes Glog's sinking logic and will affect plugins.
