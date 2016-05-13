@@ -117,16 +117,14 @@ void Watcher::reset(const PlatformProcess& child) {
   // If it was not the worker pid then find the extension name to reset.
   for (const auto& extension : extensions()) {
     if (*extension.second == child) {
-      // TODO(#1991): Why is pid_t set to 0?
-      setExtension(extension.first, std::shared_ptr<PlatformProcess>());
+      setExtension(extension.first, std::make_shared<PlatformProcess>());
       resetExtensionCounters(extension.first, 0);
     }
   }
 }
 
 void Watcher::addExtensionPath(const std::string& path) {
-  // TODO(#1991): Why is pid_t set to 0?
-  setExtension(path, std::shared_ptr<PlatformProcess>());
+  setExtension(path, std::make_shared<PlatformProcess>());
   resetExtensionCounters(path, 0);
 }
 
@@ -280,11 +278,6 @@ bool WatcherRunner::isChildSane(const PlatformProcess& child) const {
 
   // Only make a decision about the child sanity if it is still the watcher's
   // child. It's possible for the child to die, and its pid reused.
-  //
-  // TODO(#1991): I'm not sure this is doing what it should be doing on
-  // Windows...
-  //              Additionally, getCurrentProcess() *may* fail under exceptional
-  // cases
   if (parent != PlatformProcess::getCurrentProcess()->pid()) {
     // The child's parent is not the watcher.
     Watcher::reset(child);
@@ -359,7 +352,7 @@ void WatcherRunner::createWorker() {
     return;
   }
 
-  auto worker = PlatformProcess::launchWorker(exec_path.string(), argv_[0]);
+  auto worker = PlatformProcess::launchWorker(exec_path.string(), argc_, argv_);
   if (worker == nullptr) {
     // Unrecoverable error, cannot create a worker process.
     LOG(ERROR) << "osqueryd could not create a worker process";
