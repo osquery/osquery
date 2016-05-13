@@ -173,7 +173,9 @@ class Watcher : private boost::noncopyable {
  private:
   /// Do not request the lock until extensions are used.
   Watcher()
-      : worker_(nullptr), worker_restarts_(0), lock_(mutex_, std::defer_lock) {}
+      : worker_(std::make_shared<PlatformProcess>()),
+        worker_restarts_(0),
+        lock_(mutex_, std::defer_lock) {}
   Watcher(Watcher const&);
 
   void operator=(Watcher const&);
