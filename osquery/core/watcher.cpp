@@ -360,7 +360,7 @@ void WatcherRunner::createWorker() {
   }
 
   auto worker = PlatformProcess::launchWorker(exec_path.string(), argv_[0]);
-  if (worker.get() == nullptr) {
+  if (worker == nullptr) {
     // Unrecoverable error, cannot create a worker process.
     LOG(ERROR) << "osqueryd could not create a worker process";
     Initializer::shutdown(EXIT_FAILURE);
@@ -401,7 +401,7 @@ bool WatcherRunner::createExtension(const std::string& extension) {
                                        Flag::getValue("extensions_timeout"),
                                        Flag::getValue("extensions_interval"),
                                        Flag::getValue("verbose"));
-  if (ext_process.get() == nullptr) {
+  if (ext_process == nullptr) {
     // Unrecoverable error, cannot create an extension process.
     LOG(ERROR) << "Cannot create extension process: " << extension;
     Initializer::shutdown(EXIT_FAILURE);
