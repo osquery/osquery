@@ -44,7 +44,7 @@ const PlatformPidType kInvalidPid = (PlatformPidType) - 1;
  * @brief Categories of process states adapted to be platform agnostic
  *
  * A process can have the following states. Unfortunately, because of operating
- * system differences. A genericstate change is not directly translatable on
+ * system differences. A generic state change is not directly translatable on
  * Windows. Therefore, PROCESS_STATE_CHANGE will only occur on POSIX systems.
  */
 enum ProcessState {
