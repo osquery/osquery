@@ -185,6 +185,8 @@ QueryData genOsqueryExtensions(QueryContext& context) {
 
 QueryData genOsqueryInfo(QueryContext& context) {
   QueryData results;
+
+#ifndef WIN32
   Row r;
   r["pid"] = INTEGER(getpid());
   r["version"] = kVersion;
@@ -200,6 +202,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["start_time"] = INTEGER(Config::getInstance().getStartTime());
 
   results.push_back(r);
+#endif
   return results;
 }
 

@@ -19,6 +19,7 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
 #include "osquery/extensions/interface.h"
 
@@ -299,7 +300,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     }
     // Increase the total wait detail.
     delay += kExtensionInitializeLatencyUS;
-    ::usleep(kExtensionInitializeLatencyUS);
+    sleepFor(kExtensionInitializeLatencyUS);
   } while (delay < timeout);
   return Status(1, "Extension socket not available: " + path);
 }

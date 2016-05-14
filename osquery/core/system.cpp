@@ -14,11 +14,19 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#ifndef WIN32
 #include <grp.h>
+#endif
+
 #include <signal.h>
 
-#if !defined(__FreeBSD__)
+#if !defined(__FreeBSD__) && !defined(WIN32)
 #include <uuid/uuid.h>
+#endif
+
+#ifdef WIN32
+#include <WinSock2.h>
 #endif
 
 #include <boost/algorithm/string/trim.hpp>
@@ -58,8 +66,12 @@ FLAG(string,
 FLAG(bool, utc, false, "Convert all UNIX times to UTC");
 
 std::string getHostname() {
+#ifdef WIN32
+  long size = 256;
+#else
   static long max_hostname = sysconf(_SC_HOST_NAME_MAX);
   long size = (max_hostname > 255) ? max_hostname + 1 : 256;
+#endif
   char* hostname = (char*)malloc(size);
   std::string hostname_string;
   if (hostname != nullptr) {
@@ -141,6 +153,8 @@ size_t getUnixTime() {
   }
   return result;
 }
+
+#ifndef WIN32
 
 Status checkStalePid(const std::string& content) {
   int pid;
@@ -332,4 +346,5 @@ DropPrivileges::~DropPrivileges() {
     restoreGroups();
   }
 }
+#endif
 }

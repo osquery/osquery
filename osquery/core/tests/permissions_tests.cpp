@@ -8,7 +8,9 @@
  *
  */
 
+#ifndef WIN32
 #include <pwd.h>
+#endif
 
 #include <gtest/gtest.h>
 
@@ -37,6 +39,7 @@ class PermissionsTests : public testing::Test {
   std::string perm_path_;
 };
 
+#ifndef WIN32
 TEST_F(PermissionsTests, test_explicit_drop) {
   {
     auto dropper = DropPrivileges::get();
@@ -113,4 +116,5 @@ TEST_F(PermissionsTests, test_nobody_drop) {
   EXPECT_EQ(geteuid(), getuid());
   EXPECT_EQ(getegid(), getgid());
 }
+#endif
 }

@@ -492,7 +492,7 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @return The query-time table data, retrieved from a backing store.
    */
-  virtual QueryData genTable(QueryContext& context) __attribute__((used));
+  virtual QueryData genTable(QueryContext& context) USED_REFERENCE;
 
   /// Number of Subscription%s this EventSubscriber has used.
   size_t numSubscriptions() const { return subscription_count_; }

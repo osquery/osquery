@@ -15,6 +15,7 @@
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
 
+#include "osquery/core/process.h"
 #include "osquery/core/test_util.h"
 #include "osquery/extensions/interface.h"
 
@@ -50,7 +51,7 @@ class ExtensionsTest : public testing::Test {
         client.get()->ping(status);
         return (status.code == ExtensionCode::EXT_SUCCESS);
       } catch (const std::exception& e) {
-        ::usleep(kDelayUS);
+        sleepFor(kDelayUS);
       }
     }
 
@@ -65,7 +66,7 @@ class ExtensionsTest : public testing::Test {
         EXManagerClient client(socket_path);
         client.get()->query(response, sql);
       } catch (const std::exception& e) {
-        ::usleep(kDelayUS);
+        sleepFor(kDelayUS);
       }
     }
 
@@ -95,7 +96,7 @@ class ExtensionsTest : public testing::Test {
       if (pathExists(socket_path).ok() && isReadable(socket_path).ok()) {
         return true;
       }
-      ::usleep(kDelayUS);
+      sleepFor(kDelayUS);
       delay += kDelayUS;
     }
     return false;

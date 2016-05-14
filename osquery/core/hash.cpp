@@ -10,6 +10,7 @@
 
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 #include <osquery/filesystem.h>
 #include <osquery/hash.h>
@@ -66,15 +67,15 @@ void Hash::update(const void* buffer, size_t size) {
 }
 
 std::string Hash::digest() {
-  unsigned char hash[length_];
+  std::vector<unsigned char> hash;
+  hash.assign(length_, '\0');
 
-  memset(hash, 0, length_);
   if (algorithm_ == HASH_TYPE_MD5) {
-    __HASH_API(MD5_Final)(hash, (__HASH_API(MD5_CTX)*)ctx_);
+    __HASH_API(MD5_Final)(&hash[0], (__HASH_API(MD5_CTX)*)ctx_);
   } else if (algorithm_ == HASH_TYPE_SHA1) {
-    __HASH_API(SHA1_Final)(hash, (__HASH_API(SHA1_CTX)*)ctx_);
+    __HASH_API(SHA1_Final)(&hash[0], (__HASH_API(SHA1_CTX)*)ctx_);
   } else if (algorithm_ == HASH_TYPE_SHA256) {
-    __HASH_API(SHA256_Final)(hash, (__HASH_API(SHA256_CTX)*)ctx_);
+    __HASH_API(SHA256_Final)(&hash[0], (__HASH_API(SHA256_CTX)*)ctx_);
   }
 
   // The hash value is only relevant as a hex digest.

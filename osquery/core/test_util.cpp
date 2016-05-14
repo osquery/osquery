@@ -57,6 +57,7 @@ DECLARE_bool(disable_logging);
 typedef std::chrono::high_resolution_clock chrono_clock;
 
 void initTesting() {
+#ifndef WIN32
   // Allow unit test execution from anywhere in the osquery source/build tree.
   while (osquery::kTestDataPath != "/") {
     if (!fs::exists(osquery::kTestDataPath)) {
@@ -88,6 +89,7 @@ void initTesting() {
   // Set up the database instance for the unittests.
   DatabasePlugin::setAllowOpen(true);
   Registry::setActive("database", "ephemeral");
+#endif
 }
 
 void shutdownTesting() { DatabasePlugin::shutdown(); }
@@ -396,6 +398,7 @@ void tearDownMockFileStructure() {
 }
 
 void TLSServerRunner::start() {
+#ifndef WIN32
   auto& self = instance();
   if (self.server_ != 0) {
     return;
@@ -424,6 +427,7 @@ void TLSServerRunner::start() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     delay += 100;
   }
+#endif
 }
 
 void TLSServerRunner::setClientConfig() {
@@ -452,8 +456,10 @@ void TLSServerRunner::unsetClientConfig() {
 }
 
 void TLSServerRunner::stop() {
+#ifndef WIN32
   auto& self = instance();
   kill(self.server_, SIGKILL);
   self.server_ = 0;
+#endif
 }
 }
