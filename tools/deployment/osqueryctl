@@ -34,8 +34,7 @@ platform() {
 
 platform OS
 
-
-if [ $OS = "darwin" ]; then
+if [[ $OS = "darwin" ]]; then
   REAL_CONFIG_PATH="/var/osquery/osquery.conf"
   FLAGS_FILE_PATH="/var/osquery/osquery.flags"
   EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
@@ -49,8 +48,10 @@ if [ $OS = "darwin" ]; then
   LAUNCHCTL_LIST_PID=`echo $LAUNCHCTL_LIST | awk '{ print $1 }'`
 else
   INIT_SCRIPT_PATH="/etc/init.d/osqueryd"
-  if [ ! -e $INIT_SCRIPT_PATH ]; then
+  SERVICE_SCRIPT_PATH="/usr/lib/systemd/system/osqueryd.service"
+  if [ ! -e "$INIT_SCRIPT_PATH" && ! -f "$SERVICE_SCRIPT_PATH" ]; then
     echo "Cannot find the init.d script at $INIT_SCRIPT_PATH"
+    echo "Additionally, no systemd service at $SERVICE_SCRIPT_PATH"
     exit 6
   fi
 
