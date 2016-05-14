@@ -40,3 +40,4 @@ extern const size_t kExpectedWorkerArgsCount;
 extern const char *kExpectedExtensionArgs[];
 extern const size_t kExpectedExtensionArgsCount;
 }
+
