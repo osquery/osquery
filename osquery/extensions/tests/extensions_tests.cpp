@@ -51,7 +51,7 @@ class ExtensionsTest : public testing::Test {
         client.get()->ping(status);
         return (status.code == ExtensionCode::EXT_SUCCESS);
       } catch (const std::exception& e) {
-        sleepFor(kDelayUS);
+        sleepFor(kDelayUS / 1000);
       }
     }
 
@@ -66,7 +66,7 @@ class ExtensionsTest : public testing::Test {
         EXManagerClient client(socket_path);
         client.get()->query(response, sql);
       } catch (const std::exception& e) {
-        sleepFor(kDelayUS);
+        sleepFor(kDelayUS / 1000);
       }
     }
 
@@ -96,7 +96,7 @@ class ExtensionsTest : public testing::Test {
       if (pathExists(socket_path).ok() && isReadable(socket_path).ok()) {
         return true;
       }
-      sleepFor(kDelayUS);
+      sleepFor(kDelayUS / 1000);
       delay += kDelayUS;
     }
     return false;
