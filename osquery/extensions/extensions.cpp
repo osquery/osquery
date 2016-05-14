@@ -300,7 +300,8 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     }
     // Increase the total wait detail.
     delay += kExtensionInitializeLatencyUS;
-    sleepFor(kExtensionInitializeLatencyUS);
+    // sleepFor(kExtensionInitializeLatencyUS);
+    ::usleep(kExtensionInitializeLatencyUS);
   } while (delay < timeout);
   return Status(1, "Extension socket not available: " + path);
 }
