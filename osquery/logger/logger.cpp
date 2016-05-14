@@ -14,6 +14,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <osquery/events.h>
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
@@ -284,6 +285,12 @@ void initLogger(const std::string& name, bool forward_all) {
       // return a success status after initialization.
       BufferedLogSink::addPlugin(logger);
     }
+
+    request = {{"action", "features"}};
+    status = Registry::call("logger", logger, request);
+    if ((status.getCode() & LOGGER_FEATURE_LOGEVENT) > 0) {
+      EventFactory::addForwarder(logger);
+    }
   }
 }
 
@@ -333,6 +340,13 @@ Status LoggerPlugin::call(const PluginRequest& request,
   } else if (request.count("status") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
     return this->logStatus(intermediate_logs);
+  } else if (request.count("event") > 0) {
+    return this->logEvent(request.at("event"));
+  } else if (request.count("action") && request.at("action") == "features") {
+    size_t features = 0;
+    features |= (usesLogStatus()) ? LOGGER_FEATURE_LOGSTATUS : 0;
+    features |= (usesLogEvent()) ? LOGGER_FEATURE_LOGEVENT : 0;
+    return Status(features);
   } else {
     return Status(1, "Unsupported call to logger plugin");
   }
