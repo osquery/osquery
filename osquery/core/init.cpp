@@ -14,9 +14,12 @@
 #include <thread>
 
 #include <stdio.h>
-#include <syslog.h>
 #include <time.h>
+
+#ifndef WIN32
+#include <syslog.h>
 #include <unistd.h>
+#endif
 
 #include <boost/filesystem.hpp>
 
@@ -31,6 +34,7 @@
 #include <osquery/registry.h>
 
 #include "osquery/core/watcher.h"
+#include "osquery/core/process.h"
 
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <sys/resource.h>
@@ -97,13 +101,16 @@ enum {
 namespace {
 extern "C" {
 static inline bool hasWorkerVariable() {
-  return (getenv("OSQUERY_WORKER") != nullptr);
+  return ::osquery::getEnvVar("OSQUERY_WORKER").is_initialized();
 }
 
 volatile std::sig_atomic_t kHandledSignal{0};
 
-static inline bool isWatcher() { return (osquery::Watcher::getWorker() > 0); }
+static inline bool isWatcher() {
+  return (osquery::Watcher::getWorker().isValid());
+}
 
+#ifndef WIN32
 void signalHandler(int num) {
   // Inform exit status of main threads blocked by service joins.
   if (kHandledSignal == 0) {
@@ -157,6 +164,7 @@ void signalHandler(int num) {
     // managed extension processes.
   }
 }
+#endif
 }
 }
 
@@ -164,7 +172,7 @@ namespace osquery {
 
 using chrono_clock = std::chrono::high_resolution_clock;
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(WIN32)
 CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 #endif
 
@@ -226,7 +234,11 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   try {
     boost::filesystem::path::codecvt();
   } catch (const std::runtime_error& e) {
+#ifdef WIN32
+    setlocale(LC_ALL, "C");
+#else
     setenv("LC_ALL", "C", 1);
+#endif
   }
 
   // osquery implements a custom help/usage output.
@@ -285,6 +297,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     }
   }
 
+#ifndef WIN32
   // All tools handle the same set of signals.
   // If a daemon process is a watchdog the signal is passed to the worker,
   // unless the worker has not yet started.
@@ -294,6 +307,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   std::signal(SIGHUP, signalHandler);
   std::signal(SIGALRM, signalHandler);
   std::signal(SIGUSR1, signalHandler);
+#endif
 
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check) {
@@ -304,7 +318,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   initStatusLogger(binary_);
   if (tool != OSQUERY_EXTENSION) {
     if (isWorker()) {
-      VLOG(1) << "osquery worker initialized [watcher=" << getppid() << "]";
+      VLOG(1) << "osquery worker initialized [watcher="
+              << PlatformProcess::getLauncherProcess()->pid() << "]";
     } else {
       VLOG(1) << "osquery initialized [version=" << kVersion << "]";
     }
@@ -319,7 +334,7 @@ void Initializer::initDaemon() const {
     return;
   }
 
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(WIN32)
   // OS X uses launchd to daemonize.
   if (osquery::FLAGS_daemonize) {
     if (daemon(0, 0) == -1) {
@@ -328,9 +343,11 @@ void Initializer::initDaemon() const {
   }
 #endif
 
+#ifndef WIN32
   // Print the version to SYSLOG.
   syslog(
       LOG_NOTICE, "%s started [version=%s]", binary_.c_str(), kVersion.c_str());
+#endif
 
   // Check if /var/osquery exists
   if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
@@ -350,7 +367,8 @@ void Initializer::initDaemon() const {
       FLAGS_watchdog_level >= WATCHDOG_LEVEL_DEFAULT &&
       FLAGS_watchdog_level != WATCHDOG_LEVEL_DEBUG) {
     // Set CPU scheduling I/O limits.
-    setpriority(PRIO_PGRP, 0, 10);
+    setToBackgroundPriority();
+
 #ifdef __linux__
     // Using: ioprio_set(IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
     syscall(SYS_ioprio_set, IOPRIO_WHO_PGRP, 0, IOPRIO_CLASS_IDLE);
@@ -413,7 +431,8 @@ void Initializer::initWorker(const std::string& name) const {
 
   // Start a 'watcher watcher' thread to exit the process if the watcher exits.
   // In this case the parent process is called the 'watcher' process.
-  Dispatcher::addService(std::make_shared<WatcherWatcherRunner>(getppid()));
+  Dispatcher::addService(std::make_shared<WatcherWatcherRunner>(
+      PlatformProcess::getLauncherProcess()));
 }
 
 void Initializer::initWorkerWatcher(const std::string& name) const {
@@ -452,7 +471,7 @@ void Initializer::initActivePlugin(const std::string& type,
     }
     // The plugin is not local and is not active, wait and retry.
     delay += kExtensionInitializeLatencyUS;
-    ::usleep(kExtensionInitializeLatencyUS);
+    sleepFor(kExtensionInitializeLatencyUS);
   } while (delay < timeout);
 
   LOG(ERROR) << "Cannot activate " << name << " " << type
@@ -531,12 +550,14 @@ void Initializer::start() const {
   }
   initLogger(binary_);
 
+#ifndef WIN32
   // Initialize the distributed plugin, if necessary
   if (!FLAGS_disable_distributed) {
     if (Registry::exists("distributed", FLAGS_distributed_plugin)) {
       initActivePlugin("distributed", FLAGS_distributed_plugin);
     }
   }
+#endif
 
   // Start event threads.
   osquery::attachEvents();
@@ -559,7 +580,9 @@ void Initializer::requestShutdown(int retcode) {
   // Stop thrift services/clients/and their thread pools.
   kExitCode = retcode;
   if (std::this_thread::get_id() != kMainThreadId) {
+#ifndef WIN32
     raise(SIGUSR1);
+#endif
   } else {
     // The main thread is requesting a shutdown, meaning in almost every case
     // it is NOT waiting for a shutdown.
@@ -572,3 +595,4 @@ void Initializer::requestShutdown(int retcode) {
 
 void Initializer::shutdown(int retcode) { ::exit(retcode); }
 }
+

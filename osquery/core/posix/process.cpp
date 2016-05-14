@@ -56,13 +56,13 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
 }
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
-    const std::string& exec_path, const std::string& name) {
+    const std::string& exec_path, int argc, char** argv) {
   auto worker_pid = ::fork();
   if (worker_pid < 0) {
     return std::shared_ptr<PlatformProcess>();
   } else if (worker_pid == 0) {
     setEnvVar("OSQUERY_WORKER", std::to_string(::getpid()).c_str());
-    ::execle(exec_path.c_str(), name.c_str(), nullptr, ::environ);
+    ::execve(exec_path.c_str(), argv, ::environ);
 
     // Code should never reach this point
     LOG(ERROR) << "osqueryd could not start worker process";

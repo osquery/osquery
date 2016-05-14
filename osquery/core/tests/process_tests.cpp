@@ -105,16 +105,20 @@ TEST_F(ProcessTests, test_getpid) {
 TEST_F(ProcessTests, test_envVar) {
   auto val = getEnvVar("GTEST_OSQUERY");
   EXPECT_FALSE(val);
+  EXPECT_FALSE(val.is_initialized());
 
   EXPECT_TRUE(setEnvVar("GTEST_OSQUERY", "true"));
 
   val = getEnvVar("GTEST_OSQUERY");
+  EXPECT_FALSE(!val);
+  EXPECT_TRUE(val.is_initialized());
   EXPECT_EQ(*val, "true");
 
   EXPECT_TRUE(unsetEnvVar("GTEST_OSQUERY"));
 
   val = getEnvVar("GTEST_OSQUERY");
   EXPECT_FALSE(val);
+  EXPECT_FALSE(val.is_initialized());
 }
 
 TEST_F(ProcessTests, test_launchExtension) {
@@ -136,9 +140,23 @@ TEST_F(ProcessTests, test_launchExtension) {
 
 TEST_F(ProcessTests, test_launchWorker) {
   {
+    std::vector<char *> argv;
+    for (size_t i = 0; i < kExpectedWorkerArgsCount; i++) {
+      char *entry = new char[strlen(kExpectedWorkerArgs[i]) + 1];
+      EXPECT_NE(entry, nullptr);
+      memset(entry, '\0', strlen(kExpectedWorkerArgs[i]) + 1);
+      memcpy(entry, kExpectedWorkerArgs[i], strlen(kExpectedWorkerArgs[i]));
+      argv.push_back(entry);
+    }
+    argv.push_back(nullptr);
+
     std::shared_ptr<osquery::PlatformProcess> process =
-        osquery::PlatformProcess::launchWorker(kProcessTestExecPath.c_str(),
-                                               kExpectedWorkerArgs[0]);
+        osquery::PlatformProcess::launchWorker(
+            kProcessTestExecPath.c_str(), kExpectedWorkerArgsCount, &argv[0]);
+    for (size_t i = 0; i < argv.size(); i++) {
+      delete argv[i];
+    }
+
     EXPECT_TRUE(process.get());
 
     int code = 0;
@@ -162,19 +180,6 @@ TEST_F(ProcessTests, test_launchExtensionQuotes) {
     int code = 0;
     EXPECT_TRUE(getProcessExitCode(*process, code));
     EXPECT_EQ(code, EXTENSION_SUCCESS_CODE);
-  }
-}
-
-TEST_F(ProcessTests, test_launchWorkerQuotes) {
-  {
-    std::shared_ptr<osquery::PlatformProcess> process =
-        osquery::PlatformProcess::launchWorker(kProcessTestExecPath.c_str(),
-                                               "worker\"-test");
-    EXPECT_TRUE(process.get());
-
-    int code = 0;
-    EXPECT_TRUE(getProcessExitCode(*process, code));
-    EXPECT_EQ(code, WORKER_SUCCESS_CODE);
   }
 }
 #endif

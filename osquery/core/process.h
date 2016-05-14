@@ -27,6 +27,7 @@
 namespace osquery {
 
 #ifdef WIN32
+
 /// Unfortunately, pid_t is not defined in Windows, however, DWORD is the
 /// most appropriate alternative since process ID on Windows are stored in
 /// a DWORD.
@@ -57,8 +58,7 @@ enum ProcessState {
  * @brief Platform-agnostic process object.
  *
  * PlatformProcess is a specialized, platform-agnostic class that handles the
- * process operation needs
- * of osquery.
+ * process operation needs of osquery.
  */
 class PlatformProcess : private boost::noncopyable {
  public:
@@ -101,11 +101,12 @@ class PlatformProcess : private boost::noncopyable {
   /**
    * @brief Creates a new worker process.
    *
-   * Launches a worker process given a worker executable path and a worker name.
-   * Any double quotes in the worker name will be stripped out.
+   * Launches a worker process given a worker executable path, number of
+   * arguments, and an array of arguments. All double quotes within each entry 
+   * in the array of arguments will be supplanted with a preceding blackslash.
    */
   static std::shared_ptr<PlatformProcess> launchWorker(
-      const std::string& exec_path, const std::string& name);
+      const std::string& exec_path, int argc, char** argv);
 
   /**
   * @brief Creates a new extension process.
