@@ -10,6 +10,8 @@ if(APPLE)
 elseif(FREEBSD)
   file(GLOB OSQUERY_EVENTS_FREEBSD "freebsd/*.cpp")
   ADD_OSQUERY_LIBRARY(FALSE osquery_events_freebsd ${OSQUERY_EVENTS_FREEBSD})
+elseif(WIN32)
+  # Windows specific events
 else()
   # See the root CMakeLists for SYSTEMD detection.
   # The udev library link is not available without systemd-devel.

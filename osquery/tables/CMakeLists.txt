@@ -35,6 +35,8 @@ elseif(FREEBSD)
   ADD_OSQUERY_LINK_ADDITIONAL("kvm")
   ADD_OSQUERY_LINK_ADDITIONAL("elf")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
+elseif(WIN32)
+  # Windows specific tables
 else()
   file(GLOB OSQUERY_LINUX_TABLES "*/linux/*.cpp")
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_linux

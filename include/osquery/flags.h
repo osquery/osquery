@@ -190,20 +190,11 @@ class FlagAlias {
  * @param value The default value, use a C++ literal.
  * @param desc A string literal used for help display.
  */
-#ifdef WIN32
-#define OSQUERY_FLAG(t, n, v, d, s, e, c, h)              \
-  using ::fLS::StringFlagDestructor;                      \
-  DEFINE_##t(n, v, d);                                    \
-  namespace flags {                                       \
-  const int flag_##n = Flag::create(#n, {d, s, e, c, h}); \
-  }
-#else
 #define OSQUERY_FLAG(t, n, v, d, s, e, c, h)              \
   DEFINE_##t(n, v, d);                                    \
   namespace flags {                                       \
   const int flag_##n = Flag::create(#n, {d, s, e, c, h}); \
   }
-#endif
 
 #define FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, 0, 0, 0, 0)
 #define SHELL_FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, 1, 0, 0, 0)
