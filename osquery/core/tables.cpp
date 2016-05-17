@@ -39,6 +39,8 @@ Status TablePlugin::addExternal(const std::string& name,
   // Attach the table.
   if (response.size() == 0) {
     // Invalid table route info.
+    // Tables must broadcast their column information, this is used while the
+    // core is deciding if the extension's route is valid.
     return Status(1, "Invalid route info");
   }
 
@@ -124,14 +126,11 @@ Status TablePlugin::call(const PluginRequest& request,
   } else if (request.at("action") == "columns") {
     // The "columns" action returns a PluginRequest filled with column
     // information such as name and type.
-    const auto& column_list = columns();
-    for (const auto& column : column_list) {
-      response.push_back({{"name", std::get<0>(column)},
-                          {"type", columnTypeName(std::get<1>(column))},
-                          {"op", INTEGER(std::get<2>(column))}});
-    }
+    response = routeInfo();
   } else if (request.at("action") == "definition") {
-    response.push_back({{"definition", columnDefinition()}});
+    response.push_back({
+        {"definition", columnDefinition()},
+    });
   } else {
     return Status(1, "Unknown table plugin action: " + request.at("action"));
   }
@@ -144,12 +143,27 @@ std::string TablePlugin::columnDefinition() const {
 }
 
 PluginResponse TablePlugin::routeInfo() const {
-  // Route info consists of only the serialized column information.
+  // Route info consists of the serialized column information.
   PluginResponse response;
   for (const auto& column : columns()) {
-    response.push_back({{"name", std::get<0>(column)},
+    response.push_back({{"id", "column"},
+                        {"name", std::get<0>(column)},
                         {"type", columnTypeName(std::get<1>(column))},
                         {"op", INTEGER(std::get<2>(column))}});
+  }
+  // Each table name alias is provided such that the core may add the views.
+  // These views need to be removed when the backing table is detached.
+  for (const auto& alias : aliases()) {
+    response.push_back({{"id", "alias"}, {"alias", alias}});
+  }
+
+  // Each column alias must be provided, additionally to the column's option.
+  // This sets up the value-replacement move within the SQL implementation.
+  for (const auto& target : columnAliases()) {
+    for (const auto& alias : target.second) {
+      response.push_back(
+          {{"id", "columnAlias"}, {"name", alias}, {"target", target.first}});
+    }
   }
   return response;
 }
@@ -186,6 +200,13 @@ std::string columnDefinition(const TableColumns& columns) {
     const auto& column = columns.at(i);
     statement +=
         "`" + std::get<0>(column) + "` " + columnTypeName(std::get<1>(column));
+    auto& options = std::get<2>(column);
+    if (options & INDEX) {
+      statement += " PRIMARY KEY";
+    }
+    if (options & HIDDEN) {
+      statement += " HIDDEN";
+    }
     if (i < columns.size() - 1) {
       statement += ", ";
     }
@@ -193,13 +214,36 @@ std::string columnDefinition(const TableColumns& columns) {
   return statement += ")";
 }
 
-std::string columnDefinition(const PluginResponse& response) {
+std::string columnDefinition(const PluginResponse& response, bool aliases) {
   TableColumns columns;
+  // Maintain a map of column to the type, for alias type lookups.
+  std::map<std::string, ColumnType> column_types;
   for (const auto& column : response) {
-    columns.push_back(make_tuple(
-        column.at("name"),
-        columnTypeName(column.at("type")),
-        (ColumnOptions)AS_LITERAL(INTEGER_LITERAL, column.at("op"))));
+    if (column.count("id") == 0) {
+      continue;
+    }
+
+    if (column.at("id") == "column" && column.count("name") &&
+        column.count("type")) {
+      auto options =
+          (column.count("op"))
+              ? (ColumnOptions)AS_LITERAL(INTEGER_LITERAL, column.at("op"))
+              : DEFAULT;
+      auto column_type = columnTypeName(column.at("type"));
+      columns.push_back(make_tuple(column.at("name"), column_type, options));
+      if (aliases) {
+        column_types[column.at("name")] = column_type;
+      }
+    } else if (column.at("id") == "columnAlias" && column.count("name") &&
+               column.count("target") && aliases) {
+      const auto& target = column.at("target");
+      if (column_types.count(target) == 0) {
+        // No type was defined for the alias target.
+        continue;
+      }
+      columns.push_back(
+          make_tuple(column.at("name"), column_types.at(target), HIDDEN));
+    }
   }
   return columnDefinition(columns);
 }

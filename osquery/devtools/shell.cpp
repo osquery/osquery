@@ -970,8 +970,8 @@ static int booleanValue(char *zArg) {
   if (sqlite3_stricmp(zArg, "off") == 0 || sqlite3_stricmp(zArg, "no") == 0) {
     return 0;
   }
-  fprintf(
-      stderr, "ERROR: Not a boolean value: \"%s\". Assuming \"no\".\n", zArg);
+  fprintf(stderr, "ERROR: Not a boolean value: \"%s\". Assuming \"no\".\n",
+          zArg);
   return 0;
 }
 
@@ -1022,18 +1022,11 @@ inline void meta_schema(int nArg, char **azArg) {
       continue;
     }
 
-    osquery::PluginRequest request = {{"action", "columns"}};
+    osquery::PluginRequest request = {{"action", "definition"}};
     osquery::PluginResponse response;
-
     osquery::Registry::call("table", table_name, request, response);
-    std::vector<std::string> columns;
-    for (const auto &column : response) {
-      columns.push_back(column.at("name") + " " + column.at("type"));
-    }
-
-    printf("CREATE TABLE %s(%s);\n",
-           table_name.c_str(),
-           osquery::join(columns, ", ").c_str());
+    fprintf(stdout, "CREATE TABLE %s%s;\n", table_name.c_str(),
+            response[0].at("definition").c_str());
   }
 }
 
@@ -1377,8 +1370,8 @@ static int process_input(struct callback_data *p, FILE *in) {
       if (rc || zErrMsg) {
         char zPrefix[100];
         if (in != 0 || !stdin_is_interactive) {
-          sqlite3_snprintf(
-              sizeof(zPrefix), zPrefix, "Error: near line %d:", startline);
+          sqlite3_snprintf(sizeof(zPrefix), zPrefix, "Error: near line %d:",
+                           startline);
         } else {
           sqlite3_snprintf(sizeof(zPrefix), zPrefix, "Error:");
         }
@@ -1462,10 +1455,10 @@ int launchIntoShell(int argc, char **argv) {
     data.mode = MODE_Pretty;
   }
 
-  sqlite3_snprintf(
-      sizeof(data.separator), data.separator, "%s", FLAGS_separator.c_str());
-  sqlite3_snprintf(
-      sizeof(data.nullvalue), data.nullvalue, "%s", FLAGS_nullvalue.c_str());
+  sqlite3_snprintf(sizeof(data.separator), data.separator, "%s",
+                   FLAGS_separator.c_str());
+  sqlite3_snprintf(sizeof(data.nullvalue), data.nullvalue, "%s",
+                   FLAGS_nullvalue.c_str());
 
   auto runQuery = [&data](const char *query) {
     char *error = 0;

@@ -1,4 +1,4 @@
-table_name("etc_hosts")
+table_name("etc_hosts", aliases=["hosts"])
 description("Line-parsed /etc/hosts.")
 schema([
     Column("address", TEXT, "IP address mapping"),

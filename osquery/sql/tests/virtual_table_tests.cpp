@@ -64,6 +64,42 @@ TEST_F(VirtualTableTests, test_tableplugin_options) {
   EXPECT_EQ(response[0]["op"], INTEGER(INDEX | REQUIRED));
 }
 
+class aliasesTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("id", INTEGER_TYPE, DEFAULT),
+        std::make_tuple("username", TEXT_TYPE, DEFAULT),
+        std::make_tuple("name", TEXT_TYPE, DEFAULT),
+    };
+  }
+
+  std::vector<std::string> aliases() const override {
+    return {"aliases1", "aliases2"};
+  }
+
+  ColumnAliasSet columnAliases() const override {
+    return {
+        {"username", {"user_name"}},
+        {"name", {"name1", "name2", "name3", "name4"}},
+    };
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_tableplugin_aliases);
+};
+
+TEST_F(VirtualTableTests, test_tableplugin_aliases) {
+  auto table = std::make_shared<aliasesTablePlugin>();
+  std::vector<std::string> expected_aliases = {"aliases1", "aliases2"};
+  EXPECT_EQ(table->aliases(), expected_aliases);
+
+  PluginResponse response;
+  PluginRequest request = {{"action", "columns"}};
+  EXPECT_TRUE(table->call(request, response).ok());
+  // EXPECT_EQ(response[0]["op"], INTEGER(INDEX | REQUIRED));
+}
+
 TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   auto table = std::make_shared<sampleTablePlugin>();
   table->setName("sample");
