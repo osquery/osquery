@@ -381,7 +381,7 @@ if(WIN32)
   
   # Win64 specific Thrift
   set(THRIFT_INCLUDE_DIR "${WINDOWS_DEP_DIR}/thrift-dev/local/include")
-  set(THRIFT_LIBRARY "${WINDOWS_DEP_DIR}/thrift-dev/local/lib/thriftmd.lib")
+  set(thrift_library "${WINDOWS_DEP_DIR}/thrift-dev/local/lib/thriftmd.lib")
   set(THRIFT_COMPILER "${WINDOWS_DEP_DIR}/thrift/tools/thrift.exe")
   
   # Win64 specific rocksdb

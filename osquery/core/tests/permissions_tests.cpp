@@ -8,7 +8,9 @@
  *
  */
 
+#ifndef WIN32
 #include <pwd.h>
+#endif
 
 #include <gtest/gtest.h>
 

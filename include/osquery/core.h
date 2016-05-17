@@ -35,11 +35,24 @@
 // clang-format on
 
 #ifndef __constructor__
+
+#ifdef WIN32
+#define __registry_constructor__
+#define __plugin_constructor__
+#else
 #define __registry_constructor__ __attribute__((constructor(101)))
 #define __plugin_constructor__ __attribute__((constructor(102)))
+#endif
+
 #else
 #define __registry_constructor__ __attribute__((__constructor__(101)))
 #define __plugin_constructor__ __attribute__((__constructor__(102)))
+#endif
+
+#ifdef WIN32
+#define USED_REFERENCE
+#else
+#define USED_REFERENCE __attribute__((used))
 #endif
 
 /// A configuration error is catastrophic and should exit the watcher.

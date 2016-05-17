@@ -347,7 +347,6 @@ void Initializer::initDaemon() const {
   // Print the version to SYSLOG.
   syslog(
       LOG_NOTICE, "%s started [version=%s]", binary_.c_str(), kVersion.c_str());
-#endif
 
   // Check if /var/osquery exists
   if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
@@ -361,6 +360,7 @@ void Initializer::initDaemon() const {
     LOG(ERROR) << binary_ << " initialize failed: " << pid_status.toString();
     shutdown(EXIT_FAILURE);
   }
+#endif
 
   // Nice ourselves if using a watchdog and the level is not too permissive.
   if (!FLAGS_disable_watchdog &&

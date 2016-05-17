@@ -11,10 +11,13 @@
 #include <sstream>
 
 #include <fcntl.h>
+#include <sys/stat.h>
+
+#ifndef WIN32
 #include <glob.h>
 #include <pwd.h>
-#include <sys/stat.h>
 #include <sys/time.h>
+#endif 
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -403,6 +406,7 @@ bool safePermissions(const std::string& dir,
 
 const std::string& osqueryHomeDirectory() {
   static std::string homedir;
+
   if (homedir.size() == 0) {
     // Try to get the caller's home directory using HOME and getpwuid.
     auto user = getpwuid(getuid());

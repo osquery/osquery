@@ -11,7 +11,9 @@
 #include <cstdlib>
 #include <sstream>
 
+#ifndef WIN32
 #include <dlfcn.h>
+#endif
 
 #include <boost/property_tree/json_parser.hpp>
 
@@ -544,6 +546,7 @@ RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
   // Locking the registry prevents the module's global initialization from
   // adding or creating registry items.
   RegistryFactory::initModule(path_);
+
   handle_ = dlopen(path_.c_str(), RTLD_NOW | RTLD_LOCAL);
   if (handle_ == nullptr) {
     VLOG(1) << "Failed to load module: " << path_;

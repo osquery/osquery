@@ -20,6 +20,8 @@
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 
+#include "osquery/core/process.h"
+
 namespace osquery {
 namespace tables {
 
@@ -185,8 +187,9 @@ QueryData genOsqueryExtensions(QueryContext& context) {
 
 QueryData genOsqueryInfo(QueryContext& context) {
   QueryData results;
+
   Row r;
-  r["pid"] = INTEGER(getpid());
+  r["pid"] = INTEGER(PlatformProcess::getCurrentProcess()->pid());
   r["version"] = kVersion;
 
   std::string hash_string;
