@@ -50,7 +50,6 @@ Status writeTextFile(const fs::path& path,
                      const std::string& content,
                      int permissions,
                      bool force_permissions) {
-#ifndef WIN32
   // Open the file with the request permissions.
   int output_fd =
       open(path.c_str(), O_CREAT | O_APPEND | O_WRONLY, permissions);
@@ -72,11 +71,9 @@ Status writeTextFile(const fs::path& path,
   }
 
   close(output_fd);
-#endif
   return Status(0, "OK");
 }
 
-#ifndef WIN32
 struct OpenReadableFile {
  public:
   explicit OpenReadableFile(const fs::path& path) {
@@ -98,7 +95,6 @@ struct OpenReadableFile {
  private:
   DropPrivilegesRef dropper_{nullptr};
 };
-#endif
 
 Status readFile(
     const fs::path& path,
@@ -107,7 +103,6 @@ Status readFile(
     bool dry_run,
     bool preserve_time,
     std::function<void(std::string& buffer, size_t size)> predicate) {
-#ifndef WIN32
   auto handle = OpenReadableFile(path);
   if (handle.fd < 0) {
     return Status(1, "Cannot open file for reading: " + path.string());
@@ -173,7 +168,6 @@ Status readFile(
   if (preserve_time && !FLAGS_disable_forensic) {
     futimes(handle.fd, times);
   }
-#endif
   return Status(0, "OK");
 }
 
@@ -206,7 +200,6 @@ Status forensicReadFile(const fs::path& path, std::string& content) {
 }
 
 Status isWritable(const fs::path& path) {
-#ifndef WIN32
   auto path_exists = pathExists(path);
   if (!path_exists.ok()) {
     return path_exists;
@@ -215,12 +208,10 @@ Status isWritable(const fs::path& path) {
   if (access(path.c_str(), W_OK) == 0) {
     return Status(0, "OK");
   }
-#endif
   return Status(1, "Path is not writable: " + path.string());
 }
 
 Status isReadable(const fs::path& path) {
-#ifndef WIN32
   auto path_exists = pathExists(path);
   if (!path_exists.ok()) {
     return path_exists;
@@ -229,7 +220,6 @@ Status isReadable(const fs::path& path) {
   if (access(path.c_str(), R_OK) == 0) {
     return Status(0, "OK");
   }
-#endif
   return Status(1, "Path is not readable: " + path.string());
 }
 
@@ -257,7 +247,6 @@ static void genGlobs(std::string path,
   // Use our helped escape/replace for wildcards.
   replaceGlobWildcards(path, limits);
 
-#ifndef WIN32
   // Generate a glob set and recurse for double star.
   size_t glob_index = 0;
   while (++glob_index < kMaxRecursiveGlobs) {
@@ -276,7 +265,6 @@ static void genGlobs(std::string path,
     }
     path += "/**";
   }
-#endif
 
   // Prune results based on settings/requested glob limitations.
   auto end = std::remove_if(
@@ -389,7 +377,6 @@ std::set<fs::path> getHomeDirectories() {
 bool safePermissions(const std::string& dir,
                      const std::string& path,
                      bool executable) {
-#ifndef WIN32
   struct stat file_stat, link_stat, dir_stat;
   if (lstat(path.c_str(), &link_stat) < 0 || stat(path.c_str(), &file_stat) ||
       stat(dir.c_str(), &dir_stat)) {
@@ -413,7 +400,6 @@ bool safePermissions(const std::string& dir,
     }
     return true;
   }
-#endif
   // Do not load modules not owned by the user.
   return false;
 }
@@ -421,7 +407,6 @@ bool safePermissions(const std::string& dir,
 const std::string& osqueryHomeDirectory() {
   static std::string homedir;
 
-#ifndef WIN32
   if (homedir.size() == 0) {
     // Try to get the caller's home directory using HOME and getpwuid.
     auto user = getpwuid(getuid());
@@ -434,7 +419,6 @@ const std::string& osqueryHomeDirectory() {
       homedir = "/tmp/osquery";
     }
   }
-#endif
   return homedir;
 }
 

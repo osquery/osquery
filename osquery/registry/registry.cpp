@@ -542,7 +542,6 @@ void RegistryFactory::declareModule(const std::string& name,
 
 RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
     : handle_(nullptr), path_(path) {
-#ifndef WIN32
   // Tell the registry that we are attempting to construct a module.
   // Locking the registry prevents the module's global initialization from
   // adding or creating registry items.
@@ -563,11 +562,9 @@ RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
     dlclose(handle_);
     handle_ = nullptr;
   }
-#endif
 }
 
 void RegistryModuleLoader::init() {
-#ifndef WIN32
   if (handle_ == nullptr || RegistryFactory::locked()) {
     handle_ = nullptr;
     return;
@@ -586,7 +583,6 @@ void RegistryModuleLoader::init() {
     dlclose(handle_);
     handle_ = nullptr;
   }
-#endif
 }
 
 RegistryModuleLoader::~RegistryModuleLoader() {

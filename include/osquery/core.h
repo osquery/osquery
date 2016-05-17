@@ -252,8 +252,6 @@ size_t getUnixTime();
  */
 std::string getAsciiTime();
 
-#ifndef WIN32
-
 /**
  * @brief Create a pid file
  *
@@ -336,5 +334,4 @@ class DropPrivileges : private boost::noncopyable {
   FRIEND_TEST(PermissionsTests, test_path_drop);
   FRIEND_TEST(PermissionsTests, test_nobody_drop);
 };
-#endif
 }

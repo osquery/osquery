@@ -80,7 +80,6 @@ TEST_F(FilesystemTests, test_read_urandom) {
 }
 
 TEST_F(FilesystemTests, test_read_limit) {
-#ifndef WIN32
   auto max = FLAGS_read_max;
   auto user_max = FLAGS_read_user_max;
   FLAGS_read_max = 3;
@@ -105,7 +104,6 @@ TEST_F(FilesystemTests, test_read_limit) {
     status = readFile(kFakeDirectory + "/root2.txt", content);
     EXPECT_TRUE(status.ok());
   }
-#endif
 }
 
 TEST_F(FilesystemTests, test_list_files_missing_directory) {
