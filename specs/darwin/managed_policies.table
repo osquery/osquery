@@ -5,7 +5,7 @@ schema([
     Column("uuid", TEXT, "Optional UUID assigned to policy set"),
     Column("name", TEXT, "Policy key name"),
     Column("value", TEXT, "Policy value"),
-    Column("username", TEXT, "Policy applies only this user", superuser=True),
+    Column("username", TEXT, "Policy applies only this user"),
     Column("manual", INTEGER, "1 if policy was loaded manually, otherwise 0"),
 ])
 implementation("managed_policy@genManagedPolicies")

@@ -440,7 +440,8 @@ Status getQueryColumnsExternal(const std::string& manager_path,
   // Translate response map: {string: string} to a vector: pair(name, type).
   for (const auto& column : response.response) {
     for (const auto& col : column) {
-      columns.push_back(make_pair(col.first, columnTypeName(col.second)));
+      columns.push_back(
+          std::make_tuple(col.first, columnTypeName(col.second), DEFAULT));
     }
   }
 

@@ -28,5 +28,5 @@ schema([
         "Info properties NSAppleScriptEnabled label"),
     Column("copyright", TEXT, "Info properties NSHumanReadableCopyright label"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("apps@genApps")

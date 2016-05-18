@@ -11,5 +11,5 @@ schema([
     Column("retain_count", INTEGER, "The device reference count"),
     Column("depth", INTEGER, "Device nested depth"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("system/iokit_registry@genIOKitDeviceTree")

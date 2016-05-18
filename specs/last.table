@@ -8,5 +8,5 @@ schema([
     Column("time", INTEGER, "Entry timestamp"),
     Column("host", TEXT, "Entry hostname"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("last@genLastAccess")

@@ -7,5 +7,5 @@ schema([
     Column("broadcast", TEXT, "Broadcast address for the interface"),
     Column("point_to_point", TEXT, "PtP address for the interface"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("interfaces@genInterfaceAddresses")

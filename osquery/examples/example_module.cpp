@@ -14,11 +14,14 @@ using namespace osquery;
 
 class ExampleTable : public TablePlugin {
  private:
-  TableColumns columns() const {
-    return {{"example_text", TEXT_TYPE}, {"example_integer", INTEGER_TYPE}};
+  TableColumns columns() const override {
+    return {
+      std::make_tuple("example_text", TEXT_TYPE, DEFAULT),
+      std::make_tuple("example_integer", INTEGER_TYPE, DEFAULT),
+    };
   }
 
-  QueryData generate(QueryContext& request) {
+  QueryData generate(QueryContext& request) override {
     QueryData results;
 
     Row r;

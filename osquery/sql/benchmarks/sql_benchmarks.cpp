@@ -22,7 +22,10 @@ namespace osquery {
 class BenchmarkTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const {
-    return {{"test_int", INTEGER_TYPE}, {"test_text", TEXT_TYPE}};
+    return {
+      std::make_tuple("test_int", INTEGER_TYPE, DEFAULT),
+      std::make_tuple("test_text", TEXT_TYPE, DEFAULT),
+    };
   }
 
   QueryData generate(QueryContext& ctx) {
@@ -99,7 +102,10 @@ BENCHMARK(SQL_virtual_table_internal_unique);
 class BenchmarkLongTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const {
-    return {{"test_int", INTEGER_TYPE}, {"test_text", TEXT_TYPE}};
+    return {
+      std::make_tuple("test_int", INTEGER_TYPE, DEFAULT),
+      std::make_tuple("test_text", TEXT_TYPE, DEFAULT),
+    };
   }
 
   QueryData generate(QueryContext& ctx) {
@@ -130,15 +136,16 @@ BENCHMARK(SQL_virtual_table_internal_long);
 
 class BenchmarkWideTablePlugin : public TablePlugin {
  private:
-  TableColumns columns() const {
+  TableColumns columns() const override {
     TableColumns cols;
     for (int i = 0; i < 20; i++) {
-      cols.push_back({"test_" + std::to_string(i), INTEGER_TYPE});
+      cols.push_back(
+        std::make_tuple("test_" + std::to_string(i), INTEGER_TYPE, DEFAULT));
     }
     return cols;
   }
 
-  QueryData generate(QueryContext& ctx) {
+  QueryData generate(QueryContext& ctx) override {
     QueryData results;
     for (int k = 0; k < 50; k++) {
       Row r;

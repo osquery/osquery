@@ -6,5 +6,5 @@ schema([
     Column("type", TEXT, "Startup Item or Login Item"),
     Column("source", TEXT, "Directory or plist containing startup item"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("startup_items@genStartupItems")

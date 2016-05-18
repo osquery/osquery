@@ -1,7 +1,7 @@
 table_name("hash")
 description("Filesystem hash data.")
 schema([
-    Column("path", TEXT, "Must provide a path or directory", required=True),
+    Column("path", TEXT, "Must provide a path or directory", index=True, required=True),
     Column("directory", TEXT, "Must provide a path or directory", required=True),
     Column("md5", TEXT, "MD5 hash of provided filesystem data"),
     Column("sha1", TEXT, "SHA1 hash of provided filesystem data"),
