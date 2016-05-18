@@ -35,7 +35,7 @@ Similarly for Kinesis Firehose delivery streams, the stream name must be specifi
   "options": {
     "host_identifier": "hostname",
     "schedule_splay_percent": 10,
-    "logger_plugin": "kinesis,firehose",
+    "logger_plugin": "aws_kinesis,aws_firehose",
     "aws_kinesis_stream": "foo_stream",
     "aws_firehose_stream": "bar_delivery_stream",
     "aws_access_key_id": "ACCESS_KEY",
