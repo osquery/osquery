@@ -28,6 +28,8 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+DECLARE_bool(tls_node_api);
+
 FLAG(string,
      distributed_tls_read_endpoint,
      "",
@@ -63,20 +65,30 @@ Status TLSDistributedPlugin::setUp() {
 }
 
 Status TLSDistributedPlugin::getQueries(std::string& json) {
+  if (FLAGS_tls_node_api) {
+    pt::ptree params;
+    params.put("verb", "POST");
+    return TLSRequestHelper::go<JSONSerializer>(
+        read_uri_, params, json, FLAGS_distributed_tls_max_attempts);
+  }
   return TLSRequestHelper::go<JSONSerializer>(
       read_uri_, json, FLAGS_distributed_tls_max_attempts);
 }
 
 Status TLSDistributedPlugin::writeResults(const std::string& json) {
   pt::ptree params;
-  std::stringstream ss(json);
-  std::string response;
   try {
+    std::stringstream ss(json);
     pt::read_json(ss, params);
+    if (FLAGS_tls_node_api) {
+      params.put("verb", "POST");
+    }
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error parsing JSON: " + std::string(e.what()));
   }
 
+  // The response is ignored.
+  std::string response;
   return TLSRequestHelper::go<JSONSerializer>(
       write_uri_, params, response, FLAGS_distributed_tls_max_attempts);
 }
