@@ -76,9 +76,11 @@ function main_ubuntu() {
     package clang-format-3.4
   fi
 
-  if [[ $DISTRO = "precise" || $DISTRO = "lucid" ]]; then
+  if [[ $DISTRO = "precise" || $DISTRO = "lucid" || $DISTRO = "wily" ]]; then
     package rubygems
+  fi
 
+  if [[ $DISTRO = "precise" || $DISTRO = "lucid" ]]; then
     # Temporary removes (so we can override default paths).
     package autotools-dev
 
@@ -107,6 +109,11 @@ function main_ubuntu() {
     package autoconf
     package automake
     package libtool
+  fi
+
+  if [[ $DISTRO = "xenial" ]]; then
+    # Ubuntu bug 1578006
+    package plymouth-label
   fi
 
   set_cc gcc #-4.8
