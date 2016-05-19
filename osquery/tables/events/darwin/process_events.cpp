@@ -52,8 +52,8 @@ Status ProcessEventSubscriber::Callback(
     r["overflows"] = "cmdline";
   }
 
-  r["environment_count"] = BIGINT(ec->event.actual_envc);
-  r["environment_size"] = BIGINT(ec->event.env_length);
+  r["env_count"] = BIGINT(ec->event.actual_envc);
+  r["env_size"] = BIGINT(ec->event.env_length);
   if (ec->event.envc != ec->event.actual_envc) {
     r["overflows"] +=
         std::string(((r["overflows"].size() > 0) ? ", " : "")) + "environment";
@@ -102,7 +102,7 @@ Status ProcessEventSubscriber::Callback(
       }
       envv += strlen(envv) + 1;
     }
-    r["environment"] = std::move(envv_accumulator);
+    r["env"] = std::move(envv_accumulator);
   }
 
   r["pid"] = BIGINT(ec->event.pid);
@@ -113,10 +113,10 @@ Status ProcessEventSubscriber::Callback(
   r["egid"] = BIGINT(ec->event.egid);
   r["owner_uid"] = BIGINT(ec->event.owner_uid);
   r["owner_gid"] = BIGINT(ec->event.owner_gid);
-  r["create_time"] = BIGINT(ec->event.create_time);
-  r["access_time"] = BIGINT(ec->event.access_time);
-  r["modify_time"] = BIGINT(ec->event.modify_time);
-  r["change_time"] = BIGINT(ec->event.change_time);
+  r["btime"] = BIGINT(ec->event.create_time);
+  r["atime"] = BIGINT(ec->event.access_time);
+  r["mtime"] = BIGINT(ec->event.modify_time);
+  r["ctime"] = BIGINT(ec->event.change_time);
   r["mode"] = BIGINT(ec->event.mode);
   r["path"] = ec->event.path;
   r["uptime"] = BIGINT(ec->uptime);

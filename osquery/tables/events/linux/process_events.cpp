@@ -93,9 +93,9 @@ inline void updateAuditRow(const AuditEventContextRef& ec, Row& r) {
     r["cmdline_size"] = "";
 
     r["overflows"] = "";
-    r["environment_size"] = "0";
-    r["environment_count"] = "0";
-    r["environment"] = "";
+    r["env_size"] = "0";
+    r["env_count"] = "0";
+    r["env"] = "";
   }
 
   if (ec->type == AUDIT_EXECVE) {
@@ -125,10 +125,10 @@ inline void updateAuditRow(const AuditEventContextRef& ec, Row& r) {
 
     auto qd = SQL::selectAllFrom("file", "path", EQUALS, r.at("path"));
     if (qd.size() == 1) {
-      r["create_time"] = qd.front().at("ctime");
-      r["access_time"] = qd.front().at("atime");
-      r["modify_time"] = qd.front().at("mtime");
-      r["change_time"] = "0";
+      r["ctime"] = qd.front().at("ctime");
+      r["atime"] = qd.front().at("atime");
+      r["mtime"] = qd.front().at("mtime");
+      r["btime"] = "0";
     }
 
     // Uptime is helpful for execution-based events.
