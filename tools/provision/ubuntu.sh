@@ -58,6 +58,12 @@ function main_ubuntu() {
   package libreadline-dev
   package libcurl4-openssl-dev
 
+  if [[ $DISTRO = "precise" ]]; then
+    package ruby1.9.3
+    sudo update-alternatives --set ruby /usr/bin/ruby1.9.1
+    sudo update-alternatives --set gem /usr/bin/gem1.9.1
+  fi
+
   if [[ $DISTRO = "lucid" ]]; then
     package libopenssl-ruby
 
