@@ -314,7 +314,7 @@ function install_gflags() {
 }
 
 function install_google_benchmark() {
-  SOURCE=benchmark-0.1.0
+  SOURCE=benchmark-1.0.0
   TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
 
