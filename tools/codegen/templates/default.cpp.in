@@ -43,6 +43,32 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
 {% endfor %}\
     };
   }
+{% if aliases|length > 0 %}\
+
+  std::vector<std::string> aliases() const override {
+    return {
+{% for alias in aliases %}\
+      "{{alias}}",
+{% endfor %}\
+    };
+  }
+{% endif %}\
+
+{% if has_column_aliases %}\
+
+  ColumnAliasSet columnAliases() const override {
+    return {
+{% for column in schema %}\
+{% if column.aliases|length > 0 %}\
+      {"{{column.name}}", {% raw %}{{% endraw %}\
+{% for alias in column.aliases %}"{{alias}}"\
+{% if not loop.last %}, {% endif %}\
+{% endfor %}}},
+{% endif %}\
+{% endfor %}\
+    };
+  }
+{% endif %}\
 
   QueryData generate(QueryContext& request) override {
 {% if class_name != "" %}\

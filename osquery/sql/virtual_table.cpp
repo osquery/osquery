@@ -158,9 +158,10 @@ int xCreate(sqlite3 *db,
   // Create a TablePlugin Registry call, expect column details as the response.
   PluginResponse response;
   pVtab->content->name = std::string(argv[0]);
+  const auto &name = pVtab->content->name;
   // Get the table column information.
-  auto status = Registry::call("table", pVtab->content->name,
-                               {{"action", "columns"}}, response);
+  auto status =
+      Registry::call("table", name, {{"action", "columns"}}, response);
   if (!status.ok() || response.size() == 0) {
     delete pVtab->content;
     delete pVtab;
@@ -168,8 +169,8 @@ int xCreate(sqlite3 *db,
   }
 
   // Generate an SQL create table statement from the retrieved column details.
-  auto statement =
-      "CREATE TABLE " + pVtab->content->name + columnDefinition(response);
+  // This call to columnDefinition requests column aliases (as HIDDEN columns).
+  auto statement = "CREATE TABLE " + name + columnDefinition(response, true);
   int rc = sqlite3_declare_vtab(db, statement.c_str());
   if (rc != SQLITE_OK || !status.ok() || response.size() == 0) {
     delete pVtab->content;
@@ -177,12 +178,51 @@ int xCreate(sqlite3 *db,
     return (rc != SQLITE_OK) ? rc : SQLITE_ERROR;
   }
 
+  // Tables may request aliases as views.
+  std::set<std::string> views;
+
   // Keep a local copy of the column details in the VirtualTableContent struct.
   // This allows introspection into the column type without additional calls.
   for (const auto &column : response) {
-    pVtab->content->columns.push_back(std::make_tuple(
-        column.at("name"), columnTypeName(column.at("type")),
-        (ColumnOptions)AS_LITERAL(INTEGER_LITERAL, column.at("op"))));
+    if (column.count("id") == 0) {
+      // This does not define a column type.
+      continue;
+    }
+
+    if (column.at("id") == "column" && column.count("name") &&
+        column.count("type")) {
+      // This is a malformed column definition.
+      // Populate the virtual table specific persistent column information.
+      pVtab->content->columns.push_back(std::make_tuple(
+          column.at("name"), columnTypeName(column.at("type")),
+          (ColumnOptions)AS_LITERAL(INTEGER_LITERAL, column.at("op"))));
+    } else if (column.at("id") == "alias" && column.count("alias")) {
+      // Create associated views for table aliases.
+      views.insert(column.at("alias"));
+    } else if (column.at("id") == "columnAlias" && column.count("name") &&
+               column.count("target")) {
+      // Record the column in the set of columns.
+      // This is required because SQLITE uses indexes to identify columns.
+      // Use an UNKNOWN_TYPE as a pseudo-mask, since the type does not matter.
+      pVtab->content->columns.push_back(
+          std::make_tuple(column.at("name"), UNKNOWN_TYPE, HIDDEN));
+      // Record a mapping of the requested column alias name.
+      size_t target_index = 0;
+      for (size_t i = 0; i < pVtab->content->columns.size(); i++) {
+        const auto &target_column = pVtab->content->columns[i];
+        if (std::get<0>(target_column) == column.at("target")) {
+          target_index = i;
+          break;
+        }
+      }
+      pVtab->content->aliases[column.at("name")] = target_index;
+    }
+  }
+
+  // Create the requested 'aliases'.
+  for (const auto &view : views) {
+    auto statement = "CREATE VIEW " + view + " AS SELECT * FROM " + name;
+    sqlite3_exec(db, statement.c_str(), nullptr, nullptr, nullptr);
   }
   *ppVtab = (sqlite3_vtab *)pVtab;
   return rc;
@@ -195,12 +235,20 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
     // Requested column index greater than column set size.
     return SQLITE_ERROR;
   }
-
-  const auto &column_name = std::get<0>(pVtab->content->columns[col]);
-  const auto &type = std::get<1>(pVtab->content->columns[col]);
   if (pCur->row >= pCur->data.size()) {
     // Request row index greater than row set size.
     return SQLITE_ERROR;
+  }
+
+  auto &column_name = std::get<0>(pVtab->content->columns[col]);
+  auto &type = std::get<1>(pVtab->content->columns[col]);
+  if (pVtab->content->aliases.count(column_name)) {
+    // Overwrite the aliased column with the type and name of the new column.
+    type = std::get<1>(
+        pVtab->content->columns[pVtab->content->aliases.at(column_name)]);
+    column_name = std::get<0>(
+        pVtab->content->columns[pVtab->content->aliases.at(column_name)]);
+    printf("setting column_name = %s type=%d\n", column_name.c_str(), type);
   }
 
   // Attempt to cast each xFilter-populated row/column to the SQLite type.
@@ -473,7 +521,7 @@ void attachVirtualTables(const SQLiteDBInstanceRef &instance) {
     auto status =
         Registry::call("table", name, {{"action", "columns"}}, response);
     if (status.ok()) {
-      auto statement = columnDefinition(response);
+      auto statement = columnDefinition(response, true);
       attachTableInternal(name, statement, instance);
     }
   }

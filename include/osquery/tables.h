@@ -184,6 +184,9 @@ enum ColumnOptions {
    * This optimization does not mean the column is an index.
    */
   OPTIMIZED = 8,
+
+  /// This column should be hidden from '*'' selects.
+  HIDDEN = 16,
 };
 
 /// Treat column options as a set of flags.
@@ -197,6 +200,9 @@ using TableName = std::string;
 /// Alias for an ordered list of column name and corresponding SQL type.
 using TableColumns =
     std::vector<std::tuple<std::string, ColumnType, ColumnOptions>>;
+
+/// Alias for map of column alias sets.
+using ColumnAliasSet = std::map<std::string, std::set<std::string>>;
 
 /// Forward declaration of QueryContext for ConstraintList relationships.
 struct QueryContext;
@@ -382,6 +388,15 @@ struct VirtualTableContent {
   /// Table column structure, retrieved once via the TablePlugin call API.
   TableColumns columns;
 
+  /**
+   * @brief Table column aliases structure.
+   *
+   * This is used within xColumn to move content from special HIDDEN columns
+   * that act as aliases. If these columns are requested the content is moved
+   * from the new non-deprecated name.
+   */
+  std::map<std::string, size_t> aliases;
+
   /// Transient set of virtual table access constraints.
   std::unordered_map<size_t, ConstraintSet> constraints;
 
@@ -566,8 +581,21 @@ using Constraint = struct Constraint;
  */
 class TablePlugin : public Plugin {
  protected:
+  /**
+   * @brief Table name aliases create full-scan VIEWs for tables.
+   *
+   * Aliases allow table names to be changed/deprecated without breaking
+   * existing deployments and scheduled queries.
+   *
+   * @return A string vector of qtable name aliases.
+   */
+  virtual std::vector<std::string> aliases() const { return {}; }
+
   /// Return the table's column name and type pairs.
   virtual TableColumns columns() const { return TableColumns(); }
+
+  /// Define a map of target columns to optional aliases.
+  virtual ColumnAliasSet columnAliases() const { return {}; }
 
   /**
    * @brief Generate a complete table representation.
@@ -702,7 +730,8 @@ class TablePlugin : public Plugin {
 std::string columnDefinition(const TableColumns& columns);
 
 /// Helper method to generate the virtual table CREATE statement.
-std::string columnDefinition(const PluginResponse& response);
+std::string columnDefinition(const PluginResponse& response,
+                             bool aliases = false);
 
 /// Get the string representation for an SQLite column type.
 inline const std::string& columnTypeName(ColumnType type) {
