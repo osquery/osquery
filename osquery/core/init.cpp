@@ -168,21 +168,25 @@ void signalHandler(int num) {
 }
 }
 
-namespace osquery {
-
 using chrono_clock = std::chrono::high_resolution_clock;
 
-#if !defined(__APPLE__) && !defined(WIN32)
-CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
-#endif
+namespace osquery {
 
 DECLARE_string(distributed_plugin);
 DECLARE_bool(disable_distributed);
 DECLARE_string(config_plugin);
 DECLARE_bool(config_check);
 DECLARE_bool(config_dump);
+DECLARE_bool(disable_database);
 DECLARE_bool(database_dump);
 DECLARE_string(database_path);
+DECLARE_bool(disable_events);
+
+#if !defined(__APPLE__) && !defined(WIN32)
+CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
+#endif
+
+FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 
 ToolType kToolType = OSQUERY_TOOL_UNKNOWN;
 
@@ -228,6 +232,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   std::srand(chrono_clock::now().time_since_epoch().count());
   // The 'main' thread is that which executes the initializer.
   kMainThreadId = std::this_thread::get_id();
+  // Set the tool type to allow runtime decisions based on daemon, shell, etc.
+  kToolType = tool;
 
   // Handled boost filesystem locale problems fixes in 1.56.
   // See issue #1559 for the discussion and upstream boost patch.
@@ -264,6 +270,15 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   FLAGS_logger_plugin = STR(OSQUERY_DEFAULT_LOGGER_PLUGIN);
 #endif
 
+  if (tool == OSQUERY_TOOL_SHELL) {
+    // The shell is transient, rewrite config-loaded paths.
+    FLAGS_disable_logging = true;
+    // The shell never will not fork a worker.
+    FLAGS_disable_watchdog = true;
+    FLAGS_disable_events = true;
+    FLAGS_disable_database = true;
+  }
+
   // Set version string from CMake build
   GFLAGS_NAMESPACE::SetVersionString(kVersion.c_str());
 
@@ -271,30 +286,9 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   GFLAGS_NAMESPACE::ParseCommandLineFlags(
       argc_, argv_, (tool == OSQUERY_TOOL_SHELL));
 
-  // Set the tool type to allow runtime decisions based on daemon, shell, etc.
-  kToolType = tool;
   if (tool == OSQUERY_TOOL_SHELL) {
-    // The shell is transient, rewrite config-loaded paths.
-    FLAGS_disable_logging = true;
-    // The shell never will not fork a worker.
-    FLAGS_disable_watchdog = true;
-    // Get the caller's home dir for temporary storage/state management.
-    auto homedir = osqueryHomeDirectory();
-    boost::system::error_code ec;
-    if (osquery::pathExists(homedir).ok() ||
-        boost::filesystem::create_directory(homedir, ec)) {
-      // Only apply user/shell-specific paths if not overridden by CLI flag.
-      if (Flag::isDefault("database_path")) {
-        osquery::FLAGS_database_path = homedir + "/shell.db";
-      }
-      if (Flag::isDefault("extensions_socket")) {
-        osquery::FLAGS_extensions_socket = homedir + "/shell.em";
-      }
-    } else {
-      LOG(INFO) << "Cannot access or create osquery home directory";
-      FLAGS_disable_extensions = true;
-      FLAGS_database_path = "/dev/null";
-    }
+    // Initialize the shell after setting modified defaults and parsing flags.
+    initShell();
   }
 
 #ifndef WIN32
@@ -348,17 +342,18 @@ void Initializer::initDaemon() const {
   syslog(
       LOG_NOTICE, "%s started [version=%s]", binary_.c_str(), kVersion.c_str());
 
-  // Check if /var/osquery exists
-  if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
-      !isDirectory(OSQUERY_HOME)) {
-    std::cerr << CONFIG_ERROR;
-  }
+  if (!FLAGS_ephemeral) {
+    if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
+        !isDirectory(OSQUERY_HOME)) {
+      std::cerr << CONFIG_ERROR;
+    }
 
-  // Create a process mutex around the daemon.
-  auto pid_status = createPidFile();
-  if (!pid_status.ok()) {
-    LOG(ERROR) << binary_ << " initialize failed: " << pid_status.toString();
-    shutdown(EXIT_FAILURE);
+    // Create a process mutex around the daemon.
+    auto pid_status = createPidFile();
+    if (!pid_status.ok()) {
+      LOG(ERROR) << binary_ << " initialize failed: " << pid_status.toString();
+      shutdown(EXIT_FAILURE);
+    }
   }
 #endif
 
@@ -375,6 +370,26 @@ void Initializer::initDaemon() const {
 #elif defined(__APPLE__)
     setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_PROCESS, IOPOL_THROTTLE);
 #endif
+  }
+}
+
+void Initializer::initShell() const {
+  // Get the caller's home dir for temporary storage/state management.
+  auto homedir = osqueryHomeDirectory();
+  boost::system::error_code ec;
+  if (osquery::pathExists(homedir).ok() ||
+      boost::filesystem::create_directory(homedir, ec)) {
+    // Only apply user/shell-specific paths if not overridden by CLI flag.
+    if (Flag::isDefault("database_path")) {
+      osquery::FLAGS_database_path = homedir + "/shell.db";
+    }
+    if (Flag::isDefault("extensions_socket")) {
+      osquery::FLAGS_extensions_socket = homedir + "/shell.em";
+    }
+  } else {
+    LOG(INFO) << "Cannot access or create osquery home directory";
+    FLAGS_disable_extensions = true;
+    FLAGS_disable_database = true;
   }
 }
 
@@ -595,4 +610,3 @@ void Initializer::requestShutdown(int retcode) {
 
 void Initializer::shutdown(int retcode) { ::exit(retcode); }
 }
-

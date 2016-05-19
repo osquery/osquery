@@ -34,6 +34,8 @@ CLI_FLAG(bool,
          "Keep osquery backing-store in memory");
 FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
 
+FLAG(bool, disable_database, false, "Disable the persistent RocksDB storage");
+
 #if defined(SKIP_ROCKSDB)
 #define DATABASE_PLUGIN "sqlite"
 #else
@@ -424,7 +426,8 @@ bool addUniqueRowToQueryData(QueryData& q, const Row& r) {
 
 bool DatabasePlugin::initPlugin() {
   // Initialize the database plugin using the flag.
-  return Registry::setActive("database", kInternalDatabase).ok();
+  auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
+  return Registry::setActive("database", plugin).ok();
 }
 
 void DatabasePlugin::shutdown() {
