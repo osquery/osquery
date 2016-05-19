@@ -53,22 +53,21 @@ class optionsTablePlugin : public TablePlugin {
 
 TEST_F(VirtualTableTests, test_tableplugin_options) {
   auto table = std::make_shared<optionsTablePlugin>();
-  EXPECT_EQ(std::get<2>(table->columns()[0]), INDEX | REQUIRED);
+  EXPECT_EQ(INDEX | REQUIRED, std::get<2>(table->columns()[0]));
 
   PluginResponse response;
   PluginRequest request = {{"action", "columns"}};
   EXPECT_TRUE(table->call(request, response).ok());
-  EXPECT_EQ(response[0]["op"], INTEGER(INDEX | REQUIRED));
+  EXPECT_EQ(INTEGER(INDEX | REQUIRED), response[0]["op"]);
 
   response = table->routeInfo();
-  EXPECT_EQ(response[0]["op"], INTEGER(INDEX | REQUIRED));
+  EXPECT_EQ(INTEGER(INDEX | REQUIRED), response[0]["op"]);
 }
 
 class aliasesTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const override {
     return {
-        std::make_tuple("id", INTEGER_TYPE, DEFAULT),
         std::make_tuple("username", TEXT_TYPE, DEFAULT),
         std::make_tuple("name", TEXT_TYPE, DEFAULT),
     };
@@ -80,8 +79,7 @@ class aliasesTablePlugin : public TablePlugin {
 
   ColumnAliasSet columnAliases() const override {
     return {
-        {"username", {"user_name"}},
-        {"name", {"name1", "name2", "name3", "name4"}},
+        {"username", {"user_name"}}, {"name", {"name1", "name2"}},
     };
   }
 
@@ -92,12 +90,36 @@ class aliasesTablePlugin : public TablePlugin {
 TEST_F(VirtualTableTests, test_tableplugin_aliases) {
   auto table = std::make_shared<aliasesTablePlugin>();
   std::vector<std::string> expected_aliases = {"aliases1", "aliases2"};
-  EXPECT_EQ(table->aliases(), expected_aliases);
+  EXPECT_EQ(expected_aliases, table->aliases());
 
   PluginResponse response;
   PluginRequest request = {{"action", "columns"}};
   EXPECT_TRUE(table->call(request, response).ok());
-  // EXPECT_EQ(response[0]["op"], INTEGER(INDEX | REQUIRED));
+
+  PluginResponse expected_response = {
+      {{"id", "column"},
+       {"name", "username"},
+       {"type", "TEXT"},
+       {"op", INTEGER(DEFAULT)}},
+      {{"id", "column"},
+       {"name", "name"},
+       {"type", "TEXT"},
+       {"op", INTEGER(DEFAULT)}},
+      {{"alias", "aliases1"}, {"id", "alias"}},
+      {{"alias", "aliases2"}, {"id", "alias"}},
+      {{"id", "columnAlias"}, {"name", "name1"}, {"target", "name"}},
+      {{"id", "columnAlias"}, {"name", "name2"}, {"target", "name"}},
+      {{"id", "columnAlias"}, {"name", "user_name"}, {"target", "username"}},
+  };
+  EXPECT_EQ(response, expected_response);
+
+  // Compare the expected table definitions.
+  std::string expected_statement =
+      "(`username` TEXT, `name` TEXT, `name1` TEXT HIDDEN, `name2` TEXT HIDDEN,"
+      " `user_name` TEXT HIDDEN)";
+  EXPECT_EQ(expected_statement, columnDefinition(response, true));
+  expected_statement = "(`username` TEXT, `name` TEXT)";
+  EXPECT_EQ(expected_statement, columnDefinition(response, false));
 }
 
 TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
@@ -249,14 +271,10 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   }
 
   std::vector<QueryData> union_results = {
-      makeResult("x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("k.x", {"1", "2"}),
-      makeResult("p.x", {"1"}),
+      makeResult("x", {"1", "2"}),   makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}), makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}), makeResult("k.x", {"1", "2"}),
+      makeResult("k.x", {"1", "2"}), makeResult("p.x", {"1"}),
       makeResult("p.x", {"1"}),
   };
 
