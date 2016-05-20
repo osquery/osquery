@@ -83,8 +83,8 @@ public:
   }
 
 private:
-  HANDLE handle_ = INVALID_HANDLE_VALUE;
-  WIN32_FIND_DATAA fd_ = {0};
+  HANDLE handle_{ INVALID_HANDLE_VALUE };
+  WIN32_FIND_DATAA fd_{ 0 };
 
   fs::path path_;
 };
@@ -296,7 +296,77 @@ static AclObject modifyAcl(PACL acl, PSID target, bool allow_read, bool allow_wr
   return std::move(new_acl_buffer);
 }
 
-bool platformChmod(const std::string& path, int perms) {
+PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
+  DWORD access_mask = 0;
+  DWORD flags_and_attrs = 0;
+  DWORD creation_disposition = 0;
+  std::unique_ptr<SECURITY_ATTRIBUTES> security_attrs;
+
+  if (mode & PF_READ) {
+    access_mask |= GENERIC_READ;
+  }
+
+  if (mode & PF_WRITE) {
+    access_mask |= GENERIC_WRITE;
+  }
+
+  switch ((mode & PF_OPTIONS_MASK) >> 2) {
+    case PF_CREATE_NEW:
+      creation_disposition = CREATE_NEW;
+      break;
+    case PF_CREATE_ALWAYS:
+      creation_disposition = CREATE_ALWAYS;
+      break;
+    case PF_OPEN_ALWAYS:
+      creation_disposition = OPEN_ALWAYS;
+      break;
+    case PF_TRUNCATE:
+      creation_disposition = TRUNCATE_EXISTING;
+      break;
+    default:
+      break;
+  }
+
+  if (mode & PF_NONBLOCK) {
+    flags_and_attrs |= FILE_FLAG_OVERLAPPED;
+    is_nonblock_ = true;
+  }
+
+  if (perms != -1) {
+    /// TODO: set up a security descriptor based off the perms
+  }
+  handle_ = ::CreateFileA(path.c_str(), access_mask, FILE_SHARE_READ,
+                          security_attrs.get(), creation_disposition,
+                          flags_and_attrs, nullptr);
+}
+
+PlatformFile::~PlatformFile() {
+  if (handle_ != kInvalidHandle && handle_ != nullptr) {
+    ::CloseHandle(handle_);
+  }
+}
+
+ssize_t PlatformFile::read(void *buf, size_t nbyte) {
+  if (!isValid()) return -1;
+
+  /// TODO: How do we want to deal with OVERLAPPED scenario?
+  DWORD bytes_read = 0;
+  if (!::ReadFile(handle_, buf, nbyte, &bytes_read, nullptr)) {
+
+  }
+}
+
+ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
+  if (!isValid()) return -1;
+
+  /// TODO: How do we want to deal with OVERLAPPED scenario?
+  DWORD bytes_written = 0;
+  if (!::WriteFile(handle_, buf, nbyte, &bytes_written, nullptr)) {
+
+  }
+}
+
+bool platformChmod(const std::string& path, mode_t perms) {
   DWORD ret = 0;
   PACL dacl = nullptr;
   PSID owner = nullptr;
@@ -361,12 +431,18 @@ bool platformChmod(const std::string& path, int perms) {
 }
 
 std::vector<std::string> platformGlob(std::string find_path) {
+  if (find_path.size() >= 2 && find_path[0] == '~' &&
+      (find_path[1] == '/' || find_path[1] == '\\')) {
+    auto homedir = getEnvVar("USERPROFILE");
+    if (homedir.is_initialized()) {
+      find_path = *homedir + find_path.substr(1);
+    }
+  }
+
   fs::path full_path(find_path);
 
   std::vector<fs::path> valid_paths;
   std::regex pattern(".*[*\?].*");
-
-  /// TODO(#2001): We need to handle GLOB_TILDE and GLOB_MARK
 
   valid_paths.push_back(fs::path(""));
   if (full_path.has_parent_path()) {
@@ -403,14 +479,22 @@ std::vector<std::string> platformGlob(std::string find_path) {
       WindowsFindFiles wf(valid_path / "*");
       for (auto& result : wf.get()) {
         if (std::regex_match(result.filename().string(), component_pattern)) {
-          results.push_back(result.make_preferred().string());
+          auto result_path = result.make_preferred().string();
+          if (fs::is_directory(result)) {
+            result_path += "\\";
+          }
+          results.push_back(result_path);
         }
       }
     }
     else {
       WindowsFindFiles wf(valid_path / full_path.filename());
       for (auto& result : wf.get()) {
-        results.push_back(result.make_preferred().string());
+        auto result_path = result.make_preferred().string();
+        if (fs::is_directory(result)) {
+          result_path += "\\";
+        }
+        results.push_back(result_path);
       }
     }
   }
@@ -421,10 +505,9 @@ std::vector<std::string> platformGlob(std::string find_path) {
 boost::optional<std::string> getHomeDirectory() {
   std::vector<char> profile(MAX_PATH);
   auto value = getEnvVar("USERPROFILE");
-  if (value.is_initialized()) { // and writable...
+  if (value.is_initialized()) {
     return *value;
-  }
-  else if (SUCCEEDED(::SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, &profile[0]))) {
+  } else if (SUCCEEDED(::SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, &profile[0]))) {
     return std::string(&profile[0], ::strlen(&profile[0]));
   } else {
     return boost::none;

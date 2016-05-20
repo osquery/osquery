@@ -19,6 +19,65 @@
 
 namespace osquery {
 
+PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
+  int oflag = 0;
+
+  if ((mode & PF_READ) && (mode & PF_WRITE)) {
+    oflag = O_RDWR;
+  } else if (mode & PF_READ) {
+    oflag = O_RDONLY;
+  } else if (mode & PF_WRITE) {
+    oflag = O_WRONLY;
+  }
+
+  switch ((mode & PF_OPTIONS_MASK) >> 2) {
+    case PF_CREATE_NEW:
+      oflag |= O_CREAT;
+      if (mode & PF_WRITE) oflag |= O_APPEND;
+      break;
+    case PF_CREATE_ALWAYS:
+      oflag |= O_CREAT | O_EXCL;
+      if (mode & PF_WRITE) oflag |= O_APPEND;
+      break;
+    case PF_OPEN_ALWAYS:
+      oflag |= CREATE_NEW;
+      if (mode & PF_WRITE) oflag |= O_APPEND;
+      break;
+    case PF_TRUNCATE:
+      oflag |= O_TRUNC;
+      break;
+    default:
+      break;
+  }
+
+  if (mode & PF_NONBLOCK) {
+    oflag |= O_NONBLOCK;
+    is_nonblock_ = true;
+  }
+
+  if (perms == -1) {
+    handle_ = ::open(path.c_str(), oflag);
+  } else {
+    handle_ = ::open(path.c_str(), oflag, perms);
+  }
+}
+
+PlatformFile::~PlatformFile() { 
+  if (handle_ != kInvalidHandle) {
+    ::close(handle_);
+  }
+}
+
+ssize_t PlatformFile::read(void *buf, size_t nbyte) {
+  if (!isValid()) return -1;
+  return ::read(handle_, buf, nbyte);
+}
+
+ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
+  if (!isValid()) return -1;
+  return ::write(handle_, buf, nbyte);
+}
+
 boost::optional<std::string> getHomeDirectory() {
   // Try to get the caller's home directory using HOME and getpwuid.
   auto user = getpwuid(getuid());
