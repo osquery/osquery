@@ -108,12 +108,15 @@ else()
   if(${OSQUERY_BUILD_PLATFORM} STREQUAL "freebsd")
     set(FREEBSD TRUE)
     set(LINUX FALSE)
-    set(ENV{SKIP_BENCHMARKS}, "TRUE")
+    set(ENV{SKIP_BENCHMARKS} "TRUE")
   else()
     set(LINUX TRUE)
     set(FREEBSD FALSE)
   endif()
 endif()
+
+# BUILD BUG: See issue #2112
+set(ENV{SKIP_BENCHMARKS} TRUE)
 
 # RHEL6 uses a different gcc 4.9 runtime
 if(${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6")
