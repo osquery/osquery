@@ -34,25 +34,26 @@
 #endif
 // clang-format on
 
-#ifndef __constructor__
+#ifdef WIN32
+#define USED_SYMBOL
+#else
+#define USED_SYMBOL __attribute__((used))
+#endif
 
+#ifndef __constructor__
 #ifdef WIN32
 #define __registry_constructor__
 #define __plugin_constructor__
 #else
-#define __registry_constructor__ __attribute__((constructor(101)))
-#define __plugin_constructor__ __attribute__((constructor(102)))
+#define __registry_constructor__ __attribute__((constructor(101))) USED_SYMBOL
+#define __plugin_constructor__ __attribute__((constructor(102))) USED_SYMBOL
 #endif
 
 #else
-#define __registry_constructor__ __attribute__((__constructor__(101)))
-#define __plugin_constructor__ __attribute__((__constructor__(102)))
-#endif
-
-#ifdef WIN32
-#define USED_REFERENCE
-#else
-#define USED_REFERENCE __attribute__((used))
+#define __registry_constructor__ __attribute__((__constructor__(101))) \
+  USED_SYMBOL
+#define __plugin_constructor__ __attribute__((__constructor__(102))) \
+  USED_SYMBOL
 #endif
 
 /// A configuration error is catastrophic and should exit the watcher.
@@ -128,6 +129,13 @@ class Initializer : private boost::noncopyable {
    * for sane/non-default configurations, etc.
    */
   void initDaemon() const;
+
+  /**
+   * @brief Sets up the process as an osquery shell.
+   *
+   * The shell is lighter than a daemon and disables (by default) features.
+   */
+  void initShell() const;
 
   /**
    * @brief Daemon tools may want to continually spawn worker processes

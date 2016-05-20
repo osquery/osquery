@@ -23,6 +23,10 @@
 #include "osquery/core/process.h"
 
 namespace osquery {
+
+DECLARE_bool(disable_logging);
+DECLARE_bool(disable_events);
+
 namespace tables {
 
 QueryData genOsqueryEvents(QueryContext& context) {
@@ -126,6 +130,20 @@ QueryData genOsqueryFlags(QueryContext& context) {
 QueryData genOsqueryRegistry(QueryContext& context) {
   QueryData results;
 
+  auto isActive = [](const std::string& plugin,
+                     const std::shared_ptr<RegistryHelperCore>& registry) {
+    if (FLAGS_disable_logging && registry->getName() == "logger") {
+      return false;
+    } else if (FLAGS_disable_events &&
+               registry->getName().find("event") != std::string::npos) {
+      return false;
+    }
+
+    const auto& active = registry->getActive();
+    bool none_active = (active.empty());
+    return (none_active || plugin == active);
+  };
+
   const auto& registries = RegistryFactory::all();
   for (const auto& registry : registries) {
     const auto& plugins = registry.second->all();
@@ -135,7 +153,7 @@ QueryData genOsqueryRegistry(QueryContext& context) {
       r["name"] = plugin.first;
       r["owner_uuid"] = "0";
       r["internal"] = (registry.second->isInternal(plugin.first)) ? "1" : "0";
-      r["active"] = "1";
+      r["active"] = (isActive(plugin.first, registry.second)) ? "1" : "0";
       results.push_back(r);
     }
 
@@ -145,7 +163,7 @@ QueryData genOsqueryRegistry(QueryContext& context) {
       r["name"] = route.first;
       r["owner_uuid"] = INTEGER(route.second);
       r["internal"] = "0";
-      r["active"] = "1";
+      r["active"] = (isActive(route.first, registry.second)) ? "1" : "0";
       results.push_back(r);
     }
   }
@@ -226,7 +244,8 @@ QueryData genOsquerySchedule(QueryContext& context) {
 
         // Report optional performance information.
         Config::getInstance().getPerformanceStats(
-            name, [&r](const QueryPerformance& perf) {
+            name,
+            [&r](const QueryPerformance& perf) {
               r["executions"] = BIGINT(perf.executions);
               r["last_executed"] = BIGINT(perf.last_executed);
               r["output_size"] = BIGINT(perf.output_size);

@@ -53,6 +53,7 @@ DECLARE_string(modules_autoload);
 DECLARE_string(extensions_autoload);
 DECLARE_string(enroll_tls_endpoint);
 DECLARE_bool(disable_logging);
+DECLARE_bool(disable_database);
 
 typedef std::chrono::high_resolution_clock chrono_clock;
 
@@ -83,11 +84,12 @@ void initTesting() {
   FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
   FLAGS_modules_autoload = kTestWorkingDirectory + "unittests-mod.load";
   FLAGS_disable_logging = true;
+  FLAGS_disable_database = true;
 
   // Tests need a database plugin.
   // Set up the database instance for the unittests.
   DatabasePlugin::setAllowOpen(true);
-  Registry::setActive("database", "ephemeral");
+  DatabasePlugin::initPlugin();
 }
 
 void shutdownTesting() { DatabasePlugin::shutdown(); }
@@ -159,8 +161,8 @@ QueryData getTestDBExpectedResults() {
   return d;
 }
 
-std::vector<std::pair<std::string, QueryData> > getTestDBResultStream() {
-  std::vector<std::pair<std::string, QueryData> > results;
+std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
+  std::vector<std::pair<std::string, QueryData>> results;
 
   std::string q2 =
       "INSERT INTO test_table (username, age) VALUES (\"joe\", 25)";
