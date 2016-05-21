@@ -30,20 +30,19 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
     oflag = O_WRONLY;
   }
 
-  switch ((mode & PF_OPTIONS_MASK) >> 2) {
-    case PF_CREATE_NEW:
+  switch (PF_GET_OPTIONS(mode)) {
+    case PF_GET_OPTIONS(PF_CREATE_ALWAYS):
       oflag |= O_CREAT;
       if (mode & PF_WRITE) oflag |= O_APPEND;
       break;
-    case PF_CREATE_ALWAYS:
+    case PF_GET_OPTIONS(PF_CREATE_NEW):
       oflag |= O_CREAT | O_EXCL;
       if (mode & PF_WRITE) oflag |= O_APPEND;
       break;
-    case PF_OPEN_ALWAYS:
-      oflag |= CREATE_NEW;
+    case PF_GET_OPTIONS(PF_OPEN_EXISTING):
       if (mode & PF_WRITE) oflag |= O_APPEND;
       break;
-    case PF_TRUNCATE:
+    case PF_GET_OPTIONS(PF_TRUNCATE):
       oflag |= O_TRUNC;
       break;
     default:
@@ -76,6 +75,19 @@ ssize_t PlatformFile::read(void *buf, size_t nbyte) {
 ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
   if (!isValid()) return -1;
   return ::write(handle_, buf, nbyte);
+}
+
+off_t PlatformFile::seek(off_t offset, SeekMode mode) {
+  if (!isValid()) return -1;
+
+  int whence = 0;
+  switch (mode) {
+    case PF_SEEK_BEGIN: whence = SEEK_SET; break;
+    case PF_SEEK_CURRENT: whence = SEEK_CUR; break;
+    case PF_SEEK_END: whence = SEEK_END; break;
+    default: break;
+  }
+  return ::lseek(handle_, offset, whence);
 }
 
 boost::optional<std::string> getHomeDirectory() {

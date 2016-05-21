@@ -15,12 +15,15 @@
 #include <vector>
 
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #ifdef WIN32
 #define WINVER 0x0a00
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 #include <boost/optional.hpp>
@@ -61,12 +64,25 @@ const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 #define PF_WRITE 0x0002
 
 #define PF_OPTIONS_MASK 0x001c
-#define PF_CREATE_NEW 0
-#define PF_CREATE_ALWAYS 1
-#define PF_OPEN_ALWAYS 2
-#define PF_TRUNCATE 3
+#define PF_GET_OPTIONS(x) ((x & PF_OPTIONS_MASK) >> 2)
+#define PF_CREATE_NEW (0 << 2)
+#define PF_CREATE_ALWAYS (1 << 2)
+#define PF_OPEN_EXISTING (2 << 2)
+#define PF_TRUNCATE (3 << 2)
 
 #define PF_NONBLOCK 0x0020
+
+/**
+ * @brief Modes for seeking through a file
+ *
+ * Provides a chance 
+ */
+
+enum SeekMode {
+  PF_SEEK_BEGIN = 0,
+  PF_SEEK_CURRENT,
+  PF_SEEK_END
+};
 
 /**
  * @brief Platform-agnostic file object
@@ -90,13 +106,15 @@ class PlatformFile {
 
     ssize_t read(void *buf, size_t nbyte);
     ssize_t write(const void *buf, size_t nbyte);
+    off_t seek(off_t offset, SeekMode mode);
 
-    /// TODO: consider adding seek()
   private:
     PlatformHandle handle_{ kInvalidHandle };
-    bool is_nonblock_{ false };
 
-    /// TODO: add a member field denoting async IO so we can track position...?
+#ifdef WIN32
+    bool is_nonblock_{ false };
+    int cursor_{ 0 };
+#endif
 };
 
 /**

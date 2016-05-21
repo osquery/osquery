@@ -310,17 +310,17 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
     access_mask |= GENERIC_WRITE;
   }
 
-  switch ((mode & PF_OPTIONS_MASK) >> 2) {
-    case PF_CREATE_NEW:
+  switch (PF_GET_OPTIONS(mode)) {
+    case PF_GET_OPTIONS(PF_CREATE_NEW):
       creation_disposition = CREATE_NEW;
       break;
-    case PF_CREATE_ALWAYS:
+    case PF_GET_OPTIONS(PF_CREATE_ALWAYS):
       creation_disposition = CREATE_ALWAYS;
       break;
-    case PF_OPEN_ALWAYS:
-      creation_disposition = OPEN_ALWAYS;
+    case PF_GET_OPTIONS(PF_OPEN_EXISTING):
+      creation_disposition = OPEN_EXISTING;
       break;
-    case PF_TRUNCATE:
+    case PF_GET_OPTIONS(PF_TRUNCATE):
       creation_disposition = TRUNCATE_EXISTING;
       break;
     default:
@@ -333,8 +333,12 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   }
 
   if (perms != -1) {
-    /// TODO: set up a security descriptor based off the perms
+    /// TODO(#2001): set up a security descriptor based off the perms
   }
+
+  /// TODO(#2001): Check to see if path points to a non-filesystem thing like
+  ///              named pipe/etc. If it does point to a named pipe, ignore
+  ///              for now.
   handle_ = ::CreateFileA(path.c_str(), access_mask, FILE_SHARE_READ,
                           security_attrs.get(), creation_disposition,
                           flags_and_attrs, nullptr);
@@ -349,21 +353,55 @@ PlatformFile::~PlatformFile() {
 ssize_t PlatformFile::read(void *buf, size_t nbyte) {
   if (!isValid()) return -1;
 
-  /// TODO: How do we want to deal with OVERLAPPED scenario?
+  OVERLAPPED overlap = { 0 };
+  LPOVERLAPPED ol = nullptr;
   DWORD bytes_read = 0;
-  if (!::ReadFile(handle_, buf, nbyte, &bytes_read, nullptr)) {
 
+  if (is_nonblock_) {
+    overlap.Offset = cursor_;
+    ol = &overlap;
   }
+
+  if (!::ReadFile(handle_, buf, nbyte, &bytes_read, ol)) {
+    return -1;
+  }
+
+  cursor_ += bytes_read;
+  return bytes_read;
 }
 
 ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
   if (!isValid()) return -1;
 
-  /// TODO: How do we want to deal with OVERLAPPED scenario?
+  OVERLAPPED overlap = { 0 };
+  LPOVERLAPPED ol = nullptr;
   DWORD bytes_written = 0;
-  if (!::WriteFile(handle_, buf, nbyte, &bytes_written, nullptr)) {
 
+  if (is_nonblock_) {
+    overlap.Offset = cursor_;
+    ol = &overlap;
   }
+  if (!::WriteFile(handle_, buf, nbyte, &bytes_written, ol)) {
+    return -1;
+  }
+
+  cursor_ += bytes_written;
+  return bytes_written;
+}
+
+off_t PlatformFile::seek(off_t offset, SeekMode mode) {
+  if (!isValid()) return -1;
+  
+  DWORD whence = 0;
+  switch (mode) {
+    case PF_SEEK_BEGIN: whence = FILE_BEGIN; break;
+    case PF_SEEK_CURRENT: whence = FILE_CURRENT; break;
+    case PF_SEEK_END: whence = FILE_END; break;
+    default: break;
+  }
+
+  cursor_ = ::SetFilePointer(handle_, offset, nullptr, whence);
+  return cursor_;
 }
 
 bool platformChmod(const std::string& path, mode_t perms) {
