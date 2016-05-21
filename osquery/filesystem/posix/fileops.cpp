@@ -21,6 +21,7 @@ namespace osquery {
 
 PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   int oflag = 0;
+  bool check_existence = false;
 
   if ((mode & PF_READ) && (mode & PF_WRITE)) {
     oflag = O_RDWR;
@@ -41,6 +42,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
       break;
     case PF_GET_OPTIONS(PF_OPEN_EXISTING):
       if (mode & PF_WRITE) oflag |= O_APPEND;
+      check_existence = true;
       break;
     case PF_GET_OPTIONS(PF_TRUNCATE):
       oflag |= O_TRUNC;
@@ -54,10 +56,14 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
     is_nonblock_ = true;
   }
 
-  if (perms == -1) {
-    handle_ = ::open(path.c_str(), oflag);
+  if (check_existence && !fs::exists(path.c_str()) {
+    handle_ = kInvalidHandle;
   } else {
-    handle_ = ::open(path.c_str(), oflag, perms);
+    if (perms == -1) {
+      handle_ = ::open(path.c_str(), oflag);
+    } else {
+      handle_ = ::open(path.c_str(), oflag, perms);
+    }
   }
 }
 

@@ -495,12 +495,12 @@ std::vector<std::string> platformGlob(std::string find_path) {
               tmp_valid_paths.push_back(file_path);
             }
           }
-        }
-        else if (std::regex_match(component.string(), pattern)) {
+        } else if (std::regex_match(component.string(), pattern)) {
           WindowsFindFiles wf(valid_path / component);
-          tmp_valid_paths.swap(wf.getDirectories());
-        }
-        else {
+          for (auto const& result : wf.getDirectories()) {
+            tmp_valid_paths.push_back(result);
+          }
+        } else {
           if (fs::exists(valid_path / component)) {
             tmp_valid_paths.push_back(valid_path / component);
           }
@@ -524,8 +524,7 @@ std::vector<std::string> platformGlob(std::string find_path) {
           results.push_back(result_path);
         }
       }
-    }
-    else {
+    } else {
       WindowsFindFiles wf(valid_path / full_path.filename());
       for (auto& result : wf.get()) {
         auto result_path = result.make_preferred().string();
