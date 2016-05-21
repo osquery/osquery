@@ -111,10 +111,8 @@ class PlatformFile {
   private:
     PlatformHandle handle_{ kInvalidHandle };
 
-#ifdef WIN32
     bool is_nonblock_{ false };
     int cursor_{ 0 };
-#endif
 };
 
 /**

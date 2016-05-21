@@ -111,7 +111,7 @@ std::vector<std::string> platformGlob(std::string find_path) {
   std::vector<std::string> results;
   
   glob_t data;
-  glob(path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, &data);
+  glob(find_path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, &data);
   size_t count = data.gl_pathc;
   
   for (size_t index = 0; index < count; index++) {
