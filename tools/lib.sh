@@ -13,6 +13,9 @@ LSB_RELEASE=/etc/lsb-release
 DEBIAN_VERSION=/etc/debian_version
 LIB_SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
+# For OS X, define the distro that builds the kernel extension.
+DARWIN_KERNEL_VERSION="10.11"
+
 function platform() {
   local  __out=$1
   FAMILY="`python $LIB_SCRIPT_DIR/get_platform.py --family`"
@@ -111,7 +114,7 @@ function build() {
   # Build kernel extension/module and tests.
   BUILD_KERNEL=0
   if [[ "$PLATFORM" = "darwin" ]]; then
-    if [[ "$DISTRO" = "10.10" ]]; then
+    if [[ "$DISTRO" = "$DARWIN_KERNEL_VERSION" ]]; then
       BUILD_KERNEL=1
     fi
   fi
