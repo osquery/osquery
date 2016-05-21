@@ -17,6 +17,8 @@
 
 #include "osquery/filesystem/fileops.h"
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 
 PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
