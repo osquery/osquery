@@ -26,6 +26,7 @@ namespace osquery {
 
 PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   int oflag = 0;
+  bool may_create = false;
   bool check_existence = false;
 
   if ((mode & PF_READ) && (mode & PF_WRITE)) {
@@ -40,17 +41,19 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
     case PF_GET_OPTIONS(PF_CREATE_ALWAYS):
       oflag |= O_CREAT;
       if (mode & PF_WRITE) oflag |= O_APPEND;
+      may_create = true;
       break;
     case PF_GET_OPTIONS(PF_CREATE_NEW):
       oflag |= O_CREAT | O_EXCL;
       if (mode & PF_WRITE) oflag |= O_APPEND;
+      may_create = true;
       break;
     case PF_GET_OPTIONS(PF_OPEN_EXISTING):
       if (mode & PF_WRITE) oflag |= O_APPEND;
       check_existence = true;
       break;
     case PF_GET_OPTIONS(PF_TRUNCATE):
-      oflag |= O_TRUNC;
+      if (mode & PF_WRITE) oflag |= O_TRUNC;
       break;
     default:
       break;
@@ -61,14 +64,14 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
     is_nonblock_ = true;
   }
 
+  if (perms == -1 && may_create) {
+    perms = 0666;
+  }
+
   if (check_existence && !fs::exists(path.c_str())) {
     handle_ = kInvalidHandle;
   } else {
-    if (perms == -1) {
-      handle_ = ::open(path.c_str(), oflag);
-    } else {
-      handle_ = ::open(path.c_str(), oflag, perms);
-    }
+    handle_ = ::open(path.c_str(), oflag, perms);
   }
 
   cursor_ = 0;
