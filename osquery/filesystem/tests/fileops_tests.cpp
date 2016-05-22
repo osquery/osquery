@@ -168,10 +168,49 @@ TEST_F(FileOpsTests, test_glob) {
     auto result = platformGlob(kFakeDirectory + "/*/*/*");
     EXPECT_GLOB_RESULT_MATCH(result, expected);
   }
+
+  {
+    std::vector<fs::path> expected{
+      kFakeDirectory + "/deep11/deep2/deep3/",
+      kFakeDirectory + "/deep11/deep2/level2.txt"
+    };
+    auto result = platformGlob(kFakeDirectory + "/*11/*/*");
+    EXPECT_GLOB_RESULT_MATCH(result, expected);
+  }
+
+  {
+    std::vector<fs::path> expected{
+      kFakeDirectory + "/deep1/",
+      kFakeDirectory + "/root.txt"
+    };
+    auto result = platformGlob(kFakeDirectory + "/{deep,root}{1,.txt}");
+    EXPECT_GLOB_RESULT_MATCH(result, expected);
+  }
+
+  {
+    std::vector<fs::path> expected{
+      kFakeDirectory + "/deep1/deep2/level2.txt",
+      kFakeDirectory + "/deep11/deep2/deep3/",
+      kFakeDirectory + "/deep11/deep2/level2.txt"
+    };
+    auto result = platformGlob(kFakeDirectory + "/*/deep2/*");
+    EXPECT_GLOB_RESULT_MATCH(result, expected);
+  }
+
+  {
+    std::vector<fs::path> expected{
+      kFakeDirectory + "/deep1/deep2/",
+      kFakeDirectory + "/deep1/level1.txt",
+      kFakeDirectory + "/deep11/deep2/",
+      kFakeDirectory + "/deep11/level1.txt",
+      kFakeDirectory + "/deep11/not_bash"
+    };
+    auto result = platformGlob(kFakeDirectory + "/*/{deep2,level1,not_bash}{,.txt}");
+    EXPECT_GLOB_RESULT_MATCH(result, expected);
+  }
 }
 
 TEST_F(FileOpsTests, test_chmod) {
 
 }
-
 }
