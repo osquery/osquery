@@ -61,7 +61,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
     is_nonblock_ = true;
   }
 
-  if (check_existence && !fs::exists(path.c_str()) {
+  if (check_existence && !fs::exists(path.c_str())) {
     handle_ = kInvalidHandle;
   } else {
     if (perms == -1) {
@@ -70,6 +70,8 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
       handle_ = ::open(path.c_str(), oflag, perms);
     }
   }
+
+  cursor_ = 0;
 }
 
 PlatformFile::~PlatformFile() { 
