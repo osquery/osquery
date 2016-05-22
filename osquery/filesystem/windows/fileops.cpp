@@ -19,13 +19,11 @@
 #include <vector>
 #include <sstream>
 
-#include <boost/optional.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
 
-#include <io.h>
-
-#include "osquery/filesystem/fileops.h"
 #include "osquery/core/process.h"
+#include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
 

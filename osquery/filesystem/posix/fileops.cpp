@@ -15,6 +15,9 @@
 
 #include <sys/stat.h>
 
+#include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
+
 #include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
