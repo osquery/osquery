@@ -200,8 +200,13 @@ TEST_F(FileOpsTests, test_glob) {
   {
     std::vector<fs::path> expected{
       kFakeDirectory + "/deep1/deep2/",
+#ifdef WIN32
       kFakeDirectory + "/deep1/level1.txt",
       kFakeDirectory + "/deep11/deep2/",
+#else
+      kFakeDirectory + "/deep11/deep2/",
+      kFakeDirectory + "/deep1/level1.txt",
+#endif
       kFakeDirectory + "/deep11/level1.txt",
       kFakeDirectory + "/deep11/not_bash"
     };
