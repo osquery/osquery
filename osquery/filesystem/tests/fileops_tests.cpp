@@ -111,13 +111,48 @@ TEST_F(FileOpsTests, test_fileIo) {
   fs::remove(path);
 }
 
+/// TODO: implement me, make sure async for windows works as we expect
 TEST_F(FileOpsTests, test_asyncIO) {
 
 }
 
+/// TODO: implement me
 TEST_F(FileOpsTests, test_seekFile) {
   std::string path =
     (fs::temp_directory_path() / fs::unique_path()).make_preferred().string();
+
+  const char *expected = "AABBBBAACCCAAAAADDDDAAAAAAAA";
+  const size_t expected_len = ::strlen(expected);
+
+  {
+    PlatformFile fd(path.c_str(), PF_CREATE_ALWAYS | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(expected_len, fd.write("AAAAAAAAAAAAAAAAAAAAAAAAAAAA", expected_len));
+  }
+
+  {
+    PlatformFile fd(path.c_str(), PF_OPEN_EXISTING | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    
+    EXPECT_EQ(expected_len - 12, fd.seek(-12, PF_SEEK_END));
+    EXPECT_EQ(4, fd.write("DDDD", 4));
+
+    EXPECT_EQ(2, fd.seek(2, PF_SEEK_BEGIN));
+    EXPECT_EQ(4, fd.write("BBBB", 4));
+
+    EXPECT_EQ(8, fd.seek(2, PF_SEEK_CURRENT));
+    EXPECT_EQ(3, fd.write("CCC", 3));
+  }
+
+  {
+    std::vector<char> buffer(expected_len);
+
+    PlatformFile fd(path.c_str(), PF_OPEN_EXISTING | PF_READ);
+    EXPECT_TRUE(fd.isValid());
+
+    EXPECT_EQ(expected_len, fd.read(&buffer[0], expected_len));
+    EXPECT_EQ(0, ::memcmp(&buffer[0], expected, expected_len));
+  }
 
   fs::remove(path);
 }
@@ -213,9 +248,5 @@ TEST_F(FileOpsTests, test_glob) {
     auto result = platformGlob(kFakeDirectory + "/*/{deep2,level1,not_bash}{,.txt}");
     EXPECT_GLOB_RESULT_MATCH(result, expected);
   }
-}
-
-TEST_F(FileOpsTests, test_chmod) {
-
 }
 }
