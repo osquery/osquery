@@ -42,16 +42,13 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   switch (PF_GET_OPTIONS(mode)) {
     case PF_GET_OPTIONS(PF_CREATE_ALWAYS):
       oflag |= O_CREAT;
-      if (mode & PF_WRITE) oflag |= O_APPEND;
       may_create = true;
       break;
     case PF_GET_OPTIONS(PF_CREATE_NEW):
       oflag |= O_CREAT | O_EXCL;
-      if (mode & PF_WRITE) oflag |= O_APPEND;
       may_create = true;
       break;
     case PF_GET_OPTIONS(PF_OPEN_EXISTING):
-      if (mode & PF_WRITE) oflag |= O_APPEND;
       check_existence = true;
       break;
     case PF_GET_OPTIONS(PF_TRUNCATE):

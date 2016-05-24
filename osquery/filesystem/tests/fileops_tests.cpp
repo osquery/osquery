@@ -46,9 +46,28 @@ class FileOpsTests : public testing::Test {
     }
 };
 
+class TempFile {
+public:
+  TempFile()
+      : path_((fs::temp_directory_path() / fs::unique_path())
+                  .make_preferred()
+                  .string()) {}
+
+  ~TempFile() {
+    if (fs::exists(path_)) {
+      fs::remove(path_);
+    }
+  }
+
+  std::string path() const { return path_; }
+
+private:
+  std::string path_;
+};
+
 TEST_F(FileOpsTests, test_openFile) {
-  std::string path =
-      (fs::temp_directory_path() / fs::unique_path()).make_preferred().string();
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
@@ -81,15 +100,14 @@ TEST_F(FileOpsTests, test_openFile) {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
     EXPECT_TRUE(fd.isValid());
   }
-
-  fs::remove(path);
 }
 
 TEST_F(FileOpsTests, test_fileIo) {
-  std::string path =
-      (fs::temp_directory_path() / fs::unique_path()).make_preferred().string();
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+   
   const char *expected_read = "AAAABBBBCCCCDDDD";
-  const int expected_read_len = ::strlen(expected_read);
+  const size_t expected_read_len = ::strlen(expected_read);
 
   {
     PlatformFile fd(path, PF_CREATE_NEW | PF_WRITE);
@@ -107,8 +125,6 @@ TEST_F(FileOpsTests, test_fileIo) {
       EXPECT_EQ(expected_read[i], buf[i]);
     }
   }
-
-  fs::remove(path);
 }
 
 /// TODO: implement me, make sure async for windows works as we expect
@@ -117,8 +133,8 @@ TEST_F(FileOpsTests, test_asyncIO) {
 }
 
 TEST_F(FileOpsTests, test_seekFile) {
-  std::string path =
-    (fs::temp_directory_path() / fs::unique_path()).make_preferred().string();
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
 
   const char *expected = "AABBBBAACCCAAAAADDDDAAAAAAAA";
   const size_t expected_len = ::strlen(expected);
@@ -139,7 +155,6 @@ TEST_F(FileOpsTests, test_seekFile) {
     EXPECT_EQ(2, fd.seek(2, PF_SEEK_BEGIN));
     EXPECT_EQ(4, fd.write("BBBB", 4));
 
-    // TODO: This is broken on Linux. Why?
     EXPECT_EQ(8, fd.seek(2, PF_SEEK_CURRENT));
     EXPECT_EQ(3, fd.write("CCC", 3));
   }
@@ -153,8 +168,6 @@ TEST_F(FileOpsTests, test_seekFile) {
     EXPECT_EQ(expected_len, fd.read(&buffer[0], expected_len));
     EXPECT_EQ(0, ::memcmp(&buffer[0], expected, expected_len));
   }
-
-  fs::remove(path);
 }
 
 TEST_F(FileOpsTests, test_glob) {

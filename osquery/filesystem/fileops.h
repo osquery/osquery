@@ -119,6 +119,8 @@ class PlatformFile {
     ssize_t write(const void *buf, size_t nbyte);
     off_t seek(off_t offset, SeekMode mode);
 
+    size_t size() const;
+
   private:
     PlatformHandle handle_{ kInvalidHandle };
 
