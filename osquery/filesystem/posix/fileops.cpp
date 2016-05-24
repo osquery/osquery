@@ -84,6 +84,43 @@ PlatformFile::~PlatformFile() {
   }
 }
 
+bool PlatformFile::isFile() const {
+  struct stat file = { 0 };
+  if (::fstat(handle_, &file) < 0) {
+    return false;
+  }
+  return (file.st_size > 0);
+}
+
+bool PlatformFile::getFileTimes(PlatformTime& times) {
+  if (!isValid()) {
+    return false;
+  }
+
+  struct stat file = { 0 };
+  if (::fstat(handle, &file) < 0) {
+    return false;
+  }
+
+#if defined(__linux__)
+  TIMESPEC_TO_TIMEVAL(&times[0], &file.st_atim);
+  TIMESPEC_TO_TIMEVAL(&times[1], &file.st_mtim);
+#else
+  TIMESPEC_TO_TIMEVAL(&times[0], &file.st_atimespec);
+  TIMESPEC_TO_TIMEVAL(&times[1], &file.st_mtimespec);
+#endif
+
+  return true;
+}
+
+bool PlatformFile::setFileTimes(const PlatformTime& times) {
+  if (!isValid()) {
+    return false;
+  }
+
+  return (::futimes(handle_, times) == 0);
+}
+
 ssize_t PlatformFile::read(void *buf, size_t nbyte) {
   if (!isValid()) {
     return -1;

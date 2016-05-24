@@ -389,6 +389,26 @@ PlatformFile::~PlatformFile() {
   }
 }
 
+bool PlatformFile::isFile() const {
+  return (::GetFileType(handle_) == FILE_TYPE_DISK);
+}
+
+bool PlatformFile::getFileTimes(PlatformTime& times) {
+  if (!isValid()) {
+    return false;
+  }
+
+  return (::GetFileTime(handle_, nullptr, &times.atime, &times.mtime) != FALSE);
+}
+
+bool PlatformFile::setFileTimes(const PlatformTime& times) {
+  if (!isValid()) {
+    return false;
+  }
+
+  return (::SetFileTime(handle_, nullptr, &times.atime, &times.mtime) != FALSE);
+}
+
 ssize_t PlatformFile::read(void *buf, size_t nbyte) {
   if (!isValid()) {
     return -1;

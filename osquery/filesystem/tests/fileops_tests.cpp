@@ -139,6 +139,7 @@ TEST_F(FileOpsTests, test_seekFile) {
     EXPECT_EQ(2, fd.seek(2, PF_SEEK_BEGIN));
     EXPECT_EQ(4, fd.write("BBBB", 4));
 
+    // TODO: This is broken on Linux. Why?
     EXPECT_EQ(8, fd.seek(2, PF_SEEK_CURRENT));
     EXPECT_EQ(3, fd.write("CCC", 3));
   }
@@ -248,5 +249,7 @@ TEST_F(FileOpsTests, test_glob) {
     EXPECT_GLOB_RESULT_MATCH(result, expected);
   }
 }
+
+// TODO: Do we want a getFileTimes/setFileTimes unit test?
 }
 
