@@ -119,54 +119,54 @@ static bool hasGlobBraces(const std::string& glob) {
 /// Inspired by glob-to-regexp node package
 static std::string globToRegex(const std::string &glob) {
   bool in_group = false;
-  std::string regex("");
+  std::string regex("^");
 
   for (size_t i = 0; i < glob.size(); i++) {
     char c = glob[i];
 
     switch (c) {
-    case '\\':
-    case '/':
-    case '$':
-    case '^':
-    case '+':
-    case '.':
-    case '(':
-    case ')':
-    case '=':
-    case '!':
-    case '|':
-      regex += "\\";
-      regex += c;
-      break;
-    case '?':
-      regex += ".";
-      break;
-    case '[':
-    case ']':
-      regex += c;
-      break;
-    case '{':
-      in_group = true;
-      regex += "(";
-      break;
-    case '}':
-      in_group = false;
-      regex += ")";
-      break;
-    case ',':
-      regex += "|";
-      break;
-    case '*':
-      regex += ".*";
-      break;
-    default:
-      regex += c;
-      break;
+      case '\\':
+      case '/':
+      case '$':
+      case '^':
+      case '+':
+      case '.':
+      case '(':
+      case ')':
+      case '=':
+      case '!':
+      case '|':
+        regex += "\\";
+        regex += c;
+        break;
+      case '?':
+        regex += ".";
+        break;
+      case '[':
+      case ']':
+        regex += c;
+        break;
+      case '{':
+        in_group = true;
+        regex += "(";
+        break;
+      case '}':
+        in_group = false;
+        regex += ")";
+        break;
+      case ',':
+        regex += "|";
+        break;
+      case '*':
+        regex += ".*";
+        break;
+      default:
+        regex += c;
+        break;
     }
   }
 
-  return "^" + regex + "$";
+  return regex + "$";
 }
 
 static DWORD getNewAclSize(PACL dacl, PSID sid, ACL_SIZE_INFORMATION& info,
@@ -456,10 +456,10 @@ bool platformChmod(const std::string& path, mode_t perms) {
   PSID group = nullptr;
 
   ret = ::GetNamedSecurityInfoA(path.c_str(), SE_FILE_OBJECT,
-    OWNER_SECURITY_INFORMATION |
-    GROUP_SECURITY_INFORMATION |
-    DACL_SECURITY_INFORMATION,
-    &owner, &group, &dacl, nullptr, nullptr);
+                                OWNER_SECURITY_INFORMATION |
+                                    GROUP_SECURITY_INFORMATION |
+                                    DACL_SECURITY_INFORMATION,
+                                &owner, &group, &dacl, nullptr, nullptr);
 
   if (ret != ERROR_SUCCESS) {
     return false;
