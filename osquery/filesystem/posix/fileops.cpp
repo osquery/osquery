@@ -18,6 +18,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
+#include "osquery/core/process.h"
 #include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
@@ -29,11 +30,11 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   bool may_create = false;
   bool check_existence = false;
 
-  if ((mode & PF_READ) && (mode & PF_WRITE)) {
+  if ((mode & PF_READ) == PF_READ && (mode & PF_WRITE) == PF_WRITE) {
     oflag = O_RDWR;
-  } else if (mode & PF_READ) {
+  } else if ((mode & PF_READ) == PF_READ) {
     oflag = O_RDONLY;
-  } else if (mode & PF_WRITE) {
+  } else if ((mode & PF_WRITE) == PF_WRITE) {
     oflag = O_WRONLY;
   }
 
@@ -59,7 +60,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
       break;
   }
 
-  if (mode & PF_NONBLOCK) {
+  if ((mode & PF_NONBLOCK) == PF_NONBLOCK) {
     oflag |= O_NONBLOCK;
     is_nonblock_ = true;
   }
@@ -84,17 +85,23 @@ PlatformFile::~PlatformFile() {
 }
 
 ssize_t PlatformFile::read(void *buf, size_t nbyte) {
-  if (!isValid()) return -1;
+  if (!isValid()) {
+    return -1;
+  }
   return ::read(handle_, buf, nbyte);
 }
 
 ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
-  if (!isValid()) return -1;
+  if (!isValid()) {
+    return -1;
+  }
   return ::write(handle_, buf, nbyte);
 }
 
 off_t PlatformFile::seek(off_t offset, SeekMode mode) {
-  if (!isValid()) return -1;
+  if (!isValid()) {
+    return -1;
+  }
 
   int whence = 0;
   switch (mode) {
@@ -109,8 +116,9 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
 boost::optional<std::string> getHomeDirectory() {
   // Try to get the caller's home directory using HOME and getpwuid.
   auto user = getpwuid(getuid());
-  if (getenv("HOME") != nullptr) {
-    return std::string(getenv("HOME"));
+  auto homeVar = getEnvVar("HOME");
+  if (homeVar.is_initialized()) {
+    return *homeVar;
   }
   else if (user != nullptr && user->pw_dir != nullptr) {
     return std::string(user->pw_dir);
@@ -123,7 +131,7 @@ bool platformChmod(const std::string& path, mode_t perms) {
   return (chmod(path.c_str(), perms) == 0);
 }
 
-std::vector<std::string> platformGlob(std::string find_path) {
+std::vector<std::string> platformGlob(const std::string& find_path) {
   std::vector<std::string> results;
   
   glob_t data;

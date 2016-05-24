@@ -18,7 +18,6 @@
 #include <sys/types.h>
 
 #ifdef WIN32
-#define WINVER 0x0a00
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -101,6 +100,9 @@ class PlatformFile {
 
     ~PlatformFile();
 
+    /// Checks to see if the file object is actually a file and not a "special file"
+    bool isFile() const;
+
     bool isValid() const { return (handle_ != kInvalidHandle); }
     PlatformHandle nativeHandle() const { return handle_; }
 
@@ -127,7 +129,8 @@ boost::optional<std::string> getHomeDirectory();
 
 /**
  * @brief Multi-platform implementation of chmod
- *
+ * @note Support is not equivalent
+ * 
  * This function approximates the functionality of the POSIX chmod function on
  * Windows. While there is the _chmod function on Windows, it does not support
  * the user, group, world permissions model. The Windows version of this
@@ -148,12 +151,13 @@ bool platformChmod(const std::string& path, mode_t perms);
 
 /**
  * @brief Multi-platform implementation of glob
+ * @note Support is close to equivalent
  *
  * This function approximates the functionality of the POSIX glob function on
  * Windows. It has naive support of GLOB_TILDE (doesn't support ~user syntax),
  * GLOB_MARK, and GLOB_BRACE (custom translation of glob expressions to regex).
  */
-std::vector<std::string> platformGlob(std::string find_path);
+std::vector<std::string> platformGlob(const std::string& find_path);
 
 /**
  * @brief Checks to see if the current user has the permissions to perform a

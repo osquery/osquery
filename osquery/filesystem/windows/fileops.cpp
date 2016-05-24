@@ -15,9 +15,9 @@
 
 #include <memory>
 #include <regex>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
@@ -29,17 +29,26 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
+#define S_IRUSR 0400
+#define S_IWUSR 0200
+#define S_IXUSR 0100
+#define S_IRGRP 0040
+#define S_IWGRP 0020
+#define S_IXGRP 0010
+#define S_IROTH 0004
+#define S_IWOTH 0002
+#define S_IXOTH 0001
+
 #define CHMOD_READ    SYNCHRONIZE | READ_CONTROL | FILE_READ_ATTRIBUTES | FILE_READ_EA | FILE_READ_DATA
 #define CHMOD_WRITE   FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA | FILE_WRITE_DATA | FILE_APPEND_DATA | DELETE
 #define CHMOD_EXECUTE FILE_EXECUTE 
 
-using SidObject = std::unique_ptr<unsigned char>;
-using AclObject = std::unique_ptr<unsigned char>;
+using AclObject = std::unique_ptr<unsigned char[]>;
 
 class WindowsFindFiles {
 public:
-  explicit WindowsFindFiles(fs::path path) : path_(path) {
-    handle_ = ::FindFirstFileA(path.make_preferred().string().c_str(), &fd_);
+  explicit WindowsFindFiles(const fs::path& path) : path_(path) {
+    handle_ = ::FindFirstFileA(path_.make_preferred().string().c_str(), &fd_);
   }
 
   ~WindowsFindFiles() {
@@ -72,7 +81,7 @@ public:
 
   std::vector<fs::path> getDirectories() {
     std::vector<fs::path> results;
-    for (auto const &result : get()) {
+    for (auto const& result : get()) {
       if (fs::is_directory(result)) {
         results.push_back(result);
       }
@@ -87,21 +96,21 @@ private:
   fs::path path_;
 };
 
-static bool hasGlobBraces(const std::string &glob) {
+static bool hasGlobBraces(const std::string& glob) {
   int brace_depth = 0;
   bool has_brace = false;
 
   for (size_t i = 0; i < glob.size(); i++) {
     switch (glob[i]) {
-    case '{':
-      brace_depth += 1;
-      has_brace = true;
-      break;
-    case '}':
-      brace_depth -= 1;
-      break;
-    default:
-      break;
+      case '{':
+        brace_depth += 1;
+        has_brace = true;
+        break;
+      case '}':
+        brace_depth -= 1;
+        break;
+      default:
+        break;
     }
   }
   return (brace_depth == 0 && has_brace);
@@ -160,16 +169,28 @@ static std::string globToRegex(const std::string &glob) {
   return "^" + regex + "$";
 }
 
-static DWORD getNewAclSize(PACL dacl, PSID sid, ACL_SIZE_INFORMATION& info, bool needs_allowed, bool needs_denied) {
+static DWORD getNewAclSize(PACL dacl, PSID sid, ACL_SIZE_INFORMATION& info,
+                           bool needs_allowed, bool needs_denied) {
+  // This contains the current buffer size of dacl
   DWORD acl_size = info.AclBytesInUse;
+
+  // By default, we assume that the ACL as pointed to by the dacl arugment does
+  // not contain any access control entries (further known as ACE) associated
+  // with sid. If we require an access allowed and/or access denied ACE, we will
+  // increment acl_size by the size of the new ACE.
+
   if (needs_allowed) {
-    acl_size += sizeof(ACCESS_ALLOWED_ACE) + ::GetLengthSid(sid) - sizeof(DWORD);
+    acl_size +=
+        sizeof(ACCESS_ALLOWED_ACE) + ::GetLengthSid(sid) - sizeof(DWORD);
   }
 
   if (needs_denied) {
     acl_size += sizeof(ACCESS_DENIED_ACE) + ::GetLengthSid(sid) - sizeof(DWORD);
   }
 
+  // Enumerate the current ACL looking for ACEs associated with sid. Since our
+  // assumption is that such a sid does not exist, we need to subtract their
+  // size from acl_size if found.
   PACE_HEADER entry = nullptr;
   for (DWORD i = 0; i < info.AceCount; i++) {
     if (!::GetAce(dacl, i, (LPVOID *)&entry)) {
@@ -177,16 +198,19 @@ static DWORD getNewAclSize(PACL dacl, PSID sid, ACL_SIZE_INFORMATION& info, bool
     }
 
     if (entry->AceType == ACCESS_ALLOWED_ACE_TYPE &&
-      ::EqualSid(sid, &((ACCESS_ALLOWED_ACE *)entry)->SidStart)) {
-      acl_size -= sizeof(ACCESS_ALLOWED_ACE) + ::GetLengthSid(sid) - sizeof(DWORD);
+        ::EqualSid(sid, &((ACCESS_ALLOWED_ACE *)entry)->SidStart)) {
+      acl_size -=
+          sizeof(ACCESS_ALLOWED_ACE) + ::GetLengthSid(sid) - sizeof(DWORD);
     }
 
     if (entry->AceType == ACCESS_DENIED_ACE_TYPE &&
-      ::EqualSid(sid, &((ACCESS_DENIED_ACE *)entry)->SidStart)) {
-      acl_size -= sizeof(ACCESS_DENIED_ACE) + ::GetLengthSid(sid) - sizeof(DWORD);
+        ::EqualSid(sid, &((ACCESS_DENIED_ACE *)entry)->SidStart)) {
+      acl_size -=
+          sizeof(ACCESS_DENIED_ACE) + ::GetLengthSid(sid) - sizeof(DWORD);
     }
 
-    if (entry->AceFlags & INHERITED_ACE) {
+    // We don't care about inherited ACEs
+    if ((entry->AceFlags & INHERITED_ACE) == INHERITED_ACE) {
       break;
     }
   }
@@ -194,8 +218,10 @@ static DWORD getNewAclSize(PACL dacl, PSID sid, ACL_SIZE_INFORMATION& info, bool
   return acl_size;
 }
 
-static AclObject modifyAcl(PACL acl, PSID target, bool allow_read, bool allow_write, bool allow_exec) {
-  if (acl == nullptr && target == nullptr) {
+static AclObject modifyAcl(PACL acl, PSID target, bool allow_read,
+                           bool allow_write, bool allow_exec) {
+  if (acl == nullptr || !::IsValidAcl(acl) || target == nullptr ||
+      !::IsValidSid(target)) {
     return std::move(AclObject());
   }
 
@@ -209,35 +235,37 @@ static AclObject modifyAcl(PACL acl, PSID target, bool allow_read, bool allow_wr
     return std::move(AclObject());
   }
 
+  // We have defined CHMOD_READ, CHMOD_WRITE, and CHMOD_EXECUTE as combinations
+  // of Windows access masks in order to simulate the intended effects of the r,
+  // w, x permissions of POSIX. In order to correctly simulate the permissions,
+  // any permissions set will be explicitly allowed and any permissions that are
+  // unset are explicitly denied. This is all done via access allowed and access
+  // denied ACEs.
+
   if (allow_read) {
     allow_mask = CHMOD_READ;
-  }
-  else {
+  } else {
     deny_mask = CHMOD_READ;
   }
 
   if (allow_write) {
     allow_mask |= CHMOD_WRITE;
-  }
-  else {
+  } else {
     deny_mask |= CHMOD_WRITE;
   }
 
   if (allow_exec) {
     allow_mask |= CHMOD_EXECUTE;
-  }
-  else {
+  } else {
     deny_mask |= CHMOD_EXECUTE;
   }
 
   DWORD new_acl_size = 0;
   if (allow_read && allow_write && allow_exec) {
     new_acl_size = getNewAclSize(acl, target, info, true, false);
-  }
-  else if (!allow_read && !allow_write && !allow_exec) {
+  } else if (!allow_read && !allow_write && !allow_exec) {
     new_acl_size = getNewAclSize(acl, target, info, false, true);
-  }
-  else {
+  } else {
     new_acl_size = getNewAclSize(acl, target, info, true, true);
   }
 
@@ -248,6 +276,19 @@ static AclObject modifyAcl(PACL acl, PSID target, bool allow_read, bool allow_wr
     return std::move(AclObject());
   }
 
+  // Enumerate through the old ACL and copy over all the non-relevant ACEs
+  // (read: ACEs that are inherited and not associated with the specified sid).
+  // We disregard the ACEs associated with our sid in the old ACL and replace
+  // them with updated access masks.
+  //
+  // The curious bit here is how we order things. In normal Windows ACLs, the
+  // ACEs are ordered in a fashion where access denied ACEs have priority to
+  // access allowed ACEs. While this is a strong policy, this doesn't fit into
+  // our use case and in fact, hurts it. Setting 0600 would prevent even the
+  // owner from reading/writing! To counter this, we selectively order the ACEs
+  // in our new ACL to fit our needs. This will generate complaints with tools
+  // that deal with viewing or modifying the ACL (such as File Explorer).
+
   DWORD i = 0;
   PACE_HEADER entry = nullptr;
   for (i = 0; i < info.AceCount; i++) {
@@ -255,7 +296,7 @@ static AclObject modifyAcl(PACL acl, PSID target, bool allow_read, bool allow_wr
       return std::move(AclObject());
     }
 
-    if (entry->AceFlags & INHERITED_ACE) {
+    if ((entry->AceFlags & INHERITED_ACE) == INHERITED_ACE) {
       break;
     }
 
@@ -300,11 +341,11 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   DWORD creation_disposition = 0;
   std::unique_ptr<SECURITY_ATTRIBUTES> security_attrs;
 
-  if (mode & PF_READ) {
+  if ((mode & PF_READ) == PF_READ) {
     access_mask |= GENERIC_READ;
   }
 
-  if (mode & PF_WRITE) {
+  if ((mode & PF_WRITE) == PF_WRITE) {
     access_mask |= GENERIC_WRITE;
   }
 
@@ -325,7 +366,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
       break;
   }
 
-  if (mode & PF_NONBLOCK) {
+  if ((mode & PF_NONBLOCK) == PF_NONBLOCK) {
     flags_and_attrs |= FILE_FLAG_OVERLAPPED;
     is_nonblock_ = true;
   }
@@ -349,7 +390,9 @@ PlatformFile::~PlatformFile() {
 }
 
 ssize_t PlatformFile::read(void *buf, size_t nbyte) {
-  if (!isValid()) return -1;
+  if (!isValid()) {
+    return -1;
+  }
 
   OVERLAPPED overlap = { 0 };
   LPOVERLAPPED ol = nullptr;
@@ -369,7 +412,9 @@ ssize_t PlatformFile::read(void *buf, size_t nbyte) {
 }
 
 ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
-  if (!isValid()) return -1;
+  if (!isValid()) {
+    return -1;
+  }
 
   OVERLAPPED overlap = { 0 };
   LPOVERLAPPED ol = nullptr;
@@ -388,7 +433,9 @@ ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
 }
 
 off_t PlatformFile::seek(off_t offset, SeekMode mode) {
-  if (!isValid()) return -1;
+  if (!isValid()) {
+    return -1;
+  }
   
   DWORD whence = 0;
   switch (mode) {
@@ -413,6 +460,7 @@ bool platformChmod(const std::string& path, mode_t perms) {
     GROUP_SECURITY_INFORMATION |
     DACL_SECURITY_INFORMATION,
     &owner, &group, &dacl, nullptr, nullptr);
+
   if (ret != ERROR_SUCCESS) {
     return false;
   }
@@ -422,34 +470,37 @@ bool platformChmod(const std::string& path, mode_t perms) {
   }
 
   DWORD sid_size = SECURITY_MAX_SID_SIZE;
-  SidObject world_buf(new unsigned char[sid_size]);
-  PSID world = world_buf.get();
+  std::vector<char> world_buf(sid_size);
+  PSID world = &world_buf[0];
 
   if (!::CreateWellKnownSid(WinWorldSid, nullptr, world, &sid_size)) {
     return false;
   }
 
   PACL acl = nullptr;
-  AclObject acl_buffer = modifyAcl(
-    dacl, owner, static_cast<bool>(perms & 0x0100),
-    static_cast<bool>(perms & 0x0080), static_cast<bool>(perms & 0x0040));
+  AclObject acl_buffer =
+      modifyAcl(dacl, owner, (perms & S_IRUSR) == S_IRUSR,
+                (perms & S_IWUSR) == S_IWUSR, (perms & S_IXUSR) == S_IXUSR);
   acl = reinterpret_cast<PACL>(acl_buffer.get());
+
   if (acl == nullptr) {
     return false;
   }
 
-  acl_buffer = modifyAcl(acl, group, static_cast<bool>(perms & 0x0020),
-    static_cast<bool>(perms & 0x0010),
-    static_cast<bool>(perms & 0x0008));
+  acl_buffer =
+      modifyAcl(acl, group, (perms & S_IRGRP) == S_IRGRP,
+                (perms & S_IWGRP) == S_IWGRP, (perms & S_IXGRP) == S_IXGRP);
   acl = reinterpret_cast<PACL>(acl_buffer.get());
+
   if (acl == nullptr) {
     return false;
   }
 
-  acl_buffer = modifyAcl(acl, world, static_cast<bool>(perms & 0x0004),
-    static_cast<bool>(perms & 0x0002),
-    static_cast<bool>(perms & 0x0001));
+  acl_buffer =
+      modifyAcl(acl, world, (perms & S_IROTH) == S_IROTH,
+                (perms & S_IWOTH) == S_IWOTH, (perms & S_IXOTH) == S_IXOTH);
   acl = reinterpret_cast<PACL>(acl_buffer.get());
+
   if (acl == nullptr) {
     return false;
   }
@@ -459,33 +510,51 @@ bool platformChmod(const std::string& path, mode_t perms) {
   mutable_path.push_back('\0');
 
   if (!::SetNamedSecurityInfoA(&mutable_path[0], SE_FILE_OBJECT,
-    DACL_SECURITY_INFORMATION, NULL, NULL, acl,
-    NULL)) {
+                               DACL_SECURITY_INFORMATION, NULL, NULL, acl,
+                               NULL)) {
     return false;
   }
   return true;
 }
 
-std::vector<std::string> platformGlob(std::string find_path) {
+std::vector<std::string> platformGlob(const std::string& find_path) {
+  std::string final_path;
+
+  // This is a naive implementation of GLOB_TILDE. If the first two characters
+  // in the path are '~/' or '~\', we replace it with the value of the
+  // USERPROFILE environment variable.
   if (find_path.size() >= 2 && find_path[0] == '~' &&
       (find_path[1] == '/' || find_path[1] == '\\')) {
     auto homedir = getEnvVar("USERPROFILE");
     if (homedir.is_initialized()) {
-      find_path = *homedir + find_path.substr(1);
+      final_path = *homedir + find_path.substr(1);
     }
+  } else {
+    final_path = find_path;
   }
 
-  fs::path full_path(find_path);
-
-  std::vector<fs::path> valid_paths;
+  fs::path full_path(final_path);
+  
   std::regex pattern(".*[*\?].*");
 
+  // This vector will contain all the valid paths at each stage of the
+  std::vector<fs::path> valid_paths;
   valid_paths.push_back(fs::path(""));
+  
   if (full_path.has_parent_path()) {
-    for (auto& component : full_path.parent_path()) {
+    // The provided glob pattern contains more than one directory to traverse.
+    // We enumerate each component in the path to generate a list of all
+    // possible directories that we need to perform our glob pattern match.
+    for (auto &component : full_path.parent_path()) {
       std::vector<fs::path> tmp_valid_paths;
+
+      // This will enumerate the old set of valid paths and update it by looking for directories matching the 
       for (auto const& valid_path : valid_paths) {
         if (hasGlobBraces(component.string())) {
+          // If the component contains braces, we convert the component into a
+          // regex, enumerate through all the directories in the current
+          // directory and only mark the ones fitting the regex pattern as
+          // valid.
           std::regex component_pattern(globToRegex(component.string()));
           WindowsFindFiles wf(valid_path / "*");
           for (auto const& file_path : wf.getDirectories()) {
@@ -494,11 +563,17 @@ std::vector<std::string> platformGlob(std::string find_path) {
             }
           }
         } else if (std::regex_match(component.string(), pattern)) {
+          // If the component contains wildcard characters such as * or ?, we
+          // pass the pattern into the Windows FindFirstFileA function to get a
+          // list of valid directories.
           WindowsFindFiles wf(valid_path / component);
           for (auto const& result : wf.getDirectories()) {
             tmp_valid_paths.push_back(result);
           }
         } else {
+          // Since there are no braces and other glob-like wildcards, we are
+          // going to append the component to the previous valid path and mark
+          // that as valid
           if (fs::exists(valid_path / component)) {
             tmp_valid_paths.push_back(valid_path / component);
           }
@@ -509,7 +584,12 @@ std::vector<std::string> platformGlob(std::string find_path) {
   }
 
   std::vector<std::string> results;
-  for (auto const& valid_path : valid_paths) {
+
+  // After generating all the valid directories, we enumerate the valid paths
+  // and instead of getting back all the glob pattern matching directories, we
+  // unrestrict it to get back files as well. We append the file names to the
+  // valid paths are return the list.
+  for (auto const &valid_path : valid_paths) {
     if (hasGlobBraces(full_path.filename().string())) {
       std::regex component_pattern(globToRegex(full_path.filename().string()));
       WindowsFindFiles wf(valid_path / "*");
@@ -543,7 +623,7 @@ boost::optional<std::string> getHomeDirectory() {
   if (value.is_initialized()) {
     return *value;
   } else if (SUCCEEDED(::SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, &profile[0]))) {
-    return std::string(&profile[0], ::strlen(&profile[0]));
+    return std::string(&profile[0]);
   } else {
     return boost::none;
   }
