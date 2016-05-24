@@ -86,7 +86,7 @@ PlatformFile::~PlatformFile() {
 }
 
 bool PlatformFile::isFile() const {
-  struct stat file = { 0 };
+  struct stat file;
   if (::fstat(handle_, &file) < 0) {
     return false;
   }
@@ -98,8 +98,8 @@ bool PlatformFile::getFileTimes(PlatformTime& times) {
     return false;
   }
 
-  struct stat file = { 0 };
-  if (::fstat(handle, &file) < 0) {
+  struct stat file;
+  if (::fstat(handle_, &file) < 0) {
     return false;
   }
 
