@@ -375,10 +375,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
     /// TODO(#2001): set up a security descriptor based off the perms
   }
 
-  /// TODO(#2001): Check to see if path points to a non-filesystem thing like
-  ///              named pipe/etc. If it does point to a named pipe, ignore
-  ///              for now.
-  handle_ = ::CreateFileA(path.c_str(), access_mask, FILE_SHARE_READ,
+  handle_ = ::CreateFileA(path.c_str(), access_mask, 0,
                           security_attrs.get(), creation_disposition,
                           flags_and_attrs, nullptr);
 }
@@ -409,6 +406,7 @@ bool PlatformFile::setFileTimes(const PlatformTime& times) {
   return (::SetFileTime(handle_, nullptr, &times.atime, &times.mtime) != FALSE);
 }
 
+
 ssize_t PlatformFile::read(void *buf, size_t nbyte) {
   if (!isValid()) {
     return -1;
@@ -418,7 +416,8 @@ ssize_t PlatformFile::read(void *buf, size_t nbyte) {
   LPOVERLAPPED ol = nullptr;
   DWORD bytes_read = 0;
 
-  if (is_nonblock_) {
+  // For now, we only set non-block on Windows when the file is not a disk file.
+  if (is_nonblock_ && !isFile()) {
     overlap.Offset = cursor_;
     ol = &overlap;
   }
@@ -467,6 +466,10 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
 
   cursor_ = ::SetFilePointer(handle_, offset, nullptr, whence);
   return cursor_;
+}
+
+size_t PlatformFile::size() const {
+  return ::GetFileSize(handle_, nullptr);
 }
 
 bool platformChmod(const std::string& path, mode_t perms) {

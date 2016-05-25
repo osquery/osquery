@@ -148,6 +148,14 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
   return ::lseek(handle_, offset, whence);
 }
 
+size_t PlatformFile::size() const {
+  struct stat file;
+  if (::fstat(handle_, &file) < 0) {
+    return false;
+  }
+  return file.st_size;
+}
+
 boost::optional<std::string> getHomeDirectory() {
   // Try to get the caller's home directory using HOME and getpwuid.
   auto user = getpwuid(getuid());
