@@ -33,10 +33,7 @@ namespace osquery {
 using mode_t = int;
 using ssize_t = SSIZE_T;
 using PlatformHandle = HANDLE;
-using PlatformTime = struct {
-  FILETIME atime;
-  FILETIME mtime;
-};
+using PlatformTimeType = FILETIME;
 
 /// Windows does not define these, X_OK on Windows just ensures that the
 /// file is readable.
@@ -48,10 +45,15 @@ using PlatformTime = struct {
 const std::string kFallbackHomeDirectory = "\\ProgramData\\osquery";
 #else
 using PlatformHandle = int;
-using PlatformTime = struct timeval[2];
+using PlatformTimeType = struct timeval;
 
 const std::string kFallbackHomeDirectory = "/tmp/osquery";
 #endif
+
+using PlatformTime = struct {
+  PlatformTimeType atime;
+  PlatformTimeType mtime;
+};
 
 /// Constant for an invalid handle
 const PlatformHandle kInvalidHandle = (PlatformHandle)-1;

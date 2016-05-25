@@ -101,11 +101,11 @@ bool PlatformFile::getFileTimes(PlatformTime& times) {
   }
 
 #if defined(__linux__)
-  TIMESPEC_TO_TIMEVAL(&times[0], &file.st_atim);
-  TIMESPEC_TO_TIMEVAL(&times[1], &file.st_mtim);
+  TIMESPEC_TO_TIMEVAL(&times.times[0], &file.st_atim);
+  TIMESPEC_TO_TIMEVAL(&times.times[1], &file.st_mtim);
 #else
-  TIMESPEC_TO_TIMEVAL(&times[0], &file.st_atimespec);
-  TIMESPEC_TO_TIMEVAL(&times[1], &file.st_mtimespec);
+  TIMESPEC_TO_TIMEVAL(&times.times[0], &file.st_atimespec);
+  TIMESPEC_TO_TIMEVAL(&times.times[1], &file.st_mtimespec);
 #endif
 
   return true;
@@ -116,7 +116,7 @@ bool PlatformFile::setFileTimes(const PlatformTime& times) {
     return false;
   }
 
-  return (::futimes(handle_, times) == 0);
+  return (::futimes(handle_, times.times) == 0);
 }
 
 ssize_t PlatformFile::read(void *buf, size_t nbyte) {
