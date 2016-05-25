@@ -119,6 +119,7 @@ TEST_F(FileOpsTests, test_fileIo) {
     std::vector<char> buf(expected_read_len);
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
     EXPECT_TRUE(fd.isValid());
+    EXPECT_TRUE(fd.isFile());
     EXPECT_EQ(expected_read_len, fd.read(&buf[0], expected_read_len));
     EXPECT_EQ(expected_read_len, buf.size());
     for (size_t i = 0; i < expected_read_len; i++) {
@@ -137,11 +138,8 @@ TEST_F(FileOpsTests, test_asyncIo) {
   {
     PlatformFile fd(path, PF_CREATE_NEW | PF_WRITE | PF_NONBLOCK);
     EXPECT_TRUE(fd.isValid());
-    EXPECT_TRUE(fd.isFile());
     EXPECT_EQ(expected_len, fd.write(expected, expected_len));
   }
-
-
 }
 
 TEST_F(FileOpsTests, test_seekFile) {
