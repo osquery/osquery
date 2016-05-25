@@ -132,13 +132,23 @@ TEST_F(FileOpsTests, test_asyncIo) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
 
-  const char *expected = "AAAABBBBCCCCDDDDEEEEFFFF";
+  const char *expected = "AAAABBBBCCCCDDDDEEEEFFFFGGGG";
   const size_t expected_len = ::strlen(expected);
 
   {
     PlatformFile fd(path, PF_CREATE_NEW | PF_WRITE | PF_NONBLOCK);
     EXPECT_TRUE(fd.isValid());
     EXPECT_EQ(expected_len, fd.write(expected, expected_len));
+  }
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_TRUE(fd.isFile());
+
+    std::vector<char> buf(expected_len);
+    EXPECT_EQ(expected_len, fd.read(&buf[0], expected_len));
+    EXPECT_EQ(0, ::memcmp(expected, &buf[0], expected_len));
   }
 }
 

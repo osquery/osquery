@@ -109,6 +109,7 @@ class PlatformFile {
     /// Checks to see if the file object is actually a file and not a "special file"
     bool isFile() const;
 
+    bool hasPendingIo() const { return has_pending_io_;  }
     bool isValid() const { return (handle_ != kInvalidHandle); }
     PlatformHandle nativeHandle() const { return handle_; }
 
@@ -127,6 +128,7 @@ class PlatformFile {
     PlatformHandle handle_{ kInvalidHandle };
 
     bool is_nonblock_{ false };
+    bool has_pending_io_{ false };
     int cursor_{ 0 };
 };
 
