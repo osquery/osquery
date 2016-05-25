@@ -127,9 +127,25 @@ TEST_F(FileOpsTests, test_fileIo) {
   }
 }
 
-/// TODO: implement me, make sure async for windows works as we expect
-TEST_F(FileOpsTests, test_asyncIO) {
+TEST_F(FileOpsTests, test_amtime) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
 
+  {
+    PlatformFile fd(path, PF_CREATE_NEW | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(4, fd.write("$$$$", 4));
+
+    PlatformTime times;
+    memset(&times, 'A', sizeof(times));
+
+    EXPECT_TRUE(fd.setFileTimes(times));
+
+    PlatformTime amtimes;
+    EXPECT_TRUE(fd.getFileTimes(amtimes));
+
+    EXPECT_EQ(0, ::memcmp(&times, &amtimes, sizeof(times)));
+  }
 }
 
 TEST_F(FileOpsTests, test_seekFile) {
@@ -140,13 +156,13 @@ TEST_F(FileOpsTests, test_seekFile) {
   const size_t expected_len = ::strlen(expected);
 
   {
-    PlatformFile fd(path.c_str(), PF_CREATE_ALWAYS | PF_WRITE);
+    PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
     EXPECT_TRUE(fd.isValid());
     EXPECT_EQ(expected_len, fd.write("AAAAAAAAAAAAAAAAAAAAAAAAAAAA", expected_len));
   }
 
   {
-    PlatformFile fd(path.c_str(), PF_OPEN_EXISTING | PF_WRITE);
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
     EXPECT_TRUE(fd.isValid());
     
     EXPECT_EQ(expected_len - 12, fd.seek(-12, PF_SEEK_END));
@@ -162,7 +178,7 @@ TEST_F(FileOpsTests, test_seekFile) {
   {
     std::vector<char> buffer(expected_len);
 
-    PlatformFile fd(path.c_str(), PF_OPEN_EXISTING | PF_READ);
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
     EXPECT_TRUE(fd.isValid());
 
     EXPECT_EQ(expected_len, fd.read(&buffer[0], expected_len));
@@ -262,7 +278,5 @@ TEST_F(FileOpsTests, test_glob) {
     EXPECT_GLOB_RESULT_MATCH(result, expected);
   }
 }
-
-// TODO: Do we want a getFileTimes/setFileTimes unit test?
 }
 
