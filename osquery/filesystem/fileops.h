@@ -51,8 +51,7 @@ const std::string kFallbackHomeDirectory = "/tmp/osquery";
 #endif
 
 using PlatformTime = struct {
-  PlatformTimeType atime;
-  PlatformTimeType mtime;
+  PlatformTimeType times[2];
 };
 
 /// Constant for an invalid handle
