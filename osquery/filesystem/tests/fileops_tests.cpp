@@ -127,6 +127,23 @@ TEST_F(FileOpsTests, test_fileIo) {
   }
 }
 
+TEST_F(FileOpsTests, test_asyncIo) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  const char *expected = "AAAABBBBCCCCDDDDEEEEFFFF";
+  const size_t expected_len = ::strlen(expected);
+
+  {
+    PlatformFile fd(path, PF_CREATE_NEW | PF_WRITE | PF_NONBLOCK);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_TRUE(fd.isFile());
+    EXPECT_EQ(expected_len, fd.write(expected, expected_len));
+  }
+
+
+}
+
 TEST_F(FileOpsTests, test_seekFile) {
   TempFile tmp_file;
   std::string path = tmp_file.path();

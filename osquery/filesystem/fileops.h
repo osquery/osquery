@@ -112,10 +112,11 @@ class PlatformFile {
     bool isValid() const { return (handle_ != kInvalidHandle); }
     PlatformHandle nativeHandle() const { return handle_; }
 
-    // TODO: Think about adding a function like "isOwnerAdmin"
+    // TODO(#2001): Think about adding a function like "isOwnerAdmin"
     bool getFileTimes(PlatformTime& times);
     bool setFileTimes(const PlatformTime& times);
 
+    // TODO(#2001): We need support for files that are not backed by the disk for Windows
     ssize_t read(void *buf, size_t nbyte);
     ssize_t write(const void *buf, size_t nbyte);
     off_t seek(off_t offset, SeekMode mode);

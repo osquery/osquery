@@ -439,7 +439,8 @@ ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
   LPOVERLAPPED ol = nullptr;
   DWORD bytes_written = 0;
 
-  if (is_nonblock_) {
+  // For now, we only set non-block on Windows when the file is not a disk file.
+  if (is_nonblock_ && !isFile()) {
     overlap.Offset = cursor_;
     ol = &overlap;
   }
@@ -458,10 +459,17 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
   
   DWORD whence = 0;
   switch (mode) {
-    case PF_SEEK_BEGIN: whence = FILE_BEGIN; break;
-    case PF_SEEK_CURRENT: whence = FILE_CURRENT; break;
-    case PF_SEEK_END: whence = FILE_END; break;
-    default: break;
+    case PF_SEEK_BEGIN:
+      whence = FILE_BEGIN;
+      break;
+    case PF_SEEK_CURRENT:
+      whence = FILE_CURRENT;
+      break;
+    case PF_SEEK_END:
+      whence = FILE_END;
+      break;
+    default:
+      break;
   }
 
   cursor_ = ::SetFilePointer(handle_, offset, nullptr, whence);

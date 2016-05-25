@@ -140,10 +140,17 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
 
   int whence = 0;
   switch (mode) {
-    case PF_SEEK_BEGIN: whence = SEEK_SET; break;
-    case PF_SEEK_CURRENT: whence = SEEK_CUR; break;
-    case PF_SEEK_END: whence = SEEK_END; break;
-    default: break;
+    case PF_SEEK_BEGIN:
+      whence = SEEK_SET;
+      break;
+    case PF_SEEK_CURRENT:
+      whence = SEEK_CUR;
+      break;
+    case PF_SEEK_END:
+      whence = SEEK_END;
+      break;
+    default:
+      break;
   }
   return ::lseek(handle_, offset, whence);
 }
