@@ -136,15 +136,21 @@ TEST_F(FileOpsTests, test_amtime) {
     EXPECT_TRUE(fd.isValid());
     EXPECT_EQ(4, fd.write("$$$$", 4));
 
-    PlatformTime times;
-    memset(&times, 'A', sizeof(times));
+    PlatformTime times0;
+    EXPECT_TRUE(fd.getFileTimes(times0));
 
-    EXPECT_TRUE(fd.setFileTimes(times));
+    EXPECT_EQ(4, fd.write("$$$$", 4));
+    EXPECT_EQ(4, fd.write("$$$$", 4));
+
+    PlatformTime times1;
+    EXPECT_TRUE(fd.getFileTimes(times1));
+    EXPECT_NE(0, ::memcmp(&times0, &times1, sizeof(times0)));
+
+    EXPECT_TRUE(fd.setFileTimes(times0));
 
     PlatformTime amtimes;
     EXPECT_TRUE(fd.getFileTimes(amtimes));
-
-    EXPECT_EQ(0, ::memcmp(&times, &amtimes, sizeof(times)));
+    EXPECT_EQ(0, ::memcmp(&times0, &amtimes, sizeof(times0)));
   }
 }
 

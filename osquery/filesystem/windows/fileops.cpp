@@ -395,7 +395,7 @@ bool PlatformFile::getFileTimes(PlatformTime& times) {
     return false;
   }
 
-  return (::GetFileTime(handle_, nullptr, &times.atime, &times.mtime) != FALSE);
+  return (::GetFileTime(handle_, nullptr, &times.times[0], &times.times[1]) != FALSE);
 }
 
 bool PlatformFile::setFileTimes(const PlatformTime& times) {
@@ -403,7 +403,7 @@ bool PlatformFile::setFileTimes(const PlatformTime& times) {
     return false;
   }
 
-  return (::SetFileTime(handle_, nullptr, &times.atime, &times.mtime) != FALSE);
+  return (::SetFileTime(handle_, nullptr, &times.times[0], &times.times[1]) != FALSE);
 }
 
 
