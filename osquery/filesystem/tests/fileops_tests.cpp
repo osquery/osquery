@@ -127,33 +127,6 @@ TEST_F(FileOpsTests, test_fileIo) {
   }
 }
 
-TEST_F(FileOpsTests, test_amtime) {
-  TempFile tmp_file;
-  std::string path = tmp_file.path();
-
-  {
-    PlatformFile fd(path, PF_CREATE_NEW | PF_WRITE);
-    EXPECT_TRUE(fd.isValid());
-    EXPECT_EQ(4, fd.write("$$$$", 4));
-
-    PlatformTime times0;
-    EXPECT_TRUE(fd.getFileTimes(times0));
-
-    EXPECT_EQ(4, fd.write("$$$$", 4));
-    EXPECT_EQ(4, fd.write("$$$$", 4));
-
-    PlatformTime times1;
-    EXPECT_TRUE(fd.getFileTimes(times1));
-    EXPECT_NE(0, ::memcmp(&times0, &times1, sizeof(times0)));
-
-    EXPECT_TRUE(fd.setFileTimes(times0));
-
-    PlatformTime amtimes;
-    EXPECT_TRUE(fd.getFileTimes(amtimes));
-    EXPECT_EQ(0, ::memcmp(&times0, &amtimes, sizeof(times0)));
-  }
-}
-
 TEST_F(FileOpsTests, test_seekFile) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
