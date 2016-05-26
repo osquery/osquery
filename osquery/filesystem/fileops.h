@@ -144,7 +144,6 @@ class PlatformFile {
     size_t size() const;
 
   private:
-    ssize_t getOverlappedResultForRead(void *buf, size_t requested_size);
     PlatformHandle handle_{ kInvalidHandle };
 
     bool is_nonblock_{ false };
@@ -153,6 +152,8 @@ class PlatformFile {
 
 #ifdef WIN32
     AsyncEvent last_read_;
+
+    ssize_t getOverlappedResultForRead(void *buf, size_t requested_size);
 #endif
 };
 
