@@ -150,6 +150,27 @@ TEST_F(FileOpsTests, test_asyncIo) {
     EXPECT_EQ(expected_len, fd.read(&buf[0], expected_len));
     EXPECT_EQ(0, ::memcmp(expected, &buf[0], expected_len));
   }
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_TRUE(fd.isFile());
+
+    std::vector<char> buf(expected_len);
+    char *ptr = &buf[0];
+    ssize_t part_bytes = 0;
+    size_t iterations = 0;
+    do {
+      part_bytes = fd.read(ptr, 4);
+      if (part_bytes > 0) {
+        ptr += part_bytes;
+        iterations++;
+      }
+    } while (part_bytes > 0);
+
+    EXPECT_EQ(7, iterations);
+    EXPECT_EQ(0, ::memcmp(expected, &buf[0], expected_len));
+  }
 }
 
 TEST_F(FileOpsTests, test_seekFile) {

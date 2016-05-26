@@ -116,6 +116,16 @@ static bool hasGlobBraces(const std::string& glob) {
   return (brace_depth == 0 && has_brace);
 }
 
+AsyncEvent::AsyncEvent() {
+  overlapped_.hEvent = ::CreateEventA(NULL, FALSE, FALSE, NULL);
+}
+
+AsyncEvent::~AsyncEvent() {
+  if (overlapped_.hEvent != NULL) {
+    ::CloseHandle(overlapped_.hEvent);
+  }
+}
+
 /// Inspired by glob-to-regexp node package
 static std::string globToRegex(const std::string &glob) {
   bool in_group = false;
@@ -382,6 +392,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
 
 PlatformFile::~PlatformFile() {
   if (handle_ != kInvalidHandle && handle_ != nullptr) {
+    ::CancelIo(handle_);
     ::CloseHandle(handle_);
   }
 }
@@ -406,28 +417,87 @@ bool PlatformFile::setFileTimes(const PlatformTime& times) {
   return (::SetFileTime(handle_, nullptr, &times.times[0], &times.times[1]) != FALSE);
 }
 
+ssize_t PlatformFile::getOverlappedResultForRead(void *buf,
+                                                 size_t requested_size) {
+  ssize_t nret = 0;
+  DWORD bytes_read = 0;
+  DWORD last_error = 0;
+
+  if (::GetOverlappedResultEx(handle_, &last_read_.overlapped_, &bytes_read, 0,
+                              TRUE)) {
+    // Read operation has finished
+    // NOTE: We do NOT support situations where the second read operation uses a
+    // SMALLER buffer than the initial async request. This will cause the
+    // smaller amount to be copied and truncate DATA!
+    DWORD size = min(requested_size, bytes_read);
+    ::memcpy(buf, last_read_.buffer_.get(), size);
+
+    // Update our cursor
+    cursor_ += bytes_read;
+
+    has_pending_io_ = false;
+    last_read_.is_active_ = false;
+    last_read_.buffer_.reset(nullptr);
+    nret = size;
+  } else {
+    last_error = ::GetLastError();
+    if (last_error == ERROR_IO_INCOMPLETE) {
+      // Read operation has still not completed
+      has_pending_io_ = true;
+      last_read_.is_active_ = true;
+      nret = -1;
+    } else {
+      // Error has occurred, just in case, cancel all IO
+      ::CancelIo(handle_);
+
+      has_pending_io_ = false;
+      last_read_.is_active_ = false;
+      last_read_.buffer_.reset(nullptr);
+      nret = -1;
+    }
+  }
+  return nret;
+}
 
 ssize_t PlatformFile::read(void *buf, size_t nbyte) {
   if (!isValid()) {
     return -1;
   }
 
-  OVERLAPPED overlap = { 0 };
-  LPOVERLAPPED ol = nullptr;
+  ssize_t nret = 0;
   DWORD bytes_read = 0;
+  DWORD last_error = 0;
+  
+  has_pending_io_ = false;
 
-  // For now, we only set non-block on Windows when the file is not a disk file.
-  if (is_nonblock_ && !isFile()) {
-    overlap.Offset = cursor_;
-    ol = &overlap;
+  if (is_nonblock_) {
+    if (last_read_.is_active_) {
+      nret = getOverlappedResultForRead(buf, nbyte);
+    } else {
+      last_read_.overlapped_.Offset = cursor_;
+      last_read_.buffer_.reset(new char[nbyte]);
+
+      if (!::ReadFile(handle_, last_read_.buffer_.get(), nbyte, NULL, &last_read_.overlapped_)) {
+        last_error = ::GetLastError();
+        if (last_error == ERROR_IO_PENDING || last_error == ERROR_MORE_DATA) {
+          nret = getOverlappedResultForRead(buf, nbyte);
+        } else {
+          nret = -1;
+        }
+      } else {
+        // This should never occur
+        nret = -1;
+      }
+    }
+  } else {
+    if (!::ReadFile(handle_, buf, nbyte, &bytes_read, nullptr)) {
+      nret = -1;
+    } else {
+      nret = bytes_read;
+    }
   }
 
-  if (!::ReadFile(handle_, buf, nbyte, &bytes_read, ol)) {
-    return -1;
-  }
-
-  cursor_ += bytes_read;
-  return bytes_read;
+  return nret;
 }
 
 ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
@@ -435,21 +505,48 @@ ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
     return -1;
   }
 
-  OVERLAPPED overlap = { 0 };
-  LPOVERLAPPED ol = nullptr;
+  ssize_t nret = 0;
   DWORD bytes_written = 0;
+  DWORD last_error = 0;
+  
+  has_pending_io_ = false;
 
-  // For now, we only set non-block on Windows when the file is not a disk file.
-  if (is_nonblock_ && !isFile()) {
-    overlap.Offset = cursor_;
-    ol = &overlap;
-  }
-  if (!::WriteFile(handle_, buf, nbyte, &bytes_written, ol)) {
-    return -1;
+  if (is_nonblock_) {
+    AsyncEvent write_event;
+    if (!::WriteFile(handle_, buf, nbyte, &bytes_written, &write_event.overlapped_)) {
+      last_error = ::GetLastError();
+      if (last_error == ERROR_IO_PENDING) {
+        if (!::GetOverlappedResultEx(handle_, &write_event.overlapped_, &bytes_written, 0, TRUE)) {
+          last_error = ::GetLastError();
+          if (last_error == ERROR_IO_INCOMPLETE) {
+            has_pending_io_ = true;
+            // If the write operation has not succeeded, cancel it
+            ::CancelIo(handle_);
+            nret = -1;
+          } else {
+            // Error of unknown origin
+            nret = -1;
+          }
+        } else {
+          // Write operation succeeded
+          nret = bytes_written;
+        }
+      } else {
+        nret = -1;
+      }
+    } else {
+      // This should not occur...
+      nret = -1;
+    }
+  } else {
+    if (!::WriteFile(handle_, buf, nbyte, &bytes_written, nullptr)) {
+      nret = -1;
+    } else {
+      nret = bytes_written;
+    }
   }
 
-  cursor_ += bytes_written;
-  return bytes_written;
+  return nret;
 }
 
 off_t PlatformFile::seek(off_t offset, SeekMode mode) {

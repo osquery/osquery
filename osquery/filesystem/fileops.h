@@ -89,6 +89,23 @@ enum SeekMode {
   PF_SEEK_END
 };
 
+#ifdef WIN32
+
+/**
+ * @brief Windows-only class that deals with simulating POSIX 
+ *        asynchronous IO semantics using Windows API calls
+ */
+struct AsyncEvent {
+  AsyncEvent();
+  ~AsyncEvent();
+ 
+  OVERLAPPED overlapped_{ 0 };
+  std::unique_ptr<char[]> buffer_{ nullptr };
+  bool is_active_{ false };
+};
+
+#endif
+
 /**
  * @brief Platform-agnostic file object
  *
@@ -117,7 +134,9 @@ class PlatformFile {
     bool getFileTimes(PlatformTime& times);
     bool setFileTimes(const PlatformTime& times);
 
-    // TODO(#2001): We need support for files that are not backed by the disk for Windows
+    // TODO(#2001): We have rudimentary support for async IO operations on
+    // Windows. At the moment, we DO NOT support async on both read and write on
+    // the same HANDLE. Doing so will result in lost reads.
     ssize_t read(void *buf, size_t nbyte);
     ssize_t write(const void *buf, size_t nbyte);
     off_t seek(off_t offset, SeekMode mode);
@@ -125,11 +144,16 @@ class PlatformFile {
     size_t size() const;
 
   private:
+    ssize_t getOverlappedResultForRead(void *buf, size_t requested_size);
     PlatformHandle handle_{ kInvalidHandle };
 
     bool is_nonblock_{ false };
     bool has_pending_io_{ false };
     int cursor_{ 0 };
+
+#ifdef WIN32
+    AsyncEvent last_read_;
+#endif
 };
 
 /**
