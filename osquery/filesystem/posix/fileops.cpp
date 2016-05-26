@@ -81,11 +81,7 @@ PlatformFile::~PlatformFile() {
 }
 
 bool PlatformFile::isFile() const {
-  struct stat file;
-  if (::fstat(handle_, &file) < 0) {
-    return false;
-  }
-  return (file.st_size > 0);
+  return (size() > 0);
 }
 
 bool PlatformFile::isOwnerRoot() const {
