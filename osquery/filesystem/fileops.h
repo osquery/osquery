@@ -130,7 +130,7 @@ class PlatformFile {
     bool isValid() const { return (handle_ != kInvalidHandle); }
     PlatformHandle nativeHandle() const { return handle_; }
 
-    // TODO(#2001): Think about adding a function like "isOwnerAdmin"
+    bool isOwnerRoot() const;
     bool getFileTimes(PlatformTime& times);
     bool setFileTimes(const PlatformTime& times);
 

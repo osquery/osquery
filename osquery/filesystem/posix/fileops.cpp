@@ -88,6 +88,15 @@ bool PlatformFile::isFile() const {
   return (file.st_size > 0);
 }
 
+bool PlatformFile::isOwnerRoot() const {
+  struct stat file;
+  if (fstat(handle_, &file) < 0) {
+    return false;
+  }
+
+  return (file.st_uid == 0);
+}
+
 bool PlatformFile::getFileTimes(PlatformTime& times) {
   if (!isValid()) {
     return false;

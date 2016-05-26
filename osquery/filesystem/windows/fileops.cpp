@@ -401,6 +401,11 @@ bool PlatformFile::isFile() const {
   return (::GetFileType(handle_) == FILE_TYPE_DISK);
 }
 
+bool PlatformFile::isOwnerRoot() const {
+  // TODO(#2001): mark as false for now
+  return false;
+}
+
 bool PlatformFile::getFileTimes(PlatformTime& times) {
   if (!isValid()) {
     return false;
