@@ -642,11 +642,12 @@ bool platformChmod(const std::string& path, mode_t perms) {
   std::vector<char> mutable_path(path.begin(), path.end());
   mutable_path.push_back('\0');
 
-  if (!::SetNamedSecurityInfoA(&mutable_path[0], SE_FILE_OBJECT,
-                               DACL_SECURITY_INFORMATION, NULL, NULL, acl,
-                               NULL)) {
+  if (::SetNamedSecurityInfoA(&mutable_path[0], SE_FILE_OBJECT,
+                              DACL_SECURITY_INFORMATION, NULL, NULL, acl,
+                              NULL) != ERROR_SUCCESS) {
     return false;
   }
+
   return true;
 }
 
