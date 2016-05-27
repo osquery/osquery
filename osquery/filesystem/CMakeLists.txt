@@ -12,11 +12,6 @@ elseif(LINUX)
   )
 endif()
 
-if(WIN32)
-  set(PROCESS_FAMILY "windows")
-else()
-  set(PROCESS_FAMILY "posix")
-endif()
 file(GLOB OS_FILEOPS_SOURCE "${PROCESS_FAMILY}/*.cpp")
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem

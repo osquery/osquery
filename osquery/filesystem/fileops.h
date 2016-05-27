@@ -239,6 +239,6 @@ std::vector<std::string> platformGlob(const std::string& find_path);
  * This abstracts the POSIX access function across Windows and POSIX. On
  * Windows, this calls the equivalent _access function.
  */
-int platformAccess(const std::string &path, int mode);
+int platformAccess(const std::string &path, mode_t mode);
 }
 

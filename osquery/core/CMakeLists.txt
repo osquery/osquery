@@ -1,8 +1,3 @@
-if(WIN32)
-  set(PROCESS_FAMILY "windows")
-else()
-  set(PROCESS_FAMILY "posix")
-endif()
 file(GLOB OS_CORE_SOURCE "${PROCESS_FAMILY}/*.cpp")
 
 if(APPLE)

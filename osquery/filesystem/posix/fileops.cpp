@@ -87,7 +87,7 @@ bool PlatformFile::isFile() const {
 
 bool PlatformFile::isOwnerRoot() const {
   struct stat file;
-  if (fstat(handle_, &file) < 0) {
+  if (::fstat(handle_, &file) < 0) {
     return false;
   }
 
@@ -100,7 +100,7 @@ bool PlatformFile::getFileTimes(PlatformTime& times) {
   }
 
   struct stat file;
-  if (fstat(handle_, &file) < 0) {
+  if (::fstat(handle_, &file) < 0) {
     return false;
   }
 
@@ -120,7 +120,7 @@ bool PlatformFile::setFileTimes(const PlatformTime& times) {
     return false;
   }
 
-  return (futimes(handle_, times.times) == 0);
+  return (::futimes(handle_, times.times) == 0);
 }
 
 ssize_t PlatformFile::read(void *buf, size_t nbyte) {
@@ -183,7 +183,7 @@ size_t PlatformFile::size() const {
 
 boost::optional<std::string> getHomeDirectory() {
   // Try to get the caller's home directory using HOME and getpwuid.
-  auto user = getpwuid(getuid());
+  auto user = ::getpwuid(getuid());
   auto homedir = getEnvVar("HOME");
   if (homedir.is_initialized()) {
     return homedir;
@@ -195,26 +195,26 @@ boost::optional<std::string> getHomeDirectory() {
 }
 
 bool platformChmod(const std::string& path, mode_t perms) {
-  return (chmod(path.c_str(), perms) == 0);
+  return (::chmod(path.c_str(), perms) == 0);
 }
 
 std::vector<std::string> platformGlob(const std::string& find_path) {
   std::vector<std::string> results;
   
   glob_t data;
-  glob(find_path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, &data);
+  ::glob(find_path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, &data);
   size_t count = data.gl_pathc;
   
   for (size_t index = 0; index < count; index++) {
     results.push_back(data.gl_pathv[index]);
   }
 
-  globfree(&data);
+  ::globfree(&data);
   return results;
 }
 
 int platformAccess(const std::string& path, int mode) {
-  return access(path.c_str(), mode);
+  return ::access(path.c_str(), mode);
 }
 }
 
