@@ -46,14 +46,14 @@ namespace osquery {
 using AclObject = std::unique_ptr<unsigned char[]>;
 
 class WindowsFindFiles {
-public:
+ public:
   explicit WindowsFindFiles(const fs::path& path) : path_(path) {
     handle_ = ::FindFirstFileA(path_.make_preferred().string().c_str(), &fd_);
   }
 
   ~WindowsFindFiles() {
     if (handle_ != INVALID_HANDLE_VALUE) {
-      FindClose(handle_);
+      ::FindClose(handle_);
       handle_ = INVALID_HANDLE_VALUE;
     }
   }
@@ -89,7 +89,7 @@ public:
     return results;
   }
 
-private:
+ private:
   HANDLE handle_{INVALID_HANDLE_VALUE};
   WIN32_FIND_DATAA fd_{0};
 
@@ -126,7 +126,7 @@ AsyncEvent::~AsyncEvent() {
   }
 }
 
-/// Inspired by glob-to-regexp node package
+// Inspired by glob-to-regexp node package
 static std::string globToRegex(const std::string &glob) {
   bool in_group = false;
   std::string regex("^");
@@ -432,6 +432,7 @@ ssize_t PlatformFile::getOverlappedResultForRead(void *buf,
   if (::GetOverlappedResultEx(handle_, &last_read_.overlapped_, &bytes_read, 0,
                               TRUE)) {
     // Read operation has finished
+
     // NOTE: We do NOT support situations where the second read operation uses a
     // SMALLER buffer than the initial async request. This will cause the
     // smaller amount to be copied and truncate DATA!

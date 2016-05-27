@@ -127,6 +127,7 @@ ssize_t PlatformFile::read(void *buf, size_t nbyte) {
   if (!isValid()) {
     return -1;
   }
+
   has_pending_io_ = false;
 
   auto ret = ::read(handle_, buf, nbyte);
@@ -140,7 +141,9 @@ ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
   if (!isValid()) {
     return -1;
   }
+
   has_pending_io_ = false;
+
   auto ret = ::write(handle_, buf, nbyte);
   if (ret < 0 && errno == EAGAIN) {
     has_pending_io_ = true;

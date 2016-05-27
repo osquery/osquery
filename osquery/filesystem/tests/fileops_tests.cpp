@@ -22,50 +22,49 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 class FileOpsTests : public testing::Test {
+ protected:
+  void SetUp() override {
+    createMockFileStructure();
+  }
 
-  protected:
-    void SetUp() override {
-      createMockFileStructure();
-    }
+  void TearDown() override {
+    tearDownMockFileStructure();
+  }
 
-    void TearDown() override {
-      tearDownMockFileStructure();
-    }
-
-    bool globResultsMatch(const std::vector<std::string>& results,
-                          std::vector<fs::path>& expected) {
-      if (results.size() == expected.size()) {
-        size_t i = 0;
-        for (auto const& path : results) {
-          if (path != expected[i].make_preferred().string()) {
-            return false;
-          }
-          i++;
+  bool globResultsMatch(const std::vector<std::string>& results,
+                        std::vector<fs::path>& expected) {
+    if (results.size() == expected.size()) {
+      size_t i = 0;
+      for (auto const& path : results) {
+        if (path != expected[i].make_preferred().string()) {
+          return false;
         }
-
-        return true;
+        i++;
       }
 
-      return false;
+      return true;
     }
+
+    return false;
+  }
 };
 
 class TempFile {
-public:
+ public:
   TempFile()
       : path_((fs::temp_directory_path() / fs::unique_path())
                   .make_preferred()
                   .string()) {}
-
+ 
   ~TempFile() {
     if (fs::exists(path_)) {
       fs::remove(path_);
     }
   }
-
+ 
   const std::string& path() const { return path_; }
-
-private:
+ 
+ private:
   std::string path_;
 };
 
