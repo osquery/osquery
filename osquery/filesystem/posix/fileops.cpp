@@ -184,9 +184,9 @@ size_t PlatformFile::size() const {
 boost::optional<std::string> getHomeDirectory() {
   // Try to get the caller's home directory using HOME and getpwuid.
   auto user = getpwuid(getuid());
-  auto homeVar = getEnvVar("HOME");
-  if (homeVar.is_initialized()) {
-    return *homeVar;
+  auto homedir = getEnvVar("HOME");
+  if (homedir.is_initialized()) {
+    return homedir;
   } else if (user != nullptr && user->pw_dir != nullptr) {
     return std::string(user->pw_dir);
   } else {

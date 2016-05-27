@@ -30,6 +30,7 @@
 namespace osquery {
 
 #ifdef WIN32
+
 using mode_t = int;
 using ssize_t = SSIZE_T;
 using PlatformHandle = HANDLE;
@@ -42,12 +43,10 @@ using PlatformTimeType = FILETIME;
 #define W_OK 2
 #define X_OK R_OK
 
-const std::string kFallbackHomeDirectory = "\\ProgramData\\osquery";
 #else
+
 using PlatformHandle = int;
 using PlatformTimeType = struct timeval;
-
-const std::string kFallbackHomeDirectory = "/tmp/osquery";
 #endif
 
 using PlatformTime = struct {
