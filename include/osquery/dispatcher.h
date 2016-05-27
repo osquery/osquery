@@ -23,6 +23,8 @@
 
 namespace osquery {
 
+class Dispatcher;
+
 /// A throw/catch relay between a pause request and cancel event.
 struct RunnerInterruptError {};
 
@@ -106,10 +108,7 @@ class InternalRunnable : private boost::noncopyable,
    *
    * This is used by the Dispatcher only.
    */
-  virtual void run() final {
-    run_ = true;
-    start();
-  }
+  virtual void run() final;
 
   /**
    * @brief Check if the thread's entrypoint (run) executed.
@@ -166,7 +165,7 @@ class Dispatcher : private boost::noncopyable {
   static void stopServices();
 
   /// Return number of services.
-  size_t serviceCount() { return service_threads_.size(); }
+  size_t serviceCount() { return services_.size(); }
 
  private:
   /**
@@ -176,9 +175,11 @@ class Dispatcher : private boost::noncopyable {
    * Dispatcher's constructor is private.
    */
   Dispatcher() {}
-  Dispatcher(Dispatcher const&);
-  void operator=(Dispatcher const&);
   virtual ~Dispatcher() {}
+
+ private:
+  /// When a service ends, it will remove itself from the dispatcher.
+  static void removeService(const InternalRunnable* service);
 
  private:
   /// The set of shared osquery service threads.
@@ -207,6 +208,7 @@ class Dispatcher : private boost::noncopyable {
   std::atomic<bool> stopping_{false};
 
  private:
+  friend class InternalRunnable;
   friend class ExtensionsTest;
 };
 }

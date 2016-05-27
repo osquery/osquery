@@ -259,6 +259,8 @@ function main() {
              --version ${BUILD_VERSION}-${APP_VERSION} \
              $KERNEL_OUTPUT_PKG_PATH 2>&1  1>/dev/null
     log "kernel package created at $KERNEL_OUTPUT_PKG_PATH"
+  else
+    log "skipping kernel package, no kext found"
   fi
 
 }
