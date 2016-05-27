@@ -77,6 +77,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
 PlatformFile::~PlatformFile() { 
   if (handle_ != kInvalidHandle) {
     ::close(handle_);
+    handle_ = kInvalidHandle;
   }
 }
 
@@ -99,7 +100,7 @@ bool PlatformFile::getFileTimes(PlatformTime& times) {
   }
 
   struct stat file;
-  if (::fstat(handle_, &file) < 0) {
+  if (fstat(handle_, &file) < 0) {
     return false;
   }
 
@@ -119,7 +120,7 @@ bool PlatformFile::setFileTimes(const PlatformTime& times) {
     return false;
   }
 
-  return (::futimes(handle_, times.times) == 0);
+  return (futimes(handle_, times.times) == 0);
 }
 
 ssize_t PlatformFile::read(void *buf, size_t nbyte) {
@@ -183,8 +184,7 @@ boost::optional<std::string> getHomeDirectory() {
   auto homeVar = getEnvVar("HOME");
   if (homeVar.is_initialized()) {
     return *homeVar;
-  }
-  else if (user != nullptr && user->pw_dir != nullptr) {
+  } else if (user != nullptr && user->pw_dir != nullptr) {
     return std::string(user->pw_dir);
   } else {
     return boost::none;

@@ -54,7 +54,7 @@ using PlatformTime = struct {
   PlatformTimeType times[2];
 };
 
-/// Constant for an invalid handle
+// Constant for an invalid handle
 const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 
 /**
@@ -80,7 +80,8 @@ const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 /**
  * @brief Modes for seeking through a file
  *
- * Provides a chance 
+ * Provides a platform agnostic enumeration for file seek operations. These
+ * are translated to the appropriate flags for the underlying platform.
  */
 
 enum SeekMode {
@@ -92,8 +93,10 @@ enum SeekMode {
 #ifdef WIN32
 
 /**
- * @brief Windows-only class that deals with simulating POSIX 
- *        asynchronous IO semantics using Windows API calls
+ * @brief Stores information about the last Windows async request
+ *
+ * Windows-only class that deals with simulating POSIX asynchronous IO semantics
+ * using Windows API calls
  */
 struct AsyncEvent {
   AsyncEvent();
@@ -123,20 +126,47 @@ class PlatformFile {
 
     ~PlatformFile();
 
-    /// Checks to see if the file object is actually a file and not a "special file"
+    // Checks to see if the file object is actually a disk file and not a "special file"
     bool isFile() const;
 
+    /**
+     * @brief Checks to see if there are any pending IO operations.
+     *
+     * This is mostly used in post read/write return error in non-blocking mode
+     * to determine whether the error is actually an error or an indication of
+     * no data available.
+     */
     bool hasPendingIo() const { return has_pending_io_;  }
+
+    // Checks to see if the handle backing the PlatformFile object is valid
     bool isValid() const { return (handle_ != kInvalidHandle); }
+
+    // Returns the platform specific handle
     PlatformHandle nativeHandle() const { return handle_; }
 
+    /**
+     * @brief Returns true if the file's owner is root
+     * @note This will always return false on Windows at the moment. In POSIX,
+     *       if the fstat call within isOwnerRoot fails, this function will also
+     *       return false.
+     */
     bool isOwnerRoot() const;
+
     bool getFileTimes(PlatformTime& times);
     bool setFileTimes(const PlatformTime& times);
 
-    // TODO(#2001): We have rudimentary support for async IO operations on
-    // Windows. At the moment, we DO NOT support async on both read and write on
-    // the same HANDLE. Doing so will result in lost reads.
+
+    /**
+     * @note Currently, we have rudimentary support for non-blocking operations
+     *       on Windows. The implementation attempts to emulate POSIX non-blocking
+     *       IO semantics using the Windows asynchronous API. As such, there are
+     *       currently limitations. For example, opening a non-blocking file with 
+     *       read and write privileges may produce some problems. If a write 
+     *       operation does not immediately succeed, we cancel IO instead of 
+     *       waiting on it. As a result, on-going async read operations will get 
+     *       cancelled and data might get lost.
+     */
+
     ssize_t read(void *buf, size_t nbyte);
     ssize_t write(const void *buf, size_t nbyte);
     off_t seek(off_t offset, SeekMode mode);
@@ -169,7 +199,9 @@ boost::optional<std::string> getHomeDirectory();
 
 /**
  * @brief Multi-platform implementation of chmod
- * @note Support is not equivalent
+ * @note There are issues with the ACL being ordered "incorrectly". This
+ *        incorrect ordering does help with implementing the proper
+ *        behaviors
  * 
  * This function approximates the functionality of the POSIX chmod function on
  * Windows. While there is the _chmod function on Windows, it does not support
@@ -191,7 +223,8 @@ bool platformChmod(const std::string& path, mode_t perms);
 
 /**
  * @brief Multi-platform implementation of glob
- * @note Support is close to equivalent
+ * @note glob support is not 100% congruent with Linux glob. There are slight
+ *       differences in how GLOB_TILDE and GLOB_BRACE are implemented
  *
  * This function approximates the functionality of the POSIX glob function on
  * Windows. It has naive support of GLOB_TILDE (doesn't support ~user syntax),

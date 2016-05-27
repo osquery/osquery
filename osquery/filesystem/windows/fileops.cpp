@@ -90,8 +90,8 @@ public:
   }
 
 private:
-  HANDLE handle_{ INVALID_HANDLE_VALUE };
-  WIN32_FIND_DATAA fd_{ 0 };
+  HANDLE handle_{INVALID_HANDLE_VALUE};
+  WIN32_FIND_DATAA fd_{0};
 
   fs::path path_;
 };
@@ -394,6 +394,7 @@ PlatformFile::~PlatformFile() {
   if (handle_ != kInvalidHandle && handle_ != nullptr) {
     ::CancelIo(handle_);
     ::CloseHandle(handle_);
+    handle_ = kInvalidHandle;
   }
 }
 
@@ -435,7 +436,7 @@ ssize_t PlatformFile::getOverlappedResultForRead(void *buf,
     // SMALLER buffer than the initial async request. This will cause the
     // smaller amount to be copied and truncate DATA!
     DWORD size = min(requested_size, bytes_read);
-    ::memcpy(buf, last_read_.buffer_.get(), size);
+    ::memcpy_s(buf, requested_size, last_read_.buffer_.get(), size);
 
     // Update our cursor
     cursor_ += bytes_read;
@@ -652,7 +653,7 @@ bool platformChmod(const std::string& path, mode_t perms) {
 }
 
 std::vector<std::string> platformGlob(const std::string& find_path) {
-  std::string final_path;
+  fs::path full_path(find_path);
 
   // This is a naive implementation of GLOB_TILDE. If the first two characters
   // in the path are '~/' or '~\', we replace it with the value of the
@@ -661,13 +662,9 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
       (find_path[1] == '/' || find_path[1] == '\\')) {
     auto homedir = getEnvVar("USERPROFILE");
     if (homedir.is_initialized()) {
-      final_path = *homedir + find_path.substr(1);
+      full_path = fs::path(*homedir) / find_path.substr(2);
     }
-  } else {
-    final_path = find_path;
   }
-
-  fs::path full_path(final_path);
   
   std::regex pattern(".*[*\?].*");
 
@@ -682,8 +679,9 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
     for (auto &component : full_path.parent_path()) {
       std::vector<fs::path> tmp_valid_paths;
 
-      // This will enumerate the old set of valid paths and update it by looking for directories matching the 
-      for (auto const& valid_path : valid_paths) {
+      // This will enumerate the old set of valid paths and update it by looking
+      // for directories matching the specified glob pattern. 
+      for (auto const &valid_path : valid_paths) {
         if (hasGlobBraces(component.string())) {
           // If the component contains braces, we convert the component into a
           // regex, enumerate through all the directories in the current
@@ -706,8 +704,8 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
           }
         } else {
           // Since there are no braces and other glob-like wildcards, we are
-          // going to append the component to the previous valid path and mark
-          // that as valid
+          // going to append the component to the previous valid path and append
+          // the new path to the list
           if (fs::exists(valid_path / component)) {
             tmp_valid_paths.push_back(valid_path / component);
           }

@@ -17,19 +17,6 @@
 #include "osquery/core/test_util.h"
 #include "osquery/filesystem/fileops.h"
 
-#define EXPECT_GLOB_RESULT_MATCH(results, expected)                            \
-  {                                                                            \
-    EXPECT_EQ(results.size(), expected.size()) << "results count = "           \
-                                               << results.size();              \
-    if (results.size() == expected.size()) {                                   \
-      size_t i = 0;                                                            \
-      for (auto const& path : results) {                                       \
-        EXPECT_EQ(path, expected[i].make_preferred().string());                \
-        i++;                                                                   \
-      }                                                                        \
-    }                                                                          \
-  }
-
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -37,12 +24,29 @@ namespace osquery {
 class FileOpsTests : public testing::Test {
 
   protected:
-    void SetUp() {
+    void SetUp() override {
       createMockFileStructure();
     }
 
-    void TearDown() {
+    void TearDown() override {
       tearDownMockFileStructure();
+    }
+
+    bool globResultsMatch(const std::vector<std::string>& results,
+                          std::vector<fs::path>& expected) {
+      if (results.size() == expected.size()) {
+        size_t i = 0;
+        for (auto const& path : results) {
+          if (path != expected[i].make_preferred().string()) {
+            return false;
+          }
+          i++;
+        }
+
+        return true;
+      }
+
+      return false;
     }
 };
 
@@ -59,7 +63,7 @@ public:
     }
   }
 
-  std::string path() const { return path_; }
+  const std::string& path() const { return path_; }
 
 private:
   std::string path_;
@@ -220,7 +224,7 @@ TEST_F(FileOpsTests, test_glob) {
       kFakeDirectory + "/roto.txt"
     };
     auto result = platformGlob(kFakeDirectory + "/*.txt");
-    EXPECT_GLOB_RESULT_MATCH(result, expected);
+    EXPECT_TRUE(globResultsMatch(result, expected));
   }
 
   {
@@ -233,7 +237,7 @@ TEST_F(FileOpsTests, test_glob) {
       kFakeDirectory + "/roto.txt"
     };
     auto result = platformGlob(kFakeDirectory + "/*");
-    EXPECT_GLOB_RESULT_MATCH(result, expected);
+    EXPECT_TRUE(globResultsMatch(result, expected));
   }
 
   {
@@ -245,7 +249,7 @@ TEST_F(FileOpsTests, test_glob) {
       kFakeDirectory + "/deep11/not_bash"
     };
     auto result = platformGlob(kFakeDirectory + "/*/*");
-    EXPECT_GLOB_RESULT_MATCH(result, expected);
+    EXPECT_TRUE(globResultsMatch(result, expected));
   }
 
   {
@@ -255,7 +259,7 @@ TEST_F(FileOpsTests, test_glob) {
       kFakeDirectory + "/deep11/deep2/level2.txt"
     };
     auto result = platformGlob(kFakeDirectory + "/*/*/*");
-    EXPECT_GLOB_RESULT_MATCH(result, expected);
+    EXPECT_TRUE(globResultsMatch(result, expected));
   }
 
   {
@@ -264,7 +268,7 @@ TEST_F(FileOpsTests, test_glob) {
       kFakeDirectory + "/deep11/deep2/level2.txt"
     };
     auto result = platformGlob(kFakeDirectory + "/*11/*/*");
-    EXPECT_GLOB_RESULT_MATCH(result, expected);
+    EXPECT_TRUE(globResultsMatch(result, expected));
   }
 
   {
@@ -273,7 +277,7 @@ TEST_F(FileOpsTests, test_glob) {
       kFakeDirectory + "/root.txt"
     };
     auto result = platformGlob(kFakeDirectory + "/{deep,root}{1,.txt}");
-    EXPECT_GLOB_RESULT_MATCH(result, expected);
+    EXPECT_TRUE(globResultsMatch(result, expected));
   }
 
   {
@@ -283,7 +287,7 @@ TEST_F(FileOpsTests, test_glob) {
       kFakeDirectory + "/deep11/deep2/level2.txt"
     };
     auto result = platformGlob(kFakeDirectory + "/*/deep2/*");
-    EXPECT_GLOB_RESULT_MATCH(result, expected);
+    EXPECT_TRUE(globResultsMatch(result, expected));
   }
 
   {
@@ -300,7 +304,7 @@ TEST_F(FileOpsTests, test_glob) {
       kFakeDirectory + "/deep11/not_bash"
     };
     auto result = platformGlob(kFakeDirectory + "/*/{deep2,level1,not_bash}{,.txt}");
-    EXPECT_GLOB_RESULT_MATCH(result, expected);
+    EXPECT_TRUE(globResultsMatch(result, expected));
   }
 }
 }
