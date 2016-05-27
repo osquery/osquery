@@ -135,6 +135,23 @@ static std::string globToRegex(const std::string &glob) {
     char c = glob[i];
 
     switch (c) {
+      case '?':
+        regex += '.';
+        break;
+      case '{':
+        in_group = true;
+        regex += '(';
+        break;
+      case '}':
+        in_group = false;
+        regex += ')';
+        break;
+      case ',':
+        regex += '|';
+        break;
+      case '*':
+        regex += ".*";
+        break;
       case '\\':
       case '/':
       case '$':
@@ -146,30 +163,7 @@ static std::string globToRegex(const std::string &glob) {
       case '=':
       case '!':
       case '|':
-        regex += "\\";
-        regex += c;
-        break;
-      case '?':
-        regex += ".";
-        break;
-      case '[':
-      case ']':
-        regex += c;
-        break;
-      case '{':
-        in_group = true;
-        regex += "(";
-        break;
-      case '}':
-        in_group = false;
-        regex += ")";
-        break;
-      case ',':
-        regex += "|";
-        break;
-      case '*':
-        regex += ".*";
-        break;
+        regex += '\\';
       default:
         regex += c;
         break;
@@ -762,7 +756,7 @@ boost::optional<std::string> getHomeDirectory() {
   }
 }
 
-int platformAccess(const std::string& path, int mode) {
+int platformAccess(const std::string& path, mode_t mode) {
   return _access(path.c_str(), mode);
 }
 }
