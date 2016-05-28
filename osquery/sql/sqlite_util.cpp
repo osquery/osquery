@@ -35,49 +35,28 @@ using SQLiteDBInstanceRef = std::shared_ptr<SQLiteDBInstance>;
  *
  * Details of this map are defined at: http://www.sqlite.org/c3ref/c_abort.html
  */
+// clang-format off
 const std::map<int, std::string> kSQLiteReturnCodes = {
-    {0, "SQLITE_OK"},
-    {1, "SQLITE_ERROR"},
-    {2, "SQLITE_INTERNAL"},
-    {3, "SQLITE_PERM"},
-    {4, "SQLITE_ABORT"},
-    {5, "SQLITE_BUSY"},
-    {6, "SQLITE_LOCKED"},
-    {7, "SQLITE_NOMEM"},
-    {8, "SQLITE_READONLY"},
-    {9, "SQLITE_INTERRUPT"},
-    {10, "SQLITE_IOERR"},
-    {11, "SQLITE_CORRUPT"},
-    {12, "SQLITE_NOTFOUND"},
-    {13, "SQLITE_FULL"},
-    {14, "SQLITE_CANTOPEN"},
-    {15, "SQLITE_PROTOCOL"},
-    {16, "SQLITE_EMPTY"},
-    {17, "SQLITE_SCHEMA"},
-    {18, "SQLITE_TOOBIG"},
-    {19, "SQLITE_CONSTRAINT"},
-    {20, "SQLITE_MISMATCH"},
-    {21, "SQLITE_MISUSE"},
-    {22, "SQLITE_NOLFS"},
-    {23, "SQLITE_AUTH"},
-    {24, "SQLITE_FORMAT"},
-    {25, "SQLITE_RANGE"},
-    {26, "SQLITE_NOTADB"},
-    {27, "SQLITE_NOTICE"},
-    {28, "SQLITE_WARNING"},
-    {100, "SQLITE_ROW"},
+    {0, "SQLITE_OK"},        {1, "SQLITE_ERROR"},       {2, "SQLITE_INTERNAL"},
+    {3, "SQLITE_PERM"},      {4, "SQLITE_ABORT"},       {5, "SQLITE_BUSY"},
+    {6, "SQLITE_LOCKED"},    {7, "SQLITE_NOMEM"},       {8, "SQLITE_READONLY"},
+    {9, "SQLITE_INTERRUPT"}, {10, "SQLITE_IOERR"},      {11, "SQLITE_CORRUPT"},
+    {12, "SQLITE_NOTFOUND"}, {13, "SQLITE_FULL"},       {14, "SQLITE_CANTOPEN"},
+    {15, "SQLITE_PROTOCOL"}, {16, "SQLITE_EMPTY"},      {17, "SQLITE_SCHEMA"},
+    {18, "SQLITE_TOOBIG"},   {19, "SQLITE_CONSTRAINT"}, {20, "SQLITE_MISMATCH"},
+    {21, "SQLITE_MISUSE"},   {22, "SQLITE_NOLFS"},      {23, "SQLITE_AUTH"},
+    {24, "SQLITE_FORMAT"},   {25, "SQLITE_RANGE"},      {26, "SQLITE_NOTADB"},
+    {27, "SQLITE_NOTICE"},   {28, "SQLITE_WARNING"},    {100, "SQLITE_ROW"},
     {101, "SQLITE_DONE"},
 };
 
 const std::map<std::string, std::string> kMemoryDBSettings = {
-    {"synchronous", "OFF"},
-    {"count_changes", "OFF"},
-    {"default_temp_store", "0"},
-    {"auto_vacuum", "FULL"},
-    {"journal_mode", "OFF"},
-    {"cache_size", "0"},
+    {"synchronous", "OFF"},      {"count_changes", "OFF"},
+    {"default_temp_store", "0"}, {"auto_vacuum", "FULL"},
+    {"journal_mode", "OFF"},     {"cache_size", "0"},
     {"page_count", "0"},
 };
+// clang-format on
 
 #define OpComparator(x) \
   { x, QueryPlanner::Opcode(OpReg::P2, INTEGER_TYPE) }
@@ -200,6 +179,9 @@ static inline void openOptimized(sqlite3*& db) {
     settings += "PRAGMA " + setting.first + "=" + setting.second + "; ";
   }
   sqlite3_exec(db, settings.c_str(), nullptr, nullptr, nullptr);
+
+  // Register function extensions.
+  registerMathExtensions(db);
 }
 
 void SQLiteDBInstance::init() {
