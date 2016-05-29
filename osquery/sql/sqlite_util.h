@@ -317,4 +317,9 @@ std::string getStringForSQLiteReturnCode(int code);
  * should be a non-const reference to a std::vector<Row>.
  */
 int queryDataCallback(void* argument, int argc, char* argv[], char* column[]);
+
+/**
+ * @brief Register math-related 'custom' functions.
+ */
+void registerMathExtensions(sqlite3* db);
 }
