@@ -10,6 +10,7 @@
 
 #include <AclAPI.h>
 #include <io.h>
+#include <LM.h>
 #include <sddl.h>
 #include <ShlObj.h>
 
@@ -117,11 +118,11 @@ static bool hasGlobBraces(const std::string& glob) {
 }
 
 AsyncEvent::AsyncEvent() {
-  overlapped_.hEvent = ::CreateEventA(NULL, FALSE, FALSE, NULL);
+  overlapped_.hEvent = ::CreateEventA(nullptr, FALSE, FALSE, nullptr);
 }
 
 AsyncEvent::~AsyncEvent() {
-  if (overlapped_.hEvent != NULL) {
+  if (overlapped_.hEvent != nullptr) {
     ::CloseHandle(overlapped_.hEvent);
   }
 }
@@ -297,7 +298,7 @@ static AclObject modifyAcl(PACL acl, PSID target, bool allow_read,
   PACE_HEADER entry = nullptr;
   for (i = 0; i < info.AceCount; i++) {
     if (!::GetAce(acl, i, (LPVOID *)&entry)) {
-      return std::move(AclObject());
+return std::move(AclObject());
     }
 
     if ((entry->AceFlags & INHERITED_ACE) == INHERITED_ACE) {
@@ -380,8 +381,8 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   }
 
   handle_ = ::CreateFileA(path.c_str(), access_mask, 0,
-                          security_attrs.get(), creation_disposition,
-                          flags_and_attrs, nullptr);
+    security_attrs.get(), creation_disposition,
+    flags_and_attrs, nullptr);
 }
 
 PlatformFile::~PlatformFile() {
@@ -396,9 +397,118 @@ bool PlatformFile::isFile() const {
   return (::GetFileType(handle_) == FILE_TYPE_DISK);
 }
 
-bool PlatformFile::isOwnerRoot() const {
-  // TODO(#2001): mark as false for now
-  return false;
+static PSID getFileOwner(PlatformHandle handle) {
+  PSID owner = nullptr;
+  PSECURITY_DESCRIPTOR sd = nullptr;
+
+  if (::GetSecurityInfo(handle, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION,
+                        &owner, nullptr, nullptr, nullptr,
+                        &sd) != ERROR_SUCCESS) {
+    return nullptr;
+  }
+
+  return owner;
+}
+
+static Status isUserPartOfGroup(PSID user, LPCWSTR group) {
+  DWORD entries_read = 0;
+  DWORD total_entries = 0;
+
+  if (!::IsValidSid(user)) {
+    return Status(-1, "Invalid SID");
+  }
+
+  LOCALGROUP_MEMBERS_INFO_0 *buffer = nullptr;
+
+  /// Obtain the members of the specified group
+  DWORD status = ::NetLocalGroupGetMembers(nullptr, group, 0, (LPBYTE *)&buffer,
+                                           MAX_PREFERRED_LENGTH, &entries_read,
+                                           &total_entries, nullptr);
+  if (status != NERR_Success) {
+    if (status == ERROR_MORE_DATA) {
+      ::NetApiBufferFree(buffer);
+    }
+    return Status(-1, "NetLocalGroupGetMembers failed");
+  }
+
+  /// Enumerate each member of the specified group and determine if user is a
+  /// member of the group
+  for (DWORD i = 0; i < entries_read; i++) {
+    if (::EqualSid(user, buffer[i].lgrmi0_sid)) {
+      ::NetApiBufferFree(buffer);
+      return Status(0, "OK");
+    }
+  }
+
+  ::NetApiBufferFree(buffer);
+  return Status(1, "Not part of group");
+}
+
+static Status isUserCurrentUser(PSID user) {
+  HANDLE token = INVALID_HANDLE_VALUE;
+
+  if (!::IsValidSid(user)) {
+    return Status(-1, "Invalid SID");
+  }
+
+  if (!::OpenProcessToken(::GetCurrentProcess(), PROCESS_ALL_ACCESS, &token)) {
+    return Status(-1, "OpenProcessToken failed");
+  }
+
+  DWORD size = 0;
+  PTOKEN_USER ptu = nullptr;
+  if (!::GetTokenInformation(token, TokenUser, (LPVOID)ptu, 0, &size)) {
+    ::CloseHandle(token);
+    return Status(-1, "GetTokenInformation failed (1)");
+  }
+
+  std::vector<char> buffer(size);
+  ptu = (PTOKEN_USER)&buffer[0];
+
+  /// Obtain the user SID behind the token handle
+  if (!::GetTokenInformation(token, TokenUser, (LPVOID)ptu, size, &size)) {
+    ::CloseHandle(token);
+    return Status(-1, "GetTokenInformation failed (2)");
+  }
+  ::CloseHandle(token);
+
+  /// Determine if the current user SID matches that of the specified user
+  if (::EqualSid(user, ptu->User.Sid)) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "User not current user");
+}
+
+Status PlatformFile::isOwnerRoot() const {
+  if (!isValid()) {
+    return Status(-1, "Invalid handle_");
+  }
+
+  PSID owner = getFileOwner(handle_);
+  if (owner == nullptr) {
+    return Status(-1, "GetSecurityInfo failed");
+  }
+
+  return isUserPartOfGroup(owner, L"Administrators");
+}
+
+Status PlatformFile::isOwnerCurrentUser() const {
+  if (!isValid()) {
+    return Status(-1, "Invalid handle_");
+  }
+
+  PSID owner = getFileOwner(handle_);
+  if (owner == nullptr) {
+    return Status(-1, "GetSecurityInfo failed");
+  }
+
+  return isUserCurrentUser(owner);
+}
+
+// TODO: implement me
+Status PlatformFile::isExecutable() const {
+  return Status(0, "OK");
 }
 
 bool PlatformFile::getFileTimes(PlatformTime& times) {
@@ -478,7 +588,8 @@ ssize_t PlatformFile::read(void *buf, size_t nbyte) {
       last_read_.overlapped_.Offset = cursor_;
       last_read_.buffer_.reset(new char[nbyte]);
 
-      if (!::ReadFile(handle_, last_read_.buffer_.get(), nbyte, NULL, &last_read_.overlapped_)) {
+      if (!::ReadFile(handle_, last_read_.buffer_.get(), nbyte, nullptr,
+                      &last_read_.overlapped_)) {
         last_error = ::GetLastError();
         if (last_error == ERROR_IO_PENDING || last_error == ERROR_MORE_DATA) {
           nret = getOverlappedResultForRead(buf, nbyte);
@@ -758,6 +869,29 @@ boost::optional<std::string> getHomeDirectory() {
 
 int platformAccess(const std::string& path, mode_t mode) {
   return _access(path.c_str(), mode);
+}
+
+// Check to see if a given directory is a temporary directory
+// GetFullPathNameA on the given directory and normalize it to compare to tmp_directory_path and GetTempPath
+// Error if invalid chars in path ( *?"|<>/ )
+
+// TODO: implement me
+Status platformIsTmpDir(const fs::path& dir) {
+  return Status(1, "");
+}
+
+Status platformIsFileAccessible(const fs::path& path) {
+  if (fs::exists(path) && fs::is_regular_file(path)) {
+    return Status(0, "OK");
+  }
+  return Status(1, "Not accessbile file");
+}
+
+Status platformIsDirAccessible(const fs::path& dir) {
+  if (fs::exists(dir) && fs::is_directory(dir)) {
+    return Status(0, "OK");
+  }
+  return Status(1, "Not accessible directory");
 }
 }
 

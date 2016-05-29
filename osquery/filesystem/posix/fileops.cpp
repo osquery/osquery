@@ -15,6 +15,7 @@
 
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/types.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
@@ -85,13 +86,58 @@ bool PlatformFile::isFile() const {
   return (size() > 0);
 }
 
-bool PlatformFile::isOwnerRoot() const {
+static uid_t getFileOwner(PlatformHandle handle) {
   struct stat file;
-  if (::fstat(handle_, &file) < 0) {
-    return false;
+  if (::fstat(handle, &file) < 0) {
+    return -1;
+  }
+  return file.st_uid;
+}
+
+Status PlatformFile::isOwnerRoot() const {
+  if (!isValid()) {
+    return Status(-1, "Invalid handle_");
   }
 
-  return (file.st_uid == 0);
+  uid_t owner_id = getFileOwner(handle_);
+  if (owner_id == -1) {
+    return Status(-1, "fstat error");
+  }
+
+  if (owner_id == 0) {
+    return Status(0, "OK");
+  }
+  return Status(1, "Owner is not root");
+}
+
+Status PlatformFile::isOwnerCurrentUser() const {
+  if (!isValid()) {
+    return Status(-1, "Invalid handle_");
+  }
+
+  uid_t owner_id = getFileOwner(handle_);
+  if (owner_id == -1) {
+    return Status(-1, "fstat error");
+  }
+
+  if (owner_id == ::getuid()) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "Owner is not current user");
+}
+
+Status PlatformFile::isExecutable() const {
+  struct stat file_stat;
+  if (::fstat(handle_, &file_stat) < 0) {
+    return Status(-1, "fstat error");
+  }
+
+  if (file_stat.st_mode & S_IXUSR) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "Not executable");
 }
 
 bool PlatformFile::getFileTimes(PlatformTime& times) {
@@ -213,8 +259,37 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
   return results;
 }
 
-int platformAccess(const std::string& path, int mode) {
+int platformAccess(const std::string& path, mode_t mode) {
   return ::access(path.c_str(), mode);
+}
+
+Status platformIsTmpDir(const fs::path& dir) {
+  struct stat dir_stat;
+  if (::stat(dir.c_str(), &dir_stat) < 0) {
+    return Status(-1, "");
+  }
+  
+  if (dir_stat.st_mode & (1 << 9)) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "");
+}
+
+Status platformIsFileAccessible(const fs::path& path) {
+  struct stat file_stat, link_stat;
+  if (::lstat(path.c_str(), &link_stat) < 0 || ::stat(path.c_str(), &file_stat)) {
+    return Status(1, "File is not acccessible");
+  }
+  return Status(0, "OK");
+}
+
+Status platformIsDirAccessible(const fs::path& dir) {
+  struct stat dir_stat;
+  if (::stat(dir.c_str(), &dir_stat)) {
+    return Status(1, "Dir is not accessible");
+  }
+  return Status(0, "OK");
 }
 }
 

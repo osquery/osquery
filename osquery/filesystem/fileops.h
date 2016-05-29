@@ -25,7 +25,10 @@
 #include <unistd.h>
 #endif
 
+#include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 
@@ -36,8 +39,10 @@ using ssize_t = SSIZE_T;
 using PlatformHandle = HANDLE;
 using PlatformTimeType = FILETIME;
 
-// Windows does not define these, X_OK on Windows just ensures that the
-// file is readable.
+/**
+ * Windows does not define these, X_OK on Windows just ensures that the
+ * file is readable.
+ */
 #define F_OK 0
 #define R_OK 4
 #define W_OK 2
@@ -53,7 +58,7 @@ using PlatformTime = struct {
   PlatformTimeType times[2];
 };
 
-// Constant for an invalid handle
+/// Constant for an invalid handle
 const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 
 /**
@@ -93,6 +98,14 @@ enum SeekMode {
 
 /**
  * @brief Stores information about the last Windows async request
+ * @note Currently, we have rudimentary support for non-blocking operations
+ *       on Windows. The implementation attempts to emulate POSIX non-blocking
+ *       IO semantics using the Windows asynchronous API. As such, there are
+ *       currently limitations. For example, opening a non-blocking file with
+ *       read and write privileges may produce some problems. If a write
+ *       operation does not immediately succeed, we cancel IO instead of
+ *       waiting on it. As a result, on-going async read operations will get
+ *       cancelled and data might get lost.
  *
  * Windows-only class that deals with simulating POSIX asynchronous IO semantics
  * using Windows API calls
@@ -125,7 +138,7 @@ class PlatformFile {
 
   ~PlatformFile();
 
-  // Checks to see if the file object is actually a disk file and not a "special file"
+  /// Checks to see if the file object is actually a disk file and not a "special file"
   bool isFile() const;
 
   /**
@@ -138,34 +151,29 @@ class PlatformFile {
    */
   bool hasPendingIo() const { return has_pending_io_;  }
 
-  // Checks to see if the handle backing the PlatformFile object is valid
+  /// Checks to see if the handle backing the PlatformFile object is valid
   bool isValid() const { return (handle_ != kInvalidHandle); }
 
-  // Returns the platform specific handle
+  /// Returns the platform specific handle
   PlatformHandle nativeHandle() const { return handle_; }
 
   /**
-   * @brief Returns true if the file's owner is root
-   * @note This will always return false on Windows at the moment. In POSIX,
-   *       if the fstat call within isOwnerRoot fails, this function will also
-   *       return false.
+   * @brief Returns an OK Status object if owner of the file is root
+   * @note This will always return false on Windows at the moment.
    */
-  bool isOwnerRoot() const;
+  Status isOwnerRoot() const;
+
+  /**
+   * @brief Returns an OK Status object if the owner of the file is the current
+   *        user
+   */
+  Status isOwnerCurrentUser() const;
+
+  /// Determines whether the file has the executable bit set
+  Status isExecutable() const;
 
   bool getFileTimes(PlatformTime& times);
   bool setFileTimes(const PlatformTime& times);
-
-
-  /**
-   * @note Currently, we have rudimentary support for non-blocking operations
-   *       on Windows. The implementation attempts to emulate POSIX non-blocking
-   *       IO semantics using the Windows asynchronous API. As such, there are
-   *       currently limitations. For example, opening a non-blocking file with 
-   *       read and write privileges may produce some problems. If a write 
-   *       operation does not immediately succeed, we cancel IO instead of 
-   *       waiting on it. As a result, on-going async read operations will get 
-   *       cancelled and data might get lost.
-   */
 
   ssize_t read(void *buf, size_t nbyte);
   ssize_t write(const void *buf, size_t nbyte);
@@ -239,6 +247,21 @@ std::vector<std::string> platformGlob(const std::string& find_path);
  * This abstracts the POSIX access function across Windows and POSIX. On
  * Windows, this calls the equivalent _access function.
  */
-int platformAccess(const std::string &path, mode_t mode);
+int platformAccess(const std::string& path, mode_t mode);
+
+/**
+ * @brief Checks to see if the provided directory is a temporary folder
+ */
+Status platformIsTmpDir(const fs::path& dir);
+
+/**
+* @brief Determines the accessibility of the file path
+*/
+Status platformIsFileAccessible(const fs::path& path);
+
+/**
+* @brief Determines the accessibility of the directory path
+*/
+Status platformIsDirAccessible(const fs::path& path);
 }
 
