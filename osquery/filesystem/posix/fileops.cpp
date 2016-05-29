@@ -100,7 +100,7 @@ Status PlatformFile::isOwnerRoot() const {
   }
 
   uid_t owner_id = getFileOwner(handle_);
-  if (owner_id == -1) {
+  if (owner_id == (uid_t) -1) {
     return Status(-1, "fstat error");
   }
 
@@ -116,7 +116,7 @@ Status PlatformFile::isOwnerCurrentUser() const {
   }
 
   uid_t owner_id = getFileOwner(handle_);
-  if (owner_id == -1) {
+  if (owner_id == (uid_t) -1) {
     return Status(-1, "fstat error");
   }
 

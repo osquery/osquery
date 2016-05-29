@@ -186,9 +186,10 @@ class PlatformFile {
 
   bool is_nonblock_{ false };
   bool has_pending_io_{ false };
-  int cursor_{ 0 };
 
 #ifdef WIN32
+  int cursor_{ 0 };
+
   AsyncEvent last_read_;
 
   ssize_t getOverlappedResultForRead(void *buf, size_t requested_size);
