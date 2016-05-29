@@ -36,9 +36,15 @@ const std::string kLinuxOSRegex =
     "\"";
 #else
 const std::string kLinuxOSRelease = "/etc/os-release";
+#ifdef UBUNTU_XENIAL
+const std::string kLinuxOSRegex =
+    "VERSION=\"(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)[\\.]{0,1}(?P<patch>[0-9]+)"
+    "?.* \\((?P<name>[\\w ]*)\\)\"$";
+#else
 const std::string kLinuxOSRegex =
     "VERSION=\"(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)[\\.]{0,1}(?P<patch>[0-9]+)"
     "?.*, (?P<name>[\\w ]*)\"$";
+#endif
 #endif
 
 QueryData genOSVersion(QueryContext& context) {
