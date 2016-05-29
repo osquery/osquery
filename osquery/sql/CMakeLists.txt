@@ -5,6 +5,7 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_sql
 ADD_OSQUERY_LIBRARY(FALSE osquery_sql_internal
   sqlite_util.cpp
   sqlite_math.cpp
+  sqlite_string.cpp
   virtual_table.cpp
 )
 
