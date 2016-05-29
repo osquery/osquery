@@ -182,6 +182,7 @@ static inline void openOptimized(sqlite3*& db) {
 
   // Register function extensions.
   registerMathExtensions(db);
+  registerStringExtensions(db);
 }
 
 void SQLiteDBInstance::init() {
