@@ -259,12 +259,12 @@ int platformAccess(const std::string& path, mode_t mode);
 Status platformIsTmpDir(const fs::path& dir);
 
 /**
-* @brief Determines the accessibility of the file path
+* @brief Determines the accessibility and existence of the file path
 */
 Status platformIsFileAccessible(const fs::path& path);
 
 /**
-* @brief Determines the accessibility of the directory path
+* @brief Determines the accessibility and existence of the directory path
 */
 Status platformIsDirAccessible(const fs::path& path);
 }
