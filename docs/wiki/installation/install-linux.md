@@ -5,7 +5,7 @@ These packages contain the osquery daemon, shell, example configuration and star
 
 Supported distributions for package installs are:
 
-- Ubuntu Trusty 14.04 LTS, Precise 12.04 LTS
+- Ubuntu Xenial 16.04 LTS, Trusty 14.04 LTS, Precise 12.04 LTS
 - CentOS 6.6, 7.1
 
 Each osquery tag (release) is published to **yum** and **apt** repositories for our supported operating systems: [https://osquery.io/downloads](http://osquery.io/downloads/).
@@ -43,26 +43,16 @@ $ sudo yum install osquery
 
 ### dpkg-based Distros
 
-We publish the same two packages, osquery and osquery-latest, in an apt repository for Ubuntu 12.04 (precise) and 14.04 (trusty):
+We publish the same two packages, osquery and osquery-latest, in an apt repository for Ubuntu 16.04 (xenial), 14.04 (trusty), 12.04 (precise):
 
-**Ubuntu Trusty 14.04 LTS**
-
-```sh
-$ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1484120AC4E9F8A1A577AEEE97A80C63C9D8B80B
-$ sudo add-apt-repository "deb [arch=amd64] https://osquery-packages.s3.amazonaws.com/trusty trusty main"
-$ sudo apt-get update
-$ sudo apt-get install osquery
-```
-
-**Ubuntu Precise 12.04 LTS**
+Replace `DISTRO` with `xenial`, `trusty`, or `precise`
 
 ```sh
 $ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1484120AC4E9F8A1A577AEEE97A80C63C9D8B80B
-$ sudo add-apt-repository "deb [arch=amd64] https://osquery-packages.s3.amazonaws.com/precise precise main"
+$ sudo add-apt-repository "deb [arch=amd64] https://osquery-packages.s3.amazonaws.com/DISTRO DISTRO main"
 $ sudo apt-get update
 $ sudo apt-get install osquery
 ```
-
 
 \* You may also set a different config plugin using a [**flagfile**](../installation/cli-flags.md).<br />
 \** We do not recommend using the latest/unstable package as it is built

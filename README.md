@@ -16,6 +16,7 @@ CentOS 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuil
 CentOS 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Packs:** | https://osquery.io/packs
 Ubuntu 12.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/) | | **Guide:** | https://osquery.readthedocs.org
 Ubuntu 14.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com) | https://osquery-slack.herokuapp.com
+Ubuntu 16.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/) | | |
 
 #### What is osquery?
 
