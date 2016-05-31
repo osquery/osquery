@@ -298,7 +298,7 @@ static AclObject modifyAcl(PACL acl, PSID target, bool allow_read,
   PACE_HEADER entry = nullptr;
   for (i = 0; i < info.AceCount; i++) {
     if (!::GetAce(acl, i, (LPVOID *)&entry)) {
-return std::move(AclObject());
+      return std::move(AclObject());
     }
 
     if ((entry->AceFlags & INHERITED_ACE) == INHERITED_ACE) {
@@ -918,7 +918,7 @@ static std::string normalizeDirPath(const fs::path &path) {
   return normalized_path;
 }
 
-static bool dirPathAreEqual(const fs::path &dir1, const fs::path &dir2) {
+static bool dirPathsAreEqual(const fs::path &dir1, const fs::path &dir2) {
   std::string normalized_path1 = normalizeDirPath(dir1);
   std::string normalized_path2 = normalizeDirPath(dir2);
 
@@ -927,7 +927,7 @@ static bool dirPathAreEqual(const fs::path &dir1, const fs::path &dir2) {
 }
 
 Status platformIsTmpDir(const fs::path& dir) {
-  if (!dirPathAreEqual(dir, fs::temp_directory_path())) {
+  if (!dirPathsAreEqual(dir, fs::temp_directory_path())) {
     return Status(1, "Not temp directory");
   }
 
