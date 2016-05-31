@@ -8,12 +8,14 @@
  *
  */
 
+#include <algorithm>
 #include <fstream>
 
 #include <stdio.h>
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/filesystem.h>
@@ -21,6 +23,7 @@
 
 #include "osquery/core/test_util.h"
 
+namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -48,13 +51,19 @@ TEST_F(FilesystemTests, test_read_file) {
 
   std::string content;
   auto s = readFile(kTestWorkingDirectory + "fstests-file", content);
+
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
+#ifdef WIN32
+  EXPECT_EQ(content, "test123\r\n");
+#else
   EXPECT_EQ(content, "test123\n");
+#endif
 
   remove(kTestWorkingDirectory + "fstests-file");
 }
 
+#ifndef WIN32
 TEST_F(FilesystemTests, test_read_symlink) {
   std::string content;
   auto status = readFile(kFakeDirectory + "/root2.txt", content);
@@ -78,16 +87,19 @@ TEST_F(FilesystemTests, test_read_urandom) {
   status = readFile("/dev/urandom", second, 10);
   EXPECT_NE(first, second);
 }
+#endif
 
 TEST_F(FilesystemTests, test_read_limit) {
   auto max = FLAGS_read_max;
   auto user_max = FLAGS_read_user_max;
   FLAGS_read_max = 3;
   std::string content;
-  auto status = readFile(kFakeDirectory + "/root.txt", content);
+  auto status = readFile(
+      fs::path(kFakeDirectory + "/root.txt").make_preferred(), content);
   EXPECT_FALSE(status.ok());
   FLAGS_read_max = max;
 
+#ifndef WIN32
   if (getuid() != 0) {
     content.erase();
     FLAGS_read_user_max = 2;
@@ -104,6 +116,7 @@ TEST_F(FilesystemTests, test_read_limit) {
     status = readFile(kFakeDirectory + "/root2.txt", content);
     EXPECT_TRUE(status.ok());
   }
+#endif
 }
 
 TEST_F(FilesystemTests, test_list_files_missing_directory) {
@@ -118,11 +131,24 @@ TEST_F(FilesystemTests, test_list_files_invalid_directory) {
   EXPECT_FALSE(status.ok());
 }
 
-TEST_F(FilesystemTests, test_list_files_valid_directorty) {
+TEST_F(FilesystemTests, test_list_files_valid_directory) {
   std::vector<std::string> results;
-  auto s = listFilesInDirectory("/etc", results);
+
+#ifdef WIN32
+  std::string path = "C:\\Windows\\System32\\drivers\\etc";
+#else
+  std::string path = "/etc";
+#endif
+
+  auto s = listFilesInDirectory(path, results);
   // This directory may be different on OS X or Linux.
+
+#ifdef WIN32
+  std::string hosts_path = "C:\\Windows\\System32\\drivers\\etc\\networks";
+#else
   std::string hosts_path = "/etc/hosts";
+#endif
+
   replaceGlobWildcards(hosts_path);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
@@ -130,8 +156,12 @@ TEST_F(FilesystemTests, test_list_files_valid_directorty) {
 }
 
 TEST_F(FilesystemTests, test_canonicalization) {
-  std::string complex = kFakeDirectory + "/deep1/../deep1/..";
-  std::string simple = kFakeDirectory + "/";
+  std::string complex =
+      (fs::path(kFakeDirectory) / "deep1" / ".." / "deep1" / "..")
+          .make_preferred()
+          .string();
+  std::string simple =
+      (fs::path(kFakeDirectory + "/")).make_preferred().string();
   // Use the inline wildcard and canonicalization replacement.
   // The 'simple' path contains a trailing '/', the replacement method will
   // distinguish between file and directory paths.
@@ -144,9 +174,14 @@ TEST_F(FilesystemTests, test_canonicalization) {
 
   // Now add a wildcard within the complex pattern. The replacement method
   // will not canonicalize past a '*' as the proceeding paths are limiters.
-  complex = kFakeDirectory + "/*/deep2/../deep2/";
+  complex = (fs::path(kFakeDirectory) / "*" / "deep2" / ".." / "deep2/")
+                .make_preferred()
+                .string();
   replaceGlobWildcards(complex);
-  EXPECT_EQ(complex, kFakeDirectory + "/*/deep2/../deep2/");
+  EXPECT_EQ(complex,
+            (fs::path(kFakeDirectory) / "*" / "deep2" / ".." / "deep2/")
+                .make_preferred()
+                .string());
 }
 
 TEST_F(FilesystemTests, test_simple_globs) {
@@ -175,8 +210,12 @@ TEST_F(FilesystemTests, test_wildcard_single_all) {
   auto status = resolveFilePattern(kFakeDirectory + "/%", results, GLOB_ALL);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 6U);
-  EXPECT_TRUE(contains(results, kFakeDirectory + "/roto.txt"));
-  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/"));
+  EXPECT_TRUE(contains(
+      results,
+      fs::path(kFakeDirectory + "/roto.txt").make_preferred().string()));
+  EXPECT_TRUE(contains(
+      results,
+      fs::path(kFakeDirectory + "/deep11/").make_preferred().string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_single_files) {
@@ -184,14 +223,18 @@ TEST_F(FilesystemTests, test_wildcard_single_files) {
   std::vector<std::string> results;
   resolveFilePattern(kFakeDirectory + "/%", results, GLOB_FILES);
   EXPECT_EQ(results.size(), 4U);
-  EXPECT_TRUE(contains(results, kFakeDirectory + "/roto.txt"));
+  EXPECT_TRUE(contains(
+      results,
+      fs::path(kFakeDirectory + "/roto.txt").make_preferred().string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_single_folders) {
   std::vector<std::string> results;
   resolveFilePattern(kFakeDirectory + "/%", results, GLOB_FOLDERS);
   EXPECT_EQ(results.size(), 2U);
-  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/"));
+  EXPECT_TRUE(contains(
+      results,
+      fs::path(kFakeDirectory + "/deep11/").make_preferred().string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_dual) {
@@ -199,7 +242,9 @@ TEST_F(FilesystemTests, test_wildcard_dual) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(kFakeDirectory + "/%/%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep1/level1.txt"));
+  EXPECT_TRUE(contains(results, fs::path(kFakeDirectory + "/deep1/level1.txt")
+                                    .make_preferred()
+                                    .string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_double) {
@@ -208,38 +253,55 @@ TEST_F(FilesystemTests, test_wildcard_double) {
   auto status = resolveFilePattern(kFakeDirectory + "/%%", results);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 15U);
-  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep1/deep2/level2.txt"));
+  EXPECT_TRUE(
+      contains(results, fs::path(kFakeDirectory + "/deep1/deep2/level2.txt")
+                            .make_preferred()
+                            .string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_double_folders) {
   std::vector<std::string> results;
   resolveFilePattern(kFakeDirectory + "/%%", results, GLOB_FOLDERS);
   EXPECT_EQ(results.size(), 5U);
-  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/deep2/deep3/"));
+  EXPECT_TRUE(
+      contains(results, fs::path(kFakeDirectory + "/deep11/deep2/deep3/")
+                            .make_preferred()
+                            .string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_end_last_component) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(kFakeDirectory + "/%11/%sh", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/not_bash"));
+  EXPECT_TRUE(contains(
+      results,
+      fs::path(kFakeDirectory + "/deep11/not_bash").make_preferred().string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_middle_component) {
   std::vector<std::string> results;
+
   auto status = resolveFilePattern(kFakeDirectory + "/deep1%/%", results);
+
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 5U);
-  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep1/level1.txt"));
-  EXPECT_TRUE(contains(results, kFakeDirectory + "/deep11/level1.txt"));
+  EXPECT_TRUE(contains(results, fs::path(kFakeDirectory + "/deep1/level1.txt")
+                                    .make_preferred()
+                                    .string()));
+  EXPECT_TRUE(contains(results, fs::path(kFakeDirectory + "/deep11/level1.txt")
+                                    .make_preferred()
+                                    .string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_all_types) {
   std::vector<std::string> results;
+
   auto status = resolveFilePattern(kFakeDirectory + "/%p11/%/%%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_TRUE(
-      contains(results, kFakeDirectory + "/deep11/deep2/deep3/level3.txt"));
+  EXPECT_TRUE(contains(
+      results, fs::path(kFakeDirectory + "/deep11/deep2/deep3/level3.txt")
+                   .make_preferred()
+                   .string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_invalid_path) {
@@ -256,7 +318,10 @@ TEST_F(FilesystemTests, test_wildcard_dotdot_files) {
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 4U);
   // The response list will contain canonicalized versions: /tmp/<tests>/...
-  std::string door_path = kFakeDirectory + "/deep11/deep2/../../door.txt";
+  std::string door_path =
+      fs::path(kFakeDirectory + "/deep11/deep2/../../door.txt")
+          .make_preferred()
+          .string();
   replaceGlobWildcards(door_path);
   EXPECT_TRUE(contains(results, door_path));
 }
@@ -282,18 +347,42 @@ TEST_F(FilesystemTests, test_no_wild) {
       resolveFilePattern(kFakeDirectory + "/roto.txt", results, GLOB_FILES);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 1U);
-  EXPECT_TRUE(contains(results, kFakeDirectory + "/roto.txt"));
+  EXPECT_TRUE(contains(
+      results,
+      fs::path(kFakeDirectory + "/roto.txt").make_preferred().string()));
 }
 
 TEST_F(FilesystemTests, test_safe_permissions) {
   // For testing we can request a different directory path.
+#ifdef WIN32
+  auto raw_drive = getEnvVar("SystemDrive");
+  EXPECT_TRUE(raw_drive.is_initialized());
+
+  std::string drive_root = *raw_drive + "\\";
+  EXPECT_TRUE(safePermissions(drive_root, kFakeDirectory + "\\door.txt"));
+#else
   EXPECT_TRUE(safePermissions("/", kFakeDirectory + "/door.txt"));
-  // A file with a directory.mode & 0x1000 fails.
+#endif
+
+// A file with a directory.mode & 0x1000 fails.
+#ifdef WIN32
+  EXPECT_FALSE(safePermissions(fs::temp_directory_path().string(),
+                               kFakeDirectory + "\\door.txt"));
+#else
   EXPECT_FALSE(safePermissions("/tmp", kFakeDirectory + "/door.txt"));
+#endif
+
   // A directory for a file will fail.
+#ifdef WIN32
+  EXPECT_FALSE(safePermissions(drive_root, kFakeDirectory + "\\deep11"));
+#else
   EXPECT_FALSE(safePermissions("/", kFakeDirectory + "/deep11"));
+#endif
+
   // A root-owned file is appropriate
+#ifndef WIN32
   EXPECT_TRUE(safePermissions("/", "/dev/zero"));
+#endif
 }
 
 #ifdef __linux__
