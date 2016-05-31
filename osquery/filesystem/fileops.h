@@ -159,7 +159,9 @@ class PlatformFile {
 
   /**
    * @brief Returns an OK Status object if owner of the file is root
-   * @note This will always return false on Windows at the moment.
+   * @note At the moment, we only determine that the owner of the current file
+   *       is a member of the Administrators group. We do not count files owned by
+   *       TrustedInstaller as owned by root.
    */
   Status isOwnerRoot() const;
 
@@ -169,7 +171,8 @@ class PlatformFile {
    */
   Status isOwnerCurrentUser() const;
 
-  /// Determines whether the file has the executable bit set
+  /// Determines whether the file has the executable bit set (currently returns
+  /// true)
   Status isExecutable() const;
 
   bool getFileTimes(PlatformTime& times);

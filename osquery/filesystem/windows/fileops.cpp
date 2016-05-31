@@ -506,7 +506,7 @@ Status PlatformFile::isOwnerCurrentUser() const {
   return isUserCurrentUser(owner);
 }
 
-// TODO: implement me
+// Assuming files are executable by default on Windows
 Status PlatformFile::isExecutable() const {
   return Status(0, "OK");
 }
@@ -871,13 +871,67 @@ int platformAccess(const std::string& path, mode_t mode) {
   return _access(path.c_str(), mode);
 }
 
-// Check to see if a given directory is a temporary directory
-// GetFullPathNameA on the given directory and normalize it to compare to tmp_directory_path and GetTempPath
-// Error if invalid chars in path ( *?"|<>/ )
+static std::string normalizeDirPath(const fs::path &path) {
+  std::regex pattern(".*[*?\"|<>].*");
 
-// TODO: implement me
+  std::vector<char> full_path(MAX_PATH + 1);
+  std::vector<char> final_path(MAX_PATH + 1);
+
+  full_path.assign(MAX_PATH + 1, '\0');
+  final_path.assign(MAX_PATH + 1, '\0');
+
+  // Fail if illegal characters are detected in the path
+  if (std::regex_match(path.string(), pattern)) {
+    return std::string();
+  }
+
+  // Obtain the full path of the fs::path object
+  DWORD nret = ::GetFullPathNameA((LPCSTR)path.string().c_str(), MAX_PATH,
+                                  &full_path[0], nullptr);
+  if (nret == 0) {
+    return std::string();
+  }
+
+  HANDLE handle = INVALID_HANDLE_VALUE;
+  handle = ::CreateFileA(&full_path[0], GENERIC_READ, FILE_SHARE_READ, nullptr,
+                         OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+  if (handle == INVALID_HANDLE_VALUE) {
+    return std::string();
+  }
+
+  // Resolve any symbolic links (somewhat rare on Windows)
+  nret = ::GetFinalPathNameByHandleA(handle, &final_path[0], MAX_PATH,
+                                     FILE_NAME_NORMALIZED);
+  ::CloseHandle(handle);
+
+  if (nret == 0) {
+    return std::string();
+  }
+
+  // NTFS is case insensitive, to normalize, make everything uppercase
+  ::CharUpperA(&final_path[0]);
+
+  std::string normalized_path(&final_path[0], nret);
+  if (fs::is_directory(normalized_path) && normalized_path[nret - 1] != '\\') {
+    normalized_path += "\\";
+  }
+  return normalized_path;
+}
+
+static bool dirPathAreEqual(const fs::path &dir1, const fs::path &dir2) {
+  std::string normalized_path1 = normalizeDirPath(dir1);
+  std::string normalized_path2 = normalizeDirPath(dir2);
+
+  return (normalized_path1.size() > 0 && normalized_path2.size() > 0 &&
+          normalized_path1 == normalized_path2);
+}
+
 Status platformIsTmpDir(const fs::path& dir) {
-  return Status(1, "");
+  if (!dirPathAreEqual(dir, fs::temp_directory_path())) {
+    return Status(1, "Not temp directory");
+  }
+
+  return Status(0, "OK");
 }
 
 Status platformIsFileAccessible(const fs::path& path) {
