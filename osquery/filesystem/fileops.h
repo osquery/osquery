@@ -255,6 +255,8 @@ int platformAccess(const std::string& path, mode_t mode);
 
 /**
  * @brief Checks to see if the provided directory is a temporary folder
+ * @note This just compares the temporary directory path against the given path
+ *       on Windows
  */
 Status platformIsTmpDir(const fs::path& dir);
 
