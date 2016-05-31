@@ -358,8 +358,9 @@ elseif(DEBIAN_BASED)
 endif()
 
 set(MKDIR_OPTS "")
-
 if(WIN32)
+  set(PROCESS_FAMILY "windows")
+  
   # Win64 does not have a kernel build component-specific
   set(OSQUERY_BUILD_SDK_ONLY TRUE)
 
@@ -405,6 +406,7 @@ if(WIN32)
   # Win64 specific glog
   set(glog_library "${WINDOWS_DEP_DIR}/glog/local/lib/glog.lib")
 else()
+  set(PROCESS_FAMILY "posix")
   set(MKDIR_OPTS "-p")
 endif()
 

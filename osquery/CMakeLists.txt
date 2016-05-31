@@ -29,7 +29,9 @@ else()
 endif()
 
 if(WIN32)
-  set(OS_CORE_LIBS "")
+  set(OS_CORE_LIBS
+    netapi32.lib
+  )
 else()
   set(OS_CORE_LIBS
     pthread
