@@ -120,4 +120,6 @@ function main_scientific() {
   package audit-libs-static
 
   gem_install fpm
+
+  install_aws_sdk
 }
