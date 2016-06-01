@@ -40,6 +40,9 @@ def _platform():
                 if fileContents.find("CentOS") != -1:
                     return ("redhat", "centos")
 
+                if fileContents.find("Scientific Linux") != -1:
+                    return ("redhat", "scientific")
+
                 if fileContents.find("Red Hat Enterprise") != -1:
                     return ("redhat", "rhel")
 
@@ -86,7 +89,7 @@ def _distro(osType):
         result = getRedhatDistroVersion(r'release [5-7]')
         if result is not None:
             return result
-    elif osType in ["centos", "rhel"]:
+    elif osType in ["centos", "scientific", "rhel"]:
         result = getRedhatDistroVersion(r'release [6-7]')
         if result is not None:
             return result
