@@ -13,6 +13,7 @@
 #include <LM.h>
 #include <sddl.h>
 #include <ShlObj.h>
+#include <Shlwapi.h>
 
 #include <memory>
 #include <regex>
@@ -582,9 +583,87 @@ Status PlatformFile::isExecutable() const {
   return Status(1, "No execute permissions");
 }
 
+static Status isWriteDenied(PACL acl) {
+  if (acl == nullptr) {
+    return Status(-1, "Invalid ACL pointer");
+  }
+
+  DWORD sid_buffer_size = SECURITY_MAX_SID_SIZE;
+
+  std::vector<char> sid_buffer;
+  sid_buffer.assign(sid_buffer_size, '\0');
+
+  PSID world = (PSID)&sid_buffer[0];
+
+  if (!::CreateWellKnownSid(WinWorldSid, nullptr, world, &sid_buffer_size)) {
+    return Status(-1, "CreateWellKnownSid failed");
+  }
+
+  PACE_HEADER entry = nullptr;
+  for (DWORD i = 0; i < acl->AceCount; i++) {
+    if (!::GetAce(acl, i, (LPVOID *)&entry)) {
+      return Status(-1, "GetAce failed");
+    }
+
+    /// Check to see if the deny ACE is for Everyone
+    if (entry->AceType == ACCESS_DENIED_ACE_TYPE) {
+      PACCESS_DENIED_ACE denied_ace = (PACCESS_DENIED_ACE)entry;
+      if (::EqualSid(&denied_ace->SidStart, world) &&
+        (denied_ace->Mask & FILE_WRITE_ATTRIBUTES) == FILE_WRITE_ATTRIBUTES &&
+        (denied_ace->Mask & FILE_WRITE_EA) == FILE_WRITE_EA &&
+        (denied_ace->Mask & FILE_WRITE_DATA) == FILE_WRITE_DATA &&
+        (denied_ace->Mask & FILE_APPEND_DATA) == FILE_APPEND_DATA) {
+        return Status(0, "OK");
+      }
+    }
+    else if (entry->AceType == ACCESS_ALLOWED_ACE_TYPE) {
+      break;
+    }
+  }
+
+  return Status(1, "No deny ACE for write");
+}
+
 Status PlatformFile::isSafeForLoading() const {
-  // XXX TODO XXX: check to see if there is an explicit DENY for write caps for everyone on it and parent dir
-  return Status(0, "OK");
+  PACL file_dacl = nullptr;
+  PSECURITY_DESCRIPTOR file_sd = nullptr;
+
+  if (::GetSecurityInfo(handle_, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+    nullptr, nullptr, &file_dacl, nullptr,
+    &file_sd) != ERROR_SUCCESS) {
+    return Status(-1, "GetSecurityInfo failed");
+  }
+
+  SecurityDescriptor file_sd_wrapper(file_sd);
+
+  std::vector<char> path_buf;
+  path_buf.assign(MAX_PATH + 1, '\0');
+
+  if (::GetFinalPathNameByHandleA(handle_, &path_buf[0], MAX_PATH,
+    FILE_NAME_NORMALIZED) == 0) {
+    return Status(-1, "GetFinalPathNameByHandleA failed");
+  }
+
+  if (!::PathRemoveFileSpecA(&path_buf[0])) {
+    return Status(-1, "PathRemoveFileSpec");
+  }
+
+  PACL dir_dacl = nullptr;
+  PSECURITY_DESCRIPTOR dir_sd = nullptr;
+
+  if (::GetNamedSecurityInfoA(&path_buf[0], SE_FILE_OBJECT,
+    DACL_SECURITY_INFORMATION, nullptr, nullptr,
+    &dir_dacl, nullptr, &dir_sd) != ERROR_SUCCESS) {
+    return Status(-1, "GetNamedSecurityInfoA failed for dir");
+  }
+
+  SecurityDescriptor dir_sd_wrapper(dir_sd);
+
+  if (isWriteDenied(file_dacl).ok() && isWriteDenied(dir_dacl).ok()) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "Not safe for loading");
 }
 
 Status PlatformFile::isDirectory() const {
