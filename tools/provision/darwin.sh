@@ -36,5 +36,6 @@ function main_darwin() {
   package google-benchmark
   package libmagic
   package sleuthkit
-  package aws-sdk-cpp
+
+  local_brew aws-sdk-cpp
 }
