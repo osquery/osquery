@@ -74,18 +74,17 @@ Status writeTextFile(const fs::path& path,
 }
 
 struct OpenReadableFile {
-public:
+ public:
   explicit OpenReadableFile(const fs::path &path) {
 #ifndef WIN32
     dropper_ = DropPrivileges::get();
     if (dropper_->dropToParent(path)) {
+#endif
       // Open the file descriptor and allow caller to perform error checking.
-      fd.reset(new PlatformFile(path.string().c_str(),
+      fd.reset(new PlatformFile(path.string(),
                                 PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK));
+#ifndef WIN32
     }
-#else
-    fd.reset(new PlatformFile(path.string(),
-                              PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK));
 #endif
   }
 
@@ -93,8 +92,8 @@ public:
 
   std::unique_ptr<PlatformFile> fd{nullptr};
 
-private:
 #ifndef WIN32
+ private:
   DropPrivilegesRef dropper_{nullptr};
 #endif
 };
@@ -292,8 +291,6 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
   }
 
   // Relative paths are a bad idea, but we try to accommodate.
-  // size=0
-  // 
   if ((pattern.size() == 0 || ((pattern[0] != '/' && pattern[0] != '\\') &&
        (pattern.size() > 3 && pattern[1] != ':' && pattern[2] != '\\' &&
         pattern[2] != '/'))) &&
@@ -385,30 +382,49 @@ std::set<fs::path> getHomeDirectories() {
 bool safePermissions(const std::string& dir,
                      const std::string& path,
                      bool executable) {
-  PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-  if (!fd.isValid()) {
-    return false;
-  }
-
-  if (!platformIsFileAccessible(path).ok() || !platformIsDirAccessible(dir).ok()) {
+  if (!platformIsFileAccessible(path).ok()) {
     // Path was not real, had too may links, or could not be accessed.
     return false;
   }
 
   if (FLAGS_allow_unsafe) {
     return true;
-  } else if (platformIsTmpDir(dir).ok()) {
+  }
+
+  Status result = platformIsTmpDir(dir);
+  if (!result.ok() && result.getCode() < 0) {
+    // An error has occurred in stat() on dir, most likely because the file path
+    // does not exist
+    return false;
+  } else if (result.ok()) {
     // Do not load modules from /tmp-like directories.
     return false;
-  } else if (fs::is_directory(path)) {
+  } 
+  
+  PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+  if (!fd.isValid()) {
+    return false;
+  }
+
+  result = fd.isDirectory();
+  if (!result.ok() && result.getCode() < 0) {
+    // Something went wrong when determining the file's directoriness
+    return false;
+  } else if (result.ok()) {
     // Only load file-like nodes (not directories).
     return false;
-  } else if (fd.isOwnerCurrentUser() || fd.isOwnerRoot()) {
+  }
+
+  if (fd.isOwnerCurrentUser().ok() || fd.isOwnerRoot().ok()) {
+    result = fd.isExecutable();
+
     // Otherwise, require matching or root file ownership.
-    if (executable && !fd.isExecutable()) {
+    if (executable && ((!result.ok() && result.getCode() > 0) ||
+                       !fd.isSafeForLoading().ok())) {
       // Require executable, implies by the owner.
       return false;
     }
+
     return true;
   }
 

@@ -53,7 +53,10 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
       check_existence = true;
       break;
     case PF_GET_OPTIONS(PF_TRUNCATE):
-      if (mode & PF_WRITE) oflag |= O_TRUNC;
+      if (mode & PF_WRITE) {
+        oflag |= O_TRUNC;
+      }
+
       break;
     default:
       break;
@@ -138,6 +141,24 @@ Status PlatformFile::isExecutable() const {
   }
 
   return Status(1, "Not executable");
+}
+
+// Stub'd out for now
+Status PlatformFile::isSafeForLoading() const {
+  return Status(0, "OK");
+}
+
+Status PlatformFile::isDirectory() const {
+  struct stat file;
+  if (::fstat(handle_, &file) < 0) {
+    return Status(-1, "fstat failed");
+  }
+
+  if (S_ISDIR(file.st_mode)) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "Not a directory");
 }
 
 bool PlatformFile::getFileTimes(PlatformTime& times) {
@@ -276,18 +297,11 @@ Status platformIsTmpDir(const fs::path& dir) {
   return Status(1, "");
 }
 
+// Reduce this to be a lstat check for symlink stuff
 Status platformIsFileAccessible(const fs::path& path) {
   struct stat file_stat, link_stat;
-  if (::lstat(path.c_str(), &link_stat) < 0 || ::stat(path.c_str(), &file_stat)) {
+  if (::lstat(path.c_str(), &link_stat) < 0) {
     return Status(1, "File is not acccessible");
-  }
-  return Status(0, "OK");
-}
-
-Status platformIsDirAccessible(const fs::path& dir) {
-  struct stat dir_stat;
-  if (::stat(dir.c_str(), &dir_stat)) {
-    return Status(1, "Dir is not accessible");
   }
   return Status(0, "OK");
 }

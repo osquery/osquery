@@ -31,15 +31,44 @@ namespace osquery {
 DECLARE_uint64(read_max);
 DECLARE_uint64(read_user_max);
 
+#ifdef WIN32
+auto raw_drive = getEnvVar("SystemDrive");
+
+std::string kEtcHostsPath = "C:\\Windows\\System32\\drivers\\etc\\hosts";
+
+const std::string kEtcPath = "C:\\Windows\\System32\\drivers\\etc";
+const std::string kTmpPath = fs::temp_directory_path().string();
+const std::string kSystemRoot =
+    (raw_drive.is_initialized() ? *raw_drive : "") + "\\";
+const std::string kLineEnding = "\r\n";
+#else
+std::string kEtcHostsPath = "/etc/hosts";
+
+const std::string kEtcPath = "/etc";
+const std::string kTmpPath = "/tmp";
+const std::string kSystemRoot = "/";
+const std::string kLineEnding = "\n";
+#endif
+
+std::string kDoorTxtPath;
+std::string kDeep11Path;
+
 class FilesystemTests : public testing::Test {
 
  protected:
-  void SetUp() { createMockFileStructure(); }
+  void SetUp() {
+    createMockFileStructure();
+
+    kDoorTxtPath =
+        fs::path(kFakeDirectory + "/door.txt").make_preferred().string();
+    kDeep11Path =
+        fs::path(kFakeDirectory + "/deep11").make_preferred().string();
+  }
 
   void TearDown() { tearDownMockFileStructure(); }
 
   /// Helper method to check if a path was included in results.
-  bool contains(const std::vector<std::string>& all, const std::string& n) {
+  bool contains(const std::vector<std::string> &all, const std::string &n) {
     return !(std::find(all.begin(), all.end(), n) == all.end());
   }
 };
@@ -54,40 +83,10 @@ TEST_F(FilesystemTests, test_read_file) {
 
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-#ifdef WIN32
-  EXPECT_EQ(content, "test123\r\n");
-#else
-  EXPECT_EQ(content, "test123\n");
-#endif
+  EXPECT_EQ(content, "test123" + kLineEnding);
 
   remove(kTestWorkingDirectory + "fstests-file");
 }
-
-#ifndef WIN32
-TEST_F(FilesystemTests, test_read_symlink) {
-  std::string content;
-  auto status = readFile(kFakeDirectory + "/root2.txt", content);
-  EXPECT_TRUE(status.ok());
-  EXPECT_EQ(content, "root");
-}
-
-TEST_F(FilesystemTests, test_read_zero) {
-  std::string content;
-  auto status = readFile("/dev/zero", content, 10);
-  EXPECT_EQ(content.size(), 10U);
-  for (size_t i = 0; i < 10; i++) {
-    EXPECT_EQ(content[i], 0);
-  }
-}
-
-TEST_F(FilesystemTests, test_read_urandom) {
-  std::string first, second;
-  auto status = readFile("/dev/urandom", first, 10);
-  EXPECT_TRUE(status.ok());
-  status = readFile("/dev/urandom", second, 10);
-  EXPECT_NE(first, second);
-}
-#endif
 
 TEST_F(FilesystemTests, test_read_limit) {
   auto max = FLAGS_read_max;
@@ -134,25 +133,13 @@ TEST_F(FilesystemTests, test_list_files_invalid_directory) {
 TEST_F(FilesystemTests, test_list_files_valid_directory) {
   std::vector<std::string> results;
 
-#ifdef WIN32
-  std::string path = "C:\\Windows\\System32\\drivers\\etc";
-#else
-  std::string path = "/etc";
-#endif
-
-  auto s = listFilesInDirectory(path, results);
+  auto s = listFilesInDirectory(kEtcPath, results);
   // This directory may be different on OS X or Linux.
 
-#ifdef WIN32
-  std::string hosts_path = "C:\\Windows\\System32\\drivers\\etc\\networks";
-#else
-  std::string hosts_path = "/etc/hosts";
-#endif
-
-  replaceGlobWildcards(hosts_path);
+  replaceGlobWildcards(kEtcHostsPath);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_TRUE(contains(results, hosts_path));
+  EXPECT_TRUE(contains(results, kEtcHostsPath));
 }
 
 TEST_F(FilesystemTests, test_canonicalization) {
@@ -162,11 +149,13 @@ TEST_F(FilesystemTests, test_canonicalization) {
           .string();
   std::string simple =
       (fs::path(kFakeDirectory + "/")).make_preferred().string();
+
   // Use the inline wildcard and canonicalization replacement.
   // The 'simple' path contains a trailing '/', the replacement method will
   // distinguish between file and directory paths.
   replaceGlobWildcards(complex);
   EXPECT_EQ(simple, complex);
+
   // Now apply the same inline replacement on the simple directory and expect
   // no change to the comparison.
   replaceGlobWildcards(simple);
@@ -186,6 +175,7 @@ TEST_F(FilesystemTests, test_canonicalization) {
 
 TEST_F(FilesystemTests, test_simple_globs) {
   std::vector<std::string> results;
+
   // Test the shell '*', we will support SQL's '%' too.
   auto status = resolveFilePattern(kFakeDirectory + "/*", results);
   EXPECT_TRUE(status.ok());
@@ -317,6 +307,7 @@ TEST_F(FilesystemTests, test_wildcard_dotdot_files) {
       kFakeDirectory + "/deep11/deep2/../../%", results, GLOB_FILES);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 4U);
+
   // The response list will contain canonicalized versions: /tmp/<tests>/...
   std::string door_path =
       fs::path(kFakeDirectory + "/deep11/deep2/../../door.txt")
@@ -354,33 +345,16 @@ TEST_F(FilesystemTests, test_no_wild) {
 
 TEST_F(FilesystemTests, test_safe_permissions) {
   // For testing we can request a different directory path.
-#ifdef WIN32
-  auto raw_drive = getEnvVar("SystemDrive");
-  EXPECT_TRUE(raw_drive.is_initialized());
+  EXPECT_TRUE(safePermissions(kSystemRoot, kDoorTxtPath));
 
-  std::string drive_root = *raw_drive + "\\";
-  EXPECT_TRUE(safePermissions(drive_root, kFakeDirectory + "\\door.txt"));
-#else
-  EXPECT_TRUE(safePermissions("/", kFakeDirectory + "/door.txt"));
-#endif
-
-// A file with a directory.mode & 0x1000 fails.
-#ifdef WIN32
-  EXPECT_FALSE(safePermissions(fs::temp_directory_path().string(),
-                               kFakeDirectory + "\\door.txt"));
-#else
-  EXPECT_FALSE(safePermissions("/tmp", kFakeDirectory + "/door.txt"));
-#endif
+  // A file with a directory.mode & 0x1000 fails.
+  EXPECT_FALSE(safePermissions(kTmpPath, kDoorTxtPath));
 
   // A directory for a file will fail.
-#ifdef WIN32
-  EXPECT_FALSE(safePermissions(drive_root, kFakeDirectory + "\\deep11"));
-#else
-  EXPECT_FALSE(safePermissions("/", kFakeDirectory + "/deep11"));
-#endif
+  EXPECT_FALSE(safePermissions(kSystemRoot, kDeep11Path));
 
-  // A root-owned file is appropriate
 #ifndef WIN32
+  // A root-owned file is appropriate
   EXPECT_TRUE(safePermissions("/", "/dev/zero"));
 #endif
 }
@@ -390,6 +364,32 @@ TEST_F(FilesystemTests, test_read_proc) {
   std::string content;
   EXPECT_TRUE(readFile("/proc/" + std::to_string(getpid()) + "/stat", content));
   EXPECT_GT(content.size(), 0U);
+}
+#endif
+
+#ifndef WIN32
+TEST_F(FilesystemTests, test_read_symlink) {
+  std::string content;
+  auto status = readFile(kFakeDirectory + "/root2.txt", content);
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(content, "root");
+}
+
+TEST_F(FilesystemTests, test_read_zero) {
+  std::string content;
+  auto status = readFile("/dev/zero", content, 10);
+  EXPECT_EQ(content.size(), 10U);
+  for (size_t i = 0; i < 10; i++) {
+    EXPECT_EQ(content[i], 0);
+  }
+}
+
+TEST_F(FilesystemTests, test_read_urandom) {
+  std::string first, second;
+  auto status = readFile("/dev/urandom", first, 10);
+  EXPECT_TRUE(status.ok());
+  status = readFile("/dev/urandom", second, 10);
+  EXPECT_NE(first, second);
 }
 #endif
 }

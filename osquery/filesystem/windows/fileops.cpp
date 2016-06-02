@@ -97,6 +97,26 @@ class WindowsFindFiles {
   fs::path path_;
 };
 
+class SecurityDescriptor {
+ public:
+  explicit SecurityDescriptor(PSECURITY_DESCRIPTOR sd) : sd_(sd) {}
+
+  SecurityDescriptor(SecurityDescriptor&& src) {
+    sd_ = src.sd_;
+    std::swap(sd_, src.sd_);
+  }
+
+  ~SecurityDescriptor() {
+    if (sd_ != nullptr) {
+      ::LocalFree(sd_);
+      sd_ = nullptr;
+    }
+  }
+
+ private:
+   PSECURITY_DESCRIPTOR sd_{ nullptr };
+};
+
 static bool hasGlobBraces(const std::string& glob) {
   int brace_depth = 0;
   bool has_brace = false;
@@ -377,7 +397,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   }
 
   if (perms != -1) {
-    /// TODO(#2001): set up a security descriptor based off the perms
+    // TODO(#2001): set up a security descriptor based off the perms
   }
 
   handle_ = ::CreateFileA(path.c_str(), access_mask, 0,
@@ -397,68 +417,25 @@ bool PlatformFile::isFile() const {
   return (::GetFileType(handle_) == FILE_TYPE_DISK);
 }
 
-static PSID getFileOwner(PlatformHandle handle) {
-  PSID owner = nullptr;
-  PSECURITY_DESCRIPTOR sd = nullptr;
-
-  if (::GetSecurityInfo(handle, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION,
-                        &owner, nullptr, nullptr, nullptr,
-                        &sd) != ERROR_SUCCESS) {
-    return nullptr;
-  }
-
-  return owner;
-}
-
-static Status isUserPartOfGroup(PSID user, LPCWSTR group) {
-  DWORD entries_read = 0;
-  DWORD total_entries = 0;
-
-  if (!::IsValidSid(user)) {
-    return Status(-1, "Invalid SID");
-  }
-
-  LOCALGROUP_MEMBERS_INFO_0 *buffer = nullptr;
-
-  /// Obtain the members of the specified group
-  DWORD status = ::NetLocalGroupGetMembers(nullptr, group, 0, (LPBYTE *)&buffer,
-                                           MAX_PREFERRED_LENGTH, &entries_read,
-                                           &total_entries, nullptr);
-  if (status != NERR_Success) {
-    if (status == ERROR_MORE_DATA) {
-      ::NetApiBufferFree(buffer);
-    }
-    return Status(-1, "NetLocalGroupGetMembers failed");
-  }
-
-  /// Enumerate each member of the specified group and determine if user is a
-  /// member of the group
-  for (DWORD i = 0; i < entries_read; i++) {
-    if (::EqualSid(user, buffer[i].lgrmi0_sid)) {
-      ::NetApiBufferFree(buffer);
-      return Status(0, "OK");
-    }
-  }
-
-  ::NetApiBufferFree(buffer);
-  return Status(1, "Not part of group");
-}
-
 static Status isUserCurrentUser(PSID user) {
+  BOOL ret = FALSE;
   HANDLE token = INVALID_HANDLE_VALUE;
 
   if (!::IsValidSid(user)) {
     return Status(-1, "Invalid SID");
   }
 
-  if (!::OpenProcessToken(::GetCurrentProcess(), PROCESS_ALL_ACCESS, &token)) {
+  if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_READ, &token)) {
     return Status(-1, "OpenProcessToken failed");
   }
 
   DWORD size = 0;
   PTOKEN_USER ptu = nullptr;
-  if (!::GetTokenInformation(token, TokenUser, (LPVOID)ptu, 0, &size)) {
+
+  ret = ::GetTokenInformation(token, TokenUser, (LPVOID)ptu, 0, &size);
+  if (ret || (!ret && ::GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
     ::CloseHandle(token);
+
     return Status(-1, "GetTokenInformation failed (1)");
   }
 
@@ -466,11 +443,12 @@ static Status isUserCurrentUser(PSID user) {
   ptu = (PTOKEN_USER)&buffer[0];
 
   /// Obtain the user SID behind the token handle
-  if (!::GetTokenInformation(token, TokenUser, (LPVOID)ptu, size, &size)) {
-    ::CloseHandle(token);
+  ret = ::GetTokenInformation(token, TokenUser, (LPVOID)ptu, size, &size);
+  ::CloseHandle(token);
+
+  if (!ret) {
     return Status(-1, "GetTokenInformation failed (2)");
   }
-  ::CloseHandle(token);
 
   /// Determine if the current user SID matches that of the specified user
   if (::EqualSid(user, ptu->User.Sid)) {
@@ -485,12 +463,33 @@ Status PlatformFile::isOwnerRoot() const {
     return Status(-1, "Invalid handle_");
   }
 
-  PSID owner = getFileOwner(handle_);
-  if (owner == nullptr) {
+  PSID owner = nullptr;
+  PSECURITY_DESCRIPTOR sd = nullptr;
+
+  if (::GetSecurityInfo(handle_, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION,
+                        &owner, nullptr, nullptr, nullptr,
+                        &sd) != ERROR_SUCCESS) {
     return Status(-1, "GetSecurityInfo failed");
   }
 
-  return isUserPartOfGroup(owner, L"Administrators");
+  SecurityDescriptor sd_wrapper(sd);
+
+  DWORD admins_buf_size = SECURITY_MAX_SID_SIZE;
+  std::vector<char> admins_buf;
+  admins_buf.assign(admins_buf_size, '\0');
+
+  PSID admins_sid = (PSID)&admins_buf[0];
+
+  if (!::CreateWellKnownSid(WinBuiltinAdministratorsSid, nullptr,
+                            &admins_buf[0], &admins_buf_size)) {
+    return Status(-1, "CreateWellKnownSid failed");
+  }
+
+  if (::EqualSid(owner, admins_sid)) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "Owner is not Administrators group");
 }
 
 Status PlatformFile::isOwnerCurrentUser() const {
@@ -498,17 +497,109 @@ Status PlatformFile::isOwnerCurrentUser() const {
     return Status(-1, "Invalid handle_");
   }
 
-  PSID owner = getFileOwner(handle_);
-  if (owner == nullptr) {
+  PSID owner = nullptr;
+  PSECURITY_DESCRIPTOR sd = nullptr;
+
+  if (::GetSecurityInfo(handle_, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION,
+                        &owner, nullptr, nullptr, nullptr,
+                        &sd) != ERROR_SUCCESS) {
     return Status(-1, "GetSecurityInfo failed");
   }
+
+  SecurityDescriptor sd_wrapper(sd);
 
   return isUserCurrentUser(owner);
 }
 
-// Assuming files are executable by default on Windows
 Status PlatformFile::isExecutable() const {
+  BOOL ret = FALSE;
+  DWORD sd_size = 0;
+  SECURITY_INFORMATION security_info = OWNER_SECURITY_INFORMATION |
+                                       GROUP_SECURITY_INFORMATION |
+                                       DACL_SECURITY_INFORMATION;
+
+  ret = ::GetUserObjectSecurity(handle_, &security_info, nullptr, 0, &sd_size);
+  if (ret || (!ret && ::GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
+    return Status(-1, "GetUserObjectSecurity get SD size error");
+  }
+
+  std::vector<char> sd_buffer;
+  sd_buffer.assign(sd_size, '\0');
+
+  PSECURITY_DESCRIPTOR sd = (PSECURITY_DESCRIPTOR)&sd_buffer[0];
+  ret = ::GetUserObjectSecurity(handle_, &security_info, sd, sd_size, &sd_size);
+  if (!ret) {
+    return Status(-1, "GetUserObjectSecurity failed");
+  }
+
+  HANDLE process_token = INVALID_HANDLE_VALUE;
+  HANDLE impersonate_token = INVALID_HANDLE_VALUE;
+
+  ret = ::OpenProcessToken(::GetCurrentProcess(),
+                           TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_DUPLICATE |
+                               STANDARD_RIGHTS_READ,
+                           &process_token);
+  if (!ret) {
+    return Status(-1, "OpenProcessToken failed");
+  }
+
+  ret = ::DuplicateToken(process_token, SecurityImpersonation,
+                         &impersonate_token);
+  ::CloseHandle(process_token);
+
+  if (!ret) {
+    return Status(-1, "DuplicateToken failed");
+  }
+
+  GENERIC_MAPPING mapping = {-1};
+  PRIVILEGE_SET privileges = {0};
+
+  BOOL result = FALSE;
+  DWORD access_rights = GENERIC_EXECUTE;
+  DWORD granted_access = 0;
+  DWORD privileges_length = sizeof(privileges);
+
+  mapping.GenericRead = FILE_GENERIC_READ;
+  mapping.GenericWrite = FILE_GENERIC_WRITE;
+  mapping.GenericExecute = FILE_GENERIC_EXECUTE;
+  mapping.GenericAll = FILE_ALL_ACCESS;
+
+  ::MapGenericMask(&access_rights, &mapping);
+
+  ret =
+      ::AccessCheck(sd, impersonate_token, access_rights, &mapping, &privileges,
+                    &privileges_length, &granted_access, &result);
+  ::CloseHandle(impersonate_token);
+
+  if (!ret) {
+    return Status(-1, "AccessCheck failed");
+  }
+
+  if (result) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "No execute permissions");
+}
+
+Status PlatformFile::isSafeForLoading() const {
+  // XXX TODO XXX: check to see if there is an explicit DENY for write caps for everyone on it and parent dir
   return Status(0, "OK");
+}
+
+Status PlatformFile::isDirectory() const {
+  BY_HANDLE_FILE_INFORMATION fi = {0};
+
+  if (!::GetFileInformationByHandle(handle_, &fi)) {
+    return Status(-1, "GetFileInformationByHandle failed");
+  }
+
+  if ((fi.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ==
+      FILE_ATTRIBUTE_DIRECTORY) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "Not a directory");
 }
 
 bool PlatformFile::getFileTimes(PlatformTime& times) {
@@ -694,16 +785,19 @@ bool platformChmod(const std::string& path, mode_t perms) {
   PACL dacl = nullptr;
   PSID owner = nullptr;
   PSID group = nullptr;
+  PSECURITY_DESCRIPTOR sd = nullptr;
 
   ret = ::GetNamedSecurityInfoA(path.c_str(), SE_FILE_OBJECT,
                                 OWNER_SECURITY_INFORMATION |
                                     GROUP_SECURITY_INFORMATION |
                                     DACL_SECURITY_INFORMATION,
-                                &owner, &group, &dacl, nullptr, nullptr);
+                                &owner, &group, &dacl, nullptr, &sd);
 
   if (ret != ERROR_SUCCESS) {
     return false;
   }
+
+  SecurityDescriptor sd_wrapper(sd);
 
   if (owner == nullptr || group == nullptr || dacl == nullptr) {
     return false;
@@ -938,14 +1032,7 @@ Status platformIsFileAccessible(const fs::path& path) {
   if (fs::exists(path) && fs::is_regular_file(path)) {
     return Status(0, "OK");
   }
-  return Status(1, "Not accessbile file");
-}
-
-Status platformIsDirAccessible(const fs::path& dir) {
-  if (fs::exists(dir) && fs::is_directory(dir)) {
-    return Status(0, "OK");
-  }
-  return Status(1, "Not accessible directory");
+  return Status(1, "Not accessible file");
 }
 }
 

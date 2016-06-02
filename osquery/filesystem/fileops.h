@@ -171,9 +171,19 @@ class PlatformFile {
    */
   Status isOwnerCurrentUser() const;
 
-  /// Determines whether the file has the executable bit set (currently returns
-  /// true)
+  /// Determines whether the file has the executable bit set 
   Status isExecutable() const;
+
+  /**
+   * @brief Determines how "safe the executable it is from external modification
+   * @note Currently, this is only implemented on Windows. The Windows version of
+   *       this function ensures that writes are explicitly denied for the file and
+   *       the file's parent directory.
+   */
+  Status isSafeForLoading() const;
+
+  /// Determines whether the file is a directory
+  Status isDirectory() const;
 
   bool getFileTimes(PlatformTime& times);
   bool setFileTimes(const PlatformTime& times);
@@ -261,13 +271,8 @@ int platformAccess(const std::string& path, mode_t mode);
 Status platformIsTmpDir(const fs::path& dir);
 
 /**
-* @brief Determines the accessibility and existence of the file path
-*/
+ * @brief Determines the accessibility and existence of the file path
+ */
 Status platformIsFileAccessible(const fs::path& path);
-
-/**
-* @brief Determines the accessibility and existence of the directory path
-*/
-Status platformIsDirAccessible(const fs::path& path);
 }
 
