@@ -568,10 +568,9 @@ function local_brew() {
   # Could improve this detection logic to remove from-bottle.
   FROM_BOTTLE=false
 
-  export HOMEBREW_BUILD_FROM_SOURCE=1
   export HOMEBREW_MAKE_JOBS=$THREADS
   export HOMEBREW_NO_EMOJI=1
-  if [[ "${INSTALLED}" = "NAN" ]]; then
+  if [[ "${INSTALLED}" = "NAN" || "${INSTALLED}" = "None" ]]; then
     log "local package $1 installing new version: ${STABLE}"
     brew install -v --build-bottle "${FORMULA}"
   elif [[ ! "${INSTALLED}" = "${STABLE}" || "${FROM_BOTTLE}" = "true" ]]; then
