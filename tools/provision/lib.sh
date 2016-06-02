@@ -548,6 +548,41 @@ function install_ruby() {
   fi
 }
 
+# json_element JSON STRUCT
+#   1: JSON blob
+#   2: parse structure
+function json_element() {
+  CMD="import json,sys;obj=json.load(sys.stdin);print ${2}"
+  RESULT=`(echo "${1}" | python -c "${CMD}") || echo 'NAN'`
+  echo $RESULT
+}
+
+# local_brew NAME
+#   1: formula name
+function local_brew() {
+  FORMULA="${FORMULA_DIR}/$1.rb"
+  INFO=`brew info --json=v1 "${FORMULA}"`
+  INSTALLED=$(json_element "${INFO}" 'obj[0]["linked_keg"]')
+  STABLE=$(json_element "${INFO}" 'obj[0]["versions"]["stable"]')
+
+  # Could improve this detection logic to remove from-bottle.
+  FROM_BOTTLE=false
+
+  export HOMEBREW_BUILD_FROM_SOURCE=1
+  export HOMEBREW_MAKE_JOBS=$THREADS
+  export HOMEBREW_NO_EMOJI=1
+  if [[ "${INSTALLED}" = "NAN" ]]; then
+    log "local package $1 installing new version: ${STABLE}"
+    brew install -v --build-bottle "${FORMULA}"
+  elif [[ ! "${INSTALLED}" = "${STABLE}" || "${FROM_BOTTLE}" = "true" ]]; then
+    log "local package $1 upgrading to new version: ${STABLE}"
+    brew uninstall "${FORMULA}"
+    brew install -v --build-bottle "${FORMULA}"
+  else
+    log "local package $1 is already install: ${STABLE}"
+  fi
+}
+
 function package() {
   if [[ $FAMILY = "debian" ]]; then
     INSTALLED=`dpkg-query -W -f='${Status} ${Version}\n' $1 || true`
