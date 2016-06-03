@@ -134,7 +134,7 @@ Status readFile(
   PlatformTime times;
   handle.fd->getFileTimes(times);
 
-  if (!handle.fd->isFile()) {
+  if (handle.fd->isSpecialFile()) {
     off_t total_bytes = 0;
     ssize_t part_bytes = 0;
     do {

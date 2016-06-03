@@ -85,8 +85,8 @@ PlatformFile::~PlatformFile() {
   }
 }
 
-bool PlatformFile::isFile() const {
-  return (size() > 0);
+bool PlatformFile::isSpecialFile() const {
+  return (size() == 0);
 }
 
 static uid_t getFileOwner(PlatformHandle handle) {

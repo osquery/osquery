@@ -414,8 +414,8 @@ PlatformFile::~PlatformFile() {
   }
 }
 
-bool PlatformFile::isFile() const {
-  return (::GetFileType(handle_) == FILE_TYPE_DISK);
+bool PlatformFile::isSpecialFile() const {
+  return (::GetFileType(handle_) != FILE_TYPE_DISK);
 }
 
 static Status isUserCurrentUser(PSID user) {

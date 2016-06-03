@@ -138,8 +138,8 @@ class PlatformFile {
 
   ~PlatformFile();
 
-  /// Checks to see if the file object is actually a disk file and not a "special file"
-  bool isFile() const;
+  /// Checks to see if the file object is "special file"
+  bool isSpecialFile() const;
 
   /**
    * @brief Checks to see if there are any pending IO operations.
