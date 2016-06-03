@@ -118,7 +118,7 @@ function main_centos() {
   package audit-libs-devel
   package audit-libs-static
 
-  gem_install fpm
+  gem_install fpm -v 1.3.3
 
   install_aws_sdk
 }
