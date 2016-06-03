@@ -111,7 +111,7 @@ Status readFile(
   }
 
   off_t file_size = handle.fd->size();
-  if (file_size == 0 && size > 0) {
+  if (handle.fd->isSpecialFile() && size > 0) {
     file_size = static_cast<off_t>(size);
   }
 
@@ -134,7 +134,7 @@ Status readFile(
   PlatformTime times;
   handle.fd->getFileTimes(times);
 
-  if (handle.fd->isSpecialFile()) {
+  if (file_size == 0) {
     off_t total_bytes = 0;
     ssize_t part_bytes = 0;
     do {
