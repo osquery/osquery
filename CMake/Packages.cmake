@@ -41,7 +41,6 @@ elseif(LINUX)
       set(PACKAGE_DEPENDENCIES
         "${PACKAGE_DEPENDENCIES}"
         "libc6 (>=2.13)"
-        "libapt-pkg4.12"
       )
     endif()
 

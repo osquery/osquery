@@ -112,7 +112,7 @@ function main() {
   cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
   cp $PACKS_SRC/* $INSTALL_PREFIX/$PACKS_DST
 
-  if [[ $DISTRO = "centos7" || $DISTRO = "rhel7" ]]; then
+  if [[ $DISTRO = "centos7" || $DISTRO = "rhel7" || $DISTRO = "xenial" ]]; then
     # Install the systemd service and sysconfig
     mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
     mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST`
