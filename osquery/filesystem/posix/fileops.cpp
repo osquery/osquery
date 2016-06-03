@@ -243,7 +243,7 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
 size_t PlatformFile::size() const {
   struct stat file;
   if (::fstat(handle_, &file) < 0) {
-    return false;
+    return -1;
   }
   return file.st_size;
 }
