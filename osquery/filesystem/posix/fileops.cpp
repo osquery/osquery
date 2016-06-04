@@ -67,6 +67,10 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
     is_nonblock_ = true;
   }
 
+  if ((mode & PF_APPEND) == PF_APPEND) {
+    oflag |= O_APPEND;
+  }
+
   if (perms == -1 && may_create) {
     perms = 0666;
   }

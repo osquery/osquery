@@ -53,7 +53,8 @@ Status writeTextFile(const fs::path& path,
                      int permissions,
                      bool force_permissions) {
   // Open the file with the request permissions.
-  PlatformFile output_fd(path.string(), PF_CREATE_ALWAYS | PF_WRITE, permissions);
+  PlatformFile output_fd(path.string(), PF_CREATE_ALWAYS | PF_WRITE | PF_APPEND,
+                         permissions);
   if (!output_fd.isValid()) {
     return Status(1, "Could not create file: " + path.string());
   }

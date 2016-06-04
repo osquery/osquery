@@ -80,6 +80,7 @@ const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 #define PF_TRUNCATE (3 << 2)
 
 #define PF_NONBLOCK 0x0020
+#define PF_APPEND   0x0040
 
 /**
  * @brief Modes for seeking through a file

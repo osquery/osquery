@@ -404,6 +404,13 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   handle_ = ::CreateFileA(path.c_str(), access_mask, 0,
     security_attrs.get(), creation_disposition,
     flags_and_attrs, nullptr);
+
+  /// Normally, append is done via the FILE_APPEND_DATA access mask. However,
+  /// because we are blanket using GENERIC_WRITE, this will not work. To
+  /// compensate, we can emulate the behavior by seeking to the file end
+  if (handle_ != INVALID_HANDLE_VALUE && (mode & PF_APPEND) == PF_APPEND) {
+    seek(0, PF_SEEK_END);
+  }
 }
 
 PlatformFile::~PlatformFile() {
