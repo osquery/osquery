@@ -59,7 +59,17 @@ void LinuxSMBIOSParser::readFromSystab(const std::string& systab) {
       if (details.size() == 2 && details[1].size() > 2) {
         long long int address;
         safeStrtoll(details[1], 16, address);
-        readFromAddress(address, kLinuxSMBIOSRawLength_);
+        if (address < kLinuxSMBIOSRawAddress_ ||
+            address > (kLinuxSMBIOSRawAddress_ + kLinuxSMBIOSRawLength_)) {
+          VLOG(1) << "Invalid EFI provided SMBIOS start address: " << address;
+          return;
+        }
+
+        // Be sure not to read past the 0x000F0000 - 0x00100000 range.
+        // Otherwise strict /dev/mem access will generate a log line.
+        size_t offset = address - kLinuxSMBIOSRawAddress_;
+        size_t size = kLinuxSMBIOSRawLength_ - offset;
+        readFromAddress(address, size);
       }
     }
   }
@@ -96,8 +106,8 @@ QueryData genSMBIOSTables(QueryContext& context) {
   }
 
   QueryData results;
-  parser.tables(([&results](
-      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+  parser.tables(([&results](size_t index, const SMBStructHeader* hdr,
+                            uint8_t* address, size_t size) {
     genSMBIOSTable(index, hdr, address, size, results);
   }));
 
@@ -112,8 +122,8 @@ QueryData genPlatformInfo(QueryContext& context) {
   }
 
   QueryData results;
-  parser.tables(([&results](
-      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+  parser.tables(([&results](size_t index, const SMBStructHeader* hdr,
+                            uint8_t* address, size_t size) {
     if (hdr->type != kSMBIOSTypeBIOS || size < 0x12) {
       return;
     }
