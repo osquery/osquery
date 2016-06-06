@@ -41,6 +41,7 @@ const size_t KinesisLogForwarder::kKinesisMaxRecords = 500;
 const size_t KinesisLogForwarder::kKinesisMaxLogBytes = 1000000 - 256;
 
 Status KinesisLoggerPlugin::setUp() {
+  initAwsSdk();
   forwarder_ = std::make_shared<KinesisLogForwarder>();
   Status s = forwarder_->setUp();
   if (!s.ok()) {

@@ -32,6 +32,14 @@ class NetlibHttpClientFactory : public Aws::Http::HttpClientFactory {
   std::shared_ptr<Aws::Http::HttpClient> CreateHttpClient(
       const Aws::Client::ClientConfiguration &clientConfiguration)
       const override;
+  std::shared_ptr<Aws::Http::HttpRequest> CreateHttpRequest(
+      const Aws::String &uri,
+      Aws::Http::HttpMethod method,
+      const Aws::IOStreamFactory &streamFactory) const override;
+  std::shared_ptr<Aws::Http::HttpRequest> CreateHttpRequest(
+      const Aws::Http::URI &uri,
+      Aws::Http::HttpMethod method,
+      const Aws::IOStreamFactory &streamFactory) const override;
 };
 
 /**
@@ -86,6 +94,16 @@ class OsqueryAWSCredentialsProviderChain
 };
 
 /**
+ * @brief Initialize the AWS SDK
+ *
+ * This function is intended to be called from the ::setUp() method of logger
+ * plugins that use the AWS SDK. It initializes the SDK, instructing it to use
+ * our custom NetlibHttpClientFactory. This function may be called more than
+ * once, but initializing will only occur on the first call.
+ */
+void initAwsSdk();
+
+/**
  * @brief Retrieve the Aws::Region from the aws_region flag
  *
  * @param region The Aws::Region to place the result in
@@ -115,8 +133,7 @@ Status makeAWSClient(std::shared_ptr<Client> &client) {
     return s;
   }
   client = std::make_shared<Client>(
-      std::make_shared<OsqueryAWSCredentialsProviderChain>(), client_config,
-      std::make_shared<NetlibHttpClientFactory>());
+      std::make_shared<OsqueryAWSCredentialsProviderChain>(), client_config);
   return Status(0);
 }
 }
