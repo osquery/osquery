@@ -3,7 +3,7 @@ description("The full IOKit registry without selecting a plane.")
 schema([
     Column("name", TEXT, "Default name of the node"),
     Column("class", TEXT, "Best matching device class (most-specific category)"),
-    Column("id", BIGINT, "IOKit internal registry ID"),
+    Column("id", BIGINT, "IOKit internal registry ID", index=True),
     Column("parent", BIGINT, "Parent registry ID"),
     Column("busy_state", INTEGER, "1 if the node is in a busy state else 0"),
     Column("retain_count", INTEGER, "The node reference count"),

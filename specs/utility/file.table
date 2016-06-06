@@ -1,7 +1,7 @@
 table_name("file")
 description("Interactive filesystem attributes and metadata.")
 schema([
-    Column("path", TEXT, "Absolute file path", required=True),
+    Column("path", TEXT, "Absolute file path", required=True, index=True),
     Column("directory", TEXT, "Directory of file(s)", required=True),
     Column("filename", TEXT, "Name portion of file path"),
     Column("inode", BIGINT, "Filesystem inode number"),

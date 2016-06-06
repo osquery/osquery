@@ -1,7 +1,7 @@
 table_name("users")
 description("Local system users.")
 schema([
-    Column("uid", BIGINT, "User ID"),
+    Column("uid", BIGINT, "User ID", index=True),
     Column("gid", BIGINT, "Group ID (unsigned)"),
     Column("uid_signed", BIGINT, "User ID as int64 signed (Apple)"),
     Column("gid_signed", BIGINT, "Default group ID as int64 signed (Apple)"),

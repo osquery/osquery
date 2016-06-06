@@ -62,6 +62,10 @@ TEST_F(VirtualTableTests, test_tableplugin_options) {
 
   response = table->routeInfo();
   EXPECT_EQ(INTEGER(INDEX | REQUIRED), response[0]["op"]);
+
+  std::string expected_statement =
+      "(`id` INTEGER PRIMARY KEY, `username` TEXT, `name` TEXT) WITHOUT ROWID";
+  EXPECT_EQ(expected_statement, columnDefinition(response, true));
 }
 
 class aliasesTablePlugin : public TablePlugin {
