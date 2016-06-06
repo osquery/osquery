@@ -89,7 +89,7 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
 
   // Check LIKE and = operands.
   results =
-      SQL("select path from file where path = '/etc/' and path LIKE '/dev/%'");
+      SQL("select path from file where path = '/etc/' or path LIKE '/dev/%'");
   ASSERT_GT(results.rows().size(), 1U);
 }
 }
