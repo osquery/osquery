@@ -438,7 +438,6 @@ function install_aws_sdk() {
     cmake $CMAKE_FLAGS ..
     make -j$THREADS
     sudo make install
-    sudo ln -s ${PREFIX}/lib/linux/intel64/Release/libaws-cpp-sdk-* ${PREFIX}/lib
     popd
   fi
 }
