@@ -423,7 +423,7 @@ function install_libcryptsetup() {
 }
 
 function install_aws_sdk() {
-  SOURCE=aws-sdk-cpp-0.10.6
+  SOURCE=aws-sdk-cpp-0.12.4
   TARBALL=$SOURCE.tar.gz
   URL=$DEPS_URL/$TARBALL
 
@@ -433,7 +433,7 @@ function install_aws_sdk() {
     pushd ${SOURCE}/build
     CMAKE_FLAGS="-Wno-dev -DCMAKE_INSTALL_PREFIX=${PREFIX} \
                -DCMAKE_BUILD_TYPE=Release \
-               -DBUILD_ONLY=aws-cpp-sdk-kinesis;aws-cpp-sdk-firehose \
+               -DBUILD_ONLY=kinesis;firehose \
                -DSTATIC_LINKING=1 -DNO_HTTP_CLIENT=1"
     cmake $CMAKE_FLAGS ..
     make -j$THREADS
