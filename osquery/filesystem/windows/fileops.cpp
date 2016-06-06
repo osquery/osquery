@@ -415,7 +415,11 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
 
 PlatformFile::~PlatformFile() {
   if (handle_ != kInvalidHandle && handle_ != nullptr) {
-    ::CancelIo(handle_);
+    // Only cancel IO if we are a non-blocking HANDLE
+    if (is_nonblock_) {
+      ::CancelIo(handle_);
+    }
+
     ::CloseHandle(handle_);
     handle_ = kInvalidHandle;
   }
@@ -631,7 +635,7 @@ static Status isWriteDenied(PACL acl) {
   return Status(1, "No deny ACE for write");
 }
 
-Status PlatformFile::isSafeForLoading() const {
+Status PlatformFile::isNonWritable() const {
   PACL file_dacl = nullptr;
   PSECURITY_DESCRIPTOR file_sd = nullptr;
 

@@ -420,7 +420,7 @@ bool safePermissions(const std::string& dir,
     result = fd.isExecutable();
 
     // Otherwise, require matching or root file ownership.
-    if (executable && (result.getCode() > 0 || !fd.isSafeForLoading().ok())) {
+    if (executable && (result.getCode() > 0 || !fd.isNonWritable().ok())) {
       // Require executable, implies by the owner.
       return false;
     }

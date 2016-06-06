@@ -176,12 +176,12 @@ class PlatformFile {
   Status isExecutable() const;
 
   /**
-   * @brief Determines how "safe the executable it is from external modification
-   * @note Currently, this is only implemented on Windows. The Windows version of
-   *       this function ensures that writes are explicitly denied for the file and
-   *       the file's parent directory.
+   * @brief Determines how immutable the file is to external modifications
+   * @note Currently, this is only implemented on Windows. The Windows version
+   *       of this function ensures that writes are explicitly denied for the
+   *       file and the file's parent directory.
    */
-  Status isSafeForLoading() const;
+  Status isNonWritable() const;
 
   bool getFileTimes(PlatformTime& times);
   bool setFileTimes(const PlatformTime& times);

@@ -140,16 +140,26 @@ Status PlatformFile::isExecutable() const {
     return Status(-1, "fstat error");
   }
 
-  if (file_stat.st_mode & S_IXUSR) {
+  if ((file_stat.st_mode & S_IXUSR) == S_IXUSR) {
     return Status(0, "OK");
   }
 
   return Status(1, "Not executable");
 }
 
-// Stub'd out for now
-Status PlatformFile::isSafeForLoading() const {
-  return Status(0, "OK");
+Status PlatformFile::isNonWritable() const {
+  struct stat file;
+  if (::fstat(handle_, &file_) < 0) {
+    return Status(-1, "fstat error");
+  }
+
+  // We allow user write for now, since our main threat is external
+  // modification by other users
+  if ((file.st_mode & S_IWGRP) == 0 && (file.st_mode & S_IWOTH) == 0) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "Writable");
 }
 
 bool PlatformFile::getFileTimes(PlatformTime& times) {
