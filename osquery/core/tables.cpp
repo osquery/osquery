@@ -195,6 +195,7 @@ void TablePlugin::setCache(size_t step,
 }
 
 std::string columnDefinition(const TableColumns& columns) {
+  std::vector<std::string> epilog;
   std::string statement = "(";
   for (size_t i = 0; i < columns.size(); ++i) {
     const auto& column = columns.at(i);
@@ -203,6 +204,7 @@ std::string columnDefinition(const TableColumns& columns) {
     auto& options = std::get<2>(column);
     if (options & INDEX) {
       statement += " PRIMARY KEY";
+      epilog.push_back("WITHOUT ROWID");
     }
     if (options & HIDDEN) {
       statement += " HIDDEN";
@@ -211,7 +213,12 @@ std::string columnDefinition(const TableColumns& columns) {
       statement += ", ";
     }
   }
-  return statement += ")";
+
+  statement += ")";
+  for (auto& epilog_statement : epilog) {
+    statement += " " + std::move(epilog_statement);
+  }
+  return statement;
 }
 
 std::string columnDefinition(const PluginResponse& response, bool aliases) {

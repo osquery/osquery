@@ -1,7 +1,7 @@
 table_name("smc_keys")
 description("Apple's system management controller keys.")
 schema([
-    Column("key", TEXT, "4-character key", additional=True),
+    Column("key", TEXT, "4-character key", additional=True, index=True),
     Column("type", TEXT, "SMC-reported type literal type"),
     Column("size", INTEGER, "Reported size of data in bytes"),
     Column("value", TEXT, "A type-encoded representation of the key value"),

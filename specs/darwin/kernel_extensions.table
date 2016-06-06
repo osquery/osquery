@@ -1,13 +1,13 @@
 table_name("kernel_extensions")
 description("OS X's kernel extensions, both loaded and within the load search path.")
 schema([
-    Column("idx", INTEGER, "Extension load tag or index"),
+    Column("idx", INTEGER, "Extension load tag or index", index=True),
     Column("refs", INTEGER, "Reference count"),
     Column("size", BIGINT, "Bytes of wired memory used by extension"),
     Column("name", TEXT, "Extension label"),
     Column("version", TEXT, "Extension version"),
     Column("linked_against", TEXT,
       "Indexes of extensions this extension is linked against"),
-    Column("path", TEXT, "Optional path to extension bundle")
+    Column("path", TEXT, "Optional path to extension bundle"),
 ])
 implementation("kextstat@genKernelExtensions")

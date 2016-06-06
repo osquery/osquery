@@ -1,7 +1,7 @@
 table_name("groups")
 description("Local system groups.")
 schema([
-    Column("gid", BIGINT, "Unsigned int64 group ID"),
+    Column("gid", BIGINT, "Unsigned int64 group ID", index=True),
     Column("gid_signed", BIGINT, "A signed int64 version of gid"),
     Column("groupname", TEXT, "Canonical local group name"),
 ])

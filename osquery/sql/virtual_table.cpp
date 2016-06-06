@@ -248,7 +248,6 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
         pVtab->content->columns[pVtab->content->aliases.at(column_name)]);
     column_name = std::get<0>(
         pVtab->content->columns[pVtab->content->aliases.at(column_name)]);
-    printf("setting column_name = %s type=%d\n", column_name.c_str(), type);
   }
 
   // Attempt to cast each xFilter-populated row/column to the SQLite type.
@@ -298,6 +297,8 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
 
 static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
   auto *pVtab = (VirtualTable *)tab;
+  const auto &columns = pVtab->content->columns;
+
   ConstraintSet constraints;
   // Keep track of the index used for each valid constraint.
   // Expect this index to correspond with argv within xFilter.
@@ -332,8 +333,7 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
         cost += 10;
         continue;
       }
-      const auto &name =
-          std::get<0>(pVtab->content->columns[constraint_info.iColumn]);
+      const auto &name = std::get<0>(columns[constraint_info.iColumn]);
       // Save a pair of the name and the constraint operator.
       // Use this constraint during xFilter by performing a scan and column
       // name lookup through out all cursor constraint lists.
@@ -343,9 +343,41 @@ static int xBestIndex(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo) {
 #if defined(DEBUG)
       plan("Adding constraint for table: " + pVtab->content->name +
            " [column=" + name + " arg_index=" + std::to_string(expr_index) +
-           "]");
+           " op=" + std::to_string(constraint_info.op) + "]");
 #endif
     }
+  }
+
+  auto requiredSatisfied = [&constraints](const std::string &name) {
+    for (const auto &constraint : constraints) {
+      if (constraint.first == name) {
+        return true;
+      }
+    }
+    // No constraint exists.
+    return false;
+  };
+
+  // Check the table for a required column.
+  boost::optional<bool> satisfied;
+  for (const auto &column : columns) {
+    auto &name = std::get<0>(column);
+    auto &options = std::get<2>(column);
+    if ((options & REQUIRED) == REQUIRED) {
+      // This column is required, check if a constraint exists.
+      if (requiredSatisfied(name)) {
+        satisfied = true;
+        break;
+      }
+      // A column was required, but not satisfied.
+      // Multiple columns may be marked REQUIRED, continue to check.
+      satisfied = false;
+    }
+  }
+
+  // Check if a REQUIRED column exists but was not satisfied via a constraint.
+  if (satisfied.is_initialized() && !*satisfied) {
+    cost += 1e10;
   }
 
   pIdxInfo->idxNum = kConstraintIndexID++;
