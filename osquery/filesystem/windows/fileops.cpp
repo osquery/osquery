@@ -673,21 +673,6 @@ Status PlatformFile::isSafeForLoading() const {
   return Status(1, "Not safe for loading");
 }
 
-Status PlatformFile::isDirectory() const {
-  BY_HANDLE_FILE_INFORMATION fi = {0};
-
-  if (!::GetFileInformationByHandle(handle_, &fi)) {
-    return Status(-1, "GetFileInformationByHandle failed");
-  }
-
-  if ((fi.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ==
-      FILE_ATTRIBUTE_DIRECTORY) {
-    return Status(0, "OK");
-  }
-
-  return Status(1, "Not a directory");
-}
-
 bool PlatformFile::getFileTimes(PlatformTime& times) {
   if (!isValid()) {
     return false;

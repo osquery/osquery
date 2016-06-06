@@ -183,9 +183,6 @@ class PlatformFile {
    */
   Status isSafeForLoading() const;
 
-  /// Determines whether the file is a directory
-  Status isDirectory() const;
-
   bool getFileTimes(PlatformTime& times);
   bool setFileTimes(const PlatformTime& times);
 

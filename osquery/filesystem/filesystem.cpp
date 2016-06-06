@@ -407,7 +407,7 @@ bool safePermissions(const std::string& dir,
     return false;
   }
 
-  result = fd.isDirectory();
+  result = isDirectory(path);
   if (!result.ok() && result.getCode() < 0) {
     // Something went wrong when determining the file's directoriness
     return false;
@@ -420,8 +420,7 @@ bool safePermissions(const std::string& dir,
     result = fd.isExecutable();
 
     // Otherwise, require matching or root file ownership.
-    if (executable && ((!result.ok() && result.getCode() > 0) ||
-                       !fd.isSafeForLoading().ok())) {
+    if (executable && (result.getCode() > 0 || !fd.isSafeForLoading().ok())) {
       // Require executable, implies by the owner.
       return false;
     }

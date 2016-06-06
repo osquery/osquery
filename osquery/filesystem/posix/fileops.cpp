@@ -152,19 +152,6 @@ Status PlatformFile::isSafeForLoading() const {
   return Status(0, "OK");
 }
 
-Status PlatformFile::isDirectory() const {
-  struct stat file;
-  if (::fstat(handle_, &file) < 0) {
-    return Status(-1, "fstat failed");
-  }
-
-  if (S_ISDIR(file.st_mode)) {
-    return Status(0, "OK");
-  }
-
-  return Status(1, "Not a directory");
-}
-
 bool PlatformFile::getFileTimes(PlatformTime& times) {
   if (!isValid()) {
     return false;
