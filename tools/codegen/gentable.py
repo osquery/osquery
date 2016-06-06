@@ -76,7 +76,6 @@ COLUMN_OPTIONS = {
 
 # Column options that render tables uncacheable.
 NON_CACHEABLE = [
-    "INDEX",
     "REQUIRED",
     "ADDITIONAL",
     "OPTIMIZED",

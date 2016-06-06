@@ -10,5 +10,4 @@ schema([
     Column("path", TEXT, "Path to keychain containing item",
       additional=True),
 ])
-attributes(cacheable=True)
 implementation("keychain_items@genKeychainItems")
