@@ -109,12 +109,11 @@ Status FirehoseLogForwarder::setUp() {
   r.SetDeliveryStreamName(FLAGS_aws_firehose_stream);
   
   auto outcome = client_->DescribeDeliveryStream(r);
-  if (outcome.IsSuccess()){
-    VLOG(1) << "Firehose logging initialized with stream: " << FLAGS_aws_firehose_stream;
-    return Status(0);
-  }
-  return Status(1,
+  if (!outcome.IsSuccess()){
+    return Status(1,
             "Could not find Firehose stream: " + FLAGS_aws_firehose_stream);
-
+  }
+  VLOG(1) << "Firehose logging initialized with stream: " << FLAGS_aws_firehose_stream;
+  return Status(0);
 }
 }

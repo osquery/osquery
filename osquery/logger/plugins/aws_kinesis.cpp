@@ -107,11 +107,11 @@ Status KinesisLogForwarder::setUp() {
   Aws::Kinesis::Model::DescribeStreamRequest r;
   r.SetStreamName(FLAGS_aws_kinesis_stream);
   auto outcome = client_->DescribeStream(r);
-  if (outcome.IsSuccess()){
-    VLOG(1) << "Kinesis logging initialized with stream: " << FLAGS_aws_kinesis_stream;
-    return Status(0);
-  }
-  return Status(1,
+  if (!outcome.IsSuccess()){
+    return Status(1,
           "Could not find Kinesis stream: " + FLAGS_aws_kinesis_stream);
+  }
+  VLOG(1) << "Kinesis logging initialized with stream: " << FLAGS_aws_kinesis_stream;
+  return Status(0);
 }
 }
