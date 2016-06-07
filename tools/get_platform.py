@@ -80,6 +80,8 @@ def _distro(osType):
             return output
         except subprocess.CalledProcessError:
             return None
+        except OSError:
+            return None
         except WindowsError:
             return None
 
