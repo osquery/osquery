@@ -37,6 +37,8 @@ SYSTEMD_SYSCONFIG_DST="/etc/sysconfig/osqueryd"
 CTL_SRC="$SCRIPT_DIR/osqueryctl"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/usr/share/osquery/packs/"
+OSQUERY_POSTINSTALL=$OSQUERY_POSTINSTALL
+OSQUERY_CONFIG_SRC=$OSQUERY_CONFIG_SRC
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/usr/share/osquery/osquery.example.conf"
 OSQUERY_LOG_DIR="/var/log/osquery/"
@@ -61,6 +63,12 @@ function parse_args() {
     case $1 in
       -t | --type )           shift
                               PACKAGE_TYPE=$1
+                              ;;
+      -c | --config )         shift
+                              OSQUERY_CONFIG_SRC=$1
+                              ;;
+      -p | --postinst )       shift
+                              OSQUERY_POSTINSTALL=$1
                               ;;
       -i | --iteration )      shift
                               PACKAGE_ITERATION=$1
@@ -112,6 +120,11 @@ function main() {
   cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
   cp $PACKS_SRC/* $INSTALL_PREFIX/$PACKS_DST
 
+  if [ $OSQUERY_CONFIG_SRC != "" ] && [ -f $OSQUERY_CONFIG_SRC ]; then
+    echo "[*] CONFIG SETUP"
+    cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/osquery.conf
+  fi
+
   if [[ $DISTRO = "centos7" || $DISTRO = "rhel7" || $DISTRO = "xenial" ]]; then
     # Install the systemd service and sysconfig
     mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
@@ -139,6 +152,11 @@ function main() {
     FPM="/var/lib/gems/1.8/bin/fpm"
   fi
 
+  POSTINST_CMD=""
+  if [ $OSQUERY_POSTINSTALL != "" ] && [ -f $OSQUERY_POSTINSTALL ]; then
+    POSTINST_CMD="--after-install $OSQUERY_POSTINSTALL"
+  fi
+
   EPILOG="--url https://osquery.io \
     -m osquery@osquery.io          \
     --vendor Facebook              \
@@ -149,6 +167,7 @@ function main() {
     -n $PACKAGE_NAME -v $PACKAGE_VERSION \
     --iteration $PACKAGE_ITERATION \
     -a $PACKAGE_ARCH               \
+    $POSTINST_CMD                  \
     $PACKAGE_DEPENDENCIES          \
     -p $OUTPUT_PKG_PATH            \
     $EPILOG \"$INSTALL_PREFIX/=/\""
