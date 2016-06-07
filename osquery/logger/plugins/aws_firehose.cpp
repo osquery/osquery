@@ -13,8 +13,8 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include <aws/core/utils/Outcome.h>
-#include <aws/firehose/model/ListDeliveryStreamsRequest.h>
-#include <aws/firehose/model/ListDeliveryStreamsResult.h>
+#include <aws/firehose/model/DescribeDeliveryStreamRequest.h>
+#include <aws/firehose/model/DescribeDeliveryStreamResult.h>
 #include <aws/firehose/model/PutRecordBatchRequest.h>
 #include <aws/firehose/model/PutRecordBatchResponseEntry.h>
 #include <aws/firehose/model/PutRecordBatchResult.h>
@@ -105,20 +105,17 @@ Status FirehoseLogForwarder::setUp() {
   }
 
   // Make sure we can connect to designated stream
-  Aws::Firehose::Model::ListDeliveryStreamsRequest r;
-  auto result = client_->ListDeliveryStreams(r).GetResult();
-  std::vector<std::string> stream_names = result.GetDeliveryStreamNames();
-
-  if (std::find(stream_names.begin(),
-                stream_names.end(),
-                FLAGS_aws_firehose_stream) == stream_names.end()) {
-    return Status(1,
-                  "Could not find Firehose delivery stream: " +
-                      FLAGS_aws_firehose_stream);
+  Aws::Firehose::Model::DescribeDeliveryStreamRequest r;
+  r.SetDeliveryStreamName(FLAGS_aws_firehose_stream);
+  auto result = client_->DescribeDeliveryStream(r).GetResult();
+  auto description = result.GetDeliveryStreamDescription();
+  auto stream_name = description.GetDeliveryStreamName();
+  if (stream_name.empty()){
+      return Status(1,
+              "Could not find Firehose stream: " + FLAGS_aws_firehose_stream);
   }
+  VLOG(1) << "Firehose logging initialized with stream: " << stream_name;
 
-  VLOG(1) << "Firehose logging initialized with stream: "
-          << FLAGS_aws_firehose_stream;
   return Status(0);
 }
 }
