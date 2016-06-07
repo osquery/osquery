@@ -53,7 +53,10 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
       check_existence = true;
       break;
     case PF_GET_OPTIONS(PF_TRUNCATE):
-      if (mode & PF_WRITE) oflag |= O_TRUNC;
+      if (mode & PF_WRITE) {
+        oflag |= O_TRUNC;
+      }
+
       break;
     default:
       break;
@@ -62,6 +65,10 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   if ((mode & PF_NONBLOCK) == PF_NONBLOCK) {
     oflag |= O_NONBLOCK;
     is_nonblock_ = true;
+  }
+
+  if ((mode & PF_APPEND) == PF_APPEND) {
+    oflag |= O_APPEND;
   }
 
   if (perms == -1 && may_create) {
@@ -82,8 +89,8 @@ PlatformFile::~PlatformFile() {
   }
 }
 
-bool PlatformFile::isFile() const {
-  return (size() > 0);
+bool PlatformFile::isSpecialFile() const {
+  return (size() == 0);
 }
 
 static uid_t getFileOwner(PlatformHandle handle) {
@@ -133,11 +140,26 @@ Status PlatformFile::isExecutable() const {
     return Status(-1, "fstat error");
   }
 
-  if (file_stat.st_mode & S_IXUSR) {
+  if ((file_stat.st_mode & S_IXUSR) == S_IXUSR) {
     return Status(0, "OK");
   }
 
   return Status(1, "Not executable");
+}
+
+Status PlatformFile::isNonWritable() const {
+  struct stat file;
+  if (::fstat(handle_, &file) < 0) {
+    return Status(-1, "fstat error");
+  }
+
+  // We allow user write for now, since our main threat is external
+  // modification by other users
+  if ((file.st_mode & S_IWOTH) == 0) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "Writable");
 }
 
 bool PlatformFile::getFileTimes(PlatformTime& times) {
@@ -222,7 +244,7 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
 size_t PlatformFile::size() const {
   struct stat file;
   if (::fstat(handle_, &file) < 0) {
-    return false;
+    return -1;
   }
   return file.st_size;
 }
@@ -276,18 +298,11 @@ Status platformIsTmpDir(const fs::path& dir) {
   return Status(1, "");
 }
 
+// Reduce this to be a lstat check for symlink stuff
 Status platformIsFileAccessible(const fs::path& path) {
   struct stat file_stat, link_stat;
-  if (::lstat(path.c_str(), &link_stat) < 0 || ::stat(path.c_str(), &file_stat)) {
+  if (::lstat(path.c_str(), &link_stat) < 0) {
     return Status(1, "File is not acccessible");
-  }
-  return Status(0, "OK");
-}
-
-Status platformIsDirAccessible(const fs::path& dir) {
-  struct stat dir_stat;
-  if (::stat(dir.c_str(), &dir_stat)) {
-    return Status(1, "Dir is not accessible");
   }
   return Status(0, "OK");
 }

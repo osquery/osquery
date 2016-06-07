@@ -29,6 +29,8 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
+#include "osquery/filesystem/fileops.h"
+
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;
@@ -51,49 +53,50 @@ Status writeTextFile(const fs::path& path,
                      int permissions,
                      bool force_permissions) {
   // Open the file with the request permissions.
-  int output_fd =
-      open(path.c_str(), O_CREAT | O_APPEND | O_WRONLY, permissions);
-  if (output_fd <= 0) {
+  PlatformFile output_fd(path.string(), PF_CREATE_ALWAYS | PF_WRITE | PF_APPEND,
+                         permissions);
+  if (!output_fd.isValid()) {
     return Status(1, "Could not create file: " + path.string());
   }
 
   // If the file existed with different permissions before our open
   // they must be restricted.
-  if (chmod(path.c_str(), permissions) != 0) {
+  if (!platformChmod(path.string(), permissions)) {
     // Could not change the file to the requested permissions.
     return Status(1, "Failed to change permissions for file: " + path.string());
   }
 
-  ssize_t bytes = write(output_fd, content.c_str(), content.size());
+  ssize_t bytes = output_fd.write(content.c_str(), content.size());
   if (static_cast<size_t>(bytes) != content.size()) {
-    close(output_fd);
     return Status(1, "Failed to write contents to file: " + path.string());
   }
 
-  close(output_fd);
   return Status(0, "OK");
 }
 
 struct OpenReadableFile {
  public:
-  explicit OpenReadableFile(const fs::path& path) {
+  explicit OpenReadableFile(const fs::path &path) {
+#ifndef WIN32
     dropper_ = DropPrivileges::get();
     if (dropper_->dropToParent(path)) {
+#endif
       // Open the file descriptor and allow caller to perform error checking.
-      fd = open(path.string().c_str(), O_RDONLY | O_NONBLOCK);
+      fd.reset(new PlatformFile(path.string(),
+                                PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK));
+#ifndef WIN32
     }
+#endif
   }
 
-  ~OpenReadableFile() {
-    if (fd > 0) {
-      close(fd);
-    }
-  }
+  ~OpenReadableFile() {}
 
-  int fd{0};
+  std::unique_ptr<PlatformFile> fd{nullptr};
 
+#ifndef WIN32
  private:
   DropPrivilegesRef dropper_{nullptr};
+#endif
 };
 
 Status readFile(
@@ -103,23 +106,18 @@ Status readFile(
     bool dry_run,
     bool preserve_time,
     std::function<void(std::string& buffer, size_t size)> predicate) {
-  auto handle = OpenReadableFile(path);
-  if (handle.fd < 0) {
+  OpenReadableFile handle(path);
+  if (!handle.fd->isValid()) {
     return Status(1, "Cannot open file for reading: " + path.string());
   }
 
-  struct stat file;
-  if (fstat(handle.fd, &file) < 0) {
-    return Status(1, "Cannot access path: " + path.string());
-  }
-
-  off_t file_size = file.st_size;
-  if (file_size == 0 && size > 0) {
+  off_t file_size = handle.fd->size();
+  if (handle.fd->isSpecialFile() && size > 0) {
     file_size = static_cast<off_t>(size);
   }
 
   // Apply the max byte-read based on file/link target ownership.
-  off_t read_max = (file.st_uid == 0)
+  off_t read_max = (handle.fd->isOwnerRoot().ok())
                        ? FLAGS_read_max
                        : std::min(FLAGS_read_max, FLAGS_read_user_max);
   if (file_size > read_max) {
@@ -134,21 +132,15 @@ Status readFile(
     return Status(0, fs::canonical(path, ec).string());
   }
 
-  struct timeval times[2];
-#if defined(__linux__)
-  TIMESPEC_TO_TIMEVAL(&times[0], &file.st_atim);
-  TIMESPEC_TO_TIMEVAL(&times[1], &file.st_mtim);
-#else
-  TIMESPEC_TO_TIMEVAL(&times[0], &file.st_atimespec);
-  TIMESPEC_TO_TIMEVAL(&times[1], &file.st_mtimespec);
-#endif
+  PlatformTime times;
+  handle.fd->getFileTimes(times);
 
   if (file_size == 0) {
     off_t total_bytes = 0;
     ssize_t part_bytes = 0;
     do {
       auto part = std::string(4096, '\0');
-      part_bytes = read(handle.fd, &part[0], block_size);
+      part_bytes = handle.fd->read(&part[0], block_size);
       if (part_bytes > 0) {
         total_bytes += part_bytes;
         if (total_bytes >= read_max) {
@@ -160,13 +152,13 @@ Status readFile(
     } while (part_bytes > 0);
   } else {
     auto content = std::string(file_size, '\0');
-    read(handle.fd, &content[0], file_size);
+    handle.fd->read(&content[0], file_size);
     predicate(content, file_size);
   }
 
   // Attempt to restore the atime and mtime before the file read.
   if (preserve_time && !FLAGS_disable_forensic) {
-    futimes(handle.fd, times);
+    handle.fd->setFileTimes(times);
   }
   return Status(0, "OK");
 }
@@ -205,9 +197,10 @@ Status isWritable(const fs::path& path) {
     return path_exists;
   }
 
-  if (access(path.c_str(), W_OK) == 0) {
+  if (platformAccess(path.string(), W_OK) == 0) {
     return Status(0, "OK");
   }
+
   return Status(1, "Path is not writable: " + path.string());
 }
 
@@ -217,9 +210,10 @@ Status isReadable(const fs::path& path) {
     return path_exists;
   }
 
-  if (access(path.c_str(), R_OK) == 0) {
+  if (platformAccess(path.string(), R_OK) == 0) {
     return Status(0, "OK");
   }
+
   return Status(1, "Path is not readable: " + path.string());
 }
 
@@ -250,28 +244,32 @@ static void genGlobs(std::string path,
   // Generate a glob set and recurse for double star.
   size_t glob_index = 0;
   while (++glob_index < kMaxRecursiveGlobs) {
-    glob_t data;
-    glob(path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, &data);
-    size_t count = data.gl_pathc;
-    for (size_t index = 0; index < count; index++) {
-      results.push_back(data.gl_pathv[index]);
+    auto glob_results = platformGlob(path);
+
+    for (auto const& result_path : glob_results) {
+      results.push_back(result_path);
     }
-    globfree(&data);
+
     // The end state is a non-recursive ending or empty set of matches.
     size_t wild = path.rfind("**");
     // Allow a trailing slash after the double wild indicator.
-    if (count == 0 || wild > path.size() || wild < path.size() - 3) {
+    if (glob_results.size() == 0 || wild > path.size() ||
+        wild < path.size() - 3) {
       break;
     }
     path += "/**";
   }
 
   // Prune results based on settings/requested glob limitations.
-  auto end = std::remove_if(
-      results.begin(), results.end(), [limits](const std::string& found) {
-        return !((found[found.length() - 1] == '/' && limits & GLOB_FOLDERS) ||
-                 (found[found.length() - 1] != '/' && limits & GLOB_FILES));
-      });
+  auto end = std::remove_if(results.begin(), results.end(),
+                            [limits](const std::string &found) {
+                              return !(((found[found.length() - 1] == '/' ||
+                                         found[found.length() - 1] == '\\') &&
+                                        limits & GLOB_FOLDERS) ||
+                                       ((found[found.length() - 1] != '/' &&
+                                         found[found.length() - 1] != '\\') &&
+                                        limits & GLOB_FILES));
+                            });
   results.erase(end, results.end());
 }
 
@@ -294,16 +292,22 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
   }
 
   // Relative paths are a bad idea, but we try to accommodate.
-  if ((pattern.size() == 0 || pattern[0] != '/') && pattern[0] != '~') {
-    pattern = (fs::initial_path() / pattern).string();
+  if ((pattern.size() == 0 || ((pattern[0] != '/' && pattern[0] != '\\') &&
+       (pattern.size() > 3 && pattern[1] != ':' && pattern[2] != '\\' &&
+        pattern[2] != '/'))) &&
+      pattern[0] != '~') {
+    pattern = (fs::initial_path() / pattern).make_preferred().string();
   }
 
-  auto base = pattern.substr(0, pattern.find('*'));
+  auto base =
+      fs::path(pattern.substr(0, pattern.find('*'))).make_preferred().string();
+
   if (base.size() > 0) {
     boost::system::error_code ec;
     auto canonicalized = ((limits & GLOB_NO_CANON) == 0)
-                             ? fs::canonical(base, ec).string()
+                             ? fs::canonical(base, ec).make_preferred().string()
                              : base;
+
     if (canonicalized.size() > 0 && canonicalized != base) {
       if (isDirectory(canonicalized)) {
         // Canonicalized directory paths will not include a trailing '/'.
@@ -312,7 +316,9 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
         canonicalized += '/';
       }
       // We are unable to canonicalize the meaning of post-wildcard limiters.
-      pattern = canonicalized + pattern.substr(base.size());
+      pattern = fs::path(canonicalized + pattern.substr(base.size()))
+                    .make_preferred()
+                    .string();
     }
   }
 }
@@ -377,29 +383,51 @@ std::set<fs::path> getHomeDirectories() {
 bool safePermissions(const std::string& dir,
                      const std::string& path,
                      bool executable) {
-  struct stat file_stat, link_stat, dir_stat;
-  if (lstat(path.c_str(), &link_stat) < 0 || stat(path.c_str(), &file_stat) ||
-      stat(dir.c_str(), &dir_stat)) {
+  if (!platformIsFileAccessible(path).ok()) {
     // Path was not real, had too may links, or could not be accessed.
     return false;
   }
 
   if (FLAGS_allow_unsafe) {
     return true;
-  } else if (dir_stat.st_mode & (1 << 9)) {
+  }
+
+  Status result = platformIsTmpDir(dir);
+  if (!result.ok() && result.getCode() < 0) {
+    // An error has occurred in stat() on dir, most likely because the file path
+    // does not exist
+    return false;
+  } else if (result.ok()) {
     // Do not load modules from /tmp-like directories.
     return false;
-  } else if (S_ISDIR(file_stat.st_mode)) {
+  } 
+  
+  PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+  if (!fd.isValid()) {
+    return false;
+  }
+
+  result = isDirectory(path);
+  if (!result.ok() && result.getCode() < 0) {
+    // Something went wrong when determining the file's directoriness
+    return false;
+  } else if (result.ok()) {
     // Only load file-like nodes (not directories).
     return false;
-  } else if (file_stat.st_uid == getuid() || file_stat.st_uid == 0) {
+  }
+
+  if (fd.isOwnerCurrentUser().ok() || fd.isOwnerRoot().ok()) {
+    result = fd.isExecutable();
+
     // Otherwise, require matching or root file ownership.
-    if (executable && !(file_stat.st_mode & S_IXUSR)) {
+    if (executable && (result.getCode() > 0 || !fd.isNonWritable().ok())) {
       // Require executable, implies by the owner.
       return false;
     }
+
     return true;
   }
+
   // Do not load modules not owned by the user.
   return false;
 }
@@ -408,17 +436,17 @@ const std::string& osqueryHomeDirectory() {
   static std::string homedir;
 
   if (homedir.size() == 0) {
-    // Try to get the caller's home directory using HOME and getpwuid.
-    auto user = getpwuid(getuid());
-    if (getenv("HOME") != nullptr && isWritable(getenv("HOME")).ok()) {
-      homedir = std::string(getenv("HOME")) + "/.osquery";
-    } else if (user != nullptr && user->pw_dir != nullptr) {
-      homedir = std::string(user->pw_dir) + "/.osquery";
+    // Try to get the caller's home directory
+    auto home_directory = getHomeDirectory();
+    if (home_directory.is_initialized() && isWritable(*home_directory).ok()) {
+      homedir =
+          (fs::path(*home_directory) / ".osquery").make_preferred().string();
     } else {
       // Fail over to a temporary directory (used for the shell).
-      homedir = "/tmp/osquery";
+      homedir = (fs::temp_directory_path() / "osquery").make_preferred().string();
     }
   }
+
   return homedir;
 }
 
@@ -454,3 +482,4 @@ Status parseJSONContent(const std::string& content, pt::ptree& tree) {
   return Status(0, "OK");
 }
 }
+
