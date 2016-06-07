@@ -149,13 +149,13 @@ Status PlatformFile::isExecutable() const {
 
 Status PlatformFile::isNonWritable() const {
   struct stat file;
-  if (::fstat(handle_, &file_) < 0) {
+  if (::fstat(handle_, &file) < 0) {
     return Status(-1, "fstat error");
   }
 
   // We allow user write for now, since our main threat is external
   // modification by other users
-  if ((file.st_mode & S_IWGRP) == 0 && (file.st_mode & S_IWOTH) == 0) {
+  if ((file.st_mode & S_IWOTH) == 0) {
     return Status(0, "OK");
   }
 
