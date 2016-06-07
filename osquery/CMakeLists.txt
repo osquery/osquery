@@ -31,6 +31,7 @@ endif()
 if(WIN32)
   set(OS_CORE_LIBS
     netapi32.lib
+    shlwapi.lib
   )
 else()
   set(OS_CORE_LIBS

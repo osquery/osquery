@@ -8,6 +8,7 @@
  *
  */
 
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <chrono>
@@ -15,9 +16,12 @@
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include <aws/core/Aws.h>
 #include <aws/core/Region.h>
 #include <aws/core/client/AWSClient.h>
 #include <aws/core/client/ClientConfiguration.h>
+#include <aws/core/http/standard/StandardHttpRequest.h>
+#include <aws/core/http/standard/StandardHttpResponse.h>
 
 #include <aws/sts/model/AssumeRoleRequest.h>
 #include <aws/sts/model/Credentials.h>
@@ -69,6 +73,26 @@ std::shared_ptr<Aws::Http::HttpClient>
 NetlibHttpClientFactory::CreateHttpClient(
     const Aws::Client::ClientConfiguration& clientConfiguration) const {
   return std::make_shared<NetlibHttpClient>();
+}
+
+std::shared_ptr<Aws::Http::HttpRequest>
+NetlibHttpClientFactory::CreateHttpRequest(
+    const Aws::String& uri,
+    Aws::Http::HttpMethod method,
+    const Aws::IOStreamFactory& streamFactory) const {
+  return CreateHttpRequest(Aws::Http::URI(uri), method, streamFactory);
+}
+
+std::shared_ptr<Aws::Http::HttpRequest>
+NetlibHttpClientFactory::CreateHttpRequest(
+    const Aws::Http::URI& uri,
+    Aws::Http::HttpMethod method,
+    const Aws::IOStreamFactory& streamFactory) const {
+  auto request =
+      std::make_shared<Aws::Http::Standard::StandardHttpRequest>(uri, method);
+  request->SetResponseStreamFactory(streamFactory);
+
+  return request;
 }
 
 std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
@@ -253,6 +277,21 @@ Status getAWSRegionFromProfile(Aws::Region& region) {
   }
 
   return Status(0);
+}
+
+void initAwsSdk() {
+  static std::once_flag once_flag;
+  try {
+    std::call_once(once_flag, []() {
+      Aws::SDKOptions options;
+      options.httpOptions.httpClientFactory_create_fn = []() {
+        return std::make_shared<NetlibHttpClientFactory>();
+      };
+      Aws::InitAPI(options);
+    });
+  } catch (const std::system_error& e) {
+    LOG(ERROR) << "call_once was not executed for initAwsSdk";
+  }
 }
 
 Status getAWSRegion(Aws::Region& region, bool sts) {

@@ -20,6 +20,7 @@
 
 #include "osquery/core/test_util.h"
 #include "osquery/logger/plugins/aws_kinesis.h"
+#include "osquery/logger/plugins/aws_util.h"
 
 using namespace testing;
 
@@ -41,7 +42,10 @@ class MockKinesisClient : public Aws::Kinesis::KinesisClient {
           const Aws::Kinesis::Model::PutRecordsRequest& request));
 };
 
-class KinesisTests : public testing::Test {};
+class KinesisTests : public testing::Test {
+ public:
+  void SetUp() override { initAwsSdk(); }
+};
 
 TEST_F(KinesisTests, test_send) {
   KinesisLogForwarder forwarder;

@@ -42,6 +42,7 @@ const size_t FirehoseLogForwarder::kFirehoseMaxRecords = 500;
 const size_t FirehoseLogForwarder::kFirehoseMaxLogBytes = 1000000 - 256;
 
 Status FirehoseLoggerPlugin::setUp() {
+  initAwsSdk();
   forwarder_ = std::make_shared<FirehoseLogForwarder>();
   Status s = forwarder_->setUp();
   if (!s.ok()) {

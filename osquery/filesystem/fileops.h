@@ -80,6 +80,7 @@ const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 #define PF_TRUNCATE (3 << 2)
 
 #define PF_NONBLOCK 0x0020
+#define PF_APPEND   0x0040
 
 /**
  * @brief Modes for seeking through a file
@@ -138,8 +139,8 @@ class PlatformFile {
 
   ~PlatformFile();
 
-  /// Checks to see if the file object is actually a disk file and not a "special file"
-  bool isFile() const;
+  /// Checks to see if the file object is "special file"
+  bool isSpecialFile() const;
 
   /**
    * @brief Checks to see if there are any pending IO operations.
@@ -171,9 +172,16 @@ class PlatformFile {
    */
   Status isOwnerCurrentUser() const;
 
-  /// Determines whether the file has the executable bit set (currently returns
-  /// true)
+  /// Determines whether the file has the executable bit set 
   Status isExecutable() const;
+
+  /**
+   * @brief Determines how immutable the file is to external modifications
+   * @note Currently, this is only implemented on Windows. The Windows version
+   *       of this function ensures that writes are explicitly denied for the
+   *       file and the file's parent directory.
+   */
+  Status isNonWritable() const;
 
   bool getFileTimes(PlatformTime& times);
   bool setFileTimes(const PlatformTime& times);
@@ -261,13 +269,8 @@ int platformAccess(const std::string& path, mode_t mode);
 Status platformIsTmpDir(const fs::path& dir);
 
 /**
-* @brief Determines the accessibility and existence of the file path
-*/
+ * @brief Determines the accessibility and existence of the file path
+ */
 Status platformIsFileAccessible(const fs::path& path);
-
-/**
-* @brief Determines the accessibility and existence of the directory path
-*/
-Status platformIsDirAccessible(const fs::path& path);
 }
 
