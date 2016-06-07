@@ -1,13 +1,14 @@
 file(GLOB OSQUERY_LOGGER "*.cpp")
 ADD_OSQUERY_LIBRARY(TRUE osquery_logger ${OSQUERY_LOGGER})
 
-if(FALSE)
+if(TRUE)
 # BUILD BUG: See issue #2107
 file(GLOB OSQUERY_LOGGER_PLUGINS "plugins/*.cpp")
 file(GLOB OSQUERY_LOGGER_PLUGIN_TESTS "plugins/tests/*.cpp")
 ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-kinesis")
 ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-firehose")
 ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-core")
+ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-sts")
 else()
 file(GLOB OSQUERY_LOGGER_PLUGINS "plugins/[!a]*.cpp")
 file(GLOB OSQUERY_LOGGER_PLUGIN_TESTS "plugins/tests/[!a]*.cpp")

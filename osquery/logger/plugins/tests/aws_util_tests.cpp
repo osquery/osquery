@@ -23,6 +23,7 @@ DECLARE_string(aws_access_key_id);
 DECLARE_string(aws_secret_access_key);
 DECLARE_string(aws_profile_name);
 DECLARE_string(aws_region);
+DECLARE_string(aws_sts_region);
 
 static const char* kAwsProfileFileEnvVar = "AWS_SHARED_CREDENTIALS_FILE";
 static const char* kAwsAccessKeyEnvVar = "AWS_ACCESS_KEY_ID";
@@ -46,6 +47,14 @@ TEST_F(AwsUtilTests, test_get_credentials) {
   FLAGS_aws_secret_access_key = "flag_secret_key";
   // With the flags set, those credentials should be used
   provider = OsqueryAWSCredentialsProviderChain();
+  credentials = provider.GetAWSCredentials();
+  ASSERT_EQ("FLAG_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
+  ASSERT_EQ("flag_secret_key", credentials.GetAWSSecretKey());
+
+  FLAGS_aws_access_key_id = "FLAG_ACCESS_KEY_ID";
+  FLAGS_aws_secret_access_key = "flag_secret_key";
+  // With the flags set and sts disabled, those credentials should be used
+  provider = OsqueryAWSCredentialsProviderChain(false);
   credentials = provider.GetAWSCredentials();
   ASSERT_EQ("FLAG_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
   ASSERT_EQ("flag_secret_key", credentials.GetAWSSecretKey());
@@ -97,6 +106,15 @@ TEST_F(AwsUtilTests, test_get_region) {
   // Test bad region flag
   FLAGS_aws_region = "foo";
   ASSERT_EQ(Status(1, "Invalid aws_region specified: foo"), getAWSRegion(region));
+
+  // Test good sts region flag
+  FLAGS_aws_sts_region = "us-east-1";
+  ASSERT_EQ(Status(0), getAWSRegion(region, true));
+  ASSERT_EQ(Aws::Region::US_EAST_1, region);
+
+  // Test bad sts region flag
+  FLAGS_aws_sts_region = "bar";
+  ASSERT_EQ(Status(1, "Invalid aws_region specified: bar"), getAWSRegion(region, true));
 
   FLAGS_aws_region = "";
 

@@ -433,7 +433,7 @@ function install_aws_sdk() {
     pushd ${SOURCE}/build
     CMAKE_FLAGS="-Wno-dev -DCMAKE_INSTALL_PREFIX=${PREFIX} \
                -DCMAKE_BUILD_TYPE=Release \
-               -DBUILD_ONLY=kinesis;firehose \
+               -DBUILD_ONLY=kinesis;firehose;sts \
                -DSTATIC_LINKING=1 -DNO_HTTP_CLIENT=1"
     cmake $CMAKE_FLAGS ..
     make -j$THREADS

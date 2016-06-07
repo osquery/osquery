@@ -11,6 +11,10 @@ Some configuration is shared between the two plugins:
 --aws_profile_name VALUE                AWS config profile to use for auth and region config
 --aws_region VALUE                      AWS region override
 --aws_secret_access_key VALUE           AWS secret access key override
+--aws_sts_arn_role VALUE                AWS STS assume role arn
+--aws_sts_region VALUE                  AWS STS assime role region
+--aws_sts_session_name VALUE            AWS STS session name
+--aws_sts_timeout VALUE                 AWS STS temporary credential timeout period in seconds (900-3600)
 ```
 
 When working with AWS, osquery will look for credentials and region configuration in the following order:
@@ -20,6 +24,8 @@ When working with AWS, osquery will look for credentials and region configuratio
 3. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 4. `default` profile in the AWS config files
 5. Profile from the EC2 Instance Metadata Service
+
+All of the STS configuration flags are optional.  However, if `aws_sts_arn_role` is set, you can utilise temparary credentials via assume role with [AWS Security Token Service](http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).  
 
 ### Kinesis Streams
 
