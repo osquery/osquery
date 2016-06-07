@@ -22,6 +22,7 @@
 
 #include "osquery/core/test_util.h"
 #include "osquery/logger/plugins/aws_firehose.h"
+#include "osquery/logger/plugins/aws_util.h"
 
 using namespace testing;
 
@@ -42,7 +43,10 @@ class MockFirehoseClient : public Aws::Firehose::FirehoseClient {
           const Aws::Firehose::Model::PutRecordBatchRequest& request));
 };
 
-class FirehoseTests : public testing::Test {};
+class FirehoseTests : public testing::Test {
+ public:
+  void SetUp() override { initAwsSdk(); }
+};
 
 TEST_F(FirehoseTests, test_send) {
   FirehoseLogForwarder forwarder;

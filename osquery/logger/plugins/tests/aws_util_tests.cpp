@@ -28,7 +28,10 @@ static const char* kAwsProfileFileEnvVar = "AWS_SHARED_CREDENTIALS_FILE";
 static const char* kAwsAccessKeyEnvVar = "AWS_ACCESS_KEY_ID";
 static const char* kAwsSecretKeyEnvVar = "AWS_SECRET_ACCESS_KEY";
 
-class AwsUtilTests : public testing::Test {};
+class AwsUtilTests : public testing::Test {
+ public:
+  void SetUp() override { initAwsSdk(); }
+};
 
 TEST_F(AwsUtilTests, test_get_credentials) {
   // Set a good path for the credentials file
