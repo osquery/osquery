@@ -106,14 +106,12 @@ Status KinesisLogForwarder::setUp() {
   // Make sure we can connect to designated stream
   Aws::Kinesis::Model::DescribeStreamRequest r;
   r.SetStreamName(FLAGS_aws_kinesis_stream);
-  auto result = client_->DescribeStream(r).GetResult();
-  auto description = result.GetStreamDescription();
-  auto stream_name = description.GetStreamName();
-  if (stream_name.empty()){
-      return Status(1,
-              "Could not find Kinesis stream: " + FLAGS_aws_kinesis_stream);
+  auto outcome = client_->DescribeStream(r);
+  if (outcome.IsSuccess()){
+    VLOG(1) << "Kinesis logging initialized with stream: " << FLAGS_aws_kinesis_stream;
+    return Status(0);
   }
-  VLOG(1) << "Kinesis logging initialized with stream: " << stream_name;
-  return Status(0);
+  return Status(1,
+          "Could not find Kinesis stream: " + FLAGS_aws_kinesis_stream);
 }
 }

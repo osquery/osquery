@@ -107,15 +107,14 @@ Status FirehoseLogForwarder::setUp() {
   // Make sure we can connect to designated stream
   Aws::Firehose::Model::DescribeDeliveryStreamRequest r;
   r.SetDeliveryStreamName(FLAGS_aws_firehose_stream);
-  auto result = client_->DescribeDeliveryStream(r).GetResult();
-  auto description = result.GetDeliveryStreamDescription();
-  auto stream_name = description.GetDeliveryStreamName();
-  if (stream_name.empty()){
-      return Status(1,
-              "Could not find Firehose stream: " + FLAGS_aws_firehose_stream);
+  
+  auto outcome = client_->DescribeDeliveryStream(r);
+  if (outcome.IsSuccess()){
+    VLOG(1) << "Firehose logging initialized with stream: " << FLAGS_aws_firehose_stream;
+    return Status(0);
   }
-  VLOG(1) << "Firehose logging initialized with stream: " << stream_name;
+  return Status(1,
+            "Could not find Firehose stream: " + FLAGS_aws_firehose_stream);
 
-  return Status(0);
 }
 }
