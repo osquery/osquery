@@ -37,8 +37,8 @@ SYSTEMD_SYSCONFIG_DST="/etc/sysconfig/osqueryd"
 CTL_SRC="$SCRIPT_DIR/osqueryctl"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/usr/share/osquery/packs/"
-OSQUERY_POSTINSTALL=$OSQUERY_POSTINSTALL
-OSQUERY_CONFIG_SRC=$OSQUERY_CONFIG_SRC
+OSQUERY_POSTINSTALL=${OSQUERY_POSTINSTALL:-""}
+OSQUERY_CONFIG_SRC=${OSQUERY_CONFIG_SRC:-""}
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/usr/share/osquery/osquery.example.conf"
 OSQUERY_LOG_DIR="/var/log/osquery/"
@@ -121,7 +121,7 @@ function main() {
   cp $PACKS_SRC/* $INSTALL_PREFIX/$PACKS_DST
 
   if [ $OSQUERY_CONFIG_SRC != "" ] && [ -f $OSQUERY_CONFIG_SRC ]; then
-    echo "[*] CONFIG SETUP"
+    log "config setup"
     cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/osquery.conf
   fi
 
