@@ -33,11 +33,19 @@ namespace osquery {
 const size_t kExtensionInitializeLatencyUS = 20000;
 
 #ifdef __APPLE__
-const std::string kModuleExtension = ".dylib";
+#define MODULE_EXTENSION ".dylib"
 #else
-const std::string kModuleExtension = ".so";
+#define MODULE_EXTENSION ".so"
 #endif
-const std::string kExtensionExtension = ".ext";
+
+enum ExtenableTypes {
+  EXTENSION = 1,
+  MODULE = 2,
+};
+
+const std::map<ExtenableTypes, std::string> kExtendables = {
+    {EXTENSION, ".ext"}, {MODULE, MODULE_EXTENSION},
+};
 
 CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
 
@@ -171,7 +179,7 @@ Status socketWritable(const fs::path& path) {
       return Status(1, "Cannot write extension socket: " + path.string());
     }
 
-    if (!remove(path).ok()) {
+    if (!osquery::remove(path).ok()) {
       return Status(1, "Cannot remove extension socket: " + path.string());
     }
   } else {
@@ -207,19 +215,21 @@ void loadModules() {
   }
 }
 
-static bool isFileSafe(std::string& path, const std::string& type) {
+static bool isFileSafe(std::string& path, ExtenableTypes type) {
   boost::trim(path);
+  // A 'type name' may be used in verbose log output.
+  std::string type_name = ((type == EXTENSION) ? "extension" : "module");
   if (path.size() == 0 || path[0] == '#' || path[0] == ';') {
     return false;
   }
 
   // Resolve acceptable extension binaries from autoload paths.
   if (isDirectory(path).ok()) {
-    VLOG(1) << "Cannot autoload " << type << " from directory: " << path;
+    VLOG(1) << "Cannot autoload " << type_name << " from directory: " << path;
     return false;
   }
   // The extendables will force an appropriate file path extension.
-  auto& ext = (type == "extension") ? kExtensionExtension : kModuleExtension;
+  auto& ext = kExtendables.at(type);
 
   // Only autoload file which were safe at the time of discovery.
   // If the binary later becomes unsafe (permissions change) then it will fail
@@ -228,18 +238,18 @@ static bool isFileSafe(std::string& path, const std::string& type) {
   // Set the output sanitized path.
   path = extendable.string();
   if (!safePermissions(extendable.parent_path().string(), path, true)) {
-    LOG(WARNING) << "Will not autoload " << type
-                 << " with unsafe permissions: " << path;
+    LOG(WARNING) << "Will not autoload " << type_name
+                 << " with unsafe directory permissions: " << path;
     return false;
   }
 
   if (extendable.extension().string() != ext) {
-    LOG(WARNING) << "Will not autoload " << type << " not ending in '" << ext
-                 << "': " << path;
+    LOG(WARNING) << "Will not autoload " << type_name << " not ending in '"
+                 << ext << "': " << path;
     return false;
   }
 
-  VLOG(1) << "Found autoloadable " << type << ": " << path;
+  VLOG(1) << "Found autoloadable " << type_name << ": " << path;
   return true;
 }
 
@@ -247,7 +257,7 @@ Status loadExtensions(const std::string& loadfile) {
   std::string autoload_paths;
   if (readFile(loadfile, autoload_paths).ok()) {
     for (auto& path : osquery::split(autoload_paths, "\n")) {
-      if (isFileSafe(path, "extension")) {
+      if (isFileSafe(path, EXTENSION)) {
         // After the path is sanitized the watcher becomes responsible for
         // forking and executing the extension binary.
         Watcher::addExtensionPath(path);
@@ -264,7 +274,7 @@ Status loadModules(const std::string& loadfile) {
   std::string autoload_paths;
   if (readFile(loadfile, autoload_paths).ok()) {
     for (auto& path : osquery::split(autoload_paths, "\n")) {
-      if (isFileSafe(path, "module")) {
+      if (isFileSafe(path, MODULE)) {
         RegistryModuleLoader loader(path);
         loader.init();
       } else {
