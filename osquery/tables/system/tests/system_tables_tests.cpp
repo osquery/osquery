@@ -65,26 +65,23 @@ TEST_F(SystemsTablesTests, test_processes) {
 TEST_F(SystemsTablesTests, test_abstract_joins) {
   // Codify several assumptions about how tables should be joined into tests.
   // The first is an implicit inner join from processes to file information.
-  auto results = SQL(
-      "select * from (select pid, path from processes where path <> '' limit "
-      "1) p join file using (path);");
+  std::string join_preamble =
+      "select * from (select path from osquery_info join processes using "
+      "(pid)) p";
+  auto results = SQL(join_preamble + " join file using (path);");
   ASSERT_EQ(results.rows().size(), 1U);
 
   // The same holds for an explicit left join.
-  results = SQL(
-      "select * from (select pid, path from processes where path <> '' limit "
-      "1) p left join file using (path);");
+  results = SQL(join_preamble + "left join file using (path);");
   ASSERT_EQ(results.rows().size(), 1U);
 
   // A secondary inner join against hash.
-  results = SQL(
-      "select * from (select pid, path from processes where path <> '' limit "
-      "1) p join file using (path) join hash using (path);");
+  results =
+      SQL(join_preamble + " join file using (path) join hash using (path);");
   ASSERT_EQ(results.rows().size(), 1U);
 
-  results = SQL(
-      "select * from (select pid, path from processes where path <> '' limit "
-      "1) p left join file using (path) left join hash using (path);");
+  results = SQL(join_preamble +
+                " left join file using (path) left join hash using (path);");
   ASSERT_EQ(results.rows().size(), 1U);
 
   // Check LIKE and = operands.
