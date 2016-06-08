@@ -173,6 +173,7 @@ int xCreate(sqlite3 *db,
   auto statement = "CREATE TABLE " + name + columnDefinition(response, true);
   int rc = sqlite3_declare_vtab(db, statement.c_str());
   if (rc != SQLITE_OK || !status.ok() || response.size() == 0) {
+    LOG(ERROR) << "Error creating virtual table: " << name << " (" << rc << ")";
     delete pVtab->content;
     delete pVtab;
     return (rc != SQLITE_OK) ? rc : SQLITE_ERROR;
