@@ -13,8 +13,8 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include <aws/core/utils/Outcome.h>
-#include <aws/kinesis/model/ListStreamsRequest.h>
-#include <aws/kinesis/model/ListStreamsResult.h>
+#include <aws/kinesis/model/DescribeStreamRequest.h>
+#include <aws/kinesis/model/DescribeStreamResult.h>
 #include <aws/kinesis/model/PutRecordsRequest.h>
 #include <aws/kinesis/model/PutRecordsRequestEntry.h>
 #include <aws/kinesis/model/PutRecordsResult.h>
@@ -105,17 +105,13 @@ Status KinesisLogForwarder::setUp() {
   }
 
   // Make sure we can connect to designated stream
-  Aws::Kinesis::Model::ListStreamsRequest r;
-  auto result = client_->ListStreams(r).GetResult();
-  std::vector<std::string> stream_names = result.GetStreamNames();
-
-  if (std::find(stream_names.begin(),
-                stream_names.end(),
-                FLAGS_aws_kinesis_stream) == stream_names.end()) {
+  Aws::Kinesis::Model::DescribeStreamRequest r;
+  r.SetStreamName(FLAGS_aws_kinesis_stream);
+  auto outcome = client_->DescribeStream(r);
+  if (!outcome.IsSuccess()) {
     return Status(1,
                   "Could not find Kinesis stream: " + FLAGS_aws_kinesis_stream);
   }
-
   VLOG(1) << "Kinesis logging initialized with stream: "
           << FLAGS_aws_kinesis_stream;
   return Status(0);
