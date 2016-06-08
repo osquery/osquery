@@ -108,7 +108,8 @@ TEST_F(AwsUtilTests, test_get_region) {
 
   // Test bad region flag
   FLAGS_aws_region = "foo";
-  ASSERT_EQ(Status(1, "Invalid aws_region specified: foo"), getAWSRegion(region));
+  ASSERT_EQ(Status(1, "Invalid aws_region specified: foo"),
+            getAWSRegion(region));
 
   // Test good sts region flag
   FLAGS_aws_sts_region = "us-east-1";
@@ -117,7 +118,8 @@ TEST_F(AwsUtilTests, test_get_region) {
 
   // Test bad sts region flag
   FLAGS_aws_sts_region = "bar";
-  ASSERT_EQ(Status(1, "Invalid aws_region specified: bar"), getAWSRegion(region, true));
+  ASSERT_EQ(Status(1, "Invalid aws_region specified: bar"),
+            getAWSRegion(region, true));
 
   FLAGS_aws_region = "";
 
