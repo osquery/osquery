@@ -28,23 +28,32 @@
 
 #include "osquery/tests/test_util.h"
 
+#ifdef WIN32
+#include <lmcons.h>
+#endif
+
 namespace fs = boost::filesystem;
 
 namespace osquery {
 
 std::string kFakeDirectory = "";
 
-#ifdef DARWIN
+#if defined(DARWIN)
 std::string kTestWorkingDirectory = "/private/tmp/osquery-tests";
+#elif defined(WIN32)
+std::string kTestWorkingDirectory =
+    (fs::temp_directory_path() / "osquery-tests").make_preferred().string();
 #else
 std::string kTestWorkingDirectory = "/tmp/osquery-tests";
 #endif
 
 /// Most tests will use binary or disk-backed content for parsing tests.
 #ifndef OSQUERY_BUILD_SDK
-std::string kTestDataPath = "../../../tools/tests/";
+std::string kTestDataPath =
+    fs::path("../../../tools/tests/").make_preferred().string();
 #else
-std::string kTestDataPath = "../../../../tools/tests/";
+std::string kTestDataPath =
+    fs::path("../../../../tools/tests/").make_preferred().string();
 #endif
 
 DECLARE_string(database_path);
@@ -56,6 +65,63 @@ DECLARE_bool(disable_logging);
 DECLARE_bool(disable_database);
 
 typedef std::chrono::high_resolution_clock chrono_clock;
+
+static std::string getUserId() {
+#ifdef WIN32
+  std::vector<unsigned char> user_name(UNLEN + 1);
+  user_name.assign(UNLEN + 1, '\0');
+  DWORD size = user_name.size() - 1;
+
+  if (!::GetUserNameA((LPSTR) &user_name[0], &size)) {
+    return "";
+  }
+
+  return std::string((const char *)&user_name[0], size - 1);
+#else
+  return std::to_string(getuid());
+#endif
+}
+
+static std::unique_ptr<PlatformProcess> launchTestServer(const std::string &port) {
+  std::unique_ptr<PlatformProcess> server;
+
+#ifdef WIN32
+  STARTUPINFOA si = { 0 };
+  PROCESS_INFORMATION pi = { 0 };
+
+  auto argv = "python " + kTestDataPath + "/test_http_server.py --tls " + port;
+  std::vector<char> mutable_argv(argv.begin(), argv.end());
+  si.cb = sizeof(si);
+
+
+  auto drive = getEnvVar("SystemDrive");
+  std::string python_path("");
+  if (drive.is_initialized()) {
+    python_path = *drive;
+  }
+
+  // Python is installed here if provisioning script is used
+  python_path += "\\tools\python2\\python.exe";
+  if (::CreateProcessA(python_path.c_str(), &mutable_argv[0], NULL, NULL, FALSE,
+                       0, NULL, NULL, &si, &pi)) {
+    server.reset(new PlatformProcess(pi.hProcess));
+    ::CloseHandle(pi.hThread);
+    ::CloseHandle(pi.hProcess);
+  }
+#else
+  int server_pid = fork();
+  if (server_pid == 0) {
+    // Start a python TLS/HTTPS or HTTP server.
+    auto script = kTestDataPath + "/test_http_server.py --tls " + port;
+    execlp("sh", "sh", "-c", script.c_str(), nullptr);
+    ::exit(0);
+  } else if (server_pid > 0) {
+    server.reset(new PlatformProcess(server_pid));
+  }
+#endif
+
+  return std::move(server);
+}
 
 void initTesting() {
   // Allow unit test execution from anywhere in the osquery source/build tree.
@@ -74,29 +140,48 @@ void initTesting() {
 
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
-  kTestWorkingDirectory += std::to_string(getuid()) + "/";
-  kFakeDirectory = kTestWorkingDirectory + kFakeDirectoryName;
+  kTestWorkingDirectory = fs::path(kTestWorkingDirectory + getUserId() + "/")
+                              .make_preferred()
+                              .string();
+  kFakeDirectory = fs::path(kTestWorkingDirectory + kFakeDirectoryName)
+                       .make_preferred()
+                       .string();
 
   fs::remove_all(kTestWorkingDirectory);
   fs::create_directories(kTestWorkingDirectory);
-  FLAGS_database_path = kTestWorkingDirectory + "unittests.db";
+  FLAGS_database_path = fs::path(kTestWorkingDirectory + "unittests.db")
+                            .make_preferred()
+                            .string();
   FLAGS_extensions_socket = kTestWorkingDirectory + "unittests.em";
-  FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
-  FLAGS_modules_autoload = kTestWorkingDirectory + "unittests-mod.load";
+  FLAGS_extensions_autoload =
+      fs::path(kTestWorkingDirectory + "unittests-ext.load")
+          .make_preferred()
+          .string();
+  FLAGS_modules_autoload =
+      fs::path(kTestWorkingDirectory + "unittests-mod.load")
+          .make_preferred()
+          .string();
   FLAGS_disable_logging = true;
   FLAGS_disable_database = true;
 
   // Tests need a database plugin.
   // Set up the database instance for the unittests.
   DatabasePlugin::setAllowOpen(true);
+
+  // Initializing database plugin does not work 
+#ifndef WIN32
   DatabasePlugin::initPlugin();
+#endif
 }
 
 void shutdownTesting() { DatabasePlugin::shutdown(); }
 
 std::map<std::string, std::string> getTestConfigMap() {
   std::string content;
-  readFile(kTestDataPath + "test_parse_items.conf", content);
+  readFile(fs::path(kTestDataPath + "test_parse_items.conf")
+               .make_preferred()
+               .string(),
+           content);
   std::map<std::string, std::string> config;
   config["awesome"] = content;
   return config;
@@ -104,7 +189,10 @@ std::map<std::string, std::string> getTestConfigMap() {
 
 pt::ptree getExamplePacksConfig() {
   std::string content;
-  auto s = readFile(kTestDataPath + "test_inline_pack.conf", content);
+  auto s = readFile(fs::path(kTestDataPath + "test_inline_pack.conf")
+                        .make_preferred()
+                        .string(),
+                    content);
   assert(s.ok());
   std::stringstream json;
   json << content;
@@ -310,19 +398,23 @@ std::vector<SplitStringTestData> generateSplitStringTestData() {
 
 std::string getCACertificateContent() {
   std::string content;
-  readFile(kTestDataPath + "test_cert.pem", content);
+  readFile(fs::path(kTestDataPath + "test_cert.pem").make_preferred().string(),
+           content);
   return content;
 }
 
 std::string getEtcHostsContent() {
   std::string content;
-  readFile(kTestDataPath + "test_hosts.txt", content);
+  readFile(fs::path(kTestDataPath + "test_hosts.txt").make_preferred().string(),
+           content);
   return content;
 }
 
 std::string getEtcProtocolsContent() {
   std::string content;
-  readFile(kTestDataPath + "test_protocols.txt", content);
+  readFile(
+      fs::path(kTestDataPath + "test_protocols.txt").make_preferred().string(),
+      content);
   return content;
 }
 
@@ -375,22 +467,48 @@ QueryData getEtcProtocolsExpectedResults() {
 }
 
 void createMockFileStructure() {
-  fs::create_directories(kFakeDirectory + "/deep11/deep2/deep3/");
-  fs::create_directories(kFakeDirectory + "/deep1/deep2/");
-  writeTextFile(kFakeDirectory + "/root.txt", "root");
-  writeTextFile(kFakeDirectory + "/door.txt", "toor");
-  writeTextFile(kFakeDirectory + "/roto.txt", "roto");
-  writeTextFile(kFakeDirectory + "/deep1/level1.txt", "l1");
-  writeTextFile(kFakeDirectory + "/deep11/not_bash", "l1");
-  writeTextFile(kFakeDirectory + "/deep1/deep2/level2.txt", "l2");
+  fs::create_directories(fs::path(kFakeDirectory + "/deep11/deep2/deep3/")
+                             .make_preferred()
+                             .string());
+  fs::create_directories(
+      fs::path(kFakeDirectory + "/deep1/deep2/").make_preferred().string());
+  writeTextFile(
+      fs::path(kFakeDirectory + "/root.txt").make_preferred().string(), "root");
+  writeTextFile(
+      fs::path(kFakeDirectory + "/door.txt").make_preferred().string(), "toor");
+  writeTextFile(
+      fs::path(kFakeDirectory + "/roto.txt").make_preferred().string(), "roto");
+  writeTextFile(
+      fs::path(kFakeDirectory + "/deep1/level1.txt").make_preferred().string(),
+      "l1");
+  writeTextFile(
+      fs::path(kFakeDirectory + "/deep11/not_bash").make_preferred().string(),
+      "l1");
+  writeTextFile(fs::path(kFakeDirectory + "/deep1/deep2/level2.txt")
+                    .make_preferred()
+                    .string(),
+                "l2");
 
-  writeTextFile(kFakeDirectory + "/deep11/level1.txt", "l1");
-  writeTextFile(kFakeDirectory + "/deep11/deep2/level2.txt", "l2");
-  writeTextFile(kFakeDirectory + "/deep11/deep2/deep3/level3.txt", "l3");
+  writeTextFile(
+      fs::path(kFakeDirectory + "/deep11/level1.txt").make_preferred().string(),
+      "l1");
+  writeTextFile(fs::path(kFakeDirectory + "/deep11/deep2/level2.txt")
+                    .make_preferred()
+                    .string(),
+                "l2");
+  writeTextFile(fs::path(kFakeDirectory + "/deep11/deep2/deep3/level3.txt")
+                    .make_preferred()
+                    .string(),
+                "l3");
 
   boost::system::error_code ec;
+#ifdef WIN32
+  writeTextFile(
+      fs::path(kFakeDirectory + "/root2.txt").make_preferred().string(), "l1");
+#else
   fs::create_symlink(
       kFakeDirectory + "/root.txt", kFakeDirectory + "/root2.txt", ec);
+#endif
 }
 
 void tearDownMockFileStructure() {
@@ -399,7 +517,7 @@ void tearDownMockFileStructure() {
 
 void TLSServerRunner::start() {
   auto& self = instance();
-  if (self.server_ != 0) {
+  if (self.server_ != nullptr) {
     return;
   }
 
@@ -407,12 +525,9 @@ void TLSServerRunner::start() {
   self.port_ = std::to_string(rand() % 10000 + 20000);
 
   // Fork then exec a shell.
-  self.server_ = fork();
-  if (self.server_ == 0) {
-    // Start a python TLS/HTTPS or HTTP server.
-    auto script = kTestDataPath + "/test_http_server.py --tls " + self.port_;
-    execlp("sh", "sh", "-c", script.c_str(), nullptr);
-    ::exit(0);
+  self.server_ = launchTestServer(self.port_);
+  if (self.server_ == nullptr) {
+    return;
   }
 
   size_t delay = 0;
@@ -442,7 +557,9 @@ void TLSServerRunner::setClientConfig() {
 
   self.enroll_secret_path_ = Flag::getValue("enroll_secret_path");
   Flag::updateValue("enroll_secret_path",
-                    kTestDataPath + "/test_enroll_secret.txt");
+                    fs::path(kTestDataPath + "/test_enroll_secret.txt")
+                        .make_preferred()
+                        .string());
 }
 
 void TLSServerRunner::unsetClientConfig() {
@@ -455,7 +572,9 @@ void TLSServerRunner::unsetClientConfig() {
 
 void TLSServerRunner::stop() {
   auto& self = instance();
-  kill(self.server_, SIGKILL);
-  self.server_ = 0;
+  if (self.server_ != nullptr) {
+    self.server_->kill();
+    self.server_.reset(nullptr);
+  }
 }
 }
