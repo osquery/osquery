@@ -70,6 +70,8 @@ enum {
 
 #ifdef __linux__
 #define OSQUERY_HOME "/etc/osquery"
+#elif defined(WIN32)
+#define OSQUERY_HOME "\\ProgramData\\osquery"
 #else
 #define OSQUERY_HOME "/var/osquery"
 #endif
