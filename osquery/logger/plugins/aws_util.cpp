@@ -201,19 +201,23 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
   if (token_expire_time <= seconds.count()){
     // Create and setup a STS client to pull our temp creds
     VLOG(1) << "Generate new AWS STS credentials.";
+    initAwsSdk();
     Status s = makeAWSClient<Aws::STS::STSClient>(sts_client_, false);
     Aws::STS::Model::AssumeRoleRequest sts_r;
     sts_r.SetRoleArn(FLAGS_aws_sts_arn_role);
     sts_r.SetRoleSessionName(FLAGS_aws_sts_session_name);
     sts_r.SetDurationSeconds(FLAGS_aws_sts_timeout);
     // Pull our STS creds
-    auto sts_result = sts_client_->AssumeRole(sts_r).GetResult();
-    // Cache our credentials for later use
-    sts_access_key_id = sts_result.GetCredentials().GetAccessKeyId();
-    sts_secret_access_key = sts_result.GetCredentials().GetSecretAccessKey();
-    sts_session_token = sts_result.GetCredentials().GetSessionToken();
-    // Calculate when our credentials will expire
-    token_expire_time = seconds.count() + FLAGS_aws_sts_timeout;
+    auto sts_outcome = sts_client_->AssumeRole(sts_r);
+    if (sts_outcome.IsSuccess()){
+      auto sts_result = sts_outcome.GetResult();
+      // Cache our credentials for later use
+      sts_access_key_id = sts_result.GetCredentials().GetAccessKeyId();
+      sts_secret_access_key = sts_result.GetCredentials().GetSecretAccessKey();
+      sts_session_token = sts_result.GetCredentials().GetSessionToken();
+      // Calculate when our credentials will expire
+      token_expire_time = seconds.count() + FLAGS_aws_sts_timeout;
+    }
   } 
   return Aws::Auth::AWSCredentials(sts_access_key_id,
           sts_secret_access_key, sts_session_token);

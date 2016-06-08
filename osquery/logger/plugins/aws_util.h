@@ -93,7 +93,7 @@ class OsquerySTSAWSCredentialsProvider
   Aws::String sts_access_key_id = "";
   Aws::String sts_secret_access_key = "";
   Aws::String sts_session_token = "";
-  unsigned long token_expire_time = 0;
+  long long token_expire_time = 0;
  private:
   std::shared_ptr<Aws::STS::STSClient> sts_client_{nullptr};
 };
@@ -156,8 +156,7 @@ Status makeAWSClient(std::shared_ptr<Client> &client, bool sts=true) {
     return s;
   }
   client = std::make_shared<Client>(
-      std::make_shared<NetlibHttpClientFactory>());
-      std::make_shared<OsqueryAWSCredentialsProviderChain>(sts), client_config,
+      std::make_shared<OsqueryAWSCredentialsProviderChain>(sts), client_config);
   return Status(0);
 }
 }
