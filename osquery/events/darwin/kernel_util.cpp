@@ -35,12 +35,13 @@ static const std::string kKernelBundleRegex =
     ".*Kernel Extensions in "
     "backtrace:.*com\\.facebook\\.security\\.osquery.*Kernel version:";
 static const std::string kBlockingFile = "/var/osquery/.gtfo";
-static const std::string kKernelPackageFile = "com.facebook.osquery.kernel.pkg";
+static const std::string kKernelPackageReceipt =
+    "/private/var/db/receipts/com.facebook.osquery.kernel.plist";
 
 void loadKernelExtension() {
   // Check if the kernel extension package is installed.
   auto results = SQL::selectAllFrom(
-      "packages", "package_filename", EQUALS, kKernelPackageFile);
+      "package_receipts", "path", EQUALS, kKernelPackageReceipt);
   if (results.size() == 0) {
     // The kernel package is not installed.
     return;
@@ -52,7 +53,8 @@ void loadKernelExtension() {
           "SELECT f.path AS path FROM (SELECT * FROM nvram WHERE name like "
           "'%panic%') AS nv JOIN (SELECT * FROM file WHERE "
           "directory='/Library/Logs/DiagnosticReports/' AND path like "
-          "'%/Kernel%' ORDER BY ctime DESC LIMIT 1) as f;").rows();
+          "'%/Kernel%' ORDER BY ctime DESC LIMIT 1) as f;")
+          .rows();
 
   // If a panic exists, check if it was caused by the osquery extension.
   if (results.size() == 1) {
@@ -90,6 +92,7 @@ void loadKernelExtension() {
     LOG(INFO) << "Could not autoload kernel extension";
   }
   CFRelease(directoryArray);
+  VLOG(1) << "Autoloaded osquery kernel extension";
 }
 
 } // namespace osquery
