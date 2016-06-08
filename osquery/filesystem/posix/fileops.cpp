@@ -295,12 +295,12 @@ Status platformIsTmpDir(const fs::path& dir) {
     return Status(0, "OK");
   }
 
-  return Status(1, "");
+  return Status(1, "Not temporary directory");
 }
 
 // Reduce this to be a lstat check for symlink stuff
 Status platformIsFileAccessible(const fs::path& path) {
-  struct stat file_stat, link_stat;
+  struct stat link_stat;
   if (::lstat(path.c_str(), &link_stat) < 0) {
     return Status(1, "File is not acccessible");
   }
