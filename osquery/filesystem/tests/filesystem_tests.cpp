@@ -34,24 +34,26 @@ DECLARE_uint64(read_user_max);
 #ifdef WIN32
 auto raw_drive = getEnvVar("SystemDrive");
 
-std::string kEtcHostsPath = "C:\\Windows\\System32\\drivers\\etc\\hosts";
+fs::path kEtcHostsPath = "C:\\Windows\\System32\\drivers\\etc\\hosts";
 
-const std::string kEtcPath = "C:\\Windows\\System32\\drivers\\etc";
-const std::string kTmpPath = fs::temp_directory_path().string();
-const std::string kSystemRoot =
+const fs::path kEtcPath = "C:\\Windows\\System32\\drivers\\etc";
+const fs::path kTmpPath = fs::temp_directory_path().string();
+const fs::path kSystemRoot =
     (raw_drive.is_initialized() ? *raw_drive : "") + "\\";
+
 const std::string kLineEnding = "\r\n";
 #else
-std::string kEtcHostsPath = "/etc/hosts";
+fs::path kEtcHostsPath = "/etc/hosts";
 
-const std::string kEtcPath = "/etc";
-const std::string kTmpPath = "/tmp";
-const std::string kSystemRoot = "/";
+const fs::path kEtcPath = "/etc";
+const fs::path kTmpPath = "/tmp";
+const fs::path kSystemRoot = "/";
+
 const std::string kLineEnding = "\n";
 #endif
 
-std::string kDoorTxtPath;
-std::string kDeep11Path;
+fs::path kDoorTxtPath;
+fs::path kDeep11Path;
 
 class FilesystemTests : public testing::Test {
 
@@ -59,10 +61,8 @@ class FilesystemTests : public testing::Test {
   void SetUp() {
     createMockFileStructure();
 
-    kDoorTxtPath =
-        fs::path(kFakeDirectory + "/door.txt").make_preferred().string();
-    kDeep11Path =
-        fs::path(kFakeDirectory + "/deep11").make_preferred().string();
+    kDoorTxtPath = fs::path(kFakeDirectory + "/door.txt").make_preferred();
+    kDeep11Path = fs::path(kFakeDirectory + "/deep11").make_preferred();
   }
 
   void TearDown() { tearDownMockFileStructure(); }
@@ -136,10 +136,10 @@ TEST_F(FilesystemTests, test_list_files_valid_directory) {
   auto s = listFilesInDirectory(kEtcPath, results);
   // This directory may be different on OS X or Linux.
 
-  replaceGlobWildcards(kEtcHostsPath);
+  replaceGlobWildcards(std::string(kEtcHostsPath.string()));
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_TRUE(contains(results, kEtcHostsPath));
+  EXPECT_TRUE(contains(results, kEtcHostsPath.string()));
 }
 
 TEST_F(FilesystemTests, test_canonicalization) {
@@ -345,13 +345,13 @@ TEST_F(FilesystemTests, test_no_wild) {
 
 TEST_F(FilesystemTests, test_safe_permissions) {
   // For testing we can request a different directory path.
-  EXPECT_TRUE(safePermissions(kSystemRoot, kDoorTxtPath));
+  EXPECT_TRUE(safePermissions(kSystemRoot.string(), kDoorTxtPath.string()));
 
   // A file with a directory.mode & 0x1000 fails.
-  EXPECT_FALSE(safePermissions(kTmpPath, kDoorTxtPath));
+  EXPECT_FALSE(safePermissions(kTmpPath.string(), kDoorTxtPath.string()));
 
   // A directory for a file will fail.
-  EXPECT_FALSE(safePermissions(kSystemRoot, kDeep11Path));
+  EXPECT_FALSE(safePermissions(kSystemRoot.string(), kDeep11Path.string()));
 
 #ifndef WIN32
   // A root-owned file is appropriate
