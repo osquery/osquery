@@ -148,7 +148,7 @@ class TLSServerRunner : private boost::noncopyable {
 
  private:
   /// Current server PID.
-  pid_t server_{0};
+  std::unique_ptr<PlatformProcess> server_{nullptr};
 
   /// Current server TLS port.
   std::string port_;
