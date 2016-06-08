@@ -1,10 +1,8 @@
 class AwsSdkCpp < Formula
   desc "AWS SDK for C++"
   homepage "https://github.com/aws/aws-sdk-cpp"
-  url "https://github.com/aws/aws-sdk-cpp.git"
-  version "0.12.4"
-
-  bottle :unneeded
+  url "https://github.com/aws/aws-sdk-cpp.git",
+    :tag => "0.12.5"
 
   option "with-static", "Build with static linking"
   option "without-http-client", "Don't include the libcurl HTTP client"
