@@ -15,7 +15,7 @@ class AwsSdkCpp < Formula
     args = std_cmake_args
     args << "-DSTATIC_LINKING=1" if build.with? "static" or true
     args << "-DNO_HTTP_CLIENT=1" if build.without? "http-client" or true
-    args << "-DBUILD_ONLY=firehose;kinesis" if build.with? "logging-only" or true
+    args << "-DBUILD_ONLY=firehose;kinesis;sts" if build.with? "logging-only" or true
     args << "-DMINIMIZE_SIZE=ON" if build.with? "minimize-size" or true
 
     mkdir "build" do
