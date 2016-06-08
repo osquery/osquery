@@ -8,10 +8,10 @@
  *
  */
 
+#include <chrono>
 #include <mutex>
 #include <sstream>
 #include <string>
-#include <chrono>
 
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -29,8 +29,8 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-#include "osquery/remote/transports/tls.h"
 #include "osquery/logger/plugins/aws_util.h"
+#include "osquery/remote/transports/tls.h"
 
 namespace pt = boost::property_tree;
 namespace bn = boost::network;
@@ -52,7 +52,8 @@ FLAG(string, aws_sts_session_name, "default", "AWS STS session name");
 FLAG(uint64,
      aws_sts_timeout,
      3600,
-     "duration in seconds which the sts assume role temp creds are valid (default 3600)");
+     "duration in seconds which the sts assume role temp creds are valid "
+     "(default 3600)");
 
 // Map of AWS region name string -> AWS::Region enum
 static const std::map<std::string, Aws::Region> kAwsRegions = {
@@ -196,9 +197,9 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
   auto now = std::chrono::system_clock::now();
   auto epoch = now.time_since_epoch();
   auto seconds = std::chrono::duration_cast<std::chrono::seconds>(epoch);
-  // Pull new STS creds if we dont have them cached from a previous run, 
+  // Pull new STS creds if we dont have them cached from a previous run,
   // otherwise return cached STS creds
-  if (token_expire_time <= seconds.count()){
+  if (token_expire_time <= seconds.count()) {
     // Create and setup a STS client to pull our temp creds
     VLOG(1) << "Generate new AWS STS credentials.";
     initAwsSdk();
@@ -209,7 +210,7 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
     sts_r.SetDurationSeconds(FLAGS_aws_sts_timeout);
     // Pull our STS creds
     auto sts_outcome = sts_client_->AssumeRole(sts_r);
-    if (sts_outcome.IsSuccess()){
+    if (sts_outcome.IsSuccess()) {
       auto sts_result = sts_outcome.GetResult();
       // Cache our credentials for later use
       sts_access_key_id = sts_result.GetCredentials().GetAccessKeyId();
@@ -218,16 +219,16 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       // Calculate when our credentials will expire
       token_expire_time = seconds.count() + FLAGS_aws_sts_timeout;
     }
-  } 
-  return Aws::Auth::AWSCredentials(sts_access_key_id,
-          sts_secret_access_key, sts_session_token);
+  }
+  return Aws::Auth::AWSCredentials(sts_access_key_id, sts_secret_access_key,
+                                   sts_session_token);
 }
 
 OsqueryAWSCredentialsProviderChain::OsqueryAWSCredentialsProviderChain(bool sts)
     : AWSCredentialsProviderChain() {
   // The order of the AddProvider calls determines the order in which the
   // provider chain attempts to retrieve credentials.
-  if (sts && !FLAGS_aws_sts_arn_role.empty()){
+  if (sts && !FLAGS_aws_sts_arn_role.empty()) {
     AddProvider(std::make_shared<OsquerySTSAWSCredentialsProvider>());
   }
   AddProvider(std::make_shared<OsqueryFlagsAWSCredentialsProvider>());

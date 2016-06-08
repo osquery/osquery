@@ -81,7 +81,7 @@ class OsqueryFlagsAWSCredentialsProvider
 /**
  * @brief AWS credentials provider that uses STS assume role auth
  *
- * This provider deligates temp AWS STS credentials via assume role 
+ * This provider deligates temp AWS STS credentials via assume role
  * for and AWS arn.
  */
 class OsquerySTSAWSCredentialsProvider
@@ -94,6 +94,7 @@ class OsquerySTSAWSCredentialsProvider
   Aws::String sts_secret_access_key = "";
   Aws::String sts_session_token = "";
   long long token_expire_time = 0;
+
  private:
   std::shared_ptr<Aws::STS::STSClient> sts_client_{nullptr};
 };
@@ -133,7 +134,7 @@ void initAwsSdk();
  *
  * @return 0 if successful, 1 if the region was not recognized
  */
-Status getAWSRegion(Aws::Region &region, bool sts=false);
+Status getAWSRegion(Aws::Region &region, bool sts = false);
 
 /**
  * @brief Instantiate an AWS client with the appropriate osquery configs
@@ -148,7 +149,7 @@ Status getAWSRegion(Aws::Region &region, bool sts=false);
  * @return 0 if successful, 1 if there was a problem reading configs
  */
 template <class Client>
-Status makeAWSClient(std::shared_ptr<Client> &client, bool sts=true) {
+Status makeAWSClient(std::shared_ptr<Client> &client, bool sts = true) {
   // Set up client
   Aws::Client::ClientConfiguration client_config;
   Status s = getAWSRegion(client_config.region, sts);
