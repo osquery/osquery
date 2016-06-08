@@ -33,7 +33,7 @@ KERNEL_APP_IDENTIFIER="com.facebook.osquery.kernel"
 LD_IDENTIFIER="com.facebook.osqueryd"
 LD_INSTALL="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
 OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$APP_VERSION.pkg"
-KERNEL_OUTPUT_PKG_PATH="$BUILD_DIR/osquery-kernel-${BUILD_VERSION}-${APP_VERSION}.pkg"
+KERNEL_OUTPUT_PKG_PATH="$BUILD_DIR/osquery-kernel-${APP_VERSION}.pkg"
 AUTOSTART=false
 CLEAN=false
 
@@ -256,7 +256,7 @@ function main() {
     pkgbuild --root $KERNEL_INSTALL_PREFIX             \
              --scripts $KERNEL_SCRIPT_ROOT             \
              --identifier $KERNEL_APP_IDENTIFIER       \
-             --version ${BUILD_VERSION}-${APP_VERSION} \
+             --version ${APP_VERSION}                  \
              $KERNEL_OUTPUT_PKG_PATH 2>&1  1>/dev/null
     log "kernel package created at $KERNEL_OUTPUT_PKG_PATH"
   else

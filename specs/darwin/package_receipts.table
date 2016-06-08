@@ -1,4 +1,4 @@
-table_name("package_receipts")
+table_name("package_receipts", aliases=["packages"])
 description("OS X package receipt details.")
 schema([
     Column("package_id", TEXT, "Package domain identifier"),
