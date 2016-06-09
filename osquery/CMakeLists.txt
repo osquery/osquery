@@ -241,7 +241,7 @@ endif()
 
 if(NOT DEFINED ENV{SKIP_TESTS})
   # osquery testing library (testing helper methods/libs).
-  add_library(libosquery_testing STATIC tests/test_util.cpp)
+  add_library(libosquery_testing STATIC tests/test_util.cpp tests/${PROCESS_FAMILY}/utils.cpp)
   add_dependencies(libosquery_testing libosquery)
   SET_OSQUERY_COMPILE(libosquery_testing "${CXX_COMPILE_FLAGS}")
   set_target_properties(libosquery_testing PROPERTIES OUTPUT_NAME osquery_testing)
