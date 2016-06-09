@@ -106,9 +106,7 @@ void initTesting() {
   DatabasePlugin::setAllowOpen(true);
 
   // Initializing database plugin does not work 
-#ifndef WIN32
   DatabasePlugin::initPlugin();
-#endif
 }
 
 void shutdownTesting() { DatabasePlugin::shutdown(); }
