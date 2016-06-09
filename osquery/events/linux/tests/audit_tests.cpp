@@ -16,7 +16,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/audit.h"
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 

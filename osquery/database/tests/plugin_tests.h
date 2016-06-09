@@ -17,7 +17,7 @@
 #include <osquery/database.h>
 #include <osquery/flags.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 
 /// The following test macros allow pretty test output.
 #define CREATE_DATABASE_TESTS(n)                      \
