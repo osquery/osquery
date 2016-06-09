@@ -14,7 +14,7 @@
 
 #include <boost/tokenizer.hpp>
 
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 #include "osquery/events/linux/syslog.h"
 
 namespace osquery {

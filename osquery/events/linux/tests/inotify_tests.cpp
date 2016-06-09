@@ -19,7 +19,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 #include "osquery/events/linux/inotify.h"
 
 namespace fs = boost::filesystem;

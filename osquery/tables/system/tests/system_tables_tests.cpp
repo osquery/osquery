@@ -14,7 +14,7 @@
 #include <osquery/tables.h>
 #include <osquery/sql.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 namespace tables {

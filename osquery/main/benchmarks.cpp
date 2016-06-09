@@ -10,7 +10,7 @@
 
 #include <benchmark/benchmark.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 
 int main(int argc, char *argv[]) {
   osquery::initTesting();
