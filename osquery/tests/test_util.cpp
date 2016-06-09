@@ -28,24 +28,14 @@
 
 #include "osquery/tests/test_util.h"
 
-#ifdef WIN32
-#include <lmcons.h>
-#endif
-
 namespace fs = boost::filesystem;
 
 namespace osquery {
 
 std::string kFakeDirectory = "";
 
-#if defined(DARWIN)
-std::string kTestWorkingDirectory = "/private/tmp/osquery-tests";
-#elif defined(WIN32)
 std::string kTestWorkingDirectory =
     (fs::temp_directory_path() / "osquery-tests").make_preferred().string();
-#else
-std::string kTestWorkingDirectory = "/tmp/osquery-tests";
-#endif
 
 /// Most tests will use binary or disk-backed content for parsing tests.
 #ifndef OSQUERY_BUILD_SDK
@@ -66,62 +56,9 @@ DECLARE_bool(disable_database);
 
 typedef std::chrono::high_resolution_clock chrono_clock;
 
-static std::string getUserId() {
-#ifdef WIN32
-  std::vector<unsigned char> user_name(UNLEN + 1);
-  user_name.assign(UNLEN + 1, '\0');
-  DWORD size = user_name.size() - 1;
+std::string getUserId();
 
-  if (!::GetUserNameA((LPSTR) &user_name[0], &size)) {
-    return "";
-  }
-
-  return std::string((const char *)&user_name[0], size - 1);
-#else
-  return std::to_string(getuid());
-#endif
-}
-
-static std::unique_ptr<PlatformProcess> launchTestServer(const std::string &port) {
-  std::unique_ptr<PlatformProcess> server;
-
-#ifdef WIN32
-  STARTUPINFOA si = { 0 };
-  PROCESS_INFORMATION pi = { 0 };
-
-  auto argv = "python " + kTestDataPath + "/test_http_server.py --tls " + port;
-  std::vector<char> mutable_argv(argv.begin(), argv.end());
-  si.cb = sizeof(si);
-
-
-  auto drive = getEnvVar("SystemDrive");
-  std::string python_path("");
-  if (drive.is_initialized()) {
-    python_path = *drive;
-  }
-
-  // Python is installed here if provisioning script is used
-  python_path += "\\tools\python2\\python.exe";
-  if (::CreateProcessA(python_path.c_str(), &mutable_argv[0], NULL, NULL, FALSE,
-                       0, NULL, NULL, &si, &pi)) {
-    server.reset(new PlatformProcess(pi.hProcess));
-    ::CloseHandle(pi.hThread);
-    ::CloseHandle(pi.hProcess);
-  }
-#else
-  int server_pid = fork();
-  if (server_pid == 0) {
-    // Start a python TLS/HTTPS or HTTP server.
-    auto script = kTestDataPath + "/test_http_server.py --tls " + port;
-    execlp("sh", "sh", "-c", script.c_str(), nullptr);
-    ::exit(0);
-  } else if (server_pid > 0) {
-    server.reset(new PlatformProcess(server_pid));
-  }
-#endif
-
-  return std::move(server);
-}
+std::unique_ptr<PlatformProcess> launchTestServer(const std::string &port);
 
 void initTesting() {
   // Allow unit test execution from anywhere in the osquery source/build tree.
@@ -140,25 +77,25 @@ void initTesting() {
 
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
-  kTestWorkingDirectory = fs::path(kTestWorkingDirectory + getUserId() + "/")
+  kTestWorkingDirectory = (fs::path(kTestWorkingDirectory) / getUserId())
                               .make_preferred()
                               .string();
-  kFakeDirectory = fs::path(kTestWorkingDirectory + kFakeDirectoryName)
+  kFakeDirectory = (fs::path(kTestWorkingDirectory) / kFakeDirectoryName)
                        .make_preferred()
                        .string();
 
   fs::remove_all(kTestWorkingDirectory);
   fs::create_directories(kTestWorkingDirectory);
-  FLAGS_database_path = fs::path(kTestWorkingDirectory + "unittests.db")
+  FLAGS_database_path = (fs::path(kTestWorkingDirectory) / "unittests.db")
                             .make_preferred()
                             .string();
   FLAGS_extensions_socket = kTestWorkingDirectory + "unittests.em";
   FLAGS_extensions_autoload =
-      fs::path(kTestWorkingDirectory + "unittests-ext.load")
+      (fs::path(kTestWorkingDirectory) / "unittests-ext.load")
           .make_preferred()
           .string();
   FLAGS_modules_autoload =
-      fs::path(kTestWorkingDirectory + "unittests-mod.load")
+      (fs::path(kTestWorkingDirectory) / "unittests-mod.load")
           .make_preferred()
           .string();
   FLAGS_disable_logging = true;
@@ -178,7 +115,7 @@ void shutdownTesting() { DatabasePlugin::shutdown(); }
 
 std::map<std::string, std::string> getTestConfigMap() {
   std::string content;
-  readFile(fs::path(kTestDataPath + "test_parse_items.conf")
+  readFile((fs::path(kTestDataPath) / "test_parse_items.conf")
                .make_preferred()
                .string(),
            content);
@@ -189,7 +126,7 @@ std::map<std::string, std::string> getTestConfigMap() {
 
 pt::ptree getExamplePacksConfig() {
   std::string content;
-  auto s = readFile(fs::path(kTestDataPath + "test_inline_pack.conf")
+  auto s = readFile((fs::path(kTestDataPath) / "test_inline_pack.conf")
                         .make_preferred()
                         .string(),
                     content);
@@ -398,14 +335,14 @@ std::vector<SplitStringTestData> generateSplitStringTestData() {
 
 std::string getCACertificateContent() {
   std::string content;
-  readFile(fs::path(kTestDataPath + "test_cert.pem").make_preferred().string(),
+  readFile((fs::path(kTestDataPath) / "test_cert.pem").make_preferred().string(),
            content);
   return content;
 }
 
 std::string getEtcHostsContent() {
   std::string content;
-  readFile(fs::path(kTestDataPath + "test_hosts.txt").make_preferred().string(),
+  readFile((fs::path(kTestDataPath) / "test_hosts.txt").make_preferred().string(),
            content);
   return content;
 }
@@ -413,7 +350,7 @@ std::string getEtcHostsContent() {
 std::string getEtcProtocolsContent() {
   std::string content;
   readFile(
-      fs::path(kTestDataPath + "test_protocols.txt").make_preferred().string(),
+      (fs::path(kTestDataPath) / "test_protocols.txt").make_preferred().string(),
       content);
   return content;
 }
@@ -506,8 +443,8 @@ void createMockFileStructure() {
   writeTextFile(
       fs::path(kFakeDirectory + "/root2.txt").make_preferred().string(), "l1");
 #else
-  fs::create_symlink(
-      kFakeDirectory + "/root.txt", kFakeDirectory + "/root2.txt", ec);
+  fs::create_symlink(kFakeDirectory + "/root.txt",
+                     kFakeDirectory + "/root2.txt", ec);
 #endif
 }
 
