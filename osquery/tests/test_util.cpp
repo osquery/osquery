@@ -34,8 +34,12 @@ namespace osquery {
 
 std::string kFakeDirectory = "";
 
+#ifdef DARWIN
+std::string kTestWorkingDirectory = "/private/tmp/osquery-tests";
+#else
 std::string kTestWorkingDirectory =
     (fs::temp_directory_path() / "osquery-tests").make_preferred().string();
+#endif
 
 /// Most tests will use binary or disk-backed content for parsing tests.
 #ifndef OSQUERY_BUILD_SDK
@@ -105,7 +109,7 @@ void initTesting() {
   // Set up the database instance for the unittests.
   DatabasePlugin::setAllowOpen(true);
 
-  // Initializing database plugin does not work 
+  // Initializing database plugin does not work on Windows
   DatabasePlugin::initPlugin();
 }
 

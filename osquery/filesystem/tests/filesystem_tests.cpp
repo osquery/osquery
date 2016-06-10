@@ -74,18 +74,25 @@ class FilesystemTests : public testing::Test {
 };
 
 TEST_F(FilesystemTests, test_read_file) {
-  std::ofstream test_file(kTestWorkingDirectory + "fstests-file");
+  std::ofstream test_file((fs::path(kTestWorkingDirectory) / "fstests-file")
+                              .make_preferred()
+                              .string());
   test_file.write("test123\n", sizeof("test123"));
   test_file.close();
 
   std::string content;
-  auto s = readFile(kTestWorkingDirectory + "fstests-file", content);
+  auto s = readFile((fs::path(kTestWorkingDirectory) / "fstests-file")
+                        .make_preferred()
+                        .string(),
+                    content);
 
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(content, "test123" + kLineEnding);
 
-  remove(kTestWorkingDirectory + "fstests-file");
+  remove((fs::path(kTestWorkingDirectory) / "fstests-file")
+             .make_preferred()
+             .string());
 }
 
 TEST_F(FilesystemTests, test_read_limit) {
