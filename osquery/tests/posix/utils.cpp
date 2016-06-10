@@ -35,6 +35,6 @@ std::unique_ptr<PlatformProcess> launchTestServer(const std::string &port) {
     server.reset(new PlatformProcess(server_pid));
   }
 
-  return std::move(server);
+  return server;
 }
 }

@@ -57,6 +57,6 @@ std::unique_ptr<PlatformProcess> launchTestServer(const std::string &port) {
     ::CloseHandle(pi.hProcess);
   }
 
-  return std::move(server);
+  return server;
 }
 }

@@ -143,11 +143,11 @@ TEST_F(FilesystemTests, test_list_files_valid_directory) {
   auto s = listFilesInDirectory(kEtcPath, results);
   // This directory may be different on OS X or Linux.
 
-  std::string glob_pattern(kEtcHostsPath.string());
-  replaceGlobWildcards(glob_pattern);
+  std::string hosts_path(kEtcHostsPath.string());
+  replaceGlobWildcards(hosts_path);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_TRUE(contains(results, kEtcHostsPath.string()));
+  EXPECT_TRUE(contains(results, hosts_path));
 }
 
 TEST_F(FilesystemTests, test_canonicalization) {
