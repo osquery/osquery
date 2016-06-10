@@ -120,7 +120,7 @@ function main() {
   cp $OSQUERY_EXAMPLE_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_EXAMPLE_CONFIG_DST
   cp $PACKS_SRC/* $INSTALL_PREFIX/$PACKS_DST
 
-  if [ $OSQUERY_CONFIG_SRC != "" ] && [ -f $OSQUERY_CONFIG_SRC ]; then
+  if [[ $OSQUERY_CONFIG_SRC != "" ]] && [[ -f $OSQUERY_CONFIG_SRC ]]; then
     log "config setup"
     cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/osquery.conf
   fi
@@ -153,7 +153,7 @@ function main() {
   fi
 
   POSTINST_CMD=""
-  if [ $OSQUERY_POSTINSTALL != "" ] && [ -f $OSQUERY_POSTINSTALL ]; then
+  if [[ $OSQUERY_POSTINSTALL != "" ]] && [[ -f $OSQUERY_POSTINSTALL ]]; then
     POSTINST_CMD="--after-install $OSQUERY_POSTINSTALL"
   fi
 
