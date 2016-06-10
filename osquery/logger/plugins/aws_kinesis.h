@@ -26,6 +26,8 @@ namespace osquery {
 
 DECLARE_uint64(aws_kinesis_period);
 
+std::string random_string(size_t length);
+
 class KinesisLogForwarder : public BufferedLogForwarder {
  private:
   static const size_t kKinesisMaxLogBytes;

@@ -34,11 +34,28 @@ FLAG(uint64,
      10,
      "Seconds between flushing logs to Kinesis (default 10)");
 FLAG(string, aws_kinesis_stream, "", "Name of Kinesis stream for logging")
+FLAG(bool, aws_kinesis_random_shardid, false, "Enable random kinesis shard ids");
 
 // This is the max per AWS docs
 const size_t KinesisLogForwarder::kKinesisMaxRecords = 500;
 // Max size of log + partition key is 1MB. Max size of partition key is 256B.
 const size_t KinesisLogForwarder::kKinesisMaxLogBytes = 1000000 - 256;
+
+std::string random_string( size_t length )
+{
+    auto randchar = []() -> char
+    {
+        const char charset[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+        const size_t max_index = (sizeof(charset) - 1);
+        return charset[ rand() % max_index ];
+    };
+    std::string str(length,0);
+    std::generate_n( str.begin(), length, randchar );
+    return str;
+}
 
 Status KinesisLoggerPlugin::setUp() {
   initAwsSdk();
@@ -64,6 +81,9 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
       LOG(ERROR) << "Kinesis log too big, discarding!";
     }
     Aws::Kinesis::Model::PutRecordsRequestEntry entry;
+    if (FLAGS_aws_kinesis_random_shardid){
+      shard_id_=random_string(32);
+    }
     entry.WithPartitionKey(shard_id_).WithData(
         Aws::Utils::ByteBuffer((unsigned char*)log.c_str(), log.length()));
     entries.push_back(std::move(entry));
