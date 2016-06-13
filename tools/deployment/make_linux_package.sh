@@ -34,6 +34,7 @@ SYSTEMD_SERVICE_SRC="$SCRIPT_DIR/osqueryd.service"
 SYSTEMD_SERVICE_DST="/usr/lib/systemd/system/osqueryd.service"
 SYSTEMD_SYSCONFIG_SRC="$SCRIPT_DIR/osqueryd.sysconfig"
 SYSTEMD_SYSCONFIG_DST="/etc/sysconfig/osqueryd"
+SYSTEMD_SYSCONFIG_DST_DEBIAN="/etc/default/osqueryd"
 CTL_SRC="$SCRIPT_DIR/osqueryctl"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/usr/share/osquery/packs/"
@@ -125,7 +126,12 @@ function main() {
     cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/osquery.conf
   fi
 
-  if [[ $DISTRO = "centos7" || $DISTRO = "rhel7" || $DISTRO = "xenial" ]]; then
+if [[ $DISTRO = "xenial" ]]; then
+ #Change config dir path for Xenial
+sed -i 's/sysconfig/default/g' $SYSTEMD_SERVICE_SRC
+fi
+
+  if [[ $DISTRO = "centos7" || $DISTRO = "rhel7" ]]; then
     # Install the systemd service and sysconfig
     mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
     mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST`
@@ -136,8 +142,19 @@ function main() {
     cp $INITD_SRC $INSTALL_PREFIX$INITD_DST
   fi
 
-  log "creating package"
-  IFS=',' read -a deps <<< "$PACKAGE_DEPENDENCIES"
+  if [[ $DISTRO = "xenial" ]]; then
+    # Install the systemd service and sysconfig
+    mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
+    mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST_DEBIAN`
+    cp $SYSTEMD_SERVICE_SRC $INSTALL_PREFIX$SYSTEMD_SERVICE_DST
+    cp $SYSTEMD_SYSCONFIG_SRC $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST
+  else
+    mkdir -p `dirname $INSTALL_PREFIX$INITD_DST`
+    cp $INITD_SRC $INSTALL_PREFIX$INITD_DST
+  fi
+
+  
+IFS=',' read -a deps <<< "$PACKAGE_DEPENDENCIES"
   PACKAGE_DEPENDENCIES=
   for element in "${deps[@]}"
   do
