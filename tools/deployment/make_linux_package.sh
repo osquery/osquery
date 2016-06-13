@@ -126,10 +126,10 @@ function main() {
     cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/osquery.conf
   fi
 
-if [[ $DISTRO = "xenial" ]]; then
- #Change config dir path for Xenial
-sed -i 's/sysconfig/default/g' $SYSTEMD_SERVICE_SRC
-fi
+  if [[ $DISTRO = "xenial" ]]; then
+  #Change config dir path for Xenial
+  sed -i 's/sysconfig/default/g' $SYSTEMD_SERVICE_SRC
+  fi
 
   if [[ $DISTRO = "centos7" || $DISTRO = "rhel7" ]]; then
     # Install the systemd service and sysconfig
@@ -142,9 +142,6 @@ fi
     cp $INITD_SRC $INSTALL_PREFIX$INITD_DST
   fi
 
--  log "creating package"
- -  IFS=',' read -a deps <<< "$PACKAGE_DEPENDENCIES"
-
   if [[ $DISTRO = "xenial" ]]; then
     # Install the systemd service and sysconfig
     mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
@@ -156,7 +153,8 @@ fi
     cp $INITD_SRC $INSTALL_PREFIX$INITD_DST
   fi
 
-  
+-  log "creating package"  
+
 IFS=',' read -a deps <<< "$PACKAGE_DEPENDENCIES"
   PACKAGE_DEPENDENCIES=
   for element in "${deps[@]}"
