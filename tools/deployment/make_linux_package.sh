@@ -142,6 +142,9 @@ fi
     cp $INITD_SRC $INSTALL_PREFIX$INITD_DST
   fi
 
+-  log "creating package"
+ -  IFS=',' read -a deps <<< "$PACKAGE_DEPENDENCIES"
+
   if [[ $DISTRO = "xenial" ]]; then
     # Install the systemd service and sysconfig
     mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
