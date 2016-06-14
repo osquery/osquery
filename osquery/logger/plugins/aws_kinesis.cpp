@@ -74,8 +74,9 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
       boost::uuids::uuid uuid = boost::uuids::random_generator()();
       partition_key_ = boost::uuids::to_string(uuid);
     }
-    entry.WithPartitionKey(partition_key_).WithData(
-        Aws::Utils::ByteBuffer((unsigned char*)log.c_str(), log.length()));
+    entry.WithPartitionKey(partition_key_)
+        .WithData(
+            Aws::Utils::ByteBuffer((unsigned char*)log.c_str(), log.length()));
     entries.push_back(std::move(entry));
   }
 

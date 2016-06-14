@@ -18,9 +18,9 @@
 
 #include <osquery/logger.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/logger/plugins/aws_kinesis.h"
 #include "osquery/logger/plugins/aws_util.h"
+#include "osquery/tests/test_util.h"
 
 using namespace testing;
 
@@ -56,10 +56,10 @@ TEST_F(KinesisTests, test_send) {
   std::vector<std::string> logs{"foo"};
   Aws::Kinesis::Model::PutRecordsOutcome outcome;
   outcome.GetResult().SetFailedRecordCount(0);
-  EXPECT_CALL(
-      *client,
-      PutRecords(Property(&Aws::Kinesis::Model::PutRecordsRequest::GetRecords,
-                          ElementsAre(MatchesEntry("foo", "fake_partition_key")))))
+  EXPECT_CALL(*client,
+              PutRecords(Property(
+                  &Aws::Kinesis::Model::PutRecordsRequest::GetRecords,
+                  ElementsAre(MatchesEntry("foo", "fake_partition_key")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(0), forwarder.send(logs, "results"));
 
@@ -71,11 +71,11 @@ TEST_F(KinesisTests, test_send) {
   outcome.GetResult().SetFailedRecordCount(1);
   outcome.GetResult().AddRecords(entry);
 
-  EXPECT_CALL(
-      *client,
-      PutRecords(Property(&Aws::Kinesis::Model::PutRecordsRequest::GetRecords,
-                          ElementsAre(MatchesEntry("bar", "fake_partition_key"),
-                                      MatchesEntry("foo", "fake_partition_key")))))
+  EXPECT_CALL(*client,
+              PutRecords(Property(
+                  &Aws::Kinesis::Model::PutRecordsRequest::GetRecords,
+                  ElementsAre(MatchesEntry("bar", "fake_partition_key"),
+                              MatchesEntry("foo", "fake_partition_key")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(1, "Foo error"), forwarder.send(logs, "results"));
 }
