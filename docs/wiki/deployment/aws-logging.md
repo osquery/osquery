@@ -28,7 +28,7 @@ When logging to Kinesis Streams, the stream name must be specified with `aws_kin
 Configuration flags for kinesis logger:
 
 ````
---aws_kinesis_random_partition_id VALUE         Use random partition keys when sending data to kinesis. Using random values will load balance over stream shards if you are using multiple shards in a stream.  Default is "false".
+--aws_kinesis_random_partition_key VALUE         Use random partition keys when sending data to kinesis. Using random values will load balance over stream shards if you are using multiple shards in a stream.  Default is "false".
 ````
 
 ### Kinesis Firehose
