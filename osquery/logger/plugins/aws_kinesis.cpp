@@ -37,9 +37,9 @@ FLAG(uint64,
      "Seconds between flushing logs to Kinesis (default 10)");
 FLAG(string, aws_kinesis_stream, "", "Name of Kinesis stream for logging")
 FLAG(bool,
-     aws_kinesis_random_shardid,
+     aws_kinesis_random_partition_key,
      false,
-     "Enable random kinesis shard ids");
+     "Enable random kinesis partition keys");
 
 // This is the max per AWS docs
 const size_t KinesisLogForwarder::kKinesisMaxRecords = 500;
@@ -70,11 +70,10 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
       LOG(ERROR) << "Kinesis log too big, discarding!";
     }
     Aws::Kinesis::Model::PutRecordsRequestEntry entry;
-    if (FLAGS_aws_kinesis_random_shardid) {
+    if (FLAGS_aws_kinesis_random_partition_key) {
       boost::uuids::uuid uuid = boost::uuids::random_generator()();
       partition_key_ = boost::uuids::to_string(uuid);
     }
-    VLOG(1) << "USING PARTITION_KEY: " << partition_key_;
     entry.WithPartitionKey(partition_key_).WithData(
         Aws::Utils::ByteBuffer((unsigned char*)log.c_str(), log.length()));
     entries.push_back(std::move(entry));
