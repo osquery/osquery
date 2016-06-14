@@ -933,7 +933,6 @@ bool platformChmod(const std::string& path, mode_t perms) {
 
 std::vector<std::string> platformGlob(const std::string& find_path) {
   fs::path full_path(find_path);
-  boost::system::error_code ec;
 
   // This is a naive implementation of GLOB_TILDE. If the first two characters
   // in the path are '~/' or '~\', we replace it with the value of the
@@ -986,7 +985,7 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
           // Since there are no braces and other glob-like wildcards, we are
           // going to append the component to the previous valid path and append
           // the new path to the list
-          ec.clear();
+          boost::system::error_code ec;
           if (fs::exists(valid_path / component) && ec.value() == errc::success) {
             tmp_valid_paths.push_back(valid_path / component);
           }
@@ -1009,8 +1008,8 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
       for (auto& result : wf.get()) {
         if (std::regex_match(result.filename().string(), component_pattern)) {
           auto result_path = result.make_preferred().string();
-          ec.clear();
 
+          boost::system::error_code ec;
           if (fs::is_directory(result, ec) && ec.value() == errc::success) {
             result_path += "\\";
           }
@@ -1021,8 +1020,8 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
       WindowsFindFiles wf(valid_path / full_path.filename());
       for (auto& result : wf.get()) {
         auto result_path = result.make_preferred().string();
-        ec.clear();
-
+        
+        boost::system::error_code ec;
         if (fs::is_directory(result, ec) && ec.value() == errc::success) {
           result_path += "\\";
         }
