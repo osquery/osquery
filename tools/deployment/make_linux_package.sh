@@ -52,7 +52,6 @@ DEBUG_PREFIX=$WORKING_DIR/debug
 
 function usage() {
   fatal "Usage: $0 -t deb|rpm -i REVISION -d DEPENDENCY_LIST
-
   This will generate an Linux package with:
   (1) An example config /var/osquery/osquery.example.config
   (2) An init.d script /etc/init.d/osqueryd
@@ -126,12 +125,7 @@ function main() {
     cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/osquery.conf
   fi
 
-  if [[ $DISTRO = "xenial" ]]; then
-  #Change config dir path for Xenial
-  sed -i 's/sysconfig/default/g' $SYSTEMD_SERVICE_SRC
-  fi
-
-  if [[ $DISTRO = "centos7" || $DISTRO = "rhel7" ]]; then
+  if [[ $DISTRO = "centos7" || $DISTRO = "rhel7" || $DISTRO = "xenial" ]]; then
     # Install the systemd service and sysconfig
     mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
     mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST`
@@ -143,19 +137,16 @@ function main() {
   fi
 
   if [[ $DISTRO = "xenial" ]]; then
-    # Install the systemd service and sysconfig
-    mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
+    #Change config dir path for Xenial and move config
+    sed -i 's/sysconfig/default/g' $INSTALL_PREFIX$SYSTEMD_SERVICE_DST
     mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST_DEBIAN`
-    cp $SYSTEMD_SERVICE_SRC $INSTALL_PREFIX$SYSTEMD_SERVICE_DST
-    cp $SYSTEMD_SYSCONFIG_SRC $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST_DEBIAN
-  else
-    mkdir -p `dirname $INSTALL_PREFIX$INITD_DST`
-    cp $INITD_SRC $INSTALL_PREFIX$INITD_DST
+    mv $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST_DEBIAN
+    SYSTEMD_SYSCONFIG_DST_DIR=${SYSTEMD_SYSCONFIG_DST%$"osqueryd"}
+    rm -rf "$INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST_DIR"
   fi
 
-  log "creating package"  
-
-IFS=',' read -a deps <<< "$PACKAGE_DEPENDENCIES"
+  log "creating package"
+  IFS=',' read -a deps <<< "$PACKAGE_DEPENDENCIES"
   PACKAGE_DEPENDENCIES=
   for element in "${deps[@]}"
   do
