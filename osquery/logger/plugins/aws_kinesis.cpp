@@ -18,6 +18,8 @@
 #include <aws/kinesis/model/PutRecordsRequest.h>
 #include <aws/kinesis/model/PutRecordsRequestEntry.h>
 #include <aws/kinesis/model/PutRecordsResult.h>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include <osquery/flags.h>
 #include <osquery/registry.h>
@@ -44,20 +46,6 @@ const size_t KinesisLogForwarder::kKinesisMaxRecords = 500;
 // Max size of log + partition key is 1MB. Max size of partition key is 256B.
 const size_t KinesisLogForwarder::kKinesisMaxLogBytes = 1000000 - 256;
 
-std::string random_string(size_t length) {
-  auto randchar = []() -> char {
-    const char charset[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-    const size_t max_index = (sizeof(charset) - 1);
-    return charset[rand() % max_index];
-  };
-  std::string str(length, 0);
-  std::generate_n(str.begin(), length, randchar);
-  return str;
-}
-
 Status KinesisLoggerPlugin::setUp() {
   initAwsSdk();
   forwarder_ = std::make_shared<KinesisLogForwarder>();
@@ -83,9 +71,11 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
     }
     Aws::Kinesis::Model::PutRecordsRequestEntry entry;
     if (FLAGS_aws_kinesis_random_shardid) {
-      shard_id_ = random_string(32);
+      boost::uuids::uuid uuid = boost::uuids::random_generator()();
+      partition_key_ = boost::uuids::to_string(uuid);
     }
-    entry.WithPartitionKey(shard_id_).WithData(
+    VLOG(1) << "USING PARTITION_KEY: " << partition_key_;
+    entry.WithPartitionKey(partition_key_).WithData(
         Aws::Utils::ByteBuffer((unsigned char*)log.c_str(), log.length()));
     entries.push_back(std::move(entry));
   }
@@ -119,7 +109,7 @@ Status KinesisLogForwarder::setUp() {
     return s;
   }
 
-  shard_id_ = getHostIdentifier();
+  partition_key_ = getHostIdentifier();
 
   if (FLAGS_aws_kinesis_stream.empty()) {
     return Status(1, "Stream name must be specified with --aws_kinesis_stream");

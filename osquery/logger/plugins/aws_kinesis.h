@@ -26,8 +26,6 @@ namespace osquery {
 
 DECLARE_uint64(aws_kinesis_period);
 
-std::string random_string(size_t length);
-
 class KinesisLogForwarder : public BufferedLogForwarder {
  private:
   static const size_t kKinesisMaxLogBytes;
@@ -45,7 +43,7 @@ class KinesisLogForwarder : public BufferedLogForwarder {
               const std::string& log_type) override;
 
  private:
-  std::string shard_id_;
+  std::string partition_key_;
   std::shared_ptr<Aws::Kinesis::KinesisClient> client_{nullptr};
 
   FRIEND_TEST(KinesisTests, test_send);
