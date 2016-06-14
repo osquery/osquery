@@ -49,7 +49,7 @@ class KinesisTests : public testing::Test {
 
 TEST_F(KinesisTests, test_send) {
   KinesisLogForwarder forwarder;
-  forwarder.shard_id_ = "fake_shard_id";
+  forwarder.partition_key_ = "fake_partition_key";
   auto client = std::make_shared<StrictMock<MockKinesisClient>>();
   forwarder.client_ = client;
 
@@ -59,7 +59,7 @@ TEST_F(KinesisTests, test_send) {
   EXPECT_CALL(
       *client,
       PutRecords(Property(&Aws::Kinesis::Model::PutRecordsRequest::GetRecords,
-                          ElementsAre(MatchesEntry("foo", "fake_shard_id")))))
+                          ElementsAre(MatchesEntry("foo", "fake_partition_key")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(0), forwarder.send(logs, "results"));
 
@@ -74,8 +74,8 @@ TEST_F(KinesisTests, test_send) {
   EXPECT_CALL(
       *client,
       PutRecords(Property(&Aws::Kinesis::Model::PutRecordsRequest::GetRecords,
-                          ElementsAre(MatchesEntry("bar", "fake_shard_id"),
-                                      MatchesEntry("foo", "fake_shard_id")))))
+                          ElementsAre(MatchesEntry("bar", "fake_partition_key"),
+                                      MatchesEntry("foo", "fake_partition_key")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(1, "Foo error"), forwarder.send(logs, "results"));
 }
