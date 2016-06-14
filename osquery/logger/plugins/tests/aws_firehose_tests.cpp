@@ -59,7 +59,7 @@ TEST_F(FirehoseTests, test_send) {
   EXPECT_CALL(*client,
               PutRecordBatch(Property(
                   &Aws::Firehose::Model::PutRecordBatchRequest::GetRecords,
-                  ElementsAre(MatchesEntry("foo")))))
+                  ElementsAre(MatchesEntry("foo\n")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(0), forwarder.send(logs, "results"));
 
@@ -74,7 +74,7 @@ TEST_F(FirehoseTests, test_send) {
   EXPECT_CALL(*client,
               PutRecordBatch(Property(
                   &Aws::Firehose::Model::PutRecordBatchRequest::GetRecords,
-                  ElementsAre(MatchesEntry("bar"), MatchesEntry("foo")))))
+                  ElementsAre(MatchesEntry("bar\n"), MatchesEntry("foo\n")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(1, "Foo error"), forwarder.send(logs, "results"));
 }
