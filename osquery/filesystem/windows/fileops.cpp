@@ -28,6 +28,7 @@
 #include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
+namespace errc = boost::system::errc;
 
 namespace osquery {
 
@@ -83,8 +84,11 @@ class WindowsFindFiles {
 
   std::vector<fs::path> getDirectories() {
     std::vector<fs::path> results;
+    boost::system::error_code ec;
+
     for (auto const& result : get()) {
-      if (fs::is_directory(result)) {
+      ec.clear();
+      if (fs::is_directory(result, ec) && ec.value() == errc::success) {
         results.push_back(result);
       }
     }
@@ -223,6 +227,11 @@ static DWORD getNewAclSize(PACL dacl, PSID sid, ACL_SIZE_INFORMATION& info,
       return 0;
     }
 
+    // We don't care about inherited ACEs
+    if ((entry->AceFlags & INHERITED_ACE) == INHERITED_ACE) {
+      break;
+    }
+
     if (entry->AceType == ACCESS_ALLOWED_ACE_TYPE &&
         ::EqualSid(sid, &((ACCESS_ALLOWED_ACE *)entry)->SidStart)) {
       acl_size -=
@@ -233,11 +242,6 @@ static DWORD getNewAclSize(PACL dacl, PSID sid, ACL_SIZE_INFORMATION& info,
         ::EqualSid(sid, &((ACCESS_DENIED_ACE *)entry)->SidStart)) {
       acl_size -=
           sizeof(ACCESS_DENIED_ACE) + ::GetLengthSid(sid) - sizeof(DWORD);
-    }
-
-    // We don't care about inherited ACEs
-    if ((entry->AceFlags & INHERITED_ACE) == INHERITED_ACE) {
-      break;
     }
   }
 
@@ -919,8 +923,8 @@ bool platformChmod(const std::string& path, mode_t perms) {
   mutable_path.push_back('\0');
 
   if (::SetNamedSecurityInfoA(&mutable_path[0], SE_FILE_OBJECT,
-                              DACL_SECURITY_INFORMATION, NULL, NULL, acl,
-                              NULL) != ERROR_SUCCESS) {
+                              DACL_SECURITY_INFORMATION, nullptr, nullptr, acl,
+                              nullptr) != ERROR_SUCCESS) {
     return false;
   }
 
@@ -929,6 +933,7 @@ bool platformChmod(const std::string& path, mode_t perms) {
 
 std::vector<std::string> platformGlob(const std::string& find_path) {
   fs::path full_path(find_path);
+  boost::system::error_code ec;
 
   // This is a naive implementation of GLOB_TILDE. If the first two characters
   // in the path are '~/' or '~\', we replace it with the value of the
@@ -981,7 +986,8 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
           // Since there are no braces and other glob-like wildcards, we are
           // going to append the component to the previous valid path and append
           // the new path to the list
-          if (fs::exists(valid_path / component)) {
+          ec.clear();
+          if (fs::exists(valid_path / component) && ec.value() == errc::success) {
             tmp_valid_paths.push_back(valid_path / component);
           }
         }
@@ -1003,7 +1009,9 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
       for (auto& result : wf.get()) {
         if (std::regex_match(result.filename().string(), component_pattern)) {
           auto result_path = result.make_preferred().string();
-          if (fs::is_directory(result)) {
+          ec.clear();
+
+          if (fs::is_directory(result, ec) && ec.value() == errc::success) {
             result_path += "\\";
           }
           results.push_back(result_path);
@@ -1013,7 +1021,9 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
       WindowsFindFiles wf(valid_path / full_path.filename());
       for (auto& result : wf.get()) {
         auto result_path = result.make_preferred().string();
-        if (fs::is_directory(result)) {
+        ec.clear();
+
+        if (fs::is_directory(result, ec) && ec.value() == errc::success) {
           result_path += "\\";
         }
         results.push_back(result_path);
@@ -1029,7 +1039,7 @@ boost::optional<std::string> getHomeDirectory() {
   auto value = getEnvVar("USERPROFILE");
   if (value.is_initialized()) {
     return value;
-  } else if (SUCCEEDED(::SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, &profile[0]))) {
+  } else if (SUCCEEDED(::SHGetFolderPathA(nullptr, CSIDL_PROFILE, nullptr, 0, &profile[0]))) {
     return std::string(&profile[0]);
   } else {
     return boost::none;
@@ -1080,8 +1090,9 @@ static std::string normalizeDirPath(const fs::path &path) {
   // NTFS is case insensitive, to normalize, make everything uppercase
   ::CharUpperA(&final_path[0]);
 
+  boost::system::error_code ec;
   std::string normalized_path(&final_path[0], nret);
-  if (fs::is_directory(normalized_path) && normalized_path[nret - 1] != '\\') {
+  if ((fs::is_directory(normalized_path, ec) && ec.value() == errc::success) && normalized_path[nret - 1] != '\\') {
     normalized_path += "\\";
   }
   return normalized_path;
@@ -1104,7 +1115,8 @@ Status platformIsTmpDir(const fs::path& dir) {
 }
 
 Status platformIsFileAccessible(const fs::path& path) {
-  if (fs::exists(path) && fs::is_regular_file(path)) {
+  boost::system::error_code ec;
+  if (fs::is_regular_file(path, ec) && ec.value() == errc::success) {
     return Status(0, "OK");
   }
   return Status(1, "Not accessible file");

@@ -24,6 +24,7 @@
 #include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
+namespace errc = boost::system::errc;
 
 namespace osquery {
 
@@ -75,7 +76,8 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
     perms = 0666;
   }
 
-  if (check_existence && !fs::exists(path.c_str())) {
+  boost::system::error_code ec;
+  if (check_existence && (!fs::exists(path.c_str(), ec) || ec.value() != errc::success)) {
     handle_ = kInvalidHandle;
   } else {
     handle_ = ::open(path.c_str(), oflag, perms);
