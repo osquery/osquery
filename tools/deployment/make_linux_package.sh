@@ -34,6 +34,7 @@ SYSTEMD_SERVICE_SRC="$SCRIPT_DIR/osqueryd.service"
 SYSTEMD_SERVICE_DST="/usr/lib/systemd/system/osqueryd.service"
 SYSTEMD_SYSCONFIG_SRC="$SCRIPT_DIR/osqueryd.sysconfig"
 SYSTEMD_SYSCONFIG_DST="/etc/sysconfig/osqueryd"
+SYSTEMD_SYSCONFIG_DST_DEBIAN="/etc/default/osqueryd"
 CTL_SRC="$SCRIPT_DIR/osqueryctl"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/usr/share/osquery/packs/"
@@ -125,6 +126,11 @@ function main() {
     cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/osquery.conf
   fi
 
+  if [[ $DISTRO = "xenial" ]]; then
+    #Change config path to Ubuntu/Xenial default
+    SYSTEMD_SYSCONFIG_DST=$SYSTEMD_SYSCONFIG_DST_DEBIAN
+  fi
+
   if [[ $DISTRO = "centos7" || $DISTRO = "rhel7" || $DISTRO = "xenial" ]]; then
     # Install the systemd service and sysconfig
     mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
@@ -134,6 +140,11 @@ function main() {
   else
     mkdir -p `dirname $INSTALL_PREFIX$INITD_DST`
     cp $INITD_SRC $INSTALL_PREFIX$INITD_DST
+  fi
+
+  if [[ $DISTRO = "xenial" ]]; then
+    #Change config path in service unit
+    sed -i 's/sysconfig/default/g' $INSTALL_PREFIX$SYSTEMD_SERVICE_DST
   fi
 
   log "creating package"
