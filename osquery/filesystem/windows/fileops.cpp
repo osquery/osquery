@@ -42,15 +42,19 @@ namespace osquery {
 #define S_IWOTH 0002
 #define S_IXOTH 0001
 
-#define CHMOD_READ    SYNCHRONIZE | READ_CONTROL | FILE_READ_ATTRIBUTES | FILE_READ_EA | FILE_READ_DATA
-#define CHMOD_WRITE   FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA | FILE_WRITE_DATA | FILE_APPEND_DATA | DELETE
-#define CHMOD_EXECUTE FILE_EXECUTE 
+#define CHMOD_READ                                                   \
+  SYNCHRONIZE | READ_CONTROL | FILE_READ_ATTRIBUTES | FILE_READ_EA | \
+      FILE_READ_DATA
+#define CHMOD_WRITE                                                            \
+  FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA | FILE_WRITE_DATA | FILE_APPEND_DATA | \
+      DELETE
+#define CHMOD_EXECUTE FILE_EXECUTE
 
 using AclObject = std::unique_ptr<unsigned char[]>;
 
 class WindowsFindFiles {
  public:
-  explicit WindowsFindFiles(const fs::path& path) : path_(path) {
+  explicit WindowsFindFiles(const fs::path &path) : path_(path) {
     handle_ = ::FindFirstFileA(path_.make_preferred().string().c_str(), &fd_);
   }
 
@@ -86,7 +90,7 @@ class WindowsFindFiles {
     std::vector<fs::path> results;
     boost::system::error_code ec;
 
-    for (auto const& result : get()) {
+    for (auto const &result : get()) {
       ec.clear();
       if (fs::is_directory(result, ec) && ec.value() == errc::success) {
         results.push_back(result);
@@ -106,7 +110,7 @@ class SecurityDescriptor {
  public:
   explicit SecurityDescriptor(PSECURITY_DESCRIPTOR sd) : sd_(sd) {}
 
-  SecurityDescriptor(SecurityDescriptor&& src) {
+  SecurityDescriptor(SecurityDescriptor &&src) {
     sd_ = src.sd_;
     std::swap(sd_, src.sd_);
   }
@@ -119,24 +123,24 @@ class SecurityDescriptor {
   }
 
  private:
-   PSECURITY_DESCRIPTOR sd_{ nullptr };
+  PSECURITY_DESCRIPTOR sd_{nullptr};
 };
 
-static bool hasGlobBraces(const std::string& glob) {
+static bool hasGlobBraces(const std::string &glob) {
   int brace_depth = 0;
   bool has_brace = false;
 
   for (size_t i = 0; i < glob.size(); i++) {
     switch (glob[i]) {
-      case '{':
-        brace_depth += 1;
-        has_brace = true;
-        break;
-      case '}':
-        brace_depth -= 1;
-        break;
-      default:
-        break;
+    case '{':
+      brace_depth += 1;
+      has_brace = true;
+      break;
+    case '}':
+      brace_depth -= 1;
+      break;
+    default:
+      break;
     }
   }
   return (brace_depth == 0 && has_brace);
@@ -161,46 +165,49 @@ static std::string globToRegex(const std::string &glob) {
     char c = glob[i];
 
     switch (c) {
-      case '?':
-        regex += '.';
-        break;
-      case '{':
-        in_group = true;
-        regex += '(';
-        break;
-      case '}':
-        in_group = false;
-        regex += ')';
-        break;
-      case ',':
-        regex += '|';
-        break;
-      case '*':
-        regex += ".*";
-        break;
-      case '\\':
-      case '/':
-      case '$':
-      case '^':
-      case '+':
-      case '.':
-      case '(':
-      case ')':
-      case '=':
-      case '!':
-      case '|':
-        regex += '\\';
-      default:
-        regex += c;
-        break;
+    case '?':
+      regex += '.';
+      break;
+    case '{':
+      in_group = true;
+      regex += '(';
+      break;
+    case '}':
+      in_group = false;
+      regex += ')';
+      break;
+    case ',':
+      regex += '|';
+      break;
+    case '*':
+      regex += ".*";
+      break;
+    case '\\':
+    case '/':
+    case '$':
+    case '^':
+    case '+':
+    case '.':
+    case '(':
+    case ')':
+    case '=':
+    case '!':
+    case '|':
+      regex += '\\';
+    default:
+      regex += c;
+      break;
     }
   }
 
   return regex + "$";
 }
 
-static DWORD getNewAclSize(PACL dacl, PSID sid, ACL_SIZE_INFORMATION& info,
-                           bool needs_allowed, bool needs_denied) {
+static DWORD getNewAclSize(PACL dacl,
+                           PSID sid,
+                           ACL_SIZE_INFORMATION &info,
+                           bool needs_allowed,
+                           bool needs_denied) {
   // This contains the current buffer size of dacl
   DWORD acl_size = info.AclBytesInUse;
 
@@ -248,8 +255,8 @@ static DWORD getNewAclSize(PACL dacl, PSID sid, ACL_SIZE_INFORMATION& info,
   return acl_size;
 }
 
-static AclObject modifyAcl(PACL acl, PSID target, bool allow_read,
-                           bool allow_write, bool allow_exec) {
+static AclObject modifyAcl(
+    PACL acl, PSID target, bool allow_read, bool allow_write, bool allow_exec) {
   if (acl == nullptr || !::IsValidAcl(acl) || target == nullptr ||
       !::IsValidSid(target)) {
     return std::move(AclObject());
@@ -258,7 +265,7 @@ static AclObject modifyAcl(PACL acl, PSID target, bool allow_read,
   DWORD allow_mask = 0;
   DWORD deny_mask = 0;
 
-  ACL_SIZE_INFORMATION info = { 0 };
+  ACL_SIZE_INFORMATION info = {0};
   info.AclBytesInUse = sizeof(ACL);
 
   if (!::GetAclInformation(acl, &info, sizeof(info), AclSizeInformation)) {
@@ -331,24 +338,25 @@ static AclObject modifyAcl(PACL acl, PSID target, bool allow_read,
     }
 
     if ((entry->AceType == ACCESS_ALLOWED_ACE_TYPE &&
-      ::EqualSid(target, &((ACCESS_ALLOWED_ACE *)entry)->SidStart)) ||
-      (entry->AceType == ACCESS_DENIED_ACE_TYPE &&
-        ::EqualSid(target, &((ACCESS_DENIED_ACE *)entry)->SidStart))) {
+         ::EqualSid(target, &((ACCESS_ALLOWED_ACE *)entry)->SidStart)) ||
+        (entry->AceType == ACCESS_DENIED_ACE_TYPE &&
+         ::EqualSid(target, &((ACCESS_DENIED_ACE *)entry)->SidStart))) {
       continue;
     }
 
-    if (!::AddAce(new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
+    if (!::AddAce(
+             new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
       return std::move(AclObject());
     }
   }
 
   if (deny_mask != 0 &&
-    !::AddAccessDeniedAce(new_acl, ACL_REVISION, deny_mask, target)) {
+      !::AddAccessDeniedAce(new_acl, ACL_REVISION, deny_mask, target)) {
     return std::move(AclObject());
   }
 
   if (allow_mask != 0 &&
-    !::AddAccessAllowedAce(new_acl, ACL_REVISION, allow_mask, target)) {
+      !::AddAccessAllowedAce(new_acl, ACL_REVISION, allow_mask, target)) {
     return std::move(AclObject());
   }
 
@@ -357,7 +365,8 @@ static AclObject modifyAcl(PACL acl, PSID target, bool allow_read,
       return std::move(AclObject());
     }
 
-    if (!::AddAce(new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
+    if (!::AddAce(
+             new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
       return std::move(AclObject());
     }
   }
@@ -365,7 +374,7 @@ static AclObject modifyAcl(PACL acl, PSID target, bool allow_read,
   return std::move(new_acl_buffer);
 }
 
-PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
+PlatformFile::PlatformFile(const std::string &path, int mode, int perms) {
   DWORD access_mask = 0;
   DWORD flags_and_attrs = 0;
   DWORD creation_disposition = 0;
@@ -380,20 +389,20 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   }
 
   switch (PF_GET_OPTIONS(mode)) {
-    case PF_GET_OPTIONS(PF_CREATE_NEW):
-      creation_disposition = CREATE_NEW;
-      break;
-    case PF_GET_OPTIONS(PF_CREATE_ALWAYS):
-      creation_disposition = CREATE_ALWAYS;
-      break;
-    case PF_GET_OPTIONS(PF_OPEN_EXISTING):
-      creation_disposition = OPEN_EXISTING;
-      break;
-    case PF_GET_OPTIONS(PF_TRUNCATE):
-      creation_disposition = TRUNCATE_EXISTING;
-      break;
-    default:
-      break;
+  case PF_GET_OPTIONS(PF_CREATE_NEW) :
+    creation_disposition = CREATE_NEW;
+    break;
+  case PF_GET_OPTIONS(PF_CREATE_ALWAYS) :
+    creation_disposition = CREATE_ALWAYS;
+    break;
+  case PF_GET_OPTIONS(PF_OPEN_EXISTING) :
+    creation_disposition = OPEN_EXISTING;
+    break;
+  case PF_GET_OPTIONS(PF_TRUNCATE) :
+    creation_disposition = TRUNCATE_EXISTING;
+    break;
+  default:
+    break;
   }
 
   if ((mode & PF_NONBLOCK) == PF_NONBLOCK) {
@@ -405,9 +414,13 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
     // TODO(#2001): set up a security descriptor based off the perms
   }
 
-  handle_ = ::CreateFileA(path.c_str(), access_mask, 0,
-    security_attrs.get(), creation_disposition,
-    flags_and_attrs, nullptr);
+  handle_ = ::CreateFileA(path.c_str(),
+                          access_mask,
+                          0,
+                          security_attrs.get(),
+                          creation_disposition,
+                          flags_and_attrs,
+                          nullptr);
 
   /// Normally, append is done via the FILE_APPEND_DATA access mask. However,
   /// because we are blanket using GENERIC_WRITE, this will not work. To
@@ -456,7 +469,7 @@ static Status isUserCurrentUser(PSID user) {
   }
 
   std::vector<char> buffer(size);
-  ptu = (PTOKEN_USER)&buffer[0];
+  ptu = (PTOKEN_USER) & buffer[0];
 
   /// Obtain the user SID behind the token handle
   ret = ::GetTokenInformation(token, TokenUser, (LPVOID)ptu, size, &size);
@@ -482,8 +495,13 @@ Status PlatformFile::isOwnerRoot() const {
   PSID owner = nullptr;
   PSECURITY_DESCRIPTOR sd = nullptr;
 
-  if (::GetSecurityInfo(handle_, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION,
-                        &owner, nullptr, nullptr, nullptr,
+  if (::GetSecurityInfo(handle_,
+                        SE_FILE_OBJECT,
+                        OWNER_SECURITY_INFORMATION,
+                        &owner,
+                        nullptr,
+                        nullptr,
+                        nullptr,
                         &sd) != ERROR_SUCCESS) {
     return Status(-1, "GetSecurityInfo failed");
   }
@@ -494,10 +512,12 @@ Status PlatformFile::isOwnerRoot() const {
   std::vector<char> admins_buf;
   admins_buf.assign(admins_buf_size, '\0');
 
-  PSID admins_sid = (PSID)&admins_buf[0];
+  PSID admins_sid = (PSID) & admins_buf[0];
 
-  if (!::CreateWellKnownSid(WinBuiltinAdministratorsSid, nullptr,
-                            &admins_buf[0], &admins_buf_size)) {
+  if (!::CreateWellKnownSid(WinBuiltinAdministratorsSid,
+                            nullptr,
+                            &admins_buf[0],
+                            &admins_buf_size)) {
     return Status(-1, "CreateWellKnownSid failed");
   }
 
@@ -516,8 +536,13 @@ Status PlatformFile::isOwnerCurrentUser() const {
   PSID owner = nullptr;
   PSECURITY_DESCRIPTOR sd = nullptr;
 
-  if (::GetSecurityInfo(handle_, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION,
-                        &owner, nullptr, nullptr, nullptr,
+  if (::GetSecurityInfo(handle_,
+                        SE_FILE_OBJECT,
+                        OWNER_SECURITY_INFORMATION,
+                        &owner,
+                        nullptr,
+                        nullptr,
+                        nullptr,
                         &sd) != ERROR_SUCCESS) {
     return Status(-1, "GetSecurityInfo failed");
   }
@@ -542,7 +567,7 @@ Status PlatformFile::isExecutable() const {
   std::vector<char> sd_buffer;
   sd_buffer.assign(sd_size, '\0');
 
-  PSECURITY_DESCRIPTOR sd = (PSECURITY_DESCRIPTOR)&sd_buffer[0];
+  PSECURITY_DESCRIPTOR sd = (PSECURITY_DESCRIPTOR) & sd_buffer[0];
   ret = ::GetUserObjectSecurity(handle_, &security_info, sd, sd_size, &sd_size);
   if (!ret) {
     return Status(-1, "GetUserObjectSecurity failed");
@@ -559,8 +584,8 @@ Status PlatformFile::isExecutable() const {
     return Status(-1, "OpenProcessToken failed");
   }
 
-  ret = ::DuplicateToken(process_token, SecurityImpersonation,
-                         &impersonate_token);
+  ret = ::DuplicateToken(
+      process_token, SecurityImpersonation, &impersonate_token);
   ::CloseHandle(process_token);
 
   if (!ret) {
@@ -582,9 +607,14 @@ Status PlatformFile::isExecutable() const {
 
   ::MapGenericMask(&access_rights, &mapping);
 
-  ret =
-      ::AccessCheck(sd, impersonate_token, access_rights, &mapping, &privileges,
-                    &privileges_length, &granted_access, &result);
+  ret = ::AccessCheck(sd,
+                      impersonate_token,
+                      access_rights,
+                      &mapping,
+                      &privileges,
+                      &privileges_length,
+                      &granted_access,
+                      &result);
   ::CloseHandle(impersonate_token);
 
   if (!ret) {
@@ -608,7 +638,7 @@ static Status isWriteDenied(PACL acl) {
   std::vector<char> sid_buffer;
   sid_buffer.assign(sid_buffer_size, '\0');
 
-  PSID world = (PSID)&sid_buffer[0];
+  PSID world = (PSID) & sid_buffer[0];
 
   if (!::CreateWellKnownSid(WinWorldSid, nullptr, world, &sid_buffer_size)) {
     return Status(-1, "CreateWellKnownSid failed");
@@ -624,14 +654,13 @@ static Status isWriteDenied(PACL acl) {
     if (entry->AceType == ACCESS_DENIED_ACE_TYPE) {
       PACCESS_DENIED_ACE denied_ace = (PACCESS_DENIED_ACE)entry;
       if (::EqualSid(&denied_ace->SidStart, world) &&
-        (denied_ace->Mask & FILE_WRITE_ATTRIBUTES) == FILE_WRITE_ATTRIBUTES &&
-        (denied_ace->Mask & FILE_WRITE_EA) == FILE_WRITE_EA &&
-        (denied_ace->Mask & FILE_WRITE_DATA) == FILE_WRITE_DATA &&
-        (denied_ace->Mask & FILE_APPEND_DATA) == FILE_APPEND_DATA) {
+          (denied_ace->Mask & FILE_WRITE_ATTRIBUTES) == FILE_WRITE_ATTRIBUTES &&
+          (denied_ace->Mask & FILE_WRITE_EA) == FILE_WRITE_EA &&
+          (denied_ace->Mask & FILE_WRITE_DATA) == FILE_WRITE_DATA &&
+          (denied_ace->Mask & FILE_APPEND_DATA) == FILE_APPEND_DATA) {
         return Status(0, "OK");
       }
-    }
-    else if (entry->AceType == ACCESS_ALLOWED_ACE_TYPE) {
+    } else if (entry->AceType == ACCESS_ALLOWED_ACE_TYPE) {
       break;
     }
   }
@@ -643,9 +672,14 @@ Status PlatformFile::isNonWritable() const {
   PACL file_dacl = nullptr;
   PSECURITY_DESCRIPTOR file_sd = nullptr;
 
-  if (::GetSecurityInfo(handle_, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
-    nullptr, nullptr, &file_dacl, nullptr,
-    &file_sd) != ERROR_SUCCESS) {
+  if (::GetSecurityInfo(handle_,
+                        SE_FILE_OBJECT,
+                        DACL_SECURITY_INFORMATION,
+                        nullptr,
+                        nullptr,
+                        &file_dacl,
+                        nullptr,
+                        &file_sd) != ERROR_SUCCESS) {
     return Status(-1, "GetSecurityInfo failed");
   }
 
@@ -654,8 +688,8 @@ Status PlatformFile::isNonWritable() const {
   std::vector<char> path_buf;
   path_buf.assign(MAX_PATH + 1, '\0');
 
-  if (::GetFinalPathNameByHandleA(handle_, &path_buf[0], MAX_PATH,
-    FILE_NAME_NORMALIZED) == 0) {
+  if (::GetFinalPathNameByHandleA(
+          handle_, &path_buf[0], MAX_PATH, FILE_NAME_NORMALIZED) == 0) {
     return Status(-1, "GetFinalPathNameByHandleA failed");
   }
 
@@ -666,9 +700,14 @@ Status PlatformFile::isNonWritable() const {
   PACL dir_dacl = nullptr;
   PSECURITY_DESCRIPTOR dir_sd = nullptr;
 
-  if (::GetNamedSecurityInfoA(&path_buf[0], SE_FILE_OBJECT,
-    DACL_SECURITY_INFORMATION, nullptr, nullptr,
-    &dir_dacl, nullptr, &dir_sd) != ERROR_SUCCESS) {
+  if (::GetNamedSecurityInfoA(&path_buf[0],
+                              SE_FILE_OBJECT,
+                              DACL_SECURITY_INFORMATION,
+                              nullptr,
+                              nullptr,
+                              &dir_dacl,
+                              nullptr,
+                              &dir_sd) != ERROR_SUCCESS) {
     return Status(-1, "GetNamedSecurityInfoA failed for dir");
   }
 
@@ -681,20 +720,22 @@ Status PlatformFile::isNonWritable() const {
   return Status(1, "Not safe for loading");
 }
 
-bool PlatformFile::getFileTimes(PlatformTime& times) {
+bool PlatformFile::getFileTimes(PlatformTime &times) {
   if (!isValid()) {
     return false;
   }
 
-  return (::GetFileTime(handle_, nullptr, &times.times[0], &times.times[1]) != FALSE);
+  return (::GetFileTime(handle_, nullptr, &times.times[0], &times.times[1]) !=
+          FALSE);
 }
 
-bool PlatformFile::setFileTimes(const PlatformTime& times) {
+bool PlatformFile::setFileTimes(const PlatformTime &times) {
   if (!isValid()) {
     return false;
   }
 
-  return (::SetFileTime(handle_, nullptr, &times.times[0], &times.times[1]) != FALSE);
+  return (::SetFileTime(handle_, nullptr, &times.times[0], &times.times[1]) !=
+          FALSE);
 }
 
 ssize_t PlatformFile::getOverlappedResultForRead(void *buf,
@@ -703,8 +744,8 @@ ssize_t PlatformFile::getOverlappedResultForRead(void *buf,
   DWORD bytes_read = 0;
   DWORD last_error = 0;
 
-  if (::GetOverlappedResultEx(handle_, &last_read_.overlapped_, &bytes_read, 0,
-                              TRUE)) {
+  if (::GetOverlappedResultEx(
+          handle_, &last_read_.overlapped_, &bytes_read, 0, TRUE)) {
     // Read operation has finished
 
     // NOTE: We do NOT support situations where the second read operation uses a
@@ -748,7 +789,7 @@ ssize_t PlatformFile::read(void *buf, size_t nbyte) {
   ssize_t nret = 0;
   DWORD bytes_read = 0;
   DWORD last_error = 0;
-  
+
   has_pending_io_ = false;
 
   if (is_nonblock_) {
@@ -758,7 +799,10 @@ ssize_t PlatformFile::read(void *buf, size_t nbyte) {
       last_read_.overlapped_.Offset = cursor_;
       last_read_.buffer_.reset(new char[nbyte]);
 
-      if (!::ReadFile(handle_, last_read_.buffer_.get(), nbyte, nullptr,
+      if (!::ReadFile(handle_,
+                      last_read_.buffer_.get(),
+                      nbyte,
+                      nullptr,
                       &last_read_.overlapped_)) {
         last_error = ::GetLastError();
         if (last_error == ERROR_IO_PENDING || last_error == ERROR_MORE_DATA) {
@@ -790,15 +834,17 @@ ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
   ssize_t nret = 0;
   DWORD bytes_written = 0;
   DWORD last_error = 0;
-  
+
   has_pending_io_ = false;
 
   if (is_nonblock_) {
     AsyncEvent write_event;
-    if (!::WriteFile(handle_, buf, nbyte, &bytes_written, &write_event.overlapped_)) {
+    if (!::WriteFile(
+             handle_, buf, nbyte, &bytes_written, &write_event.overlapped_)) {
       last_error = ::GetLastError();
       if (last_error == ERROR_IO_PENDING) {
-        if (!::GetOverlappedResultEx(handle_, &write_event.overlapped_, &bytes_written, 0, TRUE)) {
+        if (!::GetOverlappedResultEx(
+                 handle_, &write_event.overlapped_, &bytes_written, 0, TRUE)) {
           last_error = ::GetLastError();
           if (last_error == ERROR_IO_INCOMPLETE) {
             has_pending_io_ = true;
@@ -835,42 +881,45 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
   if (!isValid()) {
     return -1;
   }
-  
+
   DWORD whence = 0;
   switch (mode) {
-    case PF_SEEK_BEGIN:
-      whence = FILE_BEGIN;
-      break;
-    case PF_SEEK_CURRENT:
-      whence = FILE_CURRENT;
-      break;
-    case PF_SEEK_END:
-      whence = FILE_END;
-      break;
-    default:
-      break;
+  case PF_SEEK_BEGIN:
+    whence = FILE_BEGIN;
+    break;
+  case PF_SEEK_CURRENT:
+    whence = FILE_CURRENT;
+    break;
+  case PF_SEEK_END:
+    whence = FILE_END;
+    break;
+  default:
+    break;
   }
 
   cursor_ = ::SetFilePointer(handle_, offset, nullptr, whence);
   return cursor_;
 }
 
-size_t PlatformFile::size() const {
-  return ::GetFileSize(handle_, nullptr);
-}
+size_t PlatformFile::size() const { return ::GetFileSize(handle_, nullptr); }
 
-bool platformChmod(const std::string& path, mode_t perms) {
+bool platformChmod(const std::string &path, mode_t perms) {
   DWORD ret = 0;
   PACL dacl = nullptr;
   PSID owner = nullptr;
   PSID group = nullptr;
   PSECURITY_DESCRIPTOR sd = nullptr;
 
-  ret = ::GetNamedSecurityInfoA(path.c_str(), SE_FILE_OBJECT,
+  ret = ::GetNamedSecurityInfoA(path.c_str(),
+                                SE_FILE_OBJECT,
                                 OWNER_SECURITY_INFORMATION |
                                     GROUP_SECURITY_INFORMATION |
                                     DACL_SECURITY_INFORMATION,
-                                &owner, &group, &dacl, nullptr, &sd);
+                                &owner,
+                                &group,
+                                &dacl,
+                                nullptr,
+                                &sd);
 
   if (ret != ERROR_SUCCESS) {
     return false;
@@ -891,27 +940,33 @@ bool platformChmod(const std::string& path, mode_t perms) {
   }
 
   PACL acl = nullptr;
-  AclObject acl_buffer =
-      modifyAcl(dacl, owner, (perms & S_IRUSR) == S_IRUSR,
-                (perms & S_IWUSR) == S_IWUSR, (perms & S_IXUSR) == S_IXUSR);
+  AclObject acl_buffer = modifyAcl(dacl,
+                                   owner,
+                                   (perms & S_IRUSR) == S_IRUSR,
+                                   (perms & S_IWUSR) == S_IWUSR,
+                                   (perms & S_IXUSR) == S_IXUSR);
   acl = reinterpret_cast<PACL>(acl_buffer.get());
 
   if (acl == nullptr) {
     return false;
   }
 
-  acl_buffer =
-      modifyAcl(acl, group, (perms & S_IRGRP) == S_IRGRP,
-                (perms & S_IWGRP) == S_IWGRP, (perms & S_IXGRP) == S_IXGRP);
+  acl_buffer = modifyAcl(acl,
+                         group,
+                         (perms & S_IRGRP) == S_IRGRP,
+                         (perms & S_IWGRP) == S_IWGRP,
+                         (perms & S_IXGRP) == S_IXGRP);
   acl = reinterpret_cast<PACL>(acl_buffer.get());
 
   if (acl == nullptr) {
     return false;
   }
 
-  acl_buffer =
-      modifyAcl(acl, world, (perms & S_IROTH) == S_IROTH,
-                (perms & S_IWOTH) == S_IWOTH, (perms & S_IXOTH) == S_IXOTH);
+  acl_buffer = modifyAcl(acl,
+                         world,
+                         (perms & S_IROTH) == S_IROTH,
+                         (perms & S_IWOTH) == S_IWOTH,
+                         (perms & S_IXOTH) == S_IXOTH);
   acl = reinterpret_cast<PACL>(acl_buffer.get());
 
   if (acl == nullptr) {
@@ -922,8 +977,12 @@ bool platformChmod(const std::string& path, mode_t perms) {
   std::vector<char> mutable_path(path.begin(), path.end());
   mutable_path.push_back('\0');
 
-  if (::SetNamedSecurityInfoA(&mutable_path[0], SE_FILE_OBJECT,
-                              DACL_SECURITY_INFORMATION, nullptr, nullptr, acl,
+  if (::SetNamedSecurityInfoA(&mutable_path[0],
+                              SE_FILE_OBJECT,
+                              DACL_SECURITY_INFORMATION,
+                              nullptr,
+                              nullptr,
+                              acl,
                               nullptr) != ERROR_SUCCESS) {
     return false;
   }
@@ -931,7 +990,7 @@ bool platformChmod(const std::string& path, mode_t perms) {
   return true;
 }
 
-std::vector<std::string> platformGlob(const std::string& find_path) {
+std::vector<std::string> platformGlob(const std::string &find_path) {
   fs::path full_path(find_path);
 
   // This is a naive implementation of GLOB_TILDE. If the first two characters
@@ -944,13 +1003,13 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
       full_path = fs::path(*homedir) / find_path.substr(2);
     }
   }
-  
+
   std::regex pattern(".*[*\?].*");
 
   // This vector will contain all the valid paths at each stage of the
   std::vector<fs::path> valid_paths;
   valid_paths.push_back(fs::path(""));
-  
+
   if (full_path.has_parent_path()) {
     // The provided glob pattern contains more than one directory to traverse.
     // We enumerate each component in the path to generate a list of all
@@ -959,7 +1018,7 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
       std::vector<fs::path> tmp_valid_paths;
 
       // This will enumerate the old set of valid paths and update it by looking
-      // for directories matching the specified glob pattern. 
+      // for directories matching the specified glob pattern.
       for (auto const &valid_path : valid_paths) {
         if (hasGlobBraces(component.string())) {
           // If the component contains braces, we convert the component into a
@@ -968,8 +1027,9 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
           // valid.
           std::regex component_pattern(globToRegex(component.string()));
           WindowsFindFiles wf(valid_path / "*");
-          for (auto const& file_path : wf.getDirectories()) {
-            if (std::regex_match(file_path.filename().string(), component_pattern)) {
+          for (auto const &file_path : wf.getDirectories()) {
+            if (std::regex_match(file_path.filename().string(),
+                                 component_pattern)) {
               tmp_valid_paths.push_back(file_path);
             }
           }
@@ -978,7 +1038,7 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
           // pass the pattern into the Windows FindFirstFileA function to get a
           // list of valid directories.
           WindowsFindFiles wf(valid_path / component);
-          for (auto const& result : wf.getDirectories()) {
+          for (auto const &result : wf.getDirectories()) {
             tmp_valid_paths.push_back(result);
           }
         } else {
@@ -986,7 +1046,8 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
           // going to append the component to the previous valid path and append
           // the new path to the list
           boost::system::error_code ec;
-          if (fs::exists(valid_path / component) && ec.value() == errc::success) {
+          if (fs::exists(valid_path / component) &&
+              ec.value() == errc::success) {
             tmp_valid_paths.push_back(valid_path / component);
           }
         }
@@ -1005,7 +1066,7 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
     if (hasGlobBraces(full_path.filename().string())) {
       std::regex component_pattern(globToRegex(full_path.filename().string()));
       WindowsFindFiles wf(valid_path / "*");
-      for (auto& result : wf.get()) {
+      for (auto &result : wf.get()) {
         if (std::regex_match(result.filename().string(), component_pattern)) {
           auto result_path = result.make_preferred().string();
 
@@ -1018,9 +1079,9 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
       }
     } else {
       WindowsFindFiles wf(valid_path / full_path.filename());
-      for (auto& result : wf.get()) {
+      for (auto &result : wf.get()) {
         auto result_path = result.make_preferred().string();
-        
+
         boost::system::error_code ec;
         if (fs::is_directory(result, ec) && ec.value() == errc::success) {
           result_path += "\\";
@@ -1038,14 +1099,15 @@ boost::optional<std::string> getHomeDirectory() {
   auto value = getEnvVar("USERPROFILE");
   if (value.is_initialized()) {
     return value;
-  } else if (SUCCEEDED(::SHGetFolderPathA(nullptr, CSIDL_PROFILE, nullptr, 0, &profile[0]))) {
+  } else if (SUCCEEDED(::SHGetFolderPathA(
+                 nullptr, CSIDL_PROFILE, nullptr, 0, &profile[0]))) {
     return std::string(&profile[0]);
   } else {
     return boost::none;
   }
 }
 
-int platformAccess(const std::string& path, mode_t mode) {
+int platformAccess(const std::string &path, mode_t mode) {
   return _access(path.c_str(), mode);
 }
 
@@ -1064,22 +1126,27 @@ static std::string normalizeDirPath(const fs::path &path) {
   }
 
   // Obtain the full path of the fs::path object
-  DWORD nret = ::GetFullPathNameA((LPCSTR)path.string().c_str(), MAX_PATH,
-                                  &full_path[0], nullptr);
+  DWORD nret = ::GetFullPathNameA(
+      (LPCSTR)path.string().c_str(), MAX_PATH, &full_path[0], nullptr);
   if (nret == 0) {
     return std::string();
   }
 
   HANDLE handle = INVALID_HANDLE_VALUE;
-  handle = ::CreateFileA(&full_path[0], GENERIC_READ, FILE_SHARE_READ, nullptr,
-                         OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+  handle = ::CreateFileA(&full_path[0],
+                         GENERIC_READ,
+                         FILE_SHARE_READ,
+                         nullptr,
+                         OPEN_EXISTING,
+                         FILE_FLAG_BACKUP_SEMANTICS,
+                         nullptr);
   if (handle == INVALID_HANDLE_VALUE) {
     return std::string();
   }
 
   // Resolve any symbolic links (somewhat rare on Windows)
-  nret = ::GetFinalPathNameByHandleA(handle, &final_path[0], MAX_PATH,
-                                     FILE_NAME_NORMALIZED);
+  nret = ::GetFinalPathNameByHandleA(
+      handle, &final_path[0], MAX_PATH, FILE_NAME_NORMALIZED);
   ::CloseHandle(handle);
 
   if (nret == 0) {
@@ -1091,7 +1158,8 @@ static std::string normalizeDirPath(const fs::path &path) {
 
   boost::system::error_code ec;
   std::string normalized_path(&final_path[0], nret);
-  if ((fs::is_directory(normalized_path, ec) && ec.value() == errc::success) && normalized_path[nret - 1] != '\\') {
+  if ((fs::is_directory(normalized_path, ec) && ec.value() == errc::success) &&
+      normalized_path[nret - 1] != '\\') {
     normalized_path += "\\";
   }
   return normalized_path;
@@ -1105,7 +1173,7 @@ static bool dirPathsAreEqual(const fs::path &dir1, const fs::path &dir2) {
           normalized_path1 == normalized_path2);
 }
 
-Status platformIsTmpDir(const fs::path& dir) {
+Status platformIsTmpDir(const fs::path &dir) {
   if (!dirPathsAreEqual(dir, fs::temp_directory_path())) {
     return Status(1, "Not temp directory");
   }
@@ -1113,7 +1181,7 @@ Status platformIsTmpDir(const fs::path& dir) {
   return Status(0, "OK");
 }
 
-Status platformIsFileAccessible(const fs::path& path) {
+Status platformIsFileAccessible(const fs::path &path) {
   boost::system::error_code ec;
   if (fs::is_regular_file(path, ec) && ec.value() == errc::success) {
     return Status(0, "OK");

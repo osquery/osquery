@@ -42,25 +42,25 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   }
 
   switch (PF_GET_OPTIONS(mode)) {
-    case PF_GET_OPTIONS(PF_CREATE_ALWAYS):
-      oflag |= O_CREAT;
-      may_create = true;
-      break;
-    case PF_GET_OPTIONS(PF_CREATE_NEW):
-      oflag |= O_CREAT | O_EXCL;
-      may_create = true;
-      break;
-    case PF_GET_OPTIONS(PF_OPEN_EXISTING):
-      check_existence = true;
-      break;
-    case PF_GET_OPTIONS(PF_TRUNCATE):
-      if (mode & PF_WRITE) {
-        oflag |= O_TRUNC;
-      }
+  case PF_GET_OPTIONS(PF_CREATE_ALWAYS) :
+    oflag |= O_CREAT;
+    may_create = true;
+    break;
+  case PF_GET_OPTIONS(PF_CREATE_NEW) :
+    oflag |= O_CREAT | O_EXCL;
+    may_create = true;
+    break;
+  case PF_GET_OPTIONS(PF_OPEN_EXISTING) :
+    check_existence = true;
+    break;
+  case PF_GET_OPTIONS(PF_TRUNCATE) :
+    if (mode & PF_WRITE) {
+      oflag |= O_TRUNC;
+    }
 
-      break;
-    default:
-      break;
+    break;
+  default:
+    break;
   }
 
   if ((mode & PF_NONBLOCK) == PF_NONBLOCK) {
@@ -77,23 +77,22 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   }
 
   boost::system::error_code ec;
-  if (check_existence && (!fs::exists(path.c_str(), ec) || ec.value() != errc::success)) {
+  if (check_existence &&
+      (!fs::exists(path.c_str(), ec) || ec.value() != errc::success)) {
     handle_ = kInvalidHandle;
   } else {
     handle_ = ::open(path.c_str(), oflag, perms);
   }
 }
 
-PlatformFile::~PlatformFile() { 
+PlatformFile::~PlatformFile() {
   if (handle_ != kInvalidHandle) {
     ::close(handle_);
     handle_ = kInvalidHandle;
   }
 }
 
-bool PlatformFile::isSpecialFile() const {
-  return (size() == 0);
-}
+bool PlatformFile::isSpecialFile() const { return (size() == 0); }
 
 static uid_t getFileOwner(PlatformHandle handle) {
   struct stat file;
@@ -109,7 +108,7 @@ Status PlatformFile::isOwnerRoot() const {
   }
 
   uid_t owner_id = getFileOwner(handle_);
-  if (owner_id == (uid_t) -1) {
+  if (owner_id == (uid_t) - 1) {
     return Status(-1, "fstat error");
   }
 
@@ -125,7 +124,7 @@ Status PlatformFile::isOwnerCurrentUser() const {
   }
 
   uid_t owner_id = getFileOwner(handle_);
-  if (owner_id == (uid_t) -1) {
+  if (owner_id == (uid_t) - 1) {
     return Status(-1, "fstat error");
   }
 
@@ -193,7 +192,7 @@ bool PlatformFile::setFileTimes(const PlatformTime& times) {
   return (::futimes(handle_, times.times) == 0);
 }
 
-ssize_t PlatformFile::read(void *buf, size_t nbyte) {
+ssize_t PlatformFile::read(void* buf, size_t nbyte) {
   if (!isValid()) {
     return -1;
   }
@@ -207,7 +206,7 @@ ssize_t PlatformFile::read(void *buf, size_t nbyte) {
   return ret;
 }
 
-ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
+ssize_t PlatformFile::write(const void* buf, size_t nbyte) {
   if (!isValid()) {
     return -1;
   }
@@ -228,17 +227,17 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
 
   int whence = 0;
   switch (mode) {
-    case PF_SEEK_BEGIN:
-      whence = SEEK_SET;
-      break;
-    case PF_SEEK_CURRENT:
-      whence = SEEK_CUR;
-      break;
-    case PF_SEEK_END:
-      whence = SEEK_END;
-      break;
-    default:
-      break;
+  case PF_SEEK_BEGIN:
+    whence = SEEK_SET;
+    break;
+  case PF_SEEK_CURRENT:
+    whence = SEEK_CUR;
+    break;
+  case PF_SEEK_END:
+    whence = SEEK_END;
+    break;
+  default:
+    break;
   }
   return ::lseek(handle_, offset, whence);
 }
@@ -270,11 +269,12 @@ bool platformChmod(const std::string& path, mode_t perms) {
 
 std::vector<std::string> platformGlob(const std::string& find_path) {
   std::vector<std::string> results;
-  
+
   glob_t data;
-  ::glob(find_path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, &data);
+  ::glob(
+      find_path.c_str(), GLOB_TILDE | GLOB_MARK | GLOB_BRACE, nullptr, &data);
   size_t count = data.gl_pathc;
-  
+
   for (size_t index = 0; index < count; index++) {
     results.push_back(data.gl_pathv[index]);
   }
@@ -292,7 +292,7 @@ Status platformIsTmpDir(const fs::path& dir) {
   if (::stat(dir.c_str(), &dir_stat) < 0) {
     return Status(-1, "");
   }
-  
+
   if (dir_stat.st_mode & (1 << 9)) {
     return Status(0, "OK");
   }
