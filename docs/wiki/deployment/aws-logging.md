@@ -23,13 +23,9 @@ When working with AWS, osquery will look for credentials and region configuratio
 
 ### Kinesis Streams
 
-When logging to Kinesis Streams, the stream name must be specified with `aws_kinesis_stream`, and the log flushing period can be configured with `aws_kinesis_period`.
+When logging to Kinesis Streams, the stream name must be specified with `aws_kinesis_stream`, and the log flushing period can be configured with `aws_kinesis_period`.  
 
-Configuration flags for kinesis logger:
-
-````
---aws_kinesis_random_partition_key VALUE         Use random partition keys when sending data to kinesis. Using random values will load balance over stream shards if you are using multiple shards in a stream.  Default is "false".
-````
+Setting aws_kinesis_random_partition_key to true will use random partition keys when sending data to kinesis. Using random values will load balance over stream shards if you are using multiple shards in a stream.  The default for this setting is "false".
 
 ### Kinesis Firehose
 
