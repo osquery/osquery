@@ -9,6 +9,7 @@ pages:
   - Features Overview: introduction/overview.md
   - osqueryi (shell): introduction/using-osqueryi.md
   - osqueryd (daemon): introduction/using-osqueryd.md
+  - SQL Intro: introduction/sql.md
 - Installation:
   - Install on OS X: installation/install-osx.md
   - Install on Linux: installation/install-linux.md
@@ -22,10 +23,11 @@ pages:
   - AWS Logging: deployment/aws-logging.md
   - Performance Safety: deployment/performance-safety.md
   - Anomaly Detection: deployment/anomaly-detection.md
-  - Extensions: deployment/extensions.md
+  - Using Extensions: deployment/extensions.md
   - File Integrity Monitoring: deployment/file-integrity-monitoring.md
   - YARA Scanning: deployment/yara.md
-  - Remote settings: deployment/remote.md
+  - Process Auditing: deployment/process-auditing.md
+  - Remote Settings: deployment/remote.md
   - Syslog: deployment/syslog.md
   - Debugging: deployment/debugging.md
 - Development:
