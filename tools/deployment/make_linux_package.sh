@@ -52,7 +52,6 @@ DEBUG_PREFIX=$WORKING_DIR/debug
 
 function usage() {
   fatal "Usage: $0 -t deb|rpm -i REVISION -d DEPENDENCY_LIST
-  
   This will generate an Linux package with:
   (1) An example config /var/osquery/osquery.example.config
   (2) An init.d script /etc/init.d/osqueryd
