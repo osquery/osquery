@@ -35,6 +35,10 @@ CLI_FLAG(bool,
 FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
 
 FLAG(bool, disable_database, false, "Disable the persistent RocksDB storage");
+FLAG(bool,
+     top_level_decorators,
+     false,
+     "Add decorators as top level JSON objects");
 
 #if defined(SKIP_ROCKSDB)
 #define DATABASE_PLUGIN "sqlite"
@@ -266,10 +270,16 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
 
   // Append the decorations.
   if (item.decorations.size() > 0) {
-    tree.add_child("decorations", pt::ptree());
-    auto& decorations = tree.get_child("decorations");
-    for (const auto& name : item.decorations) {
-      decorations.put<std::string>(name.first, name.second);
+    if (FLAGS_top_level_decorators) {
+      for (const auto& name : item.decorations) {
+        tree.put<std::string>(name.first, name.second);
+      }
+    } else {
+      tree.add_child("decorations", pt::ptree());
+      auto& decorations = tree.get_child("decorations");
+      for (const auto& name : item.decorations) {
+        decorations.put<std::string>(name.first, name.second);
+      }
     }
   }
 }
