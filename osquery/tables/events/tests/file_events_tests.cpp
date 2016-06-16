@@ -19,7 +19,7 @@
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 #include "osquery/tables/events/event_utils.h"
 
 namespace osquery {

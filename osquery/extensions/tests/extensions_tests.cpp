@@ -16,7 +16,7 @@
 #include <osquery/filesystem.h>
 
 #include "osquery/core/process.h"
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 #include "osquery/extensions/interface.h"
 
 using namespace osquery::extensions;

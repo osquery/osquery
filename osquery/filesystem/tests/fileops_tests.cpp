@@ -14,7 +14,7 @@
 
 #include <osquery/core.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 #include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;

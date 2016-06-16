@@ -18,7 +18,7 @@
 #include <osquery/flags.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 #include "osquery/events/darwin/fsevents.h"
 
 namespace fs = boost::filesystem;

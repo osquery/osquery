@@ -61,12 +61,17 @@ Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
                                   const std::string& log_type) {
   std::vector<Aws::Firehose::Model::Record> records;
   for (const std::string& log : log_data) {
-    if (log.size() > kFirehoseMaxLogBytes) {
+    if (log.size() + 1 > kFirehoseMaxLogBytes) {
       LOG(ERROR) << "Firehose log too big, discarding!";
     }
     Aws::Firehose::Model::Record record;
-    record.WithData(
-        Aws::Utils::ByteBuffer((unsigned char*)log.c_str(), log.length()));
+    auto buffer =
+        Aws::Utils::ByteBuffer((unsigned char*)log.c_str(), log.length() + 1);
+    // Firehose buffers together the individual records, so we must insert
+    // newlines here if we want newlines in the resultant files after Firehose
+    // processing. See http://goo.gl/Pz6XOj
+    buffer[log.length()] = '\n';
+    record.SetData(buffer);
     records.push_back(std::move(record));
   }
 

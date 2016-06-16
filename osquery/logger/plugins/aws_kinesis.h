@@ -43,7 +43,7 @@ class KinesisLogForwarder : public BufferedLogForwarder {
               const std::string& log_type) override;
 
  private:
-  std::string shard_id_;
+  std::string partition_key_;
   std::shared_ptr<Aws::Kinesis::KinesisClient> client_{nullptr};
 
   FRIEND_TEST(KinesisTests, test_send);

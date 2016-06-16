@@ -14,7 +14,7 @@
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 #include "osquery/config/parsers/decorators.h"
 
 namespace osquery {

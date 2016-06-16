@@ -17,7 +17,7 @@
 #include <osquery/flags.h>
 #include <osquery/packs.h>
 
-#include "osquery/core/test_util.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
