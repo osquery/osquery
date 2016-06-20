@@ -10,7 +10,7 @@ In almost all cases `git`, GNU `make`, and `bash` are required for the build. In
 
 ## Building on OS X
 
-To build osquery on OS X, you need `pip` and `brew` installed. `make deps` will take care of installing the appropriate library dependencies, but it's recommended to take take a look at the Makefile, just in case
+To build osquery on OS X, you need `pip` and `brew` installed. `make deps` will take care of installing the appropriate library dependencies, but it's recommended to take a look at the Makefile, just in case
 something conflicts with your environment.
 
 Anything that does not have a Homebrew package is built from source from _https://github.com/osquery/third-party_, which is a git submodule of this repository and is set up by `make deps`.
