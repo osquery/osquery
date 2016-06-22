@@ -11,7 +11,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/usr/local/bin/osqueryd</string>
-    <string> --flagfile="/private/var/osquery/osquery.flags"</string>
+    <string>--flagfile=/private/var/osquery/osquery.flags</string>
   </array>
   <key>RunAtLoad</key>
   <true/>

@@ -32,26 +32,33 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-const std::map<WatchdogLimitType, std::vector<size_t>> kWatchdogLimits = {
+struct LimitDefinition {
+  size_t normal;
+  size_t restrictive;
+  size_t disabled;
+};
+
+using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
+
+const WatchdogLimitMap kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
-    {MEMORY_LIMIT, {80, 50, 30, 1000}},
-    // Percent of user or system CPU worker can utilize for LATENCY_LIMIT
-    // seconds.
-    {UTILIZATION_LIMIT, {90, 80, 60, 1000}},
+    {MEMORY_LIMIT, {100, 50, 1000}},
+    // User or system CPU worker can utilize for LATENCY_LIMIT seconds.
+    {UTILIZATION_LIMIT, {90, 80, 1000}},
     // Number of seconds the worker should run, else consider the exit fatal.
-    {RESPAWN_LIMIT, {20, 20, 20, 5}},
+    {RESPAWN_LIMIT, {20, 20, 1000}},
     // If the worker respawns too quickly, backoff on creating additional.
-    {RESPAWN_DELAY, {5, 5, 5, 1}},
+    {RESPAWN_DELAY, {5, 5, 1}},
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
-    {LATENCY_LIMIT, {12, 6, 3, 1}},
+    {LATENCY_LIMIT, {12, 6, 1000}},
     // How often to poll for performance limit violations.
-    {INTERVAL, {3, 3, 3, 1}},
+    {INTERVAL, {3, 3, 3}},
 };
 
 CLI_FLAG(int32,
          watchdog_level,
          0,
-         "Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug)");
+         "Performance limit level (0=normal, 1=restrictive, -1=off)");
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
@@ -430,12 +437,12 @@ size_t getWorkerLimit(WatchdogLimitType name, int level) {
 
   // If no level was provided then use the default (config/switch).
   if (level == -1) {
-    level = FLAGS_watchdog_level;
+    return kWatchdogLimits.at(name).disabled;
   }
-  if (level > 3) {
-    return kWatchdogLimits.at(name).back();
-  }
-  return kWatchdogLimits.at(name).at(level);
-}
-}
 
+  if (level == 1) {
+    return kWatchdogLimits.at(name).restrictive;
+  }
+  return kWatchdogLimits.at(name).normal;
+}
+}
