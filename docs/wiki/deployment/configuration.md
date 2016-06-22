@@ -429,6 +429,8 @@ The columns, and their values, will be appended to each log line as follows. Ass
 
 Expect the normal set of log keys to be included and note that `decorations` is a top-level key in the log line whose value is an embedded map.
 
+The configuration flag `top_level_decorations`  can be set to `true` to make decorator data populate as top level key/value objects instead of being contained as a child of `decorations`.  When using this feature, you must be weary of key collisions in your data.
+
 The `interval` type uses a map of interval 'periods' as keys, and the set of decorator queries for each value. Each of these intervals MUST be minute-intervals. Anything not divisible by 60 will generate a warning, and will not run.
 
 ## Chef Configuration
