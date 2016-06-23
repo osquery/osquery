@@ -1,0 +1,15 @@
+table_name("processes")
+description("All running processes on the host system.")
+schema([
+    Column("pid", BIGINT, "Process (or thread) ID", index=True),
+    Column("name", TEXT, "The process path or shorthand argv[0]"),
+    Column("path", TEXT, "Path to executed binary"),
+    Column("cmdline", TEXT, "Complete argv"),
+    Column("state", TEXT, "Process state"),
+    Column("parent", BIGINT, "Process parent's PID"),
+    Column("nice", INTEGER, "Process priority level"),
+])
+implementation("system/windows/processes@genProcesses")
+examples([
+  "select * from processes where pid = 1",
+])
