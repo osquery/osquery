@@ -143,7 +143,9 @@ function Install-ThirdPartyPackages {
     "openssl.1.0.2",
     "rocksdb.4.4",
     "snappy-msvc.1.1.1.8",
-    "thrift-dev.0.9.3"
+    "thrift-dev.0.9.3",
+    "cpp-netlib.0.12.0",
+    "linenoise-ng.1.0.0"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'
   Remove-Item $tmpDir -Recurse -ErrorAction Ignore
