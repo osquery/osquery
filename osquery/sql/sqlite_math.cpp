@@ -10,7 +10,13 @@
 
 #include <assert.h>
 #include <errno.h>
+
+#ifdef WIN32
+#define _USE_MATH_DEFINES
+#endif
+
 #include <math.h>
+
 #include <string.h>
 
 #include <functional>
@@ -18,6 +24,34 @@
 #include <sqlite3.h>
 
 namespace osquery {
+
+#ifdef WIN32
+double SIN_FUNC(double n) { return sin(n); }
+double COS_FUNC(double n) { return cos(n); }
+double TAN_FUNC(double n) { return tan(n); }
+double ASIN_FUNC(double n) { return asin(n); }
+double ACOS_FUNC(double n) { return acos(n); }
+double ATAN_FUNC(double n) { return atan(n); }
+double LOG_FUNC(double n) { return log(n); }
+double LOG10_FUNC(double n) { return log10(n); }
+double SQRT_FUNC(double n) { return sqrt(n); }
+double EXP_FUNC(double n) { return exp(n); }
+double CEIL_FUNC(double n) { return ceil(n); }
+double FLOOR_FUNC(double n) { return floor(n); }
+#else
+#define SIN_FUNC sin
+#define COS_FUNC cos
+#define TAN_FUNC tan
+#define ASIN_FUNC asin
+#define ACOS_FUNC acos
+#define ATAN_FUNC atan
+#define LOG_FUNC log
+#define LOG10_FUNC log10
+#define SQRT_FUNC sqrt
+#define EXP_FUNC exp
+#define CEIL_FUNC ceil
+#define FLOOR_FUNC floor
+#endif
 
 using DoubleDoubleFunction = std::function<double(double)>;
 
@@ -47,28 +81,29 @@ static void callDoubleFunc(sqlite3_context *context,
   }
 }
 
+
 static void sinFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, sin);
+  callDoubleFunc(context, argc, argv, SIN_FUNC);
 }
 
 static void cosFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, cos);
+  callDoubleFunc(context, argc, argv, COS_FUNC);
 }
 
 static void tanFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, tan);
+  callDoubleFunc(context, argc, argv, TAN_FUNC);
 }
 
 static void asinFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, asin);
+  callDoubleFunc(context, argc, argv, ASIN_FUNC);
 }
 
 static void acosFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, acos);
+  callDoubleFunc(context, argc, argv, ACOS_FUNC);
 }
 
 static void atanFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, atan);
+  callDoubleFunc(context, argc, argv, ATAN_FUNC);
 }
 
 static double cot(double x) { return 1.0 / tan(x); }
@@ -78,21 +113,21 @@ static void cotFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
 }
 
 static void logFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, log);
+  callDoubleFunc(context, argc, argv, LOG_FUNC);
 }
 
 static void log10Func(sqlite3_context *context,
                       int argc,
                       sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, log10);
+  callDoubleFunc(context, argc, argv, LOG10_FUNC);
 }
 
 static void sqrtFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, sqrt);
+  callDoubleFunc(context, argc, argv, SQRT_FUNC);
 }
 
 static void expFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, exp);
+  callDoubleFunc(context, argc, argv, EXP_FUNC);
 }
 
 static void powerFunc(sqlite3_context *context,
@@ -143,13 +178,13 @@ static void callCastedDoubleFunc(sqlite3_context *context,
 }
 
 static void ceilFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callCastedDoubleFunc(context, argc, argv, ceil);
+  callCastedDoubleFunc(context, argc, argv, CEIL_FUNC);
 }
 
 static void floorFunc(sqlite3_context *context,
                       int argc,
                       sqlite3_value **argv) {
-  callCastedDoubleFunc(context, argc, argv, floor);
+  callCastedDoubleFunc(context, argc, argv, FLOOR_FUNC);
 }
 
 /** Convert Degrees into Radians */

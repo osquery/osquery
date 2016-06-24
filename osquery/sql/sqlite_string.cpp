@@ -10,7 +10,11 @@
 
 #include <assert.h>
 
+#ifdef WIN32
+#include <ws2tcpip.h>
+#else
 #include <arpa/inet.h>
+#endif
 
 #include <functional>
 #include <string>

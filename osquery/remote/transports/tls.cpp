@@ -16,6 +16,8 @@ namespace http = boost::network::http;
 
 /// Apple's 0.9.8 OpenSSL will lack TLS protocols.
 extern "C" {
+#ifndef WIN32
+
 #if !defined(HAS_SSL_TXT_TLSV1_1) and !defined(HAS_SSL_TXT_TLSV1_2)
 SSL_CTX* TLSv1_1_client_method(void) { return nullptr; }
 SSL_CTX* TLSv1_1_method(void) { return nullptr; }
@@ -35,6 +37,8 @@ SSL_METHOD* SSLv3_method(void) { return nullptr; }
 SSL_METHOD* SSLv2_server_method(void) { return nullptr; }
 SSL_METHOD* SSLv2_client_method(void) { return nullptr; }
 SSL_METHOD* SSLv2_method(void) { return nullptr; }
+#endif
+
 #endif
 }
 

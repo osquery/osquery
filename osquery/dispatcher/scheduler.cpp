@@ -17,6 +17,7 @@
 #include <osquery/logger.h>
 
 #include "osquery/config/parsers/decorators.h"
+#include "osquery/core/process.h"
 #include "osquery/database/query.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/sql/sqlite_util.h"
@@ -29,7 +30,7 @@ FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
 
 inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
   // Snapshot the performance and times for the worker before running.
-  auto pid = std::to_string(getpid());
+  auto pid = std::to_string(PlatformProcess::getCurrentProcess()->pid());
   auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
   auto t0 = getUnixTime();
   Config::getInstance().recordQueryStart(name);

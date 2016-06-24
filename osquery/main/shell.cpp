@@ -10,9 +10,14 @@
 
 #include <stdio.h>
 
+#ifdef WIN32
+#include <io.h>
+#endif
+
 #include <iostream>
 
 #include <osquery/core.h>
+#include <osquery/core/process.h>
 #include <osquery/database.h>
 #include <osquery/extensions.h>
 #include <osquery/flags.h>
@@ -35,9 +40,17 @@ HIDDEN_FLAG(int32,
 DECLARE_bool(disable_caching);
 }
 
+#ifdef WIN32
+#define IsAtty _isatty
+#define FileNo _fileno
+#else
+#define IsAtty isatty
+#define FileNo fileno
+#endif
+
 int profile(int argc, char *argv[]) {
   std::string query;
-  if (!isatty(fileno(stdin))) {
+  if (!IsAtty(FileNo(stdin))) {
     std::getline(std::cin, query);
   } else if (argc < 2) {
     // No query input provided via stdin or as a positional argument.
@@ -48,7 +61,7 @@ int profile(int argc, char *argv[]) {
   }
 
   if (osquery::FLAGS_profile_delay > 0) {
-    ::sleep(osquery::FLAGS_profile_delay);
+    osquery::sleepFor(osquery::FLAGS_profile_delay);
   }
 
   // Perform some duplication from Initializer with respect to database setup.
@@ -70,7 +83,7 @@ int profile(int argc, char *argv[]) {
   }
 
   if (osquery::FLAGS_profile_delay > 0) {
-    ::sleep(osquery::FLAGS_profile_delay);
+    osquery::sleepFor(osquery::FLAGS_profile_delay);
   }
 
   return 0;
@@ -85,7 +98,7 @@ int main(int argc, char *argv[]) {
   runner.initWorkerWatcher();
 
   // Check for shell-specific switches and positional arguments.
-  if (argc > 1 || !isatty(fileno(stdin)) || osquery::FLAGS_A.size() > 0 ||
+  if (argc > 1 || !IsAtty(FileNo(stdin)) || osquery::FLAGS_A.size() > 0 ||
       osquery::FLAGS_pack.size() > 0 || osquery::FLAGS_L ||
       osquery::FLAGS_profile > 0) {
     // A query was set as a positional argument, via stdin, or profiling is on.

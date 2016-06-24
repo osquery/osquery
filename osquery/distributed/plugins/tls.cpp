@@ -8,6 +8,9 @@
  *
  */
 
+// This must be here to prevent a WinSock.h exists error
+#include "osquery/remote/transports/tls.h"
+
 #include <vector>
 #include <sstream>
 
@@ -20,7 +23,6 @@
 #include <osquery/registry.h>
 
 #include "osquery/remote/requests.h"
-#include "osquery/remote/transports/tls.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/utility.h"
 
