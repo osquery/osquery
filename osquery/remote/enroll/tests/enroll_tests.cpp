@@ -18,6 +18,8 @@
 
 #include "osquery/tests/test_util.h"
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 
 DECLARE_string(enroll_secret_path);
