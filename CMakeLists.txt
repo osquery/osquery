@@ -99,6 +99,8 @@ if(APPLE)
 elseif(WIN32)
   # Windows
   # C++11 features should be on by default in 2012 and beyond.
+  set(OS_WHOLELINK_PRE "-WHOLEARCHIVE:")
+  set(OS_WHOLELINK_POST "")
 else()
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
   set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
@@ -208,7 +210,7 @@ if(NOT DEFINED ENV{OPTIMIZED})
   #              does not use avx. Ideally, this should be kept WIN64 only but we are having trouble determining
   #              the target architecture
   if(WIN32)
-    add_compile_options(/favor:AMD64)
+    # TODO: Add something here?
   else()
     add_compile_options(-march=x86-64 -mno-avx)
   endif()
@@ -361,9 +363,6 @@ set(MKDIR_OPTS "")
 if(WIN32)
   set(PROCESS_FAMILY "windows")
   
-  # Win64 does not have a kernel build component-specific
-  set(OSQUERY_BUILD_SDK_ONLY TRUE)
-
   set(WINDOWS_DEP_DIR "$ENV{ChocolateyInstall}/lib")
   string(REGEX REPLACE "\\\\" "/" WINDOWS_DEP_DIR ${WINDOWS_DEP_DIR})
   set(BOOST_DEP_DIR "$ENV{HOMEDRIVE}/local/boost-msvc14")
@@ -405,6 +404,10 @@ if(WIN32)
   
   # Win64 specific glog
   set(glog_library "${WINDOWS_DEP_DIR}/glog/local/lib/glog.lib")
+  
+  # Win64 specific cpp-netlib library
+  set(cppnetlib-uri_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-uri.lib")
+  set(cppnetlib-client-connections_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-client-connections.lib")
 else()
   set(PROCESS_FAMILY "posix")
   set(MKDIR_OPTS "-p")
@@ -506,11 +509,19 @@ if(WIN32)
   #              are made into chocolatey packages.
   include_directories("${THRIFT_INCLUDE_DIR}")
   include_directories("${BOOST_DEP_DIR}")
+  include_directories("${BOOST_DEP_DIR}/boost")
   include_directories("${WINDOWS_DEP_DIR}/glog/local/include")
   include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
   
+  # TODO(FIXME): temporary for now
+  include_directories("${WINDOWS_DEP_DIR}/cpp-netlib/local/include")
+  include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
+  include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")
+  include_directories("${WINDOWS_DEP_DIR}/rocksdb/local/include")
+  
   # TODO(#1990): We probably need to add our third-party link directories here
   link_directories("${BOOST_DEP_DIR}/lib64-msvc-14.0")
+  link_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/lib")
 else()
   include_directories("/usr/local/include")
   link_directories("/usr/local/lib")
