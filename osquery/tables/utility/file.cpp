@@ -37,6 +37,7 @@ void genFileInfo(const fs::path& path,
                  const fs::path& parent,
                  const std::string& pattern,
                  QueryData& results) {
+#ifndef WIN32
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
   struct stat file_stat, link_stat;
@@ -86,6 +87,7 @@ void genFileInfo(const fs::path& path,
   r["is_char"] = (S_ISCHR(file_stat.st_mode)) ? "1" : "0";
   r["is_block"] = (S_ISBLK(file_stat.st_mode)) ? "1" : "0";
   results.push_back(r);
+#endif
 }
 
 QueryData genFile(QueryContext& context) {
