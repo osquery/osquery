@@ -139,7 +139,7 @@ Status SQLiteDatabasePlugin::setUp() {
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.
-  if (!read_only_ && platformChmod(path_, 0700) != 0) {
+  if (!read_only_ && platformChmod(path_, 0700) == false) {
     close();
     return Status(1, "Cannot set permissions on database path: " + path_);
   }
