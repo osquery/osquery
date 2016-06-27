@@ -9,48 +9,33 @@
  */
 
 #include "osquery/tables/system/windows/system_util.h"
+#include <codecvt>
+#include <locale>
+#include <string>
+
 
 namespace osquery {
 namespace tables {
   
+// we will be converting between UTF8 to UTF16-LE
+static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t, 0x10ffff, std::little_endian>> converter;
+
 static std::wstring string_to_wstring(const std::string &src) {
-  std::vector<wchar_t> buffer;
-  size_t new_size = src.size() + 1;
-
-  buffer.assign(new_size, L'\0');
-
-  size_t converted_chars = 0;
-
-  // TODO(audit): Make sure this is doing the right thing
-  if (::mbstowcs_s(&converted_chars, &buffer[0], new_size, src.c_str(),
-                   _TRUNCATE) != 0) {
-    return std::wstring(L"");
-  }
-
-  return std::wstring(buffer.begin(), buffer.end());
+  std::wstring utf16le_str = converter.from_bytes(src);
+  return utf16le_str;
 }
 
-static std::string BSTR_to_string(const BSTR src) {
+static std::string wstring_to_string(const wchar_t* src) {
   if (src == nullptr) {
     return std::string("");
   }
 
-  std::vector<char> buffer;
+  std::string utf8_str = converter.to_bytes(src);
+  return utf8_str;
+}
 
-  // TODO(audit): Make sure this is doing the right thing
-  int size =
-      ::WideCharToMultiByte(CP_UTF8, 0, src, -1, nullptr, 0, nullptr, nullptr);
-  if (size <= 0) {
-    return std::string("");
-  }
-
-  buffer.assign(size, '\0');
-  if (WideCharToMultiByte(CP_UTF8, 0, src, -1, &buffer[0], size, nullptr,
-                          nullptr) == 0) {
-    return std::string("");
-  }
-
-  return std::string(buffer.begin(), buffer.end());
+static std::string BSTR_to_string(const BSTR src) {
+  return wstring_to_string(static_cast<const wchar_t*>(src));
 }
 
 WmiResultItem::WmiResultItem(WmiResultItem&& src) {
@@ -174,3 +159,4 @@ WmiRequest::~WmiRequest() {
 }
 }
 }
+
