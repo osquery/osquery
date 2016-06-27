@@ -119,7 +119,9 @@ WmiRequest::WmiRequest(const std::string& query) {
   IWbemClassObject *result = nullptr;
   ULONG result_count = 0;
 
-  while (enum_->Next(WBEM_INFINITE, 1, &result, &result_count) == S_OK) {
+  while (SUCCEEDED(enum_->Next(WBEM_INFINITE, 1, &result, &result_count))) {
+    // WmiResultItem will take ownership of result
+    // and call result->Release() when it goes out of scope
     results_.push_back(WmiResultItem(result));
   }
 
