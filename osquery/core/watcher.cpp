@@ -349,7 +349,8 @@ void WatcherRunner::createWorker() {
   }
 
   // Get the complete path of the osquery process binary.
-  auto exec_path = fs::system_complete(fs::path(qd[0]["path"]));
+  boost::system::error_code ec;
+  auto exec_path = fs::system_complete(fs::path(qd[0]["path"]), ec);
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // osqueryd binary has become unsafe.
@@ -385,7 +386,8 @@ bool WatcherRunner::createExtension(const std::string& extension) {
   }
 
   // Check the path to the previously-discovered extension binary.
-  auto exec_path = fs::system_complete(fs::path(extension));
+  boost::system::error_code ec;
+  auto exec_path = fs::system_complete(fs::path(extension), ec);
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // Extension binary has become unsafe.

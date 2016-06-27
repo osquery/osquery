@@ -1046,7 +1046,7 @@ std::vector<std::string> platformGlob(const std::string &find_path) {
           // going to append the component to the previous valid path and append
           // the new path to the list
           boost::system::error_code ec;
-          if (fs::exists(valid_path / component) &&
+          if (fs::exists(valid_path / component, ec) &&
               ec.value() == errc::success) {
             tmp_valid_paths.push_back(valid_path / component);
           }
@@ -1174,7 +1174,8 @@ static bool dirPathsAreEqual(const fs::path &dir1, const fs::path &dir2) {
 }
 
 Status platformIsTmpDir(const fs::path &dir) {
-  if (!dirPathsAreEqual(dir, fs::temp_directory_path())) {
+  boost::system::error_code ec;
+  if (!dirPathsAreEqual(dir, fs::temp_directory_path(ec))) {
     return Status(1, "Not temp directory");
   }
 

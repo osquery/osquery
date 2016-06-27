@@ -296,7 +296,8 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
                                (pattern.size() > 3 && pattern[1] != ':' &&
                                 pattern[2] != '\\' && pattern[2] != '/'))) &&
       pattern[0] != '~') {
-    pattern = (fs::initial_path() / pattern).make_preferred().string();
+    boost::system::error_code ec;
+    pattern = (fs::current_path(ec) / pattern).make_preferred().string();
   }
 
   auto base =
@@ -443,8 +444,9 @@ const std::string& osqueryHomeDirectory() {
           (fs::path(*home_directory) / ".osquery").make_preferred().string();
     } else {
       // Fail over to a temporary directory (used for the shell).
-      homedir =
-          (fs::temp_directory_path() / "osquery").make_preferred().string();
+      boost::system::error_code ec;
+      auto temp = fs::temp_directory_path(ec);
+      homedir = (temp / "osquery").make_preferred().string();
     }
   }
 
