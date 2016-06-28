@@ -46,7 +46,17 @@ namespace osquery {
  * types they are storing, and more importantly how they are treated at query
  * time.
  */
+
+#ifdef WIN32
+// TEXT is also defined in windows.h, we should not re-define it
+#define SQL_TEXT(x) boost::lexical_cast<std::string>(x)
+#else
+// For everything except Windows, aldo define TEXT() to be compatible with 
+// existing tables
+#define SQL_TEXT(x) boost::lexical_cast<std::string>(x)
 #define TEXT(x) boost::lexical_cast<std::string>(x)
+#endif
+
 /// See the affinity type documentation for TEXT.
 #define INTEGER(x) boost::lexical_cast<std::string>(x)
 /// See the affinity type documentation for TEXT.
