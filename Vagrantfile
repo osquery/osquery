@@ -130,6 +130,14 @@ Vagrant.configure("2") do |config|
   targets.each do |name, target|
     box = target["box"]
     config.vm.define name do |build|
+      if Vagrant.has_plugin?("vagrant-cachier")
+         # Configure cached packages to be shared between instances of the same base box.
+         # More info on http://fgrehm.viewdocs.io/vagrant-cachier/usage
+         build.cache.scope = :box
+         build.cache.synced_folder_opts = {
+           type: :nfs,
+         }
+      end
       build.vm.box = box
       if name.start_with?('aws-')
         build.vm.provider :aws do |aws, override|
