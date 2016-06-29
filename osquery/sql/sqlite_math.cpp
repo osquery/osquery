@@ -15,7 +15,7 @@
 #define _USE_MATH_DEFINES
 #endif
 
-#include <math.h>
+#include <cmath>
 
 #include <string.h>
 
@@ -25,35 +25,25 @@
 
 namespace osquery {
 
-#ifdef WIN32
-double SIN_FUNC(double n) { return sin(n); }
-double COS_FUNC(double n) { return cos(n); }
-double TAN_FUNC(double n) { return tan(n); }
-double ASIN_FUNC(double n) { return asin(n); }
-double ACOS_FUNC(double n) { return acos(n); }
-double ATAN_FUNC(double n) { return atan(n); }
-double LOG_FUNC(double n) { return log(n); }
-double LOG10_FUNC(double n) { return log10(n); }
-double SQRT_FUNC(double n) { return sqrt(n); }
-double EXP_FUNC(double n) { return exp(n); }
-double CEIL_FUNC(double n) { return ceil(n); }
-double FLOOR_FUNC(double n) { return floor(n); }
-#else
-#define SIN_FUNC sin
-#define COS_FUNC cos
-#define TAN_FUNC tan
-#define ASIN_FUNC asin
-#define ACOS_FUNC acos
-#define ATAN_FUNC atan
-#define LOG_FUNC log
-#define LOG10_FUNC log10
-#define SQRT_FUNC sqrt
-#define EXP_FUNC exp
-#define CEIL_FUNC ceil
-#define FLOOR_FUNC floor
-#endif
-
 using DoubleDoubleFunction = std::function<double(double)>;
+
+// force use of the double(double) math functions
+// without these lambda functions, MSVC will error
+// because it fails to select an overload compatible with
+// DoubleDoubleFunction
+#define SIN_FUNC    [](double a)->double { return sin(a);    }
+#define COS_FUNC    [](double a)->double { return cos(a);    }
+#define TAN_FUNC    [](double a)->double { return tanl(a);   }
+#define ASIN_FUNC   [](double a)->double { return asin(a);   }
+#define ACOS_FUNC   [](double a)->double { return acos(a);   }
+#define ATAN_FUNC   [](double a)->double { return atan(a);   }
+#define LOG_FUNC    [](double a)->double { return log(a);    }
+#define LOG10_FUNC  [](double a)->double { return log10(a);  }
+#define SQRT_FUNC   [](double a)->double { return sqrt(a);   }
+#define EXP_FUNC    [](double a)->double { return expl(a);   }
+#define CEIL_FUNC   [](double a)->double { return ceil(a);   }
+#define FLOOR_FUNC  [](double a)->double { return floor(a);  }
+
 
 /**
  * @brief Call a math function that takes a double and returns a double.
@@ -80,7 +70,6 @@ static void callDoubleFunc(sqlite3_context *context,
     break;
   }
 }
-
 
 static void sinFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
   callDoubleFunc(context, argc, argv, SIN_FUNC);
@@ -238,3 +227,4 @@ void registerMathExtensions(sqlite3 *db) {
   }
 }
 }
+
