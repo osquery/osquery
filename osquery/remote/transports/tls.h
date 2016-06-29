@@ -10,22 +10,6 @@
 
 #pragma once
 
-// We need this here to prevent errors with WinSock.h
-//
-// Our third-party version of cpp-netlib uses OpenSSL APIs.
-// On OS X these symbols are marked deprecated and clang will warn against
-// us including them. We are squashing the noise for OS X's OpenSSL only.
-// clang-format off
-#if defined(DARWIN)
-_Pragma("clang diagnostic push")
-_Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
-#endif
-#include <boost/network/protocol/http/client.hpp>
-#if defined(DARWIN)
-_Pragma("clang diagnostic pop")
-#endif
-// clang-format on
-
 #include <openssl/ssl.h>
 #include <openssl/crypto.h>
 
@@ -49,6 +33,20 @@ SSL_METHOD* SSLv3_method(void);
 #endif
 void ERR_remove_state(unsigned long);
 }
+
+// Our third-party version of cpp-netlib uses OpenSSL APIs.
+// On OS X these symbols are marked deprecated and clang will warn against
+// us including them. We are squashing the noise for OS X's OpenSSL only.
+// clang-format off
+#if defined(DARWIN)
+_Pragma("clang diagnostic push")
+_Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
+#endif
+#include <boost/network/protocol/http/client.hpp>
+#if defined(DARWIN)
+_Pragma("clang diagnostic pop")
+#endif
+// clang-format on
 
 #include <osquery/flags.h>
 
