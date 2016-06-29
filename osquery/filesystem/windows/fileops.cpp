@@ -1188,5 +1188,9 @@ Status platformIsFileAccessible(const fs::path &path) {
   }
   return Status(1, "Not accessible file");
 }
+
+bool platformIsatty(FILE *f) {
+  return 0 != _isatty(_fileno(f));
+}
 }
 

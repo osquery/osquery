@@ -24,6 +24,7 @@
 
 #include "osquery/core/watcher.h"
 #include "osquery/devtools/devtools.h"
+#include "osquery/filesystem/fileops.h"
 #include "osquery/sql/sqlite_util.h"
 
 namespace osquery {
@@ -40,17 +41,9 @@ HIDDEN_FLAG(int32,
 DECLARE_bool(disable_caching);
 }
 
-#ifdef WIN32
-#define IsAtty _isatty
-#define FileNo _fileno
-#else
-#define IsAtty isatty
-#define FileNo fileno
-#endif
-
 int profile(int argc, char *argv[]) {
   std::string query;
-  if (!IsAtty(FileNo(stdin))) {
+  if (!osquery::platformIsatty(stdin)) {
     std::getline(std::cin, query);
   } else if (argc < 2) {
     // No query input provided via stdin or as a positional argument.
@@ -98,7 +91,7 @@ int main(int argc, char *argv[]) {
   runner.initWorkerWatcher();
 
   // Check for shell-specific switches and positional arguments.
-  if (argc > 1 || !IsAtty(FileNo(stdin)) || osquery::FLAGS_A.size() > 0 ||
+  if (argc > 1 || !osquery::platformIsatty(stdin) || osquery::FLAGS_A.size() > 0 ||
       osquery::FLAGS_pack.size() > 0 || osquery::FLAGS_L ||
       osquery::FLAGS_profile > 0) {
     // A query was set as a positional argument, via stdin, or profiling is on.

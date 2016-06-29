@@ -289,5 +289,11 @@ Status platformIsTmpDir(const fs::path& dir);
  * @brief Determines the accessibility and existence of the file path
  */
 Status platformIsFileAccessible(const fs::path& path);
+
+/**
+ * @brief determine if the FILE object points to a tty (console, serial port, etc).
+ */
+bool platformIsatty(FILE *f);
+
 }
 
