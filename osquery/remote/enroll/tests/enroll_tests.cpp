@@ -42,7 +42,9 @@ REGISTER(SimpleEnrollPlugin, "enroll", "test_simple");
 
 TEST_F(EnrollTests, test_enroll_secret_retrieval) {
   // Write an example secret (deploy key).
-  FLAGS_enroll_secret_path = (fs::path(kTestWorkingDirectory) / "secret.txt").make_preferred().string();
+  FLAGS_enroll_secret_path =
+    (fs::path(kTestWorkingDirectory) / "secret.txt").
+    make_preferred().string();
   writeTextFile(FLAGS_enroll_secret_path, "test_secret\n", 0600, false);
   // Make sure the file content was read and trimmed.
   auto secret = getEnrollSecret();
