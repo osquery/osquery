@@ -160,6 +160,9 @@ Vagrant.configure("2") do |config|
             ".git/objects",
             ".git/modules/third-party/objects"
           ]
+      else
+        # Private network for NFS
+        build.vm.network :private_network, ip: "192.168.56.101"
       end
       if name == 'freebsd10'
         # configure the NICs
@@ -167,8 +170,6 @@ Vagrant.configure("2") do |config|
           vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
           vb.customize ["modifyvm", :id, "--nictype2", "virtio"]
         end
-        # Private network for NFS
-        build.vm.network :private_network, ip: "192.168.56.101"
         build.vm.synced_folder ".", "/vagrant", type: "nfs"
         build.vm.provision "shell",
           inline: "pkg install -y gmake"
