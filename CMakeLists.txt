@@ -23,6 +23,14 @@ elseif(CLANGXX_EXISTS)
   set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+  LOG("Found ccache ${CCACHE_FOUND}")
+  LOG("Using ccache to speed up compilation")
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+endif(CCACHE_FOUND)
+
 if(WIN32)
   # TODO(#1985): We need to find the MSVC equivalents to the flags listed in the else section.
 else()
