@@ -47,6 +47,7 @@ else()
     -Wformat-security
     -Werror=format-security
     -Wabi-tag
+    -fpermissive
     -fstack-protector-all
     -fPIE
     -fpie

@@ -54,9 +54,9 @@ using PlatformHandle = int;
 using PlatformTimeType = struct timeval;
 #endif
 
-using PlatformTime = struct {
+typedef struct {
   PlatformTimeType times[2];
-};
+} PlatformTime;
 
 /// Constant for an invalid handle
 const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
