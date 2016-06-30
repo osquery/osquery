@@ -465,7 +465,7 @@ void Initializer::initActivePlugin(const std::string& type,
                                    const std::string& name) const {
   // Use a delay, meaning the amount of milliseconds waited for extensions.
   size_t delay = 0;
-  // The timeout is the maximum microseconds in seconds to wait for extensions.
+  // The timeout is the maximum milliseconds in seconds to wait for extensions.
   size_t timeout = atoi(FLAGS_extensions_timeout.c_str()) * 1000000;
   if (timeout < kExtensionInitializeLatencyUS * 10) {
     timeout = kExtensionInitializeLatencyUS * 10;
@@ -486,7 +486,7 @@ void Initializer::initActivePlugin(const std::string& type,
     }
     // The plugin is not local and is not active, wait and retry.
     delay += kExtensionInitializeLatencyUS;
-    sleepFor(kExtensionInitializeLatencyUS);
+    sleepFor(kExtensionInitializeLatencyUS / 1000);
   } while (delay < timeout);
 
   LOG(ERROR) << "Cannot activate " << name << " " << type
