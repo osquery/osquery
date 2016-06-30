@@ -58,6 +58,9 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_3_daemon_with_watchdog(self):
         daemon = self._run_daemon({
             "disable_watchdog": False,
+            "ephemeral": True,
+            "disable_database": True,
+            "disable_logging": True,
         })
         self.assertTrue(daemon.isAlive())
 

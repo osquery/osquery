@@ -53,7 +53,7 @@ class ExampleTable : public TablePlugin {
  * An extension should not assume access to any CLI flags- rather, access is
  * provided via the osquery-meta table: osquery_flags.
  *
- * There is no API/C++ wrapper to provide seemless use of flags yet.
+ * There is no API/C++ wrapper to provide seamless use of flags yet.
  * We can force an implicit query to the manager though.
  *
  * Database access should be mediated by the *Database functions.
