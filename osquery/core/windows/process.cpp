@@ -185,7 +185,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   mutable_argv.push_back('\0');
 
   BOOL status = ::CreateProcessA(exec_path.c_str(),
-                                 &mutable_argv[0],
+                                 mutable_argv.data(),
                                  NULL,
                                  NULL,
                                  TRUE,
@@ -250,7 +250,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   }
 
   BOOL status = ::CreateProcessA(exec_path.c_str(),
-                                 &mutable_argv[0],
+                                 mutable_argv.data(),
                                  NULL,
                                  NULL,
                                  TRUE,

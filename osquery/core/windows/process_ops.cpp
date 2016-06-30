@@ -42,7 +42,7 @@ boost::optional<std::string> getEnvVar(const std::string &name) {
   buf.assign(kInitialBufferSize, '\0');
 
   DWORD value_len =
-      ::GetEnvironmentVariableA(name.c_str(), &buf[0], kInitialBufferSize);
+      ::GetEnvironmentVariableA(name.c_str(), buf.data(), kInitialBufferSize);
   if (value_len == 0) {
     // TODO(#1991): Do we want figure out a way to be more granular in terms of
     // the error to return?
@@ -55,7 +55,7 @@ boost::optional<std::string> getEnvVar(const std::string &name) {
   // returned size is greater than what we expect.
   if (value_len > kInitialBufferSize) {
     buf.assign(value_len, '\0');
-    value_len = ::GetEnvironmentVariableA(name.c_str(), &buf[0], value_len);
+    value_len = ::GetEnvironmentVariableA(name.c_str(), buf.data(), value_len);
     if (value_len == 0 || value_len > buf.size()) {
       // The size returned is greater than the size we expected. Currently, we
       // will not deal with this scenario and just return as if an error has
@@ -64,7 +64,7 @@ boost::optional<std::string> getEnvVar(const std::string &name) {
     }
   }
 
-  return std::string(&buf[0], value_len);
+  return std::string(buf.data(), value_len);
 }
 
 void cleanupDefunctProcesses() {}
