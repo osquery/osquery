@@ -121,7 +121,7 @@ TEST_F(FileOpsTests, test_fileIo) {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
     EXPECT_TRUE(fd.isValid());
     EXPECT_FALSE(fd.isSpecialFile());
-    EXPECT_EQ(expected_read_len, fd.read(&buf[0], expected_read_len));
+    EXPECT_EQ(expected_read_len, fd.read(buf.data(), expected_read_len));
     EXPECT_EQ(expected_buf_size, buf.size());
     for (ssize_t i = 0; i < expected_read_len; i++) {
       EXPECT_EQ(expected_read[i], buf[i]);
@@ -148,8 +148,8 @@ TEST_F(FileOpsTests, test_asyncIo) {
     EXPECT_FALSE(fd.isSpecialFile());
 
     std::vector<char> buf(expected_len);
-    EXPECT_EQ(expected_len, fd.read(&buf[0], expected_len));
-    EXPECT_EQ(0, ::memcmp(expected, &buf[0], expected_len));
+    EXPECT_EQ(expected_len, fd.read(buf.data(), expected_len));
+    EXPECT_EQ(0, ::memcmp(expected, buf.data(), expected_len));
   }
 
   {
@@ -158,7 +158,7 @@ TEST_F(FileOpsTests, test_asyncIo) {
     EXPECT_FALSE(fd.isSpecialFile());
 
     std::vector<char> buf(expected_len);
-    char* ptr = &buf[0];
+    char* ptr = buf.data();
     ssize_t part_bytes = 0;
     int iterations = 0;
     do {
@@ -170,7 +170,7 @@ TEST_F(FileOpsTests, test_asyncIo) {
     } while (part_bytes > 0);
 
     EXPECT_EQ(7, iterations);
-    EXPECT_EQ(0, ::memcmp(expected, &buf[0], expected_len));
+    EXPECT_EQ(0, ::memcmp(expected, buf.data(), expected_len));
   }
 }
 
@@ -212,8 +212,8 @@ TEST_F(FileOpsTests, test_seekFile) {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
     EXPECT_TRUE(fd.isValid());
 
-    EXPECT_EQ(expected_len, fd.read(&buffer[0], expected_len));
-    EXPECT_EQ(0, ::memcmp(&buffer[0], expected, expected_len));
+    EXPECT_EQ(expected_len, fd.read(buffer.data(), expected_len));
+    EXPECT_EQ(0, ::memcmp(buffer.data(), expected, expected_len));
   }
 }
 

@@ -107,7 +107,7 @@ def queries_from_tables(path, restrict):
                 continue
             spec_platform = os.path.basename(base)
             table_name = spec.split(".table", 1)[0]
-            if spec_platform not in ["specs", platform()]:
+            if spec_platform not in ["specs", "posix", platform()]:
                 continue
             # Generate all tables to select from, with abandon.
             tables.append("%s.%s" % (spec_platform, table_name))

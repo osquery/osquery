@@ -23,10 +23,20 @@ elseif(CLANGXX_EXISTS)
   set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+  LOG("Found ccache ${CCACHE_FOUND}")
+  LOG("Using ccache to speed up compilation")
+  set(ENV{CCACHE_CPP2} "yes")
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+endif(CCACHE_FOUND)
+
 if(WIN32)
   # TODO(#1985): We need to find the MSVC equivalents to the flags listed in the else section.
 else()
   add_compile_options(
+    -Qunused-arguments
     -Wstrict-aliasing
     -Wno-missing-field-initializers
     -Wno-unused-local-typedef
@@ -39,6 +49,7 @@ else()
     -Wformat-security
     -Werror=format-security
     -Wabi-tag
+    -fpermissive
     -fstack-protector-all
     -fPIE
     -fpie
@@ -99,6 +110,8 @@ if(APPLE)
 elseif(WIN32)
   # Windows
   # C++11 features should be on by default in 2012 and beyond.
+  set(OS_WHOLELINK_PRE "-WHOLEARCHIVE:")
+  set(OS_WHOLELINK_POST "")
 else()
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
   set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
@@ -155,7 +168,7 @@ if(DEFINED ENV{DEBUG})
     # TODO(#1985): Is there a MSVC flag congruent to -fstandalone-debug?
     add_compile_options(
       /Zi
-      /Od   
+      /Od
     )
   else()
     add_compile_options(
@@ -167,9 +180,6 @@ if(DEFINED ENV{DEBUG})
   add_definitions(-DDEBUG)
   WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
-  # TODO(#1985): In the future, we need to find the MSVC equivalent flags for the following 
-  #              compiler flags.
-  
   # make sanitize (cannot make debug sanitize)
   add_compile_options(
     -g
@@ -204,11 +214,8 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT DEFINED ENV{OPTIMIZED})
-  # TODO(#1985): Is there a congruent flag in MSVC for -mno-avx flag? I think it is implicit that the default
-  #              does not use avx. Ideally, this should be kept WIN64 only but we are having trouble determining
-  #              the target architecture
   if(WIN32)
-    add_compile_options(/favor:AMD64)
+    # It is unclear if AVX must be managed on Windows.
   else()
     add_compile_options(-march=x86-64 -mno-avx)
   endif()
@@ -360,16 +367,10 @@ endif()
 set(MKDIR_OPTS "")
 if(WIN32)
   set(PROCESS_FAMILY "windows")
-  
-  # Win64 does not have a kernel build component-specific
-  set(OSQUERY_BUILD_SDK_ONLY TRUE)
 
   set(WINDOWS_DEP_DIR "$ENV{ChocolateyInstall}/lib")
   string(REGEX REPLACE "\\\\" "/" WINDOWS_DEP_DIR ${WINDOWS_DEP_DIR})
   set(BOOST_DEP_DIR "$ENV{HOMEDRIVE}/local/boost-msvc14")
-  
-  # TODO(#1988): All the paths used here are within third-party\. However, after chocolateyfication, these
-  #              paths are subject to change.
 
   # Win64 specific BZIP2 variables
   set(BZIP2_INCLUDE_DIR "${WINDOWS_DEP_DIR}/bzip2/local/include")
@@ -382,16 +383,16 @@ if(WIN32)
   set(OPENSSL_SSL_LIBRARY "${WINDOWS_DEP_DIR}/openssl/local/lib/ssleay32.lib")
   set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
   set(OPENSSL_USE_STATIC_LIBS TRUE)
-  
+
   # Win64 specific Thrift
   set(THRIFT_INCLUDE_DIR "${WINDOWS_DEP_DIR}/thrift-dev/local/include")
   set(thrift_library "${WINDOWS_DEP_DIR}/thrift-dev/local/lib/thriftmd.lib")
   set(THRIFT_COMPILER "${WINDOWS_DEP_DIR}/thrift/tools/thrift.exe")
-  
+
   # Win64 specific rocksdb
   set(ROCKSDB_STATIC_LIBRARY "${WINDOWS_DEP_DIR}/rocksdb/local/lib/rocksdblib.lib")
   set(ROCKSDB_SNAPPY_LIBRARY "${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/native/snappy64.lib")
-  
+
   # Win64 specific doxygen
   set(DOXYGEN_EXECUTABLE "${WINDOWS_DEP_DIR}/doxygen/tools/doxygen.exe")
 
@@ -402,15 +403,19 @@ if(WIN32)
 
   # Win64 specific gflags
   set(gflags_library "${WINDOWS_DEP_DIR}/gflags-dev/local/lib/gflags_static.lib")
-  
+
   # Win64 specific glog
   set(glog_library "${WINDOWS_DEP_DIR}/glog/local/lib/glog.lib")
+
+  # Win64 specific cpp-netlib library
+  set(cppnetlib-uri_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-uri.lib")
+  set(cppnetlib-client-connections_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-client-connections.lib")
 else()
   set(PROCESS_FAMILY "posix")
   set(MKDIR_OPTS "-p")
 endif()
 
-# Make sure the generated paths exist 
+# Make sure the generated paths exist
 execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
 
 # We need to link some packages as dynamic/dependent.
@@ -506,11 +511,19 @@ if(WIN32)
   #              are made into chocolatey packages.
   include_directories("${THRIFT_INCLUDE_DIR}")
   include_directories("${BOOST_DEP_DIR}")
+  include_directories("${BOOST_DEP_DIR}/boost")
   include_directories("${WINDOWS_DEP_DIR}/glog/local/include")
   include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
   
+  # TODO(FIXME): temporary for now
+  include_directories("${WINDOWS_DEP_DIR}/cpp-netlib/local/include")
+  include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
+  include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")
+  include_directories("${WINDOWS_DEP_DIR}/rocksdb/local/include")
+  
   # TODO(#1990): We probably need to add our third-party link directories here
   link_directories("${BOOST_DEP_DIR}/lib64-msvc-14.0")
+  link_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/lib")
 else()
   include_directories("/usr/local/include")
   link_directories("/usr/local/lib")
