@@ -282,7 +282,6 @@ int xColumn(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int col) {
     char *end = nullptr;
     double afinite = strtod(value.c_str(), &end);
     if (end == nullptr || end == value.c_str() || *end != '\0') {
-      afinite = 0;
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to DOUBLE";
       sqlite3_result_null(ctx);
