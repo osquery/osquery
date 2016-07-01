@@ -24,11 +24,6 @@
 
 #include "osquery/core/process.h"
 
-/// Define a special debug/testing watchdog level.
-#define WATCHDOG_LEVEL_DEBUG 3
-/// Define the default watchdog level, level below are considered permissive.
-#define WATCHDOG_LEVEL_DEFAULT 1
-
 namespace osquery {
 
 using ExtensionMap = std::map<std::string, std::shared_ptr<PlatformProcess>>;
@@ -300,6 +295,6 @@ class WatcherWatcherRunner : public InternalRunnable {
 };
 
 /// Get a performance limit by name and optional level.
-size_t getWorkerLimit(WatchdogLimitType limit, int level = -1);
+size_t getWorkerLimit(WatchdogLimitType limit);
 }
 

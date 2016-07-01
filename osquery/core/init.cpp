@@ -358,9 +358,7 @@ void Initializer::initDaemon() const {
 #endif
 
   // Nice ourselves if using a watchdog and the level is not too permissive.
-  if (!FLAGS_disable_watchdog &&
-      FLAGS_watchdog_level >= WATCHDOG_LEVEL_DEFAULT &&
-      FLAGS_watchdog_level != WATCHDOG_LEVEL_DEBUG) {
+  if (!FLAGS_disable_watchdog && FLAGS_watchdog_level >= 0) {
     // Set CPU scheduling I/O limits.
     setToBackgroundPriority();
 

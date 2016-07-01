@@ -432,11 +432,12 @@ void WatcherWatcherRunner::start() {
   }
 }
 
-size_t getWorkerLimit(WatchdogLimitType name, int level) {
+size_t getWorkerLimit(WatchdogLimitType name) {
   if (kWatchdogLimits.count(name) == 0) {
     return 0;
   }
 
+  auto level = FLAGS_watchdog_level;
   // If no level was provided then use the default (config/switch).
   if (level == -1) {
     return kWatchdogLimits.at(name).disabled;
