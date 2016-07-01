@@ -18,6 +18,8 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/filesystem/fileops.h"
+
 namespace osquery {
 
 DECLARE_string(database_path);
@@ -137,7 +139,7 @@ Status SQLiteDatabasePlugin::setUp() {
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.
-  if (!read_only_ && chmod(path_.c_str(), S_IRWXU) != 0) {
+  if (!read_only_ && platformChmod(path_, S_IRWXU) == false) {
     close();
     return Status(1, "Cannot set permissions on database path: " + path_);
   }

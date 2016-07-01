@@ -34,6 +34,8 @@ const size_t kExtensionInitializeLatencyUS = 20000;
 
 #ifdef __APPLE__
 #define MODULE_EXTENSION ".dylib"
+#elif defined(WIN32)
+#define MODULE_EXTENSION ".dll"
 #else
 #define MODULE_EXTENSION ".so"
 #endif
