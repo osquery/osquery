@@ -162,7 +162,7 @@ TEST_F(SignatureTest, test_get_invalid_signature) {
   for (const auto& column : expected) {
     EXPECT_EQ(results.front()[column.first], column.second);
   }
-  ASSERT_TRUE(results.front()["team_identifier"].length() >= 0);
+  ASSERT_TRUE(results.front().count("team_identifier") > 0);
   ASSERT_TRUE(results.front()["cdhash"].length() > 0);
 }
 
