@@ -37,6 +37,15 @@
 namespace osquery {
 
 /**
+ * @brief osquery does not yet use a NULL type.
+ *
+ * If a column type is non-TEXT a NULL is defined as an empty result. The APIs
+ * may later define an explicit control set that is opaque to the table
+ * implementation.
+ */
+#define SQL_NULL_RESULT ""
+
+/**
  * @brief The SQLite type affinities are available as macros
  *
  * Type affinities: TEXT, INTEGER, BIGINT
@@ -46,25 +55,33 @@ namespace osquery {
  * types they are storing, and more importantly how they are treated at query
  * time.
  */
+template<typename Type>
+inline std::string __sqliteField(const Type &source) noexcept {
+  std::string dest;
+  if (!boost::conversion::try_lexical_convert(source, dest)) {
+    return SQL_NULL_RESULT;
+  }
+  return dest;
+}
 
 #ifdef WIN32
 // TEXT is also defined in windows.h, we should not re-define it
-#define SQL_TEXT(x) boost::lexical_cast<std::string>(x)
+#define SQL_TEXT(x) __sqliteField(x)
 #else
 // For everything except Windows, aldo define TEXT() to be compatible with 
 // existing tables
-#define SQL_TEXT(x) boost::lexical_cast<std::string>(x)
-#define TEXT(x) boost::lexical_cast<std::string>(x)
+#define SQL_TEXT(x) __sqliteField(x)
+#define TEXT(x) __sqliteField(x)
 #endif
 
 /// See the affinity type documentation for TEXT.
-#define INTEGER(x) boost::lexical_cast<std::string>(x)
+#define INTEGER(x) __sqliteField(x)
 /// See the affinity type documentation for TEXT.
-#define BIGINT(x) boost::lexical_cast<std::string>(x)
+#define BIGINT(x) __sqliteField(x)
 /// See the affinity type documentation for TEXT.
-#define UNSIGNED_BIGINT(x) boost::lexical_cast<std::string>(x)
+#define UNSIGNED_BIGINT(x) __sqliteField(x)
 /// See the affinity type documentation for TEXT.
-#define DOUBLE(x) boost::lexical_cast<std::string>(x)
+#define DOUBLE(x) __sqliteField(x)
 
 /**
  * @brief The SQLite type affinities as represented as implementation literals.
