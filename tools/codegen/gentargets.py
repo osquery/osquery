@@ -60,7 +60,7 @@ TARGETS_POSTSCRIPT = """  ],
     "gflags",
     "gtest",
     "rocksdb",
-    "libuuid",
+    ("e2fsprogs", None, "uuid"),
   ],
   compiler_flags=[
     "-Wno-unused-function",
