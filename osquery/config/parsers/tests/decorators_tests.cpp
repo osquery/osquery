@@ -14,8 +14,8 @@
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/config/parsers/decorators.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
@@ -118,7 +118,7 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load_top_level) {
   ASSERT_EQ(item.decorations.size(), 3U);
   EXPECT_EQ(item.decorations["load_test"], "test");
 
-  // searialize the QueryLogItem and make sure decorations go top level 
+  // searialize the QueryLogItem and make sure decorations go top level
   pt::ptree tree;
   auto status = serializeQueryLogItem(item, tree);
   std::string expected = "test";
