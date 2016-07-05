@@ -36,7 +36,7 @@ FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
 
 FLAG(bool, disable_database, false, "Disable the persistent RocksDB storage");
 FLAG(bool,
-     top_level_decorators,
+     decorations_top_level,
      false,
      "Add decorators as top level JSON objects");
 
@@ -270,7 +270,7 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
 
   // Append the decorations.
   if (item.decorations.size() > 0) {
-    if (FLAGS_top_level_decorators) {
+    if (FLAGS_decorations_top_level) {
       for (const auto& name : item.decorations) {
         tree.put<std::string>(name.first, name.second);
       }
