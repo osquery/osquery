@@ -35,10 +35,7 @@ CLI_FLAG(bool,
 FLAG_ALIAS(bool, use_in_memory_database, database_in_memory);
 
 FLAG(bool, disable_database, false, "Disable the persistent RocksDB storage");
-FLAG(bool,
-     decorations_top_level,
-     false,
-     "Add decorators as top level JSON objects");
+DECLARE_bool(decorations_top_level);
 
 #if defined(SKIP_ROCKSDB)
 #define DATABASE_PLUGIN "sqlite"
