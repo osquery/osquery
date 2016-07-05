@@ -47,6 +47,7 @@ thrift_library(
 
 cpp_library(
   name="osquery_sdk",
+  link_whole=True,
   srcs=["""
 
 TARGETS_POSTSCRIPT = """  ],
