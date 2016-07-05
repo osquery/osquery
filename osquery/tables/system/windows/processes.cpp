@@ -66,6 +66,28 @@ void genProcess(long pid, QueryData& results_data) {
       r["state"] = SQL_TEXT(results[0].GetString("ExecutionState"));
       r["parent"] = BIGINT(results[0].GetLong("ParentProcessId"));
       r["nice"] = INTEGER(results[0].GetLong("Priority"));
+      r["on_disk"] = osquery::pathExists(r["path"]).toString();
+
+      // TODO: some of these such as cwd, wired_size, phys_footprint
+      // should be retrievable either via Windows API or WMI
+      r["cwd"] = "";
+      r["root"] = "";
+
+      r["pgroup"] = "-1";
+      r["uid"] = "-1";
+      r["euid"] = "-1";
+      r["suid"] = "-1";
+      r["gid"] = "-1";
+      r["egid"] = "-1";
+      r["sgid"] = "-1";
+
+      r["wired_size"] = "0";
+      r["resident_size"] = "0";
+      r["phys_footprint"] = "0";
+
+      r["user_time"] = "0";
+      r["system_time"] = "0";
+      r["start_time"] = "0";
 
       results_data.push_back(r);
     }
