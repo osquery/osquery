@@ -429,7 +429,41 @@ The columns, and their values, will be appended to each log line as follows. Ass
 
 Expect the normal set of log keys to be included and note that `decorations` is a top-level key in the log line whose value is an embedded map.
 
-The configuration flag `top_level_decorations`  can be set to `true` to make decorator data populate as top level key/value objects instead of being contained as a child of `decorations`.  When using this feature, you must be weary of key collisions in your data.
+The configuration flag `decorators_top_level` can be set to `true` to make decorator data populate as top level key/value objects instead of being contained as a child of `decorations`.  When using this feature, you must be weary of key collisions in existing, reserved, top-level keys.  When collisions do occur, existing key/value data will likely be overritten by the decorator key/value.  The following example shows the results of collisions on various top-level keys:
+
+Example configuration:
+
+````json
+{
+  "decorators": {
+    "load": [
+      "SELECT 'collision' as name",
+      "SELECT 'collision' as hostIdentifier",
+      "SELECT 'collision' as calendarTime",
+      "SELECT 'collision' as unixTime",
+      "SELECT 'collision' as columns",
+      "SELECT 'collision' as action"
+    ]
+  }
+}
+````
+
+Example output:
+
+````json
+{
+  "name": "collision",
+  "hostIdentifier": "collision",
+  "calendarTime": "collision",
+  "unixTime": "collision",
+  "action": "added",
+  "columns": {
+    "cpu_brand": "Intel(R) Core(TM) i7-4980HQ CPU @ 2.80GHz",
+    "hostname": "osquery.example.com",
+    "physical_memory": "1234567890"
+  }
+}
+````
 
 The `interval` type uses a map of interval 'periods' as keys, and the set of decorator queries for each value. Each of these intervals MUST be minute-intervals. Anything not divisible by 60 will generate a warning, and will not run.
 
