@@ -215,7 +215,7 @@ TEST_F(BufferedLogForwarderTests, test_async) {
   EXPECT_CALL(*runner, send(ElementsAre("foo"), "result"))
       .WillOnce(Return(Status(0)));
   runner->logString("foo");
-  std::this_thread::sleep_for(1.5 * kLogPeriod);
+  std::this_thread::sleep_for(5 * kLogPeriod);
 
   EXPECT_CALL(*runner, send(ElementsAre("bar"), "result"))
       .Times(3)
@@ -223,11 +223,7 @@ TEST_F(BufferedLogForwarderTests, test_async) {
       .WillOnce(Return(Status(1, "fail again")))
       .WillOnce(Return(Status(0)));
   runner->logString("bar");
-  std::this_thread::sleep_for(3.5 * kLogPeriod);
-
-  // Sleep at least a whole period at the end to make sure there are no
-  // unexpected calls
-  std::this_thread::sleep_for(1.5 * kLogPeriod);
+  std::this_thread::sleep_for(15 * kLogPeriod);
 
   Dispatcher::stopServices();
   Dispatcher::joinServices();
