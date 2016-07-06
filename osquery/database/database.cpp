@@ -267,16 +267,13 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
 
   // Append the decorations.
   if (item.decorations.size() > 0) {
-    if (FLAGS_decorations_top_level) {
-      for (const auto& name : item.decorations) {
-        tree.put<std::string>(name.first, name.second);
-      }
-    } else {
+    auto decorator_parent = std::ref(tree);
+    if (!FLAGS_decorations_top_level) {
       tree.add_child("decorations", pt::ptree());
-      auto& decorations = tree.get_child("decorations");
-      for (const auto& name : item.decorations) {
-        decorations.put<std::string>(name.first, name.second);
-      }
+      decorator_parent = tree.get_child("decorations");
+    }
+    for (const auto& name : item.decorations) {
+      decorator_parent.get().put<std::string>(name.first, name.second);
     }
   }
 }
