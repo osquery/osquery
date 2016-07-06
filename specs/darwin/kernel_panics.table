@@ -1,0 +1,18 @@
+table_name("kernel_panics")
+description("Kernel Panics")
+schema([
+    Column("path", TEXT, "Location of log file"),
+    Column("time", TEXT, "Formatted time of the event"),
+    Column("registers", TEXT, "A space delimited line of register:value pairs"),
+    Column("frame_backtrace", TEXT, "Backtrace of the crashed module"),
+    Column("module_backtrace", TEXT, "Modules appearing in the crashed module's backtrace"),
+    Column("dependencies", TEXT, "Module dependencies existing in crashed module's backtrace"),
+    Column("name", TEXT, "Process name corresponding to crashed thread"),
+    Column("os_version", TEXT, "Version of the operating system"),
+    Column("kernel_version", TEXT, "Version of the system kernel"),
+    Column("system_model", TEXT, "Physical system model, for example 'MacBookPro12,1 (Mac-E43C1C25D4880AD6)'"),
+    Column("uptime", BIGINT, "System uptime at kernel panic in nanoseconds"),
+    Column("last_loaded", TEXT, "Last loaded module before panic"),
+    Column("last_unloaded", TEXT, "Last unloaded module before panic"),
+])
+implementation("kernel_panics@genKernelPanics")
