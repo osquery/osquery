@@ -12,6 +12,8 @@ The osquery SQL language is a superset of SQLite's, please read [SQL as understo
 
 `SELECT` only! All mutation-based verbs exist, like `INSERT`, `UPDATE`, `DELETE`, and `ALTER` but they do not do anything-- except if you're fancy and creating run-time tables or `VIEW`s. ;)
 
+> NOTICE: several tables, `file` for example, requires a predicate for one of the columns, and **will not work without it**. See  [Tables with arguments](#tables-with-arguments) for more information.
+
 Before diving into the osquery SQL customizations, please familiarize yourself with the osquery [development shell](../introduction/using-osqueryi.md). This shell is designed for ad-hoc exploration of your OS and SQL query prototyping. Then fire up `osqueryi` as your user or as a superuser and try some of the concepts below.
 
 ### Shell help
@@ -123,7 +125,7 @@ We can expand upon this later using subqueries and more tables.
 
 ### Tables with arguments
 
-Several tables, `file` for example, represent concepts that require arguments. Consider `SELECT * FROM file`, you do not want this to trigger a complete walk of the mounted file systems. It is an ambiguous concept without some sort of argument or input parameter. These tables, and their columns, are flagged in the [table documentation](https://osquery.io/docs/tables/) as requiring a column or as using a column to generate additional information.
+Several tables, `file` for example, represent concepts that require arguments. Consider `SELECT * FROM file`, you do not want this to trigger a complete walk of the mounted file systems. It is an ambiguous concept without some sort of argument or input parameter. These tables, and their columns, are flagged by a *dropper icon* in the [table documentation](https://osquery.io/docs/tables/)  as requiring a column or as using a column to generate additional information.
 
 Let's exercise the `file` table:
 ```
