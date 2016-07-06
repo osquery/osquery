@@ -99,6 +99,27 @@ void ExtensionWatcher::start() {
   }
 }
 
+void ExtensionManagerWatcher::start() {
+  // Watch each extension.
+  while (!interrupted()) {
+    watch();
+    pauseMilli(interval_);
+  }
+
+  // When interrupted, request each extension tear down.
+  const auto uuids = Registry::routeUUIDs();
+  for (const auto& uuid : uuids) {
+    try {
+      auto path = getExtensionSocket(uuid);
+      auto client = EXClient(path);
+      client.get()->shutdown();
+    } catch (const std::exception& e) {
+      VLOG(1) << "Extension UUID " << uuid << " shutdown request failed";
+      continue;
+    }
+  }
+}
+
 void ExtensionWatcher::exitFatal(int return_code) {
   // Exit the extension.
   // We will save the wanted return code and raise an interrupt.

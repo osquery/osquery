@@ -86,6 +86,9 @@ class ExtensionHandler : virtual public ExtensionIf {
             const std::string& item,
             const ExtensionPluginRequest& request);
 
+  /// Request an extension to shutdown.
+  void shutdown();
+
  protected:
   /// Transient UUID assigned to the extension after registering.
   RouteUUID uuid_;
@@ -180,6 +183,10 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
    */
   void getQueryColumns(ExtensionResponse& _return, const std::string& sql);
 
+ protected:
+  /// A shutdown request does not apply to ExtensionManagers.
+  void shutdown() {}
+
  private:
   /// Check if an extension exists by the name it registered.
   bool exists(const std::string& name);
@@ -208,7 +215,7 @@ class ExtensionWatcher : public InternalRunnable {
 
  public:
   /// The Dispatcher thread entry point.
-  void start();
+  void start() override;
 
   /// Perform health checks.
   virtual void watch();
@@ -233,8 +240,11 @@ class ExtensionManagerWatcher : public ExtensionWatcher {
   ExtensionManagerWatcher(const std::string& path, size_t interval)
       : ExtensionWatcher(path, interval, false) {}
 
+  /// The Dispatcher thread entry point.
+  void start() override;
+
   /// Start a specialized health check for an ExtensionManager.
-  void watch();
+  void watch() override;
 
  private:
   /// Allow extensions to fail for several intervals.
