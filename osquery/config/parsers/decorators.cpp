@@ -20,6 +20,10 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 FLAG(bool, disable_decorators, false, "Disable log result decoration");
+FLAG(bool,
+     decorations_top_level,
+     false,
+     "Add decorators as top level JSON objects");
 
 /// Statically define the parser name to avoid mistakes.
 #define PARSER_NAME "decorators"
