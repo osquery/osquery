@@ -59,6 +59,9 @@ def _platform():
                 if fileContents.find("DISTRIB_ID=Ubuntu") != -1:
                     return ("debian", "ubuntu")
 
+                if fileContents.find("DISTRIB_ID=Arch") != -1:
+                    return ("arch", "arch")
+
         if os.path.exists(DEBIAN_VERSION):
             return ("debian", "debian")
     else:
@@ -113,6 +116,12 @@ def _distro(osType):
                 return results[0]
     elif osType == "fedora":
         with open(SYSTEM_RELEASE, "r") as fd:
+          contents = fd.read()
+          results = contents.split()
+          if len(results) > 2:
+            return results[2]
+    elif osType == "arch":
+        with open("/etc/arch-release", "r") as fd:
           contents = fd.read()
           results = contents.split()
           if len(results) > 2:
