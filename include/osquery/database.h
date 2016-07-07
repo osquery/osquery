@@ -59,10 +59,6 @@ extern const std::string kEvents;
  */
 extern const std::string kLogs;
 
-/////////////////////////////////////////////////////////////////////////////
-// Row
-/////////////////////////////////////////////////////////////////////////////
-
 /**
  * @brief A variant type for the SQLite type affinities.
  */
@@ -116,10 +112,6 @@ Status deserializeRow(const boost::property_tree::ptree& tree, Row& r);
  */
 Status deserializeRowJSON(const std::string& json, Row& r);
 
-/////////////////////////////////////////////////////////////////////////////
-// QueryData
-/////////////////////////////////////////////////////////////////////////////
-
 /**
  * @brief The result set returned from a osquery SQL query
  *
@@ -155,10 +147,6 @@ Status deserializeQueryData(const boost::property_tree::ptree& tree,
 
 /// Inverse of serializeQueryDataJSON, convert a JSON string to QueryData.
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd);
-
-/////////////////////////////////////////////////////////////////////////////
-// DiffResults
-/////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Data structure representing the difference between the results of
@@ -312,10 +300,6 @@ struct ScheduledQuery {
   /// not equals operator
   bool operator!=(const ScheduledQuery& comp) const { return !(*this == comp); }
 };
-
-/////////////////////////////////////////////////////////////////////////////
-// QueryLogItem
-/////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Query results from a schedule, snapshot, or ad-hoc execution.
