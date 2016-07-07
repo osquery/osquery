@@ -94,7 +94,7 @@ extern volatile std::sig_atomic_t kExitCode;
 struct InitializerInterface {
   virtual const char *id() const = 0;
   virtual void run() const = 0;
-  virtual ~InitializerInterface();
+  virtual ~InitializerInterface() {};
 };
 
 extern void registerRegistry(InitializerInterface * const item);
