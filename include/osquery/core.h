@@ -40,22 +40,6 @@
 #define USED_SYMBOL __attribute__((used))
 #endif
 
-#ifndef __constructor__
-#ifdef WIN32
-#define __registry_constructor__
-#define __plugin_constructor__
-#else
-#define __registry_constructor__ __attribute__((constructor(101))) USED_SYMBOL
-#define __plugin_constructor__ __attribute__((constructor(102))) USED_SYMBOL
-#endif
-
-#else
-#define __registry_constructor__ __attribute__((__constructor__(101))) \
-  USED_SYMBOL
-#define __plugin_constructor__ __attribute__((__constructor__(102))) \
-  USED_SYMBOL
-#endif
-
 /// A configuration error is catastrophic and should exit the watcher.
 #define EXIT_CATASTROPHIC 78
 
@@ -106,6 +90,16 @@ extern ToolType kToolType;
  * that will continue the shutdown process.
  */
 extern volatile std::sig_atomic_t kExitCode;
+
+struct InitializerInterface {
+  virtual const char *id() const = 0;
+  virtual void run() const = 0;
+  virtual ~InitializerInterface();
+};
+
+extern void registerRegistry(InitializerInterface * const item);
+extern void registerPlugin(InitializerInterface * const item);
+extern void beginRegistryAndPluginInit();
 
 class Initializer : private boost::noncopyable {
  public:
@@ -260,6 +254,8 @@ size_t getUnixTime();
  */
 std::string getAsciiTime();
 
+#ifndef WIN32
+
 /**
  * @brief Create a pid file
  *
@@ -267,6 +263,7 @@ std::string getAsciiTime();
  */
 Status createPidFile();
 
+// TODO: Think about making a Windows version of DropPrivileges?
 class DropPrivileges;
 typedef std::shared_ptr<DropPrivileges> DropPrivilegesRef;
 
@@ -342,4 +339,5 @@ class DropPrivileges : private boost::noncopyable {
   FRIEND_TEST(PermissionsTests, test_path_drop);
   FRIEND_TEST(PermissionsTests, test_nobody_drop);
 };
+#endif
 }

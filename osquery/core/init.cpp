@@ -70,6 +70,8 @@ enum {
 
 #ifdef __linux__
 #define OSQUERY_HOME "/etc/osquery"
+#elif defined(WIN32)
+#define OSQUERY_HOME "\\ProgramData\\osquery"
 #else
 #define OSQUERY_HOME "/var/osquery"
 #endif
@@ -170,6 +172,8 @@ void signalHandler(int num) {
 
 using chrono_clock = std::chrono::high_resolution_clock;
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 
 DECLARE_string(distributed_plugin);
@@ -194,6 +198,44 @@ volatile std::sig_atomic_t kExitCode{0};
 
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
+
+using InitializerMap = std::map<std::string, InitializerInterface *>;
+
+InitializerMap& registry_initializer() {
+  static InitializerMap registry_;
+  return registry_;
+}
+
+InitializerMap& plugin_initializer() {
+  static InitializerMap plugin_;
+  return plugin_;
+}
+
+void registerRegistry(InitializerInterface *const item) {
+  if (item != nullptr) {
+    registry_initializer().insert(
+        std::pair<std::string, InitializerInterface *>(item->id(), item));
+  }
+}
+
+void registerPlugin(InitializerInterface *const item) {
+  if (item != nullptr) {
+    plugin_initializer().insert(
+        std::pair<std::string, InitializerInterface *>(item->id(), item));
+  }
+}
+
+void beginRegistryAndPluginInit() {
+  for (auto it = registry_initializer().begin();
+       it != registry_initializer().end(); ++it) {
+    it->second->run();
+  }
+
+  for (auto it = plugin_initializer().begin(); it != plugin_initializer().end();
+       ++it) {
+    it->second->run();
+  }
+}
 
 void printUsage(const std::string& binary, int tool) {
   // Parse help options before gflags. Only display osquery-related options.
@@ -230,6 +272,10 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       tool_(tool),
       binary_((tool == OSQUERY_TOOL_DAEMON) ? "osqueryd" : "osqueryi") {
   std::srand(chrono_clock::now().time_since_epoch().count());
+
+  // Initialize registries and plugins
+  beginRegistryAndPluginInit();
+
   // The 'main' thread is that which executes the initializer.
   kMainThreadId = std::this_thread::get_id();
   // Set the tool type to allow runtime decisions based on daemon, shell, etc.
@@ -379,10 +425,12 @@ void Initializer::initShell() const {
       boost::filesystem::create_directory(homedir, ec)) {
     // Only apply user/shell-specific paths if not overridden by CLI flag.
     if (Flag::isDefault("database_path")) {
-      osquery::FLAGS_database_path = homedir + "/shell.db";
+      osquery::FLAGS_database_path =
+          (fs::path(homedir) / "shell.db").make_preferred().string();
     }
     if (Flag::isDefault("extensions_socket")) {
-      osquery::FLAGS_extensions_socket = homedir + "/shell.em";
+      osquery::FLAGS_extensions_socket =
+          (fs::path(homedir) / "shell.em").make_preferred().string();
     }
   } else {
     LOG(INFO) << "Cannot access or create osquery home directory";
