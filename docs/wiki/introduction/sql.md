@@ -12,7 +12,7 @@ The osquery SQL language is a superset of SQLite's, please read [SQL as understo
 
 `SELECT` only! All mutation-based verbs exist, like `INSERT`, `UPDATE`, `DELETE`, and `ALTER` but they do not do anything-- except if you're fancy and creating run-time tables or `VIEW`s. ;)
 
-> NOTICE: Several tables, `file` for example, requires a predicate for one of the columns, and **will not work without it**. See  [Tables with arguments](#tables-with-arguments) for more information.
+> NOTICE: Several tables, `file` for example, require a predicate for one of the columns, and **will not work without it**. See [Tables with arguments](#tables-with-arguments) for more information.
 
 Before diving into the osquery SQL customizations, please familiarize yourself with the osquery [development shell](../introduction/using-osqueryi.md). This shell is designed for ad-hoc exploration of your OS and SQL query prototyping. Then fire up `osqueryi` as your user or as a superuser and try some of the concepts below.
 
