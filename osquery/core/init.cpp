@@ -17,7 +17,6 @@
 #include <time.h>
 
 #ifndef WIN32
-#include <syslog.h>
 #include <unistd.h>
 #endif
 
@@ -32,6 +31,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
+#include <osquery/system.h>
 
 #include "osquery/core/watcher.h"
 #include "osquery/core/process.h"
@@ -337,11 +337,10 @@ void Initializer::initDaemon() const {
   }
 #endif
 
-#ifndef WIN32
-  // Print the version to SYSLOG.
-  syslog(
-      LOG_NOTICE, "%s started [version=%s]", binary_.c_str(), kVersion.c_str());
+  // Print the version to the OS system log.
+  systemLog(binary_ + " started [version=" + kVersion + "]");
 
+#ifndef WIN32
   if (!FLAGS_ephemeral) {
     if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
         !isDirectory(OSQUERY_HOME)) {
@@ -604,6 +603,11 @@ void Initializer::requestShutdown(int retcode) {
     Dispatcher::stopServices();
     waitForShutdown();
   }
+}
+
+void Initializer::requestShutdown(int retcode, const std::string& system_log) {
+  systemLog(system_log);
+  requestShutdown(retcode);
 }
 
 void Initializer::shutdown(int retcode) { ::exit(retcode); }

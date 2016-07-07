@@ -17,6 +17,7 @@
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/process.h"

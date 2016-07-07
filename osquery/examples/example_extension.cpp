@@ -9,6 +9,7 @@
  */
 
 #include <osquery/sdk.h>
+#include <osquery/system.h>
 
 using namespace osquery;
 

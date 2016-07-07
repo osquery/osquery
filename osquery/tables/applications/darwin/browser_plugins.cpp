@@ -9,6 +9,7 @@
  */
 
 #include <osquery/filesystem.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
 
 /// Include the "external" (not OS X provided) libarchive header.

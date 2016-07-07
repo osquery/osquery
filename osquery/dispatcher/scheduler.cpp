@@ -15,6 +15,7 @@
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/config/parsers/decorators.h"
 #include "osquery/core/process.h"
@@ -98,8 +99,11 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // was executed by exact matching each row.
   auto status = dbQuery.addNewResults(sql.rows(), diff_results);
   if (!status.ok()) {
-    LOG(ERROR) << "Error adding new results to database: " << status.what();
-    return;
+    std::string line = "Error adding new results to database: " + status.what();
+    LOG(ERROR) << line;
+
+    // If the database is not available then the daemon cannot continue.
+    Initializer::requestShutdown(EXIT_CATASTROPHIC, line);
   }
 
   if (diff_results.added.size() == 0 && diff_results.removed.size() == 0) {
