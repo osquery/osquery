@@ -255,10 +255,6 @@ rocksdb::ColumnFamilyHandle* RocksDBDatabasePlugin::getHandleForColumnFamily(
   return nullptr;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Data manipulation methods
-/////////////////////////////////////////////////////////////////////////////
-
 Status RocksDBDatabasePlugin::get(const std::string& domain,
                                   const std::string& key,
                                   std::string& value) const {
@@ -284,7 +280,13 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
   if (cfh == nullptr) {
     return Status(1, "Could not get column family for " + domain);
   }
-  auto s = getDB()->Put(rocksdb::WriteOptions(), cfh, key, value);
+
+  auto options = rocksdb::WriteOptions();
+  // Events should be fast, and do not need to force syncs.
+  if (kEvents != domain) {
+    options.sync = true;
+  }
+  auto s = getDB()->Put(options, cfh, key, value);
   if (s.code() != 0 && s.IsIOError()) {
     // An error occurred, check if it is an IO error and remove the offending
     // specific filename or log name.
@@ -311,7 +313,9 @@ Status RocksDBDatabasePlugin::remove(const std::string& domain,
 
   // We could sync here, but large deletes will cause multi-syncs.
   // For example: event record expirations found in an expired index.
-  // options.sync = true;
+  if (kEvents != domain) {
+    options.sync = true;
+  }
   auto s = getDB()->Delete(options, cfh, key);
   return Status(s.code(), s.ToString());
 }
