@@ -11,6 +11,7 @@
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/dispatcher/distributed.h"
 #include "osquery/dispatcher/scheduler.h"

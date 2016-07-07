@@ -23,6 +23,7 @@
 
 #include <osquery/flags.h>
 #include <osquery/registry.h>
+#include <osquery/system.h>
 
 #include "osquery/logger/plugins/aws_kinesis.h"
 #include "osquery/logger/plugins/aws_util.h"

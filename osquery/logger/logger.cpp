@@ -8,6 +8,10 @@
  *
  */
 
+#ifndef WIN32
+#include <syslog.h>
+#endif
+
 #include <algorithm>
 #include <thread>
 
@@ -442,5 +446,11 @@ void relayStatusLogs() {
   // failure, since it is missing from the registry. The logger plugin may
   // return failure, but it should have buffered independently of the failure.
   status_logs.clear();
+}
+
+void systemLog(const std::string& line) {
+#ifndef WIN32
+  syslog(LOG_NOTICE, "%s", line.c_str());
+#endif
 }
 }
