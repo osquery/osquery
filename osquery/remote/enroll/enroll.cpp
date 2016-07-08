@@ -15,6 +15,7 @@
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
 #include <osquery/filesystem.h>
+#include <osquery/system.h>
 
 namespace osquery {
 

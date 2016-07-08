@@ -13,6 +13,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/linux/smbios_utils.h"

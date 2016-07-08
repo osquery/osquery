@@ -18,6 +18,7 @@
 #include <osquery/hash.h>
 #include <osquery/packs.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
 

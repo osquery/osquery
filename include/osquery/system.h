@@ -16,68 +16,11 @@
 #include <string>
 #include <vector>
 
-#include <osquery/status.h>
+#include <boost/filesystem/path.hpp>
 
-// clang-format off
-#ifndef STR
-#define STR_OF(x) #x
-#define STR(x) STR_OF(x)
-#endif
-#define STR_EX(x) x
-#define CONCAT(x, y) STR(STR_EX(x)STR_EX(y))
-
-#ifndef FRIEND_TEST
-#define FRIEND_TEST(test_case_name, test_name) \
-  friend class test_case_name##_##test_name##_Test
-#endif
-// clang-format on
-
-#ifdef WIN32
-#define USED_SYMBOL
-#else
-#define USED_SYMBOL __attribute__((used))
-#endif
-
-/// A configuration error is catastrophic and should exit the watcher.
-#define EXIT_CATASTROPHIC 78
+#include <osquery/core.h>
 
 namespace osquery {
-
-/// The version of osquery, includes the git revision if not tagged.
-extern const std::string kVersion;
-
-/// The SDK version removes any git revision hash (1.6.1-g0000 becomes 1.6.1).
-extern const std::string kSDKVersion;
-
-/// Identifies the build platform of either the core extension.
-extern const std::string kSDKPlatform;
-
-/// Use a macro for the sdk/platform literal, symbols available in lib.cpp.
-#define OSQUERY_SDK_VERSION STR(OSQUERY_BUILD_SDK_VERSION)
-#define OSQUERY_PLATFORM STR(OSQUERY_BUILD_PLATFORM)
-
-/**
- * @brief A helpful tool type to report when logging, print help, or debugging.
- */
-enum ToolType {
-  OSQUERY_TOOL_UNKNOWN = 0,
-  OSQUERY_TOOL_SHELL,
-  OSQUERY_TOOL_DAEMON,
-  OSQUERY_TOOL_TEST,
-  OSQUERY_EXTENSION,
-};
-
-/// Helper alias for defining mutexes throughout the codebase.
-using Mutex = std::mutex;
-
-/// Helper alias for write locking a mutex.
-using WriteLock = std::lock_guard<Mutex>;
-
-/// Helper alias for read locking a mutex (do not support a ReadMutex).
-// using ReadLock = std::shared_lock<std::shared_mutex>;
-
-/// The osquery tool type for runtime decisions.
-extern ToolType kToolType;
 
 /**
  * @brief The requested exit code.
@@ -88,16 +31,6 @@ extern ToolType kToolType;
  * that will continue the shutdown process.
  */
 extern volatile std::sig_atomic_t kExitCode;
-
-struct InitializerInterface {
-  virtual const char *id() const = 0;
-  virtual void run() const = 0;
-  virtual ~InitializerInterface() {};
-};
-
-extern void registerRegistry(InitializerInterface * const item);
-extern void registerPlugin(InitializerInterface * const item);
-extern void beginRegistryAndPluginInit();
 
 class Initializer : private boost::noncopyable {
  public:
@@ -151,7 +84,7 @@ class Initializer : private boost::noncopyable {
   void start() const;
 
   /**
-   * @brief Forcefully request the application stop.
+   * @brief Forcefully request the application to stop.
    *
    * Since all osquery tools may implement various 'dispatched' services in the
    * form of event handler threads or thrift service and client pools, a stop
@@ -162,6 +95,18 @@ class Initializer : private boost::noncopyable {
    * @param retcode the requested return code for the process.
    */
   static void requestShutdown(int retcode = EXIT_SUCCESS);
+
+  /**
+   * @brief Forcefully request the application to stop.
+   *
+   * See ::requestShutdown, this overloaded alternative allows the caller to
+   * also log a reason/message to the system log. This is intended for extreme
+   * failure cases and thus requires an explicit error code.
+   *
+   * @param retcode the request return code for the process.
+   * @param system_log A log line to write to the system's log.
+   */
+  static void requestShutdown(int retcode, const std::string& system_log);
 
   /// Exit immediately without requesting the dispatcher to stop.
   static void shutdown(int retcode = EXIT_SUCCESS);
@@ -210,58 +155,6 @@ class Initializer : private boost::noncopyable {
   std::string binary_;
 };
 
-/**
- * @brief Getter for a host's current hostname
- *
- * @return a string representing the host's current hostname
- */
-std::string getHostname();
-
-/**
- * @brief Getter for a host's uuid.
- *
- * @return ok on success and ident is set to the host's uuid, otherwise failure.
- */
-Status getHostUUID(std::string& ident);
-
-/**
- * @brief generate a uuid to uniquely identify this machine
- *
- * @return uuid string to identify this machine
- */
-std::string generateHostUUID();
-
-/**
- * @brief Get a configured UUID/name that uniquely identify this machine
- *
- * @return string to identify this machine
- */
-std::string getHostIdentifier();
-
-/**
- * @brief Getter for the current UNIX time.
- *
- * @return an int representing the amount of seconds since the UNIX epoch
- */
-size_t getUnixTime();
-
-/**
- * @brief Getter for the current time, in a human-readable format.
- *
- * @return the current date/time in the format: "Wed Sep 21 10:27:52 2011"
- */
-std::string getAsciiTime();
-
-#ifndef WIN32
-
-/**
- * @brief Create a pid file
- *
- * @return A status object indicating the success or failure of the operation
- */
-Status createPidFile();
-
-// TODO: Think about making a Windows version of DropPrivileges?
 class DropPrivileges;
 typedef std::shared_ptr<DropPrivileges> DropPrivilegesRef;
 
@@ -337,5 +230,53 @@ class DropPrivileges : private boost::noncopyable {
   FRIEND_TEST(PermissionsTests, test_path_drop);
   FRIEND_TEST(PermissionsTests, test_nobody_drop);
 };
-#endif
+
+/**
+ * @brief Getter for a host's current hostname
+ *
+ * @return a string representing the host's current hostname
+ */
+std::string getHostname();
+
+/**
+ * @brief Getter for a host's uuid.
+ *
+ * @return ok on success and ident is set to the host's uuid, otherwise failure.
+ */
+Status getHostUUID(std::string& ident);
+
+/**
+ * @brief generate a uuid to uniquely identify this machine
+ *
+ * @return uuid string to identify this machine
+ */
+std::string generateHostUUID();
+
+/**
+ * @brief Get a configured UUID/name that uniquely identify this machine
+ *
+ * @return string to identify this machine
+ */
+std::string getHostIdentifier();
+
+/**
+ * @brief Getter for the current UNIX time.
+ *
+ * @return an int representing the amount of seconds since the UNIX epoch
+ */
+size_t getUnixTime();
+
+/**
+ * @brief Getter for the current time, in a human-readable format.
+ *
+ * @return the current date/time in the format: "Wed Sep 21 10:27:52 2011"
+ */
+std::string getAsciiTime();
+
+/**
+ * @brief Create a pid file
+ *
+ * @return A status object indicating the success or failure of the operation
+ */
+Status createPidFile();
 }

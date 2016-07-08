@@ -21,6 +21,7 @@
 #include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 #include "osquery/tests/test_util.h"
 

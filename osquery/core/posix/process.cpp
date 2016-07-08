@@ -15,6 +15,7 @@
 #include <sys/types.h>
 
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/core/process.h"
 

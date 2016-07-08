@@ -10,6 +10,7 @@
 
 #include <osquery/enroll.h>
 #include <osquery/filesystem.h>
+#include <osquery/system.h>
 
 #include "osquery/remote/requests.h"
 #include "osquery/remote/transports/tls.h"

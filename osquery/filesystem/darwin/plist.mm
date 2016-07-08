@@ -17,6 +17,7 @@
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

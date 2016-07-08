@@ -17,6 +17,7 @@
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
 
 namespace osquery {
