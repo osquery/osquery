@@ -84,9 +84,8 @@ namespace osquery {
 #define REGISTER(type, registry, name)                                         \
   struct type##RegistryItem : public InitializerInterface {                    \
     type##RegistryItem(void) { registerPlugin(this); }                         \
-    const char *id() const override { return name_.c_str(); }                  \
+    const char *id() const override { return registry "." name ; }           \
     void run() const override { Registry::add<type>(registry, name); }         \
-    std::string name_{std::string(registry) + "." + name};                     \
   };                                                                           \
   static type##RegistryItem type##instance_;
 
@@ -94,9 +93,8 @@ namespace osquery {
 #define REGISTER_INTERNAL(type, registry, name)                                \
   struct type##RegistryItem : public InitializerInterface {                    \
     type##RegistryItem(void) { registerPlugin(this); }                         \
-    const char *id() const override { return name_.c_str(); }                  \
+    const char *id() const override { return registry "." name ; }           \
     void run() const override { Registry::add<type>(registry, name, true); }   \
-    std::string name_{std::string(registry) + "." + name};                     \
   };                                                                           \
   static type##RegistryItem type##instance_;
 
