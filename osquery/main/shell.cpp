@@ -16,10 +16,15 @@
 
 #include <iostream>
 
+#include <readline/readline.h>
+
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/extensions.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
@@ -83,6 +88,42 @@ int profile(int argc, char *argv[]) {
   return 0;
 }
 
+// readline completion expects strings to be malloced. readline will free them
+// later.
+char *copy_string(const std::string &str) {
+  char *copy = NULL;
+  if ((copy = (char *)malloc(str.size() + 1)) == NULL) {
+    LOG(ERROR) << "Malloc failed. Exiting!";
+    exit(1);
+  }
+  strcpy(copy, str.c_str());
+  return copy;
+}
+
+char *completion_generator(const char *text, int state) {
+  const static std::vector<std::string> tables =
+      osquery::Registry::names("table");
+  static size_t index;
+
+  if (state == 0) {
+    index = 0;
+  }
+
+  while (index < tables.size()) {
+    std::string table = tables[index];
+    ++index;
+
+    if (boost::algorithm::starts_with(table, text)) {
+      return copy_string(table);
+    }
+  }
+  return NULL;
+}
+
+char **table_completion_function(const char *text, int start, int end) {
+  return rl_completion_matches(text, &completion_generator);
+}
+
 int main(int argc, char *argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.
   osquery::Initializer runner(argc, argv, osquery::OSQUERY_TOOL_SHELL);
@@ -103,6 +144,9 @@ int main(int argc, char *argv[]) {
       osquery::FLAGS_disable_extensions = true;
     }
   }
+
+  // Set up readline autocompletion
+  rl_attempted_completion_function = table_completion_function;
 
   int retcode = 0;
   if (osquery::FLAGS_profile <= 0) {
