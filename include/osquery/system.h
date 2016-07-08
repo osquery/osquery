@@ -155,6 +155,7 @@ class Initializer : private boost::noncopyable {
   std::string binary_;
 };
 
+#ifndef WIN32
 class DropPrivileges;
 typedef std::shared_ptr<DropPrivileges> DropPrivilegesRef;
 
@@ -230,6 +231,7 @@ class DropPrivileges : private boost::noncopyable {
   FRIEND_TEST(PermissionsTests, test_path_drop);
   FRIEND_TEST(PermissionsTests, test_nobody_drop);
 };
+#endif
 
 /**
  * @brief Getter for a host's current hostname
@@ -273,10 +275,12 @@ size_t getUnixTime();
  */
 std::string getAsciiTime();
 
+#ifndef WIN32
 /**
  * @brief Create a pid file
  *
  * @return A status object indicating the success or failure of the operation
  */
 Status createPidFile();
+#endif
 }
