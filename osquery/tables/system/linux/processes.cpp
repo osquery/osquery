@@ -13,8 +13,11 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/regex.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -59,6 +62,39 @@ inline std::string readProcLink(const std::string& attr,
   }
 
   return result;
+}
+
+// In the case where the linked binary path ends in " (deleted", and a file
+// actually exists at that path, check whether the inode of that file matches
+// the inode of the mapped file in /proc/%pid/maps
+Status deletedMatchesInode(const std::string& path, const std::string& pid) {
+  const std::string maps_path = getProcAttr("maps", pid);
+  std::string maps_contents;
+  auto s = osquery::readFile(maps_path, maps_contents);
+  if (!s.ok()) {
+    return Status(-1, "Cannot read maps file: " + maps_path);
+  }
+
+  // Extract the expected inode of the binary file from /proc/%pid/maps
+  boost::smatch what;
+  boost::regex expression("([0-9]+)\\h+\\Q" + path + "\\E");
+  if (!boost::regex_search(maps_contents, what, expression)) {
+    return Status(-1, "Could not find binary inode in maps file: " + maps_path);
+  }
+  std::string inode = what[1];
+
+  // stat the file at the expected binary path
+  struct stat st;
+  if (stat(path.c_str(), &st) != 0) {
+    return Status(-1, "Error in stat of binary: " + path);
+  }
+
+  // If the inodes match, the binary name actually ends with " (deleted)"
+  if (std::to_string(st.st_ino) == inode) {
+    return Status(0, "Inodes match");
+  } else {
+    return Status(1, "Inodes do not match");
+  }
 }
 
 std::set<std::string> getProcList(const QueryContext& context) {
@@ -268,7 +304,41 @@ void genProcess(const std::string& pid, QueryData& results) {
   // available, set on_disk to -1. If, and only if, the path of the
   // executable is available and the file does NOT exist on disk, set on_disk
   // to 0.
-  r["on_disk"] = osquery::pathExists(r["path"]).toString();
+  if (r["path"].empty()) {
+    r["on_disk"] = "-1";
+  } else {
+    // The string appended to the exe path when the binary is deleted
+    const std::string kDeletedString = " (deleted)";
+    if (!boost::algorithm::ends_with(r["path"], kDeletedString)) {
+      r["on_disk"] = osquery::pathExists(r["path"]) ? "1" : "0";
+    } else {
+      if (!osquery::pathExists(r["path"])) {
+        // No file exists with the path including " (deleted)", so we can strip
+        // this from the path and set on_disk = 0
+        r["path"].erase(r["path"].size() - kDeletedString.size());
+        r["on_disk"] = "0";
+      } else {
+        // Special case in which we have to check the inode to see whether the
+        // process is actually running from a binary file ending with
+        // " (deleted)". See #1607
+        std::string maps_contents;
+        Status deleted = deletedMatchesInode(r["path"], r["pid"]);
+        if (deleted.getCode() == -1) {
+          LOG(ERROR) << deleted.getMessage();
+          r["on_disk"] = "";
+        } else if (deleted.getCode() == 0) {
+          // The process is actually running from a binary ending with
+          // " (deleted)"
+          r["on_disk"] = "1";
+        } else {
+          // There is a collision with a file name ending in " (deleted)", but
+          // that file is not the binary for this process
+          r["path"].erase(r["path"].size() - kDeletedString.size());
+          r["on_disk"] = "0";
+        }
+      }
+    }
+  }
 
   // size/memory information
   r["wired_size"] = "0"; // No support for unpagable counters in linux.
