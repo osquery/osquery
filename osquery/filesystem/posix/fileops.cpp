@@ -245,7 +245,8 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
 size_t PlatformFile::size() const {
   struct stat file;
   if (::fstat(handle_, &file) < 0) {
-    return -1;
+    // This is an error case, but the size is not signed.
+    return 0;
   }
   return file.st_size;
 }
@@ -309,7 +310,5 @@ Status platformIsFileAccessible(const fs::path& path) {
   return Status(0, "OK");
 }
 
-bool platformIsatty(FILE *f) {
-  return 0 != isatty(fileno(f));
-}
+bool platformIsatty(FILE* f) { return 0 != isatty(fileno(f)); }
 }

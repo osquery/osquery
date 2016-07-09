@@ -39,15 +39,15 @@ void genFDEStatusForBlockDevice(const std::string &name,
   ci = crypt_status(cd, name.c_str());
   switch (ci) {
   case CRYPT_ACTIVE:
-  case CRYPT_BUSY:
+  case CRYPT_BUSY: {
     r["encrypted"] = "1";
 
     int crypt_init;
-#if defined(CENTOS_CENTOS6) || defined(RHEL_RHEL6) || defined(SCIENTIFIC_SCIENTIFIC6)
+#if defined(CENTOS_CENTOS6) || defined(RHEL_RHEL6) || \
+    defined(SCIENTIFIC_SCIENTIFIC6)
     crypt_init = crypt_init_by_name(&cd, name.c_str());
 #else
-    crypt_init =
-      crypt_init_by_name_and_header(&cd, name.c_str(), nullptr);
+    crypt_init = crypt_init_by_name_and_header(&cd, name.c_str(), nullptr);
 #endif
 
     if (crypt_init < 0) {
@@ -66,6 +66,8 @@ void genFDEStatusForBlockDevice(const std::string &name,
     cipher_mode = crypt_get_cipher_mode(cd);
     r["type"] = type + "-" + cipher + "-" + cipher_mode;
     break;
+  }
+
   default:
     r["encrypted"] = "0";
   }

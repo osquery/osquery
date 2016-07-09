@@ -31,29 +31,38 @@ QueryData genTime(QueryContext& context) {
   auto osquery_timestamp = getAsciiTime();
 
   // The concept of 'now' is configurable.
-  struct tm* gmt = std::gmtime(&local_time);
-  struct tm* now = (FLAGS_utc) ? gmt : std::localtime(&local_time);
-  struct tm* local = std::localtime(&local_time);
+  struct tm gmt;
+  gmtime_r(&local_time, &gmt);
+
+  struct tm now;
+  if (FLAGS_utc) {
+    now = gmt;
+  } else {
+    localtime_r(&local_time, &now);
+  }
+
+  struct tm local;
+  localtime_r(&local_time, &local);
 
   char weekday[10] = {0};
-  strftime(weekday, sizeof(weekday), "%A", now);
+  strftime(weekday, sizeof(weekday), "%A", &now);
 
   char timezone[5] = {0};
-  strftime(timezone, sizeof(timezone), "%Z", now);
+  strftime(timezone, sizeof(timezone), "%Z", &now);
 
   char local_timezone[5] = {0};
-  strftime(local_timezone, sizeof(local_timezone), "%Z", local);
+  strftime(local_timezone, sizeof(local_timezone), "%Z", &local);
 
   char iso_8601[21] = {0};
-  strftime(iso_8601, sizeof(iso_8601), "%FT%TZ", gmt);
+  strftime(iso_8601, sizeof(iso_8601), "%FT%TZ", &gmt);
 
   r["weekday"] = SQL_TEXT(weekday);
-  r["year"] = INTEGER(now->tm_year + 1900);
-  r["month"] = INTEGER(now->tm_mon + 1);
-  r["day"] = INTEGER(now->tm_mday);
-  r["hour"] = INTEGER(now->tm_hour);
-  r["minutes"] = INTEGER(now->tm_min);
-  r["seconds"] = INTEGER(now->tm_sec);
+  r["year"] = INTEGER(now.tm_year + 1900);
+  r["month"] = INTEGER(now.tm_mon + 1);
+  r["day"] = INTEGER(now.tm_mday);
+  r["hour"] = INTEGER(now.tm_hour);
+  r["minutes"] = INTEGER(now.tm_min);
+  r["seconds"] = INTEGER(now.tm_sec);
   r["timezone"] = SQL_TEXT(timezone);
   r["local_time"] = INTEGER(local_time);
   r["local_timezone"] = SQL_TEXT(local_timezone);

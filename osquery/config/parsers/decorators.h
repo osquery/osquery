@@ -8,8 +8,11 @@
  *
  */
 
+#pragma once
+
 #include <map>
 #include <functional>
+
 #include <osquery/config.h>
 #include <osquery/database.h>
 
@@ -23,11 +26,7 @@ enum DecorationPoint {
 };
 
 /// Define a map of decoration points to their expected configuration key.
-const std::map<DecorationPoint, std::string> kDecorationPointKeys = {
-    {DECORATE_LOAD, "load"},
-    {DECORATE_ALWAYS, "always"},
-    {DECORATE_INTERVAL, "interval"},
-};
+extern const std::map<DecorationPoint, std::string> kDecorationPointKeys;
 
 /**
  * @brief Iterate the discovered decorators for a given point type.

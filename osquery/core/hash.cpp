@@ -71,11 +71,11 @@ std::string Hash::digest() {
   hash.assign(length_, '\0');
 
   if (algorithm_ == HASH_TYPE_MD5) {
-    __HASH_API(MD5_Final)(&hash[0], (__HASH_API(MD5_CTX)*)ctx_);
+    __HASH_API(MD5_Final)(hash.data(), (__HASH_API(MD5_CTX)*)ctx_);
   } else if (algorithm_ == HASH_TYPE_SHA1) {
-    __HASH_API(SHA1_Final)(&hash[0], (__HASH_API(SHA1_CTX)*)ctx_);
+    __HASH_API(SHA1_Final)(hash.data(), (__HASH_API(SHA1_CTX)*)ctx_);
   } else if (algorithm_ == HASH_TYPE_SHA256) {
-    __HASH_API(SHA256_Final)(&hash[0], (__HASH_API(SHA256_CTX)*)ctx_);
+    __HASH_API(SHA256_Final)(hash.data(), (__HASH_API(SHA256_CTX)*)ctx_);
   }
 
   // The hash value is only relevant as a hex digest.
@@ -96,7 +96,7 @@ std::string hashFromBuffer(HashType hash_type,
 }
 
 MultiHashes hashMultiFromFile(int mask, const std::string& path) {
-  std::map<HashType, std::shared_ptr<Hash> > hashes = {
+  std::map<HashType, std::shared_ptr<Hash>> hashes = {
       {HASH_TYPE_MD5, std::make_shared<Hash>(HASH_TYPE_MD5)},
       {HASH_TYPE_SHA1, std::make_shared<Hash>(HASH_TYPE_SHA1)},
       {HASH_TYPE_SHA256, std::make_shared<Hash>(HASH_TYPE_SHA256)},

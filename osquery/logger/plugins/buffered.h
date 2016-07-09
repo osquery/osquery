@@ -22,8 +22,8 @@
 namespace osquery {
 
 /// Iterate through a vector, yielding during high utilization
-static inline void iterate(std::vector<std::string>& input,
-                           std::function<void(std::string&)> predicate) {
+inline void iterate(std::vector<std::string>& input,
+                    std::function<void(std::string&)> predicate) {
   // Since there are no 'multi-do' APIs, keep a count of consecutive actions.
   // This count allows us to sleep the thread to prevent utilization thrash.
   size_t count = 0;
