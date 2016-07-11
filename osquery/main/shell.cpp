@@ -9,6 +9,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #ifdef WIN32
 #include <io.h>
@@ -91,12 +92,13 @@ int profile(int argc, char *argv[]) {
 // readline completion expects strings to be malloced. readline will free them
 // later.
 char *copy_string(const std::string &str) {
-  char *copy = NULL;
-  if ((copy = (char *)malloc(str.size() + 1)) == NULL) {
-    LOG(ERROR) << "Malloc failed. Exiting!";
-    exit(1);
+  char *copy = (char *)malloc(str.size() + 1);
+  if (copy == nullptr) {
+    LOG(ERROR)
+        << "Memory allocation failed during shell autocompletion. Exiting!";
+    osquery::Initializer::shutdown(EXIT_FAILURE);
   }
-  strcpy(copy, str.c_str());
+  strlcpy(copy, str.c_str(), str.size() + 1);
   return copy;
 }
 
@@ -117,7 +119,7 @@ char *completion_generator(const char *text, int state) {
       return copy_string(table);
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 char **table_completion_function(const char *text, int start, int end) {
