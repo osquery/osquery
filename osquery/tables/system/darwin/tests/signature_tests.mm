@@ -8,12 +8,15 @@
  *
  */
 
+#include <mach-o/dyld.h>
+
 #include <CoreFoundation/CoreFoundation.h>
 #include <Foundation/Foundation.h>
+
 #include <gtest/gtest.h>
+
 #include <boost/filesystem/operations.hpp>
 #include <boost/make_unique.hpp>
-#include <mach-o/dyld.h>
 
 #include "osquery/tests/test_util.h"
 
@@ -48,9 +51,7 @@ std::string getRealExecutablePath() {
 
 class SignatureTest : public testing::Test {
  protected:
-  void SetUp() {
-    tempFile = kTestWorkingDirectory + "darwin-signature";
-  }
+  void SetUp() { tempFile = kTestWorkingDirectory + "darwin-signature"; }
 
   void TearDown() {
     // End the event loops, and join on the threads.
@@ -82,7 +83,9 @@ TEST_F(SignatureTest, test_get_valid_signature) {
   for (const auto& column : expected) {
     EXPECT_EQ(results.front()[column.first], column.second);
   }
-  ASSERT_TRUE(results.front()["team_identifier"].length() >= 0);
+
+  // Could check the team identifier but it is flaky on some distros.
+  // ASSERT_TRUE(results.front()["team_identifier"].length() > 0);
   ASSERT_TRUE(results.front()["cdhash"].length() > 0);
 }
 
@@ -99,12 +102,8 @@ TEST_F(SignatureTest, test_get_unsigned) {
   genSignatureForFile(path, results);
 
   Row expected = {
-      {"path", path},
-      {"signed", "0"},
-      {"identifier", ""},
-      {"cdhash", ""},
-      {"team_identifier", ""},
-      {"authority", ""},
+      {"path", path}, {"signed", "0"},         {"identifier", ""},
+      {"cdhash", ""}, {"team_identifier", ""}, {"authority", ""},
   };
 
   for (const auto& column : expected) {
@@ -165,7 +164,5 @@ TEST_F(SignatureTest, test_get_invalid_signature) {
   ASSERT_TRUE(results.front().count("team_identifier") > 0);
   ASSERT_TRUE(results.front()["cdhash"].length() > 0);
 }
-
 }
 }
-

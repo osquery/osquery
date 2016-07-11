@@ -8,11 +8,11 @@
  *
  */
 
-#include <vector>
-
 #include <signal.h>
 
 #include <sys/types.h>
+
+#include <vector>
 
 #include <osquery/logger.h>
 #include <osquery/system.h>
@@ -57,7 +57,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
 }
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
-    const std::string& exec_path, int argc, char** argv) {
+    const std::string& exec_path, int argc /* unused */, char** argv) {
   auto worker_pid = ::fork();
   if (worker_pid < 0) {
     return std::shared_ptr<PlatformProcess>();
@@ -106,4 +106,3 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   return std::make_shared<PlatformProcess>(ext_pid);
 }
 }
-

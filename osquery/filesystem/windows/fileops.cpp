@@ -17,7 +17,6 @@
 
 #include <memory>
 #include <regex>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -110,7 +109,7 @@ class SecurityDescriptor {
  public:
   explicit SecurityDescriptor(PSECURITY_DESCRIPTOR sd) : sd_(sd) {}
 
-  SecurityDescriptor(SecurityDescriptor &&src) {
+  SecurityDescriptor(SecurityDescriptor &&src) noexcept {
     sd_ = src.sd_;
     std::swap(sd_, src.sd_);
   }
@@ -345,7 +344,7 @@ static AclObject modifyAcl(
     }
 
     if (!::AddAce(
-             new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
+            new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
       return std::move(AclObject());
     }
   }
@@ -366,7 +365,7 @@ static AclObject modifyAcl(
     }
 
     if (!::AddAce(
-             new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
+            new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
       return std::move(AclObject());
     }
   }
@@ -389,16 +388,16 @@ PlatformFile::PlatformFile(const std::string &path, int mode, int perms) {
   }
 
   switch (PF_GET_OPTIONS(mode)) {
-  case PF_GET_OPTIONS(PF_CREATE_NEW) :
+  case PF_GET_OPTIONS(PF_CREATE_NEW):
     creation_disposition = CREATE_NEW;
     break;
-  case PF_GET_OPTIONS(PF_CREATE_ALWAYS) :
+  case PF_GET_OPTIONS(PF_CREATE_ALWAYS):
     creation_disposition = CREATE_ALWAYS;
     break;
-  case PF_GET_OPTIONS(PF_OPEN_EXISTING) :
+  case PF_GET_OPTIONS(PF_OPEN_EXISTING):
     creation_disposition = OPEN_EXISTING;
     break;
-  case PF_GET_OPTIONS(PF_TRUNCATE) :
+  case PF_GET_OPTIONS(PF_TRUNCATE):
     creation_disposition = TRUNCATE_EXISTING;
     break;
   default:
@@ -514,10 +513,8 @@ Status PlatformFile::isOwnerRoot() const {
 
   PSID admins_sid = (PSID)admins_buf.data();
 
-  if (!::CreateWellKnownSid(WinBuiltinAdministratorsSid,
-                            nullptr,
-                            admins_sid,
-                            &admins_buf_size)) {
+  if (!::CreateWellKnownSid(
+          WinBuiltinAdministratorsSid, nullptr, admins_sid, &admins_buf_size)) {
     return Status(-1, "CreateWellKnownSid failed");
   }
 
@@ -840,11 +837,11 @@ ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
   if (is_nonblock_) {
     AsyncEvent write_event;
     if (!::WriteFile(
-             handle_, buf, nbyte, &bytes_written, &write_event.overlapped_)) {
+            handle_, buf, nbyte, &bytes_written, &write_event.overlapped_)) {
       last_error = ::GetLastError();
       if (last_error == ERROR_IO_PENDING) {
         if (!::GetOverlappedResultEx(
-                 handle_, &write_event.overlapped_, &bytes_written, 0, TRUE)) {
+                handle_, &write_event.overlapped_, &bytes_written, 0, TRUE)) {
           last_error = ::GetLastError();
           if (last_error == ERROR_IO_INCOMPLETE) {
             has_pending_io_ = true;
@@ -1190,8 +1187,5 @@ Status platformIsFileAccessible(const fs::path &path) {
   return Status(1, "Not accessible file");
 }
 
-bool platformIsatty(FILE *f) {
-  return 0 != _isatty(_fileno(f));
+bool platformIsatty(FILE *f) { return 0 != _isatty(_fileno(f)); }
 }
-}
-

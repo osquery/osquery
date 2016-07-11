@@ -49,7 +49,7 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
   return boost::none;
 }
 
-void cleanupDefunctProcesses() { ::waitpid(-1, 0, WNOHANG); }
+void cleanupDefunctProcesses() { ::waitpid(-1, nullptr, WNOHANG); }
 
 ProcessState checkChildProcessStatus(const PlatformProcess& process,
                                      int& status) {
@@ -75,4 +75,3 @@ ProcessState checkChildProcessStatus(const PlatformProcess& process,
 
 void setToBackgroundPriority() { setpriority(PRIO_PGRP, 0, 10); }
 }
-

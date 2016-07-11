@@ -37,7 +37,7 @@ using PlatformPidType = pid_t;
 #endif
 
 /// Constant for an invalid process
-const PlatformPidType kInvalidPid = (PlatformPidType) - 1;
+const PlatformPidType kInvalidPid = (PlatformPidType)-1;
 
 /**
  * @brief Categories of process states adapted to be platform agnostic
@@ -66,7 +66,7 @@ class PlatformProcess : private boost::noncopyable {
   explicit PlatformProcess(PlatformPidType id);
 
   PlatformProcess(const PlatformProcess& src) = delete;
-  PlatformProcess(PlatformProcess&& src);
+  PlatformProcess(PlatformProcess&& src) noexcept;
   ~PlatformProcess();
 
   PlatformProcess& operator=(const PlatformProcess& process) = delete;
@@ -101,7 +101,7 @@ class PlatformProcess : private boost::noncopyable {
    * @brief Creates a new worker process.
    *
    * Launches a worker process given a worker executable path, number of
-   * arguments, and an array of arguments. All double quotes within each entry 
+   * arguments, and an array of arguments. All double quotes within each entry
    * in the array of arguments will be supplanted with a preceding blackslash.
    */
   static std::shared_ptr<PlatformProcess> launchWorker(
@@ -157,4 +157,3 @@ void cleanupDefunctProcesses();
 /// Sets the current process to run with background scheduling priority
 void setToBackgroundPriority();
 }
-
