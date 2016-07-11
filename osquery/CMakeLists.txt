@@ -99,6 +99,7 @@ ADD_OSQUERY_LINK_CORE("boost_system")
 ADD_OSQUERY_LINK_CORE("boost_filesystem")
 ADD_OSQUERY_LINK_CORE("boost_regex")
 ADD_OSQUERY_LINK_CORE("cryptsetup")
+ADD_OSQUERY_LINK_CORE("bz2")
 ADD_OSQUERY_LINK_CORE("lz4")
 
 # TODO(#1956): Ignoring on WIN32 for now
