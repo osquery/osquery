@@ -10,6 +10,7 @@
 function main_arch() {
   sudo pacman -Syu
 
+  package wget
   package asio
   package audit
   package boost
@@ -21,7 +22,6 @@ function main_arch() {
   package git
   package google-glog
   package lsb-release
-  package make
   package python
   package python-jinja
   package python-pip
@@ -34,7 +34,8 @@ function main_arch() {
 
   echo ""
   echo "The following packages need to be installed from the AUR:"
-  echo "rocksdb rocksdb-static cpp-netlib magic"
+  echo "rocksdb or rocksdb-static (if using rocksdb export BUILD_LINK_SHARED=True)"
+  echo "cpp-netlib and magic"
   echo ""
 }
 
