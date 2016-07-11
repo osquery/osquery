@@ -98,7 +98,7 @@ char *copy_string(const std::string &str) {
         << "Memory allocation failed during shell autocompletion. Exiting!";
     osquery::Initializer::shutdown(EXIT_FAILURE);
   }
-  strlcpy(copy, str.c_str(), str.size() + 1);
+  strncpy(copy, str.c_str(), str.size() + 1);
   return copy;
 }
 
