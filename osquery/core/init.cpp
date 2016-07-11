@@ -213,27 +213,23 @@ InitializerMap& plugin_initializer() {
 
 void registerRegistry(InitializerInterface *const item) {
   if (item != nullptr) {
-    registry_initializer().insert(
-        std::pair<std::string, InitializerInterface *>(item->id(), item));
+    registry_initializer().insert({item->id(), item});
   }
 }
 
 void registerPlugin(InitializerInterface *const item) {
   if (item != nullptr) {
-    plugin_initializer().insert(
-        std::pair<std::string, InitializerInterface *>(item->id(), item));
+    plugin_initializer().insert({item->id(), item});
   }
 }
 
 void beginRegistryAndPluginInit() {
-  for (auto it = registry_initializer().begin();
-       it != registry_initializer().end(); ++it) {
-    it->second->run();
+  for (const auto &it : registry_initializer() ) {
+    it.second->run();
   }
 
-  for (auto it = plugin_initializer().begin(); it != plugin_initializer().end();
-       ++it) {
-    it->second->run();
+  for (const auto &it : plugin_initializer() ) {
+    it.second->run();
   }
 }
 

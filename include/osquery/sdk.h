@@ -57,9 +57,8 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
 #define REGISTER_EXTERNAL(type, registry, name)                               \
   struct type##ExtensionRegistryItem : public InitializerInterface {          \
     type##ExtensionRegistryItem(void) { registerPlugin(this); }               \
-    const char *id() const override { return name_.c_str(); }                 \
+    const char *id() const override { return registry "." name ; }            \
     void run() const override { Registry::add<type>(registry, name); }        \
-    std::string name_{std::string(registry) + "." + name};                    \
   };                                                                          \
   static type##ExtensionRegistryItem type##instance_;
 
