@@ -103,11 +103,12 @@ char *copy_string(const std::string &str) {
 }
 
 char *completion_generator(const char *text, int state) {
-  const static std::vector<std::string> tables =
-      osquery::Registry::names("table");
+  static std::vector<std::string> tables;
   static size_t index;
 
   if (state == 0) {
+    // new completion attempt
+    tables = osquery::Registry::names("table");
     index = 0;
   }
 
