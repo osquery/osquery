@@ -127,6 +127,11 @@ class BufferedLogForwarder : public InternalRunnable {
    */
   void check();
 
+  /**
+   * @brief
+   */
+  void purge(){};
+
  protected:
   /// Return whether the string is a result index
   bool isResultIndex(const std::string& index);

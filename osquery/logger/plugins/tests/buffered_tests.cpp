@@ -28,6 +28,8 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+DECLARE_uint64(buffered_log_max);
+
 // Check that the string matches the StatusLogLine
 MATCHER_P(MatchesStatus, expected, "") {
   pt::ptree actual;
@@ -74,6 +76,7 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
   FRIEND_TEST(BufferedLogForwarderTests, test_multiple);
   FRIEND_TEST(BufferedLogForwarderTests, test_async);
   FRIEND_TEST(BufferedLogForwarderTests, test_split);
+  FRIEND_TEST(BufferedLogForwarderTests, test_purge_max);
 };
 
 TEST_F(BufferedLogForwarderTests, test_index) {
@@ -229,6 +232,7 @@ TEST_F(BufferedLogForwarderTests, test_async) {
   Dispatcher::joinServices();
 }
 
+// Verify that the max number of logs per send is respected
 TEST_F(BufferedLogForwarderTests, test_split) {
   StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 1);
   runner.logString("foo");
@@ -270,5 +274,24 @@ TEST_F(BufferedLogForwarderTests, test_split) {
   EXPECT_CALL(runner2, send(ElementsAre("baz"), "result"))
       .WillOnce(Return(Status(0)));
   runner2.check();
+}
+
+// Verify that the max number of buffered logs is respected, and oldest logs
+// are purged first
+TEST_F(BufferedLogForwarderTests, test_purge_max) {
+  FLAGS_buffered_log_max = 1;
+
+  StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 1);
+  runner.logString("foo");
+  runner.logString("bar");
+  runner.logString("baz");
+
+  EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
+      .WillOnce(Return(Status(1, "fail")));
+  runner.check();
+
+  EXPECT_CALL(runner, send(ElementsAre("baz"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
 }
 }

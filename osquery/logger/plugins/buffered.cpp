@@ -27,6 +27,11 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+FLAG(uint64,
+     buffered_log_max,
+     1000000,
+     "Maximum number of logs in buffered output plugins (0 = unlimited)");
+
 const auto BufferedLogForwarder::kLogPeriod = std::chrono::seconds(4);
 const size_t BufferedLogForwarder::kMaxLogLines = 1024;
 
@@ -75,6 +80,8 @@ void BufferedLogForwarder::check() {
               }));
     }
   }
+
+  purge();
 }
 
 void BufferedLogForwarder::start() {
