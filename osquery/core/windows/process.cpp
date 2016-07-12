@@ -99,11 +99,9 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
   try {
     handle = reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(
         std::stoull(*launcher_handle, nullptr, 16)));
-  }
-  catch (std::invalid_argument e) {
+  } catch (std::invalid_argument e) {
     return std::make_shared<PlatformProcess>();
-  }
-  catch (std::out_of_range e) {
+  } catch (std::out_of_range e) {
     return std::make_shared<PlatformProcess>();
   }
 
@@ -150,7 +148,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   // the current process. This is mostly used for detecting the death of the
   // launcher process in WatcherWatcherRunner::start
   if (!setEnvVar("OSQUERY_WORKER", "1") ||
-      !setEnvVar("OSQUERY_LAUNCHER", handle.c_str())) {
+      !setEnvVar("OSQUERY_LAUNCHER", handle)) {
     ::CloseHandle(hLauncherProcess);
 
     return std::shared_ptr<PlatformProcess>();
@@ -272,4 +270,3 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   return process;
 }
 }
-

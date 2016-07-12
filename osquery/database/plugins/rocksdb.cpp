@@ -220,7 +220,7 @@ Status RocksDBDatabasePlugin::setUp() {
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.
-  if (!read_only_ && platformChmod(path_.c_str(), S_IRWXU) == false) {
+  if (!read_only_ && platformChmod(path_, S_IRWXU) == false) {
     return Status(1, "Cannot set permissions on RocksDB path: " + path_);
   }
   return Status(0);
