@@ -94,8 +94,8 @@ int profile(int argc, char *argv[]) {
 char *copy_string(const std::string &str) {
   char *copy = (char *)malloc(str.size() + 1);
   if (copy == nullptr) {
-    LOG(ERROR)
-        << "Memory allocation failed during shell autocompletion. Exiting!";
+    fprintf(stderr,
+            "Memory allocation failed during shell autocompletion. Exiting!");
     osquery::Initializer::shutdown(EXIT_FAILURE);
   }
   strncpy(copy, str.c_str(), str.size() + 1);
