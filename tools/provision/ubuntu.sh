@@ -43,6 +43,7 @@ function main_ubuntu() {
   package python-dev
   # package linux-headers-generic
   package ruby-dev
+  package ruby1.9.1-dev
   package gcc
   package doxygen
 
