@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+# For starting it, use run.sh script
 from pprint import pprint
 
 from flask import Flask, request, jsonify
@@ -64,7 +63,3 @@ def distributed_read():
         queries=[],  # TODO
         node_invalid=False,
     )
-
-
-if __name__ == '__main__':
-    app.run(port=8015)
