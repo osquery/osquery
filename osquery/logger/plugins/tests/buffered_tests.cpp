@@ -281,8 +281,11 @@ TEST_F(BufferedLogForwarderTests, test_split) {
 TEST_F(BufferedLogForwarderTests, test_purge) {
   FLAGS_buffered_log_max = 3;
   StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 100);
-  for (uint64_t i = 0; i < 100; ++i) {
+  for (uint64_t i = 0; i < 10; ++i) {
     runner.logString(std::to_string(i));
+    StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
+    StatusLogLine log2 = makeStatusLogLine(O_ERROR, "bar", 30, "bar error");
+    runner.logStatus({log1, log2});
   }
   // wait for a new timestamp
   std::this_thread::sleep_for(std::chrono::milliseconds(1500));
@@ -297,24 +300,39 @@ TEST_F(BufferedLogForwarderTests, test_purge) {
   EXPECT_CALL(runner, send(ElementsAre("foo", "bar", "baz"), "result"))
       .WillOnce(Return(Status(0)));
   runner.check();
+
+  runner.check();
 }
 // Verify that the max number of buffered logs is respected, and oldest logs
 // are purged first
 TEST_F(BufferedLogForwarderTests, test_purge_max) {
   FLAGS_buffered_log_max = 2;
 
-  StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 3);
+  StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 5);
+  StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
+  StatusLogLine log2 = makeStatusLogLine(O_ERROR, "bar", 30, "bar error");
+
   runner.logString("foo");
+  runner.logStatus({log1});
   // wait for a new timestamp
   std::this_thread::sleep_for(std::chrono::milliseconds(1500));
   runner.logString("bar");
+  // wait for a new timestamp
+  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+  runner.logStatus({log2});
   runner.logString("baz");
 
   EXPECT_CALL(runner, send(ElementsAre("foo", "bar", "baz"), "result"))
       .WillOnce(Return(Status(1, "fail")));
+  EXPECT_CALL(
+      runner,
+      send(ElementsAre(MatchesStatus(log1), MatchesStatus(log2)), "status"))
+      .WillOnce(Return(Status(1, "fail")));
   runner.check();
 
-  EXPECT_CALL(runner, send(ElementsAre("bar", "baz"), "result"))
+  EXPECT_CALL(runner, send(ElementsAre("baz"), "result"))
+      .WillOnce(Return(Status(0)));
+  EXPECT_CALL(runner, send(ElementsAre(MatchesStatus(log2)), "status"))
       .WillOnce(Return(Status(0)));
   runner.check();
 
@@ -324,6 +342,8 @@ TEST_F(BufferedLogForwarderTests, test_purge_max) {
 
   EXPECT_CALL(runner, send(ElementsAre("1", "2", "3"), "result"))
       .WillOnce(Return(Status(0)));
+  runner.check();
+
   runner.check();
 }
 }

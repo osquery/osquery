@@ -10,8 +10,11 @@
 
 #pragma once
 
+#include <boost/optional.hpp>
+
 #include <chrono>
 #include <functional>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -156,6 +159,26 @@ class BufferedLogForwarder : public InternalRunnable {
   std::string genIndexPrefix(bool results);
   std::string genIndex(bool results);
 
+  /// Accessor for buffer_count_. Initializes if necessary.
+  size_t getBufferCount();
+  void setBufferCount(size_t count) { buffer_count_ = count; }
+
+  /**
+   * @brief Add a database value while maintaining count
+   *
+   * Lock count_mutex_ before using
+   */
+  Status addValueWithCount(const std::string& domain,
+                           const std::string& key,
+                           const std::string& value);
+  /**
+   * @brief Delete a database value while maintaining count
+   *
+   * Lock count_mutex_ before using
+   */
+  Status deleteValueWithCount(const std::string& domain,
+                              const std::string& key);
+
  protected:
   /// Seconds between flushing logs
   std::chrono::seconds log_period_;
@@ -174,5 +197,19 @@ class BufferedLogForwarder : public InternalRunnable {
    * store.
    */
   std::string index_name_;
+
+ private:
+  /// Used for locking around operations changing the count of buffered logs
+  std::recursive_mutex count_mutex_;
+  /// Flag guarding initialization of buffer_count_
+  std::once_flag init_count_flag_;
+
+  /**
+   * @brief Stores the count of buffered logs
+   *
+   * Should only be accessed through (get|set)BufferCount because it is
+   * initialized at first use.
+  */
+  size_t buffer_count_;
 };
 }
