@@ -55,8 +55,8 @@ namespace osquery {
  * types they are storing, and more importantly how they are treated at query
  * time.
  */
-template<typename Type>
-inline std::string __sqliteField(const Type &source) noexcept {
+template <typename Type>
+inline std::string __sqliteField(const Type& source) noexcept {
   std::string dest;
   if (!boost::conversion::try_lexical_convert(source, dest)) {
     return SQL_NULL_RESULT;
@@ -68,7 +68,7 @@ inline std::string __sqliteField(const Type &source) noexcept {
 // TEXT is also defined in windows.h, we should not re-define it
 #define SQL_TEXT(x) __sqliteField(x)
 #else
-// For everything except Windows, aldo define TEXT() to be compatible with 
+// For everything except Windows, aldo define TEXT() to be compatible with
 // existing tables
 #define SQL_TEXT(x) __sqliteField(x)
 #define TEXT(x) __sqliteField(x)
@@ -455,7 +455,7 @@ struct QueryContext : private boost::noncopyable {
 
   /// If the context was created without content, it is ephemeral.
   ~QueryContext() {
-    if (!enable_cache_) {
+    if (!enable_cache_ && table_ != nullptr) {
       free(table_);
     }
   }
