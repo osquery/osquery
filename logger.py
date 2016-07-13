@@ -13,7 +13,7 @@ def route(*urls):
     # and implies more methods
     def wrapper(f):
         for url in urls:
-            app.route(url, methods=['GET', 'POST', 'PUT'])
+            app.route(url, methods=['GET', 'POST', 'PUT'])(f)
         return f
     return wrapper
 
