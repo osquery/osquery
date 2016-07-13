@@ -123,14 +123,18 @@ class BufferedLogForwarder : public InternalRunnable {
    *
    * Scan the logs domain for up to max_log_lines_ log lines.
    * Sort those lines into status and request types then forward (send) each
-   * set. On success, clear the data and indexes.
+   * set. On success, clear the data and indexes. Calls purge upon completion.
    */
   void check();
 
   /**
-   * @brief
+   * @brief Purge the oldest logs, if the max is exceeded
+   *
+   * Uses the buffered_log_max flag to determine the maximum number of buffered
+   * logs. If this number is exceeded, the logs with the oldest timestamp are
+   * purged. Order of purging for logs with the same timestamp is undefined.
    */
-  void purge(){};
+  void purge();
 
  protected:
   /// Return whether the string is a result index
@@ -149,6 +153,7 @@ class BufferedLogForwarder : public InternalRunnable {
   std::string genStatusIndex();
 
  private:
+  std::string genIndexPrefix(bool results);
   std::string genIndex(bool results);
 
  protected:

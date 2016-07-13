@@ -76,6 +76,7 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
   FRIEND_TEST(BufferedLogForwarderTests, test_multiple);
   FRIEND_TEST(BufferedLogForwarderTests, test_async);
   FRIEND_TEST(BufferedLogForwarderTests, test_split);
+  FRIEND_TEST(BufferedLogForwarderTests, test_purge);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge_max);
 };
 
@@ -276,21 +277,52 @@ TEST_F(BufferedLogForwarderTests, test_split) {
   runner2.check();
 }
 
+// Test the purge() function independently of check()
+TEST_F(BufferedLogForwarderTests, test_purge) {
+  FLAGS_buffered_log_max = 3;
+  StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 100);
+  for (uint64_t i = 0; i < 100; ++i) {
+    runner.logString(std::to_string(i));
+  }
+  // wait for a new timestamp
+  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+  runner.logString("foo");
+  runner.purge();
+  runner.logString("bar");
+  runner.purge();
+  runner.logString("baz");
+  runner.purge();
+  runner.purge();
+
+  EXPECT_CALL(runner, send(ElementsAre("foo", "bar", "baz"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+}
 // Verify that the max number of buffered logs is respected, and oldest logs
 // are purged first
 TEST_F(BufferedLogForwarderTests, test_purge_max) {
-  FLAGS_buffered_log_max = 1;
+  FLAGS_buffered_log_max = 2;
 
-  StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 1);
+  StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 3);
   runner.logString("foo");
+  // wait for a new timestamp
+  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
   runner.logString("bar");
   runner.logString("baz");
 
-  EXPECT_CALL(runner, send(ElementsAre("foo"), "result"))
+  EXPECT_CALL(runner, send(ElementsAre("foo", "bar", "baz"), "result"))
       .WillOnce(Return(Status(1, "fail")));
   runner.check();
 
-  EXPECT_CALL(runner, send(ElementsAre("baz"), "result"))
+  EXPECT_CALL(runner, send(ElementsAre("bar", "baz"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
+  runner.logString("1");
+  runner.logString("2");
+  runner.logString("3");
+
+  EXPECT_CALL(runner, send(ElementsAre("1", "2", "3"), "result"))
       .WillOnce(Return(Status(0)));
   runner.check();
 }

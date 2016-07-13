@@ -8,6 +8,7 @@
  *
  */
 
+#include <algorithm>
 #include <chrono>
 #include <thread>
 
@@ -57,7 +58,7 @@ void BufferedLogForwarder::check() {
       VLOG(1) << "Error sending results to logger: " << status.getMessage();
     } else {
       // Clear the results logs once they were sent.
-      iterate(indexes, ([&results, this](std::string& index) {
+      iterate(indexes, ([this](std::string& index) {
                 if (!isResultIndex(index)) {
                   return;
                 }
@@ -72,7 +73,7 @@ void BufferedLogForwarder::check() {
       VLOG(1) << "Error sending status to logger: " << status.getMessage();
     } else {
       // Clear the status logs once they were sent.
-      iterate(indexes, ([&results, this](std::string& index) {
+      iterate(indexes, ([this](std::string& index) {
                 if (!isStatusIndex(index)) {
                   return;
                 }
@@ -81,7 +82,44 @@ void BufferedLogForwarder::check() {
     }
   }
 
-  purge();
+  // Purge any logs exceeding the max after our send attempt
+  if (FLAGS_buffered_log_max > 0) {
+    purge();
+  }
+}
+
+void BufferedLogForwarder::purge() {
+  std::vector<std::string> indexes;
+  auto status = scanDatabaseKeys(kLogs, indexes, index_name_, 0);
+
+  if (!status.ok()) {
+    LOG(ERROR) << "Error scanning DB during buffered log purge";
+    return;
+  }
+
+  if (indexes.size() <= FLAGS_buffered_log_max) {
+    return;
+  }
+
+  size_t purge_count = indexes.size() - FLAGS_buffered_log_max;
+  size_t prefix_size = genIndexPrefix(true).size();
+  // Partition the indexes so that the first purge_count elements are the
+  // oldest indexes (the ones to be purged)
+  std::nth_element(indexes.begin(), indexes.begin() + purge_count - 1,
+                   indexes.end(),
+                   [&](const std::string& a, const std::string& b) {
+                     // Skip the prefix when doing comparisons
+                     return a.compare(prefix_size, std::string::npos, b,
+                                      prefix_size, std::string::npos) < 0;
+                   });
+  indexes.erase(indexes.begin() + purge_count, indexes.end());
+
+  // Now only indexes of logs to be deleted remain
+  iterate(indexes,
+          [](const std::string& index) { deleteDatabaseValue(kLogs, index); });
+
+  LOG(WARNING) << purge_count << " buffered logs purged (max "
+               << FLAGS_buffered_log_max << ")";
 }
 
 void BufferedLogForwarder::start() {
@@ -163,8 +201,12 @@ std::string BufferedLogForwarder::genResultIndex() { return genIndex(true); }
 
 std::string BufferedLogForwarder::genStatusIndex() { return genIndex(false); }
 
+std::string BufferedLogForwarder::genIndexPrefix(bool results) {
+  return index_name_ + "_" + ((results) ? "r" : "s") + "_";
+}
+
 std::string BufferedLogForwarder::genIndex(bool results) {
-  return index_name_ + "_" + ((results) ? "r" : "s") + "_" +
-         std::to_string(getUnixTime()) + "_" + std::to_string(++log_index_);
+  return genIndexPrefix(results) + std::to_string(getUnixTime()) + "_" +
+         std::to_string(++log_index_);
 }
 }
