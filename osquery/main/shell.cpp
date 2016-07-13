@@ -113,7 +113,7 @@ char *completion_generator(const char *text, int state) {
   }
 
   while (index < tables.size()) {
-    std::string table = tables[index];
+    const std::string &table = tables.at(index);
     ++index;
 
     if (boost::algorithm::starts_with(table, text)) {
