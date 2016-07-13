@@ -26,10 +26,10 @@ def request_logging():
     ))
     try:
         json = request.get_json(force=True)
-        if json:
-            pprint(json)
-        else:
+        if json is None:
             print('No data in request')
+        else:
+            pprint(json)
     except Exception:
         print('Invalid JSON in request:')
         pprint(request.data)
