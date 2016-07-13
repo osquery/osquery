@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from pprint import pprint
+
 from flask import Flask, request, jsonify
 
 NODE_KEY = '00000000-0000-0000-0000-000000000000'
@@ -17,7 +19,13 @@ def route(*urls):
 
 @app.before_request
 def request_logging():
-    print(request)
+    print()
+    print('-> {method} {path}'.format(
+        method=request.method,
+        path=request.path,
+    ))
+    json = request.get_json(silent=True)
+    pprint(json)
 
 @route('/')
 def index():
