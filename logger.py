@@ -24,8 +24,15 @@ def request_logging():
         method=request.method,
         path=request.path,
     ))
-    json = request.get_json(silent=True)
-    pprint(json)
+    try:
+        json = request.get_json(force=True)
+        if json:
+            pprint(json)
+        else:
+            print('No data in request')
+    except Exception:
+        print('Invalid JSON in request:')
+        pprint(request.data)
 
 @route('/')
 def index():
