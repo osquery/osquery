@@ -6,32 +6,44 @@ NODE_KEY = '00000000-0000-0000-0000-000000000000'
 
 app = Flask(__name__)
 
+def route(*urls):
+    # like app.route, but supports several urls
+    # and implies more methods
+    def wrapper(f):
+        for url in urls:
+            app.route(url, methods=['GET', 'POST', 'PUT'])
+        return f
+    return wrapper
+
 @app.before_request
 def request_logging():
     print(request)
 
-@app.route('/log')
-@app.route('/distributed/write')
+@route('/')
+def index():
+    return '', 204
+
+@route('/log', '/distributed/write')
 def simple_endpoint():
     return jsonify(
         node_invalid=False,
     )
 
-@app.route('/enroll')
+@route('/enroll')
 def enroll():
     return jsonify(
         node_key=NODE_KEY,
         node_invalid=False,
     )
 
-@app.route('/config')
+@route('/config')
 def config():
     return jsonify(
         config='WIP',
         node_invalid=False,
     )
 
-@app.route('/distributed/read')
+@route('/distributed/read')
 def distributed_read():
     return jsonify(
         queries=[],  # TODO
