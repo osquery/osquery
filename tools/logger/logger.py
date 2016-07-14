@@ -1,5 +1,6 @@
 # For starting it, use run.sh script
 from pprint import pprint
+from functools import wraps
 
 from flask import Flask, request, jsonify
 
@@ -10,11 +11,23 @@ app = Flask(__name__)
 def route(*urls):
     # like app.route, but supports several urls
     # and implies more methods
-    def wrapper(f):
+    def adder(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            """ Jsonify replies, adding node_invalid=false if needed """
+            resp = f(*args, **kwargs)
+            if resp is None:
+                resp = {}
+            if isinstance(resp, dict):
+                resp.setdefault('node_invalid', False)
+                return jsonify(**resp)
+            return resp
+
         for url in urls:
-            app.route(url, methods=['GET', 'POST', 'PUT'])(f)
-        return f
-    return wrapper
+            # register this wrapper for each url
+            app.route(url, methods=['GET', 'POST', 'PUT'])(wrapper)
+        return wrapper
+    return adder
 
 @app.before_request
 def request_logging():
@@ -41,27 +54,22 @@ def index():
 @route('/log', '/distributed/write',
        '/v1/log', '/v1/distributed/write')
 def simple_endpoint():
-    return jsonify(
-        node_invalid=False,
-    )
+    pass
 
 @route('/enroll', '/v1/enroll')
 def enroll():
-    return jsonify(
+    return dict(
         node_key=NODE_KEY,
-        node_invalid=False,
     )
 
 @route('/config', '/v1/config')
 def config():
-    return jsonify(
+    return dict(
         config='WIP',
-        node_invalid=False,
     )
 
-@route('/distributed/read', '/v1/distributed/read)
+@route('/distributed/read', '/v1/distributed/read')
 def distributed_read():
-    return jsonify(
+    return dict(
         queries=[],  # TODO
-        node_invalid=False,
     )
