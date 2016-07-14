@@ -85,5 +85,8 @@ def config():
 @route('/distributed/read', '/v1/distributed/read')
 def distributed_read():
     return dict(
-        queries=[],  # TODO
+        # new queries only
+        # (each task should only be returned once)
+        # mapping: guid -> sql
+        queries={},  # TODO
     )
