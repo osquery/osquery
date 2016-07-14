@@ -66,11 +66,19 @@ def enroll():
 def config():
     return dict(
         options=dict(
+            # variants: uuid or hostname
             host_identifier='uuid',
+            # in doorman it is hardcoded
             schedule_splay_percent=10,
         ),
+        # mapping: category -> list of paths
         file_paths={},
+        # mapping: name -> {query, interval, platform, version,
+        #                   description, value, removed}
         schedule={},
+        # mapping: name -> {platform, version, shard, discovery, queries}
+        # where discovery is list of sqls
+        # and queries is mapping, like in `schedule` field
         packs={},
     )
 
