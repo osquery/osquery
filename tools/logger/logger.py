@@ -33,31 +33,33 @@ def request_logging():
         print('Invalid JSON in request:')
         pprint(request.data)
 
+
 @route('/')
 def index():
     return '', 204
 
-@route('/log', '/distributed/write')
+@route('/log', '/distributed/write',
+       '/v1/log', '/v1/distributed/write')
 def simple_endpoint():
     return jsonify(
         node_invalid=False,
     )
 
-@route('/enroll')
+@route('/enroll', '/v1/enroll')
 def enroll():
     return jsonify(
         node_key=NODE_KEY,
         node_invalid=False,
     )
 
-@route('/config')
+@route('/config', '/v1/config')
 def config():
     return jsonify(
         config='WIP',
         node_invalid=False,
     )
 
-@route('/distributed/read')
+@route('/distributed/read', '/v1/distributed/read)
 def distributed_read():
     return jsonify(
         queries=[],  # TODO
