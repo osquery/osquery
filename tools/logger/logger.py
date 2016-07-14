@@ -65,7 +65,13 @@ def enroll():
 @route('/config', '/v1/config')
 def config():
     return dict(
-        config='WIP',
+        options=dict(
+            host_identifier='uuid',
+            schedule_splay_percent=10,
+        ),
+        file_paths={},
+        schedule={},
+        packs={},
     )
 
 @route('/distributed/read', '/v1/distributed/read')
