@@ -27,6 +27,9 @@
 
 namespace osquery {
 
+CREATE_REGISTRY(EventPublisherPlugin, "event_publisher");
+CREATE_REGISTRY(EventSubscriberPlugin, "event_subscriber");
+
 /// Checkpoint interval to inspect max event buffering.
 #define EVENTS_CHECKPOINT 256
 

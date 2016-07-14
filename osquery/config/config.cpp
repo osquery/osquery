@@ -30,7 +30,26 @@
 
 namespace pt = boost::property_tree;
 
+
 namespace osquery {
+
+/**
+ * @brief Config plugin registry.
+ *
+ * This creates an osquery registry for "config" which may implement
+ * ConfigPlugin. A ConfigPlugin's call API should make use of a genConfig
+ * after reading JSON data in the plugin implementation.
+ */
+CREATE_REGISTRY(ConfigPlugin, "config");
+
+/**
+ * @brief ConfigParser plugin registry.
+ *
+ * This creates an osquery registry for "config_parser" which may implement
+ * ConfigParserPlugin. A ConfigParserPlugin should not export any call actions
+ * but rather have a simple property tree-accessor API through Config.
+ */
+CREATE_LAZY_REGISTRY(ConfigParserPlugin, "config_parser");
 
 /// The config plugin must be known before reading options.
 CLI_FLAG(string, config_plugin, "filesystem", "Config plugin name");

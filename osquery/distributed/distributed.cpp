@@ -22,6 +22,8 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+CREATE_REGISTRY(DistributedPlugin, "distributed");
+
 FLAG(string, distributed_plugin, "tls", "Distributed plugin name");
 
 FLAG(bool,

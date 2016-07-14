@@ -41,11 +41,14 @@ namespace osquery {
  * @param type A typename that derives from Plugin.
  * @param name A string identifier for the registry.
  */
-#define CREATE_REGISTRY(type, name)                       \
-  namespace registry {                                    \
-  __registry_constructor__ static void type##Registry() { \
-    Registry::create<type>(name);                         \
-  }                                                       \
+#define CREATE_REGISTRY(type, name)                                            \
+  namespace registry {                                                         \
+  struct type##Registry : public InitializerInterface {                        \
+    type##Registry(void) { registerRegistry(this); }                           \
+    const char *id() const override { return name; }                           \
+    void run() const override { Registry::create<type>(name); }                \
+  };                                                                           \
+  static type##Registry type##instance_;                                       \
   }
 
 /**
@@ -56,11 +59,14 @@ namespace osquery {
  * @param type A typename that derives from Plugin.
  * @param name A string identifier for the registry.
  */
-#define CREATE_LAZY_REGISTRY(type, name)                  \
-  namespace registry {                                    \
-  __registry_constructor__ static void type##Registry() { \
-    Registry::create<type>(name, true);                   \
-  }                                                       \
+#define CREATE_LAZY_REGISTRY(type, name)                                       \
+  namespace registry {                                                         \
+  struct type##Registry : public InitializerInterface {                        \
+    type##Registry(void) { registerRegistry(this); }                           \
+    const char *id() const override { return name; }                           \
+    void run() const override { Registry::create<type>(name, true); }          \
+  };                                                                           \
+  static type##Registry type##instance_;                                       \
   }
 
 /**
@@ -75,16 +81,22 @@ namespace osquery {
  * @param registry The string name for the registry.
  * @param name A string identifier for this registry item.
  */
-#define REGISTER(type, registry, name)                      \
-  __plugin_constructor__ static void type##RegistryItem() { \
-    Registry::add<type>(registry, name);                    \
-  }
+#define REGISTER(type, registry, name)                                         \
+  struct type##RegistryItem : public InitializerInterface {                    \
+    type##RegistryItem(void) { registerPlugin(this); }                         \
+    const char *id() const override { return registry "." name ; }           \
+    void run() const override { Registry::add<type>(registry, name); }         \
+  };                                                                           \
+  static type##RegistryItem type##instance_;
 
 /// The same as REGISTER but prevents the plugin item from being broadcasted.
-#define REGISTER_INTERNAL(type, registry, name)             \
-  __plugin_constructor__ static void type##RegistryItem() { \
-    Registry::add<type>(registry, name, true);              \
-  }
+#define REGISTER_INTERNAL(type, registry, name)                                \
+  struct type##RegistryItem : public InitializerInterface {                    \
+    type##RegistryItem(void) { registerPlugin(this); }                         \
+    const char *id() const override { return registry "." name ; }           \
+    void run() const override { Registry::add<type>(registry, name, true); }   \
+  };                                                                           \
+  static type##RegistryItem type##instance_;
 
 /**
  * @brief The request part of a plugin (registry item's) call.

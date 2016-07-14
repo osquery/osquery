@@ -38,22 +38,6 @@
 #define USED_SYMBOL __attribute__((used))
 #endif
 
-#ifndef __constructor__
-#ifdef WIN32
-#define __registry_constructor__
-#define __plugin_constructor__
-#else
-#define __registry_constructor__ __attribute__((constructor(101))) USED_SYMBOL
-#define __plugin_constructor__ __attribute__((constructor(102))) USED_SYMBOL
-#endif
-
-#else
-#define __registry_constructor__ __attribute__((__constructor__(101))) \
-  USED_SYMBOL
-#define __plugin_constructor__ __attribute__((__constructor__(102))) \
-  USED_SYMBOL
-#endif
-
 /// A configuration error is catastrophic and should exit the watcher.
 #define EXIT_CATASTROPHIC 78
 
@@ -94,4 +78,15 @@ using WriteLock = std::lock_guard<Mutex>;
 
 /// The osquery tool type for runtime decisions.
 extern ToolType kToolType;
+
+struct InitializerInterface {
+  virtual const char *id() const = 0;
+  virtual void run() const = 0;
+  virtual ~InitializerInterface() {};
+};
+
+extern void registerRegistry(InitializerInterface * const item);
+extern void registerPlugin(InitializerInterface * const item);
+extern void beginRegistryAndPluginInit();
+
 }

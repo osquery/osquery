@@ -20,6 +20,9 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+/// Generate a specific-use registry for database access abstraction.
+CREATE_REGISTRY(DatabasePlugin, "database");
+
 CLI_FLAG(bool, database_dump, false, "Dump the contents of the backing store");
 
 CLI_FLAG(string,

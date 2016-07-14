@@ -207,8 +207,6 @@ class DistributedPlugin : public Plugin {
   Status call(const PluginRequest& request, PluginResponse& response);
 };
 
-CREATE_REGISTRY(DistributedPlugin, "distributed");
-
 /**
  * @brief Class for managing the set of distributed queries to execute
  *

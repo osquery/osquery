@@ -564,7 +564,4 @@ Status scanDatabaseKeys(const std::string& domain,
 
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();
-
-/// Generate a specific-use registry for database access abstraction.
-CREATE_REGISTRY(DatabasePlugin, "database");
 }
