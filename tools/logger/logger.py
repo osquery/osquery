@@ -59,6 +59,7 @@ def simple_endpoint():
 @route('/enroll', '/v1/enroll')
 def enroll():
     return dict(
+        # we always return zero-filled GUID for node key
         node_key=NODE_KEY,
     )
 
