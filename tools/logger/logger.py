@@ -138,5 +138,5 @@ def distributed_read():
         # new queries only
         # (each task should only be returned once)
         # mapping: guid -> sql
-        queries=read_yaml('queries.yml', {}),
+        queries=read_yaml('tasks.yml', {}),
     )
