@@ -48,6 +48,24 @@ def request_logging():
         print('Invalid JSON in request:')
         pprint(request.data)
 
+def fill_dict_tpl(tpl, data):
+    for key, val in data.items():
+        if key not in tpl:
+            print('Warning: unknown key %s, ignoring' % key)
+            continue
+        if type(tpl[key]) != type(val):
+            print('Warning: wrong data type for key <%s>: '
+                  'expected <%s>, got <%s>' % (
+                key, type(tpl[key]).__name__, type(val).__name__
+            ))
+        elif tpl[key]:
+            if not isinstance(tpl[key], dict):
+                # should not happen
+                raise ValueError('Unexpected <%r> in <%r>' % (tpl[key], tpl))
+            fill_dict_tpl(tpl[key], val)
+        else:
+            tpl[key] = val
+
 def read_yaml(name, template):
     path = os.path.join(
         os.path.dirname(__file__),
@@ -73,11 +91,7 @@ def read_yaml(name, template):
               type(data).__name__)
         return template
 
-    for key, val in data.items():
-        if key in template:
-            template[key] = val
-        else:
-            print('Warning: unknown key %s, ignoring' % key)
+    fill_dict_tpl(template, data)
 
     return template
 
