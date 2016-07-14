@@ -49,10 +49,10 @@ def request_logging():
         pprint(request.data)
 
 def read_yaml(name, template):
-    path = os.path.join([
+    path = os.path.join(
         os.path.dirname(__file__),
         name,
-    ])
+    )
     if not os.path.exists(path):
         return template
 
