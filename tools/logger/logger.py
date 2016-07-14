@@ -60,7 +60,7 @@ def read_yaml(name, template):
         try:
             data = yaml.safe_load(f)
         except Exception as e:
-            print('Failed to parse YAML file %s' % name)
+            print('Failed to parse YAML file <%s>' % name)
             print(e)
             return template
 
@@ -69,7 +69,8 @@ def read_yaml(name, template):
         return template
 
     if not isinstance(data, dict):
-        print('Incorrect data format: expected mapping, got %s' % type(data))
+        print('Incorrect data format: expected mapping, got <%s>' %
+              type(data).__name__)
         return template
 
     for key, val in data.items():
