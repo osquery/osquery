@@ -9,6 +9,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #ifdef WIN32
 #include <io.h>
@@ -16,10 +17,15 @@
 
 #include <iostream>
 
+#include <readline/readline.h>
+
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/extensions.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
@@ -83,6 +89,44 @@ int profile(int argc, char *argv[]) {
   return 0;
 }
 
+// readline completion expects strings to be malloced. readline will free them
+// later.
+char *copy_string(const std::string &str) {
+  char *copy = (char *)malloc(str.size() + 1);
+  if (copy == nullptr) {
+    fprintf(stderr,
+            "Memory allocation failed during shell autocompletion. Exiting!");
+    osquery::Initializer::shutdown(EXIT_FAILURE);
+  }
+  strncpy(copy, str.c_str(), str.size() + 1);
+  return copy;
+}
+
+char *completion_generator(const char *text, int state) {
+  static std::vector<std::string> tables;
+  static size_t index;
+
+  if (state == 0) {
+    // new completion attempt
+    tables = osquery::Registry::names("table");
+    index = 0;
+  }
+
+  while (index < tables.size()) {
+    const std::string &table = tables.at(index);
+    ++index;
+
+    if (boost::algorithm::starts_with(table, text)) {
+      return copy_string(table);
+    }
+  }
+  return nullptr;
+}
+
+char **table_completion_function(const char *text, int start, int end) {
+  return rl_completion_matches(text, &completion_generator);
+}
+
 int main(int argc, char *argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.
   osquery::Initializer runner(argc, argv, osquery::OSQUERY_TOOL_SHELL);
@@ -103,6 +147,9 @@ int main(int argc, char *argv[]) {
       osquery::FLAGS_disable_extensions = true;
     }
   }
+
+  // Set up readline autocompletion
+  rl_attempted_completion_function = table_completion_function;
 
   int retcode = 0;
   if (osquery::FLAGS_profile <= 0) {
