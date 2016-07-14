@@ -1,8 +1,10 @@
 # For starting it, use run.sh script
+import os
 from pprint import pprint
 from functools import wraps
 
 from flask import Flask, request, jsonify
+import yaml
 
 NODE_KEY = '00000000-0000-0000-0000-000000000000'
 
@@ -46,6 +48,37 @@ def request_logging():
         print('Invalid JSON in request:')
         pprint(request.data)
 
+def read_yaml(name, template):
+    path = os.path.join([
+        os.path.dirname(__file__),
+        name,
+    ])
+    if not os.path.exists(path):
+        return template
+
+    with open(name, 'r') as f:
+        try:
+            data = yaml.safe_load(f)
+        except Exception as e:
+            print('Failed to parse YAML file %s' % name)
+            print(e)
+            return template
+
+    if data is None:
+        # empty file
+        return template
+
+    if not isinstance(data, dict):
+        print('Incorrect data format: expected mapping, got %s' % type(data))
+        return template
+
+    for key, val in data.items():
+        if key in template:
+            template[key] = val
+        else:
+            print('Warning: unknown key %s, ignoring' % key)
+
+    return template
 
 @route('/')
 def index():
@@ -65,7 +98,7 @@ def enroll():
 
 @route('/config', '/v1/config')
 def config():
-    return dict(
+    tpl = dict(
         options=dict(
             # variants: uuid or hostname
             host_identifier='uuid',
@@ -82,6 +115,7 @@ def config():
         # and queries is mapping, like in `schedule` field
         packs={},
     )
+    return read_yaml('config.yml', tpl)
 
 @route('/distributed/read', '/v1/distributed/read')
 def distributed_read():
@@ -89,5 +123,5 @@ def distributed_read():
         # new queries only
         # (each task should only be returned once)
         # mapping: guid -> sql
-        queries={},  # TODO
+        queries=read_yaml('queries.yml', {}),
     )
