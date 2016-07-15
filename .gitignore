@@ -29,6 +29,7 @@ build/
 # Run Artifacts
 *.log
 *.orig
+*.patch
 
 # Vagrant Artifacts
 .vagrant
