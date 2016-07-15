@@ -65,9 +65,10 @@ const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions = {
     {132, "OEM Processor Bus Speed"},
 };
 
-void SMBIOSParser::tables(std::function<void(
-    size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size)>
-                              predicate) {
+void SMBIOSParser::tables(std::function<void(size_t index,
+                                             const SMBStructHeader* hdr,
+                                             uint8_t* address,
+                                             size_t size)> predicate) {
   if (table_data_ == nullptr) {
     return;
   }
