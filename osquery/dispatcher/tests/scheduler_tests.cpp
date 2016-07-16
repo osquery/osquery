@@ -139,6 +139,9 @@ TEST_F(SchedulerTests, test_config_results_purge) {
 }
 
 TEST_F(SchedulerTests, test_scheduler) {
+  auto backup_step = TablePlugin::kCacheStep;
+  auto backup_interval = TablePlugin::kCacheInterval;
+
   // Start the scheduler now.
   auto now = osquery::getUnixTime();
   TablePlugin::kCacheStep = now;
@@ -165,5 +168,9 @@ TEST_F(SchedulerTests, test_scheduler) {
 
   // If a query was executed the cache step will have been advanced.
   EXPECT_GT(TablePlugin::kCacheStep, now);
+
+  // Restore plugin settings.
+  TablePlugin::kCacheStep = backup_step;
+  TablePlugin::kCacheInterval = backup_interval;
 }
 }
