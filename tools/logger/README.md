@@ -48,13 +48,13 @@ packs:
         value: some value
         removed: false
 ```
-5. Create a file named `tasks.yml` with data for `/distributed/read` endpoint.
+5. Create a file named `tasks.yml` with data for the `/distributed/read` endpoint.
    Example file format:
 
    ```yaml
 guid1: SELECT * FROM table1
 guid2: SELECT * FROM table2
 ```
-   Results of executed tasks should be returned to `/distributed/write` endpoint.
+   Results of executed tasks should be returned to the `/distributed/write` endpoint.
 
 Data files can contain plain JSON or equivalent YAML data which makes it easier to edit them.
