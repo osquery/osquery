@@ -12,6 +12,7 @@
    Other options can be determined with `./run.sh --help`.
 3. Create a file named `config.yml` with data for `/config` endpoint.
    Example file format (all keys are optional):
+
    ```yaml
 file_paths:
   category1:  # list of paths
