@@ -50,6 +50,7 @@ packs:
 ```
 5. Create a file named `tasks.yml` with data for `/distributed/read` endpoint.
    Example file format:
+
    ```yaml
 guid1: SELECT * FROM table1
 guid2: SELECT * FROM table2
