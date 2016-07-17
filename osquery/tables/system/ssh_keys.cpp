@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
 #include <string>
 #include <vector>
 
@@ -5,39 +15,47 @@
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/tables/system/system_utils.h"
 
 namespace osquery {
 namespace tables {
 
-const std::vector<std::string> kSSHUserKeys = {".ssh/id_rsa"};
+const std::string kSSHUserKeysDir = ".ssh/";
 
 void genSSHkeyForHosts(const std::string& uid,
                         const std::string& directory,
                         QueryData& results) {
-  for (const auto& kfile : kSSHUserKeys) {
-    boost::filesystem::path keys_file = directory;
-    keys_file /= kfile;
-	
+  //get list of files in directory
+  boost::filesystem::path keys_dir = directory;
+  keys_dir /= kSSHUserKeysDir;
+  std::vector<std::string>  files_list;
+  auto status = listFilesInDirectory(keys_dir, files_list, false);
+  if (!status.ok()) {
+    return;
+  }
+  //go through each file
+  for (const auto& kfile : files_list) {
     std::string keys_content;
-    if (!forensicReadFile(keys_file, keys_content).ok()) {
+    if (!forensicReadFile(kfile, keys_content).ok()) {
       // Cannot read a specific keys file.
       continue;
     }
     
-    //file exists, create record for it
-    Row r;
-    r["uid"] = uid;
-    r["key_file"] = keys_file.string();
-    r["is_encrypted"] = INTEGER(0);
+    //if the file is a private key
+    if (keys_content.find("PRIVATE KEY") != std::string::npos)
+    {
+      //file is private key, create record for it
+      Row r;
+      r["uid"] = uid;
+      r["key_file"] = kfile;
+      r["encrypted"] = INTEGER(0);
 
-    // check to see if the file is encrypted
-    if (keys_content.find("ENCRYPTED") != std::string::npos) {
-      r["is_encrypted"] = INTEGER(1);
+      // check to see if the file is encrypted
+      if (keys_content.find("ENCRYPTED") != std::string::npos) {
+        r["encrypted"] = INTEGER(1);
+      }
+      results.push_back(r);
     }
-    results.push_back(r);
-    
     
   }
 }

@@ -7,7 +7,7 @@ schema([
     Column("uid", BIGINT, "The local user that owns the ssh_keys file",
       additional=True),
     Column("key_file", TEXT, "Path to key file"),
-    Column("is_encrypted", INTEGER, "1 if key is encrypted, 0 otherwise"),
+    Column("encrypted", INTEGER, "1 if key is encrypted, 0 otherwise"),
     ForeignKey(column="uid", table="users"),
 ])
 
