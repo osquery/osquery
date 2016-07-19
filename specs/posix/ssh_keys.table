@@ -1,15 +1,15 @@
 
-table_name("ssh_keys")
+table_name("user_ssh_keys")
 
-description("Returns the id_rsa file for users and whether or not they are encrypted")
+description("Returns the private keys in the users ~/.ssh directory and whether or not they are encrypted")
 
 schema([
-    Column("uid", BIGINT, "The local user that owns the ssh_keys file",
+    Column("uid", BIGINT, "The local user that owns the key file",
       additional=True),
-    Column("key_file", TEXT, "Path to key file"),
+    Column("path", TEXT, "Path to key file"),
     Column("encrypted", INTEGER, "1 if key is encrypted, 0 otherwise"),
     ForeignKey(column="uid", table="users"),
 ])
 
-implementation("ssh_keys@getSshKeys")
+implementation("user_ssh_keys@getUserSshKeys")
 

@@ -41,12 +41,11 @@ void genSSHkeyForHosts(const std::string& uid,
       continue;
     }
 
-    // If the file is a private key
     if (keys_content.find("PRIVATE KEY") != std::string::npos) {
       // File is private key, create record for it
       Row r;
       r["uid"] = uid;
-      r["key_file"] = kfile;
+      r["path"] = kfile;
       r["encrypted"] = INTEGER(0);
 
       // Check to see if the file is encrypted
@@ -58,7 +57,7 @@ void genSSHkeyForHosts(const std::string& uid,
   }
 }
 
-QueryData getSshKeys(QueryContext& context) {
+QueryData getUserSshKeys(QueryContext& context) {
   QueryData results;
 
   // Iterate over each user
