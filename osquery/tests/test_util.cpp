@@ -247,8 +247,8 @@ std::pair<pt::ptree, DiffResults> getSerializedDiffResults() {
   diff_results.removed = qd.second;
 
   pt::ptree root;
-  root.add_child("added", qd.first);
   root.add_child("removed", qd.first);
+  root.add_child("added", qd.first);
 
   return std::make_pair(root, diff_results);
 }

@@ -262,7 +262,7 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
   std::string expected =
       "{\"name\":\"test_query\",\"hostIdentifier\":\"unknown_test_host\","
       "\"calendarTime\":\"no_time\",\"unixTime\":\"0\",\"columns\":{\"test_"
-      "column\":\"test_new_value\\n\"},\"action\":\"removed\"}";
+      "column\":\"test_value\"},\"action\":\"added\"}";
   EXPECT_EQ(LoggerTests::log_lines.back(), expected);
 }
 }
