@@ -228,6 +228,7 @@ class WatcherLocker {
  public:
   /// Construct and gain watcher lock.
   WatcherLocker() { Watcher::lock(); }
+
   /// Destruct and release watcher lock.
   ~WatcherLocker() { Watcher::unlock(); }
 };
@@ -256,26 +257,37 @@ class WatcherRunner : public InternalRunnable {
  private:
   /// Dispatcher (this service thread's) entry point.
   void start();
+
   /// Boilerplate function to sleep for some configured latency
   bool ok();
+
   /// Begin the worker-watcher process.
   bool watch(const PlatformProcess& child) const;
+
   /// Inspect into the memory, CPU, and other worker/extension process states.
-  bool isChildSane(const PlatformProcess& child) const;
+  Status isChildSane(const PlatformProcess& child) const;
+
+  /// Inspect into the memory and CPU of the watcher process.
+  Status isWatcherHealthy(const PlatformProcess& watcher,
+                          PerformanceState& watcher_state) const;
 
  private:
   /// Fork and execute a worker process.
   void createWorker();
+
   /// Fork an extension process.
   bool createExtension(const std::string& extension);
+
   /// If a worker/extension has otherwise gone insane, stop it.
   void stopChild(const PlatformProcess& child) const;
 
  private:
   /// Keep the invocation daemon's argc to iterate through argv.
   int argc_{0};
+
   /// When a worker child is spawned the argv will be scrubbed.
   char** argv_{nullptr};
+
   /// Spawn/monitor a worker process.
   bool use_worker_{false};
 };
@@ -297,4 +309,3 @@ class WatcherWatcherRunner : public InternalRunnable {
 /// Get a performance limit by name and optional level.
 size_t getWorkerLimit(WatchdogLimitType limit);
 }
-
