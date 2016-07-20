@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include <boost/optional.hpp>
-
 #include <chrono>
 #include <functional>
 #include <mutex>
@@ -47,7 +45,8 @@ inline void iterate(std::vector<std::string>& input,
  * status and result logs. Subclasses take advantage of this reliable sending
  * logic, and implement their own methods for actually sending logs.
  *
- * Subclasses must define the send() method
+ * Subclasses must define the send() method, and if a subclass overrides
+ * setUp(), it **MUST** call this base class setUp() from that method.
  */
 class BufferedLogForwarder : public InternalRunnable {
  protected:
@@ -85,8 +84,13 @@ class BufferedLogForwarder : public InternalRunnable {
   /// A simple wait lock, and flush based on settings.
   void start() override;
 
-  /// Set up the forwarder. May be used to initialize remote clients, etc.
-  virtual Status setUp() { return Status(0); }
+  /**
+   * @brief Set up the forwarder. May be used to init remote clients, etc.
+   *
+   * This base class setUp() **MUST** be called by subclasses of
+   * BufferedLogForwarder in order to properly initialize the buffer count.
+  */
+  virtual Status setUp();
 
   /**
    * @brief Log a results string
@@ -159,14 +163,9 @@ class BufferedLogForwarder : public InternalRunnable {
   std::string genIndexPrefix(bool results);
   std::string genIndex(bool results);
 
-  /// Accessor for buffer_count_. Initializes if necessary.
-  size_t getBufferCount();
-  void setBufferCount(size_t count) { buffer_count_ = count; }
-
   /**
    * @brief Add a database value while maintaining count
    *
-   * Lock count_mutex_ before using
    */
   Status addValueWithCount(const std::string& domain,
                            const std::string& key,
@@ -174,7 +173,6 @@ class BufferedLogForwarder : public InternalRunnable {
   /**
    * @brief Delete a database value while maintaining count
    *
-   * Lock count_mutex_ before using
    */
   Status deleteValueWithCount(const std::string& domain,
                               const std::string& key);
@@ -186,9 +184,6 @@ class BufferedLogForwarder : public InternalRunnable {
   /// Max number of logs to flush per check
   size_t max_log_lines_;
 
-  /// Hold an incrementing index for buffering logs
-  size_t log_index_{0};
-
   /**
    * @brief Name to use in index
    *
@@ -199,17 +194,10 @@ class BufferedLogForwarder : public InternalRunnable {
   std::string index_name_;
 
  private:
-  /// Used for locking around operations changing the count of buffered logs
-  std::recursive_mutex count_mutex_;
-  /// Flag guarding initialization of buffer_count_
-  std::once_flag init_count_flag_;
+  /// Hold an incrementing index for buffering logs
+  std::atomic<size_t> log_index_{0};
 
-  /**
-   * @brief Stores the count of buffered logs
-   *
-   * Should only be accessed through (get|set)BufferCount because it is
-   * initialized at first use.
-  */
-  size_t buffer_count_;
+  /// Stores the count of buffered logs
+  std::atomic<size_t> buffer_count_{0};
 };
 }

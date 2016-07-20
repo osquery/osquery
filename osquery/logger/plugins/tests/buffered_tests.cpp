@@ -303,6 +303,7 @@ TEST_F(BufferedLogForwarderTests, test_purge) {
 
   runner.check();
 }
+
 // Verify that the max number of buffered logs is respected, and oldest logs
 // are purged first
 TEST_F(BufferedLogForwarderTests, test_purge_max) {
