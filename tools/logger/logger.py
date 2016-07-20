@@ -10,6 +10,7 @@ NODE_KEY = '00000000-0000-0000-0000-000000000000'
 
 app = Flask(__name__)
 
+
 def route(*urls):
     # like app.route, but supports several urls
     # and implies more methods
@@ -31,6 +32,7 @@ def route(*urls):
         return wrapper
     return adder
 
+
 @app.before_request
 def request_logging():
     print()
@@ -47,6 +49,7 @@ def request_logging():
     except Exception:
         print('Invalid JSON in request:')
         pprint(request.data)
+
 
 def fill_dict_tpl(tpl, data):
     for key, val in data.items():
@@ -67,6 +70,7 @@ def fill_dict_tpl(tpl, data):
             fill_dict_tpl(tpl[key], val)
         else:
             tpl[key] = val
+
 
 def read_yaml(name, template):
     path = os.path.join(
@@ -97,14 +101,17 @@ def read_yaml(name, template):
 
     return template
 
+
 @route('/')
 def index():
     return '', 204
+
 
 @route('/log', '/distributed/write',
        '/v1/log', '/v1/distributed/write')
 def simple_endpoint():
     pass
+
 
 @route('/enroll', '/v1/enroll')
 def enroll():
@@ -112,6 +119,7 @@ def enroll():
         # we always return zero-filled GUID for node key
         node_key=NODE_KEY,
     )
+
 
 @route('/config', '/v1/config')
 def config():
@@ -133,6 +141,7 @@ def config():
         packs={},
     )
     return read_yaml('config.yml', tpl)
+
 
 @route('/distributed/read', '/v1/distributed/read')
 def distributed_read():
