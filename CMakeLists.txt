@@ -499,7 +499,6 @@ endif()
 
 enable_testing()
 
-include(Packages)
 include(Thrift)
 
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
@@ -551,6 +550,9 @@ add_subdirectory(tools/tests)
 if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   add_subdirectory(kernel)
 endif()
+
+# Packages must be included after all other CMake includes.
+include(Packages)
 
 # make docs
 find_package(Doxygen)
