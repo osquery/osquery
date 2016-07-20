@@ -456,7 +456,7 @@ struct QueryContext : private boost::noncopyable {
   /// If the context was created without content, it is ephemeral.
   ~QueryContext() {
     if (!enable_cache_ && table_ != nullptr) {
-      free(table_);
+      delete table_;
     }
   }
 
