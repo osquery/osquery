@@ -54,10 +54,12 @@ def fill_dict_tpl(tpl, data):
             print('Warning: unknown key %s, ignoring' % key)
             continue
         if type(tpl[key]) != type(val):
-            print('Warning: wrong data type for key <%s>: '
-                  'expected <%s>, got <%s>' % (
-                key, type(tpl[key]).__name__, type(val).__name__
-            ))
+            print(
+                'Warning: wrong data type for key <%s>: '
+                'expected <%s>, got <%s>' % (
+                    key, type(tpl[key]).__name__, type(val).__name__,
+                )
+            )
         elif tpl[key]:
             if not isinstance(tpl[key], dict):
                 # should not happen
