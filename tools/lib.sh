@@ -91,7 +91,7 @@ function in_ec2() {
 
 function build_kernel_cleanup() {
   # Cleanup kernel
-  $MAKE kernel-unload || sudo reboot
+  $MAKE kernel-test-unload || sudo reboot
 }
 
 function initialize() {
@@ -147,13 +147,13 @@ function build() {
 
   if [[ $BUILD_KERNEL = 1 ]]; then
     # Build osquery kernel (optional).
-    $MAKE kernel-build
+    $MAKE kernel-test-build
 
     # Setup cleanup code for catastrophic test failures.
     trap build_kernel_cleanup EXIT INT TERM
 
     # Load osquery kernel (optional).
-    $MAKE kernel-load
+    $MAKE kernel-test-load
   fi
 
   if [[ $RUN_TESTS = true ]]; then
