@@ -138,6 +138,9 @@ function build() {
   # Clean previous build artifacts.
   $MAKE clean
 
+  # Build doxygen and wiki docs
+  $MAKE docs
+
   # Build osquery.
   if [[ -z "$RUN_TARGET" ]]; then
     $MAKE -j$THREADS
