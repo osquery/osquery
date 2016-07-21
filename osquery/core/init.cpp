@@ -70,14 +70,6 @@ enum {
 };
 #endif
 
-#ifdef __linux__
-#define OSQUERY_HOME "/etc/osquery"
-#elif defined(WIN32)
-#define OSQUERY_HOME "\\ProgramData\\osquery"
-#else
-#define OSQUERY_HOME "/var/osquery"
-#endif
-
 #define DESCRIPTION \
   "osquery %s, your OS as a high-performance relational database\n"
 #define EPILOG "\nosquery project page <https://osquery.io>.\n"
@@ -217,7 +209,7 @@ volatile std::sig_atomic_t kExitCode{0};
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
 
-using InitializerMap = std::map<std::string, InitializerInterface *>;
+using InitializerMap = std::map<std::string, InitializerInterface*>;
 
 InitializerMap& registry_initializer() {
   static InitializerMap registry_;
@@ -229,24 +221,24 @@ InitializerMap& plugin_initializer() {
   return plugin_;
 }
 
-void registerRegistry(InitializerInterface *const item) {
+void registerRegistry(InitializerInterface* const item) {
   if (item != nullptr) {
     registry_initializer().insert({item->id(), item});
   }
 }
 
-void registerPlugin(InitializerInterface *const item) {
+void registerPlugin(InitializerInterface* const item) {
   if (item != nullptr) {
     plugin_initializer().insert({item->id(), item});
   }
 }
 
 void beginRegistryAndPluginInit() {
-  for (const auto &it : registry_initializer() ) {
+  for (const auto& it : registry_initializer()) {
     it.second->run();
   }
 
-  for (const auto &it : plugin_initializer() ) {
+  for (const auto& it : plugin_initializer()) {
     it.second->run();
   }
 }
