@@ -131,13 +131,15 @@ class Initializer : private boost::noncopyable {
    */
   static bool isWorker();
 
- private:
   /// Initialize this process as an osquery daemon worker.
   void initWorker(const std::string& name) const;
 
   /// Initialize the osquery watcher, optionally spawn a worker.
   void initWatcher() const;
 
+  void waitForWatcher() const;
+
+ private:
   /// Set and wait for an active plugin optionally broadcasted.
   void initActivePlugin(const std::string& type, const std::string& name) const;
 
@@ -282,5 +284,12 @@ std::string getAsciiTime();
  * @return A status object indicating the success or failure of the operation
  */
 Status createPidFile();
+#endif
+
+#ifdef WIN32
+// Microsoft provides FUNCTION_s with more or less the same parameters.
+// Notice that they are swapped when compared to POSIX FUNCTION_r.
+struct tm* gmtime_r(time_t* t, struct tm* result);
+struct tm* localtime_r(time_t* t, struct tm* result);
 #endif
 }

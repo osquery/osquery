@@ -43,7 +43,7 @@ PlatformProcess::PlatformProcess(PlatformPidType id) {
   id_ = duplicateHandle(id);
 }
 
-PlatformProcess::PlatformProcess(PlatformProcess &&src) {
+PlatformProcess::PlatformProcess(PlatformProcess &&src) noexcept {
   id_ = kInvalidPid;
   std::swap(id_, src.id_);
 }

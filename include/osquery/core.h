@@ -38,12 +38,15 @@
 #define USED_SYMBOL __attribute__((used))
 #endif
 
-#ifdef __linux__
+#if defined(__linux__)
 #define OSQUERY_HOME "/etc/osquery"
+#define OSQUERY_LOG_HOME "/var/log/osquery/"
 #elif defined(WIN32)
 #define OSQUERY_HOME "\\ProgramData\\osquery"
+#define OSQUERY_LOG_HOME "\\ProgramData\\osquery\\log\\"
 #else
 #define OSQUERY_HOME "/var/osquery"
+#define OSQUERY_LOG_HOME "/var/log/osquery/"
 #endif
 
 /// A configuration error is catastrophic and should exit the watcher.
