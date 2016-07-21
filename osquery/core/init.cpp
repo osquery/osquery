@@ -318,7 +318,6 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     // The shell never will not fork a worker.
     FLAGS_disable_watchdog = true;
     FLAGS_disable_events = true;
-    FLAGS_disable_database = true;
   }
 
   // Set version string from CMake build
@@ -329,6 +328,11 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       argc_, argv_, (tool == OSQUERY_TOOL_SHELL));
 
   if (tool == OSQUERY_TOOL_SHELL) {
+    if (Flag::isDefault("database_path")) {
+      // The shell should not use a database by default, but should use the DB
+      // specified by database_path if it is set
+      FLAGS_disable_database = true;
+    }
     // Initialize the shell after setting modified defaults and parsing flags.
     initShell();
   }
