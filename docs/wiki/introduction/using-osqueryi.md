@@ -105,4 +105,6 @@ $
 The shell does not keep much state or connect to the **osqueryd** daemon.
 If you would like to run queries and log changes to the output or log operating system events, consider deploying a query **schedule** using [osqueryd](using-osqueryd.md).
 
-**Note:** Event producers are not started by default. If you would like to enable event-based tables, you must use the flag `--disable_events=false`. osqueryi uses an in-memory DB by default. To connect to an existing events DB, use the flag `--database_path=/var/osquery/osquery.db` (note that `osqueryi` may not connect to the same DB that `osqueryd` is connected to, so `osqueryd` should be killed before using this flag).
+**Note:** Event publishers are not started by default. To enable event-based tables, use the flag `--disable_events=false`.
+
+**osqueryi** uses an in-memory database by default. To connect to an existing events database, use the flag `--database_path=/var/osquery/osquery.db` (only one process may attach to the database; see [Checking the database sanity](../deployment/debugging.md#checking-the-database-sanity)).
