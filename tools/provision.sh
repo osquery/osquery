@@ -96,6 +96,8 @@ function main() {
   # Pip may have just been installed.
   PIP=`which pip`
   sudo $PIP install --upgrade pip
+  # Previos command may change pip path (/usr/bin/pip to /usr/bin/local/pip)
+  PIP=`which pip`
   sudo $PIP install -r requirements.txt
 
   initialize $OS

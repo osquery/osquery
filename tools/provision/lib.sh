@@ -588,7 +588,7 @@ function package() {
       log "$1 is already installed. skipping."
     else
       log "installing $1"
-      sudo DEBIAN_FRONTEND=noninteractive apt-get install $1 -y --no-install-recommends
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install $1 -y -q --no-install-recommends
     fi
   elif [[ $FAMILY = "redhat" ]]; then
     if [[ ! -n "$(rpm -V $1)" ]]; then
