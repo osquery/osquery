@@ -26,11 +26,13 @@ First disable signature verification on the machine by running `make kernel-deps
 
 ```
 make kernel-build
-make kernel-load
+make kernel-test-load
 # Optionally run the unit tests
 # make kernel-test
-make kernel-unload
+make kernel-test-unload
 ```
+
+Note: do not deploy a kernel built with `make kernel-build` as it is designed for testings. Always deploy artifacts generated through `make packages`.
 
 ## Building on OS X for a debugging target machine (recommended)
 

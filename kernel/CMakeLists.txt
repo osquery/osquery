@@ -3,13 +3,16 @@ set(CMAKE_C_FLAGS "")
 set(CMAKE_CXX_FLAGS "")
 
 # Set kernel-exported variables/paths/settings.
+# These must be set in the PARENT_SCOPE and the local scope.
 set(KERNEL_BINARY_DIR "" PARENT_SCOPE)
 set(KERNEL_BINARY "unknown" PARENT_SCOPE)
-set(KERNEL_TYPE "unknown" PARENT_SCOPE)
+set(KERNEL_TYPE "unknown")
 
 if(APPLE)
   set(KERNEL_BINARY_DIR "osquery.kext/Contents/MacOS")
   set(KERNEL_BINARY "${KERNEL_BINARY_DIR}/osquery")
+  set(KERNEL_BINARY_DIR "${KERNEL_BINARY_DIR}" PARENT_SCOPE)
+  set(KERNEL_BINARY "${KERNEL_BINARY}" PARENT_SCOPE)
 
   # Set OS X platform-specific compiler flags.
   set(KERNEL_C_FLAGS
@@ -112,7 +115,7 @@ if(APPLE)
 
   # make kernel-load
   add_custom_target(
-    kernel-load
+    kernel-test-load
     DEPENDS kernel-build
     # Move the kernel extension bundle to /tmp to change ownership.
     # A virtual machine shared folder/filesystem may not allow root owned files.
@@ -125,7 +128,7 @@ if(APPLE)
 
   # make kernel-unload
   add_custom_target(
-    kernel-unload
+    kernel-test-unload
     # Unload the kernel extension.
     COMMAND sudo "./kernel/tools/unload_with_retry.sh"
     COMMAND echo "Attempted to unload kernel extension with identifier:"
@@ -193,12 +196,12 @@ elseif(LINUX)
   )
 
   add_custom_target(
-    kernel-load
+    kernel-test-load
     COMMAND echo "-- No kernel load for Linux"
   )
 
   add_custom_target(
-    kernel-unload
+    kernel-test-unload
     COMMAND echo "-- No kernel unload for Linux"
   )
 
@@ -232,12 +235,12 @@ else()
   )
 
   add_custom_target(
-    kernel-load
+    kernel-test-load
     COMMAND echo "-- No kernel load for unsupported platform"
   )
 
   add_custom_target(
-    kernel-unload
+    kernel-test-unload
     COMMAND echo "-- No kernel unload for unsupported platform"
   )
 
