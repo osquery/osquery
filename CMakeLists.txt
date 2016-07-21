@@ -216,6 +216,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if(NOT DEFINED ENV{OPTIMIZED})
   if(WIN32)
     # It is unclear if AVX must be managed on Windows.
+    add_compile_options(/favor:AMD64)
   else()
     add_compile_options(-march=x86-64 -mno-avx)
   endif()
