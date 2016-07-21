@@ -8,12 +8,12 @@
  *
  */
 
-#include <sstream>
 #include <iomanip>
+#include <sstream>
 
 // Maintain the order of includes (ifaddrs after if).
-#include <net/if.h>
 #include <ifaddrs.h>
+#include <net/if.h>
 #include <sys/socket.h>
 
 #ifdef __linux__
@@ -39,24 +39,23 @@ std::basic_string<char> BIGINT_FROM_UINT32(uint32_t x) {
   return BIGINT(static_cast<uint64_t>(x));
 }
 
-void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
+void genAddressesFromAddr(const struct ifaddrs* addr, QueryData& results) {
   std::string dest_address;
   Row r;
   r["interface"] = std::string(addr->ifa_name);
 
   // Address and mask will appear every time.
   if (addr->ifa_addr != nullptr) {
-    r["address"] = ipAsString(static_cast<struct sockaddr *>(addr->ifa_addr));
+    r["address"] = ipAsString(static_cast<struct sockaddr*>(addr->ifa_addr));
   }
 
   if (addr->ifa_netmask != nullptr) {
-    r["mask"] = ipAsString(static_cast<struct sockaddr *>(addr->ifa_netmask));
+    r["mask"] = ipAsString(static_cast<struct sockaddr*>(addr->ifa_netmask));
   }
 
   // The destination address is used for either a broadcast or PtP address.
   if (addr->ifa_dstaddr != nullptr) {
-    dest_address =
-        ipAsString(static_cast<struct sockaddr *>(addr->ifa_dstaddr));
+    dest_address = ipAsString(static_cast<struct sockaddr*>(addr->ifa_dstaddr));
     if ((addr->ifa_flags & IFF_BROADCAST) == IFF_BROADCAST) {
       r["broadcast"] = dest_address;
     } else {
@@ -67,7 +66,7 @@ void genAddressesFromAddr(const struct ifaddrs *addr, QueryData &results) {
   results.push_back(r);
 }
 
-void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
+void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
   Row r;
   if (addr->ifa_name != nullptr) {
     r["interface"] = std::string(addr->ifa_name);
@@ -79,7 +78,7 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
   if (addr->ifa_data != nullptr && addr->ifa_name != nullptr) {
 #ifdef __linux__
     // Linux/Netlink interface details parsing.
-    auto ifd = static_cast<struct rtnl_link_stats *>(addr->ifa_data);
+    auto ifd = static_cast<struct rtnl_link_stats*>(addr->ifa_data);
     r["mtu"] = "0";
     r["metric"] = "0";
     r["type"] = "0";
@@ -114,7 +113,7 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
     r["last_change"] = "-1";
 #else
     // Apple and FreeBSD interface details parsing.
-    auto ifd = (struct if_data *)addr->ifa_data;
+    auto ifd = (struct if_data*)addr->ifa_data;
     r["type"] = INTEGER_FROM_UCHAR(ifd->ifi_type);
     r["mtu"] = BIGINT_FROM_UINT32(ifd->ifi_mtu);
     r["metric"] = BIGINT_FROM_UINT32(ifd->ifi_metric);
@@ -131,11 +130,11 @@ void genDetailsFromAddr(const struct ifaddrs *addr, QueryData &results) {
   results.push_back(r);
 }
 
-QueryData genInterfaceAddresses(QueryContext &context) {
+QueryData genInterfaceAddresses(QueryContext& context) {
   QueryData results;
 
-  struct ifaddrs *if_addrs = nullptr;
-  struct ifaddrs *if_addr = nullptr;
+  struct ifaddrs* if_addrs = nullptr;
+  struct ifaddrs* if_addr = nullptr;
   if (getifaddrs(&if_addrs) != 0 || if_addrs == nullptr) {
     return {};
   }
@@ -154,11 +153,11 @@ QueryData genInterfaceAddresses(QueryContext &context) {
   return results;
 }
 
-QueryData genInterfaceDetails(QueryContext &context) {
+QueryData genInterfaceDetails(QueryContext& context) {
   QueryData results;
 
-  struct ifaddrs *if_addrs = nullptr;
-  struct ifaddrs *if_addr = nullptr;
+  struct ifaddrs* if_addrs = nullptr;
+  struct ifaddrs* if_addr = nullptr;
   if (getifaddrs(&if_addrs) != 0 || if_addrs == nullptr) {
     return {};
   }
