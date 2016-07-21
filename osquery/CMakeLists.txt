@@ -249,8 +249,8 @@ if(NOT DEFINED ENV{SKIP_TESTS})
   # osquery core set of unit tests build with SDK.
   add_executable(osquery_tests main/tests.cpp ${OSQUERY_TESTS})
   TARGET_OSQUERY_LINK_WHOLE(osquery_tests libosquery)
-  target_link_libraries(osquery_tests gtest libosquery_testing)
-  SET_OSQUERY_COMPILE(osquery_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=0")
+  target_link_libraries(osquery_tests gtest gmock libosquery_testing)
+  SET_OSQUERY_COMPILE(osquery_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=1")
   add_test(osquery_tests osquery_tests)
 
   # osquery kernel tests.
@@ -258,8 +258,8 @@ if(NOT DEFINED ENV{SKIP_TESTS})
     add_executable(osquery_kernel_tests main/tests.cpp ${OSQUERY_KERNEL_TESTS})
     TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery)
     TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery_additional)
-    target_link_libraries(osquery_kernel_tests gtest libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_kernel_tests "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1 -DGTEST_HAS_TR1_TUPLE=0")
+    target_link_libraries(osquery_kernel_tests gtest gmock libosquery_testing)
+    SET_OSQUERY_COMPILE(osquery_kernel_tests "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1 -DGTEST_HAS_TR1_TUPLE=1")
   endif()
 
   # osquery benchmarks.
@@ -300,8 +300,8 @@ if(NOT DEFINED ENV{SKIP_TESTS})
     add_executable(osquery_tables_tests main/tests.cpp ${OSQUERY_TABLES_TESTS})
     TARGET_OSQUERY_LINK_WHOLE(osquery_tables_tests libosquery)
     TARGET_OSQUERY_LINK_WHOLE(osquery_tables_tests libosquery_additional)
-    target_link_libraries(osquery_tables_tests gtest libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_tables_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=0")
+    target_link_libraries(osquery_tables_tests gtest gmock libosquery_testing)
+    SET_OSQUERY_COMPILE(osquery_tables_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=1")
     add_test(osquery_tables_tests osquery_tables_tests)
   endif()
 

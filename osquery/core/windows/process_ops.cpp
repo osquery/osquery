@@ -69,21 +69,5 @@ boost::optional<std::string> getEnvVar(const std::string &name) {
 
 void cleanupDefunctProcesses() {}
 
-ProcessState checkChildProcessStatus(const PlatformProcess &process,
-                                     int &status) {
-  DWORD exit_code = 0;
-  if (!::GetExitCodeProcess(process.nativeHandle(), &exit_code)) {
-    return PROCESS_ERROR;
-  }
-
-  if (exit_code == STILL_ACTIVE) {
-    return PROCESS_STILL_ALIVE;
-  }
-
-  status = exit_code;
-  return PROCESS_EXITED;
-}
-
 void setToBackgroundPriority() {}
 }
-
