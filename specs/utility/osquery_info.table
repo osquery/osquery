@@ -1,7 +1,7 @@
 table_name("osquery_info")
 description("Top level information about the running version of osquery.")
 schema([
-    Column("pid", INTEGER, "Process (or thread) ID"),
+    Column("pid", INTEGER, "Process (or thread/handle) ID"),
     Column("version", TEXT, "osquery toolkit version"),
     Column("config_hash", TEXT, "Hash of the working configuration state"),
     Column("config_valid", INTEGER, "1 if the config was loaded and considered valid, else 0"),
@@ -9,6 +9,7 @@ schema([
     Column("build_platform", TEXT, "osquery toolkit build platform"),
     Column("build_distro", TEXT, "osquery toolkit platform distribution name (os version)"),
     Column("start_time", INTEGER, "UNIX time in seconds when the process started"),
+    Column("watcher", INTEGER, "Process (or thread/handle) ID of optional watcher process")
 ])
 attributes(utility=True)
 implementation("osquery@genOsqueryInfo")
