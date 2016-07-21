@@ -147,7 +147,7 @@ function build() {
 
   if [[ $BUILD_KERNEL = 1 ]]; then
     # Build osquery kernel (optional).
-    $MAKE kernel-test-build
+    $MAKE kernel-build
 
     # Setup cleanup code for catastrophic test failures.
     trap build_kernel_cleanup EXIT INT TERM
