@@ -75,6 +75,20 @@ bool PlatformProcess::kill() const {
   return (::TerminateProcess(id_, 0) != FALSE);
 }
 
+ProcessState PlatformProcess::checkStatus(int &status) const {
+  DWORD exit_code = 0;
+  if (!::GetExitCodeProcess(nativeHandle(), &exit_code)) {
+    return PROCESS_ERROR;
+  }
+
+  if (exit_code == STILL_ACTIVE) {
+    return PROCESS_STILL_ALIVE;
+  }
+
+  status = exit_code;
+  return PROCESS_EXITED;
+}
+
 std::shared_ptr<PlatformProcess> PlatformProcess::getCurrentProcess() {
   HANDLE handle =
       ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, ::GetCurrentProcessId());
