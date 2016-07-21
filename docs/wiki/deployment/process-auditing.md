@@ -20,6 +20,12 @@ How does this work? Let's walk through 3 configuration options. These can be set
 
 On Linux a companion table `user_events` is included that provides several authentication-based events. If you are enabling process auditing it should be trivial to also include this table.
 
+#### Linux socket auditing
+
+Another audit-based table is provided on Linux: `socket_events`. This table reports events for the syscalls `bind` and `connect`. This table is not enabled with process events by default because it introduces considerable added load on the system.
+
+Use `--audit_allow_sockets` to enable the associated event subscriber.
+
 ## OS X process auditing
 
 osquery does not (yet?) support audit on Darwin platforms. It is possible to enable process auditing using a kernel extension. The extension can be downloaded and installed from the [http://osquery.io/downloads](http://osquery.io/downloads) page. It must be kept up to date alongside the osquery daemon and shell since there are automatic API restrictions applied. If you are running a 1.7.5 daemon, a 1.7.5 extension is needed otherwise the extension will not be used. If you are interested in the extension's design and development please check out the [kernel](../development/kernel.md) development guide.
