@@ -79,7 +79,7 @@ Status pingExtension(const std::string& path);
  * is used. This allows appropriate extensions to expose plugin requirements.
  *
  * An 'appropriate' extension is one within the `extensions_autoload` search
- * path with file ownership equivilent or greater (root) than the osquery
+ * path with file ownership equivalent or greater (root) than the osquery
  * process requesting autoload.
  */
 void loadExtensions();
@@ -87,7 +87,7 @@ void loadExtensions();
 /**
  * @brief Load extensions from a delimited search path string.
  *
- * @param paths A colon-delimited path variable, e.g: '/path1:/path2'.
+ * @param loadfile Path to file containing newline delimited file paths
  */
 Status loadExtensions(const std::string& loadfile);
 
@@ -102,7 +102,7 @@ void loadModules();
 /**
  * @brief Load extenion modules from a delimited search path string.
  *
- * @param paths A colon-delimited path variable, e.g: '/path1:/path2'.
+ * @param loadfile Path to file containing newline delimited file paths
  */
 Status loadModules(const std::string& loadfile);
 

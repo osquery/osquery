@@ -114,7 +114,7 @@ class InternalRunnable : private boost::noncopyable,
    * @brief Check if the thread's entrypoint (run) executed.
    *
    * It is possible for the Runnable to be allocated without the thread context.
-   * ::hasRun makes a much better guess at the state of the thread.
+   * #hasRun makes a much better guess at the state of the thread.
    * If it has run then stop must be called.
    */
   bool hasRun() { return run_; }
