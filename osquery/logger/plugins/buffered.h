@@ -101,7 +101,7 @@ class BufferedLogForwarder : public InternalRunnable {
    *
    * @param s Results string to log
    */
-  Status logString(const std::string& s);
+  Status logString(const std::string& s, size_t time = 0);
 
   /**
    * @brief Log a vector of status lines
@@ -112,7 +112,7 @@ class BufferedLogForwarder : public InternalRunnable {
    *
    * @param log Vector of status lines to log
    */
-  Status logStatus(const std::vector<StatusLogLine>& log);
+  Status logStatus(const std::vector<StatusLogLine>& log, size_t time = 0);
 
  protected:
   /**
@@ -155,13 +155,13 @@ class BufferedLogForwarder : public InternalRunnable {
 
  protected:
   /// Generate a result index string to use with the backing store
-  std::string genResultIndex();
+  std::string genResultIndex(size_t time = 0);
   /// Generate a status index string to use with the backing store
-  std::string genStatusIndex();
+  std::string genStatusIndex(size_t time = 0);
 
  private:
   std::string genIndexPrefix(bool results);
-  std::string genIndex(bool results);
+  std::string genIndex(bool results, size_t time = 0);
 
   /**
    * @brief Add a database value while maintaining count

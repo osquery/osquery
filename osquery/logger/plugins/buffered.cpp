@@ -168,12 +168,13 @@ void BufferedLogForwarder::start() {
   }
 }
 
-Status BufferedLogForwarder::logString(const std::string& s) {
-  std::string index = genResultIndex();
+Status BufferedLogForwarder::logString(const std::string& s, size_t time) {
+  std::string index = genResultIndex(time);
   return addValueWithCount(kLogs, index, s);
 }
 
-Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log) {
+Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log,
+                                       size_t time) {
   // Append decorations to status
   // Assemble a decorations tree to append to each status buffer line.
   pt::ptree dtree;
@@ -210,7 +211,7 @@ Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log) {
     if (!json.empty()) {
       json.pop_back();
     }
-    std::string index = genStatusIndex();
+    std::string index = genStatusIndex(time);
     Status status = addValueWithCount(kLogs, index, json);
     if (!status.ok()) {
       // Do not continue if any line fails.
@@ -234,16 +235,23 @@ bool BufferedLogForwarder::isStatusIndex(const std::string& index) {
   return isIndex(index, false);
 }
 
-std::string BufferedLogForwarder::genResultIndex() { return genIndex(true); }
+std::string BufferedLogForwarder::genResultIndex(size_t time) {
+  return genIndex(true, time);
+}
 
-std::string BufferedLogForwarder::genStatusIndex() { return genIndex(false); }
+std::string BufferedLogForwarder::genStatusIndex(size_t time) {
+  return genIndex(false, time);
+}
 
 std::string BufferedLogForwarder::genIndexPrefix(bool results) {
   return index_name_ + "_" + ((results) ? "r" : "s") + "_";
 }
 
-std::string BufferedLogForwarder::genIndex(bool results) {
-  return genIndexPrefix(results) + std::to_string(getUnixTime()) + "_" +
+std::string BufferedLogForwarder::genIndex(bool results, size_t time) {
+  if (time == 0) {
+    time = getUnixTime();
+  }
+  return genIndexPrefix(results) + std::to_string(time) + "_" +
          std::to_string(++log_index_);
 }
 

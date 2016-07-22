@@ -19,6 +19,7 @@
 
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/tests/test_util.h"
 #include "osquery/logger/plugins/buffered.h"
@@ -281,19 +282,19 @@ TEST_F(BufferedLogForwarderTests, test_split) {
 TEST_F(BufferedLogForwarderTests, test_purge) {
   FLAGS_buffered_log_max = 3;
   StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 100);
+  size_t time = getUnixTime();
   for (uint64_t i = 0; i < 10; ++i) {
-    runner.logString(std::to_string(i));
+    runner.logString(std::to_string(i), time);
     StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
     StatusLogLine log2 = makeStatusLogLine(O_ERROR, "bar", 30, "bar error");
-    runner.logStatus({log1, log2});
+    runner.logStatus({log1, log2}, time);
+    ++time;
   }
-  // wait for a new timestamp
-  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-  runner.logString("foo");
+  runner.logString("foo", time);
   runner.purge();
-  runner.logString("bar");
+  runner.logString("bar", time);
   runner.purge();
-  runner.logString("baz");
+  runner.logString("baz", time);
   runner.purge();
   runner.purge();
 
@@ -312,16 +313,15 @@ TEST_F(BufferedLogForwarderTests, test_purge_max) {
   StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 5);
   StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
   StatusLogLine log2 = makeStatusLogLine(O_ERROR, "bar", 30, "bar error");
+  size_t time = getUnixTime();
 
-  runner.logString("foo");
-  runner.logStatus({log1});
-  // wait for a new timestamp
-  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-  runner.logString("bar");
-  // wait for a new timestamp
-  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-  runner.logStatus({log2});
-  runner.logString("baz");
+  runner.logString("foo", time);
+  runner.logStatus({log1}, time);
+  ++time;
+  runner.logString("bar", time);
+  ++time;
+  runner.logStatus({log2}, time);
+  runner.logString("baz", time);
 
   EXPECT_CALL(runner, send(ElementsAre("foo", "bar", "baz"), "result"))
       .WillOnce(Return(Status(1, "fail")));
@@ -337,9 +337,10 @@ TEST_F(BufferedLogForwarderTests, test_purge_max) {
       .WillOnce(Return(Status(0)));
   runner.check();
 
-  runner.logString("1");
-  runner.logString("2");
-  runner.logString("3");
+  ++time;
+  runner.logString("1", time);
+  runner.logString("2", time);
+  runner.logString("3", time);
 
   EXPECT_CALL(runner, send(ElementsAre("1", "2", "3"), "result"))
       .WillOnce(Return(Status(0)));
