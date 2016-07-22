@@ -13,7 +13,6 @@ else()
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-core")
 endif()
 
->>>>>>> master
 ADD_OSQUERY_LIBRARY(FALSE osquery_logger_plugins ${OSQUERY_LOGGER_PLUGINS})
 
 file(GLOB OSQUERY_LOGGER_TESTS "tests/*.cpp")
