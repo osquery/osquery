@@ -26,7 +26,7 @@ namespace osquery {
 
 FLAG(string,
      logger_path,
-     "/var/log/osquery/",
+     OSQUERY_LOG_HOME,
      "Directory path for ERROR/WARN/INFO and results logging");
 /// Legacy, backward compatible "osquery_log_dir" CLI option.
 FLAG_ALIAS(std::string, osquery_log_dir, logger_path);

@@ -20,6 +20,7 @@
 #endif
 
 #include <boost/optional.hpp>
+#include <boost/noncopyable.hpp>
 
 #include <osquery/core.h>
 

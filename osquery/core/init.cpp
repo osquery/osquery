@@ -16,7 +16,9 @@
 #include <stdio.h>
 #include <time.h>
 
-#ifndef WIN32
+#ifdef WIN32
+#include <signal.h>
+#else
 #include <unistd.h>
 #endif
 
@@ -92,6 +94,19 @@ enum {
 /// Seconds to alarm and quit for non-responsive event loops.
 #define SIGNAL_ALARM_TIMEOUT 4
 
+/// For Windows, SIGILL and SIGTERM 
+#ifdef WIN32
+
+/// We define SIGHUP similarly to POSIX because otherwise it would require a
+/// complex ifndef
+#define SIGHUP   1
+
+/// For Windows, SIGILL and SIGTERM are not generated signals. To supplant the
+/// SIGUSR1 use-case on POSIX, we use SIGILL.
+#define SIGUSR1  SIGILL
+
+#endif
+
 namespace {
 extern "C" {
 static inline bool hasWorkerVariable() {
@@ -104,7 +119,6 @@ static inline bool isWatcher() {
   return (osquery::Watcher::getWorker().isValid());
 }
 
-#ifndef WIN32
 void signalHandler(int num) {
   // Inform exit status of main threads blocked by service joins.
   if (kHandledSignal == 0) {
@@ -124,9 +138,11 @@ void signalHandler(int num) {
       }
     } else if (num == SIGTERM || num == SIGINT || num == SIGABRT ||
                num == SIGUSR1) {
+#ifndef WIN32
       // Time to stop, set an upper bound time constraint on how long threads
       // have to terminate (join). Publishers may be in 20ms or similar sleeps.
       alarm(SIGNAL_ALARM_TIMEOUT);
+#endif
 
       // Restore the default signal handler.
       std::signal(num, SIG_DFL);
@@ -143,6 +159,7 @@ void signalHandler(int num) {
     }
   }
 
+#ifndef WIN32
   if (num == SIGALRM) {
     // Restore the default signal handler for SIGALRM.
     std::signal(SIGALRM, SIG_DFL);
@@ -151,6 +168,7 @@ void signalHandler(int num) {
     VLOG(1) << "Cannot stop event publisher threads or services";
     raise((kHandledSignal != 0) ? kHandledSignal : SIGALRM);
   }
+#endif
 
   if (isWatcher()) {
     // The signal should be proliferated through the process group.
@@ -158,7 +176,6 @@ void signalHandler(int num) {
     // managed extension processes.
   }
 }
-#endif
 }
 }
 
@@ -334,12 +351,13 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   // If a daemon process is a watchdog the signal is passed to the worker,
   // unless the worker has not yet started.
   std::signal(SIGTERM, signalHandler);
-  std::signal(SIGABRT, signalHandler);
   std::signal(SIGINT, signalHandler);
   std::signal(SIGHUP, signalHandler);
   std::signal(SIGALRM, signalHandler);
-  std::signal(SIGUSR1, signalHandler);
 #endif
+
+  std::signal(SIGABRT, signalHandler);
+  std::signal(SIGUSR1, signalHandler);
 
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check) {
@@ -441,7 +459,9 @@ void Initializer::initWatcher() const {
     Dispatcher::addService(std::make_shared<WatcherRunner>(
         *argc_, *argv_, !FLAGS_disable_watchdog));
   }
+}
 
+void Initializer::waitForWatcher() const {
   // If there are no autoloaded extensions, the watcher service will end,
   // otherwise it will continue as a background thread and respawn them.
   // If the watcher is also a worker watchdog it will do nothing but monitor
@@ -493,6 +513,7 @@ void Initializer::initWorkerWatcher(const std::string& name) const {
   } else {
     // The watcher will forever monitor and spawn additional workers.
     initWatcher();
+    waitForWatcher();
   }
 }
 

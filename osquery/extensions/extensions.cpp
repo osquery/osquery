@@ -54,12 +54,12 @@ CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
 
 CLI_FLAG(string,
          extensions_socket,
-         "/var/osquery/osquery.em",
+         OSQUERY_DB_HOME "/osquery.em",
          "Path to the extensions UNIX domain socket")
 
 CLI_FLAG(string,
          extensions_autoload,
-         "/etc/osquery/extensions.load",
+         OSQUERY_HOME "/extensions.load",
          "Optional path to a list of autoloaded & managed extensions")
 
 CLI_FLAG(string,
@@ -74,7 +74,7 @@ CLI_FLAG(string,
 
 CLI_FLAG(string,
          modules_autoload,
-         "/etc/osquery/modules.load",
+         OSQUERY_HOME "/modules.load",
          "Optional path to a list of autoloaded registry modules")
 
 /**
