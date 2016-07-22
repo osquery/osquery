@@ -95,7 +95,7 @@ class OsquerySTSAWSCredentialsProvider
   Aws::String sts_access_key_id = "";
   Aws::String sts_secret_access_key = "";
   Aws::String sts_session_token = "";
-  long long token_expire_time = 0;
+  size_t token_expire_time = 0;
 
  private:
   std::shared_ptr<Aws::STS::STSClient> sts_client_{nullptr};
