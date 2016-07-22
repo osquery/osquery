@@ -25,7 +25,7 @@ When working with AWS, osquery will look for credentials and region configuratio
 4. `default` profile in the AWS config files
 5. Profile from the EC2 Instance Metadata Service
 
-All of the STS configuration flags are optional.  However, if `aws_sts_arn_role` is set, you can utilise temparary credentials via assume role with [AWS Security Token Service](http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).  
+All of the STS configuration flags are optional.  However, if `aws_sts_arn_role` is set, you can utilise temporary credentials via assume role with [AWS Security Token Service](http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).  
 
 ### Kinesis Streams
 
