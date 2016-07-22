@@ -12,7 +12,7 @@ Some configuration is shared between the two plugins:
 --aws_region VALUE                      AWS region override
 --aws_secret_access_key VALUE           AWS secret access key override
 --aws_sts_arn_role VALUE                AWS STS assume role arn
---aws_sts_region VALUE                  AWS STS assime role region
+--aws_sts_region VALUE                  AWS STS assume role region
 --aws_sts_session_name VALUE            AWS STS session name
 --aws_sts_timeout VALUE                 AWS STS temporary credential timeout period in seconds (900-3600)
 ```
