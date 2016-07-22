@@ -209,7 +209,8 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
     sts_r.SetRoleSessionName(FLAGS_aws_sts_session_name);
     sts_r.SetDurationSeconds(FLAGS_aws_sts_timeout);
     // Pull our STS creds
-    Aws::STS::Model::AssumeRoleOutcome sts_outcome = sts_client_->AssumeRole(sts_r);
+    Aws::STS::Model::AssumeRoleOutcome sts_outcome =
+        sts_client_->AssumeRole(sts_r);
     if (sts_outcome.IsSuccess()) {
       Aws::STS::Model::AssumeRoleResult sts_result = sts_outcome.GetResult();
       // Cache our credentials for later use
