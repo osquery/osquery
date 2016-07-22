@@ -17,6 +17,7 @@
 #include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 
@@ -219,6 +220,9 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["build_platform"] = STR(OSQUERY_BUILD_PLATFORM);
   r["build_distro"] = STR(OSQUERY_BUILD_DISTRO);
   r["start_time"] = INTEGER(Config::getInstance().getStartTime());
+  if (Initializer::isWorker()) {
+    r["watcher"] = INTEGER(PlatformProcess::getLauncherProcess()->pid());
+  }
 
   results.push_back(r);
   return results;

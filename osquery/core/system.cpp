@@ -8,9 +8,6 @@
  *
  */
 
-#include <ctime>
-#include <sstream>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -29,6 +26,9 @@
 #include <WinSock2.h>
 #endif
 
+#include <ctime>
+#include <sstream>
+
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
@@ -41,6 +41,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 namespace fs = boost::filesystem;
 
@@ -141,7 +142,11 @@ std::string getHostIdentifier() {
 
 std::string getAsciiTime() {
   auto result = std::time(nullptr);
-  auto time_str = std::string(std::asctime(std::gmtime(&result)));
+
+  struct tm now;
+  gmtime_r(&result, &now);
+
+  auto time_str = std::string(std::asctime(&now));
   boost::algorithm::trim(time_str);
   return time_str + " UTC";
 }
@@ -149,7 +154,10 @@ std::string getAsciiTime() {
 size_t getUnixTime() {
   auto result = std::time(nullptr);
   if (FLAGS_utc) {
-    result = std::mktime(std::gmtime(&result));
+    struct tm now;
+    gmtime_r(&result, &now);
+
+    result = std::mktime(&now);
   }
   return result;
 }

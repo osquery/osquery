@@ -14,12 +14,13 @@
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/config/parsers/decorators.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
 DECLARE_bool(disable_decorators);
+DECLARE_bool(decorations_top_level);
 
 class DecoratorsConfigParserPluginTests : public testing::Test {
  public:
@@ -101,5 +102,30 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_interval) {
   QueryLogItem second_item;
   getDecorations(second_item.decorations);
   ASSERT_EQ(second_item.decorations.size(), 2U);
+}
+
+TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load_top_level) {
+  // Re-enable the decorators, then update the config.
+  // The 'load' decorator set should run every time the config is updated.
+  FLAGS_disable_decorators = false;
+  // enable top level decorations for the test
+  FLAGS_decorations_top_level = true;
+  Config::getInstance().update(config_data_);
+
+  // make sure decorations object still exists
+  QueryLogItem item;
+  getDecorations(item.decorations);
+  ASSERT_EQ(item.decorations.size(), 3U);
+  EXPECT_EQ(item.decorations["load_test"], "test");
+
+  // searialize the QueryLogItem and make sure decorations go top level
+  pt::ptree tree;
+  auto status = serializeQueryLogItem(item, tree);
+  std::string expected = "test";
+  std::string result = tree.get("load_test", "none");
+  EXPECT_EQ(result, expected);
+
+  // disable top level decorations
+  FLAGS_decorations_top_level = false;
 }
 }

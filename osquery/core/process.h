@@ -37,7 +37,7 @@ using PlatformPidType = pid_t;
 #endif
 
 /// Constant for an invalid process
-const PlatformPidType kInvalidPid = (PlatformPidType) - 1;
+const PlatformPidType kInvalidPid = (PlatformPidType)-1;
 
 /**
  * @brief Categories of process states adapted to be platform agnostic
@@ -66,8 +66,8 @@ class PlatformProcess : private boost::noncopyable {
   explicit PlatformProcess(PlatformPidType id);
 
   PlatformProcess(const PlatformProcess& src) = delete;
-  PlatformProcess(PlatformProcess&& src);
-  ~PlatformProcess();
+  PlatformProcess(PlatformProcess&& src) noexcept;
+  virtual ~PlatformProcess();
 
   PlatformProcess& operator=(const PlatformProcess& process) = delete;
   bool operator==(const PlatformProcess& process) const;
@@ -91,6 +91,8 @@ class PlatformProcess : private boost::noncopyable {
   /// Returns whether the PlatformProcess object is valid
   bool isValid() const { return (id_ != kInvalidPid); }
 
+  virtual ProcessState checkStatus(int& status) const;
+
   /// Returns the current process
   static std::shared_ptr<PlatformProcess> getCurrentProcess();
 
@@ -101,7 +103,7 @@ class PlatformProcess : private boost::noncopyable {
    * @brief Creates a new worker process.
    *
    * Launches a worker process given a worker executable path, number of
-   * arguments, and an array of arguments. All double quotes within each entry 
+   * arguments, and an array of arguments. All double quotes within each entry
    * in the array of arguments will be supplanted with a preceding blackslash.
    */
   static std::shared_ptr<PlatformProcess> launchWorker(
@@ -127,17 +129,17 @@ class PlatformProcess : private boost::noncopyable {
   PlatformPidType id_;
 };
 
-/// Causes the current thread to sleep for a specified time in milliseconds
+/// Causes the current thread to sleep for a specified time in milliseconds.
 void sleepFor(unsigned int msec);
 
-/// Set the enviroment variable name with value value
+/// Set the enviroment variable name with value value.
 bool setEnvVar(const std::string& name, const std::string& value);
 
-/// Unsets the environment variable specified by name
+/// Unsets the environment variable specified by name.
 bool unsetEnvVar(const std::string& name);
 
 /**
- * @brief Returns the value of the specified environment variable name
+ * @brief Returns the value of the specified environment variable name.
  *
  * If the environment variable does not exist, boost::none is returned.
  */
@@ -147,14 +149,9 @@ boost::optional<std::string> getEnvVar(const std::string& name);
 /// processes).
 bool isLauncherProcessDead(PlatformProcess& launcher);
 
-/// Non-blocking check on the state of a specificed child process.
-ProcessState checkChildProcessStatus(const osquery::PlatformProcess& process,
-                                     int& status);
-
-/// Waits for defunct processes to terminate
+/// Waits for defunct processes to terminate.
 void cleanupDefunctProcesses();
 
-/// Sets the current process to run with background scheduling priority
+/// Sets the current process to run with background scheduling priority.
 void setToBackgroundPriority();
 }
-

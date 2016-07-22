@@ -22,6 +22,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 #include "osquery/core/watcher.h"
 #include "osquery/core/process.h"
@@ -32,26 +33,40 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-const std::map<WatchdogLimitType, std::vector<size_t>> kWatchdogLimits = {
+struct LimitDefinition {
+  size_t normal;
+  size_t restrictive;
+  size_t disabled;
+};
+
+struct PerformanceChange {
+  size_t sustained_latency;
+  size_t footprint;
+  size_t iv;
+  pid_t parent;
+};
+
+using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
+
+const WatchdogLimitMap kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
-    {MEMORY_LIMIT, {80, 50, 30, 1000}},
-    // Percent of user or system CPU worker can utilize for LATENCY_LIMIT
-    // seconds.
-    {UTILIZATION_LIMIT, {90, 80, 60, 1000}},
+    {MEMORY_LIMIT, {100, 50, 1000}},
+    // User or system CPU worker can utilize for LATENCY_LIMIT seconds.
+    {UTILIZATION_LIMIT, {90, 80, 1000}},
     // Number of seconds the worker should run, else consider the exit fatal.
-    {RESPAWN_LIMIT, {20, 20, 20, 5}},
+    {RESPAWN_LIMIT, {20, 20, 1000}},
     // If the worker respawns too quickly, backoff on creating additional.
-    {RESPAWN_DELAY, {5, 5, 5, 1}},
+    {RESPAWN_DELAY, {5, 5, 1}},
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
-    {LATENCY_LIMIT, {12, 6, 3, 1}},
+    {LATENCY_LIMIT, {12, 6, 1000}},
     // How often to poll for performance limit violations.
-    {INTERVAL, {3, 3, 3, 1}},
+    {INTERVAL, {3, 3, 3}},
 };
 
 CLI_FLAG(int32,
          watchdog_level,
          0,
-         "Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug)");
+         "Performance limit level (0=normal, 1=restrictive, -1=off)");
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
@@ -153,6 +168,9 @@ bool WatcherRunner::ok() {
 void WatcherRunner::start() {
   // Set worker performance counters to an initial state.
   Watcher::resetWorkerCounters(0);
+  // Hold the current process (watcher) for inspection too.
+  auto watcher = PlatformProcess::getCurrentProcess();
+  PerformanceState watcher_state;
 
   // Enter the watch loop.
   do {
@@ -178,14 +196,28 @@ void WatcherRunner::start() {
     for (const auto& failed_extension : failing_extensions) {
       Watcher::removeExtensionPath(failed_extension);
     }
+
+    if (use_worker_) {
+      auto status = isWatcherHealthy(*watcher, watcher_state);
+      if (!status.ok()) {
+        Initializer::requestShutdown(EXIT_CATASTROPHIC,
+                                     "Watcher has become unhealthy: " +
+                                         status.getMessage());
+        break;
+      }
+    }
+
+    if (run_once_) {
+      // A test harness can end the thread immediately.
+      break;
+    }
     pauseMilli(getWorkerLimit(INTERVAL) * 1000);
   } while (!interrupted() && ok());
 }
 
 bool WatcherRunner::watch(const PlatformProcess& child) const {
-  int status = 0;
-
-  ProcessState result = checkChildProcessStatus(child, status);
+  int process_status = 0;
+  ProcessState result = child.checkStatus(process_status);
   if (Watcher::fatesBound()) {
     // A signal was handled while the watcher was watching.
     return false;
@@ -196,7 +228,10 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
     return false;
   } else if (result == PROCESS_STILL_ALIVE) {
     // If the inspect finds problems it will stop/restart the worker.
-    if (!isChildSane(child)) {
+    auto status = isChildSane(child);
+    if (!status.ok()) {
+      LOG(WARNING) << "osqueryd worker (" << child.pid()
+                   << "): " << status.getMessage();
       stopChild(child);
       return false;
     }
@@ -205,7 +240,7 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
 
   if (result == PROCESS_EXITED) {
     // If the worker process existed, store the exit code.
-    Watcher::instance().worker_status_ = status;
+    Watcher::instance().worker_status_ = process_status;
   }
 
   return true;
@@ -218,84 +253,119 @@ void WatcherRunner::stopChild(const PlatformProcess& child) const {
   cleanupDefunctProcesses();
 }
 
-bool WatcherRunner::isChildSane(const PlatformProcess& child) const {
-  auto rows =
-      SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(child.pid()));
-  if (rows.size() == 0) {
-    // Could not find worker process?
+PerformanceChange getChange(const Row& r, PerformanceState& state) {
+  PerformanceChange change;
+
+  // IV is the check interval in seconds, and utilization is set per-second.
+  change.iv = std::max(getWorkerLimit(INTERVAL), (size_t)1);
+  UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
+  try {
+    change.parent = AS_LITERAL(BIGINT_LITERAL, r.at("parent"));
+    user_time = AS_LITERAL(BIGINT_LITERAL, r.at("user_time")) / change.iv;
+    system_time = AS_LITERAL(BIGINT_LITERAL, r.at("system_time")) / change.iv;
+    change.footprint = AS_LITERAL(BIGINT_LITERAL, r.at("resident_size"));
+  } catch (const std::exception& e) {
+    state.sustained_latency = 0;
+  }
+
+  // Check the difference of CPU time used since last check.
+  if (user_time - state.user_time > getWorkerLimit(UTILIZATION_LIMIT) ||
+      system_time - state.system_time > getWorkerLimit(UTILIZATION_LIMIT)) {
+    state.sustained_latency++;
+  } else {
+    state.sustained_latency = 0;
+  }
+  // Update the current CPU time.
+  state.user_time = user_time;
+  state.system_time = system_time;
+
+  // Check if the sustained difference exceeded the acceptable latency limit.
+  change.sustained_latency = state.sustained_latency;
+
+  // Set the memory footprint as the amount of resident bytes allocated
+  // since the process image was created (estimate).
+  // A more-meaningful check would limit this to writable regions.
+  if (state.initial_footprint == 0) {
+    state.initial_footprint = change.footprint;
+  }
+
+  // Set the measured/limit-applied footprint to the post-launch allocations.
+  if (change.footprint < state.initial_footprint) {
+    change.footprint = 0;
+  } else {
+    change.footprint = change.footprint - state.initial_footprint;
+  }
+
+  return change;
+}
+
+static bool exceededMemoryLimit(const PerformanceChange& change) {
+  if (change.footprint == 0) {
     return false;
   }
 
-  // Get the performance state for the worker or extension.
-  size_t sustained_latency = 0;
-  // Compare CPU utilization since last check.
-  size_t footprint = 0;
-  pid_t parent = 0;
-  // IV is the check interval in seconds, and utilization is set per-second.
-  auto iv = std::max(getWorkerLimit(INTERVAL), (size_t)1);
+  return (change.footprint > getWorkerLimit(MEMORY_LIMIT) * 1024 * 1024);
+}
 
+static bool exceededCyclesLimit(const PerformanceChange& change) {
+  if (change.sustained_latency == 0) {
+    return false;
+  }
+
+  auto latency = change.sustained_latency * change.iv;
+  return (latency >= getWorkerLimit(LATENCY_LIMIT));
+}
+
+Status WatcherRunner::isWatcherHealthy(const PlatformProcess& watcher,
+                                       PerformanceState& watcher_state) const {
+  auto rows = getProcessRow(watcher.pid());
+  if (rows.size() == 0) {
+    // Could not find worker process?
+    return Status(1, "Cannot find watcher process");
+  }
+
+  auto change = getChange(rows[0], watcher_state);
+  if (exceededMemoryLimit(change)) {
+    return Status(1, "Memory limits exceeded");
+  }
+
+  return Status(0);
+}
+
+QueryData WatcherRunner::getProcessRow(pid_t pid) const {
+  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(pid));
+}
+
+Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
+  auto rows = getProcessRow(child.pid());
+  if (rows.size() == 0) {
+    // Could not find worker process?
+    return Status(1, "Cannot find worker process");
+  }
+
+  PerformanceChange change;
   {
     WatcherLocker locker;
     auto& state = Watcher::getState(child);
-    UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
-    try {
-      parent = AS_LITERAL(BIGINT_LITERAL, rows[0].at("parent"));
-      user_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("user_time")) / iv;
-      system_time = AS_LITERAL(BIGINT_LITERAL, rows[0].at("system_time")) / iv;
-      footprint = AS_LITERAL(BIGINT_LITERAL, rows[0].at("resident_size"));
-    } catch (const std::exception& e) {
-      state.sustained_latency = 0;
-    }
-
-    // Check the difference of CPU time used since last check.
-    if (user_time - state.user_time > getWorkerLimit(UTILIZATION_LIMIT) ||
-        system_time - state.system_time > getWorkerLimit(UTILIZATION_LIMIT)) {
-      state.sustained_latency++;
-    } else {
-      state.sustained_latency = 0;
-    }
-    // Update the current CPU time.
-    state.user_time = user_time;
-    state.system_time = system_time;
-
-    // Check if the sustained difference exceeded the acceptable latency limit.
-    sustained_latency = state.sustained_latency;
-
-    // Set the memory footprint as the amount of resident bytes allocated
-    // since the process image was created (estimate).
-    // A more-meaningful check would limit this to writable regions.
-    if (state.initial_footprint == 0) {
-      state.initial_footprint = footprint;
-    }
-
-    // Set the measured/limit-applied footprint to the post-launch allocations.
-    if (footprint < state.initial_footprint) {
-      footprint = 0;
-    } else {
-      footprint = footprint - state.initial_footprint;
-    }
+    change = getChange(rows[0], state);
   }
 
   // Only make a decision about the child sanity if it is still the watcher's
   // child. It's possible for the child to die, and its pid reused.
-  if (parent != PlatformProcess::getCurrentProcess()->pid()) {
+  if (change.parent != PlatformProcess::getCurrentProcess()->pid()) {
     // The child's parent is not the watcher.
     Watcher::reset(child);
     // Do not stop or call the child insane, since it is not our child.
-    return true;
+    return Status(0);
   }
 
-  if (sustained_latency > 0 &&
-      sustained_latency * iv >= getWorkerLimit(LATENCY_LIMIT)) {
-    LOG(WARNING) << "osqueryd worker (" << child.pid()
-                 << ") system performance limits exceeded";
-    return false;
+  if (exceededCyclesLimit(change)) {
+    return Status(1, "System performance limits exceeded");
   }
   // Check if the private memory exceeds a memory limit.
-  if (footprint > 0 && footprint > getWorkerLimit(MEMORY_LIMIT) * 1024 * 1024) {
-    LOG(WARNING) << "osqueryd worker (" << child.pid()
-                 << ") memory limits exceeded: " << footprint;
-    return false;
+  if (exceededMemoryLimit(change)) {
+    return Status(
+        1, "Memory limits exceeded: " + std::to_string(change.footprint));
   }
 
   // The worker is sane, no action needed.
@@ -304,7 +374,7 @@ bool WatcherRunner::isChildSane(const PlatformProcess& child) const {
     relayStatusLogs();
   }
 
-  return true;
+  return Status(0);
 }
 
 void WatcherRunner::createWorker() {
@@ -342,7 +412,8 @@ void WatcherRunner::createWorker() {
   }
 
   // Get the complete path of the osquery process binary.
-  auto exec_path = fs::system_complete(fs::path(qd[0]["path"]));
+  boost::system::error_code ec;
+  auto exec_path = fs::system_complete(fs::path(qd[0]["path"]), ec);
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // osqueryd binary has become unsafe.
@@ -378,7 +449,8 @@ bool WatcherRunner::createExtension(const std::string& extension) {
   }
 
   // Check the path to the previously-discovered extension binary.
-  auto exec_path = fs::system_complete(fs::path(extension));
+  boost::system::error_code ec;
+  auto exec_path = fs::system_complete(fs::path(extension), ec);
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // Extension binary has become unsafe.
@@ -423,19 +495,20 @@ void WatcherWatcherRunner::start() {
   }
 }
 
-size_t getWorkerLimit(WatchdogLimitType name, int level) {
+size_t getWorkerLimit(WatchdogLimitType name) {
   if (kWatchdogLimits.count(name) == 0) {
     return 0;
   }
 
+  auto level = FLAGS_watchdog_level;
   // If no level was provided then use the default (config/switch).
   if (level == -1) {
-    level = FLAGS_watchdog_level;
+    return kWatchdogLimits.at(name).disabled;
   }
-  if (level > 3) {
-    return kWatchdogLimits.at(name).back();
-  }
-  return kWatchdogLimits.at(name).at(level);
-}
-}
 
+  if (level == 1) {
+    return kWatchdogLimits.at(name).restrictive;
+  }
+  return kWatchdogLimits.at(name).normal;
+}
+}

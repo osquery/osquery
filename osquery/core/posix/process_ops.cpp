@@ -49,30 +49,7 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
   return boost::none;
 }
 
-void cleanupDefunctProcesses() { ::waitpid(-1, 0, WNOHANG); }
-
-ProcessState checkChildProcessStatus(const PlatformProcess& process,
-                                     int& status) {
-  int process_status = 0;
-
-  pid_t result = ::waitpid(process.nativeHandle(), &process_status, WNOHANG);
-  if (result < 0) {
-    return PROCESS_ERROR;
-  }
-
-  if (result == 0) {
-    return PROCESS_STILL_ALIVE;
-  }
-
-  if (WIFEXITED(process_status)) {
-    status = WEXITSTATUS(process_status);
-    return PROCESS_EXITED;
-  }
-
-  // process's state has changed but the state isn't that which we expect!
-  return PROCESS_STATE_CHANGE;
-}
+void cleanupDefunctProcesses() { ::waitpid(-1, nullptr, WNOHANG); }
 
 void setToBackgroundPriority() { setpriority(PRIO_PGRP, 0, 10); }
 }
-

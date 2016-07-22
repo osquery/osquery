@@ -984,7 +984,4 @@ class EventSubscriber : public EventSubscriberPlugin {
 /// Iterate the event publisher registry and create run loops for each using
 /// the event factory.
 void attachEvents();
-
-CREATE_REGISTRY(EventPublisherPlugin, "event_publisher");
-CREATE_REGISTRY(EventSubscriberPlugin, "event_subscriber");
 }

@@ -8,13 +8,15 @@
  *
  */
 
-#include <vector>
-
 #include <signal.h>
 
 #include <sys/types.h>
+#include <sys/wait.h>
+
+#include <vector>
 
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/core/process.h"
 
@@ -45,6 +47,27 @@ bool PlatformProcess::kill() const {
   return (status == 0);
 }
 
+ProcessState PlatformProcess::checkStatus(int& status) const {
+  int process_status = 0;
+
+  pid_t result = ::waitpid(nativeHandle(), &process_status, WNOHANG);
+  if (result < 0) {
+    return PROCESS_ERROR;
+  }
+
+  if (result == 0) {
+    return PROCESS_STILL_ALIVE;
+  }
+
+  if (WIFEXITED(process_status)) {
+    status = WEXITSTATUS(process_status);
+    return PROCESS_EXITED;
+  }
+
+  // process's state has changed but the state isn't that which we expect!
+  return PROCESS_STATE_CHANGE;
+}
+
 std::shared_ptr<PlatformProcess> PlatformProcess::getCurrentProcess() {
   pid_t pid = ::getpid();
   return std::make_shared<PlatformProcess>(pid);
@@ -56,7 +79,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
 }
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
-    const std::string& exec_path, int argc, char** argv) {
+    const std::string& exec_path, int argc /* unused */, char** argv) {
   auto worker_pid = ::fork();
   if (worker_pid < 0) {
     return std::shared_ptr<PlatformProcess>();
@@ -105,4 +128,3 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   return std::make_shared<PlatformProcess>(ext_pid);
 }
 }
-

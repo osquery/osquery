@@ -588,7 +588,7 @@ function package() {
       log "$1 is already installed. skipping."
     else
       log "installing $1"
-      sudo DEBIAN_FRONTEND=noninteractive apt-get install $1 -y --no-install-recommends
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install $1 -y -q --no-install-recommends
     fi
   elif [[ $FAMILY = "redhat" ]]; then
     if [[ ! -n "$(rpm -V $1)" ]]; then
@@ -635,6 +635,13 @@ function package() {
       log "installing $1"
       sudo pkg install -y $1
     fi
+  elif [[ $OS = "arch" ]]; then
+    if pacman -Qq $1 >/dev/null; then
+      log "$1 is already installed. skipping."
+    else
+      log "installing $1"
+      sudo pacman -S --noconfirm $1
+    fi
   fi
 }
 
@@ -664,6 +671,13 @@ function remove_package() {
     if ! pkg info -q $1; then
       log "removing $1"
       sudo pkg delete -y $1
+    else
+      log "Removing: $1 is not installed. skipping."
+    fi
+  elif [[ $OS = "arch" ]]; then
+    if ! pacman -Qq $1 >/dev/null; then
+      log "removing $1"
+      sudo pacman -R --noconfirm $1
     else
       log "Removing: $1 is not installed. skipping."
     fi

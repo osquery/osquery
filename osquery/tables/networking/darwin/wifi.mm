@@ -16,6 +16,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"

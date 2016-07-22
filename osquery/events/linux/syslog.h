@@ -10,8 +10,9 @@
 
 #pragma once
 
-#include <fstream>
 #include <stdio.h>
+
+#include <fstream>
 #include <map>
 
 #include <boost/property_tree/ptree.hpp>
@@ -111,7 +112,7 @@ class SyslogEventPublisher
    * context.
    */
   static Status populateEventContext(const std::string& line,
-                              SyslogEventContextRef& ec);
+                                     SyslogEventContextRef& ec);
 
   /**
    * @brief Parse a time string from rsyslog into time_t.

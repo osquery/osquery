@@ -47,6 +47,7 @@ thrift_library(
 
 cpp_library(
   name="osquery_sdk",
+  link_whole=True,
   srcs=["""
 
 TARGETS_POSTSCRIPT = """  ],
@@ -60,7 +61,7 @@ TARGETS_POSTSCRIPT = """  ],
     "gflags",
     "gtest",
     "rocksdb",
-    "libuuid",
+    ("e2fsprogs", None, "uuid"),
   ],
   compiler_flags=[
     "-Wno-unused-function",

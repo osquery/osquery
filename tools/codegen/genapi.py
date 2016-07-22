@@ -37,6 +37,8 @@ CANONICAL_PLATFORMS = {
     "centos": "CentOS",
     "ubuntu": "Ubuntu",
     "utility": "Utility",
+    "windows": "Microsoft Windows",
+    "posix": "POSIX-compatible Plaforms",
 }
 
 TEMPLATE_API_DEFINITION = """

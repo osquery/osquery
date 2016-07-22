@@ -58,6 +58,7 @@ DECLARE_bool(disable_database);
 typedef std::chrono::high_resolution_clock chrono_clock;
 
 void initTesting() {
+  beginRegistryAndPluginInit();
   // Allow unit test execution from anywhere in the osquery source/build tree.
   while (osquery::kTestDataPath != "/") {
     if (!fs::exists(osquery::kTestDataPath)) {
@@ -246,8 +247,8 @@ std::pair<pt::ptree, DiffResults> getSerializedDiffResults() {
   diff_results.removed = qd.second;
 
   pt::ptree root;
-  root.add_child("added", qd.first);
   root.add_child("removed", qd.first);
+  root.add_child("added", qd.first);
 
   return std::make_pair(root, diff_results);
 }

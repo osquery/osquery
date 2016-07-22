@@ -17,7 +17,6 @@
 
 #include <memory>
 #include <regex>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -110,7 +109,7 @@ class SecurityDescriptor {
  public:
   explicit SecurityDescriptor(PSECURITY_DESCRIPTOR sd) : sd_(sd) {}
 
-  SecurityDescriptor(SecurityDescriptor &&src) {
+  SecurityDescriptor(SecurityDescriptor &&src) noexcept {
     sd_ = src.sd_;
     std::swap(sd_, src.sd_);
   }
@@ -345,7 +344,7 @@ static AclObject modifyAcl(
     }
 
     if (!::AddAce(
-             new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
+            new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
       return std::move(AclObject());
     }
   }
@@ -366,7 +365,7 @@ static AclObject modifyAcl(
     }
 
     if (!::AddAce(
-             new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
+            new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
       return std::move(AclObject());
     }
   }
@@ -389,16 +388,16 @@ PlatformFile::PlatformFile(const std::string &path, int mode, int perms) {
   }
 
   switch (PF_GET_OPTIONS(mode)) {
-  case PF_GET_OPTIONS(PF_CREATE_NEW) :
+  case PF_GET_OPTIONS(PF_CREATE_NEW):
     creation_disposition = CREATE_NEW;
     break;
-  case PF_GET_OPTIONS(PF_CREATE_ALWAYS) :
+  case PF_GET_OPTIONS(PF_CREATE_ALWAYS):
     creation_disposition = CREATE_ALWAYS;
     break;
-  case PF_GET_OPTIONS(PF_OPEN_EXISTING) :
+  case PF_GET_OPTIONS(PF_OPEN_EXISTING):
     creation_disposition = OPEN_EXISTING;
     break;
-  case PF_GET_OPTIONS(PF_TRUNCATE) :
+  case PF_GET_OPTIONS(PF_TRUNCATE):
     creation_disposition = TRUNCATE_EXISTING;
     break;
   default:
@@ -469,7 +468,7 @@ static Status isUserCurrentUser(PSID user) {
   }
 
   std::vector<char> buffer(size);
-  ptu = (PTOKEN_USER) & buffer[0];
+  ptu = (PTOKEN_USER)buffer.data();
 
   /// Obtain the user SID behind the token handle
   ret = ::GetTokenInformation(token, TokenUser, (LPVOID)ptu, size, &size);
@@ -512,12 +511,10 @@ Status PlatformFile::isOwnerRoot() const {
   std::vector<char> admins_buf;
   admins_buf.assign(admins_buf_size, '\0');
 
-  PSID admins_sid = (PSID) & admins_buf[0];
+  PSID admins_sid = (PSID)admins_buf.data();
 
-  if (!::CreateWellKnownSid(WinBuiltinAdministratorsSid,
-                            nullptr,
-                            &admins_buf[0],
-                            &admins_buf_size)) {
+  if (!::CreateWellKnownSid(
+          WinBuiltinAdministratorsSid, nullptr, admins_sid, &admins_buf_size)) {
     return Status(-1, "CreateWellKnownSid failed");
   }
 
@@ -567,7 +564,7 @@ Status PlatformFile::isExecutable() const {
   std::vector<char> sd_buffer;
   sd_buffer.assign(sd_size, '\0');
 
-  PSECURITY_DESCRIPTOR sd = (PSECURITY_DESCRIPTOR) & sd_buffer[0];
+  PSECURITY_DESCRIPTOR sd = (PSECURITY_DESCRIPTOR)sd_buffer.data();
   ret = ::GetUserObjectSecurity(handle_, &security_info, sd, sd_size, &sd_size);
   if (!ret) {
     return Status(-1, "GetUserObjectSecurity failed");
@@ -638,7 +635,7 @@ static Status isWriteDenied(PACL acl) {
   std::vector<char> sid_buffer;
   sid_buffer.assign(sid_buffer_size, '\0');
 
-  PSID world = (PSID) & sid_buffer[0];
+  PSID world = (PSID)sid_buffer.data();
 
   if (!::CreateWellKnownSid(WinWorldSid, nullptr, world, &sid_buffer_size)) {
     return Status(-1, "CreateWellKnownSid failed");
@@ -689,18 +686,18 @@ Status PlatformFile::isNonWritable() const {
   path_buf.assign(MAX_PATH + 1, '\0');
 
   if (::GetFinalPathNameByHandleA(
-          handle_, &path_buf[0], MAX_PATH, FILE_NAME_NORMALIZED) == 0) {
+          handle_, path_buf.data(), MAX_PATH, FILE_NAME_NORMALIZED) == 0) {
     return Status(-1, "GetFinalPathNameByHandleA failed");
   }
 
-  if (!::PathRemoveFileSpecA(&path_buf[0])) {
+  if (!::PathRemoveFileSpecA(path_buf.data())) {
     return Status(-1, "PathRemoveFileSpec");
   }
 
   PACL dir_dacl = nullptr;
   PSECURITY_DESCRIPTOR dir_sd = nullptr;
 
-  if (::GetNamedSecurityInfoA(&path_buf[0],
+  if (::GetNamedSecurityInfoA(path_buf.data(),
                               SE_FILE_OBJECT,
                               DACL_SECURITY_INFORMATION,
                               nullptr,
@@ -840,11 +837,11 @@ ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
   if (is_nonblock_) {
     AsyncEvent write_event;
     if (!::WriteFile(
-             handle_, buf, nbyte, &bytes_written, &write_event.overlapped_)) {
+            handle_, buf, nbyte, &bytes_written, &write_event.overlapped_)) {
       last_error = ::GetLastError();
       if (last_error == ERROR_IO_PENDING) {
         if (!::GetOverlappedResultEx(
-                 handle_, &write_event.overlapped_, &bytes_written, 0, TRUE)) {
+                handle_, &write_event.overlapped_, &bytes_written, 0, TRUE)) {
           last_error = ::GetLastError();
           if (last_error == ERROR_IO_INCOMPLETE) {
             has_pending_io_ = true;
@@ -933,7 +930,7 @@ bool platformChmod(const std::string &path, mode_t perms) {
 
   DWORD sid_size = SECURITY_MAX_SID_SIZE;
   std::vector<char> world_buf(sid_size);
-  PSID world = &world_buf[0];
+  PSID world = (PSID)world_buf.data();
 
   if (!::CreateWellKnownSid(WinWorldSid, nullptr, world, &sid_size)) {
     return false;
@@ -977,7 +974,7 @@ bool platformChmod(const std::string &path, mode_t perms) {
   std::vector<char> mutable_path(path.begin(), path.end());
   mutable_path.push_back('\0');
 
-  if (::SetNamedSecurityInfoA(&mutable_path[0],
+  if (::SetNamedSecurityInfoA(mutable_path.data(),
                               SE_FILE_OBJECT,
                               DACL_SECURITY_INFORMATION,
                               nullptr,
@@ -1046,7 +1043,7 @@ std::vector<std::string> platformGlob(const std::string &find_path) {
           // going to append the component to the previous valid path and append
           // the new path to the list
           boost::system::error_code ec;
-          if (fs::exists(valid_path / component) &&
+          if (fs::exists(valid_path / component, ec) &&
               ec.value() == errc::success) {
             tmp_valid_paths.push_back(valid_path / component);
           }
@@ -1100,8 +1097,8 @@ boost::optional<std::string> getHomeDirectory() {
   if (value.is_initialized()) {
     return value;
   } else if (SUCCEEDED(::SHGetFolderPathA(
-                 nullptr, CSIDL_PROFILE, nullptr, 0, &profile[0]))) {
-    return std::string(&profile[0]);
+                 nullptr, CSIDL_PROFILE, nullptr, 0, profile.data()))) {
+    return std::string(profile.data());
   } else {
     return boost::none;
   }
@@ -1127,13 +1124,13 @@ static std::string normalizeDirPath(const fs::path &path) {
 
   // Obtain the full path of the fs::path object
   DWORD nret = ::GetFullPathNameA(
-      (LPCSTR)path.string().c_str(), MAX_PATH, &full_path[0], nullptr);
+      (LPCSTR)path.string().c_str(), MAX_PATH, full_path.data(), nullptr);
   if (nret == 0) {
     return std::string();
   }
 
   HANDLE handle = INVALID_HANDLE_VALUE;
-  handle = ::CreateFileA(&full_path[0],
+  handle = ::CreateFileA(full_path.data(),
                          GENERIC_READ,
                          FILE_SHARE_READ,
                          nullptr,
@@ -1146,7 +1143,7 @@ static std::string normalizeDirPath(const fs::path &path) {
 
   // Resolve any symbolic links (somewhat rare on Windows)
   nret = ::GetFinalPathNameByHandleA(
-      handle, &final_path[0], MAX_PATH, FILE_NAME_NORMALIZED);
+      handle, final_path.data(), MAX_PATH, FILE_NAME_NORMALIZED);
   ::CloseHandle(handle);
 
   if (nret == 0) {
@@ -1154,10 +1151,10 @@ static std::string normalizeDirPath(const fs::path &path) {
   }
 
   // NTFS is case insensitive, to normalize, make everything uppercase
-  ::CharUpperA(&final_path[0]);
+  ::CharUpperA(final_path.data());
 
   boost::system::error_code ec;
-  std::string normalized_path(&final_path[0], nret);
+  std::string normalized_path(final_path.data(), nret);
   if ((fs::is_directory(normalized_path, ec) && ec.value() == errc::success) &&
       normalized_path[nret - 1] != '\\') {
     normalized_path += "\\";
@@ -1174,7 +1171,8 @@ static bool dirPathsAreEqual(const fs::path &dir1, const fs::path &dir2) {
 }
 
 Status platformIsTmpDir(const fs::path &dir) {
-  if (!dirPathsAreEqual(dir, fs::temp_directory_path())) {
+  boost::system::error_code ec;
+  if (!dirPathsAreEqual(dir, fs::temp_directory_path(ec))) {
     return Status(1, "Not temp directory");
   }
 
@@ -1188,5 +1186,6 @@ Status platformIsFileAccessible(const fs::path &path) {
   }
   return Status(1, "Not accessible file");
 }
-}
 
+bool platformIsatty(FILE *f) { return 0 != _isatty(_fileno(f)); }
+}

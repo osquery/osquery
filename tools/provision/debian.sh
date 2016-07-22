@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 function main_debian() {
-  sudo apt-get update -y --no-install-recommends
-  sudo apt-get upgrade -y --no-install-recommends
+  sudo apt-get update -y -q --no-install-recommends
+  sudo apt-get upgrade -y -q --no-install-recommends
 
   package git-core
   package wget

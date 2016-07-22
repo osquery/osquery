@@ -244,7 +244,7 @@ in some way, then re-writes the JSON.
 
 ## Configuration specification
 
-This section details all (read: most) of the default configuration keys, called the default specification. We mention 'default' as the configuration can be extended using `ConfigParser` plugins. 
+This section details all (read: most) of the default configuration keys, called the default specification. We mention 'default' as the configuration can be extended using `ConfigParser` plugins.
 
 ### Options
 
@@ -318,7 +318,7 @@ the next section on [logging](../deployment/logging.md) for examples of each log
 
 ### Packs
 
-The above section on packs almost covers all you need to know about query packs. The specification contains a few caveats since packs are designed for distribution. Packs use the `packs` key, a map where the key is a pack name and the value can be either a string or a dictionary (object). When a string is used the value is passed back into the config plugin and acts as a "resource" request. 
+The above section on packs almost covers all you need to know about query packs. The specification contains a few caveats since packs are designed for distribution. Packs use the `packs` key, a map where the key is a pack name and the value can be either a string or a dictionary (object). When a string is used the value is passed back into the config plugin and acts as a "resource" request.
 
 ```json
 {
@@ -345,7 +345,7 @@ The `discovery` query set feature is described in detail in the above packs sect
 
 ### File Paths
 
-The `file_paths` key defines a map of file integrity monitoring (FIM) categories to sets of filesystem globbing lines. Please refer to the [FIM](../deployment/file-itegrity-monitoring.md) guide for details on how to use osquery as a FIM tool.
+The `file_paths` key defines a map of file integrity monitoring (FIM) categories to sets of filesystem globbing lines. Please refer to the [FIM](../deployment/file-integrity-monitoring.md) guide for details on how to use osquery as a FIM tool.
 
 Example:
 ```json
@@ -428,6 +428,42 @@ The columns, and their values, will be appended to each log line as follows. Ass
 ```
 
 Expect the normal set of log keys to be included and note that `decorations` is a top-level key in the log line whose value is an embedded map.
+
+The configuration flag `decorators_top_level` can be set to `true` to make decorator data populate as top level key/value objects instead of being contained as a child of `decorations`.  When using this feature, you must be weary of key collisions in existing, reserved, top-level keys.  When collisions do occur, existing key/value data will likely be overritten by the decorator key/value.  The following example shows the results of collisions on various top-level keys:
+
+Example configuration:
+
+````json
+{
+  "decorators": {
+    "load": [
+      "SELECT 'collision' as name",
+      "SELECT 'collision' as hostIdentifier",
+      "SELECT 'collision' as calendarTime",
+      "SELECT 'collision' as unixTime",
+      "SELECT 'collision' as columns",
+      "SELECT 'collision' as action"
+    ]
+  }
+}
+````
+
+Example output:
+
+````json
+{
+  "name": "collision",
+  "hostIdentifier": "collision",
+  "calendarTime": "collision",
+  "unixTime": "collision",
+  "action": "added",
+  "columns": {
+    "cpu_brand": "Intel(R) Core(TM) i7-4980HQ CPU @ 2.80GHz",
+    "hostname": "osquery.example.com",
+    "physical_memory": "1234567890"
+  }
+}
+````
 
 The `interval` type uses a map of interval 'periods' as keys, and the set of decorator queries for each value. Each of these intervals MUST be minute-intervals. Anything not divisible by 60 will generate a warning, and will not run.
 

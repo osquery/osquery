@@ -42,18 +42,18 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   }
 
   switch (PF_GET_OPTIONS(mode)) {
-  case PF_GET_OPTIONS(PF_CREATE_ALWAYS) :
+  case PF_GET_OPTIONS(PF_CREATE_ALWAYS):
     oflag |= O_CREAT;
     may_create = true;
     break;
-  case PF_GET_OPTIONS(PF_CREATE_NEW) :
+  case PF_GET_OPTIONS(PF_CREATE_NEW):
     oflag |= O_CREAT | O_EXCL;
     may_create = true;
     break;
-  case PF_GET_OPTIONS(PF_OPEN_EXISTING) :
+  case PF_GET_OPTIONS(PF_OPEN_EXISTING):
     check_existence = true;
     break;
-  case PF_GET_OPTIONS(PF_TRUNCATE) :
+  case PF_GET_OPTIONS(PF_TRUNCATE):
     if (mode & PF_WRITE) {
       oflag |= O_TRUNC;
     }
@@ -108,7 +108,7 @@ Status PlatformFile::isOwnerRoot() const {
   }
 
   uid_t owner_id = getFileOwner(handle_);
-  if (owner_id == (uid_t) - 1) {
+  if (owner_id == (uid_t)-1) {
     return Status(-1, "fstat error");
   }
 
@@ -124,7 +124,7 @@ Status PlatformFile::isOwnerCurrentUser() const {
   }
 
   uid_t owner_id = getFileOwner(handle_);
-  if (owner_id == (uid_t) - 1) {
+  if (owner_id == (uid_t)-1) {
     return Status(-1, "fstat error");
   }
 
@@ -245,7 +245,8 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
 size_t PlatformFile::size() const {
   struct stat file;
   if (::fstat(handle_, &file) < 0) {
-    return -1;
+    // This is an error case, but the size is not signed.
+    return 0;
   }
   return file.st_size;
 }
@@ -308,5 +309,6 @@ Status platformIsFileAccessible(const fs::path& path) {
   }
   return Status(0, "OK");
 }
-}
 
+bool platformIsatty(FILE* f) { return 0 != isatty(fileno(f)); }
+}

@@ -8,12 +8,12 @@
  *
  */
 
-#include "osquery/events/kernel.h"
-
 #include <osquery/config.h>
 #include <osquery/events.h>
-#include <osquery/logger.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
+
+#include "osquery/events/kernel.h"
 
 namespace osquery {
 

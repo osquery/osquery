@@ -54,15 +54,13 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
  * module call-in well defined symbol, declare their SDK constraints, then
  * use the REGISTER_MODULE call within `initModule`.
  */
-#define REGISTER_EXTERNAL(type, registry, name)                            \
-  __attribute__((constructor)) static void type##ExtensionRegistryItem() { \
-    Registry::add<type>(registry, name);                                   \
-  }
-
-/// Helper macro to write the `initModule` symbol without rewrites.
-#define DECLARE_MODULE(name)        \
-  extern "C" void initModule(void); \
-  __attribute__((constructor)) static void declareModule()
+#define REGISTER_EXTERNAL(type, registry, name)                               \
+  struct type##ExtensionRegistryItem : public InitializerInterface {          \
+    type##ExtensionRegistryItem(void) { registerPlugin(this); }               \
+    const char *id() const override { return registry "." name ; }            \
+    void run() const override { Registry::add<type>(registry, name); }        \
+  };                                                                          \
+  static type##ExtensionRegistryItem type##instance_;
 
 /**
  * @brief Create an osquery extension 'module'.
@@ -81,10 +79,16 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
  * known module-exported symbol is called.
  */
 #define CREATE_MODULE(name, version, min_sdk_version)         \
-  DECLARE_MODULE(name) {                                      \
-    Registry::declareModule(                                  \
-        name, version, min_sdk_version, OSQUERY_SDK_VERSION); \
-  }
+  extern "C" void initModule(void);                           \
+  struct osquery_InternalStructCreateModule {                 \
+    osquery_InternalStructCreateModule(void) {                \
+        Registry::declareModule(                              \
+            name, version, min_sdk_version,                   \
+            OSQUERY_SDK_VERSION);                             \
+    }                                                         \
+  };                                                          \
+  static osquery_InternalStructCreateModule                   \
+    osquery_internal_module_instance_;
 
 /**
  * @brief Create an osquery extension 'module', if an expression is true.
@@ -97,12 +101,18 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
  * defined. If defined the module is declared.
  */
 #define CREATE_MODULE_IF(expr, name, version, min_sdk_version)  \
-  DECLARE_MODULE(name) {                                        \
-    if ((expr)) {                                               \
-      Registry::declareModule(                                  \
-          name, version, min_sdk_version, OSQUERY_SDK_VERSION); \
+  extern "C" void initModule(void);                             \
+  struct osquery_InternalStructCreateModule {                   \
+    osquery_InternalStructCreateModule(void) {                  \
+        if ((expr)) {                                           \
+            Registry::declareModule(                            \
+                name, version, min_sdk_version,                 \
+                OSQUERY_SDK_VERSION);                           \
+        }                                                       \
     }                                                           \
-  }
+  };                                                            \
+  static osquery_InternalStructCreateModule                     \
+    osquery_internal_module_instance_;
 
 /// Helper replacement for REGISTER, used within extension modules.
 #define REGISTER_MODULE(type, registry, name) \

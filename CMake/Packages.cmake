@@ -2,8 +2,8 @@
 if(APPLE)
   add_custom_target(
     packages
-    COMMAND "${CMAKE_SOURCE_DIR}/tools/deployment/make_osx_package.sh"
-    COMMAND "${CMAKE_SOURCE_DIR}/tools/codegen/genapi.py" "${CMAKE_SOURCE_DIR}"
+    COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_osx_package.sh"
+    COMMAND python "${CMAKE_SOURCE_DIR}/tools/codegen/genapi.py" "${CMAKE_SOURCE_DIR}"
       "--output" "--directory" "${CMAKE_BINARY_DIR}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Building default OS X package (no custom config)" VERBATIM
@@ -143,10 +143,10 @@ elseif(LINUX)
 
   add_custom_target(
     packages
-    COMMAND "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
+    COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
       -t ${PACKAGE_TYPE} -i "${PACKAGE_ITERATION}"
       -d "${PACKAGE_DEPENDENCIES}"
-    COMMAND "${CMAKE_SOURCE_DIR}/tools/codegen/genapi.py" "${CMAKE_SOURCE_DIR}"
+    COMMAND python "${CMAKE_SOURCE_DIR}/tools/codegen/genapi.py" "${CMAKE_SOURCE_DIR}"
       "--output" "--directory" "${CMAKE_BINARY_DIR}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Building linux packages (no custom config)" VERBATIM
@@ -154,10 +154,12 @@ elseif(LINUX)
   )
 endif()
 
-# Add dependencies and additional package data based on optional components.
+if(NOT DEFINED KERNEL_BINARY)
+  message(FATAL_ERROR "Package related targets must be included after kernel")
+endif()
 
-if(NOT ${KERNEL_BINARY} STREQUAL "" AND
-    EXISTS "${CMAKE_BINARY_DIR}/kernel/${KERNEL_BINARY}")
+# Add dependencies and additional package data based on optional components.
+if(EXISTS "${CMAKE_BINARY_DIR}/kernel/${KERNEL_BINARY}")
   # The osquery kernel was built
   add_dependencies(packages kernel-build)
 endif()

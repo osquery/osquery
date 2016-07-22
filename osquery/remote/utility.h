@@ -16,6 +16,8 @@
 #include "osquery/remote/requests.h"
 #include "osquery/remote/transports/tls.h"
 
+#include "osquery/core/process.h"
+
 namespace osquery {
 
 DECLARE_string(tls_enroll_override);
@@ -203,7 +205,7 @@ class TLSRequestHelper : private boost::noncopyable {
       if (i == attempts) {
         break;
       }
-      ::sleep(i * i);
+      sleepFor(i * i);
     }
     return s;
   }

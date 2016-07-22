@@ -28,6 +28,9 @@ namespace alg = boost::algorithm;
 namespace osquery {
 namespace tables {
 
+/// Set of registers, x86 and x64, that we collect from crash logs
+const std::set<std::string> kRegisters = {
+    "eax", "edi", "ss", "ds", "rax", "rdi", "r8", "r12", "rip", "x0", "x4"};
 /// Location of the system application crash logs in OS X
 const std::string kDiagnosticReportsPath = "/Library/Logs/DiagnosticReports";
 /// Location of the user mobile devices crash logs in OS X
@@ -48,15 +51,7 @@ const std::map<std::string, std::string> kCrashDumpKeys = {
     {"Exception Type", "exception_type"},
     {"Exception Codes", "exception_codes"},
     {"Exception Note", "exception_notes"},
-    // Note: We leave these two in, as they ensure we don't skip over the
-    // register values in our check to ensure the token is a value we care
-    // about.
-    {"rax", "rax"},
-    {"rdi", "rdi"},
-    // Registers for mobile crashes
     {"Triggered by Thread", "crashed_thread"},
-    {"x0", "x0"},
-    {"x4", "x4"},
 };
 
 void readCrashDump(const std::string& app_log, Row& r) {
@@ -88,18 +83,23 @@ void readCrashDump(const std::string& app_log, Row& r) {
       continue;
     }
 
-    if (kCrashDumpKeys.count(toks[0]) == 0) {
+    if (kCrashDumpKeys.count(toks[0]) == 0 && kRegisters.count(toks[0]) == 0) {
       continue;
     }
 
     // Process and grab all register values
-    if (toks[0] == "rax" || toks[0] == "x0") {
-      std::string reg_str = *it + " " + *(++it);
+    if (kRegisters.count(toks[0]) > 0) {
+      boost::trim(line);
 
-      alg::replace_all(reg_str, ": ", ":");
-      alg::replace_all(reg_str, "   ", " ");
+      boost::regex rx_spaces("\\s+");
+      boost::regex rx_spaces_colon(":\\s+");
 
-      r["registers"] = std::move(reg_str);
+      line = boost::regex_replace(line, rx_spaces, " ");
+      line = boost::regex_replace(line, rx_spaces_colon, ":");
+
+      r["registers"] +=
+          (r["registers"].empty()) ? std::move(line) : " " + std::move(line);
+
     } else if (toks[0] == "Date/Time" && toks.size() >= 3) {
       // Reconstruct split date/time
       r[kCrashDumpKeys.at(toks[0])] = toks[1] + ":" + toks[2] + ":" + toks[3];

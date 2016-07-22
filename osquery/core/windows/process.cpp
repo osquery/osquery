@@ -75,6 +75,20 @@ bool PlatformProcess::kill() const {
   return (::TerminateProcess(id_, 0) != FALSE);
 }
 
+ProcessState PlatformProcess::checkStatus(int &status) const {
+  DWORD exit_code = 0;
+  if (!::GetExitCodeProcess(nativeHandle(), &exit_code)) {
+    return PROCESS_ERROR;
+  }
+
+  if (exit_code == STILL_ACTIVE) {
+    return PROCESS_STILL_ALIVE;
+  }
+
+  status = exit_code;
+  return PROCESS_EXITED;
+}
+
 std::shared_ptr<PlatformProcess> PlatformProcess::getCurrentProcess() {
   HANDLE handle =
       ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, ::GetCurrentProcessId());
@@ -99,11 +113,9 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
   try {
     handle = reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(
         std::stoull(*launcher_handle, nullptr, 16)));
-  }
-  catch (std::invalid_argument e) {
+  } catch (std::invalid_argument e) {
     return std::make_shared<PlatformProcess>();
-  }
-  catch (std::out_of_range e) {
+  } catch (std::out_of_range e) {
     return std::make_shared<PlatformProcess>();
   }
 
@@ -150,7 +162,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   // the current process. This is mostly used for detecting the death of the
   // launcher process in WatcherWatcherRunner::start
   if (!setEnvVar("OSQUERY_WORKER", "1") ||
-      !setEnvVar("OSQUERY_LAUNCHER", handle.c_str())) {
+      !setEnvVar("OSQUERY_LAUNCHER", handle)) {
     ::CloseHandle(hLauncherProcess);
 
     return std::shared_ptr<PlatformProcess>();
@@ -185,7 +197,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   mutable_argv.push_back('\0');
 
   BOOL status = ::CreateProcessA(exec_path.c_str(),
-                                 &mutable_argv[0],
+                                 mutable_argv.data(),
                                  NULL,
                                  NULL,
                                  TRUE,
@@ -250,7 +262,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   }
 
   BOOL status = ::CreateProcessA(exec_path.c_str(),
-                                 &mutable_argv[0],
+                                 mutable_argv.data(),
                                  NULL,
                                  NULL,
                                  TRUE,
@@ -272,4 +284,3 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   return process;
 }
 }
-

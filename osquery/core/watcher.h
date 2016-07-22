@@ -19,15 +19,11 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/database.h>
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 
 #include "osquery/core/process.h"
-
-/// Define a special debug/testing watchdog level.
-#define WATCHDOG_LEVEL_DEBUG 3
-/// Define the default watchdog level, level below are considered permissive.
-#define WATCHDOG_LEVEL_DEFAULT 1
 
 namespace osquery {
 
@@ -233,6 +229,7 @@ class WatcherLocker {
  public:
   /// Construct and gain watcher lock.
   WatcherLocker() { Watcher::lock(); }
+
   /// Destruct and release watcher lock.
   ~WatcherLocker() { Watcher::unlock(); }
 };
@@ -261,28 +258,57 @@ class WatcherRunner : public InternalRunnable {
  private:
   /// Dispatcher (this service thread's) entry point.
   void start();
+
   /// Boilerplate function to sleep for some configured latency
   bool ok();
+
   /// Begin the worker-watcher process.
-  bool watch(const PlatformProcess& child) const;
+  virtual bool watch(const PlatformProcess& child) const;
+
   /// Inspect into the memory, CPU, and other worker/extension process states.
-  bool isChildSane(const PlatformProcess& child) const;
+  virtual Status isChildSane(const PlatformProcess& child) const;
+
+  /// Inspect into the memory and CPU of the watcher process.
+  virtual Status isWatcherHealthy(const PlatformProcess& watcher,
+                                  PerformanceState& watcher_state) const;
+
+  /// Get row data from the processes table for a given pid.
+  virtual QueryData getProcessRow(pid_t pid) const;
 
  private:
   /// Fork and execute a worker process.
-  void createWorker();
+  virtual void createWorker();
+
   /// Fork an extension process.
-  bool createExtension(const std::string& extension);
+  virtual bool createExtension(const std::string& extension);
+
   /// If a worker/extension has otherwise gone insane, stop it.
-  void stopChild(const PlatformProcess& child) const;
+  virtual void stopChild(const PlatformProcess& child) const;
+
+ private:
+  /// For testing only, ask the WatcherRunner to run a start loop once.
+  void runOnce() { run_once_ = true; }
 
  private:
   /// Keep the invocation daemon's argc to iterate through argv.
   int argc_{0};
+
   /// When a worker child is spawned the argv will be scrubbed.
   char** argv_{nullptr};
+
   /// Spawn/monitor a worker process.
   bool use_worker_{false};
+
+  /// If set, the ::start method will run once and return.
+  bool run_once_{false};
+
+ private:
+  FRIEND_TEST(WatcherTests, test_watcherrunner_watch);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_stop);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_loop);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_loop_failure);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_loop_disabled);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_watcherhealth);
 };
 
 /// The WatcherWatcher is spawned within the worker and watches the watcher.
@@ -300,6 +326,5 @@ class WatcherWatcherRunner : public InternalRunnable {
 };
 
 /// Get a performance limit by name and optional level.
-size_t getWorkerLimit(WatchdogLimitType limit, int level = -1);
+size_t getWorkerLimit(WatchdogLimitType limit);
 }
-

@@ -10,7 +10,13 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <math.h>
+
+#ifdef WIN32
+#define _USE_MATH_DEFINES
+#endif
+
+#include <cmath>
+
 #include <string.h>
 
 #include <functional>
@@ -20,6 +26,24 @@
 namespace osquery {
 
 using DoubleDoubleFunction = std::function<double(double)>;
+
+// force use of the double(double) math functions
+// without these lambda functions, MSVC will error
+// because it fails to select an overload compatible with
+// DoubleDoubleFunction
+#define SIN_FUNC    [](double a)->double { return sin(a);    }
+#define COS_FUNC    [](double a)->double { return cos(a);    }
+#define TAN_FUNC    [](double a)->double { return tanl(a);   }
+#define ASIN_FUNC   [](double a)->double { return asin(a);   }
+#define ACOS_FUNC   [](double a)->double { return acos(a);   }
+#define ATAN_FUNC   [](double a)->double { return atan(a);   }
+#define LOG_FUNC    [](double a)->double { return log(a);    }
+#define LOG10_FUNC  [](double a)->double { return log10(a);  }
+#define SQRT_FUNC   [](double a)->double { return sqrt(a);   }
+#define EXP_FUNC    [](double a)->double { return expl(a);   }
+#define CEIL_FUNC   [](double a)->double { return ceil(a);   }
+#define FLOOR_FUNC  [](double a)->double { return floor(a);  }
+
 
 /**
  * @brief Call a math function that takes a double and returns a double.
@@ -48,27 +72,27 @@ static void callDoubleFunc(sqlite3_context *context,
 }
 
 static void sinFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, sin);
+  callDoubleFunc(context, argc, argv, SIN_FUNC);
 }
 
 static void cosFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, cos);
+  callDoubleFunc(context, argc, argv, COS_FUNC);
 }
 
 static void tanFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, tan);
+  callDoubleFunc(context, argc, argv, TAN_FUNC);
 }
 
 static void asinFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, asin);
+  callDoubleFunc(context, argc, argv, ASIN_FUNC);
 }
 
 static void acosFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, acos);
+  callDoubleFunc(context, argc, argv, ACOS_FUNC);
 }
 
 static void atanFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, atan);
+  callDoubleFunc(context, argc, argv, ATAN_FUNC);
 }
 
 static double cot(double x) { return 1.0 / tan(x); }
@@ -78,21 +102,21 @@ static void cotFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
 }
 
 static void logFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, log);
+  callDoubleFunc(context, argc, argv, LOG_FUNC);
 }
 
 static void log10Func(sqlite3_context *context,
                       int argc,
                       sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, log10);
+  callDoubleFunc(context, argc, argv, LOG10_FUNC);
 }
 
 static void sqrtFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, sqrt);
+  callDoubleFunc(context, argc, argv, SQRT_FUNC);
 }
 
 static void expFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callDoubleFunc(context, argc, argv, exp);
+  callDoubleFunc(context, argc, argv, EXP_FUNC);
 }
 
 static void powerFunc(sqlite3_context *context,
@@ -143,13 +167,13 @@ static void callCastedDoubleFunc(sqlite3_context *context,
 }
 
 static void ceilFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  callCastedDoubleFunc(context, argc, argv, ceil);
+  callCastedDoubleFunc(context, argc, argv, CEIL_FUNC);
 }
 
 static void floorFunc(sqlite3_context *context,
                       int argc,
                       sqlite3_value **argv) {
-  callCastedDoubleFunc(context, argc, argv, floor);
+  callCastedDoubleFunc(context, argc, argv, FLOOR_FUNC);
 }
 
 /** Convert Degrees into Radians */
@@ -203,3 +227,4 @@ void registerMathExtensions(sqlite3 *db) {
   }
 }
 }
+

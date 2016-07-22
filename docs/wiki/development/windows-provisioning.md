@@ -14,7 +14,7 @@ The PowerShell script `provision.ps1` is used to prepare a clean Windows 10 64 b
  * Open a new *Command Prompt*
  * Execute the following command: `git clone https://github.com/facebook/osquery`
  * Change into the **osquery** root directory: `cd osquery`
- * **As an _Administrator_,** run the batch script to provision a Windows 10 64 bit development environment: `make-win64-dev-env.bat`
+ * **As an _Administrator_,** run the batch script to provision a Windows 10 64 bit development environment: `tools\make-win64-dev-env.bat`
  * After completion, create the build folder: `mkdir build\windows10`
  * Change into the recently created build folder: `cd build\windows10`
  * Generate the Visual Studio 2015 solution files: `cmake ..\.. -G "Visual Studio 14 2015 Win64"`

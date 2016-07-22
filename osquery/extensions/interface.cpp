@@ -8,8 +8,10 @@
  *
  */
 
+#include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/extensions/interface.h"
 
@@ -54,6 +56,12 @@ void ExtensionHandler::call(ExtensionResponse& _return,
       _return.response.push_back(response_item);
     }
   }
+}
+
+void ExtensionHandler::shutdown() {
+  // Request a graceful shutdown of the Thrift listener.
+  VLOG(1) << "Extension " << uuid_ << " requested shutdown";
+  Initializer::requestShutdown(EXIT_SUCCESS);
 }
 
 void ExtensionManagerHandler::extensions(InternalExtensionList& _return) {

@@ -21,11 +21,24 @@ namespace osquery {
 
 FLAG(bool, disable_decorators, false, "Disable log result decoration");
 
+FLAG(bool,
+     decorations_top_level,
+     false,
+     "Add decorators as top level JSON objects");
+
 /// Statically define the parser name to avoid mistakes.
 #define PARSER_NAME "decorators"
 
+const std::map<DecorationPoint, std::string> kDecorationPointKeys = {
+    {DECORATE_LOAD, "load"},
+    {DECORATE_ALWAYS, "always"},
+    {DECORATE_INTERVAL, "interval"},
+};
+
 using KeyValueMap = std::map<std::string, std::string>;
 using DecorationStore = std::map<std::string, KeyValueMap>;
+
+namespace {
 
 /**
  * @brief A simple ConfigParserPlugin for a "decorators" dictionary key.
@@ -85,6 +98,7 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
   /// Protect additions to the decorator set.
   static Mutex kDecorationsMutex;
 };
+}
 
 DecorationStore DecoratorsConfigParserPlugin::kDecorations;
 Mutex DecoratorsConfigParserPlugin::kDecorationsMutex;

@@ -308,6 +308,17 @@ Status logSnapshotQuery(const QueryLogItem& item);
 void relayStatusLogs();
 
 /**
+ * @brief Write a log line to the OS system log.
+ *
+ * There are occasional needs to log independently of the osquery logging
+ * facilities. This allows a feature (not a table) to bypass all osquery
+ * configuration and log to the OS system log.
+ *
+ * Linux/Darwin: this uses syslog's LOG_NOTICE.
+ */
+void systemLog(const std::string& line);
+
+/**
  * @brief Logger plugin registry.
  *
  * This creates an osquery registry for "logger" which may implement

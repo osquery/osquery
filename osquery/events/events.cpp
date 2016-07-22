@@ -21,10 +21,14 @@
 #include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
 
 namespace osquery {
+
+CREATE_REGISTRY(EventPublisherPlugin, "event_publisher");
+CREATE_REGISTRY(EventSubscriberPlugin, "event_subscriber");
 
 /// Checkpoint interval to inspect max event buffering.
 #define EVENTS_CHECKPOINT 256

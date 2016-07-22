@@ -18,7 +18,7 @@ set(OSQUERY_TABLES_TESTS "")
 # TODO(WIN64): Changes for Win64 CMake
 if(WIN32)
   add_compile_options(
-    /Wall
+    /W3
   )
 else()
   add_compile_options(
@@ -31,7 +31,9 @@ endif()
 if(WIN32)
   set(OS_CORE_LIBS
     netapi32.lib
+    rpcrt4.lib
     shlwapi.lib
+    wbemuuid.lib
   )
 else()
   set(OS_CORE_LIBS
@@ -127,14 +129,17 @@ add_subdirectory(core)
 add_subdirectory(database)
 add_subdirectory(devtools)
 add_subdirectory(dispatcher)
-add_subdirectory(distributed)
 add_subdirectory(events)
 add_subdirectory(extensions)
 add_subdirectory(filesystem)
 add_subdirectory(logger)
 add_subdirectory(registry)
-add_subdirectory(remote)
 add_subdirectory(sql)
+
+if(NOT WIN32)
+  add_subdirectory(distributed)
+  add_subdirectory(remote)
+endif()
 
 if(NOT ENV{SKIP_TABLES})
   add_subdirectory(tables)
@@ -194,9 +199,12 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   TARGET_OSQUERY_LINK_WHOLE(shell libosquery_additional)
   SET_OSQUERY_COMPILE(shell "${CXX_COMPILE_FLAGS}")
   set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
+  if(WIN32)
+    target_link_libraries(shell "linenoise.lib")
+  endif()
   add_dependencies(shell osquery_tools)
 
-  add_executable(daemon main/daemon.cpp)
+  add_executable(daemon main/${PROCESS_FAMILY}/daemon.cpp)
   TARGET_OSQUERY_LINK_WHOLE(daemon libosquery)
   TARGET_OSQUERY_LINK_WHOLE(daemon libosquery_additional)
   SET_OSQUERY_COMPILE(daemon "${CXX_COMPILE_FLAGS}")
@@ -249,17 +257,17 @@ if(NOT DEFINED ENV{SKIP_TESTS})
   # osquery core set of unit tests build with SDK.
   add_executable(osquery_tests main/tests.cpp ${OSQUERY_TESTS})
   TARGET_OSQUERY_LINK_WHOLE(osquery_tests libosquery)
-  target_link_libraries(osquery_tests gtest libosquery_testing)
-  SET_OSQUERY_COMPILE(osquery_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=0")
+  target_link_libraries(osquery_tests gtest gmock libosquery_testing)
+  SET_OSQUERY_COMPILE(osquery_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=1")
   add_test(osquery_tests osquery_tests)
 
   # osquery kernel tests.
-  if(NOT ${OSQUERY_BUILD_SDK_ONLY})
+  if(NOT ${OSQUERY_BUILD_SDK_ONLY} AND NOT WIN32)
     add_executable(osquery_kernel_tests main/tests.cpp ${OSQUERY_KERNEL_TESTS})
     TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery)
     TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery_additional)
-    target_link_libraries(osquery_kernel_tests gtest libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_kernel_tests "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1 -DGTEST_HAS_TR1_TUPLE=0")
+    target_link_libraries(osquery_kernel_tests gtest gmock libosquery_testing)
+    SET_OSQUERY_COMPILE(osquery_kernel_tests "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1 -DGTEST_HAS_TR1_TUPLE=1")
   endif()
 
   # osquery benchmarks.
@@ -300,8 +308,8 @@ if(NOT DEFINED ENV{SKIP_TESTS})
     add_executable(osquery_tables_tests main/tests.cpp ${OSQUERY_TABLES_TESTS})
     TARGET_OSQUERY_LINK_WHOLE(osquery_tables_tests libosquery)
     TARGET_OSQUERY_LINK_WHOLE(osquery_tables_tests libosquery_additional)
-    target_link_libraries(osquery_tables_tests gtest libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_tables_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=0")
+    target_link_libraries(osquery_tables_tests gtest gmock libosquery_testing)
+    SET_OSQUERY_COMPILE(osquery_tables_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=1")
     add_test(osquery_tables_tests osquery_tables_tests)
   endif()
 

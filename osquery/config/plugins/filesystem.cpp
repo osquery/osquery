@@ -18,12 +18,13 @@
 #include <osquery/logger.h>
 
 namespace fs = boost::filesystem;
+namespace errc = boost::system::errc;
 
 namespace osquery {
 
 CLI_FLAG(string,
          config_path,
-         "/var/osquery/osquery.conf",
+         OSQUERY_HOME "/osquery.conf",
          "Path to JSON config file");
 
 class FilesystemConfigPlugin : public ConfigPlugin {
@@ -38,7 +39,9 @@ REGISTER(FilesystemConfigPlugin, "config", "filesystem");
 
 Status FilesystemConfigPlugin::genConfig(
     std::map<std::string, std::string>& config) {
-  if (!fs::is_regular_file(FLAGS_config_path)) {
+  boost::system::error_code ec;
+  if (!fs::is_regular_file(FLAGS_config_path, ec) ||
+      ec.value() != errc::success) {
     return Status(1, "config file does not exist: " + FLAGS_config_path);
   }
 
@@ -60,7 +63,8 @@ Status FilesystemConfigPlugin::genConfig(
 Status FilesystemConfigPlugin::genPack(const std::string& name,
                                        const std::string& value,
                                        std::string& pack) {
-  if (!fs::is_regular_file(value)) {
+  boost::system::error_code ec;
+  if (!fs::is_regular_file(value, ec) || ec.value() != errc::success) {
     return Status(1, value + " is not a valid path");
   }
   return readFile(value, pack);

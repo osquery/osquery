@@ -8,6 +8,8 @@
  *
  */
 
+#pragma once
+
 #include <memory>
 
 #include <aws/core/Region.h>

@@ -22,6 +22,8 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+CREATE_REGISTRY(DistributedPlugin, "distributed");
+
 FLAG(string, distributed_plugin, "tls", "Distributed plugin name");
 
 FLAG(bool,
@@ -121,6 +123,8 @@ void Distributed::addResult(const DistributedQueryResult& result) {
 Status Distributed::runQueries() {
   while (getPendingQueryCount() > 0) {
     auto query = popRequest();
+    VLOG(1) << "Executing distributed query[" << query.id
+            << "]: " << query.query;
 
     auto sql = SQL(query.query);
     if (!sql.getStatus().ok()) {

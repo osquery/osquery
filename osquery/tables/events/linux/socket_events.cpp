@@ -12,6 +12,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/audit.h"
@@ -21,15 +22,25 @@ namespace osquery {
 #define AUDIT_SYSCALL_BIND 49
 #define AUDIT_SYSCALL_CONNECT 42
 
+FLAG(bool,
+     audit_allow_sockets,
+     false,
+     "Allow the audit publisher to install socket-related rules");
+
 // Depend on the external getUptime table method.
 namespace tables {
 extern long getUptime();
 }
 
+// Depend on the external decodeAuditValue audit-related process events method.
+extern std::string decodeAuditValue(const std::string& s);
+
 class SocketEventSubscriber : public EventSubscriber<AuditEventPublisher> {
  public:
-  /// Decorating syscall events with socket information on Linux is expensive.
-  SocketEventSubscriber() : EventSubscriber(false) {}
+  /// This subscriber depends on a configuration boolean.
+  Status setUp() override {
+    return Status((FLAGS_audit_allow_sockets) ? 0 : 1);
+  }
 
   /// The process event subscriber declares an audit event type subscription.
   Status init() override;
@@ -146,7 +157,7 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
   }
 
   row_["pid"] = ec->fields["pid"];
-  row_["path"] = ec->fields["exe"];
+  row_["path"] = decodeAuditValue(ec->fields["exe"]);
   // TODO: This is a hex value.
   row_["fd"] = ec->fields["a0"];
   // The open/bind success status.

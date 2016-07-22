@@ -75,6 +75,10 @@ function main() {
     log "detected freebsd ($DISTRO)"
     source "$SCRIPT_DIR/provision/freebsd.sh"
     main_freebsd
+  elif [[ $OS = "arch" ]]; then
+    log "detected arch ($DISTRO)"
+    source "$SCRIPT_DIR/provision/arch.sh"
+    main_arch
   elif [[ $OS = "fedora" ]]; then
     log "detected fedora ($DISTRO)"
     source "$SCRIPT_DIR/provision/fedora.sh"
@@ -92,6 +96,8 @@ function main() {
   # Pip may have just been installed.
   PIP=`which pip`
   sudo $PIP install --upgrade pip
+  # Previos command may change pip path (/usr/bin/pip to /usr/bin/local/pip)
+  PIP=`which pip`
   sudo $PIP install -r requirements.txt
 
   initialize $OS

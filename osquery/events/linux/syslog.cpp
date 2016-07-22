@@ -203,7 +203,7 @@ time_t SyslogEventPublisher::parseTimeString(const std::string& time_str) {
 }
 
 bool SyslogEventPublisher::shouldFire(const SyslogSubscriptionContextRef& sc,
-                                     const SyslogEventContextRef& ec) const {
+                                      const SyslogEventContextRef& ec) const {
   return true;
 }
 }

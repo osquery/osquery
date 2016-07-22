@@ -13,6 +13,7 @@
 #include <osquery/config.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 #include "osquery/events/linux/audit.h"
 

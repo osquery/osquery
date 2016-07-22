@@ -90,9 +90,10 @@ void loadKernelExtension() {
   if (KextManagerLoadKextWithIdentifier(kKernelBundleId, directoryArray) !=
       kOSReturnSuccess) {
     LOG(INFO) << "Could not autoload kernel extension";
+  } else {
+    VLOG(1) << "Autoloaded osquery kernel extension";
   }
   CFRelease(directoryArray);
-  VLOG(1) << "Autoloaded osquery kernel extension";
 }
 
 } // namespace osquery
