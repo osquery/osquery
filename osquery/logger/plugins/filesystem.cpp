@@ -80,7 +80,7 @@ REGISTER(FilesystemLoggerPlugin, "logger", "filesystem");
 
 Status FilesystemLoggerPlugin::setUp() {
   log_path_ = fs::path(FLAGS_logger_path);
-  
+
   // Ensure that the Glog status logs use the same mode as our results log.
   // Glog 0.3.4 does not support a logfile mode.
   // FLAGS_logfile_mode = FLAGS_logger_mode;

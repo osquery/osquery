@@ -176,7 +176,6 @@ void signalHandler(int num) {
     // managed extension processes.
   }
 }
-
 }
 }
 

@@ -22,6 +22,8 @@
 #include "osquery/dispatcher/distributed.h"
 #include "osquery/dispatcher/scheduler.h"
 
+namespace osquery {
+
 const std::string kServiceName = "osquery daemon service";
 const std::string kWatcherWorkerName = "osqueryd: worker";
 
@@ -33,16 +35,16 @@ static SERVICE_STATUS_HANDLE kStatusHandle = nullptr;
 static SERVICE_STATUS kServiceStatus = { 0 };
 
 /// Logging for when we need to debug this service
-#define SLOG(...)  DebugPrintf("[osqueryd] " __VA_ARGS__)
+#define SLOG(...)  ::osquery::DebugPrintf("[osqueryd] " __VA_ARGS__)
 
 void DebugPrintf(const char *fmt, ...) {
   va_list vl;
   va_start(vl, fmt);
 
   int size = _vscprintf(fmt, vl);
-  if (size) {
+  if (size > 0) {
     char *buf = (char *)::HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size + 2);
-    if (buf) {
+    if (buf != nullptr) {
       _vsprintf_p(buf, size + 1, fmt, vl);
       ::OutputDebugStringA(buf);
       ::HeapFree(GetProcessHeap(), 0, buf);
@@ -156,10 +158,11 @@ void WINAPI ServiceMain(DWORD argc, LPSTR *argv) {
 
   UpdateServiceStatus(0, SERVICE_STOPPED, 0, 3);
 }
+}
 
 int main(int argc, char *argv[]) {
   SERVICE_TABLE_ENTRYA serviceTable[] = {
-      {(LPSTR)kServiceName.c_str(), (LPSERVICE_MAIN_FUNCTION)ServiceMain},
+      {(LPSTR)osquery::kServiceName.c_str(), (LPSERVICE_MAIN_FUNCTION)osquery::ServiceMain},
       {nullptr, nullptr}};
 
   if (!::StartServiceCtrlDispatcherA(serviceTable)) {
@@ -169,7 +172,7 @@ int main(int argc, char *argv[]) {
       // usually indicates that the process was not started as a service.
       // Therefore, it must've been started from the commandline or as a child
       // process
-      daemonEntry(argc, argv);
+      osquery::daemonEntry(argc, argv);
     } else {
       // An actual error has occurred at this point
       SLOG("StartServiceCtrlDispatcherA error (lasterror=%i)",

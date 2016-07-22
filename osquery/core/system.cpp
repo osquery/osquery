@@ -68,13 +68,13 @@ FLAG(bool, utc, false, "Convert all UNIX times to UTC");
 
 #ifdef WIN32
 struct tm *gmtime_r(time_t *t, struct tm *result) {
-	_gmtime64_s(result, t);
-	return result;
+  _gmtime64_s(result, t);
+  return result;
 }
 
 struct tm *localtime_r(time_t *t, struct tm *result) {
-	_localtime64_s(result, t);
-	return result;
+  _localtime64_s(result, t);
+  return result;
 }
 #endif
 
@@ -175,7 +175,6 @@ size_t getUnixTime() {
 }
 
 #ifndef WIN32
-
 Status checkStalePid(const std::string& content) {
   int pid;
   try {

@@ -40,12 +40,15 @@
 
 #if defined(__linux__)
 #define OSQUERY_HOME "/etc/osquery"
+#define OSQUERY_DB_HOME "/var/osquery"
 #define OSQUERY_LOG_HOME "/var/log/osquery/"
 #elif defined(WIN32)
 #define OSQUERY_HOME "\\ProgramData\\osquery"
+#define OSQUERY_DB_HOME OSQUERY_HOME
 #define OSQUERY_LOG_HOME "\\ProgramData\\osquery\\log\\"
 #else
 #define OSQUERY_HOME "/var/osquery"
+#define OSQUERY_DB_HOME OSQUERY_HOME
 #define OSQUERY_LOG_HOME "/var/log/osquery/"
 #endif
 
