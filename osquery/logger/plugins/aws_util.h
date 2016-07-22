@@ -83,8 +83,8 @@ class OsqueryFlagsAWSCredentialsProvider
 /**
  * @brief AWS credentials provider that uses STS assume role auth
  *
- * This provider deligates temp AWS STS credentials via assume role
- * for and AWS arn.
+ * This provider delegates temp AWS STS credentials via assume role
+ * for an AWS arn.
  */
 class OsquerySTSAWSCredentialsProvider
     : public Aws::Auth::AWSCredentialsProvider {
