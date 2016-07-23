@@ -79,6 +79,10 @@ function main() {
     log "detected arch ($DISTRO)"
     source "$SCRIPT_DIR/provision/arch.sh"
     main_arch
+  elif [[ $OS = "manjaro" ]]; then
+    log "detected manjaro ($DISTRO)"
+    source "$SCRIPT_DIR/provision/manjaro.sh"
+    main_manjaro
   elif [[ $OS = "fedora" ]]; then
     log "detected fedora ($DISTRO)"
     source "$SCRIPT_DIR/provision/fedora.sh"

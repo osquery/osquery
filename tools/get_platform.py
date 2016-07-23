@@ -62,6 +62,9 @@ def _platform():
                 if fileContents.find("DISTRIB_ID=Arch") != -1:
                     return ("arch", "arch")
 
+                if fileContents.find("DISTRIB_ID=ManjaroLinux") != -1:
+                    return ("arch", "manjaro")
+
         if os.path.exists(DEBIAN_VERSION):
             return ("debian", "debian")
     else:
@@ -126,6 +129,12 @@ def _distro(osType):
           results = contents.split()
           if len(results) > 2:
             return results[2]
+    elif osType == "manjaro":
+        with open(LSB_RELEASE, "r") as fd:
+            contents = fd.read()
+            results = re.findall(r'DISTRIB_CODENAME=(.*)', contents)
+            if len(results) == 1:
+                return results[0]
     elif osType == "debian":
         result = commandOutput(["lsb_release", "-cs"])
         if result is not None:
