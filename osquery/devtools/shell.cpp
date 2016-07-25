@@ -141,30 +141,21 @@ static sqlite3_int64 timeOfDay(void) {
 
 // Saved resource information for the beginning of an operation
 #ifdef WIN32
-static ULARGE_INTEGER sKernelTimeBegin;
-static ULARGE_INTEGER sUserTimeBegin;
-#else
-static struct rusage sBegin; // CPU time at start
+struct rusage {
+  FILETIME ru_utime;
+  FILETIME ru_stime;
+};
 #endif
 
+static struct rusage sBegin; // CPU time at start
 static sqlite3_int64 iBegin; // Wall-clock time at start
 
 static void beginTimer(void) {
   if (enableTimer) {
 #ifdef WIN32
-    FILETIME ftCreation = {0};
-    FILETIME ftExit = {0};
-    FILETIME ftKernel = {0};
-    FILETIME ftUser = {0};
-
-    ::GetProcessTimes(::GetCurrentProcess(), &ftCreation, &ftExit, &ftKernel,
-                      &ftUser);
-
-    sKernelTimeBegin.HighPart = ftKernel.dwHighDateTime;
-    sKernelTimeBegin.LowPart = ftKernel.dwLowDateTime;
-
-    sUserTimeBegin.HighPart = ftUser.dwHighDateTime;
-    sUserTimeBegin.LowPart = ftUser.dwLowDateTime;
+    FILETIME ftCreation, ftExit;
+    ::GetProcessTimes(::GetCurrentProcess(), &ftCreation, &ftExit,
+                      &sBegin.ru_stime, &sBegin.ru_utime);
 #else
     getrusage(RUSAGE_SELF, &sBegin);
 #endif
@@ -175,8 +166,17 @@ static void beginTimer(void) {
 
 // Return the difference of two time_structs in seconds
 #ifdef WIN32
-static double timeDiff(ULARGE_INTEGER *pStart, ULARGE_INTEGER *pEnd) {
-  return (pEnd->QuadPart - pStart->QuadPart) * 0.0001;
+static double timeDiff(FILETIME *pStart, FILETIME *pEnd) {
+  ULARGE_INTEGER start, end;
+
+  start.HighPart = pStart->dwHighDateTime;
+  start.LowPart = pStart->dwLowDateTime;
+
+  end.HighPart = pEnd->dwHighDateTime;
+  end.LowPart = pEnd->dwLowDateTime;
+
+  // start, end are in units of 100 nanoseconds
+  return (end.QuadPart - start.QuadPart) * 0.0000001;
 }
 #else
 static double timeDiff(struct timeval *pStart, struct timeval *pEnd) {
@@ -189,35 +189,19 @@ static double timeDiff(struct timeval *pStart, struct timeval *pEnd) {
 static void endTimer(void) {
   if (enableTimer) {
     sqlite3_int64 iEnd = timeOfDay();
+    struct rusage sEnd;
+
 #ifdef WIN32
-    ULARGE_INTEGER sKernelTimeEnd = {0};
-    ULARGE_INTEGER sUserTimeEnd = {0};
-
-    FILETIME ftCreation = {0};
-    FILETIME ftExit = {0};
-    FILETIME ftKernel = {0};
-    FILETIME ftUser = {0};
-
-    ::GetProcessTimes(::GetCurrentProcess(), &ftCreation, &ftExit, &ftKernel,
-                      &ftUser);
-
-    sKernelTimeEnd.HighPart = ftKernel.dwHighDateTime;
-    sKernelTimeEnd.LowPart = ftKernel.dwLowDateTime;
-
-    sUserTimeEnd.HighPart = ftUser.dwHighDateTime;
-    sUserTimeEnd.LowPart = ftUser.dwLowDateTime;
+    FILETIME ftCreation, ftExit;
+    ::GetProcessTimes(::GetCurrentProcess(), &ftCreation, &ftExit,
+                      &sEnd.ru_stime, &sEnd.ru_utime);
+#else
+    getrusage(RUSAGE_SELF, &sEnd);
+#endif
 
     printf("Run Time: real %.3f user %f sys %f\n", (iEnd - iBegin) * 0.001,
-           timeDiff(&sUserTimeBegin, &sUserTimeEnd),
-           timeDiff(&sKernelTimeBegin, &sKernelTimeEnd));
-#else
-    struct rusage sEnd;
-    getrusage(RUSAGE_SELF, &sEnd);
-    printf("Run Time: real %.3f user %f sys %f\n",
-           (iEnd - iBegin) * 0.001,
            timeDiff(&sBegin.ru_utime, &sEnd.ru_utime),
            timeDiff(&sBegin.ru_stime, &sEnd.ru_stime));
-#endif
   }
 }
 
