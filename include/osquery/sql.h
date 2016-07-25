@@ -181,7 +181,7 @@ class SQLPlugin : public Plugin {
  *   }
  * @endcode
  *
- * @param q the query to execute
+ * @param query the query to execute
  * @param results A QueryData structure to emit result rows on success.
  * @return A status indicating query success.
  */
