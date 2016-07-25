@@ -129,7 +129,7 @@ class LoggerPlugin : public Plugin {
   /**
    * @brief A feature method to decide if Glog should stop handling statuses.
    *
-   * Return true if this logger plugin's ::logStatus method should handle Glog
+   * Return true if this logger plugin's #logStatus method should handle Glog
    * statuses exclusively. If true then Glog will stop writing status lines
    * to the configured log path.
    *
@@ -241,7 +241,7 @@ void initLogger(const std::string& name, bool forward_all = false);
  * Note that this method should only be used to log results. If you'd like to
  * log normal osquery operations, use Google Logging.
  *
- * @param s the string to log
+ * @param message the string to log
  * @param category a category/metadata key
  *
  * @return Status indicating the success or failure of the operation
@@ -286,7 +286,7 @@ Status logQueryLogItem(const QueryLogItem& item, const std::string& receiver);
 /**
  * @brief Log raw results from a query (or a snapshot scheduled query).
  *
- * @param results the unmangled results from the query planner.
+ * @param item the unmangled results from the query planner.
  *
  * @return Status indicating the success or failure of the operation
  */

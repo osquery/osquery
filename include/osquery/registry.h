@@ -182,7 +182,7 @@ class Plugin : private boost::noncopyable {
   /// Allow the plugin to introspect into the registered name (for logging).
   void setName(const std::string& name) { name_ = name; }
 
-  /// Force callsites to use ::getName to access the plugin item's name.
+  /// Force callsites to use #getName to access the plugin item's name.
   virtual const std::string& getName() const { return name_; }
 
  public:
@@ -424,6 +424,7 @@ class RegistryHelper : public RegistryHelperCore {
    * @endcode
    *
    * @param item_name An identifier for this registry plugin.
+   * @param internal If true, the plugin does not broadcast.
    * @return A success/failure status.
    */
   template <class Item>
@@ -479,7 +480,6 @@ class RegistryHelper : public RegistryHelperCore {
    * @brief Add an existing plugin to this registry, used for testing only.
    *
    * @param item A PluginType-cased registry item.
-   * @param item_name An identifier for this registry plugin.
    * @return A success/failure status.
    */
   Status add(const std::shared_ptr<RegistryType>& item) {
@@ -509,7 +509,7 @@ using PluginRegistryHelper = RegistryHelper<Plugin>;
 using PluginRegistryHelperRef = std::shared_ptr<PluginRegistryHelper>;
 
 /**
- * @basic A workflow manager for opening a module path and appending to the
+ * @brief A workflow manager for opening a module path and appending to the
  * core registry.
  *
  * osquery Registry modules are part of the extensions API, in that they use

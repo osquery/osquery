@@ -44,9 +44,11 @@ const std::string kSQLGlobRecursive = kSQLGlobWildcard + kSQLGlobWildcard;
  * @brief Read a file from disk.
  *
  * @param path the path of the file that you would like to read.
+ * @param size Number of bytes to read from file.
  * @param content a reference to a string which will be populated with the
  * contents of the path indicated by the path parameter.
  * @param dry_run do not actually read the file content.
+ * @param preserve_time Attempt to preserve file mtime and atime
  *
  * @return an instance of Status, indicating success or failure.
  */
@@ -190,6 +192,8 @@ Status resolveFilePattern(const boost::filesystem::path& pattern,
  * For example: /tmp/% becomes /private/tmp/% on OS X systems. And /tmp/%.
  *
  * @param pattern the input and output filesystem glob pattern.
+ * @param limits osquery::GlobLimits to apply (currently only recognizes
+ * osquery::GLOB_NO_CANON)
  */
 void replaceGlobWildcards(std::string& pattern, GlobLimits limits = GLOB_ALL);
 
@@ -254,7 +258,7 @@ Status parseJSON(const boost::filesystem::path& path,
 /**
  * @brief Parse JSON content into a property tree.
  *
- * @param path JSON string data.
+ * @param content JSON string data.
  * @param tree output property tree.
  *
  * @return an instance of Status, indicating success or failure if malformed.

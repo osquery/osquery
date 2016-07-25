@@ -135,6 +135,7 @@ class Config : private boost::noncopyable {
   /**
    * @brief Add a file
    *
+   * @param source source of config file
    * @param category is the category which the file exists in
    * @param path is the file path to add
    */
@@ -449,8 +450,8 @@ class ConfigParserPlugin : public Plugin {
   /**
    * @brief Return a list of top-level config keys to receive in updates.
    *
-   * The ::update method will receive a map of these keys with a JSON-parsed
-   * property tree of configuration data.
+   * The ConfigParserPlugin::update method will receive a map of these keys
+   * with a JSON-parsed property tree of configuration data.
    *
    * @return A list of string top-level JSON keys.
    */
@@ -464,6 +465,7 @@ class ConfigParserPlugin : public Plugin {
    * update. Every config parser will receive a map of merged data for each key
    * they requested in keys().
    *
+   * @param source source of the config data
    * @param config A JSON-parsed property tree map.
    * @return Failure if the parser should no longer receive updates.
    */
@@ -477,8 +479,8 @@ class ConfigParserPlugin : public Plugin {
    * @brief Accessor for parser-manipulated data.
    *
    * Parsers should be used generically, for places within the code base that
-   * request a parser (check for its existence), should only use this ::getData
-   * accessor.
+   * request a parser (check for its existence), should only use this
+   * ConfigParserPlugin::getData accessor.
    *
    * More complex parsers that require dynamic casting are not recommended.
    */
