@@ -226,14 +226,16 @@ void loadExtensions() {
 
   // Optionally autoload extensions, sanitize the binary path and inform
   // the osquery watcher to execute the extension when started.
-  auto status = loadExtensions(FLAGS_extensions_autoload);
+  auto status = loadExtensions(
+      fs::path(FLAGS_extensions_autoload).make_preferred().string());
   if (!status.ok()) {
     VLOG(1) << "Could not autoload extensions: " << status.what();
   }
 }
 
 void loadModules() {
-  auto status = loadModules(FLAGS_modules_autoload);
+  auto status =
+      loadModules(fs::path(FLAGS_modules_autoload).make_preferred().string());
   if (!status.ok()) {
     VLOG(1) << "Could not autoload modules: " << status.what();
   }

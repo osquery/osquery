@@ -277,7 +277,7 @@ struct ConstraintList : private boost::noncopyable {
    */
   template <typename T>
   bool matches(const T& expr) const {
-    return matches(TEXT(expr));
+    return matches(SQL_TEXT(expr));
   }
 
   /**

@@ -174,7 +174,7 @@ Status RocksDBDatabasePlugin::setUp() {
 
   // Consume the current settings.
   // A configuration update may change them, but that does not affect state.
-  path_ = FLAGS_database_path;
+  path_ = fs::path(FLAGS_database_path).make_preferred().string();
   in_memory_ = FLAGS_database_in_memory;
 
   if (in_memory_) {
