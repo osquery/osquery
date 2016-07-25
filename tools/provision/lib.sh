@@ -635,7 +635,7 @@ function package() {
       log "installing $1"
       sudo pkg install -y $1
     fi
-  elif [[ $OS = "arch" ]]; then
+  elif [ $OS = "arch" ] || [ $OS = "manjaro" ]; then
     if pacman -Qq $1 >/dev/null; then
       log "$1 is already installed. skipping."
     else
@@ -674,7 +674,7 @@ function remove_package() {
     else
       log "Removing: $1 is not installed. skipping."
     fi
-  elif [[ $OS = "arch" ]]; then
+  elif [ $OS = "arch" ] || [ $OS ="manjaro" ]; then
     if ! pacman -Qq $1 >/dev/null; then
       log "removing $1"
       sudo pacman -R --noconfirm $1
