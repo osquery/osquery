@@ -22,14 +22,17 @@ The PowerShell script `provision.ps1` is used to prepare a clean Windows 10 64 b
 
 ## Building `osqueryd.exe` and `osqueryi.exe`
  
- * Open the Visual Studio 2015 solution, `OSQUERY.sln`
- * Select **Release** or **RelWithDebInfo** as the build configuration.
- * For `osqueryd.exe`, build the **daemon** project; `osqueryi.exe`, build the **shell** project
- * After the build succeeds, copy the following DLLs to the directory containing `osqueryd.exe`/`osqueryi.exe` (usually in `build\windows10\osquery\Release` or `build\windows10\osquery\RelWithDebInfo`)
-   * `%ChocolateyInstall%\lib\openssl\local\bin\libeay32.dll`
-   * `%ChocolateyInstall%\lib\openssl\local\bin\ssleay32.dll`
-   * `%ChocolateyInstall%\lib\glog\local\bin\glog.dll`
-   * `%ChocolateyInstall%\lib\linenoise-ng\local\bin\linenoise.dll`
+ * **Automated Process**
+   * Run `tools\make-win64-binaries.bat` from the `osquery` root directory. This will create the CMake build files, execute `MSBuild` to compile the shell, and copy over the required DLLs.
+ * **Manual Process**
+   * Open the Visual Studio 2015 solution, `OSQUERY.sln`
+   * Select **Release** or **RelWithDebInfo** as the build configuration.
+   * For `osqueryd.exe`, build the **daemon** project; `osqueryi.exe`, build the **shell** project
+   * After the build succeeds, copy the following DLLs to the directory containing `osqueryd.exe`/`osqueryi.exe` (usually in `build\windows10\osquery\Release` or `build\windows10\osquery\RelWithDebInfo`)
+     * `%ChocolateyInstall%\lib\openssl\local\bin\libeay32.dll`
+     * `%ChocolateyInstall%\lib\openssl\local\bin\ssleay32.dll`
+     * `%ChocolateyInstall%\lib\glog\local\bin\glog.dll`
+     * `%ChocolateyInstall%\lib\linenoise-ng\local\bin\linenoise.dll`
    
 ## Chocolatey Packages Installed (from official sources)
 
