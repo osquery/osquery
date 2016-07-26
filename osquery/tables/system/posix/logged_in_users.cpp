@@ -23,7 +23,7 @@ std::mutex utmpxEnumerationMutex;
 QueryData genLoggedInUsers(QueryContext& context) {
   std::lock_guard<std::mutex> lock(utmpxEnumerationMutex);
   QueryData results;
-  struct utmpx *entry = nullptr;
+  struct utmpx* entry = nullptr;
 
   while ((entry = getutxent()) != nullptr) {
     if (entry->ut_pid == 1) {

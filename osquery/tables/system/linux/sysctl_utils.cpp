@@ -16,7 +16,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/tables/system/sysctl_utils.h"
+#include "osquery/tables/system/posix/sysctl_utils.h"
 
 namespace fs = boost::filesystem;
 

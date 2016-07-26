@@ -37,12 +37,19 @@ void genFileInfo(const fs::path& path,
                  const fs::path& parent,
                  const std::string& pattern,
                  QueryData& results) {
-#ifndef WIN32
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
-  struct stat file_stat, link_stat;
-  if (lstat(path.string().c_str(), &link_stat) < 0 ||
-      stat(path.string().c_str(), &file_stat)) {
+#if !defined(WIN32)
+  // On POSIX systems, first check the link state.
+  struct stat link_stat;
+  if (lstat(path.string().c_str(), &link_stat) < 0) {
+    // Path was not real, had too may links, or could not be accessed.
+    return;
+  }
+#endif
+
+  struct stat file_stat;
+  if (stat(path.string().c_str(), &file_stat)) {
     // Path was not real, had too may links, or could not be accessed.
     return;
   }
@@ -58,15 +65,18 @@ void genFileInfo(const fs::path& path,
   r["mode"] = lsperms(file_stat.st_mode);
   r["device"] = BIGINT(file_stat.st_rdev);
   r["size"] = BIGINT(file_stat.st_size);
+
+#if !defined(WIN32)
   r["block_size"] = INTEGER(file_stat.st_blksize);
   r["hard_links"] = INTEGER(file_stat.st_nlink);
+#endif
 
   // Times
   r["atime"] = BIGINT(file_stat.st_atime);
   r["mtime"] = BIGINT(file_stat.st_mtime);
   r["ctime"] = BIGINT(file_stat.st_ctime);
-#if defined(__linux__)
-  // No 'birth' or create time in Linux.
+#if defined(__linux__) || defined(WIN32)
+  // No 'birth' or create time in Linux or Windows.
   r["btime"] = "0";
 #else
   r["btime"] = BIGINT(file_stat.st_birthtimespec.tv_sec);
@@ -81,13 +91,7 @@ void genFileInfo(const fs::path& path,
     r["type"] = "unknown";
   }
 
-  r["is_file"] = (!S_ISDIR(file_stat.st_mode)) ? "1" : "0";
-  r["is_dir"] = (S_ISDIR(file_stat.st_mode)) ? "1" : "0";
-  r["is_link"] = (S_ISLNK(link_stat.st_mode)) ? "1" : "0";
-  r["is_char"] = (S_ISCHR(file_stat.st_mode)) ? "1" : "0";
-  r["is_block"] = (S_ISBLK(file_stat.st_mode)) ? "1" : "0";
   results.push_back(r);
-#endif
 }
 
 QueryData genFile(QueryContext& context) {
