@@ -66,6 +66,10 @@ class PlatformProcess : private boost::noncopyable {
   explicit PlatformProcess() : id_(kInvalidPid) {}
   explicit PlatformProcess(PlatformPidType id);
 
+#ifdef WIN32
+  explicit PlatformProcess(pid_t pid);
+#endif
+
   PlatformProcess(const PlatformProcess& src) = delete;
   PlatformProcess(PlatformProcess&& src) noexcept;
   virtual ~PlatformProcess();
