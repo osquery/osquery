@@ -20,6 +20,17 @@ The PowerShell script `provision.ps1` is used to prepare a clean Windows 10 64 b
  * Generate the Visual Studio 2015 solution files: `cmake ..\.. -G "Visual Studio 14 2015 Win64"`
  * There should be a `OSQUERY.sln` in the build folder. Open this with Visual Studio 2015 that is already installed via the provisioning script.
 
+## Building `osqueryd.exe` and `osqueryi.exe`
+ 
+ * Open the Visual Studio 2015 solution, `OSQUERY.sln`
+ * Select **Release** or **RelWithDebInfo** as the build configuration.
+ * For `osqueryd.exe`, build the **daemon** project; `osqueryi.exe`, build the **shell** project
+ * After the build succeeds, copy the following DLLs to the directory containing `osqueryd.exe`/`osqueryi.exe` (usually in `build\windows10\osquery\Release` or `build\windows10\osquery\RelWithDebInfo`)
+   * `%ChocolateyInstall%\lib\openssl\local\bin\libeay32.dll`
+   * `%ChocolateyInstall%\lib\openssl\local\bin\ssleay32.dll`
+   * `%ChocolateyInstall%\lib\glog\local\bin\glog.dll`
+   * `%ChocolateyInstall%\lib\linenoise-ng\local\bin\linenoise.dll`
+   
 ## Chocolatey Packages Installed (from official sources)
 
  * chocolatey (if applicable)
@@ -36,12 +47,14 @@ Official chocolatey sources do not provide everything we need. In order to mitig
  * boost-msvc14 1.59.0
  * bzip2 1.0.6
  * doxygen 1.8.11
- * gflags-dev 1.2.1
+ * gflags-dev 2.1.2
  * glog 0.3.4
  * openssl 1.0.2
  * rocksdb 4.4
  * snappy-msvc 1.1.1.8
  * thrift-dev 0.9.3
+ * cpp-netlib 0.12.0
+ * linenoise-ng 1.0.0
 
 ## Other Actions
 
