@@ -514,13 +514,13 @@ if(WIN32)
   include_directories("${BOOST_DEP_DIR}/boost")
   include_directories("${WINDOWS_DEP_DIR}/glog/local/include")
   include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
-  
+
   # TODO(FIXME): temporary for now
   include_directories("${WINDOWS_DEP_DIR}/cpp-netlib/local/include")
   include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
   include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")
   include_directories("${WINDOWS_DEP_DIR}/rocksdb/local/include")
-  
+
   # TODO(#1990): We probably need to add our third-party link directories here
   link_directories("${BOOST_DEP_DIR}/lib64-msvc-14.0")
   link_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/lib")
@@ -565,6 +565,7 @@ if(DOXYGEN_FOUND)
     COMMAND echo "PROJECT_NUMBER=${OSQUERY_BUILD_VERSION}" |
       cat ${CMAKE_SOURCE_DIR}/Doxyfile - |
       "${DOXYGEN_EXECUTABLE}" -;
+    COMMAND mkdocs build --clean -s
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Generating API documentation with Doxygen" VERBATIM
   )
