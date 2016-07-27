@@ -212,7 +212,7 @@ Status checkStalePid(const std::string& content) {
     if (FLAGS_force) {
       // The caller may choose to abort the existing daemon with --force.
       // Do not use SIGQUIT as it will cause a crash on OS X.
-      status = target.kill() ? 1 : 0;
+      status = target.kill() ? 0 : -1;
       sleepFor(1000);
 
       return Status(status, "Tried to force remove the existing osqueryd");
