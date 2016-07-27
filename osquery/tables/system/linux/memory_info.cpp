@@ -21,9 +21,9 @@
 namespace osquery {
 namespace tables {
 
-const std::string memInfoPath = {"/proc/meminfo"};
+const std::string kMemInfoPath = {"/proc/meminfo"};
 
-std::map<std::string, std::string> meminfoMap = {
+const std::map<std::string, std::string> kMemInfoMap = {
     {"memory_total", "MemTotal:"},
     {"memory_free", "MemFree:"},
     {"buffers", "Buffers:"},
@@ -40,14 +40,14 @@ QueryData getMemoryInfo(QueryContext& context) {
   Row r;
 
   std::string meminfo_content;
-  if (forensicReadFile(memInfoPath, meminfo_content).ok()) {
+  if (forensicReadFile(kMemInfoPath, meminfo_content).ok()) {
     // Able to read meminfo file, now grab info we want
     for (const auto& line : split(meminfo_content, "\n")) {
       std::vector<std::string> tokens;
       boost::split(
           tokens, line, boost::is_any_of("\t "), boost::token_compress_on);
       // Look for mapping
-      for (const auto& singleMap : meminfoMap) {
+      for (const auto& singleMap : kMemInfoMap) {
         if (line.find(singleMap.second) == 0) {
           r[singleMap.first] = INTEGER(std::stol(tokens[1]) * 1024l);
           break;
