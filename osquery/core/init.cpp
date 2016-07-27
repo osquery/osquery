@@ -651,9 +651,7 @@ void Initializer::requestShutdown(int retcode) {
   // Stop thrift services/clients/and their thread pools.
   kExitCode = retcode;
   if (std::this_thread::get_id() != kMainThreadId) {
-#ifndef WIN32
     raise(SIGUSR1);
-#endif
   } else {
     // The main thread is requesting a shutdown, meaning in almost every case
     // it is NOT waiting for a shutdown.

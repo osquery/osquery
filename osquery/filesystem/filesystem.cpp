@@ -77,14 +77,18 @@ Status writeTextFile(const fs::path& path,
 
 struct OpenReadableFile {
  public:
-  explicit OpenReadableFile(const fs::path& path) {
+  explicit OpenReadableFile(const fs::path& path, bool is_nonblocking = true) {
 #ifndef WIN32
     dropper_ = DropPrivileges::get();
     if (dropper_->dropToParent(path)) {
 #endif
+      int mode = PF_OPEN_EXISTING | PF_READ;
+      if (is_nonblocking) {
+        mode |= PF_NONBLOCK;
+      }
+
       // Open the file descriptor and allow caller to perform error checking.
-      fd.reset(new PlatformFile(path.string(),
-                                PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK));
+      fd.reset(new PlatformFile(path.string(), mode));
 #ifndef WIN32
     }
 #endif
@@ -107,7 +111,7 @@ Status readFile(
     bool dry_run,
     bool preserve_time,
     std::function<void(std::string& buffer, size_t size)> predicate) {
-  OpenReadableFile handle(path);
+  OpenReadableFile handle(path, false);
   if (handle.fd == nullptr || !handle.fd->isValid()) {
     return Status(1, "Cannot open file for reading: " + path.string());
   }

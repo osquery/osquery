@@ -191,32 +191,37 @@ Status checkStalePid(const std::string& content) {
   PlatformProcess target(pid);
   int status = 0;
 
-  if (target.isValid() && target.checkStatus(status) == PROCESS_STILL_ALIVE) {
-    // The pid is running, check if it is an osqueryd process by name.
-    std::stringstream query_text;
-    query_text << "SELECT name FROM processes WHERE pid = " << pid
-               << " AND name = 'osqueryd';";
-    auto q = SQL(query_text.str());
-    if (!q.ok()) {
-      return Status(1, "Error querying processes: " + q.getMessageString());
+  // The pid is running, check if it is an osqueryd process by name.
+  std::stringstream query_text;
+
+#ifdef WIN32
+  query_text << "SELECT name FROM processes WHERE pid = " << pid
+             << " AND name = 'osqueryd.exe';";
+#else
+  query_text << "SELECT name FROM processes WHERE pid = " << pid
+             << " AND name = 'osqueryd';";
+#endif
+
+  auto q = SQL(query_text.str());
+  if (!q.ok()) {
+    return Status(1, "Error querying processes: " + q.getMessageString());
+  }
+
+  if (q.rows().size() > 0) {
+    // If the process really is osqueryd, return an "error" status.
+    if (FLAGS_force) {
+      // The caller may choose to abort the existing daemon with --force.
+      // Do not use SIGQUIT as it will cause a crash on OS X.
+      status = target.kill() ? 1 : 0;
+      sleepFor(1000);
+
+      return Status(status, "Tried to force remove the existing osqueryd");
     }
 
-    if (q.rows().size() > 0) {
-      // If the process really is osqueryd, return an "error" status.
-      if (FLAGS_force) {
-        // The caller may choose to abort the existing daemon with --force.
-        // Do not use SIGQUIT as it will cause a crash on OS X.
-        status = target.kill() ? 1 : 0;
-        sleepFor(1000);
-
-        return Status(status, "Tried to force remove the existing osqueryd");
-      }
-
-      return Status(1, "osqueryd (" + content + ") is already running");
-    } else {
-      LOG(INFO) << "Found stale process for osqueryd (" << content
-                << ") removing pidfile";
-    }
+    return Status(1, "osqueryd (" + content + ") is already running");
+  } else {
+    LOG(INFO) << "Found stale process for osqueryd (" << content
+              << ") removing pidfile";
   }
 
   return Status(0, "OK");

@@ -67,6 +67,15 @@ class PlatformProcess : private boost::noncopyable {
   explicit PlatformProcess(PlatformPidType id);
 
 #ifdef WIN32
+  /*
+   * @brief Constructor that accepts a pid_t
+   *  
+   * Allow for the creation of a PlatformProcess object from a pid_t. On
+   * Windows, PlatformPidType is not a pid_t because it cannot be assumed that
+   * the PID will point to the expected process. After a process dies, the PID
+   * can be immediately reused. Using HANDLEs (as what is done now) mitigates
+   * this issue.
+   */
   explicit PlatformProcess(pid_t pid);
 #endif
 
@@ -133,6 +142,30 @@ class PlatformProcess : private boost::noncopyable {
   /// systems, this will be a pid_t.
   PlatformPidType id_;
 };
+
+#ifdef WIN32
+/// Class to handle the scope of a SecurityDescriptor from
+/// GetSecurityInfo/GetNamedSecurityInfo class of functions
+class SecurityDescriptor {
+public:
+  explicit SecurityDescriptor(PSECURITY_DESCRIPTOR sd) : sd_(sd) {}
+
+  SecurityDescriptor(SecurityDescriptor &&src) noexcept {
+    sd_ = src.sd_;
+    std::swap(sd_, src.sd_);
+  }
+
+  ~SecurityDescriptor() {
+    if (sd_ != nullptr) {
+      ::LocalFree(sd_);
+      sd_ = nullptr;
+    }
+  }
+
+private:
+  PSECURITY_DESCRIPTOR sd_{nullptr};
+};
+#endif
 
 /// Causes the current thread to sleep for a specified time in milliseconds.
 void sleepFor(unsigned int msec);
