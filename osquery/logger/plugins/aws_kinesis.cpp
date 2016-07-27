@@ -104,8 +104,13 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
 }
 
 Status KinesisLogForwarder::setUp() {
+  Status s = BufferedLogForwarder::setUp();
+  if (!s.ok()) {
+    return s;
+  }
+
   // Set up client
-  Status s = makeAWSClient<Aws::Kinesis::KinesisClient>(client_);
+  s = makeAWSClient<Aws::Kinesis::KinesisClient>(client_);
   if (!s.ok()) {
     return s;
   }
