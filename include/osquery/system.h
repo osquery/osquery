@@ -277,14 +277,12 @@ size_t getUnixTime();
  */
 std::string getAsciiTime();
 
-#ifndef WIN32
 /**
  * @brief Create a pid file
  *
  * @return A status object indicating the success or failure of the operation
  */
 Status createPidFile();
-#endif
 
 #ifdef WIN32
 // Microsoft provides FUNCTION_s with more or less the same parameters.

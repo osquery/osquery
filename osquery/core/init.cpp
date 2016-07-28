@@ -396,7 +396,6 @@ void Initializer::initDaemon() const {
   // Print the version to the OS system log.
   systemLog(binary_ + " started [version=" + kVersion + "]");
 
-#ifndef WIN32
   if (!FLAGS_ephemeral) {
     if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
         !isDirectory(OSQUERY_HOME)) {
@@ -410,7 +409,6 @@ void Initializer::initDaemon() const {
       shutdown(EXIT_FAILURE);
     }
   }
-#endif
 
   // Nice ourselves if using a watchdog and the level is not too permissive.
   if (!FLAGS_disable_watchdog && FLAGS_watchdog_level >= 0) {
@@ -653,9 +651,7 @@ void Initializer::requestShutdown(int retcode) {
   // Stop thrift services/clients/and their thread pools.
   kExitCode = retcode;
   if (std::this_thread::get_id() != kMainThreadId) {
-#ifndef WIN32
     raise(SIGUSR1);
-#endif
   } else {
     // The main thread is requesting a shutdown, meaning in almost every case
     // it is NOT waiting for a shutdown.
