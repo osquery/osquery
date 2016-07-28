@@ -194,13 +194,8 @@ Status checkStalePid(const std::string& content) {
   // The pid is running, check if it is an osqueryd process by name.
   std::stringstream query_text;
 
-#ifdef WIN32
   query_text << "SELECT name FROM processes WHERE pid = " << pid
-             << " AND name = 'osqueryd.exe';";
-#else
-  query_text << "SELECT name FROM processes WHERE pid = " << pid
-             << " AND name = 'osqueryd';";
-#endif
+             << " AND name LIKE 'osqueryd%';";
 
   auto q = SQL(query_text.str());
   if (!q.ok()) {
@@ -231,11 +226,10 @@ Status createPidFile() {
   // check if pidfile exists
   auto pidfile_path = fs::path(FLAGS_pidfile).make_preferred();
 
-  auto exists = pathExists(pidfile_path);
-  if (exists.ok()) {
+  if (pathExists(pidfile_path).ok()) {
     // if it exists, check if that pid is running.
     std::string content;
-    auto read_status = readFile(pidfile_path, content);
+    auto read_status = readFile(pidfile_path, content, true);
     if (!read_status.ok()) {
       return Status(1, "Could not read pidfile: " + read_status.toString());
     }

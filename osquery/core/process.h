@@ -124,11 +124,11 @@ class PlatformProcess : private boost::noncopyable {
       const std::string& exec_path, int argc, char** argv);
 
   /**
-  * @brief Creates a new extension process.
-  *
-  * Launches a new extension with various options. Any double quotes in the
-  * extension name will be stripped away.
-  */
+   * @brief Creates a new extension process.
+   *
+   * Launches a new extension with various options. Any double quotes in the
+   * extension name will be stripped away.
+   */
   static std::shared_ptr<PlatformProcess> launchExtension(
       const std::string& exec_path,
       const std::string& extension,
@@ -138,14 +138,23 @@ class PlatformProcess : private boost::noncopyable {
       const std::string& verbose);
 
  private:
-  /// "Handle" of the process. On Windows, this will be a HANDLE. On POSIX
-  /// systems, this will be a pid_t.
-  PlatformPidType id_;
+   /**
+    * @brief Stores the native handle denoting the process
+    *
+    * "Handle" of the process. On Windows, this will be a HANDLE. On POSIX
+    * systems, this will be a pid_t.
+    */
+   PlatformPidType id_;
 };
 
 #ifdef WIN32
-/// Class to handle the scope of a SecurityDescriptor from
-/// GetSecurityInfo/GetNamedSecurityInfo class of functions
+/**
+ * @brief Handles the resource lifetime of a PSECURITY_DESCRIPTOR
+ *
+ * Class to handle the scope of a PSECURITY_DESCRIPTOR from
+ * GetSecurityInfo/GetNamedSecurityInfo class of functions (or any
+ * PSECURITY_DESCRIPTOR pointer where the buffer is allocated via LocalAlloc)
+ */
 class SecurityDescriptor {
 public:
   explicit SecurityDescriptor(PSECURITY_DESCRIPTOR sd) : sd_(sd) {}
