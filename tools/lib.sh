@@ -75,6 +75,12 @@ function set_cc() {
   export CMAKE_C_COMPILER=$1
 }
 
+function do_sudo() {
+  ARGS="$@"
+  log "requesting sudo: $ARGS"
+  sudo $@
+}
+
 function contains_element() {
   local e
   for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done

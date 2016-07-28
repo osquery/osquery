@@ -25,47 +25,55 @@ else
 	BUILD_DIR = $(DISTRO_VERSION)
 endif
 
+ifneq ($(OSQUERY_DEPS),)
+	DEPS_DIR = $(OSQUERY_DEPS)
+else
+	DEPS_DIR = /usr/local/osquery
+endif
+CMAKE := PATH="$(DEPS_DIR)/bin:$(PATH)" CXXFLAGS="-L$(DEPS_DIR)/lib" \
+		cmake ../../
+
 DEFINES := CTEST_OUTPUT_ON_FAILURE=1
 .PHONY: docs build
 
 all: .setup
-	cd build/$(BUILD_DIR) && cmake ../../ && \
+	@cd build/$(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 docs: .setup
-	cd build && cmake ../ && \
+	@cd build && $(CMAKE) && \
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
 
 debug: .setup
-	cd build/debug_$(BUILD_DIR) && DEBUG=True cmake ../../ && \
+	@cd build/debug_$(BUILD_DIR) && DEBUG=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_debug: .setup
-	cd build/debug_$(BUILD_DIR) && DEBUG=True cmake ../../ && \
+	@cd build/debug_$(BUILD_DIR) && DEBUG=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 analyze: .setup
-	cd build/$(BUILD_DIR) && ANALYZE=True cmake ../../ && \
+	@cd build/$(BUILD_DIR) && ANALYZE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 sanitize: .setup
-	cd build/$(BUILD_DIR) && SANITIZE=True cmake ../../ && \
+	@cd build/$(BUILD_DIR) && SANITIZE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 sdk: .setup
-	cd build/$(BUILD_DIR) && SDK=True cmake ../../ && \
+	@cd build/$(BUILD_DIR) && SDK=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_sdk: .setup
-	cd build/$(BUILD_DIR) && SDK=True cmake ../../ && \
+	@cd build/$(BUILD_DIR) && SDK=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 debug_sdk: .setup
-	cd build/debug_$(BUILD_DIR) && SDK=True DEBUG=True cmake ../../ && \
+	@cd build/debug_$(BUILD_DIR) && SDK=True DEBUG=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_debug_sdk: .setup
-	cd build/debug_$(BUILD_DIR) && SDK=True DEBUG=True cmake ../../ && \
+	@cd build/debug_$(BUILD_DIR) && SDK=True DEBUG=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 build:
@@ -85,10 +93,10 @@ test_debug_build:
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 deps: .setup
-	./tools/provision.sh build build/$(BUILD_DIR)
+	./tools/provision.sh build $(BUILD_DIR)
 
 clean: .setup
-	cd build/$(BUILD_DIR) && cmake ../../ && \
+	@cd build/$(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) clean --no-print-directory $(MAKEFLAGS)
 
 strip: .setup
@@ -124,27 +132,28 @@ ifeq ($(PLATFORM),Linux)
 	@ln -snf debug_$(BUILD_DIR) build/debug_linux
 endif
 
+
 package: .setup
 	# Alias for packages (do not use CPack)
-	cd build/$(BUILD_DIR) && PACKAGE=True cmake ../../ && \
+	@cd build/$(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
 debug_package: .setup
-	cd build/debug_$(BUILD_DIR) && DEBUG=True PACKAGE=True cmake ../../ && \
+	@cd build/debug_$(BUILD_DIR) && DEBUG=True PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
 packages: .setup
-	cd build/$(BUILD_DIR) && PACKAGE=True cmake ../../ && \
+	@cd build/$(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
 debug_packages:
-	cd build/debug_$(BUILD_DIR) && DEBUG=True PACKAGE=True cmake ../../ && \
+	@cd build/debug_$(BUILD_DIR) && DEBUG=True PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
 sync: .setup
-	cd build/$(BUILD_DIR) && PACKAGE=True cmake ../../ && \
+	@cd build/$(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) sync --no-print-directory $(MAKEFLAGS)
 
 %::
-	cd build/$(BUILD_DIR) && cmake ../../ && \
+	@cd build/$(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $@
