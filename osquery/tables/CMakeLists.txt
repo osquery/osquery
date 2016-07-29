@@ -54,15 +54,19 @@ else()
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_LINUX_TABLES_TESTS})
 
   if(REDHAT_BASED)
-    # CentOS specific tables
-    file(GLOB OSQUERY_REDHAT_TABLES "*/centos/*.cpp")
-    ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_redhat
-      ${OSQUERY_REDHAT_TABLES}
-    )
+    # TODO #2169: Linking librpm and librpmio prevents osquery from keeping
+    # a 2.13 glibc ABI. Statically linking the libraries introduces too many
+    # implicit dependencies.
 
-    ADD_OSQUERY_LINK_ADDITIONAL("librpm librpmio")
-    ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper")
-    #ADD_OSQUERY_LINK_ADDITIONAL("libselinux.so")
+    # CentOS specific tables
+    # file(GLOB OSQUERY_REDHAT_TABLES "*/centos/*.cpp")
+    # ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_redhat
+    #   ${OSQUERY_REDHAT_TABLES}
+    # )
+
+    # ADD_OSQUERY_LINK_ADDITIONAL("librpm librpmio")
+    # ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper")
+    # ADD_OSQUERY_LINK_ADDITIONAL("libselinux.so")
   elseif(DEBIAN_BASED)
     # Ubuntu specific tables
     file(GLOB OSQUERY_UBUNTU_TABLES "*/ubuntu/*.cpp")
