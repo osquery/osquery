@@ -46,10 +46,14 @@ def assertUserIsAdmin():
 
 
 def sc(*args):
+    p = None
+
     try:
         output = subprocess.check_output(["sc.exe"] + list(args))
         return True
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError, err:
+        sys.stderr.write("=" * 15 + " ERROR " "=" * 15 + "\n")
+        sys.stderr.write("%s" % err)
         return False
 
 
@@ -83,7 +87,9 @@ def queryService(name):
     try:
         output = subprocess.check_output(["sc.exe", "query", name])
         return output.replace("  ", "")
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError, err:
+        sys.stderr.write("=" * 15 + " ERROR " + "=" * 15 + "\n")
+        sys.stderr.write("%s" % err)
         return ""
 
 
@@ -126,6 +132,7 @@ class OsquerydTest(unittest.TestCase):
                 if time.time() - start > 5:
                     p.kill()
                     break
+                time.sleep(1)
 
             return (p.stdout.read(), p.stderr.read())
         except subprocess.CalledProcessError:
