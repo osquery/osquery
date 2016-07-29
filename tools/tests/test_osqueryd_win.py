@@ -156,6 +156,7 @@ class OsquerydTest(unittest.TestCase):
             self.assertNotEqual(output.find("STATE: 4RUNNING"), -1)
 
             stdout, stderr = self.runDaemon("--allow_unsafe",
+                                            "--verbose",
                                             "--config_path",
                                             self.config_path,
                                             "--database_path",
@@ -164,6 +165,14 @@ class OsquerydTest(unittest.TestCase):
                                             self.log_path,
                                             "--pidfile",
                                             self.pidfile)
+            if len(stdout) > 0:
+                sys.stdout.write("=" * 15 + " OUTPUT " + "=" * 15 + "\n")
+                sys.stdout.write(stdout)
+
+            if len(stderr) > 0:
+                sys.stderr.write("=" * 15 + " ERROR " + "=" * 15 + "\n")
+                sys.stderr.write(stderr)
+
             self.assertNotEqual(stderr.find("is already running"), -1)
         finally:
             if status:
