@@ -9,7 +9,7 @@ class GlibcLegacy < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "1973992c12ee1bea4585641c6627bafd17e291c448aba2c831bd5a96fb4e34dc" => :x86_64_linux
+    sha256 "57535af3eadc4fe7158f2f2a1f721b113d88ffd825ace3ccbc96f95600657f17" => :x86_64_linux
   end
 
   # Must apply patches to allow compiling with newer versions of GCC/gmake.
@@ -53,6 +53,9 @@ class GlibcLegacy < AbstractOsqueryFormula
       system "make" # Fix No rule to make target libdl.so.2 needed by sprof
       system "make", "install"
       prefix.install_symlink "lib" => "lib64"
+
+      # Remove getconf with non-ASCII characters.
+      system "rm", "#{prefix}/libexec/getconf/POSIX_V6_LP64_OFF*"
     end
   end
 

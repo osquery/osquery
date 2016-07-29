@@ -133,7 +133,7 @@ class AbstractOsqueryFormula < Formula
   end
 
   def audit
-    return if ENV["DEBUG"].empty?
+    return if !ENV.has_key?("DEBUG")
     puts ":: PATH    : " + ENV["PATH"].to_s
     puts ":: CFLAGS  : " + ENV["CFLAGS"].to_s
     puts ":: CPPFLAGS: " + ENV["CPPFLAGS"].to_s

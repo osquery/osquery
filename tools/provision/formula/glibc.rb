@@ -9,7 +9,7 @@ class Glibc < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "5ce8ef0fd12fb20df0a89f78f0c1b89cd9b74aa117417af0a8fa1ee6f4a247c2" => :x86_64_linux
+    sha256 "46c47d3e6df6dbbc7d1574e3c2f660d3aa81d47efd742512e6673fe2ca94308d" => :x86_64_linux
   end
 
   # binutils 2.20 or later is required

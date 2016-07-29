@@ -8,7 +8,7 @@ class Libaptpkg < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "c8ab328fe59507a390c2c6a7f65e1fdc17b015ab81b9f5cf5873f8aa49e8a59e" => :x86_64_linux
+    sha256 "d69b612d10e545121c36dfa9181130420a516a8d6001a5228c8810a2d76309cc" => :x86_64_linux
   end
 
   def install

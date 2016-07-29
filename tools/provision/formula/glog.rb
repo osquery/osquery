@@ -10,7 +10,7 @@ class Glog < AbstractOsqueryFormula
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "d268354a25c56e1e5c653cb0ce0f5d4ed00213484fa969eea1fab03d765814c9" => :el_capitan
-    sha256 "35f1d1edd3936b261ec9312f93ceb72800fee050186a6beb6a330ef64b867a9f" => :x86_64_linux
+    sha256 "f432478f58c504eaa69caf1c37461d478086e57b2d396c2d8c83e687425255c3" => :x86_64_linux
   end
 
   depends_on "gflags"

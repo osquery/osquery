@@ -61,7 +61,7 @@ class Llvm < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "abf3650b8c4a7b23f0262c67da7feb92143aa7bd78761e873bfa0f705cee3c40" => :x86_64_linux
+    sha256 "09f9fc1aca8847513a25c92638ed7b6d8d36a19a79927e7b5fadd3d8a5b45ce7" => :x86_64_linux
   end
 
   head do

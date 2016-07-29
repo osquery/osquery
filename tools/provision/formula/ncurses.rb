@@ -11,7 +11,7 @@ class Ncurses < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "0b3a7db4671efb40f9f6de648e55efdf133774e5235043a467d1ef4492f4e638" => :x86_64_linux
+    sha256 "becfd6ba8da926e0981aad5d29929eb51f45d351070eaa62270510067e8cfa80" => :x86_64_linux
   end
 
   keg_only :provided_by_osx

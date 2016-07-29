@@ -9,7 +9,7 @@ class Curl < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "975783cb6ab8d7066f3f951d246c2890aed8a94ad2cf9872669fe975251bb5e6" => :x86_64_linux
+    sha256 "24a87b472bd056b78a3f37a793fa57e618d05333f3b6c94827a0fb03a34861e1" => :x86_64_linux
   end
 
   keg_only :provided_by_osx

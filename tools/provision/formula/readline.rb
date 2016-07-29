@@ -11,7 +11,7 @@ class Readline < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "989dbac3aaeef69b2173c4117c718dcbade87100d25d0471bd95fc77c3f676c1" => :x86_64_linux
+    sha256 "fabe7400f01f0a8999e524f0511207fcbdb1fd03ae3a8bf07bb5daa60b8fc205" => :x86_64_linux
   end
 
   keg_only :shadowed_by_osx, <<-EOS.undent

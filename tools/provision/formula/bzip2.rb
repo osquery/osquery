@@ -9,7 +9,7 @@ class Bzip2 < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "a2d4376fabded1ef90e3d7dda2b810846721ebcd4b5b3beb9fb58cbcb62e0645" => :x86_64_linux
+    sha256 "ecc8f2e8470443d5606a38acca9dea980fb3bba906b648db1744768732296b63" => :x86_64_linux
   end
 
   keg_only :provided_by_osx

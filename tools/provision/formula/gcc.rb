@@ -32,7 +32,7 @@ class Gcc < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "8f0449519f94386681735a6af2ae23531d202d4f060f884c42604b9ea3ab395b" => :x86_64_linux
+    sha256 "3939412ec49db0384b51087ce40e3e5a9893aca41e83cd1245feaff6fa5e23d0" => :x86_64_linux
   end
 
   option "with-java", "Build the gcj compiler"

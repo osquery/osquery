@@ -10,7 +10,7 @@ class Libgcrypt < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "0827db2e2fd3b0d5b3d09b74089a22290993eab307b57032937d7853c1eceb41" => :x86_64_linux
+    sha256 "b6e6ae3c7a0d82c1ec3549f05a29f60b08abe54ddc2f9ab4fc324b6de7f711b0" => :x86_64_linux
   end
 
   depends_on "libgpg-error"

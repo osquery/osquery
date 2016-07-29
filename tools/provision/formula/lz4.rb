@@ -12,7 +12,7 @@ class Lz4 < AbstractOsqueryFormula
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "3e76610faa04e0ba81a8b58de3421be77f7e226db6d78bab88eac0df82a947bf" => :el_capitan
-    sha256 "faed060a859f8c04d82a888ca2db9d7cd4aca28c737edc3bb5cc79b8a595f3d4" => :x86_64_linux
+    sha256 "684e6c315fa4a4ada277771559f5504c57363d5192c9252bffc6085dee9e04ec" => :x86_64_linux
   end
 
   def install

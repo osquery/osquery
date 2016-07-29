@@ -8,7 +8,7 @@ class Libcryptsetup < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "90d4eb3d398571d515b653c1c71b4de942e679fe076187259347873c8a668b8f" => :x86_64_linux
+    sha256 "bda28ef2d1411924f8e8e3366211bb1254c7fed2c56e36246ba814b0b441bb3d" => :x86_64_linux
   end
 
   def install

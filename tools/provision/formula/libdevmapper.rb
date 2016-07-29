@@ -9,7 +9,7 @@ class Libdevmapper < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "01532ba0893a6f98ebc80a2ebc14e77e2726c11f0d9554f73be0fb511b912eba" => :x86_64_linux
+    sha256 "e1041607e866c145ee82c3a5babc2df4942b3ac1ba905c7bc135d98a6256dbf4" => :x86_64_linux
   end
 
   def install

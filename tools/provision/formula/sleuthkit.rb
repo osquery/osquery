@@ -11,7 +11,7 @@ class Sleuthkit < AbstractOsqueryFormula
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "08013b38b4e6664797c9b086af3d1af3173f2be68419f7a30af71b4e52964a89" => :el_capitan
-    sha256 "94e3f54d8695f026c7ea4deadc92555dffe5d61d638cfa74373685ca212b6734" => :x86_64_linux
+    sha256 "a237fd15967db517aaec93001a02d98c3a4e3b95796319490426610a8cd6ffc4" => :x86_64_linux
   end
 
   conflicts_with "irods", :because => "both install `ils`"

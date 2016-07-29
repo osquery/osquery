@@ -22,7 +22,7 @@ class Cmake < AbstractOsqueryFormula
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "1aed0253cf2b7905f273075d0f5647082ee3b5395c2b9b00110b0e4687786550" => :el_capitan
-    sha256 "1cea2bd45202964fd4a88e3d36027298c157843adabb3da0d8270c5b7037b8f1" => :x86_64_linux
+    sha256 "368ea3073878ff3b801a73cac8f233c98ba842557a88a3109fb6dca31b461dcd" => :x86_64_linux
   end
 
   option "without-docs", "Don't build man pages"

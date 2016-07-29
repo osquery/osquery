@@ -7,7 +7,7 @@ class Libaudit < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "0c420ce7db252919a0fd002b37cee4f9a4cb2553fdfed0461e7bebf8e9bd91b3" => :x86_64_linux
+    sha256 "c0eca64bfd50995706b0e2321161e97d0d7161a1c9b859b3913fe49d558f5141" => :x86_64_linux
   end
 
   def install

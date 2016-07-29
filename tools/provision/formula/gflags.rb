@@ -10,7 +10,7 @@ class Gflags < AbstractOsqueryFormula
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "1770ef053f031ceb8987cb2bdd7f99e784752aba5a7a5948998dacb144d9908b" => :el_capitan
-    sha256 "25e091ee3651b6e1d944d12d8c63cd4dcaa40a8ff23c005d51db560b977d5827" => :x86_64_linux
+    sha256 "bdc41e050721865cc5b2b72152a4229e2f83bbb7cb4f03c3d636c43cbc0aba73" => :x86_64_linux
   end
 
   depends_on "cmake" => :build

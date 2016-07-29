@@ -9,7 +9,7 @@ class Libiptables < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "1f47df245719e61838a4e5f69adcb0709494327ad0a366e942973d4ab1fccd98" => :x86_64_linux
+    sha256 "a3be4342280da5a1755e469e51140389341f83a4f70ba3949e048b4554fa6114" => :x86_64_linux
   end
 
   patch :DATA

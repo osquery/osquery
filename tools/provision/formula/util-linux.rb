@@ -10,7 +10,7 @@ class UtilLinux < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "47fd244cf6e28d93802cc9dcbf1cab850c837552e550163768c8e76e5e656d0d" => :x86_64_linux
+    sha256 "4209294dae16691a27f09b2393485b03afd0b60b97a508e248494de1d5832239" => :x86_64_linux
   end
 
   def install

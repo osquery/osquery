@@ -8,7 +8,7 @@ class Libudev < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "fee685c76b0c4527fa0540a5cbb74c045ca8abed9887f0c7512078155fb518b1" => :x86_64_linux
+    sha256 "8dfa9128e8ba69d3aae0c17340a9e71d041d6272d9eeee929e57b2b5f86e23d2" => :x86_64_linux
   end
 
   def install
