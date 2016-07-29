@@ -57,7 +57,6 @@ if(NOT WIN32)
     -Wformat
     -Wformat-security
     -Werror=format-security
-    -Wshadow
     -Wabi-tag
     -fpermissive
     -fstack-protector-all
