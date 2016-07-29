@@ -49,13 +49,6 @@ if(LINUX OR FREEBSD)
   ADD_OSQUERY_LINK_CORE("libc")
 endif()
 
-if(APPLE)
-  ADD_OSQUERY_LINK_CORE("liblzma libbz2")
-else()
-  ADD_OSQUERY_LINK_CORE("lzma bz2")
-  ADD_OSQUERY_LINK_ADDITIONAL("bz2")
-endif()
-
 ADD_OSQUERY_LINK_CORE("rocksdb_lite")
 ADD_OSQUERY_LINK_CORE("snappy")
 ADD_OSQUERY_LINK_CORE("lz4")
@@ -78,6 +71,13 @@ ADD_OSQUERY_LINK_ADDITIONAL("ssl")
 ADD_OSQUERY_LINK_ADDITIONAL("crypto")
 ADD_OSQUERY_LINK_ADDITIONAL("readline")
 ADD_OSQUERY_LINK_ADDITIONAL("ncurses")
+
+if(APPLE)
+  ADD_OSQUERY_LINK_CORE("liblzma libbz2")
+else()
+  ADD_OSQUERY_LINK_CORE("lzma bz2")
+  ADD_OSQUERY_LINK_ADDITIONAL("bz2")
+endif()
 
 # The platform-specific SDK + core linker flags.
 if(APPLE)
@@ -267,6 +267,22 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
 endif()
 
 if(NOT DEFINED ENV{SKIP_TESTS})
+  # Detect TR1 usage.
+  include(CheckIncludeFileCXX)
+  CHECK_INCLUDE_FILE_CXX("tr1/tuple" HAVE_TR1_TUPLE_H CMP)
+  if("${HAVE_TR1_TUPLE_H}" STREQUAL "")
+    set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=1")
+  else()
+    set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=0")
+  endif()
+
+  set(GTEST_FLAGS
+    ${GTEST_FLAGS}
+    "-I${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0/include"
+    "-I${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0/include"
+  )
+  join("${GTEST_FLAGS}" " " GTEST_FLAGS)
+
   # osquery testing library (testing helper methods/libs).
   add_library(libosquery_testing STATIC tests/test_util.cpp)
   add_dependencies(libosquery_testing libosquery)
@@ -283,7 +299,7 @@ if(NOT DEFINED ENV{SKIP_TESTS})
   # TODO #2252: Remove this linkage dependency.
   TARGET_OSQUERY_LINK_WHOLE(osquery_tests ${crypto_library})
   target_link_libraries(osquery_tests gtest libosquery_testing)
-  SET_OSQUERY_COMPILE(osquery_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=0")
+  SET_OSQUERY_COMPILE(osquery_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
   add_test(osquery_tests osquery_tests)
 
   # osquery kernel tests.
@@ -297,7 +313,7 @@ if(NOT DEFINED ENV{SKIP_TESTS})
       TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_tests libosquery_additional)
     endif()
     target_link_libraries(osquery_kernel_tests gtest libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_kernel_tests "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1 -DGTEST_HAS_TR1_TUPLE=0")
+    SET_OSQUERY_COMPILE(osquery_kernel_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
   endif()
 
   # osquery benchmarks.
@@ -306,7 +322,7 @@ if(NOT DEFINED ENV{SKIP_TESTS})
     TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery)
     TARGET_OSQUERY_LINK_WHOLE(osquery_benchmarks libosquery_additional)
     target_link_libraries(osquery_benchmarks benchmark libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_benchmarks "${CXX_COMPILE_FLAGS}")
+    SET_OSQUERY_COMPILE(osquery_benchmarks "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
     set(BENCHMARK_TARGET "$<TARGET_FILE:osquery_benchmarks>")
 
     # osquery kernel benchmarks.
@@ -314,7 +330,7 @@ if(NOT DEFINED ENV{SKIP_TESTS})
     TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_benchmarks libosquery)
     TARGET_OSQUERY_LINK_WHOLE(osquery_kernel_benchmarks libosquery_additional)
     target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
+    SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
 
     # make benchmark
     add_custom_target(
@@ -336,7 +352,7 @@ if(NOT DEFINED ENV{SKIP_TESTS})
       TARGET_OSQUERY_LINK_WHOLE(osquery_additional_tests libosquery_additional)
     endif()
     target_link_libraries(osquery_additional_tests gtest gmock libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_additional_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=1")
+    SET_OSQUERY_COMPILE(osquery_additional_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
     add_test(osquery_additional_tests osquery_additional_tests)
 
     # osquery tables set of unit tests (extracted for organization).
@@ -349,7 +365,7 @@ if(NOT DEFINED ENV{SKIP_TESTS})
       TARGET_OSQUERY_LINK_WHOLE(osquery_tables_tests libosquery_additional)
     endif()
     target_link_libraries(osquery_tables_tests gtest libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_tables_tests "${CXX_COMPILE_FLAGS} -DGTEST_HAS_TR1_TUPLE=0")
+    SET_OSQUERY_COMPILE(osquery_tables_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
     add_test(osquery_tables_tests osquery_tables_tests)
   endif()
 

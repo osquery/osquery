@@ -182,6 +182,7 @@ class Llvm < AbstractOsqueryFormula
 
     args << "-DLLVM_ENABLE_RTTI=On" if build.with? "rtti"
     args << "-DLLVM_INSTALL_UTILS=On" if build.with? "utils"
+    args << "-DGCC_INSTALL_PREFIX=#{Formula["gcc"].prefix}"
 
     if build.universal?
       ENV.permit_arch_flags

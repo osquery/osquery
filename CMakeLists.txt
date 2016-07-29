@@ -30,7 +30,7 @@ elseif(CLANGXX_EXISTS)
   set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
-find_program(CCACHE_FOUND ccache)
+find_program(CCACHE_FOUND ccache ENV PATH)
 if(CCACHE_FOUND)
   if(NOT DEFINED CCACHE_FOUND_LOG)
     set(CCACHE_FOUND_LOG TRUE CACHE BOOL "Write log line for ccache.")
@@ -42,14 +42,13 @@ if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
-if(WIN32)
-  # TODO(#1985): We need to find the MSVC equivalents to the flags listed in the else section.
-else()
+if(NOT WIN32)
   add_compile_options(
     -Qunused-arguments
     -Wstrict-aliasing
     -Wno-missing-field-initializers
     -Wno-unused-local-typedef
+    -Wno-deprecated-register
     -Wno-unknown-warning-option
     -Wnon-virtual-dtor
     -Wchar-subscripts
@@ -58,6 +57,7 @@ else()
     -Wformat
     -Wformat-security
     -Werror=format-security
+    -Wshadow
     -Wabi-tag
     -fpermissive
     -fstack-protector-all
@@ -145,23 +145,6 @@ endif()
 
 # BUILD BUG: See issue #2112
 set(ENV{SKIP_BENCHMARKS} TRUE)
-
-# RHEL6 uses a different gcc 4.9 runtime
-if(${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6")
-  set(GCC_RUNTIME "/opt/rh/devtoolset-3/root/usr/")
-  WARNING_LOG("Setting RHEL6 GCC runtime: ${GCC_RUNTIME}")
-  set(CMAKE_C_COMPILER "${CMAKE_C_COMPILER}" "--gcc-toolchain=${GCC_RUNTIME}")
-  set(CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER}" "--gcc-toolchain=${GCC_RUNTIME}")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
-  set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
-endif()
-
-# Help Debian Wheezy find BZip2
-if(${OSQUERY_BUILD_DISTRO} STREQUAL "wheezy")
-  set (CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu")
-endif()
 
 # make debug (environment variable from Makefile)
 if(DEFINED ENV{DEBUG})
@@ -371,9 +354,15 @@ endif()
 # Add sysroot overrides for each platform/distro.
 # These should be prioritized over all other includes.
 if(APPLE)
-  include_directories("${CMAKE_SOURCE_DIR}/third-party/sysroots/darwin")
+  include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third-party/sysroots/darwin")
 elseif(LINUX)
-  include_directories("${CMAKE_SOURCE_DIR}/third-party/sysroots/linux")
+  include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third-party/sysroots/linux")
+endif()
+
+if(NOT WIN32)
+  include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
+  include_directories(SYSTEM "${BUILD_DEPS}/include")
+  include_directories("${BUILD_DEPS}/include/openssl")
 endif()
 
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
@@ -418,6 +407,7 @@ if(WIN32)
   set(boost_regex_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_regex-vc140-mt-1_59.lib")
 
   # Win64 specific gflags
+  set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared gtest library" FORCE)
   set(gflags_library "${WINDOWS_DEP_DIR}/gflags-dev/local/lib/gflags_static.lib")
 
   # Win64 specific glog
@@ -426,46 +416,8 @@ if(WIN32)
   # Win64 specific cpp-netlib library
   set(cppnetlib-uri_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-uri.lib")
   set(cppnetlib-client-connections_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-client-connections.lib")
-else()
-  set(PROCESS_FAMILY "posix")
-  set(MKDIR_OPTS "-p")
 
-  include_directories("${BUILD_DEPS}/include")
-  include_directories("${BUILD_DEPS}/include/openssl")
-endif()
 
-# Make sure the generated paths exist
-execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
-
-# We need to link some packages as dynamic/dependent.
-set(CMAKE_FIND_LIBRARY_SUFFIXES .dll .dylib .so .a)
-
-# Most dependent packages/libs we want static.
-if(NOT DEFINED ENV{BUILD_LINK_SHARED})
-  set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
-endif()
-
-# If using the RocksDB LITE version our code must also define ROCKSDB_LITE=1
-if(NOT DEFINED ENV{SKIP_ROCKSDB})
-  set(ROCKSDB TRUE)
-endif()
-
-# Python is used for table spec generation and formating.
-if(NOT WIN32)
-  if(PYTHON_VERSION_MAJOR STREQUAL "2" AND PYTHON_VERSION_MINOR STREQUAL "4")
-    WARNING_LOG("Found python 2.4, overriding to /usr/bin/python2.6")
-    set(PYTHON_EXECUTABLE "/usr/bin/python2.6")
-  endif()
-endif()
-
-find_package(Gtest REQUIRED)
-enable_testing()
-
-include(Thrift)
-
-if(WIN32)
-  # TODO(#1988): The paths used here might need to be modified in the future once third party dependencies
-  #              are made into chocolatey packages.
   include_directories("${THRIFT_INCLUDE_DIR}")
   include_directories("${BOOST_DEP_DIR}")
   include_directories("${BOOST_DEP_DIR}/boost")
@@ -481,9 +433,31 @@ if(WIN32)
   # TODO(#1990): We probably need to add our third-party link directories here
   link_directories("${BOOST_DEP_DIR}/lib64-msvc-14.0")
   link_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/lib")
+else()
+  set(PROCESS_FAMILY "posix")
+  set(MKDIR_OPTS "-p")
 endif()
 
+# Make sure the generated paths exist
+execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
+
+# We need to link some packages as dynamic/dependent.
+set(CMAKE_FIND_LIBRARY_SUFFIXES .dll .dylib .so .a)
+
+# Most dependent packages/libs we want static.
+if(NOT DEFINED ENV{BUILD_LINK_SHARED})
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
+endif()
+
+# Previously, this would find_package for Gtest.
+# We can supply the known include paths within each test as compile flags.
+enable_testing()
+
+include(Thrift)
+
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
+add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0")
+
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)
 
@@ -511,9 +485,6 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 
-# TODO(#1985): We either need to find an equivalent command on Windows or write a Python script
-#              in tools/ that accomplishes the same task in a platform agnostic manner.
-
 # make format-all
 add_custom_target(
   format-all
@@ -530,8 +501,6 @@ add_custom_target(
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
-
-# TODO(#1985): We need to figure out if we can platform agnosticize the sync.sh shell script
 
 # make sync
 add_custom_target(
