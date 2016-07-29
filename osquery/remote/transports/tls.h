@@ -104,7 +104,6 @@ class TLSTransport : public Transport {
  public:
   TLSTransport();
 
- protected:
   boost::network::http::client getClient();
 
  private:
