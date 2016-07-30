@@ -444,7 +444,10 @@ execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
 set(CMAKE_FIND_LIBRARY_SUFFIXES .dll .dylib .so .a)
 
 # Most dependent packages/libs we want static.
-if(NOT DEFINED ENV{BUILD_LINK_SHARED})
+if(DEFINED ENV{BUILD_LINK_SHARED})
+  set(ENV{OSQUERY_BUILD_LINK_SHARED} TRUE)
+endif()
+if(NOT DEFINED ENV{OSQUERY_BUILD_LINK_SHARED})
   set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
 endif()
 
