@@ -20,6 +20,8 @@
 
 #include <osquery/core.h>
 
+#include "osquery/core/process.h"
+
 namespace osquery {
 
 /// An opaque interface used within plugin macros.
@@ -551,7 +553,7 @@ class RegistryModuleLoader : private boost::noncopyable {
 
  private:
   // Keep the handle for symbol resolution/calling.
-  void* handle_{nullptr};
+  std::unique_ptr<SharedLibModule> handle_{ nullptr };
 
   // Keep the path for debugging/logging.
   std::string path_;

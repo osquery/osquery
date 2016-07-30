@@ -574,18 +574,19 @@ void RegistryFactory::declareModule(const std::string& name,
   instance().locked(false);
 }
 
-RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
+RegistryModuleLoader::RegistryModuleLoader(const std::string &path)
     : handle_(nullptr), path_(path) {
-#ifndef WIN32
   // Tell the registry that we are attempting to construct a module.
   // Locking the registry prevents the module's global initialization from
   // adding or creating registry items.
   RegistryFactory::initModule(path_);
 
-  handle_ = dlopen(path_.c_str(), RTLD_NOW | RTLD_LOCAL);
-  if (handle_ == nullptr) {
+  handle_.reset(new SharedLibModule(path_));
+  if (handle_ == nullptr || !handle_->isValid()) {
     VLOG(1) << "Failed to load module: " << path_;
-    VLOG(1) << dlerror();
+    if (handle_ != nullptr) {
+      VLOG(1) << handle_->getError();
+    }
     return;
   }
 
@@ -594,37 +595,36 @@ RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
   // the SDK's CREATE_MODULE macro, which adds the global-scope constructor.
   if (RegistryFactory::locked()) {
     VLOG(1) << "Failed to declare module: " << path_;
-    dlclose(handle_);
-    handle_ = nullptr;
+    if (handle_ != nullptr) {
+      handle_.reset(nullptr);
+    }
   }
-#endif
 }
 
 void RegistryModuleLoader::init() {
-#ifndef WIN32
-  if (handle_ == nullptr || RegistryFactory::locked()) {
-    handle_ = nullptr;
+  if (handle_ == nullptr || !handle_->isValid() || RegistryFactory::locked()) {
+    handle_.reset(nullptr);
     return;
   }
 
   // Locate a well-known symbol in the module.
   // This symbol name is protected against rewriting when the module uses the
   // SDK's CREATE_MODULE macro.
-  auto initializer = (ModuleInitalizer)dlsym(handle_, "initModule");
+  auto initializer = (ModuleInitalizer)handle_->getFunctionAddr("initModule");
   if (initializer != nullptr) {
     initializer();
     VLOG(1) << "Initialized module: " << path_;
   } else {
     VLOG(1) << "Failed to initialize module: " << path_;
-    VLOG(1) << dlerror();
-    dlclose(handle_);
-    handle_ = nullptr;
+    if (handle_ != nullptr) {
+      VLOG(1) << handle_->getError();
+    }
+    handle_.reset(nullptr);
   }
-#endif
 }
 
 RegistryModuleLoader::~RegistryModuleLoader() {
-  if (handle_ == nullptr) {
+  if (handle_ == nullptr || !handle_->isValid()) {
     // The module was not loaded or did not initalize.
     RegistryFactory::instance().modules_.erase(RegistryFactory::getModule());
   }
@@ -636,7 +636,7 @@ RegistryModuleLoader::~RegistryModuleLoader() {
     RegistryFactory::shutdownModule();
   }
   // No need to clean this resource.
-  handle_ = nullptr;
+  handle_.reset(nullptr);
 }
 
 void Plugin::getResponse(const std::string& key,

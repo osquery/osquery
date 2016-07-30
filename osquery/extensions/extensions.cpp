@@ -35,10 +35,13 @@ const size_t kExtensionInitializeLatencyUS = 20000;
 
 #ifdef __APPLE__
 #define MODULE_EXTENSION ".dylib"
+#define EXT_EXTENSION ".ext"
 #elif defined(WIN32)
 #define MODULE_EXTENSION ".dll"
+#define EXT_EXTENSION ".exe"
 #else
 #define MODULE_EXTENSION ".so"
+#define EXT_EXTENSION ".ext"
 #endif
 
 enum ExtenableTypes {
@@ -47,14 +50,14 @@ enum ExtenableTypes {
 };
 
 const std::map<ExtenableTypes, std::string> kExtendables = {
-    {EXTENSION, ".ext"}, {MODULE, MODULE_EXTENSION},
+    {EXTENSION, EXT_EXTENSION}, {MODULE, MODULE_EXTENSION},
 };
 
 CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
 
 CLI_FLAG(string,
          extensions_socket,
-         OSQUERY_DB_HOME "/osquery.em",
+         OSQUERY_SOCKET "osquery.em",
          "Path to the extensions UNIX domain socket")
 
 CLI_FLAG(string,
@@ -345,8 +348,7 @@ Status startExtension(const std::string& name, const std::string& version) {
   return startExtension(name, version, "0.0.0");
 }
 
-Status startExtension(const std::string& name,
-                      const std::string& version,
+Status startExtension(const std::string& name, const std::string& version,
                       const std::string& min_sdk_version) {
   Registry::setExternal();
   // Latency converted to milliseconds, used as a thread interruptible.
@@ -357,8 +359,8 @@ Status startExtension(const std::string& name,
     return status;
   }
 
-  status = startExtension(
-      FLAGS_extensions_socket, name, version, min_sdk_version, kSDKVersion);
+  status = startExtension(FLAGS_extensions_socket, name, version, min_sdk_version,
+                          kSDKVersion);
   if (!status.ok()) {
     // If the extension failed to start then the EM is most likely unavailable.
     return status;
@@ -606,8 +608,7 @@ Status startExtensionManager() {
   if (FLAGS_disable_extensions) {
     return Status(1, "Extensions disabled");
   }
-  return startExtensionManager(
-      fs::path(FLAGS_extensions_socket).make_preferred().string());
+  return startExtensionManager(FLAGS_extensions_socket);
 }
 
 Status startExtensionManager(const std::string& manager_path) {

@@ -400,8 +400,12 @@ void Initializer::initShell() const {
           (fs::path(homedir) / "shell.db").make_preferred().string();
     }
     if (Flag::isDefault("extensions_socket")) {
+#ifdef WIN32
+      osquery::FLAGS_extensions_socket = OSQUERY_SOCKET "\\shell.em";
+#else
       osquery::FLAGS_extensions_socket =
           (fs::path(homedir) / "shell.em").make_preferred().string();
+#endif
     }
   } else {
     fprintf(

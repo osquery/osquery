@@ -67,6 +67,25 @@ boost::optional<std::string> getEnvVar(const std::string &name) {
   return std::string(buf.data(), value_len);
 }
 
+SharedLibModule::SharedLibModule(const std::string& module) {
+  handle_ = ::LoadLibraryA(module.c_str());
+}
+
+SharedLibModule::~SharedLibModule() {
+  if (handle_ != nullptr) {
+    ::FreeLibrary(handle_);
+    handle_ = nullptr;
+  }
+}
+
+std::string SharedLibModule::getError() const {
+  return std::string("last_error = " + ::GetLastError());
+}
+
+void *SharedLibModule::getFunctionAddr(const std::string& fname) const {
+  return ::GetProcAddress(handle_, fname.c_str());
+}
+
 void cleanupDefunctProcesses() {}
 
 void setToBackgroundPriority() {}

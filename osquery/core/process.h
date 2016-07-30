@@ -33,8 +33,10 @@ namespace osquery {
 /// a DWORD.
 using pid_t = DWORD;
 using PlatformPidType = HANDLE;
+using ModuleHandle = HMODULE;
 #else
 using PlatformPidType = pid_t;
+using ModuleHandle = void *;
 #endif
 
 /// Constant for an invalid process
@@ -175,6 +177,26 @@ private:
   PSECURITY_DESCRIPTOR sd_{nullptr};
 };
 #endif
+
+/**
+ * @brief Shared library module abstraction class
+ *
+ * This class abstracts getting the handle to a shared library and obtaining the
+ * address of function symbols within
+ */
+class SharedLibModule {
+ public:
+  SharedLibModule(const std::string &module);
+  ~SharedLibModule();
+
+  bool isValid() const { return (handle_ != nullptr); }
+
+  void *getFunctionAddr(const std::string &fname) const;
+  std::string getError() const;
+
+ private:
+  ModuleHandle handle_;
+};
 
 /// Causes the current thread to sleep for a specified time in milliseconds.
 void sleepFor(unsigned int msec);

@@ -79,7 +79,7 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
  * known module-exported symbol is called.
  */
 #define CREATE_MODULE(name, version, min_sdk_version)         \
-  extern "C" void initModule(void);                           \
+  extern "C" EXPORT_FUNCTION void initModule(void);           \
   struct osquery_InternalStructCreateModule {                 \
     osquery_InternalStructCreateModule(void) {                \
         Registry::declareModule(                              \
@@ -101,7 +101,7 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
  * defined. If defined the module is declared.
  */
 #define CREATE_MODULE_IF(expr, name, version, min_sdk_version)  \
-  extern "C" void initModule(void);                             \
+  extern "C" EXPORT_FUNCTION void initModule(void);             \
   struct osquery_InternalStructCreateModule {                   \
     osquery_InternalStructCreateModule(void) {                  \
         if ((expr)) {                                           \
