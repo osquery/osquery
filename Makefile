@@ -32,6 +32,8 @@ else
 endif
 CMAKE := PATH="$(DEPS_DIR)/bin:$(PATH)" CXXFLAGS="-L$(DEPS_DIR)/lib" \
 		cmake ../../
+DOCS_CMAKE := PATH="$(DEPS_DIR)/bin:$(PATH)" CXXFLAGS="-L$(DEPS_DIR)/lib" \
+		cmake ../
 
 DEFINES := CTEST_OUTPUT_ON_FAILURE=1
 .PHONY: docs build
@@ -41,7 +43,7 @@ all: .setup
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 docs: .setup
-	@cd build && $(CMAKE) && \
+	@cd build && $(DOCS_CMAKE) && \
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
 
 debug: .setup
