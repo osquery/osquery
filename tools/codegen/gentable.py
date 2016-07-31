@@ -82,12 +82,6 @@ NON_CACHEABLE = [
 ]
 
 
-def usage():
-    """ print program usage """
-    print(
-        "Usage: %s <spec.table> <file.cpp> [disable_blacklist]" % sys.argv[0])
-
-
 def to_camel_case(snake_case):
     """ convert a snake_case string to camelCase """
     components = snake_case.split('_')
@@ -103,7 +97,7 @@ def is_blacklisted(table_name, path=None, blacklist=None):
     if blacklist is None:
         specs_path = os.path.dirname(path)
         if os.path.basename(specs_path) != "specs":
-            specs_path = os.path.basename(specs_path)
+            specs_path = os.path.dirname(specs_path)
         blacklist_path = os.path.join(specs_path, "blacklist")
         if not os.path.exists(blacklist_path):
             return False
@@ -378,6 +372,8 @@ def main(argc, argv):
         "--debug", default=False, action="store_true",
         help="Output debug messages (when developing)"
     )
+    parser.add_argument("--disable-blacklist", default=False,
+        action="store_true")
     parser.add_argument("--foreign", default=False, action="store_true",
         help="Generate a foreign table")
     parser.add_argument("--templates", default=SCRIPT_DIR + "/templates",
@@ -395,14 +391,13 @@ def main(argc, argv):
     output = args.output
     if filename.endswith(".table"):
         # Adding a 3rd parameter will enable the blacklist
-        disable_blacklist = argc > 3
 
         setup_templates(args.templates)
         with open(filename, "rU") as file_handle:
             tree = ast.parse(file_handle.read())
             exec(compile(tree, "<string>", "exec"))
             blacklisted = is_blacklisted(table.table_name, path=filename)
-            if not disable_blacklist and blacklisted:
+            if not args.disable_blacklist and blacklisted:
                 table.blacklist(output)
             else:
                 template_type = "default" if not args.foreign else "foreign"

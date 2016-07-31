@@ -54,15 +54,17 @@ else()
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_LINUX_TABLES_TESTS})
 
   if(REDHAT_BASED)
-    # CentOS specific tables
-    file(GLOB OSQUERY_REDHAT_TABLES "*/centos/*.cpp")
-    ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_redhat
-      ${OSQUERY_REDHAT_TABLES}
-    )
+    # TODO #2169: Linking librpm and librpmio prevents osquery from keeping
+    # a 2.13 glibc ABI. Statically linking the libraries introduces too many
+    # implicit dependencies.
 
-    ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio")
-    ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper")
-    ADD_OSQUERY_LINK_ADDITIONAL("libselinux.so")
+    # CentOS specific tables
+    # file(GLOB OSQUERY_REDHAT_TABLES "*/centos/*.cpp")
+    # ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_redhat
+    #   ${OSQUERY_REDHAT_TABLES}
+    # )
+
+    # ADD_OSQUERY_LINK_ADDITIONAL("librpm librpmio")
   elseif(DEBIAN_BASED)
     # Ubuntu specific tables
     file(GLOB OSQUERY_UBUNTU_TABLES "*/ubuntu/*.cpp")
@@ -70,21 +72,19 @@ else()
       ${OSQUERY_UBUNTU_TABLES}
     )
 
-    # libdpkg API is volitile and suffers breaking changes.
-    # We need to find and pass in the libdpkg version via pkg-config
-    find_package(Libdpkg REQUIRED)
+    set(LIBDPKG_VERSION_NUMBER "1018004")
     add_definitions(-DLIBDPKG_VERSION=${LIBDPKG_VERSION_NUMBER})
 
-    ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg liblzma.so")
-    ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup libdevmapper.so")
+    ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg lzma lz4 bz2")
   endif()
 
-  ADD_OSQUERY_LINK_ADDITIONAL("libgcrypt.so")
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.so")
+  ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper")
+  ADD_OSQUERY_LINK_ADDITIONAL("gcrypt gpg-error")
   ADD_OSQUERY_LINK_ADDITIONAL("blkid")
-  ADD_OSQUERY_LINK_ADDITIONAL("libuuid.so")
+  ADD_OSQUERY_LINK_ADDITIONAL("uuid")
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
-  ADD_OSQUERY_LINK_ADDITIONAL("libmagic.so")
+  ADD_OSQUERY_LINK_ADDITIONAL("magic")
   ADD_OSQUERY_LINK_ADDITIONAL("tsk")
 endif()
 

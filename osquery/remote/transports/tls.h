@@ -38,14 +38,12 @@ void ERR_remove_state(unsigned long);
 // On OS X these symbols are marked deprecated and clang will warn against
 // us including them. We are squashing the noise for OS X's OpenSSL only.
 // clang-format off
-#if defined(DARWIN)
 _Pragma("clang diagnostic push")
 _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
-#endif
+_Pragma("clang diagnostic ignored \"-Wunused-local-typedef\"")
+_Pragma("clang diagnostic ignored \"-W#pragma-messages\"")
 #include <boost/network/protocol/http/client.hpp>
-#if defined(DARWIN)
 _Pragma("clang diagnostic pop")
-#endif
 // clang-format on
 
 #include <osquery/flags.h>
