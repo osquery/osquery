@@ -108,6 +108,9 @@ ifeq ($(PLATFORM),Linux)
 		rm -rf build/linux
 endif
 
+depsclean:
+	./tools/provision.sh clean $(BUILD_DIR)
+
 .setup:
 ifneq ($(MAKECMDGOALS),deps)
 ifeq ($(GIT_EXISTS),)

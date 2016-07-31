@@ -30,6 +30,106 @@ LINUXBREW_DUPES="83cad3d474e6d245cd543521061bba976529e5df"
 source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/provision/lib.sh"
 
+function main() {
+  platform OS
+  distro $OS DISTRO
+  threads THREADS
+
+  if ! hash sudo 2>/dev/null; then
+   echo "Please install sudo in this machine"
+   exit 0
+  fi
+
+  # Setup the osquery dependency directory.
+  # One can use a non-build location using OSQUERY_DEPS=/path/to/deps
+  if [[ -e "$OSQUERY_DEPS" ]]; then
+    DEPS_DIR="$OSQUERY_DEPS"
+  else
+    DEPS_DIR="/usr/local/osquery"
+  fi
+
+  if [[ "$1" = "clean" ]]; then
+    do_sudo rm -rf "$DEPS_DIR"
+    return
+  fi
+
+  # Setup the local ./build/DISTRO cmake build directory.
+  mkdir -p "$WORKING_DIR"
+  if [[ ! -z "$SUDO_USER" ]]; then
+    echo "chown -h $SUDO_USER $BUILD_DIR/*"
+    chown -h $SUDO_USER:$SUDO_GID "$BUILD_DIR" || true
+    if [[ $OS = "linux" ]]; then
+      chown -h $SUDO_USER:$SUDO_GID "$BUILD_DIR/linux" || true
+    fi
+    chown $SUDO_USER:$SUDO_GID "$WORKING_DIR" > /dev/null 2>&1 || true
+  fi
+
+  # Provisioning uses either Linux or Home (OS X) brew.
+  if [[ $OS = "darwin" ]]; then
+    BREW_TYPE="darwin"
+  else
+    BREW_TYPE="linux"
+  fi
+
+  # Each OS/Distro may have specific provisioning needs.
+  # These scripts are optional and should installed the needed packages for:
+  # 1. A basic ruby interpreter to run brew
+  # 2. A GCC compiler to compile a modern glibc/GCC and legacy glibc.
+  # 3. Curl, git, autotools, autopoint, and gawk.
+  OS_SCRIPT="$SCRIPT_DIR/provision/$OS.sh"
+  if [[ -f "$OS_SCRIPT" ]]; then
+    log "found $OS provision script: $OS_SCRIPT"
+    source "$OS_SCRIPT"
+    if [[ -z "$SKIP_DISTRO_MAIN" ]]; then
+      distro_main
+    fi
+  else
+    log "your $OS does not use a provision script"
+  fi
+
+  # The dependency directory (DEPS_DIR) will contain our legacy runtime glibc
+  # and various compilers/library dependencies.
+  if [[ ! -d "$DEPS_DIR" ]]; then
+    log "creating build dir: $DEPS_DIR"
+    do_sudo mkdir -p "$DEPS_DIR"
+    do_sudo chown $USER "$DEPS_DIR" > /dev/null 2>&1 || true
+  fi
+  cd "$DEPS_DIR"
+
+  # Finally run the setup of *brew, and checkout the needed Taps.
+  # This will install a local tap using a symbol to the formula subdir here.
+  export PATH="$DEPS_DIR/bin:$PATH"
+  setup_brew "$DEPS_DIR" "$BREW_TYPE"
+
+  if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
+    log "[notice]"
+    log "[notice] you are choosing to build dependencies instead of installing"
+    log "[notice]"
+  fi
+
+  log "running unified platform initialization"
+  if [[ "$BREW_TYPE" = "darwin" ]]; then
+    platform_darwin_main
+  else
+    platform_linux_main
+
+    # Additional compilations may occur for Python and Ruby
+    export LIBRARY_PATH="$DEPS_DIR/lib:$DEPS_DIR/legacy/lib:$LIBRARY_PATH"
+  fi
+  cd "$SCRIPT_DIR/../"
+
+  # Pip may have just been installed.
+  log "upgrading pip and installing python dependencies"
+  PIP=`which pip`
+  $PIP install --upgrade pip
+  # Pip may change locations after upgrade.
+  PIP=`which pip`
+  $PIP install -r requirements.txt
+
+  log "running auxiliary initialization"
+  initialize $OS
+}
+
 function platform_linux_main() {
   # GCC 5x bootstrapping.
   core_brew_tool patchelf
@@ -183,101 +283,6 @@ function platform_darwin_main() {
   local_brew_dependency aws-sdk-cpp
   local_brew_dependency yara
   local_brew_dependency glog
-}
-
-function main() {
-  platform OS
-  distro $OS DISTRO
-  threads THREADS
-
-  if ! hash sudo 2>/dev/null; then
-   echo "Please install sudo in this machine"
-   exit 0
-  fi
-
-  # Setup the local ./build/DISTRO cmake build directory.
-  mkdir -p "$WORKING_DIR"
-  if [[ ! -z "$SUDO_USER" ]]; then
-    echo "chown -h $SUDO_USER $BUILD_DIR/*"
-    chown -h $SUDO_USER:$SUDO_GID "$BUILD_DIR" || true
-    if [[ $OS = "linux" ]]; then
-      chown -h $SUDO_USER:$SUDO_GID "$BUILD_DIR/linux" || true
-    fi
-    chown $SUDO_USER:$SUDO_GID "$WORKING_DIR" > /dev/null 2>&1 || true
-  fi
-
-  # Provisioning uses either Linux or Home (OS X) brew.
-  if [[ $OS = "darwin" ]]; then
-    BREW_TYPE="darwin"
-  else
-    BREW_TYPE="linux"
-  fi
-
-  # Each OS/Distro may have specific provisioning needs.
-  # These scripts are optional and should installed the needed packages for:
-  # 1. A basic ruby interpreter to run brew
-  # 2. A GCC compiler to compile a modern glibc/GCC and legacy glibc.
-  # 3. Curl, git, autotools, autopoint, and gawk.
-  OS_SCRIPT="$SCRIPT_DIR/provision/$OS.sh"
-  if [[ -f "$OS_SCRIPT" ]]; then
-    log "found $OS provision script: $OS_SCRIPT"
-    source "$OS_SCRIPT"
-    if [[ -z "$SKIP_DISTRO_MAIN" ]]; then
-      distro_main
-    fi
-  else
-    log "your $OS does not use a provision script"
-  fi
-
-  # Setup the osquery dependency directory.
-  # One can use a non-build location using OSQUERY_DEPS=/path/to/deps
-  if [[ -e "$OSQUERY_DEPS" ]]; then
-    DEPS_DIR="$OSQUERY_DEPS"
-  else
-    DEPS_DIR="/usr/local/osquery"
-  fi
-
-  # The dependency directory (DEPS_DIR) will contain our legacy runtime glibc
-  # and various compilers/library dependencies.
-  if [[ ! -d "$DEPS_DIR" ]]; then
-    log "creating build dir: $DEPS_DIR"
-    do_sudo mkdir -p "$DEPS_DIR"
-    do_sudo chown $USER "$DEPS_DIR" > /dev/null 2>&1 || true
-  fi
-  cd "$DEPS_DIR"
-
-  # Finally run the setup of *brew, and checkout the needed Taps.
-  # This will install a local tap using a symbol to the formula subdir here.
-  export PATH="$DEPS_DIR/bin:$PATH"
-  setup_brew "$DEPS_DIR" "$BREW_TYPE"
-
-  if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
-    log "[notice]"
-    log "[notice] you are choosing to build dependencies instead of installing"
-    log "[notice]"
-  fi
-
-  log "running unified platform initialization"
-  if [[ "$BREW_TYPE" = "darwin" ]]; then
-    platform_darwin_main
-  else
-    platform_linux_main
-
-    # Additional compilations may occur for Python and Ruby
-    export LIBRARY_PATH="$DEPS_DIR/lib:$DEPS_DIR/legacy/lib:$LIBRARY_PATH"
-  fi
-  cd "$SCRIPT_DIR/../"
-
-  # Pip may have just been installed.
-  log "upgrading pip and installing python dependencies"
-  PIP=`which pip`
-  $PIP install --upgrade pip
-  # Pip may change locations after upgrade.
-  PIP=`which pip`
-  $PIP install -r requirements.txt
-
-  log "running auxiliary initialization"
-  initialize $OS
 }
 
 check $1 "$2"
