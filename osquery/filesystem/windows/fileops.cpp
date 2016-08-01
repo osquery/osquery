@@ -105,26 +105,6 @@ class WindowsFindFiles {
   fs::path path_;
 };
 
-class SecurityDescriptor {
- public:
-  explicit SecurityDescriptor(PSECURITY_DESCRIPTOR sd) : sd_(sd) {}
-
-  SecurityDescriptor(SecurityDescriptor &&src) noexcept {
-    sd_ = src.sd_;
-    std::swap(sd_, src.sd_);
-  }
-
-  ~SecurityDescriptor() {
-    if (sd_ != nullptr) {
-      ::LocalFree(sd_);
-      sd_ = nullptr;
-    }
-  }
-
- private:
-  PSECURITY_DESCRIPTOR sd_{nullptr};
-};
-
 static bool hasGlobBraces(const std::string &glob) {
   int brace_depth = 0;
   bool has_brace = false;

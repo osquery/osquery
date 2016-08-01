@@ -744,6 +744,11 @@ WARN_FORMAT            = "$file:$line: $text"
 
 WARN_LOGFILE           =
 
+# If the WARN_AS_ERROR tag is set to YES then doxygen will immediately stop
+# when a warning is encountered.
+
+WARN_AS_ERROR          = YES
+
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------

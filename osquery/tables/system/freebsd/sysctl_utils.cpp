@@ -13,7 +13,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
-#include "osquery/tables/system/sysctl_utils.h"
+#include "osquery/tables/system/posix/sysctl_utils.h"
 
 namespace osquery {
 namespace tables {

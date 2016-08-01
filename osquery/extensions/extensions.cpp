@@ -54,12 +54,12 @@ CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
 
 CLI_FLAG(string,
          extensions_socket,
-         "/var/osquery/osquery.em",
+         OSQUERY_DB_HOME "/osquery.em",
          "Path to the extensions UNIX domain socket")
 
 CLI_FLAG(string,
          extensions_autoload,
-         "/etc/osquery/extensions.load",
+         OSQUERY_HOME "/extensions.load",
          "Optional path to a list of autoloaded & managed extensions")
 
 CLI_FLAG(string,
@@ -74,7 +74,7 @@ CLI_FLAG(string,
 
 CLI_FLAG(string,
          modules_autoload,
-         "/etc/osquery/modules.load",
+         OSQUERY_HOME "/modules.load",
          "Optional path to a list of autoloaded registry modules")
 
 /**
@@ -226,14 +226,16 @@ void loadExtensions() {
 
   // Optionally autoload extensions, sanitize the binary path and inform
   // the osquery watcher to execute the extension when started.
-  auto status = loadExtensions(FLAGS_extensions_autoload);
+  auto status = loadExtensions(
+      fs::path(FLAGS_extensions_autoload).make_preferred().string());
   if (!status.ok()) {
     VLOG(1) << "Could not autoload extensions: " << status.what();
   }
 }
 
 void loadModules() {
-  auto status = loadModules(FLAGS_modules_autoload);
+  auto status =
+      loadModules(fs::path(FLAGS_modules_autoload).make_preferred().string());
   if (!status.ok()) {
     VLOG(1) << "Could not autoload modules: " << status.what();
   }
@@ -604,7 +606,8 @@ Status startExtensionManager() {
   if (FLAGS_disable_extensions) {
     return Status(1, "Extensions disabled");
   }
-  return startExtensionManager(FLAGS_extensions_socket);
+  return startExtensionManager(
+      fs::path(FLAGS_extensions_socket).make_preferred().string());
 }
 
 Status startExtensionManager(const std::string& manager_path) {

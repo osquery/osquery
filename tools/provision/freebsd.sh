@@ -7,9 +7,9 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
-function main_freebsd() {
-  sudo pkg update
-  sudo pkg upgrade -y
+function distro_main() {
+  do_sudo pkg update
+  do_sudo pkg upgrade -y
 
   package gmake
   package cmake
@@ -25,5 +25,4 @@ function main_freebsd() {
   package boost-libs
   package cpp-netlib
   package magic
-  install_aws_sdk
 }

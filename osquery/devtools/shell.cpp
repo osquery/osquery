@@ -15,11 +15,20 @@
 
 #include <signal.h>
 #include <stdio.h>
+
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+#include <io.h>
+#include <linenoise.h>
+#else
 #include <sys/resource.h>
 #include <sys/time.h>
 
 #include <readline/history.h>
 #include <readline/readline.h>
+#endif
 
 #include <sqlite3.h>
 
@@ -37,6 +46,8 @@
 #if defined(SQLITE_ENABLE_WHERETRACE)
 extern int sqlite3WhereTrace;
 #endif
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 
@@ -98,7 +109,11 @@ static const char *modeDescr[] = {
 };
 
 // Make sure isatty() has a prototype.
+#ifdef WIN32
+int isatty(int fd) { return _isatty(fd); }
+#else
 extern int isatty(int);
+#endif
 
 // ctype macros that work with signed characters
 #define IsSpace(X) isspace((unsigned char)X)
@@ -125,30 +140,66 @@ static sqlite3_int64 timeOfDay(void) {
 }
 
 // Saved resource information for the beginning of an operation
+#ifdef WIN32
+struct rusage {
+  FILETIME ru_utime;
+  FILETIME ru_stime;
+};
+#endif
+
 static struct rusage sBegin; // CPU time at start
 static sqlite3_int64 iBegin; // Wall-clock time at start
 
 static void beginTimer(void) {
   if (enableTimer) {
+#ifdef WIN32
+    FILETIME ftCreation, ftExit;
+    ::GetProcessTimes(::GetCurrentProcess(), &ftCreation, &ftExit,
+                      &sBegin.ru_stime, &sBegin.ru_utime);
+#else
     getrusage(RUSAGE_SELF, &sBegin);
+#endif
+
     iBegin = timeOfDay();
   }
 }
 
 // Return the difference of two time_structs in seconds
+#ifdef WIN32
+static double timeDiff(FILETIME *pStart, FILETIME *pEnd) {
+  ULARGE_INTEGER start, end;
+
+  start.HighPart = pStart->dwHighDateTime;
+  start.LowPart = pStart->dwLowDateTime;
+
+  end.HighPart = pEnd->dwHighDateTime;
+  end.LowPart = pEnd->dwLowDateTime;
+
+  // start, end are in units of 100 nanoseconds
+  return (end.QuadPart - start.QuadPart) * 0.0000001;
+}
+#else
 static double timeDiff(struct timeval *pStart, struct timeval *pEnd) {
   return (pEnd->tv_usec - pStart->tv_usec) * 0.000001 +
          (double)(pEnd->tv_sec - pStart->tv_sec);
 }
+#endif
 
 // End the timer and print the results.
 static void endTimer(void) {
   if (enableTimer) {
-    struct rusage sEnd;
     sqlite3_int64 iEnd = timeOfDay();
+    struct rusage sEnd;
+
+#ifdef WIN32
+    FILETIME ftCreation, ftExit;
+    ::GetProcessTimes(::GetCurrentProcess(), &ftCreation, &ftExit,
+                      &sEnd.ru_stime, &sEnd.ru_utime);
+#else
     getrusage(RUSAGE_SELF, &sEnd);
-    printf("Run Time: real %.3f user %f sys %f\n",
-           (iEnd - iBegin) * 0.001,
+#endif
+
+    printf("Run Time: real %.3f user %f sys %f\n", (iEnd - iBegin) * 0.001,
            timeDiff(&sBegin.ru_utime, &sEnd.ru_utime),
            timeDiff(&sBegin.ru_stime, &sEnd.ru_stime));
   }
@@ -257,9 +308,17 @@ static char *one_input_line(FILE *in, char *zPrior, int isContinuation) {
   } else {
     char *zPrompt = isContinuation ? continuePrompt : mainPrompt;
     free(zPrior);
+#ifdef WIN32
+    zResult = linenoise(zPrompt);
+#else
     zResult = readline(zPrompt);
+#endif
     if (zResult && *zResult) {
+#ifdef WIN32
+      linenoiseHistoryAdd(zResult);
+#else
       add_history(zResult);
+#endif
     }
   }
   return zResult;
@@ -1522,11 +1581,24 @@ int launchIntoShell(int argc, char **argv) {
       printBold("virtual database");
       printf(". Need help, type '.help'\n");
 
-      auto history_file = osquery::osqueryHomeDirectory() + "/.history";
+      auto history_file =
+          (fs::path(osquery::osqueryHomeDirectory()) / ".history")
+              .make_preferred()
+              .string();
+#ifdef WIN32
+      linenoiseHistorySetMaxLen(100);
+      linenoiseHistoryLoad(history_file.c_str());
+#else
       read_history(history_file.c_str());
+#endif
       rc = process_input(&data, 0);
+
+#ifdef WIN32
+      linenoiseHistorySave(history_file.c_str());
+#else
       stifle_history(100);
       write_history(history_file.c_str());
+#endif
     } else {
       rc = process_input(&data, stdin);
     }

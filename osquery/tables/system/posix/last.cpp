@@ -21,7 +21,7 @@ namespace tables {
 
 QueryData genLastAccess(QueryContext& context) {
   QueryData results;
-  struct utmpx *ut;
+  struct utmpx* ut;
 #ifdef __APPLE__
   setutxent_wtmp(0); // 0 = reverse chronological order
 

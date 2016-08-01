@@ -78,7 +78,9 @@ void readCrashDump(const std::string& app_log, Row& r) {
 
     // Grab the most recent stack trace line of the crashed thread.
     if (crashed_thread_seen && toks[0] == crashed_thread_format.str()) {
-      r["stack_trace"] = *(++it);
+      if (std::next(it) != lines.end()) {
+        r["stack_trace"] = *(++it);
+      }
       crashed_thread_seen = false;
       continue;
     }

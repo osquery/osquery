@@ -8,8 +8,15 @@ macro(LOG MESSAGE)
   message("-- ${MESSAGE}")
 endmacro(LOG)
 
+# Set expected directory for within-build dependencies
+if(DEFINED ENV{OSQUERY_DEPS})
+  set(BUILD_DEPS "$ENV{OSQUERY_DEPS}")
+else()
+  set(BUILD_DEPS "/usr/local/osquery")
+endif()
+
 # If no explicit compiler override and clang++ exists, prefer clang.
-find_file(CLANGXX_EXISTS "clang++")
+find_program(CLANGXX_EXISTS "clang++" ENV PATH)
 if(DEFINED ENV{CC})
   set(CMAKE_C_COMPILER "$ENV{CC}")
   LOG("Overriding C compiler from clang to $ENV{CC}")
@@ -23,23 +30,25 @@ elseif(CLANGXX_EXISTS)
   set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
-find_program(CCACHE_FOUND ccache)
+find_program(CCACHE_FOUND ccache ENV PATH)
 if(CCACHE_FOUND)
-  LOG("Found ccache ${CCACHE_FOUND}")
-  LOG("Using ccache to speed up compilation")
+  if(NOT DEFINED CCACHE_FOUND_LOG)
+    set(CCACHE_FOUND_LOG TRUE CACHE BOOL "Write log line for ccache.")
+    LOG("Found ccache ${CCACHE_FOUND}")
+    LOG("Using ccache to speed up compilation")
+  endif()
   set(ENV{CCACHE_CPP2} "yes")
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
-if(WIN32)
-  # TODO(#1985): We need to find the MSVC equivalents to the flags listed in the else section.
-else()
+if(NOT WIN32)
   add_compile_options(
     -Qunused-arguments
     -Wstrict-aliasing
     -Wno-missing-field-initializers
     -Wno-unused-local-typedef
+    -Wno-deprecated-register
     -Wno-unknown-warning-option
     -Wnon-virtual-dtor
     -Wchar-subscripts
@@ -51,10 +60,6 @@ else()
     -Wabi-tag
     -fpermissive
     -fstack-protector-all
-    -fPIE
-    -fpie
-    -fPIC
-    -fpic
     -pipe
     -fdata-sections
     -ffunction-sections
@@ -64,6 +69,11 @@ endif()
 # osquery additional compiler flags added by CMake.
 set(C_COMPILE_FLAGS "")
 set(CXX_COMPILE_FLAGS "")
+
+if(NOT WIN32)
+  find_program(THRIFT_COMPILER "thrift" ENV PATH)
+  find_program(PYTHON_EXECUTABLE "python" ENV PATH)
+endif()
 
 # Use osquery language to set platform/os
 if(DEFINED ENV{OSQUERY_PLATFORM})
@@ -131,35 +141,6 @@ endif()
 # BUILD BUG: See issue #2112
 set(ENV{SKIP_BENCHMARKS} TRUE)
 
-# RHEL6 uses a different gcc 4.9 runtime
-if(${OSQUERY_BUILD_DISTRO} STREQUAL "rhel6")
-  set(GCC_RUNTIME "/opt/rh/devtoolset-3/root/usr/")
-  WARNING_LOG("Setting RHEL6 GCC runtime: ${GCC_RUNTIME}")
-  set(CMAKE_C_COMPILER "${CMAKE_C_COMPILER}" "--gcc-toolchain=${GCC_RUNTIME}")
-  set(CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER}" "--gcc-toolchain=${GCC_RUNTIME}")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
-  set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} --gcc-toolchain=${GCC_RUNTIME}")
-endif()
-
-# Help Debian Wheezy find BZip2
-if(${OSQUERY_BUILD_DISTRO} STREQUAL "wheezy")
-  set (CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu")
-endif()
-
-# Provisioning installs non-default C++11 runtimes on build hosts.
-# List those distros that include a non-system-default runtime.
-set(OSQUERY_REQUIRE_RUNTIMES
-  "lucid"
-  "precise"
-  "centos6"
-  "scientific6"
-  "rhel6"
-  "oracle6"
-  "wheezy"
-)
-
 # make debug (environment variable from Makefile)
 if(DEFINED ENV{DEBUG})
   set(DEBUG TRUE)
@@ -209,6 +190,15 @@ else()
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
+
+  # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
+  # To be safe, only include them when building 'release' outputs.
+  add_compile_options(
+    -fPIE
+    -fpie
+    -fPIC
+    -fpic
+  )
 endif()
 # Generate a compile_commands.json for static analyzer input.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -224,7 +214,7 @@ endif()
 
 # make analyze (environment variable from Makefile)
 if(DEFINED ENV{ANALYZE})
-  # TODO(#1985): How do we support clang-analyze on Windows?
+  # TODO(#1985): clang-analyze on Windows
   if(WIN32)
     message(FATAL_ERROR "Cannot analyze on Windows right now." )
   else()
@@ -365,6 +355,24 @@ elseif(DEBIAN_BASED)
   add_definitions(-DDEBIAN_BASED=1)
 endif()
 
+# Add sysroot overrides for each platform/distro.
+# These should be prioritized over all other includes.
+if(APPLE)
+  include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third-party/sysroots/darwin")
+elseif(LINUX)
+  include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third-party/sysroots/linux")
+endif()
+
+if(NOT WIN32)
+  include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
+  include_directories(SYSTEM "${BUILD_DEPS}/include")
+  include_directories("${BUILD_DEPS}/include/openssl")
+endif()
+
+include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
+include_directories("${CMAKE_SOURCE_DIR}/include")
+include_directories("${CMAKE_SOURCE_DIR}")
+
 set(MKDIR_OPTS "")
 if(WIN32)
   set(PROCESS_FAMILY "windows")
@@ -403,6 +411,7 @@ if(WIN32)
   set(boost_regex_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_regex-vc140-mt-1_59.lib")
 
   # Win64 specific gflags
+  set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared gtest library" FORCE)
   set(gflags_library "${WINDOWS_DEP_DIR}/gflags-dev/local/lib/gflags_static.lib")
 
   # Win64 specific glog
@@ -411,6 +420,23 @@ if(WIN32)
   # Win64 specific cpp-netlib library
   set(cppnetlib-uri_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-uri.lib")
   set(cppnetlib-client-connections_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-client-connections.lib")
+
+
+  include_directories("${THRIFT_INCLUDE_DIR}")
+  include_directories("${BOOST_DEP_DIR}")
+  include_directories("${BOOST_DEP_DIR}/boost")
+  include_directories("${WINDOWS_DEP_DIR}/glog/local/include")
+  include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
+
+  # TODO(FIXME): temporary for now
+  include_directories("${WINDOWS_DEP_DIR}/cpp-netlib/local/include")
+  include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
+  include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")
+  include_directories("${WINDOWS_DEP_DIR}/rocksdb/local/include")
+
+  # TODO(#1990): We probably need to add our third-party link directories here
+  link_directories("${BOOST_DEP_DIR}/lib64-msvc-14.0")
+  link_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/lib")
 else()
   set(PROCESS_FAMILY "posix")
   set(MKDIR_OPTS "-p")
@@ -422,128 +448,23 @@ execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
 # We need to link some packages as dynamic/dependent.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .dll .dylib .so .a)
 
-find_package(BZip2 REQUIRED)
-
-if(NOT WIN32)
-  find_package(Dl REQUIRED)
-endif()
-
-find_package(Readline REQUIRED)
-
-# Apple has deprecated OpenSSL, static link with brew bottled libressl
-if(APPLE)
-  if(DEFINED ENV{BUILD_USE_LIBRESSL} OR ${OSQUERY_BUILD_DISTRO} STREQUAL "10.11")
-    if(NOT DEFINED ENV{BUILD_LINK_SHARED})
-      set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
-    endif()
-    execute_process(COMMAND brew --prefix OUTPUT_VARIABLE BREW_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
-    set(OPENSSL_ROOT_DIR "${BREW_PREFIX}/opt/libressl")
-  else()
-    # Some installs may find the optional brew /usr/local/lib/ as the root.
-    set(OPENSSL_ROOT_DIR "/usr")
-  endif()
-endif()
-
-find_package(OpenSSL REQUIRED)
-include_directories("${OPENSSL_INCLUDE_DIR}")
-
-# Make sure the OpenSSL/ssl library has a TLS client method.
-# Prefer the highest version of TLS, but accept 1.2, 1.1, or 1.0.
-include(CheckLibraryExists)
-set(CMAKE_REQUIRED_INCLUDES ${OPENSSL_INCLUDE_DIR})
-set(CMAKE_REQUIRED_LIBRARIES ${OPENSSL_LIBRARIES})
-CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "SSLv3_client_method" "" OPENSSL_SSL3)
-CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_2_client_method" "" OPENSSL_TLSV12)
-CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_1_client_method" "" OPENSSL_TLSV11)
-CHECK_LIBRARY_EXISTS(${OPENSSL_SSL_LIBRARY} "TLSv1_client_method" "" OPENSSL_TLSV10)
-
-# Add a define based on the highest TLS version found. Fatal if no TLS client.
-if(OPENSSL_TLSV12)
-  add_definitions(-DHAS_SSL_TXT_TLSV1_2)
-elseif(OPENSSL_TLSV11)
-  add_definitions(-DHAS_SSL_TXT_TLSV1_1)
-elseif(OPENSSL_TLSV10)
-  add_definitions(-DHAS_SSL_TXT_TLSV1)
-else()
-  message(FATAL_ERROR "Cannot find any TLS client methods")
-endif()
-if(NOT OPENSSL_SSL3)
-  add_definitions(-DNO_SSL_TXT_SSLV3)
-endif()
-
 # Most dependent packages/libs we want static.
-if(NOT DEFINED ENV{BUILD_LINK_SHARED})
+if(DEFINED ENV{BUILD_LINK_SHARED})
+  set(ENV{OSQUERY_BUILD_LINK_SHARED} TRUE)
+endif()
+if(NOT DEFINED ENV{OSQUERY_BUILD_LINK_SHARED})
   set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
 endif()
 
-if(DEFINED ENV{BOOST_ROOT})
-  set(BOOST_ROOT "$ENV{BOOST_ROOT}")
-  include_directories("${BOOST_ROOT}")
-endif()
-
-find_package(Gtest REQUIRED)
-find_package(Thrift 0.9.3 REQUIRED)
-
-# If using the RocksDB LITE version our code must also define ROCKSDB_LITE=1
-if(NOT DEFINED ENV{SKIP_ROCKSDB})
-  set(ROCKSDB TRUE)
-  find_package(RocksDB REQUIRED)
-endif()
-
-# Python is used for table spec generation and formating.
-if(NOT WIN32)
-  if(PYTHON_VERSION_MAJOR STREQUAL "2" AND PYTHON_VERSION_MINOR STREQUAL "4")
-    WARNING_LOG("Found python 2.4, overriding to /usr/bin/python2.6")
-    set(PYTHON_EXECUTABLE "/usr/bin/python2.6")
-  endif()
-endif()
-
+# Previously, this would find_package for Gtest.
+# We can supply the known include paths within each test as compile flags.
 enable_testing()
 
 include(Thrift)
 
-include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
-include_directories("${CMAKE_SOURCE_DIR}/include")
-include_directories("${CMAKE_SOURCE_DIR}")
-
-if(WIN32)
-  # TODO(#1988): The paths used here might need to be modified in the future once third party dependencies
-  #              are made into chocolatey packages.
-  include_directories("${THRIFT_INCLUDE_DIR}")
-  include_directories("${BOOST_DEP_DIR}")
-  include_directories("${BOOST_DEP_DIR}/boost")
-  include_directories("${WINDOWS_DEP_DIR}/glog/local/include")
-  include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
-  
-  # TODO(FIXME): temporary for now
-  include_directories("${WINDOWS_DEP_DIR}/cpp-netlib/local/include")
-  include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
-  include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")
-  include_directories("${WINDOWS_DEP_DIR}/rocksdb/local/include")
-  
-  # TODO(#1990): We probably need to add our third-party link directories here
-  link_directories("${BOOST_DEP_DIR}/lib64-msvc-14.0")
-  link_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/lib")
-else()
-  include_directories("/usr/local/include")
-  link_directories("/usr/local/lib")
-endif()
-
-# Add custom homebrew paths
-if(APPLE)
-  execute_process(COMMAND brew --prefix OUTPUT_VARIABLE BREW_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
-  include_directories("${BREW_PREFIX}/include")
-  link_directories("${BREW_PREFIX}/lib")
-endif()
-
-# Add sysroot overrides for each platform/distro.
-if(APPLE)
-  include_directories("${CMAKE_SOURCE_DIR}/third-party/sysroots/darwin")
-elseif(LINUX)
-  include_directories("${CMAKE_SOURCE_DIR}/third-party/sysroots/linux")
-endif()
-
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
+add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0")
+
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)
 
@@ -565,13 +486,11 @@ if(DOXYGEN_FOUND)
     COMMAND echo "PROJECT_NUMBER=${OSQUERY_BUILD_VERSION}" |
       cat ${CMAKE_SOURCE_DIR}/Doxyfile - |
       "${DOXYGEN_EXECUTABLE}" -;
+    COMMAND mkdocs build --clean -s
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Generating API documentation with Doxygen" VERBATIM
   )
 endif(DOXYGEN_FOUND)
-
-# TODO(#1985): We either need to find an equivalent command on Windows or write a Python script
-#              in tools/ that accomplishes the same task in a platform agnostic manner.
 
 # make format-all
 add_custom_target(
@@ -589,8 +508,6 @@ add_custom_target(
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )
-
-# TODO(#1985): We need to figure out if we can platform agnosticize the sync.sh shell script
 
 # make sync
 add_custom_target(

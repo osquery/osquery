@@ -99,8 +99,13 @@ Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
 }
 
 Status FirehoseLogForwarder::setUp() {
+  Status s = BufferedLogForwarder::setUp();
+  if (!s.ok()) {
+    return s;
+  }
+
   // Set up client
-  Status s = makeAWSClient<Aws::Firehose::FirehoseClient>(client_);
+  s = makeAWSClient<Aws::Firehose::FirehoseClient>(client_);
   if (!s.ok()) {
     return s;
   }
