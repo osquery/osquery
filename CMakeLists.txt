@@ -60,10 +60,6 @@ if(NOT WIN32)
     -Wabi-tag
     -fpermissive
     -fstack-protector-all
-    -fPIE
-    -fpie
-    -fPIC
-    -fpic
     -pipe
     -fdata-sections
     -ffunction-sections
@@ -194,6 +190,15 @@ else()
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
+
+  # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
+  # To be safe, only include them when building 'release' outputs.
+  add_compile_options(
+    -fPIE
+    -fpie
+    -fPIC
+    -fpic
+  )
 endif()
 # Generate a compile_commands.json for static analyzer input.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
