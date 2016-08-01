@@ -48,7 +48,8 @@ const std::string kSQLGlobRecursive = kSQLGlobWildcard + kSQLGlobWildcard;
  * @param content a reference to a string which will be populated with the
  * contents of the path indicated by the path parameter.
  * @param dry_run do not actually read the file content.
- * @param preserve_time Attempt to preserve file mtime and atime
+ * @param preserve_time Attempt to preserve file mtime and atime.
+ * @param blocking Request a blocking read.
  *
  * @return an instance of Status, indicating success or failure.
  */
@@ -68,6 +69,7 @@ Status forensicReadFile(const boost::filesystem::path& path,
  * @brief Return the status of an attempted file read.
  *
  * @param path the path of the file that you would like to read.
+ * @param blocking Request a blocking read.
  *
  * @return success iff the file would have been read. On success the status
  * message is the complete/absolute path.
@@ -75,14 +77,13 @@ Status forensicReadFile(const boost::filesystem::path& path,
 Status readFile(const boost::filesystem::path& path, bool blocking = false);
 
 /// Internal representation for predicate-based chunk reading.
-Status readFile(
-    const boost::filesystem::path& path,
-    size_t size,
-    size_t block_size,
-    bool dry_run,
-    bool preserve_time,
-    std::function<void(std::string& buffer, size_t size)> predicate,
-    bool blocking = false);
+Status readFile(const boost::filesystem::path& path,
+                size_t size,
+                size_t block_size,
+                bool dry_run,
+                bool preserve_time,
+                std::function<void(std::string& buffer, size_t size)> predicate,
+                bool blocking = false);
 
 /**
  * @brief Write text to disk.
