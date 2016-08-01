@@ -422,6 +422,7 @@ void TLSServerRunner::start() {
   while (delay < 2 * 1000) {
     auto results = SQL(query);
     if (results.rows().size() > 0) {
+      self.server_ = std::atoi(results.rows()[0].at("pid").c_str());
       break;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
