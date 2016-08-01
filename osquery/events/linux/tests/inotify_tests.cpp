@@ -252,8 +252,10 @@ class TestINotifyEventSubscriber
     // r["path"] = ec->path;
 
     // Normally would call Add here.
+    callback_count_++;
+
+    WriteLock lock(actions_lock_);
     actions_.push_back(ec->action);
-    callback_count_ += 1;
     return Status(0, "OK");
   }
 
@@ -276,13 +278,19 @@ class TestINotifyEventSubscriber
     }
   }
 
-  std::vector<std::string> actions() { return actions_; }
+  std::vector<std::string> actions() {
+    WriteLock lock(actions_lock_);
+    return actions_;
+  }
 
   int count() { return callback_count_; }
 
  public:
-  int callback_count_{0};
+  std::atomic<int> callback_count_{0};
   std::vector<std::string> actions_;
+
+ private:
+  Mutex actions_lock_;
 
  private:
   FRIEND_TEST(INotifyTests, test_inotify_fire_event);
