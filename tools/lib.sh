@@ -75,6 +75,12 @@ function set_cc() {
   export CMAKE_C_COMPILER=$1
 }
 
+function do_sudo() {
+  ARGS="$@"
+  log "requesting sudo: $ARGS"
+  sudo $@
+}
+
 function contains_element() {
   local e
   for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
@@ -91,7 +97,7 @@ function in_ec2() {
 
 function build_kernel_cleanup() {
   # Cleanup kernel
-  $MAKE kernel-unload || sudo reboot
+  $MAKE kernel-test-unload || sudo reboot
 }
 
 function initialize() {
@@ -153,7 +159,7 @@ function build() {
     trap build_kernel_cleanup EXIT INT TERM
 
     # Load osquery kernel (optional).
-    $MAKE kernel-load
+    $MAKE kernel-test-load
   fi
 
   if [[ $RUN_TESTS = true ]]; then

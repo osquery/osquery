@@ -20,6 +20,7 @@
 #endif
 
 #include <boost/optional.hpp>
+#include <boost/noncopyable.hpp>
 
 #include <osquery/core.h>
 
@@ -65,9 +66,22 @@ class PlatformProcess : private boost::noncopyable {
   explicit PlatformProcess() : id_(kInvalidPid) {}
   explicit PlatformProcess(PlatformPidType id);
 
+#ifdef WIN32
+  /*
+   * @brief Constructor that accepts a pid_t
+   *  
+   * Allow for the creation of a PlatformProcess object from a pid_t. On
+   * Windows, PlatformPidType is not a pid_t because it cannot be assumed that
+   * the PID will point to the expected process. After a process dies, the PID
+   * can be immediately reused. Using HANDLEs (as what is done now) mitigates
+   * this issue.
+   */
+  explicit PlatformProcess(pid_t pid);
+#endif
+
   PlatformProcess(const PlatformProcess& src) = delete;
   PlatformProcess(PlatformProcess&& src) noexcept;
-  ~PlatformProcess();
+  virtual ~PlatformProcess();
 
   PlatformProcess& operator=(const PlatformProcess& process) = delete;
   bool operator==(const PlatformProcess& process) const;
@@ -91,6 +105,8 @@ class PlatformProcess : private boost::noncopyable {
   /// Returns whether the PlatformProcess object is valid
   bool isValid() const { return (id_ != kInvalidPid); }
 
+  virtual ProcessState checkStatus(int& status) const;
+
   /// Returns the current process
   static std::shared_ptr<PlatformProcess> getCurrentProcess();
 
@@ -108,11 +124,11 @@ class PlatformProcess : private boost::noncopyable {
       const std::string& exec_path, int argc, char** argv);
 
   /**
-  * @brief Creates a new extension process.
-  *
-  * Launches a new extension with various options. Any double quotes in the
-  * extension name will be stripped away.
-  */
+   * @brief Creates a new extension process.
+   *
+   * Launches a new extension with various options. Any double quotes in the
+   * extension name will be stripped away.
+   */
   static std::shared_ptr<PlatformProcess> launchExtension(
       const std::string& exec_path,
       const std::string& extension,
@@ -122,22 +138,55 @@ class PlatformProcess : private boost::noncopyable {
       const std::string& verbose);
 
  private:
-  /// "Handle" of the process. On Windows, this will be a HANDLE. On POSIX
-  /// systems, this will be a pid_t.
-  PlatformPidType id_;
+   /**
+    * @brief Stores the native handle denoting the process
+    *
+    * "Handle" of the process. On Windows, this will be a HANDLE. On POSIX
+    * systems, this will be a pid_t.
+    */
+   PlatformPidType id_;
 };
 
-/// Causes the current thread to sleep for a specified time in milliseconds
+#ifdef WIN32
+/**
+ * @brief Handles the resource lifetime of a PSECURITY_DESCRIPTOR
+ *
+ * Class to handle the scope of a PSECURITY_DESCRIPTOR from
+ * GetSecurityInfo/GetNamedSecurityInfo class of functions (or any
+ * PSECURITY_DESCRIPTOR pointer where the buffer is allocated via LocalAlloc)
+ */
+class SecurityDescriptor {
+public:
+  explicit SecurityDescriptor(PSECURITY_DESCRIPTOR sd) : sd_(sd) {}
+
+  SecurityDescriptor(SecurityDescriptor &&src) noexcept {
+    sd_ = src.sd_;
+    std::swap(sd_, src.sd_);
+  }
+
+  ~SecurityDescriptor() {
+    if (sd_ != nullptr) {
+      ::LocalFree(sd_);
+      sd_ = nullptr;
+    }
+  }
+
+private:
+  PSECURITY_DESCRIPTOR sd_{nullptr};
+};
+#endif
+
+/// Causes the current thread to sleep for a specified time in milliseconds.
 void sleepFor(unsigned int msec);
 
-/// Set the enviroment variable name with value value
+/// Set the enviroment variable name with value value.
 bool setEnvVar(const std::string& name, const std::string& value);
 
-/// Unsets the environment variable specified by name
+/// Unsets the environment variable specified by name.
 bool unsetEnvVar(const std::string& name);
 
 /**
- * @brief Returns the value of the specified environment variable name
+ * @brief Returns the value of the specified environment variable name.
  *
  * If the environment variable does not exist, boost::none is returned.
  */
@@ -147,13 +196,9 @@ boost::optional<std::string> getEnvVar(const std::string& name);
 /// processes).
 bool isLauncherProcessDead(PlatformProcess& launcher);
 
-/// Non-blocking check on the state of a specificed child process.
-ProcessState checkChildProcessStatus(const osquery::PlatformProcess& process,
-                                     int& status);
-
-/// Waits for defunct processes to terminate
+/// Waits for defunct processes to terminate.
 void cleanupDefunctProcesses();
 
-/// Sets the current process to run with background scheduling priority
+/// Sets the current process to run with background scheduling priority.
 void setToBackgroundPriority();
 }

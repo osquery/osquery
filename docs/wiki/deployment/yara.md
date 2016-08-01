@@ -33,7 +33,7 @@ The configuration for osquery is simple. Here is an example config:
 }
 ```
 
-The first thing to notice is the **file_paths** section, which is used to describe which paths to monitor for changes. Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented on the osquery wildcarding rules described on the [FIM](../development/wildcard-rules.md) page. The paths, when expanded out by osquery, are monitored for changes and processed by the [**file_events**](https://osquery.io/docs/tables/#file_events) table.
+The first thing to notice is the **file_paths** section, which is used to describe which paths to monitor for changes. Each key is an arbitrary category name and the value is a list of paths. The syntax used is documented on the osquery wildcarding rules described on the [FIM](../deployment/file-integrity-monitoring.md) page. The paths, when expanded out by osquery, are monitored for changes and processed by the [**file_events**](https://osquery.io/docs/tables/#file_events) table.
 
 The second thing to notice is the **yara** section, which contains the configuration to use for YARA within osquery. The **yara** section contains two keys: **signatures** and **file_paths**. The **signatures** key contains a set of arbitrary key names, called "signature groups". The value for each of these groups are the paths to the signature files that will be compiled and stored within osquery. The paths to the signature files can be absolute or relative to ```/etc/osquery/yara/```. The **file_paths** key maps the category name for an event described in the global **file_paths** section to a signature grouping to use when scanning.
 

@@ -1,11 +1,17 @@
 file(GLOB OSQUERY_LOGGER "*.cpp")
 ADD_OSQUERY_LIBRARY(TRUE osquery_logger ${OSQUERY_LOGGER})
 
-file(GLOB OSQUERY_LOGGER_PLUGINS "plugins/*.cpp")
-file(GLOB OSQUERY_LOGGER_PLUGIN_TESTS "plugins/tests/*.cpp")
-ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-kinesis")
-ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-firehose")
-ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-core")
+if(WIN32)
+  file(GLOB OSQUERY_LOGGER_PLUGINS "plugins/filesystem.cpp")
+  file(GLOB OSQUERY_LOGGER_PLUGIN_TESTS "plugins/tests/filesystem_logger_tests.cpp")
+else()
+  file(GLOB OSQUERY_LOGGER_PLUGINS "plugins/*.cpp")
+  file(GLOB OSQUERY_LOGGER_PLUGIN_TESTS "plugins/tests/*.cpp")
+  ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-kinesis")
+  ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-firehose")
+  ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-core")
+endif()
+
 ADD_OSQUERY_LIBRARY(FALSE osquery_logger_plugins ${OSQUERY_LOGGER_PLUGINS})
 
 file(GLOB OSQUERY_LOGGER_TESTS "tests/*.cpp")

@@ -11,6 +11,7 @@
 #include <signal.h>
 
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include <vector>
 
@@ -44,6 +45,27 @@ bool PlatformProcess::kill() const {
 
   int status = ::kill(id_, SIGKILL);
   return (status == 0);
+}
+
+ProcessState PlatformProcess::checkStatus(int& status) const {
+  int process_status = 0;
+
+  pid_t result = ::waitpid(nativeHandle(), &process_status, WNOHANG);
+  if (result < 0) {
+    return PROCESS_ERROR;
+  }
+
+  if (result == 0) {
+    return PROCESS_STILL_ALIVE;
+  }
+
+  if (WIFEXITED(process_status)) {
+    status = WEXITSTATUS(process_status);
+    return PROCESS_EXITED;
+  }
+
+  // process's state has changed but the state isn't that which we expect!
+  return PROCESS_STATE_CHANGE;
 }
 
 std::shared_ptr<PlatformProcess> PlatformProcess::getCurrentProcess() {

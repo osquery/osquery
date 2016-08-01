@@ -47,7 +47,7 @@ $ echo "select * from routes where destination = '::1';" | osqueryi --json
 It accepts several meta-commands, prefixed with a '.':
 
 * to list all tables: `.tables`
-* to list the schema (columns, types) of a specific table: `pragma table_info(table_name);`
+* to list the schema (columns, types) of a specific table: `.schema table_name` or `pragma table_info(table_name);` for more details
 * to list all available commands: `.help`
 * to exit the console: `.exit` or `^D`
 
@@ -104,3 +104,7 @@ $
 
 The shell does not keep much state or connect to the **osqueryd** daemon.
 If you would like to run queries and log changes to the output or log operating system events, consider deploying a query **schedule** using [osqueryd](using-osqueryd.md).
+
+**Note:** Event publishers are not started by default. To enable event-based tables, use the flag `--disable_events=false`.
+
+**osqueryi** uses an in-memory database by default. To connect to an existing events database, use the flag `--database_path=/var/osquery/osquery.db` (only one process may attach to the database; see [Checking the database sanity](../deployment/debugging.md#checking-the-database-sanity)).

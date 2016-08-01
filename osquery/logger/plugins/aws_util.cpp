@@ -99,7 +99,7 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
   uri.SetPath(Aws::Http::URI::URLEncodePath(uri.GetPath()));
   Aws::String url = uri.GetURIString();
 
-  http::client client;
+  http::client client = TLSTransport().getClient();
   http::client::request req(url);
 
   for (const auto& requestHeader : request.GetHeaders()) {

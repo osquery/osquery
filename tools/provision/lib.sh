@@ -7,544 +7,57 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
-function install_gcc() {
-  SOURCE=gcc-4.8.4
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-  TARGET=/opt/osquery/gcc
-
-  if provision gcc $TARGET/bin/gcc4.8.4; then
-    log "compiling a gcc toolchain, this may take a while..."
-    TARGET_SOURCE=$SOURCE
-
-    # GCC-dependency: GMP
-    TARBALL=gmp-6.0.0a.tar.gz
-    URL=$DEPS_URL/$TARBALL
-    SOURCE=gmp-6.0.0
-    if provision gmp $WORKING_DIR/$TARGET_SOURCE/gmp/README; then
-      log "Moving gmp sources into $TARGET_SOURCE"
-      cp -R $SOURCE $TARGET_SOURCE/gmp
-    fi
-
-    # GCC-dependency: MPFR
-    TARBALL=mpfr-3.1.2.tar.gz
-    URL=$DEPS_URL/$TARBALL
-    SOURCE=mpfr-3.1.2
-    if provision mpfr $WORKING_DIR/$TARGET_SOURCE/mpfr/README; then
-      log "Moving mpfr sources into $TARGET_SOURCE"
-      cp -R $SOURCE $TARGET_SOURCE/mpfr
-    fi
-
-    # GCC-dependency: MPC
-    TARBALL=mpc-1.0.3.tar.gz
-    URL=$DEPS_URL/$TARBALL
-    SOURCE=mpc-1.0.3
-    if provision mpc $WORKING_DIR/$TARGET_SOURCE/mpc/README; then
-      log "Moving mpc sources into $TARGET_SOURCE"
-      cp -R $SOURCE $TARGET_SOURCE/mpc
-    fi
-
-    sudo mkdir -p $TARGET
-    pushd $TARGET_SOURCE
-    ./configure \
-      --disable-checking \
-      --enable-languages=c,c++ \
-      --disable-multilib \
-      --disable-multiarch \
-      --enable-shared \
-      --enable-threads=posix \
-      --program-suffix=4.8.4 \
-      --without-included-gettext \
-      --prefix=$TARGET
-    make -j $THREADS
-    sudo make install
-
-    [ -L /usr/bin/gcc ] && sudo unlink /usr/bin/gcc
-    [ -L /usr/bin/g++ ] && sudo unlink /usr/bin/g++
-    sudo ln -sf $TARGET/bin/gcc4.8.4 /usr/bin/gcc
-    sudo ln -sf $TARGET/bin/g++4.8.4 /usr/bin/g++
-
-    sudo mkdir -p /usr/lib64
-    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib64/libstdc++.so.6.0.19
-    sudo ln -sf $TARGET/lib64/libstdc++.so.6.0.19 /usr/lib64/libstdc++.so.6
-    popd
-  fi
-}
-
-function install_cmake() {
-  SOURCE=cmake-3.2.1
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision cmake /usr/local/bin/cmake; then
-    pushd $SOURCE
-    ./bootstrap --prefix=/usr/local/
-    # Note: this sometimes fails with an error about a missing libncurses
-    # The solution is to run make deps again.
-    CC="$CC" CXX="$CXX" make -j $THREADS
-    sudo make install
-    popd
-  fi
-}
-
-function install_sleuthkit() {
-  SOURCE=sleuthkit-sleuthkit-4.2.0
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision sleuthkit /usr/local/lib/libtsk.a; then
-    pushd $SOURCE
-    ./bootstrap
-    ./configure --prefix=/usr/local --without-afflib \
-      --disable-dependency-tracking --disable-java \
-      CXXFLAGS="$CXXFLAGS" CFLAGS="$CFLAGS"
-    pushd tsk
-    CC="$CC" CXX="$CXX" make -j $THREADS
-    sudo make install
-    popd
-    sudo make install-nobase_includeHEADERS
-    popd
-  fi
-}
-
-function install_thrift() {
-  TARBALL=thrift-0.9.3.tar.gz
-  URL=$DEPS_URL/$TARBALL
-  SOURCE=thrift-0.9.3
-
-  if provision thrift /usr/local/lib/libthrift.a; then
-    pushd $SOURCE
-    ./bootstrap.sh
-    ./configure PREFIX="/usr/local" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" \
-      --with-cpp=yes \
-      --with-python=yes \
-      --with-ruby=no \
-      --with-go=no \
-      --with-erlang=no \
-      --with-java=no \
-      --with-php=no \
-      --with-qt4=no \
-      --with-qt=no
-    CC="$CC" CXX="$CXX" make -j $THREADS
-    sudo make install
-    popd
-  fi
-}
-
-function install_rocksdb() {
-  SOURCE=rocksdb-4.4
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision rocksdb /usr/local/lib/librocksdb_lite.a; then
-    if [[ ! -f $SOURCE/librocksdb_lite.a ]]; then
-      if [[ $FAMILY = "debian" ]]; then
-        CLANG_INCLUDE="-I/usr/include/clang/3.4/include"
-      elif [[ $FAMILY = "redhat" ]]; then
-        CLANG_VERSION=`clang --version | grep version | cut -d" " -f3`
-        CLANG_INCLUDE="-I/usr/lib/clang/$CLANG_VERSION/include"
-        CC=clang
-        CXX=clang++
-      fi
-      pushd $SOURCE
-      if [[ $OS = "freebsd" ]]; then
-        CC=cc
-        CXX=c++
-        MAKE=gmake
-      else
-        MAKE=make
-      fi
-      CXXFLAGS="-DROCKSDB_LITE=1 $CXXFLAGS"
-      PORTABLE=1 OPT="-DROCKSDB_LITE=1" LIBNAME=librocksdb_lite \
-        CC="$CC" CXX="$CXX" CFLAGS="$CLANG_INCLUDE $CFLAGS" CXXFLAGS="$CXXFLAGS" \
-        $MAKE -j $THREADS static_lib
-      popd
-    fi
-    sudo cp $SOURCE/librocksdb_lite.a /usr/local/lib
-    sudo cp -R $SOURCE/include/rocksdb /usr/local/include
-  fi
-}
-
-function install_snappy() {
-  SOURCE=snappy-1.1.3
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision snappy /usr/local/include/snappy.h; then
-    pushd $SOURCE
-    ./autogen.sh
-    CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static \
-      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
-    if [[ ! -f .libs/libsnappy.a ]]; then
-      make -j $THREADS
-    fi
-    sudo make install
-    popd
-  fi
-}
-
-function install_asio() {
-  SOURCE=asio-1.11.0
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision asio /usr/local/include/asio/ip/tcp.hpp; then
-    pushd $SOURCE/asio
-    ./autogen.sh
-    CC="$CC" CXX="$CXX" ./configure CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
-    make -j $THREADS
-    sudo make install
-    popd
-  fi
-}
-
-function install_cppnetlib() {
-  SOURCE=cpp-netlib-0.12.0-rc1
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  SOURCE=cpp-netlib-$SOURCE
-  # Note: use the header install since libdir was uncontrolled for a while.
-  if provision cppnetlib /usr/local/include/boost/network/version.hpp; then
-    pushd $SOURCE
-    mkdir -p build
-    pushd build
-    CC="$CC" CXX="$CXX" cmake -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-      -DCMAKE_C_FLAGS="$CFLAGS" \
-      -DCPP-NETLIB_BUILD_EXAMPLES=False -DCPP-NETLIB_BUILD_TESTS=False \
-      -DCPP-NETLIB_ENABLE_HTTPS=True ..
-    make -j $THREADS
-    sudo make install
-    popd
-    popd
-  fi
-}
-
-function install_yara() {
-  SOURCE=yara-3.4.0
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision yara /usr/local/lib/libyara.a; then
-    pushd $SOURCE
-    ./bootstrap.sh
-    CC="$CC" CXX="$CXX" ./configure --with-pic --enable-static \
-      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
-    make -j $THREADS
-    sudo make install
-    popd
-  fi
-}
-
-function install_openssl() {
-  SOURCE=openssl-1.0.2e
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision openssl /usr/local/lib/libssl.so.1.0.0; then
-    pushd $SOURCE
-    CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" CC="$CC" CXX="$CXX" ./config \
-      --prefix=/usr/local --openssldir=/etc/ssl \
-      --libdir=lib shared zlib-dynamic enable-shared
-    make -j $THREADS
-    sudo make install
-    popd
-  fi
-}
-
-function install_bison() {
-  SOURCE=bison-2.5
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision bison /usr/local/bin/bison; then
-    pushd $SOURCE
-    CC="$CC" CXX="$CXX" ./configure --prefix=/usr/local \
-      --with-libiconv-prefix=/usr/local/libiconv/
-    make -j $THREADS
-    sudo make install
-    popd
-  fi
-}
-
-function install_boost() {
-  SOURCE=boost_1_60_0
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision boost /usr/local/lib/libboost_filesystem.a; then
-    pushd $SOURCE
-    ./bootstrap.sh
-    sudo ./b2 --with-regex --with-filesystem --with-system \
-      link=static optimization=space variant=release \
-      cflags="$CFLAGS" cxxflags="$CXXFLAGS" toolset="gcc" \
-      -j $THREADS install || true
-    sudo ldconfig
-    popd
-  fi
-}
-
-function install_glog() {
-  SOURCE=glog-0.3.4
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision glog /usr/local/lib/libglog.a; then
-    pushd $SOURCE
-    ./configure --disable-shared --prefix=/usr/local \
-      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
-    CC="$CC" CXX="$CXX" make -j $THREADS
-    sudo make install
-    popd
-  fi
-}
-
-function install_gflags() {
-  TARBALL=v2.1.1.tar.gz
-  URL=$DEPS_URL/$TARBALL
-  SOURCE=gflags-2.1.1
-
-  if provision gflags /usr/local/lib/libgflags.a; then
-    pushd $SOURCE
-    cmake -DCMAKE_CXX_FLAGS="$CXXFLAGS" -DGFLAGS_NAMESPACE:STRING=google .
-    CC="$CC" CXX="$CXX" make -j $THREADS
-    sudo make install
-    popd
-  fi
-}
-
-function install_google_benchmark() {
-  SOURCE=benchmark-1.0.0
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision benchmark /usr/local/lib/libbenchmark.a; then
-    pushd $SOURCE
-    mkdir -p build
-    pushd build
-    cmake -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS" ..
-    CC="$CC" CXX="$CXX" make -j $THREADS
-    sudo make install
-    popd
-    popd
-  fi
-}
-
-function install_iptables_dev() {
-  SOURCE=iptables-1.4.21
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision iptables_dev /usr/local/lib/libip4tc.a; then
-    pushd $SOURCE
-    ./configure --disable-shared --prefix=/usr/local \
-      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
-    pushd libiptc
-    CC="$CC" CXX="$CXX" make -j $THREADS
-    sudo make install
-    popd
-    pushd include
-    sudo make install
-    popd
-    popd
-  fi
-}
-
-function install_device_mapper() {
-  SOURCE=LVM2.2.02.145
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision libdevmapper /usr/local/lib/libdevmapper.a; then
-    pushd $SOURCE
-    ./configure --with-lvm1=none --prefix=/usr/local --enable-static_link \
-      CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
-    make libdm.device-mapper -j $THREADS
-    sudo cp libdm/ioctl/libdevmapper.a /usr/local/lib/
-    sudo cp libdm/libdevmapper.h /usr/local/include/
-    pushd libdm
-    sudo make install_pkgconfig
-    popd
-    popd
-  fi
-}
-
-function install_udev_devel_095() {
-  SOURCE=udev-095
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision udev-095 /usr/local/lib/libudev.a; then
-    pushd $SOURCE
-    CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" make libudev.a
-    sudo cp libudev.a /usr/local/lib/
-    popd
-  fi
-}
-
-function install_libaptpkg() {
-  SOURCE=apt-1.2.6
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision libaptpkg /usr/local/lib/libapt-pkg.a; then
-    pushd $SOURCE
-    make clean
-    ./configure --prefix=/usr/local CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
-    make -j $THREADS STATICLIBS=1 library
-    # No need to install the shared libraries.
-    # sudo cp bin/libapt-pkg.so.4.12.0 /usr/local/lib/
-    # sudo ln -sf /usr/local/lib/libapt-pkg.so.4.12.0 /usr/local/lib/libapt-pkg.so
-    sudo cp bin/libapt-pkg.a /usr/local/lib/
-    sudo mkdir -p /usr/local/include/apt-pkg/
-    sudo cp include/apt-pkg/*.h /usr/local/include/apt-pkg/
-    popd
-  fi
-}
-
-function install_libcryptsetup() {
-  SOURCE=cryptsetup-1.6.7
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision libcryptsetup /usr/local/lib/libcryptsetup.a; then
-    pushd $SOURCE
-    PKG_CONFIG_PATH=/usr/local/lib/pkgconfig/ \
-      ./autogen.sh --prefix=/usr/local --enable-static --disable-shared \
-        --disable-selinux --disable-udev --disable-veritysetup  --disable-nls \
-        --disable-kernel_crypto \
-        CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS"
-    pushd lib
-    make -j $THREADS
-    sudo make install
-    popd
-    popd
-  fi
-}
-
-function install_aws_sdk() {
-  SOURCE=aws-sdk-cpp-0.12.4
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision aws_sdk /usr/local/lib/libaws-cpp-sdk-core.a; then
-    PREFIX=/usr/local
-    mkdir -p ${SOURCE}/build
-    pushd ${SOURCE}/build
-    CMAKE_FLAGS="-Wno-dev -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-               -DCMAKE_BUILD_TYPE=Release \
-               -DBUILD_ONLY=kinesis;firehose \
-               -DSTATIC_LINKING=1 -DNO_HTTP_CLIENT=1"
-    cmake $CMAKE_FLAGS ..
-    make -j$THREADS
-    sudo make install
-    popd
-  fi
-}
-
-#############################################################################
-## The following package installs are utilities not statically linked.
-#############################################################################
-
-function install_autoconf() {
-  SOURCE=autoconf-2.69
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  # Two methods for provisioning autoconf (1) install, (2) upgrade
-  PROVISION_AUTOCONF=false
-  if provision autoconf /usr/bin/autoconf; then
-    PROVISION_AUTOCONF=true
-  elif [[ `autoconf -V | head -1 | awk '{print $4}' | sed 's/\.//g'` -lt "269" ]]; then
-    provision autoconf
-    PROVISION_AUTOCONF=true
+# 1: Path to install brew into
+# 2: Linux or Darwin
+function setup_brew() {
+  if [[ "$2" == "linux" ]]; then
+    BREW_REPO=$LINUXBREW_REPO
+    CORE_COMMIT=$LINUXBREW_CORE
+    DUPES_COMMIT=$LINUXBREW_DUPES
+  else
+    BREW_REPO=$HOMEBREW_REPO
+    CORE_COMMIT=$HOMEBREW_CORE
+    DUPES_COMMIT=$HOMEBREW_DUPES
   fi
 
-  if $PROVISION_AUTOCONF; then
-    pushd $SOURCE
-    ./configure --prefix=/usr
-    CC="$CC" CXX="$CXX" make -j $THREADS
-    sudo make install
-    popd
-  fi
-}
-
-function install_automake() {
-  SOURCE=automake-1.14
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision automake /usr/bin/automake; then
-    pushd $SOURCE
-    ./bootstrap.sh
-    ./configure --prefix=/usr
-    # Version 1.14 of automake fails to build with more than one thread
-    CC="$CC" CXX="$CXX" make -j 1
-    sudo make install
-    popd
-  fi
-}
-
-function install_libtool() {
-  SOURCE=libtool-2.4.5
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision libtool /usr/bin/libtool; then
-    pushd $SOURCE
-    ./configure --prefix=/usr
-    make -j $THREADS
-    sudo make install
-    popd
-  fi
-}
-
-function install_pkgconfig() {
-  SOURCE=pkg-config-0.28
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision pkg-config /usr/bin/pkg-config; then
-    pushd $SOURCE
-    sudo rm /usr/bin/x86_64-unknown-linux-gnu-pkg-config || true
-    ./configure --with-internal-glib --prefix=/usr
-    make -j $THREADS
-    sudo make install
-    popd
-  fi
-}
-
-function install_pip() {
-  PYTHON_EXECUTABLE=$1
-  URL=$DEPS_URL/get-pip.py
-
-  if [[ ! -e /usr/bin/pip ]]; then
-    curl $URL | sudo $PYTHON_EXECUTABLE -
-  fi
-}
-
-function install_ruby() {
-  SOURCE=ruby-1.8.7-p370
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision ruby-1.8.7 /usr/local/bin/ruby; then
-    pushd $SOURCE
-    ./configure --prefix=/usr/local
-    CC="$CC" CXX="$CXX" make -j $THREADS
-    sudo make install
-    popd
+  # Check if DEPS directory exists.
+  DEPS="$1"
+  if [[ ! -d "$DEPS" ]]; then
+    log "the build directory: $DEPS does not exist"
+    sudo mkdir "$DEPS"
+    sudo chown $USER "$DEPS"
   fi
 
-  SOURCE=rubygems-1.8.24
-  TARBALL=$SOURCE.tar.gz
-  URL=$DEPS_URL/$TARBALL
-
-  if provision rubygems-1.8.24 /usr/local/bin/gem; then
-    pushd $SOURCE
-    sudo ruby setup.rb
-    popd
+  # Checkout new brew in local deps dir
+  FORMULA_TAP="$DEPS/Library/Taps/osquery/homebrew-osquery-local"
+  if [[ ! -d "$DEPS/.git" ]]; then
+    log "setting up new brew in $DEPS"
+    git clone $BREW_REPO "$DEPS"
+    log "installing local tap: homebrew-osquery-local"
+    mkdir -p "$DEPS/Library/Taps/osquery/"
+    ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
+  else
+    log "checking for updates to brew"
+    #git pull
   fi
+
+  export HOMEBREW_MAKE_JOBS=$THREADS
+  export HOMEBREW_NO_EMOJI=1
+  export BREW="$DEPS/bin/brew"
+  TAPS="$DEPS/Library/Taps/"
+
+  # Grab full clone to perform a pin
+  log "installing homebrew core"
+  $BREW tap homebrew/core --full
+  (cd $TAPS/homebrew/homebrew-core && git reset --hard $CORE_COMMIT)
+
+  # Need dupes for upzip.
+  log "installing homebrew dupes"
+  $BREW tap homebrew/dupes --full
+  (cd $TAPS/homebrew/homebrew-dupes && git reset --hard $DUPES_COMMIT)
+
+  # Fix for python linking.
+  mkdir -p "$DEPS/lib/python2.7/site-packages"
 }
 
 # json_element JSON STRUCT
@@ -552,32 +65,117 @@ function install_ruby() {
 #   2: parse structure
 function json_element() {
   CMD="import json,sys;obj=json.load(sys.stdin);print ${2}"
-  RESULT=`(echo "${1}" | python -c "${CMD}") || echo 'NAN'`
+  RESULT=`(echo "${1}" | python -c "${CMD}") 2>&1 || echo 'NAN'`
   echo $RESULT
+}
+
+function set_deps_compilers() {
+  if [[ "$1" = "gcc" ]]; then
+    export CC="$DEPS/bin/gcc"
+    export CXX="$DEPS/bin/g++"
+  else
+    export CC="$DEPS/bin/clang"
+    export CXX="$DEPS/bin/clang++"
+  fi
+}
+
+# brew_tool NAME
+#   This will install from brew.
+function brew_tool() {
+  TOOL=$1
+  shift
+
+  if [[ -z "$OSQUERY_BUILD_DEPS" && -z "$OSQUERY_DEPS_ONETIME" ]]; then
+    return
+  fi
+  unset OSQUERY_DEPS_ONETIME
+  export HOMEBREW_OPTIMIZATION_LEVEL=-Os
+  log "brew tool $TOOL"
+  $BREW install --force-bottle --ignore-dependencies $@ "$TOOL"
+}
+
+function core_brew_tool() {
+  export OSQUERY_DEPS_ONETIME=1
+  brew_tool $@
+}
+
+function local_brew_link() {
+  TOOL=$1
+  if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
+    $BREW link --force "${FORMULA_DIR}/${TOOL}.rb"
+  fi
+}
+
+function local_brew_postinstall() {
+  TOOL=$1
+  if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
+    $BREW postinstall "${FORMULA_DIR}/${TOOL}.rb"
+  fi
+}
+
+# local_brew_tool NAME
+#   This will build or install from a local formula.
+#   If the caller did not request a from-source build then osquery-hosted bottles are used.
+function local_brew_tool() {
+  TOOL=$1
+  shift
+
+  export HOMEBREW_OPTIMIZATION_LEVEL=-Os
+  log "brew (build) tool $TOOL"
+  ARGS="$@"
+  if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
+    ARGS="$ARGS -v --build-bottle --ignore-dependencies"
+    ARGS="$ARGS --env=inherit"
+    if [[ ! -z "$DEBUG" ]]; then
+      ARGS="$ARGS -d"
+    fi
+  else
+    ARGS="--ignore-dependencies --force-bottle"
+  fi
+
+  if [[ ! -z "$OSQUERY_BUILD_BOTTLES" ]]; then
+    $BREW bottle --skip-relocation "${FORMULA_TAP}/${TOOL}.rb"
+  else
+    $BREW install $ARGS "${FORMULA_DIR}/${TOOL}.rb"
+  fi
 }
 
 # local_brew NAME
 #   1: formula name
-function local_brew() {
-  FORMULA="${FORMULA_DIR}/$1.rb"
-  INFO=`brew info --json=v1 "${FORMULA}"`
+function local_brew_dependency() {
+  TOOL="$1"
+  shift
+
+  FORMULA="${FORMULA_DIR}/$TOOL.rb"
+  INFO=`$BREW info --json=v1 "${FORMULA}"`
   INSTALLED=$(json_element "${INFO}" 'obj[0]["linked_keg"]')
   STABLE=$(json_element "${INFO}" 'obj[0]["versions"]["stable"]')
 
   # Could improve this detection logic to remove from-bottle.
   FROM_BOTTLE=false
-
-  export HOMEBREW_MAKE_JOBS=$THREADS
-  export HOMEBREW_NO_EMOJI=1
-  if [[ "${INSTALLED}" = "NAN" || "${INSTALLED}" = "None" ]]; then
-    log "local package $1 installing new version: ${STABLE}"
-    brew install -v --build-bottle "${FORMULA}"
-  elif [[ ! "${INSTALLED}" = "${STABLE}" || "${FROM_BOTTLE}" = "true" ]]; then
-    log "local package $1 upgrading to new version: ${STABLE}"
-    brew uninstall "${FORMULA}"
-    brew install -v --build-bottle "${FORMULA}"
+  ARGS="$@"
+  if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
+    ARGS="$ARGS -v --build-bottle --cc=clang --ignore-dependencies"
+    ARGS="$ARGS --env=inherit"
+    if [[ ! -z "$DEBUG" ]]; then
+      ARGS="$ARGS -d"
+    fi
   else
-    log "local package $1 is already install: ${STABLE}"
+    ARGS="--ignore-dependencies --force-bottle"
+  fi
+
+  export HOMEBREW_OPTIMIZATION_LEVEL=-Os
+  if [[ ! -z "$OSQUERY_BUILD_BOTTLES" ]]; then
+    $BREW bottle --skip-relocation "${FORMULA_TAP}/${TOOL}.rb"
+  elif [[ "${INSTALLED}" = "NAN" || "${INSTALLED}" = "None" ]]; then
+    log "brew local package $TOOL installing new version: ${STABLE}"
+    $BREW install $ARGS "${FORMULA}"
+  elif [[ ! "${INSTALLED}" = "${STABLE}" || "${FROM_BOTTLE}" = "true" ]]; then
+    log "brew local package $TOOL upgrading to new version: ${STABLE}"
+    $BREW uninstall "${FORMULA}"
+    $BREW install $ARGS "${FORMULA}"
+  else
+    log "brew local package $TOOL is already install: ${STABLE}"
   fi
 }
 
@@ -588,7 +186,7 @@ function package() {
       log "$1 is already installed. skipping."
     else
       log "installing $1"
-      sudo DEBIAN_FRONTEND=noninteractive apt-get install $1 -y --no-install-recommends
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install $1 -y -q --no-install-recommends
     fi
   elif [[ $FAMILY = "redhat" ]]; then
     if [[ ! -n "$(rpm -V $1)" ]]; then
@@ -645,45 +243,6 @@ function package() {
   fi
 }
 
-function remove_package() {
-  if [[ $FAMILY = "debian" ]]; then
-    if [[ -n "$(dpkg --get-selections | grep $1)" ]]; then
-      log "removing $1"
-      sudo apt-get remove $1 -y
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [[ $FAMILY = "redhat" ]]; then
-    if [[ -n "$(rpm -qa | grep $1)" ]]; then
-      log "removing $1"
-      sudo yum remove $1 -y
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [[ $OS = "darwin" ]]; then
-    if [[ -n "$(brew list | grep $1)" ]]; then
-      log "removing $1"
-      brew uninstall $1
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [[ $OS = "freebsd" ]]; then
-    if ! pkg info -q $1; then
-      log "removing $1"
-      sudo pkg delete -y $1
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [[ $OS = "arch" ]]; then
-    if ! pacman -Qq $1 >/dev/null; then
-      log "removing $1"
-      sudo pacman -R --noconfirm $1
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  fi
-}
-
 function gem_install() {
   if [[ -n "$(gem list | grep $1)" ]]; then
     log "$1 is already installed. skipping."
@@ -692,29 +251,9 @@ function gem_install() {
   fi
 }
 
-function provision() {
-  local _name=$1
-  local _install_check=$2
-
-  if [[ ! -f $_install_check ]]; then
-    log "$_name is not installed/provisioned. installing..."
-    if [[ ! -f $TARBALL ]]; then
-      log "$_name has not been downloaded. downloading..."
-      wget "$URL"
-    else
-      log "$_name is already downloaded. skipping download."
-    fi
-    if [[ ! -d $SOURCE ]]; then
-      log "$_name has not been extracted. extracting..."
-      tar -xzf $TARBALL
-    fi
-    return 0
-  fi
-  log "$_name is already installed. skipping provision."
-  return 1
-}
-
 function check() {
+  CMD="$1"
+  DISTRO_BUILD_DIR="$2"
   platform OS
 
   if [[ $OS = "darwin" ]]; then
@@ -725,13 +264,13 @@ function check() {
     HASH=`sha1sum "$0" | awk '{print $1}'`
   fi
 
-  if [[ "$1" = "build" ]]; then
-    echo $HASH > "$2/.provision"
+  if [[ "$CMD" = "build" ]]; then
+    echo $HASH > "build/$DISTRO_BUILD_DIR/.provision"
     if [[ ! -z "$SUDO_USER" ]]; then
-      chown $SUDO_USER "$2/.provision" > /dev/null 2>&1 || true
+      chown $SUDO_USER "build/$DISTRO_BUILD_DIR/.provision" > /dev/null 2>&1 || true
     fi
     return
-  elif [[ ! "$1" = "check" ]]; then
+  elif [[ ! "$CMD" = "check" ]]; then
     return
   fi
 
@@ -740,7 +279,7 @@ function check() {
     exit 1
   fi
 
-  CHECKPOINT=`cat $2/.provision 2>&1 &`
+  CHECKPOINT=`cat $DISTRO_BUILD_DIR/.provision 2>&1 &`
   if [[ ! $HASH = $CHECKPOINT ]]; then
     echo "Requested dependencies may have changed, run: make deps"
     exit 1

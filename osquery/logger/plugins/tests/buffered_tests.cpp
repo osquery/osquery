@@ -19,6 +19,7 @@
 
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/tests/test_util.h"
 #include "osquery/logger/plugins/buffered.h"
@@ -27,6 +28,8 @@ using namespace testing;
 namespace pt = boost::property_tree;
 
 namespace osquery {
+
+DECLARE_uint64(buffered_log_max);
 
 // Check that the string matches the StatusLogLine
 MATCHER_P(MatchesStatus, expected, "") {
@@ -74,6 +77,8 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
   FRIEND_TEST(BufferedLogForwarderTests, test_multiple);
   FRIEND_TEST(BufferedLogForwarderTests, test_async);
   FRIEND_TEST(BufferedLogForwarderTests, test_split);
+  FRIEND_TEST(BufferedLogForwarderTests, test_purge);
+  FRIEND_TEST(BufferedLogForwarderTests, test_purge_max);
 };
 
 TEST_F(BufferedLogForwarderTests, test_index) {
@@ -229,6 +234,7 @@ TEST_F(BufferedLogForwarderTests, test_async) {
   Dispatcher::joinServices();
 }
 
+// Verify that the max number of logs per send is respected
 TEST_F(BufferedLogForwarderTests, test_split) {
   StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 1);
   runner.logString("foo");
@@ -270,5 +276,76 @@ TEST_F(BufferedLogForwarderTests, test_split) {
   EXPECT_CALL(runner2, send(ElementsAre("baz"), "result"))
       .WillOnce(Return(Status(0)));
   runner2.check();
+}
+
+// Test the purge() function independently of check()
+TEST_F(BufferedLogForwarderTests, test_purge) {
+  FLAGS_buffered_log_max = 3;
+  StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 100);
+  size_t time = getUnixTime();
+  for (uint64_t i = 0; i < 10; ++i) {
+    runner.logString(std::to_string(i), time);
+    StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
+    StatusLogLine log2 = makeStatusLogLine(O_ERROR, "bar", 30, "bar error");
+    runner.logStatus({log1, log2}, time);
+    ++time;
+  }
+  runner.logString("foo", time);
+  runner.purge();
+  runner.logString("bar", time);
+  runner.purge();
+  runner.logString("baz", time);
+  runner.purge();
+  runner.purge();
+
+  EXPECT_CALL(runner, send(ElementsAre("foo", "bar", "baz"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
+  runner.check();
+}
+
+// Verify that the max number of buffered logs is respected, and oldest logs
+// are purged first
+TEST_F(BufferedLogForwarderTests, test_purge_max) {
+  FLAGS_buffered_log_max = 2;
+
+  StrictMock<MockBufferedLogForwarder> runner("mock", kLogPeriod, 5);
+  StatusLogLine log1 = makeStatusLogLine(O_INFO, "foo", 1, "foo status");
+  StatusLogLine log2 = makeStatusLogLine(O_ERROR, "bar", 30, "bar error");
+  size_t time = getUnixTime();
+
+  runner.logString("foo", time);
+  runner.logStatus({log1}, time);
+  ++time;
+  runner.logString("bar", time);
+  ++time;
+  runner.logStatus({log2}, time);
+  runner.logString("baz", time);
+
+  EXPECT_CALL(runner, send(ElementsAre("foo", "bar", "baz"), "result"))
+      .WillOnce(Return(Status(1, "fail")));
+  EXPECT_CALL(
+      runner,
+      send(ElementsAre(MatchesStatus(log1), MatchesStatus(log2)), "status"))
+      .WillOnce(Return(Status(1, "fail")));
+  runner.check();
+
+  EXPECT_CALL(runner, send(ElementsAre("baz"), "result"))
+      .WillOnce(Return(Status(0)));
+  EXPECT_CALL(runner, send(ElementsAre(MatchesStatus(log2)), "status"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
+  ++time;
+  runner.logString("1", time);
+  runner.logString("2", time);
+  runner.logString("3", time);
+
+  EXPECT_CALL(runner, send(ElementsAre("1", "2", "3"), "result"))
+      .WillOnce(Return(Status(0)));
+  runner.check();
+
+  runner.check();
 }
 }

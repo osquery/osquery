@@ -64,8 +64,16 @@ QueryData genTime(QueryContext& context) {
   r["minutes"] = INTEGER(now.tm_min);
   r["seconds"] = INTEGER(now.tm_sec);
   r["timezone"] = SQL_TEXT(timezone);
+  if (r["timezone"].empty()) {
+    r["timezone"] = "UTC";
+  }
+
   r["local_time"] = INTEGER(local_time);
   r["local_timezone"] = SQL_TEXT(local_timezone);
+  if (r["local_timezone"].empty()) {
+    r["local_timezone"] = "UTC";
+  }
+
   r["unix_time"] = INTEGER(osquery_time);
   r["timestamp"] = SQL_TEXT(osquery_timestamp);
   // Date time is provided in ISO 8601 format, then duplicated in iso_8601.

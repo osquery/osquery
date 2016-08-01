@@ -277,7 +277,7 @@ struct ConstraintList : private boost::noncopyable {
    */
   template <typename T>
   bool matches(const T& expr) const {
-    return matches(TEXT(expr));
+    return matches(SQL_TEXT(expr));
   }
 
   /**
@@ -456,7 +456,7 @@ struct QueryContext : private boost::noncopyable {
   /// If the context was created without content, it is ephemeral.
   ~QueryContext() {
     if (!enable_cache_ && table_ != nullptr) {
-      free(table_);
+      delete table_;
     }
   }
 
@@ -473,7 +473,7 @@ struct QueryContext : private boost::noncopyable {
    * any operator or for a specific operator, usually equality (EQUALS).
    *
    * @param column The name of a column within this table.
-   * @param optional op Check for a specific constraint operator.
+   * @param op Check for a specific constraint operator (default EQUALS).
    * @return true if a constraint exists, false if empty or no operator match.
    */
   bool hasConstraint(const std::string& column,

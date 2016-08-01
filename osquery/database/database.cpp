@@ -27,7 +27,7 @@ CLI_FLAG(bool, database_dump, false, "Dump the contents of the backing store");
 
 CLI_FLAG(string,
          database_path,
-         "/var/osquery/osquery.db",
+         OSQUERY_DB_HOME "/osquery.db",
          "If using a disk-based backing store, specify a path");
 FLAG_ALIAS(std::string, db_path, database_path);
 
@@ -58,12 +58,6 @@ const std::vector<std::string> kDomains = {kPersistentSettings, kQueries,
 bool DatabasePlugin::kDBHandleOptionAllowOpen(false);
 bool DatabasePlugin::kDBHandleOptionRequireWrite(false);
 std::atomic<bool> DatabasePlugin::kCheckingDB(false);
-
-/////////////////////////////////////////////////////////////////////////////
-// Row - the representation of a row in a set of database results. Row is a
-// simple map where individual column names are keys, which map to the Row's
-// respective value
-/////////////////////////////////////////////////////////////////////////////
 
 Status serializeRow(const Row& r, pt::ptree& tree) {
   try {
@@ -114,11 +108,6 @@ Status deserializeRowJSON(const std::string& json, Row& r) {
   }
   return deserializeRow(tree, r);
 }
-
-/////////////////////////////////////////////////////////////////////////////
-// QueryData - the representation of a database query result set. It's a
-// vector of rows
-/////////////////////////////////////////////////////////////////////////////
 
 Status serializeQueryData(const QueryData& q, pt::ptree& tree) {
   for (const auto& r : q) {
@@ -174,39 +163,37 @@ Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
   return deserializeQueryData(tree, qd);
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// DiffResults - the representation of two diffed QueryData result sets.
-// Given and old and new QueryData, DiffResults indicates the "added" subset
-// of rows and the "removed" subset of Rows
-/////////////////////////////////////////////////////////////////////////////
-
 Status serializeDiffResults(const DiffResults& d, pt::ptree& tree) {
-  pt::ptree added;
-  auto status = serializeQueryData(d.added, added);
-  if (!status.ok()) {
-    return status;
-  }
-  tree.add_child("added", added);
-
+  // Serialize and add "removed" first.
+  // A property tree is somewhat ordered, this provides a loose contract to
+  // the logger plugins and their aggregations, allowing them to parse chunked
+  // lines. Note that the chunking is opaque to the database functions.
   pt::ptree removed;
-  status = serializeQueryData(d.removed, removed);
+  auto status = serializeQueryData(d.removed, removed);
   if (!status.ok()) {
     return status;
   }
   tree.add_child("removed", removed);
+
+  pt::ptree added;
+  status = serializeQueryData(d.added, added);
+  if (!status.ok()) {
+    return status;
+  }
+  tree.add_child("added", added);
   return Status(0, "OK");
 }
 
 Status deserializeDiffResults(const pt::ptree& tree, DiffResults& dr) {
-  if (tree.count("added") > 0) {
-    auto status = deserializeQueryData(tree.get_child("added"), dr.added);
+  if (tree.count("removed") > 0) {
+    auto status = deserializeQueryData(tree.get_child("removed"), dr.removed);
     if (!status.ok()) {
       return status;
     }
   }
 
-  if (tree.count("removed") > 0) {
-    auto status = deserializeQueryData(tree.get_child("removed"), dr.removed);
+  if (tree.count("added") > 0) {
+    auto status = deserializeQueryData(tree.get_child("added"), dr.added);
     if (!status.ok()) {
       return status;
     }
@@ -254,11 +241,6 @@ DiffResults diff(const QueryData& old, const QueryData& current) {
                       std::back_inserter(r.removed));
   return r;
 }
-
-/////////////////////////////////////////////////////////////////////////////
-// QueryLogItem - the representation of a log result occuring when a
-// scheduled query yields operating system state change.
-/////////////////////////////////////////////////////////////////////////////
 
 inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
                                           pt::ptree& tree) {

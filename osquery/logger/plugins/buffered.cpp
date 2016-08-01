@@ -8,6 +8,7 @@
  *
  */
 
+#include <algorithm>
 #include <chrono>
 #include <thread>
 
@@ -27,8 +28,26 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+FLAG(uint64,
+     buffered_log_max,
+     1000000,
+     "Maximum number of logs in buffered output plugins (0 = unlimited)");
+
 const auto BufferedLogForwarder::kLogPeriod = std::chrono::seconds(4);
 const size_t BufferedLogForwarder::kMaxLogLines = 1024;
+
+Status BufferedLogForwarder::setUp() {
+  // initialize buffer_count_ by scanning the DB
+  std::vector<std::string> indexes;
+  auto status = scanDatabaseKeys(kLogs, indexes, index_name_, 0);
+
+  if (!status.ok()) {
+    return Status(1, "Error scanning for buffered log count");
+  }
+
+  buffer_count_ = indexes.size();
+  return Status(0);
+}
 
 void BufferedLogForwarder::check() {
   // Get a list of all the buffered log items, with a max of 1024 lines.
@@ -52,11 +71,11 @@ void BufferedLogForwarder::check() {
       VLOG(1) << "Error sending results to logger: " << status.getMessage();
     } else {
       // Clear the results logs once they were sent.
-      iterate(indexes, ([&results, this](std::string& index) {
+      iterate(indexes, ([this](std::string& index) {
                 if (!isResultIndex(index)) {
                   return;
                 }
-                deleteDatabaseValue(kLogs, index);
+                deleteValueWithCount(kLogs, index);
               }));
     }
   }
@@ -67,14 +86,77 @@ void BufferedLogForwarder::check() {
       VLOG(1) << "Error sending status to logger: " << status.getMessage();
     } else {
       // Clear the status logs once they were sent.
-      iterate(indexes, ([&results, this](std::string& index) {
+      iterate(indexes, ([this](std::string& index) {
                 if (!isStatusIndex(index)) {
                   return;
                 }
-                deleteDatabaseValue(kLogs, index);
+                deleteValueWithCount(kLogs, index);
               }));
     }
   }
+
+  // Purge any logs exceeding the max after our send attempt
+  if (FLAGS_buffered_log_max > 0) {
+    purge();
+  }
+}
+
+void BufferedLogForwarder::purge() {
+  if (buffer_count_ <= FLAGS_buffered_log_max) {
+    return;
+  }
+
+  size_t purge_count = buffer_count_ - FLAGS_buffered_log_max;
+
+  // Collect purge_count indexes of each type (result/status) before
+  // partitioning to find the oldest. Note this assumes that the indexes are
+  // returned in ascending lexicographic order (true for RocksDB).
+  std::vector<std::string> indexes;
+  auto status =
+      scanDatabaseKeys(kLogs, indexes, genIndexPrefix(true), purge_count);
+  if (!status.ok()) {
+    LOG(ERROR) << "Error scanning DB during buffered log purge";
+    return;
+  }
+
+  LOG(WARNING) << "Purging buffered logs limit (" << FLAGS_buffered_log_max
+               << ") exceeded: " << buffer_count_;
+
+  std::vector<std::string> status_indexes;
+  status = scanDatabaseKeys(kLogs, status_indexes, genIndexPrefix(false),
+                            purge_count);
+  if (!status.ok()) {
+    LOG(ERROR) << "Error scanning DB during buffered log purge";
+    return;
+  }
+
+  indexes.insert(indexes.end(), status_indexes.begin(), status_indexes.end());
+
+  if (indexes.size() < purge_count) {
+    LOG(ERROR) << "Trying to purge " << purge_count << " logs but only found "
+               << indexes.size();
+    return;
+  }
+
+  size_t prefix_size = genIndexPrefix(true).size();
+  // Partition the indexes so that the first purge_count elements are the
+  // oldest indexes (the ones to be purged)
+  std::nth_element(indexes.begin(), indexes.begin() + purge_count - 1,
+                   indexes.end(),
+                   [&](const std::string& a, const std::string& b) {
+                     // Skip the prefix when doing comparisons
+                     return a.compare(prefix_size, std::string::npos, b,
+                                      prefix_size, std::string::npos) < 0;
+                   });
+  indexes.erase(indexes.begin() + purge_count, indexes.end());
+
+  // Now only indexes of logs to be deleted remain
+  iterate(indexes, [this](const std::string& index) {
+    if (!deleteValueWithCount(kLogs, index).ok()) {
+      LOG(ERROR) << "Error deleting value during buffered log purge";
+    }
+  });
+
 }
 
 void BufferedLogForwarder::start() {
@@ -86,12 +168,13 @@ void BufferedLogForwarder::start() {
   }
 }
 
-Status BufferedLogForwarder::logString(const std::string& s) {
-  std::string index = genResultIndex();
-  return setDatabaseValue(kLogs, index, s);
+Status BufferedLogForwarder::logString(const std::string& s, size_t time) {
+  std::string index = genResultIndex(time);
+  return addValueWithCount(kLogs, index, s);
 }
 
-Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log) {
+Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log,
+                                       size_t time) {
   // Append decorations to status
   // Assemble a decorations tree to append to each status buffer line.
   pt::ptree dtree;
@@ -128,8 +211,8 @@ Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log) {
     if (!json.empty()) {
       json.pop_back();
     }
-    std::string index = genStatusIndex();
-    Status status = setDatabaseValue(kLogs, index, json);
+    std::string index = genStatusIndex(time);
+    Status status = addValueWithCount(kLogs, index, json);
     if (!status.ok()) {
       // Do not continue if any line fails.
       return status;
@@ -152,12 +235,42 @@ bool BufferedLogForwarder::isStatusIndex(const std::string& index) {
   return isIndex(index, false);
 }
 
-std::string BufferedLogForwarder::genResultIndex() { return genIndex(true); }
+std::string BufferedLogForwarder::genResultIndex(size_t time) {
+  return genIndex(true, time);
+}
 
-std::string BufferedLogForwarder::genStatusIndex() { return genIndex(false); }
+std::string BufferedLogForwarder::genStatusIndex(size_t time) {
+  return genIndex(false, time);
+}
 
-std::string BufferedLogForwarder::genIndex(bool results) {
-  return index_name_ + "_" + ((results) ? "r" : "s") + "_" +
-         std::to_string(getUnixTime()) + "_" + std::to_string(++log_index_);
+std::string BufferedLogForwarder::genIndexPrefix(bool results) {
+  return index_name_ + "_" + ((results) ? "r" : "s") + "_";
+}
+
+std::string BufferedLogForwarder::genIndex(bool results, size_t time) {
+  if (time == 0) {
+    time = getUnixTime();
+  }
+  return genIndexPrefix(results) + std::to_string(time) + "_" +
+         std::to_string(++log_index_);
+}
+
+Status BufferedLogForwarder::addValueWithCount(const std::string& domain,
+                                               const std::string& key,
+                                               const std::string& value) {
+  Status status = setDatabaseValue(domain, key, value);
+  if (status.ok()) {
+    buffer_count_++;
+  }
+  return status;
+}
+
+Status BufferedLogForwarder::deleteValueWithCount(const std::string& domain,
+                                                  const std::string& key) {
+  Status status = deleteDatabaseValue(domain, key);
+  if (status.ok()) {
+    buffer_count_--;
+  }
+  return status;
 }
 }

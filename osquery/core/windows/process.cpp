@@ -43,7 +43,14 @@ PlatformProcess::PlatformProcess(PlatformPidType id) {
   id_ = duplicateHandle(id);
 }
 
-PlatformProcess::PlatformProcess(PlatformProcess &&src) {
+PlatformProcess::PlatformProcess(pid_t pid) {
+  id_ = ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+  if (id_ == nullptr) {
+    id_ = kInvalidPid;
+  }
+}
+
+PlatformProcess::PlatformProcess(PlatformProcess &&src) noexcept {
   id_ = kInvalidPid;
   std::swap(id_, src.id_);
 }
@@ -73,6 +80,20 @@ bool PlatformProcess::kill() const {
   }
 
   return (::TerminateProcess(id_, 0) != FALSE);
+}
+
+ProcessState PlatformProcess::checkStatus(int &status) const {
+  DWORD exit_code = 0;
+  if (!::GetExitCodeProcess(nativeHandle(), &exit_code)) {
+    return PROCESS_ERROR;
+  }
+
+  if (exit_code == STILL_ACTIVE) {
+    return PROCESS_STILL_ALIVE;
+  }
+
+  status = exit_code;
+  return PROCESS_EXITED;
 }
 
 std::shared_ptr<PlatformProcess> PlatformProcess::getCurrentProcess() {

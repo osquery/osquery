@@ -38,6 +38,20 @@
 #define USED_SYMBOL __attribute__((used))
 #endif
 
+#if defined(__linux__)
+#define OSQUERY_HOME "/etc/osquery"
+#define OSQUERY_DB_HOME "/var/osquery"
+#define OSQUERY_LOG_HOME "/var/log/osquery/"
+#elif defined(WIN32)
+#define OSQUERY_HOME "\\ProgramData\\osquery"
+#define OSQUERY_DB_HOME OSQUERY_HOME
+#define OSQUERY_LOG_HOME "\\ProgramData\\osquery\\log\\"
+#else
+#define OSQUERY_HOME "/var/osquery"
+#define OSQUERY_DB_HOME OSQUERY_HOME
+#define OSQUERY_LOG_HOME "/var/log/osquery/"
+#endif
+
 /// A configuration error is catastrophic and should exit the watcher.
 #define EXIT_CATASTROPHIC 78
 
@@ -82,11 +96,10 @@ extern ToolType kToolType;
 struct InitializerInterface {
   virtual const char *id() const = 0;
   virtual void run() const = 0;
-  virtual ~InitializerInterface() {};
+  virtual ~InitializerInterface(){};
 };
 
-extern void registerRegistry(InitializerInterface * const item);
-extern void registerPlugin(InitializerInterface * const item);
+extern void registerRegistry(InitializerInterface *const item);
+extern void registerPlugin(InitializerInterface *const item);
 extern void beginRegistryAndPluginInit();
-
 }

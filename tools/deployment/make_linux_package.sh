@@ -25,7 +25,8 @@ PACKAGE_NAME="osquery"
 if [[ $PACKAGE_VERSION == *"-"* ]]; then
   DESCRIPTION="$DESCRIPTION (unstable/latest version)"
 fi
-OUTPUT_PKG_PATH="$BUILD_DIR/$PACKAGE_NAME-$PACKAGE_VERSION."
+
+OUTPUT_PKG_PATH="$BUILD_DIR/${PACKAGE_NAME}-${PACKAGE_VERSION}."
 
 # Config files
 INITD_SRC="$SCRIPT_DIR/osqueryd.initd"
@@ -161,6 +162,12 @@ function main() {
   FPM="fpm"
   if [[ $DISTRO == "lucid" ]]; then
     FPM="/var/lib/gems/1.8/bin/fpm"
+  fi
+
+# some tune to stay compliant with Debian package naming convention
+  if [[ $PACKAGE_TYPE == "deb" ]]; then
+    DEB_PACKAGE_ARCH=`dpkg --print-architecture`
+    OUTPUT_PKG_PATH="$BUILD_DIR/${PACKAGE_NAME}_${PACKAGE_VERSION}_${DEB_PACKAGE_ARCH}.deb"
   fi
 
   POSTINST_CMD=""

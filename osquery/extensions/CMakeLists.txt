@@ -7,10 +7,7 @@ add_custom_command(
   OUTPUT ${OSQUERY_THRIFT_GENERATED_FILES}
 )
 
-# TODO(WIN64): don't do anything for windows
-if(WIN32)
-  # Nothing to do here for now
-else()
+if(NOT WIN32)
   add_compile_options(
     -Wno-macro-redefined
   )

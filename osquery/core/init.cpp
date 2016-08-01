@@ -16,7 +16,9 @@
 #include <stdio.h>
 #include <time.h>
 
-#ifndef WIN32
+#ifdef WIN32
+#include <signal.h>
+#else
 #include <unistd.h>
 #endif
 
@@ -68,14 +70,6 @@ enum {
 };
 #endif
 
-#ifdef __linux__
-#define OSQUERY_HOME "/etc/osquery"
-#elif defined(WIN32)
-#define OSQUERY_HOME "\\ProgramData\\osquery"
-#else
-#define OSQUERY_HOME "/var/osquery"
-#endif
-
 #define DESCRIPTION \
   "osquery %s, your OS as a high-performance relational database\n"
 #define EPILOG "\nosquery project page <https://osquery.io>.\n"
@@ -100,6 +94,19 @@ enum {
 /// Seconds to alarm and quit for non-responsive event loops.
 #define SIGNAL_ALARM_TIMEOUT 4
 
+/// For Windows, SIGILL and SIGTERM 
+#ifdef WIN32
+
+/// We define SIGHUP similarly to POSIX because otherwise it would require a
+/// complex ifndef
+#define SIGHUP   1
+
+/// For Windows, SIGILL and SIGTERM are not generated signals. To supplant the
+/// SIGUSR1 use-case on POSIX, we use SIGILL.
+#define SIGUSR1  SIGILL
+
+#endif
+
 namespace {
 extern "C" {
 static inline bool hasWorkerVariable() {
@@ -112,7 +119,6 @@ static inline bool isWatcher() {
   return (osquery::Watcher::getWorker().isValid());
 }
 
-#ifndef WIN32
 void signalHandler(int num) {
   // Inform exit status of main threads blocked by service joins.
   if (kHandledSignal == 0) {
@@ -132,9 +138,11 @@ void signalHandler(int num) {
       }
     } else if (num == SIGTERM || num == SIGINT || num == SIGABRT ||
                num == SIGUSR1) {
+#ifndef WIN32
       // Time to stop, set an upper bound time constraint on how long threads
       // have to terminate (join). Publishers may be in 20ms or similar sleeps.
       alarm(SIGNAL_ALARM_TIMEOUT);
+#endif
 
       // Restore the default signal handler.
       std::signal(num, SIG_DFL);
@@ -151,6 +159,7 @@ void signalHandler(int num) {
     }
   }
 
+#ifndef WIN32
   if (num == SIGALRM) {
     // Restore the default signal handler for SIGALRM.
     std::signal(SIGALRM, SIG_DFL);
@@ -159,6 +168,7 @@ void signalHandler(int num) {
     VLOG(1) << "Cannot stop event publisher threads or services";
     raise((kHandledSignal != 0) ? kHandledSignal : SIGALRM);
   }
+#endif
 
   if (isWatcher()) {
     // The signal should be proliferated through the process group.
@@ -166,7 +176,6 @@ void signalHandler(int num) {
     // managed extension processes.
   }
 }
-#endif
 }
 }
 
@@ -199,7 +208,7 @@ volatile std::sig_atomic_t kExitCode{0};
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
 
-using InitializerMap = std::map<std::string, InitializerInterface *>;
+using InitializerMap = std::map<std::string, InitializerInterface*>;
 
 InitializerMap& registry_initializer() {
   static InitializerMap registry_;
@@ -211,24 +220,24 @@ InitializerMap& plugin_initializer() {
   return plugin_;
 }
 
-void registerRegistry(InitializerInterface *const item) {
+void registerRegistry(InitializerInterface* const item) {
   if (item != nullptr) {
     registry_initializer().insert({item->id(), item});
   }
 }
 
-void registerPlugin(InitializerInterface *const item) {
+void registerPlugin(InitializerInterface* const item) {
   if (item != nullptr) {
     plugin_initializer().insert({item->id(), item});
   }
 }
 
 void beginRegistryAndPluginInit() {
-  for (const auto &it : registry_initializer() ) {
+  for (const auto& it : registry_initializer()) {
     it.second->run();
   }
 
-  for (const auto &it : plugin_initializer() ) {
+  for (const auto& it : plugin_initializer()) {
     it.second->run();
   }
 }
@@ -318,7 +327,6 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     // The shell never will not fork a worker.
     FLAGS_disable_watchdog = true;
     FLAGS_disable_events = true;
-    FLAGS_disable_database = true;
   }
 
   // Set version string from CMake build
@@ -329,6 +337,11 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       argc_, argv_, (tool == OSQUERY_TOOL_SHELL));
 
   if (tool == OSQUERY_TOOL_SHELL) {
+    if (Flag::isDefault("database_path")) {
+      // The shell should not use a database by default, but should use the DB
+      // specified by database_path if it is set
+      FLAGS_disable_database = true;
+    }
     // Initialize the shell after setting modified defaults and parsing flags.
     initShell();
   }
@@ -338,12 +351,13 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   // If a daemon process is a watchdog the signal is passed to the worker,
   // unless the worker has not yet started.
   std::signal(SIGTERM, signalHandler);
-  std::signal(SIGABRT, signalHandler);
   std::signal(SIGINT, signalHandler);
   std::signal(SIGHUP, signalHandler);
   std::signal(SIGALRM, signalHandler);
-  std::signal(SIGUSR1, signalHandler);
 #endif
+
+  std::signal(SIGABRT, signalHandler);
+  std::signal(SIGUSR1, signalHandler);
 
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check) {
@@ -382,7 +396,6 @@ void Initializer::initDaemon() const {
   // Print the version to the OS system log.
   systemLog(binary_ + " started [version=" + kVersion + "]");
 
-#ifndef WIN32
   if (!FLAGS_ephemeral) {
     if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
         !isDirectory(OSQUERY_HOME)) {
@@ -396,7 +409,6 @@ void Initializer::initDaemon() const {
       shutdown(EXIT_FAILURE);
     }
   }
-#endif
 
   // Nice ourselves if using a watchdog and the level is not too permissive.
   if (!FLAGS_disable_watchdog && FLAGS_watchdog_level >= 0) {
@@ -445,7 +457,9 @@ void Initializer::initWatcher() const {
     Dispatcher::addService(std::make_shared<WatcherRunner>(
         *argc_, *argv_, !FLAGS_disable_watchdog));
   }
+}
 
+void Initializer::waitForWatcher() const {
   // If there are no autoloaded extensions, the watcher service will end,
   // otherwise it will continue as a background thread and respawn them.
   // If the watcher is also a worker watchdog it will do nothing but monitor
@@ -497,6 +511,7 @@ void Initializer::initWorkerWatcher(const std::string& name) const {
   } else {
     // The watcher will forever monitor and spawn additional workers.
     initWatcher();
+    waitForWatcher();
   }
 }
 
@@ -636,9 +651,7 @@ void Initializer::requestShutdown(int retcode) {
   // Stop thrift services/clients/and their thread pools.
   kExitCode = retcode;
   if (std::this_thread::get_id() != kMainThreadId) {
-#ifndef WIN32
     raise(SIGUSR1);
-#endif
   } else {
     // The main thread is requesting a shutdown, meaning in almost every case
     // it is NOT waiting for a shutdown.

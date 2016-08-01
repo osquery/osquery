@@ -82,7 +82,7 @@ void genProcess(long pid, QueryData& results_data) {
       r["sgid"] = "-1";
 
       r["wired_size"] = "0";
-      r["resident_size"] = "0";
+      r["resident_size"] = "0"; // Populate with WorkingSetSize (VT_BSTR)
       r["phys_footprint"] = "0";
 
       r["user_time"] = "0";
