@@ -62,7 +62,7 @@ SharedLibModule::~SharedLibModule() {
 }
 
 std::string SharedLibModule::getError() const {
-  return std::string(:dlerror());
+  return std::string(::dlerror());
 }
 
 void *SharedLibModule::getFunctionAddr(const std::string& fname) const {
