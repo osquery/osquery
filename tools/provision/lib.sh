@@ -134,18 +134,18 @@ function local_brew_package() {
 
   # Could improve this detection logic to remove from-bottle.
   FROM_BOTTLE=false
+
+  # Add build arguments depending on requested from-source or default build.
   ARGS="$@"
-  if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
-    ARGS="$ARGS -v --build-bottle --ignore-dependencies"
-    ARGS="$ARGS --env=inherit"
-    if [[ "$TYPE" = "dependency" ]]; then
-      ARGS="$ARGS --cc=clang"
-    fi
-    if [[ ! -z "$DEBUG" ]]; then
-      ARGS="$ARGS -d"
-    fi
-  else
-    ARGS="--ignore-dependencies --force-bottle"
+  ARGS="$ARGS --build-bottle --ignore-dependencies --env=inherit"
+  if [[ -z "$OSQUERY_BUILD_DEPS" ]]; then
+    ARGS="$ARGS --force-bottle"
+  fi
+  if [[ "$TYPE" = "dependency" ]]; then
+    ARGS="$ARGS --cc=clang"
+  fi
+  if [[ ! -z "$DEBUG" ]]; then
+    ARGS="$ARGS -vd"
   fi
 
   export HOMEBREW_OPTIMIZATION_LEVEL=-Os

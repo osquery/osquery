@@ -4,6 +4,7 @@ class AwsSdkCpp < AbstractOsqueryFormula
   desc "AWS SDK for C++"
   homepage "https://github.com/aws/aws-sdk-cpp"
   url "https://github.com/aws/aws-sdk-cpp/archive/0.13.8.tar.gz"
+  sha256 "ea3e618980f41dedfc2a6b187846a2bd747d9b6d9b95f733e04bec76cbeb1a46"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -33,7 +34,7 @@ class AwsSdkCpp < AbstractOsqueryFormula
       system "make", "install"
     end
 
-    lib.install Dir[lib/"mac/Release/*"].select { |f| File.file? f }
+    lib.install Dir[lib/"mac/Release/*"].select { |f| File.file? f } if OS.mac?
   end
 
   test do
