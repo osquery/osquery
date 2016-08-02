@@ -16,7 +16,6 @@ function distro_main() {
   package gawk
   package xz
   package ruby
-  package ruby-irb
   package gcc
   package bzip2
 }
