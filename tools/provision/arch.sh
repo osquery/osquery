@@ -7,7 +7,7 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
-function main_arch() {
+function distro_main() {
   do_sudo pacman -Syu
 
   package wget
@@ -16,7 +16,6 @@ function main_arch() {
   package gawk
   package xz
   package ruby
-  package ruby-irb
   package gcc
   package bzip2
 }
