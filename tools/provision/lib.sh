@@ -226,7 +226,7 @@ function package() {
       log "installing $1"
       sudo pkg install -y $1
     fi
-  elif [[ $OS = "arch" ]]; then
+  elif [ $OS = "arch" ] || [ $OS="manjaro" ]; then
     if pacman -Qq $1 >/dev/null; then
       log "$1 is already installed. skipping."
     else
