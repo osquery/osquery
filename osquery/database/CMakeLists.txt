@@ -17,12 +17,12 @@ set(OSQUERY_DATABASE_PLUGIN_TESTS
 )
 
 # Optionally (but by default), add the RocksDB database plugin.
-if(ROCKSDB)
-  if(ROCKSDB_LITE_FOUND)
-    add_definitions(-DROCKSDB_LITE=1)
-  endif()
-  set(OSQUERY_DATABASE_PLUGINS ${OSQUERY_DATABASE_PLUGINS} plugins/rocksdb.cpp)
-  set(OSQUERY_DATABASE_PLUGIN_TESTS ${OSQUERY_DATABASE_PLUGIN_TESTS} database/plugins/tests/rocksdb_tests.cpp)
+if(NOT DEFINED ENV{SKIP_ROCKSDB})
+  add_definitions(-DROCKSDB_LITE=1)
+  set(OSQUERY_DATABASE_PLUGINS ${OSQUERY_DATABASE_PLUGINS}
+    plugins/rocksdb.cpp)
+  set(OSQUERY_DATABASE_PLUGIN_TESTS ${OSQUERY_DATABASE_PLUGIN_TESTS}
+    database/plugins/tests/rocksdb_tests.cpp)
 else()
   add_definitions(-DSKIP_ROCKSDB)
 endif()

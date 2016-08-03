@@ -12,6 +12,7 @@
 
 #include <chrono>
 #include <functional>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -44,7 +45,8 @@ inline void iterate(std::vector<std::string>& input,
  * status and result logs. Subclasses take advantage of this reliable sending
  * logic, and implement their own methods for actually sending logs.
  *
- * Subclasses must define the send() method
+ * Subclasses must define the send() method, and if a subclass overrides
+ * setUp(), it **MUST** call this base class setUp() from that method.
  */
 class BufferedLogForwarder : public InternalRunnable {
  protected:
@@ -82,8 +84,13 @@ class BufferedLogForwarder : public InternalRunnable {
   /// A simple wait lock, and flush based on settings.
   void start() override;
 
-  /// Set up the forwarder. May be used to initialize remote clients, etc.
-  virtual Status setUp() { return Status(0); }
+  /**
+   * @brief Set up the forwarder. May be used to init remote clients, etc.
+   *
+   * This base class setUp() **MUST** be called by subclasses of
+   * BufferedLogForwarder in order to properly initialize the buffer count.
+  */
+  virtual Status setUp();
 
   /**
    * @brief Log a results string
@@ -94,7 +101,7 @@ class BufferedLogForwarder : public InternalRunnable {
    *
    * @param s Results string to log
    */
-  Status logString(const std::string& s);
+  Status logString(const std::string& s, size_t time = 0);
 
   /**
    * @brief Log a vector of status lines
@@ -105,7 +112,7 @@ class BufferedLogForwarder : public InternalRunnable {
    *
    * @param log Vector of status lines to log
    */
-  Status logStatus(const std::vector<StatusLogLine>& log);
+  Status logStatus(const std::vector<StatusLogLine>& log, size_t time = 0);
 
  protected:
   /**
@@ -123,9 +130,18 @@ class BufferedLogForwarder : public InternalRunnable {
    *
    * Scan the logs domain for up to max_log_lines_ log lines.
    * Sort those lines into status and request types then forward (send) each
-   * set. On success, clear the data and indexes.
+   * set. On success, clear the data and indexes. Calls purge upon completion.
    */
   void check();
+
+  /**
+   * @brief Purge the oldest logs, if the max is exceeded
+   *
+   * Uses the buffered_log_max flag to determine the maximum number of buffered
+   * logs. If this number is exceeded, the logs with the oldest timestamp are
+   * purged. Order of purging for logs with the same timestamp is undefined.
+   */
+  void purge();
 
  protected:
   /// Return whether the string is a result index
@@ -139,12 +155,27 @@ class BufferedLogForwarder : public InternalRunnable {
 
  protected:
   /// Generate a result index string to use with the backing store
-  std::string genResultIndex();
+  std::string genResultIndex(size_t time = 0);
   /// Generate a status index string to use with the backing store
-  std::string genStatusIndex();
+  std::string genStatusIndex(size_t time = 0);
 
  private:
-  std::string genIndex(bool results);
+  std::string genIndexPrefix(bool results);
+  std::string genIndex(bool results, size_t time = 0);
+
+  /**
+   * @brief Add a database value while maintaining count
+   *
+   */
+  Status addValueWithCount(const std::string& domain,
+                           const std::string& key,
+                           const std::string& value);
+  /**
+   * @brief Delete a database value while maintaining count
+   *
+   */
+  Status deleteValueWithCount(const std::string& domain,
+                              const std::string& key);
 
  protected:
   /// Seconds between flushing logs
@@ -152,9 +183,6 @@ class BufferedLogForwarder : public InternalRunnable {
 
   /// Max number of logs to flush per check
   size_t max_log_lines_;
-
-  /// Hold an incrementing index for buffering logs
-  size_t log_index_{0};
 
   /**
    * @brief Name to use in index
@@ -164,5 +192,12 @@ class BufferedLogForwarder : public InternalRunnable {
    * store.
    */
   std::string index_name_;
+
+ private:
+  /// Hold an incrementing index for buffering logs
+  std::atomic<size_t> log_index_{0};
+
+  /// Stores the count of buffered logs
+  std::atomic<size_t> buffer_count_{0};
 };
 }

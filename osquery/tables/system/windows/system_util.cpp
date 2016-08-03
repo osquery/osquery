@@ -116,13 +116,17 @@ WmiRequest::WmiRequest(const std::string& query) {
     return;
   }
 
-  IWbemClassObject *result = nullptr;
-  ULONG result_count = 0;
+  hr = WBEM_S_NO_ERROR;
+  while (hr == WBEM_S_NO_ERROR) {
+    IWbemClassObject *result = nullptr;
+    ULONG result_count = 0;
 
-  while (SUCCEEDED(enum_->Next(WBEM_INFINITE, 1, &result, &result_count))) {
-    // WmiResultItem will take ownership of result
-    // and call result->Release() when it goes out of scope
-    results_.push_back(WmiResultItem(result));
+    hr = enum_->Next(WBEM_INFINITE, 1, &result, &result_count);
+    if (SUCCEEDED(hr) && result_count > 0) {
+      // WmiResultItem will take ownership of result
+      // and call result->Release() when it goes out of scope
+      results_.push_back(WmiResultItem(result));
+    }
   }
 
   status_ = true;

@@ -45,10 +45,14 @@ std::map<int, std::vector<FeatureDef_t> > kCPUFeatures = {
      }},
 };
 
-static inline void cpuid(unsigned int eax, unsigned int ecx, int regs[4]) {
+static inline void cpuid(size_t eax, size_t ecx, int regs[4]) {
+#if defined(WIN32)
+  __cpuidex((int*)regs, (int)eax, (int)ecx);
+#else
   asm volatile("cpuid"
                : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
                : "a"(eax), "c"(ecx));
+#endif
 }
 
 static inline void registerToString(int reg, std::stringstream& stream) {
@@ -87,7 +91,7 @@ inline Status genStrings(QueryData& results) {
   // Subsequent accesses allow a 32-character CPU name.
   std::stringstream product_name;
   for (size_t i = 0; i < 3; i++) {
-    cpuid(0x80000002 + i, 0, regs);
+    cpuid(0x80000002 + i, 0U, regs);
     registerToString(regs[0], product_name);
     registerToString(regs[1], product_name);
     registerToString(regs[2], product_name);

@@ -231,10 +231,7 @@ class EventPublisherPlugin : public Plugin, public InterruptableRunnable {
    *
    * @return If the Subscription is not appropriate (mismatched type) fail.
    */
-  virtual Status addSubscription(const SubscriptionRef& subscription) {
-    subscriptions_.push_back(subscription);
-    return Status(0);
-  }
+  virtual Status addSubscription(const SubscriptionRef& subscription);
 
   /// Remove all subscriptions from a named subscriber.
   virtual void removeSubscriptions(const std::string& subscriber);
@@ -310,6 +307,9 @@ class EventPublisherPlugin : public Plugin, public InterruptableRunnable {
   /// A lock for incrementing the next EventContextID.
   std::mutex ec_id_lock_;
 
+  /// A lock for subscription manipulation.
+  std::mutex subscription_lock_;
+
   /// A helper count of event publisher runloop iterations.
   std::atomic<size_t> restart_count_{0};
 
@@ -344,7 +344,7 @@ class EventSubscriberPlugin : public Plugin {
    * is important to added EventTime as it relates to "when the event occurred".
    *
    * @param r An osquery Row element.
-   * @param time The time the added event occurred.
+   * @param event_time The time the added event occurred.
    *
    * @return Was the element added to the backing store.
    */
@@ -600,7 +600,7 @@ class EventFactory : private boost::noncopyable {
    *
    * The registration is mostly abstracted using osquery's registry.
    *
-   * @param event_pub If for some reason the caller needs access to the
+   * @param pub If for some reason the caller needs access to the
    * EventPublisher instance they can register-by-instance.
    *
    * Access to the EventPublisher instance is not discouraged, but using the
@@ -639,7 +639,8 @@ class EventFactory : private boost::noncopyable {
    * Create a Subscription from a given SubscriptionContext and EventCallback
    * and add that Subscription to the EventPublisher associated identifier.
    *
-   * @param type_id The string for an EventPublisher receiving the Subscription.
+   * @param type_id ID string for an EventPublisher receiving the Subscription.
+   * @param name_id ID string for the EventSubscriber.
    * @param sc A SubscriptionContext related to the EventPublisher.
    * @param cb When the EventPublisher fires an event the SubscriptionContext
    * will be evaluated, if the event matches optional specifics in the context
@@ -675,7 +676,7 @@ class EventFactory : private boost::noncopyable {
    * Otherwise it will call end on the publisher and assume the run loop will
    * tear down and remove.
    *
-   * @param event_pub The string label for the EventPublisher.
+   * @param pub The string label for the EventPublisher.
    *
    * @return Did the EventPublisher deregister cleanly.
    */
@@ -740,7 +741,7 @@ class EventFactory : private boost::noncopyable {
    * See EventFactory::deregisterEventPublisher for actions taken during
    * deregistration.
    *
-   * @param should_end Reset the "is ending" state if False.
+   * @param join if true, threads will be joined
    */
   static void end(bool join = false);
 

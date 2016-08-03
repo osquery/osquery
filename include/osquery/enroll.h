@@ -45,13 +45,8 @@ class EnrollPlugin : public Plugin {
   /**
    * @brief Perform enrollment on the request of a config/logger.
    *
-   * The single 'enroll' plugin request action will call EnrollPlugin::enroll,
-   * the requester may include an optional "force" key to ask the enroll plugin
-   * to perhaps re-request an enrollment rather than doing a cache lookup.
-   * This force functionality is optional and implemented/described by each
-   * enroll plugin.
+   * The single 'enroll' plugin request action will call EnrollPlugin::enroll
    *
-   * @param force An optionally-supported/used request to force re-enrollment.
    * @return An enrollment secret or key material or identifier.
    */
   virtual std::string enroll() = 0;
@@ -69,8 +64,7 @@ class EnrollPlugin : public Plugin {
  * exists in the backing store, the result will be cached.
  *
  * @param enroll_plugin Name of the enroll plugin to use if no node_key set.
- * @param force Optionally bypass cache and force call the enroll plugin.
- * @return node_key A unique, often private, node secret key.
+ * @return A unique, often private, node secret key.
  */
 std::string getNodeKey(const std::string& enroll_plugin);
 

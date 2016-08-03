@@ -90,7 +90,7 @@ class Initializer : private boost::noncopyable {
    * form of event handler threads or thrift service and client pools, a stop
    * request should behave nicely and request these services stop.
    *
-   * Use shutdown whenever you would normally call ::exit.
+   * Use shutdown whenever you would normally call stdlib exit.
    *
    * @param retcode the requested return code for the process.
    */
@@ -99,7 +99,7 @@ class Initializer : private boost::noncopyable {
   /**
    * @brief Forcefully request the application to stop.
    *
-   * See ::requestShutdown, this overloaded alternative allows the caller to
+   * See #requestShutdown, this overloaded alternative allows the caller to
    * also log a reason/message to the system log. This is intended for extreme
    * failure cases and thus requires an explicit error code.
    *
@@ -115,7 +115,7 @@ class Initializer : private boost::noncopyable {
    * @brief Cleanly wait for all services and components to shutdown.
    *
    * Enter a join of all services followed by a sync wait for event loops.
-   * If the main thread is out of actions it can call ::waitForShutdown.
+   * If the main thread is out of actions it can call #waitForShutdown.
    */
   static void waitForShutdown();
 
@@ -131,13 +131,15 @@ class Initializer : private boost::noncopyable {
    */
   static bool isWorker();
 
- private:
   /// Initialize this process as an osquery daemon worker.
   void initWorker(const std::string& name) const;
 
   /// Initialize the osquery watcher, optionally spawn a worker.
   void initWatcher() const;
 
+  void waitForWatcher() const;
+
+ private:
   /// Set and wait for an active plugin optionally broadcasted.
   void initActivePlugin(const std::string& type, const std::string& name) const;
 
@@ -275,12 +277,17 @@ size_t getUnixTime();
  */
 std::string getAsciiTime();
 
-#ifndef WIN32
 /**
  * @brief Create a pid file
  *
  * @return A status object indicating the success or failure of the operation
  */
 Status createPidFile();
+
+#ifdef WIN32
+// Microsoft provides FUNCTION_s with more or less the same parameters.
+// Notice that they are swapped when compared to POSIX FUNCTION_r.
+struct tm* gmtime_r(time_t* t, struct tm* result);
+struct tm* localtime_r(time_t* t, struct tm* result);
 #endif
 }

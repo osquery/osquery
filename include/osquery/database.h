@@ -224,7 +224,7 @@ bool addUniqueRowToQueryData(QueryData& q, const Row& r);
 
 /**
  * @brief Construct a new QueryData from an existing one, replacing all
- * non-ASCII characters with their \u encoding.
+ * non-ASCII characters with their \\u encoding.
  *
  * This function is intended as a workaround for
  * https://svn.boost.org/trac/boost/ticket/8883,
@@ -384,7 +384,7 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item,
  * a list of actions.
  *
  * @param i the QueryLogItem to serialize
- * @param json the output JSON string
+ * @param items vector of JSON output strings
  *
  * @return Status indicating the success or failure of the operation
  */
@@ -451,9 +451,9 @@ class DatabasePlugin : public Plugin {
   /**
    * @brief Shutdown the database and release initialization resources.
    *
-   * Assume that a plugin may override ::tearDown and choose to close resources
+   * Assume that a plugin may override #tearDown and choose to close resources
    * when the registry is stopping. Most plugins will implement a mutex around
-   * initialization and destruction and assume ::setUp and ::tearDown will
+   * initialization and destruction and assume #setUp and #tearDown will
    * dictate the flow in most situations.
    */
   virtual ~DatabasePlugin() {}
@@ -494,9 +494,9 @@ class DatabasePlugin : public Plugin {
   /**
    * @brief Allow the initializer to check the active database plugin.
    *
-   * Unlink the initializer's ::initActivePlugin helper method, the database
-   * plugin should always be within the core. There is no need to discover
-   * the active plugin via the registry or extensions API.
+   * Unlink the initializer's Initializer::initActivePlugin helper method, the
+   * database plugin should always be within the core. There is no need to
+   * discover the active plugin via the registry or extensions API.
    *
    * The database should setUp in preparation for accesses.
    */

@@ -8,34 +8,16 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 function main_arch() {
-  sudo pacman -Syu
+  do_sudo pacman -Syu
 
   package wget
-  package asio
-  package audit
-  package boost
-  package boost-libs
-  package clang
-  package cmake
-  package doxygen
-  package gflags
   package git
-  package google-glog
-  package lsb-release
-  package python
-  package python-jinja
-  package python-pip
-  package sleuthkit
-  package snappy
-  package thrift
-  package yara
-
-  install_aws_sdk
-
-  echo ""
-  echo "The following packages need to be installed from the AUR:"
-  echo "rocksdb or rocksdb-static (if using rocksdb export BUILD_LINK_SHARED=True)"
-  echo "cpp-netlib and magic"
-  echo ""
+  package unzip
+  package gawk
+  package xz
+  package ruby
+  package ruby-irb
+  package gcc
+  package bzip2
 }
 

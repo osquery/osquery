@@ -44,9 +44,12 @@ const std::string kSQLGlobRecursive = kSQLGlobWildcard + kSQLGlobWildcard;
  * @brief Read a file from disk.
  *
  * @param path the path of the file that you would like to read.
+ * @param size Number of bytes to read from file.
  * @param content a reference to a string which will be populated with the
  * contents of the path indicated by the path parameter.
  * @param dry_run do not actually read the file content.
+ * @param preserve_time Attempt to preserve file mtime and atime.
+ * @param blocking Request a blocking read.
  *
  * @return an instance of Status, indicating success or failure.
  */
@@ -54,30 +57,33 @@ Status readFile(const boost::filesystem::path& path,
                 std::string& content,
                 size_t size = 0,
                 bool dry_run = false,
-                bool preserve_time = false);
+                bool preserve_time = false,
+                bool blocking = false);
 
 /// Read a file and preserve the atime and mtime.
 Status forensicReadFile(const boost::filesystem::path& path,
-                        std::string& content);
+                        std::string& content,
+                        bool blocking = false);
 
 /**
  * @brief Return the status of an attempted file read.
  *
  * @param path the path of the file that you would like to read.
+ * @param blocking Request a blocking read.
  *
  * @return success iff the file would have been read. On success the status
  * message is the complete/absolute path.
  */
-Status readFile(const boost::filesystem::path& path);
+Status readFile(const boost::filesystem::path& path, bool blocking = false);
 
 /// Internal representation for predicate-based chunk reading.
-Status readFile(
-    const boost::filesystem::path& path,
-    size_t size,
-    size_t block_size,
-    bool dry_run,
-    bool preserve_time,
-    std::function<void(std::string& buffer, size_t size)> predicate);
+Status readFile(const boost::filesystem::path& path,
+                size_t size,
+                size_t block_size,
+                bool dry_run,
+                bool preserve_time,
+                std::function<void(std::string& buffer, size_t size)> predicate,
+                bool blocking = false);
 
 /**
  * @brief Write text to disk.
@@ -190,6 +196,8 @@ Status resolveFilePattern(const boost::filesystem::path& pattern,
  * For example: /tmp/% becomes /private/tmp/% on OS X systems. And /tmp/%.
  *
  * @param pattern the input and output filesystem glob pattern.
+ * @param limits osquery::GlobLimits to apply (currently only recognizes
+ * osquery::GLOB_NO_CANON)
  */
 void replaceGlobWildcards(std::string& pattern, GlobLimits limits = GLOB_ALL);
 
@@ -254,7 +262,7 @@ Status parseJSON(const boost::filesystem::path& path,
 /**
  * @brief Parse JSON content into a property tree.
  *
- * @param path JSON string data.
+ * @param content JSON string data.
  * @param tree output property tree.
  *
  * @return an instance of Status, indicating success or failure if malformed.

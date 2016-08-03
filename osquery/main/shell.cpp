@@ -17,7 +17,11 @@
 
 #include <iostream>
 
+#ifdef WIN32
+#include <linenoise.h>
+#else
 #include <readline/readline.h>
+#endif
 
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -102,6 +106,21 @@ char *copy_string(const std::string &str) {
   return copy;
 }
 
+#ifdef WIN32
+void table_completion_function(char const *prefix, linenoiseCompletions *lc) {
+  std::vector<std::string> tables = osquery::Registry::names("table");
+  size_t index = 0;
+
+  while (index < tables.size()) {
+    const std::string &table = tables.at(index);
+    ++index;
+
+    if (boost::algorithm::starts_with(table, prefix)) {
+      linenoiseAddCompletion(lc, table.c_str());
+    }
+  }
+}
+#else
 char *completion_generator(const char *text, int state) {
   static std::vector<std::string> tables;
   static size_t index;
@@ -126,6 +145,7 @@ char *completion_generator(const char *text, int state) {
 char **table_completion_function(const char *text, int start, int end) {
   return rl_completion_matches(text, &completion_generator);
 }
+#endif
 
 int main(int argc, char *argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.
@@ -148,8 +168,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
+#ifdef WIN32
+  linenoiseSetCompletionCallback(table_completion_function);
+#else
   // Set up readline autocompletion
   rl_attempted_completion_function = table_completion_function;
+#endif
 
   int retcode = 0;
   if (osquery::FLAGS_profile <= 0) {
