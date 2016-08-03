@@ -124,6 +124,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
     }
   }
 
+  WriteLock lock(subscription_lock_);
   for (const auto& subscription : subscriptions_) {
     auto es = EventFactory::getEventSubscriber(subscription->subscriber_name);
     if (es != nullptr && es->state() == SUBSCRIBER_RUNNING) {
@@ -563,7 +564,18 @@ void EventFactory::delay() {
   }
 }
 
+Status EventPublisherPlugin::addSubscription(
+    const SubscriptionRef& subscription) {
+  // The publisher threads may be running and if they fire events the list of
+  // subscriptions will be walked.
+  WriteLock lock(subscription_lock_);
+  subscriptions_.push_back(subscription);
+  return Status(0);
+}
+
 void EventPublisherPlugin::removeSubscriptions(const std::string& subscriber) {
+  // See addSubscription for details on the critical section.
+  WriteLock lock(subscription_lock_);
   auto end =
       std::remove_if(subscriptions_.begin(),
                      subscriptions_.end(),

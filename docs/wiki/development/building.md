@@ -1,19 +1,19 @@
 ## Dependencies
 
-We include a `make deps` command to make it easier for developers to get started with the osquery project. `make deps` uses Homebrew for OS X and traditional package managers for various distributions of Linux. Please have sudo installed before running `make deps`.
+We include a `make deps` command to make it easier for developers to get started with the osquery project. `make deps` uses Homebrew for OS X and Linuxbrew for Linux. The following basic dependencies are need before running `make deps`:
 
-WARNING: This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
+- `sudo`
+- `make` (that is, GNU make)
+- `python`
+- `ruby`
+- `git`
+- `bash`
 
-If you're trying to run our automatic tool on a machine that is extremely customized and configured, `make deps` may try to install software that conflicts with software you have installed. If this happens, please create an issue and/or submit a pull request with a fix. We'd like to support as many operating systems as possible.
-
-In almost all cases `git`, GNU `make`, and `bash` are required for the build. In some cases the dependencies target will attempt to pull them in.
+**WARNING:** This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
 
 ## Building on OS X
 
-To build osquery on OS X, you need `pip` and `brew` installed. `make deps` will take care of installing the appropriate library dependencies, but it's recommended to take a look at the Makefile, just in case
-something conflicts with your environment.
-
-Anything that does not have a Homebrew package is built from source from _https://github.com/osquery/third-party_, which is a git submodule of this repository and is set up by `make deps`.
+`make deps` will take care of installing the appropriate library dependencies, but it's recommended to take a look at the Makefile, just in case something conflicts with your environment.
 
 The complete installation/build steps are as follows:
 
@@ -70,6 +70,55 @@ The binaries are built to a distro-specific folder within *build* and symlinked 
 ```sh
 $ ls -la ./build/linux/osquery/
 ```
+
+## Dependencies and build internals
+
+The `make deps` command is fairly intense and serves two purposes: (1) to communicate a standard set of environment setup instructions for our build and test nodes, (2) to provide an environment for reproducing errors. The are wonderful auxiliary benefits such as controlling the compiler and compile flags for almost all of our dependencies, controlling security-related features for dependencies, allowing a "mostly" universal build for Linux that makes deployment simple. To read more about the motivation and FAQ for our dependencies environment see the [Github Refererence #2253](https://github.com/facebook/osquery/issues/2253).
+
+When using `make deps` the environment the resultant binaries will have a minimum set of requirements to run:
+
+- `glibc` version 2.13
+- `libgcc_s`
+- `libz`
+
+All other dependencies are built, compiled, and linked statically. This makes for a rather large set of output binaries (15M on Linux and 9M on OS X) but the trade-off for deployment simplicity is very worthwhile.
+
+Under the hood the `make deps` script is calling `./tools/provision.sh`, which performs the simplified set of steps:
+
+- Create a "runtime" directory or dependency home: `/usr/local/osquery`.
+- Clone a pinned version of Homebrew or Linuxbrew into that home.
+- Install a local Tap using `./tools/provision/formulas` into that home.
+- Run optional distro-specific setup scripts from `./tools/provision/DISTRO.sh`.
+- Install a list of packages from the local Tap defined in `./tools/provision.sh`.
+
+We use a minimum set of packages from Homebrew and Linuxbrew, mostly just tools. The remaining tools and C/C++ library dependencies as well as C and C++ runtimes are built from source. If we need to change compile options or variables we can bump these formula's bottle revisions.
+
+### Adding or changing dependencies
+
+If you need to bump a dependency version, change the way it is built, or add a new dependency-- use the formulas in `./tools/provision/formulas`. Let's consider a simple example:
+
+```
+require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
+
+class Libaudit < AbstractOsqueryFormula
+  desc "Linux auditing framework"
+  url "https://github.com/Distrotech/libaudit/archive/audit-2.4.2.tar.gz"
+  sha256 "63020c88b0f37a93438894e67e63ccede23d658277ecc6afb9d40e4043147d3f"
+
+  def install
+    system "./autogen.sh"
+    system "./configure", "--prefix=#{prefix}"
+    cd "lib" do
+      system "make"
+      system "make", "install"
+    end
+  end
+end
+```
+
+This looks A LOT like normal *brew formulas. For a new dependency do not add a `bottle` section. For help with writing formulas see [Homebrew's Formula Cookbook](https://github.com/Homebrew/brew/blob/master/share/doc/homebrew/Formula-Cookbook.md). Note that we use an Abstract to control the environment variables and control relocation on Linux.
+
+If you want to make build changes see the Cookbook for `revision` edits. Note that committing new or edited formulas will invalidate package caches this will cause the package to be built from source on the test/build hosts.
 
 ## AWS EC2 Backed Vagrant Targets
 
@@ -132,6 +181,9 @@ make debug_build # Same as build, but applied to the debug target
 make test_debug_build # Take a guess ;)
 make clean # Clean the CMake project configuration
 make distclean # Clean all cached information and build dependencies
+make deps # Install the osquery dependency environment into /usr/local/osquery
+make depsclean # Remove the dependency environment
+make docs # Build the Doxygen and mkdocs wiki
 ```
 
 There are several additional code testing and formatting macros:
@@ -155,11 +207,16 @@ variables. When making these changes it is best to removed your build cache
 by removing the `./build/` or `./build/{platform}/` directory.
 
 ```sh
-OSQUERY_PLATFORM=custom_linux;1.0 # Set a wacky platform/distro name
+OSQUERY_BUILD_LINK_SHARED=True # Set CMake library discovery to prefer shared libraries
+OSQUERY_BUILD_SHARED=True # Build libosquery* as shared objects and link appropriately
+OSQUERY_BUILD_DEPS=True # Install dependencies from source when using make deps
+OSQUERY_BUILD_BOTTLES=True # Create Homebrew bottles from installed dependencies
+
 OSQUERY_BUILD_VERSION=9.9.9 # Set a wacky version string
-BUILD_LINK_SHARED=True # Set CMake library discovery to prefer shared libraries
+OSQUERY_PLATFORM=custom_linux;1.0 # Set a wacky platform/distro name
 SDK_VERSION=9.9.9 # Set a wacky SDK-version string
 OSX_VERSION_MIN=10.11 # Override the native minimum OS X version ABI
+OSQUERY_DEPS=/path/to/dependencies # Use or create a custom dependency environment
 
 SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
 OPTIMIZED=True # Enable specific CPU optimizations (not recommended)

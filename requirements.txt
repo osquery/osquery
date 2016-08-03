@@ -6,3 +6,6 @@ thrift
 # Needed for integration tests
 psutil
 pexpect
+
+# For building the wiki
+mkdocs

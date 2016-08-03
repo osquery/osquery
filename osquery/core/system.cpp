@@ -43,6 +43,8 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
+#include "osquery/core/process.h"
+
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -50,7 +52,7 @@ namespace osquery {
 /// The path to the pidfile for osqueryd
 CLI_FLAG(string,
          pidfile,
-         "/var/osquery/osqueryd.pidfile",
+         OSQUERY_DB_HOME "/osqueryd.pidfile",
          "Path to the daemon pidfile mutex");
 
 /// Should the daemon force unload previously-running osqueryd daemons.
@@ -174,7 +176,6 @@ size_t getUnixTime() {
   return result;
 }
 
-#ifndef WIN32
 Status checkStalePid(const std::string& content) {
   int pid;
   try {
@@ -187,33 +188,35 @@ Status checkStalePid(const std::string& content) {
     }
   }
 
-  int status = kill(pid, 0);
-  if (status != ESRCH) {
-    // The pid is running, check if it is an osqueryd process by name.
-    std::stringstream query_text;
-    query_text << "SELECT name FROM processes WHERE pid = " << pid
-               << " AND name = 'osqueryd';";
-    auto q = SQL(query_text.str());
-    if (!q.ok()) {
-      return Status(1, "Error querying processes: " + q.getMessageString());
+  PlatformProcess target(pid);
+  int status = 0;
+
+  // The pid is running, check if it is an osqueryd process by name.
+  std::stringstream query_text;
+
+  query_text << "SELECT name FROM processes WHERE pid = " << pid
+             << " AND name LIKE 'osqueryd%';";
+
+  auto q = SQL(query_text.str());
+  if (!q.ok()) {
+    return Status(1, "Error querying processes: " + q.getMessageString());
+  }
+
+  if (q.rows().size() > 0) {
+    // If the process really is osqueryd, return an "error" status.
+    if (FLAGS_force) {
+      // The caller may choose to abort the existing daemon with --force.
+      // Do not use SIGQUIT as it will cause a crash on OS X.
+      status = target.kill() ? 0 : -1;
+      sleepFor(1000);
+
+      return Status(status, "Tried to force remove the existing osqueryd");
     }
 
-    if (q.rows().size() > 0) {
-      // If the process really is osqueryd, return an "error" status.
-      if (FLAGS_force) {
-        // The caller may choose to abort the existing daemon with --force.
-        // Do not use SIGQUIT as it will cause a crash on OS X.
-        status = kill(pid, SIGKILL);
-        ::sleep(1);
-
-        return Status(status, "Tried to force remove the existing osqueryd");
-      }
-
-      return Status(1, "osqueryd (" + content + ") is already running");
-    } else {
-      LOG(INFO) << "Found stale process for osqueryd (" << content
-                << ") removing pidfile";
-    }
+    return Status(1, "osqueryd (" + content + ") is already running");
+  } else {
+    LOG(INFO) << "Found stale process for osqueryd (" << content
+              << ") removing pidfile";
   }
 
   return Status(0, "OK");
@@ -221,11 +224,12 @@ Status checkStalePid(const std::string& content) {
 
 Status createPidFile() {
   // check if pidfile exists
-  auto exists = pathExists(FLAGS_pidfile);
-  if (exists.ok()) {
+  auto pidfile_path = fs::path(FLAGS_pidfile).make_preferred();
+
+  if (pathExists(pidfile_path).ok()) {
     // if it exists, check if that pid is running.
     std::string content;
-    auto read_status = readFile(FLAGS_pidfile, content);
+    auto read_status = readFile(pidfile_path, content, true);
     if (!read_status.ok()) {
       return Status(1, "Could not read pidfile: " + read_status.toString());
     }
@@ -238,18 +242,20 @@ Status createPidFile() {
 
   // Now the pidfile is either the wrong pid or the pid is not running.
   try {
-    boost::filesystem::remove(FLAGS_pidfile);
+    boost::filesystem::remove(pidfile_path);
   } catch (const boost::filesystem::filesystem_error& e) {
     // Unable to remove old pidfile.
     LOG(WARNING) << "Unable to remove the osqueryd pidfile";
   }
 
   // If no pidfile exists or the existing pid was stale, write, log, and run.
-  auto pid = boost::lexical_cast<std::string>(getpid());
-  LOG(INFO) << "Writing osqueryd pid (" << pid << ") to " << FLAGS_pidfile;
-  auto status = writeTextFile(FLAGS_pidfile, pid, 0644);
+  auto pid = boost::lexical_cast<std::string>(PlatformProcess::getCurrentProcess()->pid());
+  LOG(INFO) << "Writing osqueryd pid (" << pid << ") to " << pidfile_path.string();
+  auto status = writeTextFile(pidfile_path, pid, 0644);
   return status;
 }
+
+#ifndef WIN32
 
 #if defined(__linux__)
 #include <sys/fsuid.h>

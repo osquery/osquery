@@ -7,35 +7,6 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
-function main_darwin() {
-  type brew >/dev/null 2>&1 || {
-    fatal "could not find homebrew. please install it from http://brew.sh/";
-  }
-
-  type pip >/dev/null 2>&1 || {
-    fatal "could not find pip. please install it using 'sudo easy_install pip'";
-  }
-
-  brew update
-
-  package wget
-  package cmake
-  package makedepend
-  package doxygen
-  package boost
-  package gflags
-  package glog
-  package lz4
-  package snappy
-  package rocksdb
-  package thrift
-  package yara
-  package libressl
-  package asio
-  package cpp-netlib
-  package google-benchmark
-  package libmagic
-  package sleuthkit
-
-  local_brew aws-sdk-cpp
+function distro_main() {
+  true
 }

@@ -606,7 +606,8 @@ Status startExtensionManager() {
   if (FLAGS_disable_extensions) {
     return Status(1, "Extensions disabled");
   }
-  return startExtensionManager(FLAGS_extensions_socket);
+  return startExtensionManager(
+      fs::path(FLAGS_extensions_socket).make_preferred().string());
 }
 
 Status startExtensionManager(const std::string& manager_path) {

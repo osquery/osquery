@@ -2,6 +2,8 @@
 # Usage: add table spec names to this list to prevent table generation
 # Example: add tables that are not yet ready for release
 # Example: add a platform:table_name, which is not yet ready
+
+# Blacklist a ton of tables for FreeBSD:
 freebsd:acpi_tables
 freebsd:arp_cache
 freebsd:block_devices
@@ -25,4 +27,10 @@ freebsd:yara_events
 freebsd:yara
 freebsd:system_controls
 freebsd:smbios_tables
+
+# Blacklisted while RPM libraries are ported:
+rpm_package_files
+rpm_packages
+
+# Blacklisting as an example:
 example

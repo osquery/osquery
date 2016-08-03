@@ -47,6 +47,7 @@ TEST_F(TLSLoggerTests, test_database) {
     std::string value;
     getDatabaseValue(kLogs, index, value);
     found_string = (found_string || value == expected);
+    deleteDatabaseValue(kLogs, index);
   }
   EXPECT_TRUE(found_string);
 }

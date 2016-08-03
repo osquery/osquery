@@ -14,6 +14,9 @@ macro(SET_OSQUERY_COMPILE TARGET)
 endmacro(SET_OSQUERY_COMPILE)
 
 macro(LOG_PLATFORM NAME)
+  set(LINK "https://github.com/facebook/osquery/issues/2169")
+  LOG("Welcome to the redesigned v1.8.0 osquery build system!")
+  LOG("For migration and details please see: ${ESC}[1m${LINK}${ESC}[m")
   LOG("Building for platform ${ESC}[36;1m${NAME} (${OSQUERY_BUILD_PLATFORM}, ${OSQUERY_BUILD_DISTRO})${ESC}[m")
   LOG("Building osquery version ${ESC}[36;1m ${OSQUERY_BUILD_VERSION} sdk ${OSQUERY_BUILD_SDK_VERSION}${ESC}[m")
 endmacro(LOG_PLATFORM)
@@ -66,18 +69,46 @@ macro(ADD_OSQUERY_LINK IS_CORE LINK)
 endmacro(ADD_OSQUERY_LINK)
 
 macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
-  set(LINK_PATHS "${CMAKE_BUILD_DIR}/third-party/*/lib"
-    ${LINK_PATHS} /usr/lib /usr/local/lib "$ENV{HOME}")
+  set(LINK_PATHS_RELATIVE
+    "${BUILD_DEPS}/lib"
+    "${CMAKE_BUILD_DIR}/third-party/*/lib"
+    ${LINK_PATHS}
+    "/lib"
+    "/lib64"
+    "/usr/lib"
+    "/usr/lib64"
+    "/usr/lib/x86_64-linux-gnu/"
+    "$ENV{HOME}"
+  )
+  set(LINK_PATHS_SYSTEM
+    ${LINK_PATHS}
+    "${BUILD_DEPS}/legacy/lib"
+    # Allow the build to search the default deps include for libz.
+    "${BUILD_DEPS}/lib"
+    "/lib"
+    "/lib64"
+    "/usr/lib"
+    "/usr/lib64"
+    "/usr/lib/x86_64-linux-gnu/"
+  )
+
   if(NOT "${LINK}" MATCHES "(^[-/].*)")
     string(REPLACE " " ";" ITEMS "${LINK}")
     foreach(ITEM ${ITEMS})
       if(NOT DEFINED ${${ITEM}_library})
-        if(NOT DEFINED ENV{BUILD_LINK_SHARED})
+        if("${ITEM}" MATCHES "(^lib.*)" OR DEFINED ENV{BUILD_LINK_SHARED})
+          # Use a system-provided library
+          set(ITEM_SYSTEM TRUE)
+        else()
+          set(ITEM_SYSTEM FALSE)
+        endif()
+        if(NOT ${ITEM_SYSTEM})
           find_library("${ITEM}_library"
-            NAMES "lib${ITEM}.a" "${ITEM}" ${LINK_PATHS})
+            NAMES "lib${ITEM}.a" "${ITEM}" HINTS ${LINK_PATHS_RELATIVE})
         else()
           find_library("${ITEM}_library"
-            NAMES "lib${ITEM}.so" "lib${ITEM}.dylib" "${ITEM}" ${LINK_PATHS})
+            NAMES "lib${ITEM}.so" "lib${ITEM}.dylib" "${ITEM}.so" "${ITEM}.dylib" "${ITEM}"
+            HINTS ${LINK_PATHS_SYSTEM})
         endif()
         LOG_LIBRARY(${ITEM} "${${ITEM}_library}")
         if("${${ITEM}_library}" STREQUAL "${${ITEM}_library}-NOTFOUND")
@@ -167,7 +198,7 @@ macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
     if(WIN32)
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} /EHsc /MD")
     else()
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} -static")
+      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS}") # -static
     endif()
     if(${IS_CORE})
       list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
@@ -198,7 +229,7 @@ macro(ADD_OSQUERY_OBJCXX_LIBRARY IS_CORE TARGET)
     if(WIN32)
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS} /EHsc /MD")
     else()
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS} -static")
+      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS}")
     endif()
     if(${IS_CORE})
       list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
@@ -213,6 +244,8 @@ endmacro(ADD_OSQUERY_OBJCXX_LIBRARY TARGET)
 macro(ADD_OSQUERY_EXTENSION TARGET)
   add_executable(${TARGET} ${ARGN})
   TARGET_OSQUERY_LINK_WHOLE(${TARGET} libosquery)
+  # TODO #2252: Remove this linkage dependency.
+  TARGET_OSQUERY_LINK_WHOLE(${TARGET} ${crypto_library})
   set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
   set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "${TARGET}.ext")
 endmacro(ADD_OSQUERY_EXTENSION)
@@ -222,11 +255,16 @@ macro(ADD_OSQUERY_MODULE TARGET)
   if(NOT FREEBSD AND NOT WIN32)
     target_link_libraries(${TARGET} dl)
   endif()
+
   add_dependencies(${TARGET} libosquery)
   if(APPLE)
     target_link_libraries(${TARGET} "-undefined dynamic_lookup")
+  elseif(LINUX)
+    # This could implement a similar LINK_MODULE for gcc, libc, and libstdc++.
+    # However it is only provided as an example for unit testing.
+    target_link_libraries(${TARGET} "-static-libstdc++")
   endif()
-  set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -fPIC")
+  set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
   set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME ${TARGET})
 endmacro(ADD_OSQUERY_MODULE)
 
@@ -332,7 +370,6 @@ macro(GENERATE_TABLE TABLE_FILE FOREIGN NAME BASE_PATH OUTPUT)
       "${FOREIGN}"
       "${TABLE_FILE}"
       "${TABLE_FILE_GEN}"
-      "$ENV{DISABLE_BLACKLIST}"
     DEPENDS ${TABLE_FILE} ${GENERATION_DEPENDENCIES}
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   )

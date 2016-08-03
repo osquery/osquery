@@ -77,14 +77,18 @@ Status writeTextFile(const fs::path& path,
 
 struct OpenReadableFile {
  public:
-  explicit OpenReadableFile(const fs::path& path) {
+  explicit OpenReadableFile(const fs::path& path, bool blocking = false) {
 #ifndef WIN32
     dropper_ = DropPrivileges::get();
     if (dropper_->dropToParent(path)) {
 #endif
+      int mode = PF_OPEN_EXISTING | PF_READ;
+      if (!blocking) {
+        mode |= PF_NONBLOCK;
+      }
+
       // Open the file descriptor and allow caller to perform error checking.
-      fd.reset(new PlatformFile(path.string(),
-                                PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK));
+      fd.reset(new PlatformFile(path.string(), mode));
 #ifndef WIN32
     }
 #endif
@@ -106,8 +110,9 @@ Status readFile(
     size_t block_size,
     bool dry_run,
     bool preserve_time,
-    std::function<void(std::string& buffer, size_t size)> predicate) {
-  OpenReadableFile handle(path);
+    std::function<void(std::string& buffer, size_t size)> predicate,
+    bool blocking) {
+  OpenReadableFile handle(path, blocking);
   if (handle.fd == nullptr || !handle.fd->isValid()) {
     return Status(1, "Cannot open file for reading: " + path.string());
   }
@@ -168,7 +173,8 @@ Status readFile(const fs::path& path,
                 std::string& content,
                 size_t size,
                 bool dry_run,
-                bool preserve_time) {
+                bool preserve_time,
+                bool blocking) {
   return readFile(path,
                   size,
                   4096,
@@ -180,16 +186,17 @@ Status readFile(const fs::path& path,
                     } else {
                       content += buffer.substr(0, size);
                     }
-                  }));
+                  }),
+                  blocking);
 }
 
-Status readFile(const fs::path& path) {
+Status readFile(const fs::path& path, bool blocking) {
   std::string blank;
-  return readFile(path, blank, 0, true, false);
+  return readFile(path, blank, 0, true, false, blocking);
 }
 
-Status forensicReadFile(const fs::path& path, std::string& content) {
-  return readFile(path, content, 0, false, true);
+Status forensicReadFile(const fs::path& path, std::string& content, bool blocking) {
+  return readFile(path, content, 0, false, true, blocking);
 }
 
 Status isWritable(const fs::path& path) {
