@@ -226,7 +226,7 @@ function package() {
       log "installing $1"
       sudo pkg install -y $1
     fi
-  elif [ $OS = "arch" ] || [ $OS = "manjaro" ]; then
+  elif [ $OS = "arch" ] || [ $OS="manjaro" ]; then
     if pacman -Qq $1 >/dev/null; then
       log "$1 is already installed. skipping."
     else
@@ -236,88 +236,6 @@ function package() {
   fi
 }
 
-<<<<<<< HEAD
-function remove_package() {
-  if [[ $FAMILY = "debian" ]]; then
-    if [[ -n "$(dpkg --get-selections | grep $1)" ]]; then
-      log "removing $1"
-      sudo apt-get remove $1 -y
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [[ $FAMILY = "redhat" ]]; then
-    if [[ -n "$(rpm -qa | grep $1)" ]]; then
-      log "removing $1"
-      sudo yum remove $1 -y
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [[ $OS = "darwin" ]]; then
-    if [[ -n "$(brew list | grep $1)" ]]; then
-      log "removing $1"
-      brew uninstall $1
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [[ $OS = "freebsd" ]]; then
-    if ! pkg info -q $1; then
-      log "removing $1"
-      sudo pkg delete -y $1
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [ $OS = "arch" ] || [ $OS ="manjaro" ]; then
-    if ! pacman -Qq $1 >/dev/null; then
-      log "removing $1"
-      sudo pacman -R --noconfirm $1
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  fi
-}
-
-||||||| merged common ancestors
-function remove_package() {
-  if [[ $FAMILY = "debian" ]]; then
-    if [[ -n "$(dpkg --get-selections | grep $1)" ]]; then
-      log "removing $1"
-      sudo apt-get remove $1 -y
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [[ $FAMILY = "redhat" ]]; then
-    if [[ -n "$(rpm -qa | grep $1)" ]]; then
-      log "removing $1"
-      sudo yum remove $1 -y
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [[ $OS = "darwin" ]]; then
-    if [[ -n "$(brew list | grep $1)" ]]; then
-      log "removing $1"
-      brew uninstall $1
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [[ $OS = "freebsd" ]]; then
-    if ! pkg info -q $1; then
-      log "removing $1"
-      sudo pkg delete -y $1
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  elif [[ $OS = "arch" ]]; then
-    if ! pacman -Qq $1 >/dev/null; then
-      log "removing $1"
-      sudo pacman -R --noconfirm $1
-    else
-      log "Removing: $1 is not installed. skipping."
-    fi
-  fi
-}
-
-=======
->>>>>>> 8d3fdf371ac6febfd3a861599660c3b439701b10
 function gem_install() {
   if [[ -n "$(gem list | grep $1)" ]]; then
     log "$1 is already installed. skipping."
