@@ -19,9 +19,16 @@
 // clang-format off
 #include CONCAT(OSQUERY_THRIFT_SERVER_LIB,/TThreadedServer.h)
 #include CONCAT(OSQUERY_THRIFT_LIB,/protocol/TBinaryProtocol.h)
+
+#ifdef WIN32
+#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TPipeServer.h)
+#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TPipe.h)
+#else
 #include CONCAT(OSQUERY_THRIFT_LIB,/transport/TServerSocket.h)
-#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TBufferTransports.h)
 #include CONCAT(OSQUERY_THRIFT_LIB,/transport/TSocket.h)
+#endif
+
+#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TBufferTransports.h)
 #include CONCAT(OSQUERY_THRIFT_LIB,/concurrency/ThreadManager.h)
 
 // Include intermediate Thrift-generated interface definitions.
@@ -39,7 +46,17 @@ using namespace apache::thrift::concurrency;
 
 /// Create easier to reference typedefs for Thrift layer implementations.
 #define SHARED_PTR_IMPL OSQUERY_THRIFT_POINTER::shared_ptr
-typedef SHARED_PTR_IMPL<TSocket> TSocketRef;
+
+#ifdef WIN32
+typedef TPipe TPlatformSocket;
+typedef TPipeServer TPlatformServerSocket;
+typedef SHARED_PTR_IMPL<TPipe> TPlatformSocketRef;
+#else
+typedef TSocket TPlatformSocket;
+typedef TServerSocket TPlatformServerSocket;
+typedef SHARED_PTR_IMPL<TSocket> TPlatformSocketRef;
+#endif
+
 typedef SHARED_PTR_IMPL<TTransport> TTransportRef;
 typedef SHARED_PTR_IMPL<TProtocol> TProtocolRef;
 
@@ -328,14 +345,14 @@ class ExtensionManagerRunner : public ExtensionRunnerCore {
 class EXInternal {
  public:
   explicit EXInternal(const std::string& path)
-      : socket_(new TSocket(path)),
+      : socket_(new TPlatformSocket(path)),
         transport_(new TBufferedTransport(socket_)),
         protocol_(new TBinaryProtocol(transport_)) {}
 
   virtual ~EXInternal() { transport_->close(); }
 
  protected:
-  TSocketRef socket_;
+  TPlatformSocketRef socket_;
   TTransportRef transport_;
   TProtocolRef protocol_;
 };

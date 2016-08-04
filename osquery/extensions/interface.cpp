@@ -219,9 +219,13 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
       return;
     }
 
-    transport_ = TServerTransportRef(new TServerSocket(path_));
+    transport_ = TServerTransportRef(new TPlatformServerSocket(path_));
+
+#ifndef WIN32
     // Before starting and after stopping the manager, remove stale sockets.
+    // This is not relevant in Windows
     removeStalePaths(path_);
+#endif
 
     // Construct the service's transport, protocol, thread pool.
     auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());

@@ -10,6 +10,7 @@
 
 #include <csignal>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
@@ -136,11 +137,19 @@ void ExtensionWatcher::watch() {
   // This does NOT use pingExtension to avoid the latency checks applied.
   ExtensionStatus status;
   bool core_sane = true;
+#ifdef WIN32
+  // Check to see if the pipe name is a valid named pipe
+  if (::WaitNamedPipeA(path_.c_str(), 1000) == 0 &&
+      ::GetLastError() == ERROR_BAD_PATHNAME) {
+    core_sane = false;
+  }
+#else
   if (isWritable(path_)) {
     try {
       auto client = EXManagerClient(path_);
       // Ping the extension manager until it goes down.
       client.get()->ping(status);
+
     } catch (const std::exception& e) {
       core_sane = false;
     }
@@ -148,6 +157,7 @@ void ExtensionWatcher::watch() {
     // The previously-writable extension socket is not usable.
     core_sane = false;
   }
+#endif
 
   if (!core_sane) {
     LOG(INFO) << "Extension watcher ending: osquery core has gone away";
@@ -168,7 +178,9 @@ void ExtensionManagerWatcher::watch() {
   ExtensionStatus status;
   for (const auto& uuid : uuids) {
     auto path = getExtensionSocket(uuid);
+#ifndef WIN32
     if (isWritable(path)) {
+#endif
       try {
         auto client = EXClient(path);
         // Ping the extension until it goes down.
@@ -177,12 +189,13 @@ void ExtensionManagerWatcher::watch() {
         failures_[uuid] += 1;
         continue;
       }
+#ifndef WIN32
     } else {
       // Immediate fail non-writable paths.
       failures_[uuid] = 3;
       continue;
     }
-
+#endif
     if (status.code != ExtensionCode::EXT_SUCCESS) {
       LOG(INFO) << "Extension UUID " << uuid << " ping failed";
       failures_[uuid] += 1;
@@ -201,6 +214,11 @@ void ExtensionManagerWatcher::watch() {
 }
 
 Status socketWritable(const fs::path& path) {
+#ifdef WIN32
+  if (!boost::starts_with(path.string(), "\\\\.\\pipe\\")) {
+    return Status(1, "Incorrect named pipe prefix: " + path.string());
+  }
+#else
   if (pathExists(path).ok()) {
     if (!isWritable(path).ok()) {
       return Status(1, "Cannot write extension socket: " + path.string());
@@ -218,6 +236,7 @@ Status socketWritable(const fs::path& path) {
       return Status(1, "Cannot create extension socket: " + path.string());
     }
   }
+#endif
   return Status(0, "OK");
 }
 
@@ -325,14 +344,24 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     timeout = kExtensionInitializeLatencyUS * 10;
   }
   do {
+#ifdef WIN32
+    // This makes sure the pipe exists in some capacity (could be busy at the
+    // moment)
+    if (::WaitNamedPipeA(path.c_str(), 1000) != 0 ||
+        ::GetLastError() != ERROR_BAD_PATHNAME) {
+      return Status(0, "OK");
+    }
+#else
     if (pathExists(path) && isWritable(path)) {
       try {
+        ExtensionStatus status;
         auto client = EXManagerClient(path);
         return Status(0, "OK");
       } catch (const std::exception& e) {
         // Path might exist without a connected extension or extension manager.
       }
     }
+#endif
     // Only check active once if this check does not allow a timeout.
     if (!use_timeout || timeout == 0) {
       break;
@@ -353,6 +382,7 @@ Status startExtension(const std::string& name, const std::string& version,
   Registry::setExternal();
   // Latency converted to milliseconds, used as a thread interruptible.
   auto latency = atoi(FLAGS_extensions_interval.c_str()) * 1000;
+
   auto status = startExtensionWatcher(FLAGS_extensions_socket, latency, true);
   if (!status.ok()) {
     // If the threaded watcher fails to start, fail the extension.
