@@ -55,7 +55,7 @@ class GlibcLegacy < AbstractOsqueryFormula
       prefix.install_symlink "lib" => "lib64"
 
       # Remove getconf with non-ASCII characters.
-      system "rm", "#{prefix}/libexec/getconf/POSIX_V6_LP64_OFF*"
+      rm_rf Dir["#{prefix}/libexec/getconf/POSIX_V6_LP64_OFF*"]
     end
   end
 

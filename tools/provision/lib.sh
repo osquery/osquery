@@ -113,55 +113,39 @@ function local_brew_postinstall() {
   fi
 }
 
-# local_brew_tool NAME
-#   This will build or install from a local formula.
-#   If the caller did not request a from-source build then osquery-hosted bottles are used.
-function local_brew_tool() {
-  TOOL=$1
+# local_brew_package TYPE NAME [ARGS, ...]
+#   1: tool/dependency
+#   2: formula name
+#   N: arguments to install
+function local_brew_package() {
+  TYPE="$1"
+  TOOL="$2"
+  shift
   shift
 
-  export HOMEBREW_OPTIMIZATION_LEVEL=-Os
-  log "brew (build) tool $TOOL"
-  ARGS="$@"
-  if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
-    ARGS="$ARGS -v --build-bottle --ignore-dependencies"
-    ARGS="$ARGS --env=inherit"
-    if [[ ! -z "$DEBUG" ]]; then
-      ARGS="$ARGS -d"
-    fi
-  else
-    ARGS="--ignore-dependencies --force-bottle"
-  fi
-
-  if [[ ! -z "$OSQUERY_BUILD_BOTTLES" ]]; then
-    $BREW bottle --skip-relocation "${FORMULA_TAP}/${TOOL}.rb"
-  else
-    $BREW install $ARGS "${FORMULA_DIR}/${TOOL}.rb"
-  fi
-}
-
-# local_brew NAME
-#   1: formula name
-function local_brew_dependency() {
-  TOOL="$1"
-  shift
-
-  FORMULA="${FORMULA_DIR}/$TOOL.rb"
+  FORMULA="${FORMULA_DIR}/${TOOL}.rb"
   INFO=`$BREW info --json=v1 "${FORMULA}"`
   INSTALLED=$(json_element "${INFO}" 'obj[0]["linked_keg"]')
   STABLE=$(json_element "${INFO}" 'obj[0]["versions"]["stable"]')
+  REVISION=$(json_element "${INFO}" 'obj[0]["revision"]')
+  if [[ ! "$REVISION" = "0" ]]; then
+    STABLE="${STABLE}_${REVISION}"
+  fi
 
   # Could improve this detection logic to remove from-bottle.
   FROM_BOTTLE=false
+
+  # Add build arguments depending on requested from-source or default build.
   ARGS="$@"
-  if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
-    ARGS="$ARGS -v --build-bottle --cc=clang --ignore-dependencies"
-    ARGS="$ARGS --env=inherit"
-    if [[ ! -z "$DEBUG" ]]; then
-      ARGS="$ARGS -d"
-    fi
-  else
-    ARGS="--ignore-dependencies --force-bottle"
+  ARGS="$ARGS --build-bottle --ignore-dependencies --env=inherit"
+  if [[ -z "$OSQUERY_BUILD_DEPS" ]]; then
+    ARGS="$ARGS --force-bottle"
+  fi
+  if [[ "$TYPE" = "dependency" ]]; then
+    ARGS="$ARGS --cc=clang"
+  fi
+  if [[ ! -z "$DEBUG" ]]; then
+    ARGS="$ARGS -vd"
   fi
 
   export HOMEBREW_OPTIMIZATION_LEVEL=-Os
@@ -177,6 +161,15 @@ function local_brew_dependency() {
   else
     log "brew local package $TOOL is already install: ${STABLE}"
   fi
+}
+
+function local_brew_tool() {
+  local_brew_package "tool" $@
+}
+
+function local_brew_dependency() {
+  # Essentially uses clang instead of GCC.
+  local_brew_package "dependency" $@
 }
 
 function package() {
@@ -233,7 +226,7 @@ function package() {
       log "installing $1"
       sudo pkg install -y $1
     fi
-  elif [[ $OS = "arch" ]]; then
+  elif [ $OS = "arch" ] || [ $OS="manjaro" ]; then
     if pacman -Qq $1 >/dev/null; then
       log "$1 is already installed. skipping."
     else

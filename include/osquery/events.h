@@ -231,10 +231,7 @@ class EventPublisherPlugin : public Plugin, public InterruptableRunnable {
    *
    * @return If the Subscription is not appropriate (mismatched type) fail.
    */
-  virtual Status addSubscription(const SubscriptionRef& subscription) {
-    subscriptions_.push_back(subscription);
-    return Status(0);
-  }
+  virtual Status addSubscription(const SubscriptionRef& subscription);
 
   /// Remove all subscriptions from a named subscriber.
   virtual void removeSubscriptions(const std::string& subscriber);
@@ -309,6 +306,9 @@ class EventPublisherPlugin : public Plugin, public InterruptableRunnable {
 
   /// A lock for incrementing the next EventContextID.
   std::mutex ec_id_lock_;
+
+  /// A lock for subscription manipulation.
+  std::mutex subscription_lock_;
 
   /// A helper count of event publisher runloop iterations.
   std::atomic<size_t> restart_count_{0};

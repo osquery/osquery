@@ -201,7 +201,7 @@ function platform_linux_main() {
   local_brew_tool cmake --without-docs
 
   # LLVM/Clang.
-  local_brew_tool llvm --with-clang --with-clang-extra --with-rtti
+  local_brew_tool llvm
   set_deps_compilers clang
 
   # Install custom formulas, build with LLVM/clang.

@@ -22,6 +22,7 @@ end
 class Llvm < AbstractOsqueryFormula
   desc "Next-gen compiler infrastructure"
   homepage "http://llvm.org/"
+  revision 1
 
   stable do
     url "http://llvm.org/releases/3.6.2/llvm-3.6.2.src.tar.xz"
@@ -61,7 +62,7 @@ class Llvm < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "09f9fc1aca8847513a25c92638ed7b6d8d36a19a79927e7b5fadd3d8a5b45ce7" => :x86_64_linux
+    sha256 "eea130400dafe6a31e09c9f6993e9efc775cfcb7d77b44ea94749d731edbe732" => :x86_64_linux
   end
 
   head do
@@ -108,15 +109,16 @@ class Llvm < AbstractOsqueryFormula
   keg_only :provided_by_osx
 
   option :universal
-  option "with-clang", "Build the Clang compiler and support libraries"
-  option "with-clang-extra-tools", "Build extra tools for Clang"
-  option "with-compiler-rt", "Build Clang runtime support libraries for code sanitizers, builtins, and profiling"
-  option "with-libcxx", "Build the libc++ standard library"
-  option "with-lld", "Build LLD linker"
+  option "without-clang", "Build the Clang compiler and support libraries"
+  option "without-clang-extra-tools", "Build extra tools for Clang"
+  option "without-compiler-rt", "Build Clang runtime support libraries for code sanitizers, builtins, and profiling"
+  option "without-rtti", "Build with C++ RTTI"
+  option "without-utils", "Install utility binaries"
+
   option "with-lldb", "Build LLDB debugger"
   option "with-python", "Build Python bindings against Homebrew Python"
-  option "with-rtti", "Build with C++ RTTI"
-  option "with-utils", "Install utility binaries"
+  option "with-libcxx", "Build the libc++ standard library"
+  option "with-lld", "Build LLD linker"
 
   deprecated_option "rtti" => "with-rtti"
 
