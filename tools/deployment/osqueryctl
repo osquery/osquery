@@ -78,6 +78,9 @@ exec_with_env() {
 start() {
   check_config
   if [ $OS = "darwin" ]; then
+    if [ ! -f $FLAGS_FILE_PATH ]; then
+      touch $FLAGS_FILE_PATH
+    fi 
     cp $PLIST_INSTALLATION_PATH $PLIST_PATH
     launchctl load $PLIST_PATH
   else
