@@ -14,7 +14,7 @@ function distro_main() {
   package gawk
   package autotools-dev
   package autopoint
-  pacakge g++
+  package g++
   package ruby
   package curl
 }
