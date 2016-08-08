@@ -91,7 +91,7 @@ BOM::BOM(const char* data, size_t size)
 }
 
 /// Lookup a BOM pointer and optionally, it's size.
-const char* BOM::getPointer(int index, size_t* length) const {
+const char* BOM::getPointer(int index, size_t* _length) const {
   if (ntohl(index) >= ntohl(Table->count)) {
     // Requested pointer is out of range.
     return nullptr;
@@ -99,13 +99,14 @@ const char* BOM::getPointer(int index, size_t* length) const {
 
   const BOMPointer* pointer = Table->blockPointers + ntohl(index);
   uint32_t addr = ntohl(pointer->address);
-  if (size_ < addr + ntohl(pointer->length)) {
+  uint32_t length = ntohl(pointer->length);
+  if (addr > UINT32_MAX - length || size_ < addr + length) {
     // Address value is out of range.
     return nullptr;
   }
 
-  if (length != nullptr) {
-    *length = ntohl(pointer->length);
+  if (_length != nullptr) {
+    *_length = length;
   }
   return data_ + addr;
 }
