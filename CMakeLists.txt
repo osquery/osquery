@@ -189,14 +189,17 @@ else()
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
 
-  # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
-  # To be safe, only include them when building 'release' outputs.
-  add_compile_options(
-    -fPIE
-    -fpie
-    -fPIC
-    -fpic
-  )
+  # Visual Studio does not support generation of PIC code
+  if(NOT WIN32)
+    # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
+    # To be safe, only include them when building 'release' outputs.
+    add_compile_options(
+      -fPIE
+      -fpie
+      -fPIC
+      -fpic
+    )
+  endif()
 endif()
 # Generate a compile_commands.json for static analyzer input.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -371,16 +374,13 @@ if(WIN32)
   set(BOOST_DEP_DIR "$ENV{HOMEDRIVE}/local/boost-msvc14")
 
   # Win64 specific BZIP2 variables
-  set(BZIP2_INCLUDE_DIR "${WINDOWS_DEP_DIR}/bzip2/local/include")
-  set(BZIP2_LIBRARIES "${WINDOWS_DEP_DIR}/bzip2/local/lib/libbz2.lib")
+  set(bz2_include_dir "${WINDOWS_DEP_DIR}/bzip2/local/include")
+  set(bz2_library "${WINDOWS_DEP_DIR}/bzip2/local/lib/libbz2.lib")
 
   # Win64 specific OpenSSL variables
-  set(OPENSSL_ROOT_DIR "${WINDOWS_DEP_DIR}/openssl/local/lib")
   set(OPENSSL_INCLUDE_DIR "${WINDOWS_DEP_DIR}/openssl/local/include")
-  set(OPENSSL_CRYPTO_LIBRARY "${WINDOWS_DEP_DIR}/openssl/local/lib/libeay32.lib")
-  set(OPENSSL_SSL_LIBRARY "${WINDOWS_DEP_DIR}/openssl/local/lib/ssleay32.lib")
-  set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
-  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  set(crypto_library "${WINDOWS_DEP_DIR}/openssl/local/lib/libeay32.lib")
+  set(ssl_library "${WINDOWS_DEP_DIR}/openssl/local/lib/ssleay32.lib")
 
   # Win64 specific Thrift
   set(THRIFT_INCLUDE_DIR "${WINDOWS_DEP_DIR}/thrift-dev/local/include")
@@ -388,16 +388,16 @@ if(WIN32)
   set(THRIFT_COMPILER "${WINDOWS_DEP_DIR}/thrift/tools/thrift.exe")
 
   # Win64 specific rocksdb
-  set(ROCKSDB_STATIC_LIBRARY "${WINDOWS_DEP_DIR}/rocksdb/local/lib/rocksdblib.lib")
-  set(ROCKSDB_SNAPPY_LIBRARY "${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/native/snappy64.lib")
+  set(rocksdb_lite_library "${WINDOWS_DEP_DIR}/rocksdb/local/lib/rocksdblib.lib")
+  set(snappy_library "${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/native/snappy64.lib")
 
   # Win64 specific doxygen
   set(DOXYGEN_EXECUTABLE "${WINDOWS_DEP_DIR}/doxygen/tools/doxygen.exe")
 
   # Win64 specific boost
-  set(boost_filesystem_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_filesystem-vc140-mt-1_59.lib")
-  set(boost_system_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_system-vc140-mt-1_59.lib")
-  set(boost_regex_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_regex-vc140-mt-1_59.lib")
+  set(boost_filesystem-mt_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_filesystem-vc140-mt-1_59.lib")
+  set(boost_system-mt_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_system-vc140-mt-1_59.lib")
+  set(boost_regex-mt_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_regex-vc140-mt-1_59.lib")
 
   # Win64 specific gflags
   set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared gtest library" FORCE)
@@ -412,6 +412,8 @@ if(WIN32)
 
 
   include_directories("${THRIFT_INCLUDE_DIR}")
+  include_directories("${OPENSSL_INCLUDE_DIR}")
+  include_directories("${bz2_include_dir}")
   include_directories("${BOOST_DEP_DIR}")
   include_directories("${BOOST_DEP_DIR}/boost")
   include_directories("${WINDOWS_DEP_DIR}/glog/local/include")
@@ -435,14 +437,14 @@ endif()
 execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
 
 # We need to link some packages as dynamic/dependent.
-set(CMAKE_FIND_LIBRARY_SUFFIXES .dll .dylib .so .a)
+set(CMAKE_FIND_LIBRARY_SUFFIXES .lib .dylib .so .a)
 
 # Most dependent packages/libs we want static.
 if(DEFINED ENV{BUILD_LINK_SHARED})
   set(ENV{OSQUERY_BUILD_LINK_SHARED} TRUE)
 endif()
 if(NOT DEFINED ENV{OSQUERY_BUILD_LINK_SHARED})
-  set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a .dylib .so)
 endif()
 
 # Previously, this would find_package for Gtest.
