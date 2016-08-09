@@ -474,7 +474,9 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
 endif()
 
 # Packages must be included after all other CMake includes.
-include(Packages)
+if(NOT ${OSQUERY_BUILD_SDK_ONLY})
+  include(Packages)
+endif()
 
 # make docs
 find_package(Doxygen)
