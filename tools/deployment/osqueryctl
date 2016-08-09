@@ -1,4 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under the BSD-style license found in the
+#  LICENSE file in the root directory of this source tree. An additional grant
+#  of patent rights can be found in the PATENTS file in the same directory.
+
+set -e
 
 ensure_root() {
   if [ $UID -ne 0 ]; then
@@ -6,7 +15,6 @@ ensure_root() {
     exit 4
   fi
 }
-ensure_root
 
 check_config() {
   if [ -e $REAL_CONFIG_PATH ]; then
@@ -31,38 +39,6 @@ platform() {
     eval $__resultvar=`uname -s | tr '[:upper:]' '[:lower:]'`
   fi
 }
-
-platform OS
-
-if [[ $OS = "darwin" ]]; then
-  REAL_CONFIG_PATH="/var/osquery/osquery.conf"
-  FLAGS_FILE_PATH="/var/osquery/osquery.flags"
-  EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
-  PIDFILE="/var/osquery/osquery.pid"
-  LOCKFILE="/var/osquery/osquery.lock"
-  EXEC="/usr/local/bin/osqueryd"
-  PLIST_DOMAIN="com.facebook.osqueryd"
-  PLIST_PATH="/Library/LaunchDaemons/$PLIST_DOMAIN.plist"
-  PLIST_INSTALLATION_PATH="/var/osquery/$PLIST_DOMAIN.plist"
-  LAUNCHCTL_LIST=`launchctl list | grep com.facebook.osqueryd`
-  LAUNCHCTL_LIST_PID=`echo $LAUNCHCTL_LIST | awk '{ print $1 }'`
-else
-  INIT_SCRIPT_PATH="/etc/init.d/osqueryd"
-  SERVICE_SCRIPT_PATH="/usr/lib/systemd/system/osqueryd.service"
-  if [ ! -e "$INIT_SCRIPT_PATH" && ! -f "$SERVICE_SCRIPT_PATH" ]; then
-    echo "Cannot find the init.d script at $INIT_SCRIPT_PATH"
-    echo "Additionally, no systemd service at $SERVICE_SCRIPT_PATH"
-    exit 6
-  fi
-
-  REAL_CONFIG_PATH="/etc/osquery/osquery.conf"
-  EXAMPLE_CONFIG_PATH="/usr/share/osquery/osquery.example.conf"
-  PIDFILE="/var/run/osquery.pid"
-  LOCKFILE="/var/lock/subsys/osqueryd"
-  EXEC="/usr/bin/osqueryd"
-fi
-OSQUERY_DB="/var/osquery/osquery.db"
-PROG="osqueryd"
 
 exec_with_env() {
   REAL_CONFIG_PATH=$REAL_CONFIG_PATH \
@@ -117,28 +93,70 @@ clean() {
   fi
 }
 
-case "$1" in
-  clean)
-    $1
-    ;;
-  start)
-    $1
-    ;;
-  stop)
-    $1
-    ;;
-  restart)
-    $1
-    ;;
-  status)
-    $1
-    ;;
-  config-check)
-    check_config
-    ;;
-  *)
-    echo $"Usage: $0 {clean|config-check|start|stop|status|restart}"
-    exit 2
+usage() {
+  echo "Usage: $0 {clean|config-check|start|stop|status|restart}"
+  exit 2
+}
 
-esac
-exit $?
+main() {
+  ensure_root
+  platform OS
+
+  if [[ $OS = "darwin" ]]; then
+    REAL_CONFIG_PATH="/var/osquery/osquery.conf"
+    FLAGS_FILE_PATH="/var/osquery/osquery.flags"
+    EXAMPLE_CONFIG_PATH="/var/osquery/osquery.example.conf"
+    PIDFILE="/var/osquery/osquery.pid"
+    LOCKFILE="/var/osquery/osquery.lock"
+    EXEC="/usr/local/bin/osqueryd"
+    PLIST_DOMAIN="com.facebook.osqueryd"
+    PLIST_PATH="/Library/LaunchDaemons/$PLIST_DOMAIN.plist"
+    PLIST_INSTALLATION_PATH="/var/osquery/$PLIST_DOMAIN.plist"
+    LAUNCHCTL_LIST=`launchctl list | grep com.facebook.osqueryd || true`
+    LAUNCHCTL_LIST_PID=`echo $LAUNCHCTL_LIST | awk '{ print $1 }'`
+  else
+    INIT_SCRIPT_PATH="/etc/init.d/osqueryd"
+    SERVICE_SCRIPT_PATH="/usr/lib/systemd/system/osqueryd.service"
+    if [[ ! -e "$INIT_SCRIPT_PATH" && ! -f "$SERVICE_SCRIPT_PATH" ]]; then
+      echo "Cannot find the init.d script at $INIT_SCRIPT_PATH"
+      echo "Additionally, no systemd service at $SERVICE_SCRIPT_PATH"
+      exit 6
+    fi
+
+    REAL_CONFIG_PATH="/etc/osquery/osquery.conf"
+    EXAMPLE_CONFIG_PATH="/usr/share/osquery/osquery.example.conf"
+    PIDFILE="/var/run/osquery.pid"
+    LOCKFILE="/var/lock/subsys/osqueryd"
+    EXEC="/usr/bin/osqueryd"
+  fi
+
+  OSQUERY_DB="/var/osquery/osquery.db"
+  PROG="osqueryd"
+
+  case "$1" in
+    clean)
+      $1
+      ;;
+    start)
+      $1
+      ;;
+    stop)
+      $1
+      ;;
+    restart)
+      $1
+      ;;
+    status)
+      $1
+      ;;
+    config-check)
+      check_config
+      ;;
+    *)
+      usage
+      ;;
+  esac
+}
+
+main $@
+exit 0
