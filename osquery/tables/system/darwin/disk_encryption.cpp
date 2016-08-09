@@ -15,14 +15,21 @@
 #include <osquery/tables.h>
 #include <osquery/sql.h>
 
-#include "osquery/tables/system/darwin/iokit_utils.h"
+#include "osquery/events/darwin/iokit.h"
 
 namespace osquery {
 namespace tables {
 
-// AES-XTS is the only block algorithm supported by FileVault2
-// https://opensource.apple.com/source/xnu/xnu-2782.1.97/libkern/crypto/corecrypto_aesxts.c
+/**
+ * @brief The block algorithm supported by FileValue2.
+ *
+ * AES-XTS is the only block algorithm supported.
+ * See: https://opensource.apple.com/source/xnu/xnu-2782.1.97/\
+ *   libkern/crypto/corecrypto_aesxts.c
+ */
 const std::string kEncryptionType = "AES-XTS";
+
+/// Expect all device names to include a /dev path prefix.
 const std::string kDeviceNamePrefix = "/dev/";
 
 // kCoreStorageIsEncryptedKey is not publicly defined
