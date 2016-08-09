@@ -29,6 +29,40 @@ namespace osquery {
 
 HIDDEN_FLAG(bool, registry_exceptions, false, "Allow plugin exceptions");
 
+using InitializerMap = std::map<std::string, InitializerInterface*>;
+
+InitializerMap& registry_initializer() {
+  static InitializerMap registry_;
+  return registry_;
+}
+
+InitializerMap& plugin_initializer() {
+  static InitializerMap plugin_;
+  return plugin_;
+}
+
+void registerRegistry(InitializerInterface* const item) {
+  if (item != nullptr) {
+    registry_initializer().insert({item->id(), item});
+  }
+}
+
+void registerPlugin(InitializerInterface* const item) {
+  if (item != nullptr) {
+    plugin_initializer().insert({item->id(), item});
+  }
+}
+
+void registryAndPluginInit() {
+  for (const auto& it : registry_initializer()) {
+    it.second->run();
+  }
+
+  for (const auto& it : plugin_initializer()) {
+    it.second->run();
+  }
+}
+
 void RegistryHelperCore::remove(const std::string& item_name) {
   if (items_.count(item_name) > 0) {
     items_[item_name]->tearDown();

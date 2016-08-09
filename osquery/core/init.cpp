@@ -201,58 +201,24 @@ CLI_FLAG(bool, daemonize, false, "Run as daemon (osqueryd only)");
 
 FLAG(bool, ephemeral, false, "Skip pidfile and database state checks");
 
-ToolType kToolType = OSQUERY_TOOL_UNKNOWN;
+ToolType kToolType = ToolType::UNKNOWN;
 
 volatile std::sig_atomic_t kExitCode{0};
 
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
 
-using InitializerMap = std::map<std::string, InitializerInterface*>;
-
-InitializerMap& registry_initializer() {
-  static InitializerMap registry_;
-  return registry_;
-}
-
-InitializerMap& plugin_initializer() {
-  static InitializerMap plugin_;
-  return plugin_;
-}
-
-void registerRegistry(InitializerInterface* const item) {
-  if (item != nullptr) {
-    registry_initializer().insert({item->id(), item});
-  }
-}
-
-void registerPlugin(InitializerInterface* const item) {
-  if (item != nullptr) {
-    plugin_initializer().insert({item->id(), item});
-  }
-}
-
-void beginRegistryAndPluginInit() {
-  for (const auto& it : registry_initializer()) {
-    it.second->run();
-  }
-
-  for (const auto& it : plugin_initializer()) {
-    it.second->run();
-  }
-}
-
-void printUsage(const std::string& binary, int tool) {
+static inline void printUsage(const std::string& binary, ToolType tool) {
   // Parse help options before gflags. Only display osquery-related options.
   fprintf(stdout, DESCRIPTION, kVersion.c_str());
-  if (tool == OSQUERY_TOOL_SHELL) {
+  if (tool == ToolType::SHELL) {
     // The shell allows a caller to run a single SQL statement and exit.
     fprintf(stdout, USAGE, binary.c_str(), "[SQL STATEMENT]");
   } else {
     fprintf(stdout, USAGE, binary.c_str(), "");
   }
 
-  if (tool == OSQUERY_EXTENSION) {
+  if (tool == ToolType::EXTENSION) {
     fprintf(stdout, OPTIONS_CLI, " extension");
     Flag::printFlags(false, true);
   } else {
@@ -262,7 +228,7 @@ void printUsage(const std::string& binary, int tool) {
     Flag::printFlags();
   }
 
-  if (tool == OSQUERY_TOOL_SHELL) {
+  if (tool == ToolType::SHELL) {
     // Print shell flags.
     fprintf(stdout, OPTIONS_SHELL);
     Flag::printFlags(true);
@@ -275,11 +241,11 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     : argc_(&argc),
       argv_(&argv),
       tool_(tool),
-      binary_((tool == OSQUERY_TOOL_DAEMON) ? "osqueryd" : "osqueryi") {
+      binary_((tool == ToolType::DAEMON) ? "osqueryd" : "osqueryi") {
   std::srand(chrono_clock::now().time_since_epoch().count());
 
   // Initialize registries and plugins
-  beginRegistryAndPluginInit();
+  registryAndPluginInit();
 
   // The 'main' thread is that which executes the initializer.
   kMainThreadId = std::this_thread::get_id();
@@ -303,7 +269,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     auto help = std::string((*argv_)[i]);
     if ((help == "--help" || help == "-help" || help == "--h" ||
          help == "-h") &&
-        tool != OSQUERY_TOOL_TEST) {
+        tool != ToolType::TEST) {
       printUsage(binary_, tool_);
       shutdown();
     }
@@ -321,7 +287,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   FLAGS_logger_plugin = STR(OSQUERY_DEFAULT_LOGGER_PLUGIN);
 #endif
 
-  if (tool == OSQUERY_TOOL_SHELL) {
+  if (tool == ToolType::SHELL) {
     // The shell is transient, rewrite config-loaded paths.
     FLAGS_disable_logging = true;
     // The shell never will not fork a worker.
@@ -334,9 +300,9 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   // Let gflags parse the non-help options/flags.
   GFLAGS_NAMESPACE::ParseCommandLineFlags(
-      argc_, argv_, (tool == OSQUERY_TOOL_SHELL));
+      argc_, argv_, (tool == ToolType::SHELL));
 
-  if (tool == OSQUERY_TOOL_SHELL) {
+  if (tool == ToolType::SHELL) {
     if (Flag::isDefault("database_path")) {
       // The shell should not use a database by default, but should use the DB
       // specified by database_path if it is set
@@ -366,7 +332,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   // Initialize the status and results logger.
   initStatusLogger(binary_);
-  if (tool != OSQUERY_EXTENSION) {
+  if (tool != ToolType::EXTENSION) {
     if (isWorker()) {
       VLOG(1) << "osquery worker initialized [watcher="
               << PlatformProcess::getLauncherProcess()->pid() << "]";
@@ -568,7 +534,7 @@ void Initializer::start() const {
   if (!isWatcher()) {
     DatabasePlugin::setAllowOpen(true);
     // A daemon must always have R/W access to the database.
-    DatabasePlugin::setRequireWrite(tool_ == OSQUERY_TOOL_DAEMON);
+    DatabasePlugin::setRequireWrite(tool_ == ToolType::DAEMON);
     if (!DatabasePlugin::initPlugin()) {
       LOG(ERROR) << RLOG(1629) << binary_
                  << " initialize failed: Could not initialize database";
@@ -608,7 +574,7 @@ void Initializer::start() const {
   auto s = Config::getInstance().load();
   if (!s.ok()) {
     auto message = "Error reading config: " + s.toString();
-    if (tool_ == OSQUERY_TOOL_DAEMON) {
+    if (tool_ == ToolType::DAEMON) {
       LOG(WARNING) << message;
     } else {
       LOG(INFO) << message;

@@ -170,7 +170,7 @@ TEST_F(EventsDatabaseTests, test_gentable) {
   auto sub = std::make_shared<DBFakeEventSubscriber>();
   // Lie about the tool type to enable optimizations.
   auto default_type = kToolType;
-  kToolType = OSQUERY_TOOL_DAEMON;
+  kToolType = ToolType::DAEMON;
   ASSERT_EQ(sub->optimize_time_, 0U);
   ASSERT_EQ(sub->expire_time_, 0U);
 

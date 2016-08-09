@@ -112,11 +112,12 @@ function main() {
     platform_darwin_main
   else
     platform_linux_main
-
-    # Additional compilations may occur for Python and Ruby
-    export LIBRARY_PATH="$DEPS_DIR/lib:$DEPS_DIR/legacy/lib:$LIBRARY_PATH"
   fi
+
   cd "$SCRIPT_DIR/../"
+
+  # Additional compilations may occur for Python and Ruby
+  export LIBRARY_PATH="$DEPS_DIR/legacy/lib:$DEPS_DIR/lib:$LIBRARY_PATH"
 
   # Pip may have just been installed.
   log "upgrading pip and installing python dependencies"
@@ -132,10 +133,10 @@ function main() {
 
 function platform_linux_main() {
   # GCC 5x bootstrapping.
-  core_brew_tool patchelf
-  core_brew_tool zlib
-  core_brew_tool binutils
-  core_brew_tool linux-headers
+  brew_tool patchelf
+  brew_tool zlib
+  brew_tool binutils
+  brew_tool linux-headers
 
   # Build a bottle of a modern glibc.
   local_brew_tool glibc
@@ -149,10 +150,10 @@ function platform_linux_main() {
   local_brew_tool xz
 
   # Additional GCC 5x bootstrapping.
-  core_brew_tool gmp
-  core_brew_tool mpfr
-  core_brew_tool libmpc
-  core_brew_tool isl
+  brew_tool gmp
+  brew_tool mpfr
+  brew_tool libmpc
+  brew_tool isl
   brew_tool berkeley-db
 
   # GCC 5x.
@@ -170,14 +171,14 @@ function platform_linux_main() {
   brew_tool unzip
   local_brew_tool readline
   brew_tool sqlite
-  core_brew_tool makedepend
-  core_brew_tool libidn
+  brew_tool makedepend
+  brew_tool libidn
 
   # Build a bottle for perl and openssl.
   # OpenSSL is needed for the final build.
   # local_brew_tool perl -vd --without-test
   local_brew_tool openssl
-  $BREW link --force openssl
+  local_brew_link openssl
 
   # LLVM dependencies.
   brew_tool libxml2
@@ -234,12 +235,12 @@ function platform_linux_main() {
 
   ## The following section is a work in progress for librpm.
   # This will need NSS and NSPR
-  # core_brew_tool nspr
+  # brew_tool nspr
   # local_brew_link nspr
-  # core_brew_tool nss
+  # brew_tool nss
   # Maybe autopoint for autogen.sh?
   # brew_tool gettext
-  # core_brew_tool libarchive
+  # brew_tool libarchive
   # local_brew_dependency librpm
 
   # Restore the compilers to GCC for the remainder of provisioning.
@@ -250,10 +251,10 @@ function platform_darwin_main() {
   brew_tool xz
   brew_tool readline
   brew_tool sqlite
-  core_brew_tool makedepend
+  brew_tool makedepend
 
   local_brew_dependency openssl --without-test
-  $BREW link --force openssl
+  local_brew_link openssl
 
   brew_tool pkg-config
   brew_tool autoconf
@@ -261,7 +262,7 @@ function platform_darwin_main() {
   brew_tool libtool
   brew_tool m4
   brew_tool bison
-  local_brew_link bison
+  brew_link bison
 
   local_brew_tool python
   local_brew_postinstall python

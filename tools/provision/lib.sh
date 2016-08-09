@@ -65,7 +65,7 @@ function setup_brew() {
 #   2: parse structure
 function json_element() {
   CMD="import json,sys;obj=json.load(sys.stdin);print ${2}"
-  RESULT=`(echo "${1}" | python -c "${CMD}") 2>&1 || echo 'NAN'`
+  RESULT=`(echo "${1}" | python -c "${CMD}") 2>/dev/null || echo 'NAN'`
   echo $RESULT
 }
 
@@ -79,31 +79,93 @@ function set_deps_compilers() {
   fi
 }
 
-# brew_tool NAME
-#   This will install from brew.
-function brew_tool() {
-  TOOL=$1
+# local_brew_package TYPE NAME [ARGS, ...]
+#   1: tool/dependency/link/upstream/upstream-link
+#   2: formula name
+#   N: arguments to install
+function brew_internal() {
+  TYPE="$1"
+  TOOL="$2"
+  shift
   shift
 
-  if [[ -z "$OSQUERY_BUILD_DEPS" && -z "$OSQUERY_DEPS_ONETIME" ]]; then
+  if [[ "$TYPE" = "upstream" || "$TYPE" = "upstream-link" ]]; then
+    FORMULA="$TOOL"
+  else
+    FORMULA="${FORMULA_DIR}/${TOOL}.rb"
+  fi
+  INFO=`$BREW info --json=v1 "${FORMULA}"`
+  INSTALLED=$(json_element "${INFO}" 'obj[0]["installed"][0]["version"]')
+  STABLE=$(json_element "${INFO}" 'obj[0]["versions"]["stable"]')
+  REVISION=$(json_element "${INFO}" 'obj[0]["revision"]')
+  LINKED=$(json_element "${INFO}" 'obj[0]["linked_keg"]')
+  if [[ ! "$REVISION" = "0" ]]; then
+    STABLE="${STABLE}_${REVISION}"
+  fi
+
+  # Add build arguments depending on requested from-source or default build.
+  ARGS="$@"
+
+  # Configure additional arguments if installing from a local formula.
+  if [[ ! "$TYPE" = "upstream" ]]; then
+    ARGS="$ARGS --ignore-dependencies --env=inherit"
+    if [[ -z "$OSQUERY_BUILD_DEPS" ]]; then
+      ARGS="$ARGS --force-bottle"
+    else
+      ARGS="$ARGS --build-bottle"
+    fi
+    if [[ "$TYPE" = "dependency" ]]; then
+      ARGS="$ARGS --cc=clang"
+    fi
+    if [[ ! -z "$DEBUG" ]]; then
+      ARGS="$ARGS -vd"
+    fi
+  else
+    ARGS="$ARGS --force-bottle"
+  fi
+
+  # If linking, only link if not linked and return immediately.
+  if [[ "$TYPE" = "link" || "$TYPE" = "upstream-link" ]]; then
+    if [[ ! "$LINKED" = "$STABLE" ]]; then
+      $BREW link --force "${FORMULA}"
+    fi
     return
   fi
-  unset OSQUERY_DEPS_ONETIME
+
   export HOMEBREW_OPTIMIZATION_LEVEL=-Os
-  log "brew tool $TOOL"
-  $BREW install --force-bottle --ignore-dependencies $@ "$TOOL"
+  if [[ ! -z "$OSQUERY_BUILD_BOTTLES" && ! "$TYPE" = "upstream" ]]; then
+    $BREW bottle --skip-relocation "${FORMULA_TAP}/${TOOL}.rb"
+  elif [[ "${INSTALLED}" = "NAN" || "${INSTALLED}" = "None" ]]; then
+    log "brew package $TOOL installing new version: ${STABLE}"
+    $BREW install $ARGS "${FORMULA}"
+  elif [[ ! "${INSTALLED}" = "${STABLE}" || "${FROM_BOTTLE}" = "true" ]]; then
+    log "brew package $TOOL upgrading to new version: ${STABLE}"
+    $BREW uninstall "${FORMULA}"
+    $BREW install $ARGS "${FORMULA}"
+  else
+    log "brew package $TOOL is already installed: ${STABLE}"
+  fi
 }
 
-function core_brew_tool() {
-  export OSQUERY_DEPS_ONETIME=1
-  brew_tool $@
+function local_brew_tool() {
+  brew_internal "tool" $@
+}
+
+function local_brew_dependency() {
+  # Essentially uses clang instead of GCC.
+  brew_internal "dependency" $@
 }
 
 function local_brew_link() {
-  TOOL=$1
-  if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
-    $BREW link --force "${FORMULA_DIR}/${TOOL}.rb"
-  fi
+  brew_internal "link" $@
+}
+
+function brew_tool() {
+  brew_internal "upstream" $@
+}
+
+function brew_link() {
+  brew_internal "upstream-link" $@
 }
 
 function local_brew_postinstall() {
@@ -111,65 +173,6 @@ function local_brew_postinstall() {
   if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
     $BREW postinstall "${FORMULA_DIR}/${TOOL}.rb"
   fi
-}
-
-# local_brew_package TYPE NAME [ARGS, ...]
-#   1: tool/dependency
-#   2: formula name
-#   N: arguments to install
-function local_brew_package() {
-  TYPE="$1"
-  TOOL="$2"
-  shift
-  shift
-
-  FORMULA="${FORMULA_DIR}/${TOOL}.rb"
-  INFO=`$BREW info --json=v1 "${FORMULA}"`
-  INSTALLED=$(json_element "${INFO}" 'obj[0]["linked_keg"]')
-  STABLE=$(json_element "${INFO}" 'obj[0]["versions"]["stable"]')
-  REVISION=$(json_element "${INFO}" 'obj[0]["revision"]')
-  if [[ ! "$REVISION" = "0" ]]; then
-    STABLE="${STABLE}_${REVISION}"
-  fi
-
-  # Could improve this detection logic to remove from-bottle.
-  FROM_BOTTLE=false
-
-  # Add build arguments depending on requested from-source or default build.
-  ARGS="$@"
-  ARGS="$ARGS --build-bottle --ignore-dependencies --env=inherit"
-  if [[ -z "$OSQUERY_BUILD_DEPS" ]]; then
-    ARGS="$ARGS --force-bottle"
-  fi
-  if [[ "$TYPE" = "dependency" ]]; then
-    ARGS="$ARGS --cc=clang"
-  fi
-  if [[ ! -z "$DEBUG" ]]; then
-    ARGS="$ARGS -vd"
-  fi
-
-  export HOMEBREW_OPTIMIZATION_LEVEL=-Os
-  if [[ ! -z "$OSQUERY_BUILD_BOTTLES" ]]; then
-    $BREW bottle --skip-relocation "${FORMULA_TAP}/${TOOL}.rb"
-  elif [[ "${INSTALLED}" = "NAN" || "${INSTALLED}" = "None" ]]; then
-    log "brew local package $TOOL installing new version: ${STABLE}"
-    $BREW install $ARGS "${FORMULA}"
-  elif [[ ! "${INSTALLED}" = "${STABLE}" || "${FROM_BOTTLE}" = "true" ]]; then
-    log "brew local package $TOOL upgrading to new version: ${STABLE}"
-    $BREW uninstall "${FORMULA}"
-    $BREW install $ARGS "${FORMULA}"
-  else
-    log "brew local package $TOOL is already install: ${STABLE}"
-  fi
-}
-
-function local_brew_tool() {
-  local_brew_package "tool" $@
-}
-
-function local_brew_dependency() {
-  # Essentially uses clang instead of GCC.
-  local_brew_package "dependency" $@
 }
 
 function package() {
@@ -233,14 +236,6 @@ function package() {
       log "installing $1"
       sudo pacman -S --noconfirm $1
     fi
-  fi
-}
-
-function gem_install() {
-  if [[ -n "$(gem list | grep $1)" ]]; then
-    log "$1 is already installed. skipping."
-  else
-    sudo gem install $@
   fi
 }
 

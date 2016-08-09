@@ -149,7 +149,7 @@ char **table_completion_function(const char *text, int start, int end) {
 
 int main(int argc, char *argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.
-  osquery::Initializer runner(argc, argv, osquery::OSQUERY_TOOL_SHELL);
+  osquery::Initializer runner(argc, argv, osquery::ToolType::SHELL);
 
   // The shell will not use a worker process.
   // It will initialize a watcher thread for potential auto-loaded extensions.

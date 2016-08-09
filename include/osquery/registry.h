@@ -22,6 +22,22 @@
 
 namespace osquery {
 
+/// An opaque interface used within plugin macros.
+struct InitializerInterface {
+  virtual const char *id() const = 0;
+  virtual void run() const = 0;
+  virtual ~InitializerInterface() {}
+};
+
+/// Request a registry type for initialization.
+void registerRegistry(InitializerInterface *const item);
+
+/// Request a plugin type for initialization.
+void registerPlugin(InitializerInterface *const item);
+
+/// Allocate and instantiate one of each requested registry and plugin.
+void registryAndPluginInit();
+
 /**
  * @brief A boilerplate code helper to create a registry given a name and
  * plugin base class type.

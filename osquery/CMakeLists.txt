@@ -1,14 +1,18 @@
-# osquery core source files included with the SDK (libosquery).
+# The 'core' source files define the osquery SDK (libosquery).
+# There are macros throughout CMake to append sources to this list.
 set(OSQUERY_SOURCES "")
+
+# A separate list of library links (and linking options) is maintained for
+# the 'core' set of sources.
 set(OSQUERY_LINKS "")
+
+# Finally a set of 'core' tests and kernel-tests, and benchmark tests, is kept.
 set(OSQUERY_TESTS "")
 set(OSQUERY_KERNEL_TESTS "")
-
-# osquery benchmarking sources
 set(OSQUERY_BENCHMARKS "")
 set(OSQUERY_KERNEL_BENCHMARKS "")
 
-# osquery core additional sources files not included with SDK (libosquery_additional).
+# The 'additional' source files are NOT included with SDK (libosquery_additional).
 set(OSQUERY_ADDITIONAL_SOURCES "")
 set(OSQUERY_ADDITIONAL_LINKS "")
 set(OSQUERY_ADDITIONAL_TESTS "")
@@ -16,23 +20,18 @@ set(OSQUERY_TABLES_TESTS "")
 
 # Add all and extra for osquery code.
 # TODO(WIN64): Changes for Win64 CMake
-if(WIN32)
-  add_compile_options(
-    /W3
-  )
+if(WINDOWS)
+  add_compile_options(/W3)
 else()
-  add_compile_options(
-    -Wall
-    -Wextra
-    -Wno-unused-parameter
-  )
+  add_compile_options(-Wall -Wextra -Wno-unused-parameter)
 endif()
 
-if(WIN32)
+if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("netapi32.lib")
   ADD_OSQUERY_LINK_CORE("rpcrt4.lib")
   ADD_OSQUERY_LINK_CORE("shlwapi.lib")
   ADD_OSQUERY_LINK_CORE("wbemuuid.lib")
+  ADD_OSQUERY_LINK_CORE("linenoise.lib")
 else()
   ADD_OSQUERY_LINK_CORE("libpthread")
   ADD_OSQUERY_LINK_CORE("libz")
@@ -59,9 +58,10 @@ ADD_OSQUERY_LINK_CORE("boost_system-mt")
 ADD_OSQUERY_LINK_CORE("boost_filesystem-mt")
 ADD_OSQUERY_LINK_CORE("boost_regex-mt")
 
-# TODO(#1956): Ignoring on WIN32 for now
-if(NOT WIN32)
+if(NOT WINDOWS)
   ADD_OSQUERY_LINK_ADDITIONAL("yara")
+  # This is needed for the hash functions (and hash table).
+  ADD_OSQUERY_LINK_CORE("crypto")
 endif()
 
 # Remaining additional development libraries.
@@ -134,7 +134,7 @@ add_subdirectory(logger)
 add_subdirectory(registry)
 add_subdirectory(sql)
 
-if(NOT WIN32)
+if(NOT WINDOWS)
   add_subdirectory(remote)
 endif()
 
@@ -154,12 +154,31 @@ list(APPEND OSQUERY_LIBS ${OSQUERY_LINKS})
 set(CMAKE_MACOSX_RPATH 0)
 set(CMAKE_SKIP_RPATH TRUE)
 
+# A final map from CMake build platform to a enum using for runtime detection.
+# The goal is to provide a minimum set of compile code paths.
+# See ./include/core.h for the enum class.
+# POSIX   = 0x01
+# WINDOWS = 0x02
+# BSD     = 0x04
+# LINUX   = 0x08 && POSIX
+# OS X    = 0x10 && BSD && POSIX
+# FREEBSD = 0x20 && BSD && POSIX
+if(WINDOWS)
+  math(EXPR PMASK "2")
+elseif(LINUX)
+  math(EXPR PMASK "1 + 8")
+elseif(APPLE)
+  math(EXPR PMASK "1 + 4 + 16")
+elseif(FREEBSD)
+  math(EXPR PMASK "1 + 4 + 32")
+endif()
+
 # Create the static libosquery (everything but non-utility tables).
 add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
 target_link_libraries(libosquery ${OSQUERY_LIBS})
 set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
 set_target_properties(libosquery PROPERTIES COMPILE_FLAGS
-  "-DOSQUERY_BUILD_VERSION=${OSQUERY_BUILD_VERSION} ${CXX_COMPILE_FLAGS}")
+  "-DOSQUERY_BUILD_VERSION=${OSQUERY_BUILD_VERSION} -DOSQUERY_PLATFORM_MASK=${PMASK} ${CXX_COMPILE_FLAGS}")
 
 # Create the dynamic libosquery.
 if(DEFINED ENV{OSQUERY_BUILD_SHARED})
@@ -171,17 +190,15 @@ endif()
 
 # A friendly echo printed after the library is built.
 add_custom_target(osquery_library ALL
-  DEPENDS libosquery
   COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
     "-- Built libosquery: ${CMAKE_BINARY_DIR}/libosquery.a"
+  DEPENDS libosquery
 )
 
 # make devel (implies install)
 add_custom_target(devel
-  COMMAND ${CMAKE_COMMAND}
-    -D COMPONENT=devel
-    -P cmake_install.cmake
-    DEPENDS libosquery_basic
+  COMMAND ${CMAKE_COMMAND} -D COMPONENT=devel -P cmake_install.cmake
+  DEPENDS libosquery_basic
 )
 add_dependencies(devel libosquery)
 
@@ -219,9 +236,6 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   endif()
   SET_OSQUERY_COMPILE(shell "${CXX_COMPILE_FLAGS}")
   set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
-  if(WIN32)
-    target_link_libraries(shell "linenoise.lib")
-  endif()
   add_dependencies(shell osquery_tools)
 
   add_executable(daemon main/${PROCESS_FAMILY}/daemon.cpp)
@@ -273,22 +287,6 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
 endif()
 
 if(NOT DEFINED ENV{SKIP_TESTS})
-  # Detect TR1 usage.
-  include(CheckIncludeFileCXX)
-  check_include_file_cxx("tr1/tuple" HAVE_TR1_TUPLE)
-  if("${HAVE_TR1_TUPLE}" STREQUAL "")
-    set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=1")
-  else()
-    set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=0")
-  endif()
-
-  set(GTEST_FLAGS
-    ${GTEST_FLAGS}
-    "-I${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0/include"
-    "-I${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0/include"
-  )
-  join("${GTEST_FLAGS}" " " GTEST_FLAGS)
-
   # osquery testing library (testing helper methods/libs).
   add_library(libosquery_testing STATIC tests/test_util.cpp)
   add_dependencies(libosquery_testing libosquery)
@@ -302,16 +300,12 @@ if(NOT DEFINED ENV{SKIP_TESTS})
   else()
     TARGET_OSQUERY_LINK_WHOLE(osquery_tests libosquery)
   endif()
-  # TODO #2252: Remove this linkage dependency.
-  if(NOT ${OSQUERY_BUILD_SDK_ONLY})
-      TARGET_OSQUERY_LINK_WHOLE(osquery_tests ${crypto_library})
-  endif()
   target_link_libraries(osquery_tests gtest gmock libosquery_testing)
   SET_OSQUERY_COMPILE(osquery_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
   add_test(osquery_tests osquery_tests)
 
   # osquery kernel tests.
-  if(NOT ${OSQUERY_BUILD_SDK_ONLY} AND NOT WIN32)
+  if(NOT ${OSQUERY_BUILD_SDK_ONLY} AND NOT WINDOWS)
     add_executable(osquery_kernel_tests main/tests.cpp ${OSQUERY_KERNEL_TESTS})
     if(DEFINED ENV{OSQUERY_BUILD_SHARED})
       target_link_libraries(osquery_kernel_tests libosquery_shared)

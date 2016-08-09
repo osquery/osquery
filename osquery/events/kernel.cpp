@@ -32,7 +32,7 @@ REGISTER(KernelEventPublisher, "event_publisher", "kernel");
 
 Status KernelEventPublisher::setUp() {
   // A daemon should attempt to autoload kernel extensions/modules.
-  if (kToolType == OSQUERY_TOOL_DAEMON) {
+  if (kToolType == ToolType::DAEMON) {
     loadKernelExtension();
   }
 
@@ -92,7 +92,7 @@ Status KernelEventPublisher::run() {
     int drops = 0;
     WriteLock lock(mutex_);
     if ((drops = queue_->kernelSync(OSQUERY_OPTIONS_NO_BLOCK)) > 0 &&
-        kToolType == OSQUERY_TOOL_DAEMON) {
+        kToolType == ToolType::DAEMON) {
       LOG(WARNING) << "Dropping " << drops << " kernel events";
     }
   } catch (const CQueueException &e) {
