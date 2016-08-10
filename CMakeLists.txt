@@ -402,6 +402,7 @@ if(WINDOWS)
     endforeach()
   endforeach()
   list(REMOVE_DUPLICATES OS_LIB_DIRS)
+  link_directories(${OS_LIB_DIRS})
 else()
   set(OS_LIB_DIRS
     "/lib"
@@ -411,7 +412,6 @@ else()
     "/usr/lib/x86_64-linux-gnu/"
     )
 endif()
-link_directories(${OS_LIB_DIRS})
 
 # Make sure the generated paths exist
 execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
