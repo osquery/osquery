@@ -86,7 +86,7 @@ QueryData EventSubscriberPlugin::genTable(QueryContext& context) {
         stop = std::min(stop, expr);
       }
     }
-  } else if (kToolType == OSQUERY_TOOL_DAEMON && FLAGS_events_optimize) {
+  } else if (kToolType == ToolType::DAEMON && FLAGS_events_optimize) {
     // If the daemon is querying a subscriber without a 'time' constraint and
     // allows optimization, only emit events since the last query.
     start = optimize_time_;
@@ -745,7 +745,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
   ef.event_subs_[name] = specialized_sub;
 
   // Restore optimize times for a daemon.
-  if (kToolType == OSQUERY_TOOL_DAEMON && FLAGS_events_optimize) {
+  if (kToolType == ToolType::DAEMON && FLAGS_events_optimize) {
     auto index_key = "optimize." + specialized_sub->dbNamespace();
     std::string content;
     if (getDatabaseValue(kEvents, index_key, content)) {
