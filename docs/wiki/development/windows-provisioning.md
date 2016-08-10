@@ -23,7 +23,7 @@ The PowerShell script `provision.ps1` is used to prepare a clean Windows 10 64 b
 ## Building `osqueryd.exe` and `osqueryi.exe`
  
  * **Automated Process**
-   * Run `tools\make-win64-binaries.bat` from the `osquery` root directory. This will create the CMake build files, execute `MSBuild` to compile the shell, and copy over the required DLLs.
+   * Run `tools\make-win64-binaries.bat` from the `osquery` root directory. This will create the CMake build files and execute `cmake --build` to compile the shell and copy all required DLLs into the shell's output directory.
  * **Manual Process**
    * Open the Visual Studio 2015 solution, `OSQUERY.sln`
    * Select **Release** or **RelWithDebInfo** as the build configuration.
