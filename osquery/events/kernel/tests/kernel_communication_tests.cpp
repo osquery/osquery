@@ -87,7 +87,12 @@ TEST_F(KernelCommunicationTests, test_communication) {
     }
   } while (tasks > 0);
 
-  EXPECT_EQ(num_threads * events_per_thread, reads + drops);
+  auto total_events = reads + drops;
+  auto expected_events = num_threads * events_per_thread;
+
+  // Since the sync is opened non-blocking we allow a 5% drop rate.
+  EXPECT_GT(total_events, expected_events * 0.95);
+  EXPECT_LE(total_events, expected_events);
 }
 #endif // KERNEL_TEST
 }
