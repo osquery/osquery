@@ -137,6 +137,8 @@ ifeq ($(PLATFORM),Linux)
 	@ln -snf debug_$(BUILD_DIR) build/debug_linux
 endif
 
+force_setup: .setup
+	@true
 
 package: .setup
 	# Alias for packages (do not use CPack)
