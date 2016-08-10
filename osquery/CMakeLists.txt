@@ -80,7 +80,7 @@ if(WINDOWS)
 else()
   ADD_OSQUERY_LINK_ADDITIONAL("ssl")
   ADD_OSQUERY_LINK_ADDITIONAL("crypto")
-  # TODO(#1956): Ignoring on WIN32 for now
+  # TODO(#1956): Ignoring on WINDOWS for now
   ADD_OSQUERY_LINK_ADDITIONAL("yara")
   ADD_OSQUERY_LINK_ADDITIONAL("readline")
 endif()

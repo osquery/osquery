@@ -89,7 +89,7 @@ if(DEFINED ENV{OSQUERY_PLATFORM})
   set(PLATFORM "$ENV{OSQUERY_PLATFORM}")
 else()
   execute_process(
-    COMMAND python "${CMAKE_SOURCE_DIR}/tools/get_platform.py"
+    COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/get_platform.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE PLATFORM
     OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -152,7 +152,7 @@ set(ENV{SKIP_BENCHMARKS} TRUE)
 if(DEFINED ENV{DEBUG})
   set(DEBUG TRUE)
   set(CMAKE_BUILD_TYPE "Debug")
-  if(WIN32)
+  if(WINDOWS)
     # TODO(#1985): Is there a MSVC flag congruent to -fstandalone-debug?
     add_compile_options(
       /Zi
@@ -189,7 +189,7 @@ elseif(DEFINED ENV{SANITIZE})
   add_definitions(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
 else()
   set(DEBUG FALSE)
-  if(WIN32)
+  if(WINDOWS)
     add_compile_options(/Ot)
   else()
     add_compile_options(-Os)
@@ -199,7 +199,7 @@ else()
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
 
   # Visual Studio does not support generation of PIC code
-  if(NOT WIN32)
+  if(NOT WINDOWS)
     # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
     # To be safe, only include them when building 'release' outputs.
     add_compile_options(
@@ -214,7 +214,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT DEFINED ENV{OPTIMIZED})
-  if(WIN32)
+  if(WINDOWS)
     # It is unclear if AVX must be managed on Windows.
     add_compile_options(/favor:AMD64)
   else()
@@ -225,7 +225,7 @@ endif()
 # make analyze (environment variable from Makefile)
 if(DEFINED ENV{ANALYZE})
   # TODO(#1985): clang-analyze on Windows
-  if(WIN32)
+  if(WINDOWS)
     message(FATAL_ERROR "Cannot analyze on Windows right now." )
   else()
     set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
@@ -364,7 +364,7 @@ elseif(LINUX)
   include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third-party/sysroots/linux")
 endif()
 
-if(NOT WIN32)
+if(NOT WINDOWS)
   include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   include_directories(SYSTEM "${BUILD_DEPS}/include")
   include_directories("${BUILD_DEPS}/include/openssl")
@@ -375,7 +375,7 @@ include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 
 set(MKDIR_OPTS "")
-if(WIN32)
+if(WINDOWS)
   set(PROCESS_FAMILY "windows")
 
   # Win64 specific gflags

@@ -35,7 +35,7 @@ elseif(FREEBSD)
   ADD_OSQUERY_LINK_ADDITIONAL("kvm")
   ADD_OSQUERY_LINK_ADDITIONAL("elf")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
-elseif(WIN32)
+elseif(WINDOWS)
   # Windows specific tables
   file(GLOB OSQUERY_WINDOWS_TABLES "*/windows/*.cpp")
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_windows
@@ -96,7 +96,7 @@ else()
 endif()
 
 # TODO: These tables should be made Windows-compatible
-if(NOT WIN32)
+if(NOT WINDOWS)
   file(GLOB OSQUERY_CROSS_APPLICATIONS_TABLES "applications/*.cpp")
   file(GLOB OSQUERY_CROSS_NETWORKING_TABLES "networking/*.cpp")
   file(GLOB OSQUERY_CROSS_FORENSIC_TABLES "forensic/*.cpp")
@@ -131,7 +131,7 @@ ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
   ${OSQUERY_UTILITY_TABLES}
 )
 
-if(NOT FREEBSD AND NOT WIN32)
+if(NOT FREEBSD AND NOT WINDOWS)
   file(GLOB OSQUERY_UTILS "other/*.cpp")
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_utils
     ${OSQUERY_UTILS}
