@@ -381,7 +381,6 @@ if(WINDOWS)
 
   include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14/boost")
   include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14")
-  #include_directories("${WINDOWS_DEP_DIR}/*/local/include")
   file(GLOB INCLUDE_DIRS LIST_DIRECTORIES true "${WINDOWS_DEP_DIR}/*/*/include")
   include_directories(${INCLUDE_DIRS})
 
