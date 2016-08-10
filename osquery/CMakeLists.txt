@@ -19,7 +19,6 @@ set(OSQUERY_ADDITIONAL_TESTS "")
 set(OSQUERY_TABLES_TESTS "")
 
 # Add all and extra for osquery code.
-# TODO(WIN64): Changes for Win64 CMake
 if(WINDOWS)
   add_compile_options(/W3)
 else()
@@ -32,9 +31,24 @@ if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("shlwapi.lib")
   ADD_OSQUERY_LINK_CORE("wbemuuid.lib")
   ADD_OSQUERY_LINK_CORE("linenoise.lib")
+  ADD_OSQUERY_LINK_CORE("boost_system-vc140-mt-1_59")
+  ADD_OSQUERY_LINK_CORE("boost_regex-vc140-mt-1_59")
+  ADD_OSQUERY_LINK_CORE("boost_filesystem-vc140-mt-1_59")
+  ADD_OSQUERY_LINK_CORE("rocksdblib")
+  ADD_OSQUERY_LINK_CORE("snappy64")
+  ADD_OSQUERY_LINK_CORE("gflags_static")
+  ADD_OSQUERY_LINK_CORE("thriftmd")
 else()
   ADD_OSQUERY_LINK_CORE("libpthread")
   ADD_OSQUERY_LINK_CORE("libz")
+  ADD_OSQUERY_LINK_CORE("lz4")
+  ADD_OSQUERY_LINK_CORE("boost_system-mt")
+  ADD_OSQUERY_LINK_CORE("boost_filesystem-mt")
+  ADD_OSQUERY_LINK_CORE("boost_regex-mt")
+  ADD_OSQUERY_LINK_CORE("rocksdb_lite")
+  ADD_OSQUERY_LINK_CORE("snappy")
+  ADD_OSQUERY_LINK_CORE("gflags")
+  ADD_OSQUERY_LINK_CORE("thrift")
 endif()
 
 if(APPLE OR LINUX)
@@ -48,39 +62,37 @@ if(LINUX OR FREEBSD)
   ADD_OSQUERY_LINK_CORE("libc")
 endif()
 
-ADD_OSQUERY_LINK_CORE("rocksdb_lite")
-ADD_OSQUERY_LINK_CORE("snappy")
-ADD_OSQUERY_LINK_CORE("lz4")
-ADD_OSQUERY_LINK_CORE("thrift")
-ADD_OSQUERY_LINK_CORE("gflags")
 ADD_OSQUERY_LINK_CORE("glog")
-ADD_OSQUERY_LINK_CORE("boost_system-mt")
-ADD_OSQUERY_LINK_CORE("boost_filesystem-mt")
-ADD_OSQUERY_LINK_CORE("boost_regex-mt")
-
-if(NOT WINDOWS)
-  ADD_OSQUERY_LINK_ADDITIONAL("yara")
-  # This is needed for the hash functions (and hash table).
-  ADD_OSQUERY_LINK_CORE("crypto")
-endif()
-
 # Remaining additional development libraries.
 ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-uri")
 ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-client-connections")
-ADD_OSQUERY_LINK_ADDITIONAL("ssl")
-ADD_OSQUERY_LINK_ADDITIONAL("crypto")
-ADD_OSQUERY_LINK_ADDITIONAL("readline")
-ADD_OSQUERY_LINK_ADDITIONAL("ncurses")
+
+if(WINDOWS)
+  ADD_OSQUERY_LINK_ADDITIONAL("ssleay32")
+  ADD_OSQUERY_LINK_ADDITIONAL("eay32")
+else()
+  ADD_OSQUERY_LINK_ADDITIONAL("ssl")
+  ADD_OSQUERY_LINK_ADDITIONAL("yara")
+  ADD_OSQUERY_LINK_ADDITIONAL("readline")
+  ADD_OSQUERY_LINK_ADDITIONAL("ncurses")
+  ADD_OSQUERY_LINK_ADDITIONAL("crypto")
+  ADD_OSQUERY_LINK_CORE("crypto")
+endif()
 
 if(APPLE)
   ADD_OSQUERY_LINK_CORE("liblzma libbz2")
 else()
-  ADD_OSQUERY_LINK_CORE("lzma bz2")
+  if(NOT WINDOWS)
+    ADD_OSQUERY_LINK_CORE("lzma")
+  endif()
+  ADD_OSQUERY_LINK_CORE("bz2")
   ADD_OSQUERY_LINK_ADDITIONAL("bz2")
 endif()
 
 # The platform-specific SDK + core linker flags.
-ADD_OSQUERY_LINK_CORE("-rdynamic")
+if(NOT WINDOWS)
+  ADD_OSQUERY_LINK_CORE("-rdynamic")
+endif()
 if(APPLE)
   ADD_OSQUERY_LINK_CORE("-Wl,-dead_strip")
   ADD_OSQUERY_LINK_CORE("-mmacosx-version-min=${OSX_VERSION_MIN}")
@@ -191,7 +203,7 @@ endif()
 # A friendly echo printed after the library is built.
 add_custom_target(osquery_library ALL
   COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-    "-- Built libosquery: ${CMAKE_BINARY_DIR}/libosquery.a"
+    "-- Built libosquery: $<TARGET_FILE:libosquery>"
   DEPENDS libosquery
 )
 
@@ -236,7 +248,6 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   endif()
   SET_OSQUERY_COMPILE(shell "${CXX_COMPILE_FLAGS}")
   set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
-  add_dependencies(shell osquery_tools)
 
   add_executable(daemon main/${PROCESS_FAMILY}/daemon.cpp)
   if(DEFINED ENV{OSQUERY_BUILD_SHARED})
@@ -257,11 +268,16 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
     PATTERN ".*" EXCLUDE
   )
 
-  # A friendly echo printed after the library is built.
-  add_custom_target(osquery_tools ALL
+  # A friendly echo printed before building the shell
+  add_custom_command(TARGET shell PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-      "-- Building osqueryi: ${CMAKE_BINARY_DIR}/osquery/osqueryi"
-      "-- Building osqueryd: ${CMAKE_BINARY_DIR}/osquery/osqueryd"
+      "-- Building osqueryi: $<TARGET_FILE:shell>"
+  )
+
+  # A friendly echo printed before building the daemon
+  add_custom_command(TARGET daemon PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
+      "-- Building osqueryd: $<TARGET_FILE:daemon>"
   )
 
   # make install (executables)

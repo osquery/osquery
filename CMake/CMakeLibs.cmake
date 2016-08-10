@@ -73,11 +73,7 @@ macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
     "${BUILD_DEPS}/lib"
     "${CMAKE_BUILD_DIR}/third-party/*/lib"
     ${LINK_PATHS}
-    "/lib"
-    "/lib64"
-    "/usr/lib"
-    "/usr/lib64"
-    "/usr/lib/x86_64-linux-gnu/"
+    ${OS_LIB_DIRS}
     "$ENV{HOME}"
   )
   set(LINK_PATHS_SYSTEM
@@ -85,18 +81,14 @@ macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
     "${BUILD_DEPS}/legacy/lib"
     # Allow the build to search the default deps include for libz.
     "${BUILD_DEPS}/lib"
-    "/lib"
-    "/lib64"
-    "/usr/lib"
-    "/usr/lib64"
-    "/usr/lib/x86_64-linux-gnu/"
+    ${OS_LIB_DIRS}
   )
 
   if(NOT "${LINK}" MATCHES "(^[-/].*)")
     string(REPLACE " " ";" ITEMS "${LINK}")
     foreach(ITEM ${ITEMS})
       if(NOT DEFINED ${${ITEM}_library})
-        if("${ITEM}" MATCHES "(^lib.*)" OR DEFINED ENV{BUILD_LINK_SHARED})
+        if("${ITEM}" MATCHES "(^lib.*)" OR "${ITEM}" MATCHES "(.*lib$)" OR DEFINED ENV{BUILD_LINK_SHARED})
           # Use a system-provided library
           set(ITEM_SYSTEM TRUE)
         else()
@@ -104,14 +96,14 @@ macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
         endif()
         if(NOT ${ITEM_SYSTEM})
           find_library("${ITEM}_library"
-            NAMES "lib${ITEM}.a" "${ITEM}" HINTS ${LINK_PATHS_RELATIVE})
+            NAMES "${ITEM}.lib" "lib${ITEM}.lib" "lib${ITEM}.a" "${ITEM}" HINTS ${LINK_PATHS_RELATIVE})
         else()
           find_library("${ITEM}_library"
-            NAMES "lib${ITEM}.so" "lib${ITEM}.dylib" "${ITEM}.so" "${ITEM}.dylib" "${ITEM}"
+            NAMES "${ITEM}.lib" "lib${ITEM}.lib" "lib${ITEM}.so" "lib${ITEM}.dylib" "${ITEM}.so" "${ITEM}.dylib" "${ITEM}"
             HINTS ${LINK_PATHS_SYSTEM})
         endif()
         LOG_LIBRARY(${ITEM} "${${ITEM}_library}")
-        if("${${ITEM}_library}" STREQUAL "${${ITEM}_library}-NOTFOUND")
+        if("${${ITEM}_library}" STREQUAL "${ITEM}_library-NOTFOUND")
           WARNING_LOG("Dependent library '${ITEM}' not found")
           list(APPEND ${LINK_SET} ${ITEM})
         else()
@@ -195,7 +187,7 @@ macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
     add_library(${TARGET} OBJECT ${ARGN})
     add_dependencies(${TARGET} osquery_extensions)
     # TODO(#1985): For Windows, ignore the -static compiler flag
-    if(WIN32)
+    if(WINDOWS)
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} /EHsc /MD")
     else()
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS}") # -static
@@ -226,7 +218,7 @@ macro(ADD_OSQUERY_OBJCXX_LIBRARY IS_CORE TARGET)
     add_library(${TARGET} OBJECT ${ARGN})
     add_dependencies(${TARGET} osquery_extensions)
     # TODO(#1985): For Windows, ignore the -static compiler flag
-    if(WIN32)
+    if(WINDOWS)
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS} /EHsc /MD")
     else()
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS}")
@@ -250,7 +242,7 @@ endmacro(ADD_OSQUERY_EXTENSION)
 
 macro(ADD_OSQUERY_MODULE TARGET)
   add_library(${TARGET} SHARED ${ARGN})
-  if(NOT FREEBSD AND NOT WIN32)
+  if(NOT FREEBSD AND NOT WINDOWS)
     target_link_libraries(${TARGET} dl)
   endif()
 
@@ -267,7 +259,7 @@ macro(ADD_OSQUERY_MODULE TARGET)
 endmacro(ADD_OSQUERY_MODULE)
 
 # Helper to abstract OS/Compiler whole linking.
-if(WIN32)
+if(WINDOWS)
 macro(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
   target_link_libraries(${TARGET} "${OS_WHOLELINK_PRE}$<TARGET_FILE_NAME:${OSQUERY_LIB}>")
   target_link_libraries(${TARGET} ${OSQUERY_LIB})
@@ -309,7 +301,7 @@ macro(GENERATE_TABLES TABLES_PATH)
     elseif(DEBIAN_BASED)
       list(APPEND TABLE_CATEGORIES "ubuntu")
     endif()
-  elseif(WIN32)
+  elseif(WINDOWS)
     list(APPEND TABLE_CATEGORIES "windows")
   else()
     message( FATAL_ERROR "Unknown platform detected, cannot generate tables")

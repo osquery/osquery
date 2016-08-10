@@ -7,7 +7,7 @@ add_custom_command(
   OUTPUT ${OSQUERY_THRIFT_GENERATED_FILES}
 )
 
-if(NOT WIN32)
+if(NOT WINDOWS)
   add_compile_options(
     -Wno-macro-redefined
   )
