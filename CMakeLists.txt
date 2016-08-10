@@ -18,12 +18,10 @@ endif()
 if(WIN32)
   set(WINDOWS_DEP_DIR "$ENV{ChocolateyInstall}/lib")
   string(REGEX REPLACE "\\\\" "/" WINDOWS_DEP_DIR ${WINDOWS_DEP_DIR})
-  list(APPEND WINDOWS_DEP_LIST ${BUILD_DEPS})
   list(APPEND WINDOWS_DEP_LIST ${WINDOWS_DEP_DIR})
   list(APPEND WINDOWS_DEP_LIST "$ENV{HOMEDRIVE}/local/boost-msvc14")
 
-  list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/thrift/tools")
-  list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/doxygen/tools")
+  list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/*/tools")
 endif()
 
 # If no explicit compiler override and clang++ exists, prefer clang.
@@ -383,21 +381,37 @@ if(WINDOWS)
 
   include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14/boost")
   include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14")
-  include_directories("${WINDOWS_DEP_DIR}/bzip2/local/include")
-  include_directories("${WINDOWS_DEP_DIR}/openssl/local/include")
-  include_directories("${WINDOWS_DEP_DIR}/thrift-dev/local/include")
-  include_directories("${WINDOWS_DEP_DIR}/glog/local/include")
-  include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
+  #include_directories("${WINDOWS_DEP_DIR}/*/local/include")
+  file(GLOB INCLUDE_DIRS LIST_DIRECTORIES true "${WINDOWS_DEP_DIR}/*/*/include")
+  include_directories(${INCLUDE_DIRS})
 
-  # TODO(FIXME): temporary for now
-  include_directories("${WINDOWS_DEP_DIR}/cpp-netlib/local/include")
+  ## TODO(FIXME): temporary for now
   include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
   include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")
-  include_directories("${WINDOWS_DEP_DIR}/rocksdb/local/include")
 else()
   set(PROCESS_FAMILY "posix")
   set(MKDIR_OPTS "-p")
 endif()
+
+if(WINDOWS)
+  foreach(DEP_DIR ${WINDOWS_DEP_LIST})
+    file(GLOB_RECURSE WINDOWS_LOCAL_LIB_DIRS LIST_DIRECTORIES false "${DEP_DIR}/*.lib")
+    foreach(LIB_FILE ${WINDOWS_LOCAL_LIB_DIRS})
+      get_filename_component(LIB_DIR ${LIB_FILE} DIRECTORY)
+      list(APPEND OS_LIB_DIRS ${LIB_DIR})
+    endforeach()
+  endforeach()
+  list(REMOVE_DUPLICATES OS_LIB_DIRS)
+else()
+  set(OS_LIB_DIRS
+    "/lib"
+    "/lib64"
+    "/usr/lib"
+    "/usr/lib64"
+    "/usr/lib/x86_64-linux-gnu/"
+    )
+endif()
+link_directories(${OS_LIB_DIRS})
 
 # Make sure the generated paths exist
 execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")

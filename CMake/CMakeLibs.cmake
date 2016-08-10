@@ -68,28 +68,6 @@ macro(ADD_OSQUERY_LINK IS_CORE LINK)
   endif()
 endmacro(ADD_OSQUERY_LINK)
 
-if(WINDOWS)
-  foreach(DEP_DIR ${WINDOWS_DEP_LIST})
-    file(GLOB_RECURSE WINDOWS_LOCAL_LIB_DIRS LIST_DIRECTORIES false "${DEP_DIR}/*.lib")
-    foreach(LIB_FILE ${WINDOWS_LOCAL_LIB_DIRS})
-      get_filename_component(LIB_DIR ${LIB_FILE} DIRECTORY)
-      list(APPEND OS_LIB_DIRS ${LIB_DIR})
-    endforeach()
-  endforeach()
-  list(REMOVE_DUPLICATES OS_LIB_DIRS)
-  foreach(LINK_DIR ${OS_LIB_DIRS})
-    link_directories(${LINK_DIR})
-  endforeach()
-else()
-  set(OS_LIB_DIRS
-    "/lib"
-    "/lib64"
-    "/usr/lib"
-    "/usr/lib64"
-    "/usr/lib/x86_64-linux-gnu/"
-    )
-endif()
-
 macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
   set(LINK_PATHS_RELATIVE
     "${BUILD_DEPS}/lib"
