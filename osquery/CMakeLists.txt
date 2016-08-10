@@ -57,6 +57,7 @@ else()
   ADD_OSQUERY_LINK_CORE("rocksdb_lite")
   ADD_OSQUERY_LINK_CORE("snappy")
   ADD_OSQUERY_LINK_CORE("gflags")
+  ADD_OSQUERY_LINK_CORE("thrift")
 endif()
 
 if(APPLE OR LINUX)
