@@ -213,7 +213,7 @@ endif()
 # A friendly echo printed after the library is built.
 add_custom_target(osquery_library ALL
   COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-  "-- Built libosquery: $<TARGET_FILE:libosquery>"
+    "-- Built libosquery: $<TARGET_FILE:libosquery>"
   DEPENDS libosquery
 )
 
