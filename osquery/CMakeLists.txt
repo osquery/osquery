@@ -42,7 +42,6 @@ else()
   ADD_OSQUERY_LINK_CORE("libpthread")
   ADD_OSQUERY_LINK_CORE("libz")
   ADD_OSQUERY_LINK_CORE("lz4")
-  ADD_OSQUERY_LINK_ADDITIONAL("ncurses")
   ADD_OSQUERY_LINK_CORE("boost_system-mt")
   ADD_OSQUERY_LINK_CORE("boost_filesystem-mt")
   ADD_OSQUERY_LINK_CORE("boost_regex-mt")
@@ -64,21 +63,21 @@ if(LINUX OR FREEBSD)
 endif()
 
 ADD_OSQUERY_LINK_CORE("glog")
+# Remaining additional development libraries.
+ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-uri")
+ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-client-connections")
 
 if(WINDOWS)
   ADD_OSQUERY_LINK_ADDITIONAL("ssleay32")
   ADD_OSQUERY_LINK_ADDITIONAL("eay32")
 else()
   ADD_OSQUERY_LINK_ADDITIONAL("ssl")
-  ADD_OSQUERY_LINK_ADDITIONAL("crypto")
-  # TODO(#1956): Ignoring on WINDOWS for now
   ADD_OSQUERY_LINK_ADDITIONAL("yara")
   ADD_OSQUERY_LINK_ADDITIONAL("readline")
+  ADD_OSQUERY_LINK_ADDITIONAL("ncurses")
+  ADD_OSQUERY_LINK_ADDITIONAL("crypto")
+  ADD_OSQUERY_LINK_CORE("crypto")
 endif()
-
-# Remaining additional development libraries.
-ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-uri")
-ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-client-connections")
 
 if(APPLE)
   ADD_OSQUERY_LINK_CORE("liblzma libbz2")
