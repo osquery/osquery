@@ -213,7 +213,7 @@ endif()
 # A friendly echo printed after the library is built.
 add_custom_target(osquery_library ALL
   COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-    "-- Built libosquery: ${CMAKE_BINARY_DIR}/libosquery.a"
+  "-- Built libosquery: $<TARGET_FILE:libosquery>"
   DEPENDS libosquery
 )
 
@@ -258,7 +258,6 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   endif()
   SET_OSQUERY_COMPILE(shell "${CXX_COMPILE_FLAGS}")
   set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
-  add_dependencies(shell osquery_tools)
 
   add_executable(daemon main/${PROCESS_FAMILY}/daemon.cpp)
   if(DEFINED ENV{OSQUERY_BUILD_SHARED})
@@ -279,11 +278,16 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
     PATTERN ".*" EXCLUDE
   )
 
-  # A friendly echo printed after the library is built.
-  add_custom_target(osquery_tools ALL
+  # A friendly echo printed before building the shell
+  add_custom_command(TARGET shell PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-      "-- Building osqueryi: ${CMAKE_BINARY_DIR}/osquery/osqueryi"
-      "-- Building osqueryd: ${CMAKE_BINARY_DIR}/osquery/osqueryd"
+      "-- Building osqueryi: $<TARGET_FILE:shell>"
+  )
+
+  # A friendly echo printed before building the daemon
+  add_custom_command(TARGET daemon PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
+      "-- Building osqueryd: $<TARGET_FILE:daemon>"
   )
 
   # make install (executables)
