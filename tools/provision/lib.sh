@@ -107,8 +107,8 @@ function brew_internal() {
   ARGS="$@"
 
   # Configure additional arguments if installing from a local formula.
+  ARGS="$ARGS --ignore-dependencies --env=inherit"
   if [[ ! "$TYPE" = "upstream" ]]; then
-    ARGS="$ARGS --ignore-dependencies --env=inherit"
     if [[ -z "$OSQUERY_BUILD_DEPS" ]]; then
       ARGS="$ARGS --force-bottle"
     else
