@@ -68,16 +68,34 @@ macro(ADD_OSQUERY_LINK IS_CORE LINK)
   endif()
 endmacro(ADD_OSQUERY_LINK)
 
-macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
-  set(LINK_PATHS_RELATIVE
-    "${BUILD_DEPS}/lib"
-    "${CMAKE_BUILD_DIR}/third-party/*/lib"
-    ${LINK_PATHS}
+if(WIN32)
+  foreach(DEP_DIR ${WINDOWS_DEP_LIST})
+    file(GLOB_RECURSE WINDOWS_LOCAL_LIB_DIRS LIST_DIRECTORIES false "${DEP_DIR}/*.lib")
+    foreach(LIB_FILE ${WINDOWS_LOCAL_LIB_DIRS})
+      get_filename_component(LIB_DIR ${LIB_FILE} DIRECTORY)
+      list(APPEND OS_LIB_DIRS ${LIB_DIR})
+    endforeach()
+  endforeach()
+  list(REMOVE_DUPLICATES OS_LIB_DIRS)
+  foreach(LINK_DIR ${OS_LIB_DIRS})
+    link_directories(${LINK_DIR})
+  endforeach()
+else()
+  set(OS_LIB_DIRS
     "/lib"
     "/lib64"
     "/usr/lib"
     "/usr/lib64"
     "/usr/lib/x86_64-linux-gnu/"
+    )
+endif()
+
+macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
+  set(LINK_PATHS_RELATIVE
+    "${BUILD_DEPS}/lib"
+    "${CMAKE_BUILD_DIR}/third-party/*/lib"
+    ${LINK_PATHS}
+    ${OS_LIB_DIRS}
     "$ENV{HOME}"
   )
   set(LINK_PATHS_SYSTEM
@@ -85,11 +103,7 @@ macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
     "${BUILD_DEPS}/legacy/lib"
     # Allow the build to search the default deps include for libz.
     "${BUILD_DEPS}/lib"
-    "/lib"
-    "/lib64"
-    "/usr/lib"
-    "/usr/lib64"
-    "/usr/lib/x86_64-linux-gnu/"
+    ${OS_LIB_DIRS}
   )
 
   if(NOT "${LINK}" MATCHES "(^[-/].*)")
@@ -104,10 +118,10 @@ macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
         endif()
         if(NOT ${ITEM_SYSTEM})
           find_library("${ITEM}_library"
-            NAMES "lib${ITEM}.a" "${ITEM}" HINTS ${LINK_PATHS_RELATIVE})
+            NAMES "${ITEM}.lib" "lib${ITEM}.lib" "lib${ITEM}.a" "${ITEM}" HINTS ${LINK_PATHS_RELATIVE})
         else()
           find_library("${ITEM}_library"
-            NAMES "lib${ITEM}.so" "lib${ITEM}.dylib" "${ITEM}.so" "${ITEM}.dylib" "${ITEM}"
+            NAMES "${ITEM}.lib" "lib${ITEM}.lib" "lib${ITEM}.so" "lib${ITEM}.dylib" "${ITEM}.so" "${ITEM}.dylib" "${ITEM}"
             HINTS ${LINK_PATHS_SYSTEM})
         endif()
         LOG_LIBRARY(${ITEM} "${${ITEM}_library}")

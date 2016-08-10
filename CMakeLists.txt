@@ -15,6 +15,17 @@ else()
   set(BUILD_DEPS "/usr/local/osquery")
 endif()
 
+if(WIN32)
+  set(WINDOWS_DEP_DIR "$ENV{ChocolateyInstall}/lib")
+  string(REGEX REPLACE "\\\\" "/" WINDOWS_DEP_DIR ${WINDOWS_DEP_DIR})
+  list(APPEND WINDOWS_DEP_LIST ${BUILD_DEPS})
+  list(APPEND WINDOWS_DEP_LIST ${WINDOWS_DEP_DIR})
+  list(APPEND WINDOWS_DEP_LIST "$ENV{HOMEDRIVE}/local/boost-msvc14")
+
+  list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/thrift/tools")
+  list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/doxygen/tools")
+endif()
+
 # If no explicit compiler override and clang++ exists, prefer clang.
 find_program(CLANGXX_EXISTS "clang++" ENV PATH)
 if(DEFINED ENV{CC})
@@ -70,10 +81,8 @@ endif()
 set(C_COMPILE_FLAGS "")
 set(CXX_COMPILE_FLAGS "")
 
-if(NOT WIN32)
-  find_program(THRIFT_COMPILER "thrift" ENV PATH)
-  find_program(PYTHON_EXECUTABLE "python" ENV PATH)
-endif()
+find_program(PYTHON_EXECUTABLE "python" ENV PATH)
+find_program(THRIFT_COMPILER "thrift" ENV PATH)
 
 # Use osquery language to set platform/os
 if(DEFINED ENV{OSQUERY_PLATFORM})
@@ -369,53 +378,14 @@ set(MKDIR_OPTS "")
 if(WIN32)
   set(PROCESS_FAMILY "windows")
 
-  set(WINDOWS_DEP_DIR "$ENV{ChocolateyInstall}/lib")
-  string(REGEX REPLACE "\\\\" "/" WINDOWS_DEP_DIR ${WINDOWS_DEP_DIR})
-  set(BOOST_DEP_DIR "$ENV{HOMEDRIVE}/local/boost-msvc14")
-
-  # Win64 specific BZIP2 variables
-  set(bz2_include_dir "${WINDOWS_DEP_DIR}/bzip2/local/include")
-  set(bz2_library "${WINDOWS_DEP_DIR}/bzip2/local/lib/libbz2.lib")
-
-  # Win64 specific OpenSSL variables
-  set(OPENSSL_INCLUDE_DIR "${WINDOWS_DEP_DIR}/openssl/local/include")
-  set(crypto_library "${WINDOWS_DEP_DIR}/openssl/local/lib/libeay32.lib")
-  set(ssl_library "${WINDOWS_DEP_DIR}/openssl/local/lib/ssleay32.lib")
-
-  # Win64 specific Thrift
-  set(THRIFT_INCLUDE_DIR "${WINDOWS_DEP_DIR}/thrift-dev/local/include")
-  set(thrift_library "${WINDOWS_DEP_DIR}/thrift-dev/local/lib/thriftmd.lib")
-  set(THRIFT_COMPILER "${WINDOWS_DEP_DIR}/thrift/tools/thrift.exe")
-
-  # Win64 specific rocksdb
-  set(rocksdb_lite_library "${WINDOWS_DEP_DIR}/rocksdb/local/lib/rocksdblib.lib")
-  set(snappy_library "${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/native/snappy64.lib")
-
-  # Win64 specific doxygen
-  set(DOXYGEN_EXECUTABLE "${WINDOWS_DEP_DIR}/doxygen/tools/doxygen.exe")
-
-  # Win64 specific boost
-  set(boost_filesystem-mt_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_filesystem-vc140-mt-1_59.lib")
-  set(boost_system-mt_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_system-vc140-mt-1_59.lib")
-  set(boost_regex-mt_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_regex-vc140-mt-1_59.lib")
-
   # Win64 specific gflags
   set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared gtest library" FORCE)
-  set(gflags_library "${WINDOWS_DEP_DIR}/gflags-dev/local/lib/gflags_static.lib")
 
-  # Win64 specific glog
-  set(glog_library "${WINDOWS_DEP_DIR}/glog/local/lib/glog.lib")
-
-  # Win64 specific cpp-netlib library
-  set(cppnetlib-uri_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-uri.lib")
-  set(cppnetlib-client-connections_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-client-connections.lib")
-
-
-  include_directories("${THRIFT_INCLUDE_DIR}")
-  include_directories("${OPENSSL_INCLUDE_DIR}")
-  include_directories("${bz2_include_dir}")
-  include_directories("${BOOST_DEP_DIR}")
-  include_directories("${BOOST_DEP_DIR}/boost")
+  include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14/boost")
+  include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14")
+  include_directories("${WINDOWS_DEP_DIR}/bzip2/local/include")
+  include_directories("${WINDOWS_DEP_DIR}/openssl/local/include")
+  include_directories("${WINDOWS_DEP_DIR}/thrift-dev/local/include")
   include_directories("${WINDOWS_DEP_DIR}/glog/local/include")
   include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
 
@@ -424,10 +394,6 @@ if(WIN32)
   include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
   include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")
   include_directories("${WINDOWS_DEP_DIR}/rocksdb/local/include")
-
-  # TODO(#1990): We probably need to add our third-party link directories here
-  link_directories("${BOOST_DEP_DIR}/lib64-msvc-14.0")
-  link_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/lib")
 else()
   set(PROCESS_FAMILY "posix")
   set(MKDIR_OPTS "-p")
