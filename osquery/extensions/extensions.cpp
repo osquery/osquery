@@ -76,10 +76,12 @@ CLI_FLAG(string,
          "3",
          "Seconds delay between connectivity checks")
 
+#ifndef WIN32
 CLI_FLAG(string,
          modules_autoload,
          OSQUERY_HOME "/modules.load",
          "Optional path to a list of autoloaded registry modules")
+#endif
 
 /**
  * @brief Alias the extensions_socket (used by core) to a simple 'socket'.
@@ -178,9 +180,15 @@ void ExtensionManagerWatcher::watch() {
   ExtensionStatus status;
   for (const auto& uuid : uuids) {
     auto path = getExtensionSocket(uuid);
-#ifndef WIN32
+#ifdef WIN32
+    // Check to see if the pipe name is a valid named pipe
+    if (::WaitNamedPipeA(path.c_str(), 1000) == 0 &&
+      ::GetLastError() == ERROR_BAD_PATHNAME) {
+      LOG(INFO) << "Extension UUID " << uuid << " ping failed";
+      failures_[uuid] = 3;
+    }
+#else
     if (isWritable(path)) {
-#endif
       try {
         auto client = EXClient(path);
         // Ping the extension until it goes down.
@@ -189,19 +197,19 @@ void ExtensionManagerWatcher::watch() {
         failures_[uuid] += 1;
         continue;
       }
-#ifndef WIN32
     } else {
       // Immediate fail non-writable paths.
       failures_[uuid] = 3;
       continue;
     }
-#endif
+
     if (status.code != ExtensionCode::EXT_SUCCESS) {
       LOG(INFO) << "Extension UUID " << uuid << " ping failed";
       failures_[uuid] += 1;
     } else {
       failures_[uuid] = 0;
     }
+#endif
   }
 
   for (const auto& uuid : failures_) {
@@ -255,6 +263,7 @@ void loadExtensions() {
   }
 }
 
+#ifndef WIN32
 void loadModules() {
   auto status =
       loadModules(fs::path(FLAGS_modules_autoload).make_preferred().string());
@@ -262,6 +271,7 @@ void loadModules() {
     VLOG(1) << "Could not autoload modules: " << status.what();
   }
 }
+#endif
 
 static bool isFileSafe(std::string& path, ExtenableTypes type) {
   boost::trim(path);

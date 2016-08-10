@@ -522,8 +522,10 @@ void Initializer::initActivePlugin(const std::string& type,
 }
 
 void Initializer::start() const {
+#ifndef WIN32
   // Load registry/extension modules before extensions.
   osquery::loadModules();
+#endif
 
   // Pre-extension manager initialization options checking.
   // If the shell or daemon does not need extensions and it will exit quickly,
