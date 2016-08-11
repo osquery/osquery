@@ -65,7 +65,7 @@ int profile(int argc, char *argv[]) {
   }
 
   if (osquery::FLAGS_profile_delay > 0) {
-    osquery::sleepFor(osquery::FLAGS_profile_delay);
+    osquery::sleepFor(osquery::FLAGS_profile_delay * 1000);
   }
 
   // Perform some duplication from Initializer with respect to database setup.
@@ -156,9 +156,9 @@ int main(int argc, char *argv[]) {
   runner.initWorkerWatcher();
 
   // Check for shell-specific switches and positional arguments.
-  if (argc > 1 || !osquery::platformIsatty(stdin) || osquery::FLAGS_A.size() > 0 ||
-      osquery::FLAGS_pack.size() > 0 || osquery::FLAGS_L ||
-      osquery::FLAGS_profile > 0) {
+  if (argc > 1 || !osquery::platformIsatty(stdin) ||
+      osquery::FLAGS_A.size() > 0 || osquery::FLAGS_pack.size() > 0 ||
+      osquery::FLAGS_L || osquery::FLAGS_profile > 0) {
     // A query was set as a positional argument, via stdin, or profiling is on.
     osquery::FLAGS_disable_events = true;
     osquery::FLAGS_disable_caching = true;
