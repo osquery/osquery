@@ -15,6 +15,15 @@ else()
   set(BUILD_DEPS "/usr/local/osquery")
 endif()
 
+if(WIN32)
+  set(WINDOWS_DEP_DIR "$ENV{ChocolateyInstall}/lib")
+  string(REGEX REPLACE "\\\\" "/" WINDOWS_DEP_DIR ${WINDOWS_DEP_DIR})
+  list(APPEND WINDOWS_DEP_LIST ${WINDOWS_DEP_DIR})
+  list(APPEND WINDOWS_DEP_LIST "$ENV{HOMEDRIVE}/local/boost-msvc14")
+
+  list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/*/tools")
+endif()
+
 # If no explicit compiler override and clang++ exists, prefer clang.
 find_program(CLANGXX_EXISTS "clang++" ENV PATH)
 if(DEFINED ENV{CC})
@@ -70,17 +79,15 @@ endif()
 set(C_COMPILE_FLAGS "")
 set(CXX_COMPILE_FLAGS "")
 
-if(NOT WIN32)
-  find_program(THRIFT_COMPILER "thrift" ENV PATH)
-  find_program(PYTHON_EXECUTABLE "python" ENV PATH)
-endif()
+find_program(PYTHON_EXECUTABLE "python" ENV PATH)
+find_program(THRIFT_COMPILER "thrift" ENV PATH)
 
 # Use osquery language to set platform/os
 if(DEFINED ENV{OSQUERY_PLATFORM})
   set(PLATFORM "$ENV{OSQUERY_PLATFORM}")
 else()
   execute_process(
-    COMMAND python "${CMAKE_SOURCE_DIR}/tools/get_platform.py"
+    COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/get_platform.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE PLATFORM
     OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -122,6 +129,7 @@ elseif(WIN32)
   # C++11 features should be on by default in 2012 and beyond.
   set(OS_WHOLELINK_PRE "-WHOLEARCHIVE:")
   set(OS_WHOLELINK_POST "")
+  set(WINDOWS TRUE)
 else()
   set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
   set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
@@ -130,11 +138,8 @@ else()
   # component-specific globbing is needed.
   if(${OSQUERY_BUILD_PLATFORM} STREQUAL "freebsd")
     set(FREEBSD TRUE)
-    set(LINUX FALSE)
-    set(ENV{SKIP_BENCHMARKS} "TRUE")
   else()
     set(LINUX TRUE)
-    set(FREEBSD FALSE)
   endif()
 endif()
 
@@ -145,7 +150,7 @@ set(ENV{SKIP_BENCHMARKS} TRUE)
 if(DEFINED ENV{DEBUG})
   set(DEBUG TRUE)
   set(CMAKE_BUILD_TYPE "Debug")
-  if(WIN32)
+  if(WINDOWS)
     # TODO(#1985): Is there a MSVC flag congruent to -fstandalone-debug?
     add_compile_options(
       /Zi
@@ -182,7 +187,7 @@ elseif(DEFINED ENV{SANITIZE})
   add_definitions(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
 else()
   set(DEBUG FALSE)
-  if(WIN32)
+  if(WINDOWS)
     add_compile_options(/Ot)
   else()
     add_compile_options(-Os)
@@ -191,20 +196,23 @@ else()
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
 
-  # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
-  # To be safe, only include them when building 'release' outputs.
-  add_compile_options(
-    -fPIE
-    -fpie
-    -fPIC
-    -fpic
-  )
+  # Visual Studio does not support generation of PIC code
+  if(NOT WINDOWS)
+    # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
+    # To be safe, only include them when building 'release' outputs.
+    add_compile_options(
+      -fPIE
+      -fpie
+      -fPIC
+      -fpic
+    )
+  endif()
 endif()
 # Generate a compile_commands.json for static analyzer input.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT DEFINED ENV{OPTIMIZED})
-  if(WIN32)
+  if(WINDOWS)
     # It is unclear if AVX must be managed on Windows.
     add_compile_options(/favor:AMD64)
   else()
@@ -215,7 +223,7 @@ endif()
 # make analyze (environment variable from Makefile)
 if(DEFINED ENV{ANALYZE})
   # TODO(#1985): clang-analyze on Windows
-  if(WIN32)
+  if(WINDOWS)
     message(FATAL_ERROR "Cannot analyze on Windows right now." )
   else()
     set(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/tools/analysis/clang-analyze.sh")
@@ -310,37 +318,28 @@ if(APPLE)
   LOG_PLATFORM("OS X")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "debian")
   set(DEBIAN_BASED TRUE)
-  set(DEBIAN TRUE)
   LOG_PLATFORM("Debian")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "ubuntu")
   set(DEBIAN_BASED TRUE)
-  set(UBUNTU TRUE)
   LOG_PLATFORM("Ubuntu")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "centos")
   set(REDHAT_BASED TRUE)
-  set(CENTOS TRUE)
   LOG_PLATFORM("CentOS")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "scientific")
   set(REDHAT_BASED TRUE)
-  set(SCIENTIFIC TRUE)
   LOG_PLATFORM("Scientific Linux")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "rhel")
   set(REDHAT_BASED TRUE)
-  set(RHEL TRUE)
   LOG_PLATFORM("RHEL")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "amazon")
   set(REDHAT_BASED TRUE)
-  set(AMAZON TRUE)
   LOG_PLATFORM("Amazon Linux")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "oracle")
   set(REDHAT_BASED TRUE)
-  set(ORACLE TRUE)
   LOG_PLATFORM("Oracle Linux")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "freebsd")
-  set(FREEBSD TRUE)
   LOG_PLATFORM("FreeBSD")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "windows")
-  set(WINDOWS TRUE)
   LOG_PLATFORM("Windows")
 endif()
 
@@ -363,7 +362,7 @@ elseif(LINUX)
   include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third-party/sysroots/linux")
 endif()
 
-if(NOT WIN32)
+if(NOT WINDOWS)
   include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   include_directories(SYSTEM "${BUILD_DEPS}/include")
   include_directories("${BUILD_DEPS}/include/openssl")
@@ -374,91 +373,77 @@ include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 
 set(MKDIR_OPTS "")
-if(WIN32)
+if(WINDOWS)
   set(PROCESS_FAMILY "windows")
-
-  set(WINDOWS_DEP_DIR "$ENV{ChocolateyInstall}/lib")
-  string(REGEX REPLACE "\\\\" "/" WINDOWS_DEP_DIR ${WINDOWS_DEP_DIR})
-  set(BOOST_DEP_DIR "$ENV{HOMEDRIVE}/local/boost-msvc14")
-
-  # Win64 specific BZIP2 variables
-  set(BZIP2_INCLUDE_DIR "${WINDOWS_DEP_DIR}/bzip2/local/include")
-  set(BZIP2_LIBRARIES "${WINDOWS_DEP_DIR}/bzip2/local/lib/libbz2.lib")
-
-  # Win64 specific OpenSSL variables
-  set(OPENSSL_ROOT_DIR "${WINDOWS_DEP_DIR}/openssl/local/lib")
-  set(OPENSSL_INCLUDE_DIR "${WINDOWS_DEP_DIR}/openssl/local/include")
-  set(OPENSSL_CRYPTO_LIBRARY "${WINDOWS_DEP_DIR}/openssl/local/lib/libeay32.lib")
-  set(OPENSSL_SSL_LIBRARY "${WINDOWS_DEP_DIR}/openssl/local/lib/ssleay32.lib")
-  set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
-  set(OPENSSL_USE_STATIC_LIBS TRUE)
-
-  # Win64 specific Thrift
-  set(THRIFT_INCLUDE_DIR "${WINDOWS_DEP_DIR}/thrift-dev/local/include")
-  set(thrift_library "${WINDOWS_DEP_DIR}/thrift-dev/local/lib/thriftmd.lib")
-  set(THRIFT_COMPILER "${WINDOWS_DEP_DIR}/thrift/tools/thrift.exe")
-
-  # Win64 specific rocksdb
-  set(ROCKSDB_STATIC_LIBRARY "${WINDOWS_DEP_DIR}/rocksdb/local/lib/rocksdblib.lib")
-  set(ROCKSDB_SNAPPY_LIBRARY "${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/native/snappy64.lib")
-
-  # Win64 specific doxygen
-  set(DOXYGEN_EXECUTABLE "${WINDOWS_DEP_DIR}/doxygen/tools/doxygen.exe")
-
-  # Win64 specific boost
-  set(boost_filesystem_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_filesystem-vc140-mt-1_59.lib")
-  set(boost_system_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_system-vc140-mt-1_59.lib")
-  set(boost_regex_library "${BOOST_DEP_DIR}/lib64-msvc-14.0/libboost_regex-vc140-mt-1_59.lib")
 
   # Win64 specific gflags
   set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared gtest library" FORCE)
-  set(gflags_library "${WINDOWS_DEP_DIR}/gflags-dev/local/lib/gflags_static.lib")
 
-  # Win64 specific glog
-  set(glog_library "${WINDOWS_DEP_DIR}/glog/local/lib/glog.lib")
+  include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14/boost")
+  include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14")
+  file(GLOB INCLUDE_DIRS LIST_DIRECTORIES true "${WINDOWS_DEP_DIR}/*/*/include")
+  include_directories(${INCLUDE_DIRS})
 
-  # Win64 specific cpp-netlib library
-  set(cppnetlib-uri_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-uri.lib")
-  set(cppnetlib-client-connections_library "${WINDOWS_DEP_DIR}/cpp-netlib/local/lib/cppnetlib-client-connections.lib")
-
-
-  include_directories("${THRIFT_INCLUDE_DIR}")
-  include_directories("${BOOST_DEP_DIR}")
-  include_directories("${BOOST_DEP_DIR}/boost")
-  include_directories("${WINDOWS_DEP_DIR}/glog/local/include")
-  include_directories("${WINDOWS_DEP_DIR}/gflags-dev/local/include")
-
-  # TODO(FIXME): temporary for now
-  include_directories("${WINDOWS_DEP_DIR}/cpp-netlib/local/include")
+  ## TODO(FIXME): temporary for now
   include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
   include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")
-  include_directories("${WINDOWS_DEP_DIR}/rocksdb/local/include")
-
-  # TODO(#1990): We probably need to add our third-party link directories here
-  link_directories("${BOOST_DEP_DIR}/lib64-msvc-14.0")
-  link_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/lib")
 else()
   set(PROCESS_FAMILY "posix")
   set(MKDIR_OPTS "-p")
+endif()
+
+if(WINDOWS)
+  foreach(DEP_DIR ${WINDOWS_DEP_LIST})
+    file(GLOB_RECURSE WINDOWS_LOCAL_LIB_DIRS LIST_DIRECTORIES false "${DEP_DIR}/*.lib")
+    foreach(LIB_FILE ${WINDOWS_LOCAL_LIB_DIRS})
+      get_filename_component(LIB_DIR ${LIB_FILE} DIRECTORY)
+      list(APPEND OS_LIB_DIRS ${LIB_DIR})
+    endforeach()
+  endforeach()
+  list(REMOVE_DUPLICATES OS_LIB_DIRS)
+  link_directories(${OS_LIB_DIRS})
+else()
+  set(OS_LIB_DIRS
+    "/lib"
+    "/lib64"
+    "/usr/lib"
+    "/usr/lib64"
+    "/usr/lib/x86_64-linux-gnu/"
+    )
 endif()
 
 # Make sure the generated paths exist
 execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
 
 # We need to link some packages as dynamic/dependent.
-set(CMAKE_FIND_LIBRARY_SUFFIXES .dll .dylib .so .a)
+set(CMAKE_FIND_LIBRARY_SUFFIXES .lib .dylib .so .a)
 
 # Most dependent packages/libs we want static.
 if(DEFINED ENV{BUILD_LINK_SHARED})
   set(ENV{OSQUERY_BUILD_LINK_SHARED} TRUE)
 endif()
 if(NOT DEFINED ENV{OSQUERY_BUILD_LINK_SHARED})
-  set(CMAKE_FIND_LIBRARY_SUFFIXES .a .dylib .so)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a .dylib .so)
 endif()
 
 # Previously, this would find_package for Gtest.
 # We can supply the known include paths within each test as compile flags.
 enable_testing()
+# Detect TR1 usage.
+include(CheckIncludeFileCXX)
+check_include_file_cxx("tr1/tuple" HAVE_TR1_TUPLE)
+if("${HAVE_TR1_TUPLE}" STREQUAL "")
+  set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=1")
+else()
+  set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=0")
+endif()
+
+set(GTEST_FLAGS
+  ${GTEST_FLAGS}
+  "-I${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0/include"
+  "-I${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0/include"
+)
+join("${GTEST_FLAGS}" " " GTEST_FLAGS)
 
 include(Thrift)
 
@@ -474,7 +459,9 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
 endif()
 
 # Packages must be included after all other CMake includes.
-include(Packages)
+if(NOT ${OSQUERY_BUILD_SDK_ONLY})
+  include(Packages)
+endif()
 
 # make docs
 find_package(Doxygen)

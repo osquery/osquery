@@ -65,7 +65,7 @@ int profile(int argc, char *argv[]) {
   }
 
   if (osquery::FLAGS_profile_delay > 0) {
-    osquery::sleepFor(osquery::FLAGS_profile_delay);
+    osquery::sleepFor(osquery::FLAGS_profile_delay * 1000);
   }
 
   // Perform some duplication from Initializer with respect to database setup.
@@ -149,16 +149,16 @@ char **table_completion_function(const char *text, int start, int end) {
 
 int main(int argc, char *argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.
-  osquery::Initializer runner(argc, argv, osquery::OSQUERY_TOOL_SHELL);
+  osquery::Initializer runner(argc, argv, osquery::ToolType::SHELL);
 
   // The shell will not use a worker process.
   // It will initialize a watcher thread for potential auto-loaded extensions.
   runner.initWorkerWatcher();
 
   // Check for shell-specific switches and positional arguments.
-  if (argc > 1 || !osquery::platformIsatty(stdin) || osquery::FLAGS_A.size() > 0 ||
-      osquery::FLAGS_pack.size() > 0 || osquery::FLAGS_L ||
-      osquery::FLAGS_profile > 0) {
+  if (argc > 1 || !osquery::platformIsatty(stdin) ||
+      osquery::FLAGS_A.size() > 0 || osquery::FLAGS_pack.size() > 0 ||
+      osquery::FLAGS_L || osquery::FLAGS_profile > 0) {
     // A query was set as a positional argument, via stdin, or profiling is on.
     osquery::FLAGS_disable_events = true;
     osquery::FLAGS_disable_caching = true;

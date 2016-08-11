@@ -65,9 +65,17 @@ Status TLSLoggerPlugin::setUp() {
     // Could not generate a node key, continue logging to stderr.
     return Status(1, "No node key, TLS logging disabled.");
   }
+
   // Start the log forwarding/flushing thread.
   forwarder_ = std::make_shared<TLSLogForwarder>(node_key);
+  Status s = forwarder_->setUp();
+  if (!s.ok()) {
+    LOG(ERROR) << "Error initializing TLS logger: " << s.getMessage();
+    return s;
+  }
+
   Dispatcher::addService(forwarder_);
+
   return Status(0);
 }
 

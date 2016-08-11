@@ -83,7 +83,7 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
 }
 
 void daemonEntry(int argc, char *argv[]) {
-  osquery::Initializer runner(argc, argv, osquery::OSQUERY_TOOL_DAEMON);
+  osquery::Initializer runner(argc, argv, osquery::ToolType::DAEMON);
 
   if (!runner.isWorker()) {
     runner.initDaemon();

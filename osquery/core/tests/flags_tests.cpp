@@ -137,4 +137,22 @@ TEST_F(FlagsTests, test_alias_types) {
   auto value2 = (std::string)FLAGS_test_string_alias;
   EXPECT_EQ(value, "test3");
 }
+
+TEST_F(FlagsTests, test_platform) {
+  PlatformType mPlatformType = PlatformType::TYPE_POSIX;
+  EXPECT_TRUE(isPlatform(PlatformType::TYPE_POSIX, mPlatformType));
+
+  mPlatformType = PlatformType::TYPE_OSX | PlatformType::TYPE_POSIX;
+  EXPECT_TRUE(isPlatform(PlatformType::TYPE_POSIX, mPlatformType));
+  EXPECT_TRUE(isPlatform(PlatformType::TYPE_OSX, mPlatformType));
+
+  // Now set and check a valid casting.
+  mPlatformType = static_cast<PlatformType>(8);
+  EXPECT_EQ(PlatformType::TYPE_LINUX, mPlatformType);
+
+  // Set something that doesn't make sense
+  mPlatformType = PlatformType::TYPE_WINDOWS | PlatformType::TYPE_BSD;
+  EXPECT_FALSE(isPlatform(PlatformType::TYPE_LINUX, mPlatformType));
+  EXPECT_FALSE(isPlatform(PlatformType::TYPE_OSX, mPlatformType));
+}
 }

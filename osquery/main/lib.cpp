@@ -14,8 +14,12 @@
 
 // If CMake/gmake did not define a build version set the version to 1.0.
 // clang-format off
-#ifndef OSQUERY_BUILD_VERSION
+#if !defined(OSQUERY_BUILD_VERSION)
+#warning The build should define OSQUERY_BUILD_VERSION.
 #define OSQUERY_BUILD_VERSION 1.0.0-unknown
+#endif
+#if !defined(OSQUERY_PLATFORM_MASK)
+#error The build must define OSQUERY_PLATFORM_MASK.
 #endif
 // clang-format on
 
@@ -28,4 +32,5 @@ const std::string kVersion = STR(OSQUERY_BUILD_VERSION);
 #endif
 const std::string kSDKVersion = OSQUERY_SDK_VERSION;
 const std::string kSDKPlatform = OSQUERY_PLATFORM;
+const PlatformType kPlatformType = static_cast<PlatformType>(OSQUERY_PLATFORM_MASK);
 }

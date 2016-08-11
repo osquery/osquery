@@ -118,11 +118,13 @@ class BOM {
   BOM(const char* data, size_t size);
 
   /// Helper to check if the header parsing completed.
-  bool isValid() { return valid_; }
+  bool isValid() const { return valid_; }
 
-  /// Lookup a BOM pointer and optionally, it's size.
+  /// Lookup a BOM pointer and optionally, its size.
   const char* getPointer(int index, size_t* length = nullptr) const;
+
   const BOMPaths* getPaths(int index) const;
+
   const BOMVar* getVariable(size_t* offset) const;
 
  private:
@@ -131,13 +133,13 @@ class BOM {
   bool valid_;
 
  private:
-  size_t vars_offset_;
-  size_t table_offset_;
+  size_t vars_offset_{0};
+  size_t table_offset_{0};
 
  public:
-  const BOMHeader* Header;
-  const BOMBlockTable* Table;
-  const BOMVars* Vars;
+  const BOMHeader* Header{nullptr};
+  const BOMBlockTable* Table{nullptr};
+  const BOMVars* Vars{nullptr};
 };
 }
 }

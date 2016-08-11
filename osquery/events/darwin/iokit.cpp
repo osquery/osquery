@@ -15,9 +15,14 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/darwin/iokit.h"
-#include "osquery/tables/system/darwin/iokit_utils.h"
 
 namespace osquery {
+
+const std::string kIOUSBDeviceClassName_ = "IOUSBDevice";
+const std::string kIOPCIDeviceClassName_ = "IOPCIDevice";
+const std::string kIOPlatformExpertDeviceClassName_ = "IOPlatformExpertDevice";
+const std::string kIOACPIPlatformDeviceClassName_ = "IOACPIPlatformDevice";
+const std::string kIOPlatformDeviceClassname_ = "IOPlatformDevice";
 
 REGISTER(IOKitEventPublisher, "event_publisher", "iokit");
 
@@ -30,13 +35,68 @@ struct DeviceTracker : private boost::noncopyable {
   io_object_t notification{0};
 };
 
+IOKitPCIProperties::IOKitPCIProperties(const std::string& compatible) {
+  auto properties = osquery::split(compatible, " ");
+  if (properties.size() < 2) {
+    return;
+  }
+
+  size_t prop_index = 0;
+  if (properties[1].find("pci") == 0 && properties[1].find("pciclass") != 0) {
+    // There are two sets of PCI definitions.
+    prop_index = 1;
+  } else if (properties[0].find("pci") != 0) {
+    return;
+  }
+
+  auto vendor = osquery::split(properties[prop_index++], ",");
+  vendor_id = vendor[0].substr(3);
+  model_id = (vendor[1].size() == 3) ? "0" + vendor[1] : vendor[1];
+
+  if (properties[prop_index].find("pciclass") == 0) {
+    // There is a class definition.
+    pci_class = properties[prop_index++].substr(9);
+  }
+
+  if (properties.size() > prop_index) {
+    // There is a driver/ID.
+    driver = properties[prop_index];
+  }
+}
+
+std::string getIOKitProperty(const CFMutableDictionaryRef& details,
+                             const std::string& key) {
+  std::string value;
+
+  // Get a property from the device.
+  auto cfkey = CFStringCreateWithCString(
+      kCFAllocatorDefault, key.c_str(), kCFStringEncodingUTF8);
+  auto property = CFDictionaryGetValue(details, cfkey);
+  CFRelease(cfkey);
+
+  // Several supported ways of parsing IOKit-encoded data.
+  if (property) {
+    if (CFGetTypeID(property) == CFNumberGetTypeID()) {
+      value = stringFromCFNumber((CFDataRef)property);
+    } else if (CFGetTypeID(property) == CFStringGetTypeID()) {
+      value = stringFromCFString((CFStringRef)property);
+    } else if (CFGetTypeID(property) == CFDataGetTypeID()) {
+      value = stringFromCFData((CFDataRef)property);
+    } else if (CFGetTypeID(property) == CFBooleanGetTypeID()) {
+      value = (CFBooleanGetValue((CFBooleanRef)property)) ? "1" : "0";
+    }
+  }
+
+  return value;
+}
+
 void IOKitEventPublisher::restart() {
   static std::vector<const std::string*> device_classes = {
-      &tables::kIOUSBDeviceClassName_,
-      &tables::kIOPCIDeviceClassName_,
-      &tables::kIOPlatformExpertDeviceClassName_,
-      &tables::kIOACPIPlatformDeviceClassName_,
-      &tables::kIOPlatformDeviceClassname_,
+      &kIOUSBDeviceClassName_,
+      &kIOPCIDeviceClassName_,
+      &kIOPlatformExpertDeviceClassName_,
+      &kIOACPIPlatformDeviceClassName_,
+      &kIOPlatformDeviceClassname_,
   };
 
   if (run_loop_ == nullptr) {
@@ -98,34 +158,34 @@ void IOKitEventPublisher::newEvent(const io_service_t& device,
   CFMutableDictionaryRef details;
   IORegistryEntryCreateCFProperties(
       device, &details, kCFAllocatorDefault, kNilOptions);
-  if (ec->type == tables::kIOUSBDeviceClassName_) {
-    ec->path = tables::getIOKitProperty(details, "USB Address") + ":";
-    ec->path += tables::getIOKitProperty(details, "PortNum");
-    ec->model = tables::getIOKitProperty(details, "USB Product Name");
-    ec->model_id = tables::getIOKitProperty(details, "idProduct");
-    ec->vendor = tables::getIOKitProperty(details, "USB Vendor Name");
-    ec->vendor_id = tables::getIOKitProperty(details, "idVendor");
-    tables::idToHex(ec->vendor_id);
-    tables::idToHex(ec->model_id);
-    ec->serial = tables::getIOKitProperty(details, "USB Serial Number");
+  if (ec->type == kIOUSBDeviceClassName_) {
+    ec->path = getIOKitProperty(details, "USB Address") + ":";
+    ec->path += getIOKitProperty(details, "PortNum");
+    ec->model = getIOKitProperty(details, "USB Product Name");
+    ec->model_id = getIOKitProperty(details, "idProduct");
+    ec->vendor = getIOKitProperty(details, "USB Vendor Name");
+    ec->vendor_id = getIOKitProperty(details, "idVendor");
+    idToHex(ec->vendor_id);
+    idToHex(ec->model_id);
+    ec->serial = getIOKitProperty(details, "USB Serial Number");
     if (ec->serial.size() == 0) {
-      ec->serial = tables::getIOKitProperty(details, "iSerialNumber");
+      ec->serial = getIOKitProperty(details, "iSerialNumber");
     }
     ec->version = "";
-    ec->driver = tables::getIOKitProperty(details, "IOUserClientClass");
-  } else if (ec->type == tables::kIOPCIDeviceClassName_) {
-    auto compatible = tables::getIOKitProperty(details, "compatible");
-    auto properties = tables::IOKitPCIProperties(compatible);
+    ec->driver = getIOKitProperty(details, "IOUserClientClass");
+  } else if (ec->type == kIOPCIDeviceClassName_) {
+    auto compatible = getIOKitProperty(details, "compatible");
+    auto properties = IOKitPCIProperties(compatible);
     ec->model_id = properties.model_id;
     ec->vendor_id = properties.vendor_id;
     ec->driver = properties.driver;
     if (ec->driver.empty()) {
-      ec->driver = tables::getIOKitProperty(details, "IOName");
+      ec->driver = getIOKitProperty(details, "IOName");
     }
 
-    ec->path = tables::getIOKitProperty(details, "pcidebug");
-    ec->version = tables::getIOKitProperty(details, "revision-id");
-    ec->model = tables::getIOKitProperty(details, "model");
+    ec->path = getIOKitProperty(details, "pcidebug");
+    ec->version = getIOKitProperty(details, "revision-id");
+    ec->model = getIOKitProperty(details, "model");
   } else {
     // Get the name as the model.
     io_name_t name = {0};

@@ -19,7 +19,7 @@
 const std::string kWatcherWorkerName = "osqueryd: worker";
 
 int main(int argc, char* argv[]) {
-  osquery::Initializer runner(argc, argv, osquery::OSQUERY_TOOL_DAEMON);
+  osquery::Initializer runner(argc, argv, osquery::ToolType::DAEMON);
 
   if (!runner.isWorker()) {
     runner.initDaemon();

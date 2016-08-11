@@ -94,7 +94,7 @@ REGISTER_EXTERNAL(ExampleTable, "table", "example");
 REGISTER_EXTERNAL(ComplexExampleTable, "table", "complex_example");
 
 int main(int argc, char* argv[]) {
-  osquery::Initializer runner(argc, argv, OSQUERY_EXTENSION);
+  osquery::Initializer runner(argc, argv, ToolType::EXTENSION);
 
   auto status = startExtension("example", "0.0.1");
   if (!status.ok()) {

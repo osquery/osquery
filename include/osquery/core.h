@@ -38,6 +38,47 @@
 #define USED_SYMBOL __attribute__((used))
 #endif
 
+/**
+ * @brief Platform specific code isolation and define-based conditionals.
+ *
+ * The following preprocessor defines are expected to be available for all
+ * osquery code. Please use them sparingly and prefer the run-time detection
+ * methods first. See the %PlatformType class and %isPlatform method.
+ *
+ * OSQUERY_BUILD_PLATFORM: For Linux, this is the distro name, for OS X this is
+ *   darwin, and on Windows it is windows. The set of potential values comes
+ *   the ./tools/platform scripts and may be overridden.
+ * OSQUERY_BUILD_DISTRO: For Linux, this is the version, for OS X this is the
+ *   version (10.10, 10.11, 10.12), for Windows this is Win10.
+ *
+ * OSQUERY_BUILD_VERSION: available as kVersion, the version of osquery.
+ * OSQUERY_SDK_VERSION: available as kSDKVersion, the most recent tag.
+ * OSQUERY_PLATFORM: available as kSDKPlatform, a OSQUERY_BUILD_PLATFORM string.
+ * OSQUERY_PLATFORM_MASK: a mask of platform features for runtime detection.
+ *   See below for PlatformDetector-related methods.
+ */
+#if !defined(OSQUERY_BUILD_SDK_VERSION)
+#error The build must define OSQUERY_BUILD_SDK_VERSION.
+#elif !defined(OSQUERY_BUILD_PLATFORM)
+#error The build must define OSQUERY_BUILD_PLATFORM.
+#elif !defined(OSQUERY_BUILD_DISTRO)
+#error The build must define OSQUERY_BUILD_DISTRO.
+#endif
+
+/// Use a macro for the sdk/platform literal, symbols available in lib.cpp.
+#define OSQUERY_SDK_VERSION STR(OSQUERY_BUILD_SDK_VERSION)
+#define OSQUERY_PLATFORM STR(OSQUERY_BUILD_PLATFORM)
+
+/**
+ * @brief A series of platform-specific home folders.
+ *
+ * There are several platform-specific folders where osquery reads and writes
+ * content. Most of the variance is due to legacy support.
+ *
+ * OSQUERY_HOME: Configuration, flagfile, extensions and module autoload.
+ * OSQUERY_DB_HOME: Location of RocksDB persistent storage.
+ * OSQUERY_LOG_HOME: Location of log data when the filesystem plugin is used.
+ */
 #if defined(__linux__)
 #define OSQUERY_HOME "/etc/osquery"
 #define OSQUERY_DB_HOME "/var/osquery"
@@ -57,6 +98,39 @@
 
 namespace osquery {
 
+/**
+ * @brief A helpful tool type to report when logging, print help, or debugging.
+ *
+ * The Initializer class attempts to detect the ToolType using the tool name
+ * and some compile time options.
+ */
+enum class ToolType {
+  UNKNOWN = 0,
+  SHELL,
+  DAEMON,
+  TEST,
+  EXTENSION,
+};
+
+/**
+ * @brief A helpful runtime-detection enumeration of platform configurations.
+ *
+ * CMake, or the build tooling, will generate a OSQUERY_PLATFORM_MASK and pass
+ * it to the library compile only.
+ */
+enum class PlatformType {
+  TYPE_POSIX = 0x01,
+  TYPE_WINDOWS = 0x02,
+  TYPE_BSD = 0x04,
+  TYPE_LINUX = 0x08,
+  TYPE_OSX = 0x10,
+  TYPE_FREEBSD = 0x20,
+};
+
+inline PlatformType operator|(PlatformType a, PlatformType b) {
+  return static_cast<PlatformType>(static_cast<int>(a) | static_cast<int>(b));
+}
+
 /// The version of osquery, includes the git revision if not tagged.
 extern const std::string kVersion;
 
@@ -66,40 +140,20 @@ extern const std::string kSDKVersion;
 /// Identifies the build platform of either the core extension.
 extern const std::string kSDKPlatform;
 
-/// Use a macro for the sdk/platform literal, symbols available in lib.cpp.
-#define OSQUERY_SDK_VERSION STR(OSQUERY_BUILD_SDK_VERSION)
-#define OSQUERY_PLATFORM STR(OSQUERY_BUILD_PLATFORM)
+/// The osquery tool type for runtime decisions.
+extern ToolType kToolType;
 
-/**
- * @brief A helpful tool type to report when logging, print help, or debugging.
- */
-enum ToolType {
-  OSQUERY_TOOL_UNKNOWN = 0,
-  OSQUERY_TOOL_SHELL,
-  OSQUERY_TOOL_DAEMON,
-  OSQUERY_TOOL_TEST,
-  OSQUERY_EXTENSION,
-};
+/// The build-defined set of platform types.
+extern const PlatformType kPlatformType;
+
+/// Helper method for platform type detection.
+inline bool isPlatform(PlatformType a, const PlatformType& t = kPlatformType) {
+  return static_cast<int>(t) & static_cast<int>(a);
+}
 
 /// Helper alias for defining mutexes throughout the codebase.
 using Mutex = std::mutex;
 
 /// Helper alias for write locking a mutex.
 using WriteLock = std::lock_guard<Mutex>;
-
-/// Helper alias for read locking a mutex (do not support a ReadMutex).
-// using ReadLock = std::shared_lock<std::shared_mutex>;
-
-/// The osquery tool type for runtime decisions.
-extern ToolType kToolType;
-
-struct InitializerInterface {
-  virtual const char *id() const = 0;
-  virtual void run() const = 0;
-  virtual ~InitializerInterface(){};
-};
-
-extern void registerRegistry(InitializerInterface *const item);
-extern void registerPlugin(InitializerInterface *const item);
-extern void beginRegistryAndPluginInit();
 }

@@ -2,7 +2,7 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_distributed
   distributed.cpp
 )
 
-if(NOT WIN32)
+if(NOT WINDOWS)
   ADD_OSQUERY_LIBRARY(FALSE osquery_distributed_plugins
     plugins/tls.cpp
   )

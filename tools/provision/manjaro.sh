@@ -8,13 +8,13 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 function distro_main() {
-  do_sudo apt-get -y update
+  do_sudo pacman -Syu
 
+  package wget
   package git
+  package unzip
   package gawk
-  package autotools-dev
-  package autopoint
-  package g++
+  package xz
   package ruby
-  package curl
+  package bzip2
 }
