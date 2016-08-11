@@ -450,7 +450,12 @@ endif()
 enable_testing()
 # Detect TR1 usage.
 include(CheckIncludeFileCXX)
-check_include_file_cxx("tr1/tuple" HAVE_TR1_TUPLE)
+if(WINDOWS)
+  check_include_file_cxx("tuple" HAVE_TR1_TUPLE)
+else()
+  check_include_file_cxx("tr1/tuple" HAVE_TR1_TUPLE)
+endif()
+
 if("${HAVE_TR1_TUPLE}" STREQUAL "")
   set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=1")
 else()
@@ -461,6 +466,7 @@ set(GTEST_FLAGS
   ${GTEST_FLAGS}
   "-I${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0/include"
   "-I${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0/include"
+  "-I${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0/gtest/include"
 )
 join("${GTEST_FLAGS}" " " GTEST_FLAGS)
 
