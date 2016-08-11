@@ -142,9 +142,6 @@ else()
   endif()
 endif()
 
-# BUILD BUG: See issue #2112
-set(ENV{SKIP_BENCHMARKS} TRUE)
-
 # make debug (environment variable from Makefile)
 if(DEFINED ENV{DEBUG})
   set(DEBUG TRUE)
