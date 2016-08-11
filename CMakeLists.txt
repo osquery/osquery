@@ -237,6 +237,10 @@ else()
   set(OSQUERY_BUILD_SDK_ONLY FALSE)
 endif()
 
+if(DEFINED ENV{FAST})
+  set(ENV{OSQUERY_BUILD_SHARED} TRUE)
+endif()
+
 # make packages will set release to true and blacklist development features,
 # development plugins, etc.
 if(DEFINED ENV{PACKAGE})
