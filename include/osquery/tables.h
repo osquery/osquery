@@ -622,7 +622,7 @@ class TablePlugin : public Plugin {
   virtual TableColumns columns() const { return TableColumns(); }
 
   /// Define a map of target columns to optional aliases.
-  virtual ColumnAliasSet columnAliases() const { return {}; }
+  virtual ColumnAliasSet columnAliases() const { return ColumnAliasSet(); }
 
   /**
    * @brief Generate a complete table representation.
