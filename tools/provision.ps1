@@ -222,7 +222,7 @@ function Main {
   Update-GitSubmodule
   
   $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
-  $chocoParams = @("-packageParameters", "--AdminFile ${deploymentFile}")
+  $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
   Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
   
   Write-Host "Done." -foregroundcolor Yellow
