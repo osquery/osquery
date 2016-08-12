@@ -379,8 +379,8 @@ if(WINDOWS)
   # Win64 specific gflags
   set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared gtest library" FORCE)
 
-  include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14/boost")
-  include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14")
+  include_directories("${WINDOWS_DEP_DIR}/boost-msvc14/local/boost")
+  include_directories("${WINDOWS_DEP_DIR}/boost-msvc14/local")
   file(GLOB INCLUDE_DIRS LIST_DIRECTORIES true "${WINDOWS_DEP_DIR}/*/*/include")
   include_directories(${INCLUDE_DIRS})
 

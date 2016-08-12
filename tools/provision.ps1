@@ -43,7 +43,7 @@ param(
   # Parse through the locally installed chocolatey packages and look
   # to see if the supplied package already exists
   $found = $false
-  $pktList = $out[1..($out.count - 1)]
+  $pktList = $out
   ForEach ($pkg in $pktList) {
     $name, $version = $pkg -split '\|'
     
