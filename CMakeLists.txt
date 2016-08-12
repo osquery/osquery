@@ -19,7 +19,6 @@ if(WIN32)
   set(WINDOWS_DEP_DIR "$ENV{ChocolateyInstall}/lib")
   string(REGEX REPLACE "\\\\" "/" WINDOWS_DEP_DIR ${WINDOWS_DEP_DIR})
   list(APPEND WINDOWS_DEP_LIST ${WINDOWS_DEP_DIR})
-  list(APPEND WINDOWS_DEP_LIST "$ENV{HOMEDRIVE}/local/boost-msvc14")
 
   list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/*/tools")
 endif()
