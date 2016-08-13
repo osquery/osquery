@@ -18,10 +18,23 @@
 namespace osquery {
 namespace tables {
 
-std::mutex utmpxEnumerationMutex;
+Mutex utmpxEnumerationMutex;
+
+const std::map<size_t, std::string> kLoginTypes = {
+    {EMPTY, "empty"},
+    {RUN_LVL, "runlevel"},
+    {BOOT_TIME, "boot_time"},
+    {NEW_TIME, "new_time"},
+    {OLD_TIME, "old_time"},
+    {INIT_PROCESS, "init"},
+    {LOGIN_PROCESS, "login"},
+    {USER_PROCESS, "user"},
+    {DEAD_PROCESS, "dead"},
+    {ACCOUNTING, "accounting"},
+};
 
 QueryData genLoggedInUsers(QueryContext& context) {
-  std::lock_guard<std::mutex> lock(utmpxEnumerationMutex);
+  WriteLock lock(utmpxEnumerationMutex);
   QueryData results;
   struct utmpx* entry = nullptr;
 
@@ -30,6 +43,11 @@ QueryData genLoggedInUsers(QueryContext& context) {
       continue;
     }
     Row r;
+    if (kLoginTypes.count(entry->ut_type) == 0) {
+      r["type"] = "unknown";
+    } else {
+      r["type"] = kLoginTypes.at(entry->ut_type);
+    }
     r["user"] = TEXT(entry->ut_user);
     r["tty"] = TEXT(entry->ut_line);
     r["host"] = TEXT(entry->ut_host);
