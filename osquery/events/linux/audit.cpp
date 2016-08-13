@@ -47,6 +47,10 @@ enum AuditStatus {
 static const int kAuditMLatency = 1000;
 
 Status AuditEventPublisher::setUp() {
+  if (FLAGS_disable_audit) {
+    return Status(1, "Publisher disabled via configuration");
+  }
+
   handle_ = audit_open();
   if (handle_ <= 0) {
     // Could not open the audit subsystem.
@@ -54,7 +58,7 @@ Status AuditEventPublisher::setUp() {
   }
 
   // The setup can try to enable auditing.
-  if (!FLAGS_disable_audit && FLAGS_audit_allow_config) {
+  if (FLAGS_audit_allow_config) {
     audit_set_enabled(handle_, AUDIT_ENABLED);
   }
 
@@ -70,7 +74,7 @@ Status AuditEventPublisher::setUp() {
   }
 
   // The auditd daemon sets its PID.
-  if (!FLAGS_disable_audit && !immutable_) {
+  if (!immutable_) {
     if (audit_set_pid(handle_, getpid(), WAIT_YES) < 0) {
       // Could not set our process as the userspace auditing daemon.
       return Status(1, "Could not set audit PID");
@@ -98,6 +102,11 @@ void AuditEventPublisher::configure() {
   if (handle_ <= 0 || FLAGS_disable_audit || immutable_) {
     // No configuration or rule manipulation needed.
     // The publisher run loop may still receive audit metadata events.
+    if (!FLAGS_disable_audit && subscriptions_.size() > 0) {
+      // Audit is enabled, with subscriptions, but they cannot be added.
+      VLOG(1)
+          << "Linux audit cannot be configured: no privileges or mutability";
+    }
     return;
   }
 
