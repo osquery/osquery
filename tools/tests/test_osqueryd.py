@@ -90,13 +90,16 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         # An interrupt signal will cause the daemon to stop.
         daemon = self._run_daemon({
             "disable_watchdog": True,
+            "ephemeral": True,
+            "disable_database": True,
+            "disable_logging": True,
         })
         self.assertTrue(daemon.isAlive())
 
         # Send a SIGINT
         os.kill(daemon.pid, signal.SIGINT)
         self.assertTrue(daemon.isDead(daemon.pid, 10))
-        self.assertEqual(daemon.retcode, 128 + signal.SIGINT)
+        self.assertTrue(daemon.retcode in [128 + signal.SIGINT, -2])
 
     @test_base.flaky
     def test_6_logger_mode(self):
