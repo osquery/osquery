@@ -96,6 +96,24 @@ EXTENSION_FLAG_ALIAS(socket, extensions_socket);
 EXTENSION_FLAG_ALIAS(timeout, extensions_timeout);
 EXTENSION_FLAG_ALIAS(interval, extensions_interval);
 
+#ifdef WIN32
+// Time to wait for a busy named pipe, if it exists
+#define NAMED_PIPE_WAIT  500
+
+static Status isNamedPipeValid(const std::string &path) {
+  if (!boost::starts_with(path, "\\\\.\\pipe\\")) {
+    return Status(1, "Bad named pipe name prefix");
+  }
+
+  if ((::WaitNamedPipeA(path.c_str(), NAMED_PIPE_WAIT) == 0) &&
+    (::GetLastError() == ERROR_BAD_PATHNAME)) {
+    return Status(1, "Named pipe does not exist");
+  }
+
+  return Status(0, "OK");
+}
+#endif
+
 void ExtensionWatcher::start() {
   // Watch the manager, if the socket is removed then the extension will die.
   // A check for sane paths and activity is applied before the watcher
@@ -141,8 +159,7 @@ void ExtensionWatcher::watch() {
   bool core_sane = true;
 #ifdef WIN32
   // Check to see if the pipe name is a valid named pipe
-  if (::WaitNamedPipeA(path_.c_str(), 1000) == 0 &&
-      ::GetLastError() == ERROR_BAD_PATHNAME) {
+  if (!isNamedPipeValid(path_).ok()) {
     core_sane = false;
   }
 #else
@@ -182,9 +199,10 @@ void ExtensionManagerWatcher::watch() {
     auto path = getExtensionSocket(uuid);
 #ifdef WIN32
     // Check to see if the pipe name is a valid named pipe
-    if (::WaitNamedPipeA(path.c_str(), 1000) == 0 &&
-      ::GetLastError() == ERROR_BAD_PATHNAME) {
+    if (!isNamedPipeValid(path).ok()) {
       LOG(INFO) << "Extension UUID " << uuid << " ping failed";
+
+      // Immediate fail non-writable paths.
       failures_[uuid] = 3;
     }
 #else
@@ -222,11 +240,6 @@ void ExtensionManagerWatcher::watch() {
 }
 
 Status socketWritable(const fs::path& path) {
-#ifdef WIN32
-  if (!boost::starts_with(path.string(), "\\\\.\\pipe\\")) {
-    return Status(1, "Incorrect named pipe prefix: " + path.string());
-  }
-#else
   if (pathExists(path).ok()) {
     if (!isWritable(path).ok()) {
       return Status(1, "Cannot write extension socket: " + path.string());
@@ -244,7 +257,7 @@ Status socketWritable(const fs::path& path) {
       return Status(1, "Cannot create extension socket: " + path.string());
     }
   }
-#endif
+
   return Status(0, "OK");
 }
 
@@ -357,8 +370,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
 #ifdef WIN32
     // This makes sure the pipe exists in some capacity (could be busy at the
     // moment)
-    if (::WaitNamedPipeA(path.c_str(), 1000) != 0 ||
-        ::GetLastError() != ERROR_BAD_PATHNAME) {
+    if (isNamedPipeValid(path).ok()) {
       return Status(0, "OK");
     }
 #else
@@ -450,7 +462,13 @@ Status startExtension(const std::string& manager_path,
 
   // Now that the uuid is known, try to clean up stale socket paths.
   auto extension_path = getExtensionSocket(ext_status.uuid, manager_path);
+
+#ifdef WIN32
+  status = isNamedPipeValid(extension_path);
+#else
   status = socketWritable(extension_path);
+#endif
+
   if (!status) {
     return status;
   }
@@ -653,7 +671,12 @@ Status startExtensionManager() {
 
 Status startExtensionManager(const std::string& manager_path) {
   // Check if the socket location exists.
+#ifdef WIN32
+  auto status = isNamedPipeValid(manager_path);
+#else
   auto status = socketWritable(manager_path);
+#endif
+
   if (!status.ok()) {
     return status;
   }

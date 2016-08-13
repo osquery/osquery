@@ -401,7 +401,7 @@ void Initializer::initShell() const {
     }
     if (Flag::isDefault("extensions_socket")) {
 #ifdef WIN32
-      osquery::FLAGS_extensions_socket = OSQUERY_SOCKET "\\shell.em";
+      osquery::FLAGS_extensions_socket = "\\\\.\\pipe\\shell.em";
 #else
       osquery::FLAGS_extensions_socket =
           (fs::path(homedir) / "shell.em").make_preferred().string();
