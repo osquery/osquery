@@ -19,7 +19,6 @@ if(WIN32)
   set(WINDOWS_DEP_DIR "$ENV{ChocolateyInstall}/lib")
   string(REGEX REPLACE "\\\\" "/" WINDOWS_DEP_DIR ${WINDOWS_DEP_DIR})
   list(APPEND WINDOWS_DEP_LIST ${WINDOWS_DEP_DIR})
-  list(APPEND WINDOWS_DEP_LIST "$ENV{HOMEDRIVE}/local/boost-msvc14")
 
   list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/*/tools")
 endif()
@@ -379,8 +378,8 @@ if(WINDOWS)
   # Win64 specific gflags
   set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared gtest library" FORCE)
 
-  include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14/boost")
-  include_directories("$ENV{HOMEDRIVE}/local/boost-msvc14")
+  include_directories("${WINDOWS_DEP_DIR}/boost-msvc14/local/boost")
+  include_directories("${WINDOWS_DEP_DIR}/boost-msvc14/local")
   file(GLOB INCLUDE_DIRS LIST_DIRECTORIES true "${WINDOWS_DEP_DIR}/*/*/include")
   include_directories(${INCLUDE_DIRS})
 
