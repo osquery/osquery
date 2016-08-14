@@ -24,31 +24,31 @@ if(WIN32)
 endif()
 
 # If no explicit compiler override and clang++ exists, prefer clang.
-find_program(CLANGXX_EXISTS "clang++" ENV PATH)
+find_program(CLANGXX_EXECUTABLE "clang++" ENV PATH)
 if(DEFINED ENV{CC})
   set(CMAKE_C_COMPILER "$ENV{CC}")
   LOG("Overriding C compiler from clang to $ENV{CC}")
-elseif(CLANGXX_EXISTS)
+elseif(CLANGXX_EXECUTABLE)
   set(CMAKE_C_COMPILER "clang")
 endif()
 if(DEFINED ENV{CXX})
   set(CMAKE_CXX_COMPILER "$ENV{CXX}")
   LOG("Overriding CXX compiler from clang++ to $ENV{CXX}")
-elseif(CLANGXX_EXISTS)
+elseif(CLANGXX_EXECUTABLE)
   set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
-find_program(CCACHE_FOUND ccache ENV PATH)
-if(CCACHE_FOUND)
+find_program(CCACHE_EXECUTABLE ccache ENV PATH)
+if(CCACHE_EXECUTABLE)
   if(NOT DEFINED CCACHE_FOUND_LOG)
     set(CCACHE_FOUND_LOG TRUE CACHE BOOL "Write log line for ccache.")
-    LOG("Found ccache ${CCACHE_FOUND}")
+    LOG("Found ccache ${CCACHE_EXECUTABLE}")
     LOG("Using ccache to speed up compilation")
   endif()
   set(ENV{CCACHE_CPP2} "yes")
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif(CCACHE_FOUND)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_EXECUTABLE}")
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_EXECUTABLE}")
+endif()
 
 if(NOT WIN32)
   add_compile_options(
@@ -86,7 +86,7 @@ if(DEFINED ENV{OSQUERY_PLATFORM})
   set(PLATFORM "$ENV{OSQUERY_PLATFORM}")
 else()
   execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/get_platform.py"
+    COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/get_platform.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE PLATFORM
     OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -464,26 +464,42 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
 endif()
 
 # make docs
-find_package(Doxygen)
-if(DOXYGEN_FOUND)
-  add_custom_target(
-    docs
-    COMMAND "${CMAKE_SOURCE_DIR}/tools/codegen/genapi.py" "${CMAKE_SOURCE_DIR}"
-      "--output" "--directory" "${CMAKE_SOURCE_DIR}/build/docs"
+add_custom_target(
+  docs
+  COMMAND "${PYTHON_EXECUTABLE}"
+    "${CMAKE_SOURCE_DIR}/tools/codegen/genapi.py" "${CMAKE_SOURCE_DIR}"
+    "--output" "--directory" "${CMAKE_SOURCE_DIR}/build/docs"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  COMMENT "Generating API documentation with Doxygen/mkdocs" VERBATIM
+)
+
+find_program(DOXYGEN_EXECUTABLE doxygen ENV PATH)
+if(DOXYGEN_EXECUTABLE)
+  add_custom_command(TARGET docs POST_BUILD
     COMMAND echo "PROJECT_NUMBER=${OSQUERY_BUILD_VERSION}" |
-      cat ${CMAKE_SOURCE_DIR}/Doxyfile - |
-      "${DOXYGEN_EXECUTABLE}" -;
-    COMMAND mkdocs build --clean -s
+      cat ${CMAKE_SOURCE_DIR}/Doxyfile - | "${DOXYGEN_EXECUTABLE}" -;
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Generating API documentation with Doxygen" VERBATIM
   )
-endif(DOXYGEN_FOUND)
+else(DEFINED ENV{DOCS})
+  WARNING_LOG("Cannot find Doxygen executable in path")
+endif()
+
+find_program(MKDOCS_EXECUTABLE mkdocs ENV PATH)
+if(MKDOCS_EXECUTABLE)
+  add_custom_command(TARGET docs POST_BUILD
+    COMMAND "${MKDOCS_EXECUTABLE}" build --clean -s
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  )
+elseif(DEFINED ENV{DOCS})
+  WARNING_LOG("Cannot find mkdocs executable in path")
+endif()
 
 # make format-all
+find_program(CLANGFORMAT_EXECUTABLE "clang-format" ENV PATH)
 add_custom_target(
   format-all
   find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \)
-    -exec clang-format -i {} +
+    -exec "${CLANGFORMAT_EXECUTABLE}" -i {} +
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting all osquery code with clang-format" VERBATIM
 )
@@ -491,7 +507,7 @@ add_custom_target(
 # make format
 add_custom_target(
   format
-  ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
+  "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )

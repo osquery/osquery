@@ -17,6 +17,7 @@ import os
 import sys
 import time
 import subprocess
+import shutil
 import re
 
 def red(msg):
@@ -49,6 +50,16 @@ def write_config(data={}, path=None):
         path = data["options"]["config_path"]
     with open(path, "w") as fh:
         fh.write(json.dumps(data))
+
+
+def reset_dir(p):
+    # Note that files may be added concurrently.
+    # If they are then either of these will fail.
+    shutil.rmtree(p, ignore_errors=True)
+    try:
+        os.makedirs(p)
+    except Exception:
+        pass
 
 
 def platform():

@@ -277,7 +277,6 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
             "extensions_autoload": loader.path,
             "extensions_timeout": EXTENSION_TIMEOUT,
             "config_plugin": "example",
-            "verbose": True,
         })
         self.assertTrue(daemon.isAlive())
 
@@ -343,7 +342,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
     @test_base.flaky
-    def test_10_extensions_settings(self):
+    def test_91_extensions_settings(self):
         loader = test_base.Autoloader(
             [test_base.ARGS.build + "/osquery/example_extension.ext"])
         daemon = self._run_daemon({
@@ -366,6 +365,13 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         # The 'complex_example' table reports several columns.
         # Each is a 'test_type', check each expected value.
         result = em.query("select * from complex_example")
+        if len(result.response) == 0:
+            # There is a brief race between register and registry broadcast
+            # That fast external client fight when querying tables.
+            # Other config/logger plugins have wrappers to retry/wait.
+            time.sleep(0.5)
+            result = em.query("select * from complex_example")
+
         self.assertEqual(result.response[0]['flag_test'], 'false')
         self.assertEqual(result.response[0]['database_test'], '1')
 
