@@ -51,6 +51,11 @@ void InterruptableRunnable::interrupt() {
 
 bool InterruptableRunnable::interrupted() {
   WriteLock lock(stopping_);
+  // A small conditional to force-skip an interruption check, used in testing.
+  if (bypass_check_ && !checked_) {
+    checked_ = true;
+    return false;
+  }
   return interrupted_;
 }
 
@@ -106,14 +111,26 @@ void Dispatcher::removeService(const InternalRunnable* service) {
       self.services_.end());
 }
 
+inline static void assureRun(const InternalRunnableRef& service) {
+  while (true) {
+    // Wait for each thread's entry point (start) meaning the thread context
+    // was allocated and (run) was called by std::thread started.
+    if (service->hasRun()) {
+      break;
+    }
+    // We only need to check if std::terminate is called very quickly after
+    // the std::thread is created.
+    sleepFor(20);
+  }
+}
+
 void Dispatcher::joinServices() {
   auto& self = instance();
   DLOG(INFO) << "Thread: " << std::this_thread::get_id()
              << " requesting a join";
   WriteLock join_lock(self.join_mutex_);
+
   for (auto& thread : self.service_threads_) {
-    // Boost threads would have been interrupted, and joined using the
-    // provided thread instance.
     thread->join();
     DLOG(INFO) << "Service thread: " << thread.get() << " has joined";
   }
@@ -133,16 +150,7 @@ void Dispatcher::stopServices() {
   DLOG(INFO) << "Thread: " << std::this_thread::get_id()
              << " requesting a stop";
   for (const auto& service : self.services_) {
-    while (true) {
-      // Wait for each thread's entry point (start) meaning the thread context
-      // was allocated and (run) was called by std::thread started.
-      if (service->hasRun()) {
-        break;
-      }
-      // We only need to check if std::terminate is called very quickly after
-      // the std::thread is created.
-      sleepFor(20);
-    }
+    assureRun(service);
     service->interrupt();
     DLOG(INFO) << "Service: " << service.get() << " has been interrupted";
   }
