@@ -87,7 +87,7 @@ int profile(int argc, char *argv[]) {
   }
 
   if (osquery::FLAGS_profile_delay > 0) {
-    osquery::sleepFor(osquery::FLAGS_profile_delay);
+    osquery::sleepFor(osquery::FLAGS_profile_delay * 1000);
   }
 
   return 0;
