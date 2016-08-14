@@ -43,10 +43,18 @@ RANGES = {
 def check_leaks_linux(shell, query, count=1, supp_file=None):
     """Run valgrind using the shell and a query, parse leak reports."""
     suppressions = "" if supp_file is None else "--suppressions=%s" % supp_file
-    cmd = "valgrind --tool=memcheck %s %s --iterations=%d --query=\"%s\"" % (
-        suppressions, shell, count, query)
+    cmd = [
+        "valgrind",
+        "--tool=memcheck",
+        suppressions,
+        shell,
+        "--profile",
+        "%d" % count,
+        "--query",
+        query,
+    ]
     proc = subprocess.Popen(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     _, stderr = proc.communicate()
     summary = {
@@ -60,6 +68,8 @@ def check_leaks_linux(shell, query, count=1, supp_file=None):
         for key in summary:
             if line.find(key) >= 0:
                 summary[key] = line.split(":")[1].strip()
+    if summary["definitely"] is None:
+        raise Exception("Could not execute valgrind correctly")
     return summary
 
 

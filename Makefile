@@ -30,10 +30,10 @@ ifneq ($(OSQUERY_DEPS),)
 else
 	DEPS_DIR = /usr/local/osquery
 endif
-CMAKE := PATH="$(DEPS_DIR)/bin:$(PATH)" CXXFLAGS="-L$(DEPS_DIR)/lib" \
-		cmake ../../
-DOCS_CMAKE := PATH="$(DEPS_DIR)/bin:$(PATH)" CXXFLAGS="-L$(DEPS_DIR)/lib" \
-		cmake ../
+CMAKE := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)" \
+		CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../../
+DOCS_CMAKE := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)" \
+		CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../
 
 DEFINES := CTEST_OUTPUT_ON_FAILURE=1
 .PHONY: docs build
@@ -43,7 +43,7 @@ all: .setup
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 docs: .setup
-	@cd build && $(DOCS_CMAKE) && \
+	@cd build && DOCS=True $(DOCS_CMAKE) && \
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
 
 debug: .setup
