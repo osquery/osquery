@@ -30,10 +30,10 @@ ifneq ($(OSQUERY_DEPS),)
 else
 	DEPS_DIR = /usr/local/osquery
 endif
-CMAKE := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)" \
-		CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../../
-DOCS_CMAKE := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)" \
-		CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../
+PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
+CMAKE := $(PATH_SET) CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../../
+DOCS_CMAKE := $(PATH_SET) CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../
+FORMAT_COMMAND := python tools/formatting/git-clang-format.py "--commit" "master" "-f"
 
 DEFINES := CTEST_OUTPUT_ON_FAILURE=1
 .PHONY: docs build
@@ -45,6 +45,9 @@ all: .setup
 docs: .setup
 	@cd build && DOCS=True $(DOCS_CMAKE) && \
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
+
+format_master:
+	@$(PATH_SET) $(FORMAT_COMMAND)
 
 debug: .setup
 	@cd build/debug_$(BUILD_DIR) && DEBUG=True $(CMAKE) && \
@@ -78,9 +81,13 @@ test_debug_sdk: .setup
 	@cd build/debug_$(BUILD_DIR) && SDK=True DEBUG=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
-build:
-	cd build/$(BUILD_DIR) && \
-		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
+check:
+	@$(PATH_SET) cppcheck --quiet --enable=all --error-exitcode=0 \
+		-I ./include ./osquery
+	# We want check to produce an error if there are critical issues.
+	@echo ""
+	@$(PATH_SET) cppcheck --quiet --enable=warning --error-exitcode=1 \
+		-I ./include ./osquery
 
 debug_build:
 	cd build/debug_$(BUILD_DIR) && \
@@ -141,7 +148,7 @@ endif
 package: .setup
 	# Alias for packages (do not use CPack)
 	@cd build/$(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
-		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
+		$(DEFINES) $(MAKE) packages/fast --no-print-directory $(MAKEFLAGS)
 
 debug_package: .setup
 	@cd build/debug_$(BUILD_DIR) && DEBUG=True PACKAGE=True $(CMAKE) && \
@@ -149,7 +156,7 @@ debug_package: .setup
 
 packages: .setup
 	@cd build/$(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
-		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
+		$(DEFINES) $(MAKE) packages/fast --no-print-directory $(MAKEFLAGS)
 
 debug_packages:
 	@cd build/debug_$(BUILD_DIR) && DEBUG=True PACKAGE=True $(CMAKE) && \

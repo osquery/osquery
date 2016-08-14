@@ -1,41 +1,65 @@
 ---
+Language:        Cpp
+# BasedOnStyle:  Google
 AccessModifierOffset: -1
-ConstructorInitializerIndentWidth: 4
-AlignEscapedNewlinesLeft: true
-AlignTrailingComments: false
+AlignAfterOpenBracket: true
+AlignEscapedNewlinesLeft: false
+AlignOperands:   true
+AlignTrailingComments: false # differs
+AllowShortBlocksOnASingleLine: false
 AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortIfStatementsOnASingleLine: false
-AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false # differs
+AllowShortLoopsOnASingleLine: false # differs
+AllowShortFunctionsOnASingleLine: Empty
+AlwaysBreakAfterDefinitionReturnType: false
 AlwaysBreakTemplateDeclarations: true
 AlwaysBreakBeforeMultilineStrings: true
-BreakBeforeBinaryOperators: false
+BreakBeforeBinaryOperators: false # differs
+BreakBeforeTernaryOperators: true
 BreakConstructorInitializersBeforeComma: false
 BinPackParameters: false
+BinPackArguments: false
 ColumnLimit: 80
+ConstructorInitializerIndentWidth: 4
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
+DerivePointerAlignment: false
 DerivePointerBinding: true
-ExperimentalAutoDetectBinPacking: true
-IndentCaseLabels: false
+IndentCaseLabels: false #differs
+IndentWrappedFunctionNames: false
+IndentFunctionDeclarationAfterType: false
 MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false
 NamespaceIndentation: None
+ObjCBlockIndentWidth: 2
+ObjCSpaceAfterProperty: false
 ObjCSpaceBeforeProtocolList: false
-PenaltyBreakComment: 60
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyBreakComment: 300
 PenaltyBreakString: 1000
-PenaltyBreakFirstLessLess: 20
+PenaltyBreakFirstLessLess: 120
 PenaltyExcessCharacter: 1000000
 PenaltyReturnTypeOnItsOwnLine: 200
+PointerAlignment: Left
 PointerBindsToType: true
-SpacesBeforeTrailingComments: 1
+SpacesBeforeTrailingComments: 1 #differs
 Cpp11BracedListStyle: true
 Standard: Cpp11
 IndentWidth: 2
 TabWidth: 8
 UseTab: Never
 BreakBeforeBraces: Attach
-IndentFunctionDeclarationAfterType: false
 SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInAngles:  false
 SpaceInEmptyParentheses: false
 SpacesInCStyleCastParentheses: false
-SpaceAfterControlStatementKeyword: true
+SpaceAfterCStyleCast: false
+SpacesInContainerLiterals: true
 SpaceBeforeAssignmentOperators: true
+SpaceAfterControlStatementKeyword: true
+ContinuationIndentWidth: 4
+CommentPragmas:  '^ IWYU pragma:'
+ForEachMacros:   [ foreach, Q_FOREACH, BOOST_FOREACH ]
+SpaceBeforeParens: ControlStatements
 ...

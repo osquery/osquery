@@ -71,6 +71,34 @@ The binaries are built to a distro-specific folder within *build* and symlinked 
 $ ls -la ./build/linux/osquery/
 ```
 
+## Submitting Pull Requests
+
+Once you have made changes you'll want to submit them to Github as a Pull Request. There are tons of wonderful guides and documentation around Pull Requests, and that is just out of scope for this wiki-- but consider the following workflow:
+
+```
+$ git checkout -b new_feature1
+$ # write some code!
+$ make -j 4
+$ git commit -m "New Feature: do something wonderful"
+$ git push
+```
+
+This assumes your remote `origin` is your osquery fork, and that you receive updates from an `upstream`. It is also common to use `origin` as `facebook/osquery` then add your fork as a target named after your Github username.
+
+In that case the final push becomes `git push USERNAME`.
+
+### Testing changes
+
+Our Jenkins CI will test your changes in three steps.
+
+1. A code audit is run using `./tools/audit.sh`.
+2. The code is rebuilt, built again for release, then a package is generated using `./tools/build.sh` on various Linux and OS X versions.
+3. The same step is run on Windows 10.
+
+The audit step attempts to build the documentation, run code formatting checks, and a brief static code analysis. The formatting check is performed with `clang-format` (installed with `make deps` to your osquery dependencies directory). Your changes are compared against the local `master` branch. Within the build host this is always the TIP of `facebook/osquery`, but locally the branch may be behind.
+
+To speed up the format auditing process please configure your code editor to run `clang-format` on files changed. Or periodically during your development run `make format`. Running `make check` is also helpful, but it will use `cppcheck` which is not installed by default.
+
 ## Dependencies and build internals
 
 The `make deps` command is fairly intense and serves two purposes: (1) to communicate a standard set of environment setup instructions for our build and test nodes, (2) to provide an environment for reproducing errors. The are wonderful auxiliary benefits such as controlling the compiler and compile flags for almost all of our dependencies, controlling security-related features for dependencies, allowing a "mostly" universal build for Linux that makes deployment simple. To read more about the motivation and FAQ for our dependencies environment see the [Github Refererence #2253](https://github.com/facebook/osquery/issues/2253).
