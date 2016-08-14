@@ -80,6 +80,10 @@ class InterruptableRunnable {
   virtual void pauseMilli(std::chrono::milliseconds milli);
 
  private:
+  /// Testing only, the interruptible will bypass initial interruption check.
+  void mustRun() { bypass_check_ = true; }
+
+ private:
   /**
    * @brief Protect interruption checking and resource tear down.
    *
@@ -94,6 +98,19 @@ class InterruptableRunnable {
 
   /// Use an interruption point to exit a pause if the thread was interrupted.
   RunnerInterruptPoint point_;
+
+ private:
+  /// Testing only, track the interruptible check for interruption.
+  bool checked_{false};
+
+  /// Testing only, require that the interruptible bypass the first check.
+  std::atomic<bool> bypass_check_{false};
+
+ private:
+  FRIEND_TEST(DispatcherTests, test_run);
+  FRIEND_TEST(DispatcherTests, test_independent_run);
+  FRIEND_TEST(DispatcherTests, test_interruption);
+  FRIEND_TEST(BufferedLogForwarderTests, test_async);
 };
 
 class InternalRunnable : private boost::noncopyable,
@@ -182,6 +199,10 @@ class Dispatcher : private boost::noncopyable {
   static void removeService(const InternalRunnable* service);
 
  private:
+  /// For testing only, reset the stopping status for unittests.
+  void resetStopping() { stopping_ = false; }
+
+ private:
   /// The set of shared osquery service threads.
   std::vector<InternalThreadRef> service_threads_;
 
@@ -209,6 +230,7 @@ class Dispatcher : private boost::noncopyable {
 
  private:
   friend class InternalRunnable;
-  friend class ExtensionsTest;
+  friend class ExtensionsTests;
+  friend class DispatcherTests;
 };
 }
