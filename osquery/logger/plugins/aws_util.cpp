@@ -216,6 +216,9 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       sts_session_token = sts_result.GetCredentials().GetSessionToken();
       // Calculate when our credentials will expire
       token_expire_time = current_time + FLAGS_aws_sts_timeout;
+    } else {
+      LOG(ERROR) << "Failed to pull STS temporary credentials. "
+                    "Make sure an STS policy exists for your aws user/role.";
     }
   }
   return Aws::Auth::AWSCredentials(
