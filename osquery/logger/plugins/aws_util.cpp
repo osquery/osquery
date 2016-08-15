@@ -100,7 +100,6 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
     Aws::Http::HttpRequest& request,
     Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
     Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
-
   // AWS allows rate limiters to be passed around, but we are doing rate
   // limiting on the logger plugin side and so don't implement this.
   if (readLimiter != nullptr || writeLimiter != nullptr) {
@@ -219,8 +218,8 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       token_expire_time = current_time + FLAGS_aws_sts_timeout;
     }
   }
-  return Aws::Auth::AWSCredentials(sts_access_key_id, sts_secret_access_key,
-                                   sts_session_token);
+  return Aws::Auth::AWSCredentials(
+      sts_access_key_id, sts_secret_access_key, sts_session_token);
 }
 
 OsqueryAWSCredentialsProviderChain::OsqueryAWSCredentialsProviderChain(bool sts)
@@ -269,8 +268,8 @@ Status getAWSRegionFromProfile(Aws::Region& region) {
 
   auto key_it = section_it->second.find("region");
   if (key_it == section_it->second.not_found()) {
-    return Status(1, "AWS region not found for profile: " +
-                         FLAGS_aws_profile_name);
+    return Status(
+        1, "AWS region not found for profile: " + FLAGS_aws_profile_name);
   }
 
   std::string region_string = key_it->second.data();
