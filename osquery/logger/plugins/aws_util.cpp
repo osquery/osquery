@@ -199,7 +199,10 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
   if (token_expire_time <= current_time) {
     // Create and setup a STS client to pull our temp creds
     VLOG(1) << "Generate new AWS STS credentials.";
-    initAwsSdk();
+    // If we have not setup an AWS client yet, we must do so here
+    if (sts_access_key_id == "") {
+      initAwsSdk();
+    }
     Status s = makeAWSClient<Aws::STS::STSClient>(sts_client_, false);
     Aws::STS::Model::AssumeRoleRequest sts_r;
     sts_r.SetRoleArn(FLAGS_aws_sts_arn_role);
