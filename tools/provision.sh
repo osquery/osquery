@@ -252,6 +252,7 @@ function platform_darwin_main() {
   brew_tool readline
   brew_tool sqlite
   brew_tool makedepend
+  brew_tool clang-format
 
   local_brew_dependency openssl --without-test
   local_brew_link openssl

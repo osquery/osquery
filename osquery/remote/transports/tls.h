@@ -38,12 +38,12 @@ void ERR_remove_state(unsigned long);
 // On OS X these symbols are marked deprecated and clang will warn against
 // us including them. We are squashing the noise for OS X's OpenSSL only.
 // clang-format off
-_Pragma("clang diagnostic push")
-_Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
-_Pragma("clang diagnostic ignored \"-Wunused-local-typedef\"")
-_Pragma("clang diagnostic ignored \"-W#pragma-messages\"")
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Wunused-local-typedef"
+#pragma clang diagnostic ignored "-W#pragma-messages"
 #include <boost/network/protocol/http/client.hpp>
-_Pragma("clang diagnostic pop")
+#pragma clang diagnostic pop
 // clang-format on
 
 #include <osquery/flags.h>
@@ -55,7 +55,8 @@ namespace osquery {
 /// Path to optional TLS client secret key, used for enrollment/requests.
 DECLARE_string(tls_client_key);
 
-/// Path to optional TLS client certificate (PEM), used for enrollment/requests.
+/// Path to optional TLS client certificate (PEM), used for
+/// enrollment/requests.
 DECLARE_string(tls_client_cert);
 
 /// TLS server hostname.
@@ -106,7 +107,9 @@ class TLSTransport : public Transport {
 
  private:
   /// Testing-only, disable peer verification.
-  void disableVerifyPeer() { verify_peer_ = false; }
+  void disableVerifyPeer() {
+    verify_peer_ = false;
+  }
 
   /// Set TLS-client authentication options.
   void setClientCertificate(const std::string& certificate_file,

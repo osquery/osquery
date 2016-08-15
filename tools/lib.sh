@@ -100,13 +100,16 @@ function build_kernel_cleanup() {
   $MAKE kernel-test-unload || sudo reboot
 }
 
-function initialize() {
-  DISTRO=$1
-
+function checkout_thirdparty() {
   # Reset any work or artifacts from build tests in TP.
   (cd third-party && git reset --hard HEAD)
   git submodule init
   git submodule update
+}
+
+function initialize() {
+  DISTRO=$1
+  checkout_thirdparty
 
   # Remove any previously-cached variables
   rm build/$DISTRO/CMakeCache.txt >/dev/null 2>&1 || true

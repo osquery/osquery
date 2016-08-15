@@ -27,10 +27,12 @@ namespace osquery {
 
 using DoubleDoubleFunction = std::function<double(double)>;
 
-// force use of the double(double) math functions
-// without these lambda functions, MSVC will error
-// because it fails to select an overload compatible with
-// DoubleDoubleFunction
+/**
+ * Force use of the double(double) math functions without these lambda
+ * functions, MSVC will error because it fails to select an overload compatible
+ * with DoubleDoubleFunction.
+ */
+// clang-format off
 #define SIN_FUNC    [](double a)->double { return sin(a);    }
 #define COS_FUNC    [](double a)->double { return cos(a);    }
 #define TAN_FUNC    [](double a)->double { return tanl(a);   }
@@ -43,7 +45,7 @@ using DoubleDoubleFunction = std::function<double(double)>;
 #define EXP_FUNC    [](double a)->double { return expl(a);   }
 #define CEIL_FUNC   [](double a)->double { return ceil(a);   }
 #define FLOOR_FUNC  [](double a)->double { return floor(a);  }
-
+// clang-format on
 
 /**
  * @brief Call a math function that takes a double and returns a double.
@@ -95,7 +97,9 @@ static void atanFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
   callDoubleFunc(context, argc, argv, ATAN_FUNC);
 }
 
-static double cot(double x) { return 1.0 / tan(x); }
+static double cot(double x) {
+  return 1.0 / tan(x);
+}
 
 static void cotFunc(sqlite3_context *context, int argc, sqlite3_value **argv) {
   callDoubleFunc(context, argc, argv, cot);
@@ -177,10 +181,14 @@ static void floorFunc(sqlite3_context *context,
 }
 
 /** Convert Degrees into Radians */
-static double deg2rad(double x) { return x * M_PI / 180.0; }
+static double deg2rad(double x) {
+  return x * M_PI / 180.0;
+}
 
 /** Convert Radians into Degrees */
-static double rad2deg(double x) { return 180.0 * x / M_PI; }
+static double rad2deg(double x) {
+  return 180.0 * x / M_PI;
+}
 
 static void rad2degFunc(sqlite3_context *context,
                         int argc,
@@ -209,22 +217,34 @@ void registerMathExtensions(sqlite3 *db) {
   // somewhat deprecated/legacy work by Liam Healy from 2010 in the extension
   // functions contribution.
   static const struct FuncDef aFuncs[] = {
-      {"sqrt", 1, sqrtFunc},       {"acos", 1, acosFunc},
-      {"asin", 1, asinFunc},       {"atan", 1, atanFunc},
-      {"cos", 1, cosFunc},         {"sin", 1, sinFunc},
-      {"tan", 1, tanFunc},         {"cot", 1, cotFunc},
-      {"exp", 1, expFunc},         {"log", 1, logFunc},
-      {"log10", 1, log10Func},     {"power", 2, powerFunc},
-      {"ceil", 1, ceilFunc},       {"floor", 1, floorFunc},
-      {"degrees", 1, rad2degFunc}, {"radians", 1, deg2radFunc},
+      {"sqrt", 1, sqrtFunc},
+      {"acos", 1, acosFunc},
+      {"asin", 1, asinFunc},
+      {"atan", 1, atanFunc},
+      {"cos", 1, cosFunc},
+      {"sin", 1, sinFunc},
+      {"tan", 1, tanFunc},
+      {"cot", 1, cotFunc},
+      {"exp", 1, expFunc},
+      {"log", 1, logFunc},
+      {"log10", 1, log10Func},
+      {"power", 2, powerFunc},
+      {"ceil", 1, ceilFunc},
+      {"floor", 1, floorFunc},
+      {"degrees", 1, rad2degFunc},
+      {"radians", 1, deg2radFunc},
       {"pi", 0, piFunc},
   };
 
   for (size_t i = 0; i < sizeof(aFuncs) / sizeof(struct FuncDef); i++) {
-    sqlite3_create_function(db, aFuncs[i].zFunctionName, aFuncs[i].nArg,
-                            SQLITE_UTF8, nullptr, aFuncs[i].xFunc, nullptr,
+    sqlite3_create_function(db,
+                            aFuncs[i].zFunctionName,
+                            aFuncs[i].nArg,
+                            SQLITE_UTF8,
+                            nullptr,
+                            aFuncs[i].xFunc,
+                            nullptr,
                             nullptr);
   }
 }
 }
-

@@ -50,8 +50,8 @@ inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
       }
     }
     // Always called while processes table is working.
-    Config::getInstance().recordQueryPerformance(name, t1 - t0, size, r0[0],
-                                                 r1[0]);
+    Config::getInstance().recordQueryPerformance(
+        name, t1 - t0, size, r0[0], r1[0]);
   }
   return sql;
 }
@@ -148,7 +148,9 @@ void SchedulerRunner::start() {
   }
 }
 
-void startScheduler() { startScheduler(FLAGS_schedule_timeout, 1); }
+void startScheduler() {
+  startScheduler(FLAGS_schedule_timeout, 1);
+}
 
 void startScheduler(unsigned long int timeout, size_t interval) {
   Dispatcher::addService(std::make_shared<SchedulerRunner>(timeout, interval));
