@@ -8,7 +8,6 @@
  *
  */
 
-#include <chrono>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -28,6 +27,7 @@
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/logger/plugins/aws_util.h"
 #include "osquery/remote/transports/tls.h"
@@ -194,12 +194,10 @@ OsqueryFlagsAWSCredentialsProvider::GetAWSCredentials() {
 Aws::Auth::AWSCredentials
 OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
   // Grab system time in seconds since epoch for token experation checks
-  auto now = std::chrono::system_clock::now();
-  auto epoch = now.time_since_epoch();
-  auto seconds = std::chrono::duration_cast<std::chrono::seconds>(epoch);
+  size_t current_time = osquery::getUnixTime();
   // Pull new STS creds if we dont have them cached from a previous run,
   // otherwise return cached STS creds
-  if (token_expire_time <= seconds.count()) {
+  if (token_expire_time <= current_time) {
     // Create and setup a STS client to pull our temp creds
     VLOG(1) << "Generate new AWS STS credentials.";
     initAwsSdk();
@@ -218,7 +216,7 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       sts_secret_access_key = sts_result.GetCredentials().GetSecretAccessKey();
       sts_session_token = sts_result.GetCredentials().GetSessionToken();
       // Calculate when our credentials will expire
-      token_expire_time = seconds.count() + FLAGS_aws_sts_timeout;
+      token_expire_time = current_time + FLAGS_aws_sts_timeout;
     }
   }
   return Aws::Auth::AWSCredentials(sts_access_key_id, sts_secret_access_key,
