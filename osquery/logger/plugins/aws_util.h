@@ -20,6 +20,8 @@
 #include <aws/core/http/HttpClientFactory.h>
 #include <aws/core/http/standard/StandardHttpResponse.h>
 
+#include <aws/sts/STSClient.h>
+
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/status.h>
@@ -32,16 +34,16 @@ namespace osquery {
 class NetlibHttpClientFactory : public Aws::Http::HttpClientFactory {
  public:
   std::shared_ptr<Aws::Http::HttpClient> CreateHttpClient(
-      const Aws::Client::ClientConfiguration &clientConfiguration)
+      const Aws::Client::ClientConfiguration& clientConfiguration)
       const override;
   std::shared_ptr<Aws::Http::HttpRequest> CreateHttpRequest(
-      const Aws::String &uri,
+      const Aws::String& uri,
       Aws::Http::HttpMethod method,
-      const Aws::IOStreamFactory &streamFactory) const override;
+      const Aws::IOStreamFactory& streamFactory) const override;
   std::shared_ptr<Aws::Http::HttpRequest> CreateHttpRequest(
-      const Aws::Http::URI &uri,
+      const Aws::Http::URI& uri,
       Aws::Http::HttpMethod method,
-      const Aws::IOStreamFactory &streamFactory) const override;
+      const Aws::IOStreamFactory& streamFactory) const override;
 };
 
 /**
@@ -57,9 +59,9 @@ class NetlibHttpClient : public Aws::Http::HttpClient {
   NetlibHttpClient() : HttpClient() {}
 
   std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
-      Aws::Http::HttpRequest &request,
-      Aws::Utils::RateLimits::RateLimiterInterface *readLimiter = nullptr,
-      Aws::Utils::RateLimits::RateLimiterInterface *writeLimiter =
+      Aws::Http::HttpRequest& request,
+      Aws::Utils::RateLimits::RateLimiterInterface* readLimiter = nullptr,
+      Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter =
           nullptr) const override;
 };
 
@@ -79,20 +81,42 @@ class OsqueryFlagsAWSCredentialsProvider
 };
 
 /**
+ * @brief AWS credentials provider that uses STS assume role auth
+ *
+ * This provider delegates temp AWS STS credentials via assume role
+ * for an AWS arn.
+ */
+class OsquerySTSAWSCredentialsProvider
+    : public Aws::Auth::AWSCredentialsProvider {
+ public:
+  OsquerySTSAWSCredentialsProvider() : AWSCredentialsProvider() {}
+
+  Aws::Auth::AWSCredentials GetAWSCredentials() override;
+  size_t token_expire_time = 0;
+
+ private:
+  std::shared_ptr<Aws::STS::STSClient> sts_client_{nullptr};
+  Aws::String sts_access_key_id = "";
+  Aws::String sts_secret_access_key = "";
+  Aws::String sts_session_token = "";
+};
+
+/**
  * @brief AWS credentials provider chain that prioritizes osquery config
  *
  * This provider attempts to find credentials in the following order, returning
  * the first non-empty credentials it finds:
- * 1. osquery flags (via OsqueryFlagsAWSCredentialsProvider)
- * 2. Profile from the AWS profile file (iff --aws_profile_name is specified)
- * 3. Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
- * 4. "default" profile in AWS profile file
- * 5. Profile from the EC2 Instance Metadata Service
+ * 1. AWS STS auth (via OsquerySTSAWSCredentialsProvider)
+ * 2. osquery flags (via OsqueryFlagsAWSCredentialsProvider)
+ * 3. Profile from the AWS profile file (iff --aws_profile_name is specified)
+ * 4. Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+ * 5. "default" profile in AWS profile file
+ * 6. Profile from the EC2 Instance Metadata Service
  */
 class OsqueryAWSCredentialsProviderChain
     : public Aws::Auth::AWSCredentialsProviderChain {
  public:
-  OsqueryAWSCredentialsProviderChain();
+  OsqueryAWSCredentialsProviderChain(bool sts = true);
 };
 
 /**
@@ -112,7 +136,7 @@ void initAwsSdk();
  *
  * @return 0 if successful, 1 if the region was not recognized
  */
-Status getAWSRegion(Aws::Region &region);
+Status getAWSRegion(Aws::Region& region, bool sts = false);
 
 /**
  * @brief Instantiate an AWS client with the appropriate osquery configs
@@ -127,15 +151,15 @@ Status getAWSRegion(Aws::Region &region);
  * @return 0 if successful, 1 if there was a problem reading configs
  */
 template <class Client>
-Status makeAWSClient(std::shared_ptr<Client> &client) {
+Status makeAWSClient(std::shared_ptr<Client>& client, bool sts = true) {
   // Set up client
   Aws::Client::ClientConfiguration client_config;
-  Status s = getAWSRegion(client_config.region);
+  Status s = getAWSRegion(client_config.region, sts);
   if (!s.ok()) {
     return s;
   }
   client = std::make_shared<Client>(
-      std::make_shared<OsqueryAWSCredentialsProviderChain>(), client_config);
+      std::make_shared<OsqueryAWSCredentialsProviderChain>(sts), client_config);
   return Status(0);
 }
 }

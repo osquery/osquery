@@ -22,11 +22,15 @@
 #include <aws/core/http/standard/StandardHttpRequest.h>
 #include <aws/core/http/standard/StandardHttpResponse.h>
 
+#include <aws/sts/model/AssumeRoleRequest.h>
+#include <aws/sts/model/Credentials.h>
+
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
-#include "osquery/remote/transports/tls.h"
 #include "osquery/logger/plugins/aws_util.h"
+#include "osquery/remote/transports/tls.h"
 
 namespace pt = boost::property_tree;
 namespace bn = boost::network;
@@ -42,6 +46,14 @@ FLAG(string,
      "",
      "AWS config profile to use for auth and region config");
 FLAG(string, aws_region, "", "AWS region override");
+FLAG(string, aws_sts_arn_role, "", "AWS STS arn role");
+FLAG(string, aws_sts_region, "", "AWS STS region override");
+FLAG(string, aws_sts_session_name, "default", "AWS STS session name");
+FLAG(uint64,
+     aws_sts_timeout,
+     3600,
+     "duration in seconds which the sts assume role temp creds are valid "
+     "(default 3600)");
 
 // Map of AWS region name string -> AWS::Region enum
 static const std::map<std::string, Aws::Region> kAwsRegions = {
@@ -88,7 +100,6 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
     Aws::Http::HttpRequest& request,
     Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
     Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
-
   // AWS allows rate limiters to be passed around, but we are doing rate
   // limiting on the logger plugin side and so don't implement this.
   if (readLimiter != nullptr || writeLimiter != nullptr) {
@@ -179,10 +190,51 @@ OsqueryFlagsAWSCredentialsProvider::GetAWSCredentials() {
                                    FLAGS_aws_secret_access_key);
 }
 
-OsqueryAWSCredentialsProviderChain::OsqueryAWSCredentialsProviderChain()
+Aws::Auth::AWSCredentials
+OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
+  // Grab system time in seconds since epoch for token experation checks
+  size_t current_time = osquery::getUnixTime();
+  // Pull new STS creds if we dont have them cached from a previous run,
+  // otherwise return cached STS creds
+  if (token_expire_time <= current_time) {
+    // Create and setup a STS client to pull our temp creds
+    VLOG(1) << "Generate new AWS STS credentials.";
+    // If we have not setup an AWS client yet, we must do so here
+    if (sts_access_key_id == "") {
+      initAwsSdk();
+    }
+    Status s = makeAWSClient<Aws::STS::STSClient>(sts_client_, false);
+    Aws::STS::Model::AssumeRoleRequest sts_r;
+    sts_r.SetRoleArn(FLAGS_aws_sts_arn_role);
+    sts_r.SetRoleSessionName(FLAGS_aws_sts_session_name);
+    sts_r.SetDurationSeconds(FLAGS_aws_sts_timeout);
+    // Pull our STS creds
+    Aws::STS::Model::AssumeRoleOutcome sts_outcome =
+        sts_client_->AssumeRole(sts_r);
+    if (sts_outcome.IsSuccess()) {
+      Aws::STS::Model::AssumeRoleResult sts_result = sts_outcome.GetResult();
+      // Cache our credentials for later use
+      sts_access_key_id = sts_result.GetCredentials().GetAccessKeyId();
+      sts_secret_access_key = sts_result.GetCredentials().GetSecretAccessKey();
+      sts_session_token = sts_result.GetCredentials().GetSessionToken();
+      // Calculate when our credentials will expire
+      token_expire_time = current_time + FLAGS_aws_sts_timeout;
+    } else {
+      LOG(ERROR) << "Failed to pull STS temporary credentials. "
+                    "Make sure an STS policy exists for your aws user/role.";
+    }
+  }
+  return Aws::Auth::AWSCredentials(
+      sts_access_key_id, sts_secret_access_key, sts_session_token);
+}
+
+OsqueryAWSCredentialsProviderChain::OsqueryAWSCredentialsProviderChain(bool sts)
     : AWSCredentialsProviderChain() {
   // The order of the AddProvider calls determines the order in which the
   // provider chain attempts to retrieve credentials.
+  if (sts && !FLAGS_aws_sts_arn_role.empty()) {
+    AddProvider(std::make_shared<OsquerySTSAWSCredentialsProvider>());
+  }
   AddProvider(std::make_shared<OsqueryFlagsAWSCredentialsProvider>());
   if (!FLAGS_aws_profile_name.empty()) {
     AddProvider(
@@ -222,8 +274,8 @@ Status getAWSRegionFromProfile(Aws::Region& region) {
 
   auto key_it = section_it->second.find("region");
   if (key_it == section_it->second.not_found()) {
-    return Status(1, "AWS region not found for profile: " +
-                         FLAGS_aws_profile_name);
+    return Status(
+        1, "AWS region not found for profile: " + FLAGS_aws_profile_name);
   }
 
   std::string region_string = key_it->second.data();
@@ -251,8 +303,17 @@ void initAwsSdk() {
   }
 }
 
-Status getAWSRegion(Aws::Region& region) {
+Status getAWSRegion(Aws::Region& region, bool sts) {
   // First try using the flag aws_region
+  if (sts && !FLAGS_aws_sts_region.empty()) {
+    if (kAwsRegions.count(FLAGS_aws_sts_region) > 0) {
+      VLOG(1) << "Using AWS STS region from flag: " << FLAGS_aws_sts_region;
+      region = kAwsRegions.at(FLAGS_aws_sts_region);
+      return Status(0);
+    } else {
+      return Status(1, "Invalid aws_region specified: " + FLAGS_aws_sts_region);
+    }
+  }
   if (!FLAGS_aws_region.empty()) {
     if (kAwsRegions.count(FLAGS_aws_region) > 0) {
       VLOG(1) << "Using AWS region from flag: " << FLAGS_aws_region;
