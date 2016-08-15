@@ -77,6 +77,7 @@ class OsqueryFlagsAWSCredentialsProvider
  public:
   OsqueryFlagsAWSCredentialsProvider() : AWSCredentialsProvider() {}
 
+  /// Retrieve credentials from configurations.
   Aws::Auth::AWSCredentials GetAWSCredentials() override;
 };
 
@@ -91,14 +92,20 @@ class OsquerySTSAWSCredentialsProvider
  public:
   OsquerySTSAWSCredentialsProvider() : AWSCredentialsProvider() {}
 
+  /// Retrieve credentials from STS.
   Aws::Auth::AWSCredentials GetAWSCredentials() override;
-  size_t token_expire_time = 0;
 
  private:
-  std::shared_ptr<Aws::STS::STSClient> sts_client_{nullptr};
-  Aws::String sts_access_key_id = "";
-  Aws::String sts_secret_access_key = "";
-  Aws::String sts_session_token = "";
+  /// Internal API client.
+  std::shared_ptr<Aws::STS::STSClient> client_{nullptr};
+
+  /// Configuration details.
+  Aws::String access_key_id_;
+  Aws::String secret_access_key_;
+  Aws::String session_token_;
+
+  /// Time when the last-most-recent credentials will expire.
+  size_t token_expire_time_{0};
 };
 
 /**
