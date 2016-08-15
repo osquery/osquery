@@ -89,8 +89,13 @@ class PlatformProcess : private boost::noncopyable {
   bool operator==(const PlatformProcess& process) const;
   bool operator!=(const PlatformProcess& process) const;
 
-  /// Returns the associated process' process ID (on POSIX, pid() and
-  /// nativeHandle() do not differ)
+  /**
+   * Returns the associated process' process ID (on POSIX, pid() and
+   * nativeHandle() do not differ).
+   *
+   * NOTE: In most situations, this should ideally not be used on Windows when
+   * dealing when tracking process lifetimes.
+   */
   int pid() const;
 
   /**
@@ -143,6 +148,15 @@ class PlatformProcess : private boost::noncopyable {
       const std::string& extensions_interval,
       const std::string& verbose);
 
+  /**
+   * @brief Launches a new Python script
+   *
+   * This will launch a new Python process to run the specified script and
+   * script arguments
+   */
+  static std::shared_ptr<PlatformProcess> launchPythonScript(
+    const std::string& args
+  );
  private:
   /**
    * @brief Stores the native handle denoting the process

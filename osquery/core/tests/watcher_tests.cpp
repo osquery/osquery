@@ -87,7 +87,7 @@ TEST_F(WatcherTests, test_watcherrunner_watch) {
   // Use the cross-platform abstractions to inspect the current test process.
   auto test_process = PlatformProcess::getCurrentProcess();
   // Initialize a scoped (fake) process abstraction.
-  auto fake_test_process = FakePlatformProcess(test_process->pid());
+  auto fake_test_process = FakePlatformProcess(test_process->nativeHandle());
 
   // The ::watch method is a single iteration of worker health checking.
   // Unless the watcher has entered a shutdown phase, every iteration should
@@ -109,7 +109,7 @@ TEST_F(WatcherTests, test_watcherrunner_stop) {
   MockWatcherRunner runner(0, nullptr, false);
 
   auto test_process = PlatformProcess::getCurrentProcess();
-  auto fake_test_process = FakePlatformProcess(test_process->pid());
+  auto fake_test_process = FakePlatformProcess(test_process->nativeHandle());
 
   EXPECT_CALL(runner, isChildSane(_)).Times(0);
   EXPECT_CALL(runner, stopChild(_)).Times(0);
