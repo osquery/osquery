@@ -33,13 +33,15 @@ function setup_brew() {
   if [[ ! -d "$DEPS/.git" ]]; then
     log "setting up new brew in $DEPS"
     git clone $BREW_REPO "$DEPS"
-    log "installing local tap: homebrew-osquery-local"
-    mkdir -p "$DEPS/Library/Taps/osquery/"
-    ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
   else
     log "checking for updates to brew"
     #git pull
   fi
+
+  # Always update the location of the local tap link.
+  log "refreshing local tap: homebrew-osquery-local"
+  mkdir -p "$DEPS/Library/Taps/osquery/"
+  ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
 
   export HOMEBREW_MAKE_JOBS=$THREADS
   export HOMEBREW_NO_EMOJI=1
