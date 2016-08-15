@@ -4,6 +4,7 @@ class AwsSdkCpp < AbstractOsqueryFormula
   desc "AWS SDK for C++"
   homepage "https://github.com/aws/aws-sdk-cpp"
   url "https://github.com/aws/aws-sdk-cpp/archive/0.13.8.tar.gz"
+  revision 1
   sha256 "ea3e618980f41dedfc2a6b187846a2bd747d9b6d9b95f733e04bec76cbeb1a46"
 
   bottle do
@@ -26,7 +27,7 @@ class AwsSdkCpp < AbstractOsqueryFormula
     args << "-DMINIMIZE_SIZE=ON"
     args << "-DBUILD_SHARED_LIBS=OFF"
 
-    args << "-DBUILD_ONLY=firehose;kinesis"
+    args << "-DBUILD_ONLY=firehose;kinesis;sts"
 
     mkdir "build" do
       system "cmake", "..", *args

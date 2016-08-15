@@ -9,6 +9,7 @@ else()
   file(GLOB OSQUERY_LOGGER_PLUGIN_TESTS "plugins/tests/*.cpp")
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-kinesis")
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-firehose")
+  ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-sts")
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-core")
 endif()
 
