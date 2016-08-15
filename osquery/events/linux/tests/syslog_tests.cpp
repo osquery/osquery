@@ -76,14 +76,14 @@ TEST_F(SyslogTests, test_csv_separator) {
   ASSERT_EQ(std::vector<std::string>({"foo", "bar", "baz"}),
             splitCsv("foo,bar,baz"));
   ASSERT_EQ(std::vector<std::string>({"foo", "bar", "baz"}),
-            splitCsv(R"("foo","bar","baz")"));
+            splitCsv("\"foo\",\"bar\",\"baz\""));
   ASSERT_EQ(std::vector<std::string>({",foo,", ",bar", "baz,"}),
-            splitCsv(R"(",foo,",",bar","baz,")"));
+            splitCsv("\",foo,\",\",bar\",\"baz,\""));
   ASSERT_EQ(std::vector<std::string>({",f\\oo,", ",ba\\'r", "baz\\,"}),
-            splitCsv(R"(",f\oo,",",ba\'r","baz\,")"));
+            splitCsv("\",f\\oo,\",\",ba\\'r\",\"baz\\,\""));
   ASSERT_EQ(std::vector<std::string>({"\",f\\o\"o,", "\",ba\\'r", "baz\\,\""}),
-            splitCsv(R"(""",f\o""o,",""",ba\'r","baz\,""")"));
+            splitCsv("\"\"\",f\\o\"\"o,\",\"\"\",ba\\'r\",\"baz\\,\"\"\""));
   ASSERT_EQ(std::vector<std::string>({"\",f\\ø\"o,", "\",bá\\'r", "baz\\,\""}),
-            splitCsv(R"(""",f\ø""o,",""",bá\'r","baz\,""")"));
+            splitCsv("\"\"\",f\\ø\"\"o,\",\"\"\",bá\\'r\",\"baz\\,\"\"\""));
 }
 }
