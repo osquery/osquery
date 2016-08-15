@@ -34,16 +34,16 @@ namespace osquery {
 class NetlibHttpClientFactory : public Aws::Http::HttpClientFactory {
  public:
   std::shared_ptr<Aws::Http::HttpClient> CreateHttpClient(
-      const Aws::Client::ClientConfiguration &clientConfiguration)
+      const Aws::Client::ClientConfiguration& clientConfiguration)
       const override;
   std::shared_ptr<Aws::Http::HttpRequest> CreateHttpRequest(
-      const Aws::String &uri,
+      const Aws::String& uri,
       Aws::Http::HttpMethod method,
-      const Aws::IOStreamFactory &streamFactory) const override;
+      const Aws::IOStreamFactory& streamFactory) const override;
   std::shared_ptr<Aws::Http::HttpRequest> CreateHttpRequest(
-      const Aws::Http::URI &uri,
+      const Aws::Http::URI& uri,
       Aws::Http::HttpMethod method,
-      const Aws::IOStreamFactory &streamFactory) const override;
+      const Aws::IOStreamFactory& streamFactory) const override;
 };
 
 /**
@@ -59,9 +59,9 @@ class NetlibHttpClient : public Aws::Http::HttpClient {
   NetlibHttpClient() : HttpClient() {}
 
   std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
-      Aws::Http::HttpRequest &request,
-      Aws::Utils::RateLimits::RateLimiterInterface *readLimiter = nullptr,
-      Aws::Utils::RateLimits::RateLimiterInterface *writeLimiter =
+      Aws::Http::HttpRequest& request,
+      Aws::Utils::RateLimits::RateLimiterInterface* readLimiter = nullptr,
+      Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter =
           nullptr) const override;
 };
 
@@ -92,13 +92,13 @@ class OsquerySTSAWSCredentialsProvider
   OsquerySTSAWSCredentialsProvider() : AWSCredentialsProvider() {}
 
   Aws::Auth::AWSCredentials GetAWSCredentials() override;
-  Aws::String sts_access_key_id = "";
-  Aws::String sts_secret_access_key = "";
-  Aws::String sts_session_token = "";
   size_t token_expire_time = 0;
 
  private:
   std::shared_ptr<Aws::STS::STSClient> sts_client_{nullptr};
+  Aws::String sts_access_key_id = "";
+  Aws::String sts_secret_access_key = "";
+  Aws::String sts_session_token = "";
 };
 
 /**
@@ -136,7 +136,7 @@ void initAwsSdk();
  *
  * @return 0 if successful, 1 if the region was not recognized
  */
-Status getAWSRegion(Aws::Region &region, bool sts = false);
+Status getAWSRegion(Aws::Region& region, bool sts = false);
 
 /**
  * @brief Instantiate an AWS client with the appropriate osquery configs
@@ -151,7 +151,7 @@ Status getAWSRegion(Aws::Region &region, bool sts = false);
  * @return 0 if successful, 1 if there was a problem reading configs
  */
 template <class Client>
-Status makeAWSClient(std::shared_ptr<Client> &client, bool sts = true) {
+Status makeAWSClient(std::shared_ptr<Client>& client, bool sts = true) {
   // Set up client
   Aws::Client::ClientConfiguration client_config;
   Status s = getAWSRegion(client_config.region, sts);
