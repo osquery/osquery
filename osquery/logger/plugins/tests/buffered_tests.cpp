@@ -114,10 +114,9 @@ TEST_F(BufferedLogForwarderTests, test_basic) {
   runner.logString("baz");
   EXPECT_CALL(runner, send(ElementsAre("bar", "baz"), "result"))
       .WillOnce(Return(Status(0)));
-  EXPECT_CALL(
-      runner,
-      send(ElementsAre(MatchesStatus(log1), MatchesStatus(log2)), "status"))
-      .WillOnce(Return(Status(0)));
+  EXPECT_CALL(runner,
+              send(ElementsAre(MatchesStatus(log1), MatchesStatus(log2)),
+                   "status")).WillOnce(Return(Status(0)));
   runner.check();
   // This call should not result in sending again
   runner.check();
@@ -143,16 +142,14 @@ TEST_F(BufferedLogForwarderTests, test_retry) {
   runner.logString("bar");
   EXPECT_CALL(runner, send(ElementsAre("foo", "bar"), "result"))
       .WillOnce(Return(Status(0)));
-  EXPECT_CALL(
-      runner,
-      send(ElementsAre(MatchesStatus(log1), MatchesStatus(log2)), "status"))
-      .WillOnce(Return(Status(1, "fail")));
+  EXPECT_CALL(runner,
+              send(ElementsAre(MatchesStatus(log1), MatchesStatus(log2)),
+                   "status")).WillOnce(Return(Status(1, "fail")));
   runner.check();
 
-  EXPECT_CALL(
-      runner,
-      send(ElementsAre(MatchesStatus(log1), MatchesStatus(log2)), "status"))
-      .WillOnce(Return(Status(0)));
+  EXPECT_CALL(runner,
+              send(ElementsAre(MatchesStatus(log1), MatchesStatus(log2)),
+                   "status")).WillOnce(Return(Status(0)));
   runner.check();
 
   // This call should not send again because the previous was successful
@@ -215,22 +212,14 @@ TEST_F(BufferedLogForwarderTests, test_multiple) {
 TEST_F(BufferedLogForwarderTests, test_async) {
   auto runner = std::make_shared<StrictMock<MockBufferedLogForwarder>>(
       "mock", kLogPeriod);
-  Dispatcher::addService(runner);
+  runner->mustRun();
 
   EXPECT_CALL(*runner, send(ElementsAre("foo"), "result"))
       .WillOnce(Return(Status(0)));
   runner->logString("foo");
-  std::this_thread::sleep_for(5 * kLogPeriod);
 
-  EXPECT_CALL(*runner, send(ElementsAre("bar"), "result"))
-      .Times(3)
-      .WillOnce(Return(Status(1, "fail")))
-      .WillOnce(Return(Status(1, "fail again")))
-      .WillOnce(Return(Status(0)));
-  runner->logString("bar");
-  std::this_thread::sleep_for(15 * kLogPeriod);
-
-  Dispatcher::stopServices();
+  Dispatcher::addService(runner);
+  runner->interrupt();
   Dispatcher::joinServices();
 }
 
@@ -325,10 +314,9 @@ TEST_F(BufferedLogForwarderTests, test_purge_max) {
 
   EXPECT_CALL(runner, send(ElementsAre("foo", "bar", "baz"), "result"))
       .WillOnce(Return(Status(1, "fail")));
-  EXPECT_CALL(
-      runner,
-      send(ElementsAre(MatchesStatus(log1), MatchesStatus(log2)), "status"))
-      .WillOnce(Return(Status(1, "fail")));
+  EXPECT_CALL(runner,
+              send(ElementsAre(MatchesStatus(log1), MatchesStatus(log2)),
+                   "status")).WillOnce(Return(Status(1, "fail")));
   runner.check();
 
   EXPECT_CALL(runner, send(ElementsAre("baz"), "result"))

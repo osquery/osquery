@@ -43,7 +43,7 @@ param(
   # Parse through the locally installed chocolatey packages and look
   # to see if the supplied package already exists
   $found = $false
-  $pktList = $out[1..($out.count - 1)]
+  $pktList = $out
   ForEach ($pkg in $pktList) {
     $name, $version = $pkg -split '\|'
     
@@ -222,7 +222,7 @@ function Main {
   Update-GitSubmodule
   
   $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
-  $chocoParams = @("-packageParameters", "--AdminFile ${deploymentFile}")
+  $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
   Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
   
   Write-Host "Done." -foregroundcolor Yellow

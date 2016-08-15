@@ -146,6 +146,7 @@ class BufferedLogForwarder : public InternalRunnable {
  protected:
   /// Return whether the string is a result index
   bool isResultIndex(const std::string& index);
+
   /// Return whether the string is a status index
   bool isStatusIndex(const std::string& index);
 
@@ -156,11 +157,13 @@ class BufferedLogForwarder : public InternalRunnable {
  protected:
   /// Generate a result index string to use with the backing store
   std::string genResultIndex(size_t time = 0);
+
   /// Generate a status index string to use with the backing store
   std::string genStatusIndex(size_t time = 0);
 
  private:
   std::string genIndexPrefix(bool results);
+
   std::string genIndex(bool results, size_t time = 0);
 
   /**
@@ -170,6 +173,7 @@ class BufferedLogForwarder : public InternalRunnable {
   Status addValueWithCount(const std::string& domain,
                            const std::string& key,
                            const std::string& value);
+
   /**
    * @brief Delete a database value while maintaining count
    *

@@ -5,14 +5,6 @@
 # compiling and handling static or dynamic (run time load) libs.
 
 # osquery-specific helper macros
-macro(SET_OSQUERY_COMPILE TARGET)
-  set(OPTIONAL_FLAGS ${ARGN})
-  list(LENGTH OPTIONAL_FLAGS NUM_OPTIONAL_FLAGS)
-  if(${NUM_OPTIONAL_FLAGS} GREATER 0)
-    set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${OPTIONAL_FLAGS}")
-  endif()
-endmacro(SET_OSQUERY_COMPILE)
-
 macro(LOG_PLATFORM NAME)
   set(LINK "https://github.com/facebook/osquery/issues/2169")
   LOG("Welcome to the redesigned v1.8.0 osquery build system!")
@@ -41,6 +33,31 @@ macro(LOG_LIBRARY NAME PATH)
     endif()
   endif()
 endmacro(LOG_LIBRARY)
+
+macro(SET_OSQUERY_COMPILE TARGET)
+  set(OPTIONAL_FLAGS ${ARGN})
+  list(LENGTH OPTIONAL_FLAGS NUM_OPTIONAL_FLAGS)
+  if(${NUM_OPTIONAL_FLAGS} GREATER 0)
+    set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${OPTIONAL_FLAGS}")
+  endif()
+endmacro(SET_OSQUERY_COMPILE)
+
+macro(ADD_DEFAULT_LINKS TARGET ADDITIONAL)
+  if(DEFINED ENV{OSQUERY_BUILD_SHARED})
+    target_link_libraries(${TARGET} libosquery_shared)
+    if(${ADDITIONAL})
+      target_link_libraries(${TARGET} libosquery_additional_shared)
+    endif()
+    if(DEFINED ENV{FAST})
+      target_link_libraries(${TARGET} "-Wl,-rpath,${CMAKE_BINARY_DIR}/osquery")
+    endif()
+  else()
+    TARGET_OSQUERY_LINK_WHOLE(${TARGET} libosquery)
+    if(${ADDITIONAL})
+      TARGET_OSQUERY_LINK_WHOLE(${TARGET} libosquery_additional)
+    endif()
+  endif()
+endmacro()
 
 macro(ADD_OSQUERY_PYTHON_TEST TEST_NAME SOURCE)
   add_test(NAME python_${TEST_NAME}
@@ -71,7 +88,6 @@ endmacro(ADD_OSQUERY_LINK)
 macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
   set(LINK_PATHS_RELATIVE
     "${BUILD_DEPS}/lib"
-    "${CMAKE_BUILD_DIR}/third-party/*/lib"
     ${LINK_PATHS}
     ${OS_LIB_DIRS}
     "$ENV{HOME}"
@@ -387,8 +403,9 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
     ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_BINARY_DIR}/generated")
 
   # Append all of the code to a single amalgamation.
+  set(AMALGAMATION_FILE_GEN "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp")
   add_custom_command(
-    OUTPUT "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp"
+    OUTPUT ${AMALGAMATION_FILE_GEN}
     COMMAND "${PYTHON_EXECUTABLE}"
       "${BASE_PATH}/tools/codegen/amalgamate.py"
       "${FOREIGN}"
@@ -399,7 +416,7 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   )
 
-  set(${OUTPUT} "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp")
+  set(${OUTPUT} ${AMALGAMATION_FILE_GEN})
 endmacro(AMALGAMATE)
 
 function(JOIN VALUES GLUE OUTPUT)

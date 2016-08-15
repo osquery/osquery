@@ -18,7 +18,6 @@ import os
 import psutil
 import random
 import re
-import shutil
 import signal
 import subprocess
 import sys
@@ -277,8 +276,7 @@ class ProcessGenerator(object):
     generators = []
 
     def setUp(self):
-        shutil.rmtree(CONFIG_DIR)
-        os.makedirs(CONFIG_DIR)
+        utils.reset_dir(CONFIG_DIR)
 
     def _run_daemon(self, options={}, silent=False, options_only={},
                     overwrite={}):
@@ -437,9 +435,10 @@ def flaky(gen):
             worked = gen(this)
             return True
         except Exception as e:
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            exceptions.append((e, fname, exc_tb.tb_lineno))
+            import traceback
+            exc_type, exc_obj, tb = sys.exc_info()
+            exceptions.append(e)
+            print (traceback.format_tb(tb)[1])
         return False
     def wrapper(this):
         for i in range(3):
@@ -447,12 +446,14 @@ def flaky(gen):
                 return True
         i = 1
         for exc in exceptions:
-            print("Test (attempt %d) %s::%s failed: %s (%s:%d)" % (
+            print("Test (attempt %d) %s::%s failed: %s" % (
                 i,
                 this.__class__.__name__,
-                gen.__name__,  str(exc[0]), exc[1], exc[2]))
+                gen.__name__,  str(exc[0])))
             i += 1
-        raise exceptions[0][0]
+        if len(exceptions) > 0:
+            raise exceptions[0]
+        return False
     return wrapper
 
 
@@ -487,12 +488,7 @@ class Tester(object):
         # Write config
         random.seed(time.time())
 
-        try:
-            shutil.rmtree(CONFIG_DIR)
-        except:
-            # Allow the tester to fail
-            pass
-        os.makedirs(CONFIG_DIR)
+        utils.reset_dir(CONFIG_DIR)
         CONFIG = read_config(ARGS.config) if ARGS.config else DEFAULT_CONFIG
 
     def run(self):
@@ -591,11 +587,7 @@ def assertPermissions():
 
 def getTestDirectory(base):
     path = os.path.join(base, "test-dir" + str(random.randint(1000, 9999)))
-    try:
-        shutil.rmtree(path)
-    except:
-        pass
-    os.makedirs(path)
+    utils.reset_dir(path)
     return path
 
 

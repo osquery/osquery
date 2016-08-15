@@ -57,12 +57,12 @@ void BufferedLogForwarder::check() {
   // For each index, accumulate the log line into the result or status set.
   std::vector<std::string> results, statuses;
   iterate(indexes, ([&results, &statuses, this](std::string& index) {
-            std::string value;
-            auto& target = isResultIndex(index) ? results : statuses;
-            if (getDatabaseValue(kLogs, index, value)) {
-              target.push_back(std::move(value));
-            }
-          }));
+    std::string value;
+    auto& target = isResultIndex(index) ? results : statuses;
+    if (getDatabaseValue(kLogs, index, value)) {
+      target.push_back(std::move(value));
+    }
+  }));
 
   // If any results/statuses were found in the flushed buffer, send.
   if (results.size() > 0) {
@@ -72,11 +72,11 @@ void BufferedLogForwarder::check() {
     } else {
       // Clear the results logs once they were sent.
       iterate(indexes, ([this](std::string& index) {
-                if (!isResultIndex(index)) {
-                  return;
-                }
-                deleteValueWithCount(kLogs, index);
-              }));
+        if (!isResultIndex(index)) {
+          return;
+        }
+        deleteValueWithCount(kLogs, index);
+      }));
     }
   }
 
@@ -87,11 +87,11 @@ void BufferedLogForwarder::check() {
     } else {
       // Clear the status logs once they were sent.
       iterate(indexes, ([this](std::string& index) {
-                if (!isStatusIndex(index)) {
-                  return;
-                }
-                deleteValueWithCount(kLogs, index);
-              }));
+        if (!isStatusIndex(index)) {
+          return;
+        }
+        deleteValueWithCount(kLogs, index);
+      }));
     }
   }
 
@@ -156,7 +156,6 @@ void BufferedLogForwarder::purge() {
       LOG(ERROR) << "Error deleting value during buffered log purge";
     }
   });
-
 }
 
 void BufferedLogForwarder::start() {

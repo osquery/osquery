@@ -20,22 +20,34 @@ namespace osquery {
 
 FLAG(int32, value_max, 512, "Maximum returned row value size");
 
-SQL::SQL(const std::string& q) { status_ = query(q, results_); }
+SQL::SQL(const std::string& q) {
+  status_ = query(q, results_);
+}
 
-const QueryData& SQL::rows() const { return results_; }
+const QueryData& SQL::rows() const {
+  return results_;
+}
 
-bool SQL::ok() { return status_.ok(); }
+bool SQL::ok() {
+  return status_.ok();
+}
 
-const Status& SQL::getStatus() const { return status_; }
+const Status& SQL::getStatus() const {
+  return status_;
+}
 
-std::string SQL::getMessageString() { return status_.toString(); }
+std::string SQL::getMessageString() {
+  return status_.toString();
+}
 
 static inline void escapeNonPrintableBytes(std::string& data) {
   std::string escaped;
+  // clang-format off
   char const hex_chars[16] = {
-      '0', '1', '2', '3', '4', '5', '6', '7',
-      '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+    '0', '1', '2', '3', '4', '5', '6', '7',
+    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
   };
+  // clang-format on
 
   bool needs_replacement = false;
   for (size_t i = 0; i < data.length(); i++) {

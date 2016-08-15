@@ -1,6 +1,7 @@
 table_name("logged_in_users")
 description("Users with an active shell on the system.")
 schema([
+    Column("type", TEXT, "Login type"),
     Column("user", TEXT, "User login name"),
     Column("tty", TEXT, "Device name"),
     Column("host", TEXT, "Remote hostname"),
