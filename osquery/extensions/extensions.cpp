@@ -100,6 +100,13 @@ EXTENSION_FLAG_ALIAS(interval, extensions_interval);
 // Time to wait for a busy named pipe, if it exists
 #define NAMED_PIPE_WAIT  500
 
+/**
+ * We cannot use existing methods to determine the lifespan of the
+ * extensions/extensions manager socket. On Windows, the Thrift install is
+ * brittle and does not like a quick connect and disconnect. To compensate, we
+ * use WaitNamedPipe to determine the existence of a named pipe. If the named
+ * pipe does not exist, WaitNamedPipe should error with ERROR_BAD_PATHNAME.
+ */
 static Status isNamedPipeValid(const std::string &path) {
   if (!boost::starts_with(path, "\\\\.\\pipe\\")) {
     return Status(1, "Bad named pipe name prefix");
