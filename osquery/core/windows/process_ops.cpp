@@ -18,7 +18,44 @@
 
 namespace osquery {
 
-bool isLauncherProcessDead(PlatformProcess& launcher) {
+std::string getUserId() {
+  DWORD nbytes = 0;
+  HANDLE token = INVALID_HANDLE_VALUE;
+
+  if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token)) {
+    return "";
+  }
+
+  ::GetTokenInformation(token, TokenUser, nullptr, 0, &nbytes);
+  if (nbytes == 0) {
+    ::CloseHandle(token);
+    return "";
+  }
+
+  std::vector<char> tu_buffer;
+  tu_buffer.assign(nbytes, '\0');
+  PTOKEN_USER tu = nullptr;
+
+  bool status = ::GetTokenInformation(token, TokenUser, tu_buffer.data(),
+                                      tu_buffer.size(), &nbytes);
+  ::CloseHandle(token);
+  if (!status) {
+    return "";
+  }
+
+  LPSTR sid = nullptr;
+  tu = (PTOKEN_USER)tu_buffer.data();
+  if (!::ConvertSidToStringSidA(tu->User.Sid, &sid)) {
+    return "";
+  }
+
+  std::string uid(sid);
+  ::LocalFree(sid);
+
+  return uid;
+}
+
+bool isLauncherProcessDead(PlatformProcess &launcher) {
   DWORD code = 0;
   if (!::GetExitCodeProcess(launcher.nativeHandle(), &code)) {
     // TODO(#1991): If an error occurs with GetExitCodeProcess, do we want to

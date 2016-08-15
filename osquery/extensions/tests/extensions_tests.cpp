@@ -34,11 +34,20 @@ const int kTimeoutUS = 1000000;
 class ExtensionsTest : public testing::Test {
  protected:
   void SetUp() {
-    socket_path = kTestWorkingDirectory + "test.em" + std::to_string(rand());
+#ifdef WIN32
+    socket_path = "\\\\.\\pipe\\";
+#else
+    socket_path = kTestWorkingDirectory;
+#endif
+
+    socket_path += "test.em" + std::to_string(rand());
+
+#ifndef WIN32
     remove(socket_path);
     if (pathExists(socket_path).ok()) {
       throw std::domain_error("Cannot test sockets: " + socket_path);
     }
+#endif
   }
 
   void TearDown() {

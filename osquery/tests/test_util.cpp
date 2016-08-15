@@ -76,7 +76,7 @@ void initTesting() {
 
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
-  kTestWorkingDirectory += std::to_string(getuid()) + "/";
+  kTestWorkingDirectory += getUserId() + "/";
   kFakeDirectory = kTestWorkingDirectory + kFakeDirectoryName;
 
   fs::remove_all(kTestWorkingDirectory);
@@ -390,9 +390,13 @@ void createMockFileStructure() {
   writeTextFile(kFakeDirectory + "/deep11/deep2/level2.txt", "l2");
   writeTextFile(kFakeDirectory + "/deep11/deep2/deep3/level3.txt", "l3");
 
+#ifdef WIN32
+  writeTextFile(kFakeDirectory + "/root2.txt", "l1");
+#else
   boost::system::error_code ec;
   fs::create_symlink(
       kFakeDirectory + "/root.txt", kFakeDirectory + "/root2.txt", ec);
+#endif
 }
 
 void tearDownMockFileStructure() {

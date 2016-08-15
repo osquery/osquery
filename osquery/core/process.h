@@ -17,6 +17,7 @@
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <sddl.h>
 #endif
 
 #include <boost/optional.hpp>
@@ -195,6 +196,9 @@ class SecurityDescriptor {
   PSECURITY_DESCRIPTOR sd_{nullptr};
 };
 #endif
+
+/// Returns the current user's ID (UID on POSIX systems and SID for Windows)
+std::string getUserId();
 
 /// Causes the current thread to sleep for a specified time in milliseconds.
 void sleepFor(size_t msec);
