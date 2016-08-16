@@ -9,4 +9,4 @@ schema([
     Column("revision", TEXT, "Package revision")
 ])
 attributes(cacheable=True)
-implementation("system/deb_packages@genDebs")
+implementation("system/deb_packages@genDebPackages")

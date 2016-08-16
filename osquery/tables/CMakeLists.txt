@@ -67,15 +67,10 @@ else()
     # ADD_OSQUERY_LINK_ADDITIONAL("librpm librpmio")
   elseif(DEBIAN_BASED)
     # Ubuntu specific tables
-    file(GLOB OSQUERY_UBUNTU_TABLES "*/ubuntu/*.cpp")
-    ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_ubuntu
-      ${OSQUERY_UBUNTU_TABLES}
-    )
-
-    set(LIBDPKG_VERSION_NUMBER "1018004")
-    add_definitions(-DLIBDPKG_VERSION=${LIBDPKG_VERSION_NUMBER})
-
-    ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg lzma lz4 bz2")
+    # file(GLOB OSQUERY_UBUNTU_TABLES "*/ubuntu/*.cpp")
+    # ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_ubuntu
+    #   ${OSQUERY_UBUNTU_TABLES}
+    # )
   endif()
 
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.so")
@@ -86,6 +81,8 @@ else()
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
   ADD_OSQUERY_LINK_ADDITIONAL("tsk")
+
+  ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg lzma lz4 bz2")
 endif()
 
 if(APPLE OR LINUX)
