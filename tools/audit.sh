@@ -25,7 +25,7 @@ function check_format() {
   if [[ `git diff --name-only | wc -l | awk '{print $1}'` = "0" ]]; then
     return 0
   else
-    git status
+    git --no-pager diff || true
     return 1
   fi
 }
