@@ -107,12 +107,6 @@ if(NOT WINDOWS)
     ${OSQUERY_CROSS_FORENSIC_TABLES}
     ${OSQUERY_POSIX_SYSTEM_TABLES}
   )
-else()
-# Not including an entire directory is pretty brtual, so now I have to do more hacky shit.
-file(GLOB OSQUERY_CROSS_CB_APPLICATIONS_TABLES "applications/carbon_black.cpp")
-ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_cb_applications
-  ${OSQUERY_CROSS_CB_APPLICATIONS_TABLES}
-)
 endif()
 
 file(GLOB OSQUERY_CROSS_SYSTEM_TABLES "system/*.cpp")
