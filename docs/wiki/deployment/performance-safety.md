@@ -63,6 +63,8 @@ The results (utilization=2) suggest running `processes_binding_to_ports` less of
 
 To estimate how often these should run you should evaluate what a differential in the information means from your visibility requirement's perspective (how meaningful is a change vs. how often you check for the change). Then weigh that value against the performance impact of running the query.
 
+Queries that fail to execute (for example, due to a non-existent table) will return the highest category result '3' and the value '-1' for all statistics. 
+
 ## Continuous Build
 
 The continuous integration for osquery is currently under development. The previous CI solution was unreliably failing builds due to network and memory issues.
