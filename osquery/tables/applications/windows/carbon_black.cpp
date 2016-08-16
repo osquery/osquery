@@ -16,6 +16,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace fs = boost::filesystem;
 
@@ -52,7 +53,7 @@ void getQueue(Row& r) {
     r["event_queue"] = INTEGER(event_queue_size);
 }
 
-void getWinSettings(Row& r) {
+void getSettings(Row& r) {
     QueryData results;
     queryKey("HKEY_LOCAL_MACHINE", kCbRegLoc, results);
     for (const auto& kKey : results) {
