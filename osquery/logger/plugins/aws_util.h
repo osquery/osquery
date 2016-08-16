@@ -28,6 +28,8 @@
 
 namespace osquery {
 
+using RegionName = const char* const;
+
 /**
  * @brief Client factory for the netlib HTTP client
  */
@@ -139,23 +141,23 @@ void initAwsSdk();
 /**
  * @brief Retrieve the Aws::Region from the aws_region flag
  *
- * @param region The Aws::Region to place the result in
+ * @param region The output string containing the region name.
  *
- * @return 0 if successful, 1 if the region was not recognized
+ * @return 0 if successful, 1 if the region was not recognized.
  */
-Status getAWSRegion(Aws::Region& region, bool sts = false);
+Status getAWSRegion(std::string& region, bool sts = false);
 
 /**
- * @brief Instantiate an AWS client with the appropriate osquery configs
+ * @brief Instantiate an AWS client with the appropriate osquery configs,
  *
  * This will pull the region and authentication configs from the appropriate
  * places (i.e. using getAWSRegion, OsqueryAWSCredentialsProviderChain),
  * instantiating whichever type of AWS client is passed as the template
  * parameter.
  *
- * @param client Pointer to the client object to instantiate
+ * @param client Pointer to the client object to instantiate.
  *
- * @return 0 if successful, 1 if there was a problem reading configs
+ * @return 0 if successful, 1 if there was a problem reading configs.
  */
 template <class Client>
 Status makeAWSClient(std::shared_ptr<Client>& client, bool sts = true) {

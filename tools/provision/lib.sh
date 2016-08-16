@@ -41,7 +41,9 @@ function setup_brew() {
   # Always update the location of the local tap link.
   log "refreshing local tap: homebrew-osquery-local"
   mkdir -p "$DEPS/Library/Taps/osquery/"
-  ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
+  if [[ ! -e "$FORMULA_TAP" ]]; then
+    ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
+  fi
 
   export HOMEBREW_MAKE_JOBS=$THREADS
   export HOMEBREW_NO_EMOJI=1
@@ -168,6 +170,11 @@ function brew_tool() {
 
 function brew_link() {
   brew_internal "upstream-link" $@
+}
+
+function brew_bottle() {
+  TOOL=$1
+  $BREW bottle --skip-relocation "${FORMULA_TAP}/${TOOL}.rb"
 }
 
 function local_brew_postinstall() {

@@ -80,7 +80,7 @@ function main() {
   if [[ -f "$OS_SCRIPT" ]]; then
     log "found $OS provision script: $OS_SCRIPT"
     source "$OS_SCRIPT"
-    if [[ -z "$SKIP_DISTRO_MAIN" ]]; then
+    if [[ -z "$SKIP_DISTRO_MAIN" && "$1" = "build" ]]; then
       distro_main
     fi
   else
@@ -100,6 +100,14 @@ function main() {
   # This will install a local tap using a symbol to the formula subdir here.
   export PATH="$DEPS_DIR/bin:$PATH"
   setup_brew "$DEPS_DIR" "$BREW_TYPE"
+
+  if [[ "$1" = "bottle" ]]; then
+    brew_bottle "$2"
+    return
+  elif [[ "$1" = "install" ]]; then
+    local_brew_dependency "$2"
+    return
+  fi
 
   if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
     log "[notice]"
