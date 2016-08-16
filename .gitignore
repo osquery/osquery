@@ -25,6 +25,7 @@
 # Build Artifacts
 .provision
 build/
+*.bottle.tar.gz
 
 # Run Artifacts
 *.log
