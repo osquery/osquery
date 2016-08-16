@@ -95,7 +95,6 @@ QueryData genAptSrcs(QueryContext& context) {
   // For each apt cache file that contains packages
   for (pkgCache::PkgFileIterator file = cache->FileBegin(); file && !file.end();
        ++file) {
-
     // Locate the associated index files to ensure the repository is installed
     pkgIndexFile* pkgIndex;
     if (!src_list->FindIndex(file, pkgIndex)) {
