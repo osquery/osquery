@@ -197,8 +197,8 @@ void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist) {
   size_t current_time = getUnixTime();
   for (size_t i = 0; i < blacklist_pairs.size() / 2; i++) {
     // Fill in a mapping of query name to time the blacklist expires.
-    long int expire = 0;
-    safeStrtol(blacklist_pairs[(i * 2) + 1], 10, expire);
+    long long expire = 0;
+    safeStrtoll(blacklist_pairs[(i * 2) + 1], 10, expire);
     if (expire > 0 && current_time < (size_t)expire) {
       blacklist[blacklist_pairs[(i * 2)]] = (size_t)expire;
     }
