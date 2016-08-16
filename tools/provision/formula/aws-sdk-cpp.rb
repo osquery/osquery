@@ -4,13 +4,13 @@ class AwsSdkCpp < AbstractOsqueryFormula
   desc "AWS SDK for C++"
   homepage "https://github.com/aws/aws-sdk-cpp"
   url "https://github.com/aws/aws-sdk-cpp/archive/0.14.4.tar.gz"
-  #sha256 "ea3e618980f41dedfc2a6b187846a2bd747d9b6d9b95f733e04bec76cbeb1a46"
+  sha256 "2e935275c6f7eb25e7d850b354344c92cacb7c193b708ec64ffce10ec6afa7f4"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "953567c55e5ca1873d80acf33408db74079b9d4dfd2cd34ac582af0543b138ee" => :el_capitan
-    sha256 "bfcf604046d739a7bde2285010fdd797e844ab1b1c2ec0e6b2d66db72f97cc65" => :x86_64_linux
+    sha256 "4a46a467ea1a8e1bd4c10b42dfe30055f6d3eb0bddee4f64c108a7ca780915ce" => :el_capitan
+    sha256 "99c11985fc79446a442055eae1c1eecdf14d33434f40df91bd99f97c0b7dadce" => :x86_64_linux
   end
 
   depends_on "cmake" => :build
@@ -33,8 +33,6 @@ class AwsSdkCpp < AbstractOsqueryFormula
       system "make"
       system "make", "install"
     end
-
-    lib.install Dir[lib/"mac/Release/*"].select { |f| File.file? f } if OS.mac?
   end
 
   test do
