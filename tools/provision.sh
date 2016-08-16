@@ -213,6 +213,9 @@ function platform_linux_main() {
   local_brew_tool llvm
   set_deps_compilers clang
 
+  # General Linux dependencies.
+  local_brew_dependency util-linux
+
   # Install custom formulas, build with LLVM/clang.
   local_brew_dependency boost
   local_brew_dependency asio
@@ -231,7 +234,6 @@ function platform_linux_main() {
   local_brew_dependency glog
 
   # Linux specific custom formulas.
-  local_brew_dependency util-linux
   local_brew_dependency libdevmapper -vd
   local_brew_dependency libaptpkg
   local_brew_dependency libiptables
