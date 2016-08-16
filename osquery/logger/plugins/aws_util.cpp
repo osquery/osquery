@@ -57,20 +57,19 @@ FLAG(uint64,
      "AWS STS assume role credential validity in seconds (default 3600)");
 
 /// Map of AWS region name to AWS::Region enum.
-static const std::map<std::string, Aws::Region> kAwsRegions = {
-    {"us-east-1", Aws::Region::US_EAST_1},
-    {"us-west-1", Aws::Region::US_WEST_1},
-    {"us-west-2", Aws::Region::US_WEST_2},
-    {"eu-west-1", Aws::Region::EU_WEST_1},
-    {"eu-central-1", Aws::Region::EU_CENTRAL_1},
-    {"ap-southeast-1", Aws::Region::AP_SOUTHEAST_1},
-    {"ap-southeast-2", Aws::Region::AP_SOUTHEAST_2},
-    {"ap-northeast-1", Aws::Region::AP_NORTHEAST_1},
-    {"ap-northeast-2", Aws::Region::AP_NORTHEAST_2},
-    {"sa-east-1", Aws::Region::SA_EAST_1}};
+static const std::set<std::string> kAwsRegions = {"us-east-1",
+                                                  "us-west-1",
+                                                  "us-west-2",
+                                                  "eu-west-1",
+                                                  "eu-central-1",
+                                                  "ap-southeast-1",
+                                                  "ap-southeast-2",
+                                                  "ap-northeast-1",
+                                                  "ap-northeast-2",
+                                                  "sa-east-1"};
 
 // Default AWS region to use when no region set in flags or profile
-static const Aws::Region kDefaultAWSRegion = Aws::Region::US_EAST_1;
+static RegionName kDefaultAWSRegion = Aws::Region::US_EAST_1;
 
 std::shared_ptr<Aws::Http::HttpClient>
 NetlibHttpClientFactory::CreateHttpClient(
@@ -251,7 +250,7 @@ OsqueryAWSCredentialsProviderChain::OsqueryAWSCredentialsProviderChain(bool sts)
       std::make_shared<Aws::Auth::InstanceProfileCredentialsProvider>());
 }
 
-Status getAWSRegionFromProfile(Aws::Region& region) {
+Status getAWSRegionFromProfile(std::string& region) {
   pt::ptree tree;
   try {
     auto profile_dir = Aws::Auth::ProfileConfigFileAWSCredentialsProvider::
@@ -281,8 +280,9 @@ Status getAWSRegionFromProfile(Aws::Region& region) {
   }
 
   std::string region_string = key_it->second.data();
-  if (kAwsRegions.count(region_string) > 0) {
-    region = kAwsRegions.at(region_string);
+  auto index = kAwsRegions.find(region_string);
+  if (index != kAwsRegions.end()) {
+    region = region_string;
   } else {
     return Status(1, "Invalid aws_region in profile: " + region_string);
   }
@@ -306,38 +306,40 @@ void initAwsSdk() {
   }
 }
 
-Status getAWSRegion(Aws::Region& region, bool sts) {
-  // First try using the flag aws_region
+Status getAWSRegion(std::string& region, bool sts) {
+  // First try using the explicit region flags (STS or otherwise).
   if (sts && !FLAGS_aws_sts_region.empty()) {
-    if (kAwsRegions.count(FLAGS_aws_sts_region) > 0) {
+    auto index = kAwsRegions.find(FLAGS_aws_sts_region);
+    if (index != kAwsRegions.end()) {
       VLOG(1) << "Using AWS STS region from flag: " << FLAGS_aws_sts_region;
-      region = kAwsRegions.at(FLAGS_aws_sts_region);
+      region = FLAGS_aws_sts_region;
       return Status(0);
     } else {
       return Status(1, "Invalid aws_region specified: " + FLAGS_aws_sts_region);
     }
   }
+
   if (!FLAGS_aws_region.empty()) {
-    if (kAwsRegions.count(FLAGS_aws_region) > 0) {
+    auto index = kAwsRegions.find(FLAGS_aws_region);
+    if (index != kAwsRegions.end()) {
       VLOG(1) << "Using AWS region from flag: " << FLAGS_aws_region;
-      region = kAwsRegions.at(FLAGS_aws_region);
+      region = FLAGS_aws_region;
       return Status(0);
     } else {
       return Status(1, "Invalid aws_region specified: " + FLAGS_aws_region);
     }
   }
 
-  // Try finding in profile, but use default if that fails and no profile name
-  // was specified
+  // Try finding in profile.
   auto s = getAWSRegionFromProfile(region);
   if (s.ok() || !FLAGS_aws_profile_name.empty()) {
-    VLOG(1) << "Using AWS region from profile: "
-            << Aws::RegionMapper::GetRegionName(region);
+    VLOG(1) << "Using AWS region from profile: " << region;
     return s;
   }
+
+  // Use the default region.
   region = kDefaultAWSRegion;
-  VLOG(1) << "Using default AWS region: "
-          << Aws::RegionMapper::GetRegionName(region);
+  VLOG(1) << "Using default AWS region: " << region;
   return Status(0);
 }
 }
