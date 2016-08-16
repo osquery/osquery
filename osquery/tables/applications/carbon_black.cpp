@@ -27,7 +27,7 @@ namespace osquery {
 namespace tables {
 
 // Carbon Black registry path 
-#define kCbRegLoc "\SOFTWARE\CarbonBlack\config"
+#define kCbRegLoc "SOFTWARE\\CarbonBlack\\config"
 // Path to the Carbon Black sensor id file
 #define kCbSensorIdFile "/var/lib/cb/sensor.id"
 // Path to the Carbon Black sensor settings file
@@ -119,8 +119,7 @@ void getQueue(Row& r) {
 #ifdef WIN32
 void getWinSettings(Row& r) {
     QueryData results;
-    std::string key = "SOFTWARE\\CarbonBlack\\config";
-    queryKey("HKEY_LOCAL_MACHINE", key, results);
+    queryKey("HKEY_LOCAL_MACHINE", kCbRegLoc, results);
     for (const auto& kKey : results) {
         if (kKey.at("name") == "CollectCrossProcess") {
             r["collect_cross_processes"] = SQL_TEXT(kKey.at("data"));
