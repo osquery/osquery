@@ -367,6 +367,9 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
   case PF_GET_OPTIONS(PF_OPEN_EXISTING):
     creation_disposition = OPEN_EXISTING;
     break;
+  case PF_GET_OPTIONS(PF_OPEN_ALWAYS):
+    creation_disposition = OPEN_ALWAYS;
+    break;
   case PF_GET_OPTIONS(PF_TRUNCATE):
     creation_disposition = TRUNCATE_EXISTING;
     break;
