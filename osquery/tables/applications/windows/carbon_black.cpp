@@ -8,6 +8,9 @@
  *
  */
 
+#include "Shlwapi.h"
+#include "windows.h"
+
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
@@ -17,9 +20,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
-#include "Shlwapi.h"
 #include "osquery/tables/system/windows/registry.h"
-#include "windows.h"
 
 namespace fs = boost::filesystem;
 
