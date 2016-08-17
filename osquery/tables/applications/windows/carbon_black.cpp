@@ -13,10 +13,11 @@
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include "osquery/tables/system/windows/registry.h"
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
+
+#include "osquery/tables/system/windows/registry.h"
 
 namespace fs = boost::filesystem;
 
