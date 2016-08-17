@@ -35,8 +35,7 @@ void getQueue(Row& r) {
   char cbPath[MAX_PATH];
   PathCombine(cbPath, windowsPath, TEXT("CarbonBlack\\"));
   std::vector<std::string> files_list;
-  auto status = listFilesInDirectory(cbPath, files_list, true);
-  if (!status.ok()) {
+  if (!listFilesInDirectory(cbPath, files_list, true)) {
     return;
   }
   unsigned int binary_queue_size = 0;
