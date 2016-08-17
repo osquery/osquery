@@ -38,6 +38,9 @@ function setup_brew() {
     #git pull
   fi
 
+  # Create a local cache directory
+  mkdir -p "$DEPS/.cache"
+
   # Always update the location of the local tap link.
   log "refreshing local tap: homebrew-osquery-local"
   mkdir -p "$DEPS/Library/Taps/osquery/"
@@ -45,6 +48,9 @@ function setup_brew() {
     ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
   fi
 
+  export HOMEBREW_NO_ANALYTICS_THIS_RUN=1
+  export HOMEBREW_NO_AUTO_UPDATE=1
+  export HOMEBREW_CACHE="$DEPS/.cache/"
   export HOMEBREW_MAKE_JOBS=$THREADS
   export HOMEBREW_NO_EMOJI=1
   export BREW="$DEPS/bin/brew"
