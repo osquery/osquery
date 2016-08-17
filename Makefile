@@ -47,6 +47,7 @@ docs: .setup
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
 
 format_master:
+	@echo "[+] clang-format (`which clang-format`) version: `clang-format --version`"
 	@$(PATH_SET) $(FORMAT_COMMAND)
 
 debug: .setup
@@ -82,9 +83,10 @@ test_debug_sdk: .setup
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 check:
+	@echo "[+] cppcheck (`which cppcheck`) version: `cppcheck --version`"
 	@$(PATH_SET) cppcheck --quiet --enable=all --error-exitcode=0 \
 		-I ./include ./osquery
-	# We want check to produce an error if there are critical issues.
+	@# We want check to produce an error if there are critical issues.
 	@echo ""
 	@$(PATH_SET) cppcheck --quiet --enable=warning --error-exitcode=1 \
 		-I ./include ./osquery
