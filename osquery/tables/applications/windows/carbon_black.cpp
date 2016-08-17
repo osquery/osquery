@@ -99,7 +99,9 @@ void getSettings(Row& r) {
       r["collect_store_files"] = INTEGER(kKey.at("data"));
     }
     if (kKey.at("name") == "ConfigName") {
-      r["config_name"] = INTEGER(kKey.at("data"));
+      std::string config_name = kKey.at("data");
+      boost::replace_all(config_name, "%20", " ");
+      r["config_name"] = SQL_TEXT(config_name);
     }
     if (kKey.at("name") == "LogFileDiskQuotaMb") {
       r["log_file_disk_quota_mb"] = INTEGER(kKey.at("data"));
