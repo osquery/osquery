@@ -17,7 +17,9 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
+#include "Shlwapi.h"
 #include "osquery/tables/system/windows/registry.h"
+#include "windows.h"
 
 namespace fs = boost::filesystem;
 
@@ -26,12 +28,14 @@ namespace tables {
 
 // Carbon Black registry path
 #define kCbRegLoc "SOFTWARE\\CarbonBlack\\config"
-// Path to Carbon Black direcotry
-#define kCbDir "C:\\Windows\\CarbonBlack\\"
 
 void getQueue(Row& r) {
+  char windowsPath[MAX_PATH];
+  GetWindowsDirectory(windowsPath, MAX_PATH);
+  char cbPath[MAX_PATH];
+  PathCombine(cbPath, windowsPath, TEXT("CarbonBlack\\"));
   std::vector<std::string> files_list;
-  auto status = listFilesInDirectory(kCbDir, files_list, true);
+  auto status = listFilesInDirectory(cbPath, files_list, true);
   if (!status.ok()) {
     return;
   }
