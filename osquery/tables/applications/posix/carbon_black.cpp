@@ -8,15 +8,15 @@
  *
  */
 
-#include <osquery/core.h>
-#include <osquery/filesystem.h>
-#include <osquery/tables.h>
-
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/tables.h>
 
 namespace fs = boost::filesystem;
 
@@ -50,7 +50,7 @@ void getSensorId(Row& r) {
 
 // Get settings of the Carbon Black sensor
 void getSensorSettings(Row& r) {
-  if (!boost::filesystem::exists(kCbSensorSettingsFile)) {
+  if (!pathExists(kCbSensorSettingsFile).ok()) {
     return;
   }
   boost::property_tree::ptree pt;
@@ -85,8 +85,7 @@ void getSensorSettings(Row& r) {
 
 void getQueue(Row& r) {
   std::vector<std::string> files_list;
-  auto status = listFilesInDirectory(kCbDir, files_list, true);
-  if (!status.ok()) {
+  if (!listFilesInDirectory(kCbDir, files_list, true)) {
     return;
   }
   unsigned int binary_queue_size = 0;
@@ -105,7 +104,7 @@ void getQueue(Row& r) {
   r["event_queue"] = INTEGER(event_queue_size);
 }
 
-QueryData genInfo(QueryContext& context) {
+QueryData genCarbonBlackInfo(QueryContext& context) {
   Row r;
   QueryData results;
 

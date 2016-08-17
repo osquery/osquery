@@ -8,15 +8,15 @@
  *
  */
 
-#include <osquery/core.h>
-#include <osquery/filesystem.h>
-#include <osquery/tables.h>
-#include <osquery/tables/system/windows/registry.h>
-
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
+
+#include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/tables.h>
+#include "osquery/tables/system/windows/registry.h"
 
 namespace fs = boost::filesystem;
 
@@ -128,7 +128,7 @@ void getSettings(Row& r) {
   }
 }
 
-QueryData genInfo(QueryContext& context) {
+QueryData genCarbonBlackInfo(QueryContext& context) {
   Row r;
   QueryData results;
 

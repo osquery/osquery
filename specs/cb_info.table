@@ -1,4 +1,4 @@
-table_name("cb_info")
+table_name("carbon_black_info", aliases=["cb_info"])
 description("Returns info about a Carbon Black sensor install")
 schema([
     Column("sensor_id", INTEGER, "Sensor ID of the Carbon Black sensor"),
@@ -23,4 +23,4 @@ schema([
     Column("event_queue", INTEGER, "Size in bytes of Carbon Black event files on disk"),
     Column("binary_queue", INTEGER, "Size in bytes of binaries waiting to be sent to Carbon Black server"),
 ])
-implementation("carbon_black@genInfo")
+implementation("carbon_black@genCarbonBlackInfo")
