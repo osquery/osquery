@@ -88,8 +88,8 @@ void getQueue(Row& r) {
   if (!listFilesInDirectory(kCbDir, files_list, true)) {
     return;
   }
-  unsigned int binary_queue_size = 0;
-  unsigned int event_queue_size = 0;
+  uintmax_t binary_queue_size = 0;
+  uintmax_t event_queue_size = 0;
   // Go through each file
   for (const auto& kfile : files_list) {
     fs::path file(kfile);
