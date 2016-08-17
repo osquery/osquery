@@ -295,6 +295,16 @@ Status resolveFilePattern(const fs::path& fs_path,
   return Status(0, "OK");
 }
 
+fs::path getSystemRoot() {
+#ifdef WIN32
+  char winDirectory[MAX_PATH] = {0};
+  GetWindowsDirectory(winDirectory, MAX_PATH);
+  return fs::path(winDirectory);
+#else
+  return fs::path("/");
+#endif
+}
+
 inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
   // Replace SQL-wildcard '%' with globbing wildcard '*'.
   if (pattern.find("%") != std::string::npos) {

@@ -32,21 +32,23 @@ function check_format() {
 
 function audit() {
   log "Running various code/change audits!"
+
+  echo ""
   log "Initializing and updating all submodules"
   checkout_thirdparty
 
-  # Check the docs creation
   echo ""
-  log "Running: make docs"
-  make docs
+  log "Running: make format"
+  check_format
 
   echo ""
   log "Running: make check"
   make check
 
+  # Check the docs creation
   echo ""
-  log "Running: make format"
-  check_format
+  log "Running: make docs"
+  make docs
 }
 
 audit
