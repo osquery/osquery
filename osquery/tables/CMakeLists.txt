@@ -94,20 +94,26 @@ endif()
 
 # TODO: These tables should be made Windows-compatible
 if(NOT WINDOWS)
-  file(GLOB OSQUERY_CROSS_APPLICATIONS_TABLES "applications/*.cpp")
   file(GLOB OSQUERY_CROSS_NETWORKING_TABLES "networking/*.cpp")
   file(GLOB OSQUERY_CROSS_FORENSIC_TABLES "forensic/*.cpp")
 
+  file(GLOB OSQUERY_POSIX_APPLICATIONS_TABLES "applications/posix/*.cpp")
   file(GLOB OSQUERY_POSIX_SYSTEM_TABLES "system/posix/*.cpp")
 
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables
-    ${OSQUERY_CROSS_APPLICATIONS_TABLES}
+    ${OSQUERY_POSIX_APPLICATIONS_TABLES}
     ${OSQUERY_CROSS_NETWORKING_TABLES}
     ${OSQUERY_CROSS_EVENTS_TABLES}
     ${OSQUERY_CROSS_FORENSIC_TABLES}
     ${OSQUERY_POSIX_SYSTEM_TABLES}
   )
 endif()
+
+# No cross-platform application tables yet.
+# file(GLOB OSQUERY_CROSS_APPLICATIONS_TABLES "applications/*.cpp")
+# ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_applications
+#   ${OSQUERY_CROSS_APPLICATIONS_TABLES}
+#)
 
 file(GLOB OSQUERY_CROSS_SYSTEM_TABLES "system/*.cpp")
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_system

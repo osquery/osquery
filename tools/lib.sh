@@ -122,7 +122,7 @@ function build() {
 
   # Build kernel extension/module and tests.
   BUILD_KERNEL=0
-  if [[ "$PLATFORM" = "darwin" ]]; then
+  if [[ -z "$SKIP_KERNEL" && "$PLATFORM" = "darwin" ]]; then
     if [[ "$DISTRO" = "$DARWIN_KERNEL_VERSION" ]]; then
       BUILD_KERNEL=1
     fi
