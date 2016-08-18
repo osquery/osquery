@@ -448,17 +448,18 @@ const std::string& osqueryHomeDirectory() {
 
   if (homedir.size() == 0) {
     // Try to get the caller's home directory
+    boost::system::error_code ec;
     auto userdir = getHomeDirectory();
     if (userdir.is_initialized() && isWritable(*userdir).ok()) {
       auto osquery_dir = (fs::path(*userdir) / ".osquery");
-      if (isWritable(osquery_dir)) {
+      if (isWritable(osquery_dir) ||
+          boost::filesystem::create_directories(osquery_dir, ec)) {
         homedir = osquery_dir.make_preferred().string();
         return homedir;
       }
     }
 
     // Fail over to a temporary directory (used for the shell).
-    boost::system::error_code ec;
     auto temp =
         fs::temp_directory_path(ec) / fs::unique_path("osquery%%%%%%%%", ec);
     homedir = temp.make_preferred().string();
