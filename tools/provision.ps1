@@ -6,7 +6,7 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 # URL of where our pre-compiled third-party dependenices are archived
-$THIRD_PARTY_ARCHIVE_URL = 'https://s3.amazonaws.com/osquery-pkgs/chocolatey'
+$THIRD_PARTY_ARCHIVE_URL = 'https://s3.amazonaws.com/osquery-pkgs/chocolatey/static'
 
 # Adapted from http://www.jonathanmedd.net/2014/01/testing-for-admin-privileges-in-powershell.html
 function Test-IsAdmin {

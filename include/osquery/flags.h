@@ -14,6 +14,8 @@
 
 #include <boost/lexical_cast.hpp>
 
+#define GFLAGS_DLL_DEFINE_FLAG
+#define GFLAGS_DLL_DECLARE_FLAG
 #define STRIP_FLAG_HELP 1
 #include <gflags/gflags.h>
 

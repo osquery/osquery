@@ -15,6 +15,7 @@
 
 #ifdef WIN32
 #define GLOG_NO_ABBREVIATED_SEVERITIES
+#define GOOGLE_GLOG_DLL_DECL
 #endif
 
 #include <glog/logging.h>
