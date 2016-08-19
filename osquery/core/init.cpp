@@ -35,8 +35,8 @@
 #include <osquery/registry.h>
 #include <osquery/system.h>
 
-#include "osquery/core/watcher.h"
 #include "osquery/core/process.h"
+#include "osquery/core/watcher.h"
 
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <sys/resource.h>
@@ -70,40 +70,40 @@ enum {
 };
 #endif
 
-#define DESCRIPTION \
+#define DESCRIPTION                                                            \
   "osquery %s, your OS as a high-performance relational database\n"
 #define EPILOG "\nosquery project page <https://osquery.io>.\n"
-#define OPTIONS \
+#define OPTIONS                                                                \
   "\nosquery configuration options (set by config or CLI flags):\n\n"
 #define OPTIONS_SHELL "\nosquery shell-only CLI flags:\n\n"
 #define OPTIONS_CLI "osquery%s command line flags:\n\n"
 #define USAGE "Usage: %s [OPTION]... %s\n\n"
-#define CONFIG_ERROR                                                          \
-  "You are using default configurations for osqueryd for one or more of the " \
-  "following\n"                                                               \
-  "flags: pidfile, db_path.\n\n"                                              \
-  "These options create files in " OSQUERY_HOME                               \
-  " but it looks like that path "                                             \
-  "has not\n"                                                                 \
-  "been created. Please consider explicitly defining those "                  \
-  "options as a different \n"                                                 \
-  "path. Additionally, review the \"using osqueryd\" wiki page:\n"            \
-  " - https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/" \
+#define CONFIG_ERROR                                                           \
+  "You are using default configurations for osqueryd for one or more of the "  \
+  "following\n"                                                                \
+  "flags: pidfile, db_path.\n\n"                                               \
+  "These options create files in " OSQUERY_HOME                                \
+  " but it looks like that path "                                              \
+  "has not\n"                                                                  \
+  "been created. Please consider explicitly defining those "                   \
+  "options as a different \n"                                                  \
+  "path. Additionally, review the \"using osqueryd\" wiki page:\n"             \
+  " - https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/"  \
   "\n\n";
 
 /// Seconds to alarm and quit for non-responsive event loops.
 #define SIGNAL_ALARM_TIMEOUT 4
 
-/// For Windows, SIGILL and SIGTERM 
+/// For Windows, SIGILL and SIGTERM
 #ifdef WIN32
 
 /// We define SIGHUP similarly to POSIX because otherwise it would require a
 /// complex ifndef
-#define SIGHUP   1
+#define SIGHUP 1
 
 /// For Windows, SIGILL and SIGTERM are not generated signals. To supplant the
 /// SIGUSR1 use-case on POSIX, we use SIGILL.
-#define SIGUSR1  SIGILL
+#define SIGUSR1 SIGILL
 
 #endif
 
@@ -393,9 +393,7 @@ void Initializer::initDaemon() const {
 void Initializer::initShell() const {
   // Get the caller's home dir for temporary storage/state management.
   auto homedir = osqueryHomeDirectory();
-  boost::system::error_code ec;
-  if (osquery::pathExists(homedir).ok() ||
-      boost::filesystem::create_directory(homedir, ec)) {
+  if (osquery::pathExists(homedir).ok()) {
     // Only apply user/shell-specific paths if not overridden by CLI flag.
     if (Flag::isDefault("database_path")) {
       osquery::FLAGS_database_path =
@@ -406,7 +404,8 @@ void Initializer::initShell() const {
           (fs::path(homedir) / "shell.em").make_preferred().string();
     }
   } else {
-    LOG(INFO) << "Cannot access or create osquery home directory";
+    fprintf(
+        stderr, "Cannot access or create osquery home: %s", homedir.c_str());
     FLAGS_disable_extensions = true;
     FLAGS_disable_database = true;
   }
@@ -481,7 +480,9 @@ void Initializer::initWorkerWatcher(const std::string& name) const {
   }
 }
 
-bool Initializer::isWorker() { return hasWorkerVariable(); }
+bool Initializer::isWorker() {
+  return hasWorkerVariable();
+}
 
 void Initializer::initActivePlugin(const std::string& type,
                                    const std::string& name) const {
@@ -633,5 +634,7 @@ void Initializer::requestShutdown(int retcode, const std::string& system_log) {
   requestShutdown(retcode);
 }
 
-void Initializer::shutdown(int retcode) { ::exit(retcode); }
+void Initializer::shutdown(int retcode) {
+  ::exit(retcode);
+}
 }
