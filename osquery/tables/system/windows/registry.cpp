@@ -219,10 +219,10 @@ void queryKey(const std::string& hive,
       r["data"] = data;
       break;
     case REG_DWORD:
-      r["data"] = std::to_string(*((int*)bpDataBuff));
+      r["data"] = std::to_string(*bpDataBuff);
       break;
     case REG_DWORD_BIG_ENDIAN:
-      r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff)));
+      r["data"] = std::to_string(_byteswap_ulong(*bpDataBuff));
       break;
     case REG_EXPAND_SZ:
       r["data"] = std::string((char*)bpDataBuff);
