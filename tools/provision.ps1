@@ -167,7 +167,7 @@ function Install-ThirdPartyPackages {
       }
       
       Write-Host "    Installing $package" -foregroundcolor Cyan
-      choco install -y $packageName -source "$tmpDir;http://chocolatey.org/api/v2"
+      choco install --force -y $packageName -source "$tmpDir;http://chocolatey.org/api/v2"
       
       if ($LastExitCode -ne 0) {
         Write-Host "      FAILED to install $package" -foregroundcolor Red
