@@ -31,12 +31,10 @@ namespace tables {
 #define kCbRegLoc "SOFTWARE\\CarbonBlack\\config"
 
 void getQueue(Row& r) {
-  char windowsPath[MAX_PATH];
-  GetWindowsDirectory(windowsPath, MAX_PATH);
-  char cbPath[MAX_PATH];
-  PathCombine(cbPath, windowsPath, TEXT("CarbonBlack\\"));
+  fs::path cbDir = getSystemRoot();
+  cbDir /= "CarbonBlack";
   std::vector<std::string> files_list;
-  if (!listFilesInDirectory(cbPath, files_list, true)) {
+  if (!listFilesInDirectory(cbDir, files_list, true)) {
     return;
   }
   uintmax_t binary_queue_size = 0;
