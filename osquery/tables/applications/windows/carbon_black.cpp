@@ -8,6 +8,9 @@
  *
  */
 
+#include "Shlwapi.h"
+#include "windows.h"
+
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
@@ -26,17 +29,18 @@ namespace tables {
 
 // Carbon Black registry path
 #define kCbRegLoc "SOFTWARE\\CarbonBlack\\config"
-// Path to Carbon Black direcotry
-#define kCbDir "C:\\Windows\\CarbonBlack\\"
 
 void getQueue(Row& r) {
+  char windowsPath[MAX_PATH];
+  GetWindowsDirectory(windowsPath, MAX_PATH);
+  char cbPath[MAX_PATH];
+  PathCombine(cbPath, windowsPath, TEXT("CarbonBlack\\"));
   std::vector<std::string> files_list;
-  auto status = listFilesInDirectory(kCbDir, files_list, true);
-  if (!status.ok()) {
+  if (!listFilesInDirectory(cbPath, files_list, true)) {
     return;
   }
-  unsigned int binary_queue_size = 0;
-  unsigned int event_queue_size = 0;
+  uintmax_t binary_queue_size = 0;
+  uintmax_t event_queue_size = 0;
   // Go through each file
   for (const auto& kfile : files_list) {
     fs::path file(kfile);
@@ -96,7 +100,9 @@ void getSettings(Row& r) {
       r["collect_store_files"] = INTEGER(kKey.at("data"));
     }
     if (kKey.at("name") == "ConfigName") {
-      r["config_name"] = INTEGER(kKey.at("data"));
+      std::string config_name = kKey.at("data");
+      boost::replace_all(config_name, "%20", " ");
+      r["config_name"] = SQL_TEXT(config_name);
     }
     if (kKey.at("name") == "LogFileDiskQuotaMb") {
       r["log_file_disk_quota_mb"] = INTEGER(kKey.at("data"));

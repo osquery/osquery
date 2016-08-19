@@ -110,33 +110,6 @@ osquery>
 
 If the responsible shell or daemon process ends the extension will soon after detect the loss of communication and also shutdown. Read more about the lifecycle of extensions in the deployment guide.
 
-### Building external extensions
-
-Your "external" extension, in the sense that the code is developed and contained somewhere external from the osquery repository, can be built semi-automatically.
-
-1. Symlink your external extension directory (modules work too) into `./external`.
-2. Make sure the symlink contains either `extension_` or `module_` as a prefix.
-3. Run `make externals`.
-
-This will find and compile all `.*\.{cpp,c,mm}` files within your external directory. If you need something more complicated add a `CMakeLists.txt` to your directory and add your targets to the `externals` target.
-
-See [`CMake/CMakeLibs.cmake`](https://github.com/facebook/osquery/blob/master/CMake/CMakeLibs.cmake) for more information about the `ADD_OSQUERY_EXTENSION` CMake macro.
-
-Example:
-```
-(osquery) $ ln -s ~/git/fun-osquery-extension ./external/extension_fun
-(osquery) $ ls ./external/extension_fun/
-fun.cpp
-(osquery) $ make externals
-[...]
-[100%] Built target libosquery
-Scanning dependencies of target external_extension_awesome
-[100%] Building CXX object external/CMakeFiles/external_extension_fun.dir/extension_fun/fun.cpp.o
-[100%] Linking CXX executable external_extension_fun.ext
-[100%] Built target external_extension_fun
-[100%] Built target externals
-```
-
 ## Thrift API
 
 [Thrift](https://thrift.apache.org/) is a code-generation/cross-language service development framework. osquery uses thrift to allow plugin extensions for config retrieval, log export, table implementations, event subscribers, and event publishers. We also use thrift to wrap our SQL implementation using SQLite.
