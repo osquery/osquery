@@ -57,7 +57,3 @@ doxygen/latex
 *~
 \#*\#
 *.swp
-
-# Ignored components
-/external/*
-!/external/CMakeLists.txt

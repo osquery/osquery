@@ -54,8 +54,8 @@ Status writeTextFile(const fs::path& path,
                      int permissions,
                      bool force_permissions) {
   // Open the file with the request permissions.
-  PlatformFile output_fd(
-      path.string(), PF_CREATE_ALWAYS | PF_WRITE | PF_APPEND, permissions);
+  PlatformFile output_fd(path.string(), PF_CREATE_ALWAYS | PF_WRITE | PF_APPEND,
+                         permissions);
   if (!output_fd.isValid()) {
     return Status(1, "Could not create file: " + path.string());
   }
@@ -104,13 +104,14 @@ struct OpenReadableFile {
 #endif
 };
 
-Status readFile(const fs::path& path,
-                size_t size,
-                size_t block_size,
-                bool dry_run,
-                bool preserve_time,
-                std::function<void(std::string& buffer, size_t size)> predicate,
-                bool blocking) {
+Status readFile(
+    const fs::path& path,
+    size_t size,
+    size_t block_size,
+    bool dry_run,
+    bool preserve_time,
+    std::function<void(std::string& buffer, size_t size)> predicate,
+    bool blocking) {
   OpenReadableFile handle(path, blocking);
   if (handle.fd == nullptr || !handle.fd->isValid()) {
     return Status(1, "Cannot open file for reading: " + path.string());
@@ -194,9 +195,7 @@ Status readFile(const fs::path& path, bool blocking) {
   return readFile(path, blank, 0, true, false, blocking);
 }
 
-Status forensicReadFile(const fs::path& path,
-                        std::string& content,
-                        bool blocking) {
+Status forensicReadFile(const fs::path& path, std::string& content, bool blocking) {
   return readFile(path, content, 0, false, true, blocking);
 }
 
@@ -270,8 +269,7 @@ static void genGlobs(std::string path,
   }
 
   // Prune results based on settings/requested glob limitations.
-  auto end = std::remove_if(results.begin(),
-                            results.end(),
+  auto end = std::remove_if(results.begin(), results.end(),
                             [limits](const std::string& found) {
                               return !(((found[found.length() - 1] == '/' ||
                                          found[found.length() - 1] == '\\') &&
@@ -293,16 +291,6 @@ Status resolveFilePattern(const fs::path& fs_path,
                           GlobLimits setting) {
   genGlobs(fs_path.string(), results, setting);
   return Status(0, "OK");
-}
-
-fs::path getSystemRoot() {
-#ifdef WIN32
-  char winDirectory[MAX_PATH] = {0};
-  GetWindowsDirectory(winDirectory, MAX_PATH);
-  return fs::path(winDirectory);
-#else
-  return fs::path("/");
-#endif
 }
 
 inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
@@ -362,15 +350,15 @@ inline Status listInAbsoluteDirectory(const fs::path& path,
 Status listFilesInDirectory(const fs::path& path,
                             std::vector<std::string>& results,
                             bool recursive) {
-  return listInAbsoluteDirectory(
-      (path / ((recursive) ? "**" : "*")), results, GLOB_FILES);
+  return listInAbsoluteDirectory((path / ((recursive) ? "**" : "*")), results,
+                                 GLOB_FILES);
 }
 
 Status listDirectoriesInDirectory(const fs::path& path,
                                   std::vector<std::string>& results,
                                   bool recursive) {
-  return listInAbsoluteDirectory(
-      (path / ((recursive) ? "**" : "*")), results, GLOB_FOLDERS);
+  return listInAbsoluteDirectory((path / ((recursive) ? "**" : "*")), results,
+                                 GLOB_FOLDERS);
 }
 
 Status isDirectory(const fs::path& path) {
@@ -458,18 +446,17 @@ const std::string& osqueryHomeDirectory() {
 
   if (homedir.size() == 0) {
     // Try to get the caller's home directory
-    boost::system::error_code ec;
     auto userdir = getHomeDirectory();
     if (userdir.is_initialized() && isWritable(*userdir).ok()) {
       auto osquery_dir = (fs::path(*userdir) / ".osquery");
-      if (isWritable(osquery_dir) ||
-          boost::filesystem::create_directories(osquery_dir, ec)) {
+      if (isWritable(osquery_dir)) {
         homedir = osquery_dir.make_preferred().string();
         return homedir;
       }
     }
 
     // Fail over to a temporary directory (used for the shell).
+    boost::system::error_code ec;
     auto temp =
         fs::temp_directory_path(ec) / fs::unique_path("osquery%%%%%%%%", ec);
     homedir = temp.make_preferred().string();

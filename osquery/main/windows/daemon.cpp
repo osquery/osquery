@@ -24,17 +24,6 @@
 
 namespace osquery {
 
-/// Flags used by the daemon to install/uninstall osqueryd.exe as a Windows
-/// Serivce
-CLI_FLAG(bool,
-         install,
-         false,
-         "Install osqueryd.exe to the Windows Service Control Manager");
-CLI_FLAG(bool,
-         uninstall,
-         false,
-         "Uninstall osqueryd.exe from the Windows Service Control Manager");
-
 const std::string kServiceName = "osquery daemon service";
 const std::string kWatcherWorkerName = "osqueryd: worker";
 
@@ -43,19 +32,18 @@ const std::string kWatcherWorkerName = "osqueryd: worker";
 static HANDLE kStopEvent = nullptr;
 
 static SERVICE_STATUS_HANDLE kStatusHandle = nullptr;
-static SERVICE_STATUS kServiceStatus = {0};
+static SERVICE_STATUS kServiceStatus = { 0 };
 
 /// Logging for when we need to debug this service
-#define SLOG(...) ::osquery::DebugPrintf("[osqueryd] " __VA_ARGS__)
+#define SLOG(...)  ::osquery::DebugPrintf("[osqueryd] " __VA_ARGS__)
 
-void DebugPrintf(const char* fmt, ...) {
+void DebugPrintf(const char *fmt, ...) {
   va_list vl;
   va_start(vl, fmt);
 
   int size = _vscprintf(fmt, vl);
   if (size > 0) {
-    char* buf =
-        (char*)::HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size + 2);
+    char *buf = (char *)::HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size + 2);
     if (buf != nullptr) {
       _vsprintf_p(buf, size + 1, fmt, vl);
       ::OutputDebugStringA(buf);
@@ -66,125 +54,7 @@ void DebugPrintf(const char* fmt, ...) {
   va_end(vl);
 }
 
-/// Install osqueryd as a service given the path to the binary
-Status installService(const char* const binPath) {
-  SC_HANDLE schSCManager = OpenSCManager(
-      nullptr, nullptr, SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE);
-
-  if (schSCManager == nullptr) {
-    return Status(1);
-  }
-
-  SC_HANDLE schService =
-      OpenService(schSCManager, kServiceName.c_str(), SERVICE_ALL_ACCESS);
-
-  if (schService != nullptr) {
-    CloseServiceHandle(schSCManager);
-    return Status(1);
-  }
-
-  schService = CreateService(schSCManager,
-                             kServiceName.c_str(),
-                             kServiceName.c_str(),
-                             SERVICE_ALL_ACCESS,
-                             SERVICE_WIN32_OWN_PROCESS,
-                             SERVICE_AUTO_START,
-                             SERVICE_ERROR_NORMAL,
-                             binPath,
-                             nullptr,
-                             nullptr,
-                             nullptr,
-                             nullptr, // User Account. nullptr => LOCAL SYSTEM
-                             nullptr);
-
-  CloseServiceHandle(schSCManager);
-  CloseServiceHandle(schService);
-  return Status(schService ? 0 : 1);
-}
-
-Status startService() {
-  SC_HANDLE schSCManager =
-      OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
-  if (schSCManager == nullptr) {
-    return Status(1);
-  }
-
-  SC_HANDLE schService =
-      OpenService(schSCManager, kServiceName.c_str(), SERVICE_ALL_ACCESS);
-  if (schService == nullptr) {
-    CloseServiceHandle(schSCManager);
-    return Status(1);
-  }
-
-  SERVICE_STATUS_PROCESS ssStatus;
-  DWORD dwBytesNeeded;
-  if (!QueryServiceStatusEx(schService,
-                            SC_STATUS_PROCESS_INFO,
-                            (LPBYTE)&ssStatus,
-                            sizeof(SERVICE_STATUS_PROCESS),
-                            &dwBytesNeeded)) {
-    CloseServiceHandle(schService);
-    CloseServiceHandle(schSCManager);
-    return Status(1);
-  }
-
-  auto s = StartService(schService, 0, nullptr);
-  CloseServiceHandle(schSCManager);
-  CloseServiceHandle(schService);
-  return Status(s ? 0 : 1);
-}
-
-Status uninstallService() {
-  SC_HANDLE schSCManager = OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT);
-  if (schSCManager == nullptr) {
-    return Status(1);
-  }
-
-  SC_HANDLE schService =
-      OpenService(schSCManager,
-                  kServiceName.c_str(),
-                  SERVICE_STOP | SERVICE_QUERY_STATUS | DELETE);
-
-  if (schService == nullptr) {
-    CloseServiceHandle(schService);
-    return Status(1);
-  }
-
-  SERVICE_STATUS_PROCESS ssStatus;
-  DWORD dwBytesNeeded;
-  if (!QueryServiceStatusEx(schService,
-                            SC_STATUS_PROCESS_INFO,
-                            (LPBYTE)&ssStatus,
-                            sizeof(SERVICE_STATUS_PROCESS),
-                            &dwBytesNeeded)) {
-    CloseServiceHandle(schService);
-    CloseServiceHandle(schSCManager);
-    return Status(1);
-  }
-
-  SERVICE_STATUS ssSvcStatus = {};
-  if (ssStatus.dwCurrentState != SERVICE_STOPPED) {
-    ControlService(schService, SERVICE_CONTROL_STOP, &ssSvcStatus);
-    // Wait 3 seconds to give the service an opportunity to stop.
-    Sleep(3000);
-    QueryServiceStatus(schService, &ssSvcStatus);
-    if (ssSvcStatus.dwCurrentState != SERVICE_STOPPED) {
-      CloseServiceHandle(schSCManager);
-      CloseServiceHandle(schService);
-      return Status(1);
-    }
-  }
-
-  auto s = DeleteService(schService);
-  CloseServiceHandle(schSCManager);
-  CloseServiceHandle(schService);
-  return Status(s ? 0 : 1);
-}
-
-void UpdateServiceStatus(DWORD controls,
-                         DWORD state,
-                         DWORD exit_code,
-                         DWORD checkpoint) {
+void UpdateServiceStatus(DWORD controls, DWORD state, DWORD exit_code, DWORD checkpoint) {
   kServiceStatus.dwControlsAccepted = controls;
   kServiceStatus.dwCurrentState = state;
   kServiceStatus.dwWin32ExitCode = exit_code;
@@ -212,25 +82,8 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
   }
 }
 
-void daemonEntry(int argc, char* argv[]) {
+void daemonEntry(int argc, char *argv[]) {
   osquery::Initializer runner(argc, argv, osquery::ToolType::DAEMON);
-
-  // Options for installing or uninstalling the osqueryd as a service
-  if (osquery::FLAGS_install) {
-    if (osquery::installService(argv[0]).getCode()) {
-      LOG(ERROR) << "Unable to install the osqueryd service";
-      return;
-    }
-    if (osquery::startService().getCode()) {
-      LOG(ERROR) << "Unable to start the osqueryd service";
-    }
-    return;
-  } else if (osquery::FLAGS_uninstall) {
-    if (osquery::uninstallService().getCode()) {
-      LOG(ERROR) << "Unable to uninstall the osqueryd service";
-    }
-    return;
-  }
 
   if (!runner.isWorker()) {
     runner.initDaemon();
@@ -278,7 +131,7 @@ void daemonEntry(int argc, char* argv[]) {
   runner.waitForShutdown();
 }
 
-void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
+void WINAPI ServiceMain(DWORD argc, LPSTR *argv) {
   kStatusHandle = ::RegisterServiceCtrlHandlerA(kServiceName.c_str(),
                                                 ServiceControlHandler);
   if (kStatusHandle != nullptr) {
@@ -289,8 +142,8 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
 
     kStopEvent = ::CreateEventA(nullptr, TRUE, FALSE, nullptr);
     if (kStopEvent != nullptr) {
-      UpdateServiceStatus(
-          SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN, SERVICE_RUNNING, 0, 0);
+      UpdateServiceStatus(SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN,
+                          SERVICE_RUNNING, 0, 0);
 
       daemonEntry(argc, argv);
 
@@ -307,10 +160,9 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
 }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   SERVICE_TABLE_ENTRYA serviceTable[] = {
-      {(LPSTR)osquery::kServiceName.c_str(),
-       (LPSERVICE_MAIN_FUNCTION)osquery::ServiceMain},
+      {(LPSTR)osquery::kServiceName.c_str(), (LPSERVICE_MAIN_FUNCTION)osquery::ServiceMain},
       {nullptr, nullptr}};
 
   if (!::StartServiceCtrlDispatcherA(serviceTable)) {
