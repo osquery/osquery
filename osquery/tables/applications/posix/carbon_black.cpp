@@ -55,7 +55,9 @@ void getSensorSettings(Row& r) {
   }
   boost::property_tree::ptree pt;
   boost::property_tree::ini_parser::read_ini(kCbSensorSettingsFile, pt);
-  r["config_name"] = SQL_TEXT(pt.get<std::string>("CB.ConfigName"));
+  std::string config_name = pt.get<std::string>("CB.ConfigName");
+  boost::replace_all(config_name, "%20", " ");
+  r["config_name"] = SQL_TEXT(config_name);
   r["collect_store_files"] =
       INTEGER(pt.get<std::string>("CB.CollectStoreFiles"));
   r["collect_module_loads"] =
@@ -88,8 +90,8 @@ void getQueue(Row& r) {
   if (!listFilesInDirectory(kCbDir, files_list, true)) {
     return;
   }
-  unsigned int binary_queue_size = 0;
-  unsigned int event_queue_size = 0;
+  uintmax_t binary_queue_size = 0;
+  uintmax_t event_queue_size = 0;
   // Go through each file
   for (const auto& kfile : files_list) {
     fs::path file(kfile);
