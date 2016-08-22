@@ -31,13 +31,14 @@ if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("shlwapi.lib")
   ADD_OSQUERY_LINK_CORE("wbemuuid.lib")
   ADD_OSQUERY_LINK_CORE("linenoise.lib")
-  ADD_OSQUERY_LINK_CORE("boost_system-vc140-mt-1_59")
-  ADD_OSQUERY_LINK_CORE("boost_regex-vc140-mt-1_59")
-  ADD_OSQUERY_LINK_CORE("boost_filesystem-vc140-mt-1_59")
+  ADD_OSQUERY_LINK_CORE("libboost_system-vc140-mt-s-1_59")
+  ADD_OSQUERY_LINK_CORE("libboost_regex-vc140-mt-s-1_59")
+  ADD_OSQUERY_LINK_CORE("libboost_filesystem-vc140-mt-s-1_59")
   ADD_OSQUERY_LINK_CORE("rocksdblib")
   ADD_OSQUERY_LINK_CORE("snappy64")
   ADD_OSQUERY_LINK_CORE("gflags_static")
   ADD_OSQUERY_LINK_CORE("thriftmd")
+  ADD_OSQUERY_LINK_CORE("glog_static")
 else()
   ADD_OSQUERY_LINK_CORE("libpthread")
   ADD_OSQUERY_LINK_CORE("libz")
@@ -49,6 +50,7 @@ else()
   ADD_OSQUERY_LINK_CORE("gflags")
   ADD_OSQUERY_LINK_CORE("thrift")
   ADD_OSQUERY_LINK_CORE("lz4")
+  ADD_OSQUERY_LINK_CORE("glog")
 endif()
 
 if(APPLE OR LINUX)
@@ -62,7 +64,6 @@ if(LINUX OR FREEBSD)
   ADD_OSQUERY_LINK_CORE("libc")
 endif()
 
-ADD_OSQUERY_LINK_CORE("glog")
 # Remaining additional development libraries.
 ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-uri")
 ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-client-connections")
@@ -251,26 +252,6 @@ if(NOT ${OSQUERY_BUILD_SDK_ONLY})
   ADD_DEFAULT_LINKS(daemon TRUE)
   SET_OSQUERY_COMPILE(daemon "${CXX_COMPILE_FLAGS}")
   set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
-
-  # TODO: Remove this once we address #2198
-  if(WINDOWS)
-    # Copy dynamic libraries needed to run shell/daemon
-    # into their respective build directories
-    foreach(ITEM 
-        "${linenoise.lib_library}"
-        "${glog_library}"
-        "${eay32_library}"
-        "${boost_system-vc140-mt-1_59_library}"
-        "${boost_regex-vc140-mt-1_59_library}"
-        "${boost_filesystem-vc140-mt-1_59_library}")
-      string(REGEX REPLACE "\\.lib$" ".dll" ITEM_DLL "${ITEM}")
-      string(REGEX REPLACE "/local/lib/" "/local/bin/" ITEM_DLL "${ITEM_DLL}")
-      add_custom_command(TARGET shell POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy ${ITEM_DLL} $<TARGET_FILE_DIR:shell>)
-      add_custom_command(TARGET daemon POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy ${ITEM_DLL} $<TARGET_FILE_DIR:daemon>)
-    endforeach()
-  endif()
 
   # Include the public API includes if make devel.
   install(TARGETS libosquery ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)

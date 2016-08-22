@@ -207,7 +207,7 @@ macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
     add_dependencies(${TARGET} osquery_extensions)
     # TODO(#1985): For Windows, ignore the -static compiler flag
     if(WINDOWS)
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} /EHsc /MD")
+      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} /EHsc")
     else()
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS}") # -static
     endif()
@@ -238,7 +238,7 @@ macro(ADD_OSQUERY_OBJCXX_LIBRARY IS_CORE TARGET)
     add_dependencies(${TARGET} osquery_extensions)
     # TODO(#1985): For Windows, ignore the -static compiler flag
     if(WINDOWS)
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS} /EHsc /MD")
+      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS} /EHsc")
     else()
       SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS}")
     endif()
