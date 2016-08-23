@@ -4,7 +4,7 @@ class Rocksdb < AbstractOsqueryFormula
   desc "Persistent key-value store for fast storage environments"
   homepage "http://rocksdb.org"
   url "https://github.com/facebook/rocksdb/archive/v4.9.tar.gz"
-  sha256 "b6cf3d99b552fb5daae4710952640810d3d810aa677821a9c7166a870669c572"
+  sha256 "7c96c7e7facc11c15f57c608a3b256af79283accb5988d7b2f4f810e29c68c0b"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
