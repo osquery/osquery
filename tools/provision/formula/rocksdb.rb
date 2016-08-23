@@ -3,7 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Rocksdb < AbstractOsqueryFormula
   desc "Persistent key-value store for fast storage environments"
   homepage "http://rocksdb.org"
-  url "https://github.com/facebook/rocksdb/archive/v4.6.1.tar.gz"
+  url "https://github.com/facebook/rocksdb/archive/v4.9.tar.gz"
   sha256 "b6cf3d99b552fb5daae4710952640810d3d810aa677821a9c7166a870669c572"
 
   bottle do
