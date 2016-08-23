@@ -260,11 +260,13 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   change.iv = std::max(getWorkerLimit(INTERVAL), (size_t)1);
   UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
   try {
-    change.parent = AS_LITERAL(BIGINT_LITERAL, r.at("parent"));
+    change.parent = static_cast<pid_t>(AS_LITERAL(BIGINT_LITERAL, r.at("parent")));
     user_time = AS_LITERAL(BIGINT_LITERAL, r.at("user_time")) / change.iv;
     system_time = AS_LITERAL(BIGINT_LITERAL, r.at("system_time")) / change.iv;
     change.footprint = AS_LITERAL(BIGINT_LITERAL, r.at("resident_size"));
   } catch (const std::exception& e) {
+    UNUSED_PARAMETER(e);
+
     state.sustained_latency = 0;
   }
 
@@ -388,7 +390,7 @@ void WatcherRunner::createWorker() {
       // The configured automatic delay.
       size_t delay = getWorkerLimit(RESPAWN_DELAY) * 1000;
       // Exponential back off for quickly-respawning clients.
-      delay += pow(2, Watcher::workerRestartCount()) * 1000;
+      delay += static_cast<size_t>(pow(2, Watcher::workerRestartCount())) * 1000;
       pauseMilli(delay);
     }
   }

@@ -179,7 +179,7 @@ QueryData genOsqueryExtensions(QueryContext& context) {
   if (getExtensions(extensions).ok()) {
     for (const auto& extension : extensions) {
       Row r;
-      r["uuid"] = TEXT(extension.first);
+      r["uuid"] = SQL_TEXT(extension.first);
       r["name"] = extension.second.name;
       r["version"] = extension.second.version;
       r["sdk_version"] = extension.second.sdk_version;
@@ -192,7 +192,7 @@ QueryData genOsqueryExtensions(QueryContext& context) {
   const auto& modules = RegistryFactory::getModules();
   for (const auto& module : modules) {
     Row r;
-    r["uuid"] = TEXT(module.first);
+    r["uuid"] = SQL_TEXT(module.first);
     r["name"] = module.second.name;
     r["version"] = module.second.version;
     r["sdk_version"] = module.second.sdk_version;
@@ -236,8 +236,8 @@ QueryData genOsquerySchedule(QueryContext& context) {
   Config::getInstance().scheduledQueries(
       [&results](const std::string& name, const ScheduledQuery& query) {
         Row r;
-        r["name"] = TEXT(name);
-        r["query"] = TEXT(query.query);
+        r["name"] = SQL_TEXT(name);
+        r["query"] = SQL_TEXT(query.query);
         r["interval"] = INTEGER(query.interval);
         // Set default (0) values for each query if it has not yet executed.
         r["executions"] = "0";

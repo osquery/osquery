@@ -242,7 +242,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       argv_(&argv),
       tool_(tool),
       binary_((tool == ToolType::DAEMON) ? "osqueryd" : "osqueryi") {
-  std::srand(chrono_clock::now().time_since_epoch().count());
+  std::srand(static_cast<unsigned int>(chrono_clock::now().time_since_epoch().count()));
 
   // Initialize registries and plugins
   registryAndPluginInit();
@@ -257,6 +257,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   try {
     boost::filesystem::path::codecvt();
   } catch (const std::runtime_error& e) {
+    UNUSED_PARAMETER(e);
+
 #ifdef WIN32
     setlocale(LC_ALL, "C");
 #else
@@ -514,7 +516,7 @@ void Initializer::initActivePlugin(const std::string& type,
     }
     // The plugin is not local and is not active, wait and retry.
     delay += kExtensionInitializeLatencyUS;
-    sleepFor(kExtensionInitializeLatencyUS / 1000);
+    sleepFor(static_cast<unsigned int>(kExtensionInitializeLatencyUS) / 1000);
   } while (delay < timeout);
 
   LOG(ERROR) << "Cannot activate " << name << " " << type

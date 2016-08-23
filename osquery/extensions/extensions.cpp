@@ -146,6 +146,8 @@ void ExtensionManagerWatcher::start() {
       auto client = EXClient(path);
       client.get()->shutdown();
     } catch (const std::exception& e) {
+      UNUSED_PARAMETER(e);
+
       VLOG(1) << "Extension UUID " << uuid << " shutdown request failed";
       continue;
     }
@@ -177,6 +179,8 @@ void ExtensionWatcher::watch() {
       client.get()->ping(status);
 
     } catch (const std::exception& e) {
+      UNUSED_PARAMETER(e);
+
       core_sane = false;
     }
   } else {
@@ -219,6 +223,8 @@ void ExtensionManagerWatcher::watch() {
         // Ping the extension until it goes down.
         client.get()->ping(status);
       } catch (const std::exception& e) {
+        UNUSED_PARAMETER(e);
+
         failures_[uuid] += 1;
         continue;
       }
@@ -387,6 +393,8 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
         auto client = EXManagerClient(path);
         return Status(0, "OK");
       } catch (const std::exception& e) {
+        UNUSED_PARAMETER(e);
+
         // Path might exist without a connected extension or extension manager.
       }
     }

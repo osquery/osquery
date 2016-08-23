@@ -665,6 +665,8 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
     auto base_pub = std::dynamic_pointer_cast<EventPublisherPlugin>(pub);
     specialized_pub = std::static_pointer_cast<BaseEventPublisher>(base_pub);
   } catch (const std::bad_cast& e) {
+    UNUSED_PARAMETER(e);
+
     return Status(1, "Incorrect plugin");
   }
 
@@ -702,6 +704,8 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
     auto base_sub = std::dynamic_pointer_cast<EventSubscriberPlugin>(sub);
     specialized_sub = std::static_pointer_cast<BaseEventSubscriber>(base_sub);
   } catch (const std::bad_cast& e) {
+    UNUSED_PARAMETER(e);
+
     return Status(1, "Incorrect plugin");
   }
 
@@ -792,6 +796,8 @@ size_t EventFactory::numSubscriptions(EventPublisherID& type_id) {
   try {
     publisher = EventFactory::getInstance().getEventPublisher(type_id);
   } catch (std::out_of_range& e) {
+    UNUSED_PARAMETER(e);
+
     return 0;
   }
   return publisher->numSubscriptions();

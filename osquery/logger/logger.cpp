@@ -210,6 +210,8 @@ static void deserializeIntermediateLog(const PluginRequest& request,
     input << request.at("log");
     pt::read_json(input, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
+    UNUSED_PARAMETER(e);
+
     return;
   }
 
@@ -379,7 +381,7 @@ Status LoggerPlugin::call(const PluginRequest& request,
     size_t features = 0;
     features |= (usesLogStatus()) ? LOGGER_FEATURE_LOGSTATUS : 0;
     features |= (usesLogEvent()) ? LOGGER_FEATURE_LOGEVENT : 0;
-    return Status(features);
+    return Status(static_cast<int>(features));
   } else {
     return Status(1, "Unsupported call to logger plugin");
   }

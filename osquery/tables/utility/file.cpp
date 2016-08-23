@@ -152,6 +152,8 @@ QueryData genFile(QueryContext& context) {
         genFileInfo(begin->path(), directory_string, "", results);
       }
     } catch (const fs::filesystem_error& e) {
+      UNUSED_PARAMETER(e);
+
       continue;
     }
   }

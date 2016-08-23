@@ -252,6 +252,8 @@ rocksdb::ColumnFamilyHandle* RocksDBDatabasePlugin::getHandleForColumnFamily(
       }
     }
   } catch (const std::exception& e) {
+    UNUSED_PARAMETER(e);
+
     // pass through and return nullptr
   }
   return nullptr;

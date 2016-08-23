@@ -265,7 +265,7 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
     VLOG(1) << "Error " << column_name << " is empty";
     sqlite3_result_null(ctx);
   } else if (type == TEXT_TYPE) {
-    sqlite3_result_text(ctx, value.c_str(), value.size(), SQLITE_STATIC);
+    sqlite3_result_text(ctx, value.c_str(), static_cast<int>(value.size()), SQLITE_STATIC);
   } else if (type == INTEGER_TYPE) {
     long afinite;
     if (!safeStrtol(value, 10, afinite) || afinite < INT_MIN ||
@@ -346,7 +346,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       // name lookup through out all cursor constraint lists.
       constraints.push_back(
           std::make_pair(name, Constraint(constraint_info.op)));
-      pIdxInfo->aConstraintUsage[i].argvIndex = ++expr_index;
+      pIdxInfo->aConstraintUsage[i].argvIndex = static_cast<int>(++expr_index);
 #if defined(DEBUG)
       plan("Adding constraint for table: " + pVtab->content->name +
            " [column=" + name + " arg_index=" + std::to_string(expr_index) +
@@ -387,7 +387,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
     cost += 1e10;
   }
 
-  pIdxInfo->idxNum = kConstraintIndexID++;
+  pIdxInfo->idxNum = static_cast<int>(kConstraintIndexID++);
 #if defined(DEBUG)
   plan("Recording constraint set for table: " + pVtab->content->name +
        " [cost=" + std::to_string(cost) + " size=" +

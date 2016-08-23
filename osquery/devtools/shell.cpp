@@ -112,9 +112,7 @@ static const char* modeDescr[] = {
 
 // Make sure isatty() has a prototype.
 #ifdef WIN32
-int isatty(int fd) {
-  return _isatty(fd);
-}
+#define isatty(fd)  _isatty(fd)
 #else
 extern int isatty(int);
 #endif
@@ -219,9 +217,6 @@ static void endTimer(void) {
 #define BEGIN_TIMER beginTimer()
 #define END_TIMER endTimer()
 #define HAS_TIMER 1
-
-// Used to prevent warnings about unused parameters
-#define UNUSED_PARAMETER(x) (void)(x)
 
 // If the following flag is set, then command execution stops
 // at an error if we are not interactive.

@@ -116,15 +116,16 @@ Status readFile(const fs::path& path,
     return Status(1, "Cannot open file for reading: " + path.string());
   }
 
-  off_t file_size = handle.fd->size();
+  off_t file_size = static_cast<off_t>(handle.fd->size());
   if (handle.fd->isSpecialFile() && size > 0) {
     file_size = static_cast<off_t>(size);
   }
 
   // Apply the max byte-read based on file/link target ownership.
-  off_t read_max = (handle.fd->isOwnerRoot().ok())
-                       ? FLAGS_read_max
-                       : std::min(FLAGS_read_max, FLAGS_read_user_max);
+  off_t read_max =
+      static_cast<off_t>((handle.fd->isOwnerRoot().ok())
+                             ? FLAGS_read_max
+                             : std::min(FLAGS_read_max, FLAGS_read_user_max));
   if (file_size > read_max) {
     VLOG(1) << "Cannot read " << path << " size exceeds limit: " << file_size
             << " > " << read_max;
@@ -147,7 +148,7 @@ Status readFile(const fs::path& path,
       auto part = std::string(4096, '\0');
       part_bytes = handle.fd->read(&part[0], block_size);
       if (part_bytes > 0) {
-        total_bytes += part_bytes;
+        total_bytes += static_cast<off_t>(part_bytes);
         if (total_bytes >= read_max) {
           return Status(1, "File exceeds read limits");
         }
@@ -505,6 +506,8 @@ Status parseJSONContent(const std::string& content, pt::ptree& tree) {
     json_stream << content;
     pt::read_json(json_stream, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
+    UNUSED_PARAMETER(e);
+
     return Status(1, "Could not parse JSON from file");
   }
   return Status(0, "OK");

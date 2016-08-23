@@ -40,6 +40,9 @@
 #define EXPORT_FUNCTION
 #endif
 
+// Used to prevent warnings about unused parameters
+#define UNUSED_PARAMETER(x) (void)(x)
+
 /**
  * @brief Platform specific code isolation and define-based conditionals.
  *
@@ -153,7 +156,7 @@ extern const PlatformType kPlatformType;
 
 /// Helper method for platform type detection.
 inline bool isPlatform(PlatformType a, const PlatformType& t = kPlatformType) {
-  return static_cast<int>(t) & static_cast<int>(a);
+  return (static_cast<int>(t) & static_cast<int>(a)) != 0;
 }
 
 /// Helper alias for defining mutexes throughout the codebase.

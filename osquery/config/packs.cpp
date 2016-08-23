@@ -46,7 +46,7 @@ size_t splayValue(size_t original, size_t splayPercent) {
   }
 
   float percent_to_modify_by = (float)splayPercent / 100;
-  size_t possible_difference = original * percent_to_modify_by;
+  size_t possible_difference = static_cast<size_t>(original * percent_to_modify_by);
   size_t max_value = original + possible_difference;
   size_t min_value = std::max((size_t)1, original - possible_difference);
 
@@ -55,9 +55,10 @@ size_t splayValue(size_t original, size_t splayPercent) {
   }
 
   std::default_random_engine generator;
-  generator.seed(
-      std::chrono::high_resolution_clock::now().time_since_epoch().count());
-  std::uniform_int_distribution<uint32_t> distribution(min_value, max_value);
+  generator.seed(static_cast<unsigned int>(
+      std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+  std::uniform_int_distribution<uint32_t> distribution(
+      static_cast<uint32_t>(min_value), static_cast<uint32_t>(max_value));
   return distribution(generator);
 }
 
@@ -259,6 +260,8 @@ bool Pack::checkVersion(const std::string& version) const {
         return true;
       }
     } catch (const std::invalid_argument& e) {
+      UNUSED_PARAMETER(e);
+
       if (chunk.compare(required_version[index]) < 0) {
         return false;
       }

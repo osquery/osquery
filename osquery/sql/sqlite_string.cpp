@@ -106,8 +106,8 @@ static void callStringSplitFunc(sqlite3_context *context,
 
   // Yield the selected index.
   const auto &selected = result[index];
-  sqlite3_result_text(context, selected.c_str(), selected.size(),
-                      SQLITE_TRANSIENT);
+  sqlite3_result_text(context, selected.c_str(),
+                      static_cast<int>(selected.size()), SQLITE_TRANSIENT);
 }
 
 static void tokenStringSplitFunc(sqlite3_context *context,

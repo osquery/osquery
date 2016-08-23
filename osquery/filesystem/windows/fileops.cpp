@@ -31,16 +31,6 @@ namespace errc = boost::system::errc;
 
 namespace osquery {
 
-#define S_IRUSR 0400
-#define S_IWUSR 0200
-#define S_IXUSR 0100
-#define S_IRGRP 0040
-#define S_IWGRP 0020
-#define S_IXGRP 0010
-#define S_IROTH 0004
-#define S_IWOTH 0002
-#define S_IXOTH 0001
-
 #define CHMOD_READ                                                   \
   SYNCHRONIZE | READ_CONTROL | FILE_READ_ATTRIBUTES | FILE_READ_EA | \
       FILE_READ_DATA
@@ -569,7 +559,7 @@ Status PlatformFile::isExecutable() const {
     return Status(-1, "DuplicateToken failed");
   }
 
-  GENERIC_MAPPING mapping = {-1};
+  GENERIC_MAPPING mapping = {-1, -1, -1, -1};
   PRIVILEGE_SET privileges = {0};
 
   BOOL result = FALSE;
@@ -728,7 +718,7 @@ ssize_t PlatformFile::getOverlappedResultForRead(void *buf,
     // NOTE: We do NOT support situations where the second read operation uses a
     // SMALLER buffer than the initial async request. This will cause the
     // smaller amount to be copied and truncate DATA!
-    DWORD size = min(requested_size, bytes_read);
+    DWORD size = static_cast<DWORD>(min(requested_size, bytes_read));
     ::memcpy_s(buf, requested_size, last_read_.buffer_.get(), size);
 
     // Update our cursor
@@ -778,7 +768,7 @@ ssize_t PlatformFile::read(void *buf, size_t nbyte) {
 
       if (!::ReadFile(handle_,
                       last_read_.buffer_.get(),
-                      nbyte,
+                      static_cast<DWORD>(nbyte),
                       nullptr,
                       &last_read_.overlapped_)) {
         last_error = ::GetLastError();
@@ -793,7 +783,7 @@ ssize_t PlatformFile::read(void *buf, size_t nbyte) {
       }
     }
   } else {
-    if (!::ReadFile(handle_, buf, nbyte, &bytes_read, nullptr)) {
+    if (!::ReadFile(handle_, buf, static_cast<DWORD>(nbyte), &bytes_read, nullptr)) {
       nret = -1;
     } else {
       nret = bytes_read;
@@ -817,7 +807,7 @@ ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
   if (is_nonblock_) {
     AsyncEvent write_event;
     if (!::WriteFile(
-            handle_, buf, nbyte, &bytes_written, &write_event.overlapped_)) {
+            handle_, buf, static_cast<DWORD>(nbyte), &bytes_written, &write_event.overlapped_)) {
       last_error = ::GetLastError();
       if (last_error == ERROR_IO_PENDING) {
         if (!::GetOverlappedResultEx(
@@ -844,7 +834,7 @@ ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
       nret = -1;
     }
   } else {
-    if (!::WriteFile(handle_, buf, nbyte, &bytes_written, nullptr)) {
+    if (!::WriteFile(handle_, buf, static_cast<DWORD>(nbyte), &bytes_written, nullptr)) {
       nret = -1;
     } else {
       nret = bytes_written;
