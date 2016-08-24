@@ -41,6 +41,7 @@
 #include <osquery/packs.h>
 
 #include "osquery/devtools/devtools.h"
+#include "osquery/filesystem/fileops.h"
 #include "osquery/sql/virtual_table.h"
 
 #if defined(SQLITE_ENABLE_WHERETRACE)
@@ -109,13 +110,6 @@ static char zTimerHelp[] =
 static const char* modeDescr[] = {
     "line", "column", "list", "semi", "csv", "pretty",
 };
-
-// Make sure isatty() has a prototype.
-#ifdef WIN32
-#define isatty(fd)  _isatty(fd)
-#else
-extern int isatty(int);
-#endif
 
 // ctype macros that work with signed characters
 #define IsSpace(X) isspace((unsigned char)X)
@@ -224,7 +218,7 @@ static int bail_on_error = 0;
 
 // Treat stdin as an interactive input if the following variable
 // is true.  Otherwise, assume stdin is connected to a file or pipe.
-static int stdin_is_interactive = 1;
+static bool stdin_is_interactive = true;
 
 // True if an interrupt (Control-C) has been received.
 static volatile int seenInterrupt = 0;
@@ -1061,9 +1055,12 @@ static FILE* output_file_open(const char* zFile) {
   } else if (strcmp(zFile, "off") == 0) {
     f = 0;
   } else {
-    f = fopen(zFile, "wb");
-    if (f == 0) {
+    boost::optional<FILE *> fp = osquery::platformFopen(zFile, "wb");
+    if (!fp.is_initialized()) {
       fprintf(stderr, "Error: cannot open \"%s\"\n", zFile);
+      f = 0;
+    } else {
+      f = *fp;
     }
   }
   return f;
@@ -1510,7 +1507,7 @@ int launchIntoShell(int argc, char** argv) {
   // Move the attach function method into the osquery SQL implementation.
   // This allow simple/straightforward control of concurrent DB access.
   osquery::attachFunctionInternal("shellstatic", shellstaticFunc);
-  stdin_is_interactive = isatty(0);
+  stdin_is_interactive = platformIsatty(0);
 
   // SQLite: Make sure we have a valid signal handler early
   signal(SIGINT, interrupt_handler);

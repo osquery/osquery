@@ -559,7 +559,9 @@ Status PlatformFile::isExecutable() const {
     return Status(-1, "DuplicateToken failed");
   }
 
-  GENERIC_MAPPING mapping = {-1, -1, -1, -1};
+  GENERIC_MAPPING mapping = {
+      static_cast<ACCESS_MASK>(-1), static_cast<ACCESS_MASK>(-1),
+      static_cast<ACCESS_MASK>(-1), static_cast<ACCESS_MASK>(-1)};
   PRIVILEGE_SET privileges = {0};
 
   BOOL result = FALSE;
@@ -1158,4 +1160,19 @@ Status platformIsFileAccessible(const fs::path &path) {
 }
 
 bool platformIsatty(FILE *f) { return 0 != _isatty(_fileno(f)); }
+
+boost::optional<FILE *> platformFopen(const std::string& filename, const std::string& mode) {
+  FILE *fp = nullptr;
+
+  auto status = ::fopen_s(&fp, filename.c_str(), mode.c_str());
+  if (status != 0) {
+    return boost::none;
+  }
+
+  if (fp == nullptr) {
+    return boost::none;
+  }
+
+  return fp;
+}
 }

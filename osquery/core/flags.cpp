@@ -167,12 +167,12 @@ void Flag::printFlags(bool shell, bool external, bool cli) {
 
     fprintf(stdout, "    --%s", flag.second->name.c_str());
 
-    int pad = max;
+    int pad = static_cast<int>(max);
     if (flag.second->type != "bool") {
       fprintf(stdout, " VALUE");
       pad -= 6;
     }
-    pad -= flag.second->name.size();
+    pad -= static_cast<int>(flag.second->name.size());
 
     if (pad > 0 && pad < 80) {
       // Never pad more than 80 characters.

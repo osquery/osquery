@@ -288,4 +288,7 @@ Status platformIsFileAccessible(const fs::path& path);
 
 /// Determine if the FILE object points to a tty (console, serial port, etc).
 bool platformIsatty(FILE* f);
+
+/// Opens a file and returns boost::none on error
+boost::optional<FILE *> platformFopen(const std::string& filename, const std::string& mode);
 }

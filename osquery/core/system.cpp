@@ -44,6 +44,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
+#include "osquery/core/utils.h"
 
 namespace fs = boost::filesystem;
 
@@ -160,7 +161,7 @@ std::string getAsciiTime() {
   struct tm now;
   gmtime_r(&result, &now);
 
-  auto time_str = std::string(std::asctime(&now));
+  auto time_str = platformAsctime(&now);
   boost::algorithm::trim(time_str);
   return time_str + " UTC";
 }

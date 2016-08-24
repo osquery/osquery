@@ -22,7 +22,7 @@ namespace osquery {
 
 SHELL_FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
 
-static std::vector<size_t> kOffset = {0, 0};
+static std::vector<char> kOffset = {0, 0};
 static std::string kToken = "|";
 
 std::string generateToken(const std::map<std::string, size_t>& lengths,
@@ -66,7 +66,7 @@ std::string generateHeader(const std::map<std::string, size_t>& lengths,
   for (const auto& col : columns) {
     out += " " + col;
     if (lengths.count(col) > 0) {
-      int buffer_size = lengths.at(col) - utf8StringSize(col);
+      int buffer_size = static_cast<int>(lengths.at(col) - utf8StringSize(col));
       if (buffer_size > 0) {
         out += std::string(buffer_size, ' ');
       }
@@ -91,7 +91,7 @@ std::string generateRow(const Row& r,
       size = column.size() - utf8StringSize(FLAGS_nullvalue);
       out += FLAGS_nullvalue;
     } else {
-      int buffer_size = lengths.at(column) - utf8StringSize(r.at(column));
+      int buffer_size = static_cast<int>(lengths.at(column) - utf8StringSize(r.at(column)));
       if (buffer_size >= 0) {
         size = static_cast<size_t>(buffer_size);
         out += r.at(column);

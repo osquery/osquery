@@ -154,7 +154,7 @@ void SchedulerRunner::start() {
 }
 
 void startScheduler() {
-  startScheduler(FLAGS_schedule_timeout, 1);
+  startScheduler(static_cast<unsigned long int>(FLAGS_schedule_timeout), 1);
 }
 
 void startScheduler(unsigned long int timeout, size_t interval) {

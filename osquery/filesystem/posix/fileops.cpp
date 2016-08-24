@@ -11,6 +11,7 @@
 #include <glob.h>
 #include <pwd.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include <sys/stat.h>
@@ -311,4 +312,13 @@ Status platformIsFileAccessible(const fs::path& path) {
 }
 
 bool platformIsatty(FILE* f) { return 0 != isatty(fileno(f)); }
+
+boost::optional<FILE *> platformFopen(const std::string& filename, const std::string& mode) {
+  auto fp = ::fopen(filename.c_str(), mode.c_str());
+  if (fp == nullptr) {
+    return boost::none;
+  }
+
+  return fp;
+}
 }
