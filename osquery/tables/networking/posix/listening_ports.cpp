@@ -15,7 +15,7 @@ namespace osquery {
 namespace tables {
 
 typedef std::pair<std::string, std::string> ProtoFamilyPair;
-typedef std::map<std::string, std::vector<ProtoFamilyPair> > PortMap;
+typedef std::map<std::string, std::vector<ProtoFamilyPair>> PortMap;
 
 QueryData genListeningPorts(QueryContext& context) {
   QueryData results;

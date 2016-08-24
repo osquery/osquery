@@ -33,14 +33,14 @@
 namespace osquery {
 namespace tables {
 
-std::string ipAsString(const struct sockaddr *in) {
+std::string ipAsString(const struct sockaddr* in) {
   char dst[INET6_ADDRSTRLEN] = {0};
-  void *in_addr = nullptr;
+  void* in_addr = nullptr;
 
   if (in->sa_family == AF_INET) {
-    in_addr = (void *)&(((struct sockaddr_in *)in)->sin_addr);
+    in_addr = (void*)&(((struct sockaddr_in*)in)->sin_addr);
   } else if (in->sa_family == AF_INET6) {
-    in_addr = (void *)&(((struct sockaddr_in6 *)in)->sin6_addr);
+    in_addr = (void*)&(((struct sockaddr_in6*)in)->sin6_addr);
   } else {
     return "";
   }
@@ -51,7 +51,7 @@ std::string ipAsString(const struct sockaddr *in) {
   return address;
 }
 
-std::string ipAsString(const struct in_addr *in) {
+std::string ipAsString(const struct in_addr* in) {
   char dst[INET6_ADDRSTRLEN] = {0};
 
   inet_ntop(AF_INET, in, dst, sizeof(dst));
@@ -71,17 +71,17 @@ inline short addBits(unsigned char byte) {
   return bits;
 }
 
-int netmaskFromIP(const struct sockaddr *in) {
+int netmaskFromIP(const struct sockaddr* in) {
   int mask = 0;
 
   if (in->sa_family == AF_INET6) {
-    auto in6 = (struct sockaddr_in6 *)in;
+    auto in6 = (struct sockaddr_in6*)in;
     for (size_t i = 0; i < 16; i++) {
       mask += addBits(in6->sin6_addr.s6_addr[i]);
     }
   } else {
-    auto in4 = (struct sockaddr_in *)in;
-    auto address = reinterpret_cast<char *>(&in4->sin_addr.s_addr);
+    auto in4 = (struct sockaddr_in*)in;
+    auto address = reinterpret_cast<char*>(&in4->sin_addr.s_addr);
     for (size_t i = 0; i < 4; i++) {
       mask += addBits(address[i]);
     }
@@ -90,7 +90,7 @@ int netmaskFromIP(const struct sockaddr *in) {
   return mask;
 }
 
-inline std::string macAsString(const char *addr) {
+inline std::string macAsString(const char* addr) {
   std::stringstream mac;
 
   for (size_t i = 0; i < 6; i++) {
@@ -104,7 +104,7 @@ inline std::string macAsString(const char *addr) {
   return mac.str();
 }
 
-std::string macAsString(const struct ifaddrs *addr) {
+std::string macAsString(const struct ifaddrs* addr) {
   static std::string blank_mac = "00:00:00:00:00:00";
   if (addr->ifa_addr == nullptr) {
     // No link or MAC exists.
@@ -125,7 +125,7 @@ std::string macAsString(const struct ifaddrs *addr) {
 
   return macAsString(ifr.ifr_hwaddr.sa_data);
 #else
-  auto sdl = (struct sockaddr_dl *)addr->ifa_addr;
+  auto sdl = (struct sockaddr_dl*)addr->ifa_addr;
   if (sdl->sdl_alen != 6) {
     // Do not support MAC address that are not 6 bytes...
     return blank_mac;
