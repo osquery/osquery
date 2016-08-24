@@ -12,10 +12,7 @@ set -e
 # Helpful defines for the provisioning process.
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="$SCRIPT_DIR/../build"
-WORKING_DIR="/tmp/osquery-provisioning" # no longer needed
-FILES_DIR="$SCRIPT_DIR/provision/files" # maybe needed
 FORMULA_DIR="$SCRIPT_DIR/provision/formula"
-DEPS_URL=https://osquery-packages.s3.amazonaws.com/deps # no longer needed
 
 HOMEBREW_REPO="https://github.com/Homebrew/brew"
 LINUXBREW_REPO="https://github.com/Linuxbrew/brew"
@@ -54,7 +51,6 @@ function main() {
   fi
 
   # Setup the local ./build/DISTRO cmake build directory.
-  mkdir -p "$WORKING_DIR"
   if [[ ! -z "$SUDO_USER" ]]; then
     echo "chown -h $SUDO_USER $BUILD_DIR/*"
     chown -h $SUDO_USER:$SUDO_GID "$BUILD_DIR" || true

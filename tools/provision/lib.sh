@@ -20,16 +20,8 @@ function setup_brew() {
     DUPES_COMMIT=$HOMEBREW_DUPES
   fi
 
-  # Check if DEPS directory exists.
-  DEPS="$1"
-  if [[ ! -d "$DEPS" ]]; then
-    log "the build directory: $DEPS does not exist"
-    sudo mkdir "$DEPS"
-    sudo chown $USER "$DEPS"
-  fi
-
   # Checkout new brew in local deps dir
-  FORMULA_TAP="$DEPS/Library/Taps/osquery/homebrew-osquery-local"
+  DEPS="$1"
   if [[ ! -d "$DEPS/.git" ]]; then
     log "setting up new brew in $DEPS"
     git clone $BREW_REPO "$DEPS"
@@ -44,6 +36,8 @@ function setup_brew() {
   # Always update the location of the local tap link.
   log "refreshing local tap: homebrew-osquery-local"
   mkdir -p "$DEPS/Library/Taps/osquery/"
+
+  FORMULA_TAP="$DEPS/Library/Taps/osquery/homebrew-osquery-local"
   if [[ ! -e "$FORMULA_TAP" ]]; then
     ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
   fi
@@ -144,13 +138,13 @@ function brew_internal() {
 
   export HOMEBREW_OPTIMIZATION_LEVEL=-Os
   if [[ ! -z "$OSQUERY_BUILD_BOTTLES" && ! "$TYPE" = "upstream" ]]; then
-    $BREW bottle --skip-relocation "${FORMULA_TAP}/${TOOL}.rb"
+    $BREW bottle --skip-relocation "${FORMULA}"
   elif [[ "${INSTALLED}" = "NAN" || "${INSTALLED}" = "None" ]]; then
     log "brew package $TOOL installing new version: ${STABLE}"
     $BREW install $ARGS "${FORMULA}"
   elif [[ ! "${INSTALLED}" = "${STABLE}" || "${FROM_BOTTLE}" = "true" ]]; then
     log "brew package $TOOL upgrading to new version: ${STABLE}"
-    $BREW uninstall "${FORMULA}"
+    $BREW remove --force "${FORMULA}"
     $BREW install $ARGS "${FORMULA}"
   else
     log "brew package $TOOL is already installed: ${STABLE}"
