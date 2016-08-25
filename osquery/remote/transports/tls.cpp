@@ -80,7 +80,7 @@ void TLSTransport::decorateRequest(http::client::request& r) {
 
 http::client TLSTransport::getClient() {
   http::client::options options;
-  options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(4);
+  options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
 
   std::string ciphers = kTLSCiphers;
 // Some Ubuntu 12.04 clients exhaust their cipher suites without SHA.

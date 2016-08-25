@@ -30,7 +30,7 @@ DECLARE_bool(disable_reenrollment);
  * @brief Helper class for allowing TLS plugins to easily kick off requests
  *
  * There are many static functions in this class that have very similar
- * behaviour, which allow them to be used in many context. Some methods accept
+ * behavior, which allow them to be used in many context. Some methods accept
  * parameters, some don't require them. Some have built-in retry logic, some
  * don't. Some return results in a ptree, some return results in JSON, etc.
  */
@@ -99,6 +99,10 @@ class TLSRequestHelper : private boost::noncopyable {
     }
     auto status = (FLAGS_tls_node_api && !force_post) ? request.call()
                                                       : request.call(params);
+    // Restore caller-supplied parameters.
+    if (force_post) {
+      params.put("verb", "POST");
+    }
     if (!status.ok()) {
       return status;
     }
@@ -205,7 +209,7 @@ class TLSRequestHelper : private boost::noncopyable {
       if (i == attempts) {
         break;
       }
-      sleepFor(i * i);
+      sleepFor(i * i * 1000);
     }
     return s;
   }

@@ -82,10 +82,6 @@ Status deserializeDistributedQueryRequest(
 Status deserializeDistributedQueryRequestJSON(const std::string& json,
                                               DistributedQueryRequest& r);
 
-/////////////////////////////////////////////////////////////////////////////
-// DistributedQueryResult
-/////////////////////////////////////////////////////////////////////////////
-
 /**
  * @brief Small struct containing the results of a distributed query
  */
@@ -204,7 +200,7 @@ class DistributedPlugin : public Plugin {
   virtual Status writeResults(const std::string& json) = 0;
 
   /// Main entrypoint for distirbuted plugin requests
-  Status call(const PluginRequest& request, PluginResponse& response);
+  Status call(const PluginRequest& request, PluginResponse& response) override;
 };
 
 /**
@@ -225,7 +221,7 @@ class DistributedPlugin : public Plugin {
 class Distributed {
  public:
   /// Default constructor
-  Distributed(){};
+  Distributed() {}
 
   /// Retrieve queued queries from a remote server
   Status pullUpdates();

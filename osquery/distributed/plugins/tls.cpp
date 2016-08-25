@@ -51,9 +51,11 @@ FLAG(uint64,
 
 class TLSDistributedPlugin : public DistributedPlugin {
  public:
-  Status setUp();
-  Status getQueries(std::string& json);
-  Status writeResults(const std::string& json);
+  Status setUp() override;
+
+  Status getQueries(std::string& json) override;
+
+  Status writeResults(const std::string& json) override;
 
  protected:
   std::string read_uri_;
