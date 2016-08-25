@@ -20,11 +20,11 @@ std::string platformAsctime(const struct tm *timeptr) {
     return "";
   }
 
-  return ::asctime(tm);
+  return ::asctime(timeptr);
 }
 
 std::string platformStrerr(int errnum) {
-  return ::strerr(errnum);
+  return ::strerror(errnum);
 }
 
 Status platformStrncpy(char *dst, size_t nelms, const char *src, size_t count) {
