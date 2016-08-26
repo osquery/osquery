@@ -8,6 +8,7 @@
  *
  */
 
+#include <osquery/core.h>
 #include <osquery/filesystem.h>
 
 #include "osquery/remote/transports/tls.h"
@@ -83,11 +84,10 @@ http::client TLSTransport::getClient() {
   options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
 
   std::string ciphers = kTLSCiphers;
-// Some Ubuntu 12.04 clients exhaust their cipher suites without SHA.
-#if defined(HAS_SSL_TXT_TLSV1_2) && !defined(UBUNTU_PRECISE) && !defined(DARWIN)
-  // Otherwise we prefer GCM and SHA256+
-  ciphers += ":!CBC:!SHA";
-#endif
+  if (!isPlatform(PlatformType::TYPE_OSX)) {
+    // Otherwise we prefer GCM and SHA256+
+    ciphers += ":!CBC:!SHA";
+  }
 
 #if defined(DEBUG)
   // Configuration may allow unsafe TLS testing if compiled as a debug target.
@@ -126,10 +126,8 @@ http::client TLSTransport::getClient() {
   // 'Optionally', though all TLS plugins should set a hostname, supply an SNI
   // hostname. This will reveal the requested domain.
   if (options_.count("hostname")) {
-#if BOOST_NETLIB_VERSION_MINOR >= 12
     // Boost cpp-netlib will only support SNI in versions >= 0.12
     options.openssl_sni_hostname(options_.get<std::string>("hostname"));
-#endif
   }
 
   http::client client(options);
