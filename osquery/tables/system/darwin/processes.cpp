@@ -288,14 +288,14 @@ QueryData genProcesses(QueryContext &context) {
 
     // systems usage and time information
     struct rusage_info_v2 rusage_info_data;
-    int rusage_status = proc_pid_rusage(
+    int status = proc_pid_rusage(
         pid, RUSAGE_INFO_V2, (rusage_info_t *)&rusage_info_data);
     // proc_pid_rusage returns -1 if it was unable to gather information
-    if (rusage_status == 0) {
+    if (status == 0) {
       // size/memory information
       r["wired_size"] = TEXT(rusage_info_data.ri_wired_size);
       r["resident_size"] = TEXT(rusage_info_data.ri_resident_size);
-      r["phys_footprint"] = TEXT(rusage_info_data.ri_phys_footprint);
+      r["total_size"] = TEXT(rusage_info_data.ri_phys_footprint);
 
       // time information
       r["user_time"] = TEXT(rusage_info_data.ri_user_time / CPU_TIME_RATIO);
@@ -308,10 +308,19 @@ QueryData genProcesses(QueryContext &context) {
     } else {
       r["wired_size"] = "-1";
       r["resident_size"] = "-1";
-      r["phys_footprint"] = "-1";
+      r["total_size"] = "-1";
       r["user_time"] = "-1";
       r["system_time"] = "-1";
       r["start_time"] = "-1";
+    }
+
+    struct proc_taskinfo task_info;
+    status =
+        proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &task_info, sizeof(task_info));
+    if (status == 0) {
+      r["threads"] = task_info.pti_threadnum;
+    } else {
+      r["threads"] = "-1";
     }
 
     results.push_back(r);

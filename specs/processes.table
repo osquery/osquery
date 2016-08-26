@@ -18,13 +18,15 @@ schema([
         "The process path exists yes=1, no=0, unknown=-1"),
     Column("wired_size", BIGINT, "Bytes of unpagable memory used by process"),
     Column("resident_size", BIGINT, "Bytes of private memory used by process"),
-    Column("phys_footprint", BIGINT, "Bytes of total physical memory used"),
+    Column("total_size", BIGINT, "Total virtual memory size",
+        aliases=["phys_footprint"]),
     Column("user_time", BIGINT, "CPU time spent in user space"),
     Column("system_time", BIGINT, "CPU time spent in kernel space"),
     Column("start_time", BIGINT,
         "Process start in seconds since boot (non-sleeping)"),
     Column("parent", BIGINT, "Process parent's PID"),
     Column("pgroup", BIGINT, "Process group"),
+    Column("threads", INTEGER, "Number of threads used by process"),
     Column("nice", INTEGER, "Process nice level (-20 to 20, default 0)"),
 ])
 implementation("system/processes@genProcesses")
