@@ -10,8 +10,9 @@
 
 #include <osquery/config.h>
 #include <osquery/core.h>
-#include <osquery/extensions.h>
 #include <osquery/events.h>
+#include <osquery/extensions.h>
+#include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
@@ -19,7 +20,6 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-#include <osquery/filesystem.h>
 
 #include "osquery/core/process.h"
 
@@ -44,12 +44,12 @@ QueryData genOsqueryEvents(QueryContext& context) {
     if (pubref != nullptr) {
       r["subscriptions"] = INTEGER(pubref->numSubscriptions());
       r["events"] = INTEGER(pubref->numEvents());
-      r["restarts"] = INTEGER(pubref->restartCount());
+      r["refreshes"] = INTEGER(pubref->restartCount());
       r["active"] = (pubref->hasStarted() && !pubref->isEnding()) ? "1" : "0";
     } else {
       r["subscriptions"] = "0";
       r["events"] = "0";
-      r["restarts"] = "0";
+      r["refreshes"] = "0";
       r["active"] = "-1";
     }
     results.push_back(r);
@@ -61,7 +61,7 @@ QueryData genOsqueryEvents(QueryContext& context) {
     r["name"] = subscriber;
     r["type"] = "subscriber";
     // Subscribers will never 'restart'.
-    r["restarts"] = "0";
+    r["refreshes"] = "0";
 
     auto subref = EventFactory::getEventSubscriber(subscriber);
     if (subref != nullptr) {

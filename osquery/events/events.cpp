@@ -128,7 +128,6 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   for (const auto& subscription : subscriptions_) {
     auto es = EventFactory::getEventSubscriber(subscription->subscriber_name);
     if (es != nullptr && es->state() == SUBSCRIBER_RUNNING) {
-      es->event_count_++;
       fireCallback(subscription, ec);
     }
   }
@@ -434,9 +433,13 @@ Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime time) {
   return Status(0, "OK");
 }
 
-size_t EventSubscriberPlugin::getEventsExpiry() { return FLAGS_events_expiry; }
+size_t EventSubscriberPlugin::getEventsExpiry() {
+  return FLAGS_events_expiry;
+}
 
-size_t EventSubscriberPlugin::getEventsMax() { return FLAGS_events_max; }
+size_t EventSubscriberPlugin::getEventsMax() {
+  return FLAGS_events_max;
+}
 
 EventID EventSubscriberPlugin::getEventID() {
   Status status;
@@ -534,6 +537,7 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
   status = setDatabaseValue(kEvents, event_key, data);
   // Record the event in the indexing bins, using the index time.
   recordEvent(eid, event_time);
+  event_count_++;
   return status;
 }
 
