@@ -10,48 +10,34 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <osquery/core.h>
 #include <osquery/filesystem.h>
-#include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include "osquery/core/conversions.h"
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
 
-const std::string kMemoryMapLocation = "/sys/firmware/memmap";
+const std::string kIOMemLocation = "/proc/iomem";
 
 QueryData genMemoryMap(QueryContext& context) {
   QueryData results;
 
-  // Linux memory map is exposed in /sys.
   std::vector<std::string> regions;
-  auto status = listDirectoriesInDirectory(kMemoryMapLocation, regions);
-  if (!status.ok()) {
-    return {};
-  }
+  std::string content;
+  readFile(kIOMemLocation, content);
 
-  for (const auto& index : regions) {
-    fs::path index_path(index);
+  regions = osquery::split(content, "\n");
+  for (const auto& line : regions) {
+    auto b1 = line.find_first_of("-");
+    auto b2 = line.find_first_of(" : ");
+
     Row r;
-    r["region"] = index_path.filename().string();
-
-    // The type is a textual description
-    std::string content;
-    readFile(index_path / "type", content);
-    boost::trim(content);
-    r["type"] = content;
-
-    // Keep these in 0xFFFF (hex) form.
-    readFile(index_path / "start", content);
-    boost::trim(content);
-    r["start"] = content;
-
-    readFile(index_path / "end", content);
-    boost::trim(content);
-    r["end"] = content;
-
+    r["start"] = "0x" + line.substr(0, b1);
+    r["end"] = "0x" + line.substr(b1 + 1, b2 - b1);
+    r["name"] = line.substr(b2 + 3);
     results.push_back(r);
   }
 
