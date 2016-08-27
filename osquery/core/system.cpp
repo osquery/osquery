@@ -8,9 +8,9 @@
  *
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #ifndef WIN32
 #include <grp.h>
@@ -69,12 +69,12 @@ FLAG(string,
 FLAG(bool, utc, false, "Convert all UNIX times to UTC");
 
 #ifdef WIN32
-struct tm *gmtime_r(time_t *t, struct tm *result) {
+struct tm* gmtime_r(time_t* t, struct tm* result) {
   _gmtime64_s(result, t);
   return result;
 }
 
-struct tm *localtime_r(time_t *t, struct tm *result) {
+struct tm* localtime_r(time_t* t, struct tm* result) {
   _localtime64_s(result, t);
   return result;
 }
@@ -215,8 +215,8 @@ Status checkStalePid(const std::string& content) {
 
     return Status(1, "osqueryd (" + content + ") is already running");
   } else {
-    LOG(INFO) << "Found stale process for osqueryd (" << content
-              << ") removing pidfile";
+    VLOG(1) << "Found stale process for osqueryd (" << content
+            << ") removing pidfile";
   }
 
   return Status(0, "OK");
@@ -249,8 +249,10 @@ Status createPidFile() {
   }
 
   // If no pidfile exists or the existing pid was stale, write, log, and run.
-  auto pid = boost::lexical_cast<std::string>(PlatformProcess::getCurrentProcess()->pid());
-  LOG(INFO) << "Writing osqueryd pid (" << pid << ") to " << pidfile_path.string();
+  auto pid = boost::lexical_cast<std::string>(
+      PlatformProcess::getCurrentProcess()->pid());
+  VLOG(1) << "Writing osqueryd pid (" << pid << ") to "
+          << pidfile_path.string();
   auto status = writeTextFile(pidfile_path, pid, 0644);
   return status;
 }
@@ -259,11 +261,19 @@ Status createPidFile() {
 
 #if defined(__linux__)
 #include <sys/fsuid.h>
-static inline int _fs_set_group(gid_t gid) { return setfsgid(gid) * 0; }
-static inline int _fs_set_user(uid_t uid) { return setfsuid(uid) * 0; }
+static inline int _fs_set_group(gid_t gid) {
+  return setfsgid(gid) * 0;
+}
+static inline int _fs_set_user(uid_t uid) {
+  return setfsuid(uid) * 0;
+}
 #else
-static inline int _fs_set_group(gid_t gid) { return setegid(gid); }
-static inline int _fs_set_user(uid_t uid) { return seteuid(uid); }
+static inline int _fs_set_group(gid_t gid) {
+  return setegid(gid);
+}
+static inline int _fs_set_user(uid_t uid) {
+  return seteuid(uid);
+}
 #endif
 
 bool DropPrivileges::dropToParent(const fs::path& path) {

@@ -10,8 +10,9 @@
 
 #include <osquery/config.h>
 #include <osquery/core.h>
-#include <osquery/extensions.h>
 #include <osquery/events.h>
+#include <osquery/extensions.h>
+#include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
@@ -19,7 +20,6 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-#include <osquery/filesystem.h>
 
 #include "osquery/core/process.h"
 
@@ -222,6 +222,8 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["start_time"] = INTEGER(Config::getInstance().getStartTime());
   if (Initializer::isWorker()) {
     r["watcher"] = INTEGER(PlatformProcess::getLauncherProcess()->pid());
+  } else {
+    r["watcher"] = "-1";
   }
 
   results.push_back(r);
@@ -248,8 +250,7 @@ QueryData genOsquerySchedule(QueryContext& context) {
 
         // Report optional performance information.
         Config::getInstance().getPerformanceStats(
-            name,
-            [&r](const QueryPerformance& perf) {
+            name, [&r](const QueryPerformance& perf) {
               r["executions"] = BIGINT(perf.executions);
               r["last_executed"] = BIGINT(perf.last_executed);
               r["output_size"] = BIGINT(perf.output_size);

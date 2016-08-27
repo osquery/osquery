@@ -78,10 +78,14 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 
  public:
   /// Accessor/mutator to dump all of the buffered logs.
-  static std::vector<StatusLogLine>& dump() { return instance().logs_; }
+  static std::vector<StatusLogLine>& dump() {
+    return instance().logs_;
+  }
 
   /// Set the forwarding mode of the buffering sink.
-  static void forward(bool forward = false) { instance().forward_ = forward; }
+  static void forward(bool forward = false) {
+    instance().forward_ = forward;
+  }
 
   /// Remove the buffered log sink from Glog.
   static void disable() {
@@ -127,7 +131,9 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   BufferedLogSink() : forward_(false), enabled_(false) {}
 
   /// Remove the log sink.
-  ~BufferedLogSink() { disable(); }
+  ~BufferedLogSink() {
+    disable();
+  }
 
  private:
   /// Intermediate log storage until an osquery logger is initialized.
@@ -205,7 +211,8 @@ static void deserializeIntermediateLog(const PluginRequest& request,
     log.push_back({
         (StatusLogSeverity)item.second.get<int>("s", O_INFO),
         item.second.get<std::string>("f", "<unknown>"),
-        item.second.get<int>("i", 0), item.second.get<std::string>("m", ""),
+        item.second.get<int>("i", 0),
+        item.second.get<std::string>("m", ""),
     });
   }
 }
@@ -215,14 +222,19 @@ void setVerboseLevel() {
     // Turn verbosity up to 1.
     // Do log DEBUG, INFO, WARNING, ERROR to their log files.
     // Do log the above and verbose=1 to stderr.
-    FLAGS_minloglevel = 0; // INFO
-    FLAGS_stderrthreshold = 0; // INFO
+    FLAGS_minloglevel = google::GLOG_INFO;
+    FLAGS_stderrthreshold = google::GLOG_INFO;
     FLAGS_v = 1;
   } else {
     // Do NOT log INFO, WARNING, ERROR to stderr.
     // Do log only WARNING, ERROR to log sinks.
-    FLAGS_minloglevel = 1; // WARNING
-    FLAGS_stderrthreshold = 1; // WARNING
+    if (kToolType == ToolType::DAEMON) {
+      FLAGS_minloglevel = google::GLOG_INFO;
+      FLAGS_stderrthreshold = google::GLOG_INFO;
+    } else {
+      FLAGS_minloglevel = google::GLOG_WARNING;
+      FLAGS_stderrthreshold = google::GLOG_WARNING;
+    }
   }
 
   if (FLAGS_disable_logging) {
@@ -313,8 +325,10 @@ void BufferedLogSink::send(google::LogSeverity severity,
       if (std::find(enabled.begin(), enabled.end(), logger) != enabled.end()) {
         // May use the logs_ storage to buffer/delay sending logs.
         std::vector<StatusLogLine> log;
-        log.push_back({(StatusLogSeverity)severity, std::string(base_filename),
-                       line, std::string(message, message_len)});
+        log.push_back({(StatusLogSeverity)severity,
+                       std::string(base_filename),
+                       line,
+                       std::string(message, message_len)});
         PluginRequest request = {{"status", "true"}};
         serializeIntermediateLog(log, request);
         if (!request["log"].empty()) {
@@ -324,8 +338,10 @@ void BufferedLogSink::send(google::LogSeverity severity,
       }
     }
   } else {
-    logs_.push_back({(StatusLogSeverity)severity, std::string(base_filename),
-                     line, std::string(message, message_len)});
+    logs_.push_back({(StatusLogSeverity)severity,
+                     std::string(base_filename),
+                     line,
+                     std::string(message, message_len)});
   }
 }
 
