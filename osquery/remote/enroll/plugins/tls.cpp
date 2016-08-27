@@ -13,8 +13,8 @@
 #include <osquery/system.h>
 
 #include "osquery/remote/requests.h"
-#include "osquery/remote/transports/tls.h"
 #include "osquery/remote/serializers/json.h"
+#include "osquery/remote/transports/tls.h"
 
 // Ordering is messed up because of tls.h
 #include "osquery/core/process.h"
@@ -74,7 +74,7 @@ std::string TLSEnrollPlugin::enroll() {
 
     LOG(WARNING) << "Failed enrollment request to " << uri << " ("
                  << status.what() << ") retrying...";
-    sleepFor(i * i);
+    sleepFor(i * i * 1000);
   }
 
   return node_key;

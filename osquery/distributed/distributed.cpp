@@ -241,11 +241,6 @@ Status deserializeDistributedQueryRequestJSON(const std::string& json,
   return deserializeDistributedQueryRequest(tree, r);
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// DistributedQueryResult - small struct containing the results of a
-// distributed query
-/////////////////////////////////////////////////////////////////////////////
-
 Status serializeDistributedQueryResult(const DistributedQueryResult& r,
                                        pt::ptree& tree) {
   pt::ptree request;
