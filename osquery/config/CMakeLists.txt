@@ -3,11 +3,7 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_config
   packs.cpp
 )
 
-if(WINDOWS)
-  set(OSQUERY_CONFIG_PLUGINS "plugins/filesystem.cpp")
-else()
-  file(GLOB OSQUERY_CONFIG_PLUGINS "plugins/*.cpp")
-endif()
+file(GLOB OSQUERY_CONFIG_PLUGINS "plugins/*.cpp")
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
   ${OSQUERY_CONFIG_PLUGINS}

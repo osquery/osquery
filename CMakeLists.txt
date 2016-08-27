@@ -398,7 +398,6 @@ if(WINDOWS)
   # Win64 specific gflags
   set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static gtest/gmock library" FORCE)
 
-  include_directories("${WINDOWS_DEP_DIR}/boost-msvc14/local/boost")
   include_directories("${WINDOWS_DEP_DIR}/boost-msvc14/local")
   file(GLOB INCLUDE_DIRS LIST_DIRECTORIES true "${WINDOWS_DEP_DIR}/*/*/include")
   include_directories(${INCLUDE_DIRS})

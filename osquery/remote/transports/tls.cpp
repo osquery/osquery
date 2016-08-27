@@ -8,10 +8,13 @@
  *
  */
 
+// clang-format off
+// This must be here to prevent a WinSock.h exists error
+#include "osquery/remote/transports/tls.h"
+// clang-format on
+
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
-
-#include "osquery/remote/transports/tls.h"
 
 namespace http = boost::network::http;
 
