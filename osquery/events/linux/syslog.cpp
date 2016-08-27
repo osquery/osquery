@@ -25,8 +25,8 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/tokenizer.hpp>
 
-#include <osquery/logger.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 
 #include "osquery/events/linux/syslog.h"
 
@@ -46,8 +46,8 @@ REGISTER(SyslogEventPublisher, "event_publisher", "syslog");
 const mode_t kPipeMode = 0460;
 const std::string kPipeGroupName = "syslog";
 const char* kTimeFormat = "%Y-%m-%dT%H:%M:%S";
-const std::vector<std::string> kCsvFields = {"time",     "host", "severity",
-                                             "facility", "tag",  "message"};
+const std::vector<std::string> kCsvFields = {
+    "time", "host", "severity", "facility", "tag", "message"};
 const size_t kMaxLogsPerRun = 10;
 const size_t kErrorThreshold = 10;
 
@@ -84,7 +84,8 @@ Status SyslogEventPublisher::setUp() {
     return Status(1,
                   "Error opening pipe for reading: " + FLAGS_syslog_pipe_path);
   }
-  VLOG(1) << "Successfully opened pipe for syslog ingestion";
+  VLOG(1) << "Successfully opened pipe for syslog ingestion: "
+          << FLAGS_syslog_pipe_path;
 
   return Status(0, "OK");
 }
@@ -108,8 +109,9 @@ Status SyslogEventPublisher::createPipe(const std::string& path) {
     return Status(0, "OK");
   }
   if (chown(FLAGS_syslog_pipe_path.c_str(), -1, group->gr_gid) == -1) {
-    return Status(1, "Error in chown to group " + kPipeGroupName + ": " +
-                         std::string(strerror(errno)));
+    return Status(1,
+                  "Error in chown to group " + kPipeGroupName + ": " +
+                      std::string(strerror(errno)));
   }
   return Status(0, "OK");
 }
@@ -117,13 +119,13 @@ Status SyslogEventPublisher::createPipe(const std::string& path) {
 Status SyslogEventPublisher::lockPipe(const std::string& path) {
   lockFd_ = open(path.c_str(), O_NONBLOCK);
   if (lockFd_ == -1) {
-    return Status(1, "Error in open for locking pipe: " +
-                         std::string(strerror(errno)));
+    return Status(
+        1, "Error in open for locking pipe: " + std::string(strerror(errno)));
   }
   if (flock(lockFd_, LOCK_EX | LOCK_NB) != 0) {
     lockFd_ = -1;
-    return Status(1, "Unable to acquire pipe lock: " +
-                         std::string(strerror(errno)));
+    return Status(
+        1, "Unable to acquire pipe lock: " + std::string(strerror(errno)));
   }
   return Status(0, "OK");
 }
@@ -168,7 +170,9 @@ Status SyslogEventPublisher::run() {
   return Status(0, "OK");
 }
 
-void SyslogEventPublisher::tearDown() { unlockPipe(); }
+void SyslogEventPublisher::tearDown() {
+  unlockPipe();
+}
 
 Status SyslogEventPublisher::populateEventContext(const std::string& line,
                                                   SyslogEventContextRef& ec) {
