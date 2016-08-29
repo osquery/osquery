@@ -33,7 +33,7 @@ FLAG(uint64,
      1000000,
      "Maximum number of logs in buffered output plugins (0 = unlimited)");
 
-const auto BufferedLogForwarder::kLogPeriod = std::chrono::seconds(4);
+const std::chrono::seconds BufferedLogForwarder::kLogPeriod = std::chrono::seconds(4);
 const size_t BufferedLogForwarder::kMaxLogLines = 1024;
 
 Status BufferedLogForwarder::setUp() {
