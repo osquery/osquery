@@ -77,4 +77,3 @@ void setToBackgroundPriority() {
   setpriority(PRIO_PGRP, 0, 10);
 }
 }
-
