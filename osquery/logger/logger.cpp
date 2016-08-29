@@ -39,7 +39,8 @@ FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
 FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 
-FLAG(bool, log_result_events, true, "Log scheduled results as events");
+FLAG(bool, logger_event_type, true, "Log scheduled results as events");
+FLAG_ALIAS(bool, log_result_events, logger_event_type);
 
 class LoggerDisabler;
 
@@ -78,10 +79,14 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 
  public:
   /// Accessor/mutator to dump all of the buffered logs.
-  static std::vector<StatusLogLine>& dump() { return instance().logs_; }
+  static std::vector<StatusLogLine>& dump() {
+    return instance().logs_;
+  }
 
   /// Set the forwarding mode of the buffering sink.
-  static void forward(bool forward = false) { instance().forward_ = forward; }
+  static void forward(bool forward = false) {
+    instance().forward_ = forward;
+  }
 
   /// Remove the buffered log sink from Glog.
   static void disable() {
@@ -127,7 +132,9 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   BufferedLogSink() : forward_(false), enabled_(false) {}
 
   /// Remove the log sink.
-  ~BufferedLogSink() { disable(); }
+  ~BufferedLogSink() {
+    disable();
+  }
 
  private:
   /// Intermediate log storage until an osquery logger is initialized.
@@ -135,6 +142,8 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 
   /// Should the sending act in a forwarding mode.
   bool forward_{false};
+
+  /// Is the logger temporarily disabled.
   bool enabled_{false};
 
   /// Track multiple loggers that should receive sinks from the send forwarder.
@@ -163,7 +172,10 @@ class LoggerDisabler {
   }
 
  private:
+  /// Value of the 'logtostderr' Glog status when constructed.
   bool stderr_status_;
+
+  /// Value of the BufferedLogSink's enabled status when constructed.
   bool enabled_;
 };
 
@@ -205,7 +217,8 @@ static void deserializeIntermediateLog(const PluginRequest& request,
     log.push_back({
         (StatusLogSeverity)item.second.get<int>("s", O_INFO),
         item.second.get<std::string>("f", "<unknown>"),
-        item.second.get<int>("i", 0), item.second.get<std::string>("m", ""),
+        item.second.get<int>("i", 0),
+        item.second.get<std::string>("m", ""),
     });
   }
 }
@@ -255,7 +268,7 @@ void initStatusLogger(const std::string& name) {
   }
 }
 
-void initLogger(const std::string& name, bool forward_all) {
+void initLogger(const std::string& name) {
   // Check if logging is disabled, if so then no need to shuttle intermediates.
   if (FLAGS_disable_logging) {
     return;
@@ -264,14 +277,17 @@ void initLogger(const std::string& name, bool forward_all) {
   // Stop the buffering sink and store the intermediate logs.
   BufferedLogSink::disable();
   auto intermediate_logs = std::move(BufferedLogSink::dump());
+
   // Start the custom status logging facilities, which may instruct Glog as is
   // the case with filesystem logging.
-  PluginRequest request = {{"init", name}};
-  serializeIntermediateLog(intermediate_logs, request);
-  if (!request["log"].empty()) {
-    request["log"].pop_back();
+  PluginRequest init_request = {{"init", name}};
+  serializeIntermediateLog(intermediate_logs, init_request);
+  if (!init_request["log"].empty()) {
+    init_request["log"].pop_back();
   }
 
+  bool forward = false;
+  PluginRequest features_request = {{"action", "features"}};
   const auto& logger_plugin = Registry::getActive("logger");
   // Allow multiple loggers, make sure each is accessible.
   for (const auto& logger : osquery::split(logger_plugin, ",")) {
@@ -279,22 +295,26 @@ void initLogger(const std::string& name, bool forward_all) {
       continue;
     }
 
-    auto status = Registry::call("logger", logger, request);
-    if (status.ok() || forward_all) {
-      // When LoggerPlugin::init returns success we enable the log sink in
-      // forwarding mode. Then Glog status logs are forwarded to logStatus.
-      BufferedLogSink::forward(true);
-      BufferedLogSink::enable();
+    Registry::call("logger", logger, init_request);
+    auto status = Registry::call("logger", logger, features_request);
+    if ((status.getCode() & LOGGER_FEATURE_LOGSTATUS) > 0) {
+      // Glog status logs are forwarded to logStatus.
+      forward = true;
       // To support multiple plugins we only add the names of plugins that
       // return a success status after initialization.
       BufferedLogSink::addPlugin(logger);
     }
 
-    request = {{"action", "features"}};
-    status = Registry::call("logger", logger, request);
     if ((status.getCode() & LOGGER_FEATURE_LOGEVENT) > 0) {
       EventFactory::addForwarder(logger);
     }
+  }
+
+  if (forward) {
+    // Turn on buffered log forwarding only after all plugins have going through
+    // their initialization.
+    BufferedLogSink::forward(true);
+    BufferedLogSink::enable();
   }
 }
 
@@ -313,8 +333,10 @@ void BufferedLogSink::send(google::LogSeverity severity,
       if (std::find(enabled.begin(), enabled.end(), logger) != enabled.end()) {
         // May use the logs_ storage to buffer/delay sending logs.
         std::vector<StatusLogLine> log;
-        log.push_back({(StatusLogSeverity)severity, std::string(base_filename),
-                       line, std::string(message, message_len)});
+        log.push_back({(StatusLogSeverity)severity,
+                       std::string(base_filename),
+                       line,
+                       std::string(message, message_len)});
         PluginRequest request = {{"status", "true"}};
         serializeIntermediateLog(log, request);
         if (!request["log"].empty()) {
@@ -324,8 +346,10 @@ void BufferedLogSink::send(google::LogSeverity severity,
       }
     }
   } else {
-    logs_.push_back({(StatusLogSeverity)severity, std::string(base_filename),
-                     line, std::string(message, message_len)});
+    logs_.push_back({(StatusLogSeverity)severity,
+                     std::string(base_filename),
+                     line,
+                     std::string(message, message_len)});
   }
 }
 
@@ -340,7 +364,7 @@ Status LoggerPlugin::call(const PluginRequest& request,
   } else if (request.count("init") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
     this->init(request.at("init"), intermediate_logs);
-    return Status(this->usesLogStatus() ? 0 : 1);
+    return Status(0);
   } else if (request.count("status") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
     return this->logStatus(intermediate_logs);

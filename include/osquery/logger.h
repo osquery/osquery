@@ -136,7 +136,9 @@ class LoggerPlugin : public Plugin {
    *
    * @return false if this logger plugin should NOT handle Glog statuses.
    */
-  virtual bool usesLogStatus() { return false; }
+  virtual bool usesLogStatus() {
+    return false;
+  }
 
   /**
    * @brief A feature method to decide if events should be forwarded.
@@ -145,7 +147,9 @@ class LoggerPlugin : public Plugin {
    *
    * @return false if this logger plugin should NOT handle events directly.
    */
-  virtual bool usesLogEvent() { return false; }
+  virtual bool usesLogEvent() {
+    return false;
+  }
 
  protected:
   /** @brief Virtual method which should implement custom logging.
@@ -199,7 +203,9 @@ class LoggerPlugin : public Plugin {
    * @param s A special log item will complete results from a query.
    * @return log status
    */
-  virtual Status logSnapshot(const std::string& s) { return logString(s); }
+  virtual Status logSnapshot(const std::string& s) {
+    return logString(s);
+  }
 
   /**
    * @brief Optionally handle each published event via the logger.
@@ -232,9 +238,8 @@ void initStatusLogger(const std::string& name);
  * logs must be forwarded to the core.
  *
  * @param name The process name.
- * @param forward_all Override the LoggerPlugin::init forwarding decision.
  */
-void initLogger(const std::string& name, bool forward_all = false);
+void initLogger(const std::string& name);
 
 /**
  * @brief Log a string using the default logger receiver.
