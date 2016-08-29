@@ -23,25 +23,20 @@ namespace osquery {
 extern const std::string kQueryNameNotFoundError;
 
 /**
- * @brief A class that is used to interact with the historical on-disk storage
- * for a given query.
+ * @brief Interact with the historical on-disk storage for a given query.
  */
 class Query {
  public:
   /**
-   * @brief Constructor which sets up necessary parameters of a Query object
+   * @brief Constructor which sets up necessary parameters of a Query object.
    *
    * Given a query, this constructor calculates the value of columnFamily_,
    * which can be accessed via the getColumnFamilyName getter method.
    *
-   * @param q a SheduledQuery struct
+   * @param q a SheduledQuery struct.
    */
   explicit Query(const std::string& name, const ScheduledQuery& q)
       : query_(q), name_(name) {}
-
-  /////////////////////////////////////////////////////////////////////////////
-  // Data access methods
-  /////////////////////////////////////////////////////////////////////////////
 
  public:
   /**
@@ -50,47 +45,43 @@ class Query {
    * This method retrieves the data from RocksDB and returns the data in a
    * HistoricalQueryResults struct.
    *
-   * @param hQR the output HistoricalQueryResults struct
+   * @param hQR the output HistoricalQueryResults struct.
    *
-   * @return the success or failure of the operation
+   * @return the success or failure of the operation.
    */
   Status getPreviousQueryResults(QueryData& results);
 
  public:
   /**
-   * @brief Get the names of all historical queries that are stored in RocksDB
+   * @brief Get the names of all historical queries.
    *
    * If you'd like to perform some database maintenance, getStoredQueryNames()
    * allows you to get a vector of the names of all queries which are
    * currently stored in RocksDB
    *
-   * @return a vector containing the string names of all scheduled queries
-   * which currently exist in the database
+   * @return a vector containing the string names of all scheduled queries.
    */
   static std::vector<std::string> getStoredQueryNames();
 
  public:
   /**
-   * @brief Accessor method for checking if a given scheduled query exists in
-   * the database
+   * @brief Checking if a given scheduled query exists in the database.
    *
-   * @return does the scheduled query which is already exists in the database
+   * @return true if the scheduled query already exists in the database.
    */
   bool isQueryNameInDatabase();
 
  public:
   /**
-   * @brief Add a new set of results to the persistant storage
+   * @brief Add a new set of results to the persistent storage.
    *
    * Given the results of the execution of a scheduled query, add the results
-   * to the database using addNewResults
+   * to the database using addNewResults.
    *
-   * @param qd the QueryData object, which has the results of the query which
-   * you would like to store
-   * @param unix_time the time that the query was executed
+   * @param qd the QueryData object, which has the results of the query.
+   * @param unix_time the time that the query was executed.
    *
-   * @return an instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @return the success or failure of the operation.
    */
   Status addNewResults(const QueryData& qd);
 
@@ -103,10 +94,10 @@ class Query {
    * to the database using addNewResults and get back a data structure
    * indicating what rows in the query's results have changed.
    *
-   * @param qd the QueryData object containing query results to store
-   * @param dr an output to a DiffResults object populated based on last run
+   * @param qd the QueryData object containing query results to store.
+   * @param dr an output to a DiffResults object populated based on last run.
    *
-   * @return the success or failure of the operation
+   * @return the success or failure of the operation.
    */
   Status addNewResults(const QueryData& qd, DiffResults& dr);
 
@@ -116,12 +107,12 @@ class Query {
    * the differential results, using a custom database handle.
    *
    * This method is the same as Query::addNewResults, but with the addition of a
-   * parameter which allows you to pass a custom RocksDB database handle
+   * parameter which allows you to pass a custom RocksDB database handle.
    *
-   * @param qd the QueryData object containing query results to store
-   * @param dr an output to a DiffResults object populated based on last run
+   * @param qd the QueryData object containing query results to store.
+   * @param dr an output to a DiffResults object populated based on last run.
    *
-   * @return the success or failure of the operation
+   * @return the success or failure of the operation.
    */
   Status addNewResults(const QueryData& qd,
                        DiffResults& dr,
@@ -129,19 +120,15 @@ class Query {
 
  public:
   /**
-   * @brief A getter for the most recent result set for a scheduled query
+   * @brief The most recent result set for a scheduled query.
    *
-   * @param qd the output QueryData object
+   * @param qd the output QueryData object.
    *
-   * @return the success or failure of the operation
+   * @return the success or failure of the operation.
    */
   Status getCurrentResults(QueryData& qd);
 
  private:
-  /////////////////////////////////////////////////////////////////////////////
-  // Private members
-  /////////////////////////////////////////////////////////////////////////////
-
   /// The scheduled query and internal
   ScheduledQuery query_;
 
@@ -149,10 +136,6 @@ class Query {
   std::string name_;
 
  private:
-  /////////////////////////////////////////////////////////////////////////////
-  // Unit tests which can access private members
-  /////////////////////////////////////////////////////////////////////////////
-
   FRIEND_TEST(QueryTests, test_private_members);
   FRIEND_TEST(QueryTests, test_add_and_get_current_results);
   FRIEND_TEST(QueryTests, test_is_query_name_in_database);

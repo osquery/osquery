@@ -52,11 +52,12 @@ Status getQueryColumnsExternal(const std::string& q, TableColumns& columns);
 /// External (extensions) SQL implementation plugin provider for "sql" registry.
 class ExternalSQLPlugin : SQLPlugin {
  public:
-  Status query(const std::string& q, QueryData& results) const {
+  Status query(const std::string& q, QueryData& results) const override {
     return queryExternal(q, results);
   }
 
-  Status getQueryColumns(const std::string& q, TableColumns& columns) const {
+  Status getQueryColumns(const std::string& q,
+                         TableColumns& columns) const override {
     return getQueryColumnsExternal(q, columns);
   }
 };

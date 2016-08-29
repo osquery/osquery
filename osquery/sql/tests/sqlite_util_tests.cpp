@@ -119,6 +119,16 @@ TEST_F(SQLiteUtilTests, test_affected_tables) {
   EXPECT_EQ(dbc->affected_tables_.size(), 0U);
 }
 
+TEST_F(SQLiteUtilTests, test_table_attributes_event_based) {
+  auto sql_internal = SQLInternal("select * from process_events");
+  EXPECT_TRUE(sql_internal.ok());
+  EXPECT_TRUE(sql_internal.eventBased());
+
+  sql_internal = SQLInternal("select * from time");
+  EXPECT_TRUE(sql_internal.ok());
+  EXPECT_FALSE(sql_internal.eventBased());
+}
+
 TEST_F(SQLiteUtilTests, test_get_query_columns) {
   auto dbc = getTestDBC();
   TableColumns results;
@@ -127,9 +137,11 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   auto status = getQueryColumnsInternal(query, results, dbc->db());
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(2U, results.size());
-  EXPECT_EQ(std::make_tuple(std::string("seconds"), INTEGER_TYPE, DEFAULT),
+  EXPECT_EQ(std::make_tuple(
+                std::string("seconds"), INTEGER_TYPE, ColumnOptions::DEFAULT),
             results[0]);
-  EXPECT_EQ(std::make_tuple(std::string("version"), TEXT_TYPE, DEFAULT),
+  EXPECT_EQ(std::make_tuple(
+                std::string("version"), TEXT_TYPE, ColumnOptions::DEFAULT),
             results[1]);
 
   query = "SELECT * FROM foo";

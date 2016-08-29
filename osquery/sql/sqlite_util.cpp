@@ -58,9 +58,9 @@ const std::map<std::string, std::string> kMemoryDBSettings = {
 };
 // clang-format on
 
-#define OpComparator(x) \
+#define OpComparator(x)                                                        \
   { x, QueryPlanner::Opcode(OpReg::P2, INTEGER_TYPE) }
-#define Arithmetic(x) \
+#define Arithmetic(x)                                                          \
   { x, QueryPlanner::Opcode(OpReg::P3, BIGINT_TYPE) }
 
 /**
@@ -133,6 +133,11 @@ Status SQLiteSQLPlugin::getQueryColumns(const std::string& q,
 SQLInternal::SQLInternal(const std::string& q) {
   auto dbc = SQLiteDBManager::get();
   status_ = queryInternal(q, results_, dbc->db());
+
+  // One of the advantages of using SQLInternal (aside from the Registry-bypass)
+  // is the ability to "deep-inspect" the table attributes and actions.
+  event_based_ = dbc->getAttributes() & TableAttributes::EVENT_BASED;
+
   dbc->clearAffectedTables();
 }
 
@@ -193,6 +198,20 @@ void SQLiteDBInstance::init() {
 void SQLiteDBInstance::addAffectedTable(VirtualTableContent* table) {
   // An xFilter/scan was requested for this virtual table.
   affected_tables_.insert(std::make_pair(table->name, table));
+}
+
+TableAttributes SQLiteDBInstance::getAttributes() const {
+  const SQLiteDBInstance* rdbc = this;
+  if (isPrimary() && !managed_) {
+    // Similarly to clearAffectedTables, the connection may be forwarded.
+    rdbc = SQLiteDBManager::getConnection(true).get();
+  }
+
+  TableAttributes attributes = TableAttributes::NONE;
+  for (const auto& table : rdbc->affected_tables_) {
+    attributes = table.second->attributes | attributes;
+  }
+  return attributes;
 }
 
 void SQLiteDBInstance::clearAffectedTables() {
@@ -385,8 +404,8 @@ Status getQueryColumnsInternal(const std::string& q,
       col_type = "UNKNOWN";
       unknown_type = true;
     }
-    results.push_back(
-        std::make_tuple(col_name, columnTypeName(col_type), DEFAULT));
+    results.push_back(std::make_tuple(
+        col_name, columnTypeName(col_type), ColumnOptions::DEFAULT));
   }
 
   // An unknown type means we have to parse the plan and SQLite opcodes.

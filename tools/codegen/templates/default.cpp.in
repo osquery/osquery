@@ -37,7 +37,7 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
 {% for column in schema %}\
       std::make_tuple("{{column.name}}", {{column.type.affinity}},\
 {% if column.options|length > 0 %} {{column.options_set}}\
-{% else %} DEFAULT\
+{% else %} ColumnOptions::DEFAULT\
 {% endif %}\
 ),
 {% endfor %}\
@@ -69,6 +69,14 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
     };
   }
 {% endif %}\
+
+  TableAttributes attributes() const override {
+    return \
+{% for attribute in attribute_set %}\
+      TableAttributes::{{attribute}} |\
+{% endfor %}\
+      TableAttributes::NONE;
+  }
 
   QueryData generate(QueryContext& request) override {
 {% if class_name != "" %}\

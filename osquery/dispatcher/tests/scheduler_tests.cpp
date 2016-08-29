@@ -21,8 +21,6 @@ namespace osquery {
 
 DECLARE_bool(disable_logging);
 
-extern SQL monitor(const std::string& name, const ScheduledQuery& query);
-
 class SchedulerTests : public testing::Test {
   void SetUp() override {
     logging_ = FLAGS_disable_logging;
@@ -80,8 +78,8 @@ TEST_F(SchedulerTests, test_monitor) {
 TEST_F(SchedulerTests, test_config_results_purge) {
   // Set a query time for now (time is only important relative to a week ago).
   auto query_time = osquery::getUnixTime();
-  setDatabaseValue(kPersistentSettings, "timestamp.test_query",
-                   std::to_string(query_time));
+  setDatabaseValue(
+      kPersistentSettings, "timestamp.test_query", std::to_string(query_time));
   // Store a meaningless saved query interval splay.
   setDatabaseValue(kPersistentSettings, "interval.test_query", "11");
   // Store meaningless query differential results.
@@ -113,8 +111,8 @@ TEST_F(SchedulerTests, test_config_results_purge) {
 
   // Update the timestamp to have run a week and a day ago.
   query_time -= (84600 * (7 + 1));
-  setDatabaseValue(kPersistentSettings, "timestamp.test_query",
-                   std::to_string(query_time));
+  setDatabaseValue(
+      kPersistentSettings, "timestamp.test_query", std::to_string(query_time));
 
   // Trigger another purge.
   Config::getInstance().purge();

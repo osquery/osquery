@@ -169,7 +169,9 @@ struct DiffResults {
   }
 
   /// not equals operator
-  bool operator!=(const DiffResults& comp) const { return !(*this == comp); }
+  bool operator!=(const DiffResults& comp) const {
+    return !(*this == comp);
+  }
 };
 
 /**
@@ -272,7 +274,7 @@ struct QueryPerformance {
 };
 
 /**
- * @brief represents the relevant parameters of a scheduled query.
+ * @brief Represents the relevant parameters of a scheduled query.
  *
  * Within the context of osqueryd, a scheduled query may have many relevant
  * attributes. Those attributes are represented in this data structure.
@@ -298,7 +300,9 @@ struct ScheduledQuery {
   }
 
   /// not equals operator
-  bool operator!=(const ScheduledQuery& comp) const { return !(*this == comp); }
+  bool operator!=(const ScheduledQuery& comp) const {
+    return !(*this == comp);
+  }
 };
 
 /**
@@ -336,7 +340,9 @@ struct QueryLogItem {
   }
 
   /// not equals operator
-  bool operator!=(const QueryLogItem& comp) const { return !(*this == comp); }
+  bool operator!=(const QueryLogItem& comp) const {
+    return !(*this == comp);
+  }
 };
 
 /**
@@ -475,10 +481,14 @@ class DatabasePlugin : public Plugin {
   bool checkDB();
 
   /// Require all DBHandle accesses to open a read and write handle.
-  static void setRequireWrite(bool rw) { kDBHandleOptionRequireWrite = rw; }
+  static void setRequireWrite(bool rw) {
+    kDBHandleOptionRequireWrite = rw;
+  }
 
   /// Allow DBHandle creations.
-  static void setAllowOpen(bool ao) { kDBHandleOptionAllowOpen = ao; }
+  static void setAllowOpen(bool ao) {
+    kDBHandleOptionAllowOpen = ao;
+  }
 
  public:
   /// Control availability of the RocksDB handle (default false).

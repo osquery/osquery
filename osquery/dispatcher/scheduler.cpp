@@ -21,7 +21,6 @@
 #include "osquery/core/process.h"
 #include "osquery/database/query.h"
 #include "osquery/dispatcher/scheduler.h"
-#include "osquery/sql/sqlite_util.h"
 
 namespace osquery {
 
@@ -29,7 +28,7 @@ FLAG(bool, enable_monitor, false, "Enable the schedule monitor");
 
 FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
 
-inline SQL monitor(const std::string& name, const ScheduledQuery& query) {
+SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   // Snapshot the performance and times for the worker before running.
   auto pid = std::to_string(PlatformProcess::getCurrentProcess()->pid());
   auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
@@ -93,17 +92,23 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Comparisons and stores must include escaped data.
   sql.escapeResults();
 
+  Status status;
   DiffResults diff_results;
   // Add this execution's set of results to the database-tracked named query.
   // We can then ask for a differential from the last time this named query
   // was executed by exact matching each row.
-  auto status = dbQuery.addNewResults(sql.rows(), diff_results);
-  if (!status.ok()) {
-    std::string line = "Error adding new results to database: " + status.what();
-    LOG(ERROR) << line;
+  if (!sql.eventBased()) {
+    status = dbQuery.addNewResults(sql.rows(), diff_results);
+    if (!status.ok()) {
+      std::string line =
+          "Error adding new results to database: " + status.what();
+      LOG(ERROR) << line;
 
-    // If the database is not available then the daemon cannot continue.
-    Initializer::requestShutdown(EXIT_CATASTROPHIC, line);
+      // If the database is not available then the daemon cannot continue.
+      Initializer::requestShutdown(EXIT_CATASTROPHIC, line);
+    }
+  } else {
+    diff_results.added = std::move(sql.rows());
   }
 
   if (diff_results.added.size() == 0 && diff_results.removed.size() == 0) {

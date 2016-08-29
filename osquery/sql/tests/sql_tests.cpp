@@ -32,8 +32,8 @@ class TestTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const {
     return {
-      std::make_tuple("test_int", INTEGER_TYPE, DEFAULT),
-      std::make_tuple("test_text", TEXT_TYPE, DEFAULT),
+        std::make_tuple("test_int", INTEGER_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("test_text", TEXT_TYPE, ColumnOptions::DEFAULT),
     };
   }
 

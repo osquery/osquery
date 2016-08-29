@@ -28,7 +28,7 @@ auto {{table_name_cc}}Register = []() {
 {% for column in schema %}\
         std::make_tuple("{{column.name}}", {{column.type.affinity}},\
 {% if column.options|length > 0 %} {{column.options_set}}\
-{% else %} DEFAULT\
+{% else %} ColumnOptions::DEFAULT\
 {% endif %}\
 ),
 {% endfor %}\
