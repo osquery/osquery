@@ -194,13 +194,14 @@ struct SimpleProcStat {
   std::string saved_gid; // Gid: - - * -
 
   std::string resident_size; // VmRSS:
-  std::string phys_footprint; // VmSize:
+  std::string total_size; // VmSize:
 
   // Output from sring parsing /proc/<pid>/stat.
   std::string state;
   std::string parent;
   std::string group;
   std::string nice;
+  std::string threads;
 
   std::string user_time;
   std::string system_time;
@@ -228,6 +229,7 @@ static inline SimpleProcStat getProcStat(const std::string& pid) {
     stat.user_time = details.at(11);
     stat.system_time = details.at(12);
     stat.nice = details.at(16);
+    stat.threads = details.at(20);
     try {
       stat.start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
     } catch (const boost::bad_lexical_cast& e) {
@@ -253,7 +255,7 @@ static inline SimpleProcStat getProcStat(const std::string& pid) {
       } else if (detail.at(0) == "VmSize") {
         detail[1].erase(detail.at(1).end() - 3, detail.at(1).end());
         // Memory is reported in kB.
-        stat.phys_footprint = detail.at(1) + "000";
+        stat.total_size = detail.at(1) + "000";
       } else if (detail.at(0) == "Gid") {
         // Format is: R E - -
         auto gid_detail = osquery::split(detail.at(1), "\t");
@@ -288,6 +290,7 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["pgroup"] = proc_stat.group;
   r["state"] = proc_stat.state;
   r["nice"] = proc_stat.nice;
+  r["threads"] = proc_stat.threads;
   // Read/parse cmdline arguments.
   r["cmdline"] = readProcCMDLine(pid);
   r["cwd"] = readProcLink("cwd", pid);
@@ -343,7 +346,7 @@ void genProcess(const std::string& pid, QueryData& results) {
   // size/memory information
   r["wired_size"] = "0"; // No support for unpagable counters in linux.
   r["resident_size"] = proc_stat.resident_size;
-  r["phys_footprint"] = proc_stat.phys_footprint;
+  r["total_size"] = proc_stat.total_size;
 
   // time information
   r["user_time"] = proc_stat.user_time;
