@@ -160,7 +160,7 @@ function Install-ThirdPartyPackages {
         Write-Host "[-] ERROR: Downloading $package failed. Check connection?" -foregroundcolor Red
         Exit -1
       }
-      choco install --force -y -r $packageName -source "$tmpDir;http://chocolatey.org/api/v2"
+      choco install -y -r $packageName -source "$tmpDir;http://chocolatey.org/api/v2"
       if ($LastExitCode -ne 0) {
         Write-Host "[-] ERROR: Install of $package failed." -foregroundcolor Red
         Exit -1
