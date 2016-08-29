@@ -65,11 +65,16 @@ std::string SharedLibModule::getError() const {
   return std::string(::dlerror());
 }
 
-void *SharedLibModule::getFunctionAddr(const std::string& fname) const {
+void* SharedLibModule::getFunctionAddr(const std::string& fname) const {
   return ::dlsym(handle_, fname.c_str());
 }
 
-void cleanupDefunctProcesses() { ::waitpid(-1, nullptr, WNOHANG); }
-
-void setToBackgroundPriority() { setpriority(PRIO_PGRP, 0, 10); }
+void cleanupDefunctProcesses() {
+  ::waitpid(-1, nullptr, WNOHANG);
 }
+
+void setToBackgroundPriority() {
+  setpriority(PRIO_PGRP, 0, 10);
+}
+}
+

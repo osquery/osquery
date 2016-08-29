@@ -115,7 +115,9 @@ Status RegistryHelperCore::setActive(const std::string& item_name) {
   return status;
 }
 
-const std::string& RegistryHelperCore::getActive() const { return active_; }
+const std::string& RegistryHelperCore::getActive() const {
+  return active_;
+}
 
 RegistryRoutes RegistryHelperCore::getRoutes() const {
   RegistryRoutes route_table;
@@ -291,10 +293,14 @@ std::vector<std::string> RegistryHelperCore::names() const {
 }
 
 /// Facility method to count the number of items in this registry.
-size_t RegistryHelperCore::count() const { return items_.size(); }
+size_t RegistryHelperCore::count() const {
+  return items_.size();
+}
 
 /// Allow the registry to introspect into the registered name (for logging).
-void RegistryHelperCore::setName(const std::string& name) { name_ = name; }
+void RegistryHelperCore::setName(const std::string& name) {
+  name_ = name;
+}
 
 const std::map<std::string, PluginRegistryHelperRef>& RegistryFactory::all() {
   return instance().registries_;
@@ -529,7 +535,9 @@ std::vector<RouteUUID> RegistryFactory::routeUUIDs() {
   return uuids;
 }
 
-size_t RegistryFactory::count() { return instance().registries_.size(); }
+size_t RegistryFactory::count() {
+  return instance().registries_.size();
+}
 
 size_t RegistryFactory::count(const std::string& registry_name) {
   if (instance().registries_.count(registry_name) == 0) {
@@ -542,7 +550,9 @@ const std::map<RouteUUID, ModuleInfo>& RegistryFactory::getModules() {
   return instance().modules_;
 }
 
-RouteUUID RegistryFactory::getModule() { return instance().module_uuid_; }
+RouteUUID RegistryFactory::getModule() {
+  return instance().module_uuid_;
+}
 
 bool RegistryFactory::usingModule() {
   // Check if the registry is allowing a module's registrations.
@@ -574,7 +584,7 @@ void RegistryFactory::declareModule(const std::string& name,
   instance().locked(false);
 }
 
-RegistryModuleLoader::RegistryModuleLoader(const std::string &path)
+RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
     : handle_(nullptr), path_(path) {
   // Tell the registry that we are attempting to construct a module.
   // Locking the registry prevents the module's global initialization from
@@ -663,3 +673,4 @@ void Plugin::setResponse(const std::string& key,
   response.push_back({{key, output.str()}});
 }
 }
+

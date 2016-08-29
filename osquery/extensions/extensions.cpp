@@ -98,7 +98,7 @@ EXTENSION_FLAG_ALIAS(interval, extensions_interval);
 
 #ifdef WIN32
 // Time to wait for a busy named pipe, if it exists
-#define NAMED_PIPE_WAIT  500
+#define NAMED_PIPE_WAIT 500
 
 /**
  * We cannot use existing methods to determine the lifespan of the
@@ -107,13 +107,13 @@ EXTENSION_FLAG_ALIAS(interval, extensions_interval);
  * use WaitNamedPipe to determine the existence of a named pipe. If the named
  * pipe does not exist, WaitNamedPipe should error with ERROR_BAD_PATHNAME.
  */
-static Status isNamedPipeValid(const std::string &path) {
+static Status isNamedPipeValid(const std::string& path) {
   if (!boost::starts_with(path, "\\\\.\\pipe\\")) {
     return Status(1, "Bad named pipe name prefix");
   }
 
   if ((::WaitNamedPipeA(path.c_str(), NAMED_PIPE_WAIT) == 0) &&
-    (::GetLastError() == ERROR_BAD_PATHNAME)) {
+      (::GetLastError() == ERROR_BAD_PATHNAME)) {
     return Status(1, "Named pipe does not exist");
   }
 
@@ -406,7 +406,8 @@ Status startExtension(const std::string& name, const std::string& version) {
   return startExtension(name, version, "0.0.0");
 }
 
-Status startExtension(const std::string& name, const std::string& version,
+Status startExtension(const std::string& name,
+                      const std::string& version,
                       const std::string& min_sdk_version) {
   Registry::setExternal();
   // Latency converted to milliseconds, used as a thread interruptible.
@@ -418,8 +419,8 @@ Status startExtension(const std::string& name, const std::string& version,
     return status;
   }
 
-  status = startExtension(FLAGS_extensions_socket, name, version, min_sdk_version,
-                          kSDKVersion);
+  status = startExtension(
+      FLAGS_extensions_socket, name, version, min_sdk_version, kSDKVersion);
   if (!status.ok()) {
     // If the extension failed to start then the EM is most likely unavailable.
     return status;
@@ -606,7 +607,8 @@ Status getExtensions(const std::string& manager_path,
 
   // Convert from Thrift-internal list type to RouteUUID/ExtenionInfo type.
   for (const auto& ext : ext_list) {
-    extensions[ext.first] = {ext.second.name, ext.second.version,
+    extensions[ext.first] = {ext.second.name,
+                             ext.second.version,
                              ext.second.min_sdk_version,
                              ext.second.sdk_version};
   }
@@ -677,7 +679,7 @@ Status startExtensionManager() {
 }
 
 Status startExtensionManager(const std::string& manager_path) {
-  // Check if the socket location exists.
+// Check if the socket location exists.
 #ifdef WIN32
   auto status = isNamedPipeValid(manager_path);
 #else
@@ -700,3 +702,4 @@ Status startExtensionManager(const std::string& manager_path) {
   return Status(0, "OK");
 }
 }
+

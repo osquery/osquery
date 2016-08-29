@@ -26,16 +26,16 @@ namespace osquery {
 
 /// An opaque interface used within plugin macros.
 struct InitializerInterface {
-  virtual const char *id() const = 0;
+  virtual const char* id() const = 0;
   virtual void run() const = 0;
   virtual ~InitializerInterface() {}
 };
 
 /// Request a registry type for initialization.
-void registerRegistry(InitializerInterface *const item);
+void registerRegistry(InitializerInterface* const item);
 
 /// Request a plugin type for initialization.
-void registerPlugin(InitializerInterface *const item);
+void registerPlugin(InitializerInterface* const item);
 
 /// Allocate and instantiate one of each requested registry and plugin.
 void registryAndPluginInit();
@@ -62,9 +62,15 @@ void registryAndPluginInit();
 #define CREATE_REGISTRY(type, name)                                            \
   namespace registry {                                                         \
   struct type##Registry : public InitializerInterface {                        \
-    type##Registry(void) { registerRegistry(this); }                           \
-    const char *id() const override { return name; }                           \
-    void run() const override { Registry::create<type>(name); }                \
+    type##Registry(void) {                                                     \
+      registerRegistry(this);                                                  \
+    }                                                                          \
+    const char* id() const override {                                          \
+      return name;                                                             \
+    }                                                                          \
+    void run() const override {                                                \
+      Registry::create<type>(name);                                            \
+    }                                                                          \
   };                                                                           \
   static type##Registry type##instance_;                                       \
   }
@@ -80,9 +86,15 @@ void registryAndPluginInit();
 #define CREATE_LAZY_REGISTRY(type, name)                                       \
   namespace registry {                                                         \
   struct type##Registry : public InitializerInterface {                        \
-    type##Registry(void) { registerRegistry(this); }                           \
-    const char *id() const override { return name; }                           \
-    void run() const override { Registry::create<type>(name, true); }          \
+    type##Registry(void) {                                                     \
+      registerRegistry(this);                                                  \
+    }                                                                          \
+    const char* id() const override {                                          \
+      return name;                                                             \
+    }                                                                          \
+    void run() const override {                                                \
+      Registry::create<type>(name, true);                                      \
+    }                                                                          \
   };                                                                           \
   static type##Registry type##instance_;                                       \
   }
@@ -101,18 +113,30 @@ void registryAndPluginInit();
  */
 #define REGISTER(type, registry, name)                                         \
   struct type##RegistryItem : public InitializerInterface {                    \
-    type##RegistryItem(void) { registerPlugin(this); }                         \
-    const char *id() const override { return registry "." name ; }           \
-    void run() const override { Registry::add<type>(registry, name); }         \
+    type##RegistryItem(void) {                                                 \
+      registerPlugin(this);                                                    \
+    }                                                                          \
+    const char* id() const override {                                          \
+      return registry "." name;                                                \
+    }                                                                          \
+    void run() const override {                                                \
+      Registry::add<type>(registry, name);                                     \
+    }                                                                          \
   };                                                                           \
   static type##RegistryItem type##instance_;
 
 /// The same as REGISTER but prevents the plugin item from being broadcasted.
 #define REGISTER_INTERNAL(type, registry, name)                                \
   struct type##RegistryItem : public InitializerInterface {                    \
-    type##RegistryItem(void) { registerPlugin(this); }                         \
-    const char *id() const override { return registry "." name ; }           \
-    void run() const override { Registry::add<type>(registry, name, true); }   \
+    type##RegistryItem(void) {                                                 \
+      registerPlugin(this);                                                    \
+    }                                                                          \
+    const char* id() const override {                                          \
+      return registry "." name;                                                \
+    }                                                                          \
+    void run() const override {                                                \
+      Registry::add<type>(registry, name, true);                               \
+    }                                                                          \
   };                                                                           \
   static type##RegistryItem type##instance_;
 
@@ -169,7 +193,9 @@ class Plugin : private boost::noncopyable {
 
  public:
   /// The plugin may perform some initialization, not required.
-  virtual Status setUp() { return Status(0, "Not used"); }
+  virtual Status setUp() {
+    return Status(0, "Not used");
+  }
 
   /// The plugin may perform some tear down, release, not required.
   virtual void tearDown() {}
@@ -178,7 +204,9 @@ class Plugin : private boost::noncopyable {
   virtual void configure() {}
 
   /// The plugin may publish route info (other than registry type and name).
-  virtual PluginResponse routeInfo() const { return PluginResponse(); }
+  virtual PluginResponse routeInfo() const {
+    return PluginResponse();
+  }
 
   /**
    * @brief Plugins act by being called, using a request, returning a response.
@@ -198,10 +226,14 @@ class Plugin : private boost::noncopyable {
   }
 
   /// Allow the plugin to introspect into the registered name (for logging).
-  void setName(const std::string& name) { name_ = name; }
+  void setName(const std::string& name) {
+    name_ = name;
+  }
 
   /// Force callsites to use #getName to access the plugin item's name.
-  virtual const std::string& getName() const { return name_; }
+  virtual const std::string& getName() const {
+    return name_;
+  }
 
  public:
   // Set the output request key to a serialized property tree.
@@ -362,7 +394,9 @@ class RegistryHelperCore : private boost::noncopyable {
   void setName(const std::string& name);
 
   /// Allow others to introspect into the registered name (for reporting).
-  virtual const std::string& getName() const { return name_; }
+  virtual const std::string& getName() const {
+    return name_;
+  }
 
   /// Check if a given plugin name is considered internal.
   bool isInternal(const std::string& item_name) const;
@@ -553,7 +587,7 @@ class RegistryModuleLoader : private boost::noncopyable {
 
  private:
   // Keep the handle for symbol resolution/calling.
-  std::unique_ptr<SharedLibModule> handle_{ nullptr };
+  std::unique_ptr<SharedLibModule> handle_{nullptr};
 
   // Keep the path for debugging/logging.
   std::string path_;
@@ -739,7 +773,9 @@ class RegistryFactory : private boost::noncopyable {
   }
 
   /// Check if duplicate registry items using registry aliasing are allowed.
-  static bool allowDuplicates() { return instance().allow_duplicates_; }
+  static bool allowDuplicates() {
+    return instance().allow_duplicates_;
+  }
 
   /// Declare a module for initialization and subsequent registration attempts
   static void declareModule(const std::string& name,
@@ -752,10 +788,14 @@ class RegistryFactory : private boost::noncopyable {
 
   /// Set the registry external (such that internal events are forwarded).
   /// Once set external, it should not be unset.
-  static void setExternal() { instance().external_ = true; }
+  static void setExternal() {
+    instance().external_ = true;
+  }
 
   /// Get the registry external status.
-  static bool external() { return instance().external_; }
+  static bool external() {
+    return instance().external_;
+  }
 
  private:
   /// Access the current initializing module UUID.
@@ -770,10 +810,14 @@ class RegistryFactory : private boost::noncopyable {
   static void shutdownModule();
 
   /// Check if the registries are locked.
-  static bool locked() { return instance().locked_; }
+  static bool locked() {
+    return instance().locked_;
+  }
 
   /// Set the registry locked status.
-  static void locked(bool locked) { instance().locked_ = locked; }
+  static void locked(bool locked) {
+    instance().locked_ = locked;
+  }
 
  public:
   RegistryFactory(RegistryFactory const&) = delete;
@@ -844,3 +888,4 @@ class RegistryFactory : private boost::noncopyable {
  */
 using Registry = RegistryFactory;
 }
+
