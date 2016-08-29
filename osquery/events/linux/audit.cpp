@@ -127,11 +127,13 @@ void AuditEventPublisher::configure() {
       }
 
       // Apply this rule to the EXIT filter, ALWAYS.
+      VLOG(1) << "Adding audit rule: syscall=" << scr.syscall
+              << " action=" << scr.action << " filter='" << scr.filter << "'";
       int rc = audit_add_rule_data(handle_, &rule.rule, scr.flags, scr.action);
       if (rc < 0) {
         // Problem adding rule. If errno == EEXIST then fine.
-        VLOG(1) << "Cannot add audit rule: syscall=" << scr.syscall
-                << " filter='" << scr.filter << "': error " << rc;
+        LOG(WARNING) << "Cannot add audit rule: syscall=" << scr.syscall
+                     << " filter='" << scr.filter << "': error " << rc;
       }
 
       // Note: all rules are considered transient if added by subscribers.

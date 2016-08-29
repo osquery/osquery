@@ -1,22 +1,26 @@
 The osquery shell and daemon use optional command line (CLI) flags to control
-initialization, disable/enable features, and select plugins.
+initialization, disable/enable features, and select plugins. These flags are powered by Google Flags and are somewhat complicated. Understanding how flags work in osquery will help with stability and greatly reduce issue debugging time.
 
-Most of these flag-based parameters apply to both tools. Flags that do not
-control startup settings may be included as "options" to the daemon within its [configuration](../deployment/configuration.md). To see a full list of flags for your osquery version use `--help` or select from the flags table:
+Most flags apply to both tools, `osqueryi` and `osqueryd`. The shell contains a few more to help with printing and other helpful one-off modes of operation. Expect Linux / OS X / and Windows to include platform specific flags too. Most platform specific flags will control the OS API and library integrations used by osquery. Warning, this list is still not the 'complete set' of flags. Refer to the techniques below for obtaining ground truth and check other components of this Wiki.
+
+Flags that do not control startup settings may be included as "options" within [configuration](../deployment/configuration.md). Essentially, any flag needed to help osquery determine and discovery a configuration must be supplied via command line arguments. Google Flags enhances this to allow flags to be set within environment variables or via a "master" flag file.
+
+To see a full list of flags for your osquery version use `--help` or select from the `osquery_flags` table:
 
 ```
+$ osqueryi
 osquery> select * from osquery_flags;
 ```
 
-To see the flags that have been updated by your configuration, flagfile, or by the shell consider:
+To see the flags that have been updated by your configuration, a flag file, or by the shell try:
 
 ```
 osquery> select * from osquery_flags where default_value <> value;
 ```
 
-## CLI-only (initialization) flags
+## Command line only flags
 
-A special flag, part of Gflags, can be used to read additional flags from a line-delimited file. On OS X and Linux this **flagfile** is the recommended way to add/remove the following CLI-only initialization flags.
+A special flag, part of Google Flags, can be used to read additional flags from a line-delimited file. On OS X and Linux this `--flagfile` is the recommended way to add/remove the following CLI-only initialization flags.
 
 `--flagfile="/etc/osquery/osquery.flags"`
 
@@ -166,7 +170,7 @@ The **tls** endpoint path, e.g.: **/api/v1/logger** when using the **tls** logge
 
 `--enrollment_tls_endpoint=""`
 
-See the **tls**/[remote](../deployment/remote.md) plugin documentation. An enrollment process will be used to allow server-side implemented authentication and identification/authorization. You must provide an endpoint relative to the **--tls_hostname** URI.
+See the **tls**/[remote](../deployment/remote.md) plugin documentation. An enrollment process will be used to allow server-side implemented authentication and identification/authorization. You must provide an endpoint relative to the `--tls_hostname` URI.
 
 `--logger_tls_period=3`
 
@@ -180,15 +184,15 @@ Optionally enable GZIP compression for request bodies when sending. This is opti
 
 It is common for TLS/HTTPS servers to enforce a maximum request body size. The default behavior in osquery is to enforce each log line be under 1M bytes. This means each result line from a query's results cannot exceed 1M, this is very unlikely. Each log attempt will try to forward up to 1024 lines. If your service is limited request bodies, configure the client to limit the log line size.
 
-Use this only in emergency situations as size violations are dropped. It is extremely uncommon for this to occur, as the `value_max` for each column would need to be drastically larger, or the offending table would have to implement several hundred columns.
+Use this only in emergency situations as size violations are dropped. It is extremely uncommon for this to occur, as the `--value_max` for each column would need to be drastically larger, or the offending table would have to implement several hundred columns.
 
-`--distributed_tls_read_endpoint=/foobar`
+`--distributed_tls_read_endpoint=""`
 
-The URI path which will be used, in conjunction with `tls_hostname`, to create the remote URI for retrieving distributed queries when using the **tls** distributed plugin.
+The URI path which will be used, in conjunction with `--tls_hostname`, to create the remote URI for retrieving distributed queries when using the **tls** distributed plugin.
 
-`--distributed_tls_write_endpoint=/foobar`
+`--distributed_tls_write_endpoint=""`
 
-The URI path which will be used, in conjunction with `tls_hostname`, to create the remote URI for submitting the results of distributed queries when using the **tls** distributed plugin.
+The URI path which will be used, in conjunction with `--tls_hostname`, to create the remote URI for submitting the results of distributed queries when using the **tls** distributed plugin.
 
 `--distributed_tls_max_attempts=3`
 
@@ -198,18 +202,11 @@ The total number of attempts that will be made to the remote distributed query s
 
 `--read_max=52428800` (50MB)
 
-Maximum file read size.
-The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
+Maximum file read size. The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
 
 `--read_user_max=10485760` (10MB)
 
-Maximum non-super user read size.
-Similar to `--read_max` but applied to user-controlled (owned) files.
-
-`--read_user_links=true`
-
-Read user-controlled (owned) filesystem links.
-This allows specific control over symbolic links owned by users.
+Maximum non-super user read size. Similar to `--read_max` but applied to user-controlled (owned) files.
 
 ### osquery daemon runtime control flags
 
@@ -217,9 +214,7 @@ This allows specific control over symbolic links owned by users.
 
 Percent to splay config times.
 The query schedule often includes several queries with the same interval.
-It is often not the intention of the schedule author to run these queries together
-at that interval. But rather, each query should run at about the interval.
-A default schedule splay of 10% is applied to each query when the configuration is loaded.
+It is often not the intention of the schedule author to run these queries together at that interval. But rather, each query should run at about the interval. A default schedule splay of 10% is applied to each query when the configuration is loaded.
 
 `--pack_refresh_interval=3600`
 
@@ -231,14 +226,11 @@ specify that interval.
 
 `--pack_delimiter=_`
 
-Control the delimiter between pack name and pack query names. When queries are added to the daemon's schedule they inherit the name of the pack. A query named "info" within the "general_info" pack will become "pack_general_info_info". Changing the delimiter to "/" turned the scheduled name into: "pack/general_info/info".
+Control the delimiter between pack name and pack query names. When queries are added to the daemon's schedule they inherit the name of the pack. A query named `info` within the `general_info` pack will become `pack_general_info_info`. Changing the delimiter to "/" turned the scheduled name into: `pack/general_info/info`.
 
 `--disable_caching=false`
 
-"Caching" refers to short cutting the table implementation and returning the same results from the previous query against the table.
-This is not related to differential results from scheduled queries, but does affect the performance of the schedule.
-Results are cached when different scheduled queries in a schedule use the same table, without providing query constraints.
-Caching should NOT affect data freshness since the cache life is determined as the minimum interval of all queries against a table.
+"Caching" refers to short cutting the table implementation and returning the same results from the previous query against the table. This is not related to differential results from scheduled queries, but does affect the performance of the schedule. Results are cached when different scheduled queries in a schedule use the same table, without providing query constraints. Caching should NOT affect data freshness since the cache life is determined as the minimum interval of all queries against a table.
 
 `--schedule_default_interval=3600`
 
@@ -247,17 +239,15 @@ which does not define an interval.
 
 `--worker_threads=4`
 
-Number of work dispatch threads.
+Number of work dispatch threads. (Deprecated) This flag is a no-op.
 
 `--schedule_timeout=0`
 
-Limit the schedule, 0 for no limit. Optionally limit the osqueryd's life by adding a schedule limit in seconds.
-This should only be used for testing.
+Limit the schedule, 0 for no limit. Optionally limit the `osqueryd`'s life by adding a schedule limit in seconds. This should only be used for testing.
 
 `--disable_tables=table_name1,table_name2`
 
-Comma-delimited list of table names to be disabled.
-This allows osquery to be launched without certain tables.
+Comma-delimited list of table names to be disabled. This allows osquery to be launched without certain tables.
 
 ### osquery events control flags
 
@@ -285,23 +275,23 @@ Logger plugin name. The default logger is **filesystem**. This writes the variou
 
 Multiple logger plugins may be used simultaneously, effectively copying logs to each interface. Separate plugin names with a comma when specifying the configuration (`--logger_plugin=filesystem,syslog`).
 
-Built-in options include: **filesystem**, **tls**, **syslog**
+Built-in options include: **filesystem**, **tls**, **syslog**, and several Amazon/AWS options.
 
 `--disable_logging=false`
 
 Disable ERROR/WARNING/INFO (called status logs) and query result [logging](../deployment/logging.md).
 
-`--log_result_events=true`
+`--logger_event_type=true`
 
 Log scheduled results as events.
 
 `--host_identifier=hostname`
 
-Field used to identify the host running osquery (hostname, uuid)
+Field used to identify the host running osquery: **hostname**, **uuid**.
 
-Select either "hostname" or "uuid" for the host identifier.
+Select either **hostname** or **uuid** for the host identifier.
 DHCP may assign variable hostnames, if this is the case, select UUID for a
-consistant logging label.
+consistent logging label.
 
 `--verbose=false`
 
@@ -314,14 +304,13 @@ Directory path for ERROR/WARN/INFO and results logging.
 `--logger_mode=640`
 
 File mode for output log files (provided as an octal string).  Note that this
-affects both the query result log and the status logs.
-**Warning**: If run as root, log files may contain sensitive information!
+affects both the query result log and the status logs. **Warning**: If run as root, log files may contain sensitive information!
 
 `--value_max=512`
 
 Maximum returned row value size.
 
-## Distributed Flags
+## Distributed query service flags
 
 `--distributed_plugin=tls`
 

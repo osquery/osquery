@@ -162,7 +162,9 @@ class RsyslogCsvSeparator {
  public:
   RsyslogCsvSeparator() : last_(false) {}
 
-  void reset() { last_ = false; }
+  void reset() {
+    last_ = false;
+  }
 
   template <typename InputIterator, typename Token>
   bool operator()(InputIterator& next, InputIterator end, Token& tok) {
