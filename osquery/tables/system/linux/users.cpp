@@ -8,12 +8,9 @@
  *
  */
 
-#include <set>
-#include <mutex>
-#include <vector>
-#include <string>
-
 #include <pwd.h>
+
+#include <mutex>
 
 #include <osquery/core.h>
 #include <osquery/tables.h>
@@ -31,29 +28,47 @@ void genUser(const struct passwd* pwd, QueryData& results) {
   r["gid"] = BIGINT(pwd->pw_gid);
   r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
   r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
-  r["username"] = TEXT(pwd->pw_name);
-  r["description"] = TEXT(pwd->pw_gecos);
-  r["directory"] = TEXT(pwd->pw_dir);
-  r["shell"] = TEXT(pwd->pw_shell);
+
+  if (pwd->pw_name != nullptr) {
+    r["username"] = TEXT(pwd->pw_name);
+  }
+
+  if (pwd->pw_gecos != nullptr) {
+    r["description"] = TEXT(pwd->pw_gecos);
+  }
+
+  if (pwd->pw_dir != nullptr) {
+    r["directory"] = TEXT(pwd->pw_dir);
+  }
+
+  if (pwd->pw_shell != nullptr) {
+    r["shell"] = TEXT(pwd->pw_shell);
+  }
   results.push_back(r);
 }
 
 QueryData genUsers(QueryContext& context) {
   QueryData results;
-  struct passwd *pwd = nullptr;
 
+  struct passwd* pwd = nullptr;
   if (context.constraints["uid"].exists(EQUALS)) {
-    std::set<std::string> uids = context.constraints["uid"].getAll(EQUALS);
+    auto uids = context.constraints["uid"].getAll(EQUALS);
     for (const auto& uid : uids) {
       long auid{0};
-      if (safeStrtol(uid, 10, auid) && (pwd = getpwuid(auid)) != nullptr) {
-        genUser(pwd, results);
+      if (safeStrtol(uid, 10, auid)) {
+        WriteLock lock(pwdEnumerationMutex);
+        pwd = getpwuid(auid);
+        if (pwd != nullptr) {
+          genUser(pwd, results);
+        }
       }
     }
   } else {
-    std::lock_guard<std::mutex> lock(pwdEnumerationMutex);
-    while ((pwd = getpwent()) != nullptr) {
+    WriteLock lock(pwdEnumerationMutex);
+    pwd = getpwent();
+    while (pwd != nullptr) {
       genUser(pwd, results);
+      pwd = getpwent();
     }
     endpwent();
   }
