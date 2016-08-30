@@ -9,8 +9,8 @@
  */
 
 #include <map>
-#include <string>
 #include <sstream>
+#include <string>
 
 #include <stdlib.h>
 
@@ -22,16 +22,16 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/tables/system/windows/system_util.h"
+#include "osquery/tables/system/windows/wmi.h"
 
 namespace osquery {
 namespace tables {
- 
-std::set<long> getProcList(const QueryContext &context) {
+
+std::set<long> getProcList(const QueryContext& context) {
   std::set<long> pidlist;
   if (context.constraints.count("pid") > 0 &&
-    context.constraints.at("pid").exists(EQUALS)) {
-    for (const auto &pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
+      context.constraints.at("pid").exists(EQUALS)) {
+    for (const auto& pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
       if (pid > 0) {
         pidlist.insert(pid);
       }
@@ -39,33 +39,48 @@ std::set<long> getProcList(const QueryContext &context) {
     return pidlist;
   } else {
     WmiRequest request("SELECT ProcessId FROM Win32_Process");
-    if (request.ok()) {
+    if (request.getStatus().ok()) {
+      long placeHolder;
+      Status s;
       for (auto const& result : request.results()) {
-        pidlist.insert(result.GetLong("ProcessId"));
+        s = result.GetLong("ProcessId", placeHolder);
+        if (!s.ok()) {
+          continue;
+        }
+        pidlist.insert(placeHolder);
       }
     }
     return pidlist;
   }
 }
 
-
 void genProcess(long pid, QueryData& results_data) {
   std::stringstream ss;
   ss << "SELECT * FROM Win32_Process WHERE ProcessId=" << pid;
 
   WmiRequest request(ss.str());
-  if (request.ok()) {
-    std::vector<WmiResultItem> &results = request.results();
+  if (request.getStatus().ok()) {
+    std::vector<WmiResultItem>& results = request.results();
     if (results.size() == 1) {
       Row r;
+      Status s;
+      long lPlaceHolder;
+      std::string sPlaceHolder;
 
-      r["pid"] = BIGINT(results[0].GetLong("ProcessId"));
-      r["name"] = SQL_TEXT(results[0].GetString("Name"));
-      r["path"] = SQL_TEXT(results[0].GetString("ExecutablePath"));
-      r["cmdline"] = SQL_TEXT(results[0].GetString("CommandLine"));
-      r["state"] = SQL_TEXT(results[0].GetString("ExecutionState"));
-      r["parent"] = BIGINT(results[0].GetLong("ParentProcessId"));
-      r["nice"] = INTEGER(results[0].GetLong("Priority"));
+      s = results[0].GetLong("ProcessId", lPlaceHolder);
+      r["pid"] = s.ok() ? BIGINT(lPlaceHolder) : BIGINT(-1);
+      s = results[0].GetString("Name", sPlaceHolder);
+      r["name"] = SQL_TEXT(sPlaceHolder);
+      s = results[0].GetString("ExecutablePath", sPlaceHolder);
+      r["path"] = SQL_TEXT(sPlaceHolder);
+      s = results[0].GetString("CommandLine", sPlaceHolder);
+      r["cmdline"] = SQL_TEXT(sPlaceHolder);
+      s = results[0].GetString("ExecutionState", sPlaceHolder);
+      r["state"] = SQL_TEXT(sPlaceHolder);
+      s = results[0].GetLong("ParentProcessId", lPlaceHolder);
+      r["parent"] = BIGINT(lPlaceHolder);
+      s = results[0].GetLong("Priority", lPlaceHolder);
+      r["nice"] = INTEGER(lPlaceHolder);
       r["on_disk"] = osquery::pathExists(r["path"]).toString();
 
       // TODO: some of these such as cwd, wired_size, phys_footprint
