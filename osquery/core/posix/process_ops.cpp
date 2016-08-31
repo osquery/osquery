@@ -50,6 +50,22 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
   return boost::none;
 }
 
+ModuleHandle platformModuleOpen(const std::string& path) {
+  return ::dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
+}
+
+void *platformModuleGetSymbol(ModuleHandle module, const std::string& symbol) {
+  return ::dlsym(module, symbol.c_str());
+}
+
+std::string platformModuleGetError() {
+  return ::dlerror();
+}
+
+bool platformModuleClose(ModuleHandle module) {
+  return (::dlclose(module) == 0);
+}
+
 void cleanupDefunctProcesses() {
   ::waitpid(-1, nullptr, WNOHANG);
 }

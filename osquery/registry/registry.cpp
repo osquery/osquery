@@ -586,16 +586,15 @@ void RegistryFactory::declareModule(const std::string& name,
 
 RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
     : handle_(nullptr), path_(path) {
-#ifndef WIN32
   // Tell the registry that we are attempting to construct a module.
   // Locking the registry prevents the module's global initialization from
   // adding or creating registry items.
   RegistryFactory::initModule(path_);
 
-  handle_ = dlopen(path_.c_str(), RTLD_NOW | RTLD_LOCAL);
+  handle_ = platformModuleOpen(path_);
   if (handle_ == nullptr) {
     VLOG(1) << "Failed to load module: " << path_;
-    VLOG(1) << dlerror();
+    VLOG(1) << platformModuleGetError();
     return;
   }
 
@@ -604,14 +603,12 @@ RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
   // the SDK's CREATE_MODULE macro, which adds the global-scope constructor.
   if (RegistryFactory::locked()) {
     VLOG(1) << "Failed to declare module: " << path_;
-    dlclose(handle_);
+    platformModuleClose(handle_);
     handle_ = nullptr;
   }
-#endif
 }
 
 void RegistryModuleLoader::init() {
-#ifndef WIN32
   if (handle_ == nullptr || RegistryFactory::locked()) {
     handle_ = nullptr;
     return;
@@ -620,17 +617,16 @@ void RegistryModuleLoader::init() {
   // Locate a well-known symbol in the module.
   // This symbol name is protected against rewriting when the module uses the
   // SDK's CREATE_MODULE macro.
-  auto initializer = (ModuleInitalizer)dlsym(handle_, "initModule");
+  auto initializer = (ModuleInitalizer)platformModuleGetSymbol(handle_, "initModule");
   if (initializer != nullptr) {
     initializer();
     VLOG(1) << "Initialized module: " << path_;
   } else {
     VLOG(1) << "Failed to initialize module: " << path_;
-    VLOG(1) << dlerror();
-    dlclose(handle_);
+    VLOG(1) << platformModuleGetError();
+    platformModuleClose(handle_);
     handle_ = nullptr;
   }
-#endif
 }
 
 RegistryModuleLoader::~RegistryModuleLoader() {

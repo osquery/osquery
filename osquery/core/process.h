@@ -198,6 +198,34 @@ bool unsetEnvVar(const std::string& name);
  */
 boost::optional<std::string> getEnvVar(const std::string& name);
 
+/**
+ * @brief Returns a handle of the specified module path 
+ *
+ * On POSIX, this invokes dlopen with RTLD_NOW and RTLD_LOCAL flags
+ */
+ModuleHandle platformModuleOpen(const std::string& path);
+
+/**
+ * @brief Returns a pointer of where the requested symbol exists
+ */
+void *platformModuleGetSymbol(ModuleHandle module, const std::string& symbol);
+
+/**
+ * @brief Returns a string of the last error
+ *
+ * On Windows, this returns the last error message which may not necessarily be
+ * from a module operation. It is suggested to call this immediately after a
+ * platformModule function for best accuracy.
+ */
+std::string platformModuleGetError();
+
+/**
+ * @brief Closes the library handle
+ *
+ * On Windows, this will also try to unload the library.
+ */
+bool platformModuleClose(ModuleHandle module);
+
 /// Checks to see if the launcher process is dead (only works for worker
 /// processes).
 bool isLauncherProcessDead(PlatformProcess& launcher);
