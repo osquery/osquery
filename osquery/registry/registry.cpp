@@ -617,7 +617,8 @@ void RegistryModuleLoader::init() {
   // Locate a well-known symbol in the module.
   // This symbol name is protected against rewriting when the module uses the
   // SDK's CREATE_MODULE macro.
-  auto initializer = (ModuleInitalizer)platformModuleGetSymbol(handle_, "initModule");
+  auto initializer =
+      (ModuleInitalizer)platformModuleGetSymbol(handle_, "initModule");
   if (initializer != nullptr) {
     initializer();
     VLOG(1) << "Initialized module: " << path_;

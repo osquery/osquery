@@ -54,7 +54,7 @@ ModuleHandle platformModuleOpen(const std::string& path) {
   return ::dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
 }
 
-void *platformModuleGetSymbol(ModuleHandle module, const std::string& symbol) {
+void* platformModuleGetSymbol(ModuleHandle module, const std::string& symbol) {
   return ::dlsym(module, symbol.c_str());
 }
 

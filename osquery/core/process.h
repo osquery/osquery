@@ -199,7 +199,7 @@ bool unsetEnvVar(const std::string& name);
 boost::optional<std::string> getEnvVar(const std::string& name);
 
 /**
- * @brief Returns a handle of the specified module path 
+ * @brief Returns a handle of the specified module path
  *
  * On POSIX, this invokes dlopen with RTLD_NOW and RTLD_LOCAL flags
  */
@@ -208,7 +208,7 @@ ModuleHandle platformModuleOpen(const std::string& path);
 /**
  * @brief Returns a pointer of where the requested symbol exists
  */
-void *platformModuleGetSymbol(ModuleHandle module, const std::string& symbol);
+void* platformModuleGetSymbol(ModuleHandle module, const std::string& symbol);
 
 /**
  * @brief Returns a string of the last error
@@ -236,4 +236,3 @@ void cleanupDefunctProcesses();
 /// Sets the current process to run with background scheduling priority.
 void setToBackgroundPriority();
 }
-

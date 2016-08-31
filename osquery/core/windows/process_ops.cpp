@@ -67,11 +67,11 @@ boost::optional<std::string> getEnvVar(const std::string &name) {
   return std::string(buf.data(), value_len);
 }
 
-ModuleHandle platformModuleOpen(const std::string& path) {
+ModuleHandle platformModuleOpen(const std::string &path) {
   return ::LoadLibraryA(path.c_str());
 }
 
-void *platformModuleGetSymbol(ModuleHandle module, const std::string& symbol) {
+void *platformModuleGetSymbol(ModuleHandle module, const std::string &symbol) {
   return ::GetProcAddress(module, symbol.c_str());
 }
 
@@ -87,4 +87,3 @@ void cleanupDefunctProcesses() {}
 
 void setToBackgroundPriority() {}
 }
-
