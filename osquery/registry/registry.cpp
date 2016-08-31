@@ -115,9 +115,7 @@ Status RegistryHelperCore::setActive(const std::string& item_name) {
   return status;
 }
 
-const std::string& RegistryHelperCore::getActive() const {
-  return active_;
-}
+const std::string& RegistryHelperCore::getActive() const { return active_; }
 
 RegistryRoutes RegistryHelperCore::getRoutes() const {
   RegistryRoutes route_table;
@@ -293,14 +291,10 @@ std::vector<std::string> RegistryHelperCore::names() const {
 }
 
 /// Facility method to count the number of items in this registry.
-size_t RegistryHelperCore::count() const {
-  return items_.size();
-}
+size_t RegistryHelperCore::count() const { return items_.size(); }
 
 /// Allow the registry to introspect into the registered name (for logging).
-void RegistryHelperCore::setName(const std::string& name) {
-  name_ = name;
-}
+void RegistryHelperCore::setName(const std::string& name) { name_ = name; }
 
 const std::map<std::string, PluginRegistryHelperRef>& RegistryFactory::all() {
   return instance().registries_;
@@ -535,9 +529,7 @@ std::vector<RouteUUID> RegistryFactory::routeUUIDs() {
   return uuids;
 }
 
-size_t RegistryFactory::count() {
-  return instance().registries_.size();
-}
+size_t RegistryFactory::count() { return instance().registries_.size(); }
 
 size_t RegistryFactory::count(const std::string& registry_name) {
   if (instance().registries_.count(registry_name) == 0) {
@@ -550,9 +542,7 @@ const std::map<RouteUUID, ModuleInfo>& RegistryFactory::getModules() {
   return instance().modules_;
 }
 
-RouteUUID RegistryFactory::getModule() {
-  return instance().module_uuid_;
-}
+RouteUUID RegistryFactory::getModule() { return instance().module_uuid_; }
 
 bool RegistryFactory::usingModule() {
   // Check if the registry is allowing a module's registrations.
@@ -586,17 +576,16 @@ void RegistryFactory::declareModule(const std::string& name,
 
 RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
     : handle_(nullptr), path_(path) {
+#ifndef WIN32
   // Tell the registry that we are attempting to construct a module.
   // Locking the registry prevents the module's global initialization from
   // adding or creating registry items.
   RegistryFactory::initModule(path_);
 
-  handle_.reset(new SharedLibModule(path_));
-  if (handle_ == nullptr || !handle_->isValid()) {
+  handle_ = dlopen(path_.c_str(), RTLD_NOW | RTLD_LOCAL);
+  if (handle_ == nullptr) {
     VLOG(1) << "Failed to load module: " << path_;
-    if (handle_ != nullptr) {
-      VLOG(1) << handle_->getError();
-    }
+    VLOG(1) << dlerror();
     return;
   }
 
@@ -605,36 +594,37 @@ RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
   // the SDK's CREATE_MODULE macro, which adds the global-scope constructor.
   if (RegistryFactory::locked()) {
     VLOG(1) << "Failed to declare module: " << path_;
-    if (handle_ != nullptr) {
-      handle_.reset(nullptr);
-    }
+    dlclose(handle_);
+    handle_ = nullptr;
   }
+#endif
 }
 
 void RegistryModuleLoader::init() {
-  if (handle_ == nullptr || !handle_->isValid() || RegistryFactory::locked()) {
-    handle_.reset(nullptr);
+#ifndef WIN32
+  if (handle_ == nullptr || RegistryFactory::locked()) {
+    handle_ = nullptr;
     return;
   }
 
   // Locate a well-known symbol in the module.
   // This symbol name is protected against rewriting when the module uses the
   // SDK's CREATE_MODULE macro.
-  auto initializer = (ModuleInitalizer)handle_->getFunctionAddr("initModule");
+  auto initializer = (ModuleInitalizer)dlsym(handle_, "initModule");
   if (initializer != nullptr) {
     initializer();
     VLOG(1) << "Initialized module: " << path_;
   } else {
     VLOG(1) << "Failed to initialize module: " << path_;
-    if (handle_ != nullptr) {
-      VLOG(1) << handle_->getError();
-    }
-    handle_.reset(nullptr);
+    VLOG(1) << dlerror();
+    dlclose(handle_);
+    handle_ = nullptr;
   }
+#endif
 }
 
 RegistryModuleLoader::~RegistryModuleLoader() {
-  if (handle_ == nullptr || !handle_->isValid()) {
+  if (handle_ == nullptr) {
     // The module was not loaded or did not initalize.
     RegistryFactory::instance().modules_.erase(RegistryFactory::getModule());
   }
@@ -646,7 +636,7 @@ RegistryModuleLoader::~RegistryModuleLoader() {
     RegistryFactory::shutdownModule();
   }
   // No need to clean this resource.
-  handle_.reset(nullptr);
+  handle_ = nullptr;
 }
 
 void Plugin::getResponse(const std::string& key,
@@ -673,4 +663,3 @@ void Plugin::setResponse(const std::string& key,
   response.push_back({{key, output.str()}});
 }
 }
-

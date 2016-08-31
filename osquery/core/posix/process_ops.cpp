@@ -50,25 +50,6 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
   return boost::none;
 }
 
-SharedLibModule::SharedLibModule(const std::string& module) {
-  handle_ = ::dlopen(module.c_str(), RTLD_NOW | RTLD_LOCAL);
-}
-
-SharedLibModule::~SharedLibModule() {
-  if (handle_ != nullptr) {
-    ::dlclose(handle_);
-    handle_ = nullptr;
-  }
-}
-
-std::string SharedLibModule::getError() const {
-  return std::string(::dlerror());
-}
-
-void* SharedLibModule::getFunctionAddr(const std::string& fname) const {
-  return ::dlsym(handle_, fname.c_str());
-}
-
 void cleanupDefunctProcesses() {
   ::waitpid(-1, nullptr, WNOHANG);
 }
