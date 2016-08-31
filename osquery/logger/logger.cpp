@@ -228,14 +228,19 @@ void setVerboseLevel() {
     // Turn verbosity up to 1.
     // Do log DEBUG, INFO, WARNING, ERROR to their log files.
     // Do log the above and verbose=1 to stderr.
-    FLAGS_minloglevel = 0; // INFO
-    FLAGS_stderrthreshold = 0; // INFO
+    FLAGS_minloglevel = google::GLOG_INFO;
+    FLAGS_stderrthreshold = google::GLOG_INFO;
     FLAGS_v = 1;
   } else {
     // Do NOT log INFO, WARNING, ERROR to stderr.
     // Do log only WARNING, ERROR to log sinks.
-    FLAGS_minloglevel = 1; // WARNING
-    FLAGS_stderrthreshold = 1; // WARNING
+    if (kToolType == ToolType::DAEMON) {
+      FLAGS_minloglevel = google::GLOG_INFO;
+      FLAGS_stderrthreshold = google::GLOG_INFO;
+    } else {
+      FLAGS_minloglevel = google::GLOG_WARNING;
+      FLAGS_stderrthreshold = google::GLOG_WARNING;
+    }
   }
 
   if (FLAGS_disable_logging) {

@@ -62,10 +62,14 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
   Status setUp() override;
 
   /// Database workflow: close and cleanup.
-  void tearDown() override { close(); }
+  void tearDown() override {
+    close();
+  }
 
   /// Need to tear down open resources,
-  virtual ~RocksDBDatabasePlugin() { close(); }
+  virtual ~RocksDBDatabasePlugin() {
+    close();
+  }
 
  private:
   /// Obtain a close lock and release resources.
@@ -175,12 +179,8 @@ Status RocksDBDatabasePlugin::setUp() {
   // Consume the current settings.
   // A configuration update may change them, but that does not affect state.
   path_ = fs::path(FLAGS_database_path).make_preferred().string();
-  in_memory_ = FLAGS_database_in_memory;
-
-  if (in_memory_) {
-    // Remove when MemEnv is included in librocksdb
-    // options_.env = rocksdb::NewMemEnv(rocksdb::Env::Default());
-    return Status(1, "Cannot start in-memory RocksDB: Requires MemEnv");
+  if (FLAGS_database_in_memory) {
+    LOG(INFO) << "RocksDB ignoring request for an in-memory database";
   }
 
   if (pathExists(path_).ok() && !isReadable(path_).ok()) {
@@ -188,7 +188,7 @@ Status RocksDBDatabasePlugin::setUp() {
   }
 
   if (!DatabasePlugin::kCheckingDB) {
-    VLOG(1) << "Opening RocksDB handle: " << path_;
+    LOG(INFO) << "Opening RocksDB handle: " << path_;
   }
 
   // Tests may trash calls to setUp, make sure subsequent calls do not leak.
@@ -204,15 +204,15 @@ Status RocksDBDatabasePlugin::setUp() {
     }
 
     if (!DatabasePlugin::kCheckingDB) {
-      VLOG(1) << "Opening RocksDB failed: Continuing with read-only support";
+      LOG(INFO) << "Opening RocksDB failed: Continuing with read-only support";
     }
 #if !defined(ROCKSDB_LITE)
     // RocksDB LITE does not support readonly mode.
     // The database was readable but could not be opened, either (1) it is not
     // writable or (2) it is already opened by another process.
     // Try to open the database in a ReadOnly mode.
-    rocksdb::DB::OpenForReadOnly(options_, path_, column_families_, &handles_,
-                                 &db_);
+    rocksdb::DB::OpenForReadOnly(
+        options_, path_, column_families_, &handles_, &db_);
 #endif
     // Also disable event publishers.
     Flag::updateValue("disable_events", "true");
@@ -239,7 +239,9 @@ void RocksDBDatabasePlugin::close() {
   }
 }
 
-rocksdb::DB* RocksDBDatabasePlugin::getDB() const { return db_; }
+rocksdb::DB* RocksDBDatabasePlugin::getDB() const {
+  return db_;
+}
 
 rocksdb::ColumnFamilyHandle* RocksDBDatabasePlugin::getHandleForColumnFamily(
     const std::string& cf) const {

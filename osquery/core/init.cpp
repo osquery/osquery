@@ -303,7 +303,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       argc_, argv_, (tool == ToolType::SHELL));
 
   if (tool == ToolType::SHELL) {
-    if (Flag::isDefault("database_path")) {
+    if (Flag::isDefault("database_path") &&
+        Flag::isDefault("disable_database")) {
       // The shell should not use a database by default, but should use the DB
       // specified by database_path if it is set
       FLAGS_disable_database = true;
