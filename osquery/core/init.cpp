@@ -401,8 +401,12 @@ void Initializer::initShell() const {
           (fs::path(homedir) / "shell.db").make_preferred().string();
     }
     if (Flag::isDefault("extensions_socket")) {
+#ifdef WIN32
+      osquery::FLAGS_extensions_socket = "\\\\.\\pipe\\shell.em";
+#else
       osquery::FLAGS_extensions_socket =
           (fs::path(homedir) / "shell.em").make_preferred().string();
+#endif
     }
   } else {
     fprintf(
@@ -519,8 +523,10 @@ void Initializer::initActivePlugin(const std::string& type,
 }
 
 void Initializer::start() const {
+#ifndef WIN32
   // Load registry/extension modules before extensions.
   osquery::loadModules();
+#endif
 
   // Pre-extension manager initialization options checking.
   // If the shell or daemon does not need extensions and it will exit quickly,

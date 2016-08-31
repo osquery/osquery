@@ -115,7 +115,9 @@ Status RegistryHelperCore::setActive(const std::string& item_name) {
   return status;
 }
 
-const std::string& RegistryHelperCore::getActive() const { return active_; }
+const std::string& RegistryHelperCore::getActive() const {
+  return active_;
+}
 
 RegistryRoutes RegistryHelperCore::getRoutes() const {
   RegistryRoutes route_table;
@@ -291,10 +293,14 @@ std::vector<std::string> RegistryHelperCore::names() const {
 }
 
 /// Facility method to count the number of items in this registry.
-size_t RegistryHelperCore::count() const { return items_.size(); }
+size_t RegistryHelperCore::count() const {
+  return items_.size();
+}
 
 /// Allow the registry to introspect into the registered name (for logging).
-void RegistryHelperCore::setName(const std::string& name) { name_ = name; }
+void RegistryHelperCore::setName(const std::string& name) {
+  name_ = name;
+}
 
 const std::map<std::string, PluginRegistryHelperRef>& RegistryFactory::all() {
   return instance().registries_;
@@ -529,7 +535,9 @@ std::vector<RouteUUID> RegistryFactory::routeUUIDs() {
   return uuids;
 }
 
-size_t RegistryFactory::count() { return instance().registries_.size(); }
+size_t RegistryFactory::count() {
+  return instance().registries_.size();
+}
 
 size_t RegistryFactory::count(const std::string& registry_name) {
   if (instance().registries_.count(registry_name) == 0) {
@@ -542,7 +550,9 @@ const std::map<RouteUUID, ModuleInfo>& RegistryFactory::getModules() {
   return instance().modules_;
 }
 
-RouteUUID RegistryFactory::getModule() { return instance().module_uuid_; }
+RouteUUID RegistryFactory::getModule() {
+  return instance().module_uuid_;
+}
 
 bool RegistryFactory::usingModule() {
   // Check if the registry is allowing a module's registrations.
@@ -576,16 +586,15 @@ void RegistryFactory::declareModule(const std::string& name,
 
 RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
     : handle_(nullptr), path_(path) {
-#ifndef WIN32
   // Tell the registry that we are attempting to construct a module.
   // Locking the registry prevents the module's global initialization from
   // adding or creating registry items.
   RegistryFactory::initModule(path_);
 
-  handle_ = dlopen(path_.c_str(), RTLD_NOW | RTLD_LOCAL);
+  handle_ = platformModuleOpen(path_);
   if (handle_ == nullptr) {
     VLOG(1) << "Failed to load module: " << path_;
-    VLOG(1) << dlerror();
+    VLOG(1) << platformModuleGetError();
     return;
   }
 
@@ -594,14 +603,12 @@ RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
   // the SDK's CREATE_MODULE macro, which adds the global-scope constructor.
   if (RegistryFactory::locked()) {
     VLOG(1) << "Failed to declare module: " << path_;
-    dlclose(handle_);
+    platformModuleClose(handle_);
     handle_ = nullptr;
   }
-#endif
 }
 
 void RegistryModuleLoader::init() {
-#ifndef WIN32
   if (handle_ == nullptr || RegistryFactory::locked()) {
     handle_ = nullptr;
     return;
@@ -610,17 +617,17 @@ void RegistryModuleLoader::init() {
   // Locate a well-known symbol in the module.
   // This symbol name is protected against rewriting when the module uses the
   // SDK's CREATE_MODULE macro.
-  auto initializer = (ModuleInitalizer)dlsym(handle_, "initModule");
+  auto initializer =
+      (ModuleInitalizer)platformModuleGetSymbol(handle_, "initModule");
   if (initializer != nullptr) {
     initializer();
     VLOG(1) << "Initialized module: " << path_;
   } else {
     VLOG(1) << "Failed to initialize module: " << path_;
-    VLOG(1) << dlerror();
-    dlclose(handle_);
+    VLOG(1) << platformModuleGetError();
+    platformModuleClose(handle_);
     handle_ = nullptr;
   }
-#endif
 }
 
 RegistryModuleLoader::~RegistryModuleLoader() {
