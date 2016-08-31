@@ -476,8 +476,8 @@ Status getQueryColumnsExternal(const std::string& manager_path,
   // Translate response map: {string: string} to a vector: pair(name, type).
   for (const auto& column : response.response) {
     for (const auto& col : column) {
-      columns.push_back(
-          std::make_tuple(col.first, columnTypeName(col.second), DEFAULT));
+      columns.push_back(std::make_tuple(
+          col.first, columnTypeName(col.second), ColumnOptions::DEFAULT));
     }
   }
 
@@ -539,7 +539,8 @@ Status getExtensions(const std::string& manager_path,
 
   // Convert from Thrift-internal list type to RouteUUID/ExtenionInfo type.
   for (const auto& ext : ext_list) {
-    extensions[ext.first] = {ext.second.name, ext.second.version,
+    extensions[ext.first] = {ext.second.name,
+                             ext.second.version,
                              ext.second.min_sdk_version,
                              ext.second.sdk_version};
   }

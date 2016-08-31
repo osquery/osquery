@@ -14,6 +14,8 @@
 
 #include <osquery/dispatcher.h>
 
+#include "osquery/sql/sqlite_util.h"
+
 namespace osquery {
 
 /// A Dispatcher service thread that watches an ExtensionManagerHandler.
@@ -39,6 +41,8 @@ class SchedulerRunner : public InternalRunnable {
   /// Maximum number of steps.
   unsigned long int timeout_;
 };
+
+SQLInternal monitor(const std::string& name, const ScheduledQuery& query);
 
 /// Start querying according to the config's schedule
 void startScheduler();

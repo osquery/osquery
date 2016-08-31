@@ -23,8 +23,8 @@ class BenchmarkTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const {
     return {
-      std::make_tuple("test_int", INTEGER_TYPE, DEFAULT),
-      std::make_tuple("test_text", TEXT_TYPE, DEFAULT),
+        std::make_tuple("test_int", INTEGER_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("test_text", TEXT_TYPE, ColumnOptions::DEFAULT),
     };
   }
 
@@ -103,8 +103,8 @@ class BenchmarkLongTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const {
     return {
-      std::make_tuple("test_int", INTEGER_TYPE, DEFAULT),
-      std::make_tuple("test_text", TEXT_TYPE, DEFAULT),
+        std::make_tuple("test_int", INTEGER_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("test_text", TEXT_TYPE, ColumnOptions::DEFAULT),
     };
   }
 
@@ -139,8 +139,8 @@ class BenchmarkWideTablePlugin : public TablePlugin {
   TableColumns columns() const override {
     TableColumns cols;
     for (int i = 0; i < 20; i++) {
-      cols.push_back(
-        std::make_tuple("test_" + std::to_string(i), INTEGER_TYPE, DEFAULT));
+      cols.push_back(std::make_tuple(
+          "test_" + std::to_string(i), INTEGER_TYPE, ColumnOptions::DEFAULT));
     }
     return cols;
   }
@@ -179,8 +179,8 @@ static void SQL_select_metadata(benchmark::State& state) {
   auto dbc = SQLiteDBManager::get();
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal("select count(*) from sqlite_temp_master;", results,
-                  dbc->db());
+    queryInternal(
+        "select count(*) from sqlite_temp_master;", results, dbc->db());
   }
 }
 

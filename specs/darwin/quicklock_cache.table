@@ -15,5 +15,5 @@ schema([
     Column("icon_mode", BIGINT, "Thumbnail icon mode"),
     Column("cache_path", TEXT, "Path to cache data"),
 ])
-attributes(cachable=True)
+attributes(cacheable=True)
 implementation("quicklook_cache@genQuicklookCache")

@@ -12,9 +12,9 @@
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
-#include <osquery/registry.h>
 
 namespace osquery {
 
@@ -115,9 +115,10 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
     auto status = this->getQueryColumns(request.at("query"), columns);
     // Convert columns to response
     for (const auto& column : columns) {
-      response.push_back({{"n", std::get<0>(column)},
-                          {"t", columnTypeName(std::get<1>(column))},
-                          {"o", INTEGER(std::get<2>(column))}});
+      response.push_back(
+          {{"n", std::get<0>(column)},
+           {"t", columnTypeName(std::get<1>(column))},
+           {"o", INTEGER(static_cast<size_t>(std::get<2>(column)))}});
     }
     return status;
   } else if (request.at("action") == "attach") {
@@ -142,8 +143,8 @@ Status getQueryColumns(const std::string& q, TableColumns& columns) {
 
   // Convert response to columns
   for (const auto& item : response) {
-    columns.push_back(
-        make_tuple(item.at("n"), columnTypeName(item.at("t")), DEFAULT));
+    columns.push_back(make_tuple(
+        item.at("n"), columnTypeName(item.at("t")), ColumnOptions::DEFAULT));
   }
   return status;
 }

@@ -40,12 +40,16 @@ class SQLiteDBManager;
  */
 class SQLiteDBInstance : private boost::noncopyable {
  public:
-  SQLiteDBInstance() { init(); }
+  SQLiteDBInstance() {
+    init();
+  }
   SQLiteDBInstance(sqlite3*& db, std::mutex& mtx);
   ~SQLiteDBInstance();
 
   /// Check if the instance is the osquery primary.
-  bool isPrimary() const { return primary_; }
+  bool isPrimary() const {
+    return primary_;
+  }
 
   /// Generate a new 'transient' connection.
   void init();
@@ -54,13 +58,19 @@ class SQLiteDBInstance : private boost::noncopyable {
    * @brief Accessor to the internal `sqlite3` object, do not store references
    * to the object within osquery code.
    */
-  sqlite3* db() const { return db_; }
+  sqlite3* db() const {
+    return db_;
+  }
 
   /// Allow a virtual table implementation to record use/access of a table.
   void addAffectedTable(VirtualTableContent* table);
 
   /// Clear per-query state of a table affected by the use of this instance.
   void clearAffectedTables();
+
+ private:
+  /// Handle the primary/forwarding requests for table attribute accesses.
+  TableAttributes getAttributes() const;
 
  private:
   /// An opaque constructor only used by the DBManager.
@@ -85,6 +95,7 @@ class SQLiteDBInstance : private boost::noncopyable {
 
  private:
   friend class SQLiteDBManager;
+  friend class SQLInternal;
 
  private:
   FRIEND_TEST(SQLiteUtilTests, test_affected_tables);
@@ -124,7 +135,9 @@ class SQLiteDBManager : private boost::noncopyable {
    *
    * @return a SQLiteDBInstance with all virtual tables attached.
    */
-  static SQLiteDBInstanceRef get() { return getConnection(); }
+  static SQLiteDBInstanceRef get() {
+    return getConnection();
+  }
 
   /// See `get` but always return a transient DB connection (for testing).
   static SQLiteDBInstanceRef getUnique();
@@ -298,15 +311,35 @@ class SQLiteSQLPlugin : SQLPlugin {
 class SQLInternal : public SQL {
  public:
   /**
-   * @brief Instantiate an instance of the class with an internal query
+   * @brief Instantiate an instance of the class with an internal query.
    *
-   * @param q An osquery SQL query
+   * @param q An osquery SQL query.
    */
   explicit SQLInternal(const std::string& q);
+
+ public:
+  /**
+   * @brief Check if the SQL query's results use event-based tables.
+   *
+   * Higher level SQL facilities, like the scheduler, may act differently when
+   * the results of a query (including a JOIN) are event-based. For example,
+   * it does not make sense to perform set difference checks for an
+   * always-append result set.
+   *
+   * All the tables used in the query will be checked. The TableAttributes of
+   * each will be ORed and if any include EVENT_BASED, this will return true.
+   */
+  bool eventBased() const {
+    return event_based_;
+  }
+
+ private:
+  /// Before completing the execution, store a check for EVENT_BASED.
+  bool event_based_{false};
 };
 
 /**
- * @brief Get a string representation of a SQLite return code
+ * @brief Get a string representation of a SQLite return code.
  */
 std::string getStringForSQLiteReturnCode(int code);
 

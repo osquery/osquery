@@ -30,8 +30,9 @@ class ExampleTable : public TablePlugin {
  private:
   TableColumns columns() const {
     return {
-        std::make_tuple("example_text", TEXT_TYPE, DEFAULT),
-        std::make_tuple("example_integer", INTEGER_TYPE, DEFAULT),
+        std::make_tuple("example_text", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple(
+            "example_integer", INTEGER_TYPE, ColumnOptions::DEFAULT),
     };
   }
 
@@ -64,8 +65,8 @@ class ComplexExampleTable : public TablePlugin {
  private:
   TableColumns columns() const {
     return {
-        std::make_tuple("flag_test", TEXT_TYPE, DEFAULT),
-        std::make_tuple("database_test", TEXT_TYPE, DEFAULT),
+        std::make_tuple("flag_test", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("database_test", TEXT_TYPE, ColumnOptions::DEFAULT),
     };
   }
 

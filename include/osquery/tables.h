@@ -13,25 +13,25 @@
 #include <deque>
 #include <map>
 #include <memory>
-#include <vector>
 #include <set>
 #include <unordered_map>
+#include <vector>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/registry.h>
 #include <osquery/core.h>
 #include <osquery/database.h>
+#include <osquery/registry.h>
 #include <osquery/status.h>
 
 /// Allow Tables to use "tracked" deprecated OS APIs.
-#define OSQUERY_USE_DEPRECATED(expr)                                      \
-  do {                                                                    \
-    _Pragma("clang diagnostic push")                                      \
-        _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"") \
-            expr;                                                         \
-    _Pragma("clang diagnostic pop")                                       \
+#define OSQUERY_USE_DEPRECATED(expr)                                           \
+  do {                                                                         \
+    _Pragma("clang diagnostic push")                                           \
+        _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")      \
+            expr;                                                              \
+    _Pragma("clang diagnostic pop")                                            \
   } while (0)
 
 namespace osquery {
@@ -151,7 +151,9 @@ struct Constraint {
   std::string expr;
 
   /// Construct a Constraint with the most-basic information, the operator.
-  explicit Constraint(unsigned char _op) { op = _op; }
+  explicit Constraint(unsigned char _op) {
+    op = _op;
+  }
 
   // A constraint list in a context knows only the operator at creation.
   explicit Constraint(unsigned char _op, const std::string& _expr)
@@ -177,7 +179,7 @@ struct Constraint {
  * users table. This options structure will allow the table implementations
  * to communicate these subtleties to the user.
  */
-enum ColumnOptions {
+enum class ColumnOptions {
   /// Default/no options.
   DEFAULT = 0,
 
@@ -219,6 +221,45 @@ enum ColumnOptions {
 /// Treat column options as a set of flags.
 inline ColumnOptions operator|(ColumnOptions a, ColumnOptions b) {
   return static_cast<ColumnOptions>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+/// Treat column options as a set of flags.
+inline size_t operator&(ColumnOptions a, ColumnOptions b) {
+  return static_cast<size_t>(a) & static_cast<size_t>(b);
+}
+
+/**
+ * @brief Attributes about a Table implementation.
+ */
+enum class TableAttributes {
+  /// Default no-op attribute.
+  NONE = 0,
+
+  /// This table is a 'utility' and is always available locally.
+  UTILITY = 1,
+
+  /// The results from this table may be cached within a schedule.
+  CACHEABLE = 2,
+
+  /// The results are backed by a set time-indexed, always growing, events.
+  EVENT_BASED = 4,
+
+  /// This table inspect items relative to each user, a JOIN may be required.
+  USER_BASED = 8,
+
+  /// This table's data requires an osquery kernel extension/module.
+  KERNEL_REQUIRED = 16,
+};
+
+/// Treat table attributes as a set of flags.
+inline TableAttributes operator|(TableAttributes a, TableAttributes b) {
+  return static_cast<TableAttributes>(static_cast<int>(a) |
+                                      static_cast<int>(b));
+}
+
+/// Treat column options as a set of flags.
+inline size_t operator&(TableAttributes a, TableAttributes b) {
+  return static_cast<size_t>(a) & static_cast<size_t>(b);
 }
 
 /// Helper alias for TablePlugin names.
@@ -350,7 +391,9 @@ struct ConstraintList : private boost::noncopyable {
   }
 
   /// Constraint list accessor, types and operator.
-  const std::vector<struct Constraint>& getAll() const { return constraints_; }
+  const std::vector<struct Constraint>& getAll() const {
+    return constraints_;
+  }
 
   /**
    * @brief Add a new Constraint to the list of constraints.
@@ -414,6 +457,10 @@ struct VirtualTableContent {
 
   /// Table column structure, retrieved once via the TablePlugin call API.
   TableColumns columns;
+
+  /// Attributes are copied into the content such that they can be quickly
+  /// passed to the SQL and optional Query for inspection.
+  TableAttributes attributes;
 
   /**
    * @brief Table column aliases structure.
@@ -553,7 +600,9 @@ struct QueryContext : private boost::noncopyable {
   }
 
   /// Retrieve an index within the query cache.
-  const Row& getCache(const std::string& index) { return table_->cache[index]; }
+  const Row& getCache(const std::string& index) {
+    return table_->cache[index];
+  }
 
   /// Helper to retrieve a keyed element within the query cache.
   const std::string& getCache(const std::string& index,
@@ -575,12 +624,6 @@ struct QueryContext : private boost::noncopyable {
 
   /// The map of column name to constraint list.
   ConstraintMap constraints;
-
-  /// Support a limit to the number of results.
-  int limit{0};
-
-  /// Is the table allowed to "traverse" directories.
-  bool traverse{false};
 
  private:
   /// If false then the context is maintaining a ephemeral cache.
@@ -616,13 +659,24 @@ class TablePlugin : public Plugin {
    *
    * @return A string vector of qtable name aliases.
    */
-  virtual std::vector<std::string> aliases() const { return {}; }
+  virtual std::vector<std::string> aliases() const {
+    return {};
+  }
 
   /// Return the table's column name and type pairs.
-  virtual TableColumns columns() const { return TableColumns(); }
+  virtual TableColumns columns() const {
+    return TableColumns();
+  }
 
   /// Define a map of target columns to optional aliases.
-  virtual ColumnAliasSet columnAliases() const { return ColumnAliasSet(); }
+  virtual ColumnAliasSet columnAliases() const {
+    return ColumnAliasSet();
+  }
+
+  /// Return a set of attribute flags.
+  virtual TableAttributes attributes() const {
+    return TableAttributes::NONE;
+  }
 
   /**
    * @brief Generate a complete table representation.
@@ -641,7 +695,9 @@ class TablePlugin : public Plugin {
    * @param request A query context filled in by SQLite's virtual table API.
    * @return The result rows for this table, given the query context.
    */
-  virtual QueryData generate(QueryContext& request) { return QueryData(); }
+  virtual QueryData generate(QueryContext& request) {
+    return QueryData();
+  }
 
  protected:
   /// An SQL table containing the table definition/syntax.
@@ -691,6 +747,7 @@ class TablePlugin : public Plugin {
  private:
   /// The last time in seconds the table data results were saved to cache.
   size_t last_cached_{0};
+
   /// The last interval in seconds when the table data was cached.
   size_t last_interval_{0};
 
@@ -703,6 +760,7 @@ class TablePlugin : public Plugin {
    * table is cachable then the interval can be used to calculate freshness.
    */
   static size_t kCacheInterval;
+
   /// The schedule step, this is the current position of the schedule.
   static size_t kCacheStep;
 
