@@ -27,12 +27,16 @@ namespace osquery {
 struct BaseCursor : private boost::noncopyable {
   /// SQLite virtual table cursor.
   sqlite3_vtab_cursor base;
+
   /// Track cursors for optional planner output.
   size_t id{0};
+
   /// Table data generated from last access.
   QueryData data;
+
   /// Current cursor position.
   size_t row{0};
+
   /// Total number of rows.
   size_t n{0};
 };

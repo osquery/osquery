@@ -297,6 +297,7 @@ bool isUserAdmin();
 // Microsoft provides FUNCTION_s with more or less the same parameters.
 // Notice that they are swapped when compared to POSIX FUNCTION_r.
 struct tm* gmtime_r(time_t* t, struct tm* result);
+
 struct tm* localtime_r(time_t* t, struct tm* result);
 #endif
 }
