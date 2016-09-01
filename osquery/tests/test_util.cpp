@@ -18,11 +18,11 @@
 #include <time.h>
 
 #include <boost/filesystem/operations.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
+#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 

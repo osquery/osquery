@@ -11,13 +11,13 @@
 #include <sstream>
 #include <vector>
 
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/config.h>
 #include <osquery/dispatcher.h>
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
+#include <osquery/json_parser.h>
 #include <osquery/registry.h>
 
 #include "osquery/core/conversions.h"

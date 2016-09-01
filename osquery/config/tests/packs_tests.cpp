@@ -8,13 +8,12 @@
  *
  */
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/json_parser.h>
 #include <osquery/packs.h>
 
 #include "osquery/tests/test_util.h"

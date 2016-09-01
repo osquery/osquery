@@ -22,10 +22,10 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
+#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>

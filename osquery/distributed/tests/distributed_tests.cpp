@@ -10,7 +10,6 @@
 
 #include <iostream>
 
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <gtest/gtest.h>
@@ -18,6 +17,7 @@
 #include <osquery/core.h>
 #include <osquery/distributed.h>
 #include <osquery/enroll.h>
+#include <osquery/json_parser.h>
 #include <osquery/sql.h>
 
 #include "osquery/tests/test_util.h"

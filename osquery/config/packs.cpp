@@ -11,9 +11,8 @@
 #include <algorithm>
 #include <random>
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <osquery/core.h>
+#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/hash.h>
 #include <osquery/packs.h>

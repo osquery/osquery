@@ -11,10 +11,9 @@
 #include <sstream>
 #include <utility>
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <osquery/core.h>
 #include <osquery/distributed.h>
+#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 

@@ -16,12 +16,12 @@
 #include <vector>
 #include <sstream>
 
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/distributed.h>
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
+#include <osquery/json_parser.h>
 #include <osquery/registry.h>
 
 #include "osquery/remote/requests.h"

@@ -13,13 +13,13 @@
 #include <random>
 
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/config.h>
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/hash.h>
+#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>

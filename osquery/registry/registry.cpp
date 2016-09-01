@@ -15,9 +15,8 @@
 #include <dlfcn.h>
 #endif
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <osquery/extensions.h>
+#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 

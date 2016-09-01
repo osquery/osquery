@@ -8,7 +8,7 @@
  *
  */
 
-#include <boost/property_tree/json_parser.hpp>
+#include <osquery/json_parser.h>
 
 #include "osquery/remote/serializers/json.h"
 

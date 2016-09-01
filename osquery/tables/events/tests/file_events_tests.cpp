@@ -10,11 +10,10 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <osquery/config.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
+#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>

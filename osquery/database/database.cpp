@@ -11,9 +11,9 @@
 #include <set>
 
 #include <boost/lexical_cast.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/database.h>
+#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 
 namespace pt = boost::property_tree;

@@ -16,12 +16,12 @@
 #include <thread>
 
 #include <boost/noncopyable.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/events.h>
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"

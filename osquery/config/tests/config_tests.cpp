@@ -11,13 +11,12 @@
 #include <memory>
 #include <vector>
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <gtest/gtest.h>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/flags.h>
+#include <osquery/json_parser.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
