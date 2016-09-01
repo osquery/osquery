@@ -386,9 +386,7 @@ Status Config::updateSource(const std::string& source,
     std::stringstream json_stream;
     json_stream << clone;
     pt::read_json(json_stream, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    UNUSED_PARAMETER(e);
-
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     return Status(1, "Error parsing the config JSON");
   }
 
@@ -453,8 +451,7 @@ Status Config::genPack(const std::string& name,
     pack_stream << response[0][name];
     pt::read_json(pack_stream, pack_tree);
     addPack(name, source, pack_tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    UNUSED_PARAMETER(e);
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     LOG(WARNING) << "Error parsing the pack JSON: " << name;
   }
   return Status(0);
@@ -468,9 +465,7 @@ void Config::applyParsers(const std::string& source,
     std::shared_ptr<ConfigParserPlugin> parser = nullptr;
     try {
       parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
-    } catch (const std::bad_cast& e) {
-      UNUSED_PARAMETER(e);
-
+    } catch (const std::bad_cast& /* e */) {
       LOG(ERROR) << "Error casting config parser plugin: " << plugin.first;
     }
     if (parser == nullptr || parser.get() == nullptr) {
@@ -584,9 +579,7 @@ void Config::purge() {
     size_t last_executed = 0;
     try {
       last_executed = boost::lexical_cast<size_t>(content);
-    } catch (const boost::bad_lexical_cast& e) {
-      UNUSED_PARAMETER(e);
-
+    } catch (const boost::bad_lexical_cast& /* e */) {
       // Erase the timestamp as is it potentially corrupt.
       deleteDatabaseValue(kPersistentSettings, "timestamp." + saved_query);
       continue;
@@ -616,9 +609,7 @@ void Config::reset() {
     std::shared_ptr<ConfigParserPlugin> parser = nullptr;
     try {
       parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
-    } catch (const std::bad_cast& e) {
-      UNUSED_PARAMETER(e);
-
+    } catch (const std::bad_cast& /* e */) {
       continue;
     }
     if (parser == nullptr || parser.get() == nullptr) {

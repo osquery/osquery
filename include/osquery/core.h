@@ -40,9 +40,6 @@
 #define EXPORT_FUNCTION
 #endif
 
-// Used to prevent warnings about unused parameters
-#define UNUSED_PARAMETER(x) (void)(x)
-
 /**
  * @brief Platform specific code isolation and define-based conditionals.
  *

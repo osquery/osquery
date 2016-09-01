@@ -183,7 +183,7 @@ class SecurityDescriptor {
 #endif
 
 /// Causes the current thread to sleep for a specified time in milliseconds.
-void sleepFor(unsigned int msec);
+void sleepFor(size_t msec);
 
 /// Set the enviroment variable name with value value.
 bool setEnvVar(const std::string& name, const std::string& value);

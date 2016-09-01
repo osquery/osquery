@@ -264,9 +264,7 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
     user_time = AS_LITERAL(BIGINT_LITERAL, r.at("user_time")) / change.iv;
     system_time = AS_LITERAL(BIGINT_LITERAL, r.at("system_time")) / change.iv;
     change.footprint = AS_LITERAL(BIGINT_LITERAL, r.at("resident_size"));
-  } catch (const std::exception& e) {
-    UNUSED_PARAMETER(e);
-
+  } catch (const std::exception& /* e */) {
     state.sustained_latency = 0;
   }
 

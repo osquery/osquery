@@ -181,9 +181,7 @@ Status checkStalePid(const std::string& content) {
   int pid;
   try {
     pid = boost::lexical_cast<int>(content);
-  } catch (const boost::bad_lexical_cast& e) {
-    UNUSED_PARAMETER(e);
-
+  } catch (const boost::bad_lexical_cast& /* e */) {
     if (FLAGS_force) {
       return Status(0, "Force loading and not parsing pidfile");
     } else {
@@ -246,9 +244,7 @@ Status createPidFile() {
   // Now the pidfile is either the wrong pid or the pid is not running.
   try {
     boost::filesystem::remove(pidfile_path);
-  } catch (const boost::filesystem::filesystem_error& e) {
-    UNUSED_PARAMETER(e);
-
+  } catch (const boost::filesystem::filesystem_error& /* e */) {
     // Unable to remove old pidfile.
     LOG(WARNING) << "Unable to remove the osqueryd pidfile";
   }

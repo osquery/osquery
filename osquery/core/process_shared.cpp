@@ -18,7 +18,7 @@
 
 namespace osquery {
 
-void sleepFor(unsigned int msec) {
+void sleepFor(size_t msec) {
   std::chrono::milliseconds mduration(msec);
   std::this_thread::sleep_for(mduration);
 }

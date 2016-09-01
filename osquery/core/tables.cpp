@@ -72,9 +72,7 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
   std::ostringstream output;
   try {
     pt::write_json(output, tree, false);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    UNUSED_PARAMETER(e);
-
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     // The content could not be represented as JSON.
   }
   request["context"] = output.str();
@@ -92,9 +90,7 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
     std::stringstream input;
     input << request.at("context");
     pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    UNUSED_PARAMETER(e);
-
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     return;
   }
 

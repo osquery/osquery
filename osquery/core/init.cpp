@@ -256,9 +256,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   // See issue #1559 for the discussion and upstream boost patch.
   try {
     boost::filesystem::path::codecvt();
-  } catch (const std::runtime_error& e) {
-    UNUSED_PARAMETER(e);
-
+  } catch (const std::runtime_error& /* e */) {
 #ifdef WIN32
     setlocale(LC_ALL, "C");
 #else
@@ -516,7 +514,7 @@ void Initializer::initActivePlugin(const std::string& type,
     }
     // The plugin is not local and is not active, wait and retry.
     delay += kExtensionInitializeLatencyUS;
-    sleepFor(static_cast<unsigned int>(kExtensionInitializeLatencyUS) / 1000);
+    sleepFor(kExtensionInitializeLatencyUS / 1000);
   } while (delay < timeout);
 
   LOG(ERROR) << "Cannot activate " << name << " " << type
