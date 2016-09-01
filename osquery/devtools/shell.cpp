@@ -1507,7 +1507,7 @@ int launchIntoShell(int argc, char** argv) {
   // Move the attach function method into the osquery SQL implementation.
   // This allow simple/straightforward control of concurrent DB access.
   osquery::attachFunctionInternal("shellstatic", shellstaticFunc);
-  stdin_is_interactive = platformIsatty(0);
+  stdin_is_interactive = platformIsatty(stdin);
 
   // SQLite: Make sure we have a valid signal handler early
   signal(SIGINT, interrupt_handler);
