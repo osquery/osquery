@@ -136,7 +136,7 @@ SQLInternal::SQLInternal(const std::string& q) {
 
   // One of the advantages of using SQLInternal (aside from the Registry-bypass)
   // is the ability to "deep-inspect" the table attributes and actions.
-  event_based_ = dbc->getAttributes() & TableAttributes::EVENT_BASED;
+  event_based_ = (dbc->getAttributes() & TableAttributes::EVENT_BASED) != 0;
 
   dbc->clearAffectedTables();
 }
