@@ -22,7 +22,7 @@ namespace osquery {
 
 SHELL_FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
 
-static std::vector<size_t> kOffset = {0, 0};
+static std::vector<char> kOffset = {0, 0};
 static std::string kToken = "|";
 
 std::string generateToken(const std::map<std::string, size_t>& lengths,
@@ -30,16 +30,16 @@ std::string generateToken(const std::map<std::string, size_t>& lengths,
   std::string out = "+";
   for (const auto& col : columns) {
     size_t size = ((lengths.count(col) > 0) ? lengths.at(col) : col.size()) + 2;
-    if (!getEnvVar("ENHANCE").is_initialized()) {
+    if (getEnvVar("ENHANCE").is_initialized()) {
       std::string e = "\xF0\x9F\x90\x8C";
-      e[2] = static_cast<char>(e[2] + kOffset[1]);
-      e[3] = static_cast<char>(e[3] + kOffset[0]);
+      e[2] += kOffset[1];
+      e[3] += kOffset[0];
       for (size_t i = 0; i < size; i++) {
-        e[3] = static_cast<char>('\x8c' + kOffset[0]++);
+        e[3] = '\x8c' + kOffset[0]++;
         if (e[3] == '\xbf') {
           e[3] = '\x80';
           kOffset[1] = (kOffset[1] > 3 && kOffset[1] < 8) ? 9 : kOffset[1];
-          e[2] = static_cast<char>('\x90' + ++kOffset[1]);
+          e[2] = '\x90' + ++kOffset[1];
           kOffset[0] = 0;
         }
         if (kOffset[1] == ('\x97' - '\x8d')) {
@@ -59,7 +59,7 @@ std::string generateToken(const std::map<std::string, size_t>& lengths,
 
 std::string generateHeader(const std::map<std::string, size_t>& lengths,
                            const std::vector<std::string>& columns) {
-  if (!getEnvVar("ENHANCE").is_initialized()) {
+  if (getEnvVar("ENHANCE").is_initialized()) {
     kToken = "\xF0\x9F\x91\x8D";
   }
   std::string out = kToken;
