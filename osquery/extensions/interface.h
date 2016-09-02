@@ -14,7 +14,7 @@
 #include <osquery/extensions.h>
 
 #ifdef WIN32
-#pragma warning( push, 3 )
+#pragma warning(push, 3)
 
 /*
  * MSVC complains that ExtensionManagerHandler inherits the call() function from
@@ -23,7 +23,7 @@
  * ExtensionIf. ExtensionIf declares a virtual call() function that
  * ExtensionHandler defines. This _shouldn't_ cause any issues.
  */
-#pragma warning( disable : 4250 )
+#pragma warning(disable : 4250)
 #endif
 
 // osquery is built with various versions of thrift that use different search
@@ -330,7 +330,9 @@ class ExtensionRunner : public ExtensionRunnerCore {
   void start();
 
   /// Access the UUID provided by the ExtensionManager.
-  RouteUUID getUUID() { return uuid_; }
+  RouteUUID getUUID() {
+    return uuid_;
+  }
 
  private:
   /// The unique and transient Extension UUID assigned by the ExtensionManager.
@@ -362,7 +364,9 @@ class EXInternal {
         transport_(new TBufferedTransport(socket_)),
         protocol_(new TBinaryProtocol(transport_)) {}
 
-  virtual ~EXInternal() { transport_->close(); }
+  virtual ~EXInternal() {
+    transport_->close();
+  }
 
  protected:
   TPlatformSocketRef socket_;
@@ -376,11 +380,12 @@ class EXClient : public EXInternal {
   explicit EXClient(const std::string& path)
       : EXInternal(path),
         client_(std::make_shared<extensions::ExtensionClient>(protocol_)) {
-
     (void)transport_->open();
   }
 
-  const std::shared_ptr<extensions::ExtensionClient>& get() { return client_; }
+  const std::shared_ptr<extensions::ExtensionClient>& get() {
+    return client_;
+  }
 
  private:
   std::shared_ptr<extensions::ExtensionClient> client_;
@@ -406,5 +411,5 @@ class EXManagerClient : public EXInternal {
 }
 
 #ifdef WIN32
-#pragma warning( pop )
+#pragma warning(pop)
 #endif
