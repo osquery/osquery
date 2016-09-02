@@ -145,7 +145,7 @@ void ExtensionManagerWatcher::start() {
       auto path = getExtensionSocket(uuid);
       auto client = EXClient(path);
       client.get()->shutdown();
-    } catch (const std::exception& e) {
+    } catch (const std::exception& /* e */) {
       VLOG(1) << "Extension UUID " << uuid << " shutdown request failed";
       continue;
     }

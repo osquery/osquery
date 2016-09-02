@@ -41,6 +41,7 @@
 #include <osquery/packs.h>
 
 #include "osquery/devtools/devtools.h"
+#include "osquery/filesystem/fileops.h"
 #include "osquery/sql/virtual_table.h"
 
 #if defined(SQLITE_ENABLE_WHERETRACE)
@@ -109,15 +110,6 @@ static char zTimerHelp[] =
 static const char* modeDescr[] = {
     "line", "column", "list", "semi", "csv", "pretty",
 };
-
-// Make sure isatty() has a prototype.
-#ifdef WIN32
-int isatty(int fd) {
-  return _isatty(fd);
-}
-#else
-extern int isatty(int);
-#endif
 
 // ctype macros that work with signed characters
 #define IsSpace(X) isspace((unsigned char)X)
@@ -220,16 +212,13 @@ static void endTimer(void) {
 #define END_TIMER endTimer()
 #define HAS_TIMER 1
 
-// Used to prevent warnings about unused parameters
-#define UNUSED_PARAMETER(x) (void)(x)
-
 // If the following flag is set, then command execution stops
 // at an error if we are not interactive.
 static int bail_on_error = 0;
 
 // Treat stdin as an interactive input if the following variable
 // is true.  Otherwise, assume stdin is connected to a file or pipe.
-static int stdin_is_interactive = 1;
+static bool stdin_is_interactive = true;
 
 // True if an interrupt (Control-C) has been received.
 static volatile int seenInterrupt = 0;
@@ -244,11 +233,11 @@ static char continuePrompt[20]; // Continuation prompt. default: "   ...> "
 // since the shell is built around the callback paradigm it would be a lot
 // of work. Instead just use this hack, which is quite harmless.
 static const char* zShellStatic = 0;
-void shellstaticFunc(sqlite3_context* context, int argc, sqlite3_value** argv) {
+void shellstaticFunc(sqlite3_context* context,
+                     int /* argc */,
+                     sqlite3_value** /* argv */) {
   assert(0 == argc);
   assert(zShellStatic);
-  UNUSED_PARAMETER(argc);
-  UNUSED_PARAMETER(argv);
   sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC);
 }
 
@@ -1066,9 +1055,12 @@ static FILE* output_file_open(const char* zFile) {
   } else if (strcmp(zFile, "off") == 0) {
     f = 0;
   } else {
-    f = fopen(zFile, "wb");
-    if (f == 0) {
+    boost::optional<FILE*> fp = osquery::platformFopen(zFile, "wb");
+    if (!fp.is_initialized()) {
       fprintf(stderr, "Error: cannot open \"%s\"\n", zFile);
+      f = 0;
+    } else {
+      f = *fp;
     }
   }
   return f;
@@ -1515,7 +1507,7 @@ int launchIntoShell(int argc, char** argv) {
   // Move the attach function method into the osquery SQL implementation.
   // This allow simple/straightforward control of concurrent DB access.
   osquery::attachFunctionInternal("shellstatic", shellstaticFunc);
-  stdin_is_interactive = isatty(0);
+  stdin_is_interactive = platformIsatty(stdin);
 
   // SQLite: Make sure we have a valid signal handler early
   signal(SIGINT, interrupt_handler);

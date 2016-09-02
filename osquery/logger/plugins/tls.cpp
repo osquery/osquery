@@ -8,7 +8,6 @@
  *
  */
 
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/enroll.h>
@@ -19,6 +18,7 @@
 #include "osquery/remote/utility.h"
 
 #include "osquery/config/parsers/decorators.h"
+#include "osquery/core/json.h"
 #include "osquery/logger/plugins/tls.h"
 
 namespace pt = boost::property_tree;

@@ -20,7 +20,7 @@ set(OSQUERY_TABLES_TESTS "")
 
 # Add all and extra for osquery code.
 if(WINDOWS)
-  add_compile_options(/W3)
+  add_compile_options(/W3 /WX)
 else()
   add_compile_options(-Wall -Wextra -Wno-unused-parameter)
 endif()

@@ -136,7 +136,7 @@ SQLInternal::SQLInternal(const std::string& q) {
 
   // One of the advantages of using SQLInternal (aside from the Registry-bypass)
   // is the ability to "deep-inspect" the table attributes and actions.
-  event_based_ = dbc->getAttributes() & TableAttributes::EVENT_BASED;
+  event_based_ = (dbc->getAttributes() & TableAttributes::EVENT_BASED) != 0;
 
   dbc->clearAffectedTables();
 }
@@ -374,7 +374,8 @@ Status getQueryColumnsInternal(const std::string& q,
                                sqlite3* db) {
   // Turn the query into a prepared statement
   sqlite3_stmt* stmt{nullptr};
-  auto rc = sqlite3_prepare_v2(db, q.c_str(), q.length() + 1, &stmt, nullptr);
+  auto rc = sqlite3_prepare_v2(
+      db, q.c_str(), static_cast<int>(q.length() + 1), &stmt, nullptr);
   if (rc != SQLITE_OK || stmt == nullptr) {
     if (stmt != nullptr) {
       sqlite3_finalize(stmt);

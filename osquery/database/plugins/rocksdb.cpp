@@ -251,7 +251,7 @@ rocksdb::ColumnFamilyHandle* RocksDBDatabasePlugin::getHandleForColumnFamily(
         return handles_[i];
       }
     }
-  } catch (const std::exception& e) {
+  } catch (const std::exception& /* e */) {
     // pass through and return nullptr
   }
   return nullptr;

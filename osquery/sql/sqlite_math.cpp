@@ -23,6 +23,8 @@
 
 #include <sqlite3.h>
 
+#include "osquery/core/utils.h"
+
 namespace osquery {
 
 using DoubleDoubleFunction = std::function<double(double)>;
@@ -67,7 +69,7 @@ static void callDoubleFunc(sqlite3_context *context,
     if (errno == 0) {
       sqlite3_result_double(context, val);
     } else {
-      sqlite3_result_error(context, strerror(errno), errno);
+      sqlite3_result_error(context, platformStrerr(errno).c_str(), errno);
     }
     break;
   }
@@ -143,7 +145,7 @@ static void powerFunc(sqlite3_context *context,
     if (errno == 0) {
       sqlite3_result_double(context, val);
     } else {
-      sqlite3_result_error(context, strerror(errno), errno);
+      sqlite3_result_error(context, platformStrerr(errno).c_str(), errno);
     }
   }
 }

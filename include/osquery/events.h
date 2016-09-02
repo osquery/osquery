@@ -37,7 +37,7 @@ using EventPublisherID = const std::string;
 using EventSubscriberID = const std::string;
 using EventID = const std::string;
 using EventContextID = uint64_t;
-using EventTime = uint32_t;
+using EventTime = uint64_t;
 using EventRecord = std::pair<EventID, EventTime>;
 
 /**

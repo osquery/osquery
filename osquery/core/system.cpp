@@ -44,6 +44,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
+#include "osquery/core/utils.h"
 
 namespace fs = boost::filesystem;
 
@@ -160,7 +161,7 @@ std::string getAsciiTime() {
   struct tm now;
   gmtime_r(&result, &now);
 
-  auto time_str = std::string(std::asctime(&now));
+  auto time_str = platformAsctime(&now);
   boost::algorithm::trim(time_str);
   return time_str + " UTC";
 }
@@ -180,7 +181,7 @@ Status checkStalePid(const std::string& content) {
   int pid;
   try {
     pid = boost::lexical_cast<int>(content);
-  } catch (const boost::bad_lexical_cast& e) {
+  } catch (const boost::bad_lexical_cast& /* e */) {
     if (FLAGS_force) {
       return Status(0, "Force loading and not parsing pidfile");
     } else {
@@ -243,7 +244,7 @@ Status createPidFile() {
   // Now the pidfile is either the wrong pid or the pid is not running.
   try {
     boost::filesystem::remove(pidfile_path);
-  } catch (const boost::filesystem::filesystem_error& e) {
+  } catch (const boost::filesystem::filesystem_error& /* e */) {
     // Unable to remove old pidfile.
     LOG(WARNING) << "Unable to remove the osqueryd pidfile";
   }

@@ -11,16 +11,15 @@
 #include <algorithm>
 #include <random>
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <osquery/core.h>
-#include <osquery/logger.h>
 #include <osquery/hash.h>
+#include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
 
@@ -46,7 +45,8 @@ size_t splayValue(size_t original, size_t splayPercent) {
   }
 
   float percent_to_modify_by = (float)splayPercent / 100;
-  size_t possible_difference = original * percent_to_modify_by;
+  size_t possible_difference =
+      static_cast<size_t>(original * percent_to_modify_by);
   size_t max_value = original + possible_difference;
   size_t min_value = std::max((size_t)1, original - possible_difference);
 
@@ -55,9 +55,9 @@ size_t splayValue(size_t original, size_t splayPercent) {
   }
 
   std::default_random_engine generator;
-  generator.seed(
-      std::chrono::high_resolution_clock::now().time_since_epoch().count());
-  std::uniform_int_distribution<uint32_t> distribution(min_value, max_value);
+  generator.seed(static_cast<unsigned int>(
+      std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+  std::uniform_int_distribution<size_t> distribution(min_value, max_value);
   return distribution(generator);
 }
 
@@ -203,21 +203,37 @@ const std::vector<std::string>& Pack::getDiscoveryQueries() const {
   return discovery_queries_;
 }
 
-const PackStats& Pack::getStats() const { return stats_; }
+const PackStats& Pack::getStats() const {
+  return stats_;
+}
 
-const std::string& Pack::getPlatform() const { return platform_; }
+const std::string& Pack::getPlatform() const {
+  return platform_;
+}
 
-const std::string& Pack::getVersion() const { return version_; }
+const std::string& Pack::getVersion() const {
+  return version_;
+}
 
-bool Pack::shouldPackExecute() { return (valid_ && checkDiscovery()); }
+bool Pack::shouldPackExecute() {
+  return (valid_ && checkDiscovery());
+}
 
-const std::string& Pack::getName() const { return name_; }
+const std::string& Pack::getName() const {
+  return name_;
+}
 
-const std::string& Pack::getSource() const { return source_; }
+const std::string& Pack::getSource() const {
+  return source_;
+}
 
-void Pack::setName(const std::string& name) { name_ = name; }
+void Pack::setName(const std::string& name) {
+  name_ = name;
+}
 
-bool Pack::checkPlatform() const { return checkPlatform(platform_); }
+bool Pack::checkPlatform() const {
+  return checkPlatform(platform_);
+}
 
 bool Pack::checkPlatform(const std::string& platform) const {
   if (platform.empty() || platform == "null") {
@@ -237,7 +253,9 @@ bool Pack::checkPlatform(const std::string& platform) const {
   return (platform.find(kSDKPlatform) != std::string::npos);
 }
 
-bool Pack::checkVersion() const { return checkVersion(version_); }
+bool Pack::checkVersion() const {
+  return checkVersion(version_);
+}
 
 bool Pack::checkVersion(const std::string& version) const {
   if (version.empty() || version == "null") {
@@ -258,7 +276,7 @@ bool Pack::checkVersion(const std::string& version) const {
       } else if (std::stoi(chunk) > std::stoi(required_version[index])) {
         return true;
       }
-    } catch (const std::invalid_argument& e) {
+    } catch (const std::invalid_argument& /* e */) {
       if (chunk.compare(required_version[index]) < 0) {
         return false;
       }

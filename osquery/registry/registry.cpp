@@ -15,13 +15,12 @@
 #include <dlfcn.h>
 #endif
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <osquery/extensions.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
 
@@ -664,7 +663,7 @@ void Plugin::setResponse(const std::string& key,
   std::ostringstream output;
   try {
     boost::property_tree::write_json(output, tree, false);
-  } catch (const pt::json_parser::json_parser_error& e) {
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     // The plugin response could not be serialized.
   }
   response.push_back({{key, output.str()}});

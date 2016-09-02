@@ -23,7 +23,12 @@
 #define STR_OF(x) #x
 #define STR(x) STR_OF(x)
 #endif
+
+#ifdef WIN32
+#define STR_EX(...) __VA_ARGS__
+#else
 #define STR_EX(x) x
+#endif
 #define CONCAT(x, y) STR(STR_EX(x)STR_EX(y))
 
 #ifndef FRIEND_TEST
@@ -153,7 +158,7 @@ extern const PlatformType kPlatformType;
 
 /// Helper method for platform type detection.
 inline bool isPlatform(PlatformType a, const PlatformType& t = kPlatformType) {
-  return static_cast<int>(t) & static_cast<int>(a);
+  return (static_cast<int>(t) & static_cast<int>(a)) != 0;
 }
 
 /// Helper alias for defining mutexes throughout the codebase.

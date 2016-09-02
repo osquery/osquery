@@ -33,6 +33,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
+#include "osquery/core/utils.h"
 #include "osquery/core/watcher.h"
 #include "osquery/devtools/devtools.h"
 #include "osquery/filesystem/fileops.h"
@@ -102,7 +103,7 @@ char *copy_string(const std::string &str) {
             "Memory allocation failed during shell autocompletion. Exiting!");
     osquery::Initializer::shutdown(EXIT_FAILURE);
   }
-  strncpy(copy, str.c_str(), str.size() + 1);
+  osquery::platformStrncpy(copy, str.size() + 1, str.c_str(), str.size() + 1);
   return copy;
 }
 

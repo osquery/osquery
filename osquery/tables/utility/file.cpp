@@ -151,7 +151,7 @@ QueryData genFile(QueryContext& context) {
       for (; begin != end; ++begin) {
         genFileInfo(begin->path(), directory_string, "", results);
       }
-    } catch (const fs::filesystem_error& e) {
+    } catch (const fs::filesystem_error& /* e */) {
       continue;
     }
   }

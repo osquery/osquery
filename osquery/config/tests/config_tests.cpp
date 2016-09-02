@@ -11,8 +11,6 @@
 #include <memory>
 #include <vector>
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <gtest/gtest.h>
 
 #include <osquery/config.h>
@@ -23,6 +21,7 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
+#include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
 
 namespace pt = boost::property_tree;

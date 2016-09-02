@@ -11,17 +11,18 @@
 #include <iostream>
 #include <sstream>
 
-#include <osquery/flags.h>
 #include <osquery/core.h>
+#include <osquery/flags.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/process.h"
 #include "osquery/devtools/devtools.h"
 
 namespace osquery {
 
 SHELL_FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
 
-static std::vector<size_t> kOffset = {0, 0};
+static std::vector<char> kOffset = {0, 0};
 static std::string kToken = "|";
 
 std::string generateToken(const std::map<std::string, size_t>& lengths,
@@ -29,7 +30,7 @@ std::string generateToken(const std::map<std::string, size_t>& lengths,
   std::string out = "+";
   for (const auto& col : columns) {
     size_t size = ((lengths.count(col) > 0) ? lengths.at(col) : col.size()) + 2;
-    if (getenv("ENHANCE") != nullptr) {
+    if (getEnvVar("ENHANCE").is_initialized()) {
       std::string e = "\xF0\x9F\x90\x8C";
       e[2] += kOffset[1];
       e[3] += kOffset[0];
@@ -58,14 +59,14 @@ std::string generateToken(const std::map<std::string, size_t>& lengths,
 
 std::string generateHeader(const std::map<std::string, size_t>& lengths,
                            const std::vector<std::string>& columns) {
-  if (getenv("ENHANCE") != nullptr) {
+  if (getEnvVar("ENHANCE").is_initialized()) {
     kToken = "\xF0\x9F\x91\x8D";
   }
   std::string out = kToken;
   for (const auto& col : columns) {
     out += " " + col;
     if (lengths.count(col) > 0) {
-      int buffer_size = lengths.at(col) - utf8StringSize(col);
+      int buffer_size = static_cast<int>(lengths.at(col) - utf8StringSize(col));
       if (buffer_size > 0) {
         out += std::string(buffer_size, ' ');
       }
@@ -90,7 +91,8 @@ std::string generateRow(const Row& r,
       size = column.size() - utf8StringSize(FLAGS_nullvalue);
       out += FLAGS_nullvalue;
     } else {
-      int buffer_size = lengths.at(column) - utf8StringSize(r.at(column));
+      int buffer_size =
+          static_cast<int>(lengths.at(column) - utf8StringSize(r.at(column)));
       if (buffer_size >= 0) {
         size = static_cast<size_t>(buffer_size);
         out += r.at(column);

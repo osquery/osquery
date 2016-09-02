@@ -10,8 +10,6 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <osquery/config.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
@@ -19,8 +17,9 @@
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 
-#include "osquery/tests/test_util.h"
+#include "osquery/core/json.h"
 #include "osquery/tables/events/event_utils.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
@@ -41,10 +40,14 @@ class FileEventsTableTests : public testing::Test {
     Registry::registry("config_parser")->setUp();
   }
 
-  void TearDown() override { FLAGS_registry_exceptions = exceptions_; }
+  void TearDown() override {
+    FLAGS_registry_exceptions = exceptions_;
+  }
 
  protected:
-  Status load() { return Config::getInstance().load(); }
+  Status load() {
+    return Config::getInstance().load();
+  }
 
  private:
   bool exceptions_{false};

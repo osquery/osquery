@@ -16,7 +16,6 @@
 #include <thread>
 
 #include <boost/noncopyable.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/events.h>
 #include <osquery/extensions.h>
@@ -25,6 +24,7 @@
 #include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
 
@@ -209,7 +209,7 @@ static void deserializeIntermediateLog(const PluginRequest& request,
     std::stringstream input;
     input << request.at("log");
     pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     return;
   }
 
@@ -379,7 +379,7 @@ Status LoggerPlugin::call(const PluginRequest& request,
     size_t features = 0;
     features |= (usesLogStatus()) ? LOGGER_FEATURE_LOGSTATUS : 0;
     features |= (usesLogEvent()) ? LOGGER_FEATURE_LOGEVENT : 0;
-    return Status(features);
+    return Status(static_cast<int>(features));
   } else {
     return Status(1, "Unsupported call to logger plugin");
   }

@@ -11,10 +11,11 @@
 #include <set>
 
 #include <boost/lexical_cast.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/database.h>
 #include <osquery/logger.h>
+
+#include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
 
@@ -248,7 +249,7 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
   tree.put<std::string>("name", item.name);
   tree.put<std::string>("hostIdentifier", item.identifier);
   tree.put<std::string>("calendarTime", item.calendar_time);
-  tree.put<int>("unixTime", item.time);
+  tree.put<size_t>("unixTime", item.time);
 
   // Append the decorations.
   if (item.decorations.size() > 0) {

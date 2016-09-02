@@ -8,12 +8,12 @@
  *
  */
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
 
@@ -73,7 +73,7 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
   std::ostringstream output;
   try {
     pt::write_json(output, tree, false);
-  } catch (const pt::json_parser::json_parser_error& e) {
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     // The content could not be represented as JSON.
   }
   request["context"] = output.str();
@@ -91,7 +91,7 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
     std::stringstream input;
     input << request.at("context");
     pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     return;
   }
 

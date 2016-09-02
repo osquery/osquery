@@ -242,7 +242,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       argv_(&argv),
       tool_(tool),
       binary_((tool == ToolType::DAEMON) ? "osqueryd" : "osqueryi") {
-  std::srand(chrono_clock::now().time_since_epoch().count());
+  std::srand(static_cast<unsigned int>(
+      chrono_clock::now().time_since_epoch().count()));
 
   // Initialize registries and plugins
   registryAndPluginInit();
@@ -256,7 +257,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   // See issue #1559 for the discussion and upstream boost patch.
   try {
     boost::filesystem::path::codecvt();
-  } catch (const std::runtime_error& e) {
+  } catch (const std::runtime_error& /* e */) {
 #ifdef WIN32
     setlocale(LC_ALL, "C");
 #else

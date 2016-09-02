@@ -135,7 +135,7 @@ bool isPrintable(const std::string& check);
 /// Safely convert a string representation of an integer base.
 inline Status safeStrtol(const std::string& rep, size_t base, long int& out) {
   char* end{nullptr};
-  out = strtol(rep.c_str(), &end, base);
+  out = strtol(rep.c_str(), &end, static_cast<int>(base));
   if (end == nullptr || end == rep.c_str() || *end != '\0' ||
       ((out == LONG_MIN || out == LONG_MAX) && errno == ERANGE)) {
     return Status(1);
@@ -146,7 +146,7 @@ inline Status safeStrtol(const std::string& rep, size_t base, long int& out) {
 /// Safely convert a string representation of an integer base.
 inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
   char* end{nullptr};
-  out = strtoll(rep.c_str(), &end, base);
+  out = strtoll(rep.c_str(), &end, static_cast<int>(base));
   if (end == nullptr || end == rep.c_str() || *end != '\0' ||
       ((out == LLONG_MIN || out == LLONG_MAX) && errno == ERANGE)) {
     return Status(1);

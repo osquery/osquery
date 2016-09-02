@@ -163,7 +163,7 @@ using RegistryRoutes = std::map<std::string, PluginResponse>;
 /// An extension or core's broadcast includes routes from every Registry.
 using RegistryBroadcast = std::map<std::string, RegistryRoutes>;
 
-using RouteUUID = uint16_t;
+using RouteUUID = uint64_t;
 using AddExternalCallback =
     std::function<Status(const std::string&, const PluginResponse&)>;
 using RemoveExternalCallback = std::function<void(const std::string&)>;

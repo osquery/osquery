@@ -16,7 +16,6 @@
 #include <vector>
 #include <sstream>
 
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/distributed.h>
@@ -24,6 +23,7 @@
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
+#include "osquery/core/json.h"
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/utility.h"

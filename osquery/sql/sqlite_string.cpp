@@ -20,8 +20,8 @@
 #include <string>
 #include <vector>
 
-#include <boost/regex.hpp>
 #include <boost/algorithm/string/regex.hpp>
+#include <boost/regex.hpp>
 
 #include "osquery/core/conversions.h"
 
@@ -31,7 +31,7 @@ namespace osquery {
 
 using SplitResult = std::vector<std::string>;
 using StringSplitFunction = std::function<SplitResult(
-    const std::string &input, const std::string &tokens)>;
+    const std::string& input, const std::string& tokens)>;
 
 /**
  * @brief A simple SQLite column string split implementation.
@@ -48,8 +48,8 @@ using StringSplitFunction = std::function<SplitResult(
  *   3. SELECT SPLIT(ip_address, ".0", 0) from addresses;
  *      192
  */
-static SplitResult tokenSplit(const std::string &input,
-                              const std::string &tokens) {
+static SplitResult tokenSplit(const std::string& input,
+                              const std::string& tokens) {
   return osquery::split(input, tokens);
 }
 
@@ -67,17 +67,17 @@ static SplitResult tokenSplit(const std::string &input,
  *   3. SELECT SPLIT(ip_address, "\.0", 0) from addresses;
  *      192.168
  */
-static SplitResult regexSplit(const std::string &input,
-                              const std::string &token) {
+static SplitResult regexSplit(const std::string& input,
+                              const std::string& token) {
   // Split using the token as a regex to support multi-character tokens.
   std::vector<std::string> result;
   boost::algorithm::split_regex(result, input, boost::regex(token));
   return result;
 }
 
-static void callStringSplitFunc(sqlite3_context *context,
+static void callStringSplitFunc(sqlite3_context* context,
                                 int argc,
-                                sqlite3_value **argv,
+                                sqlite3_value** argv,
                                 StringSplitFunction f) {
   assert(argc == 3);
   if (SQLITE_NULL == sqlite3_value_type(argv[0]) ||
@@ -88,8 +88,8 @@ static void callStringSplitFunc(sqlite3_context *context,
   }
 
   // Parse and verify the split input parameters.
-  std::string input((char *)sqlite3_value_text(argv[0]));
-  std::string token((char *)sqlite3_value_text(argv[1]));
+  std::string input((char*)sqlite3_value_text(argv[0]));
+  std::string token((char*)sqlite3_value_text(argv[1]));
   auto index = static_cast<size_t>(sqlite3_value_int(argv[2]));
   if (token.empty()) {
     // Allow the input string to be empty.
@@ -105,29 +105,31 @@ static void callStringSplitFunc(sqlite3_context *context,
   }
 
   // Yield the selected index.
-  const auto &selected = result[index];
-  sqlite3_result_text(context, selected.c_str(), selected.size(),
+  const auto& selected = result[index];
+  sqlite3_result_text(context,
+                      selected.c_str(),
+                      static_cast<int>(selected.size()),
                       SQLITE_TRANSIENT);
 }
 
-static void tokenStringSplitFunc(sqlite3_context *context,
+static void tokenStringSplitFunc(sqlite3_context* context,
                                  int argc,
-                                 sqlite3_value **argv) {
+                                 sqlite3_value** argv) {
   callStringSplitFunc(context, argc, argv, tokenSplit);
 }
 
-static void regexStringSplitFunc(sqlite3_context *context,
+static void regexStringSplitFunc(sqlite3_context* context,
                                  int argc,
-                                 sqlite3_value **argv) {
+                                 sqlite3_value** argv) {
   callStringSplitFunc(context, argc, argv, regexSplit);
 }
 
 /**
  * @brief Convert an IPv4 string address to decimal.
  */
-static void ip4StringToDecimalFunc(sqlite3_context *context,
+static void ip4StringToDecimalFunc(sqlite3_context* context,
                                    int argc,
-                                   sqlite3_value **argv) {
+                                   sqlite3_value** argv) {
   assert(argc == 1);
 
   if (SQLITE_NULL == sqlite3_value_type(argv[0])) {
@@ -136,12 +138,12 @@ static void ip4StringToDecimalFunc(sqlite3_context *context,
   }
 
   struct sockaddr sa;
-  std::string address((char *)sqlite3_value_text(argv[0]));
+  std::string address((char*)sqlite3_value_text(argv[0]));
   if (address.find(":") != std::string::npos) {
     // Assume this is an IPv6 address.
     sqlite3_result_null(context);
   } else {
-    auto in4 = (struct sockaddr_in *)&sa;
+    auto in4 = (struct sockaddr_in*)&sa;
     if (inet_pton(AF_INET, address.c_str(), &(in4->sin_addr)) == 1) {
       sqlite3_result_int64(context, ntohl(in4->sin_addr.s_addr));
     } else {
@@ -150,12 +152,30 @@ static void ip4StringToDecimalFunc(sqlite3_context *context,
   }
 }
 
-void registerStringExtensions(sqlite3 *db) {
-  sqlite3_create_function(db, "split", 3, SQLITE_UTF8, nullptr,
-                          tokenStringSplitFunc, nullptr, nullptr);
-  sqlite3_create_function(db, "regex_split", 3, SQLITE_UTF8, nullptr,
-                          regexStringSplitFunc, nullptr, nullptr);
-  sqlite3_create_function(db, "inet_aton", 1, SQLITE_UTF8, nullptr,
-                          ip4StringToDecimalFunc, nullptr, nullptr);
+void registerStringExtensions(sqlite3* db) {
+  sqlite3_create_function(db,
+                          "split",
+                          3,
+                          SQLITE_UTF8,
+                          nullptr,
+                          tokenStringSplitFunc,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "regex_split",
+                          3,
+                          SQLITE_UTF8,
+                          nullptr,
+                          regexStringSplitFunc,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "inet_aton",
+                          1,
+                          SQLITE_UTF8,
+                          nullptr,
+                          ip4StringToDecimalFunc,
+                          nullptr,
+                          nullptr);
 }
 }

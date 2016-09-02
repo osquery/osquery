@@ -8,8 +8,6 @@
  *
  */
 
-#include <boost/property_tree/json_parser.hpp>
-
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
@@ -17,6 +15,7 @@
 #include <osquery/flags.h>
 #include <osquery/packs.h>
 
+#include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {

@@ -160,7 +160,7 @@ void queryKey(const std::string& hive,
     achValue[0] = '\0';
 
     retCode = RegEnumValue(hRegistryHandle,
-                           i,
+                           static_cast<DWORD>(i),
                            achValue,
                            &cchValue,
                            nullptr,
@@ -211,7 +211,7 @@ void queryKey(const std::string& hive,
     case REG_FULL_RESOURCE_DESCRIPTOR:
     case REG_RESOURCE_LIST:
     case REG_BINARY:
-      for (int i = 0; i < cbMaxValueData; i++) {
+      for (unsigned int i = 0; i < cbMaxValueData; i++) {
         regBinary.push_back((char)bpDataBuff[i]);
       }
       boost::algorithm::hex(
