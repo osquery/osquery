@@ -24,8 +24,8 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
-#include "osquery/core/watcher.h"
 #include "osquery/core/process.h"
+#include "osquery/core/watcher.h"
 
 extern char** environ;
 

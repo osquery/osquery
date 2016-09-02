@@ -8,8 +8,8 @@
  *
  */
 
-#include <time.h>
 #include <string.h>
+#include <time.h>
 #include <vector>
 
 #include "osquery/core/utils.h"
@@ -18,7 +18,7 @@
 
 namespace osquery {
 
-std::string platformAsctime(const struct tm *timeptr) {
+std::string platformAsctime(const struct tm* timeptr) {
   std::vector<char> buffer;
   buffer.assign(MAX_BUFFER_SIZE, '\0');
 
@@ -42,7 +42,7 @@ std::string platformStrerr(int errnum) {
   return std::string(buffer.data(), buffer.size());
 }
 
-Status platformStrncpy(char *dst, size_t nelms, const char *src, size_t count) {
+Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count) {
   auto status = ::strncpy_s(dst, nelms, src, count);
   if (status != 0) {
     return Status(1, "Failed to strncpy_s: " + status);

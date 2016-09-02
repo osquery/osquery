@@ -18,8 +18,8 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/json.h"
-#include "osquery/tests/test_util.h"
 #include "osquery/tables/events/event_utils.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 

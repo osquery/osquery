@@ -12,8 +12,8 @@
 #include <random>
 
 #include <osquery/core.h>
-#include <osquery/logger.h>
 #include <osquery/hash.h>
+#include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>

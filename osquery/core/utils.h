@@ -19,11 +19,11 @@
 namespace osquery {
 
 /// Returns the ASCII version of the timeptr as a C++ string
-std::string platformAsctime(const struct tm *timeptr);
+std::string platformAsctime(const struct tm* timeptr);
 
 /// Returns a C++ string explaining the errnum
 std::string platformStrerr(int errnum);
 
 /// Copies src string into the dst string buffer with error checks
-Status platformStrncpy(char *dst, size_t nelms, const char *src, size_t count);
+Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count);
 }

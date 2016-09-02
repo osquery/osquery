@@ -11,8 +11,8 @@
 #include <iostream>
 #include <sstream>
 
-#include <osquery/flags.h>
 #include <osquery/core.h>
+#include <osquery/flags.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/process.h"

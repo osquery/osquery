@@ -13,6 +13,19 @@
 #include <osquery/dispatcher.h>
 #include <osquery/extensions.h>
 
+#ifdef WIN32
+#pragma warning( push, 3 )
+
+/*
+ * MSVC complains that ExtensionManagerHandler inherits the call() function from
+ * ExtensionHandler via dominance. This is because ExtensionManagerHandler
+ * implements ExtensionManagerIf and ExtensionHandler who both implement
+ * ExtensionIf. ExtensionIf declares a virtual call() function that
+ * ExtensionHandler defines. This _shouldn't_ cause any issues.
+ */
+#pragma warning( disable : 4250 )
+#endif
+
 // osquery is built with various versions of thrift that use different search
 // paths for their includes. Unfortunately, changing include paths is not
 // possible in every build system.
@@ -391,3 +404,7 @@ class EXManagerClient : public EXInternal {
   std::shared_ptr<extensions::ExtensionManagerClient> client_;
 };
 }
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif

@@ -15,7 +15,7 @@
 
 namespace osquery {
 
-std::string platformAsctime(const struct tm *timeptr) {
+std::string platformAsctime(const struct tm* timeptr) {
   if (timeptr == nullptr) {
     return "";
   }
@@ -27,7 +27,7 @@ std::string platformStrerr(int errnum) {
   return ::strerror(errnum);
 }
 
-Status platformStrncpy(char *dst, size_t nelms, const char *src, size_t count) {
+Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count) {
   if (dst == nullptr || src == nullptr || nelms == 0) {
     return Status(1, "Failed to strncpy: invalid arguments");
   }
