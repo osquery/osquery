@@ -16,12 +16,12 @@
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/flags.h>
-#include <osquery/json_parser.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
+#include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
 
 namespace pt = boost::property_tree;

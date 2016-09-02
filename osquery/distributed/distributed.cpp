@@ -13,9 +13,10 @@
 
 #include <osquery/core.h>
 #include <osquery/distributed.h>
-#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
+
+#include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
 

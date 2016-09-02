@@ -21,9 +21,9 @@
 #include <osquery/distributed.h>
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
-#include <osquery/json_parser.h>
 #include <osquery/registry.h>
 
+#include "osquery/core/json.h"
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/utility.h"

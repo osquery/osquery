@@ -14,13 +14,13 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
+#include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
 #include "osquery/logger/plugins/buffered.h"
 

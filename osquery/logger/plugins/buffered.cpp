@@ -17,11 +17,11 @@
 #include <osquery/database.h>
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
-#include <osquery/json_parser.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
 
 #include "osquery/config/parsers/decorators.h"
+#include "osquery/core/json.h"
 #include "osquery/logger/plugins/buffered.h"
 
 namespace pt = boost::property_tree;

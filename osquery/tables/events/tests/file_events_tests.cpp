@@ -13,11 +13,11 @@
 #include <osquery/config.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
-#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 
+#include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
 #include "osquery/tables/events/event_utils.h"
 

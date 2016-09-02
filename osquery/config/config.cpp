@@ -19,7 +19,6 @@
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/hash.h>
-#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
@@ -27,6 +26,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
 

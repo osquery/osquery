@@ -10,9 +10,10 @@
 
 #include <osquery/database.h>
 #include <osquery/flags.h>
-#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
 

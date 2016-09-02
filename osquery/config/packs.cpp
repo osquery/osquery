@@ -12,7 +12,6 @@
 #include <random>
 
 #include <osquery/core.h>
-#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/hash.h>
 #include <osquery/packs.h>
@@ -20,6 +19,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
 

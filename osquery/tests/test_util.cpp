@@ -22,10 +22,10 @@
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
-#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
+#include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;

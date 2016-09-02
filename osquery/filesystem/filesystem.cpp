@@ -25,11 +25,11 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
-#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
+#include "osquery/core/json.h"
 #include "osquery/filesystem/fileops.h"
 
 namespace pt = boost::property_tree;

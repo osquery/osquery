@@ -13,9 +13,9 @@
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
-#include <osquery/json_parser.h>
 #include <osquery/packs.h>
 
+#include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {

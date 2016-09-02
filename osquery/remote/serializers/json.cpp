@@ -8,8 +8,7 @@
  *
  */
 
-#include <osquery/json_parser.h>
-
+#include "osquery/core/json.h"
 #include "osquery/remote/serializers/json.h"
 
 namespace pt = boost::property_tree;

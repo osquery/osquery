@@ -11,14 +11,14 @@
 #pragma once
 
 #ifdef WIN32
-#pragma warning( push, 3 )
-#pragma warning( disable : 4715 )
+#pragma warning(push, 3)
+#pragma warning(disable : 4715)
 #endif
 
 #include <boost/property_tree/json_parser.hpp>
 
 #ifdef WIN32
-#pragma warning( pop )
+#pragma warning(pop)
 
 // We need to reinclude this to re-enable boost's warning suppression
 #include <boost/config/compiler/visualc.hpp>

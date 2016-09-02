@@ -16,11 +16,11 @@
 #endif
 
 #include <osquery/extensions.h>
-#include <osquery/json_parser.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
 
