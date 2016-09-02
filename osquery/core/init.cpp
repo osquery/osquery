@@ -242,7 +242,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       argv_(&argv),
       tool_(tool),
       binary_((tool == ToolType::DAEMON) ? "osqueryd" : "osqueryi") {
-  std::srand(static_cast<unsigned int>(chrono_clock::now().time_since_epoch().count()));
+  std::srand(static_cast<unsigned int>(
+      chrono_clock::now().time_since_epoch().count()));
 
   // Initialize registries and plugins
   registryAndPluginInit();

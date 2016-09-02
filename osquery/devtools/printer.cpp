@@ -91,7 +91,8 @@ std::string generateRow(const Row& r,
       size = column.size() - utf8StringSize(FLAGS_nullvalue);
       out += FLAGS_nullvalue;
     } else {
-      int buffer_size = static_cast<int>(lengths.at(column) - utf8StringSize(r.at(column)));
+      int buffer_size =
+          static_cast<int>(lengths.at(column) - utf8StringSize(r.at(column)));
       if (buffer_size >= 0) {
         size = static_cast<size_t>(buffer_size);
         out += r.at(column);

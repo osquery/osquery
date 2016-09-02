@@ -233,7 +233,9 @@ static char continuePrompt[20]; // Continuation prompt. default: "   ...> "
 // since the shell is built around the callback paradigm it would be a lot
 // of work. Instead just use this hack, which is quite harmless.
 static const char* zShellStatic = 0;
-void shellstaticFunc(sqlite3_context* context, int /* argc */, sqlite3_value** /* argv */) {
+void shellstaticFunc(sqlite3_context* context,
+                     int /* argc */,
+                     sqlite3_value** /* argv */) {
   assert(0 == argc);
   assert(zShellStatic);
   sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC);
@@ -1053,7 +1055,7 @@ static FILE* output_file_open(const char* zFile) {
   } else if (strcmp(zFile, "off") == 0) {
     f = 0;
   } else {
-    boost::optional<FILE *> fp = osquery::platformFopen(zFile, "wb");
+    boost::optional<FILE*> fp = osquery::platformFopen(zFile, "wb");
     if (!fp.is_initialized()) {
       fprintf(stderr, "Error: cannot open \"%s\"\n", zFile);
       f = 0;

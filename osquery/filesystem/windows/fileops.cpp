@@ -31,8 +31,8 @@ namespace errc = boost::system::errc;
 
 namespace osquery {
 
-#define CHMOD_READ                                                   \
-  SYNCHRONIZE | READ_CONTROL | FILE_READ_ATTRIBUTES | FILE_READ_EA | \
+#define CHMOD_READ                                                             \
+  SYNCHRONIZE | READ_CONTROL | FILE_READ_ATTRIBUTES | FILE_READ_EA |           \
       FILE_READ_DATA
 #define CHMOD_WRITE                                                            \
   FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA | FILE_WRITE_DATA | FILE_APPEND_DATA | \
@@ -543,10 +543,10 @@ Status PlatformFile::isExecutable() const {
   HANDLE process_token = INVALID_HANDLE_VALUE;
   HANDLE impersonate_token = INVALID_HANDLE_VALUE;
 
-  ret = ::OpenProcessToken(::GetCurrentProcess(),
-                           TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_DUPLICATE |
-                               STANDARD_RIGHTS_READ,
-                           &process_token);
+  ret = ::OpenProcessToken(
+      ::GetCurrentProcess(),
+      TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_DUPLICATE | STANDARD_RIGHTS_READ,
+      &process_token);
   if (!ret) {
     return Status(-1, "OpenProcessToken failed");
   }
@@ -559,9 +559,10 @@ Status PlatformFile::isExecutable() const {
     return Status(-1, "DuplicateToken failed");
   }
 
-  GENERIC_MAPPING mapping = {
-      static_cast<ACCESS_MASK>(-1), static_cast<ACCESS_MASK>(-1),
-      static_cast<ACCESS_MASK>(-1), static_cast<ACCESS_MASK>(-1)};
+  GENERIC_MAPPING mapping = {static_cast<ACCESS_MASK>(-1),
+                             static_cast<ACCESS_MASK>(-1),
+                             static_cast<ACCESS_MASK>(-1),
+                             static_cast<ACCESS_MASK>(-1)};
   PRIVILEGE_SET privileges = {0};
 
   BOOL result = FALSE;
@@ -785,7 +786,8 @@ ssize_t PlatformFile::read(void *buf, size_t nbyte) {
       }
     }
   } else {
-    if (!::ReadFile(handle_, buf, static_cast<DWORD>(nbyte), &bytes_read, nullptr)) {
+    if (!::ReadFile(
+            handle_, buf, static_cast<DWORD>(nbyte), &bytes_read, nullptr)) {
       nret = -1;
     } else {
       nret = bytes_read;
@@ -808,8 +810,11 @@ ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
 
   if (is_nonblock_) {
     AsyncEvent write_event;
-    if (!::WriteFile(
-            handle_, buf, static_cast<DWORD>(nbyte), &bytes_written, &write_event.overlapped_)) {
+    if (!::WriteFile(handle_,
+                     buf,
+                     static_cast<DWORD>(nbyte),
+                     &bytes_written,
+                     &write_event.overlapped_)) {
       last_error = ::GetLastError();
       if (last_error == ERROR_IO_PENDING) {
         if (!::GetOverlappedResultEx(
@@ -836,7 +841,8 @@ ssize_t PlatformFile::write(const void *buf, size_t nbyte) {
       nret = -1;
     }
   } else {
-    if (!::WriteFile(handle_, buf, static_cast<DWORD>(nbyte), &bytes_written, nullptr)) {
+    if (!::WriteFile(
+            handle_, buf, static_cast<DWORD>(nbyte), &bytes_written, nullptr)) {
       nret = -1;
     } else {
       nret = bytes_written;
@@ -870,7 +876,9 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
   return cursor_;
 }
 
-size_t PlatformFile::size() const { return ::GetFileSize(handle_, nullptr); }
+size_t PlatformFile::size() const {
+  return ::GetFileSize(handle_, nullptr);
+}
 
 bool platformChmod(const std::string &path, mode_t perms) {
   DWORD ret = 0;
@@ -1159,9 +1167,12 @@ Status platformIsFileAccessible(const fs::path &path) {
   return Status(1, "Not accessible file");
 }
 
-bool platformIsatty(FILE *f) { return 0 != _isatty(_fileno(f)); }
+bool platformIsatty(FILE *f) {
+  return 0 != _isatty(_fileno(f));
+}
 
-boost::optional<FILE *> platformFopen(const std::string& filename, const std::string& mode) {
+boost::optional<FILE *> platformFopen(const std::string &filename,
+                                      const std::string &mode) {
   FILE *fp = nullptr;
 
   auto status = ::fopen_s(&fp, filename.c_str(), mode.c_str());

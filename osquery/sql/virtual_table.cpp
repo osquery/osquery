@@ -265,7 +265,8 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
     VLOG(1) << "Error " << column_name << " is empty";
     sqlite3_result_null(ctx);
   } else if (type == TEXT_TYPE) {
-    sqlite3_result_text(ctx, value.c_str(), static_cast<int>(value.size()), SQLITE_STATIC);
+    sqlite3_result_text(
+        ctx, value.c_str(), static_cast<int>(value.size()), SQLITE_STATIC);
   } else if (type == INTEGER_TYPE) {
     long afinite;
     if (!safeStrtol(value, 10, afinite) || afinite < INT_MIN ||

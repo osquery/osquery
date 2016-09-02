@@ -164,13 +164,19 @@ class PlatformFile {
    * and hasPendingIo() is true, this indicates that the read()/write()
    * operation didn't complete on time.
    */
-  bool hasPendingIo() const { return has_pending_io_; }
+  bool hasPendingIo() const {
+    return has_pending_io_;
+  }
 
   /// Checks to see if the handle backing the PlatformFile object is valid.
-  bool isValid() const { return (handle_ != kInvalidHandle); }
+  bool isValid() const {
+    return (handle_ != kInvalidHandle);
+  }
 
   /// Returns the platform specific handle.
-  PlatformHandle nativeHandle() const { return handle_; }
+  PlatformHandle nativeHandle() const {
+    return handle_;
+  }
 
   /**
    * @brief Returns success if owner of the file is root.
@@ -290,5 +296,6 @@ Status platformIsFileAccessible(const fs::path& path);
 bool platformIsatty(FILE* f);
 
 /// Opens a file and returns boost::none on error
-boost::optional<FILE *> platformFopen(const std::string& filename, const std::string& mode);
+boost::optional<FILE*> platformFopen(const std::string& filename,
+                                     const std::string& mode);
 }

@@ -14,7 +14,7 @@
 
 #include "osquery/core/utils.h"
 
-#define MAX_BUFFER_SIZE  256
+#define MAX_BUFFER_SIZE 256
 
 namespace osquery {
 

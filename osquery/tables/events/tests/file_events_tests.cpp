@@ -40,10 +40,14 @@ class FileEventsTableTests : public testing::Test {
     Registry::registry("config_parser")->setUp();
   }
 
-  void TearDown() override { FLAGS_registry_exceptions = exceptions_; }
+  void TearDown() override {
+    FLAGS_registry_exceptions = exceptions_;
+  }
 
  protected:
-  Status load() { return Config::getInstance().load(); }
+  Status load() {
+    return Config::getInstance().load();
+  }
 
  private:
   bool exceptions_{false};

@@ -106,8 +106,10 @@ static void callStringSplitFunc(sqlite3_context *context,
 
   // Yield the selected index.
   const auto &selected = result[index];
-  sqlite3_result_text(context, selected.c_str(),
-                      static_cast<int>(selected.size()), SQLITE_TRANSIENT);
+  sqlite3_result_text(context,
+                      selected.c_str(),
+                      static_cast<int>(selected.size()),
+                      SQLITE_TRANSIENT);
 }
 
 static void tokenStringSplitFunc(sqlite3_context *context,
@@ -151,11 +153,29 @@ static void ip4StringToDecimalFunc(sqlite3_context *context,
 }
 
 void registerStringExtensions(sqlite3 *db) {
-  sqlite3_create_function(db, "split", 3, SQLITE_UTF8, nullptr,
-                          tokenStringSplitFunc, nullptr, nullptr);
-  sqlite3_create_function(db, "regex_split", 3, SQLITE_UTF8, nullptr,
-                          regexStringSplitFunc, nullptr, nullptr);
-  sqlite3_create_function(db, "inet_aton", 1, SQLITE_UTF8, nullptr,
-                          ip4StringToDecimalFunc, nullptr, nullptr);
+  sqlite3_create_function(db,
+                          "split",
+                          3,
+                          SQLITE_UTF8,
+                          nullptr,
+                          tokenStringSplitFunc,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "regex_split",
+                          3,
+                          SQLITE_UTF8,
+                          nullptr,
+                          regexStringSplitFunc,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "inet_aton",
+                          1,
+                          SQLITE_UTF8,
+                          nullptr,
+                          ip4StringToDecimalFunc,
+                          nullptr,
+                          nullptr);
 }
 }

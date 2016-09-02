@@ -374,7 +374,8 @@ Status getQueryColumnsInternal(const std::string& q,
                                sqlite3* db) {
   // Turn the query into a prepared statement
   sqlite3_stmt* stmt{nullptr};
-  auto rc = sqlite3_prepare_v2(db, q.c_str(), static_cast<int>(q.length() + 1), &stmt, nullptr);
+  auto rc = sqlite3_prepare_v2(
+      db, q.c_str(), static_cast<int>(q.length() + 1), &stmt, nullptr);
   if (rc != SQLITE_OK || stmt == nullptr) {
     if (stmt != nullptr) {
       sqlite3_finalize(stmt);

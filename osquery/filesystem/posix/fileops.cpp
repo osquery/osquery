@@ -93,7 +93,9 @@ PlatformFile::~PlatformFile() {
   }
 }
 
-bool PlatformFile::isSpecialFile() const { return (size() == 0); }
+bool PlatformFile::isSpecialFile() const {
+  return (size() == 0);
+}
 
 static uid_t getFileOwner(PlatformHandle handle) {
   struct stat file;
@@ -311,9 +313,12 @@ Status platformIsFileAccessible(const fs::path& path) {
   return Status(0, "OK");
 }
 
-bool platformIsatty(FILE* f) { return 0 != isatty(fileno(f)); }
+bool platformIsatty(FILE* f) {
+  return 0 != isatty(fileno(f));
+}
 
-boost::optional<FILE *> platformFopen(const std::string& filename, const std::string& mode) {
+boost::optional<FILE*> platformFopen(const std::string& filename,
+                                     const std::string& mode) {
   auto fp = ::fopen(filename.c_str(), mode.c_str());
   if (fp == nullptr) {
     return boost::none;
