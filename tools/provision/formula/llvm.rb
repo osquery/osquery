@@ -25,44 +25,34 @@ class Llvm < AbstractOsqueryFormula
   revision 1
 
   stable do
-    url "http://llvm.org/releases/3.6.2/llvm-3.6.2.src.tar.xz"
-    sha256 "f60dc158bfda6822de167e87275848969f0558b3134892ff54fced87e4667b94"
+    url "http://llvm.org/releases/3.8.1/llvm-3.8.1.src.tar.xz"
+    sha256 "6e82ce4adb54ff3afc18053d6981b6aed1406751b8742582ed50f04b5ab475f9"
 
     resource "clang" do
-      url "http://llvm.org/releases/3.6.2/cfe-3.6.2.src.tar.xz"
-      sha256 "ae9180466a23acb426d12444d866b266ff2289b266064d362462e44f8d4699f3"
+      url "http://llvm.org/releases/3.8.1/cfe-3.8.1.src.tar.xz"
+      sha256 "4cd3836dfb4b88b597e075341cae86d61c63ce3963e45c7fe6a8bf59bb382cdf"
     end
 
     resource "clang-extra-tools" do
-      url "http://llvm.org/releases/3.6.2/clang-tools-extra-3.6.2.src.tar.xz"
-      sha256 "6a0ec627d398f501ddf347060f7a2ccea4802b2494f1d4fd7bda3e0442d04feb"
+      url "http://llvm.org/releases/3.8.1/clang-tools-extra-3.8.1.src.tar.xz"
+      sha256 "664a5c60220de9c290bf2a5b03d902ab731a4f95fe73a00856175ead494ec396"
     end
 
     resource "compiler-rt" do
-      url "http://llvm.org/releases/3.6.2/compiler-rt-3.6.2.src.tar.xz"
-      sha256 "0f2ff37d80a64575fecd8cf0d5c50f7ac1f837ddf700d1855412bb7547431d87"
+      url "http://llvm.org/releases/3.8.1/compiler-rt-3.8.1.src.tar.xz"
+      sha256 "0df011dae14d8700499dfc961602ee0a9572fef926202ade5dcdfe7858411e5c"
     end
 
-    resource "libcxx" do
-      url "http://llvm.org/releases/3.6.2/libcxx-3.6.2.src.tar.xz"
-      sha256 "52f3d452f48209c9df1792158fdbd7f3e98ed9bca8ebb51fcd524f67437c8b81"
-    end
-
-    resource "lld" do
-      url "http://llvm.org/releases/3.6.2/lld-3.6.2.src.tar.xz"
-      sha256 "43f553c115563600577764262f1f2fac3740f0c639750f81e125963c90030b33"
-    end
-
-    resource "lldb" do
-      url "http://llvm.org/releases/3.6.2/lldb-3.6.2.src.tar.xz"
-      sha256 "940dc96b64919b7dbf32c37e0e1d1fc88cc18e1d4b3acf1e7dfe5a46eb6523a9"
+    resource "polly" do
+      url "http://llvm.org/releases/3.8.1/polly-3.8.1.src.tar.xz"
+      sha256 "453c27e1581614bb3b6351bf5a2da2939563ea9d1de99c420f85ca8d87b928a2"
     end
   end
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "eea130400dafe6a31e09c9f6993e9efc775cfcb7d77b44ea94749d731edbe732" => :x86_64_linux
+    sha256 "349e1f8f4831665c87245cdc727c34b23f7bbd6b6fccbd7c39a3c3a89b002767" => :x86_64_linux
   end
 
   head do
@@ -80,27 +70,6 @@ class Llvm < AbstractOsqueryFormula
       url "http://llvm.org/git/compiler-rt.git"
     end
 
-    resource "libcxx" do
-      url "http://llvm.org/git/libcxx.git"
-    end
-
-    resource "libcxxabi" do
-      url "http://llvm.org/git/libcxxabi.git"
-    end
-
-    resource "lld" do
-      url "http://llvm.org/git/lld.git"
-    end
-
-    resource "lldb" do
-      url "http://llvm.org/git/lldb.git"
-    end
-
-    # Polly is --HEAD-only because it requires isl and the version of Polly
-    # shipped with 3.6.2 only compiles with isl 0.14 and earlier (current
-    # version is 0.15). isl is distributed with the Polly source code from LLVM
-    # 3.7 and up, so --HEAD builds do not need to depend on homebrew isl.
-    option "with-polly", "Build with the experimental Polly optimizer"
     resource "polly" do
       url "http://llvm.org/git/polly.git"
     end
@@ -114,11 +83,7 @@ class Llvm < AbstractOsqueryFormula
   option "without-compiler-rt", "Build Clang runtime support libraries for code sanitizers, builtins, and profiling"
   option "without-rtti", "Build with C++ RTTI"
   option "without-utils", "Install utility binaries"
-
-  option "with-lldb", "Build LLDB debugger"
-  option "with-python", "Build Python bindings against Homebrew Python"
-  option "with-libcxx", "Build the libc++ standard library"
-  option "with-lld", "Build LLD linker"
+  option "without-polly", "Do not build Polly optimizer"
 
   deprecated_option "rtti" => "with-rtti"
 
@@ -131,42 +96,10 @@ class Llvm < AbstractOsqueryFormula
     ENV.libcxx if ENV.compiler == :clang
 
     (buildpath/"tools/clang").install resource("clang") if build.with? "clang"
-
-    if build.with? "clang-extra-tools"
-      odie "--with-extra-tools requires --with-clang" if build.without? "clang"
-      (buildpath/"tools/clang/tools/extra").install resource("clang-extra-tools")
-    end
-
-    if build.with? "libcxx"
-      (buildpath/"projects/libcxx").install resource("libcxx")
-    end
-
-    (buildpath/"tools/lld").install resource("lld") if build.with? "lld"
-
-    if build.with? "lldb"
-      odie "--with-lldb requires --with-clang" if build.without? "clang"
-      (buildpath/"tools/lldb").install resource("lldb")
-
-      # Building lldb requires a code signing certificate.
-      # The instructions provided by llvm creates this certificate in the
-      # user's login keychain. Unfortunately, the login keychain is not in
-      # the search path in a superenv build. The following three lines add
-      # the login keychain to ~/Library/Preferences/com.apple.security.plist,
-      # which adds it to the superenv keychain search path.
-      if OS.mac?
-        mkdir_p "#{ENV["HOME"]}/Library/Preferences"
-        username = ENV["USER"]
-        system "security", "list-keychains", "-d", "user", "-s", "/Users/#{username}/Library/Keychains/login.keychain"
-      end
-    end
-
-    if build.with? "polly"
-      odie "--with-polly requires --with-clang" if build.without? "clang"
-      (buildpath/"tools/polly").install resource("polly")
-    end
+    (buildpath/"tools/clang/tools/extra").install resource("clang-extra-tools")
+    (buildpath/"tools/polly").install resource("polly") if build.with? "polly"
 
     if build.with? "compiler-rt"
-      odie "--with-compiler-rt requires --with-clang" if build.without? "clang"
       (buildpath/"projects/compiler-rt").install resource("compiler-rt")
 
       # compiler-rt has some iOS simulator features that require i386 symbols
@@ -182,7 +115,12 @@ class Llvm < AbstractOsqueryFormula
       -DLLVM_BUILD_LLVM_DYLIB=On
     ]
 
-    args << "-DLLVM_ENABLE_RTTI=On" if build.with? "rtti"
+    if build.with? "rtti"
+      args << "-DLLVM_ENABLE_RTTI=ON"
+      args << "-DLLVM_ENABLE_EH=ON"
+    end
+
+    args << "-DLLVM_BUILD_EXTERNAL_COMPILER_RT=ON" if build.with? "compiler-rt"
     args << "-DLLVM_INSTALL_UTILS=On" if build.with? "utils"
     args << "-DGCC_INSTALL_PREFIX=#{Formula["gcc"].prefix}"
 
@@ -191,9 +129,10 @@ class Llvm < AbstractOsqueryFormula
       args << "-DCMAKE_OSX_ARCHITECTURES=#{Hardware::CPU.universal_archs.as_cmake_arch_flags}"
     end
 
-    args << "-DLINK_POLLY_INTO_TOOLS:Bool=ON" if build.with? "polly"
-    # Fix for LineEditor.cpp:17:22: fatal error: histedit.h: No such file or directory
-    args << "-DCMAKE_CXX_FLAGS=#{ENV["CPPFLAGS"]} #{ENV["CXXFLAGS"]}" unless OS.mac?
+    if build.with? "polly"
+      args << "-DWITH_POLLY=ON"
+      args << "-DLINK_POLLY_INTO_TOOLS=ON"
+    end
 
     mktemp do
       system "cmake", "-G", "Unix Makefiles", buildpath, *(std_cmake_args + args)
@@ -201,22 +140,14 @@ class Llvm < AbstractOsqueryFormula
       system "make", "install"
     end
 
-    if build.with? "clang"
-      (share/"clang/tools").install Dir["tools/clang/tools/scan-{build,view}"]
-      if build.head?
-        inreplace "#{share}/clang/tools/scan-build/bin/scan-build", "$RealBin/bin/clang", "#{bin}/clang"
-        bin.install_symlink share/"clang/tools/scan-build/bin/scan-build", share/"clang/tools/scan-view/bin/scan-view"
-        man1.install_symlink share/"clang/tools/scan-build/man/scan-build.1"
-      else
-        inreplace "#{share}/clang/tools/scan-build/scan-build", "$RealBin/bin/clang", "#{bin}/clang"
-        bin.install_symlink share/"clang/tools/scan-build/scan-build", share/"clang/tools/scan-view/scan-view"
-        man1.install_symlink share/"clang/tools/scan-build/scan-build.1"
-      end
-    end
+    (share/"clang/tools").install Dir["tools/clang/tools/scan-{build,view}"]
+    inreplace "#{share}/clang/tools/scan-build/bin/scan-build", "$RealBin/bin/clang", "#{bin}/clang"
+    bin.install_symlink share/"clang/tools/scan-build/bin/scan-build", share/"clang/tools/scan-view/bin/scan-view"
+    man1.install_symlink share/"clang/tools/scan-build/man/scan-build.1"
 
     # install llvm python bindings
     (lib/"python2.7/site-packages").install buildpath/"bindings/python/llvm"
-    (lib/"python2.7/site-packages").install buildpath/"tools/clang/bindings/python/clang" if build.with? "clang"
+    (lib/"python2.7/site-packages").install buildpath/"tools/clang/bindings/python/clang"
   end
 
   def caveats
