@@ -73,4 +73,9 @@ void cleanupDefunctProcesses() {
 void setToBackgroundPriority() {
   setpriority(PRIO_PGRP, 0, 10);
 }
+
+// Helper function to determine if thread is running with admin privilege.
+bool isUserAdmin() {
+  return getuid() == 0;
+}
 }

@@ -14,10 +14,11 @@
 #include <boost/optional.hpp>
 
 #include "osquery/core/process.h"
+#include "osquery/system.h"
 
 namespace osquery {
 
-bool isLauncherProcessDead(PlatformProcess &launcher) {
+bool isLauncherProcessDead(PlatformProcess& launcher) {
   DWORD code = 0;
   if (!::GetExitCodeProcess(launcher.nativeHandle(), &code)) {
     // TODO(#1991): If an error occurs with GetExitCodeProcess, do we want to
@@ -28,15 +29,15 @@ bool isLauncherProcessDead(PlatformProcess &launcher) {
   return (code != STILL_ACTIVE);
 }
 
-bool setEnvVar(const std::string &name, const std::string &value) {
+bool setEnvVar(const std::string& name, const std::string& value) {
   return (::SetEnvironmentVariableA(name.c_str(), value.c_str()) == TRUE);
 }
 
-bool unsetEnvVar(const std::string &name) {
+bool unsetEnvVar(const std::string& name) {
   return (::SetEnvironmentVariableA(name.c_str(), NULL) == TRUE);
 }
 
-boost::optional<std::string> getEnvVar(const std::string &name) {
+boost::optional<std::string> getEnvVar(const std::string& name) {
   const int kInitialBufferSize = 1024;
   std::vector<char> buf;
   buf.assign(kInitialBufferSize, '\0');
@@ -86,4 +87,24 @@ bool platformModuleClose(ModuleHandle module) {
 void cleanupDefunctProcesses() {}
 
 void setToBackgroundPriority() {}
+
+// Helper function to determine if thread is running with admin privilege.
+bool isUserAdmin() {
+  HANDLE hToken = nullptr;
+  if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
+    return false;
+  }
+  TOKEN_ELEVATION Elevation;
+  DWORD cbSize = sizeof(TOKEN_ELEVATION);
+  if (GetTokenInformation(
+          hToken, TokenElevation, &Elevation, sizeof(Elevation), &cbSize) ==
+      0) {
+    CloseHandle(hToken);
+    return false;
+  }
+  if (hToken != nullptr) {
+    CloseHandle(hToken);
+  }
+  return Elevation.TokenIsElevated ? true : false;
+}
 }

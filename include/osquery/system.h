@@ -183,7 +183,9 @@ class DropPrivileges : private boost::noncopyable {
   bool dropTo(uid_t uid, gid_t gid);
 
   /// Check if effective privileges do not match real.
-  bool dropped() { return (getuid() != geteuid() || getgid() != getegid()); }
+  bool dropped() {
+    return (getuid() != geteuid() || getgid() != getegid());
+  }
 
   /**
    * @brief The privilege/permissions dropper deconstructor will restore
@@ -283,6 +285,13 @@ std::string getAsciiTime();
  * @return A status object indicating the success or failure of the operation
  */
 Status createPidFile();
+
+/**
+* @brief Getter for determining Admin status
+*
+* @return A bool indicating if the current process is running as admin
+*/
+bool isUserAdmin();
 
 #ifdef WIN32
 // Microsoft provides FUNCTION_s with more or less the same parameters.
