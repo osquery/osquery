@@ -10,8 +10,10 @@
 
 #include <atomic>
 
+#include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/sql/virtual_table.h"
 
@@ -79,6 +81,10 @@ static inline std::string opString(unsigned char op) {
     return "UNIQUE";
   }
   return "?";
+}
+
+inline std::string table_doc(const std::string& name) {
+  return "https://osquery.io/docs/#" + name;
 }
 
 static void plan(const std::string& output) {
@@ -415,11 +421,30 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   pCur->n = 0;
   QueryContext context(content);
 
+  // Track required columns, this is different than the requirements check
+  // that occurs within BestIndex because this scan includes a cursor.
+  // For each cursor used, if a requirement exists, we need to scan the
+  // selected set of constraints for a match.
+  bool required_satisfied = true;
+
+  // The specialized table attribute USER_BASED imposes a special requirement
+  // for UID. This may be represented in the requirements, but otherwise
+  // would benefit from specific notification to the caller.
+  bool user_based_satisfied = !(
+      (content->attributes & TableAttributes::USER_BASED) > 0 && isUserAdmin());
+
+  std::map<std::string, ColumnOptions> options;
   for (size_t i = 0; i < content->columns.size(); ++i) {
     // Set the column affinity for each optional constraint list.
     // There is a separate list for each column name.
-    context.constraints[std::get<0>(content->columns[i])].affinity =
+    auto column_name = std::get<0>(content->columns[i]);
+    context.constraints[column_name].affinity =
         std::get<1>(content->columns[i]);
+    // Save the column options for comparison within constraints enumeration.
+    options[column_name] = std::get<2>(content->columns[i]);
+    if (options[column_name] & ColumnOptions::REQUIRED) {
+      required_satisfied = false;
+    }
   }
 
 // Filtering between cursors happens iteratively, not consecutively.
@@ -448,14 +473,43 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
              " " + constraint.second.expr);
         // Add the constraint to the column-sorted query request map.
         context.constraints[constraint.first].add(constraint.second);
+
+        if (options[constraint.first] & ColumnOptions::REQUIRED) {
+          // A required option exists in the constraints.
+          required_satisfied = true;
+        }
+
+        if (!user_based_satisfied && constraint.first == "uid") {
+          // UID was required and exists in the constraints.
+          user_based_satisfied = true;
+        }
       }
     } else if (constraints.size() > 0) {
       // Constraints failed.
     }
   }
 
+  if (!user_based_satisfied) {
+    LOG(WARNING) << "The " << pVtab->content->name
+                 << " table returns data based on the current user by default, "
+                    "consider JOINing against the users table";
+  } else if (!required_satisfied) {
+    LOG(WARNING)
+        << "Table " << pVtab->content->name
+        << " was queried without a required column in the WHERE clause";
+  }
+
+  // Provide a helpful reference to table documentation within the shell.
+  if (kToolType == ToolType::SHELL &&
+      (!user_based_satisfied || !required_satisfied)) {
+    LOG(WARNING) << "Please see the table documentation: "
+                 << table_doc(pVtab->content->name);
+  }
+
   // Reset the virtual table contents.
   pCur->data.clear();
+  options.clear();
+
   // Generate the row data set.
   plan("Scanning rows for cursor (" + std::to_string(pCur->id) + ")");
   Registry::callTable(pVtab->content->name, context, pCur->data);

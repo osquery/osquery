@@ -247,10 +247,6 @@ void setVerboseLevel() {
     // Do log ERROR to stderr.
     // Do NOT log INFO, WARNING, ERROR to their log files.
     FLAGS_logtostderr = true;
-    if (!FLAGS_verbose) {
-      // verbose flag will still emit logs to stderr.
-      FLAGS_minloglevel = 2; // ERROR
-    }
   }
 }
 
