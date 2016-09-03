@@ -32,7 +32,7 @@ std::string compressString(const std::string& data) {
   }
 
   zs.next_in = (Bytef*)data.data();
-  zs.avail_in = data.size();
+  zs.avail_in = static_cast<uInt>(data.size());
 
   int ret = Z_OK;
   std::string output;

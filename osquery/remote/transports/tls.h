@@ -17,7 +17,15 @@
 // This is placed here because of ordering issues. ASIO requires WinSock.h
 // not to be already included.
 // clang-format off
-#ifndef WIN32
+#ifdef WIN32
+#pragma warning(push, 3)
+
+/// Suppressing warning C4005: 'ASIO_ERROR_CATEGORY_NOEXCEPT': macro redefinition
+#pragma warning(disable: 4005)
+
+// Suppressing warning C4244: 'argument': conversion from '__int64' to 'long', possible loss of data
+#pragma warning(disable: 4244)
+#else
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #pragma clang diagnostic ignored "-Wunused-local-typedef"
@@ -26,7 +34,12 @@
 
 #include <boost/network/protocol/http/client.hpp>
 
-#ifndef WIN32
+#ifdef WIN32
+#pragma warning(pop)
+
+// We need to reinclude this to re-enable boost's warning suppression
+#include <boost/config/compiler/visualc.hpp>
+#else
 #pragma clang diagnostic pop
 #endif
 // clang-format on
