@@ -55,7 +55,7 @@ function usage() {
   fatal "Usage: $0 -t deb|rpm -i REVISION -d DEPENDENCY_LIST
 
   This will generate an Linux package with:
-  (1) An example config /var/osquery/osquery.example.config
+  (1) An example config /usr/share/osquery/osquery.example.conf
   (2) An init.d script /etc/init.d/osqueryd
   (3) The osquery toolset /usr/bin/osquery*"
 }
