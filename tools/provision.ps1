@@ -6,7 +6,7 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 # URL of where our pre-compiled third-party dependenices are archived
-$THIRD_PARTY_ARCHIVE_URL = 'https://s3.amazonaws.com/osquery-pkgs/chocolatey/static'
+$THIRD_PARTY_ARCHIVE_URL = 'https://osquery-packages.s3.amazonaws.com/choco'
 
 # Adapted from http://www.jonathanmedd.net/2014/01/testing-for-admin-privileges-in-powershell.html
 function Test-IsAdmin {
@@ -134,7 +134,8 @@ function Install-ThirdPartyPackages {
     "snappy-msvc.1.1.1.8",
     "thrift-dev.0.9.3",
     "cpp-netlib.0.12.0",
-    "linenoise-ng.1.0.0"
+    "linenoise-ng.1.0.0",
+    "clang-format.3.9.0"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'
   Remove-Item $tmpDir -Recurse -ErrorAction Ignore
@@ -160,7 +161,7 @@ function Install-ThirdPartyPackages {
         Write-Host "[-] ERROR: Downloading $package failed. Check connection?" -foregroundcolor Red
         Exit -1
       }
-      choco install -y -r $packageName -source "$tmpDir;http://chocolatey.org/api/v2"
+      choco install -y -r $packageName -source "$tmpDir;https://chocolatey.org/api/v2"
       if ($LastExitCode -ne 0) {
         Write-Host "[-] ERROR: Install of $package failed." -foregroundcolor Red
         Exit -1
@@ -198,11 +199,11 @@ function Main {
   Install-ChocoPackage 'cmake.portable' '3.6.1'
   Install-ChocoPackage 'python2' '2.7.11'
   Install-PipPackages
-  Install-ThirdPartyPackages
   Update-GitSubmodule
   $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
   $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
   Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
+  Install-ThirdPartyPackages
   Write-Host "[+] Done." -foregroundcolor Yellow
 }
 
