@@ -3,44 +3,28 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Cmake < AbstractOsqueryFormula
   desc "Cross-platform make"
   homepage "https://www.cmake.org/"
+  url "https://cmake.org/files/v3.6/cmake-3.6.1.tar.gz"
+  sha256 "28ee98ec40427d41a45673847db7a905b59ce9243bb866eaf59dce0f58aaef11"
 
   head "https://cmake.org/cmake.git"
-
-  stable do
-    url "https://cmake.org/files/v3.6/cmake-3.6.0.tar.gz"
-    sha256 "fd05ed40cc40ef9ef99fac7b0ece2e0b871858a82feade48546f5d2940147670"
-
-    # This patch fixes an incompatibility with hdf5
-    # See https://gitlab.kitware.com/cmake/cmake/issues/16190
-    patch do
-      url "https://gitlab.kitware.com/cmake/cmake/merge_requests/34.patch"
-      sha256 "6d47140ebb65c045d9eee2c363aa22e53973a54b9bcdc11ef7b622c97419999f"
-    end
-  end
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "1aed0253cf2b7905f273075d0f5647082ee3b5395c2b9b00110b0e4687786550" => :el_capitan
-    sha256 "368ea3073878ff3b801a73cac8f233c98ba842557a88a3109fb6dca31b461dcd" => :x86_64_linux
+    sha256 "c2dd35936fd86bf1a17173e874dc8a1eb0bcc3a540b445473c7eaea0d62e7fac" => :el_capitan
+    sha256 "d69f263f4c793cf077b7892eaeb795adb40435a923b570883ad50b4eba4a4eef" => :x86_64_linux
   end
 
   option "without-docs", "Don't build man pages"
   option "with-completion", "Install Bash completion (Has potential problems with system bash)"
 
   depends_on "sphinx-doc" => :build if build.with? "docs"
-  depends_on "bzip2" unless OS.mac?
-  depends_on "curl" unless OS.mac?
-  depends_on "libidn" unless OS.mac?
 
   # The `with-qt` GUI option was removed due to circular dependencies if
   # CMake is built with Qt support and Qt is built with MySQL support as MySQL uses CMake.
-  # For the GUI application please instead use brew install caskroom/cask/cmake.
+  # For the GUI application please instead use `brew cask install cmake`.
 
   def install
-    # Reduce memory usage below 4 GB for Circle CI.
-    ENV.deparallelize if ENV["CIRCLECI"]
-
     args = %W[
       --prefix=#{prefix}
       --no-system-libs
@@ -48,14 +32,16 @@ class Cmake < AbstractOsqueryFormula
       --datadir=/share/cmake
       --docdir=/share/doc/cmake
       --mandir=/share/man
+      --system-zlib
+      --system-bzip2
     ]
 
-    # https://github.com/Homebrew/homebrew/issues/45989
-    if OS.mac? && MacOS.version <= :lion
+    # https://github.com/Homebrew/legacy-homebrew/issues/45989
+    if MacOS.version <= :lion
       args << "--no-system-curl"
+    else
+      args << "--system-curl"
     end
-
-    # osquery: build with local zlib, bzip, and curl
 
     if build.with? "docs"
       # There is an existing issue around OS X & Python locale setting
@@ -63,6 +49,8 @@ class Cmake < AbstractOsqueryFormula
       ENV["LC_ALL"] = "en_US.UTF-8"
       args << "--sphinx-man" << "--sphinx-build=#{Formula["sphinx-doc"].opt_bin}/sphinx-build"
     end
+
+    ENV.append "CXXFLAGS", "-L#{legacy.lib}"
 
     system "./bootstrap", *args
     system "make"
@@ -74,13 +62,11 @@ class Cmake < AbstractOsqueryFormula
       end
     end
 
-    (share/"emacs/site-lisp/cmake").install "Auxiliary/cmake-mode.el"
-
-    rm_f pkgshare/"Modules/CPack.OSXScriptLauncher.in" unless OS.mac?
+    elisp.install "Auxiliary/cmake-mode.el"
   end
 
   test do
     (testpath/"CMakeLists.txt").write("find_package(Ruby)")
-    system "#{bin}/cmake", "."
+    system bin/"cmake", "."
   end
 end

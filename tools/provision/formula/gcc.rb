@@ -282,7 +282,7 @@ class Gcc < AbstractOsqueryFormula
       #{glibc.installed? ? "-nostdlib -L#{libgcc}" : "+"} -L#{HOMEBREW_PREFIX}/lib
 
       *link:
-      + --dynamic-linker #{HOMEBREW_PREFIX}/legacy/lib/ld.so -rpath #{HOMEBREW_PREFIX}/lib
+      + --dynamic-linker #{HOMEBREW_PREFIX}/legacy/lib/ld-2.13.so -rpath #{HOMEBREW_PREFIX}/lib
 
     EOS
   end
