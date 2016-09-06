@@ -174,8 +174,13 @@ void queryKey(const std::string& hive,
 
     DWORD lpData = cbMaxValueData;
     DWORD lpType;
-    LONG dwRes = RegQueryValueEx(
+    retCode = RegQueryValueEx(
         hRegistryHandle, achValue, 0, &lpType, bpDataBuff, &lpData);
+
+    if (retCode != ERROR_SUCCESS) {
+      continue;
+    }
+
     Row r;
     fs::path keyPath(key);
     r["hive"] = hive;
@@ -187,8 +192,9 @@ void queryKey(const std::string& hive,
     } else {
       r["type"] = "UNKNOWN";
     }
-
     r["mtime"] = std::to_string(filetimeToUnixtime(ftLastWriteTime));
+
+    bpDataBuff[cbMaxValueData - 1] = 0x00;
 
     /// REG_LINK is a Unicode string, which in Windows is wchar_t
     char* regLinkStr = nullptr;
@@ -203,6 +209,7 @@ void queryKey(const std::string& hive,
                  _TRUNCATE);
     }
 
+    BYTE* bpDataBuffTmp = bpDataBuff;
     std::vector<std::string> multiSzStrs;
     std::vector<char> regBinary;
     std::string data;
@@ -231,12 +238,12 @@ void queryKey(const std::string& hive,
       r["data"] = std::string(regLinkStr);
       break;
     case REG_MULTI_SZ:
-      while (cnt <= cbMaxValueData) {
-        std::string s((char*)bpDataBuff);
-        bpDataBuff += s.size();
+      while (*bpDataBuffTmp != 0x00) {
+        std::string s((char*)bpDataBuffTmp);
+        bpDataBuffTmp += s.size() + 1;
         multiSzStrs.push_back(s);
       }
-      r["data"] = boost::algorithm::join(multiSzStrs, "\n\n");
+      r["data"] = boost::algorithm::join(multiSzStrs, ",");
       break;
     case REG_NONE:
       r["data"] = std::string((char*)bpDataBuff);
