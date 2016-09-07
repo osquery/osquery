@@ -54,8 +54,8 @@ Status writeTextFile(const fs::path& path,
                      int permissions,
                      bool force_permissions) {
   // Open the file with the request permissions.
-  PlatformFile output_fd(path.string(), PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND,
-                         permissions);
+  PlatformFile output_fd(
+      path.string(), PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND, permissions);
   if (!output_fd.isValid()) {
     return Status(1, "Could not create file: " + path.string());
   }
@@ -271,16 +271,15 @@ static void genGlobs(std::string path,
   }
 
   // Prune results based on settings/requested glob limitations.
-  auto end = std::remove_if(results.begin(),
-                            results.end(),
-                            [limits](const std::string& found) {
-                              return !(((found[found.length() - 1] == '/' ||
-                                         found[found.length() - 1] == '\\') &&
-                                        limits & GLOB_FOLDERS) ||
-                                       ((found[found.length() - 1] != '/' &&
-                                         found[found.length() - 1] != '\\') &&
-                                        limits & GLOB_FILES));
-                            });
+  auto end = std::remove_if(
+      results.begin(), results.end(), [limits](const std::string& found) {
+        return !(((found[found.length() - 1] == '/' ||
+                   found[found.length() - 1] == '\\') &&
+                  limits & GLOB_FOLDERS) ||
+                 ((found[found.length() - 1] != '/' &&
+                   found[found.length() - 1] != '\\') &&
+                  limits & GLOB_FILES));
+      });
   results.erase(end, results.end());
 }
 

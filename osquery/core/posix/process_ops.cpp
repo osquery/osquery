@@ -25,7 +25,7 @@
 namespace osquery {
 
 std::string getUserId() {
-  return std::string(::getuid());
+  return std::to_string(::getuid());
 }
 
 bool isLauncherProcessDead(PlatformProcess& launcher) {

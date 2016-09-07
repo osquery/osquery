@@ -16,12 +16,12 @@
 #ifdef WIN32
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <sddl.h>
+#include <windows.h>
 #endif
 
-#include <boost/optional.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/optional.hpp>
 
 #include <osquery/core.h>
 
@@ -156,8 +156,8 @@ class PlatformProcess : private boost::noncopyable {
    * script arguments
    */
   static std::shared_ptr<PlatformProcess> launchPythonScript(
-    const std::string& args
-  );
+      const std::string& args);
+
  private:
   /**
    * @brief Stores the native handle denoting the process

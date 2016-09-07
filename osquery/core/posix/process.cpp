@@ -36,7 +36,9 @@ bool PlatformProcess::operator!=(const PlatformProcess& process) const {
 
 PlatformProcess::~PlatformProcess() {}
 
-int PlatformProcess::pid() const { return id_; }
+int PlatformProcess::pid() const {
+  return id_;
+}
 
 bool PlatformProcess::kill() const {
   if (id_ == kInvalidPid) {
@@ -128,7 +130,8 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   return std::make_shared<PlatformProcess>(ext_pid);
 }
 
-std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(const std::string& args) {
+std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
+    const std::string& args) {
   std::shared_ptr<PlatformProcess> process;
 
   int process_pid = ::fork();
@@ -136,7 +139,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(const std::
     // Start a Python script
     ::execlp("sh", "sh", "-c", args.c_str(), nullptr);
     ::exit(0);
-  } else if (server_pid > 0) {
+  } else if (process_pid > 0) {
     process.reset(new PlatformProcess(process_pid));
   }
 
