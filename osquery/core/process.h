@@ -96,6 +96,8 @@ class PlatformProcess : private boost::noncopyable {
   bool operator!=(const PlatformProcess& process) const;
 
   /**
+   * @brief Returns the process's ID
+   *
    * Returns the associated process' process ID (on POSIX, pid() and
    * nativeHandle() do not differ).
    *

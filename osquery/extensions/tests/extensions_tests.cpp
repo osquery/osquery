@@ -22,6 +22,7 @@
 
 #include "osquery/core/process.h"
 #include "osquery/extensions/interface.h"
+#include "osquery/filesystem/fileops.h"
 #include "osquery/tests/test_util.h"
 
 using namespace osquery::extensions;
@@ -31,27 +32,11 @@ namespace osquery {
 const int kDelayUS = 2000;
 const int kTimeoutUS = 1000000;
 
-#ifdef WIN32
-static bool namedPipeExists(const std::string& path) {
-  // Check to see if NamedPipe is alive, time out after 10ms
-  if (::WaitNamedPipeA(path.c_str(), 10) == 0) {
-    DWORD error = ::GetLastError();
-    if (error == ERROR_FILE_NOT_FOUND) {
-      return false;
-    } else if (error == ERROR_BAD_PATHNAME) {
-      return false;
-    }
-  }
-
-  return true;
-}
-#endif
-
 class ExtensionsTest : public testing::Test {
  protected:
   void SetUp() {
 #ifdef WIN32
-    socket_path = "\\\\.\\pipe\\";
+    socket_path = OSQUERY_SOCKET;
 #else
     socket_path = kTestWorkingDirectory;
 #endif
@@ -59,7 +44,7 @@ class ExtensionsTest : public testing::Test {
     socket_path += "testextmgr" + std::to_string(rand());
 
 #ifdef WIN32
-    if (namedPipeExists(socket_path)) {
+    if (namedPipeExists(socket_path).ok()) {
 #else
     remove(socket_path);
     if (pathExists(socket_path).ok()) {
@@ -129,7 +114,7 @@ class ExtensionsTest : public testing::Test {
     int delay = 0;
     while (delay < kTimeoutUS) {
 #ifdef WIN32
-      if (namedPipeExists(socket_path)) {
+      if (namedPipeExists(socket_path).ok()) {
 #else
       if (pathExists(socket_path).ok() && isReadable(socket_path).ok()) {
 #endif

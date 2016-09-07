@@ -1189,4 +1189,20 @@ boost::optional<FILE*> platformFopen(const std::string& filename,
 
   return fp;
 }
+
+#ifdef WIN32
+Status namedPipeExists(const std::string& path) {
+  // Wait 500ms for the named pipe status
+  if (::WaitNamedPipeA(path.c_str(), 500) == 0) {
+    DWORD error = ::GetLastError();
+    if (error == ERROR_BAD_PATHNAME) {
+      return Status(1, "Named pipe path is invalid");
+    } else if (error == ERROR_FILE_NOT_FOUND) {
+      return Status(1, "Named pipe does not exist");
+    }
+  }
+
+  return Status(0, "OK");
+}
+#endif
 }

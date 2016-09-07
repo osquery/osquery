@@ -24,6 +24,7 @@
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
 #include "osquery/extensions/interface.h"
+#include "osquery/filesystem/fileops.h"
 
 using namespace osquery::extensions;
 
@@ -107,22 +108,8 @@ EXTENSION_FLAG_ALIAS(interval, extensions_interval);
  * use WaitNamedPipe to determine the existence of a named pipe. If the named
  * pipe does not exist, WaitNamedPipe should error with ERROR_BAD_PATHNAME.
  */
-
-static Status namedPipeExists(const std::string& path) {
-  if (::WaitNamedPipeA(path.c_str(), NAMED_PIPE_WAIT) == 0) {
-    DWORD error = ::GetLastError();
-    if (error == ERROR_BAD_PATHNAME) {
-      return Status(1, "Named pipe path is invalid");
-    } else if (error == ERROR_FILE_NOT_FOUND) {
-      return Status(1, "Named pipe does not exist");
-    }
-  }
-
-  return Status(0, "OK");
-}
-
 static Status isNamedPipePathValid(const std::string& path) {
-  if (!boost::starts_with(path, "\\\\.\\pipe\\")) {
+  if (!boost::starts_with(path, OSQUERY_SOCKET)) {
     return Status(1, "Bad named pipe name prefix");
   }
 
@@ -180,8 +167,6 @@ void ExtensionWatcher::watch() {
   bool core_sane = true;
 #ifdef WIN32
   // Check to see if the pipe name is a valid named pipe
-  //
-  // Check for file not found
   if (!namedPipeExists(path_).ok()) {
     core_sane = false;
   }

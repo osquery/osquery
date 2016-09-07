@@ -134,10 +134,12 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
     const std::string& args) {
   std::shared_ptr<PlatformProcess> process;
 
+  std::string argv = "/usr/local/osquery/bin/python " + args;
+
   int process_pid = ::fork();
   if (process_pid == 0) {
     // Start a Python script
-    ::execlp("sh", "sh", "-c", args.c_str(), nullptr);
+    ::execlp("sh", "sh", "-c", argv.c_str(), nullptr);
     ::exit(0);
   } else if (process_pid > 0) {
     process.reset(new PlatformProcess(process_pid));

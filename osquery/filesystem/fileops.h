@@ -110,6 +110,8 @@ const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 enum SeekMode { PF_SEEK_BEGIN = 0, PF_SEEK_CURRENT, PF_SEEK_END };
 
 #ifdef WIN32
+/// Checks for the existence of a named pipe socket
+Status namedPipeExists(const std::string& path);
 
 /**
  * @brief Stores information about the last Windows async request

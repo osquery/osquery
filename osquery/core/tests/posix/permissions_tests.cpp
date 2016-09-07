@@ -32,11 +32,11 @@ class PermissionsTests : public testing::Test {
  public:
   PermissionsTests() : perm_path_(kTestWorkingDirectory + "lowperms/") {}
 
-  void SetUp() {
+  void SetUp() override {
     fs::create_directories(perm_path_);
   }
 
-  void TearDown() {
+  void TearDown() override {
     fs::remove_all(perm_path_);
   }
 
