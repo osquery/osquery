@@ -57,14 +57,14 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
 
 inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
-  VLOG(1) << "Executing query: " << query.query;
+  LOG(INFO) << "Executing scheduled query: " << name << ": " << query.query;
   runDecorators(DECORATE_ALWAYS);
   auto sql =
       (FLAGS_enable_monitor) ? monitor(name, query) : SQLInternal(query.query);
 
   if (!sql.ok()) {
-    LOG(ERROR) << "Error executing query (" << query.query
-               << "): " << sql.getMessageString();
+    LOG(ERROR) << "Error executing scheduled query: " << name << ": "
+               << sql.getMessageString();
     return;
   }
 
@@ -116,7 +116,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
     return;
   }
 
-  VLOG(1) << "Found results for query (" << name << ") for host: " << ident;
+  VLOG(1) << "Found results for query: " << name;
   item.results = diff_results;
   if (query.options.count("removed") && !query.options.at("removed")) {
     item.results.removed.clear();
@@ -124,8 +124,8 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
 
   status = logQueryLogItem(item);
   if (!status.ok()) {
-    LOG(ERROR) << "Error logging the results of query (" << query.query
-               << "): " << status.toString();
+    LOG(ERROR) << "Error logging the results of query: " << name << ": "
+               << status.toString();
   }
 }
 
