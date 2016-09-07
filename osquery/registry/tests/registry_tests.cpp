@@ -101,12 +101,16 @@ class DogPlugin : public Plugin {
 
 class Doge : public DogPlugin {
  public:
-  Doge() { some_value_ = 100000; }
+  Doge() {
+    some_value_ = 100000;
+  }
 };
 
 class BadDoge : public DogPlugin {
  public:
-  Status setUp() { return Status(1, "Expect error... this is a bad dog"); }
+  Status setUp() {
+    return Status(1, "Expect error... this is a bad dog");
+  }
 };
 
 auto AutoDogRegistry = TestCoreRegistry::create<DogPlugin>("dog", true);
@@ -134,13 +138,13 @@ TEST_F(RegistryTests, test_registry_exceptions) {
   unsigned int exception_count = 0;
   try {
     TestCoreRegistry::registry("does_not_exist");
-  } catch (const std::out_of_range& e) {
+  } catch (const std::out_of_range& /* e */) {
     exception_count++;
   }
 
   try {
     TestCoreRegistry::add<HouseCat>("does_not_exist", "cat");
-  } catch (const std::out_of_range& e) {
+  } catch (const std::out_of_range& /* e */) {
     exception_count++;
   }
 

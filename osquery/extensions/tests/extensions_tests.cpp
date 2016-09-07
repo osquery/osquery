@@ -21,8 +21,8 @@
 #include <osquery/filesystem.h>
 
 #include "osquery/core/process.h"
-#include "osquery/tests/test_util.h"
 #include "osquery/extensions/interface.h"
+#include "osquery/tests/test_util.h"
 
 using namespace osquery::extensions;
 
@@ -30,6 +30,22 @@ namespace osquery {
 
 const int kDelayUS = 2000;
 const int kTimeoutUS = 1000000;
+
+#ifdef WIN32
+static bool namedPipeExists(const std::string& path) {
+  // Check to see if NamedPipe is alive, time out after 10ms
+  if (::WaitNamedPipeA(path.c_str(), 10) == 0) {
+    DWORD error = ::GetLastError();
+    if (error == ERROR_FILE_NOT_FOUND) {
+      return false;
+    } else if (error == ERROR_BAD_PATHNAME) {
+      return false;
+    }
+  }
+
+  return true;
+}
+#endif
 
 class ExtensionsTest : public testing::Test {
  protected:
@@ -40,20 +56,25 @@ class ExtensionsTest : public testing::Test {
     socket_path = kTestWorkingDirectory;
 #endif
 
-    socket_path += "test.em" + std::to_string(rand());
+    socket_path += "testextmgr" + std::to_string(rand());
 
-#ifndef WIN32
+#ifdef WIN32
+    if (namedPipeExists(socket_path)) {
+#else
     remove(socket_path);
     if (pathExists(socket_path).ok()) {
+#endif
       throw std::domain_error("Cannot test sockets: " + socket_path);
     }
-#endif
   }
 
   void TearDown() {
     Dispatcher::stopServices();
     Dispatcher::joinServices();
+
+#ifndef WIN32
     remove(socket_path);
+#endif
   }
 
   bool ping(int attempts = 3) {
@@ -64,7 +85,7 @@ class ExtensionsTest : public testing::Test {
         EXManagerClient client(socket_path);
         client.get()->ping(status);
         return (status.code == ExtensionCode::EXT_SUCCESS);
-      } catch (const std::exception& e) {
+      } catch (const std::exception& /* e */) {
         sleepFor(kDelayUS / 1000);
       }
     }
@@ -79,7 +100,7 @@ class ExtensionsTest : public testing::Test {
       try {
         EXManagerClient client(socket_path);
         client.get()->query(response, sql);
-      } catch (const std::exception& e) {
+      } catch (const std::exception& /* e */) {
         sleepFor(kDelayUS / 1000);
       }
     }
@@ -107,7 +128,11 @@ class ExtensionsTest : public testing::Test {
     // Wait until the runnable/thread created the socket.
     int delay = 0;
     while (delay < kTimeoutUS) {
+#ifdef WIN32
+      if (namedPipeExists(socket_path)) {
+#else
       if (pathExists(socket_path).ok() && isReadable(socket_path).ok()) {
+#endif
         return true;
       }
       sleepFor(kDelayUS / 1000);
@@ -203,7 +228,7 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
   RouteUUID uuid;
   try {
     uuid = (RouteUUID)stoi(status.getMessage(), nullptr, 0);
-  } catch (const std::exception& e) {
+  } catch (const std::exception& /* e */) {
     EXPECT_TRUE(false);
     return;
   }

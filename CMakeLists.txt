@@ -396,7 +396,7 @@ if(WINDOWS)
   set(PROCESS_FAMILY "windows")
 
   # Win64 specific gflags
-  set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared gtest library" FORCE)
+  set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static gtest/gmock library" FORCE)
 
   include_directories("${WINDOWS_DEP_DIR}/boost-msvc14/local/boost")
   include_directories("${WINDOWS_DEP_DIR}/boost-msvc14/local")

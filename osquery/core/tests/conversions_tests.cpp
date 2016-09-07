@@ -21,10 +21,10 @@
 
 #include "osquery/tests/test_util.h"
 
-#define EXPECT_WITHIN_INCLUSIVE(lower, upper, val)                     \
-  do {                                                                 \
-    EXPECT_PRED_FORMAT2(::testing::internal::CmpHelperGE, val, lower); \
-    EXPECT_PRED_FORMAT2(::testing::internal::CmpHelperLE, val, upper); \
+#define EXPECT_WITHIN_INCLUSIVE(lower, upper, val)                             \
+  do {                                                                         \
+    EXPECT_PRED_FORMAT2(::testing::internal::CmpHelperGE, val, lower);         \
+    EXPECT_PRED_FORMAT2(::testing::internal::CmpHelperLE, val, upper);         \
   } while (0)
 
 namespace osquery {
@@ -55,7 +55,18 @@ TEST_F(ConversionsTests, test_utc) {
   FLAGS_utc = true;
   auto t2 = getUnixTime();
   auto rt2 = std::time(nullptr);
-  auto at2 = std::mktime(std::gmtime(&rt2));
+
+#ifdef WIN32
+  std::vector<char> buffer;
+  buffer.assign(sizeof(std::tm), '\0');
+  std::tm* gt2 = (std::tm*)buffer.data();
+
+  EXPECT_EQ(0, gmtime_s(gt2, &rt2));
+#else
+  auto gt2 = std::gmtime(&rt2);
+#endif
+
+  auto at2 = std::mktime(gt2);
   EXPECT_WITHIN_INCLUSIVE(t2 - 10, t2 + 10, static_cast<size_t>(at2));
   FLAGS_utc = utc;
 }

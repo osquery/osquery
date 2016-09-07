@@ -36,10 +36,13 @@ std::string getUserId() {
   tu_buffer.assign(nbytes, '\0');
   PTOKEN_USER tu = nullptr;
 
-  bool status = ::GetTokenInformation(token, TokenUser, tu_buffer.data(),
-                                      tu_buffer.size(), &nbytes);
+  BOOL status = ::GetTokenInformation(token,
+                                      TokenUser,
+                                      tu_buffer.data(),
+                                      static_cast<DWORD>(tu_buffer.size()),
+                                      &nbytes);
   ::CloseHandle(token);
-  if (!status) {
+  if (status == 0) {
     return "";
   }
 
@@ -55,7 +58,7 @@ std::string getUserId() {
   return uid;
 }
 
-bool isLauncherProcessDead(PlatformProcess &launcher) {
+bool isLauncherProcessDead(PlatformProcess& launcher) {
   DWORD code = 0;
   if (!::GetExitCodeProcess(launcher.nativeHandle(), &code)) {
     // TODO(#1991): If an error occurs with GetExitCodeProcess, do we want to
@@ -105,11 +108,11 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
   return std::string(buf.data(), value_len);
 }
 
-ModuleHandle platformModuleOpen(const std::string &path) {
+ModuleHandle platformModuleOpen(const std::string& path) {
   return ::LoadLibraryA(path.c_str());
 }
 
-void *platformModuleGetSymbol(ModuleHandle module, const std::string &symbol) {
+void* platformModuleGetSymbol(ModuleHandle module, const std::string& symbol) {
   return ::GetProcAddress(module, symbol.c_str());
 }
 

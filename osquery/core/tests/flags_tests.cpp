@@ -8,7 +8,18 @@
  *
  */
 
+#ifdef WIN32
+/// Suppress a C4244 warning in gtest-printers.h (double -> BiggestInt
+/// conversion)
+#pragma warning(push, 3)
+#pragma warning(disable : 4244)
+#endif
+
 #include <gtest/gtest.h>
+
+#ifdef WIN32
+#pragma warning(pop)
+#endif
 
 #include <osquery/core.h>
 #include <osquery/flags.h>

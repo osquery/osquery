@@ -14,8 +14,8 @@
 
 #include <osquery/core.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/filesystem/fileops.h"
+#include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
 
@@ -23,9 +23,13 @@ namespace osquery {
 
 class FileOpsTests : public testing::Test {
  protected:
-  void SetUp() override { createMockFileStructure(); }
+  void SetUp() override {
+    createMockFileStructure();
+  }
 
-  void TearDown() override { tearDownMockFileStructure(); }
+  void TearDown() override {
+    tearDownMockFileStructure();
+  }
 
   bool globResultsMatch(const std::vector<std::string>& results,
                         std::vector<fs::path>& expected) {
@@ -58,7 +62,9 @@ class TempFile {
     }
   }
 
-  const std::string& path() const { return path_; }
+  const std::string& path() const {
+    return path_;
+  }
 
  private:
   std::string path_;
@@ -180,7 +186,7 @@ TEST_F(FileOpsTests, test_seekFile) {
 
   const char* expected = "AABBBBAACCCAAAAADDDDAAAAAAAA";
   const ssize_t expected_len = ::strlen(expected);
-  off_t expected_offs;
+  ssize_t expected_offs;
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
@@ -219,18 +225,21 @@ TEST_F(FileOpsTests, test_seekFile) {
 
 TEST_F(FileOpsTests, test_glob) {
   {
-    std::vector<fs::path> expected{
-        kFakeDirectory + "/door.txt", kFakeDirectory + "/root.txt",
-        kFakeDirectory + "/root2.txt", kFakeDirectory + "/roto.txt"};
+    std::vector<fs::path> expected{kFakeDirectory + "/door.txt",
+                                   kFakeDirectory + "/root.txt",
+                                   kFakeDirectory + "/root2.txt",
+                                   kFakeDirectory + "/roto.txt"};
     auto result = platformGlob(kFakeDirectory + "/*.txt");
     EXPECT_TRUE(globResultsMatch(result, expected));
   }
 
   {
-    std::vector<fs::path> expected{
-        kFakeDirectory + "/deep1/",    kFakeDirectory + "/deep11/",
-        kFakeDirectory + "/door.txt",  kFakeDirectory + "/root.txt",
-        kFakeDirectory + "/root2.txt", kFakeDirectory + "/roto.txt"};
+    std::vector<fs::path> expected{kFakeDirectory + "/deep1/",
+                                   kFakeDirectory + "/deep11/",
+                                   kFakeDirectory + "/door.txt",
+                                   kFakeDirectory + "/root.txt",
+                                   kFakeDirectory + "/root2.txt",
+                                   kFakeDirectory + "/roto.txt"};
     auto result = platformGlob(kFakeDirectory + "/*");
     EXPECT_TRUE(globResultsMatch(result, expected));
   }

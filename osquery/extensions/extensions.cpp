@@ -107,14 +107,28 @@ EXTENSION_FLAG_ALIAS(interval, extensions_interval);
  * use WaitNamedPipe to determine the existence of a named pipe. If the named
  * pipe does not exist, WaitNamedPipe should error with ERROR_BAD_PATHNAME.
  */
-static Status isNamedPipeValid(const std::string& path) {
+
+static Status namedPipeExists(const std::string& path) {
+  if (::WaitNamedPipeA(path.c_str(), NAMED_PIPE_WAIT) == 0) {
+    DWORD error = ::GetLastError();
+    if (error == ERROR_BAD_PATHNAME) {
+      return Status(1, "Named pipe path is invalid");
+    } else if (error == ERROR_FILE_NOT_FOUND) {
+      return Status(1, "Named pipe does not exist");
+    }
+  }
+
+  return Status(0, "OK");
+}
+
+static Status isNamedPipePathValid(const std::string& path) {
   if (!boost::starts_with(path, "\\\\.\\pipe\\")) {
     return Status(1, "Bad named pipe name prefix");
   }
 
   if ((::WaitNamedPipeA(path.c_str(), NAMED_PIPE_WAIT) == 0) &&
       (::GetLastError() == ERROR_BAD_PATHNAME)) {
-    return Status(1, "Named pipe does not exist");
+    return Status(1, "Named pipe path is invalid");
   }
 
   return Status(0, "OK");
@@ -166,7 +180,9 @@ void ExtensionWatcher::watch() {
   bool core_sane = true;
 #ifdef WIN32
   // Check to see if the pipe name is a valid named pipe
-  if (!isNamedPipeValid(path_).ok()) {
+  //
+  // Check for file not found
+  if (!namedPipeExists(path_).ok()) {
     core_sane = false;
   }
 #else
@@ -206,7 +222,7 @@ void ExtensionManagerWatcher::watch() {
     auto path = getExtensionSocket(uuid);
 #ifdef WIN32
     // Check to see if the pipe name is a valid named pipe
-    if (!isNamedPipeValid(path).ok()) {
+    if (!namedPipeExists(path).ok()) {
       LOG(INFO) << "Extension UUID " << uuid << " ping failed";
 
       // Immediate fail non-writable paths.
@@ -377,7 +393,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
 #ifdef WIN32
     // This makes sure the pipe exists in some capacity (could be busy at the
     // moment)
-    if (isNamedPipeValid(path).ok()) {
+    if (namedPipeExists(path).ok()) {
       return Status(0, "OK");
     }
 #else
@@ -472,7 +488,7 @@ Status startExtension(const std::string& manager_path,
   auto extension_path = getExtensionSocket(ext_status.uuid, manager_path);
 
 #ifdef WIN32
-  status = isNamedPipeValid(extension_path);
+  status = isNamedPipePathValid(extension_path);
 #else
   status = socketWritable(extension_path);
 #endif
@@ -681,7 +697,7 @@ Status startExtensionManager() {
 Status startExtensionManager(const std::string& manager_path) {
 // Check if the socket location exists.
 #ifdef WIN32
-  auto status = isNamedPipeValid(manager_path);
+  auto status = isNamedPipePathValid(manager_path);
 #else
   auto status = socketWritable(manager_path);
 #endif
@@ -702,4 +718,3 @@ Status startExtensionManager(const std::string& manager_path) {
   return Status(0, "OK");
 }
 }
-

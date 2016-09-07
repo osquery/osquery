@@ -50,7 +50,11 @@ std::string kTestDataPath = "../../../../tools/tests/";
 
 DECLARE_string(database_path);
 DECLARE_string(extensions_socket);
+
+#ifndef WIN32
 DECLARE_string(modules_autoload);
+#endif
+
 DECLARE_string(extensions_autoload);
 DECLARE_string(enroll_tls_endpoint);
 DECLARE_bool(disable_logging);
@@ -72,7 +76,8 @@ void initTesting() {
 
   // Seed the random number generator, some tests generate temporary files
   // ports, sockets, etc using random numbers.
-  std::srand(chrono_clock::now().time_since_epoch().count());
+  std::srand(static_cast<unsigned int>(
+      chrono_clock::now().time_since_epoch().count()));
 
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
@@ -84,7 +89,11 @@ void initTesting() {
   FLAGS_database_path = kTestWorkingDirectory + "unittests.db";
   FLAGS_extensions_socket = kTestWorkingDirectory + "unittests.em";
   FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
+
+#ifndef WIN32
   FLAGS_modules_autoload = kTestWorkingDirectory + "unittests-mod.load";
+#endif
+
   FLAGS_disable_logging = true;
   FLAGS_disable_database = true;
 
@@ -94,7 +103,9 @@ void initTesting() {
   DatabasePlugin::initPlugin();
 }
 
-void shutdownTesting() { DatabasePlugin::shutdown(); }
+void shutdownTesting() {
+  DatabasePlugin::shutdown();
+}
 
 std::map<std::string, std::string> getTestConfigMap() {
   std::string content;
