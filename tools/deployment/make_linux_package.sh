@@ -41,6 +41,7 @@ PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/usr/share/osquery/packs/"
 OSQUERY_POSTINSTALL=${OSQUERY_POSTINSTALL:-""}
 OSQUERY_CONFIG_SRC=${OSQUERY_CONFIG_SRC:-""}
+OSQUERY_TLS_CERT_CHAIN_SRC=${OSQUERY_TLS_CERT_CHAIN_SRC:-""}
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/usr/share/osquery/osquery.example.conf"
 OSQUERY_LOG_DIR="/var/log/osquery/"
@@ -127,6 +128,11 @@ function main() {
     cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/osquery.conf
   fi
 
+  if [[ $OSQUERY_TLS_CERT_CHAIN_SRC != "" ]] && [[ -f $OSQUERY_TLS_CERT_CHAIN_SRC ]]; then
+    log "tls server certs file setup"
+    cp $OSQUERY_TLS_CERT_CHAIN_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/tls_server_certs.pem
+  fi
+  
   if [[ $DISTRO = "xenial" ]]; then
     #Change config path to Ubuntu/Xenial default
     SYSTEMD_SYSCONFIG_DST=$SYSTEMD_SYSCONFIG_DST_DEBIAN
