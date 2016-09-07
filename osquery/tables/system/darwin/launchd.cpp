@@ -121,6 +121,10 @@ QueryData genLaunchd(QueryContext& context) {
       continue;
     }
 
+    if (!osquery::pathExists(path)) {
+      continue;
+    }
+
     if (!osquery::parsePlist(path, tree).ok()) {
       TLOG << "Error parsing launch daemon/agent plist: " << path;
       continue;
