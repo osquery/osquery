@@ -23,6 +23,8 @@ FLAG(bool, enable_foreign, false, "Enable no-op foreign virtual tables");
 
 SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
+DECLARE_bool(disable_events);
+
 /**
  * @brief A protection around concurrent table attach requests.
  *
@@ -433,6 +435,11 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   bool user_based_satisfied = !(
       (content->attributes & TableAttributes::USER_BASED) > 0 && isUserAdmin());
 
+  // For event-based tables, help the caller if events are disabled.
+  bool events_satisfied =
+      ((content->attributes & TableAttributes::EVENT_BASED) == 0 ||
+       !FLAGS_disable_events);
+
   std::map<std::string, ColumnOptions> options;
   for (size_t i = 0; i < content->columns.size(); ++i) {
     // Set the column affinity for each optional constraint list.
@@ -497,11 +504,14 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     LOG(WARNING)
         << "Table " << pVtab->content->name
         << " was queried without a required column in the WHERE clause";
+  } else if (!events_satisfied) {
+    LOG(WARNING) << "Table " << pVtab->content->name
+                 << " is event-based but events are disabled";
   }
 
   // Provide a helpful reference to table documentation within the shell.
   if (kToolType == ToolType::SHELL &&
-      (!user_based_satisfied || !required_satisfied)) {
+      (!user_based_satisfied || !required_satisfied || !events_satisfied)) {
     LOG(WARNING) << "Please see the table documentation: "
                  << table_doc(pVtab->content->name);
   }
