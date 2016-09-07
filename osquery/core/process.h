@@ -14,15 +14,15 @@
 #include <string>
 
 #ifdef WIN32
-// Suppressing unexpected token following preprocessor directive warning
-#pragma warning(push, 3)
-#pragma warning(disable: 4067)
-#include <sddl.h>
-#pragma warning(pop)
-
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+// Suppressing unexpected token following preprocessor directive warning
+#pragma warning(push, 3)
+#pragma warning(disable : 4067)
+#include <sddl.h>
+#pragma warning(pop)
 #endif
 
 #include <boost/noncopyable.hpp>
