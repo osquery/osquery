@@ -32,9 +32,13 @@ class PermissionsTests : public testing::Test {
  public:
   PermissionsTests() : perm_path_(kTestWorkingDirectory + "lowperms/") {}
 
-  void SetUp() { fs::create_directories(perm_path_); }
+  void SetUp() {
+    fs::create_directories(perm_path_);
+  }
 
-  void TearDown() { fs::remove_all(perm_path_); }
+  void TearDown() {
+    fs::remove_all(perm_path_);
+  }
 
  protected:
   std::string perm_path_;
