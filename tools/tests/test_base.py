@@ -14,19 +14,23 @@ from __future__ import print_function
 # from __future__ import unicode_literals
 
 import copy
+import getpass
 import os
 import psutil
 import random
 import re
+import shlex
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 import threading
 import unittest
 import utils
 import pexpect
 import timeout_decorator
+from pexpect import popen_spawn
 
 # While this path can be variable, in practice is lives statically.
 OSQUERY_DEPENDENCIES = os.getenv('OSQUERY_DEPS', "/usr/local/osquery")
@@ -57,10 +61,15 @@ except ImportError as e:
     print(str(e))
     exit(1)
 
+def getUserId():
+    if os.name == "nt":
+        return getpass.getuser()
+    return "%d" % os.getuid()
+
 '''Defaults that should be used in integration tests.'''
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-CONFIG_DIR = "/tmp/osquery-tests-python%d/" % (os.getuid())
-CONFIG_NAME = CONFIG_DIR + "tests"
+CONFIG_DIR = os.path.join(tempfile.gettempdir(), "osquery-tests-python%s" % (getUserId()))
+CONFIG_NAME = os.path.join(CONFIG_DIR, "tests")
 DEFAULT_CONFIG = {
     "options": {
         "flagfile": "/dev/null",
@@ -84,6 +93,15 @@ CONFIG = None
 '''Expect ARGS to contain the argparsed namespace.'''
 ARGS = None
 
+if os.name == "nt":
+    class PexpectWrapper(popen_spawn.PopenSpawn):
+        def __init__(self, cmd, env):
+            self.echo = False
+
+            if not isinstance(cmd, (list, tuple)):
+                cmd = shlex.split(cmd, posix=False)
+                print(cmd)
+            popen_spawn.PopenSpawn.__init__(self, cmd, env=env)
 
 class OsqueryUnknownException(Exception):
     '''Exception thrown for unknown output from the shell'''
@@ -109,7 +127,11 @@ class OsqueryWrapper(REPLWrapper):
         options["database_path"] += str(random.randint(1000, 9999))
         command = command + " " + " ".join(["--%s=%s" % (k, v) for
                                             k, v in options.iteritems()])
-        proc = pexpect.spawn(command, env=env)
+        if os.name == "nt":
+            proc = PexpectWrapper(command, env=env)
+        else:
+            proc = pexpect.spawn(command, env=env)
+
         super(OsqueryWrapper, self).__init__(
             proc,
             self.PROMPT,
@@ -426,7 +448,7 @@ class Autoloader(object):
 
     def __init__(self, autoloads=[]):
         global CONFIG_DIR
-        self.path = CONFIG_DIR + "ext.load" + str(random.randint(1000, 9999))
+        self.path = os.path.join(CONFIG_DIR, "ext.load" + str(random.randint(1000, 9999)))
         with open(self.path, "w") as fh:
             fh.write("\n".join(autoloads))
 
@@ -517,7 +539,7 @@ class Tester(object):
 
     @timeout_decorator.timeout(20 * 60)
     def run(self):
-        os.setpgrp()
+        if os.name == "posix": os.setpgrp()
         unittest_args = [sys.argv[0]]
         if ARGS.verbose:
             unittest_args += ["-v"]
