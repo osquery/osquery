@@ -158,10 +158,11 @@ function platform_linux_main() {
   brew_tool mpfr
   brew_tool libmpc
   brew_tool isl
-  brew_tool berkeley-db
 
   # GCC 5x.
   local_brew_tool gcc --with-glibc-legacy --without-fortran
+  # Remove gcc-postinstall when GCC is next updated.
+  local_brew_postinstall gcc
   set_deps_compilers gcc
 
   # GCC-compiled (C) dependencies.
@@ -191,11 +192,7 @@ function platform_linux_main() {
   brew_tool m4
   brew_tool bison
 
-  # Need libgpg-error for final build.
-  local_brew_tool libgpg-error
-
   # More LLVM dependencies.
-  brew_tool popt
   brew_tool autoconf
   brew_tool automake
 
@@ -204,6 +201,12 @@ function platform_linux_main() {
   local_brew_tool python
   local_brew_postinstall python
   local_brew_tool cmake --without-docs
+
+  # Linux library secondary dependencies.
+  local_brew_tool libgpg-error
+  local_brew_tool berkeley-db
+  local_brew_tool popt
+  local_brew_tool beecrypt
 
   # LLVM/Clang.
   local_brew_tool llvm
@@ -230,24 +233,15 @@ function platform_linux_main() {
   local_brew_dependency glog
 
   # Linux specific custom formulas.
-  local_brew_dependency libdevmapper -vd
+  local_brew_dependency libdevmapper
   local_brew_dependency libaptpkg
   local_brew_dependency libiptables
   local_brew_dependency libgcrypt
-  local_brew_dependency libcryptsetup -vd
+  local_brew_dependency libcryptsetup
   local_brew_dependency libudev
   local_brew_dependency libaudit
   local_brew_dependency libdpkg
-
-  ## The following section is a work in progress for librpm.
-  # This will need NSS and NSPR
-  # brew_tool nspr
-  # local_brew_link nspr
-  # brew_tool nss
-  # Maybe autopoint for autogen.sh?
-  # brew_tool gettext
-  # brew_tool libarchive
-  # local_brew_dependency librpm
+  local_brew_dependency librpm
 
   # Restore the compilers to GCC for the remainder of provisioning.
   set_deps_compilers gcc

@@ -54,17 +54,12 @@ else()
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_LINUX_TABLES_TESTS})
 
   if(REDHAT_BASED)
-    # TODO #2169: Linking librpm and librpmio prevents osquery from keeping
-    # a 2.13 glibc ABI. Statically linking the libraries introduces too many
-    # implicit dependencies.
-
     # CentOS specific tables
     # file(GLOB OSQUERY_REDHAT_TABLES "*/centos/*.cpp")
     # ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_redhat
     #   ${OSQUERY_REDHAT_TABLES}
     # )
 
-    # ADD_OSQUERY_LINK_ADDITIONAL("librpm librpmio")
   elseif(DEBIAN_BASED)
     # Ubuntu specific tables
     # file(GLOB OSQUERY_UBUNTU_TABLES "*/ubuntu/*.cpp")
@@ -83,6 +78,7 @@ else()
   ADD_OSQUERY_LINK_ADDITIONAL("tsk")
 
   ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg lzma lz4 bz2")
+  ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio beecrypt popt db")
 endif()
 
 if(APPLE OR LINUX)

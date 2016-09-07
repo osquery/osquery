@@ -8,15 +8,14 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <rpm/rpmlib.h>
 #include <rpm/header.h>
-#include <rpm/rpmts.h>
-#include <rpm/rpmfi.h>
 #include <rpm/rpmdb.h>
+#include <rpm/rpmfi.h>
+#include <rpm/rpmlib.h>
 #include <rpm/rpmpgp.h>
+#include <rpm/rpmts.h>
+
+#include <boost/noncopyable.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -65,8 +64,32 @@ static std::string getRpmAttribute(const Header& header,
   return result;
 }
 
+class RpmEnvironmentManager : public boost::noncopyable {
+ public:
+  RpmEnvironmentManager() : config_(getEnvVar("RPM_CONFIGDIR")) {
+    // Honor a caller's environment
+    if (!config_.is_initialized()) {
+      setEnvVar("RPM_CONFIGDIR", "/usr/lib/rpm");
+    }
+  }
+
+  ~RpmEnvironmentManager() {
+    // If we had set the environment, clean it up afterward.
+    if (!config_.is_initialized()) {
+      unsetEnvVar("RPM_CONFIGDIR");
+    }
+  }
+
+ private:
+  boost::optional<std::string> config_;
+};
+
 QueryData genRpmPackages(QueryContext& context) {
   QueryData results;
+
+  // Isolate RPM/package inspection to the canonical: /usr/lib/rpm.
+  RpmEnvironmentManager env_manager;
+
   // The following implementation uses http://rpm.org/api/4.11.1/
   rpmInitCrypto();
   if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
@@ -109,6 +132,10 @@ QueryData genRpmPackages(QueryContext& context) {
 
 QueryData genRpmPackageFiles(QueryContext& context) {
   QueryData results;
+
+  // Isolate RPM/package inspection to the canonical: /usr/lib/rpm.
+  RpmEnvironmentManager env_manager;
+
   if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
     TLOG << "Cannot read RPM configuration files.";
     return results;
@@ -147,13 +174,7 @@ QueryData genRpmPackageFiles(QueryContext& context) {
       r["mode"] = lsperms(rpmfiFMode(fi));
       r["size"] = BIGINT(rpmfiFSize(fi));
 
-#if defined(CENTOS_CENTOS6) || defined(RHEL_RHEL6) || \
-    defined(SCIENTIFIC_SCIENTIFIC6)
-      // Older versions of rpmlib/rpmip use a hash algorithm enum.
-      pgpHashAlgo digest_algo;
-#else
       int digest_algo;
-#endif
       auto digest = rpmfiFDigestHex(fi, &digest_algo);
       if (digest_algo == PGPHASHALGO_SHA256) {
         r["sha256"] = (digest != nullptr) ? digest : "";

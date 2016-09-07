@@ -3,41 +3,41 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Librpm < AbstractOsqueryFormula
   desc "The RPM Package Manager (RPM) development libraries"
   homepage "http://rpm.org/"
-  url "http://rpm.org/releases/testing/rpm-4.13.0-rc1.tar.bz2"
+  sha256 "8d65bc5df3056392d7fdfbe00e8f84eb0e828582aa96ef4d6b6afac35a07e8b3"
+  url "https://github.com/rpm-software-management/rpm/archive/rpm-4.13.0-rc1.tar.gz"
   version "4.13.0-rc1"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
-    prefix "/usr/local/osquery"
-    cellar "/usr/local/osquery/Cellar"
+    cellar :any_skip_relocation
     sha256 "038a8f25463cfd002d734dd2ddcfbc564373f35237fcc499f98638d9f3f75345" => :x86_64_linux
   end
 
+  depends_on "berkeley-db"
+  depends_on "beecrypt"
+  depends_on "popt"
+
   def install
-    ENV.append_to_cflags "-I#{Formula["nss"].include}"
-    ENV.append_to_cflags "-I#{Formula["nspr"].include}"
+    ENV.append "CFLAGS", "-I#{HOMEBREW_PREFIX}/include/beecrypt"
 
     args = [
-      "--disable-plugins",
-      "--disable-nls",
       "--disable-dependency-tracking",
       "--disable-silent-rules",
-      "--without-nss",
-      "--without-archive",
-      "--disable-python",
-      "--disable-ndb",
-      "--disable-nss",
-      "--disable-shared",
-      "--without-beecrypt",
-      "--without-external-db",
+      "--with-external-db",
+      "--without-selinux",
       "--without-lua",
       "--without-cap",
-      "--without-selinux",
-      "--without-libintl-prefix",
-      "--without-libiconv-prefix",
-      ""
+      "--without-archive",
+      "--disable-nls",
+      "--disable-rpath",
+      "--disable-plugins",
+      "--disable-shared",
+      "--disable-python",
+      "--enable-static",
+      "--with-beecrypt",
     ]
 
+    system "./autogen.sh", "--noconfigure"
     system "./configure", "--prefix=#{prefix}", *args
     system "make"
     system "make", "install"

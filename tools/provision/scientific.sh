@@ -19,6 +19,7 @@ function distro_main() {
   package ruby-irb
   package gcc
   package bzip2
+  package gettext-devel
 
   package rpm-devel
   package rpm-build
