@@ -33,6 +33,7 @@ FLAG(bool,
 
 Mutex distributed_queries_mutex_;
 Mutex distributed_results_mutex_;
+const std::string kDistributedQueryPrefix = "distributed.";
 
 Status DistributedPlugin::call(const PluginRequest& request,
                                PluginResponse& response) {
@@ -77,8 +78,9 @@ Status Distributed::pullUpdates() {
 }
 
 size_t Distributed::getPendingQueryCount() {
-  WriteLock lock(distributed_queries_mutex_);
-  return queries_.size();
+  std::vector<std::string> distributed_queries;
+  scanDatabaseKeys(kQueries, distributed_queries, kDistributedQueryPrefix);
+  return distributed_queries.size();
 }
 
 size_t Distributed::getCompletedCount() {
@@ -173,15 +175,12 @@ Status Distributed::acceptWork(const std::string& work) {
 
     auto& queries = tree.get_child("queries");
     for (const auto& node : queries) {
-      DistributedQueryRequest request;
-      request.id = node.first;
-      request.query = queries.get<std::string>(node.first, "");
-      if (request.query.empty() || request.id.empty()) {
+      auto query = queries.get<std::string>(node.first, "");
+      if (query.empty() || node.first.empty()) {
         return Status(1,
                       "Distributed query does not have complete attributes.");
       }
-      WriteLock wlock(distributed_queries_mutex_);
-      queries_.push_back(request);
+      setDatabaseValue(kQueries, kDistributedQueryPrefix + node.first, query);
     }
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error parsing JSON: " + std::string(e.what()));
@@ -192,9 +191,14 @@ Status Distributed::acceptWork(const std::string& work) {
 
 DistributedQueryRequest Distributed::popRequest() {
   WriteLock wlock_queries(distributed_queries_mutex_);
-  auto q = queries_[0];
-  queries_.erase(queries_.begin());
-  return q;
+  std::vector<std::string> distributed_queries;
+  scanDatabaseKeys(kQueries, distributed_queries, kDistributedQueryPrefix);
+  DistributedQueryRequest request;
+  request.id =
+      distributed_queries.front().substr(kDistributedQueryPrefix.size());
+  getDatabaseValue(kQueries, distributed_queries.front(), request.query);
+  deleteDatabaseValue(kQueries, distributed_queries.front());
+  return request;
 }
 
 Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,

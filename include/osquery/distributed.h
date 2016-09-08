@@ -270,7 +270,6 @@ class Distributed {
   Status flushCompleted();
 
  protected:
-  std::vector<DistributedQueryRequest> queries_;
   std::vector<DistributedQueryResult> results_;
 
  private:
