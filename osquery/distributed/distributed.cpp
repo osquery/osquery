@@ -176,13 +176,11 @@ Status Distributed::acceptWork(const std::string& work) {
     auto& queries = tree.get_child("queries");
     for (const auto& node : queries) {
       auto query = queries.get<std::string>(node.first, "");
-      if (query.empty() ||
-          node.first.empty()) {
+      if (query.empty() || node.first.empty()) {
         return Status(1,
                       "Distributed query does not have complete attributes.");
       }
-      setDatabaseValue(kQueries,
-        kDistributedQueryPrefix + node.first, query);
+      setDatabaseValue(kQueries, kDistributedQueryPrefix + node.first, query);
     }
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error parsing JSON: " + std::string(e.what()));
