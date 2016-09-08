@@ -8,6 +8,7 @@
  *
  */
 
+#include <boost/algorithm/string/erase.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -63,6 +64,8 @@ void readCrashDump(const std::string& app_log, Row& r) {
   }
 
   // Variables for capturing the stack trace
+  boost::regex rx_spaces("\\s+");
+  boost::regex rx_spaces_colon(":\\s+");
   boost::format crashed_thread_format("Thread %1% Crashed");
   auto crashed_thread_seen = false;
 
@@ -78,8 +81,11 @@ void readCrashDump(const std::string& app_log, Row& r) {
 
     // Grab the most recent stack trace line of the crashed thread.
     if (crashed_thread_seen && toks[0] == crashed_thread_format.str()) {
-      if (std::next(it) != lines.end()) {
-        r["stack_trace"] = *(++it);
+      auto nextLine = std::next(it);
+      if (nextLine != lines.end()) {
+        auto trace = std::string(*nextLine);
+        auto cleanedTrace = boost::regex_replace(trace, rx_spaces, " ");
+        r["stack_trace"] = cleanedTrace;
       }
       crashed_thread_seen = false;
       continue;
@@ -93,27 +99,30 @@ void readCrashDump(const std::string& app_log, Row& r) {
     if (kRegisters.count(toks[0]) > 0) {
       boost::trim(line);
 
-      boost::regex rx_spaces("\\s+");
-      boost::regex rx_spaces_colon(":\\s+");
-
       line = boost::regex_replace(line, rx_spaces, " ");
       line = boost::regex_replace(line, rx_spaces_colon, ":");
 
       r["registers"] +=
           (r["registers"].empty()) ? std::move(line) : " " + std::move(line);
 
-    } else if (toks[0] == "Date/Time" && toks.size() >= 3) {
+    } else if (toks[0] == "Date/Time") {
       // Reconstruct split date/time
-      r[kCrashDumpKeys.at(toks[0])] = toks[1] + ":" + toks[2] + ":" + toks[3];
+      r[kCrashDumpKeys.at(toks[0])] =
+          toks.size() == 4 ? toks[1] + ":" + toks[2] + ":" + toks[3] : "";
     } else if (toks[0] == "Crashed Thread" ||
                toks[0] == "Triggered by Thread") {
       // If the token is the Crashed thread, update the format string so
       // we can grab the stack trace later.
-      auto t = split(toks[1], " ");
-      if (t.size() == 0) {
+      auto t =
+          toks.size() >= 2 ? split(toks[1], " ") : std::vector<std::string>();
+      if (t.empty()) {
         continue;
       }
-      r[kCrashDumpKeys.at(toks[0])] = t[0];
+      auto formatCrashedThread = std::strtoul(t[0].c_str(), nullptr, 10);
+      if (errno == EINVAL || errno == ERANGE) {
+        continue;
+      }
+      r[kCrashDumpKeys.at(toks[0])] = INTEGER(formatCrashedThread);
       crashed_thread_format % r[kCrashDumpKeys.at(toks[0])];
       crashed_thread_seen = true;
     } else if (toks[0] == "Process" || toks[0] == "Parent Process") {
@@ -122,14 +131,23 @@ void readCrashDump(const std::string& app_log, Row& r) {
       boost::smatch results;
       if (boost::regex_search(line, results, e)) {
         auto pid_str = std::string(results[0].first, results[0].second);
-        auto pid = pid_str.substr(1, pid_str.size() - 2);
-        r[kCrashDumpKeys.at(toks[0])] = pid;
+        boost::erase_all(pid_str, "[");
+        boost::erase_all(pid_str, "]");
+        auto pid = std::strtoul(pid_str.c_str(), nullptr, 10);
+        if (errno != EINVAL && errno != ERANGE) {
+          r[kCrashDumpKeys.at(toks[0])] = INTEGER(pid);
+        }
       }
     } else if (toks[0] == "User ID") {
-      r[kCrashDumpKeys.at(toks[0])] = toks[1];
+      if (toks.size() == 2) {
+        auto uid = std::strtoul(toks[1].c_str(), nullptr, 10);
+        if (errno != EINVAL && errno != ERANGE) {
+          r[kCrashDumpKeys.at(toks[0])] = INTEGER(uid);
+        }
+      }
     } else {
       // otherwise, process the line normally.
-      r[kCrashDumpKeys.at(toks[0])] = toks[1];
+      r[kCrashDumpKeys.at(toks[0])] = toks.size() == 2 ? toks[1] : "";
     }
   }
 }
