@@ -1,5 +1,5 @@
 table_name("wmi_filter_consumer_binding")
-description("All of the Windows registry hives.")
+description("Lists the relationship between event consumers and filters.")
 schema([
     Column("consumer", TEXT, "The parent registry hive where the key and value exist"),
     Column("filter", TEXT, "The parent registry hive where the key and value exist"),
