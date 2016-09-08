@@ -195,7 +195,7 @@ DistributedQueryRequest Distributed::popRequest() {
   scanDatabaseKeys(kQueries, distributed_queries, kDistributedQueryPrefix);
   DistributedQueryRequest request;
   request.id =
-    distributed_queries.front().substr(kDistributedQueryPrefix.size());
+      distributed_queries.front().substr(kDistributedQueryPrefix.size());
   getDatabaseValue(kQueries, distributed_queries.front(), request.query);
   deleteDatabaseValue(kQueries, distributed_queries.front());
   return request;
