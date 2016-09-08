@@ -78,7 +78,6 @@ Status Distributed::pullUpdates() {
 }
 
 size_t Distributed::getPendingQueryCount() {
-  WriteLock lock(distributed_queries_mutex_);
   std::vector<std::string> distributed_queries;
   scanDatabaseKeys(kQueries, distributed_queries, dist_query_prefix);
   return distributed_queries.size();
@@ -181,7 +180,6 @@ Status Distributed::acceptWork(const std::string& work) {
         return Status(1,
                       "Distributed query does not have complete attributes.");
       }
-      WriteLock wlock(distributed_queries_mutex_);
       setDatabaseValue(kQueries,
         dist_query_prefix + node.first,
         queries.get<std::string>(node.first, ""));
