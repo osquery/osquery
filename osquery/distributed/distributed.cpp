@@ -33,7 +33,7 @@ FLAG(bool,
 
 Mutex distributed_queries_mutex_;
 Mutex distributed_results_mutex_;
-std::string dist_query_prefix = "dist_query_";
+std::string dist_query_prefix = "distributed.";
 
 Status DistributedPlugin::call(const PluginRequest& request,
                                PluginResponse& response) {
@@ -79,9 +79,9 @@ Status Distributed::pullUpdates() {
 
 size_t Distributed::getPendingQueryCount() {
   WriteLock lock(distributed_queries_mutex_);
-  std::vector<std::string> rocks_queries;
-  scanDatabaseKeys(kQueries, rocks_queries, dist_query_prefix);
-  return rocks_queries.size();
+  std::vector<std::string> distributed_queries;
+  scanDatabaseKeys(kQueries, distributed_queries, dist_query_prefix);
+  return distributed_queries.size();
 }
 
 size_t Distributed::getCompletedCount() {
@@ -176,10 +176,8 @@ Status Distributed::acceptWork(const std::string& work) {
 
     auto& queries = tree.get_child("queries");
     for (const auto& node : queries) {
-      DistributedQueryRequest request;
-      request.id = node.first;
-      request.query = queries.get<std::string>(node.first, "");
-      if (request.query.empty() || request.id.empty()) {
+      if (queries.get<std::string>(node.first, "").empty() ||
+          node.first.empty()) {
         return Status(1,
                       "Distributed query does not have complete attributes.");
       }
@@ -197,12 +195,12 @@ Status Distributed::acceptWork(const std::string& work) {
 
 DistributedQueryRequest Distributed::popRequest() {
   WriteLock wlock_queries(distributed_queries_mutex_);
-  std::vector<std::string> rocks_queries;
-  scanDatabaseKeys(kQueries, rocks_queries, dist_query_prefix);
+  std::vector<std::string> distributed_queries;
+  scanDatabaseKeys(kQueries, distributed_queries, dist_query_prefix);
   DistributedQueryRequest request;
-  request.id = rocks_queries.front().substr(dist_query_prefix.size());
-  getDatabaseValue(kQueries, rocks_queries.front(), request.query);
-  deleteDatabaseValue(kQueries, rocks_queries.front());
+  request.id = distributed_queries.front().substr(dist_query_prefix.size());
+  getDatabaseValue(kQueries, distributed_queries.front(), request.query);
+  deleteDatabaseValue(kQueries, distributed_queries.front());
   return request;
 }
 
