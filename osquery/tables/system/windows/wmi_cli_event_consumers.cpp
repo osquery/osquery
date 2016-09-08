@@ -9,8 +9,8 @@
  */
 
 #include <map>
-#include <string>
 #include <sstream>
+#include <string>
 
 #include <stdlib.h>
 
@@ -25,7 +25,6 @@
 namespace osquery {
 namespace tables {
 
-
 QueryData genWmiCliConsumers(QueryContext& context) {
   QueryData results_data;
   std::stringstream ss;
@@ -33,26 +32,26 @@ QueryData genWmiCliConsumers(QueryContext& context) {
 
   WmiRequest request(ss.str(), L"ROOT\\Subscription");
   if (request.getStatus().ok()) {
-	std::vector<WmiResultItem>& results = request.results();
-	for (const auto& result : results) {
-		Row r;
-		Status s;
-		std::string sPlaceHolder;
+    std::vector<WmiResultItem>& results = request.results();
+    for (const auto& result : results) {
+      Row r;
+      Status s;
+      std::string sPlaceHolder;
 
-		s = result.GetString("CommandLineTemplate", sPlaceHolder);
-		r["command_line_template"] = SQL_TEXT(sPlaceHolder);
-		s = result.GetString("ExecutablePath", sPlaceHolder);
-		r["executable_path"] = SQL_TEXT(sPlaceHolder);
-		s = result.GetString("Name", sPlaceHolder);
-		r["name"] = SQL_TEXT(sPlaceHolder);
-		s = result.GetString("__CLASS", sPlaceHolder);
-		r["__class"] = SQL_TEXT(sPlaceHolder);
-		s = result.GetString("__RELPATH", sPlaceHolder);
-		r["__relpath"] = SQL_TEXT(sPlaceHolder);
-		results_data.push_back(r);
-	}
+      s = result.GetString("CommandLineTemplate", sPlaceHolder);
+      r["command_line_template"] = SQL_TEXT(sPlaceHolder);
+      s = result.GetString("ExecutablePath", sPlaceHolder);
+      r["executable_path"] = SQL_TEXT(sPlaceHolder);
+      s = result.GetString("Name", sPlaceHolder);
+      r["name"] = SQL_TEXT(sPlaceHolder);
+      s = result.GetString("__CLASS", sPlaceHolder);
+      r["__class"] = SQL_TEXT(sPlaceHolder);
+      s = result.GetString("__RELPATH", sPlaceHolder);
+      r["__relpath"] = SQL_TEXT(sPlaceHolder);
+      results_data.push_back(r);
+    }
   }
-  
+
   return results_data;
 }
 }
