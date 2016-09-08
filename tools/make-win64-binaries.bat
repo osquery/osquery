@@ -5,7 +5,9 @@ mkdir .\build\windows10
 cd .\build\windows10
 cmake ..\.. -G "Visual Studio 14 2015 Win64"
 
-cmake --build . --target shell --config Release
-cmake --build . --target daemon --config Release
-cmake --build . --target osquery_tests --config Release
-cmake --build . --target osquery_additional_tests --config Release
+for %%t in (shell,daemon,osquery_tests,osquery_additional_tests) do (
+  cmake --build . --target %%t --config Release
+  if errorlevel 1 goto end
+)
+
+:end
