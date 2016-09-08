@@ -1,0 +1,13 @@
+table_name("wmi_cli_event_consumers")
+description("WMI CommandLineEventConsumer, which can be used for persistance on Windows. https://www.blackhat.com/docs/us-15/materials/us-15-Graeber-Abusing-Windows-Management-Instrumentation-WMI-To-Build-A-Persistent%20Asynchronous-And-Fileless-Backdoor-wp.pdf")
+schema([
+    Column("name", TEXT, "Unique name of a consumer."),
+    Column("command_line_template", TEXT, "Standard string template that specifies the process to be started. This property can be NULL, and the ExecutablePath property is used as the command line."),
+    Column("executable_path", TEXT, "Module to execute. The string can specify the full path and file name of the module to execute, or it can specify a partial name. If a partial name is specified, the current drive and current directory are assumed."),
+    Column("__class", TEXT, "The name of the class."),
+    Column("__relpath", TEXT, "Relative path to the class or instance."),
+])
+implementation("wmi_cli_event_consumers@genWmiCliConsumers")
+examples([
+  "select filter,consumer,query,command_line_template from wmi_filter_consumer_binding wcb join wmi_cli_event_consumers wcec on consumer = wcec.__relpath join wmi_event_filters wef on wef.__relpath = wcb.filter;",
+])

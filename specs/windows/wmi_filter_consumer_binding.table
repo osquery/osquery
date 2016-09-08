@@ -1,0 +1,12 @@
+table_name("wmi_filter_consumer_binding")
+description("All of the Windows registry hives.")
+schema([
+    Column("consumer", TEXT, "The parent registry hive where the key and value exist"),
+    Column("filter", TEXT, "The parent registry hive where the key and value exist"),
+    Column("__class", TEXT, "The parent registry hive where the key and value exist"),
+    Column("__relpath", TEXT, "The parent registry hive where the key and value exist"),
+])
+implementation("wmi_filter_consumer_binding@genFilterConsumer")
+examples([
+  "select * from wmi_filter_consumer_binding",
+])

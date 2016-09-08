@@ -123,7 +123,7 @@ class WmiResultItem {
 */
 class WmiRequest {
  public:
-  explicit WmiRequest(const std::string& query);
+	 explicit WmiRequest(const std::string& query, BSTR nspace = L"ROOT\\CIMV2");
   WmiRequest(WmiRequest&& src);
   ~WmiRequest();
 

@@ -1,0 +1,11 @@
+table_name("interface_addresses")
+description("Network interfaces and relevant metadata.")
+schema([
+    Column("interface_index", INTEGER, "Index value that uniquely identifies the local network interface. "),
+    Column("address", TEXT, "Specific address for interface"),
+    Column("mask", TEXT, "Interface netmask"),
+])
+implementation("interface_addresses@genWinInterfaceAddresses")
+examples([
+  "select ia.address, ia.mask, id.name from interface_addresses ia join interface_details id using (interface_index);",
+])

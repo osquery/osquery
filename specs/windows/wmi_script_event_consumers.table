@@ -1,0 +1,14 @@
+table_name("wmi_script_event_consumers")
+description("WMI ActiveScriptEventConsumer, which can be used for persistance on Windows. https://www.blackhat.com/docs/us-15/materials/us-15-Graeber-Abusing-Windows-Management-Instrumentation-WMI-To-Build-A-Persistent%20Asynchronous-And-Fileless-Backdoor-wp.pdf")
+schema([
+    Column("name", TEXT, "Unique identifier for the event consumer. "),
+    Column("scripting_engine", TEXT, "The parent registry hive where the key and value exist"),
+    Column("script_file_name", TEXT, "The parent registry hive where the key and value exist"),
+    Column("script_text", TEXT, "The parent registry hive where the key and value exist"),
+    Column("__class", TEXT, "The name of the class."),
+    Column("__relpath", TEXT, "Relative path to the class or instance."),
+])
+implementation("wmi_script_event_consumers@genScriptConsumers")
+examples([
+  "select filter,consumer,query,scripting_engine,script_text from wmi_filter_consumer_binding wcb join wmi_script_event_consumers wsec on consumer = wsec.__relpath join wmi_event_filters wef on wef.__relpath = wcb.filter;",
+])
