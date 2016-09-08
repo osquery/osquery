@@ -194,7 +194,8 @@ DistributedQueryRequest Distributed::popRequest() {
   std::vector<std::string> distributed_queries;
   scanDatabaseKeys(kQueries, distributed_queries, kDistributedQueryPrefix);
   DistributedQueryRequest request;
-  request.id = distributed_queries.front().substr(kDistributedQueryPrefix.size());
+  request.id =
+    distributed_queries.front().substr(kDistributedQueryPrefix.size());
   getDatabaseValue(kQueries, distributed_queries.front(), request.query);
   deleteDatabaseValue(kQueries, distributed_queries.front());
   return request;
