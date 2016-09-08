@@ -33,6 +33,7 @@ FLAG(bool,
 
 Mutex distributed_queries_mutex_;
 Mutex distributed_results_mutex_;
+std::string dist_query_prefix = "dist_query_";
 
 Status DistributedPlugin::call(const PluginRequest& request,
                                PluginResponse& response) {
@@ -78,7 +79,9 @@ Status Distributed::pullUpdates() {
 
 size_t Distributed::getPendingQueryCount() {
   WriteLock lock(distributed_queries_mutex_);
-  return queries_.size();
+  std::vector<std::string> rocks_queries;
+  scanDatabaseKeys(kQueries, rocks_queries, dist_query_prefix);
+  return rocks_queries.size();
 }
 
 size_t Distributed::getCompletedCount() {
@@ -181,7 +184,9 @@ Status Distributed::acceptWork(const std::string& work) {
                       "Distributed query does not have complete attributes.");
       }
       WriteLock wlock(distributed_queries_mutex_);
-      queries_.push_back(request);
+      setDatabaseValue(kQueries,
+        dist_query_prefix + node.first,
+        queries.get<std::string>(node.first, ""));
     }
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error parsing JSON: " + std::string(e.what()));
@@ -192,9 +197,13 @@ Status Distributed::acceptWork(const std::string& work) {
 
 DistributedQueryRequest Distributed::popRequest() {
   WriteLock wlock_queries(distributed_queries_mutex_);
-  auto q = queries_[0];
-  queries_.erase(queries_.begin());
-  return q;
+  std::vector<std::string> rocks_queries;
+  scanDatabaseKeys(kQueries, rocks_queries, dist_query_prefix);
+  DistributedQueryRequest request;
+  request.id = rocks_queries.front().substr(dist_query_prefix.size());
+  getDatabaseValue(kQueries, rocks_queries.front(), request.query);
+  deleteDatabaseValue(kQueries, rocks_queries.front());
+  return request;
 }
 
 Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
