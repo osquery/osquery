@@ -36,7 +36,7 @@ void DistributedRunner::start() {
     Status stat = getDatabaseValue(kPersistentSettings,
         "accelerate_checkins_until",
         str_acu);
-    unsigned long accelerate_checkins_until = std::stol(str_acu);
+    auto accelerate_checkins_until = std::stol(str_acu);
     if (!stat.ok() || getUnixTime() > accelerate_checkins_until) {
       pauseMilli(FLAGS_distributed_interval * 1000);
     } else {
