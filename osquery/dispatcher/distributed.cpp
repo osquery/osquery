@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+ 
 #include <osquery/distributed.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
