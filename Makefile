@@ -67,6 +67,10 @@ sanitize: .setup
 	@cd build/$(BUILD_DIR) && SANITIZE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
+fuzz: .setup
+	@echo "[+] zzuf (`$(PATH_SET) which zzuf`) version: `$(PATH_SET) zzuf -V | head -n 1`"
+	@$(PATH_SET) python tools/analysis/fuzz.py
+
 sdk: .setup
 	@cd build/$(BUILD_DIR) && SDK=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)

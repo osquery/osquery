@@ -9,3 +9,9 @@ schema([
     Column("type", TEXT, "Data type"),
 ])
 implementation("system_controls@genSystemControls")
+fuzz_paths([
+    "/run/sysctl.d/",
+    "/usr/lib/sysctl.d/",
+    "/lib/sysctl.d/",
+    "/sys"
+])

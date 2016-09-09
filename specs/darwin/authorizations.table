@@ -17,8 +17,11 @@ schema([
 ])
 implementation("system/darwin/authorizations@genAuthorizations")
 examples([
-  "select * from authorizations;",
-  "select * from authorizations where label = 'system.login.console';",
-  "select * from authorizations where label = 'authenticate';",
-  "select * from authorizations where label = 'system.preferences.softwareupdate';"
+    "select * from authorizations;",
+    "select * from authorizations where label = 'system.login.console';",
+    "select * from authorizations where label = 'authenticate';",
+    "select * from authorizations where label = 'system.preferences.softwareupdate';"
+])
+fuzz_paths([
+    "/System/Library/Security/authorization.plist",
 ])

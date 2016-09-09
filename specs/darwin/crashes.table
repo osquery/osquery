@@ -19,3 +19,7 @@ schema([
     Column("registers", TEXT, "The value of the system registers")
 ])
 implementation("crashes@genCrashLogs")
+fuzz_paths([
+    "/Library/Logs/DiagnosticReports",
+    "/Users",
+])

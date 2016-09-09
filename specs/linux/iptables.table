@@ -19,3 +19,6 @@ schema([
     Column("bytes", INTEGER, "Number of matching bytes for this rule."),
 ])
 implementation("iptables@genIptables")
+fuzz_paths([
+    "/proc/net/ip_tables_names",
+])

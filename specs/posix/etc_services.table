@@ -9,3 +9,6 @@ schema([
 ])
 attributes(cacheable=True)
 implementation("etc_services@genEtcServices")
+fuzz_paths([
+    "/etc/services",
+])

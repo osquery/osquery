@@ -60,10 +60,12 @@ macro(ADD_DEFAULT_LINKS TARGET ADDITIONAL)
 endmacro()
 
 macro(ADD_OSQUERY_PYTHON_TEST TEST_NAME SOURCE)
-  add_test(NAME python_${TEST_NAME}
-    COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/tests/${SOURCE}"
-      --build "${CMAKE_BINARY_DIR}"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tools/tests/")
+  if(NOT DEFINED ENV{SKIP_INTEGRATION_TESTS})
+    add_test(NAME python_${TEST_NAME}
+      COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/tests/${SOURCE}"
+        --build "${CMAKE_BINARY_DIR}"
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tools/tests/")
+  endif()
 endmacro(ADD_OSQUERY_PYTHON_TEST)
 
 # Add a static or dynamic link to libosquery.a (the core library)

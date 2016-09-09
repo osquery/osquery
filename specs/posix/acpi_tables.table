@@ -6,3 +6,6 @@ schema([
     Column("md5", TEXT, "MD5 hash of table content"),
 ])
 implementation("system/acpi_tables@genACPITables")
+fuzz_paths([
+    "/sys/firmware/",
+])

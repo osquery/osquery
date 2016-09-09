@@ -6,3 +6,6 @@ schema([
     Column("readonly", INTEGER, "1 if the share is exported readonly else 0"),
 ])
 implementation("nfs_shares@genNFSShares")
+fuzz_paths([
+    "/etc/exports",
+])

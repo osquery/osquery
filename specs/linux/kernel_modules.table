@@ -8,3 +8,6 @@ schema([
     Column("address", TEXT, "Kernel module address"),
 ])
 implementation("kernel_modules@genKernelModules")
+fuzz_paths([
+    "/proc/modules",
+])

@@ -9,3 +9,7 @@ schema([
 ])
 attributes(user_data=True)
 implementation("known_hosts@getKnownHostsKeys")
+fuzz_paths([
+    "/home",
+    "/Users",
+])

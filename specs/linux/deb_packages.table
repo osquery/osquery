@@ -10,3 +10,6 @@ schema([
 ])
 attributes(cacheable=True)
 implementation("system/deb_packages@genDebPackages")
+fuzz_paths([
+    "/var/lib/dpkg",
+])

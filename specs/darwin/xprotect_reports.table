@@ -6,3 +6,7 @@ schema([
     Column("time", TEXT, "Quarantine alert time"),
 ])
 implementation("xprotect@genXProtectReports")
+fuzz_paths([
+    "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/",
+    "/Library/Logs/DiagnosticReports",
+])

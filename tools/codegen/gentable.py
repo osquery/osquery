@@ -180,6 +180,7 @@ class TableState(Singleton):
         self.attributes = {}
         self.examples = []
         self.aliases = []
+        self.fuzz_paths = []
         self.has_options = False
         self.has_column_aliases = False
 
@@ -332,6 +333,10 @@ def examples(example_queries):
 def attributes(**kwargs):
     for attr in kwargs:
         table.attributes[attr] = kwargs[attr]
+
+
+def fuzz_paths(paths):
+    table.fuzz_paths = paths
 
 
 def implementation(impl_string):

@@ -7,3 +7,6 @@ schema([
     Column("value", TEXT, "Variable typed option value"),
 ])
 implementation("ad_config@genADConfig")
+fuzz_paths([
+    "/Library/Preferences/OpenDirectory/Configurations/Active Directory/",
+])
