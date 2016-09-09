@@ -8,8 +8,8 @@
  *
  */
 
-#include <osquery/distributed.h>
 #include <osquery/database.h>
+#include <osquery/distributed.h>
 #include <osquery/flags.h>
 #include <osquery/system.h>
 
