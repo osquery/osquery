@@ -13,6 +13,7 @@
 #include <osquery/flags.h>
 #include <osquery/system.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/dispatcher/distributed.h"
 
 namespace osquery {
@@ -25,6 +26,8 @@ FLAG(uint64,
 DECLARE_bool(disable_distributed);
 DECLARE_string(distributed_plugin);
 
+const size_t kDistributedAccelerationInterval = 5;
+
 void DistributedRunner::start() {
   auto dist = Distributed();
   while (!interrupted()) {
@@ -34,12 +37,13 @@ void DistributedRunner::start() {
     }
     std::string str_acu = "0";
     Status stat = getDatabaseValue(
-        kPersistentSettings, "accelerate_checkins_until", str_acu);
-    auto accelerate_checkins_until = std::stol(str_acu);
-    if (!stat.ok() || getUnixTime() > accelerate_checkins_until) {
+        kPersistentSettings, "distributed_accelerate_checkins_expire", str_acu);
+    unsigned long accelerate_checkins_expire;
+    safeStrtoul(str_acu, 10, accelerate_checkins_expire);
+    if (!stat.ok() || getUnixTime() > accelerate_checkins_expire) {
       pauseMilli(FLAGS_distributed_interval * 1000);
     } else {
-      pauseMilli(5000);
+      pauseMilli(kDistributedAccelerationInterval * 1000);
     }
   }
 }

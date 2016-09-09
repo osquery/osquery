@@ -144,6 +144,18 @@ inline Status safeStrtol(const std::string& rep, size_t base, long int& out) {
 }
 
 /// Safely convert a string representation of an integer base.
+inline Status safeStrtoul(const std::string& rep,
+                          size_t base,
+                          unsigned long int& out) {
+  char* end{nullptr};
+  out = strtol(rep.c_str(), &end, static_cast<int>(base));
+  if (end == nullptr || end == rep.c_str() || *end != '\0' || errno == ERANGE) {
+    return Status(1);
+  }
+  return Status(0);
+}
+
+/// Safely convert a string representation of an integer base.
 inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
   char* end{nullptr};
   out = strtoll(rep.c_str(), &end, static_cast<int>(base));

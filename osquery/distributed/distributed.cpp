@@ -17,6 +17,7 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
@@ -183,12 +184,14 @@ Status Distributed::acceptWork(const std::string& work) {
       }
       setDatabaseValue(kQueries, kDistributedQueryPrefix + node.first, query);
     }
-    if (tree.count("accelerate_checkins_for") > 0) {
-      auto new_time = tree.get<std::string>("accelerate_checkins_for", "");
-      auto duration = std::stol(new_time);
-      LOG(INFO) << "Accelerating Checkins for " << duration << " seconds.\n";
+    if (tree.count("accelerate") > 0) {
+      auto new_time = tree.get<std::string>("accelerate", "");
+      unsigned long duration;
+      safeStrtoul(new_time, 10, duration);
+      LOG(INFO) << "Accelerating distributed query checkins for " << duration
+                << " seconds.";
       setDatabaseValue(kPersistentSettings,
-                       "accelerate_checkins_until",
+                       "distributed_accelerate_checkins_expire",
                        std::to_string(getUnixTime() + duration));
     }
 
