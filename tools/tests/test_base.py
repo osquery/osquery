@@ -77,7 +77,7 @@ DEFAULT_CONFIG = {
         "pidfile": "%s.pid" % CONFIG_NAME,
         "config_path": "%s.conf" % CONFIG_NAME,
         "extensions_autoload": "/dev/null",
-        "extensions_socket": "%s.em" % CONFIG_NAME,
+        "extensions_socket": "%s.em" % (CONFIG_NAME if os.name == "posix" else "\\\\.\\pipe\\tests"),
         "extensions_interval": "1",
         "extensions_timeout": "0",
         "watchdog_level": "3",
@@ -94,14 +94,7 @@ CONFIG = None
 ARGS = None
 
 if os.name == "nt":
-    class PexpectWrapper(popen_spawn.PopenSpawn):
-        def __init__(self, cmd, env):
-            self.echo = False
-
-            if not isinstance(cmd, (list, tuple)):
-                cmd = shlex.split(cmd, posix=False)
-                print(cmd)
-            popen_spawn.PopenSpawn.__init__(self, cmd, env=env)
+    import wexpect
 
 class OsqueryUnknownException(Exception):
     '''Exception thrown for unknown output from the shell'''
@@ -128,7 +121,8 @@ class OsqueryWrapper(REPLWrapper):
         command = command + " " + " ".join(["--%s=%s" % (k, v) for
                                             k, v in options.iteritems()])
         if os.name == "nt":
-            proc = PexpectWrapper(command, env=env)
+            argv = shlex.split(command, posix=False)
+            proc = wexpect.spawn(argv[0], args=argv[1 : ], env=env)
         else:
             proc = pexpect.spawn(command, env=env)
 
@@ -309,6 +303,26 @@ class ProcRunner(object):
             delay += self.interval
         return False
 
+'''Determine the last build osqueryi.exe'''
+def getLatestOsqueryDaemon():
+    if os.name == "posix":
+        return os.path.join(ARGS.build, "osquery", "osqueryd")
+
+    release_path = os.path.abspath(os.path.join(ARGS.build, "osquery", "Release", "osqueryd.exe"))
+    relwithdebinfo_path = os.path.abspath(
+        os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "osqueryd.exe"))
+
+    if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
+        if os.stat(release_path).st_mtime > os.stat(relwithdebinfo_path).st_mtime:
+            return release_path
+        else:
+            return relwithdebinfo_path
+    elif os.path.exists(release_path):
+        return release_path
+    elif os.path.exists(relwithdebinfo_path):
+        return relwithdebinfo_path
+    else:
+        return None
 
 class ProcessGenerator(object):
     '''Helper methods to patch into a unittest'''
@@ -333,7 +347,7 @@ class ProcessGenerator(object):
         for key in overwrite:
             config[key] = overwrite[key]
         utils.write_config(config)
-        binary = os.path.join(ARGS.build, "osquery", "osqueryd")
+        binary = getLatestOsqueryDaemon()
 
         daemon = ProcRunner("daemon", binary, flags, silent=silent)
         daemon.options = config["options"]

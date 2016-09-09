@@ -76,7 +76,7 @@ class OsqueryiTest(unittest.TestCase):
     @test_base.flaky
     def test_config_dump(self):
         '''Test that config raw output is dumped when requested'''
-        config = "%s/test_noninline_packs.conf" % test_base.SCRIPT_DIR
+        config = os.path.join(test_base.SCRIPT_DIR, "test_noninline_packs.conf")
         proc = test_base.TimeoutRunner([
                 self.binary,
                 "--config_dump",
@@ -85,7 +85,12 @@ class OsqueryiTest(unittest.TestCase):
             SHELL_TIMEOUT)
         content = ""
         with open(config, 'r') as fh: content = fh.read()
-        self.assertEqual(proc.stdout, "{\"%s\": %s}\n" % (config, content))
+        actual = proc.stdout
+
+        if os.name == "nt":
+            # Get rid of return carriages!
+            actual = actual.replace("\r", "")
+        self.assertEqual(actual, "{\"%s\": %s}\n" % (config, content))
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
@@ -111,7 +116,7 @@ class OsqueryiTest(unittest.TestCase):
             self.binary,
             "--config_check",
             "--database_path=%s" % (self.dbpath),
-            "--config_path=%s/test.badconfig" % test_base.SCRIPT_DIR
+            "--config_path=%s" % os.path.join(test_base.SCRIPT_DIR, "test.badconfig")
         ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.proc.poll(), 1)
@@ -135,11 +140,11 @@ class OsqueryiTest(unittest.TestCase):
     @test_base.flaky
     def test_config_check_example(self):
         '''Test that the example config passes'''
-        example_path = "deployment/osquery.example.conf"
+        example_path = os.path.join("deployment", "osquery.example.conf")
         proc = test_base.TimeoutRunner([
                 self.binary,
                 "--config_check",
-                "--config_path=%s/../%s" % (test_base.SCRIPT_DIR, example_path)
+                "--config_path=%s" % os.path.join(test_base.SCRIPT_DIR, "..", example_path)
             ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.stdout, "")
