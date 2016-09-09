@@ -9,8 +9,8 @@
  */
 
 #include <map>
-#include <string>
 #include <sstream>
+#include <string>
 
 #include <stdlib.h>
 
@@ -25,7 +25,6 @@
 namespace osquery {
 namespace tables {
 
-
 QueryData genShares(QueryContext& context) {
   QueryData results_data;
   std::stringstream ss;
@@ -33,34 +32,34 @@ QueryData genShares(QueryContext& context) {
 
   WmiRequest request(ss.str());
   if (request.getStatus().ok()) {
-	std::vector<WmiResultItem>& results = request.results();
-	for (const auto& result : results) {
-		Row r;
-		Status s;
-		long lPlaceHolder;
-		bool bPlaceHolder;
-		std::string sPlaceHolder;
+    std::vector<WmiResultItem>& results = request.results();
+    for (const auto& result : results) {
+      Row r;
+      Status s;
+      long lPlaceHolder;
+      bool bPlaceHolder;
+      std::string sPlaceHolder;
 
-		s = result.GetString("Description", sPlaceHolder);
-		r["description"] = SQL_TEXT(sPlaceHolder);
-		s = result.GetString("InstallDate", sPlaceHolder);
-		r["install_date"] = SQL_TEXT(sPlaceHolder);
-		s = result.GetString("Status", sPlaceHolder);
-		r["status"] = SQL_TEXT(sPlaceHolder);
-		s = result.GetBool("AllowMaximum", bPlaceHolder);
-		r["allow_maximum"] = INTEGER(bPlaceHolder);
-		s = result.GetLong("MaximumAllowed", lPlaceHolder);
-		r["maximum_allowed"] = INTEGER(lPlaceHolder);
-		s = result.GetString("Name", sPlaceHolder);
-		r["name"] = SQL_TEXT(sPlaceHolder);
-		s = result.GetString("Path", sPlaceHolder);
-		r["path"] = SQL_TEXT(sPlaceHolder);
-		s = result.GetLong("Type", lPlaceHolder);
-		r["type"] = INTEGER(lPlaceHolder);
-		results_data.push_back(r);
-	}
+      s = result.GetString("Description", sPlaceHolder);
+      r["description"] = SQL_TEXT(sPlaceHolder);
+      s = result.GetString("InstallDate", sPlaceHolder);
+      r["install_date"] = SQL_TEXT(sPlaceHolder);
+      s = result.GetString("Status", sPlaceHolder);
+      r["status"] = SQL_TEXT(sPlaceHolder);
+      s = result.GetBool("AllowMaximum", bPlaceHolder);
+      r["allow_maximum"] = INTEGER(bPlaceHolder);
+      s = result.GetLong("MaximumAllowed", lPlaceHolder);
+      r["maximum_allowed"] = INTEGER(lPlaceHolder);
+      s = result.GetString("Name", sPlaceHolder);
+      r["name"] = SQL_TEXT(sPlaceHolder);
+      s = result.GetString("Path", sPlaceHolder);
+      r["path"] = SQL_TEXT(sPlaceHolder);
+      s = result.GetLong("Type", lPlaceHolder);
+      r["type"] = INTEGER(lPlaceHolder);
+      results_data.push_back(r);
+    }
   }
-  
+
   return results_data;
 }
 }
