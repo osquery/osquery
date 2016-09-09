@@ -184,12 +184,12 @@ Status Distributed::acceptWork(const std::string& work) {
       setDatabaseValue(kQueries, kDistributedQueryPrefix + node.first, query);
     }
     if (tree.count("accelerate_checkins_for") > 0) {
-      auto new_time =
-          tree.get<std::string>("accelerate_checkins_for", "");
+      auto new_time = tree.get<std::string>("accelerate_checkins_for", "");
       auto duration = std::stol(new_time);
       LOG(INFO) << "Accelerating Checkins for " << duration << " seconds.\n";
-      setDatabaseValue(kPersistentSettings, "accelerate_checkins_until",
-          std::to_string(getUnixTime()+duration));
+      setDatabaseValue(kPersistentSettings,
+                       "accelerate_checkins_until",
+                       std::to_string(getUnixTime() + duration));
     }
 
   } catch (const pt::ptree_error& e) {
