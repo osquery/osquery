@@ -7,9 +7,10 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-
 #include <osquery/distributed.h>
+#include <osquery/database.h>
 #include <osquery/flags.h>
+#include <osquery/system.h>
 
 #include "osquery/dispatcher/distributed.h"
 
@@ -30,7 +31,16 @@ void DistributedRunner::start() {
     if (dist.getPendingQueryCount() > 0) {
       dist.runQueries();
     }
-    pauseMilli(FLAGS_distributed_interval * 1000);
+    std::string str_acu = "0";
+    Status stat = getDatabaseValue(kPersistentSettings,
+        "accelerate_checkins_until",
+        str_acu);
+    unsigned long accelerate_checkins_until = std::stol(str_acu);
+    if (!stat.ok() || getUnixTime() > accelerate_checkins_until) {
+      pauseMilli(FLAGS_distributed_interval * 1000);
+    } else {
+      pauseMilli(5000);
+    }
   }
 }
 

@@ -15,6 +15,7 @@
 #include <osquery/distributed.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 #include "osquery/core/json.h"
 
@@ -182,6 +183,15 @@ Status Distributed::acceptWork(const std::string& work) {
       }
       setDatabaseValue(kQueries, kDistributedQueryPrefix + node.first, query);
     }
+    if (tree.count("accelerate_checkins_for") > 0) {
+      auto new_time =
+          tree.get<std::string>("accelerate_checkins_for", "");
+      unsigned long duration = std::stol(new_time);
+      LOG(INFO) << "Accelerating Checkins for " << duration << " seconds.\n";
+      setDatabaseValue(kPersistentSettings, "accelerate_checkins_until",
+          std::to_string(getUnixTime()+duration));
+    }
+
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error parsing JSON: " + std::string(e.what()));
   }
