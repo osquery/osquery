@@ -11,9 +11,9 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/core.h>
-#include <osquery/tables.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 
@@ -44,21 +44,21 @@ void genSandboxContainer(const fs::path& container, QueryData& results) {
     return;
   }
 
-  auto info = tree.get_child("SandboxProfileDataValidationInfo");
+  auto& info = tree.get_child("SandboxProfileDataValidationInfo");
   if (info.count("SandboxProfileDataValidationParametersKey") == 0) {
     return;
   }
 
   Row r;
-  info = info.get_child("SandboxProfileDataValidationParametersKey");
-  r["label"] = info.get("application_container_id", "");
-  r["user"] = info.get("_USER", "");
+  auto& key_info = info.get_child("SandboxProfileDataValidationParametersKey");
+  r["label"] = key_info.get("application_container_id", "");
+  r["user"] = key_info.get("_USER", "");
   r["enabled"] = INTEGER(tree.get(
       "SandboxProfileDataValidationEntitlementsKey.com.apple.security.app-"
       "sandbox",
       0));
-  r["build_id"] = info.get("sandbox_build_id", "");
-  r["bundle_path"] = info.get("application_bundle", "");
+  r["build_id"] = key_info.get("sandbox_build_id", "");
+  r["bundle_path"] = key_info.get("application_bundle", "");
   r["path"] = container.string();
   results.push_back(r);
 }
