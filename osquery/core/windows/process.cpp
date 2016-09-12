@@ -50,7 +50,7 @@ PlatformProcess::PlatformProcess(pid_t pid) {
   }
 }
 
-PlatformProcess::PlatformProcess(PlatformProcess &&src) noexcept {
+PlatformProcess::PlatformProcess(PlatformProcess&& src) noexcept {
   id_ = kInvalidPid;
   std::swap(id_, src.id_);
 }
@@ -62,17 +62,19 @@ PlatformProcess::~PlatformProcess() {
   }
 }
 
-bool PlatformProcess::operator==(const PlatformProcess &process) const {
+bool PlatformProcess::operator==(const PlatformProcess& process) const {
   return (::GetProcessId(nativeHandle()) ==
           ::GetProcessId(process.nativeHandle()));
 }
 
-bool PlatformProcess::operator!=(const PlatformProcess &process) const {
+bool PlatformProcess::operator!=(const PlatformProcess& process) const {
   return (::GetProcessId(nativeHandle()) !=
           ::GetProcessId(process.nativeHandle()));
 }
 
-int PlatformProcess::pid() const { return (int)::GetProcessId(id_); }
+int PlatformProcess::pid() const {
+  return (int)::GetProcessId(id_);
+}
 
 bool PlatformProcess::kill() const {
   if (id_ == kInvalidPid) {
@@ -82,7 +84,7 @@ bool PlatformProcess::kill() const {
   return (::TerminateProcess(id_, 0) != FALSE);
 }
 
-ProcessState PlatformProcess::checkStatus(int &status) const {
+ProcessState PlatformProcess::checkStatus(int& status) const {
   DWORD exit_code = 0;
   if (!::GetExitCodeProcess(nativeHandle(), &exit_code)) {
     return PROCESS_ERROR;
@@ -134,7 +136,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
 }
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
-    const std::string &exec_path, int argc, char **argv) {
+    const std::string& exec_path, int argc, char** argv) {
   ::STARTUPINFOA si = {0};
   ::PROCESS_INFORMATION pi = {0};
 
@@ -229,12 +231,12 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
 }
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
-    const std::string &exec_path,
-    const std::string &extension,
-    const std::string &extensions_socket,
-    const std::string &extensions_timeout,
-    const std::string &extensions_interval,
-    const std::string &verbose) {
+    const std::string& exec_path,
+    const std::string& extension,
+    const std::string& extensions_socket,
+    const std::string& extensions_timeout,
+    const std::string& extensions_interval,
+    const std::string& verbose) {
   ::STARTUPINFOA si = {0};
   ::PROCESS_INFORMATION pi = {0};
 
@@ -287,6 +289,47 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   auto process = std::make_shared<PlatformProcess>(pi.hProcess);
   ::CloseHandle(pi.hThread);
   ::CloseHandle(pi.hProcess);
+
+  return process;
+}
+
+std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
+    const std::string& args) {
+  std::shared_ptr<PlatformProcess> process;
+
+  STARTUPINFOA si = {0};
+  PROCESS_INFORMATION pi = {0};
+
+  auto argv = "python " + args;
+  std::vector<char> mutable_argv(argv.begin(), argv.end());
+  mutable_argv.push_back('\0');
+  si.cb = sizeof(si);
+
+  auto drive = getEnvVar("SystemDrive");
+  std::string python_path("");
+  if (drive.is_initialized()) {
+    python_path = *drive;
+  }
+
+  // Python is installed at this location if the provisioning script is used.
+  // This path should work regardless of the existence of the SystemDrive
+  // environment variable.
+  python_path += "\\tools\\python2\\python.exe";
+
+  if (::CreateProcessA(python_path.c_str(),
+                       mutable_argv.data(),
+                       nullptr,
+                       nullptr,
+                       FALSE,
+                       0,
+                       nullptr,
+                       nullptr,
+                       &si,
+                       &pi)) {
+    process.reset(new PlatformProcess(pi.hProcess));
+    ::CloseHandle(pi.hThread);
+    ::CloseHandle(pi.hProcess);
+  }
 
   return process;
 }

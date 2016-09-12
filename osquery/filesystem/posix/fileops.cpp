@@ -44,7 +44,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
 
   switch (PF_GET_OPTIONS(mode)) {
   case PF_GET_OPTIONS(PF_CREATE_ALWAYS):
-    oflag |= O_CREAT;
+    oflag |= O_CREAT | O_TRUNC;
     may_create = true;
     break;
   case PF_GET_OPTIONS(PF_CREATE_NEW):
@@ -53,6 +53,10 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
     break;
   case PF_GET_OPTIONS(PF_OPEN_EXISTING):
     check_existence = true;
+    break;
+  case PF_GET_OPTIONS(PF_OPEN_ALWAYS):
+    oflag |= O_CREAT;
+    may_create = true;
     break;
   case PF_GET_OPTIONS(PF_TRUNCATE):
     if (mode & PF_WRITE) {

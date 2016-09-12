@@ -18,8 +18,8 @@
 namespace osquery {
 
 /// Unlike checkChildProcessStatus, this will block until process exits.
-static bool getProcessExitCode(osquery::PlatformProcess &process,
-                               int &exitCode) {
+static bool getProcessExitCode(osquery::PlatformProcess& process,
+                               int& exitCode) {
   if (!process.isValid()) {
     return false;
   }
@@ -91,7 +91,7 @@ TEST_F(ProcessTests, test_getpid) {
 
   std::shared_ptr<PlatformProcess> process =
       PlatformProcess::getCurrentProcess();
-  EXPECT_TRUE(process.get());
+  EXPECT_NE(nullptr, process.get());
 
 #ifdef WIN32
   pid = (int)::GetCurrentProcessId();
@@ -130,7 +130,7 @@ TEST_F(ProcessTests, test_launchExtension) {
                                                   kExpectedExtensionArgs[4],
                                                   kExpectedExtensionArgs[6],
                                                   "true");
-    EXPECT_TRUE(process.get());
+    EXPECT_NE(nullptr, process.get());
 
     int code = 0;
     EXPECT_TRUE(getProcessExitCode(*process, code));
@@ -140,9 +140,9 @@ TEST_F(ProcessTests, test_launchExtension) {
 
 TEST_F(ProcessTests, test_launchWorker) {
   {
-    std::vector<char *> argv;
+    std::vector<char*> argv;
     for (size_t i = 0; i < kExpectedWorkerArgsCount; i++) {
-      char *entry = new char[strlen(kExpectedWorkerArgs[i]) + 1];
+      char* entry = new char[strlen(kExpectedWorkerArgs[i]) + 1];
       EXPECT_NE(entry, nullptr);
       memset(entry, '\0', strlen(kExpectedWorkerArgs[i]) + 1);
       memcpy(entry, kExpectedWorkerArgs[i], strlen(kExpectedWorkerArgs[i]));
@@ -152,12 +152,14 @@ TEST_F(ProcessTests, test_launchWorker) {
 
     std::shared_ptr<osquery::PlatformProcess> process =
         osquery::PlatformProcess::launchWorker(
-            kProcessTestExecPath.c_str(), kExpectedWorkerArgsCount, &argv[0]);
+            kProcessTestExecPath.c_str(),
+            static_cast<int>(kExpectedWorkerArgsCount),
+            &argv[0]);
     for (size_t i = 0; i < argv.size(); i++) {
       delete argv[i];
     }
 
-    EXPECT_TRUE(process.get());
+    EXPECT_NE(nullptr, process.get());
 
     int code = 0;
     EXPECT_TRUE(getProcessExitCode(*process, code));
@@ -175,7 +177,7 @@ TEST_F(ProcessTests, test_launchExtensionQuotes) {
                                                   "100",
                                                   "5",
                                                   "true");
-    EXPECT_TRUE(process.get());
+    EXPECT_NE(nullptr, process.get());
 
     int code = 0;
     EXPECT_TRUE(getProcessExitCode(*process, code));
@@ -184,4 +186,3 @@ TEST_F(ProcessTests, test_launchExtensionQuotes) {
 }
 #endif
 }
-

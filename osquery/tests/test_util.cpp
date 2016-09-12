@@ -37,7 +37,8 @@ std::string kFakeDirectory = "";
 #ifdef DARWIN
 std::string kTestWorkingDirectory = "/private/tmp/osquery-tests";
 #else
-std::string kTestWorkingDirectory = "/tmp/osquery-tests";
+std::string kTestWorkingDirectory =
+    (fs::temp_directory_path() / "osquery-tests").make_preferred().string();
 #endif
 
 /// Most tests will use binary or disk-backed content for parsing tests.
@@ -49,7 +50,11 @@ std::string kTestDataPath = "../../../../tools/tests/";
 
 DECLARE_string(database_path);
 DECLARE_string(extensions_socket);
+
+#ifndef WIN32
 DECLARE_string(modules_autoload);
+#endif
+
 DECLARE_string(extensions_autoload);
 DECLARE_string(enroll_tls_endpoint);
 DECLARE_bool(disable_logging);
@@ -71,11 +76,12 @@ void initTesting() {
 
   // Seed the random number generator, some tests generate temporary files
   // ports, sockets, etc using random numbers.
-  std::srand(chrono_clock::now().time_since_epoch().count());
+  std::srand(static_cast<unsigned int>(
+      chrono_clock::now().time_since_epoch().count()));
 
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
-  kTestWorkingDirectory += std::to_string(getuid()) + "/";
+  kTestWorkingDirectory += getUserId() + "/";
   kFakeDirectory = kTestWorkingDirectory + kFakeDirectoryName;
 
   fs::remove_all(kTestWorkingDirectory);
@@ -83,7 +89,11 @@ void initTesting() {
   FLAGS_database_path = kTestWorkingDirectory + "unittests.db";
   FLAGS_extensions_socket = kTestWorkingDirectory + "unittests.em";
   FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
+
+#ifndef WIN32
   FLAGS_modules_autoload = kTestWorkingDirectory + "unittests-mod.load";
+#endif
+
   FLAGS_disable_logging = true;
   FLAGS_disable_database = true;
 
@@ -93,7 +103,9 @@ void initTesting() {
   DatabasePlugin::initPlugin();
 }
 
-void shutdownTesting() { DatabasePlugin::shutdown(); }
+void shutdownTesting() {
+  DatabasePlugin::shutdown();
+}
 
 std::map<std::string, std::string> getTestConfigMap() {
   std::string content;
@@ -389,9 +401,13 @@ void createMockFileStructure() {
   writeTextFile(kFakeDirectory + "/deep11/deep2/level2.txt", "l2");
   writeTextFile(kFakeDirectory + "/deep11/deep2/deep3/level3.txt", "l3");
 
+#ifdef WIN32
+  writeTextFile(kFakeDirectory + "/root2.txt", "l1");
+#else
   boost::system::error_code ec;
   fs::create_symlink(
       kFakeDirectory + "/root.txt", kFakeDirectory + "/root2.txt", ec);
+#endif
 }
 
 void tearDownMockFileStructure() {
@@ -408,12 +424,13 @@ void TLSServerRunner::start() {
   self.port_ = std::to_string(rand() % 10000 + 20000);
 
   // Fork then exec a shell.
-  self.server_ = fork();
-  if (self.server_ == 0) {
-    // Start a python TLS/HTTPS or HTTP server.
-    auto script = kTestDataPath + "/test_http_server.py --tls " + self.port_;
-    execlp("sh", "sh", "-c", script.c_str(), nullptr);
-    ::exit(0);
+  auto python_server = (fs::path(kTestDataPath) / "test_http_server.py")
+                           .make_preferred()
+                           .string() +
+                       " --tls " + self.port_;
+  self.server_ = PlatformProcess::launchPythonScript(python_server);
+  if (self.server_ == nullptr) {
+    return;
   }
 
   size_t delay = 0;
@@ -422,7 +439,8 @@ void TLSServerRunner::start() {
   while (delay < 2 * 1000) {
     auto results = SQL(query);
     if (results.rows().size() > 0) {
-      self.server_ = std::atoi(results.rows()[0].at("pid").c_str());
+      self.server_.reset(
+          new PlatformProcess(std::atoi(results.rows()[0].at("pid").c_str())));
       break;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -457,7 +475,9 @@ void TLSServerRunner::unsetClientConfig() {
 
 void TLSServerRunner::stop() {
   auto& self = instance();
-  kill(self.server_, SIGKILL);
-  self.server_ = 0;
+  if (self.server_ != nullptr) {
+    self.server_->kill();
+    self.server_.reset();
+  }
 }
 }

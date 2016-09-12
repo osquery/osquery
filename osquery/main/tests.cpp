@@ -21,8 +21,8 @@
 #include <osquery/logger.h>
 
 #include "osquery/core/process.h"
-#include "osquery/tests/test_util.h"
 #include "osquery/core/testing.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
@@ -32,25 +32,30 @@ namespace osquery {
 std::string kProcessTestExecPath;
 
 /// This is the expected module name of the launcher process.
-const char *kOsqueryTestModuleName = "osquery_tests.exe";
+const char* kOsqueryTestModuleName = "osquery_tests.exe";
 
 /// These are the expected arguments for our test worker process.
-const char *kExpectedWorkerArgs[] = {"worker-test", "--socket",
-                                     "fake-socket", nullptr};
+const char* kExpectedWorkerArgs[] = {
+    "worker-test", "--socket", "fake-socket", nullptr};
 const size_t kExpectedWorkerArgsCount =
-    (sizeof(osquery::kExpectedWorkerArgs) / sizeof(char *)) - 1;
+    (sizeof(osquery::kExpectedWorkerArgs) / sizeof(char*)) - 1;
 
 /// These are the expected arguments for our test extensions process.
-const char *kExpectedExtensionArgs[] = {
-    "osquery extension: extension-test", "--socket",  "socket-name",
-    "--timeout",                         "100",       "--interval",
-    "5",                                 "--verbose", nullptr};
+const char* kExpectedExtensionArgs[] = {"osquery extension: extension-test",
+                                        "--socket",
+                                        "socket-name",
+                                        "--timeout",
+                                        "100",
+                                        "--interval",
+                                        "5",
+                                        "--verbose",
+                                        nullptr};
 const size_t kExpectedExtensionArgsCount =
-    (sizeof(osquery::kExpectedExtensionArgs) / sizeof(char *)) - 1;
+    (sizeof(osquery::kExpectedExtensionArgs) / sizeof(char*)) - 1;
 
-static bool compareArguments(char *result[],
+static bool compareArguments(char* result[],
                              unsigned int result_nelms,
-                             const char *expected[],
+                             const char* expected[],
                              unsigned int expected_nelms) {
   if (result_nelms != expected_nelms) {
     return false;
@@ -70,7 +75,7 @@ static bool compareArguments(char *result[],
 }
 }
 
-int workerMain(int argc, char *argv[]) {
+int workerMain(int argc, char* argv[]) {
   if (!osquery::compareArguments(argv,
                                  argc,
                                  osquery::kExpectedWorkerArgs,
@@ -106,7 +111,7 @@ int workerMain(int argc, char *argv[]) {
   return WORKER_SUCCESS_CODE;
 }
 
-int extensionMain(int argc, char *argv[]) {
+int extensionMain(int argc, char* argv[]) {
   if (!osquery::compareArguments(argv,
                                  argc,
                                  osquery::kExpectedExtensionArgs,
@@ -116,12 +121,13 @@ int extensionMain(int argc, char *argv[]) {
   return EXTENSION_SUCCESS_CODE;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   if (auto val = osquery::getEnvVar("OSQUERY_WORKER")) {
     return workerMain(argc, argv);
   } else if ((val = osquery::getEnvVar("OSQUERY_EXTENSION"))) {
     return extensionMain(argc, argv);
   }
+  osquery::registryAndPluginInit();
   osquery::kProcessTestExecPath = argv[0];
 
   osquery::initTesting();
@@ -133,4 +139,3 @@ int main(int argc, char *argv[]) {
   osquery::shutdownTesting();
   return result;
 }
-

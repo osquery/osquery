@@ -15,9 +15,10 @@ from __future__ import unicode_literals
 import argparse
 import json
 import os
-import signal
 import ssl
 import sys
+import thread
+import threading
 
 # Create a simple TLS/HTTP server.
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -160,10 +161,10 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(response))
 
 
-def handler(signum, frame):
+def handler():
     print("[DEBUG] Shutting down HTTP server via timeout (%d) seconds."
           % (ARGS.timeout))
-    sys.exit(0)
+    thread.interrupt_main()
 
 if __name__ == '__main__':
     SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -228,8 +229,8 @@ if __name__ == '__main__':
             exit(1)
 
     if not ARGS.persist:
-        signal.signal(signal.SIGALRM, handler)
-        signal.alarm(ARGS.timeout)
+        timer = threading.Timer(ARGS.timeout, handler)
+        timer.start()
 
     httpd = HTTPServer(('localhost', ARGS.port), RealSimpleHandler)
     if ARGS.tls:
@@ -249,4 +250,8 @@ if __name__ == '__main__':
         debug("Starting TLS/HTTPS server on TCP port: %d" % ARGS.port)
     else:
         debug("Starting HTTP server on TCP port: %d" % ARGS.port)
-    httpd.serve_forever()
+
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        sys.exit(0)

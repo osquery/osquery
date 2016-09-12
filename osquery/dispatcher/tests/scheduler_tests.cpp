@@ -13,9 +13,9 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
-#include "osquery/tests/test_util.h"
-#include "osquery/sql/sqlite_util.h"
 #include "osquery/dispatcher/scheduler.h"
+#include "osquery/sql/sqlite_util.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
@@ -161,7 +161,7 @@ TEST_F(SchedulerTests, test_scheduler) {
   Config::getInstance().update({{"data", config}});
 
   // Run the scheduler for 1 second with a second interval.
-  SchedulerRunner runner(now + 1, 1);
+  SchedulerRunner runner(static_cast<unsigned long int>(now + 1), 1);
   runner.start();
 
   // If a query was executed the cache step will have been advanced.

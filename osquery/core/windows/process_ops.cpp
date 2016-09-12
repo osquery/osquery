@@ -18,6 +18,46 @@
 
 namespace osquery {
 
+std::string getUserId() {
+  DWORD nbytes = 0;
+  HANDLE token = INVALID_HANDLE_VALUE;
+
+  if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token)) {
+    return "";
+  }
+
+  ::GetTokenInformation(token, TokenUser, nullptr, 0, &nbytes);
+  if (nbytes == 0) {
+    ::CloseHandle(token);
+    return "";
+  }
+
+  std::vector<char> tu_buffer;
+  tu_buffer.assign(nbytes, '\0');
+  PTOKEN_USER tu = nullptr;
+
+  BOOL status = ::GetTokenInformation(token,
+                                      TokenUser,
+                                      tu_buffer.data(),
+                                      static_cast<DWORD>(tu_buffer.size()),
+                                      &nbytes);
+  ::CloseHandle(token);
+  if (status == 0) {
+    return "";
+  }
+
+  LPSTR sid = nullptr;
+  tu = (PTOKEN_USER)tu_buffer.data();
+  if (!::ConvertSidToStringSidA(tu->User.Sid, &sid)) {
+    return "";
+  }
+
+  std::string uid(sid);
+  ::LocalFree(sid);
+
+  return uid;
+}
+
 bool isLauncherProcessDead(PlatformProcess& launcher) {
   DWORD code = 0;
   if (!::GetExitCodeProcess(launcher.nativeHandle(), &code)) {
@@ -68,11 +108,11 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
   return std::string(buf.data(), value_len);
 }
 
-ModuleHandle platformModuleOpen(const std::string &path) {
+ModuleHandle platformModuleOpen(const std::string& path) {
   return ::LoadLibraryA(path.c_str());
 }
 
-void *platformModuleGetSymbol(ModuleHandle module, const std::string &symbol) {
+void* platformModuleGetSymbol(ModuleHandle module, const std::string& symbol) {
   return ::GetProcAddress(module, symbol.c_str());
 }
 

@@ -21,8 +21,9 @@
 #include <osquery/filesystem.h>
 
 #include "osquery/core/process.h"
-#include "osquery/tests/test_util.h"
 #include "osquery/extensions/interface.h"
+#include "osquery/filesystem/fileops.h"
+#include "osquery/tests/test_util.h"
 
 using namespace osquery::extensions;
 
@@ -34,9 +35,20 @@ const int kTimeoutUS = 1000000;
 class ExtensionsTest : public testing::Test {
  protected:
   void SetUp() {
-    socket_path = kTestWorkingDirectory + "test.em" + std::to_string(rand());
+#ifdef WIN32
+    socket_path = OSQUERY_SOCKET;
+#else
+    socket_path = kTestWorkingDirectory;
+#endif
+
+    socket_path += "testextmgr" + std::to_string(rand());
+
+#ifdef WIN32
+    if (namedPipeExists(socket_path).ok()) {
+#else
     remove(socket_path);
     if (pathExists(socket_path).ok()) {
+#endif
       throw std::domain_error("Cannot test sockets: " + socket_path);
     }
   }
@@ -44,7 +56,10 @@ class ExtensionsTest : public testing::Test {
   void TearDown() {
     Dispatcher::stopServices();
     Dispatcher::joinServices();
+
+#ifndef WIN32
     remove(socket_path);
+#endif
   }
 
   bool ping(int attempts = 3) {
@@ -55,7 +70,7 @@ class ExtensionsTest : public testing::Test {
         EXManagerClient client(socket_path);
         client.get()->ping(status);
         return (status.code == ExtensionCode::EXT_SUCCESS);
-      } catch (const std::exception& e) {
+      } catch (const std::exception& /* e */) {
         sleepFor(kDelayUS / 1000);
       }
     }
@@ -70,7 +85,7 @@ class ExtensionsTest : public testing::Test {
       try {
         EXManagerClient client(socket_path);
         client.get()->query(response, sql);
-      } catch (const std::exception& e) {
+      } catch (const std::exception& /* e */) {
         sleepFor(kDelayUS / 1000);
       }
     }
@@ -98,7 +113,11 @@ class ExtensionsTest : public testing::Test {
     // Wait until the runnable/thread created the socket.
     int delay = 0;
     while (delay < kTimeoutUS) {
+#ifdef WIN32
+      if (namedPipeExists(socket_path).ok()) {
+#else
       if (pathExists(socket_path).ok() && isReadable(socket_path).ok()) {
+#endif
         return true;
       }
       sleepFor(kDelayUS / 1000);
@@ -194,7 +213,7 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
   RouteUUID uuid;
   try {
     uuid = (RouteUUID)stoi(status.getMessage(), nullptr, 0);
-  } catch (const std::exception& e) {
+  } catch (const std::exception& /* e */) {
     EXPECT_TRUE(false);
     return;
   }
