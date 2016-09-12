@@ -36,11 +36,12 @@ void DistributedRunner::start() {
       dist.runQueries();
     }
     std::string str_acu = "0";
-    Status stat = getDatabaseValue(
+    Status database = getDatabaseValue(
         kPersistentSettings, "distributed_accelerate_checkins_expire", str_acu);
     unsigned long accelerate_checkins_expire;
-    safeStrtoul(str_acu, 10, accelerate_checkins_expire);
-    if (!stat.ok() || getUnixTime() > accelerate_checkins_expire) {
+    Status conversion = safeStrtoul(str_acu, 10, accelerate_checkins_expire);
+    if (!database.ok() || !conversion.ok() ||
+        getUnixTime() > accelerate_checkins_expire) {
       pauseMilli(FLAGS_distributed_interval * 1000);
     } else {
       pauseMilli(kDistributedAccelerationInterval * 1000);

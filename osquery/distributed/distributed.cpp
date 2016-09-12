@@ -187,12 +187,17 @@ Status Distributed::acceptWork(const std::string& work) {
     if (tree.count("accelerate") > 0) {
       auto new_time = tree.get<std::string>("accelerate", "");
       unsigned long duration;
-      safeStrtoul(new_time, 10, duration);
-      LOG(INFO) << "Accelerating distributed query checkins for " << duration
-                << " seconds.";
-      setDatabaseValue(kPersistentSettings,
-                       "distributed_accelerate_checkins_expire",
-                       std::to_string(getUnixTime() + duration));
+      Status conversion = safeStrtoul(new_time, 10, duration);
+      if (conversion.ok()) {
+        LOG(INFO) << "Accelerating distributed query checkins for " << duration
+                  << " seconds.";
+        setDatabaseValue(kPersistentSettings,
+                         "distributed_accelerate_checkins_expire",
+                         std::to_string(getUnixTime() + duration));
+      } else {
+        LOG(WARNING)
+            << "Acceleration timeframe is not an integer. Not accelerated.";
+      }
     }
 
   } catch (const pt::ptree_error& e) {

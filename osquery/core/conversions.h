@@ -138,6 +138,7 @@ inline Status safeStrtol(const std::string& rep, size_t base, long int& out) {
   out = strtol(rep.c_str(), &end, static_cast<int>(base));
   if (end == nullptr || end == rep.c_str() || *end != '\0' ||
       ((out == LONG_MIN || out == LONG_MAX) && errno == ERANGE)) {
+    out = 0;
     return Status(1);
   }
   return Status(0);
@@ -150,6 +151,7 @@ inline Status safeStrtoul(const std::string& rep,
   char* end{nullptr};
   out = strtol(rep.c_str(), &end, static_cast<int>(base));
   if (end == nullptr || end == rep.c_str() || *end != '\0' || errno == ERANGE) {
+    out = 0;
     return Status(1);
   }
   return Status(0);
@@ -161,6 +163,7 @@ inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
   out = strtoll(rep.c_str(), &end, static_cast<int>(base));
   if (end == nullptr || end == rep.c_str() || *end != '\0' ||
       ((out == LLONG_MIN || out == LLONG_MAX) && errno == ERANGE)) {
+    out = 0;
     return Status(1);
   }
   return Status(0);
@@ -178,7 +181,10 @@ inline std::string unescapeUnicode(const std::string& escaped) {
     if (i < escaped.size() - 5 && '\\' == escaped[i] && 'u' == escaped[i + 1]) {
       // Assume 2-byte wide unicode.
       long value{0};
-      safeStrtol(escaped.substr(i + 2, i + 6), 16, value);
+      Status stat = safeStrtol(escaped.substr(i + 2, 4), 16, value);
+      if (!stat.ok()) {
+        return "";
+      }
       if (value < 255) {
         unescaped += static_cast<char>(value);
         i += 5;
