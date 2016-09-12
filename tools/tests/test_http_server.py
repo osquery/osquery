@@ -23,8 +23,6 @@ import sys
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from urlparse import parse_qs
 
-DEBUG = 1
-
 EXAMPLE_CONFIG = {
     "schedule": {
         "tls_proc": {"query": "select * from processes", "interval": 0},
@@ -155,12 +153,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         if "node_key" not in request or request["node_key"] not in NODE_KEYS:
             self._reply(FAILED_ENROLL_RESPONSE)
             return
-        global DEBUG
-        if (DEBUG):
-            self._reply(EXAMPLE_DISTRIBUTED_ACCELERATE)
-            DEBUG = 0
-        else:
-            self._reply(EXAMPLE_DISTRIBUTED)
+        self._reply(EXAMPLE_DISTRIBUTED)
 
     def distributed_write(self, request):
         '''A basic distributed write endpoint'''
