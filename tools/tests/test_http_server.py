@@ -38,6 +38,13 @@ EXAMPLE_DISTRIBUTED = {
     }
 }
 
+EXAMPLE_DISTRIBUTED_ACCELERATE = {
+    "queries": {
+        "info": "select * from osquery_info",
+    },
+    "accelerate" : "60"
+}
+
 TEST_RESPONSE = {
     "foo": "bar",
 }

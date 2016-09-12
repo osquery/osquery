@@ -15,7 +15,9 @@
 #include <osquery/distributed.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
@@ -177,11 +179,25 @@ Status Distributed::acceptWork(const std::string& work) {
     for (const auto& node : queries) {
       auto query = queries.get<std::string>(node.first, "");
       if (query.empty() || node.first.empty()) {
-        return Status(1,
-                      "Distributed query does not have complete attributes.");
+        return Status(1, "Distributed query does not have complete attributes");
       }
       setDatabaseValue(kQueries, kDistributedQueryPrefix + node.first, query);
     }
+    if (tree.count("accelerate") > 0) {
+      auto new_time = tree.get<std::string>("accelerate", "");
+      unsigned long duration;
+      Status conversion = safeStrtoul(new_time, 10, duration);
+      if (conversion.ok()) {
+        LOG(INFO) << "Accelerating distributed query checkins for " << duration
+                  << " seconds";
+        setDatabaseValue(kPersistentSettings,
+                         "distributed_accelerate_checkins_expire",
+                         std::to_string(getUnixTime() + duration));
+      } else {
+        LOG(WARNING) << "Failed to Accelerate: Timeframe is not an integer";
+      }
+    }
+
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error parsing JSON: " + std::string(e.what()));
   }
