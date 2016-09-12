@@ -179,8 +179,7 @@ Status Distributed::acceptWork(const std::string& work) {
     for (const auto& node : queries) {
       auto query = queries.get<std::string>(node.first, "");
       if (query.empty() || node.first.empty()) {
-        return Status(1,
-                      "Distributed query does not have complete attributes.");
+        return Status(1, "Distributed query does not have complete attributes");
       }
       setDatabaseValue(kQueries, kDistributedQueryPrefix + node.first, query);
     }
@@ -190,13 +189,12 @@ Status Distributed::acceptWork(const std::string& work) {
       Status conversion = safeStrtoul(new_time, 10, duration);
       if (conversion.ok()) {
         LOG(INFO) << "Accelerating distributed query checkins for " << duration
-                  << " seconds.";
+                  << " seconds";
         setDatabaseValue(kPersistentSettings,
                          "distributed_accelerate_checkins_expire",
                          std::to_string(getUnixTime() + duration));
       } else {
-        LOG(WARNING)
-            << "Acceleration timeframe is not an integer. Not accelerated.";
+        LOG(WARNING) << "Failed to Accelerate: Timeframe is not an integer";
       }
     }
 
