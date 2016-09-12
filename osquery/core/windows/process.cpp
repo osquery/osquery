@@ -302,6 +302,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
 
   auto argv = "python " + args;
   std::vector<char> mutable_argv(argv.begin(), argv.end());
+  mutable_argv.push_back('\0');
   si.cb = sizeof(si);
 
   auto drive = getEnvVar("SystemDrive");
