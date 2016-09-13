@@ -244,14 +244,8 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
     return;
   }
 
-  hr = locator_->ConnectServer(nspace,
-                               nullptr,
-                               nullptr,
-                               nullptr,
-                               0,
-                               nullptr,
-                               nullptr,
-                               &services_);
+  hr = locator_->ConnectServer(
+      nspace, nullptr, nullptr, nullptr, 0, nullptr, nullptr, &services_);
   if (hr != S_OK) {
     services_ = nullptr;
     return;
