@@ -9,7 +9,7 @@ class Beecrypt < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "1b902db64ebf9a1941f1a016233c80915b936d5ea0850e41f9d116ebc7c48a0c" => :x86_64_linux
+    sha256 "3904043605eec7da27192d83081508065b70b23a87c0652f6e5c96c667574a48" => :x86_64_linux
   end
 
   depends_on "libtool" => :build
