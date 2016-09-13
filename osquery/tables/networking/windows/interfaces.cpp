@@ -31,7 +31,7 @@ void genAddresses(QueryData& results_data) {
 
   WmiRequest request(ss.str());
   if (request.getStatus().ok()) {
-	std::vector<WmiResultItem>& results = request.results();
+    std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {
       Row r;
       long lPlaceHolder;
@@ -47,9 +47,9 @@ void genAddresses(QueryData& results_data) {
       result.GetVectorOfStrings("IPSubnet", vPlaceHolderSubnets);
       for (size_t i = 0; i < vPlaceHolderIps.size(); i++) {
         r["address"] = SQL_TEXT(vPlaceHolderIps.at(i));
-		if (vPlaceHolderSubnets.size() > i) {
-			r["mask"] = SQL_TEXT(vPlaceHolderSubnets.at(i));
-		}
+        if (vPlaceHolderSubnets.size() > i) {
+          r["mask"] = SQL_TEXT(vPlaceHolderSubnets.at(i));
+        }
         results_data.push_back(r);
       }
     }
@@ -62,7 +62,7 @@ void genDetails(QueryData& results_data) {
 
   WmiRequest request(ss.str());
   if (request.getStatus().ok()) {
-	std::vector<WmiResultItem>& results = request.results();
+    std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {
       Row r;
       long lPlaceHolder;
@@ -94,7 +94,7 @@ void genDetails(QueryData& results_data) {
 
       WmiRequest irequest(iss.str());
       if (irequest.getStatus().ok()) {
-		std::vector<WmiResultItem>& iresults = irequest.results();
+        std::vector<WmiResultItem>& iresults = irequest.results();
 
         iresults[0].GetBool("DHCPEnabled", bPlaceHolder);
         r["dhcp_enabled"] = INTEGER(bPlaceHolder);
@@ -103,12 +103,11 @@ void genDetails(QueryData& results_data) {
         iresults[0].GetString("DHCPServer", r["dhcp_server"]);
         iresults[0].GetString("DNSDomain", r["dns_domain"]);
         iresults[0].GetVectorOfStrings("DNSDomainSuffixSearchOrder",
-                                           vPlaceHolder);
+                                       vPlaceHolder);
         r["dns_domain_suffix_search_order"] =
             SQL_TEXT(boost::algorithm::join(vPlaceHolder, ", "));
         iresults[0].GetString("DNSHostName", r["dns_host_name"]);
-        iresults[0].GetVectorOfStrings("DNSServerSearchOrder",
-                                           vPlaceHolder);
+        iresults[0].GetVectorOfStrings("DNSServerSearchOrder", vPlaceHolder);
         r["dns_server_search_order"] =
             SQL_TEXT(boost::algorithm::join(vPlaceHolder, ", "));
       }
