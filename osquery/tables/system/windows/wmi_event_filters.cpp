@@ -8,7 +8,6 @@
  *
  */
 
-#include <map>
 #include <sstream>
 #include <string>
 
@@ -35,17 +34,12 @@ QueryData genWmiFilters(QueryContext& context) {
     std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {
       Row r;
-      Status s;
       std::string sPlaceHolder;
 
-      s = result.GetString("Name", sPlaceHolder);
-      r["name"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("QueryLanguage", sPlaceHolder);
-      r["query_language"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("__CLASS", sPlaceHolder);
-      r["__class"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("__RELPATH", sPlaceHolder);
-      r["__relpath"] = SQL_TEXT(sPlaceHolder);
+      result.GetString("Name", r["name"]);
+      result.GetString("QueryLanguage", r["query_language"]);
+      result.GetString("__CLASS", r["class"]);
+      result.GetString("__RELPATH", r["relative_path"]);
       results_data.push_back(r);
     }
   }

@@ -8,7 +8,6 @@
  *
  */
 
-#include <map>
 #include <sstream>
 #include <string>
 
@@ -35,19 +34,13 @@ QueryData genWmiCliConsumers(QueryContext& context) {
     std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {
       Row r;
-      Status s;
       std::string sPlaceHolder;
 
-      s = result.GetString("CommandLineTemplate", sPlaceHolder);
-      r["command_line_template"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("ExecutablePath", sPlaceHolder);
-      r["executable_path"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("Name", sPlaceHolder);
-      r["name"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("__CLASS", sPlaceHolder);
-      r["__class"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("__RELPATH", sPlaceHolder);
-      r["__relpath"] = SQL_TEXT(sPlaceHolder);
+      result.GetString("CommandLineTemplate", r["command_line_template"]);
+      result.GetString("ExecutablePath", r["executable_path"]);
+      result.GetString("Name", r["name"]);
+      result.GetString("__CLASS", r["class"]);
+      result.GetString("__RELPATH", r["relative_path"]);
       results_data.push_back(r);
     }
   }

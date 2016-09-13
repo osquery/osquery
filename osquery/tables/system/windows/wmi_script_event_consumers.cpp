@@ -8,7 +8,6 @@
  *
  */
 
-#include <map>
 #include <sstream>
 #include <string>
 
@@ -35,21 +34,14 @@ QueryData genScriptConsumers(QueryContext& context) {
     std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {
       Row r;
-      Status s;
       std::string sPlaceHolder;
 
-      s = result.GetString("ScriptText", sPlaceHolder);
-      r["script_text"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("ScriptFileName", sPlaceHolder);
-      r["script_file_name"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("ScriptingEngine", sPlaceHolder);
-      r["scripting_engine"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("Name", sPlaceHolder);
-      r["name"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("__CLASS", sPlaceHolder);
-      r["__class"] = SQL_TEXT(sPlaceHolder);
-      s = result.GetString("__RELPATH", sPlaceHolder);
-      r["__relpath"] = SQL_TEXT(sPlaceHolder);
+      result.GetString("ScriptText", r["script_text"]);
+      result.GetString("ScriptFileName", r["script_file_name"]);
+      result.GetString("ScriptingEngine", r["scripting_engine"]);
+      result.GetString("Name", r["name"]);
+      result.GetString("__CLASS", r["class"]);
+      result.GetString("__RELPATH", r["relative_path"]);
       results_data.push_back(r);
     }
   }

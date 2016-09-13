@@ -5,8 +5,8 @@ schema([
     Column("scripting_engine", TEXT, "The parent registry hive where the key and value exist"),
     Column("script_file_name", TEXT, "The parent registry hive where the key and value exist"),
     Column("script_text", TEXT, "The parent registry hive where the key and value exist"),
-    Column("__class", TEXT, "The name of the class."),
-    Column("__relpath", TEXT, "Relative path to the class or instance."),
+    Column("class", TEXT, "The name of the class."),
+    Column("relative_path", TEXT, "Relative path to the class or instance."),
 ])
 implementation("wmi_script_event_consumers@genScriptConsumers")
 examples([

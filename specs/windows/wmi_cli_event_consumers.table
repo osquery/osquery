@@ -4,8 +4,8 @@ schema([
     Column("name", TEXT, "Unique name of a consumer."),
     Column("command_line_template", TEXT, "Standard string template that specifies the process to be started. This property can be NULL, and the ExecutablePath property is used as the command line."),
     Column("executable_path", TEXT, "Module to execute. The string can specify the full path and file name of the module to execute, or it can specify a partial name. If a partial name is specified, the current drive and current directory are assumed."),
-    Column("__class", TEXT, "The name of the class."),
-    Column("__relpath", TEXT, "Relative path to the class or instance."),
+    Column("class", TEXT, "The name of the class."),
+    Column("relative_path", TEXT, "Relative path to the class or instance."),
 ])
 implementation("wmi_cli_event_consumers@genWmiCliConsumers")
 examples([
