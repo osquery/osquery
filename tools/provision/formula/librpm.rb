@@ -10,7 +10,7 @@ class Librpm < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "038a8f25463cfd002d734dd2ddcfbc564373f35237fcc499f98638d9f3f75345" => :x86_64_linux
+    sha256 "58c1fcaf9b237561ae03212c7d4047f6d2d39c7262bf823fa26002238fb08c11" => :x86_64_linux
   end
 
   depends_on "berkeley-db"

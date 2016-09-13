@@ -10,7 +10,7 @@ class Popt < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "038a8f25463cfd002d734dd2ddcfbc564373f35237fcc499f98638d9f3f75345" => :x86_64_linux
+    sha256 "17e701881a808c8b5de4fcce727a101addaa07db2a673accb1387c7def606fb9" => :x86_64_linux
   end
 
   option :universal

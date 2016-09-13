@@ -10,7 +10,7 @@ class BerkeleyDb < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "1b902db64ebf9a1941f1a016233c80915b936d5ea0850e41f9d116ebc7c48a0c" => :x86_64_linux
+    sha256 "8d9643e47b1f1ebe2eaba8f72ec10a7ae3c6032eff70786d59078ecad65ad162" => :x86_64_linux
   end
 
   option "with-java", "Compile with Java support."
