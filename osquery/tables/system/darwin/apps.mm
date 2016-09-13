@@ -19,8 +19,8 @@
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/tables.h>
 #include <osquery/sql.h>
+#include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 
@@ -208,7 +208,7 @@ Status genAppsFromLaunchServices(std::set<std::string>& apps) {
   }
 
   auto LSCopyAllApplicationURLs =
-      (OSStatus (*)(CFArrayRef*))CFBundleGetFunctionPointerForName(
+      (OSStatus(*)(CFArrayRef*))CFBundleGetFunctionPointerForName(
           ls_bundle, CFSTR("_LSCopyAllApplicationURLs"));
   // If the symbol did not exist we will not have a handle.
   if (LSCopyAllApplicationURLs == nullptr) {
@@ -221,7 +221,7 @@ Status genAppsFromLaunchServices(std::set<std::string>& apps) {
   }
 
   @autoreleasepool {
-    for (id app in(__bridge NSArray*)ls_apps) {
+    for (id app in (__bridge NSArray*)ls_apps) {
       if (app != nil && [app isKindOfClass:[NSURL class]]) {
         apps.insert(std::string([[app path] UTF8String]) +
                     "/Contents/Info.plist");
@@ -270,6 +270,10 @@ QueryData genApps(QueryContext& context) {
 
   // For each found application (path with an Info.plist) parse the plist.
   for (const auto& path : apps) {
+    if (!osquery::pathExists(path)) {
+      continue;
+    }
+
     if (!osquery::parsePlist(path, tree).ok()) {
       TLOG << "Error parsing application plist: " << path;
       continue;
@@ -314,9 +318,9 @@ QueryData genAppSchemes(QueryContext& context) {
     CFURLRef default_app = nullptr;
     if (ls_bundle != nullptr) {
       auto _LSCopyDefaultApplicationURLForURL =
-          (CFURLRef (*)(CFURLRef, LSRolesMask, CFErrorRef*))
-          CFBundleGetFunctionPointerForName(
-              ls_bundle, CFSTR("LSCopyDefaultApplicationURLForURL"));
+          (CFURLRef(*)(CFURLRef, LSRolesMask, CFErrorRef*))
+              CFBundleGetFunctionPointerForName(
+                  ls_bundle, CFSTR("LSCopyDefaultApplicationURLForURL"));
       // If the symbol did not exist we will not have a handle.
       if (_LSCopyDefaultApplicationURLForURL != nullptr) {
         default_app =
