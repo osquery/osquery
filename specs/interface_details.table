@@ -1,0 +1,33 @@
+table_name("interface_details")
+description("Detailed information and stats of network interfaces.")
+schema([
+    Column("interface", TEXT, "Interface name"),
+    Column("mac", TEXT, "MAC of interface (optional)"),
+    Column("type", INTEGER, "Interface type (includes virtual)"),
+    Column("mtu", INTEGER, "Network MTU"),
+    Column("metric", INTEGER, "Metric based on the speed of the interface"),
+    Column("ipackets", BIGINT, "Input packets"),
+    Column("opackets", BIGINT, "Output packets"),
+    Column("ibytes", BIGINT, "Input bytes"),
+    Column("obytes", BIGINT, "Output bytes"),
+    Column("ierrors", BIGINT, "Input errors"),
+    Column("oerrors", BIGINT, "Output errors"),
+    Column("last_change", BIGINT, "Time of last device modification (optional)"),
+    Column("description", TEXT, "Short description of the object—a one-line string."),
+    Column("manufacturer", TEXT, "Name of the network adapter's manufacturer."),
+    Column("connection_id", TEXT, "Name of the network connection as it appears in the Network Connections Control Panel program."),
+    Column("connection_status", TEXT, "State of the network adapter connection to the network."),
+    Column("enabled", INTEGER, "Indicates whether the adapter is enabled or not."),
+    Column("physical_adapter", INTEGER, "Indicates whether the adapter is a physical or a logical adapter."),
+    Column("speed", INTEGER, "Estimate of the current bandwidth in bits per second."),
+    Column("dhcp_enabled", INTEGER, "If TRUE, the dynamic host configuration protocol (DHCP) server automatically assigns an IP address to the computer system when establishing a network connection."),
+    Column("dhcp_lease_expires", TEXT, "Expiration date and time for a leased IP address that was assigned to the computer by the dynamic host configuration protocol (DHCP) server."),
+    Column("dhcp_lease_obtained", TEXT, "Date and time the lease was obtained for the IP address assigned to the computer by the dynamic host configuration protocol (DHCP) server."),
+    Column("dhcp_server", TEXT, "IP address of the dynamic host configuration protocol (DHCP) server."),
+    Column("dns_domain", TEXT, "Organization name followed by a period and an extension that indicates the type of organization, such as 'microsoft.com'."),
+    Column("dns_domain_suffix_search_order", TEXT, "Array of DNS domain suffixes to be appended to the end of host names during name resolution."),
+    Column("dns_host_name", TEXT, "Host name used to identify the local computer for authentication by some utilities."),
+    Column("dns_server_search_order", TEXT, "Array of server IP addresses to be used in querying for DNS servers."),
+])
+attributes(cacheable=True)
+implementation("interfaces@genInterfaceDetails")
