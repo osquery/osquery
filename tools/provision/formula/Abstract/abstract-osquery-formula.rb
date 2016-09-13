@@ -130,6 +130,7 @@ class AbstractOsqueryFormula < Formula
     append "CXXFLAGS", "-fPIC -DNDEBUG -Os -march=core2"
 
     self.audit
+    reset "DEBUG"
   end
 
   def audit

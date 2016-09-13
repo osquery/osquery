@@ -20,6 +20,7 @@ function distro_main() {
   package gcc
   package gcc-c++
   package bzip2
+  package gettext-devel
 
   package rpm-devel
   package rpm-build

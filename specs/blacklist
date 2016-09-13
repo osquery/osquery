@@ -28,9 +28,5 @@ freebsd:yara
 freebsd:system_controls
 freebsd:smbios_tables
 
-# Blacklisted while RPM libraries are ported:
-rpm_package_files
-rpm_packages
-
 # Blacklisting as an example:
 example
