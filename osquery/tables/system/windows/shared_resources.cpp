@@ -8,8 +8,8 @@
  *
  */
 
-#include <string>
 #include <sstream>
+#include <string>
 
 #include <stdlib.h>
 
@@ -24,7 +24,6 @@
 namespace osquery {
 namespace tables {
 
-
 QueryData genShares(QueryContext& context) {
   QueryData results_data;
   std::stringstream ss;
@@ -32,27 +31,28 @@ QueryData genShares(QueryContext& context) {
 
   WmiRequest request(ss.str());
   if (request.getStatus().ok()) {
-	std::vector<WmiResultItem>& results = request.results();
-	for (const auto& result : results) {
-		Row r;
-		long lPlaceHolder;
-		bool bPlaceHolder;
+    std::vector<WmiResultItem>& results = request.results();
+    for (const auto& result : results) {
+      Row r;
+      long lPlaceHolder;
+      bool bPlaceHolder;
+      std::string sPlaceHolder;
 
-		result.GetString("Description", r["description"]);
-		result.GetString("InstallDate", r["install_date"]);
-		result.GetString("Status", r["status"]);
-		result.GetBool("AllowMaximum", bPlaceHolder);
-		r["allow_maximum"] = INTEGER(bPlaceHolder);
-		result.GetLong("MaximumAllowed", lPlaceHolder);
-		r["maximum_allowed"] = INTEGER(lPlaceHolder);
-		result.GetString("Name", r["name"]);
-		result.GetString("Path", r["path"]);
-		result.GetLong("Type", lPlaceHolder);
-		r["type"] = INTEGER(lPlaceHolder);
-		results_data.push_back(r);
-	}
+      result.GetString("Description", r["description"]);
+      result.GetString("InstallDate", r["install_date"]);
+      result.GetString("Status", r["status"]);
+      result.GetBool("AllowMaximum", bPlaceHolder);
+      r["allow_maximum"] = INTEGER(bPlaceHolder);
+      result.GetLong("MaximumAllowed", lPlaceHolder);
+      r["maximum_allowed"] = INTEGER(lPlaceHolder);
+      result.GetString("Name", r["name"]);
+      result.GetString("Path", r["path"]);
+      result.GetLong("Type", lPlaceHolder);
+      r["type"] = INTEGER(lPlaceHolder);
+      results_data.push_back(r);
+    }
   }
-  
+
   return results_data;
 }
 }
