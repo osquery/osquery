@@ -34,7 +34,6 @@ QueryData genWmiCliConsumers(QueryContext& context) {
     std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {
       Row r;
-      std::string sPlaceHolder;
 
       result.GetString("CommandLineTemplate", r["command_line_template"]);
       result.GetString("ExecutablePath", r["executable_path"]);

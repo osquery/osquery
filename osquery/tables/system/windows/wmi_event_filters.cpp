@@ -34,7 +34,6 @@ QueryData genWmiFilters(QueryContext& context) {
     std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {
       Row r;
-      std::string sPlaceHolder;
 
       result.GetString("Name", r["name"]);
       result.GetString("QueryLanguage", r["query_language"]);

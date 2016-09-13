@@ -37,7 +37,6 @@ QueryData genShares(QueryContext& context) {
 		Row r;
 		long lPlaceHolder;
 		bool bPlaceHolder;
-		std::string sPlaceHolder;
 
 		result.GetString("Description", r["description"]);
 		result.GetString("InstallDate", r["install_date"]);

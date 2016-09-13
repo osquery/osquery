@@ -34,7 +34,6 @@ QueryData genFilterConsumer(QueryContext& context) {
     std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {
       Row r;
-      std::string sPlaceHolder;
 
       result.GetString("Consumer", r["consumer"]);
       result.GetString("Filter", r["filter"]);

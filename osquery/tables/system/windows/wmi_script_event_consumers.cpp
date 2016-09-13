@@ -34,7 +34,6 @@ QueryData genScriptConsumers(QueryContext& context) {
     std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {
       Row r;
-      std::string sPlaceHolder;
 
       result.GetString("ScriptText", r["script_text"]);
       result.GetString("ScriptFileName", r["script_file_name"]);

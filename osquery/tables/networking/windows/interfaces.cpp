@@ -35,7 +35,6 @@ void genAddresses(QueryData& results_data) {
     for (const auto& result : results) {
       Row r;
       long lPlaceHolder;
-      std::string sPlaceHolder;
       std::vector<std::string> vPlaceHolderIps;
       std::vector<std::string> vPlaceHolderSubnets;
 
@@ -67,7 +66,6 @@ void genDetails(QueryData& results_data) {
       Row r;
       long lPlaceHolder;
       bool bPlaceHolder;
-      std::string sPlaceHolder;
       std::vector<std::string> vPlaceHolder;
       unsigned __int64 ulPlaceHolder;
 
