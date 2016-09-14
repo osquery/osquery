@@ -107,6 +107,7 @@ elseif(LINUX OR FREEBSD)
 endif()
 
 if(LINUX)
+  ADD_OSQUERY_LINK_CORE("libgcc_s")
   if(DEFINED ENV{OSQUERY_BUILD_SHARED})
     ADD_OSQUERY_LINK_ADDITIONAL("-L${BUILD_DEPS}/legacy/lib")
   endif()

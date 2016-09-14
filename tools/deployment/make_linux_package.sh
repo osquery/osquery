@@ -11,7 +11,7 @@ set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SOURCE_DIR="$SCRIPT_DIR/../.."
-BUILD_DIR="$SOURCE_DIR/build/linux"
+BUILD_DIR=${BUILD_DIR:="$SOURCE_DIR/build/linux"}
 
 export PATH="$PATH:/usr/local/bin"
 source "$SOURCE_DIR/tools/lib.sh"
