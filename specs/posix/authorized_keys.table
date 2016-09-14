@@ -10,3 +10,7 @@ schema([
 ])
 attributes(user_data=True)
 implementation("authorized_keys@getAuthorizedKeys")
+fuzz_paths([
+  "/home",
+  "/Users",
+])

@@ -12,3 +12,7 @@ schema([
 ])
 attributes(cacheable=True)
 implementation("crontab@genCronTab")
+fuzz_paths([
+    "/var/spool/cron/crontabs/",
+    "/etc/crontab",
+])

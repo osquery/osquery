@@ -219,8 +219,10 @@ There are several additional code testing and formatting macros:
 ```sh
 make format # Apply clang-format using osquery's format spec*
 make format-all # Not recommended but formats the entire code base
+make format_master # Format everything changed from the local master branch
 make analyze # Run clean first, then rebuild with the LLVM static analyzer
 make sanitize # Run clean first, then rebuild with sanitations
+make fuzz # Run basic fuzz tests, as defined in each table spec
 ```
 
 Generating the osquery SDK or sync:
@@ -246,9 +248,11 @@ SDK_VERSION=9.9.9 # Set a wacky SDK-version string
 OSX_VERSION_MIN=10.11 # Override the native minimum OS X version ABI
 OSQUERY_DEPS=/path/to/dependencies # Use or create a custom dependency environment
 
+FAST=True # Build and link as quick as possible
 SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
 OPTIMIZED=True # Enable specific CPU optimizations (not recommended)
 SKIP_TESTS=True # Skip unit test building (very very not recommended!)
+SKIP_INTEGRATION_TESTS=True # Skip python tests when using "make test"
 SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets
 SKIP_TABLES=True # Build platform without any table implementations or specs
 SQLITE_DEBUG=True # Enable SQLite query debugging (very verbose!)

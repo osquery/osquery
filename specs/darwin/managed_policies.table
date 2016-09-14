@@ -9,3 +9,6 @@ schema([
     Column("manual", INTEGER, "1 if policy was loaded manually, otherwise 0"),
 ])
 implementation("managed_policy@genManagedPolicies")
+fuzz_paths([
+    "/Library/Managed Preferences",
+])

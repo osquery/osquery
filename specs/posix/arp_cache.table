@@ -7,3 +7,6 @@ schema([
     Column("permanent", TEXT, "1 for true, 0 for false"),
 ])
 implementation("linux/arp_cache,darwin/routes@genArpCache")
+fuzz_paths([
+    "/proc/net/arp",
+])

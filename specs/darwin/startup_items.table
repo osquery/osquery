@@ -8,3 +8,8 @@ schema([
 ])
 attributes(cacheable=True)
 implementation("startup_items@genStartupItems")
+fuzz_paths([
+    "/System/Library/StartupItems/",
+    "/Library/StartupItems/",
+    "/Library/Preferences/com.apple.loginitems.plist"
+])

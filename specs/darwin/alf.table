@@ -10,3 +10,6 @@ schema([
     Column("version", TEXT, "Application Layer Firewall version"),
 ])
 implementation("firewall@genALF")
+fuzz_paths([
+    "/Library/Preferences/com.apple.alf.plist",
+])

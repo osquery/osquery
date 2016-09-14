@@ -33,3 +33,6 @@ schema([
 ])
 attributes(cacheable=True)
 implementation("launchd@genLaunchd")
+fuzz_paths([
+    "/System/Library/LaunchDaemons",
+])

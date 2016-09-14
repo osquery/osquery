@@ -6,3 +6,6 @@ schema([
     Column("end", TEXT, "End address of memory region"),
 ])
 implementation("memory_map@genMemoryMap")
+fuzz_paths([
+    "/proc/iomem",
+])

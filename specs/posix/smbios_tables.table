@@ -10,3 +10,6 @@ schema([
     Column("md5", TEXT, "MD5 hash of table entry"),
 ])
 implementation("system/smbios_tables@genSMBIOSTables")
+fuzz_paths([
+    "/sys/firmware/efi/systab",
+])

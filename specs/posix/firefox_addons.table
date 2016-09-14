@@ -24,3 +24,7 @@ schema([
 ])
 attributes(user_data=True)
 implementation("applications/browser_firefox@genFirefoxAddons")
+fuzz_paths([
+    "/Library/Application Support/Firefox/Profiles/",
+    "/Users",
+])

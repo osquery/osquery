@@ -9,3 +9,7 @@ schema([
 ])
 attributes(user_data=True)
 implementation("shell_history@genShellHistory")
+fuzz_paths([
+    "/home",
+    "/Users",
+])

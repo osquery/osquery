@@ -24,3 +24,6 @@ schema([
     Column("binary_queue", INTEGER, "Size in bytes of binaries waiting to be sent to Carbon Black server"),
 ])
 implementation("carbon_black@genCarbonBlackInfo")
+fuzz_paths([
+    "/var/lib/cb",
+])

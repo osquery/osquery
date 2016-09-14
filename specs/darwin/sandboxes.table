@@ -10,3 +10,6 @@ schema([
 ])
 attributes(cacheable=True)
 implementation("sandboxes@genSandboxContainers")
+fuzz_paths([
+    "/Users",
+])

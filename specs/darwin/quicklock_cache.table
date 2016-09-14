@@ -17,3 +17,6 @@ schema([
 ])
 attributes(cacheable=True)
 implementation("quicklook_cache@genQuicklookCache")
+fuzz_paths([
+    "/private/var/folders/",
+])

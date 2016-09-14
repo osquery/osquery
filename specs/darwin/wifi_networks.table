@@ -16,3 +16,6 @@ schema([
 ])
 attributes(cacheable=True)
 implementation("networking/wifi@genKnownWifiNetworks")
+fuzz_paths([
+    "/Library/Preferences/SystemConfiguration/com.apple.airport.preferences.plist"
+])

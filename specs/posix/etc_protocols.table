@@ -8,4 +8,6 @@ schema([
 ])
 attributes(cacheable=True)
 implementation("etc_protocols@genEtcProtocols")
-
+fuzz_paths([
+    "/etc/protocols",
+])

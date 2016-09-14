@@ -14,3 +14,6 @@ schema([
 	Column("flags", TEXT, "Mounted device flags"),
 ])
 implementation("mounts@genMounts")
+fuzz_paths([
+    "/proc/mounts",
+])

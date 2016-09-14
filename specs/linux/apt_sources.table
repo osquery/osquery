@@ -11,3 +11,6 @@ schema([
     Column("site", TEXT, "Repository site"),
 ])
 implementation("system/apt_sources@genAptSrcs")
+fuzz_paths([
+    "/etc/apt/",
+])

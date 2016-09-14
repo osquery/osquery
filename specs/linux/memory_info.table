@@ -1,7 +1,5 @@
 table_name("memory_info")
-
 description("Main memory information, in bytes")
-
 schema([
     Column("memory_total", INTEGER, "Total amount of physical RAM, in bytes"),
     Column("memory_free", INTEGER, "The amount of physical RAM, in bytes, left unused by the system"),
@@ -15,3 +13,6 @@ schema([
 ])
 
 implementation("memory_info@getMemoryInfo")
+fuzz_paths([
+    "/proc/meminfo",
+])

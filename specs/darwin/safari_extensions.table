@@ -19,3 +19,6 @@ implementation("applications/browser_plugins@genSafariExtensions")
 examples([
   "select count(*) from users JOIN safari_extensions using (uid)",
 ])
+fuzz_paths([
+    "/Users",
+])
