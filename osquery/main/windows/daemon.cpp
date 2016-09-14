@@ -35,7 +35,8 @@ CLI_FLAG(bool,
          false,
          "Uninstall osqueryd.exe from the Windows Service Control Manager");
 
-const std::string kServiceName = "osquery daemon service";
+const std::string kServiceName = "osqueryd";
+const std::string kServiceDisplayName = "osquery daemon service";
 const std::string kWatcherWorkerName = "osqueryd: worker";
 
 /// This event is set when a SERVICE_CONTROL_STOP or SERVICE_CONTROL_SHUTDOWN is
@@ -85,7 +86,7 @@ Status installService(const char* const binPath) {
 
   schService = CreateService(schSCManager,
                              kServiceName.c_str(),
-                             kServiceName.c_str(),
+                             kServiceDisplayName.c_str(),
                              SERVICE_ALL_ACCESS,
                              SERVICE_WIN32_OWN_PROCESS,
                              SERVICE_AUTO_START,
