@@ -102,38 +102,6 @@ Status installService(const char* const binPath) {
   return Status(schService ? 0 : 1);
 }
 
-Status startService() {
-  SC_HANDLE schSCManager =
-      OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
-  if (schSCManager == nullptr) {
-    return Status(1);
-  }
-
-  SC_HANDLE schService =
-      OpenService(schSCManager, kServiceName.c_str(), SERVICE_ALL_ACCESS);
-  if (schService == nullptr) {
-    CloseServiceHandle(schSCManager);
-    return Status(1);
-  }
-
-  SERVICE_STATUS_PROCESS ssStatus;
-  DWORD dwBytesNeeded;
-  if (!QueryServiceStatusEx(schService,
-                            SC_STATUS_PROCESS_INFO,
-                            (LPBYTE)&ssStatus,
-                            sizeof(SERVICE_STATUS_PROCESS),
-                            &dwBytesNeeded)) {
-    CloseServiceHandle(schService);
-    CloseServiceHandle(schSCManager);
-    return Status(1);
-  }
-
-  auto s = StartService(schService, 0, nullptr);
-  CloseServiceHandle(schSCManager);
-  CloseServiceHandle(schService);
-  return Status(s ? 0 : 1);
-}
-
 Status uninstallService() {
   SC_HANDLE schSCManager = OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT);
   if (schSCManager == nullptr) {
@@ -219,10 +187,6 @@ void daemonEntry(int argc, char* argv[]) {
   if (osquery::FLAGS_install) {
     if (osquery::installService(argv[0]).getCode()) {
       LOG(ERROR) << "Unable to install the osqueryd service";
-      return;
-    }
-    if (osquery::startService().getCode()) {
-      LOG(ERROR) << "Unable to start the osqueryd service";
     }
     return;
   } else if (osquery::FLAGS_uninstall) {
