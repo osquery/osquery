@@ -109,7 +109,7 @@ void shutdownTesting() {
 
 std::map<std::string, std::string> getTestConfigMap() {
   std::string content;
-  readFile(kTestDataPath + "test_parse_items.conf", content);
+  readFile(fs::path(kTestDataPath) / "test_parse_items.conf", content);
   std::map<std::string, std::string> config;
   config["awesome"] = content;
   return config;
@@ -117,7 +117,7 @@ std::map<std::string, std::string> getTestConfigMap() {
 
 pt::ptree getExamplePacksConfig() {
   std::string content;
-  auto s = readFile(kTestDataPath + "test_inline_pack.conf", content);
+  auto s = readFile(fs::path(kTestDataPath) / "test_inline_pack.conf", content);
   assert(s.ok());
   std::stringstream json;
   json << content;
@@ -323,19 +323,19 @@ std::vector<SplitStringTestData> generateSplitStringTestData() {
 
 std::string getCACertificateContent() {
   std::string content;
-  readFile(kTestDataPath + "test_cert.pem", content);
+  readFile(fs::path(kTestDataPath) / "test_cert.pem", content);
   return content;
 }
 
 std::string getEtcHostsContent() {
   std::string content;
-  readFile(kTestDataPath + "test_hosts.txt", content);
+  readFile(fs::path(kTestDataPath) / "test_hosts.txt", content);
   return content;
 }
 
 std::string getEtcProtocolsContent() {
   std::string content;
-  readFile(kTestDataPath + "test_protocols.txt", content);
+  readFile(fs::path(kTestDataPath) / "test_protocols.txt", content);
   return content;
 }
 
@@ -458,11 +458,16 @@ void TLSServerRunner::setClientConfig() {
   Flag::updateValue("enroll_tls_endpoint", "/enroll");
 
   self.tls_server_certs_ = Flag::getValue("tls_server_certs");
-  Flag::updateValue("tls_server_certs", kTestDataPath + "/test_server_ca.pem");
+  Flag::updateValue("tls_server_certs",
+                    (fs::path(kTestDataPath) / "test_server_ca.pem")
+                        .make_preferred()
+                        .string());
 
   self.enroll_secret_path_ = Flag::getValue("enroll_secret_path");
   Flag::updateValue("enroll_secret_path",
-                    kTestDataPath + "/test_enroll_secret.txt");
+                    (fs::path(kTestDataPath) / "test_enroll_secret.txt")
+                        .make_preferred()
+                        .string());
 }
 
 void TLSServerRunner::unsetClientConfig() {

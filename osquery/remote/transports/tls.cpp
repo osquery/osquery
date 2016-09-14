@@ -13,9 +13,12 @@
 #include "osquery/remote/transports/tls.h"
 // clang-format on
 
+#include <boost/filesystem.hpp>
+
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 
+namespace fs = boost::filesystem;
 namespace http = boost::network::http;
 
 namespace osquery {
@@ -108,8 +111,15 @@ http::client TLSTransport::getClient() {
                    << server_certificate_file_;
     } else {
       // There is a non-default server certificate set.
+      boost::system::error_code ec;
+
+      auto status = fs::status(server_certificate_file_, ec);
       options.openssl_verify_path(server_certificate_file_);
-      options.openssl_certificate(server_certificate_file_);
+
+      // On Windows, we cannot set openssl_certificate to a directory
+      if (status.type() == fs::regular_file) {
+        options.openssl_certificate(server_certificate_file_);
+      }
     }
   }
 
