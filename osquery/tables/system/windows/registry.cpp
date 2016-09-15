@@ -260,10 +260,10 @@ void queryKey(const std::string& hive,
     }
     results.push_back(r);
     if (regLinkStr != nullptr) {
-      delete[] (regLinkStr);
+      delete[](regLinkStr);
     }
   }
-  delete[] (bpDataBuff);
+  delete[](bpDataBuff);
   RegCloseKey(hRegistryHandle);
 };
 
