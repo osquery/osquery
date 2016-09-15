@@ -12,6 +12,8 @@
 #include <time.h>
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
+
 #include "osquery/core/utils.h"
 
 #define MAX_BUFFER_SIZE 256
@@ -27,7 +29,9 @@ std::string platformAsctime(const struct tm* timeptr) {
     return "";
   }
 
-  return std::string(buffer.data(), buffer.size());
+  std::string time(buffer.data());
+  boost::replace_all(time, "\n", "");
+  return time;
 }
 
 std::string platformStrerr(int errnum) {
@@ -39,7 +43,7 @@ std::string platformStrerr(int errnum) {
     return "";
   }
 
-  return std::string(buffer.data(), buffer.size());
+  return std::string(buffer.data());
 }
 
 Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count) {
