@@ -596,14 +596,12 @@ void Initializer::start() const {
   }
   initLogger(binary_);
 
-#ifndef WIN32
   // Initialize the distributed plugin, if necessary
   if (!FLAGS_disable_distributed) {
     if (Registry::exists("distributed", FLAGS_distributed_plugin)) {
       initActivePlugin("distributed", FLAGS_distributed_plugin);
     }
   }
-#endif
 
   // Start event threads.
   osquery::attachEvents();
