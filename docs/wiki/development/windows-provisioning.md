@@ -1,15 +1,26 @@
-# Windows 10 Provisioning Script
+# Windows 10 Development Environment Provisioning
 
-The PowerShell script `provision.ps1` is used to prepare a clean Windows 10 64 bit machine into one that is ready of **osquery** development on Windows. However, the script does _not_ automate the generation of the Visual Studio 2015 solution nor performs the build process.
+The bulk of the development environment provisioning logic is in the `tools\provision.ps1` PowerShell script. It is **not** recommended to directly invoke this script. Instead, run the `tools\make-win64-dev-env.bat` batch script. This provisioning script is used to prepare a clean Windows 10 64 bit operating system into one that is prepared for **osquery** development by downloading and installing the proper tools and dependencies.
+
+Generating the Visual Studio 2015 solution and building the **osquery** binaries is done via the `tools\make-win64-binaries.bat` batch script. 
 
 ## Initial Assumptions
 
  * `git` for Windows should be already installed in order to `git clone` the **osquery** repository containing the provisioning script.
- * The machine is running the Windows 10 64 bit operating system with PowerShell
+ * The machine is running the Windows 10 64 bit operating system with PowerShell installed
  * No previous instance of Visual Studio 2015 is already installed.
  * The user is running the script as an **Administrator**
 
-## Generating the Visual Studio 2015 Win64 Solution
+## Automated Method (recommended)
+
+ * Open a new *Command Prompt*
+ * Execute the following command: `git clone https://github.com/facebook/osquery`
+ * Change into the **osquery** root directory: `cd osquery`
+ * **As an _Administrator_,** run the batch script to provision a Windows 10 64 bit development environment: `tools\make-win64-dev-env.bat`
+ * **As an _Administrator_,** run the batch script to generate a Visual Studio 2015 and commence building the osquery shell, daemon, and tests: `tools\make-win64-binaries.bat`
+
+## Manual Method
+### Generating the Visual Studio 2015 Win64 Solution
 
  * Open a new *Command Prompt*
  * Execute the following command: `git clone https://github.com/facebook/osquery`
@@ -20,7 +31,7 @@ The PowerShell script `provision.ps1` is used to prepare a clean Windows 10 64 b
  * Generate the Visual Studio 2015 solution files: `cmake ..\.. -G "Visual Studio 14 2015 Win64"`
  * There should be a `OSQUERY.sln` in the build folder. Open this with Visual Studio 2015 that is already installed via the provisioning script.
 
-## Building `osqueryd.exe` and `osqueryi.exe`
+### Building `osqueryd.exe` and `osqueryi.exe`
  
  * **Automated Process**
    * Run `tools\make-win64-binaries.bat` from the `osquery` root directory. This will create the CMake build files and execute `cmake --build` to compile the shell and copy all required DLLs into the shell's output directory.
@@ -28,17 +39,12 @@ The PowerShell script `provision.ps1` is used to prepare a clean Windows 10 64 b
    * Open the Visual Studio 2015 solution, `OSQUERY.sln`
    * Select **Release** or **RelWithDebInfo** as the build configuration.
    * For `osqueryd.exe`, build the **daemon** project; `osqueryi.exe`, build the **shell** project
-   * After the build succeeds, copy the following DLLs to the directory containing `osqueryd.exe`/`osqueryi.exe` (usually in `build\windows10\osquery\Release` or `build\windows10\osquery\RelWithDebInfo`)
-     * `%ChocolateyInstall%\lib\openssl\local\bin\libeay32.dll`
-     * `%ChocolateyInstall%\lib\openssl\local\bin\ssleay32.dll`
-     * `%ChocolateyInstall%\lib\glog\local\bin\glog.dll`
-     * `%ChocolateyInstall%\lib\linenoise-ng\local\bin\linenoise.dll`
    
 ## Chocolatey Packages Installed (from official sources)
 
  * chocolatey (if applicable)
  * 7zip.commandline
- * cmake.portable 3.5.0
+ * cmake.portable 3.6.1
  * python2 2.7.11
  * visualstudio2015community (with a custom deployment XML ensuring C/C++ toolchain is installed)
  * thrift 0.9.3 (as a dependency from one of our private packages)
@@ -58,6 +64,8 @@ Official chocolatey sources do not provide everything we need. In order to mitig
  * thrift-dev 0.9.3
  * cpp-netlib 0.12.0
  * linenoise-ng 1.0.0
+ * clang-format 3.9.0
+ * zlib 1.2.8
 
 ## Other Actions
 
