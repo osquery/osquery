@@ -65,7 +65,6 @@ function setup_brew() {
     # Backwards compatibility for legacy environment.
     rm -f "$DEPS/legacy"
     mkdir -p "$DEPS/legacy"
-    local_brew_link glibc-legacy
   elif [[ ! -d "$DEPS/legacy" ]]; then
     mkdir -p "$DEPS/legacy"
   fi
