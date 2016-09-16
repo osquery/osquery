@@ -91,6 +91,7 @@ QueryData genOsqueryPacks(QueryContext& context) {
     r["version"] = pack->getVersion();
     r["platform"] = pack->getPlatform();
     r["shard"] = INTEGER(pack->getShard());
+    r["executing"] = INTEGER(pack->isExecuting() ? 1 : 0);
 
     auto stats = pack->getStats();
     r["discovery_cache_hits"] = INTEGER(stats.hits);
