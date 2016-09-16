@@ -7,38 +7,34 @@ Generating the Visual Studio 2015 solution and building the **osquery** binaries
 ## Initial Assumptions
 
  * `git` for Windows should be already installed in order to `git clone` the **osquery** repository containing the provisioning script.
- * The machine is running the Windows 10 64 bit operating system with PowerShell 3.0 and later installed
- * No previous instance of Visual Studio 2015 is already installed.
- * The user is running the script as an **Administrator**
+ * The machine is running the Windows 10 64 bit operating system with PowerShell 3.0 or later installed
+ * No previous instance of Visual Studio 2015 is installed.
+ * The user is running the script as an **Administrator** with elevated privileges
 
-## Automated Method (recommended)
+## Build Process
 
- * Open a new *Command Prompt*
+ * Open a new *Command Prompt* as an **Administrator** with elevated privileges
  * Execute the following command: `git clone https://github.com/facebook/osquery`
  * Change into the **osquery** root directory: `cd osquery`
- * **As an _Administrator_ with elevated privileges,** run the batch script to provision a Windows 10 64 bit development environment: `tools\make-win64-dev-env.bat`
- * **As an _Administrator_ with elevated privileges,** run the batch script to generate a Visual Studio 2015 and commence building the osquery shell, daemon, and tests: `tools\make-win64-binaries.bat`
+ * Run the batch script to provision a Windows 10 64 bit development environment: `tools\make-win64-dev-env.bat`
+ 
+### Automated Method (recommended)
 
-## Manual Method
-### Generating the Visual Studio 2015 Win64 Solution
+ * Run the batch script to generate a Visual Studio 2015 solution and commence building the osquery shell, daemon, and tests: `tools\make-win64-binaries.bat`
 
- * Open a new *Command Prompt*
- * Execute the following command: `git clone https://github.com/facebook/osquery`
- * Change into the **osquery** root directory: `cd osquery`
- * **As an _Administrator_,** run the batch script to provision a Windows 10 64 bit development environment: `tools\make-win64-dev-env.bat`
- * After completion, create the build folder: `mkdir build\windows10`
+### Manual Method
+#### Generating the Visual Studio 2015 Win64 Solution
+
+ * Create the build folder: `mkdir build\windows10`
  * Change into the recently created build folder: `cd build\windows10`
  * Generate the Visual Studio 2015 solution files: `cmake ..\.. -G "Visual Studio 14 2015 Win64"`
- * There should be a `OSQUERY.sln` in the build folder. Open this with Visual Studio 2015 that is already installed via the provisioning script.
+ * There should be a `OSQUERY.sln` in the `build\windows10` folder. Open this with Visual Studio 2015.
 
-### Building `osqueryd.exe` and `osqueryi.exe`
+#### Building `osqueryd.exe` and `osqueryi.exe`
  
- * **Automated Process**
-   * Run `tools\make-win64-binaries.bat` from the `osquery` root directory. This will create the CMake build files and execute `cmake --build` to compile the shell and copy all required DLLs into the shell's output directory.
- * **Manual Process**
-   * Open the Visual Studio 2015 solution, `OSQUERY.sln`
-   * Select **Release** or **RelWithDebInfo** as the build configuration.
-   * For `osqueryd.exe`, build the **daemon** project; `osqueryi.exe`, build the **shell** project
+ * Open the Visual Studio 2015 solution, `OSQUERY.sln`
+ * Select **Release** or **RelWithDebInfo** as the build configuration.
+ * For `osqueryd.exe`, build the **daemon** project; `osqueryi.exe`, build the **shell** project
    
 ## Chocolatey Packages Installed (from official sources)
 
