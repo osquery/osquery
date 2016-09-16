@@ -119,7 +119,7 @@ consist of pack name to pack content JSON data structures.
       "queries": {
         "suid_bins": {
           "query": "select * from suid_bins;",
-          "interval": "3600",
+          "interval": "3600"
         }
       }
     }
