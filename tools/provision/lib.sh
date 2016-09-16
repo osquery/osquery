@@ -60,6 +60,16 @@ function setup_brew() {
   $BREW tap homebrew/dupes --full
   (cd $TAPS/homebrew/homebrew-dupes && git reset --hard $DUPES_COMMIT)
 
+  # Create a 'legacy' mirror.
+  if [[ -L "$DEPS/legacy" ]]; then
+    # Backwards compatibility for legacy environment.
+    rm -f "$DEPS/legacy"
+    mkdir -p "$DEPS/legacy"
+    local_brew_link glibc-legacy
+  elif [[ ! -d "$DEPS/legacy" ]]; then
+    mkdir -p "$DEPS/legacy"
+  fi
+
   # Fix for python linking.
   mkdir -p "$DEPS/lib/python2.7/site-packages"
 }
@@ -80,6 +90,13 @@ function set_deps_compilers() {
   else
     export CC="$DEPS/bin/clang"
     export CXX="$DEPS/bin/clang++"
+  fi
+}
+
+function brew_clear_cache() {
+  if [[ ! -z "$OSQUERY_CLEAR_CACHE" ]]; then
+    log "clearing dependency cache"
+    rm -rf "$DEPS/.cache/*"
   fi
 }
 
@@ -136,6 +153,13 @@ function brew_internal() {
     return
   fi
 
+  if [[ "$TYPE" = "unlink" ]]; then
+    if [[ "$LINKED" = "$STABLE" ]]; then
+      $BREW unlink --force "${FORMULA}"
+    fi
+    return
+  fi
+
   export HOMEBREW_OPTIMIZATION_LEVEL=-Os
   if [[ ! -z "$OSQUERY_BUILD_BOTTLES" && ! "$TYPE" = "upstream" ]]; then
     $BREW bottle --skip-relocation "${FORMULA}"
@@ -162,6 +186,10 @@ function local_brew_dependency() {
 
 function local_brew_link() {
   brew_internal "link" $@
+}
+
+function local_brew_unlink() {
+  brew_internal "unlink" $@
 }
 
 function brew_tool() {

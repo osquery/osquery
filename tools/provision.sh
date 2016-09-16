@@ -112,11 +112,13 @@ function main() {
   fi
 
   log "running unified platform initialization"
+  brew_clear_cache
   if [[ "$BREW_TYPE" = "darwin" ]]; then
     platform_darwin_main
   else
     platform_linux_main
   fi
+  brew_clear_cache
 
   cd "$SCRIPT_DIR/../"
 
@@ -148,10 +150,9 @@ function platform_linux_main() {
 
   # Build a bottle for a legacy glibc.
   local_brew_tool glibc-legacy
+  local_brew_unlink glibc-legacy
+  local_brew_link glibc-legacy
   local_brew_postinstall glibc-legacy
-
-  # Need LZMA for final builds.
-  local_brew_tool xz
 
   # Additional GCC 5x bootstrapping.
   brew_tool gmp
@@ -160,10 +161,14 @@ function platform_linux_main() {
   brew_tool isl
 
   # GCC 5x.
-  local_brew_tool gcc --with-glibc-legacy --without-fortran
+  local_brew_tool gcc
   # Remove gcc-postinstall when GCC is next updated.
   local_brew_postinstall gcc
   set_deps_compilers gcc
+
+  # Need LZMA for final builds.
+  local_brew_tool zlib-legacy
+  local_brew_tool xz
 
   # GCC-compiled (C) dependencies.
   brew_tool pkg-config
@@ -203,7 +208,6 @@ function platform_linux_main() {
   local_brew_tool cmake --without-docs
 
   # Linux library secondary dependencies.
-  local_brew_tool libgpg-error
   local_brew_tool berkeley-db
   local_brew_tool popt
   local_brew_tool beecrypt
@@ -233,6 +237,7 @@ function platform_linux_main() {
   local_brew_dependency glog
 
   # Linux specific custom formulas.
+  local_brew_dependency libgpg-error
   local_brew_dependency libdevmapper
   local_brew_dependency libaptpkg
   local_brew_dependency libiptables
