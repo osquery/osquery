@@ -58,7 +58,6 @@ class AbstractOsqueryFormula < Formula
     ENV[name] = ENV.has_key?(name) ? value.to_s + ':' + ENV[name] : value.to_s
   end
 
-
   def self.method_added(name)
     return unless /install/.match(name.to_s)
     return if /inject/.match(name.to_s)
