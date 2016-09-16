@@ -38,9 +38,10 @@ function setup_brew() {
   mkdir -p "$DEPS/Library/Taps/osquery/"
 
   FORMULA_TAP="$DEPS/Library/Taps/osquery/homebrew-osquery-local"
-  if [[ ! -e "$FORMULA_TAP" ]]; then
-    ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
+  if [[ -L "$FORMULA_TAP" ]]; then
+    rm -f "$FORMULA_TAP"
   fi
+  ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
 
   export HOMEBREW_NO_ANALYTICS_THIS_RUN=1
   export HOMEBREW_NO_AUTO_UPDATE=1
@@ -112,7 +113,7 @@ function brew_internal() {
   if [[ "$TYPE" = "upstream" || "$TYPE" = "upstream-link" ]]; then
     FORMULA="$TOOL"
   else
-    FORMULA="${FORMULA_DIR}/${TOOL}.rb"
+    FORMULA="osquery/homebrew-osquery-local/${TOOL}"
   fi
   INFO=`$BREW info --json=v1 "${FORMULA}"`
   INSTALLED=$(json_element "${INFO}" 'obj[0]["installed"][0]["version"]')
@@ -207,7 +208,7 @@ function brew_bottle() {
 function local_brew_postinstall() {
   TOOL=$1
   if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
-    $BREW postinstall "${FORMULA_DIR}/${TOOL}.rb"
+    $BREW postinstall "${FORMULA_TAP}/${TOOL}.rb"
   fi
 }
 
