@@ -13,7 +13,7 @@
 // Our third-party version of cpp-netlib uses OpenSSL APIs.
 // On OS X these symbols are marked deprecated and clang will warn against
 // us including them. We are squashing the noise for OS X's OpenSSL only.
-// 
+//
 // This is placed here because of ordering issues. ASIO requires WinSock.h
 // not to be already included.
 // clang-format off
