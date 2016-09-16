@@ -3,7 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class GlibcLegacy < AbstractOsqueryFormula
   desc "The GNU C Library"
   homepage "https://www.gnu.org/software/libc/download.html"
-  url "http://ftpmirror.gnu.org/glibc/glibc-2.13.tar.bz2"
+  url "https://ftp.heanet.ie/mirrors/gnu/glibc/glibc-2.13.tar.bz2"
   sha256 "0173c92a0545e6d99a46a4fbed2da00ba26556f5c6198e2f9f1631ed5318dbb2"
 
   bottle do
@@ -23,8 +23,7 @@ class GlibcLegacy < AbstractOsqueryFormula
   # Linux kernel headers 2.6.19 or later are required
   depends_on "linux-headers" => [:build, :recommended]
 
-  # osquery: Keep these side-by-side libraries in a Cellar.
-  keg_only "osquery runtime"
+  set_legacy
 
   def install
     ENV["CFLAGS"] = "-U_FORTIFY_SOURCE -fno-stack-protector -O2"
@@ -62,9 +61,6 @@ class GlibcLegacy < AbstractOsqueryFormula
   def post_install
     # Fix permissions
     chmod 0755, [lib/"ld-#{version}.so", lib/"libc-#{version}.so"]
-
-    # Install ld.so symlink.
-    ln_sf prefix, HOMEBREW_PREFIX/"legacy"
   end
 
   test do

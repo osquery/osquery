@@ -8,6 +8,7 @@ class Xz < AbstractOsqueryFormula
   url "https://fossies.org/linux/misc/xz-5.2.2.tar.gz"
   mirror "http://tukaani.org/xz/xz-5.2.2.tar.gz"
   sha256 "73df4d5d34f0468bd57d09f2d8af363e95ed6cc3a4a86129d2f2c366259902a2"
+  revision 1
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"

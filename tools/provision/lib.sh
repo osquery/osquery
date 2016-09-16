@@ -38,9 +38,10 @@ function setup_brew() {
   mkdir -p "$DEPS/Library/Taps/osquery/"
 
   FORMULA_TAP="$DEPS/Library/Taps/osquery/homebrew-osquery-local"
-  if [[ ! -e "$FORMULA_TAP" ]]; then
-    ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
+  if [[ -L "$FORMULA_TAP" ]]; then
+    rm -f "$FORMULA_TAP"
   fi
+  ln -sf "$FORMULA_DIR" "$FORMULA_TAP"
 
   export HOMEBREW_NO_ANALYTICS_THIS_RUN=1
   export HOMEBREW_NO_AUTO_UPDATE=1
@@ -59,6 +60,15 @@ function setup_brew() {
   log "installing homebrew dupes"
   $BREW tap homebrew/dupes --full
   (cd $TAPS/homebrew/homebrew-dupes && git reset --hard $DUPES_COMMIT)
+
+  # Create a 'legacy' mirror.
+  if [[ -L "$DEPS/legacy" ]]; then
+    # Backwards compatibility for legacy environment.
+    rm -f "$DEPS/legacy"
+    mkdir -p "$DEPS/legacy"
+  elif [[ ! -d "$DEPS/legacy" ]]; then
+    mkdir -p "$DEPS/legacy"
+  fi
 
   # Fix for python linking.
   mkdir -p "$DEPS/lib/python2.7/site-packages"
@@ -83,6 +93,13 @@ function set_deps_compilers() {
   fi
 }
 
+function brew_clear_cache() {
+  if [[ ! -z "$OSQUERY_CLEAR_CACHE" ]]; then
+    log "clearing dependency cache"
+    rm -rf "$DEPS/.cache/*"
+  fi
+}
+
 # local_brew_package TYPE NAME [ARGS, ...]
 #   1: tool/dependency/link/upstream/upstream-link
 #   2: formula name
@@ -96,7 +113,7 @@ function brew_internal() {
   if [[ "$TYPE" = "upstream" || "$TYPE" = "upstream-link" ]]; then
     FORMULA="$TOOL"
   else
-    FORMULA="${FORMULA_DIR}/${TOOL}.rb"
+    FORMULA="osquery/homebrew-osquery-local/${TOOL}"
   fi
   INFO=`$BREW info --json=v1 "${FORMULA}"`
   INSTALLED=$(json_element "${INFO}" 'obj[0]["installed"][0]["version"]')
@@ -136,6 +153,13 @@ function brew_internal() {
     return
   fi
 
+  if [[ "$TYPE" = "unlink" ]]; then
+    if [[ "$LINKED" = "$STABLE" ]]; then
+      $BREW unlink --force "${FORMULA}"
+    fi
+    return
+  fi
+
   export HOMEBREW_OPTIMIZATION_LEVEL=-Os
   if [[ ! -z "$OSQUERY_BUILD_BOTTLES" && ! "$TYPE" = "upstream" ]]; then
     $BREW bottle --skip-relocation "${FORMULA}"
@@ -164,6 +188,10 @@ function local_brew_link() {
   brew_internal "link" $@
 }
 
+function local_brew_unlink() {
+  brew_internal "unlink" $@
+}
+
 function brew_tool() {
   brew_internal "upstream" $@
 }
@@ -180,7 +208,7 @@ function brew_bottle() {
 function local_brew_postinstall() {
   TOOL=$1
   if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
-    $BREW postinstall "${FORMULA_DIR}/${TOOL}.rb"
+    $BREW postinstall "${FORMULA_TAP}/${TOOL}.rb"
   fi
 }
 

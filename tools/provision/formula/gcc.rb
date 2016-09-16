@@ -23,7 +23,7 @@ class Gcc < AbstractOsqueryFormula
 
   desc "GNU compiler collection"
   homepage "https://gcc.gnu.org"
-  url "http://ftpmirror.gnu.org/gcc/gcc-5.3.0/gcc-5.3.0.tar.bz2"
+  url "https://ftp.heanet.ie/mirrors/gnu/gcc/gcc-5.3.0/gcc-5.3.0.tar.bz2"
   mirror "https://ftp.gnu.org/gnu/gcc/gcc-5.3.0/gcc-5.3.0.tar.bz2"
   sha256 "b84f5592e9218b73dbae612b5253035a7b34a9a1f7688d2e1bfaaf7267d5c4db"
 
@@ -39,7 +39,7 @@ class Gcc < AbstractOsqueryFormula
   option "with-all-languages", "Enable all compilers and languages, except Ada"
   option "with-nls", "Build with native language support (localization)"
   option "with-jit", "Build the jit compiler"
-  option "without-fortran", "Build without the gfortran compiler"
+  option "with-fortran", "Build without the gfortran compiler"
   # enabling multilib on a host that can't run 64-bit results in build failures
   if OS.mac?
     option "without-multilib", "Build without multilib support" if MacOS.prefer_64_bit?
@@ -54,10 +54,6 @@ class Gcc < AbstractOsqueryFormula
   depends_on "mpfr"
   depends_on "isl"
   depends_on "ecj" if build.with?("java") || build.with?("all-languages")
-
-  # osquery: We add a requirement for glibc-legacy instead of glibc.
-  # We want the osquery toolchain to use a "more-available" C runtime.
-  depends_on "glibc-legacy" => :optional
 
   if MacOS.version < :leopard && OS.mac?
     # The as that comes with Tiger isn't capable of dealing with the
@@ -110,22 +106,20 @@ class Gcc < AbstractOsqueryFormula
 
     args = []
     args << "--build=#{arch}-apple-darwin#{osmajor}" if OS.mac?
-    if build.with? "glibc-legacy" or true
-      puts "hello friend"
-      # Fix for GCC 4.4 and older that do not support -static-libstdc++
-      # gengenrtl: error while loading shared libraries: libstdc++.so.6
-      mkdir_p lib
-      ln_s ["/usr/lib64/libstdc++.so.6", "/lib64/libgcc_s.so.1"], lib
-      binutils = Formula["binutils"].prefix/"x86_64-pc-linux-gnu/bin"
-      args += [
-        #"--with-native-system-header-dir=#{HOMEBREW_PREFIX}/include",
-        "--with-native-system-header-dir=#{Formula["glibc-legacy"].include}",
-        "--with-local-prefix=#{HOMEBREW_PREFIX}",
-        "--with-build-time-tools=#{binutils}",
-      ]
-      # Set the search path for glibc libraries and objects.
-      ENV["LIBRARY_PATH"] = "#{Formula["glibc-legacy"].lib}:#{Formula["cctools"].lib}"
-    end
+
+    # Fix for GCC 4.4 and older that do not support -static-libstdc++
+    # gengenrtl: error while loading shared libraries: libstdc++.so.6
+    mkdir_p lib
+    ln_s ["/usr/lib64/libstdc++.so.6", "/lib64/libgcc_s.so.1"], lib
+    binutils = Formula["binutils"].prefix/"x86_64-pc-linux-gnu/bin"
+    args += [
+      #"--with-native-system-header-dir=#{HOMEBREW_PREFIX}/include",
+      "--with-native-system-header-dir=#{Formula["glibc-legacy"].include}",
+      "--with-local-prefix=#{HOMEBREW_PREFIX}",
+      "--with-build-time-tools=#{binutils}",
+    ]
+    # Set the search path for glibc libraries and objects.
+    ENV["LIBRARY_PATH"] = "#{Formula["glibc-legacy"].lib}:#{Formula["cctools"].lib}"
 
     args += [
       "--prefix=#{prefix}",
@@ -272,17 +266,19 @@ class Gcc < AbstractOsqueryFormula
     specs_orig.write specs_string
 
     # Set the library search path
+    # This should be the default_prefix since we expect an ABI => C runtime
+    # to be available and backward compatible on the system.
     glibc = Formula["glibc-legacy"]
     libgcc = lib/"gcc/x86_64-unknown-linux-gnu"/version
     specs.write specs_string + <<-EOS.undent
       *cpp_unique_options:
-      + -isystem #{HOMEBREW_PREFIX}/legacy/include -isystem #{HOMEBREW_PREFIX}/include
+      + -isystem #{legacy_prefix}/include -isystem #{default_prefix}/include
 
       *link_libgcc:
-      #{glibc.installed? ? "-nostdlib -L#{libgcc}" : "+"} -L#{HOMEBREW_PREFIX}/lib
+      #{glibc.installed? ? "-nostdlib -L#{libgcc}" : "+"} -L#{default_prefix}/lib
 
       *link:
-      + --dynamic-linker #{HOMEBREW_PREFIX}/legacy/lib/ld-2.13.so -rpath #{HOMEBREW_PREFIX}/lib
+      + --dynamic-linker #{legacy_prefix}/lib/ld-linux-x86-64.so.2 -rpath #{default_prefix}/lib
 
     EOS
   end
