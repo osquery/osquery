@@ -7,7 +7,7 @@ Generating the Visual Studio 2015 solution and building the **osquery** binaries
 ## Initial Assumptions
 
  * `git` for Windows should be already installed in order to `git clone` the **osquery** repository containing the provisioning script.
- * The machine is running the Windows 10 64 bit operating system with PowerShell installed
+ * The machine is running the Windows 10 64 bit operating system with PowerShell 3.0 and later installed
  * No previous instance of Visual Studio 2015 is already installed.
  * The user is running the script as an **Administrator**
 
@@ -16,8 +16,8 @@ Generating the Visual Studio 2015 solution and building the **osquery** binaries
  * Open a new *Command Prompt*
  * Execute the following command: `git clone https://github.com/facebook/osquery`
  * Change into the **osquery** root directory: `cd osquery`
- * **As an _Administrator_,** run the batch script to provision a Windows 10 64 bit development environment: `tools\make-win64-dev-env.bat`
- * **As an _Administrator_,** run the batch script to generate a Visual Studio 2015 and commence building the osquery shell, daemon, and tests: `tools\make-win64-binaries.bat`
+ * **As an _Administrator_ with elevated privileges,** run the batch script to provision a Windows 10 64 bit development environment: `tools\make-win64-dev-env.bat`
+ * **As an _Administrator_ with elevated privileges,** run the batch script to generate a Visual Studio 2015 and commence building the osquery shell, daemon, and tests: `tools\make-win64-binaries.bat`
 
 ## Manual Method
 ### Generating the Visual Studio 2015 Win64 Solution
