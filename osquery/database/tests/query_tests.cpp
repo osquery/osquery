@@ -16,8 +16,8 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/database/query.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
@@ -81,8 +81,8 @@ TEST_F(QueryTests, test_query_name_not_found_in_db) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("not_a_real_query", query);
   auto status = cf.getPreviousQueryResults(previous_qd);
-  EXPECT_TRUE(status.ok());
-  EXPECT_EQ(status.toString(), "Query name not found in database");
+  EXPECT_FALSE(status.ok());
+  EXPECT_TRUE(previous_qd.empty());
 }
 
 TEST_F(QueryTests, test_is_query_name_in_database) {
@@ -93,6 +93,27 @@ TEST_F(QueryTests, test_is_query_name_in_database) {
   EXPECT_TRUE(status.ok());
   // Now test that the query name exists.
   EXPECT_TRUE(cf.isQueryNameInDatabase());
+}
+
+TEST_F(QueryTests, test_query_name_updated) {
+  // Try to retrieve results from a query that has not executed.
+  QueryData previous_qd;
+  auto query = getOsqueryScheduledQuery();
+  auto cf = Query("will_update_query", query);
+  EXPECT_TRUE(cf.isNewQuery());
+  EXPECT_TRUE(cf.isNewQuery());
+
+  DiffResults dr;
+  auto results = getTestDBExpectedResults();
+  cf.addNewResults(results, dr);
+  EXPECT_FALSE(cf.isNewQuery());
+
+  query.query += " LIMIT 1";
+  auto cf2 = Query("will_update_query", query);
+  EXPECT_TRUE(cf2.isQueryNameInDatabase());
+  EXPECT_TRUE(cf2.isNewQuery());
+  cf2.addNewResults(results, dr);
+  EXPECT_FALSE(cf2.isNewQuery());
 }
 
 TEST_F(QueryTests, test_get_stored_query_names) {
