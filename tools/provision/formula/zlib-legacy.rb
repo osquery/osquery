@@ -10,10 +10,7 @@ class ZlibLegacy < AbstractOsqueryFormula
 
   option :universal
 
-  # configure script fails to detect the right compiler when "cc" is
-  # clang, not gcc. zlib mantainers have been notified of the issue.
-  # See: https://github.com/Homebrew/homebrew-dupes/pull/228
-  patch :DATA if OS.mac?
+  patch :DATA
 
   # http://zlib.net/zlib_how.html
   resource "test_artifact" do
@@ -27,6 +24,7 @@ class ZlibLegacy < AbstractOsqueryFormula
   def install
     ENV.universal_binary if build.universal?
     system "./configure", "--prefix=#{prefix}", "--shared"
+    system "make"
     system "make", "install"
   end
 
@@ -43,14 +41,22 @@ end
 
 __END__
 diff --git a/configure b/configure
-index b77a8a8..54f33f7 100755
+index d7ffdc3..d7ca2c8 100755
 --- a/configure
 +++ b/configure
-@@ -159,6 +159,7 @@ case "$cc" in
- esac
- case `$cc -v 2>&1` in
-   *gcc*) gcc=1 ;;
-+  *clang*) gcc=1 ;;
- esac
+@@ -19,6 +19,7 @@
+ # an error.
  
- show $cc -c $test.c
+ LIBS=libz.a
++LDSHAREDFLAGS="$LDFLAGS"
+ LDFLAGS="-L. ${LIBS}"
+ VER=`sed -n -e '/VERSION "/s/.*"\(.*\)".*/\1/p' < zlib.h`
+ VER2=`sed -n -e '/VERSION "/s/.*"\([0-9]*\\.[0-9]*\)\\..*/\1/p' < zlib.h`
+@@ -167,6 +168,7 @@ fi
+ SHAREDLIB=${SHAREDLIB-"libz$shared_ext"}
+ SHAREDLIBV=${SHAREDLIBV-"libz$shared_ext.$VER"}
+ SHAREDLIBM=${SHAREDLIBM-"libz$shared_ext.$VER1"}
++LDSHARED="$LDSHARED $LDSHAREDFLAGS"
+ 
+ if test $shared -eq 1; then
+   echo Checking for shared library support...
