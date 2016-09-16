@@ -29,9 +29,9 @@ std::string platformAsctime(const struct tm* timeptr) {
     return "";
   }
 
-  std::string time(buffer.data());
-  boost::replace_all(time, "\n", "");
-  return time;
+  std::string time_str(buffer.data());
+  boost::replace_all(time_str, "\n", "");
+  return time_str;
 }
 
 std::string platformStrerr(int errnum) {
