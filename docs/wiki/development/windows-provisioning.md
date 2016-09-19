@@ -6,9 +6,9 @@ Generating the Visual Studio 2015 solution and building the **osquery** binaries
 
 ## Initial Assumptions
 
- * `git` for Windows should be already installed in order to `git clone` the **osquery** repository containing the provisioning script.
+ * `git` for Windows should be already installed in order to `git clone` the **osquery** repository containing the provisioning script
  * The machine is running the Windows 10 64 bit operating system with PowerShell 3.0 or later installed
- * No previous instance of Visual Studio 2015 is installed.
+ * No previous instance of Visual Studio 2015 is installed
  * The user is running the script as an **Administrator** with elevated privileges
 
 ## Build Process
@@ -28,12 +28,12 @@ Generating the Visual Studio 2015 solution and building the **osquery** binaries
  * Create the build folder: `mkdir build\windows10`
  * Change into the recently created build folder: `cd build\windows10`
  * Generate the Visual Studio 2015 solution files: `cmake ..\.. -G "Visual Studio 14 2015 Win64"`
- * There should be a `OSQUERY.sln` in the `build\windows10` folder. Open this with Visual Studio 2015.
+ * There should be a `OSQUERY.sln` in the `build\windows10` folder, open this with Visual Studio 2015
 
 #### Building `osqueryd.exe` and `osqueryi.exe`
  
  * Open the Visual Studio 2015 solution, `OSQUERY.sln`
- * Select **Release** or **RelWithDebInfo** as the build configuration.
+ * Select **Release** or **RelWithDebInfo** as the build configuration
  * For `osqueryd.exe`, build the **daemon** project; `osqueryi.exe`, build the **shell** project
    
 ## Chocolatey Packages Installed (from official sources)
@@ -42,12 +42,12 @@ Generating the Visual Studio 2015 solution and building the **osquery** binaries
  * 7zip.commandline
  * cmake.portable 3.6.1
  * python2 2.7.11
- * visualstudio2015community (with a custom deployment XML ensuring C/C++ toolchain is installed)
- * thrift 0.9.3 (as a dependency from one of our private packages)
+ * visualstudio2015community
+ * thrift 0.9.3
 
 ## Chocolatey Packages Installed (from private sources)
 
-Official chocolatey sources do not provide everything we need. In order to mitigate this issue, we built our own custom Chocolatey packages with the required development libraries needed to build *osquery*.
+Official chocolatey sources do not provide everything we need. In order to mitigate this issue, we built our own custom Chocolatey packages with the required development libraries (and tools) required to build *osquery*.
 
  * boost-msvc14 1.59.0
  * bzip2 1.0.6
