@@ -40,6 +40,42 @@ param(
   return $false
 }
 
+# Installs the Powershell Analzyer: https://github.com/PowerShell/PSScriptAnalyzer
+function Install-PowershellLinter {
+  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  param()
+  if (-not $PSCmdlet.ShouldProcess('PSScriptAnalyzer')) {
+    Exit -1
+  }
+
+  $nugetProviderInstalled = $false
+  Write-Host " => Determining whether NuGet package provider is already installed." -foregroundcolor DarkYellow
+  foreach ($provider in Get-PackageProvider -ListAvailable) {
+    if ($provider.Name -eq "NuGet" -and $provider.Version -ge 2.8.5.206) {
+      $nugetProviderInstalled = $true
+      break
+    }
+  }
+  if (-not $nugetProviderInstalled) {
+    Write-Host " => NuGet provider either not installed or out of date. Installing..." -foregroundcolor Cyan
+    Install-PackageProvider -Name NuGet -Force
+    Write-Host "[+] NuGet package provider installed!" -foregroundcolor Green
+  } else {
+    Write-Host "[*] NuGet provider already installed." -foregroundcolor Green
+  }
+
+  Write-Host " => Determining whether PSScriptAnalyzer is already installed." -foregroundcolor DarkYellow
+  foreach ($module in Get-Module -ListAvailable) {
+    if ($module.Name -eq "PSScriptAnalyzer" -and $module.Version -ge 1.7.0) {
+      Write-Host "[*] PSScriptAnalyzer already installed."
+      return
+    }
+  }
+  Write-Host " => PSScriptAnalyzer either not installed or out of date. Installing..." -foregroundcolor Cyan
+  Install-Module -Force -Name PSScriptAnalyzer
+  Write-Host "[+] PSScriptAnalyzer installed!" -foregroundcolor Green
+}
+
 # Attempts to install chocolatey if not already
 function Install-Chocolatey {
   [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
@@ -153,25 +189,34 @@ function Install-ThirdParty {
     "rocksdb.4.4",
     "snappy-msvc.1.1.1.8",
     "thrift-dev.0.9.3",
-    "cpp-netlib.0.12.0",
+    "cpp-netlib.0.12.0-r1",
     "linenoise-ng.1.0.0",
     "clang-format.3.9.0"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'
   Remove-Item $tmpDir -Recurse -ErrorAction Ignore
-  mkdir $tmpDir
+  New-Item -Force -Type directory -Path $tmpDir
   Try {
     foreach ($package in $packages) {
+      $chocoForce = ""
       $packageData = $package -split '\.'
       $packageName = $packageData[0]
       $packageVersion = [string]::Join('.', $packageData[1..$packageData.length])
+
       Write-Host " => Determining whether $packageName is already installed..." -foregroundcolor DarkYellow
       $isInstalled = Test-ChocoPackageInstalled $packageName $packageVersion
       if ($isInstalled) {
         Write-Host "[*] $packageName $packageVersion already installed." -foregroundcolor Green
         continue
       }
-      Write-Host " => Did not find. Installing $packageName $packageVersion" -foregroundcolor Cyan
+      # Chocolatey package is installed, but version is off
+      $oldVersionInstalled = Test-ChocoPackageInstalled $packageName
+      if ($oldVersionInstalled) {
+        Write-Host " => An old version of $packageName is installed. Forcing re-installation" -foregroundcolor Cyan
+        $chocoForce = "-f"
+      } else {
+        Write-Host " => Did not find. Installing $packageName $packageVersion" -foregroundcolor Cyan
+      }
       $downloadUrl = "$THIRD_PARTY_ARCHIVE_URL/$package.nupkg"
       $tmpFilePath = Join-Path $tmpDir "$package.nupkg"
       Write-Host " => Downloading $downloadUrl" -foregroundcolor DarkCyan
@@ -181,7 +226,7 @@ function Install-ThirdParty {
         Write-Host "[-] ERROR: Downloading $package failed. Check connection?" -foregroundcolor Red
         Exit -1
       }
-      choco install -y -r $packageName -source "$tmpDir;https://chocolatey.org/api/v2"
+      choco install --pre -y -r $chocoForce $packageName --version=$packageVersion --source="$tmpDir;https://chocolatey.org/api/v2"
       if ($LastExitCode -ne 0) {
         Write-Host "[-] ERROR: Install of $package failed." -foregroundcolor Red
         Exit -1
@@ -234,6 +279,12 @@ function Main {
   $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
   Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
   Install-ThirdParty
+  Install-PowershellLinter
+  Write-Host " => Determining whether PSScriptAnalyzer is already installed."
+
+  Install-PackageProvider -Name NuGet -Force
+  Install-Module -Force -Name PSScriptAnalyzer
+
   Write-Host "[+] Done." -foregroundcolor Yellow
 }
 
