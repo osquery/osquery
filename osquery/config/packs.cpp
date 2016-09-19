@@ -216,8 +216,8 @@ const std::string& Pack::getVersion() const {
 }
 
 bool Pack::shouldPackExecute() {
-  executing_ = (valid_ && checkDiscovery());
-  return executing_.load();
+  active_ = (valid_ && checkDiscovery());
+  return active_;
 }
 
 const std::string& Pack::getName() const {
@@ -314,7 +314,7 @@ bool Pack::checkDiscovery() {
   return discovery_cache_.second;
 }
 
-bool Pack::isExecuting() const {
-  return executing_.load();
+bool Pack::isActive() const {
+  return active_;
 }
 }

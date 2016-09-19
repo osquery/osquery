@@ -7,7 +7,7 @@ schema([
     Column("shard", INTEGER, "Shard restriction limit, 1-100, 0 meaning no restriction"),
     Column("discovery_cache_hits", INTEGER, "The number of times that the discovery query used cached values since the last time the config was reloaded"),
     Column("discovery_executions", INTEGER, "The number of times that the discovery queries have been executed since the last time the config was reloaded"),
-    Column("executing", INTEGER, "Whether or not this pack is executing (the version, platform and discovery queries match) yes=1, no=0."),
+    Column("active", INTEGER, "Whether this pack is active (the version, platform and discovery queries match) yes=1, no=0."),
 ])
 attributes(utility=True)
 implementation("osquery@genOsqueryPacks")

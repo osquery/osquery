@@ -100,11 +100,10 @@ class Pack : private boost::noncopyable {
   /**
    * @brief Returns whether this pack is executing
    *
-   * This can be used to determine whether the pack is executing, without
-   * causing the potential side effect of running the associated discovery
-   * queries.
+   * This can be used to determine whether the pack is active, without the
+   * potential side effect of running the associated discovery queries.
    */
-  bool isExecuting() const;
+  bool isActive() const;
 
   const PackStats& getStats() const;
 
@@ -136,8 +135,8 @@ class Pack : private boost::noncopyable {
   /// Aggregate appropriateness of pack for this host.
   std::atomic<bool> valid_{false};
 
-  /// Whether this pack is executing (valid_ && checkDiscovery())
-  std::atomic<bool> executing_{false};
+  /// Whether this pack is active (valid_ && checkDiscovery())
+  std::atomic<bool> active_{false};
 
   /// Pack discovery statistics.
   PackStats stats_;
