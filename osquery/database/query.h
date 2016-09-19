@@ -38,7 +38,6 @@ class Query {
   explicit Query(const std::string& name, const ScheduledQuery& q)
       : query_(q), name_(name) {}
 
- public:
   /**
    * @brief Serialize the data in RocksDB into a useful data structure
    *
@@ -51,7 +50,6 @@ class Query {
    */
   Status getPreviousQueryResults(QueryData& results);
 
- public:
   /**
    * @brief Get the names of all historical queries.
    *
@@ -63,15 +61,20 @@ class Query {
    */
   static std::vector<std::string> getStoredQueryNames();
 
- public:
   /**
-   * @brief Checking if a given scheduled query exists in the database.
+   * @brief Check if a given scheduled query exists in the database.
    *
    * @return true if the scheduled query already exists in the database.
    */
   bool isQueryNameInDatabase();
 
- public:
+  /**
+   * @brief Check if a query (not query name) is 'new' or altered.
+   *
+   * @return true if the scheduled query has not been altered.
+   */
+  bool isNewQuery();
+
   /**
    * @brief Add a new set of results to the persistent storage.
    *
@@ -85,7 +88,6 @@ class Query {
    */
   Status addNewResults(const QueryData& qd);
 
- public:
   /**
    * @brief Add a new set of results to the persistent storage and get back
    * the differential results.
@@ -99,26 +101,10 @@ class Query {
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(const QueryData& qd, DiffResults& dr);
-
- private:
-  /**
-   * @brief Add a new set of results to the persistent storage and get back
-   * the differential results, using a custom database handle.
-   *
-   * This method is the same as Query::addNewResults, but with the addition of a
-   * parameter which allows you to pass a custom RocksDB database handle.
-   *
-   * @param qd the QueryData object containing query results to store.
-   * @param dr an output to a DiffResults object populated based on last run.
-   *
-   * @return the success or failure of the operation.
-   */
   Status addNewResults(const QueryData& qd,
                        DiffResults& dr,
-                       bool calculate_diff);
+                       bool calculate_diff = true);
 
- public:
   /**
    * @brief The most recent result set for a scheduled query.
    *

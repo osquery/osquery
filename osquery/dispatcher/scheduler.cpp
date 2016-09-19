@@ -111,7 +111,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
     diff_results.added = std::move(sql.rows());
   }
 
-  if (diff_results.added.size() == 0 && diff_results.removed.size() == 0) {
+  if (diff_results.added.empty() && diff_results.removed.empty()) {
     // No diff results or events to emit.
     return;
   }
