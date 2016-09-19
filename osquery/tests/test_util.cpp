@@ -42,7 +42,7 @@ std::string kTestWorkingDirectory =
 #endif
 
 /// Most tests will use binary or disk-backed content for parsing tests.
-#ifndef OSQUERY_BUILD_SDK
+#if !defined(OSQUERY_BUILD_SDK) && !WIN32
 std::string kTestDataPath = "../../../tools/tests/";
 #else
 std::string kTestDataPath = "../../../../tools/tests/";
