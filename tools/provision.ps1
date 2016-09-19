@@ -19,7 +19,7 @@ function Test-IsAdmin {
 # Returns true if:
 #  * The package is installed and the user supplies no version
 #  * The package is installed and the version matches the user supplied version
-function Check-ChocoPackage-Installed {
+function Test-ChocoPackageInstalled {
 param(
   [string] $packageName = '',
   [string] $packageVersion = ''
@@ -42,13 +42,19 @@ param(
 
 # Attempts to install chocolatey if not already
 function Install-Chocolatey {
+  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingInvokeExpression", "")]
+  param()
+  if (-not $PSCmdlet.ShouldProcess('Chocolatey')) {
+    Exit -1
+  }
   Write-Host " => Attemping to detect presence of chocolatey..." -foregroundcolor DarkYellow
-  if ((Get-Command 'choco.exe' -ErrorAction SilentlyContinue) -eq $null) {
+  if ($null -eq (Get-Command 'choco.exe' -ErrorAction SilentlyContinue)) {
     if (Test-Path $env:ALLUSERSPROFILE\chocolatey\bin) {
       Write-Host "[-] WARN: Chocolatey appears to be installed, but was not in path!" -foregroundcolor Yellow
     } else {
       Write-Host " => Did not find. Installing chocolatey..." -foregroundcolor Cyan
-      iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
+      Invoke-Expression ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
     }
     Write-Host " => Adding chocolatey to path."
     $env:Path = "$env:Path;$env:ALLUSERSPROFILE\chocolatey\bin"
@@ -60,13 +66,17 @@ function Install-Chocolatey {
 # Attempts to install a chocolatey package of a specific version if
 # not already there.
 function Install-ChocoPackage {
-param(
-  [string] $packageName = '',
-  [string] $packageVersion = '',
-  [array] $packageOptions = @()
-)
+  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  param(
+    [string] $packageName = '',
+    [string] $packageVersion = '',
+    [array] $packageOptions = @()
+  )
+  if (-not $PSCmdlet.ShouldProcess($packageName)) {
+    Exit -1
+  }
   Write-Host " => Determining whether $packageName is already installed..." -foregroundcolor DarkYellow
-  $isInstalled = Check-ChocoPackage-Installed $packageName $packageVersion
+  $isInstalled = Test-ChocoPackageInstalled $packageName $packageVersion
   if (-not $isInstalled) {
     Write-Host " => Did not find. Installing $packageName $packageVersion" -foregroundcolor Cyan
     $args = @("install", "-y", "-r", "${packageName}")
@@ -88,14 +98,19 @@ param(
   }
 }
 
-function Install-PipPackages {
+function Install-PipPackage {
+  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  param()
+  if (-not $PSCmdlet.ShouldProcess('Pip required modules')) {
+    Exit -1
+  }
   Write-Host " => Attempting to install Python packages" -foregroundcolor DarkYellow
   $env:Path = "$env:Path;$env:HOMEDRIVE\tools\python2;$env:HOMEDRIVE\tools\python2\Scripts"
-  if ((Get-Command 'python.exe' -ErrorAction SilentlyContinue) -eq $null) {
+  if ($null -eq (Get-Command 'python.exe' -ErrorAction SilentlyContinue)) {
     Write-Host "[-] ERROR: failed to find python" -foregroundcolor Red
     Exit -1
   }
-  if ((Get-Command 'pip.exe' -ErrorAction SilentlyContinue) -eq $null) {
+  if ($null -eq (Get-Command 'pip.exe' -ErrorAction SilentlyContinue)) {
     Write-Host "[-] ERROR: failed to find pip" -foregroundcolor Red
     Exit -1
   }
@@ -114,7 +129,12 @@ function Install-PipPackages {
   }
 }
 
-function Install-ThirdPartyPackages {
+function Install-ThirdParty {
+  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  param()
+  if (-not $PSCmdlet.ShouldProcess('Thirdparty Chocolatey Libraries')) {
+    Exit -1
+  }
   Write-Host " => Retrieving third-party dependencies" -foregroundcolor DarkYellow
 
   # XXX: The code below exists because our chocolatey packages are not currently in the chocolatey
@@ -146,7 +166,7 @@ function Install-ThirdPartyPackages {
       $packageName = $packageData[0]
       $packageVersion = [string]::Join('.', $packageData[1..$packageData.length])
       Write-Host " => Determining whether $packageName is already installed..." -foregroundcolor DarkYellow
-      $isInstalled = Check-ChocoPackage-Installed $packageName $packageVersion
+      $isInstalled = Test-ChocoPackageInstalled $packageName $packageVersion
       if ($isInstalled) {
         Write-Host "[*] $packageName $packageVersion already installed." -foregroundcolor Green
         continue
@@ -174,19 +194,29 @@ function Install-ThirdPartyPackages {
 }
 
 function Update-GitSubmodule {
-  if ((Get-Command 'git.exe' -ErrorAction SilentlyContinue) -eq $null) {
+  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Low")]
+  param()
+  if (-not $PSCmdlet.ShouldProcess('Git Submodules')) {
+    Exit -1
+  }
+  if ($null -eq (Get-Command 'git.exe' -ErrorAction SilentlyContinue)) {
     Write-Host "[-] ERROR: Git was not found on the system. Install git." -foregroundcolor Red
     Exit -1
   }
   $thirdPartyPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'third-party'))
   Write-Host " => Updating git submodules in $thirdPartyPath ..." -foregroundcolor Yellow
-  pushd $thirdPartyPath
+  Push-Location $thirdPartyPath
   git submodule update --init
-  popd
+  Pop-Location
   Write-Host "[+] Submodules updated!" -foregroundcolor Yellow
 }
 
 function Main {
+  if ($PSVersionTable.PSVersion.Major -lt 3.0 ) {
+    Write-Output "This installer requires Powershell 3.0 or Greater."
+    Exit -1
+  }
+
   Write-Host "[+] Provisioning a Win64 build environment for osquery" -foregroundcolor Yellow
   Write-Host " => Verifying script is running with Admin privileges" -foregroundcolor Yellow
   if (-not (Test-IsAdmin)) {
@@ -198,12 +228,12 @@ function Main {
   Install-ChocoPackage '7zip.commandline'
   Install-ChocoPackage 'cmake.portable' '3.6.1'
   Install-ChocoPackage 'python2' '2.7.11'
-  Install-PipPackages
+  Install-PipPackage
   Update-GitSubmodule
   $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
   $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
   Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
-  Install-ThirdPartyPackages
+  Install-ThirdParty
   Write-Host "[+] Done." -foregroundcolor Yellow
 }
 
