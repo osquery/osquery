@@ -277,7 +277,7 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
         ctx, value.c_str(), static_cast<int>(value.size()), SQLITE_STATIC);
   } else if (type == INTEGER_TYPE) {
     long afinite;
-    if (!safeStrtol(value, 10, afinite) || afinite < INT_MIN ||
+    if (!safeStrtol(value, 0, afinite) || afinite < INT_MIN ||
         afinite > INT_MAX) {
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to INTEGER";
@@ -287,7 +287,7 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
     }
   } else if (type == BIGINT_TYPE || type == UNSIGNED_BIGINT_TYPE) {
     long long afinite;
-    if (!safeStrtoll(value, 10, afinite)) {
+    if (!safeStrtoll(value, 0, afinite)) {
       VLOG(1) << "Error casting " << column_name << " (" << value
               << ") to BIGINT";
       sqlite3_result_null(ctx);
