@@ -476,8 +476,8 @@ Status DatabasePlugin::call(const PluginRequest& request,
       max = std::stoul(request.at("max"));
     }
     auto status = this->scan(domain, keys, request.at("prefix"), max);
-    for (const auto& key : keys) {
-      response.push_back({{"k", key}});
+    for (const auto& k : keys) {
+      response.push_back({{"k", k}});
     }
     return status;
   }

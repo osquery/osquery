@@ -59,9 +59,9 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
       access_map_[source].push_back(path);
     }
     // Regenerate the access:
-    for (const auto& source : access_map_) {
-      for (const auto& category : source.second) {
-        accesses.put(category, source.first);
+    for (const auto& access_source : access_map_) {
+      for (const auto& category : access_source.second) {
+        accesses.put(category, access_source.first);
       }
     }
   }

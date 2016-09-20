@@ -140,11 +140,11 @@ class TLSRequestHelper : private boost::noncopyable {
           clearNodeKey();
         }
 
-        std::string status = "Request failed: Invalid node key";
+        std::string message = "Request failed: Invalid node key";
         if (output.count("error") > 0) {
-          status += ": " + output.get("error", "<unknown>");
+          message += ": " + output.get("error", "<unknown>");
         }
-        return Status(1, status);
+        return Status(1, message);
       }
     }
 

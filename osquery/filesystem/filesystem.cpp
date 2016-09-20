@@ -163,13 +163,12 @@ Status readFile(const fs::path& path,
       }
     } while (part_bytes > 0 && !overflow);
   } else {
-    ssize_t total_bytes = 0;
     std::string content(file_size, '\0');
     do {
       auto part_bytes =
           handle.fd->read(&content[total_bytes], file_size - total_bytes);
       if (part_bytes > 0) {
-        total_bytes += part_bytes;
+        total_bytes += static_cast<off_t>(part_bytes);
       }
     } while (handle.fd->hasPendingIo());
     predicate(content, file_size);
@@ -193,11 +192,11 @@ Status readFile(const fs::path& path,
                   4096,
                   dry_run,
                   preserve_time,
-                  ([&content](std::string& buffer, size_t size) {
-                    if (buffer.size() == size) {
+                  ([&content](std::string& buffer, size_t _size) {
+                    if (buffer.size() == _size) {
                       content += std::move(buffer);
                     } else {
-                      content += buffer.substr(0, size);
+                      content += buffer.substr(0, _size);
                     }
                   }),
                   blocking);

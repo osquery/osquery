@@ -41,7 +41,7 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
   for (auto result : getTestDBResultStream()) {
     // Get the results from the previous query execution (from the DB).
     QueryData previous_qd;
-    auto status = cf.getPreviousQueryResults(previous_qd);
+    status = cf.getPreviousQueryResults(previous_qd);
     EXPECT_TRUE(status.ok());
     EXPECT_EQ(status.toString(), "OK");
 

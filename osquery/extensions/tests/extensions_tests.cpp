@@ -34,7 +34,7 @@ const int kTimeout = 3000;
 
 class ExtensionsTest : public testing::Test {
  protected:
-  void SetUp() {
+  void SetUp() override {
 #ifdef WIN32
     socket_path = OSQUERY_SOCKET;
 #else
@@ -53,7 +53,7 @@ class ExtensionsTest : public testing::Test {
     }
   }
 
-  void TearDown() {
+  void TearDown() override {
     Dispatcher::stopServices();
     Dispatcher::joinServices();
 
@@ -109,14 +109,14 @@ class ExtensionsTest : public testing::Test {
     return extensions;
   }
 
-  bool socketExists(const std::string& socket_path) {
+  bool socketExists(const std::string& _socket_path) {
     // Wait until the runnable/thread created the socket.
     int delay = 0;
     while (delay < kTimeout) {
 #ifdef WIN32
-      if (namedPipeExists(socket_path).ok()) {
+      if (namedPipeExists(_socket_path).ok()) {
 #else
-      if (pathExists(socket_path).ok() && isReadable(socket_path).ok()) {
+      if (pathExists(_socket_path).ok() && isReadable(_socket_path).ok()) {
 #endif
         return true;
       }
