@@ -40,6 +40,7 @@ CTL_SRC="$SCRIPT_DIR/osqueryctl"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/usr/share/osquery/packs/"
 OSQUERY_POSTINSTALL=${OSQUERY_POSTINSTALL:-""}
+OSQUERY_PREUNINSTALL=${OSQUERY_PREUNINSTALL:-""}
 OSQUERY_CONFIG_SRC=${OSQUERY_CONFIG_SRC:-""}
 OSQUERY_TLS_CERT_CHAIN_SRC=${OSQUERY_TLS_CERT_CHAIN_SRC:-""}
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
@@ -72,6 +73,9 @@ function parse_args() {
                               ;;
       -p | --postinst )       shift
                               OSQUERY_POSTINSTALL=$1
+                              ;;
+      -u | --preuninst)       shift
+                              OSQUERY_PREUNINSTALL=$1
                               ;;
       -i | --iteration )      shift
                               PACKAGE_ITERATION=$1
@@ -181,6 +185,11 @@ function main() {
     POSTINST_CMD="--after-install $OSQUERY_POSTINSTALL"
   fi
 
+  PREUNINST_CMD=""
+  if [[ $OSQUERY_PREUNINSTALL != "" ]] && [[ -f $OSQUERY_PREUNINSTALL ]]; then
+    PREUNINST_CMD="--before-remove $OSQUERY_PREUNINSTALL"
+  fi
+
   EPILOG="--url https://osquery.io \
     -m osquery@osquery.io          \
     --vendor Facebook              \
@@ -191,6 +200,7 @@ function main() {
     -n $PACKAGE_NAME -v $PACKAGE_VERSION \
     --iteration $PACKAGE_ITERATION \
     -a $PACKAGE_ARCH               \
+    $PREUNINST_CMD                 \
     $POSTINST_CMD                  \
     $PACKAGE_DEPENDENCIES          \
     -p $OUTPUT_PKG_PATH            \
