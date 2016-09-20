@@ -448,6 +448,8 @@ endif()
 # Previously, this would find_package for Gtest.
 # We can supply the known include paths within each test as compile flags.
 enable_testing()
+set(CTEST_TEST_TIMEOUT 600)
+
 # Detect TR1 usage.
 include(CheckIncludeFileCXX)
 if(WINDOWS)
