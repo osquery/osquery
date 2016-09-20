@@ -130,7 +130,7 @@ function main() {
 
   if [[ $OSQUERY_TLS_CERT_CHAIN_SRC != "" ]] && [[ -f $OSQUERY_TLS_CERT_CHAIN_SRC ]]; then
     log "tls server certs file setup"
-    cp $OSQUERY_TLS_CERT_CHAIN_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/tls_server_certs.pem
+    cp $OSQUERY_TLS_CERT_CHAIN_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/tls-server-certs.pem
   fi
   
   if [[ $DISTRO = "xenial" ]]; then
