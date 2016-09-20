@@ -191,7 +191,8 @@ function Install-ThirdParty {
     "thrift-dev.0.9.3",
     "cpp-netlib.0.12.0-r1",
     "linenoise-ng.1.0.0",
-    "clang-format.3.9.0"
+    "clang-format.3.9.0",
+    "zlib.1.2.8"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'
   Remove-Item $tmpDir -Recurse -ErrorAction Ignore

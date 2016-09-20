@@ -2,7 +2,11 @@ file(GLOB OSQUERY_LOGGER "*.cpp")
 ADD_OSQUERY_LIBRARY(TRUE osquery_logger ${OSQUERY_LOGGER})
 
 if(WINDOWS)
-  file(GLOB OSQUERY_LOGGER_PLUGINS "plugins/filesystem.cpp")
+  set(OSQUERY_LOGGER_PLUGINS
+    "plugins/buffered.cpp"
+    "plugins/filesystem.cpp"
+    "plugins/tls.cpp"
+  )
   file(GLOB OSQUERY_LOGGER_PLUGIN_TESTS "plugins/tests/filesystem_logger_tests.cpp")
 else()
   file(GLOB OSQUERY_LOGGER_PLUGINS "plugins/*.cpp")

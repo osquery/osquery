@@ -11,8 +11,8 @@
 #include <gtest/gtest.h>
 
 #include "osquery/remote/requests.h"
-#include "osquery/remote/transports/tls.h"
 #include "osquery/remote/serializers/json.h"
+#include "osquery/remote/transports/tls.h"
 
 namespace osquery {
 
@@ -37,7 +37,9 @@ class MockTransport : public Transport {
 
 class MockSerializer : public Serializer {
  public:
-  std::string getContentType() const { return "mock"; }
+  std::string getContentType() const {
+    return "mock";
+  }
 
   Status serialize(const boost::property_tree::ptree& params,
                    std::string& serialized) {
@@ -94,7 +96,9 @@ class CopyTransport : public Transport {
 
 class CopySerializer : public Serializer {
  public:
-  std::string getContentType() const { return "copy"; }
+  std::string getContentType() const {
+    return "copy";
+  }
 
   Status serialize(const boost::property_tree::ptree& params,
                    std::string& serialized) {
@@ -129,13 +133,24 @@ TEST_F(RequestsTests, test_compression) {
   auto status = req.getResponse(params);
 
   auto compressed = status.getMessage();
-  auto expected = std::string(
-      "\x1F\x8B\b\0\0\0\0\0\x2\x3\xED\xC4\xB1\r\0\0\x4\0\xB0s\xC5"
+
+  /*
+   * gzip header has a field that specifies the filesystem the compression took
+   * place, we need to separate this for NTFS and Unix
+   *
+   * Reference: http://www.zlib.org/rfc-gzip.html
+   */
+
+  std::string expected("\x1F\x8B\b\0\0\0\0\0\x2", 9);
+  expected += isPlatform(PlatformType::TYPE_WINDOWS) ? "\v" : "\x3";
+  expected += std::string(
+      "\xED\xC4\xB1\r\0\0\x4\0\xB0s\xC5"
       "b\xC0\xFFq\x84\xB5\x1D:"
       "\xDBY1\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB"
       "\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xFB\xF1\x1"
       "1j\xA0\xA8\0`\0\0",
-      78);
+      68);
+
   EXPECT_EQ(compressed, expected);
   EXPECT_LT(compressed.size(), uncompressed.size());
 }

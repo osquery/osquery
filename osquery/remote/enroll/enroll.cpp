@@ -17,6 +17,8 @@
 #include <osquery/filesystem.h>
 #include <osquery/system.h>
 
+#include "osquery/core/process.h"
+
 namespace osquery {
 
 /// Allow users to disable enrollment features.
@@ -77,9 +79,9 @@ const std::string getEnrollSecret() {
     osquery::readFile(FLAGS_enroll_secret_path, enrollment_secret);
     boost::trim(enrollment_secret);
   } else {
-    const char* env_secret = std::getenv(FLAGS_enroll_secret_env.c_str());
-    if (env_secret != nullptr) {
-      enrollment_secret = std::string(env_secret);
+    auto env_secret = getEnvVar(FLAGS_enroll_secret_env);
+    if (env_secret.is_initialized()) {
+      enrollment_secret = *env_secret;
     }
   }
 

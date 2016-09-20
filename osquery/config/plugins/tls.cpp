@@ -99,7 +99,7 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
       std::stringstream input;
       input << json;
       pt::read_json(input, tree);
-    } catch (const pt::json_parser::json_parser_error& e) {
+    } catch (const pt::json_parser::json_parser_error& /* e */) {
       VLOG(1) << "Could not parse JSON from TLS node API";
     }
 
