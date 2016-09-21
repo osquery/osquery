@@ -29,28 +29,22 @@ class TestRunnable : public InternalRunnable {
   explicit TestRunnable() {}
 
   virtual void start() override {
-    WriteLock lock(mutex_);
     ++i;
   }
 
   void reset() {
-    WriteLock lock(mutex_);
     i = 0;
   }
 
   size_t count() {
-    WriteLock lock(mutex_);
     return i;
   }
 
  private:
-  static size_t i;
-
- private:
-  Mutex mutex_;
+  static std::atomic<size_t> i;
 };
 
-size_t TestRunnable::i{0};
+std::atomic<size_t> TestRunnable::i{0};
 
 TEST_F(DispatcherTests, test_service_count) {
   auto runnable = std::make_shared<TestRunnable>();

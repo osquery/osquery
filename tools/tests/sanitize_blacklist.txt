@@ -13,6 +13,7 @@ fun:*SetArgv*
 fun:google::RawLog__SetLastTime
 
 # Thrift
+fun:*TServerSocket*
 fun:apache::thrift::transport::TServerSocket::listen
 fun:apache::thrift::transport::TServerSocket::notify
 fun:apache::thrift::transport::TServerSocket::interrupt
