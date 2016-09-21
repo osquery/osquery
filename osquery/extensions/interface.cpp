@@ -7,6 +7,9 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+#include <string>
+
+#include <thrift/TOutput.h>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -62,6 +65,23 @@ void ExtensionHandler::shutdown() {
   // Request a graceful shutdown of the Thrift listener.
   VLOG(1) << "Extension " << uuid_ << " requested shutdown";
   Initializer::requestShutdown(EXIT_SUCCESS);
+}
+
+/**
+ * @brief Updates the Thrift server output to be VLOG
+ *
+ * On Windows, the thrift server will output to stdout, which displays
+ * messages to the user on exiting the client. This function is used
+ * instead of the default output for thrift.
+ *
+ * @param msg The text to be logged
+ */
+void thriftLoggingOutput(const char* msg) {
+  VLOG(1) << "Thrift message: " << msg;
+}
+
+ExtensionManagerHandler::ExtensionManagerHandler() {
+  GlobalOutput.setOutputFunction(thriftLoggingOutput);
 }
 
 void ExtensionManagerHandler::extensions(InternalExtensionList& _return) {
@@ -185,7 +205,9 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
 }
 }
 
-ExtensionRunnerCore::~ExtensionRunnerCore() { remove(path_); }
+ExtensionRunnerCore::~ExtensionRunnerCore() {
+  remove(path_);
+}
 
 void ExtensionRunnerCore::stop() {
   {
