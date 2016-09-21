@@ -135,6 +135,7 @@ class AbstractOsqueryFormula < Formula
 
     if !OS.linux?
       prepend_path "PATH", default_prefix/"bin"
+      prepend_path "PYTHONPATH", default_prefix/"lib/python2.7/site-packages"
     end
 
     # Everyone receives:
