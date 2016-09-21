@@ -64,16 +64,21 @@ function Install-PowershellLinter {
     Write-Host "[*] NuGet provider already installed." -foregroundcolor Green
   }
 
+  $psScriptAnalyzerInstalled = $false
   Write-Host " => Determining whether PSScriptAnalyzer is already installed." -foregroundcolor DarkYellow
   foreach ($module in Get-Module -ListAvailable) {
     if ($module.Name -eq "PSScriptAnalyzer" -and $module.Version -ge 1.7.0) {
-      Write-Host "[*] PSScriptAnalyzer already installed."
-      return
+      $psScriptAnalyzerInstalled = $true
+      break
     }
   }
-  Write-Host " => PSScriptAnalyzer either not installed or out of date. Installing..." -foregroundcolor Cyan
-  Install-Module -Force -Name PSScriptAnalyzer
-  Write-Host "[+] PSScriptAnalyzer installed!" -foregroundcolor Green
+  if (-not $psScriptAnalyzerInstalled) {
+    Write-Host " => PSScriptAnalyzer either not installed or out of date. Installing..." -foregroundcolor Cyan
+    Install-Module -Name PSScriptAnalyzer -Force
+    Write-Host "[+] PSScriptAnalyzer installed!" -foregroundcolor Green
+  } else {
+    Write-Host "[*] PSScriptAnalyzer already installed." -foregroundcolor Green
+  }
 }
 
 # Attempts to install chocolatey if not already
@@ -281,11 +286,6 @@ function Main {
   Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
   Install-ThirdParty
   Install-PowershellLinter
-  Write-Host " => Determining whether PSScriptAnalyzer is already installed."
-
-  Install-PackageProvider -Name NuGet -Force
-  Install-Module -Force -Name PSScriptAnalyzer
-
   Write-Host "[+] Done." -foregroundcolor Yellow
 }
 
