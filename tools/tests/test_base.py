@@ -27,6 +27,10 @@ import unittest
 import utils
 import pexpect
 
+# While this path can be variable, in practice is lives statically.
+OSQUERY_DEPENDENCIES = "/usr/local/osquery"
+sys.path = [OSQUERY_DEPENDENCIES + "/lib/python2.7/site-packages"] + sys.path
+
 try:
     from pexpect.replwrap import REPLWrapper
 except ImportError as e:
