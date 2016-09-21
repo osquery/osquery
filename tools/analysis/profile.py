@@ -25,7 +25,7 @@ except ImportError:
     exit(1)
 
 # Import the testing utils
-sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/tests/")
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../tests/")
 
 import utils
 
@@ -309,7 +309,7 @@ if __name__ == "__main__":
 
     group = parser.add_argument_group("Memory Options:")
     group.add_argument(
-        "--suppressions", metavar="SUPP", default="./tools/tests/osquery.supp",
+        "--suppressions", metavar="SUPP", default="./tools/analysis/valgrind.supp",
         help="Add a suppressions files to memory leak checking (linux only)."
     )
     args = parser.parse_args()
