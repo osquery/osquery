@@ -30,7 +30,6 @@
 
 namespace pt = boost::property_tree;
 
-
 namespace osquery {
 
 /**

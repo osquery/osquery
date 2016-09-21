@@ -163,24 +163,24 @@ if(DEFINED ENV{DEBUG})
   WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
   # make sanitize (cannot make debug sanitize)
+  set(SANITIZE_BLACKLIST "${CMAKE_SOURCE_DIR}/tools/tests/sanitize_blacklist.txt")
   add_compile_options(
     -g
-    -O1
     -fstandalone-debug
     -fno-omit-frame-pointer
     -fno-optimize-sibling-calls
+    -fsanitize-blacklist=${SANITIZE_BLACKLIST}
   )
-  add_definitions(-DNDEBUG)
-  if(DEFINED ENV{SANITIZE_THREAD})
+  if (DEFINED ENV{SANITIZE_THREAD})
     add_compile_options(-fsanitize=thread)
   else()
-    add_compile_options(-fsanitize=address)
-    if (NOT APPLE)
-      add_compile_options(-fsanitize=leak)
-    endif()
+    add_compile_options(
+      -fsanitize=address
+      -fsanitize=leak
+    )
   endif()
-  set(SANITIZE_BLACKLIST "${CMAKE_SOURCE_DIR}/tools/tests/sanitize_blacklist.txt")
-  add_definitions(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
+
+  set(ENV{ASAN_OPTIONS} "detect_container_overflow=0")
 else()
   set(DEBUG FALSE)
   if(WINDOWS)
@@ -260,13 +260,13 @@ if(WINDOWS)
     if(${flag_var} MATCHES "/MD")
       string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
     endif(${flag_var} MATCHES "/MD")
-    
+
     # Ignore unused parameter messages for C-based projects (e.g. sqlite3)
     if (flag_var MATCHES "^CMAKE_C_FLAGS*")
       set(${flag_var} "${${flag_var}} /wd4101")
     endif(flag_var MATCHES "^CMAKE_C_FLAGS*")
   endforeach(flag_var)
-  
+
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
 endif()
 

@@ -156,7 +156,7 @@ TEST_F(ProcessTests, test_launchWorker) {
             static_cast<int>(kExpectedWorkerArgsCount),
             &argv[0]);
     for (size_t i = 0; i < argv.size(); i++) {
-      delete argv[i];
+      delete[] argv[i];
     }
 
     EXPECT_NE(nullptr, process.get());
