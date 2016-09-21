@@ -302,6 +302,9 @@ class WatcherRunner : public InternalRunnable {
   /// If set, the ::start method will run once and return.
   bool run_once_{false};
 
+  /// Similarly to the uncontrolled worker restarted, count each extension.
+  std::map<std::string, size_t> extension_restarts_;
+
  private:
   FRIEND_TEST(WatcherTests, test_watcherrunner_watch);
   FRIEND_TEST(WatcherTests, test_watcherrunner_stop);

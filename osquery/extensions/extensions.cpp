@@ -211,7 +211,7 @@ void ExtensionManagerWatcher::watch() {
       LOG(INFO) << "Extension UUID " << uuid << " ping failed";
 
       // Immediate fail non-writable paths.
-      failures_[uuid] = 3;
+      failures_[uuid] += 1;
     }
 #else
     if (isWritable(path)) {
@@ -225,7 +225,7 @@ void ExtensionManagerWatcher::watch() {
       }
     } else {
       // Immediate fail non-writable paths.
-      failures_[uuid] = 3;
+      failures_[uuid] += 1;
       continue;
     }
 
@@ -239,7 +239,7 @@ void ExtensionManagerWatcher::watch() {
   }
 
   for (const auto& uuid : failures_) {
-    if (uuid.second >= 3) {
+    if (uuid.second > 0) {
       LOG(INFO) << "Extension UUID " << uuid.first << " has gone away";
       Registry::removeBroadcast(uuid.first);
       failures_[uuid.first] = 0;
