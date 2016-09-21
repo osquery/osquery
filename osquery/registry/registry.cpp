@@ -482,6 +482,7 @@ Status RegistryFactory::callTable(const std::string& table_name,
 
 Status RegistryFactory::setActive(const std::string& registry_name,
                                   const std::string& item_name) {
+  WriteLock lock(instance().mutex_);
   return registry(registry_name)->setActive(item_name);
 }
 
