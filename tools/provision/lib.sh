@@ -48,6 +48,7 @@ function setup_brew() {
   export HOMEBREW_CACHE="$DEPS/.cache/"
   export HOMEBREW_MAKE_JOBS=$THREADS
   export HOMEBREW_NO_EMOJI=1
+  export HOMEBREW_BOTTLE_ARCH=core2
   export BREW="$DEPS/bin/brew"
   TAPS="$DEPS/Library/Taps/"
 
@@ -110,7 +111,7 @@ function brew_internal() {
   shift
   shift
 
-  if [[ "$TYPE" = "upstream" || "$TYPE" = "upstream-link" ]]; then
+  if [[ "$TYPE" = "upstream" || "$TYPE" = "upstream-link" || "$TYPE" = "uninstall" ]]; then
     FORMULA="$TOOL"
   else
     FORMULA="osquery/homebrew-osquery-local/${TOOL}"
@@ -126,6 +127,14 @@ function brew_internal() {
 
   # Add build arguments depending on requested from-source or default build.
   ARGS="$@"
+
+  if [[ "$TYPE" = "uninstall" ]]; then
+    if [[ ! "$INSTALLED" = "NAN" ]]; then
+      log "brew package $TOOL uninstalling version: ${STABLE}"
+      $BREW uninstall --force "${FORMULA}"
+    fi
+    return
+  fi
 
   # Configure additional arguments if installing from a local formula.
   ARGS="$ARGS --ignore-dependencies --env=inherit"
@@ -190,6 +199,10 @@ function local_brew_link() {
 
 function local_brew_unlink() {
   brew_internal "unlink" $@
+}
+
+function local_brew_uninstall() {
+  brew_internal "uninstall" $@
 }
 
 function brew_tool() {

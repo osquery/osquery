@@ -150,7 +150,7 @@ ifeq ($(PLATFORM),Linux)
 	@ln -snf $(BUILD_DIR) build/linux
 	@ln -snf debug_$(BUILD_DIR) build/debug_linux
 endif
-
+	@export PYTHONPATH="$DEPS_DIR/lib/python2.7/site-packages"
 
 package: .setup
 	# Alias for packages (do not use CPack)
