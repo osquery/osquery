@@ -7,6 +7,7 @@ class Openssl < AbstractOsqueryFormula
   mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2h.tar.gz"
   mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2h.tar.gz"
   sha256 "1d4007e53aad94a5b2002fe045ee7bb0b3d98f1a47f8b2bc851dcd1c74332919"
+  revision 1
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -22,10 +23,6 @@ class Openssl < AbstractOsqueryFormula
     sha256 "2c6d4960579b0d4fd46c6cbf135545116e76f2dbb7490e24cf330f2565770362"
   end
 
-  keg_only :provided_by_osx,
-    "Apple has deprecated use of OpenSSL in favor of its own TLS and crypto libraries"
-
-  option :universal
   option "without-test", "Skip build-time tests (not recommended)"
 
   deprecated_option "without-check" => "without-test"
@@ -46,6 +43,8 @@ class Openssl < AbstractOsqueryFormula
     --prefix=#{prefix}
     --openssldir=#{openssldir}
     no-ssl2
+    no-ssl3
+    no-asm
     zlib-dynamic
     shared
     enable-cms
@@ -62,14 +61,7 @@ class Openssl < AbstractOsqueryFormula
               'zlib_dso = DSO_load(NULL, "z", NULL, 0);',
               'zlib_dso = DSO_load(NULL, "/usr/lib/libz.dylib", NULL, DSO_FLAG_NO_NAME_TRANSLATION);' if OS.mac?
 
-    if build.universal?
-      ENV.permit_arch_flags
-      archs = Hardware::CPU.universal_archs
-    elsif MacOS.prefer_64_bit?
-      archs = [Hardware::CPU.arch_64_bit]
-    else
-      archs = [Hardware::CPU.arch_32_bit]
-    end
+    archs = [Hardware::CPU.arch_64_bit]
 
     dirs = []
 
