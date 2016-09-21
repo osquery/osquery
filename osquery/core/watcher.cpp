@@ -100,15 +100,17 @@ std::string Watcher::getExtensionPath(const PlatformProcess& child) {
 
 void Watcher::removeExtensionPath(const std::string& extension) {
   WatcherLocker locker;
-  instance().extensions_.erase(extension);
-  instance().extension_states_.erase(extension);
+  auto& self = instance();
+  self.extensions_.erase(extension);
+  self.extension_states_.erase(extension);
 }
 
 PerformanceState& Watcher::getState(const PlatformProcess& child) {
-  if (child == *instance().worker_) {
-    return instance().state_;
+  auto& self = instance();
+  if (child == *self.worker_) {
+    return self.state_;
   } else {
-    return instance().extension_states_[getExtensionPath(child)];
+    return self.extension_states_[getExtensionPath(child)];
   }
 }
 
@@ -184,17 +186,23 @@ void WatcherRunner::start() {
     }
 
     // Loop over every managed extension and check sanity.
-    std::vector<std::string> failing_extensions;
     for (const auto& extension : Watcher::extensions()) {
       if (!watch(*extension.second)) {
+        // The extension manager also watches for extension-related failures.
+        // The watchdog is more general, but may find failed extensions first.
         if (!createExtension(extension.first)) {
-          failing_extensions.push_back(extension.first);
+          extension_restarts_[extension.first] += 1;
         }
+      } else {
+        extension_restarts_[extension.first] = 0;
       }
     }
     // If any extension creations failed, stop managing them.
-    for (const auto& failed_extension : failing_extensions) {
-      Watcher::removeExtensionPath(failed_extension);
+    for (auto& extension : extension_restarts_) {
+      if (extension.second > 3) {
+        Watcher::removeExtensionPath(extension.first);
+        extension.second = 0;
+      }
     }
 
     if (use_worker_) {
