@@ -163,7 +163,7 @@ if(DEFINED ENV{DEBUG})
   WARNING_LOG("Setting DEBUG build")
 elseif(DEFINED ENV{SANITIZE})
   # make sanitize (cannot make debug sanitize)
-  set(SANITIZE_BLACKLIST "${CMAKE_SOURCE_DIR}/tools/tests/sanitize_blacklist.txt")
+  set(SANITIZE_BLACKLIST "${CMAKE_SOURCE_DIR}/tools/analysis/sanitize_blacklist.txt")
   add_compile_options(
     -g
     -fstandalone-debug
@@ -181,6 +181,7 @@ elseif(DEFINED ENV{SANITIZE})
   endif()
 
   set(ENV{ASAN_OPTIONS} "detect_container_overflow=0")
+  set(ENV{TSAN_OPTIONS} "suppressions=${CMAKE_SOURCE_DIR}/tools/analysis/tsan.supp")
 else()
   set(DEBUG FALSE)
   if(WINDOWS)

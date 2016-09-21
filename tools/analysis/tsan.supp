@@ -1,0 +1,7 @@
+race:TServerSocket
+race:PthreadThread
+signal:signalHandler
+
+race:sqlite3Parser
+race:sqlite3_prepare_v2
+race:shell_exec
