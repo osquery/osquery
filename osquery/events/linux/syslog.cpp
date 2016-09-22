@@ -54,7 +54,7 @@ const size_t kErrorThreshold = 10;
 Status SyslogEventPublisher::setUp() {
   Status s;
   if (!pathExists(FLAGS_syslog_pipe_path)) {
-    VLOG(1) << "Pipe does not exist. Creating pipe " << FLAGS_syslog_pipe_path;
+    VLOG(1) << "Pipe does not exist: creating pipe " << FLAGS_syslog_pipe_path;
     s = createPipe(FLAGS_syslog_pipe_path);
     if (!s.ok()) {
       LOG(WARNING) << RLOG(1964)
@@ -182,9 +182,10 @@ Status SyslogEventPublisher::populateEventContext(const std::string& line,
     if (key == kCsvFields.end()) {
       return Status(1, "Received more fields than expected");
     }
+
     boost::trim(value);
     if (*key == "time") {
-      ec->time = parseTimeString(value);
+      ec->fields["datetime"] = value;
     } else if (*key == "tag" && !value.empty() && value.back() == ':') {
       // rsyslog sends "tag" with a trailing colon that we don't need
       ec->fields.emplace(*key, value.substr(0, value.size() - 1));
@@ -193,17 +194,12 @@ Status SyslogEventPublisher::populateEventContext(const std::string& line,
     }
     ++key;
   }
+
   if (key == kCsvFields.end()) {
     return Status(0, "OK");
   } else {
     return Status(1, "Received fewer fields than expected");
   }
-}
-
-time_t SyslogEventPublisher::parseTimeString(const std::string& time_str) {
-  struct tm s_tm;
-  strptime(time_str.c_str(), kTimeFormat, &s_tm);
-  return timegm(&s_tm);
 }
 
 bool SyslogEventPublisher::shouldFire(const SyslogSubscriptionContextRef& sc,

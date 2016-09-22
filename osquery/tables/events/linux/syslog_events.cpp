@@ -25,8 +25,10 @@ FLAG(uint64,
      60 * 60 * 24 * 30, // Keep 30 days by default
      "Timeout to expire event subscriber results");
 
-FLAG(uint64, syslog_events_max, 100000, "Maximum number of events per type to buffer");
-
+FLAG(uint64,
+     syslog_events_max,
+     100000,
+     "Maximum number of events per type to buffer");
 
 class SyslogEventSubscriber : public EventSubscriber<SyslogEventPublisher> {
  public:
@@ -36,8 +38,15 @@ class SyslogEventSubscriber : public EventSubscriber<SyslogEventPublisher> {
     subscribe(&SyslogEventSubscriber::Callback, sc);
     return Status(0, "OK");
   }
-  size_t getEventsExpiry() override { return FLAGS_syslog_events_expiry; }
-  size_t getEventsMax() override { return FLAGS_syslog_events_max; }
+
+  size_t getEventsExpiry() override {
+    return FLAGS_syslog_events_expiry;
+  }
+
+  size_t getEventsMax() override {
+    return FLAGS_syslog_events_max;
+  }
+
   Status Callback(const ECRef& ec, const SCRef& sc);
 };
 
@@ -45,9 +54,7 @@ REGISTER(SyslogEventSubscriber, "event_subscriber", "syslog");
 
 Status SyslogEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r(ec->fields);
-
-  add(r, ec->time);
+  add(r);
   return Status(0, "OK");
 }
-
 }

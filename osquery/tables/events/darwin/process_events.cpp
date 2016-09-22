@@ -121,7 +121,7 @@ Status ProcessEventSubscriber::Callback(
   r["path"] = ec->event.path;
   r["uptime"] = BIGINT(ec->uptime);
 
-  add(r, ec->time);
+  add(r);
 
   return Status(0, "OK");
 }

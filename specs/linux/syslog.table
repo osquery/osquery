@@ -1,11 +1,12 @@
 table_name("syslog")
 schema([
-    Column("time", BIGINT),
-    Column("host", TEXT),
-    Column("severity", INTEGER),
-    Column("facility", TEXT),
-    Column("tag", TEXT),
-    Column("message", TEXT),
+    Column("time", BIGINT, "Current unix epoch time"),
+    Column("datetime", TEXT, "Time known to syslog"),
+    Column("host", TEXT, "Hostname configured for syslog"),
+    Column("severity", INTEGER, "Syslog severity"),
+    Column("facility", TEXT, "Syslog facility"),
+    Column("tag", TEXT, "The syslog tag"),
+    Column("message", TEXT, "The syslog message"),
 ])
 attributes(event_subscriber=True)
 implementation("syslog_events@SyslogEventSubscriber::genTable")

@@ -69,7 +69,7 @@ Status HardwareEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   r["serial"] =
       INTEGER(UdevEventPublisher::getValue(device, "ID_SERIAL_SHORT"));
   r["revision"] = INTEGER(UdevEventPublisher::getValue(device, "ID_REVISION"));
-  add(r, ec->time);
+  add(r);
   return Status(0, "OK");
 }
 }

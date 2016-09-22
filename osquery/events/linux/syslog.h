@@ -115,11 +115,6 @@ class SyslogEventPublisher
                                      SyslogEventContextRef& ec);
 
   /**
-   * @brief Parse a time string from rsyslog into time_t.
-   */
-  static time_t parseTimeString(const std::string& time_str);
-
-  /**
    * @brief Input stream for reading from the pipe.
    */
   std::fstream readStream_;
@@ -144,7 +139,6 @@ class SyslogEventPublisher
 
  private:
   FRIEND_TEST(SyslogTests, test_populate_event_context);
-  FRIEND_TEST(SyslogTests, test_parse_time_string);
 };
 
 /**

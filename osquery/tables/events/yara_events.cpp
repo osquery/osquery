@@ -36,14 +36,14 @@ namespace tables {
 using FileEventSubscriber = EventSubscriber<FSEventsEventPublisher>;
 using FileEventContextRef = FSEventsEventContextRef;
 using FileSubscriptionContextRef = FSEventsSubscriptionContextRef;
-#define FILE_CHANGE_MASK                                                     \
-  kFSEventStreamEventFlagItemCreated | kFSEventStreamEventFlagItemModified | \
+#define FILE_CHANGE_MASK                                                       \
+  kFSEventStreamEventFlagItemCreated | kFSEventStreamEventFlagItemModified |   \
       kFSEventStreamEventFlagItemRenamed
 #elif __linux__
 using FileEventSubscriber = EventSubscriber<INotifyEventPublisher>;
 using FileEventContextRef = INotifyEventContextRef;
 using FileSubscriptionContextRef = INotifySubscriptionContextRef;
-#define FILE_CHANGE_MASK \
+#define FILE_CHANGE_MASK                                                       \
   ((IN_CREATE) | (IN_CLOSE_WRITE) | (IN_MODIFY) | (IN_MOVED_TO))
 #endif
 
@@ -186,7 +186,7 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   }
 
   if (ec->action != "" && r.at("matches").size() > 0) {
-    add(r, ec->time);
+    add(r);
   }
 
   return Status(0, "OK");

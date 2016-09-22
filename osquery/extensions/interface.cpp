@@ -185,7 +185,9 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
 }
 }
 
-ExtensionRunnerCore::~ExtensionRunnerCore() { remove(path_); }
+ExtensionRunnerCore::~ExtensionRunnerCore() {
+  remove(path_);
+}
 
 void ExtensionRunnerCore::stop() {
   {

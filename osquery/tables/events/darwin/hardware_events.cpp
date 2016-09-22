@@ -55,7 +55,7 @@ Status HardwareEventSubscriber::Callback(
   r["vendor"] = ec->vendor;
   r["serial"] = ec->serial;
   r["revision"] = ec->version;
-  add(r, ec->time);
+  add(r);
   return Status(0, "OK");
 }
 }

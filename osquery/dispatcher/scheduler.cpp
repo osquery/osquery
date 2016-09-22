@@ -28,6 +28,9 @@ FLAG(bool, enable_monitor, false, "Enable the schedule monitor");
 
 FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
 
+/// Used to bypass (optimize-out) the set-differential of query results.
+DECLARE_bool(events_optimize);
+
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   // Snapshot the performance and times for the worker before running.
   auto pid = std::to_string(PlatformProcess::getCurrentProcess()->pid());
@@ -97,7 +100,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Add this execution's set of results to the database-tracked named query.
   // We can then ask for a differential from the last time this named query
   // was executed by exact matching each row.
-  if (!sql.eventBased()) {
+  if (!FLAGS_events_optimize || !sql.eventBased()) {
     status = dbQuery.addNewResults(sql.rows(), diff_results);
     if (!status.ok()) {
       std::string line =
