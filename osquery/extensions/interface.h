@@ -138,7 +138,7 @@ class ExtensionHandler : virtual public ExtensionIf {
 class ExtensionManagerHandler : virtual public ExtensionManagerIf,
                                 public ExtensionHandler {
  public:
-  ExtensionManagerHandler() {}
+  ExtensionManagerHandler();
 
   /// Return a list of Route UUIDs and extension metadata.
   void extensions(InternalExtensionList& _return);
