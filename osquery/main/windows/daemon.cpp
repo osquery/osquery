@@ -22,6 +22,8 @@
 #include "osquery/dispatcher/distributed.h"
 #include "osquery/dispatcher/scheduler.h"
 
+DECLARE_string(flagfile);
+
 namespace osquery {
 
 /// Flags used by the daemon to install/uninstall osqueryd.exe as a Windows
@@ -35,6 +37,7 @@ CLI_FLAG(bool,
          false,
          "Uninstall osqueryd.exe from the Windows Service Control Manager");
 
+const std::string kDefaultFlagsFile = OSQUERY_HOME "\\osquery.flags";
 const std::string kServiceName = "osqueryd";
 const std::string kServiceDisplayName = "osquery daemon service";
 const std::string kWatcherWorkerName = "osqueryd: worker";
@@ -84,6 +87,20 @@ Status installService(const char* const binPath) {
     return Status(1);
   }
 
+  HANDLE flagsFilePtr = nullptr;
+  std::string binPathWithFlagFile = std::string(binPath) + " --flagfile=";
+  std::string flagsFile =
+      FLAGS_flagfile.empty() ? kDefaultFlagsFile : FLAGS_flagfile;
+  binPathWithFlagFile += flagsFile;
+  flagsFilePtr = CreateFile(flagsFile.c_str(),
+                            GENERIC_READ,
+                            FILE_SHARE_READ,
+                            nullptr,
+                            OPEN_ALWAYS,
+                            0,
+                            nullptr);
+  CloseHandle(flagsFilePtr);
+
   schService = CreateService(schSCManager,
                              kServiceName.c_str(),
                              kServiceDisplayName.c_str(),
@@ -91,7 +108,7 @@ Status installService(const char* const binPath) {
                              SERVICE_WIN32_OWN_PROCESS,
                              SERVICE_AUTO_START,
                              SERVICE_ERROR_NORMAL,
-                             binPath,
+                             binPathWithFlagFile.c_str(),
                              nullptr,
                              nullptr,
                              nullptr,
