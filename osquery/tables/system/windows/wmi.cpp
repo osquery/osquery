@@ -8,7 +8,6 @@
  *
  */
 
-#include <codecvt>
 #include <locale>
 #include <string>
 
@@ -17,31 +16,12 @@
 namespace osquery {
 namespace tables {
 
-/**
-* @brief Helper object used by Wide/Narrow converter functions
-*
-* @returns None.
-*/
-static std::wstring_convert<
-    std::codecvt_utf8_utf16<wchar_t, 0x10ffff, std::little_endian>>
-    converter;
-
-/**
-* @brief Windows helper function for converting narrow strings to wide
-*
-* @returns A wide string, constructed from a narrow string
-*/
-static std::wstring string_to_wstring(const std::string& src) {
+std::wstring stringToWstring(const std::string& src) {
   std::wstring utf16le_str = converter.from_bytes(src);
   return utf16le_str;
 }
 
-/**
-* @brief Windows helper function for converting wide strings to narrow
-*
-* @returns A narrow string, constructed from a wide string
-*/
-static std::string wstring_to_string(const wchar_t* src) {
+std::string wstringToString(const wchar_t* src) {
   if (src == nullptr) {
     return std::string("");
   }
@@ -50,13 +30,8 @@ static std::string wstring_to_string(const wchar_t* src) {
   return utf8_str;
 }
 
-/**
-* @brief Windows WMI Helper function to print the type associated with results
-*
-* @returns A string created from a BSTR
-*/
-static std::string BSTR_to_string(const BSTR src) {
-  return wstring_to_string(static_cast<const wchar_t*>(src));
+std::string bstrToString(const BSTR src) {
+  return wstringToString(static_cast<const wchar_t*>(src));
 }
 
 WmiResultItem::WmiResultItem(WmiResultItem&& src) {
@@ -72,7 +47,7 @@ WmiResultItem::~WmiResultItem() {
 }
 
 void WmiResultItem::PrintType(const std::string& name) const {
-  std::wstring property_name = string_to_wstring(name);
+  std::wstring property_name = stringToWstring(name);
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
@@ -89,7 +64,7 @@ void WmiResultItem::PrintType(const std::string& name) const {
 }
 
 Status WmiResultItem::GetBool(const std::string& name, bool& ret) const {
-  std::wstring property_name = string_to_wstring(name);
+  std::wstring property_name = stringToWstring(name);
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
 
@@ -106,7 +81,7 @@ Status WmiResultItem::GetBool(const std::string& name, bool& ret) const {
 }
 
 Status WmiResultItem::GetLong(const std::string& name, long& ret) const {
-  std::wstring property_name = string_to_wstring(name);
+  std::wstring property_name = stringToWstring(name);
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
@@ -123,7 +98,7 @@ Status WmiResultItem::GetLong(const std::string& name, long& ret) const {
 
 Status WmiResultItem::GetUnsignedLong(const std::string& name,
                                       unsigned long& ret) const {
-  std::wstring property_name = string_to_wstring(name);
+  std::wstring property_name = stringToWstring(name);
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
@@ -140,7 +115,7 @@ Status WmiResultItem::GetUnsignedLong(const std::string& name,
 
 Status WmiResultItem::GetLongLong(const std::string& name,
                                   long long& ret) const {
-  std::wstring property_name = string_to_wstring(name);
+  std::wstring property_name = stringToWstring(name);
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
@@ -157,7 +132,7 @@ Status WmiResultItem::GetLongLong(const std::string& name,
 
 Status WmiResultItem::GetUnsignedLongLong(const std::string& name,
                                           unsigned long long& ret) const {
-  std::wstring property_name = string_to_wstring(name);
+  std::wstring property_name = stringToWstring(name);
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
@@ -174,7 +149,7 @@ Status WmiResultItem::GetUnsignedLongLong(const std::string& name,
 
 Status WmiResultItem::GetString(const std::string& name,
                                 std::string& ret) const {
-  std::wstring property_name = string_to_wstring(name);
+  std::wstring property_name = stringToWstring(name);
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
@@ -186,14 +161,14 @@ Status WmiResultItem::GetString(const std::string& name,
     VariantClear(&value);
     return Status(-1, "Invalid data type returned.");
   }
-  ret = BSTR_to_string(value.bstrVal);
+  ret = bstrToString(value.bstrVal);
   VariantClear(&value);
   return Status(0);
 }
 
 Status WmiResultItem::GetVectorOfStrings(const std::string& name,
                                          std::vector<std::string>& ret) const {
-  std::wstring property_name = string_to_wstring(name);
+  std::wstring property_name = stringToWstring(name);
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
   if (hr != S_OK) {
@@ -212,7 +187,7 @@ Status WmiResultItem::GetVectorOfStrings(const std::string& name,
   SafeArrayAccessData(value.parray, (void**)&pData);
   ret.reserve(count);
   for (long i = 0; i < count; i++) {
-    ret.push_back(BSTR_to_string(pData[i]));
+    ret.push_back(bstrToString(pData[i]));
   }
   SafeArrayUnaccessData(value.parray);
   VariantClear(&value);
@@ -220,7 +195,7 @@ Status WmiResultItem::GetVectorOfStrings(const std::string& name,
 }
 
 WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
-  std::wstring wql = string_to_wstring(query);
+  std::wstring wql = stringToWstring(query);
 
   HRESULT hr = E_FAIL;
 
