@@ -206,6 +206,8 @@ function platform_linux_main() {
   local_brew_tool python
   local_brew_postinstall python
   local_brew_tool cmake --without-docs
+  local_brew_tool zzuf
+  local_brew_tool cppcheck
 
   # Linux library secondary dependencies.
   local_brew_tool berkeley-db
@@ -273,6 +275,8 @@ function platform_darwin_main() {
   local_brew_tool python
   local_brew_postinstall python
   local_brew_tool cmake --without-docs
+  local_brew_tool zzuf
+  local_brew_tool cppcheck
 
   # List of LLVM-compiled dependencies.
   local_brew_dependency boost
