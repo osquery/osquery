@@ -25,8 +25,7 @@ namespace tables {
 
 QueryData genTime(QueryContext& context) {
   Row r;
-  // Request UNIX time (a wrapper around std::time).
-  auto local_time = std::time(nullptr);
+  time_t local_time = getUnixTime();
   auto osquery_time = getUnixTime();
   auto osquery_timestamp = getAsciiTime();
 
@@ -43,6 +42,7 @@ QueryData genTime(QueryContext& context) {
 
   struct tm local;
   localtime_r(&local_time, &local);
+  local_time = std::mktime(&local);
 
   char weekday[10] = {0};
   strftime(weekday, sizeof(weekday), "%A", &now);

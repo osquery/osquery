@@ -149,7 +149,7 @@ inline Status safeStrtoul(const std::string& rep,
                           size_t base,
                           unsigned long int& out) {
   char* end{nullptr};
-  out = strtol(rep.c_str(), &end, static_cast<int>(base));
+  out = strtoul(rep.c_str(), &end, static_cast<int>(base));
   if (end == nullptr || end == rep.c_str() || *end != '\0' || errno == ERANGE) {
     out = 0;
     return Status(1);

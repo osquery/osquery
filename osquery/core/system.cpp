@@ -67,7 +67,7 @@ FLAG(string,
      "hostname",
      "Field used to identify the host running osquery (hostname, uuid)");
 
-FLAG(bool, utc, false, "Convert all UNIX times to UTC");
+FLAG(bool, utc, true, "Convert all UNIX times to UTC");
 
 #ifdef WIN32
 struct tm* gmtime_r(time_t* t, struct tm* result) {
@@ -167,14 +167,7 @@ std::string getAsciiTime() {
 }
 
 size_t getUnixTime() {
-  auto result = std::time(nullptr);
-  if (FLAGS_utc) {
-    struct tm now;
-    gmtime_r(&result, &now);
-
-    result = std::mktime(&now);
-  }
-  return result;
+  return std::time(nullptr);
 }
 
 Status checkStalePid(const std::string& content) {
