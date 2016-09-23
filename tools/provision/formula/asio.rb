@@ -12,7 +12,7 @@ class Asio < AbstractOsqueryFormula
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "af9384c96b39a9589d8c3e9730fcdb7a6e496f10526ad63bb1f1e0a2b175610a" => :el_capitan
-    sha256 "972a64dec67c501be1ef304ff2056a88dc4326162d2ce5fe1cab317a66e0d80e" => :x86_64_linux
+    sha256 "e3f0a2e933ec5dd787510f38215c33e92254b9cde1196d34348740618a3720d7" => :x86_64_linux
   end
 
   needs :cxx11

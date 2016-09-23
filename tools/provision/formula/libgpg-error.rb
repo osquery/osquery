@@ -10,7 +10,7 @@ class LibgpgError < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "1ae09fed0eb3a6ac2ad2d083f166a2dfa527987a78ee158587674286c9dee70a" => :x86_64_linux
+    sha256 "9f114e602a473765d41230c774771333488b428f457fae2393f3874a3d761f69" => :x86_64_linux
   end
 
   option :universal
