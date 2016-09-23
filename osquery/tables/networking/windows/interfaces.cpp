@@ -49,7 +49,10 @@ QueryData genInterfaceDetails(QueryContext& context) {
       result.GetUnsignedLongLong("Speed", ulPlaceHolder);
       r["speed"] = INTEGER(ulPlaceHolder);
 
-      std::string query = "SELECT * FROM win32_networkadapterconfiguration WHERE InterfaceIndex = " + r["interface"];
+      std::string query =
+          "SELECT * FROM win32_networkadapterconfiguration WHERE "
+          "InterfaceIndex = " +
+          r["interface"];
 
       WmiRequest irequest(query);
       if (irequest.getStatus().ok()) {
@@ -78,7 +81,8 @@ QueryData genInterfaceDetails(QueryContext& context) {
 
 QueryData genInterfaceAddresses(QueryContext& context) {
   QueryData results_data;
-  WmiRequest request("SELECT * FROM win32_networkadapterconfiguration where IPEnabled=TRUE");
+  WmiRequest request(
+      "SELECT * FROM win32_networkadapterconfiguration where IPEnabled=TRUE");
   if (request.getStatus().ok()) {
     std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {

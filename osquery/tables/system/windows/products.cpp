@@ -23,9 +23,7 @@
 namespace osquery {
 namespace tables {
 
-void queryReg(QueryData& results_data) {
-
-}
+void queryReg(QueryData& results_data) {}
 
 QueryData genPrograms(QueryContext& context) {
   QueryData results;
