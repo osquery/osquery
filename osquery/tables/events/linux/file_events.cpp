@@ -94,8 +94,8 @@ Status FileEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
   if ((sc->mask & kFileAccessMasks) != kFileAccessMasks) {
     // Add hashing and 'join' against the file table for stat-information.
-    decorateFileEvent(ec->path,
-                      (ec->action == "CREATED" || ec->action == "UPDATED"), r);
+    decorateFileEvent(
+        ec->path, (ec->action == "CREATED" || ec->action == "UPDATED"), r);
   } else {
     // The access event on Linux would generate additional events if stated.
     for (const auto& column : kCommonFileColumns) {
@@ -106,7 +106,7 @@ Status FileEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
   // A callback is somewhat useless unless it changes the EventSubscriber
   // state or calls `add` to store a marked up event.
-  add(r, ec->time);
+  add(r);
   return Status(0, "OK");
 }
 }

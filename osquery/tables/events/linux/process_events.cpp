@@ -178,7 +178,7 @@ Status ProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
       row_["cmdline_size"] = "1";
     }
 
-    add(row_, getUnixTime());
+    add(row_);
     Row().swap(row_);
   }
 

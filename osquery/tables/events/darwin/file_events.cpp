@@ -92,7 +92,7 @@ Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec,
   decorateFileEvent(
       ec->path, (ec->action == "CREATED" || ec->action == "UPDATED"), r);
 
-  add(r, ec->time);
+  add(r);
   return Status(0, "OK");
 }
 }

@@ -136,7 +136,7 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
       row_["remote_port"] = "0";
       // Parse the struct and emit the row.
       parseSockAddr(saddr, row_, (row_.at("action") == "bind"));
-      add(row_, getUnixTime());
+      add(row_);
       Row().swap(row_);
       waiting_for_saddr_ = false;
     }

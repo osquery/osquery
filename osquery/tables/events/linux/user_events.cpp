@@ -56,7 +56,7 @@ Status UserEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   r["terminal"] = ec->fields["terminal"];
   r["uptime"] = INTEGER(tables::getUptime());
 
-  add(r, getUnixTime());
+  add(r);
   return Status(0, "OK");
 }
 } // namespace osquery
