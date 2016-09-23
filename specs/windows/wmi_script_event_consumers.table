@@ -2,7 +2,7 @@ table_name("wmi_script_event_consumers")
 description("WMI ActiveScriptEventConsumer, which can be used for persistance on Windows. https://www.blackhat.com/docs/us-15/materials/us-15-Graeber-Abusing-Windows-Management-Instrumentation-WMI-To-Build-A-Persistent%20Asynchronous-And-Fileless-Backdoor-wp.pdf")
 schema([
     Column("name", TEXT, "Unique identifier for the event consumer. "),
-    Column("scripting_engine", TEXT, "Name of the scripting engine to use, for example, "VBScript". This property cannot be NULL."),
+    Column("scripting_engine", TEXT, "Name of the scripting engine to use, for example, 'VBScript'. This property cannot be NULL."),
     Column("script_file_name", TEXT, "Name of the file from which the script text is read, intended as an alternative to specifying the text of the script in the ScriptText property."),
     Column("script_text", TEXT, "Text of the script that is expressed in a language known to the scripting engine. This property must be NULL if the ScriptFileName property is not NULL."),
     Column("class", TEXT, "The name of the class."),
