@@ -88,19 +88,26 @@ macro(ADD_OSQUERY_LINK IS_CORE LINK)
 endmacro(ADD_OSQUERY_LINK)
 
 macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
+  # The relative linking set is used for static libraries.
   set(LINK_PATHS_RELATIVE
     "${BUILD_DEPS}/lib"
     ${LINK_PATHS}
     ${OS_LIB_DIRS}
     "$ENV{HOME}"
   )
+
+  # The system linking set is for legacy ABI compatibility links and libraries
+  # known to exist on the system.
   set(LINK_PATHS_SYSTEM
     ${LINK_PATHS}
     "${BUILD_DEPS}/legacy/lib"
-    # Allow the build to search the default deps include for libz.
-    "${BUILD_DEPS}/lib"
-    ${OS_LIB_DIRS}
   )
+  if(LINUX)
+    # Allow the build to search the 'default' dependency home for libgcc_s.
+    list(APPEND LINK_PATHS_SYSTEM "${BUILD_DEPS}/lib")
+  endif()
+  # The OS library paths are very important for system linking.
+  list(APPEND LINK_PATHS_SYSTEM ${OS_LIB_DIRS})
 
   if(NOT "${LINK}" MATCHES "(^[-/].*)")
     string(REPLACE " " ";" ITEMS "${LINK}")
