@@ -1,0 +1,12 @@
+table_name("wmi_filter_consumer_binding")
+description("Lists the relationship between event consumers and filters.")
+schema([
+    Column("consumer", TEXT, "Reference to an instance of __EventConsumer that represents the object path to a logical consumer, the recipient of an event."),
+    Column("filter", TEXT, "Reference to an instance of __EventFilter that represents the object path to an event filter which is a query that specifies the type of event to be received."),
+    Column("class", TEXT, "The name of the class."),
+    Column("relative_path", TEXT, "Relative path to the class or instance."),
+])
+implementation("wmi_filter_consumer_binding@genFilterConsumer")
+examples([
+  "select * from wmi_filter_consumer_binding",
+])

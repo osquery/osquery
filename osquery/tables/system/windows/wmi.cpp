@@ -219,7 +219,7 @@ Status WmiResultItem::GetVectorOfStrings(const std::string& name,
   return Status(0);
 }
 
-WmiRequest::WmiRequest(const std::string& query) {
+WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
   std::wstring wql = string_to_wstring(query);
 
   HRESULT hr = E_FAIL;
@@ -244,14 +244,8 @@ WmiRequest::WmiRequest(const std::string& query) {
     return;
   }
 
-  hr = locator_->ConnectServer(L"ROOT\\CIMV2",
-                               nullptr,
-                               nullptr,
-                               nullptr,
-                               0,
-                               nullptr,
-                               nullptr,
-                               &services_);
+  hr = locator_->ConnectServer(
+      nspace, nullptr, nullptr, nullptr, 0, nullptr, nullptr, &services_);
   if (hr != S_OK) {
     services_ = nullptr;
     return;

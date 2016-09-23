@@ -1,0 +1,16 @@
+table_name("programs")
+description("Rrepresents products as they are installed by Windows Installer. A product generally correlates to one installation package.")
+schema([
+    Column("name", TEXT, "Commonly used product name."),
+    Column("version", TEXT, "Product version information."),
+    Column("install_source", TEXT, "The installation source directory of the product."),
+    Column("language", TEXT, "The language of the product."),
+    Column("publisher", TEXT, "Name of the product supplier."),
+    Column("uninstall_string", TEXT, "Path and filename of the uninstaller."),
+    Column("install_date", TEXT, "Date that this product was installed on the system. "),
+    Column("identifying_number", TEXT, "Product identification such as a serial number on software, or a die number on a hardware chip."),
+])
+implementation("programs@genPrograms")
+examples([
+  "select * from products",
+])
