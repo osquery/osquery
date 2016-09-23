@@ -24,8 +24,11 @@ namespace tables {
 
 const std::string kSystemCron = "/etc/crontab";
 
-const std::vector<std::string> kUserCronPaths = {
-    "/var/at/tabs/", "/var/spool/cron/", "/var/spool/cron/crontabs/",
+const std::vector<std::string> kCronSearchDirs = {
+    "/etc/cron.d/", // system all
+    "/var/at/tabs/", // user mac:lion
+    "/var/spool/cron/", // user linux:centos
+    "/var/spool/cron/crontabs/", // user linux:debian
 };
 
 std::vector<std::string> cronFromFile(const std::string& path) {
@@ -99,22 +102,18 @@ void genCronLine(const std::string& path,
 
 QueryData genCronTab(QueryContext& context) {
   QueryData results;
+  std::vector<std::string> file_list;
 
-  auto system_lines = cronFromFile(kSystemCron);
-  for (const auto& line : system_lines) {
-    genCronLine(kSystemCron, line, results);
+  file_list.push_back(kSystemCron);
+
+  for (const auto cron_dir : kCronSearchDirs) {
+    osquery::listFilesInDirectory(cron_dir, file_list);
   }
 
-  std::vector<std::string> user_crons;
-  for (const auto cron_path : kUserCronPaths) {
-    osquery::listFilesInDirectory(cron_path, user_crons);
-  }
-
-  // The user-based crons are identified by their path.
-  for (const auto& user_path : user_crons) {
-    auto user_lines = cronFromFile(user_path);
-    for (const auto& line : user_lines) {
-      genCronLine(user_path, line, results);
+  for (const auto& file_path : file_list) {
+    auto lines = cronFromFile(file_path);
+    for (const auto& line : lines) {
+      genCronLine(file_path, line, results);
     }
   }
 
