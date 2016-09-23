@@ -3,17 +3,17 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Openssl < AbstractOsqueryFormula
   desc "SSL/TLS cryptography library"
   homepage "https://openssl.org/"
-  url "https://www.openssl.org/source/openssl-1.0.2h.tar.gz"
-  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2h.tar.gz"
-  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2h.tar.gz"
-  sha256 "1d4007e53aad94a5b2002fe045ee7bb0b3d98f1a47f8b2bc851dcd1c74332919"
+  url "https://www.openssl.org/source/openssl-1.0.2i.tar.gz"
+  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2i.tar.gz"
+  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2i.tar.gz"
+  sha256 "9287487d11c9545b6efb287cdb70535d4e9b284dd10d51441d9b9963d000de6f"
   revision 1
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "14677ac0a368745b65e50297882340a003c902a3122ed8b777fb8748bbbd3d69" => :el_capitan
-    sha256 "ac1f2e6283cd15fa4eac3b0e9f44eb8a070722c074076f4b01d49a6aee63468b" => :x86_64_linux
+    sha256 "e24d6d9361661fe76cb0dfdb75c706d0621ebe8e1438111e912d782c819bf935" => :x86_64_linux
   end
 
   resource "cacert" do

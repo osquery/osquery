@@ -6,6 +6,12 @@ class ZlibLegacy < AbstractOsqueryFormula
   url "https://github.com/madler/zlib/archive/v1.2.3.tar.gz"
   sha256 "2134178c123ea8252fd6afc9b794d9a2df480ccd030cc5db720a41883676fc2e"
 
+  bottle do
+    root_url "https://osquery-packages.s3.amazonaws.com/bottles"
+    cellar :any_skip_relocation
+    sha256 "caa265822ed35d1e0b2a702aa959d4044a00be3e22ad6e99d685d85bd36d2be6" => :x86_64_linux
+  end
+
   keg_only :provided_by_osx
 
   option :universal
