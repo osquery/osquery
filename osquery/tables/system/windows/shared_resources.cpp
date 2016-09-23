@@ -8,14 +8,9 @@
  *
  */
 
-#include <sstream>
 #include <string>
 
-#include <stdlib.h>
-
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
-#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -26,10 +21,8 @@ namespace tables {
 
 QueryData genShares(QueryContext& context) {
   QueryData results_data;
-  std::stringstream ss;
-  ss << "SELECT * FROM Win32_Share";
 
-  WmiRequest request(ss.str());
+  WmiRequest request("SELECT * FROM Win32_Share");
   if (request.getStatus().ok()) {
     std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {

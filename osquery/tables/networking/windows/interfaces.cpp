@@ -8,15 +8,11 @@
  *
  */
 
-#include <sstream>
 #include <string>
-
-#include <stdlib.h>
 
 #include <boost/algorithm/string/join.hpp>
 
 #include <osquery/core.h>
-#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -25,41 +21,9 @@
 namespace osquery {
 namespace tables {
 
-void genAddresses(QueryData& results_data) {
-  std::stringstream ss;
-  ss << "SELECT * FROM win32_networkadapterconfiguration where IPEnabled=TRUE";
-
-  WmiRequest request(ss.str());
-  if (request.getStatus().ok()) {
-    std::vector<WmiResultItem>& results = request.results();
-    for (const auto& result : results) {
-      Row r;
-      long lPlaceHolder;
-      std::vector<std::string> vPlaceHolderIps;
-      std::vector<std::string> vPlaceHolderSubnets;
-
-      result.GetLong("InterfaceIndex", lPlaceHolder);
-      std::stringstream interface_index;
-      interface_index << lPlaceHolder;
-      r["interface"] = SQL_TEXT(interface_index.str());
-      result.GetVectorOfStrings("IPAddress", vPlaceHolderIps);
-      result.GetVectorOfStrings("IPSubnet", vPlaceHolderSubnets);
-      for (size_t i = 0; i < vPlaceHolderIps.size(); i++) {
-        r["address"] = SQL_TEXT(vPlaceHolderIps.at(i));
-        if (vPlaceHolderSubnets.size() > i) {
-          r["mask"] = SQL_TEXT(vPlaceHolderSubnets.at(i));
-        }
-        results_data.push_back(r);
-      }
-    }
-  }
-}
-
-void genDetails(QueryData& results_data) {
-  std::stringstream ss;
-  ss << "SELECT * FROM Win32_NetworkAdapter";
-
-  WmiRequest request(ss.str());
+QueryData genInterfaceDetails(QueryContext& context) {
+  QueryData results_data;
+  WmiRequest request("SELECT * FROM Win32_NetworkAdapter");
   if (request.getStatus().ok()) {
     std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {
@@ -85,12 +49,9 @@ void genDetails(QueryData& results_data) {
       result.GetUnsignedLongLong("Speed", ulPlaceHolder);
       r["speed"] = INTEGER(ulPlaceHolder);
 
-      std::stringstream iss;
-      iss << "SELECT * FROM win32_networkadapterconfiguration WHERE "
-             "InterfaceIndex = "
-          << r["interface"];
+      std::string query = "SELECT * FROM win32_networkadapterconfiguration WHERE InterfaceIndex = " + r["interface"];
 
-      WmiRequest irequest(iss.str());
+      WmiRequest irequest(query);
       if (irequest.getStatus().ok()) {
         std::vector<WmiResultItem>& iresults = irequest.results();
 
@@ -112,20 +73,35 @@ void genDetails(QueryData& results_data) {
       results_data.push_back(r);
     }
   }
-}
-
-QueryData genInterfaceDetails(QueryContext& context) {
-  QueryData results;
-  genDetails(results);
-
-  return results;
+  return results_data;
 }
 
 QueryData genInterfaceAddresses(QueryContext& context) {
-  QueryData results;
-  genAddresses(results);
+  QueryData results_data;
+  WmiRequest request("SELECT * FROM win32_networkadapterconfiguration where IPEnabled=TRUE");
+  if (request.getStatus().ok()) {
+    std::vector<WmiResultItem>& results = request.results();
+    for (const auto& result : results) {
+      Row r;
+      long lPlaceHolder;
+      std::vector<std::string> vPlaceHolderIps;
+      std::vector<std::string> vPlaceHolderSubnets;
 
-  return results;
+      result.GetLong("InterfaceIndex", lPlaceHolder);
+      r["interface"] = SQL_TEXT(lPlaceHolder);
+      result.GetVectorOfStrings("IPAddress", vPlaceHolderIps);
+      result.GetVectorOfStrings("IPSubnet", vPlaceHolderSubnets);
+      for (size_t i = 0; i < vPlaceHolderIps.size(); i++) {
+        r["address"] = SQL_TEXT(vPlaceHolderIps.at(i));
+        if (vPlaceHolderSubnets.size() > i) {
+          r["mask"] = SQL_TEXT(vPlaceHolderSubnets.at(i));
+        }
+        results_data.push_back(r);
+      }
+    }
+  }
+
+  return results_data;
 }
 }
 }

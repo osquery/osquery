@@ -8,18 +8,12 @@
  *
  */
 
-#include <sstream>
 #include <string>
 
-#include <stdlib.h>
-
-#include <boost/algorithm/string/join.hpp>
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/regex.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
-#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -30,6 +24,11 @@ namespace osquery {
 namespace tables {
 
 void queryReg(QueryData& results_data) {
+
+}
+
+QueryData genPrograms(QueryContext& context) {
+  QueryData results;
   QueryData regResults;
   queryKey(
       "HKEY_LOCAL_MACHINE",
@@ -51,34 +50,29 @@ void queryReg(QueryData& results_data) {
     r["identifying_number"] = matches[0];
     for (const auto& aKey : appResults) {
       if (aKey.at("name") == "DisplayName") {
-        r["name"] = SQL_TEXT(aKey.at("data"));
+        r["name"] = aKey.at("data");
       }
       if (aKey.at("name") == "DisplayVersion") {
-        r["version"] = SQL_TEXT(aKey.at("data"));
+        r["version"] = aKey.at("data");
       }
       if (aKey.at("name") == "InstallSource") {
-        r["install_source"] = SQL_TEXT(aKey.at("data"));
+        r["install_source"] = aKey.at("data");
       }
       if (aKey.at("name") == "Language") {
-        r["language"] = SQL_TEXT(aKey.at("data"));
+        r["language"] = aKey.at("data");
       }
       if (aKey.at("name") == "Publisher") {
-        r["publisher"] = SQL_TEXT(aKey.at("data"));
+        r["publisher"] = aKey.at("data");
       }
       if (aKey.at("name") == "UninstallString") {
-        r["uninstall_string"] = SQL_TEXT(aKey.at("data"));
+        r["uninstall_string"] = aKey.at("data");
       }
       if (aKey.at("name") == "InstallDate") {
-        r["install_date"] = SQL_TEXT(aKey.at("data"));
+        r["install_date"] = aKey.at("data");
       }
     }
-    results_data.push_back(r);
+    results.push_back(r);
   }
-}
-
-QueryData genPrograms(QueryContext& context) {
-  QueryData results;
-  queryReg(results);
 
   return results;
 }
