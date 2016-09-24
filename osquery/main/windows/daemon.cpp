@@ -231,6 +231,7 @@ void daemonEntry(int argc, char* argv[]) {
     if (kStopEvent != nullptr) {
       ::WaitForSingleObject(kStopEvent, INFINITE);
 
+      UpdateServiceStatus(0, SERVICE_STOPPED, 0, 3);
       runner.requestShutdown();
     }
 
@@ -253,6 +254,7 @@ void daemonEntry(int argc, char* argv[]) {
   if (kStopEvent != nullptr) {
     ::WaitForSingleObject(kStopEvent, INFINITE);
 
+    UpdateServiceStatus(0, SERVICE_STOPPED, 0, 3);
     runner.requestShutdown();
   }
 
