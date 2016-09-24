@@ -537,6 +537,8 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     }
   }
 
+  loaded_ = true;
+
   return Status(0, "OK");
 }
 
