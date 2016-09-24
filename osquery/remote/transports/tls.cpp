@@ -117,11 +117,12 @@ http::client TLSTransport::getClient() {
       options.openssl_verify_path(server_certificate_file_);
 
       // On Windows, we cannot set openssl_certificate to a directory
-      if (status.type() == fs::regular_file) {
-        options.openssl_certificate(server_certificate_file_);
-      } else {
+      if (isPlatform(PlatformType::TYPE_WINDOWS) &&
+          status.type() != fs::regular_file) {
         LOG(WARNING) << "Cannot set a non-regular file as a certificate: "
                      << server_certificate_file_;
+      } else {
+        options.openssl_certificate(server_certificate_file_);
       }
     }
   }
