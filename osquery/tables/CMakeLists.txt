@@ -82,6 +82,11 @@ endif()
 
 if(APPLE OR LINUX)
   file(GLOB OSQUERY_CROSS_EVENTS_TABLES "events/*.cpp")
+
+  ADD_OSQUERY_LINK_ADDITIONAL("augeas fa xml2")
+  if(APPLE)
+    ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
+  endif()
 else()
   # TODO: When we have Windows events, fill this in
   set(OSQUERY_CROSS_EVENTS_TABLES "")
@@ -102,6 +107,9 @@ if(NOT WINDOWS)
     ${OSQUERY_CROSS_FORENSIC_TABLES}
     ${OSQUERY_POSIX_SYSTEM_TABLES}
   )
+
+  file(GLOB OSQUERY_POSIX_TABLES_TESTS "*/posix/tests/*.cpp")
+  ADD_OSQUERY_TABLE_TEST(${OSQUERY_POSIX_TABLES_TESTS})
 endif()
 
 # No cross-platform application tables yet.
