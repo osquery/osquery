@@ -14,16 +14,46 @@
 #include <string>
 #include <vector>
 
+#include <codecvt>
 #define _WIN32_DCOM
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-
 #include <WbemIdl.h>
+#include <Windows.h>
 
 #include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
+
+/**
+* @brief Helper object used by Wide/Narrow converter functions
+*
+* @returns None.
+*/
+static std::wstring_convert<
+    std::codecvt_utf8_utf16<wchar_t, 0x10ffff, std::little_endian>>
+    converter;
+
+/**
+* @brief Windows helper function for converting narrow strings to wide
+*
+* @returns A wide string, constructed from a narrow string
+*/
+std::wstring stringToWstring(const std::string& src);
+
+/**
+* @brief Windows helper function for converting wide strings to narrow
+*
+* @returns A narrow string, constructed from a wide string
+*/
+std::string wstringToString(const wchar_t* src);
+
+/**
+* @brief Windows WMI Helper function to print the type associated with results
+*
+* @returns A string created from a BSTR
+*/
+std::string bstrToString(const BSTR src);
 
 /**
 * @breif Helper class to hold 1 result object from a WMI request
