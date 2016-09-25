@@ -424,13 +424,10 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @param start an inclusive time to begin searching.
    * @param stop an inclusive time to end searching.
-   * @param list_key optional key to bind to a specific index binning.
    *
    * @return List of 'index.step' index strings.
    */
-  std::set<std::string> getIndexes(EventTime start,
-                                   EventTime stop,
-                                   size_t list_key = 0);
+  std::set<std::string> getIndexes(EventTime start, EventTime stop);
 
   /**
    * @brief Expire indexes and eventually records.

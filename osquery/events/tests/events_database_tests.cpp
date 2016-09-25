@@ -97,36 +97,25 @@ TEST_F(EventsDatabaseTests, test_record_indexing) {
   // An "all" range, will pick up everything in the largest index.
   auto indexes = sub->getIndexes(0, 3 * 3600);
   auto output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ("3600.0, 3600.1, 3600.2", output);
+  EXPECT_EQ("60.0, 60.1, 60.120, 60.60", output);
 
   // Restrict range to "most specific", which is an index by 10.
   indexes = sub->getIndexes(0, 5);
   output = boost::algorithm::join(indexes, ", ");
   // The order 10, 0th index include results with t = [0, 10).
-  EXPECT_EQ("10.0", output);
-
-  // Get a mix of indexes for the lower bounding.
-  indexes = sub->getIndexes(2, (3 * 3600));
-  output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ("10.0, 10.1, 3600.1, 3600.2, 60.1", output);
-
-  // Rare, but test ONLY intermediate indexes.
-  // Provide an optional third parameter to getIndexes: 1 = 10,(60),3600.
-  indexes = sub->getIndexes(2, (3 * 3600), 1);
-  output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ("60.0, 60.1, 60.120, 60.60", output);
+  EXPECT_EQ("60.0", output);
 
   // Add specific indexes to the upper bound.
   status = sub->testAdd((2 * 3600) + 11);
   status = sub->testAdd((2 * 3600) + 61);
   indexes = sub->getIndexes(2 * 3600, (2 * 3600) + 62);
   output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ("10.726, 60.120", output);
+  EXPECT_EQ("60.120, 60.121", output);
 
   // Request specific lower and upper bounding.
   indexes = sub->getIndexes(2, (2 * 3600) + 62);
   output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ("10.0, 10.1, 10.726, 3600.1, 60.1, 60.120", output);
+  EXPECT_EQ("60.0, 60.1, 60.120, 60.121, 60.60", output);
 }
 
 TEST_F(EventsDatabaseTests, test_record_range) {
@@ -140,8 +129,10 @@ TEST_F(EventsDatabaseTests, test_record_range) {
 
   // Search within a specific record range.
   auto indexes = sub->getIndexes(0, 10);
+  EXPECT_EQ(1U, indexes.size());
   auto records = sub->getRecords(indexes);
-  EXPECT_EQ(2U, records.size()); // 1, 2
+  // This will return 3 results, ::get filters records by an absolute range.
+  EXPECT_EQ(3U, records.size()); // 1, 2, 11
 
   // Search within a large bound.
   indexes = sub->getIndexes(3, 3601);
@@ -164,17 +155,11 @@ TEST_F(EventsDatabaseTests, test_record_range) {
     sub->testAdd(110 + j);
   }
 
-  /**
-   * These tests are flaky because of issues within events indexing.
-   * See #2513 for the eventual fix.
-   * Assume an optimize step set the start to 110.
-   *
-   * indexes = sub->getIndexes(110, -1);
-   * auto output = boost::algorithm::join(indexes, ", ");
-   * EXPECT_EQ("10.11, 3600.1, 3600.2, 60.2", output);
-   * records = sub->getRecords(indexes);
-   * EXPECT_EQ(32U, records.size()); // 110 - 139 + 3601, 7201
-   */
+  indexes = sub->getIndexes(110, 0);
+  auto output = boost::algorithm::join(indexes, ", ");
+  EXPECT_EQ("60.1, 60.120, 60.2, 60.60", output);
+  records = sub->getRecords(indexes);
+  EXPECT_EQ(33U, records.size()); // (61) 110 - 139 + 3601, 7201
 }
 
 TEST_F(EventsDatabaseTests, test_record_expiration) {
@@ -197,15 +182,15 @@ TEST_F(EventsDatabaseTests, test_record_expiration) {
   records = sub->getRecords(indexes);
   EXPECT_EQ(3U, records.size()); // 11, 61, 3601
 
-  indexes = sub->getIndexes(0, 5000, 0);
+  indexes = sub->getIndexes(0, 5000);
   records = sub->getRecords(indexes);
   EXPECT_EQ(3U, records.size()); // 11, 61, 3601
 
-  indexes = sub->getIndexes(0, 5000, 1);
+  indexes = sub->getIndexes(0, 5000);
   records = sub->getRecords(indexes);
   EXPECT_EQ(3U, records.size()); // 11, 61, 3601
 
-  indexes = sub->getIndexes(0, 5000, 2);
+  indexes = sub->getIndexes(0, 5000);
   records = sub->getRecords(indexes);
   EXPECT_EQ(3U, records.size()); // 11, 61, 3601
 
@@ -241,7 +226,7 @@ TEST_F(EventsDatabaseTests, test_gentable) {
   scanDatabaseKeys("events", keys);
   // 9 data records, 1 eid counter, 3 indexes, 15 index records.
   // Depending on the moment, an additional 3 indexs may be introduced.
-  EXPECT_LE(28U, keys.size());
+  EXPECT_LE(16U, keys.size());
 
   // Perform a "select" equivalent.
   QueryContext context;
@@ -263,7 +248,7 @@ TEST_F(EventsDatabaseTests, test_gentable) {
 
   keys.clear();
   scanDatabaseKeys("events", keys);
-  EXPECT_LE(10U, keys.size());
+  EXPECT_LE(6U, keys.size());
 }
 
 TEST_F(EventsDatabaseTests, test_optimize) {
