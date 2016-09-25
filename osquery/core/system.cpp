@@ -102,6 +102,7 @@ std::string getHostname() {
 }
 
 std::string generateNewUUID() {
+  LOG(INFO) << "Cannot retrieve platform UUID: generating an ephemeral UUID";
   boost::uuids::uuid uuid = boost::uuids::random_generator()();
   return boost::uuids::to_string(uuid);
 }
@@ -124,6 +125,11 @@ std::string generateHostUUID() {
     return generateNewUUID();
   }
 #else
+  std::string uuid;
+  if (readFile("/sys/class/dmi/id/product_uuid", uuid)) {
+    boost::algorithm::trim(uuid);
+    return uuid;
+  }
   return generateNewUUID();
 #endif
 }
