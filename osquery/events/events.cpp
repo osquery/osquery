@@ -90,8 +90,6 @@ QueryData EventSubscriberPlugin::genTable(QueryContext& context) {
     // restarted.
     auto index_key = "optimize." + dbNamespace();
     setDatabaseValue(kEvents, index_key, std::to_string(optimize_time_));
-    index_key = "optimize_id." + dbNamespace();
-    setDatabaseValue(kEvents, index_key, std::to_string(optimize_eid_));
   }
   return get(start, stop);
 }
@@ -128,10 +126,10 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   }
 }
 
-std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
-                                                        EventTime stop) {
+std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
+                                                           EventTime stop) {
   auto index_key = "indexes." + dbNamespace();
-  std::set<std::string> indexes;
+  std::vector<std::string> indexes;
 
   EventTime l_start = (start > 0) ? start / 60 : 0;
   EventTime r_stop = (stop > 0) ? stop / 60 + 1 : 0;
@@ -155,7 +153,7 @@ std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
     }
 
     if (step >= l_start && (r_stop == 0 || step < r_stop)) {
-      indexes.insert("60." + bin);
+      indexes.push_back("60." + bin);
     }
   }
 
@@ -163,6 +161,15 @@ std::set<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
   if (!expirations.empty()) {
     expireIndexes("60", bins, expirations);
   }
+
+  // Return indexes in binning order.
+  std::sort(indexes.begin(),
+            indexes.end(),
+            [](const std::string& left, const std::string& right) {
+              auto n1 = timeFromRecord(left.substr(left.find(".") + 1));
+              auto n2 = timeFromRecord(right.substr(right.find(".") + 1));
+              return n1 < n2;
+            });
 
   // Update the new time that events expire to now - expiry.
   return indexes;
@@ -278,7 +285,7 @@ void EventSubscriberPlugin::expireCheck(bool cleanup) {
 }
 
 std::vector<EventRecord> EventSubscriberPlugin::getRecords(
-    const std::set<std::string>& indexes) {
+    const std::vector<std::string>& indexes) {
   auto record_key = "records." + dbNamespace();
 
   std::vector<EventRecord> records;
@@ -398,8 +405,8 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
   // Get the records for this time range.
   auto indexes = getIndexes(start, stop);
   auto records = getRecords(indexes);
-  std::string events_key = "data." + dbNamespace();
 
+  std::string events_key = "data." + dbNamespace();
   std::vector<std::string> mapped_records;
   for (const auto& record : records) {
     if (record.second >= start && (record.second <= stop || stop == 0)) {
@@ -412,6 +419,8 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
     unsigned long int eidr = 0;
     if (safeStrtoul(records.back().first, 10, eidr)) {
       optimize_eid_ = static_cast<size_t>(eidr);
+      auto index_key = "optimize_id." + dbNamespace();
+      setDatabaseValue(kEvents, index_key, records.back().first);
     }
   }
 

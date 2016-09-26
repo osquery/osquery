@@ -97,7 +97,7 @@ TEST_F(EventsDatabaseTests, test_record_indexing) {
   // An "all" range, will pick up everything in the largest index.
   auto indexes = sub->getIndexes(0, 3 * 3600);
   auto output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ("60.0, 60.1, 60.120, 60.60", output);
+  EXPECT_EQ("60.0, 60.1, 60.60, 60.120", output);
 
   // Restrict range to "most specific", which is an index by 10.
   indexes = sub->getIndexes(0, 5);
@@ -115,7 +115,7 @@ TEST_F(EventsDatabaseTests, test_record_indexing) {
   // Request specific lower and upper bounding.
   indexes = sub->getIndexes(2, (2 * 3600) + 62);
   output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ("60.0, 60.1, 60.120, 60.121, 60.60", output);
+  EXPECT_EQ("60.0, 60.1, 60.60, 60.120, 60.121", output);
 }
 
 TEST_F(EventsDatabaseTests, test_record_range) {
@@ -157,7 +157,7 @@ TEST_F(EventsDatabaseTests, test_record_range) {
 
   indexes = sub->getIndexes(110, 0);
   auto output = boost::algorithm::join(indexes, ", ");
-  EXPECT_EQ("60.1, 60.120, 60.2, 60.60", output);
+  EXPECT_EQ("60.1, 60.2, 60.60, 60.120", output);
   records = sub->getRecords(indexes);
   EXPECT_EQ(33U, records.size()); // (61) 110 - 139 + 3601, 7201
 }

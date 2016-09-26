@@ -402,7 +402,7 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @return List of EventID, EventTime%s
    */
-  std::vector<EventRecord> getRecords(const std::set<std::string>& indexes);
+  std::vector<EventRecord> getRecords(const std::vector<std::string>& indexes);
 
   /**
    * @brief Get a unique storage-related EventID.
@@ -427,7 +427,7 @@ class EventSubscriberPlugin : public Plugin {
    *
    * @return List of 'index.step' index strings.
    */
-  std::set<std::string> getIndexes(EventTime start, EventTime stop);
+  std::vector<std::string> getIndexes(EventTime start, EventTime stop);
 
   /**
    * @brief Expire indexes and eventually records.
