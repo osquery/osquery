@@ -12,6 +12,8 @@
 
 #include <osquery/core.h>
 
+#include "osquery/core/conversions.h"
+
 // If CMake/gmake did not define a build version set the version to 1.0.
 // clang-format off
 #if !defined(OSQUERY_BUILD_VERSION)
@@ -33,4 +35,34 @@ const std::string kVersion = STR(OSQUERY_BUILD_VERSION);
 const std::string kSDKVersion = OSQUERY_SDK_VERSION;
 const std::string kSDKPlatform = OSQUERY_PLATFORM;
 const PlatformType kPlatformType = static_cast<PlatformType>(OSQUERY_PLATFORM_MASK);
+
+bool versionAtLeast(const std::string& v, const std::string& sdk) {
+  if (v == "0.0.0" || sdk == "0.0.0") {
+    // This is a please-pass check.
+    return true;
+  }
+
+  auto required_version = split(v, ".");
+  auto build_version = split(sdk, ".");
+
+  size_t index = 0;
+  for (const auto& chunk : build_version) {
+    if (required_version.size() <= index) {
+      return true;
+    }
+    try {
+      if (std::stoi(chunk) < std::stoi(required_version[index])) {
+        return false;
+      } else if (std::stoi(chunk) > std::stoi(required_version[index])) {
+        return true;
+      }
+    } catch (const std::invalid_argument& /* e */) {
+      if (chunk.compare(required_version[index]) < 0) {
+        return false;
+      }
+    }
+    index++;
+  }
+  return true;
+}
 }
