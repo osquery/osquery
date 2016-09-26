@@ -40,7 +40,7 @@ FLAG(string,
      "/var/osquery/syslog_pipe",
      "Path to the named pipe used for forwarding rsyslog events");
 
-FLAG(int,
+FLAG(uint64,
      syslog_rate_limit,
      100,
      "Maximum number of logs to ingest per run (~100ms between runs)");
