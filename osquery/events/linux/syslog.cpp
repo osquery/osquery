@@ -40,6 +40,11 @@ FLAG(string,
      "/var/osquery/syslog_pipe",
      "Path to the named pipe used for forwarding rsyslog events");
 
+FLAG(int,
+     syslog_rate_limit,
+     100,
+     "Maximum number of logs to ingest per run (~100ms between runs)");
+
 REGISTER(SyslogEventPublisher, "event_publisher", "syslog");
 
 // rsyslog needs read/write access, osquery process needs read access
@@ -48,7 +53,6 @@ const std::string kPipeGroupName = "syslog";
 const char* kTimeFormat = "%Y-%m-%dT%H:%M:%S";
 const std::vector<std::string> kCsvFields = {
     "time", "host", "severity", "facility", "tag", "message"};
-const size_t kMaxLogsPerRun = 10;
 const size_t kErrorThreshold = 10;
 
 Status SyslogEventPublisher::setUp() {
@@ -143,7 +147,7 @@ Status SyslogEventPublisher::run() {
   // (see InterruptableRunnable::pause()) between runs. In case something goes
   // weird and there is a huge amount of input, we limit how many logs we
   // take in per run to avoid pegging the CPU.
-  for (size_t i = 0; i < kMaxLogsPerRun; ++i) {
+  for (size_t i = 0; i < FLAGS_syslog_rate_limit; ++i) {
     if (readStream_.rdbuf()->in_avail() == 0) {
       // If there is no pending data, we have flushed everything and can wait
       // until the next time EventFactory calls run(). This also allows the
