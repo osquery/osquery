@@ -23,7 +23,6 @@
 #include <osquery/tables.h>
 
 namespace osquery {
-namespace tables {
 
 /**
 * @brief Helper object used by Wide/Narrow converter functions
@@ -177,5 +176,4 @@ class WmiRequest {
   IWbemServices* services_{nullptr};
   IEnumWbemClassObject* enum_{nullptr};
 };
-}
 }

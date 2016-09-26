@@ -14,7 +14,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/tables/system/windows/wmi.h"
+#include "osquery/core/windows/wmi.h"
 
 namespace osquery {
 namespace tables {

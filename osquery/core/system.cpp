@@ -43,6 +43,9 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
+#ifdef WIN32
+#include "osquery/core/windows/wmi.h"
+#endif
 #include "osquery/core/process.h"
 #include "osquery/core/utils.h"
 
@@ -124,6 +127,15 @@ std::string generateHostUUID() {
     // Unable to get the hardware UUID, just return a new UUID
     return generateNewUUID();
   }
+#elif WIN32
+  WmiRequest wmiUUIDReq("Select UUID from Win32_ComputerSystemProduct");
+  std::vector<WmiResultItem>& wmiUUIDResults = wmiUUIDReq.results();
+  if (wmiUUIDResults.size() != 0) {
+    std::string uuid;
+    wmiUUIDResults[0].GetString("UUID", uuid);
+    return uuid;
+  }
+  return generateNewUUID();
 #else
   std::string uuid;
   if (readFile("/sys/class/dmi/id/product_uuid", uuid)) {

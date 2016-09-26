@@ -11,10 +11,9 @@
 #include <locale>
 #include <string>
 
-#include "osquery/tables/system/windows/wmi.h"
+#include "osquery/core/windows/wmi.h"
 
 namespace osquery {
-namespace tables {
 
 std::wstring stringToWstring(const std::string& src) {
   std::wstring utf16le_str = converter.from_bytes(src);
@@ -277,6 +276,5 @@ WmiRequest::~WmiRequest() {
   }
 
   ::CoUninitialize();
-}
 }
 }
