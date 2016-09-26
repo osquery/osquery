@@ -111,49 +111,48 @@ std::string generateNewUUID() {
 }
 
 std::string generateHostUUID() {
+  std::string hardware_uuid;
 #ifdef __APPLE__
   // Use the hardware UUID available on OSX to identify this machine
   uuid_t id;
   // wait at most 5 seconds for gethostuuid to return
   const timespec wait = {5, 0};
-  int result = gethostuuid(id, &wait);
-  if (result == 0) {
+  if (gethostuuid(id, &wait) == 0) {
     char out[128] = {0};
     uuid_unparse(id, out);
-    std::string uuid_string = std::string(out);
-    boost::algorithm::trim(uuid_string);
-    return uuid_string;
-  } else {
-    // Unable to get the hardware UUID, just return a new UUID
-    return generateNewUUID();
+    hardware_uuid = std::string(out);
   }
 #elif WIN32
   WmiRequest wmiUUIDReq("Select UUID from Win32_ComputerSystemProduct");
   std::vector<WmiResultItem>& wmiUUIDResults = wmiUUIDReq.results();
   if (wmiUUIDResults.size() != 0) {
-    std::string uuid;
-    wmiUUIDResults[0].GetString("UUID", uuid);
-    return uuid;
+    wmiUUIDResults[0].GetString("UUID", hardware_uuid);
   }
-  return generateNewUUID();
 #else
-  std::string uuid;
-  if (readFile("/sys/class/dmi/id/product_uuid", uuid)) {
-    boost::algorithm::trim(uuid);
-    return uuid;
-  }
-  return generateNewUUID();
+  readFile("/sys/class/dmi/id/product_uuid", hardware_uuid);
 #endif
+
+  // We know at least Linux will append a newline.
+  hardware_uuid.erase(
+      std::remove(hardware_uuid.begin(), hardware_uuid.end(), '\n'),
+      hardware_uuid.end());
+  boost::algorithm::trim(hardware_uuid);
+  if (!hardware_uuid.empty()) {
+    return hardware_uuid;
+  }
+
+  // Unable to get the hardware UUID, just return a new UUID
+  return generateNewUUID();
 }
 
 Status getHostUUID(std::string& ident) {
   // Lookup the host identifier (UUID) previously generated and stored.
-  auto status = getDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
+  auto status = getDatabaseValue(kPersistentSettings, "host_uuid_v2", ident);
   if (ident.size() == 0) {
     // There was no UUID stored in the database, generate one and store it.
     ident = osquery::generateHostUUID();
     VLOG(1) << "Using UUID " << ident << " as host identifier";
-    return setDatabaseValue(kPersistentSettings, "hostIdentifier", ident);
+    return setDatabaseValue(kPersistentSettings, "host_uuid_v2", ident);
   }
 
   return status;
