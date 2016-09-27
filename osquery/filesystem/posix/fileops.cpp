@@ -18,8 +18,9 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
-#include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
+
+#include <osquery/filesystem.h>
 
 #include "osquery/core/process.h"
 #include "osquery/filesystem/fileops.h"
@@ -263,8 +264,13 @@ boost::optional<std::string> getHomeDirectory() {
   auto user = ::getpwuid(getuid());
   auto homedir = getEnvVar("HOME");
   if (homedir.is_initialized()) {
-    return homedir;
-  } else if (user != nullptr && user->pw_dir != nullptr) {
+    // Fail over to the users home directory if HOME is not writable.
+    if (isWritable(*homedir)) {
+      return homedir;
+    }
+  }
+
+  if (user != nullptr && user->pw_dir != nullptr) {
     return std::string(user->pw_dir);
   } else {
     return boost::none;
