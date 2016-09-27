@@ -12,6 +12,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <shellapi.h>
 
 #include <osquery/core.h>
 #include <osquery/flags.h>
@@ -26,8 +27,10 @@ DECLARE_string(flagfile);
 
 namespace osquery {
 
-/// Flags used by the daemon to install/uninstall osqueryd.exe as a Windows
-/// Serivce
+/*
+ * Flags used by the daemon to install/uninstall osqueryd.exe as a Windows
+ * Service
+ */
 CLI_FLAG(bool,
          install,
          false,
@@ -42,8 +45,10 @@ const std::string kServiceName = "osqueryd";
 const std::string kServiceDisplayName = "osquery daemon service";
 const std::string kWatcherWorkerName = "osqueryd: worker";
 
-/// This event is set when a SERVICE_CONTROL_STOP or SERVICE_CONTROL_SHUTDOWN is
-/// received
+/*
+ * This event is set when a SERVICE_CONTROL_STOP or SERVICE_CONTROL_SHUTDOWN
+ * message is received in the ServiceControlHandler
+ */
 static HANDLE kStopEvent = nullptr;
 
 static SERVICE_STATUS_HANDLE kStatusHandle = nullptr;
@@ -69,6 +74,90 @@ void DebugPrintf(const char* fmt, ...) {
 
   va_end(vl);
 }
+
+/*
+ * Parses arguments for the Windows service. Arguments to the Windows service
+ * can be passed in two ways: via sc.exe (manual start) or via binPath
+ * (automated start). Unfortunately, both use different methods of getting the
+ * command line arguments. Manual start uses the argc and argv provided by
+ * ServiceMain whereas automated start requires manual parsing of
+ * GetCommandLine()
+ */
+class ServiceArgumentParser {
+ public:
+  ServiceArgumentParser(DWORD argc, LPSTR* argv) {
+    if (argc > 1) {
+      for (DWORD i = 0; i < argc; i++) {
+        args_.push_back(argv[i]);
+      }
+    } else {
+      int wargc = 0;
+      LPWSTR* wargv = ::CommandLineToArgvW(::GetCommandLineW(), &wargc);
+
+      if (wargv != nullptr) {
+        for (int i = 0; i < wargc; i++) {
+          LPSTR arg = toMBString(wargv[i]);
+
+          // On error, bail out and clean up the vector
+          if (arg == nullptr) {
+            cleanArgs();
+            ::LocalFree(wargv);
+            break;
+          }
+          args_.push_back(arg);
+        }
+
+        ::LocalFree(wargv);
+      }
+    }
+  }
+
+  ~ServiceArgumentParser() {
+    cleanArgs();
+  }
+
+  DWORD count() {
+    return static_cast<DWORD>(args_.size());
+  }
+  LPSTR* arguments() {
+    return args_.data();
+  }
+
+ private:
+  LPSTR toMBString(const LPWSTR src) {
+    if (src == nullptr) {
+      return nullptr;
+    }
+
+    size_t converted = 0;
+
+    // Allocate the same amount for multi-byte
+    size_t mbsbuf_size = wcslen(src) * 2;
+    LPSTR mbsbuf = (LPSTR) new char[mbsbuf_size];
+    if (mbsbuf == nullptr) {
+      return nullptr;
+    }
+
+    if (wcstombs_s(&converted, mbsbuf, mbsbuf_size, src, mbsbuf_size) != 0) {
+      delete[] mbsbuf;
+      return nullptr;
+    }
+
+    return mbsbuf;
+  }
+
+  void cleanArgs() {
+    for (size_t i = 0; i < args_.size(); i++) {
+      if (args_[i] != nullptr) {
+        delete[] args_[i];
+        args_[i] = nullptr;
+      }
+    }
+    args_.clear();
+  }
+
+  std::vector<LPSTR> args_;
+};
 
 /// Install osqueryd as a service given the path to the binary
 Status installService(const char* const binPath) {
@@ -276,7 +365,12 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
       UpdateServiceStatus(
           SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN, SERVICE_RUNNING, 0, 0);
 
-      daemonEntry(argc, argv);
+      ServiceArgumentParser parser(argc, argv);
+      if (parser.count() == 0) {
+        SLOG("ServiceArgumentParser failed (cmdline=%s)", ::GetCommandLineA());
+      } else {
+        daemonEntry(parser.count(), parser.arguments());
+      }
 
       ::CloseHandle(kStopEvent);
       kStopEvent = nullptr;
