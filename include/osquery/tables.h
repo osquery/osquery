@@ -460,7 +460,7 @@ struct VirtualTableContent {
 
   /// Attributes are copied into the content such that they can be quickly
   /// passed to the SQL and optional Query for inspection.
-  TableAttributes attributes;
+  TableAttributes attributes{TableAttributes::NONE};
 
   /**
    * @brief Table column aliases structure.
