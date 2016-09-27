@@ -43,11 +43,11 @@ class LoggerTests : public testing::Test {
   static std::vector<std::string> status_messages;
 
   // Count calls to logStatus
-  static int statuses_logged;
-  static int events_logged;
+  static size_t statuses_logged;
+  static size_t events_logged;
   // Count added and removed snapshot rows
-  static int snapshot_rows_added;
-  static int snapshot_rows_removed;
+  static size_t snapshot_rows_added;
+  static size_t snapshot_rows_removed;
 
  private:
   /// Save the status of logging before running tests, restore afterward.
@@ -57,10 +57,10 @@ class LoggerTests : public testing::Test {
 std::vector<std::string> LoggerTests::log_lines;
 StatusLogLine LoggerTests::last_status;
 std::vector<std::string> LoggerTests::status_messages;
-int LoggerTests::statuses_logged = 0;
-int LoggerTests::events_logged = 0;
-int LoggerTests::snapshot_rows_added = 0;
-int LoggerTests::snapshot_rows_removed = 0;
+size_t LoggerTests::statuses_logged = 0;
+size_t LoggerTests::events_logged = 0;
+size_t LoggerTests::snapshot_rows_added = 0;
+size_t LoggerTests::snapshot_rows_removed = 0;
 
 inline void placeStatuses(const std::vector<StatusLogLine>& log) {
   for (const auto& status : log) {
@@ -139,7 +139,7 @@ TEST_F(LoggerTests, test_logger_init) {
   // The warning message will have been buffered and sent to the active logger
   // which is test.
   EXPECT_EQ(1U, LoggerTests::status_messages.size());
-  EXPECT_EQ(1, LoggerTests::statuses_logged);
+  EXPECT_EQ(1U, LoggerTests::statuses_logged);
 }
 
 TEST_F(LoggerTests, test_log_string) {
@@ -168,7 +168,7 @@ TEST_F(LoggerTests, test_logger_log_status) {
   LOG(WARNING) << "Logger test is generating a warning status (2)";
 
   // The second warning status will be sent to the logger plugin.
-  EXPECT_EQ(1, LoggerTests::statuses_logged);
+  EXPECT_EQ(1U, LoggerTests::statuses_logged);
 }
 
 TEST_F(LoggerTests, test_feature_request) {
@@ -202,7 +202,7 @@ TEST_F(LoggerTests, test_logger_variations) {
 
   // Since the initLogger call triggered a failed init, meaning the logger
   // does NOT handle Glog logs, there will be no statuses logged.
-  EXPECT_EQ(0, LoggerTests::statuses_logged);
+  EXPECT_EQ(0U, LoggerTests::statuses_logged);
 }
 
 TEST_F(LoggerTests, test_logger_snapshots) {
@@ -218,7 +218,7 @@ TEST_F(LoggerTests, test_logger_snapshots) {
   logSnapshotQuery(item);
 
   // Expect the plugin to optionally handle snapshot logging.
-  EXPECT_EQ(1, LoggerTests::snapshot_rows_added);
+  EXPECT_EQ(1U, LoggerTests::snapshot_rows_added);
 }
 
 class SecondTestLoggerPlugin : public LoggerPlugin {
@@ -256,7 +256,7 @@ TEST_F(LoggerTests, test_multiple_loggers) {
   // Refer to the above notes about status logs not emitting until the logger
   // it initialized. We do a 0-test to check for dead locks around attempting
   // to forward Glog-based sinks recursively into our sinks.
-  EXPECT_EQ(0, LoggerTests::statuses_logged);
+  EXPECT_EQ(0U, LoggerTests::statuses_logged);
 
   // Now try to initialize multiple loggers (1) forwards, (2) does not.
   Registry::setActive("logger", "test,second_test");
@@ -264,7 +264,7 @@ TEST_F(LoggerTests, test_multiple_loggers) {
   LOG(WARNING) << "Logger test is generating a warning status (5)";
   // Now that the "test" logger is initialized, the status log will be
   // forwarded.
-  EXPECT_EQ(2, LoggerTests::statuses_logged);
+  EXPECT_EQ(2U, LoggerTests::statuses_logged);
 
   // Multiple logger plugins have a 'primary' concept.
   auto flag_default = FLAGS_logger_secondary_status_only;
@@ -274,7 +274,7 @@ TEST_F(LoggerTests, test_multiple_loggers) {
   EXPECT_EQ(3U, LoggerTests::log_lines.size());
   // However, again, 2 status lines will be forwarded.
   LOG(WARNING) << "Logger test is generating another warning (6)";
-  EXPECT_EQ(4, LoggerTests::statuses_logged);
+  EXPECT_EQ(4U, LoggerTests::statuses_logged);
   FLAGS_logger_secondary_status_only = flag_default;
   logString("this is a third test", "added");
   EXPECT_EQ(5U, LoggerTests::log_lines.size());
