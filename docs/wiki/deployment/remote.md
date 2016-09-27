@@ -40,7 +40,8 @@ The most basic TLS-based server should implement 3 HTTP POST endpoints. This API
 **Enrollment** request POST body:
 ```json
 {
-  "enroll_secret": "..." // Optional.
+  "enroll_secret": "...", // Optional.
+  "host_identifier": "..." // Determined by the --host_identifier flag
 }
 ```
 
