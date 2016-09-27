@@ -42,6 +42,11 @@ FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 FLAG(bool, logger_event_type, true, "Log scheduled results as events");
 FLAG_ALIAS(bool, log_result_events, logger_event_type);
 
+FLAG(bool,
+     logger_secondary_status_only,
+     false,
+     "Only send status logs to secondary logger plugins");
+
 class LoggerDisabler;
 
 /**
@@ -123,6 +128,36 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
     return instance().sinks_;
   }
 
+  /**
+   * @brief Check if a given logger plugin was the first or 'primary'.
+   *
+   * Within the osquery core the BufferedLogSink acts as a router for status
+   * logs. While initializing it inspects the set of logger plugins and saves
+   * the first as the 'primary'.
+   *
+   * Checks within the core may act on this state. Checks within extensions
+   * cannot, and thus any check for primary logger plugins is true.
+   * While this is a limitation, in practice if a remote logger plugin is called
+   * it is intended to receive all logging data.
+   *
+   * @param plugin Check if this target plugin is primary.
+   * @return true of the provided plugin was the first specified.
+   */
+  static bool isPrimaryLogger(const std::string& plugin) {
+    auto& self = instance();
+    WriteLock lock(self.primary_mutex_);
+    return (self.primary_.empty() || plugin == self.primary_);
+  }
+
+  /// Set the primary logger plugin is none has been previously specified.
+  static void setPrimary(const std::string& plugin) {
+    auto& self = instance();
+    WriteLock lock(self.primary_mutex_);
+    if (self.primary_.empty()) {
+      self.primary_ = plugin;
+    }
+  }
+
  public:
   BufferedLogSink(BufferedLogSink const&) = delete;
   void operator=(BufferedLogSink const&) = delete;
@@ -148,6 +183,12 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 
   /// Track multiple loggers that should receive sinks from the send forwarder.
   std::vector<std::string> sinks_;
+
+  /// Keep track of the first, or 'primary' logger.
+  std::string primary_;
+
+  /// Mutex for checking primary status.
+  Mutex primary_mutex_;
 
  private:
   friend class LoggerDisabler;
@@ -292,6 +333,7 @@ void initLogger(const std::string& name) {
   const auto& logger_plugin = Registry::getActive("logger");
   // Allow multiple loggers, make sure each is accessible.
   for (const auto& logger : osquery::split(logger_plugin, ",")) {
+    BufferedLogSink::setPrimary(logger);
     if (!Registry::exists("logger", logger)) {
       continue;
     }
@@ -356,6 +398,12 @@ void BufferedLogSink::send(google::LogSeverity severity,
 
 Status LoggerPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
+  if (FLAGS_logger_secondary_status_only &&
+      !BufferedLogSink::isPrimaryLogger(getName()) &&
+      (request.count("string") || request.count("snapshot"))) {
+    return Status(0, "Logging disabled to secondary plugins");
+  }
+
   QueryLogItem item;
   std::vector<StatusLogLine> intermediate_logs;
   if (request.count("string") > 0) {
