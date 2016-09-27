@@ -12,11 +12,12 @@ The tools make low-level operating system analytics and monitoring both performa
 |----------|---------------|---|---|---|
 OS X 10.9    | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/) | | **Homepage:** | https://osquery.io
 OS X 10.10/11| [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.11/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.11/) | | **Downloads:** | https://osquery.io/downloads
-CentOS 6.5   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Tables:** | https://osquery.io/tables
-CentOS 7.0   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Packs:** | https://osquery.io/packs
+CentOS 6.x   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Tables:** | https://osquery.io/tables
+CentOS 7.x   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Packs:** | https://osquery.io/packs
 Ubuntu 12.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/) | | **Guide:** | https://osquery.readthedocs.org
 Ubuntu 14.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com) | https://osquery-slack.herokuapp.com
 Ubuntu 16.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/) | | |
+Windows 10 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/) | | |
 
 #### What is osquery?
 

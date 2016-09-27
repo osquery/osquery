@@ -79,6 +79,10 @@ The higher the level the more strict the limits become. The "debug" level disabl
 
 Attempt to convert all UNIX calendar times to UTC. In version 1.8.0 this will be `true` by default.
 
+**Windows Only**
+
+Windows builds include a `--install` and `--uninstall` that will create a Windows service using the `osqueryd.exe` binary and preserve an optional `--flagfile` if provided.
+
 ### Backing storage control flags
 
 `--database_in_memory=false`
@@ -310,6 +314,10 @@ affects both the query result log and the status logs. **Warning**: If run as ro
 
 Maximum returned row value size.
 
+`--logger_syslog_facility`
+
+Set the syslog facility (number) 0-23 for the results log. When using the **syslog** logger plugin the default facility is 19 at the `LOG_INFO` level, which does not log to `/var/log/system`.
+
 ## Distributed query service flags
 
 `--distributed_plugin=tls`
@@ -323,6 +331,18 @@ Disable distributed queries functionality. By default, this is set to `true` (th
 `--distributed_interval=60`
 
 In seconds, the amount of time that osqueryd will wait between periodically checking in with a distributed query server to see if there are any queries to execute.
+
+## Syslog consumption
+
+There is a `syslog` virtual table that uses Events and a **rsyslog** configuration to capture results *from* syslog. Please see the [Syslog Consumption](../deployment/syslog.md) deployment page for more information.
+
+`--syslog_pipe_path=/var/osquery/syslog_pipe`
+
+Path to the named pipe used for forwarding **rsyslog** events.
+
+`--syslog_rate_limit=100`
+
+Maximum number of logs to ingest per run (~100ms between runs). Use this as a fail-safe to prevent osquery from becoming overloaded when syslog is spammed.
 
 ## Shell-only flags
 
