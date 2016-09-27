@@ -85,11 +85,12 @@ void DebugPrintf(const char* fmt, ...) {
  */
 class ServiceArgumentParser {
  public:
-  ServiceArgumentParser(DWORD argc, LPSTR* argv) {
+  ServiceArgumentParser(DWORD argc, const LPSTR* argv) {
     if (argc > 1) {
       for (DWORD i = 0; i < argc; i++) {
         args_.push_back(argv[i]);
       }
+      owns_argv_ptrs_ = false;
     } else {
       int wargc = 0;
       LPWSTR* wargv = ::CommandLineToArgvW(::GetCommandLineW(), &wargc);
@@ -106,7 +107,7 @@ class ServiceArgumentParser {
           }
           args_.push_back(arg);
         }
-
+        owns_argv_ptrs_ = true;
         ::LocalFree(wargv);
       }
     }
@@ -147,15 +148,18 @@ class ServiceArgumentParser {
   }
 
   void cleanArgs() {
-    for (size_t i = 0; i < args_.size(); i++) {
-      if (args_[i] != nullptr) {
-        delete[] args_[i];
-        args_[i] = nullptr;
+    if (owns_argv_ptrs_) {
+      for (size_t i = 0; i < args_.size(); i++) {
+        if (args_[i] != nullptr) {
+          delete[] args_[i];
+          args_[i] = nullptr;
+        }
       }
     }
     args_.clear();
   }
 
+  bool owns_argv_ptrs_{false};
   std::vector<LPSTR> args_;
 };
 
