@@ -26,7 +26,7 @@ namespace osquery {
 
 class TLSTransportsTests : public testing::Test {
  public:
-  bool verify(const Status &status) {
+  bool verify(const Status& status) {
     if (!status.ok()) {
       LOG(ERROR) << "Could not complete TLSRequest (" << status.getCode()
                  << "): " << status.what();
@@ -38,6 +38,12 @@ class TLSTransportsTests : public testing::Test {
       LOG(ERROR) << "Not failing TLS-based transport tests";
       return false;
     }
+
+    if (status.getMessage().find("Address family not supported") !=
+        std::string::npos) {
+      LOG(ERROR) << "Not failing TLS-based transport tests";
+      return false;
+    }
     return true;
   }
 
@@ -46,7 +52,9 @@ class TLSTransportsTests : public testing::Test {
     port_ = TLSServerRunner::port();
   }
 
-  void TearDown() override { TLSServerRunner::stop(); }
+  void TearDown() override {
+    TLSServerRunner::stop();
+  }
 
  protected:
   std::string port_;
