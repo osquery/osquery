@@ -319,6 +319,7 @@ Status Config::load() {
   PluginResponse response;
   auto status = Registry::call("config", {{"action", "genConfig"}}, response);
   if (!status.ok()) {
+    loaded_ = true;
     return status;
   }
 
@@ -536,8 +537,6 @@ Status Config::update(const std::map<std::string, std::string>& config) {
       Registry::registry("event_publisher")->configure();
     }
   }
-
-  loaded_ = true;
 
   return Status(0, "OK");
 }
