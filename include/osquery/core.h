@@ -147,6 +147,19 @@ extern const std::string kVersion;
 /// The SDK version removes any git revision hash (1.6.1-g0000 becomes 1.6.1).
 extern const std::string kSDKVersion;
 
+/**
+ * @breif Compare osquery SDK/extenion/core version strings.
+ *
+ * SDK versions are in major.minor.patch-commit-hash form. We provide a helper
+ * method for performing version comparisons to allow gating and compatibility
+ * checks throughout the code.
+ *
+ * @param v version to check
+ * @param sdk (optional) the SDK version to check against.
+ * return true if the input version is at least the SDK version.
+ */
+bool versionAtLeast(const std::string& v, const std::string& sdk = kSDKVersion);
+
 /// Identifies the build platform of either the core extension.
 extern const std::string kSDKPlatform;
 

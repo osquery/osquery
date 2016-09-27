@@ -23,6 +23,10 @@ using namespace osquery::extensions;
 namespace osquery {
 namespace extensions {
 
+const std::vector<std::string> kSDKVersionChanges = {
+    {"1.7.7"},
+};
+
 void ExtensionHandler::ping(ExtensionStatus& _return) {
   _return.code = ExtensionCode::EXT_SUCCESS;
   _return.message = "pong";
@@ -109,15 +113,26 @@ void ExtensionManagerHandler::registerExtension(
     return;
   }
 
+  // Enforce API change requirements.
+  for (const auto& change : kSDKVersionChanges) {
+    if (!versionAtLeast(change, info.sdk_version)) {
+      LOG(WARNING) << "Could not add extension " << info.name
+                   << ": incompatible extension SDK " << info.sdk_version;
+      _return.code = ExtensionCode::EXT_FAILED;
+      _return.message = "Incompatible extension SDK version";
+      return;
+    }
+  }
+
   // Every call to registerExtension is assigned a new RouteUUID.
-  RouteUUID uuid = rand();
+  RouteUUID uuid = (uint16_t)rand();
   LOG(INFO) << "Registering extension (" << info.name << ", " << uuid
             << ", version=" << info.version << ", sdk=" << info.sdk_version
             << ")";
 
   if (!Registry::addBroadcast(uuid, registry).ok()) {
-    LOG(WARNING) << "Could not add extension (" << info.name << ", " << uuid
-                 << ") broadcast to registry";
+    LOG(WARNING) << "Could not add extension " << info.name
+                 << ": invalid extension registry";
     _return.code = ExtensionCode::EXT_FAILED;
     _return.message = "Failed adding registry broadcast";
     return;

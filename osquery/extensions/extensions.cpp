@@ -33,7 +33,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 // Millisecond latency between initalizing manager pings.
-const size_t kExtensionInitializeLatencyUS = 20000;
+const size_t kExtensionInitializeLatency = 20;
 
 #ifdef __APPLE__
 #define MODULE_EXTENSION ".dylib"
@@ -121,6 +121,43 @@ static Status isNamedPipePathValid(const std::string& path) {
   return Status(0, "OK");
 }
 #endif
+
+Status extensionPathActive(const std::string& path, bool use_timeout = false) {
+  // Make sure the extension manager path exists, and is writable.
+  size_t delay = 0;
+  // The timeout is given in seconds, but checked interval is microseconds.
+  size_t timeout = atoi(FLAGS_extensions_timeout.c_str()) * 1000;
+  if (timeout < kExtensionInitializeLatency * 10) {
+    timeout = kExtensionInitializeLatency * 10;
+  }
+  do {
+#ifdef WIN32
+    // This makes sure the pipe exists in some capacity (could be busy at the
+    // moment)
+    if (namedPipeExists(path).ok()) {
+      return Status(0, "OK");
+    }
+#else
+    if (pathExists(path) && isWritable(path)) {
+      try {
+        ExtensionStatus status;
+        auto client = EXManagerClient(path);
+        return Status(0, "OK");
+      } catch (const std::exception& e) {
+        // Path might exist without a connected extension or extension manager.
+      }
+    }
+#endif
+    // Only check active once if this check does not allow a timeout.
+    if (!use_timeout || timeout == 0) {
+      break;
+    }
+    // Increase the total wait detail.
+    delay += kExtensionInitializeLatency;
+    sleepFor(kExtensionInitializeLatency);
+  } while (delay < timeout);
+  return Status(1, "Extension socket not available: " + path);
+}
 
 void ExtensionWatcher::start() {
   // Watch the manager, if the socket is removed then the extension will die.
@@ -214,7 +251,19 @@ void ExtensionManagerWatcher::watch() {
       failures_[uuid] += 1;
     }
 #else
-    if (isWritable(path)) {
+    // The manager first checks writeability of the extension socket.
+    auto writable = isWritable(path);
+    if (!writable && failures_[uuid] == 0) {
+      // If there was never a failure then this is the first attempt.
+      // Allow the extension to be latent and respect the autoload timeout.
+      VLOG(1) << "Extension UUID " << uuid << " initial check failed";
+      writable = extensionPathActive(path, true);
+    }
+
+    // All extensions will have a single failure (and odd use of the counting).
+    // If failures get to 2 then the extension will be removed.
+    failures_[uuid] = 1;
+    if (writable) {
       try {
         auto client = EXClient(path);
         // Ping the extension until it goes down.
@@ -233,16 +282,16 @@ void ExtensionManagerWatcher::watch() {
       LOG(INFO) << "Extension UUID " << uuid << " ping failed";
       failures_[uuid] += 1;
     } else {
-      failures_[uuid] = 0;
+      failures_[uuid] = 1;
     }
 #endif
   }
 
   for (const auto& uuid : failures_) {
-    if (uuid.second > 0) {
+    if (uuid.second > 1) {
       LOG(INFO) << "Extension UUID " << uuid.first << " has gone away";
       Registry::removeBroadcast(uuid.first);
-      failures_[uuid.first] = 0;
+      failures_[uuid.first] = 1;
     }
   }
 }
@@ -366,43 +415,6 @@ Status loadModules(const std::string& loadfile) {
   return Status(1, "Failed reading: " + loadfile);
 }
 
-Status extensionPathActive(const std::string& path, bool use_timeout = false) {
-  // Make sure the extension manager path exists, and is writable.
-  size_t delay = 0;
-  // The timeout is given in seconds, but checked interval is microseconds.
-  size_t timeout = atoi(FLAGS_extensions_timeout.c_str()) * 1000000;
-  if (timeout < kExtensionInitializeLatencyUS * 10) {
-    timeout = kExtensionInitializeLatencyUS * 10;
-  }
-  do {
-#ifdef WIN32
-    // This makes sure the pipe exists in some capacity (could be busy at the
-    // moment)
-    if (namedPipeExists(path).ok()) {
-      return Status(0, "OK");
-    }
-#else
-    if (pathExists(path) && isWritable(path)) {
-      try {
-        ExtensionStatus status;
-        auto client = EXManagerClient(path);
-        return Status(0, "OK");
-      } catch (const std::exception& e) {
-        // Path might exist without a connected extension or extension manager.
-      }
-    }
-#endif
-    // Only check active once if this check does not allow a timeout.
-    if (!use_timeout || timeout == 0) {
-      break;
-    }
-    // Increase the total wait detail.
-    delay += kExtensionInitializeLatencyUS;
-    sleepFor(kExtensionInitializeLatencyUS / 1000);
-  } while (delay < timeout);
-  return Status(1, "Extension socket not available: " + path);
-}
-
 Status startExtension(const std::string& name, const std::string& version) {
   return startExtension(name, version, "0.0.0");
 }
@@ -410,10 +422,12 @@ Status startExtension(const std::string& name, const std::string& version) {
 Status startExtension(const std::string& name,
                       const std::string& version,
                       const std::string& min_sdk_version) {
+  // Tell the registry that this is an extension.
+  // When a broadcast is requested this registry should not send core plugins.
   Registry::setExternal();
+
   // Latency converted to milliseconds, used as a thread interruptible.
   auto latency = atoi(FLAGS_extensions_interval.c_str()) * 1000;
-
   auto status = startExtensionWatcher(FLAGS_extensions_socket, latency, true);
   if (!status.ok()) {
     // If the threaded watcher fails to start, fail the extension.
@@ -666,7 +680,7 @@ Status startExtensionWatcher(const std::string& manager_path,
     return status;
   }
 
-  // Start a extension manager watcher, if the manager dies, so should we.
+  // Start a extension watcher, if the manager dies, so should we.
   Dispatcher::addService(
       std::make_shared<ExtensionWatcher>(manager_path, interval, fatal));
   return Status(0, "OK");
@@ -693,7 +707,7 @@ Status startExtensionManager(const std::string& manager_path) {
 
   // Seconds converted to milliseconds, used as a thread interruptible.
   auto latency = atoi(FLAGS_extensions_interval.c_str()) * 1000;
-  // Start a extension manager watcher, if the manager dies, so should we.
+  // Start a extension manager watcher, to monitor all registered extensions.
   Dispatcher::addService(
       std::make_shared<ExtensionManagerWatcher>(manager_path, latency));
 

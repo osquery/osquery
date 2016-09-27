@@ -263,28 +263,7 @@ bool Pack::checkVersion(const std::string& version) const {
     return true;
   }
 
-  auto required_version = split(version, ".");
-  auto build_version = split(kSDKVersion, ".");
-
-  size_t index = 0;
-  for (const auto& chunk : build_version) {
-    if (required_version.size() <= index) {
-      return true;
-    }
-    try {
-      if (std::stoi(chunk) < std::stoi(required_version[index])) {
-        return false;
-      } else if (std::stoi(chunk) > std::stoi(required_version[index])) {
-        return true;
-      }
-    } catch (const std::invalid_argument& /* e */) {
-      if (chunk.compare(required_version[index]) < 0) {
-        return false;
-      }
-    }
-    index++;
-  }
-  return true;
+  return versionAtLeast(version, kSDKVersion);
 }
 
 bool Pack::checkDiscovery() {
