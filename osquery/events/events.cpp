@@ -582,7 +582,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
     // This is a 'default' cool-off implemented in InterruptableRunnable.
     // If a publisher fails to perform some sort of interruption point, this
     // prevents the thread from thrashing through exiting checks.
-    publisher->pause();
+    publisher->pauseMilli(200);
   }
   if (!status.ok()) {
     // The runloop status is not reflective of the event type's.

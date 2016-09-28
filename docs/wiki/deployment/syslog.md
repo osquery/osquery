@@ -1,6 +1,6 @@
-osquery 1.7.3 introduced support for consuming and querying the Mac OSX system log via Apple System Log (ASL). osquery 1.7.4 introduced support for the Linux syslog via rsyslog. This document explains how to configure and use these syslog tables.
+osquery 1.7.3 introduced support for consuming and querying the Mac OSX system log via Apple System Log (ASL). osquery 1.7.4 introduced support for the Linux syslog via **rsyslog**. This document explains how to configure and use these syslog tables.
 
-## OSX Syslog
+## OS X Syslog
 
 On Mac OSX, the `asl` virtual table makes use of Apple's ASL store, querying this structured store using the routines provided in [`asl.h`](https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man3/asl.3.html).
 
@@ -24,17 +24,19 @@ select time, message from asl where facility = 'authpriv' and sender = 'sudo' an
 
 ## Linux Syslog
 
-On linux, the `syslog` table queries logs forwarded over a named pipe from a properly configured `rsyslogd`. This method was chosen to support the widest range of linux flavors (in theory, anything running at least `ryslogd` version 5, and tested with Ubuntu 12/14, centos 7.1, RHEL 7.2), and to ensure that existing syslog routines and configurations are not modified. As syslog is ingested into osquery, it is written into the backing store (RocksDB) and made available for querying.
+On Linux, the `syslog` table queries logs forwarded over a named pipe from a properly configured **rsyslogd**. This method was chosen to support the widest range of Linux flavors (in theory, anything running at least **rsyslogd** version 5, and tested with Ubuntu 12/14, CentOS 7.1, RHEL 7.2), and to ensure that existing syslog routines and configurations are not modified. As syslog is ingested into osquery, it is written into the backing store (RocksDB) and made available for querying.
+
+Note: the Syslog ingestion is NOT recommended for hosts functioning as syslog aggregators. We have not tested ingestion for massive-throughput or lossless setups.
 
 ### Configuration
 
-The `syslog` table requires additional configuration before it can be used.
+The `syslog` table requires additional configuration before it can be used. Append `--enable_syslog` to your command line arguments or `--flagfile` to enable osquery's `syslog` event publisher thread.
 
-When an osquery process that supports the `syslog` table starts up, it will attempt to create (and properly set permissions for) a named pipe for `rsyslogd` to write to. The path for this pipe is determined by the configuration flag `syslog_pipe_path` (defaults to `/var/osquery/syslog_pipe`). If verbose logging is turned on, you should see a status message indicating whether osquery was able to successfully open the pipe for reading.
+When an osquery process that supports the `syslog` table starts up, it will attempt to create (and properly set permissions for) a named pipe for **rsyslogd** to write to. The path for this pipe is determined by the configuration flag `--syslog_pipe_path` (defaults to `/var/osquery/syslog_pipe`). If verbose logging is turned on, you should see a status message indicating whether osquery was able to successfully open the pipe for reading.
 
-Permissions for the pipe must at least allow `rsyslogd` to read/write, and osquery to read. For security, it is advised that the least possible privileges are enabled to allow this.
+Permissions for the pipe must at least allow **rsyslogd** to read/write, and osquery to read. For security, it is advised that the least possible privileges are enabled to allow this.
 
-Once the named pipe is created, `rsyslogd` must be configured to write logs to the pipe. Add the following to your `rsyslog` configuration files (usually located in `/etc/rsyslog.conf` or `/etc/rsyslog.d/`):
+Once the named pipe is created, **rsyslogd** must be configured to write logs to the pipe. Add the following to your **rsyslog** configuration files (usually located in `/etc/rsyslog.conf` or `/etc/rsyslog.d/`):
 
 #### rsyslog versions < 7
 
@@ -45,7 +47,7 @@ $template OsqueryCsvFormat, "%timestamp:::date-rfc3339,csv%,%hostname:::csv%,%sy
 
 #### rsyslog versions >= 7
 
-Note: the above configuration should also work, but `rsyslog` strongly recommends using the new style configuration syntax.
+Note: the above configuration should also work, but **rsyslog** strongly recommends using the new style configuration syntax.
 
 ```
 template(
@@ -58,13 +60,13 @@ template(
 
 #### All versions
 
-`rsyslogd` must be restarted for the changes to take effect. On many systems, this can be achieved by `sudo service rsyslog restart`.
+**rsyslogd** must be restarted for the changes to take effect. On many systems, this can be achieved by `sudo service rsyslog restart`.
 
-Note: `rsyslogd` will only check once, at startup, whether it can write to the pipe. If `rsyslogd` cannot write to the pipe, it will not retry until restart.
+Note: **rsyslogd** will only check once, at startup, whether it can write to the pipe. If **rsyslogd** cannot write to the pipe, it will not retry until restart.
 
 #### Other configuration
 
-Configuration flags control the retention of syslog logs. `syslog_events_expiry` (default 30 days) defines how long (in seconds) to keep logs. `syslog_events_max` (default 100,000) sets a maximum number of logs to retain (oldest logs are deleted first if this number is surpassed).
+Configuration flags control the retention of syslog logs. `--syslog_events_expiry` (default 30 days) defines how long (in seconds) to keep logs. `--syslog_events_max` (default 100,000) sets a maximum number of logs to retain (oldest logs are deleted first if this number is surpassed).
 
 ### Usage
 
