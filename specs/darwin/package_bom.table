@@ -5,7 +5,7 @@ schema([
     Column("uid", INTEGER, "Expected user of file or directory"),
     Column("gid", INTEGER, "Expected group of file or directory"),
     Column("mode", INTEGER, "Expected permissions"),
-    Column("size", INTEGER, "Expected file size"),
+    Column("size", BIGINT, "Expected file size"),
     Column("modified_time", INTEGER, "Timestamp the file was installed"),
     Column("path", TEXT, "Path of package bom", required=True),
 ])

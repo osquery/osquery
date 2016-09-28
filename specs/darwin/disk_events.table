@@ -6,7 +6,7 @@ schema([
     Column("name", TEXT, "Disk event name"),
     Column("bsd_name", TEXT, "Disk event BSD name"),
     Column("uuid", TEXT, "UUID of the volume inside DMG if available"),
-    Column("size", INTEGER, "Size of partition in bytes"),
+    Column("size", BIGINT, "Size of partition in bytes"),
     Column("ejectable", INTEGER, "1 if ejectable, 0 if not"),
     Column("mountable", INTEGER, "1 if mountable, 0 if not"),
     Column("writable", INTEGER, "1 if writable, 0 if not"),

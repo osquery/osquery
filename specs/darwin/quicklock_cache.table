@@ -7,7 +7,7 @@ schema([
     Column("volume_id", INTEGER, "Parsed volume ID from fs_id"),
     Column("inode", INTEGER, "Parsed file ID (inode) from fs_id"),
     Column("mtime", INTEGER, "Parsed version date field"),
-    Column("size", INTEGER, "Parsed version size field"),
+    Column("size", BIGINT, "Parsed version size field"),
     Column("label", TEXT, "Parsed version 'gen' field"),
     Column("last_hit_date", INTEGER,
       "Apple date format for last thumbnail cache hit"),
