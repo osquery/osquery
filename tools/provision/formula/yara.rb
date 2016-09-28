@@ -2,8 +2,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 
 class Yara < AbstractOsqueryFormula
   desc "Malware identification and classification tool"
-  homepage "https://github.com/plusvic/yara/"
-  head "https://github.com/plusvic/yara.git"
+  homepage "https://github.com/VirusTotal/yara/"
+  head "https://github.com/VirusTotal/yara.git"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -13,13 +13,12 @@ class Yara < AbstractOsqueryFormula
   end
 
   stable do
-    url "https://github.com/plusvic/yara/archive/v3.4.0.tar.gz"
-    sha256 "528571ff721364229f34f6d1ff0eedc3cd5a2a75bb94727dc6578c6efe3d618b"
+    url "https://github.com/VirusTotal/yara/archive/v3.5.0.tar.gz"
+    sha256 "4bc72ee755db85747f7e856afb0e817b788a280ab5e73dee42f159171a9b5299"
 
-    # fixes a variable redefinition error with clang (fixed in HEAD)
     patch do
-      url "https://github.com/VirusTotal/yara/pull/261.diff"
-      sha256 "6b5c135b577a71ca1c1a5f0a15e512f5157b13dfbd08710f9679fb4cd0b47dba"
+      url "https://github.com/VirusTotal/yara/pull/529.diff"
+      sha256 "7d865ebbb1f31a5b5e0337001842d5aab42b2b9683b307c187425fb76dc9524f"
     end
   end
 
@@ -39,8 +38,6 @@ class Yara < AbstractOsqueryFormula
     # find Homebrew's libpcre
     ENV.append "LDFLAGS", "-L#{Formula["pcre"].opt_lib} -lpcre"
 
-    ENV.append "CFLAGS", "-Dstrlcat=yara_strlcat"
-    ENV.append "CFLAGS", "-Dstrlcpy=yara_strlcpy"
     system "./bootstrap.sh"
     system "./configure", "--disable-silent-rules",
                           "--disable-dependency-tracking",
