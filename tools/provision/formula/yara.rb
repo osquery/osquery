@@ -8,8 +8,9 @@ class Yara < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "b4a5d705c44300b204deecc8948547edd9338085c5f243423ff3bbd5e429c75a" => :el_capitan
-    sha256 "24715c9087cb6d700ef2ff87127a6d4eb09bfecbf87d4b94f7f050b16c441f9b" => :x86_64_linux
+    sha256 "b3a6f830beffcd68f610fa45d8c9eedb7006e9304fffd5fee52dc0cda79daa9f" => :x86_64_linux
+  end
+
   end
 
   stable do
