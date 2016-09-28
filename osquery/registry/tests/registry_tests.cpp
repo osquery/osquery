@@ -242,7 +242,7 @@ TEST_F(RegistryTests, test_registry_modules) {
   RegistryFactory::locked(false);
 
   // Test initializing a module load and the module's registry modifications.
-  EXPECT_EQ(RegistryFactory::getModule(), 0);
+  EXPECT_EQ(0U, RegistryFactory::getModule());
   RegistryFactory::initModule("/my/test/module");
   // The registry is locked, no modifications during module global ctors.
   EXPECT_TRUE(RegistryFactory::locked());
@@ -271,6 +271,6 @@ TEST_F(RegistryTests, test_registry_modules) {
   EXPECT_TRUE(RegistryFactory::locked());
   // And the registry is no longer using a module.
   EXPECT_FALSE(RegistryFactory::usingModule());
-  EXPECT_EQ(RegistryFactory::getModule(), 0);
+  EXPECT_EQ(0U, RegistryFactory::getModule());
 }
 }
