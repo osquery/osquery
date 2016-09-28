@@ -26,8 +26,6 @@ if [[ $PACKAGE_VERSION == *"-"* ]]; then
   DESCRIPTION="$DESCRIPTION (unstable/latest version)"
 fi
 
-OUTPUT_PKG_PATH="$BUILD_DIR/${PACKAGE_NAME}-${PACKAGE_VERSION}."
-
 # Config files
 INITD_SRC="$SCRIPT_DIR/osqueryd.initd"
 INITD_DST="/etc/init.d/osqueryd"
@@ -94,8 +92,15 @@ function check_parsed_args() {
   if [[ $PACKAGE_TYPE = "" ]] || [[ $PACKAGE_ITERATION = "" ]]; then
     usage
   fi
+}
 
-  OUTPUT_PKG_PATH=$OUTPUT_PKG_PATH$PACKAGE_TYPE
+function get_pkg_suffix() {
+  if [[ $PACKAGE_TYPE == "deb" ]]; then
+    # stay compliant with Debian package naming convention
+    echo "_${PACKAGE_VERSION}_$(dpkg --print-architecture).${PACKAGE_TYPE}"
+  else
+    echo "-${PACKAGE_VERSION}-${PACKAGE_ITERATION}.${PACKAGE_ARCH}.${PACKAGE_TYPE}"
+  fi
 }
 
 function main() {
@@ -104,6 +109,8 @@ function main() {
 
   platform OS
   distro $OS DISTRO
+
+  OUTPUT_PKG_PATH="$BUILD_DIR/$PACKAGE_NAME$(get_pkg_suffix)"
 
   rm -rf $WORKING_DIR
   rm -f $OUTPUT_PKG_PATH
@@ -172,12 +179,6 @@ function main() {
   FPM="fpm"
   if [[ $DISTRO == "lucid" ]]; then
     FPM="/var/lib/gems/1.8/bin/fpm"
-  fi
-
-# some tune to stay compliant with Debian package naming convention
-  if [[ $PACKAGE_TYPE == "deb" ]]; then
-    DEB_PACKAGE_ARCH=`dpkg --print-architecture`
-    OUTPUT_PKG_PATH="$BUILD_DIR/${PACKAGE_NAME}_${PACKAGE_VERSION}_${DEB_PACKAGE_ARCH}.deb"
   fi
 
   POSTINST_CMD=""
@@ -255,7 +256,7 @@ function main() {
   fi
 
   PACKAGE_DEBUG_DEPENDENCIES=`echo "$PACKAGE_DEBUG_DEPENDENCIES"|tr '-' '_'`
-  OUTPUT_DEBUG_PKG_PATH="$BUILD_DIR/$PACKAGE_DEBUG_NAME-$PACKAGE_VERSION.$PACKAGE_TYPE"
+  OUTPUT_DEBUG_PKG_PATH="$BUILD_DIR/$PACKAGE_DEBUG_NAME$(get_pkg_suffix)"
   if [[ $BUILD_DEBUG_PKG ]]; then
     rm -f $OUTPUT_DEBUG_PKG_PATH
     CMD="$FPM -s dir -t $PACKAGE_TYPE \
