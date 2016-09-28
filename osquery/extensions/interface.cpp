@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+
 #include <string>
 
 #include <thrift/TOutput.h>
@@ -126,9 +127,9 @@ void ExtensionManagerHandler::registerExtension(
 
   // Every call to registerExtension is assigned a new RouteUUID.
   RouteUUID uuid = (uint16_t)rand();
-  LOG(INFO) << "Registering extension (" << info.name << ", " << uuid
-            << ", version=" << info.version << ", sdk=" << info.sdk_version
-            << ")";
+  VLOG(1) << "Registering extension (" << info.name << ", " << uuid
+          << ", version=" << info.version << ", sdk=" << info.sdk_version
+          << ")";
 
   if (!Registry::addBroadcast(uuid, registry).ok()) {
     LOG(WARNING) << "Could not add extension " << info.name

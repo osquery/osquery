@@ -232,16 +232,18 @@ void EventSubscriberPlugin::expireCheck(bool cleanup) {
   size_t min_key = 0;
 
   {
+    auto limit = getEventsMax();
     std::vector<std::string> keys;
     scanDatabaseKeys(kEvents, keys, data_key);
-    if (keys.size() <= getEventsMax()) {
+    if (keys.size() <= limit) {
       return;
     }
 
     // There is an overflow of events buffered for this subscriber.
     LOG(WARNING) << "Expiring events for subscriber: " << getName()
-                 << " limit (" << getEventsMax()
-                 << ") exceeded: " << keys.size();
+                 << " (limit " << limit << ")";
+    VLOG(1) << "Subscriber events " << getName() << " exceeded limit " << limit
+            << " by: " << keys.size() - limit;
     // Inspect the N-FLAGS_events_max -th event's value and expire before the
     // time within the content.
     std::string last_key;

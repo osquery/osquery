@@ -44,11 +44,11 @@ namespace tables {
 // SZOMB  (5) Awaiting collection by parent
 const char kProcessStateMapping[] = {' ', 'I', 'R', 'S', 'T', 'Z'};
 
-std::set<int> getProcList(const QueryContext &context) {
+std::set<int> getProcList(const QueryContext& context) {
   std::set<int> pidlist;
   if (context.constraints.count("pid") > 0 &&
       context.constraints.at("pid").exists(EQUALS)) {
-    for (const auto &pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
+    for (const auto& pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
       if (pid > 0) {
         pidlist.insert(pid);
       }
@@ -109,7 +109,7 @@ struct proc_cred {
   } real, effective, saved;
 };
 
-inline bool getProcCred(int pid, proc_cred &cred) {
+inline bool getProcCred(int pid, proc_cred& cred) {
   struct proc_bsdinfo bsdinfo;
   struct proc_bsdshortinfo bsdinfo_short;
 
@@ -161,7 +161,7 @@ static int genMaxArgs() {
   return argmax;
 }
 
-void genProcRootAndCWD(int pid, Row &r) {
+void genProcRootAndCWD(int pid, Row& r) {
   r["cwd"] = "";
   r["root"] = "";
 
@@ -191,7 +191,7 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
   int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
   if (sysctl(mib, 3, &procargs, &argmax, nullptr, 0) == -1 || argmax == 0) {
     if (euid == 0) {
-      TLOG << "An error occurred retrieving the env for pid: " << pid;
+      VLOG(1) << "An error occurred retrieving the env for pid: " << pid;
     }
     return args;
   }
@@ -201,7 +201,7 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
   memcpy(&nargs, procargs, sizeof(nargs));
   // Walk the \0-tokenized list of arguments until reaching the returned 'max'
   // number of arguments or the number appended to the front.
-  const char *current_arg = &procargs[0] + sizeof(nargs);
+  const char* current_arg = &procargs[0] + sizeof(nargs);
   // Then skip the exec/program name.
   auto exec_name = std::string(current_arg);
   current_arg += exec_name.size() + 1;
@@ -231,7 +231,7 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
   return args;
 }
 
-QueryData genProcesses(QueryContext &context) {
+QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
   // Initialize time conversions.
@@ -243,7 +243,7 @@ QueryData genProcesses(QueryContext &context) {
   auto pidlist = getProcList(context);
   int argmax = genMaxArgs();
 
-  for (auto &pid : pidlist) {
+  for (auto& pid : pidlist) {
     Row r;
     r["pid"] = INTEGER(pid);
     r["path"] = getProcPath(pid);
@@ -288,8 +288,8 @@ QueryData genProcesses(QueryContext &context) {
 
     // systems usage and time information
     struct rusage_info_v2 rusage_info_data;
-    int status = proc_pid_rusage(
-        pid, RUSAGE_INFO_V2, (rusage_info_t *)&rusage_info_data);
+    int status =
+        proc_pid_rusage(pid, RUSAGE_INFO_V2, (rusage_info_t*)&rusage_info_data);
     // proc_pid_rusage returns -1 if it was unable to gather information
     if (status == 0) {
       // size/memory information
@@ -329,14 +329,14 @@ QueryData genProcesses(QueryContext &context) {
   return results;
 }
 
-QueryData genProcessEnvs(QueryContext &context) {
+QueryData genProcessEnvs(QueryContext& context) {
   QueryData results;
 
   auto pidlist = getProcList(context);
   int argmax = genMaxArgs();
-  for (const auto &pid : pidlist) {
+  for (const auto& pid : pidlist) {
     auto args = getProcRawArgs(pid, argmax);
-    for (const auto &env : args.env) {
+    for (const auto& env : args.env) {
       Row r;
       r["pid"] = INTEGER(pid);
       r["key"] = env.first;
@@ -349,11 +349,11 @@ QueryData genProcessEnvs(QueryContext &context) {
 }
 
 void genMemoryRegion(int pid,
-                     const vm_address_t &address,
-                     const vm_size_t &size,
-                     struct vm_region_submap_info_64 &info,
-                     const std::map<vm_address_t, std::string> &libraries,
-                     QueryData &results) {
+                     const vm_address_t& address,
+                     const vm_size_t& size,
+                     struct vm_region_submap_info_64& info,
+                     const std::map<vm_address_t, std::string>& libraries,
+                     QueryData& results) {
   Row r;
   r["pid"] = INTEGER(pid);
 
@@ -426,7 +426,7 @@ void genMemoryRegion(int pid,
 
   // Submaps or offsets into regions may contain libraries mapped from the
   // dyld cache.
-  for (const auto &library : libraries) {
+  for (const auto& library : libraries) {
     if (library.first > address && library.first < (address + size)) {
       r["offset"] = INTEGER(info.offset + (library.first - address));
       r["path"] = library.second;
@@ -436,9 +436,9 @@ void genMemoryRegion(int pid,
   }
 }
 
-static bool readProcessMemory(const mach_port_t &task,
-                              const vm_address_t &from,
-                              const vm_size_t &size,
+static bool readProcessMemory(const mach_port_t& task,
+                              const vm_address_t& from,
+                              const vm_size_t& size,
                               vm_address_t to) {
   vm_size_t bytes;
   auto status = vm_read_overwrite(task, from, size, to, &bytes);
@@ -452,8 +452,8 @@ static bool readProcessMemory(const mach_port_t &task,
   return true;
 }
 
-void genProcessLibraries(const mach_port_t &task,
-                         std::map<vm_address_t, std::string> &libraries) {
+void genProcessLibraries(const mach_port_t& task,
+                         std::map<vm_address_t, std::string>& libraries) {
   struct task_dyld_info dyld_info;
   mach_msg_type_number_t count = TASK_DYLD_INFO_COUNT;
   auto status =
@@ -464,7 +464,7 @@ void genProcessLibraries(const mach_port_t &task,
   }
 
   // The info struct is a pointer to another process's virtual space.
-  auto all_info = (struct dyld_all_image_infos *)dyld_info.all_image_info_addr;
+  auto all_info = (struct dyld_all_image_infos*)dyld_info.all_image_info_addr;
   uint64_t image_offset = (uint64_t)all_info;
   if (dyld_info.all_image_info_format != TASK_DYLD_ALL_IMAGE_INFO_64) {
     // Only support 64bit process images.
@@ -517,7 +517,7 @@ void genProcessLibraries(const mach_port_t &task,
   }
 }
 
-void genProcessMemoryMap(int pid, QueryData &results) {
+void genProcessMemoryMap(int pid, QueryData& results) {
   mach_port_t task = MACH_PORT_NULL;
   kern_return_t status = task_for_pid(mach_task_self(), pid, &task);
   if (status != KERN_SUCCESS) {
@@ -563,11 +563,11 @@ void genProcessMemoryMap(int pid, QueryData &results) {
   }
 }
 
-QueryData genProcessMemoryMap(QueryContext &context) {
+QueryData genProcessMemoryMap(QueryContext& context) {
   QueryData results;
 
   auto pidlist = getProcList(context);
-  for (const auto &pid : pidlist) {
+  for (const auto& pid : pidlist) {
     genProcessMemoryMap(pid, results);
   }
 
