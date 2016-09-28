@@ -15,8 +15,8 @@
 #include <osquery/core.h>
 #include <osquery/sql.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/sql/sqlite_util.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
@@ -121,8 +121,10 @@ TEST_F(SQLiteUtilTests, test_affected_tables) {
 
 TEST_F(SQLiteUtilTests, test_table_attributes_event_based) {
   auto sql_internal = SQLInternal("select * from process_events");
-  EXPECT_TRUE(sql_internal.ok());
-  EXPECT_TRUE(sql_internal.eventBased());
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    EXPECT_TRUE(sql_internal.ok());
+    EXPECT_TRUE(sql_internal.eventBased());
+  }
 
   sql_internal = SQLInternal("select * from time");
   EXPECT_TRUE(sql_internal.ok());

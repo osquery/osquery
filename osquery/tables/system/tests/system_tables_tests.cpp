@@ -10,19 +10,23 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/core.h>
 #include <osquery/logger.h>
-#include <osquery/tables.h>
 #include <osquery/sql.h>
+#include <osquery/tables.h>
 
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
 namespace tables {
 
+#ifndef WIN32
 QueryData genOSVersion(QueryContext& context);
+#endif
 
 class SystemsTablesTests : public testing::Test {};
 
+#ifndef WIN32
 TEST_F(SystemsTablesTests, test_os_version) {
   QueryContext context;
   auto result = genOSVersion(context);
@@ -39,6 +43,7 @@ TEST_F(SystemsTablesTests, test_os_version) {
   // The OS name should be filled in too.
   EXPECT_FALSE(result[0]["name"].empty());
 }
+#endif
 
 TEST_F(SystemsTablesTests, test_process_info) {
   auto results = SQL("select * from osquery_info join processes using (pid)");
@@ -46,7 +51,10 @@ TEST_F(SystemsTablesTests, test_process_info) {
 
   // Make sure there is a valid UID and parent.
   EXPECT_EQ(results.rows()[0].count("uid"), 1U);
-  EXPECT_NE(results.rows()[0].at("uid"), "-1");
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    EXPECT_NE(results.rows()[0].at("uid"), "-1");
+  }
+
   EXPECT_NE(results.rows()[0].at("parent"), "-1");
 }
 
@@ -86,7 +94,8 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
 
   // Check LIKE and = operands.
   results =
-      SQL("select path from file where path = '/etc/' or path LIKE '/dev/%'");
+      SQL("select path from file where path = '/etc/' or path LIKE '/dev/%' or "
+          "path LIKE '\\Windows\\%';");
   ASSERT_GT(results.rows().size(), 1U);
 }
 }

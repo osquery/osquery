@@ -18,7 +18,9 @@ namespace osquery {
 namespace tables {
 
 osquery::QueryData parseEtcHostsContent(const std::string& content);
+#ifndef WIN32
 osquery::QueryData parseEtcProtocolsContent(const std::string& content);
+#endif
 
 class NetworkingTablesTests : public testing::Test {};
 
@@ -27,9 +29,11 @@ TEST_F(NetworkingTablesTests, test_parse_etc_hosts_content) {
             getEtcHostsExpectedResults());
 }
 
+#ifndef WIN32
 TEST_F(NetworkingTablesTests, test_parse_etc_protocols_content) {
   EXPECT_EQ(parseEtcProtocolsContent(getEtcProtocolsContent()),
             getEtcProtocolsExpectedResults());
 }
+#endif
 }
 }
