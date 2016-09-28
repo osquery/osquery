@@ -18,8 +18,8 @@ DARWIN_KERNEL_VERSION="10.11"
 
 function platform() {
   local  __out=$1
-  FAMILY="`python $LIB_SCRIPT_DIR/get_platform.py --family`"
-  eval $__out=`python $LIB_SCRIPT_DIR/get_platform.py --platform`
+  FAMILY=$(python "$LIB_SCRIPT_DIR/get_platform.py" --family)
+  eval $__out=$(python "$LIB_SCRIPT_DIR/get_platform.py" --platform)
 }
 
 function _platform() {
@@ -29,7 +29,7 @@ function _platform() {
 
 function distro() {
   local __out=$2
-  eval $__out=`python $LIB_SCRIPT_DIR/get_platform.py --distro`
+  eval $__out=$(python "$LIB_SCRIPT_DIR/get_platform.py" --distro)
 }
 
 function _distro() {
