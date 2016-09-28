@@ -336,13 +336,17 @@ In seconds, the amount of time that osqueryd will wait between periodically chec
 
 There is a `syslog` virtual table that uses Events and a **rsyslog** configuration to capture results *from* syslog. Please see the [Syslog Consumption](../deployment/syslog.md) deployment page for more information.
 
+`--enable_syslog=false`
+
+Turn on the syslog ingestion event publisher. This is an 'explicit'-enable because it requires external configuration of **rsyslog**.
+
 `--syslog_pipe_path=/var/osquery/syslog_pipe`
 
 Path to the named pipe used for forwarding **rsyslog** events.
 
 `--syslog_rate_limit=100`
 
-Maximum number of logs to ingest per run (~100ms between runs). Use this as a fail-safe to prevent osquery from becoming overloaded when syslog is spammed.
+Maximum number of logs to ingest per run (~200ms between runs). Use this as a fail-safe to prevent osquery from becoming overloaded when syslog is spammed.
 
 ## Shell-only flags
 

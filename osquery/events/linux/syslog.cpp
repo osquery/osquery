@@ -35,6 +35,8 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+FLAG(bool, enable_syslog, false, "Enable the syslog ingestion event publisher");
+
 FLAG(string,
      syslog_pipe_path,
      "/var/osquery/syslog_pipe",
@@ -43,7 +45,7 @@ FLAG(string,
 FLAG(uint64,
      syslog_rate_limit,
      100,
-     "Maximum number of logs to ingest per run (~100ms between runs)");
+     "Maximum number of logs to ingest per run (~200ms between runs)");
 
 REGISTER(SyslogEventPublisher, "event_publisher", "syslog");
 
@@ -56,6 +58,10 @@ const std::vector<std::string> kCsvFields = {
 const size_t kErrorThreshold = 10;
 
 Status SyslogEventPublisher::setUp() {
+  if (!FLAGS_enable_syslog) {
+    return Status(1, "Publisher disabled via configuration");
+  }
+
   Status s;
   if (!pathExists(FLAGS_syslog_pipe_path)) {
     VLOG(1) << "Pipe does not exist: creating pipe " << FLAGS_syslog_pipe_path;
