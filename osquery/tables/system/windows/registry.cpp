@@ -25,6 +25,7 @@
 #include <osquery/core.h>
 #include <osquery/tables.h>
 
+#include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 
 #define fs boost::filesystem
@@ -56,16 +57,6 @@ const std::map<DWORD, std::string> kRegistryTypes = {
     {REG_SZ, "REG_SZ"},
     {REG_FULL_RESOURCE_DESCRIPTOR, "REG_FULL_RESOURCE_DESCRIPTOR"},
     {REG_RESOURCE_LIST, "REG_RESOURCE_LIST"},
-};
-
-/// Takes a Windows FILETIME object and returns seconds since epoch
-static LONGLONG filetimeToUnixtime(FILETIME ft) {
-  LARGE_INTEGER date, adjust;
-  date.HighPart = ft.dwHighDateTime;
-  date.LowPart = ft.dwLowDateTime;
-  adjust.QuadPart = 11644473600000 * 10000;
-  date.QuadPart -= adjust.QuadPart;
-  return date.QuadPart / 10000000;
 };
 
 /// Microsoft helper function for getting the contents of a registry key
@@ -139,7 +130,7 @@ void queryKey(const std::string& hive,
       r["name"] = "(Default)";
       r["type"] = "REG_SZ";
       r["data"] = "(value not set)";
-      r["mtime"] = std::to_string(filetimeToUnixtime(ftLastWriteTime));
+      r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
       results.push_back(r);
     }
   }
@@ -192,7 +183,7 @@ void queryKey(const std::string& hive,
     } else {
       r["type"] = "UNKNOWN";
     }
-    r["mtime"] = std::to_string(filetimeToUnixtime(ftLastWriteTime));
+    r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
 
     bpDataBuff[cbMaxValueData - 1] = 0x00;
 
