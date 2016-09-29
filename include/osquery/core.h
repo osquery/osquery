@@ -148,7 +148,7 @@ extern const std::string kVersion;
 extern const std::string kSDKVersion;
 
 /**
- * @breif Compare osquery SDK/extenion/core version strings.
+ * @brief Compare osquery SDK/extenion/core version strings.
  *
  * SDK versions are in major.minor.patch-commit-hash form. We provide a helper
  * method for performing version comparisons to allow gating and compatibility
