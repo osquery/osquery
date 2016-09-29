@@ -10,6 +10,9 @@
 
 #pragma once
 
+#include <osquery/core.h>
+#include <osquery/tables.h>
+
 namespace osquery {
 namespace tables {
 /// Microsoft helper function for getting the contents of a registry key

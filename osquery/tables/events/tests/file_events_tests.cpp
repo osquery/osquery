@@ -53,6 +53,7 @@ class FileEventsTableTests : public testing::Test {
   bool exceptions_{false};
 };
 
+#ifndef WIN32
 TEST_F(FileEventsTableTests, test_subscriber_exists) {
   ASSERT_TRUE(Registry::exists("event_subscriber", "file_events"));
 
@@ -62,6 +63,7 @@ TEST_F(FileEventsTableTests, test_subscriber_exists) {
       reinterpret_cast<std::shared_ptr<FileEventSubscriber>*>(&plugin);
   EXPECT_NE(subscriber, nullptr);
 }
+#endif
 
 TEST_F(FileEventsTableTests, test_table_empty) {
   // Attach/create the publishers.
@@ -81,6 +83,7 @@ class FileEventsTestsConfigPlugin : public ConfigPlugin {
   }
 };
 
+#ifndef WIN32
 TEST_F(FileEventsTableTests, test_configure_subscriptions) {
   // Attach/create the publishers.
   attachEvents();
@@ -106,4 +109,5 @@ TEST_F(FileEventsTableTests, test_configure_subscriptions) {
   auto& row2 = results.rows()[0];
   EXPECT_EQ(row2.at("subscriptions"), "0");
 }
+#endif
 }
