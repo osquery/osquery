@@ -1552,6 +1552,7 @@ int launchIntoShell(int argc, char** argv) {
     memset(cmd, 0, query.size() + 1);
     std::copy(query.begin(), query.end(), cmd);
     rc = do_meta_command(cmd, &data);
+    delete[] cmd;
   } else if (FLAGS_pack.size() > 0) {
     // Check every pack for a name matching the requested --pack flag.
     Config::getInstance().packs([&runQuery, &rc](std::shared_ptr<Pack>& pack) {
