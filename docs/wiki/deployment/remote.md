@@ -180,6 +180,8 @@ Heroku maintains a great project called [Windmill](https://github.com/heroku/win
 
 [Doorman](https://github.com/mwielgoszewski/doorman) is another project that implements the TLS remote settings API. Doorman uses "tags", which can be applied to nodes, packs, and queries, in order to dynamically generate configurations for a unique set or all nodes being managed. Doorman also supports the distributed read and write API, allowing an administrator to schedule ad-hoc queries to be run immediately or in the future.
 
+[Zentral](https://github.com/zentralopensource/zentral) is a Framework and Django based WebServer which implements the TLS remote settings API. Zentral will dynamically generate configurations in "probes", these can contain packs and single queries. Probes process events with input filters (added, removed, "tags", etc.), optionally trigger output actions, and notifications for results returne. Scope for "probes" is available for all devices, business units, and "tagged" device groups, sharding for "probes" is available for scopes. Zentral also supports the distributed read and write API to schedule ad-hoc queries.
+
 **Remote settings testing**
 
 The most basic example of a server implementing the remote settings API is the [./tools/tests/test_http_server.py](https://github.com/facebook/osquery/blob/master/tools/tests/test_http_server.py) example script. Let's start this server and have **osqueryd** exercise the API:
