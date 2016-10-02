@@ -66,6 +66,7 @@ else()
     # ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_ubuntu
     #   ${OSQUERY_UBUNTU_TABLES}
     # )
+
   endif()
 
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.so")

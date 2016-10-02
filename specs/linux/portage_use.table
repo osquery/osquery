@@ -1,0 +1,11 @@
+table_name("portage_use")
+description("List of enabled portage USE values for specific package.")
+schema([
+    Column("package", TEXT, "Package name"),
+    Column("version", TEXT, "The version of the installed package"),
+    Column("use", TEXT, "USE flag which has been enabled for package"),
+])
+implementation("system/portage_use@genPortageUse")
+fuzz_paths([
+    "/var/db/pkg/",
+])
