@@ -17,6 +17,10 @@
 #include <time.h>
 
 #ifdef WIN32
+#define _WIN32_DCOM
+#define WIN32_LEAN_AND_MEAN
+#include <WbemIdl.h>
+#include <Windows.h>
 #include <signal.h>
 #else
 #include <unistd.h>
@@ -237,6 +241,25 @@ static inline void printUsage(const std::string& binary, ToolType tool) {
   fprintf(stdout, EPILOG);
 }
 
+void Initializer::platformSetup() {
+// Initialize the COM libraries utilized by Windows WMI calls.
+#ifdef WIN32
+  auto ret = ::CoInitializeEx(0, COINIT_MULTITHREADED);
+  if (ret != S_OK) {
+    ::CoUninitialize();
+  }
+#else
+#endif
+}
+
+void Initializer::platformTeardown() {
+// Before we shutdown, we must insure to free the COM libs in windows
+#ifdef WIN32
+  ::CoUninitialize();
+#else
+#endif
+}
+
 Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     : argc_(&argc),
       argv_(&argv),
@@ -344,6 +367,9 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   } else {
     VLOG(1) << "osquery extension initialized [sdk=" << kSDKVersion << "]";
   }
+
+  // Initialize the COM libs
+  platformSetup();
 }
 
 void Initializer::initDaemon() const {
@@ -641,6 +667,7 @@ void Initializer::requestShutdown(int retcode, const std::string& system_log) {
 }
 
 void Initializer::shutdown(int retcode) {
+  platformTeardown();
   ::exit(retcode);
 }
 }

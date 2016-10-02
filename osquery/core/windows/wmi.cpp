@@ -198,7 +198,6 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
 
   HRESULT hr = E_FAIL;
 
-  hr = ::CoInitializeEx(0, COINIT_MULTITHREADED);
   hr = ::CoInitializeSecurity(nullptr,
                               -1,
                               nullptr,
@@ -274,7 +273,5 @@ WmiRequest::~WmiRequest() {
     locator_->Release();
     locator_ = nullptr;
   }
-
-  ::CoUninitialize();
 }
 }

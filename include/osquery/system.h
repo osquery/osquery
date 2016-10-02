@@ -119,6 +119,20 @@ class Initializer : private boost::noncopyable {
    */
   static void waitForShutdown();
 
+  /**
+   * @brief Initialize any platform dependent libraries or objects
+   *
+   * On windows, we require the COM libraries be initialized just once
+   */
+  static void platformSetup();
+
+  /**
+  * @brief Before ending, tear down any platform specific setup
+  *
+  * On windows, we require the COM libraries be initialized just once
+  */
+  static void platformTeardown();
+
  public:
   /**
    * @brief Check if a process is an osquery worker.
