@@ -24,6 +24,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
+#include <osquery/system.h>
 
 #include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
@@ -101,10 +102,14 @@ void initTesting() {
   // Set up the database instance for the unittests.
   DatabasePlugin::setAllowOpen(true);
   DatabasePlugin::initPlugin();
+
+  Initializer::platformSetup();
 }
 
 void shutdownTesting() {
   DatabasePlugin::shutdown();
+
+  Initializer::platformTeardown();
 }
 
 std::map<std::string, std::string> getTestConfigMap() {
