@@ -51,7 +51,7 @@ QueryData getMemoryInfo(QueryContext& context) {
         if (line.find(singleMap.second) == 0) {
           long value = 0;
           if (safeStrtol(tokens[1], 10, value)) {
-            r[singleMap.first] = INTEGER(value * 1024l);
+            r[singleMap.first] = BIGINT(value * 1024l);
           }
           break;
         }
