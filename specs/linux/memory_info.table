@@ -1,15 +1,15 @@
 table_name("memory_info")
 description("Main memory information, in bytes")
 schema([
-    Column("memory_total", INTEGER, "Total amount of physical RAM, in bytes"),
-    Column("memory_free", INTEGER, "The amount of physical RAM, in bytes, left unused by the system"),
-    Column("buffers", INTEGER, "The amount of physical RAM, in bytes, used for file buffers"),
-    Column("cached", INTEGER, "The amount of physical RAM, in bytes, used as cache memory"),
-    Column("swap_cached", INTEGER, "The amount of swap, in bytes, used as cache memory"),
-    Column("active", INTEGER, "The total amount of buffer or page cache memory, in bytes, that is in active use"),
-    Column("inactive", INTEGER, "The total amount of buffer or page cache memory, in bytes, that are free and available"),
-    Column("swap_total", INTEGER, "The total amount of swap available, in bytes"),
-    Column("swap_free", INTEGER, "The total amount of swap free, in bytes"),
+    Column("memory_total",  BIGINT, "Total amount of physical RAM, in bytes"),
+    Column("memory_free", BIGINT, "The amount of physical RAM, in bytes, left unused by the system"),
+    Column("buffers", BIGINT, "The amount of physical RAM, in bytes, used for file buffers"),
+    Column("cached", BIGINT, "The amount of physical RAM, in bytes, used as cache memory"),
+    Column("swap_cached", BIGINT, "The amount of swap, in bytes, used as cache memory"),
+    Column("active", BIGINT, "The total amount of buffer or page cache memory, in bytes, that is in active use"),
+    Column("inactive", BIGINT, "The total amount of buffer or page cache memory, in bytes, that are free and available"),
+    Column("swap_total", BIGINT, "The total amount of swap available, in bytes"),
+    Column("swap_free", BIGINT, "The total amount of swap free, in bytes"),
 ])
 
 implementation("memory_info@getMemoryInfo")
