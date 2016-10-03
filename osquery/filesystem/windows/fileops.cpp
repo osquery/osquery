@@ -1190,7 +1190,6 @@ boost::optional<FILE*> platformFopen(const std::string& filename,
   return fp;
 }
 
-#ifdef WIN32
 Status namedPipeExists(const std::string& path) {
   // Wait 500ms for the named pipe status
   if (::WaitNamedPipeA(path.c_str(), 500) == 0) {
@@ -1201,8 +1200,15 @@ Status namedPipeExists(const std::string& path) {
       return Status(1, "Named pipe does not exist");
     }
   }
-
   return Status(0, "OK");
 }
-#endif
+
+LONGLONG filetimeToUnixtime(const FILETIME& ft) {
+  LARGE_INTEGER date, adjust;
+  date.HighPart = ft.dwHighDateTime;
+  date.LowPart = ft.dwLowDateTime;
+  adjust.QuadPart = 11644473600000 * 10000;
+  date.QuadPart -= adjust.QuadPart;
+  return date.QuadPart / 10000000;
+}
 }

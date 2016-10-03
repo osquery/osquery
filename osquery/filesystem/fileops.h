@@ -113,6 +113,9 @@ enum SeekMode { PF_SEEK_BEGIN = 0, PF_SEEK_CURRENT, PF_SEEK_END };
 /// Checks for the existence of a named pipe socket
 Status namedPipeExists(const std::string& path);
 
+/// Takes a Windows FILETIME object and returns seconds since epoch
+LONGLONG filetimeToUnixtime(const FILETIME& ft);
+
 /**
  * @brief Stores information about the last Windows async request
  * @note Currently, we have rudimentary support for non-blocking operations
