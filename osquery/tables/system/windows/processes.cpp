@@ -9,7 +9,6 @@
  */
 
 #include <map>
-#include <sstream>
 #include <string>
 
 #define _WIN32_DCOM
@@ -18,7 +17,9 @@
 #include <psapi.h>
 #include <stdlib.h>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -119,22 +120,26 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
 
 QueryData genProcesses(QueryContext& context) {
   QueryData results;
+  
+  std::string query = "SELECT * FROM Win32_Process";
 
-  WmiRequest request("SELECT * FROM Win32_Process");
+  auto pidlist = getSelectedPids(context);
+  if (pidlist.size() > 0) {
+    std::vector<std::string> constraints;
+    for (const auto& pid : pidlist) {
+      constraints.push_back("ProcessId=" + boost::lexical_cast<std::string>(pid));
+    }
+    if (constraints.size() > 0) {
+      query += " WHERE " + boost::algorithm::join(constraints, " OR ");
+    }
+  }
+
+  WmiRequest request(query);
   if (request.getStatus().ok()) {
-    auto pidlist = getSelectedPids(context);
     for (const auto& item : request.results()) {
       long pid = 0;
       if (item.GetLong("ProcessId", pid).ok()) {
-        /*
-         * Only generate information about the process if the pidlist set is
-         * empty (implies that there are no constraints) or pid exists in
-         * pidlist
-         */
-        if (pidlist.size() == 0 ||
-            (pidlist.size() > 0 && pidlist.find(pid) != pidlist.end())) {
-          genProcess(item, results);
-        }
+        genProcess(item, results);
       }
     }
   }
