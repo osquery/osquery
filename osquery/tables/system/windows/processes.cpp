@@ -131,8 +131,7 @@ QueryData genProcesses(QueryContext& context) {
   if (pidlist.size() > 0) {
     std::vector<std::string> constraints;
     for (const auto& pid : pidlist) {
-      constraints.push_back("ProcessId=" +
-                            boost::lexical_cast<std::string>(pid));
+      constraints.push_back("ProcessId=" + std::to_string(pid));
     }
     if (constraints.size() > 0) {
       query += " WHERE " + boost::algorithm::join(constraints, " OR ");
