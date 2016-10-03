@@ -15,13 +15,14 @@
 namespace osquery {
 namespace tables {
 
-#define WMI_QUERY "SELECT CAPTION,VERSION FROM Win32_OperatingSystem"
-
 QueryData genOSVersion(QueryContext& context) {
-  WmiRequest wmiRequest(WMI_QUERY);
+  const std::string kWmiQuery =
+      "SELECT CAPTION,VERSION FROM Win32_OperatingSystem";
+
+  WmiRequest wmiRequest(kWmiQuery);
   std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
 
-  if (wmiResults.size() == 0) {
+  if (wmiResults.empty()) {
     return {};
   }
 
@@ -34,10 +35,13 @@ QueryData genOSVersion(QueryContext& context) {
 
   switch (version.size()) {
   case 3:
-    r["build"] = INTEGER(version[2]);
+    r["build"] = SQL_TEXT(version[2]);
   case 2:
     r["minor"] = INTEGER(version[1]);
+  case 1:
     r["major"] = INTEGER(version[0]);
+    break;
+  default:
     break;
   }
   return {r};
