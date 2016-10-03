@@ -54,7 +54,7 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   long pid;
   long lPlaceHolder;
   std::string sPlaceHolder;
-  HANDLE hProcess;
+  HANDLE hProcess = nullptr;
 
   // We store the current processes PID, as there are API calls which are more
   // efficient for populating process info for the current process.
@@ -64,10 +64,9 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   r["pid"] = s.ok() ? BIGINT(pid) : BIGINT(-1);
   if (pid == currentPid) {
     hProcess = GetCurrentProcess();
-  }
-  else {
-    hProcess = OpenProcess(
-      PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
+  } else {
+    hProcess =
+        OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
   }
 
   result.GetString("Name", r["name"]);
@@ -84,8 +83,7 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   fileName.assign(MAX_PATH + 1, '\0');
   if (pid == currentPid) {
     GetModuleFileName(nullptr, fileName.data(), MAX_PATH);
-  }
-  else {
+  } else {
     GetModuleFileNameEx(hProcess, nullptr, fileName.data(), MAX_PATH);
   }
   r["cwd"] = SQL_TEXT(fileName.data());
@@ -116,6 +114,12 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   result.GetString("VirtualSize", sPlaceHolder);
   r["total_size"] = BIGINT(sPlaceHolder);
   results_data.push_back(r);
+
+  // OpenProcess returns nullptr on error, GetCurrentProcess returns a
+  // psuedo-handle of -1, which is the same as INVALID_HANDLE_VALUE
+  if (hProcess != nullptr && hProcess != INVALID_HANDLE_VALUE) {
+    CloseHandle(hProcess);
+  }
 }
 
 QueryData genProcesses(QueryContext& context) {
