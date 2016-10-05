@@ -321,6 +321,11 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   size_t expr_index = 0;
   // If any constraints are unusable increment the cost of the index.
   double cost = 1;
+
+  // Tables may have requirements or use indexes.
+  bool required_satisfied = false;
+  bool index_used = false;
+
   // Expressions operating on the same virtual table are loosely identified by
   // the consecutive sets of terms each of the constraint sets are applied onto.
   // Subsequent attempts from failed (unusable) constraints replace the set,
@@ -350,6 +355,16 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
         continue;
       }
       const auto& name = std::get<0>(columns[constraint_info.iColumn]);
+
+      // Check if this constraint is on an index or required column.
+      const auto& options = std::get<2>(columns[constraint_info.iColumn]);
+      if (options & ColumnOptions::REQUIRED) {
+        index_used = true;
+        required_satisfied = true;
+      } else if (options & ColumnOptions::INDEX) {
+        index_used = true;
+      }
+
       // Save a pair of the name and the constraint operator.
       // Use this constraint during xFilter by performing a scan and column
       // name lookup through out all cursor constraint lists.
@@ -364,36 +379,19 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
     }
   }
 
-  auto requiredSatisfied = [&constraints](const std::string& name) {
-    for (const auto& constraint : constraints) {
-      if (constraint.first == name) {
-        return true;
-      }
-    }
-    // No constraint exists.
-    return false;
-  };
-
   // Check the table for a required column.
-  boost::optional<bool> satisfied;
   for (const auto& column : columns) {
-    auto& name = std::get<0>(column);
     auto& options = std::get<2>(column);
-    if (options & ColumnOptions::REQUIRED) {
-      // This column is required, check if a constraint exists.
-      if (requiredSatisfied(name)) {
-        satisfied = true;
-        break;
-      }
-      // A column was required, but not satisfied.
-      // Multiple columns may be marked REQUIRED, continue to check.
-      satisfied = false;
+    if (options & ColumnOptions::REQUIRED && !required_satisfied) {
+      // A column is marked required, but no constraint satisfies.
+      cost += 1e10;
+      break;
     }
   }
 
-  // Check if a REQUIRED column exists but was not satisfied via a constraint.
-  if (satisfied.is_initialized() && !*satisfied) {
-    cost += 1e10;
+  if (!index_used) {
+    // A column is marked index, but no index constraint was provided.
+    cost += 200;
   }
 
   pIdxInfo->idxNum = static_cast<int>(kConstraintIndexID++);

@@ -809,6 +809,7 @@ class TablePlugin : public Plugin {
   friend class RegistryFactory;
   FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
   FRIEND_TEST(VirtualTableTests, test_tableplugin_statement);
+  FRIEND_TEST(VirtualTableTests, test_indexing_costs);
 };
 
 /// Helper method to generate the virtual table CREATE statement.

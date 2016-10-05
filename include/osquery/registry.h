@@ -549,6 +549,7 @@ class RegistryHelper : public RegistryHelperCore {
 
  private:
   FRIEND_TEST(EventsTests, test_event_subscriber_configure);
+  FRIEND_TEST(VirtualTableTests, test_indexing_costs);
 };
 
 /// Helper definition for a shared pointer to a Plugin.
