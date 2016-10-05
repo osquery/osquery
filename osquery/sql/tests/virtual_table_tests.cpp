@@ -425,4 +425,143 @@ TEST_F(VirtualTableTests, test_table_cache) {
   ASSERT_EQ(results.size(), 1U);
   ASSERT_EQ(results[0]["data"], "awesome_data");
 }
+
+class indexIOptimizedTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("i", INTEGER_TYPE, ColumnOptions::INDEX),
+        std::make_tuple("j", INTEGER_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("text", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ public:
+  QueryData generate(QueryContext& context) override {
+    scans++;
+
+    QueryData results;
+    auto indexes = context.constraints["i"].getAll<int>(EQUALS);
+    for (const auto& i : indexes) {
+      results.push_back(
+          {{"i", INTEGER(i)}, {"j", INTEGER(i * 10)}, {"text", "none"}});
+    }
+    if (indexes.empty()) {
+      for (size_t i = 0; i < 100; i++) {
+        results.push_back(
+            {{"i", INTEGER(i)}, {"j", INTEGER(i * 10)}, {"text", "some"}});
+      }
+    }
+    return results;
+  }
+
+  // Here the goal is to expect/assume the number of scans.
+  size_t scans{0};
+};
+
+class indexJOptimizedTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("j", INTEGER_TYPE, ColumnOptions::INDEX),
+        std::make_tuple("text", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ public:
+  QueryData generate(QueryContext& context) override {
+    scans++;
+
+    QueryData results;
+    auto indexes = context.constraints["j"].getAll<int>(EQUALS);
+    for (const auto& j : indexes) {
+      results.push_back({{"j", INTEGER(j)}, {"text", "none"}});
+    }
+    if (indexes.empty()) {
+      for (size_t j = 0; j < 100; j++) {
+        results.push_back({{"j", INTEGER(j)}, {"text", "some"}});
+      }
+    }
+    return results;
+  }
+
+  // Here the goal is to expect/assume the number of scans.
+  size_t scans{0};
+};
+
+class defaultScanTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("i", INTEGER_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("text", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ public:
+  QueryData generate(QueryContext& context) override {
+    scans++;
+
+    QueryData results;
+    for (size_t i = 0; i < 10; i++) {
+      results.push_back({{"i", INTEGER(i)}, {"text", "some"}});
+    }
+    return results;
+  }
+
+  // Here the goal is to expect/assume the number of scans.
+  size_t scans{0};
+};
+
+TEST_F(VirtualTableTests, test_indexing_costs) {
+  // Get a database connection.
+  auto dbc = SQLiteDBManager::getUnique();
+  auto table_registry = Registry::registry("table");
+
+  auto i = std::make_shared<indexIOptimizedTablePlugin>();
+  i->setName("index_i");
+  attachTableInternal("index_i", i->columnDefinition(), dbc);
+  table_registry->add(i);
+
+  auto j = std::make_shared<indexJOptimizedTablePlugin>();
+  j->setName("index_j");
+  attachTableInternal("index_j", j->columnDefinition(), dbc);
+  table_registry->add(j);
+
+  auto default_scan = std::make_shared<defaultScanTablePlugin>();
+  default_scan->setName("default_scan");
+  attachTableInternal("default_scan", default_scan->columnDefinition(), dbc);
+  table_registry->add(default_scan);
+
+  QueryData results;
+  queryInternal(
+      "SELECT * from default_scan JOIN index_i using (i);", results, dbc->db());
+  // We expect index_i to optimize, meaning the constraint evaluation
+  // understood the marked columns and returned a low cost.
+  ASSERT_EQ(1U, default_scan->scans);
+  EXPECT_EQ(10U, i->scans);
+
+  // Reset.
+  default_scan->scans = 0;
+  i->scans = 0;
+
+  // The inverse should also hold, all cost evaluations will be high.
+  queryInternal(
+      "SELECT * from index_i JOIN default_scan using (i);", results, dbc->db());
+  EXPECT_EQ(10U, i->scans);
+  EXPECT_EQ(1U, default_scan->scans);
+
+  // Reset.
+  default_scan->scans = 0;
+  i->scans = 0;
+
+  queryInternal(
+      "SELECT * from default_scan join index_i using (i) join index_j using "
+      "(j);",
+      results,
+      dbc->db());
+  ASSERT_EQ(1U, default_scan->scans);
+  EXPECT_EQ(10U, i->scans);
+  EXPECT_EQ(10U, j->scans);
+}
 }
