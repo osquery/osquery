@@ -133,6 +133,8 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
       resp = client.get(req);
       if (resp.status() == 301 || resp.status() == 302) {
         VLOG(1) << "Attempting custom redirect as cpp-netlib does not support redirects";
+        VLOG(1) << "Attempting custom redirect as cpp-netlib does not support "
+                           "redirects";
         for (const auto& header : resp.headers()) {
           if (header.first == "Location") {
             req.uri(header.second);
