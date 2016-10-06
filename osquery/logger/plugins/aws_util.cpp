@@ -132,7 +132,6 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
     case Aws::Http::HttpMethod::HTTP_GET:
       resp = client.get(req);
       if (resp.status() == 301 || resp.status() == 302) {
-        VLOG(1) << "Attempting custom redirect as cpp-netlib does not support redirects";
         VLOG(1) << "Attempting custom redirect as cpp-netlib does not support "
                            "redirects";
         for (const auto& header : resp.headers()) {
