@@ -13,6 +13,7 @@
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/path.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -21,8 +22,16 @@
 
 #include "osquery/core/conversions.h"
 
+#define fs boost::filesystem
+
 namespace osquery {
 namespace tables {
+
+#ifndef WIN32
+fs::path kEtcServices = "/etc/services";
+#else
+fs::path kEtcServices = (getSystemRoot() / "system32\\drivers\\etc\\services");
+#endif
 
 QueryData parseEtcServicesContent(const std::string& content) {
   QueryData results;
@@ -78,10 +87,11 @@ QueryData parseEtcServicesContent(const std::string& content) {
 
 QueryData genEtcServices(QueryContext& context) {
   std::string content;
-  auto s = readFile("/etc/services", content);
+  auto s = readFile(kEtcServices, content);
   if (s.ok()) {
     return parseEtcServicesContent(content);
   } else {
+    TLOG << "Error reading " << kEtcServices << ": " << s.toString();
     return {};
   }
 }
