@@ -22,7 +22,7 @@
 
 #include "osquery/core/conversions.h"
 
-#define fs boost::filesystem
+namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
