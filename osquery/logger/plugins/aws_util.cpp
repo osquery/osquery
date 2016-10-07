@@ -133,7 +133,7 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
       resp = client.get(req);
       if (resp.status() == 301 || resp.status() == 302) {
         VLOG(1) << "Attempting custom redirect as cpp-netlib does not support "
-                           "redirects";
+                   "redirects";
         for (const auto& header : resp.headers()) {
           if (header.first == "Location") {
             req.uri(header.second);
@@ -303,14 +303,13 @@ Status getAWSRegionFromProfile(std::string& region) {
 void initAwsSdk() {
   static std::once_flag once_flag;
   try {
-    std::call_once(once_flag,
-                   []() {
-                     Aws::SDKOptions options;
-                     options.httpOptions.httpClientFactory_create_fn = []() {
-                       return std::make_shared<NetlibHttpClientFactory>();
-                     };
-                     Aws::InitAPI(options);
-                   });
+    std::call_once(once_flag, []() {
+      Aws::SDKOptions options;
+      options.httpOptions.httpClientFactory_create_fn = []() {
+        return std::make_shared<NetlibHttpClientFactory>();
+      };
+      Aws::InitAPI(options);
+    });
   } catch (const std::system_error& e) {
     LOG(ERROR) << "call_once was not executed for initAwsSdk";
   }
