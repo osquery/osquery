@@ -1,3 +1,12 @@
+/*
+*  Copyright (c) 2014-present, Facebook, Inc.
+*  All rights reserved.
+*
+*  This source code is licensed under the BSD-style license found in the
+*  LICENSE file in the root directory of this source tree. An additional grant
+*  of patent rights can be found in the PATENTS file in the same directory.
+*
+*/
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -32,9 +41,9 @@ const std::map<int, std::string> kServiceType = {
     {0x00000110, "OWN_PROCESS   (Interactive)"},
     {0x00000120, "SHARE_PROCESS (Interactive)"}};
 
-SC_HANDLE schSCManager;
-
-BOOL QuerySvcInfo(ENUM_SERVICE_STATUS_PROCESS& svc, Row& r) {
+BOOL QuerySvcInfo(const SC_HANDLE& schSCManager,
+                  ENUM_SERVICE_STATUS_PROCESS& svc,
+                  Row& r) {
   SC_HANDLE schService;
   LPQUERY_SERVICE_CONFIG lpsc = nullptr;
   LPSERVICE_DESCRIPTION lpsd = nullptr;
@@ -43,20 +52,20 @@ BOOL QuerySvcInfo(ENUM_SERVICE_STATUS_PROCESS& svc, Row& r) {
   schService =
       OpenService(schSCManager, svc.lpServiceName, SERVICE_QUERY_CONFIG);
 
-  if (schService == NULL) {
+  if (schService == nullptr) {
     TLOG << "OpenService failed (" << GetLastError() << ")";
     return FALSE;
   }
 
-  (void)QueryServiceConfig(schService, NULL, 0, &cbBufSize);
-  lpsc = (LPQUERY_SERVICE_CONFIG)LocalAlloc(LMEM_FIXED, cbBufSize);
+  (void)QueryServiceConfig(schService, nullptr, 0, &cbBufSize);
+  lpsc = (LPQUERY_SERVICE_CONFIG)malloc(cbBufSize);
   if (!QueryServiceConfig(schService, lpsc, cbBufSize, &cbBufSize)) {
     TLOG << "QueryServiceConfig failed (" << GetLastError() << ")";
   }
 
   (void)QueryServiceConfig2(
-      schService, SERVICE_CONFIG_DESCRIPTION, NULL, 0, &cbBufSize);
-  lpsd = (LPSERVICE_DESCRIPTION)LocalAlloc(LMEM_FIXED, cbBufSize);
+      schService, SERVICE_CONFIG_DESCRIPTION, nullptr, 0, &cbBufSize);
+  lpsd = (LPSERVICE_DESCRIPTION)malloc(cbBufSize);
   if (!QueryServiceConfig2(schService,
                            SERVICE_CONFIG_DESCRIPTION,
                            (LPBYTE)lpsd,
@@ -76,29 +85,32 @@ BOOL QuerySvcInfo(ENUM_SERVICE_STATUS_PROCESS& svc, Row& r) {
   r["path"] = SQL_TEXT(lpsc->lpBinaryPathName);
   r["user_account"] = SQL_TEXT(lpsc->lpServiceStartName);
 
-  if (lpsd->lpDescription != NULL)
+  if (lpsd->lpDescription != nullptr) {
     r["description"] = SQL_TEXT(lpsd->lpDescription);
+  }
 
-  if (kServiceType.count(lpsc->dwServiceType) > 0)
+  if (kServiceType.count(lpsc->dwServiceType) > 0) {
     r["service_type"] = SQL_TEXT(kServiceType.at(lpsc->dwServiceType));
-  else
+  } else {
     r["service_type"] = SQL_TEXT("UNKNOWN");
+  }
 
-  LocalFree(lpsc);
-  LocalFree(lpsd);
+  free(lpsc);
+  free(lpsd);
   CloseServiceHandle(schService);
   return TRUE;
 }
 
 QueryData genServices(QueryContext& context) {
-  void* buf = NULL;
+  SC_HANDLE schSCManager;
+  void* buf = nullptr;
   DWORD BytesNeeded = 0;
   DWORD serviceCount = 0;
   Row r;
   QueryData results;
 
-  schSCManager = OpenSCManagerW(NULL, NULL, GENERIC_READ);
-  if (schSCManager == NULL) {
+  schSCManager = OpenSCManager(nullptr, nullptr, GENERIC_READ);
+  if (schSCManager == nullptr) {
     TLOG << "EnumServiceStatusEx failed (" << GetLastError() << ")";
     return {};
   }
@@ -107,12 +119,12 @@ QueryData genServices(QueryContext& context) {
                              SC_ENUM_PROCESS_INFO,
                              SERVICE_WIN32,
                              SERVICE_STATE_ALL,
-                             NULL,
+                             nullptr,
                              0,
                              &BytesNeeded,
                              &serviceCount,
-                             NULL,
-                             NULL);
+                             nullptr,
+                             nullptr);
 
   buf = malloc(BytesNeeded);
   if (EnumServicesStatusEx(schSCManager,
@@ -123,11 +135,11 @@ QueryData genServices(QueryContext& context) {
                            BytesNeeded,
                            &BytesNeeded,
                            &serviceCount,
-                           NULL,
-                           NULL)) {
+                           nullptr,
+                           nullptr)) {
     ENUM_SERVICE_STATUS_PROCESS* services = (ENUM_SERVICE_STATUS_PROCESS*)buf;
     for (DWORD i = 0; i < serviceCount; ++i) {
-      if (QuerySvcInfo(services[i], r)) {
+      if (QuerySvcInfo(schSCManager, services[i], r)) {
         results.push_back(r);
       }
       r.clear();
