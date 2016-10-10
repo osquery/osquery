@@ -9,5 +9,5 @@ schema([
 ])
 implementation("wmi_cli_event_consumers@genWmiCliConsumers")
 examples([
-  "select filter,consumer,query,command_line_template from wmi_filter_consumer_binding wcb join wmi_cli_event_consumers wcec on consumer = wcec.__relpath join wmi_event_filters wef on wef.__relpath = wcb.filter;",
+  "select filter,consumer,query,command_line_template,wcec.name from wmi_cli_event_consumers wcec left outer join wmi_filter_consumer_binding wcb on consumer = wcec.relative_path left outer join wmi_event_filters wef on wef.relative_path = wcb.filter;",
 ])

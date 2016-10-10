@@ -10,5 +10,5 @@ schema([
 ])
 implementation("wmi_script_event_consumers@genScriptConsumers")
 examples([
-  "select filter,consumer,query,scripting_engine,script_text from wmi_filter_consumer_binding wcb join wmi_script_event_consumers wsec on consumer = wsec.__relpath join wmi_event_filters wef on wef.__relpath = wcb.filter;",
+  "select filter,consumer,query,scripting_engine,script_file_name,script_text,wsec.name from wmi_script_event_consumers wsec left outer join wmi_filter_consumer_binding wcb on consumer = wsec.relative_path left outer join wmi_event_filters wef on wef.relative_path = wcb.filter;",
 ])
