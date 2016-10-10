@@ -115,9 +115,8 @@ BOOL QuerySvcInfo(const SC_HANDLE& schSCManager,
 QueryData genServices(QueryContext& context) {
   SC_HANDLE schSCManager;
   void* buf = nullptr;
-  DWORD BytesNeeded = 0;
+  DWORD bytesNeeded = 0;
   DWORD serviceCount = 0;
-  Row r;
   QueryData results;
 
   schSCManager = OpenSCManager(nullptr, nullptr, GENERIC_READ);
@@ -132,28 +131,28 @@ QueryData genServices(QueryContext& context) {
                              SERVICE_STATE_ALL,
                              nullptr,
                              0,
-                             &BytesNeeded,
+                             &bytesNeeded,
                              &serviceCount,
                              nullptr,
                              nullptr);
 
-  buf = malloc(BytesNeeded);
+  buf = malloc(bytesNeeded);
   if (EnumServicesStatusEx(schSCManager,
                            SC_ENUM_PROCESS_INFO,
                            SERVICE_WIN32,
                            SERVICE_STATE_ALL,
                            (LPBYTE)buf,
-                           BytesNeeded,
-                           &BytesNeeded,
+                           bytesNeeded,
+                           &bytesNeeded,
                            &serviceCount,
                            nullptr,
                            nullptr)) {
     ENUM_SERVICE_STATUS_PROCESS* services = (ENUM_SERVICE_STATUS_PROCESS*)buf;
     for (DWORD i = 0; i < serviceCount; ++i) {
+      Row r;
       if (QuerySvcInfo(schSCManager, services[i], r)) {
         results.push_back(r);
       }
-      r.clear();
     }
   } else {
     TLOG << "EnumServiceStatusEx failed (" << GetLastError() << ")";
