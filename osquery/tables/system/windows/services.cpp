@@ -13,6 +13,7 @@
 #include <Winsvc.h>
 #include <string>
 
+#include "osquery/tables/system/windows/registry.h"
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -93,6 +94,16 @@ BOOL QuerySvcInfo(const SC_HANDLE& schSCManager,
     r["service_type"] = SQL_TEXT(kServiceType.at(lpsc->dwServiceType));
   } else {
     r["service_type"] = SQL_TEXT("UNKNOWN");
+  }
+
+  QueryData regResults;
+  queryKey("HKEY_LOCAL_MACHINE",
+           "SYSTEM\\CurrentControlSet\\Services\\" + r["name"] + "\\Parameters",
+           regResults);
+  for (const auto& aKey : regResults) {
+    if (aKey.at("name") == "ServiceDll") {
+      r["module_path"] = SQL_TEXT(aKey.at("data"));
+    }
   }
 
   free(lpsc);
