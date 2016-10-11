@@ -50,6 +50,23 @@ QueryData genHash(QueryContext& context) {
   // directory. We search for the parsed predicate constraints with the equals
   // operator.
   auto paths = context.constraints["path"].getAll(EQUALS);
+  context.expandConstraints(
+      "path",
+      LIKE,
+      paths,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
+        }
+        return status;
+      }));
+
+  // Iterate through the file paths, adding the hash results
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
     if (!boost::filesystem::is_regular_file(path, ec)) {
@@ -61,13 +78,31 @@ QueryData genHash(QueryContext& context) {
 
   // Now loop through constraints using the directory column constraint.
   auto directories = context.constraints["directory"].getAll(EQUALS);
+  context.expandConstraints(
+      "directory",
+      LIKE,
+      directories,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_FOLDERS | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
+        }
+        return status;
+      }));
+
+  // Iterate over the directory paths
   for (const auto& directory_string : directories) {
     boost::filesystem::path directory = directory_string;
     if (!boost::filesystem::is_directory(directory, ec)) {
       continue;
     }
 
-    // Iterate over the directory and generate a hash for each regular file.
+    // Iterate over the directory files and generate a hash for each regular
+    // file.
     boost::filesystem::directory_iterator begin(directory), end;
     for (; begin != end; ++begin) {
       if (boost::filesystem::is_regular_file(begin->path(), ec)) {
