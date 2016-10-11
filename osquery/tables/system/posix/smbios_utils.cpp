@@ -86,6 +86,11 @@ void SMBIOSParser::tables(std::function<void(size_t index,
       break;
     }
 
+    if (header->length == 0 && header->handle == 0) {
+      // Reached the end (null-padded content).
+      break;
+    }
+
     // The SMBIOS structure may have unformatted, double-NULL delimited
     // trailing data, which are usually strings.
     auto next_table = table + header->length;

@@ -33,19 +33,26 @@ class LinuxSMBIOSParser : public SMBIOSParser {
   /// Parse the SMBIOS address from an EFI systab file.
   void readFromSystab(const std::string& systab);
 
+  /// Parse the SMBIOS content from sysfs.
+  void readFromSysfs(const std::string& sysfs_dmi);
+
   /// Cross version/boot read initializer.
   bool discover();
 
   /// Check if the read was successful.
-  bool valid() { return (data_ != nullptr && table_data_ != nullptr); }
+  bool valid() {
+    return (table_data_ != nullptr);
+  }
 
  public:
   virtual ~LinuxSMBIOSParser() {
     if (data_ != nullptr) {
       free(data_);
+      data_ = nullptr;
     }
     if (table_data_ != nullptr) {
       free(table_data_);
+      table_data_ = nullptr;
     }
   }
 

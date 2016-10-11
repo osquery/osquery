@@ -141,24 +141,37 @@ Status readFile(const fs::path& path,
   PlatformTime times;
   handle.fd->getFileTimes(times);
 
-  if (file_size == 0) {
-    off_t total_bytes = 0;
+  off_t total_bytes = 0;
+  if (file_size == 0 || block_size > 0) {
+    // Reset block size to a sane minimum.
+    block_size = (block_size < 4096) ? 4096 : block_size;
     ssize_t part_bytes = 0;
+    bool overflow = false;
     do {
-      auto part = std::string(4096, '\0');
+      std::string part(block_size, '\0');
       part_bytes = handle.fd->read(&part[0], block_size);
       if (part_bytes > 0) {
         total_bytes += static_cast<off_t>(part_bytes);
         if (total_bytes >= read_max) {
           return Status(1, "File exceeds read limits");
         }
-        //        content += part.substr(0, part_bytes);
+        if (file_size > 0 && total_bytes > file_size) {
+          overflow = true;
+          part_bytes -= (total_bytes - file_size);
+        }
         predicate(part, part_bytes);
       }
-    } while (part_bytes > 0);
+    } while (part_bytes > 0 && !overflow);
   } else {
-    auto content = std::string(file_size, '\0');
-    handle.fd->read(&content[0], file_size);
+    ssize_t total_bytes = 0;
+    std::string content(file_size, '\0');
+    do {
+      auto part_bytes =
+          handle.fd->read(&content[total_bytes], file_size - total_bytes);
+      if (part_bytes > 0) {
+        total_bytes += part_bytes;
+      }
+    } while (handle.fd->hasPendingIo());
     predicate(content, file_size);
   }
 
