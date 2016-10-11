@@ -222,22 +222,7 @@ function platform_linux_main() {
   # General Linux dependencies.
   local_brew_dependency util-linux
 
-  # Install custom formulas, build with LLVM/clang.
-  local_brew_dependency boost
-  local_brew_dependency asio
-  local_brew_dependency cpp-netlib
-  local_brew_dependency google-benchmark
-  local_brew_dependency pcre
-  local_brew_dependency lz4
-  local_brew_dependency snappy
-  local_brew_dependency sleuthkit
-  local_brew_dependency libmagic
-  local_brew_dependency thrift
-  local_brew_dependency rocksdb
-  local_brew_dependency gflags
-  local_brew_dependency aws-sdk-cpp
-  local_brew_dependency yara
-  local_brew_dependency glog
+  platform_posix_main
 
   # Linux specific custom formulas.
   local_brew_dependency libgpg-error
@@ -280,7 +265,12 @@ function platform_darwin_main() {
   local_brew_tool cppcheck
   local_brew_tool ccache
 
+  platform_posix_main
+}
+
+function platform_posix_main() {
   # List of LLVM-compiled dependencies.
+  local_brew_dependency linenoise-ng
   local_brew_dependency boost
   local_brew_dependency asio
   local_brew_dependency cpp-netlib
