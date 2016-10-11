@@ -21,7 +21,8 @@
 namespace osquery {
 namespace tables {
 
-std::string kNtKernelPath = (getSystemRoot() / "System32\\ntoskrnl.exe").string();
+std::string kNtKernelPath =
+    (getSystemRoot() / "System32\\ntoskrnl.exe").string();
 
 void GetBootArgs(Row& r) {
   QueryData regResults;
