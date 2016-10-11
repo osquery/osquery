@@ -7,19 +7,21 @@
 *  of patent rights can be found in the PATENTS file in the same directory.
 *
 */
-
 #include <Windows.h>
 
-#include "osquery/tables/system/windows/registry.h"
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/tables/system/windows/registry.h"
+
 #pragma comment(lib, "version.lib")
 
 namespace osquery {
 namespace tables {
+
+std::string kNtKernelPath = (getSystemRoot() / "System32\\ntoskrnl.exe").string();
 
 void GetBootArgs(Row& r) {
   QueryData regResults;
@@ -33,7 +35,7 @@ void GetBootArgs(Row& r) {
 }
 
 void GetSystemDriveGUID(Row& r) {
-  char buf[50];
+  char buf[51] = {0};
   std::string sysRoot = getSystemRoot().root_name().string() + "\\";
   if (GetVolumeNameForVolumeMountPoint(sysRoot.c_str(), (LPSTR)buf, 50)) {
     r["device"] = SQL_TEXT(buf);
@@ -41,13 +43,11 @@ void GetSystemDriveGUID(Row& r) {
 }
 
 void GetKernelVersion(Row& r) {
-  const LPCSTR kNtKernelPath = "C:\\Windows\\System32\\NTOSKRNL.EXE";
-  DWORD verHandle = NULL;
   UINT size = 0;
-  VS_FIXEDFILEINFO* lpVersionInfo = NULL;
   DWORD verSize = 0;
+  VS_FIXEDFILEINFO* lpVersionInfo = nullptr;
 
-  verSize = GetFileVersionInfoSize(kNtKernelPath, &verHandle);
+  verSize = GetFileVersionInfoSize(kNtKernelPath.c_str(), nullptr);
   if (verSize == 0) {
     TLOG << "GetFileVersionInfoSize failed (" << GetLastError() << ")";
     return;
@@ -55,7 +55,7 @@ void GetKernelVersion(Row& r) {
 
   LPSTR verData = (LPSTR)malloc(verSize);
 
-  if (!GetFileVersionInfo(kNtKernelPath, verHandle, verSize, verData)) {
+  if (!GetFileVersionInfo(kNtKernelPath.c_str(), 0, verSize, verData)) {
     TLOG << "GetFileVersionInfo failed (" << GetLastError() << ")";
   }
 
@@ -63,7 +63,7 @@ void GetKernelVersion(Row& r) {
     TLOG << "GetFileVersionInfo failed (" << GetLastError() << ")";
   }
 
-  if (size) {
+  if (size > 0) {
     if (lpVersionInfo->dwSignature == 0xfeef04bd) {
       auto majorMS = HIWORD(lpVersionInfo->dwProductVersionMS);
       auto minorMS = LOWORD(lpVersionInfo->dwProductVersionMS);
