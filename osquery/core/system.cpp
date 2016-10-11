@@ -138,7 +138,8 @@ std::string generateHostUUID() {
       hardware_uuid.end());
   boost::algorithm::trim(hardware_uuid);
   if (!hardware_uuid.empty()) {
-    return hardware_uuid;
+    // Construct a new string to remove trailing nulls.
+    return std::string(hardware_uuid.c_str());
   }
 
   // Unable to get the hardware UUID, just return a new UUID
@@ -147,12 +148,12 @@ std::string generateHostUUID() {
 
 Status getHostUUID(std::string& ident) {
   // Lookup the host identifier (UUID) previously generated and stored.
-  auto status = getDatabaseValue(kPersistentSettings, "host_uuid_v2", ident);
+  auto status = getDatabaseValue(kPersistentSettings, "host_uuid_v3", ident);
   if (ident.size() == 0) {
     // There was no UUID stored in the database, generate one and store it.
     ident = osquery::generateHostUUID();
     VLOG(1) << "Using UUID " << ident << " as host identifier";
-    return setDatabaseValue(kPersistentSettings, "host_uuid_v2", ident);
+    return setDatabaseValue(kPersistentSettings, "host_uuid_v3", ident);
   }
 
   return status;
