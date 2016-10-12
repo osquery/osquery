@@ -11,12 +11,14 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <Winsvc.h>
+
 #include <string>
 
-#include "osquery/tables/system/windows/registry.h"
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include "osquery/tables/system/windows/registry.h"
 
 #pragma comment(lib, "Advapi32.lib")
 
@@ -39,34 +41,31 @@ const std::map<int, std::string> kServiceType = {
     {0x00000010, "OWN_PROCESS"},
     {0x00000020, "SHARE_PROCESS"},
     {0x00000100, "INTERACTIVE_PROCESS"},
-    {0x00000110, "OWN_PROCESS   (Interactive)"},
-    {0x00000120, "SHARE_PROCESS (Interactive)"}};
+    {0x00000110, "OWN_PROCESS(Interactive)"},
+    {0x00000120, "SHARE_PROCESS(Interactive)"}};
 
-BOOL QuerySvcInfo(const SC_HANDLE& schSCManager,
+bool QuerySvcInfo(const SC_HANDLE& schScManager,
                   ENUM_SERVICE_STATUS_PROCESS& svc,
                   Row& r) {
-  SC_HANDLE schService;
-  LPQUERY_SERVICE_CONFIG lpsc = nullptr;
-  LPSERVICE_DESCRIPTION lpsd = nullptr;
   DWORD cbBufSize = 0;
 
-  schService =
-      OpenService(schSCManager, svc.lpServiceName, SERVICE_QUERY_CONFIG);
+  auto schService =
+      OpenService(schScManager, svc.lpServiceName, SERVICE_QUERY_CONFIG);
 
   if (schService == nullptr) {
     TLOG << "OpenService failed (" << GetLastError() << ")";
     return FALSE;
   }
 
-  (void)QueryServiceConfig(schService, nullptr, 0, &cbBufSize);
-  lpsc = (LPQUERY_SERVICE_CONFIG)malloc(cbBufSize);
+  QueryServiceConfig(schService, nullptr, 0, &cbBufSize);
+  auto lpsc = (LPQUERY_SERVICE_CONFIG)malloc(cbBufSize);
   if (!QueryServiceConfig(schService, lpsc, cbBufSize, &cbBufSize)) {
     TLOG << "QueryServiceConfig failed (" << GetLastError() << ")";
   }
 
-  (void)QueryServiceConfig2(
+  QueryServiceConfig2(
       schService, SERVICE_CONFIG_DESCRIPTION, nullptr, 0, &cbBufSize);
-  lpsd = (LPSERVICE_DESCRIPTION)malloc(cbBufSize);
+  auto lpsd = (LPSERVICE_DESCRIPTION)malloc(cbBufSize);
   if (!QueryServiceConfig2(schService,
                            SERVICE_CONFIG_DESCRIPTION,
                            (LPBYTE)lpsd,
@@ -113,19 +112,18 @@ BOOL QuerySvcInfo(const SC_HANDLE& schSCManager,
 }
 
 QueryData genServices(QueryContext& context) {
-  SC_HANDLE schSCManager;
   void* buf = nullptr;
   DWORD bytesNeeded = 0;
   DWORD serviceCount = 0;
   QueryData results;
 
-  schSCManager = OpenSCManager(nullptr, nullptr, GENERIC_READ);
-  if (schSCManager == nullptr) {
+  auto schScManager = OpenSCManager(nullptr, nullptr, GENERIC_READ);
+  if (schScManager == nullptr) {
     TLOG << "EnumServiceStatusEx failed (" << GetLastError() << ")";
     return {};
   }
 
-  (void)EnumServicesStatusEx(schSCManager,
+  (void)EnumServicesStatusEx(schScManager,
                              SC_ENUM_PROCESS_INFO,
                              SERVICE_WIN32,
                              SERVICE_STATE_ALL,
@@ -137,7 +135,7 @@ QueryData genServices(QueryContext& context) {
                              nullptr);
 
   buf = malloc(bytesNeeded);
-  if (EnumServicesStatusEx(schSCManager,
+  if (EnumServicesStatusEx(schScManager,
                            SC_ENUM_PROCESS_INFO,
                            SERVICE_WIN32,
                            SERVICE_STATE_ALL,
@@ -150,7 +148,7 @@ QueryData genServices(QueryContext& context) {
     ENUM_SERVICE_STATUS_PROCESS* services = (ENUM_SERVICE_STATUS_PROCESS*)buf;
     for (DWORD i = 0; i < serviceCount; ++i) {
       Row r;
-      if (QuerySvcInfo(schSCManager, services[i], r)) {
+      if (QuerySvcInfo(schScManager, services[i], r)) {
         results.push_back(r);
       }
     }
@@ -159,7 +157,7 @@ QueryData genServices(QueryContext& context) {
   }
 
   free(buf);
-  CloseServiceHandle(schSCManager);
+  CloseServiceHandle(schScManager);
   return results;
 }
 }
