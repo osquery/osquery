@@ -21,7 +21,6 @@
 #include <windows.h>
 
 #include <io.h>
-#include <linenoise.h>
 #else
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -30,6 +29,7 @@
 #include <readline/readline.h>
 #endif
 
+#include <linenoise.h>
 #include <sqlite3.h>
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -308,17 +308,9 @@ static char* one_input_line(FILE* in, char* zPrior, int isContinuation) {
   } else {
     char* zPrompt = isContinuation ? continuePrompt : mainPrompt;
     free(zPrior);
-#ifdef WIN32
     zResult = linenoise(zPrompt);
-#else
-    zResult = readline(zPrompt);
-#endif
     if (zResult && *zResult) {
-#ifdef WIN32
       linenoiseHistoryAdd(zResult);
-#else
-      add_history(zResult);
-#endif
     }
   }
   return zResult;
@@ -1601,20 +1593,11 @@ int launchIntoShell(int argc, char** argv) {
           (fs::path(osquery::osqueryHomeDirectory()) / ".history")
               .make_preferred()
               .string();
-#ifdef WIN32
       linenoiseHistorySetMaxLen(100);
       linenoiseHistoryLoad(history_file.c_str());
-#else
-      read_history(history_file.c_str());
-#endif
       rc = process_input(&data, 0);
 
-#ifdef WIN32
       linenoiseHistorySave(history_file.c_str());
-#else
-      stifle_history(100);
-      write_history(history_file.c_str());
-#endif
     } else {
       rc = process_input(&data, stdin);
     }

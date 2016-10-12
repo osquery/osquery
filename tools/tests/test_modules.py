@@ -35,7 +35,7 @@ class ModuleTests(test_base.ProcessGenerator, unittest.TestCase):
     def test_1_shell_with_module(self):
         '''Test the shell loads the compiled shared library.'''
         self.osqueryi.run_command(' ')
-        result = self.osqueryi.run_query('SELECT * from example;')
+        result = self.osqueryi.run_query('SELECT * from example')
         self.assertEqual(len(result), 1)
 
     def test_2_shell_list_modules(self):
@@ -43,7 +43,7 @@ class ModuleTests(test_base.ProcessGenerator, unittest.TestCase):
         self.osqueryi.run_command(' ')
         result = self.osqueryi.run_query(
             'SELECT * from osquery_extensions '
-            'where type = "module" and name = "example";')
+            'where type = "module" and name = "example"')
         self.assertEqual(len(result), 1)
 
     def test_3_module_prevent_create(self):

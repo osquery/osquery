@@ -123,12 +123,21 @@ class OsqueryWrapper(REPLWrapper):
         # On Mac, the query appears first in the string. Remove it if so.
         result = re.sub(re.escape(query), '', result).strip()
         result_lines = result.splitlines()
-
-        if len(result_lines) < 1:
+        if len(result_lines) < 2:
             raise OsqueryUnknownException(
-                'Unexpected output:\n %s' % result_lines)
-        if result_lines[0].startswith(self.ERROR_PREFIX):
-            raise OsqueryException(result_lines[0])
+                'Unexpected output:\n %s' % result_lines[0])
+        if result_lines[1].startswith(self.ERROR_PREFIX):
+            raise OsqueryException(result_lines[1])
+
+        noise = 0
+        for l in result_lines:
+            if len(l) == 0 or l[0] != '+':
+                # This is not a result line
+                noise += 1
+            elif l[0] == '+':
+                break
+        for l in range(noise):
+            result_lines.pop(0)
 
         try:
             header = result_lines[1]
