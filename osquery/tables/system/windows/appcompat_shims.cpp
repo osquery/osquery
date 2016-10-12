@@ -36,13 +36,17 @@ QueryData genShims(QueryContext& context) {
            "NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB",
            sdbResults);
   for (const auto& rKey : sdbResults) {
-    QueryData appResults;
+    QueryData regResults;
     sdb sdb;
     std::string subkey = rKey.at("subkey");
-    std::string sdbId = subkey.substr(subkey.find("{"), subkey.length());
+	auto start = subkey.find("{");
+	if (start == std::string::npos) {
+		continue;
+	}
+    std::string sdbId = subkey.substr(start, subkey.length());
     // make sure it's a sane uninstall key
-    queryKey("HKEY_LOCAL_MACHINE", subkey, appResults);
-    for (const auto& aKey : appResults) {
+    queryKey("HKEY_LOCAL_MACHINE", subkey, regResults);
+    for (const auto& aKey : regResults) {
       if (aKey.at("name") == "DatabaseDescription") {
         sdb.description = aKey.at("data");
       }
@@ -68,19 +72,27 @@ QueryData genShims(QueryContext& context) {
   for (const auto& rKey : shimResults) {
     QueryData appResults;
     std::string subkey = rKey.at("subkey");
-    std::string executable = rKey.at("subkey").substr(
-        rKey.at("subkey").rfind("\\") + 1, rKey.at("subkey").length());
+	auto start = rKey.at("subkey").rfind("\\") + 1;
+	if (start == std::string::npos) {
+		continue;
+	}
+    std::string executable = rKey.at("subkey").substr(start, rKey.at("subkey").length());
     // make sure it's a sane uninstall key
     queryKey("HKEY_LOCAL_MACHINE", subkey, appResults);
     for (const auto& aKey : appResults) {
       Row r;
-      std::string sdbId =
-          aKey.at("name").substr(0, aKey.at("name").length() - 4);
+	  std::string sdbId;
+	  if (aKey.at("name").length() > 4) {
+		 sdbId = aKey.at("name").substr(0, aKey.at("name").length() - 4);
+	  }
+	  if (sdbs.count(sdbId) == 0) {
+		  continue;
+	  }
       r["executable"] = executable;
-      r["path"] = sdbs[sdbId].path;
-      r["description"] = sdbs[sdbId].description;
-      r["install_time"] = INTEGER(sdbs[sdbId].installTimestamp);
-      r["type"] = sdbs[sdbId].type;
+      r["path"] = sdbs.at(sdbId).path;
+      r["description"] = sdbs.at(sdbId).description;
+      r["install_time"] = INTEGER(sdbs.at(sdbId).installTimestamp);
+      r["type"] = sdbs.at(sdbId).type;
       r["sdb_id"] = sdbId;
       results.push_back(r);
     }
