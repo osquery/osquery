@@ -19,10 +19,10 @@ namespace osquery {
 namespace tables {
 
 struct sdb {
-	std::string description;
-	unsigned long long installTimestamp;
-	std::string path;
-	std::string type;
+  std::string description;
+  unsigned long long installTimestamp;
+  std::string path;
+  std::string type;
 };
 
 QueryData genShims(QueryContext& context) {
@@ -30,58 +30,60 @@ QueryData genShims(QueryContext& context) {
   QueryData sdbResults;
   QueryData shimResults;
   std::map<std::string, sdb> sdbs;
-  
-  queryKey(
-      "HKEY_LOCAL_MACHINE",
-      "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB",
-	  sdbResults);
+
+  queryKey("HKEY_LOCAL_MACHINE",
+           "SOFTWARE\\Microsoft\\Windows "
+           "NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB",
+           sdbResults);
   for (const auto& rKey : sdbResults) {
     QueryData appResults;
-	sdb sdb;
+    sdb sdb;
     std::string subkey = rKey.at("subkey");
-	std::string sdbId = subkey.substr(subkey.find("{"), subkey.length());
+    std::string sdbId = subkey.substr(subkey.find("{"), subkey.length());
     // make sure it's a sane uninstall key
     queryKey("HKEY_LOCAL_MACHINE", subkey, appResults);
     for (const auto& aKey : appResults) {
       if (aKey.at("name") == "DatabaseDescription") {
-		 sdb.description = aKey.at("data");
+        sdb.description = aKey.at("data");
       }
-	  if (aKey.at("name") == "DatabaseInstallTimeStamp") {
-		  // take this crazy windows timestamp to a unix timestamp
-		  sdb.installTimestamp = std::stoull(aKey.at("data"));
-		  sdb.installTimestamp = (sdb.installTimestamp / 10000000) - 11644473600;
-	  }
-	  if (aKey.at("name") == "DatabasePath") {
-		  sdb.path = aKey.at("data");
-	  }
-	  if (aKey.at("name") == "DatabaseType") {
-		  sdb.type = aKey.at("data");
-	  }
+      if (aKey.at("name") == "DatabaseInstallTimeStamp") {
+        // take this crazy windows timestamp to a unix timestamp
+        sdb.installTimestamp = std::stoull(aKey.at("data"));
+        sdb.installTimestamp = (sdb.installTimestamp / 10000000) - 11644473600;
+      }
+      if (aKey.at("name") == "DatabasePath") {
+        sdb.path = aKey.at("data");
+      }
+      if (aKey.at("name") == "DatabaseType") {
+        sdb.type = aKey.at("data");
+      }
     }
-	sdbs[sdbId] = sdb;
+    sdbs[sdbId] = sdb;
   }
 
   queryKey(
-	  "HKEY_LOCAL_MACHINE",
-	  "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Custom",
-	  shimResults);
+      "HKEY_LOCAL_MACHINE",
+      "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Custom",
+      shimResults);
   for (const auto& rKey : shimResults) {
-	  QueryData appResults;
-	  std::string subkey = rKey.at("subkey");
-	  std::string executable = rKey.at("subkey").substr(rKey.at("subkey").rfind("\\")+1, rKey.at("subkey").length());
-	  // make sure it's a sane uninstall key
-	  queryKey("HKEY_LOCAL_MACHINE", subkey, appResults);
-	  for (const auto& aKey : appResults) {
-		  Row r;
-		  std::string sdbId = aKey.at("name").substr(0, aKey.at("name").length()-4);
-		  r["executable"] = executable;
-		  r["path"] = sdbs[sdbId].path;
-		  r["description"] = sdbs[sdbId].description;
-		  r["install_time"] = INTEGER(sdbs[sdbId].installTimestamp);
-		  r["type"] = sdbs[sdbId].type;
-		  r["sdb_id"] = sdbId;
-		  results.push_back(r);
-	  }
+    QueryData appResults;
+    std::string subkey = rKey.at("subkey");
+    std::string executable = rKey.at("subkey").substr(
+        rKey.at("subkey").rfind("\\") + 1, rKey.at("subkey").length());
+    // make sure it's a sane uninstall key
+    queryKey("HKEY_LOCAL_MACHINE", subkey, appResults);
+    for (const auto& aKey : appResults) {
+      Row r;
+      std::string sdbId =
+          aKey.at("name").substr(0, aKey.at("name").length() - 4);
+      r["executable"] = executable;
+      r["path"] = sdbs[sdbId].path;
+      r["description"] = sdbs[sdbId].description;
+      r["install_time"] = INTEGER(sdbs[sdbId].installTimestamp);
+      r["type"] = sdbs[sdbId].type;
+      r["sdb_id"] = sdbId;
+      results.push_back(r);
+    }
   }
 
   return results;
