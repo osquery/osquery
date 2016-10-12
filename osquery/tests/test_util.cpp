@@ -82,7 +82,7 @@ void initTesting() {
 
   // Set safe default values for path-based flags.
   // Specific unittests may edit flags temporarily.
-  kTestWorkingDirectory += getUserId() + "/";
+  kTestWorkingDirectory += std::to_string(platformGetUid()) + "/";
   kFakeDirectory = kTestWorkingDirectory + kFakeDirectoryName;
 
   fs::remove_all(kTestWorkingDirectory);
@@ -393,6 +393,11 @@ QueryData getEtcProtocolsExpectedResults() {
 }
 
 void createMockFileStructure() {
+  fs::create_directories(kFakeDirectory + "/toplevel/");
+  fs::create_directories(kFakeDirectory + "/toplevel/secondlevel1");
+  fs::create_directories(kFakeDirectory + "/toplevel/secondlevel2");
+  fs::create_directories(kFakeDirectory + "/toplevel/secondlevel3");
+  fs::create_directories(kFakeDirectory + "/toplevel/secondlevel3/thirdlevel1");
   fs::create_directories(kFakeDirectory + "/deep11/deep2/deep3/");
   fs::create_directories(kFakeDirectory + "/deep1/deep2/");
   writeTextFile(kFakeDirectory + "/root.txt", "root");

@@ -54,7 +54,6 @@ std::string kDoorTxtPath;
 std::string kDeep11Path;
 
 class FilesystemTests : public testing::Test {
-
  protected:
   void SetUp() {
     createMockFileStructure();
@@ -65,10 +64,12 @@ class FilesystemTests : public testing::Test {
         fs::path(kFakeDirectory + "/deep11").make_preferred().string();
   }
 
-  void TearDown() { tearDownMockFileStructure(); }
+  void TearDown() {
+    tearDownMockFileStructure();
+  }
 
   /// Helper method to check if a path was included in results.
-  bool contains(const std::vector<std::string> &all, const std::string &n) {
+  bool contains(const std::vector<std::string>& all, const std::string& n) {
     return !(std::find(all.begin(), all.end(), n) == all.end());
   }
 };
@@ -98,8 +99,7 @@ TEST_F(FilesystemTests, test_read_limit) {
   EXPECT_FALSE(status.ok());
   FLAGS_read_max = max;
 
-#ifndef WIN32
-  if (getuid() != 0) {
+  if (platformGetUid() != 0) {
     content.erase();
     FLAGS_read_user_max = 2;
     status = readFile(kFakeDirectory + "/root.txt", content);
@@ -115,7 +115,6 @@ TEST_F(FilesystemTests, test_read_limit) {
     status = readFile(kFakeDirectory + "/root2.txt", content);
     EXPECT_TRUE(status.ok());
   }
-#endif
 }
 
 TEST_F(FilesystemTests, test_list_files_missing_directory) {
@@ -140,6 +139,14 @@ TEST_F(FilesystemTests, test_list_files_valid_directory) {
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_TRUE(contains(results, kEtcHostsPath));
+}
+
+TEST_F(FilesystemTests, test_intermediate_globbing_directories) {
+  fs::path thirdLevelDir =
+      fs::path(kFakeDirectory) / "toplevel" / "%" / "thirdlevel1";
+  std::vector<std::string> results;
+  resolveFilePattern(thirdLevelDir, results);
+  EXPECT_EQ(results.size(), 1U);
 }
 
 TEST_F(FilesystemTests, test_canonicalization) {
@@ -179,7 +186,7 @@ TEST_F(FilesystemTests, test_simple_globs) {
   // Test the shell '*', we will support SQL's '%' too.
   auto status = resolveFilePattern(kFakeDirectory + "/*", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 6U);
+  EXPECT_EQ(results.size(), 7U);
 
   // Test the csh-style bracket syntax: {}.
   results.clear();
@@ -199,7 +206,7 @@ TEST_F(FilesystemTests, test_wildcard_single_all) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(kFakeDirectory + "/%", results, GLOB_ALL);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 6U);
+  EXPECT_EQ(results.size(), 7U);
   EXPECT_TRUE(contains(
       results,
       fs::path(kFakeDirectory + "/roto.txt").make_preferred().string()));
@@ -221,7 +228,7 @@ TEST_F(FilesystemTests, test_wildcard_single_files) {
 TEST_F(FilesystemTests, test_wildcard_single_folders) {
   std::vector<std::string> results;
   resolveFilePattern(kFakeDirectory + "/%", results, GLOB_FOLDERS);
-  EXPECT_EQ(results.size(), 2U);
+  EXPECT_EQ(results.size(), 3U);
   EXPECT_TRUE(contains(
       results,
       fs::path(kFakeDirectory + "/deep11/").make_preferred().string()));
@@ -232,9 +239,10 @@ TEST_F(FilesystemTests, test_wildcard_dual) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(kFakeDirectory + "/%/%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_TRUE(contains(results, fs::path(kFakeDirectory + "/deep1/level1.txt")
-                                    .make_preferred()
-                                    .string()));
+  EXPECT_TRUE(contains(results,
+                       fs::path(kFakeDirectory + "/deep1/level1.txt")
+                           .make_preferred()
+                           .string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_double) {
@@ -242,21 +250,21 @@ TEST_F(FilesystemTests, test_wildcard_double) {
   std::vector<std::string> results;
   auto status = resolveFilePattern(kFakeDirectory + "/%%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(results.size(), 15U);
-  EXPECT_TRUE(
-      contains(results, fs::path(kFakeDirectory + "/deep1/deep2/level2.txt")
-                            .make_preferred()
-                            .string()));
+  EXPECT_EQ(results.size(), 20U);
+  EXPECT_TRUE(contains(results,
+                       fs::path(kFakeDirectory + "/deep1/deep2/level2.txt")
+                           .make_preferred()
+                           .string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_double_folders) {
   std::vector<std::string> results;
   resolveFilePattern(kFakeDirectory + "/%%", results, GLOB_FOLDERS);
-  EXPECT_EQ(results.size(), 5U);
-  EXPECT_TRUE(
-      contains(results, fs::path(kFakeDirectory + "/deep11/deep2/deep3/")
-                            .make_preferred()
-                            .string()));
+  EXPECT_EQ(results.size(), 10U);
+  EXPECT_TRUE(contains(results,
+                       fs::path(kFakeDirectory + "/deep11/deep2/deep3/")
+                           .make_preferred()
+                           .string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_end_last_component) {
@@ -275,12 +283,14 @@ TEST_F(FilesystemTests, test_wildcard_middle_component) {
 
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 5U);
-  EXPECT_TRUE(contains(results, fs::path(kFakeDirectory + "/deep1/level1.txt")
-                                    .make_preferred()
-                                    .string()));
-  EXPECT_TRUE(contains(results, fs::path(kFakeDirectory + "/deep11/level1.txt")
-                                    .make_preferred()
-                                    .string()));
+  EXPECT_TRUE(contains(results,
+                       fs::path(kFakeDirectory + "/deep1/level1.txt")
+                           .make_preferred()
+                           .string()));
+  EXPECT_TRUE(contains(results,
+                       fs::path(kFakeDirectory + "/deep11/level1.txt")
+                           .make_preferred()
+                           .string()));
 }
 
 TEST_F(FilesystemTests, test_wildcard_all_types) {
@@ -288,8 +298,9 @@ TEST_F(FilesystemTests, test_wildcard_all_types) {
 
   auto status = resolveFilePattern(kFakeDirectory + "/%p11/%/%%", results);
   EXPECT_TRUE(status.ok());
-  EXPECT_TRUE(contains(
-      results, fs::path(kFakeDirectory + "/deep11/deep2/deep3/level3.txt")
+  EXPECT_TRUE(
+      contains(results,
+               fs::path(kFakeDirectory + "/deep11/deep2/deep3/level3.txt")
                    .make_preferred()
                    .string()));
 }
@@ -393,4 +404,3 @@ TEST_F(FilesystemTests, test_read_urandom) {
 }
 #endif
 }
-

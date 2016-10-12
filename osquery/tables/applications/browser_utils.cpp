@@ -10,7 +10,7 @@
 
 #include <osquery/logger.h>
 
-#include "osquery/tables/applications/posix/browser_utils.h"
+#include "osquery/tables/applications/browser_utils.h"
 #include "osquery/tables/system/system_utils.h"
 
 namespace osquery {
@@ -42,7 +42,7 @@ void genExtension(const std::string& uid,
     std::stringstream json_stream;
     json_stream << json_data;
     pt::read_json(json_stream, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     VLOG(1) << "Could not parse JSON from: " << path + kManifestFile;
     return;
   }

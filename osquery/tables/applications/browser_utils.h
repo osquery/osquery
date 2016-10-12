@@ -10,7 +10,14 @@
 
 #pragma once
 
+#ifdef WIN32
+#pragma warning(push, 3)
+#pragma warning(disable : 4715)
+#endif
 #include <boost/property_tree/json_parser.hpp>
+#ifdef WIN32
+#pragma warning(pop)
+#endif
 
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>

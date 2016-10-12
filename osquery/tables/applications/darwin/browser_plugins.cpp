@@ -16,7 +16,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-#include "osquery/tables/applications/posix/browser_utils.h"
+#include "osquery/tables/applications/browser_utils.h"
 #include "osquery/tables/system/system_utils.h"
 
 namespace fs = boost::filesystem;

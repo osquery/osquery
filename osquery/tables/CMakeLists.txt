@@ -106,10 +106,10 @@ if(NOT WINDOWS)
 endif()
 
 # No cross-platform application tables yet.
-# file(GLOB OSQUERY_CROSS_APPLICATIONS_TABLES "applications/*.cpp")
-# ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_applications
-#   ${OSQUERY_CROSS_APPLICATIONS_TABLES}
-#)
+file(GLOB OSQUERY_CROSS_APPLICATIONS_TABLES "applications/*.cpp")
+ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_applications
+  ${OSQUERY_CROSS_APPLICATIONS_TABLES}
+)
 
 file(GLOB OSQUERY_CROSS_NETWORKING_TABLES "networking/*.cpp")
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_networking

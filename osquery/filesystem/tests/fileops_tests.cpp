@@ -239,7 +239,8 @@ TEST_F(FileOpsTests, test_glob) {
                                    kFakeDirectory + "/door.txt",
                                    kFakeDirectory + "/root.txt",
                                    kFakeDirectory + "/root2.txt",
-                                   kFakeDirectory + "/roto.txt"};
+                                   kFakeDirectory + "/roto.txt",
+                                   kFakeDirectory + "/toplevel/"};
     auto result = platformGlob(kFakeDirectory + "/*");
     EXPECT_TRUE(globResultsMatch(result, expected));
   }
@@ -249,15 +250,21 @@ TEST_F(FileOpsTests, test_glob) {
                                    kFakeDirectory + "/deep1/level1.txt",
                                    kFakeDirectory + "/deep11/deep2/",
                                    kFakeDirectory + "/deep11/level1.txt",
-                                   kFakeDirectory + "/deep11/not_bash"};
+                                   kFakeDirectory + "/deep11/not_bash",
+                                   kFakeDirectory + "/toplevel/secondlevel1/",
+                                   kFakeDirectory + "/toplevel/secondlevel2/",
+                                   kFakeDirectory + "/toplevel/secondlevel3/"};
     auto result = platformGlob(kFakeDirectory + "/*/*");
     EXPECT_TRUE(globResultsMatch(result, expected));
   }
 
   {
-    std::vector<fs::path> expected{kFakeDirectory + "/deep1/deep2/level2.txt",
-                                   kFakeDirectory + "/deep11/deep2/deep3/",
-                                   kFakeDirectory + "/deep11/deep2/level2.txt"};
+    std::vector<fs::path> expected{
+        kFakeDirectory + "/deep1/deep2/level2.txt",
+        kFakeDirectory + "/deep11/deep2/deep3/",
+        kFakeDirectory + "/deep11/deep2/level2.txt",
+        kFakeDirectory + "/toplevel/secondlevel3/thirdlevel1/",
+    };
     auto result = platformGlob(kFakeDirectory + "/*/*/*");
     EXPECT_TRUE(globResultsMatch(result, expected));
   }
@@ -285,16 +292,21 @@ TEST_F(FileOpsTests, test_glob) {
   }
 
   {
-    std::vector<fs::path> expected{kFakeDirectory + "/deep1/deep2/",
-#ifdef WIN32
-                                   kFakeDirectory + "/deep1/level1.txt",
-                                   kFakeDirectory + "/deep11/deep2/",
-#else
-                                   kFakeDirectory + "/deep11/deep2/",
-                                   kFakeDirectory + "/deep1/level1.txt",
-#endif
-                                   kFakeDirectory + "/deep11/level1.txt",
-                                   kFakeDirectory + "/deep11/not_bash"};
+    std::vector<fs::path> expected;
+    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+      expected = {kFakeDirectory + "/deep1/deep2/",
+                  kFakeDirectory + "/deep1/level1.txt",
+                  kFakeDirectory + "/deep11/deep2/",
+                  kFakeDirectory + "/deep11/level1.txt",
+                  kFakeDirectory + "/deep11/not_bash"};
+    } else {
+      expected = {kFakeDirectory + "/deep1/deep2/",
+                  kFakeDirectory + "/deep11/deep2/",
+                  kFakeDirectory + "/deep1/level1.txt",
+                  kFakeDirectory + "/deep11/level1.txt",
+                  kFakeDirectory + "/deep11/not_bash"};
+    }
+
     auto result =
         platformGlob(kFakeDirectory + "/*/{deep2,level1,not_bash}{,.txt}");
     EXPECT_TRUE(globResultsMatch(result, expected));
