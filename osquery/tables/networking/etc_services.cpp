@@ -21,6 +21,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
 

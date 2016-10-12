@@ -186,19 +186,6 @@ Status resolveFilePattern(const boost::filesystem::path& pattern,
                           GlobLimits setting);
 
 /**
- * @brief Returns the OS root system directory.
- *
- * Some applications store configuration and application data inside of the
- * Windows directory. This function retrieves the path to the current
- * configurations Windows location.
- *
- * On POSIX systems this returns "/".
- *
- * @return an instance of fs::path, containing the OS root location.
- */
-boost::filesystem::path getSystemRoot();
-
-/**
  * @brief Transform a path with SQL wildcards to globbing wildcard.
  *
  * SQL uses '%' as a wildcard matching token, and filesystem globbing uses '*'.

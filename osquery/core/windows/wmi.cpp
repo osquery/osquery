@@ -79,6 +79,23 @@ Status WmiResultItem::GetBool(const std::string& name, bool& ret) const {
   return Status(0);
 }
 
+Status WmiResultItem::GetUChar(const std::string& name,
+                               unsigned char& ret) const {
+  std::wstring property_name = stringToWstring(name);
+  VARIANT value;
+  HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
+  if (hr != S_OK) {
+    return Status(-1, "Error retrieving data from WMI query.");
+  }
+  if (value.vt != VT_UI1) {
+    VariantClear(&value);
+    return Status(-1, "Invalid data type returned.");
+  }
+  ret = value.bVal;
+  VariantClear(&value);
+  return Status(0);
+}
+
 Status WmiResultItem::GetLong(const std::string& name, long& ret) const {
   std::wstring property_name = stringToWstring(name);
   VARIANT value;

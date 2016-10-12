@@ -17,6 +17,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
+#include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 
 namespace fs = boost::filesystem;

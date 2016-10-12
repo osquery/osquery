@@ -304,4 +304,17 @@ bool platformIsatty(FILE* f);
 /// Opens a file and returns boost::none on error
 boost::optional<FILE*> platformFopen(const std::string& filename,
                                      const std::string& mode);
+
+/**
+* @brief Returns the OS root system directory.
+*
+* Some applications store configuration and application data inside of the
+* Windows directory. This function retrieves the path to the current
+* configurations Windows location.
+*
+* On POSIX systems this returns "/".
+*
+* @return an instance of fs::path, containing the OS root location.
+*/
+boost::filesystem::path getSystemRoot();
 }
