@@ -70,7 +70,7 @@ QueryData genShims(QueryContext& context) {
       "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Custom",
       shimResults);
   for (const auto& rKey : shimResults) {
-    QueryData appResults;
+    QueryData regResults;
     std::string subkey = rKey.at("subkey");
 	auto start = rKey.at("subkey").rfind("\\") + 1;
 	if (start == std::string::npos) {
@@ -78,8 +78,8 @@ QueryData genShims(QueryContext& context) {
 	}
     std::string executable = rKey.at("subkey").substr(start, rKey.at("subkey").length());
     // make sure it's a sane uninstall key
-    queryKey("HKEY_LOCAL_MACHINE", subkey, appResults);
-    for (const auto& aKey : appResults) {
+    queryKey("HKEY_LOCAL_MACHINE", subkey, regResults);
+    for (const auto& aKey : regResults) {
       Row r;
 	  std::string sdbId;
 	  if (aKey.at("name").length() > 4) {
