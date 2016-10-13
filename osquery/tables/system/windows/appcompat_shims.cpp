@@ -39,10 +39,10 @@ QueryData genShims(QueryContext& context) {
     QueryData regResults;
     sdb sdb;
     std::string subkey = rKey.at("subkey");
-	auto start = subkey.find("{");
-	if (start == std::string::npos) {
-		continue;
-	}
+    auto start = subkey.find("{");
+    if (start == std::string::npos) {
+      continue;
+    }
     std::string sdbId = subkey.substr(start, subkey.length());
     // make sure it's a sane uninstall key
     queryKey("HKEY_LOCAL_MACHINE", subkey, regResults);
@@ -81,13 +81,13 @@ QueryData genShims(QueryContext& context) {
     queryKey("HKEY_LOCAL_MACHINE", subkey, regResults);
     for (const auto& aKey : regResults) {
       Row r;
-	  std::string sdbId;
-	  if (aKey.at("name").length() > 4) {
-		 sdbId = aKey.at("name").substr(0, aKey.at("name").length() - 4);
-	  }
-	  if (sdbs.count(sdbId) == 0) {
-		  continue;
-	  }
+      std::string sdbId;
+      if (aKey.at("name").length() > 4) {
+        sdbId = aKey.at("name").substr(0, aKey.at("name").length() - 4);
+      }
+      if (sdbs.count(sdbId) == 0) {
+        continue;
+      }
       r["executable"] = executable;
       r["path"] = sdbs.at(sdbId).path;
       r["description"] = sdbs.at(sdbId).description;
