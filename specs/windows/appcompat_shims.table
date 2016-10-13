@@ -1,0 +1,14 @@
+table_name("appcompat_shims")
+description("Application Compatibility shims are a way to persist malware. This table presents the AppCompat Shim information from the registry in a nice format. http://files.brucon.org/2015/Tomczak_and_Ballenthin_Shims_for_the_Win.pdf")
+schema([
+    Column("executable", TEXT, "Name of the executable that is being shimmed. This is pulled from the registry."),
+    Column("path", TEXT, "This is the path to the SDB database."),
+    Column("description", TEXT, "Description of the SDB."),
+    Column("install_time", INTEGER, "Install time of the SDB"),
+    Column("type", TEXT, "Type of the SDB database."),
+    Column("sdb_id", TEXT, "Unique GUID of the SDB."),
+])
+implementation("appcompat_shims@genShims")
+examples([
+  "select * from appcompat_shims;",
+])
