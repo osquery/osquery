@@ -114,17 +114,23 @@ class TLSRequestHelper : private boost::noncopyable {
     }
 
     // Receive config or key rejection
-    if (output.count("error") > 0) {
-      return Status(1, "Request failed: " + output.get("error", "<unknown>"));
-    } else if (output.count("node_invalid") > 0) {
+    if (output.count("node_invalid") > 0) {
       auto invalid = output.get("node_invalid", "");
       if (invalid == "1" || invalid == "true" || invalid == "True") {
         if (!FLAGS_disable_reenrollment) {
           clearNodeKey();
         }
-        return Status(1, "Request failed: Invalid node key");
+
+        std::string status = "Request failed: Invalid node key";
+        if (output.count("error") > 0) {
+          status += ": " + output.get("error", "<unknown>");
+        }
+        return Status(1, status);
       }
+    } else if (output.count("error") > 0) {
+      return Status(1, "Request failed: " + output.get("error", "<unknown>"));
     }
+
     return Status(0, "OK");
   }
 
