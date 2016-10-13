@@ -72,11 +72,12 @@ QueryData genShims(QueryContext& context) {
   for (const auto& rKey : shimResults) {
     QueryData regResults;
     std::string subkey = rKey.at("subkey");
-	auto start = rKey.at("subkey").rfind("\\");
-	if (start == std::string::npos) {
-		continue;
-	}
-    std::string executable = rKey.at("subkey").substr(start + 1, rKey.at("subkey").length());
+    auto start = rKey.at("subkey").rfind("\\");
+    if (start == std::string::npos) {
+      continue;
+    }
+    std::string executable =
+        rKey.at("subkey").substr(start + 1, rKey.at("subkey").length());
     // make sure it's a sane uninstall key
     queryKey("HKEY_LOCAL_MACHINE", subkey, regResults);
     for (const auto& aKey : regResults) {
