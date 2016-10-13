@@ -759,7 +759,7 @@ ssize_t PlatformFile::read(void* buf, size_t nbyte) {
     return -1;
   }
 
-  ssize_t nret = 0;
+  ssize_t nret = -1;
   DWORD bytes_read = 0;
   DWORD last_error = 0;
 
@@ -772,31 +772,27 @@ ssize_t PlatformFile::read(void* buf, size_t nbyte) {
       last_read_.overlapped_.Offset = cursor_;
       last_read_.buffer_.reset(new char[nbyte]);
 
-      if (!::ReadFile(handle_,
-                      last_read_.buffer_.get(),
-                      static_cast<DWORD>(nbyte),
-                      nullptr,
-                      &last_read_.overlapped_)) {
+      if (::ReadFile(handle_,
+                     last_read_.buffer_.get(),
+                     static_cast<DWORD>(nbyte),
+                     &bytes_read,
+                     &last_read_.overlapped_) != 0) {
+        memcpy_s(buf, nbyte, last_read_.buffer_.get(), bytes_read);
+        nret = bytes_read;
+      } else {
         last_error = ::GetLastError();
         if (last_error == ERROR_IO_PENDING || last_error == ERROR_MORE_DATA) {
           nret = getOverlappedResultForRead(buf, nbyte);
-        } else {
-          nret = -1;
         }
-      } else {
-        // This should never occur
-        nret = -1;
       }
     }
   } else {
-    if (!::ReadFile(
-            handle_, buf, static_cast<DWORD>(nbyte), &bytes_read, nullptr)) {
-      nret = -1;
-    } else {
+    if (::ReadFile(
+            handle_, buf, static_cast<DWORD>(nbyte), &bytes_read, nullptr) !=
+        0) {
       nret = bytes_read;
     }
   }
-
   return nret;
 }
 
