@@ -43,11 +43,10 @@ FLAG(bool, logger_tls_compress, false, "GZip compress TLS/HTTPS request body");
 
 REGISTER(TLSLoggerPlugin, "logger", "tls");
 
-TLSLogForwarder::TLSLogForwarder(const std::string& node_key)
+TLSLogForwarder::TLSLogForwarder()
     : BufferedLogForwarder("tls",
                            std::chrono::seconds(FLAGS_logger_tls_period),
-                           kTLSMaxLogLines),
-      node_key_(node_key) {
+                           kTLSMaxLogLines) {
   uri_ = TLSRequestHelper::makeURI(FLAGS_logger_tls_endpoint);
 }
 
@@ -67,7 +66,7 @@ Status TLSLoggerPlugin::setUp() {
   }
 
   // Start the log forwarding/flushing thread.
-  forwarder_ = std::make_shared<TLSLogForwarder>(node_key);
+  forwarder_ = std::make_shared<TLSLogForwarder>();
   Status s = forwarder_->setUp();
   if (!s.ok()) {
     LOG(ERROR) << "Error initializing TLS logger: " << s.getMessage();
@@ -90,7 +89,7 @@ void TLSLoggerPlugin::init(const std::string& name,
 Status TLSLogForwarder::send(std::vector<std::string>& log_data,
                              const std::string& log_type) {
   pt::ptree params;
-  params.put<std::string>("node_key", node_key_);
+  params.put<std::string>("node_key", getNodeKey("tls"));
   params.put<std::string>("log_type", log_type);
 
   {
@@ -120,11 +119,9 @@ Status TLSLogForwarder::send(std::vector<std::string>& log_data,
     params.add_child("data", std::move(children));
   }
 
-  auto request = Request<TLSTransport, JSONSerializer>(uri_);
-  request.setOption("hostname", FLAGS_tls_hostname);
-  if (FLAGS_logger_tls_compress) {
-    request.setOption("compress", true);
-  }
-  return request.call(params);
+  // The response body is ignored (status is set appropriately by
+  // TLSRequestHelper::go())
+  std::string response;
+  return TLSRequestHelper::go<JSONSerializer>(uri_, params, response);
 }
 }

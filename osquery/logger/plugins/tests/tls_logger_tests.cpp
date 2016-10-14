@@ -29,7 +29,7 @@ class TLSLoggerTests : public testing::Test {
 };
 
 TEST_F(TLSLoggerTests, test_database) {
-  auto forwarder = std::make_shared<TLSLogForwarder>("fake_key");
+  auto forwarder = std::make_shared<TLSLogForwarder>();
   std::string expected = "{\"new_json\": true}";
   forwarder->logString(expected);
   StatusLogLine status;
@@ -57,7 +57,7 @@ TEST_F(TLSLoggerTests, test_send) {
   TLSServerRunner::start();
   TLSServerRunner::setClientConfig();
 
-  auto forwarder = std::make_shared<TLSLogForwarder>("fake_key");
+  auto forwarder = std::make_shared<TLSLogForwarder>();
   for (size_t i = 0; i < 20; i++) {
     std::string expected = "{\"more_json\": true}";
     forwarder->logString(expected);

@@ -26,14 +26,11 @@ namespace osquery {
  */
 class TLSLogForwarder : public BufferedLogForwarder {
  public:
-  explicit TLSLogForwarder(const std::string& node_key);
+  explicit TLSLogForwarder();
 
  protected:
   Status send(std::vector<std::string>& log_data,
               const std::string& log_type) override;
-
-  /// Receive an enrollment/node key from the backing store cache.
-  std::string node_key_;
 
   /// Endpoint URI
   std::string uri_;
