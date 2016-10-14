@@ -36,6 +36,7 @@ QueryData genWmiFilters(QueryContext& context) {
       Row r;
 
       result.GetString("Name", r["name"]);
+      result.GetString("Query", r["query"]);
       result.GetString("QueryLanguage", r["query_language"]);
       result.GetString("__CLASS", r["class"]);
       result.GetString("__RELPATH", r["relative_path"]);
