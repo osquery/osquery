@@ -46,6 +46,7 @@
 #ifdef WIN32
 #include "osquery/core/windows/wmi.h"
 #endif
+#include "osquery/core/conversions.h"
 #include "osquery/core/process.h"
 #include "osquery/core/utils.h"
 
@@ -333,6 +334,21 @@ bool DropPrivileges::dropToParent(const fs::path& path) {
   // Privileges are dropped but not to the requested user/group.
   // Proceed with extreme caution.
   return false;
+}
+
+bool DropPrivileges::dropTo(const std::string& user) {
+  auto result = SQL::selectAllFrom("users", "username", EQUALS, user);
+  if (result.size() == 0) {
+    return false;
+  }
+
+  long uid = 0;
+  long gid = 0;
+  if (!safeStrtol(result[0].at("uid"), 10, uid) ||
+      !safeStrtol(result[0].at("gid"), 10, gid)) {
+    return false;
+  }
+  return dropTo(static_cast<uid_t>(uid), static_cast<gid_t>(gid));
 }
 
 bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {

@@ -21,6 +21,7 @@
 #define DEBUG
 #endif
 
+#include <osquery/system.h>
 #include <osquery/tables.h>
 
 namespace osquery {
@@ -76,6 +77,9 @@ void extractAptSourceInfo(pkgCache::PkgFileIterator src,
 
 QueryData genAptSrcs(QueryContext& context) {
   QueryData results;
+
+  auto dropper = DropPrivileges::get();
+  dropper->dropTo("nobody");
 
   // Load our apt configuration into memory
   // Note: _config comes from apt-pkg/configuration.h

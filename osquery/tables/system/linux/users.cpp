@@ -63,6 +63,15 @@ QueryData genUsers(QueryContext& context) {
         }
       }
     }
+  } else if (context.constraints["username"].exists(EQUALS)) {
+    auto usernames = context.constraints["username"].getAll(EQUALS);
+    for (const auto& username : usernames) {
+      WriteLock lock(pwdEnumerationMutex);
+      pwd = getpwnam(username.c_str());
+      if (pwd != nullptr) {
+        genUser(pwd, results);
+      }
+    }
   } else {
     WriteLock lock(pwdEnumerationMutex);
     pwd = getpwent();

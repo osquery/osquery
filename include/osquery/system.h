@@ -196,6 +196,9 @@ class DropPrivileges : private boost::noncopyable {
   /// See DropPrivileges::dropToParent but explicitly set the UID and GID.
   bool dropTo(uid_t uid, gid_t gid);
 
+  /// See DropPrivileges::dropToParent but for a user's UID and GID.
+  bool dropTo(const std::string& user);
+
   /// Check if effective privileges do not match real.
   bool dropped() {
     return (getuid() != geteuid() || getgid() != getegid());
