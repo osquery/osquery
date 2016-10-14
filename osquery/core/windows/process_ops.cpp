@@ -8,28 +8,36 @@
  *
  */
 
+#define _WIN32_DCOM
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+// clang-format off
+#include <LM.h>
+// clang-format on
+
 #include <string>
 #include <vector>
 
 #include <boost/optional.hpp>
 
 #include "osquery/core/process.h"
+#include "osquery/core/windows/wmi.h"
 #include "osquery/system.h"
 
 namespace osquery {
 
-std::string getUserId() {
+int platformGetUid() {
   DWORD nbytes = 0;
   HANDLE token = INVALID_HANDLE_VALUE;
 
   if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token)) {
-    return "";
+    return -1;
   }
 
   ::GetTokenInformation(token, TokenUser, nullptr, 0, &nbytes);
   if (nbytes == 0) {
     ::CloseHandle(token);
-    return "";
+    return -1;
   }
 
   std::vector<char> tu_buffer;
@@ -43,19 +51,46 @@ std::string getUserId() {
                                       &nbytes);
   ::CloseHandle(token);
   if (status == 0) {
-    return "";
+    return -1;
   }
 
   LPSTR sid = nullptr;
   tu = (PTOKEN_USER)tu_buffer.data();
-  if (!::ConvertSidToStringSidA(tu->User.Sid, &sid)) {
-    return "";
+  SID_NAME_USE eUse = SidTypeUnknown;
+  DWORD unameSize = 0;
+  DWORD domNameSize = 1;
+
+  // LookupAccountSid first gets the size of the username buff required.
+  LookupAccountSid(
+      nullptr, tu->User.Sid, nullptr, &unameSize, nullptr, &domNameSize, &eUse);
+
+  std::vector<char> uname(unameSize);
+  std::vector<char> domName(domNameSize);
+  auto ret = LookupAccountSid(nullptr,
+                              tu->User.Sid,
+                              uname.data(),
+                              &unameSize,
+                              domName.data(),
+                              &domNameSize,
+                              &eUse);
+
+  if (ret == 0) {
+    return -1;
   }
 
-  std::string uid(sid);
-  ::LocalFree(sid);
+  // USER_INFO_3 struct contains the RID (uid) of our user
+  DWORD userInfoLevel = 3;
+  LPUSER_INFO_3 userBuff = nullptr;
+  std::wstring wideUserName = stringToWstring(std::string(uname.data()));
+  ret = NetUserGetInfo(
+      nullptr, wideUserName.c_str(), userInfoLevel, (LPBYTE*)&userBuff);
 
-  return uid;
+  if (ret != NERR_Success) {
+    return -1;
+  }
+
+  ::LocalFree(sid);
+  return userBuff->usri3_user_id;
 }
 
 bool isLauncherProcessDead(PlatformProcess& launcher) {
@@ -146,5 +181,9 @@ bool isUserAdmin() {
     CloseHandle(hToken);
   }
   return Elevation.TokenIsElevated ? true : false;
+}
+
+int platformGetPid() {
+  return (int)GetCurrentProcessId();
 }
 }

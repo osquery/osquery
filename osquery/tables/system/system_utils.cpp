@@ -17,15 +17,13 @@ QueryData usersFromContext(const QueryContext& context, bool all) {
   QueryData users;
   if (context.hasConstraint("uid", EQUALS)) {
     context.forEachConstraint(
-        "uid",
-        EQUALS,
-        ([&users](const std::string& expr) {
+        "uid", EQUALS, ([&users](const std::string& expr) {
           auto user = SQL::selectAllFrom("users", "uid", EQUALS, expr);
           users.insert(users.end(), user.begin(), user.end());
         }));
   } else if (!all) {
-    users =
-        SQL::selectAllFrom("users", "uid", EQUALS, std::to_string(getuid()));
+    users = SQL::selectAllFrom(
+        "users", "uid", EQUALS, std::to_string(platformGetUid()));
   } else {
     users = SQL::selectAllFrom("users");
   }
@@ -36,15 +34,13 @@ QueryData pidsFromContext(const QueryContext& context, bool all) {
   QueryData procs;
   if (context.hasConstraint("pid", EQUALS)) {
     context.forEachConstraint(
-        "pid",
-        EQUALS,
-        ([&procs](const std::string& expr) {
+        "pid", EQUALS, ([&procs](const std::string& expr) {
           auto proc = SQL::selectAllFrom("processes", "pid", EQUALS, expr);
           procs.insert(procs.end(), procs.begin(), procs.end());
         }));
   } else if (!all) {
     procs = SQL::selectAllFrom(
-        "processes", "pid", EQUALS, std::to_string(getpid()));
+        "processes", "pid", EQUALS, std::to_string(platformGetPid()));
   } else {
     procs = SQL::selectAllFrom("processes");
   }

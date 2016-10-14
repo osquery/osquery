@@ -1024,7 +1024,9 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
           boost::system::error_code ec;
           if (fs::exists(valid_path / component, ec) &&
               ec.value() == errc::success) {
-            tmp_valid_paths.push_back(valid_path / component);
+            fs::path tmp_vpath =
+                component.string() != "." ? valid_path / component : valid_path;
+            tmp_valid_paths.push_back(tmp_vpath);
           }
         }
       }
@@ -1054,7 +1056,11 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
         }
       }
     } else {
-      WindowsFindFiles wf(valid_path / full_path.filename());
+      fs::path glob_path = full_path.filename() == "."
+                               ? valid_path
+                               : valid_path / full_path.filename();
+
+      WindowsFindFiles wf(glob_path);
       for (auto& result : wf.get()) {
         auto result_path = result.make_preferred().string();
 

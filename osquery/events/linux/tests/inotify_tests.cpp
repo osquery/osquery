@@ -19,8 +19,8 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/events/linux/inotify.h"
+#include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
 
@@ -233,7 +233,9 @@ TEST_F(INotifyTests, test_inotify_match_subscription) {
 class TestINotifyEventSubscriber
     : public EventSubscriber<INotifyEventPublisher> {
  public:
-  TestINotifyEventSubscriber() { setName("TestINotifyEventSubscriber"); }
+  TestINotifyEventSubscriber() {
+    setName("TestINotifyEventSubscriber");
+  }
 
   Status init() override {
     callback_count_ = 0;
@@ -283,7 +285,9 @@ class TestINotifyEventSubscriber
     return actions_;
   }
 
-  int count() { return callback_count_; }
+  int count() {
+    return callback_count_;
+  }
 
  public:
   std::atomic<int> callback_count_{0};
@@ -450,7 +454,7 @@ TEST_F(INotifyTests, test_inotify_recursion) {
   pub->configure();
 
   // Expect only the directories to be monitored.
-  EXPECT_EQ(pub->path_descriptors_.size(), 6U);
+  EXPECT_EQ(pub->path_descriptors_.size(), 11U);
   RemoveAll(pub);
 
   // Use a directory structure that includes a loop.
@@ -463,7 +467,7 @@ TEST_F(INotifyTests, test_inotify_recursion) {
   pub->configure();
 
   // Also expect canonicalized resolution (to prevent loops).
-  EXPECT_EQ(pub->path_descriptors_.size(), 6U);
+  EXPECT_EQ(pub->path_descriptors_.size(), 11U);
   RemoveAll(pub);
 
   // Remove mock directory structure.

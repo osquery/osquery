@@ -208,8 +208,8 @@ class SecurityDescriptor {
 };
 #endif
 
-/// Returns the current user's ID (UID on POSIX systems and SID for Windows)
-std::string getUserId();
+/// Returns the current user's ID (UID on POSIX systems and RID for Windows)
+int platformGetUid();
 
 /// Causes the current thread to sleep for a specified time in milliseconds.
 void sleepFor(size_t msec);
@@ -255,8 +255,11 @@ std::string platformModuleGetError();
  */
 bool platformModuleClose(ModuleHandle module);
 
-/// Checks to see if the launcher process is dead (only works for worker
-/// processes).
+/**
+ * @brief Checks to see if the launcher process is dead
+ *
+ * Note, this only works on worker processes.
+ */
 bool isLauncherProcessDead(PlatformProcess& launcher);
 
 /// Waits for defunct processes to terminate.
@@ -264,4 +267,12 @@ void cleanupDefunctProcesses();
 
 /// Sets the current process to run with background scheduling priority.
 void setToBackgroundPriority();
+
+/**
+* @brief Returns the current processes pid
+*
+* On Windows, returns the value of GetCurrentProcessId
+* and on posix platforms returns getpid()
+*/
+int platformGetPid();
 }

@@ -24,8 +24,8 @@
 
 namespace osquery {
 
-std::string getUserId() {
-  return std::to_string(::getuid());
+int platformGetUid() {
+  return ::getuid();
 }
 
 bool isLauncherProcessDead(PlatformProcess& launcher) {
@@ -81,5 +81,9 @@ void setToBackgroundPriority() {
 // Helper function to determine if thread is running with admin privilege.
 bool isUserAdmin() {
   return getuid() == 0;
+}
+
+int platformGetPid() {
+  return (int)getpid();
 }
 }
