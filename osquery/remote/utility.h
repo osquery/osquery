@@ -127,7 +127,9 @@ class TLSRequestHelper : private boost::noncopyable {
         }
         return Status(1, status);
       }
-    } else if (output.count("error") > 0) {
+    }
+
+    if (output.count("error") > 0) {
       return Status(1, "Request failed: " + output.get("error", "<unknown>"));
     }
 
