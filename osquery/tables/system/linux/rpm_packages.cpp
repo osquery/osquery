@@ -19,6 +19,7 @@
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
 
 namespace osquery {
@@ -87,6 +88,9 @@ class RpmEnvironmentManager : public boost::noncopyable {
 QueryData genRpmPackages(QueryContext& context) {
   QueryData results;
 
+  auto dropper = DropPrivileges::get();
+  dropper->dropTo("nobody");
+
   // Isolate RPM/package inspection to the canonical: /usr/lib/rpm.
   RpmEnvironmentManager env_manager;
 
@@ -132,6 +136,9 @@ QueryData genRpmPackages(QueryContext& context) {
 
 QueryData genRpmPackageFiles(QueryContext& context) {
   QueryData results;
+
+  auto dropper = DropPrivileges::get();
+  dropper->dropTo("nobody");
 
   // Isolate RPM/package inspection to the canonical: /usr/lib/rpm.
   RpmEnvironmentManager env_manager;

@@ -22,6 +22,7 @@ extern "C" {
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 #include <osquery/tables.h>
 
 namespace osquery {
@@ -160,6 +161,9 @@ QueryData genDebPackages(QueryContext &context) {
     TLOG << "Cannot find DPKG database: " << kDPKGPath;
     return results;
   }
+
+  auto dropper = DropPrivileges::get();
+  dropper->dropTo("nobody");
 
   struct pkg_array packages;
   dpkg_setup(&packages);
