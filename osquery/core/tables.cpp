@@ -125,10 +125,6 @@ Status TablePlugin::call(const PluginRequest& request,
     // The "columns" action returns a PluginRequest filled with column
     // information such as name and type.
     response = routeInfo();
-  } else if (request.at("action") == "definition") {
-    response.push_back({
-        {"definition", columnDefinition()},
-    });
   } else {
     return Status(1, "Unknown table plugin action: " + request.at("action"));
   }
