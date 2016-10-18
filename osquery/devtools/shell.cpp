@@ -1074,13 +1074,15 @@ inline void meta_schema(int nArg, char** azArg) {
       continue;
     }
 
-    osquery::PluginRequest request = {{"action", "definition"}};
     osquery::PluginResponse response;
-    osquery::Registry::call("table", table_name, request, response);
-    fprintf(stdout,
-            "CREATE TABLE %s%s;\n",
-            table_name.c_str(),
-            response[0].at("definition").c_str());
+    auto status = osquery::Registry::call(
+        "table", table_name, {{"action", "columns"}}, response);
+    if (status.ok()) {
+      fprintf(stdout,
+              "CREATE TABLE %s%s;\n",
+              table_name.c_str(),
+              osquery::columnDefinition(response, true).c_str());
+    }
   }
 }
 
