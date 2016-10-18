@@ -107,6 +107,61 @@ TEST_F(FileOpsTests, test_openFile) {
   }
 }
 
+/*
+ * This is a special function for testing file share operations on Windows. Our PlatformFile as of now will only set FILE_SHARE_READ to play nicely with log reading tools. However, we need to create one with FILE_SHARE_READ and FILE_SHARE_WRITE for testing.
+ */
+std::unique_ptr<PlatformFile> openRWSharedFile(const std::string& path, int mode) {
+#ifdef WIN32
+  DWORD access_mask = -1;
+  DWORD creation_disposition = -1;
+
+  if (mode == (PF_OPEN_EXISTING | PF_READ)) {
+    access_mask = PF_READ;
+    creation_disposition = OPEN_EXISTING;
+  } else if (mode == (PF_OPEN_ALWAYS | PF_WRITE)) {
+    access_mask = PF_WRITE;
+    creation_disposition = OPEN_ALWAYS;
+  }
+
+  HANDLE handle = ::CreateFileA(path.c_str(), access_mask, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, creation_disposition, 0, nullptr);
+  return std::unique_ptr<PlatformFile>(new PlatformFile(handle));
+#else
+  return std::unique_ptr<PlatformFile>(new PlatformFile(path, mode));
+#endif
+}
+
+TEST_F(FileOpsTests, test_shareRead) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  const char *test1_data = "AAAABBBB";
+  const ssize_t test1_size = ::strlen(test1_data);
+
+  {
+    PlatformFile fd(path, PF_CREATE_NEW | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(test1_size, fd.write(test1_data, test1_size));
+  }
+
+  {
+    auto reader_fd = openRWSharedFile(path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_TRUE(reader_fd->isValid());
+
+    std::vector<char> buf;
+    buf.assign(test1_size, '\0');
+
+    EXPECT_EQ(test1_size, reader_fd->read(buf.data(), test1_size));
+    EXPECT_EQ(test1_size, buf.size());
+
+    for (ssize_t i = 0; i < test1_size; i++) {
+      EXPECT_EQ(test1_data[i], buf[i]);
+    }
+
+    PlatformFile fd(path, PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND);
+    EXPECT_TRUE(fd.isValid());
+  }
+}
+
 TEST_F(FileOpsTests, test_fileIo) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
@@ -131,6 +186,42 @@ TEST_F(FileOpsTests, test_fileIo) {
     EXPECT_EQ(expected_buf_size, buf.size());
     for (ssize_t i = 0; i < expected_read_len; i++) {
       EXPECT_EQ(expected_read[i], buf[i]);
+    }
+  }
+}
+
+TEST_F(FileOpsTests, test_append) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  const char *test_data = "AAAABBBBCCCCDDDDD";
+  const ssize_t test_size = ::strlen(test_data);
+  const ssize_t test1_size = 7;
+  const ssize_t test2_size = test_size - test1_size;
+
+  {
+    PlatformFile fd(path, PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(test1_size, fd.write(test_data, test1_size));
+  }
+
+  {
+    PlatformFile fd(path, PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(test2_size, fd.write(&test_data[7], test2_size));
+  }
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_TRUE(fd.isValid());
+
+    std::vector<char> buf;
+    buf.assign(test_size, '\0');
+    EXPECT_EQ(test_size, fd.read(buf.data(), test_size));
+    EXPECT_EQ(test_size, buf.size());
+
+    for (ssize_t i = 0; i < test_size; i++) {
+      EXPECT_EQ(test_data[i], buf[i]);
     }
   }
 }
