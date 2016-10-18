@@ -192,11 +192,7 @@ Status checkStalePid(const std::string& content) {
   try {
     pid = boost::lexical_cast<int>(content);
   } catch (const boost::bad_lexical_cast& /* e */) {
-    if (FLAGS_force) {
-      return Status(0, "Force loading and not parsing pidfile");
-    } else {
-      return Status(1, "Could not parse pidfile");
-    }
+    return Status(0, "Could not parse pid from existing pidfile");
   }
 
   PlatformProcess target(pid);
