@@ -10,6 +10,6 @@ for %%t in (shell,daemon,osquery_tests,osquery_additional_tests,osquery_tables_t
   if errorlevel 1 goto end
 )
 
-ctest
+ctest --output-on-failure
 
 :end

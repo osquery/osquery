@@ -20,9 +20,10 @@
 
 #include <boost/optional.hpp>
 
+#include <osquery/system.h>
+
 #include "osquery/core/process.h"
 #include "osquery/core/windows/wmi.h"
-#include "osquery/system.h"
 
 namespace osquery {
 

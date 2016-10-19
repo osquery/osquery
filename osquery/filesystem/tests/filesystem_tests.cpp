@@ -20,6 +20,7 @@
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/tests/test_util.h"
 
@@ -99,7 +100,7 @@ TEST_F(FilesystemTests, test_read_limit) {
   EXPECT_FALSE(status.ok());
   FLAGS_read_max = max;
 
-  if (platformGetUid() != 0) {
+  if (!isUserAdmin()) {
     content.erase();
     FLAGS_read_user_max = 2;
     status = readFile(kFakeDirectory + "/root.txt", content);

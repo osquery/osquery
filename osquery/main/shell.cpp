@@ -49,7 +49,7 @@ HIDDEN_FLAG(int32,
 DECLARE_bool(disable_caching);
 }
 
-int profile(int argc, char *argv[]) {
+int profile(int argc, char* argv[]) {
   std::string query;
   if (!osquery::platformIsatty(stdin)) {
     std::getline(std::cin, query);
@@ -90,12 +90,12 @@ int profile(int argc, char *argv[]) {
   return 0;
 }
 
-void table_completion_function(char const *prefix, linenoiseCompletions *lc) {
+void table_completion_function(char const* prefix, linenoiseCompletions* lc) {
   std::vector<std::string> tables = osquery::Registry::names("table");
   size_t index = 0;
 
   while (index < tables.size()) {
-    const std::string &table = tables.at(index);
+    const std::string& table = tables.at(index);
     ++index;
 
     if (boost::algorithm::starts_with(table, prefix)) {
@@ -104,7 +104,7 @@ void table_completion_function(char const *prefix, linenoiseCompletions *lc) {
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.
   osquery::Initializer runner(argc, argv, osquery::ToolType::SHELL);
 
