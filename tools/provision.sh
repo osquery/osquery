@@ -19,9 +19,9 @@ LINUXBREW_REPO="https://github.com/Linuxbrew/brew"
 
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
-HOMEBREW_CORE="14eaa685169edf4283e1dadd5818646f67d09f30"
+HOMEBREW_CORE="0e6f293450cf9b54e324e92ea0b0475fd4e0d929"
 LINUXBREW_CORE="600e1460c79b9cf6945e87cb5374b9202db1f6a9"
-HOMEBREW_DUPES="36b6b7cd76a482319611eeb71e51f3134018a21c"
+HOMEBREW_DUPES="00df450f28f23aa1013564889d11440ab80b36a5"
 LINUXBREW_DUPES="83cad3d474e6d245cd543521061bba976529e5df"
 
 source "$SCRIPT_DIR/lib.sh"
@@ -206,9 +206,6 @@ function platform_linux_main() {
   local_brew_tool python
   local_brew_postinstall python
   local_brew_tool cmake --without-docs
-  local_brew_tool zzuf
-  local_brew_tool cppcheck
-  local_brew_tool ccache
 
   # Linux library secondary dependencies.
   local_brew_tool berkeley-db
@@ -223,6 +220,10 @@ function platform_linux_main() {
   local_brew_dependency util-linux
 
   platform_posix_main
+
+  local_brew_tool zzuf
+  local_brew_tool cppcheck
+  local_brew_tool ccache
 
   # Linux specific custom formulas.
   local_brew_dependency libgpg-error
@@ -254,18 +255,18 @@ function platform_darwin_main() {
   brew_tool autoconf
   brew_tool automake
   brew_tool libtool
-  brew_tool m4
   brew_tool bison
   brew_link bison
 
   local_brew_tool python
   local_brew_postinstall python
   local_brew_tool cmake --without-docs
+
+  platform_posix_main
+
   local_brew_tool zzuf
   local_brew_tool cppcheck
   local_brew_tool ccache
-
-  platform_posix_main
 }
 
 function platform_posix_main() {

@@ -11,6 +11,7 @@ class Cmake < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
+    sha256 "5adefeb50d8db10a5d0c937ea0cd26c63434d53701820034c3bc0ad16f1fb747" => :sierra
     sha256 "c2dd35936fd86bf1a17173e874dc8a1eb0bcc3a540b445473c7eaea0d62e7fac" => :el_capitan
     sha256 "d69f263f4c793cf077b7892eaeb795adb40435a923b570883ad50b4eba4a4eef" => :x86_64_linux
   end
@@ -50,7 +51,7 @@ class Cmake < AbstractOsqueryFormula
       args << "--sphinx-man" << "--sphinx-build=#{Formula["sphinx-doc"].opt_bin}/sphinx-build"
     end
 
-    ENV.append "CXXFLAGS", "-L#{legacy.lib}"
+    ENV.append "CXXFLAGS", "-L#{legacy_prefix}/lib"
 
     system "./bootstrap", *args
     system "make"
