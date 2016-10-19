@@ -11,6 +11,7 @@ class Cppcheck < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
+    sha256 "9d05ec931b6b3e449cce066d6205205057875760396eccff8441534cd58c1b43" => :sierra
     sha256 "9499986e0e2859a8d6356a406cdff0b88a2c8c0eac3b2d3c936a7dbcbf567454" => :el_capitan
     sha256 "0001d1022bea7c04a34301ddc0d65e84045056db187df2b992306d2e62595543" => :x86_64_linux
   end

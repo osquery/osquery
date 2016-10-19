@@ -9,6 +9,7 @@ class Snappy < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
+    sha256 "dc1023c5e85eda474df62e735d68c97656efa92974b28531737c5cddba511316" => :sierra
     sha256 "bfb084be2ab8d6d302504b306be9dcc753be9543aecbc0f695b6908b32efb2ee" => :el_capitan
     sha256 "d376883230a45dc1cc7f58fdaa5e5b06b913b0b7dd38d1ab55513bcbff795c1b" => :x86_64_linux
   end

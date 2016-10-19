@@ -27,7 +27,7 @@ function setup_brew() {
     git clone $BREW_REPO "$DEPS"
   else
     log "checking for updates to brew"
-    #git pull
+    git pull
   fi
 
   # Create a local cache directory
@@ -55,12 +55,12 @@ function setup_brew() {
   # Grab full clone to perform a pin
   log "installing homebrew core"
   $BREW tap homebrew/core --full
-  (cd $TAPS/homebrew/homebrew-core && git reset --hard $CORE_COMMIT)
+  (cd $TAPS/homebrew/homebrew-core && git pull && git reset --hard $CORE_COMMIT)
 
   # Need dupes for upzip.
   log "installing homebrew dupes"
   $BREW tap homebrew/dupes --full
-  (cd $TAPS/homebrew/homebrew-dupes && git reset --hard $DUPES_COMMIT)
+  (cd $TAPS/homebrew/homebrew-dupes && git pull && git reset --hard $DUPES_COMMIT)
 
   # Create a 'legacy' mirror.
   if [[ -L "$DEPS/legacy" ]]; then

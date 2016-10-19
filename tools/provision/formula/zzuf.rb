@@ -10,6 +10,7 @@ class Zzuf < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
+    sha256 "0811de4fdac7e4188c61fea1318c759fffe334011c342f0f370f0942844054c1" => :sierra
     sha256 "37ef864273fa364fd08e26b5173c12e70ab9d6d42b988b4b2f36a8835c156d42" => :el_capitan
     sha256 "6e2de1bed215d2c945b6283cb07a642124a954061086b3ea93eefdedacb8a7a1" => :x86_64_linux
   end

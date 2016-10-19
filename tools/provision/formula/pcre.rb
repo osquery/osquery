@@ -10,6 +10,7 @@ class Pcre < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
+    sha256 "b08e622fd735f2a3701f92e529aa9ab1a10de8261c6edc8ef66a7f5b15d81ba5" => :sierra
     sha256 "d53bd23be25af381a8a5e645d90f4a83e4e5acf3111abd4e482160621cff6349" => :el_capitan
     sha256 "3d2507879303c57941fa19972dc9eed980318751725908a5f8db1ba1104ea3d6" => :x86_64_linux
   end

@@ -9,6 +9,7 @@ class Ccache < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
+    sha256 "7252af8fa4fe3b76281a4c330a737d583c5074fcb44119b5edc83332774b62e2" => :sierra
     sha256 "de5a5e43ceb9b925a94fe0b5788fdca0ae58ae12eb48819a765cd3ad6c9a65f7" => :el_capitan
     sha256 "7e2f7acbedf1466376a4cbe6ca90e0cc1ce1d3cebbd31bd0cd10447ffd333bb1" => :x86_64_linux
   end

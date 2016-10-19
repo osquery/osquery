@@ -10,6 +10,7 @@ class Sleuthkit < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
+    sha256 "bc7fe404554c5fb2c28eccb7b8e820420c48464030fd25b3d3c6bddb00208977" => :sierra
     sha256 "280f5ef4460942a04e7eb89ed3bb761fb28d35dcd656f7633864bcbdfc8a0be0" => :el_capitan
     sha256 "68daa7ee6ee634b9e16a385a4fe5dbeb719287e15885b76949916a1a24668d35" => :x86_64_linux
   end
