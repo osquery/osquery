@@ -388,7 +388,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
 
   handle_ = ::CreateFileA(path.c_str(),
                           access_mask,
-                          0,
+                          FILE_SHARE_READ,
                           security_attrs.get(),
                           creation_disposition,
                           flags_and_attrs,
