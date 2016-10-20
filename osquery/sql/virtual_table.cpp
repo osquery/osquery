@@ -478,19 +478,23 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
              " " + constraint.second.expr);
         // Add the constraint to the column-sorted query request map.
         context.constraints[constraint.first].add(constraint.second);
-
-        if (options[constraint.first] & ColumnOptions::REQUIRED) {
-          // A required option exists in the constraints.
-          required_satisfied = true;
-        }
-
-        if (!user_based_satisfied && constraint.first == "uid") {
-          // UID was required and exists in the constraints.
-          user_based_satisfied = true;
-        }
       }
     } else if (constraints.size() > 0) {
       // Constraints failed.
+    }
+
+    // Evaluate index and optimized constratint requirements.
+    // These are satisfied regarless of expression content availability.
+    for (const auto& constraint : constraints) {
+      if (options[constraint.first] & ColumnOptions::REQUIRED) {
+        // A required option exists in the constraints.
+        required_satisfied = true;
+      }
+
+      if (!user_based_satisfied && constraint.first == "uid") {
+        // UID was required and exists in the constraints.
+        user_based_satisfied = true;
+      }
     }
   }
 
