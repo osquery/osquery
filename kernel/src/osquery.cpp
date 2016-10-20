@@ -75,11 +75,11 @@ static struct {
   /// IOCTL API handling mutex.
   lck_mtx_t *mtx;
 } osquery = {.open_count = 0,
-             .buffer = NULL,
+             .buffer = nullptr,
              .buf_size = 0,
-             .md = NULL,
-             .mm = NULL,
-             .devfs = NULL,
+             .md = nullptr,
+             .mm = nullptr,
+             .devfs = nullptr,
              .major_number = OSQUERY_MAJOR};
 
 static inline void setup_locks() {
@@ -112,7 +112,7 @@ static void unsubscribe_all_events() {
 }
 
 static int subscribe_to_event(osquery_event_t event, int subscribe) {
-  if (osquery.buffer == NULL) {
+  if (osquery.buffer == nullptr) {
     return -EINVAL;
   }
   if (!(OSQUERY_NULL_EVENT < event && event < OSQUERY_NUM_EVENTS)) {
@@ -158,17 +158,17 @@ static void cleanup_user_kernel_buffer() {
 
   if (osquery.mm) {
     osquery.mm->release();
-    osquery.mm = NULL;
+    osquery.mm = nullptr;
   }
 
   if (osquery.md) {
     osquery.md->release();
-    osquery.md = NULL;
+    osquery.md = nullptr;
   }
 
   if (osquery.buffer) {
     IOFreeAligned(osquery.buffer, osquery.buf_size);
-    osquery.buffer = NULL;
+    osquery.buffer = nullptr;
   }
 }
 
@@ -187,7 +187,7 @@ static int allocate_user_kernel_buffer(size_t size, void **buf) {
   // Allocate a contiguous region of memory.
   osquery.buffer = IOMallocAligned(osquery.buf_size, PAGE_SIZE);
   // Cannot proceed if no memory to back the circular queue is available.
-  if (osquery.buffer == NULL) {
+  if (osquery.buffer == nullptr) {
     err = -EINVAL;
     goto error_exit;
   }
@@ -201,15 +201,15 @@ static int allocate_user_kernel_buffer(size_t size, void **buf) {
                                            osquery.buf_size,
                                            kIODirectionInOut,
                                            kernel_task);
-  if (osquery.md == NULL) {
+  if (osquery.md == nullptr) {
     err = -EINVAL;
     goto error_exit;
   }
 
   // Now map the buffer into the user space process as read only.
   osquery.mm = osquery.md->createMappingInTask(
-      current_task(), NULL, kIOMapAnywhere | kIOMapReadOnly);
-  if (osquery.mm == NULL) {
+      current_task(), nullptr, kIOMapAnywhere | kIOMapReadOnly);
+  if (osquery.mm == nullptr) {
     err = -EINVAL;
     goto error_exit;
   }
@@ -264,13 +264,13 @@ static int osquery_ioctl(
   // This test-only code allows benchmarks to stress test queue handling.
   static unsigned int test_counter = 0;
   if (cmd == OSQUERY_IOCTL_TEST) {
-    if (osquery.buffer == NULL) {
+    if (osquery.buffer == nullptr) {
       return -EINVAL;
     }
     test_counter++;
 
     size_t length = 0;
-    void *e = NULL;
+    void *e = nullptr;
     switch (*(int *)data) {
     case 0:
       e = osquery_cqueue_reserve(
@@ -300,9 +300,9 @@ static int osquery_ioctl(
 #endif // KERNEL_TEST
 
   int err = 0;
-  osquery_subscription_args_t *sub = NULL;
-  osquery_buf_sync_args_t *sync = NULL;
-  osquery_buf_allocate_args_t *alloc = NULL;
+  osquery_subscription_args_t *sub = nullptr;
+  osquery_buf_sync_args_t *sync = nullptr;
+  osquery_buf_allocate_args_t *alloc = nullptr;
 
   // All control should be from a single daemon.
   // Wrap all IOCTL API handling in locks to guarantee proper use.
@@ -319,7 +319,7 @@ static int osquery_ioctl(
   // Daemon is requesting a synchronization of readable queue space.
   case OSQUERY_IOCTL_BUF_SYNC:
     // The queue buffer cannot be synchronized if it has not been allocated.
-    if (osquery.buffer == NULL) {
+    if (osquery.buffer == nullptr) {
       err = -EINVAL;
       goto error_exit;
     }
@@ -348,7 +348,7 @@ static int osquery_ioctl(
       goto error_exit;
     }
 
-    if (osquery.buffer != NULL) {
+    if (osquery.buffer != nullptr) {
       // There is only a single shared buffer.
       err = -EINVAL;
       goto error_exit;
@@ -383,7 +383,7 @@ static struct cdevsw osquery_cdevsw = {
     &osquery_ioctl, // ioctl_fcn_t      *d_ioctl;
     eno_stop, // stop_fcn_t       *d_stop;
     eno_reset, // reset_fcn_t      *d_reset;
-    NULL, // struct tty      **d_ttys;
+    nullptr, // struct tty      **d_ttys;
     eno_select, // select_fcn_t     *d_select;
     eno_mmap, // mmap_fcn_t       *d_mmap;
     eno_strat, // strategy_fcn_t   *d_strategy;
@@ -414,7 +414,7 @@ kern_return_t OsqueryStart(kmod_info_t *ki, void *d) {
                                   0600,
                                   "osquery",
                                   0);
-  if (osquery.devfs == NULL) {
+  if (osquery.devfs == nullptr) {
     dbg_printf("Could not get a devfs entry!\n");
     goto error_exit;
   }
@@ -425,9 +425,9 @@ kern_return_t OsqueryStart(kmod_info_t *ki, void *d) {
   return KERN_SUCCESS;
 error_exit:
   // Upon error, remove the device node if it was allocated.
-  if (osquery.devfs != NULL) {
+  if (osquery.devfs != nullptr) {
     devfs_remove(osquery.devfs);
-    osquery.devfs = NULL;
+    osquery.devfs = nullptr;
   }
 
   // Tear down device node data.
@@ -462,7 +462,7 @@ kern_return_t OsqueryStop(kmod_info_t *ki, void *d) {
 
   // Remove the device node.
   devfs_remove(osquery.devfs);
-  osquery.devfs = NULL;
+  osquery.devfs = nullptr;
 
   // Tear down the device node data.
   if (cdevsw_remove(osquery.major_number, &osquery_cdevsw) < 0) {

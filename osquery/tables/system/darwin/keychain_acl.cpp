@@ -281,7 +281,7 @@ Status genKeychainACLApps(const std::string &path, QueryData &results) {
 
   SecKeychainSearchRef search = nullptr;
   OSQUERY_USE_DEPRECATED(os_status = SecKeychainSearchCreateFromAttributes(
-      keychain, (SecItemClass) CSSM_DL_DB_RECORD_ANY, NULL, &search););
+      keychain, (SecItemClass) CSSM_DL_DB_RECORD_ANY, nullptr, &search););
   if (os_status != noErr || search == nullptr) {
     if (search != nullptr) {
       CFRelease(search);

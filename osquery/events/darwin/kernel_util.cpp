@@ -83,10 +83,10 @@ void loadKernelExtension() {
   CFURLRef urls[1];
   CFArrayRef directoryArray;
 
-  urls[0] = CFURLCreateWithString(NULL, kKernelExtensionDirectory, NULL);
+  urls[0] = CFURLCreateWithString(nullptr, kKernelExtensionDirectory, nullptr);
 
   directoryArray =
-      CFArrayCreate(NULL, (const void **)urls, 1, &kCFTypeArrayCallBacks);
+      CFArrayCreate(nullptr, (const void **)urls, 1, &kCFTypeArrayCallBacks);
   if (KextManagerLoadKextWithIdentifier(kKernelBundleId, directoryArray) !=
       kOSReturnSuccess) {
     LOG(INFO) << "Could not autoload kernel extension";
