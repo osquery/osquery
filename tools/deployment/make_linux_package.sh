@@ -99,7 +99,8 @@ function get_pkg_suffix() {
     # stay compliant with Debian package naming convention
     echo "_${PACKAGE_VERSION}_$(dpkg --print-architecture).${PACKAGE_TYPE}"
   else
-    echo "-${PACKAGE_VERSION}-${PACKAGE_ITERATION}.${PACKAGE_ARCH}.${PACKAGE_TYPE}"
+    V=`echo ${PACKAGE_VERSION}|tr '-' '_'`
+    echo "-${V}-${PACKAGE_ITERATION}.${PACKAGE_ARCH}.${PACKAGE_TYPE}"
   fi
 }
 
@@ -143,7 +144,7 @@ function main() {
     log "tls server certs file setup"
     cp $OSQUERY_TLS_CERT_CHAIN_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/tls-server-certs.pem
   fi
-  
+
   if [[ $DISTRO = "xenial" ]]; then
     #Change config path to Ubuntu/Xenial default
     SYSTEMD_SYSCONFIG_DST=$SYSTEMD_SYSCONFIG_DST_DEBIAN
