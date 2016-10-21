@@ -63,7 +63,7 @@ const std::map<CSSM_ACL_AUTHORIZATION_TAG, std::string> kACLAuthorizationTags =
 };
 
 Status parseKeychainItemACLEntry(SecACLRef acl,
-                                 std::vector<KeychainItemACL> &acls) {
+                                 std::vector<KeychainItemACL>& acls) {
   KeychainItemACL acl_data;
   OSStatus os_status;
 
@@ -114,9 +114,9 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
         return Status(os_status, "Could not copy trusted application data");
       }
 
-      const UInt8 *bytes = CFDataGetBytePtr(data);
+      const UInt8* bytes = CFDataGetBytePtr(data);
       if (bytes != nullptr && bytes[0] == '/') {
-        acl_data.applications.push_back(std::string((const char *)bytes));
+        acl_data.applications.push_back(std::string((const char*)bytes));
       }
       CFRelease(data);
     }
@@ -128,7 +128,7 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
 }
 
 Status parseKeychainItemACL(SecAccessRef access,
-                            std::vector<KeychainItemACL> &acls) {
+                            std::vector<KeychainItemACL>& acls) {
   OSStatus os_status;
   CFArrayRef acl_list = nullptr;
   os_status = SecAccessCopyACLList(access, &acl_list);
@@ -153,9 +153,9 @@ Status parseKeychainItemACL(SecAccessRef access,
   return Status(0, "OK");
 }
 
-static std::string attributeBufferToString(const void *data, UInt32 length) {
+static std::string attributeBufferToString(const void* data, UInt32 length) {
   std::stringstream stream;
-  uint8 *p = (uint8 *)data;
+  uint8* p = (uint8*)data;
   while (length--) {
     char ch = *p++;
     if (ch >= ' ' && ch <= '~' && ch != '\\') {
@@ -169,8 +169,8 @@ static std::string attributeBufferToString(const void *data, UInt32 length) {
 
 Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
                                   SecKeychainItemRef item,
-                                  const std::string &path,
-                                  QueryData &results) {
+                                  const std::string& path,
+                                  QueryData& results) {
   KeychainItemMetadata item_metadata;
   item_metadata.keychain_path = path;
 
@@ -212,10 +212,10 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
     break;
   }
 
-  SecKeychainAttributeInfo *info = nullptr;
+  SecKeychainAttributeInfo* info = nullptr;
   SecKeychainAttributeInfoForItemID(keychain, item_id, &info);
 
-  SecKeychainAttributeList *attr_list = nullptr;
+  SecKeychainAttributeList* attr_list = nullptr;
   os_status = SecKeychainItemCopyAttributesAndData(
       item, info, &item_class, &attr_list, nullptr, nullptr);
   if (os_status != noErr || attr_list == nullptr || info == nullptr) {
@@ -237,7 +237,7 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
   }
 
   for (size_t i = 0; i < info->count; ++i) {
-    SecKeychainAttribute *attribute = &attr_list->attr[i];
+    SecKeychainAttribute* attribute = &attr_list->attr[i];
     if (attribute->length == 0) {
       continue;
     }
@@ -253,8 +253,8 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
   SecKeychainItemFreeAttributesAndData(attr_list, nullptr);
   SecKeychainFreeAttributeInfo(info);
 
-  for (const auto &acl_data : acl) {
-    for (const auto &app_path : acl_data.applications) {
+  for (const auto& acl_data : acl) {
+    for (const auto& app_path : acl_data.applications) {
       Row r;
       r["keychain_path"] = item_metadata.keychain_path;
       r["label"] = item_metadata.label;
@@ -268,7 +268,7 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
   return Status(0, "OK");
 }
 
-Status genKeychainACLApps(const std::string &path, QueryData &results) {
+Status genKeychainACLApps(const std::string& path, QueryData& results) {
   SecKeychainRef keychain = nullptr;
   OSStatus os_status = 0;
   os_status = SecKeychainOpen(path.c_str(), &keychain);
@@ -280,8 +280,9 @@ Status genKeychainACLApps(const std::string &path, QueryData &results) {
   }
 
   SecKeychainSearchRef search = nullptr;
-  OSQUERY_USE_DEPRECATED(os_status = SecKeychainSearchCreateFromAttributes(
-      keychain, (SecItemClass) CSSM_DL_DB_RECORD_ANY, NULL, &search););
+  OSQUERY_USE_DEPRECATED(
+      os_status = SecKeychainSearchCreateFromAttributes(
+          keychain, (SecItemClass)CSSM_DL_DB_RECORD_ANY, nullptr, &search););
   if (os_status != noErr || search == nullptr) {
     if (search != nullptr) {
       CFRelease(search);
@@ -311,18 +312,18 @@ Status genKeychainACLApps(const std::string &path, QueryData &results) {
   return Status(0, "OK");
 }
 
-QueryData genKeychainACLApps(QueryContext &context) {
+QueryData genKeychainACLApps(QueryContext& context) {
   QueryData results;
 
   SecKeychainSetUserInteractionAllowed(false);
-  for (const auto &path : getKeychainPaths()) {
+  for (const auto& path : getKeychainPaths()) {
     std::vector<std::string> ls_results;
     auto list_status = listFilesInDirectory(path, ls_results, false);
     if (!list_status.ok()) {
       TLOG << "Could not list files in " << path << ": "
            << list_status.toString();
     }
-    for (const auto &keychain : ls_results) {
+    for (const auto& keychain : ls_results) {
       TLOG << "Checking directory: " << keychain;
       auto gen_status = genKeychainACLApps(keychain, results);
       if (!gen_status.ok()) {

@@ -119,7 +119,7 @@ void getSettings(Row& r) {
     }
     if (kKey.at("name") == "SensorId") {
       // from a string to an int, to hex, a portion of the hex, then to int
-      uint64_t int_sensor_id = strtoll(kKey.at("data").c_str(), NULL, 10);
+      uint64_t int_sensor_id = strtoll(kKey.at("data").c_str(), nullptr, 10);
       std::stringstream hex_sensor_id;
       hex_sensor_id << std::hex << int_sensor_id;
       unsigned int sensor_id;

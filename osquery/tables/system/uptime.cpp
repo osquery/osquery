@@ -27,12 +27,12 @@ long getUptime() {
   size_t len = sizeof(boot_time);
   int mib[2] = {CTL_KERN, KERN_BOOTTIME};
 
-  if (sysctl(mib, 2, &boot_time, &len, NULL, 0) < 0) {
+  if (sysctl(mib, 2, &boot_time, &len, nullptr, 0) < 0) {
     return -1;
   }
 
   time_t seconds_since_boot = boot_time.tv_sec;
-  time_t current_seconds = time(NULL);
+  time_t current_seconds = time(nullptr);
 
   return long(difftime(current_seconds, seconds_since_boot));
 #elif defined(__linux__)

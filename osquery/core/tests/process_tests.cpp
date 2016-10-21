@@ -68,7 +68,7 @@ TEST_F(ProcessTests, test_constructor) {
 TEST_F(ProcessTests, test_constructorWin) {
   HANDLE handle =
       ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, ::GetCurrentProcessId());
-  EXPECT_NE(handle, reinterpret_cast<HANDLE>(NULL));
+  EXPECT_NE(handle, reinterpret_cast<HANDLE>(nullptr));
 
   auto p = PlatformProcess(handle);
   EXPECT_TRUE(p.isValid());

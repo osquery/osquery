@@ -101,7 +101,7 @@ ProcessState PlatformProcess::checkStatus(int& status) const {
 std::shared_ptr<PlatformProcess> PlatformProcess::getCurrentProcess() {
   HANDLE handle =
       ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, ::GetCurrentProcessId());
-  if (handle == NULL) {
+  if (handle == nullptr) {
     return std::make_shared<PlatformProcess>();
   }
 
@@ -128,7 +128,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
     return std::make_shared<PlatformProcess>();
   }
 
-  if (handle == NULL || handle == INVALID_HANDLE_VALUE) {
+  if (handle == nullptr || handle == INVALID_HANDLE_VALUE) {
     return std::make_shared<PlatformProcess>();
   }
 
@@ -154,7 +154,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
       ::OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION,
                     TRUE,
                     GetCurrentProcessId());
-  if (hLauncherProcess == NULL) {
+  if (hLauncherProcess == nullptr) {
     return std::shared_ptr<PlatformProcess>();
   }
 
@@ -207,12 +207,12 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
 
   BOOL status = ::CreateProcessA(exec_path.c_str(),
                                  mutable_argv.data(),
-                                 NULL,
-                                 NULL,
+                                 nullptr,
+                                 nullptr,
                                  TRUE,
                                  0,
-                                 NULL,
-                                 NULL,
+                                 nullptr,
+                                 nullptr,
                                  &si,
                                  &pi);
   unsetEnvVar("OSQUERY_WORKER");
@@ -272,12 +272,12 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
 
   BOOL status = ::CreateProcessA(exec_path.c_str(),
                                  mutable_argv.data(),
-                                 NULL,
-                                 NULL,
+                                 nullptr,
+                                 nullptr,
                                  TRUE,
                                  0,
-                                 NULL,
-                                 NULL,
+                                 nullptr,
+                                 nullptr,
                                  &si,
                                  &pi);
   unsetEnvVar("OSQUERY_EXTENSION");

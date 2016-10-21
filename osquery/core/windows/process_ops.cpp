@@ -110,7 +110,7 @@ bool setEnvVar(const std::string& name, const std::string& value) {
 }
 
 bool unsetEnvVar(const std::string& name) {
-  return (::SetEnvironmentVariableA(name.c_str(), NULL) == TRUE);
+  return (::SetEnvironmentVariableA(name.c_str(), nullptr) == TRUE);
 }
 
 boost::optional<std::string> getEnvVar(const std::string& name) {

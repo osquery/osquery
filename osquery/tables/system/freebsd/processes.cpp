@@ -43,7 +43,7 @@ void genProcessEnvironment(struct procstat* pstat,
 
   envs = procstat_getenvv(pstat, proc, 0);
   if (envs != nullptr) {
-    for (i = 0; envs[i] != NULL; i++) {
+    for (i = 0; envs[i] != nullptr; i++) {
       Row r;
       size_t idx;
       std::string buf = std::string(envs[i]);
@@ -140,10 +140,10 @@ void genProcess(struct procstat* pstat,
 
   args = procstat_getargv(pstat, proc, 0);
   if (args != nullptr) {
-    for (i = 0; args[i] != NULL; i++) {
+    for (i = 0; args[i] != nullptr; i++) {
       r["cmdline"] += TEXT(args[i]);
       // Need to add spaces between arguments, except last one.
-      if (args[i + 1] != NULL) {
+      if (args[i + 1] != nullptr) {
         r["cmdline"] += TEXT(" ");
       }
     }
