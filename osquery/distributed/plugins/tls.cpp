@@ -70,14 +70,10 @@ Status TLSDistributedPlugin::setUp() {
 }
 
 Status TLSDistributedPlugin::getQueries(std::string& json) {
-  if (FLAGS_tls_node_api) {
-    pt::ptree params;
-    params.put("verb", "POST");
-    return TLSRequestHelper::go<JSONSerializer>(
-        read_uri_, params, json, FLAGS_distributed_tls_max_attempts);
-  }
+  pt::ptree params;
+  params.put("_verb", "POST");
   return TLSRequestHelper::go<JSONSerializer>(
-      read_uri_, json, FLAGS_distributed_tls_max_attempts);
+      read_uri_, params, json, FLAGS_distributed_tls_max_attempts);
 }
 
 Status TLSDistributedPlugin::writeResults(const std::string& json) {
@@ -85,9 +81,6 @@ Status TLSDistributedPlugin::writeResults(const std::string& json) {
   try {
     std::stringstream ss(json);
     pt::read_json(ss, params);
-    if (FLAGS_tls_node_api) {
-      params.put("verb", "POST");
-    }
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error parsing JSON: " + std::string(e.what()));
   }
