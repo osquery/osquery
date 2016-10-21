@@ -63,8 +63,8 @@ void DebugPrintf(const char* fmt, ...) {
 
   int size = _vscprintf(fmt, vl);
   if (size > 0) {
-    char* buf =
-        (char*)::HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size + 2);
+    char* buf = static_cast<char*>(
+        ::HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size + 2));
     if (buf != nullptr) {
       _vsprintf_p(buf, size + 1, fmt, vl);
       ::OutputDebugStringA(buf);
@@ -117,7 +117,7 @@ class ServiceArgumentParser {
     cleanArgs();
   }
 
-  DWORD count() {
+  DWORD count() const {
     return static_cast<DWORD>(args_.size());
   }
   LPSTR* arguments() {
@@ -125,7 +125,7 @@ class ServiceArgumentParser {
   }
 
  private:
-  LPSTR toMBString(const LPWSTR src) {
+  LPSTR toMBString(const LPWSTR src) const {
     if (src == nullptr) {
       return nullptr;
     }
@@ -134,7 +134,7 @@ class ServiceArgumentParser {
 
     // Allocate the same amount for multi-byte
     size_t mbsbuf_size = wcslen(src) * 2;
-    LPSTR mbsbuf = (LPSTR) new char[mbsbuf_size];
+    LPSTR mbsbuf = static_cast<LPSTR>(new char[mbsbuf_size]);
     if (mbsbuf == nullptr) {
       return nullptr;
     }
@@ -176,6 +176,7 @@ Status installService(const char* const binPath) {
       OpenService(schSCManager, kServiceName.c_str(), SERVICE_ALL_ACCESS);
 
   if (schService != nullptr) {
+    CloseServiceHandle(schService);
     CloseServiceHandle(schSCManager);
     return Status(1);
   }
@@ -233,7 +234,7 @@ Status uninstallService() {
   DWORD dwBytesNeeded;
   if (!QueryServiceStatusEx(schService,
                             SC_STATUS_PROCESS_INFO,
-                            (LPBYTE)&ssStatus,
+                            reinterpret_cast<LPBYTE>(&ssStatus),
                             sizeof(SERVICE_STATUS_PROCESS),
                             &dwBytesNeeded)) {
     CloseServiceHandle(schService);
@@ -391,8 +392,8 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
 
 int main(int argc, char* argv[]) {
   SERVICE_TABLE_ENTRYA serviceTable[] = {
-      {(LPSTR)osquery::kServiceName.c_str(),
-       (LPSERVICE_MAIN_FUNCTION)osquery::ServiceMain},
+      {const_cast<CHAR*>(osquery::kServiceName.c_str()),
+       static_cast<LPSERVICE_MAIN_FUNCTION>(osquery::ServiceMain)},
       {nullptr, nullptr}};
 
   if (!::StartServiceCtrlDispatcherA(serviceTable)) {
